@@ -50,7 +50,6 @@ job "foo" {
             resources {
                 cpu = 20
                 memory = 10
-                disk = 100
             }
 
             logs {

@@ -1,7 +1,7 @@
 ---
 layout: "profitbricks"
 page_title: "ProfitBricks: profitbricks_lan"
-sidebar_current: "docs-profitbricks-resource-profitbricks_lan"
+sidebar_current: "docs-profitbricks-resource-lan"
 description: |-
   Creates and manages LAN objects.
 ---

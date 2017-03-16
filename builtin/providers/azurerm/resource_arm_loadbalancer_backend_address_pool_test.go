@@ -94,6 +94,29 @@ func TestAccAzureRMLoadBalancerBackEndAddressPool_reapply(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMLoadBalancerBackEndAddressPool_disappears(t *testing.T) {
+	var lb network.LoadBalancer
+	ri := acctest.RandInt()
+	addressPoolName := fmt.Sprintf("%d-address-pool", ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMLoadBalancerBackEndAddressPool_basic(ri, addressPoolName),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
+					testCheckAzureRMLoadBalancerBackEndAddressPoolExists(addressPoolName, &lb),
+					testCheckAzureRMLoadBalancerBackEndAddressPoolDisappears(addressPoolName, &lb),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func testCheckAzureRMLoadBalancerBackEndAddressPoolExists(addressPoolName string, lb *network.LoadBalancer) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		_, _, exists := findLoadBalancerBackEndAddressPoolByName(lb, addressPoolName)
@@ -113,6 +136,34 @@ func testCheckAzureRMLoadBalancerBackEndAddressPoolNotExists(addressPoolName str
 		}
 
 		return nil
+	}
+}
+
+func testCheckAzureRMLoadBalancerBackEndAddressPoolDisappears(addressPoolName string, lb *network.LoadBalancer) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		conn := testAccProvider.Meta().(*ArmClient).loadBalancerClient
+
+		_, i, exists := findLoadBalancerBackEndAddressPoolByName(lb, addressPoolName)
+		if !exists {
+			return fmt.Errorf("A BackEnd Address Pool with name %q cannot be found.", addressPoolName)
+		}
+
+		currentPools := *lb.LoadBalancerPropertiesFormat.BackendAddressPools
+		pools := append(currentPools[:i], currentPools[i+1:]...)
+		lb.LoadBalancerPropertiesFormat.BackendAddressPools = &pools
+
+		id, err := parseAzureResourceID(*lb.ID)
+		if err != nil {
+			return err
+		}
+
+		_, err = conn.CreateOrUpdate(id.ResourceGroup, *lb.Name, *lb, make(chan struct{}))
+		if err != nil {
+			return fmt.Errorf("Error Creating/Updating LoadBalancer %s", err)
+		}
+
+		_, err = conn.Get(id.ResourceGroup, *lb.Name, "")
+		return err
 	}
 }
 

@@ -671,6 +671,10 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 
 	d.Set("can_ip_forward", instance.CanIpForward)
 
+	machineTypeResource := strings.Split(instance.MachineType, "/")
+	machineType := machineTypeResource[len(machineTypeResource)-1]
+	d.Set("machine_type", machineType)
+
 	// Set the service accounts
 	serviceAccounts := make([]map[string]interface{}, 0, 1)
 	for _, serviceAccount := range instance.ServiceAccounts {

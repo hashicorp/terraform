@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -12,6 +13,9 @@ import (
 // BuiltinEvalContext is an EvalContext implementation that is used by
 // Terraform by default.
 type BuiltinEvalContext struct {
+	// StopContext is the context used to track whether we're complete
+	StopContext context.Context
+
 	// PathValue is the Path that this context is operating within.
 	PathValue []string
 
@@ -41,6 +45,15 @@ type BuiltinEvalContext struct {
 	StateLock           *sync.RWMutex
 
 	once sync.Once
+}
+
+func (ctx *BuiltinEvalContext) Stopped() <-chan struct{} {
+	// This can happen during tests. During tests, we just block forever.
+	if ctx.StopContext == nil {
+		return nil
+	}
+
+	return ctx.StopContext.Done()
 }
 
 func (ctx *BuiltinEvalContext) Hook(fn func(Hook) (HookAction, error)) error {

@@ -60,3 +60,26 @@ func (s *State) PersistState() error {
 
 	return s.Client.Put(buf.Bytes())
 }
+
+// Lock calls the Client's Lock method if it's implemented.
+func (s *State) Lock(reason string) error {
+	if c, ok := s.Client.(stateLocker); ok {
+		return c.Lock(reason)
+	}
+	return nil
+}
+
+// Unlock calls the Client's Unlock method if it's implemented.
+func (s *State) Unlock() error {
+	if c, ok := s.Client.(stateLocker); ok {
+		return c.Unlock()
+	}
+	return nil
+}
+
+// stateLocker mirrors the state.Locker interface.  This can be implemented by
+// Clients to provide methods for locking and unlocking remote state.
+type stateLocker interface {
+	Lock(reason string) error
+	Unlock() error
+}

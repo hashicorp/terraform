@@ -37,7 +37,15 @@ No further attributes are exported.
 
 ## Import
 
-Registries can be imported using their Rancher API ID, e.g.
+Registries can be imported using the Environment and Registry IDs in the form
+`<environment_id>/<registry_id>`
+
+```
+$ terraform import rancher_registry.private_registry 1a5/1sp31
+```
+
+If the credentials for the Rancher provider have access to the global API, then
+then `environment_id` can be omitted e.g.
 
 ```
 $ terraform import rancher_registry.private_registry 1sp31

@@ -413,7 +413,7 @@ func (*DebugHook) PreProvision(ii *InstanceInfo, s string) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*DebugHook) PostProvision(ii *InstanceInfo, s string) (HookAction, error) {
+func (*DebugHook) PostProvision(ii *InstanceInfo, s string, err error) (HookAction, error) {
 	if dbug == nil {
 		return HookActionContinue, nil
 	}

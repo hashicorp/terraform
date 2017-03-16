@@ -76,7 +76,8 @@ The following arguments are supported:
   to attach to the autoscaling group **before** instances are launched. The
   syntax is exactly the same as the separate
   [`aws_autoscaling_lifecycle_hook`](/docs/providers/aws/r/autoscaling_lifecycle_hooks.html)
-  resource, without the `autoscaling_group_name` attribute.
+  resource, without the `autoscaling_group_name` attribute. Please note that this will only work when creating
+  a new autoscaling group. For all other use-cases, please use `aws_autoscaling_lifecycle_hook` resource.
 * `health_check_grace_period` - (Optional, Default: 300) Time (in seconds) after instance comes into service before checking health.
 * `health_check_type` - (Optional) "EC2" or "ELB". Controls how health checking is done.
 * `desired_capacity` - (Optional) The number of Amazon EC2 instances that

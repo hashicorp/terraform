@@ -85,15 +85,22 @@ func (f *StateFilter) filterSingle(a *ResourceAddress) []*StateFilterResult {
 	// the modules to find relevant resources.
 	for _, m := range modules {
 		for n, r := range m.Resources {
-			if f.relevant(a, r) {
-				// The name in the state contains valuable information. Parse.
-				key, err := ParseResourceStateKey(n)
-				if err != nil {
-					// If we get an error parsing, then just ignore it
-					// out of the state.
-					continue
-				}
+			// The name in the state contains valuable information. Parse.
+			key, err := ParseResourceStateKey(n)
+			if err != nil {
+				// If we get an error parsing, then just ignore it
+				// out of the state.
+				continue
+			}
 
+			// Older states and test fixtures often don't contain the
+			// type directly on the ResourceState. We add this so StateFilter
+			// is a bit more robust.
+			if r.Type == "" {
+				r.Type = key.Type
+			}
+
+			if f.relevant(a, r) {
 				if a.Name != "" && a.Name != key.Name {
 					// Name doesn't match
 					continue

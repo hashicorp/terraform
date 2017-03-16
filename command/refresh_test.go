@@ -59,6 +59,43 @@ func TestRefresh(t *testing.T) {
 	}
 }
 
+func TestRefresh_lockedState(t *testing.T) {
+	state := testState()
+	statePath := testStateFile(t, state)
+
+	unlock, err := testLockState(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unlock()
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &RefreshCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	p.RefreshFn = nil
+	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
+
+	args := []string{
+		"-state", statePath,
+		testFixturePath("refresh"),
+	}
+
+	if code := c.Run(args); code == 0 {
+		t.Fatal("expected error")
+	}
+
+	output := ui.ErrorWriter.String()
+	if !strings.Contains(output, "locked") {
+		t.Fatal("command output does not look like a lock error:", output)
+	}
+}
+
 func TestRefresh_badState(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -709,6 +746,10 @@ func TestRefresh_disableBackup(t *testing.T) {
 
 	// Ensure there is no backup
 	_, err = os.Stat(outPath + DefaultBackupExtension)
+	if err == nil || !os.IsNotExist(err) {
+		t.Fatalf("backup should not exist")
+	}
+	_, err = os.Stat("-")
 	if err == nil || !os.IsNotExist(err) {
 		t.Fatalf("backup should not exist")
 	}

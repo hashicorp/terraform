@@ -1,6 +1,8 @@
 package ignition
 
 import (
+	"fmt"
+
 	"github.com/coreos/ignition/config/types"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -103,11 +105,19 @@ func buildFilesystem(d *schema.ResourceData, c *cache) (string, error) {
 		}
 	}
 
-	path := types.Path(d.Get("path").(string))
+	var path *types.Path
+	if p, ok := d.GetOk("path"); ok {
+		tp := types.Path(p.(string))
+		path = &tp
+	}
+
+	if mount != nil && path != nil {
+		return "", fmt.Errorf("mount and path are mutually exclusive")
+	}
 
 	return c.addFilesystem(&types.Filesystem{
 		Name:  d.Get("name").(string),
 		Mount: mount,
-		Path:  &path,
+		Path:  path,
 	}), nil
 }

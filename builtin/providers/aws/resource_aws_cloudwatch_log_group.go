@@ -218,7 +218,7 @@ func flattenCloudWatchTags(d *schema.ResourceData, conn *cloudwatchlogs.CloudWat
 		LogGroupName: aws.String(d.Get("name").(string)),
 	})
 	if err != nil {
-		return nil, errwrap.Wrapf("Error Getting CloudWatch Logs Tag List: %s", err)
+		return nil, errwrap.Wrapf("Error Getting CloudWatch Logs Tag List: {{err}}", err)
 	}
 	if tagsOutput != nil {
 		output := make(map[string]interface{}, len(tagsOutput.Tags))

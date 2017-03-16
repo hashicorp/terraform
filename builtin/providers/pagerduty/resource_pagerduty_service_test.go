@@ -38,9 +38,9 @@ func TestAccPagerDutyService_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"pagerduty_service.foo", "description", "bar"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_service.foo", "auto_resolve_timeout", "3600"),
+						"pagerduty_service.foo", "auto_resolve_timeout", "0"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_service.foo", "acknowledgement_timeout", "3600"),
+						"pagerduty_service.foo", "acknowledgement_timeout", "0"),
 				),
 			},
 		},
@@ -149,10 +149,8 @@ resource "pagerduty_escalation_policy" "foo" {
 }
 
 resource "pagerduty_service" "foo" {
-  name                    = "bar"
-  description             = "bar"
-  auto_resolve_timeout    = 3600
-  acknowledgement_timeout = 3600
-  escalation_policy       = "${pagerduty_escalation_policy.foo.id}"
+  name              = "bar"
+  description       = "bar"
+  escalation_policy = "${pagerduty_escalation_policy.foo.id}"
 }
 `

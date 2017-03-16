@@ -57,7 +57,15 @@ The following attributes are exported:
 
 ## Import
 
-Stacks can be imported using their Rancher API ID, e.g.
+Stacks can be imported using the Environment and Stack ID in the form
+`<environment_id>/<stack_id>`
+
+```
+$ terraform import rancher_stack.foo 1a5/1e149
+```
+
+If the credentials for the Rancher provider have access to the global API, then
+then `environment_id` can be omitted e.g.
 
 ```
 $ terraform import rancher_stack.foo 1e149

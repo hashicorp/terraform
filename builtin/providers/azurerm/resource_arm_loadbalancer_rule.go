@@ -19,6 +19,9 @@ func resourceArmLoadBalancerRule() *schema.Resource {
 		Read:   resourceArmLoadBalancerRuleRead,
 		Update: resourceArmLoadBalancerRuleCreate,
 		Delete: resourceArmLoadBalancerRuleDelete,
+		Importer: &schema.ResourceImporter{
+			State: loadBalancerSubResourceStateImporter,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -28,7 +31,14 @@ func resourceArmLoadBalancerRule() *schema.Resource {
 				ValidateFunc: validateArmLoadBalancerRuleName,
 			},
 
-			"location": locationSchema(),
+			"location": {
+				Type:             schema.TypeString,
+				ForceNew:         true,
+				Optional:         true,
+				StateFunc:        azureRMNormalizeLocation,
+				DiffSuppressFunc: azureRMSuppressLocationDiff,
+				Deprecated:       "location is no longer used",
+			},
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -180,49 +190,64 @@ func resourceArmLoadBalancerRuleCreate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceArmLoadBalancerRuleRead(d *schema.ResourceData, meta interface{}) error {
+	id, err := parseAzureResourceID(d.Id())
+	if err != nil {
+		return err
+	}
+	name := id.Path["loadBalancingRules"]
+
 	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
 	if !exists {
 		d.SetId("")
-		log.Printf("[INFO] LoadBalancer %q not found. Removing from state", d.Get("name").(string))
+		log.Printf("[INFO] LoadBalancer %q not found. Removing from state", name)
 		return nil
 	}
 
-	configs := *loadBalancer.LoadBalancerPropertiesFormat.LoadBalancingRules
-	for _, config := range configs {
-		if *config.Name == d.Get("name").(string) {
-			d.Set("name", config.Name)
+	config, _, exists := findLoadBalancerRuleByName(loadBalancer, name)
+	if !exists {
+		d.SetId("")
+		log.Printf("[INFO] LoadBalancer Rule %q not found. Removing from state", name)
+		return nil
+	}
 
-			d.Set("protocol", config.LoadBalancingRulePropertiesFormat.Protocol)
-			d.Set("frontend_port", config.LoadBalancingRulePropertiesFormat.FrontendPort)
-			d.Set("backend_port", config.LoadBalancingRulePropertiesFormat.BackendPort)
+	d.Set("name", config.Name)
+	d.Set("resource_group_name", id.ResourceGroup)
 
-			if config.LoadBalancingRulePropertiesFormat.EnableFloatingIP != nil {
-				d.Set("enable_floating_ip", config.LoadBalancingRulePropertiesFormat.EnableFloatingIP)
-			}
+	d.Set("protocol", config.LoadBalancingRulePropertiesFormat.Protocol)
+	d.Set("frontend_port", config.LoadBalancingRulePropertiesFormat.FrontendPort)
+	d.Set("backend_port", config.LoadBalancingRulePropertiesFormat.BackendPort)
 
-			if config.LoadBalancingRulePropertiesFormat.IdleTimeoutInMinutes != nil {
-				d.Set("idle_timeout_in_minutes", config.LoadBalancingRulePropertiesFormat.IdleTimeoutInMinutes)
-			}
+	if config.LoadBalancingRulePropertiesFormat.EnableFloatingIP != nil {
+		d.Set("enable_floating_ip", config.LoadBalancingRulePropertiesFormat.EnableFloatingIP)
+	}
 
-			if config.LoadBalancingRulePropertiesFormat.FrontendIPConfiguration != nil {
-				d.Set("frontend_ip_configuration_id", config.LoadBalancingRulePropertiesFormat.FrontendIPConfiguration.ID)
-			}
+	if config.LoadBalancingRulePropertiesFormat.IdleTimeoutInMinutes != nil {
+		d.Set("idle_timeout_in_minutes", config.LoadBalancingRulePropertiesFormat.IdleTimeoutInMinutes)
+	}
 
-			if config.LoadBalancingRulePropertiesFormat.BackendAddressPool != nil {
-				d.Set("backend_address_pool_id", config.LoadBalancingRulePropertiesFormat.BackendAddressPool.ID)
-			}
-
-			if config.LoadBalancingRulePropertiesFormat.Probe != nil {
-				d.Set("probe_id", config.LoadBalancingRulePropertiesFormat.Probe.ID)
-			}
-
-			if config.LoadBalancingRulePropertiesFormat.LoadDistribution != "" {
-				d.Set("load_distribution", config.LoadBalancingRulePropertiesFormat.LoadDistribution)
-			}
+	if config.LoadBalancingRulePropertiesFormat.FrontendIPConfiguration != nil {
+		fipID, err := parseAzureResourceID(*config.LoadBalancingRulePropertiesFormat.FrontendIPConfiguration.ID)
+		if err != nil {
+			return err
 		}
+
+		d.Set("frontend_ip_configuration_name", fipID.Path["frontendIPConfigurations"])
+		d.Set("frontend_ip_configuration_id", config.LoadBalancingRulePropertiesFormat.FrontendIPConfiguration.ID)
+	}
+
+	if config.LoadBalancingRulePropertiesFormat.BackendAddressPool != nil {
+		d.Set("backend_address_pool_id", config.LoadBalancingRulePropertiesFormat.BackendAddressPool.ID)
+	}
+
+	if config.LoadBalancingRulePropertiesFormat.Probe != nil {
+		d.Set("probe_id", config.LoadBalancingRulePropertiesFormat.Probe.ID)
+	}
+
+	if config.LoadBalancingRulePropertiesFormat.LoadDistribution != "" {
+		d.Set("load_distribution", config.LoadBalancingRulePropertiesFormat.LoadDistribution)
 	}
 
 	return nil

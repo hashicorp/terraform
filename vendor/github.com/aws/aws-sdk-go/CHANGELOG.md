@@ -1,3 +1,48 @@
+Release v1.6.18 (2017-01-27)
+===
+
+Service Client Updates
+---
+* `service/clouddirectory`: Adds new service
+  * Amazon Cloud Directory is a highly scalable, high performance, multi-tenant directory service in the cloud. Its web-based directories make it easy for you to organize and manage application resources such as users, groups, locations, devices, policies, and the rich relationships between them.
+* `service/codedeploy`: Updates service API, documentation, and paginators
+  * This release of AWS CodeDeploy introduces support for blue/green deployments. In a blue/green deployment, the current set of instances in a deployment group is replaced by new instances that have the latest application revision installed on them. After traffic is rerouted behind a load balancer to the replacement instances, the original instances can be terminated automatically or kept running for other uses.
+* `service/ec2`: Updates service API and documentation
+  * Adds instance health check functionality to replace unhealthy EC2 Spot fleet instances with fresh ones.
+* `service/rds`: Updates service API and documentation
+  * Snapshot Engine Version Upgrade
+
+Release v1.6.17 (2017-01-25)
+===
+
+Service Client Updates
+---
+* `service/elbv2`: Updates service API, documentation, and paginators
+  * Application Load Balancers now support native Internet Protocol version 6 (IPv6) in an Amazon Virtual Private Cloud (VPC). With this ability, clients can now connect to the Application Load Balancer in a dual-stack mode via either IPv4 or IPv6.
+* `service/rds`: Updates service API and documentation
+  * Cross Region Read Replica Copying (CreateDBInstanceReadReplica)
+
+Release v1.6.16 (2017-01-24)
+===
+
+Service Client Updates
+---
+* `service/codebuild`: Updates service documentation and paginators
+  * Documentation updates
+* `service/codecommit`: Updates service API, documentation, and paginators
+  * AWS CodeCommit now includes the option to view the differences between a commit and its parent commit from within the console. You can view the differences inline (Unified view) or side by side (Split view). To view information about the differences between a commit and something other than its parent, you can use the AWS CLI and the get-differences and get-blob commands, or you can use the GetDifferences and GetBlob APIs.
+* `service/ecs`: Updates service API and documentation
+  * Amazon ECS now supports a state for container instances that can be used to drain a container instance in preparation for maintenance or cluster scale down.
+
+Release v1.6.15 (2017-01-20)
+===
+
+Service Client Updates
+---
+* `service/acm`: Updates service API, documentation, and paginators
+  * Update for AWS Certificate Manager: Updated response elements for DescribeCertificate API in support of managed renewal
+* `service/health`: Updates service documentation
+
 Release v1.6.14 (2017-01-19)
 ===
 

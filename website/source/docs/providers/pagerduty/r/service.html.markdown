@@ -49,8 +49,8 @@ The following arguments are supported:
   * `name` - (Required) The name of the service.
   * `description` - (Optional) A human-friendly description of the escalation policy.
     If not set, a placeholder of "Managed by Terraform" will be set.
-  * `auto_resolve_timeout` - (Optional) Time in seconds that an incident is automatically resolved if left open for that long.
-  * `acknowledgement_timeout` - (Optional) Time in seconds that an incident changes to the Triggered State after being Acknowledged.
+  * `auto_resolve_timeout` - (Optional) Time in seconds that an incident is automatically resolved if left open for that long. Disabled if not set.
+  * `acknowledgement_timeout` - (Optional) Time in seconds that an incident changes to the Triggered State after being Acknowledged. Disabled if not set.
   * `escalation_policy` - (Required) The escalation policy used by this service.
 
 ## Attributes Reference

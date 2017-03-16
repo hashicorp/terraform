@@ -15504,6 +15504,11 @@ func (s *AccountAttributeValue) SetAttributeValue(v string) *AccountAttributeVal
 type ActiveInstance struct {
 	_ struct{} `type:"structure"`
 
+	// The health status of the instance. If the status of both the instance status
+	// check and the system status check is impaired, the health status of the instance
+	// is unhealthy. Otherwise, the health status is healthy.
+	InstanceHealth *string `locationName:"instanceHealth" type:"string" enum:"InstanceHealthStatus"`
+
 	// The ID of the instance.
 	InstanceId *string `locationName:"instanceId" type:"string"`
 
@@ -15522,6 +15527,12 @@ func (s ActiveInstance) String() string {
 // GoString returns the string representation
 func (s ActiveInstance) GoString() string {
 	return s.String()
+}
+
+// SetInstanceHealth sets the InstanceHealth field's value.
+func (s *ActiveInstance) SetInstanceHealth(v string) *ActiveInstance {
+	s.InstanceHealth = &v
+	return s
 }
 
 // SetInstanceId sets the InstanceId field's value.
@@ -48233,6 +48244,9 @@ type SpotFleetRequestConfigData struct {
 	// LaunchSpecifications is a required field
 	LaunchSpecifications []*SpotFleetLaunchSpecification `locationName:"launchSpecifications" locationNameList:"item" min:"1" type:"list" required:"true"`
 
+	// Indicates whether Spot fleet should replace unhealthy instances.
+	ReplaceUnhealthyInstances *bool `locationName:"replaceUnhealthyInstances" type:"boolean"`
+
 	// The bid price per unit hour.
 	//
 	// SpotPrice is a required field
@@ -48347,6 +48361,12 @@ func (s *SpotFleetRequestConfigData) SetIamFleetRole(v string) *SpotFleetRequest
 // SetLaunchSpecifications sets the LaunchSpecifications field's value.
 func (s *SpotFleetRequestConfigData) SetLaunchSpecifications(v []*SpotFleetLaunchSpecification) *SpotFleetRequestConfigData {
 	s.LaunchSpecifications = v
+	return s
+}
+
+// SetReplaceUnhealthyInstances sets the ReplaceUnhealthyInstances field's value.
+func (s *SpotFleetRequestConfigData) SetReplaceUnhealthyInstances(v bool) *SpotFleetRequestConfigData {
+	s.ReplaceUnhealthyInstances = &v
 	return s
 }
 
@@ -51941,6 +51961,14 @@ const (
 
 	// InstanceAttributeNameEnaSupport is a InstanceAttributeName enum value
 	InstanceAttributeNameEnaSupport = "enaSupport"
+)
+
+const (
+	// InstanceHealthStatusHealthy is a InstanceHealthStatus enum value
+	InstanceHealthStatusHealthy = "healthy"
+
+	// InstanceHealthStatusUnhealthy is a InstanceHealthStatus enum value
+	InstanceHealthStatusUnhealthy = "unhealthy"
 )
 
 const (

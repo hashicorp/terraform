@@ -1,7 +1,7 @@
 ---
 layout: "profitbricks"
 page_title: "ProfitBricks: profitbricks_server"
-sidebar_current: "docs-profitbricks-resource-profitbricks_server"
+sidebar_current: "docs-profitbricks-resource-server"
 description: |-
   Creates and manages ProfitBricks Server objects.
 ---

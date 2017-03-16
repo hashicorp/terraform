@@ -18,6 +18,9 @@ func resourceArmLoadBalancerProbe() *schema.Resource {
 		Read:   resourceArmLoadBalancerProbeRead,
 		Update: resourceArmLoadBalancerProbeCreate,
 		Delete: resourceArmLoadBalancerProbeDelete,
+		Importer: &schema.ResourceImporter{
+			State: loadBalancerSubResourceStateImporter,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -26,7 +29,14 @@ func resourceArmLoadBalancerProbe() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": locationSchema(),
+			"location": {
+				Type:             schema.TypeString,
+				ForceNew:         true,
+				Optional:         true,
+				StateFunc:        azureRMNormalizeLocation,
+				DiffSuppressFunc: azureRMSuppressLocationDiff,
+				Deprecated:       "location is no longer used",
+			},
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -68,7 +78,7 @@ func resourceArmLoadBalancerProbe() *schema.Resource {
 				Default:  2,
 			},
 
-			"load_balance_rules": {
+			"load_balancer_rules": {
 				Type:     schema.TypeSet,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -158,30 +168,44 @@ func resourceArmLoadBalancerProbeCreate(d *schema.ResourceData, meta interface{}
 }
 
 func resourceArmLoadBalancerProbeRead(d *schema.ResourceData, meta interface{}) error {
+	id, err := parseAzureResourceID(d.Id())
+	if err != nil {
+		return err
+	}
+	name := id.Path["probes"]
+
 	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
 	if !exists {
 		d.SetId("")
-		log.Printf("[INFO] LoadBalancer %q not found. Removing from state", d.Get("name").(string))
+		log.Printf("[INFO] LoadBalancer %q not found. Removing from state", name)
 		return nil
 	}
 
-	configs := *loadBalancer.LoadBalancerPropertiesFormat.Probes
-	for _, config := range configs {
-		if *config.Name == d.Get("name").(string) {
-			d.Set("name", config.Name)
+	config, _, exists := findLoadBalancerProbeByName(loadBalancer, name)
+	if !exists {
+		d.SetId("")
+		log.Printf("[INFO] LoadBalancer Probe %q not found. Removing from state", name)
+		return nil
+	}
 
-			d.Set("protocol", config.ProbePropertiesFormat.Protocol)
-			d.Set("interval_in_seconds", config.ProbePropertiesFormat.IntervalInSeconds)
-			d.Set("number_of_probes", config.ProbePropertiesFormat.NumberOfProbes)
-			d.Set("port", config.ProbePropertiesFormat.Port)
-			d.Set("request_path", config.ProbePropertiesFormat.RequestPath)
+	d.Set("name", config.Name)
+	d.Set("resource_group_name", id.ResourceGroup)
+	d.Set("protocol", config.ProbePropertiesFormat.Protocol)
+	d.Set("interval_in_seconds", config.ProbePropertiesFormat.IntervalInSeconds)
+	d.Set("number_of_probes", config.ProbePropertiesFormat.NumberOfProbes)
+	d.Set("port", config.ProbePropertiesFormat.Port)
+	d.Set("request_path", config.ProbePropertiesFormat.RequestPath)
 
-			break
+	var load_balancer_rules []string
+	if config.ProbePropertiesFormat.LoadBalancingRules != nil {
+		for _, ruleConfig := range *config.ProbePropertiesFormat.LoadBalancingRules {
+			load_balancer_rules = append(load_balancer_rules, *ruleConfig.ID)
 		}
 	}
+	d.Set("load_balancer_rules", load_balancer_rules)
 
 	return nil
 }

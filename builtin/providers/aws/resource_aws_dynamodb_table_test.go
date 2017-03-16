@@ -19,13 +19,13 @@ func TestAccAWSDynamoDbTable_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDynamoDbTableDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSDynamoDbConfigInitialState(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInitialAWSDynamoDbTableExists("aws_dynamodb_table.basic-dynamodb-table"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSDynamoDbConfigAddSecondaryGSI,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDynamoDbTableWasUpdated("aws_dynamodb_table.basic-dynamodb-table"),
@@ -41,7 +41,7 @@ func TestAccAWSDynamoDbTable_streamSpecification(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDynamoDbTableDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSDynamoDbConfigStreamSpecification(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInitialAWSDynamoDbTableExists("aws_dynamodb_table.basic-dynamodb-table"),
@@ -49,6 +49,24 @@ func TestAccAWSDynamoDbTable_streamSpecification(t *testing.T) {
 						"aws_dynamodb_table.basic-dynamodb-table", "stream_enabled", "true"),
 					resource.TestCheckResourceAttr(
 						"aws_dynamodb_table.basic-dynamodb-table", "stream_view_type", "KEYS_ONLY"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDynamoDbTable_tags(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDynamoDbTableDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSDynamoDbConfigTags(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInitialAWSDynamoDbTableExists("aws_dynamodb_table.basic-dynamodb-table"),
+					resource.TestCheckResourceAttr(
+						"aws_dynamodb_table.basic-dynamodb-table", "tags.%", "3"),
 				),
 			},
 		},
@@ -127,7 +145,7 @@ func testAccCheckAWSDynamoDbTableDestroy(s *terraform.State) error {
 
 func testAccCheckInitialAWSDynamoDbTableExists(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		fmt.Printf("[DEBUG] Trying to create initial table state!")
+		log.Printf("[DEBUG] Trying to create initial table state!")
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
@@ -146,13 +164,12 @@ func testAccCheckInitialAWSDynamoDbTableExists(n string) resource.TestCheckFunc 
 		resp, err := conn.DescribeTable(params)
 
 		if err != nil {
-			fmt.Printf("[ERROR] Problem describing table '%s': %s", rs.Primary.ID, err)
-			return err
+			return fmt.Errorf("[ERROR] Problem describing table '%s': %s", rs.Primary.ID, err)
 		}
 
 		table := resp.Table
 
-		fmt.Printf("[DEBUG] Checking on table %s", rs.Primary.ID)
+		log.Printf("[DEBUG] Checking on table %s", rs.Primary.ID)
 
 		if *table.ProvisionedThroughput.WriteCapacityUnits != 20 {
 			return fmt.Errorf("Provisioned write capacity was %d, not 20!", table.ProvisionedThroughput.WriteCapacityUnits)
@@ -403,4 +420,50 @@ resource "aws_dynamodb_table" "basic-dynamodb-table" {
 	stream_view_type = "KEYS_ONLY"
 }
 `, acctest.RandInt())
+}
+
+func testAccAWSDynamoDbConfigTags() string {
+	return fmt.Sprintf(`
+resource "aws_dynamodb_table" "basic-dynamodb-table" {
+    name = "TerraformTestTable-%d"
+		read_capacity = 10
+		write_capacity = 20
+		hash_key = "TestTableHashKey"
+		range_key = "TestTableRangeKey"
+		attribute {
+			name = "TestTableHashKey"
+			type = "S"
+		}
+		attribute {
+			name = "TestTableRangeKey"
+			type = "S"
+		}
+		attribute {
+			name = "TestLSIRangeKey"
+			type = "N"
+		}
+		attribute {
+			name = "TestGSIRangeKey"
+			type = "S"
+		}
+		local_secondary_index {
+			name = "TestTableLSI"
+			range_key = "TestLSIRangeKey"
+			projection_type = "ALL"
+		}
+		global_secondary_index {
+			name = "InitialTestTableGSI"
+			hash_key = "TestTableHashKey"
+			range_key = "TestGSIRangeKey"
+			write_capacity = 10
+			read_capacity = 10
+			projection_type = "KEYS_ONLY"
+		}
+		tags {
+		  Name = "terraform-test-table-%d"
+		  AccTest = "yes"
+		  Testing = "absolutely"
+		}
+}
+`, acctest.RandInt(), acctest.RandInt())
 }

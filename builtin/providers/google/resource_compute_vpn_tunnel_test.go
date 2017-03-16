@@ -22,6 +22,10 @@ func TestAccComputeVpnTunnel_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeVpnTunnelExists(
 						"google_compute_vpn_tunnel.foobar"),
+					resource.TestCheckResourceAttr(
+						"google_compute_vpn_tunnel.foobar", "local_traffic_selector.#", "1"),
+					resource.TestCheckResourceAttr(
+						"google_compute_vpn_tunnel.foobar", "remote_traffic_selector.#", "2"),
 				),
 			},
 		},
@@ -83,16 +87,21 @@ func testAccCheckComputeVpnTunnelExists(n string) resource.TestCheckFunc {
 var testAccComputeVpnTunnel_basic = fmt.Sprintf(`
 resource "google_compute_network" "foobar" {
 	name = "tunnel-test-%s"
-	ipv4_range = "10.0.0.0/16"
+}
+resource "google_compute_subnetwork" "foobar" {
+	name = "tunnel-test-%s"
+	network = "${google_compute_network.foobar.self_link}"
+	ip_cidr_range = "10.0.0.0/16"
+	region = "us-central1"
 }
 resource "google_compute_address" "foobar" {
 	name = "tunnel-test-%s"
-	region = "us-central1"
+	region = "${google_compute_subnetwork.foobar.region}"
 }
 resource "google_compute_vpn_gateway" "foobar" {
 	name = "tunnel-test-%s"
 	network = "${google_compute_network.foobar.self_link}"
-	region = "${google_compute_address.foobar.region}"
+	region = "${google_compute_subnetwork.foobar.region}"
 }
 resource "google_compute_forwarding_rule" "foobar_esp" {
 	name = "tunnel-test-%s"
@@ -123,6 +132,8 @@ resource "google_compute_vpn_tunnel" "foobar" {
 	target_vpn_gateway = "${google_compute_vpn_gateway.foobar.self_link}"
 	shared_secret = "unguessable"
 	peer_ip = "8.8.8.8"
+	local_traffic_selector = ["${google_compute_subnetwork.foobar.ip_cidr_range}"]
+	remote_traffic_selector = ["192.168.0.0/24", "192.168.1.0/24"]
 }`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10),
 	acctest.RandString(10), acctest.RandString(10), acctest.RandString(10),
-	acctest.RandString(10))
+	acctest.RandString(10), acctest.RandString(10))

@@ -88,7 +88,8 @@ func newShadowContext(c *Context) (*Context, *Context, Shadow) {
 		// l - no copy
 		parallelSem:         c.parallelSem,
 		providerInputConfig: c.providerInputConfig,
-		runCh:               c.runCh,
+		runContext:          c.runContext,
+		runContextCancel:    c.runContextCancel,
 		shadowErr:           c.shadowErr,
 	}
 

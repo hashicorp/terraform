@@ -222,13 +222,18 @@ func (c *Client) Get() error {
 		checksumValue = b
 	}
 
-	// For now, any means file. In the future, we'll ask the getter
-	// what it thinks it is.
 	if mode == ClientModeAny {
-		mode = ClientModeFile
+		// Ask the getter which client mode to use
+		mode, err = g.ClientMode(u)
+		if err != nil {
+			return err
+		}
 
-		// Destination is the base name of the URL path
-		dst = filepath.Join(dst, filepath.Base(u.Path))
+		// Destination is the base name of the URL path in "any" mode when
+		// a file source is detected.
+		if mode == ClientModeFile {
+			dst = filepath.Join(dst, filepath.Base(u.Path))
+		}
 	}
 
 	// If we're not downloading a directory, then just download the file

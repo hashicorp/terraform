@@ -32,5 +32,5 @@ resource "nomad_job" "monitoring" {
 
 The following arguments are supported:
 
-* `address` - (Optional) The HTTP(S) API address of the Nomad agent to use. Defaults to `127.0.0.1:4646`. The `NOMAD_ADDR` environment variable can also be used.
+* `address` - (Optional) The HTTP(S) API address of the Nomad agent to use. Defaults to `http://127.0.0.1:4646`. The `NOMAD_ADDR` environment variable can also be used.
 * `region` - (Optional) The Nomad region to target. The `NOMAD_REGION` environment variable can also be used.

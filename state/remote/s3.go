@@ -7,10 +7,12 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-multierror"
@@ -89,6 +91,7 @@ providing credentials for the AWS S3 remote`))
 	}
 	sess := session.New(awsConfig)
 	nativeClient := s3.New(sess)
+	dynClient := dynamodb.New(sess)
 
 	return &S3Client{
 		nativeClient:         nativeClient,
@@ -97,6 +100,8 @@ providing credentials for the AWS S3 remote`))
 		serverSideEncryption: serverSideEncryption,
 		acl:                  acl,
 		kmsKeyID:             kmsKeyID,
+		dynClient:            dynClient,
+		lockTable:            conf["lock_table"],
 	}, nil
 }
 
@@ -107,6 +112,8 @@ type S3Client struct {
 	serverSideEncryption bool
 	acl                  string
 	kmsKeyID             string
+	dynClient            *dynamodb.DynamoDB
+	lockTable            string
 }
 
 func (c *S3Client) Get() (*Payload, error) {
@@ -187,4 +194,70 @@ func (c *S3Client) Delete() error {
 	})
 
 	return err
+}
+
+func (c *S3Client) Lock(reason string) error {
+	if c.lockTable == "" {
+		return nil
+	}
+
+	stateName := fmt.Sprintf("%s/%s", c.bucketName, c.keyName)
+
+	putParams := &dynamodb.PutItemInput{
+		Item: map[string]*dynamodb.AttributeValue{
+			"LockID":  {S: aws.String(stateName)},
+			"Created": {S: aws.String(time.Now().UTC().Format(time.RFC3339))},
+			"Info":    {S: aws.String(reason)},
+		},
+		TableName:           aws.String(c.lockTable),
+		ConditionExpression: aws.String("attribute_not_exists(LockID)"),
+	}
+	_, err := c.dynClient.PutItem(putParams)
+
+	if err != nil {
+		getParams := &dynamodb.GetItemInput{
+			Key: map[string]*dynamodb.AttributeValue{
+				"LockID": {S: aws.String(fmt.Sprintf("%s/%s", c.bucketName, c.keyName))},
+			},
+			ProjectionExpression: aws.String("LockID, Created, Info"),
+			TableName:            aws.String(c.lockTable),
+		}
+
+		resp, err := c.dynClient.GetItem(getParams)
+		if err != nil {
+			return fmt.Errorf("s3 state file %q locked, cfailed to retrive info: %s", stateName, err)
+		}
+
+		var created, info string
+		if v, ok := resp.Item["Created"]; ok && v.S != nil {
+			created = *v.S
+		}
+		if v, ok := resp.Item["Info"]; ok && v.S != nil {
+			info = *v.S
+		}
+
+		return fmt.Errorf("state file %q locked. created:%s, reason:%s",
+			stateName, created, info)
+
+	}
+	return nil
+}
+
+func (c *S3Client) Unlock() error {
+	if c.lockTable == "" {
+		return nil
+	}
+
+	params := &dynamodb.DeleteItemInput{
+		Key: map[string]*dynamodb.AttributeValue{
+			"LockID": {S: aws.String(fmt.Sprintf("%s/%s", c.bucketName, c.keyName))},
+		},
+		TableName: aws.String(c.lockTable),
+	}
+	_, err := c.dynClient.DeleteItem(params)
+
+	if err != nil {
+		return err
+	}
+	return nil
 }

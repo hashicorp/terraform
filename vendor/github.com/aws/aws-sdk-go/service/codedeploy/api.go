@@ -552,6 +552,92 @@ func (c *CodeDeploy) BatchGetOnPremisesInstances(input *BatchGetOnPremisesInstan
 	return out, err
 }
 
+const opContinueDeployment = "ContinueDeployment"
+
+// ContinueDeploymentRequest generates a "aws/request.Request" representing the
+// client's request for the ContinueDeployment operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See ContinueDeployment for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ContinueDeployment method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ContinueDeploymentRequest method.
+//    req, resp := client.ContinueDeploymentRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ContinueDeployment
+func (c *CodeDeploy) ContinueDeploymentRequest(input *ContinueDeploymentInput) (req *request.Request, output *ContinueDeploymentOutput) {
+	op := &request.Operation{
+		Name:       opContinueDeployment,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ContinueDeploymentInput{}
+	}
+
+	output = &ContinueDeploymentOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// ContinueDeployment API operation for AWS CodeDeploy.
+//
+// Starts the process of rerouting traffic from instances in the original environment
+// to instances in thereplacement environment without waiting for a specified
+// wait time to elapse. (Traffic rerouting, which is achieved by registering
+// instances in the replacement environment with the load balancer, can start
+// as soon as all instances have a status of Ready.)
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation ContinueDeployment for usage and error information.
+//
+// Returned Error Codes:
+//   * DeploymentIdRequiredException
+//   At least one deployment ID must be specified.
+//
+//   * DeploymentDoesNotExistException
+//   The deployment does not exist with the applicable IAM user or AWS account.
+//
+//   * DeploymentAlreadyCompletedException
+//   The deployment is already complete.
+//
+//   * InvalidDeploymentIdException
+//   At least one of the deployment IDs was specified in an invalid format.
+//
+//   * DeploymentIsNotInReadyStateException
+//   The deployment does not have a status of Ready and can't continue yet.
+//
+//   * UnsupportedActionForDeploymentTypeException
+//   A call was submitted that is not supported for the specified deployment type.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ContinueDeployment
+func (c *CodeDeploy) ContinueDeployment(input *ContinueDeploymentInput) (*ContinueDeploymentOutput, error) {
+	req, out := c.ContinueDeploymentRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opCreateApplication = "CreateApplication"
 
 // CreateApplicationRequest generates a "aws/request.Request" representing the
@@ -723,10 +809,25 @@ func (c *CodeDeploy) CreateDeploymentRequest(input *CreateDeploymentInput) (req 
 //   * DeploymentLimitExceededException
 //   The number of allowed deployments was exceeded.
 //
+//   * InvalidTargetInstancesException
+//   The target instance configuration is invalid. Possible causes include:
+//
+//      * Configuration data for target instances was entered for an in-place
+//      deployment.
+//
+//      * The limit of 10 tags for a tag type was exceeded.
+//
+//      * The combined length of the tag names exceeded the limit.
+//
+//      * A specified tag is not currently applied to any instances.
+//
 //   * InvalidAutoRollbackConfigException
 //   The automatic rollback configuration was specified in an invalid format.
 //   For example, automatic rollback is enabled but an invalid triggering event
 //   type or no event types were listed.
+//
+//   * InvalidLoadBalancerInfoException
+//   An invalid load balancer name, or no load balancer name, was specified.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/CreateDeployment
 func (c *CodeDeploy) CreateDeployment(input *CreateDeploymentInput) (*CreateDeploymentOutput, error) {
@@ -943,6 +1044,19 @@ func (c *CodeDeploy) CreateDeploymentGroupRequest(input *CreateDeploymentGroupIn
 //   The automatic rollback configuration was specified in an invalid format.
 //   For example, automatic rollback is enabled but an invalid triggering event
 //   type or no event types were listed.
+//
+//   * InvalidLoadBalancerInfoException
+//   An invalid load balancer name, or no load balancer name, was specified.
+//
+//   * InvalidDeploymentStyleException
+//   An invalid deployment style was specified. Valid deployment types include
+//   "IN_PLACE" and "BLUE_GREEN". Valid deployment options for blue/green deployments
+//   include "WITH_TRAFFIC_CONTROL" and "WITHOUT_TRAFFIC_CONTROL".
+//
+//   * InvalidBlueGreenDeploymentConfigurationException
+//   The configuration for the blue/green deployment group was provided in an
+//   invalid format. For information about deployment configuration format, see
+//   CreateDeploymentConfig.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/CreateDeploymentGroup
 func (c *CodeDeploy) CreateDeploymentGroup(input *CreateDeploymentGroupInput) (*CreateDeploymentGroupOutput, error) {
@@ -1807,12 +1921,6 @@ func (c *CodeDeploy) ListApplicationRevisionsRequest(input *ListApplicationRevis
 		Name:       opListApplicationRevisions,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
-		Paginator: &request.Paginator{
-			InputTokens:     []string{"nextToken"},
-			OutputTokens:    []string{"nextToken"},
-			LimitToken:      "",
-			TruncationToken: "",
-		},
 	}
 
 	if input == nil {
@@ -1874,31 +1982,6 @@ func (c *CodeDeploy) ListApplicationRevisions(input *ListApplicationRevisionsInp
 	return out, err
 }
 
-// ListApplicationRevisionsPages iterates over the pages of a ListApplicationRevisions operation,
-// calling the "fn" function with the response data for each page. To stop
-// iterating, return false from the fn function.
-//
-// See ListApplicationRevisions method for more information on how to use this operation.
-//
-// Note: This operation can generate multiple requests to a service.
-//
-//    // Example iterating over at most 3 pages of a ListApplicationRevisions operation.
-//    pageNum := 0
-//    err := client.ListApplicationRevisionsPages(params,
-//        func(page *ListApplicationRevisionsOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
-func (c *CodeDeploy) ListApplicationRevisionsPages(input *ListApplicationRevisionsInput, fn func(p *ListApplicationRevisionsOutput, lastPage bool) (shouldContinue bool)) error {
-	page, _ := c.ListApplicationRevisionsRequest(input)
-	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
-	return page.EachPage(func(p interface{}, lastPage bool) bool {
-		return fn(p.(*ListApplicationRevisionsOutput), lastPage)
-	})
-}
-
 const opListApplications = "ListApplications"
 
 // ListApplicationsRequest generates a "aws/request.Request" representing the
@@ -1931,12 +2014,6 @@ func (c *CodeDeploy) ListApplicationsRequest(input *ListApplicationsInput) (req 
 		Name:       opListApplications,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
-		Paginator: &request.Paginator{
-			InputTokens:     []string{"nextToken"},
-			OutputTokens:    []string{"nextToken"},
-			LimitToken:      "",
-			TruncationToken: "",
-		},
 	}
 
 	if input == nil {
@@ -1968,31 +2045,6 @@ func (c *CodeDeploy) ListApplications(input *ListApplicationsInput) (*ListApplic
 	req, out := c.ListApplicationsRequest(input)
 	err := req.Send()
 	return out, err
-}
-
-// ListApplicationsPages iterates over the pages of a ListApplications operation,
-// calling the "fn" function with the response data for each page. To stop
-// iterating, return false from the fn function.
-//
-// See ListApplications method for more information on how to use this operation.
-//
-// Note: This operation can generate multiple requests to a service.
-//
-//    // Example iterating over at most 3 pages of a ListApplications operation.
-//    pageNum := 0
-//    err := client.ListApplicationsPages(params,
-//        func(page *ListApplicationsOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
-func (c *CodeDeploy) ListApplicationsPages(input *ListApplicationsInput, fn func(p *ListApplicationsOutput, lastPage bool) (shouldContinue bool)) error {
-	page, _ := c.ListApplicationsRequest(input)
-	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
-	return page.EachPage(func(p interface{}, lastPage bool) bool {
-		return fn(p.(*ListApplicationsOutput), lastPage)
-	})
 }
 
 const opListDeploymentConfigs = "ListDeploymentConfigs"
@@ -2027,12 +2079,6 @@ func (c *CodeDeploy) ListDeploymentConfigsRequest(input *ListDeploymentConfigsIn
 		Name:       opListDeploymentConfigs,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
-		Paginator: &request.Paginator{
-			InputTokens:     []string{"nextToken"},
-			OutputTokens:    []string{"nextToken"},
-			LimitToken:      "",
-			TruncationToken: "",
-		},
 	}
 
 	if input == nil {
@@ -2064,31 +2110,6 @@ func (c *CodeDeploy) ListDeploymentConfigs(input *ListDeploymentConfigsInput) (*
 	req, out := c.ListDeploymentConfigsRequest(input)
 	err := req.Send()
 	return out, err
-}
-
-// ListDeploymentConfigsPages iterates over the pages of a ListDeploymentConfigs operation,
-// calling the "fn" function with the response data for each page. To stop
-// iterating, return false from the fn function.
-//
-// See ListDeploymentConfigs method for more information on how to use this operation.
-//
-// Note: This operation can generate multiple requests to a service.
-//
-//    // Example iterating over at most 3 pages of a ListDeploymentConfigs operation.
-//    pageNum := 0
-//    err := client.ListDeploymentConfigsPages(params,
-//        func(page *ListDeploymentConfigsOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
-func (c *CodeDeploy) ListDeploymentConfigsPages(input *ListDeploymentConfigsInput, fn func(p *ListDeploymentConfigsOutput, lastPage bool) (shouldContinue bool)) error {
-	page, _ := c.ListDeploymentConfigsRequest(input)
-	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
-	return page.EachPage(func(p interface{}, lastPage bool) bool {
-		return fn(p.(*ListDeploymentConfigsOutput), lastPage)
-	})
 }
 
 const opListDeploymentGroups = "ListDeploymentGroups"
@@ -2123,12 +2144,6 @@ func (c *CodeDeploy) ListDeploymentGroupsRequest(input *ListDeploymentGroupsInpu
 		Name:       opListDeploymentGroups,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
-		Paginator: &request.Paginator{
-			InputTokens:     []string{"nextToken"},
-			OutputTokens:    []string{"nextToken"},
-			LimitToken:      "",
-			TruncationToken: "",
-		},
 	}
 
 	if input == nil {
@@ -2172,31 +2187,6 @@ func (c *CodeDeploy) ListDeploymentGroups(input *ListDeploymentGroupsInput) (*Li
 	return out, err
 }
 
-// ListDeploymentGroupsPages iterates over the pages of a ListDeploymentGroups operation,
-// calling the "fn" function with the response data for each page. To stop
-// iterating, return false from the fn function.
-//
-// See ListDeploymentGroups method for more information on how to use this operation.
-//
-// Note: This operation can generate multiple requests to a service.
-//
-//    // Example iterating over at most 3 pages of a ListDeploymentGroups operation.
-//    pageNum := 0
-//    err := client.ListDeploymentGroupsPages(params,
-//        func(page *ListDeploymentGroupsOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
-func (c *CodeDeploy) ListDeploymentGroupsPages(input *ListDeploymentGroupsInput, fn func(p *ListDeploymentGroupsOutput, lastPage bool) (shouldContinue bool)) error {
-	page, _ := c.ListDeploymentGroupsRequest(input)
-	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
-	return page.EachPage(func(p interface{}, lastPage bool) bool {
-		return fn(p.(*ListDeploymentGroupsOutput), lastPage)
-	})
-}
-
 const opListDeploymentInstances = "ListDeploymentInstances"
 
 // ListDeploymentInstancesRequest generates a "aws/request.Request" representing the
@@ -2229,12 +2219,6 @@ func (c *CodeDeploy) ListDeploymentInstancesRequest(input *ListDeploymentInstanc
 		Name:       opListDeploymentInstances,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
-		Paginator: &request.Paginator{
-			InputTokens:     []string{"nextToken"},
-			OutputTokens:    []string{"nextToken"},
-			LimitToken:      "",
-			TruncationToken: "",
-		},
 	}
 
 	if input == nil {
@@ -2277,36 +2261,16 @@ func (c *CodeDeploy) ListDeploymentInstancesRequest(input *ListDeploymentInstanc
 //   * InvalidInstanceStatusException
 //   The specified instance status does not exist.
 //
+//   * InvalidInstanceTypeException
+//   An invalid instance type was specified for instances in a blue/green deployment.
+//   Valid values include "Blue" for an original environment and "Green" for a
+//   replacement environment.
+//
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ListDeploymentInstances
 func (c *CodeDeploy) ListDeploymentInstances(input *ListDeploymentInstancesInput) (*ListDeploymentInstancesOutput, error) {
 	req, out := c.ListDeploymentInstancesRequest(input)
 	err := req.Send()
 	return out, err
-}
-
-// ListDeploymentInstancesPages iterates over the pages of a ListDeploymentInstances operation,
-// calling the "fn" function with the response data for each page. To stop
-// iterating, return false from the fn function.
-//
-// See ListDeploymentInstances method for more information on how to use this operation.
-//
-// Note: This operation can generate multiple requests to a service.
-//
-//    // Example iterating over at most 3 pages of a ListDeploymentInstances operation.
-//    pageNum := 0
-//    err := client.ListDeploymentInstancesPages(params,
-//        func(page *ListDeploymentInstancesOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
-func (c *CodeDeploy) ListDeploymentInstancesPages(input *ListDeploymentInstancesInput, fn func(p *ListDeploymentInstancesOutput, lastPage bool) (shouldContinue bool)) error {
-	page, _ := c.ListDeploymentInstancesRequest(input)
-	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
-	return page.EachPage(func(p interface{}, lastPage bool) bool {
-		return fn(p.(*ListDeploymentInstancesOutput), lastPage)
-	})
 }
 
 const opListDeployments = "ListDeployments"
@@ -2341,12 +2305,6 @@ func (c *CodeDeploy) ListDeploymentsRequest(input *ListDeploymentsInput) (req *r
 		Name:       opListDeployments,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
-		Paginator: &request.Paginator{
-			InputTokens:     []string{"nextToken"},
-			OutputTokens:    []string{"nextToken"},
-			LimitToken:      "",
-			TruncationToken: "",
-		},
 	}
 
 	if input == nil {
@@ -2404,31 +2362,6 @@ func (c *CodeDeploy) ListDeployments(input *ListDeploymentsInput) (*ListDeployme
 	req, out := c.ListDeploymentsRequest(input)
 	err := req.Send()
 	return out, err
-}
-
-// ListDeploymentsPages iterates over the pages of a ListDeployments operation,
-// calling the "fn" function with the response data for each page. To stop
-// iterating, return false from the fn function.
-//
-// See ListDeployments method for more information on how to use this operation.
-//
-// Note: This operation can generate multiple requests to a service.
-//
-//    // Example iterating over at most 3 pages of a ListDeployments operation.
-//    pageNum := 0
-//    err := client.ListDeploymentsPages(params,
-//        func(page *ListDeploymentsOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
-func (c *CodeDeploy) ListDeploymentsPages(input *ListDeploymentsInput, fn func(p *ListDeploymentsOutput, lastPage bool) (shouldContinue bool)) error {
-	page, _ := c.ListDeploymentsRequest(input)
-	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
-	return page.EachPage(func(p interface{}, lastPage bool) bool {
-		return fn(p.(*ListDeploymentsOutput), lastPage)
-	})
 }
 
 const opListOnPremisesInstances = "ListOnPremisesInstances"
@@ -2771,6 +2704,89 @@ func (c *CodeDeploy) RemoveTagsFromOnPremisesInstances(input *RemoveTagsFromOnPr
 	return out, err
 }
 
+const opSkipWaitTimeForInstanceTermination = "SkipWaitTimeForInstanceTermination"
+
+// SkipWaitTimeForInstanceTerminationRequest generates a "aws/request.Request" representing the
+// client's request for the SkipWaitTimeForInstanceTermination operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See SkipWaitTimeForInstanceTermination for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the SkipWaitTimeForInstanceTermination method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the SkipWaitTimeForInstanceTerminationRequest method.
+//    req, resp := client.SkipWaitTimeForInstanceTerminationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/SkipWaitTimeForInstanceTermination
+func (c *CodeDeploy) SkipWaitTimeForInstanceTerminationRequest(input *SkipWaitTimeForInstanceTerminationInput) (req *request.Request, output *SkipWaitTimeForInstanceTerminationOutput) {
+	op := &request.Operation{
+		Name:       opSkipWaitTimeForInstanceTermination,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &SkipWaitTimeForInstanceTerminationInput{}
+	}
+
+	output = &SkipWaitTimeForInstanceTerminationOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// SkipWaitTimeForInstanceTermination API operation for AWS CodeDeploy.
+//
+// In a blue/green deployment, overrides any specified wait time and starts
+// terminating instances immediately after the traffic routing is completed.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation SkipWaitTimeForInstanceTermination for usage and error information.
+//
+// Returned Error Codes:
+//   * DeploymentIdRequiredException
+//   At least one deployment ID must be specified.
+//
+//   * DeploymentDoesNotExistException
+//   The deployment does not exist with the applicable IAM user or AWS account.
+//
+//   * DeploymentAlreadyCompletedException
+//   The deployment is already complete.
+//
+//   * InvalidDeploymentIdException
+//   At least one of the deployment IDs was specified in an invalid format.
+//
+//   * DeploymentNotStartedException
+//   The specified deployment has not started.
+//
+//   * UnsupportedActionForDeploymentTypeException
+//   A call was submitted that is not supported for the specified deployment type.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/SkipWaitTimeForInstanceTermination
+func (c *CodeDeploy) SkipWaitTimeForInstanceTermination(input *SkipWaitTimeForInstanceTerminationInput) (*SkipWaitTimeForInstanceTerminationOutput, error) {
+	req, out := c.SkipWaitTimeForInstanceTerminationRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opStopDeployment = "StopDeployment"
 
 // StopDeploymentRequest generates a "aws/request.Request" representing the
@@ -3050,6 +3066,19 @@ func (c *CodeDeploy) UpdateDeploymentGroupRequest(input *UpdateDeploymentGroupIn
 //   The automatic rollback configuration was specified in an invalid format.
 //   For example, automatic rollback is enabled but an invalid triggering event
 //   type or no event types were listed.
+//
+//   * InvalidLoadBalancerInfoException
+//   An invalid load balancer name, or no load balancer name, was specified.
+//
+//   * InvalidDeploymentStyleException
+//   An invalid deployment style was specified. Valid deployment types include
+//   "IN_PLACE" and "BLUE_GREEN". Valid deployment options for blue/green deployments
+//   include "WITH_TRAFFIC_CONTROL" and "WITHOUT_TRAFFIC_CONTROL".
+//
+//   * InvalidBlueGreenDeploymentConfigurationException
+//   The configuration for the blue/green deployment group was provided in an
+//   invalid format. For information about deployment configuration format, see
+//   CreateDeploymentConfig.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/UpdateDeploymentGroup
 func (c *CodeDeploy) UpdateDeploymentGroup(input *UpdateDeploymentGroupInput) (*UpdateDeploymentGroupOutput, error) {
@@ -3761,6 +3790,134 @@ func (s *BatchGetOnPremisesInstancesOutput) SetInstanceInfos(v []*InstanceInfo) 
 	return s
 }
 
+// Information about blue/green deployment options for a deployment group.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/BlueGreenDeploymentConfiguration
+type BlueGreenDeploymentConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the action to take when newly provisioned instances are
+	// ready to receive traffic in a blue/green deployment.
+	DeploymentReadyOption *DeploymentReadyOption `locationName:"deploymentReadyOption" type:"structure"`
+
+	// Information about how instances are provisioned for a replacement environment
+	// in a blue/green deployment.
+	GreenFleetProvisioningOption *GreenFleetProvisioningOption `locationName:"greenFleetProvisioningOption" type:"structure"`
+
+	// Information about whether to terminate instances in the original fleet during
+	// a blue/green deployment.
+	TerminateBlueInstancesOnDeploymentSuccess *BlueInstanceTerminationOption `locationName:"terminateBlueInstancesOnDeploymentSuccess" type:"structure"`
+}
+
+// String returns the string representation
+func (s BlueGreenDeploymentConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BlueGreenDeploymentConfiguration) GoString() string {
+	return s.String()
+}
+
+// SetDeploymentReadyOption sets the DeploymentReadyOption field's value.
+func (s *BlueGreenDeploymentConfiguration) SetDeploymentReadyOption(v *DeploymentReadyOption) *BlueGreenDeploymentConfiguration {
+	s.DeploymentReadyOption = v
+	return s
+}
+
+// SetGreenFleetProvisioningOption sets the GreenFleetProvisioningOption field's value.
+func (s *BlueGreenDeploymentConfiguration) SetGreenFleetProvisioningOption(v *GreenFleetProvisioningOption) *BlueGreenDeploymentConfiguration {
+	s.GreenFleetProvisioningOption = v
+	return s
+}
+
+// SetTerminateBlueInstancesOnDeploymentSuccess sets the TerminateBlueInstancesOnDeploymentSuccess field's value.
+func (s *BlueGreenDeploymentConfiguration) SetTerminateBlueInstancesOnDeploymentSuccess(v *BlueInstanceTerminationOption) *BlueGreenDeploymentConfiguration {
+	s.TerminateBlueInstancesOnDeploymentSuccess = v
+	return s
+}
+
+// Information about whether instances in the original environment are terminated
+// when a blue/green deployment is successful.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/BlueInstanceTerminationOption
+type BlueInstanceTerminationOption struct {
+	_ struct{} `type:"structure"`
+
+	// The action to take on instances in the original environment after a successful
+	// blue/green deployment.
+	//
+	//    * TERMINATE: Instances are terminated after a specified wait time.
+	//
+	//    * KEEP_ALIVE: Instances are left running after they are deregistered from
+	//    the load balancer and removed from the deployment group.
+	Action *string `locationName:"action" type:"string" enum:"InstanceAction"`
+
+	// The number of minutes to wait after a successful blue/green deployment before
+	// terminating instances from the original environment.
+	TerminationWaitTimeInMinutes *int64 `locationName:"terminationWaitTimeInMinutes" type:"integer"`
+}
+
+// String returns the string representation
+func (s BlueInstanceTerminationOption) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BlueInstanceTerminationOption) GoString() string {
+	return s.String()
+}
+
+// SetAction sets the Action field's value.
+func (s *BlueInstanceTerminationOption) SetAction(v string) *BlueInstanceTerminationOption {
+	s.Action = &v
+	return s
+}
+
+// SetTerminationWaitTimeInMinutes sets the TerminationWaitTimeInMinutes field's value.
+func (s *BlueInstanceTerminationOption) SetTerminationWaitTimeInMinutes(v int64) *BlueInstanceTerminationOption {
+	s.TerminationWaitTimeInMinutes = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ContinueDeploymentInput
+type ContinueDeploymentInput struct {
+	_ struct{} `type:"structure"`
+
+	// The deployment ID of the blue/green deployment for which you want to start
+	// rerouting traffic to the replacement environment.
+	DeploymentId *string `locationName:"deploymentId" type:"string"`
+}
+
+// String returns the string representation
+func (s ContinueDeploymentInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ContinueDeploymentInput) GoString() string {
+	return s.String()
+}
+
+// SetDeploymentId sets the DeploymentId field's value.
+func (s *ContinueDeploymentInput) SetDeploymentId(v string) *ContinueDeploymentInput {
+	s.DeploymentId = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ContinueDeploymentOutput
+type ContinueDeploymentOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s ContinueDeploymentOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ContinueDeploymentOutput) GoString() string {
+	return s.String()
+}
+
 // Represents the input of a create application operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/CreateApplicationInput
 type CreateApplicationInput struct {
@@ -3947,6 +4104,9 @@ type CreateDeploymentGroupInput struct {
 	// A list of associated Auto Scaling groups.
 	AutoScalingGroups []*string `locationName:"autoScalingGroups" type:"list"`
 
+	// Information about blue/green deployment options for a deployment group.
+	BlueGreenDeploymentConfiguration *BlueGreenDeploymentConfiguration `locationName:"blueGreenDeploymentConfiguration" type:"structure"`
+
 	// If specified, the deployment configuration name can be either one of the
 	// predefined configurations provided with AWS CodeDeploy or a custom deployment
 	// configuration that you create by calling the create deployment configuration
@@ -3966,8 +4126,15 @@ type CreateDeploymentGroupInput struct {
 	// DeploymentGroupName is a required field
 	DeploymentGroupName *string `locationName:"deploymentGroupName" min:"1" type:"string" required:"true"`
 
+	// Information about the type of deployment, standard or blue/green, that you
+	// want to run and whether to route deployment traffic behind a load balancer.
+	DeploymentStyle *DeploymentStyle `locationName:"deploymentStyle" type:"structure"`
+
 	// The Amazon EC2 tags on which to filter.
 	Ec2TagFilters []*EC2TagFilter `locationName:"ec2TagFilters" type:"list"`
+
+	// Information about the load balancer used in a blue/green deployment.
+	LoadBalancerInfo *LoadBalancerInfo `locationName:"loadBalancerInfo" type:"structure"`
 
 	// The on-premises instance tags on which to filter.
 	OnPremisesInstanceTagFilters []*TagFilter `locationName:"onPremisesInstanceTagFilters" type:"list"`
@@ -4046,6 +4213,12 @@ func (s *CreateDeploymentGroupInput) SetAutoScalingGroups(v []*string) *CreateDe
 	return s
 }
 
+// SetBlueGreenDeploymentConfiguration sets the BlueGreenDeploymentConfiguration field's value.
+func (s *CreateDeploymentGroupInput) SetBlueGreenDeploymentConfiguration(v *BlueGreenDeploymentConfiguration) *CreateDeploymentGroupInput {
+	s.BlueGreenDeploymentConfiguration = v
+	return s
+}
+
 // SetDeploymentConfigName sets the DeploymentConfigName field's value.
 func (s *CreateDeploymentGroupInput) SetDeploymentConfigName(v string) *CreateDeploymentGroupInput {
 	s.DeploymentConfigName = &v
@@ -4058,9 +4231,21 @@ func (s *CreateDeploymentGroupInput) SetDeploymentGroupName(v string) *CreateDep
 	return s
 }
 
+// SetDeploymentStyle sets the DeploymentStyle field's value.
+func (s *CreateDeploymentGroupInput) SetDeploymentStyle(v *DeploymentStyle) *CreateDeploymentGroupInput {
+	s.DeploymentStyle = v
+	return s
+}
+
 // SetEc2TagFilters sets the Ec2TagFilters field's value.
 func (s *CreateDeploymentGroupInput) SetEc2TagFilters(v []*EC2TagFilter) *CreateDeploymentGroupInput {
 	s.Ec2TagFilters = v
+	return s
+}
+
+// SetLoadBalancerInfo sets the LoadBalancerInfo field's value.
+func (s *CreateDeploymentGroupInput) SetLoadBalancerInfo(v *LoadBalancerInfo) *CreateDeploymentGroupInput {
+	s.LoadBalancerInfo = v
 	return s
 }
 
@@ -4150,6 +4335,10 @@ type CreateDeploymentInput struct {
 	// The type and location of the revision to deploy.
 	Revision *RevisionLocation `locationName:"revision" type:"structure"`
 
+	// Information about the instances that will belong to the replacement environment
+	// in a blue/green deployment.
+	TargetInstances *TargetInstances `locationName:"targetInstances" type:"structure"`
+
 	// Indicates whether to deploy to all instances or only to instances that are
 	// not running the latest application revision.
 	UpdateOutdatedInstancesOnly *bool `locationName:"updateOutdatedInstancesOnly" type:"boolean"`
@@ -4226,6 +4415,12 @@ func (s *CreateDeploymentInput) SetIgnoreApplicationStopFailures(v bool) *Create
 // SetRevision sets the Revision field's value.
 func (s *CreateDeploymentInput) SetRevision(v *RevisionLocation) *CreateDeploymentInput {
 	s.Revision = v
+	return s
+}
+
+// SetTargetInstances sets the TargetInstances field's value.
+func (s *CreateDeploymentInput) SetTargetInstances(v *TargetInstances) *CreateDeploymentInput {
+	s.TargetInstances = v
 	return s
 }
 
@@ -4539,6 +4734,9 @@ type DeploymentGroupInfo struct {
 	// A list of associated Auto Scaling groups.
 	AutoScalingGroups []*AutoScalingGroup `locationName:"autoScalingGroups" type:"list"`
 
+	// Information about blue/green deployment options for a deployment group.
+	BlueGreenDeploymentConfiguration *BlueGreenDeploymentConfiguration `locationName:"blueGreenDeploymentConfiguration" type:"structure"`
+
 	// The deployment configuration name.
 	DeploymentConfigName *string `locationName:"deploymentConfigName" min:"1" type:"string"`
 
@@ -4548,8 +4746,15 @@ type DeploymentGroupInfo struct {
 	// The deployment group name.
 	DeploymentGroupName *string `locationName:"deploymentGroupName" min:"1" type:"string"`
 
+	// Information about the type of deployment, either standard or blue/green,
+	// you want to run and whether to route deployment traffic behind a load balancer.
+	DeploymentStyle *DeploymentStyle `locationName:"deploymentStyle" type:"structure"`
+
 	// The Amazon EC2 tags on which to filter.
 	Ec2TagFilters []*EC2TagFilter `locationName:"ec2TagFilters" type:"list"`
+
+	// Information about the load balancer to use in a blue/green deployment.
+	LoadBalancerInfo *LoadBalancerInfo `locationName:"loadBalancerInfo" type:"structure"`
 
 	// The on-premises instance tags on which to filter.
 	OnPremisesInstanceTagFilters []*TagFilter `locationName:"onPremisesInstanceTagFilters" type:"list"`
@@ -4599,6 +4804,12 @@ func (s *DeploymentGroupInfo) SetAutoScalingGroups(v []*AutoScalingGroup) *Deplo
 	return s
 }
 
+// SetBlueGreenDeploymentConfiguration sets the BlueGreenDeploymentConfiguration field's value.
+func (s *DeploymentGroupInfo) SetBlueGreenDeploymentConfiguration(v *BlueGreenDeploymentConfiguration) *DeploymentGroupInfo {
+	s.BlueGreenDeploymentConfiguration = v
+	return s
+}
+
 // SetDeploymentConfigName sets the DeploymentConfigName field's value.
 func (s *DeploymentGroupInfo) SetDeploymentConfigName(v string) *DeploymentGroupInfo {
 	s.DeploymentConfigName = &v
@@ -4617,9 +4828,21 @@ func (s *DeploymentGroupInfo) SetDeploymentGroupName(v string) *DeploymentGroupI
 	return s
 }
 
+// SetDeploymentStyle sets the DeploymentStyle field's value.
+func (s *DeploymentGroupInfo) SetDeploymentStyle(v *DeploymentStyle) *DeploymentGroupInfo {
+	s.DeploymentStyle = v
+	return s
+}
+
 // SetEc2TagFilters sets the Ec2TagFilters field's value.
 func (s *DeploymentGroupInfo) SetEc2TagFilters(v []*EC2TagFilter) *DeploymentGroupInfo {
 	s.Ec2TagFilters = v
+	return s
+}
+
+// SetLoadBalancerInfo sets the LoadBalancerInfo field's value.
+func (s *DeploymentGroupInfo) SetLoadBalancerInfo(v *LoadBalancerInfo) *DeploymentGroupInfo {
+	s.LoadBalancerInfo = v
 	return s
 }
 
@@ -4652,12 +4875,19 @@ func (s *DeploymentGroupInfo) SetTriggerConfigurations(v []*TriggerConfig) *Depl
 type DeploymentInfo struct {
 	_ struct{} `type:"structure"`
 
+	// Provides information about the results of a deployment, such as whether instances
+	// in the original environment in a blue/green deployment were not terminated.
+	AdditionalDeploymentStatusInfo *string `locationName:"additionalDeploymentStatusInfo" type:"string"`
+
 	// The application name.
 	ApplicationName *string `locationName:"applicationName" min:"1" type:"string"`
 
 	// Information about the automatic rollback configuration associated with the
 	// deployment.
 	AutoRollbackConfiguration *AutoRollbackConfiguration `locationName:"autoRollbackConfiguration" type:"structure"`
+
+	// Information about blue/green deployment options for this deployment.
+	BlueGreenDeploymentConfiguration *BlueGreenDeploymentConfiguration `locationName:"blueGreenDeploymentConfiguration" type:"structure"`
 
 	// A timestamp indicating when the deployment was complete.
 	CompleteTime *time.Time `locationName:"completeTime" type:"timestamp" timestampFormat:"unix"`
@@ -4686,6 +4916,10 @@ type DeploymentInfo struct {
 	// A summary of the deployment status of the instances in the deployment.
 	DeploymentOverview *DeploymentOverview `locationName:"deploymentOverview" type:"structure"`
 
+	// Information about the type of deployment, either standard or blue/green,
+	// you want to run and whether to route deployment traffic behind a load balancer.
+	DeploymentStyle *DeploymentStyle `locationName:"deploymentStyle" type:"structure"`
+
 	// A comment about the deployment.
 	Description *string `locationName:"description" type:"string"`
 
@@ -4702,6 +4936,15 @@ type DeploymentInfo struct {
 	// instance will stop, and the deployment to that instance will be considered
 	// to have failed.
 	IgnoreApplicationStopFailures *bool `locationName:"ignoreApplicationStopFailures" type:"boolean"`
+
+	// Indicates whether the wait period set for the termination of instances in
+	// the original environment has started. Status is 'false' if the KEEP_ALIVE
+	// option is specified; otherwise, 'true' as soon as the termination wait period
+	// starts.
+	InstanceTerminationWaitTimeStarted *bool `locationName:"instanceTerminationWaitTimeStarted" type:"boolean"`
+
+	// Information about the load balancer used in this blue/green deployment.
+	LoadBalancerInfo *LoadBalancerInfo `locationName:"loadBalancerInfo" type:"structure"`
 
 	// Information about the location of stored application artifacts and the service
 	// from which to retrieve them.
@@ -4721,6 +4964,10 @@ type DeploymentInfo struct {
 	// The current state of the deployment as a whole.
 	Status *string `locationName:"status" type:"string" enum:"DeploymentStatus"`
 
+	// Information about the instances that belong to the replacement environment
+	// in a blue/green deployment.
+	TargetInstances *TargetInstances `locationName:"targetInstances" type:"structure"`
+
 	// Indicates whether only instances that are not running the latest application
 	// revision are to be deployed to.
 	UpdateOutdatedInstancesOnly *bool `locationName:"updateOutdatedInstancesOnly" type:"boolean"`
@@ -4736,6 +4983,12 @@ func (s DeploymentInfo) GoString() string {
 	return s.String()
 }
 
+// SetAdditionalDeploymentStatusInfo sets the AdditionalDeploymentStatusInfo field's value.
+func (s *DeploymentInfo) SetAdditionalDeploymentStatusInfo(v string) *DeploymentInfo {
+	s.AdditionalDeploymentStatusInfo = &v
+	return s
+}
+
 // SetApplicationName sets the ApplicationName field's value.
 func (s *DeploymentInfo) SetApplicationName(v string) *DeploymentInfo {
 	s.ApplicationName = &v
@@ -4745,6 +4998,12 @@ func (s *DeploymentInfo) SetApplicationName(v string) *DeploymentInfo {
 // SetAutoRollbackConfiguration sets the AutoRollbackConfiguration field's value.
 func (s *DeploymentInfo) SetAutoRollbackConfiguration(v *AutoRollbackConfiguration) *DeploymentInfo {
 	s.AutoRollbackConfiguration = v
+	return s
+}
+
+// SetBlueGreenDeploymentConfiguration sets the BlueGreenDeploymentConfiguration field's value.
+func (s *DeploymentInfo) SetBlueGreenDeploymentConfiguration(v *BlueGreenDeploymentConfiguration) *DeploymentInfo {
+	s.BlueGreenDeploymentConfiguration = v
 	return s
 }
 
@@ -4790,6 +5049,12 @@ func (s *DeploymentInfo) SetDeploymentOverview(v *DeploymentOverview) *Deploymen
 	return s
 }
 
+// SetDeploymentStyle sets the DeploymentStyle field's value.
+func (s *DeploymentInfo) SetDeploymentStyle(v *DeploymentStyle) *DeploymentInfo {
+	s.DeploymentStyle = v
+	return s
+}
+
 // SetDescription sets the Description field's value.
 func (s *DeploymentInfo) SetDescription(v string) *DeploymentInfo {
 	s.Description = &v
@@ -4805,6 +5070,18 @@ func (s *DeploymentInfo) SetErrorInformation(v *ErrorInformation) *DeploymentInf
 // SetIgnoreApplicationStopFailures sets the IgnoreApplicationStopFailures field's value.
 func (s *DeploymentInfo) SetIgnoreApplicationStopFailures(v bool) *DeploymentInfo {
 	s.IgnoreApplicationStopFailures = &v
+	return s
+}
+
+// SetInstanceTerminationWaitTimeStarted sets the InstanceTerminationWaitTimeStarted field's value.
+func (s *DeploymentInfo) SetInstanceTerminationWaitTimeStarted(v bool) *DeploymentInfo {
+	s.InstanceTerminationWaitTimeStarted = &v
+	return s
+}
+
+// SetLoadBalancerInfo sets the LoadBalancerInfo field's value.
+func (s *DeploymentInfo) SetLoadBalancerInfo(v *LoadBalancerInfo) *DeploymentInfo {
+	s.LoadBalancerInfo = v
 	return s
 }
 
@@ -4832,6 +5109,12 @@ func (s *DeploymentInfo) SetStatus(v string) *DeploymentInfo {
 	return s
 }
 
+// SetTargetInstances sets the TargetInstances field's value.
+func (s *DeploymentInfo) SetTargetInstances(v *TargetInstances) *DeploymentInfo {
+	s.TargetInstances = v
+	return s
+}
+
 // SetUpdateOutdatedInstancesOnly sets the UpdateOutdatedInstancesOnly field's value.
 func (s *DeploymentInfo) SetUpdateOutdatedInstancesOnly(v bool) *DeploymentInfo {
 	s.UpdateOutdatedInstancesOnly = &v
@@ -4851,6 +5134,10 @@ type DeploymentOverview struct {
 
 	// The number of instances in the deployment in a pending state.
 	Pending *int64 `type:"long"`
+
+	// The number of instances in a replacement environment ready to receive traffic
+	// in a blue/green deployment.
+	Ready *int64 `type:"long"`
 
 	// The number of instances in the deployment in a skipped state.
 	Skipped *int64 `type:"long"`
@@ -4888,6 +5175,12 @@ func (s *DeploymentOverview) SetPending(v int64) *DeploymentOverview {
 	return s
 }
 
+// SetReady sets the Ready field's value.
+func (s *DeploymentOverview) SetReady(v int64) *DeploymentOverview {
+	s.Ready = &v
+	return s
+}
+
 // SetSkipped sets the Skipped field's value.
 func (s *DeploymentOverview) SetSkipped(v int64) *DeploymentOverview {
 	s.Skipped = &v
@@ -4897,6 +5190,88 @@ func (s *DeploymentOverview) SetSkipped(v int64) *DeploymentOverview {
 // SetSucceeded sets the Succeeded field's value.
 func (s *DeploymentOverview) SetSucceeded(v int64) *DeploymentOverview {
 	s.Succeeded = &v
+	return s
+}
+
+// Information about how traffic is rerouted to instances in a replacement environment
+// in a blue/green deployment.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/DeploymentReadyOption
+type DeploymentReadyOption struct {
+	_ struct{} `type:"structure"`
+
+	// Information about when to reroute traffic from an original environment to
+	// a replacement environment in a blue/green deployment.
+	//
+	//    * CONTINUE_DEPLOYMENT: Register new instances with the load balancer immediately
+	//    after the new application revision is installed on the instances in the
+	//    replacement environment.
+	//
+	//    * STOP_DEPLOYMENT: Do not register new instances with load balancer unless
+	//    traffic is rerouted manually. If traffic is not rerouted manually before
+	//    the end of the specified wait period, the deployment status is changed
+	//    to Stopped.
+	ActionOnTimeout *string `locationName:"actionOnTimeout" type:"string" enum:"DeploymentReadyAction"`
+
+	// The number of minutes to wait before the status of a blue/green deployment
+	// changed to Stopped if rerouting is not started manually. Applies only to
+	// the STOP_DEPLOYMENT option for actionOnTimeout
+	WaitTimeInMinutes *int64 `locationName:"waitTimeInMinutes" type:"integer"`
+}
+
+// String returns the string representation
+func (s DeploymentReadyOption) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeploymentReadyOption) GoString() string {
+	return s.String()
+}
+
+// SetActionOnTimeout sets the ActionOnTimeout field's value.
+func (s *DeploymentReadyOption) SetActionOnTimeout(v string) *DeploymentReadyOption {
+	s.ActionOnTimeout = &v
+	return s
+}
+
+// SetWaitTimeInMinutes sets the WaitTimeInMinutes field's value.
+func (s *DeploymentReadyOption) SetWaitTimeInMinutes(v int64) *DeploymentReadyOption {
+	s.WaitTimeInMinutes = &v
+	return s
+}
+
+// Information about the type of deployment, either standard or blue/green,
+// you want to run and whether to route deployment traffic behind a load balancer.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/DeploymentStyle
+type DeploymentStyle struct {
+	_ struct{} `type:"structure"`
+
+	// Indicates whether to route deployment traffic behind a load balancer.
+	DeploymentOption *string `locationName:"deploymentOption" type:"string" enum:"DeploymentOption"`
+
+	// Indicates whether to run a standard deployment or a blue/green deployment.
+	DeploymentType *string `locationName:"deploymentType" type:"string" enum:"DeploymentType"`
+}
+
+// String returns the string representation
+func (s DeploymentStyle) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeploymentStyle) GoString() string {
+	return s.String()
+}
+
+// SetDeploymentOption sets the DeploymentOption field's value.
+func (s *DeploymentStyle) SetDeploymentOption(v string) *DeploymentStyle {
+	s.DeploymentOption = &v
+	return s
+}
+
+// SetDeploymentType sets the DeploymentType field's value.
+func (s *DeploymentStyle) SetDeploymentType(v string) *DeploymentStyle {
+	s.DeploymentType = &v
 	return s
 }
 
@@ -5073,11 +5448,42 @@ func (s *EC2TagFilter) SetValue(v string) *EC2TagFilter {
 	return s
 }
 
+// Information about a load balancer in Elastic Load Balancing to use in a blue/green
+// deployment.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ELBInfo
+type ELBInfo struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the load balancer that will be used to route traffic from original
+	// instances to replacement instances in a blue/green deployment.
+	Name *string `locationName:"name" type:"string"`
+}
+
+// String returns the string representation
+func (s ELBInfo) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ELBInfo) GoString() string {
+	return s.String()
+}
+
+// SetName sets the Name field's value.
+func (s *ELBInfo) SetName(v string) *ELBInfo {
+	s.Name = &v
+	return s
+}
+
 // Information about a deployment error.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ErrorInformation
 type ErrorInformation struct {
 	_ struct{} `type:"structure"`
 
+	// For information about additional error codes, see Error Codes for AWS CodeDeploy
+	// (http://docs.aws.amazon.com/codedeploy/latest/userguide/error-codes.html)
+	// in the AWS CodeDeploy User Guide (http://docs.aws.amazon.com/codedeploy/latest/userguide).
+	//
 	// The error code:
 	//
 	//    * APPLICATION_MISSING: The application was missing. This error code will
@@ -5775,6 +6181,38 @@ func (s *GitHubLocation) SetRepository(v string) *GitHubLocation {
 	return s
 }
 
+// Information about the instances that belong to the replacement environment
+// in a blue/green deployment.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/GreenFleetProvisioningOption
+type GreenFleetProvisioningOption struct {
+	_ struct{} `type:"structure"`
+
+	// The method used to add instances to a replacement environment.
+	//
+	//    * DISCOVER_EXISTING: Use instances that already exist or will be created
+	//    manually.
+	//
+	//    * COPY_AUTO_SCALING_GROUP: Use settings from a specified Auto Scaling
+	//    group to define and create instances in a new Auto Scaling group.
+	Action *string `locationName:"action" type:"string" enum:"GreenFleetProvisioningAction"`
+}
+
+// String returns the string representation
+func (s GreenFleetProvisioningOption) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GreenFleetProvisioningOption) GoString() string {
+	return s.String()
+}
+
+// SetAction sets the Action field's value.
+func (s *GreenFleetProvisioningOption) SetAction(v string) *GreenFleetProvisioningOption {
+	s.Action = &v
+	return s
+}
+
 // Information about an on-premises instance.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/InstanceInfo
 type InstanceInfo struct {
@@ -5866,6 +6304,14 @@ type InstanceSummary struct {
 	// The instance ID.
 	InstanceId *string `locationName:"instanceId" type:"string"`
 
+	// Information about which environment an instance belongs to in a blue/green
+	// deployment.
+	//
+	//    * BLUE: The instance is part of the original environment.
+	//
+	//    * GREEN: The instance is part of the replacement environment.
+	InstanceType *string `locationName:"instanceType" type:"string" enum:"InstanceType"`
+
 	// A timestamp indicating when the instance information was last updated.
 	LastUpdatedAt *time.Time `locationName:"lastUpdatedAt" type:"timestamp" timestampFormat:"unix"`
 
@@ -5907,6 +6353,12 @@ func (s *InstanceSummary) SetDeploymentId(v string) *InstanceSummary {
 // SetInstanceId sets the InstanceId field's value.
 func (s *InstanceSummary) SetInstanceId(v string) *InstanceSummary {
 	s.InstanceId = &v
+	return s
+}
+
+// SetInstanceType sets the InstanceType field's value.
+func (s *InstanceSummary) SetInstanceType(v string) *InstanceSummary {
+	s.InstanceType = &v
 	return s
 }
 
@@ -6415,6 +6867,11 @@ type ListDeploymentInstancesInput struct {
 	//    * Unknown: Include those instance with deployments in an unknown state.
 	InstanceStatusFilter []*string `locationName:"instanceStatusFilter" type:"list"`
 
+	// The set of instances in a blue/green deployment, either those in the original
+	// environment ("BLUE") or those in the replacement environment ("GREEN"), for
+	// which you want to view instance information.
+	InstanceTypeFilter []*string `locationName:"instanceTypeFilter" type:"list"`
+
 	// An identifier returned from the previous list deployment instances call.
 	// It can be used to return the next set of deployment instances in the list.
 	NextToken *string `locationName:"nextToken" type:"string"`
@@ -6452,6 +6909,12 @@ func (s *ListDeploymentInstancesInput) SetDeploymentId(v string) *ListDeployment
 // SetInstanceStatusFilter sets the InstanceStatusFilter field's value.
 func (s *ListDeploymentInstancesInput) SetInstanceStatusFilter(v []*string) *ListDeploymentInstancesInput {
 	s.InstanceStatusFilter = v
+	return s
+}
+
+// SetInstanceTypeFilter sets the InstanceTypeFilter field's value.
+func (s *ListDeploymentInstancesInput) SetInstanceTypeFilter(v []*string) *ListDeploymentInstancesInput {
+	s.InstanceTypeFilter = v
 	return s
 }
 
@@ -6708,6 +7171,32 @@ func (s *ListOnPremisesInstancesOutput) SetInstanceNames(v []*string) *ListOnPre
 // SetNextToken sets the NextToken field's value.
 func (s *ListOnPremisesInstancesOutput) SetNextToken(v string) *ListOnPremisesInstancesOutput {
 	s.NextToken = &v
+	return s
+}
+
+// Information about the load balancer used in a blue/green deployment.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/LoadBalancerInfo
+type LoadBalancerInfo struct {
+	_ struct{} `type:"structure"`
+
+	// An array containing information about the load balancer in Elastic Load Balancing
+	// to use in a blue/green deployment.
+	ElbInfoList []*ELBInfo `locationName:"elbInfoList" type:"list"`
+}
+
+// String returns the string representation
+func (s LoadBalancerInfo) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LoadBalancerInfo) GoString() string {
+	return s.String()
+}
+
+// SetElbInfoList sets the ElbInfoList field's value.
+func (s *LoadBalancerInfo) SetElbInfoList(v []*ELBInfo) *LoadBalancerInfo {
+	s.ElbInfoList = v
 	return s
 }
 
@@ -6997,8 +7486,8 @@ func (s RemoveTagsFromOnPremisesInstancesOutput) GoString() string {
 type RevisionInfo struct {
 	_ struct{} `type:"structure"`
 
-	// Information about an application revision, including usage details and currently
-	// associated deployment groups.
+	// Information about an application revision, including usage details and associated
+	// deployment groups.
 	GenericRevisionInfo *GenericRevisionInfo `locationName:"genericRevisionInfo" type:"structure"`
 
 	// Information about the location and type of an application revision.
@@ -7197,6 +7686,46 @@ func (s *S3Location) SetVersion(v string) *S3Location {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/SkipWaitTimeForInstanceTerminationInput
+type SkipWaitTimeForInstanceTerminationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the blue/green deployment for which you want to skip the instance
+	// termination wait time.
+	DeploymentId *string `locationName:"deploymentId" type:"string"`
+}
+
+// String returns the string representation
+func (s SkipWaitTimeForInstanceTerminationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SkipWaitTimeForInstanceTerminationInput) GoString() string {
+	return s.String()
+}
+
+// SetDeploymentId sets the DeploymentId field's value.
+func (s *SkipWaitTimeForInstanceTerminationInput) SetDeploymentId(v string) *SkipWaitTimeForInstanceTerminationInput {
+	s.DeploymentId = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/SkipWaitTimeForInstanceTerminationOutput
+type SkipWaitTimeForInstanceTerminationOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s SkipWaitTimeForInstanceTerminationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SkipWaitTimeForInstanceTerminationOutput) GoString() string {
+	return s.String()
+}
+
 // Represents the input of a stop deployment operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/StopDeploymentInput
 type StopDeploymentInput struct {
@@ -7366,6 +7895,43 @@ func (s *TagFilter) SetType(v string) *TagFilter {
 // SetValue sets the Value field's value.
 func (s *TagFilter) SetValue(v string) *TagFilter {
 	s.Value = &v
+	return s
+}
+
+// Information about the instances to be used in the replacement environment
+// in a blue/green deployment.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/TargetInstances
+type TargetInstances struct {
+	_ struct{} `type:"structure"`
+
+	// The names of one or more Auto Scaling groups to identify a replacement environment
+	// for a blue/green deployment.
+	AutoScalingGroups []*string `locationName:"autoScalingGroups" type:"list"`
+
+	// The tag filter key, type, and value used to identify Amazon EC2 instances
+	// in a replacement environment for a blue/green deployment.
+	TagFilters []*EC2TagFilter `locationName:"tagFilters" type:"list"`
+}
+
+// String returns the string representation
+func (s TargetInstances) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TargetInstances) GoString() string {
+	return s.String()
+}
+
+// SetAutoScalingGroups sets the AutoScalingGroups field's value.
+func (s *TargetInstances) SetAutoScalingGroups(v []*string) *TargetInstances {
+	s.AutoScalingGroups = v
+	return s
+}
+
+// SetTagFilters sets the TagFilters field's value.
+func (s *TargetInstances) SetTagFilters(v []*EC2TagFilter) *TargetInstances {
+	s.TagFilters = v
 	return s
 }
 
@@ -7540,6 +8106,9 @@ type UpdateDeploymentGroupInput struct {
 	// group names.
 	AutoScalingGroups []*string `locationName:"autoScalingGroups" type:"list"`
 
+	// Information about blue/green deployment options for a deployment group.
+	BlueGreenDeploymentConfiguration *BlueGreenDeploymentConfiguration `locationName:"blueGreenDeploymentConfiguration" type:"structure"`
+
 	// The current name of the deployment group.
 	//
 	// CurrentDeploymentGroupName is a required field
@@ -7549,10 +8118,17 @@ type UpdateDeploymentGroupInput struct {
 	// it.
 	DeploymentConfigName *string `locationName:"deploymentConfigName" min:"1" type:"string"`
 
+	// Information about the type of deployment, either standard or blue/green,
+	// you want to run and whether to route deployment traffic behind a load balancer.
+	DeploymentStyle *DeploymentStyle `locationName:"deploymentStyle" type:"structure"`
+
 	// The replacement set of Amazon EC2 tags on which to filter, if you want to
 	// change them. To keep the existing tags, enter their names. To remove tags,
 	// do not enter any tag names.
 	Ec2TagFilters []*EC2TagFilter `locationName:"ec2TagFilters" type:"list"`
+
+	// Information about the load balancer used in a blue/green deployment.
+	LoadBalancerInfo *LoadBalancerInfo `locationName:"loadBalancerInfo" type:"structure"`
 
 	// The new name of the deployment group, if you want to change it.
 	NewDeploymentGroupName *string `locationName:"newDeploymentGroupName" min:"1" type:"string"`
@@ -7633,6 +8209,12 @@ func (s *UpdateDeploymentGroupInput) SetAutoScalingGroups(v []*string) *UpdateDe
 	return s
 }
 
+// SetBlueGreenDeploymentConfiguration sets the BlueGreenDeploymentConfiguration field's value.
+func (s *UpdateDeploymentGroupInput) SetBlueGreenDeploymentConfiguration(v *BlueGreenDeploymentConfiguration) *UpdateDeploymentGroupInput {
+	s.BlueGreenDeploymentConfiguration = v
+	return s
+}
+
 // SetCurrentDeploymentGroupName sets the CurrentDeploymentGroupName field's value.
 func (s *UpdateDeploymentGroupInput) SetCurrentDeploymentGroupName(v string) *UpdateDeploymentGroupInput {
 	s.CurrentDeploymentGroupName = &v
@@ -7645,9 +8227,21 @@ func (s *UpdateDeploymentGroupInput) SetDeploymentConfigName(v string) *UpdateDe
 	return s
 }
 
+// SetDeploymentStyle sets the DeploymentStyle field's value.
+func (s *UpdateDeploymentGroupInput) SetDeploymentStyle(v *DeploymentStyle) *UpdateDeploymentGroupInput {
+	s.DeploymentStyle = v
+	return s
+}
+
 // SetEc2TagFilters sets the Ec2TagFilters field's value.
 func (s *UpdateDeploymentGroupInput) SetEc2TagFilters(v []*EC2TagFilter) *UpdateDeploymentGroupInput {
 	s.Ec2TagFilters = v
+	return s
+}
+
+// SetLoadBalancerInfo sets the LoadBalancerInfo field's value.
+func (s *UpdateDeploymentGroupInput) SetLoadBalancerInfo(v *LoadBalancerInfo) *UpdateDeploymentGroupInput {
+	s.LoadBalancerInfo = v
 	return s
 }
 
@@ -7749,6 +8343,22 @@ const (
 )
 
 const (
+	// DeploymentOptionWithTrafficControl is a DeploymentOption enum value
+	DeploymentOptionWithTrafficControl = "WITH_TRAFFIC_CONTROL"
+
+	// DeploymentOptionWithoutTrafficControl is a DeploymentOption enum value
+	DeploymentOptionWithoutTrafficControl = "WITHOUT_TRAFFIC_CONTROL"
+)
+
+const (
+	// DeploymentReadyActionContinueDeployment is a DeploymentReadyAction enum value
+	DeploymentReadyActionContinueDeployment = "CONTINUE_DEPLOYMENT"
+
+	// DeploymentReadyActionStopDeployment is a DeploymentReadyAction enum value
+	DeploymentReadyActionStopDeployment = "STOP_DEPLOYMENT"
+)
+
+const (
 	// DeploymentStatusCreated is a DeploymentStatus enum value
 	DeploymentStatusCreated = "Created"
 
@@ -7766,6 +8376,17 @@ const (
 
 	// DeploymentStatusStopped is a DeploymentStatus enum value
 	DeploymentStatusStopped = "Stopped"
+
+	// DeploymentStatusReady is a DeploymentStatus enum value
+	DeploymentStatusReady = "Ready"
+)
+
+const (
+	// DeploymentTypeInPlace is a DeploymentType enum value
+	DeploymentTypeInPlace = "IN_PLACE"
+
+	// DeploymentTypeBlueGreen is a DeploymentType enum value
+	DeploymentTypeBlueGreen = "BLUE_GREEN"
 )
 
 const (
@@ -7836,6 +8457,22 @@ const (
 )
 
 const (
+	// GreenFleetProvisioningActionDiscoverExisting is a GreenFleetProvisioningAction enum value
+	GreenFleetProvisioningActionDiscoverExisting = "DISCOVER_EXISTING"
+
+	// GreenFleetProvisioningActionCopyAutoScalingGroup is a GreenFleetProvisioningAction enum value
+	GreenFleetProvisioningActionCopyAutoScalingGroup = "COPY_AUTO_SCALING_GROUP"
+)
+
+const (
+	// InstanceActionTerminate is a InstanceAction enum value
+	InstanceActionTerminate = "TERMINATE"
+
+	// InstanceActionKeepAlive is a InstanceAction enum value
+	InstanceActionKeepAlive = "KEEP_ALIVE"
+)
+
+const (
 	// InstanceStatusPending is a InstanceStatus enum value
 	InstanceStatusPending = "Pending"
 
@@ -7853,6 +8490,17 @@ const (
 
 	// InstanceStatusUnknown is a InstanceStatus enum value
 	InstanceStatusUnknown = "Unknown"
+
+	// InstanceStatusReady is a InstanceStatus enum value
+	InstanceStatusReady = "Ready"
+)
+
+const (
+	// InstanceTypeBlue is a InstanceType enum value
+	InstanceTypeBlue = "Blue"
+
+	// InstanceTypeGreen is a InstanceType enum value
+	InstanceTypeGreen = "Green"
 )
 
 const (
@@ -7973,6 +8621,9 @@ const (
 	// TriggerEventTypeDeploymentRollback is a TriggerEventType enum value
 	TriggerEventTypeDeploymentRollback = "DeploymentRollback"
 
+	// TriggerEventTypeDeploymentReady is a TriggerEventType enum value
+	TriggerEventTypeDeploymentReady = "DeploymentReady"
+
 	// TriggerEventTypeInstanceStart is a TriggerEventType enum value
 	TriggerEventTypeInstanceStart = "InstanceStart"
 
@@ -7981,4 +8632,7 @@ const (
 
 	// TriggerEventTypeInstanceFailure is a TriggerEventType enum value
 	TriggerEventTypeInstanceFailure = "InstanceFailure"
+
+	// TriggerEventTypeInstanceReady is a TriggerEventType enum value
+	TriggerEventTypeInstanceReady = "InstanceReady"
 )

@@ -45,9 +45,6 @@ The following arguments are supported:
     versions of Terraform. The `project_id` attribute should be used instead. See
     [below](#id-field) for more information about its behaviour.
 
-* `project_id` - (Required) The project ID.
-    Changing this forces a new project to be created.
-
 * `org_id` - (Optional) The numeric ID of the organization this project belongs to.
     This is required if you are creating a new project.
     Changing this forces a new project to be created.

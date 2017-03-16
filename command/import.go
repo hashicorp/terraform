@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -45,13 +47,37 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Build the context based on the arguments given
-	ctx, _, err := c.Context(contextOpts{
-		Path:        configPath,
-		PathEmptyOk: true,
-		StatePath:   c.Meta.statePath,
-		Parallelism: c.Meta.parallelism,
-	})
+	// Load the module
+	var mod *module.Tree
+	if configPath != "" {
+		var err error
+		mod, err = c.Module(configPath)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
+			return 1
+		}
+	}
+
+	// Load the backend
+	b, err := c.Backend(&BackendOpts{ConfigPath: configPath})
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+		return 1
+	}
+
+	// We require a local backend
+	local, ok := b.(backend.Local)
+	if !ok {
+		c.Ui.Error(ErrUnsupportedLocalOp)
+		return 1
+	}
+
+	// Build the operation
+	opReq := c.Operation()
+	opReq.Module = mod
+
+	// Get the context
+	ctx, state, err := local.Context(opReq)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -76,7 +102,11 @@ func (c *ImportCommand) Run(args []string) int {
 
 	// Persist the final state
 	log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
-	if err := c.Meta.PersistState(newState); err != nil {
+	if err := state.WriteState(newState); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
+		return 1
+	}
+	if err := state.PersistState(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
 		return 1
 	}

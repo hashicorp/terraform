@@ -18,6 +18,9 @@ func resourceArmLoadBalancer() *schema.Resource {
 		Read:   resourecArmLoadBalancerRead,
 		Update: resourceArmLoadBalancerCreate,
 		Delete: resourceArmLoadBalancerDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -147,6 +150,11 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 }
 
 func resourecArmLoadBalancerRead(d *schema.ResourceData, meta interface{}) error {
+	id, err := parseAzureResourceID(d.Id())
+	if err != nil {
+		return err
+	}
+
 	loadBalancer, exists, err := retrieveLoadBalancerById(d.Id(), meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
@@ -156,6 +164,10 @@ func resourecArmLoadBalancerRead(d *schema.ResourceData, meta interface{}) error
 		log.Printf("[INFO] LoadBalancer %q not found. Removing from state", d.Get("name").(string))
 		return nil
 	}
+
+	d.Set("name", loadBalancer.Name)
+	d.Set("location", loadBalancer.Location)
+	d.Set("resource_group_name", id.ResourceGroup)
 
 	if loadBalancer.LoadBalancerPropertiesFormat != nil && loadBalancer.LoadBalancerPropertiesFormat.FrontendIPConfigurations != nil {
 		d.Set("frontend_ip_configuration", flattenLoadBalancerFrontendIpConfiguration(loadBalancer.LoadBalancerPropertiesFormat.FrontendIPConfigurations))

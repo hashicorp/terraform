@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -15,7 +14,6 @@ import (
 // they satisfy.
 type GraphNodeProvider interface {
 	ProviderName() string
-	ProviderConfig() *config.RawConfig
 }
 
 // GraphNodeCloseProvider is an interface that nodes that can be a close
@@ -126,7 +124,7 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 	// Initialize factory
 	if t.Concrete == nil {
 		t.Concrete = func(a *NodeAbstractProvider) dag.Vertex {
-			return &graphNodeProvider{ProviderNameValue: a.NameValue}
+			return a
 		}
 	}
 
@@ -188,14 +186,6 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 				PathValue: path,
 			}).(dag.Vertex)
 			if len(path) > 0 {
-				if fn, ok := v.(GraphNodeFlattenable); ok {
-					var err error
-					v, err = fn.Flatten(path)
-					if err != nil {
-						return err
-					}
-				}
-
 				// We'll need the parent provider as well, so let's
 				// add a dummy node to check to make sure that we add
 				// that parent provider.
@@ -230,9 +220,6 @@ func (t *ParentProviderTransformer) Transform(g *Graph) error {
 		// We eventually want to get rid of the flat version entirely so
 		// this is a stop-gap while it still exists.
 		var v dag.Vertex = raw
-		if f, ok := v.(*graphNodeProviderFlat); ok {
-			v = f.graphNodeProvider
-		}
 
 		// Only care about providers
 		pn, ok := v.(GraphNodeProvider)
@@ -313,15 +300,7 @@ func providerVertexMap(g *Graph) map[string]dag.Vertex {
 	m := make(map[string]dag.Vertex)
 	for _, v := range g.Vertices() {
 		if pv, ok := v.(GraphNodeProvider); ok {
-			key := pv.ProviderName()
-
-			// This special case is because the new world view of providers
-			// is that they should return only their pure name (not the full
-			// module path with ProviderName). Working towards this future.
-			if _, ok := v.(*NodeApplyableProvider); ok {
-				key = providerMapKey(pv.ProviderName(), v)
-			}
-
+			key := providerMapKey(pv.ProviderName(), v)
 			m[key] = v
 		}
 	}
@@ -374,97 +353,6 @@ func (n *graphNodeCloseProvider) DotNode(name string, opts *dag.DotOpts) *dag.Do
 			"shape": "diamond",
 		},
 	}
-}
-
-type graphNodeProvider struct {
-	ProviderNameValue string
-}
-
-func (n *graphNodeProvider) Name() string {
-	return fmt.Sprintf("provider.%s", n.ProviderNameValue)
-}
-
-// GraphNodeEvalable impl.
-func (n *graphNodeProvider) EvalTree() EvalNode {
-	return ProviderEvalTree(n.ProviderNameValue, nil)
-}
-
-// GraphNodeDependable impl.
-func (n *graphNodeProvider) DependableName() []string {
-	return []string{n.Name()}
-}
-
-// GraphNodeProvider
-func (n *graphNodeProvider) ProviderName() string {
-	return n.ProviderNameValue
-}
-
-func (n *graphNodeProvider) ProviderConfig() *config.RawConfig {
-	return nil
-}
-
-// GraphNodeDotter impl.
-func (n *graphNodeProvider) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
-	return &dag.DotNode{
-		Name: name,
-		Attrs: map[string]string{
-			"label": n.Name(),
-			"shape": "diamond",
-		},
-	}
-}
-
-// GraphNodeDotterOrigin impl.
-func (n *graphNodeProvider) DotOrigin() bool {
-	return true
-}
-
-// GraphNodeFlattenable impl.
-func (n *graphNodeProvider) Flatten(p []string) (dag.Vertex, error) {
-	return &graphNodeProviderFlat{
-		graphNodeProvider: n,
-		PathValue:         p,
-	}, nil
-}
-
-// Same as graphNodeMissingProvider, but for flattening
-type graphNodeProviderFlat struct {
-	*graphNodeProvider
-
-	PathValue []string
-}
-
-func (n *graphNodeProviderFlat) Name() string {
-	return fmt.Sprintf(
-		"%s.%s", modulePrefixStr(n.PathValue), n.graphNodeProvider.Name())
-}
-
-func (n *graphNodeProviderFlat) Path() []string {
-	return n.PathValue
-}
-
-func (n *graphNodeProviderFlat) ProviderName() string {
-	return fmt.Sprintf(
-		"%s.%s", modulePrefixStr(n.PathValue),
-		n.graphNodeProvider.ProviderName())
-}
-
-// GraphNodeDependable impl.
-func (n *graphNodeProviderFlat) DependableName() []string {
-	return []string{n.Name()}
-}
-
-func (n *graphNodeProviderFlat) DependentOn() []string {
-	var result []string
-
-	// If we're in a module, then depend on all parent providers. Some of
-	// these may not exist, hence we depend on all of them.
-	for i := len(n.PathValue); i > 1; i-- {
-		prefix := modulePrefixStr(n.PathValue[:i-1])
-		result = modulePrefixList(n.graphNodeProvider.DependableName(), prefix)
-	}
-
-	return result
 }
 
 // graphNodeProviderConsumerDummy is a struct that never enters the real

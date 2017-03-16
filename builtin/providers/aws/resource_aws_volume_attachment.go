@@ -59,20 +59,40 @@ func resourceAwsVolumeAttachmentCreate(d *schema.ResourceData, meta interface{})
 	iID := d.Get("instance_id").(string)
 	vID := d.Get("volume_id").(string)
 
-	opts := &ec2.AttachVolumeInput{
-		Device:     aws.String(name),
-		InstanceId: aws.String(iID),
-		VolumeId:   aws.String(vID),
+	// Find out if the volume is already attached to the instance, in which case
+	// we have nothing to do
+	request := &ec2.DescribeVolumesInput{
+		VolumeIds: []*string{aws.String(vID)},
+		Filters: []*ec2.Filter{
+			&ec2.Filter{
+				Name:   aws.String("attachment.instance-id"),
+				Values: []*string{aws.String(iID)},
+			},
+			&ec2.Filter{
+				Name:   aws.String("attachment.device"),
+				Values: []*string{aws.String(name)},
+			},
+		},
 	}
 
-	log.Printf("[DEBUG] Attaching Volume (%s) to Instance (%s)", vID, iID)
-	_, err := conn.AttachVolume(opts)
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			return fmt.Errorf("[WARN] Error attaching volume (%s) to instance (%s), message: \"%s\", code: \"%s\"",
-				vID, iID, awsErr.Message(), awsErr.Code())
+	vols, err := conn.DescribeVolumes(request)
+	if (err != nil) || (len(vols.Volumes) == 0) {
+		// not attached
+		opts := &ec2.AttachVolumeInput{
+			Device:     aws.String(name),
+			InstanceId: aws.String(iID),
+			VolumeId:   aws.String(vID),
 		}
-		return err
+
+		log.Printf("[DEBUG] Attaching Volume (%s) to Instance (%s)", vID, iID)
+		_, err := conn.AttachVolume(opts)
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				return fmt.Errorf("[WARN] Error attaching volume (%s) to instance (%s), message: \"%s\", code: \"%s\"",
+					vID, iID, awsErr.Message(), awsErr.Code())
+			}
+			return err
+		}
 	}
 
 	stateConf := &resource.StateChangeConf{

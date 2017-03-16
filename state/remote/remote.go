@@ -39,7 +39,6 @@ var BuiltinClients = map[string]Factory{
 	"artifactory": artifactoryFactory,
 	"atlas":       atlasFactory,
 	"azure":       azureFactory,
-	"consul":      consulFactory,
 	"etcd":        etcdFactory,
 	"gcs":         gcsFactory,
 	"http":        httpFactory,

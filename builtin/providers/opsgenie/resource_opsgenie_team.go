@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"strings"
 
+	"regexp"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/opsgenie/opsgenie-go-sdk/team"
-	"regexp"
 )
 
 func resourceOpsGenieTeam() *schema.Resource {
@@ -25,6 +26,10 @@ func resourceOpsGenieTeam() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validateOpsGenieTeamName,
+			},
+			"description": {
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 			"member": {
 				Type:     schema.TypeList,
@@ -53,10 +58,12 @@ func resourceOpsGenieTeamCreate(d *schema.ResourceData, meta interface{}) error 
 	client := meta.(*OpsGenieClient).teams
 
 	name := d.Get("name").(string)
+	description := d.Get("description").(string)
 
 	createRequest := team.CreateTeamRequest{
-		Name:    name,
-		Members: expandOpsGenieTeamMembers(d),
+		Name:        name,
+		Description: description,
+		Members:     expandOpsGenieTeamMembers(d),
 	}
 
 	log.Printf("[INFO] Creating OpsGenie team '%s'", name)
@@ -118,6 +125,7 @@ func resourceOpsGenieTeamRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("name", getResponse.Name)
+	d.Set("description", getResponse.Description)
 	d.Set("member", flattenOpsGenieTeamMembers(getResponse.Members))
 
 	return nil
@@ -126,11 +134,13 @@ func resourceOpsGenieTeamRead(d *schema.ResourceData, meta interface{}) error {
 func resourceOpsGenieTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*OpsGenieClient).teams
 	name := d.Get("name").(string)
+	description := d.Get("description").(string)
 
 	updateRequest := team.UpdateTeamRequest{
-		Id:      d.Id(),
-		Name:    name,
-		Members: expandOpsGenieTeamMembers(d),
+		Id:          d.Id(),
+		Name:        name,
+		Description: description,
+		Members:     expandOpsGenieTeamMembers(d),
 	}
 
 	log.Printf("[INFO] Updating OpsGenie team '%s'", name)

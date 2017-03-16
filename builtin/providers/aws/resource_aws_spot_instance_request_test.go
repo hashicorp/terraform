@@ -7,25 +7,27 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSSpotInstanceRequest_basic(t *testing.T) {
 	var sir ec2.SpotInstanceRequest
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSpotInstanceRequestDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSSpotInstanceRequestConfig,
+			{
+				Config: testAccAWSSpotInstanceRequestConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSpotInstanceRequestExists(
 						"aws_spot_instance_request.foo", &sir),
 					testAccCheckAWSSpotInstanceRequestAttributes(&sir),
-					testCheckKeyPair("tmp-key", &sir),
+					testCheckKeyPair(fmt.Sprintf("tmp-key-%d", rInt), &sir),
 					resource.TestCheckResourceAttr(
 						"aws_spot_instance_request.foo", "spot_bid_status", "fulfilled"),
 					resource.TestCheckResourceAttr(
@@ -38,19 +40,20 @@ func TestAccAWSSpotInstanceRequest_basic(t *testing.T) {
 
 func TestAccAWSSpotInstanceRequest_withBlockDuration(t *testing.T) {
 	var sir ec2.SpotInstanceRequest
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSpotInstanceRequestDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSSpotInstanceRequestConfig_withBlockDuration,
+			{
+				Config: testAccAWSSpotInstanceRequestConfig_withBlockDuration(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSpotInstanceRequestExists(
 						"aws_spot_instance_request.foo", &sir),
 					testAccCheckAWSSpotInstanceRequestAttributes(&sir),
-					testCheckKeyPair("tmp-key", &sir),
+					testCheckKeyPair(fmt.Sprintf("tmp-key-%d", rInt), &sir),
 					resource.TestCheckResourceAttr(
 						"aws_spot_instance_request.foo", "spot_bid_status", "fulfilled"),
 					resource.TestCheckResourceAttr(
@@ -65,19 +68,20 @@ func TestAccAWSSpotInstanceRequest_withBlockDuration(t *testing.T) {
 
 func TestAccAWSSpotInstanceRequest_vpc(t *testing.T) {
 	var sir ec2.SpotInstanceRequest
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSpotInstanceRequestDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSSpotInstanceRequestConfigVPC,
+			{
+				Config: testAccAWSSpotInstanceRequestConfigVPC(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSpotInstanceRequestExists(
 						"aws_spot_instance_request.foo_VPC", &sir),
 					testAccCheckAWSSpotInstanceRequestAttributes(&sir),
-					testCheckKeyPair("tmp-key", &sir),
+					testCheckKeyPair(fmt.Sprintf("tmp-key-%d", rInt), &sir),
 					testAccCheckAWSSpotInstanceRequestAttributesVPC(&sir),
 					resource.TestCheckResourceAttr(
 						"aws_spot_instance_request.foo_VPC", "spot_bid_status", "fulfilled"),
@@ -91,18 +95,19 @@ func TestAccAWSSpotInstanceRequest_vpc(t *testing.T) {
 
 func TestAccAWSSpotInstanceRequest_SubnetAndSG(t *testing.T) {
 	var sir ec2.SpotInstanceRequest
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSpotInstanceRequestDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSSpotInstanceRequestConfig_SubnetAndSG,
+			{
+				Config: testAccAWSSpotInstanceRequestConfig_SubnetAndSG(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSpotInstanceRequestExists(
 						"aws_spot_instance_request.foo", &sir),
-					testAccCheckAWSSpotInstanceRequest_InstanceAttributes(&sir),
+					testAccCheckAWSSpotInstanceRequest_InstanceAttributes(&sir, rInt),
 				),
 			},
 		},
@@ -240,7 +245,7 @@ func testAccCheckAWSSpotInstanceRequestAttributes(
 }
 
 func testAccCheckAWSSpotInstanceRequest_InstanceAttributes(
-	sir *ec2.SpotInstanceRequest) resource.TestCheckFunc {
+	sir *ec2.SpotInstanceRequest, rInt int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
@@ -264,13 +269,13 @@ func testAccCheckAWSSpotInstanceRequest_InstanceAttributes(
 		for _, s := range instance.SecurityGroups {
 			// Hardcoded name for the security group that should be added inside the
 			// VPC
-			if *s.GroupName == "tf_test_sg_ssh" {
+			if *s.GroupName == fmt.Sprintf("tf_test_sg_ssh-%d", rInt) {
 				sgMatch = true
 			}
 		}
 
 		if !sgMatch {
-			return fmt.Errorf("Error in matching Spot Instance Security Group, expected 'tf_test_sg_ssh', got %s", instance.SecurityGroups)
+			return fmt.Errorf("Error in matching Spot Instance Security Group, expected 'tf_test_sg_ssh-%d', got %s", rInt, instance.SecurityGroups)
 		}
 
 		return nil
@@ -287,132 +292,136 @@ func testAccCheckAWSSpotInstanceRequestAttributesVPC(
 	}
 }
 
-const testAccAWSSpotInstanceRequestConfig = `
-resource "aws_key_pair" "debugging" {
-	key_name = "tmp-key"
-	public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD3F6tyPEFEzV0LX3X8BsXdMsQz1x2cEikKDEY0aIj41qgxMCP/iteneqXSIFZBp5vizPvaoIR3Um9xK7PGoW8giupGn+EPuxIA4cDM4vzOqOkiMPhz5XK0whEjkVzTo4+S0puvDZuwIsdiW9mxhJc7tgBNL0cYlWSYVkz4G/fslNfRPW5mYAM49f4fhtxPb5ok4Q2Lg9dPKVHO/Bgeu5woMc7RY0p1ej6D4CKFE6lymSDJpW0YHX/wqE9+cfEauh7xZcG0q9t2ta6F6fmX0agvpFyZo8aFbXeUBr7osSCJNgvavWbM/06niWrOvYX2xwWdhXmXSrbX8ZbabVohBK41 phodgson@thoughtworks.com"
-}
-
-resource "aws_spot_instance_request" "foo" {
-	ami = "ami-4fccb37f"
-	instance_type = "m1.small"
-	key_name = "${aws_key_pair.debugging.key_name}"
-
-	// base price is $0.044 hourly, so bidding above that should theoretically
-	// always fulfill
-	spot_price = "0.05"
-
-	// we wait for fulfillment because we want to inspect the launched instance
-	// and verify termination behavior
-	wait_for_fulfillment = true
-
-	tags {
-		Name = "terraform-test"
+func testAccAWSSpotInstanceRequestConfig(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_key_pair" "debugging" {
+		key_name = "tmp-key-%d"
+		public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD3F6tyPEFEzV0LX3X8BsXdMsQz1x2cEikKDEY0aIj41qgxMCP/iteneqXSIFZBp5vizPvaoIR3Um9xK7PGoW8giupGn+EPuxIA4cDM4vzOqOkiMPhz5XK0whEjkVzTo4+S0puvDZuwIsdiW9mxhJc7tgBNL0cYlWSYVkz4G/fslNfRPW5mYAM49f4fhtxPb5ok4Q2Lg9dPKVHO/Bgeu5woMc7RY0p1ej6D4CKFE6lymSDJpW0YHX/wqE9+cfEauh7xZcG0q9t2ta6F6fmX0agvpFyZo8aFbXeUBr7osSCJNgvavWbM/06niWrOvYX2xwWdhXmXSrbX8ZbabVohBK41 phodgson@thoughtworks.com"
 	}
+
+	resource "aws_spot_instance_request" "foo" {
+		ami = "ami-4fccb37f"
+		instance_type = "m1.small"
+		key_name = "${aws_key_pair.debugging.key_name}"
+
+		// base price is $0.044 hourly, so bidding above that should theoretically
+		// always fulfill
+		spot_price = "0.05"
+
+		// we wait for fulfillment because we want to inspect the launched instance
+		// and verify termination behavior
+		wait_for_fulfillment = true
+
+		tags {
+			Name = "terraform-test"
+		}
+	}`, rInt)
 }
-`
 
-const testAccAWSSpotInstanceRequestConfig_withBlockDuration = `
-resource "aws_key_pair" "debugging" {
-	key_name = "tmp-key"
-	public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD3F6tyPEFEzV0LX3X8BsXdMsQz1x2cEikKDEY0aIj41qgxMCP/iteneqXSIFZBp5vizPvaoIR3Um9xK7PGoW8giupGn+EPuxIA4cDM4vzOqOkiMPhz5XK0whEjkVzTo4+S0puvDZuwIsdiW9mxhJc7tgBNL0cYlWSYVkz4G/fslNfRPW5mYAM49f4fhtxPb5ok4Q2Lg9dPKVHO/Bgeu5woMc7RY0p1ej6D4CKFE6lymSDJpW0YHX/wqE9+cfEauh7xZcG0q9t2ta6F6fmX0agvpFyZo8aFbXeUBr7osSCJNgvavWbM/06niWrOvYX2xwWdhXmXSrbX8ZbabVohBK41 phodgson@thoughtworks.com"
-}
-
-resource "aws_spot_instance_request" "foo" {
-	ami = "ami-4fccb37f"
-	instance_type = "m1.small"
-	key_name = "${aws_key_pair.debugging.key_name}"
-
-	// base price is $0.044 hourly, so bidding above that should theoretically
-	// always fulfill
-	spot_price = "0.05"
-
-	// we wait for fulfillment because we want to inspect the launched instance
-	// and verify termination behavior
-	wait_for_fulfillment = true
-
-	block_duration_minutes = 60
-
-	tags {
-		Name = "terraform-test"
+func testAccAWSSpotInstanceRequestConfig_withBlockDuration(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_key_pair" "debugging" {
+		key_name = "tmp-key-%d"
+		public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD3F6tyPEFEzV0LX3X8BsXdMsQz1x2cEikKDEY0aIj41qgxMCP/iteneqXSIFZBp5vizPvaoIR3Um9xK7PGoW8giupGn+EPuxIA4cDM4vzOqOkiMPhz5XK0whEjkVzTo4+S0puvDZuwIsdiW9mxhJc7tgBNL0cYlWSYVkz4G/fslNfRPW5mYAM49f4fhtxPb5ok4Q2Lg9dPKVHO/Bgeu5woMc7RY0p1ej6D4CKFE6lymSDJpW0YHX/wqE9+cfEauh7xZcG0q9t2ta6F6fmX0agvpFyZo8aFbXeUBr7osSCJNgvavWbM/06niWrOvYX2xwWdhXmXSrbX8ZbabVohBK41 phodgson@thoughtworks.com"
 	}
+
+	resource "aws_spot_instance_request" "foo" {
+		ami = "ami-4fccb37f"
+		instance_type = "m1.small"
+		key_name = "${aws_key_pair.debugging.key_name}"
+
+		// base price is $0.044 hourly, so bidding above that should theoretically
+		// always fulfill
+		spot_price = "0.05"
+
+		// we wait for fulfillment because we want to inspect the launched instance
+		// and verify termination behavior
+		wait_for_fulfillment = true
+
+		block_duration_minutes = 60
+
+		tags {
+			Name = "terraform-test"
+		}
+	}`, rInt)
 }
-`
 
-const testAccAWSSpotInstanceRequestConfigVPC = `
-resource "aws_vpc" "foo_VPC" {
-	cidr_block = "10.1.0.0/16"
-}
-
-resource "aws_subnet" "foo_VPC" {
-	cidr_block = "10.1.1.0/24"
-	vpc_id = "${aws_vpc.foo_VPC.id}"
-}
-
-resource "aws_key_pair" "debugging" {
-	key_name = "tmp-key"
-	public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD3F6tyPEFEzV0LX3X8BsXdMsQz1x2cEikKDEY0aIj41qgxMCP/iteneqXSIFZBp5vizPvaoIR3Um9xK7PGoW8giupGn+EPuxIA4cDM4vzOqOkiMPhz5XK0whEjkVzTo4+S0puvDZuwIsdiW9mxhJc7tgBNL0cYlWSYVkz4G/fslNfRPW5mYAM49f4fhtxPb5ok4Q2Lg9dPKVHO/Bgeu5woMc7RY0p1ej6D4CKFE6lymSDJpW0YHX/wqE9+cfEauh7xZcG0q9t2ta6F6fmX0agvpFyZo8aFbXeUBr7osSCJNgvavWbM/06niWrOvYX2xwWdhXmXSrbX8ZbabVohBK41 phodgson@thoughtworks.com"
-}
-
-resource "aws_spot_instance_request" "foo_VPC" {
-	ami = "ami-4fccb37f"
-	instance_type = "m1.small"
-	key_name = "${aws_key_pair.debugging.key_name}"
-
-	// base price is $0.044 hourly, so bidding above that should theoretically
-	// always fulfill
-	spot_price = "0.05"
-
-	// VPC settings
-	subnet_id = "${aws_subnet.foo_VPC.id}"
-
-	// we wait for fulfillment because we want to inspect the launched instance
-	// and verify termination behavior
-	wait_for_fulfillment = true
-
-	tags {
-		Name = "terraform-test-VPC"
+func testAccAWSSpotInstanceRequestConfigVPC(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_vpc" "foo_VPC" {
+		cidr_block = "10.1.0.0/16"
 	}
+
+	resource "aws_subnet" "foo_VPC" {
+		cidr_block = "10.1.1.0/24"
+		vpc_id = "${aws_vpc.foo_VPC.id}"
+	}
+
+	resource "aws_key_pair" "debugging" {
+		key_name = "tmp-key-%d"
+		public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD3F6tyPEFEzV0LX3X8BsXdMsQz1x2cEikKDEY0aIj41qgxMCP/iteneqXSIFZBp5vizPvaoIR3Um9xK7PGoW8giupGn+EPuxIA4cDM4vzOqOkiMPhz5XK0whEjkVzTo4+S0puvDZuwIsdiW9mxhJc7tgBNL0cYlWSYVkz4G/fslNfRPW5mYAM49f4fhtxPb5ok4Q2Lg9dPKVHO/Bgeu5woMc7RY0p1ej6D4CKFE6lymSDJpW0YHX/wqE9+cfEauh7xZcG0q9t2ta6F6fmX0agvpFyZo8aFbXeUBr7osSCJNgvavWbM/06niWrOvYX2xwWdhXmXSrbX8ZbabVohBK41 phodgson@thoughtworks.com"
+	}
+
+	resource "aws_spot_instance_request" "foo_VPC" {
+		ami = "ami-4fccb37f"
+		instance_type = "m1.small"
+		key_name = "${aws_key_pair.debugging.key_name}"
+
+		// base price is $0.044 hourly, so bidding above that should theoretically
+		// always fulfill
+		spot_price = "0.05"
+
+		// VPC settings
+		subnet_id = "${aws_subnet.foo_VPC.id}"
+
+		// we wait for fulfillment because we want to inspect the launched instance
+		// and verify termination behavior
+		wait_for_fulfillment = true
+
+		tags {
+			Name = "terraform-test-VPC"
+		}
+	}`, rInt)
 }
-`
 
-const testAccAWSSpotInstanceRequestConfig_SubnetAndSG = `
-resource "aws_spot_instance_request" "foo" {
-  ami                         = "ami-4fccb37f"
-  instance_type               = "m1.small"
-  spot_price                  = "0.05"
-  wait_for_fulfillment        = true
-  subnet_id                   = "${aws_subnet.tf_test_subnet.id}"
-  vpc_security_group_ids      = ["${aws_security_group.tf_test_sg_ssh.id}"]
-  associate_public_ip_address = true
+func testAccAWSSpotInstanceRequestConfig_SubnetAndSG(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_spot_instance_request" "foo" {
+		ami                         = "ami-4fccb37f"
+		instance_type               = "m1.small"
+		spot_price                  = "0.05"
+		wait_for_fulfillment        = true
+		subnet_id                   = "${aws_subnet.tf_test_subnet.id}"
+		vpc_security_group_ids      = ["${aws_security_group.tf_test_sg_ssh.id}"]
+		associate_public_ip_address = true
+	}
+
+	resource "aws_vpc" "default" {
+		cidr_block           = "10.0.0.0/16"
+		enable_dns_hostnames = true
+
+		tags {
+			Name = "tf_test_vpc"
+		}
+	}
+
+	resource "aws_subnet" "tf_test_subnet" {
+		vpc_id                  = "${aws_vpc.default.id}"
+		cidr_block              = "10.0.0.0/24"
+		map_public_ip_on_launch = true
+
+		tags {
+			Name = "tf_test_subnet-%d"
+		}
+	}
+
+	resource "aws_security_group" "tf_test_sg_ssh" {
+		name        = "tf_test_sg_ssh-%d"
+		description = "tf_test_sg_ssh"
+		vpc_id      = "${aws_vpc.default.id}"
+
+		tags {
+			Name = "tf_test_sg_ssh-%d"
+		}
+	}`, rInt, rInt, rInt)
 }
-
-resource "aws_vpc" "default" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_hostnames = true
-
-  tags {
-    Name = "tf_test_vpc"
-  }
-}
-
-resource "aws_subnet" "tf_test_subnet" {
-  vpc_id                  = "${aws_vpc.default.id}"
-  cidr_block              = "10.0.0.0/24"
-  map_public_ip_on_launch = true
-
-  tags {
-    Name = "tf_test_subnet"
-  }
-}
-
-resource "aws_security_group" "tf_test_sg_ssh" {
-  name        = "tf_test_sg_ssh"
-  description = "tf_test_sg_ssh"
-  vpc_id      = "${aws_vpc.default.id}"
-
-  tags {
-    Name = "tf_test_sg_ssh"
-  }
-}
-`

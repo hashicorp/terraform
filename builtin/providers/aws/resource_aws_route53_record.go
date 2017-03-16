@@ -459,6 +459,11 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 	// If we don't have a zone ID we're doing an import. Parse it from the ID.
 	if _, ok := d.GetOk("zone_id"); !ok {
 		parts := strings.Split(d.Id(), "_")
+
+		if len(parts) == 1 {
+			return fmt.Errorf("Error Importing aws_route_53 record. Please make sure the record ID is in the form ZONEID_RECORDNAME_TYPE (i.e. Z4KAPRWWNC7JR_dev_A")
+		}
+
 		d.Set("zone_id", parts[0])
 		d.Set("name", parts[1])
 		d.Set("type", parts[2])

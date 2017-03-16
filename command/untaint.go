@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"strings"
+
+	"github.com/hashicorp/terraform/state"
 )
 
 // UntaintCommand is a cli.Command implementation that manually untaints
@@ -23,6 +25,7 @@ func (c *UntaintCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
+	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -43,15 +46,31 @@ func (c *UntaintCommand) Run(args []string) int {
 		module = "root." + module
 	}
 
-	// Get the state that we'll be modifying
-	state, err := c.State()
+	// Load the backend
+	b, err := c.Backend(nil)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+		return 1
+	}
+
+	// Get the state
+	st, err := b.State()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
 	}
 
+	if s, ok := st.(state.Locker); c.Meta.stateLock && ok {
+		if err := s.Lock("untaint"); err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to lock state: %s", err))
+			return 1
+		}
+
+		defer s.Unlock()
+	}
+
 	// Get the actual state structure
-	s := state.State()
+	s := st.State()
 	if s.Empty() {
 		if allowMissing {
 			return c.allowMissingExit(name, module)
@@ -109,7 +128,11 @@ func (c *UntaintCommand) Run(args []string) int {
 	rs.Untaint()
 
 	log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
-	if err := c.Meta.PersistState(s); err != nil {
+	if err := st.WriteState(s); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
+		return 1
+	}
+	if err := st.PersistState(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
 		return 1
 	}
@@ -141,6 +164,8 @@ Options:
   -backup=path        Path to backup the existing state file before
                       modifying. Defaults to the "-state-out" path with
                       ".backup" extension. Set to "-" to disable backup.
+
+  -lock=true          Lock the state file when locking is supported.
 
   -module=path        The module path where the resource lives. By
                       default this will be root. Child modules can be specified

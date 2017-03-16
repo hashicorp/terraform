@@ -38,6 +38,15 @@ func TestStateFilterFilter(t *testing.T) {
 			},
 		},
 
+		"single resource from minimal state": {
+			"single-minimal-resource.tfstate",
+			[]string{"aws_instance.web"},
+			[]string{
+				"*terraform.ResourceState: aws_instance.web",
+				"*terraform.InstanceState: aws_instance.web",
+			},
+		},
+
 		"single resource with similar names": {
 			"small_test_instance.tfstate",
 			[]string{"test_instance.foo"},

@@ -61,3 +61,11 @@ The following attributes are exported:
 
 * `id` - The LoadBalancer ID.
 
+## Import
+
+Load Balancers can be imported using the `resource id`, e.g.
+
+```
+terraform import azurerm_lb.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/group1/providers/Microsoft.Network/loadBalancers/lb1
+```
+

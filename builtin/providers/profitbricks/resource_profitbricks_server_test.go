@@ -141,6 +141,12 @@ resource "profitbricks_datacenter" "foobar" {
 	location = "us/las"
 }
 
+resource "profitbricks_lan" "webserver_lan" {
+  datacenter_id = "${profitbricks_datacenter.foobar.id}"
+  public = true
+  name = "public"
+}
+
 resource "profitbricks_server" "webserver" {
   name = "updated"
   datacenter_id = "${profitbricks_datacenter.foobar.id}"
@@ -156,7 +162,7 @@ resource "profitbricks_server" "webserver" {
     image_password = "test1234"
 }
   nic {
-    lan = "1"
+    lan = "${profitbricks_lan.webserver_lan.id}"
     dhcp = true
     firewall_active = true
     firewall {

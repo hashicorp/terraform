@@ -16,6 +16,7 @@ type Member struct {
 // CreateTeamRequest provides necessary parameter structure for creating team
 type CreateTeamRequest struct {
 	APIKey string `json:"apiKey,omitempty"`
+	Description string `json:"description,omitempty"`
 	Name   string `json:"name,omitempty"`
         Members []Member `json:"members,omitempty"`
 }
@@ -23,6 +24,7 @@ type CreateTeamRequest struct {
 // UpdateTeamRequest provides necessary parameter structure for updating a team
 type UpdateTeamRequest struct {
 	APIKey string `json:"apiKey,omitempty"`
+	Description string `json:"description,omitempty"`
 	Id     string `json:"id,omitempty"`
         Name   string `json:"name,omitempty"`
         Members []Member `json:"members,omitempty"`

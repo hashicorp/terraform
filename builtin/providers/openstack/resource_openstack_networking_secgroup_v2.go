@@ -10,6 +10,7 @@ import (
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/groups"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/rules"
 )
 
 func resourceNetworkingSecGroupV2() *schema.Resource {
@@ -68,6 +69,14 @@ func resourceNetworkingSecGroupV2Create(d *schema.ResourceData, meta interface{}
 	security_group, err := groups.Create(networkingClient, opts).Extract()
 	if err != nil {
 		return err
+	}
+
+	// Remove the default rules
+	for _, rule := range security_group.Rules {
+		if err := rules.Delete(networkingClient, rule.ID).ExtractErr(); err != nil {
+			return fmt.Errorf(
+				"There was a problem deleting a default security group rule: %s", err)
+		}
 	}
 
 	log.Printf("[DEBUG] OpenStack Neutron Security Group created: %#v", security_group)

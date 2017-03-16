@@ -41,7 +41,7 @@ The following arguments are supported:
 
 The following attributes are exported:
 
-* `id` - The name of the tag
+* `id` - The id of the tag
 * `name` - The name of the tag
 
 

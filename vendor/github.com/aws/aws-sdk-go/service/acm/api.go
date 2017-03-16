@@ -235,11 +235,7 @@ func (c *ACM) DescribeCertificateRequest(input *DescribeCertificateInput) (req *
 
 // DescribeCertificate API operation for AWS Certificate Manager.
 //
-// Returns a list of the fields contained in the specified ACM Certificate.
-// For example, this action returns the certificate status, a flag that indicates
-// whether the certificate is associated with any other AWS service, and the
-// date at which the certificate request was created. You specify the ACM Certificate
-// on input by its Amazon Resource Name (ARN).
+// Returns detailed metadata about the specified ACM Certificate.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -580,10 +576,10 @@ func (c *ACM) ListTagsForCertificateRequest(input *ListTagsForCertificateInput) 
 
 // ListTagsForCertificate API operation for AWS Certificate Manager.
 //
-// Lists the tags that have been applied to the ACM Certificate. Use the certificate
-// ARN to specify the certificate. To add a tag to an ACM Certificate, use the
-// AddTagsToCertificate action. To delete a tag, use the RemoveTagsFromCertificate
-// action.
+// Lists the tags that have been applied to the ACM Certificate. Use the certificate's
+// Amazon Resource Name (ARN) to specify the certificate. To add a tag to an
+// ACM Certificate, use the AddTagsToCertificate action. To delete a tag, use
+// the RemoveTagsFromCertificate action.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -945,8 +941,8 @@ func (s AddTagsToCertificateOutput) GoString() string {
 	return s.String()
 }
 
-// Contains detailed metadata about an ACM Certificate. This structure is returned
-// in the response to a DescribeCertificate request.
+// Contains metadata about an ACM certificate. This structure is returned in
+// the response to a DescribeCertificate request.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/CertificateDetail
 type CertificateDetail struct {
 	_ struct{} `type:"structure"`
@@ -964,8 +960,9 @@ type CertificateDetail struct {
 	// or example.com.
 	DomainName *string `min:"1" type:"string"`
 
-	// Contains information about the email address or addresses used for domain
-	// validation. This field exists only when the certificate type is AMAZON_ISSUED.
+	// Contains information about the initial validation of each domain name that
+	// occurs as a result of the RequestCertificate request. This field exists only
+	// when the certificate type is AMAZON_ISSUED.
 	DomainValidationOptions []*DomainValidation `min:"1" type:"list"`
 
 	// The reason the certificate request failed. This value exists only when the
@@ -998,6 +995,11 @@ type CertificateDetail struct {
 
 	// The time before which the certificate is not valid.
 	NotBefore *time.Time `type:"timestamp" timestampFormat:"unix"`
+
+	// Contains information about the status of ACM's managed renewal (http://docs.aws.amazon.com/acm/latest/userguide/acm-renewal.html)
+	// for the certificate. This field exists only when the certificate type is
+	// AMAZON_ISSUED.
+	RenewalSummary *RenewalSummary `type:"structure"`
 
 	// The reason the certificate was revoked. This value exists only when the certificate
 	// status is REVOKED.
@@ -1116,6 +1118,12 @@ func (s *CertificateDetail) SetNotAfter(v time.Time) *CertificateDetail {
 // SetNotBefore sets the NotBefore field's value.
 func (s *CertificateDetail) SetNotBefore(v time.Time) *CertificateDetail {
 	s.NotBefore = &v
+	return s
+}
+
+// SetRenewalSummary sets the RenewalSummary field's value.
+func (s *CertificateDetail) SetRenewalSummary(v *RenewalSummary) *CertificateDetail {
+	s.RenewalSummary = v
 	return s
 }
 
@@ -1274,7 +1282,8 @@ func (s DeleteCertificateOutput) GoString() string {
 type DescribeCertificateInput struct {
 	_ struct{} `type:"structure"`
 
-	// String that contains an ACM Certificate ARN. The ARN must be of the form:
+	// The Amazon Resource Name (ARN) of the ACM Certificate. The ARN must have
+	// the following form:
 	//
 	// arn:aws:acm:region:123456789012:certificate/12345678-1234-1234-1234-123456789012
 	//
@@ -1321,7 +1330,7 @@ func (s *DescribeCertificateInput) SetCertificateArn(v string) *DescribeCertific
 type DescribeCertificateOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Contains a CertificateDetail structure that lists the fields of an ACM Certificate.
+	// Metadata about an ACM certificate.
 	Certificate *CertificateDetail `type:"structure"`
 }
 
@@ -1341,24 +1350,25 @@ func (s *DescribeCertificateOutput) SetCertificate(v *CertificateDetail) *Descri
 	return s
 }
 
-// Structure that contains the domain name, the base validation domain to which
-// validation email is sent, and the email addresses used to validate the domain
-// identity.
+// Contains information about the validation of each domain name in the certificate.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/DomainValidation
 type DomainValidation struct {
 	_ struct{} `type:"structure"`
 
-	// Fully Qualified Domain Name (FQDN) of the form www.example.com or example.com.
+	// A fully qualified domain name (FQDN) in the certificate. For example, www.example.com
+	// or example.com.
 	//
 	// DomainName is a required field
 	DomainName *string `min:"1" type:"string" required:"true"`
 
-	// The base validation domain that acts as the suffix of the email addresses
-	// that are used to send the emails.
+	// The domain name that ACM used to send domain validation emails.
 	ValidationDomain *string `min:"1" type:"string"`
 
-	// A list of contact address for the domain registrant.
+	// A list of email addresses that ACM used to send domain validation emails.
 	ValidationEmails []*string `type:"list"`
+
+	// The validation status of the domain name.
+	ValidationStatus *string `type:"string" enum:"DomainStatus"`
 }
 
 // String returns the string representation
@@ -1389,33 +1399,39 @@ func (s *DomainValidation) SetValidationEmails(v []*string) *DomainValidation {
 	return s
 }
 
-// This structure is used in the request object of the RequestCertificate action.
+// SetValidationStatus sets the ValidationStatus field's value.
+func (s *DomainValidation) SetValidationStatus(v string) *DomainValidation {
+	s.ValidationStatus = &v
+	return s
+}
+
+// Contains information about the domain names that you want ACM to use to send
+// you emails to validate your ownership of the domain.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/DomainValidationOption
 type DomainValidationOption struct {
 	_ struct{} `type:"structure"`
 
-	// Fully Qualified Domain Name (FQDN) of the certificate being requested.
+	// A fully qualified domain name (FQDN) in the certificate request.
 	//
 	// DomainName is a required field
 	DomainName *string `min:"1" type:"string" required:"true"`
 
-	// The domain to which validation email is sent. This is the base validation
-	// domain that will act as the suffix of the email addresses. This must be the
-	// same as the DomainName value or a superdomain of the DomainName value. For
-	// example, if you requested a certificate for site.subdomain.example.com and
-	// specify a ValidationDomain of subdomain.example.com, ACM sends email to the
-	// domain registrant, technical contact, and administrative contact in WHOIS
-	// for the base domain and the following five addresses:
+	// The domain name that you want ACM to use to send you validation emails. This
+	// domain name is the suffix of the email addresses that you want ACM to use.
+	// This must be the same as the DomainName value or a superdomain of the DomainName
+	// value. For example, if you request a certificate for testing.example.com,
+	// you can specify example.com for this value. In that case, ACM sends domain
+	// validation emails to the following five addresses:
 	//
-	//    * admin@subdomain.example.com
+	//    * admin@example.com
 	//
-	//    * administrator@subdomain.example.com
+	//    * administrator@example.com
 	//
-	//    * hostmaster@subdomain.example.com
+	//    * hostmaster@example.com
 	//
-	//    * postmaster@subdomain.example.com
+	//    * postmaster@example.com
 	//
-	//    * webmaster@subdomain.example.com
+	//    * webmaster@example.com
 	//
 	// ValidationDomain is a required field
 	ValidationDomain *string `min:"1" type:"string" required:"true"`
@@ -1779,7 +1795,7 @@ type ListTagsForCertificateInput struct {
 	_ struct{} `type:"structure"`
 
 	// String that contains the ARN of the ACM Certificate for which you want to
-	// list the tags. This must be of the form:
+	// list the tags. This has the following form:
 	//
 	// arn:aws:acm:region:123456789012:certificate/12345678-1234-1234-1234-123456789012
 	//
@@ -1936,34 +1952,65 @@ func (s RemoveTagsFromCertificateOutput) GoString() string {
 	return s.String()
 }
 
+// Contains information about the status of ACM's managed renewal (http://docs.aws.amazon.com/acm/latest/userguide/acm-renewal.html)
+// for the certificate. This structure exists only when the certificate type
+// is AMAZON_ISSUED.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/RenewalSummary
+type RenewalSummary struct {
+	_ struct{} `type:"structure"`
+
+	// Contains information about the validation of each domain name in the certificate,
+	// as it pertains to ACM's managed renewal (http://docs.aws.amazon.com/acm/latest/userguide/acm-renewal.html).
+	// This is different from the initial validation that occurs as a result of
+	// the RequestCertificate request. This field exists only when the certificate
+	// type is AMAZON_ISSUED.
+	//
+	// DomainValidationOptions is a required field
+	DomainValidationOptions []*DomainValidation `min:"1" type:"list" required:"true"`
+
+	// The status of ACM's managed renewal (http://docs.aws.amazon.com/acm/latest/userguide/acm-renewal.html)
+	// of the certificate.
+	//
+	// RenewalStatus is a required field
+	RenewalStatus *string `type:"string" required:"true" enum:"RenewalStatus"`
+}
+
+// String returns the string representation
+func (s RenewalSummary) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RenewalSummary) GoString() string {
+	return s.String()
+}
+
+// SetDomainValidationOptions sets the DomainValidationOptions field's value.
+func (s *RenewalSummary) SetDomainValidationOptions(v []*DomainValidation) *RenewalSummary {
+	s.DomainValidationOptions = v
+	return s
+}
+
+// SetRenewalStatus sets the RenewalStatus field's value.
+func (s *RenewalSummary) SetRenewalStatus(v string) *RenewalSummary {
+	s.RenewalStatus = &v
+	return s
+}
+
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/RequestCertificateRequest
 type RequestCertificateInput struct {
 	_ struct{} `type:"structure"`
 
 	// Fully qualified domain name (FQDN), such as www.example.com, of the site
-	// you want to secure with an ACM Certificate. Use an asterisk (*) to create
+	// that you want to secure with an ACM Certificate. Use an asterisk (*) to create
 	// a wildcard certificate that protects several sites in the same domain. For
 	// example, *.example.com protects www.example.com, site.example.com, and images.example.com.
 	//
 	// DomainName is a required field
 	DomainName *string `min:"1" type:"string" required:"true"`
 
-	// The base validation domain that will act as the suffix of the email addresses
-	// that are used to send the emails. This must be the same as the Domain value
-	// or a superdomain of the Domain value. For example, if you requested a certificate
-	// for test.example.com and specify DomainValidationOptions of example.com,
-	// ACM sends email to the domain registrant, technical contact, and administrative
-	// contact in WHOIS and the following five addresses:
-	//
-	//    * admin@example.com
-	//
-	//    * administrator@example.com
-	//
-	//    * hostmaster@example.com
-	//
-	//    * postmaster@example.com
-	//
-	//    * webmaster@example.com
+	// The domain name that you want ACM to use to send you emails to validate your
+	// ownership of the domain.
 	DomainValidationOptions []*DomainValidationOption `min:"1" type:"list"`
 
 	// Customer chosen string that can be used to distinguish between calls to RequestCertificate.
@@ -2093,7 +2140,7 @@ type ResendValidationEmailInput struct {
 	// CertificateArn is a required field
 	CertificateArn *string `min:"20" type:"string" required:"true"`
 
-	// The Fully Qualified Domain Name (FQDN) of the certificate that needs to be
+	// The fully qualified domain name (FQDN) of the certificate that needs to be
 	// validated.
 	//
 	// Domain is a required field
@@ -2275,6 +2322,17 @@ const (
 )
 
 const (
+	// DomainStatusPendingValidation is a DomainStatus enum value
+	DomainStatusPendingValidation = "PENDING_VALIDATION"
+
+	// DomainStatusSuccess is a DomainStatus enum value
+	DomainStatusSuccess = "SUCCESS"
+
+	// DomainStatusFailed is a DomainStatus enum value
+	DomainStatusFailed = "FAILED"
+)
+
+const (
 	// FailureReasonNoAvailableContacts is a FailureReason enum value
 	FailureReasonNoAvailableContacts = "NO_AVAILABLE_CONTACTS"
 
@@ -2300,6 +2358,20 @@ const (
 
 	// KeyAlgorithmEcPrime256v1 is a KeyAlgorithm enum value
 	KeyAlgorithmEcPrime256v1 = "EC_prime256v1"
+)
+
+const (
+	// RenewalStatusPendingAutoRenewal is a RenewalStatus enum value
+	RenewalStatusPendingAutoRenewal = "PENDING_AUTO_RENEWAL"
+
+	// RenewalStatusPendingValidation is a RenewalStatus enum value
+	RenewalStatusPendingValidation = "PENDING_VALIDATION"
+
+	// RenewalStatusSuccess is a RenewalStatus enum value
+	RenewalStatusSuccess = "SUCCESS"
+
+	// RenewalStatusFailed is a RenewalStatus enum value
+	RenewalStatusFailed = "FAILED"
 )
 
 const (

@@ -26,10 +26,18 @@ func (c *StateShowCommand) Run(args []string) int {
 	}
 	args = cmdFlags.Args()
 
-	state, err := c.Meta.State()
+	// Load the backend
+	b, err := c.Backend(nil)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
-		return cli.RunResultHelp
+		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+		return 1
+	}
+
+	// Get the state
+	state, err := b.State()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+		return 1
 	}
 
 	stateReal := state.State()

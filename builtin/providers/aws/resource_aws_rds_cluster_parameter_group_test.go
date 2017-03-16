@@ -28,7 +28,7 @@ func TestAccAWSDBClusterParameterGroup_basic(t *testing.T) {
 				Config: testAccAWSDBClusterParameterGroupConfig(parameterGroupName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBClusterParameterGroupExists("aws_rds_cluster_parameter_group.bar", &v),
-					testAccCheckAWSDBClusterParameterGroupAttributes(&v),
+					testAccCheckAWSDBClusterParameterGroupAttributes(&v, parameterGroupName),
 					resource.TestCheckResourceAttr(
 						"aws_rds_cluster_parameter_group.bar", "name", parameterGroupName),
 					resource.TestCheckResourceAttr(
@@ -55,7 +55,7 @@ func TestAccAWSDBClusterParameterGroup_basic(t *testing.T) {
 				Config: testAccAWSDBClusterParameterGroupAddParametersConfig(parameterGroupName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBClusterParameterGroupExists("aws_rds_cluster_parameter_group.bar", &v),
-					testAccCheckAWSDBClusterParameterGroupAttributes(&v),
+					testAccCheckAWSDBClusterParameterGroupAttributes(&v, parameterGroupName),
 					resource.TestCheckResourceAttr(
 						"aws_rds_cluster_parameter_group.bar", "name", parameterGroupName),
 					resource.TestCheckResourceAttr(
@@ -126,7 +126,7 @@ func TestAccAWSDBClusterParameterGroupOnly(t *testing.T) {
 				Config: testAccAWSDBClusterParameterGroupOnlyConfig(parameterGroupName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBClusterParameterGroupExists("aws_rds_cluster_parameter_group.bar", &v),
-					testAccCheckAWSDBClusterParameterGroupAttributes(&v),
+					testAccCheckAWSDBClusterParameterGroupAttributes(&v, parameterGroupName),
 					resource.TestCheckResourceAttr(
 						"aws_rds_cluster_parameter_group.bar", "name", parameterGroupName),
 					resource.TestCheckResourceAttr(
@@ -213,15 +213,15 @@ func testAccCheckAWSDBClusterParameterGroupDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckAWSDBClusterParameterGroupAttributes(v *rds.DBClusterParameterGroup) resource.TestCheckFunc {
+func testAccCheckAWSDBClusterParameterGroupAttributes(v *rds.DBClusterParameterGroup, name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if *v.DBClusterParameterGroupName != "cluster-parameter-group-test-terraform" {
-			return fmt.Errorf("bad name: %#v", v.DBClusterParameterGroupName)
+		if *v.DBClusterParameterGroupName != name {
+			return fmt.Errorf("bad name: %#v expected: %v", *v.DBClusterParameterGroupName, name)
 		}
 
 		if *v.DBParameterGroupFamily != "aurora5.6" {
-			return fmt.Errorf("bad family: %#v", v.DBParameterGroupFamily)
+			return fmt.Errorf("bad family: %#v", *v.DBParameterGroupFamily)
 		}
 
 		return nil

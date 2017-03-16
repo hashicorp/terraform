@@ -72,6 +72,14 @@ func resourceComputeVpnTunnel() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
+			"remote_traffic_selector": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -124,15 +132,24 @@ func resourceComputeVpnTunnelCreate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
+	var remoteTrafficSelectors []string
+	if v := d.Get("remote_traffic_selector").(*schema.Set); v.Len() > 0 {
+		remoteTrafficSelectors = make([]string, v.Len())
+		for i, v := range v.List() {
+			remoteTrafficSelectors[i] = v.(string)
+		}
+	}
+
 	vpnTunnelsService := compute.NewVpnTunnelsService(config.clientCompute)
 
 	vpnTunnel := &compute.VpnTunnel{
-		Name:                 name,
-		PeerIp:               peerIp,
-		SharedSecret:         sharedSecret,
-		TargetVpnGateway:     targetVpnGateway,
-		IkeVersion:           int64(ikeVersion),
-		LocalTrafficSelector: localTrafficSelectors,
+		Name:                  name,
+		PeerIp:                peerIp,
+		SharedSecret:          sharedSecret,
+		TargetVpnGateway:      targetVpnGateway,
+		IkeVersion:            int64(ikeVersion),
+		LocalTrafficSelector:  localTrafficSelectors,
+		RemoteTrafficSelector: remoteTrafficSelectors,
 	}
 
 	if v, ok := d.GetOk("description"); ok {
@@ -181,6 +198,18 @@ func resourceComputeVpnTunnelRead(d *schema.ResourceData, meta interface{}) erro
 
 		return fmt.Errorf("Error Reading VPN Tunnel %s: %s", name, err)
 	}
+
+	localTrafficSelectors := []string{}
+	for _, lts := range vpnTunnel.LocalTrafficSelector {
+		localTrafficSelectors = append(localTrafficSelectors, lts)
+	}
+	d.Set("local_traffic_selector", localTrafficSelectors)
+
+	remoteTrafficSelectors := []string{}
+	for _, rts := range vpnTunnel.RemoteTrafficSelector {
+		remoteTrafficSelectors = append(remoteTrafficSelectors, rts)
+	}
+	d.Set("remote_traffic_selector", remoteTrafficSelectors)
 
 	d.Set("detailed_status", vpnTunnel.DetailedStatus)
 	d.Set("self_link", vpnTunnel.SelfLink)

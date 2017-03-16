@@ -33,6 +33,30 @@ func TestAccOpsGenieTeam_importBasic(t *testing.T) {
 	})
 }
 
+func TestAccOpsGenieTeam_importWithEmptyDescription(t *testing.T) {
+	resourceName := "opsgenie_team.test"
+
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccOpsGenieTeam_withEmptyDescription, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckOpsGenieTeamDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+			},
+
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccOpsGenieTeam_importWithUser(t *testing.T) {
 	resourceName := "opsgenie_team.test"
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	backendlocal "github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -19,17 +20,31 @@ func (c *StateMeta) State(m *Meta) (state.State, error) {
 	// Disable backups since we wrap it manually below
 	m.backupPath = "-"
 
-	// Get the state (shouldn't be wrapped in a backup)
-	s, err := m.State()
+	// Load the backend
+	b, err := m.Backend(nil)
 	if err != nil {
 		return nil, err
 	}
+
+	// Get the state
+	s, err := b.State()
+	if err != nil {
+		return nil, err
+	}
+
+	// Get a local backend
+	localRaw, err := m.Backend(&BackendOpts{ForceLocal: true})
+	if err != nil {
+		// This should never fail
+		panic(err)
+	}
+	localB := localRaw.(*backendlocal.Local)
 
 	// Determine the backup path. stateOutPath is set to the resulting
 	// file where state is written (cached in the case of remote state)
 	backupPath := fmt.Sprintf(
 		"%s.%d%s",
-		m.stateOutPath,
+		localB.StateOutPath,
 		time.Now().UTC().Unix(),
 		DefaultBackupExtension)
 

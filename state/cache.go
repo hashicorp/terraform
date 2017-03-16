@@ -3,6 +3,7 @@ package state
 import (
 	"fmt"
 
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -14,6 +15,56 @@ type CacheState struct {
 
 	refreshResult CacheRefreshResult
 	state         *terraform.State
+}
+
+// Locker implementation.
+// Since remote states are wrapped in a CacheState, we need to implement the
+// Lock/Unlock methods here to delegate them to the remote client.
+func (s *CacheState) Lock(reason string) error {
+	durable, durableIsLocker := s.Durable.(Locker)
+	cache, cacheIsLocker := s.Cache.(Locker)
+
+	if durableIsLocker {
+		if err := durable.Lock(reason); err != nil {
+			return err
+		}
+	}
+
+	// We try to lock the Cache too, which is usually a local file. This also
+	// protects against multiple local processes if the remote state doesn't
+	// support locking.
+	if cacheIsLocker {
+		if err := cache.Lock(reason); err != nil {
+			// try to unlock Durable if this failed
+			if unlockErr := durable.Unlock(); unlockErr != nil {
+				err = multierror.Append(err, unlockErr)
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Unlock unlocks both the Durable and Cache states.
+func (s *CacheState) Unlock() error {
+	durable, durableIsLocker := s.Durable.(Locker)
+	cache, cacheIsLocker := s.Cache.(Locker)
+
+	var err error
+	if durableIsLocker {
+		if unlockErr := durable.Unlock(); unlockErr != nil {
+			err = multierror.Append(err, unlockErr)
+		}
+	}
+
+	if cacheIsLocker {
+		if unlockErr := cache.Unlock(); unlockErr != nil {
+			err = multierror.Append(err, unlockErr)
+		}
+	}
+
+	return err
 }
 
 // StateReader impl.

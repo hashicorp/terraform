@@ -43,6 +43,10 @@ resource "aws_dynamodb_table" "basic-dynamodb-table" {
       projection_type = "INCLUDE"
       non_key_attributes = [ "UserId" ]
     }
+    tags {
+      Name = "dynamodb-table-1"
+      Environment = "production"
+    }
 }
 ```
 
@@ -69,6 +73,7 @@ definition after you have created the resource.
 * `global_secondary_index` - (Optional) Describe a GSO for the table;
   subject to the normal limits on the number of GSIs, projected
 attributes, etc.
+* `tags` - (Optional) A map of tags to populate on the created table.
 
 For both `local_secondary_index` and `global_secondary_index` objects,
 the following properties are supported:

@@ -50,9 +50,6 @@ import (
 // of definition and use. This allows the compiler to enforce references
 // so it becomes easy to remove the features.
 var (
-	// Reuse the old graphs from TF 0.7.x. These will be removed at some point.
-	X_legacyGraph = newBasicID("legacy-graph", "LEGACY_GRAPH", false)
-
 	// Shadow graph. This is already on by default. Disabling it will be
 	// allowed for awhile in order for it to not block operations.
 	X_shadow = newBasicID("shadow", "SHADOW", true)
@@ -75,7 +72,6 @@ var (
 func init() {
 	// The list of all experiments, update this when an experiment is added.
 	All = []ID{
-		X_legacyGraph,
 		X_shadow,
 		x_force,
 	}

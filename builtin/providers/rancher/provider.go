@@ -60,7 +60,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		SecretKey: d.Get("secret_key").(string),
 	}
 
-	err := config.CreateClient()
+	_, err := config.GlobalClient()
 
 	return config, err
 }

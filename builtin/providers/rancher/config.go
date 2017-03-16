@@ -7,31 +7,30 @@ import (
 	"github.com/raphink/go-rancher/catalog"
 )
 
+// Config is the configuration parameters for a Rancher API
 type Config struct {
-	*rancherClient.RancherClient
 	APIURL    string
 	AccessKey string
 	SecretKey string
 }
 
-// Create creates a generic Rancher client
-func (c *Config) CreateClient() error {
+// GlobalClient creates a Rancher client scoped to the global API
+func (c *Config) GlobalClient() (*rancherClient.RancherClient, error) {
 	client, err := rancherClient.NewRancherClient(&rancherClient.ClientOpts{
 		Url:       c.APIURL,
 		AccessKey: c.AccessKey,
 		SecretKey: c.SecretKey,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	log.Printf("[INFO] Rancher Client configured for url: %s", c.APIURL)
 
-	c.RancherClient = client
-
-	return nil
+	return client, nil
 }
 
+// EnvironmentClient creates a Rancher client scoped to an Environment's API
 func (c *Config) EnvironmentClient(env string) (*rancherClient.RancherClient, error) {
 
 	url := c.APIURL + "/projects/" + env + "/schemas"
@@ -49,8 +48,13 @@ func (c *Config) EnvironmentClient(env string) (*rancherClient.RancherClient, er
 	return client, nil
 }
 
+// RegistryClient creates a Rancher client scoped to a Registry's API
 func (c *Config) RegistryClient(id string) (*rancherClient.RancherClient, error) {
-	reg, err := c.Registry.ById(id)
+	client, err := c.GlobalClient()
+	if err != nil {
+		return nil, err
+	}
+	reg, err := client.Registry.ById(id)
 	if err != nil {
 		return nil, err
 	}
@@ -58,6 +62,7 @@ func (c *Config) RegistryClient(id string) (*rancherClient.RancherClient, error)
 	return c.EnvironmentClient(reg.AccountId)
 }
 
+// CatalogClient creates a Rancher client scoped to a Catalog's API
 func (c *Config) CatalogClient() (*catalog.RancherClient, error) {
 
 	url := c.APIURL + "-catalog/schemas"

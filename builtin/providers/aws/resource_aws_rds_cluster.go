@@ -125,8 +125,9 @@ func resourceAwsRDSCluster() *schema.Resource {
 			},
 
 			"master_password": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:      schema.TypeString,
+				Optional:  true,
+				Sensitive: true,
 			},
 
 			"snapshot_identifier": {
@@ -201,6 +202,11 @@ func resourceAwsRDSCluster() *schema.Resource {
 				ValidateFunc: validateArn,
 			},
 
+			"replication_source_identifier": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -272,7 +278,7 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 				Pending:    []string{"creating", "backing-up", "modifying"},
 				Target:     []string{"available"},
 				Refresh:    resourceAwsRDSClusterStateRefreshFunc(d, meta),
-				Timeout:    40 * time.Minute,
+				Timeout:    120 * time.Minute,
 				MinTimeout: 3 * time.Second,
 				Delay:      30 * time.Second, // Wait 30 secs before starting
 			}
@@ -288,13 +294,67 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 				return err
 			}
 		}
+	} else if _, ok := d.GetOk("replication_source_identifier"); ok {
+		createOpts := &rds.CreateDBClusterInput{
+			DBClusterIdentifier:         aws.String(d.Get("cluster_identifier").(string)),
+			Engine:                      aws.String("aurora"),
+			StorageEncrypted:            aws.Bool(d.Get("storage_encrypted").(bool)),
+			ReplicationSourceIdentifier: aws.String(d.Get("replication_source_identifier").(string)),
+			Tags: tags,
+		}
+
+		if attr, ok := d.GetOk("port"); ok {
+			createOpts.Port = aws.Int64(int64(attr.(int)))
+		}
+
+		if attr, ok := d.GetOk("db_subnet_group_name"); ok {
+			createOpts.DBSubnetGroupName = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("db_cluster_parameter_group_name"); ok {
+			createOpts.DBClusterParameterGroupName = aws.String(attr.(string))
+		}
+
+		if attr := d.Get("vpc_security_group_ids").(*schema.Set); attr.Len() > 0 {
+			createOpts.VpcSecurityGroupIds = expandStringList(attr.List())
+		}
+
+		if attr := d.Get("availability_zones").(*schema.Set); attr.Len() > 0 {
+			createOpts.AvailabilityZones = expandStringList(attr.List())
+		}
+
+		if v, ok := d.GetOk("backup_retention_period"); ok {
+			createOpts.BackupRetentionPeriod = aws.Int64(int64(v.(int)))
+		}
+
+		if v, ok := d.GetOk("preferred_backup_window"); ok {
+			createOpts.PreferredBackupWindow = aws.String(v.(string))
+		}
+
+		if v, ok := d.GetOk("preferred_maintenance_window"); ok {
+			createOpts.PreferredMaintenanceWindow = aws.String(v.(string))
+		}
+
+		if attr, ok := d.GetOk("kms_key_id"); ok {
+			createOpts.KmsKeyId = aws.String(attr.(string))
+		}
+
+		log.Printf("[DEBUG] Create RDS Cluster as read replica: %s", createOpts)
+		resp, err := conn.CreateDBCluster(createOpts)
+		if err != nil {
+			log.Printf("[ERROR] Error creating RDS Cluster: %s", err)
+			return err
+		}
+
+		log.Printf("[DEBUG]: RDS Cluster create response: %s", resp)
+
 	} else {
 		if _, ok := d.GetOk("master_password"); !ok {
-			return fmt.Errorf(`provider.aws: aws_rds_cluster: %s: "master_password": required field is not set`, d.Get("name").(string))
+			return fmt.Errorf(`provider.aws: aws_rds_cluster: %s: "master_password": required field is not set`, d.Get("database_name").(string))
 		}
 
 		if _, ok := d.GetOk("master_username"); !ok {
-			return fmt.Errorf(`provider.aws: aws_rds_cluster: %s: "master_username": required field is not set`, d.Get("name").(string))
+			return fmt.Errorf(`provider.aws: aws_rds_cluster: %s: "master_username": required field is not set`, d.Get("database_name").(string))
 		}
 
 		createOpts := &rds.CreateDBClusterInput{
@@ -367,7 +427,7 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 		Pending:    []string{"creating", "backing-up", "modifying"},
 		Target:     []string{"available"},
 		Refresh:    resourceAwsRDSClusterStateRefreshFunc(d, meta),
-		Timeout:    40 * time.Minute,
+		Timeout:    120 * time.Minute,
 		MinTimeout: 3 * time.Second,
 	}
 
@@ -437,6 +497,7 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("preferred_maintenance_window", dbc.PreferredMaintenanceWindow)
 	d.Set("kms_key_id", dbc.KmsKeyId)
 	d.Set("reader_endpoint", dbc.ReaderEndpoint)
+	d.Set("replication_source_identifier", dbc.ReplicationSourceIdentifier)
 
 	var vpcg []string
 	for _, g := range dbc.VpcSecurityGroups {

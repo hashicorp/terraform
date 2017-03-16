@@ -50,8 +50,14 @@
                         <li<%= sidebar_current("docs-aws-datasource-ebs-volume") %>>
                           <a href="/docs/providers/aws/d/ebs_volume.html">aws_ebs_volume</a>
                         </li>
+                        <li<%= sidebar_current("docs-aws-datasource-ecs-cluster") %>>
+                          <a href="/docs/providers/aws/d/ecs_cluster.html">aws_ecs_cluster</a>
+                        </li>
                         <li<%= sidebar_current("docs-aws-datasource-ecs-container-definition") %>>
                             <a href="/docs/providers/aws/d/ecs_container_definition.html">aws_ecs_container_definition</a>
+                        </li>
+                        <li<%= sidebar_current("docs-aws-datasource-ecs-task-definition") %>>
+                            <a href="/docs/providers/aws/d/ecs_task_definition.html">aws_ecs_task_definition</a>
                         </li>
                         <li<%= sidebar_current("docs-aws-datasource-elb-hosted-zone-id") %>>
                             <a href="/docs/providers/aws/d/elb_hosted_zone_id.html">aws_elb_hosted_zone_id</a>
@@ -70,6 +76,12 @@
                         </li>
                         <li<%= sidebar_current("docs-aws-datasource-ip_ranges") %>>
                             <a href="/docs/providers/aws/d/ip_ranges.html">aws_ip_ranges</a>
+                        </li>
+                        <li<%= sidebar_current("docs-aws-datasource-kms-secret") %>>
+                            <a href="/docs/providers/aws/d/kms_secret.html">aws_kms_secret</a>
+                        </li>
+                        <li<%= sidebar_current("docs-aws-datasource-partition") %>>
+                            <a href="/docs/providers/aws/d/partition.html">aws_partition</a>
                         </li>
                         <li<%= sidebar_current("docs-aws-datasource-prefix-list") %>>
                             <a href="/docs/providers/aws/d/prefix_list.html">aws_prefix_list</a>
@@ -236,6 +248,17 @@
                     </ul>
                 </li>
 
+                <li<%= sidebar_current(/^docs-aws-resource-codebuild/) %>>
+                    <a href="#">CodeBuild Resources</a>
+                    <ul class="nav nav-visible">
+
+                        <li<%= sidebar_current("docs-aws-resource-codebuild-project") %>>
+                            <a href="/docs/providers/aws/r/code_build_project.html">aws_codebuild_project</a>
+                        </li>
+
+                    </ul>
+                </li>
+
                 <li<%= sidebar_current(/^docs-aws-resource-codecommit/) %>>
                     <a href="#">CodeCommit Resources</a>
                     <ul class="nav nav-visible">
@@ -264,6 +287,33 @@
 
                         <li<%= sidebar_current("docs-aws-resource-codedeploy-deployment-group") %>>
                             <a href="/docs/providers/aws/r/codedeploy_deployment_group.html">aws_codedeploy_deployment_group</a>
+                        </li>
+
+                    </ul>
+                </li>
+
+                <li<%= sidebar_current(/^docs-aws-resource-dms/) %>>
+                    <a href="#">Database Migration Service</a>
+                    <ul class="nav nav-visible">
+
+                        <li<%= sidebar_current("docs-aws-resource-dms-certificate") %>>
+                            <a href="/docs/providers/aws/r/dms_certificate.html">aws_dms_certificate</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-dms-endpoint") %>>
+                            <a href="/docs/providers/aws/r/dms_endpoint.html">aws_dms_endpoint</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-dms-replication-instance") %>>
+                            <a href="/docs/providers/aws/r/dms_replication_instance.html">aws_dms_replication_instance</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-dms-replication-subnet-group") %>>
+                            <a href="/docs/providers/aws/r/dms_replication_subnet_group.html">aws_dms_replication_subnet_group</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-dms-replication-task") %>>
+                            <a href="/docs/providers/aws/r/dms_replication_task.html">aws_dms_replication_task</a>
                         </li>
 
                     </ul>
@@ -1012,6 +1062,22 @@
 
                         <li<%= sidebar_current("docs-aws-resource-ses-event-destination") %>>
                             <a href="/docs/providers/aws/r/ses_event_destination.html">aws_ses_event_destination</a>
+                        </li>
+
+                    </ul>
+                </li>
+
+
+                <li<%= sidebar_current(/^docs-aws-resource-sfn/) %>>
+                    <a href="#">Step Function Resources</a>
+                    <ul class="nav nav-visible">
+
+                        <li<%= sidebar_current("docs-aws-resource-sfn-activity") %>>
+                            <a href="/docs/providers/aws/r/sfn_activity.html">aws_sfn_activity</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-sfn-state-machine") %>>
+                            <a href="/docs/providers/aws/r/sfn_state_machine.html">aws_sfn_state_machine</a>
                         </li>
 
                     </ul>

@@ -18,6 +18,9 @@ func resourceArmLoadBalancerNatRule() *schema.Resource {
 		Read:   resourceArmLoadBalancerNatRuleRead,
 		Update: resourceArmLoadBalancerNatRuleCreate,
 		Delete: resourceArmLoadBalancerNatRuleDelete,
+		Importer: &schema.ResourceImporter{
+			State: loadBalancerSubResourceStateImporter,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -26,7 +29,14 @@ func resourceArmLoadBalancerNatRule() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": locationSchema(),
+			"location": {
+				Type:             schema.TypeString,
+				ForceNew:         true,
+				Optional:         true,
+				StateFunc:        azureRMNormalizeLocation,
+				DiffSuppressFunc: azureRMSuppressLocationDiff,
+				Deprecated:       "location is no longer used",
+			},
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -153,35 +163,47 @@ func resourceArmLoadBalancerNatRuleCreate(d *schema.ResourceData, meta interface
 }
 
 func resourceArmLoadBalancerNatRuleRead(d *schema.ResourceData, meta interface{}) error {
+	id, err := parseAzureResourceID(d.Id())
+	if err != nil {
+		return err
+	}
+	name := id.Path["inboundNatRules"]
+
 	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
 	if !exists {
 		d.SetId("")
-		log.Printf("[INFO] LoadBalancer %q not found. Removing from state", d.Get("name").(string))
+		log.Printf("[INFO] LoadBalancer %q not found. Removing from state", name)
 		return nil
 	}
 
-	configs := *loadBalancer.LoadBalancerPropertiesFormat.InboundNatRules
-	for _, config := range configs {
-		if *config.Name == d.Get("name").(string) {
-			d.Set("name", config.Name)
+	config, _, exists := findLoadBalancerNatRuleByName(loadBalancer, name)
+	if !exists {
+		d.SetId("")
+		log.Printf("[INFO] LoadBalancer Nat Rule %q not found. Removing from state", name)
+		return nil
+	}
 
-			d.Set("protocol", config.InboundNatRulePropertiesFormat.Protocol)
-			d.Set("frontend_port", config.InboundNatRulePropertiesFormat.FrontendPort)
-			d.Set("backend_port", config.InboundNatRulePropertiesFormat.BackendPort)
+	d.Set("name", config.Name)
+	d.Set("resource_group_name", id.ResourceGroup)
+	d.Set("protocol", config.InboundNatRulePropertiesFormat.Protocol)
+	d.Set("frontend_port", config.InboundNatRulePropertiesFormat.FrontendPort)
+	d.Set("backend_port", config.InboundNatRulePropertiesFormat.BackendPort)
 
-			if config.InboundNatRulePropertiesFormat.FrontendIPConfiguration != nil {
-				d.Set("frontend_ip_configuration_id", config.InboundNatRulePropertiesFormat.FrontendIPConfiguration.ID)
-			}
-
-			if config.InboundNatRulePropertiesFormat.BackendIPConfiguration != nil {
-				d.Set("backend_ip_configuration_id", config.InboundNatRulePropertiesFormat.BackendIPConfiguration.ID)
-			}
-
-			break
+	if config.InboundNatRulePropertiesFormat.FrontendIPConfiguration != nil {
+		fipID, err := parseAzureResourceID(*config.InboundNatRulePropertiesFormat.FrontendIPConfiguration.ID)
+		if err != nil {
+			return err
 		}
+
+		d.Set("frontend_ip_configuration_name", fipID.Path["frontendIPConfigurations"])
+		d.Set("frontend_ip_configuration_id", config.InboundNatRulePropertiesFormat.FrontendIPConfiguration.ID)
+	}
+
+	if config.InboundNatRulePropertiesFormat.BackendIPConfiguration != nil {
+		d.Set("backend_ip_configuration_id", config.InboundNatRulePropertiesFormat.BackendIPConfiguration.ID)
 	}
 
 	return nil
