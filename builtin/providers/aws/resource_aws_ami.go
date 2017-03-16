@@ -13,7 +13,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+)
+
+const (
+	AWSAMIRetryTimeout    = 10 * time.Minute
+	AWSAMIRetryDelay      = 5 * time.Second
+	AWSAMIRetryMinTimeout = 3 * time.Second
 )
 
 func resourceAwsAmi() *schema.Resource {
@@ -281,7 +288,56 @@ func resourceAwsAmiDelete(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	// Verify that the image is actually removed, if not we need to wait for it to be removed
+	if err := resourceAwsAmiWaitForDestroy(d.Id(), client); err != nil {
+		return err
+	}
+
+	// No error, ami was deleted successfully
 	d.SetId("")
+	return nil
+}
+
+func AMIStateRefreshFunc(client *ec2.EC2, id string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		emptyResp := &ec2.DescribeImagesOutput{}
+
+		resp, err := client.DescribeImages(&ec2.DescribeImagesInput{ImageIds: []*string{aws.String(id)}})
+		if err != nil {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidAMIID.NotFound" {
+				return emptyResp, "destroyed", nil
+			} else if resp != nil && len(resp.Images) == 0 {
+				return emptyResp, "destroyed", nil
+			} else {
+				return emptyResp, "", fmt.Errorf("Error on refresh: %+v", err)
+			}
+		}
+
+		if resp == nil || resp.Images == nil || len(resp.Images) == 0 {
+			return emptyResp, "destroyed", nil
+		}
+
+		// AMI is valid, so return it's state
+		return resp.Images[0], *resp.Images[0].State, nil
+	}
+}
+
+func resourceAwsAmiWaitForDestroy(id string, client *ec2.EC2) error {
+	log.Printf("Waiting for AMI %s to be deleted...", id)
+
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"available", "pending", "failed"},
+		Target:     []string{"destroyed"},
+		Refresh:    AMIStateRefreshFunc(client, id),
+		Timeout:    AWSAMIRetryTimeout,
+		Delay:      AWSAMIRetryDelay,
+		MinTimeout: AWSAMIRetryTimeout,
+	}
+
+	_, err := stateConf.WaitForState()
+	if err != nil {
+		return fmt.Errorf("Error waiting for AMI (%s) to be deleted: %v", id, err)
+	}
 
 	return nil
 }
@@ -289,51 +345,20 @@ func resourceAwsAmiDelete(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsAmiWaitForAvailable(id string, client *ec2.EC2) (*ec2.Image, error) {
 	log.Printf("Waiting for AMI %s to become available...", id)
 
-	req := &ec2.DescribeImagesInput{
-		ImageIds: []*string{aws.String(id)},
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"pending"},
+		Target:     []string{"available"},
+		Refresh:    AMIStateRefreshFunc(client, id),
+		Timeout:    AWSAMIRetryTimeout,
+		Delay:      AWSAMIRetryDelay,
+		MinTimeout: AWSAMIRetryMinTimeout,
 	}
-	pollsWhereNotFound := 0
-	for {
-		res, err := client.DescribeImages(req)
-		if err != nil {
-			// When using RegisterImage (for aws_ami) the AMI sometimes isn't available at all
-			// right after the API responds, so we need to tolerate a couple Not Found errors
-			// before an available AMI shows up.
-			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidAMIID.NotFound" {
-				pollsWhereNotFound++
-				// We arbitrarily stop polling after getting a "not found" error five times,
-				// assuming that the AMI has been deleted by something other than Terraform.
-				if pollsWhereNotFound > 5 {
-					return nil, fmt.Errorf("gave up waiting for AMI to be created: %s", err)
-				}
-				time.Sleep(4 * time.Second)
-				continue
-			}
-			return nil, fmt.Errorf("error reading AMI: %s", err)
-		}
 
-		if len(res.Images) != 1 {
-			return nil, fmt.Errorf("new AMI vanished while pending")
-		}
-
-		state := *res.Images[0].State
-
-		if state == "pending" {
-			// Give it a few seconds before we poll again.
-			time.Sleep(4 * time.Second)
-			continue
-		}
-
-		if state == "available" {
-			// We're done!
-			return res.Images[0], nil
-		}
-
-		// If we're not pending or available then we're in one of the invalid/error
-		// states, so stop polling and bail out.
-		stateReason := *res.Images[0].StateReason
-		return nil, fmt.Errorf("new AMI became %s while pending: %s", state, stateReason)
+	info, err := stateConf.WaitForState()
+	if err != nil {
+		return nil, fmt.Errorf("Error waiting for AMI (%s) to be ready: %v", id, err)
 	}
+	return info.(*ec2.Image), nil
 }
 
 func resourceAwsAmiCommonSchema(computed bool) map[string]*schema.Schema {
