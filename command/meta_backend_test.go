@@ -1144,6 +1144,11 @@ func TestMetaBackend_configuredChangeCopy_multiToSingle(t *testing.T) {
 	if _, err := os.Stat(envPath); err != nil {
 		t.Fatal("env should exist")
 	}
+
+	// Verify we are now in the default env, or we may not be able to access the new backend
+	if env := m.Env(); env != backend.DefaultStateName {
+		t.Fatal("using non-default env with single-env backend")
+	}
 }
 
 // Changing a configured backend that supports multi-state to a
