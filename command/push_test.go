@@ -9,9 +9,11 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 
 	atlas "github.com/hashicorp/atlas-go/v1"
+	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -662,6 +664,12 @@ func TestPush_noState(t *testing.T) {
 }
 
 func TestPush_noRemoteState(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("push-no-remote"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
 			&terraform.ModuleState{
@@ -679,18 +687,31 @@ func TestPush_noRemoteState(t *testing.T) {
 	}
 	statePath := testStateFile(t, state)
 
+	// Path where the archive will be "uploaded" to
+	archivePath := testTempFile(t)
+	defer os.Remove(archivePath)
+
+	client := &mockPushClient{File: archivePath}
 	ui := new(cli.MockUi)
 	c := &PushCommand{
 		Meta: Meta{
 			Ui: ui,
 		},
+		client: client,
 	}
 
 	args := []string{
+		"-vcs=false",
 		"-state", statePath,
+		td,
 	}
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	errStr := ui.ErrorWriter.String()
+	if !strings.Contains(errStr, "Remote state") {
+		t.Fatalf("bad: %s", errStr)
 	}
 }
 
