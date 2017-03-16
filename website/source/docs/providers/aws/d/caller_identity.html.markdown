@@ -33,3 +33,5 @@ There are no arguments available for this data source.
 ## Attributes Reference
 
 `account_id` is set to the ID of the AWS account.
+
+`resource` is set to the resource name used to authenticate.

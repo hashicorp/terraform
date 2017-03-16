@@ -136,6 +136,7 @@ type AWSClient struct {
 	r53conn               *route53.Route53
 	partition             string
 	accountid             string
+	resource              string
 	region                string
 	rdsconn               *rds.RDS
 	iamconn               *iam.IAM
@@ -260,10 +261,11 @@ func (c *Config) Client() (interface{}, error) {
 	}
 
 	if !c.SkipRequestingAccountId {
-		partition, accountId, err := GetAccountInfo(client.iamconn, client.stsconn, cp.ProviderName)
+		partition, accountId, resource, err := GetAccountInfo(client.iamconn, client.stsconn, cp.ProviderName)
 		if err == nil {
 			client.partition = partition
 			client.accountid = accountId
+			client.resource = resource
 		}
 	}
 

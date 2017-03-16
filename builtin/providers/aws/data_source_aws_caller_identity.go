@@ -17,6 +17,10 @@ func dataSourceAwsCallerIdentity() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"resource": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -33,8 +37,8 @@ func dataSourceAwsCallerIdentityRead(d *schema.ResourceData, meta interface{}) e
 			"skip_requesting_account_id is not set on the AWS provider.")
 	}
 
-	log.Printf("[DEBUG] Setting AWS Account ID to %s.", client.accountid)
+	log.Printf("[DEBUG] Setting AWS Account ID to %s, resource to %s", client.accountid, client.resource)
 	d.Set("account_id", meta.(*AWSClient).accountid)
-
+	d.Set("resource", meta.(*AWSClient).resource)
 	return nil
 }
