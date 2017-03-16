@@ -120,7 +120,7 @@ resource "profitbricks_server" "webserver" {
     size = 5
     disk_type = "SSD"
     image_name ="ubuntu-16.04"
-    image_password = "test1234"
+    image_password = "K3tTj8G14a3EgKyNeeiY"
 }
   nic {
     lan = "${profitbricks_lan.webserver_lan.id}"
@@ -141,6 +141,12 @@ resource "profitbricks_datacenter" "foobar" {
 	location = "us/las"
 }
 
+resource "profitbricks_lan" "webserver_lan" {
+  datacenter_id = "${profitbricks_datacenter.foobar.id}"
+  public = true
+  name = "public"
+}
+
 resource "profitbricks_server" "webserver" {
   name = "updated"
   datacenter_id = "${profitbricks_datacenter.foobar.id}"
@@ -153,10 +159,10 @@ resource "profitbricks_server" "webserver" {
     size = 5
     disk_type = "SSD"
     image_name ="ubuntu-16.04"
-    image_password = "test1234"
+    image_password = "K3tTj8G14a3EgKyNeeiY"
 }
   nic {
-    lan = "1"
+    lan = "${profitbricks_lan.webserver_lan.id}"
     dhcp = true
     firewall_active = true
     firewall {

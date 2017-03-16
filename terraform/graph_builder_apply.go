@@ -28,6 +28,12 @@ type ApplyGraphBuilder struct {
 	// Provisioners is the list of provisioners supported.
 	Provisioners []string
 
+	// Targets are resources to target. This is only required to make sure
+	// unnecessary outputs aren't included in the apply graph. The plan
+	// builder successfully handles targeting resources. In the future,
+	// outputs should go into the diff so that this is unnecessary.
+	Targets []string
+
 	// DisableReduce, if true, will not reduce the graph. Great for testing.
 	DisableReduce bool
 
@@ -96,13 +102,8 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		),
 
 		// Provisioner-related transformations
-		GraphTransformIf(
-			func() bool { return !b.Destroy },
-			GraphTransformMulti(
-				&MissingProvisionerTransformer{Provisioners: b.Provisioners},
-				&ProvisionerTransformer{},
-			),
-		),
+		&MissingProvisionerTransformer{Provisioners: b.Provisioners},
+		&ProvisionerTransformer{},
 
 		// Add root variables
 		&RootVariableTransformer{Module: b.Module},
@@ -118,6 +119,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Add the node to fix the state count boundaries
 		&CountBoundaryTransformer{},
+
+		// Target
+		&TargetsTransformer{Targets: b.Targets},
 
 		// Single root
 		&RootTransformer{},

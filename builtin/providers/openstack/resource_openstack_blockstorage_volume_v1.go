@@ -112,15 +112,15 @@ func resourceBlockStorageVolumeV1Create(d *schema.ResourceData, meta interface{}
 	}
 
 	createOpts := &volumes.CreateOpts{
-		Description:  d.Get("description").(string),
-		Availability: d.Get("availability_zone").(string),
-		Name:         d.Get("name").(string),
-		Size:         d.Get("size").(int),
-		SnapshotID:   d.Get("snapshot_id").(string),
-		SourceVolID:  d.Get("source_vol_id").(string),
-		ImageID:      d.Get("image_id").(string),
-		VolumeType:   d.Get("volume_type").(string),
-		Metadata:     resourceContainerMetadataV2(d),
+		Description:      d.Get("description").(string),
+		AvailabilityZone: d.Get("availability_zone").(string),
+		Name:             d.Get("name").(string),
+		Size:             d.Get("size").(int),
+		SnapshotID:       d.Get("snapshot_id").(string),
+		SourceVolID:      d.Get("source_vol_id").(string),
+		ImageID:          d.Get("image_id").(string),
+		VolumeType:       d.Get("volume_type").(string),
+		Metadata:         resourceContainerMetadataV2(d),
 	}
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)

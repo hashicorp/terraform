@@ -10,13 +10,16 @@ import (
 )
 
 func TestAccComputeUrlMap_basic(t *testing.T) {
+	bsName := fmt.Sprintf("urlmap-test-%s", acctest.RandString(10))
+	hcName := fmt.Sprintf("urlmap-test-%s", acctest.RandString(10))
+	umName := fmt.Sprintf("urlmap-test-%s", acctest.RandString(10))
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeUrlMapDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeUrlMap_basic1,
+				Config: testAccComputeUrlMap_basic1(bsName, hcName, umName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeUrlMapExists(
 						"google_compute_url_map.foobar"),
@@ -27,13 +30,16 @@ func TestAccComputeUrlMap_basic(t *testing.T) {
 }
 
 func TestAccComputeUrlMap_update_path_matcher(t *testing.T) {
+	bsName := fmt.Sprintf("urlmap-test-%s", acctest.RandString(10))
+	hcName := fmt.Sprintf("urlmap-test-%s", acctest.RandString(10))
+	umName := fmt.Sprintf("urlmap-test-%s", acctest.RandString(10))
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeUrlMapDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeUrlMap_basic1,
+				Config: testAccComputeUrlMap_basic1(bsName, hcName, umName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeUrlMapExists(
 						"google_compute_url_map.foobar"),
@@ -41,7 +47,7 @@ func TestAccComputeUrlMap_update_path_matcher(t *testing.T) {
 			},
 
 			resource.TestStep{
-				Config: testAccComputeUrlMap_basic2,
+				Config: testAccComputeUrlMap_basic2(bsName, hcName, umName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeUrlMapExists(
 						"google_compute_url_map.foobar"),
@@ -120,7 +126,8 @@ func testAccCheckComputeUrlMapExists(n string) resource.TestCheckFunc {
 	}
 }
 
-var testAccComputeUrlMap_basic1 = fmt.Sprintf(`
+func testAccComputeUrlMap_basic1(bsName, hcName, umName string) string {
+	return fmt.Sprintf(`
 resource "google_compute_backend_service" "foobar" {
     name = "urlmap-test-%s"
     health_checks = ["${google_compute_http_health_check.zero.self_link}"]
@@ -157,9 +164,11 @@ resource "google_compute_url_map" "foobar" {
 		service = "${google_compute_backend_service.foobar.self_link}"
 	}
 }
-`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
+`, bsName, hcName, umName)
+}
 
-var testAccComputeUrlMap_basic2 = fmt.Sprintf(`
+func testAccComputeUrlMap_basic2(bsName, hcName, umName string) string {
+	return fmt.Sprintf(`
 resource "google_compute_backend_service" "foobar" {
     name = "urlmap-test-%s"
     health_checks = ["${google_compute_http_health_check.zero.self_link}"]
@@ -192,11 +201,12 @@ resource "google_compute_url_map" "foobar" {
 
 	test {
 		host = "mysite.com"
-		path = "/*"
+		path = "/test"
 		service = "${google_compute_backend_service.foobar.self_link}"
 	}
 }
-`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
+`, bsName, hcName, umName)
+}
 
 var testAccComputeUrlMap_advanced1 = fmt.Sprintf(`
 resource "google_compute_backend_service" "foobar" {

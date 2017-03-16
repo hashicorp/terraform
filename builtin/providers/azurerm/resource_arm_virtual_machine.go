@@ -295,9 +295,10 @@ func resourceArmVirtualMachine() *schema.Resource {
 						},
 
 						"custom_data": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							Type:      schema.TypeString,
+							Optional:  true,
+							Computed:  true,
+							StateFunc: userDataStateFunc,
 						},
 					},
 				},
@@ -1039,6 +1040,7 @@ func expandAzureRmVirtualMachineOsProfile(d *schema.ResourceData) (*compute.OSPr
 	}
 
 	if v := osProfile["custom_data"].(string); v != "" {
+		v = base64Encode(v)
 		profile.CustomData = &v
 	}
 
@@ -1113,8 +1115,10 @@ func expandAzureRmVirtualMachineOsProfileLinuxConfig(d *schema.ResourceData) (*c
 		sshPublicKeys = append(sshPublicKeys, sshPublicKey)
 	}
 
-	config.SSH = &compute.SSHConfiguration{
-		PublicKeys: &sshPublicKeys,
+	if len(sshPublicKeys) > 0 {
+		config.SSH = &compute.SSHConfiguration{
+			PublicKeys: &sshPublicKeys,
+		}
 	}
 
 	return config, nil

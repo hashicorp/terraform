@@ -14,33 +14,33 @@ Create an Azure Storage Blob.
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
-    location = "westus"
+  name     = "acctestrg-%d"
+  location = "westus"
 }
 
 resource "azurerm_storage_account" "test" {
-    name = "acctestacc%s"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "westus"
-    account_type = "Standard_LRS"
+  name                = "acctestacc%s"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  location            = "westus"
+  account_type        = "Standard_LRS"
 }
 
 resource "azurerm_storage_container" "test" {
-    name = "vhds"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    storage_account_name = "${azurerm_storage_account.test.name}"
-    container_access_type = "private"
+  name                  = "vhds"
+  resource_group_name   = "${azurerm_resource_group.test.name}"
+  storage_account_name  = "${azurerm_storage_account.test.name}"
+  container_access_type = "private"
 }
 
 resource "azurerm_storage_blob" "testsb" {
-    name = "sample.vhd"
+  name = "sample.vhd"
 
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    storage_account_name = "${azurerm_storage_account.test.name}"
-    storage_container_name = "${azurerm_storage_container.test.name}"
+  resource_group_name    = "${azurerm_resource_group.test.name}"
+  storage_account_name   = "${azurerm_storage_account.test.name}"
+  storage_container_name = "${azurerm_storage_container.test.name}"
 
-    type = "page"
-    size = 5120
+  type = "page"
+  size = 5120
 }
 ```
 

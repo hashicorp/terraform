@@ -17,26 +17,26 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the Logentries provider
 provider "logentries" {
-   account_key = "${var.logentries_account_key}"
+  account_key = "${var.logentries_account_key}"
 }
 
 # Create a log set
 resource "logentries_logset" "host_logs" {
-   name = "${var.server}-logs"
+  name = "${var.server}-logs"
 }
 
 # Create a log and add it to the log set
 resource "logentries_log" "app_log" {
-   logset_id = "${logentries_logset.host_logs.id}"
-   name = "myapp-log"
-   source = "token"
+  logset_id = "${logentries_logset.host_logs.id}"
+  name      = "myapp-log"
+  source    = "token"
 }
 
-# Add the log token to a cloud-config that can be used by an 
+# Add the log token to a cloud-config that can be used by an
 # application to send logs to Logentries
 resource "aws_launch_configuration" "app_launch_config" {
-  name_prefix = "myapp-"
-  image_id = "${var.ami}"
+  name_prefix   = "myapp-"
+  image_id      = "${var.ami}"
   instance_type = "${var.instance_type}"
 
   user_data = <<EOF

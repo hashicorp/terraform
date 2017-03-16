@@ -14,19 +14,19 @@ Create a ServiceBus Namespace.
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "resourceGroup1"
-    location = "West US"
+  name     = "resourceGroup1"
+  location = "West US"
 }
 
 resource "azurerm_servicebus_namespace" "test" {
-    name = "acceptanceTestServiceBusNamespace"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    sku = "basic"
+  name                = "acceptanceTestServiceBusNamespace"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  sku                 = "basic"
 
-    tags {
-        environment = "Production"
-    }
+  tags {
+    environment = "Production"
+  }
 }
 ```
 
@@ -69,7 +69,7 @@ The following attributes are exported only if there is an authorization rule nam
 
 ## Import
 
-Service Bus Namespace can be imported using the `resource id`, e.g. 
+Service Bus Namespace can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_servicebus_namespace.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/microsoft.servicebus/namespaces/sbns1

@@ -135,6 +135,30 @@ func TestAccInstanceGroupManager_updateStrategy(t *testing.T) {
 	})
 }
 
+func TestAccInstanceGroupManager_separateRegions(t *testing.T) {
+	var manager compute.InstanceGroupManager
+
+	igm1 := fmt.Sprintf("igm-test-%s", acctest.RandString(10))
+	igm2 := fmt.Sprintf("igm-test-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceGroupManagerDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccInstanceGroupManager_separateRegions(igm1, igm2),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceGroupManagerExists(
+						"google_compute_instance_group_manager.igm-basic", &manager),
+					testAccCheckInstanceGroupManagerExists(
+						"google_compute_instance_group_manager.igm-basic-2", &manager),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckInstanceGroupManagerDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
@@ -569,6 +593,52 @@ func testAccInstanceGroupManager_updateStrategy(igm string) string {
 			port = 8080
 		}
 	}`, igm)
+}
+
+func testAccInstanceGroupManager_separateRegions(igm1, igm2 string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_instance_template" "igm-basic" {
+		machine_type = "n1-standard-1"
+		can_ip_forward = false
+		tags = ["foo", "bar"]
+
+		disk {
+			source_image = "debian-cloud/debian-8-jessie-v20160803"
+			auto_delete = true
+			boot = true
+		}
+
+		network_interface {
+			network = "default"
+		}
+
+		metadata {
+			foo = "bar"
+		}
+
+		service_account {
+			scopes = ["userinfo-email", "compute-ro", "storage-ro"]
+		}
+	}
+
+	resource "google_compute_instance_group_manager" "igm-basic" {
+		description = "Terraform test instance group manager"
+		name = "%s"
+		instance_template = "${google_compute_instance_template.igm-basic.self_link}"
+		base_instance_name = "igm-basic"
+		zone = "us-central1-c"
+		target_size = 2
+	}
+
+	resource "google_compute_instance_group_manager" "igm-basic-2" {
+		description = "Terraform test instance group manager"
+		name = "%s"
+		instance_template = "${google_compute_instance_template.igm-basic.self_link}"
+		base_instance_name = "igm-basic-2"
+		zone = "us-west1-b"
+		target_size = 2
+	}
+	`, igm1, igm2)
 }
 
 func resourceSplitter(resource string) string {

@@ -19,24 +19,25 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the Chef provider
 provider "chef" {
-     server_url = "https://api.chef.io/organizations/example/"
+  server_url = "https://api.chef.io/organizations/example/"
 
-     // You can set up a "Client" within the Chef Server management console.
-     client_name = "terraform"
-     key_material = "${file("chef-terraform.pem")}"
+  // You can set up a "Client" within the Chef Server management console.
+  client_name  = "terraform"
+  key_material = "${file("chef-terraform.pem")}"
 }
 
 # Create a Chef Environment
 resource "chef_environment" "production" {
-    name = "production"
+  name = "production"
 }
 
 # Create a Chef Role
 resource "chef_role" "app_server" {
-    name = "app_server"
-    run_list = [
-        "recipe[terraform]"
-    ]
+  name = "app_server"
+
+  run_list = [
+    "recipe[terraform]",
+  ]
 }
 ```
 

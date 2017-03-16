@@ -2,8 +2,9 @@ package pagerduty
 
 import (
 	"fmt"
-	"github.com/google/go-querystring/query"
 	"net/http"
+
+	"github.com/google/go-querystring/query"
 )
 
 // Integration is an endpoint (like Nagios, email, or an API call) that generates events, which are normalized and de-duplicated by PagerDuty to create incidents.
@@ -59,8 +60,8 @@ type Service struct {
 	APIObject
 	Name                   string               `json:"name,omitempty"`
 	Description            string               `json:"description,omitempty"`
-	AutoResolveTimeout     *uint                `json:"auto_resolve_timeout,omitempty"`
-	AcknowledgementTimeout *uint                `json:"acknowledgement_timeout,omitempty"`
+	AutoResolveTimeout     *uint                `json:"auto_resolve_timeout"`
+	AcknowledgementTimeout *uint                `json:"acknowledgement_timeout"`
 	CreateAt               string               `json:"created_at,omitempty"`
 	Status                 string               `json:"status,omitempty"`
 	LastIncidentTimestamp  string               `json:"last_incident_timestamp,omitempty"`

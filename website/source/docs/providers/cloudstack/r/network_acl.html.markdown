@@ -14,8 +14,8 @@ Creates a Network ACL for the given VPC.
 
 ```
 resource "cloudstack_network_acl" "default" {
-	name = "test-acl"
-	vpc_id = "76f6e8dc-07e3-4971-b2a2-8831b0cc4cb4"
+  name   = "test-acl"
+  vpc_id = "76f6e8dc-07e3-4971-b2a2-8831b0cc4cb4"
 }
 ```
 

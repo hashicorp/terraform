@@ -102,7 +102,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 	client, err := config.NewClient()
 	if err != nil {
-		return nil, errwrap.Wrapf("Error initializing PostgreSQL client: %s", err)
+		return nil, errwrap.Wrapf("Error initializing PostgreSQL client: {{err}}", err)
 	}
 
 	return client, nil

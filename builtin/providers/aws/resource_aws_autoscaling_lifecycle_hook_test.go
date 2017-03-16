@@ -19,7 +19,7 @@ func TestAccAWSAutoscalingLifecycleHook_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSAutoscalingLifecycleHookDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSAutoscalingLifecycleHookConfig(resourceName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLifecycleHookExists("aws_autoscaling_lifecycle_hook.foobar"),
@@ -34,13 +34,15 @@ func TestAccAWSAutoscalingLifecycleHook_basic(t *testing.T) {
 }
 
 func TestAccAWSAutoscalingLifecycleHook_omitDefaultResult(t *testing.T) {
+	rName := acctest.RandString(10)
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSAutoscalingLifecycleHookDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSAutoscalingLifecycleHookConfig_omitDefaultResult(acctest.RandString(10)),
+			{
+				Config: testAccAWSAutoscalingLifecycleHookConfig_omitDefaultResult(rName, rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLifecycleHookExists("aws_autoscaling_lifecycle_hook.foobar"),
 					resource.TestCheckResourceAttr("aws_autoscaling_lifecycle_hook.foobar", "default_result", "ABANDON"),
@@ -191,7 +193,7 @@ EOF
 `, name, name)
 }
 
-func testAccAWSAutoscalingLifecycleHookConfig_omitDefaultResult(name string) string {
+func testAccAWSAutoscalingLifecycleHookConfig_omitDefaultResult(name string, rInt int) string {
 	return fmt.Sprintf(`
 resource "aws_launch_configuration" "foobar" {
   name          = "%s"
@@ -208,7 +210,7 @@ resource "aws_sqs_queue" "foobar" {
 }
 
 resource "aws_iam_role" "foobar" {
-  name = "foobar"
+  name = "foobar-%d"
 
   assume_role_policy = <<EOF
 {
@@ -276,5 +278,5 @@ EOF
 
   notification_target_arn = "${aws_sqs_queue.foobar.arn}"
   role_arn                = "${aws_iam_role.foobar.arn}"
-}`, name, name)
+}`, name, rInt, name)
 }

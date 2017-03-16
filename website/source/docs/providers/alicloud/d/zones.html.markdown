@@ -15,8 +15,8 @@ The Zones data source allows access to the list of Alicloud Zones which can be a
 ```
 # Declare the data source
 data "alicloud_zones" "default" {
-	"available_instance_type"= "ecs.s2.large"
-	"available_disk_category"= "cloud_ssd"
+  "available_instance_type" = "ecs.s2.large"
+  "available_disk_category" = "cloud_ssd"
 }
 
 # Create ecs instance with the first matched zone
@@ -26,7 +26,6 @@ resource "alicloud_instance" "instance" {
 
   # Other properties...
 }
-
 ```
 
 ## Argument Reference

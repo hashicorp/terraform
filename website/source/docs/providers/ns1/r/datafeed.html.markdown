@@ -14,21 +14,23 @@ Provides a NS1 Data Feed resource. This can be used to create, modify, and delet
 
 ```
 resource "ns1_datasource" "example" {
-  name = "example"
+  name       = "example"
   sourcetype = "nsone_v1"
 }
 
 resource "ns1_datafeed" "uswest_feed" {
-  name = "uswest_feed"
+  name      = "uswest_feed"
   source_id = "${ns1_datasource.example.id}"
+
   config = {
     label = "uswest"
   }
 }
 
 resource "ns1_datafeed" "useast_feed" {
-  name = "useast_feed"
+  name      = "useast_feed"
   source_id = "${ns1_datasource.example.id}"
+
   config = {
     label = "useast"
   }

@@ -15,18 +15,19 @@ Provides a Rancher Stack resource. This can be used to create and manage stacks 
 ```hcl
 # Create a new empty Rancher stack
 resource "rancher_stack" "external-dns" {
-  name = "route53"
-  description = "Route53 stack"
+  name           = "route53"
+  description    = "Route53 stack"
   environment_id = "${rancher_environment.default.id}"
-  catalog_id = "library:route53:7"
-  scope = "system"
+  catalog_id     = "library:route53:7"
+  scope          = "system"
+
   environment {
-    AWS_ACCESS_KEY = "MYKEY"
-    AWS_SECRET_KEY = "MYSECRET"
-    AWS_REGION = "eu-central-1"
-    TTL = "60"
-    ROOT_DOMAIN = "example.com"
-    ROUTE53_ZONE_ID = ""
+    AWS_ACCESS_KEY        = "MYKEY"
+    AWS_SECRET_KEY        = "MYSECRET"
+    AWS_REGION            = "eu-central-1"
+    TTL                   = "60"
+    ROOT_DOMAIN           = "example.com"
+    ROUTE53_ZONE_ID       = ""
     HEALTH_CHECK_INTERVAL = "15"
   }
 }
@@ -57,7 +58,15 @@ The following attributes are exported:
 
 ## Import
 
-Stacks can be imported using their Rancher API ID, e.g.
+Stacks can be imported using the Environment and Stack ID in the form
+`<environment_id>/<stack_id>`
+
+```
+$ terraform import rancher_stack.foo 1a5/1e149
+```
+
+If the credentials for the Rancher provider have access to the global API, then
+then `environment_id` can be omitted e.g.
 
 ```
 $ terraform import rancher_stack.foo 1e149

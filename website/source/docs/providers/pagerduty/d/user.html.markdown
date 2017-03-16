@@ -36,7 +36,7 @@ resource "pagerduty_escalation_policy" "foo" {
 
 The following arguments are supported:
 
-* `email` - (Required) The email to use to find a user in the PagerDuty API.  
+* `email` - (Required) The email to use to find a user in the PagerDuty API.
 
 ## Attributes Reference
 * `name` - The short name of the found user.

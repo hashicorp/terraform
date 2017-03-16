@@ -76,6 +76,14 @@ func resourceLoadBalancerV2() *schema.Resource {
 			},
 
 			"provider": &schema.Schema{
+				Type:       schema.TypeString,
+				Optional:   true,
+				Computed:   true,
+				ForceNew:   true,
+				Deprecated: "Please use loadbalancer_provider",
+			},
+
+			"loadbalancer_provider": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -85,6 +93,7 @@ func resourceLoadBalancerV2() *schema.Resource {
 			"security_group_ids": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
+				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
@@ -99,6 +108,11 @@ func resourceLoadBalancerV2Create(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
+	var lbProvider string
+	if v, ok := d.GetOk("loadbalancer_provider"); ok {
+		lbProvider = v.(string)
+	}
+
 	adminStateUp := d.Get("admin_state_up").(bool)
 	createOpts := loadbalancers.CreateOpts{
 		Name:         d.Get("name").(string),
@@ -108,7 +122,7 @@ func resourceLoadBalancerV2Create(d *schema.ResourceData, meta interface{}) erro
 		VipAddress:   d.Get("vip_address").(string),
 		AdminStateUp: &adminStateUp,
 		Flavor:       d.Get("flavor").(string),
-		Provider:     d.Get("provider").(string),
+		Provider:     lbProvider,
 	}
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
@@ -168,7 +182,7 @@ func resourceLoadBalancerV2Read(d *schema.ResourceData, meta interface{}) error 
 	d.Set("vip_port_id", lb.VipPortID)
 	d.Set("admin_state_up", lb.AdminStateUp)
 	d.Set("flavor", lb.Flavor)
-	d.Set("provider", lb.Provider)
+	d.Set("loadbalancer_provider", lb.Provider)
 
 	// Get any security groups on the VIP Port
 	if lb.VipPortID != "" {

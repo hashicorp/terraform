@@ -3,7 +3,7 @@ layout: "ns1"
 page_title: "Provider: NS1"
 sidebar_current: "docs-ns1-index"
 description: |-
-  The [NS1](https://ns1.com/) provider is used to interact with the resources supported by NS1. 
+  The [NS1](https://ns1.com/) provider is used to interact with the resources supported by NS1.
 ---
 
 # NS1 Provider
@@ -23,7 +23,7 @@ provider "ns1" {
 
 # Create a new zone
 resource "ns1_zone" "foobar" {
-    ...
+  # ...
 }
 ```
 

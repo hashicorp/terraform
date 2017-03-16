@@ -15,8 +15,8 @@ Provides a Rancher Registration Token resource. This can be used to create regis
 ```hcl
 # Create a new Rancher registration token
 resource "rancher_registration_token" "default" {
-  name = "staging_token"
-  description = "Registration token for the staging environment"
+  name           = "staging_token"
+  description    = "Registration token for the staging environment"
   environment_id = "${rancher_environment.default.id}"
 }
 ```
@@ -39,7 +39,15 @@ The following attributes are exported:
 
 ## Import
 
-Registration tokens can be imported using their Rancher API ID, e.g.
+Registration tokens can be imported using the Environment and Registration token
+IDs in the form `<environment_id>/<registration_token_id>`.
+
+```
+$ terraform import rancher_registration_token.dev_token 1a5/1c11
+```
+
+If the credentials for the Rancher provider have access to the global API, then
+then `environment_id` can be omitted e.g.
 
 ```
 $ terraform import rancher_registration_token.dev_token 1c11

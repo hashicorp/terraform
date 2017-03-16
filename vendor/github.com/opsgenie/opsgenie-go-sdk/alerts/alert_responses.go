@@ -164,6 +164,43 @@ type GetAlertResponse struct {
 	SystemData   map[string]interface{} `json:"systemData"`
 }
 
+// UnAcknowledgeAlertResponse holds the result data of the UnAcknowledgeAlertRequest
+type UnAcknowledgeAlertResponse struct {
+	Status string `json:"status"`
+	Code   int    `json:"code"`
+	Took   int    `json:"took"`
+}
+
+// SnoozeAlertResponse holds the result data of the SnoozeAlertRequest
+type SnoozeAlertResponse struct {
+	Status string `json:"status"`
+	Code   int    `json:"code"`
+}
+
+// RemoveTagsAlertResponse holds the result data of the RemoveTagsAlertRequest
+type RemoveTagsAlertResponse struct {
+	Status string `json:"status"`
+	Code   int    `json:"code"`
+}
+
+// AddDetailsAlertResponse holds the result data of the AddDetailsAlertRequest
+type AddDetailsAlertResponse struct {
+	Status string `json:"status"`
+	Code   int    `json:"code"`
+}
+
+// RemoveDetailsAlertResponse holds the result data of the RemoveDetailsAlertRequest
+type RemoveDetailsAlertResponse struct {
+	Status	string `json:"status"`
+	Code 	int    `json:"code"`
+}
+
+// EscalateToNextAlertResponse holds the result data of the EscalateToNextAlertRequest
+type EscalateToNextAlertResponse struct {
+	Status	string	`json:"status"`
+	Code	int	`json:"code"`
+}
+
 //IntegrationType returns extracted "integrationType" data from the retrieved alert' SystemData property.
 func (res *GetAlertResponse) IntegrationType() string {
 	if val, ok := res.SystemData["integrationType"].(string); ok {

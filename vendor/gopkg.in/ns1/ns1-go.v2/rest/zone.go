@@ -138,7 +138,7 @@ func (s *ZonesService) Delete(zone string) (*http.Response, error) {
 
 var (
 	// ErrZoneExists bundles PUT create error.
-	ErrZoneExists = errors.New("Zone already exists.")
+	ErrZoneExists = errors.New("zone already exists")
 	// ErrZoneMissing bundles GET/POST/DELETE error.
-	ErrZoneMissing = errors.New("Zone does not exist.")
+	ErrZoneMissing = errors.New("zone does not exist")
 )

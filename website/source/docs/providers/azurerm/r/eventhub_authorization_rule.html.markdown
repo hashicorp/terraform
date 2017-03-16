@@ -14,20 +14,20 @@ Creates a new Event Hub Authorization Rule within an Event Hub.
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "resourceGroup1"
-    location = "West US"
+  name     = "resourceGroup1"
+  location = "West US"
 }
 
 resource "azurerm_eventhub_namespace" "test" {
-    name = "acceptanceTestEventHubNamespace"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    sku = "Basic"
-    capacity = 2
+  name                = "acceptanceTestEventHubNamespace"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  sku                 = "Basic"
+  capacity            = 2
 
-    tags {
-        environment = "Production"
-    }
+  tags {
+    environment = "Production"
+  }
 }
 
 resource "azurerm_eventhub" "test" {

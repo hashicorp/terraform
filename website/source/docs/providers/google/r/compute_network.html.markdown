@@ -39,7 +39,7 @@ The following arguments are supported:
 
 * `ipv4_range` - (DEPRECATED, Optional) The IPv4 address range that machines in this network
     are assigned to, represented as a CIDR block. If not set, an auto or custom
-    subnetted network will be created, depending on the value of  
+    subnetted network will be created, depending on the value of
     `auto_create_subnetworks` attribute. This attribute may not be used if
     `auto_create_subnetworks` is specified. This attribute is deprecated.
 

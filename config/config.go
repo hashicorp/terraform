@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/helper/hilmapstructure"
@@ -39,12 +38,6 @@ type Config struct {
 	// The fields below can be filled in by loaders for validation
 	// purposes.
 	unknownKeys []string
-}
-
-// Terraform is the Terraform meta-configuration that can be present
-// in configuration files for configuring Terraform itself.
-type Terraform struct {
-	RequiredVersion string `hcl:"required_version"` // Required Terraform version (constraint)
 }
 
 // AtlasConfig is the configuration for building in HashiCorp's Atlas.
@@ -136,6 +129,9 @@ type Provisioner struct {
 	Type      string
 	RawConfig *RawConfig
 	ConnInfo  *RawConfig
+
+	When      ProvisionerWhen
+	OnFailure ProvisionerOnFailure
 }
 
 // Copy returns a copy of this Provisioner
@@ -144,6 +140,8 @@ func (p *Provisioner) Copy() *Provisioner {
 		Type:      p.Type,
 		RawConfig: p.RawConfig.Copy(),
 		ConnInfo:  p.ConnInfo.Copy(),
+		When:      p.When,
+		OnFailure: p.OnFailure,
 	}
 }
 
@@ -213,7 +211,14 @@ func (r *Module) Id() string {
 
 // Count returns the count of this resource.
 func (r *Resource) Count() (int, error) {
-	v, err := strconv.ParseInt(r.RawCount.Value().(string), 0, 0)
+	raw := r.RawCount.Value()
+	count, ok := r.RawCount.Value().(string)
+	if !ok {
+		return 0, fmt.Errorf(
+			"expected count to be a string or int, got %T", raw)
+	}
+
+	v, err := strconv.ParseInt(count, 0, 0)
 	if err != nil {
 		return 0, err
 	}
@@ -248,26 +253,7 @@ func (c *Config) Validate() error {
 
 	// Validate the Terraform config
 	if tf := c.Terraform; tf != nil {
-		if raw := tf.RequiredVersion; raw != "" {
-			// Check that the value has no interpolations
-			rc, err := NewRawConfig(map[string]interface{}{
-				"root": raw,
-			})
-			if err != nil {
-				errs = append(errs, fmt.Errorf(
-					"terraform.required_version: %s", err))
-			} else if len(rc.Interpolations) > 0 {
-				errs = append(errs, fmt.Errorf(
-					"terraform.required_version: cannot contain interpolations"))
-			} else {
-				// Check it is valid
-				_, err := version.NewConstraint(raw)
-				if err != nil {
-					errs = append(errs, fmt.Errorf(
-						"terraform.required_version: invalid syntax: %s", err))
-				}
-			}
-		}
+		errs = append(errs, c.Terraform.Validate()...)
 	}
 
 	vars := c.InterpolatedVariables()
@@ -506,25 +492,22 @@ func (c *Config) Validate() error {
 					"%s: resource count can't reference count variable: %s",
 					n,
 					v.FullKey()))
-			case *ModuleVariable:
-				errs = append(errs, fmt.Errorf(
-					"%s: resource count can't reference module variable: %s",
-					n,
-					v.FullKey()))
-			case *ResourceVariable:
-				errs = append(errs, fmt.Errorf(
-					"%s: resource count can't reference resource variable: %s",
-					n,
-					v.FullKey()))
 			case *SimpleVariable:
 				errs = append(errs, fmt.Errorf(
 					"%s: resource count can't reference variable: %s",
 					n,
 					v.FullKey()))
+
+			// Good
+			case *ModuleVariable:
+			case *ResourceVariable:
+			case *TerraformVariable:
 			case *UserVariable:
-				// Good
+
 			default:
-				panic(fmt.Sprintf("Unknown type in count var in %s: %T", n, v))
+				errs = append(errs, fmt.Errorf(
+					"Internal error. Unknown type in count var in %s: %T",
+					n, v))
 			}
 		}
 
@@ -553,7 +536,7 @@ func (c *Config) Validate() error {
 		// Validate DependsOn
 		errs = append(errs, c.validateDependsOn(n, r.DependsOn, resources, modules)...)
 
-		// Verify provisioners don't contain any splats
+		// Verify provisioners
 		for _, p := range r.Provisioners {
 			// This validation checks that there are now splat variables
 			// referencing ourself. This currently is not allowed.
@@ -584,6 +567,17 @@ func (c *Config) Validate() error {
 							"referencing itself", n))
 					break
 				}
+			}
+
+			// Check for invalid when/onFailure values, though this should be
+			// picked up by the loader we check here just in case.
+			if p.When == ProvisionerWhenInvalid {
+				errs = append(errs, fmt.Errorf(
+					"%s: provisioner 'when' value is invalid", n))
+			}
+			if p.OnFailure == ProvisionerOnFailureInvalid {
+				errs = append(errs, fmt.Errorf(
+					"%s: provisioner 'on_failure' value is invalid", n))
 			}
 		}
 

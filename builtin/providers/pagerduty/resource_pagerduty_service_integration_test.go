@@ -43,6 +43,36 @@ func TestAccPagerDutyServiceIntegration_Basic(t *testing.T) {
 	})
 }
 
+func TestAccPagerDutyServiceIntegrationGeneric_Basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckPagerDutyServiceIntegrationDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckPagerDutyServiceIntegrationGenericConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckPagerDutyServiceIntegrationExists("pagerduty_service_integration.foo"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_service_integration.foo", "name", "foo"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_service_integration.foo", "type", "generic_events_api_inbound_integration"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccCheckPagerDutyServiceIntegrationGenericConfigUpdated,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckPagerDutyServiceIntegrationExists("pagerduty_service_integration.foo"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_service_integration.foo", "name", "bar"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_service_integration.foo", "type", "generic_events_api_inbound_integration"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckPagerDutyServiceIntegrationDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*pagerduty.Client)
 	for _, r := range s.RootModule().Resources {
@@ -117,15 +147,19 @@ resource "pagerduty_service" "foo" {
   auto_resolve_timeout    = 1800
   acknowledgement_timeout = 1800
   escalation_policy       = "${pagerduty_escalation_policy.foo.id}"
+
+  incident_urgency_rule {
+    type = "constant"
+    urgency = "high"
+  }
 }
 
 data "pagerduty_vendor" "datadog" {
-  name_regex = "datadog"
+  name = "datadog"
 }
 
 resource "pagerduty_service_integration" "foo" {
   name    = "foo"
-  type    = "generic_events_api_inbound_integration"
   service = "${pagerduty_service.foo.id}"
   vendor  = "${data.pagerduty_vendor.datadog.id}"
 }
@@ -162,16 +196,106 @@ resource "pagerduty_service" "foo" {
   auto_resolve_timeout    = 3600
   acknowledgement_timeout = 3600
   escalation_policy       = "${pagerduty_escalation_policy.foo.id}"
+
+  incident_urgency_rule {
+    type    = "constant"
+    urgency = "high"
+  }
 }
 
 data "pagerduty_vendor" "datadog" {
-  name_regex = "datadog"
+  name = "datadog"
 }
 
 resource "pagerduty_service_integration" "foo" {
   name    = "bar"
-  type    = "generic_events_api_inbound_integration"
   service = "${pagerduty_service.foo.id}"
   vendor  = "${data.pagerduty_vendor.datadog.id}"
+}
+`
+
+const testAccCheckPagerDutyServiceIntegrationGenericConfig = `
+resource "pagerduty_user" "foo" {
+  name        = "foo"
+  email       = "foo@bar.com"
+}
+
+resource "pagerduty_escalation_policy" "foo" {
+  name        = "foo"
+  description = "foo"
+  num_loops   = 1
+
+  rule {
+    escalation_delay_in_minutes = 10
+
+    target {
+      type = "user_reference"
+      id   = "${pagerduty_user.foo.id}"
+    }
+  }
+}
+
+resource "pagerduty_service" "foo" {
+  name                    = "foo"
+  description             = "foo"
+  auto_resolve_timeout    = 1800
+  acknowledgement_timeout = 1800
+  escalation_policy       = "${pagerduty_escalation_policy.foo.id}"
+
+  incident_urgency_rule {
+    type = "constant"
+    urgency = "high"
+  }
+}
+
+resource "pagerduty_service_integration" "foo" {
+  name    = "foo"
+  service = "${pagerduty_service.foo.id}"
+  type    = "generic_events_api_inbound_integration"
+}
+`
+
+const testAccCheckPagerDutyServiceIntegrationGenericConfigUpdated = `
+resource "pagerduty_user" "foo" {
+  name        = "foo"
+  email       = "foo@bar.com"
+  color       = "green"
+  role        = "user"
+  job_title   = "foo"
+  description = "foo"
+}
+
+resource "pagerduty_escalation_policy" "foo" {
+  name        = "bar"
+  description = "bar"
+  num_loops   = 2
+
+  rule {
+    escalation_delay_in_minutes = 10
+
+    target {
+      type = "user_reference"
+      id   = "${pagerduty_user.foo.id}"
+    }
+  }
+}
+
+resource "pagerduty_service" "foo" {
+  name                    = "bar"
+  description             = "bar"
+  auto_resolve_timeout    = 3600
+  acknowledgement_timeout = 3600
+  escalation_policy       = "${pagerduty_escalation_policy.foo.id}"
+
+  incident_urgency_rule {
+    type    = "constant"
+    urgency = "high"
+  }
+}
+
+resource "pagerduty_service_integration" "foo" {
+  name    = "bar"
+  service = "${pagerduty_service.foo.id}"
+  type    = "generic_events_api_inbound_integration"
 }
 `

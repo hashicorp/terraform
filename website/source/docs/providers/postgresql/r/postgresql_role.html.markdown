@@ -25,17 +25,17 @@ and all but the final ``postgresql_role`` must specify a `skip_drop_role`.
 
 ```
 resource "postgresql_role" "my_role" {
-  name = "my_role"
-  login = true
+  name     = "my_role"
+  login    = true
   password = "mypass"
 }
 
 resource "postgresql_role" "my_replication_role" {
-  name = "replication_role"
-  replication = true
-  login = true
+  name             = "replication_role"
+  replication      = true
+  login            = true
   connection_limit = 5
-  password = "md5c98cbfeb6a347a47eb8e96cfb4c4b890"
+  password         = "md5c98cbfeb6a347a47eb8e96cfb4c4b890"
 }
 ```
 

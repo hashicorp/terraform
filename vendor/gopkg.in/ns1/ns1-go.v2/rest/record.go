@@ -128,7 +128,7 @@ func (s *RecordsService) Delete(zone string, domain string, t string) (*http.Res
 
 var (
 	// ErrRecordExists bundles PUT create error.
-	ErrRecordExists = errors.New("Record already exists.")
+	ErrRecordExists = errors.New("record already exists")
 	// ErrRecordMissing bundles GET/POST/DELETE error.
-	ErrRecordMissing = errors.New("Record does not exist.")
+	ErrRecordMissing = errors.New("record does not exist")
 )

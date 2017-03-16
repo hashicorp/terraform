@@ -97,6 +97,43 @@ Additionally you can also use a single entry with a wildcard (e.g. `"*"`)
 which will match all attribute names. Using a partial string together with a
 wildcard (e.g. `"rout*"`) is **not** supported.
 
+
+<a id="timeouts"></a>
+
+### Timeouts
+
+Individual Resources may provide a `timeouts` block to enable users to configure the
+amount of time a specific operation is allowed to take before being considered
+an error. For example, the 
+[aws_db_instance](/docs/providers/aws/r/db_instance.html#timeouts) 
+resource provides configurable timeouts for the 
+`create`, `update`, and `delete` operations. Any Resource that provies Timeouts
+will document the default values for that operation, and users can overwrite
+them in their configuration. 
+
+Example overwriting the `create` and `delete` timeouts:
+
+```
+resource "aws_db_instance" "timeout_example" {
+  allocated_storage    = 10
+  engine               = "mysql"
+  engine_version       = "5.6.17"
+  instance_class       = "db.t1.micro"
+  name                 = "mydb"
+  [...]
+
+  timeouts {
+    create = "60m"
+    delete = "2h"
+  }
+}
+```
+
+Individual Resources must opt-in to providing configurable Timeouts, and
+attempting to configure the timeout for a Resource that does not support
+Timeouts, or overwriting a specific action that the Resource does not specify as
+an option, will result in an error. Valid units of time are  `s`, `m`, `h`.
+
 <a id="explicit-dependencies"></a>
 
 ### Explicit Dependencies
@@ -294,6 +331,9 @@ where `PROVISIONER` is:
 ```
 provisioner NAME {
 	CONFIG ...
+
+	[when = "create"|"destroy"]
+	[on_failure = "continue"|"fail"]
 
 	[CONNECTION]
 }

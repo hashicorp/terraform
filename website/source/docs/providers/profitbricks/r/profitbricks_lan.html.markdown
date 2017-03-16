@@ -1,7 +1,7 @@
 ---
 layout: "profitbricks"
 page_title: "ProfitBricks: profitbricks_lan"
-sidebar_current: "docs-profitbricks-resource-profitbricks_lan"
+sidebar_current: "docs-profitbricks-resource-lan"
 description: |-
   Creates and manages LAN objects.
 ---
@@ -15,7 +15,7 @@ Manages a LANs on ProfitBricks
 ```
 resource "profitbricks_lan" "example" {
   datacenter_id = "${profitbricks_datacenter.example.id}"
-  public = true
+  public        = true
 }
 ```
 

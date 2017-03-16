@@ -42,6 +42,7 @@ func (n *EvalValidateCount) Eval(ctx EvalContext) (interface{}, error) {
 		c[n.Resource.RawCount.Key] = "1"
 		count = 1
 	}
+	err = nil
 
 	if count < 0 {
 		errs = append(errs, fmt.Errorf(

@@ -1,6 +1,7 @@
 package heroku
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -15,19 +16,19 @@ func resourceHerokuDomain() *schema.Resource {
 		Delete: resourceHerokuDomainDelete,
 
 		Schema: map[string]*schema.Schema{
-			"hostname": &schema.Schema{
+			"hostname": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"app": &schema.Schema{
+			"app": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"cname": &schema.Schema{
+			"cname": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -43,7 +44,7 @@ func resourceHerokuDomainCreate(d *schema.ResourceData, meta interface{}) error 
 
 	log.Printf("[DEBUG] Domain create configuration: %#v, %#v", app, hostname)
 
-	do, err := client.DomainCreate(app, heroku.DomainCreateOpts{Hostname: hostname})
+	do, err := client.DomainCreate(context.TODO(), app, heroku.DomainCreateOpts{Hostname: hostname})
 	if err != nil {
 		return err
 	}
@@ -62,7 +63,7 @@ func resourceHerokuDomainDelete(d *schema.ResourceData, meta interface{}) error 
 	log.Printf("[INFO] Deleting Domain: %s", d.Id())
 
 	// Destroy the domain
-	err := client.DomainDelete(d.Get("app").(string), d.Id())
+	_, err := client.DomainDelete(context.TODO(), d.Get("app").(string), d.Id())
 	if err != nil {
 		return fmt.Errorf("Error deleting domain: %s", err)
 	}
@@ -74,7 +75,7 @@ func resourceHerokuDomainRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
 	app := d.Get("app").(string)
-	do, err := client.DomainInfo(app, d.Id())
+	do, err := client.DomainInfo(context.TODO(), app, d.Id())
 	if err != nil {
 		return fmt.Errorf("Error retrieving domain: %s", err)
 	}

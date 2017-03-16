@@ -7,8 +7,6 @@ import (
 
 func resourceNetworkdUnit() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceNetworkdUnitCreate,
-		Delete: resourceNetworkdUnitDelete,
 		Exists: resourceNetworkdUnitExists,
 		Read:   resourceNetworkdUnitRead,
 		Schema: map[string]*schema.Schema{
@@ -26,7 +24,7 @@ func resourceNetworkdUnit() *schema.Resource {
 	}
 }
 
-func resourceNetworkdUnitCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceNetworkdUnitRead(d *schema.ResourceData, meta interface{}) error {
 	id, err := buildNetworkdUnit(d, meta.(*cache))
 	if err != nil {
 		return err
@@ -48,10 +46,6 @@ func resourceNetworkdUnitExists(d *schema.ResourceData, meta interface{}) (bool,
 	}
 
 	return id == d.Id(), nil
-}
-
-func resourceNetworkdUnitRead(d *schema.ResourceData, meta interface{}) error {
-	return nil
 }
 
 func buildNetworkdUnit(d *schema.ResourceData, c *cache) (string, error) {

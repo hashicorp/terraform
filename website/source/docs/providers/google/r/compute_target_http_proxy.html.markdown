@@ -39,7 +39,7 @@ resource "google_compute_url_map" "default" {
     default_service = "${google_compute_backend_service.default.self_link}"
 
     path_rule {
-      paths = ["/*"]
+      paths   = ["/*"]
       service = "${google_compute_backend_service.default.self_link}"
     }
   }

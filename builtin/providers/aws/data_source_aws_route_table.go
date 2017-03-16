@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -36,6 +37,16 @@ func dataSourceAwsRouteTable() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"cidr_block": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+
+						"ipv6_cidr_block": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+
+						"egress_only_gateway_id": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
@@ -138,7 +149,8 @@ func dataSourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error
 
 	rt := resp.RouteTables[0]
 
-	d.SetId(*rt.RouteTableId)
+	d.SetId(aws.StringValue(rt.RouteTableId))
+	d.Set("route_table_id", rt.RouteTableId)
 	d.Set("vpc_id", rt.VpcId)
 	d.Set("tags", tagsToMap(rt.Tags))
 	if err := d.Set("routes", dataSourceRoutesRead(rt.Routes)); err != nil {
@@ -174,6 +186,12 @@ func dataSourceRoutesRead(ec2Routes []*ec2.Route) []map[string]interface{} {
 
 		if r.DestinationCidrBlock != nil {
 			m["cidr_block"] = *r.DestinationCidrBlock
+		}
+		if r.DestinationIpv6CidrBlock != nil {
+			m["ipv6_cidr_block"] = *r.DestinationIpv6CidrBlock
+		}
+		if r.EgressOnlyInternetGatewayId != nil {
+			m["egress_only_gateway_id"] = *r.EgressOnlyInternetGatewayId
 		}
 		if r.GatewayId != nil {
 			m["gateway_id"] = *r.GatewayId

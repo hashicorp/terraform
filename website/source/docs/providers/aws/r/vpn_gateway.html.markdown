@@ -14,11 +14,11 @@ Provides a resource to create a VPC VPN Gateway.
 
 ```
 resource "aws_vpn_gateway" "vpn_gw" {
-    vpc_id = "${aws_vpc.main.id}"
+  vpc_id = "${aws_vpc.main.id}"
 
-    tags {
-        Name = "main"
-    }
+  tags {
+    Name = "main"
+  }
 }
 ```
 
@@ -39,7 +39,7 @@ The following attributes are exported:
 
 ## Import
 
-VPN Gateways can be imported using the `vpn gateway id`, e.g. 
+VPN Gateways can be imported using the `vpn gateway id`, e.g.
 
 ```
 $ terraform import aws_vpn_gateway.testvpngateway vgw-9a4cacf3

@@ -20,12 +20,19 @@ func init() {
 
 // Plan represents a single Terraform execution plan, which contains
 // all the information necessary to make an infrastructure change.
+//
+// A plan has to contain basically the entire state of the world
+// necessary to make a change: the state, diff, config, backend config, etc.
+// This is so that it can run alone without any other data.
 type Plan struct {
 	Diff    *Diff
 	Module  *module.Tree
 	State   *State
 	Vars    map[string]interface{}
 	Targets []string
+
+	// Backend is the backend that this plan should use and store data with.
+	Backend *BackendState
 
 	once sync.Once
 }

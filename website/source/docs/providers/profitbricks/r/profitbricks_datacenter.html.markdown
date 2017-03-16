@@ -1,7 +1,7 @@
 ---
 layout: "profitbricks"
 page_title: "ProfitBricks: profitbricks_datacenter"
-sidebar_current: "docs-profitbricks-resource-profitbricks_datacenter"
+sidebar_current: "docs-profitbricks-resource-datacenter"
 description: |-
   Creates and manages Profitbricks Virtual Data Center.
 ---
@@ -14,8 +14,8 @@ Manages a Virtual Data Center on ProfitBricks
 
 ```
 resource "profitbricks_datacenter" "example" {
-  name = "datacenter name"
-  location = "us/las"
+  name        = "datacenter name"
+  location    = "us/las"
   description = "datacenter description"
 }
 ```
@@ -25,5 +25,5 @@ resource "profitbricks_datacenter" "example" {
 The following arguments are supported:
 
 * `name` - (Required)[string] The name of the Virtual Data Center.
-* `location` - (Required)[string] The physical location where the data center will be created. 
+* `location` - (Required)[string] The physical location where the data center will be created.
 * `description` - (Optional)[string] Description for the data center.

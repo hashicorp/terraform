@@ -9,7 +9,7 @@ description: |-
 # aws\_lightsail\_instance
 
 Provides a Lightsail Instance. Amazon Lightsail is a service to provide easy virtual private servers
-with custom software already setup. See [What is Amazon Lightsail?](https://lightsail.aws.amazon.com/ls/docs/getting-started/article/what-is-amazon-lightsail) 
+with custom software already setup. See [What is Amazon Lightsail?](https://lightsail.aws.amazon.com/ls/docs/getting-started/article/what-is-amazon-lightsail)
 for more information.
 
 Note: Lightsail is currently only supported in `us-east-1` region.
@@ -32,9 +32,9 @@ resource "aws_lightsail_instance" "gitlab_test" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the Lightsail Instance
-* `availability_zone` - (Required) The Availability Zone in which to create your 
+* `availability_zone` - (Required) The Availability Zone in which to create your
 instance. At this time, must be in `us-east-1` region
-* `blueprint_id` - (Required) The ID for a virtual private server image 
+* `blueprint_id` - (Required) The ID for a virtual private server image
 (see list below)
 * `bundle_id` - (Required) The bundle of specification information (see list below)
 * `key_pair_name` - (Required) The name of your key pair. Created in the
@@ -75,10 +75,10 @@ The following attributes are exported in addition to the arguments listed above:
 
 * `id` - The ARN of the Lightsail instance (matches `arn`).
 * `arn` - The ARN of the Lightsail instance (matches `id`).
-* `availability_zone` 
-* `blueprint_id` 
-* `bundle_id` 
-* `key_pair_name` 
+* `availability_zone`
+* `blueprint_id`
+* `bundle_id`
+* `key_pair_name`
 * `user_data`
 
 ## Import

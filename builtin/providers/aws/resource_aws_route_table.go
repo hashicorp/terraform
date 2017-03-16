@@ -25,7 +25,7 @@ func resourceAwsRouteTable() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"vpc_id": &schema.Schema{
+			"vpc_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -33,45 +33,55 @@ func resourceAwsRouteTable() *schema.Resource {
 
 			"tags": tagsSchema(),
 
-			"propagating_vgws": &schema.Schema{
+			"propagating_vgws": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
 
-			"route": &schema.Schema{
+			"route": {
 				Type:     schema.TypeSet,
 				Computed: true,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"cidr_block": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-						},
-
-						"gateway_id": &schema.Schema{
+						"cidr_block": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"instance_id": &schema.Schema{
+						"ipv6_cidr_block": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"nat_gateway_id": &schema.Schema{
+						"egress_only_gateway_id": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"vpc_peering_connection_id": &schema.Schema{
+						"gateway_id": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"network_interface_id": &schema.Schema{
+						"instance_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"nat_gateway_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"vpc_peering_connection_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"network_interface_id": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -165,6 +175,12 @@ func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 
 		if r.DestinationCidrBlock != nil {
 			m["cidr_block"] = *r.DestinationCidrBlock
+		}
+		if r.DestinationIpv6CidrBlock != nil {
+			m["ipv6_cidr_block"] = *r.DestinationIpv6CidrBlock
+		}
+		if r.EgressOnlyInternetGatewayId != nil {
+			m["egress_only_gateway_id"] = *r.EgressOnlyInternetGatewayId
 		}
 		if r.GatewayId != nil {
 			m["gateway_id"] = *r.GatewayId
@@ -266,14 +282,27 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 		for _, route := range ors.List() {
 			m := route.(map[string]interface{})
 
-			// Delete the route as it no longer exists in the config
-			log.Printf(
-				"[INFO] Deleting route from %s: %s",
-				d.Id(), m["cidr_block"].(string))
-			_, err := conn.DeleteRoute(&ec2.DeleteRouteInput{
-				RouteTableId:         aws.String(d.Id()),
-				DestinationCidrBlock: aws.String(m["cidr_block"].(string)),
-			})
+			deleteOpts := &ec2.DeleteRouteInput{
+				RouteTableId: aws.String(d.Id()),
+			}
+
+			if s := m["ipv6_cidr_block"].(string); s != "" {
+				deleteOpts.DestinationIpv6CidrBlock = aws.String(s)
+
+				log.Printf(
+					"[INFO] Deleting route from %s: %s",
+					d.Id(), m["ipv6_cidr_block"].(string))
+			}
+
+			if s := m["cidr_block"].(string); s != "" {
+				deleteOpts.DestinationCidrBlock = aws.String(s)
+
+				log.Printf(
+					"[INFO] Deleting route from %s: %s",
+					d.Id(), m["cidr_block"].(string))
+			}
+
+			_, err := conn.DeleteRoute(deleteOpts)
 			if err != nil {
 				return err
 			}
@@ -288,16 +317,39 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 			m := route.(map[string]interface{})
 
 			opts := ec2.CreateRouteInput{
-				RouteTableId:           aws.String(d.Id()),
-				DestinationCidrBlock:   aws.String(m["cidr_block"].(string)),
-				GatewayId:              aws.String(m["gateway_id"].(string)),
-				InstanceId:             aws.String(m["instance_id"].(string)),
-				VpcPeeringConnectionId: aws.String(m["vpc_peering_connection_id"].(string)),
-				NetworkInterfaceId:     aws.String(m["network_interface_id"].(string)),
+				RouteTableId: aws.String(d.Id()),
 			}
 
-			if m["nat_gateway_id"].(string) != "" {
-				opts.NatGatewayId = aws.String(m["nat_gateway_id"].(string))
+			if s := m["vpc_peering_connection_id"].(string); s != "" {
+				opts.VpcPeeringConnectionId = aws.String(s)
+			}
+
+			if s := m["network_interface_id"].(string); s != "" {
+				opts.NetworkInterfaceId = aws.String(s)
+			}
+
+			if s := m["instance_id"].(string); s != "" {
+				opts.InstanceId = aws.String(s)
+			}
+
+			if s := m["ipv6_cidr_block"].(string); s != "" {
+				opts.DestinationIpv6CidrBlock = aws.String(s)
+			}
+
+			if s := m["cidr_block"].(string); s != "" {
+				opts.DestinationCidrBlock = aws.String(s)
+			}
+
+			if s := m["gateway_id"].(string); s != "" {
+				opts.GatewayId = aws.String(s)
+			}
+
+			if s := m["egress_only_gateway_id"].(string); s != "" {
+				opts.EgressOnlyInternetGatewayId = aws.String(s)
+			}
+
+			if s := m["nat_gateway_id"].(string); s != "" {
+				opts.NatGatewayId = aws.String(s)
 			}
 
 			log.Printf("[INFO] Creating route for %s: %#v", d.Id(), opts)
@@ -402,11 +454,19 @@ func resourceAwsRouteTableHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 
+	if v, ok := m["ipv6_cidr_block"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
 	if v, ok := m["cidr_block"]; ok {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 
 	if v, ok := m["gateway_id"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	if v, ok := m["egress_only_gateway_id"]; ok {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 

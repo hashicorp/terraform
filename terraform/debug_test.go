@@ -156,7 +156,7 @@ func TestDebugHook_nilArgs(t *testing.T) {
 	h.PostApply(nil, nil, nil)
 	h.PostDiff(nil, nil)
 	h.PostImportState(nil, nil)
-	h.PostProvision(nil, "")
+	h.PostProvision(nil, "", nil)
 	h.PostProvisionResource(nil, nil)
 	h.PostRefresh(nil, nil)
 	h.PostStateUpdate(nil)
