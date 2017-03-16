@@ -3,7 +3,12 @@
 BACKWARDS IMCOMPATIBILITIES / NOTES:
 
  * provider/pagerduty: the deprecated `name_regex` field has been removed from vendor data source [GH-12396]
- 
+
+FEATURES:
+
+ * **New Provider:** `kubernetes` [GH-12372]
+ * **New Resource:** `kubernetes_namespace` [GH-12372]
+
 BUG FIXES:
 
  * provider/aws: Get the aws_lambda_function attributes when there are great than 50 versions of a function [GH-11745]
