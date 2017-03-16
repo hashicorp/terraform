@@ -6,12 +6,40 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
+	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	awsCredentials "github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ec2"
 )
+
+func TestGetSupportedEC2Platforms(t *testing.T) {
+	ec2Endpoints := []*awsMockEndpoint{
+		&awsMockEndpoint{
+			Request: &awsMockRequest{"POST", "/", "Action=DescribeAccountAttributes&" +
+				"AttributeName.1=supported-platforms&Version=2016-11-15"},
+			Response: &awsMockResponse{200, test_ec2_describeAccountAttributes_response, "text/xml"},
+		},
+	}
+	closeFunc, sess, err := getMockedAwsApiSession("EC2", ec2Endpoints)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer closeFunc()
+	conn := ec2.New(sess)
+
+	platforms, err := GetSupportedEC2Platforms(conn)
+	if err != nil {
+		t.Fatalf("Expected no error, received: %s", err)
+	}
+	expectedPlatforms := []string{"VPC", "EC2"}
+	if !reflect.DeepEqual(platforms, expectedPlatforms) {
+		t.Fatalf("Received platforms: %q\nExpected: %q\n", platforms, expectedPlatforms)
+	}
+}
 
 // getMockedAwsApiSession establishes a httptest server to simulate behaviour
 // of a real AWS API server
@@ -71,3 +99,20 @@ type awsMockResponse struct {
 	Body        string
 	ContentType string
 }
+
+var test_ec2_describeAccountAttributes_response = `<DescribeAccountAttributesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+  <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+  <accountAttributeSet>
+    <item>
+      <attributeName>supported-platforms</attributeName>
+      <attributeValueSet>
+        <item>
+          <attributeValue>VPC</attributeValue>
+        </item>
+        <item>
+          <attributeValue>EC2</attributeValue>
+        </item>
+      </attributeValueSet>
+    </item>
+  </accountAttributeSet>
+</DescribeAccountAttributesResponse>`
