@@ -73,3 +73,34 @@ func metadataSchema(objectName string) *schema.Schema {
 		},
 	}
 }
+
+func namespacedMetadataSchema(objectName string, generatableName bool) *schema.Schema {
+	fields := metadataFields(objectName)
+	fields["namespace"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Description: fmt.Sprintf("Namespace defines the space within which name of the %s must be unique.", objectName),
+		Optional:    true,
+		ForceNew:    true,
+		Default:     "default",
+	}
+	if generatableName {
+		fields["generate_name"] = &schema.Schema{
+			Type:          schema.TypeString,
+			Description:   "Prefix, used by the server, to generate a unique name ONLY IF the `name` field has not been provided. This value will also be combined with a unique suffix. Read more: https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#idempotency",
+			Optional:      true,
+			ForceNew:      true,
+			ValidateFunc:  validateGenerateName,
+			ConflictsWith: []string{"metadata.name"},
+		}
+	}
+
+	return &schema.Schema{
+		Type:        schema.TypeList,
+		Description: fmt.Sprintf("Standard %s's metadata. More info: https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#metadata", objectName),
+		Required:    true,
+		MaxItems:    1,
+		Elem: &schema.Resource{
+			Schema: fields,
+		},
+	}
+}
