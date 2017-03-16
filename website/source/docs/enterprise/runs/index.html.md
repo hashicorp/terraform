@@ -32,7 +32,7 @@ and may be used in the subsequent apply.
 Terraform plans do not change the state of infrastructure, so it is
 safe to execute a plan multiple times. In fact, there are a number of components
 that can trigger a Terraform plan. You can read more about this in the
-[starting runs](/help/terraform/runs/starting.html) section.
+[starting runs](/docs/enterprise/runs/starting.html) section.
 
 ## Apply
 
