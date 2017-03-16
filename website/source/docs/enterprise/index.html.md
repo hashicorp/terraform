@@ -1,13 +1,17 @@
 ---
-title: "Terraform Features in Atlas"
+layout: "docs"
+page_title: "Terraform Enterprise Features"
+sidebar_current: "docs-enterprise"
+description: |-
+Terraform Enterprise is a tool for safely and efficiently changing infrastructure across providers.
 ---
 
-# Terraform Features in Atlas
+# Terraform Enterprise Features
 
 [Terraform](https://terraform.io) is a tool for safely and
 efficiently changing infrastructure across providers.
 
-This is a list of features specific to Terraform that Atlas provides.
+This is a list of features specific to Terraform Enterprise.
 
 - [Terraform Plans and Applies](/help/terraform/runs)
 - [Terraform Artifact Registry](/help/terraform/artifacts)
