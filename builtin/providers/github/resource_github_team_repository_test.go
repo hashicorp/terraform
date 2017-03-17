@@ -6,12 +6,14 @@ import (
 	"testing"
 
 	"github.com/google/go-github/github"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccGithubTeamRepository_basic(t *testing.T) {
 	var repository github.Repository
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -19,14 +21,14 @@ func TestAccGithubTeamRepository_basic(t *testing.T) {
 		CheckDestroy: testAccCheckGithubTeamRepositoryDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubTeamRepositoryConfig,
+				Config: testAccGithubTeamRepositoryConfig(randString, testRepo),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamRepositoryExists("github_team_repository.test_team_test_repo", &repository),
 					testAccCheckGithubTeamRepositoryRoleState("pull", &repository),
 				),
 			},
 			{
-				Config: testAccGithubTeamRepositoryUpdateConfig,
+				Config: testAccGithubTeamRepositoryUpdateConfig(randString, testRepo),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamRepositoryExists("github_team_repository.test_team_test_repo", &repository),
 					testAccCheckGithubTeamRepositoryRoleState("push", &repository),
@@ -37,13 +39,15 @@ func TestAccGithubTeamRepository_basic(t *testing.T) {
 }
 
 func TestAccGithubTeamRepository_importBasic(t *testing.T) {
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubTeamRepositoryDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubTeamRepositoryConfig,
+				Config: testAccGithubTeamRepositoryConfig(randString, testRepo),
 			},
 			{
 				ResourceName:      "github_team_repository.test_team_test_repo",
@@ -148,9 +152,10 @@ func testAccCheckGithubTeamRepositoryDestroy(s *terraform.State) error {
 	return nil
 }
 
-var testAccGithubTeamRepositoryConfig string = fmt.Sprintf(`
+func testAccGithubTeamRepositoryConfig(randString, repoName string) string {
+	return fmt.Sprintf(`
 resource "github_team" "test_team" {
-	name = "foo"
+	name = "tf-acc-test-team-repo-%s"
 	description = "Terraform acc test group"
 }
 
@@ -159,11 +164,13 @@ resource "github_team_repository" "test_team_test_repo" {
 	repository = "%s"
 	permission = "pull"
 }
-`, testRepo)
+`, randString, repoName)
+}
 
-var testAccGithubTeamRepositoryUpdateConfig string = fmt.Sprintf(`
+func testAccGithubTeamRepositoryUpdateConfig(randString, repoName string) string {
+	return fmt.Sprintf(`
 resource "github_team" "test_team" {
-	name = "foo"
+	name = "tf-acc-test-team-repo-%s"
 	description = "Terraform acc test group"
 }
 
@@ -172,4 +179,5 @@ resource "github_team_repository" "test_team_test_repo" {
 	repository = "%s"
 	permission = "push"
 }
-`, testRepo)
+`, randString, repoName)
+}
