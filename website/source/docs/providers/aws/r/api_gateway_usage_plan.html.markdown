@@ -1,20 +1,59 @@
 ---
 layout: "aws"
-page_title: "AWS: aws_api_usage_plan"
-sidebar_current: "docs-aws-resource-api-usage-plan"
+page_title: "AWS: aws_api_gateway_usage_plan"
+sidebar_current: "docs-aws-resource-api-gateway-usage-plan"
 description: |-
   Provides an API Gateway Usage Plan.
 ---
 
 # aws\_api\_usage\_plan
 
-Provides an API Gateway Resource.
+Provides an API Gateway Usage Plan.
 
 ## Example Usage
 
 ```
-resource "aws_api_usage_plan" "MyUsagePlan" {
-  usage_plan_name = "my-usage-plan"
+resource "aws_api_gateway_rest_api" "myapi" {
+  name = "MyDemoAPI"
+}
+
+...
+
+resource "aws_api_gateway_deployment" "dev" {
+  rest_api_id = "${aws_api_gateway_rest_api.myapi.id}"
+  stage_name = "dev"
+}
+
+resource "aws_api_gateway_deployment" "prod" {
+  rest_api_id = "${aws_api_gateway_rest_api.myapi.id}"
+  stage_name = "prod"
+}
+
+resource "aws_api_gateway_usage_plan" "MyUsagePlan" {
+  name         = "my-usage-plan"
+  description  = "my description"
+  product_code = "MYCODE"
+
+  api_stages {
+    api_id = "${aws_api_gateway_rest_api.myapi.id}"
+    stage  = "${aws_api_gateway_deployment.dev.stage_name}"
+  }
+
+  api_stages {
+    api_id = "${aws_api_gateway_rest_api.myapi.id}"
+    stage  = "${aws_api_gateway_deployment.prod.stage_name}"
+  }
+
+  quota_settings {
+    limit  = 20
+    offset = 2
+    period = "WEEK"
+  }
+
+  throttle_settings {
+    burst_limit = 5
+    rate_limit  = 10
+  }
 }
 ```
 
@@ -29,7 +68,7 @@ The API Gateway Usage Plan argument layout is a structure composed of several su
 * `api_stages` - (Optional) The associated [API stages](#api-stages-arguments) of the usage plan.
 * `quota_settings` - (Optional) The [quota settings](#quota-settings-arguments) of the usage plan.
 * `throttle_settings` - (Optional) The [throttling limits](#throttling-settings-arguments) of the usage plan.
-* `product_code` - (Optional) The [throttling limits](#throttling-settings-arguments) of the usage plan.
+* `product_code` - (Optional) The AWS Markeplace product identifier to associate with the usage plan as a SaaS product on AWS Marketplace.
 
 #### Api Stages arguments
 
