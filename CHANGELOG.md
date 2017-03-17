@@ -26,6 +26,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
  * core: Fix panic when an undefined module is reference [GH-12793]
+ * core: Fix regression from 0.8.x when using a data source in a module [GH-12837]
  * command/apply: Applies from plans with backends set will reuse the backend rather than local [GH-12785]
  * command/init: Changing only `-backend-config` detects changes and reconfigures [GH-12776]
  * command/init: Fix legacy backend init error that could occur when upgrading [GH-12818]
