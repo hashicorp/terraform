@@ -477,7 +477,9 @@ func (m schemaMap) Input(
 
 		// Skip things that don't require config, if that is even valid
 		// for a provider schema.
-		if !v.Required && !v.Optional {
+		// Required XOR Optional must always be true to validate, so we only
+		// need to check one.
+		if v.Optional {
 			continue
 		}
 
