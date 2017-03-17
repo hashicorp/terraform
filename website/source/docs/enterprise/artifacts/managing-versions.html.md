@@ -1,10 +1,14 @@
 ---
-title: "Managing Artifact Versions"
+layout: "artifacts"
+page_title: "Managing Artifact Versions"
+sidebar_current: "docs-enterprise-Provider"
+description: |-
+  Artifacts are versioned and assigned a version number, here is how to manage the versions.
 ---
 
 # Managing Artifact Versions
 
-Artifacts stored in Atlas are versioned and assigned a version number.
+Artifacts stored in Terraform Enterprise are versioned and assigned a version number.
 Versions are useful to roll back, audit and deploy images specific versions
 of images to certain environments in a targeted way.
 
@@ -47,8 +51,8 @@ This will use version 7 of the `web-worker` artifact.
 
 ### Pinning Artifacts to Specific Builds
 
-Artifacts can also be pinned to an Atlas build number. This is only
-possible if Atlas was used to build the artifact with Packer.
+Artifacts can also be pinned to an Terraform build number. This is only
+possible if Terraform Enterprise was used to build the artifact with Packer.
 
     resource "atlas_artifact" "web-worker" {
       name = "%{DEFAULT_USERNAME}/web-worker"
@@ -57,5 +61,5 @@ possible if Atlas was used to build the artifact with Packer.
     }
 
 It's recommended to use versions, instead of builds, as it will
-be easier to track within Atlas and when building outside of the Atlas
+be easier to track when building outside of the Terraform Enterprise
 environment.

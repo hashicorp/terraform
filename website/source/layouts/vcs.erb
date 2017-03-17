@@ -1,0 +1,22 @@
+<% wrap_layout :inner do %>
+	<% content_for :sidebar do %>
+		<div class="docs-sidebar hidden-print affix-top" role="complementary">
+			<ul class="nav docs-sidenav">
+				<li>
+					<a href="/docs/enterprise/index.html">&laquo; Terraform Enterprise</a>
+				</li>
+
+				<li<%= sidebar_current(/^docs-enterprise-vcs-/) %>>
+					<a href="/docs/enterprise/vcs/index.html">VCS Integration</a>
+					<ul class="nav nav-visible">
+						<li<%= sidebar_current("docs-enterprise-vcs-git") %>>
+							<a href="/docs/enterprise/artifacts/git.html">Git</a>
+						</li>
+					</ul>
+				</li>
+			</ul>
+		</div>
+	<% end %>
+
+	<%= yield %>
+<% end %>
