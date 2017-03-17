@@ -80,6 +80,7 @@ func resourceAwsKmsKey() *schema.Resource {
 					return
 				},
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -97,6 +98,9 @@ func resourceAwsKmsKeyCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 	if v, exists := d.GetOk("policy"); exists {
 		req.Policy = aws.String(v.(string))
+	}
+	if v, exists := d.GetOk("tags"); exists {
+		req.Tags = tagsFromMapKMS(v.(map[string]interface{}))
 	}
 
 	var resp *kms.CreateKeyOutput
@@ -170,6 +174,14 @@ func resourceAwsKmsKeyRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.Set("enable_key_rotation", krs.KeyRotationEnabled)
 
+	tagList, err := conn.ListResourceTags(&kms.ListResourceTagsInput{
+		KeyId: metadata.KeyId,
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to get KMS key tags (key: %s): %s", metadata.KeyId, err)
+	}
+	d.Set("tags", tagsToMapKMS(tagList.Tags))
+
 	return nil
 }
 
@@ -213,6 +225,10 @@ func _resourceAwsKmsKeyUpdate(d *schema.ResourceData, meta interface{}, isFresh 
 		if err := updateKmsKeyStatus(conn, d.Id(), d.Get("is_enabled").(bool)); err != nil {
 			return err
 		}
+	}
+
+	if err := setTagsKMS(conn, d, d.Id()); err != nil {
+		return err
 	}
 
 	return resourceAwsKmsKeyRead(d, meta)
