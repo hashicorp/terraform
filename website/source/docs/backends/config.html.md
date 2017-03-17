@@ -54,7 +54,7 @@ the configuration itself. We call this specifying only a _partial_ configuration
 
 With a partial configuration, the remaining configuration is expected as
 part of the [initialization](/docs/backends/init.html) process. There are
-two ways to supply the remaining configuration:
+a few ways to supply the remaining configuration:
 
   * **Interactively**: Terraform will interactively ask you for the required
     values. Terraform will not ask you for optional values.
@@ -63,7 +63,10 @@ two ways to supply the remaining configuration:
     This file can then be sourced via some secure means (such as
     [Vault](https://www.vaultproject.io)).
 
-In both cases, the final configuration is stored on disk in the
+  * **Command-line key/value pairs**: Key/value pairs in the format of
+    `key=value` can be specified as part of the init command.
+
+In all cases, the final configuration is stored on disk in the
 ".terraform" directory, which should be ignored from version control.
 
 This means that sensitive information can be omitted from version control
