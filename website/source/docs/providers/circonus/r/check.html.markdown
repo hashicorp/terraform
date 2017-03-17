@@ -101,6 +101,10 @@ resource "circonus_metric" "used" {
 * `json` - (Optional) A JSON check.  See below for details on how to configure
   the `json` check.
 
+* `metric` - (Required) A list of one or more `metric` configurations.  All
+  metrics obtained from this check instance will be available as individual
+  metric streams.  See below for a list of supported `metric` attrbutes.
+
 * `metric_limit` - (Optional) Setting a metric limit will tell the Circonus
   backend to periodically look at the check to see if there are additional
   metrics the collector has seen that we should collect. It will not reactivate
@@ -121,10 +125,6 @@ resource "circonus_metric" "used" {
 
 * `postgresql` - (Optional) A PostgreSQL check.  See below for details on how to
   configure the `postgresql` check.
-
-* `metric` - (Required) A list of one or more `metric` configurations.  All
-  metrics obtained from this check instance will be available as individual
-  metric streams.  See below for a list of supported `metric` attrbutes.
 
 * `statsd` - (Optional) A statsd check.  See below for details on how to
   configure the `statsd` check.
