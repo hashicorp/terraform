@@ -23,7 +23,6 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
 
-	backendlegacy "github.com/hashicorp/terraform/backend/legacy"
 	backendlocal "github.com/hashicorp/terraform/backend/local"
 )
 
@@ -1325,8 +1324,12 @@ func (m *Meta) backendInitFromLegacy(s *terraform.RemoteState) (backend.Backend,
 	}
 	config := terraform.NewResourceConfig(rawC)
 
-	// Initialize the legacy remote backend
-	b := &backendlegacy.Backend{Type: s.Type}
+	// Get the backend
+	f := backendinit.Backend(s.Type)
+	if f == nil {
+		return nil, fmt.Errorf(strings.TrimSpace(errBackendLegacyUnknown), s.Type)
+	}
+	b := f()
 
 	// Configure
 	if err := b.Configure(config); err != nil {
@@ -1381,7 +1384,7 @@ If fixing these errors requires changing your remote state configuration,
 you must switch your configuration to the new remote backend configuration.
 You can learn more about remote backends at the URL below:
 
-TODO: URL
+https://www.terraform.io/docs/backends/index.html
 
 The error(s) configuring the legacy remote state:
 
