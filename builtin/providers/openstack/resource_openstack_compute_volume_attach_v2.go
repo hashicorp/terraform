@@ -22,6 +22,11 @@ func resourceComputeVolumeAttachV2() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
 				Type:        schema.TypeString,
@@ -82,7 +87,7 @@ func resourceComputeVolumeAttachV2Create(d *schema.ResourceData, meta interface{
 		Pending:    []string{"ATTACHING"},
 		Target:     []string{"ATTACHED"},
 		Refresh:    resourceComputeVolumeAttachV2AttachFunc(computeClient, instanceId, attachment.ID),
-		Timeout:    10 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutCreate),
 		Delay:      30 * time.Second,
 		MinTimeout: 15 * time.Second,
 	}
@@ -145,7 +150,7 @@ func resourceComputeVolumeAttachV2Delete(d *schema.ResourceData, meta interface{
 		Pending:    []string{""},
 		Target:     []string{"DETACHED"},
 		Refresh:    resourceComputeVolumeAttachV2DetachFunc(computeClient, instanceId, attachmentId),
-		Timeout:    10 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      15 * time.Second,
 		MinTimeout: 15 * time.Second,
 	}
