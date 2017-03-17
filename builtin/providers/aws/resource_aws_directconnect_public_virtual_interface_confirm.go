@@ -118,7 +118,7 @@ func resourceAwsDirectConnectPublicVirtualInterfaceConfirmCreate(d *schema.Resou
 	}
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"pending", "down"},
+		Pending:    []string{"pending", "verifying", "down"},
 		Target:     []string{"available"},
 		Refresh:    DirectConnectPublicVirtualInterfaceRefreshFunc(conn, d.Get("virtual_interface_id").(string)),
 		Timeout:    30 * time.Minute,
@@ -127,7 +127,7 @@ func resourceAwsDirectConnectPublicVirtualInterfaceConfirmCreate(d *schema.Resou
 	}
 
 	if v, ok := d.GetOk("allow_down_state"); ok && v.(bool) {
-		stateConf.Pending = []string{"pending"}
+		stateConf.Pending = []string{"pending", "verifying"}
 		stateConf.Target = []string{"available", "down"}
 	}
 
