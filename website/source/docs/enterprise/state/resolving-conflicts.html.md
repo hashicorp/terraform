@@ -1,13 +1,17 @@
 ---
-title: "Resolving Conflicts in Atlas Remote State"
+layout: "state"
+page_title: "State: Resolving Conflicts"
+sidebar_current: "docs-enterprise-state-resolving"
+description: |-
+  Resolving conflicts with remote states.
 ---
 
-# Resolving Conflicts in Atlas Remote State
+# Resolving Conflicts in Remote States
 
 Resolving state conflicts can be time consuming and error prone, so
 it's important to approach it carefully.
 
-There are several tools provided by Atlas to help resolve conflicts
+There are several tools provided by Terraform Enterprise to help resolve conflicts
 and fix remote state issues. First, you can navigate between state
 versions in the changes view of your environment (after toggling on
 the remote state checkbox) and view plain-text differences between
@@ -33,15 +37,15 @@ to perform the operation.
 
 ### Using Terraform Locally
 
-Another way to resolve conflicts in Atlas remote state
+Another way to resolve remote state conflicts
 is to merge and conflicted copies locally by inspecting the
 raw state available in the path `.terraform/terraform.tfstate`.
 
 When making state changes, it's important to make backup copies in
 order to avoid losing any data.
 
-Atlas will reject any state that is pushed with a serial that is lower
-than the known serial when the MD5 of the state does not match.
+Any state that is pushed with a serial that is lower
+than the known serial when the MD5 of the state does not match will be rejected.
 
 The serial is embedded in the state file:
 
@@ -58,10 +62,10 @@ The serial is embedded in the state file:
     }
 
 Once a conflict has been resolved locally by editing the state file,
-the serial can be incremented past the current version in Atlas and
+the serial can be incremented past the current version and
 pushed:
 
     terraform remote push
 
 This will upload the manually resolved state and set it as the head
-version in Atlas.
+version.

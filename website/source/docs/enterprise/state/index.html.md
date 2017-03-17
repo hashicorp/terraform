@@ -1,5 +1,9 @@
 ---
-title: "About Remote State"
+layout: "state"
+page_title: "About Remote State"
+sidebar_current: "docs-enterprise-state"
+description: |-
+  Terraform stores the state of your managed infrastructure from the last time Terraform was run. This section is about states.
 ---
 
 # About Remote State
@@ -9,7 +13,7 @@ time Terraform was run. By default this state is stored in a local file
 named `terraform.tfstate`, but it can also be stored remotely, which
 works better in a team environment.
 
-Atlas is a remote state provider, allowing you to store, version and
+Terraform Enterprise is a remote state provider, allowing you to store, version and
 collaborate on state with Atlas.
 
 Remote state gives you more than just easier version control and safer
