@@ -1,15 +1,19 @@
 ---
-title: "Integration with Version Control Software"
+layout: "vcs"
+page_title: "Integration with Version Control Software"
+sidebar_current: "docs-enterprise-artifact"
+description: |-
+  Terraform Enterprise can integrate with version control software Git and GitHub.
 ---
 
 # Integration with Version Control Software
 
-Atlas can integrate with your version control software to automatically execute
+Terraform Enterprise can integrate with your version control software to automatically execute
 Terraform with your latest Terraform configuration as you commit changes to
 source control.
 
-Different capabilities within Atlas are available depending on the integration
+Different capabilities within Terraform Enterprise are available depending on the integration
 in use. The available integration options are below.
 
-- [Git](/help/terraform/vcs/git)
-- [GitHub](/help/terraform/vcs/github)
+- [Git](/docs/enterprise/vcs/git)
+- [GitHub](/docs/enterprise/vcs/github)

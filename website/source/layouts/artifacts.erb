@@ -1,0 +1,28 @@
+<% wrap_layout :inner do %>
+	<% content_for :sidebar do %>
+		<div class="docs-sidebar hidden-print affix-top" role="complementary">
+			<ul class="nav docs-sidenav">
+				<li>
+					<a href="/docs/enterprise/index.html">&laquo; Terraform Enterprise</a>
+				</li>
+
+				<li<%= sidebar_current(/^docs-enterprise-artifact-/) %>>
+					<a href="/docs/enterprise/artifact/index.html">Artifact</a>
+					<ul class="nav nav-visible">
+						<li<%= sidebar_current("docs-enterprise-artifact-provider") %>>
+							<a href="/docs/enterprise/artifacts/artifact-provider.html">Artifact Provider</a>
+						</li>
+						<li<%= sidebar_current("docs-enterprise-artifact-versions") %>>
+							<a href="/docs/enterprise/artifacts/managing-versions.html">Managing Versions</a>
+						</li>
+						<li<%= sidebar_current("docs-enterprise-artifact-ami") %>>
+							<a href="/docs/enterprise/artifacts/creating-amis.html">Creating AMI Artifacts</a>
+						</li>
+					</ul>
+				</li>
+			</ul>
+		</div>
+	<% end %>
+
+	<%= yield %>
+<% end %>

@@ -1,13 +1,18 @@
 ---
-title: "Atlas Artifact Provider"
+layout: "artifacts"
+page_title: "Artifact Provider"
+sidebar_current: "docs-enterprise-Provider"
+description: |-
+  Terraform has a provider for managing Atlas artifacts called `atlas_artifact`.
 ---
-# Atlas Artifact Provider
 
-Terraform has a [provider](https://terraform.io/docs/providers/index.html) for managing Atlas artifacts called `atlas_artifact`.
+# Artifact Provider
 
-This is used to make data stored in Atlas Artifacts available to
+Terraform has a [provider](https://terraform.io/docs/providers/index.html) for managing Terraform Enterprise artifacts called `atlas_artifact`.
+
+This is used to make data stored in Artifacts available to
 Terraform for interpolation. In the following example, an artifact
-is defined and references an AMI ID stored in Atlas.
+is defined and references an AMI ID stored in Terraform Enterprise.
 
     provider "atlas" {
       # You can also set the atlas token by exporting
