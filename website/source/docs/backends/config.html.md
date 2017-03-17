@@ -64,7 +64,9 @@ a few ways to supply the remaining configuration:
     [Vault](https://www.vaultproject.io)).
 
   * **Command-line key/value pairs**: Key/value pairs in the format of
-    `key=value` can be specified as part of the init command.
+    `key=value` can be specified as part of the init command. Note that
+    many shells retain command-line flags in a history file, so this isn't
+    recommended for secrets.
 
 In all cases, the final configuration is stored on disk in the
 ".terraform" directory, which should be ignored from version control.
@@ -72,6 +74,20 @@ In all cases, the final configuration is stored on disk in the
 This means that sensitive information can be omitted from version control
 but it ultimately still lives on disk. In the future, Terraform may provide
 basic encryption on disk so that values are at least not plaintext.
+
+When using partial configuration, Terraform requires at a minimum that
+an empty backend configuration is in the Terraform files. For example:
+
+```
+terraform {
+  backend "consul" {}
+}
+```
+
+This minimal requirement allows Terraform to detect _unsetting_ backends.
+We cannot accept the backend type on the command-line because while it is
+technically possible, Terraform would then be unable to detect if you
+want to unset your backend (and move back to local state).
 
 ## Changing Configuration
 
