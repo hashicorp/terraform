@@ -615,7 +615,7 @@ func testAccCheckSystemDiskSize(n string, size int) resource.TestCheckFunc {
 			}
 
 			if systemDisk.Size != size {
-				return fmt.Errorf("system disk size not equal %s, the instance system size is %s",
+				return fmt.Errorf("system disk size not equal %d, the instance system size is %d",
 					size, systemDisk.Size)
 			}
 		}
