@@ -17,7 +17,7 @@ resource "google_compute_disk" "default" {
   name  = "test-disk"
   type  = "pd-ssd"
   zone  = "us-central1-a"
-  image = "debian7-wheezy"
+  image = "debian-cloud/debian-8"
 }
 ```
 
