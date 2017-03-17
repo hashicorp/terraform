@@ -478,8 +478,27 @@ resource "circonus_check" "tcp_check" {
 
 ## Out Parameters
 
-* `check_by_collector` - Map of each check (value) that was created for every
-  specified broker (key).
+* `check_by_collector` - Maps the ID of the collector (`collector_id`, the map
+  key) to the `check_id` (value) that is registered to a collector.
+
+* `check_id` - If there is only one `collector` specified for the check, this
+  value will be populated with the `check_id`.  If more than one `collector` is
+  specified in the check, then this value will be an empty string.
+  `check_by_collector` will always be populated.
+
+* `checks` - List of `check_id`s created by this `circonus_check`.  There is one
+  element in this list per collector specified in the check.
+
+* `created` - UNIX time at which this check was created.
+
+* `last_modified` - UNIX time at which this check was last modified.
+
+* `last_modified_by` - User ID in Circonus who modified this check last.
+
+* `reverse_connect_urls` - Only relevant to Circonus support.
+
+* `uuids` - List of Check `uuid`s created by this `circonus_check`.  There is
+  one element in this list per collector specified in the check.
 
 ## Import Example
 

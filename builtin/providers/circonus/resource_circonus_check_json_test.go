@@ -1,8 +1,10 @@
 package circonus
 
 import (
+	"regexp"
 	"testing"
 
+	"github.com/circonus-labs/circonus-gometrics/api/config"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
@@ -16,6 +18,7 @@ func TestAccCirconusCheckJSON_basic(t *testing.T) {
 				Config: testAccCirconusCheckJSONConfig1,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("circonus_check.usage", "active", "true"),
+					resource.TestMatchResourceAttr("circonus_check.usage", "check_id", regexp.MustCompile(config.CheckCIDRegex)),
 					resource.TestCheckResourceAttr("circonus_check.usage", "collector.#", "1"),
 					resource.TestCheckResourceAttr("circonus_check.usage", "collector.2388330941.id", "/broker/1"),
 					resource.TestCheckResourceAttr("circonus_check.usage", "json.#", "1"),
