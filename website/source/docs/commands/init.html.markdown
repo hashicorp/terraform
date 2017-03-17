@@ -54,9 +54,9 @@ The command-line flags are all optional. The list of available flags are:
 * `-input=true` - Ask for input interactively if necessary. If this is false
   and input is required, `init` will error.
 
-## Backend Config File
+## Backend Config
 
-The `-backend-config` can take a path to specify additional
+The `-backend-config` can take a path or `key=value` pair to specify additional
 backend configuration when [initialize a backend](/docs/backends/init.html).
 
 This is particularly useful for
@@ -64,7 +64,7 @@ This is particularly useful for
 configuration lets you keep sensitive information out of your Terraform
 configuration.
 
-The backend configuration file is a basic HCL file with key/value pairs.
+For path values, the backend configuration file is a basic HCL file with key/value pairs.
 The keys are configuration keys for your backend. You do not need to wrap it
 in a `terraform` block. For example, the following file is a valid backend
 configuration file for the Consul backend type:
@@ -74,19 +74,7 @@ address = "demo.consul.io"
 path    = "newpath"
 ```
 
-This format can be mixed with the key/value format documented below. In this
-case, the values will be merged by key.
-
-## Backend Config Key/Value
-
-The `-backend-config` will also accept `key=value` pairs to specify configuration
-directly on the command line.
-
-This is particularly useful for
-[partial configuration of backends](/docs/backends/config.html). Partial
-configuration lets you keep sensitive information out of your Terraform
-configuration.
-
+If the value contains an equal sign (`=`), it is parsed as a `key=value` pair.
 The format of this flag is identical to the `-var` flag for plan, apply,
 etc. but applies to configuration keys for backends. For example:
 
@@ -96,5 +84,6 @@ $ terraform init \
   -backend-config 'path=newpath'
 ```
 
-This format can be mixed with the file format documented above. In this
-case, the values will be merged by key.
+These two formats can be mixed. In this case, the values will be merged by
+key with keys specified later in the command-line overriding conflicting
+keys specified earlier.
