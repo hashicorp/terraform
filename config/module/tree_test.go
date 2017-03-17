@@ -424,6 +424,18 @@ func TestTreeValidate_requiredChildVar(t *testing.T) {
 	}
 }
 
+func TestTreeValidate_unknownModule(t *testing.T) {
+	tree := NewTree("", testConfig(t, "validate-module-unknown"))
+
+	if err := tree.Load(testStorage(t), GetModeNone); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if err := tree.Validate(); err == nil {
+		t.Fatal("should error")
+	}
+}
+
 const treeLoadStr = `
 root
   foo (path: foo)

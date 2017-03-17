@@ -354,8 +354,10 @@ func (t *Tree) Validate() error {
 
 			tree, ok := children[mv.Name]
 			if !ok {
-				// This should never happen because Load watches us
-				panic("module not found in children: " + mv.Name)
+				newErr.Add(fmt.Errorf(
+					"%s: undefined module referenced %s",
+					source, mv.Name))
+				continue
 			}
 
 			found := false
