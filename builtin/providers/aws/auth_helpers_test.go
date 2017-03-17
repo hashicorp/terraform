@@ -128,47 +128,12 @@ func TestAWSGetAccountInfo_shouldBeValid_fromIamUser(t *testing.T) {
 }
 
 func TestAWSGetAccountInfo_shouldBeValid_fromGetCallerIdentity(t *testing.T) {
-	iamEndpoints := []*awsMockEndpoint{
-		{
-			Request:  &awsMockRequest{"POST", "/", "Action=GetUser&Version=2010-05-08"},
-			Response: &awsMockResponse{403, iamResponse_GetUser_unauthorized, "text/xml"},
-		},
-	}
-	closeIam, iamSess, err := getMockedAwsApiSession("IAM", iamEndpoints)
-	defer closeIam()
-	if err != nil {
-		t.Fatal(err)
-	}
+	doGetAccountInfoWithMetadataRoutes(t, nil)
+}
 
-	stsEndpoints := []*awsMockEndpoint{
-		{
-			Request:  &awsMockRequest{"POST", "/", "Action=GetCallerIdentity&Version=2011-06-15"},
-			Response: &awsMockResponse{200, stsResponse_GetCallerIdentity_valid, "text/xml"},
-		},
-	}
-	closeSts, stsSess, err := getMockedAwsApiSession("STS", stsEndpoints)
-	defer closeSts()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	iamConn := iam.New(iamSess)
-	stsConn := sts.New(stsSess)
-
-	part, id, err := GetAccountInfo(iamConn, stsConn, "")
-	if err != nil {
-		t.Fatalf("Getting account ID via GetUser failed: %s", err)
-	}
-
-	expectedPart := "aws"
-	if part != expectedPart {
-		t.Fatalf("Expected partition: %s, given: %s", expectedPart, part)
-	}
-
-	expectedAccountId := "123456789012"
-	if id != expectedAccountId {
-		t.Fatalf("Expected account ID: %s, given: %s", expectedAccountId, id)
-	}
+func TestAWSGetAccountInfo_shouldBeValid_EC2RoleFallsBackToCallerIdentity(t *testing.T) {
+	// This mimics the metadata service mocked by Hologram (https://github.com/AdRoll/hologram)
+	doGetAccountInfoWithMetadataRoutes(t, generateMetadataApiRoutes(false, false, true))
 }
 
 func TestAWSGetAccountInfo_shouldBeValid_fromIamListRoles(t *testing.T) {
@@ -647,6 +612,59 @@ func TestAWSGetCredentials_shouldBeENV(t *testing.T) {
 	}
 	if v.SessionToken != s {
 		t.Fatalf("SessionToken mismatch, expected: (%s), got (%s)", s, v.SessionToken)
+	}
+}
+
+func doGetAccountInfoWithMetadataRoutes(t *testing.T, routes *routes) {
+	credProviderName := ""
+	if routes != nil {
+		resetEnv := unsetEnv(t)
+		defer resetEnv()
+		awsTs := awsEnv(routes)
+		defer awsTs()
+		credProviderName = ec2rolecreds.ProviderName
+	}
+
+	iamEndpoints := []*awsMockEndpoint{
+		{
+			Request:  &awsMockRequest{"POST", "/", "Action=GetUser&Version=2010-05-08"},
+			Response: &awsMockResponse{403, iamResponse_GetUser_unauthorized, "text/xml"},
+		},
+	}
+	closeIam, iamSess, err := getMockedAwsApiSession("IAM", iamEndpoints)
+	defer closeIam()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	stsEndpoints := []*awsMockEndpoint{
+		{
+			Request:  &awsMockRequest{"POST", "/", "Action=GetCallerIdentity&Version=2011-06-15"},
+			Response: &awsMockResponse{200, stsResponse_GetCallerIdentity_valid, "text/xml"},
+		},
+	}
+	closeSts, stsSess, err := getMockedAwsApiSession("STS", stsEndpoints)
+	defer closeSts()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	iamConn := iam.New(iamSess)
+	stsConn := sts.New(stsSess)
+
+	part, id, err := GetAccountInfo(iamConn, stsConn, credProviderName)
+	if err != nil {
+		t.Fatalf("Getting account ID failed: %s", err)
+	}
+
+	expectedPart := "aws"
+	if part != expectedPart {
+		t.Fatalf("Expected partition: %s, given: %s", expectedPart, part)
+	}
+
+	expectedAccountId := "123456789012"
+	if id != expectedAccountId {
+		t.Fatalf("Expected account ID: %s, given: %s", expectedAccountId, id)
 	}
 }
 
