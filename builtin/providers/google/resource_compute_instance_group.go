@@ -38,9 +38,10 @@ func resourceComputeInstanceGroup() *schema.Resource {
 			},
 
 			"instances": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
 			},
 
 			"named_port": &schema.Schema{
@@ -142,7 +143,7 @@ func resourceComputeInstanceGroupCreate(d *schema.ResourceData, meta interface{}
 	}
 
 	if v, ok := d.GetOk("instances"); ok {
-		instanceUrls := convertStringArr(v.([]interface{}))
+		instanceUrls := convertStringArr(v.(*schema.Set).List())
 		if !validInstanceURLs(instanceUrls) {
 			return fmt.Errorf("Error invalid instance URLs: %v", instanceUrls)
 		}
