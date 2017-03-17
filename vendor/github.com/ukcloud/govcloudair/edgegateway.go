@@ -115,6 +115,10 @@ func (e *EdgeGateway) AddDhcpPool(network *types.OrgVDCNetwork, dhcppool []inter
 }
 
 func (e *EdgeGateway) RemoveNATMapping(nattype, externalIP, internalIP, port string) (Task, error) {
+	return e.RemoveNATPortMapping(nattype, externalIP, port, internalIP, port)
+}
+
+func (e *EdgeGateway) RemoveNATPortMapping(nattype, externalIP, externalPort string, internalIP, internalPort string) (Task, error) {
 	// Find uplink interface
 	var uplink types.Reference
 	for _, gi := range e.EdgeGateway.Configuration.GatewayInterfaces.GatewayInterface {
@@ -140,7 +144,7 @@ func (e *EdgeGateway) RemoveNATMapping(nattype, externalIP, internalIP, port str
 		// If matches, let's skip it and continue the loop
 		if v.RuleType == nattype &&
 			v.GatewayNatRule.OriginalIP == externalIP &&
-			v.GatewayNatRule.OriginalPort == port &&
+			v.GatewayNatRule.OriginalPort == externalPort &&
 			v.GatewayNatRule.Interface.HREF == uplink.HREF {
 			log.Printf("[DEBUG] REMOVING %s Rule: %#v", v.RuleType, v.GatewayNatRule)
 			continue
@@ -190,6 +194,10 @@ func (e *EdgeGateway) RemoveNATMapping(nattype, externalIP, internalIP, port str
 }
 
 func (e *EdgeGateway) AddNATMapping(nattype, externalIP, internalIP, port string) (Task, error) {
+	return e.AddNATPortMapping(nattype, externalIP, port, internalIP, port)
+}
+
+func (e *EdgeGateway) AddNATPortMapping(nattype, externalIP, externalPort string, internalIP, internalPort string) (Task, error) {
 	// Find uplink interface
 	var uplink types.Reference
 	for _, gi := range e.EdgeGateway.Configuration.GatewayInterfaces.GatewayInterface {
@@ -218,8 +226,9 @@ func (e *EdgeGateway) AddNATMapping(nattype, externalIP, internalIP, port string
 			// If matches, let's skip it and continue the loop
 			if v.RuleType == nattype &&
 				v.GatewayNatRule.OriginalIP == externalIP &&
-				v.GatewayNatRule.OriginalPort == port &&
+				v.GatewayNatRule.OriginalPort == externalPort &&
 				v.GatewayNatRule.TranslatedIP == internalIP &&
+				v.GatewayNatRule.TranslatedPort == internalPort &&
 				v.GatewayNatRule.Interface.HREF == uplink.HREF {
 				continue
 			}
@@ -237,9 +246,9 @@ func (e *EdgeGateway) AddNATMapping(nattype, externalIP, internalIP, port string
 				HREF: uplink.HREF,
 			},
 			OriginalIP:     externalIP,
-			OriginalPort:   port,
+			OriginalPort:   externalPort,
 			TranslatedIP:   internalIP,
-			TranslatedPort: port,
+			TranslatedPort: internalPort,
 			Protocol:       "tcp",
 		},
 	}
@@ -603,6 +612,52 @@ func (e *EdgeGateway) Create1to1Mapping(internal, external, description string) 
 
 	s, _ := url.ParseRequestURI(e.EdgeGateway.HREF)
 	s.Path += "/action/configureServices"
+
+	req := e.c.NewRequest(map[string]string{}, "POST", *s, b)
+
+	req.Header.Add("Content-Type", "application/vnd.vmware.admin.edgeGatewayServiceConfiguration+xml")
+
+	resp, err := checkResp(e.c.Http.Do(req))
+	if err != nil {
+		return Task{}, fmt.Errorf("error reconfiguring Edge Gateway: %s", err)
+	}
+
+	task := NewTask(e.c)
+
+	if err = decodeBody(resp, task.Task); err != nil {
+		return Task{}, fmt.Errorf("error decoding Task response: %s", err)
+	}
+
+	// The request was successful
+	return *task, nil
+
+}
+
+func (e *EdgeGateway) AddIpsecVPN(ipsecVPNConfig *types.EdgeGatewayServiceConfiguration) (Task, error) {
+
+	err := e.Refresh()
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+	}
+
+	output, err := xml.MarshalIndent(ipsecVPNConfig, "  ", "    ")
+	if err != nil {
+		fmt.Errorf("error marshaling ipsecVPNConfig compose: %s", err)
+	}
+
+	debug := os.Getenv("GOVCLOUDAIR_DEBUG")
+
+	if debug == "true" {
+		fmt.Printf("\n\nXML DEBUG: %s\n\n", string(output))
+	}
+
+	b := bytes.NewBufferString(xml.Header + string(output))
+	log.Printf("[DEBUG] ipsecVPN configuration: %s", b)
+
+	s, _ := url.ParseRequestURI(e.EdgeGateway.HREF)
+	s.Path += "/action/configureServices"
+
+	fmt.Println(s)
 
 	req := e.c.NewRequest(map[string]string{}, "POST", *s, b)
 
