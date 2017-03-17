@@ -560,7 +560,7 @@ func buildAliyunInstanceArgs(d *schema.ResourceData, meta interface{}) (*ecs.Cre
 		args.Description = v
 	}
 
-	log.Printf("[DEBUG] SystemDisk is %s", systemDiskSize)
+	log.Printf("[DEBUG] SystemDisk is %d", systemDiskSize)
 	if v := d.Get("internet_charge_type").(string); v != "" {
 		args.InternetChargeType = common.InternetChargeType(v)
 	}

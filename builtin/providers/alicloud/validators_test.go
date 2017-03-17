@@ -457,7 +457,7 @@ func TestValidateAllowedStringSplitValue(t *testing.T) {
 
 	invalidValues := "ali,alidata"
 	_, invalidErr := validateAllowedSplitStringValue(exceptValues, ",")(invalidValues, "allowvalue")
-	if len(invalidErr) != 0 {
+	if len(invalidErr) == 0 {
 		t.Fatalf("%q should be an invalid value", invalidValues)
 	}
 }
