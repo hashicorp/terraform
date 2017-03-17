@@ -52,7 +52,6 @@ func resourceAwsIAMServerCertificate() *schema.Resource {
 				ForceNew:  true,
 				StateFunc: normalizeCert,
 				Sensitive: true,
-				Optional:  true,
 			},
 
 			"name": &schema.Schema{
