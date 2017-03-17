@@ -1,42 +1,42 @@
-## 0.9.1 (unreleased)
+## 0.9.1 (March 17, 2017)
 
 BACKWARDS IMCOMPATIBILITIES / NOTES:
 
- * provider/pagerduty: the deprecated `name_regex` field has been removed from vendor data source [GH-12396]
+ * provider/pagerduty: the deprecated `name_regex` field has been removed from vendor data source ([#12396](https://github.com/hashicorp/terraform/issues/12396))
 
 FEATURES:
 
- * **New Provider:** `kubernetes` [GH-12372]
- * **New Resource:** `kubernetes_namespace` [GH-12372]
- * **New Resource:** `kubernetes_config_map` [GH-12753]
- * **New Data Source:** `dns_a_record_set` [GH-12744]
- * **New Data Source:** `dns_cname_record_set` [GH-12744]
- * **New Data Source:** `dns_txt_record_set` [GH-12744]
+ * **New Provider:** `kubernetes` ([#12372](https://github.com/hashicorp/terraform/issues/12372))
+ * **New Resource:** `kubernetes_namespace` ([#12372](https://github.com/hashicorp/terraform/issues/12372))
+ * **New Resource:** `kubernetes_config_map` ([#12753](https://github.com/hashicorp/terraform/issues/12753))
+ * **New Data Source:** `dns_a_record_set` ([#12744](https://github.com/hashicorp/terraform/issues/12744))
+ * **New Data Source:** `dns_cname_record_set` ([#12744](https://github.com/hashicorp/terraform/issues/12744))
+ * **New Data Source:** `dns_txt_record_set` ([#12744](https://github.com/hashicorp/terraform/issues/12744))
 
 IMPROVEMENTS:
 
  * command/init: `-backend-config` accepts `key=value` pairs
- * provider/aws: Improved error when failing to get S3 tags [GH-12759]
- * provider/aws: Validate CIDR Blocks in SG and SG rule resources [GH-12765]
- * provider/aws: Add KMS key tag support [GH-12243]
- * provider/aws: Allow `name_prefix` to be used with various IAM resources [GH-12658]
- * provider/openstack: Add timeout support for Compute resources [GH-12794]
- * provider/scaleway: expose public IPv6 information on scaleway_server [GH-12748]
+ * provider/aws: Improved error when failing to get S3 tags ([#12759](https://github.com/hashicorp/terraform/issues/12759))
+ * provider/aws: Validate CIDR Blocks in SG and SG rule resources ([#12765](https://github.com/hashicorp/terraform/issues/12765))
+ * provider/aws: Add KMS key tag support ([#12243](https://github.com/hashicorp/terraform/issues/12243))
+ * provider/aws: Allow `name_prefix` to be used with various IAM resources ([#12658](https://github.com/hashicorp/terraform/issues/12658))
+ * provider/openstack: Add timeout support for Compute resources ([#12794](https://github.com/hashicorp/terraform/issues/12794))
+ * provider/scaleway: expose public IPv6 information on scaleway_server ([#12748](https://github.com/hashicorp/terraform/issues/12748))
 
 BUG FIXES:
 
- * core: Fix panic when an undefined module is reference [GH-12793]
- * core: Fix regression from 0.8.x when using a data source in a module [GH-12837]
- * command/apply: Applies from plans with backends set will reuse the backend rather than local [GH-12785]
- * command/init: Changing only `-backend-config` detects changes and reconfigures [GH-12776]
- * command/init: Fix legacy backend init error that could occur when upgrading [GH-12818]
- * command/push: Detect local state and error properly [GH-12773]
- * command/refresh: Allow empty and non-existent state [GH-12777]
- * provider/aws: Get the aws_lambda_function attributes when there are great than 50 versions of a function [GH-11745]
- * provider/aws: Correctly check for nil cidr_block in aws_network_acl [GH-12735]
- * provider/aws: Stop setting weight property on route53_record read [GH-12756]
- * provider/google: Fix the Google provider asking for account_file input on every run [GH-12729]
- * provider/profitbricks: Prevent panic on profitbricks volume [GH-12819]
+ * core: Fix panic when an undefined module is reference ([#12793](https://github.com/hashicorp/terraform/issues/12793))
+ * core: Fix regression from 0.8.x when using a data source in a module ([#12837](https://github.com/hashicorp/terraform/issues/12837))
+ * command/apply: Applies from plans with backends set will reuse the backend rather than local ([#12785](https://github.com/hashicorp/terraform/issues/12785))
+ * command/init: Changing only `-backend-config` detects changes and reconfigures ([#12776](https://github.com/hashicorp/terraform/issues/12776))
+ * command/init: Fix legacy backend init error that could occur when upgrading ([#12818](https://github.com/hashicorp/terraform/issues/12818))
+ * command/push: Detect local state and error properly ([#12773](https://github.com/hashicorp/terraform/issues/12773))
+ * command/refresh: Allow empty and non-existent state ([#12777](https://github.com/hashicorp/terraform/issues/12777))
+ * provider/aws: Get the aws_lambda_function attributes when there are great than 50 versions of a function ([#11745](https://github.com/hashicorp/terraform/issues/11745))
+ * provider/aws: Correctly check for nil cidr_block in aws_network_acl ([#12735](https://github.com/hashicorp/terraform/issues/12735))
+ * provider/aws: Stop setting weight property on route53_record read ([#12756](https://github.com/hashicorp/terraform/issues/12756))
+ * provider/google: Fix the Google provider asking for account_file input on every run ([#12729](https://github.com/hashicorp/terraform/issues/12729))
+ * provider/profitbricks: Prevent panic on profitbricks volume ([#12819](https://github.com/hashicorp/terraform/issues/12819))
  
 
 ## 0.9.0 (March 15, 2017)
