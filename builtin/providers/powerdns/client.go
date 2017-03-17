@@ -86,6 +86,7 @@ type Record struct {
 	Content  string `json:"content"`
 	TTL      int    `json:"ttl"` // For API v0
 	Disabled bool   `json:"disabled"`
+	SetPtr   bool   `json:"set-ptr"`
 }
 
 type ResourceRecordSet struct {

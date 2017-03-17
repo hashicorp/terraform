@@ -27,6 +27,20 @@ resource "powerdns_record" "foobar" {
 }
 ```
 
+There is a feature in PowerDNS API for A/AAAA records, when server will find the matching reverse zone and create a PTR there. Existing PTR records are replaced. If no matching reverse zone found, an error is thrown by API and thus Terraform. To use this feature:
+
+```
+# PTR record will be created automatically
+resource "powerdns_record" "foobar" {
+  zone    = "example.com."
+  name    = "www.example.com"
+  type    = "A"
+  ttl     = 300
+  set_ptr = true
+  records = ["192.168.0.11"]
+}
+```
+
 For the legacy API (PowerDNS version 3.4):
 
 ```

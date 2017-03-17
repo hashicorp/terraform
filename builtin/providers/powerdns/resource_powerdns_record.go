@@ -47,6 +47,13 @@ func resourcePDNSRecord() *schema.Resource {
 				ForceNew: true,
 				Set:      schema.HashString,
 			},
+
+			"set_ptr": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				ForceNew:    true,
+				Description: "Used for A/AAAA records. If true, PTR records will be created automatically.",
+			},
 		},
 	}
 }
@@ -63,11 +70,15 @@ func resourcePDNSRecordCreate(d *schema.ResourceData, meta interface{}) error {
 	zone := d.Get("zone").(string)
 	ttl := d.Get("ttl").(int)
 	recs := d.Get("records").(*schema.Set).List()
+	set_ptr := false
+	if v, ok := d.GetOk("set_ptr"); ok {
+		set_ptr = v.(bool)
+	}
 
 	if len(recs) > 0 {
 		records := make([]Record, 0, len(recs))
 		for _, recContent := range recs {
-			records = append(records, Record{Name: rrSet.Name, Type: rrSet.Type, TTL: ttl, Content: recContent.(string)})
+			records = append(records, Record{Name: rrSet.Name, Type: rrSet.Type, TTL: ttl, Content: recContent.(string), SetPtr: set_ptr})
 		}
 		rrSet.Records = records
 
