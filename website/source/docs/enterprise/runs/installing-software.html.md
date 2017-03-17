@@ -1,5 +1,9 @@
 ---
-title: "Installing Custom Software on the Terraform Runners"
+layout: "runs"
+page_title: "Runs: Installing Software"
+sidebar_current: "docs-enterprise-runs-installing"
+description: |-
+  Installing custom software on the Terraform Runners.
 ---
 
 # Installing Custom Software

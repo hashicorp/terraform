@@ -1,18 +1,23 @@
 ---
-title: "Terraform Run Notifications"
+layout: "runs"
+page_title: "Runs: Notifications"
+sidebar_current: "docs-enterprise-runs-notifications"
+description: |-
+  Terraform Enterprise can send notifications to your organization. This post is on how.
 ---
+
 
 # Terraform Run Notifications
 
-Atlas can send run notifications to your organization via one of our [supported
-notification methods](/help/consul/alerts/notification-methods). The following
+Terraform Enterprise can send run notifications to your organization via one of our [supported
+notification methods](https://atlas.hashicorp.com/help/consul/alerts/notification-methods). The following
 events are configurable:
 
 - **Needs Confirmation** - The plan phase has succeeded, and there are changes
   that need to be confirmed before applying.
 - **Confirmed** - A plan has been confirmed, and it will begin applying
   shortly.
-- **Discarded** - A user in Atlas has discarded the plan.
+- **Discarded** - A user has discarded the plan.
 - **Applying** - The plan has begun to apply and make changes to your
   infrastructure.
 - **Applied** - The plan was applied successfully.

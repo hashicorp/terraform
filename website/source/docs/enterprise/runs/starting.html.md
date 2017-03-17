@@ -1,6 +1,11 @@
 ---
-title: "Starting Terraform Runs in Atlas"
+layout: "runs"
+page_title: "Runs: Starting"
+sidebar_current: "docs-enterprise-runs-starting"
+description: |-
+  How to start runs in Terraform Enterprise.
 ---
+
 
 # Starting Terraform Runs in Atlas
 

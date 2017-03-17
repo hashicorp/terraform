@@ -1,21 +1,25 @@
 ---
-title: "Automatic Terraform Applies in Atlas"
+layout: "runs"
+page_title: "Runs: Automatic Applies"
+sidebar_current: "docs-enterprise-runs-applies"
+description: |-
+  How to automatically apply plans.
 ---
 
-# Automatic Terraform Applies in Atlas
+# Automatic Terraform Applies
 
 <div class="alert-infos">
   <div class="alert-info">
-    This is an unreleased beta feature. Please <a href="/help/support">contact support</a> if you are interested in helping us test this feature.
+    This is an unreleased beta feature. Please <a href="mailto:support@hashicorp.com">contact support</a> if you are interested in helping us test this feature.
   </div>
 </div>
 
 Atlas can optionally automatically apply successful Terraform plans to your
 infrastructure. This option is disabled by default and can be enabled by an
-organization owner on a per-[environment](/help/glossary#environment) basis.
+organization owner on a per-environment basis.
 
-<div class="alert-errors">
-  <div class="row alert-error">
+<div class="alert-infos">
+  <div class="alert-info">
     This is an advanced feature that enables changes to active infrastructure
     without user confirmation. Please understand the implications to your
     infrastructure before enabling.
