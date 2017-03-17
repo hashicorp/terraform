@@ -126,6 +126,9 @@ resource "circonus_metric" "used" {
   metrics obtained from this check instance will be available as individual
   metric streams.  See below for a list of supported `metric` attrbutes.
 
+* `statsd` - (Optional) A statsd check.  See below for details on how to
+  configure the `statsd` check.
+
 * `tags` - (Optional) A list of tags assigned to this check.
 
 * `target` - (Required) A string containing the location of the thing being
@@ -398,6 +401,13 @@ The `postgresql` check requires the `target` top-level attribute to be set.
 * `query` - (Required) The SQL query to execute.
 
 Available metric names are dependent on the output of the `query` being run.
+
+### `statsd` Check Type Attributes
+
+* `source_ip` - (Required) Any statsd messages from this IP address (IPv4 or
+  IPv6) will be associated with this check.
+
+Available metrics depend on the metrics sent to the `statsd` check.
 
 ### `tcp` Check Type Attributes
 

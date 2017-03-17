@@ -44,6 +44,7 @@ const (
 	checkPeriodAttr      = "period"
 	checkPostgreSQLAttr  = "postgresql"
 	checkMetricAttr      = "metric"
+	checkStatsdAttr      = "statsd"
 	checkTagsAttr        = "tags"
 	checkTargetAttr      = "target"
 	checkTCPAttr         = "tcp"
@@ -79,6 +80,7 @@ const (
 	apiCheckTypeJSONAttr       apiCheckType = "json"
 	apiCheckTypeMySQLAttr      apiCheckType = "mysql"
 	apiCheckTypePostgreSQLAttr apiCheckType = "postgres"
+	apiCheckTypeStatsdAttr     apiCheckType = "statsd"
 	apiCheckTypeTCPAttr        apiCheckType = "tcp"
 )
 
@@ -98,6 +100,7 @@ var checkDescriptions = attrDescrs{
 	checkPeriodAttr:      "The period between each time the check is made",
 	checkPostgreSQLAttr:  "PostgreSQL check configuration",
 	checkMetricAttr:      "Configuration for a stream of metrics",
+	checkStatsdAttr:      "statsd check configuration",
 	checkTagsAttr:        "A list of tags assigned to the check",
 	checkTargetAttr:      "The target of the check (e.g. hostname, URL, IP, etc)",
 	checkTCPAttr:         "TCP check configuration",
@@ -220,6 +223,7 @@ func resourceCheck() *schema.Resource {
 				},
 			},
 			checkTagsAttr: tagMakeConfigSchema(checkTagsAttr),
+			checkStatsdAttr:     schemaCheckStatsd,
 			checkTargetAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -564,6 +568,7 @@ func checkConfigToAPI(c *circonusCheck, d *schema.ResourceData) error {
 		checkJSONAttr:       checkConfigToAPIJSON,
 		checkMySQLAttr:      checkConfigToAPIMySQL,
 		checkPostgreSQLAttr: checkConfigToAPIPostgreSQL,
+		checkStatsdAttr:     checkConfigToAPIStatsd,
 		checkTCPAttr:        checkConfigToAPITCP,
 	}
 
@@ -590,6 +595,7 @@ func parseCheckTypeConfig(c *circonusCheck, d *schema.ResourceData) error {
 		apiCheckTypeJSONAttr:       checkAPIToStateJSON,
 		apiCheckTypeMySQLAttr:      checkAPIToStateMySQL,
 		apiCheckTypePostgreSQLAttr: checkAPIToStatePostgreSQL,
+		apiCheckTypeStatsdAttr:     checkAPIToStateStatsd,
 		apiCheckTypeTCPAttr:        checkAPIToStateTCP,
 	}
 
