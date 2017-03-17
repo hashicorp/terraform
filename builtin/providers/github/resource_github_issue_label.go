@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"log"
 
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -44,11 +45,14 @@ func resourceGithubIssueLabelCreate(d *schema.ResourceData, meta interface{}) er
 	r := d.Get("repository").(string)
 	n := d.Get("name").(string)
 	c := d.Get("color").(string)
-
-	_, _, err := client.Issues.CreateLabel(context.TODO(), meta.(*Organization).name, r, &github.Label{
+	label := github.Label{
 		Name:  &n,
 		Color: &c,
-	})
+	}
+
+	log.Printf("[DEBUG] Creating label: %#v", label)
+	_, resp, err := client.Issues.CreateLabel(context.TODO(), meta.(*Organization).name, r, &label)
+	log.Printf("[DEBUG] Response from creating label: %s", *resp)
 	if err != nil {
 		return err
 	}
