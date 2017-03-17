@@ -33,6 +33,7 @@ BUG FIXES:
  * provider/aws: Correctly check for nil cidr_block in aws_network_acl [GH-12735]
  * provider/aws: Stop setting weight property on route53_record read [GH-12756]
  * provider/google: Fix the Google provider asking for account_file input on every run [GH-12729]
+ * provider/profitbricks: Prevent panic on profitbricks volume [GH-12819]
  
 
 ## 0.9.0 (March 15, 2017)
