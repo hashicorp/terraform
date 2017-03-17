@@ -262,7 +262,7 @@ func (i *Interpolater) valueResourceVar(
 		// If it truly is missing, we'll catch it on a later walk.
 		// This applies only to graph nodes that interpolate during the
 		// config walk, e.g. providers.
-		if i.Operation == walkInput {
+		if i.Operation == walkInput || i.Operation == walkRefresh {
 			result[n] = unknownVariable()
 			return nil
 		}
