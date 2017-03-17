@@ -62,12 +62,13 @@ const (
 
 	// Out parameters for circonus_check
 	checkOutByCollectorAttr        = "check_by_collector"
-	checkOutCheckUUIDsAttr         = "uuids"
+	checkOutIDAttr                 = "check_id"
 	checkOutChecksAttr             = "checks"
 	checkOutCreatedAttr            = "created"
 	checkOutLastModifiedAttr       = "last_modified"
 	checkOutLastModifiedByAttr     = "last_modified_by"
 	checkOutReverseConnectURLsAttr = "reverse_connect_urls"
+	checkOutCheckUUIDsAttr         = "uuids"
 )
 
 const (
@@ -107,10 +108,11 @@ var checkDescriptions = attrDescrs{
 	checkTimeoutAttr:     "The length of time in seconds (and fractions of a second) before the check will timeout if no response is returned to the collector",
 	checkTypeAttr:        "The check type",
 
-	checkOutChecksAttr:             "",
 	checkOutByCollectorAttr:        "",
 	checkOutCheckUUIDsAttr:         "",
+	checkOutChecksAttr:             "",
 	checkOutCreatedAttr:            "",
+	checkOutIDAttr:                 "",
 	checkOutLastModifiedAttr:       "",
 	checkOutLastModifiedByAttr:     "",
 	checkOutReverseConnectURLsAttr: "",
@@ -250,6 +252,10 @@ func resourceCheck() *schema.Resource {
 			},
 
 			// Out parameters
+			checkOutIDAttr: &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			checkOutByCollectorAttr: &schema.Schema{
 				Type:     schema.TypeMap,
 				Computed: true,
@@ -347,6 +353,11 @@ func checkRead(d *schema.ResourceData, meta interface{}) error {
 		checkIDsByCollector[b] = c.Checks[i]
 	}
 
+	var checkID string
+	if len(c.Checks) == 1 {
+		checkID = c.Checks[0]
+	}
+
 	metrics := schema.NewSet(checkMetricChecksum, nil)
 	for _, m := range c.Metrics {
 		metricAttrs := map[string]interface{}{
@@ -407,6 +418,10 @@ func checkRead(d *schema.ResourceData, meta interface{}) error {
 
 	if err := d.Set(checkOutChecksAttr, c.Checks); err != nil {
 		return errwrap.Wrapf(fmt.Sprintf("Unable to store check %q attribute: {{err}}", checkOutChecksAttr), err)
+	}
+
+	if checkID != "" {
+		d.Set(checkOutIDAttr, checkID)
 	}
 
 	d.Set(checkOutCreatedAttr, c.Created)
