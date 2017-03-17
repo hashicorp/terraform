@@ -44,8 +44,10 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-backend=true` - Initialize the [backend](/docs/backends) for this environment.
 
-* `-backend-config=path` - Path to an HCL file with additional configuration
-  for the backend. This is merged with the backend in the Terraform configuration.
+* `-backend-config=value` - Value can be a path to an HCL file or a string
+  in the format of 'key=value'. This specifies additional configuration to merge
+  for the backend. This can be specified multiple times. Flags specified
+  later in the line override those specified earlier if they conflict.
 
 * `-get=true` - Download any modules for this configuration.
 
@@ -54,7 +56,7 @@ The command-line flags are all optional. The list of available flags are:
 
 ## Backend Config File
 
-The `-backend-config` path can be used to specify additional
+The `-backend-config` can take a path to specify additional
 backend configuration when [initialize a backend](/docs/backends/init.html).
 
 This is particularly useful for
@@ -71,3 +73,28 @@ configuration file for the Consul backend type:
 address = "demo.consul.io"
 path    = "newpath"
 ```
+
+This format can be mixed with the key/value format documented below. In this
+case, the values will be merged by key.
+
+## Backend Config Key/Value
+
+The `-backend-config` will also accept `key=value` pairs to specify configuration
+directly on the command line.
+
+This is particularly useful for
+[partial configuration of backends](/docs/backends/config.html). Partial
+configuration lets you keep sensitive information out of your Terraform
+configuration.
+
+The format of this flag is identical to the `-var` flag for plan, apply,
+etc. but applies to configuration keys for backends. For example:
+
+```
+$ terraform init \
+  -backend-config 'address=demo.consul.io' \
+  -backend-config 'path=newpath'
+```
+
+This format can be mixed with the file format documented above. In this
+case, the values will be merged by key.

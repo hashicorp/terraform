@@ -38,6 +38,10 @@ type BackendOpts struct {
 	// from a file.
 	ConfigFile string
 
+	// ConfigExtra is extra configuration to merge into the backend
+	// configuration after the extra file above.
+	ConfigExtra map[string]interface{}
+
 	// Plan is a plan that is being used. If this is set, the backend
 	// configuration and output configuration will come from this plan.
 	Plan *terraform.Plan
@@ -245,6 +249,20 @@ func (m *Meta) backendConfig(opts *BackendOpts) (*config.Backend, error) {
 		if err != nil {
 			return nil, fmt.Errorf(
 				"Error loading extra configuration file for backend: %s", err)
+		}
+
+		// Merge in the configuration
+		backend.RawConfig = backend.RawConfig.Merge(rc)
+	}
+
+	// If we have extra config values, merge that
+	if len(opts.ConfigExtra) > 0 {
+		log.Printf(
+			"[DEBUG] command: adding extra backend config from CLI")
+		rc, err := config.NewRawConfig(opts.ConfigExtra)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"Error adding extra configuration file for backend: %s", err)
 		}
 
 		// Merge in the configuration
