@@ -44,17 +44,19 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-backend=true` - Initialize the [backend](/docs/backends) for this environment.
 
-* `-backend-config=path` - Path to an HCL file with additional configuration
-  for the backend. This is merged with the backend in the Terraform configuration.
+* `-backend-config=value` - Value can be a path to an HCL file or a string
+  in the format of 'key=value'. This specifies additional configuration to merge
+  for the backend. This can be specified multiple times. Flags specified
+  later in the line override those specified earlier if they conflict.
 
 * `-get=true` - Download any modules for this configuration.
 
 * `-input=true` - Ask for input interactively if necessary. If this is false
   and input is required, `init` will error.
 
-## Backend Config File
+## Backend Config
 
-The `-backend-config` path can be used to specify additional
+The `-backend-config` can take a path or `key=value` pair to specify additional
 backend configuration when [initialize a backend](/docs/backends/init.html).
 
 This is particularly useful for
@@ -62,7 +64,7 @@ This is particularly useful for
 configuration lets you keep sensitive information out of your Terraform
 configuration.
 
-The backend configuration file is a basic HCL file with key/value pairs.
+For path values, the backend configuration file is a basic HCL file with key/value pairs.
 The keys are configuration keys for your backend. You do not need to wrap it
 in a `terraform` block. For example, the following file is a valid backend
 configuration file for the Consul backend type:
@@ -71,3 +73,17 @@ configuration file for the Consul backend type:
 address = "demo.consul.io"
 path    = "newpath"
 ```
+
+If the value contains an equal sign (`=`), it is parsed as a `key=value` pair.
+The format of this flag is identical to the `-var` flag for plan, apply,
+etc. but applies to configuration keys for backends. For example:
+
+```
+$ terraform init \
+  -backend-config 'address=demo.consul.io' \
+  -backend-config 'path=newpath'
+```
+
+These two formats can be mixed. In this case, the values will be merged by
+key with keys specified later in the command-line overriding conflicting
+keys specified earlier.
