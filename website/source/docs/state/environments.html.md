@@ -79,11 +79,14 @@ resource "aws_instance" "example" {
 ## Best Practices
 
 An environment alone **should not** be used to manage the difference between
-development, staging, and production. While it is technically possible, it is
-much more manageable and safe to use multiple independently managed Terraform
-configurations linked together with
-[terraform_remote_state](/docs/providers/terraform/d/remote_state.html)
-data sources.
+development, staging, and production. As Terraform configurations get larger,
+it's much more manageable and safer to split one large configuration into many
+smaller ones linked together with terraform_remote_state data sources. This
+allows teams to delegate ownership and reduce the blast radius of changes.
+For each smaller configuration, you can use environments to model the
+differences between development, staging, and production. However, if you have
+one large Terraform configuration, it is riskier and not recommended to use
+environments to model those differences.
 
 The [terraform_remote_state](/docs/providers/terraform/d/remote_state.html)
 resource accepts an `environment` name to target. Therefore, you can link
