@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	r "github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccDnsARecordSet_Basic(t *testing.T) {
+func TestAccDataDnsARecordSet_Basic(t *testing.T) {
 	tests := []struct {
 		DataSourceBlock string
 		DataSourceName  string
@@ -37,17 +37,20 @@ func TestAccDnsARecordSet_Basic(t *testing.T) {
 		},
 	}
 
+	var steps []resource.TestStep
+
 	for _, test := range tests {
-		r.UnitTest(t, r.TestCase{
-			Providers: testAccProviders,
-			Steps: []r.TestStep{
-				r.TestStep{
-					Config: test.DataSourceBlock,
-					Check: r.ComposeTestCheckFunc(
-						testCheckAttrStringArray(fmt.Sprintf("data.dns_a_record_set.%s", test.DataSourceName), "addrs", test.Expected),
-					),
-				},
-			},
-		})
+		ts := resource.TestStep{
+			Config: test.DataSourceBlock,
+			Check: resource.ComposeTestCheckFunc(
+				testCheckAttrStringArray(fmt.Sprintf("data.dns_a_record_set.%s", test.DataSourceName), "addrs", test.Expected),
+			),
+		}
+		steps = append(steps, ts)
 	}
+
+	resource.Test(t, resource.TestCase{
+		Providers: testAccProviders,
+		Steps:     steps,
+	})
 }
