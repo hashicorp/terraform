@@ -1,10 +1,14 @@
 ---
-title: "Terraform Variables and Configuration"
+layout: "runs"
+page_title: "Runs: Variables and Configuration"
+sidebar_current: "docs-enterprise-runs-schedule"
+description: |-
+  How to configure runs and their variables.
 ---
 
 # Terraform Variables and Configuration
 
-There are two ways to configure Terraform runs in Atlas – with
+There are two ways to configure Terraform runs – with
 Terraform variables or environment variables.
 
 ## Terraform Variables
@@ -13,16 +17,15 @@ Terraform variables are first-class configuration in Terraform. They
 define the parameterization of Terraform configurations and are important
 for sharing and removal of sensitive secrets from version control.
 
-Variables are sent to Atlas with `terraform push`. Any variables in your local
-`.tfvars` files are securely uploaded to Atlas. Once variables are uploaded to
-Atlas, Terraform will prefer the Atlas-stored variables over any changes you
+Variables are sent with the `terraform push` command. Any variables in your local
+`.tfvars` files are securely uploaded. Once variables are uploaded, Terraform will prefer the Atlas-stored variables over any changes you
 make locally. Please refer to the
 [Terraform push documentation](https://www.terraform.io/docs/commands/push.html)
 for more information.
 
-You can also add, edit, and delete Terraform variables via Atlas. To update
-Terraform variables in Atlas, visit the "variables" page on your
-[environment](/help/glossary#environment).
+You can also add, edit, and delete variables. To update
+Terraform variables, visit the "variables" page on your
+environment.
 
 The maximum size for the value of Terraform variables is `256kb`.
 
@@ -36,10 +39,10 @@ Environment variables are injected into the virtual environment that Terraform
 executes in during the `plan` and `apply` phases.
 
 You can add, edit, and delete environment variables from the "variables" page
-on your [environment](/help/glossary#environment).
+on your environment.
 
 Additionally, the following environment variables are automatically injected by
-Atlas. All Atlas-injected environment variables will be prefixed with `ATLAS_`
+Terraform Enterprise. All injected environment variables will be prefixed with `ATLAS_`
 
 - `ATLAS_TOKEN` - This is a unique, per-run token that expires at the end of
   run execution (e.g. `"abcd.atlasv1.ghjkl..."`).
@@ -68,7 +71,7 @@ resource was created outside of GitHub (like using `terraform push`).
 
 ## Managing Secret Multi-Line Files
 
-Atlas has the ability to store multi-line files as variables. The recommended way to manage your secret/sensitive multi-line files (private key, SSL cert, SSL private key, CA, etc.) is to add them as [Terraform Variables](#terraform-variables) or [Environment Variables](#environment-variables) in Atlas.
+Terraform Enterprise has the ability to store multi-line files as variables. The recommended way to manage your secret/sensitive multi-line files (private key, SSL cert, SSL private key, CA, etc.) is to add them as [Terraform Variables](#terraform-variables) or [Environment Variables](#environment-variables).
 
 Just like secret strings, it is recommended that you never check in these multi-line secret files to version control by following the below steps.
 
@@ -93,11 +96,11 @@ Set the [variables](https://www.terraform.io/docs/configuration/variables.html) 
 
     $ terraform push -name $ATLAS_USERNAME/example -var "private_key=$MY_PRIVATE_KEY"
 
-`terraform push` any "Environment Variables" to Atlas:
+`terraform push` any "Environment Variables":
 
     $ TF_VAR_private_key=$MY_PRIVATE_KEY terraform push -name $ATLAS_USERNAME/example
 
-Alternatively, you can add or update variables manually by going to the "Variables" section of your Atlas Environment and pasting the contents of the file in as the value.
+Alternatively, you can add or update variables manually by going to the "Variables" section of your Environment and pasting the contents of the file in as the value.
 
 Now, any resource that consumes that variable will have access to the variable value, without having to check the file into version control. If you want to run Terraform locally, that file will still need to be passed in as a variable in the CLI. View the [Terraform Variable Documentation](https://www.terraform.io/docs/configuration/variables.html) for more info on how to accomplish this.
 
@@ -119,7 +122,7 @@ You can update variables locally by using the `-overwrite` flag with your `terra
 
 ## Notes on Security
 
-Terraform variables and environment variables in Atlas are encrypted using
+Terraform variables and environment variables are encrypted using
 [Vault](https://vaultproject.io) and closely guarded and audited. If you have
 questions or concerns about the safety of your configuration, please contact
 our security team at [security@hashicorp.com](mailto:security@hashicorp.com).
