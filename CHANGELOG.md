@@ -21,6 +21,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+ * core: Fix panic when an undefined module is reference [GH-12793]
  * command/apply: Applies from plans with backends set will reuse the backend rather than local [GH-12785]
  * command/init: Changing only `-backend-config` detects changes and reconfigures [GH-12776]
  * command/push: Detect local state and error properly [GH-12773]
