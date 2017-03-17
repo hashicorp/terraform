@@ -17,6 +17,7 @@ IMPROVEMENTS:
 
  * provider/aws: Improved error when failing to get S3 tags [GH-12759]
  * provider/aws: Validate CIDR Blocks in SG and SG rule resources [GH-12765]
+ * Allow `name_prefix` to be used with various IAM resources [GH-12658]
  * provider/openstack: Add timeout support for Compute resources [GH-12794]
  * provider/scaleway: expose public IPv6 information on scaleway_server [GH-12748]
 
