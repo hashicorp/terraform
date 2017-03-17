@@ -20,6 +20,9 @@ func resourceAwsIAMServerCertificate() *schema.Resource {
 		Create: resourceAwsIAMServerCertificateCreate,
 		Read:   resourceAwsIAMServerCertificateRead,
 		Delete: resourceAwsIAMServerCertificateDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceAwsIAMServerCertificateImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"certificate_body": &schema.Schema{
@@ -48,6 +51,8 @@ func resourceAwsIAMServerCertificate() *schema.Resource {
 				Required:  true,
 				ForceNew:  true,
 				StateFunc: normalizeCert,
+				Sensitive: true,
+				Optional:  true,
 			},
 
 			"name": &schema.Schema{
@@ -194,6 +199,13 @@ func resourceAwsIAMServerCertificateDelete(d *schema.ResourceData, meta interfac
 
 	d.SetId("")
 	return nil
+}
+
+func resourceAwsIAMServerCertificateImport(
+	d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	d.Set("name", d.Id())
+	// private_key can't be fetched from any API call
+	return []*schema.ResourceData{d}, nil
 }
 
 func normalizeCert(cert interface{}) string {

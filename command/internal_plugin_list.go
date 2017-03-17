@@ -37,7 +37,6 @@ import (
 	icinga2provider "github.com/hashicorp/terraform/builtin/providers/icinga2"
 	ignitionprovider "github.com/hashicorp/terraform/builtin/providers/ignition"
 	influxdbprovider "github.com/hashicorp/terraform/builtin/providers/influxdb"
-	kubernetesprovider "github.com/hashicorp/terraform/builtin/providers/kubernetes"
 	libratoprovider "github.com/hashicorp/terraform/builtin/providers/librato"
 	logentriesprovider "github.com/hashicorp/terraform/builtin/providers/logentries"
 	mailgunprovider "github.com/hashicorp/terraform/builtin/providers/mailgun"
@@ -70,15 +69,13 @@ import (
 	vaultprovider "github.com/hashicorp/terraform/builtin/providers/vault"
 	vcdprovider "github.com/hashicorp/terraform/builtin/providers/vcd"
 	vsphereprovider "github.com/hashicorp/terraform/builtin/providers/vsphere"
-	fileprovisioner "github.com/hashicorp/terraform/builtin/provisioners/file"
-	localexecprovisioner "github.com/hashicorp/terraform/builtin/provisioners/local-exec"
-	remoteexecprovisioner "github.com/hashicorp/terraform/builtin/provisioners/remote-exec"
+	chefresourceprovisioner "github.com/hashicorp/terraform/builtin/provisioners/chef"
+	fileresourceprovisioner "github.com/hashicorp/terraform/builtin/provisioners/file"
+	localexecresourceprovisioner "github.com/hashicorp/terraform/builtin/provisioners/local-exec"
+	remoteexecresourceprovisioner "github.com/hashicorp/terraform/builtin/provisioners/remote-exec"
 
 	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/terraform"
-
-	// Legacy, will remove once it conforms with new structure
-	chefprovisioner "github.com/hashicorp/terraform/builtin/provisioners/chef"
 )
 
 var InternalProviders = map[string]plugin.ProviderFunc{
@@ -113,7 +110,6 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"icinga2":      icinga2provider.Provider,
 	"ignition":     ignitionprovider.Provider,
 	"influxdb":     influxdbprovider.Provider,
-	"kubernetes":   kubernetesprovider.Provider,
 	"librato":      libratoprovider.Provider,
 	"logentries":   logentriesprovider.Provider,
 	"mailgun":      mailgunprovider.Provider,
@@ -149,13 +145,8 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 }
 
 var InternalProvisioners = map[string]plugin.ProvisionerFunc{
-	"file":        fileprovisioner.Provisioner,
-	"local-exec":  localexecprovisioner.Provisioner,
-	"remote-exec": remoteexecprovisioner.Provisioner,
-}
-
-func init() {
-	// Legacy provisioners that don't match our heuristics for auto-finding
-	// built-in provisioners.
-	InternalProvisioners["chef"] = func() terraform.ResourceProvisioner { return new(chefprovisioner.ResourceProvisioner) }
+	"chef":        func() terraform.ResourceProvisioner { return new(chefresourceprovisioner.ResourceProvisioner) },
+	"file":        func() terraform.ResourceProvisioner { return new(fileresourceprovisioner.ResourceProvisioner) },
+	"local-exec":  func() terraform.ResourceProvisioner { return new(localexecresourceprovisioner.ResourceProvisioner) },
+	"remote-exec": func() terraform.ResourceProvisioner { return new(remoteexecresourceprovisioner.ResourceProvisioner) },
 }
