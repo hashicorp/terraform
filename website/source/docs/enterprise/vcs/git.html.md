@@ -1,14 +1,17 @@
 ---
-title: "Git Integration"
+layout: "vcs"
+page_title: "Git Integration"
+sidebar_current: "docs-enterprise-vcs"
+description: |-
+  Git repositories can be integrated with Terraform Enterprise by using push command.
 ---
 
 # Git Integation
 
-Git repositories can be integrated with Atlas by using
+Git repositories can be integrated with Terraform Enterprise by using
 [`terraform push`](https://www.terraform.io/docs/commands/push.html) to import
 Terraform configuration when changes are committed. When Terraform
-configuration is imported using `terraform push` a plan is automatically queued
-in Atlas.
+configuration is imported using `terraform push` a plan is automatically queued.
 
 _**Note:** This integration is for Git repositories **not** hosted on GitHub. 
 For repositories on GitHub, there is native [GitHub Integration](/help/terraform/vcs/github).
@@ -36,7 +39,7 @@ repository, set the necessary variables, and ensure the script is executable.
 ```
 #!/bin/bash
 #
-# An example hook script to push Terraform configuration to Atlas.
+# An example hook script to push Terraform configuration to Terraform Enterprise.
 #
 # Set the following variables for your project:
 # - ENV_NAME - your Atlas environment name (e.g. org/env)
