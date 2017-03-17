@@ -1,27 +1,31 @@
 ---
-title: "GitHub Integration"
+layout: "vcs"
+page_title: "GitHub Integration"
+sidebar_current: "docs-enterprise-vcs"
+description: |-
+  GitHub repositories can be integrated with Terraform Enterprise by using push command.
 ---
 
 # GitHub Integration
 
 GitHub can be used to import Terraform configuration, automatically queuing
 runs when changes are merged into a repository's default branch. Additionally,
-plans are run when a pull request is created or updated. Atlas will update the
+plans are run when a pull request is created or updated. Terraform Enterprise will update the
 pull request with the result of the Terraform plan providing quick feedback on
 proposed changes.
 
 ## Setup
 
-Atlas environments are linked to individual GitHub repositories. However, a
-single GitHub repository can be linked to multiple Atlas environments allowing
+Terraform Enterprise environments are linked to individual GitHub repositories. However, a
+single GitHub repository can be linked to multiple environments allowing
 a single set of Terraform configuration to be used across multiple environments.
 
-Atlas environments can be linked when they're initially created using the
+Environments can be linked when they're initially created using the
 [New Environment](https://atlas.hashicorp.com/configurations/import) process.
 Existing environments can be linked by setting GitHub details in their
 **Integrations**.
 
-To link an Atlas environment to a GitHub repository, you need three pieces of
+To link a Terraform Enterprise environment to a GitHub repository, you need three pieces of
 information:
 
 - **GitHub repository** - The location of the repository being imported in the
