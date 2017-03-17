@@ -128,6 +128,11 @@ func resourceNetworkingPortV2() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"all_fixed_ips": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 		},
 	}
 }
@@ -203,14 +208,21 @@ func resourceNetworkingPortV2Read(d *schema.ResourceData, meta interface{}) erro
 	d.Set("device_id", p.DeviceID)
 
 	// Convert FixedIPs to list of map
+	// ips2 is used for the `all_fixed_ips` exported attribute.
 	var ips []map[string]interface{}
+	var ips2 []string
 	for _, ipObject := range p.FixedIPs {
 		ip := make(map[string]interface{})
 		ip["subnet_id"] = ipObject.SubnetID
 		ip["ip_address"] = ipObject.IPAddress
 		ips = append(ips, ip)
+		ips2 = append(ips2, ipObject.IPAddress)
 	}
 	d.Set("fixed_ip", ips)
+
+	// The order of ips2 will be the order returned by the API.
+	// This is usually alphabetical/numerical order.
+	d.Set("all_fixed_ips", ips2)
 
 	// Convert AllowedAddressPairs to list of map
 	var pairs []map[string]interface{}
