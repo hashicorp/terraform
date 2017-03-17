@@ -1394,7 +1394,7 @@ The error(s) configuring the legacy remote state:
 const errBackendLegacyUnknown = `
 The legacy remote state type %q could not be found.
 
-Terraform 0.9.0 shipped with backwards compatible for all built-in
+Terraform 0.9.0 shipped with backwards compatibility for all built-in
 legacy remote state types. This error may mean that you were using a
 custom Terraform build that perhaps supported a different type of
 remote state.
