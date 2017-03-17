@@ -3173,7 +3173,7 @@ func TestSchemaMap_Input(t *testing.T) {
 		 * String decode
 		 */
 
-		"uses input on optional field with no config": {
+		"no input on optional field with no config": {
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
 					Type:     TypeString,
@@ -3181,15 +3181,9 @@ func TestSchemaMap_Input(t *testing.T) {
 				},
 			},
 
-			Input: map[string]string{
-				"availability_zone": "foo",
-			},
-
-			Result: map[string]interface{}{
-				"availability_zone": "foo",
-			},
-
-			Err: false,
+			Input:  map[string]string{},
+			Result: map[string]interface{}{},
+			Err:    false,
 		},
 
 		"input ignored when config has a value": {
@@ -3276,7 +3270,7 @@ func TestSchemaMap_Input(t *testing.T) {
 					DefaultFunc: func() (interface{}, error) {
 						return nil, nil
 					},
-					Optional: true,
+					Required: true,
 				},
 			},
 
@@ -3289,6 +3283,22 @@ func TestSchemaMap_Input(t *testing.T) {
 			},
 
 			Err: false,
+		},
+
+		"input not used when optional default function returns nil": {
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type: TypeString,
+					DefaultFunc: func() (interface{}, error) {
+						return nil, nil
+					},
+					Optional: true,
+				},
+			},
+
+			Input:  map[string]string{},
+			Result: map[string]interface{}{},
+			Err:    false,
 		},
 	}
 
