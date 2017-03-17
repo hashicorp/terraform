@@ -84,6 +84,24 @@ func (client *AliyunClient) DescribeZone(zoneID string) (*ecs.ZoneType, error) {
 	return zone, nil
 }
 
+// return multiIZ list of current region
+func (client *AliyunClient) DescribeMultiIZByRegion() (izs []string, err error) {
+	resp, err := client.rdsconn.DescribeRegions()
+	if err != nil {
+		return nil, fmt.Errorf("error to list regions not found")
+	}
+	regions := resp.Regions.RDSRegion
+
+	zoneIds := []string{}
+	for _, r := range regions {
+		if r.RegionId == string(client.Region) && strings.Contains(r.ZoneId, MULTI_IZ_SYMBOL) {
+			zoneIds = append(zoneIds, r.ZoneId)
+		}
+	}
+
+	return zoneIds, nil
+}
+
 func (client *AliyunClient) QueryInstancesByIds(ids []string) (instances []ecs.InstanceAttributesType, err error) {
 	idsStr, jerr := json.Marshal(ids)
 	if jerr != nil {
@@ -117,6 +135,23 @@ func (client *AliyunClient) QueryInstancesById(id string) (instance *ecs.Instanc
 	}
 
 	return &instances[0], nil
+}
+
+func (client *AliyunClient) QueryInstanceSystemDisk(id string) (disk *ecs.DiskItemType, err error) {
+	args := ecs.DescribeDisksArgs{
+		RegionId:   client.Region,
+		InstanceId: string(id),
+		DiskType:   ecs.DiskTypeAllSystem,
+	}
+	disks, _, err := client.ecsconn.DescribeDisks(&args)
+	if err != nil {
+		return nil, err
+	}
+	if len(disks) == 0 {
+		return nil, common.GetClientErrorFromString(SystemDiskNotFound)
+	}
+
+	return &disks[0], nil
 }
 
 // ResourceAvailable check resource available for zone
@@ -186,15 +221,26 @@ func (client *AliyunClient) DescribeSecurity(securityGroupId string) (*ecs.Descr
 	return client.ecsconn.DescribeSecurityGroupAttribute(args)
 }
 
-func (client *AliyunClient) DescribeSecurityGroupRule(securityGroupId, types, ip_protocol, port_range string) (*ecs.PermissionType, error) {
+func (client *AliyunClient) DescribeSecurityByAttr(securityGroupId, direction, nicType string) (*ecs.DescribeSecurityGroupAttributeResponse, error) {
 
-	sg, err := client.DescribeSecurity(securityGroupId)
+	args := &ecs.DescribeSecurityGroupAttributeArgs{
+		RegionId:        client.Region,
+		SecurityGroupId: securityGroupId,
+		Direction:       direction,
+		NicType:         ecs.NicType(nicType),
+	}
+
+	return client.ecsconn.DescribeSecurityGroupAttribute(args)
+}
+
+func (client *AliyunClient) DescribeSecurityGroupRule(securityGroupId, direction, nicType, ipProtocol, portRange string) (*ecs.PermissionType, error) {
+	sg, err := client.DescribeSecurityByAttr(securityGroupId, direction, nicType)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, p := range sg.Permissions.Permission {
-		if strings.ToLower(string(p.IpProtocol)) == ip_protocol && p.PortRange == port_range {
+		if strings.ToLower(string(p.IpProtocol)) == ipProtocol && p.PortRange == portRange {
 			return &p, nil
 		}
 	}
@@ -203,6 +249,11 @@ func (client *AliyunClient) DescribeSecurityGroupRule(securityGroupId, types, ip
 }
 
 func (client *AliyunClient) RevokeSecurityGroup(args *ecs.RevokeSecurityGroupArgs) error {
-	//todo: handle the specal err
+	//when the rule is not exist, api will return success(200)
 	return client.ecsconn.RevokeSecurityGroup(args)
+}
+
+func (client *AliyunClient) RevokeSecurityGroupEgress(args *ecs.RevokeSecurityGroupEgressArgs) error {
+	//when the rule is not exist, api will return success(200)
+	return client.ecsconn.RevokeSecurityGroupEgress(args)
 }

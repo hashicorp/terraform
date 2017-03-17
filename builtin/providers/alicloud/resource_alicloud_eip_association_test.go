@@ -108,6 +108,10 @@ func testAccCheckEIPAssociationDestroy(s *terraform.State) error {
 }
 
 const testAccEIPAssociationConfig = `
+data "alicloud_zones" "default" {
+  "available_resource_creation"= "VSwitch"
+}
+
 resource "alicloud_vpc" "main" {
   cidr_block = "10.1.0.0/21"
 }
@@ -115,19 +119,23 @@ resource "alicloud_vpc" "main" {
 resource "alicloud_vswitch" "main" {
   vpc_id = "${alicloud_vpc.main.id}"
   cidr_block = "10.1.1.0/24"
-  availability_zone = "cn-beijing-a"
+  availability_zone = "${data.alicloud_zones.default.zones.0.id}"
   depends_on = [
     "alicloud_vpc.main"]
 }
 
 resource "alicloud_instance" "instance" {
-  image_id = "ubuntu_140405_64_40G_cloudinit_20161115.vhd"
-  instance_type = "ecs.s1.small"
-  availability_zone = "cn-beijing-a"
-  security_groups = ["${alicloud_security_group.group.id}"]
+  # cn-beijing
   vswitch_id = "${alicloud_vswitch.main.id}"
-  instance_name = "hello"
-  io_optimized = "none"
+  image_id = "ubuntu_140405_32_40G_cloudinit_20161115.vhd"
+
+  # series II
+  instance_type = "ecs.n1.medium"
+  io_optimized = "optimized"
+  system_disk_category = "cloud_efficiency"
+
+  security_groups = ["${alicloud_security_group.group.id}"]
+  instance_name = "test_foo"
 
   tags {
     Name = "TerraformTest-instance"
