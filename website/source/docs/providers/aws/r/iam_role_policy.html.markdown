@@ -58,7 +58,10 @@ EOF
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the role policy.
+* `name` - (Optional) The name of the role policy. If omitted, Terraform will
+assign a random, unique name.
+* `name_prefix` - (Optional) Creates a unique name beginning with the specified
+  prefix. Conflicts with `name`.
 * `policy` - (Required) The policy document. This is a JSON formatted string.
   The heredoc syntax or `file` function is helpful here.
 * `role` - (Required) The IAM role to attach to the policy.

@@ -38,7 +38,7 @@ EOF
 
 The following arguments are supported:
 
-* `name` - (Optional, Forces new resource) The name of the role.
+* `name` - (Optional, Forces new resource) The name of the role. If omitted, Terraform will assign a random, unique name.
 * `name_prefix` - (Optional, Forces new resource) Creates a unique name beginning with the specified prefix. Conflicts with `name`.
 * `assume_role_policy` - (Required) The policy that grants an entity permission to assume the role.
 

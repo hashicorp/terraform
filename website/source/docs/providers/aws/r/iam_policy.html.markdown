@@ -38,7 +38,7 @@ EOF
 The following arguments are supported:
 
 * `description` - (Optional) Description of the IAM policy.
-* `name` - (Optional, Forces new resource) The name of the policy.
+* `name` - (Optional, Forces new resource) The name of the policy. If omitted, Terraform will assign a random, unique name.
 * `name_prefix` - (Optional, Forces new resource) Creates a unique name beginning with the specified prefix. Conflicts with `name`.
 * `path` - (Optional, default "/") Path in which to create the policy.
   See [IAM Identifiers](https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html) for more information.
