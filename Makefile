@@ -29,8 +29,12 @@ core-dev: generate
 # Shorthand for quickly testing the core of Terraform (i.e. "not providers")
 core-test: generate
 	@echo "Testing core packages..." && \
-		go test -tags 'core' $(TESTARGS) $(shell go list ./... | grep -v -E 'terraform/(builtin|vendor)')
+		go test -tags `core` $(TESTARGS) $(shell go list ./... | grep -v -E `terraform/(builtin|vendor)`)
 
+get-deps:
+	@echo "==> Fetching dependencies"
+	@go get -v $(TEST)
+	
 # Shorthand for building and installing just one plugin for local testing.
 # Run as (for example): make plugin-dev PLUGIN=provider-aws
 plugin-dev: generate

@@ -60,11 +60,12 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"vcd_network":        resourceVcdNetwork(),
-			"vcd_vapp":           resourceVcdVApp(),
-			"vcd_firewall_rules": resourceVcdFirewallRules(),
-			"vcd_dnat":           resourceVcdDNAT(),
-			"vcd_snat":           resourceVcdSNAT(),
+			"vcd_network":         resourceVcdNetwork(),
+			"vcd_vapp":            resourceVcdVApp(),
+			"vcd_firewall_rules":  resourceVcdFirewallRules(),
+			"vcd_dnat":            resourceVcdDNAT(),
+			"vcd_snat":            resourceVcdSNAT(),
+			"vcd_edgegateway_vpn": resourceVcdEdgeGatewayVpn(),
 		},
 
 		ConfigureFunc: providerConfigure,

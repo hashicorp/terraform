@@ -67,7 +67,7 @@ func (v *Vdc) Refresh() error {
 	}
 
 	v.Vdc = unmarshalledVdc
-	
+
 	// The request was successful
 	return nil
 }
@@ -217,7 +217,7 @@ func (v *Vdc) FindVAppByName(vapp string) (VApp, error) {
 				newvapp := NewVApp(v.c)
 
 				if err = decodeBody(resp, newvapp.VApp); err != nil {
-					return VApp{}, fmt.Errorf("error decoding vApp response: %s", err)
+					return VApp{}, fmt.Errorf("error decoding vApp response: %s", err.Error())
 				}
 
 				return *newvapp, nil
@@ -226,6 +226,48 @@ func (v *Vdc) FindVAppByName(vapp string) (VApp, error) {
 		}
 	}
 	return VApp{}, fmt.Errorf("can't find vApp: %s", vapp)
+}
+
+func (v *Vdc) FindVMByName(vapp VApp, vm string) (VM, error) {
+
+	err := v.Refresh()
+	if err != nil {
+		return VM{}, fmt.Errorf("error refreshing vdc: %s", err)
+	}
+
+	for _, child := range vapp.VApp.Children.VM {
+
+		if child.Name == vm {
+
+			u, err := url.ParseRequestURI(child.HREF)
+
+			if err != nil {
+				return VM{}, fmt.Errorf("error decoding vdc response: %s", err)
+			}
+
+			// Querying the VApp
+			req := v.c.NewRequest(map[string]string{}, "GET", *u, nil)
+
+			resp, err := checkResp(v.c.Http.Do(req))
+			if err != nil {
+				return VM{}, fmt.Errorf("error retrieving vm: %s", err)
+			}
+
+			newvm := NewVM(v.c)
+
+			//body, err := ioutil.ReadAll(resp.Body)
+			//fmt.Println(string(body))
+
+			if err = decodeBody(resp, newvm.VM); err != nil {
+				return VM{}, fmt.Errorf("error decoding vm response: %s", err.Error())
+			}
+
+			return *newvm, nil
+
+		}
+
+	}
+	return VM{}, fmt.Errorf("can't find vm: %s", vm)
 }
 
 func (v *Vdc) FindVAppByID(vappid string) (VApp, error) {
