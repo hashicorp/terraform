@@ -1,6 +1,8 @@
 ## 0.9.2 (unreleased)
 
+IMPROVEMENTS:
 
+ * provider/dnsimple: Allow dnsimple_record.priority attribute to be set [GH-12843]
 
 ## 0.9.1 (March 17, 2017)
 
