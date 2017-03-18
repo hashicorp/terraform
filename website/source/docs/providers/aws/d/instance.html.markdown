@@ -8,7 +8,7 @@ description: |-
 
 # aws\_instance
 
-Use this data source to get the ID of an Amazon EC2 Instance for use in other
+Use this data source to get the attributes of an Amazon EC2 Instance for use in other
 resources.
 
 ## Example Usage
