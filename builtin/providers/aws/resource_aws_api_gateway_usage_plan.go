@@ -244,18 +244,21 @@ func resourceAwsApiGatewayUsagePlanRead(d *schema.ResourceData, meta interface{}
 	d.Set("product_code", up.ProductCode)
 
 	if up.ApiStages != nil {
-		config := flattenApiGatewayUsageApiStages(up.ApiStages)
-		d.Set("api_stages", config)
+		if err := d.Set("api_stages", flattenApiGatewayUsageApiStages(up.ApiStages)); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting api_stages error: %#v", err)
+		}
 	}
 
 	if up.Throttle != nil {
-		config := flattenApiGatewayUsagePlanThrottling(up.Throttle)
-		d.Set("throttle_settings", config)
+		if err := d.Set("throttle_settings", flattenApiGatewayUsagePlanThrottling(up.Throttle)); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting throttle_settings error: %#v", err)
+		}
 	}
 
 	if up.Quota != nil {
-		config := flattenApiGatewayUsagePlanQuota(up.Quota)
-		d.Set("quota_settings", config)
+		if err := d.Set("quota_settings", flattenApiGatewayUsagePlanQuota(up.Quota)); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting quota_settings error: %#v", err)
+		}
 	}
 
 	return nil
@@ -444,12 +447,10 @@ func resourceAwsApiGatewayUsagePlanUpdate(d *schema.ResourceData, meta interface
 		PatchOperations: operations,
 	}
 
-	up, err := conn.UpdateUsagePlan(params)
+	_, err := conn.UpdateUsagePlan(params)
 	if err != nil {
 		return fmt.Errorf("Error updating API Gateway Usage Plan: %s", err)
 	}
-
-	d.SetId(*up.Id)
 
 	return resourceAwsApiGatewayUsagePlanRead(d, meta)
 }
