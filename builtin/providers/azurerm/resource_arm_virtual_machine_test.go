@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	//"regexp"
+	"regexp"
 )
 
 func TestAccAzureRMVirtualMachine_basicLinuxMachine(t *testing.T) {
@@ -594,6 +596,38 @@ func TestAccAzureRMVirtualMachine_changeSSHKey(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &vm),
 				),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMVirtualMachine_osDiskTypeConflict(t *testing.T) {
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMVirtualMachine_osDiskTypeConflict, ri, ri, ri, ri, ri, ri, ri)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      config,
+				ExpectError: regexp.MustCompile("conflicts with storage_os_disk.0.vhd_uri"),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMVirtualMachine_dataDiskTypeConflict(t *testing.T) {
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMVirtualMachine_dataDiskTypeConflict, ri, ri, ri, ri, ri, ri, ri)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      config,
+				ExpectError: regexp.MustCompile("conflicts with storage_data_disk.1.vhd_uri"),
 			},
 		},
 	})
@@ -3234,17 +3268,16 @@ resource "azurerm_virtual_machine" "test" {
     }
 }
 `
-
-var testAccAzureRMVirtualMachine_primaryNetworkInterfaceId = `
+var testAccAzureRMVirtualMachine_osDiskTypeConflict = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
-    location = "West US"
+    location = "West US 2"
 }
 
 resource "azurerm_virtual_network" "test" {
     name = "acctvn-%d"
     address_space = ["10.0.0.0/16"]
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
@@ -3257,7 +3290,7 @@ resource "azurerm_subnet" "test" {
 
 resource "azurerm_network_interface" "test" {
     name = "acctni-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 
     ip_configuration {
@@ -3267,43 +3300,12 @@ resource "azurerm_network_interface" "test" {
     }
 }
 
-resource "azurerm_network_interface" "test2" {
-    name = "acctni2-%d"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-
-    ip_configuration {
-    	name = "testconfiguration2"
-    	subnet_id = "${azurerm_subnet.test.id}"
-    	private_ip_address_allocation = "dynamic"
-    }
-}
-
-resource "azurerm_storage_account" "test" {
-    name = "accsa%d"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "westus"
-    account_type = "Standard_LRS"
-
-    tags {
-        environment = "staging"
-    }
-}
-
-resource "azurerm_storage_container" "test" {
-    name = "vhds"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    storage_account_name = "${azurerm_storage_account.test.name}"
-    container_access_type = "private"
-}
-
 resource "azurerm_virtual_machine" "test" {
     name = "acctvm-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    network_interface_ids = ["${azurerm_network_interface.test.id}","${azurerm_network_interface.test2.id}"]
-    primary_network_interface_id = "${azurerm_network_interface.test.id}"
-    vm_size = "Standard_A3"
+    network_interface_ids = ["${azurerm_network_interface.test.id}"]
+    vm_size = "Standard_D1_v2"
 
     storage_image_reference {
 	publisher = "Canonical"
@@ -3313,15 +3315,115 @@ resource "azurerm_virtual_machine" "test" {
     }
 
     storage_os_disk {
-        name = "myosdisk1"
-        vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
+        name = "osd-%d"
         caching = "ReadWrite"
         create_option = "FromImage"
+        disk_size_gb = "10"
+        managed_disk_type = "Standard_LRS"
+        vhd_uri = "should_cause_conflict"
+    }
+
+    storage_data_disk {
+        name = "mydatadisk1"
+        caching = "ReadWrite"
+        create_option = "Empty"
         disk_size_gb = "45"
+        managed_disk_type = "Standard_LRS"
+        lun = "0"
     }
 
     os_profile {
-	computer_name = "hostname"
+	computer_name = "hn%d"
+	admin_username = "testadmin"
+	admin_password = "Password1234!"
+    }
+
+    os_profile_linux_config {
+	disable_password_authentication = false
+    }
+
+    tags {
+    	environment = "Production"
+    	cost-center = "Ops"
+    }
+}
+`
+
+var testAccAzureRMVirtualMachine_dataDiskTypeConflict = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "West US 2"
+}
+
+resource "azurerm_virtual_network" "test" {
+    name = "acctvn-%d"
+    address_space = ["10.0.0.0/16"]
+    location = "West US 2"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_subnet" "test" {
+    name = "acctsub-%d"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    virtual_network_name = "${azurerm_virtual_network.test.name}"
+    address_prefix = "10.0.2.0/24"
+}
+
+resource "azurerm_network_interface" "test" {
+    name = "acctni-%d"
+    location = "West US 2"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+
+    ip_configuration {
+    	name = "testconfiguration1"
+    	subnet_id = "${azurerm_subnet.test.id}"
+    	private_ip_address_allocation = "dynamic"
+    }
+}
+
+resource "azurerm_virtual_machine" "test" {
+    name = "acctvm-%d"
+    location = "West US 2"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    network_interface_ids = ["${azurerm_network_interface.test.id}"]
+    vm_size = "Standard_D1_v2"
+
+    storage_image_reference {
+	publisher = "Canonical"
+	offer = "UbuntuServer"
+	sku = "14.04.2-LTS"
+	version = "latest"
+    }
+
+    storage_os_disk {
+        name = "osd-%d"
+        caching = "ReadWrite"
+        create_option = "FromImage"
+        disk_size_gb = "10"
+        managed_disk_type = "Standard_LRS"
+    }
+
+    storage_data_disk {
+        name = "mydatadisk1"
+        caching = "ReadWrite"
+        create_option = "Empty"
+        disk_size_gb = "45"
+        managed_disk_type = "Standard_LRS"
+        lun = "0"
+    }
+
+    storage_data_disk {
+        name = "mydatadisk1"
+        vhd_uri = "should_cause_conflict"
+        caching = "ReadWrite"
+        create_option = "Empty"
+        disk_size_gb = "45"
+        managed_disk_type = "Standard_LRS"
+        lun = "1"
+    }
+
+    os_profile {
+	computer_name = "hn%d"
 	admin_username = "testadmin"
 	admin_password = "Password1234!"
     }
