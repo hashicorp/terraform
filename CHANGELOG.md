@@ -3,6 +3,10 @@
 IMPROVEMENTS:
 
  * provider/dnsimple: Allow dnsimple_record.priority attribute to be set [GH-12843]
+ 
+BUG FIXES: 
+ 
+ * provider/mysql: recreate user/grant if user/grant got deleted manually [GH-12791]
 
 ## 0.9.1 (March 17, 2017)
 
