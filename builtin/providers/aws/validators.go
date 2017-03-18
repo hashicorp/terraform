@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -926,7 +927,7 @@ func validateConfigExecutionFrequency(v interface{}, k string) (ws []string, err
 		}
 	}
 	errors = append(errors, fmt.Errorf(
-		"%q contains an invalid freqency %q. Valid frequencies are %q.",
+		"%q contains an invalid frequency %q. Valid frequencies are %q.",
 		k, frequency, validFrequencies))
 	return
 }
@@ -972,5 +973,42 @@ func validateIamRolePolicyNamePrefix(v interface{}, k string) (ws []string, erro
 	if !regexp.MustCompile("^[\\w+=,.@-]+$").MatchString(value) {
 		errors = append(errors, fmt.Errorf("%q must match [\\w+=,.@-]", k))
 	}
+	return
+}
+
+func validateApiGatewayUsagePlanQuotaSettingsPeriod(v interface{}, k string) (ws []string, errors []error) {
+	validPeriods := []string{
+		apigateway.QuotaPeriodTypeDay,
+		apigateway.QuotaPeriodTypeWeek,
+		apigateway.QuotaPeriodTypeMonth,
+	}
+	period := v.(string)
+	for _, f := range validPeriods {
+		if period == f {
+			return
+		}
+	}
+	errors = append(errors, fmt.Errorf(
+		"%q contains an invalid period %q. Valid period are %q.",
+		k, period, validPeriods))
+	return
+}
+
+func validateApiGatewayUsagePlanQuotaSettings(v map[string]interface{}) (errors []error) {
+	period := v["period"].(string)
+	offset := v["offset"].(int)
+
+	if period == apigateway.QuotaPeriodTypeDay && offset != 0 {
+		errors = append(errors, fmt.Errorf("Usage Plan quota offset must be zero in the DAY period"))
+	}
+
+	if period == apigateway.QuotaPeriodTypeWeek && (offset < 0 || offset > 6) {
+		errors = append(errors, fmt.Errorf("Usage Plan quota offset must be between 0 and 6 inclusive in the WEEK period"))
+	}
+
+	if period == apigateway.QuotaPeriodTypeMonth && (offset < 0 || offset > 27) {
+		errors = append(errors, fmt.Errorf("Usage Plan quota offset must be between 0 and 27 inclusive in the MONTH period"))
+	}
+
 	return
 }
