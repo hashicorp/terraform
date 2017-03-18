@@ -157,6 +157,11 @@ func resourceAwsEMRCluster() *schema.Resource {
 				ForceNew: true,
 				Required: true,
 			},
+			"autoscaling_role": &schema.Schema{
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+			},
 			"visible_to_all_users": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -259,6 +264,9 @@ func resourceAwsEMRClusterCreate(d *schema.ResourceData, meta interface{}) error
 	if v, ok := d.GetOk("log_uri"); ok {
 		params.LogUri = aws.String(v.(string))
 	}
+	if v, ok := d.GetOk("autoscaling_role"); ok {
+		params.AutoScalingRole = aws.String(v.(string))
+	}
 
 	if instanceProfile != "" {
 		params.JobFlowRole = aws.String(instanceProfile)
@@ -353,6 +361,7 @@ func resourceAwsEMRClusterRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("name", cluster.Name)
 	d.Set("service_role", cluster.ServiceRole)
+	d.Set("autoscaling_role", cluster.AutoScalingRole)
 	d.Set("release_label", cluster.ReleaseLabel)
 	d.Set("log_uri", cluster.LogUri)
 	d.Set("master_public_dns", cluster.MasterPublicDnsName)
