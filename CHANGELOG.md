@@ -2,6 +2,7 @@
 
 IMPROVEMENTS:
 
+ * provider/aws: Added support for EMR AutoScalingRole [GH-12823]
  * provider/dnsimple: Allow dnsimple_record.priority attribute to be set [GH-12843]
  
 BUG FIXES: 
