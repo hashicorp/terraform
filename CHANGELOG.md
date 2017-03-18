@@ -1,5 +1,9 @@
 ## 0.9.2 (unreleased)
 
+FEATURES:
+
+ * **New Resource:**  `aws_api_gateway_usage_plan` [GH-12542]
+
 IMPROVEMENTS:
 
  * provider/aws: Added support for EMR AutoScalingRole [GH-12823]
