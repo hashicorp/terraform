@@ -15,6 +15,7 @@ Provides a CodeDeploy Deployment Group for a CodeDeploy Application
 ```hcl
 resource "aws_iam_role" "example" {
   name = "example-role"
+
   assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -35,6 +36,7 @@ EOF
 resource "aws_iam_role_policy" "example" {
   name = "example-policy"
   role = "${aws_iam_role.example.id}"
+
   policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -71,29 +73,29 @@ resource "aws_sns_topic" "example" {
 }
 
 resource "aws_codedeploy_deployment_group" "example" {
-  app_name = "${aws_codedeploy_app.example.name}"
+  app_name              = "${aws_codedeploy_app.example.name}"
   deployment_group_name = "example-group"
-  service_role_arn = "${aws_iam_role.example.arn}"
+  service_role_arn      = "${aws_iam_role.example.arn}"
 
   ec2_tag_filter {
-    key = "filterkey"
-    type = "KEY_AND_VALUE"
+    key   = "filterkey"
+    type  = "KEY_AND_VALUE"
     value = "filtervalue"
   }
 
   trigger_configuration {
-    trigger_events = ["DeploymentFailure"]
-    trigger_name = "example-trigger"
+    trigger_events     = ["DeploymentFailure"]
+    trigger_name       = "example-trigger"
     trigger_target_arn = "${aws_sns_topic.example.arn}"
   }
 
   auto_rollback_configuration {
     enabled = true
-    events = ["DEPLOYMENT_FAILURE"]
+    events  = ["DEPLOYMENT_FAILURE"]
   }
 
   alarm_configuration {
-    alarms = ["my-alarm-name"]
+    alarms  = ["my-alarm-name"]
     enabled = true
   }
 }
@@ -107,13 +109,13 @@ resource "aws_codedeploy_app" "example" {
 }
 
 resource "aws_codedeploy_deployment_group" "example" {
-  app_name = "${aws_codedeploy_app.example.name}"
+  app_name              = "${aws_codedeploy_app.example.name}"
   deployment_group_name = "example-group"
-  service_role_arn = "${aws_iam_role.example.arn}"
+  service_role_arn      = "${aws_iam_role.example.arn}"
 
   deployment_style {
     deployment_option = "WITH_TRAFFIC_CONTROL"
-    deployment_type = "BLUE_GREEN"
+    deployment_type   = "BLUE_GREEN"
   }
 
   load_balancer_info {
@@ -124,7 +126,7 @@ resource "aws_codedeploy_deployment_group" "example" {
 
   blue_green_deployment_config {
     deployment_ready_option {
-      action_on_timeout = "STOP_DEPLOYMENT"
+      action_on_timeout    = "STOP_DEPLOYMENT"
       wait_time_in_minutes = 60
     }
 
