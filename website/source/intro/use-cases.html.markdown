@@ -22,7 +22,7 @@ non-trivial applications quickly need many add-ons and external services.
 
 Terraform can be used to codify the setup required for a Heroku application, ensuring
 that all the required add-ons are available, but it can go even further: configuring
-DNSimple to set a CNAME, or setting up CloudFlare as a CDN for the
+DNSimple to set a CNAME, or setting up Cloudflare as a CDN for the
 app. Best of all, Terraform can do all of this in under 30 seconds without
 using a web interface.
 
