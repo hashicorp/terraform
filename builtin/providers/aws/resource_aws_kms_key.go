@@ -178,7 +178,7 @@ func resourceAwsKmsKeyRead(d *schema.ResourceData, meta interface{}) error {
 		KeyId: metadata.KeyId,
 	})
 	if err != nil {
-		return fmt.Errorf("Failed to get KMS key tags (key: %s): %s", metadata.KeyId, err)
+		return fmt.Errorf("Failed to get KMS key tags (key: %s): %s", d.Get("key_id").(string), err)
 	}
 	d.Set("tags", tagsToMapKMS(tagList.Tags))
 
