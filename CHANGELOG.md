@@ -10,6 +10,7 @@ IMPROVEMENTS:
  * provider/dnsimple: Allow dnsimple_record.priority attribute to be set [GH-12843]
  * provider/openstack: Adding Timeouts to Blockstorage Resources [GH-12862]
  * provider/openstack: Adding Timeouts to FWaaS v1 Resources [GH-12863]
+ * provider/openstack: Adding Timeouts to Image v2 and LBaaS v2 Resources [GH-12865]
  
 BUG FIXES: 
  
