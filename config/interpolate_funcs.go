@@ -594,7 +594,7 @@ func interpolationFuncIndex() ast.Function {
 					return index, nil
 				}
 			}
-			return nil, fmt.Errorf("Could not find '%s' in '%s'", needle, haystack)
+			return -1, nil
 		},
 	}
 }
