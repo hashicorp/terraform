@@ -35,7 +35,7 @@ func Provider() terraform.ResourceProvider {
 			"timeout": &schema.Schema{
 				Type:        schema.TypeInt,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc(JSONTimeoutParamName, "600"),
+				DefaultFunc: schema.EnvDefaultFunc(JSONTimeoutParamName, "900"),
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
