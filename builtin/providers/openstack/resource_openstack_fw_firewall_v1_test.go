@@ -36,6 +36,24 @@ func TestAccFWFirewallV1_basic(t *testing.T) {
 	})
 }
 
+func TestAccFWFirewallV1_timeout(t *testing.T) {
+	var policyID *string
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckFWFirewallV1Destroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccFWFirewallV1_timeout,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckFWFirewallV1Exists("openstack_fw_firewall_v1.fw_1", "", "", policyID),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckFWFirewallV1Destroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
@@ -133,5 +151,21 @@ resource "openstack_fw_firewall_v1" "fw_1" {
 
 resource "openstack_fw_policy_v1" "policy_2" {
   name = "policy_2"
+}
+`
+
+const testAccFWFirewallV1_timeout = `
+resource "openstack_fw_firewall_v1" "fw_1" {
+  policy_id = "${openstack_fw_policy_v1.policy_1.id}"
+
+  timeouts {
+    create = "5m"
+    update = "5m"
+    delete = "5m"
+  }
+}
+
+resource "openstack_fw_policy_v1" "policy_1" {
+  name = "policy_1"
 }
 `
