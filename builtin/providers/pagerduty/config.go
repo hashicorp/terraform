@@ -37,7 +37,7 @@ func (c *Config) Client() (*pagerduty.Client, error) {
 		// if we get a 401 response back we return an error to the user
 		if _, err := client.ListAbilities(); err != nil {
 			if isUnauthorized(err) {
-				return nil, fmt.Errorf(invalidCreds)
+				return nil, fmt.Errorf(fmt.Sprintf("%s\n%s", err, invalidCreds))
 			}
 			return nil, err
 		}
