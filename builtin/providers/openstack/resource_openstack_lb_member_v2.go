@@ -19,6 +19,11 @@ func resourceMemberV2() *schema.Resource {
 		Update: resourceMemberV2Update,
 		Delete: resourceMemberV2Delete,
 
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
 				Type:        schema.TypeString,
@@ -152,7 +157,7 @@ func resourceMemberV2Create(d *schema.ResourceData, meta interface{}) error {
 		Pending:    []string{"PENDING_CREATE"},
 		Target:     []string{"ACTIVE"},
 		Refresh:    waitForMemberActive(networkingClient, poolID, member.ID),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutCreate),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -233,7 +238,7 @@ func resourceMemberV2Delete(d *schema.ResourceData, meta interface{}) error {
 		Pending:    []string{"ACTIVE", "PENDING_DELETE"},
 		Target:     []string{"DELETED"},
 		Refresh:    waitForMemberDelete(networkingClient, d.Get("pool_id").(string), d.Id()),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
