@@ -38,8 +38,8 @@ func cacheBehaviorConf2() map[string]interface{} {
 	return cb
 }
 
-func cacheBehaviorsConf() *schema.Set {
-	return schema.NewSet(cacheBehaviorHash, []interface{}{cacheBehaviorConf1(), cacheBehaviorConf2()})
+func cacheBehaviorsConf() []interface{} {
+	return []interface{}{cacheBehaviorConf1(), cacheBehaviorConf2()}
 }
 
 func trustedSignersConf() []interface{} {
@@ -89,12 +89,12 @@ func cookieNamesConf() []interface{} {
 	return []interface{}{"Example1", "Example2"}
 }
 
-func allowedMethodsConf() []interface{} {
-	return []interface{}{"DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"}
+func allowedMethodsConf() *schema.Set {
+	return schema.NewSet(schema.HashString, []interface{}{"DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"})
 }
 
-func cachedMethodsConf() []interface{} {
-	return []interface{}{"GET", "HEAD", "OPTIONS"}
+func cachedMethodsConf() *schema.Set {
+	return schema.NewSet(schema.HashString, []interface{}{"GET", "HEAD", "OPTIONS"})
 }
 
 func originCustomHeadersConf() *schema.Set {
@@ -251,7 +251,7 @@ func viewerCertificateConfSetACM() map[string]interface{} {
 }
 
 func TestCloudFrontStructure_expandDefaultCacheBehavior(t *testing.T) {
-	data := defaultCacheBehaviorConf()
+	data := []interface{}{defaultCacheBehaviorConf()}
 	dcb := expandDefaultCacheBehavior(data)
 	if dcb == nil {
 		t.Fatalf("ExpandDefaultCacheBehavior returned nil")
@@ -283,25 +283,84 @@ func TestCloudFrontStructure_expandDefaultCacheBehavior(t *testing.T) {
 	if *dcb.DefaultTTL != 86400 {
 		t.Fatalf("Expected DefaultTTL to be 86400, got %v", *dcb.DefaultTTL)
 	}
+
 	if *dcb.LambdaFunctionAssociations.Quantity != 2 {
 		t.Fatalf("Expected LambdaFunctionAssociations to be 2, got %v", *dcb.LambdaFunctionAssociations.Quantity)
 	}
-	if reflect.DeepEqual(dcb.AllowedMethods.Items, expandStringList(allowedMethodsConf())) != true {
-		t.Fatalf("Expected TrustedSigners.Items to be %v, got %v", allowedMethodsConf(), dcb.AllowedMethods.Items)
+
+	if !allowedMethodsConf().Equal(flattenAllowedMethods(dcb.AllowedMethods)) {
+		t.Fatalf("Expected AllowedMethods.Items to be %v, got %v",
+			allowedMethodsConf().List(), flattenAllowedMethods(dcb.AllowedMethods).List())
 	}
-	if reflect.DeepEqual(dcb.AllowedMethods.CachedMethods.Items, expandStringList(cachedMethodsConf())) != true {
-		t.Fatalf("Expected TrustedSigners.Items to be %v, got %v", cachedMethodsConf(), dcb.AllowedMethods.CachedMethods.Items)
+
+	if !cachedMethodsConf().Equal(flattenCachedMethods(dcb.AllowedMethods.CachedMethods)) {
+		t.Fatalf("Expected AllowedMethods.CachedMethods.Items to be %v, got %v",
+			cachedMethodsConf().List(), flattenCachedMethods(dcb.AllowedMethods.CachedMethods).List())
 	}
 }
 
 func TestCloudFrontStructure_flattenDefaultCacheBehavior(t *testing.T) {
-	in := defaultCacheBehaviorConf()
+	in := []interface{}{defaultCacheBehaviorConf()}
 	dcb := expandDefaultCacheBehavior(in)
 	out := flattenDefaultCacheBehavior(dcb)
-	diff := schema.NewSet(defaultCacheBehaviorHash, []interface{}{in}).Difference(out)
 
-	if len(diff.List()) > 0 {
-		t.Fatalf("Expected out to be %v, got %v, diff: %v", in, out, diff)
+	inToCompare := in[0].(map[string]interface{})
+	outToCompare := out[0]
+	test_compareCacheBehavior(t, inToCompare, outToCompare)
+}
+
+// Comparing nested sets doesn't quite work (yet?)
+// so we compare inner sets 1st and then delete them
+func test_compareCacheBehavior(t *testing.T, in, out map[string]interface{}) {
+	inToCompare := in
+	outToCompare := out
+
+	inForwardedValues := inToCompare["forwarded_values"].(*schema.Set).List()[0].(map[string]interface{})
+	outForwardedValues := outToCompare["forwarded_values"].(*schema.Set).List()[0].(map[string]interface{})
+	inCookies := inForwardedValues["cookies"].(*schema.Set)
+	outCookies := outForwardedValues["cookies"].(*schema.Set)
+	if !inCookies.Equal(outCookies) {
+		t.Fatalf("cookies don't match:\nGiven: %q\nExpected: %q",
+			outCookies.List(), inCookies.List())
+	}
+	delete(inForwardedValues, "cookies")
+	delete(outForwardedValues, "cookies")
+	if !reflect.DeepEqual(inForwardedValues, outForwardedValues) {
+		t.Fatalf("forwarded_values don't match:\nGiven: %q\nExpected: %q",
+			outForwardedValues, inForwardedValues)
+	}
+	delete(inToCompare, "forwarded_values")
+	delete(outToCompare, "forwarded_values")
+
+	inCachedMethods := inToCompare["cached_methods"].(*schema.Set)
+	outCachedMethods := outToCompare["cached_methods"].(*schema.Set)
+	if !inCachedMethods.Equal(outCachedMethods) {
+		t.Fatalf("cached_methods don't match:\nGiven: %q\nExpected: %q",
+			outCachedMethods.List(), inCachedMethods.List())
+	}
+	delete(inToCompare, "cached_methods")
+	delete(outToCompare, "cached_methods")
+
+	inAllowedMethods := inToCompare["allowed_methods"].(*schema.Set)
+	outAllowedMethods := outToCompare["allowed_methods"].(*schema.Set)
+	if !inAllowedMethods.Equal(outAllowedMethods) {
+		t.Fatalf("allowed_methods don't match:\nGiven: %q\nExpected: %q",
+			outAllowedMethods.List(), inAllowedMethods.List())
+	}
+	delete(inToCompare, "allowed_methods")
+	delete(outToCompare, "allowed_methods")
+
+	inLambdaFuncAssoc := inToCompare["lambda_function_association"].(*schema.Set)
+	outLambdaFuncAssoc := outToCompare["lambda_function_association"].(*schema.Set)
+	if !inLambdaFuncAssoc.Equal(outLambdaFuncAssoc) {
+		t.Fatalf("lambda_function_association don't match:\nGiven: %q\nExpected: %q",
+			outLambdaFuncAssoc.List(), inLambdaFuncAssoc.List())
+	}
+	delete(inToCompare, "lambda_function_association")
+	delete(outToCompare, "lambda_function_association")
+
+	if !reflect.DeepEqual(inToCompare, outToCompare) {
+		t.Fatalf("Expected: %#v\nGot: %#v\n", in, out)
 	}
 }
 
@@ -335,14 +394,18 @@ func TestCloudFrontStructure_expandCacheBehavior(t *testing.T) {
 	if *cb.DefaultTTL != 86400 {
 		t.Fatalf("Expected DefaultTTL to be 86400, got %v", *cb.DefaultTTL)
 	}
+
 	if *cb.LambdaFunctionAssociations.Quantity != 2 {
 		t.Fatalf("Expected LambdaFunctionAssociations to be 2, got %v", *cb.LambdaFunctionAssociations.Quantity)
 	}
-	if reflect.DeepEqual(cb.AllowedMethods.Items, expandStringList(allowedMethodsConf())) != true {
-		t.Fatalf("Expected AllowedMethods.Items to be %v, got %v", allowedMethodsConf(), cb.AllowedMethods.Items)
+
+	if !allowedMethodsConf().Equal(flattenAllowedMethods(cb.AllowedMethods)) {
+		t.Fatalf("Expected AllowedMethods.Items to be %v, got %v",
+			allowedMethodsConf().List(), flattenAllowedMethods(cb.AllowedMethods).List())
 	}
-	if reflect.DeepEqual(cb.AllowedMethods.CachedMethods.Items, expandStringList(cachedMethodsConf())) != true {
-		t.Fatalf("Expected AllowedMethods.CachedMethods.Items to be %v, got %v", cachedMethodsConf(), cb.AllowedMethods.CachedMethods.Items)
+	if !cachedMethodsConf().Equal(flattenCachedMethods(cb.AllowedMethods.CachedMethods)) {
+		t.Fatalf("Expected AllowedMethods.CachedMethods.Items to be %v, got %v",
+			cachedMethodsConf().List(), flattenCachedMethods(cb.AllowedMethods.CachedMethods).List())
 	}
 	if *cb.PathPattern != "/path1" {
 		t.Fatalf("Expected PathPattern to be /path1, got %v", *cb.PathPattern)
@@ -364,15 +427,9 @@ func TestCloudFrontStructure_flattenCacheBehavior(t *testing.T) {
 		t.Fatalf("Expected out[target_origin_id] to be myS3Origin, got %v", out["target_origin_id"])
 	}
 
-	// the flattened lambda function associations are a slice of maps,
-	// where as the default cache behavior LFAs are a set. Here we double check
-	// that and conver the slice to a set, and use Set's Equal() method to check
-	// equality
-	var outSet *schema.Set
-	if outSlice, ok := out["lambda_function_association"].([]interface{}); ok {
-		outSet = schema.NewSet(lambdaFunctionAssociationHash, outSlice)
-	} else {
-		t.Fatalf("out['lambda_function_association'] is not a slice as expected: %#v", out["lambda_function_association"])
+	outSet, ok := out["lambda_function_association"].(*schema.Set)
+	if !ok {
+		t.Fatalf("out['lambda_function_association'] is not a set as expected: %#v", out["lambda_function_association"])
 	}
 
 	inSet, ok := in["lambda_function_association"].(*schema.Set)
@@ -403,10 +460,10 @@ func TestCloudFrontStructure_flattenCacheBehavior(t *testing.T) {
 	if out["default_ttl"] != int(86400) {
 		t.Fatalf("Expected out[default_ttl] to be 86400 (int), got %v", out["default_ttl"])
 	}
-	if reflect.DeepEqual(out["allowed_methods"], in["allowed_methods"]) != true {
+	if !out["allowed_methods"].(*schema.Set).Equal(in["allowed_methods"]) {
 		t.Fatalf("Expected out[allowed_methods] to be %v, got %v", in["allowed_methods"], out["allowed_methods"])
 	}
-	if reflect.DeepEqual(out["cached_methods"], in["cached_methods"]) != true {
+	if !out["cached_methods"].(*schema.Set).Equal(in["cached_methods"]) {
 		t.Fatalf("Expected out[cached_methods] to be %v, got %v", in["cached_methods"], out["cached_methods"])
 	}
 	if out["path_pattern"] != "/path1" {
@@ -429,10 +486,9 @@ func TestCloudFrontStructure_flattenCacheBehaviors(t *testing.T) {
 	in := cacheBehaviorsConf()
 	cbs := expandCacheBehaviors(in)
 	out := flattenCacheBehaviors(cbs)
-	diff := in.Difference(out)
 
-	if len(diff.List()) > 0 {
-		t.Fatalf("Expected out to be %v, got %v, diff: %v", in, out, diff)
+	for i, b := range in {
+		test_compareCacheBehavior(t, b.(map[string]interface{}), out[i])
 	}
 }
 
@@ -496,8 +552,8 @@ func TestCloudFrontStructure_flattenlambdaFunctionAssociations(t *testing.T) {
 	lfa := expandLambdaFunctionAssociations(in.List())
 	out := flattenLambdaFunctionAssociations(lfa)
 
-	if reflect.DeepEqual(in.List(), out) != true {
-		t.Fatalf("Expected out to be %v, got %v", in, out)
+	if reflect.DeepEqual(in.List(), out.List()) != true {
+		t.Fatalf("Expected: %#v\nGot: %#v", in, out)
 	}
 }
 
@@ -635,7 +691,7 @@ func TestCloudFrontStructure_expandAllowedMethods(t *testing.T) {
 	if *am.Quantity != 7 {
 		t.Fatalf("Expected Quantity to be 7, got %v", *am.Quantity)
 	}
-	if reflect.DeepEqual(am.Items, expandStringList(data)) != true {
+	if !reflect.DeepEqual(flattenStringList(am.Items), data.List()) {
 		t.Fatalf("Expected Items to be %v, got %v", data, am.Items)
 	}
 }
@@ -645,8 +701,8 @@ func TestCloudFrontStructure_flattenAllowedMethods(t *testing.T) {
 	am := expandAllowedMethods(in)
 	out := flattenAllowedMethods(am)
 
-	if reflect.DeepEqual(in, out) != true {
-		t.Fatalf("Expected out to be %v, got %v", in, out)
+	if !reflect.DeepEqual(in.List(), out.List()) {
+		t.Fatalf("Expected out to be %v, got %v", in.List(), out.List())
 	}
 }
 
@@ -656,7 +712,7 @@ func TestCloudFrontStructure_expandCachedMethods(t *testing.T) {
 	if *cm.Quantity != 3 {
 		t.Fatalf("Expected Quantity to be 3, got %v", *cm.Quantity)
 	}
-	if reflect.DeepEqual(cm.Items, expandStringList(data)) != true {
+	if reflect.DeepEqual(flattenStringList(cm.Items), data.List()) != true {
 		t.Fatalf("Expected Items to be %v, got %v", data, cm.Items)
 	}
 }
@@ -666,8 +722,8 @@ func TestCloudFrontStructure_flattenCachedMethods(t *testing.T) {
 	cm := expandCachedMethods(in)
 	out := flattenCachedMethods(cm)
 
-	if reflect.DeepEqual(in, out) != true {
-		t.Fatalf("Expected out to be %v, got %v", in, out)
+	if !reflect.DeepEqual(in.List(), out.List()) {
+		t.Fatalf("Expected out to be %v, got %v", in.List(), out.List())
 	}
 }
 

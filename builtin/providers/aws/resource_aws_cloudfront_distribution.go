@@ -23,6 +23,9 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 			State: resourceAwsCloudFrontDistributionImport,
 		},
 
+		SchemaVersion: 1,
+		MigrateState:  resourceAwsCloudFrontDistributionMigrateState,
+
 		Schema: map[string]*schema.Schema{
 			"arn": {
 				Type:     schema.TypeString,
@@ -35,18 +38,17 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 				Set:      aliasesHash,
 			},
 			"cache_behavior": {
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
-				Set:      cacheBehaviorHash,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"allowed_methods": {
-							Type:     schema.TypeList,
+							Type:     schema.TypeSet,
 							Required: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 						"cached_methods": {
-							Type:     schema.TypeList,
+							Type:     schema.TypeSet,
 							Required: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
@@ -182,19 +184,18 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 				},
 			},
 			"default_cache_behavior": {
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Required: true,
-				Set:      defaultCacheBehaviorHash,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"allowed_methods": {
-							Type:     schema.TypeList,
+							Type:     schema.TypeSet,
 							Required: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 						"cached_methods": {
-							Type:     schema.TypeList,
+							Type:     schema.TypeSet,
 							Required: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
