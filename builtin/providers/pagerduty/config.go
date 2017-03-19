@@ -16,7 +16,7 @@ type Config struct {
 	SkipCredsValidation bool
 }
 
-const invalidCredentials = `
+const invalidCreds = `
 
 No valid credentials found for PagerDuty provider.
 Please see https://www.terraform.io/docs/providers/pagerduty/index.html
@@ -27,7 +27,7 @@ for more information on providing credentials for this provider.
 func (c *Config) Client() (*pagerduty.Client, error) {
 	// Validate that the PagerDuty token is set
 	if c.Token == "" {
-		return nil, fmt.Errorf(invalidCredentials)
+		return nil, fmt.Errorf(invalidCreds)
 	}
 
 	client := pagerduty.NewClient(c.Token)
@@ -37,7 +37,7 @@ func (c *Config) Client() (*pagerduty.Client, error) {
 		// if we get a 401 response back we return an error to the user
 		if _, err := client.ListAbilities(); err != nil {
 			if isUnauthorized(err) {
-				return nil, fmt.Errorf(invalidCredentials)
+				return nil, fmt.Errorf(invalidCreds)
 			}
 			return nil, err
 		}
