@@ -20,6 +20,7 @@ func Provider() terraform.ResourceProvider {
 			"skip_credentials_validation": {
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  false,
 			},
 		},
 
