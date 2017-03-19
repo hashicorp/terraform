@@ -16,6 +16,11 @@ func Provider() terraform.ResourceProvider {
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("PAGERDUTY_TOKEN", nil),
 			},
+
+			"skip_credentials_validation": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
@@ -40,7 +45,11 @@ func Provider() terraform.ResourceProvider {
 }
 
 func providerConfigure(data *schema.ResourceData) (interface{}, error) {
-	config := Config{Token: data.Get("token").(string)}
+	config := Config{
+		Token:               data.Get("token").(string),
+		SkipCredsValidation: data.Get("skip_credentials_validation").(bool),
+	}
+
 	log.Println("[INFO] Initializing PagerDuty client")
 	return config.Client()
 }

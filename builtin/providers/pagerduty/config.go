@@ -9,7 +9,11 @@ import (
 
 // Config defines the configuration options for the PagerDuty client
 type Config struct {
+	// The PagerDuty API V2 token
 	Token string
+
+	// Skip validation of the token against the PagerDuty API
+	SkipCredsValidation bool
 }
 
 const invalidCredentials = `
@@ -28,13 +32,15 @@ func (c *Config) Client() (*pagerduty.Client, error) {
 
 	client := pagerduty.NewClient(c.Token)
 
-	// Validate the credentials by calling the abilities endpoint,
-	// if we get a 401 response back we return an error to the user
-	if _, err := client.ListAbilities(); err != nil {
-		if isUnauthorized(err) {
-			return nil, fmt.Errorf(invalidCredentials)
+	if !c.SkipCredsValidation {
+		// Validate the credentials by calling the abilities endpoint,
+		// if we get a 401 response back we return an error to the user
+		if _, err := client.ListAbilities(); err != nil {
+			if isUnauthorized(err) {
+				return nil, fmt.Errorf(invalidCredentials)
+			}
+			return nil, err
 		}
-		return nil, err
 	}
 
 	log.Printf("[INFO] PagerDuty client configured")
