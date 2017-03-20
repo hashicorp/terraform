@@ -2002,7 +2002,7 @@ func TestInterpolateFuncTimestamp(t *testing.T) {
 	}
 
 	if resultTime.Sub(currentTime).Seconds() > 10.0 {
-		t.Fatalf("Timestamp Diff too large. Expected: %s\nRecieved: %s", currentTime.Format(time.RFC3339), result.Value.(string))
+		t.Fatalf("Timestamp Diff too large. Expected: %s\nReceived: %s", currentTime.Format(time.RFC3339), result.Value.(string))
 	}
 }
 
