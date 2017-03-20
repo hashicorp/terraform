@@ -97,3 +97,11 @@ The following attributes are exported:
 * `quota_settings` - The quota of the usage plan.
 * `throttle_settings` - The throttling limits of the usage plan.
 * `product_code` - The AWS Markeplace product identifier to associate with the usage plan as a SaaS product on AWS Marketplace.
+
+## Import
+
+AWS API Gateway Usage Plan can be imported using the `id`, e.g.
+
+```
+$ terraform import aws_api_gateway_usage_plan.myusageplan <usage_plan_id>
+```
