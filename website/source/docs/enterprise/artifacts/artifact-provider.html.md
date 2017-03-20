@@ -1,9 +1,9 @@
 ---
 layout: "artifacts"
 page_title: "Artifact Provider"
-sidebar_current: "docs-enterprise-Provider"
+sidebar_current: "docs-enterprise-artifact-provider"
 description: |-
-  Terraform has a provider for managing Atlas artifacts called `atlas_artifact`.
+  Terraform has a provider for managing artifacts called `atlas_artifact`.
 ---
 
 # Artifact Provider

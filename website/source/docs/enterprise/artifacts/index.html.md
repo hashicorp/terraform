@@ -6,7 +6,7 @@ description: |-
   Terraform Enterprise can be used to store artifacts for use by Terraform. Typically, artifacts are stored with Packer.
 ---
 
-# About Terraform Artifacts in Atlas
+# About Terraform Artifacts
 
 Terraform Enterprise can be used to store artifacts for use by Terraform. Typically,
 artifacts are [stored with Packer](https://packer.io/docs).

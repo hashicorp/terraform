@@ -7,13 +7,13 @@ description: |-
 ---
 
 
-# Starting Terraform Runs in Atlas
+# Starting Terraform Runs
 
-There are a variety of ways to queue a Terraform run in Atlas. In addition to
-`terraform push`, you can connect your [environment](/help/glossary#environment)
-to GitHub and have Atlas queue Terraform runs based on new commits. Atlas can
+There are a variety of ways to queue a Terraform run in Terraform Enterprise. In addition to
+`terraform push`, you can connect your environment
+to GitHub and runs based on new commits. You can
 also intelligently queue new runs when linked artifacts are uploaded or changed.
-Remember from the [previous section about Terraform runs](/help/terraform/runs)
+Remember from the [previous section about Terraform runs](/docs/enterprise/runs)
 that it is safe to trigger many plans without consequence since Terraform plans
 do not change infrastructure.
 
@@ -21,8 +21,8 @@ do not change infrastructure.
 ## Terraform Push
 
 Terraform `push` is a [Terraform command](https://terraform.io/docs/commands/push.html)
-that packages and uploads a set of Terraform configuration and directory to Atlas. This then creates a run
-in Atlas, which performs `terraform plan` and `terraform apply` against the uploaded
+that packages and uploads a set of Terraform configuration and directory to the platform. This then creates a run
+which performs `terraform plan` and `terraform apply` against the uploaded
 configuration.
 
 The directory is included in order to run any associated provisioners,
@@ -32,8 +32,8 @@ that executes a shell script.
 By default, everything in your directory is uploaded as part of the push.
 
 However, it's not always the case that the entire directory should be uploaded. Often,
-temporary or cache directories and files like `.git`, `.tmp` will be included by default. This
-can cause Atlas to fail at certain sizes and should be avoided. You can
+temporary or cache directories and files like `.git`, `.tmp` will be included by default, which
+can cause failures at certain sizes and should be avoided. You can
 specify [exclusions](https://terraform.io/docs/commands/push.html) to avoid this situation.
 
 Terraform also allows for a [VCS option](https://terraform.io/docs/commands/push.html#_vcs_true)
@@ -46,14 +46,14 @@ basically does a `git ls-files`.
 
 Optionally, GitHub can be used to import Terraform configuration. When used
 within an organization, this can be extremely valuable for keeping differences
-in environments and last mile changes from occurring before an upload to Atlas.
+in environments and last mile changes from occurring before an upload.
 
-After you have [connected your GitHub account to Atlas](/settings/connections),
-you can connect your [environment](/help/glossary#environment) to the target
-GitHub repository. The GitHub repository will be linked to the Atlas Terraform
-configuration, and GitHub will start sending webhooks to Atlas. Certain
+After you have [connected your GitHub account to Terraform Enterprise](/docs/enterprise/vcs/github.html),
+you can connect your environment to the target
+GitHub repository. The GitHub repository will be linked to the Terraform Enterprise
+configuration, and GitHub will start sending webhooks. Certain
 GitHub webhook events, detailed below, will cause the repository to be
-automatically ingressed into Atlas and stored, along with references to the
+automatically ingressed into Terraform and stored, along with references to the
 GitHub commits and authorship information.
 
 Currently, an environment must already exist to be connected to GitHub. You can
@@ -75,7 +75,7 @@ Supported GitHub webhook events:
   - ingress when a tag is created
   - ingress when the default branch is updated
     - note: the default branch is either configured on your configuration's
-      integrations tab in Atlas, or if that is blank it is the GitHub
+      integrations tab, or if that is blank it is the GitHub
       repository's default branch
 - create (off by default)
   - ingress when a tag is created
@@ -84,35 +84,32 @@ Supported GitHub webhook events:
 
 ## Artifact Uploads
 
-Upon successful completion of a Terraform run, Atlas parses the remote state and
-detects any [Atlas artifacts](/help/terraform/artifacts/artifact-provider) that
-were referenced. When new versions of those referenced artifacts are uploaded
-to Atlas, you have the option to automatically queue a new Terraform run.
+Upon successful completion of a Terraform run,the remote state is parsed and
+any [artifacts](/docs/enterprise/artifacts/artifact-provider.html) are detected that
+were referenced. When new versions of those referenced artifacts are uploaded, you have the option to automatically queue a new Terraform run.
 
 For example, consider the following Terraform configuration which references an
-Atlas artifact named "worker":
+artifact named "worker":
 
     resource "aws_instance" "worker" {
       ami = "${atlas_artifact.worker.metadata_full.region-us-east-1}"
       instance_type = "m1.small"
     }
 
-When a new version of the Atlas artifact "worker" is uploaded either manually
-or as the output of a [Packer build](/help/packer/builds/starting.html), Atlas
-can automatically trigger a Terraform plan with this new artifact version.
+When a new version of the and artifact "worker" is uploaded either manually
+or as the output of a [Packer build](https://atlas.hashicorp.com/help/packer/builds/starting), a Terraform plan can be automatically triggered with this new artifact version.
 You can enable this feature on a per-environment basis from the
-[environment](/help/glossary#environment) settings page in Atlas.
+environment settings page.
 
 Combined with
-[Terraform auto apply](/help/terraform/runs/automatic-applies), you can
-continuously deliver infrastructure using Terraform and Atlas.
+[Terraform auto apply](/docs/enterprise/runs/automatic-applies.html), you can
+continuously deliver infrastructure using Terraform and Terraform Enterprise.
 
 ## Terraform Plugins
 
 If you are using a custom [Terraform Plugin](https://www.terraform.io/docs/plugins/index.html)
 binary for a provider or provisioner that's not currently in a released
-version of Terraform, you can still use this in Atlas.
+version of Terraform, you can still use this in Terraform Enterprise.
 
 All you need to do is include a Linux AMD64 binary for the plugin in the
-directory in which Terraform commands are run from; Atlas will then use
-the plugin the next time you `terraform push` or ingress from GitHub.
+directory in which Terraform commands are run from; it will then be used next time you `terraform push` or ingress from GitHub.

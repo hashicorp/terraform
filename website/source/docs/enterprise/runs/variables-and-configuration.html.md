@@ -1,7 +1,7 @@
 ---
 layout: "runs"
 page_title: "Runs: Variables and Configuration"
-sidebar_current: "docs-enterprise-runs-schedule"
+sidebar_current: "docs-enterprise-runs-variables"
 description: |-
   How to configure runs and their variables.
 ---
@@ -18,7 +18,7 @@ define the parameterization of Terraform configurations and are important
 for sharing and removal of sensitive secrets from version control.
 
 Variables are sent with the `terraform push` command. Any variables in your local
-`.tfvars` files are securely uploaded. Once variables are uploaded, Terraform will prefer the Atlas-stored variables over any changes you
+`.tfvars` files are securely uploaded. Once variables are uploaded, Terraform will prefer the stored variables over any changes you
 make locally. Please refer to the
 [Terraform push documentation](https://www.terraform.io/docs/commands/push.html)
 for more information.
@@ -92,7 +92,7 @@ Set the [variables](https://www.terraform.io/docs/configuration/variables.html) 
       }
     }
 
-`terraform push` any "Terraform Variables" to Atlas:
+`terraform push` any "Terraform Variables":
 
     $ terraform push -name $ATLAS_USERNAME/example -var "private_key=$MY_PRIVATE_KEY"
 

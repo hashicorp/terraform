@@ -37,6 +37,6 @@ persist the changes. An initial plan may immediately run, depending
 on the state of your environment, and then will automatically
 plan at the specified interval.
 
-If you have manually run a plan separately, Atlas will not queue a new
-plan until the alloted time after the manual plan ran. This means that
-Atlas simply ensures that a plan has been executed at the specified schedule.
+If you have manually run a plan separately, a new
+plan will not be queued until the allotted time after the manual plan ran. This means that
+the platform simply ensures that a plan has been executed at the specified schedule.

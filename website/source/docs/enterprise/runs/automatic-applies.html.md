@@ -14,7 +14,7 @@ description: |-
   </div>
 </div>
 
-Atlas can optionally automatically apply successful Terraform plans to your
+You can automatically apply successful Terraform plans to your
 infrastructure. This option is disabled by default and can be enabled by an
 organization owner on a per-environment basis.
 
@@ -28,7 +28,6 @@ organization owner on a per-environment basis.
 
 ## Enabling Auto-Apply
 
-To enable auto-apply for an environment, visit the environment settings page in
-Atlas and check the box labeled "auto apply" and click the save button to
+To enable auto-apply for an environment, visit the environment settings page check the box labeled "auto apply" and click the save button to
 persist the changes. The next successful Terraform plan for the environment will
 automatically apply without user confirmation.

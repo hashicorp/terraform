@@ -1,7 +1,7 @@
 ---
 layout: "vcs"
 page_title: "GitHub Integration"
-sidebar_current: "docs-enterprise-vcs"
+sidebar_current: "docs-enterprise-vcs-github"
 description: |-
   GitHub repositories can be integrated with Terraform Enterprise by using push command.
 ---
