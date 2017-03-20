@@ -7,6 +7,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+ * helper/acctest: Add NewSSHKeyPair function [GH-12894]
  * provider/aws: Added support for EMR AutoScalingRole [GH-12823]
  * provider/aws: Add `name_prefix` to `aws_autoscaling_group` and `aws_elb` resources [GH-12629]
  * provider/aws: Added aws_api_gateway_api_key value attribute [GH-9462]
