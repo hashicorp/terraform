@@ -1713,6 +1713,168 @@ func TestInterpolateFuncValues(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncUnsortedKeys(t *testing.T) {
+        testFunction(t, testFunctionConfig{
+                Vars: map[string]ast.Variable{
+                        "var.foo": ast.Variable{
+                                Type: ast.TypeMap,
+                                Value: map[string]ast.Variable{
+                                        "bar": ast.Variable{
+                                                Value: "baz",
+                                                Type:  ast.TypeString,
+                                        },
+                                        "qux": ast.Variable{
+                                                Value: "quack",
+                                                Type:  ast.TypeString,
+                                        },
+                                },
+                        },
+                        "var.str": ast.Variable{
+                                Value: "astring",
+                                Type:  ast.TypeString,
+                        },
+                },
+                Cases: []testFunctionCase{
+                        {
+                                `${unsortedkeys(var.foo)}`,
+                                []interface{}{"bar", "qux"},
+                                false,
+                        },
+
+                        // Invalid key
+                        {
+                                `${unsortedkeys(var.not)}`,
+                                nil,
+                                true,
+                        },
+
+                        // Too many args
+                        {
+                                `${unsortedkeys(var.foo, "bar")}`,
+                                nil,
+                                true,
+                        },
+
+                        // Not a map
+                        {
+                                `${unsortedkeys(var.str)}`,
+                                nil,
+                                true,
+                        },
+                },
+        })
+}
+
+// Confirm that keys return in original order, and values return in their original
+// order which depends upon key ordering being unchanged
+func TestInterpolateFuncKeyValUnsortedOrder(t *testing.T) {
+        testFunction(t, testFunctionConfig{
+                Vars: map[string]ast.Variable{
+                        "var.foo": ast.Variable{
+                                Type: ast.TypeMap,
+                                Value: map[string]ast.Variable{
+                                        "D": ast.Variable{
+                                                Value: "2",
+                                                Type:  ast.TypeString,
+                                        },
+                                        "C": ast.Variable{
+                                                Value: "Y",
+                                                Type:  ast.TypeString,
+                                        },
+                                        "A": ast.Variable{
+                                                Value: "X",
+                                                Type:  ast.TypeString,
+                                        },
+                                        "10": ast.Variable{
+                                                Value: "Z",
+                                                Type:  ast.TypeString,
+                                        },
+                                        "1": ast.Variable{
+                                                Value: "4",
+                                                Type:  ast.TypeString,
+                                        },
+                                        "3": ast.Variable{
+                                                Value: "W",
+                                                Type:  ast.TypeString,
+                                        },
+                                },
+                        },
+                },
+                Cases: []testFunctionCase{
+                        {
+                                `${keys(var.foo)}`,
+                                []interface{}{"D", "C", "A", "10", "1", "3"},
+                                false,
+                        },
+
+                        {
+                                `${values(var.foo)}`,
+                                []interface{}{"2", "Y", "X", "Z", "4", "W"},
+                                false,
+                        },
+                },
+        })
+}
+
+func TestInterpolateFuncUnsortedValues(t *testing.T) {
+        testFunction(t, testFunctionConfig{
+                Vars: map[string]ast.Variable{
+                        "var.foo": ast.Variable{
+                                Type: ast.TypeMap,
+                                Value: map[string]ast.Variable{
+                                        "bar": ast.Variable{
+                                                Value: "quack",
+                                                Type:  ast.TypeString,
+                                        },
+                                        "qux": ast.Variable{
+                                                Value: "baz",
+                                                Type:  ast.TypeString,
+                                        },
+                                },
+                        },
+                        "var.str": ast.Variable{
+                                Value: "astring",
+                                Type:  ast.TypeString,
+                        },
+                },
+                Cases: []testFunctionCase{
+                        {
+                                `${unsortedvalues(var.foo)}`,
+                                []interface{}{"quack", "baz"},
+                                false,
+                        },
+
+                        // Invalid key
+                        {
+                                `${unsortedvalues(var.not)}`,
+                                nil,
+                                true,
+                        },
+
+                        // Too many args
+                        {
+                                `${unsortedvalues(var.foo, "bar")}`,
+                                nil,
+                                true,
+                        },
+
+                        // Not a map
+                        {
+                                `${unsortedvalues(var.str)}`,
+                                nil,
+                                true,
+                        },
+
+                        // Map of lists
+                        {
+                                `${unsortedvalues(map("one", list()))}`,
+                                nil,
+                                true,
+                        },
+                },
+        })
+}
+
 func interfaceToVariableSwallowError(input interface{}) ast.Variable {
 	variable, _ := hil.InterfaceToVariable(input)
 	return variable
