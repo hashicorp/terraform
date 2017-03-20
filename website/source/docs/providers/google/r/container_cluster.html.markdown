@@ -121,6 +121,14 @@ which the cluster's instances are launched
   * `monitoring` (`https://www.googleapis.com/auth/monitoring`),
     if `monitoring_service` points to Google
 
+* `service_account` - (Optional) The service account to be used by the Node VMs.
+    If not specified, the "default" service account is used.
+
+* `metadata` - (Optional) The metadata key/value pairs assigned to instances in
+    the cluster.
+
+* `image_type` - (Optional) The image type to use for this node.
+
 **Addons Config** supports the following addons:
 
 * `http_load_balancing` - (Optional) The status of the HTTP Load Balancing
