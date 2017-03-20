@@ -3,6 +3,7 @@
 FEATURES:
 
  * **New Resource:**  `aws_api_gateway_usage_plan` [GH-12542]
+ * **New Resource:**  `aws_api_gateway_usage_plan_key` [GH-12851]
 
 IMPROVEMENTS:
 
