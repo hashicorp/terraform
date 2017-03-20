@@ -169,8 +169,6 @@ func resourceAwsSsmDocumentRead(d *schema.ResourceData, meta interface{}) error 
 		return errwrap.Wrapf("[ERROR] Error describing SSM document: {{err}}", err)
 	}
 
-	fmt.Println(*resp.Document)
-
 	doc := resp.Document
 	d.Set("created_date", doc.CreatedDate)
 	d.Set("default_version", doc.DefaultVersion)
