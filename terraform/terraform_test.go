@@ -1500,7 +1500,7 @@ DIFF:
 
 DESTROY/CREATE: aws_instance.foo
   type: "" => "aws_instance"
-  vars: "" => "foo"
+  vars: "foo" => "foo"
 
 STATE:
 
