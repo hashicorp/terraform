@@ -3098,7 +3098,8 @@ func TestContext2Plan_listOrder(t *testing.T) {
 
 // Make sure ignore-changes doesn't interfere with set/list/map diffs.
 // If a resource was being replaced by a RequiresNew attribute that gets
-// ignores, we need to filter out the diff properly.
+// ignored, we need to filter the diff properly to properly update rather than
+// replace.
 func TestContext2Plan_ignoreChangesWithFlatmaps(t *testing.T) {
 	m := testModule(t, "plan-ignore-changes-with-flatmaps")
 	p := testProvider("aws")
