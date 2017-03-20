@@ -110,6 +110,12 @@ func (b *Local) opPlan(
 		// Write the backend if we have one
 		plan.Backend = op.PlanOutBackend
 
+		// This works around a bug (#12871) which is no longer possible to
+		// trigger but will exist for already corrupted upgrades.
+		if plan.Backend != nil && plan.State != nil {
+			plan.State.Remote = nil
+		}
+
 		log.Printf("[INFO] backend/local: writing plan output to: %s", path)
 		f, err := os.Create(path)
 		if err == nil {
