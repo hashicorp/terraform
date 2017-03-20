@@ -213,6 +213,23 @@ func (n *EvalDiff) processIgnoreChanges(diff *InstanceDiff) error {
 		}
 	}
 
+	// Make map of list-type attribute keys
+	listTypeAttrKeys := make(map[string]bool)
+	for k, _ := range diff.CopyAttributes() {
+		if strings.HasSuffix(k, ".#") {
+			listTypeAttrKeys[strings.TrimRight(k, ".#")] = true
+		}
+	}
+
+	// Check if any list-type attributes are changing and put them
+	// into a map that siblings can check
+	changingSiblings := make(map[string]bool)
+	for k, v := range diff.CopyAttributes() {
+		if listTypeAttrKeys[strings.Split(k, ".")[0]] && !v.Empty() {
+			changingSiblings[strings.Split(k, ".")[0]] = true
+		}
+	}
+
 	// If we are replacing the resource, then we expect there to be a bunch of
 	// extraneous attribute diffs we need to filter out for the other
 	// non-requires-new attributes going from "" -> "configval" or "" ->
@@ -220,7 +237,7 @@ func (n *EvalDiff) processIgnoreChanges(diff *InstanceDiff) error {
 	// skip this diff altogether.
 	if changeType == DiffDestroyCreate {
 		for k, v := range diff.CopyAttributes() {
-			if v.Empty() || v.NewComputed {
+			if (v.Empty() && !changingSiblings[strings.Split(k, ".")[0]]) || v.NewComputed {
 				ignorableAttrKeys[k] = true
 			}
 		}
