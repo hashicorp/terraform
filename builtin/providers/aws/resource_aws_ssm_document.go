@@ -169,6 +169,8 @@ func resourceAwsSsmDocumentRead(d *schema.ResourceData, meta interface{}) error 
 		return errwrap.Wrapf("[ERROR] Error describing SSM document: {{err}}", err)
 	}
 
+	fmt.Println(*resp.Document)
+
 	doc := resp.Document
 	d.Set("created_date", doc.CreatedDate)
 	d.Set("default_version", doc.DefaultVersion)
@@ -205,9 +207,15 @@ func resourceAwsSsmDocumentRead(d *schema.ResourceData, meta interface{}) error 
 		if dp.DefaultValue != nil {
 			param["default_value"] = *dp.DefaultValue
 		}
-		param["description"] = *dp.Description
-		param["name"] = *dp.Name
-		param["type"] = *dp.Type
+		if dp.Description != nil {
+			param["description"] = *dp.Description
+		}
+		if dp.Name != nil {
+			param["name"] = *dp.Name
+		}
+		if dp.Type != nil {
+			param["type"] = *dp.Type
+		}
 		params = append(params, param)
 	}
 
