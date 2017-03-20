@@ -24,10 +24,19 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"identifier": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"identifier_prefix"},
+				ValidateFunc:  validateRdsIdentifier,
+			},
+			"identifier_prefix": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				ForceNew:     true,
-				ValidateFunc: validateRdsId,
+				ValidateFunc: validateRdsIdentifierPrefix,
 			},
 
 			"db_subnet_group_name": {
@@ -162,10 +171,14 @@ func resourceAwsRDSClusterInstanceCreate(d *schema.ResourceData, meta interface{
 		createOpts.DBParameterGroupName = aws.String(attr.(string))
 	}
 
-	if v := d.Get("identifier").(string); v != "" {
-		createOpts.DBInstanceIdentifier = aws.String(v)
+	if v, ok := d.GetOk("identifier"); ok {
+		createOpts.DBInstanceIdentifier = aws.String(v.(string))
 	} else {
-		createOpts.DBInstanceIdentifier = aws.String(resource.UniqueId())
+		if v, ok := d.GetOk("identifier_prefix"); ok {
+			createOpts.DBInstanceIdentifier = aws.String(resource.PrefixedUniqueId(v.(string)))
+		} else {
+			createOpts.DBInstanceIdentifier = aws.String(resource.PrefixedUniqueId("tf-"))
+		}
 	}
 
 	if attr, ok := d.GetOk("db_subnet_group_name"); ok {
