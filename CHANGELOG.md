@@ -24,6 +24,7 @@ BUG FIXES:
  * provider/arukas: Default timeout for launching container increased to 15mins (was 10mins) [GH-12849]
  * provider/aws: Fix flattened cloudfront lambda function associations to be a set not a slice [GH-11984]
  * provider/aws: Deprecate the usage of Api Gateway Key Stages in favor of Usage Plans [GH-12883]
+ * provider/aws: prevent panic in resourceAwsSsmDocumentRead [GH-12891]
  * provider/mysql: recreate user/grant if user/grant got deleted manually [GH-12791]
 
 ## 0.9.1 (March 17, 2017)
