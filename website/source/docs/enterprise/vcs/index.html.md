@@ -15,5 +15,5 @@ source control.
 Different capabilities within Terraform Enterprise are available depending on the integration
 in use. The available integration options are below.
 
-- [Git](/docs/enterprise/vcs/git)
-- [GitHub](/docs/enterprise/vcs/github)
+- [Git](/docs/enterprise/vcs/git.html)
+- [GitHub](/docs/enterprise/vcs/github.html)

@@ -1,7 +1,7 @@
 ---
 layout: "vcs"
 page_title: "Git Integration"
-sidebar_current: "docs-enterprise-vcs"
+sidebar_current: "docs-enterprise-vcs-git"
 description: |-
   Git repositories can be integrated with Terraform Enterprise by using push command.
 ---
@@ -14,7 +14,7 @@ Terraform configuration when changes are committed. When Terraform
 configuration is imported using `terraform push` a plan is automatically queued.
 
 _**Note:** This integration is for Git repositories **not** hosted on GitHub. 
-For repositories on GitHub, there is native [GitHub Integration](/help/terraform/vcs/github).
+For repositories on GitHub, there is native [GitHub Integration](/docs/enterprise/vcs/github.html).
 
 ## Setup
 
@@ -42,7 +42,7 @@ repository, set the necessary variables, and ensure the script is executable.
 # An example hook script to push Terraform configuration to Terraform Enterprise.
 #
 # Set the following variables for your project:
-# - ENV_NAME - your Atlas environment name (e.g. org/env)
+# - ENV_NAME - your environment name (e.g. org/env)
 # - TERRAFORM_DIR - the local directory to push
 # - DEFAULT_BRANCH - the branch to push. Other branches will be ignored.
 
@@ -58,10 +58,10 @@ fi
 current_branch=$(git symbolic-ref HEAD | sed -e 's,.*/\(.*\),\1,')
 
 if [ "$current_branch" == "$DEFAULT_BRANCH" ]; then
-  echo "pre-push hook: Pushing branch [$current_branch] to Atlas environment [$ENV_NAME]."
+  echo "pre-push hook: Pushing branch [$current_branch] to environment [$ENV_NAME]."
   terraform push -name="$ENV_NAME" $TERRAFORM_DIR
 else
-  echo "pre-push hook: NOT pushing branch [$current_branch] to Atlas environment [$ENV_NAME]."
+  echo "pre-push hook: NOT pushing branch [$current_branch] to environment [$ENV_NAME]."
 fi
 
 ```

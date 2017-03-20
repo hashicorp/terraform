@@ -16,7 +16,7 @@ runs.
 ## Steps of Execution
 
 1. A set of Terraform configuration and directory of files is uploaded via Terraform Push or GitHub
-2. Atlas creates a version of the Terraform configuration and waits for the upload
+2. Terraform Enterprise creates a version of the Terraform configuration and waits for the upload
 to complete. At this point, the version will be visible in the UI even if the upload has
 not completed
 3. Once the upload finishes, Terraform Enterprise creates a run and queues a `terraform plan`
@@ -48,12 +48,11 @@ These are:
 - The directory that contains your environment's Terraform configuration can be customized 
 to support directory structures with more than one set of Terraform configuration files.
 To customize the directory for your Environment, set the _Terraform Directory_ 
-property in the _GitHub Integration_ settings for your environment. This is equivalent to 
+property in the [_GitHub Integration_](/docs/enterprise/vcs/github.html) settings for your environment. This is equivalent to 
 passing the `[dir]` argument when running Terraform in your local shell.
 - The directory in which Terraform is executed from can be customized to support directory 
 structures with nested sub-directories or configurations that use Terraform modules with 
-relative paths. To customize the directory used for Terraform execution in your  
-Environment, set the `TF_ATLAS_DIR` 
-[environment variable](/docs/enterprise/runs/variables-and-configuration#environment-variables)
+relative paths. To customize the directory used for Terraform execution in your Environment, set the `TF_ATLAS_DIR` 
+[environment variable](/docs/enterprise/runs/variables-and-configuration.html#environment-variables)
 to the relative path of the directory - ie. `terraform/production`. This is equivalent to 
 changing directories to the appropriate path in your local shell and then executing Terraform.
