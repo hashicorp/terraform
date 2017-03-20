@@ -9,6 +9,7 @@ IMPROVEMENTS:
 
  * provider/aws: Added support for EMR AutoScalingRole [GH-12823]
  * provider/aws: Add `name_prefix` to `aws_autoscaling_group` and `aws_elb` resources [GH-12629]
+ * provider/aws: Added aws_api_gateway_api_key value attribute [GH-9462]
  * provider/consul: Add support for basic auth to the provider [GH-12679]
  * provider/dnsimple: Allow dnsimple_record.priority attribute to be set [GH-12843]
  * provider/openstack: Adding Timeouts to Blockstorage Resources [GH-12862]
