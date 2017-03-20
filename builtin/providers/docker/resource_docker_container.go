@@ -189,7 +189,7 @@ func resourceDockerContainer() *schema.Resource {
 							ForceNew: true,
 							ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
 								value := v.(string)
-								if !regexp.MustCompile(`^[a-zA-Z]:\|^/`).MatchString(value) {
+								if !regexp.MustCompile(`^[a-zA-Z]:\\|^/`).MatchString(value) {
 									es = append(es, fmt.Errorf(
 										"%q must be an absolute path", k))
 								}
