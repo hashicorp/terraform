@@ -48,5 +48,5 @@ POLICY
 
 The following arguments are supported:
 
-* `queue_url` - (Required) The URL of the SNS Queue to which to attach the policy
+* `queue_url` - (Required) The URL of the SQS Queue to which to attach the policy
 * `policy` - (Required) The JSON policy for the SQS queue
