@@ -14,11 +14,11 @@ named `terraform.tfstate`, but it can also be stored remotely, which
 works better in a team environment.
 
 Terraform Enterprise is a remote state provider, allowing you to store, version and
-collaborate on state with Atlas.
+collaborate on states.
 
 Remote state gives you more than just easier version control and safer
 storage. It also allows you to delegate the outputs to other teams.
 This allows your infrastructure to be more easily broken down into
 components that multiple teams can access.
 
-Read [more about remote state](https://www.terraform.io/docs/state/remote/index.html).
+Read [more about remote state](https://www.terraform.io/docs/state/remote.html).

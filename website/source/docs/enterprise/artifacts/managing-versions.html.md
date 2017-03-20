@@ -1,7 +1,7 @@
 ---
 layout: "artifacts"
 page_title: "Managing Artifact Versions"
-sidebar_current: "docs-enterprise-Provider"
+sidebar_current: "docs-enterprise-artifact-versions"
 description: |-
   Artifacts are versioned and assigned a version number, here is how to manage the versions.
 ---
@@ -12,7 +12,7 @@ Artifacts stored in Terraform Enterprise are versioned and assigned a version nu
 Versions are useful to roll back, audit and deploy images specific versions
 of images to certain environments in a targeted way.
 
-This assumes you are familiar with the [Atlas artifact provider](https://terraform.io/docs/providers/atlas/index.html)
+This assumes you are familiar with the [artifact provider](https://terraform.io/docs/providers/atlas/index.html)
 in Terraform.
 
 ### Finding the Version of an Artifact
