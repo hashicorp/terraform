@@ -235,6 +235,15 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 	one := stateOne.State()
 	two := stateTwo.State()
 
+	// Clear the legacy remote state in both cases. If we're at the migration
+	// step then this won't be used anymore.
+	if one != nil {
+		one.Remote = nil
+	}
+	if two != nil {
+		two.Remote = nil
+	}
+
 	var confirmFunc func(state.State, state.State, *backendMigrateOpts) (bool, error)
 	switch {
 	// No migration necessary
