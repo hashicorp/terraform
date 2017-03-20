@@ -26,7 +26,7 @@ Terraform plans and applies below.
 During the plan phase of a run, the command `terraform plan` is executed.
 Terraform performs a refresh and then determines what actions are necessary to
 reach the desired state specified in the Terraform configuration files. A
-successful plan outputs an executable file that is securely stored in Atlas
+successful plan outputs an executable file that is securely stored in Terrafrom Enterprise
 and may be used in the subsequent apply.
 
 Terraform plans do not change the state of infrastructure, so it is
@@ -45,9 +45,9 @@ While Terraform plans are safe to run multiple times, Terraform applies often
 change active infrastructure. Because of this, the default behavior 
 is to require user confirmation as part of the
 [Terraform run execution](/docs/enterprise/runs/how-runs-execute.html). Upon
-user confirmation, Atlas will queue and execute the Terraform apply. It is also
-possible to configure Atlas to
-[automatically apply](/docs/enterprise/runs/automatic-applies.html), but this option is
+user confirmation, the Terraform apply will be queued and executed. It is also
+possible to configure 
+[automatic applies](/docs/enterprise/runs/automatic-applies.html), but this option is
 disabled by default.
 
 ## Environment Locking
