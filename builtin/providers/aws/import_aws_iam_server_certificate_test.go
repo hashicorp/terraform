@@ -9,7 +9,7 @@ import (
 )
 
 func TestAccAWSIAMServerCertificate_importBasic(t *testing.T) {
-	resourceName := "aws_iam_server_certificate.cert"
+	resourceName := "aws_iam_server_certificate.test_cert"
 
 	//	n := fmt.Sprintf("test-cert-%d", acctest.RandInt())
 
