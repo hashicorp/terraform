@@ -1,6 +1,8 @@
 package puppetdb
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -8,7 +10,10 @@ import (
 )
 
 type PuppetDBClient struct {
-	URL string
+	URL  string
+	Cert string
+	Key  string
+	CA   string
 }
 
 type PuppetDBResp struct {
@@ -46,7 +51,34 @@ func (p *PuppetDBClient) Query(query string, verb string, payload string) (pdbRe
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Accept", "application/json")
 
-	client := &http.Client{}
+	var client *http.Client
+	if p.Cert != "" {
+		// Load cert pair
+		cert, err := tls.LoadX509KeyPair(p.Cert, p.Key)
+		if err != nil {
+			return pdbResp, err
+		}
+
+		// Load CA cert
+		caCert, err := ioutil.ReadFile(p.CA)
+		if err != nil {
+			return pdbResp, err
+		}
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(caCert)
+
+		// Setup HTTPS client
+		tlsConfig := &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			RootCAs:      caCertPool,
+		}
+		tlsConfig.BuildNameToCertificate()
+		transport := &http.Transport{TLSClientConfig: tlsConfig}
+		client = &http.Client{Transport: transport}
+	} else {
+		client = &http.Client{}
+	}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return
