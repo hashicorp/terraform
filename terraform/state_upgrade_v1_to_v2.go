@@ -68,6 +68,11 @@ func (old *moduleStateV1) upgradeToV2() (*ModuleState, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error upgrading ModuleState V1: %v", err)
 	}
+	if path == nil {
+		// We found some V1 states with a nil path. Assume root and catch
+		// duplicate path errors later (as part of Validate).
+		path = rootModulePath
+	}
 
 	// Outputs needs upgrading to use the new structure
 	outputs := make(map[string]*OutputState)
