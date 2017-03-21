@@ -864,7 +864,8 @@ resource "aws_db_instance" "snapshot-timestamp" {
   skip_final_snapshot = false
   copy_tags_to_snapshot = true
   final_snapshot_identifier = "foobarbaz-test-terraform-final-snapshot-%d"
-  timestamp_final_snapshot = "20060102"
+  timestamp_final_snapshot = true
+  timestamp_final_snapshot_format = "20060102"
 
 	backup_retention_period = 0
   apply_immediately = true

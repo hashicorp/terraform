@@ -61,7 +61,8 @@ The following arguments are supported:
     when this DB instance is deleted. If omitted, no final snapshot will be
     made.
 * `skip_final_snapshot` - (Optional) Determines whether a final DB snapshot is created before the DB instance is deleted. If true is specified, no DBSnapshot is created. If false is specified, a DB snapshot is created before the DB instance is deleted, using the value from `final_snapshot_identifier`. Default is `false`.
-* `timestamp_final_snapshot` - (Optional) Append "-<timestamp>" to final DB snapshot using the provided [go time Format](https://golang.org/pkg/time/#Time.Format)
+* `timestamp_final_snapshot` - (Optional, boolean) Append "-<timestamp>" to final DB snapshot with the default timestamp format ("20060102-150405")
+* `timestamp_final_snapshot_format` - (Optional) format the "-<timestamp>" using the provided [go time Format](https://golang.org/pkg/time/#Time.Format)
 * `copy_tags_to_snapshot` – (Optional, boolean) On delete, copy all Instance `tags` to
 the final snapshot (if `final_snapshot_identifier` is specified). Default
 `false`
