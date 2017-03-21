@@ -120,7 +120,7 @@ func resourceAwsIAMServerCertificateCreate(d *schema.ResourceData, meta interfac
 	}
 
 	log.Printf("[DEBUG] Creating IAM Server Certificate with opts: %s", createOpts)
-	resp, err := conn.UploadServerCertificate(createOpts)
+	_, err := conn.UploadServerCertificate(createOpts)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			return fmt.Errorf("[WARN] Error uploading server certificate, error: %s: %s", awsErr.Code(), awsErr.Message())
@@ -128,7 +128,7 @@ func resourceAwsIAMServerCertificateCreate(d *schema.ResourceData, meta interfac
 		return fmt.Errorf("[WARN] Error uploading server certificate, error: %s", err)
 	}
 
-	d.SetId(*resp.ServerCertificateMetadata.ServerCertificateId)
+	d.SetId(sslCertName)
 	d.Set("name", sslCertName)
 
 	return resourceAwsIAMServerCertificateRead(d, meta)

@@ -11,10 +11,7 @@ import (
 func TestAccAWSIAMServerCertificate_importBasic(t *testing.T) {
 	resourceName := "aws_iam_server_certificate.test_cert"
 
-	//	n := fmt.Sprintf("test-cert-%d", acctest.RandInt())
-
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckIAMServerCertificateDestroy,
 		Steps: []resource.TestStep{
@@ -27,7 +24,7 @@ func TestAccAWSIAMServerCertificate_importBasic(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateVerifyIgnore: []string{
-					"force_destroy"},
+					"private_key"},
 			},
 		},
 	})
