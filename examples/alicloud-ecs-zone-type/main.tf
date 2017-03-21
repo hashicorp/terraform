@@ -5,13 +5,46 @@ data "alicloud_instance_types" "1c2g" {
 }
 
 data "alicloud_zones" "default" {
-	"available_instance_type"= "${data.alicloud_instance_types.4c8g.instance_types.0.id}"
+	"available_instance_type"= "${data.alicloud_instance_types.1c2g.instance_types.0.id}"
 	"available_disk_category"= "${var.disk_category}"
 }
 
 resource "alicloud_security_group" "group" {
   name = "${var.short_name}"
   description = "New security group"
+}
+
+resource "alicloud_security_group_rule" "http-in" {
+  type = "ingress"
+  ip_protocol = "tcp"
+  nic_type = "internet"
+  policy = "accept"
+  port_range = "80/80"
+  priority = 1
+  security_group_id = "${alicloud_security_group.group.id}"
+  cidr_ip = "0.0.0.0/0"
+}
+
+resource "alicloud_security_group_rule" "https-in" {
+  type = "ingress"
+  ip_protocol = "tcp"
+  nic_type = "internet"
+  policy = "accept"
+  port_range = "443/443"
+  priority = 1
+  security_group_id = "${alicloud_security_group.group.id}"
+  cidr_ip = "0.0.0.0/0"
+}
+
+resource "alicloud_security_group_rule" "ssh-in" {
+  type = "ingress"
+  ip_protocol = "tcp"
+  nic_type = "internet"
+  policy = "accept"
+  port_range = "22/22"
+  priority = 1
+  security_group_id = "${alicloud_security_group.group.id}"
+  cidr_ip = "0.0.0.0/0"
 }
 
 resource "alicloud_instance" "instance" {
