@@ -1,5 +1,9 @@
 ---
-title: "Environments API"
+layout: "api"
+page_title: "Environments API"
+sidebar_current: "docs-enterprise-api-environments"
+description: |-
+  Environments represent running infrastructure managed by Terraform.
 ---
 
 # Environments API
