@@ -1,5 +1,9 @@
 ---
-title: "Terraform Configuration API"
+layout: "api"
+page_title: "Terraform Configuration API"
+sidebar_current: "docs-enterprise-api-configurations"
+description: |-
+  A configuration respresents settings associated with a resource that runs Terraform with versions of Terraform configuration..
 ---
 
 # Terraform Configuration API
