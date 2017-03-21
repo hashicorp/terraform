@@ -204,6 +204,7 @@ func buildRegionAutoscaler(d *schema.ResourceData) (*compute.Autoscaler, error) 
 
 	return scaler, nil
 }
+
 /* Leaving this as a reminder of what we used to be
 func resourceComputeRegionAutoscalerCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
@@ -333,7 +334,7 @@ func resourceComputeRegionAutoscalerRead(d *schema.ResourceData, meta interface{
 		return err
 	}
 	*/
-	
+
 	scaler, err := config.clientCompute.RegionAutoscalers.Get(
 		project, region, d.Id()).Do()
 	if err != nil {
@@ -347,7 +348,6 @@ func resourceComputeRegionAutoscalerRead(d *schema.ResourceData, meta interface{
 
 		return fmt.Errorf("Error reading service: %s", err)
 	}
-
 
 	if scaler == nil {
 		log.Printf("[WARN] Removing Autoscalar %q because it's gone", d.Get("name").(string))
@@ -434,7 +434,6 @@ func resourceComputeRegionAutoscalerDelete(d *schema.ResourceData, meta interfac
 
 		return fmt.Errorf("Error reading service: %s", err)
 	}
-
 
 	if scaler == nil {
 		log.Printf("[WARN] Removing Autoscalar %q because it's gone", d.Get("name").(string))
