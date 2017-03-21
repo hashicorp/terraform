@@ -109,6 +109,10 @@ which the cluster's instances are launched
 * `disk_size_gb` - (Optional) Size of the disk attached to each node, specified
     in GB. The smallest allowed disk size is 10GB. Defaults to 100GB.
 
+* `metadata` - (Optional) Metadata to be set on each cluster node.
+
+* `tags` - (Optional) Tags to be set on each cluster node.
+
 * `oauth_scopes` - (Optional) The set of Google API scopes to be made available
     on all of the node VMs under the "default" service account. These can be
     either FQDNs, or scope aliases. The following scopes are necessary to ensure
