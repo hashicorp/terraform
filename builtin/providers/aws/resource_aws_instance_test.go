@@ -656,7 +656,38 @@ func TestAccAWSInstance_instanceProfileChange(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccInstanceConfigAttachInstanceProfile(rName),
+				Config: testAccInstanceConfigWithInstanceProfile(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					testCheckInstanceProfile(),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSInstance_withIamInstanceProfile(t *testing.T) {
+	var v ec2.Instance
+	rName := acctest.RandString(5)
+
+	testCheckInstanceProfile := func() resource.TestCheckFunc {
+		return func(*terraform.State) error {
+			if v.IamInstanceProfile == nil {
+				return fmt.Errorf("Instance Profile is nil - we expected an InstanceProfile associated with the Instance")
+			}
+
+			return nil
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_instance.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceConfigWithInstanceProfile(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
 					testCheckInstanceProfile(),
@@ -1281,7 +1312,7 @@ resource "aws_instance" "foo" {
 }`, rName, rName)
 }
 
-func testAccInstanceConfigAttachInstanceProfile(rName string) string {
+func testAccInstanceConfigWithInstanceProfile(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_iam_role" "test" {
 	name = "test-%s"
