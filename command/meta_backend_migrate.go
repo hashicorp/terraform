@@ -162,21 +162,26 @@ func (m *Meta) backendMigrateState_S_S(opts *backendMigrateOpts) error {
 func (m *Meta) backendMigrateState_S_s(opts *backendMigrateOpts) error {
 	currentEnv := m.Env()
 
-	// Ask the user if they want to migrate their existing remote state
-	migrate, err := m.confirm(&terraform.InputOpts{
-		Id: "backend-migrate-multistate-to-single",
-		Query: fmt.Sprintf(
-			"Destination state %q doesn't support environments (named states).\n"+
-				"Do you want to copy only your current environment?",
-			opts.TwoType),
-		Description: fmt.Sprintf(
-			strings.TrimSpace(inputBackendMigrateMultiToSingle),
-			opts.OneType, opts.TwoType, currentEnv),
-	})
-	if err != nil {
-		return fmt.Errorf(
-			"Error asking for state migration action: %s", err)
+	migrate := m.forceInitCopy
+	if !migrate {
+		var err error
+		// Ask the user if they want to migrate their existing remote state
+		migrate, err = m.confirm(&terraform.InputOpts{
+			Id: "backend-migrate-multistate-to-single",
+			Query: fmt.Sprintf(
+				"Destination state %q doesn't support environments (named states).\n"+
+					"Do you want to copy only your current environment?",
+				opts.TwoType),
+			Description: fmt.Sprintf(
+				strings.TrimSpace(inputBackendMigrateMultiToSingle),
+				opts.OneType, opts.TwoType, currentEnv),
+		})
+		if err != nil {
+			return fmt.Errorf(
+				"Error asking for state migration action: %s", err)
+		}
 	}
+
 	if !migrate {
 		return fmt.Errorf("Migration aborted by user.")
 	}
@@ -295,6 +300,10 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 }
 
 func (m *Meta) backendMigrateEmptyConfirm(one, two state.State, opts *backendMigrateOpts) (bool, error) {
+	if m.forceInitCopy {
+		return true, nil
+	}
+
 	inputOpts := &terraform.InputOpts{
 		Id: "backend-migrate-copy-to-empty",
 		Query: fmt.Sprintf(
@@ -355,6 +364,10 @@ func (m *Meta) backendMigrateNonEmptyConfirm(
 	}
 	if err := saveHelper(opts.TwoType, twoPath, two); err != nil {
 		return false, fmt.Errorf("Error saving temporary state: %s", err)
+	}
+
+	if m.forceInitCopy {
+		return true, nil
 	}
 
 	// Ask for confirmation
