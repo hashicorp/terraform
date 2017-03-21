@@ -38,7 +38,7 @@ type Meta struct {
 	// Indicates the "load average".
 	// Values must be positive, and will be rounded to the nearest tenth.
 	// float64 or FeedPtr.
-	LoadAvg interface{} `json:",loadavg,omitempty"`
+	LoadAvg interface{} `json:"loadavg,omitempty"`
 
 	// The Job ID of a Pulsar telemetry gathering job and routing granularities
 	// to associate with.

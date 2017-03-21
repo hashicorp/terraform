@@ -19,7 +19,7 @@ This resource creates an application that has one configuration template named
 
 ```
 resource "aws_elastic_beanstalk_application" "tftest" {
-  name = "tf-test-name"
+  name        = "tf-test-name"
   description = "tf-test-desc"
 }
 ```
@@ -41,7 +41,7 @@ The following attributes are exported:
 
 ## Import
 
-Elastic Beanstalk Applications can be imported using the `name`, e.g. 
+Elastic Beanstalk Applications can be imported using the `name`, e.g.
 
 ```
 $ terraform import aws_elastic_beanstalk_application.tf_test tf-test-name

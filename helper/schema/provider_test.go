@@ -381,3 +381,29 @@ func TestProviderStop_stopFirst(t *testing.T) {
 		t.Fatal("should be stopped")
 	}
 }
+
+func TestProviderReset(t *testing.T) {
+	var p Provider
+	stopCtx := p.StopContext()
+	p.MetaReset = func() error {
+		stopCtx = p.StopContext()
+		return nil
+	}
+
+	// cancel the current context
+	p.Stop()
+
+	if err := p.TestReset(); err != nil {
+		t.Fatal(err)
+	}
+
+	// the first context should have been replaced
+	if err := stopCtx.Err(); err != nil {
+		t.Fatal(err)
+	}
+
+	// we should not get a canceled context here either
+	if err := p.StopContext().Err(); err != nil {
+		t.Fatal(err)
+	}
+}

@@ -20,6 +20,7 @@ resource "aws_sqs_queue" "q" {
 
 resource "aws_sqs_queue_policy" "test" {
   queue_url = "${aws_sqs_queue.q.id}"
+
   policy = <<POLICY
 {
   "Version": "2012-10-17",
@@ -47,5 +48,5 @@ POLICY
 
 The following arguments are supported:
 
-* `queue_url` - (Required) The URL of the SNS Queue to which to attach the policy
+* `queue_url` - (Required) The URL of the SQS Queue to which to attach the policy
 * `policy` - (Required) The JSON policy for the SQS queue

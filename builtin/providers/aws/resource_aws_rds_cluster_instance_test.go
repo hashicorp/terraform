@@ -87,41 +87,6 @@ func TestAccAWSRDSClusterInstance_disappears(t *testing.T) {
 	})
 }
 
-func testAccCheckAWSClusterInstanceDestroy(s *terraform.State) error {
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "aws_rds_cluster" {
-			continue
-		}
-
-		// Try to find the Group
-		conn := testAccProvider.Meta().(*AWSClient).rdsconn
-		var err error
-		resp, err := conn.DescribeDBInstances(
-			&rds.DescribeDBInstancesInput{
-				DBInstanceIdentifier: aws.String(rs.Primary.ID),
-			})
-
-		if err == nil {
-			if len(resp.DBInstances) != 0 &&
-				*resp.DBInstances[0].DBInstanceIdentifier == rs.Primary.ID {
-				return fmt.Errorf("DB Cluster Instance %s still exists", rs.Primary.ID)
-			}
-		}
-
-		// Return nil if the Cluster Instance is already destroyed
-		if awsErr, ok := err.(awserr.Error); ok {
-			if awsErr.Code() == "DBInstanceNotFound" {
-				return nil
-			}
-		}
-
-		return err
-
-	}
-
-	return nil
-}
-
 func testAccCheckAWSDBClusterInstanceAttributes(v *rds.DBInstance) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
@@ -224,6 +189,7 @@ resource "aws_rds_cluster" "default" {
   database_name      = "mydb"
   master_username    = "foo"
   master_password    = "mustbeeightcharaters"
+  skip_final_snapshot = true
 }
 
 resource "aws_rds_cluster_instance" "cluster_instances" {
@@ -259,6 +225,7 @@ resource "aws_rds_cluster" "default" {
   database_name      = "mydb"
   master_username    = "foo"
   master_password    = "mustbeeightcharaters"
+  skip_final_snapshot = true
 }
 
 resource "aws_rds_cluster_instance" "cluster_instances" {
@@ -319,6 +286,7 @@ resource "aws_rds_cluster" "default" {
   master_password    = "mustbeeightcharaters"
   storage_encrypted = true
   kms_key_id = "${aws_kms_key.foo.arn}"
+  skip_final_snapshot = true
 }
 
 resource "aws_rds_cluster_instance" "cluster_instances" {
@@ -353,6 +321,7 @@ resource "aws_rds_cluster" "default" {
   database_name      = "mydb"
   master_username    = "foo"
   master_password    = "mustbeeightcharaters"
+  skip_final_snapshot = true
 }
 
 resource "aws_rds_cluster_instance" "cluster_instances" {

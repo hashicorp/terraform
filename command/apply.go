@@ -2,15 +2,16 @@ package command
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"sort"
 	"strings"
 
 	"github.com/hashicorp/go-getter"
-	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/helper/experiment"
+	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -43,40 +44,34 @@ func (c *ApplyCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
 	cmdFlags.IntVar(
 		&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
+	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
+	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
 	}
 
-	pwd, err := os.Getwd()
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
-		return 1
-	}
-
-	var configPath string
-	maybeInit := true
+	// Get the args. The "maybeInit" flag tracks whether we may need to
+	// initialize the configuration from a remote path. This is true as long
+	// as we have an argument.
 	args = cmdFlags.Args()
-	if len(args) > 1 {
-		c.Ui.Error("The apply command expects at most one argument.")
-		cmdFlags.Usage()
+	maybeInit := len(args) == 1
+	configPath, err := ModulePath(args)
+	if err != nil {
+		c.Ui.Error(err.Error())
 		return 1
-	} else if len(args) == 1 {
-		configPath = args[0]
-	} else {
-		configPath = pwd
-		maybeInit = false
 	}
-
-	// Prepare the extra hooks to count resources
-	countHook := new(CountHook)
-	stateHook := new(StateHook)
-	c.Meta.extraHooks = []terraform.Hook{countHook, stateHook}
 
 	if !c.Destroy && maybeInit {
+		// We need the pwd for the getter operation below
+		pwd, err := os.Getwd()
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
+			return 1
+		}
+
 		// Do a detect to determine if we need to do an init + apply.
 		if detected, err := getter.Detect(configPath, pwd, getter.Detectors); err != nil {
 			c.Ui.Error(fmt.Sprintf(
@@ -96,37 +91,58 @@ func (c *ApplyCommand) Run(args []string) int {
 		}
 	}
 
-	terraform.SetDebugInfo(DefaultDataDir)
-
-	// Check for the legacy graph
-	if experiment.Enabled(experiment.X_legacyGraph) {
-		c.Ui.Output(c.Colorize().Color(
-			"[reset][bold][yellow]" +
-				"Legacy graph enabled! This will use the graph from Terraform 0.7.x\n" +
-				"to execute this operation. This will be removed in the future so\n" +
-				"please report any issues causing you to use this to the Terraform\n" +
-				"project.\n\n"))
-	}
-
-	// This is going to keep track of shadow errors
-	var shadowErr error
-
-	// Build the context based on the arguments given
-	ctx, planned, err := c.Context(contextOpts{
-		Destroy:     c.Destroy,
-		Path:        configPath,
-		StatePath:   c.Meta.statePath,
-		Parallelism: c.Meta.parallelism,
-	})
+	// Check if the path is a plan
+	plan, err := c.Plan(configPath)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
 	}
-	if c.Destroy && planned {
+	if c.Destroy && plan != nil {
 		c.Ui.Error(fmt.Sprintf(
 			"Destroy can't be called with a plan file."))
 		return 1
 	}
+	if plan != nil {
+		// Reset the config path for backend loading
+		configPath = ""
+	}
+
+	// Load the module if we don't have one yet (not running from plan)
+	var mod *module.Tree
+	if plan == nil {
+		mod, err = c.Module(configPath)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
+			return 1
+		}
+	}
+
+	/*
+		terraform.SetDebugInfo(DefaultDataDir)
+
+		// Check for the legacy graph
+		if experiment.Enabled(experiment.X_legacyGraph) {
+			c.Ui.Output(c.Colorize().Color(
+				"[reset][bold][yellow]" +
+					"Legacy graph enabled! This will use the graph from Terraform 0.7.x\n" +
+					"to execute this operation. This will be removed in the future so\n" +
+					"please report any issues causing you to use this to the Terraform\n" +
+					"project.\n\n"))
+		}
+	*/
+
+	// Load the backend
+	b, err := c.Backend(&BackendOpts{
+		ConfigPath: configPath,
+		Plan:       plan,
+	})
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+		return 1
+	}
+
+	// If we're not forcing and we're destroying, verify with the
+	// user at this point.
 	if !destroyForce && c.Destroy {
 		// Default destroy message
 		desc := "Terraform will delete all your managed infrastructure.\n" +
@@ -159,80 +175,33 @@ func (c *ApplyCommand) Run(args []string) int {
 			return 1
 		}
 	}
-	if !planned {
-		if err := ctx.Input(c.InputMode()); err != nil {
-			c.Ui.Error(fmt.Sprintf("Error configuring: %s", err))
-			return 1
-		}
 
-		// Record any shadow errors for later
-		if err := ctx.ShadowError(); err != nil {
-			shadowErr = multierror.Append(shadowErr, multierror.Prefix(
-				err, "input operation:"))
-		}
-	}
-	if !validateContext(ctx, c.Ui) {
+	// Build the operation
+	opReq := c.Operation()
+	opReq.Destroy = c.Destroy
+	opReq.Module = mod
+	opReq.Plan = plan
+	opReq.PlanRefresh = refresh
+	opReq.Type = backend.OperationTypeApply
+	opReq.LockState = c.Meta.stateLock
+
+	// Perform the operation
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+	op, err := b.Operation(ctx, opReq)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error starting operation: %s", err))
 		return 1
 	}
 
-	// Plan if we haven't already
-	if !planned {
-		if refresh {
-			if _, err := ctx.Refresh(); err != nil {
-				c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
-				return 1
-			}
-		}
-
-		if _, err := ctx.Plan(); err != nil {
-			c.Ui.Error(fmt.Sprintf(
-				"Error creating plan: %s", err))
-			return 1
-		}
-
-		// Record any shadow errors for later
-		if err := ctx.ShadowError(); err != nil {
-			shadowErr = multierror.Append(shadowErr, multierror.Prefix(
-				err, "plan operation:"))
-		}
-	}
-
-	// Setup the state hook for continuous state updates
-	{
-		state, err := c.State()
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf(
-				"Error reading state: %s", err))
-			return 1
-		}
-
-		stateHook.State = state
-	}
-
-	// Start the apply in a goroutine so that we can be interrupted.
-	var state *terraform.State
-	var applyErr error
-	doneCh := make(chan struct{})
-	go func() {
-		defer close(doneCh)
-		state, applyErr = ctx.Apply()
-
-		// Record any shadow errors for later
-		if err := ctx.ShadowError(); err != nil {
-			shadowErr = multierror.Append(shadowErr, multierror.Prefix(
-				err, "apply operation:"))
-		}
-	}()
-
-	// Wait for the apply to finish or for us to be interrupted so
-	// we can handle it properly.
-	err = nil
+	// Wait for the operation to complete or an interrupt to occur
 	select {
 	case <-c.ShutdownCh:
-		c.Ui.Output("Interrupt received. Gracefully shutting down...")
+		// Cancel our context so we can start gracefully exiting
+		ctxCancel()
 
-		// Stop execution
-		go ctx.Stop()
+		// Notify the user
+		c.Ui.Output("Interrupt received. Gracefully shutting down...")
 
 		// Still get the result, since there is still one
 		select {
@@ -241,64 +210,26 @@ func (c *ApplyCommand) Run(args []string) int {
 				"Two interrupts received. Exiting immediately. Note that data\n" +
 					"loss may have occurred.")
 			return 1
-		case <-doneCh:
+		case <-op.Done():
 		}
-	case <-doneCh:
-	}
-
-	// Persist the state
-	if state != nil {
-		if err := c.Meta.PersistState(state); err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to save state: %s", err))
+	case <-op.Done():
+		if err := op.Err; err != nil {
+			c.Ui.Error(err.Error())
 			return 1
 		}
 	}
 
-	if applyErr != nil {
-		c.Ui.Error(fmt.Sprintf(
-			"Error applying plan:\n\n"+
-				"%s\n\n"+
-				"Terraform does not automatically rollback in the face of errors.\n"+
-				"Instead, your Terraform state file has been partially updated with\n"+
-				"any resources that successfully completed. Please address the error\n"+
-				"above and apply again to incrementally change your infrastructure.",
-			multierror.Flatten(applyErr)))
-		return 1
-	}
-
-	if c.Destroy {
-		c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
-			"[reset][bold][green]\n"+
-				"Destroy complete! Resources: %d destroyed.",
-			countHook.Removed)))
-	} else {
-		c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
-			"[reset][bold][green]\n"+
-				"Apply complete! Resources: %d added, %d changed, %d destroyed.",
-			countHook.Added,
-			countHook.Changed,
-			countHook.Removed)))
-	}
-
-	if countHook.Added > 0 || countHook.Changed > 0 {
-		c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
-			"[reset]\n"+
-				"The state of your infrastructure has been saved to the path\n"+
-				"below. This state is required to modify and destroy your\n"+
-				"infrastructure, so keep it safe. To inspect the complete state\n"+
-				"use the `terraform show` command.\n\n"+
-				"State path: %s",
-			c.Meta.StateOutPath())))
-	}
-
 	if !c.Destroy {
-		if outputs := outputsAsString(state, terraform.RootModulePath, ctx.Module().Config().Outputs, true); outputs != "" {
+		// Get the right module that we used. If we ran a plan, then use
+		// that module.
+		if plan != nil {
+			mod = plan.Module
+		}
+
+		if outputs := outputsAsString(op.State, terraform.RootModulePath, mod.Config().Outputs, true); outputs != "" {
 			c.Ui.Output(c.Colorize().Color(outputs))
 		}
 	}
-
-	// If we have an error in the shadow graph, let the user know.
-	c.outputShadowError(shadowErr, applyErr == nil)
 
 	return 0
 }
@@ -343,11 +274,13 @@ Options:
                          modifying. Defaults to the "-state-out" path with
                          ".backup" extension. Set to "-" to disable backup.
 
+  -lock=true             Lock the state file when locking is supported.
+
   -input=true            Ask for input for variables if not directly set.
 
   -no-color              If specified, output won't contain any color.
 
-  -parallelism=n         Limit the number of concurrent operations.
+  -parallelism=n         Limit the number of parallel resource operations.
                          Defaults to 10.
 
   -refresh=true          Update state prior to checking for differences. This
@@ -389,6 +322,8 @@ Options:
                          ".backup" extension. Set to "-" to disable backup.
 
   -force                 Don't ask for input for destroy confirmation.
+
+  -lock=true             Lock the state file when locking is supported.
 
   -no-color              If specified, output won't contain any color.
 

@@ -240,7 +240,7 @@ func resourceArmRedisCacheUpdate(d *schema.ResourceData, meta interface{}) error
 		parameters.RedisConfiguration = redisConfiguration
 	}
 
-	_, err := client.Update(resGroup, name, parameters, make(chan struct{}))
+	_, err := client.Update(resGroup, name, parameters)
 	if err != nil {
 		return err
 	}
@@ -344,7 +344,7 @@ func resourceArmRedisCacheDelete(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-func redisStateRefreshFunc(client redis.Client, resourceGroupName string, sgName string) resource.StateRefreshFunc {
+func redisStateRefreshFunc(client redis.GroupClient, resourceGroupName string, sgName string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		res, err := client.Get(resourceGroupName, sgName)
 		if err != nil {

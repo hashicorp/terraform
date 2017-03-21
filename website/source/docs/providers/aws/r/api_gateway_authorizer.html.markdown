@@ -14,9 +14,9 @@ Provides an API Gateway Authorizer.
 
 ```
 resource "aws_api_gateway_authorizer" "demo" {
-  name = "demo"
-  rest_api_id = "${aws_api_gateway_rest_api.demo.id}"
-  authorizer_uri = "arn:aws:apigateway:region:lambda:path/2015-03-31/functions/${aws_lambda_function.authorizer.arn}/invocations"
+  name                   = "demo"
+  rest_api_id            = "${aws_api_gateway_rest_api.demo.id}"
+  authorizer_uri         = "arn:aws:apigateway:region:lambda:path/2015-03-31/functions/${aws_lambda_function.authorizer.arn}/invocations"
   authorizer_credentials = "${aws_iam_role.invocation_role.arn}"
 }
 
@@ -27,6 +27,7 @@ resource "aws_api_gateway_rest_api" "demo" {
 resource "aws_iam_role" "invocation_role" {
   name = "api_gateway_auth_invocation"
   path = "/"
+
   assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -47,6 +48,7 @@ EOF
 resource "aws_iam_role_policy" "invocation_policy" {
   name = "default"
   role = "${aws_iam_role.invocation_role.id}"
+
   policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -63,6 +65,7 @@ EOF
 
 resource "aws_iam_role" "lambda" {
   name = "demo-lambda"
+
   assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -81,11 +84,11 @@ EOF
 }
 
 resource "aws_lambda_function" "authorizer" {
-  filename = "lambda-function.zip"
+  filename         = "lambda-function.zip"
   source_code_hash = "${base64sha256(file("lambda-function.zip"))}"
-  function_name = "api_gateway_authorizer"
-  role = "${aws_iam_role.lambda.arn}"
-  handler = "exports.example"
+  function_name    = "api_gateway_authorizer"
+  role             = "${aws_iam_role.lambda.arn}"
+  handler          = "exports.example"
 }
 ```
 

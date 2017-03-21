@@ -30,6 +30,7 @@ var _ TagsService = &TagsServiceOp{}
 type ResourceType string
 
 const (
+	//DropletResourceType holds the string representing our ResourceType of Droplet.
 	DropletResourceType ResourceType = "droplet"
 )
 
@@ -56,18 +57,22 @@ type Tag struct {
 	Resources *TaggedResources `json:"resources,omitempty"`
 }
 
+//TagCreateRequest represents the JSON structure of a request of that type.
 type TagCreateRequest struct {
 	Name string `json:"name"`
 }
 
+//TagUpdateRequest represents the JSON structure of a request of that type.
 type TagUpdateRequest struct {
 	Name string `json:"name"`
 }
 
+// TagResourcesRequest represents the JSON structure of a request of that type.
 type TagResourcesRequest struct {
 	Resources []Resource `json:"resources"`
 }
 
+// UntagResourcesRequest represents the JSON structure of a request of that type.
 type UntagResourcesRequest struct {
 	Resources []Resource `json:"resources"`
 }
@@ -183,7 +188,7 @@ func (s *TagsServiceOp) Delete(name string) (*Response, error) {
 	return resp, err
 }
 
-// Associate resources with a tag
+// TagResources associates resources with a given Tag.
 func (s *TagsServiceOp) TagResources(name string, tagRequest *TagResourcesRequest) (*Response, error) {
 	if name == "" {
 		return nil, NewArgError("name", "cannot be empty")
@@ -204,7 +209,7 @@ func (s *TagsServiceOp) TagResources(name string, tagRequest *TagResourcesReques
 	return resp, err
 }
 
-// Dissociate resources with a tag
+// UntagResources dissociates resources with a given Tag.
 func (s *TagsServiceOp) UntagResources(name string, untagRequest *UntagResourcesRequest) (*Response, error) {
 	if name == "" {
 		return nil, NewArgError("name", "cannot be empty")

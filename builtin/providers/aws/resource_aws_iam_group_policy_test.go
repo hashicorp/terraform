@@ -39,6 +39,46 @@ func TestAccAWSIAMGroupPolicy_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSIAMGroupPolicy_namePrefix(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_iam_group_policy.test",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckIAMGroupPolicyDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccIAMGroupPolicyConfig_namePrefix,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckIAMGroupPolicy(
+						"aws_iam_group.test",
+						"aws_iam_group_policy.test",
+					),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSIAMGroupPolicy_generatedName(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_iam_group_policy.test",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckIAMGroupPolicyDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccIAMGroupPolicyConfig_generatedName,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckIAMGroupPolicy(
+						"aws_iam_group.test",
+						"aws_iam_group_policy.test",
+					),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckIAMGroupPolicyDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).iamconn
 
@@ -111,6 +151,49 @@ resource "aws_iam_group" "group" {
 resource "aws_iam_group_policy" "foo" {
 	name = "foo_policy"
 	group = "${aws_iam_group.group.name}"
+	policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": {
+    "Effect": "Allow",
+    "Action": "*",
+    "Resource": "*"
+  }
+}
+EOF
+}
+`
+
+const testAccIAMGroupPolicyConfig_namePrefix = `
+resource "aws_iam_group" "test" {
+	name = "test_group"
+	path = "/"
+}
+
+resource "aws_iam_group_policy" "test" {
+	name_prefix = "test-"
+	group = "${aws_iam_group.test.name}"
+	policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": {
+    "Effect": "Allow",
+    "Action": "*",
+    "Resource": "*"
+  }
+}
+EOF
+}
+`
+
+const testAccIAMGroupPolicyConfig_generatedName = `
+resource "aws_iam_group" "test" {
+	name = "test_group"
+	path = "/"
+}
+
+resource "aws_iam_group_policy" "test" {
+	group = "${aws_iam_group.test.name}"
 	policy = <<EOF
 {
   "Version": "2012-10-17",

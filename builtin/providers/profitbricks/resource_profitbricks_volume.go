@@ -1,7 +1,6 @@
 package profitbricks
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/profitbricks/profitbricks-sdk-go"
@@ -37,7 +36,8 @@ func resourceProfitBricksVolume() *schema.Resource {
 				Optional: true,
 			},
 			"ssh_key_path": {
-				Type:     schema.TypeString,
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 			},
 			"sshkey": {
@@ -49,6 +49,10 @@ func resourceProfitBricksVolume() *schema.Resource {
 				Optional: true,
 			},
 			"name": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"availability_zone": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
@@ -65,20 +69,17 @@ func resourceProfitBricksVolume() *schema.Resource {
 }
 
 func resourceProfitBricksVolumeCreate(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
-	profitbricks.SetAuth(config.Username, config.Password)
-
 	var err error
+	var ssh_keypath []interface{}
 	dcId := d.Get("datacenter_id").(string)
 	serverId := d.Get("server_id").(string)
-
 	imagePassword := d.Get("image_password").(string)
-	sshkey := d.Get("ssh_key_path").(string)
+	ssh_keypath = d.Get("ssh_key_path").([]interface{})
 	image_name := d.Get("image_name").(string)
 
 	if image_name != "" {
-		if imagePassword == "" && sshkey == "" {
-			return fmt.Errorf("'image_password' and 'sshkey' are not provided.")
+		if imagePassword == "" && len(ssh_keypath) == 0 {
+			return fmt.Errorf("Either 'image_password' or 'sshkey' must be provided.")
 		}
 	}
 
@@ -88,19 +89,24 @@ func resourceProfitBricksVolumeCreate(d *schema.ResourceData, meta interface{}) 
 		return fmt.Errorf("Either 'image_name', or 'licenceType' must be set.")
 	}
 
-	var publicKey string
-
-	if sshkey != "" {
-		_, publicKey, err = getSshKey(d, sshkey)
-		if err != nil {
-			return fmt.Errorf("Error fetching sshkeys (%s)", err)
+	var publicKeys []string
+	if len(ssh_keypath) != 0 {
+		for _, path := range ssh_keypath {
+			log.Printf("[DEBUG] Reading file %s", path)
+			publicKey, err := readPublicKey(path.(string))
+			if err != nil {
+				return fmt.Errorf("Error fetching sshkey from file (%s) (%s)", path, err.Error())
+			}
+			publicKeys = append(publicKeys, publicKey)
 		}
-		d.Set("sshkey", publicKey)
 	}
 
-	log.Printf("[INFO] public key: %s", publicKey)
-
-	image := getImageId(d.Get("datacenter_id").(string), image_name, d.Get("disk_type").(string))
+	var image string
+	if !IsValidUUID(image_name) {
+		image = getImageId(d.Get("datacenter_id").(string), image_name, d.Get("disk_type").(string))
+	} else {
+		image = image_name
+	}
 
 	volume := profitbricks.Volume{
 		Properties: profitbricks.VolumeProperties{
@@ -114,14 +120,17 @@ func resourceProfitBricksVolumeCreate(d *schema.ResourceData, meta interface{}) 
 		},
 	}
 
-	if publicKey != "" {
-		volume.Properties.SshKeys = []string{publicKey}
+	if len(publicKeys) != 0 {
+		volume.Properties.SshKeys = publicKeys
 
 	} else {
 		volume.Properties.SshKeys = nil
 	}
-	jsn, _ := json.Marshal(volume)
-	log.Printf("[INFO] volume: %s", string(jsn))
+
+	if _, ok := d.GetOk("availability_zone"); ok {
+		raw := d.Get("availability_zone").(string)
+		volume.Properties.AvailabilityZone = raw
+	}
 
 	volume = profitbricks.CreateVolume(dcId, volume)
 
@@ -169,9 +178,6 @@ func resourceProfitBricksVolumeRead(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceProfitBricksVolumeUpdate(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
-	profitbricks.SetAuth(config.Username, config.Password)
-
 	properties := profitbricks.VolumeProperties{}
 	dcId := d.Get("datacenter_id").(string)
 
@@ -190,6 +196,10 @@ func resourceProfitBricksVolumeUpdate(d *schema.ResourceData, meta interface{}) 
 	if d.HasChange("bus") {
 		_, newValue := d.GetChange("bus")
 		properties.Bus = newValue.(string)
+	}
+	if d.HasChange("availability_zone") {
+		_, newValue := d.GetChange("availability_zone")
+		properties.AvailabilityZone = newValue.(string)
 	}
 
 	volume := profitbricks.PatchVolume(dcId, d.Id(), properties)
@@ -216,9 +226,6 @@ func resourceProfitBricksVolumeUpdate(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceProfitBricksVolumeDelete(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
-	profitbricks.SetAuth(config.Username, config.Password)
-
 	dcId := d.Get("datacenter_id").(string)
 
 	resp := profitbricks.DeleteVolume(dcId, d.Id())

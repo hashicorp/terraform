@@ -15,12 +15,12 @@ a virtual machine if the optional parameters are configured.
 
 ```
 resource "cloudstack_disk" "default" {
-  name = "test-disk"
-  attach = "true"
-  disk_offering = "custom"
-  size = 50
+  name            = "test-disk"
+  attach          = "true"
+  disk_offering   = "custom"
+  size            = 50
   virtual_machine = "server-1"
-  zone = "zone-1"
+  zone            = "zone-1"
 }
 ```
 

@@ -553,6 +553,67 @@ func (c *EC2) AssociateDhcpOptions(input *AssociateDhcpOptionsInput) (*Associate
 	return out, err
 }
 
+const opAssociateIamInstanceProfile = "AssociateIamInstanceProfile"
+
+// AssociateIamInstanceProfileRequest generates a "aws/request.Request" representing the
+// client's request for the AssociateIamInstanceProfile operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See AssociateIamInstanceProfile for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AssociateIamInstanceProfile method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AssociateIamInstanceProfileRequest method.
+//    req, resp := client.AssociateIamInstanceProfileRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateIamInstanceProfile
+func (c *EC2) AssociateIamInstanceProfileRequest(input *AssociateIamInstanceProfileInput) (req *request.Request, output *AssociateIamInstanceProfileOutput) {
+	op := &request.Operation{
+		Name:       opAssociateIamInstanceProfile,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &AssociateIamInstanceProfileInput{}
+	}
+
+	output = &AssociateIamInstanceProfileOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// AssociateIamInstanceProfile API operation for Amazon Elastic Compute Cloud.
+//
+// Associates an IAM instance profile with a running or stopped instance. You
+// cannot associate more than one IAM instance profile with an instance.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation AssociateIamInstanceProfile for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateIamInstanceProfile
+func (c *EC2) AssociateIamInstanceProfile(input *AssociateIamInstanceProfileInput) (*AssociateIamInstanceProfileOutput, error) {
+	req, out := c.AssociateIamInstanceProfileRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opAssociateRouteTable = "AssociateRouteTable"
 
 // AssociateRouteTableRequest generates a "aws/request.Request" representing the
@@ -6592,6 +6653,66 @@ func (c *EC2) DescribeHosts(input *DescribeHostsInput) (*DescribeHostsOutput, er
 	return out, err
 }
 
+const opDescribeIamInstanceProfileAssociations = "DescribeIamInstanceProfileAssociations"
+
+// DescribeIamInstanceProfileAssociationsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeIamInstanceProfileAssociations operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DescribeIamInstanceProfileAssociations for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeIamInstanceProfileAssociations method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeIamInstanceProfileAssociationsRequest method.
+//    req, resp := client.DescribeIamInstanceProfileAssociationsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIamInstanceProfileAssociations
+func (c *EC2) DescribeIamInstanceProfileAssociationsRequest(input *DescribeIamInstanceProfileAssociationsInput) (req *request.Request, output *DescribeIamInstanceProfileAssociationsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeIamInstanceProfileAssociations,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeIamInstanceProfileAssociationsInput{}
+	}
+
+	output = &DescribeIamInstanceProfileAssociationsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeIamInstanceProfileAssociations API operation for Amazon Elastic Compute Cloud.
+//
+// Describes your IAM instance profile associations.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeIamInstanceProfileAssociations for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIamInstanceProfileAssociations
+func (c *EC2) DescribeIamInstanceProfileAssociations(input *DescribeIamInstanceProfileAssociationsInput) (*DescribeIamInstanceProfileAssociationsOutput, error) {
+	req, out := c.DescribeIamInstanceProfileAssociationsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDescribeIdFormat = "DescribeIdFormat"
 
 // DescribeIdFormatRequest generates a "aws/request.Request" representing the
@@ -7482,6 +7603,12 @@ func (c *EC2) DescribeNatGatewaysRequest(input *DescribeNatGatewaysInput) (req *
 		Name:       opDescribeNatGateways,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -7508,6 +7635,31 @@ func (c *EC2) DescribeNatGateways(input *DescribeNatGatewaysInput) (*DescribeNat
 	req, out := c.DescribeNatGatewaysRequest(input)
 	err := req.Send()
 	return out, err
+}
+
+// DescribeNatGatewaysPages iterates over the pages of a DescribeNatGateways operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeNatGateways method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeNatGateways operation.
+//    pageNum := 0
+//    err := client.DescribeNatGatewaysPages(params,
+//        func(page *DescribeNatGatewaysOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *EC2) DescribeNatGatewaysPages(input *DescribeNatGatewaysInput, fn func(p *DescribeNatGatewaysOutput, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.DescribeNatGatewaysRequest(input)
+	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*DescribeNatGatewaysOutput), lastPage)
+	})
 }
 
 const opDescribeNetworkAcls = "DescribeNetworkAcls"
@@ -9713,6 +9865,78 @@ func (c *EC2) DescribeVolumesPages(input *DescribeVolumesInput, fn func(p *Descr
 	})
 }
 
+const opDescribeVolumesModifications = "DescribeVolumesModifications"
+
+// DescribeVolumesModificationsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeVolumesModifications operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DescribeVolumesModifications for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeVolumesModifications method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeVolumesModificationsRequest method.
+//    req, resp := client.DescribeVolumesModificationsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVolumesModifications
+func (c *EC2) DescribeVolumesModificationsRequest(input *DescribeVolumesModificationsInput) (req *request.Request, output *DescribeVolumesModificationsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeVolumesModifications,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeVolumesModificationsInput{}
+	}
+
+	output = &DescribeVolumesModificationsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeVolumesModifications API operation for Amazon Elastic Compute Cloud.
+//
+// Reports the current modification status of EBS volumes.
+//
+// Current-generation EBS volumes support modification of attributes including
+// type, size, and (for io1 volumes) IOPS provisioning while either attached
+// to or detached from an instance. Following an action from the API or the
+// console to modify a volume, the status of the modification may be modifying,
+// optimizing, completed, or failed. If a volume has never been modified, then
+// certain elements of the returned VolumeModification objects are null.
+//
+// You can also use CloudWatch Events to check the status of a modification
+// to an EBS volume. For information about CloudWatch Events, see the Amazon
+// CloudWatch Events User Guide (http://docs.aws.amazon.com/AmazonCloudWatch/latest/events/).
+// For more information, see Monitoring Volume Modifications" (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-expand-volume.html#monitoring_mods).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeVolumesModifications for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVolumesModifications
+func (c *EC2) DescribeVolumesModifications(input *DescribeVolumesModificationsInput) (*DescribeVolumesModificationsOutput, error) {
+	req, out := c.DescribeVolumesModificationsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDescribeVpcAttribute = "DescribeVpcAttribute"
 
 // DescribeVpcAttributeRequest generates a "aws/request.Request" representing the
@@ -10853,6 +11077,68 @@ func (c *EC2) DisassociateAddressRequest(input *DisassociateAddressInput) (req *
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateAddress
 func (c *EC2) DisassociateAddress(input *DisassociateAddressInput) (*DisassociateAddressOutput, error) {
 	req, out := c.DisassociateAddressRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDisassociateIamInstanceProfile = "DisassociateIamInstanceProfile"
+
+// DisassociateIamInstanceProfileRequest generates a "aws/request.Request" representing the
+// client's request for the DisassociateIamInstanceProfile operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DisassociateIamInstanceProfile for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DisassociateIamInstanceProfile method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DisassociateIamInstanceProfileRequest method.
+//    req, resp := client.DisassociateIamInstanceProfileRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateIamInstanceProfile
+func (c *EC2) DisassociateIamInstanceProfileRequest(input *DisassociateIamInstanceProfileInput) (req *request.Request, output *DisassociateIamInstanceProfileOutput) {
+	op := &request.Operation{
+		Name:       opDisassociateIamInstanceProfile,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DisassociateIamInstanceProfileInput{}
+	}
+
+	output = &DisassociateIamInstanceProfileOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DisassociateIamInstanceProfile API operation for Amazon Elastic Compute Cloud.
+//
+// Disassociates an IAM instance profile from a running or stopped instance.
+//
+// Use DescribeIamInstanceProfileAssociations to get the association ID.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DisassociateIamInstanceProfile for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateIamInstanceProfile
+func (c *EC2) DisassociateIamInstanceProfile(input *DisassociateIamInstanceProfileInput) (*DisassociateIamInstanceProfileOutput, error) {
+	req, out := c.DisassociateIamInstanceProfileRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -12743,6 +13029,98 @@ func (c *EC2) ModifySubnetAttribute(input *ModifySubnetAttributeInput) (*ModifyS
 	return out, err
 }
 
+const opModifyVolume = "ModifyVolume"
+
+// ModifyVolumeRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyVolume operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See ModifyVolume for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyVolume method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyVolumeRequest method.
+//    req, resp := client.ModifyVolumeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVolume
+func (c *EC2) ModifyVolumeRequest(input *ModifyVolumeInput) (req *request.Request, output *ModifyVolumeOutput) {
+	op := &request.Operation{
+		Name:       opModifyVolume,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ModifyVolumeInput{}
+	}
+
+	output = &ModifyVolumeOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ModifyVolume API operation for Amazon Elastic Compute Cloud.
+//
+// You can modify several parameters of an existing EBS volume, including volume
+// size, volume type, and IOPS capacity. If your EBS volume is attached to a
+// current-generation EC2 instance type, you may be able to apply these changes
+// without stopping the instance or detaching the volume from it. For more information
+// about modifying an EBS volume running Linux, see Modifying the Size, IOPS,
+// or Type of an EBS Volume on Linux (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-expand-volume.html).
+// For more information about modifying an EBS volume running Windows, see Modifying
+// the Size, IOPS, or Type of an EBS Volume on Windows (http://docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/ebs-expand-volume.html).
+//
+// When you complete a resize operation on your volume, you need to extend the
+// volume's file-system size to take advantage of the new storage capacity.
+// For information about extending a Linux file system, see Extending a Linux
+// File System (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-expand-volume.html#recognize-expanded-volume-linux).
+// For information about extending a Windows file system, see Extending a Windows
+// File System (http://docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/ebs-expand-volume.html#recognize-expanded-volume-windows).
+//
+// You can use CloudWatch Events to check the status of a modification to an
+// EBS volume. For information about CloudWatch Events, see the Amazon CloudWatch
+// Events User Guide (http://docs.aws.amazon.com/AmazonCloudWatch/latest/events/).
+// You can also track the status of a modification using the DescribeVolumesModifications
+// API. For information about tracking status changes using either method, see
+// Monitoring Volume Modifications (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-expand-volume.html#monitoring_mods).
+//
+// With previous-generation instance types, resizing an EBS volume may require
+// detaching and reattaching the volume or stopping and restarting the instance.
+// For more information about modifying an EBS volume running Linux, see Modifying
+// the Size, IOPS, or Type of an EBS Volume on Linux (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-expand-volume.html).
+// For more information about modifying an EBS volume running Windows, see Modifying
+// the Size, IOPS, or Type of an EBS Volume on Windows (http://docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/ebs-expand-volume.html).
+//
+// If you reach the maximum volume modification rate per volume limit, you will
+// need to wait at least six hours before applying further modifications to
+// the affected EBS volume.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ModifyVolume for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVolume
+func (c *EC2) ModifyVolume(input *ModifyVolumeInput) (*ModifyVolumeOutput, error) {
+	req, out := c.ModifyVolumeRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opModifyVolumeAttribute = "ModifyVolumeAttribute"
 
 // ModifyVolumeAttributeRequest generates a "aws/request.Request" representing the
@@ -13475,30 +13853,26 @@ func (c *EC2) RegisterImageRequest(input *RegisterImageInput) (req *request.Requ
 // in a single request, so you don't have to register the AMI yourself.
 //
 // You can also use RegisterImage to create an Amazon EBS-backed Linux AMI from
-// a snapshot of a root device volume. For more information, see Launching an
-// Instance from a Snapshot (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_LaunchingInstanceFromSnapshot.html)
+// a snapshot of a root device volume. You specify the snapshot using the block
+// device mapping. For more information, see Launching an Instance from a Snapshot
+// (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_LaunchingInstanceFromSnapshot.html)
 // in the Amazon Elastic Compute Cloud User Guide.
 //
+// You can't register an image where a secondary (non-root) snapshot has AWS
+// Marketplace product codes.
+//
 // Some Linux distributions, such as Red Hat Enterprise Linux (RHEL) and SUSE
-// Linux Enterprise Server (SLES), use the EC2 billingProduct code associated
-// with an AMI to verify subscription status for package updates. Creating an
-// AMI from an EBS snapshot does not maintain this billing code, and subsequent
+// Linux Enterprise Server (SLES), use the EC2 billing product code associated
+// with an AMI to verify the subscription status for package updates. Creating
+// an AMI from an EBS snapshot does not maintain this billing code, and subsequent
 // instances launched from such an AMI will not be able to connect to package
-// update infrastructure.
-//
-// Similarly, although you can create a Windows AMI from a snapshot, you can't
-// successfully launch an instance from the AMI.
-//
-// To create Windows AMIs or to create AMIs for Linux operating systems that
-// must retain AMI billing codes to work properly, see CreateImage.
+// update infrastructure. To create an AMI that must retain billing codes, see
+// CreateImage.
 //
 // If needed, you can deregister an AMI at any time. Any modifications you make
 // to an AMI backed by an instance store volume invalidates its registration.
 // If you make changes to an image, deregister the previous image and register
 // the new image.
-//
-// You can't register an image where a secondary (non-root) snapshot has AWS
-// Marketplace product codes.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -13720,6 +14094,71 @@ func (c *EC2) ReleaseHostsRequest(input *ReleaseHostsInput) (req *request.Reques
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReleaseHosts
 func (c *EC2) ReleaseHosts(input *ReleaseHostsInput) (*ReleaseHostsOutput, error) {
 	req, out := c.ReleaseHostsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opReplaceIamInstanceProfileAssociation = "ReplaceIamInstanceProfileAssociation"
+
+// ReplaceIamInstanceProfileAssociationRequest generates a "aws/request.Request" representing the
+// client's request for the ReplaceIamInstanceProfileAssociation operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See ReplaceIamInstanceProfileAssociation for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ReplaceIamInstanceProfileAssociation method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ReplaceIamInstanceProfileAssociationRequest method.
+//    req, resp := client.ReplaceIamInstanceProfileAssociationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceIamInstanceProfileAssociation
+func (c *EC2) ReplaceIamInstanceProfileAssociationRequest(input *ReplaceIamInstanceProfileAssociationInput) (req *request.Request, output *ReplaceIamInstanceProfileAssociationOutput) {
+	op := &request.Operation{
+		Name:       opReplaceIamInstanceProfileAssociation,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ReplaceIamInstanceProfileAssociationInput{}
+	}
+
+	output = &ReplaceIamInstanceProfileAssociationOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ReplaceIamInstanceProfileAssociation API operation for Amazon Elastic Compute Cloud.
+//
+// Replaces an IAM instance profile for the specified running instance. You
+// can use this action to change the IAM instance profile that's associated
+// with an instance without having to disassociate the existing IAM instance
+// profile first.
+//
+// Use DescribeIamInstanceProfileAssociations to get the association ID.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ReplaceIamInstanceProfileAssociation for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceIamInstanceProfileAssociation
+func (c *EC2) ReplaceIamInstanceProfileAssociation(input *ReplaceIamInstanceProfileAssociationInput) (*ReplaceIamInstanceProfileAssociationOutput, error) {
+	req, out := c.ReplaceIamInstanceProfileAssociationRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -14734,7 +15173,7 @@ func (c *EC2) RunInstancesRequest(input *RunInstancesInput) (req *request.Reques
 //    IPv4 range of your subnet.
 //
 //    * Not all instance types support IPv6 addresses. For more information,
-//    see Amazon EC2 Instance Types (http://aws.amazon.com/ec2/instance-types/).
+//    see Instance Types (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-types.html).
 //
 //    * If you don't specify a security group ID, we use the default security
 //    group. For more information, see Security Groups (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-network-security.html).
@@ -15504,6 +15943,11 @@ func (s *AccountAttributeValue) SetAttributeValue(v string) *AccountAttributeVal
 type ActiveInstance struct {
 	_ struct{} `type:"structure"`
 
+	// The health status of the instance. If the status of both the instance status
+	// check and the system status check is impaired, the health status of the instance
+	// is unhealthy. Otherwise, the health status is healthy.
+	InstanceHealth *string `locationName:"instanceHealth" type:"string" enum:"InstanceHealthStatus"`
+
 	// The ID of the instance.
 	InstanceId *string `locationName:"instanceId" type:"string"`
 
@@ -15522,6 +15966,12 @@ func (s ActiveInstance) String() string {
 // GoString returns the string representation
 func (s ActiveInstance) GoString() string {
 	return s.String()
+}
+
+// SetInstanceHealth sets the InstanceHealth field's value.
+func (s *ActiveInstance) SetInstanceHealth(v string) *ActiveInstance {
+	s.InstanceHealth = &v
+	return s
 }
 
 // SetInstanceId sets the InstanceId field's value.
@@ -16218,6 +16668,83 @@ func (s AssociateDhcpOptionsOutput) String() string {
 // GoString returns the string representation
 func (s AssociateDhcpOptionsOutput) GoString() string {
 	return s.String()
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateIamInstanceProfileRequest
+type AssociateIamInstanceProfileInput struct {
+	_ struct{} `type:"structure"`
+
+	// The IAM instance profile.
+	//
+	// IamInstanceProfile is a required field
+	IamInstanceProfile *IamInstanceProfileSpecification `type:"structure" required:"true"`
+
+	// The ID of the instance.
+	//
+	// InstanceId is a required field
+	InstanceId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s AssociateIamInstanceProfileInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociateIamInstanceProfileInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AssociateIamInstanceProfileInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AssociateIamInstanceProfileInput"}
+	if s.IamInstanceProfile == nil {
+		invalidParams.Add(request.NewErrParamRequired("IamInstanceProfile"))
+	}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetIamInstanceProfile sets the IamInstanceProfile field's value.
+func (s *AssociateIamInstanceProfileInput) SetIamInstanceProfile(v *IamInstanceProfileSpecification) *AssociateIamInstanceProfileInput {
+	s.IamInstanceProfile = v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *AssociateIamInstanceProfileInput) SetInstanceId(v string) *AssociateIamInstanceProfileInput {
+	s.InstanceId = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateIamInstanceProfileResult
+type AssociateIamInstanceProfileOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the IAM instance profile association.
+	IamInstanceProfileAssociation *IamInstanceProfileAssociation `locationName:"iamInstanceProfileAssociation" type:"structure"`
+}
+
+// String returns the string representation
+func (s AssociateIamInstanceProfileOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociateIamInstanceProfileOutput) GoString() string {
+	return s.String()
+}
+
+// SetIamInstanceProfileAssociation sets the IamInstanceProfileAssociation field's value.
+func (s *AssociateIamInstanceProfileOutput) SetIamInstanceProfileAssociation(v *IamInstanceProfileAssociation) *AssociateIamInstanceProfileOutput {
+	s.IamInstanceProfileAssociation = v
+	return s
 }
 
 // Contains the parameters for AssociateRouteTable.
@@ -25202,6 +25729,113 @@ func (s *DescribeHostsOutput) SetNextToken(v string) *DescribeHostsOutput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIamInstanceProfileAssociationsRequest
+type DescribeIamInstanceProfileAssociationsInput struct {
+	_ struct{} `type:"structure"`
+
+	// One or more IAM instance profile associations.
+	AssociationIds []*string `locationName:"AssociationId" locationNameList:"AssociationId" type:"list"`
+
+	// One or more filters.
+	//
+	//    * instance-id - The ID of the instance.
+	//
+	//    * state - The state of the association (associating | associated | disassociating
+	//    | disassociated).
+	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
+
+	// The maximum number of results to return in a single call. To retrieve the
+	// remaining results, make another call with the returned NextToken value.
+	MaxResults *int64 `min:"5" type:"integer"`
+
+	// The token to request the next page of results.
+	NextToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeIamInstanceProfileAssociationsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeIamInstanceProfileAssociationsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeIamInstanceProfileAssociationsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeIamInstanceProfileAssociationsInput"}
+	if s.MaxResults != nil && *s.MaxResults < 5 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 5))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssociationIds sets the AssociationIds field's value.
+func (s *DescribeIamInstanceProfileAssociationsInput) SetAssociationIds(v []*string) *DescribeIamInstanceProfileAssociationsInput {
+	s.AssociationIds = v
+	return s
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DescribeIamInstanceProfileAssociationsInput) SetFilters(v []*Filter) *DescribeIamInstanceProfileAssociationsInput {
+	s.Filters = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeIamInstanceProfileAssociationsInput) SetMaxResults(v int64) *DescribeIamInstanceProfileAssociationsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeIamInstanceProfileAssociationsInput) SetNextToken(v string) *DescribeIamInstanceProfileAssociationsInput {
+	s.NextToken = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIamInstanceProfileAssociationsResult
+type DescribeIamInstanceProfileAssociationsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about one or more IAM instance profile associations.
+	IamInstanceProfileAssociations []*IamInstanceProfileAssociation `locationName:"iamInstanceProfileAssociationSet" locationNameList:"item" type:"list"`
+
+	// The token to use to retrieve the next page of results. This value is null
+	// when there are no more results to return.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeIamInstanceProfileAssociationsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeIamInstanceProfileAssociationsOutput) GoString() string {
+	return s.String()
+}
+
+// SetIamInstanceProfileAssociations sets the IamInstanceProfileAssociations field's value.
+func (s *DescribeIamInstanceProfileAssociationsOutput) SetIamInstanceProfileAssociations(v []*IamInstanceProfileAssociation) *DescribeIamInstanceProfileAssociationsOutput {
+	s.IamInstanceProfileAssociations = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeIamInstanceProfileAssociationsOutput) SetNextToken(v string) *DescribeIamInstanceProfileAssociationsOutput {
+	s.NextToken = &v
+	return s
+}
+
 // Contains the parameters for DescribeIdFormat.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIdFormatRequest
 type DescribeIdFormatInput struct {
@@ -30560,10 +31194,10 @@ type DescribeVolumesInput struct {
 	// results in a single page along with a NextToken response element. The remaining
 	// results of the initial request can be seen by sending another DescribeVolumes
 	// request with the returned NextToken value. This value can be between 5 and
-	// 1000; if MaxResults is given a value larger than 1000, only 1000 results
-	// are returned. If this parameter is not used, then DescribeVolumes returns
-	// all results. You cannot specify this parameter and the volume IDs parameter
-	// in the same request.
+	// 500; if MaxResults is given a value larger than 500, only 500 results are
+	// returned. If this parameter is not used, then DescribeVolumes returns all
+	// results. You cannot specify this parameter and the volume IDs parameter in
+	// the same request.
 	MaxResults *int64 `locationName:"maxResults" type:"integer"`
 
 	// The NextToken value returned from a previous paginated DescribeVolumes request
@@ -30613,6 +31247,105 @@ func (s *DescribeVolumesInput) SetNextToken(v string) *DescribeVolumesInput {
 // SetVolumeIds sets the VolumeIds field's value.
 func (s *DescribeVolumesInput) SetVolumeIds(v []*string) *DescribeVolumesInput {
 	s.VolumeIds = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVolumesModificationsRequest
+type DescribeVolumesModificationsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// One or more filters. Supported filters: volume-id, modification-state, target-size,
+	// target-iops, target-volume-type, original-size, original-iops, original-volume-type,
+	// start-time.
+	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
+
+	// The maximum number of results (up to a limit of 500) to be returned in a
+	// paginated request.
+	MaxResults *int64 `type:"integer"`
+
+	// The nextToken value returned by a previous paginated request.
+	NextToken *string `type:"string"`
+
+	// One or more volume IDs for which in-progress modifications will be described.
+	VolumeIds []*string `locationName:"VolumeId" locationNameList:"VolumeId" type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeVolumesModificationsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeVolumesModificationsInput) GoString() string {
+	return s.String()
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *DescribeVolumesModificationsInput) SetDryRun(v bool) *DescribeVolumesModificationsInput {
+	s.DryRun = &v
+	return s
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DescribeVolumesModificationsInput) SetFilters(v []*Filter) *DescribeVolumesModificationsInput {
+	s.Filters = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeVolumesModificationsInput) SetMaxResults(v int64) *DescribeVolumesModificationsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeVolumesModificationsInput) SetNextToken(v string) *DescribeVolumesModificationsInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetVolumeIds sets the VolumeIds field's value.
+func (s *DescribeVolumesModificationsInput) SetVolumeIds(v []*string) *DescribeVolumesModificationsInput {
+	s.VolumeIds = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVolumesModificationsResult
+type DescribeVolumesModificationsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Token for pagination, null if there are no more results
+	NextToken *string `locationName:"nextToken" type:"string"`
+
+	// A list of returned VolumeModification objects.
+	VolumesModifications []*VolumeModification `locationName:"volumeModificationSet" locationNameList:"item" type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeVolumesModificationsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeVolumesModificationsOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeVolumesModificationsOutput) SetNextToken(v string) *DescribeVolumesModificationsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetVolumesModifications sets the VolumesModifications field's value.
+func (s *DescribeVolumesModificationsOutput) SetVolumesModifications(v []*VolumeModification) *DescribeVolumesModificationsOutput {
+	s.VolumesModifications = v
 	return s
 }
 
@@ -32343,6 +33076,69 @@ func (s DisassociateAddressOutput) String() string {
 // GoString returns the string representation
 func (s DisassociateAddressOutput) GoString() string {
 	return s.String()
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateIamInstanceProfileRequest
+type DisassociateIamInstanceProfileInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the IAM instance profile association.
+	//
+	// AssociationId is a required field
+	AssociationId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DisassociateIamInstanceProfileInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DisassociateIamInstanceProfileInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisassociateIamInstanceProfileInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisassociateIamInstanceProfileInput"}
+	if s.AssociationId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AssociationId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *DisassociateIamInstanceProfileInput) SetAssociationId(v string) *DisassociateIamInstanceProfileInput {
+	s.AssociationId = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateIamInstanceProfileResult
+type DisassociateIamInstanceProfileOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the IAM instance profile association.
+	IamInstanceProfileAssociation *IamInstanceProfileAssociation `locationName:"iamInstanceProfileAssociation" type:"structure"`
+}
+
+// String returns the string representation
+func (s DisassociateIamInstanceProfileOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DisassociateIamInstanceProfileOutput) GoString() string {
+	return s.String()
+}
+
+// SetIamInstanceProfileAssociation sets the IamInstanceProfileAssociation field's value.
+func (s *DisassociateIamInstanceProfileOutput) SetIamInstanceProfileAssociation(v *IamInstanceProfileAssociation) *DisassociateIamInstanceProfileOutput {
+	s.IamInstanceProfileAssociation = v
+	return s
 }
 
 // Contains the parameters for DisassociateRouteTable.
@@ -34773,6 +35569,67 @@ func (s *IamInstanceProfile) SetArn(v string) *IamInstanceProfile {
 // SetId sets the Id field's value.
 func (s *IamInstanceProfile) SetId(v string) *IamInstanceProfile {
 	s.Id = &v
+	return s
+}
+
+// Describes an association between an IAM instance profile and an instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/IamInstanceProfileAssociation
+type IamInstanceProfileAssociation struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the association.
+	AssociationId *string `locationName:"associationId" type:"string"`
+
+	// The IAM instance profile.
+	IamInstanceProfile *IamInstanceProfile `locationName:"iamInstanceProfile" type:"structure"`
+
+	// The ID of the instance.
+	InstanceId *string `locationName:"instanceId" type:"string"`
+
+	// The state of the association.
+	State *string `locationName:"state" type:"string" enum:"IamInstanceProfileAssociationState"`
+
+	// The time the IAM instance profile was associated with the instance.
+	Timestamp *time.Time `locationName:"timestamp" type:"timestamp" timestampFormat:"iso8601"`
+}
+
+// String returns the string representation
+func (s IamInstanceProfileAssociation) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s IamInstanceProfileAssociation) GoString() string {
+	return s.String()
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *IamInstanceProfileAssociation) SetAssociationId(v string) *IamInstanceProfileAssociation {
+	s.AssociationId = &v
+	return s
+}
+
+// SetIamInstanceProfile sets the IamInstanceProfile field's value.
+func (s *IamInstanceProfileAssociation) SetIamInstanceProfile(v *IamInstanceProfile) *IamInstanceProfileAssociation {
+	s.IamInstanceProfile = v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *IamInstanceProfileAssociation) SetInstanceId(v string) *IamInstanceProfileAssociation {
+	s.InstanceId = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *IamInstanceProfileAssociation) SetState(v string) *IamInstanceProfileAssociation {
+	s.State = &v
+	return s
+}
+
+// SetTimestamp sets the Timestamp field's value.
+func (s *IamInstanceProfileAssociation) SetTimestamp(v time.Time) *IamInstanceProfileAssociation {
+	s.Timestamp = &v
 	return s
 }
 
@@ -39590,6 +40447,122 @@ func (s ModifyVolumeAttributeOutput) GoString() string {
 	return s.String()
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVolumeRequest
+type ModifyVolumeInput struct {
+	_ struct{} `type:"structure"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// Target IOPS rate of the volume to be modified.
+	//
+	// Only valid for Provisioned IOPS SSD (io1) volumes. For more information about
+	// io1 IOPS configuration, see http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html#EBSVolumeTypes_piops
+	// (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html#EBSVolumeTypes_piops).
+	//
+	// Default: If no IOPS value is specified, the existing value is retained.
+	Iops *int64 `type:"integer"`
+
+	// Target size in GiB of the volume to be modified. Target volume size must
+	// be greater than or equal to than the existing size of the volume. For information
+	// about available EBS volume sizes, see http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html
+	// (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html).
+	//
+	// Default: If no size is specified, the existing size is retained.
+	Size *int64 `type:"integer"`
+
+	// VolumeId is a required field
+	VolumeId *string `type:"string" required:"true"`
+
+	// Target EBS volume type of the volume to be modified
+	//
+	// The API does not support modifications for volume type standard. You also
+	// cannot change the type of a volume to standard.
+	//
+	// Default: If no type is specified, the existing type is retained.
+	VolumeType *string `type:"string" enum:"VolumeType"`
+}
+
+// String returns the string representation
+func (s ModifyVolumeInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifyVolumeInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyVolumeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyVolumeInput"}
+	if s.VolumeId == nil {
+		invalidParams.Add(request.NewErrParamRequired("VolumeId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *ModifyVolumeInput) SetDryRun(v bool) *ModifyVolumeInput {
+	s.DryRun = &v
+	return s
+}
+
+// SetIops sets the Iops field's value.
+func (s *ModifyVolumeInput) SetIops(v int64) *ModifyVolumeInput {
+	s.Iops = &v
+	return s
+}
+
+// SetSize sets the Size field's value.
+func (s *ModifyVolumeInput) SetSize(v int64) *ModifyVolumeInput {
+	s.Size = &v
+	return s
+}
+
+// SetVolumeId sets the VolumeId field's value.
+func (s *ModifyVolumeInput) SetVolumeId(v string) *ModifyVolumeInput {
+	s.VolumeId = &v
+	return s
+}
+
+// SetVolumeType sets the VolumeType field's value.
+func (s *ModifyVolumeInput) SetVolumeType(v string) *ModifyVolumeInput {
+	s.VolumeType = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVolumeResult
+type ModifyVolumeOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A VolumeModification object.
+	VolumeModification *VolumeModification `locationName:"volumeModification" type:"structure"`
+}
+
+// String returns the string representation
+func (s ModifyVolumeOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifyVolumeOutput) GoString() string {
+	return s.String()
+}
+
+// SetVolumeModification sets the VolumeModification field's value.
+func (s *ModifyVolumeOutput) SetVolumeModification(v *VolumeModification) *ModifyVolumeOutput {
+	s.VolumeModification = v
+	return s
+}
+
 // Contains the parameters for ModifyVpcAttribute.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVpcAttributeRequest
 type ModifyVpcAttributeInput struct {
@@ -42272,6 +43245,9 @@ type RegisterImageInput struct {
 	// the architecture specified in the manifest file.
 	Architecture *string `locationName:"architecture" type:"string" enum:"ArchitectureValues"`
 
+	// The billing product codes.
+	BillingProducts []*string `locationName:"BillingProduct" locationNameList:"item" type:"list"`
+
 	// One or more block device mapping entries.
 	BlockDeviceMappings []*BlockDeviceMapping `locationName:"BlockDeviceMapping" locationNameList:"BlockDeviceMapping" type:"list"`
 
@@ -42354,6 +43330,12 @@ func (s *RegisterImageInput) Validate() error {
 // SetArchitecture sets the Architecture field's value.
 func (s *RegisterImageInput) SetArchitecture(v string) *RegisterImageInput {
 	s.Architecture = &v
+	return s
+}
+
+// SetBillingProducts sets the BillingProducts field's value.
+func (s *RegisterImageInput) SetBillingProducts(v []*string) *RegisterImageInput {
+	s.BillingProducts = v
 	return s
 }
 
@@ -42658,6 +43640,83 @@ func (s *ReleaseHostsOutput) SetSuccessful(v []*string) *ReleaseHostsOutput {
 // SetUnsuccessful sets the Unsuccessful field's value.
 func (s *ReleaseHostsOutput) SetUnsuccessful(v []*UnsuccessfulItem) *ReleaseHostsOutput {
 	s.Unsuccessful = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceIamInstanceProfileAssociationRequest
+type ReplaceIamInstanceProfileAssociationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the existing IAM instance profile association.
+	//
+	// AssociationId is a required field
+	AssociationId *string `type:"string" required:"true"`
+
+	// The IAM instance profile.
+	//
+	// IamInstanceProfile is a required field
+	IamInstanceProfile *IamInstanceProfileSpecification `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s ReplaceIamInstanceProfileAssociationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ReplaceIamInstanceProfileAssociationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ReplaceIamInstanceProfileAssociationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ReplaceIamInstanceProfileAssociationInput"}
+	if s.AssociationId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AssociationId"))
+	}
+	if s.IamInstanceProfile == nil {
+		invalidParams.Add(request.NewErrParamRequired("IamInstanceProfile"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *ReplaceIamInstanceProfileAssociationInput) SetAssociationId(v string) *ReplaceIamInstanceProfileAssociationInput {
+	s.AssociationId = &v
+	return s
+}
+
+// SetIamInstanceProfile sets the IamInstanceProfile field's value.
+func (s *ReplaceIamInstanceProfileAssociationInput) SetIamInstanceProfile(v *IamInstanceProfileSpecification) *ReplaceIamInstanceProfileAssociationInput {
+	s.IamInstanceProfile = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceIamInstanceProfileAssociationResult
+type ReplaceIamInstanceProfileAssociationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the IAM instance profile association.
+	IamInstanceProfileAssociation *IamInstanceProfileAssociation `locationName:"iamInstanceProfileAssociation" type:"structure"`
+}
+
+// String returns the string representation
+func (s ReplaceIamInstanceProfileAssociationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ReplaceIamInstanceProfileAssociationOutput) GoString() string {
+	return s.String()
+}
+
+// SetIamInstanceProfileAssociation sets the IamInstanceProfileAssociation field's value.
+func (s *ReplaceIamInstanceProfileAssociationOutput) SetIamInstanceProfileAssociation(v *IamInstanceProfileAssociation) *ReplaceIamInstanceProfileAssociationOutput {
+	s.IamInstanceProfileAssociation = v
 	return s
 }
 
@@ -48233,6 +49292,9 @@ type SpotFleetRequestConfigData struct {
 	// LaunchSpecifications is a required field
 	LaunchSpecifications []*SpotFleetLaunchSpecification `locationName:"launchSpecifications" locationNameList:"item" min:"1" type:"list" required:"true"`
 
+	// Indicates whether Spot fleet should replace unhealthy instances.
+	ReplaceUnhealthyInstances *bool `locationName:"replaceUnhealthyInstances" type:"boolean"`
+
 	// The bid price per unit hour.
 	//
 	// SpotPrice is a required field
@@ -48347,6 +49409,12 @@ func (s *SpotFleetRequestConfigData) SetIamFleetRole(v string) *SpotFleetRequest
 // SetLaunchSpecifications sets the LaunchSpecifications field's value.
 func (s *SpotFleetRequestConfigData) SetLaunchSpecifications(v []*SpotFleetLaunchSpecification) *SpotFleetRequestConfigData {
 	s.LaunchSpecifications = v
+	return s
+}
+
+// SetReplaceUnhealthyInstances sets the ReplaceUnhealthyInstances field's value.
+func (s *SpotFleetRequestConfigData) SetReplaceUnhealthyInstances(v bool) *SpotFleetRequestConfigData {
+	s.ReplaceUnhealthyInstances = &v
 	return s
 }
 
@@ -49010,14 +50078,16 @@ type StateReason struct {
 
 	// The message for the state change.
 	//
-	//    * Server.SpotInstanceTermination: A Spot instance was terminated due to
-	//    an increase in the market price.
+	//    * Server.InsufficientInstanceCapacity: There was insufficient instance
+	//    capacity to satisfy the launch request.
 	//
 	//    * Server.InternalError: An internal error occurred during instance launch,
 	//    resulting in termination.
 	//
-	//    * Server.InsufficientInstanceCapacity: There was insufficient instance
-	//    capacity to satisfy the launch request.
+	//    * Server.ScheduledStop: The instance was stopped due to a scheduled retirement.
+	//
+	//    * Server.SpotInstanceTermination: A Spot instance was terminated due to
+	//    an increase in the market price.
 	//
 	//    * Client.InternalError: A client error caused the instance to terminate
 	//    on launch.
@@ -50453,6 +51523,133 @@ func (s *VolumeDetail) SetSize(v int64) *VolumeDetail {
 	return s
 }
 
+// Describes the modification status of an EBS volume.
+//
+// If the volume has never been modified, some element values will be null.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VolumeModification
+type VolumeModification struct {
+	_ struct{} `type:"structure"`
+
+	// Modification completion or failure time.
+	EndTime *time.Time `locationName:"endTime" type:"timestamp" timestampFormat:"iso8601"`
+
+	// Current state of modification. Modification state is null for unmodified
+	// volumes.
+	ModificationState *string `locationName:"modificationState" type:"string" enum:"VolumeModificationState"`
+
+	// Original IOPS rate of the volume being modified.
+	OriginalIops *int64 `locationName:"originalIops" type:"integer"`
+
+	// Original size of the volume being modified.
+	OriginalSize *int64 `locationName:"originalSize" type:"integer"`
+
+	// Original EBS volume type of the volume being modified.
+	OriginalVolumeType *string `locationName:"originalVolumeType" type:"string" enum:"VolumeType"`
+
+	// Modification progress from 0 to 100%.
+	Progress *int64 `locationName:"progress" type:"long"`
+
+	// Modification start time
+	StartTime *time.Time `locationName:"startTime" type:"timestamp" timestampFormat:"iso8601"`
+
+	// Generic status message on modification progress or failure.
+	StatusMessage *string `locationName:"statusMessage" type:"string"`
+
+	// Target IOPS rate of the volume being modified.
+	TargetIops *int64 `locationName:"targetIops" type:"integer"`
+
+	// Target size of the volume being modified.
+	TargetSize *int64 `locationName:"targetSize" type:"integer"`
+
+	// Target EBS volume type of the volume being modified.
+	TargetVolumeType *string `locationName:"targetVolumeType" type:"string" enum:"VolumeType"`
+
+	// ID of the volume being modified.
+	VolumeId *string `locationName:"volumeId" type:"string"`
+}
+
+// String returns the string representation
+func (s VolumeModification) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s VolumeModification) GoString() string {
+	return s.String()
+}
+
+// SetEndTime sets the EndTime field's value.
+func (s *VolumeModification) SetEndTime(v time.Time) *VolumeModification {
+	s.EndTime = &v
+	return s
+}
+
+// SetModificationState sets the ModificationState field's value.
+func (s *VolumeModification) SetModificationState(v string) *VolumeModification {
+	s.ModificationState = &v
+	return s
+}
+
+// SetOriginalIops sets the OriginalIops field's value.
+func (s *VolumeModification) SetOriginalIops(v int64) *VolumeModification {
+	s.OriginalIops = &v
+	return s
+}
+
+// SetOriginalSize sets the OriginalSize field's value.
+func (s *VolumeModification) SetOriginalSize(v int64) *VolumeModification {
+	s.OriginalSize = &v
+	return s
+}
+
+// SetOriginalVolumeType sets the OriginalVolumeType field's value.
+func (s *VolumeModification) SetOriginalVolumeType(v string) *VolumeModification {
+	s.OriginalVolumeType = &v
+	return s
+}
+
+// SetProgress sets the Progress field's value.
+func (s *VolumeModification) SetProgress(v int64) *VolumeModification {
+	s.Progress = &v
+	return s
+}
+
+// SetStartTime sets the StartTime field's value.
+func (s *VolumeModification) SetStartTime(v time.Time) *VolumeModification {
+	s.StartTime = &v
+	return s
+}
+
+// SetStatusMessage sets the StatusMessage field's value.
+func (s *VolumeModification) SetStatusMessage(v string) *VolumeModification {
+	s.StatusMessage = &v
+	return s
+}
+
+// SetTargetIops sets the TargetIops field's value.
+func (s *VolumeModification) SetTargetIops(v int64) *VolumeModification {
+	s.TargetIops = &v
+	return s
+}
+
+// SetTargetSize sets the TargetSize field's value.
+func (s *VolumeModification) SetTargetSize(v int64) *VolumeModification {
+	s.TargetSize = &v
+	return s
+}
+
+// SetTargetVolumeType sets the TargetVolumeType field's value.
+func (s *VolumeModification) SetTargetVolumeType(v string) *VolumeModification {
+	s.TargetVolumeType = &v
+	return s
+}
+
+// SetVolumeId sets the VolumeId field's value.
+func (s *VolumeModification) SetVolumeId(v string) *VolumeModification {
+	s.VolumeId = &v
+	return s
+}
+
 // Describes a volume status operation code.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VolumeStatusAction
 type VolumeStatusAction struct {
@@ -51843,6 +53040,20 @@ const (
 )
 
 const (
+	// IamInstanceProfileAssociationStateAssociating is a IamInstanceProfileAssociationState enum value
+	IamInstanceProfileAssociationStateAssociating = "associating"
+
+	// IamInstanceProfileAssociationStateAssociated is a IamInstanceProfileAssociationState enum value
+	IamInstanceProfileAssociationStateAssociated = "associated"
+
+	// IamInstanceProfileAssociationStateDisassociating is a IamInstanceProfileAssociationState enum value
+	IamInstanceProfileAssociationStateDisassociating = "disassociating"
+
+	// IamInstanceProfileAssociationStateDisassociated is a IamInstanceProfileAssociationState enum value
+	IamInstanceProfileAssociationStateDisassociated = "disassociated"
+)
+
+const (
 	// ImageAttributeNameDescription is a ImageAttributeName enum value
 	ImageAttributeNameDescription = "description"
 
@@ -51941,6 +53152,14 @@ const (
 
 	// InstanceAttributeNameEnaSupport is a InstanceAttributeName enum value
 	InstanceAttributeNameEnaSupport = "enaSupport"
+)
+
+const (
+	// InstanceHealthStatusHealthy is a InstanceHealthStatus enum value
+	InstanceHealthStatusHealthy = "healthy"
+
+	// InstanceHealthStatusUnhealthy is a InstanceHealthStatus enum value
+	InstanceHealthStatusUnhealthy = "unhealthy"
 )
 
 const (
@@ -52100,6 +53319,24 @@ const (
 
 	// InstanceTypeI28xlarge is a InstanceType enum value
 	InstanceTypeI28xlarge = "i2.8xlarge"
+
+	// InstanceTypeI3Large is a InstanceType enum value
+	InstanceTypeI3Large = "i3.large"
+
+	// InstanceTypeI3Xlarge is a InstanceType enum value
+	InstanceTypeI3Xlarge = "i3.xlarge"
+
+	// InstanceTypeI32xlarge is a InstanceType enum value
+	InstanceTypeI32xlarge = "i3.2xlarge"
+
+	// InstanceTypeI34xlarge is a InstanceType enum value
+	InstanceTypeI34xlarge = "i3.4xlarge"
+
+	// InstanceTypeI38xlarge is a InstanceType enum value
+	InstanceTypeI38xlarge = "i3.8xlarge"
+
+	// InstanceTypeI316xlarge is a InstanceType enum value
+	InstanceTypeI316xlarge = "i3.16xlarge"
 
 	// InstanceTypeHi14xlarge is a InstanceType enum value
 	InstanceTypeHi14xlarge = "hi1.4xlarge"
@@ -52741,6 +53978,20 @@ const (
 
 	// VolumeAttributeNameProductCodes is a VolumeAttributeName enum value
 	VolumeAttributeNameProductCodes = "productCodes"
+)
+
+const (
+	// VolumeModificationStateModifying is a VolumeModificationState enum value
+	VolumeModificationStateModifying = "modifying"
+
+	// VolumeModificationStateOptimizing is a VolumeModificationState enum value
+	VolumeModificationStateOptimizing = "optimizing"
+
+	// VolumeModificationStateCompleted is a VolumeModificationState enum value
+	VolumeModificationStateCompleted = "completed"
+
+	// VolumeModificationStateFailed is a VolumeModificationState enum value
+	VolumeModificationStateFailed = "failed"
 )
 
 const (

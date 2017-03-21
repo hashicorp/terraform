@@ -15,50 +15,48 @@ modify, and delete firewall settings and rules.
 
 ```
 resource "vcd_firewall_rules" "fw" {
-    edge_gateway   = "Edge Gateway Name"
-    default_action = "drop"
+  edge_gateway   = "Edge Gateway Name"
+  default_action = "drop"
 
-    rule {
-        description      = "deny-ftp-out"
-        policy           = "deny"
-        protocol         = "tcp"
-        destination_port = "21"
-        destination_ip   = "any"
-        source_port      = "any"
-        source_ip        = "10.10.0.0/24"
-    }
+  rule {
+    description      = "deny-ftp-out"
+    policy           = "deny"
+    protocol         = "tcp"
+    destination_port = "21"
+    destination_ip   = "any"
+    source_port      = "any"
+    source_ip        = "10.10.0.0/24"
+  }
 
-    rule {
-        description      = "allow-outbound"
-        policy           = "allow"
-        protocol         = "any"
-        destination_port = "any"
-        destination_ip   = "any"
-        source_port      = "any"
-        source_ip        = "10.10.0.0/24"
-    }
-
+  rule {
+    description      = "allow-outbound"
+    policy           = "allow"
+    protocol         = "any"
+    destination_port = "any"
+    destination_ip   = "any"
+    source_port      = "any"
+    source_ip        = "10.10.0.0/24"
+  }
 }
 
 resource "vcd_vapp" "web" {
-    ...
+  # ...
 }
 
 resource "vcd_firewall_rules" "fw-web" {
-    edge_gateway   = "Edge Gateway Name"
-    default_action = "drop"
+  edge_gateway   = "Edge Gateway Name"
+  default_action = "drop"
 
-    rule {
-        description      = "allow-web"
-        policy           = "allow"
-        protocol         = "tcp"
-        destination_port = "80"
-        destination_ip   = "${vcd_vapp.web.ip}"
-        source_port      = "any"
-        source_ip        = "any"
-    }
+  rule {
+    description      = "allow-web"
+    policy           = "allow"
+    protocol         = "tcp"
+    destination_port = "80"
+    destination_ip   = "${vcd_vapp.web.ip}"
+    source_port      = "any"
+    source_ip        = "any"
+  }
 }
-
 ```
 
 ## Argument Reference

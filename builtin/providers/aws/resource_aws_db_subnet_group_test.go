@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
@@ -19,18 +20,20 @@ func TestAccAWSDBSubnetGroup_basic(t *testing.T) {
 		return nil
 	}
 
+	rName := fmt.Sprintf("tf-test-%d", acctest.RandInt())
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDBSubnetGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccDBSubnetGroupConfig,
+				Config: testAccDBSubnetGroupConfig(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDBSubnetGroupExists(
 						"aws_db_subnet_group.foo", &v),
 					resource.TestCheckResourceAttr(
-						"aws_db_subnet_group.foo", "name", "foo"),
+						"aws_db_subnet_group.foo", "name", rName),
 					resource.TestCheckResourceAttr(
 						"aws_db_subnet_group.foo", "description", "Managed by Terraform"),
 					testCheck,
@@ -73,13 +76,14 @@ func TestAccAWSDBSubnetGroup_withUndocumentedCharacters(t *testing.T) {
 func TestAccAWSDBSubnetGroup_updateDescription(t *testing.T) {
 	var v rds.DBSubnetGroup
 
+	rName := fmt.Sprintf("tf-test-%d", acctest.RandInt())
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDBSubnetGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccDBSubnetGroupConfig,
+				Config: testAccDBSubnetGroupConfig(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDBSubnetGroupExists(
 						"aws_db_subnet_group.foo", &v),
@@ -89,7 +93,7 @@ func TestAccAWSDBSubnetGroup_updateDescription(t *testing.T) {
 			},
 
 			resource.TestStep{
-				Config: testAccDBSubnetGroupConfig_updatedDescription,
+				Config: testAccDBSubnetGroupConfig_updatedDescription(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDBSubnetGroupExists(
 						"aws_db_subnet_group.foo", &v),
@@ -192,7 +196,8 @@ func testAccCheckDBSubnetGroupExists(n string, v *rds.DBSubnetGroup) resource.Te
 	}
 }
 
-const testAccDBSubnetGroupConfig = `
+func testAccDBSubnetGroupConfig(rName string) string {
+	return fmt.Sprintf(`
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
 }
@@ -216,15 +221,16 @@ resource "aws_subnet" "bar" {
 }
 
 resource "aws_db_subnet_group" "foo" {
-	name = "foo"
+	name = "%s"
 	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
 	tags {
 		Name = "tf-dbsubnet-group-test"
 	}
+}`, rName)
 }
-`
 
-const testAccDBSubnetGroupConfig_updatedDescription = `
+func testAccDBSubnetGroupConfig_updatedDescription(rName string) string {
+	return fmt.Sprintf(`
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
 }
@@ -248,14 +254,14 @@ resource "aws_subnet" "bar" {
 }
 
 resource "aws_db_subnet_group" "foo" {
-	name = "foo"
+	name = "%s"
 	description = "foo description updated"
 	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
 	tags {
 		Name = "tf-dbsubnet-group-test"
 	}
+}`, rName)
 }
-`
 
 const testAccDBSubnetGroupConfig_withUnderscoresAndPeriodsAndSpaces = `
 resource "aws_vpc" "main" {

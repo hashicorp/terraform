@@ -20,13 +20,13 @@ provisioner supports both `ssh` and `winrm` type [connections](/docs/provisioner
 ```
 # Run puppet and join our Consul cluster
 resource "aws_instance" "web" {
-    ...
-    provisioner "remote-exec" {
-        inline = [
-        "puppet apply",
-        "consul join ${aws_instance.web.private_ip}"
-        ]
-    }
+  # ...
+  provisioner "remote-exec" {
+    inline = [
+      "puppet apply",
+      "consul join ${aws_instance.web.private_ip}",
+    ]
+  }
 }
 ```
 
@@ -55,18 +55,18 @@ and then use `inline` to call it. Example:
 
 ```
 resource "aws_instance" "web" {
-    ...
+  # ...
 
-    provisioner "file" {
-        source = "script.sh"
-        destination = "/tmp/script.sh"
-    }
+  provisioner "file" {
+    source      = "script.sh"
+    destination = "/tmp/script.sh"
+  }
 
-    provisioner "remote-exec" {
-        inline = [
-          "chmod +x /tmp/script.sh",
-          "/tmp/script.sh args"
-        ]
-    }
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /tmp/script.sh",
+      "/tmp/script.sh args",
+    ]
+  }
 }
 ```

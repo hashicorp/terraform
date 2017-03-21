@@ -1,3 +1,4 @@
+//= require turbolinks
 //= require jquery
 //= require bootstrap
 
@@ -23,3 +24,6 @@
 //= require app/_Engine.Typewriter
 //= require app/_Sidebar
 //= require app/_Init
+
+// assets/javascripts/application.js
+//= require hashicorp/mega-nav

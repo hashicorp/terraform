@@ -40,8 +40,7 @@ type ImportTarget struct {
 // imported.
 func (c *Context) Import(opts *ImportOpts) (*State, error) {
 	// Hold a lock since we can modify our own state here
-	v := c.acquireRun("import")
-	defer c.releaseRun(v)
+	defer c.acquireRun("import")()
 
 	// Copy our own state
 	c.state = c.state.DeepCopy()

@@ -15,10 +15,10 @@ Provides a Rancher Registy Credential resource. This can be used to create regis
 ```hcl
 # Create a new Rancher registry
 resource "rancher_registry_credential" "dockerhub" {
-  name = "dockerhub"
-  description = "DockerHub Registry Credential"
-  registry_id = "${rancher_registry.dockerhub.id}"
-  email = "myself@company.com"
+  name         = "dockerhub"
+  description  = "DockerHub Registry Credential"
+  registry_id  = "${rancher_registry.dockerhub.id}"
+  email        = "myself@company.com"
   public_value = "myself"
   secret_value = "mypass"
 }
@@ -41,7 +41,15 @@ No further attributes are exported.
 
 ## Import
 
-Registry credentials can be imported using their Rancher API ID, e.g.
+Registry credentials can be imported using the Registry and credentials
+IDs in the format `<registry_id>/<credential_id>`
+
+```
+$ terraform import rancher_registry_credential.private_registry 1sp31/1c605
+```
+
+If the credentials for the Rancher provider have access to the global API, then
+then `registry_id` can be omitted e.g.
 
 ```
 $ terraform import rancher_registry_credential.private_registry 1c605

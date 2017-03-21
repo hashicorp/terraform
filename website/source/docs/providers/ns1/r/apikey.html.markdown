@@ -18,10 +18,11 @@ resource "ns1_team" "example" {
 }
 
 resource "ns1_apikey" "example" {
-  name = "Example key"
+  name  = "Example key"
   teams = ["${ns1_team.example.id}"]
+
   permissions = {
-    dns_view_zones = false
+    dns_view_zones       = false
     account_manage_users = false
   }
 }

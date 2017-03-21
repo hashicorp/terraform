@@ -150,16 +150,22 @@ func (old *instanceStateV1) upgradeToV2() (*InstanceState, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error upgrading InstanceState V1: %v", err)
 	}
+
 	meta, err := copystructure.Copy(old.Meta)
 	if err != nil {
 		return nil, fmt.Errorf("Error upgrading InstanceState V1: %v", err)
+	}
+
+	newMeta := make(map[string]interface{})
+	for k, v := range meta.(map[string]string) {
+		newMeta[k] = v
 	}
 
 	return &InstanceState{
 		ID:         old.ID,
 		Attributes: attributes.(map[string]string),
 		Ephemeral:  *ephemeral,
-		Meta:       meta.(map[string]string),
+		Meta:       newMeta,
 	}, nil
 }
 

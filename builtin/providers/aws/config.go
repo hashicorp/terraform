@@ -24,8 +24,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/codebuild"
 	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/aws/aws-sdk-go/service/codedeploy"
+	"github.com/aws/aws-sdk-go/service/codepipeline"
+	"github.com/aws/aws-sdk-go/service/configservice"
+	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -79,6 +83,7 @@ type Config struct {
 	AssumeRoleARN         string
 	AssumeRoleExternalID  string
 	AssumeRoleSessionName string
+	AssumeRolePolicy      string
 
 	AllowedAccountIds   []interface{}
 	ForbiddenAccountIds []interface{}
@@ -105,6 +110,8 @@ type AWSClient struct {
 	cloudwatchconn        *cloudwatch.CloudWatch
 	cloudwatchlogsconn    *cloudwatchlogs.CloudWatchLogs
 	cloudwatcheventsconn  *cloudwatchevents.CloudWatchEvents
+	configconn            *configservice.ConfigService
+	dmsconn               *databasemigrationservice.DatabaseMigrationService
 	dsconn                *directoryservice.DirectoryService
 	dynamodbconn          *dynamodb.DynamoDB
 	ec2conn               *ec2.EC2
@@ -129,6 +136,7 @@ type AWSClient struct {
 	r53conn               *route53.Route53
 	partition             string
 	accountid             string
+	supportedplatforms    []string
 	region                string
 	rdsconn               *rds.RDS
 	iamconn               *iam.IAM
@@ -143,8 +151,10 @@ type AWSClient struct {
 	lightsailconn         *lightsail.Lightsail
 	opsworksconn          *opsworks.OpsWorks
 	glacierconn           *glacier.Glacier
+	codebuildconn         *codebuild.CodeBuild
 	codedeployconn        *codedeploy.CodeDeploy
 	codecommitconn        *codecommit.CodeCommit
+	codepipelineconn      *codepipeline.CodePipeline
 	sfnconn               *sfn.SFN
 	ssmconn               *ssm.SSM
 	wafconn               *waf.WAF
@@ -215,10 +225,7 @@ func (c *Config) Client() (interface{}, error) {
 		return nil, errwrap.Wrapf("Error creating AWS session: {{err}}", err)
 	}
 
-	// Removes the SDK Version handler, so we only have the provider User-Agent
-	// Ex: "User-Agent: APN/1.0 HashiCorp/1.0 Terraform/0.7.9-dev"
-	sess.Handlers.Build.Remove(request.NamedHandler{Name: "core.SDKVersionUserAgentHandler"})
-	sess.Handlers.Build.PushFrontNamed(addTerraformVersionToUserAgent)
+	sess.Handlers.Build.PushBackNamed(addTerraformVersionToUserAgent)
 
 	if extraDebug := os.Getenv("TERRAFORM_AWS_AUTHFAILURE_DEBUG"); extraDebug != "" {
 		sess.Handlers.UnmarshalError.PushFrontNamed(debugAuthFailure)
@@ -263,6 +270,17 @@ func (c *Config) Client() (interface{}, error) {
 		return nil, authErr
 	}
 
+	client.ec2conn = ec2.New(awsEc2Sess)
+
+	supportedPlatforms, err := GetSupportedEC2Platforms(client.ec2conn)
+	if err != nil {
+		// We intentionally fail *silently* because there's a chance
+		// user just doesn't have ec2:DescribeAccountAttributes permissions
+		log.Printf("[WARN] Unable to get supported EC2 platforms: %s", err)
+	} else {
+		client.supportedplatforms = supportedPlatforms
+	}
+
 	client.acmconn = acm.New(sess)
 	client.apigateway = apigateway.New(sess)
 	client.appautoscalingconn = applicationautoscaling.New(sess)
@@ -274,10 +292,13 @@ func (c *Config) Client() (interface{}, error) {
 	client.cloudwatcheventsconn = cloudwatchevents.New(sess)
 	client.cloudwatchlogsconn = cloudwatchlogs.New(sess)
 	client.codecommitconn = codecommit.New(sess)
+	client.codebuildconn = codebuild.New(sess)
 	client.codedeployconn = codedeploy.New(sess)
+	client.configconn = configservice.New(sess)
+	client.dmsconn = databasemigrationservice.New(sess)
+	client.codepipelineconn = codepipeline.New(sess)
 	client.dsconn = directoryservice.New(sess)
 	client.dynamodbconn = dynamodb.New(dynamoSess)
-	client.ec2conn = ec2.New(awsEc2Sess)
 	client.ecrconn = ecr.New(sess)
 	client.ecsconn = ecs.New(sess)
 	client.efsconn = efs.New(sess)
@@ -295,7 +316,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.kmsconn = kms.New(sess)
 	client.lambdaconn = lambda.New(sess)
 	client.lightsailconn = lightsail.New(usEast1Sess)
-	client.opsworksconn = opsworks.New(usEast1Sess)
+	client.opsworksconn = opsworks.New(sess)
 	client.r53conn = route53.New(usEast1Sess)
 	client.rdsconn = rds.New(sess)
 	client.redshiftconn = redshift.New(sess)
@@ -374,6 +395,34 @@ func (c *Config) ValidateAccountId(accountId string) error {
 	}
 
 	return nil
+}
+
+func GetSupportedEC2Platforms(conn *ec2.EC2) ([]string, error) {
+	attrName := "supported-platforms"
+
+	input := ec2.DescribeAccountAttributesInput{
+		AttributeNames: []*string{aws.String(attrName)},
+	}
+	attributes, err := conn.DescribeAccountAttributes(&input)
+	if err != nil {
+		return nil, err
+	}
+
+	var platforms []string
+	for _, attr := range attributes.AccountAttributes {
+		if *attr.AttributeName == attrName {
+			for _, v := range attr.AttributeValues {
+				platforms = append(platforms, *v.AttributeValue)
+			}
+			break
+		}
+	}
+
+	if len(platforms) == 0 {
+		return nil, fmt.Errorf("No EC2 platforms detected")
+	}
+
+	return platforms, nil
 }
 
 // addTerraformVersionToUserAgent is a named handler that will add Terraform's

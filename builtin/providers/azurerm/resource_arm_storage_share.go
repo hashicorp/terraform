@@ -3,9 +3,7 @@ package azurerm
 import (
 	"fmt"
 	"log"
-	//	"strings"
 	"regexp"
-	"strconv"
 
 	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -66,10 +64,18 @@ func resourceArmStorageShareCreate(d *schema.ResourceData, meta interface{}) err
 	metaData := make(map[string]string) // TODO: support MetaData
 
 	log.Printf("[INFO] Creating share %q in storage account %q", name, storageAccountName)
-	err = fileClient.CreateShare(name, metaData)
+	reference := fileClient.GetShareReference(name)
+	err = reference.Create()
+
+	log.Printf("[INFO] Setting share %q metadata in storage account %q", name, storageAccountName)
+	reference.Metadata = metaData
+	reference.SetMetadata()
 
 	log.Printf("[INFO] Setting share %q properties in storage account %q", name, storageAccountName)
-	fileClient.SetShareProperties(name, storage.ShareHeaders{Quota: strconv.Itoa(d.Get("quota").(int))})
+	reference.Properties = storage.ShareProperties{
+		Quota: d.Get("quota").(int),
+	}
+	reference.SetProperties()
 
 	d.SetId(name)
 	return resourceArmStorageShareRead(d, meta)
@@ -103,7 +109,8 @@ func resourceArmStorageShareRead(d *schema.ResourceData, meta interface{}) error
 
 	name := d.Get("name").(string)
 
-	url := fileClient.GetShareURL(name)
+	reference := fileClient.GetShareReference(name)
+	url := reference.URL()
 	if url == "" {
 		log.Printf("[INFO] URL for %q is empty", name)
 	}
@@ -131,7 +138,8 @@ func resourceArmStorageShareExists(d *schema.ResourceData, meta interface{}) (bo
 	name := d.Get("name").(string)
 
 	log.Printf("[INFO] Checking for existence of share %q.", name)
-	exists, err := fileClient.ShareExists(name)
+	reference := fileClient.GetShareReference(name)
+	exists, err := reference.Exists()
 	if err != nil {
 		return false, fmt.Errorf("Error testing existence of share %q: %s", name, err)
 	}
@@ -161,8 +169,10 @@ func resourceArmStorageShareDelete(d *schema.ResourceData, meta interface{}) err
 
 	name := d.Get("name").(string)
 
-	log.Printf("[INFO] Deleting storage file %q", name)
-	if _, err = fileClient.DeleteShareIfExists(name); err != nil {
+	reference := fileClient.GetShareReference(name)
+	err = reference.Create()
+
+	if _, err = reference.DeleteIfExists(); err != nil {
 		return fmt.Errorf("Error deleting storage file %q: %s", name, err)
 	}
 

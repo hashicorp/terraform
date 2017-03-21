@@ -100,6 +100,20 @@ If you create an execution plan with a tainted resource, however, the
 plan will clearly state that the resource will be destroyed because
 it is tainted.
 
+## Destroy Provisioners
+
+Provisioners can also be defined that run only during a destroy
+operation. These are useful for performing system cleanup, extracting
+data, etc.
+
+For many resources, using built-in cleanup mechanisms is recommended
+if possible (such as init scripts), but provisioners can be used if
+necessary.
+
+The getting started guide won't show any destroy provisioner examples.
+If you need to use destroy provisioners, please
+[see the provisioner documentation](/docs/provisioners).
+
 ## Next
 
 Provisioning is important for being able to bootstrap instances.

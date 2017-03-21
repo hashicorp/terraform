@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -78,6 +79,11 @@ type State struct {
 	// Remote is used to track the metadata required to
 	// pull and push state files from a remote storage endpoint.
 	Remote *RemoteState `json:"remote,omitempty"`
+
+	// Backend tracks the configuration for the backend in use with
+	// this state. This is used to track any changes in the backend
+	// configuration.
+	Backend *BackendState `json:"backend,omitempty"`
 
 	// Modules contains all the modules in a breadth-first order
 	Modules []*ModuleState `json:"modules"`
@@ -579,7 +585,7 @@ func (s *State) CompareAges(other *State) (StateAgeComparison, error) {
 }
 
 // SameLineage returns true only if the state given in argument belongs
-// to the same "lineage" of states as the reciever.
+// to the same "lineage" of states as the receiver.
 func (s *State) SameLineage(other *State) bool {
 	s.Lock()
 	defer s.Unlock()
@@ -777,6 +783,22 @@ func (s *State) String() string {
 	}
 
 	return strings.TrimSpace(buf.String())
+}
+
+// BackendState stores the configuration to connect to a remote backend.
+type BackendState struct {
+	Type   string                 `json:"type"`   // Backend type
+	Config map[string]interface{} `json:"config"` // Backend raw config
+
+	// Hash is the hash code to uniquely identify the original source
+	// configuration. We use this to detect when there is a change in
+	// configuration even when "type" isn't changed.
+	Hash uint64 `json:"hash"`
+}
+
+// Empty returns true if BackendState has no state.
+func (s *BackendState) Empty() bool {
+	return s == nil || s.Type == ""
 }
 
 // RemoteState is used to track the information about a remote
@@ -1142,7 +1164,8 @@ func (m *ModuleState) String() string {
 	for name, _ := range m.Resources {
 		names = append(names, name)
 	}
-	sort.Strings(names)
+
+	sort.Sort(resourceNameSort(names))
 
 	for _, k := range names {
 		rs := m.Resources[k]
@@ -1182,6 +1205,7 @@ func (m *ModuleState) String() string {
 
 			attrKeys = append(attrKeys, ak)
 		}
+
 		sort.Strings(attrKeys)
 
 		for _, ak := range attrKeys {
@@ -1212,6 +1236,7 @@ func (m *ModuleState) String() string {
 		for k, _ := range m.Outputs {
 			ks = append(ks, k)
 		}
+
 		sort.Strings(ks)
 
 		for _, k := range ks {
@@ -1519,8 +1544,9 @@ type InstanceState struct {
 
 	// Meta is a simple K/V map that is persisted to the State but otherwise
 	// ignored by Terraform core. It's meant to be used for accounting by
-	// external client code.
-	Meta map[string]string `json:"meta"`
+	// external client code. The value here must only contain Go primitives
+	// and collections.
+	Meta map[string]interface{} `json:"meta"`
 
 	// Tainted is used to mark a resource for recreation.
 	Tainted bool `json:"tainted"`
@@ -1539,7 +1565,7 @@ func (s *InstanceState) init() {
 		s.Attributes = make(map[string]string)
 	}
 	if s.Meta == nil {
-		s.Meta = make(map[string]string)
+		s.Meta = make(map[string]interface{})
 	}
 	s.Ephemeral.init()
 }
@@ -1610,13 +1636,11 @@ func (s *InstanceState) Equal(other *InstanceState) bool {
 	if len(s.Meta) != len(other.Meta) {
 		return false
 	}
-	for k, v := range s.Meta {
-		otherV, ok := other.Meta[k]
-		if !ok {
-			return false
-		}
-
-		if v != otherV {
+	if s.Meta != nil && other.Meta != nil {
+		// We only do the deep check if both are non-nil. If one is nil
+		// we treat it as equal since their lengths are both zero (check
+		// above).
+		if !reflect.DeepEqual(s.Meta, other.Meta) {
 			return false
 		}
 	}
@@ -1779,10 +1803,18 @@ func testForV0State(buf *bufio.Reader) error {
 	return nil
 }
 
+// ErrNoState is returned by ReadState when the io.Reader contains no data
+var ErrNoState = errors.New("no state")
+
 // ReadState reads a state structure out of a reader in the format that
 // was written by WriteState.
 func ReadState(src io.Reader) (*State, error) {
 	buf := bufio.NewReader(src)
+	if _, err := buf.Peek(1); err != nil {
+		// the error is either io.EOF or "invalid argument", and both are from
+		// an empty state.
+		return nil, ErrNoState
+	}
 
 	if err := testForV0State(buf); err != nil {
 		return nil, err
@@ -2001,6 +2033,48 @@ func WriteState(d *State, dst io.Writer) error {
 	}
 
 	return nil
+}
+
+// resourceNameSort implements the sort.Interface to sort name parts lexically for
+// strings and numerically for integer indexes.
+type resourceNameSort []string
+
+func (r resourceNameSort) Len() int      { return len(r) }
+func (r resourceNameSort) Swap(i, j int) { r[i], r[j] = r[j], r[i] }
+
+func (r resourceNameSort) Less(i, j int) bool {
+	iParts := strings.Split(r[i], ".")
+	jParts := strings.Split(r[j], ".")
+
+	end := len(iParts)
+	if len(jParts) < end {
+		end = len(jParts)
+	}
+
+	for idx := 0; idx < end; idx++ {
+		if iParts[idx] == jParts[idx] {
+			continue
+		}
+
+		// sort on the first non-matching part
+		iInt, iIntErr := strconv.Atoi(iParts[idx])
+		jInt, jIntErr := strconv.Atoi(jParts[idx])
+
+		switch {
+		case iIntErr == nil && jIntErr == nil:
+			// sort numerically if both parts are integers
+			return iInt < jInt
+		case iIntErr == nil:
+			// numbers sort before strings
+			return true
+		case jIntErr == nil:
+			return false
+		default:
+			return iParts[idx] < jParts[idx]
+		}
+	}
+
+	return r[i] < r[j]
 }
 
 // moduleStateSort implements sort.Interface to sort module states

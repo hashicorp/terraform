@@ -18,8 +18,8 @@ fingerprint.
 ```
 # Create a new SSH key
 resource "digitalocean_ssh_key" "default" {
-    name = "Terraform Example"
-    public_key = "${file("/Users/terraform/.ssh/id_rsa.pub")}"
+  name       = "Terraform Example"
+  public_key = "${file("/Users/terraform/.ssh/id_rsa.pub")}"
 }
 ```
 
@@ -42,7 +42,7 @@ The following attributes are exported:
 
 ## Import
 
-SSH Keys can be imported using the `ssh key id`, e.g. 
+SSH Keys can be imported using the `ssh key id`, e.g.
 
 ```
 terraform import digitalocean_ssh_key.mykey 263654

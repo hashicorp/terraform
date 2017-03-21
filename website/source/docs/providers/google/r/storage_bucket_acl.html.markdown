@@ -21,7 +21,7 @@ resource "google_storage_bucket" "image-store" {
 }
 
 resource "google_storage_bucket_acl" "image-store-acl" {
-  bucket = "${google_storage_bucket.image_store.name}"
+  bucket = "${google_storage_bucket.image-store.name}"
 
   role_entity = [
     "OWNER:user-my.email@gmail.com",
@@ -36,11 +36,9 @@ resource "google_storage_bucket_acl" "image-store-acl" {
 
 - - -
 
-* `default_acl` - (Optional) The [canned GCS ACL](https://cloud.google.com/storage/docs/access-control#predefined-acl) to apply to future buckets. Must be set both `role_entity` and `predefined_acl` are not.
+* `predefined_acl` - (Optional) The [canned GCS ACL](https://cloud.google.com/storage/docs/access-control#predefined-acl) to apply. Must be set if `role_entity` is not.
 
-* `predefined_acl` - (Optional) The [canned GCS ACL](https://cloud.google.com/storage/docs/access-control#predefined-acl) to apply. Must be set if both `role_entity` and `default_acl` are not.
-
-* `role_entity` - (Optional) List of role/entity pairs in the form `ROLE:entity`. See [GCS Bucket ACL documentation](https://cloud.google.com/storage/docs/json_api/v1/bucketAccessControls)  for more details. Must be set if both `predefined_acl` and `default_acl` are not.
+* `role_entity` - (Optional) List of role/entity pairs in the form `ROLE:entity`. See [GCS Bucket ACL documentation](https://cloud.google.com/storage/docs/json_api/v1/bucketAccessControls)  for more details. Must be set if `predefined_acl` is not.
 
 ## Attributes Reference
 

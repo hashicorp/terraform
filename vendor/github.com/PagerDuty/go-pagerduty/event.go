@@ -40,11 +40,11 @@ func CreateEvent(e Event) (*EventResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("HTTP Status Code: %d", resp.StatusCode)
 	}
 	var eventResponse EventResponse
-	defer resp.Body.Close()
 	if err := json.NewDecoder(resp.Body).Decode(&eventResponse); err != nil {
 		return nil, err
 	}

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -59,7 +60,13 @@ func TestRefresh(t *testing.T) {
 	}
 }
 
-func TestRefresh_badState(t *testing.T) {
+func TestRefresh_empty(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("refresh-empty"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &RefreshCommand{
@@ -69,12 +76,55 @@ func TestRefresh_badState(t *testing.T) {
 		},
 	}
 
+	p.RefreshFn = nil
+	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
+
 	args := []string{
-		"-state", "i-should-not-exist-ever",
+		td,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if p.RefreshCalled {
+		t.Fatal("refresh should not be called")
+	}
+}
+
+func TestRefresh_lockedState(t *testing.T) {
+	state := testState()
+	statePath := testStateFile(t, state)
+
+	unlock, err := testLockState("./testdata", statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unlock()
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &RefreshCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	p.RefreshFn = nil
+	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
+
+	args := []string{
+		"-state", statePath,
 		testFixturePath("refresh"),
 	}
-	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+
+	if code := c.Run(args); code == 0 {
+		t.Fatal("expected error")
+	}
+
+	output := ui.ErrorWriter.String()
+	if !strings.Contains(output, "lock") {
+		t.Fatal("command output does not look like a lock error:", output)
 	}
 }
 
@@ -712,6 +762,10 @@ func TestRefresh_disableBackup(t *testing.T) {
 	if err == nil || !os.IsNotExist(err) {
 		t.Fatalf("backup should not exist")
 	}
+	_, err = os.Stat("-")
+	if err == nil || !os.IsNotExist(err) {
+		t.Fatalf("backup should not exist")
+	}
 }
 
 func TestRefresh_displaysOutputs(t *testing.T) {
@@ -753,7 +807,7 @@ func newInstanceState(id string) *terraform.InstanceState {
 		Ephemeral: terraform.EphemeralState{
 			ConnInfo: make(map[string]string),
 		},
-		Meta: make(map[string]string),
+		Meta: make(map[string]interface{}),
 	}
 }
 

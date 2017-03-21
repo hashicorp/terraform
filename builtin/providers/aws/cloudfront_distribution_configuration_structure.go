@@ -443,10 +443,10 @@ func expandLambdaFunctionAssociation(lf map[string]interface{}) *cloudfront.Lamb
 	return &lfa
 }
 
-func flattenLambdaFunctionAssociations(lfa *cloudfront.LambdaFunctionAssociations) []interface{} {
-	s := make([]interface{}, len(lfa.Items))
-	for i, v := range lfa.Items {
-		s[i] = flattenLambdaFunctionAssociation(v)
+func flattenLambdaFunctionAssociations(lfa *cloudfront.LambdaFunctionAssociations) *schema.Set {
+	s := schema.NewSet(lambdaFunctionAssociationHash, []interface{}{})
+	for _, v := range lfa.Items {
+		s.Add(flattenLambdaFunctionAssociation(v))
 	}
 	return s
 }

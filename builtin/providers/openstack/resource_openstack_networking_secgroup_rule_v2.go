@@ -22,6 +22,10 @@ func resourceNetworkingSecGroupRuleV2() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		Timeouts: &schema.ResourceTimeout{
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
 				Type:        schema.TypeString,
@@ -185,7 +189,7 @@ func resourceNetworkingSecGroupRuleV2Delete(d *schema.ResourceData, meta interfa
 		Pending:    []string{"ACTIVE"},
 		Target:     []string{"DELETED"},
 		Refresh:    waitForSecGroupRuleDelete(networkingClient, d.Id()),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}

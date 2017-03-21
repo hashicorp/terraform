@@ -5,17 +5,21 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/terraform/builtin/providers/template"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 var testAccProviders map[string]terraform.ResourceProvider
 var testAccProvider *schema.Provider
+var testAccTemplateProvider *schema.Provider
 
 func init() {
 	testAccProvider = Provider().(*schema.Provider)
+	testAccTemplateProvider = template.Provider().(*schema.Provider)
 	testAccProviders = map[string]terraform.ResourceProvider{
-		"aws": testAccProvider,
+		"aws":      testAccProvider,
+		"template": testAccTemplateProvider,
 	}
 }
 

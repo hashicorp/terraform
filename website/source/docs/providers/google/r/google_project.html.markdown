@@ -3,7 +3,7 @@ layout: "google"
 page_title: "Google: google_project"
 sidebar_current: "docs-google-project"
 description: |-
- Allows management of a Google Cloud Platform project. 
+ Allows management of a Google Cloud Platform project.
 ---
 
 # google\_project
@@ -19,13 +19,31 @@ resource must have `roles/resourcemanager.projectCreator`. See the
 [Access Control for Organizations Using IAM](https://cloud.google.com/resource-manager/docs/access-control-org)
 doc for more information.
 
+Note that prior to 0.8.5, `google_project` functioned like a data source,
+meaning any project referenced by it had to be created and managed outside
+Terraform. As of 0.8.5, `google_project` functions like any other Terraform
+resource, with Terraform creating and managing the project. To replicate the old
+behavior, either:
+
+* Use the project ID directly in whatever is referencing the project, using the
+  [google_project_iam_policy](/docs/providers/google/r/google_project_iam_policy.html)
+  to replace the old `policy_data` property.
+* Use the [import](/docs/import/usage.html) functionality
+  to import your pre-existing project into Terraform, where it can be referenced and
+  used just like always, keeping in mind that Terraform will attempt to undo any changes
+  made outside Terraform.
+
+~> It's important to note that any project resources that were added to your Terraform config
+prior to 0.8.5 will continue to function as they always have, and will not be managed by
+Terraform. Only newly added projects are affected.
+
 ## Example Usage
 
 ```js
 resource "google_project" "my_project" {
-    project_id = "your-project-id"
-    org_id = "1234567"
-    services = ["compute_component", "storage-component-json.googleapis.com", "iam.googleapis.com"]
+  project_id = "your-project-id"
+  org_id     = "1234567"
+  services   = ["compute_component", "storage-component-json.googleapis.com", "iam.googleapis.com"]
 }
 ```
 
@@ -45,18 +63,18 @@ The following arguments are supported:
     versions of Terraform. The `project_id` attribute should be used instead. See
     [below](#id-field) for more information about its behaviour.
 
-* `project_id` - (Required) The project ID.
-    Changing this forces a new project to be created.
-
 * `org_id` - (Optional) The numeric ID of the organization this project belongs to.
     This is required if you are creating a new project.
     Changing this forces a new project to be created.
 
+* `billing_acount` - (Optional) The alphanumeric ID of the billing account this project
+    belongs to. The user or service account performing this operation with Terraform
+    must have Billing Account Administrator privileges (`roles/billing.admin`) in
+    the organization. See [Google Cloud Billing API Access Control](https://cloud.google.com/billing/v1/how-tos/access-control)
+    for more details.
+
 * `name` - (Optional) The display name of the project.
     This is required if you are creating a new project.
-
-* `services` - (Optional) The services/APIs that are enabled for this project.
-    For a list of available services, run `gcloud beta service-management list`
 
 * `skip_delete` - (Optional) If true, the Terraform resource can be deleted
     without deleting the Project via the Google API.
@@ -78,7 +96,7 @@ exported:
 
 ## ID Field
 
-In previous versions of Terraform, `google_project` resources used an `id` field in
+In versions of Terraform prior to 0.8.5, `google_project` resources used an `id` field in
 config files to specify the project ID. Unfortunately, due to limitations in Terraform,
 this field always looked empty to Terraform. Terraform fell back on using the project
 the Google Cloud provider is configured with. If you're using the `id` field in your

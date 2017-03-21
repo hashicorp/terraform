@@ -111,6 +111,8 @@ func TestValidateLambdaQualifier(t *testing.T) {
 		"prod",
 		"PROD",
 		"MyTestEnv",
+		"contains-dashes",
+		"contains_underscores",
 		"$LATEST",
 	}
 	for _, v := range validNames {
@@ -1004,6 +1006,11 @@ func TestValidateOnceAWeekWindowFormat(t *testing.T) {
 			Value:    "Sun:04:00-Sun:05:00",
 			ErrCount: 0,
 		},
+		{
+			// valid format
+			Value:    "",
+			ErrCount: 0,
+		},
 	}
 
 	for _, tc := range cases {
@@ -1038,6 +1045,11 @@ func TestValidateOnceADayWindowFormat(t *testing.T) {
 		{
 			// valid format
 			Value:    "04:00-05:00",
+			ErrCount: 0,
+		},
+		{
+			// valid format
+			Value:    "",
 			ErrCount: 0,
 		},
 	}
@@ -1169,6 +1181,607 @@ func TestValidateEcsPlacementStrategy(t *testing.T) {
 			t.Fatalf("Unexpected validation error for \"%s:%s\": %s",
 				tc.stratType, tc.stratField, err)
 		}
+	}
+}
 
+func TestValidateStepFunctionActivityName(t *testing.T) {
+	validTypes := []string{
+		"foo",
+		"FooBar123",
+	}
+
+	invalidTypes := []string{
+		strings.Repeat("W", 81), // length > 80
+	}
+
+	for _, v := range validTypes {
+		_, errors := validateSfnActivityName(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Step Function Activity name: %v", v, errors)
+		}
+	}
+
+	for _, v := range invalidTypes {
+		_, errors := validateSfnActivityName(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid Step Function Activity name", v)
+		}
+	}
+}
+
+func TestValidateStepFunctionStateMachineDefinition(t *testing.T) {
+	validDefinitions := []string{
+		"foobar",
+		strings.Repeat("W", 1048576),
+	}
+
+	invalidDefinitions := []string{
+		strings.Repeat("W", 1048577), // length > 1048576
+	}
+
+	for _, v := range validDefinitions {
+		_, errors := validateSfnStateMachineDefinition(v, "definition")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Step Function State Machine definition: %v", v, errors)
+		}
+	}
+
+	for _, v := range invalidDefinitions {
+		_, errors := validateSfnStateMachineDefinition(v, "definition")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid Step Function State Machine definition", v)
+		}
+	}
+}
+
+func TestValidateStepFunctionStateMachineName(t *testing.T) {
+	validTypes := []string{
+		"foo",
+		"BAR",
+		"FooBar123",
+		"FooBar123Baz-_",
+	}
+
+	invalidTypes := []string{
+		"foo bar",
+		"foo<bar>",
+		"foo{bar}",
+		"foo[bar]",
+		"foo*bar",
+		"foo?bar",
+		"foo#bar",
+		"foo%bar",
+		"foo\bar",
+		"foo^bar",
+		"foo|bar",
+		"foo~bar",
+		"foo$bar",
+		"foo&bar",
+		"foo,bar",
+		"foo:bar",
+		"foo;bar",
+		"foo/bar",
+		strings.Repeat("W", 81), // length > 80
+	}
+
+	for _, v := range validTypes {
+		_, errors := validateSfnStateMachineName(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Step Function State Machine name: %v", v, errors)
+		}
+	}
+
+	for _, v := range invalidTypes {
+		_, errors := validateSfnStateMachineName(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid Step Function State Machine name", v)
+		}
+	}
+}
+
+func TestValidateEmrEbsVolumeType(t *testing.T) {
+	cases := []struct {
+		VolType  string
+		ErrCount int
+	}{
+		{
+			VolType:  "gp2",
+			ErrCount: 0,
+		},
+		{
+			VolType:  "io1",
+			ErrCount: 0,
+		},
+		{
+			VolType:  "standard",
+			ErrCount: 0,
+		},
+		{
+			VolType:  "stand",
+			ErrCount: 1,
+		},
+		{
+			VolType:  "io",
+			ErrCount: 1,
+		},
+		{
+			VolType:  "gp1",
+			ErrCount: 1,
+		},
+		{
+			VolType:  "fast-disk",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateAwsEmrEbsVolumeType(tc.VolType, "volume")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %d errors, got %d: %s", tc.ErrCount, len(errors), errors)
+		}
+	}
+}
+
+func TestValidateAppautoscalingScalableDimension(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "ecs:service:DesiredCount",
+			ErrCount: 0,
+		},
+		{
+			Value:    "ec2:spot-fleet-request:TargetCapacity",
+			ErrCount: 0,
+		},
+		{
+			Value:    "ec2:service:DesiredCount",
+			ErrCount: 1,
+		},
+		{
+			Value:    "ecs:spot-fleet-request:TargetCapacity",
+			ErrCount: 1,
+		},
+		{
+			Value:    "",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateAppautoscalingScalableDimension(tc.Value, "scalable_dimension")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Scalable Dimension validation failed for value %q: %q", tc.Value, errors)
+		}
+	}
+}
+
+func TestValidateAppautoscalingServiceNamespace(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "ecs",
+			ErrCount: 0,
+		},
+		{
+			Value:    "ec2",
+			ErrCount: 0,
+		},
+		{
+			Value:    "autoscaling",
+			ErrCount: 1,
+		},
+		{
+			Value:    "s3",
+			ErrCount: 1,
+		},
+		{
+			Value:    "es",
+			ErrCount: 1,
+		},
+		{
+			Value:    "",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateAppautoscalingServiceNamespace(tc.Value, "service_namespace")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Service Namespace validation failed for value %q: %q", tc.Value, errors)
+		}
+	}
+}
+
+func TestValidateDmsEndpointId(t *testing.T) {
+	validIds := []string{
+		"tf-test-endpoint-1",
+		"tfTestEndpoint",
+	}
+
+	for _, s := range validIds {
+		_, errors := validateDmsEndpointId(s, "endpoint_id")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid endpoint id: %v", s, errors)
+		}
+	}
+
+	invalidIds := []string{
+		"tf_test_endpoint_1",
+		"tf.test.endpoint.1",
+		"tf test endpoint 1",
+		"tf-test-endpoint-1!",
+		"tf-test-endpoint-1-",
+		"tf-test-endpoint--1",
+		"tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1",
+	}
+
+	for _, s := range invalidIds {
+		_, errors := validateDmsEndpointId(s, "endpoint_id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid endpoint id: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateDmsCertificateId(t *testing.T) {
+	validIds := []string{
+		"tf-test-certificate-1",
+		"tfTestEndpoint",
+	}
+
+	for _, s := range validIds {
+		_, errors := validateDmsCertificateId(s, "certificate_id")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid certificate id: %v", s, errors)
+		}
+	}
+
+	invalidIds := []string{
+		"tf_test_certificate_1",
+		"tf.test.certificate.1",
+		"tf test certificate 1",
+		"tf-test-certificate-1!",
+		"tf-test-certificate-1-",
+		"tf-test-certificate--1",
+		"tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1",
+	}
+
+	for _, s := range invalidIds {
+		_, errors := validateDmsEndpointId(s, "certificate_id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid certificate id: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateDmsReplicationInstanceId(t *testing.T) {
+	validIds := []string{
+		"tf-test-replication-instance-1",
+		"tfTestReplicaitonInstance",
+	}
+
+	for _, s := range validIds {
+		_, errors := validateDmsReplicationInstanceId(s, "replicaiton_instance_id")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid replication instance id: %v", s, errors)
+		}
+	}
+
+	invalidIds := []string{
+		"tf_test_replication-instance_1",
+		"tf.test.replication.instance.1",
+		"tf test replication instance 1",
+		"tf-test-replication-instance-1!",
+		"tf-test-replication-instance-1-",
+		"tf-test-replication-instance--1",
+		"tf-test-replication-instance-1tf-test-replication-instance-1tf-test-replication-instance-1",
+	}
+
+	for _, s := range invalidIds {
+		_, errors := validateDmsReplicationInstanceId(s, "replication_instance_id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid replication instance id: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateDmsReplicationSubnetGroupId(t *testing.T) {
+	validIds := []string{
+		"tf-test-replication-subnet-group-1",
+		"tf_test_replication_subnet_group_1",
+		"tf.test.replication.subnet.group.1",
+		"tf test replication subnet group 1",
+		"tfTestReplicationSubnetGroup",
+	}
+
+	for _, s := range validIds {
+		_, errors := validateDmsReplicationSubnetGroupId(s, "replication_subnet_group_id")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid replication subnet group id: %v", s, errors)
+		}
+	}
+
+	invalidIds := []string{
+		"default",
+		"tf-test-replication-subnet-group-1!",
+		"tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1",
+	}
+
+	for _, s := range invalidIds {
+		_, errors := validateDmsReplicationSubnetGroupId(s, "replication_subnet_group_id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid replication subnet group id: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateDmsReplicationTaskId(t *testing.T) {
+	validIds := []string{
+		"tf-test-replication-task-1",
+		"tfTestReplicationTask",
+	}
+
+	for _, s := range validIds {
+		_, errors := validateDmsReplicationTaskId(s, "replication_task_id")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid replication task id: %v", s, errors)
+		}
+	}
+
+	invalidIds := []string{
+		"tf_test_replication_task_1",
+		"tf.test.replication.task.1",
+		"tf test replication task 1",
+		"tf-test-replication-task-1!",
+		"tf-test-replication-task-1-",
+		"tf-test-replication-task--1",
+		"tf-test-replication-task-1tf-test-replication-task-1tf-test-replication-task-1tf-test-replication-task-1tf-test-replication-task-1tf-test-replication-task-1tf-test-replication-task-1tf-test-replication-task-1tf-test-replication-task-1tf-test-replication-task-1",
+	}
+
+	for _, s := range invalidIds {
+		_, errors := validateDmsReplicationTaskId(s, "replication_task_id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid replication task id: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateAccountAlias(t *testing.T) {
+	validAliases := []string{
+		"tf-alias",
+		"0tf-alias1",
+	}
+
+	for _, s := range validAliases {
+		_, errors := validateAccountAlias(s, "account_alias")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid account alias: %v", s, errors)
+		}
+	}
+
+	invalidAliases := []string{
+		"tf",
+		"-tf",
+		"tf-",
+		"TF-Alias",
+		"tf-alias-tf-alias-tf-alias-tf-alias-tf-alias-tf-alias-tf-alias-tf-alias",
+	}
+
+	for _, s := range invalidAliases {
+		_, errors := validateAccountAlias(s, "account_alias")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid account alias: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateIamRoleProfileName(t *testing.T) {
+	validNames := []string{
+		"tf-test-role-profile-1",
+	}
+
+	for _, s := range validNames {
+		_, errors := validateIamRolePolicyName(s, "name")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid IAM role policy name: %v", s, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"invalid#name",
+		"this-is-a-very-long-role-policy-name-this-is-a-very-long-role-policy-name-this-is-a-very-long-role-policy-name-this-is-a-very-long",
+	}
+
+	for _, s := range invalidNames {
+		_, errors := validateIamRolePolicyName(s, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid IAM role policy name: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateIamRoleProfileNamePrefix(t *testing.T) {
+	validNamePrefixes := []string{
+		"tf-test-role-profile-",
+	}
+
+	for _, s := range validNamePrefixes {
+		_, errors := validateIamRolePolicyNamePrefix(s, "name_prefix")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid IAM role policy name prefix: %v", s, errors)
+		}
+	}
+
+	invalidNamePrefixes := []string{
+		"invalid#name_prefix",
+		"this-is-a-very-long-role-policy-name-prefix-this-is-a-very-long-role-policy-name-prefix-this-is-a-very-",
+	}
+
+	for _, s := range invalidNamePrefixes {
+		_, errors := validateIamRolePolicyNamePrefix(s, "name_prefix")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid IAM role policy name prefix: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateApiGatewayUsagePlanQuotaSettingsPeriod(t *testing.T) {
+	validEntries := []string{
+		"DAY",
+		"WEEK",
+		"MONTH",
+	}
+
+	invalidEntries := []string{
+		"fooBAR",
+		"foobar45Baz",
+		"foobar45Baz@!",
+	}
+
+	for _, v := range validEntries {
+		_, errors := validateApiGatewayUsagePlanQuotaSettingsPeriod(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid API Gateway Quota Settings Period: %v", v, errors)
+		}
+	}
+
+	for _, v := range invalidEntries {
+		_, errors := validateApiGatewayUsagePlanQuotaSettingsPeriod(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a API Gateway Quota Settings Period", v)
+		}
+	}
+}
+
+func TestValidateApiGatewayUsagePlanQuotaSettings(t *testing.T) {
+	cases := []struct {
+		Offset   int
+		Period   string
+		ErrCount int
+	}{
+		{
+			Offset:   0,
+			Period:   "DAY",
+			ErrCount: 0,
+		},
+		{
+			Offset:   -1,
+			Period:   "DAY",
+			ErrCount: 1,
+		},
+		{
+			Offset:   1,
+			Period:   "DAY",
+			ErrCount: 1,
+		},
+		{
+			Offset:   0,
+			Period:   "WEEK",
+			ErrCount: 0,
+		},
+		{
+			Offset:   6,
+			Period:   "WEEK",
+			ErrCount: 0,
+		},
+		{
+			Offset:   -1,
+			Period:   "WEEK",
+			ErrCount: 1,
+		},
+		{
+			Offset:   7,
+			Period:   "WEEK",
+			ErrCount: 1,
+		},
+		{
+			Offset:   0,
+			Period:   "MONTH",
+			ErrCount: 0,
+		},
+		{
+			Offset:   27,
+			Period:   "MONTH",
+			ErrCount: 0,
+		},
+		{
+			Offset:   -1,
+			Period:   "MONTH",
+			ErrCount: 1,
+		},
+		{
+			Offset:   28,
+			Period:   "MONTH",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		m := make(map[string]interface{})
+		m["offset"] = tc.Offset
+		m["period"] = tc.Period
+
+		errors := validateApiGatewayUsagePlanQuotaSettings(m)
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("API Gateway Usage Plan Quota Settings validation failed: %v", errors)
+		}
+	}
+}
+
+func TestValidateElbName(t *testing.T) {
+	validNames := []string{
+		"tf-test-elb",
+	}
+
+	for _, s := range validNames {
+		_, errors := validateElbName(s, "name")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid ELB name: %v", s, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"tf.test.elb.1",
+		"tf-test-elb-tf-test-elb-tf-test-elb",
+		"-tf-test-elb",
+		"tf-test-elb-",
+	}
+
+	for _, s := range invalidNames {
+		_, errors := validateElbName(s, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid ELB name: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateElbNamePrefix(t *testing.T) {
+	validNamePrefixes := []string{
+		"test-",
+	}
+
+	for _, s := range validNamePrefixes {
+		_, errors := validateElbNamePrefix(s, "name_prefix")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid ELB name prefix: %v", s, errors)
+		}
+	}
+
+	invalidNamePrefixes := []string{
+		"tf.test.elb.",
+		"tf-test",
+		"-test",
+	}
+
+	for _, s := range invalidNamePrefixes {
+		_, errors := validateElbNamePrefix(s, "name_prefix")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid ELB name prefix: %v", s, errors)
+		}
 	}
 }

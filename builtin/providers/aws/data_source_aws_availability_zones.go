@@ -16,12 +16,12 @@ func dataSourceAwsAvailabilityZones() *schema.Resource {
 		Read: dataSourceAwsAvailabilityZonesRead,
 
 		Schema: map[string]*schema.Schema{
-			"names": &schema.Schema{
+			"names": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			"state": &schema.Schema{
+			"state": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validateStateType,
@@ -40,7 +40,7 @@ func dataSourceAwsAvailabilityZonesRead(d *schema.ResourceData, meta interface{}
 
 	if v, ok := d.GetOk("state"); ok {
 		request.Filters = []*ec2.Filter{
-			&ec2.Filter{
+			{
 				Name:   aws.String("state"),
 				Values: []*string{aws.String(v.(string))},
 			},

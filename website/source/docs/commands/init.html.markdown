@@ -3,62 +3,87 @@ layout: "docs"
 page_title: "Command: init"
 sidebar_current: "docs-commands-init"
 description: |-
-  The `terraform init` command is used to initialize a Terraform configuration using another module as a skeleton.
+  The `terraform init` command is used to initialize a Terraform configuration. This is the first command that should be run for any new or existing Terraform configuration. It is safe to run this command multiple times.
 ---
 
 # Command: init
 
-The `terraform init` command is used to initialize a Terraform configuration
-using another
-[module](/docs/modules/index.html)
-as a skeleton.
+The `terraform init` command is used to initialize a Terraform configuration.
+This is the first command that should be run for any new or existing
+Terraform configuration. It is safe to run this command multiple times.
 
 ## Usage
 
-Usage: `terraform init [options] SOURCE [DIR]`
+Usage: `terraform init [options] [SOURCE] [PATH]`
 
-Init will download the module from SOURCE and copy it into the DIR
-(which defaults to the current working directory). Version control
-information from the module (such as Git history) will not be copied.
+Initialize a new or existing Terraform environment by creating
+initial files, loading any remote state, downloading modules, etc.
 
-The directory being initialized must be empty of all Terraform configurations.
-If the module has other files which conflict with what is already in the
-directory, they _will be overwritten_.
+This is the first command that should be run for any new or existing
+Terraform configuration per machine. This sets up all the local data
+necessary to run Terraform that is typically not comitted to version
+control.
 
-The command-line options available are a subset of the ones for the
-[remote command](/docs/commands/remote.html), and are used to initialize
-a remote state configuration if provided.
+This command is always safe to run multiple times. Though subsequent runs
+may give errors, this command will never blow away your environment or state.
+Even so, if you have important information, please back it up prior to
+running this command just in case.
+
+If no arguments are given, the configuration in this working directory
+is initialized.
+
+If one or two arguments are given, the first is a SOURCE of a module to
+download to the second argument PATH. After downloading the module to PATH,
+the configuration will be initialized as if this command were called pointing
+only to that PATH. PATH must be empty of any Terraform files. Any
+conflicting non-Terraform files will be overwritten. The module download
+is a copy. If you're downloading a module from Git, it will not preserve
+Git history.
 
 The command-line flags are all optional. The list of available flags are:
 
-* `-backend=atlas` - Specifies the type of remote backend. Must be one
-  of Atlas, Consul, S3, or HTTP. Defaults to Atlas.
+* `-backend=true` - Initialize the [backend](/docs/backends) for this environment.
 
-* `-backend-config="k=v"` - Specify a configuration variable for a backend. This is how you set the required variables for the selected backend (as detailed in the [remote command documentation](/docs/commands/remote.html).
+* `-backend-config=value` - Value can be a path to an HCL file or a string
+  in the format of 'key=value'. This specifies additional configuration to merge
+  for the backend. This can be specified multiple times. Flags specified
+  later in the line override those specified earlier if they conflict.
 
+* `-get=true` - Download any modules for this configuration.
 
-## Example: Consul
+* `-input=true` - Ask for input interactively if necessary. If this is false
+  and input is required, `init` will error.
 
-This example will initialize the current directory and configure Consul remote storage:
+## Backend Config
+
+The `-backend-config` can take a path or `key=value` pair to specify additional
+backend configuration when [initialize a backend](/docs/backends/init.html).
+
+This is particularly useful for
+[partial configuration of backends](/docs/backends/config.html). Partial
+configuration lets you keep sensitive information out of your Terraform
+configuration.
+
+For path values, the backend configuration file is a basic HCL file with key/value pairs.
+The keys are configuration keys for your backend. You do not need to wrap it
+in a `terraform` block. For example, the following file is a valid backend
+configuration file for the Consul backend type:
+
+```hcl
+address = "demo.consul.io"
+path    = "newpath"
+```
+
+If the value contains an equal sign (`=`), it is parsed as a `key=value` pair.
+The format of this flag is identical to the `-var` flag for plan, apply,
+etc. but applies to configuration keys for backends. For example:
 
 ```
 $ terraform init \
-    -backend=consul \
-    -backend-config="address=your.consul.endpoint:443" \
-    -backend-config="scheme=https" \
-    -backend-config="path=tf/path/for/project" \
-    /path/to/source/module
+  -backend-config 'address=demo.consul.io' \
+  -backend-config 'path=newpath'
 ```
 
-## Example: S3
-
-This example will initialize the current directory and configure S3 remote storage:
-
-```
-$ terraform init \
-    -backend=s3 \
-    -backend-config="bucket=your-s3-bucket" \
-    -backend-config="key=tf/path/for/project.json" \
-    -backend-config="acl=bucket-owner-full-control" \
-    /path/to/source/module
-```
+These two formats can be mixed. In this case, the values will be merged by
+key with keys specified later in the command-line overriding conflicting
+keys specified earlier.

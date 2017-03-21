@@ -18,12 +18,13 @@ For more details, see the [Amazon Kinesis Firehose Documentation][1].
 ```
 resource "aws_s3_bucket" "bucket" {
   bucket = "tf-test-bucket"
-  acl = "private"
+  acl    = "private"
 }
 
 resource "aws_iam_role" "firehose_role" {
-   name = "firehose_test_role"
-   assume_role_policy = <<EOF
+  name = "firehose_test_role"
+
+  assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -41,10 +42,11 @@ EOF
 }
 
 resource "aws_kinesis_firehose_delivery_stream" "test_stream" {
-  name = "terraform-kinesis-firehose-test-stream"
+  name        = "terraform-kinesis-firehose-test-stream"
   destination = "s3"
+
   s3_configuration {
-    role_arn = "${aws_iam_role.firehose_role.arn}"
+    role_arn   = "${aws_iam_role.firehose_role.arn}"
     bucket_arn = "${aws_s3_bucket.bucket.arn}"
   }
 }
@@ -55,30 +57,32 @@ resource "aws_kinesis_firehose_delivery_stream" "test_stream" {
 ```
 resource "aws_redshift_cluster" "test_cluster" {
   cluster_identifier = "tf-redshift-cluster-%d"
-  database_name = "test"
-  master_username = "testuser"
-  master_password = "T3stPass"
-  node_type = "dc1.large"
-  cluster_type = "single-node"
+  database_name      = "test"
+  master_username    = "testuser"
+  master_password    = "T3stPass"
+  node_type          = "dc1.large"
+  cluster_type       = "single-node"
 }
 
 resource "aws_kinesis_firehose_delivery_stream" "test_stream" {
-  name = "terraform-kinesis-firehose-test-stream"
+  name        = "terraform-kinesis-firehose-test-stream"
   destination = "redshift"
+
   s3_configuration {
-    role_arn = "${aws_iam_role.firehose_role.arn}"
-    bucket_arn = "${aws_s3_bucket.bucket.arn}"
-    buffer_size = 10
-    buffer_interval = 400
+    role_arn           = "${aws_iam_role.firehose_role.arn}"
+    bucket_arn         = "${aws_s3_bucket.bucket.arn}"
+    buffer_size        = 10
+    buffer_interval    = 400
     compression_format = "GZIP"
   }
+
   redshift_configuration {
-    role_arn = "${aws_iam_role.firehose_role.arn}"
-    cluster_jdbcurl = "jdbc:redshift://${aws_redshift_cluster.test_cluster.endpoint}/${aws_redshift_cluster.test_cluster.database_name}"
-    username = "testuser"
-    password = "T3stPass"
-    data_table_name = "test-table"
-    copy_options = "GZIP"
+    role_arn           = "${aws_iam_role.firehose_role.arn}"
+    cluster_jdbcurl    = "jdbc:redshift://${aws_redshift_cluster.test_cluster.endpoint}/${aws_redshift_cluster.test_cluster.database_name}"
+    username           = "testuser"
+    password           = "T3stPass"
+    data_table_name    = "test-table"
+    copy_options       = "delimiter '|'" # the default delimiter
     data_table_columns = "test-col"
   }
 }
@@ -92,21 +96,22 @@ resource "aws_elasticsearch_domain" "test_cluster" {
 }
 
 resource "aws_kinesis_firehose_delivery_stream" "test_stream" {
-  name = "terraform-kinesis-firehose-test-stream"
+  name        = "terraform-kinesis-firehose-test-stream"
   destination = "redshift"
+
   s3_configuration {
-    role_arn = "${aws_iam_role.firehose_role.arn}"
-    bucket_arn = "${aws_s3_bucket.bucket.arn}"
-    buffer_size = 10
-    buffer_interval = 400
+    role_arn           = "${aws_iam_role.firehose_role.arn}"
+    bucket_arn         = "${aws_s3_bucket.bucket.arn}"
+    buffer_size        = 10
+    buffer_interval    = 400
     compression_format = "GZIP"
   }
 
   elasticsearch_configuration {
     domain_arn = "${aws_elasticsearch_domain.test_cluster.arn}"
-    role_arn = "${aws_iam_role.firehose_role.arn}"
+    role_arn   = "${aws_iam_role.firehose_role.arn}"
     index_name = "test"
-    type_name = "test"
+    type_name  = "test"
   }
 }
 ```
@@ -122,7 +127,7 @@ AWS account and region the Stream is created in.
 * `destination` – (Required) This is the destination to where the data is delivered. The only options are `s3`, `redshift`, and `elasticsearch`.
 * `s3_configuration` - (Required) Configuration options for the s3 destination (or the intermediate bucket if the destination
 is redshift). More details are given below.
-* `redshift_configuration` - (Optional) Configuration options if redshift is the destination. 
+* `redshift_configuration` - (Optional) Configuration options if redshift is the destination.
 Using `redshift_configuration` requires the user to also specify a
 `s3_configuration` block. More details are given below.
 
@@ -147,7 +152,7 @@ The `redshift_configuration` object supports the following:
 * `retry_duration` - (Optional) The length of time during which Firehose retries delivery after a failure, starting from the initial request and including the first attempt. The default value is 3600 seconds (60 minutes). Firehose does not retry if the value of DurationInSeconds is 0 (zero) or if the first delivery attempt takes longer than the current value.
 * `role_arn` - (Required) The arn of the role the stream assumes.
 * `data_table_name` - (Required) The name of the table in the redshift cluster that the s3 bucket will copy to.
-* `copy_options` - (Optional) Copy options for copying the data from the s3 intermediate bucket into redshift.
+* `copy_options` - (Optional) Copy options for copying the data from the s3 intermediate bucket into redshift, for example to change the default delimiter. For valid values, see the [AWS documentation](http://docs.aws.amazon.com/firehose/latest/APIReference/API_CopyCommand.html)
 * `data_table_columns` - (Optional) The data table columns that will be targeted by the copy command.
 * `cloudwatch_logging_options` - (Optional) The CloudWatch Logging Options for the delivery stream. More details are given below
 
@@ -166,9 +171,9 @@ The `elasticsearch_configuration` object supports the following:
 
 The `cloudwatch_logging_options` object supports the following:
 
-* `enabled` - (Optional) Enables or disables the logging. Defaults to `false`. 
-* `log_group_name` - (Optional) The CloudWatch group name for logging. This value is required if `enabled` is true`.
-* `log_stream_name` - (Optional) The CloudWatch log stream name for logging. This value is required if `enabled` is true`.
+* `enabled` - (Optional) Enables or disables the logging. Defaults to `false`.
+* `log_group_name` - (Optional) The CloudWatch group name for logging. This value is required if `enabled` is true.
+* `log_stream_name` - (Optional) The CloudWatch log stream name for logging. This value is required if `enabled` is true.
 
 
 

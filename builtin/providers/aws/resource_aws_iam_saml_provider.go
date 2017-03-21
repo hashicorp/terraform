@@ -2,10 +2,12 @@ package aws
 
 import (
 	"fmt"
+	"log"
 	"regexp"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -70,6 +72,11 @@ func resourceAwsIamSamlProviderRead(d *schema.ResourceData, meta interface{}) er
 	}
 	out, err := iamconn.GetSAMLProvider(input)
 	if err != nil {
+		if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
+			log.Printf("[WARN] IAM SAML Provider %q not found.", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 

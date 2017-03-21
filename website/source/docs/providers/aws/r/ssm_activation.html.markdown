@@ -15,6 +15,7 @@ Registers an on-premises server or virtual machine with Amazon EC2 so that it ca
 ```
 resource "aws_iam_role" "test_role" {
   name = "test_role"
+
   assume_role_policy = <<EOF
   {
     "Version": "2012-10-17",
@@ -28,18 +29,17 @@ EOF
 }
 
 resource "aws_iam_role_policy_attachment" "test_attach" {
-  role = "${aws_iam_role.test_role.name}"
+  role       = "${aws_iam_role.test_role.name}"
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
 }
 
 resource "aws_ssm_activation" "foo" {
-  name               = "test_ssm_activation",
+  name               = "test_ssm_activation"
   description        = "Test"
   iam_role           = "${aws_iam_role.test_role.id}"
   registration_limit = "5"
   depends_on         = ["aws_iam_role_policy_attachment.test_attach"]
 }
-
 ```
 
 ## Argument Reference

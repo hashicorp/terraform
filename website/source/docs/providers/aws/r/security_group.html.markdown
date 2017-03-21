@@ -23,22 +23,22 @@ Basic usage
 
 ```
 resource "aws_security_group" "allow_all" {
-  name = "allow_all"
+  name        = "allow_all"
   description = "Allow all inbound traffic"
 
   ingress {
-      from_port = 0
-      to_port = 0
-      protocol = "-1"
-      cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
-      from_port = 0
-      to_port = 0
-      protocol = "-1"
-      cidr_blocks = ["0.0.0.0/0"]
-      prefix_list_ids = ["pl-12c4e678"]
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
+    cidr_blocks     = ["0.0.0.0/0"]
+    prefix_list_ids = ["pl-12c4e678"]
   }
 }
 ```
@@ -47,14 +47,14 @@ Basic usage with tags:
 
 ```
 resource "aws_security_group" "allow_all" {
-  name = "allow_all"
+  name        = "allow_all"
   description = "Allow all inbound traffic"
 
   ingress {
-      from_port = 0
-      to_port = 65535
-      protocol = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 0
+    to_port     = 65535
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   tags {
@@ -85,6 +85,7 @@ assign a random, unique name
 The `ingress` block supports:
 
 * `cidr_blocks` - (Optional) List of CIDR blocks.
+* `ipv6_cidr_blocks` - (Optional) List of IPv6 CIDR blocks.
 * `from_port` - (Required) The start port (or ICMP type number if protocol is "icmp")
 * `protocol` - (Required) The protocol. If you select a protocol of
 "-1" (semantically equivalent to `"all"`, which is not a valid value here), you must specify a "from_port" and "to_port" equal to 0. If not icmp, tcp, udp, or "-1" use the [protocol number](https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml)
@@ -97,6 +98,7 @@ The `ingress` block supports:
 The `egress` block supports:
 
 * `cidr_blocks` - (Optional) List of CIDR blocks.
+* `ipv6_cidr_blocks` - (Optional) List of IPv6 CIDR blocks.
 * `prefix_list_ids` - (Optional) List of prefix list IDs (for allowing access to VPC endpoints)
 * `from_port` - (Required) The start port (or ICMP type number if protocol is "icmp")
 * `protocol` - (Required) The protocol. If you select a protocol of
@@ -128,16 +130,16 @@ are associated with a prefix list name, or service name, that is linked to a spe
 Prefix list IDs are exported on VPC Endpoints, so you can use this format:
 
 ```
-    ...
+    # ...
       egress {
         from_port = 0
         to_port = 0
         protocol = "-1"
         prefix_list_ids = ["${aws_vpc_endpoint.my_endpoint.prefix_list_id}"]
       }
-    ...
+    # ...
     resource "aws_vpc_endpoint" "my_endpoint" {
-      ...
+      # ...
     }
 ```
 

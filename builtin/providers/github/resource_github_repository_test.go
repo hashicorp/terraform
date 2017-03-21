@@ -1,30 +1,35 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/google/go-github/github"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccGithubRepository_basic(t *testing.T) {
 	var repo github.Repository
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	name := fmt.Sprintf("tf-acc-test-%s", randString)
+	description := fmt.Sprintf("Terraform acceptance tests %s", randString)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccGithubRepositoryConfig,
+			{
+				Config: testAccGithubRepositoryConfig(randString),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
-						Name:          "foo",
-						Description:   "Terraform acceptance tests",
+						Name:          name,
+						Description:   description,
 						Homepage:      "http://example.com/",
 						HasIssues:     true,
 						HasWiki:       true,
@@ -33,13 +38,13 @@ func TestAccGithubRepository_basic(t *testing.T) {
 					}),
 				),
 			},
-			resource.TestStep{
-				Config: testAccGithubRepositoryUpdateConfig,
+			{
+				Config: testAccGithubRepositoryUpdateConfig(randString),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
 					testAccCheckGithubRepositoryAttributes(&repo, &testAccGithubRepositoryExpectedAttributes{
-						Name:          "foo",
-						Description:   "Terraform acceptance tests!",
+						Name:          name,
+						Description:   "Updated " + description,
 						Homepage:      "http://example.com/",
 						DefaultBranch: "master",
 					}),
@@ -50,15 +55,17 @@ func TestAccGithubRepository_basic(t *testing.T) {
 }
 
 func TestAccGithubRepository_importBasic(t *testing.T) {
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccGithubRepositoryConfig,
+			{
+				Config: testAccGithubRepositoryConfig(randString),
 			},
-			resource.TestStep{
+			{
 				ResourceName:      "github_repository.foo",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -81,7 +88,7 @@ func testAccCheckGithubRepositoryExists(n string, repo *github.Repository) resou
 
 		org := testAccProvider.Meta().(*Organization)
 		conn := org.client
-		gotRepo, _, err := conn.Repositories.Get(org.name, repoName)
+		gotRepo, _, err := conn.Repositories.Get(context.TODO(), org.name, repoName)
 		if err != nil {
 			return err
 		}
@@ -174,7 +181,7 @@ func testAccCheckGithubRepositoryDestroy(s *terraform.State) error {
 			continue
 		}
 
-		gotRepo, resp, err := conn.Repositories.Get(orgName, rs.Primary.ID)
+		gotRepo, resp, err := conn.Repositories.Get(context.TODO(), orgName, rs.Primary.ID)
 		if err == nil {
 			if gotRepo != nil && *gotRepo.Name == rs.Primary.ID {
 				return fmt.Errorf("Repository still exists")
@@ -188,10 +195,11 @@ func testAccCheckGithubRepositoryDestroy(s *terraform.State) error {
 	return nil
 }
 
-const testAccGithubRepositoryConfig = `
+func testAccGithubRepositoryConfig(randString string) string {
+	return fmt.Sprintf(`
 resource "github_repository" "foo" {
-  name = "foo"
-  description = "Terraform acceptance tests"
+  name = "tf-acc-test-%s"
+  description = "Terraform acceptance tests %s"
   homepage_url = "http://example.com/"
 
   # So that acceptance tests can be run in a github organization
@@ -202,12 +210,14 @@ resource "github_repository" "foo" {
   has_wiki = true
   has_downloads = true
 }
-`
+`, randString, randString)
+}
 
-const testAccGithubRepositoryUpdateConfig = `
+func testAccGithubRepositoryUpdateConfig(randString string) string {
+	return fmt.Sprintf(`
 resource "github_repository" "foo" {
-  name = "foo"
-  description = "Terraform acceptance tests!"
+  name = "tf-acc-test-%s"
+  description = "Updated Terraform acceptance tests %s"
   homepage_url = "http://example.com/"
 
   # So that acceptance tests can be run in a github organization
@@ -218,4 +228,5 @@ resource "github_repository" "foo" {
   has_wiki = false
   has_downloads = false
 }
-`
+`, randString, randString)
+}

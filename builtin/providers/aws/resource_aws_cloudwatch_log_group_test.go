@@ -254,5 +254,5 @@ resource "aws_cloudwatch_log_group" "charlie" {
     name = "foo-bar-%d"
     retention_in_days = 3653
 }
-`, rInt, rInt, rInt)
+`, rInt, rInt+1, rInt+2)
 }

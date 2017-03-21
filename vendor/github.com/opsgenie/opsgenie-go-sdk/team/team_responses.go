@@ -21,6 +21,7 @@ type DeleteTeamResponse struct {
 
 // Get team response structure
 type GetTeamResponse struct {
+	Description string `json:"description,omitempty"`
 	Id string `json:"id,omitempty"`
 	Name string `json:"name,omitempty"`
 	Members []Member `json:"members,omitempty"`

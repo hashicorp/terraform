@@ -6,15 +6,19 @@ body.page-sub{
 	background-color: $light-black;
 }
 
+body.layout-backend-types,
+body.layout-commands-env,
 body.layout-commands-state,
 body.layout-alicloud,
 body.layout-archive,
+body.layout-arukas,
 body.layout-atlas,
 body.layout-aws,
 body.layout-azure,
 body.layout-bitbucket,
 body.layout-chef,
 body.layout-azurerm,
+body.layout-circonus,
 body.layout-clc,
 body.layout-cloudflare,
 body.layout-cloudstack,
@@ -23,6 +27,7 @@ body.layout-consul,
 body.layout-datadog,
 body.layout-digitalocean,
 body.layout-dme,
+body.layout-dns,
 body.layout-dnsimple,
 body.layout-docker,
 body.layout-dyn,
@@ -35,6 +40,7 @@ body.layout-heroku,
 body.layout-ignition,
 body.layout-icinga2,
 body.layout-influxdb,
+body.layout-kubernetes,
 body.layout-librato,
 body.layout-logentries,
 body.layout-mailgun,
@@ -54,6 +60,7 @@ body.layout-rancher,
 body.layout-random,
 body.layout-rundeck,
 body.layout-scaleway,
+body.layout-spotinst,
 body.layout-statuscake,
 body.layout-softlayer,
 body.layout-template,
@@ -98,6 +105,8 @@ body.layout-intro{
 	.docs-sidenav{
 		padding-top: 15px;
 		padding-bottom: 15px;
+		font-family: $font-family-klavika;
+		font-size: 16px;
 
 		:last-child{
 			border-bottom: none;
@@ -123,11 +132,11 @@ body.layout-intro{
 
 		> li {
 			padding: 10px 0;
-			margin: 0 30px;
 
 			>.nav{
 				li{
 					a{
+						font-family: $font-family-open-sans;
 						color: white;
 					}
 				}
@@ -136,7 +145,7 @@ body.layout-intro{
 			&.active {
 				>a{
           color: lighten($purple, 4%);
-					font-weight: 500;
+					font-weight: 600;
 				}
 
 				&:before{
@@ -154,11 +163,6 @@ body.layout-intro{
           -webkit-font-smoothing: antialiased;
 				}
 
-				/*> a:hover,
-				> a:focus {
-					font-weight: $font-weight-lato-xb;
-				}*/
-
 				.nav {
 					display: block;
 
@@ -171,6 +175,7 @@ body.layout-intro{
 
 			> a {
 				text-transform: uppercase;
+				letter-spacing: 1px;
         -webkit-font-smoothing: antialiased;
 			}
 		}
@@ -195,11 +200,13 @@ body.layout-intro{
 	}
 }
 
-
 .bs-docs-section{
-	padding-top: 10px;
-	padding-left: 3%;
-	padding-bottom: 80px;
+	@media(max-width: 767px){
+		padding: 10px 5px 80px 5px;
+	}
+	@media(min-width: 768px){
+		padding: 10px 20px 80px 20px;
+	}
 
 	.lead{
 		margin-bottom: 48px
@@ -210,17 +217,15 @@ body.layout-intro{
 	}
 
 	p, li, .alert {
-		font-size: 20px;
-		font-family: $font-family-open-sans;
-		font-weight: $font-weight-open;
-    line-height: 1.5em;
+		font-size: 18px;
+    line-height: 1.5;
 		margin: 0 0 18px;
     -webkit-font-smoothing: antialiased;
 	}
 
-    pre{
-        margin: 0 0 18px;
-    }
+  pre{
+    margin: 0 0 18px;
+  }
 
 	a{
 		color: $purple;
@@ -229,31 +234,40 @@ body.layout-intro{
 		}
 	}
 
-    img{
-        max-width: 650px;
-        margin-top: 25px;
-        margin-bottom: 25px;
-    }
+  img{
+    max-width: 650px;
+    margin-top: 25px;
+    margin-bottom: 25px;
+  }
 
 	h1{
+		margin-top: 72px;
 		color: $purple;
-    font-size: 36px;
+		font-weight: 400;
 		text-transform: uppercase;
+		letter-spacing: -1px;
     word-wrap: break-word;
-		padding-bottom: 24px;
-    margin-top: 40px;
-		margin-bottom: 24px;
-    border-bottom: 1px solid #eeeeee;
-    @include lato-light();
 	}
 
 	h2, h3, h4{
-		margin-bottom: 16px;
+		margin-top: 48px;
+		font-family: $font-family-open-sans;
+		text-transform: none;
 	}
 
-    #graph {
-        margin-top: 30px;
-    }
+	h2 {
+		margin-bottom: 16px;
+		padding-bottom: 10px;
+		border-bottom: 1px solid #eeeeee;
+	}
+
+	p {
+		color: $light-black;
+	}
+
+  #graph {
+    margin-top: 30px;
+  }
 }
 
 @media (max-width: 992px) {
@@ -320,6 +334,18 @@ body.layout-intro{
       padding-top: 24px;
       border-top: 1px solid #eeeeee;
     }
+
+		h2 {
+			font-size: 24px;
+		}
+
+		h2, h3, h4{
+			margin-top: 32px;
+		}
+
+		p, li, .alert {
+			font-size: 16px;
+		}
   }
 }
 

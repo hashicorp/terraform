@@ -80,6 +80,7 @@ func resourceAwsKmsKey() *schema.Resource {
 					return
 				},
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -98,8 +99,23 @@ func resourceAwsKmsKeyCreate(d *schema.ResourceData, meta interface{}) error {
 	if v, exists := d.GetOk("policy"); exists {
 		req.Policy = aws.String(v.(string))
 	}
+	if v, exists := d.GetOk("tags"); exists {
+		req.Tags = tagsFromMapKMS(v.(map[string]interface{}))
+	}
 
-	resp, err := conn.CreateKey(&req)
+	var resp *kms.CreateKeyOutput
+	// AWS requires any principal in the policy to exist before the key is created.
+	// The KMS service's awareness of principals is limited by "eventual consistency".
+	// They acknowledge this here:
+	// http://docs.aws.amazon.com/kms/latest/APIReference/API_CreateKey.html
+	err := resource.Retry(30*time.Second, func() *resource.RetryError {
+		var err error
+		resp, err = conn.CreateKey(&req)
+		if isAWSErr(err, "MalformedPolicyDocumentException", "") {
+			return resource.RetryableError(err)
+		}
+		return resource.NonRetryableError(err)
+	})
 	if err != nil {
 		return err
 	}
@@ -158,6 +174,14 @@ func resourceAwsKmsKeyRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.Set("enable_key_rotation", krs.KeyRotationEnabled)
 
+	tagList, err := conn.ListResourceTags(&kms.ListResourceTagsInput{
+		KeyId: metadata.KeyId,
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to get KMS key tags (key: %s): %s", d.Get("key_id").(string), err)
+	}
+	d.Set("tags", tagsToMapKMS(tagList.Tags))
+
 	return nil
 }
 
@@ -201,6 +225,10 @@ func _resourceAwsKmsKeyUpdate(d *schema.ResourceData, meta interface{}, isFresh 
 		if err := updateKmsKeyStatus(conn, d.Id(), d.Get("is_enabled").(bool)); err != nil {
 			return err
 		}
+	}
+
+	if err := setTagsKMS(conn, d, d.Id()); err != nil {
+		return err
 	}
 
 	return resourceAwsKmsKeyRead(d, meta)

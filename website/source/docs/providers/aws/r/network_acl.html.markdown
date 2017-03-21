@@ -15,28 +15,29 @@ to your security groups in order to add an additional layer of security to your 
 
 ```
 resource "aws_network_acl" "main" {
-	vpc_id = "${aws_vpc.main.id}"
-	egress {
-		protocol = "tcp"
-		rule_no = 2
-		action = "allow"
-		cidr_block =  "10.3.0.0/18"
-		from_port = 443
-		to_port = 443
-	}
+  vpc_id = "${aws_vpc.main.id}"
 
-	ingress {
-		protocol = "tcp"
-		rule_no = 1
-		action = "allow"
-		cidr_block =  "10.3.0.0/18"
-		from_port = 80
-		to_port = 80
-	}
+  egress {
+    protocol   = "tcp"
+    rule_no    = 2
+    action     = "allow"
+    cidr_block = "10.3.0.0/18"
+    from_port  = 443
+    to_port    = 443
+  }
 
-	tags {
-		Name = "main"
-	}
+  ingress {
+    protocol   = "tcp"
+    rule_no    = 1
+    action     = "allow"
+    cidr_block = "10.3.0.0/18"
+    from_port  = 80
+    to_port    = 80
+  }
+
+  tags {
+    Name = "main"
+  }
 }
 ```
 
@@ -62,6 +63,7 @@ Both `egress` and `ingress` support the following keys:
 protocol, you must specify a from and to port of 0.
 * `cidr_block` - (Optional) The CIDR block to match. This must be a
 valid network mask.
+* `ipv6_cidr_block` - (Optional) The IPv6 CIDR block.
 * `icmp_type` - (Optional) The ICMP type to be used. Default 0.
 * `icmp_code` - (Optional) The ICMP type code to be used. Default 0.
 
@@ -76,7 +78,7 @@ The following attributes are exported:
 
 ## Import
 
-Network ACLs can be imported using the `id`, e.g. 
+Network ACLs can be imported using the `id`, e.g.
 
 ```
 $ terraform import aws_network_acl.main acl-7aaabd18

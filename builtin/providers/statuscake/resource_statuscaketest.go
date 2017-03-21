@@ -18,47 +18,55 @@ func resourceStatusCakeTest() *schema.Resource {
 		Read:   ReadTest,
 
 		Schema: map[string]*schema.Schema{
-			"test_id": &schema.Schema{
+			"test_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"website_name": &schema.Schema{
+			"website_name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"website_url": &schema.Schema{
+			"website_url": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"contact_id": &schema.Schema{
+			"contact_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
 
-			"check_rate": &schema.Schema{
+			"check_rate": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  300,
 			},
 
-			"test_type": &schema.Schema{
+			"test_type": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"paused": &schema.Schema{
+			"paused": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"timeout": &schema.Schema{
+
+			"timeout": {
 				Type:     schema.TypeInt,
-				Computed: true,
+				Optional: true,
+				Default:  40,
 			},
-			"confirmations": &schema.Schema{
+
+			"confirmations": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+
+			"port": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
@@ -78,6 +86,7 @@ func CreateTest(d *schema.ResourceData, meta interface{}) error {
 		Timeout:      d.Get("timeout").(int),
 		ContactID:    d.Get("contact_id").(int),
 		Confirmation: d.Get("confirmations").(int),
+		Port:         d.Get("port").(int),
 	}
 
 	log.Printf("[DEBUG] Creating new StatusCake Test: %s", d.Get("website_name").(string))
@@ -141,6 +150,7 @@ func ReadTest(d *schema.ResourceData, meta interface{}) error {
 	d.Set("timeout", testResp.Timeout)
 	d.Set("contact_id", testResp.ContactID)
 	d.Set("confirmations", testResp.Confirmation)
+	d.Set("port", testResp.Port)
 
 	return nil
 }
@@ -180,5 +190,16 @@ func getStatusCakeTestInput(d *schema.ResourceData) *statuscake.Test {
 	if v, ok := d.GetOk("confirmations"); ok {
 		test.Confirmation = v.(int)
 	}
+	if v, ok := d.GetOk("port"); ok {
+		test.Port = v.(int)
+	}
+
+	defaultStatusCodes := "204, 205, 206, 303, 400, 401, 403, 404, 405, 406, " +
+		"408, 410, 413, 444, 429, 494, 495, 496, 499, 500, 501, 502, 503, " +
+		"504, 505, 506, 507, 508, 509, 510, 511, 521, 522, 523, 524, 520, " +
+		"598, 599"
+
+	test.StatusCodes = defaultStatusCodes
+
 	return test
 }

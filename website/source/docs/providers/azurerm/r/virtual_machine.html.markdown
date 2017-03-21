@@ -14,88 +14,88 @@ Create a virtual machine.
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg"
-    location = "West US"
+  name     = "acctestrg"
+  location = "West US"
 }
 
 resource "azurerm_virtual_network" "test" {
-    name = "acctvn"
-    address_space = ["10.0.0.0/16"]
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
+  name                = "acctvn"
+  address_space       = ["10.0.0.0/16"]
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
 resource "azurerm_subnet" "test" {
-    name = "acctsub"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    virtual_network_name = "${azurerm_virtual_network.test.name}"
-    address_prefix = "10.0.2.0/24"
+  name                 = "acctsub"
+  resource_group_name  = "${azurerm_resource_group.test.name}"
+  virtual_network_name = "${azurerm_virtual_network.test.name}"
+  address_prefix       = "10.0.2.0/24"
 }
 
 resource "azurerm_network_interface" "test" {
-    name = "acctni"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
+  name                = "acctni"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
 
-    ip_configuration {
-    	name = "testconfiguration1"
-    	subnet_id = "${azurerm_subnet.test.id}"
-    	private_ip_address_allocation = "dynamic"
-    }
+  ip_configuration {
+    name                          = "testconfiguration1"
+    subnet_id                     = "${azurerm_subnet.test.id}"
+    private_ip_address_allocation = "dynamic"
+  }
 }
 
 resource "azurerm_storage_account" "test" {
-    name = "accsa"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "westus"
-    account_type = "Standard_LRS"
+  name                = "accsa"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  location            = "westus"
+  account_type        = "Standard_LRS"
 
-    tags {
-        environment = "staging"
-    }
+  tags {
+    environment = "staging"
+  }
 }
 
 resource "azurerm_storage_container" "test" {
-    name = "vhds"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    storage_account_name = "${azurerm_storage_account.test.name}"
-    container_access_type = "private"
+  name                  = "vhds"
+  resource_group_name   = "${azurerm_resource_group.test.name}"
+  storage_account_name  = "${azurerm_storage_account.test.name}"
+  container_access_type = "private"
 }
 
 resource "azurerm_virtual_machine" "test" {
-    name = "acctvm"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    network_interface_ids = ["${azurerm_network_interface.test.id}"]
-    vm_size = "Standard_A0"
+  name                  = "acctvm"
+  location              = "West US"
+  resource_group_name   = "${azurerm_resource_group.test.name}"
+  network_interface_ids = ["${azurerm_network_interface.test.id}"]
+  vm_size               = "Standard_A0"
 
-    storage_image_reference {
-        publisher = "Canonical"
-        offer = "UbuntuServer"
-        sku = "14.04.2-LTS"
-        version = "latest"
-    }
+  storage_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "14.04.2-LTS"
+    version   = "latest"
+  }
 
-    storage_os_disk {
-        name = "myosdisk1"
-        vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
-        caching = "ReadWrite"
-        create_option = "FromImage"
-    }
+  storage_os_disk {
+    name          = "myosdisk1"
+    vhd_uri       = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
+    caching       = "ReadWrite"
+    create_option = "FromImage"
+  }
 
-    os_profile {
-	    computer_name = "hostname"
-	    admin_username = "testadmin"
-	    admin_password = "Password1234!"
-    }
+  os_profile {
+    computer_name  = "hostname"
+    admin_username = "testadmin"
+    admin_password = "Password1234!"
+  }
 
-    os_profile_linux_config {
-	    disable_password_authentication = false
-    }
+  os_profile_linux_config {
+    disable_password_authentication = false
+  }
 
-    tags {
-        environment = "staging"
-    }
+  tags {
+    environment = "staging"
+  }
 }
 ```
 
@@ -266,12 +266,12 @@ For more information on the different example configurations, please check out t
 * `computer_name` - (Required) Specifies the name of the virtual machine.
 * `admin_username` - (Required) Specifies the name of the administrator account.
 * `admin_password` - (Required) Specifies the password of the administrator account.
-* `custom_data` - (Optional) Specifies a base-64 encoded string of custom data. The base-64 encoded string is decoded to a binary array that is saved as a file on the Virtual Machine. The maximum length of the binary array is 65535 bytes.
+* `custom_data` - (Optional) Specifies custom data to supply to the machine. On linux-based systems, this can be used as a cloud-init script. On other systems, this will be copied as a file on disk. Internally, Terraform will base64 encode this value before sending it to the API. The maximum length of the binary array is 65535 bytes.
 
-~> **NOTE:** `admin_password` must be between 6-72 characters long and must satisfy at least 3 of password complexity requirements from the following:  
-1. Contains an uppercase character  
-2. Contains a lowercase character  
-3. Contains a numeric digit  
+~> **NOTE:** `admin_password` must be between 6-72 characters long and must satisfy at least 3 of password complexity requirements from the following:
+1. Contains an uppercase character
+2. Contains a lowercase character
+3. Contains a numeric digit
 4. Contains a special character
 
 `os_profile_windows_config` supports the following:
@@ -298,7 +298,7 @@ For more information on the different example configurations, please check out t
 * `disable_password_authentication` - (Required) Specifies whether password authentication should be disabled.
 * `ssh_keys` - (Optional) Specifies a collection of `path` and `key_data` to be placed on the virtual machine.
 
-~> **Note:** Please note that the only allowed `path` is `/home/<username>/.ssh/authorized_keys` due to a limitation of Azure_
+~> **Note:** Please note that the only allowed `path` is `/home/<username>/.ssh/authorized_keys` due to a limitation of Azure.
 
 `os_profile_secrets` supports the following:
 
@@ -318,7 +318,7 @@ The following attributes are exported:
 
 ## Import
 
-Virtual Machines can be imported using the `resource id`, e.g. 
+Virtual Machines can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_virtual_machine.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/microsoft.compute/virtualMachines/machine1

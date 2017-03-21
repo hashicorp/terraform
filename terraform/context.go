@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"sort"
@@ -48,6 +49,7 @@ var (
 // ContextOpts are the user-configurable options to create a context with
 // NewContext.
 type ContextOpts struct {
+	Meta               *ContextMeta
 	Destroy            bool
 	Diff               *Diff
 	Hooks              []Hook
@@ -62,6 +64,14 @@ type ContextOpts struct {
 	Variables          map[string]interface{}
 
 	UIInput UIInput
+}
+
+// ContextMeta is metadata about the running context. This is information
+// that this package or structure cannot determine on its own but exposes
+// into Terraform in various ways. This must be provided by the Context
+// initializer.
+type ContextMeta struct {
+	Env string // Env is the state environment
 }
 
 // Context represents all the context that Terraform needs in order to
@@ -79,6 +89,7 @@ type Context struct {
 	diff       *Diff
 	diffLock   sync.RWMutex
 	hooks      []Hook
+	meta       *ContextMeta
 	module     *module.Tree
 	sh         *stopHook
 	shadow     bool
@@ -91,8 +102,10 @@ type Context struct {
 	l                   sync.Mutex // Lock acquired during any task
 	parallelSem         Semaphore
 	providerInputConfig map[string]map[string]interface{}
-	runCh               <-chan struct{}
-	stopCh              chan struct{}
+	runLock             sync.Mutex
+	runCond             *sync.Cond
+	runContext          context.Context
+	runContextCancel    context.CancelFunc
 	shadowErr           error
 }
 
@@ -175,6 +188,7 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 		destroy:   opts.Destroy,
 		diff:      diff,
 		hooks:     hooks,
+		meta:      opts.Meta,
 		module:    opts.Module,
 		shadow:    opts.Shadow,
 		state:     state,
@@ -204,6 +218,7 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, error) {
 		opts = &ContextGraphOpts{Validate: true}
 	}
 
+	log.Printf("[INFO] terraform: building graph: %s", typ)
 	switch typ {
 	case GraphTypeApply:
 		return (&ApplyGraphBuilder{
@@ -212,18 +227,40 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, error) {
 			State:        c.state,
 			Providers:    c.components.ResourceProviders(),
 			Provisioners: c.components.ResourceProvisioners(),
+			Targets:      c.targets,
 			Destroy:      c.destroy,
 			Validate:     opts.Validate,
 		}).Build(RootModulePath)
 
+	case GraphTypeInput:
+		// The input graph is just a slightly modified plan graph
+		fallthrough
+	case GraphTypeValidate:
+		// The validate graph is just a slightly modified plan graph
+		fallthrough
 	case GraphTypePlan:
-		return (&PlanGraphBuilder{
+		// Create the plan graph builder
+		p := &PlanGraphBuilder{
 			Module:    c.module,
 			State:     c.state,
 			Providers: c.components.ResourceProviders(),
 			Targets:   c.targets,
 			Validate:  opts.Validate,
-		}).Build(RootModulePath)
+		}
+
+		// Some special cases for other graph types shared with plan currently
+		var b GraphBuilder = p
+		switch typ {
+		case GraphTypeInput:
+			b = InputGraphBuilder(p)
+		case GraphTypeValidate:
+			// We need to set the provisioners so those can be validated
+			p.Provisioners = c.components.ResourceProvisioners()
+
+			b = ValidateGraphBuilder(p)
+		}
+
+		return b.Build(RootModulePath)
 
 	case GraphTypePlanDestroy:
 		return (&DestroyPlanGraphBuilder{
@@ -233,27 +270,17 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, error) {
 			Validate: opts.Validate,
 		}).Build(RootModulePath)
 
-	case GraphTypeLegacy:
-		return c.graphBuilder(opts).Build(RootModulePath)
+	case GraphTypeRefresh:
+		return (&RefreshGraphBuilder{
+			Module:    c.module,
+			State:     c.state,
+			Providers: c.components.ResourceProviders(),
+			Targets:   c.targets,
+			Validate:  opts.Validate,
+		}).Build(RootModulePath)
 	}
 
 	return nil, fmt.Errorf("unknown graph type: %s", typ)
-}
-
-// GraphBuilder returns the GraphBuilder that will be used to create
-// the graphs for this context.
-func (c *Context) graphBuilder(g *ContextGraphOpts) GraphBuilder {
-	return &BuiltinGraphBuilder{
-		Root:         c.module,
-		Diff:         c.diff,
-		Providers:    c.components.ResourceProviders(),
-		Provisioners: c.components.ResourceProvisioners(),
-		State:        c.state,
-		Targets:      c.targets,
-		Destroy:      c.destroy,
-		Validate:     g.Validate,
-		Verbose:      g.Verbose,
-	}
 }
 
 // ShadowError returns any errors caught during a shadow operation.
@@ -283,6 +310,13 @@ func (c *Context) ShadowError() error {
 	return c.shadowErr
 }
 
+// State returns a copy of the current state associated with this context.
+//
+// This cannot safely be called in parallel with any other Context function.
+func (c *Context) State() *State {
+	return c.state.DeepCopy()
+}
+
 // Interpolater returns an Interpolater built on a copy of the state
 // that can be used to test interpolation values.
 func (c *Context) Interpolater() *Interpolater {
@@ -290,6 +324,7 @@ func (c *Context) Interpolater() *Interpolater {
 	var stateLock sync.RWMutex
 	return &Interpolater{
 		Operation:          walkApply,
+		Meta:               c.meta,
 		Module:             c.module,
 		State:              c.state.DeepCopy(),
 		StateLock:          &stateLock,
@@ -302,8 +337,7 @@ func (c *Context) Interpolater() *Interpolater {
 // This modifies the configuration in-place, so asking for Input twice
 // may result in different UI output showing different current values.
 func (c *Context) Input(mode InputMode) error {
-	v := c.acquireRun("input")
-	defer c.releaseRun(v)
+	defer c.acquireRun("input")()
 
 	if mode&InputModeVar != 0 {
 		// Walk the variables first for the root module. We walk them in
@@ -402,7 +436,7 @@ func (c *Context) Input(mode InputMode) error {
 
 	if mode&InputModeProvider != 0 {
 		// Build the graph
-		graph, err := c.Graph(GraphTypeLegacy, nil)
+		graph, err := c.Graph(GraphTypeInput, nil)
 		if err != nil {
 			return err
 		}
@@ -422,21 +456,13 @@ func (c *Context) Input(mode InputMode) error {
 // In addition to returning the resulting state, this context is updated
 // with the latest state.
 func (c *Context) Apply() (*State, error) {
-	v := c.acquireRun("apply")
-	defer c.releaseRun(v)
+	defer c.acquireRun("apply")()
 
 	// Copy our own state
 	c.state = c.state.DeepCopy()
 
-	// Enable the new graph by default
-	X_legacyGraph := experiment.Enabled(experiment.X_legacyGraph)
-
 	// Build the graph.
-	graphType := GraphTypeLegacy
-	if !X_legacyGraph {
-		graphType = GraphTypeApply
-	}
-	graph, err := c.Graph(graphType, nil)
+	graph, err := c.Graph(GraphTypeApply, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -467,8 +493,7 @@ func (c *Context) Apply() (*State, error) {
 // Plan also updates the diff of this context to be the diff generated
 // by the plan, so Apply can be called after.
 func (c *Context) Plan() (*Plan, error) {
-	v := c.acquireRun("plan")
-	defer c.releaseRun(v)
+	defer c.acquireRun("plan")()
 
 	p := &Plan{
 		Module:  c.module,
@@ -504,17 +529,10 @@ func (c *Context) Plan() (*Plan, error) {
 	c.diff.init()
 	c.diffLock.Unlock()
 
-	// Used throughout below
-	X_legacyGraph := experiment.Enabled(experiment.X_legacyGraph)
-
 	// Build the graph.
-	graphType := GraphTypeLegacy
-	if !X_legacyGraph {
-		if c.destroy {
-			graphType = GraphTypePlanDestroy
-		} else {
-			graphType = GraphTypePlan
-		}
+	graphType := GraphTypePlan
+	if c.destroy {
+		graphType = GraphTypePlanDestroy
 	}
 	graph, err := c.Graph(graphType, nil)
 	if err != nil {
@@ -539,15 +557,17 @@ func (c *Context) Plan() (*Plan, error) {
 		p.Diff.DeepCopy()
 	}
 
-	// We don't do the reverification during the new destroy plan because
-	// it will use a different apply process.
-	if X_legacyGraph {
-		// Now that we have a diff, we can build the exact graph that Apply will use
-		// and catch any possible cycles during the Plan phase.
-		if _, err := c.Graph(GraphTypeLegacy, nil); err != nil {
-			return nil, err
+	/*
+		// We don't do the reverification during the new destroy plan because
+		// it will use a different apply process.
+		if X_legacyGraph {
+			// Now that we have a diff, we can build the exact graph that Apply will use
+			// and catch any possible cycles during the Plan phase.
+			if _, err := c.Graph(GraphTypeLegacy, nil); err != nil {
+				return nil, err
+			}
 		}
-	}
+	*/
 
 	var errs error
 	if len(walker.ValidationErrors) > 0 {
@@ -563,14 +583,13 @@ func (c *Context) Plan() (*Plan, error) {
 // Even in the case an error is returned, the state will be returned and
 // will potentially be partially updated.
 func (c *Context) Refresh() (*State, error) {
-	v := c.acquireRun("refresh")
-	defer c.releaseRun(v)
+	defer c.acquireRun("refresh")()
 
 	// Copy our own state
 	c.state = c.state.DeepCopy()
 
-	// Build the graph
-	graph, err := c.Graph(GraphTypeLegacy, nil)
+	// Build the graph.
+	graph, err := c.Graph(GraphTypeRefresh, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -590,30 +609,34 @@ func (c *Context) Refresh() (*State, error) {
 //
 // Stop will block until the task completes.
 func (c *Context) Stop() {
-	c.l.Lock()
-	ch := c.runCh
+	log.Printf("[WARN] terraform: Stop called, initiating interrupt sequence")
 
-	// If we aren't running, then just return
-	if ch == nil {
-		c.l.Unlock()
-		return
+	c.l.Lock()
+	defer c.l.Unlock()
+
+	// If we're running, then stop
+	if c.runContextCancel != nil {
+		log.Printf("[WARN] terraform: run context exists, stopping")
+
+		// Tell the hook we want to stop
+		c.sh.Stop()
+
+		// Stop the context
+		c.runContextCancel()
+		c.runContextCancel = nil
 	}
 
-	// Tell the hook we want to stop
-	c.sh.Stop()
+	// Grab the condition var before we exit
+	if cond := c.runCond; cond != nil {
+		cond.Wait()
+	}
 
-	// Close the stop channel
-	close(c.stopCh)
-
-	// Wait for us to stop
-	c.l.Unlock()
-	<-ch
+	log.Printf("[WARN] terraform: stop complete")
 }
 
 // Validate validates the configuration and returns any warnings or errors.
 func (c *Context) Validate() ([]string, []error) {
-	v := c.acquireRun("validate")
-	defer c.releaseRun(v)
+	defer c.acquireRun("validate")()
 
 	var errs error
 
@@ -641,7 +664,7 @@ func (c *Context) Validate() ([]string, []error) {
 	// We also validate the graph generated here, but this graph doesn't
 	// necessarily match the graph that Plan will generate, so we'll validate the
 	// graph again later after Planning.
-	graph, err := c.Graph(GraphTypeLegacy, nil)
+	graph, err := c.Graph(GraphTypeValidate, nil)
 	if err != nil {
 		return nil, []error{err}
 	}
@@ -654,6 +677,12 @@ func (c *Context) Validate() ([]string, []error) {
 
 	// Return the result
 	rerrs := multierror.Append(errs, walker.ValidationErrors...)
+
+	sort.Strings(walker.ValidationWarnings)
+	sort.Slice(rerrs.Errors, func(i, j int) bool {
+		return rerrs.Errors[i].Error() < rerrs.Errors[j].Error()
+	})
+
 	return walker.ValidationWarnings, rerrs.Errors
 }
 
@@ -674,26 +703,25 @@ func (c *Context) SetVariable(k string, v interface{}) {
 	c.variables[k] = v
 }
 
-func (c *Context) acquireRun(phase string) chan<- struct{} {
+func (c *Context) acquireRun(phase string) func() {
+	// With the run lock held, grab the context lock to make changes
+	// to the run context.
 	c.l.Lock()
 	defer c.l.Unlock()
 
-	dbug.SetPhase(phase)
-
-	// Wait for no channel to exist
-	for c.runCh != nil {
-		c.l.Unlock()
-		ch := c.runCh
-		<-ch
-		c.l.Lock()
+	// Wait until we're no longer running
+	for c.runCond != nil {
+		c.runCond.Wait()
 	}
 
-	// Create the new channel
-	ch := make(chan struct{})
-	c.runCh = ch
+	// Build our lock
+	c.runCond = sync.NewCond(&c.l)
 
-	// Reset the stop channel so we can watch that
-	c.stopCh = make(chan struct{})
+	// Setup debugging
+	dbug.SetPhase(phase)
+
+	// Create a new run context
+	c.runContext, c.runContextCancel = context.WithCancel(context.Background())
 
 	// Reset the stop hook so we're not stopped
 	c.sh.Reset()
@@ -701,10 +729,11 @@ func (c *Context) acquireRun(phase string) chan<- struct{} {
 	// Reset the shadow errors
 	c.shadowErr = nil
 
-	return ch
+	return c.releaseRun
 }
 
-func (c *Context) releaseRun(ch chan<- struct{}) {
+func (c *Context) releaseRun() {
+	// Grab the context lock so that we can make modifications to fields
 	c.l.Lock()
 	defer c.l.Unlock()
 
@@ -713,9 +742,19 @@ func (c *Context) releaseRun(ch chan<- struct{}) {
 	// phase
 	dbug.SetPhase("INVALID")
 
-	close(ch)
-	c.runCh = nil
-	c.stopCh = nil
+	// End our run. We check if runContext is non-nil because it can be
+	// set to nil if it was cancelled via Stop()
+	if c.runContextCancel != nil {
+		c.runContextCancel()
+	}
+
+	// Unlock all waiting our condition
+	cond := c.runCond
+	c.runCond = nil
+	cond.Broadcast()
+
+	// Unset the context
+	c.runContext = nil
 }
 
 func (c *Context) walk(
@@ -729,37 +768,39 @@ func (c *Context) walk(
 		shadow = nil
 	}
 
+	// Just log this so we can see it in a debug log
+	if !c.shadow {
+		log.Printf("[WARN] terraform: shadow graph disabled")
+		shadow = nil
+	}
+
 	// If we have a shadow graph, walk that as well
 	var shadowCtx *Context
 	var shadowCloser Shadow
-	if c.shadow && shadow != nil {
+	if shadow != nil {
 		// Build the shadow context. In the process, override the real context
 		// with the one that is wrapped so that the shadow context can verify
 		// the results of the real.
 		realCtx, shadowCtx, shadowCloser = newShadowContext(c)
 	}
 
-	// Just log this so we can see it in a debug log
-	if !c.shadow {
-		log.Printf("[WARN] terraform: shadow graph disabled")
-	}
-
 	log.Printf("[DEBUG] Starting graph walk: %s", operation.String())
 
 	walker := &ContextGraphWalker{
-		Context:   realCtx,
-		Operation: operation,
+		Context:     realCtx,
+		Operation:   operation,
+		StopContext: c.runContext,
 	}
 
 	// Watch for a stop so we can call the provider Stop() API.
-	doneCh := make(chan struct{})
-	go c.watchStop(walker, c.stopCh, doneCh)
+	watchStop, watchWait := c.watchStop(walker)
 
 	// Walk the real graph, this will block until it completes
 	realErr := graph.Walk(walker)
 
-	// Close the done channel so the watcher stops
-	close(doneCh)
+	// Close the channel so the watcher stops, and wait for it to return.
+	close(watchStop)
+	<-watchWait
 
 	// If we have a shadow graph and we interrupted the real graph, then
 	// we just close the shadow and never verify it. It is non-trivial to
@@ -848,33 +889,74 @@ func (c *Context) walk(
 	return walker, realErr
 }
 
-func (c *Context) watchStop(walker *ContextGraphWalker, stopCh, doneCh <-chan struct{}) {
-	// Wait for a stop or completion
-	select {
-	case <-stopCh:
-		// Stop was triggered. Fall out of the select
-	case <-doneCh:
-		// Done, just exit completely
-		return
-	}
+// watchStop immediately returns a `stop` and a `wait` chan after dispatching
+// the watchStop goroutine. This will watch the runContext for cancellation and
+// stop the providers accordingly.  When the watch is no longer needed, the
+// `stop` chan should be closed before waiting on the `wait` chan.
+// The `wait` chan is important, because without synchronizing with the end of
+// the watchStop goroutine, the runContext may also be closed during the select
+// incorrectly causing providers to be stopped. Even if the graph walk is done
+// at that point, stopping a provider permanently cancels its StopContext which
+// can cause later actions to fail.
+func (c *Context) watchStop(walker *ContextGraphWalker) (chan struct{}, <-chan struct{}) {
+	stop := make(chan struct{})
+	wait := make(chan struct{})
 
-	// If we're here, we're stopped, trigger the call.
+	// get the runContext cancellation channel now, because releaseRun will
+	// write to the runContext field.
+	done := c.runContext.Done()
 
-	// Copy the providers so that a misbehaved blocking Stop doesn't
-	// completely hang Terraform.
-	walker.providerLock.Lock()
-	ps := make([]ResourceProvider, 0, len(walker.providerCache))
-	for _, p := range walker.providerCache {
-		ps = append(ps, p)
-	}
-	defer walker.providerLock.Unlock()
+	go func() {
+		defer close(wait)
+		// Wait for a stop or completion
+		select {
+		case <-done:
+			// done means the context was canceled, so we need to try and stop
+			// providers.
+		case <-stop:
+			// our own stop channel was closed.
+			return
+		}
 
-	for _, p := range ps {
-		// We ignore the error for now since there isn't any reasonable
-		// action to take if there is an error here, since the stop is still
-		// advisory: Terraform will exit once the graph node completes.
-		p.Stop()
-	}
+		// If we're here, we're stopped, trigger the call.
+
+		{
+			// Copy the providers so that a misbehaved blocking Stop doesn't
+			// completely hang Terraform.
+			walker.providerLock.Lock()
+			ps := make([]ResourceProvider, 0, len(walker.providerCache))
+			for _, p := range walker.providerCache {
+				ps = append(ps, p)
+			}
+			defer walker.providerLock.Unlock()
+
+			for _, p := range ps {
+				// We ignore the error for now since there isn't any reasonable
+				// action to take if there is an error here, since the stop is still
+				// advisory: Terraform will exit once the graph node completes.
+				p.Stop()
+			}
+		}
+
+		{
+			// Call stop on all the provisioners
+			walker.provisionerLock.Lock()
+			ps := make([]ResourceProvisioner, 0, len(walker.provisionerCache))
+			for _, p := range walker.provisionerCache {
+				ps = append(ps, p)
+			}
+			defer walker.provisionerLock.Unlock()
+
+			for _, p := range ps {
+				// We ignore the error for now since there isn't any reasonable
+				// action to take if there is an error here, since the stop is still
+				// advisory: Terraform will exit once the graph node completes.
+				p.Stop()
+			}
+		}
+	}()
+
+	return stop, wait
 }
 
 // parseVariableAsHCL parses the value of a single variable as would have been specified

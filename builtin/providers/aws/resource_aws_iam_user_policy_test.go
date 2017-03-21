@@ -39,6 +39,46 @@ func TestAccAWSIAMUserPolicy_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSIAMUserPolicy_namePrefix(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_iam_user_policy.test",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckIAMUserPolicyDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccIAMUserPolicyConfig_namePrefix,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckIAMUserPolicy(
+						"aws_iam_user.test",
+						"aws_iam_user_policy.test",
+					),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSIAMUserPolicy_generatedName(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_iam_user_policy.test",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckIAMUserPolicyDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccIAMUserPolicyConfig_generatedName,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckIAMUserPolicy(
+						"aws_iam_user.test",
+						"aws_iam_user_policy.test",
+					),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckIAMUserPolicyDestroy(s *terraform.State) error {
 	iamconn := testAccProvider.Meta().(*AWSClient).iamconn
 
@@ -114,6 +154,31 @@ resource "aws_iam_user" "user" {
 resource "aws_iam_user_policy" "foo" {
 	name = "foo_policy"
 	user = "${aws_iam_user.user.name}"
+	policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}}"
+}
+`
+
+const testAccIAMUserPolicyConfig_namePrefix = `
+resource "aws_iam_user" "test" {
+	name = "test_user"
+	path = "/"
+}
+
+resource "aws_iam_user_policy" "test" {
+	name_prefix = "test-"
+	user = "${aws_iam_user.test.name}"
+	policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}}"
+}
+`
+
+const testAccIAMUserPolicyConfig_generatedName = `
+resource "aws_iam_user" "test" {
+	name = "test_user"
+	path = "/"
+}
+
+resource "aws_iam_user_policy" "test" {
+	user = "${aws_iam_user.test.name}"
 	policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}}"
 }
 `

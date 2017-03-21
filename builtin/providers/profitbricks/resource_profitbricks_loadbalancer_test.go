@@ -48,7 +48,11 @@ func testAccCheckDProfitBricksLoadbalancerDestroyCheck(s *terraform.State) error
 		resp := profitbricks.GetLoadbalancer(rs.Primary.Attributes["datacenter_id"], rs.Primary.ID)
 
 		if resp.StatusCode < 299 {
-			return fmt.Errorf("Firewall still exists %s %s", rs.Primary.ID, resp.Response)
+			resp := profitbricks.DeleteDatacenter(rs.Primary.Attributes["datacenter_id"])
+
+			if resp.StatusCode > 299 {
+				return fmt.Errorf("Firewall still exists %s %s", rs.Primary.ID, string(resp.Body))
+			}
 		}
 	}
 
@@ -114,7 +118,7 @@ resource "profitbricks_server" "webserver" {
     size = 5
     disk_type = "SSD"
     image_name ="ubuntu-16.04"
-    image_password = "test1234"
+    image_password = "K3tTj8G14a3EgKyNeeiY"
 }
   nic {
     lan = "1"
@@ -163,7 +167,7 @@ resource "profitbricks_server" "webserver" {
     size = 5
     disk_type = "SSD"
     image_name ="ubuntu-16.04"
-    image_password = "test1234"
+    image_password = "K3tTj8G14a3EgKyNeeiY"
 }
   nic {
     lan = "1"

@@ -61,6 +61,24 @@ func TestAccBlockStorageV1Volume_image(t *testing.T) {
 	})
 }
 
+func TestAccBlockStorageV1Volume_timeout(t *testing.T) {
+	var volume volumes.Volume
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckBlockStorageV1VolumeDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccBlockStorageV1Volume_timeout,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBlockStorageV1VolumeExists("openstack_blockstorage_volume_v1.volume_1", &volume),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckBlockStorageV1VolumeDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	blockStorageClient, err := config.blockStorageV1Client(OS_REGION_NAME)
@@ -162,7 +180,8 @@ const testAccBlockStorageV1Volume_basic = `
 resource "openstack_blockstorage_volume_v1" "volume_1" {
   name = "volume_1"
   description = "first test volume"
-  metadata{
+  availability_zone = "nova"
+  metadata {
     foo = "bar"
   }
   size = 1
@@ -173,7 +192,7 @@ const testAccBlockStorageV1Volume_update = `
 resource "openstack_blockstorage_volume_v1" "volume_1" {
   name = "volume_1-updated"
   description = "first test volume"
-  metadata{
+  metadata {
     foo = "bar"
   }
   size = 1
@@ -187,3 +206,16 @@ resource "openstack_blockstorage_volume_v1" "volume_1" {
   image_id = "%s"
 }
 `, OS_IMAGE_ID)
+
+const testAccBlockStorageV1Volume_timeout = `
+resource "openstack_blockstorage_volume_v1" "volume_1" {
+  name = "volume_1"
+  description = "first test volume"
+  size = 1
+
+  timeouts {
+    create = "5m"
+    delete = "5m"
+  }
+}
+`

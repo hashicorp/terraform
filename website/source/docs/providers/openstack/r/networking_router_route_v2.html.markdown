@@ -14,18 +14,18 @@ Creates a routing entry on a OpenStack V2 router.
 
 ```
 resource "openstack_networking_router_v2" "router_1" {
-  name = "router_1"
+  name           = "router_1"
   admin_state_up = "true"
 }
 
 resource "openstack_networking_network_v2" "network_1" {
-  name = "network_1"
+  name           = "network_1"
   admin_state_up = "true"
 }
 
 resource "openstack_networking_subnet_v2" "subnet_1" {
   network_id = "${openstack_networking_network_v2.network_1.id}"
-  cidr = "192.168.199.0/24"
+  cidr       = "192.168.199.0/24"
   ip_version = 4
 }
 
@@ -35,10 +35,10 @@ resource "openstack_networking_router_interface_v2" "int_1" {
 }
 
 resource "openstack_networking_router_route_v2" "router_route_1" {
-  depends_on = ["openstack_networking_router_interface_v2.int_1"]
-  router_id = "${openstack_networking_router_v2.router_1.id}"
+  depends_on       = ["openstack_networking_router_interface_v2.int_1"]
+  router_id        = "${openstack_networking_router_v2.router_1.id}"
   destination_cidr = "10.0.1.0/24"
-  next_hop = "192.168.199.254"
+  next_hop         = "192.168.199.254"
 }
 ```
 

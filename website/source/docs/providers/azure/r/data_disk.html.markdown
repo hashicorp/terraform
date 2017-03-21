@@ -15,10 +15,10 @@ it will attach that disk. Otherwise it will create and attach a new empty disk.
 
 ```
 resource "azure_data_disk" "data" {
-    lun = 0
-    size = 10
-    storage_service_name = "yourstorage"
-    virtual_machine = "server1"
+  lun                  = 0
+  size                 = 10
+  storage_service_name = "yourstorage"
+  virtual_machine      = "server1"
 }
 ```
 

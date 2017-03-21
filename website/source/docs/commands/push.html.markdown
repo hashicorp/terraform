@@ -64,9 +64,9 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-var='foo=bar'` - Set the value of a variable for the Terraform configuration.
 
-* `-var-file=foo` - Set the value of variables using a variable file. This flag 
-  can be used multiple times. 
- 
+* `-var-file=foo` - Set the value of variables using a variable file. This flag
+  can be used multiple times.
+
 
 * `-vcs=true` - If true (default), then Terraform will detect if a VCS
   is in use, such as Git, and will only upload files that are committed to
@@ -117,7 +117,7 @@ or plan), and the `-overwrite` flag tells the push command to update Atlas.
 ## Remote State Requirement
 
 `terraform push` requires that
-[remote state](/docs/commands/remote-config.html)
+[remote state](/docs/state/remote.html)
 is enabled. The reasoning for this is simple: `terraform push` sends your
 configuration to be managed remotely. For it to keep the state in sync
 and for you to be able to easily access that state, remote state must

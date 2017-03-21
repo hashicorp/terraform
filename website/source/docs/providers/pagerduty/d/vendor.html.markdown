@@ -14,13 +14,13 @@ Use this data source to get information about a specific [vendor][1] that you ca
 
 ```
 data "pagerduty_vendor" "datadog" {
-  name_regex = "^Datadog$"
+  name = "Datadog"
 }
 
 resource "pagerduty_user" "example" {
-    name  = "Earline Greenholt"
-    email = "125.greenholt.earline@graham.name"
-    teams = ["${pagerduty_team.example.id}"]
+  name  = "Earline Greenholt"
+  email = "125.greenholt.earline@graham.name"
+  teams = ["${pagerduty_team.example.id}"]
 }
 
 resource "pagerduty_escalation_policy" "foo" {
@@ -56,7 +56,7 @@ resource "pagerduty_service_integration" "example" {
 
 The following arguments are supported:
 
-* `name_regex` - (Required) A regex string to apply to the vendor list returned by the PagerDuty API. This regex should be very specific. If your regex matches several vendors a list of found vendors will be returned so you can tweak your regex further. The final regex string is made case insensitive.
+* `name` - (Required) The vendor name to use to find a vendor in the PagerDuty API.
 
 ## Attributes Reference
 * `name` - The short name of the found vendor.

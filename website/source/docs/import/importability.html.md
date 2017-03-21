@@ -26,7 +26,7 @@ To make a resource importable, please see the
 ### AWS
 
 * aws_api_gateway_account
-* aws_api_gateway_key
+* aws_api_gateway_api_key
 * aws_autoscaling_group
 * aws_cloudfront_distribution
 * aws_cloudfront_origin_access_identity
@@ -41,6 +41,11 @@ To make a resource importable, please see the
 * aws_db_parameter_group
 * aws_db_security_group
 * aws_db_subnet_group
+* aws_dms_certificate
+* aws_dms_endpoint
+* aws_dms_replication_instance
+* aws_dms_replication_subnet_group
+* aws_dms_replication_task
 * aws_dynamodb_table
 * aws_ebs_volume
 * aws_ecr_repository
@@ -58,6 +63,7 @@ To make a resource importable, please see the
 * aws_iam_account_password_policy
 * aws_iam_group
 * aws_iam_instance_profile
+* aws_iam_role
 * aws_iam_saml_provider
 * aws_iam_user
 * aws_instance
@@ -112,6 +118,11 @@ To make a resource importable, please see the
 * azurerm_sql_firewall_rule
 * azurerm_storage_account
 * azurerm_virtual_network
+
+### Circonus
+
+* circonus_check
+* circonus_contact_group
 
 ### DigitalOcean
 

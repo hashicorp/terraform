@@ -1477,6 +1477,74 @@ func TestContext2Plan_countComputedModule(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_countModuleStatic(t *testing.T) {
+	m := testModule(t, "plan-count-module-static")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(`
+DIFF:
+
+module.child:
+  CREATE: aws_instance.foo.0
+  CREATE: aws_instance.foo.1
+  CREATE: aws_instance.foo.2
+
+STATE:
+
+<no state>
+`)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+func TestContext2Plan_countModuleStaticGrandchild(t *testing.T) {
+	m := testModule(t, "plan-count-module-static-grandchild")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(`
+DIFF:
+
+module.child.child:
+  CREATE: aws_instance.foo.0
+  CREATE: aws_instance.foo.1
+  CREATE: aws_instance.foo.2
+
+STATE:
+
+<no state>
+`)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestContext2Plan_countIndex(t *testing.T) {
 	m := testModule(t, "plan-count-index")
 	p := testProvider("aws")
@@ -2451,6 +2519,39 @@ STATE:
 	}
 }
 
+func TestContext2Plan_targetedModuleWithProvider(t *testing.T) {
+	m := testModule(t, "plan-targeted-module-with-provider")
+	p := testProvider("null")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"null": testProviderFuncFixed(p),
+		},
+		Targets: []string{"module.child2"},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(`
+DIFF:
+
+module.child2:
+  CREATE: null_resource.foo
+
+STATE:
+
+<no state>
+	`)
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
 func TestContext2Plan_targetedOrphan(t *testing.T) {
 	m := testModule(t, "plan-targeted-orphan")
 	p := testProvider("aws")
@@ -2655,12 +2756,6 @@ aws_instance.foo.0:
   ID = i-abc0
 aws_instance.foo.1:
   ID = i-abc1
-aws_instance.foo.10:
-  ID = i-abc10
-aws_instance.foo.11:
-  ID = i-abc11
-aws_instance.foo.12:
-  ID = i-abc12
 aws_instance.foo.2:
   ID = i-abc2
 aws_instance.foo.3:
@@ -2677,6 +2772,12 @@ aws_instance.foo.8:
   ID = i-abc8
 aws_instance.foo.9:
   ID = i-abc9
+aws_instance.foo.10:
+  ID = i-abc10
+aws_instance.foo.11:
+  ID = i-abc11
+aws_instance.foo.12:
+  ID = i-abc12
 	`)
 	if actual != expected {
 		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
@@ -2992,5 +3093,56 @@ func TestContext2Plan_listOrder(t *testing.T) {
 
 	if !rDiffA.Equal(rDiffB) {
 		t.Fatal("aws_instance.a and aws_instance.b diffs should match:\n", plan)
+	}
+}
+
+// Make sure ignore-changes doesn't interfere with set/list/map diffs.
+// If a resource was being replaced by a RequiresNew attribute that gets
+// ignored, we need to filter the diff properly to properly update rather than
+// replace.
+func TestContext2Plan_ignoreChangesWithFlatmaps(t *testing.T) {
+	m := testModule(t, "plan-ignore-changes-with-flatmaps")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"user_data":   "x",
+								"require_new": "",
+								"set.#":       "1",
+								"set.0.a":     "1",
+								"lst.#":       "1",
+								"lst.0":       "j",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.Diff.String())
+	expected := strings.TrimSpace(testTFPlanDiffIgnoreChangesWithFlatmaps)
+	if actual != expected {
+		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
 	}
 }

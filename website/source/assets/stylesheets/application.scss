@@ -1,16 +1,16 @@
 @import 'bootstrap-sprockets';
 @import 'bootstrap';
 
-@import url("//fonts.googleapis.com/css?family=Lato:300,400,700|Open+Sans:300,400,600");
+@import url("//fonts.googleapis.com/css?family=Open+Sans:300,400,600");
+
+// Mega Nav
+@import 'hashicorp/mega-nav';
 
 // Core variables and mixins
 @import '_variables';
 
 // Utility
 @import '_utilities';
-
-// Core CSS
-@import '_fonts';
 
 //Global Site
 @import '_global';
@@ -22,7 +22,6 @@
 @import 'hashicorp-shared/_hashicorp-sidebar';
 
 // Components
-@import '_announcement-bnr';
 @import '_header';
 @import '_footer';
 @import '_jumbotron';

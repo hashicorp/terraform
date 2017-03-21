@@ -3,6 +3,7 @@ package cobbler
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	cobbler "github.com/jtopjian/cobblerclient"
@@ -261,7 +262,6 @@ func resourceProfileRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("proxy", profile.Proxy)
 	d.Set("redhat_management_key", profile.RedHatManagementKey)
 	d.Set("redhat_management_server", profile.RedHatManagementServer)
-	d.Set("repos", profile.Repos)
 	d.Set("template_files", profile.TemplateFiles)
 	d.Set("template_remote_kickstarts", profile.TemplateRemoteKickstarts)
 	d.Set("virt_auto_boot", profile.VirtAutoBoot)
@@ -272,6 +272,10 @@ func resourceProfileRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("virt_path", profile.VirtPath)
 	d.Set("virt_ram", profile.VirtRam)
 	d.Set("virt_type", profile.VirtType)
+
+	// Split repos into a list
+	repos := strings.Split(profile.Repos, " ")
+	d.Set("repos", repos)
 
 	return nil
 }
@@ -351,7 +355,7 @@ func buildProfile(d *schema.ResourceData, meta interface{}) cobbler.Profile {
 		Proxy:                  d.Get("proxy").(string),
 		RedHatManagementKey:    d.Get("redhat_management_key").(string),
 		RedHatManagementServer: d.Get("redhat_management_server").(string),
-		Repos:                    repos,
+		Repos:                    strings.Join(repos, " "),
 		Server:                   d.Get("server").(string),
 		TemplateFiles:            d.Get("template_files").(string),
 		TemplateRemoteKickstarts: d.Get("template_remote_kickstarts").(int),

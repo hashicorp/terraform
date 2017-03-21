@@ -71,18 +71,17 @@ The following arguments are supported:
 * `core_instance_count` - (Optional) Number of Amazon EC2 instances used to execute the job flow. EMR will use one node as the cluster's master node and use the remainder of the nodes (`core_instance_count`-1) as core nodes. Default `1`
 * `log_uri` - (Optional) S3 bucket to write the log files of the job flow. If a value
 	is not provided, logs are not created
-* `applications` - (Optional) A list of applications for the cluster. Valid values are: `Hadoop`, `Hive`,
+* `applications` - (Optional) A list of applications for the cluster. Valid values are: `Flink`, `Hadoop`, `Hive`, `Mahout`, `Pig`, and `Spark`. Case insensitive
 * `termination_protection` - (Optional) Switch on/off termination protection (default is off) 
 * `keep_job_flow_alive_when_no_steps` - (Optional) Switch on/off run cluster with no steps or when all steps are complete (default is on)
-	`Mahout`, `Pig`, and `Spark.` Case insensitive
 * `ec2_attributes` - (Optional) Attributes for the EC2 instances running the job
 flow. Defined below
 * `bootstrap_action` - (Optional) List of bootstrap actions that will be run before Hadoop is started on
 	the cluster nodes. Defined below
 * `configurations` - (Optional) List of configurations supplied for the EMR cluster you are creating
 * `visible_to_all_users` - (Optional) Whether the job flow is visible to all IAM users of the AWS account associated with the job flow. Default `true`
+* `autoscaling_role` - (Optional) An IAM role for automatic scaling policies. The IAM role provides permissions that the automatic scaling feature requires to launch and terminate EC2 instances in an instance group.
 * `tags` - (Optional) list of tags to apply to the EMR Cluster
-
 
 
 ## ec2\_attributes

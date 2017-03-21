@@ -16,10 +16,10 @@ Basic usage:
 
 ```
 resource "cloudstack_network" "default" {
-    name = "test-network"
-    cidr = "10.0.0.0/16"
-    network_offering = "Default Network"
-    zone = "zone-1"
+  name             = "test-network"
+  cidr             = "10.0.0.0/16"
+  network_offering = "Default Network"
+  zone             = "zone-1"
 }
 ```
 

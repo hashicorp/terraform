@@ -8,7 +8,7 @@ description: |-
 
 # Fastly Provider
 
-The Fastly provider is used to interact with the content delivery network (CDN) 
+The Fastly provider is used to interact with the content delivery network (CDN)
 provided by Fastly.
 
 In order to use this Provider, you must have an active account with Fastly.
@@ -24,10 +24,11 @@ provider "fastly" {
   api_key = "test"
 }
 
-# Create a Service  
+# Create a Service
 resource "fastly_service_v1" "myservice" {
   name = "myawesometestservice"
-  ...
+
+  # ...
 }
 ```
 
@@ -54,7 +55,7 @@ provider "fastly" {
 }
 
 resource "fastly_service_v1" "myservice" {
-  ...
+  # ...
 }
 ```
 
@@ -62,13 +63,13 @@ The API key for an account can be found on the Account page: https://app.fastly.
 
 ###Environment variables
 
-You can provide your API key via `FASTLY_API_KEY` environment variable, 
+You can provide your API key via `FASTLY_API_KEY` environment variable,
 representing your Fastly API key. When using this method, you may omit the
 Fastly `provider` block entirely:
 
 ```
 resource "fastly_service_v1" "myservice" {
-  ...
+  # ...
 }
 ```
 

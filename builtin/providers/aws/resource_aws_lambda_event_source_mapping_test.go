@@ -10,12 +10,14 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSLambdaEventSourceMapping_basic(t *testing.T) {
 	var conf lambda.EventSourceMappingConfiguration
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -23,14 +25,14 @@ func TestAccAWSLambdaEventSourceMapping_basic(t *testing.T) {
 		CheckDestroy: testAccCheckLambdaEventSourceMappingDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSLambdaEventSourceMappingConfig,
+				Config: testAccAWSLambdaEventSourceMappingConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAwsLambdaEventSourceMappingExists("aws_lambda_event_source_mapping.lambda_event_source_mapping_test", &conf),
 					testAccCheckAWSLambdaEventSourceMappingAttributes(&conf),
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSLambdaEventSourceMappingConfigUpdate,
+				Config: testAccAWSLambdaEventSourceMappingConfigUpdate(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAwsLambdaEventSourceMappingExists("aws_lambda_event_source_mapping.lambda_event_source_mapping_test", &conf),
 					resource.TestCheckResourceAttr("aws_lambda_event_source_mapping.lambda_event_source_mapping_test",
@@ -53,13 +55,15 @@ func TestAccAWSLambdaEventSourceMapping_basic(t *testing.T) {
 func TestAccAWSLambdaEventSourceMapping_disappears(t *testing.T) {
 	var conf lambda.EventSourceMappingConfiguration
 
+	rInt := acctest.RandInt()
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLambdaEventSourceMappingDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSLambdaEventSourceMappingConfig,
+				Config: testAccAWSLambdaEventSourceMappingConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAwsLambdaEventSourceMappingExists("aws_lambda_event_source_mapping.lambda_event_source_mapping_test", &conf),
 					testAccCheckAWSLambdaEventSourceMappingDisappears(&conf),
@@ -166,9 +170,10 @@ func testAccCheckAWSLambdaEventSourceMappingAttributes(mapping *lambda.EventSour
 	}
 }
 
-const testAccAWSLambdaEventSourceMappingConfig = `
+func testAccAWSLambdaEventSourceMappingConfig(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_iam_role" "iam_for_lambda" {
-    name = "iam_for_lambda"
+    name = "iam_for_lambda_%d"
     assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -187,7 +192,7 @@ EOF
 }
 
 resource "aws_iam_policy" "policy_for_role" {
-    name = "policy_for_role"
+    name = "policy_for_role_%d"
     path = "/"
     description = "IAM policy for for Lamda event mapping testing"
     policy = <<EOF
@@ -216,19 +221,19 @@ EOF
 }
 
 resource "aws_iam_policy_attachment" "policy_attachment_for_role" {
-    name = "policy_attachment_for_role"
+    name = "policy_attachment_for_role_%d"
     roles = ["${aws_iam_role.iam_for_lambda.name}"]
     policy_arn = "${aws_iam_policy.policy_for_role.arn}"
 }
 
 resource "aws_kinesis_stream" "kinesis_stream_test" {
-    name = "kinesis_stream_test"
+    name = "kinesis_stream_test_%d"
     shard_count = 1
 }
 
 resource "aws_lambda_function" "lambda_function_test_create" {
     filename = "test-fixtures/lambdatest.zip"
-    function_name = "example_lambda_name_create"
+    function_name = "%d_example_lambda_name_create"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
     runtime = "nodejs4.3"
@@ -236,9 +241,10 @@ resource "aws_lambda_function" "lambda_function_test_create" {
 
 resource "aws_lambda_function" "lambda_function_test_update" {
     filename = "test-fixtures/lambdatest.zip"
-    function_name = "example_lambda_name_update"
+    function_name = "%d_example_lambda_name_update"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+    runtime = "nodejs4.3"
 }
 
 resource "aws_lambda_event_source_mapping" "lambda_event_source_mapping_test" {
@@ -248,12 +254,13 @@ resource "aws_lambda_event_source_mapping" "lambda_event_source_mapping_test" {
 		depends_on = ["aws_iam_policy_attachment.policy_attachment_for_role"]
 		function_name = "${aws_lambda_function.lambda_function_test_create.arn}"
 		starting_position = "TRIM_HORIZON"
+}`, rInt, rInt, rInt, rInt, rInt, rInt)
 }
-`
 
-const testAccAWSLambdaEventSourceMappingConfigUpdate = `
+func testAccAWSLambdaEventSourceMappingConfigUpdate(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_iam_role" "iam_for_lambda" {
-    name = "iam_for_lambda"
+    name = "iam_for_lambda_%d"
     assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -272,7 +279,7 @@ EOF
 }
 
 resource "aws_iam_policy" "policy_for_role" {
-    name = "policy_for_role"
+    name = "policy_for_role_%d"
     path = "/"
     description = "IAM policy for for Lamda event mapping testing"
     policy = <<EOF
@@ -301,19 +308,19 @@ EOF
 }
 
 resource "aws_iam_policy_attachment" "policy_attachment_for_role" {
-    name = "policy_attachment_for_role"
+    name = "policy_attachment_for_role_%d"
     roles = ["${aws_iam_role.iam_for_lambda.name}"]
     policy_arn = "${aws_iam_policy.policy_for_role.arn}"
 }
 
 resource "aws_kinesis_stream" "kinesis_stream_test" {
-    name = "kinesis_stream_test"
+    name = "kinesis_stream_test_%d"
     shard_count = 1
 }
 
 resource "aws_lambda_function" "lambda_function_test_create" {
     filename = "test-fixtures/lambdatest.zip"
-    function_name = "example_lambda_name_create"
+    function_name = "%d_example_lambda_name_create"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
     runtime = "nodejs4.3"
@@ -321,9 +328,10 @@ resource "aws_lambda_function" "lambda_function_test_create" {
 
 resource "aws_lambda_function" "lambda_function_test_update" {
     filename = "test-fixtures/lambdatest.zip"
-    function_name = "example_lambda_name_update"
+    function_name = "%d_example_lambda_name_update"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+    runtime = "nodejs4.3"
 }
 
 resource "aws_lambda_event_source_mapping" "lambda_event_source_mapping_test" {
@@ -333,5 +341,5 @@ resource "aws_lambda_event_source_mapping" "lambda_event_source_mapping_test" {
 		depends_on = ["aws_iam_policy_attachment.policy_attachment_for_role"]
 		function_name = "${aws_lambda_function.lambda_function_test_update.arn}"
 		starting_position = "TRIM_HORIZON"
+}`, rInt, rInt, rInt, rInt, rInt, rInt)
 }
-`

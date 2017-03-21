@@ -16,13 +16,13 @@ create and manage applications on Heroku.
 ```
 # Create a new Heroku app
 resource "heroku_app" "default" {
-    name = "test-app"
+  name = "test-app"
 }
 
 # Associate a custom domain
 resource "heroku_domain" "default" {
-    app = "${heroku_app.default.name}"
-    hostname = "terraform.example.com"
+  app      = "${heroku_app.default.name}"
+  hostname = "terraform.example.com"
 }
 ```
 
