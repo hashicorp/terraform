@@ -155,19 +155,9 @@ func verifyIPAddressParams(d *schema.ResourceData) error {
 	_, vpc := d.GetOk("vpc_id")
 	_, zone := d.GetOk("zone_id")
 
-	f := func(bs ...bool) int {
-		cnt := 0
-		for _, b := range bs {
-			if b {
-				cnt++
-			}
-		}
-		return cnt
-	}
-
-	if f(network, vpc, zone) >= 2 || (!network && !vpc && !zone) {
+	if (network && vpc) || (!network && !vpc && !zone) {
 		return fmt.Errorf(
-			"You must supply one value for either (so not more than two) the 'network_id' or 'vpc_id' or 'zone_id'  parameter")
+			"You must supply a value for either (so not both) the 'network_id' or 'vpc_id' parameter")
 	}
 
 	return nil
