@@ -1,13 +1,8 @@
 package ns1
 
 import (
-	"crypto/tls"
-	"net/http"
-
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-
-	ns1 "gopkg.in/ns1/ns1-go.v2/rest"
 )
 
 // Provider returns a terraform.ResourceProvider.
@@ -23,13 +18,13 @@ func Provider() terraform.ResourceProvider {
 			"endpoint": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("NS1_ENDPOINT", nil),
+				DefaultFunc: schema.EnvDefaultFunc("NS1_ENDPOINT", "https://api.nsone.net/v1/"),
 				Description: descriptions["endpoint"],
 			},
 			"ignore_ssl": &schema.Schema{
 				Type:        schema.TypeBool,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("NS1_IGNORE_SSL", nil),
+				DefaultFunc: schema.EnvDefaultFunc("NS1_IGNORE_SSL", false),
 				Description: descriptions["ignore_ssl"],
 			},
 		},
@@ -49,22 +44,13 @@ func Provider() terraform.ResourceProvider {
 }
 
 func ns1Configure(d *schema.ResourceData) (interface{}, error) {
-	httpClient := &http.Client{}
-	decos := []func(*ns1.Client){}
-	decos = append(decos, ns1.SetAPIKey(d.Get("apikey").(string)))
-	if v, ok := d.GetOk("endpoint"); ok {
-		decos = append(decos, ns1.SetEndpoint(v.(string)))
-	}
-	if _, ok := d.GetOk("ignore_ssl"); ok {
-		tr := &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}
-		httpClient.Transport = tr
+	config := Config{
+		Key:       d.Get("apikey").(string),
+		Endpoint:  d.Get("endpoint").(string),
+		IgnoreSSL: d.Get("ignore_ssl").(bool),
 	}
 
-	n := ns1.NewClient(httpClient, decos...)
-	n.RateLimitStrategySleep()
-	return n, nil
+	return config.Client()
 }
 
 var descriptions map[string]string
