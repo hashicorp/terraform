@@ -28,6 +28,7 @@ BUG FIXES:
  * provider/aws: Fix flattened cloudfront lambda function associations to be a set not a slice [GH-11984]
  * provider/aws: Deprecate the usage of Api Gateway Key Stages in favor of Usage Plans [GH-12883]
  * provider/aws: prevent panic in resourceAwsSsmDocumentRead [GH-12891]
+ * provider/aws: Prevent panic when setting AWS CodeBuild Source to state [GH-12915]
  * provider/mysql: recreate user/grant if user/grant got deleted manually [GH-12791]
 
 ## 0.9.1 (March 17, 2017)
