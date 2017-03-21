@@ -16,7 +16,7 @@ can be configured to auto-apply to avoid this.
 
 ### Run Attributes
 
-<table>
+<table border="1" cellspaceing="5">
   <tr>
     <th>Attribute</th>
     <th>Description</th>
