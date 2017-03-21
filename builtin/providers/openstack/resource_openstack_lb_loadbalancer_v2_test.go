@@ -97,6 +97,24 @@ func TestAccLBV2LoadBalancer_secGroup(t *testing.T) {
 	})
 }
 
+func TestAccLBV2LoadBalancer_timeout(t *testing.T) {
+	var lb loadbalancers.LoadBalancer
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLBV2LoadBalancerDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccLBV2LoadBalancerConfig_timeout,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckLBV2LoadBalancerExists("openstack_lb_loadbalancer_v2.loadbalancer_1", &lb),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckLBV2LoadBalancerDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
@@ -308,5 +326,30 @@ resource "openstack_lb_loadbalancer_v2" "loadbalancer_1" {
       "${openstack_networking_secgroup_v2.secgroup_2.id}"
     ]
     depends_on = ["openstack_networking_secgroup_v2.secgroup_1"]
+}
+`
+
+const testAccLBV2LoadBalancerConfig_timeout = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  admin_state_up = "true"
+}
+
+resource "openstack_networking_subnet_v2" "subnet_1" {
+  name = "subnet_1"
+  cidr = "192.168.199.0/24"
+  ip_version = 4
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+}
+
+resource "openstack_lb_loadbalancer_v2" "loadbalancer_1" {
+  name = "loadbalancer_1"
+  loadbalancer_provider = "haproxy"
+  vip_subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
+
+  timeouts {
+    create = "5m"
+    delete = "5m"
+  }
 }
 `

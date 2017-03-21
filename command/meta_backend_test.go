@@ -771,6 +771,13 @@ func TestMetaBackend_configureNewLegacyCopy(t *testing.T) {
 		}
 	}
 
+	// Verify we have no configured legacy in the state itself
+	{
+		if !state.Remote.Empty() {
+			t.Fatalf("legacy has remote state: %#v", state.Remote)
+		}
+	}
+
 	// Write some state
 	state = terraform.NewState()
 	state.Lineage = "changing"

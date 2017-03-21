@@ -29,6 +29,7 @@ const (
 	apiCheckTypeHTTP       circonusCheckType = "http"
 	apiCheckTypeJSON       circonusCheckType = "json"
 	apiCheckTypeMySQL      circonusCheckType = "mysql"
+	apiCheckTypeStatsd     circonusCheckType = "statsd"
 	apiCheckTypePostgreSQL circonusCheckType = "postgres"
 	apiCheckTypeTCP        circonusCheckType = "tcp"
 )

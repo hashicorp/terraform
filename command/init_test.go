@@ -353,6 +353,33 @@ func TestInit_backendConfigFileChange(t *testing.T) {
 	}
 }
 
+func TestInit_backendConfigKV(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-backend-config-kv"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{"-backend-config", "path=hello"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	// Read our saved backend config and verify we have our settings
+	state := testStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+	if v := state.Backend.Config["path"]; v != "hello" {
+		t.Fatalf("bad: %#v", v)
+	}
+}
+
 func TestInit_copyBackendDst(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)

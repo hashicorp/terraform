@@ -61,6 +61,29 @@ func TestAccNetworkingV2RouterInterface_basic_port(t *testing.T) {
 	})
 }
 
+func TestAccNetworkingV2RouterInterface_timeout(t *testing.T) {
+	var network networks.Network
+	var router routers.Router
+	var subnet subnets.Subnet
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckNetworkingV2RouterInterfaceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccNetworkingV2RouterInterface_timeout,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckNetworkingV2NetworkExists("openstack_networking_network_v2.network_1", &network),
+					testAccCheckNetworkingV2SubnetExists("openstack_networking_subnet_v2.subnet_1", &subnet),
+					testAccCheckNetworkingV2RouterExists("openstack_networking_router_v2.router_1", &router),
+					testAccCheckNetworkingV2RouterInterfaceExists("openstack_networking_router_interface_v2.int_1"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckNetworkingV2RouterInterfaceDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
@@ -166,5 +189,33 @@ resource "openstack_networking_port_v2" "port_1" {
     subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
     ip_address = "192.168.199.1"
   }
+}
+`
+
+const testAccNetworkingV2RouterInterface_timeout = `
+resource "openstack_networking_router_v2" "router_1" {
+  name = "router_1"
+  admin_state_up = "true"
+}
+
+resource "openstack_networking_router_interface_v2" "int_1" {
+  subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
+  router_id = "${openstack_networking_router_v2.router_1.id}"
+
+  timeouts {
+    create = "5m"
+    delete = "5m"
+  }
+}
+
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  admin_state_up = "true"
+}
+
+resource "openstack_networking_subnet_v2" "subnet_1" {
+  cidr = "192.168.199.0/24"
+  ip_version = 4
+  network_id = "${openstack_networking_network_v2.network_1.id}"
 }
 `

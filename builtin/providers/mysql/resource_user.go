@@ -95,7 +95,21 @@ func UpdateUser(d *schema.ResourceData, meta interface{}) error {
 }
 
 func ReadUser(d *schema.ResourceData, meta interface{}) error {
-	// At this time, all attributes are supplied by the user
+	conn := meta.(*providerConfiguration).Conn
+
+	stmtSQL := fmt.Sprintf("SELECT USER FROM mysql.user WHERE USER='%s'",
+		d.Get("user").(string))
+
+	log.Println("Executing statement:", stmtSQL)
+
+	rows, _, err := conn.Query(stmtSQL)
+	log.Println("Returned rows:", len(rows))
+	if err != nil {
+		return err
+	}
+	if len(rows) == 0 {
+		d.SetId("")
+	}
 	return nil
 }
 

@@ -75,8 +75,8 @@ func checkConfigToAPICAQL(c *circonusCheck, l interfaceList) error {
 	c.Type = string(apiCheckTypeCAQL)
 	c.Target = defaultCheckCAQLTarget
 
-	// Iterate over all `icmp_ping` attributes, even though we have a max of 1 in
-	// the schema.
+	// Iterate over all `caql` attributes, even though we have a max of 1 in the
+	// schema.
 	for _, mapRaw := range l {
 		caqlConfig := newInterfaceMap(mapRaw)
 

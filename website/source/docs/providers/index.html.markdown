@@ -16,6 +16,6 @@ Terraform is agnostic to the underlying platforms by supporting providers. A
 provider is responsible for understanding API interactions and exposing
 resources. Providers generally are an IaaS (e.g. AWS, GCP, Microsoft Azure,
 OpenStack), PaaS (e.g. Heroku), or SaaS services (e.g. Atlas, DNSimple,
-CloudFlare).
+Cloudflare).
 
 Use the navigation to the left to read about the available providers.

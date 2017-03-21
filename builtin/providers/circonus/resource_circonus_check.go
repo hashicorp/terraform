@@ -44,6 +44,7 @@ const (
 	checkPeriodAttr      = "period"
 	checkPostgreSQLAttr  = "postgresql"
 	checkMetricAttr      = "metric"
+	checkStatsdAttr      = "statsd"
 	checkTagsAttr        = "tags"
 	checkTargetAttr      = "target"
 	checkTCPAttr         = "tcp"
@@ -61,12 +62,13 @@ const (
 
 	// Out parameters for circonus_check
 	checkOutByCollectorAttr        = "check_by_collector"
-	checkOutCheckUUIDsAttr         = "uuids"
+	checkOutIDAttr                 = "check_id"
 	checkOutChecksAttr             = "checks"
 	checkOutCreatedAttr            = "created"
 	checkOutLastModifiedAttr       = "last_modified"
 	checkOutLastModifiedByAttr     = "last_modified_by"
 	checkOutReverseConnectURLsAttr = "reverse_connect_urls"
+	checkOutCheckUUIDsAttr         = "uuids"
 )
 
 const (
@@ -79,6 +81,7 @@ const (
 	apiCheckTypeJSONAttr       apiCheckType = "json"
 	apiCheckTypeMySQLAttr      apiCheckType = "mysql"
 	apiCheckTypePostgreSQLAttr apiCheckType = "postgres"
+	apiCheckTypeStatsdAttr     apiCheckType = "statsd"
 	apiCheckTypeTCPAttr        apiCheckType = "tcp"
 )
 
@@ -91,23 +94,25 @@ var checkDescriptions = attrDescrs{
 	checkHTTPTrapAttr:    "HTTP Trap check configuration",
 	checkICMPPingAttr:    "ICMP ping check configuration",
 	checkJSONAttr:        "JSON check configuration",
+	checkMetricAttr:      "Configuration for a stream of metrics",
 	checkMetricLimitAttr: `Setting a metric_limit will enable all (-1), disable (0), or allow up to the specified limit of metrics for this check ("N+", where N is a positive integer)`,
 	checkMySQLAttr:       "MySQL check configuration",
 	checkNameAttr:        "The name of the check bundle that will be displayed in the web interface",
 	checkNotesAttr:       "Notes about this check bundle",
 	checkPeriodAttr:      "The period between each time the check is made",
 	checkPostgreSQLAttr:  "PostgreSQL check configuration",
-	checkMetricAttr:      "Configuration for a stream of metrics",
+	checkStatsdAttr:      "statsd check configuration",
+	checkTCPAttr:         "TCP check configuration",
 	checkTagsAttr:        "A list of tags assigned to the check",
 	checkTargetAttr:      "The target of the check (e.g. hostname, URL, IP, etc)",
-	checkTCPAttr:         "TCP check configuration",
 	checkTimeoutAttr:     "The length of time in seconds (and fractions of a second) before the check will timeout if no response is returned to the collector",
 	checkTypeAttr:        "The check type",
 
-	checkOutChecksAttr:             "",
 	checkOutByCollectorAttr:        "",
 	checkOutCheckUUIDsAttr:         "",
+	checkOutChecksAttr:             "",
 	checkOutCreatedAttr:            "",
+	checkOutIDAttr:                 "",
 	checkOutLastModifiedAttr:       "",
 	checkOutLastModifiedByAttr:     "",
 	checkOutReverseConnectURLsAttr: "",
@@ -156,37 +161,6 @@ func resourceCheck() *schema.Resource {
 			checkHTTPTrapAttr: schemaCheckHTTPTrap,
 			checkJSONAttr:     schemaCheckJSON,
 			checkICMPPingAttr: schemaCheckICMPPing,
-			checkMetricLimitAttr: &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				Computed: true,
-				ValidateFunc: validateFuncs(
-					validateIntMin(checkMetricLimitAttr, -1),
-				),
-			},
-			checkMySQLAttr: schemaCheckMySQL,
-			checkNameAttr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-			},
-			checkNotesAttr: &schema.Schema{
-				Type:      schema.TypeString,
-				Optional:  true,
-				Computed:  true,
-				StateFunc: suppressWhitespace,
-			},
-			checkPeriodAttr: &schema.Schema{
-				Type:      schema.TypeString,
-				Optional:  true,
-				Computed:  true,
-				StateFunc: normalizeTimeDurationStringToSeconds,
-				ValidateFunc: validateFuncs(
-					validateDurationMin(checkPeriodAttr, defaultCirconusCheckPeriodMin),
-					validateDurationMax(checkPeriodAttr, defaultCirconusCheckPeriodMax),
-				),
-			},
-			checkPostgreSQLAttr: schemaCheckPostgreSQL,
 			checkMetricAttr: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -219,7 +193,39 @@ func resourceCheck() *schema.Resource {
 					}),
 				},
 			},
-			checkTagsAttr: tagMakeConfigSchema(checkTagsAttr),
+			checkMetricLimitAttr: &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Computed: true,
+				ValidateFunc: validateFuncs(
+					validateIntMin(checkMetricLimitAttr, -1),
+				),
+			},
+			checkMySQLAttr: schemaCheckMySQL,
+			checkNameAttr: &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+			checkNotesAttr: &schema.Schema{
+				Type:      schema.TypeString,
+				Optional:  true,
+				Computed:  true,
+				StateFunc: suppressWhitespace,
+			},
+			checkPeriodAttr: &schema.Schema{
+				Type:      schema.TypeString,
+				Optional:  true,
+				Computed:  true,
+				StateFunc: normalizeTimeDurationStringToSeconds,
+				ValidateFunc: validateFuncs(
+					validateDurationMin(checkPeriodAttr, defaultCirconusCheckPeriodMin),
+					validateDurationMax(checkPeriodAttr, defaultCirconusCheckPeriodMax),
+				),
+			},
+			checkPostgreSQLAttr: schemaCheckPostgreSQL,
+			checkStatsdAttr:     schemaCheckStatsd,
+			checkTagsAttr:       tagMakeConfigSchema(checkTagsAttr),
 			checkTargetAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -246,6 +252,10 @@ func resourceCheck() *schema.Resource {
 			},
 
 			// Out parameters
+			checkOutIDAttr: &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			checkOutByCollectorAttr: &schema.Schema{
 				Type:     schema.TypeMap,
 				Computed: true,
@@ -343,6 +353,11 @@ func checkRead(d *schema.ResourceData, meta interface{}) error {
 		checkIDsByCollector[b] = c.Checks[i]
 	}
 
+	var checkID string
+	if len(c.Checks) == 1 {
+		checkID = c.Checks[0]
+	}
+
 	metrics := schema.NewSet(checkMetricChecksum, nil)
 	for _, m := range c.Metrics {
 		metricAttrs := map[string]interface{}{
@@ -403,6 +418,10 @@ func checkRead(d *schema.ResourceData, meta interface{}) error {
 
 	if err := d.Set(checkOutChecksAttr, c.Checks); err != nil {
 		return errwrap.Wrapf(fmt.Sprintf("Unable to store check %q attribute: {{err}}", checkOutChecksAttr), err)
+	}
+
+	if checkID != "" {
+		d.Set(checkOutIDAttr, checkID)
 	}
 
 	d.Set(checkOutCreatedAttr, c.Created)
@@ -564,6 +583,7 @@ func checkConfigToAPI(c *circonusCheck, d *schema.ResourceData) error {
 		checkJSONAttr:       checkConfigToAPIJSON,
 		checkMySQLAttr:      checkConfigToAPIMySQL,
 		checkPostgreSQLAttr: checkConfigToAPIPostgreSQL,
+		checkStatsdAttr:     checkConfigToAPIStatsd,
 		checkTCPAttr:        checkConfigToAPITCP,
 	}
 
@@ -590,6 +610,7 @@ func parseCheckTypeConfig(c *circonusCheck, d *schema.ResourceData) error {
 		apiCheckTypeJSONAttr:       checkAPIToStateJSON,
 		apiCheckTypeMySQLAttr:      checkAPIToStateMySQL,
 		apiCheckTypePostgreSQLAttr: checkAPIToStatePostgreSQL,
+		apiCheckTypeStatsdAttr:     checkAPIToStateStatsd,
 		apiCheckTypeTCPAttr:        checkAPIToStateTCP,
 	}
 
