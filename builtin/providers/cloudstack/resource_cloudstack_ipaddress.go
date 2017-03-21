@@ -153,9 +153,8 @@ func resourceCloudStackIPAddressDelete(d *schema.ResourceData, meta interface{})
 func verifyIPAddressParams(d *schema.ResourceData) error {
 	_, network := d.GetOk("network_id")
 	_, vpc := d.GetOk("vpc_id")
-	_, zone := d.GetOk("zone_id")
 
-	if (network && vpc) || (!network && !vpc && !zone) {
+	if (network && vpc) || (!network && !vpc) {
 		return fmt.Errorf(
 			"You must supply a value for either (so not both) the 'network_id' or 'vpc_id' parameter")
 	}
