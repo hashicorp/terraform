@@ -18,13 +18,13 @@ func Provider() terraform.ResourceProvider {
 			"endpoint": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("NS1_ENDPOINT", "https://api.nsone.net/v1/"),
+				DefaultFunc: schema.EnvDefaultFunc("NS1_ENDPOINT", nil),
 				Description: descriptions["endpoint"],
 			},
 			"ignore_ssl": &schema.Schema{
 				Type:        schema.TypeBool,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("NS1_IGNORE_SSL", false),
+				DefaultFunc: schema.EnvDefaultFunc("NS1_IGNORE_SSL", nil),
 				Description: descriptions["ignore_ssl"],
 			},
 		},
@@ -45,9 +45,14 @@ func Provider() terraform.ResourceProvider {
 
 func ns1Configure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
-		Key:       d.Get("apikey").(string),
-		Endpoint:  d.Get("endpoint").(string),
-		IgnoreSSL: d.Get("ignore_ssl").(bool),
+		Key: d.Get("apikey").(string),
+	}
+
+	if v, ok := d.GetOk("endpoint"); ok {
+		config.Endpoint = v.(string)
+	}
+	if v, ok := d.GetOk("ignore_ssl"); ok {
+		config.IgnoreSSL = v.(bool)
 	}
 
 	return config.Client()
