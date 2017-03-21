@@ -611,7 +611,7 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("tags")
 	}
 
-	if d.HasChange("iam_instance_profile") {
+	if d.HasChange("iam_instance_profile") && !d.IsNewResource() {
 		request := &ec2.DescribeIamInstanceProfileAssociationsInput{
 			Filters: []*ec2.Filter{
 				&ec2.Filter{
