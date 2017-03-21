@@ -1,0 +1,25 @@
+<% wrap_layout :inner do %>
+	<% content_for :sidebar do %>
+		<div class="docs-sidebar hidden-print affix-top" role="complementary">
+			<ul class="nav docs-sidenav">
+				<li>
+					<a href="/docs/enterprise/index.html">&laquo; Terraform Enterprise</a>
+				</li>
+
+				<li<%= sidebar_current(/^docs-enterprise-accounts-/) %>>
+					<a href="/docs/enterprise/user-accounts/index.html">User Accounts</a>
+					<ul class="nav nav-visible">
+						<li<%= sidebar_current("docs-enterprise-accounts-authentication") %>>
+							<a href="/docs/enterprise/user-accounts/authentication.html">Authentication</a>
+						</li>
+						<li<%= sidebar_current("docs-enterprise-accounts-recovery") %>>
+							<a href="/docs/enterprise/user-accounts/recovery.html">Recovery</a>
+						</li>
+					</ul>
+				</li>
+			</ul>
+		</div>
+	<% end %>
+
+	<%= yield %>
+<% end %>
