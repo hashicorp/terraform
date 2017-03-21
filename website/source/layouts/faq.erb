@@ -1,0 +1,25 @@
+<% wrap_layout :inner do %>
+	<% content_for :sidebar do %>
+		<div class="docs-sidebar hidden-print affix-top" role="complementary">
+			<ul class="nav docs-sidenav">
+				<li>
+					<a href="/docs/enterprise/index.html">&laquo; Terraform Enterprise</a>
+				</li>
+
+				<li<%= sidebar_current(/^docs-enterprise-faq-/) %>>
+					<a href="/docs/enterprise/runs/index.html">FAQ</a>
+					<ul class="nav nav-visible">
+						<li<%= sidebar_current("docs-enterprise-faq-monolithic") %>>
+							<a href="/docs/enterprise/faq/monolithic-artifacts.html">Monolithing Artifacts</a>
+						</li>
+						<li<%= sidebar_current("docs-enterprise-faq-deployments") %>>
+							<a href="/docs/enterprise/faq/rolling-deployments.html">Rolling Deployments</a>
+						</li>
+					</ul>
+				</li>
+			</ul>
+		</div>
+	<% end %>
+
+	<%= yield %>
+<% end %>
