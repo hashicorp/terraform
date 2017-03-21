@@ -270,9 +270,6 @@ func TestInit_backendUnset(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		// Run it again
-		defer testInteractiveInput(t, []string{"yes", "yes"})()
-
 		ui := new(cli.MockUi)
 		c := &InitCommand{
 			Meta: Meta{
@@ -281,7 +278,7 @@ func TestInit_backendUnset(t *testing.T) {
 			},
 		}
 
-		args := []string{}
+		args := []string{"-force-copy"}
 		if code := c.Run(args); code != 0 {
 			t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 		}
