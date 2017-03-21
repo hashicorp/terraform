@@ -262,6 +262,11 @@ func testDiffFn(
 			if _, ok := c.Raw["__"+k+"_requires_new"]; ok {
 				attrDiff.RequiresNew = true
 			}
+
+			if attr, ok := s.Attributes[k]; ok {
+				attrDiff.Old = attr
+			}
+
 			diff.Attributes[k] = attrDiff
 		}
 	}
