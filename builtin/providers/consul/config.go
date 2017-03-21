@@ -3,6 +3,7 @@ package consul
 import (
 	"log"
 	"net/http"
+	"strings"
 
 	consulapi "github.com/hashicorp/consul/api"
 )
@@ -11,6 +12,7 @@ type Config struct {
 	Datacenter string `mapstructure:"datacenter"`
 	Address    string `mapstructure:"address"`
 	Scheme     string `mapstructure:"scheme"`
+	HttpAuth   string `mapstructure:"http_auth"`
 	Token      string `mapstructure:"token"`
 	CAFile     string `mapstructure:"ca_file"`
 	CertFile   string `mapstructure:"cert_file"`
@@ -40,6 +42,18 @@ func (c *Config) Client() (*consulapi.Client, error) {
 		return nil, err
 	}
 	config.HttpClient.Transport.(*http.Transport).TLSClientConfig = cc
+
+	if c.HttpAuth != "" {
+		var username, password string
+		if strings.Contains(c.HttpAuth, ":") {
+			split := strings.SplitN(c.HttpAuth, ":", 2)
+			username = split[0]
+			password = split[1]
+		} else {
+			username = c.HttpAuth
+		}
+		config.HttpAuth = &consulapi.HttpBasicAuth{username, password}
+	}
 
 	if c.Token != "" {
 		config.Token = c.Token

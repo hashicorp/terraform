@@ -101,6 +101,10 @@ resource "circonus_metric" "used" {
 * `json` - (Optional) A JSON check.  See below for details on how to configure
   the `json` check.
 
+* `metric` - (Required) A list of one or more `metric` configurations.  All
+  metrics obtained from this check instance will be available as individual
+  metric streams.  See below for a list of supported `metric` attrbutes.
+
 * `metric_limit` - (Optional) Setting a metric limit will tell the Circonus
   backend to periodically look at the check to see if there are additional
   metrics the collector has seen that we should collect. It will not reactivate
@@ -122,9 +126,8 @@ resource "circonus_metric" "used" {
 * `postgresql` - (Optional) A PostgreSQL check.  See below for details on how to
   configure the `postgresql` check.
 
-* `metric` - (Required) A list of one or more `metric` configurations.  All
-  metrics obtained from this check instance will be available as individual
-  metric streams.  See below for a list of supported `metric` attrbutes.
+* `statsd` - (Optional) A statsd check.  See below for details on how to
+  configure the `statsd` check.
 
 * `tags` - (Optional) A list of tags assigned to this check.
 
@@ -399,6 +402,13 @@ The `postgresql` check requires the `target` top-level attribute to be set.
 
 Available metric names are dependent on the output of the `query` being run.
 
+### `statsd` Check Type Attributes
+
+* `source_ip` - (Required) Any statsd messages from this IP address (IPv4 or
+  IPv6) will be associated with this check.
+
+Available metrics depend on the metrics sent to the `statsd` check.
+
 ### `tcp` Check Type Attributes
 
 * `banner_regexp` - (Optional) This regular expression is matched against the
@@ -468,8 +478,27 @@ resource "circonus_check" "tcp_check" {
 
 ## Out Parameters
 
-* `check_by_collector` - Map of each check (value) that was created for every
-  specified broker (key).
+* `check_by_collector` - Maps the ID of the collector (`collector_id`, the map
+  key) to the `check_id` (value) that is registered to a collector.
+
+* `check_id` - If there is only one `collector` specified for the check, this
+  value will be populated with the `check_id`.  If more than one `collector` is
+  specified in the check, then this value will be an empty string.
+  `check_by_collector` will always be populated.
+
+* `checks` - List of `check_id`s created by this `circonus_check`.  There is one
+  element in this list per collector specified in the check.
+
+* `created` - UNIX time at which this check was created.
+
+* `last_modified` - UNIX time at which this check was last modified.
+
+* `last_modified_by` - User ID in Circonus who modified this check last.
+
+* `reverse_connect_urls` - Only relevant to Circonus support.
+
+* `uuids` - List of Check `uuid`s created by this `circonus_check`.  There is
+  one element in this list per collector specified in the check.
 
 ## Import Example
 

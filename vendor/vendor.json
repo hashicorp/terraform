@@ -1178,16 +1178,16 @@
 			"revisionTime": "2017-01-10T09:44:45Z"
 		},
 		{
-			"checksumSHA1": "PDusd0EuHz0oKiQKwKxFhbETxd8=",
+			"checksumSHA1": "6fUPaqXabil0m2nqKONt9lOmo4c=",
 			"path": "github.com/circonus-labs/circonus-gometrics/api",
-			"revision": "dbab9a33438e3f8317407ef5d3a51c29340541db",
-			"revisionTime": "2017-02-21T20:27:28Z"
+			"revision": "55add91cfb689b0fd6e9fa67c58c7a948310a80e",
+			"revisionTime": "2017-03-17T00:26:31Z"
 		},
 		{
 			"checksumSHA1": "bQhz/fcyZPmuHSH2qwC4ZtATy5c=",
 			"path": "github.com/circonus-labs/circonus-gometrics/api/config",
-			"revision": "dbab9a33438e3f8317407ef5d3a51c29340541db",
-			"revisionTime": "2017-02-21T20:27:28Z"
+			"revision": "55add91cfb689b0fd6e9fa67c58c7a948310a80e",
+			"revisionTime": "2017-03-17T00:26:31Z"
 		},
 		{
 			"checksumSHA1": "QhYMdplKQJAMptRaHZBB8CF6HdM=",
