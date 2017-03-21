@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -65,7 +66,7 @@ func expandStringMap(m map[string]interface{}) map[string]string {
 
 func flattenMetadata(meta api.ObjectMeta) []map[string]interface{} {
 	m := make(map[string]interface{})
-	m["annotations"] = meta.Annotations
+	m["annotations"] = filterAnnotations(meta.Annotations)
 	m["generate_name"] = meta.GenerateName
 	m["labels"] = meta.Labels
 	m["name"] = meta.Name
@@ -79,4 +80,22 @@ func flattenMetadata(meta api.ObjectMeta) []map[string]interface{} {
 	}
 
 	return []map[string]interface{}{m}
+}
+
+func filterAnnotations(m map[string]string) map[string]string {
+	for k, _ := range m {
+		if isInternalAnnotationKey(k) {
+			delete(m, k)
+		}
+	}
+	return m
+}
+
+func isInternalAnnotationKey(annotationKey string) bool {
+	u, err := url.Parse("//" + annotationKey)
+	if err == nil && strings.HasSuffix(u.Hostname(), "kubernetes.io") {
+		return true
+	}
+
+	return false
 }
