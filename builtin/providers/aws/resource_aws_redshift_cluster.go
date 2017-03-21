@@ -186,8 +186,15 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 			},
 
 			"timestamp_final_snapshot": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
+			"timestamp_final_snapshot_format": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  "20060102-150405",
 			},
 
 			"skip_final_snapshot": {
@@ -775,9 +782,9 @@ func resourceAwsRedshiftClusterDelete(d *schema.ResourceData, meta interface{}) 
 
 	if skipFinalSnapshot == false {
 		if name, present := d.GetOk("final_snapshot_identifier"); present {
-			if timestamp, present := d.GetOk("timestamp_final_snapshot"); present {
+			if d.Get("timestamp_final_snapshot").(bool) {
 				t := time.Now()
-				deleteOpts.FinalClusterSnapshotIdentifier = aws.String(name.(string) + "-" + t.Format(timestamp.(string)))
+				deleteOpts.FinalClusterSnapshotIdentifier = aws.String(name.(string) + "-" + t.Format(d.Get("timestamp_final_snapshot_format").(string)))
 			} else {
 				deleteOpts.FinalClusterSnapshotIdentifier = aws.String(name.(string))
 			}
