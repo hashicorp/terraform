@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/helper/schema"
 	api "k8s.io/kubernetes/pkg/api/v1"
 )
 
@@ -37,6 +38,21 @@ func expandMetadata(in []interface{}) api.ObjectMeta {
 	}
 
 	return meta
+}
+
+func patchMetadata(keyPrefix, pathPrefix string, d *schema.ResourceData) PatchOperations {
+	ops := make([]PatchOperation, 0, 0)
+	if d.HasChange(keyPrefix + "annotations") {
+		oldV, newV := d.GetChange(keyPrefix + "annotations")
+		diffOps := diffStringMap(pathPrefix+"annotations", oldV.(map[string]interface{}), newV.(map[string]interface{}))
+		ops = append(ops, diffOps...)
+	}
+	if d.HasChange(keyPrefix + "labels") {
+		oldV, newV := d.GetChange(keyPrefix + "labels")
+		diffOps := diffStringMap(pathPrefix+"labels", oldV.(map[string]interface{}), newV.(map[string]interface{}))
+		ops = append(ops, diffOps...)
+	}
+	return ops
 }
 
 func expandStringMap(m map[string]interface{}) map[string]string {
