@@ -14,6 +14,7 @@ IMPROVEMENTS:
  * provider/cloudstack: Add `zone_id` to `cloudstack_ipaddress` resource [GH-11306]
  * provider/consul: Add support for basic auth to the provider [GH-12679]
  * provider/dnsimple: Allow dnsimple_record.priority attribute to be set [GH-12843]
+ * provider/google: Add support for service_account, metadata, and image_type fields in GKE cluster config [GH-12743]
  * provider/openstack: Adding Timeouts to Blockstorage Resources [GH-12862]
  * provider/openstack: Adding Timeouts to FWaaS v1 Resources [GH-12863]
  * provider/openstack: Adding Timeouts to Image v2 and LBaaS v2 Resources [GH-12865]
