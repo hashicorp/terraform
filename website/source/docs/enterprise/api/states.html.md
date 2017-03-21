@@ -1,10 +1,14 @@
 ---
-title: "State API"
+layout: "api"
+page_title: "State API"
+sidebar_current: "docs-enterprise-api-states"
+description: |-
+  State represents the status of your infrastructure at the last time Terraform was run.
 ---
 
 # State API
 
-State represents the status of your infrastructure at the last time Terraform was run. States can be pushed to Atlas from Terraform's CLI after an apply is done locally, or state is automatically stored in Atlas if the apply is done in Atlas.
+State represents the status of your infrastructure at the last time Terraform was run. States can be pushed to Terraform Enterprise from Terraform's CLI after an apply is done locally, or state is automatically stored if the apply is done in Terraform Enterprise.
 
 ### State Attributes
 

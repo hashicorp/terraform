@@ -1,33 +1,21 @@
 ---
-title: "Atlas API Documentation"
+layout: "api"
+page_title: "API Documentation"
+sidebar_current: "docs-enterprise-api"
+description: |-
+  Terraform Enterprise provides an API for a **subset of features**.
 ---
 
-# Atlas API Documentation
+# Terraform Enterprise API Documentation
 
-Atlas provides an API for a **subset of features** available. For questions
+Terraform Enterprise provides an API for a **subset of features** available. For questions
 or requests for new API features please email [support@hashicorp.com](mailto:support@hashicorp.com).
 
-## Available Endpoints
+## Available Endpoints Terraform Enterprise
 
-These are the currently supported API endpoints for each product:
-
-### Vagrant
-
-- [Boxes](/help/api/vagrant/boxes)
-- [Box Versions](/help/api/vagrant/box-versions)
-- [Box Providers](/help/api/vagrant/box-providers)
-
-### Packer
-
-- [Build configurations](/help/api/packer/build-configurations)
-- [Build configuration versions](/help/api/packer/build-configuration-versions)
-- [Builds](/help/api/packer/builds)
-
-### Terraform
-
-- [Environments](/help/api/terraform/environments)
-- [Runs](/help/api/terraform/runs)
-- [States](/help/api/terraform/states)
+- [Environments](/docs/enterprise/api/environments.html)
+- [Runs](/docs/enterprise/api/runs.html)
+- [States](/docs/enterprise/api/states.html)
 
 ## Authentication
 

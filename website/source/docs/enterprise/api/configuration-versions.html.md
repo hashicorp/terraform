@@ -1,5 +1,9 @@
 ---
-title: "Build Configuration Versions API"
+layout: "api"
+page_title: "Configuration Versions API"
+sidebar_current: "docs-enterprise-api-configversions"
+description: |-
+  A configuration version represents versions of Terrraform configuration.
 ---
 
 # Configuration Versions API
