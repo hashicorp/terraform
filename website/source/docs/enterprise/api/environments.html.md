@@ -15,7 +15,7 @@ This documentation covers the environment interactions with Terraform.
 
 ### Environment Attributes
 
-<table>
+<table border="1" cellspaceing="5">
   <tr>
     <th>Attribute</th>
     <th>Description</th>

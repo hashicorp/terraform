@@ -17,7 +17,7 @@ configuration.
 
 ### Configuration Attributes
 
-<table>
+<table border="1" cellspaceing="5">
   <tr>
     <th>Attribute</th>
     <th>Description</th>

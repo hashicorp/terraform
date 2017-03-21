@@ -12,7 +12,7 @@ State represents the status of your infrastructure at the last time Terraform wa
 
 ### State Attributes
 
-<table>
+<table border="1" cellspaceing="5">
   <tr>
     <th>Attribute</th>
     <th>Description</th>
