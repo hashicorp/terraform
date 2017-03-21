@@ -47,6 +47,18 @@ func (t *Terraform) Validate() []error {
 	return errs
 }
 
+// Merge t with t2.
+// Any conflicting fields are overwritten by t2.
+func (t *Terraform) Merge(t2 *Terraform) {
+	if t2.RequiredVersion != "" {
+		t.RequiredVersion = t2.RequiredVersion
+	}
+
+	if t2.Backend != nil {
+		t.Backend = t2.Backend
+	}
+}
+
 // Backend is the configuration for the "backend" to use with Terraform.
 // A backend is responsible for all major behavior of Terraform's core.
 // The abstraction layer above the core (the "backend") allows for behavior
