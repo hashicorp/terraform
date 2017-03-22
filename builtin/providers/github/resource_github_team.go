@@ -1,6 +1,8 @@
 package github
 
 import (
+	"context"
+
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -17,15 +19,15 @@ func resourceGithubTeam() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"privacy": &schema.Schema{
+			"privacy": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "secret",
@@ -40,7 +42,7 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 	n := d.Get("name").(string)
 	desc := d.Get("description").(string)
 	p := d.Get("privacy").(string)
-	githubTeam, _, err := client.Organizations.CreateTeam(meta.(*Organization).name, &github.Team{
+	githubTeam, _, err := client.Organizations.CreateTeam(context.TODO(), meta.(*Organization).name, &github.Team{
 		Name:        &n,
 		Description: &desc,
 		Privacy:     &p,
@@ -82,7 +84,7 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	team.Name = &name
 	team.Privacy = &privacy
 
-	team, _, err = client.Organizations.EditTeam(*team.ID, team)
+	team, _, err = client.Organizations.EditTeam(context.TODO(), *team.ID, team)
 	if err != nil {
 		return err
 	}
@@ -93,12 +95,12 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
 	id := toGithubID(d.Id())
-	_, err := client.Organizations.DeleteTeam(id)
+	_, err := client.Organizations.DeleteTeam(context.TODO(), id)
 	return err
 }
 
 func getGithubTeam(d *schema.ResourceData, github *github.Client) (*github.Team, error) {
 	id := toGithubID(d.Id())
-	team, _, err := github.Organizations.GetTeam(id)
+	team, _, err := github.Organizations.GetTeam(context.TODO(), id)
 	return team, err
 }

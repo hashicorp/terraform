@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -65,6 +66,13 @@ func resourceArmAvailabilitySet() *schema.Resource {
 				},
 			},
 
+			"managed": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+				ForceNew: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -82,6 +90,7 @@ func resourceArmAvailabilitySetCreate(d *schema.ResourceData, meta interface{}) 
 	updateDomainCount := d.Get("platform_update_domain_count").(int)
 	faultDomainCount := d.Get("platform_fault_domain_count").(int)
 	tags := d.Get("tags").(map[string]interface{})
+	managed := d.Get("managed").(bool)
 
 	availSet := compute.AvailabilitySet{
 		Name:     &name,
@@ -91,6 +100,13 @@ func resourceArmAvailabilitySetCreate(d *schema.ResourceData, meta interface{}) 
 			PlatformUpdateDomainCount: azure.Int32(int32(updateDomainCount)),
 		},
 		Tags: expandTags(tags),
+	}
+
+	if managed == true {
+		n := "Aligned"
+		availSet.Sku = &compute.Sku{
+			Name: &n,
+		}
 	}
 
 	resp, err := availSetClient.CreateOrUpdate(resGroup, name, availSet)
@@ -128,6 +144,10 @@ func resourceArmAvailabilitySetRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("platform_fault_domain_count", availSet.PlatformFaultDomainCount)
 	d.Set("name", resp.Name)
 	d.Set("location", resp.Location)
+
+	if resp.Sku != nil && resp.Sku.Name != nil {
+		d.Set("managed", strings.EqualFold(*resp.Sku.Name, "Aligned"))
+	}
 
 	flattenAndSetTags(d, resp.Tags)
 

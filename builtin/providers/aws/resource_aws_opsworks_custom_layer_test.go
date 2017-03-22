@@ -24,7 +24,7 @@ func TestAccAWSOpsworksCustomLayer(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAwsOpsworksCustomLayerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksCustomLayerConfigNoVpcCreate(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSOpsworksCustomLayerExists(
@@ -74,7 +74,7 @@ func TestAccAWSOpsworksCustomLayer(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksCustomLayerConfigUpdate(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -219,7 +219,7 @@ func testAccCheckAWSOpsworksCreateLayerAttributes(
 		}
 
 		expectedEbsVolumes := []*opsworks.VolumeConfiguration{
-			&opsworks.VolumeConfiguration{
+			{
 				VolumeType:    aws.String("gp2"),
 				NumberOfDisks: aws.Int64(2),
 				MountPoint:    aws.String("/home"),

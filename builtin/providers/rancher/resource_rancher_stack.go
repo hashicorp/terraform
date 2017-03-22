@@ -3,9 +3,11 @@ package rancher
 import (
 	"fmt"
 	"log"
+	"reflect"
 	"strings"
 	"time"
 
+	compose "github.com/docker/libcompose/config"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
@@ -41,12 +43,14 @@ func resourceRancherStack() *schema.Resource {
 				ForceNew: true,
 			},
 			"docker_compose": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:             schema.TypeString,
+				Optional:         true,
+				DiffSuppressFunc: suppressComposeDiff,
 			},
 			"rancher_compose": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:             schema.TypeString,
+				Optional:         true,
+				DiffSuppressFunc: suppressComposeDiff,
 			},
 			"environment": {
 				Type:     schema.TypeMap,
@@ -72,12 +76,14 @@ func resourceRancherStack() *schema.Resource {
 				Optional: true,
 			},
 			"rendered_docker_compose": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:             schema.TypeString,
+				Computed:         true,
+				DiffSuppressFunc: suppressComposeDiff,
 			},
 			"rendered_rancher_compose": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:             schema.TypeString,
+				Computed:         true,
+				DiffSuppressFunc: suppressComposeDiff,
 			},
 		},
 	}
@@ -183,6 +189,7 @@ func resourceRancherStackRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("start_on_create", stack.StartOnCreate)
+	d.Set("finish_upgrade", d.Get("finish_upgrade").(bool))
 
 	return nil
 }
@@ -430,4 +437,20 @@ func makeStackData(d *schema.ResourceData, meta interface{}) (data map[string]in
 	}
 
 	return data, nil
+}
+
+func suppressComposeDiff(k, old, new string, d *schema.ResourceData) bool {
+	cOld, err := compose.CreateConfig([]byte(old))
+	if err != nil {
+		// TODO: log?
+		return false
+	}
+
+	cNew, err := compose.CreateConfig([]byte(new))
+	if err != nil {
+		// TODO: log?
+		return false
+	}
+
+	return reflect.DeepEqual(cOld, cNew)
 }

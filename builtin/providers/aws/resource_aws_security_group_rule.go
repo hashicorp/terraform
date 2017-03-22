@@ -61,6 +61,13 @@ func resourceAwsSecurityGroupRule() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
+			"ipv6_cidr_blocks": {
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+
 			"prefix_list_ids": {
 				Type:     schema.TypeList,
 				Optional: true,
@@ -400,6 +407,19 @@ func findRuleMatch(p *ec2.IpPermission, rules []*ec2.IpPermission, isVPC bool) *
 			continue
 		}
 
+		remaining = len(p.Ipv6Ranges)
+		for _, ipv6 := range p.Ipv6Ranges {
+			for _, ipv6ip := range r.Ipv6Ranges {
+				if *ipv6.CidrIpv6 == *ipv6ip.CidrIpv6 {
+					remaining--
+				}
+			}
+		}
+
+		if remaining > 0 {
+			continue
+		}
+
 		remaining = len(p.PrefixListIds)
 		for _, pl := range p.PrefixListIds {
 			for _, rpl := range r.PrefixListIds {
@@ -455,6 +475,18 @@ func ipPermissionIDHash(sg_id, ruleType string, ip *ec2.IpPermission) string {
 		s := make([]string, len(ip.IpRanges))
 		for i, r := range ip.IpRanges {
 			s[i] = *r.CidrIp
+		}
+		sort.Strings(s)
+
+		for _, v := range s {
+			buf.WriteString(fmt.Sprintf("%s-", v))
+		}
+	}
+
+	if len(ip.Ipv6Ranges) > 0 {
+		s := make([]string, len(ip.Ipv6Ranges))
+		for i, r := range ip.Ipv6Ranges {
+			s[i] = *r.CidrIpv6
 		}
 		sort.Strings(s)
 
@@ -555,6 +587,18 @@ func expandIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup) (*ec2.IpPermiss
 		}
 	}
 
+	if raw, ok := d.GetOk("ipv6_cidr_blocks"); ok {
+		list := raw.([]interface{})
+		perm.Ipv6Ranges = make([]*ec2.Ipv6Range, len(list))
+		for i, v := range list {
+			cidrIP, ok := v.(string)
+			if !ok {
+				return nil, fmt.Errorf("empty element found in ipv6_cidr_blocks - consider using the compact function")
+			}
+			perm.Ipv6Ranges[i] = &ec2.Ipv6Range{CidrIpv6: aws.String(cidrIP)}
+		}
+	}
+
 	if raw, ok := d.GetOk("prefix_list_ids"); ok {
 		list := raw.([]interface{})
 		perm.PrefixListIds = make([]*ec2.PrefixListId, len(list))
@@ -584,6 +628,12 @@ func setFromIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup, rule *ec2.IpPe
 
 	d.Set("cidr_blocks", cb)
 
+	var ipv6 []string
+	for _, ip := range rule.Ipv6Ranges {
+		ipv6 = append(ipv6, *ip.CidrIpv6)
+	}
+	d.Set("ipv6_cidr_blocks", ipv6)
+
 	var pl []string
 	for _, p := range rule.PrefixListIds {
 		pl = append(pl, *p.PrefixListId)
@@ -603,15 +653,16 @@ func setFromIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup, rule *ec2.IpPe
 	return nil
 }
 
-// Validates that either 'cidr_blocks', 'self', or 'source_security_group_id' is set
+// Validates that either 'cidr_blocks', 'ipv6_cidr_blocks', 'self', or 'source_security_group_id' is set
 func validateAwsSecurityGroupRule(d *schema.ResourceData) error {
 	_, blocksOk := d.GetOk("cidr_blocks")
+	_, ipv6Ok := d.GetOk("ipv6_cidr_blocks")
 	_, sourceOk := d.GetOk("source_security_group_id")
 	_, selfOk := d.GetOk("self")
 	_, prefixOk := d.GetOk("prefix_list_ids")
-	if !blocksOk && !sourceOk && !selfOk && !prefixOk {
+	if !blocksOk && !sourceOk && !selfOk && !prefixOk && !ipv6Ok {
 		return fmt.Errorf(
-			"One of ['cidr_blocks', 'self', 'source_security_group_id', 'prefix_list_ids'] must be set to create an AWS Security Group Rule")
+			"One of ['cidr_blocks', 'ipv6_cidr_blocks', 'self', 'source_security_group_id', 'prefix_list_ids'] must be set to create an AWS Security Group Rule")
 	}
 	return nil
 }

@@ -71,7 +71,7 @@ func TestAccAWSOpsworksInstance(t *testing.T) {
 						"aws_opsworks_instance.tf-acc", "tenancy", "default",
 					),
 					resource.TestCheckResourceAttr(
-						"aws_opsworks_instance.tf-acc", "os", "Amazon Linux 2014.09", // inherited from opsworks_stack_test
+						"aws_opsworks_instance.tf-acc", "os", "Amazon Linux 2016.09", // inherited from opsworks_stack_test
 					),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_instance.tf-acc", "root_device_type", "ebs", // inherited from opsworks_stack_test

@@ -164,6 +164,13 @@ func resourceAwsCodeBuildProject() *schema.Resource {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				ValidateFunc: validateAwsCodeBuildTimeout,
+				Removed:      "This field has been removed. Please use build_timeout instead",
+			},
+			"build_timeout": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Default:      "60",
+				ValidateFunc: validateAwsCodeBuildTimeout,
 			},
 			"tags": tagsSchema(),
 		},
@@ -196,7 +203,7 @@ func resourceAwsCodeBuildProjectCreate(d *schema.ResourceData, meta interface{})
 		params.ServiceRole = aws.String(v.(string))
 	}
 
-	if v, ok := d.GetOk("timeout"); ok {
+	if v, ok := d.GetOk("build_timeout"); ok {
 		params.TimeoutInMinutes = aws.Int64(int64(v.(int)))
 	}
 
@@ -373,7 +380,7 @@ func resourceAwsCodeBuildProjectRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("encryption_key", project.EncryptionKey)
 	d.Set("name", project.Name)
 	d.Set("service_role", project.ServiceRole)
-	d.Set("timeout", project.TimeoutInMinutes)
+	d.Set("build_timeout", project.TimeoutInMinutes)
 
 	if err := d.Set("tags", tagsToMapCodeBuild(project.Tags)); err != nil {
 		return err
@@ -416,8 +423,8 @@ func resourceAwsCodeBuildProjectUpdate(d *schema.ResourceData, meta interface{})
 		params.ServiceRole = aws.String(d.Get("service_role").(string))
 	}
 
-	if d.HasChange("timeout") {
-		params.TimeoutInMinutes = aws.Int64(int64(d.Get("timeout").(int)))
+	if d.HasChange("build_timeout") {
+		params.TimeoutInMinutes = aws.Int64(int64(d.Get("build_timeout").(int)))
 	}
 
 	// The documentation clearly says "The replacement set of tags for this build project."

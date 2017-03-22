@@ -319,7 +319,7 @@ func resourceAwsS3BucketObjectDelete(d *schema.ResourceData, meta interface{}) e
 		}
 		_, err := s3conn.DeleteObject(&input)
 		if err != nil {
-			return fmt.Errorf("Error deleting S3 bucket object: %s", err)
+			return fmt.Errorf("Error deleting S3 bucket object: %s  Bucket: %q Object: %q", err, bucket, key)
 		}
 	}
 

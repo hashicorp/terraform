@@ -62,19 +62,6 @@ The following keys can be used to configure the provider.
     * `GCLOUD_REGION`
     * `CLOUDSDK_COMPUTE_REGION`
 
-The following keys are supported for backwards compatibility, and may be
-removed in a future version:
-
-* `account_file` - __Deprecated: please use `credentials` instead.__
-  Path to or contents of the JSON file used to describe your
-  account credentials, downloaded from Google Cloud Console. More details on
-  retrieving this file are below. The `account file` can be "" if you are running
-  terraform from a GCE instance with a properly-configured [Compute Engine
-  Service Account](https://cloud.google.com/compute/docs/authentication). This
-  can also be specified with the `GOOGLE_ACCOUNT_FILE` shell environment
-  variable.
-
-
 ## Authentication JSON File
 
 Authenticating with Google Cloud services requires a JSON

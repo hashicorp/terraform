@@ -27,7 +27,7 @@ resource "aws_ecs_service" "mongo" {
 
   placement_strategy {
     type  = "binpack"
-    field = "CPU"
+    field = "cpu"
   }
 
   load_balancer {

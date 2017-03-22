@@ -11,6 +11,10 @@ import (
 	"google.golang.org/api/googleapi"
 )
 
+var (
+	instanceGroupManagerURL = regexp.MustCompile("^https://www.googleapis.com/compute/v1/projects/([a-z][a-z0-9-]{5}(?:[-a-z0-9]{0,23}[a-z0-9])?)/zones/([a-z0-9-]*)/instanceGroupManagers/([^/]*)")
+)
+
 func resourceContainerCluster() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceContainerClusterCreate,
@@ -460,7 +464,28 @@ func resourceContainerClusterRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("network", d.Get("network").(string))
 	d.Set("subnetwork", cluster.Subnetwork)
 	d.Set("node_config", flattenClusterNodeConfig(cluster.NodeConfig))
-	d.Set("instance_group_urls", cluster.InstanceGroupUrls)
+
+	// container engine's API currently mistakenly returns the instance group manager's
+	// URL instead of the instance group's URL in its responses. This shim detects that
+	// error, and corrects it, by fetching the instance group manager URL and retrieving
+	// the instance group manager, then using that to look up the instance group URL, which
+	// is then substituted.
+	//
+	// This should be removed when the API response is fixed.
+	instanceGroupURLs := make([]string, 0, len(cluster.InstanceGroupUrls))
+	for _, u := range cluster.InstanceGroupUrls {
+		if !instanceGroupManagerURL.MatchString(u) {
+			instanceGroupURLs = append(instanceGroupURLs, u)
+			continue
+		}
+		matches := instanceGroupManagerURL.FindStringSubmatch(u)
+		instanceGroupManager, err := config.clientCompute.InstanceGroupManagers.Get(matches[1], matches[2], matches[3]).Do()
+		if err != nil {
+			return fmt.Errorf("Error reading instance group manager returned as an instance group URL: %s", err)
+		}
+		instanceGroupURLs = append(instanceGroupURLs, instanceGroupManager.InstanceGroup)
+	}
+	d.Set("instance_group_urls", instanceGroupURLs)
 
 	return nil
 }

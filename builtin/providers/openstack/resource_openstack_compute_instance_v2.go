@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/availabilityzones"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/floatingips"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
@@ -103,6 +104,7 @@ func resourceComputeInstanceV2() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 			"network": &schema.Schema{
 				Type:     schema.TypeList,
@@ -318,6 +320,11 @@ func resourceComputeInstanceV2() *schema.Resource {
 				Set: resourceComputeInstancePersonalityHash,
 			},
 			"stop_before_destroy": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"force_delete": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
@@ -570,6 +577,21 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 	if err := getVolumeAttachments(computeClient, d); err != nil {
 		return err
 	}
+
+	// Build a custom struct for the availability zone extension
+	var serverWithAZ struct {
+		servers.Server
+		availabilityzones.ServerExt
+	}
+
+	// Do another Get so the above work is not disturbed.
+	err = servers.Get(computeClient, d.Id()).ExtractInto(&serverWithAZ)
+	if err != nil {
+		return CheckDeleted(d, err, "server")
+	}
+
+	// Set the availability zone
+	d.Set("availability_zone", serverWithAZ.AvailabilityZone)
 
 	return nil
 }
@@ -865,9 +887,18 @@ func resourceComputeInstanceV2Delete(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
-	err = servers.Delete(computeClient, d.Id()).ExtractErr()
-	if err != nil {
-		return fmt.Errorf("Error deleting OpenStack server: %s", err)
+	if d.Get("force_delete").(bool) {
+		log.Printf("[DEBUG] Force deleting OpenStack Instance %s", d.Id())
+		err = servers.ForceDelete(computeClient, d.Id()).ExtractErr()
+		if err != nil {
+			return fmt.Errorf("Error deleting OpenStack server: %s", err)
+		}
+	} else {
+		log.Printf("[DEBUG] Deleting OpenStack Instance %s", d.Id())
+		err = servers.Delete(computeClient, d.Id()).ExtractErr()
+		if err != nil {
+			return fmt.Errorf("Error deleting OpenStack server: %s", err)
+		}
 	}
 
 	// Wait for the instance to delete before moving on.

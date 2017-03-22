@@ -63,8 +63,8 @@ func TestResourceTimeout_ConfigDecode_badkey(t *testing.T) {
 
 			raw, err := config.NewRawConfig(
 				map[string]interface{}{
-					"foo":     "bar",
-					"timeout": c.Config,
+					"foo":             "bar",
+					TimeoutsConfigKey: c.Config,
 				})
 			if err != nil {
 				t.Fatalf("err: %s", err)
@@ -104,7 +104,7 @@ func TestResourceTimeout_ConfigDecode(t *testing.T) {
 	raw, err := config.NewRawConfig(
 		map[string]interface{}{
 			"foo": "bar",
-			"timeout": []map[string]interface{}{
+			TimeoutsConfigKey: []map[string]interface{}{
 				map[string]interface{}{
 					"create": "2m",
 				},

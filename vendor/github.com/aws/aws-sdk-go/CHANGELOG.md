@@ -1,8 +1,83 @@
+Release v1.7.9 (2017-03-13)
+===
+
+Service Client Updates
+---
+* `service/devicefarm`: Updates service API, documentation, paginators, and examples
+  * Network shaping allows users to simulate network connections and conditions while testing their Android, iOS, and web apps with AWS Device Farm.
+* `service/cloudwatchevents`: Updates service API, documentation, and examples
+
+SDK Enhancement
+===
+* `aws/session`: Add support for side loaded CA bundles (#1117)
+  * Adds supports for side loading Certificate Authority bundle files to the SDK using AWS_CA_BUNDLE environment variable or CustomCABundle session option.
+* `service/s3/s3crypto`: Add support for AES/CBC/PKCS5Padding (#1124)
+
+SDK Bug
+===
+* `service/rds`: Fixing issue when not providing `SourceRegion` on cross
+region operations (#1127)
+* `service/rds`: Enables cross region for `CopyDBClusterSnapshot` and
+`CreateDBCluster` (#1128)
+
+Release v1.7.8 (2017-03-10)
+===
+
+Service Client Updates
+---
+* `service/codedeploy`: Updates service paginators
+  * Add paginators for Codedeploy
+* `service/emr`: Updates service API, documentation, and paginators
+  * This release includes support for instance fleets in Amazon EMR.
+
+Release v1.7.7 (2017-03-09)
+===
+
+Service Client Updates
+---
+* `service/apigateway`: Updates service API, documentation, and paginators
+  * API Gateway has added support for ACM certificates on custom domain names. Both Amazon-issued certificates and uploaded third-part certificates are supported.
+* `service/clouddirectory`: Updates service API, documentation, and paginators
+  * Introduces a new Cloud Directory API that enables you to retrieve all available parent paths for any type of object (a node, leaf node, policy node, and index node) in a hierarchy.
+
+Release v1.7.6 (2017-03-09)
+===
+
+Service Client Updates
+---
+* `service/organizations`: Updates service documentation and examples
+  * Doc-only Update for Organizations: Add SDK Code Snippets
+* `service/workdocs`: Adds new service
+  * The Administrative SDKs for Amazon WorkDocs provides full administrator level access to WorkDocs site resources, allowing developers to integrate their applications to manage WorkDocs users, content and permissions programmatically
+
+Release v1.7.5 (2017-03-08)
+===
+
+Service Client Updates
+---
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/rds`: Updates service API and documentation
+  * Add support to using encrypted clusters as cross-region replication masters. Update CopyDBClusterSnapshot API to support encrypted cross region copy of Aurora cluster snapshots.
+
+Release v1.7.4 (2017-03-06)
+===
+
+Service Client Updates
+---
+* `service/budgets`: Updates service API and paginators
+  * When creating or editing a budget via the AWS Budgets API you can define notifications that are sent to subscribers when the actual or forecasted value for cost or usage exceeds the notificationThreshold associated with the budget notification object. Starting today, the maximum allowed value for the notificationThreshold was raised from 100 to 300. This change was made to give you more flexibility when setting budget notifications.
+* `service/cloudtrail`: Updates service documentation and paginators
+  * Doc-only update for AWSCloudTrail: Updated links/descriptions
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/opsworkscm`: Updates service API, documentation, and paginators
+  * OpsWorks for Chef Automate has added a new field "AssociatePublicIpAddress" to the CreateServer request, "CloudFormationStackArn" to the Server model and "TERMINATED" server state.
+
 
 Release v1.7.3 (2017-02-28)
 ===
 
 Service Client Updates
+---
 * `service/mturk`: Renaming service
   * service/mechanicalturkrequesterservice was renamed to service/mturk. Be sure to change any references of the old client to the new.
 

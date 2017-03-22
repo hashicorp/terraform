@@ -118,10 +118,10 @@ func resourceComputeBackendService() *schema.Resource {
 			},
 
 			"region": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "This parameter has been removed as it was never used",
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Removed:  "region has been removed as it was never used",
 			},
 
 			"self_link": &schema.Schema{
