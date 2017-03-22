@@ -2027,3 +2027,133 @@ func sliceContainsMap(l []interface{}, m map[string]interface{}) (int, bool) {
 
 	return -1, false
 }
+
+func expandCognitoIdentityPoolRoles(config map[string]interface{}) map[string]*string {
+	m := map[string]*string{}
+	for k, v := range config {
+		s := v.(string)
+		m[k] = &s
+	}
+	return m
+}
+
+func flattenCognitoIdentityPoolRoles(config map[string]*string) map[string]string {
+	m := map[string]string{}
+	for k, v := range config {
+		m[k] = *v
+	}
+	return m
+}
+
+func expandCognitoIdentityPoolRoleMappingsAttachment(rms []interface{}) map[string]*cognitoidentity.RoleMapping {
+	values := make(map[string]*cognitoidentity.RoleMapping, 0)
+
+	if len(rms) == 0 {
+		return values
+	}
+
+	data := rms[0].(map[string]interface{})
+	for _, v := range data["role_mapping"].(*schema.Set).List() {
+		s := v.(map[string]interface{}) // v is a set with entries: key & value
+		key := s["key"].(string)
+		rmv := s["value"].(*schema.Set).List()
+		value := rmv[0].(map[string]interface{})
+
+		roleMapping := &cognitoidentity.RoleMapping{
+			Type: aws.String(value["type"].(string)),
+		}
+
+		if sv, ok := value["ambiguous_role_resolution"].(string); ok {
+			roleMapping.AmbiguousRoleResolution = aws.String(sv)
+		}
+
+		if rcs, ok := value["rules_configuration"].(*schema.Set); ok && len(rcs.List()) > 0 {
+			rct := &cognitoidentity.RulesConfigurationType{}
+			rc := rcs.List()[0].(map[string]interface{})
+			rules := rc["rules"].([]interface{})
+			mappingRules := make([]*cognitoidentity.MappingRule, 0)
+
+			for _, r := range rules {
+				rule := r.(map[string]interface{})
+				mr := &cognitoidentity.MappingRule{
+					Claim:     aws.String(rule["claim"].(string)),
+					MatchType: aws.String(rule["match_type"].(string)),
+					RoleARN:   aws.String(rule["role_arn"].(string)),
+					Value:     aws.String(rule["value"].(string)),
+				}
+
+				mappingRules = append(mappingRules, mr)
+			}
+
+			rct.Rules = mappingRules
+			roleMapping.RulesConfiguration = rct
+		}
+
+		values[key] = roleMapping
+	}
+
+	return values
+}
+
+func flattenCognitoIdentityPoolRoleMappingsAttachment(rms map[string]*cognitoidentity.RoleMapping) []interface{} {
+	roleMappings := make(map[string]interface{}, 0)
+
+	if rms == nil {
+		return []interface{}{}
+	}
+
+	for k, v := range rms {
+		m := make(map[string]interface{})
+
+		if v == nil {
+			return nil
+		}
+
+		rmv := make(map[string]interface{})
+
+		if v.Type != nil {
+			rmv["type"] = *v.Type
+		}
+
+		if v.AmbiguousRoleResolution != nil {
+			rmv["ambiguous_role_resolution"] = *v.AmbiguousRoleResolution
+		}
+
+		if v.RulesConfiguration != nil {
+			config := flattenCognitoIdentityPoolRulesConfiguration(v.RulesConfiguration)
+			rmv["rules_configuration"] = schema.NewSet(cognitoRoleMappingRulesConfigurationHash, []interface{}{config})
+		}
+
+		m["key"] = k
+		m["value"] = schema.NewSet(cognitoRoleMappingValueHash, []interface{}{rmv})
+		roleMappings["role_mapping"] = schema.NewSet(cognitoRoleMappingHash, []interface{}{m})
+	}
+
+	return []interface{}{roleMappings}
+}
+
+func flattenCognitoIdentityPoolRulesConfiguration(d *cognitoidentity.RulesConfigurationType) map[string]interface{} {
+	rulesConfigurations := make(map[string]interface{})
+
+	if d.Rules != nil {
+		rulesConfigurations["rules"] = flattenCognitoIdentityPoolRulesConfigurationRules(d.Rules)
+	}
+
+	return rulesConfigurations
+}
+
+func flattenCognitoIdentityPoolRulesConfigurationRules(d []*cognitoidentity.MappingRule) []interface{} {
+	rules := make([]interface{}, 0)
+
+	for _, rule := range d {
+		r := make(map[string]interface{})
+		r["claim"] = *rule.Claim
+		r["match_type"] = *rule.MatchType
+		r["role_arn"] = *rule.RoleARN
+		r["value"] = *rule.Value
+
+		rules = append(rules, r)
+	}
+
+	return rules
+}
