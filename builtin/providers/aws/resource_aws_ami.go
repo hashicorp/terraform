@@ -18,9 +18,10 @@ import (
 )
 
 const (
-	AWSAMIRetryTimeout    = 10 * time.Minute
-	AWSAMIRetryDelay      = 5 * time.Second
-	AWSAMIRetryMinTimeout = 3 * time.Second
+	AWSAMIRetryTimeout       = 10 * time.Minute
+	AWSAMIDeleteRetryTimeout = 20 * time.Minute
+	AWSAMIRetryDelay         = 5 * time.Second
+	AWSAMIRetryMinTimeout    = 3 * time.Second
 )
 
 func resourceAwsAmi() *schema.Resource {
@@ -329,7 +330,7 @@ func resourceAwsAmiWaitForDestroy(id string, client *ec2.EC2) error {
 		Pending:    []string{"available", "pending", "failed"},
 		Target:     []string{"destroyed"},
 		Refresh:    AMIStateRefreshFunc(client, id),
-		Timeout:    AWSAMIRetryTimeout,
+		Timeout:    AWSAMIDeleteRetryTimeout,
 		Delay:      AWSAMIRetryDelay,
 		MinTimeout: AWSAMIRetryTimeout,
 	}
