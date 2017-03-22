@@ -384,6 +384,32 @@ backend (s3)
 	}
 }
 
+// test that the alternate, more obvious JSON format also decodes properly
+func TestLoadFile_terraformBackendJSON2(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "terraform-backend-2.tf.json"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	if c.Dir != "" {
+		t.Fatalf("bad: %#v", c.Dir)
+	}
+
+	{
+		actual := terraformStr(c.Terraform)
+		expected := strings.TrimSpace(`
+backend (s3)
+  foo`)
+		if actual != expected {
+			t.Fatalf("bad:\n%s", actual)
+		}
+	}
+}
+
 func TestLoadFile_terraformBackendMulti(t *testing.T) {
 	_, err := LoadFile(filepath.Join(fixtureDir, "terraform-backend-multi.tf"))
 	if err == nil {
