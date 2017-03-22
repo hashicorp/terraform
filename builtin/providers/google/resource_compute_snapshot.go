@@ -40,24 +40,24 @@ func resourceComputeSnapshot() *schema.Resource {
 				Computed: true,
 			},
 
-			"sourcedisk_encryption_key_raw": &schema.Schema{
+			"source_disk_encryption_key_raw": &schema.Schema{
 				Type:      schema.TypeString,
 				Optional:  true,
 				ForceNew:  true,
 				Sensitive: true,
 			},
 
-			"sourcedisk_encryption_key_sha256": &schema.Schema{
+			"source_disk_encryption_key_sha256": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"sourcedisk_id": &schema.Schema{
+			"source_disk_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"sourcedisk": &schema.Schema{
+			"source_disk": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -102,7 +102,7 @@ func resourceComputeSnapshotCreate(d *schema.ResourceData, meta interface{}) err
 		snapshot.SnapshotEncryptionKey.RawKey = v.(string)
 	}
 
-	if v, ok := d.GetOk("sourcedisk_encryption_key_raw"); ok {
+	if v, ok := d.GetOk("source_disk_encryption_key_raw"); ok {
 		snapshot.SourceDiskEncryptionKey = &compute.CustomerEncryptionKey{}
 		snapshot.SourceDiskEncryptionKey.RawKey = v.(string)
 	}
