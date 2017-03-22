@@ -24,7 +24,7 @@ func TestAccAWSAMIFromInstance(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(testAccAWSAMIFromInstanceConfig, rInt),
+				Config: testAccAWSAMIFromInstanceConfig(rInt),
 				Check: func(state *terraform.State) error {
 					rs, ok := state.RootModule().Resources["aws_ami_from_instance.test"]
 					if !ok {
@@ -139,24 +139,25 @@ func TestAccAWSAMIFromInstance(t *testing.T) {
 	})
 }
 
-var testAccAWSAMIFromInstanceConfig = `
-provider "aws" {
-	region = "us-east-1"
-}
+func testAccAWSAMIFromInstanceConfig(rInt int) string {
+	return fmt.Sprintf(`
+	provider "aws" {
+		region = "us-east-1"
+	}
 
-resource "aws_instance" "test" {
-    // This AMI has one block device mapping, so we expect to have
-    // one snapshot in our created AMI.
-    ami = "ami-408c7f28"
-    instance_type = "t1.micro"
-		tags {
-			Name = "testAccAWSAMIFromInstanceConfig_TestAMI"
-		}
-}
+	resource "aws_instance" "test" {
+			// This AMI has one block device mapping, so we expect to have
+			// one snapshot in our created AMI.
+			ami = "ami-408c7f28"
+			instance_type = "t1.micro"
+			tags {
+				Name = "testAccAWSAMIFromInstanceConfig_TestAMI"
+			}
+	}
 
-resource "aws_ami_from_instance" "test" {
-    name = "terraform-acc-ami-from-instance-%d"
-    description = "Testing Terraform aws_ami_from_instance resource"
-    source_instance_id = "${aws_instance.test.id}"
+	resource "aws_ami_from_instance" "test" {
+			name = "terraform-acc-ami-from-instance-%d"
+			description = "Testing Terraform aws_ami_from_instance resource"
+			source_instance_id = "${aws_instance.test.id}"
+	}`, rInt)
 }
-`
