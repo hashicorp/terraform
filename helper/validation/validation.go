@@ -2,6 +2,7 @@ package validation
 
 import (
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -44,6 +45,56 @@ func StringInSlice(valid []string, ignoreCase bool) schema.SchemaValidateFunc {
 		}
 
 		es = append(es, fmt.Errorf("expected %s to be one of %v, got %s", k, valid, v))
+		return
+	}
+}
+
+// StringLenBetween returns a SchemaValidateFunc which tests if the provided value
+// is of type string and has length between min and max (inclusive)
+func StringLenBetween(min, max int) schema.SchemaValidateFunc {
+	return func(i interface{}, k string) (s []string, es []error) {
+		v, ok := i.(string)
+		if !ok {
+			es = append(es, fmt.Errorf("expected type of %s to be string", k))
+			return
+		}
+		if len(v) < min || len(v) > max {
+			es = append(es, fmt.Errorf("expected length of %s to be in the range (%d - %d), got %s", k, min, max, v))
+		}
+		return
+	}
+}
+
+// CIDRNetwork returns a SchemaValidateFunc which tests if the provided value
+// is of type string, is in valid CIDR network notation, and has significant bits between min and max (inclusive)
+func CIDRNetwork(min, max int) schema.SchemaValidateFunc {
+	return func(i interface{}, k string) (s []string, es []error) {
+		v, ok := i.(string)
+		if !ok {
+			es = append(es, fmt.Errorf("expected type of %s to be string", k))
+			return
+		}
+
+		_, ipnet, err := net.ParseCIDR(v)
+		if err != nil {
+			es = append(es, fmt.Errorf(
+				"expected %s to contain a valid CIDR, got: %s with err: %s", k, v, err))
+			return
+		}
+
+		if ipnet == nil || v != ipnet.String() {
+			es = append(es, fmt.Errorf(
+				"expected %s to contain a valid network CIDR, expected %s, got %s",
+				k, ipnet, v))
+		}
+
+		sigbits, _ := ipnet.Mask.Size()
+		if sigbits < min || sigbits > max {
+			es = append(es, fmt.Errorf(
+				"expected %q to contain a network CIDR with between %d and %d significant bits, got: %d",
+				k, min, max, sigbits))
+		}
+
 		return
 	}
 }
