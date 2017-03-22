@@ -467,7 +467,7 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 
 	// Wait until it's deleted
 	wait := resource.StateChangeConf{
-		Pending:    []string{"DRAINING"},
+		Pending:    []string{"ACTIVE", "DRAINING"},
 		Target:     []string{"INACTIVE"},
 		Timeout:    10 * time.Minute,
 		MinTimeout: 1 * time.Second,
