@@ -24,6 +24,14 @@ func RandInt() int {
 	return rand.New(rand.NewSource(time.Now().UnixNano())).Int()
 }
 
+func RandIntRange(min int, max int) int {
+	reseed()
+	source := rand.New(rand.NewSource(time.Now().UnixNano()))
+	rangeMax := max - min
+
+	return int(source.Int31n(int32(rangeMax)))
+}
+
 // RandString generates a random alphanumeric string of the length specified
 func RandString(strlen int) string {
 	return RandStringFromCharSet(strlen, CharSetAlphaNum)
