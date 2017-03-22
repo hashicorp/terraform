@@ -435,13 +435,8 @@ func resourceAwsOpsworksStackUpdate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	req.ChefConfiguration = &opsworks.ChefConfiguration{
-		ManageBerkshelf: aws.Bool(d.Get("manage_berkshelf").(bool)),
-	}
-
-	if v := d.Get("manage_berkshelf").(bool); v {
-		req.ChefConfiguration = &opsworks.ChefConfiguration{
-			BerkshelfVersion: aws.String(d.Get("berkshelf_version").(string)),
-		}
+		BerkshelfVersion: aws.String(d.Get("berkshelf_version").(string)),
+		ManageBerkshelf:  aws.Bool(d.Get("manage_berkshelf").(bool)),
 	}
 
 	req.ConfigurationManager = &opsworks.StackConfigurationManager{
