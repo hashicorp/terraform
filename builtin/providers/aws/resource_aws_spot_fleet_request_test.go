@@ -100,9 +100,9 @@ func TestAccAWSSpotFleetRequest_lowestPriceAzInGivenList(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_spot_fleet_request.foo", "launch_specification.#", "2"),
 					resource.TestCheckResourceAttr(
-						"aws_spot_fleet_request.foo", "launch_specification.1590006269.availability_zone", "us-west-2a"),
+						"aws_spot_fleet_request.foo", "launch_specification.335709043.availability_zone", "us-west-2a"),
 					resource.TestCheckResourceAttr(
-						"aws_spot_fleet_request.foo", "launch_specification.3809475891.availability_zone", "us-west-2b"),
+						"aws_spot_fleet_request.foo", "launch_specification.1671188867.availability_zone", "us-west-2b"),
 				),
 			},
 		},
@@ -154,13 +154,13 @@ func TestAccAWSSpotFleetRequest_multipleInstanceTypesInSameAz(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_spot_fleet_request.foo", "launch_specification.#", "2"),
 					resource.TestCheckResourceAttr(
-						"aws_spot_fleet_request.foo", "launch_specification.1590006269.instance_type", "m1.small"),
+						"aws_spot_fleet_request.foo", "launch_specification.335709043.instance_type", "m1.small"),
 					resource.TestCheckResourceAttr(
-						"aws_spot_fleet_request.foo", "launch_specification.1590006269.availability_zone", "us-west-2a"),
+						"aws_spot_fleet_request.foo", "launch_specification.335709043.availability_zone", "us-west-2a"),
 					resource.TestCheckResourceAttr(
-						"aws_spot_fleet_request.foo", "launch_specification.3079734941.instance_type", "m3.large"),
+						"aws_spot_fleet_request.foo", "launch_specification.590403189.instance_type", "m3.large"),
 					resource.TestCheckResourceAttr(
-						"aws_spot_fleet_request.foo", "launch_specification.3079734941.availability_zone", "us-west-2a"),
+						"aws_spot_fleet_request.foo", "launch_specification.590403189.availability_zone", "us-west-2a"),
 				),
 			},
 		},
@@ -214,13 +214,13 @@ func TestAccAWSSpotFleetRequest_overriddingSpotPrice(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_spot_fleet_request.foo", "launch_specification.#", "2"),
 					resource.TestCheckResourceAttr(
-						"aws_spot_fleet_request.foo", "launch_specification.522395050.spot_price", "0.01"),
+						"aws_spot_fleet_request.foo", "launch_specification.4143232216.spot_price", "0.01"),
 					resource.TestCheckResourceAttr(
-						"aws_spot_fleet_request.foo", "launch_specification.522395050.instance_type", "m3.large"),
+						"aws_spot_fleet_request.foo", "launch_specification.4143232216.instance_type", "m3.large"),
 					resource.TestCheckResourceAttr(
-						"aws_spot_fleet_request.foo", "launch_specification.1590006269.spot_price", ""), //there will not be a value here since it's not overriding
+						"aws_spot_fleet_request.foo", "launch_specification.335709043.spot_price", ""), //there will not be a value here since it's not overriding
 					resource.TestCheckResourceAttr(
-						"aws_spot_fleet_request.foo", "launch_specification.1590006269.instance_type", "m1.small"),
+						"aws_spot_fleet_request.foo", "launch_specification.335709043.instance_type", "m1.small"),
 				),
 			},
 		},
@@ -289,13 +289,13 @@ func TestAccAWSSpotFleetRequest_withWeightedCapacity(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_spot_fleet_request.foo", "launch_specification.#", "2"),
 					resource.TestCheckResourceAttr(
-						"aws_spot_fleet_request.foo", "launch_specification.2325690000.weighted_capacity", "3"),
+						"aws_spot_fleet_request.foo", "launch_specification.4120185872.weighted_capacity", "3"),
 					resource.TestCheckResourceAttr(
-						"aws_spot_fleet_request.foo", "launch_specification.2325690000.instance_type", "r3.large"),
+						"aws_spot_fleet_request.foo", "launch_specification.4120185872.instance_type", "r3.large"),
 					resource.TestCheckResourceAttr(
-						"aws_spot_fleet_request.foo", "launch_specification.3079734941.weighted_capacity", "6"),
+						"aws_spot_fleet_request.foo", "launch_specification.590403189.weighted_capacity", "6"),
 					resource.TestCheckResourceAttr(
-						"aws_spot_fleet_request.foo", "launch_specification.3079734941.instance_type", "m3.large"),
+						"aws_spot_fleet_request.foo", "launch_specification.590403189.instance_type", "m3.large"),
 				),
 			},
 		},

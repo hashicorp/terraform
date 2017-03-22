@@ -51,7 +51,7 @@ func dataSourceAwsEcsTaskDefinitionRead(d *schema.ResourceData, meta interface{}
 	})
 
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed getting task definition %s %q", err, d.Get("task_definition").(string))
 	}
 
 	taskDefinition := *desc.TaskDefinition

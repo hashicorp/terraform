@@ -156,7 +156,7 @@ func TestResourceDiff_Timeout_diff(t *testing.T) {
 	raw, err := config.NewRawConfig(
 		map[string]interface{}{
 			"foo": 42,
-			"timeout": []map[string]interface{}{
+			"timeouts": []map[string]interface{}{
 				map[string]interface{}{
 					"create": "2h",
 				}},

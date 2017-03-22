@@ -37,9 +37,9 @@ type APIReference struct {
 }
 
 type errorObject struct {
-	Code   int      `json:"code,omitempty"`
-	Mesage string   `json:"message,omitempty"`
-	Errors []string `json:"errors,omitempty"`
+	Code    int         `json:"code,omitempty"`
+	Message string      `json:"message,omitempty"`
+	Errors  interface{} `json:"errors,omitempty"`
 }
 
 // Client wraps http client

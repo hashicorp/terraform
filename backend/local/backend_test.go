@@ -20,6 +20,11 @@ func TestLocal_impl(t *testing.T) {
 	var _ backend.CLI = new(Local)
 }
 
+func TestLocal_backend(t *testing.T) {
+	b := TestLocal(t)
+	backend.TestBackend(t, b, b)
+}
+
 func checkState(t *testing.T, path, expected string) {
 	// Read the state
 	f, err := os.Open(path)

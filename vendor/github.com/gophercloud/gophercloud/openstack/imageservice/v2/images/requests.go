@@ -99,7 +99,7 @@ type CreateOpts struct {
 
 	// properties is a set of properties, if any, that
 	// are associated with the image.
-	Properties map[string]string `json:"-,omitempty"`
+	Properties map[string]string `json:"-"`
 }
 
 // ToImageCreateMap assembles a request body based on the contents of

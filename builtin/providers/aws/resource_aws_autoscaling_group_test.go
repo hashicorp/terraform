@@ -472,13 +472,15 @@ func TestAccAWSAutoScalingGroup_ALB_TargetGroups_ELBCapacity(t *testing.T) {
 	var group autoscaling.Group
 	var tg elbv2.TargetGroup
 
+	rInt := acctest.RandInt()
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSAutoScalingGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSAutoScalingGroupConfig_ALB_TargetGroup_ELBCapacity,
+				Config: testAccAWSAutoScalingGroupConfig_ALB_TargetGroup_ELBCapacity(rInt),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test", &tg),
@@ -1386,7 +1388,8 @@ resource "aws_autoscaling_group" "bar" {
 `, name)
 }
 
-const testAccAWSAutoScalingGroupConfig_ALB_TargetGroup_ELBCapacity = `
+func testAccAWSAutoScalingGroupConfig_ALB_TargetGroup_ELBCapacity(rInt int) string {
+	return fmt.Sprintf(`
 provider "aws" {
   region = "us-west-2"
 }
@@ -1420,7 +1423,7 @@ resource "aws_alb_listener" "test_listener" {
 }
 
 resource "aws_alb_target_group" "test" {
-  name     = "tf-example-alb-tg"
+  name     = "tf-alb-test-%d"
   port     = 80
   protocol = "HTTP"
   vpc_id   = "${aws_vpc.default.id}"
@@ -1430,6 +1433,10 @@ resource "aws_alb_target_group" "test" {
     healthy_threshold = "2"
     timeout           = "2"
     interval          = "5"
+  }
+
+  tags {
+    Name = "testAccAWSAutoScalingGroupConfig_ALB_TargetGroup_ELBCapacity"
   }
 }
 
@@ -1522,8 +1529,8 @@ resource "aws_autoscaling_group" "bar" {
   force_delete              = true
   termination_policies      = ["OldestInstance"]
   launch_configuration      = "${aws_launch_configuration.foobar.name}"
+}`, rInt)
 }
-`
 
 func testAccAWSAutoScalingGroupConfigWithSuspendedProcesses(name string) string {
 	return fmt.Sprintf(`

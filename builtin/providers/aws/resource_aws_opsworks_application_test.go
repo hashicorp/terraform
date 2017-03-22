@@ -8,25 +8,30 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/opsworks"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSOpsworksApplication(t *testing.T) {
 	var opsapp opsworks.App
+
+	rInt := acctest.RandInt()
+	name := fmt.Sprintf("tf-ops-acc-application-%d", rInt)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAwsOpsworksApplicationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAwsOpsworksApplicationCreate,
+			{
+				Config: testAccAwsOpsworksApplicationCreate(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSOpsworksApplicationExists(
 						"aws_opsworks_application.tf-acc-app", &opsapp),
 					testAccCheckAWSOpsworksCreateAppAttributes(&opsapp),
 					resource.TestCheckResourceAttr(
-						"aws_opsworks_application.tf-acc-app", "name", "tf-ops-acc-application",
+						"aws_opsworks_application.tf-acc-app", "name", name,
 					),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_application.tf-acc-app", "type", "other",
@@ -34,14 +39,14 @@ func TestAccAWSOpsworksApplication(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_application.tf-acc-app", "enable_ssl", "false",
 					),
-					resource.TestCheckResourceAttr(
-						"aws_opsworks_application.tf-acc-app", "ssl_configuration", "",
+					resource.TestCheckNoResourceAttr(
+						"aws_opsworks_application.tf-acc-app", "ssl_configuration",
 					),
-					resource.TestCheckResourceAttr(
-						"aws_opsworks_application.tf-acc-app", "domains", "",
+					resource.TestCheckNoResourceAttr(
+						"aws_opsworks_application.tf-acc-app", "domains",
 					),
-					resource.TestCheckResourceAttr(
-						"aws_opsworks_application.tf-acc-app", "app_source", "",
+					resource.TestCheckNoResourceAttr(
+						"aws_opsworks_application.tf-acc-app", "app_source",
 					),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_application.tf-acc-app", "environment.3077298702.key", "key1",
@@ -49,22 +54,22 @@ func TestAccAWSOpsworksApplication(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_application.tf-acc-app", "environment.3077298702.value", "value1",
 					),
-					resource.TestCheckResourceAttr(
-						"aws_opsworks_application.tf-acc-app", "environment.3077298702.secret", "",
+					resource.TestCheckNoResourceAttr(
+						"aws_opsworks_application.tf-acc-app", "environment.3077298702.secret",
 					),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_application.tf-acc-app", "document_root", "foo",
 					),
 				),
 			},
-			resource.TestStep{
-				Config: testAccAwsOpsworksApplicationUpdate,
+			{
+				Config: testAccAwsOpsworksApplicationUpdate(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSOpsworksApplicationExists(
 						"aws_opsworks_application.tf-acc-app", &opsapp),
 					testAccCheckAWSOpsworksUpdateAppAttributes(&opsapp),
 					resource.TestCheckResourceAttr(
-						"aws_opsworks_application.tf-acc-app", "name", "tf-ops-acc-application",
+						"aws_opsworks_application.tf-acc-app", "name", name,
 					),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_application.tf-acc-app", "type", "rails",
@@ -117,8 +122,8 @@ func TestAccAWSOpsworksApplication(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_application.tf-acc-app", "environment.3077298702.value", "value1",
 					),
-					resource.TestCheckResourceAttr(
-						"aws_opsworks_application.tf-acc-app", "environment.3077298702.secret", "",
+					resource.TestCheckNoResourceAttr(
+						"aws_opsworks_application.tf-acc-app", "environment.3077298702.secret",
 					),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_application.tf-acc-app", "document_root", "root",
@@ -188,7 +193,7 @@ func testAccCheckAWSOpsworksCreateAppAttributes(
 		}
 
 		expectedEnv := []*opsworks.EnvironmentVariable{
-			&opsworks.EnvironmentVariable{
+			{
 				Key:    aws.String("key1"),
 				Value:  aws.String("value1"),
 				Secure: aws.Bool(false),
@@ -248,12 +253,12 @@ func testAccCheckAWSOpsworksUpdateAppAttributes(
 		}
 
 		expectedEnv := []*opsworks.EnvironmentVariable{
-			&opsworks.EnvironmentVariable{
+			{
 				Key:    aws.String("key2"),
 				Value:  aws.String("*****FILTERED*****"),
 				Secure: aws.Bool(true),
 			},
-			&opsworks.EnvironmentVariable{
+			{
 				Key:    aws.String("key1"),
 				Value:  aws.String("value1"),
 				Secure: aws.Bool(false),
@@ -308,10 +313,12 @@ func testAccCheckAwsOpsworksApplicationDestroy(s *terraform.State) error {
 	return nil
 }
 
-var testAccAwsOpsworksApplicationCreate = testAccAwsOpsworksStackConfigVpcCreate("tf-ops-acc-application") + `
+func testAccAwsOpsworksApplicationCreate(name string) string {
+	return testAccAwsOpsworksStackConfigVpcCreate(name) +
+		fmt.Sprintf(`
 resource "aws_opsworks_application" "tf-acc-app" {
   stack_id = "${aws_opsworks_stack.tf-acc.id}"
-  name = "tf-ops-acc-application"
+  name = "%s"
   type = "other"
   enable_ssl = false
   app_source ={
@@ -320,12 +327,15 @@ resource "aws_opsworks_application" "tf-acc-app" {
 	environment = { key = "key1" value = "value1" secure = false}
 	document_root = "foo"
 }
-`
+`, name)
+}
 
-var testAccAwsOpsworksApplicationUpdate = testAccAwsOpsworksStackConfigVpcCreate("tf-ops-acc-application") + `
+func testAccAwsOpsworksApplicationUpdate(name string) string {
+	return testAccAwsOpsworksStackConfigVpcCreate(name) +
+		fmt.Sprintf(`
 resource "aws_opsworks_application" "tf-acc-app" {
   stack_id = "${aws_opsworks_stack.tf-acc.id}"
-  name = "tf-ops-acc-application"
+  name = "%s"
   type = "rails"
   domains = ["example.com", "sub.example.com"]
   enable_ssl = true
@@ -372,4 +382,5 @@ EOS
   auto_bundle_on_deploy = "true"
   rails_env = "staging"
 }
-`
+`, name)
+}

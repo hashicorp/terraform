@@ -1,6 +1,8 @@
 package aws
 
 import (
+	"bytes"
+	"encoding/json"
 	"log"
 	"strings"
 
@@ -41,4 +43,18 @@ func suppressAwsDbEngineVersionDiffs(k, old, new string, d *schema.ResourceData)
 
 	// Throw a diff by default
 	return false
+}
+
+func suppressEquivalentJsonDiffs(k, old, new string, d *schema.ResourceData) bool {
+	ob := bytes.NewBufferString("")
+	if err := json.Compact(ob, []byte(old)); err != nil {
+		return false
+	}
+
+	nb := bytes.NewBufferString("")
+	if err := json.Compact(nb, []byte(new)); err != nil {
+		return false
+	}
+
+	return jsonBytesEqual(ob.Bytes(), nb.Bytes())
 }

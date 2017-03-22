@@ -64,8 +64,8 @@ Schedule layers (`layer`) supports the following:
 Restriction blocks (`restriction`) supports the following:
 
 * `type` - (Required) Can be `daily_restriction` or `weekly_restriction`
-* `start_time_of_day` - (Required) The duration of the restriction in `seconds`.
-* `duration_seconds` - (Required) The start time in `HH:mm:ss` format.
+* `start_time_of_day` - (Required) The start time in `HH:mm:ss` format.
+* `duration_seconds` - (Required) The duration of the restriction in `seconds`.
 
 ## Attributes Reference
 
