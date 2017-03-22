@@ -151,6 +151,11 @@ type TestStep struct {
 	// test to pass.
 	ExpectError *regexp.Regexp
 
+	// PlanOnly can be set to only run `plan` with this configuration, and not
+	// actually apply it. This is useful for ensuring config changes result in
+	// no-op plans
+	PlanOnly bool
+
 	// PreventPostDestroyRefresh can be set to true for cases where data sources
 	// are tested alongside real resources
 	PreventPostDestroyRefresh bool
