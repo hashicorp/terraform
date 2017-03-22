@@ -97,7 +97,7 @@ artifact named "worker":
     }
 
 When a new version of the and artifact "worker" is uploaded either manually
-or as the output of a [Packer build](https://atlas.hashicorp.com/help/packer/builds/starting), a Terraform plan can be automatically triggered with this new artifact version.
+or as the output of a [Packer build](/docs/enterprise/packer/builds/starting.html), a Terraform plan can be automatically triggered with this new artifact version.
 You can enable this feature on a per-environment basis from the
 environment settings page.
 

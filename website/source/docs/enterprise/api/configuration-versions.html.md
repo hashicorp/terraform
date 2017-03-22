@@ -17,7 +17,7 @@ to include the necessary variables for the Terraform configuration.
 
 ### Configuration Version Attributes
 
-<table border="1" cellspaceing="5">
+<table class="apidocs">
   <tr>
     <th>Attribute</th>
     <th>Description</th>

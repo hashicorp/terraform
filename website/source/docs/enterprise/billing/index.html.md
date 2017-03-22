@@ -24,24 +24,89 @@ determined by a property of the resource. The `count` meta-parameter is used
 for all compute resource types. The complete list of compute resources and
 resource arguments for determining managed node count is below.
 
-| Provider | Resource Type | Resource Property |
-|:-:|:-:|:-:|
-| AWS | `aws_instance` | `count` |
-| AWS | `aws_autoscaling_group` | `count` `desired_capacity` |
-| Azure | `azure_instance` | `count` |
-| Azure | `azurerm_virtual_machine` | `count` |
-| CenturyLink Cloud | `clc_server` | `count` |
-| CloudStack | `cloudstack_instance` | `count` |
-| DigitalOcean | `digitalocean_droplet` | `count` |
-| Google Cloud | `google_compute_instance` | `count` |
-| Google Cloud | `compute_instance_group_manager` | `count` `target_size` |
-| Heroku | `heroku_app` | `count` |
-| OpenStack | `openstack_compute_instance_v2` | `count` |
-| Packet | `packet_device` | `count` |
-| Triton | `triton_machine` | `count` |
-| VMware vCloud Director | `vcd_vapp` | `count` |
-| VMware vSphere provider | `vsphere_virtual_machine` | `count` |
-
+<table class="apidocs">
+  <tr>
+    <th>Provider</th>
+    <th>Resource Type</th>
+    <th>Resource Property</th>
+  </tr>
+  </tr>
+  <tr>
+    <td>AWS</td>
+    <td>`aws_instance`</td>
+    <td>`count`</td>
+  </tr>
+  <tr>    
+    <td>AWS 
+    <td>`aws_autoscaling_group`</td>
+    <td>`count` `desired_capacity`</td>
+  </tr>
+  <tr>    
+    <td>Azure</td> 
+    <td>`azure_instance`</td> 
+    <td>`count`</td>
+  </tr>
+  <tr>
+    <td>Azure</td> 
+    <td>`azurerm_virtual_machine`</td> 
+    <td>`count`</td>
+  </tr>
+  <tr>    
+    <td>CenturyLink Cloud</td> 
+    <td>`clc_server`</td> 
+    <td>`count`</td>
+  </tr>
+  <tr> 
+    <td>CloudStack</td> 
+    <td>`cloudstack_instance`</td> 
+    <td>`count`</td>
+  </tr>
+  <tr> 
+    <td>DigitalOcean</td> 
+    <td>`digitalocean_droplet`</td> 
+    <td>`count`</td>
+  </tr>
+  <tr>  
+    <td>Google Cloud</td> 
+    <td>`google_compute_instance`</td> 
+    <td>`count`</td>
+  </tr>
+  <tr>
+    <td>Google Cloud</td> 
+    <td>`compute_instance_group_manager`</td> 
+    <td>`count` `target_size`</td>
+  </tr>
+  <tr>  
+    <td>Heroku</td> 
+    <td>`heroku_app`</td> 
+    <td>`count`</td>
+  </tr>
+  <tr>
+    <td>OpenStack</td> 
+    <td>`openstack_compute_instance_v2`</td> 
+    <td>`count`</td>
+  </tr>
+  <tr>
+    <td>Packet</td> 
+    <td>`packet_device`</td> 
+    <td>`count`</td>
+  </tr>
+  <tr>
+    <td>Triton</td> 
+    <td>`triton_machine`</td> 
+    <td>`count`</td>
+  </tr>
+  <tr>
+    <td>VMware vCloud Director</td> 
+    <td>`vcd_vapp`</td> 
+    <td>`count`</td>
+  </tr>
+  <tr>
+    <td>VMware vSphere provider</td> 
+    <td>`vsphere_virtual_machine`</td> 
+    <td>`count`</td>
+  </tr>
+</table>
 
 Terraform Enterprise includes unlimited Packer builds and artifact storage.
 

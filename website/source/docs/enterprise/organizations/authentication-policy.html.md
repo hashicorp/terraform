@@ -13,7 +13,7 @@ Because organization membership affords members access to potentially sensitive 
 
 ## Requiring Two-Factor Authentication
 
-Organization owners can require that all organization team members use [two-factor authentication](/docs/enterprise/user-accounts/authentication). Those that lack two-factor authentication will be locked out of the web interface until they enable it or leave the organization.
+Organization owners can require that all organization team members use [two-factor authentication](/docs/enterprise/user-accounts/authentication.html). Those that lack two-factor authentication will be locked out of the web interface until they enable it or leave the organization.
 
 Visit your organization's configuration page to enable this feature. All organization owners must have two-factor authentication enabled to require the practice organization-wide. Note: locked-out users are still be able to interact with Terraform Enterprise using their `ATLAS_TOKEN`.
 
