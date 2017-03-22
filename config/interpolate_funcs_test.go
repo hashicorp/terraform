@@ -2071,3 +2071,61 @@ func TestInterpolateFuncPathExpand(t *testing.T) {
 		},
 	})
 }
+
+func TestInterpolateFuncSubstr(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${substr("foobar", 0, 0)}`,
+				"",
+				false,
+			},
+			{
+				`${substr("foobar", 0, -1)}`,
+				"foobar",
+				false,
+			},
+			{
+				`${substr("foobar", 0, 3)}`,
+				"foo",
+				false,
+			},
+			{
+				`${substr("foobar", 3, 3)}`,
+				"bar",
+				false,
+			},
+			{
+				`${substr("foobar", -3, 3)}`,
+				"bar",
+				false,
+			},
+
+			// empty string
+			{
+				`${substr("", 0, 0)}`,
+				"",
+				false,
+			},
+
+			// invalid offset
+			{
+				`${substr("", 1, 0)}`,
+				nil,
+				true,
+			},
+
+			// invalid length
+			{
+				`${substr("", 0, 1)}`,
+				nil,
+				true,
+			},
+			{
+				`${substr("", 0, -2)}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
