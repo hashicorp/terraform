@@ -71,7 +71,7 @@ func resourceAwsOpsworksStack() *schema.Resource {
 			"configuration_manager_version": {
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "11.4",
+				Default:  "11.10",
 			},
 
 			"manage_berkshelf": {
@@ -156,6 +156,7 @@ func resourceAwsOpsworksStack() *schema.Resource {
 			"default_subnet_id": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 
 			"hostname_theme": {
@@ -179,6 +180,7 @@ func resourceAwsOpsworksStack() *schema.Resource {
 			"vpc_id": {
 				Type:     schema.TypeString,
 				ForceNew: true,
+				Computed: true,
 				Optional: true,
 			},
 		},
@@ -431,10 +433,17 @@ func resourceAwsOpsworksStackUpdate(d *schema.ResourceData, meta interface{}) er
 	if v, ok := d.GetOk("color"); ok {
 		req.Attributes["Color"] = aws.String(v.(string))
 	}
+
 	req.ChefConfiguration = &opsworks.ChefConfiguration{
-		BerkshelfVersion: aws.String(d.Get("berkshelf_version").(string)),
-		ManageBerkshelf:  aws.Bool(d.Get("manage_berkshelf").(bool)),
+		ManageBerkshelf: aws.Bool(d.Get("manage_berkshelf").(bool)),
 	}
+
+	if v := d.Get("manage_berkshelf").(bool); v {
+		req.ChefConfiguration = &opsworks.ChefConfiguration{
+			BerkshelfVersion: aws.String(d.Get("berkshelf_version").(string)),
+		}
+	}
+
 	req.ConfigurationManager = &opsworks.StackConfigurationManager{
 		Name:    aws.String(d.Get("configuration_manager_name").(string)),
 		Version: aws.String(d.Get("configuration_manager_version").(string)),
