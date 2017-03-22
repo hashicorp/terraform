@@ -127,13 +127,24 @@ func createS3Bucket(t *testing.T, s3Client *s3.S3, bucketName string) {
 }
 
 func deleteS3Bucket(t *testing.T, s3Client *s3.S3, bucketName string) {
-	deleteBucketReq := &s3.DeleteBucketInput{
-		Bucket: &bucketName,
+	warning := "WARNING: Failed to delete the test S3 bucket. It may have been left in your AWS account and may incur storage charges. (error was %s)"
+
+	// first we have to get rid of the env objects, or we can't delete the bucket
+	resp, err := s3Client.ListObjects(&s3.ListObjectsInput{Bucket: &bucketName})
+	if err != nil {
+		t.Logf(warning, err)
+		return
+	}
+	for _, obj := range resp.Contents {
+		if _, err := s3Client.DeleteObject(&s3.DeleteObjectInput{Bucket: &bucketName, Key: obj.Key}); err != nil {
+			// this will need cleanup no matter what, so just warn and exit
+			t.Logf(warning, err)
+			return
+		}
 	}
 
-	_, err := s3Client.DeleteBucket(deleteBucketReq)
-	if err != nil {
-		t.Logf("WARNING: Failed to delete the test S3 bucket. It may have been left in your AWS account and may incur storage charges. (error was %s)", err)
+	if _, err := s3Client.DeleteBucket(&s3.DeleteBucketInput{Bucket: &bucketName}); err != nil {
+		t.Logf(warning, err)
 	}
 }
 
