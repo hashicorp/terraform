@@ -11,6 +11,7 @@ IMPROVEMENTS:
  * helper/acctest: Add NewSSHKeyPair function [GH-12894]
  * provider/aws: Added support for EMR AutoScalingRole [GH-12823]
  * provider/aws: Add `name_prefix` to `aws_autoscaling_group` and `aws_elb` resources [GH-12629]
+ * provider/aws: Updated default configuration manager version in `aws_opsworks_stack` [GH-12979]
  * provider/aws: Added aws_api_gateway_api_key value attribute [GH-9462]
  * provider/cloudstack: Add `zone_id` to `cloudstack_ipaddress` resource [GH-11306]
  * provider/consul: Add support for basic auth to the provider [GH-12679]
