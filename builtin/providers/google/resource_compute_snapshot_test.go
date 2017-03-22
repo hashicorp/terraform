@@ -152,7 +152,7 @@ resource "google_compute_snapshot" "foobar" {
 	name = "%s"
 	disk = "${google_compute_disk.foobar.name}"
 	zone = "us-central1-a"
-	sourcedisk_encryption_key_raw = "SGVsbG8gZnJvbSBHb29nbGUgQ2xvdWQgUGxhdGZvcm0="
+	source_disk_encryption_key_raw = "SGVsbG8gZnJvbSBHb29nbGUgQ2xvdWQgUGxhdGZvcm0="
 	snapshot_encryption_key_raw = "SGVsbG8gZnJvbSBHb29nbGUgQ2xvdWQgUGxhdGZvcm0="
 }`, diskName, snapshotName)
 }
