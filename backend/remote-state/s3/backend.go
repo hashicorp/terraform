@@ -128,25 +128,31 @@ type Backend struct {
 	*schema.Backend
 
 	// The fields below are set from configure
-	client *S3Client
+	s3Client  *s3.S3
+	dynClient *dynamodb.DynamoDB
+
+	bucketName           string
+	keyName              string
+	serverSideEncryption bool
+	acl                  string
+	kmsKeyID             string
+	lockTable            string
 }
 
 func (b *Backend) configure(ctx context.Context) error {
-	if b.client != nil {
+	if b.s3Client != nil {
 		return nil
 	}
 
 	// Grab the resource data
 	data := schema.FromContextBackendConfig(ctx)
 
-	bucketName := data.Get("bucket").(string)
-	keyName := data.Get("key").(string)
-	endpoint := data.Get("endpoint").(string)
-	region := data.Get("region").(string)
-	serverSideEncryption := data.Get("encrypt").(bool)
-	acl := data.Get("acl").(string)
-	kmsKeyID := data.Get("kms_key_id").(string)
-	lockTable := data.Get("lock_table").(string)
+	b.bucketName = data.Get("bucket").(string)
+	b.keyName = data.Get("key").(string)
+	b.serverSideEncryption = data.Get("encrypt").(bool)
+	b.acl = data.Get("acl").(string)
+	b.kmsKeyID = data.Get("kms_key_id").(string)
+	b.lockTable = data.Get("lock_table").(string)
 
 	var errs []error
 	creds, err := terraformAWS.GetCredentials(&terraformAWS.Config{
@@ -175,6 +181,9 @@ providing credentials for the AWS S3 remote`))
 		return &multierror.Error{Errors: errs}
 	}
 
+	endpoint := data.Get("endpoint").(string)
+	region := data.Get("region").(string)
+
 	awsConfig := &aws.Config{
 		Credentials: creds,
 		Endpoint:    aws.String(endpoint),
@@ -182,18 +191,8 @@ providing credentials for the AWS S3 remote`))
 		HTTPClient:  cleanhttp.DefaultClient(),
 	}
 	sess := session.New(awsConfig)
-	nativeClient := s3.New(sess)
-	dynClient := dynamodb.New(sess)
+	b.s3Client = s3.New(sess)
+	b.dynClient = dynamodb.New(sess)
 
-	b.client = &S3Client{
-		nativeClient:         nativeClient,
-		bucketName:           bucketName,
-		keyName:              keyName,
-		serverSideEncryption: serverSideEncryption,
-		acl:                  acl,
-		kmsKeyID:             kmsKeyID,
-		dynClient:            dynClient,
-		lockTable:            lockTable,
-	}
 	return nil
 }

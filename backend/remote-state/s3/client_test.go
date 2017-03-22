@@ -10,8 +10,8 @@ import (
 )
 
 func TestRemoteClient_impl(t *testing.T) {
-	var _ remote.Client = new(S3Client)
-	var _ remote.ClientLocker = new(S3Client)
+	var _ remote.Client = new(RemoteClient)
+	var _ remote.ClientLocker = new(RemoteClient)
 }
 
 func TestRemoteClient(t *testing.T) {
@@ -31,8 +31,8 @@ func TestRemoteClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	createS3Bucket(t, b.client, bucketName)
-	defer deleteS3Bucket(t, b.client, bucketName)
+	createS3Bucket(t, b.s3Client, bucketName)
+	defer deleteS3Bucket(t, b.s3Client, bucketName)
 
 	remote.TestClient(t, state.(*remote.State).Client)
 }
@@ -67,10 +67,10 @@ func TestRemoteClientLocks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	createS3Bucket(t, b1.client, bucketName)
-	defer deleteS3Bucket(t, b1.client, bucketName)
-	createDynamoDBTable(t, b1.client, bucketName)
-	defer deleteDynamoDBTable(t, b1.client, bucketName)
+	createS3Bucket(t, b1.s3Client, bucketName)
+	defer deleteS3Bucket(t, b1.s3Client, bucketName)
+	createDynamoDBTable(t, b1.dynClient, bucketName)
+	defer deleteDynamoDBTable(t, b1.dynClient, bucketName)
 
 	remote.TestRemoteLocks(t, s1.(*remote.State).Client, s2.(*remote.State).Client)
 }
