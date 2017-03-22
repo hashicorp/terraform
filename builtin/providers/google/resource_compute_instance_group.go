@@ -18,6 +18,8 @@ func resourceComputeInstanceGroup() *schema.Resource {
 		Update: resourceComputeInstanceGroupUpdate,
 		Delete: resourceComputeInstanceGroupDelete,
 
+		SchemaVersion: 1,
+
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
