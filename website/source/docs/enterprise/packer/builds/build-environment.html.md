@@ -1,14 +1,18 @@
 ---
-title: "Packer Build Environment"
+layout: "packer"
+page_title: "Packer Build Environment"
+sidebar_current: "docs-enterprise-packer-builds-environment"
+description: |-
+  This page outlines the environment that Packer runs in within Terraform Enterprise.
 ---
 
 # Packer Build Environment
 
-This page outlines the environment that Packer runs in within Atlas.
+This page outlines the environment that Packer runs in within Terraform Enterprise.
 
 ### Supported Builders
 
-Atlas currently supports running the following Packer builders:
+Terraform Enterprise currently supports running the following Packer builders:
 
 - amazon-chroot
 - amazon-ebs
@@ -48,7 +52,7 @@ An example of this with the Shell provisioner is below.
     ]
 
 We encourage use of relative paths over absolute paths to maintain portability
-between Atlas and local builds.
+between Terraform Enterprise and local builds.
 
 The total size of all files in the package being uploaded via
 [Packer push or GitHub](/help/packer/builds/starting) must be 5 GB or less.
@@ -74,8 +78,7 @@ used to configure your build with secrets or other key value configuration.
 
 Variables are encrypted and stored securely.
 
-Additionally, the following environment variables are automatically injected by
-Atlas. All Atlas-injected environment variables will be prefixed with `ATLAS_`
+Additionally, the following environment variables are automatically injected. All injected environment variables will be prefixed with `ATLAS_`
 
 - `ATLAS_TOKEN` - This is a unique, per-build token that expires at the end of
   build execution (e.g. `"abcd.atlasv1.ghjkl..."`)
@@ -160,7 +163,7 @@ AWS example:
 
 ## Notes on Security
 
-Packer environment variables in Atlas are encrypted using [Vault](https://vaultproject.io)
+Packer environment variables in Terraform Enterprise are encrypted using [Vault](https://vaultproject.io)
 and closely guarded and audited. If you have questions or concerns
 about the safety of your configuration, please contact our security team
 at [security@hashicorp.com](mailto:security@hashicorp.com).

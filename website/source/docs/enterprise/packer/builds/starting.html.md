@@ -1,10 +1,14 @@
 ---
-title: "Starting Packer Builds in Atlas"
+layout: "packer"
+page_title: "Starting Packer Builds in Terraform Enterprise"
+sidebar_current: "docs-enterprise-packer-builds-starting"
+description: |-
+  Packer builds can be started in Terraform Enterprise in two ways. This post is about how.
 ---
 
-# Starting Packer Builds in Atlas
+# Starting Packer Builds in Terraform Enterprise
 
-Packer builds can be started in Atlas in two ways: `packer push`
+Packer builds can be started in in two ways: `packer push`
 to upload the template and directory or via a GitHub connection that retrieves
 the contents of a repository after changes to the default branch (usually
 master).
@@ -12,8 +16,7 @@ master).
 ### Packer Push
 
 Packer `push` is a [Packer command](https://packer.io/docs/command-line/push.html)
-that packages and uploads a Packer template and directory to Atlas. This then creates a build
-in Atlas, which performs `packer build` against the uploaded template
+that packages and uploads a Packer template and directory. This then creates a build which performs `packer build` against the uploaded template
 and packaged directory.
 
 The directory is included in order to run any associated provisioners,
@@ -25,7 +28,7 @@ By default, everything in your directory is uploaded as part of the push.
 
 However, it's not always the case that the entire directory should be uploaded. Often,
 temporary or cache directories and files like `.git`, `.tmp` will be included by default. This
-can cause Atlas to fail at certain sizes and should be avoided. You can
+can cause builds to fail at certain sizes and should be avoided. You can
 specify [exclusions](https://packer.io/docs/templates/push.html#exclude) to avoid this situation.
 
 Packer also allows for a [VCS option](https://packer.io/docs/templates/push.html#vcs)
@@ -39,14 +42,14 @@ like git, this basically does a `git ls-files`.
 Optionally, GitHub can be used to import Packer templates and configurations.
 When used within an organization, this can be extremely valuable for keeping
 differences in environments and last mile changes from occurring before an
-upload to Atlas.
+upload.
 
-After you have [connected your GitHub account to Atlas](/settings/connections),
-you can connect your [Build Configuration](/help/glossary#build-configuration)
+After you have [connected your GitHub account](/docs/enterprise/vcs/github.html) to Terraform Enterprise,
+you can connect your [Build Configuration](/docs/enterprise/glossary#build-configuration)
 to the target GitHub repository. The GitHub repository will be linked to the
-Atlas Packer configuration, and GitHub will start sending webhooks to Atlas.
+Packer configuration, and GitHub will start sending webhooks.
 Certain GitHub webhook events, detailed below, will cause the repository to be
-automatically ingressed into Atlas and stored, along with references to the
+automatically ingressed into Terraform Enterprise and stored, along with references to the
 GitHub commits and authorship information.
 
 After each ingress the configuration will automatically build.
@@ -60,7 +63,7 @@ Supported GitHub webhook events:
   - ingress when a tag is created
   - ingress when the default branch is updated
     - note: the default branch is either configured on your configuration's
-      integrations tab in Atlas, or if that is blank it is the GitHub
+      integrations tab in Terraform Enterprise, or if that is blank it is the GitHub
       repository's default branch
 - create (off by default)
   - ingress when a tag is created

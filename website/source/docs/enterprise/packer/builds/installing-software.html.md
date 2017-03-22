@@ -1,10 +1,14 @@
 ---
-title: "Installing Software"
+layout: "packer"
+page_title: "Installing Software with Packer"
+sidebar_current: "docs-enterprise-packer-builds-installing"
+description: |-
+  Installing software with Packer.
 ---
 
 # Installing Software
 
-Please review the [Packer Build Environment](/help/packer/builds/build-environment)
+Please review the [Packer Build Environment](/docs/enterprise/builds/build-environment.html)
 specification for important information on isolation, security, and hardware
 limitations before continuing.
 

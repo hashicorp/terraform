@@ -1,10 +1,14 @@
 ---
-title: "Troubleshooting Failing Builds"
+layout: "packer"
+page_title: "Troubleshooting Failing Builds"
+sidebar_current: "docs-enterprise-packer-builds-troubleshooting"
+description: |-
+  Packer builds can fail in Terraform Enterprise for a number of reasons – improper configuration, transient networking errors, and hardware constraints are all possible. 
 ---
 
 # Troubleshooting Failing Builds
 
-Packer builds can fail in Atlas for a number of reasons – improper
+Packer builds can fail in Terraform Enterprise for a number of reasons – improper
 configuration, transient networking errors, and hardware constraints
 are all possible. Below is a list of debugging options you can use.
 
@@ -42,10 +46,10 @@ more about [debugging Packer builds](https://packer.io/docs/other/debugging.html
 ### Hardware Limitations
 
 Your build may be failing by requesting larger memory or
-disk usage then is available. Read more about the [build environment](/help/packer/builds/build-environment#hardware-limitations).
+disk usage then is available. Read more about the [build environment](/docs/enterprise/packer/builds/build-environment#hardware-limitations).
 
 _Typically_ Packer builds that fail due to requesting hardware limits
-that exceed Atlas's [hardware limitations](/help/packer/builds/build-environment#hardware-limitations) 
+that exceed Terraform Enterprise's [hardware limitations](/docs/enterprise/packer/builds/build-environment#hardware-limitations) 
 will fail with a _The operation was canceled_ error message as shown below:
 
 ```
@@ -66,14 +70,14 @@ Build 'vmware-iso' errored: Error starting VM: VMware error: Error: The operatio
 ### Local Debugging
 
 Sometimes it's faster to debug failing builds locally. In this case,
-you'll want to [install Packer](/help/intro/updating-tools) and any providers (like Virtualbox) necessary.
+you'll want to [install Packer](https://www.packer.io/intro/getting-started/setup.html) and any providers (like Virtualbox) necessary.
 
-Because Atlas runs the open source version of Packer, there should be
+Because Terraform Enterprise runs the open source version of Packer, there should be
 no difference in execution between the two, other than the environment that
-Packer is running in. For more on hardware constraints in the Atlas environment
+Packer is running in. For more on hardware constraints in the Terraform Enterprise environment
 read below.
 
-Once your builds are running smoothly locally you can push it up to Atlas
+Once your builds are running smoothly locally you can push it up to Terraform Enterprise
 for versioning and automated builds.
 
 ### Internal Errors
@@ -90,7 +94,7 @@ when applications or builds are linked to a GitHub repository and the
 directory and/or template paths are incorrect. Double check that the paths 
 specified when you linked the GitHub repository match the actual paths 
 to your template file._
-- SEC-001: Your data was being unpacked from a tarball uploaded to Atlas
+- SEC-001: Your data was being unpacked from a tarball uploaded 
 and encountered an error. This can be caused by bad permissions, using
 symlinks or very large tarball sizes.
 
@@ -107,6 +111,6 @@ the mailing list or IRC. All bug reports should go to GitHub.
 
 ### Getting Support
 
-If you believe your build is failing as a result of a bug in Atlas,
+If you believe your build is failing as a result of a bug in Terraform Enterprise,
 or would like other support, please [email us](mailto:support@hashicorp.com).
 
