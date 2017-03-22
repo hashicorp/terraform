@@ -134,7 +134,7 @@ func GetCredentials(c *Config) (*awsCredentials.Credentials, error) {
 			if usedEndpoint == "" {
 				usedEndpoint = "default location"
 			}
-			log.Printf("[WARN] Ignoring AWS metadata API endpoint at %s "+
+			log.Printf("[INFO] Ignoring AWS metadata API endpoint at %s "+
 				"as it doesn't return any instance-id", usedEndpoint)
 		}
 	}
