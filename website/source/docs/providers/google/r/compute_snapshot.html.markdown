@@ -29,7 +29,7 @@ The following arguments are supported:
 
 * `zone` - (Required) The zone where the source disk is located.
 
-* `disk` - (Required)
+* `disk` - (Required) The disk which will be used as the source of the snapshot
 
 - - -
 
