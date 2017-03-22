@@ -191,6 +191,7 @@ func testAccCheckContainerCluster(n string) resource.TestCheckFunc {
 			{"subnetwork", cluster.Subnetwork},
 			{"node_config.0.machine_type", cluster.NodeConfig.MachineType},
 			{"node_config.0.disk_size_gb", strconv.FormatInt(cluster.NodeConfig.DiskSizeGb, 10)},
+			{"node_config.0.local_ssd_count", strconv.FormatInt(cluster.NodeConfig.LocalSsdCount, 10)},
 			{"node_config.0.oauth_scopes", cluster.NodeConfig.OauthScopes},
 			{"node_config.0.service_account", cluster.NodeConfig.ServiceAccount},
 			{"node_config.0.metadata", cluster.NodeConfig.Metadata},
@@ -361,8 +362,9 @@ resource "google_container_cluster" "with_node_config" {
 	}
 
 	node_config {
-		machine_type = "g1-small"
+		machine_type = "n1-standard-1"
 		disk_size_gb = 15
+		local_ssd_count = 1
 		oauth_scopes = [
 			"https://www.googleapis.com/auth/compute",
 			"https://www.googleapis.com/auth/devstorage.read_only",
