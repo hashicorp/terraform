@@ -74,6 +74,205 @@ func TestAccAWSOpsworksStackVpc(t *testing.T) {
 	})
 }
 
+// Tests the addition of regional endpoints and supporting the classic link used
+// to create Stack's prior to v0.9.0.
+// See https://github.com/hashicorp/terraform/issues/12842
+func TestAccAWSOpsWorksStack_classic_endpoints(t *testing.T) {
+	stackName := fmt.Sprintf("tf-opsworks-acc-%d", acctest.RandInt())
+	rInt := acctest.RandInt()
+	var opsstack opsworks.Stack
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAwsOpsworksStackDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAwsOpsWorksStack_classic_endpoint(stackName, rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSOpsworksStackExists(
+						"aws_opsworks_stack.main", false, &opsstack),
+				),
+			},
+			// Ensure that changing to us-west-2 region results in no plan
+			resource.TestStep{
+				Config:   testAccAwsOpsWorksStack_regional_endpoint(stackName, rInt),
+				PlanOnly: true,
+			},
+		},
+	})
+
+}
+
+func testAccAwsOpsWorksStack_classic_endpoint(rName string, rInt int) string {
+	return fmt.Sprintf(`
+provider "aws" {
+  region = "us-east-1"
+}
+
+resource "aws_opsworks_stack" "main" {
+  name                         = "%s"
+  region = "us-west-2"
+  service_role_arn             = "${aws_iam_role.opsworks_service.arn}"
+  default_instance_profile_arn = "${aws_iam_instance_profile.opsworks_instance.arn}"
+
+  configuration_manager_version = "12"
+  default_availability_zone = "us-west-2b"
+}
+
+resource "aws_iam_role" "opsworks_service" {
+  name = "tf_opsworks_service_%d"
+
+  assume_role_policy = <<EOT
+{
+  "Version": "2008-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "opsworks.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOT
+}
+
+resource "aws_iam_role_policy" "opsworks_service" {
+  name = "tf_opsworks_service_%d"
+  role = "${aws_iam_role.opsworks_service.id}"
+
+  policy = <<EOT
+{
+  "Statement": [
+    {
+      "Action": [
+        "ec2:*",
+        "iam:PassRole",
+        "cloudwatch:GetMetricStatistics",
+        "elasticloadbalancing:*",
+        "rds:*"
+      ],
+      "Effect": "Allow",
+      "Resource": ["*"]
+    }
+  ]
+}
+EOT
+}
+
+resource "aws_iam_role" "opsworks_instance" {
+  name = "tf_opsworks_instance_%d"
+
+  assume_role_policy = <<EOT
+{
+  "Version": "2008-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOT
+}
+
+resource "aws_iam_instance_profile" "opsworks_instance" {
+  name  = "%s_profile"
+  roles = ["${aws_iam_role.opsworks_instance.name}"]
+}`, rName, rInt, rInt, rInt, rName)
+}
+
+func testAccAwsOpsWorksStack_regional_endpoint(rName string, rInt int) string {
+	return fmt.Sprintf(`
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_opsworks_stack" "main" {
+  name                         = "%s"
+  region = "us-west-2"
+  service_role_arn             = "${aws_iam_role.opsworks_service.arn}"
+  default_instance_profile_arn = "${aws_iam_instance_profile.opsworks_instance.arn}"
+
+  configuration_manager_version = "12"
+  default_availability_zone = "us-west-2b"
+}
+
+resource "aws_iam_role" "opsworks_service" {
+  name = "tf_opsworks_service_%d"
+
+  assume_role_policy = <<EOT
+{
+  "Version": "2008-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "opsworks.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOT
+}
+
+resource "aws_iam_role_policy" "opsworks_service" {
+  name = "tf_opsworks_service_%d"
+  role = "${aws_iam_role.opsworks_service.id}"
+
+  policy = <<EOT
+{
+  "Statement": [
+    {
+      "Action": [
+        "ec2:*",
+        "iam:PassRole",
+        "cloudwatch:GetMetricStatistics",
+        "elasticloadbalancing:*",
+        "rds:*"
+      ],
+      "Effect": "Allow",
+      "Resource": ["*"]
+    }
+  ]
+}
+EOT
+}
+
+resource "aws_iam_role" "opsworks_instance" {
+  name = "tf_opsworks_instance_%d"
+
+  assume_role_policy = <<EOT
+{
+  "Version": "2008-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOT
+}
+
+resource "aws_iam_instance_profile" "opsworks_instance" {
+  name  = "%s_profile"
+  roles = ["${aws_iam_role.opsworks_instance.name}"]
+}`, rName, rInt, rInt, rInt, rName)
+}
+
 ////////////////////////////
 //// Checkers and Utilities
 ////////////////////////////
