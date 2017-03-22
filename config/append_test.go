@@ -119,6 +119,7 @@ func TestAppend(t *testing.T) {
 			false,
 		},
 
+		// appending configs merges terraform blocks
 		{
 			&Config{
 				Terraform: &Terraform{
