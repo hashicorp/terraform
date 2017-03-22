@@ -17,21 +17,21 @@ import (
 	"github.com/hashicorp/terraform/state/remote"
 )
 
-type S3Client struct {
-	nativeClient         *s3.S3
+type RemoteClient struct {
+	s3Client             *s3.S3
+	dynClient            *dynamodb.DynamoDB
 	bucketName           string
-	keyName              string
+	path                 string
 	serverSideEncryption bool
 	acl                  string
 	kmsKeyID             string
-	dynClient            *dynamodb.DynamoDB
 	lockTable            string
 }
 
-func (c *S3Client) Get() (*remote.Payload, error) {
-	output, err := c.nativeClient.GetObject(&s3.GetObjectInput{
+func (c *RemoteClient) Get() (*remote.Payload, error) {
+	output, err := c.s3Client.GetObject(&s3.GetObjectInput{
 		Bucket: &c.bucketName,
-		Key:    &c.keyName,
+		Key:    &c.path,
 	})
 
 	if err != nil {
@@ -65,7 +65,7 @@ func (c *S3Client) Get() (*remote.Payload, error) {
 	return payload, nil
 }
 
-func (c *S3Client) Put(data []byte) error {
+func (c *RemoteClient) Put(data []byte) error {
 	contentType := "application/json"
 	contentLength := int64(len(data))
 
@@ -74,7 +74,7 @@ func (c *S3Client) Put(data []byte) error {
 		ContentLength: &contentLength,
 		Body:          bytes.NewReader(data),
 		Bucket:        &c.bucketName,
-		Key:           &c.keyName,
+		Key:           &c.path,
 	}
 
 	if c.serverSideEncryption {
@@ -92,28 +92,28 @@ func (c *S3Client) Put(data []byte) error {
 
 	log.Printf("[DEBUG] Uploading remote state to S3: %#v", i)
 
-	if _, err := c.nativeClient.PutObject(i); err == nil {
+	if _, err := c.s3Client.PutObject(i); err == nil {
 		return nil
 	} else {
 		return fmt.Errorf("Failed to upload state: %v", err)
 	}
 }
 
-func (c *S3Client) Delete() error {
-	_, err := c.nativeClient.DeleteObject(&s3.DeleteObjectInput{
+func (c *RemoteClient) Delete() error {
+	_, err := c.s3Client.DeleteObject(&s3.DeleteObjectInput{
 		Bucket: &c.bucketName,
-		Key:    &c.keyName,
+		Key:    &c.path,
 	})
 
 	return err
 }
 
-func (c *S3Client) Lock(info *state.LockInfo) (string, error) {
+func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 	if c.lockTable == "" {
 		return "", nil
 	}
 
-	stateName := fmt.Sprintf("%s/%s", c.bucketName, c.keyName)
+	stateName := fmt.Sprintf("%s/%s", c.bucketName, c.path)
 	info.Path = stateName
 
 	if info.ID == "" {
@@ -150,10 +150,10 @@ func (c *S3Client) Lock(info *state.LockInfo) (string, error) {
 	return info.ID, nil
 }
 
-func (c *S3Client) getLockInfo() (*state.LockInfo, error) {
+func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 	getParams := &dynamodb.GetItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
-			"LockID": {S: aws.String(fmt.Sprintf("%s/%s", c.bucketName, c.keyName))},
+			"LockID": {S: aws.String(fmt.Sprintf("%s/%s", c.bucketName, c.path))},
 		},
 		ProjectionExpression: aws.String("LockID, Info"),
 		TableName:            aws.String(c.lockTable),
@@ -178,7 +178,7 @@ func (c *S3Client) getLockInfo() (*state.LockInfo, error) {
 	return lockInfo, nil
 }
 
-func (c *S3Client) Unlock(id string) error {
+func (c *RemoteClient) Unlock(id string) error {
 	if c.lockTable == "" {
 		return nil
 	}
@@ -202,7 +202,7 @@ func (c *S3Client) Unlock(id string) error {
 
 	params := &dynamodb.DeleteItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
-			"LockID": {S: aws.String(fmt.Sprintf("%s/%s", c.bucketName, c.keyName))},
+			"LockID": {S: aws.String(fmt.Sprintf("%s/%s", c.bucketName, c.path))},
 		},
 		TableName: aws.String(c.lockTable),
 	}

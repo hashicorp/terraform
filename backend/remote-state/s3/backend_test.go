@@ -44,17 +44,17 @@ func TestBackendConfig(t *testing.T) {
 
 	b := backend.TestBackendConfig(t, New(), config).(*Backend)
 
-	if *b.client.nativeClient.Config.Region != "us-west-1" {
+	if *b.s3Client.Config.Region != "us-west-1" {
 		t.Fatalf("Incorrect region was populated")
 	}
-	if b.client.bucketName != "tf-test" {
+	if b.bucketName != "tf-test" {
 		t.Fatalf("Incorrect bucketName was populated")
 	}
-	if b.client.keyName != "state" {
+	if b.keyName != "state" {
 		t.Fatalf("Incorrect keyName was populated")
 	}
 
-	credentials, err := b.client.nativeClient.Config.Credentials.Get()
+	credentials, err := b.s3Client.Config.Credentials.Get()
 	if err != nil {
 		t.Fatalf("Error when requesting credentials")
 	}
@@ -78,8 +78,8 @@ func TestBackend(t *testing.T) {
 		"encrypt": true,
 	}).(*Backend)
 
-	createS3Bucket(t, b.client, bucketName)
-	defer deleteS3Bucket(t, b.client, bucketName)
+	createS3Bucket(t, b.s3Client, bucketName)
+	defer deleteS3Bucket(t, b.s3Client, bucketName)
 
 	backend.TestBackend(t, b, nil)
 }
@@ -104,41 +104,52 @@ func TestBackendLocked(t *testing.T) {
 		"lock_table": bucketName,
 	}).(*Backend)
 
-	createS3Bucket(t, b1.client, bucketName)
-	defer deleteS3Bucket(t, b1.client, bucketName)
-	createDynamoDBTable(t, b1.client, bucketName)
-	defer deleteDynamoDBTable(t, b1.client, bucketName)
+	createS3Bucket(t, b1.s3Client, bucketName)
+	defer deleteS3Bucket(t, b1.s3Client, bucketName)
+	createDynamoDBTable(t, b1.dynClient, bucketName)
+	defer deleteDynamoDBTable(t, b1.dynClient, bucketName)
 
 	backend.TestBackend(t, b1, b2)
 }
 
-func createS3Bucket(t *testing.T, c *S3Client, bucketName string) {
+func createS3Bucket(t *testing.T, s3Client *s3.S3, bucketName string) {
 	createBucketReq := &s3.CreateBucketInput{
 		Bucket: &bucketName,
 	}
 
 	// Be clear about what we're doing in case the user needs to clean
 	// this up later.
-	t.Logf("creating S3 bucket %s in %s", bucketName, *c.nativeClient.Config.Region)
-	_, err := c.nativeClient.CreateBucket(createBucketReq)
+	t.Logf("creating S3 bucket %s in %s", bucketName, *s3Client.Config.Region)
+	_, err := s3Client.CreateBucket(createBucketReq)
 	if err != nil {
 		t.Fatal("failed to create test S3 bucket:", err)
 	}
 }
 
-func deleteS3Bucket(t *testing.T, c *S3Client, bucketName string) {
-	deleteBucketReq := &s3.DeleteBucketInput{
-		Bucket: &bucketName,
+func deleteS3Bucket(t *testing.T, s3Client *s3.S3, bucketName string) {
+	warning := "WARNING: Failed to delete the test S3 bucket. It may have been left in your AWS account and may incur storage charges. (error was %s)"
+
+	// first we have to get rid of the env objects, or we can't delete the bucket
+	resp, err := s3Client.ListObjects(&s3.ListObjectsInput{Bucket: &bucketName})
+	if err != nil {
+		t.Logf(warning, err)
+		return
+	}
+	for _, obj := range resp.Contents {
+		if _, err := s3Client.DeleteObject(&s3.DeleteObjectInput{Bucket: &bucketName, Key: obj.Key}); err != nil {
+			// this will need cleanup no matter what, so just warn and exit
+			t.Logf(warning, err)
+			return
+		}
 	}
 
-	_, err := c.nativeClient.DeleteBucket(deleteBucketReq)
-	if err != nil {
-		t.Logf("WARNING: Failed to delete the test S3 bucket. It may have been left in your AWS account and may incur storage charges. (error was %s)", err)
+	if _, err := s3Client.DeleteBucket(&s3.DeleteBucketInput{Bucket: &bucketName}); err != nil {
+		t.Logf(warning, err)
 	}
 }
 
 // create the dynamoDB table, and wait until we can query it.
-func createDynamoDBTable(t *testing.T, c *S3Client, tableName string) {
+func createDynamoDBTable(t *testing.T, dynClient *dynamodb.DynamoDB, tableName string) {
 	createInput := &dynamodb.CreateTableInput{
 		AttributeDefinitions: []*dynamodb.AttributeDefinition{
 			{
@@ -159,7 +170,7 @@ func createDynamoDBTable(t *testing.T, c *S3Client, tableName string) {
 		TableName: aws.String(tableName),
 	}
 
-	_, err := c.dynClient.CreateTable(createInput)
+	_, err := dynClient.CreateTable(createInput)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,7 +184,7 @@ func createDynamoDBTable(t *testing.T, c *S3Client, tableName string) {
 	}
 
 	for {
-		resp, err := c.dynClient.DescribeTable(describeInput)
+		resp, err := dynClient.DescribeTable(describeInput)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -191,11 +202,11 @@ func createDynamoDBTable(t *testing.T, c *S3Client, tableName string) {
 
 }
 
-func deleteDynamoDBTable(t *testing.T, c *S3Client, tableName string) {
+func deleteDynamoDBTable(t *testing.T, dynClient *dynamodb.DynamoDB, tableName string) {
 	params := &dynamodb.DeleteTableInput{
 		TableName: aws.String(tableName),
 	}
-	_, err := c.dynClient.DeleteTable(params)
+	_, err := dynClient.DeleteTable(params)
 	if err != nil {
 		t.Logf("WARNING: Failed to delete the test DynamoDB table %q. It has been left in your AWS account and may incur charges. (error was %s)", tableName, err)
 	}
