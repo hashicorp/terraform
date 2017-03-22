@@ -1,17 +1,20 @@
 ---
-title: "About Packer Build Notifications"
+layout: "packer"
+page_title: "About Packer Build Notifications"
+sidebar_current: "docs-enterprise-packer-builds-notifications"
+description: |-
+  Terraform Enterprise can send build notifications to your organization. 
 ---
 
 # About Packer Build Notifications
 
-Atlas can send build notifications to your organization via one of our
-[supported notification methods](/help/consul/alerts/notification-methods). The
-following events are configurable:
+Terraform Enterprise can send build notifications to your organization for the
+following events:
 
 - **Starting** - The build has begun.
 - **Finished** - All build jobs have finished successfully.
 - **Errored** - An error has occurred during one of the build jobs.
-- **Canceled** - A user in Atlas has canceled the build.
+- **Canceled** - A user has canceled the build.
 
 > Emails will include logs for the **Finished** and **Errored** events.
 
