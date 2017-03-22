@@ -174,6 +174,10 @@ func testAccCheckContainerCluster(n string) resource.TestCheckFunc {
 			gcp_attr interface{}
 		}
 
+		var igUrls []string
+		if igUrls, err = getInstanceGroupUrlsFromManagerUrls(config, cluster.InstanceGroupUrls); err != nil {
+			return err
+		}
 		clusterTests := []clusterTestField{
 			{"initial_node_count", strconv.FormatInt(cluster.InitialNodeCount, 10)},
 			{"master_auth.0.client_certificate", cluster.MasterAuth.ClientCertificate},
@@ -185,7 +189,7 @@ func testAccCheckContainerCluster(n string) resource.TestCheckFunc {
 			{"cluster_ipv4_cidr", cluster.ClusterIpv4Cidr},
 			{"description", cluster.Description},
 			{"endpoint", cluster.Endpoint},
-			{"instance_group_urls", cluster.InstanceGroupUrls},
+			{"instance_group_urls", igUrls},
 			{"logging_service", cluster.LoggingService},
 			{"monitoring_service", cluster.MonitoringService},
 			{"subnetwork", cluster.Subnetwork},

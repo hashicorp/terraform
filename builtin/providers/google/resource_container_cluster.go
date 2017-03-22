@@ -522,27 +522,11 @@ func resourceContainerClusterRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("subnetwork", cluster.Subnetwork)
 	d.Set("node_config", flattenClusterNodeConfig(cluster.NodeConfig))
 
-	// container engine's API currently mistakenly returns the instance group manager's
-	// URL instead of the instance group's URL in its responses. This shim detects that
-	// error, and corrects it, by fetching the instance group manager URL and retrieving
-	// the instance group manager, then using that to look up the instance group URL, which
-	// is then substituted.
-	//
-	// This should be removed when the API response is fixed.
-	instanceGroupURLs := make([]string, 0, len(cluster.InstanceGroupUrls))
-	for _, u := range cluster.InstanceGroupUrls {
-		if !instanceGroupManagerURL.MatchString(u) {
-			instanceGroupURLs = append(instanceGroupURLs, u)
-			continue
-		}
-		matches := instanceGroupManagerURL.FindStringSubmatch(u)
-		instanceGroupManager, err := config.clientCompute.InstanceGroupManagers.Get(matches[1], matches[2], matches[3]).Do()
-		if err != nil {
-			return fmt.Errorf("Error reading instance group manager returned as an instance group URL: %s", err)
-		}
-		instanceGroupURLs = append(instanceGroupURLs, instanceGroupManager.InstanceGroup)
+	if igUrls, err := getInstanceGroupUrlsFromManagerUrls(config, cluster.InstanceGroupUrls); err != nil {
+		return err
+	} else {
+		d.Set("instance_group_urls", igUrls)
 	}
-	d.Set("instance_group_urls", instanceGroupURLs)
 
 	return nil
 }
@@ -611,6 +595,30 @@ func resourceContainerClusterDelete(d *schema.ResourceData, meta interface{}) er
 	d.SetId("")
 
 	return nil
+}
+
+// container engine's API currently mistakenly returns the instance group manager's
+// URL instead of the instance group's URL in its responses. This shim detects that
+// error, and corrects it, by fetching the instance group manager URL and retrieving
+// the instance group manager, then using that to look up the instance group URL, which
+// is then substituted.
+//
+// This should be removed when the API response is fixed.
+func getInstanceGroupUrlsFromManagerUrls(config *Config, igmUrls []string) ([]string, error) {
+	instanceGroupURLs := make([]string, 0, len(igmUrls))
+	for _, u := range igmUrls {
+		if !instanceGroupManagerURL.MatchString(u) {
+			instanceGroupURLs = append(instanceGroupURLs, u)
+			continue
+		}
+		matches := instanceGroupManagerURL.FindStringSubmatch(u)
+		instanceGroupManager, err := config.clientCompute.InstanceGroupManagers.Get(matches[1], matches[2], matches[3]).Do()
+		if err != nil {
+			return nil, fmt.Errorf("Error reading instance group manager returned as an instance group URL: %s", err)
+		}
+		instanceGroupURLs = append(instanceGroupURLs, instanceGroupManager.InstanceGroup)
+	}
+	return instanceGroupURLs, nil
 }
 
 func flattenClusterNodeConfig(c *container.NodeConfig) []map[string]interface{} {
