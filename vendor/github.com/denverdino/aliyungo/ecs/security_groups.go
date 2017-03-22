@@ -33,6 +33,7 @@ type DescribeSecurityGroupAttributeArgs struct {
 	SecurityGroupId string
 	RegionId        common.Region
 	NicType         NicType //enum for internet (default) |intranet
+	Direction       string  // enum ingress egress
 }
 
 //

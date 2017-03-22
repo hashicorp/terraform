@@ -71,11 +71,6 @@ func TestAccAlicloudRegionsDataSource_empty(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAlicloudDataSourceID("data.alicloud_regions.empty_params_region"),
 
-					resource.TestCheckResourceAttr("data.alicloud_regions.empty_params_region", "name", ""),
-					resource.TestCheckResourceAttr("data.alicloud_regions.empty_params_region", "current", ""),
-
-					resource.TestCheckResourceAttr("data.alicloud_regions.empty_params_region", "regions.#", "13"),
-
 					resource.TestCheckResourceAttr("data.alicloud_regions.empty_params_region", "regions.0.id", "cn-shenzhen"),
 					resource.TestCheckResourceAttr("data.alicloud_regions.empty_params_region", "regions.0.region_id", "cn-shenzhen"),
 					resource.TestCheckResourceAttr("data.alicloud_regions.empty_params_region", "regions.0.local_name", "华南 1"),
