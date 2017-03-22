@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 const (
@@ -88,15 +89,53 @@ func (b *Backend) State(name string) (state.State, error) {
 		lockTable:            b.lockTable,
 	}
 
-	// if this isn't the default state name, we need to create the object so
-	// it's listed by States.
+	stateMgr := &remote.State{Client: client}
+
+	//if this isn't the default state name, we need to create the object so
+	//it's listed by States.
 	if name != backend.DefaultStateName {
-		if err := client.Put([]byte{}); err != nil {
+		// take a lock on this state while we write it
+		lockInfo := state.NewLockInfo()
+		lockInfo.Operation = "init"
+		lockId, err := client.Lock(lockInfo)
+		if err != nil {
+			return nil, fmt.Errorf("failed to lock s3 state: %s", err)
+		}
+
+		// Local helper function so we can call it multiple places
+		lockUnlock := func(parent error) error {
+			if err := stateMgr.Unlock(lockId); err != nil {
+				return fmt.Errorf(strings.TrimSpace(errStateUnlock), lockId, err)
+			}
+			return parent
+		}
+
+		// Grab the value
+		if err := stateMgr.RefreshState(); err != nil {
+			err = lockUnlock(err)
 			return nil, err
 		}
+
+		// If we have no state, we have to create an empty state
+		if v := stateMgr.State(); v == nil {
+			if err := stateMgr.WriteState(terraform.NewState()); err != nil {
+				err = lockUnlock(err)
+				return nil, err
+			}
+			if err := stateMgr.PersistState(); err != nil {
+				err = lockUnlock(err)
+				return nil, err
+			}
+		}
+
+		// Unlock, the state should now be initialized
+		if err := lockUnlock(nil); err != nil {
+			return nil, err
+		}
+
 	}
 
-	return &remote.State{Client: client}, nil
+	return stateMgr, nil
 }
 
 func (b *Backend) client() *RemoteClient {
@@ -110,3 +149,11 @@ func (b *Backend) path(name string) string {
 
 	return strings.Join([]string{keyEnvPrefix, name, b.keyName}, "/")
 }
+
+const errStateUnlock = `
+Error unlocking S3 state. Lock ID: %s
+
+Error: %s
+
+You may have to force-unlock this state in order to use it again.
+`
