@@ -15,7 +15,7 @@ This documentation covers the environment interactions with Terraform.
 
 ### Environment Attributes
 
-<table border="1" cellspaceing="5">
+<table class="apidocs">
   <tr>
     <th>Attribute</th>
     <th>Description</th>
@@ -29,7 +29,7 @@ This documentation covers the environment interactions with Terraform.
     <td>Yes</td>
   </tr>
 </table>
-
+<br>
 <div class="alert-infos">
   <div class="row alert-info">
     Note: Only string variables can be updated via the API currently.

@@ -11,13 +11,13 @@ description: |-
 A configuration respresents settings associated with a resource that
 runs Terraform with versions of Terraform configuration.
 
-Configurations have many [configuration versions](/help/api/terraform/configuration-versions)
+Configurations have many [configuration versions](/docs/enterprise/api/configuration-versions.html)
 which represent versions of Terraform configuration templates and other associated
 configuration.
 
 ### Configuration Attributes
 
-<table border="1" cellspaceing="5">
+<table class="apidocs">
   <tr>
     <th>Attribute</th>
     <th>Description</th>
