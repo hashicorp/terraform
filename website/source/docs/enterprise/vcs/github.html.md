@@ -20,8 +20,7 @@ Terraform Enterprise environments are linked to individual GitHub repositories. 
 single GitHub repository can be linked to multiple environments allowing
 a single set of Terraform configuration to be used across multiple environments.
 
-Environments can be linked when they're initially created using the
-[New Environment](https://atlas.hashicorp.com/configurations/import) process.
+Environments can be linked when they're initially created using the New Environment process.
 Existing environments can be linked by setting GitHub details in their
 **Integrations**.
 

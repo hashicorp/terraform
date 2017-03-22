@@ -12,7 +12,7 @@ Users are both users and organizations in Terraform Enterprise. They are the
 parent resource of all resources.
 
 Currently, only the retrieval of users is avaiable on the API. Additionally,
-only [box](/help/api/vagrant/boxes) resources will be listed. Boxes will
+only Vagrant box resources will be listed. Boxes will
 be returned based on permissions over the organization, or user.
 
 ### Actions

@@ -8,6 +8,6 @@ description: |-
 
 # Frequently Asked Questions
 
-[Monolithic Artifacts](/docs/enterprise/faq/monolithic-artifacts) - *How do I build multiple applications into one artifact?*
+[Monolithic Artifacts](/docs/enterprise/faq/monolithic-artifacts.html) - *How do I build multiple applications into one artifact?*
 
-[Rolling Deployments](/docs/enterprise/faq/rolling-deployments) - *How do I configure rolling deployments?*
+[Rolling Deployments](/docs/enterprise/faq/rolling-deployments.html) - *How do I configure rolling deployments?*

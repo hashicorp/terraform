@@ -99,6 +99,11 @@ body.layout-intro{
 	}
 }
 
+.apidocs tr td, th {
+	border: 1px solid #000;
+	padding: 5px;
+}
+
 .docs-sidebar{
   position: relative;
   z-index: 20;

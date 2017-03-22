@@ -9,9 +9,7 @@ description: |-
 
 # Terraform Run Notifications
 
-Terraform Enterprise can send run notifications to your organization via one of our [supported
-notification methods](https://atlas.hashicorp.com/help/consul/alerts/notification-methods). The following
-events are configurable:
+Terraform Enterprise can send run notifications, the following events are configurable:
 
 - **Needs Confirmation** - The plan phase has succeeded, and there are changes
   that need to be confirmed before applying.
