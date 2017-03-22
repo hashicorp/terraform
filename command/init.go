@@ -21,11 +21,14 @@ type InitCommand struct {
 func (c *InitCommand) Run(args []string) int {
 	var flagBackend, flagGet bool
 	var flagConfigExtra map[string]interface{}
+
 	args = c.Meta.process(args, false)
 	cmdFlags := c.flagSet("init")
 	cmdFlags.BoolVar(&flagBackend, "backend", true, "")
 	cmdFlags.Var((*variables.FlagAny)(&flagConfigExtra), "backend-config", "")
 	cmdFlags.BoolVar(&flagGet, "get", true, "")
+	cmdFlags.BoolVar(&c.forceInitCopy, "force-copy", false, "suppress prompts about copying state data")
+
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -224,6 +227,10 @@ Options:
                        input was required.
 
   -no-color            If specified, output won't contain any color.
+
+  -force-copy          Suppress prompts about copying state data. This is
+                       equivalent to providing a "yes" to all confirmation
+                       prompts.
 
 `
 	return strings.TrimSpace(helpText)

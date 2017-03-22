@@ -480,11 +480,10 @@ func TestMetaBackend_configureNewWithStateExisting(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	// Ask input
-	defer testInteractiveInput(t, []string{"yes"})()
-
 	// Setup the meta
 	m := testMetaBackend(t, nil)
+	// suppress input
+	m.forceInitCopy = true
 
 	// Get the backend
 	b, err := m.Backend(&BackendOpts{Init: true})
@@ -722,11 +721,11 @@ func TestMetaBackend_configureNewLegacyCopy(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	// Ask input
-	defer testInteractiveInput(t, []string{"yes", "yes"})()
-
 	// Setup the meta
 	m := testMetaBackend(t, nil)
+
+	// suppress input
+	m.forceInitCopy = true
 
 	// Get the backend
 	b, err := m.Backend(&BackendOpts{Init: true})
@@ -1593,11 +1592,9 @@ func TestMetaBackend_configuredUnchangedLegacyCopy(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	// Ask input
-	defer testInteractiveInput(t, []string{"yes", "yes"})()
-
 	// Setup the meta
 	m := testMetaBackend(t, nil)
+	m.forceInitCopy = true
 
 	// Get the backend
 	b, err := m.Backend(&BackendOpts{Init: true})
