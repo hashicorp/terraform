@@ -1,5 +1,9 @@
 ---
-title: "Rebuilding Builds"
+layout: "packer"
+page_title: "Rebuilding Builds"
+sidebar_current: "docs-enterprise-packer-builds-rebuilding"
+description: |-
+  Sometimes builds fail due to temporary or remotely controlled conditions. 
 ---
 
 # Rebuilding Builds
