@@ -120,6 +120,58 @@ func TestTest(t *testing.T) {
 	}
 }
 
+func TestTest_plan_only(t *testing.T) {
+	mp := testProvider()
+	mp.ApplyReturn = &terraform.InstanceState{
+		ID: "foo",
+	}
+
+	checkDestroy := false
+
+	checkDestroyFn := func(*terraform.State) error {
+		checkDestroy = true
+		return nil
+	}
+
+	mt := new(mockT)
+	Test(mt, TestCase{
+		Providers: map[string]terraform.ResourceProvider{
+			"test": mp,
+		},
+		CheckDestroy: checkDestroyFn,
+		Steps: []TestStep{
+			TestStep{
+				Config:             testConfigStr,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+
+	if !mt.failed() {
+		t.Fatal("test should've failed")
+	}
+
+	expected := `Step 0 error: After applying this step, the plan was not empty:
+
+DIFF:
+
+CREATE: test_instance.foo
+  foo: "" => "bar"
+
+STATE:
+
+<no state>`
+
+	if mt.failMessage() != expected {
+		t.Fatalf("Expected message: %s\n\ngot:\n\n%s", expected, mt.failMessage())
+	}
+
+	if !checkDestroy {
+		t.Fatal("didn't call check for destroy")
+	}
+}
+
 func TestTest_idRefresh(t *testing.T) {
 	// Refresh count should be 3:
 	//   1.) initial Ref/Plan/Apply
