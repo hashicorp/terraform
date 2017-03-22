@@ -31,6 +31,7 @@ BUG FIXES:
  * provider/aws: prevent panic in resourceAwsSsmDocumentRead [GH-12891]
  * provider/aws: Prevent panic when setting AWS CodeBuild Source to state [GH-12915]
  * provider/aws: Only call replace Iam Instance Profile on existing machines [GH-12922]
+ * provider/aws: Increase AWS AMI Destroy timeout [GH-12943]
  * provider/mysql: recreate user/grant if user/grant got deleted manually [GH-12791]
 
 ## 0.9.1 (March 17, 2017)
