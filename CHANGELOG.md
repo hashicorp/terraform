@@ -25,6 +25,7 @@ IMPROVEMENTS:
  * provider/google: Add support for service_account, metadata, and image_type fields in GKE cluster config [GH-12743]
  * provider/google: Add local ssd count support for container clusters [GH-12281]
  * provider/ignition: ignition_filesystem, explicit option to create the filesystem [GH-12980]
+ * provider/ns1: Ensure provider checks for credentials [GH-12920]
  * provider/openstack: Adding Timeouts to Blockstorage Resources [GH-12862]
  * provider/openstack: Adding Timeouts to FWaaS v1 Resources [GH-12863]
  * provider/openstack: Adding Timeouts to Image v2 and LBaaS v2 Resources [GH-12865]
