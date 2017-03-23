@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 func TestAccComputeSnapshot_basic(t *testing.T) {
@@ -64,9 +65,15 @@ func testAccCheckComputeSnapshotDestroy(s *terraform.State) error {
 
 		_, err := config.clientCompute.Snapshots.Get(
 			config.Project, rs.Primary.ID).Do()
-		if err == nil {
-			return fmt.Errorf("Snapshot still exists")
+		if err != nil {
+			if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+				return nil
+			} else if ok {
+				return fmt.Errorf("Error while requesting Google Cloud Plateform: http code error : %d, http message error: %s", gerr.Code, gerr.Message)
+			}
+			return fmt.Errorf("Error while requesting Google Cloud Plateform")
 		}
+		return fmt.Errorf("Snapshot still exists")
 	}
 
 	return nil
