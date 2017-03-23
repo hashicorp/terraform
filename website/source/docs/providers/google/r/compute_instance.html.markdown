@@ -32,6 +32,7 @@ resource "google_compute_instance" "default" {
   disk {
     type    = "local-ssd"
     scratch = true
+    nvme = true
   }
 
   network_interface {
@@ -130,6 +131,8 @@ the type is "local-ssd", in which case scratch must be true).
 
 * `scratch` - (Optional) Whether the disk is a scratch disk as opposed to a
     persistent disk (required for local-ssd).
+
+* `nvme` - (Optional) Whether the disk interface is NVME as opposed to SCSI.
 
 * `size` - (Optional) The size of the image in gigabytes. If not specified, it
     will inherit the size of its base image. Do not specify for local SSDs as
