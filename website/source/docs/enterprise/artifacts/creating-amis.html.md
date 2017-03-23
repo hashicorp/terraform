@@ -1,7 +1,7 @@
 ---
 layout: "artifacts"
 page_title: "Creating AMI Artifacts"
-sidebar_current: "docs-enterprise-artifact-amis"
+sidebar_current: "docs-enterprise-artifacts-amis"
 description: |-
   Creating AMI Artifacts with Packer.
 ---

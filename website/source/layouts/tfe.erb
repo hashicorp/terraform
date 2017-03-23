@@ -1,0 +1,27 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <ul class="nav docs-sidenav">
+      <li>
+        <a class="back" href="/docs/providers/index.html">All Providers</a>
+      </li>
+
+      <li<%= sidebar_current("docs-tfe-index") %>>
+        <a class="back" href="/docs/providers/tfe/index.html">Terraform Enterprise Provider</a>
+      </li>
+
+      <h4>Data Sources</h4>
+
+      <li<%= sidebar_current("docs-tfe-data-artifact") %>>
+        <a href="/docs/providers/tfe/d/artifact.html">atlas_artifact</a>
+      </li>
+
+      <h4>Resources</h4>
+
+      <li<%= sidebar_current("docs-tfe-resource-artifact") %>>
+        <a href="/docs/providers/tfe/r/artifact.html">atlas_artifact</a>
+      </li>
+    </ul>
+  <% end %>
+
+  <%= yield %>
+<% end %>

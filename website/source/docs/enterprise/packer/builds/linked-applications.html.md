@@ -8,4 +8,4 @@ description: |-
 
 # Linked Applications
 
-Linked applications have been deprecated in favor of the application build pipeline.
+<div class="alert-info">Linked applications have been deprecated in favor of the application build pipeline.</div>
