@@ -3,12 +3,12 @@ layout: "api"
 page_title: "Terraform Configuration API"
 sidebar_current: "docs-enterprise-api-configurations"
 description: |-
-  A configuration respresents settings associated with a resource that runs Terraform with versions of Terraform configuration..
+  A configuration represents settings associated with a resource that runs Terraform with versions of Terraform configuration..
 ---
 
 # Terraform Configuration API
 
-A configuration respresents settings associated with a resource that
+A configuration represents settings associated with a resource that
 runs Terraform with versions of Terraform configuration.
 
 Configurations have many [configuration versions](/docs/enterprise/api/configuration-versions.html)
@@ -40,7 +40,7 @@ configuration.
 
 ### Actions
 
-The following actions can be perfomed on this resource.
+The following actions can be performed on this resource.
 
 <dl>
   <dt>Show</dt>
@@ -63,7 +63,7 @@ Creates a configuration with the provided attributes.
 
 #### Retrieving a configuration
 
-Returns the JSON respresentation of the latest configuration.
+Returns the JSON representation of the latest configuration.
 
     $ curl %{ATLAS_URL}/api/v1/terraform/configurations/%{DEFAULT_USERNAME}/test/versions/latest \
         -H "X-Atlas-Token: $ATLAS_TOKEN"

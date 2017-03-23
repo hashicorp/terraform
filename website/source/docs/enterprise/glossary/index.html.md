@@ -172,7 +172,7 @@ stores artifacts, be it images or IDs for cloud provider images.
 
 ### Run
 
-A run epresents a two step Terraform plan and a subsequent apply.
+A run represents a two step Terraform plan and a subsequent apply.
 
 ### Service
 
