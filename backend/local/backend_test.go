@@ -21,7 +21,8 @@ func TestLocal_impl(t *testing.T) {
 }
 
 func TestLocal_backend(t *testing.T) {
-	b := TestLocal(t)
+	defer testTmpDir(t)()
+	b := &Local{}
 	backend.TestBackend(t, b, b)
 }
 
