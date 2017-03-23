@@ -37,6 +37,7 @@ BUG FIXES:
  * provider/aws: Prevent panic when setting AWS CodeBuild Source to state [GH-12915]
  * provider/aws: Only call replace Iam Instance Profile on existing machines [GH-12922]
  * provider/aws: Increase AWS AMI Destroy timeout [GH-12943]
+ * provider/google: turn compute_instance_group.instances into a set [GH-12790]
  * provider/mysql: recreate user/grant if user/grant got deleted manually [GH-12791]
 
 ## 0.9.1 (March 17, 2017)
