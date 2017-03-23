@@ -15,9 +15,9 @@ import (
 func TestAccAWSRolePolicyAttachment_basic(t *testing.T) {
 	var out iam.ListAttachedRolePoliciesOutput
 	rInt := acctest.RandInt()
-	testPolicy := fmt.Sprintf("test-policy-%d", rInt)
-	testPolicy2 := fmt.Sprintf("test-policy2-%d", rInt)
-	testPolicy3 := fmt.Sprintf("test-policy3-%d", rInt)
+	testPolicy := fmt.Sprintf("tf-acctest-%d", rInt)
+	testPolicy2 := fmt.Sprintf("tf-acctest2-%d", rInt)
+	testPolicy3 := fmt.Sprintf("tf-acctest3-%d", rInt)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -115,7 +115,7 @@ EOF
 	}
 
 	resource "aws_iam_policy" "policy" {
-			name = "test-policy-%d"
+			name = "tf-acctest-%d"
 			description = "A test policy"
 			policy = <<EOF
 {
@@ -161,7 +161,7 @@ EOF
 	}
 
 	resource "aws_iam_policy" "policy" {
-			name = "test-policy-%d"
+			name = "tf-acctest-%d"
 			description = "A test policy"
 			policy = <<EOF
 {
@@ -180,7 +180,7 @@ EOF
 	}
 
 	resource "aws_iam_policy" "policy2" {
-			name = "test-policy2-%d"
+			name = "tf-acctest2-%d"
 			description = "A test policy"
 			policy = <<EOF
 {
@@ -199,7 +199,7 @@ EOF
 	}
 
 	resource "aws_iam_policy" "policy3" {
-			name = "test-policy3-%d"
+			name = "tf-acctest3-%d"
 			description = "A test policy"
 			policy = <<EOF
 {
