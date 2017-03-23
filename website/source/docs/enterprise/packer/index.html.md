@@ -15,5 +15,5 @@ source configuration.
 This is a list of features specific to Packer that Terraform Enterprise provides.
 
 - [Running Packer Builds](/docs/enterprise/packer/builds/index.html)
-- [Creating and Uploading AMIs](/docs/enterprise/packer/artifacts/creating-amis/index.html)
-- [Creating Vagrant Boxes](/docs/enterprise/packer/artifacts/creating-vagrant-boxes/index.html)
+- [Creating and Uploading AMIs](/docs/enterprise/packer/artifacts/creating-amis.html)
+- [Creating Vagrant Boxes](/docs/enterprise/packer/artifacts/creating-vagrant-boxes.html)

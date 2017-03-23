@@ -3,12 +3,12 @@ layout: "api"
 page_title: "Configuration Versions API"
 sidebar_current: "docs-enterprise-api-configversions"
 description: |-
-  A configuration version represents versions of Terrraform configuration.
+  A configuration version represents versions of Terraform configuration.
 ---
 
 # Configuration Versions API
 
-A configuration version represents versions of Terrraform configuration.
+A configuration version represents versions of Terraform configuration.
 Each set of changes to Terraform HCL files or the scripts
 used in the files should have an associated configuration version.
 
@@ -38,7 +38,7 @@ to include the necessary variables for the Terraform configuration.
 
 ### Actions
 
-The following actions can be perfomed on this resource.
+The following actions can be performed on this resource.
 
 <dl>
   <dt>Create</dt>
