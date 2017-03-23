@@ -73,7 +73,7 @@ You can use the same parameters to GitHub repositories as you can generic Git re
 
 ### Private GitHub Repos
 
-If you need Terraform to be able to fetch modules from private GitHub repos on a remote machine (like Atlas or a CI server), you'll need to provide Terraform with credentials that can be used to authenticate as a user with read access to the private repo.
+If you need Terraform to be able to fetch modules from private GitHub repos on a remote machine (like Terraform Enterprise or a CI server), you'll need to provide Terraform with credentials that can be used to authenticate as a user with read access to the private repo.
 
 First, create a [machine user](https://developer.github.com/guides/managing-deploy-keys/#machine-users) on GitHub with read access to the private repo in question, then embed this user's credentials into the `source` parameter:
 

@@ -1,7 +1,7 @@
 ---
 layout: "artifacts"
 page_title: "Terraform Artifacts"
-sidebar_current: "docs-enterprise-artifact"
+sidebar_current: "docs-enterprise-artifacts"
 description: |-
   Terraform Enterprise can be used to store artifacts for use by Terraform. Typically, artifacts are stored with Packer.
 ---
