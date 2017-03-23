@@ -2839,10 +2839,10 @@
 			"revisionTime": "2017-03-13T16:33:22Z"
 		},
 		{
-			"checksumSHA1": "ySSmShoczI/i/5PzurH8Uhi/dbA=",
+			"checksumSHA1": "bCpL8ZdY+y7OGwiN3hZzbQI5oM0=",
 			"path": "github.com/sethvargo/go-fastly",
-			"revision": "247f42f7ecc6677aa1b6e30978d06fcc38f5f769",
-			"revisionTime": "2017-02-06T18:56:52Z"
+			"revision": "43b7f97296d6c8e3a7bc083ab91101fbbc8c2f94",
+			"revisionTime": "2017-02-28T16:12:19Z"
 		},
 		{
 			"checksumSHA1": "8tEiK6vhVXuUbnWME5XNWLgvtSo=",
