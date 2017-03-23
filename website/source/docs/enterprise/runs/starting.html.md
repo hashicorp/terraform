@@ -84,7 +84,7 @@ Supported GitHub webhook events:
 
 ## Artifact Uploads
 
-Upon successful completion of a Terraform run,the remote state is parsed and
+Upon successful completion of a Terraform run, the remote state is parsed and
 any [artifacts](/docs/enterprise/artifacts/artifact-provider.html) are detected that
 were referenced. When new versions of those referenced artifacts are uploaded, you have the option to automatically queue a new Terraform run.
 

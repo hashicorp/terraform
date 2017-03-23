@@ -31,11 +31,11 @@ can be configured to auto-apply to avoid this.
 
 ### Actions
 
-The following actions can be perfomed on this resource.
+The following actions can be performed on this resource.
 
 <dl>
   <dt>Queue a run</dt>
-  <dd>POST /api/v1/enviromments/:username/:name/plan</dd>
+  <dd>POST /api/v1/environments/:username/:name/plan</dd>
 </dl>
 
 ### Examples

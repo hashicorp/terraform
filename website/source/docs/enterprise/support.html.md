@@ -20,7 +20,7 @@ within less than 24 hours.
 ## HashiCorp Tools Support
 
 It's often the case that Terraform Enterprise questions or feedback relates to the
-HashiCorp tooling. We encourage all Terraform Enterpriseusers to search for related
+HashiCorp tooling. We encourage all Terraform Enterprise users to search for related
 issues and problems in the open source repositories and mailing lists
 prior to contacting us to help make our support more efficient and
 to help resolve problems faster.

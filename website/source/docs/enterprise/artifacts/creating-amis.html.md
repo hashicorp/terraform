@@ -11,4 +11,4 @@ description: |-
 
 Currently, the best way to create AWS AMI artifacts is with Packer.
 
-We detail how to do this in the [Packer section of the documentation](https://atlas.hashicorp.com/help/packer/artifacts/creating-amis).
+We detail how to do this in the [Packer section of the documentation](/docs/enterprise/packer/artifacts/creating-amis.html).

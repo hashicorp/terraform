@@ -24,7 +24,7 @@ This documentation covers the environment interactions with Terraform.
   <tr>
     <td><code>variables</code></td>
     <td>A key/value map of Terraform variables to be updated. Existing
-      variables will only be removed when their value is empty. Varaibles
+      variables will only be removed when their value is empty. Variables
       of the same key will be overwritten.</td>
     <td>Yes</td>
   </tr>
@@ -39,11 +39,11 @@ This documentation covers the environment interactions with Terraform.
 
 ### Actions
 
-The following actions can be perfomed on this resource.
+The following actions can be performed on this resource.
 
 <dl>
   <dt>Update variables</dt>
-  <dd>PUT /api/v1/enviromments/:username/:name/variables</dd>
+  <dd>PUT /api/v1/environments/:username/:name/variables</dd>
 </dl>
 
 ### Examples

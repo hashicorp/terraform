@@ -27,7 +27,7 @@ State represents the status of your infrastructure at the last time Terraform wa
 
 ### Actions
 
-The following actions can be perfomed on this resource.
+The following actions can be performed on this resource.
 
 <dl>
   <dt>Get a list of states accessible to a user</dt>

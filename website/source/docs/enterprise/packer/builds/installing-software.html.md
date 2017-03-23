@@ -8,7 +8,7 @@ description: |-
 
 # Installing Software
 
-Please review the [Packer Build Environment](/docs/enterprise/builds/build-environment.html)
+Please review the [Packer Build Environment](/docs/enterprise/packer/builds/build-environment.html)
 specification for important information on isolation, security, and hardware
 limitations before continuing.
 

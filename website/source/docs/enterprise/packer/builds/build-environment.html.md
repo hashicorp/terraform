@@ -28,8 +28,8 @@ Terraform Enterprise currently supports running the following Packer builders:
 
 ### Files
 
-All files in the uploading package (via [Packer push or GitHub](/help/packer/builds/starting)),
-and the application from the [build pipeline](/help/applications/build-pipeline) are available on the filesystem
+All files in the uploading package (via [Packer push or GitHub](/docs/enterprise/packer/builds/starting.html)),
+and the application from the build pipeline are available on the filesystem
 of the build environment.
 
 You can use the file icon on the running build to show a list of
@@ -55,7 +55,7 @@ We encourage use of relative paths over absolute paths to maintain portability
 between Terraform Enterprise and local builds.
 
 The total size of all files in the package being uploaded via
-[Packer push or GitHub](/help/packer/builds/starting) must be 5 GB or less.
+[Packer push or GitHub](/docs/enterprise/packer/builds/starting.html) must be 5 GB or less.
 
 If you need to upload objects that are larger, such as dmgs, see the
 [`packer push` "Limits" documentation](https://packer.io/docs/command-line/push.html)
@@ -91,7 +91,7 @@ Additionally, the following environment variables are automatically injected. Al
 - `ATLAS_BUILD_USERNAME` - This is the username associated with the build
   (e.g. `"sammy"`)
 - `ATLAS_BUILD_CONFIGURATION_VERSION` - This is the unique, auto-incrementing
-  version for the [Packer build configuration](/help/glossary) (e.g. `"34"`).
+  version for the [Packer build configuration](/docs/enterprise/glossary/index.html) (e.g. `"34"`).
 - `ATLAS_BUILD_GITHUB_BRANCH` - This is the name of the branch
   that the associated Packer build configuration version was ingressed from
   (e.g. `master`).

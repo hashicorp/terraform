@@ -20,7 +20,7 @@ or requests for new API features please email [support@hashicorp.com](mailto:sup
 ## Authentication
 
 All requests must be authenticated with an `X-Atlas-Token` HTTP header. This 
-token can be generated or revoked on the [account tokens page](/settings/tokens). 
+token can be generated or revoked on the account tokens page. 
 Your token will have access to all resources your account has access to.
 
 For organization level resources, we recommend creating a separate user account
