@@ -109,12 +109,19 @@ func resourceAwsNetworkAclRuleCreate(d *schema.ResourceData, meta interface{}) e
 		},
 	}
 
-	if v, ok := d.GetOk("cidr_block"); ok {
-		params.CidrBlock = aws.String(v.(string))
+	cidr, hasCidr := d.GetOk("cidr_block")
+	ipv6Cidr, hasIpv6Cidr := d.GetOk("ipv6_cidr_block")
+
+	if hasCidr == false && hasIpv6Cidr == false {
+		return fmt.Errorf("Either `cidr_block` or `ipv6_cidr_block` must be defined")
 	}
 
-	if v, ok := d.GetOk("ipv6_cidr_block"); ok {
-		params.Ipv6CidrBlock = aws.String(v.(string))
+	if hasCidr {
+		params.CidrBlock = aws.String(cidr.(string))
+	}
+
+	if hasIpv6Cidr {
+		params.Ipv6CidrBlock = aws.String(ipv6Cidr.(string))
 	}
 
 	// Specify additional required fields for ICMP. For the list

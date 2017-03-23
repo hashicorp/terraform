@@ -87,14 +87,18 @@ type Meta struct {
 	//
 	// provider is to specify specific resource providers
 	//
-	// lockState is set to false to disable state locking
-	statePath    string
-	stateOutPath string
-	backupPath   string
-	parallelism  int
-	shadow       bool
-	provider     string
-	stateLock    bool
+	// stateLock is set to false to disable state locking
+	//
+	// forceInitCopy suppresses confirmation for copying state data during
+	// init.
+	statePath     string
+	stateOutPath  string
+	backupPath    string
+	parallelism   int
+	shadow        bool
+	provider      string
+	stateLock     bool
+	forceInitCopy bool
 }
 
 // initStatePaths is used to initialize the default values for
