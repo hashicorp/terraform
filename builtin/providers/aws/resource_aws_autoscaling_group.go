@@ -162,6 +162,25 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				},
 			},
 
+			"wait_for_termination_timeout": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "10m",
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					duration, err := time.ParseDuration(value)
+					if err != nil {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be parsed as a duration: %s", k, err))
+					}
+					if duration < 0 {
+						errors = append(errors, fmt.Errorf(
+							"%q must be greater than zero", k))
+					}
+					return
+				},
+			},
+
 			"wait_for_elb_capacity": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -763,7 +782,11 @@ func resourceAwsAutoscalingGroupDrain(d *schema.ResourceData, meta interface{}) 
 
 	// Next, wait for the autoscale group to drain
 	log.Printf("[DEBUG] Waiting for group to have zero instances")
-	return resource.Retry(10*time.Minute, func() *resource.RetryError {
+	wait, err := time.ParseDuration(d.Get("wait_for_termination_timeout").(string))
+	if err != nil {
+                return err
+        }
+	return resource.Retry(wait, func() *resource.RetryError {
 		g, err := getAwsAutoscalingGroup(d.Id(), conn)
 		if err != nil {
 			return resource.NonRetryableError(err)
