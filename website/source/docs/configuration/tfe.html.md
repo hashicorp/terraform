@@ -1,21 +1,21 @@
 ---
 layout: "docs"
-page_title: "Configuring Atlas"
-sidebar_current: "docs-config-atlas"
+page_title: "Configuring Terraform Enterprise"
+sidebar_current: "docs-config-tfe"
 description: |-
-  Atlas is the ideal way to use Terraform in a team environment. Atlas will run Terraform for you, safely handle parallelization across different team members, save run history along with plans, and more.
+  Terraform Enterprise is the ideal way to use Terraform in a team environment. Terraform Enterprise will run Terraform for you, safely handle parallelization across different team members, save run history along with plans, and more.
 ---
 
-# Atlas Configuration
+# Terraform Enterprise Configuration
 
 Terraform can be configured to be able to upload to HashiCorp's
-[Atlas](https://atlas.hashicorp.com). This configuration doesn't change
+[Terraform Enterprise](https://www.hashicorp.com/products/terraform/). This configuration doesn't change
 the behavior of Terraform itself, it only configures your Terraform
-configuration to support being uploaded to Atlas via the
+configuration to support being uploaded to Terraform Enterprise via the
 [push command](/docs/commands/push.html).
 
 For more information on the benefits of uploading your Terraform
-configuration to Atlas, please see the
+configuration to Terraform Enterprise, please see the
 [push command documentation](/docs/commands/push.html).
 
 This page assumes you're familiar with the
@@ -24,7 +24,7 @@ already.
 
 ## Example
 
-Atlas configuration looks like the following:
+Terraform Enterprise configuration looks like the following:
 
 ```hcl
 atlas {
@@ -35,7 +35,7 @@ atlas {
 ## Description
 
 The `atlas` block configures the settings when Terraform is
-[pushed](/docs/commands/push.html) to Atlas. Only one `atlas` block
+[pushed](/docs/commands/push.html) to Terraform Enterprise. Only one `atlas` block
 is allowed.
 
 Within the block (the `{ }`) is configuration for Atlas uploading.

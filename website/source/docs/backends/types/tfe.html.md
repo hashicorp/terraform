@@ -1,21 +1,19 @@
 ---
 layout: "backend-types"
-page_title: "Backend Type: atlas"
-sidebar_current: "docs-backends-types-standard-atlas"
+page_title: "Backend Type: terraform enterprise"
+sidebar_current: "docs-backends-types-standard-tfe"
 description: |-
-  Terraform can store the state in Atlas.
+  Terraform can store the state in Terraform Enterprise
 ---
 
-# atlas
+# terraform enterprise
 
 **Kind: Standard (with no locking)**
 
-Stores the state in [Atlas](https://atlas.hashicorp.com/).
+Stores the state in [Terraform Enterprise](https://www.terraform.io/docs/providers/index.html).
 
 You can create a new environment in the
-[Environments section](https://atlas.hashicorp.com/environments)
-and generate new token in the
-[Tokens page](https://atlas.hashicorp.com/settings/tokens) under Settings.
+Environments section and generate new token in the Tokens page under Settings.
 
 ## Example Configuration
 
@@ -48,5 +46,5 @@ data "terraform_remote_state" "foo" {
 The following configuration options / environment variables are supported:
 
  * `name` - (Required) Full name of the environment (`<username>/<name>`)
- * `access_token` / `ATLAS_TOKEN` - (Required) Atlas API token
- * `address` - (Optional) Address to alternative Atlas location (Atlas Enterprise endpoint)
+ * `access_token` / `ATLAS_TOKEN` - (Required) Terraform Enterprise API token
+ * `address` - (Optional) Address to alternative Terraform Enterprise location (Terraform Enterprise endpoint)

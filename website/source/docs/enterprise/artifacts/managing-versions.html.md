@@ -1,7 +1,7 @@
 ---
 layout: "artifacts"
 page_title: "Managing Artifact Versions"
-sidebar_current: "docs-enterprise-artifact-versions"
+sidebar_current: "docs-enterprise-artifacts-versions"
 description: |-
   Artifacts are versioned and assigned a version number, here is how to manage the versions.
 ---

@@ -1,7 +1,7 @@
 ---
 layout: "packer"
 page_title: "Packer Features in Terraform Enterprise"
-sidebar_current: "docs-enterprise-packer"
+sidebar_current: "docs-enterprise-packer-index"
 description: |-
   Packer is a tool for creating images for platforms such as Amazon AWS, OpenStack, VMware, VirtualBox, Docker, and more — all from a single source configuration.
 ---

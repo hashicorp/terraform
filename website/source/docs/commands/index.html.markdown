@@ -41,7 +41,7 @@ Common commands:
     init               Initialize a new or existing Terraform configuration
     output             Read an output from a state file
     plan               Generate and show an execution plan
-    push               Upload this Terraform module to Atlas to run
+    push               Upload this Terraform module to Terraform Enterprise to run
     refresh            Update local state file against real resources
     show               Inspect Terraform state or plan
     taint              Manually mark a resource for recreation

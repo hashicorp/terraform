@@ -1,9 +1,9 @@
 ---
-layout: "atlas"
-page_title: "Atlas: atlas_artifact"
-sidebar_current: "docs-atlas-resource-artifact"
+layout: "tfe"
+page_title: "Terraform Enterprise: atlas_artifact"
+sidebar_current: "docs-tfe-resource-artifact"
 description: |-
-  Provides access to deployment artifacts managed by Atlas. This can
+  Provides access to deployment artifacts managed by Terraform Enterprise. This can
   be used to dynamically configure instantiation and provisioning
   of resources.
 ---
@@ -14,8 +14,9 @@ Provides access to deployment artifacts managed by Atlas. This can
 be used to dynamically configure instantiation and provisioning
 of resources.
 
-!> **This resource is deprecated!** Use the
-[Atlas Artifact Data Source](/docs/providers/atlas/d/artifact.html)
+
+~> **This resource is deprecated!** Please use the
+[Artifact Data Source](/docs/providers/tfe/d/artifact.html)
 
 ## Example Usage
 
@@ -48,7 +49,7 @@ resource "aws_instance" "app" {
 
 The following arguments are supported:
 
-* `name` - (Required) Name of the artifact in Atlas. This is given
+* `name` - (Required) Name of the artifact in Terraform Enterprise. This is given
   in slug format like "organization/artifact".
 
 * `type` - (Required) The type of artifact to query for.
@@ -59,7 +60,7 @@ The following arguments are supported:
   matching artifact in any build, or a specific number to pin to that
   build. If `build` and `version` are unspecified, `version` will default
   to "latest". Cannot be specified with `version`. Note: `build` is only
-  present if Atlas builds the image.
+  present if Terraform Enterprise builds the image.
 
 * `version` - (Optional)  The version of the artifact to filter on. This can
   be "latest", to match against the latest version, "any" to find a matching artifact
@@ -88,4 +89,4 @@ The following attributes are exported:
   to replace any characters that are invalid in a resource name with a hyphen.
   For example, the "region.us-east-1" key will become "region-us-east-1".
 * `version_real` - The matching version of the artifact
-* `slug` - The artifact slug in Atlas
+* `slug` - The artifact slug in Terraform Enterprise
