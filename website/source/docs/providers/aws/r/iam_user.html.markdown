@@ -57,8 +57,9 @@ The following arguments are supported:
 
 The following attributes are exported:
 
-* `unique_id` - The [unique ID][1] assigned by AWS.
 * `arn` - The ARN assigned by AWS for this user.
+* `name` - The user's name.
+* `unique_id` - The [unique ID][1] assigned by AWS.
 
   [1]: https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html#GUIDs
 
