@@ -242,8 +242,8 @@ func resourceComputeInstanceGroupUpdate(d *schema.ResourceData, meta interface{}
 		// to-do check for no instances
 		from_, to_ := d.GetChange("instances")
 
-		from := convertStringArr(from_.([]interface{}))
-		to := convertStringArr(to_.([]interface{}))
+		from := convertStringArr(from_.(*schema.Set).List())
+		to := convertStringArr(to_.(*schema.Set).List())
 
 		if !validInstanceURLs(from) {
 			return fmt.Errorf("Error invalid instance URLs: %v", from)
