@@ -37,6 +37,7 @@ BUG FIXES:
  * core: Remove legacy remote state configuration on state migration. This fixes errors when saving plans. [GH-12888]
  * provider/arukas: Default timeout for launching container increased to 15mins (was 10mins) [GH-12849]
  * provider/aws: Fix flattened cloudfront lambda function associations to be a set not a slice [GH-11984]
+ * provider/aws: Consider ACTIVE as pending state during ECS svc deletion [GH-12986]
  * provider/aws: Deprecate the usage of Api Gateway Key Stages in favor of Usage Plans [GH-12883]
  * provider/aws: prevent panic in resourceAwsSsmDocumentRead [GH-12891]
  * provider/aws: Prevent panic when setting AWS CodeBuild Source to state [GH-12915]
