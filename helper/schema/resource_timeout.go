@@ -10,6 +10,7 @@ import (
 )
 
 const TimeoutKey = "e2bfb730-ecaa-11e6-8f88-34363bc7c4c0"
+const TimeoutsConfigKey = "timeouts"
 
 const (
 	TimeoutCreate  = "create"
@@ -60,7 +61,7 @@ func (t *ResourceTimeout) ConfigDecode(s *Resource, c *terraform.ResourceConfig)
 		*t = *raw.(*ResourceTimeout)
 	}
 
-	if raw, ok := c.Config["timeout"]; ok {
+	if raw, ok := c.Config[TimeoutsConfigKey]; ok {
 		if configTimeouts, ok := raw.([]map[string]interface{}); ok {
 			for _, timeoutValues := range configTimeouts {
 				// loop through each Timeout given in the configuration and validate they

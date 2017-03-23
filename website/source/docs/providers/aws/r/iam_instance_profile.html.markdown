@@ -44,7 +44,7 @@ EOF
 
 The following arguments are supported:
 
-* `name` - (Optional, Forces new resource) The profile's name.
+* `name` - (Optional, Forces new resource) The profile's name. If omitted, Terraform will assign a random, unique name.
 * `name_prefix` - (Optional, Forces new resource) Creates a unique name beginning with the specified prefix. Conflicts with `name`.
 * `path` - (Optional, default "/") Path in which to create the profile.
 * `roles` - (Required) A list of role names to include in the profile.  The current default is 1.  If you see an error message similar to `Cannot exceed quota for InstanceSessionsPerInstanceProfile: 1`, then you must contact AWS support and ask for a limit increase.

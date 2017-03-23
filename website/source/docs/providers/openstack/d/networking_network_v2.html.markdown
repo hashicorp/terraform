@@ -24,6 +24,8 @@ data "openstack_networking_network_v2" "network" {
   A Neutron client is needed to retrieve networks ids. If omitted, the
   `OS_REGION_NAME` environment variable is used.
 
+* `network_id` - (Optional) The ID of the network.
+
 * `name` - (Optional) The name of the network.
 
 * `matching_subnet_cidr` - (Optional) The CIDR of a subnet within the network.

@@ -10,7 +10,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-func TestAccDnsARecordSet_basic(t *testing.T) {
+func TestAccDnsARecordSet_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },

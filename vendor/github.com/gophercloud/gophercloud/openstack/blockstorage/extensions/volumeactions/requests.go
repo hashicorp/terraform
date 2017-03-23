@@ -214,3 +214,40 @@ func ExtendSize(client *gophercloud.ServiceClient, id string, opts ExtendSizeOpt
 	})
 	return
 }
+
+// UploadImageOptsBuilder allows extensions to add additional parameters to the
+// UploadImage request.
+type UploadImageOptsBuilder interface {
+	ToVolumeUploadImageMap() (map[string]interface{}, error)
+}
+
+// UploadImageOpts contains options for uploading a Volume to image storage.
+type UploadImageOpts struct {
+	// Container format, may be bare, ofv, ova, etc.
+	ContainerFormat string `json:"container_format,omitempty"`
+	// Disk format, may be raw, qcow2, vhd, vdi, vmdk, etc.
+	DiskFormat string `json:"disk_format,omitempty"`
+	// The name of image that will be stored in glance
+	ImageName string `json:"image_name,omitempty"`
+	// Force image creation, usable if volume attached to instance
+	Force bool `json:"force,omitempty"`
+}
+
+// ToVolumeUploadImageMap assembles a request body based on the contents of a
+// UploadImageOpts.
+func (opts UploadImageOpts) ToVolumeUploadImageMap() (map[string]interface{}, error) {
+	return gophercloud.BuildRequestBody(opts, "os-volume_upload_image")
+}
+
+// UploadImage will upload image base on the values in UploadImageOptsBuilder
+func UploadImage(client *gophercloud.ServiceClient, id string, opts UploadImageOptsBuilder) (r UploadImageResult) {
+	b, err := opts.ToVolumeUploadImageMap()
+	if err != nil {
+		r.Err = err
+		return
+	}
+	_, r.Err = client.Post(uploadURL(client, id), b, nil, &gophercloud.RequestOpts{
+		OkCodes: []int{202},
+	})
+	return
+}

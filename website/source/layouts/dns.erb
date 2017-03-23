@@ -7,7 +7,23 @@
                 </li>
 
 				<li<%= sidebar_current("docs-dns-index") %>>
-				<a href="/docs/providers/dns/index.html">dns Provider</a>
+				<a href="/docs/providers/dns/index.html">DNS Provider</a>
+                </li>
+
+                <li<%= sidebar_current(/^docs-aws-datasource/) %>>
+                <a href="#">Data Sources</a>
+                    <ul class="nav nav-visible">
+
+                        <li<%= sidebar_current("docs-dns-datasource-a-record-set") %>>
+                            <a href="/docs/providers/dns/d/dns_a_record_set.html">dns_a_record_set</a>
+                        </li>
+                        <li<%= sidebar_current("docs-dns-datasource-cname-record-set") %>>
+                            <a href="/docs/providers/dns/d/dns_cname_record_set.html">dns_cname_record_set</a>
+                        </li>
+                        <li<%= sidebar_current("docs-dns-datasource-txt-record-set") %>>
+                            <a href="/docs/providers/dns/d/dns_txt_record_set.html">dns_txt_record_set</a>
+                        </li>
+                    </ul>
                 </li>
 
 				<li<%= sidebar_current(/^docs-dns/) %>>
@@ -32,4 +48,4 @@
 	<% end %>
 
 	<%= yield %>
-	<% end %>
+<% end %>

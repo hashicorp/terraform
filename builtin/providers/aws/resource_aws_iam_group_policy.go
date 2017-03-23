@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -27,8 +28,15 @@ func resourceAwsIamGroupPolicy() *schema.Resource {
 				Required: true,
 			},
 			"name": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
+			},
+			"name_prefix": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 			},
 			"group": &schema.Schema{
@@ -45,9 +53,18 @@ func resourceAwsIamGroupPolicyPut(d *schema.ResourceData, meta interface{}) erro
 
 	request := &iam.PutGroupPolicyInput{
 		GroupName:      aws.String(d.Get("group").(string)),
-		PolicyName:     aws.String(d.Get("name").(string)),
 		PolicyDocument: aws.String(d.Get("policy").(string)),
 	}
+
+	var policyName string
+	if v, ok := d.GetOk("name"); ok {
+		policyName = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		policyName = resource.PrefixedUniqueId(v.(string))
+	} else {
+		policyName = resource.UniqueId()
+	}
+	request.PolicyName = aws.String(policyName)
 
 	if _, err := iamconn.PutGroupPolicy(request); err != nil {
 		return fmt.Errorf("Error putting IAM group policy %s: %s", *request.PolicyName, err)

@@ -88,6 +88,7 @@ func Funcs() map[string]ast.Function {
 		"slice":        interpolationFuncSlice(),
 		"sort":         interpolationFuncSort(),
 		"split":        interpolationFuncSplit(),
+		"substr":       interpolationFuncSubstr(),
 		"timestamp":    interpolationFuncTimestamp(),
 		"title":        interpolationFuncTitle(),
 		"trimspace":    interpolationFuncTrimSpace(),
@@ -1180,6 +1181,51 @@ func interpolationFuncTitle() ast.Function {
 		Callback: func(args []interface{}) (interface{}, error) {
 			toTitle := args[0].(string)
 			return strings.Title(toTitle), nil
+		},
+	}
+}
+
+// interpolationFuncSubstr implements the "substr" function that allows strings
+// to be truncated.
+func interpolationFuncSubstr() ast.Function {
+	return ast.Function{
+		ArgTypes: []ast.Type{
+			ast.TypeString, // input string
+			ast.TypeInt,    // offset
+			ast.TypeInt,    // length
+		},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			str := args[0].(string)
+			offset := args[1].(int)
+			length := args[2].(int)
+
+			// Interpret a negative offset as being equivalent to a positive
+			// offset taken from the end of the string.
+			if offset < 0 {
+				offset += len(str)
+			}
+
+			// Interpret a length of `-1` as indicating that the substring
+			// should start at `offset` and continue until the end of the
+			// string. Any other negative length (other than `-1`) is invalid.
+			if length == -1 {
+				length = len(str)
+			} else if length >= 0 {
+				length += offset
+			} else {
+				return nil, fmt.Errorf("length should be a non-negative integer")
+			}
+
+			if offset > len(str) {
+				return nil, fmt.Errorf("offset cannot be larger than the length of the string")
+			}
+
+			if length > len(str) {
+				return nil, fmt.Errorf("'offset + length' cannot be larger than the length of the string")
+			}
+
+			return str[offset:length], nil
 		},
 	}
 }

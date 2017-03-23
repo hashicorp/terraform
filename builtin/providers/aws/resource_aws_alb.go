@@ -69,7 +69,6 @@ func resourceAwsAlb() *schema.Resource {
 			"subnets": {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				ForceNew: true,
 				Required: true,
 				Set:      schema.HashString,
 			},
@@ -310,6 +309,20 @@ func resourceAwsAlbUpdate(d *schema.ResourceData, meta interface{}) error {
 			return fmt.Errorf("Failure Setting ALB Security Groups: %s", err)
 		}
 
+	}
+
+	if d.HasChange("subnets") {
+		subnets := expandStringList(d.Get("subnets").(*schema.Set).List())
+
+		params := &elbv2.SetSubnetsInput{
+			LoadBalancerArn: aws.String(d.Id()),
+			Subnets:         subnets,
+		}
+
+		_, err := elbconn.SetSubnets(params)
+		if err != nil {
+			return fmt.Errorf("Failure Setting ALB Subnets: %s", err)
+		}
 	}
 
 	return resourceAwsAlbRead(d, meta)

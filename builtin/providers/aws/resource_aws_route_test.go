@@ -38,8 +38,45 @@ func TestAccAWSRoute_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRouteDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSRouteBasicConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRouteExists("aws_route.bar", &route),
+					testCheck,
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRoute_ipv6Support(t *testing.T) {
+	var route ec2.Route
+
+	//aws creates a default route
+	testCheck := func(s *terraform.State) error {
+
+		name := "aws_egress_only_internet_gateway.foo"
+		gwres, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s\n", name)
+		}
+
+		if *route.EgressOnlyInternetGatewayId != gwres.Primary.ID {
+			return fmt.Errorf("Egress Only Internet Gateway Id (Expected=%s, Actual=%s)\n", gwres.Primary.ID, *route.EgressOnlyInternetGatewayId)
+		}
+
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSRouteDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSRouteConfigIpv6,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRouteExists("aws_route.bar", &route),
 					testCheck,
@@ -101,14 +138,14 @@ func TestAccAWSRoute_changeCidr(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRouteDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSRouteBasicConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRouteExists("aws_route.bar", &route),
 					testCheck,
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSRouteBasicConfigChangeCidr,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRouteExists("aws_route.bar", &route),
@@ -139,14 +176,14 @@ func TestAccAWSRoute_noopdiff(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRouteDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSRouteNoopChange,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRouteExists("aws_route.test", &route),
 					testCheck,
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSRouteNoopChange,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRouteExists("aws_route.test", &route),
@@ -166,7 +203,7 @@ func TestAccAWSRoute_doesNotCrashWithVPCEndpoint(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRouteDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSRouteWithVPCEndpoint,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRouteExists("aws_route.bar", &route),
@@ -192,6 +229,7 @@ func testAccCheckAWSRouteExists(n string, res *ec2.Route) resource.TestCheckFunc
 			conn,
 			rs.Primary.Attributes["route_table_id"],
 			rs.Primary.Attributes["destination_cidr_block"],
+			rs.Primary.Attributes["destination_ipv6_cidr_block"],
 		)
 
 		if err != nil {
@@ -219,6 +257,7 @@ func testAccCheckAWSRouteDestroy(s *terraform.State) error {
 			conn,
 			rs.Primary.Attributes["route_table_id"],
 			rs.Primary.Attributes["destination_cidr_block"],
+			rs.Primary.Attributes["destination_ipv6_cidr_block"],
 		)
 
 		if route == nil && err == nil {
@@ -247,6 +286,29 @@ resource "aws_route" "bar" {
 	destination_cidr_block = "10.3.0.0/16"
 	gateway_id = "${aws_internet_gateway.foo.id}"
 }
+`)
+
+var testAccAWSRouteConfigIpv6 = fmt.Sprintf(`
+resource "aws_vpc" "foo" {
+  cidr_block = "10.1.0.0/16"
+  assign_generated_ipv6_cidr_block = true
+}
+
+resource "aws_egress_only_internet_gateway" "foo" {
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_route_table" "foo" {
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_route" "bar" {
+	route_table_id = "${aws_route_table.foo.id}"
+	destination_ipv6_cidr_block = "::/0"
+	egress_only_gateway_id = "${aws_egress_only_internet_gateway.foo.id}"
+}
+
+
 `)
 
 var testAccAWSRouteBasicConfigChangeCidr = fmt.Sprint(`

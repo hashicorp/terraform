@@ -37,6 +37,33 @@ func TestAccDNSimpleRecord_Basic(t *testing.T) {
 	})
 }
 
+func TestAccDNSimpleRecord_CreateMxWithPriority(t *testing.T) {
+	var record dnsimple.ZoneRecord
+	domain := os.Getenv("DNSIMPLE_DOMAIN")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDNSimpleRecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(testAccCheckDNSimpleRecordConfig_mx, domain),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDNSimpleRecordExists("dnsimple_record.foobar", &record),
+					resource.TestCheckResourceAttr(
+						"dnsimple_record.foobar", "name", ""),
+					resource.TestCheckResourceAttr(
+						"dnsimple_record.foobar", "domain", domain),
+					resource.TestCheckResourceAttr(
+						"dnsimple_record.foobar", "value", "mx.example.com"),
+					resource.TestCheckResourceAttr(
+						"dnsimple_record.foobar", "priority", "5"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccDNSimpleRecord_Updated(t *testing.T) {
 	var record dnsimple.ZoneRecord
 	domain := os.Getenv("DNSIMPLE_DOMAIN")
@@ -70,6 +97,47 @@ func TestAccDNSimpleRecord_Updated(t *testing.T) {
 						"dnsimple_record.foobar", "domain", domain),
 					resource.TestCheckResourceAttr(
 						"dnsimple_record.foobar", "value", "192.168.0.11"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDNSimpleRecord_UpdatedMx(t *testing.T) {
+	var record dnsimple.ZoneRecord
+	domain := os.Getenv("DNSIMPLE_DOMAIN")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDNSimpleRecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(testAccCheckDNSimpleRecordConfig_mx, domain),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDNSimpleRecordExists("dnsimple_record.foobar", &record),
+					resource.TestCheckResourceAttr(
+						"dnsimple_record.foobar", "name", ""),
+					resource.TestCheckResourceAttr(
+						"dnsimple_record.foobar", "domain", domain),
+					resource.TestCheckResourceAttr(
+						"dnsimple_record.foobar", "value", "mx.example.com"),
+					resource.TestCheckResourceAttr(
+						"dnsimple_record.foobar", "priority", "5"),
+				),
+			},
+			resource.TestStep{
+				Config: fmt.Sprintf(testAccCheckDNSimpleRecordConfig_mx_new_value, domain),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDNSimpleRecordExists("dnsimple_record.foobar", &record),
+					resource.TestCheckResourceAttr(
+						"dnsimple_record.foobar", "name", ""),
+					resource.TestCheckResourceAttr(
+						"dnsimple_record.foobar", "domain", domain),
+					resource.TestCheckResourceAttr(
+						"dnsimple_record.foobar", "value", "mx2.example.com"),
+					resource.TestCheckResourceAttr(
+						"dnsimple_record.foobar", "priority", "10"),
 				),
 			},
 		},
@@ -165,4 +233,26 @@ resource "dnsimple_record" "foobar" {
 	value = "192.168.0.11"
 	type = "A"
 	ttl = 3600
+}`
+
+const testAccCheckDNSimpleRecordConfig_mx = `
+resource "dnsimple_record" "foobar" {
+	domain = "%s"
+
+	name = ""
+	value = "mx.example.com"
+	type = "MX"
+	ttl = 3600
+	priority = 5
+}`
+
+const testAccCheckDNSimpleRecordConfig_mx_new_value = `
+resource "dnsimple_record" "foobar" {
+	domain = "%s"
+
+	name = ""
+	value = "mx2.example.com"
+	type = "MX"
+	ttl = 3600
+	priority = 10
 }`

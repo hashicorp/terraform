@@ -1,6 +1,9 @@
 package github
 
 import (
+	"context"
+	"log"
+
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -16,20 +19,20 @@ func resourceGithubIssueLabel() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"repository": &schema.Schema{
+			"repository": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"color": &schema.Schema{
+			"color": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"url": &schema.Schema{
+			"url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -42,11 +45,14 @@ func resourceGithubIssueLabelCreate(d *schema.ResourceData, meta interface{}) er
 	r := d.Get("repository").(string)
 	n := d.Get("name").(string)
 	c := d.Get("color").(string)
-
-	_, _, err := client.Issues.CreateLabel(meta.(*Organization).name, r, &github.Label{
+	label := github.Label{
 		Name:  &n,
 		Color: &c,
-	})
+	}
+
+	log.Printf("[DEBUG] Creating label: %#v", label)
+	_, resp, err := client.Issues.CreateLabel(context.TODO(), meta.(*Organization).name, r, &label)
+	log.Printf("[DEBUG] Response from creating label: %s", *resp)
 	if err != nil {
 		return err
 	}
@@ -60,7 +66,7 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 	client := meta.(*Organization).client
 	r, n := parseTwoPartID(d.Id())
 
-	githubLabel, _, err := client.Issues.GetLabel(meta.(*Organization).name, r, n)
+	githubLabel, _, err := client.Issues.GetLabel(context.TODO(), meta.(*Organization).name, r, n)
 	if err != nil {
 		d.SetId("")
 		return nil
@@ -81,7 +87,7 @@ func resourceGithubIssueLabelUpdate(d *schema.ResourceData, meta interface{}) er
 	c := d.Get("color").(string)
 
 	_, originalName := parseTwoPartID(d.Id())
-	_, _, err := client.Issues.EditLabel(meta.(*Organization).name, r, originalName, &github.Label{
+	_, _, err := client.Issues.EditLabel(context.TODO(), meta.(*Organization).name, r, originalName, &github.Label{
 		Name:  &n,
 		Color: &c,
 	})
@@ -99,6 +105,6 @@ func resourceGithubIssueLabelDelete(d *schema.ResourceData, meta interface{}) er
 	r := d.Get("repository").(string)
 	n := d.Get("name").(string)
 
-	_, err := client.Issues.DeleteLabel(meta.(*Organization).name, r, n)
+	_, err := client.Issues.DeleteLabel(context.TODO(), meta.(*Organization).name, r, n)
 	return err
 }
