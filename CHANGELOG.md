@@ -47,6 +47,7 @@ BUG FIXES:
  * provider/aws: Increase AWS AMI Destroy timeout [GH-12943]
  * provider/aws: Set aws_vpc ipv6 for associated only [GH-12899]
  * provider/aws: Fix AWS ECS placement strategy spread fields [GH-12998]
+ * provider/aws: Specify that aws_network_acl_rule requires a cidr block [GH-13013]
  * provider/google: turn compute_instance_group.instances into a set [GH-12790]
  * provider/mysql: recreate user/grant if user/grant got deleted manually [GH-12791]
 
