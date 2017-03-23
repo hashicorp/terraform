@@ -92,7 +92,61 @@ func testAccCheckComputeSnapshotExists(n string, snapshot *compute.Snapshot) res
 		}
 
 		if found.Name != rs.Primary.ID {
-			return fmt.Errorf("Snapshot not found")
+			return fmt.Errorf("Snapshot %s not found", n)
+		}
+
+		attr := rs.Primary.Attributes["snapshot_encryption_key_sha256"]
+		if found.SnapshotEncryptionKey != nil && found.SnapshotEncryptionKey.Sha256 != attr {
+			return fmt.Errorf("Snapshot %s has mismatched encryption key.\nTF State: %+v.\nGCP State: %+v",
+				n, attr, found.SnapshotEncryptionKey.Sha256)
+		} else if found.SnapshotEncryptionKey == nil && attr != "" {
+			return fmt.Errorf("Snapshot %s has mismatched encryption key.\nTF State: %+v.\nGCP State: %+v",
+				n, attr, found.SnapshotEncryptionKey)
+		}
+
+		attr = rs.Primary.Attributes["snapshot_encryption_key_raw"]
+		if found.SnapshotEncryptionKey != nil && found.SnapshotEncryptionKey.RawKey != attr {
+			return fmt.Errorf("Snapshot %s has mismatched encryption key.\nTF State: %+v.\nGCP State: %+v",
+				n, attr, found.SnapshotEncryptionKey.RawKey)
+		} else if found.SnapshotEncryptionKey == nil && attr != "" {
+			return fmt.Errorf("Snapshot %s has mismatched encryption key.\nTF State: %+v.\nGCP State: %+v",
+				n, attr, found.SnapshotEncryptionKey)
+		}
+
+		attr = rs.Primary.Attributes["source_disk_encryption_key_sha256"]
+		if found.SourceDiskEncryptionKey != nil && found.SourceDiskEncryptionKey.Sha256 != attr {
+			return fmt.Errorf("Snapshot %s has mismatched source disk encryption key.\nTF State: %+v.\nGCP State: %+v",
+				n, attr, found.SourceDiskEncryptionKey.Sha256)
+		} else if found.SourceDiskEncryptionKey == nil && attr != "" {
+			return fmt.Errorf("Snapshot %s has mismatched source disk encryption key.\nTF State: %+v.\nGCP State: %+v",
+				n, attr, found.SourceDiskEncryptionKey)
+		}
+
+		attr = rs.Primary.Attributes["source_disk_encryption_key_raw"]
+		if found.SourceDiskEncryptionKey != nil && found.SourceDiskEncryptionKey.RawKey != attr {
+			return fmt.Errorf("Snapshot %s has mismatched source disk encryption key.\nTF State: %+v.\nGCP State: %+v",
+				n, attr, found.SourceDiskEncryptionKey.RawKey)
+		} else if found.SourceDiskEncryptionKey == nil && attr != "" {
+			return fmt.Errorf("Snapshot %s has mismatched source disk encryption key.\nTF State: %+v.\nGCP State: %+v",
+				n, attr, found.SourceDiskEncryptionKey)
+		}
+
+		attr = rs.Primary.Attributes["source_disk_id"]
+		if found.SourceDiskId != attr {
+			return fmt.Errorf("Snapshot %s has mismatched source disk id.\nTF State: %+v.\nGCP State: %+v",
+				n, attr, found.SourceDiskId)
+		}
+
+		attr = rs.Primary.Attributes["source_disk"]
+		if found.SourceDisk != attr {
+			return fmt.Errorf("Snapshot %s has mismatched source disk.\nTF State: %+v.\nGCP State: %+v",
+				n, attr, found.SourceDisk)
+		}
+
+		attr = rs.Primary.Attributes["self_link"]
+		if found.SelfLink != attr {
+			return fmt.Errorf("Snapshot %s has mismatched self link.\nTF State: %+v.\nGCP State: %+v",
+				n, attr, found.SelfLink)
 		}
 
 		*snapshot = *found
