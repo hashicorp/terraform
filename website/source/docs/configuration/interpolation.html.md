@@ -84,6 +84,12 @@ interpolate the path to the current module. `root` will interpolate the
 path of the root module.  In general, you probably want the
 `path.module` variable.
 
+#### Terraform meta information
+
+The syntax is `terraform.FIELD`. This variable type contains metadata about
+the currently executing Terraform run. FIELD can currently only be `env` to
+reference the currently active [state environment](/docs/state/environments.html).
+
 <a id="conditionals"></a>
 ## Conditionals
 
@@ -273,7 +279,7 @@ The supported built-in functions are:
 
   * `pathexpand(string)` - Returns a filepath string with `~` expanded to the home directory. Note:
     This will create a plan diff between two different hosts, unless the filepaths are the same.
-  
+
   * `replace(string, search, replace)` - Does a search and replace on the
       given string. All instances of `search` are replaced with the value
       of `replace`. If `search` is wrapped in forward slashes, it is treated
@@ -311,6 +317,8 @@ The supported built-in functions are:
       in brackets to indicate that the output is actually a list, e.g.
       `a_resource_param = ["${split(",", var.CSV_STRING)}"]`.
       Example: `split(",", module.amod.server_ids)`
+
+  * `substr(string, offset, length)` - Extracts a substring from the input string. A negative offset is interpreted as being equivalent to a positive offset measured backwards from the end of the string. A length of `-1` is interpretted as meaning "until the end of the string".
 
   * `timestamp()` - Returns a UTC timestamp string in RFC 3339 format. This string will change with every
    invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the

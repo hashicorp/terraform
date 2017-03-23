@@ -296,7 +296,7 @@ the last value specified is effective.
 
 ### Variable Merging
 
-When variables are conflicting, map values are merged and all are values are
+When variables are conflicting, map values are merged and all other values are
 overridden. Map values are always merged.
 
 For example, if you set a variable twice on the command line:

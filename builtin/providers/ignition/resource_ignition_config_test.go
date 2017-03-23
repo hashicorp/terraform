@@ -3,6 +3,7 @@ package ignition
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/coreos/ignition/config/types"
@@ -64,6 +65,18 @@ func TestIngnitionFileAppend(t *testing.T) {
 		}
 
 		return nil
+	})
+}
+
+func testIgnitionError(t *testing.T, input string, expectedErr *regexp.Regexp) {
+	resource.Test(t, resource.TestCase{
+		Providers: testProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:      fmt.Sprintf(testTemplate, input),
+				ExpectError: expectedErr,
+			},
+		},
 	})
 }
 

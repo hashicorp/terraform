@@ -2,10 +2,11 @@ package arukas
 
 import (
 	"fmt"
-	API "github.com/arukasio/cli"
-	"github.com/hashicorp/terraform/helper/schema"
 	"strings"
-	"time"
+
+	API "github.com/arukasio/cli"
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func resourceArukasContainer() *schema.Resource {
@@ -169,11 +170,27 @@ func resourceArukasContainerCreate(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
-	if err := sleepUntilUp(client, appSet.Container.ID, client.Timeout); err != nil {
+	d.SetId(appSet.Container.ID)
+
+	stateConf := &resource.StateChangeConf{
+		Target:  []string{"running"},
+		Pending: []string{"stopped", "booting"},
+		Timeout: client.Timeout,
+		Refresh: func() (interface{}, string, error) {
+			var container API.Container
+			err := client.Get(&container, fmt.Sprintf("/containers/%s", appSet.Container.ID))
+			if err != nil {
+				return nil, "", err
+			}
+
+			return container, container.StatusText, nil
+		},
+	}
+	_, err := stateConf.WaitForState()
+	if err != nil {
 		return err
 	}
 
-	d.SetId(appSet.Container.ID)
 	return resourceArukasContainerRead(d, meta)
 }
 
@@ -269,25 +286,4 @@ func resourceArukasContainerDelete(d *schema.ResourceData, meta interface{}) err
 	}
 
 	return nil
-}
-
-func sleepUntilUp(client *ArukasClient, containerID string, timeout time.Duration) error {
-	current := 0 * time.Second
-	interval := 5 * time.Second
-	for {
-		var container API.Container
-		if err := client.Get(&container, fmt.Sprintf("/containers/%s", containerID)); err != nil {
-			return err
-		}
-
-		if container.IsRunning {
-			return nil
-		}
-		time.Sleep(interval)
-		current += interval
-
-		if timeout > 0 && current > timeout {
-			return fmt.Errorf("Timeout: sleepUntilUp")
-		}
-	}
 }

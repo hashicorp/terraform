@@ -29,6 +29,8 @@ func TestAccComputeV2Instance_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeV2InstanceExists("openstack_compute_instance_v2.instance_1", &instance),
 					testAccCheckComputeV2InstanceMetadata(&instance, "foo", "bar"),
+					resource.TestCheckResourceAttr(
+						"openstack_compute_instance_v2.instance_1", "availability_zone", "nova"),
 				),
 			},
 		},
@@ -614,6 +616,40 @@ func TestAccComputeV2Instance_metadataRemove(t *testing.T) {
 					testAccCheckComputeV2InstanceMetadata(&instance, "foo", "bar"),
 					testAccCheckComputeV2InstanceMetadata(&instance, "ghi", "jkl"),
 					testAccCheckComputeV2InstanceNoMetadataKey(&instance, "abc"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeV2Instance_forceDelete(t *testing.T) {
+	var instance servers.Server
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_forceDelete,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2InstanceExists("openstack_compute_instance_v2.instance_1", &instance),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeV2Instance_timeout(t *testing.T) {
+	var instance servers.Server
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_timeout,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2InstanceExists("openstack_compute_instance_v2.instance_1", &instance),
 				),
 			},
 		},
@@ -1510,6 +1546,25 @@ resource "openstack_compute_instance_v2" "instance_1" {
   metadata {
     foo = "bar"
     ghi = "jkl"
+  }
+}
+`
+
+const testAccComputeV2Instance_forceDelete = `
+resource "openstack_compute_instance_v2" "instance_1" {
+  name = "instance_1"
+  security_groups = ["default"]
+  force_delete = true
+}
+`
+
+const testAccComputeV2Instance_timeout = `
+resource "openstack_compute_instance_v2" "instance_1" {
+  name = "instance_1"
+  security_groups = ["default"]
+
+  timeouts {
+    create = "10m"
   }
 }
 `

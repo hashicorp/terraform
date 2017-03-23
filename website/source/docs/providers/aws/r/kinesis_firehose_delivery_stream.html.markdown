@@ -82,7 +82,7 @@ resource "aws_kinesis_firehose_delivery_stream" "test_stream" {
     username           = "testuser"
     password           = "T3stPass"
     data_table_name    = "test-table"
-    copy_options       = "GZIP"
+    copy_options       = "delimiter '|'" # the default delimiter
     data_table_columns = "test-col"
   }
 }
@@ -152,7 +152,7 @@ The `redshift_configuration` object supports the following:
 * `retry_duration` - (Optional) The length of time during which Firehose retries delivery after a failure, starting from the initial request and including the first attempt. The default value is 3600 seconds (60 minutes). Firehose does not retry if the value of DurationInSeconds is 0 (zero) or if the first delivery attempt takes longer than the current value.
 * `role_arn` - (Required) The arn of the role the stream assumes.
 * `data_table_name` - (Required) The name of the table in the redshift cluster that the s3 bucket will copy to.
-* `copy_options` - (Optional) Copy options for copying the data from the s3 intermediate bucket into redshift.
+* `copy_options` - (Optional) Copy options for copying the data from the s3 intermediate bucket into redshift, for example to change the default delimiter. For valid values, see the [AWS documentation](http://docs.aws.amazon.com/firehose/latest/APIReference/API_CopyCommand.html)
 * `data_table_columns` - (Optional) The data table columns that will be targeted by the copy command.
 * `cloudwatch_logging_options` - (Optional) The CloudWatch Logging Options for the delivery stream. More details are given below
 

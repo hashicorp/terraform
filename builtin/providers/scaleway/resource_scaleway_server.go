@@ -88,6 +88,10 @@ func resourceScalewayServer() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"public_ipv6": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"state": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -193,6 +197,10 @@ func resourceScalewayServerRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("enable_ipv6", server.EnableIPV6)
 	d.Set("private_ip", server.PrivateIP)
 	d.Set("public_ip", server.PublicAddress.IP)
+
+	if server.EnableIPV6 {
+		d.Set("public_ipv6", server.IPV6.Address)
+	}
 
 	d.Set("state", server.State)
 	d.Set("state_detail", server.StateDetail)

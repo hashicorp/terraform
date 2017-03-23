@@ -316,6 +316,7 @@ The following arguments are supported:
 * `os_profile_linux_config` - (Required, when a linux machine) A Linux config block as documented below.
 * `os_profile_secrets` - (Optional) A collection of Secret blocks as documented below.
 * `network_interface_ids` - (Required) Specifies the list of resource IDs for the network interfaces associated with the virtual machine.
+* `primary_network_interface_id` - (Optional) Specifies the resource ID for the primary network interface associated with the virtual machine.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
 For more information on the different example configurations, please check out the [azure documentation](https://msdn.microsoft.com/en-us/library/mt163591.aspx#Anchor_2)
@@ -398,7 +399,7 @@ For more information on the different example configurations, please check out t
 * `disable_password_authentication` - (Required) Specifies whether password authentication should be disabled.
 * `ssh_keys` - (Optional) Specifies a collection of `path` and `key_data` to be placed on the virtual machine.
 
-~> **Note:** Please note that the only allowed `path` is `/home/<username>/.ssh/authorized_keys` due to a limitation of Azure_
+~> **Note:** Please note that the only allowed `path` is `/home/<username>/.ssh/authorized_keys` due to a limitation of Azure.
 
 `os_profile_secrets` supports the following:
 

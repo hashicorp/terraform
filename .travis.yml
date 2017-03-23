@@ -1,7 +1,20 @@
+dist: trusty
 sudo: false
 language: go
 go:
 - 1.8
+
+env:
+  - CONSUL_VERSION=0.7.5 TF_CONSUL_TEST=1 GOMAXPROCS=4
+
+# Fetch consul for the backend and provider tests
+before_install:
+  - curl -sLo consul.zip https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip
+  - unzip consul.zip
+  - mkdir ~/bin
+  - mv consul ~/bin
+  - export PATH="~/bin:$PATH"
+
 install:
 # This script is used by the Travis build to install a cookie for
 # go.googlesource.com so rate limits are higher when using `go get` to fetch

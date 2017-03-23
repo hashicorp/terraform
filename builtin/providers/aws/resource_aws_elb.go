@@ -30,11 +30,18 @@ func resourceAwsElb() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
+				ValidateFunc:  validateElbName,
+			},
+			"name_prefix": &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				Computed:     true,
 				ForceNew:     true,
-				ValidateFunc: validateElbName,
+				ValidateFunc: validateElbNamePrefix,
 			},
 
 			"internal": &schema.Schema{
@@ -247,7 +254,11 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 	if v, ok := d.GetOk("name"); ok {
 		elbName = v.(string)
 	} else {
-		elbName = resource.PrefixedUniqueId("tf-lb-")
+		if v, ok := d.GetOk("name_prefix"); ok {
+			elbName = resource.PrefixedUniqueId(v.(string))
+		} else {
+			elbName = resource.PrefixedUniqueId("tf-lb-")
+		}
 		d.Set("name", elbName)
 	}
 
@@ -388,7 +399,9 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 	d.Set("subnets", flattenStringList(lb.Subnets))
-	d.Set("idle_timeout", lbAttrs.ConnectionSettings.IdleTimeout)
+	if lbAttrs.ConnectionSettings != nil {
+		d.Set("idle_timeout", lbAttrs.ConnectionSettings.IdleTimeout)
+	}
 	d.Set("connection_draining", lbAttrs.ConnectionDraining.Enabled)
 	d.Set("connection_draining_timeout", lbAttrs.ConnectionDraining.Timeout)
 	d.Set("cross_zone_load_balancing", lbAttrs.CrossZoneLoadBalancing.Enabled)

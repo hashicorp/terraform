@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
@@ -22,24 +23,17 @@ func (b *Local) opRefresh(
 	if b.Backend == nil {
 		if _, err := os.Stat(b.StatePath); err != nil {
 			if os.IsNotExist(err) {
-				runningOp.Err = fmt.Errorf(
-					"The Terraform state file for your infrastructure does not\n"+
-						"exist. The 'refresh' command only works and only makes sense\n"+
-						"when there is existing state that Terraform is managing. Please\n"+
-						"double-check the value given below and try again. If you\n"+
-						"haven't created infrastructure with Terraform yet, use the\n"+
-						"'terraform apply' command.\n\n"+
-						"Path: %s",
-					b.StatePath)
-				return
+				err = nil
 			}
 
-			runningOp.Err = fmt.Errorf(
-				"There was an error reading the Terraform state that is needed\n"+
-					"for refreshing. The path and error are shown below.\n\n"+
-					"Path: %s\n\nError: %s",
-				b.StatePath, err)
-			return
+			if err != nil {
+				runningOp.Err = fmt.Errorf(
+					"There was an error reading the Terraform state that is needed\n"+
+						"for refreshing. The path and error are shown below.\n\n"+
+						"Path: %s\n\nError: %s",
+					b.StatePath, err)
+				return
+			}
 		}
 	}
 
@@ -74,6 +68,12 @@ func (b *Local) opRefresh(
 
 	// Set our state
 	runningOp.State = opState.State()
+	if runningOp.State.Empty() || !runningOp.State.HasResources() {
+		if b.CLI != nil {
+			b.CLI.Output(b.Colorize().Color(
+				strings.TrimSpace(refreshNoState) + "\n"))
+		}
+	}
 
 	// Perform operation and write the resulting state to the running op
 	newState, err := tfCtx.Refresh()
@@ -93,3 +93,11 @@ func (b *Local) opRefresh(
 		return
 	}
 }
+
+const refreshNoState = `
+[reset][bold][yellow]Empty or non-existent state file.[reset][yellow]
+
+Refresh will do nothing. Refresh does not error or return an erroneous
+exit status because many automation scripts use refresh, plan, then apply
+and may not have a state file yet for the first run.
+`

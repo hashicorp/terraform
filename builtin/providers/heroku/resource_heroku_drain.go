@@ -1,6 +1,7 @@
 package heroku
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -18,19 +19,19 @@ func resourceHerokuDrain() *schema.Resource {
 		Delete: resourceHerokuDrainDelete,
 
 		Schema: map[string]*schema.Schema{
-			"url": &schema.Schema{
+			"url": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"app": &schema.Schema{
+			"app": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"token": &schema.Schema{
+			"token": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -48,9 +49,9 @@ func resourceHerokuDrainCreate(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Drain create configuration: %#v, %#v", app, url)
 
-	var dr *heroku.LogDrain
+	var dr *heroku.LogDrainCreateResult
 	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
-		d, err := client.LogDrainCreate(app, heroku.LogDrainCreateOpts{URL: url})
+		d, err := client.LogDrainCreate(context.TODO(), app, heroku.LogDrainCreateOpts{URL: url})
 		if err != nil {
 			if strings.Contains(err.Error(), retryableError) {
 				return resource.RetryableError(err)
@@ -78,7 +79,7 @@ func resourceHerokuDrainDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Deleting drain: %s", d.Id())
 
 	// Destroy the drain
-	err := client.LogDrainDelete(d.Get("app").(string), d.Id())
+	_, err := client.LogDrainDelete(context.TODO(), d.Get("app").(string), d.Id())
 	if err != nil {
 		return fmt.Errorf("Error deleting drain: %s", err)
 	}
@@ -89,7 +90,7 @@ func resourceHerokuDrainDelete(d *schema.ResourceData, meta interface{}) error {
 func resourceHerokuDrainRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
-	dr, err := client.LogDrainInfo(d.Get("app").(string), d.Id())
+	dr, err := client.LogDrainInfo(context.TODO(), d.Get("app").(string), d.Id())
 	if err != nil {
 		return fmt.Errorf("Error retrieving drain: %s", err)
 	}

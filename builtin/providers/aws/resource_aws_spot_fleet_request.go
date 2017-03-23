@@ -26,73 +26,79 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 		MigrateState:  resourceAwsSpotFleetRequestMigrateState,
 
 		Schema: map[string]*schema.Schema{
-			"iam_fleet_role": &schema.Schema{
+			"iam_fleet_role": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
+			"replace_unhealthy_instances": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+				Default:  false,
+			},
 			// http://docs.aws.amazon.com/sdk-for-go/api/service/ec2.html#type-SpotFleetLaunchSpecification
 			// http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_SpotFleetLaunchSpecification.html
-			"launch_specification": &schema.Schema{
+			"launch_specification": {
 				Type:     schema.TypeSet,
 				Required: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"vpc_security_group_ids": &schema.Schema{
+						"vpc_security_group_ids": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Computed: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Set:      schema.HashString,
 						},
-						"associate_public_ip_address": &schema.Schema{
+						"associate_public_ip_address": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  false,
 						},
-						"ebs_block_device": &schema.Schema{
+						"ebs_block_device": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Computed: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"delete_on_termination": &schema.Schema{
+									"delete_on_termination": {
 										Type:     schema.TypeBool,
 										Optional: true,
 										Default:  true,
 										ForceNew: true,
 									},
-									"device_name": &schema.Schema{
+									"device_name": {
 										Type:     schema.TypeString,
 										Required: true,
 										ForceNew: true,
 									},
-									"encrypted": &schema.Schema{
+									"encrypted": {
 										Type:     schema.TypeBool,
 										Optional: true,
 										Computed: true,
 										ForceNew: true,
 									},
-									"iops": &schema.Schema{
+									"iops": {
 										Type:     schema.TypeInt,
 										Optional: true,
 										Computed: true,
 										ForceNew: true,
 									},
-									"snapshot_id": &schema.Schema{
+									"snapshot_id": {
 										Type:     schema.TypeString,
 										Optional: true,
 										Computed: true,
 										ForceNew: true,
 									},
-									"volume_size": &schema.Schema{
+									"volume_size": {
 										Type:     schema.TypeInt,
 										Optional: true,
 										Computed: true,
 										ForceNew: true,
 									},
-									"volume_type": &schema.Schema{
+									"volume_type": {
 										Type:     schema.TypeString,
 										Optional: true,
 										Computed: true,
@@ -102,18 +108,18 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 							},
 							Set: hashEbsBlockDevice,
 						},
-						"ephemeral_block_device": &schema.Schema{
+						"ephemeral_block_device": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Computed: true,
 							ForceNew: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"device_name": &schema.Schema{
+									"device_name": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"virtual_name": &schema.Schema{
+									"virtual_name": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
@@ -121,7 +127,7 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 							},
 							Set: hashEphemeralBlockDevice,
 						},
-						"root_block_device": &schema.Schema{
+						"root_block_device": {
 							// TODO: This is a set because we don't support singleton
 							//       sub-resources today. We'll enforce that the set only ever has
 							//       length zero or one below. When TF gains support for
@@ -134,25 +140,25 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 								// Termination flag on the block device mapping entry for the root
 								// device volume." - bit.ly/ec2bdmap
 								Schema: map[string]*schema.Schema{
-									"delete_on_termination": &schema.Schema{
+									"delete_on_termination": {
 										Type:     schema.TypeBool,
 										Optional: true,
 										Default:  true,
 										ForceNew: true,
 									},
-									"iops": &schema.Schema{
+									"iops": {
 										Type:     schema.TypeInt,
 										Optional: true,
 										Computed: true,
 										ForceNew: true,
 									},
-									"volume_size": &schema.Schema{
+									"volume_size": {
 										Type:     schema.TypeInt,
 										Optional: true,
 										Computed: true,
 										ForceNew: true,
 									},
-									"volume_type": &schema.Schema{
+									"volume_type": {
 										Type:     schema.TypeString,
 										Optional: true,
 										Computed: true,
@@ -162,50 +168,50 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 							},
 							Set: hashRootBlockDevice,
 						},
-						"ebs_optimized": &schema.Schema{
+						"ebs_optimized": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  false,
 						},
-						"iam_instance_profile": &schema.Schema{
+						"iam_instance_profile": {
 							Type:     schema.TypeString,
 							ForceNew: true,
 							Optional: true,
 						},
-						"ami": &schema.Schema{
+						"ami": {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
 						},
-						"instance_type": &schema.Schema{
+						"instance_type": {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
 						},
-						"key_name": &schema.Schema{
+						"key_name": {
 							Type:         schema.TypeString,
 							Optional:     true,
 							ForceNew:     true,
 							Computed:     true,
 							ValidateFunc: validateSpotFleetRequestKeyName,
 						},
-						"monitoring": &schema.Schema{
+						"monitoring": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  false,
 						},
-						"placement_group": &schema.Schema{
+						"placement_group": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 							ForceNew: true,
 						},
-						"spot_price": &schema.Schema{
+						"spot_price": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
-						"user_data": &schema.Schema{
+						"user_data": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
@@ -218,18 +224,18 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 								}
 							},
 						},
-						"weighted_capacity": &schema.Schema{
+						"weighted_capacity": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
-						"subnet_id": &schema.Schema{
+						"subnet_id": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 							ForceNew: true,
 						},
-						"availability_zone": &schema.Schema{
+						"availability_zone": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
@@ -240,48 +246,48 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 				Set: hashLaunchSpecification,
 			},
 			// Everything on a spot fleet is ForceNew except target_capacity
-			"target_capacity": &schema.Schema{
+			"target_capacity": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: false,
 			},
-			"allocation_strategy": &schema.Schema{
+			"allocation_strategy": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "lowestPrice",
 				ForceNew: true,
 			},
-			"excess_capacity_termination_policy": &schema.Schema{
+			"excess_capacity_termination_policy": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "Default",
 				ForceNew: false,
 			},
-			"spot_price": &schema.Schema{
+			"spot_price": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"terminate_instances_with_expiration": &schema.Schema{
+			"terminate_instances_with_expiration": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 			},
-			"valid_from": &schema.Schema{
+			"valid_from": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"valid_until": &schema.Schema{
+			"valid_until": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"spot_request_state": &schema.Schema{
+			"spot_request_state": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"client_token": &schema.Schema{
+			"client_token": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -525,6 +531,7 @@ func resourceAwsSpotFleetRequestCreate(d *schema.ResourceData, meta interface{})
 		TargetCapacity:                   aws.Int64(int64(d.Get("target_capacity").(int))),
 		ClientToken:                      aws.String(resource.UniqueId()),
 		TerminateInstancesWithExpiration: aws.Bool(d.Get("terminate_instances_with_expiration").(bool)),
+		ReplaceUnhealthyInstances:        aws.Bool(d.Get("replace_unhealthy_instances").(bool)),
 	}
 
 	if v, ok := d.GetOk("excess_capacity_termination_policy"); ok {
@@ -716,6 +723,7 @@ func resourceAwsSpotFleetRequestRead(d *schema.ResourceData, meta interface{}) e
 			aws.TimeValue(config.ValidUntil).Format(awsAutoscalingScheduleTimeLayout))
 	}
 
+	d.Set("replace_unhealthy_instances", config.ReplaceUnhealthyInstances)
 	d.Set("launch_specification", launchSpecsToSet(config.LaunchSpecifications, conn))
 
 	return nil

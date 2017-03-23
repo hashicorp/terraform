@@ -13,6 +13,77 @@ import (
 	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
+const opAddInstanceFleet = "AddInstanceFleet"
+
+// AddInstanceFleetRequest generates a "aws/request.Request" representing the
+// client's request for the AddInstanceFleet operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See AddInstanceFleet for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AddInstanceFleet method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AddInstanceFleetRequest method.
+//    req, resp := client.AddInstanceFleetRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/AddInstanceFleet
+func (c *EMR) AddInstanceFleetRequest(input *AddInstanceFleetInput) (req *request.Request, output *AddInstanceFleetOutput) {
+	op := &request.Operation{
+		Name:       opAddInstanceFleet,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &AddInstanceFleetInput{}
+	}
+
+	output = &AddInstanceFleetOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// AddInstanceFleet API operation for Amazon Elastic MapReduce.
+//
+// Adds an instance fleet to a running cluster.
+//
+// The instance fleet configuration is available only in Amazon EMR versions
+// 4.8.0 and later, excluding 5.0.x.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic MapReduce's
+// API operation AddInstanceFleet for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInternalServerException "InternalServerException"
+//   This exception occurs when there is an internal failure in the EMR service.
+//
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   This exception occurs when there is something wrong with user input.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/AddInstanceFleet
+func (c *EMR) AddInstanceFleet(input *AddInstanceFleetInput) (*AddInstanceFleetOutput, error) {
+	req, out := c.AddInstanceFleetRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opAddInstanceGroups = "AddInstanceGroups"
 
 // AddInstanceGroupsRequest generates a "aws/request.Request" representing the
@@ -124,19 +195,19 @@ func (c *EMR) AddJobFlowStepsRequest(input *AddJobFlowStepsInput) (req *request.
 
 // AddJobFlowSteps API operation for Amazon Elastic MapReduce.
 //
-// AddJobFlowSteps adds new steps to a running job flow. A maximum of 256 steps
+// AddJobFlowSteps adds new steps to a running cluster. A maximum of 256 steps
 // are allowed in each job flow.
 //
-// If your job flow is long-running (such as a Hive data warehouse) or complex,
+// If your cluster is long-running (such as a Hive data warehouse) or complex,
 // you may require more than 256 steps to process your data. You can bypass
-// the 256-step limitation in various ways, including using the SSH shell to
-// connect to the master node and submitting queries directly to the software
-// running on the master node, such as Hive and Hadoop. For more information
-// on how to do this, see Add More than 256 Steps to a Job Flow (http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/AddMoreThan256Steps.html)
-// in the Amazon EMR Developer's Guide.
+// the 256-step limitation in various ways, including using SSH to connect to
+// the master node and submitting queries directly to the software running on
+// the master node, such as Hive and Hadoop. For more information on how to
+// do this, see Add More than 256 Steps to a Cluster (http://docs.aws.amazon.com/ElasticMapReduce/latest/ManagementGuide/AddMoreThan256Steps.html)
+// in the Amazon EMR Management Guide.
 //
 // A step specifies the location of a JAR file stored either on the master node
-// of the job flow or in Amazon S3. Each step is performed by the main function
+// of the cluster or in Amazon S3. Each step is performed by the main function
 // of the main class of the JAR file. The main class can be specified either
 // in the manifest of the JAR or by using the MainFunction parameter of the
 // step.
@@ -145,7 +216,7 @@ func (c *EMR) AddJobFlowStepsRequest(input *AddJobFlowStepsInput) (req *request.
 // complete, the main function must exit with a zero exit code and all Hadoop
 // jobs started while the step was running must have completed and run successfully.
 //
-// You can only add steps to a job flow that is in one of the following states:
+// You can only add steps to a cluster that is in one of the following states:
 // STARTING, BOOTSTRAPPING, RUNNING, or WAITING.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -944,6 +1015,108 @@ func (c *EMR) ListClustersPages(input *ListClustersInput, fn func(p *ListCluster
 	})
 }
 
+const opListInstanceFleets = "ListInstanceFleets"
+
+// ListInstanceFleetsRequest generates a "aws/request.Request" representing the
+// client's request for the ListInstanceFleets operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See ListInstanceFleets for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListInstanceFleets method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListInstanceFleetsRequest method.
+//    req, resp := client.ListInstanceFleetsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/ListInstanceFleets
+func (c *EMR) ListInstanceFleetsRequest(input *ListInstanceFleetsInput) (req *request.Request, output *ListInstanceFleetsOutput) {
+	op := &request.Operation{
+		Name:       opListInstanceFleets,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"Marker"},
+			OutputTokens:    []string{"Marker"},
+			LimitToken:      "",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &ListInstanceFleetsInput{}
+	}
+
+	output = &ListInstanceFleetsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListInstanceFleets API operation for Amazon Elastic MapReduce.
+//
+// Lists all available details about the instance fleets in a cluster.
+//
+// The instance fleet configuration is available only in Amazon EMR versions
+// 4.8.0 and later, excluding 5.0.x versions.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic MapReduce's
+// API operation ListInstanceFleets for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInternalServerException "InternalServerException"
+//   This exception occurs when there is an internal failure in the EMR service.
+//
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   This exception occurs when there is something wrong with user input.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/ListInstanceFleets
+func (c *EMR) ListInstanceFleets(input *ListInstanceFleetsInput) (*ListInstanceFleetsOutput, error) {
+	req, out := c.ListInstanceFleetsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+// ListInstanceFleetsPages iterates over the pages of a ListInstanceFleets operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListInstanceFleets method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListInstanceFleets operation.
+//    pageNum := 0
+//    err := client.ListInstanceFleetsPages(params,
+//        func(page *ListInstanceFleetsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *EMR) ListInstanceFleetsPages(input *ListInstanceFleetsInput, fn func(p *ListInstanceFleetsOutput, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.ListInstanceFleetsRequest(input)
+	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*ListInstanceFleetsOutput), lastPage)
+	})
+}
+
 const opListInstanceGroups = "ListInstanceGroups"
 
 // ListInstanceGroupsRequest generates a "aws/request.Request" representing the
@@ -1317,6 +1490,81 @@ func (c *EMR) ListStepsPages(input *ListStepsInput, fn func(p *ListStepsOutput, 
 	})
 }
 
+const opModifyInstanceFleet = "ModifyInstanceFleet"
+
+// ModifyInstanceFleetRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyInstanceFleet operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See ModifyInstanceFleet for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyInstanceFleet method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyInstanceFleetRequest method.
+//    req, resp := client.ModifyInstanceFleetRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/ModifyInstanceFleet
+func (c *EMR) ModifyInstanceFleetRequest(input *ModifyInstanceFleetInput) (req *request.Request, output *ModifyInstanceFleetOutput) {
+	op := &request.Operation{
+		Name:       opModifyInstanceFleet,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ModifyInstanceFleetInput{}
+	}
+
+	output = &ModifyInstanceFleetOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// ModifyInstanceFleet API operation for Amazon Elastic MapReduce.
+//
+// Modifies the target On-Demand and target Spot capacities for the instance
+// fleet with the specified InstanceFleetID within the cluster specified using
+// ClusterID. The call either succeeds or fails atomically.
+//
+// The instance fleet configuration is available only in Amazon EMR versions
+// 4.8.0 and later, excluding 5.0.x versions.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic MapReduce's
+// API operation ModifyInstanceFleet for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInternalServerException "InternalServerException"
+//   This exception occurs when there is an internal failure in the EMR service.
+//
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
+//   This exception occurs when there is something wrong with user input.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/ModifyInstanceFleet
+func (c *EMR) ModifyInstanceFleet(input *ModifyInstanceFleetInput) (*ModifyInstanceFleetOutput, error) {
+	req, out := c.ModifyInstanceFleetRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opModifyInstanceGroups = "ModifyInstanceGroups"
 
 // ModifyInstanceGroupsRequest generates a "aws/request.Request" representing the
@@ -1630,29 +1878,33 @@ func (c *EMR) RunJobFlowRequest(input *RunJobFlowInput) (req *request.Request, o
 
 // RunJobFlow API operation for Amazon Elastic MapReduce.
 //
-// RunJobFlow creates and starts running a new job flow. The job flow will run
-// the steps specified. After the job flow completes, the cluster is stopped
-// and the HDFS partition is lost. To prevent loss of data, configure the last
-// step of the job flow to store results in Amazon S3. If the JobFlowInstancesConfigKeepJobFlowAliveWhenNoSteps
-// parameter is set to TRUE, the job flow will transition to the WAITING state
-// rather than shutting down after the steps have completed.
+// RunJobFlow creates and starts running a new cluster (job flow). The cluster
+// runs the steps specified. After the steps complete, the cluster stops and
+// the HDFS partition is lost. To prevent loss of data, configure the last step
+// of the job flow to store results in Amazon S3. If the JobFlowInstancesConfigKeepJobFlowAliveWhenNoSteps
+// parameter is set to TRUE, the cluster transitions to the WAITING state rather
+// than shutting down after the steps have completed.
 //
 // For additional protection, you can set the JobFlowInstancesConfigTerminationProtected
-// parameter to TRUE to lock the job flow and prevent it from being terminated
+// parameter to TRUE to lock the cluster and prevent it from being terminated
 // by API call, user intervention, or in the event of a job flow error.
 //
 // A maximum of 256 steps are allowed in each job flow.
 //
-// If your job flow is long-running (such as a Hive data warehouse) or complex,
+// If your cluster is long-running (such as a Hive data warehouse) or complex,
 // you may require more than 256 steps to process your data. You can bypass
 // the 256-step limitation in various ways, including using the SSH shell to
 // connect to the master node and submitting queries directly to the software
 // running on the master node, such as Hive and Hadoop. For more information
-// on how to do this, see Add More than 256 Steps to a Job Flow (http://docs.aws.amazon.com/ElasticMapReduce/latest/Management/Guide/AddMoreThan256Steps.html)
+// on how to do this, see Add More than 256 Steps to a Cluster (http://docs.aws.amazon.com/ElasticMapReduce/latest/Management/Guide/AddMoreThan256Steps.html)
 // in the Amazon EMR Management Guide.
 //
-// For long running job flows, we recommend that you periodically store your
+// For long running clusters, we recommend that you periodically store your
 // results.
+//
+// The instance fleets configuration is available only in Amazon EMR versions
+// 4.8.0 and later, excluding 5.0.x versions. The RunJobFlow request can contain
+// InstanceFleets parameters or InstanceGroups parameters, but not both.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1720,23 +1972,23 @@ func (c *EMR) SetTerminationProtectionRequest(input *SetTerminationProtectionInp
 
 // SetTerminationProtection API operation for Amazon Elastic MapReduce.
 //
-// SetTerminationProtection locks a job flow so the EC2 instances in the cluster
-// cannot be terminated by user intervention, an API call, or in the event of
-// a job-flow error. The cluster still terminates upon successful completion
-// of the job flow. Calling SetTerminationProtection on a job flow is analogous
-// to calling the Amazon EC2 DisableAPITermination API on all of the EC2 instances
-// in a cluster.
+// SetTerminationProtection locks a cluster (job flow) so the EC2 instances
+// in the cluster cannot be terminated by user intervention, an API call, or
+// in the event of a job-flow error. The cluster still terminates upon successful
+// completion of the job flow. Calling SetTerminationProtection on a cluster
+// is similar to calling the Amazon EC2 DisableAPITermination API on all EC2
+// instances in a cluster.
 //
-// SetTerminationProtection is used to prevent accidental termination of a job
-// flow and to ensure that in the event of an error, the instances will persist
-// so you can recover any data stored in their ephemeral instance storage.
+// SetTerminationProtection is used to prevent accidental termination of a cluster
+// and to ensure that in the event of an error, the instances persist so that
+// you can recover any data stored in their ephemeral instance storage.
 //
-// To terminate a job flow that has been locked by setting SetTerminationProtection
+// To terminate a cluster that has been locked by setting SetTerminationProtection
 // to true, you must first unlock the job flow by a subsequent call to SetTerminationProtection
 // in which you set the value to false.
 //
-// For more information, seeProtecting a Job Flow from Termination (http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/UsingEMR_TerminationProtection.html)
-// in the Amazon EMR Guide.
+// For more information, seeManaging Cluster Termination (http://docs.aws.amazon.com/emr/latest/ManagementGuide/UsingEMR_TerminationProtection.html)
+// in the Amazon EMR Management Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1805,11 +2057,11 @@ func (c *EMR) SetVisibleToAllUsersRequest(input *SetVisibleToAllUsersInput) (req
 // SetVisibleToAllUsers API operation for Amazon Elastic MapReduce.
 //
 // Sets whether all AWS Identity and Access Management (IAM) users under your
-// account can access the specified job flows. This action works on running
-// job flows. You can also set the visibility of a job flow when you launch
-// it using the VisibleToAllUsers parameter of RunJobFlow. The SetVisibleToAllUsers
-// action can be called only by an IAM user who created the job flow or the
-// AWS account that owns the job flow.
+// account can access the specified clusters (job flows). This action works
+// on running clusters. You can also set the visibility of a cluster when you
+// launch it using the VisibleToAllUsers parameter of RunJobFlow. The SetVisibleToAllUsers
+// action can be called only by an IAM user who created the cluster or the AWS
+// account that owns the cluster.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1877,14 +2129,15 @@ func (c *EMR) TerminateJobFlowsRequest(input *TerminateJobFlowsInput) (req *requ
 
 // TerminateJobFlows API operation for Amazon Elastic MapReduce.
 //
-// TerminateJobFlows shuts a list of job flows down. When a job flow is shut
-// down, any step not yet completed is canceled and the EC2 instances on which
-// the job flow is running are stopped. Any log files not already saved are
-// uploaded to Amazon S3 if a LogUri was specified when the job flow was created.
+// TerminateJobFlows shuts a list of clusters (job flows) down. When a job flow
+// is shut down, any step not yet completed is canceled and the EC2 instances
+// on which the cluster is running are stopped. Any log files not already saved
+// are uploaded to Amazon S3 if a LogUri was specified when the cluster was
+// created.
 //
-// The maximum number of JobFlows allowed is 10. The call to TerminateJobFlows
-// is asynchronous. Depending on the configuration of the job flow, it may take
-// up to 1-5 minutes for the job flow to completely terminate and release allocated
+// The maximum number of clusters allowed is 10. The call to TerminateJobFlows
+// is asynchronous. Depending on the configuration of the cluster, it may take
+// up to 1-5 minutes for the cluster to completely terminate and release allocated
 // resources, such as Amazon EC2 instances.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -1904,6 +2157,97 @@ func (c *EMR) TerminateJobFlows(input *TerminateJobFlowsInput) (*TerminateJobFlo
 	req, out := c.TerminateJobFlowsRequest(input)
 	err := req.Send()
 	return out, err
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/AddInstanceFleetInput
+type AddInstanceFleetInput struct {
+	_ struct{} `type:"structure"`
+
+	// The unique identifier of the cluster.
+	//
+	// ClusterId is a required field
+	ClusterId *string `type:"string" required:"true"`
+
+	// Specifies the configuration of the instance fleet.
+	//
+	// InstanceFleet is a required field
+	InstanceFleet *InstanceFleetConfig `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s AddInstanceFleetInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AddInstanceFleetInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AddInstanceFleetInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AddInstanceFleetInput"}
+	if s.ClusterId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterId"))
+	}
+	if s.InstanceFleet == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceFleet"))
+	}
+	if s.InstanceFleet != nil {
+		if err := s.InstanceFleet.Validate(); err != nil {
+			invalidParams.AddNested("InstanceFleet", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClusterId sets the ClusterId field's value.
+func (s *AddInstanceFleetInput) SetClusterId(v string) *AddInstanceFleetInput {
+	s.ClusterId = &v
+	return s
+}
+
+// SetInstanceFleet sets the InstanceFleet field's value.
+func (s *AddInstanceFleetInput) SetInstanceFleet(v *InstanceFleetConfig) *AddInstanceFleetInput {
+	s.InstanceFleet = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/AddInstanceFleetOutput
+type AddInstanceFleetOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The unique identifier of the cluster.
+	ClusterId *string `type:"string"`
+
+	// The unique identifier of the instance fleet.
+	InstanceFleetId *string `type:"string"`
+}
+
+// String returns the string representation
+func (s AddInstanceFleetOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AddInstanceFleetOutput) GoString() string {
+	return s.String()
+}
+
+// SetClusterId sets the ClusterId field's value.
+func (s *AddInstanceFleetOutput) SetClusterId(v string) *AddInstanceFleetOutput {
+	s.ClusterId = &v
+	return s
+}
+
+// SetInstanceFleetId sets the InstanceFleetId field's value.
+func (s *AddInstanceFleetOutput) SetInstanceFleetId(v string) *AddInstanceFleetOutput {
+	s.InstanceFleetId = &v
+	return s
 }
 
 // Input to an AddInstanceGroups call.
@@ -2172,16 +2516,16 @@ func (s AddTagsOutput) GoString() string {
 // the cluster. This structure contains a list of strings that indicates the
 // software to use with the cluster and accepts a user argument list. Amazon
 // EMR accepts and forwards the argument list to the corresponding installation
-// script as bootstrap action argument. For more information, see Launch a Job
-// Flow on the MapR Distribution for Hadoop (http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/emr-mapr.html).
+// script as bootstrap action argument. For more information, see Using the
+// MapR Distribution for Hadoop (http://docs.aws.amazon.com/ElasticMapReduce/latest/ManagementGuide/emr-mapr.html).
 // Currently supported values are:
 //
-//    * "mapr-m3" - launch the job flow using MapR M3 Edition.
+//    * "mapr-m3" - launch the cluster using MapR M3 Edition.
 //
-//    * "mapr-m5" - launch the job flow using MapR M5 Edition.
+//    * "mapr-m5" - launch the cluster using MapR M5 Edition.
 //
 //    * "mapr" with the user arguments specifying "--edition,m3" or "--edition,m5"
-//    - launch the job flow using MapR M3 or M5 Edition, respectively.
+//    - launch the cluster using MapR M3 or M5 Edition, respectively.
 //
 // In Amazon EMR releases 4.0 and greater, the only accepted parameter is the
 // application name. To pass arguments to applications, you supply a configuration
@@ -2368,7 +2712,7 @@ type AutoScalingPolicyStateChangeReason struct {
 	// The code indicating the reason for the change in status.USER_REQUEST indicates
 	// that the scaling policy status was changed by a user. PROVISION_FAILURE indicates
 	// that the status change was because the policy failed to provision. CLEANUP_FAILURE
-	// indicates something unclean happened.-->
+	// indicates an error.
 	Code *string `type:"string" enum:"AutoScalingPolicyStateChangeReasonCode"`
 
 	// A friendly, more verbose message that accompanies an automatic scaling policy
@@ -2403,6 +2747,7 @@ func (s *AutoScalingPolicyStateChangeReason) SetMessage(v string) *AutoScalingPo
 type AutoScalingPolicyStatus struct {
 	_ struct{} `type:"structure"`
 
+	// Indicates the status of the automatic scaling policy.
 	State *string `type:"string" enum:"AutoScalingPolicyState"`
 
 	// The reason for a change in status.
@@ -2490,7 +2835,7 @@ func (s *BootstrapActionConfig) SetScriptBootstrapAction(v *ScriptBootstrapActio
 	return s
 }
 
-// Reports the configuration of a bootstrap action in a job flow.
+// Reports the configuration of a bootstrap action in a cluster (job flow).
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/BootstrapActionDetail
 type BootstrapActionDetail struct {
 	_ struct{} `type:"structure"`
@@ -2515,14 +2860,19 @@ func (s *BootstrapActionDetail) SetBootstrapActionConfig(v *BootstrapActionConfi
 	return s
 }
 
+// Specification of the status of a CancelSteps request. Available only in Amazon
+// EMR version 4.8.0 and later, excluding version 5.0.0.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/CancelStepsInfo
 type CancelStepsInfo struct {
 	_ struct{} `type:"structure"`
 
+	// The reason for the failure if the CancelSteps request fails.
 	Reason *string `type:"string"`
 
+	// The status of a CancelSteps Request. The value may be SUBMITTED or FAILED.
 	Status *string `type:"string" enum:"CancelStepsRequestStatus"`
 
+	// The encrypted StepId of a step.
 	StepId *string `type:"string"`
 }
 
@@ -2781,6 +3131,14 @@ type Cluster struct {
 	// The unique identifier for the cluster.
 	Id *string `type:"string"`
 
+	// The instance fleet configuration is available only in Amazon EMR versions
+	// 4.8.0 and later, excluding 5.0.x versions.
+	//
+	// The instance group configuration of the cluster. A value of INSTANCE_GROUP
+	// indicates a uniform instance group configuration. A value of INSTANCE_FLEET
+	// indicates an instance fleets configuration.
+	InstanceCollectionType *string `type:"string" enum:"InstanceCollectionType"`
+
 	// The path to the Amazon S3 location where logs for this cluster are stored.
 	LogUri *string `type:"string"`
 
@@ -2790,7 +3148,7 @@ type Cluster struct {
 	// The name of the cluster.
 	Name *string `type:"string"`
 
-	// An approximation of the cost of the job flow, represented in m1.small/hours.
+	// An approximation of the cost of the cluster, represented in m1.small/hours.
 	// This value is incremented one time for every hour an m1.small instance runs.
 	// Larger instances are weighted more, so an EC2 instance that is roughly four
 	// times more expensive would result in the normalized instance hours being
@@ -2840,9 +3198,9 @@ type Cluster struct {
 	// of a cluster error.
 	TerminationProtected *bool `type:"boolean"`
 
-	// Indicates whether the job flow is visible to all IAM users of the AWS account
-	// associated with the job flow. If this value is set to true, all IAM users
-	// of that AWS account can view and manage the job flow if they have the proper
+	// Indicates whether the cluster is visible to all IAM users of the AWS account
+	// associated with the cluster. If this value is set to true, all IAM users
+	// of that AWS account can view and manage the cluster if they have the proper
 	// policy permissions set. If this value is false, only the IAM user that created
 	// the cluster can view and manage it. This value can be changed using the SetVisibleToAllUsers
 	// action.
@@ -2892,6 +3250,12 @@ func (s *Cluster) SetEc2InstanceAttributes(v *Ec2InstanceAttributes) *Cluster {
 // SetId sets the Id field's value.
 func (s *Cluster) SetId(v string) *Cluster {
 	s.Id = &v
+	return s
+}
+
+// SetInstanceCollectionType sets the InstanceCollectionType field's value.
+func (s *Cluster) SetInstanceCollectionType(v string) *Cluster {
+	s.InstanceCollectionType = &v
 	return s
 }
 
@@ -3068,7 +3432,7 @@ type ClusterSummary struct {
 	// The name of the cluster.
 	Name *string `type:"string"`
 
-	// An approximation of the cost of the job flow, represented in m1.small/hours.
+	// An approximation of the cost of the cluster, represented in m1.small/hours.
 	// This value is incremented one time for every hour an m1.small instance runs.
 	// Larger instances are weighted more, so an EC2 instance that is roughly four
 	// times more expensive would result in the normalized instance hours being
@@ -3202,23 +3566,23 @@ func (s *Command) SetScriptPath(v string) *Command {
 
 // Amazon EMR releases 4.x or later.
 //
-// Specifies a hardware and software configuration of the EMR cluster. This
-// includes configurations for applications and software bundled with Amazon
-// EMR. The Configuration object is a JSON object which is defined by a classification
-// and a set of properties. Configurations can be nested, so a configuration
-// may have its own Configuration objects listed.
+// An optional configuration specification to be used when provisioning cluster
+// instances, which can include configurations for applications and software
+// bundled with Amazon EMR. A configuration consists of a classification, properties,
+// and optional nested configurations. A classification refers to an application-specific
+// configuration file. Properties are the settings you want to change in that
+// file. For more information, see Configuring Applications (http://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-configure-apps.html).
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/Configuration
 type Configuration struct {
 	_ struct{} `type:"structure"`
 
-	// The classification of a configuration. For more information see, Amazon EMR
-	// Configurations (http://docs.aws.amazon.com/ElasticMapReduce/latest/API/EmrConfigurations.html).
+	// The classification within a configuration.
 	Classification *string `type:"string"`
 
-	// A list of configurations you apply to this configuration object.
+	// A list of additional configurations to apply within a configuration object.
 	Configurations []*Configuration `type:"list"`
 
-	// A set of properties supplied to the Configuration object.
+	// A set of properties specified within a configuration classification.
 	Properties map[string]*string `type:"map"`
 }
 
@@ -3896,14 +4260,14 @@ type Ec2InstanceAttributes struct {
 	// the master node as a user named "hadoop".
 	Ec2KeyName *string `type:"string"`
 
-	// To launch the job flow in Amazon VPC, set this parameter to the identifier
-	// of the Amazon VPC subnet where you want the job flow to launch. If you do
-	// not specify this value, the job flow is launched in the normal AWS cloud,
+	// To launch the cluster in Amazon VPC, set this parameter to the identifier
+	// of the Amazon VPC subnet where you want the cluster to launch. If you do
+	// not specify this value, the cluster is launched in the normal AWS cloud,
 	// outside of a VPC.
 	//
 	// Amazon VPC currently does not support cluster compute quadruple extra large
 	// (cc1.4xlarge) instances. Thus, you cannot specify the cc1.4xlarge instance
-	// type for nodes of a job flow launched in a VPC.
+	// type for nodes of a cluster launched in a VPC.
 	Ec2SubnetId *string `type:"string"`
 
 	// The identifier of the Amazon EC2 security group for the master node.
@@ -3912,9 +4276,25 @@ type Ec2InstanceAttributes struct {
 	// The identifier of the Amazon EC2 security group for the slave nodes.
 	EmrManagedSlaveSecurityGroup *string `type:"string"`
 
-	// The IAM role that was specified when the job flow was launched. The EC2 instances
-	// of the job flow assume this role.
+	// The IAM role that was specified when the cluster was launched. The EC2 instances
+	// of the cluster assume this role.
 	IamInstanceProfile *string `type:"string"`
+
+	// Applies to clusters configured with the The list of availability zones to
+	// choose from. The service will choose the availability zone with the best
+	// mix of available capacity and lowest cost to launch the cluster. If you do
+	// not specify this value, the cluster is launched in any availability zone
+	// that the customer account has access to.
+	RequestedEc2AvailabilityZones []*string `type:"list"`
+
+	// Applies to clusters configured with the instance fleets option. Specifies
+	// the unique identifier of one or more Amazon EC2 subnets in which to launch
+	// EC2 cluster instances. Amazon EMR chooses the EC2 subnet with the best performance
+	// and cost characteristics from among the list of RequestedEc2SubnetIds and
+	// launches all cluster instances within that subnet. If this value is not specified,
+	// and the account supports EC2-Classic networks, the cluster launches instances
+	// in the EC2-Classic network and uses Requested
+	RequestedEc2SubnetIds []*string `type:"list"`
 
 	// The identifier of the Amazon EC2 security group for the Amazon EMR service
 	// to access clusters in VPC private subnets.
@@ -3976,6 +4356,18 @@ func (s *Ec2InstanceAttributes) SetEmrManagedSlaveSecurityGroup(v string) *Ec2In
 // SetIamInstanceProfile sets the IamInstanceProfile field's value.
 func (s *Ec2InstanceAttributes) SetIamInstanceProfile(v string) *Ec2InstanceAttributes {
 	s.IamInstanceProfile = &v
+	return s
+}
+
+// SetRequestedEc2AvailabilityZones sets the RequestedEc2AvailabilityZones field's value.
+func (s *Ec2InstanceAttributes) SetRequestedEc2AvailabilityZones(v []*string) *Ec2InstanceAttributes {
+	s.RequestedEc2AvailabilityZones = v
+	return s
+}
+
+// SetRequestedEc2SubnetIds sets the RequestedEc2SubnetIds field's value.
+func (s *Ec2InstanceAttributes) SetRequestedEc2SubnetIds(v []*string) *Ec2InstanceAttributes {
+	s.RequestedEc2SubnetIds = v
 	return s
 }
 
@@ -4177,8 +4569,17 @@ type Instance struct {
 	// The unique identifier for the instance in Amazon EMR.
 	Id *string `type:"string"`
 
+	// The unique identifier of the instance fleet to which an EC2 instance belongs.
+	InstanceFleetId *string `type:"string"`
+
 	// The identifier of the instance group to which this instance belongs.
 	InstanceGroupId *string `type:"string"`
+
+	// The EC2 instance type, for example m3.xlarge.
+	InstanceType *string `min:"1" type:"string"`
+
+	// The instance purchasing option. Valid values are ON_DEMAND or SPOT.
+	Market *string `type:"string" enum:"MarketType"`
 
 	// The private DNS name of the instance.
 	PrivateDnsName *string `type:"string"`
@@ -4224,9 +4625,27 @@ func (s *Instance) SetId(v string) *Instance {
 	return s
 }
 
+// SetInstanceFleetId sets the InstanceFleetId field's value.
+func (s *Instance) SetInstanceFleetId(v string) *Instance {
+	s.InstanceFleetId = &v
+	return s
+}
+
 // SetInstanceGroupId sets the InstanceGroupId field's value.
 func (s *Instance) SetInstanceGroupId(v string) *Instance {
 	s.InstanceGroupId = &v
+	return s
+}
+
+// SetInstanceType sets the InstanceType field's value.
+func (s *Instance) SetInstanceType(v string) *Instance {
+	s.InstanceType = &v
+	return s
+}
+
+// SetMarket sets the Market field's value.
+func (s *Instance) SetMarket(v string) *Instance {
+	s.Market = &v
 	return s
 }
 
@@ -4257,6 +4676,536 @@ func (s *Instance) SetPublicIpAddress(v string) *Instance {
 // SetStatus sets the Status field's value.
 func (s *Instance) SetStatus(v *InstanceStatus) *Instance {
 	s.Status = v
+	return s
+}
+
+// Describes an instance fleet, which is a group of EC2 instances that host
+// a particular node type (master, core, or task) in an Amazon EMR cluster.
+// Instance fleets can consist of a mix of instance types and On-Demand and
+// Spot instances, which are provisioned to meet a defined target capacity.
+//
+// The instance fleet configuration is available only in Amazon EMR versions
+// 4.8.0 and later, excluding 5.0.x versions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/InstanceFleet
+type InstanceFleet struct {
+	_ struct{} `type:"structure"`
+
+	// The unique identifier of the instance fleet.
+	Id *string `type:"string"`
+
+	// The node type that the instance fleet hosts. Valid values are MASTER, CORE,
+	// or TASK.
+	InstanceFleetType *string `type:"string" enum:"InstanceFleetType"`
+
+	// The specification for the instance types that comprise an instance fleet.
+	// Up to five unique instance specifications may be defined for each instance
+	// fleet.
+	InstanceTypeSpecifications []*InstanceTypeSpecification `type:"list"`
+
+	// Describes the launch specification for an instance fleet.
+	LaunchSpecifications *InstanceFleetProvisioningSpecifications `type:"structure"`
+
+	// A friendly name for the instance fleet.
+	Name *string `type:"string"`
+
+	// The number of On-Demand units that have been provisioned for the instance
+	// fleet to fulfill TargetOnDemandCapacity. This provisioned capacity might
+	// be less than or greater than TargetOnDemandCapacity.
+	ProvisionedOnDemandCapacity *int64 `type:"integer"`
+
+	// The number of Spot units that have been provisioned for this instance fleet
+	// to fulfill TargetSpotCapacity. This provisioned capacity might be less than
+	// or greater than TargetSpotCapacity.
+	ProvisionedSpotCapacity *int64 `type:"integer"`
+
+	// The current status of the instance fleet.
+	Status *InstanceFleetStatus `type:"structure"`
+
+	// The target capacity of On-Demand units for the instance fleet, which determines
+	// how many On-Demand instances to provision. When the instance fleet launches,
+	// Amazon EMR tries to provision On-Demand instances as specified by InstanceTypeConfig.
+	// Each instance configuration has a specified WeightedCapacity. When an On-Demand
+	// instance is provisioned, the WeightedCapacity units count toward the target
+	// capacity. Amazon EMR provisions instances until the target capacity is totally
+	// fulfilled, even if this results in an overage. For example, if there are
+	// 2 units remaining to fulfill capacity, and Amazon EMR can only provision
+	// an instance with a WeightedCapacity of 5 units, the instance is provisioned,
+	// and the target capacity is exceeded by 3 units. You can use InstanceFleet$ProvisionedOnDemandCapacity
+	// to determine the Spot capacity units that have been provisioned for the instance
+	// fleet.
+	//
+	// If not specified or set to 0, only Spot instances are provisioned for the
+	// instance fleet using TargetSpotCapacity. At least one of TargetSpotCapacity
+	// and TargetOnDemandCapacity should be greater than 0. For a master instance
+	// fleet, only one of TargetSpotCapacity and TargetOnDemandCapacity can be specified,
+	// and its value must be 1.
+	TargetOnDemandCapacity *int64 `type:"integer"`
+
+	// The target capacity of Spot units for the instance fleet, which determines
+	// how many Spot instances to provision. When the instance fleet launches, Amazon
+	// EMR tries to provision Spot instances as specified by InstanceTypeConfig.
+	// Each instance configuration has a specified WeightedCapacity. When a Spot
+	// instance is provisioned, the WeightedCapacity units count toward the target
+	// capacity. Amazon EMR provisions instances until the target capacity is totally
+	// fulfilled, even if this results in an overage. For example, if there are
+	// 2 units remaining to fulfill capacity, and Amazon EMR can only provision
+	// an instance with a WeightedCapacity of 5 units, the instance is provisioned,
+	// and the target capacity is exceeded by 3 units. You can use InstanceFleet$ProvisionedSpotCapacity
+	// to determine the Spot capacity units that have been provisioned for the instance
+	// fleet.
+	//
+	// If not specified or set to 0, only On-Demand instances are provisioned for
+	// the instance fleet. At least one of TargetSpotCapacity and TargetOnDemandCapacity
+	// should be greater than 0. For a master instance fleet, only one of TargetSpotCapacity
+	// and TargetOnDemandCapacity can be specified, and its value must be 1.
+	TargetSpotCapacity *int64 `type:"integer"`
+}
+
+// String returns the string representation
+func (s InstanceFleet) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InstanceFleet) GoString() string {
+	return s.String()
+}
+
+// SetId sets the Id field's value.
+func (s *InstanceFleet) SetId(v string) *InstanceFleet {
+	s.Id = &v
+	return s
+}
+
+// SetInstanceFleetType sets the InstanceFleetType field's value.
+func (s *InstanceFleet) SetInstanceFleetType(v string) *InstanceFleet {
+	s.InstanceFleetType = &v
+	return s
+}
+
+// SetInstanceTypeSpecifications sets the InstanceTypeSpecifications field's value.
+func (s *InstanceFleet) SetInstanceTypeSpecifications(v []*InstanceTypeSpecification) *InstanceFleet {
+	s.InstanceTypeSpecifications = v
+	return s
+}
+
+// SetLaunchSpecifications sets the LaunchSpecifications field's value.
+func (s *InstanceFleet) SetLaunchSpecifications(v *InstanceFleetProvisioningSpecifications) *InstanceFleet {
+	s.LaunchSpecifications = v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *InstanceFleet) SetName(v string) *InstanceFleet {
+	s.Name = &v
+	return s
+}
+
+// SetProvisionedOnDemandCapacity sets the ProvisionedOnDemandCapacity field's value.
+func (s *InstanceFleet) SetProvisionedOnDemandCapacity(v int64) *InstanceFleet {
+	s.ProvisionedOnDemandCapacity = &v
+	return s
+}
+
+// SetProvisionedSpotCapacity sets the ProvisionedSpotCapacity field's value.
+func (s *InstanceFleet) SetProvisionedSpotCapacity(v int64) *InstanceFleet {
+	s.ProvisionedSpotCapacity = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *InstanceFleet) SetStatus(v *InstanceFleetStatus) *InstanceFleet {
+	s.Status = v
+	return s
+}
+
+// SetTargetOnDemandCapacity sets the TargetOnDemandCapacity field's value.
+func (s *InstanceFleet) SetTargetOnDemandCapacity(v int64) *InstanceFleet {
+	s.TargetOnDemandCapacity = &v
+	return s
+}
+
+// SetTargetSpotCapacity sets the TargetSpotCapacity field's value.
+func (s *InstanceFleet) SetTargetSpotCapacity(v int64) *InstanceFleet {
+	s.TargetSpotCapacity = &v
+	return s
+}
+
+// The configuration that defines an instance fleet.
+//
+// The instance fleet configuration is available only in Amazon EMR versions
+// 4.8.0 and later, excluding 5.0.x versions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/InstanceFleetConfig
+type InstanceFleetConfig struct {
+	_ struct{} `type:"structure"`
+
+	// The node type that the instance fleet hosts. Valid values are MASTER,CORE,and
+	// TASK.
+	//
+	// InstanceFleetType is a required field
+	InstanceFleetType *string `type:"string" required:"true" enum:"InstanceFleetType"`
+
+	// The instance type configurations that define the EC2 instances in the instance
+	// fleet.
+	InstanceTypeConfigs []*InstanceTypeConfig `type:"list"`
+
+	// The launch specification for the instance fleet.
+	LaunchSpecifications *InstanceFleetProvisioningSpecifications `type:"structure"`
+
+	// The friendly name of the instance fleet.
+	Name *string `type:"string"`
+
+	// The target capacity of On-Demand units for the instance fleet, which determines
+	// how many On-Demand instances to provision. When the instance fleet launches,
+	// Amazon EMR tries to provision On-Demand instances as specified by InstanceTypeConfig.
+	// Each instance configuration has a specified WeightedCapacity. When an On-Demand
+	// instance is provisioned, the WeightedCapacity units count toward the target
+	// capacity. Amazon EMR provisions instances until the target capacity is totally
+	// fulfilled, even if this results in an overage. For example, if there are
+	// 2 units remaining to fulfill capacity, and Amazon EMR can only provision
+	// an instance with a WeightedCapacity of 5 units, the instance is provisioned,
+	// and the target capacity is exceeded by 3 units.
+	//
+	// If not specified or set to 0, only Spot instances are provisioned for the
+	// instance fleet using TargetSpotCapacity. At least one of TargetSpotCapacity
+	// and TargetOnDemandCapacity should be greater than 0. For a master instance
+	// fleet, only one of TargetSpotCapacity and TargetOnDemandCapacity can be specified,
+	// and its value must be 1.
+	TargetOnDemandCapacity *int64 `type:"integer"`
+
+	// The target capacity of Spot units for the instance fleet, which determines
+	// how many Spot instances to provision. When the instance fleet launches, Amazon
+	// EMR tries to provision Spot instances as specified by InstanceTypeConfig.
+	// Each instance configuration has a specified WeightedCapacity. When a Spot
+	// instance is provisioned, the WeightedCapacity units count toward the target
+	// capacity. Amazon EMR provisions instances until the target capacity is totally
+	// fulfilled, even if this results in an overage. For example, if there are
+	// 2 units remaining to fulfill capacity, and Amazon EMR can only provision
+	// an instance with a WeightedCapacity of 5 units, the instance is provisioned,
+	// and the target capacity is exceeded by 3 units.
+	//
+	// If not specified or set to 0, only On-Demand instances are provisioned for
+	// the instance fleet. At least one of TargetSpotCapacity and TargetOnDemandCapacity
+	// should be greater than 0. For a master instance fleet, only one of TargetSpotCapacity
+	// and TargetOnDemandCapacity can be specified, and its value must be 1.
+	TargetSpotCapacity *int64 `type:"integer"`
+}
+
+// String returns the string representation
+func (s InstanceFleetConfig) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InstanceFleetConfig) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *InstanceFleetConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "InstanceFleetConfig"}
+	if s.InstanceFleetType == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceFleetType"))
+	}
+	if s.InstanceTypeConfigs != nil {
+		for i, v := range s.InstanceTypeConfigs {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "InstanceTypeConfigs", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.LaunchSpecifications != nil {
+		if err := s.LaunchSpecifications.Validate(); err != nil {
+			invalidParams.AddNested("LaunchSpecifications", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetInstanceFleetType sets the InstanceFleetType field's value.
+func (s *InstanceFleetConfig) SetInstanceFleetType(v string) *InstanceFleetConfig {
+	s.InstanceFleetType = &v
+	return s
+}
+
+// SetInstanceTypeConfigs sets the InstanceTypeConfigs field's value.
+func (s *InstanceFleetConfig) SetInstanceTypeConfigs(v []*InstanceTypeConfig) *InstanceFleetConfig {
+	s.InstanceTypeConfigs = v
+	return s
+}
+
+// SetLaunchSpecifications sets the LaunchSpecifications field's value.
+func (s *InstanceFleetConfig) SetLaunchSpecifications(v *InstanceFleetProvisioningSpecifications) *InstanceFleetConfig {
+	s.LaunchSpecifications = v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *InstanceFleetConfig) SetName(v string) *InstanceFleetConfig {
+	s.Name = &v
+	return s
+}
+
+// SetTargetOnDemandCapacity sets the TargetOnDemandCapacity field's value.
+func (s *InstanceFleetConfig) SetTargetOnDemandCapacity(v int64) *InstanceFleetConfig {
+	s.TargetOnDemandCapacity = &v
+	return s
+}
+
+// SetTargetSpotCapacity sets the TargetSpotCapacity field's value.
+func (s *InstanceFleetConfig) SetTargetSpotCapacity(v int64) *InstanceFleetConfig {
+	s.TargetSpotCapacity = &v
+	return s
+}
+
+// Configuration parameters for an instance fleet modification request.
+//
+// The instance fleet configuration is available only in Amazon EMR versions
+// 4.8.0 and later, excluding 5.0.x versions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/InstanceFleetModifyConfig
+type InstanceFleetModifyConfig struct {
+	_ struct{} `type:"structure"`
+
+	// A unique identifier for the instance fleet.
+	//
+	// InstanceFleetId is a required field
+	InstanceFleetId *string `type:"string" required:"true"`
+
+	// The target capacity of On-Demand units for the instance fleet. For more information
+	// see InstanceFleetConfig$TargetOnDemandCapacity.
+	TargetOnDemandCapacity *int64 `type:"integer"`
+
+	// The target capacity of Spot units for the instance fleet. For more information,
+	// see InstanceFleetConfig$TargetSpotCapacity.
+	TargetSpotCapacity *int64 `type:"integer"`
+}
+
+// String returns the string representation
+func (s InstanceFleetModifyConfig) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InstanceFleetModifyConfig) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *InstanceFleetModifyConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "InstanceFleetModifyConfig"}
+	if s.InstanceFleetId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceFleetId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetInstanceFleetId sets the InstanceFleetId field's value.
+func (s *InstanceFleetModifyConfig) SetInstanceFleetId(v string) *InstanceFleetModifyConfig {
+	s.InstanceFleetId = &v
+	return s
+}
+
+// SetTargetOnDemandCapacity sets the TargetOnDemandCapacity field's value.
+func (s *InstanceFleetModifyConfig) SetTargetOnDemandCapacity(v int64) *InstanceFleetModifyConfig {
+	s.TargetOnDemandCapacity = &v
+	return s
+}
+
+// SetTargetSpotCapacity sets the TargetSpotCapacity field's value.
+func (s *InstanceFleetModifyConfig) SetTargetSpotCapacity(v int64) *InstanceFleetModifyConfig {
+	s.TargetSpotCapacity = &v
+	return s
+}
+
+// The launch specification for Spot instances in the fleet, which determines
+// the defined duration and provisioning timeout behavior.
+//
+// The instance fleet configuration is available only in Amazon EMR versions
+// 4.8.0 and later, excluding 5.0.x versions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/InstanceFleetProvisioningSpecifications
+type InstanceFleetProvisioningSpecifications struct {
+	_ struct{} `type:"structure"`
+
+	// The launch specification for Spot instances in the fleet, which determines
+	// the defined duration and provisioning timeout behavior.
+	//
+	// SpotSpecification is a required field
+	SpotSpecification *SpotProvisioningSpecification `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s InstanceFleetProvisioningSpecifications) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InstanceFleetProvisioningSpecifications) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *InstanceFleetProvisioningSpecifications) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "InstanceFleetProvisioningSpecifications"}
+	if s.SpotSpecification == nil {
+		invalidParams.Add(request.NewErrParamRequired("SpotSpecification"))
+	}
+	if s.SpotSpecification != nil {
+		if err := s.SpotSpecification.Validate(); err != nil {
+			invalidParams.AddNested("SpotSpecification", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetSpotSpecification sets the SpotSpecification field's value.
+func (s *InstanceFleetProvisioningSpecifications) SetSpotSpecification(v *SpotProvisioningSpecification) *InstanceFleetProvisioningSpecifications {
+	s.SpotSpecification = v
+	return s
+}
+
+// Provides status change reason details for the instance fleet.
+//
+// The instance fleet configuration is available only in Amazon EMR versions
+// 4.8.0 and later, excluding 5.0.x versions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/InstanceFleetStateChangeReason
+type InstanceFleetStateChangeReason struct {
+	_ struct{} `type:"structure"`
+
+	// A code corresponding to the reason the state change occurred.
+	Code *string `type:"string" enum:"InstanceFleetStateChangeReasonCode"`
+
+	// An explanatory message.
+	Message *string `type:"string"`
+}
+
+// String returns the string representation
+func (s InstanceFleetStateChangeReason) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InstanceFleetStateChangeReason) GoString() string {
+	return s.String()
+}
+
+// SetCode sets the Code field's value.
+func (s *InstanceFleetStateChangeReason) SetCode(v string) *InstanceFleetStateChangeReason {
+	s.Code = &v
+	return s
+}
+
+// SetMessage sets the Message field's value.
+func (s *InstanceFleetStateChangeReason) SetMessage(v string) *InstanceFleetStateChangeReason {
+	s.Message = &v
+	return s
+}
+
+// The status of the instance fleet.
+//
+// The instance fleet configuration is available only in Amazon EMR versions
+// 4.8.0 and later, excluding 5.0.x versions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/InstanceFleetStatus
+type InstanceFleetStatus struct {
+	_ struct{} `type:"structure"`
+
+	// A code representing the instance fleet status.
+	State *string `type:"string" enum:"InstanceFleetState"`
+
+	// Provides status change reason details for the instance fleet.
+	StateChangeReason *InstanceFleetStateChangeReason `type:"structure"`
+
+	// Provides historical timestamps for the instance fleet, including the time
+	// of creation, the time it became ready to run jobs, and the time of termination.
+	Timeline *InstanceFleetTimeline `type:"structure"`
+}
+
+// String returns the string representation
+func (s InstanceFleetStatus) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InstanceFleetStatus) GoString() string {
+	return s.String()
+}
+
+// SetState sets the State field's value.
+func (s *InstanceFleetStatus) SetState(v string) *InstanceFleetStatus {
+	s.State = &v
+	return s
+}
+
+// SetStateChangeReason sets the StateChangeReason field's value.
+func (s *InstanceFleetStatus) SetStateChangeReason(v *InstanceFleetStateChangeReason) *InstanceFleetStatus {
+	s.StateChangeReason = v
+	return s
+}
+
+// SetTimeline sets the Timeline field's value.
+func (s *InstanceFleetStatus) SetTimeline(v *InstanceFleetTimeline) *InstanceFleetStatus {
+	s.Timeline = v
+	return s
+}
+
+// Provides historical timestamps for the instance fleet, including the time
+// of creation, the time it became ready to run jobs, and the time of termination.
+//
+// The instance fleet configuration is available only in Amazon EMR versions
+// 4.8.0 and later, excluding 5.0.x versions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/InstanceFleetTimeline
+type InstanceFleetTimeline struct {
+	_ struct{} `type:"structure"`
+
+	// The time and date the instance fleet was created.
+	CreationDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+
+	// The time and date the instance fleet terminated.
+	EndDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+
+	// The time and date the instance fleet was ready to run jobs.
+	ReadyDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+}
+
+// String returns the string representation
+func (s InstanceFleetTimeline) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InstanceFleetTimeline) GoString() string {
+	return s.String()
+}
+
+// SetCreationDateTime sets the CreationDateTime field's value.
+func (s *InstanceFleetTimeline) SetCreationDateTime(v time.Time) *InstanceFleetTimeline {
+	s.CreationDateTime = &v
+	return s
+}
+
+// SetEndDateTime sets the EndDateTime field's value.
+func (s *InstanceFleetTimeline) SetEndDateTime(v time.Time) *InstanceFleetTimeline {
+	s.EndDateTime = &v
+	return s
+}
+
+// SetReadyDateTime sets the ReadyDateTime field's value.
+func (s *InstanceFleetTimeline) SetReadyDateTime(v time.Time) *InstanceFleetTimeline {
+	s.ReadyDateTime = &v
 	return s
 }
 
@@ -5069,7 +6018,208 @@ func (s *InstanceTimeline) SetReadyDateTime(v time.Time) *InstanceTimeline {
 	return s
 }
 
-// A description of a job flow.
+// An instance type configuration for each instance type in an instance fleet,
+// which determines the EC2 instances Amazon EMR attempts to provision to fulfill
+// On-Demand and Spot target capacities. There can be a maximum of 5 instance
+// type configurations in a fleet.
+//
+// The instance fleet configuration is available only in Amazon EMR versions
+// 4.8.0 and later, excluding 5.0.x versions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/InstanceTypeConfig
+type InstanceTypeConfig struct {
+	_ struct{} `type:"structure"`
+
+	// The bid price for each EC2 Spot instance type as defined by InstanceType.
+	// Expressed in USD. If neither BidPrice nor BidPriceAsPercentageOfOnDemandPrice
+	// is provided, BidPriceAsPercentageOfOnDemandPrice defaults to 100%.
+	BidPrice *string `type:"string"`
+
+	// The bid price, as a percentage of On-Demand price, for each EC2 Spot instance
+	// as defined by InstanceType. Expressed as a number between 0 and 1000 (for
+	// example, 20 specifies 20%). If neither BidPrice nor BidPriceAsPercentageOfOnDemandPrice
+	// is provided, BidPriceAsPercentageOfOnDemandPrice defaults to 100%.
+	BidPriceAsPercentageOfOnDemandPrice *float64 `type:"double"`
+
+	// A configuration classification that applies when provisioning cluster instances,
+	// which can include configurations for applications and software that run on
+	// the cluster.
+	Configurations []*Configuration `type:"list"`
+
+	// The configuration of Amazon Elastic Block Storage (EBS) attached to each
+	// instance as defined by InstanceType.
+	EbsConfiguration *EbsConfiguration `type:"structure"`
+
+	// An EC2 instance type, such as m3.xlarge.
+	//
+	// InstanceType is a required field
+	InstanceType *string `min:"1" type:"string" required:"true"`
+
+	// The number of units that a provisioned instance of this type provides toward
+	// fulfilling the target capacities defined in InstanceFleetConfig. This value
+	// is 1 for a master instance fleet, and must be greater than 0 for core and
+	// task instance fleets.
+	WeightedCapacity *int64 `type:"integer"`
+}
+
+// String returns the string representation
+func (s InstanceTypeConfig) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InstanceTypeConfig) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *InstanceTypeConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "InstanceTypeConfig"}
+	if s.InstanceType == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceType"))
+	}
+	if s.InstanceType != nil && len(*s.InstanceType) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("InstanceType", 1))
+	}
+	if s.EbsConfiguration != nil {
+		if err := s.EbsConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("EbsConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetBidPrice sets the BidPrice field's value.
+func (s *InstanceTypeConfig) SetBidPrice(v string) *InstanceTypeConfig {
+	s.BidPrice = &v
+	return s
+}
+
+// SetBidPriceAsPercentageOfOnDemandPrice sets the BidPriceAsPercentageOfOnDemandPrice field's value.
+func (s *InstanceTypeConfig) SetBidPriceAsPercentageOfOnDemandPrice(v float64) *InstanceTypeConfig {
+	s.BidPriceAsPercentageOfOnDemandPrice = &v
+	return s
+}
+
+// SetConfigurations sets the Configurations field's value.
+func (s *InstanceTypeConfig) SetConfigurations(v []*Configuration) *InstanceTypeConfig {
+	s.Configurations = v
+	return s
+}
+
+// SetEbsConfiguration sets the EbsConfiguration field's value.
+func (s *InstanceTypeConfig) SetEbsConfiguration(v *EbsConfiguration) *InstanceTypeConfig {
+	s.EbsConfiguration = v
+	return s
+}
+
+// SetInstanceType sets the InstanceType field's value.
+func (s *InstanceTypeConfig) SetInstanceType(v string) *InstanceTypeConfig {
+	s.InstanceType = &v
+	return s
+}
+
+// SetWeightedCapacity sets the WeightedCapacity field's value.
+func (s *InstanceTypeConfig) SetWeightedCapacity(v int64) *InstanceTypeConfig {
+	s.WeightedCapacity = &v
+	return s
+}
+
+// The configuration specification for each instance type in an instance fleet.
+//
+// The instance fleet configuration is available only in Amazon EMR versions
+// 4.8.0 and later, excluding 5.0.x versions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/InstanceTypeSpecification
+type InstanceTypeSpecification struct {
+	_ struct{} `type:"structure"`
+
+	// The bid price for each EC2 Spot instance type as defined by InstanceType.
+	// Expressed in USD.
+	BidPrice *string `type:"string"`
+
+	// The bid price, as a percentage of On-Demand price, for each EC2 Spot instance
+	// as defined by InstanceType. Expressed as a number (for example, 20 specifies
+	// 20%).
+	BidPriceAsPercentageOfOnDemandPrice *float64 `type:"double"`
+
+	// A configuration classification that applies when provisioning cluster instances,
+	// which can include configurations for applications and software bundled with
+	// Amazon EMR.
+	Configurations []*Configuration `type:"list"`
+
+	// The configuration of Amazon Elastic Block Storage (EBS) attached to each
+	// instance as defined by InstanceType.
+	EbsBlockDevices []*EbsBlockDevice `type:"list"`
+
+	// Evaluates to TRUE when the specified InstanceType is EBS-optimized.
+	EbsOptimized *bool `type:"boolean"`
+
+	// The EC2 instance type, for example m3.xlarge.
+	InstanceType *string `min:"1" type:"string"`
+
+	// The number of units that a provisioned instance of this type provides toward
+	// fulfilling the target capacities defined in InstanceFleetConfig. Capacity
+	// values represent performance characteristics such as vCPUs, memory, or I/O.
+	// If not specified, the default value is 1.
+	WeightedCapacity *int64 `type:"integer"`
+}
+
+// String returns the string representation
+func (s InstanceTypeSpecification) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InstanceTypeSpecification) GoString() string {
+	return s.String()
+}
+
+// SetBidPrice sets the BidPrice field's value.
+func (s *InstanceTypeSpecification) SetBidPrice(v string) *InstanceTypeSpecification {
+	s.BidPrice = &v
+	return s
+}
+
+// SetBidPriceAsPercentageOfOnDemandPrice sets the BidPriceAsPercentageOfOnDemandPrice field's value.
+func (s *InstanceTypeSpecification) SetBidPriceAsPercentageOfOnDemandPrice(v float64) *InstanceTypeSpecification {
+	s.BidPriceAsPercentageOfOnDemandPrice = &v
+	return s
+}
+
+// SetConfigurations sets the Configurations field's value.
+func (s *InstanceTypeSpecification) SetConfigurations(v []*Configuration) *InstanceTypeSpecification {
+	s.Configurations = v
+	return s
+}
+
+// SetEbsBlockDevices sets the EbsBlockDevices field's value.
+func (s *InstanceTypeSpecification) SetEbsBlockDevices(v []*EbsBlockDevice) *InstanceTypeSpecification {
+	s.EbsBlockDevices = v
+	return s
+}
+
+// SetEbsOptimized sets the EbsOptimized field's value.
+func (s *InstanceTypeSpecification) SetEbsOptimized(v bool) *InstanceTypeSpecification {
+	s.EbsOptimized = &v
+	return s
+}
+
+// SetInstanceType sets the InstanceType field's value.
+func (s *InstanceTypeSpecification) SetInstanceType(v string) *InstanceTypeSpecification {
+	s.InstanceType = &v
+	return s
+}
+
+// SetWeightedCapacity sets the WeightedCapacity field's value.
+func (s *InstanceTypeSpecification) SetWeightedCapacity(v int64) *InstanceTypeSpecification {
+	s.WeightedCapacity = &v
+	return s
+}
+
+// A description of a cluster (job flow).
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/JobFlowDetail
 type JobFlowDetail struct {
 	_ struct{} `type:"structure"`
@@ -5142,12 +6292,12 @@ type JobFlowDetail struct {
 	// is empty.
 	SupportedProducts []*string `type:"list"`
 
-	// Specifies whether the job flow is visible to all IAM users of the AWS account
-	// associated with the job flow. If this value is set to true, all IAM users
+	// Specifies whether the cluster is visible to all IAM users of the AWS account
+	// associated with the cluster. If this value is set to true, all IAM users
 	// of that AWS account can view and (if they have the proper policy permissions
-	// set) manage the job flow. If it is set to false, only the IAM user that created
-	// the job flow can view and manage it. This value can be changed using the
-	// SetVisibleToAllUsers action.
+	// set) manage the cluster. If it is set to false, only the IAM user that created
+	// the cluster can view and manage it. This value can be changed using the SetVisibleToAllUsers
+	// action.
 	VisibleToAllUsers *bool `type:"boolean"`
 }
 
@@ -5245,7 +6395,7 @@ func (s *JobFlowDetail) SetVisibleToAllUsers(v bool) *JobFlowDetail {
 	return s
 }
 
-// Describes the status of the job flow.
+// Describes the status of the cluster (job flow).
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/JobFlowExecutionStatusDetail
 type JobFlowExecutionStatusDetail struct {
 	_ struct{} `type:"structure"`
@@ -5320,10 +6470,11 @@ func (s *JobFlowExecutionStatusDetail) SetState(v string) *JobFlowExecutionStatu
 	return s
 }
 
-// A description of the Amazon EC2 instance running the job flow. A valid JobFlowInstancesConfig
-// must contain at least InstanceGroups, which is the recommended configuration.
-// However, a valid alternative is to have MasterInstanceType, SlaveInstanceType,
-// and InstanceCount (all three must be present).
+// A description of the Amazon EC2 instance on which the cluster (job flow)
+// runs. A valid JobFlowInstancesConfig must contain either InstanceGroups or
+// InstanceFleets, which is the recommended configuration. They cannot be used
+// together. You may also have MasterInstanceType, SlaveInstanceType, and InstanceCount
+// (all three must be present), but we don't recommend this configuration.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/JobFlowInstancesConfig
 type JobFlowInstancesConfig struct {
 	_ struct{} `type:"structure"`
@@ -5338,15 +6489,26 @@ type JobFlowInstancesConfig struct {
 	// the user called "hadoop."
 	Ec2KeyName *string `type:"string"`
 
-	// To launch the job flow in Amazon Virtual Private Cloud (Amazon VPC), set
-	// this parameter to the identifier of the Amazon VPC subnet where you want
-	// the job flow to launch. If you do not specify this value, the job flow is
-	// launched in the normal Amazon Web Services cloud, outside of an Amazon VPC.
+	// Applies to clusters that use the uniform instance group configuration. To
+	// launch the cluster in Amazon Virtual Private Cloud (Amazon VPC), set this
+	// parameter to the identifier of the Amazon VPC subnet where you want the cluster
+	// to launch. If you do not specify this value, the cluster launches in the
+	// normal Amazon Web Services cloud, outside of an Amazon VPC, if the account
+	// launching the cluster supports EC2 Classic networks in the region where the
+	// cluster launches.
 	//
 	// Amazon VPC currently does not support cluster compute quadruple extra large
 	// (cc1.4xlarge) instances. Thus you cannot specify the cc1.4xlarge instance
-	// type for nodes of a job flow launched in a Amazon VPC.
+	// type for clusters launched in an Amazon VPC.
 	Ec2SubnetId *string `type:"string"`
+
+	// Applies to clusters that use the instance fleet configuration. When multiple
+	// EC2 subnet IDs are specified, Amazon EMR evaluates them and launches instances
+	// in the optimal subnet.
+	//
+	// The instance fleet configuration is available only in Amazon EMR versions
+	// 4.8.0 and later, excluding 5.0.x versions.
+	Ec2SubnetIds []*string `type:"list"`
 
 	// The identifier of the Amazon EC2 security group for the master node.
 	EmrManagedMasterSecurityGroup *string `type:"string"`
@@ -5354,27 +6516,34 @@ type JobFlowInstancesConfig struct {
 	// The identifier of the Amazon EC2 security group for the slave nodes.
 	EmrManagedSlaveSecurityGroup *string `type:"string"`
 
-	// The Hadoop version for the job flow. Valid inputs are "0.18" (deprecated),
+	// The Hadoop version for the cluster. Valid inputs are "0.18" (deprecated),
 	// "0.20" (deprecated), "0.20.205" (deprecated), "1.0.3", "2.2.0", or "2.4.0".
 	// If you do not set this value, the default of 0.18 is used, unless the AmiVersion
 	// parameter is set in the RunJobFlow call, in which case the default version
 	// of Hadoop for that AMI version is used.
 	HadoopVersion *string `type:"string"`
 
-	// The number of EC2 instances used to execute the job flow.
+	// The number of EC2 instances in the cluster.
 	InstanceCount *int64 `type:"integer"`
 
-	// Configuration for the job flow's instance groups.
+	// The instance fleet configuration is available only in Amazon EMR versions
+	// 4.8.0 and later, excluding 5.0.x versions.
+	//
+	// Describes the EC2 instances and instance configurations for clusters that
+	// use the instance fleet configuration.
+	InstanceFleets []*InstanceFleetConfig `type:"list"`
+
+	// Configuration for the instance groups in a cluster.
 	InstanceGroups []*InstanceGroupConfig `type:"list"`
 
-	// Specifies whether the job flow should be kept alive after completing all
+	// Specifies whether the cluster should remain available after completing all
 	// steps.
 	KeepJobFlowAliveWhenNoSteps *bool `type:"boolean"`
 
 	// The EC2 instance type of the master node.
 	MasterInstanceType *string `min:"1" type:"string"`
 
-	// The Availability Zone the job flow will run in.
+	// The Availability Zone in which the cluster runs.
 	Placement *PlacementType `type:"structure"`
 
 	// The identifier of the Amazon EC2 security group for the Amazon EMR service
@@ -5384,9 +6553,9 @@ type JobFlowInstancesConfig struct {
 	// The EC2 instance type of the slave nodes.
 	SlaveInstanceType *string `min:"1" type:"string"`
 
-	// Specifies whether to lock the job flow to prevent the Amazon EC2 instances
+	// Specifies whether to lock the cluster to prevent the Amazon EC2 instances
 	// from being terminated by API call, user intervention, or in the event of
-	// a job flow error.
+	// a job-flow error.
 	TerminationProtected *bool `type:"boolean"`
 }
 
@@ -5409,6 +6578,16 @@ func (s *JobFlowInstancesConfig) Validate() error {
 	if s.SlaveInstanceType != nil && len(*s.SlaveInstanceType) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("SlaveInstanceType", 1))
 	}
+	if s.InstanceFleets != nil {
+		for i, v := range s.InstanceFleets {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "InstanceFleets", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 	if s.InstanceGroups != nil {
 		for i, v := range s.InstanceGroups {
 			if v == nil {
@@ -5417,11 +6596,6 @@ func (s *JobFlowInstancesConfig) Validate() error {
 			if err := v.Validate(); err != nil {
 				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "InstanceGroups", i), err.(request.ErrInvalidParams))
 			}
-		}
-	}
-	if s.Placement != nil {
-		if err := s.Placement.Validate(); err != nil {
-			invalidParams.AddNested("Placement", err.(request.ErrInvalidParams))
 		}
 	}
 
@@ -5455,6 +6629,12 @@ func (s *JobFlowInstancesConfig) SetEc2SubnetId(v string) *JobFlowInstancesConfi
 	return s
 }
 
+// SetEc2SubnetIds sets the Ec2SubnetIds field's value.
+func (s *JobFlowInstancesConfig) SetEc2SubnetIds(v []*string) *JobFlowInstancesConfig {
+	s.Ec2SubnetIds = v
+	return s
+}
+
 // SetEmrManagedMasterSecurityGroup sets the EmrManagedMasterSecurityGroup field's value.
 func (s *JobFlowInstancesConfig) SetEmrManagedMasterSecurityGroup(v string) *JobFlowInstancesConfig {
 	s.EmrManagedMasterSecurityGroup = &v
@@ -5476,6 +6656,12 @@ func (s *JobFlowInstancesConfig) SetHadoopVersion(v string) *JobFlowInstancesCon
 // SetInstanceCount sets the InstanceCount field's value.
 func (s *JobFlowInstancesConfig) SetInstanceCount(v int64) *JobFlowInstancesConfig {
 	s.InstanceCount = &v
+	return s
+}
+
+// SetInstanceFleets sets the InstanceFleets field's value.
+func (s *JobFlowInstancesConfig) SetInstanceFleets(v []*InstanceFleetConfig) *JobFlowInstancesConfig {
+	s.InstanceFleets = v
 	return s
 }
 
@@ -5521,20 +6707,21 @@ func (s *JobFlowInstancesConfig) SetTerminationProtected(v bool) *JobFlowInstanc
 	return s
 }
 
-// Specify the type of Amazon EC2 instances to run the job flow on.
+// Specify the type of Amazon EC2 instances that the cluster (job flow) runs
+// on.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/JobFlowInstancesDetail
 type JobFlowInstancesDetail struct {
 	_ struct{} `type:"structure"`
 
 	// The name of an Amazon EC2 key pair that can be used to ssh to the master
-	// node of job flow.
+	// node.
 	Ec2KeyName *string `type:"string"`
 
-	// For job flows launched within Amazon Virtual Private Cloud, this value specifies
-	// the identifier of the subnet where the job flow was launched.
+	// For clusters launched within Amazon Virtual Private Cloud, this is the identifier
+	// of the subnet where the cluster was launched.
 	Ec2SubnetId *string `type:"string"`
 
-	// The Hadoop version for the job flow.
+	// The Hadoop version for the cluster.
 	HadoopVersion *string `type:"string"`
 
 	// The number of Amazon EC2 instances in the cluster. If the value is 1, the
@@ -5544,10 +6731,11 @@ type JobFlowInstancesDetail struct {
 	// InstanceCount is a required field
 	InstanceCount *int64 `type:"integer" required:"true"`
 
-	// Details about the job flow's instance groups.
+	// Details about the instance groups in a cluster.
 	InstanceGroups []*InstanceGroupDetail `type:"list"`
 
-	// Specifies whether the job flow should terminate after completing all steps.
+	// Specifies whether the cluster should remain available after completing all
+	// steps.
 	KeepJobFlowAliveWhenNoSteps *bool `type:"boolean"`
 
 	// The Amazon EC2 instance identifier of the master node.
@@ -5561,7 +6749,7 @@ type JobFlowInstancesDetail struct {
 	// The DNS name of the master node.
 	MasterPublicDnsName *string `type:"string"`
 
-	// An approximation of the cost of the job flow, represented in m1.small/hours.
+	// An approximation of the cost of the cluster, represented in m1.small/hours.
 	// This value is incremented one time for every hour that an m1.small runs.
 	// Larger instances are weighted more, so an Amazon EC2 instance that is roughly
 	// four times more expensive would result in the normalized instance hours being
@@ -5569,7 +6757,7 @@ type JobFlowInstancesDetail struct {
 	// the actual billing rate.
 	NormalizedInstanceHours *int64 `type:"integer"`
 
-	// The Amazon EC2 Availability Zone for the job flow.
+	// The Amazon EC2 Availability Zone for the cluster.
 	Placement *PlacementType `type:"structure"`
 
 	// The Amazon EC2 slave node instance type.
@@ -5578,7 +6766,7 @@ type JobFlowInstancesDetail struct {
 	SlaveInstanceType *string `min:"1" type:"string" required:"true"`
 
 	// Specifies whether the Amazon EC2 instances in the cluster are protected from
-	// termination by API calls, user intervention, or in the event of a job flow
+	// termination by API calls, user intervention, or in the event of a job-flow
 	// error.
 	TerminationProtected *bool `type:"boolean"`
 }
@@ -5876,6 +7064,87 @@ func (s *ListClustersOutput) SetMarker(v string) *ListClustersOutput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/ListInstanceFleetsInput
+type ListInstanceFleetsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The unique identifier of the cluster.
+	//
+	// ClusterId is a required field
+	ClusterId *string `type:"string" required:"true"`
+
+	// The pagination token that indicates the next set of results to retrieve.
+	Marker *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ListInstanceFleetsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListInstanceFleetsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListInstanceFleetsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListInstanceFleetsInput"}
+	if s.ClusterId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClusterId sets the ClusterId field's value.
+func (s *ListInstanceFleetsInput) SetClusterId(v string) *ListInstanceFleetsInput {
+	s.ClusterId = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *ListInstanceFleetsInput) SetMarker(v string) *ListInstanceFleetsInput {
+	s.Marker = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/ListInstanceFleetsOutput
+type ListInstanceFleetsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The list of instance fleets for the cluster and given filters.
+	InstanceFleets []*InstanceFleet `type:"list"`
+
+	// The pagination token that indicates the next set of results to retrieve.
+	Marker *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ListInstanceFleetsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListInstanceFleetsOutput) GoString() string {
+	return s.String()
+}
+
+// SetInstanceFleets sets the InstanceFleets field's value.
+func (s *ListInstanceFleetsOutput) SetInstanceFleets(v []*InstanceFleet) *ListInstanceFleetsOutput {
+	s.InstanceFleets = v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *ListInstanceFleetsOutput) SetMarker(v string) *ListInstanceFleetsOutput {
+	s.Marker = &v
+	return s
+}
+
 // This input determines which instance groups to retrieve.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/ListInstanceGroupsInput
 type ListInstanceGroupsInput struct {
@@ -5969,6 +7238,12 @@ type ListInstancesInput struct {
 	// ClusterId is a required field
 	ClusterId *string `type:"string" required:"true"`
 
+	// The unique identifier of the instance fleet.
+	InstanceFleetId *string `type:"string"`
+
+	// The node type of the instance fleet. For example MASTER, CORE, or TASK.
+	InstanceFleetType *string `type:"string" enum:"InstanceFleetType"`
+
 	// The identifier of the instance group for which to list the instances.
 	InstanceGroupId *string `type:"string"`
 
@@ -6009,6 +7284,18 @@ func (s *ListInstancesInput) Validate() error {
 // SetClusterId sets the ClusterId field's value.
 func (s *ListInstancesInput) SetClusterId(v string) *ListInstancesInput {
 	s.ClusterId = &v
+	return s
+}
+
+// SetInstanceFleetId sets the InstanceFleetId field's value.
+func (s *ListInstancesInput) SetInstanceFleetId(v string) *ListInstancesInput {
+	s.InstanceFleetId = &v
+	return s
+}
+
+// SetInstanceFleetType sets the InstanceFleetType field's value.
+func (s *ListInstancesInput) SetInstanceFleetType(v string) *ListInstancesInput {
+	s.InstanceFleetType = &v
 	return s
 }
 
@@ -6234,9 +7521,8 @@ func (s *ListStepsOutput) SetSteps(v []*StepSummary) *ListStepsOutput {
 // A CloudWatch dimension, which is specified using a Key (known as a Name in
 // CloudWatch), Value pair. By default, Amazon EMR uses one dimension whose
 // Key is JobFlowID and Value is a variable representing the cluster ID, which
-// is ${emr:cluster_id}. This enables the rule to bootstrap when the cluster
-// ID becomes available, and also enables a single automatic scaling policy
-// to be reused for multiple clusters and instance groups.
+// is ${emr.clusterId}. This enables the rule to bootstrap when the cluster
+// ID becomes available.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/MetricDimension
 type MetricDimension struct {
 	_ struct{} `type:"structure"`
@@ -6268,6 +7554,79 @@ func (s *MetricDimension) SetKey(v string) *MetricDimension {
 func (s *MetricDimension) SetValue(v string) *MetricDimension {
 	s.Value = &v
 	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/ModifyInstanceFleetInput
+type ModifyInstanceFleetInput struct {
+	_ struct{} `type:"structure"`
+
+	// The unique identifier of the cluster.
+	//
+	// ClusterId is a required field
+	ClusterId *string `type:"string" required:"true"`
+
+	// The unique identifier of the instance fleet.
+	//
+	// InstanceFleet is a required field
+	InstanceFleet *InstanceFleetModifyConfig `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s ModifyInstanceFleetInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifyInstanceFleetInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyInstanceFleetInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyInstanceFleetInput"}
+	if s.ClusterId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterId"))
+	}
+	if s.InstanceFleet == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceFleet"))
+	}
+	if s.InstanceFleet != nil {
+		if err := s.InstanceFleet.Validate(); err != nil {
+			invalidParams.AddNested("InstanceFleet", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClusterId sets the ClusterId field's value.
+func (s *ModifyInstanceFleetInput) SetClusterId(v string) *ModifyInstanceFleetInput {
+	s.ClusterId = &v
+	return s
+}
+
+// SetInstanceFleet sets the InstanceFleet field's value.
+func (s *ModifyInstanceFleetInput) SetInstanceFleet(v *InstanceFleetModifyConfig) *ModifyInstanceFleetInput {
+	s.InstanceFleet = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/ModifyInstanceFleetOutput
+type ModifyInstanceFleetOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s ModifyInstanceFleetOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifyInstanceFleetOutput) GoString() string {
+	return s.String()
 }
 
 // Change the size of some instance groups.
@@ -6339,15 +7698,24 @@ func (s ModifyInstanceGroupsOutput) GoString() string {
 	return s.String()
 }
 
-// The Amazon EC2 location for the job flow.
+// The Amazon EC2 Availability Zone configuration of the cluster (job flow).
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/PlacementType
 type PlacementType struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon EC2 Availability Zone for the job flow.
+	// The Amazon EC2 Availability Zone for the cluster. AvailabilityZone is used
+	// for uniform instance groups, while AvailabilityZones (plural) is used for
+	// instance fleets.
+	AvailabilityZone *string `type:"string"`
+
+	// When multiple Availability Zones are specified, Amazon EMR evaluates them
+	// and launches instances in the optimal Availability Zone. AvailabilityZones
+	// is used for instance fleets, while AvailabilityZone (singular) is used for
+	// uniform instance groups.
 	//
-	// AvailabilityZone is a required field
-	AvailabilityZone *string `type:"string" required:"true"`
+	// The instance fleet configuration is available only in Amazon EMR versions
+	// 4.8.0 and later, excluding 5.0.x versions.
+	AvailabilityZones []*string `type:"list"`
 }
 
 // String returns the string representation
@@ -6360,22 +7728,15 @@ func (s PlacementType) GoString() string {
 	return s.String()
 }
 
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *PlacementType) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "PlacementType"}
-	if s.AvailabilityZone == nil {
-		invalidParams.Add(request.NewErrParamRequired("AvailabilityZone"))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
 // SetAvailabilityZone sets the AvailabilityZone field's value.
 func (s *PlacementType) SetAvailabilityZone(v string) *PlacementType {
 	s.AvailabilityZone = &v
+	return s
+}
+
+// SetAvailabilityZones sets the AvailabilityZones field's value.
+func (s *PlacementType) SetAvailabilityZones(v []*string) *PlacementType {
+	s.AvailabilityZones = v
 	return s
 }
 
@@ -6678,8 +8039,7 @@ type RunJobFlowInput struct {
 	// to launch and terminate EC2 instances in an instance group.
 	AutoScalingRole *string `type:"string"`
 
-	// A list of bootstrap actions that will be run before Hadoop is started on
-	// the cluster nodes.
+	// A list of bootstrap actions to run before Hadoop starts on the cluster nodes.
 	BootstrapActions []*BootstrapActionConfig `type:"list"`
 
 	// Amazon EMR releases 4.x or later.
@@ -6687,8 +8047,7 @@ type RunJobFlowInput struct {
 	// The list of configurations supplied for the EMR cluster you are creating.
 	Configurations []*Configuration `type:"list"`
 
-	// A specification of the number and type of Amazon EC2 instances on which to
-	// run the job flow.
+	// A specification of the number and type of Amazon EC2 instances.
 	//
 	// Instances is a required field
 	Instances *JobFlowInstancesConfig `type:"structure" required:"true"`
@@ -6714,9 +8073,9 @@ type RunJobFlowInput struct {
 	// A list of strings that indicates third-party software to use with the job
 	// flow that accepts a user argument list. EMR accepts and forwards the argument
 	// list to the corresponding installation script as bootstrap action arguments.
-	// For more information, see Launch a Job Flow on the MapR Distribution for
-	// Hadoop (http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/emr-mapr.html).
-	// Currently supported values are:
+	// For more information, see "Launch a Job Flow on the MapR Distribution for
+	// Hadoop" in the Amazon EMR Developer Guide (http://docs.aws.amazon.com/http:/docs.aws.amazon.com/emr/latest/DeveloperGuide/emr-dg.pdf).
+	// Supported values are:
 	//
 	//    * "mapr-m3" - launch the cluster using MapR M3 Edition.
 	//
@@ -6763,15 +8122,14 @@ type RunJobFlowInput struct {
 	// resources on your behalf.
 	ServiceRole *string `type:"string"`
 
-	// A list of steps to be executed by the job flow.
+	// A list of steps to run.
 	Steps []*StepConfig `type:"list"`
 
 	// For Amazon EMR releases 3.x and 2.x. For Amazon EMR releases 4.x and greater,
 	// use Applications.
 	//
-	// A list of strings that indicates third-party software to use with the job
-	// flow. For more information, see Use Third Party Applications with Amazon
-	// EMR (http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/emr-supported-products.html).
+	// A list of strings that indicates third-party software to use. For more information,
+	// see Use Third Party Applications with Amazon EMR (http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/emr-supported-products.html).
 	// Currently supported values are:
 	//
 	//    * "mapr-m3" - launch the job flow using MapR M3 Edition.
@@ -6782,11 +8140,11 @@ type RunJobFlowInput struct {
 	// A list of tags to associate with a cluster and propagate to Amazon EC2 instances.
 	Tags []*Tag `type:"list"`
 
-	// Whether the job flow is visible to all IAM users of the AWS account associated
-	// with the job flow. If this value is set to true, all IAM users of that AWS
+	// Whether the cluster is visible to all IAM users of the AWS account associated
+	// with the cluster. If this value is set to true, all IAM users of that AWS
 	// account can view and (if they have the proper policy permissions set) manage
-	// the job flow. If it is set to false, only the IAM user that created the job
-	// flow can view and manage it.
+	// the cluster. If it is set to false, only the IAM user that created the cluster
+	// can view and manage it.
 	VisibleToAllUsers *bool `type:"boolean"`
 }
 
@@ -7324,16 +8682,16 @@ func (s *SecurityConfigurationSummary) SetName(v string) *SecurityConfigurationS
 type SetTerminationProtectionInput struct {
 	_ struct{} `type:"structure"`
 
-	// A list of strings that uniquely identify the job flows to protect. This identifier
+	// A list of strings that uniquely identify the clusters to protect. This identifier
 	// is returned by RunJobFlow and can also be obtained from DescribeJobFlows
 	// .
 	//
 	// JobFlowIds is a required field
 	JobFlowIds []*string `type:"list" required:"true"`
 
-	// A Boolean that indicates whether to protect the job flow and prevent the
-	// Amazon EC2 instances in the cluster from shutting down due to API calls,
-	// user intervention, or job-flow error.
+	// A Boolean that indicates whether to protect the cluster and prevent the Amazon
+	// EC2 instances in the cluster from shutting down due to API calls, user intervention,
+	// or job-flow error.
 	//
 	// TerminationProtected is a required field
 	TerminationProtected *bool `type:"boolean" required:"true"`
@@ -7402,11 +8760,11 @@ type SetVisibleToAllUsersInput struct {
 	// JobFlowIds is a required field
 	JobFlowIds []*string `type:"list" required:"true"`
 
-	// Whether the specified job flows are visible to all IAM users of the AWS account
-	// associated with the job flow. If this value is set to True, all IAM users
+	// Whether the specified clusters are visible to all IAM users of the AWS account
+	// associated with the cluster. If this value is set to True, all IAM users
 	// of that AWS account can view and, if they have the proper IAM policy permissions
-	// set, manage the job flows. If it is set to False, only the IAM user that
-	// created a job flow can view and manage it.
+	// set, manage the clusters. If it is set to False, only the IAM user that created
+	// a cluster can view and manage it.
 	//
 	// VisibleToAllUsers is a required field
 	VisibleToAllUsers *bool `type:"boolean" required:"true"`
@@ -7515,7 +8873,7 @@ type SimpleScalingPolicyConfiguration struct {
 	// indicates that the EC2 instance count increments or decrements by ScalingAdjustment,
 	// which should be expressed as an integer. PERCENT_CHANGE_IN_CAPACITY indicates
 	// the instance count increments or decrements by the percentage specified by
-	// ScalingAdjustment, which should be expressed as a decimal, for example, 0.20
+	// ScalingAdjustment, which should be expressed as a decimal. For example, 0.20
 	// indicates an increase in 20% increments of cluster capacity. EXACT_CAPACITY
 	// indicates the scaling activity results in an instance group with the number
 	// of EC2 instances specified by ScalingAdjustment, which should be expressed
@@ -7577,6 +8935,86 @@ func (s *SimpleScalingPolicyConfiguration) SetCoolDown(v int64) *SimpleScalingPo
 // SetScalingAdjustment sets the ScalingAdjustment field's value.
 func (s *SimpleScalingPolicyConfiguration) SetScalingAdjustment(v int64) *SimpleScalingPolicyConfiguration {
 	s.ScalingAdjustment = &v
+	return s
+}
+
+// The launch specification for Spot instances in the instance fleet, which
+// determines the defined duration and provisioning timeout behavior.
+//
+// The instance fleet configuration is available only in Amazon EMR versions
+// 4.8.0 and later, excluding 5.0.x versions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/SpotProvisioningSpecification
+type SpotProvisioningSpecification struct {
+	_ struct{} `type:"structure"`
+
+	// The defined duration for Spot instances (also known as Spot blocks) in minutes.
+	// When specified, the Spot instance does not terminate before the defined duration
+	// expires, and defined duration pricing for Spot instances applies. Valid values
+	// are 60, 120, 180, 240, 300, or 360. The duration period starts as soon as
+	// a Spot instance receives its instance ID. At the end of the duration, Amazon
+	// EC2 marks the Spot instance for termination and provides a Spot instance
+	// termination notice, which gives the instance a two-minute warning before
+	// it terminates.
+	BlockDurationMinutes *int64 `type:"integer"`
+
+	// The action to take when TargetSpotCapacity has not been fulfilled when the
+	// TimeoutDurationMinutes has expired. Spot instances are not uprovisioned within
+	// the Spot provisioining timeout. Valid values are TERMINATE_CLUSTER and SWITCH_TO_ON_DEMAND
+	// to fulfill the remaining capacity.
+	//
+	// TimeoutAction is a required field
+	TimeoutAction *string `type:"string" required:"true" enum:"SpotProvisioningTimeoutAction"`
+
+	// The spot provisioning timeout period in minutes. If Spot instances are not
+	// provisioned within this time period, the TimeOutAction is taken. Minimum
+	// value is 5 and maximum value is 1440. The timeout applies only during initial
+	// provisioning, when the cluster is first created.
+	//
+	// TimeoutDurationMinutes is a required field
+	TimeoutDurationMinutes *int64 `type:"integer" required:"true"`
+}
+
+// String returns the string representation
+func (s SpotProvisioningSpecification) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SpotProvisioningSpecification) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SpotProvisioningSpecification) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SpotProvisioningSpecification"}
+	if s.TimeoutAction == nil {
+		invalidParams.Add(request.NewErrParamRequired("TimeoutAction"))
+	}
+	if s.TimeoutDurationMinutes == nil {
+		invalidParams.Add(request.NewErrParamRequired("TimeoutDurationMinutes"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetBlockDurationMinutes sets the BlockDurationMinutes field's value.
+func (s *SpotProvisioningSpecification) SetBlockDurationMinutes(v int64) *SpotProvisioningSpecification {
+	s.BlockDurationMinutes = &v
+	return s
+}
+
+// SetTimeoutAction sets the TimeoutAction field's value.
+func (s *SpotProvisioningSpecification) SetTimeoutAction(v string) *SpotProvisioningSpecification {
+	s.TimeoutAction = &v
+	return s
+}
+
+// SetTimeoutDurationMinutes sets the TimeoutDurationMinutes field's value.
+func (s *SpotProvisioningSpecification) SetTimeoutDurationMinutes(v int64) *SpotProvisioningSpecification {
+	s.TimeoutDurationMinutes = &v
 	return s
 }
 
@@ -7642,20 +9080,20 @@ func (s *Step) SetStatus(v *StepStatus) *Step {
 	return s
 }
 
-// Specification of a job flow step.
+// Specification of a cluster (job flow) step.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/StepConfig
 type StepConfig struct {
 	_ struct{} `type:"structure"`
 
-	// The action to take if the job flow step fails.
+	// The action to take if the step fails.
 	ActionOnFailure *string `type:"string" enum:"ActionOnFailure"`
 
-	// The JAR file used for the job flow step.
+	// The JAR file used for the step.
 	//
 	// HadoopJarStep is a required field
 	HadoopJarStep *HadoopJarStepConfig `type:"structure" required:"true"`
 
-	// The name of the job flow step.
+	// The name of the step.
 	//
 	// Name is a required field
 	Name *string `type:"string" required:"true"`
@@ -7767,7 +9205,7 @@ type StepExecutionStatusDetail struct {
 	// The start date and time of the step.
 	StartDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
 
-	// The state of the job flow step.
+	// The state of the step.
 	//
 	// State is a required field
 	State *string `type:"string" required:"true" enum:"StepExecutionState"`
@@ -8327,6 +9765,62 @@ const (
 )
 
 const (
+	// InstanceCollectionTypeInstanceFleet is a InstanceCollectionType enum value
+	InstanceCollectionTypeInstanceFleet = "INSTANCE_FLEET"
+
+	// InstanceCollectionTypeInstanceGroup is a InstanceCollectionType enum value
+	InstanceCollectionTypeInstanceGroup = "INSTANCE_GROUP"
+)
+
+const (
+	// InstanceFleetStateProvisioning is a InstanceFleetState enum value
+	InstanceFleetStateProvisioning = "PROVISIONING"
+
+	// InstanceFleetStateBootstrapping is a InstanceFleetState enum value
+	InstanceFleetStateBootstrapping = "BOOTSTRAPPING"
+
+	// InstanceFleetStateRunning is a InstanceFleetState enum value
+	InstanceFleetStateRunning = "RUNNING"
+
+	// InstanceFleetStateResizing is a InstanceFleetState enum value
+	InstanceFleetStateResizing = "RESIZING"
+
+	// InstanceFleetStateSuspended is a InstanceFleetState enum value
+	InstanceFleetStateSuspended = "SUSPENDED"
+
+	// InstanceFleetStateTerminating is a InstanceFleetState enum value
+	InstanceFleetStateTerminating = "TERMINATING"
+
+	// InstanceFleetStateTerminated is a InstanceFleetState enum value
+	InstanceFleetStateTerminated = "TERMINATED"
+)
+
+const (
+	// InstanceFleetStateChangeReasonCodeInternalError is a InstanceFleetStateChangeReasonCode enum value
+	InstanceFleetStateChangeReasonCodeInternalError = "INTERNAL_ERROR"
+
+	// InstanceFleetStateChangeReasonCodeValidationError is a InstanceFleetStateChangeReasonCode enum value
+	InstanceFleetStateChangeReasonCodeValidationError = "VALIDATION_ERROR"
+
+	// InstanceFleetStateChangeReasonCodeInstanceFailure is a InstanceFleetStateChangeReasonCode enum value
+	InstanceFleetStateChangeReasonCodeInstanceFailure = "INSTANCE_FAILURE"
+
+	// InstanceFleetStateChangeReasonCodeClusterTerminated is a InstanceFleetStateChangeReasonCode enum value
+	InstanceFleetStateChangeReasonCodeClusterTerminated = "CLUSTER_TERMINATED"
+)
+
+const (
+	// InstanceFleetTypeMaster is a InstanceFleetType enum value
+	InstanceFleetTypeMaster = "MASTER"
+
+	// InstanceFleetTypeCore is a InstanceFleetType enum value
+	InstanceFleetTypeCore = "CORE"
+
+	// InstanceFleetTypeTask is a InstanceFleetType enum value
+	InstanceFleetTypeTask = "TASK"
+)
+
+const (
 	// InstanceGroupStateProvisioning is a InstanceGroupState enum value
 	InstanceGroupStateProvisioning = "PROVISIONING"
 
@@ -8469,6 +9963,14 @@ const (
 
 	// ScaleDownBehaviorTerminateAtTaskCompletion is a ScaleDownBehavior enum value
 	ScaleDownBehaviorTerminateAtTaskCompletion = "TERMINATE_AT_TASK_COMPLETION"
+)
+
+const (
+	// SpotProvisioningTimeoutActionSwitchToOnDemand is a SpotProvisioningTimeoutAction enum value
+	SpotProvisioningTimeoutActionSwitchToOnDemand = "SWITCH_TO_ON_DEMAND"
+
+	// SpotProvisioningTimeoutActionTerminateCluster is a SpotProvisioningTimeoutAction enum value
+	SpotProvisioningTimeoutActionTerminateCluster = "TERMINATE_CLUSTER"
 )
 
 const (

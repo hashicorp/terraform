@@ -74,6 +74,16 @@ AWS access key and secret key, available from
 We're hardcoding them for now, but will extract these into
 variables later in the getting started guide.
 
+~> **Note**: If you simply leave out AWS credentials, Terraform will
+automatically search for saved API credentials (for example,
+in `~/.aws/credentials`) or IAM instance profile credentials.
+This option is much cleaner for situations where tf files are checked into
+source control or where there is more than one admin user.
+See details [here](https://aws.amazon.com/blogs/apn/terraform-beyond-the-basics-with-aws/).
+Leaving IAM credentials out of the Terraform configs allows you to leave those
+credentials out of source control, and also use different IAM credentials
+for each user without having to modify the configuration files.
+
 This is a complete configuration that Terraform is ready to apply.
 The general structure should be intuitive and straightforward.
 
@@ -180,7 +190,7 @@ by default. This state file is extremely important; it maps various
 resource metadata to actual resource IDs so that Terraform knows
 what it is managing. This file must be saved and distributed
 to anyone who might run Terraform. It is generally recommended to 
-[setup remote state](https://www.terraform.io/docs/state/remote/index.html)
+[setup remote state](https://www.terraform.io/docs/state/remote.html)
 when working with Terraform. This will mean that any potential secrets
 stored in the state file, will not be checked into version control
 

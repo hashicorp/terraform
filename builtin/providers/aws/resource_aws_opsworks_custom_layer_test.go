@@ -24,7 +24,7 @@ func TestAccAWSOpsworksCustomLayer(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAwsOpsworksCustomLayerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksCustomLayerConfigNoVpcCreate(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSOpsworksCustomLayerExists(
@@ -74,7 +74,7 @@ func TestAccAWSOpsworksCustomLayer(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksCustomLayerConfigUpdate(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -219,7 +219,7 @@ func testAccCheckAWSOpsworksCreateLayerAttributes(
 		}
 
 		expectedEbsVolumes := []*opsworks.VolumeConfiguration{
-			&opsworks.VolumeConfiguration{
+			{
 				VolumeType:    aws.String("gp2"),
 				NumberOfDisks: aws.Int64(2),
 				MountPoint:    aws.String("/home"),
@@ -287,10 +287,6 @@ resource "aws_security_group" "tf-ops-acc-layer2" {
 
 func testAccAwsOpsworksCustomLayerConfigNoVpcCreate(name string) string {
 	return fmt.Sprintf(`
-provider "aws" {
-	region = "us-east-1"
-}
-
 resource "aws_opsworks_custom_layer" "tf-acc" {
   stack_id = "${aws_opsworks_stack.tf-acc.id}"
   name = "%s"
@@ -361,10 +357,6 @@ resource "aws_opsworks_custom_layer" "tf-acc" {
 
 func testAccAwsOpsworksCustomLayerConfigUpdate(name string) string {
 	return fmt.Sprintf(`
-provider "aws" {
-  region = "us-east-1"
-}
-
 resource "aws_security_group" "tf-ops-acc-layer3" {
   name = "tf-ops-acc-layer3"
   ingress {
