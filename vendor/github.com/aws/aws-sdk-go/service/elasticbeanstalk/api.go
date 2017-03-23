@@ -606,6 +606,79 @@ func (c *ElasticBeanstalk) CreateEnvironment(input *CreateEnvironmentInput) (*En
 	return out, err
 }
 
+const opCreatePlatformVersion = "CreatePlatformVersion"
+
+// CreatePlatformVersionRequest generates a "aws/request.Request" representing the
+// client's request for the CreatePlatformVersion operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See CreatePlatformVersion for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreatePlatformVersion method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreatePlatformVersionRequest method.
+//    req, resp := client.CreatePlatformVersionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CreatePlatformVersion
+func (c *ElasticBeanstalk) CreatePlatformVersionRequest(input *CreatePlatformVersionInput) (req *request.Request, output *CreatePlatformVersionOutput) {
+	op := &request.Operation{
+		Name:       opCreatePlatformVersion,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreatePlatformVersionInput{}
+	}
+
+	output = &CreatePlatformVersionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreatePlatformVersion API operation for AWS Elastic Beanstalk.
+//
+// Create a new version of your custom platform.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Elastic Beanstalk's
+// API operation CreatePlatformVersion for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
+//   The specified account does not have sufficient privileges for one of more
+//   AWS services.
+//
+//   * ErrCodeServiceException "ServiceException"
+//   A generic service exception has occurred.
+//
+//   * ErrCodeTooManyPlatformsException "TooManyPlatformsException"
+//   You have exceeded the maximum number of allowed platforms associated with
+//   the account.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CreatePlatformVersion
+func (c *ElasticBeanstalk) CreatePlatformVersion(input *CreatePlatformVersionInput) (*CreatePlatformVersionOutput, error) {
+	req, out := c.CreatePlatformVersionRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opCreateStorageLocation = "CreateStorageLocation"
 
 // CreateStorageLocationRequest generates a "aws/request.Request" representing the
@@ -978,6 +1051,83 @@ func (c *ElasticBeanstalk) DeleteEnvironmentConfigurationRequest(input *DeleteEn
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DeleteEnvironmentConfiguration
 func (c *ElasticBeanstalk) DeleteEnvironmentConfiguration(input *DeleteEnvironmentConfigurationInput) (*DeleteEnvironmentConfigurationOutput, error) {
 	req, out := c.DeleteEnvironmentConfigurationRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDeletePlatformVersion = "DeletePlatformVersion"
+
+// DeletePlatformVersionRequest generates a "aws/request.Request" representing the
+// client's request for the DeletePlatformVersion operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DeletePlatformVersion for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeletePlatformVersion method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeletePlatformVersionRequest method.
+//    req, resp := client.DeletePlatformVersionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DeletePlatformVersion
+func (c *ElasticBeanstalk) DeletePlatformVersionRequest(input *DeletePlatformVersionInput) (req *request.Request, output *DeletePlatformVersionOutput) {
+	op := &request.Operation{
+		Name:       opDeletePlatformVersion,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeletePlatformVersionInput{}
+	}
+
+	output = &DeletePlatformVersionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeletePlatformVersion API operation for AWS Elastic Beanstalk.
+//
+// Deletes the specified version of a custom platform.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Elastic Beanstalk's
+// API operation DeletePlatformVersion for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeOperationInProgressException "OperationInProgressFailure"
+//   Unable to perform the specified operation because another operation that
+//   effects an element in this activity is already in progress.
+//
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
+//   The specified account does not have sufficient privileges for one of more
+//   AWS services.
+//
+//   * ErrCodeServiceException "ServiceException"
+//   A generic service exception has occurred.
+//
+//   * ErrCodePlatformVersionStillReferencedException "PlatformVersionStillReferencedException"
+//   You cannot delete the platform version because there are still environments
+//   running on it.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DeletePlatformVersion
+func (c *ElasticBeanstalk) DeletePlatformVersion(input *DeletePlatformVersionInput) (*DeletePlatformVersionOutput, error) {
+	req, out := c.DeletePlatformVersionRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -1738,6 +1888,75 @@ func (c *ElasticBeanstalk) DescribeInstancesHealth(input *DescribeInstancesHealt
 	return out, err
 }
 
+const opDescribePlatformVersion = "DescribePlatformVersion"
+
+// DescribePlatformVersionRequest generates a "aws/request.Request" representing the
+// client's request for the DescribePlatformVersion operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DescribePlatformVersion for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribePlatformVersion method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribePlatformVersionRequest method.
+//    req, resp := client.DescribePlatformVersionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribePlatformVersion
+func (c *ElasticBeanstalk) DescribePlatformVersionRequest(input *DescribePlatformVersionInput) (req *request.Request, output *DescribePlatformVersionOutput) {
+	op := &request.Operation{
+		Name:       opDescribePlatformVersion,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribePlatformVersionInput{}
+	}
+
+	output = &DescribePlatformVersionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribePlatformVersion API operation for AWS Elastic Beanstalk.
+//
+// Describes the version of the platform.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Elastic Beanstalk's
+// API operation DescribePlatformVersion for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
+//   The specified account does not have sufficient privileges for one of more
+//   AWS services.
+//
+//   * ErrCodeServiceException "ServiceException"
+//   A generic service exception has occurred.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribePlatformVersion
+func (c *ElasticBeanstalk) DescribePlatformVersion(input *DescribePlatformVersionInput) (*DescribePlatformVersionOutput, error) {
+	req, out := c.DescribePlatformVersionRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opListAvailableSolutionStacks = "ListAvailableSolutionStacks"
 
 // ListAvailableSolutionStacksRequest generates a "aws/request.Request" representing the
@@ -1783,7 +2002,8 @@ func (c *ElasticBeanstalk) ListAvailableSolutionStacksRequest(input *ListAvailab
 
 // ListAvailableSolutionStacks API operation for AWS Elastic Beanstalk.
 //
-// Returns a list of the available solution stack names.
+// Returns a list of the available solution stack names, with the public version
+// first and then in reverse chronological order.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1794,6 +2014,75 @@ func (c *ElasticBeanstalk) ListAvailableSolutionStacksRequest(input *ListAvailab
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ListAvailableSolutionStacks
 func (c *ElasticBeanstalk) ListAvailableSolutionStacks(input *ListAvailableSolutionStacksInput) (*ListAvailableSolutionStacksOutput, error) {
 	req, out := c.ListAvailableSolutionStacksRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opListPlatformVersions = "ListPlatformVersions"
+
+// ListPlatformVersionsRequest generates a "aws/request.Request" representing the
+// client's request for the ListPlatformVersions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See ListPlatformVersions for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListPlatformVersions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListPlatformVersionsRequest method.
+//    req, resp := client.ListPlatformVersionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ListPlatformVersions
+func (c *ElasticBeanstalk) ListPlatformVersionsRequest(input *ListPlatformVersionsInput) (req *request.Request, output *ListPlatformVersionsOutput) {
+	op := &request.Operation{
+		Name:       opListPlatformVersions,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListPlatformVersionsInput{}
+	}
+
+	output = &ListPlatformVersionsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListPlatformVersions API operation for AWS Elastic Beanstalk.
+//
+// Lists the available platforms.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Elastic Beanstalk's
+// API operation ListPlatformVersions for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
+//   The specified account does not have sufficient privileges for one of more
+//   AWS services.
+//
+//   * ErrCodeServiceException "ServiceException"
+//   A generic service exception has occurred.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ListPlatformVersions
+func (c *ElasticBeanstalk) ListPlatformVersions(input *ListPlatformVersionsInput) (*ListPlatformVersionsOutput, error) {
+	req, out := c.ListPlatformVersionsRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -2797,7 +3086,7 @@ type ApplicationMetrics struct {
 	Duration *int64 `type:"integer"`
 
 	// Represents the average latency for the slowest X percent of requests over
-	// the last 10 seconds. Latencies are in seconds with one milisecond resolution.
+	// the last 10 seconds. Latencies are in seconds with one millisecond resolution.
 	Latency *Latency `type:"structure"`
 
 	// Average number of requests handled by the web server per second over the
@@ -3311,6 +3600,31 @@ func (s *BuildConfiguration) SetTimeoutInMinutes(v int64) *BuildConfiguration {
 	return s
 }
 
+// The builder used to build the custom platform.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/Builder
+type Builder struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the builder.
+	ARN *string `type:"string"`
+}
+
+// String returns the string representation
+func (s Builder) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Builder) GoString() string {
+	return s.String()
+}
+
+// SetARN sets the ARN field's value.
+func (s *Builder) SetARN(v string) *Builder {
+	s.ARN = &v
+	return s
+}
+
 // CPU utilization metrics for an instance.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CPUUtilization
 type CPUUtilization struct {
@@ -3806,6 +4120,9 @@ type ConfigurationSettingsDescription struct {
 	// set.
 	OptionSettings []*ConfigurationOptionSetting `type:"list"`
 
+	// The ARN of the custom platform.
+	PlatformArn *string `type:"string"`
+
 	// The name of the solution stack this configuration set uses.
 	SolutionStackName *string `type:"string"`
 
@@ -3863,6 +4180,12 @@ func (s *ConfigurationSettingsDescription) SetEnvironmentName(v string) *Configu
 // SetOptionSettings sets the OptionSettings field's value.
 func (s *ConfigurationSettingsDescription) SetOptionSettings(v []*ConfigurationOptionSetting) *ConfigurationSettingsDescription {
 	s.OptionSettings = v
+	return s
+}
+
+// SetPlatformArn sets the PlatformArn field's value.
+func (s *ConfigurationSettingsDescription) SetPlatformArn(v string) *ConfigurationSettingsDescription {
+	s.PlatformArn = &v
 	return s
 }
 
@@ -4110,6 +4433,9 @@ type CreateConfigurationTemplateInput struct {
 	// solution stack or the source configuration template.
 	OptionSettings []*ConfigurationOptionSetting `type:"list"`
 
+	// The ARN of the custome platform.
+	PlatformArn *string `type:"string"`
+
 	// The name of the solution stack used by this configuration. The solution stack
 	// specifies the operating system, architecture, and application server for
 	// a configuration template. It determines the set of configuration options
@@ -4221,6 +4547,12 @@ func (s *CreateConfigurationTemplateInput) SetOptionSettings(v []*ConfigurationO
 	return s
 }
 
+// SetPlatformArn sets the PlatformArn field's value.
+func (s *CreateConfigurationTemplateInput) SetPlatformArn(v string) *CreateConfigurationTemplateInput {
+	s.PlatformArn = &v
+	return s
+}
+
 // SetSolutionStackName sets the SolutionStackName field's value.
 func (s *CreateConfigurationTemplateInput) SetSolutionStackName(v string) *CreateConfigurationTemplateInput {
 	s.SolutionStackName = &v
@@ -4287,14 +4619,12 @@ type CreateEnvironmentInput struct {
 	// set for this new environment.
 	OptionsToRemove []*OptionSpecification `type:"list"`
 
+	// The ARN of the custom platform.
+	PlatformArn *string `type:"string"`
+
 	// This is an alternative to specifying a template name. If specified, AWS Elastic
 	// Beanstalk sets the configuration values to the default values associated
 	// with the specified solution stack.
-	//
-	// Condition: You must specify either this or a TemplateName, but not both.
-	// If you specify both, AWS Elastic Beanstalk returns an InvalidParameterCombination
-	// error. If you do not specify either, AWS Elastic Beanstalk returns a MissingRequiredParameter
-	// error.
 	SolutionStackName *string `type:"string"`
 
 	// This specifies the tags applied to resources in the environment.
@@ -4302,11 +4632,6 @@ type CreateEnvironmentInput struct {
 
 	// The name of the configuration template to use in deployment. If no configuration
 	// template is found with this name, AWS Elastic Beanstalk returns an InvalidParameterValue
-	// error.
-	//
-	// Condition: You must specify either this parameter or a SolutionStackName,
-	// but not both. If you specify both, AWS Elastic Beanstalk returns an InvalidParameterCombination
-	// error. If you do not specify either, AWS Elastic Beanstalk returns a MissingRequiredParameter
 	// error.
 	TemplateName *string `min:"1" type:"string"`
 
@@ -4436,6 +4761,12 @@ func (s *CreateEnvironmentInput) SetOptionsToRemove(v []*OptionSpecification) *C
 	return s
 }
 
+// SetPlatformArn sets the PlatformArn field's value.
+func (s *CreateEnvironmentInput) SetPlatformArn(v string) *CreateEnvironmentInput {
+	s.PlatformArn = &v
+	return s
+}
+
 // SetSolutionStackName sets the SolutionStackName field's value.
 func (s *CreateEnvironmentInput) SetSolutionStackName(v string) *CreateEnvironmentInput {
 	s.SolutionStackName = &v
@@ -4463,6 +4794,138 @@ func (s *CreateEnvironmentInput) SetTier(v *EnvironmentTier) *CreateEnvironmentI
 // SetVersionLabel sets the VersionLabel field's value.
 func (s *CreateEnvironmentInput) SetVersionLabel(v string) *CreateEnvironmentInput {
 	s.VersionLabel = &v
+	return s
+}
+
+// Request to create a new platform version.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CreatePlatformVersionRequest
+type CreatePlatformVersionInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the builder environment.
+	EnvironmentName *string `min:"4" type:"string"`
+
+	// The configuration option settings to apply to the builder environment.
+	OptionSettings []*ConfigurationOptionSetting `type:"list"`
+
+	// The location of the platform definition archive in Amazon S3.
+	//
+	// PlatformDefinitionBundle is a required field
+	PlatformDefinitionBundle *S3Location `type:"structure" required:"true"`
+
+	// The name of your custom platform.
+	//
+	// PlatformName is a required field
+	PlatformName *string `type:"string" required:"true"`
+
+	// The number, such as 1.0.2, for the new platform version.
+	//
+	// PlatformVersion is a required field
+	PlatformVersion *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s CreatePlatformVersionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreatePlatformVersionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreatePlatformVersionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreatePlatformVersionInput"}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+	if s.PlatformDefinitionBundle == nil {
+		invalidParams.Add(request.NewErrParamRequired("PlatformDefinitionBundle"))
+	}
+	if s.PlatformName == nil {
+		invalidParams.Add(request.NewErrParamRequired("PlatformName"))
+	}
+	if s.PlatformVersion == nil {
+		invalidParams.Add(request.NewErrParamRequired("PlatformVersion"))
+	}
+	if s.OptionSettings != nil {
+		for i, v := range s.OptionSettings {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "OptionSettings", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetEnvironmentName sets the EnvironmentName field's value.
+func (s *CreatePlatformVersionInput) SetEnvironmentName(v string) *CreatePlatformVersionInput {
+	s.EnvironmentName = &v
+	return s
+}
+
+// SetOptionSettings sets the OptionSettings field's value.
+func (s *CreatePlatformVersionInput) SetOptionSettings(v []*ConfigurationOptionSetting) *CreatePlatformVersionInput {
+	s.OptionSettings = v
+	return s
+}
+
+// SetPlatformDefinitionBundle sets the PlatformDefinitionBundle field's value.
+func (s *CreatePlatformVersionInput) SetPlatformDefinitionBundle(v *S3Location) *CreatePlatformVersionInput {
+	s.PlatformDefinitionBundle = v
+	return s
+}
+
+// SetPlatformName sets the PlatformName field's value.
+func (s *CreatePlatformVersionInput) SetPlatformName(v string) *CreatePlatformVersionInput {
+	s.PlatformName = &v
+	return s
+}
+
+// SetPlatformVersion sets the PlatformVersion field's value.
+func (s *CreatePlatformVersionInput) SetPlatformVersion(v string) *CreatePlatformVersionInput {
+	s.PlatformVersion = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CreatePlatformVersionResult
+type CreatePlatformVersionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The builder used to create the custom platform.
+	Builder *Builder `type:"structure"`
+
+	// Detailed information about the new version of the custom platform.
+	PlatformSummary *PlatformSummary `type:"structure"`
+}
+
+// String returns the string representation
+func (s CreatePlatformVersionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreatePlatformVersionOutput) GoString() string {
+	return s.String()
+}
+
+// SetBuilder sets the Builder field's value.
+func (s *CreatePlatformVersionOutput) SetBuilder(v *Builder) *CreatePlatformVersionOutput {
+	s.Builder = v
+	return s
+}
+
+// SetPlatformSummary sets the PlatformSummary field's value.
+func (s *CreatePlatformVersionOutput) SetPlatformSummary(v *PlatformSummary) *CreatePlatformVersionOutput {
+	s.PlatformSummary = v
 	return s
 }
 
@@ -4503,6 +4966,40 @@ func (s CreateStorageLocationOutput) GoString() string {
 // SetS3Bucket sets the S3Bucket field's value.
 func (s *CreateStorageLocationOutput) SetS3Bucket(v string) *CreateStorageLocationOutput {
 	s.S3Bucket = &v
+	return s
+}
+
+// A custom AMI available to platforms.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CustomAmi
+type CustomAmi struct {
+	_ struct{} `type:"structure"`
+
+	// THe ID of the image used to create the custom AMI.
+	ImageId *string `type:"string"`
+
+	// The type of virtualization used to create the custom AMI.
+	VirtualizationType *string `type:"string"`
+}
+
+// String returns the string representation
+func (s CustomAmi) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CustomAmi) GoString() string {
+	return s.String()
+}
+
+// SetImageId sets the ImageId field's value.
+func (s *CustomAmi) SetImageId(v string) *CustomAmi {
+	s.ImageId = &v
+	return s
+}
+
+// SetVirtualizationType sets the VirtualizationType field's value.
+func (s *CustomAmi) SetVirtualizationType(v string) *CustomAmi {
+	s.VirtualizationType = &v
 	return s
 }
 
@@ -4810,6 +5307,54 @@ func (s DeleteEnvironmentConfigurationOutput) GoString() string {
 	return s.String()
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DeletePlatformVersionRequest
+type DeletePlatformVersionInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the version of the custom platform.
+	PlatformArn *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DeletePlatformVersionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeletePlatformVersionInput) GoString() string {
+	return s.String()
+}
+
+// SetPlatformArn sets the PlatformArn field's value.
+func (s *DeletePlatformVersionInput) SetPlatformArn(v string) *DeletePlatformVersionInput {
+	s.PlatformArn = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DeletePlatformVersionResult
+type DeletePlatformVersionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Detailed information about the version of the custom platform.
+	PlatformSummary *PlatformSummary `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeletePlatformVersionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeletePlatformVersionOutput) GoString() string {
+	return s.String()
+}
+
+// SetPlatformSummary sets the PlatformSummary field's value.
+func (s *DeletePlatformVersionOutput) SetPlatformSummary(v *PlatformSummary) *DeletePlatformVersionOutput {
+	s.PlatformSummary = v
+	return s
+}
+
 // Information about an application version deployment.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/Deployment
 type Deployment struct {
@@ -5025,7 +5570,7 @@ func (s *DescribeApplicationsOutput) SetApplications(v []*ApplicationDescription
 	return s
 }
 
-// Result message containig a list of application version descriptions.
+// Result message containing a list of application version descriptions.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeConfigurationOptionsMessage
 type DescribeConfigurationOptionsInput struct {
 	_ struct{} `type:"structure"`
@@ -5040,6 +5585,9 @@ type DescribeConfigurationOptionsInput struct {
 
 	// If specified, restricts the descriptions to only the specified options.
 	Options []*OptionSpecification `type:"list"`
+
+	// The ARN of the custom platform.
+	PlatformArn *string `type:"string"`
 
 	// The name of the solution stack whose configuration options you want to describe.
 	SolutionStackName *string `type:"string"`
@@ -5106,6 +5654,12 @@ func (s *DescribeConfigurationOptionsInput) SetOptions(v []*OptionSpecification)
 	return s
 }
 
+// SetPlatformArn sets the PlatformArn field's value.
+func (s *DescribeConfigurationOptionsInput) SetPlatformArn(v string) *DescribeConfigurationOptionsInput {
+	s.PlatformArn = &v
+	return s
+}
+
 // SetSolutionStackName sets the SolutionStackName field's value.
 func (s *DescribeConfigurationOptionsInput) SetSolutionStackName(v string) *DescribeConfigurationOptionsInput {
 	s.SolutionStackName = &v
@@ -5126,6 +5680,9 @@ type DescribeConfigurationOptionsOutput struct {
 	// A list of ConfigurationOptionDescription.
 	Options []*ConfigurationOptionDescription `type:"list"`
 
+	// The ARN of the custom platform.
+	PlatformArn *string `type:"string"`
+
 	// The name of the solution stack these configuration options belong to.
 	SolutionStackName *string `type:"string"`
 }
@@ -5143,6 +5700,12 @@ func (s DescribeConfigurationOptionsOutput) GoString() string {
 // SetOptions sets the Options field's value.
 func (s *DescribeConfigurationOptionsOutput) SetOptions(v []*ConfigurationOptionDescription) *DescribeConfigurationOptionsOutput {
 	s.Options = v
+	return s
+}
+
+// SetPlatformArn sets the PlatformArn field's value.
+func (s *DescribeConfigurationOptionsOutput) SetPlatformArn(v string) *DescribeConfigurationOptionsOutput {
+	s.PlatformArn = &v
 	return s
 }
 
@@ -5780,6 +6343,9 @@ type DescribeEventsInput struct {
 	// Pagination token. If specified, the events return the next batch of results.
 	NextToken *string `type:"string"`
 
+	// The ARN of the version of the custom platform.
+	PlatformArn *string `type:"string"`
+
 	// If specified, AWS Elastic Beanstalk restricts the described events to include
 	// only those associated with this request ID.
 	RequestId *string `type:"string"`
@@ -5869,6 +6435,12 @@ func (s *DescribeEventsInput) SetMaxRecords(v int64) *DescribeEventsInput {
 // SetNextToken sets the NextToken field's value.
 func (s *DescribeEventsInput) SetNextToken(v string) *DescribeEventsInput {
 	s.NextToken = &v
+	return s
+}
+
+// SetPlatformArn sets the PlatformArn field's value.
+func (s *DescribeEventsInput) SetPlatformArn(v string) *DescribeEventsInput {
+	s.PlatformArn = &v
 	return s
 }
 
@@ -6050,6 +6622,54 @@ func (s *DescribeInstancesHealthOutput) SetRefreshedAt(v time.Time) *DescribeIns
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribePlatformVersionRequest
+type DescribePlatformVersionInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the version of the platform.
+	PlatformArn *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribePlatformVersionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribePlatformVersionInput) GoString() string {
+	return s.String()
+}
+
+// SetPlatformArn sets the PlatformArn field's value.
+func (s *DescribePlatformVersionInput) SetPlatformArn(v string) *DescribePlatformVersionInput {
+	s.PlatformArn = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribePlatformVersionResult
+type DescribePlatformVersionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Detailed information about the version of the platform.
+	PlatformDescription *PlatformDescription `type:"structure"`
+}
+
+// String returns the string representation
+func (s DescribePlatformVersionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribePlatformVersionOutput) GoString() string {
+	return s.String()
+}
+
+// SetPlatformDescription sets the PlatformDescription field's value.
+func (s *DescribePlatformVersionOutput) SetPlatformDescription(v *PlatformDescription) *DescribePlatformVersionOutput {
+	s.PlatformDescription = v
+	return s
+}
+
 // Describes the properties of an environment.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/EnvironmentDescription
 type EnvironmentDescription struct {
@@ -6112,6 +6732,9 @@ type EnvironmentDescription struct {
 	// Returns the health status of the application running in your environment.
 	// For more information, see Health Colors and Statuses (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/health-enhanced-status.html).
 	HealthStatus *string `type:"string" enum:"EnvironmentHealthStatus"`
+
+	// The ARN of the custom platform.
+	PlatformArn *string `type:"string"`
 
 	// The description of the AWS resources used by this environment.
 	Resources *EnvironmentResourcesDescription `type:"structure"`
@@ -6223,6 +6846,12 @@ func (s *EnvironmentDescription) SetHealth(v string) *EnvironmentDescription {
 // SetHealthStatus sets the HealthStatus field's value.
 func (s *EnvironmentDescription) SetHealthStatus(v string) *EnvironmentDescription {
 	s.HealthStatus = &v
+	return s
+}
+
+// SetPlatformArn sets the PlatformArn field's value.
+func (s *EnvironmentDescription) SetPlatformArn(v string) *EnvironmentDescription {
+	s.PlatformArn = &v
 	return s
 }
 
@@ -6542,6 +7171,9 @@ type EventDescription struct {
 	// The event message.
 	Message *string `type:"string"`
 
+	// The ARN of the custom platform.
+	PlatformArn *string `type:"string"`
+
 	// The web service request ID for the activity of this event.
 	RequestId *string `type:"string"`
 
@@ -6586,6 +7218,12 @@ func (s *EventDescription) SetEventDate(v time.Time) *EventDescription {
 // SetMessage sets the Message field's value.
 func (s *EventDescription) SetMessage(v string) *EventDescription {
 	s.Message = &v
+	return s
+}
+
+// SetPlatformArn sets the PlatformArn field's value.
+func (s *EventDescription) SetPlatformArn(v string) *EventDescription {
+	s.PlatformArn = &v
 	return s
 }
 
@@ -6901,6 +7539,97 @@ func (s *ListAvailableSolutionStacksOutput) SetSolutionStackDetails(v []*Solutio
 // SetSolutionStacks sets the SolutionStacks field's value.
 func (s *ListAvailableSolutionStacksOutput) SetSolutionStacks(v []*string) *ListAvailableSolutionStacksOutput {
 	s.SolutionStacks = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ListPlatformVersionsRequest
+type ListPlatformVersionsInput struct {
+	_ struct{} `type:"structure"`
+
+	// List only the platforms where the platform member value relates to one of
+	// the supplied values.
+	Filters []*PlatformFilter `type:"list"`
+
+	// The maximum number of platform values returned in one call.
+	MaxRecords *int64 `min:"1" type:"integer"`
+
+	// The starting index into the remaining list of platforms. Use the NextToken
+	// value from a previous ListPlatformVersion call.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ListPlatformVersionsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListPlatformVersionsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListPlatformVersionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListPlatformVersionsInput"}
+	if s.MaxRecords != nil && *s.MaxRecords < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxRecords", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetFilters sets the Filters field's value.
+func (s *ListPlatformVersionsInput) SetFilters(v []*PlatformFilter) *ListPlatformVersionsInput {
+	s.Filters = v
+	return s
+}
+
+// SetMaxRecords sets the MaxRecords field's value.
+func (s *ListPlatformVersionsInput) SetMaxRecords(v int64) *ListPlatformVersionsInput {
+	s.MaxRecords = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListPlatformVersionsInput) SetNextToken(v string) *ListPlatformVersionsInput {
+	s.NextToken = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ListPlatformVersionsResult
+type ListPlatformVersionsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The starting index into the remaining list of platforms. if this value is
+	// not null, you can use it in a subsequent ListPlatformVersion call.
+	NextToken *string `type:"string"`
+
+	// Detailed information about the platforms.
+	PlatformSummaryList []*PlatformSummary `type:"list"`
+}
+
+// String returns the string representation
+func (s ListPlatformVersionsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListPlatformVersionsOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListPlatformVersionsOutput) SetNextToken(v string) *ListPlatformVersionsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetPlatformSummaryList sets the PlatformSummaryList field's value.
+func (s *ListPlatformVersionsOutput) SetPlatformSummaryList(v []*PlatformSummary) *ListPlatformVersionsOutput {
+	s.PlatformSummaryList = v
 	return s
 }
 
@@ -7366,6 +8095,394 @@ func (s *OptionSpecification) SetOptionName(v string) *OptionSpecification {
 // SetResourceName sets the ResourceName field's value.
 func (s *OptionSpecification) SetResourceName(v string) *OptionSpecification {
 	s.ResourceName = &v
+	return s
+}
+
+// Detailed information about a platform.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/PlatformDescription
+type PlatformDescription struct {
+	_ struct{} `type:"structure"`
+
+	// The custom AMIs supported by the platform.
+	CustomAmiList []*CustomAmi `type:"list"`
+
+	// The date when the platform was created.
+	DateCreated *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+
+	// The date when the platform was last updated.
+	DateUpdated *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+
+	// The description of the platform.
+	Description *string `type:"string"`
+
+	// The frameworks supported by the platform.
+	Frameworks []*PlatformFramework `type:"list"`
+
+	// Information about the maintainer of the platform.
+	Maintainer *string `type:"string"`
+
+	// The operating system used by the platform.
+	OperatingSystemName *string `type:"string"`
+
+	// The version of the operating system used by the platform.
+	OperatingSystemVersion *string `type:"string"`
+
+	// The ARN of the platform.
+	PlatformArn *string `type:"string"`
+
+	// The category of the platform.
+	PlatformCategory *string `type:"string"`
+
+	// The name of the platform.
+	PlatformName *string `type:"string"`
+
+	// The AWS account ID of the person who created the platform.
+	PlatformOwner *string `type:"string"`
+
+	// The status of the platform.
+	PlatformStatus *string `type:"string" enum:"PlatformStatus"`
+
+	// The version of the platform.
+	PlatformVersion *string `type:"string"`
+
+	// The programming languages supported by the platform.
+	ProgrammingLanguages []*PlatformProgrammingLanguage `type:"list"`
+
+	// The name of the solution stack used by the platform.
+	SolutionStackName *string `type:"string"`
+
+	// The additions supported by the platform.
+	SupportedAddonList []*string `type:"list"`
+
+	// The tiers supported by the platform.
+	SupportedTierList []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s PlatformDescription) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PlatformDescription) GoString() string {
+	return s.String()
+}
+
+// SetCustomAmiList sets the CustomAmiList field's value.
+func (s *PlatformDescription) SetCustomAmiList(v []*CustomAmi) *PlatformDescription {
+	s.CustomAmiList = v
+	return s
+}
+
+// SetDateCreated sets the DateCreated field's value.
+func (s *PlatformDescription) SetDateCreated(v time.Time) *PlatformDescription {
+	s.DateCreated = &v
+	return s
+}
+
+// SetDateUpdated sets the DateUpdated field's value.
+func (s *PlatformDescription) SetDateUpdated(v time.Time) *PlatformDescription {
+	s.DateUpdated = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *PlatformDescription) SetDescription(v string) *PlatformDescription {
+	s.Description = &v
+	return s
+}
+
+// SetFrameworks sets the Frameworks field's value.
+func (s *PlatformDescription) SetFrameworks(v []*PlatformFramework) *PlatformDescription {
+	s.Frameworks = v
+	return s
+}
+
+// SetMaintainer sets the Maintainer field's value.
+func (s *PlatformDescription) SetMaintainer(v string) *PlatformDescription {
+	s.Maintainer = &v
+	return s
+}
+
+// SetOperatingSystemName sets the OperatingSystemName field's value.
+func (s *PlatformDescription) SetOperatingSystemName(v string) *PlatformDescription {
+	s.OperatingSystemName = &v
+	return s
+}
+
+// SetOperatingSystemVersion sets the OperatingSystemVersion field's value.
+func (s *PlatformDescription) SetOperatingSystemVersion(v string) *PlatformDescription {
+	s.OperatingSystemVersion = &v
+	return s
+}
+
+// SetPlatformArn sets the PlatformArn field's value.
+func (s *PlatformDescription) SetPlatformArn(v string) *PlatformDescription {
+	s.PlatformArn = &v
+	return s
+}
+
+// SetPlatformCategory sets the PlatformCategory field's value.
+func (s *PlatformDescription) SetPlatformCategory(v string) *PlatformDescription {
+	s.PlatformCategory = &v
+	return s
+}
+
+// SetPlatformName sets the PlatformName field's value.
+func (s *PlatformDescription) SetPlatformName(v string) *PlatformDescription {
+	s.PlatformName = &v
+	return s
+}
+
+// SetPlatformOwner sets the PlatformOwner field's value.
+func (s *PlatformDescription) SetPlatformOwner(v string) *PlatformDescription {
+	s.PlatformOwner = &v
+	return s
+}
+
+// SetPlatformStatus sets the PlatformStatus field's value.
+func (s *PlatformDescription) SetPlatformStatus(v string) *PlatformDescription {
+	s.PlatformStatus = &v
+	return s
+}
+
+// SetPlatformVersion sets the PlatformVersion field's value.
+func (s *PlatformDescription) SetPlatformVersion(v string) *PlatformDescription {
+	s.PlatformVersion = &v
+	return s
+}
+
+// SetProgrammingLanguages sets the ProgrammingLanguages field's value.
+func (s *PlatformDescription) SetProgrammingLanguages(v []*PlatformProgrammingLanguage) *PlatformDescription {
+	s.ProgrammingLanguages = v
+	return s
+}
+
+// SetSolutionStackName sets the SolutionStackName field's value.
+func (s *PlatformDescription) SetSolutionStackName(v string) *PlatformDescription {
+	s.SolutionStackName = &v
+	return s
+}
+
+// SetSupportedAddonList sets the SupportedAddonList field's value.
+func (s *PlatformDescription) SetSupportedAddonList(v []*string) *PlatformDescription {
+	s.SupportedAddonList = v
+	return s
+}
+
+// SetSupportedTierList sets the SupportedTierList field's value.
+func (s *PlatformDescription) SetSupportedTierList(v []*string) *PlatformDescription {
+	s.SupportedTierList = v
+	return s
+}
+
+// Specify criteria to restrict the results when listing custom platforms.
+//
+// The filter is evaluated as the expression:
+//
+// TypeOperatorValues[i]
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/PlatformFilter
+type PlatformFilter struct {
+	_ struct{} `type:"structure"`
+
+	// The operator to apply to the Type with each of the Values.
+	//
+	// Valid Values: = (equal to) | != (not equal to) | < (less than) | <= (less
+	// than or equal to) | > (greater than) | >= (greater than or equal to) | contains
+	// | begins_with | ends_with
+	Operator *string `type:"string"`
+
+	// The custom platform attribute to which the filter values are applied.
+	//
+	// Valid Values: PlatformName | PlatformVersion | PlatformStatus | PlatformOwner
+	Type *string `type:"string"`
+
+	// The list of values applied to the custom platform attribute.
+	Values []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s PlatformFilter) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PlatformFilter) GoString() string {
+	return s.String()
+}
+
+// SetOperator sets the Operator field's value.
+func (s *PlatformFilter) SetOperator(v string) *PlatformFilter {
+	s.Operator = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *PlatformFilter) SetType(v string) *PlatformFilter {
+	s.Type = &v
+	return s
+}
+
+// SetValues sets the Values field's value.
+func (s *PlatformFilter) SetValues(v []*string) *PlatformFilter {
+	s.Values = v
+	return s
+}
+
+// A framework supported by the custom platform.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/PlatformFramework
+type PlatformFramework struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the framework.
+	Name *string `type:"string"`
+
+	// The version of the framework.
+	Version *string `type:"string"`
+}
+
+// String returns the string representation
+func (s PlatformFramework) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PlatformFramework) GoString() string {
+	return s.String()
+}
+
+// SetName sets the Name field's value.
+func (s *PlatformFramework) SetName(v string) *PlatformFramework {
+	s.Name = &v
+	return s
+}
+
+// SetVersion sets the Version field's value.
+func (s *PlatformFramework) SetVersion(v string) *PlatformFramework {
+	s.Version = &v
+	return s
+}
+
+// A programming language supported by the platform.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/PlatformProgrammingLanguage
+type PlatformProgrammingLanguage struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the programming language.
+	Name *string `type:"string"`
+
+	// The version of the programming language.
+	Version *string `type:"string"`
+}
+
+// String returns the string representation
+func (s PlatformProgrammingLanguage) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PlatformProgrammingLanguage) GoString() string {
+	return s.String()
+}
+
+// SetName sets the Name field's value.
+func (s *PlatformProgrammingLanguage) SetName(v string) *PlatformProgrammingLanguage {
+	s.Name = &v
+	return s
+}
+
+// SetVersion sets the Version field's value.
+func (s *PlatformProgrammingLanguage) SetVersion(v string) *PlatformProgrammingLanguage {
+	s.Version = &v
+	return s
+}
+
+// Detailed information about a platform.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/PlatformSummary
+type PlatformSummary struct {
+	_ struct{} `type:"structure"`
+
+	// The operating system used by the platform.
+	OperatingSystemName *string `type:"string"`
+
+	// The version of the operating system used by the platform.
+	OperatingSystemVersion *string `type:"string"`
+
+	// The ARN of the platform.
+	PlatformArn *string `type:"string"`
+
+	// The category of platform.
+	PlatformCategory *string `type:"string"`
+
+	// The AWS account ID of the person who created the platform.
+	PlatformOwner *string `type:"string"`
+
+	// The status of the platform. You can create an environment from the platform
+	// once it is ready.
+	PlatformStatus *string `type:"string" enum:"PlatformStatus"`
+
+	// The additions associated with the platform.
+	SupportedAddonList []*string `type:"list"`
+
+	// The tiers in which the platform runs.
+	SupportedTierList []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s PlatformSummary) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PlatformSummary) GoString() string {
+	return s.String()
+}
+
+// SetOperatingSystemName sets the OperatingSystemName field's value.
+func (s *PlatformSummary) SetOperatingSystemName(v string) *PlatformSummary {
+	s.OperatingSystemName = &v
+	return s
+}
+
+// SetOperatingSystemVersion sets the OperatingSystemVersion field's value.
+func (s *PlatformSummary) SetOperatingSystemVersion(v string) *PlatformSummary {
+	s.OperatingSystemVersion = &v
+	return s
+}
+
+// SetPlatformArn sets the PlatformArn field's value.
+func (s *PlatformSummary) SetPlatformArn(v string) *PlatformSummary {
+	s.PlatformArn = &v
+	return s
+}
+
+// SetPlatformCategory sets the PlatformCategory field's value.
+func (s *PlatformSummary) SetPlatformCategory(v string) *PlatformSummary {
+	s.PlatformCategory = &v
+	return s
+}
+
+// SetPlatformOwner sets the PlatformOwner field's value.
+func (s *PlatformSummary) SetPlatformOwner(v string) *PlatformSummary {
+	s.PlatformOwner = &v
+	return s
+}
+
+// SetPlatformStatus sets the PlatformStatus field's value.
+func (s *PlatformSummary) SetPlatformStatus(v string) *PlatformSummary {
+	s.PlatformStatus = &v
+	return s
+}
+
+// SetSupportedAddonList sets the SupportedAddonList field's value.
+func (s *PlatformSummary) SetSupportedAddonList(v []*string) *PlatformSummary {
+	s.SupportedAddonList = v
+	return s
+}
+
+// SetSupportedTierList sets the SupportedTierList field's value.
+func (s *PlatformSummary) SetSupportedTierList(v []*string) *PlatformSummary {
+	s.SupportedTierList = v
 	return s
 }
 
@@ -8210,8 +9327,8 @@ type SystemStatus struct {
 	// CPU utilization metrics for the instance.
 	CPUUtilization *CPUUtilization `type:"structure"`
 
-	// Load average in the last 1-minute and 5-minute periods. For more information,
-	// see Operating System Metrics (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/health-enhanced-metrics.html#health-enhanced-metrics-os).
+	// Load average in the last 1-minute, 5-minute, and 15-minute periods. For more
+	// information, see Operating System Metrics (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/health-enhanced-metrics.html#health-enhanced-metrics-os).
 	LoadAverage []*float64 `type:"list"`
 }
 
@@ -8785,6 +9902,9 @@ type UpdateEnvironmentInput struct {
 	// set for this environment.
 	OptionsToRemove []*OptionSpecification `type:"list"`
 
+	// The ARN of the platform, if used.
+	PlatformArn *string `type:"string"`
+
 	// This specifies the platform version that the environment will run after the
 	// environment is updated.
 	SolutionStackName *string `type:"string"`
@@ -8900,6 +10020,12 @@ func (s *UpdateEnvironmentInput) SetOptionSettings(v []*ConfigurationOptionSetti
 // SetOptionsToRemove sets the OptionsToRemove field's value.
 func (s *UpdateEnvironmentInput) SetOptionsToRemove(v []*OptionSpecification) *UpdateEnvironmentInput {
 	s.OptionsToRemove = v
+	return s
+}
+
+// SetPlatformArn sets the PlatformArn field's value.
+func (s *UpdateEnvironmentInput) SetPlatformArn(v string) *UpdateEnvironmentInput {
+	s.PlatformArn = &v
 	return s
 }
 
@@ -9356,6 +10482,23 @@ const (
 
 	// InstancesHealthAttributeAll is a InstancesHealthAttribute enum value
 	InstancesHealthAttributeAll = "All"
+)
+
+const (
+	// PlatformStatusCreating is a PlatformStatus enum value
+	PlatformStatusCreating = "Creating"
+
+	// PlatformStatusFailed is a PlatformStatus enum value
+	PlatformStatusFailed = "Failed"
+
+	// PlatformStatusReady is a PlatformStatus enum value
+	PlatformStatusReady = "Ready"
+
+	// PlatformStatusDeleting is a PlatformStatus enum value
+	PlatformStatusDeleting = "Deleting"
+
+	// PlatformStatusDeleted is a PlatformStatus enum value
+	PlatformStatusDeleted = "Deleted"
 )
 
 const (

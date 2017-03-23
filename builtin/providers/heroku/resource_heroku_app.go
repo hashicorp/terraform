@@ -1,11 +1,12 @@
 package heroku
 
 import (
+	"context"
 	"fmt"
 	"log"
 
 	"github.com/cyberdelia/heroku-go/v3"
-	"github.com/hashicorp/go-multierror"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -38,7 +39,7 @@ func (a *application) Update() error {
 	var err error
 
 	if !a.Organization {
-		app, err := a.Client.AppInfo(a.Id)
+		app, err := a.Client.AppInfo(context.TODO(), a.Id)
 		if err != nil {
 			errs = append(errs, err)
 		} else {
@@ -50,7 +51,7 @@ func (a *application) Update() error {
 			a.App.WebURL = app.WebURL
 		}
 	} else {
-		app, err := a.Client.OrganizationAppInfo(a.Id)
+		app, err := a.Client.OrganizationAppInfo(context.TODO(), a.Id)
 		if err != nil {
 			errs = append(errs, err)
 		} else {
@@ -90,25 +91,25 @@ func resourceHerokuApp() *schema.Resource {
 		Delete: resourceHerokuAppDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"stack": &schema.Schema{
+			"stack": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"config_vars": &schema.Schema{
+			"config_vars": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Schema{
@@ -116,43 +117,43 @@ func resourceHerokuApp() *schema.Resource {
 				},
 			},
 
-			"all_config_vars": &schema.Schema{
+			"all_config_vars": {
 				Type:     schema.TypeMap,
 				Computed: true,
 			},
 
-			"git_url": &schema.Schema{
+			"git_url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"web_url": &schema.Schema{
+			"web_url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"heroku_hostname": &schema.Schema{
+			"heroku_hostname": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"organization": &schema.Schema{
+			"organization": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"locked": &schema.Schema{
+						"locked": {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
 
-						"personal": &schema.Schema{
+						"personal": {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
@@ -199,7 +200,7 @@ func resourceHerokuAppCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[DEBUG] Creating Heroku app...")
-	a, err := client.AppCreate(opts)
+	a, err := client.AppCreate(context.TODO(), opts)
 	if err != nil {
 		return err
 	}
@@ -263,7 +264,7 @@ func resourceHerokuOrgAppCreate(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	log.Printf("[DEBUG] Creating Heroku app...")
-	a, err := client.OrganizationAppCreate(opts)
+	a, err := client.OrganizationAppCreate(context.TODO(), opts)
 	if err != nil {
 		return err
 	}
@@ -287,7 +288,7 @@ func resourceHerokuAppRead(d *schema.ResourceData, meta interface{}) error {
 	configVars := make(map[string]string)
 	care := make(map[string]struct{})
 	for _, v := range d.Get("config_vars").([]interface{}) {
-		for k, _ := range v.(map[string]interface{}) {
+		for k := range v.(map[string]interface{}) {
 			care[k] = struct{}{}
 		}
 	}
@@ -347,7 +348,7 @@ func resourceHerokuAppUpdate(d *schema.ResourceData, meta interface{}) error {
 			Name: &v,
 		}
 
-		renamedApp, err := client.AppUpdate(d.Id(), opts)
+		renamedApp, err := client.AppUpdate(context.TODO(), d.Id(), opts)
 		if err != nil {
 			return err
 		}
@@ -380,7 +381,7 @@ func resourceHerokuAppDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
 	log.Printf("[INFO] Deleting App: %s", d.Id())
-	err := client.AppDelete(d.Id())
+	_, err := client.AppDelete(context.TODO(), d.Id())
 	if err != nil {
 		return fmt.Errorf("Error deleting App: %s", err)
 	}
@@ -402,13 +403,20 @@ func resourceHerokuAppRetrieve(id string, organization bool, client *heroku.Serv
 }
 
 func retrieveConfigVars(id string, client *heroku.Service) (map[string]string, error) {
-	vars, err := client.ConfigVarInfo(id)
+	vars, err := client.ConfigVarInfoForApp(context.TODO(), id)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return vars, nil
+	nonNullVars := map[string]string{}
+	for k, v := range vars {
+		if v != nil {
+			nonNullVars[k] = *v
+		}
+	}
+
+	return nonNullVars, nil
 }
 
 // Updates the config vars for from an expanded configuration.
@@ -421,7 +429,7 @@ func updateConfigVars(
 
 	for _, v := range o {
 		if v != nil {
-			for k, _ := range v.(map[string]interface{}) {
+			for k := range v.(map[string]interface{}) {
 				vars[k] = nil
 			}
 		}
@@ -436,7 +444,7 @@ func updateConfigVars(
 	}
 
 	log.Printf("[INFO] Updating config vars: *%#v", vars)
-	if _, err := client.ConfigVarUpdate(id, vars); err != nil {
+	if _, err := client.ConfigVarUpdate(context.TODO(), id, vars); err != nil {
 		return fmt.Errorf("Error updating config vars: %s", err)
 	}
 

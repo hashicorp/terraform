@@ -622,6 +622,10 @@ resource "aws_db_instance" "bar" {
 	backup_retention_period = 0
 
 	parameter_group_name = "default.mysql5.6"
+
+	timeouts {
+		create = "30m"
+	}
 }`
 
 var testAccAWSDBInstanceConfigKmsKeyId = `

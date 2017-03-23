@@ -53,3 +53,5 @@ The following configuration options / environment variables are supported:
  * `datacenter` - (Optional) The datacenter to use. Defaults to that of the agent.
  * `http_auth` / `CONSUL_HTTP_AUTH` - (Optional) HTTP Basic Authentication credentials to be used when
    communicating with Consul, in the format of either `user` or `user:pass`.
+ * `gzip` - (Optional) `true` to compress the state data using gzip, or `false` (the default) to leave it uncompressed.
+ * `lock` - (Optional) `false` to disable locking. This defaults to true, but will require session permissions with Consul to perform locking.

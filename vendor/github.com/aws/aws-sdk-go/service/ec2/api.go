@@ -9921,7 +9921,7 @@ func (c *EC2) DescribeVolumesModificationsRequest(input *DescribeVolumesModifica
 //
 // You can also use CloudWatch Events to check the status of a modification
 // to an EBS volume. For information about CloudWatch Events, see the Amazon
-// CloudWatch Events User Guide (http://docs.aws.amazon.com/http:/docs.aws.amazon.com/AmazonCloudWatch/latest/events/WhatIsCloudWatchEvents.html).
+// CloudWatch Events User Guide (http://docs.aws.amazon.com/AmazonCloudWatch/latest/events/).
 // For more information, see Monitoring Volume Modifications" (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-expand-volume.html#monitoring_mods).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -13080,30 +13080,29 @@ func (c *EC2) ModifyVolumeRequest(input *ModifyVolumeInput) (req *request.Reques
 // without stopping the instance or detaching the volume from it. For more information
 // about modifying an EBS volume running Linux, see Modifying the Size, IOPS,
 // or Type of an EBS Volume on Linux (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-expand-volume.html).
-// For more information about modifying an EBS volume running Windows, see Expanding
-// the Storage Space of an EBS Volume on Windows (http://docs.aws.amazon.com/docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/ebs-expand-volume.html).
+// For more information about modifying an EBS volume running Windows, see Modifying
+// the Size, IOPS, or Type of an EBS Volume on Windows (http://docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/ebs-expand-volume.html).
 //
 // When you complete a resize operation on your volume, you need to extend the
 // volume's file-system size to take advantage of the new storage capacity.
 // For information about extending a Linux file system, see Extending a Linux
 // File System (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-expand-volume.html#recognize-expanded-volume-linux).
 // For information about extending a Windows file system, see Extending a Windows
-// File System (http://docs.aws.amazon.com/http:/docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/ebs-expand-volume.html#recognize-expanded-volume-windows).
+// File System (http://docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/ebs-expand-volume.html#recognize-expanded-volume-windows).
 //
 // You can use CloudWatch Events to check the status of a modification to an
 // EBS volume. For information about CloudWatch Events, see the Amazon CloudWatch
-// Events User Guide (http://docs.aws.amazon.com/http:/docs.aws.amazon.com/AmazonCloudWatch/latest/events/WhatIsCloudWatchEvents.html).
+// Events User Guide (http://docs.aws.amazon.com/AmazonCloudWatch/latest/events/).
 // You can also track the status of a modification using the DescribeVolumesModifications
-// (http://docs.aws.amazon.com/http:/docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeVolumesModifications.html)
 // API. For information about tracking status changes using either method, see
-// Monitoring Volume Modifications" (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-expand-volume.html#monitoring_mods).
+// Monitoring Volume Modifications (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-expand-volume.html#monitoring_mods).
 //
-// With previous-generation volumes and instance types, resizing an EBS volume
-// may require detaching and reattaching the volume or stopping and restarting
-// the instance. For more information about modifying an EBS volume running
-// Linux, see Modifying the Size, IOPS, or Type of an EBS Volume on Linux (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-expand-volume.html).
+// With previous-generation instance types, resizing an EBS volume may require
+// detaching and reattaching the volume or stopping and restarting the instance.
+// For more information about modifying an EBS volume running Linux, see Modifying
+// the Size, IOPS, or Type of an EBS Volume on Linux (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-expand-volume.html).
 // For more information about modifying an EBS volume running Windows, see Modifying
-// the Size, IOPS, or Type of an EBS Volume on Windows (http://docs.aws.amazon.com/docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/ebs-expand-volume.html).
+// the Size, IOPS, or Type of an EBS Volume on Windows (http://docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/ebs-expand-volume.html).
 //
 // If you reach the maximum volume modification rate per volume limit, you will
 // need to wait at least six hours before applying further modifications to
@@ -13854,30 +13853,26 @@ func (c *EC2) RegisterImageRequest(input *RegisterImageInput) (req *request.Requ
 // in a single request, so you don't have to register the AMI yourself.
 //
 // You can also use RegisterImage to create an Amazon EBS-backed Linux AMI from
-// a snapshot of a root device volume. For more information, see Launching an
-// Instance from a Snapshot (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_LaunchingInstanceFromSnapshot.html)
+// a snapshot of a root device volume. You specify the snapshot using the block
+// device mapping. For more information, see Launching an Instance from a Snapshot
+// (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_LaunchingInstanceFromSnapshot.html)
 // in the Amazon Elastic Compute Cloud User Guide.
 //
+// You can't register an image where a secondary (non-root) snapshot has AWS
+// Marketplace product codes.
+//
 // Some Linux distributions, such as Red Hat Enterprise Linux (RHEL) and SUSE
-// Linux Enterprise Server (SLES), use the EC2 billingProduct code associated
-// with an AMI to verify subscription status for package updates. Creating an
-// AMI from an EBS snapshot does not maintain this billing code, and subsequent
+// Linux Enterprise Server (SLES), use the EC2 billing product code associated
+// with an AMI to verify the subscription status for package updates. Creating
+// an AMI from an EBS snapshot does not maintain this billing code, and subsequent
 // instances launched from such an AMI will not be able to connect to package
-// update infrastructure.
-//
-// Similarly, although you can create a Windows AMI from a snapshot, you can't
-// successfully launch an instance from the AMI.
-//
-// To create Windows AMIs or to create AMIs for Linux operating systems that
-// must retain AMI billing codes to work properly, see CreateImage.
+// update infrastructure. To create an AMI that must retain billing codes, see
+// CreateImage.
 //
 // If needed, you can deregister an AMI at any time. Any modifications you make
 // to an AMI backed by an instance store volume invalidates its registration.
 // If you make changes to an image, deregister the previous image and register
 // the new image.
-//
-// You can't register an image where a secondary (non-root) snapshot has AWS
-// Marketplace product codes.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -40467,6 +40462,8 @@ type ModifyVolumeInput struct {
 	// Only valid for Provisioned IOPS SSD (io1) volumes. For more information about
 	// io1 IOPS configuration, see http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html#EBSVolumeTypes_piops
 	// (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html#EBSVolumeTypes_piops).
+	//
+	// Default: If no IOPS value is specified, the existing value is retained.
 	Iops *int64 `type:"integer"`
 
 	// Target size in GiB of the volume to be modified. Target volume size must
@@ -40482,10 +40479,10 @@ type ModifyVolumeInput struct {
 
 	// Target EBS volume type of the volume to be modified
 	//
-	// Valid values are io1 | gp2 | sc1 | st1
-	//
 	// The API does not support modifications for volume type standard. You also
 	// cannot change the type of a volume to standard.
+	//
+	// Default: If no type is specified, the existing type is retained.
 	VolumeType *string `type:"string" enum:"VolumeType"`
 }
 
@@ -43248,6 +43245,9 @@ type RegisterImageInput struct {
 	// the architecture specified in the manifest file.
 	Architecture *string `locationName:"architecture" type:"string" enum:"ArchitectureValues"`
 
+	// The billing product codes.
+	BillingProducts []*string `locationName:"BillingProduct" locationNameList:"item" type:"list"`
+
 	// One or more block device mapping entries.
 	BlockDeviceMappings []*BlockDeviceMapping `locationName:"BlockDeviceMapping" locationNameList:"BlockDeviceMapping" type:"list"`
 
@@ -43330,6 +43330,12 @@ func (s *RegisterImageInput) Validate() error {
 // SetArchitecture sets the Architecture field's value.
 func (s *RegisterImageInput) SetArchitecture(v string) *RegisterImageInput {
 	s.Architecture = &v
+	return s
+}
+
+// SetBillingProducts sets the BillingProducts field's value.
+func (s *RegisterImageInput) SetBillingProducts(v []*string) *RegisterImageInput {
+	s.BillingProducts = v
 	return s
 }
 
@@ -51527,8 +51533,8 @@ type VolumeModification struct {
 	// Modification completion or failure time.
 	EndTime *time.Time `locationName:"endTime" type:"timestamp" timestampFormat:"iso8601"`
 
-	// Current state of modification. Possible values are modifying | optimizing
-	// | complete | failed. Modification state is null for unmodified volumes.
+	// Current state of modification. Modification state is null for unmodified
+	// volumes.
 	ModificationState *string `locationName:"modificationState" type:"string" enum:"VolumeModificationState"`
 
 	// Original IOPS rate of the volume being modified.
@@ -53313,6 +53319,24 @@ const (
 
 	// InstanceTypeI28xlarge is a InstanceType enum value
 	InstanceTypeI28xlarge = "i2.8xlarge"
+
+	// InstanceTypeI3Large is a InstanceType enum value
+	InstanceTypeI3Large = "i3.large"
+
+	// InstanceTypeI3Xlarge is a InstanceType enum value
+	InstanceTypeI3Xlarge = "i3.xlarge"
+
+	// InstanceTypeI32xlarge is a InstanceType enum value
+	InstanceTypeI32xlarge = "i3.2xlarge"
+
+	// InstanceTypeI34xlarge is a InstanceType enum value
+	InstanceTypeI34xlarge = "i3.4xlarge"
+
+	// InstanceTypeI38xlarge is a InstanceType enum value
+	InstanceTypeI38xlarge = "i3.8xlarge"
+
+	// InstanceTypeI316xlarge is a InstanceType enum value
+	InstanceTypeI316xlarge = "i3.16xlarge"
 
 	// InstanceTypeHi14xlarge is a InstanceType enum value
 	InstanceTypeHi14xlarge = "hi1.4xlarge"

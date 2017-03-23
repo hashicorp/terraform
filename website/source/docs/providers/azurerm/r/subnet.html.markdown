@@ -37,7 +37,7 @@ resource "azurerm_subnet" "test" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the virtual network. Changing this forces a
+* `name` - (Required) The name of the subnet. Changing this forces a
     new resource to be created.
 
 * `resource_group_name` - (Required) The name of the resource group in which to
@@ -59,6 +59,10 @@ The following attributes are exported:
 
 * `id` - The subnet ID.
 * `ip_configurations` - The collection of IP Configurations with IPs within this subnet.
+* `name` - The name of the subnet.
+* `resource_group_name` - The name of the resource group in which the subnet is created in.
+* `virtual_network_name` - The name of the virtual network in which the subnet is created in
+* `address_prefix` - The address prefix for the subnet
 
 ## Import
 

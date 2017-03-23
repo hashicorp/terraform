@@ -24,11 +24,11 @@ resource "ns1_record" "www" {
   ttl    = 60
 
   answers = {
-    answer = ["sub1.${ns1_zone.tld.zone}"]
+    answer = "sub1.${ns1_zone.tld.zone}"
   }
 
-  answer = {
-    answer = ["sub2.${ns1_zone.tld.zone}"]
+  answers = {
+    answer = "sub2.${ns1_zone.tld.zone}"
   }
 
   filters = {

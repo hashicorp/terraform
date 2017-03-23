@@ -270,9 +270,6 @@ func TestInit_backendUnset(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		// Run it again
-		defer testInteractiveInput(t, []string{"yes", "yes"})()
-
 		ui := new(cli.MockUi)
 		c := &InitCommand{
 			Meta: Meta{
@@ -281,7 +278,7 @@ func TestInit_backendUnset(t *testing.T) {
 			},
 		}
 
-		args := []string{}
+		args := []string{"-force-copy"}
 		if code := c.Run(args); code != 0 {
 			t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 		}
@@ -310,6 +307,65 @@ func TestInit_backendConfigFile(t *testing.T) {
 	}
 
 	args := []string{"-backend-config", "input.config"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	// Read our saved backend config and verify we have our settings
+	state := testStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+	if v := state.Backend.Config["path"]; v != "hello" {
+		t.Fatalf("bad: %#v", v)
+	}
+}
+
+func TestInit_backendConfigFileChange(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-backend-config-file-change"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// Ask input
+	defer testInputMap(t, map[string]string{
+		"backend-migrate-to-new": "no",
+	})()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{"-backend-config", "input.config"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	// Read our saved backend config and verify we have our settings
+	state := testStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+	if v := state.Backend.Config["path"]; v != "hello" {
+		t.Fatalf("bad: %#v", v)
+	}
+}
+
+func TestInit_backendConfigKV(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-backend-config-kv"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{"-backend-config", "path=hello"}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}

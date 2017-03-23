@@ -118,12 +118,15 @@ and you will lose any changes that were in the remote location.
 
 The `terraform remote config` command has been replaced with
 `terraform init`. The new command is better in many ways by allowing file-based
-configuration, automatic state migration, and more. However, the new
-command doesn't support configuration via command-line flags.
+configuration, automatic state migration, and more.
+
+You should be able to very easily migrate `terraform remote config`
+scripting to the new `terraform init` command.
 
 The new `terraform init` command takes a `-backend-config` flag which is
-an HCL file that is merged with the backend configuration in your Terraform
-files. This lets you keep secrets out of your actual configuration.
+eitheran HCL file or a string in the format of `key=value`. This configuration
+is merged with the backend configuration in your Terraform files.
+This lets you keep secrets out of your actual configuration.
 We call this "partial configuration" and you can learn more in the
 docs on [configuring backends](/docs/backends/config.html).
 

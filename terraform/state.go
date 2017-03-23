@@ -585,7 +585,7 @@ func (s *State) CompareAges(other *State) (StateAgeComparison, error) {
 }
 
 // SameLineage returns true only if the state given in argument belongs
-// to the same "lineage" of states as the reciever.
+// to the same "lineage" of states as the receiver.
 func (s *State) SameLineage(other *State) bool {
 	s.Lock()
 	defer s.Unlock()

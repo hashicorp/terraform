@@ -808,6 +808,75 @@ func (c *DynamoDB) DescribeTable(input *DescribeTableInput) (*DescribeTableOutpu
 	return out, err
 }
 
+const opDescribeTimeToLive = "DescribeTimeToLive"
+
+// DescribeTimeToLiveRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeTimeToLive operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DescribeTimeToLive for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeTimeToLive method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeTimeToLiveRequest method.
+//    req, resp := client.DescribeTimeToLiveRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeTimeToLive
+func (c *DynamoDB) DescribeTimeToLiveRequest(input *DescribeTimeToLiveInput) (req *request.Request, output *DescribeTimeToLiveOutput) {
+	op := &request.Operation{
+		Name:       opDescribeTimeToLive,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeTimeToLiveInput{}
+	}
+
+	output = &DescribeTimeToLiveOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeTimeToLive API operation for Amazon DynamoDB.
+//
+// Gives a description of the Time to Live (TTL) status on the specified table.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon DynamoDB's
+// API operation DescribeTimeToLive for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   The operation tried to access a nonexistent table or index. The resource
+//   might not be specified correctly, or its status might not be ACTIVE.
+//
+//   * ErrCodeInternalServerError "InternalServerError"
+//   An error occurred on the server side.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeTimeToLive
+func (c *DynamoDB) DescribeTimeToLive(input *DescribeTimeToLiveInput) (*DescribeTimeToLiveOutput, error) {
+	req, out := c.DescribeTimeToLiveRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opGetItem = "GetItem"
 
 // GetItemRequest generates a "aws/request.Request" representing the
@@ -1800,6 +1869,117 @@ func (c *DynamoDB) UpdateTableRequest(input *UpdateTableInput) (req *request.Req
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UpdateTable
 func (c *DynamoDB) UpdateTable(input *UpdateTableInput) (*UpdateTableOutput, error) {
 	req, out := c.UpdateTableRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opUpdateTimeToLive = "UpdateTimeToLive"
+
+// UpdateTimeToLiveRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateTimeToLive operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UpdateTimeToLive for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateTimeToLive method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateTimeToLiveRequest method.
+//    req, resp := client.UpdateTimeToLiveRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UpdateTimeToLive
+func (c *DynamoDB) UpdateTimeToLiveRequest(input *UpdateTimeToLiveInput) (req *request.Request, output *UpdateTimeToLiveOutput) {
+	op := &request.Operation{
+		Name:       opUpdateTimeToLive,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UpdateTimeToLiveInput{}
+	}
+
+	output = &UpdateTimeToLiveOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateTimeToLive API operation for Amazon DynamoDB.
+//
+// Specify the lifetime of individual table items. The database automatically
+// removes the item at the expiration of the item. The UpdateTimeToLive method
+// will enable or disable TTL for the specified table. A successful UpdateTimeToLive
+// call returns the current TimeToLiveSpecification; it may take up to one hour
+// for the change to fully process.
+//
+// TTL compares the current time in epoch time format to the time stored in
+// the TTL attribute of an item. If the epoch time value stored in the attribute
+// is less than the current time, the item is marked as expired and subsequently
+// deleted.
+//
+// The epoch time format is the number of seconds elapsed since 12:00:00 AM
+// January 1st, 1970 UTC.
+//
+// DynamoDB deletes expired items on a best-effort basis to ensure availability
+// of throughput for other data operations.
+//
+// DynamoDB typically deletes expired items within two days of expiration. The
+// exact duration within which an item gets deleted after expiration is specific
+// to the nature of the workload. Items that have expired and not been deleted
+// will still show up in reads, queries, and scans.
+//
+// As items are deleted, they are removed from any Local Secondary Index and
+// Global Secondary Index immediately in the same eventually consistent way
+// as a standard delete operation.
+//
+// For more information, see Time To Live (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/TTL.html)
+// in the Amazon DynamoDB Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon DynamoDB's
+// API operation UpdateTimeToLive for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeResourceInUseException "ResourceInUseException"
+//   The operation conflicts with the resource's availability. For example, you
+//   attempted to recreate an existing table, or tried to delete a table currently
+//   in the CREATING state.
+//
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   The operation tried to access a nonexistent table or index. The resource
+//   might not be specified correctly, or its status might not be ACTIVE.
+//
+//   * ErrCodeLimitExceededException "LimitExceededException"
+//   The number of concurrent table requests (cumulative number of tables in the
+//   CREATING, DELETING or UPDATING state) exceeds the maximum allowed of 10.
+//
+//   Also, for tables with secondary indexes, only one of those tables can be
+//   in the CREATING state at any point in time. Do not attempt to create more
+//   than one such table simultaneously.
+//
+//   The total limit of tables in the ACTIVE state is 250.
+//
+//   * ErrCodeInternalServerError "InternalServerError"
+//   An error occurred on the server side.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UpdateTimeToLive
+func (c *DynamoDB) UpdateTimeToLive(input *UpdateTimeToLiveInput) (*UpdateTimeToLiveOutput, error) {
+	req, out := c.UpdateTimeToLiveRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -3207,7 +3387,7 @@ type DeleteItemInput struct {
 	//
 	// These function names are case-sensitive.
 	//
-	//    * Comparison operators:  = | <> | < | > | <= | >= | BETWEEN | IN
+	//    * Comparison operators: = | <> | < | > | <= | >= | BETWEEN | IN
 	//
 	//    *  Logical operators: AND | OR | NOT
 	//
@@ -3730,6 +3910,71 @@ func (s DescribeTableOutput) GoString() string {
 // SetTable sets the Table field's value.
 func (s *DescribeTableOutput) SetTable(v *TableDescription) *DescribeTableOutput {
 	s.Table = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeTimeToLiveInput
+type DescribeTimeToLiveInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the table to be described.
+	//
+	// TableName is a required field
+	TableName *string `min:"3" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DescribeTimeToLiveInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeTimeToLiveInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeTimeToLiveInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeTimeToLiveInput"}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetTableName sets the TableName field's value.
+func (s *DescribeTimeToLiveInput) SetTableName(v string) *DescribeTimeToLiveInput {
+	s.TableName = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeTimeToLiveOutput
+type DescribeTimeToLiveOutput struct {
+	_ struct{} `type:"structure"`
+
+	TimeToLiveDescription *TimeToLiveDescription `type:"structure"`
+}
+
+// String returns the string representation
+func (s DescribeTimeToLiveOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeTimeToLiveOutput) GoString() string {
+	return s.String()
+}
+
+// SetTimeToLiveDescription sets the TimeToLiveDescription field's value.
+func (s *DescribeTimeToLiveOutput) SetTimeToLiveDescription(v *TimeToLiveDescription) *DescribeTimeToLiveOutput {
+	s.TimeToLiveDescription = v
 	return s
 }
 
@@ -5308,7 +5553,7 @@ type PutItemInput struct {
 	//
 	// These function names are case-sensitive.
 	//
-	//    * Comparison operators:  = | <> | < | > | <= | >= | BETWEEN | IN
+	//    * Comparison operators: = | <> | < | > | <= | >= | BETWEEN | IN
 	//
 	//    *  Logical operators: AND | OR | NOT
 	//
@@ -7151,6 +7396,100 @@ func (s TagResourceOutput) GoString() string {
 	return s.String()
 }
 
+// The description of the Time to Live (TTL) status on the specified table.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/TimeToLiveDescription
+type TimeToLiveDescription struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the Time to Live attribute for items in the table.
+	AttributeName *string `min:"1" type:"string"`
+
+	// The Time to Live status for the table.
+	TimeToLiveStatus *string `type:"string" enum:"TimeToLiveStatus"`
+}
+
+// String returns the string representation
+func (s TimeToLiveDescription) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TimeToLiveDescription) GoString() string {
+	return s.String()
+}
+
+// SetAttributeName sets the AttributeName field's value.
+func (s *TimeToLiveDescription) SetAttributeName(v string) *TimeToLiveDescription {
+	s.AttributeName = &v
+	return s
+}
+
+// SetTimeToLiveStatus sets the TimeToLiveStatus field's value.
+func (s *TimeToLiveDescription) SetTimeToLiveStatus(v string) *TimeToLiveDescription {
+	s.TimeToLiveStatus = &v
+	return s
+}
+
+// Represents the settings used to enable or disable Time to Live for the specified
+// table.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/TimeToLiveSpecification
+type TimeToLiveSpecification struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the Time to Live attribute used to store the expiration time
+	// for items in the table.
+	//
+	// AttributeName is a required field
+	AttributeName *string `min:"1" type:"string" required:"true"`
+
+	// Indicates whether Time To Live is to be enabled (true) or disabled (false)
+	// on the table.
+	//
+	// Enabled is a required field
+	Enabled *bool `type:"boolean" required:"true"`
+}
+
+// String returns the string representation
+func (s TimeToLiveSpecification) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TimeToLiveSpecification) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TimeToLiveSpecification) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TimeToLiveSpecification"}
+	if s.AttributeName == nil {
+		invalidParams.Add(request.NewErrParamRequired("AttributeName"))
+	}
+	if s.AttributeName != nil && len(*s.AttributeName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AttributeName", 1))
+	}
+	if s.Enabled == nil {
+		invalidParams.Add(request.NewErrParamRequired("Enabled"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAttributeName sets the AttributeName field's value.
+func (s *TimeToLiveSpecification) SetAttributeName(v string) *TimeToLiveSpecification {
+	s.AttributeName = &v
+	return s
+}
+
+// SetEnabled sets the Enabled field's value.
+func (s *TimeToLiveSpecification) SetEnabled(v bool) *TimeToLiveSpecification {
+	s.Enabled = &v
+	return s
+}
+
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UntagResourceInput
 type UntagResourceInput struct {
 	_ struct{} `type:"structure"`
@@ -7311,7 +7650,7 @@ type UpdateItemInput struct {
 	//
 	// These function names are case-sensitive.
 	//
-	//    * Comparison operators:  = | <> | < | > | <= | >= | BETWEEN | IN
+	//    * Comparison operators: = | <> | < | > | <= | >= | BETWEEN | IN
 	//
 	//    *  Logical operators: AND | OR | NOT
 	//
@@ -7430,14 +7769,17 @@ type UpdateItemInput struct {
 	//    * NONE - If ReturnValues is not specified, or if its value is NONE, then
 	//    nothing is returned. (This setting is the default for ReturnValues.)
 	//
-	//    * ALL_OLD - If UpdateItem overwrote an attribute name-value pair, then
-	//    the content of the old item is returned.
+	//    * ALL_OLD - Returns all of the attributes of the item, as they appeared
+	//    before the UpdateItem operation.
 	//
-	//    * UPDATED_OLD - The old versions of only the updated attributes are returned.
+	//    * UPDATED_OLD - Returns only the updated attributes, as they appeared
+	//    before the UpdateItem operation.
 	//
-	//    * ALL_NEW - All of the attributes of the new version of the item are returned.
+	//    * ALL_NEW - Returns all of the attributes of the item, as they appear
+	//    after the UpdateItem operation.
 	//
-	//    * UPDATED_NEW - The new versions of only the updated attributes are returned.
+	//    * UPDATED_NEW - Returns only the updated attributes, as they appear after
+	//    the UpdateItem operation.
 	//
 	// There is no additional cost associated with requesting a return value aside
 	// from the small network and processing overhead of receiving a larger response.
@@ -7842,6 +8184,93 @@ func (s *UpdateTableOutput) SetTableDescription(v *TableDescription) *UpdateTabl
 	return s
 }
 
+// Represents the input of an UpdateTimeToLive operation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UpdateTimeToLiveInput
+type UpdateTimeToLiveInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the table to be configured.
+	//
+	// TableName is a required field
+	TableName *string `min:"3" type:"string" required:"true"`
+
+	// Represents the settings used to enable or disable Time to Live for the specified
+	// table.
+	//
+	// TimeToLiveSpecification is a required field
+	TimeToLiveSpecification *TimeToLiveSpecification `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s UpdateTimeToLiveInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateTimeToLiveInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateTimeToLiveInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateTimeToLiveInput"}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+	if s.TimeToLiveSpecification == nil {
+		invalidParams.Add(request.NewErrParamRequired("TimeToLiveSpecification"))
+	}
+	if s.TimeToLiveSpecification != nil {
+		if err := s.TimeToLiveSpecification.Validate(); err != nil {
+			invalidParams.AddNested("TimeToLiveSpecification", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetTableName sets the TableName field's value.
+func (s *UpdateTimeToLiveInput) SetTableName(v string) *UpdateTimeToLiveInput {
+	s.TableName = &v
+	return s
+}
+
+// SetTimeToLiveSpecification sets the TimeToLiveSpecification field's value.
+func (s *UpdateTimeToLiveInput) SetTimeToLiveSpecification(v *TimeToLiveSpecification) *UpdateTimeToLiveInput {
+	s.TimeToLiveSpecification = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UpdateTimeToLiveOutput
+type UpdateTimeToLiveOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Represents the output of an UpdateTimeToLive operation.
+	TimeToLiveSpecification *TimeToLiveSpecification `type:"structure"`
+}
+
+// String returns the string representation
+func (s UpdateTimeToLiveOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateTimeToLiveOutput) GoString() string {
+	return s.String()
+}
+
+// SetTimeToLiveSpecification sets the TimeToLiveSpecification field's value.
+func (s *UpdateTimeToLiveOutput) SetTimeToLiveSpecification(v *TimeToLiveSpecification) *UpdateTimeToLiveOutput {
+	s.TimeToLiveSpecification = v
+	return s
+}
+
 // Represents an operation to perform - either DeleteItem or PutItem. You can
 // only request one of these operations, not both, in a single WriteRequest.
 // If you do need to perform both of these operations, you will need to provide
@@ -8074,4 +8503,18 @@ const (
 
 	// TableStatusActive is a TableStatus enum value
 	TableStatusActive = "ACTIVE"
+)
+
+const (
+	// TimeToLiveStatusEnabling is a TimeToLiveStatus enum value
+	TimeToLiveStatusEnabling = "ENABLING"
+
+	// TimeToLiveStatusDisabling is a TimeToLiveStatus enum value
+	TimeToLiveStatusDisabling = "DISABLING"
+
+	// TimeToLiveStatusEnabled is a TimeToLiveStatus enum value
+	TimeToLiveStatusEnabled = "ENABLED"
+
+	// TimeToLiveStatusDisabled is a TimeToLiveStatus enum value
+	TimeToLiveStatusDisabled = "DISABLED"
 )

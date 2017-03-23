@@ -27,6 +27,11 @@ resource "aws_route_table" "r" {
     gateway_id = "${aws_internet_gateway.main.id}"
   }
 
+  route {
+    ipv6_cidr_block = "::/0"
+    egress_only_gateway_id = "${aws_egress_only_internet_gateway.foo.id}"
+  }
+
   tags {
     Name = "main"
   }
@@ -44,7 +49,9 @@ The following arguments are supported:
 
 Each route supports the following:
 
-* `cidr_block` - (Required) The CIDR block of the route.
+* `cidr_block` - (Optional) The CIDR block of the route.
+* `ipv6_cidr_block` - Optional) The Ipv6 CIDR block of the route
+* `egress_only_gateway_id` - (Optional) The Egress Only Internet Gateway ID.
 * `gateway_id` - (Optional) The Internet Gateway ID.
 * `nat_gateway_id` - (Optional) The NAT Gateway ID.
 * `instance_id` - (Optional) The EC2 instance ID.

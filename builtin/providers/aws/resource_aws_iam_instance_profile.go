@@ -260,6 +260,7 @@ func instanceProfileReadResult(d *schema.ResourceData, result *iam.InstanceProfi
 	if err := d.Set("path", result.Path); err != nil {
 		return err
 	}
+	d.Set("unique_id", result.InstanceProfileId)
 
 	roles := &schema.Set{F: schema.HashString}
 	for _, role := range result.Roles {

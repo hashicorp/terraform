@@ -25,6 +25,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
+			"datadog_downtime":  resourceDatadogDowntime(),
 			"datadog_monitor":   resourceDatadogMonitor(),
 			"datadog_timeboard": resourceDatadogTimeboard(),
 			"datadog_user":      resourceDatadogUser(),

@@ -179,6 +179,35 @@ func TestAccAWSALB_updatedSecurityGroups(t *testing.T) {
 	})
 }
 
+func TestAccAWSALB_updatedSubnets(t *testing.T) {
+	var pre, post elbv2.LoadBalancer
+	albName := fmt.Sprintf("testaccawsalb-basic-%s", acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_alb.alb_test",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSALBDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSALBConfig_basic(albName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSALBExists("aws_alb.alb_test", &pre),
+					resource.TestCheckResourceAttr("aws_alb.alb_test", "subnets.#", "2"),
+				),
+			},
+			{
+				Config: testAccAWSALBConfig_updateSubnets(albName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSALBExists("aws_alb.alb_test", &post),
+					resource.TestCheckResourceAttr("aws_alb.alb_test", "subnets.#", "3"),
+					testAccCheckAWSAlbARNs(&pre, &post),
+				),
+			},
+		},
+	})
+}
+
 // TestAccAWSALB_noSecurityGroup regression tests the issue in #8264,
 // where if an ALB is created without a security group, a default one
 // is assigned.
@@ -391,6 +420,73 @@ resource "aws_vpc" "alb_test" {
 
 resource "aws_subnet" "alb_test" {
   count                   = 2
+  vpc_id                  = "${aws_vpc.alb_test.id}"
+  cidr_block              = "${element(var.subnets, count.index)}"
+  map_public_ip_on_launch = true
+  availability_zone       = "${element(data.aws_availability_zones.available.names, count.index)}"
+
+  tags {
+    TestName = "TestAccAWSALB_basic"
+  }
+}
+
+resource "aws_security_group" "alb_test" {
+  name        = "allow_all_alb_test"
+  description = "Used for ALB Testing"
+  vpc_id      = "${aws_vpc.alb_test.id}"
+
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags {
+    TestName = "TestAccAWSALB_basic"
+  }
+}`, albName)
+}
+
+func testAccAWSALBConfig_updateSubnets(albName string) string {
+	return fmt.Sprintf(`resource "aws_alb" "alb_test" {
+  name            = "%s"
+  internal        = true
+  security_groups = ["${aws_security_group.alb_test.id}"]
+  subnets         = ["${aws_subnet.alb_test.*.id}"]
+
+  idle_timeout = 30
+  enable_deletion_protection = false
+
+  tags {
+    TestName = "TestAccAWSALB_basic"
+  }
+}
+
+variable "subnets" {
+  default = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+  type    = "list"
+}
+
+data "aws_availability_zones" "available" {}
+
+resource "aws_vpc" "alb_test" {
+  cidr_block = "10.0.0.0/16"
+
+  tags {
+    TestName = "TestAccAWSALB_basic"
+  }
+}
+
+resource "aws_subnet" "alb_test" {
+  count                   = 3
   vpc_id                  = "${aws_vpc.alb_test.id}"
   cidr_block              = "${element(var.subnets, count.index)}"
   map_public_ip_on_launch = true

@@ -19,6 +19,11 @@ func resourceBlockStorageVolumeAttachV2() *schema.Resource {
 		Read:   resourceBlockStorageVolumeAttachV2Read,
 		Delete: resourceBlockStorageVolumeAttachV2Delete,
 
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
 				Type:        schema.TypeString,
@@ -231,7 +236,7 @@ func resourceBlockStorageVolumeAttachV2Create(d *schema.ResourceData, meta inter
 		Pending:    []string{"available", "attaching"},
 		Target:     []string{"in-use"},
 		Refresh:    VolumeV2StateRefreshFunc(client, volumeId),
-		Timeout:    10 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutCreate),
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -369,7 +374,7 @@ func resourceBlockStorageVolumeAttachV2Delete(d *schema.ResourceData, meta inter
 		Pending:    []string{"in-use", "attaching", "detaching"},
 		Target:     []string{"available"},
 		Refresh:    VolumeV2StateRefreshFunc(client, volumeId),
-		Timeout:    10 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}

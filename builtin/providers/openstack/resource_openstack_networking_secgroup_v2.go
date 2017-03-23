@@ -22,6 +22,10 @@ func resourceNetworkingSecGroupV2() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		Timeouts: &schema.ResourceTimeout{
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
 				Type:        schema.TypeString,
@@ -45,6 +49,11 @@ func resourceNetworkingSecGroupV2() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
+			},
+			"delete_default_rules": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
 			},
 		},
 	}
@@ -71,11 +80,14 @@ func resourceNetworkingSecGroupV2Create(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	// Remove the default rules
-	for _, rule := range security_group.Rules {
-		if err := rules.Delete(networkingClient, rule.ID).ExtractErr(); err != nil {
-			return fmt.Errorf(
-				"There was a problem deleting a default security group rule: %s", err)
+	// Delete the default security group rules if it has been requested.
+	deleteDefaultRules := d.Get("delete_default_rules").(bool)
+	if deleteDefaultRules {
+		for _, rule := range security_group.Rules {
+			if err := rules.Delete(networkingClient, rule.ID).ExtractErr(); err != nil {
+				return fmt.Errorf(
+					"There was a problem deleting a default security group rule: %s", err)
+			}
 		}
 	}
 
@@ -122,7 +134,7 @@ func resourceNetworkingSecGroupV2Delete(d *schema.ResourceData, meta interface{}
 		Pending:    []string{"ACTIVE"},
 		Target:     []string{"DELETED"},
 		Refresh:    waitForSecGroupDelete(networkingClient, d.Id()),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}

@@ -135,7 +135,8 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"openstack_images_image_v2": dataSourceImagesImageV2(),
+			"openstack_images_image_v2":       dataSourceImagesImageV2(),
+			"openstack_networking_network_v2": dataSourceNetworkingNetworkV2(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{

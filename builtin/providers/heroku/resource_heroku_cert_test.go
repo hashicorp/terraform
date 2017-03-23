@@ -1,6 +1,7 @@
 package heroku
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -13,7 +14,7 @@ import (
 )
 
 func TestAccHerokuCert_Basic(t *testing.T) {
-	var endpoint heroku.SSLEndpoint
+	var endpoint heroku.SSLEndpointInfoResult
 	wd, _ := os.Getwd()
 	certificateChainFile := wd + "/test-fixtures/terraform.cert"
 	certificateChainBytes, _ := ioutil.ReadFile(certificateChainFile)
@@ -43,7 +44,7 @@ func TestAccHerokuCert_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckHerokuCertDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckHerokuCertConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuCertExists("heroku_cert.ssl_certificate", &endpoint),
@@ -65,7 +66,7 @@ func testAccCheckHerokuCertDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, err := client.SSLEndpointInfo(rs.Primary.Attributes["app"], rs.Primary.ID)
+		_, err := client.SSLEndpointInfo(context.TODO(), rs.Primary.Attributes["app"], rs.Primary.ID)
 
 		if err == nil {
 			return fmt.Errorf("Cerfificate still exists")
@@ -75,7 +76,7 @@ func testAccCheckHerokuCertDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckHerokuCertificateChain(endpoint *heroku.SSLEndpoint, chain string) resource.TestCheckFunc {
+func testAccCheckHerokuCertificateChain(endpoint *heroku.SSLEndpointInfoResult, chain string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		if endpoint.CertificateChain != chain {
@@ -86,7 +87,7 @@ func testAccCheckHerokuCertificateChain(endpoint *heroku.SSLEndpoint, chain stri
 	}
 }
 
-func testAccCheckHerokuCertExists(n string, endpoint *heroku.SSLEndpoint) resource.TestCheckFunc {
+func testAccCheckHerokuCertExists(n string, endpoint *heroku.SSLEndpointInfoResult) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -100,7 +101,7 @@ func testAccCheckHerokuCertExists(n string, endpoint *heroku.SSLEndpoint) resour
 
 		client := testAccProvider.Meta().(*heroku.Service)
 
-		foundEndpoint, err := client.SSLEndpointInfo(rs.Primary.Attributes["app"], rs.Primary.ID)
+		foundEndpoint, err := client.SSLEndpointInfo(context.TODO(), rs.Primary.Attributes["app"], rs.Primary.ID)
 
 		if err != nil {
 			return err

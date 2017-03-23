@@ -15,6 +15,7 @@ import (
 	azurermprovider "github.com/hashicorp/terraform/builtin/providers/azurerm"
 	bitbucketprovider "github.com/hashicorp/terraform/builtin/providers/bitbucket"
 	chefprovider "github.com/hashicorp/terraform/builtin/providers/chef"
+	circonusprovider "github.com/hashicorp/terraform/builtin/providers/circonus"
 	clcprovider "github.com/hashicorp/terraform/builtin/providers/clc"
 	cloudflareprovider "github.com/hashicorp/terraform/builtin/providers/cloudflare"
 	cloudstackprovider "github.com/hashicorp/terraform/builtin/providers/cloudstack"
@@ -36,6 +37,7 @@ import (
 	icinga2provider "github.com/hashicorp/terraform/builtin/providers/icinga2"
 	ignitionprovider "github.com/hashicorp/terraform/builtin/providers/ignition"
 	influxdbprovider "github.com/hashicorp/terraform/builtin/providers/influxdb"
+	kubernetesprovider "github.com/hashicorp/terraform/builtin/providers/kubernetes"
 	libratoprovider "github.com/hashicorp/terraform/builtin/providers/librato"
 	logentriesprovider "github.com/hashicorp/terraform/builtin/providers/logentries"
 	mailgunprovider "github.com/hashicorp/terraform/builtin/providers/mailgun"
@@ -89,6 +91,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"azurerm":      azurermprovider.Provider,
 	"bitbucket":    bitbucketprovider.Provider,
 	"chef":         chefprovider.Provider,
+	"circonus":     circonusprovider.Provider,
 	"clc":          clcprovider.Provider,
 	"cloudflare":   cloudflareprovider.Provider,
 	"cloudstack":   cloudstackprovider.Provider,
@@ -110,6 +113,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"icinga2":      icinga2provider.Provider,
 	"ignition":     ignitionprovider.Provider,
 	"influxdb":     influxdbprovider.Provider,
+	"kubernetes":   kubernetesprovider.Provider,
 	"librato":      libratoprovider.Provider,
 	"logentries":   logentriesprovider.Provider,
 	"mailgun":      mailgunprovider.Provider,

@@ -16,7 +16,7 @@ import (
 
 // How long to sleep if a limit-exceeded event happens
 var routeTargetValidationError = errors.New("Error: more than 1 target specified. Only 1 of gateway_id, " +
-	"nat_gateway_id, instance_id, network_interface_id, route_table_id or " +
+	"egress_only_gateway_id, nat_gateway_id, instance_id, network_interface_id, route_table_id or " +
 	"vpc_peering_connection_id is allowed.")
 
 // AWS Route resource Schema declaration
@@ -29,62 +29,73 @@ func resourceAwsRoute() *schema.Resource {
 		Exists: resourceAwsRouteExists,
 
 		Schema: map[string]*schema.Schema{
-			"destination_cidr_block": &schema.Schema{
+			"destination_cidr_block": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				ForceNew: true,
+			},
+			"destination_ipv6_cidr_block": {
+				Type:     schema.TypeString,
+				Optional: true,
 				ForceNew: true,
 			},
 
-			"destination_prefix_list_id": &schema.Schema{
+			"destination_prefix_list_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"gateway_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-			},
-
-			"nat_gateway_id": &schema.Schema{
+			"gateway_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"instance_id": &schema.Schema{
+			"egress_only_gateway_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"instance_owner_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"network_interface_id": &schema.Schema{
+			"nat_gateway_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"origin": &schema.Schema{
+			"instance_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
+			"instance_owner_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"state": &schema.Schema{
+			"network_interface_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
+			"origin": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"route_table_id": &schema.Schema{
+			"state": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"route_table_id": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"vpc_peering_connection_id": &schema.Schema{
+			"vpc_peering_connection_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
@@ -97,6 +108,7 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 	var numTargets int
 	var setTarget string
 	allowedTargets := []string{
+		"egress_only_gateway_id",
 		"gateway_id",
 		"nat_gateway_id",
 		"instance_id",
@@ -124,6 +136,12 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 			RouteTableId:         aws.String(d.Get("route_table_id").(string)),
 			DestinationCidrBlock: aws.String(d.Get("destination_cidr_block").(string)),
 			GatewayId:            aws.String(d.Get("gateway_id").(string)),
+		}
+	case "egress_only_gateway_id":
+		createOpts = &ec2.CreateRouteInput{
+			RouteTableId:                aws.String(d.Get("route_table_id").(string)),
+			DestinationIpv6CidrBlock:    aws.String(d.Get("destination_ipv6_cidr_block").(string)),
+			EgressOnlyInternetGatewayId: aws.String(d.Get("egress_only_gateway_id").(string)),
 		}
 	case "nat_gateway_id":
 		createOpts = &ec2.CreateRouteInput{
@@ -180,12 +198,25 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	var route *ec2.Route
-	err = resource.Retry(2*time.Minute, func() *resource.RetryError {
-		route, err = findResourceRoute(conn, d.Get("route_table_id").(string), d.Get("destination_cidr_block").(string))
-		return resource.RetryableError(err)
-	})
-	if err != nil {
-		return fmt.Errorf("Error finding route after creating it: %s", err)
+
+	if v, ok := d.GetOk("destination_cidr_block"); ok {
+		err = resource.Retry(2*time.Minute, func() *resource.RetryError {
+			route, err = findResourceRoute(conn, d.Get("route_table_id").(string), v.(string), "")
+			return resource.RetryableError(err)
+		})
+		if err != nil {
+			return fmt.Errorf("Error finding route after creating it: %s", err)
+		}
+	}
+
+	if v, ok := d.GetOk("destination_ipv6_cidr_block"); ok {
+		err = resource.Retry(2*time.Minute, func() *resource.RetryError {
+			route, err = findResourceRoute(conn, d.Get("route_table_id").(string), "", v.(string))
+			return resource.RetryableError(err)
+		})
+		if err != nil {
+			return fmt.Errorf("Error finding route after creating it: %s", err)
+		}
 	}
 
 	d.SetId(routeIDHash(d, route))
@@ -197,7 +228,10 @@ func resourceAwsRouteRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 	routeTableId := d.Get("route_table_id").(string)
 
-	route, err := findResourceRoute(conn, routeTableId, d.Get("destination_cidr_block").(string))
+	destinationCidrBlock := d.Get("destination_cidr_block").(string)
+	destinationIpv6CidrBlock := d.Get("destination_ipv6_cidr_block").(string)
+
+	route, err := findResourceRoute(conn, routeTableId, destinationCidrBlock, destinationIpv6CidrBlock)
 	if err != nil {
 		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidRouteTableID.NotFound" {
 			log.Printf("[WARN] Route Table %q could not be found. Removing Route from state.",
@@ -214,6 +248,7 @@ func resourceAwsRouteRead(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsRouteSetResourceData(d *schema.ResourceData, route *ec2.Route) {
 	d.Set("destination_prefix_list_id", route.DestinationPrefixListId)
 	d.Set("gateway_id", route.GatewayId)
+	d.Set("egress_only_gateway_id", route.EgressOnlyInternetGatewayId)
 	d.Set("nat_gateway_id", route.NatGatewayId)
 	d.Set("instance_id", route.InstanceId)
 	d.Set("instance_owner_id", route.InstanceOwnerId)
@@ -229,6 +264,7 @@ func resourceAwsRouteUpdate(d *schema.ResourceData, meta interface{}) error {
 	var setTarget string
 
 	allowedTargets := []string{
+		"egress_only_gateway_id",
 		"gateway_id",
 		"nat_gateway_id",
 		"network_interface_id",
@@ -266,6 +302,12 @@ func resourceAwsRouteUpdate(d *schema.ResourceData, meta interface{}) error {
 			RouteTableId:         aws.String(d.Get("route_table_id").(string)),
 			DestinationCidrBlock: aws.String(d.Get("destination_cidr_block").(string)),
 			GatewayId:            aws.String(d.Get("gateway_id").(string)),
+		}
+	case "egress_only_gateway_id":
+		replaceOpts = &ec2.ReplaceRouteInput{
+			RouteTableId:                aws.String(d.Get("route_table_id").(string)),
+			DestinationIpv6CidrBlock:    aws.String(d.Get("destination_ipv6_cidr_block").(string)),
+			EgressOnlyInternetGatewayId: aws.String(d.Get("egress_only_gateway_id").(string)),
 		}
 	case "nat_gateway_id":
 		replaceOpts = &ec2.ReplaceRouteInput{
@@ -309,8 +351,13 @@ func resourceAwsRouteDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
 	deleteOpts := &ec2.DeleteRouteInput{
-		RouteTableId:         aws.String(d.Get("route_table_id").(string)),
-		DestinationCidrBlock: aws.String(d.Get("destination_cidr_block").(string)),
+		RouteTableId: aws.String(d.Get("route_table_id").(string)),
+	}
+	if v, ok := d.GetOk("destination_cidr_block"); ok {
+		deleteOpts.DestinationCidrBlock = aws.String(v.(string))
+	}
+	if v, ok := d.GetOk("destination_ipv6_cidr_block"); ok {
+		deleteOpts.DestinationIpv6CidrBlock = aws.String(v.(string))
 	}
 	log.Printf("[DEBUG] Route delete opts: %s", deleteOpts)
 
@@ -368,10 +415,19 @@ func resourceAwsRouteExists(d *schema.ResourceData, meta interface{}) (bool, err
 		return false, nil
 	}
 
-	cidr := d.Get("destination_cidr_block").(string)
-	for _, route := range (*res.RouteTables[0]).Routes {
-		if route.DestinationCidrBlock != nil && *route.DestinationCidrBlock == cidr {
-			return true, nil
+	if v, ok := d.GetOk("destination_cidr_block"); ok {
+		for _, route := range (*res.RouteTables[0]).Routes {
+			if route.DestinationCidrBlock != nil && *route.DestinationCidrBlock == v.(string) {
+				return true, nil
+			}
+		}
+	}
+
+	if v, ok := d.GetOk("destination_ipv6_cidr_block"); ok {
+		for _, route := range (*res.RouteTables[0]).Routes {
+			if route.DestinationIpv6CidrBlock != nil && *route.DestinationIpv6CidrBlock == v.(string) {
+				return true, nil
+			}
 		}
 	}
 
@@ -380,11 +436,16 @@ func resourceAwsRouteExists(d *schema.ResourceData, meta interface{}) (bool, err
 
 // Create an ID for a route
 func routeIDHash(d *schema.ResourceData, r *ec2.Route) string {
+
+	if r.DestinationIpv6CidrBlock != nil && *r.DestinationIpv6CidrBlock != "" {
+		return fmt.Sprintf("r-%s%d", d.Get("route_table_id").(string), hashcode.String(*r.DestinationIpv6CidrBlock))
+	}
+
 	return fmt.Sprintf("r-%s%d", d.Get("route_table_id").(string), hashcode.String(*r.DestinationCidrBlock))
 }
 
 // Helper: retrieve a route
-func findResourceRoute(conn *ec2.EC2, rtbid string, cidr string) (*ec2.Route, error) {
+func findResourceRoute(conn *ec2.EC2, rtbid string, cidr string, ipv6cidr string) (*ec2.Route, error) {
 	routeTableID := rtbid
 
 	findOpts := &ec2.DescribeRouteTablesInput{
@@ -401,12 +462,29 @@ func findResourceRoute(conn *ec2.EC2, rtbid string, cidr string) (*ec2.Route, er
 			routeTableID)
 	}
 
-	for _, route := range (*resp.RouteTables[0]).Routes {
-		if route.DestinationCidrBlock != nil && *route.DestinationCidrBlock == cidr {
-			return route, nil
+	if cidr != "" {
+		for _, route := range (*resp.RouteTables[0]).Routes {
+			if route.DestinationCidrBlock != nil && *route.DestinationCidrBlock == cidr {
+				return route, nil
+			}
 		}
+
+		return nil, fmt.Errorf("Unable to find matching route for Route Table (%s) "+
+			"and destination CIDR block (%s).", rtbid, cidr)
 	}
 
-	return nil, fmt.Errorf("Unable to find matching route for Route Table (%s) "+
-		"and destination CIDR block (%s).", rtbid, cidr)
+	if ipv6cidr != "" {
+		for _, route := range (*resp.RouteTables[0]).Routes {
+			if route.DestinationIpv6CidrBlock != nil && *route.DestinationIpv6CidrBlock == ipv6cidr {
+				return route, nil
+			}
+		}
+
+		return nil, fmt.Errorf("Unable to find matching route for Route Table (%s) "+
+			"and destination IPv6 CIDR block (%s).", rtbid, ipv6cidr)
+	}
+
+	return nil, fmt.Errorf("When trying to find a matching route for Route Table %q "+
+		"you need to specify a CIDR block of IPv6 CIDR Block", rtbid)
+
 }

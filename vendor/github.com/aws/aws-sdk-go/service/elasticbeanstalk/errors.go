@@ -37,6 +37,13 @@ const (
 	// effects an element in this activity is already in progress.
 	ErrCodeOperationInProgressException = "OperationInProgressFailure"
 
+	// ErrCodePlatformVersionStillReferencedException for service response error code
+	// "PlatformVersionStillReferencedException".
+	//
+	// You cannot delete the platform version because there are still environments
+	// running on it.
+	ErrCodePlatformVersionStillReferencedException = "PlatformVersionStillReferencedException"
+
 	// ErrCodeS3LocationNotInServiceRegionException for service response error code
 	// "S3LocationNotInServiceRegionException".
 	//
@@ -98,4 +105,11 @@ const (
 	//
 	// The specified account has reached its limit of environments.
 	ErrCodeTooManyEnvironmentsException = "TooManyEnvironmentsException"
+
+	// ErrCodeTooManyPlatformsException for service response error code
+	// "TooManyPlatformsException".
+	//
+	// You have exceeded the maximum number of allowed platforms associated with
+	// the account.
+	ErrCodeTooManyPlatformsException = "TooManyPlatformsException"
 )

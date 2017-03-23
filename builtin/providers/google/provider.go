@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/api/compute/v1"
@@ -16,14 +15,6 @@ import (
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"account_file": &schema.Schema{
-				Type:         schema.TypeString,
-				Optional:     true,
-				DefaultFunc:  schema.EnvDefaultFunc("GOOGLE_ACCOUNT_FILE", nil),
-				ValidateFunc: validateAccountFile,
-				Deprecated:   "Use the credentials field instead",
-			},
-
 			"credentials": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -91,6 +82,7 @@ func Provider() terraform.ResourceProvider {
 			"google_compute_vpn_gateway":            resourceComputeVpnGateway(),
 			"google_compute_vpn_tunnel":             resourceComputeVpnTunnel(),
 			"google_container_cluster":              resourceContainerCluster(),
+			"google_container_node_pool":            resourceContainerNodePool(),
 			"google_dns_managed_zone":               resourceDnsManagedZone(),
 			"google_dns_record_set":                 resourceDnsRecordSet(),
 			"google_sql_database":                   resourceSqlDatabase(),
@@ -114,9 +106,6 @@ func Provider() terraform.ResourceProvider {
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	credentials := d.Get("credentials").(string)
-	if credentials == "" {
-		credentials = d.Get("account_file").(string)
-	}
 	config := Config{
 		Credentials: credentials,
 		Project:     d.Get("project").(string),
@@ -128,36 +117,6 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	}
 
 	return &config, nil
-}
-
-func validateAccountFile(v interface{}, k string) (warnings []string, errors []error) {
-	if v == nil {
-		return
-	}
-
-	value := v.(string)
-
-	if value == "" {
-		return
-	}
-
-	contents, wasPath, err := pathorcontents.Read(value)
-	if err != nil {
-		errors = append(errors, fmt.Errorf("Error loading Account File: %s", err))
-	}
-	if wasPath {
-		warnings = append(warnings, `account_file was provided as a path instead of
-as file contents. This support will be removed in the future. Please update
-your configuration to use ${file("filename.json")} instead.`)
-	}
-
-	var account accountFile
-	if err := json.Unmarshal([]byte(contents), &account); err != nil {
-		errors = append(errors,
-			fmt.Errorf("account_file not valid JSON '%s': %s", contents, err))
-	}
-
-	return
 }
 
 func validateCredentials(v interface{}, k string) (warnings []string, errors []error) {
@@ -270,17 +229,20 @@ func getNetworkLink(d *schema.ResourceData, config *Config, field string) (strin
 func getNetworkName(d *schema.ResourceData, field string) (string, error) {
 	if v, ok := d.GetOk(field); ok {
 		network := v.(string)
-
-		if strings.HasPrefix(network, "https://www.googleapis.com/compute/") {
-			// extract the network name from SelfLink URL
-			networkName := network[strings.LastIndex(network, "/")+1:]
-			if networkName == "" {
-				return "", fmt.Errorf("network url not valid")
-			}
-			return networkName, nil
-		}
-
-		return network, nil
+		return getNetworkNameFromSelfLink(network)
 	}
 	return "", nil
+}
+
+func getNetworkNameFromSelfLink(network string) (string, error) {
+	if strings.HasPrefix(network, "https://www.googleapis.com/compute/") {
+		// extract the network name from SelfLink URL
+		networkName := network[strings.LastIndex(network, "/")+1:]
+		if networkName == "" {
+			return "", fmt.Errorf("network url not valid")
+		}
+		return networkName, nil
+	}
+
+	return network, nil
 }

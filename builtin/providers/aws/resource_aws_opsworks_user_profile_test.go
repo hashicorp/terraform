@@ -14,14 +14,14 @@ import (
 
 func TestAccAWSOpsworksUserProfile(t *testing.T) {
 	rName := fmt.Sprintf("test-user-%d", acctest.RandInt())
-	roleName := fmt.Sprintf("tf-ops-user-profile-%d", acctest.RandInt())
+	updateRName := fmt.Sprintf("test-user-%d", acctest.RandInt())
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAwsOpsworksUserProfileDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAwsOpsworksUserProfileCreate(rName, roleName),
+			{
+				Config: testAccAwsOpsworksUserProfileCreate(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSOpsworksUserProfileExists(
 						"aws_opsworks_user_profile.user", rName),
@@ -30,6 +30,22 @@ func TestAccAWSOpsworksUserProfile(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_user_profile.user", "ssh_username", rName,
+					),
+					resource.TestCheckResourceAttr(
+						"aws_opsworks_user_profile.user", "allow_self_management", "false",
+					),
+				),
+			},
+			{
+				Config: testAccAwsOpsworksUserProfileUpdate(rName, updateRName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSOpsworksUserProfileExists(
+						"aws_opsworks_user_profile.user", updateRName),
+					resource.TestCheckResourceAttr(
+						"aws_opsworks_user_profile.user", "ssh_public_key", "",
+					),
+					resource.TestCheckResourceAttr(
+						"aws_opsworks_user_profile.user", "ssh_username", updateRName,
 					),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_user_profile.user", "allow_self_management", "false",
@@ -114,7 +130,7 @@ func testAccCheckAwsOpsworksUserProfileDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccAwsOpsworksUserProfileCreate(rn, roleName string) string {
+func testAccAwsOpsworksUserProfileCreate(rn string) string {
 	return fmt.Sprintf(`
 resource "aws_opsworks_user_profile" "user" {
   user_arn = "${aws_iam_user.user.arn}"
@@ -125,7 +141,24 @@ resource "aws_iam_user" "user" {
 	name = "%s"
 	path = "/"
 }
+	`, rn)
+}
 
-%s
-	`, rn, testAccAwsOpsworksStackConfigNoVpcCreate(roleName))
+func testAccAwsOpsworksUserProfileUpdate(rn, updateRn string) string {
+	return fmt.Sprintf(`
+resource "aws_opsworks_user_profile" "user" {
+  user_arn = "${aws_iam_user.new-user.arn}"
+  ssh_username = "${aws_iam_user.new-user.name}"
+}
+
+resource "aws_iam_user" "user" {
+	name = "%s"
+	path = "/"
+}
+
+resource "aws_iam_user" "new-user" {
+	name = "%s"
+	path = "/"
+}
+	`, rn, updateRn)
 }

@@ -30,7 +30,7 @@ resource "aws_ecs_task_definition" "service" {
 ```
 
 The referenced `task-definitions/service.json` file contains a valid JSON document,
-which is show below, and its content is going to be passed directly into the
+which is shown below, and its content is going to be passed directly into the
 `container_definitions` attribute as a string. Please note that this example
 contains only a small subset of the available parameters.
 
@@ -69,7 +69,7 @@ contains only a small subset of the available parameters.
 
 The following arguments are supported:
 
-* `family` - (Required) An unique name for your task definition.
+* `family` - (Required) A unique name for your task definition.
 * `container_definitions` - (Required) A list of valid [container definitions]
 (http://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_ContainerDefinition.html) provided as a
 single valid JSON document. Please note that you should only provide values that are part of the container
