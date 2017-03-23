@@ -12,7 +12,7 @@ IMPROVEMENTS:
  * core: fix `ignore_changes` causing fields to be removed during apply [GH-12897]
  * core: add `-force-copy` option to `terraform init` to supress prompts for copying state [GH-12939]
  * helper/acctest: Add NewSSHKeyPair function [GH-12894]
- * alicloud: simplify validators [GH-12982]
+ * provider/alicloud: simplify validators [GH-12982]
  * provider/aws: Added support for EMR AutoScalingRole [GH-12823]
  * provider/aws: Add `name_prefix` to `aws_autoscaling_group` and `aws_elb` resources [GH-12629]
  * provider/aws: Updated default configuration manager version in `aws_opsworks_stack` [GH-12979]
