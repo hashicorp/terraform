@@ -17,7 +17,7 @@ run Packer for you, creating any artifacts and sending the appropriate
 notifications.
 
 If your artifacts are used in any other environments and you have activated
-the plan on aritfact upload feature, this may also queue Terraform
+the plan on artifact upload feature, this may also queue Terraform
 plans.
 
 This feature is useful for maintenance of images and automatic updates,

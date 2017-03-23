@@ -24,7 +24,7 @@ more builds by configuring the various components of Packer
 - Applications that use the build as part of the pipeline and merged into the version prior to running Packer on it
 
 When a new version of Packer configuration and associated
-scripts from GitHub or `packer push` is recieved, it automatically starts a new
+scripts from GitHub or `packer push` is received, it automatically starts a new
 Packer build. That Packer build runs in an isolated machine environment with the contents
 of that version available to it.
 

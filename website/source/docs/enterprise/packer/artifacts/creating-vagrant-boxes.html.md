@@ -89,7 +89,7 @@ For `vagrant.box` type artifacts, you can specify keys in the metadata block:
 - `version`: This is the Vagrant box version and is constrained to the
 same formatting as in the web UI: `*.*.*` _(optional, but required for boxes
 with multiple providers). The version will increment on the minor version if left blank (e.g the initial version will be set to 0.1.0, the subsequent version will be set to 0.2.0)._
-- `description`: This is the desciption that will be shown with the
+- `description`: This is the description that will be shown with the
 version of the box. You can use Markdown for links and style. _(optional)_
 
 ## Example
