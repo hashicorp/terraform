@@ -1164,33 +1164,14 @@ func (m schemaMap) validateConflictingAttributes(
 		return nil
 	}
 
-	for _, conflictingKey := range schema.ConflictsWith {
-		resolvedConflictingKey := resolveConflictingKey(k, conflictingKey)
-		if value, ok := c.Get(resolvedConflictingKey); ok {
+	for _, conflicting_key := range schema.ConflictsWith {
+		if value, ok := c.Get(conflicting_key); ok {
 			return fmt.Errorf(
-				"%q: conflicts with %s (%#v)", k, resolvedConflictingKey, value)
+				"%q: conflicts with %s (%#v)", k, conflicting_key, value)
 		}
 	}
 
 	return nil
-}
-
-//The key we are validating for (k) contains the index for the current list/set item
-//Example: list.2.field
-//The conflicting key does not contain the index so we must resolve it and add it to the conflicting key
-//Example: list.conflictingField needs to become list.2.conflictingField
-func resolveConflictingKey(k string, conflictingKey string) string {
-	if conflictingFieldIndex := strings.LastIndex(conflictingKey, "."); conflictingFieldIndex != -1 {
-		if parentName := conflictingKey[:conflictingFieldIndex+1]; parentName != "" {
-			if strings.HasPrefix(strings.ToLower(k), strings.ToLower(parentName)) {
-				conflictingFieldName := conflictingKey[conflictingFieldIndex+1:]
-				fieldIndex := strings.LastIndex(k, ".")
-				return k[:fieldIndex+1] + conflictingFieldName
-			}
-		}
-	}
-
-	return conflictingKey
 }
 
 func (m schemaMap) validateList(

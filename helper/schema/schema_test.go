@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/terraform"
-	"strings"
 )
 
 func TestEnvDefaultFunc(t *testing.T) {
@@ -5015,31 +5014,6 @@ func TestSchemaSet_ValidateMinItems(t *testing.T) {
 			if !reflect.DeepEqual(es, tc.Errors) {
 				t.Fatalf("%q: expected: %q\ngot: %q", tn, tc.Errors, es)
 			}
-		}
-	}
-}
-
-func TestSchema_ResolveConflictingKey(t *testing.T) {
-	cases := []struct {
-		Key                 string
-		ConflictingKey      string
-		ExpectedResolvedKey string
-	}{
-		{"Field", "ConflictField", "ConflictField"},
-		{"Nested.Field", "Nested.ConflictField", "Nested.ConflictField"},
-		{"Double.Nested.Field", "Double.Nested.ConflictField", "Double.Nested.ConflictField"},
-		{"List.0.Field", "List.ConflictingField", "List.0.ConflictingField"},
-		{"Nested.List.0.Field", "Nested.List.ConflictingField", "Nested.List.0.ConflictingField"},
-		{"Field", ".G.I.G.O.", ".G.I.G.O."},
-		{"Field", ".", "."},
-		{"Field", "", ""},
-	}
-
-	for i, tc := range cases {
-		actualResolvedKey := resolveConflictingKey(tc.Key, tc.ConflictingKey)
-
-		if !strings.EqualFold(actualResolvedKey, tc.ExpectedResolvedKey) {
-			t.Errorf("%d: expected: %s actual: %s", i, tc.ExpectedResolvedKey, actualResolvedKey)
 		}
 	}
 }
