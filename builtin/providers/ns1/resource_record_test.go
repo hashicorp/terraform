@@ -120,9 +120,9 @@ func testAccCheckRecordDestroy(s *terraform.State) error {
 		}
 	}
 
-	foundRecord, _, err := client.Records.Get(recordDomain, recordZone, recordType)
-	if err != nil {
-		return fmt.Errorf("Record still exists: %#v", foundRecord)
+	foundRecord, _, err := client.Records.Get(recordZone, recordDomain, recordType)
+	if err != ns1.ErrRecordMissing {
+		return fmt.Errorf("Record still exists: %#v %#v", foundRecord, err)
 	}
 
 	return nil
