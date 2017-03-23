@@ -1322,7 +1322,7 @@ func TestInterpolateFuncSignum(t *testing.T) {
 			},
 
 			{
-				`${signum(-29)}`,
+				`${signum(0 - 29)}`,
 				"-1",
 				false,
 			},
