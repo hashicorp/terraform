@@ -19,6 +19,7 @@ IMPROVEMENTS:
  * provider/aws: Added aws_api_gateway_api_key value attribute [GH-9462]
  * provider/aws: Allow aws_alb subnets to change [GH-12850]
  * provider/aws: Support Attachment of ALB Target Groups to Autoscaling Groups [GH-12855]
+ * provider/azurerm: Add support for setting the primary network interface [GH-11290]
  * provider/cloudstack: Add `zone_id` to `cloudstack_ipaddress` resource [GH-11306]
  * provider/consul: Add support for basic auth to the provider [GH-12679]
  * provider/dnsimple: Allow dnsimple_record.priority attribute to be set [GH-12843]
