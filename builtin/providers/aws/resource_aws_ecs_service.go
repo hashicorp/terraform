@@ -356,8 +356,17 @@ func flattenPlacementStrategy(pss []*ecs.PlacementStrategy) []map[string]interfa
 	results := make([]map[string]interface{}, 0)
 	for _, ps := range pss {
 		c := make(map[string]interface{})
-		c["type"] = *ps.Type
-		c["field"] = strings.ToLower(*ps.Field)
+
+		specialCases := map[string]string{"CPU": "cpu", "MEMORY": "memory"}
+		apiFieldValue := *ps.Field
+		mappedValue, ok := specialCases[apiFieldValue]
+
+		if ok {
+			c["field"] = mappedValue
+		} else {
+			c["field"] = apiFieldValue
+		}
+
 		results = append(results, c)
 	}
 	return results
