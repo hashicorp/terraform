@@ -18,6 +18,7 @@ IMPROVEMENTS:
  * provider/aws: Updated default configuration manager version in `aws_opsworks_stack` [GH-12979]
  * provider/aws: Added aws_api_gateway_api_key value attribute [GH-9462]
  * provider/aws: Allow aws_alb subnets to change [GH-12850]
+ * provider/aws: Support Attachment of ALB Target Groups to Autoscaling Groups [GH-12855]
  * provider/cloudstack: Add `zone_id` to `cloudstack_ipaddress` resource [GH-11306]
  * provider/consul: Add support for basic auth to the provider [GH-12679]
  * provider/dnsimple: Allow dnsimple_record.priority attribute to be set [GH-12843]
