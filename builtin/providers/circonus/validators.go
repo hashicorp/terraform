@@ -347,7 +347,7 @@ func validateHTTPURL(attrName schemaAttr, checkFlags urlParseFlags) func(v inter
 		}
 
 		if checkFlags&urlWithoutPath != 0 && u.Path != "" {
-			errors = append(errors, fmt.Errorf("Path is present on URL %q (HINT: drop the :%s)", v.(string), u.Parse))
+			errors = append(errors, fmt.Errorf("Path is present on URL %q (HINT: drop the %s)", v.(string), u.Path))
 		}
 
 		if checkFlags&urlWithoutPort != 0 {
