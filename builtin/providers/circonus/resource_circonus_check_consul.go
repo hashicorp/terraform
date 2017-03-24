@@ -26,7 +26,7 @@ const (
 	checkConsulKeyFileAttr              = "key_file"
 	checkConsulNodeAttr                 = "node"
 	checkConsulNodeBlacklistAttr        = "node_blacklist"
-	checkConsulServiceNameAttr          = "service_name"
+	checkConsulServiceAttr              = "service"
 	checkConsulServiceNameBlacklistAttr = "service_blacklist"
 	checkConsulStateAttr                = "state"
 )
@@ -44,7 +44,7 @@ var checkConsulDescriptions = attrDescrs{
 	checkConsulKeyFileAttr:              "A path to a file containing key to be used in conjunction with the cilent certificate (for TLS checks)",
 	checkConsulNodeAttr:                 "Node Name or NodeID of a Consul agent",
 	checkConsulNodeBlacklistAttr:        "A blacklist of node names or IDs to exclude from metric results",
-	checkConsulServiceNameAttr:          "Name of the Consul service to check",
+	checkConsulServiceAttr:              "Name of the Consul service to check",
 	checkConsulServiceNameBlacklistAttr: "A blacklist of service names to exclude from metric results",
 	checkConsulStateAttr:                "Check for Consul services in this particular state",
 }
@@ -117,7 +117,7 @@ var schemaCheckConsul = &schema.Schema{
 				Optional:     true,
 				ValidateFunc: validateRegexp(checkConsulNodeAttr, `^[a-zA-Z0-9_\-]+$`),
 				ConflictsWith: []string{
-					checkConsulAttr + "." + checkConsulServiceNameAttr,
+					checkConsulAttr + "." + checkConsulServiceAttr,
 					checkConsulAttr + "." + checkConsulStateAttr,
 				},
 			},
@@ -129,10 +129,10 @@ var schemaCheckConsul = &schema.Schema{
 					ValidateFunc: validateRegexp(checkConsulNodeBlacklistAttr, `^[A-Za-z0-9_-]+$`),
 				},
 			},
-			checkConsulServiceNameAttr: &schema.Schema{
+			checkConsulServiceAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateRegexp(checkConsulServiceNameAttr, `^[a-zA-Z0-9_\-]+$`),
+				ValidateFunc: validateRegexp(checkConsulServiceAttr, `^[a-zA-Z0-9_\-]+$`),
 				ConflictsWith: []string{
 					checkConsulAttr + "." + checkConsulNodeAttr,
 					checkConsulAttr + "." + checkConsulStateAttr,
@@ -152,7 +152,7 @@ var schemaCheckConsul = &schema.Schema{
 				ValidateFunc: validateRegexp(checkConsulStateAttr, `^(any|passing|warning|critical)$`),
 				ConflictsWith: []string{
 					checkConsulAttr + "." + checkConsulNodeAttr,
-					checkConsulAttr + "." + checkConsulServiceNameAttr,
+					checkConsulAttr + "." + checkConsulServiceAttr,
 				},
 			},
 		}),
@@ -220,7 +220,7 @@ func checkAPIToStateConsul(c *circonusCheck, d *schema.ResourceData) error {
 		case checkConsulV1NodePrefix:
 			consulConfig[string(checkConsulNodeAttr)] = checkArg
 		case checkConsulV1ServicePrefix:
-			consulConfig[string(checkConsulServiceNameAttr)] = checkArg
+			consulConfig[string(checkConsulServiceAttr)] = checkArg
 		case checkConsulV1StatePrefix:
 			consulConfig[string(checkConsulStateAttr)] = checkArg
 		default:
@@ -366,7 +366,7 @@ func checkConfigToAPIConsul(c *circonusCheck, l interfaceList) error {
 				checkURL.Path = strings.Join([]string{checkConsulV1Prefix, checkConsulV1NodePrefix, v.(string)}, "/")
 			}
 
-			if v, found := consulConfig[checkConsulServiceNameAttr]; found && v.(string) != "" {
+			if v, found := consulConfig[checkConsulServiceAttr]; found && v.(string) != "" {
 				checkURL.Path = strings.Join([]string{checkConsulV1Prefix, checkConsulV1ServicePrefix, v.(string)}, "/")
 			}
 

@@ -125,7 +125,7 @@ func (c *circonusCheck) Validate() error {
 		}
 	case apiCheckTypeConsulAttr:
 		if v, found := c.Config[config.URL]; !found || v == "" {
-			return fmt.Errorf("%s must have at least one check mode set: %s, %s, or %s must be set", checkConsulAttr, checkConsulServiceNameAttr, checkConsulNodeAttr, checkConsulStateAttr)
+			return fmt.Errorf("%s must have at least one check mode set: %s, %s, or %s must be set", checkConsulAttr, checkConsulServiceAttr, checkConsulNodeAttr, checkConsulStateAttr)
 		}
 	}
 

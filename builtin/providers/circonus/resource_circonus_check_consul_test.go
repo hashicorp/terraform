@@ -89,7 +89,7 @@ func TestAccCirconusCheckConsul_service(t *testing.T) {
 					// resource.TestCheckResourceAttr("circonus_check.consul_server", "consul.0.key_file", ""),
 					resource.TestCheckNoResourceAttr("circonus_check.consul_server", "consul.0.headers"),
 					resource.TestCheckResourceAttr("circonus_check.consul_server", "consul.0.http_addr", "http://consul.service.consul"),
-					resource.TestCheckResourceAttr("circonus_check.consul_server", "consul.0.service_name", "consul"),
+					resource.TestCheckResourceAttr("circonus_check.consul_server", "consul.0.service", "consul"),
 					resource.TestCheckResourceAttr("circonus_check.consul_server", "consul.0.service_blacklist.#", "3"),
 					resource.TestCheckResourceAttr("circonus_check.consul_server", "consul.0.service_blacklist.0", "bad"),
 					resource.TestCheckResourceAttr("circonus_check.consul_server", "consul.0.service_blacklist.1", "hombre"),
@@ -224,7 +224,7 @@ resource "circonus_check" "consul_server" {
   }
 
   consul {
-    service_name = "consul"
+    service = "consul"
     service_blacklist = ["bad","hombre","service"]
   }
 
