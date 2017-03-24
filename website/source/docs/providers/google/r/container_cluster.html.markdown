@@ -109,6 +109,9 @@ which the cluster's instances are launched
 * `disk_size_gb` - (Optional) Size of the disk attached to each node, specified
     in GB. The smallest allowed disk size is 10GB. Defaults to 100GB.
 
+* `local_ssd_count` - (Optional) The amount of local SSD disks that will be
+    attached to each cluster node. Defaults to 0.
+
 * `oauth_scopes` - (Optional) The set of Google API scopes to be made available
     on all of the node VMs under the "default" service account. These can be
     either FQDNs, or scope aliases. The following scopes are necessary to ensure
@@ -120,6 +123,14 @@ which the cluster's instances are launched
     if `logging_service` points to Google
   * `monitoring` (`https://www.googleapis.com/auth/monitoring`),
     if `monitoring_service` points to Google
+
+* `service_account` - (Optional) The service account to be used by the Node VMs.
+    If not specified, the "default" service account is used.
+
+* `metadata` - (Optional) The metadata key/value pairs assigned to instances in
+    the cluster.
+
+* `image_type` - (Optional) The image type to use for this node.
 
 **Addons Config** supports the following addons:
 

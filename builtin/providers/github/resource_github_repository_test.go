@@ -184,7 +184,7 @@ func testAccCheckGithubRepositoryDestroy(s *terraform.State) error {
 		gotRepo, resp, err := conn.Repositories.Get(context.TODO(), orgName, rs.Primary.ID)
 		if err == nil {
 			if gotRepo != nil && *gotRepo.Name == rs.Primary.ID {
-				return fmt.Errorf("Repository still exists")
+				return fmt.Errorf("Repository %s/%s still exists", orgName, *gotRepo.Name)
 			}
 		}
 		if resp.StatusCode != 404 {
