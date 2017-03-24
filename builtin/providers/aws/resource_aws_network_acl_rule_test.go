@@ -66,6 +66,25 @@ func TestAccAWSNetworkAclRule_ipv6(t *testing.T) {
 	})
 }
 
+func TestAccAWSNetworkAclRule_allProtocol(t *testing.T) {
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSNetworkAclRuleDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:             testAccAWSNetworkAclRuleAllProtocolConfig,
+				ExpectNonEmptyPlan: false,
+			},
+			{
+				Config:             testAccAWSNetworkAclRuleAllProtocolConfigNoRealUpdate,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 func TestResourceAWSNetworkAclRule_validateICMPArgumentValue(t *testing.T) {
 	type testCases struct {
 		Value    string
@@ -246,6 +265,44 @@ resource "aws_network_acl_rule" "baz" {
 	egress = false
 	protocol = "tcp"
 	rule_action = "allow"
+	from_port = 22
+	to_port = 22
+}
+`
+
+const testAccAWSNetworkAclRuleAllProtocolConfigNoRealUpdate = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.3.0.0/16"
+}
+resource "aws_network_acl" "bar" {
+	vpc_id = "${aws_vpc.foo.id}"
+}
+resource "aws_network_acl_rule" "baz" {
+	network_acl_id = "${aws_network_acl.bar.id}"
+	rule_number = 150
+	egress = false
+	protocol = "all"
+	rule_action = "allow"
+	cidr_block = "0.0.0.0/0"
+	from_port = 22
+	to_port = 22
+}
+`
+
+const testAccAWSNetworkAclRuleAllProtocolConfig = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.3.0.0/16"
+}
+resource "aws_network_acl" "bar" {
+	vpc_id = "${aws_vpc.foo.id}"
+}
+resource "aws_network_acl_rule" "baz" {
+	network_acl_id = "${aws_network_acl.bar.id}"
+	rule_number = 150
+	egress = false
+	protocol = "-1"
+	rule_action = "allow"
+	cidr_block = "0.0.0.0/0"
 	from_port = 22
 	to_port = 22
 }
