@@ -7,8 +7,8 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"time"
 	"strings"
+	"time"
 
 	"github.com/denverdino/aliyungo/util"
 )
@@ -21,6 +21,9 @@ type Client struct {
 	httpClient      *http.Client
 	endpoint        string
 	version         string
+	serviceCode     string
+	regionID        Region
+	businessInfo    string
 }
 
 // NewClient creates a new instance of ECS client
@@ -33,6 +36,26 @@ func (client *Client) Init(endpoint, version, accessKeyId, accessKeySecret strin
 	client.version = version
 }
 
+func (client *Client) NewInit(endpoint, version, accessKeyId, accessKeySecret, serviceCode string, regionID Region) {
+	client.Init(endpoint, version, accessKeyId, accessKeySecret)
+	client.serviceCode = serviceCode
+	client.regionID = regionID
+	client.setEndpointByLocation(regionID, serviceCode, accessKeyId, accessKeySecret)
+}
+
+//NewClient using location service
+func (client *Client) setEndpointByLocation(region Region, serviceCode, accessKeyId, accessKeySecret string) {
+	locationClient := NewLocationClient(accessKeyId, accessKeySecret)
+	ep := locationClient.DescribeOpenAPIEndpoint(region, serviceCode)
+	if ep == "" {
+		ep = loadEndpointFromFile(region, serviceCode)
+	}
+
+	if ep != "" {
+		client.endpoint = ep
+	}
+}
+
 // SetEndpoint sets custom endpoint
 func (client *Client) SetEndpoint(endpoint string) {
 	client.endpoint = endpoint
@@ -41,6 +64,15 @@ func (client *Client) SetEndpoint(endpoint string) {
 // SetEndpoint sets custom version
 func (client *Client) SetVersion(version string) {
 	client.version = version
+}
+
+func (client *Client) SetRegionID(regionID Region) {
+	client.regionID = regionID
+}
+
+//SetServiceCode sets serviceCode
+func (client *Client) SetServiceCode(serviceCode string) {
+	client.serviceCode = serviceCode
 }
 
 // SetAccessKeyId sets new AccessKeyId
@@ -56,6 +88,15 @@ func (client *Client) SetAccessKeySecret(secret string) {
 // SetDebug sets debug mode to log the request/response message
 func (client *Client) SetDebug(debug bool) {
 	client.debug = debug
+}
+
+// SetBusinessInfo sets business info to log the request/response message
+func (client *Client) SetBusinessInfo(businessInfo string) {
+	if strings.HasPrefix(businessInfo, "/") {
+		client.businessInfo = businessInfo
+	} else if businessInfo != "" {
+		client.businessInfo = "/" + businessInfo
+	}
 }
 
 // Invoke sends the raw HTTP request for ECS services
@@ -80,7 +121,7 @@ func (client *Client) Invoke(action string, args interface{}, response interface
 	}
 
 	// TODO move to util and add build val flag
-	httpReq.Header.Set("X-SDK-Client", `AliyunGO/`+Version)
+	httpReq.Header.Set("X-SDK-Client", `AliyunGO/`+Version+client.businessInfo)
 
 	t0 := time.Now()
 	httpResp, err := client.httpClient.Do(httpReq)
@@ -128,7 +169,8 @@ func (client *Client) Invoke(action string, args interface{}, response interface
 
 // Invoke sends the raw HTTP request for ECS services
 //改进了一下上面那个方法，可以使用各种Http方法
-func (client *Client) InvokeByAnyMethod(method, action string, args interface{}, response interface{}) error {
+//2017.1.30 增加了一个path参数，用来拓展访问的地址
+func (client *Client) InvokeByAnyMethod(method, action, path string, args interface{}, response interface{}) error {
 
 	request := Request{}
 	request.init(client.version, action, client.AccessKeyId)
@@ -140,17 +182,18 @@ func (client *Client) InvokeByAnyMethod(method, action string, args interface{},
 	signature := util.CreateSignatureForRequest(method, &data, client.AccessKeySecret)
 
 	data.Add("Signature", signature)
-
 	// Generate the request URL
 	var (
 		httpReq *http.Request
-		err error
+		err     error
 	)
 	if method == http.MethodGet {
-		requestURL := client.endpoint + "?" + data.Encode()
+		requestURL := client.endpoint + path + "?" + data.Encode()
+		//fmt.Println(requestURL)
 		httpReq, err = http.NewRequest(method, requestURL, nil)
 	} else {
-		httpReq, err = http.NewRequest(method, client.endpoint, strings.NewReader(data.Encode()))
+		//fmt.Println(client.endpoint + path)
+		httpReq, err = http.NewRequest(method, client.endpoint+path, strings.NewReader(data.Encode()))
 		httpReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	}
 
@@ -159,7 +202,7 @@ func (client *Client) InvokeByAnyMethod(method, action string, args interface{},
 	}
 
 	// TODO move to util and add build val flag
-	httpReq.Header.Set("X-SDK-Client", `AliyunGO/` + Version)
+	httpReq.Header.Set("X-SDK-Client", `AliyunGO/`+Version+client.businessInfo)
 
 	t0 := time.Now()
 	httpResp, err := client.httpClient.Do(httpReq)

@@ -8,12 +8,40 @@ import (
 )
 
 type Listener struct {
+	slb.HTTPListenerType
+
 	InstancePort     int
 	LoadBalancerPort int
 	Protocol         string
+	//tcp & udp
+	PersistenceTimeout int
+
+	//https
 	SSLCertificateId string
-	Bandwidth        int
+
+	//tcp
+	HealthCheckType slb.HealthCheckType
+
+	//api interface: http & https is HealthCheckTimeout, tcp & udp is HealthCheckConnectTimeout
+	HealthCheckConnectTimeout int
 }
+
+type ListenerErr struct {
+	ErrType string
+	Err     error
+}
+
+func (e *ListenerErr) Error() string {
+	return e.ErrType + " " + e.Err.Error()
+
+}
+
+const (
+	HealthCheckErrType   = "healthCheckErrType"
+	StickySessionErrType = "stickySessionErrType"
+	CookieTimeOutErrType = "cookieTimeoutErrType"
+	CookieErrType        = "cookieErrType"
+)
 
 // Takes the result of flatmap.Expand for an array of listeners and
 // returns ELB API compatible objects
@@ -31,11 +59,76 @@ func expandListeners(configured []interface{}) ([]*Listener, error) {
 			InstancePort:     ip,
 			LoadBalancerPort: lp,
 			Protocol:         data["lb_protocol"].(string),
-			Bandwidth:        data["bandwidth"].(int),
+		}
+
+		l.Bandwidth = data["bandwidth"].(int)
+
+		if v, ok := data["scheduler"]; ok {
+			l.Scheduler = slb.SchedulerType(v.(string))
 		}
 
 		if v, ok := data["ssl_certificate_id"]; ok {
 			l.SSLCertificateId = v.(string)
+		}
+
+		if v, ok := data["sticky_session"]; ok {
+			l.StickySession = slb.FlagType(v.(string))
+		}
+
+		if v, ok := data["sticky_session_type"]; ok {
+			l.StickySessionType = slb.StickySessionType(v.(string))
+		}
+
+		if v, ok := data["cookie_timeout"]; ok {
+			l.CookieTimeout = v.(int)
+		}
+
+		if v, ok := data["cookie"]; ok {
+			l.Cookie = v.(string)
+		}
+
+		if v, ok := data["persistence_timeout"]; ok {
+			l.PersistenceTimeout = v.(int)
+		}
+
+		if v, ok := data["health_check"]; ok {
+			l.HealthCheck = slb.FlagType(v.(string))
+		}
+
+		if v, ok := data["health_check_type"]; ok {
+			l.HealthCheckType = slb.HealthCheckType(v.(string))
+		}
+
+		if v, ok := data["health_check_domain"]; ok {
+			l.HealthCheckDomain = v.(string)
+		}
+
+		if v, ok := data["health_check_uri"]; ok {
+			l.HealthCheckURI = v.(string)
+		}
+
+		if v, ok := data["health_check_connect_port"]; ok {
+			l.HealthCheckConnectPort = v.(int)
+		}
+
+		if v, ok := data["healthy_threshold"]; ok {
+			l.HealthyThreshold = v.(int)
+		}
+
+		if v, ok := data["unhealthy_threshold"]; ok {
+			l.UnhealthyThreshold = v.(int)
+		}
+
+		if v, ok := data["health_check_timeout"]; ok {
+			l.HealthCheckTimeout = v.(int)
+		}
+
+		if v, ok := data["health_check_interval"]; ok {
+			l.HealthCheckInterval = v.(int)
+		}
+
+		if v, ok := data["health_check_http_code"]; ok {
+			l.HealthCheckHttpCode = slb.HealthCheckHttpCodeType(v.(string))
 		}
 
 		var valid bool

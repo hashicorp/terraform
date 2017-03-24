@@ -97,6 +97,22 @@ func TestAccAlicloudImagesDataSource_nameRegexFilter(t *testing.T) {
 	})
 }
 
+func TestAccAlicloudImagesDataSource_imageNotInFirstPage(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckAlicloudImagesDataSourceImageNotInFirstPageConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAlicloudDataSourceID("data.alicloud_images.name_regex_filtered_image"),
+					resource.TestMatchResourceAttr("data.alicloud_images.name_regex_filtered_image", "images.0.image_id", regexp.MustCompile("^ubuntu_14")),
+				),
+			},
+		},
+	})
+}
+
 // Instance store test - using centos images
 const testAccCheckAlicloudImagesDataSourceImagesConfig = `
 data "alicloud_images" "multi_image" {
@@ -126,5 +142,14 @@ data "alicloud_images" "name_regex_filtered_image" {
 	most_recent = true
 	owners = "system"
 	name_regex = "^centos_6\\w{1,5}[64]{1}.*"
+}
+`
+
+// Testing image not in first page response
+const testAccCheckAlicloudImagesDataSourceImageNotInFirstPageConfig = `
+data "alicloud_images" "name_regex_filtered_image" {
+	most_recent = true
+	owners = "system"
+	name_regex = "^ubuntu_14.*_64"
 }
 `
