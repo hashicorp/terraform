@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"sort"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/hil"
@@ -4923,6 +4924,47 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 			Err: true,
+		},
+
+		// The Validation function should not see interpolation strings from
+		// non-computed values.
+		"set with partially computed list and map": {
+			Schema: map[string]*Schema{
+				"outer": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Computed: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"list": &Schema{
+								Type:     TypeList,
+								Optional: true,
+								Elem: &Schema{
+									Type: TypeString,
+									ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+										if strings.HasPrefix(v.(string), "${") {
+											es = append(es, fmt.Errorf("should not have interpolations"))
+										}
+										return
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			Config: map[string]interface{}{
+				"outer": []map[string]interface{}{
+					{
+						"list": []interface{}{"${var.a}", "${var.b}", "c"},
+					},
+				},
+			},
+			Vars: map[string]string{
+				"var.a": "A",
+				"var.b": config.UnknownVariableValue,
+			},
+			Err: false,
 		},
 	}
 
