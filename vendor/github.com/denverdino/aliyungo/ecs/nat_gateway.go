@@ -1,8 +1,7 @@
-package alicloud
+package ecs
 
 import (
 	"github.com/denverdino/aliyungo/common"
-	"github.com/denverdino/aliyungo/ecs"
 )
 
 type BandwidthPackageType struct {
@@ -25,6 +24,10 @@ type ForwardTableIdType struct {
 	ForwardTableId []string
 }
 
+type SnatTableIdType struct {
+	SnatTableId []string
+}
+
 type BandwidthPackageIdType struct {
 	BandwidthPackageId []string
 }
@@ -39,7 +42,7 @@ type CreateNatGatewayResponse struct {
 // CreateNatGateway creates Virtual Private Cloud
 //
 // You can read doc at http://docs.aliyun.com/#/pub/ecs/open-api/vpc&createvpc
-func CreateNatGateway(client *ecs.Client, args *CreateNatGatewayArgs) (resp *CreateNatGatewayResponse, err error) {
+func (client *Client) CreateNatGateway(args *CreateNatGatewayArgs) (resp *CreateNatGatewayResponse, err error) {
 	response := CreateNatGatewayResponse{}
 	err = client.Invoke("CreateNatGateway", args, &response)
 	if err != nil {
@@ -53,6 +56,7 @@ type NatGatewaySetType struct {
 	Description         string
 	BandwidthPackageIds BandwidthPackageIdType
 	ForwardTableIds     ForwardTableIdType
+	SnatTableIds        SnatTableIdType
 	InstanceChargeType  string
 	Name                string
 	NatGatewayId        string
@@ -77,7 +81,7 @@ type DescribeNatGatewaysArgs struct {
 	common.Pagination
 }
 
-func DescribeNatGateways(client *ecs.Client, args *DescribeNatGatewaysArgs) (natGateways []NatGatewaySetType,
+func (client *Client) DescribeNatGateways(args *DescribeNatGatewaysArgs) (natGateways []NatGatewaySetType,
 	pagination *common.PaginationResult, err error) {
 
 	args.Validate()
@@ -103,7 +107,7 @@ type ModifyNatGatewayAttributeResponse struct {
 	common.Response
 }
 
-func ModifyNatGatewayAttribute(client *ecs.Client, args *ModifyNatGatewayAttributeArgs) error {
+func (client *Client) ModifyNatGatewayAttribute(args *ModifyNatGatewayAttributeArgs) error {
 	response := ModifyNatGatewayAttributeResponse{}
 	return client.Invoke("ModifyNatGatewayAttribute", args, &response)
 }
@@ -114,7 +118,7 @@ type ModifyNatGatewaySpecArgs struct {
 	Spec         NatGatewaySpec
 }
 
-func ModifyNatGatewaySpec(client *ecs.Client, args *ModifyNatGatewaySpecArgs) error {
+func (client *Client) ModifyNatGatewaySpec(args *ModifyNatGatewaySpecArgs) error {
 	response := ModifyNatGatewayAttributeResponse{}
 	return client.Invoke("ModifyNatGatewaySpec", args, &response)
 }
@@ -128,7 +132,7 @@ type DeleteNatGatewayResponse struct {
 	common.Response
 }
 
-func DeleteNatGateway(client *ecs.Client, args *DeleteNatGatewayArgs) error {
+func (client *Client) DeleteNatGateway(args *DeleteNatGatewayArgs) error {
 	response := DeleteNatGatewayResponse{}
 	err := client.Invoke("DeleteNatGateway", args, &response)
 	return err
@@ -140,10 +144,20 @@ type DescribeBandwidthPackagesArgs struct {
 	NatGatewayId       string
 }
 
+type PublicIpAddresseType struct {
+	AllocationId string
+	IpAddress    string
+}
+
 type DescribeBandwidthPackageType struct {
 	Bandwidth          string
 	BandwidthPackageId string
 	IpCount            string
+	PublicIpAddresses  struct {
+		PublicIpAddresse []PublicIpAddresseType
+	}
+
+	ZoneId string
 }
 
 type DescribeBandwidthPackagesResponse struct {
@@ -153,12 +167,14 @@ type DescribeBandwidthPackagesResponse struct {
 	}
 }
 
-func DescribeBandwidthPackages(client *ecs.Client, args *DescribeBandwidthPackagesArgs) ([]DescribeBandwidthPackageType, error) {
+func (client *Client) DescribeBandwidthPackages(args *DescribeBandwidthPackagesArgs) ([]DescribeBandwidthPackageType, error) {
 	response := &DescribeBandwidthPackagesResponse{}
+
 	err := client.Invoke("DescribeBandwidthPackages", args, response)
 	if err != nil {
 		return nil, err
 	}
+
 	return response.BandwidthPackages.BandwidthPackage, err
 }
 
@@ -171,18 +187,10 @@ type DeleteBandwidthPackageResponse struct {
 	common.Response
 }
 
-func DeleteBandwidthPackage(client *ecs.Client, args *DeleteBandwidthPackageArgs) error {
+func (client *Client) DeleteBandwidthPackage(args *DeleteBandwidthPackageArgs) error {
 	response := DeleteBandwidthPackageResponse{}
 	err := client.Invoke("DeleteBandwidthPackage", args, &response)
 	return err
-}
-
-type DescribeSnatTableEntriesArgs struct {
-	RegionId common.Region
-}
-
-func DescribeSnatTableEntries(client *ecs.Client, args *DescribeSnatTableEntriesArgs) {
-
 }
 
 type NatGatewaySpec string
