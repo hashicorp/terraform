@@ -50,6 +50,7 @@ BUG FIXES:
  * provider/aws: Fix AWS ECS placement strategy spread fields [GH-12998]
  * provider/aws: Specify that aws_network_acl_rule requires a cidr block [GH-13013]
  * provider/aws: aws_network_acl_rule treat all and -1 for protocol the same [GH-13049]
+ * provider/aws: Only allow 1 value in alb_listener_rule condition [GH-13051]
  * provider/google: turn compute_instance_group.instances into a set [GH-12790]
  * provider/mysql: recreate user/grant if user/grant got deleted manually [GH-12791]
 
