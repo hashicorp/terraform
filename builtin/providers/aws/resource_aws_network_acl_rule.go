@@ -41,6 +41,12 @@ func resourceAwsNetworkAclRule() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					if old == "all" && new == "-1" || old == "-1" && new == "all" {
+						return true
+					}
+					return false
+				},
 			},
 			"rule_action": {
 				Type:     schema.TypeString,
