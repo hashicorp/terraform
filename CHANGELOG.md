@@ -2,6 +2,7 @@
 
 FEATURES:
 
+ * **New Resource:**  `alicloud_db_instance` [GH-12913]
  * **New Resource:**  `aws_api_gateway_usage_plan` [GH-12542]
  * **New Resource:**  `aws_api_gateway_usage_plan_key` [GH-12851]
  * **New Resource:**  `github_repository_webhook` [GH-12924]
