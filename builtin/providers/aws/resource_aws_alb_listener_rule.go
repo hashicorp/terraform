@@ -66,6 +66,7 @@ func resourceAwsAlbListenerRule() *schema.Resource {
 						},
 						"values": {
 							Type:     schema.TypeList,
+							MaxItems: 1,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Optional: true,
 						},
