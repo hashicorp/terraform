@@ -243,8 +243,9 @@ func resourceComputeInstanceV2() *schema.Resource {
 				},
 			},
 			"volume": &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
+				Type:       schema.TypeSet,
+				Optional:   true,
+				Deprecated: "Use block_device or openstack_compute_volume_attach_v2 instead",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": &schema.Schema{
