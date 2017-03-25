@@ -190,7 +190,7 @@ func TestOutput_nestedListAndMap(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(ui.OutputWriter.String())
-	expected := "foo = [\n    {\n        key = value,\n        key2 = value2\n    },\n    {\n        key = value\n    }\n]"
+	expected := "foo = [\n    {\n        key = value,\n        key2 = value2\n    }\n    {\n        key = value\n    }\n]"
 	if actual != expected {
 		t.Fatalf("bad:\n%#v\n%#v", expected, actual)
 	}

@@ -172,9 +172,7 @@ func formatListOutput(indent, outputName string, outputList []interface{}) strin
 		keyIndent = "    "
 	}
 
-	lastIdx := len(outputList) - 1
-
-	for i, value := range outputList {
+	for _, value := range outputList {
 		switch typedValue := value.(type) {
 		case string:
 			outputBuf.WriteString(fmt.Sprintf("\n%s%s%s", indent, keyIndent, value))
@@ -184,10 +182,6 @@ func formatListOutput(indent, outputName string, outputList []interface{}) strin
 		case map[string]interface{}:
 			outputBuf.WriteString(fmt.Sprintf("\n%s%s", indent,
 				formatNestedMap(indent+keyIndent, typedValue)))
-		}
-
-		if lastIdx != i {
-			outputBuf.WriteString(",")
 		}
 	}
 
