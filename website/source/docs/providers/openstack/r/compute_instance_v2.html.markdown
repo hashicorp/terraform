@@ -174,7 +174,7 @@ resource "openstack_compute_instance_v2" "instance_1" {
 ### Instance With Multiple Networks
 
 ```
-resource "openstack_compute_floatingip_v2" "myip" {
+resource "openstack_networking_floatingip_v2" "myip" {
   pool = "my_pool"
 }
 
@@ -190,12 +190,14 @@ resource "openstack_compute_instance_v2" "multi-net" {
   }
 
   network {
-    name        = "my_second_network"
-    floating_ip = "${openstack_compute_floatingip_v2.myip.address}"
-
-    # Terraform will use this network for provisioning
-    access_network = true
+    name = "my_second_network"
   }
+}
+
+resource "openstack_compute_floatingip_associate_v2" "myip" {
+  floating_ip = "${openstack_networking_floatingip_v2.myip.address}"
+  instance_id = "${openstack_compute_instance_v2.multi-net.id}"
+  fixed_ip = "${openstack_compute_instance_v2.multi-net.network.1.fixed_ip_v4}"
 }
 ```
 
@@ -280,7 +282,7 @@ The following arguments are supported:
 * `flavor_name` - (Optional; Required if `flavor_id` is empty) The name of the
     desired flavor for the server. Changing this resizes the existing server.
 
-* `floating_ip` - (Optional) A *Compute* Floating IP that will be associated
+* `floating_ip` - (Deprecated) A *Compute* Floating IP that will be associated
     with the Instance. The Floating IP must be provisioned already. See *Notes*
     for more information about Floating IPs.
 
@@ -359,7 +361,7 @@ The `network` block supports:
 * `fixed_ip_v6` - (Optional) Specifies a fixed IPv6 address to be used on this
     network. Changing this creates a new server.
 
-* `floating_ip` - (Optional) Specifies a floating IP address to be associated
+* `floating_ip` - (Deprecated) Specifies a floating IP address to be associated
     with this network. Cannot be combined with a top-level floating IP. See
     *Notes* for more information about Floating IPs.
 
@@ -450,6 +452,10 @@ The following attributes are exported:
 ## Notes
 
 ### Floating IPs
+
+Specifying Floating IPs within the instance is now deprecated. Please use
+either the `openstack_compute_floatingip_associate_v2` resource or attach
+the floating IP to an `openstack_networking_port_v2` resource.
 
 Floating IPs can be associated in one of two ways:
 
