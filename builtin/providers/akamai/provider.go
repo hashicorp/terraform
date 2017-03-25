@@ -40,7 +40,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		return nil, err
 	}
 
-	zone := NewZone(fastDnsClient)
+	zone := NewZone(fastDnsClient, "")
 
 	config := Config{ClientFastDns: &zone}
 

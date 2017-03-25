@@ -2,18 +2,24 @@ package akamai
 
 import (
 	"errors"
+	"fmt"
 	"github.com/akamai-open/AkamaiOPEN-edgegrid-golang"
 	"github.com/hashicorp/terraform/helper/schema"
+	"log"
 	"strings"
+	"time"
 )
 
 func resourceFastDnsRecord() *schema.Resource {
 	return &schema.Resource{
-		Create:   resourceFastDnsRecordCreate,
-		Read:     resourceFastDnsRecordRead,
-		Update:   resourceFastDnsRecordCreate,
-		Delete:   resourceFastDnsRecordDelete,
-		Importer: nil,
+		Create: resourceFastDnsRecordCreate,
+		Read:   resourceFastDnsRecordRead,
+		Update: resourceFastDnsRecordCreate,
+		Delete: resourceFastDnsRecordDelete,
+		Exists: resourceFastDnsRecordExists,
+		Importer: &schema.ResourceImporter{
+			State: importRecord,
+		},
 		Schema: map[string]*schema.Schema{
 			// Terraform-only Params
 			"hostname": &schema.Schema{
@@ -210,28 +216,38 @@ func resourceFastDnsRecord() *schema.Resource {
 }
 
 func resourceFastDnsRecordCreate(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(Config)
+	recordType := strings.ToUpper(d.Get("type").(string))
+
+	if recordType == "SOA" {
+		log.Printf("[INFO] Creating %s Record on %s", recordType, d.Get("hostname"))
+	} else {
+		log.Printf("[INFO] Creating %s Record \"%s\" on %s", recordType, d.Get("name"), d.Get("hostname"))
+	}
+
+	config := meta.(*Config)
 
 	zone := config.ClientFastDns
-	zone.GetZone(d.Get("hostname").(string))
+	error := zone.GetZone(d.Get("hostname").(string))
 
-	recordType := d.Get("type").(string)
+	if error != nil {
+		return error
+	}
 
 	records := DnsRecordSet{}
-	error := records.unmarshalResourceData(d)
+	error = records.unmarshalResourceData(d)
 
 	if error != nil {
 		return error
 	}
 
 	var name string
-	if strings.ToUpper(recordType) != "SOA" {
+	if recordType == "SOA" {
 		zone.Zone.Records[recordType] = append(zone.Zone.Records[recordType], records[0])
-		name = "soa"
+		name = recordType
 	} else {
 		name = d.Get("name").(string)
 
-		// Only overwrite records with the same name
+		// Add existing records unless they have the same name
 		for _, v := range zone.Zone.Records[recordType] {
 			if v.Name != name {
 				records = append(records, v)
@@ -239,6 +255,7 @@ func resourceFastDnsRecordCreate(d *schema.ResourceData, meta interface{}) error
 		}
 
 		zone.Zone.Records[recordType] = records
+		zone.fixupCnames(records[0])
 	}
 
 	error = zone.Save()
@@ -246,42 +263,52 @@ func resourceFastDnsRecordCreate(d *schema.ResourceData, meta interface{}) error
 		return error
 	}
 
-	d.SetId(zone.Token + "-" + recordType + "-" + name)
+	d.SetId(fmt.Sprintf("%s-%s-%s-%s", zone.Token, zone.Zone.Name, recordType, name))
 
 	return nil
 }
 
 func resourceFastDnsRecordRead(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(Config)
+	log.Println("[INFO] resourceFastDnsRecordRead")
+	config := meta.(*Config)
 
 	zone := config.ClientFastDns
 	zone.GetZone(d.Get("hostname").(string))
+	log.Printf("[INFO] Resource Data:\n\n%#v\n\n", &d)
 
-	token, recordType, name := zone.getRecordId(d)
+	token, _, recordType, name := zone.getRecordId(d.Id())
 
 	if zone.Token != token {
+		log.Println("[WARN] Resource has been modified, aborting")
 		return errors.New("Resource has been modified, aborting")
 	}
 
-	var record *DnsRecord
+	recordSet := DnsRecordSet{}
 	for _, record := range zone.Zone.Records[recordType] {
 		if record.Name == name {
-			break
+			recordSet = append(recordSet, record)
 		}
 	}
 
-	record.marshalResourceData(d)
+	err := recordSet.marshalResourceData(d)
+	if err != nil {
+		return err
+	}
+
+	id := fmt.Sprintf("%s-%s-%s-%s", zone.Token, zone.Zone.Name, recordType, name)
+	log.Println("[INFO] Read ID: " + id)
+	d.SetId(id)
 
 	return nil
 }
 
 func resourceFastDnsRecordDelete(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(Config)
+	config := meta.(*Config)
 
 	zone := config.ClientFastDns
 	zone.GetZone(d.Get("hostname").(string))
 
-	recordType := d.Get("type").(string)
+	recordType := strings.ToUpper(d.Get("type").(string))
 
 	records := DnsRecordSet{}
 	error := records.unmarshalResourceData(d)
@@ -290,14 +317,15 @@ func resourceFastDnsRecordDelete(d *schema.ResourceData, meta interface{}) error
 		return error
 	}
 
-	if strings.ToUpper(recordType) != "SOA" {
+	if recordType == "SOA" {
 		zone.Zone.Records[recordType] = nil
 	} else {
 		name := d.Get("name").(string)
 
+		newRecords := DnsRecordSet{}
 		for _, v := range zone.Zone.Records[recordType] {
 			if v.Name != name {
-				records = append(records, v)
+				newRecords = append(newRecords, v)
 			}
 		}
 
@@ -314,48 +342,129 @@ func resourceFastDnsRecordDelete(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-func (zone *DnsZone) getRecordId(d *schema.ResourceData) (token string, recordType string, name string) {
-	parts := strings.Split(d.Id(), "-")
-	return parts[0], parts[1], parts[2]
+func resourceFastDnsRecordExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+	config := meta.(*Config)
+
+	zone := config.ClientFastDns
+	error := zone.GetZone(d.Get("hostname").(string))
+
+	if error != nil {
+		log.Println("[WARN] Error checking if record exists: " + error.Error())
+		return false, error
+	}
+
+	token, _, recordType, name := zone.getRecordId(d.Id())
+	name += "."
+
+	if zone.Token != token {
+		log.Println("[WARN] Token mismatch")
+		return false, nil
+	}
+
+	zone.unmarshalRecords()
+
+	var found_record bool
+	for _, record := range zone.Zone.Records[recordType] {
+		if record.Name == name {
+			found_record = true
+			break
+		}
+	}
+
+	if found_record {
+		log.Println("[INFO] Record found")
+	} else {
+		log.Println("[INFO] Record not found")
+	}
+	return found_record, nil
 }
 
 type DnsZone struct {
 	client *edgegrid.Client
 	Token  string `json:"token"`
 	Zone   struct {
-		Version    float64      `json:"version,omitempty"`
-		Name       string       `json:"name"`
-		Publisher  string       `json:"publisher,omitempty"`
-		Instance   string       `json:"instance,omitempty"`
-		Id         int          `json:id,omitempty`
-		Time       int          `json:"time,omitempty"`
-		A          []*DnsRecord `json:"a,omitempty"`
-		AAAA       []*DnsRecord `json:"aaaa,omitempty"`
-		Afsdb      []*DnsRecord `json:"afsdb,omitempty"`
-		Cname      []*DnsRecord `json:"cname,omitempty"`
-		Dnskey     []*DnsRecord `json:"dnskey,omitempty"`
-		Ds         []*DnsRecord `json:"ds,omitempty"`
-		Hinfo      []*DnsRecord `json:"hinfo,omitempty"`
-		Loc        []*DnsRecord `json:"loc,omitempty"`
-		Mx         []*DnsRecord `json:"mx,omitempty"`
-		Naptr      []*DnsRecord `json:"naptr,omitempty"`
-		Ns         []*DnsRecord `json:"ns,omitempty"`
-		Nsec3      []*DnsRecord `json:"nsec3,omitempty"`
-		Nsec3param []*DnsRecord `json:"nsec3param,omitempty"`
-		Ptr        []*DnsRecord `json:"ptr,omitempty"`
-		Rp         []*DnsRecord `json:"rp,omitempty"`
-		Rrsig      []*DnsRecord `json:"rrsig,omitempty"`
-		Soa        *DnsRecord   `json:"soa,omitempty"`
-		Spf        []*DnsRecord `json:"spf,omitempty"`
-		Srv        []*DnsRecord `json:"srv,omitempty"`
-		Sshfp      []*DnsRecord `json:"sshfp,omitempty"`
-		Txt        []*DnsRecord `json:"txt,omitempty"`
-		Records    map[string][]*DnsRecord
+		Name       string                  `json:"name,omitempty"`
+		A          []*DnsRecord            `json:"a,omitempty"`
+		AAAA       []*DnsRecord            `json:"aaaa,omitempty"`
+		Afsdb      []*DnsRecord            `json:"afsdb,omitempty"`
+		Cname      []*DnsRecord            `json:"cname,omitempty"`
+		Dnskey     []*DnsRecord            `json:"dnskey,omitempty"`
+		Ds         []*DnsRecord            `json:"ds,omitempty"`
+		Hinfo      []*DnsRecord            `json:"hinfo,omitempty"`
+		Loc        []*DnsRecord            `json:"loc,omitempty"`
+		Mx         []*DnsRecord            `json:"mx,omitempty"`
+		Naptr      []*DnsRecord            `json:"naptr,omitempty"`
+		Ns         []*DnsRecord            `json:"ns,omitempty"`
+		Nsec3      []*DnsRecord            `json:"nsec3,omitempty"`
+		Nsec3param []*DnsRecord            `json:"nsec3param,omitempty"`
+		Ptr        []*DnsRecord            `json:"ptr,omitempty"`
+		Rp         []*DnsRecord            `json:"rp,omitempty"`
+		Rrsig      []*DnsRecord            `json:"rrsig,omitempty"`
+		Soa        *DnsRecord              `json:"soa,omitempty"`
+		Spf        []*DnsRecord            `json:"spf,omitempty"`
+		Srv        []*DnsRecord            `json:"srv,omitempty"`
+		Sshfp      []*DnsRecord            `json:"sshfp,omitempty"`
+		Txt        []*DnsRecord            `json:"txt,omitempty"`
+		Records    map[string][]*DnsRecord `json:"-"`
 	} `json:"zone"`
 }
 
-func NewZone(client *edgegrid.Client) DnsZone {
-	return DnsZone{client: client, Token: "new"}
+func NewZone(client *edgegrid.Client, hostname string) DnsZone {
+	zone := DnsZone{client: client, Token: "new"}
+	zone.Zone.Name = hostname
+	return zone
+}
+
+func (zone *DnsZone) getRecordId(id string) (token string, hostname string, recordType string, name string) {
+	parts := strings.Split(id, "-")
+	return parts[0], parts[1], parts[2], parts[3]
+}
+
+func (zone *DnsZone) fixupCnames(record *DnsRecord) {
+	if record.recordType == "CNAME" {
+		names := make(map[string]string, len(zone.Zone.Records["CNAME"]))
+		for _, record := range zone.Zone.Records["CNAME"] {
+			names[strings.ToUpper(record.Name)] = record.Name
+		}
+
+		for recordType, records := range zone.Zone.Records {
+			if recordType == "CNAME" {
+				continue
+			}
+
+			newRecords := DnsRecordSet{}
+			for _, record := range records {
+				if _, ok := names[record.Name]; ok == false {
+					newRecords = append(newRecords, record)
+				} else {
+					log.Printf(
+						"[WARN] %s Record conflicts with CNAME \"%s\", %[1]s Record ignored.",
+						recordType,
+						names[strings.ToUpper(record.Name)],
+					)
+				}
+			}
+			zone.Zone.Records[recordType] = newRecords
+		}
+	} else if record.Name != "" {
+		name := strings.ToLower(record.Name)
+
+		newRecords := DnsRecordSet{}
+		for _, cname := range zone.Zone.Records["CNAME"] {
+			if strings.ToLower(cname.Name) != name {
+				newRecords = append(newRecords, cname)
+			} else {
+				log.Printf(
+					"[WARN] %s Record \"%s\" conflicts with existing CNAME \"%s\", removing CNAME",
+					record.recordType,
+					record.Name,
+					cname.Name,
+				)
+			}
+		}
+
+		zone.Zone.Records["CNAME"] = newRecords
+	}
 }
 
 func (zone *DnsZone) GetZone(hostname string) error {
@@ -364,150 +473,129 @@ func (zone *DnsZone) GetZone(hostname string) error {
 		return err
 	}
 
-	err = res.BodyJson(&zone)
-	if err != nil {
-		return err
+	if res.IsError() == true && res.StatusCode != 404 {
+		return NewApiError(res)
+	} else if res.StatusCode == 404 {
+		log.Printf("[DEBUG] Zone \"%s\" not found, creating new zone.", hostname)
+		newZone := NewZone(zone.client, hostname)
+		zone = &newZone
+		return nil
+	} else {
+		err = res.BodyJson(&zone)
+		if err != nil {
+			return err
+		}
+
+		zone.marshalRecords()
+
+		return nil
 	}
-
-	zone.marshalRecords()
-
-	return nil
 }
 
 func (zone *DnsZone) Save() error {
 	zone.unmarshalRecords()
 
-	zone.Zone.Soa.Serial++
+	zone.Zone.Soa.Serial = int(time.Now().Unix())
 
-	ret, err := zone.client.PostJson("/config-dns/v1/zones/"+zone.Zone.Name, zone)
+	res, err := zone.client.PostJson("/config-dns/v1/zones/"+zone.Zone.Name, zone)
 	if err != nil {
 		return err
 	}
 
-	if err = ret.BodyJson(&zone); err != nil {
-		return errors.New("Unable to create record (" + err.Error() + ")")
+	if res.IsError() == true {
+		err := NewApiError(res)
+		return errors.New("Unable to save record (" + err.Error() + ")")
 	}
+
+	err = zone.GetZone(zone.Zone.Name)
+
+	if err != nil {
+		return errors.New("Unable to save record (" + err.Error() + ")")
+	}
+
+	log.Printf("[INFO] Zone Saved")
 
 	return nil
 }
 
 func (zone *DnsZone) marshalRecords() {
+	zone.Zone.Records = make(map[string][]*DnsRecord)
 	zone.Zone.Records["A"] = zone.Zone.A
 	zone.Zone.Records["AAAA"] = zone.Zone.AAAA
-	zone.Zone.Records["Afsdb"] = zone.Zone.Afsdb
-	zone.Zone.Records["Cname"] = zone.Zone.Cname
-	zone.Zone.Records["Dnskey"] = zone.Zone.Dnskey
-	zone.Zone.Records["Ds"] = zone.Zone.Ds
-	zone.Zone.Records["Hinfo"] = zone.Zone.Hinfo
-	zone.Zone.Records["Loc"] = zone.Zone.Loc
-	zone.Zone.Records["Mx"] = zone.Zone.Mx
-	zone.Zone.Records["Naptr"] = zone.Zone.Naptr
-	zone.Zone.Records["Ns"] = zone.Zone.Ns
-	zone.Zone.Records["Nsec3"] = zone.Zone.Nsec3
-	zone.Zone.Records["Nsec3param"] = zone.Zone.Nsec3param
-	zone.Zone.Records["Ptr"] = zone.Zone.Ptr
-	zone.Zone.Records["Rp"] = zone.Zone.Rp
-	zone.Zone.Records["Rrsig"] = zone.Zone.Rrsig
-	zone.Zone.Records["Soa"] = []*DnsRecord{zone.Zone.Soa}
-	zone.Zone.Records["Spf"] = zone.Zone.Spf
-	zone.Zone.Records["Srv"] = zone.Zone.Srv
-	zone.Zone.Records["Sshfp"] = zone.Zone.Sshfp
-	zone.Zone.Records["Txt"] = zone.Zone.Txt
+	zone.Zone.Records["AFSDB"] = zone.Zone.Afsdb
+	zone.Zone.Records["CNAME"] = zone.Zone.Cname
+	zone.Zone.Records["DNSKEY"] = zone.Zone.Dnskey
+	zone.Zone.Records["DS"] = zone.Zone.Ds
+	zone.Zone.Records["HINFO"] = zone.Zone.Hinfo
+	zone.Zone.Records["LOC"] = zone.Zone.Loc
+	zone.Zone.Records["MX"] = zone.Zone.Mx
+	zone.Zone.Records["NAPTR"] = zone.Zone.Naptr
+	zone.Zone.Records["NS"] = zone.Zone.Ns
+	zone.Zone.Records["NSEC3"] = zone.Zone.Nsec3
+	zone.Zone.Records["NSEC3PARAM"] = zone.Zone.Nsec3param
+	zone.Zone.Records["PTR"] = zone.Zone.Ptr
+	zone.Zone.Records["RP"] = zone.Zone.Rp
+	zone.Zone.Records["RRSIG"] = zone.Zone.Rrsig
+	zone.Zone.Records["SOA"] = []*DnsRecord{zone.Zone.Soa}
+	zone.Zone.Records["SPF"] = zone.Zone.Spf
+	zone.Zone.Records["SRV"] = zone.Zone.Srv
+	zone.Zone.Records["SSHFP"] = zone.Zone.Sshfp
+	zone.Zone.Records["TXT"] = zone.Zone.Txt
 }
 
 func (zone *DnsZone) unmarshalRecords() {
 	zone.Zone.A = zone.Zone.Records["A"]
 	zone.Zone.AAAA = zone.Zone.Records["AAAA"]
-	zone.Zone.Afsdb = zone.Zone.Records["Afsdb"]
-	zone.Zone.Cname = zone.Zone.Records["Cname"]
-	zone.Zone.Dnskey = zone.Zone.Records["Dnskey"]
-	zone.Zone.Ds = zone.Zone.Records["Ds"]
-	zone.Zone.Hinfo = zone.Zone.Records["Hinfo"]
-	zone.Zone.Loc = zone.Zone.Records["Loc"]
-	zone.Zone.Mx = zone.Zone.Records["Mx"]
-	zone.Zone.Naptr = zone.Zone.Records["Naptr"]
-	zone.Zone.Ns = zone.Zone.Records["Ns"]
-	zone.Zone.Nsec3 = zone.Zone.Records["Nsec3"]
-	zone.Zone.Nsec3param = zone.Zone.Records["Nsec3param"]
-	zone.Zone.Ptr = zone.Zone.Records["Ptr"]
-	zone.Zone.Rp = zone.Zone.Records["Rp"]
-	zone.Zone.Rrsig = zone.Zone.Records["Rrsig"]
-	zone.Zone.Soa = zone.Zone.Records["Soa"][0]
-	zone.Zone.Spf = zone.Zone.Records["Spf"]
-	zone.Zone.Srv = zone.Zone.Records["Srv"]
-	zone.Zone.Sshfp = zone.Zone.Records["Sshfp"]
-	zone.Zone.Txt = zone.Zone.Records["Txt"]
+	zone.Zone.Afsdb = zone.Zone.Records["AFSDB"]
+	zone.Zone.Cname = zone.Zone.Records["CNAME"]
+	zone.Zone.Dnskey = zone.Zone.Records["DNSKEY"]
+	zone.Zone.Ds = zone.Zone.Records["DS"]
+	zone.Zone.Hinfo = zone.Zone.Records["HINFO"]
+	zone.Zone.Loc = zone.Zone.Records["LOC"]
+	zone.Zone.Mx = zone.Zone.Records["MX"]
+	zone.Zone.Naptr = zone.Zone.Records["NAPTR"]
+	zone.Zone.Ns = zone.Zone.Records["NS"]
+	zone.Zone.Nsec3 = zone.Zone.Records["NSEC3"]
+	zone.Zone.Nsec3param = zone.Zone.Records["NSEC3PARAM"]
+	zone.Zone.Ptr = zone.Zone.Records["PTR"]
+	zone.Zone.Rp = zone.Zone.Records["RP"]
+	zone.Zone.Rrsig = zone.Zone.Records["RRSIG"]
+	zone.Zone.Soa = zone.Zone.Records["SOA"][0]
+	zone.Zone.Spf = zone.Zone.Records["SPF"]
+	zone.Zone.Srv = zone.Zone.Records["SRV"]
+	zone.Zone.Sshfp = zone.Zone.Records["SSHFP"]
+	zone.Zone.Txt = zone.Zone.Records["TXT"]
 }
 
 type DnsRecordSet []*DnsRecord
 
-type DnsRecord struct {
-	recordType          string
-	Active              bool   `json:"active,omitempty"`
-	Algorithm           int    `json:"algorithm,omitempty"`
-	Contact             string `json:"contact,omitempty"`
-	Digest              string `json:"digest,omitempty"`
-	DigestType          int    `json:"digest_type,omitempty"`
-	Expiration          string `json:"expiration,omitempty"`
-	Expire              int    `json:"expire,omitempty"`
-	Fingerprint         string `json:"fingerprint,omitempty"`
-	FingerprintType     int    `json:"fingerprint_type,omitempty"`
-	Flags               int    `json:"flags,omitempty"`
-	Hardware            string `json:"hardware,omitempty"`
-	Inception           string `json:"inception,omitempty"`
-	Iterations          int    `json:"iterations,omitempty"`
-	Key                 string `json:"key,omitempty"`
-	Keytag              int    `json:"keytag,omitempty"`
-	Labels              int    `json:"labels,omitempty"`
-	Mailbox             string `json:"mailbox,omitempty"`
-	Minimum             int    `json:"minimum,omitempty"`
-	Name                string `json:"name"`
-	NextHashedOwnerName string `json:"next_hashed_owner_name,omitempty"`
-	Order               int    `json:"order,omitempty"`
-	OriginalTtl         int    `json:"original_ttl,omitempty"`
-	Originserver        string `json:"originserver,omitempty"`
-	Port                int    `json:"port,omitempty"`
-	Preference          int    `json:"preference,omitempty"`
-	Priority            int    `json:"priority,omitempty"`
-	Protocol            int    `json:"protocol,omitempty"`
-	Refresh             int    `json:"refresh,omitempty"`
-	Regexp              string `json:"regexp,omitempty"`
-	Replacement         string `json:"replacement,omitempty"`
-	Retry               int    `json:"retry,omitempty"`
-	Salt                string `json:"salt,omitempty"`
-	Serial              int    `json:"serial,omitempty"`
-	Service             string `json:"service,omitempty"`
-	Signature           string `json:"signature,omitempty"`
-	Signer              string `json:"signer,omitempty"`
-	Software            string `json:"software,omitempty"`
-	Subtype             int    `json:"subtype,omitempty"`
-	Target              string `json:"target,omitempty"`
-	Ttl                 int    `json:"ttl,omitempty"`
-	Txt                 string `json:"txt,omitempty"`
-	TypeBitmaps         string `json:"type_bitmaps,omitempty"`
-	TypeCovered         string `json:"type_coverered,omitempty"`
-	Weight              uint   `json:"weight,omitempty"`
-}
-
 func (records *DnsRecordSet) unmarshalResourceData(d *schema.ResourceData) error {
-	recordType := d.Get("type").(string)
-	record := DnsRecord{recordType: recordType}
+	recordType := strings.ToUpper(d.Get("type").(string))
+	tester := DnsRecord{recordType: recordType}
+	recordSet := DnsRecordSet{}
 
-	var targets int
-
-	if record.allows("target") {
-		targets = d.Get("target").(*schema.Set).Len()
-	} else {
-		targets = 1
+	targets := 1
+	if tester.allows("targets") {
+		targets = d.Get("targets").(*schema.Set).Len()
 	}
 
-	for i := 0; i <= targets; i++ {
+	for i := 0; i < targets; i++ {
+		record := DnsRecord{recordType: recordType}
+
+		if val, exists := d.GetOk("targets"); exists != false && !record.allows("targets") {
+			return errors.New("Attribute \"targets\" not allowed for record type " + record.recordType)
+		} else if exists != false {
+			record.Target = val.(*schema.Set).List()[i].(string)
+		} else {
+			record.Target = ""
+		}
+
 		if val, exists := d.GetOk("ttl"); exists != false && !record.allows("ttl") {
 			return errors.New("Attribute \"ttl\" not allowed for record type " + record.recordType)
 		} else if exists != false {
 			record.Ttl = val.(int)
 		} else {
-			record.Ttl = 0
+			return errors.New("Attribute \"ttl\" is required for record type " + record.recordType)
 		}
 
 		if val, exists := d.GetOk("name"); exists != false && !record.allows("name") {
@@ -515,7 +603,7 @@ func (records *DnsRecordSet) unmarshalResourceData(d *schema.ResourceData) error
 		} else if exists != false {
 			record.Name = val.(string)
 		} else {
-			record.Name = ""
+			return errors.New("Attribute \"name\" is required for record type " + record.recordType)
 		}
 
 		if val, exists := d.GetOk("active"); exists != false && !record.allows("active") {
@@ -523,15 +611,7 @@ func (records *DnsRecordSet) unmarshalResourceData(d *schema.ResourceData) error
 		} else if exists != false {
 			record.Active = val.(bool)
 		} else {
-			record.Active = false
-		}
-
-		if val, exists := d.GetOk("target"); exists != false && !record.allows("target") {
-			return errors.New("Attribute \"target\" not allowed for record type " + record.recordType)
-		} else if exists != false {
-			record.Target = val.(string)
-		} else {
-			record.Target = ""
+			record.Active = true
 		}
 
 		if val, exists := d.GetOk("subtype"); exists != false && !record.allows("subtype") {
@@ -853,188 +933,124 @@ func (records *DnsRecordSet) unmarshalResourceData(d *schema.ResourceData) error
 		} else {
 			record.Fingerprint = ""
 		}
-		*records = append(*records, &record)
+
+		recordSet = append(recordSet, &record)
+	}
+
+	*records = recordSet
+
+	return nil
+}
+
+func (recordSet *DnsRecordSet) marshalResourceData(d *schema.ResourceData) error {
+	if len(*recordSet) == 0 {
+		return nil
+	}
+
+	for _, record := range *recordSet {
+		if val, exists := d.GetOk("targets"); exists != false {
+			val.(*schema.Set).Add(record.Target)
+			d.Set("targets", val)
+		} else {
+			set := &schema.Set{}
+			set.Add(record.Target)
+			d.Set("targets", set)
+		}
+
+		d.Set("ttl", record.Ttl)
+		d.Set("name", record.Name)
+		d.Set("active", record.Active)
+		d.Set("subtype", record.Subtype)
+		d.Set("flags", record.Flags)
+		d.Set("protocol", record.Protocol)
+		d.Set("algorithm", record.Algorithm)
+		d.Set("key", record.Key)
+		d.Set("keytag", record.Keytag)
+		d.Set("digesttype", record.DigestType)
+		d.Set("digest", record.Digest)
+		d.Set("hardware", record.Hardware)
+		d.Set("software", record.Software)
+		d.Set("priority", record.Priority)
+		d.Set("order", record.Order)
+		d.Set("preference", record.Preference)
+		d.Set("service", record.Service)
+		d.Set("regexp", record.Regexp)
+		d.Set("replacement", record.Replacement)
+		d.Set("iterations", record.Iterations)
+		d.Set("salt", record.Salt)
+		d.Set("nexthashedownername", record.NextHashedOwnerName)
+		d.Set("typebitmaps", record.TypeBitmaps)
+		d.Set("mailbox", record.Mailbox)
+		d.Set("txt", record.Txt)
+		d.Set("typecovered", record.TypeCovered)
+		d.Set("originalttl", record.OriginalTtl)
+		d.Set("expiration", record.Expiration)
+		d.Set("inception", record.Inception)
+		d.Set("signer", record.Signer)
+		d.Set("signature", record.Signature)
+		d.Set("labels", record.Labels)
+		d.Set("originserver", record.Originserver)
+		d.Set("contact", record.Contact)
+		d.Set("serial", record.Serial)
+		d.Set("refresh", record.Refresh)
+		d.Set("retry", record.Retry)
+		d.Set("expire", record.Expire)
+		d.Set("minimum", record.Minimum)
+		d.Set("weight", record.Weight)
+		d.Set("port", record.Port)
+		d.Set("fingerprinttype", record.FingerprintType)
+		d.Set("fingerprint", record.Fingerprint)
 	}
 
 	return nil
 }
 
-func (record *DnsRecord) marshalResourceData(d *schema.ResourceData) {
-	if record.Ttl != 0 {
-		d.Set("ttl", record.Ttl)
-	}
-
-	if record.Name != "" {
-		d.Set("name", record.Name)
-	}
-
-	if record.Active != false {
-		d.Set("active", record.Active)
-	}
-
-	if record.Target != "" {
-		d.Set("target", record.Target)
-	}
-
-	if record.Subtype != 0 {
-		d.Set("subtype", record.Subtype)
-	}
-
-	if record.Flags != 0 {
-		d.Set("flags", record.Flags)
-	}
-
-	if record.Protocol != 0 {
-		d.Set("protocol", record.Protocol)
-	}
-
-	if record.Algorithm != 0 {
-		d.Set("algorithm", record.Algorithm)
-	}
-
-	if record.Key != "" {
-		d.Set("key", record.Key)
-	}
-
-	if record.Keytag != 0 {
-		d.Set("keytag", record.Keytag)
-	}
-
-	if record.DigestType != 0 {
-		d.Set("digesttype", record.DigestType)
-	}
-
-	if record.Digest != "" {
-		d.Set("digest", record.Digest)
-	}
-
-	if record.Hardware != "" {
-		d.Set("hardware", record.Hardware)
-	}
-
-	if record.Software != "" {
-		d.Set("software", record.Software)
-	}
-
-	if record.Priority != 0 {
-		d.Set("priority", record.Priority)
-	}
-
-	if record.Order != 0 {
-		d.Set("order", record.Order)
-	}
-
-	if record.Preference != 0 {
-		d.Set("preference", record.Preference)
-	}
-
-	if record.Service != "" {
-		d.Set("service", record.Service)
-	}
-
-	if record.Regexp != "" {
-		d.Set("regexp", record.Regexp)
-	}
-
-	if record.Replacement != "" {
-		d.Set("replacement", record.Replacement)
-	}
-
-	if record.Iterations != 0 {
-		d.Set("iterations", record.Iterations)
-	}
-
-	if record.Salt != "" {
-		d.Set("salt", record.Salt)
-	}
-
-	if record.NextHashedOwnerName != "" {
-		d.Set("nexthashedownername", record.NextHashedOwnerName)
-	}
-
-	if record.TypeBitmaps != "" {
-		d.Set("typebitmaps", record.TypeBitmaps)
-	}
-
-	if record.Mailbox != "" {
-		d.Set("mailbox", record.Mailbox)
-	}
-
-	if record.Txt != "" {
-		d.Set("txt", record.Txt)
-	}
-
-	if record.TypeCovered != "" {
-		d.Set("typecovered", record.TypeCovered)
-	}
-
-	if record.OriginalTtl != 0 {
-		d.Set("originalttl", record.OriginalTtl)
-	}
-
-	if record.Expiration != "" {
-		d.Set("expiration", record.Expiration)
-	}
-
-	if record.Inception != "" {
-		d.Set("inception", record.Inception)
-	}
-
-	if record.Signer != "" {
-		d.Set("signer", record.Signer)
-	}
-
-	if record.Signature != "" {
-		d.Set("signature", record.Signature)
-	}
-
-	if record.Labels != 0 {
-		d.Set("labels", record.Labels)
-	}
-
-	if record.Originserver != "" {
-		d.Set("originserver", record.Originserver)
-	}
-
-	if record.Contact != "" {
-		d.Set("contact", record.Contact)
-	}
-
-	if record.Serial != 0 {
-		d.Set("serial", record.Serial)
-	}
-
-	if record.Refresh != 0 {
-		d.Set("refresh", record.Refresh)
-	}
-
-	if record.Retry != 0 {
-		d.Set("retry", record.Retry)
-	}
-
-	if record.Expire != 0 {
-		d.Set("expire", record.Expire)
-	}
-
-	if record.Minimum != 0 {
-		d.Set("minimum", record.Minimum)
-	}
-
-	if record.Weight != 0 {
-		d.Set("weight", record.Weight)
-	}
-
-	if record.Port != 0 {
-		d.Set("port", record.Port)
-	}
-
-	if record.FingerprintType != 0 {
-		d.Set("fingerprinttype", record.FingerprintType)
-	}
-
-	if record.Fingerprint != "" {
-		d.Set("fingerprint", record.Fingerprint)
-	}
+type DnsRecord struct {
+	recordType          string
+	Active              bool   `json:"active,omitempty"`
+	Algorithm           int    `json:"algorithm,omitempty"`
+	Contact             string `json:"contact,omitempty"`
+	Digest              string `json:"digest,omitempty"`
+	DigestType          int    `json:"digest_type,omitempty"`
+	Expiration          string `json:"expiration,omitempty"`
+	Expire              int    `json:"expire,omitempty"`
+	Fingerprint         string `json:"fingerprint,omitempty"`
+	FingerprintType     int    `json:"fingerprint_type,omitempty"`
+	Flags               int    `json:"flags,omitempty"`
+	Hardware            string `json:"hardware,omitempty"`
+	Inception           string `json:"inception,omitempty"`
+	Iterations          int    `json:"iterations,omitempty"`
+	Key                 string `json:"key,omitempty"`
+	Keytag              int    `json:"keytag,omitempty"`
+	Labels              int    `json:"labels,omitempty"`
+	Mailbox             string `json:"mailbox,omitempty"`
+	Minimum             int    `json:"minimum,omitempty"`
+	Name                string `json:"name,omitempty"`
+	NextHashedOwnerName string `json:"next_hashed_owner_name,omitempty"`
+	Order               int    `json:"order,omitempty"`
+	OriginalTtl         int    `json:"original_ttl,omitempty"`
+	Originserver        string `json:"originserver,omitempty"`
+	Port                int    `json:"port,omitempty"`
+	Preference          int    `json:"preference,omitempty"`
+	Priority            int    `json:"priority,omitempty"`
+	Protocol            int    `json:"protocol,omitempty"`
+	Refresh             int    `json:"refresh,omitempty"`
+	Regexp              string `json:"regexp,omitempty"`
+	Replacement         string `json:"replacement,omitempty"`
+	Retry               int    `json:"retry,omitempty"`
+	Salt                string `json:"salt,omitempty"`
+	Serial              int    `json:"serial,omitempty"`
+	Service             string `json:"service,omitempty"`
+	Signature           string `json:"signature,omitempty"`
+	Signer              string `json:"signer,omitempty"`
+	Software            string `json:"software,omitempty"`
+	Subtype             int    `json:"subtype,omitempty"`
+	Target              string `json:"target,omitempty"`
+	Ttl                 int    `json:"ttl,omitempty"`
+	Txt                 string `json:"txt,omitempty"`
+	TypeBitmaps         string `json:"type_bitmaps,omitempty"`
+	TypeCovered         string `json:"type_coverered,omitempty"`
+	Weight              uint   `json:"weight,omitempty"`
 }
 
 func (record *DnsRecord) allows(field string) bool {
@@ -1042,152 +1058,202 @@ func (record *DnsRecord) allows(field string) bool {
 
 	field_map := map[string]map[string]struct{}{
 		"active": {
-			"a":          {},
-			"aaaa":       {},
-			"afsdb":      {},
-			"cname":      {},
-			"dnskey":     {},
-			"ds":         {},
-			"hinfo":      {},
-			"loc":        {},
-			"mx":         {},
-			"naptr":      {},
-			"ns":         {},
-			"nsec3":      {},
-			"nsec3param": {},
-			"ptr":        {},
-			"rp":         {},
-			"rrsig":      {},
-			"spf":        {},
-			"srv":        {},
-			"sshfp":      {},
-			"txt":        {},
+			"A":          {},
+			"AAAA":       {},
+			"AFSDB":      {},
+			"CNAME":      {},
+			"DNSKEY":     {},
+			"DS":         {},
+			"HINFO":      {},
+			"LOC":        {},
+			"MX":         {},
+			"NAPTR":      {},
+			"NS":         {},
+			"NSEC3":      {},
+			"NSEC3PARAM": {},
+			"PTR":        {},
+			"RP":         {},
+			"RRSIG":      {},
+			"SPF":        {},
+			"SRV":        {},
+			"SSHFP":      {},
+			"TXT":        {},
 		},
 		"algorithm": {
-			"dnskey":     {},
-			"ds":         {},
-			"nsec3":      {},
-			"nsec3param": {},
-			"rrsig":      {},
-			"sshfp":      {},
+			"DNSKEY":     {},
+			"DS":         {},
+			"NSEC3":      {},
+			"NSEC3PARAM": {},
+			"RRSIG":      {},
+			"SSHFP":      {},
 		},
-		"contact":         {"soa": {}},
-		"digest":          {"ds": {}},
-		"digesttype":      {"ds": {}},
-		"expiration":      {"rrsig": {}},
-		"expire":          {"soa": {}},
-		"fingerprint":     {"sshfp": {}},
-		"fingerprinttype": {"sshfp": {}},
+		"contact":         {"SOA": {}},
+		"digest":          {"DS": {}},
+		"digesttype":      {"DS": {}},
+		"expiration":      {"RRSIG": {}},
+		"expire":          {"SOA": {}},
+		"fingerprint":     {"SSHFP": {}},
+		"fingerprinttype": {"SSHFP": {}},
 		"flags": {
-			"dnskey":     {},
-			"naptr":      {},
-			"nsec3":      {},
-			"nsec3param": {},
+			"DNSKEY":     {},
+			"NAPTR":      {},
+			"NSEC3":      {},
+			"NSEC3PARAM": {},
 		},
-		"hardware":  {"hinfo": {}},
-		"inception": {"rrsig": {}},
+		"hardware":  {"HINFO": {}},
+		"inception": {"RRSIG": {}},
 		"iterations": {
-			"nsec3":       {},
-			"nsec3params": {},
+			"NSEC3":       {},
+			"NSEC3PARAMS": {},
 		},
 		"key": {
-			"dnskey": {},
-			"ds":     {},
+			"DNSKEY": {},
+			"DS":     {},
 		},
-		"keytag":  {"rrsig": {}},
-		"labels":  {"rrsig": {}},
-		"mailbox": {"rp": {}},
-		"minimum": {"soa": {}},
+		"keytag":  {"RRSIG": {}},
+		"labels":  {"RRSIG": {}},
+		"mailbox": {"RP": {}},
+		"minimum": {"SOA": {}},
 		"name": {
-			"a":          {},
-			"aaaa":       {},
-			"afsdb":      {},
-			"cname":      {},
-			"dnskey":     {},
-			"ds":         {},
-			"hinfo":      {},
-			"loc":        {},
-			"mx":         {},
-			"naptr":      {},
-			"ns":         {},
-			"nsec3":      {},
-			"nsec3param": {},
-			"ptr":        {},
-			"rp":         {},
-			"rrsig":      {},
-			"spf":        {},
-			"srv":        {},
-			"sshfp":      {},
-			"txt":        {},
+			"A":          {},
+			"AAAA":       {},
+			"AFSDB":      {},
+			"CNAME":      {},
+			"DNSKEY":     {},
+			"DS":         {},
+			"HINFO":      {},
+			"LOC":        {},
+			"MX":         {},
+			"NAPTR":      {},
+			"NS":         {},
+			"NSEC3":      {},
+			"NSEC3PARAM": {},
+			"PTR":        {},
+			"RP":         {},
+			"RRSIG":      {},
+			"SPF":        {},
+			"SRV":        {},
+			"SSHFP":      {},
+			"TXT":        {},
 		},
-		"nexthashedownername": {"nsec3": {}},
-		"order":               {"naptr": {}},
-		"originalttl":         {"rrsig": {}},
-		"originserver":        {"soa": {}},
-		"port":                {"srv": {}},
-		"preference":          {"naptr": {}},
+		"nexthashedownername": {"NSEC3": {}},
+		"order":               {"NAPTR": {}},
+		"originalttl":         {"RRSIG": {}},
+		"originserver":        {"SOA": {}},
+		"port":                {"SRV": {}},
+		"preference":          {"NAPTR": {}},
 		"priority": {
-			"srv": {},
-			"mx":  {},
+			"SRV": {},
+			"MX":  {},
 		},
-		"protocol":    {"dnskey": {}},
-		"refresh":     {"soa": {}},
-		"regexp":      {"naptr": {}},
-		"replacement": {"naptr": {}},
-		"retry":       {"soa": {}},
+		"protocol":    {"DNSKEY": {}},
+		"refresh":     {"SOA": {}},
+		"regexp":      {"NAPTR": {}},
+		"replacement": {"NAPTR": {}},
+		"retry":       {"SOA": {}},
 		"salt": {
-			"nsec3":      {},
-			"nsec3param": {},
+			"NSEC3":      {},
+			"NSEC3PARAM": {},
 		},
-		"serial":    {"soa": {}},
-		"service":   {"naptr": {}},
-		"signature": {"rrsig": {}},
-		"signer":    {"rrsig": {}},
-		"software":  {"hinfo": {}},
-		"subtype":   {"afsdb": {}},
-		"target": {
-			"a":          {},
-			"aaaa":       {},
-			"afsdb":      {},
-			"cname":      {},
-			"dnskey":     {},
-			"ds":         {},
-			"hinfo":      {},
-			"loc":        {},
-			"mx":         {},
-			"naptr":      {},
-			"ns":         {},
-			"nsec3":      {},
-			"nsec3param": {},
-			"ptr":        {},
-			"rp":         {},
-			"rrsig":      {},
-			"soa":        {},
-			"spf":        {},
-			"srv":        {},
-			"sshfp":      {},
-			"txt":        {},
+		"serial":    {"SOA": {}},
+		"service":   {"NAPTR": {}},
+		"signature": {"RRSIG": {}},
+		"signer":    {"RRSIG": {}},
+		"software":  {"HINFO": {}},
+		"subtype":   {"AFSDB": {}},
+		"targets": {
+			"A":          {},
+			"AAAA":       {},
+			"AFSDB":      {},
+			"CNAME":      {},
+			"DNSKEY":     {},
+			"DS":         {},
+			"HINFO":      {},
+			"LOC":        {},
+			"MX":         {},
+			"NAPTR":      {},
+			"NS":         {},
+			"NSEC3":      {},
+			"NSEC3PARAM": {},
+			"PTR":        {},
+			"RP":         {},
+			"RRSIG":      {},
+			"SOA":        {},
+			"SPF":        {},
+			"SRV":        {},
+			"SSHFP":      {},
+			"TXT":        {},
 		},
 		"ttl": {
-			"a":     {},
-			"aaaa":  {},
-			"afsdb": {},
-			"cname": {},
-			"loc":   {},
-			"mx":    {},
-			"ns":    {},
-			"ptr":   {},
-			"spf":   {},
-			"srv":   {},
-			"txt":   {},
+			"A":     {},
+			"AAAA":  {},
+			"AFSDB": {},
+			"CNAME": {},
+			"LOC":   {},
+			"MX":    {},
+			"NS":    {},
+			"PTR":   {},
+			"SPF":   {},
+			"SRV":   {},
+			"TXT":   {},
 		},
-		"txt":         {"rp": {}},
-		"typebitmaps": {"nsec3": {}},
-		"typecovered": {"rrsig": {}},
-		"weight":      {"srv": {}},
+		"txt":         {"RP": {}},
+		"typebitmaps": {"NSEC3": {}},
+		"typecovered": {"RRSIG": {}},
+		"weight":      {"SRV": {}},
 	}
 
-	_, ok := field_map[field][record.recordType]
+	_, ok := field_map[field][strings.ToUpper(record.recordType)]
 
 	return ok
+}
+
+func importRecord(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	config := meta.(*Config)
+
+	zone := config.ClientFastDns
+	_, hostname, recordType, name := zone.getRecordId("_." + d.Id())
+	zone.GetZone(hostname)
+
+	var exists bool
+	for _, record := range zone.Zone.Records[recordType] {
+		if strings.ToLower(record.Name) == name {
+			exists = true
+		}
+	}
+
+	if exists == true {
+		d.SetId(fmt.Sprintf("%s-%s-%s-%s", zone.Token, hostname, recordType, name))
+		return []*schema.ResourceData{d}, nil
+	}
+
+	return nil, errors.New(fmt.Sprintf("Resource \"%s\" not found", d.Id()))
+}
+
+type ApiError struct {
+	error
+	Type        string `json:"type"`
+	Title       string `json:"title"`
+	Status      int    `json:"status"`
+	Detail      string `json:"detail"`
+	Instance    string `json:"instance"`
+	Method      string `json:"method"`
+	ServerIP    string `json:"serverIp"`
+	ClientIP    string `json:"clientIp"`
+	requestId   string `json:"requestId"`
+	requestTime string `json:"requestTime"`
+}
+
+func (error ApiError) Error() string {
+	return strings.TrimSpace(fmt.Sprintf("API Error: %d %s %s", error.Status, error.Title, error.Detail))
+}
+
+func NewApiError(response *edgegrid.Response) ApiError {
+	error := ApiError{}
+	if err := response.BodyJson(&error); err != nil {
+		error.Status = response.StatusCode
+		error.Title = response.Status
+	}
+
+	return error
 }
