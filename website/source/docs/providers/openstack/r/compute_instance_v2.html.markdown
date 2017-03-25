@@ -446,6 +446,8 @@ The following attributes are exported:
 * `network/floating_ip` - The Floating IP address of the Instance on that
     network.
 * `network/mac` - The MAC address of the NIC on that network.
+* `all_metadata` - Contains all instance metadata, even metadata not set
+    by Terraform.
 
 ## Notes
 
