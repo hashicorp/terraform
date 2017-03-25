@@ -23,9 +23,12 @@
         nodes = Array.prototype.map.call(nodes, function(node) {
             var title = node.getElementsByTagNameNS(nsDcTerms, 'title')[0];
             if (!title) return null;
+            var url = node.getElementsByTagNameNS(nsSitemaps, 'loc')[0].textContent;
+            url = url.replace(/^http.*:\/\/.*?\//, '/');
+
             return {
                 title: title.textContent,
-                url: node.getElementsByTagNameNS(nsSitemaps, 'loc')[0].textContent
+                url: url
             };
         });
         var result = nodes.filter(function(x) { return !!x; });
@@ -151,7 +154,7 @@
                 $element.append($selection);
                 $element.append(p.title.substr(ix + text.length));
 
-                var url = p.url.replace(/^http.*:\/\/.*?\//, '/');
+                var url = p.url;
                 var isDataSource = /\/d\//.test(url);
                 var isResource = /\/r\//.test(url);
                 if (isDataSource) {
