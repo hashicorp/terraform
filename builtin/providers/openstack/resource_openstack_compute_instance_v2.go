@@ -79,9 +79,10 @@ func resourceComputeInstanceV2() *schema.Resource {
 				DefaultFunc: schema.EnvDefaultFunc("OS_FLAVOR_NAME", nil),
 			},
 			"floating_ip": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: false,
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   false,
+				Deprecated: "Use the openstack_compute_floatingip_associate_v2 resource instead",
 			},
 			"user_data": &schema.Schema{
 				Type:     schema.TypeString,
@@ -150,9 +151,10 @@ func resourceComputeInstanceV2() *schema.Resource {
 							Computed: true,
 						},
 						"floating_ip": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							Type:       schema.TypeString,
+							Optional:   true,
+							Computed:   true,
+							Deprecated: "Use the openstack_compute_floatingip_associate_v2 resource instead",
 						},
 						"mac": &schema.Schema{
 							Type:     schema.TypeString,
