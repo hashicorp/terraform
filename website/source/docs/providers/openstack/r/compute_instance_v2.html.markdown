@@ -35,13 +35,13 @@ resource "openstack_compute_instance_v2" "basic" {
 ### Instance With Attached Volume
 
 ```
-resource "openstack_blockstorage_volume_v1" "myvol" {
+resource "openstack_blockstorage_volume_v2" "myvol" {
   name = "myvol"
   size = 1
 }
 
-resource "openstack_compute_instance_v2" "volume-attached" {
-  name            = "volume-attached"
+resource "openstack_compute_instance_v2" "myinstance" {
+  name            = "myinstance"
   image_id        = "ad091b52-742f-469e-8f3c-fd81cadf0743"
   flavor_id       = "3"
   key_pair        = "my_key_pair_name"
@@ -50,10 +50,11 @@ resource "openstack_compute_instance_v2" "volume-attached" {
   network {
     name = "my_network"
   }
+}
 
-  volume {
-    volume_id = "${openstack_blockstorage_volume_v1.myvol.id}"
-  }
+resource "openstack_compute_volume_attach_v2" "attached" {
+  compute_id = "${openstack_compute_instance_v2.myinstance.id}"
+  volume_id = "${openstack_blockstorage_volume_v2.myvol.id}"
 }
 ```
 
@@ -320,7 +321,7 @@ The following arguments are supported:
     following [reference](http://docs.openstack.org/developer/nova/block_device_mapping.html)
     for more information.
 
-* `volume` - (Optional) Attach an existing volume to the instance. The volume
+* `volume` - (Deprecated) Attach an existing volume to the instance. The volume
     structure is described below. *Note*: This is no longer the recommended
     method of attaching a volume to an instance. Please see `block_device`
     (above) or the `openstack_compute_volume_attach_v2` and
