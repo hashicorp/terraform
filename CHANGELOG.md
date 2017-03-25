@@ -33,6 +33,7 @@ IMPROVEMENTS:
  * provider/openstack: Adding Timeouts to Image v2 and LBaaS v2 Resources [GH-12865]
  * provider/openstack: Adding Timeouts to Network Resources [GH-12866]
  * provider/openstack: Adding Timeouts to LBaaS v1 Resources [GH-12867]
+ * provider/openstack: Deprecating Instance Volume attribute [GH-13062]
  * provider/pagerduty: Validate credentials [GH-12854]
  
 BUG FIXES: 
