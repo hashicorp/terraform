@@ -25,28 +25,28 @@ func resourceAwsIAMServerCertificate() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"certificate_body": &schema.Schema{
+			"certificate_body": {
 				Type:      schema.TypeString,
 				Required:  true,
 				ForceNew:  true,
 				StateFunc: normalizeCert,
 			},
 
-			"certificate_chain": &schema.Schema{
+			"certificate_chain": {
 				Type:      schema.TypeString,
 				Optional:  true,
 				ForceNew:  true,
 				StateFunc: normalizeCert,
 			},
 
-			"path": &schema.Schema{
+			"path": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "/",
 				ForceNew: true,
 			},
 
-			"private_key": &schema.Schema{
+			"private_key": {
 				Type:      schema.TypeString,
 				Required:  true,
 				ForceNew:  true,
@@ -54,7 +54,7 @@ func resourceAwsIAMServerCertificate() *schema.Resource {
 				Sensitive: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
@@ -70,7 +70,7 @@ func resourceAwsIAMServerCertificate() *schema.Resource {
 				},
 			},
 
-			"name_prefix": &schema.Schema{
+			"name_prefix": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -84,7 +84,7 @@ func resourceAwsIAMServerCertificate() *schema.Resource {
 				},
 			},
 
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -120,7 +120,7 @@ func resourceAwsIAMServerCertificateCreate(d *schema.ResourceData, meta interfac
 	}
 
 	log.Printf("[DEBUG] Creating IAM Server Certificate with opts: %s", createOpts)
-	_, err := conn.UploadServerCertificate(createOpts)
+	resp, err := conn.UploadServerCertificate(createOpts)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			return fmt.Errorf("[WARN] Error uploading server certificate, error: %s: %s", awsErr.Code(), awsErr.Message())
@@ -128,7 +128,7 @@ func resourceAwsIAMServerCertificateCreate(d *schema.ResourceData, meta interfac
 		return fmt.Errorf("[WARN] Error uploading server certificate, error: %s", err)
 	}
 
-	d.SetId(sslCertName)
+	d.SetId(*resp.ServerCertificateMetadata.ServerCertificateId)
 	d.Set("name", sslCertName)
 
 	return resourceAwsIAMServerCertificateRead(d, meta)
@@ -151,6 +151,8 @@ func resourceAwsIAMServerCertificateRead(d *schema.ResourceData, meta interface{
 		}
 		return fmt.Errorf("[WARN] Error reading IAM Server Certificate: %s", err)
 	}
+
+	d.SetId(*resp.ServerCertificate.ServerCertificateMetadata.ServerCertificateId)
 
 	// these values should always be present, and have a default if not set in
 	// configuration, and so safe to reference with nil checks
