@@ -1,0 +1,72 @@
+#spotlight {
+    position: fixed;
+    left: 0px;
+    top: 0px;
+    right: 0px;
+    bottom: 0px;
+    background-color: rgba(0,0,0,0.5);
+    z-index: 99999;
+
+    #spotlight-contents {
+        position: absolute;
+        left: 25%;
+        right: 25%;
+        top: 10%;
+        background-color: $gray-darker;
+        border: 1px solid $gray-secondary;
+        box-shadow: 0px 0px 10px 5px rgba(0,0,0,1);
+        color: $white;
+        padding: 0px;
+
+        input {
+            display: block;
+            width: 100%;
+            background-color: $gray-secondary;
+            color: $white;
+            border: 1px solid $black;
+            padding: 2px;
+        }
+
+        #spotlight-results {
+            overflow-y: scroll;
+            overflow-x: clip;
+            max-height: 450px;
+            display: none;
+
+            a {
+                display: block;
+                width: 100%;
+                padding: 2px;
+                background-color: $gray-darker;
+                color: $white;
+
+                strong {
+                    background-color: $gray-secondary;
+                }
+
+                em {
+                    float: right;
+                    font-size: 80%;
+                }
+            }
+
+            a:hover {
+                background-color: $gray;
+                color: $black;
+
+                strong {
+                    background-color: $gray;
+                }
+            }
+
+            a:focus {
+                background-color: $white;
+                color: $black;
+
+                strong {
+                    background-color: $white;
+                }
+            }
+        }
+    }
+}

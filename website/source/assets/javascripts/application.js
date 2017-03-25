@@ -23,6 +23,7 @@
 //= require app/_Engine.Shape.Puller
 //= require app/_Engine.Typewriter
 //= require app/_Sidebar
+//= require app/_Spotlight
 //= require app/_Init
 
 // assets/javascripts/application.js
