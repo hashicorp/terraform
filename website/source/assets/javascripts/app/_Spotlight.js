@@ -122,6 +122,7 @@
 
     function handleSelectionChanged(e, delta) {
         var index = (selected + delta) % choices.length;
+        while (index < 0) index += choices.length;
         selectChoice(index);
         e.preventDefault();
     }
@@ -204,7 +205,19 @@
         }
         selected = index;
         if (selected >= 0 && selected < choices.length) {
-            choices[selected].addClass('selected');
+            var el = choices[selected];
+            var parent = el.parent();
+            el.addClass('selected');
+            var scrollTop = parent.scrollTop();
+            var top = el.position().top;
+            var maxTop = parent.height() - el.height()
+                - parseInt(el.css('padding-top')) - parseInt(el.css('padding-bottom'));
+
+            // Scroll into view if we've gone off the top.
+            if (top < 0) parent.scrollTop(scrollTop + top);
+            if (top > maxTop) {
+                parent.scrollTop(scrollTop + top - maxTop);
+            }
         }
     }
 

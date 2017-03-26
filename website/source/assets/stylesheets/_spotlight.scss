@@ -32,6 +32,8 @@
             overflow-x: clip;
             max-height: 450px;
             display: none;
+            position: relative;
+            box-sizing: border-box;
 
             a {
                 display: block;
@@ -41,6 +43,7 @@
                 color: $white;
                 white-space: nowrap;
                 position: relative;
+                box-sizing: border-box;
 
                 strong {
                     background-color: $gray-secondary;
