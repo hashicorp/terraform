@@ -35,6 +35,7 @@ IMPROVEMENTS:
  * provider/openstack: Adding Timeouts to LBaaS v1 Resources [GH-12867]
  * provider/openstack: Deprecating Instance Volume attribute [GH-13062]
  * provider/openstack: Decprecating Instance Floating IP attribute [GH-13063]
+ * provider/openstack: Don't log the catalog [GH-13075]
  * provider/pagerduty: Validate credentials [GH-12854]
  * provider/profitbricks: Handling missing resources [GH-13053]
  
