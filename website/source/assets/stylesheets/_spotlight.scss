@@ -39,24 +39,23 @@
                 padding: 2px;
                 background-color: $gray-darker;
                 color: $white;
+                white-space: nowrap;
+                position: relative;
 
                 strong {
                     background-color: $gray-secondary;
                 }
 
                 em {
-                    float: right;
+                    position: absolute;
+                    right: 3pt;
+                    bottom: 3pt;
                     font-size: 80%;
                 }
             }
 
             a:hover {
-                background-color: $gray;
-                color: $black;
-
-                strong {
-                    background-color: $gray;
-                }
+                background-color: $black;
             }
 
             a.selected {
