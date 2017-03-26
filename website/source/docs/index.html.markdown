@@ -12,3 +12,7 @@ Welcome to the Terraform documentation! This documentation is more of a referenc
 guide for all available features and options of Terraform. If you're just getting
 started with Terraform, please start with the
 [introduction and getting started guide](/intro/index.html) instead.
+
+If you know the page in the documentation that you wish to go to, pressing Ctrl-P
+will open up a quick search window, to let you quickly navigate to the page you
+want by typing part of its title.
