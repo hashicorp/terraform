@@ -171,6 +171,19 @@ func resourceComputeDiskRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	if v, ok := d.GetOk("snapshot"); ok {
+		snapshotName := v.(string)
+		log.Printf("[DEBUG] Loading snapshot: %s", snapshotName)
+		_, err := config.clientCompute.Snapshots.Get(
+			project, snapshotName).Do()
+
+		if err != nil {
+			return fmt.Errorf(
+				"Error loading snapshot '%s': %s",
+				snapshotName, err)
+		}
+	}
+
 	disk, err := config.clientCompute.Disks.Get(
 		project, d.Get("zone").(string), d.Id()).Do()
 	if err != nil {
