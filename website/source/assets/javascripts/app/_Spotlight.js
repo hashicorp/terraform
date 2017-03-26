@@ -1,4 +1,4 @@
-(function($) {
+function Spotlight() {
     "use strict";
 
     var pages = {};
@@ -221,4 +221,4 @@
         }
     }
 
-})(jQuery);
+};

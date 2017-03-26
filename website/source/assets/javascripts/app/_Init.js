@@ -23,10 +23,16 @@ var Init = {
 		}
 		//always init sidebar
 		Init.initializeSidebar();
+		Init.initializeSpotlight();
 	},
 
 	initializeSidebar: function(){
 		new Sidebar();
+	},
+
+	initializeSpotlight: function() {
+		if (window.spotlight) return;
+		window.spotlight = new Spotlight();
 	},
 
 	generateAnimatedLogo: function(){
