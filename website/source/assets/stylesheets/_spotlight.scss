@@ -59,7 +59,7 @@
                 }
             }
 
-            a:focus {
+            a.selected {
                 background-color: $white;
                 color: $black;
 

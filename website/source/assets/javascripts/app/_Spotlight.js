@@ -4,6 +4,8 @@
     var pages = {};
     var visible = false;
     var lastText = null;
+    var selected = NaN;
+    var choices = [];
 
     $.ajax({
         url: '/sitemap.xml',
@@ -45,7 +47,7 @@
 
         // Ctrl-P brings up the spotlight
 
-        $(document).keyup(function(e) {
+        $(document).keydown(function(e) {
             if (e.altKey || e.metaKey || e.shiftKey) return;
             if (e.key.toLowerCase() == 'p' && e.ctrlKey) {
                 handleShowRequest(e);
@@ -54,11 +56,24 @@
 
         // Esc dismisses it
 
-        $(document).on('keyup', '#spotlight', function(e) {
+        $(document).on('keydown', '#spotlight', function(e) {
             if (e.altKey || e.ctrlKey || e.shiftKey || e.metaKey) return;
             switch (e.keyCode) {
                 case 27: // esc
                     handleEsc(e);
+                    break;
+                case 38: // up arrow
+                    handleSelectionChanged(e, -1);
+                    break;
+                case 40: // down arrow
+                    handleSelectionChanged(e, 1);
+                    break;
+                case 13: // enter
+                    handleEnter(e);
+                    break;
+                default:
+                    console.log(e);
+                    break;
             }
         });
 
@@ -105,6 +120,19 @@
         updateSpotlight(text);
     }
 
+    function handleSelectionChanged(e, delta) {
+        var index = (selected + delta) % choices.length;
+        selectChoice(index);
+        e.preventDefault();
+    }
+
+    function handleEnter(e) {
+        if (selected >= 0 && selected < choices.length) {
+            window.location.href = choices[selected].attr('href');
+        }
+        e.preventDefault();
+    }
+
     function showSpotlight() {
         if (visible) return;
         visible = true;
@@ -127,17 +155,18 @@
     }
 
     function updateSpotlight(text) {
-        var matches = getMatches(text);
+        choices = getChoices(text);
+        selectChoice(0);
         $('#spotlight-results a').remove();
-        if(matches.length) {
-            $('#spotlight-results').append(matches).show(0);
+        if(choices.length) {
+            $('#spotlight-results').append(choices).show(0);
         }
         else {
             $('#spotlight-results').hide(0);
         }
     }
 
-    function getMatches(text) {
+    function getChoices(text) {
         if (text.length < 2) return [];
         var links = [];
         for (var i = 0; i < pages.length; i++) {
@@ -167,6 +196,16 @@
         }
 
         return links;
+    }
+
+    function selectChoice(index) {
+        if (selected >= 0 && selected < choices.length) {
+            choices[selected].removeClass('selected');
+        }
+        selected = index;
+        if (selected >= 0 && selected < choices.length) {
+            choices[selected].addClass('selected');
+        }
     }
 
 })(jQuery);
