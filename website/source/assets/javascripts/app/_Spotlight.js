@@ -78,7 +78,7 @@
 
     function handleShowRequest(e) {
         showSpotlight();
-        updateSpotlight();
+        updateSpotlight($('#spotlight input').val());
         e.preventDefault();
     }
 
@@ -113,10 +113,7 @@
             '<input type="text" placeholder="Quick search" />' +
             '<div id="spotlight-results">' +
             '</div></div></div>');
-        $('#spotlight input').focus().keyup(updateSpotlight);
-        $('#spotlight-contents').focusout(function() {
-            var contents = this;
-        });
+        $('#spotlight input').focus();
     }
 
     function hideSpotlight() {
