@@ -49,7 +49,7 @@ function Spotlight() {
 
         $(document).keydown(function(e) {
             if (e.altKey || e.metaKey || e.shiftKey) return;
-            if (e.key.toLowerCase() == 'p' && e.ctrlKey) {
+            if (e.keyCode == 80 && e.ctrlKey) {
                 handleShowRequest(e);
             }
         });
@@ -139,7 +139,7 @@ function Spotlight() {
         visible = true;
         $('body').prepend(
             '<div id="spotlight"><div id="spotlight-contents">' +
-            '<input type="text" placeholder="Quick search" />' +
+            '<input autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" type="text" placeholder="Quick search" />' +
             '<div id="spotlight-results">' +
             '</div></div></div>');
         $('#spotlight input').focus();
