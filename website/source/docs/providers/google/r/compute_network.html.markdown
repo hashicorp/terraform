@@ -53,4 +53,6 @@ exported:
 
 * `gateway_ipv4` - The IPv4 address of the gateway.
 
+* `name` - The unique name of the network.
+
 * `self_link` - The URI of the created resource.
