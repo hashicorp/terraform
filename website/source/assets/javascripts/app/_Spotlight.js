@@ -71,9 +71,6 @@ function Spotlight() {
                 case 13: // enter
                     handleEnter(e);
                     break;
-                default:
-                    console.log(e);
-                    break;
             }
         });
 
