@@ -103,7 +103,13 @@ func resourcePuppetDBNodeRead(d *schema.ResourceData, meta interface{}) error {
 
 	certname := d.Get("certname").(string)
 	client := meta.(*PuppetDBClient)
-	pdbResp, err := client.Query("query/v4/nodes/"+certname, "GET", "")
+	resp, err := client.Query("query/v4/nodes/"+certname, "GET", "")
+	if err != nil {
+		return err
+	}
+
+	var pdbResp PuppetDBNodeResp
+	err = json.Unmarshal(resp, &pdbResp)
 	if err != nil {
 		return err
 	}

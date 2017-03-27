@@ -3,8 +3,8 @@ package puppetdb
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -16,7 +16,7 @@ type PuppetDBClient struct {
 	CA   string
 }
 
-type PuppetDBResp struct {
+type PuppetDBNodeResp struct {
 	Error                        error  `json:"error"`
 	Certname                     string `json:"certname"`
 	Deactivated                  string `json:"deactivated"`
@@ -41,8 +41,9 @@ type commandsPayload struct {
 	Payload map[string]string `json:"payload"`
 }
 
-func (p *PuppetDBClient) Query(query string, verb string, payload string) (pdbResp PuppetDBResp, err error) {
+func (p *PuppetDBClient) Query(query string, verb string, payload string) (body []byte, err error) {
 	url := p.URL + "/pdb/" + query
+	log.Printf("[RANCHER] url=%s\n", url)
 	form := strings.NewReader(payload)
 	req, err := http.NewRequest(verb, url, form)
 	if err != nil {
@@ -56,13 +57,13 @@ func (p *PuppetDBClient) Query(query string, verb string, payload string) (pdbRe
 		// Load cert pair
 		cert, err := tls.LoadX509KeyPair(p.Cert, p.Key)
 		if err != nil {
-			return pdbResp, err
+			return body, err
 		}
 
 		// Load CA cert
 		caCert, err := ioutil.ReadFile(p.CA)
 		if err != nil {
-			return pdbResp, err
+			return body, err
 		}
 		caCertPool := x509.NewCertPool()
 		caCertPool.AppendCertsFromPEM(caCert)
@@ -84,16 +85,12 @@ func (p *PuppetDBClient) Query(query string, verb string, payload string) (pdbRe
 		return
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return
 	}
 
-	json.Unmarshal(body, &pdbResp)
+	log.Printf("[RANCHER] body=%v\n", string(body))
 
-	if err = pdbResp.Error; err != nil {
-		return
-	}
-
-	return pdbResp, nil
+	return body, nil
 }
