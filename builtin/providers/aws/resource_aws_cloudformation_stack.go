@@ -6,10 +6,12 @@ import (
 	"regexp"
 	"time"
 
+	"bytes"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -22,12 +24,12 @@ func resourceAwsCloudFormationStack() *schema.Resource {
 		Delete: resourceAwsCloudFormationStackDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"template_body": &schema.Schema{
+			"template_body": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
@@ -37,42 +39,68 @@ func resourceAwsCloudFormationStack() *schema.Resource {
 					return template
 				},
 			},
-			"template_url": &schema.Schema{
+			"template_url": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"capabilities": &schema.Schema{
+			"capabilities": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"disable_rollback": &schema.Schema{
+			"disable_rollback": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 			},
-			"notification_arns": &schema.Schema{
+			"notification_arns": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"on_failure": &schema.Schema{
+			"on_failure": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"parameters": &schema.Schema{
+			"parameters": {
+				Type:          schema.TypeMap,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"parameter"},
+				Deprecated:    "Use field parameter instead",
+			},
+			"parameter": {
+				Type:          schema.TypeSet,
+				Optional:      true,
+				ConflictsWith: []string{"parameters"},
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"value": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"use_previous_value": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+					},
+				},
+				Set: cloudformationParametersToHash,
+			},
+			"outputs": {
 				Type:     schema.TypeMap,
-				Optional: true,
 				Computed: true,
 			},
-			"outputs": &schema.Schema{
-				Type:     schema.TypeMap,
-				Computed: true,
-			},
-			"policy_body": &schema.Schema{
+			"policy_body": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
@@ -82,16 +110,16 @@ func resourceAwsCloudFormationStack() *schema.Resource {
 					return json
 				},
 			},
-			"policy_url": &schema.Schema{
+			"policy_url": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"timeout_in_minutes": &schema.Schema{
+			"timeout_in_minutes": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
 			},
-			"tags": &schema.Schema{
+			"tags": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,
@@ -129,8 +157,20 @@ func resourceAwsCloudFormationStackCreate(d *schema.ResourceData, meta interface
 	if v, ok := d.GetOk("on_failure"); ok {
 		input.OnFailure = aws.String(v.(string))
 	}
-	if v, ok := d.GetOk("parameters"); ok {
-		input.Parameters = expandCloudFormationParameters(v.(map[string]interface{}))
+	// Deprecated in favor of parameter
+	if params, ok := d.GetOk("parameters"); ok {
+		var cfParams []*cloudformation.Parameter
+		for k, v := range params.(map[string]interface{}) {
+			cfParams = append(cfParams, &cloudformation.Parameter{
+				ParameterKey:   aws.String(k),
+				ParameterValue: aws.String(v.(string)),
+			})
+		}
+
+		input.Parameters = cfParams
+	}
+	if v, ok := d.GetOk("parameter"); ok {
+		input.Parameters = expandCloudFormationParameters(setToMapByKey(v.(*schema.Set), "key"))
 	}
 	if v, ok := d.GetOk("policy_body"); ok {
 		policy, err := normalizeJsonString(v)
@@ -145,6 +185,7 @@ func resourceAwsCloudFormationStackCreate(d *schema.ResourceData, meta interface
 	if v, ok := d.GetOk("tags"); ok {
 		input.Tags = expandCloudFormationTags(v.(map[string]interface{}))
 	}
+
 	if v, ok := d.GetOk("timeout_in_minutes"); ok {
 		m := int64(v.(int))
 		input.TimeoutInMinutes = aws.Int64(m)
@@ -314,9 +355,16 @@ func resourceAwsCloudFormationStackRead(d *schema.ResourceData, meta interface{}
 		}
 	}
 
-	originalParams := d.Get("parameters").(map[string]interface{})
-	err = d.Set("parameters", flattenCloudFormationParameters(stack.Parameters, originalParams))
-	if err != nil {
+	deprecatedParams := d.Get("parameters").(map[string]interface{})
+	if err := d.Set("parameters", deprecatedFlattenCloudFormationParameters(stack.Parameters, deprecatedParams)); err != nil {
+		log.Printf("[DEBUG] Error setting parameters: %s", err)
+		return err
+	}
+
+	originalParams := d.Get("parameter").(*schema.Set).List()
+	flattenedParameters := flattenCloudFormationParameters(stack.Parameters, originalParams)
+	if err := d.Set("parameter", flattenedParameters); err != nil {
+		log.Printf("[DEBUG] Error setting parameter: %s", err)
 		return err
 	}
 
@@ -369,8 +417,21 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 		input.NotificationARNs = expandStringList(d.Get("notification_arns").(*schema.Set).List())
 	}
 
+	// Deprecated in favor of "parameter"
+	if params, ok := d.GetOk("parameters"); ok {
+		var cfParams []*cloudformation.Parameter
+		for k, v := range params.(map[string]interface{}) {
+			cfParams = append(cfParams, &cloudformation.Parameter{
+				ParameterKey:   aws.String(k),
+				ParameterValue: aws.String(v.(string)),
+			})
+		}
+
+		input.Parameters = cfParams
+	}
+
 	// Parameters must be present whether they are changed or not
-	if v, ok := d.GetOk("parameters"); ok {
+	if v, ok := d.GetOk("parameter"); ok {
 		input.Parameters = expandCloudFormationParameters(v.(map[string]interface{}))
 	}
 
@@ -625,4 +686,14 @@ func cfStackEventIsStackDeletion(event *cloudformation.StackEvent) bool {
 	return *event.ResourceStatus == "DELETE_IN_PROGRESS" &&
 		*event.ResourceType == "AWS::CloudFormation::Stack" &&
 		event.ResourceStatusReason != nil
+}
+
+func cloudformationParametersToHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["key"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["value"].(string)))
+	buf.WriteString(fmt.Sprintf("%t-", m["use_previous_value"].(bool)))
+
+	return hashcode.String(buf.String())
 }

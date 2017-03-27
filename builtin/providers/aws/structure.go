@@ -1069,28 +1069,59 @@ func flattenDSConnectSettings(
 	return []map[string]interface{}{settings}
 }
 
-func expandCloudFormationParameters(params map[string]interface{}) []*cloudformation.Parameter {
-	var cfParams []*cloudformation.Parameter
-	for k, v := range params {
-		cfParams = append(cfParams, &cloudformation.Parameter{
-			ParameterKey:   aws.String(k),
-			ParameterValue: aws.String(v.(string)),
-		})
+func expandCloudFormationParameters(m map[string]interface{}) []*cloudformation.Parameter {
+	result := make([]*cloudformation.Parameter, 0, len(m))
+	for k, v := range m {
+		attr := v.(map[string]interface{})
+		p := &cloudformation.Parameter{
+			ParameterKey: aws.String(k),
+		}
+
+		if attr["use_previous_value"].(bool) {
+			p.UsePreviousValue = aws.Bool(attr["use_previous_value"].(bool))
+		} else {
+			p.ParameterValue = aws.String(v.(string))
+		}
+
+		result = append(result, p)
 	}
 
-	return cfParams
+	return result
 }
 
-// flattenCloudFormationParameters is flattening list of
+// deprecatedFlattenCloudFormationParameters is flattening list of
 // *cloudformation.Parameters and only returning existing
-// parameters to avoid clash with default values
-func flattenCloudFormationParameters(cfParams []*cloudformation.Parameter,
+// parameters to avoid clash with default values.
+func deprecatedFlattenCloudFormationParameters(cfParams []*cloudformation.Parameter,
 	originalParams map[string]interface{}) map[string]interface{} {
 	params := make(map[string]interface{}, len(cfParams))
 	for _, p := range cfParams {
 		_, isConfigured := originalParams[*p.ParameterKey]
 		if isConfigured {
 			params[*p.ParameterKey] = *p.ParameterValue
+		}
+	}
+	return params
+}
+
+// flattenCloudFormationParameters is flattening list of
+// *cloudformation.Parameters and only returning existing
+// parameters to avoid clash with default values.
+func flattenCloudFormationParameters(cfParams []*cloudformation.Parameter, originalParams []interface{}) []map[string]interface{} {
+	params := make([]map[string]interface{}, len(cfParams))
+	for _, p := range cfParams {
+		isConfigured := false
+		for _, b := range originalParams {
+			if b == *p.ParameterKey {
+				isConfigured = true
+			}
+		}
+
+		if isConfigured {
+			data := make(map[string]interface{})
+			data["name"] = *p.ParameterKey
+			data["value"] = *p.ParameterValue
+			params = append(params, data)
 		}
 	}
 	return params
