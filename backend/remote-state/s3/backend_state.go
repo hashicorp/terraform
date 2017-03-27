@@ -14,15 +14,14 @@ import (
 )
 
 const (
-	// This will be used as directory name, the odd looking colon is simply to
-	// reduce the chance of name conflicts with existing objects.
-	keyEnvPrefix = "env:"
+	keyEnvPrefix = "-env:"
 )
 
 func (b *Backend) States() ([]string, error) {
+	prefix := b.keyName + keyEnvPrefix
 	params := &s3.ListObjectsInput{
 		Bucket: &b.bucketName,
-		Prefix: aws.String(keyEnvPrefix + "/"),
+		Prefix: aws.String(prefix),
 	}
 
 	resp, err := b.s3Client.ListObjects(params)
@@ -30,33 +29,26 @@ func (b *Backend) States() ([]string, error) {
 		return nil, err
 	}
 
-	var envs []string
+	envs := map[string]struct{}{}
 	for _, obj := range resp.Contents {
-		env := keyEnv(*obj.Key)
-		if env != "" {
-			envs = append(envs, env)
+		key := *obj.Key
+		if strings.HasPrefix(key, prefix) {
+			name := strings.TrimPrefix(key, prefix)
+			// we store the state in a key, not a directory
+			if strings.Contains(name, "/") {
+				continue
+			}
+
+			envs[name] = struct{}{}
 		}
 	}
 
-	sort.Strings(envs)
-	envs = append([]string{backend.DefaultStateName}, envs...)
-	return envs, nil
-}
-
-// extract the env name from the S3 key
-func keyEnv(key string) string {
-	parts := strings.Split(key, "/")
-	if len(parts) < 3 {
-		// no env here
-		return ""
+	result := []string{backend.DefaultStateName}
+	for name := range envs {
+		result = append(result, name)
 	}
-
-	if parts[0] != keyEnvPrefix {
-		// not our key, so ignore
-		return ""
-	}
-
-	return parts[1]
+	sort.Strings(result[1:])
+	return result, nil
 }
 
 func (b *Backend) DeleteState(name string) error {
@@ -147,7 +139,7 @@ func (b *Backend) path(name string) string {
 		return b.keyName
 	}
 
-	return strings.Join([]string{keyEnvPrefix, name, b.keyName}, "/")
+	return b.keyName + keyEnvPrefix + name
 }
 
 const errStateUnlock = `
