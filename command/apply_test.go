@@ -802,6 +802,39 @@ func TestApply_planVars(t *testing.T) {
 	}
 }
 
+// we should be able to apply a plan file with no other file dependencies
+func TestApply_planNoModuleFiles(t *testing.T) {
+	// temprary data directory which we can remove between commands
+	td, err := ioutil.TempDir("", "tf")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(td)
+
+	defer testChdir(t, td)()
+
+	p := testProvider()
+	planFile := testPlanFile(t, &terraform.Plan{
+		Module: testModule(t, "apply-plan-no-module"),
+	})
+
+	contextOpts := testCtxConfig(p)
+
+	apply := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: contextOpts,
+			Ui:          new(cli.MockUi),
+		},
+	}
+	args := []string{
+		planFile,
+	}
+	apply.Run(args)
+	if p.ValidateCalled {
+		t.Fatal("Validate should not be called with a plan")
+	}
+}
+
 func TestApply_refresh(t *testing.T) {
 	originalState := &terraform.State{
 		Modules: []*terraform.ModuleState{
