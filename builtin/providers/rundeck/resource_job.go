@@ -2,7 +2,6 @@ package rundeck
 
 import (
 	"fmt"
-
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -720,30 +719,6 @@ func jobFromResourceData(d *schema.ResourceData) (*rundeck.JobDetail, error) {
 		}
 	}
 
-	// Element: Job>Dispatch
-	dispatchConfigI := d.Get("dispatch").([]interface{})
-	if len(dispatchConfigI) > 0 {
-		dispatchMap := dispatchConfigI[0].(map[string]interface{})
-		job.Dispatch = &rundeck.JobDispatch{
-			MaxThreadCount:  d.Get("max_thread_count").(int),
-			ContinueOnError: dispatchMap["continue_on_error"].(bool),
-			RankAttribute:   d.Get("rank_attribute").(string),
-			RankOrder:       d.Get("rank_order").(string),
-		}
-
-		if d.Get("node_filter_exclude_precedence") != nil {
-			job.Dispatch.ExcludePrecedence = &rundeck.Boolean{
-				Value: d.Get("node_filter_exclude_precedence").(bool),
-			}
-		}
-
-		if d.Get("nodes_selected_by_default") != nil {
-			job.NodesSelectedByDefault = &rundeck.Boolean{
-				Value: d.Get("nodes_selected_by_default").(bool),
-			}
-		}
-	}
-
 	// Element: Job>Schedule
 	scheduleCron := d.Get("schedule").(string)
 	if len(scheduleCron) > 0 {
@@ -833,9 +808,39 @@ func jobFromResourceData(d *schema.ResourceData) (*rundeck.JobDetail, error) {
 	}
 
 	// Job>Filter
+	job.Dispatch = nil
 	if d.Get("node_filter_query").(string) != "" {
 		job.NodeFilter = &rundeck.JobNodeFilter{
 			Query: d.Get("node_filter_query").(string),
+		}
+
+		dispatch := &rundeck.JobDispatch{
+			MaxThreadCount: d.Get("max_thread_count").(int),
+			RankAttribute:  d.Get("rank_attribute").(string),
+			RankOrder:      d.Get("rank_order").(string),
+		}
+
+		// Element: Job>Dispatch
+		dispatchConfigI := d.Get("dispatch").([]interface{})
+		if len(dispatchConfigI) > 0 {
+			dispatchMap := dispatchConfigI[0].(map[string]interface{})
+			dispatch.ContinueOnError = dispatchMap["continue_on_error"].(bool)
+		}
+
+		if d.Get("node_filter_exclude_precedence") != nil {
+			dispatch.ExcludePrecedence = &rundeck.Boolean{
+				Value: d.Get("node_filter_exclude_precedence").(bool),
+			}
+		}
+		job.Dispatch = dispatch
+
+		// Element: Job>NodesSelectedByDefault
+		nodesSelectedByDefault := &rundeck.Boolean{
+			Value: d.Get("nodes_selected_by_default").(bool),
+		}
+
+		if d.Get("nodes_selected_by_default") != nil {
+			job.NodesSelectedByDefault = nodesSelectedByDefault
 		}
 	}
 
@@ -968,9 +973,27 @@ func jobToResourceData(job *rundeck.JobDetail, d *schema.ResourceData) error {
 
 	// Element: Job>Filter
 	d.Set("node_filter_query", nil)
+	dispatchConfigsI := []interface{}{}
 	if job.NodeFilter != nil {
 		d.Set("node_filter_query", job.NodeFilter.Query)
+
+		// Element: Job>Dispatch
+		if job.Dispatch != nil {
+			if job.Dispatch.ExcludePrecedence != nil {
+				d.Set("node_filter_exclude_precedence", job.Dispatch.ExcludePrecedence.Value)
+			}
+
+			d.Set("max_thread_count", job.Dispatch.MaxThreadCount)
+			d.Set("rank_attribute", job.Dispatch.RankAttribute)
+			d.Set("rank_order", job.Dispatch.RankOrder)
+			dispatchConfigI := map[string]interface{}{
+				"continue_on_error": job.Dispatch.ContinueOnError,
+			}
+
+			dispatchConfigsI = append(dispatchConfigsI, dispatchConfigI)
+		}
 	}
+	d.Set("dispatch", dispatchConfigsI)
 
 	// Element: Job>Schedule
 	if job.Schedule != nil {
@@ -1066,27 +1089,10 @@ func jobToResourceData(job *rundeck.JobDetail, d *schema.ResourceData) error {
 	}
 	d.Set("command", commandConfigsI)
 
-	// Element: Job>Dispatch
-	if job.Dispatch != nil {
-		if job.Dispatch.ExcludePrecedence != nil {
-			d.Set("node_filter_exclude_precedence", job.Dispatch.ExcludePrecedence.Value)
-		}
-
-		d.Set("max_thread_count", job.Dispatch.MaxThreadCount)
-		d.Set("rank_attribute", job.Dispatch.RankAttribute)
-		d.Set("rank_order", job.Dispatch.RankOrder)
-		dispatchConfigI := map[string]interface{}{
-			"continue_on_error": job.Dispatch.ContinueOnError,
-		}
-		d.Set("dispatch", dispatchConfigI)
-	}
-
 	// Element: NodesSelectedByDefault
 	d.Set("nodes_selected_by_default", nil)
 	if job.NodesSelectedByDefault != nil {
 		d.Set("nodes_selected_by_default", job.NodesSelectedByDefault.Value)
 	}
-
-	return fmt.Errorf("value: %+v", d.Get("nodes_selected_by_default"))
-	//return nil
+	return nil
 }

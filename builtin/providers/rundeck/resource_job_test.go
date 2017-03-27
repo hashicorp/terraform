@@ -43,7 +43,7 @@ func TestAccJob_advanced(t *testing.T) {
 		CheckDestroy: testAccJobCheckDestroy(&job),
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccJobConfig_advanced,
+				Config: testAccJobConfigAdvanced,
 				Check: resource.ComposeTestCheckFunc(
 					testAccJobCheckExists("rundeck_job.test", &job),
 					func(s *terraform.State) error {
@@ -127,7 +127,7 @@ resource "rundeck_job" "test" {
 }
 `
 
-const testAccJobConfig_advanced = `
+const testAccJobConfigAdvanced = `
 resource "rundeck_project" "test" {
   name = "terraform-acc-test-job"
   description = "parent project for job acceptance tests"

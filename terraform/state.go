@@ -1643,6 +1643,7 @@ func (s *InstanceState) MergeDiff(d *InstanceDiff) *InstanceState {
 	}
 	result.init()
 
+	// check if s is not nil, while you expext you can do a s.DeepCopy()?
 	if s != nil {
 		s.Lock()
 		defer s.Unlock()
