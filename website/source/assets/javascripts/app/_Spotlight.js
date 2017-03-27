@@ -45,11 +45,10 @@ function Spotlight() {
 
     function initSpotlight() {
 
-        // Ctrl-P brings up the spotlight
+        // Ctrl-/ or Cmd-/ brings up the spotlight
 
         $(document).keydown(function(e) {
-            if (e.altKey || e.metaKey || e.shiftKey) return;
-            if (e.keyCode == 80 && e.ctrlKey) {
+            if (e.keyCode == 191 && (e.ctrlKey || e.metaKey)) {
                 handleShowRequest(e);
             }
         });
