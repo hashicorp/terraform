@@ -243,6 +243,8 @@ func TestAccAWSNetworkAcl_ipv6Rules(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSNetworkAclExists("aws_network_acl.foos", &networkAcl),
 					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.#", "1"),
+					resource.TestCheckResourceAttr(
 						"aws_network_acl.foos", "ingress.1976110835.protocol", "6"),
 					resource.TestCheckResourceAttr(
 						"aws_network_acl.foos", "ingress.1976110835.rule_no", "1"),
@@ -254,6 +256,29 @@ func TestAccAWSNetworkAcl_ipv6Rules(t *testing.T) {
 						"aws_network_acl.foos", "ingress.1976110835.action", "allow"),
 					resource.TestCheckResourceAttr(
 						"aws_network_acl.foos", "ingress.1976110835.ipv6_cidr_block", "::/0"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSNetworkAcl_ipv6VpcRules(t *testing.T) {
+	var networkAcl ec2.NetworkAcl
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_network_acl.foos",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSNetworkAclDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSNetworkAclIpv6VpcConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSNetworkAclExists("aws_network_acl.foos", &networkAcl),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.1296304962.ipv6_cidr_block", "2600:1f16:d1e:9a00::/56"),
 				),
 			},
 		},
@@ -433,6 +458,33 @@ resource "aws_network_acl" "foos" {
 	}
 
 	subnet_ids = ["${aws_subnet.blob.id}"]
+}
+`
+
+const testAccAWSNetworkAclIpv6VpcConfig = `
+provider "aws" {
+  region = "us-east-2"
+}
+
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+	assign_generated_ipv6_cidr_block = true
+
+	tags {
+		Name = "TestAccAWSNetworkAcl_ipv6VpcRules"
+	}
+}
+
+resource "aws_network_acl" "foos" {
+	vpc_id = "${aws_vpc.foo.id}"
+	ingress = {
+		protocol = "tcp"
+		rule_no = 1
+		action = "allow"
+		ipv6_cidr_block =  "2600:1f16:d1e:9a00::/56"
+		from_port = 0
+		to_port = 22
+	}
 }
 `
 
