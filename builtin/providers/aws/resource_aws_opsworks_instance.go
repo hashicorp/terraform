@@ -565,6 +565,10 @@ func resourceAwsOpsworksInstanceRead(d *schema.ResourceData, meta interface{}) e
 	for _, v := range instance.LayerIds {
 		layerIds = append(layerIds, *v)
 	}
+	layerIds, err = sortListBasedonTFFile(layerIds, d, "layer_ids")
+	if err != nil {
+		return fmt.Errorf("[DEBUG] Error sorting layer_ids attribute: %#v", err)
+	}
 	if err := d.Set("layer_ids", layerIds); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting layer_ids attribute: %#v, error: %#v", layerIds, err)
 	}
@@ -820,7 +824,6 @@ func resourceAwsOpsworksInstanceUpdate(d *schema.ResourceData, meta interface{})
 
 	if v, ok := d.GetOk("layer_ids"); ok {
 		req.LayerIds = expandStringList(v.([]interface{}))
-
 	}
 
 	if v, ok := d.GetOk("os"); ok {
