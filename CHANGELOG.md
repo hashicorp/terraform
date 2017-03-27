@@ -6,6 +6,7 @@ FEATURES:
  * **New Resource:**  `aws_api_gateway_usage_plan` [GH-12542]
  * **New Resource:**  `aws_api_gateway_usage_plan_key` [GH-12851]
  * **New Resource:**  `github_repository_webhook` [GH-12924]
+ * **New Resource:**  `random_pet` [GH-12903]
  * **New Interpolation:** `substr` [GH-12870]
 
 IMPROVEMENTS:
