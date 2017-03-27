@@ -27,6 +27,8 @@ func TestAccVSphereVirtualDisk_basic(t *testing.T) {
 	}
 	if v := os.Getenv("VSPHERE_INIT_TYPE"); v != "" {
 		initTypeOpt += fmt.Sprintf("    type = \"%s\"\n", v)
+	} else {
+		initTypeOpt += fmt.Sprintf("    type = \"%s\"\n", "thin")
 	}
 	if v := os.Getenv("VSPHERE_ADAPTER_TYPE"); v != "" {
 		adapterTypeOpt += fmt.Sprintf("    adapter_type = \"%s\"\n", v)
