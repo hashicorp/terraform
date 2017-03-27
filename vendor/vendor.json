@@ -1396,6 +1396,12 @@
 			"revisionTime": "2017-01-10T07:11:07Z"
 		},
 		{
+			"checksumSHA1": "3Ue4yQFsolS+6tKtrSTtph7GJ74=",
+			"path": "github.com/dustinkirkland/golang-petname",
+			"revision": "242afa0b4f8af1fa581e7ea7f4b6d51735fa3fef",
+			"revisionTime": "2017-01-05T21:50:08Z"
+		},
+		{
 			"checksumSHA1": "GCskdwYAPW2S34918Z5CgNMJ2Wc=",
 			"path": "github.com/dylanmei/iso8601",
 			"revision": "2075bf119b58e5576c6ed9f867b8f3d17f2e54d4"
