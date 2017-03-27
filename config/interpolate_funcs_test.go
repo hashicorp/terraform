@@ -852,6 +852,18 @@ func TestInterpolateFuncMerge(t *testing.T) {
 
 }
 
+func TestInterpolateFuncDirname(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${dirname("/foo/bar/baz")}`,
+				"/foo/bar",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncDistinct(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -1772,6 +1784,18 @@ func TestInterpolateFuncElement(t *testing.T) {
 				`${element(var.a_nested_list, "0")}`,
 				nil,
 				true,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncBasename(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${basename("/foo/bar/baz")}`,
+				"baz",
+				false,
 			},
 		},
 	})
