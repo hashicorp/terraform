@@ -1317,6 +1317,14 @@ func expandAzureRmVirtualMachineDataDisk(d *schema.ResourceData) ([]compute.Data
 			data_disk.ManagedDisk = managedDisk
 		}
 
+		//BEGIN: code to be removed after GH-13016 is merged
+		if vhdURI != "" && managedDiskID != "" {
+			return nil, fmt.Errorf("[ERROR] Conflict between `vhd_uri` and `managed_disk_id` (only one or the other can be used)")
+		}
+		if vhdURI != "" && managedDiskType != "" {
+			return nil, fmt.Errorf("[ERROR] Conflict between `vhd_uri` and `managed_disk_type` (only one or the other can be used)")
+		}
+		//END: code to be removed after GH-13016 is merged
 		if managedDiskID == "" && strings.EqualFold(string(data_disk.CreateOption), string(compute.Attach)) {
 			return nil, fmt.Errorf("[ERROR] Must specify which disk to attach")
 		}
@@ -1434,6 +1442,14 @@ func expandAzureRmVirtualMachineOsDisk(d *schema.ResourceData) (*compute.OSDisk,
 		osDisk.ManagedDisk = managedDisk
 	}
 
+	//BEGIN: code to be removed after GH-13016 is merged
+	if vhdURI != "" && managedDiskID != "" {
+		return nil, fmt.Errorf("[ERROR] Conflict between `vhd_uri` and `managed_disk_id` (only one or the other can be used)")
+	}
+	if vhdURI != "" && managedDiskType != "" {
+		return nil, fmt.Errorf("[ERROR] Conflict between `vhd_uri` and `managed_disk_type` (only one or the other can be used)")
+	}
+	//END: code to be removed after GH-13016 is merged
 	if managedDiskID == "" && strings.EqualFold(string(osDisk.CreateOption), string(compute.Attach)) {
 		return nil, fmt.Errorf("[ERROR] Must specify which disk to attach")
 	}
