@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/vmware/govmomi"
@@ -18,6 +19,8 @@ func TestAccVSphereVirtualDisk_basic(t *testing.T) {
 	var datastoreOpt string
 	var initTypeOpt string
 	var adapterTypeOpt string
+
+	rString := acctest.RandString(5)
 
 	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
 		datacenterOpt = v
@@ -39,14 +42,8 @@ func TestAccVSphereVirtualDisk_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereVirtualDiskDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: fmt.Sprintf(
-					testAccCheckVSphereVirtuaDiskConfig_basic,
-					initTypeOpt,
-					adapterTypeOpt,
-					datacenterOpt,
-					datastoreOpt,
-				),
+			{
+				Config: testAccCheckVSphereVirtuaDiskConfig_basic(rString, initTypeOpt, adapterTypeOpt, datacenterOpt, datastoreOpt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccVSphereVirtualDiskExists("vsphere_virtual_disk.foo"),
 				),
@@ -119,13 +116,15 @@ func testAccCheckVSphereVirtualDiskDestroy(s *terraform.State) error {
 	return nil
 }
 
-const testAccCheckVSphereVirtuaDiskConfig_basic = `
+func testAccCheckVSphereVirtuaDiskConfig_basic(rName, initTypeOpt, adapterTypeOpt, datacenterOpt, datastoreOpt string) string {
+	return fmt.Sprintf(`
 resource "vsphere_virtual_disk" "foo" {
     size = 1
-    vmdk_path = "tfTestDisk.vmdk"
+    vmdk_path = "tfTestDisk-%s.vmdk"
 %s
 %s
     datacenter = "%s"
     datastore = "%s"
 }
-`
+`, rName, initTypeOpt, adapterTypeOpt, datacenterOpt, datastoreOpt)
+}
