@@ -42,6 +42,7 @@ IMPROVEMENTS:
  * provider/openstack: Don't log the catalog [GH-13075]
  * provider/openstack: Handle 409/500 Response on Pool Create [GH-13074]
  * provider/pagerduty: Validate credentials [GH-12854]
+ * provider/openstack: Adding all_metadata attribute [GH-13061]
  * provider/profitbricks: Handling missing resources [GH-13053]
  
 BUG FIXES: 
