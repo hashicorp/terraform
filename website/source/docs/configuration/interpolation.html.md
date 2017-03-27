@@ -140,6 +140,8 @@ syntax `name(arg, arg2, ...)`. For example, to read a file:
 
 The supported built-in functions are:
 
+  * `basename(path)` - Returns the last element of a path.
+
   * `base64decode(string)` - Given a base64-encoded string, decodes it and
     returns the original string.
 
@@ -182,6 +184,8 @@ The supported built-in functions are:
 
   * `concat(list1, list2, ...)` - Combines two or more lists into a single list.
      Example: `concat(aws_instance.db.*.tags.Name, aws_instance.web.*.tags.Name)`
+
+  * `dirname(path)` - Returns all but the last element of path, typically the path's directory.
 
   * `distinct(list)` - Removes duplicate items from a list. Keeps the first
      occurrence of each element, and removes subsequent occurrences. This
