@@ -37,6 +37,11 @@ func ExpandJsonFromString(jsonString string) (map[string]interface{}, error) {
 }
 
 func FlattenJsonToString(input map[string]interface{}) (string, error) {
+
+	if len(input) == 0 {
+		return "", nil
+	}
+
 	result, err := json.Marshal(input)
 	if err != nil {
 		return "", err
