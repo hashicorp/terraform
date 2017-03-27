@@ -104,8 +104,12 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, error) {
 		StateBackupPath: m.backupPath,
 		ContextOpts:     m.contextOpts(),
 		Input:           m.Input(),
-		Validation:      true,
 	}
+
+	// Don't validate if we have a plan.  Validation is normally harmless here,
+	// but validation requires interpolation, and `file()` function calls may
+	// not have the original files in the current execution context.
+	cliOpts.Validation = opts.Plan == nil
 
 	// If the backend supports CLI initialization, do it.
 	if cli, ok := b.(backend.CLI); ok {
