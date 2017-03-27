@@ -2,7 +2,6 @@ package scaleway
 
 import (
 	"log"
-	"sync"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/scaleway/scaleway-cli/pkg/api"
@@ -31,13 +30,12 @@ func resourceScalewayIP() *schema.Resource {
 	}
 }
 
-var mu = sync.Mutex{}
-
 func resourceScalewayIPCreate(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
+
 	mu.Lock()
-	defer mu.Unlock()
 	resp, err := scaleway.NewIP()
+	mu.Unlock()
 	if err != nil {
 		return err
 	}
@@ -71,6 +69,10 @@ func resourceScalewayIPRead(d *schema.ResourceData, m interface{}) error {
 
 func resourceScalewayIPUpdate(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
+
+	mu.Lock()
+	defer mu.Unlock()
+
 	if d.HasChange("server") {
 		if d.Get("server").(string) != "" {
 			log.Printf("[DEBUG] Attaching IP %q to server %q\n", d.Id(), d.Get("server").(string))
@@ -88,6 +90,10 @@ func resourceScalewayIPUpdate(d *schema.ResourceData, m interface{}) error {
 
 func resourceScalewayIPDelete(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
+
+	mu.Lock()
+	defer mu.Unlock()
+
 	err := scaleway.DeleteIP(d.Id())
 	if err != nil {
 		return err
