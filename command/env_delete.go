@@ -32,6 +32,11 @@ func (c *EnvDeleteCommand) Run(args []string) int {
 
 	delEnv := args[0]
 
+	if !validEnvName(delEnv) {
+		c.Ui.Error(fmt.Sprintf(envInvalidName, delEnv))
+		return 1
+	}
+
 	configPath, err := ModulePath(args[1:])
 	if err != nil {
 		c.Ui.Error(err.Error())
