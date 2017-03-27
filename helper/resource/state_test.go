@@ -70,6 +70,23 @@ func InconsistentStateRefreshFunc() StateRefreshFunc {
 	}
 }
 
+func UnknownPendingStateRefreshFunc() StateRefreshFunc {
+	sequence := []string{
+		"unknown1", "unknown2", "done",
+	}
+
+	r := NewStateGenerator(sequence)
+
+	return func() (interface{}, string, error) {
+		idx, s, err := r.NextState()
+		if err != nil {
+			return nil, "", err
+		}
+
+		return idx, s, nil
+	}
+}
+
 func TestWaitForState_inconsistent_positive(t *testing.T) {
 	conf := &StateChangeConf{
 		Pending:                   []string{"replicating"},
@@ -142,6 +159,22 @@ func TestWaitForState_success(t *testing.T) {
 		Pending: []string{"pending", "incomplete"},
 		Target:  []string{"running"},
 		Refresh: SuccessfulStateRefreshFunc(),
+		Timeout: 200 * time.Second,
+	}
+
+	obj, err := conf.WaitForState()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if obj == nil {
+		t.Fatalf("should return obj")
+	}
+}
+
+func TestWaitForState_successUnknownPending(t *testing.T) {
+	conf := &StateChangeConf{
+		Target:  []string{"done"},
+		Refresh: UnknownPendingStateRefreshFunc(),
 		Timeout: 200 * time.Second,
 	}
 
