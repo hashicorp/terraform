@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "enterprise"
 page_title: "Contacting Support"
 sidebar_current: "docs-enterprise-support"
 description: |-

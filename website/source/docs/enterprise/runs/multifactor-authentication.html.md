@@ -1,8 +1,12 @@
 ---
-title: " AWS Multi-Factor Authentication for Terraform Runs in Atlas"
+layout: "runs"
+page_title: "AWS Multi-Factor Authentication for Terraform Runs in TFE"
+sidebar_current: "docs-enterprise-runs-multifactor"
+description: |-
+  Installing custom software on the Terraform Runners.
 ---
 
-# AWS Multi-Factor Authentication for Terraform Runs in Atlas
+# AWS Multi-Factor Authentication for Terraform Runs in Terraform Enterprise
 
 You can optionally configure Terraform plans and applies to use multi-factor authentication using [AWS Secure Token Service](http://docs.aws.amazon.com/STS/latest/APIReference/Welcome.html).
 
@@ -18,15 +22,14 @@ This option is disabled by default and can be enabled by an organization owner.
 
 ## Setting Up AWS Multi-Factor Authentication
 
-Before you are able to set up multi-factor authentication in atlas, you must set up an IAM user in AWS. More details about creating an IAM user can be found [here](http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa_enable.html). Setting up an AWS IAM user will provide you with the serial number and access keys that you will need in order to connect to AWS Secure Token Service.
+Before you are able to set up multi-factor authentication in Terraform Enterprise, you must set up an IAM user in AWS. More details about creating an IAM user can be found [here](http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa_enable.html). Setting up an AWS IAM user will provide you with the serial number and access keys that you will need in order to connect to AWS Secure Token Service.
 
 In order to set up multi-factor authentication for your organization, you must have the following environment variables in your configuration: 'AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_MFA_SERIAL_NUMBER". You can set these variables at `/settings/organization_variables.`
 
 
 ## Enabling AWS Multi-Factor Authentication
 
-To enable multi-factor authentication, visit the environment settings page in
-Atlas: `terraform/<organization>/environments/<environment>/settings`. Use the drop down labeled "AWS Multi-Factor Authentication
+To enable multi-factor authentication, visit the environment settings page: `terraform/<organization>/environments/<environment>/settings`. Use the drop down labeled "AWS Multi-Factor Authentication
 ". There are currently three levels available: "never", "applies only", and "plans and applies". Once you have selected your desired level, save your settings. All subsequent runs on the environment will now require the selected level of authentication.
 
 ## Using AWS Multi-Factor Authentication
@@ -39,7 +42,7 @@ If you have selected "plans and applies", you will be prompted to enter your tok
 
 ## Using AWS Multi-Factor Authentication with AWS STS AssumeRole
 
-The AWS Secure Token Service can be used to return a set of temporary security credentials that a user can use to access resources that they might not normally have access to (known as AssumeRole). The AssumeRole workflow is compatible with AWS multi-factor authentication in Atlas.
+The AWS Secure Token Service can be used to return a set of temporary security credentials that a user can use to access resources that they might not normally have access to (known as AssumeRole). The AssumeRole workflow is compatible with AWS multi-factor authentication in Terraform Enterprise.
 
 To use AssumeRole, you first need to create an IAM role and edit the trust relationship policy document to contain the following:
 

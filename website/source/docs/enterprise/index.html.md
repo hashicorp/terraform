@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "enterprise"
 page_title: "Terraform Enterprise Features"
 sidebar_current: "docs-enterprise"
 description: |-
