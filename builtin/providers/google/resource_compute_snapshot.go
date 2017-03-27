@@ -53,17 +53,7 @@ func resourceComputeSnapshot() *schema.Resource {
 				Computed: true,
 			},
 
-			"source_disk_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
 			"source_disk": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"disk": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -96,7 +86,7 @@ func resourceComputeSnapshotCreate(d *schema.ResourceData, meta interface{}) err
 		Name: d.Get("name").(string),
 	}
 
-	disk := d.Get("disk").(string)
+	source_disk := d.Get("source_disk").(string)
 
 	if v, ok := d.GetOk("snapshot_encryption_key_raw"); ok {
 		snapshot.SnapshotEncryptionKey = &compute.CustomerEncryptionKey{}
@@ -109,7 +99,7 @@ func resourceComputeSnapshotCreate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	op, err := config.clientCompute.Disks.CreateSnapshot(
-		project, d.Get("zone").(string), disk, snapshot).Do()
+		project, d.Get("zone").(string), source_disk, snapshot).Do()
 	if err != nil {
 		return fmt.Errorf("Error creating snapshot: %s", err)
 	}
@@ -155,8 +145,6 @@ func resourceComputeSnapshotRead(d *schema.ResourceData, meta interface{}) error
 	if snapshot.SourceDiskEncryptionKey != nil && snapshot.SourceDiskEncryptionKey.Sha256 != "" {
 		d.Set("source_disk_encryption_key_sha256", snapshot.SourceDiskEncryptionKey.Sha256)
 	}
-
-	d.Set("source_disk_id", snapshot.SourceDiskId)
 
 	d.Set("source_disk", snapshot.SourceDisk)
 
