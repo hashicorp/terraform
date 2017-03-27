@@ -338,6 +338,10 @@ func resourceComputeInstanceV2() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"all_metadata": &schema.Schema{
+				Type:     schema.TypeMap,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -557,7 +561,7 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 		})
 	}
 
-	d.Set("metadata", server.Metadata)
+	d.Set("all_metadata", server.Metadata)
 
 	secGrpNames := []string{}
 	for _, sg := range server.SecurityGroups {
