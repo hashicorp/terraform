@@ -59,6 +59,7 @@ BUG FIXES:
  * provider/aws: aws_network_acl_rule treat all and -1 for protocol the same [GH-13049]
  * provider/aws: Only allow 1 value in alb_listener_rule condition [GH-13051]
  * provider/aws: Correct handling of network ACL default IPv6 ingress/egress rules [GH-12835]
+ * provider/aws: aws_ses_receipt_rule: fix off-by-one errors [GH-12961]
  * provider/fastly: Fix issue importing Fastly Services with Backends [GH-12538]
  * provider/google: turn compute_instance_group.instances into a set [GH-12790]
  * provider/mysql: recreate user/grant if user/grant got deleted manually [GH-12791]
