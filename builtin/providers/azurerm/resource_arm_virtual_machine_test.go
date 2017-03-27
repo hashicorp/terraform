@@ -611,7 +611,9 @@ func TestAccAzureRMVirtualMachine_osDiskTypeConflict(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      config,
-				ExpectError: regexp.MustCompile("conflicts with storage_os_disk.0.vhd_uri"),
+				ExpectError: regexp.MustCompile("Conflict between `vhd_uri`"),
+				//Use below code instead once GH-13019 has been merged
+				//ExpectError: regexp.MustCompile("conflicts with storage_os_disk.0.vhd_uri"),
 			},
 		},
 	})
@@ -627,7 +629,9 @@ func TestAccAzureRMVirtualMachine_dataDiskTypeConflict(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      config,
-				ExpectError: regexp.MustCompile("conflicts with storage_data_disk.1.vhd_uri"),
+				ExpectError: regexp.MustCompile("Conflict between `vhd_uri`"),
+				//Use below code instead once GH-13019 has been merged
+				//ExpectError: regexp.MustCompile("conflicts with storage_data_disk.1.vhd_uri"),
 			},
 		},
 	})
