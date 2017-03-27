@@ -24,6 +24,7 @@ IMPROVEMENTS:
  * provider/azurerm: Add support for setting the primary network interface [GH-11290]
  * provider/cloudstack: Add `zone_id` to `cloudstack_ipaddress` resource [GH-11306]
  * provider/consul: Add support for basic auth to the provider [GH-12679]
+ * provider/digitalocean: Support disk only resize [GH-13059]
  * provider/dnsimple: Allow dnsimple_record.priority attribute to be set [GH-12843]
  * provider/google: Add support for service_account, metadata, and image_type fields in GKE cluster config [GH-12743]
  * provider/google: Add local ssd count support for container clusters [GH-12281]
