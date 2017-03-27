@@ -1,6 +1,8 @@
-package azurerm
+package structure
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestNormalizeJsonString(t *testing.T) {
 	var err error
@@ -22,7 +24,7 @@ func TestNormalizeJsonString(t *testing.T) {
 }`
 	expected := `{"abc":{"def":123,"xyz":[{"a":"ホリネズミ"},{"b":"1\\n2"}]}}`
 
-	actual, err = normalizeJsonString(validJson)
+	actual, err = NormalizeJsonString(validJson)
 	if err != nil {
 		t.Fatalf("Expected not to throw an error while parsing JSON, but got: %s", err)
 	}
@@ -43,7 +45,7 @@ func TestNormalizeJsonString(t *testing.T) {
       }
    }
 }`
-	actual, err = normalizeJsonString(invalidJson)
+	actual, err = NormalizeJsonString(invalidJson)
 	if err == nil {
 		t.Fatalf("Expected to throw an error while parsing JSON, but got: %s", err)
 	}
