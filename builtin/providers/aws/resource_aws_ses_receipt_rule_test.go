@@ -186,8 +186,8 @@ func testAccCheckAwsSESReceiptRuleActions(n string) resource.TestCheckFunc {
 		conn := testAccProvider.Meta().(*AWSClient).sesConn
 
 		params := &ses.DescribeReceiptRuleInput{
-			RuleName:    aws.String("actions"),
-			RuleSetName: aws.String(fmt.Sprintf("test-me")),
+			RuleName:    aws.String("actions4"),
+			RuleSetName: aws.String(fmt.Sprintf("test-me-%d", srrsRandomInt)),
 		}
 
 		response, err := conn.DescribeReceiptRule(params)
@@ -267,28 +267,28 @@ resource "aws_s3_bucket" "emails" {
 }
 
 resource "aws_ses_receipt_rule_set" "test" {
-    rule_set_name = "test-me"
+    rule_set_name = "test-me-%d"
 }
 
 resource "aws_ses_receipt_rule" "actions" {
-    name = "actions"
+    name = "actions4"
     rule_set_name = "${aws_ses_receipt_rule_set.test.rule_set_name}"
 
     add_header_action {
-	header_name = "Added-By"
-	header_value = "Terraform"
-	position = 1
+			header_name = "Added-By"
+			header_value = "Terraform"
+			position = 1
     }
 
     add_header_action {
-	header_name = "Another-Header"
-	header_value = "First"
-	position = 0
+			header_name = "Another-Header"
+			header_value = "First"
+			position = 0
     }
 
     stop_action {
-	scope = "RuleSet"
-	position = 2
+			scope = "RuleSet"
+			position = 2
     }
 }
-`)
+`, srrsRandomInt)
