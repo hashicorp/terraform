@@ -325,6 +325,8 @@ func langEvalConfig(vs map[string]ast.Variable) *hil.EvalConfig {
 	funcMap["lookup"] = interpolationFuncLookup(vs)
 	funcMap["keys"] = interpolationFuncKeys(vs)
 	funcMap["values"] = interpolationFuncValues(vs)
+	funcMap["unsortedkeys"] = interpolationFuncUnsortedKeys(vs)
+	funcMap["unsortedvalues"] = interpolationFuncUnsortedValues(vs)
 
 	return &hil.EvalConfig{
 		GlobalScope: &ast.BasicScope{

@@ -328,6 +328,12 @@ The supported built-in functions are:
 
   * `trimspace(string)` - Returns a copy of the string with all leading and trailing white spaces removed.
 
+  * `unsortedkeys(map)` - Returns a list of the map keys in their original order.
+
+  * `unsortedvalues(map)` - Returns a list of the map values, in their original order
+    (specifically the the order of the keys returned by the `unsortedkeys` function).
+    This function only works on flat maps and will return an error for maps that include nested lists or maps.
+
   * `upper(string)` - Returns a copy of the string with all Unicode letters mapped to their upper case.
 
   * `uuid()` - Returns a UUID string in RFC 4122 v4 format. This string will change with every invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the [`ignore_changes`](/docs/configuration/resources.html#ignore-changes) lifecycle attribute.
