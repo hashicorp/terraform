@@ -144,6 +144,56 @@ func TestAccDigitalOceanDroplet_ResizeWithOutDisk(t *testing.T) {
 	})
 }
 
+func TestAccDigitalOceanDroplet_ResizeOnlyDisk(t *testing.T) {
+	var droplet godo.Droplet
+	rInt := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckDigitalOceanDropletConfig_basic(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
+					testAccCheckDigitalOceanDropletAttributes(&droplet),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "name", fmt.Sprintf("foo-%d", rInt)),
+				),
+			},
+
+			{
+				Config: testAccCheckDigitalOceanDropletConfig_resize_without_disk(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
+					testAccCheckDigitalOceanDropletResizeWithOutDisk(&droplet),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "name", fmt.Sprintf("foo-%d", rInt)),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "size", "1gb"),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "disk", "20"),
+				),
+			},
+
+			{
+				Config: testAccCheckDigitalOceanDropletConfig_resize_only_disk(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
+					testAccCheckDigitalOceanDropletResizeOnlyDisk(&droplet),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "name", fmt.Sprintf("foo-%d", rInt)),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "size", "1gb"),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "disk", "30"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccDigitalOceanDroplet_UpdateUserData(t *testing.T) {
 	var afterCreate, afterUpdate godo.Droplet
 	rInt := acctest.RandInt()
@@ -321,6 +371,21 @@ func testAccCheckDigitalOceanDropletResizeWithOutDisk(droplet *godo.Droplet) res
 	}
 }
 
+func testAccCheckDigitalOceanDropletResizeOnlyDisk(droplet *godo.Droplet) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		if droplet.Size.Slug != "1gb" {
+			return fmt.Errorf("Bad size_slug: %s", droplet.SizeSlug)
+		}
+
+		if droplet.Disk != 30 {
+			return fmt.Errorf("Bad disk: %d", droplet.Disk)
+		}
+
+		return nil
+	}
+}
+
 func testAccCheckDigitalOceanDropletAttributes_PrivateNetworkingIpv6(droplet *godo.Droplet) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
@@ -488,6 +553,19 @@ resource "digitalocean_droplet" "foobar" {
   region   = "nyc3"
   user_data = "foobar"
   resize_disk = false
+}
+`, rInt)
+}
+
+func testAccCheckDigitalOceanDropletConfig_resize_only_disk(rInt int) string {
+	return fmt.Sprintf(`
+resource "digitalocean_droplet" "foobar" {
+  name     = "foo-%d"
+  size     = "1gb"
+  image    = "centos-7-x64"
+  region   = "nyc3"
+  user_data = "foobar"
+  resize_disk = true
 }
 `, rInt)
 }
