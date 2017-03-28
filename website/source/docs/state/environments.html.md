@@ -20,6 +20,11 @@ Environments are a way to create multiple states that contain
 their own data so a single set of Terraform configurations can manage
 multiple distinct sets of resources.
 
+Environments are currently supported by the following backends:
+
+ * [Consul](/docs/backends/types/consul.html)
+ * [S3](/docs/backends/types/s3.html)
+
 ## Using Environments
 
 Terraform starts with a single environment named "default". This
@@ -120,7 +125,9 @@ For local state, Terraform stores the state environments in a folder
 For [remote state](/docs/state/remote.html), the environments are stored
 directly in the configured [backend](/docs/backends). For example, if you
 use [Consul](/docs/backends/types/consul.html), the environments are stored
-by suffixing the state path with the environment name.
+by suffixing the state path with the environment name. To ensure that
+environment names are stored correctly and safely in all backends, the name
+must be valid to use in a URL path segment without escaping.
 
 The important thing about environment internals is that environments are
 meant to be a shared resource. They aren't a private, local-only notion
