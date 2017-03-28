@@ -70,6 +70,7 @@ BUG FIXES:
  * provider/aws: Only allow 1 value in alb_listener_rule condition [GH-13051]
  * provider/aws: Correct handling of network ACL default IPv6 ingress/egress rules [GH-12835]
  * provider/aws: aws_ses_receipt_rule: fix off-by-one errors [GH-12961]
+ * provider/aws: Fix issue upgrading to Terraform v0.9+ with AWS OpsWorks Stacks [GH-13024]
  * provider/fastly: Fix issue importing Fastly Services with Backends [GH-12538]
  * provider/google: turn compute_instance_group.instances into a set [GH-12790]
  * provider/mysql: recreate user/grant if user/grant got deleted manually [GH-12791]
