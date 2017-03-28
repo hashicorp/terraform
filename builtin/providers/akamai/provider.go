@@ -27,22 +27,32 @@ func Provider() terraform.ResourceProvider {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+	configDnsV1Service, err := getConfigDnsV1Service(d)
+	if err != nil {
+		return nil, err
+	}
+
+	config := &Config{}
+	config.ConfigDnsV1Service = configDnsV1Service
+
+	return config, nil
+}
+
+func getConfigDnsV1Service(d *schema.ResourceData) (*edgegrid.ConfigDnsV1Service, error) {
 	edgerc := d.Get("edgerc").(string)
 	section := d.Get("fastdns_section").(string)
 
-	edge_config, err := edgegrid.Init(edgerc, section)
+	fastDnsConfig, err := edgegrid.Init(edgerc, section)
 	if err != nil {
 		return nil, err
 	}
 
-	fastDnsClient, err := edgegrid.New(nil, edge_config)
+	fastDnsClient, err := edgegrid.NewClient(nil, &fastDnsConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	zone := NewZone(fastDnsClient, "")
+	client := edgegrid.NewConfigDnsV1Service(fastDnsClient, &fastDnsConfig)
 
-	config := Config{ClientFastDns: &zone}
-
-	return &config, nil
+	return client, nil
 }
