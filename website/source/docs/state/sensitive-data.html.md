@@ -18,7 +18,7 @@ values within the state. This is implemented on a per-resource basis and
 you should assume the value is plaintext unless otherwise documented.
 
 When using local state, state is stored in plain-text JSON files. When
-using [remote state](/docs/state/remote.htm), state is only ever held in memory when used by Terraform.
+using [remote state](/docs/state/remote.html), state is only ever held in memory when used by Terraform.
 It may be encrypted at rest but this depends on the specific remote state
 backend.
 
