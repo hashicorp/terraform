@@ -562,7 +562,7 @@ func (i *Interpolater) computeResourceMultiVariable(
 
 	// If count is zero, we return an empty list
 	if countMax == 0 {
-		return &ast.Variable{Type: ast.TypeList, Value: []ast.Variable{}}, nil
+		return &ast.Variable{Type: ast.TypeList{ast.TypeString}, Value: []ast.Variable{}}, nil
 	}
 
 	// If we have no module in the state yet or count, return unknown

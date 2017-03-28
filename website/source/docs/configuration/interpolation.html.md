@@ -175,7 +175,7 @@ The supported built-in functions are:
   * `coalesce(string1, string2, ...)` - Returns the first non-empty value from
     the given arguments. At least two arguments must be provided.
 
-  * `compact(list)` - Removes empty string elements from a list. This can be
+  * `compact(list)` - Removes empty elements from a list of strings. This can be
      useful in some cases, for example when passing joined lists as module
      variables or when parsing module outputs.
      Example: `compact(module.my_asg.load_balancer_names)`
@@ -183,14 +183,15 @@ The supported built-in functions are:
   * `concat(list1, list2, ...)` - Combines two or more lists into a single list.
      Example: `concat(aws_instance.db.*.tags.Name, aws_instance.web.*.tags.Name)`
 
-  * `distinct(list)` - Removes duplicate items from a list. Keeps the first
-     occurrence of each element, and removes subsequent occurrences. This
-     function is only valid for flat lists. Example: `distinct(var.usernames)`
+  * `distinct(list)` - Removes duplicate items from a list of strings. Keeps the
+     first occurrence of each element, and removes subsequent occurrences.
+     Example: `distinct(var.usernames)`
 
   * `element(list, index)` - Returns a single element from a list
-      at the given index. If the index is greater than the number of
-      elements, this function will wrap using a standard mod algorithm.
-      This function only works on flat lists. Examples:
+      at the given index. This is similar to the list index syntax
+      `list[index]`, but additionally if the index is greater than the number
+      of elements then this function will wrap the index modulo the list length.
+      Examples:
       * `element(aws_subnet.foo.*.id, count.index)`
       * `element(var.list_of_strings, 2)`
 
@@ -221,20 +222,18 @@ The supported built-in functions are:
       `formatlist("instance %v has private ip %v", aws_instance.foo.*.id, aws_instance.foo.*.private_ip)`.
       Passing lists with different lengths to formatlist results in an error.
 
-  * `index(list, elem)` - Finds the index of a given element in a list.
-      This function only works on flat lists.
+  * `index(list, elem)` - Finds the index of a given string in a list of strings.
       Example: `index(aws_instance.foo.*.tags.Name, "foo-test")`
 
-  * `join(delim, list)` - Joins the list with the delimiter for a resultant string.
-      This function works only on flat lists.
+  * `join(delim, list)` - Joins a list of strings into a single string using
+      the given delimiter.
       Examples:
       * `join(",", aws_instance.foo.*.id)`
       * `join(",", var.ami_list)`
 
-  * `jsonencode(item)` - Returns a JSON-encoded representation of the given
-    item, which may be a string, list of strings, or map from string to string.
-    Note that if the item is a string, the return value includes the double
-    quotes.
+  * `jsonencode(value)` - Returns a JSON-encoded representation of the given
+    value.  Note that if the value is a string then the return value will be
+    that string wrapped in quotes, as required by JSON.
 
   * `keys(map)` - Returns a lexically sorted list of the map keys.
 
@@ -249,12 +248,9 @@ The supported built-in functions are:
       * `${list()}` returns an empty list.
 
   * `lookup(map, key, [default])` - Performs a dynamic lookup into a map
-      variable. The `map` parameter should be another variable, such
-      as `var.amis`. If `key` does not exist in `map`, the interpolation will
-      fail unless you specify a third argument, `default`, which should be a
-      string value to return if no `key` is found in `map`. This function
-      only works on flat maps and will return an error for maps that
-      include nested lists or maps.
+      variable. This is equivalent to the map index syntax `map[key]` except
+      that a default value can be additionally provided. The default value will
+      be returned if the given key is not found in the map.
 
   * `lower(string)` - Returns a copy of the string with all Unicode letters mapped to their lower case.
 
@@ -269,7 +265,7 @@ The supported built-in functions are:
 
   * `merge(map1, map2, ...)` - Returns the union of 2 or more maps. The maps
 	are consumed in the order provided, and duplicate keys overwrite previous
-	entries.
+	entries. All given maps must have the same element type.
 	* `${merge(map("a", "b"), map("c", "d"))}` returns `{"a": "b", "c": "d"}`
 
   * `min(float1, float2, ...)` - Returns the smallest of the floats.
@@ -305,14 +301,12 @@ The supported built-in functions are:
   * `slice(list, from, to)` - Returns the portion of `list` between `from` (inclusive) and `to` (exclusive).
       Example: `slice(var.list_of_strings, 0, length(var.list_of_strings) - 1)`
 
-  * `sort(list)` - Returns a lexographically sorted list of the strings contained in
-      the list passed as an argument. Sort may only be used with lists which contain only
-      strings.
+  * `sort(list)` - Returns a lexicographically sorted list of the strings contained in
+      the given list.
       Examples: `sort(aws_instance.foo.*.id)`, `sort(var.list_of_strings)`
 
-  * `split(delim, string)` - Splits the string previously created by `join`
-      back into a list. This is useful for pushing lists through module
-      outputs since they currently only support string values. Depending on the
+  * `split(delim, string)` - Splits a given string into a list of strings using
+      the given delimiter. This is the inverse of `join`. Depending on the
       use, the string this is being performed within may need to be wrapped
       in brackets to indicate that the output is actually a list, e.g.
       `a_resource_param = ["${split(",", var.CSV_STRING)}"]`.
@@ -333,12 +327,11 @@ The supported built-in functions are:
   * `uuid()` - Returns a UUID string in RFC 4122 v4 format. This string will change with every invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the [`ignore_changes`](/docs/configuration/resources.html#ignore-changes) lifecycle attribute.
 
   * `values(map)` - Returns a list of the map values, in the order of the keys
-    returned by the `keys` function. This function only works on flat maps and
-    will return an error for maps that include nested lists or maps.
+    returned by the `keys` function.
 
   * `zipmap(list, list)` - Creates a map from a list of keys and a list of
-      values. The keys must all be of type string, and the length of the lists
-      must be the same.
+      values. The keys list must contain only strings, and the lengths of the
+      two lists must be the same.
       For example, to output a mapping of AWS IAM user names to the fingerprint
       of the key used to encrypt their initial password, you might use:
       `zipmap(aws_iam_user.users.*.name, aws_iam_user_login_profile.users.*.key_fingerprint)`.

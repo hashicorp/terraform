@@ -13,13 +13,11 @@ import (
 	"net"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/apparentlymart/go-cidr/cidr"
 	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/mitchellh/go-homedir"
 )
@@ -42,7 +40,7 @@ func listVariableValueToStringSlice(values []ast.Variable) ([]string, error) {
 	output := make([]string, len(values))
 	for index, value := range values {
 		if value.Type != ast.TypeString {
-			return []string{}, fmt.Errorf("list has non-string element (%T)", value.Type.String())
+			return []string{}, fmt.Errorf("list has non-string element (%s)", value.Type.Printable())
 		}
 		output[index] = value.Value.(string)
 	}
@@ -102,33 +100,41 @@ func Funcs() map[string]ast.Function {
 func interpolationFuncList() ast.Function {
 	return ast.Function{
 		ArgTypes:     []ast.Type{},
-		ReturnType:   ast.TypeList,
 		Variadic:     true,
 		VariadicType: ast.TypeAny,
-		Callback: func(args []interface{}) (interface{}, error) {
-			var outputList []ast.Variable
+		ReturnTypeFunc: func(argTypes []ast.Type) (ast.Type, error) {
+			if len(argTypes) == 0 {
+				// Default to empty list of strings if no args are provided
+				return ast.TypeList{ast.TypeString}, nil
+			}
 
-			for i, val := range args {
-				switch v := val.(type) {
-				case string:
-					outputList = append(outputList, ast.Variable{Type: ast.TypeString, Value: v})
-				case []ast.Variable:
-					outputList = append(outputList, ast.Variable{Type: ast.TypeList, Value: v})
-				case map[string]ast.Variable:
-					outputList = append(outputList, ast.Variable{Type: ast.TypeMap, Value: v})
-				default:
-					return nil, fmt.Errorf("unexpected type %T for argument %d in list", v, i)
+			// We can produce a list of any type as long as all elements are consistent
+			elemType := argTypes[0]
+			for i, et := range argTypes {
+				if et != elemType {
+					return nil, fmt.Errorf(
+						"inconsistent type at element %d: got %s but need %s",
+						i, et.Printable(), elemType.Printable(),
+					)
 				}
 			}
 
-			// we don't support heterogeneous types, so make sure all types match the first
-			if len(outputList) > 0 {
-				firstType := outputList[0].Type
-				for i, v := range outputList[1:] {
-					if v.Type != firstType {
-						return nil, fmt.Errorf("unexpected type %s for argument %d in list", v.Type, i+1)
-					}
-				}
+			return ast.TypeList{elemType}, nil
+		},
+		CallbackTyped: func(args []interface{}, resultType ast.Type) (interface{}, error) {
+			outputList := make([]ast.Variable, 0, len(args))
+
+			// ReturnTypeFunc guarantees that types will be consistent by the time
+			// we get here, so we can just construct the list without any further
+			// type checking.
+
+			elementType := resultType.(ast.TypeList).ElementType
+
+			for _, val := range args {
+				outputList = append(outputList, ast.Variable{
+					Type:  elementType,
+					Value: val,
+				})
 			}
 
 			return outputList, nil
@@ -141,38 +147,57 @@ func interpolationFuncList() ast.Function {
 func interpolationFuncMap() ast.Function {
 	return ast.Function{
 		ArgTypes:     []ast.Type{},
-		ReturnType:   ast.TypeMap,
 		Variadic:     true,
 		VariadicType: ast.TypeAny,
-		Callback: func(args []interface{}) (interface{}, error) {
-			outputMap := make(map[string]ast.Variable)
-
-			if len(args)%2 != 0 {
-				return nil, fmt.Errorf("requires an even number of arguments, got %d", len(args))
+		ReturnTypeFunc: func(argTypes []ast.Type) (ast.Type, error) {
+			if len(argTypes) == 0 {
+				// Default to empty map of strings if no args are provided
+				return ast.TypeMap{ast.TypeString}, nil
 			}
 
-			var firstType *ast.Type
-			for i := 0; i < len(args); i += 2 {
-				key, ok := args[i].(string)
-				if !ok {
+			if len(argTypes)%2 != 0 {
+				return nil, fmt.Errorf(
+					"requires an even number of arguments; got %d",
+					len(argTypes),
+				)
+			}
+
+			// We can produce a map of any type as long as all elements are consistent
+			var elemType ast.Type
+			for i := 0; i < len(argTypes); i += 2 {
+				if argTypes[i] != ast.TypeString {
 					return nil, fmt.Errorf("argument %d represents a key, so it must be a string", i+1)
 				}
-				val := args[i+1]
-				variable, err := hil.InterfaceToVariable(val)
-				if err != nil {
-					return nil, err
-				}
+				valType := argTypes[i+1]
 				// Enforce map type homogeneity
-				if firstType == nil {
-					firstType = &variable.Type
-				} else if variable.Type != *firstType {
-					return nil, fmt.Errorf("all map values must have the same type, got %s then %s", firstType.Printable(), variable.Type.Printable())
+				if elemType == nil {
+					elemType = valType
+				} else if valType != elemType {
+					return nil, fmt.Errorf(
+						"all map values must have the same type; got %s then %s",
+						elemType.Printable(), valType.Printable(),
+					)
 				}
+			}
+
+			return ast.TypeMap{elemType}, nil
+		},
+		CallbackTyped: func(args []interface{}, resultType ast.Type) (interface{}, error) {
+			outputMap := make(map[string]ast.Variable)
+
+			elemType := resultType.(ast.TypeMap).ElementType
+			for i := 0; i < len(args); i += 2 {
+				key := args[i].(string) // guaranteed by ReturnTypeFunc
+				val := args[i+1]
+
 				// Check for duplicate keys
 				if _, ok := outputMap[key]; ok {
 					return nil, fmt.Errorf("argument %d is a duplicate key: %q", i+1, key)
 				}
-				outputMap[key] = variable
+				outputMap[key] = ast.Variable{
+					Type:  elemType,
+					Value: val,
+				}
 			}
 
 			return outputMap, nil
@@ -184,8 +209,8 @@ func interpolationFuncMap() ast.Function {
 // (e.g. as returned by "split") of any empty strings.
 func interpolationFuncCompact() ast.Function {
 	return ast.Function{
-		ArgTypes:   []ast.Type{ast.TypeList},
-		ReturnType: ast.TypeList,
+		ArgTypes:   []ast.Type{ast.TypeList{ast.TypeString}},
+		ReturnType: ast.TypeList{ast.TypeString},
 		Variadic:   false,
 		Callback: func(args []interface{}) (interface{}, error) {
 			inputList := args[0].([]ast.Variable)
@@ -323,35 +348,42 @@ func interpolationFuncCoalesce() ast.Function {
 // multiple lists.
 func interpolationFuncConcat() ast.Function {
 	return ast.Function{
-		ArgTypes:     []ast.Type{ast.TypeList},
-		ReturnType:   ast.TypeList,
+		ArgTypes:     []ast.Type{ast.TypeList{ast.TypeAny}},
 		Variadic:     true,
-		VariadicType: ast.TypeList,
-		Callback: func(args []interface{}) (interface{}, error) {
-			var outputList []ast.Variable
+		VariadicType: ast.TypeList{ast.TypeAny},
+		ReturnTypeFunc: func(argTypes []ast.Type) (ast.Type, error) {
+			if len(argTypes) == 0 {
+				// (It's actually rather silly to supply fewer than two arguments, but
+				// we'll allow it because a one-list concat has reasonable intuitive
+				// behavior.)
+				return nil, fmt.Errorf("must provide at least one list")
+			}
 
-			for _, arg := range args {
-				for _, v := range arg.([]ast.Variable) {
-					switch v.Type {
-					case ast.TypeString:
-						outputList = append(outputList, v)
-					case ast.TypeList:
-						outputList = append(outputList, v)
-					case ast.TypeMap:
-						outputList = append(outputList, v)
-					default:
-						return nil, fmt.Errorf("concat() does not support lists of %s", v.Type.Printable())
-					}
+			var elemType ast.Type
+			for _, argType := range argTypes {
+				// The VariadicType attribute above guarantees that all of our args
+				// are lists of *something*.
+				argElemType := argType.(ast.TypeList).ElementType
+				if elemType == nil {
+					elemType = argElemType
+				} else if elemType != argElemType {
+					return nil, fmt.Errorf(
+						"lists must have matching element types; got %s and then %s",
+						ast.TypeList{elemType}, argType,
+					)
 				}
 			}
 
-			// we don't support heterogeneous types, so make sure all types match the first
-			if len(outputList) > 0 {
-				firstType := outputList[0].Type
-				for _, v := range outputList[1:] {
-					if v.Type != firstType {
-						return nil, fmt.Errorf("unexpected %s in list of %s", v.Type.Printable(), firstType.Printable())
-					}
+			return ast.TypeList{elemType}, nil
+		},
+		CallbackTyped: func(args []interface{}, returnType ast.Type) (interface{}, error) {
+			var outputList []ast.Variable
+
+			// The list is already guaranteed homogenous by ReturnTypeFunc,
+			// so we can safely just concatenate here.
+			for _, arg := range args {
+				for _, v := range arg.([]ast.Variable) {
+					outputList = append(outputList, v)
 				}
 			}
 
@@ -470,10 +502,13 @@ func interpolationFuncFloor() ast.Function {
 func interpolationFuncZipMap() ast.Function {
 	return ast.Function{
 		ArgTypes: []ast.Type{
-			ast.TypeList, // Keys
-			ast.TypeList, // Values
+			ast.TypeList{ast.TypeString}, // Keys
+			ast.TypeList{ast.TypeAny},    // Values
 		},
-		ReturnType: ast.TypeMap,
+		ReturnTypeFunc: func(argTypes []ast.Type) (ast.Type, error) {
+			elemType := argTypes[1].(ast.TypeList).ElementType
+			return ast.TypeMap{elemType}, nil
+		},
 		Callback: func(args []interface{}) (interface{}, error) {
 			keys := args[0].([]ast.Variable)
 			values := args[1].([]ast.Variable)
@@ -481,13 +516,6 @@ func interpolationFuncZipMap() ast.Function {
 			if len(keys) != len(values) {
 				return nil, fmt.Errorf("count of keys (%d) does not match count of values (%d)",
 					len(keys), len(values))
-			}
-
-			for i, val := range keys {
-				if val.Type != ast.TypeString {
-					return nil, fmt.Errorf("keys must be strings. value at position %d is %s",
-						i, val.Type.Printable())
-				}
 			}
 
 			result := map[string]ast.Variable{}
@@ -507,7 +535,7 @@ func interpolationFuncFormatList() ast.Function {
 		ArgTypes:     []ast.Type{ast.TypeAny},
 		Variadic:     true,
 		VariadicType: ast.TypeAny,
-		ReturnType:   ast.TypeList,
+		ReturnType:   ast.TypeList{ast.TypeString},
 		Callback: func(args []interface{}) (interface{}, error) {
 			// Make a copy of the variadic part of args
 			// to avoid modifying the original.
@@ -585,7 +613,7 @@ func interpolationFuncFormatList() ast.Function {
 // find the index of a specific element in a list
 func interpolationFuncIndex() ast.Function {
 	return ast.Function{
-		ArgTypes:   []ast.Type{ast.TypeList, ast.TypeString},
+		ArgTypes:   []ast.Type{ast.TypeList{ast.TypeString}, ast.TypeString},
 		ReturnType: ast.TypeInt,
 		Callback: func(args []interface{}) (interface{}, error) {
 			haystack := args[0].([]ast.Variable)
@@ -604,10 +632,10 @@ func interpolationFuncIndex() ast.Function {
 // removes duplicate elements from a list.
 func interpolationFuncDistinct() ast.Function {
 	return ast.Function{
-		ArgTypes:     []ast.Type{ast.TypeList},
-		ReturnType:   ast.TypeList,
+		ArgTypes:     []ast.Type{ast.TypeList{ast.TypeString}},
+		ReturnType:   ast.TypeList{ast.TypeString},
 		Variadic:     true,
-		VariadicType: ast.TypeList,
+		VariadicType: ast.TypeList{ast.TypeString},
 		Callback: func(args []interface{}) (interface{}, error) {
 			var list []string
 
@@ -647,7 +675,7 @@ func interpolationFuncJoin() ast.Function {
 	return ast.Function{
 		ArgTypes:     []ast.Type{ast.TypeString},
 		Variadic:     true,
-		VariadicType: ast.TypeList,
+		VariadicType: ast.TypeList{ast.TypeString},
 		ReturnType:   ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
 			var list []string
@@ -672,51 +700,44 @@ func interpolationFuncJoin() ast.Function {
 	}
 }
 
-// interpolationFuncJSONEncode implements the "jsonencode" function that encodes
-// a string, list, or map as its JSON representation. For now, values in the
-// list or map may only be strings.
+// interpolationFuncJSONEncode implements the "jsonencode" function that serializes
+// any value as a JSON string.
 func interpolationFuncJSONEncode() ast.Function {
 	return ast.Function{
 		ArgTypes:   []ast.Type{ast.TypeAny},
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
-			var toEncode interface{}
 
-			switch typedArg := args[0].(type) {
-			case string:
-				toEncode = typedArg
+			var prepareForJSON func(interface{}) interface{}
+			prepareForJSON = func(val interface{}) interface{} {
+				switch typed := val.(type) {
+				case []ast.Variable:
+					// We preallocate the list here. Note that it's important that in
+					// the length 0 case, we have an empty list rather than nil, as
+					// they encode differently.
+					result := make([]interface{}, len(typed))
 
-			case []ast.Variable:
-				// We preallocate the list here. Note that it's important that in
-				// the length 0 case, we have an empty list rather than nil, as
-				// they encode differently.
-				// XXX It would be nice to support arbitrarily nested data here. Is
-				// there an inverse of hil.InterfaceToVariable?
-				strings := make([]string, len(typedArg))
-
-				for i, v := range typedArg {
-					if v.Type != ast.TypeString {
-						return "", fmt.Errorf("list elements must be strings")
+					for i, v := range typed {
+						result[i] = prepareForJSON(v.Value)
 					}
-					strings[i] = v.Value.(string)
-				}
-				toEncode = strings
 
-			case map[string]ast.Variable:
-				// XXX It would be nice to support arbitrarily nested data here. Is
-				// there an inverse of hil.InterfaceToVariable?
-				stringMap := make(map[string]string)
-				for k, v := range typedArg {
-					if v.Type != ast.TypeString {
-						return "", fmt.Errorf("map values must be strings")
+					return result
+
+				case map[string]ast.Variable:
+					result := make(map[string]interface{}, len(typed))
+
+					for k, v := range typed {
+						result[k] = prepareForJSON(v.Value)
 					}
-					stringMap[k] = v.Value.(string)
-				}
-				toEncode = stringMap
 
-			default:
-				return "", fmt.Errorf("unknown type for JSON encoding: %T", args[0])
+					return result
+
+				default:
+					return typed
+				}
 			}
+
+			toEncode := prepareForJSON(args[0])
 
 			jEnc, err := json.Marshal(toEncode)
 			if err != nil {
@@ -799,13 +820,15 @@ func interpolationFuncSignum() ast.Function {
 func interpolationFuncSlice() ast.Function {
 	return ast.Function{
 		ArgTypes: []ast.Type{
-			ast.TypeList, // inputList
-			ast.TypeInt,  // from
-			ast.TypeInt,  // to
+			ast.TypeList{ast.TypeAny}, // inputList
+			ast.TypeInt,               // from
+			ast.TypeInt,               // to
 		},
-		ReturnType: ast.TypeList,
-		Variadic:   false,
-		Callback: func(args []interface{}) (interface{}, error) {
+		Variadic: false,
+		ReturnTypeFunc: func(argTypes []ast.Type) (ast.Type, error) {
+			return argTypes[0], nil
+		},
+		CallbackTyped: func(args []interface{}, returnType ast.Type) (interface{}, error) {
 			inputList := args[0].([]ast.Variable)
 			from := args[1].(int)
 			to := args[2].(int)
@@ -834,8 +857,8 @@ func interpolationFuncSlice() ast.Function {
 // interpolationFuncSort sorts a list of a strings lexographically
 func interpolationFuncSort() ast.Function {
 	return ast.Function{
-		ArgTypes:   []ast.Type{ast.TypeList},
-		ReturnType: ast.TypeList,
+		ArgTypes:   []ast.Type{ast.TypeList{ast.TypeString}},
+		ReturnType: ast.TypeList{ast.TypeString},
 		Variadic:   false,
 		Callback: func(args []interface{}) (interface{}, error) {
 			inputList := args[0].([]ast.Variable)
@@ -847,7 +870,7 @@ func interpolationFuncSort() ast.Function {
 				if val.Type != ast.TypeString {
 					return nil, fmt.Errorf(
 						"sort() may only be used with lists of strings - %s at index %d",
-						val.Type.String(), i)
+						val.Type.Printable(), i)
 				}
 
 				members[i] = val.Value.(string)
@@ -864,7 +887,7 @@ func interpolationFuncSort() ast.Function {
 func interpolationFuncSplit() ast.Function {
 	return ast.Function{
 		ArgTypes:   []ast.Type{ast.TypeString, ast.TypeString},
-		ReturnType: ast.TypeList,
+		ReturnType: ast.TypeList{ast.TypeString},
 		Callback: func(args []interface{}) (interface{}, error) {
 			sep := args[0].(string)
 			s := args[1].(string)
@@ -878,26 +901,33 @@ func interpolationFuncSplit() ast.Function {
 // dynamic lookups of map types within a Terraform configuration.
 func interpolationFuncLookup(vs map[string]ast.Variable) ast.Function {
 	return ast.Function{
-		ArgTypes:     []ast.Type{ast.TypeMap, ast.TypeString},
-		ReturnType:   ast.TypeString,
+		ArgTypes:     []ast.Type{ast.TypeMap{ast.TypeAny}, ast.TypeString},
 		Variadic:     true,
-		VariadicType: ast.TypeString,
-		Callback: func(args []interface{}) (interface{}, error) {
-			defaultValue := ""
-			defaultValueSet := false
-			if len(args) > 2 {
-				defaultValue = args[2].(string)
-				defaultValueSet = true
+		VariadicType: ast.TypeAny,
+		ReturnTypeFunc: func(argTypes []ast.Type) (ast.Type, error) {
+			elemType := argTypes[0].(ast.TypeMap).ElementType
+			if len(argTypes) > 3 {
+				return nil, fmt.Errorf("lookup() takes no more than three arguments")
 			}
-			if len(args) > 3 {
-				return "", fmt.Errorf("lookup() takes no more than three arguments")
+			if len(argTypes) == 3 && argTypes[2] != elemType {
+				return nil, fmt.Errorf(
+					"default value for lookup in %s must be %s, but got %s",
+					argTypes[0], elemType, argTypes[2],
+				)
+			}
+			return argTypes[0].(ast.TypeMap).ElementType, nil
+		},
+		Callback: func(args []interface{}) (interface{}, error) {
+			var defaultValue interface{}
+			if len(args) > 2 {
+				defaultValue = args[2]
 			}
 			index := args[1].(string)
 			mapVar := args[0].(map[string]ast.Variable)
 
 			v, ok := mapVar[index]
 			if !ok {
-				if defaultValueSet {
+				if defaultValue != nil {
 					return defaultValue, nil
 				} else {
 					return "", fmt.Errorf(
@@ -905,13 +935,8 @@ func interpolationFuncLookup(vs map[string]ast.Variable) ast.Function {
 						args[1].(string))
 				}
 			}
-			if v.Type != ast.TypeString {
-				return nil, fmt.Errorf(
-					"lookup() may only be used with flat maps, this map contains elements of %s",
-					v.Type.Printable())
-			}
 
-			return v.Value.(string), nil
+			return v.Value, nil
 		},
 	}
 }
@@ -921,28 +946,24 @@ func interpolationFuncLookup(vs map[string]ast.Variable) ast.Function {
 // wrap if the index is larger than the number of elements in the multi-variable value.
 func interpolationFuncElement() ast.Function {
 	return ast.Function{
-		ArgTypes:   []ast.Type{ast.TypeList, ast.TypeString},
-		ReturnType: ast.TypeString,
+		ArgTypes: []ast.Type{ast.TypeList{ast.TypeAny}, ast.TypeInt},
+		ReturnTypeFunc: func(argTypes []ast.Type) (ast.Type, error) {
+			return argTypes[0].(ast.TypeList).ElementType, nil
+		},
 		Callback: func(args []interface{}) (interface{}, error) {
 			list := args[0].([]ast.Variable)
 			if len(list) == 0 {
 				return nil, fmt.Errorf("element() may not be used with an empty list")
 			}
 
-			index, err := strconv.Atoi(args[1].(string))
-			if err != nil || index < 0 {
-				return "", fmt.Errorf(
-					"invalid number for index, got %s", args[1])
+			index := args[1].(int)
+			if index < 0 {
+				return "", fmt.Errorf("index must be positive; got %d", args[1])
 			}
 
 			resolvedIndex := index % len(list)
 
 			v := list[resolvedIndex]
-			if v.Type != ast.TypeString {
-				return nil, fmt.Errorf(
-					"element() may only be used with flat lists, this list contains elements of %s",
-					v.Type.Printable())
-			}
 			return v.Value, nil
 		},
 	}
@@ -952,8 +973,8 @@ func interpolationFuncElement() ast.Function {
 // keys of map types within a Terraform configuration.
 func interpolationFuncKeys(vs map[string]ast.Variable) ast.Function {
 	return ast.Function{
-		ArgTypes:   []ast.Type{ast.TypeMap},
-		ReturnType: ast.TypeList,
+		ArgTypes:   []ast.Type{ast.TypeMap{ast.TypeAny}},
+		ReturnType: ast.TypeList{ast.TypeString},
 		Callback: func(args []interface{}) (interface{}, error) {
 			mapVar := args[0].(map[string]ast.Variable)
 			keys := make([]string, 0)
@@ -971,11 +992,15 @@ func interpolationFuncKeys(vs map[string]ast.Variable) ast.Function {
 }
 
 // interpolationFuncValues implements the "values" function that yields a list of
-// keys of map types within a Terraform configuration.
+// values from a map, in lexographic order by the map keys, within a Terraform
+// configuration.
 func interpolationFuncValues(vs map[string]ast.Variable) ast.Function {
 	return ast.Function{
-		ArgTypes:   []ast.Type{ast.TypeMap},
-		ReturnType: ast.TypeList,
+		ArgTypes: []ast.Type{ast.TypeMap{ast.TypeAny}},
+		ReturnTypeFunc: func(argTypes []ast.Type) (ast.Type, error) {
+			elemType := argTypes[0].(ast.TypeMap).ElementType
+			return ast.TypeList{elemType}, nil
+		},
 		Callback: func(args []interface{}) (interface{}, error) {
 			mapVar := args[0].(map[string]ast.Variable)
 			keys := make([]string, 0)
@@ -986,22 +1011,12 @@ func interpolationFuncValues(vs map[string]ast.Variable) ast.Function {
 
 			sort.Strings(keys)
 
-			values := make([]string, len(keys))
+			values := make([]ast.Variable, len(keys))
 			for index, key := range keys {
-				if value, ok := mapVar[key].Value.(string); ok {
-					values[index] = value
-				} else {
-					return "", fmt.Errorf("values(): %q has element with bad type %s",
-						key, mapVar[key].Type)
-				}
+				values[index] = mapVar[key]
 			}
 
-			variable, err := hil.InterfaceToVariable(values)
-			if err != nil {
-				return nil, err
-			}
-
-			return variable.Value, nil
+			return values, nil
 		},
 	}
 }
@@ -1065,10 +1080,24 @@ func interpolationFuncMd5() ast.Function {
 
 func interpolationFuncMerge() ast.Function {
 	return ast.Function{
-		ArgTypes:     []ast.Type{ast.TypeMap},
-		ReturnType:   ast.TypeMap,
+		ArgTypes:     []ast.Type{ast.TypeMap{ast.TypeAny}},
 		Variadic:     true,
-		VariadicType: ast.TypeMap,
+		VariadicType: ast.TypeMap{ast.TypeAny},
+		ReturnTypeFunc: func(argTypes []ast.Type) (ast.Type, error) {
+			var elemType ast.Type
+			for _, argType := range argTypes {
+				argElemType := argType.(ast.TypeMap).ElementType
+				if elemType == nil {
+					elemType = argElemType
+				} else if argElemType != elemType {
+					return nil, fmt.Errorf(
+						"maps must have matching element types; got %s and then %s",
+						ast.TypeMap{elemType}, argType,
+					)
+				}
+			}
+			return ast.TypeMap{elemType}, nil
+		},
 		Callback: func(args []interface{}) (interface{}, error) {
 			outputMap := make(map[string]ast.Variable)
 

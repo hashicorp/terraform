@@ -19,7 +19,7 @@ func TestInterpolationWalker_detect(t *testing.T) {
 				"foo": "$${var.foo}",
 			},
 			Result: []string{
-				"Literal(TypeString, ${var.foo})",
+				"Literal(type string, ${var.foo})",
 			},
 		},
 
@@ -55,7 +55,7 @@ func TestInterpolationWalker_detect(t *testing.T) {
 				"foo": `${file("test.txt")}`,
 			},
 			Result: []string{
-				"Call(file, Literal(TypeString, test.txt))",
+				"Call(file, Literal(type string, test.txt))",
 			},
 		},
 
@@ -64,7 +64,7 @@ func TestInterpolationWalker_detect(t *testing.T) {
 				"foo": `${file("foo/bar.txt")}`,
 			},
 			Result: []string{
-				"Call(file, Literal(TypeString, foo/bar.txt))",
+				"Call(file, Literal(type string, foo/bar.txt))",
 			},
 		},
 
@@ -73,7 +73,7 @@ func TestInterpolationWalker_detect(t *testing.T) {
 				"foo": `${join(",", foo.bar.*.id)}`,
 			},
 			Result: []string{
-				"Call(join, Literal(TypeString, ,), Variable(foo.bar.*.id))",
+				"Call(join, Literal(type string, ,), Variable(foo.bar.*.id))",
 			},
 		},
 
@@ -82,26 +82,31 @@ func TestInterpolationWalker_detect(t *testing.T) {
 				"foo": `${concat("localhost", ":8080")}`,
 			},
 			Result: []string{
-				"Call(concat, Literal(TypeString, localhost), Literal(TypeString, :8080))",
+				"Call(concat, Literal(type string, localhost), Literal(type string, :8080))",
 			},
 		},
 	}
 
 	for i, tc := range cases {
-		var actual []string
-		detectFn := func(root ast.Node) (interface{}, error) {
-			actual = append(actual, fmt.Sprintf("%s", root))
-			return "", nil
-		}
+		t.Run(fmt.Sprintf("test%02d", i), func(t *testing.T) {
+			var actual []string
+			detectFn := func(root ast.Node) (interface{}, error) {
+				actual = append(actual, fmt.Sprintf("%s", root))
+				return "", nil
+			}
 
-		w := &interpolationWalker{F: detectFn}
-		if err := reflectwalk.Walk(tc.Input, w); err != nil {
-			t.Fatalf("err: %s", err)
-		}
+			w := &interpolationWalker{F: detectFn}
+			if err := reflectwalk.Walk(tc.Input, w); err != nil {
+				t.Fatalf("err: %s", err)
+			}
 
-		if !reflect.DeepEqual(actual, tc.Result) {
-			t.Fatalf("%d: bad:\n\n%#v", i, actual)
-		}
+			if !reflect.DeepEqual(actual, tc.Result) {
+				t.Fatalf(
+					"input: %#v\ngot:   %#v\nwant:  %#v",
+					tc.Input, actual, tc.Result,
+				)
+			}
+		})
 	}
 }
 

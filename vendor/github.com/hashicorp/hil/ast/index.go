@@ -37,7 +37,7 @@ func (n *Index) Type(s Scope) (Type, error) {
 		return TypeInvalid, fmt.Errorf("unknown variable accessed: %s", variableAccess.Name)
 	}
 
-	switch variable.Type {
+	switch variable.Type.(type) {
 	case TypeList:
 		return n.typeList(variable, variableAccess.Name)
 	case TypeMap:
@@ -65,7 +65,7 @@ func reportTypes(typesFound map[Type]struct{}) string {
 	stringTypes := make([]string, len(typesFound))
 	i := 0
 	for k, _ := range typesFound {
-		stringTypes[0] = k.String()
+		stringTypes[0] = k.Printable()
 		i++
 	}
 	return strings.Join(stringTypes, ", ")
