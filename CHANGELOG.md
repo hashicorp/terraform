@@ -5,6 +5,7 @@ IMPROVEMENTS:
  * config: New interpolation functions `basename` and `dirname`, for file path manipulation [GH-13080]
  * provider/aws: Add support to set iam_role_arn on cloudformation Stack [GH-12547]
  * provider/aws: Support priority and listener_arn update of alb_listener_rule [GH-13125]
+ * provider/aws: Support priority and listener_arn update of alb_listener_rule [GH-13125]
  
 
 ## 0.9.2 (March 28, 2017)
