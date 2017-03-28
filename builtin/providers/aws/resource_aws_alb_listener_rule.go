@@ -31,6 +31,7 @@ func resourceAwsAlbListenerRule() *schema.Resource {
 			"listener_arn": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"priority": {
 				Type:         schema.TypeInt,
