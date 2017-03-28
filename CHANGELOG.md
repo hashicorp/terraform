@@ -3,6 +3,7 @@
 BACKWARDS IMCOMPATIBILITIES / NOTES:
 
  * provider/openstack: Port Fixed IPs are able to be read again using the original numerical notation. However, Fixed IP configurations which are obtaining addresses via DHCP must now use the `all_fixed_ips` attribute to reference the returned IP address.
+ * Environment names must be safe to use as a URL path segment without escaping, and is enforced by the CLI.
 
 FEATURES:
 
@@ -12,9 +13,11 @@ FEATURES:
  * **New Resource:**  `github_repository_webhook` [GH-12924]
  * **New Resource:**  `random_pet` [GH-12903]
  * **New Interpolation:** `substr` [GH-12870]
+ * **S3 Environments:** The S3 remote state backend now supports named environments
 
 IMPROVEMENTS:
 
+ * core: fix interpolation error when referencing computed values from an `aws_instance` `cidr_block` [GH-13046]
  * core: fix `ignore_changes` causing fields to be removed during apply [GH-12897]
  * core: add `-force-copy` option to `terraform init` to supress prompts for copying state [GH-12939]
  * helper/acctest: Add NewSSHKeyPair function [GH-12894]
