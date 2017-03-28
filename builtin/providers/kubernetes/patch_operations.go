@@ -58,7 +58,7 @@ func (po PatchOperations) MarshalJSON() ([]byte, error) {
 func (po PatchOperations) Equal(ops []PatchOperation) bool {
 	var v []PatchOperation = po
 
-	sort.Slice(v, sortByPathAsc(ops))
+	sort.Slice(v, sortByPathAsc(v))
 	sort.Slice(ops, sortByPathAsc(ops))
 
 	return reflect.DeepEqual(v, ops)
