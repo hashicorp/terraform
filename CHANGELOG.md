@@ -1,5 +1,9 @@
 ## 0.9.3 (unreleased)
 
+IMPROVEMENTS:
+ 
+ * provider/aws: Add support to set iam_role_arn on cloudformation Stack [GH-12547]
+
 
 ## 0.9.2 (March 28, 2017)
 
