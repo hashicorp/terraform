@@ -1,11 +1,13 @@
 package rancher
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
@@ -40,6 +42,28 @@ func resourceRancherEnvironment() *schema.Resource {
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+			},
+			"member": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"external_id_type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"external_id": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"role": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+				Set: memberHash,
 			},
 		},
 	}
@@ -85,6 +109,19 @@ func resourceRancherEnvironmentCreate(d *schema.ResourceData, meta interface{}) 
 	d.SetId(newEnv.Id)
 	log.Printf("[INFO] Environment ID: %s", d.Id())
 
+	// Add members
+	envClient, err := meta.(*Config).EnvironmentClient(d.Id())
+	if err != nil {
+		return err
+	}
+	members := d.Get("members").([]interface{})
+	_, err = envClient.Project.ActionSetmembers(&newEnv, &rancherClient.SetProjectMembersInput{
+		Members: members,
+	})
+	if err != nil {
+		return err
+	}
+
 	return resourceRancherEnvironmentRead(d, meta)
 }
 
@@ -118,6 +155,14 @@ func resourceRancherEnvironmentRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("name", env.Name)
 	d.Set("orchestration", getActiveOrchestration(env))
 
+	envClient, err := meta.(*Config).EnvironmentClient(d.Id())
+	if err != nil {
+		return err
+	}
+
+	members, _ := envClient.ProjectMember.List(NewListOpts())
+
+	d.Set("member", normalizeMembers(members.Data))
 	return nil
 }
 
@@ -145,6 +190,19 @@ func resourceRancherEnvironmentUpdate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	if err := client.Update("project", &env.Resource, data, &newEnv); err != nil {
+		return err
+	}
+
+	// Update members
+	envClient, err := meta.(*Config).EnvironmentClient(d.Id())
+	if err != nil {
+		return err
+	}
+	members := d.Get("member").(*schema.Set).List()
+	_, err = envClient.Project.ActionSetmembers(&newEnv, &rancherClient.SetProjectMembersInput{
+		Members: makeProjectMembers(members),
+	})
+	if err != nil {
 		return err
 	}
 
@@ -201,6 +259,39 @@ func setOrchestrationFields(orchestration string, data map[string]interface{}) {
 	}
 
 	data[orch] = true
+}
+
+func normalizeMembers(in []rancherClient.ProjectMember) (out []interface{}) {
+	for _, m := range in {
+		mm := map[string]string{
+			"external_id_type": m.ExternalIdType,
+			"external_id":      m.ExternalId,
+			"role":             m.Role,
+		}
+		out = append(out, mm)
+	}
+	return
+}
+
+func makeProjectMembers(in []interface{}) (out []interface{}) {
+	for _, m := range in {
+		mMap := m.(map[string]interface{})
+		mm := rancherClient.ProjectMember{
+			ExternalIdType: mMap["external_id_type"].(string),
+			ExternalId:     mMap["external_id"].(string),
+			Role:           mMap["role"].(string),
+		}
+		out = append(out, mm)
+	}
+	return
+}
+
+func memberHash(member interface{}) int {
+	var buf bytes.Buffer
+	m := member.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["external_id_type"]))
+	buf.WriteString(fmt.Sprintf("%s-", m["external_id"]))
+	return hashcode.String(buf.String())
 }
 
 // EnvironmentStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
