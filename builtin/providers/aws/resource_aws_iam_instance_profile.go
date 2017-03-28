@@ -86,10 +86,20 @@ func resourceAwsIamInstanceProfile() *schema.Resource {
 			},
 
 			"roles": {
-				Type:     schema.TypeSet,
-				Required: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      schema.HashString,
+				Type:          schema.TypeSet,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"role"},
+				Elem:          &schema.Schema{Type: schema.TypeString},
+				Set:           schema.HashString,
+				Deprecated:    "Use `role` instead. Only a single role can be passed to an IAM Instance Profile",
+			},
+
+			"role": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"roles"},
 			},
 		},
 	}
@@ -105,6 +115,13 @@ func resourceAwsIamInstanceProfileCreate(d *schema.ResourceData, meta interface{
 		name = resource.PrefixedUniqueId(v.(string))
 	} else {
 		name = resource.UniqueId()
+	}
+
+	_, hasRoles := d.GetOk("roles")
+	_, hasRole := d.GetOk("role")
+
+	if hasRole == false && hasRoles == false {
+		return fmt.Errorf("Either `roles` or `role` must be specified when creating an IAM Instance Profile")
 	}
 
 	request := &iam.CreateInstanceProfileInput{
@@ -132,7 +149,7 @@ func resourceAwsIamInstanceProfileCreate(d *schema.ResourceData, meta interface{
 		return fmt.Errorf("Timed out while waiting for instance profile %s: %s", name, err)
 	}
 
-	return instanceProfileSetRoles(d, iamconn)
+	return resourceAwsIamInstanceProfileUpdate(d, meta)
 }
 
 func instanceProfileAddRole(iamconn *iam.IAM, profileName, roleName string) error {
@@ -205,11 +222,35 @@ func instanceProfileRemoveAllRoles(d *schema.ResourceData, iamconn *iam.IAM) err
 func resourceAwsIamInstanceProfileUpdate(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 
-	if !d.HasChange("roles") {
-		return nil
+	d.Partial(true)
+
+	if d.HasChange("role") {
+		oldRole, newRole := d.GetChange("role")
+
+		if oldRole.(string) != "" {
+			err := instanceProfileRemoveRole(iamconn, d.Id(), oldRole.(string))
+			if err != nil {
+				return fmt.Errorf("Error adding role %s to IAM instance profile %s: %s", oldRole.(string), d.Id(), err)
+			}
+		}
+
+		if newRole.(string) != "" {
+			err := instanceProfileAddRole(iamconn, d.Id(), newRole.(string))
+			if err != nil {
+				return fmt.Errorf("Error adding role %s to IAM instance profile %s: %s", newRole.(string), d.Id(), err)
+			}
+		}
+
+		d.SetPartial("role")
 	}
 
-	return instanceProfileSetRoles(d, iamconn)
+	if d.HasChange("roles") {
+		return instanceProfileSetRoles(d, iamconn)
+	}
+
+	d.Partial(false)
+
+	return nil
 }
 
 func resourceAwsIamInstanceProfileRead(d *schema.ResourceData, meta interface{}) error {
@@ -261,6 +302,10 @@ func instanceProfileReadResult(d *schema.ResourceData, result *iam.InstanceProfi
 		return err
 	}
 	d.Set("unique_id", result.InstanceProfileId)
+
+	if result.Roles != nil && len(result.Roles) > 0 {
+		d.Set("role", result.Roles[0].RoleName) //there will only be 1 role returned
+	}
 
 	roles := &schema.Set{F: schema.HashString}
 	for _, role := range result.Roles {
