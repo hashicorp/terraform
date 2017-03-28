@@ -75,6 +75,7 @@ BUG FIXES:
  * provider/mysql: recreate user/grant if user/grant got deleted manually [GH-12791]
  * provider/openstack: Fix monitor_id typo in LBaaS v1 Pool [GH-13069]
  * provider/openstack: Resolve issues with Port Fixed IPs [GH-13056]
+ * provider/rancher: error when no api_url is provided [GH-13086]
  * provider/scaleway: work around parallel request limitation [GH-13045]
 
 ## 0.9.1 (March 17, 2017)
