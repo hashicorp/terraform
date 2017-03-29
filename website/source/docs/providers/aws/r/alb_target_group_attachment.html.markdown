@@ -36,7 +36,7 @@ The following arguments are supported:
 
 * `target_group_arn` - (Required) The ARN of the target group with which to register targets
 * `target_id` (Required) The ID of the target. This is the Instance ID for an instance, or the container ID for an ECS container.
-* `port` - (Required) The port on which targets receive traffic.
+* `port` - (Optional) The port on which targets receive traffic.
 
 ## Attributes Reference
 
