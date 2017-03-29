@@ -9,6 +9,11 @@ IMPROVEMENTS:
  * provider/aws: Support priority and listener_arn update of alb_listener_rule [GH-13125]
  * provider/aws: Deprecate roles in favour of role in iam_instance_profile [GH-13130]
  * provider/aws: Make alb_target_group_attachment port optional [GH-13139]
+ * provider/aws: `aws_api_gateway_domain_name` `certificate_private_key` field marked as sensitive [GH-13147]
+ * provider/aws: `aws_directory_service_directory` `password` field marked as sensitive [GH-13147]
+ * provider/aws: `aws_kinesis_firehose_delivery_stream` `password` field marked as sensitive [GH-13147]
+ * provider/aws: `aws_opsworks_application` `app_source.0.password` & `ssl_configuration.0.private_key` fields marked as sensitive [GH-13147]
+ * provider/aws: `aws_opsworks_stack` `custom_cookbooks_source.0.password` field marked as sensitive [GH-13147]
  
 BUG FIXES: 
 
