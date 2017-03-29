@@ -1,0 +1,59 @@
+<% wrap_layout :inner do %>
+<% content_for :sidebar do %>
+<div class="docs-sidebar hidden-print affix-top" role="complementary">
+    <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+            <a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+        </li>
+
+        <li<%= sidebar_current("docs-oracleopc-index") %>>
+            <a href="/docs/providers/oracleopc/index.html">Oracle Public Cloud Provider</a>
+        </li>
+
+        <li<%= sidebar_current(/^docs-oracleopc-datasource/) %>>
+            <a href="#">Data Sources</a>
+            <ul class="nav nav-visible">
+                <li<%= sidebar_current("docs-oracleopc-datasource-vnic") %>>
+                    <a href="/docs/providers/oracleopc/d/opc_compute_vnic.html">opc_compute_vnic</a>
+                </li>
+            </ul>
+        </li>
+
+        <li<%= sidebar_current(/^docs-oracleopc-resource/) %>>
+            <a href="#">Resources</a>
+            <ul class="nav nav-visible">
+                <li<%= sidebar_current("docs-oracleopc-resource-instance") %>>
+                    <a href="/docs/providers/oracleopc/r/opc_compute_instance.html">opc_compute_instance</a>
+                </li>
+                <li<%= sidebar_current("docs-oracleopc-resource-ip-association") %>>
+                    <a href="/docs/providers/oracleopc/r/opc_compute_ip_association.html">opc_compute_ip_association</a>
+                </li>
+                <li<%= sidebar_current("docs-oracleopc-resource-ip-reservation") %>>
+                    <a href="/docs/providers/oracleopc/r/opc_compute_ip_reservation.html">opc_compute_ip_reservation</a>
+                </li>
+                <li<%= sidebar_current("docs-oracleopc-resource-security-application") %>>
+                    <a href="/docs/providers/oracleopc/r/opc_compute_security_application.html">opc_compute_security_application</a>
+                </li>
+                <li<%= sidebar_current("docs-oracleopc-resource-security-association") %>>
+                    <a href="/docs/providers/oracleopc/r/opc_compute_security_association.html">opc_compute_security_association</a>
+                </li>
+                <li<%= sidebar_current("docs-oracleopc-resource-security-ip-list") %>>
+                    <a href="/docs/providers/oracleopc/r/opc_compute_security_ip_list.html">opc_compute_security_ip_list</a>
+                </li>
+                <li<%= sidebar_current("docs-oracleopc-resource-security-list") %>>
+                    <a href="/docs/providers/oracleopc/r/opc_compute_security_list.html">opc_compute_security_list</a>
+                </li>
+                <li<%= sidebar_current("docs-oracleopc-resource-ssh-key") %>>
+                    <a href="/docs/providers/oracleopc/r/opc_compute_ssh_key.html">opc_compute_ssh_key</a>
+                </li>
+                <li<%= sidebar_current("docs-oracleopc-resource-storage-volume") %>>
+                    <a href="/docs/providers/oracleopc/r/opc_compute_storage_volume.html">opc_compute_storage_volume</a>
+                </li>
+            </ul>
+        </li>
+    </ul>
+</div>
+<% end %>
+
+<%= yield %>
+<% end %>
