@@ -8,6 +8,7 @@ IMPROVEMENTS:
  * provider/aws: Support priority and listener_arn update of alb_listener_rule [GH-13125]
  * provider/aws: Support priority and listener_arn update of alb_listener_rule [GH-13125]
  * provider/aws: Deprecate roles in favour of role in iam_instance_profile [GH-13130]
+ * provider/aws: Make alb_target_group_attachment port optional [GH-13139]
  
 
 ## 0.9.2 (March 28, 2017)
