@@ -25,6 +25,8 @@ When upgrading the major version of an engine, `allow_major_version_upgrade` mus
 brief downtime as the server reboots. See the AWS Docs on [RDS Maintenance][2]
 for more information.
 
+~> **Note:** All arguments including the username and password will be stored in the raw state as plain-text.
+[Read more about sensitive data in state](/docs/state/sensitive-data.html).
 
 ## Example Usage
 
