@@ -30,8 +30,6 @@ func TestAccNewRelicAlertCondition_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"newrelic_alert_condition.foo", "entities.#", "1"),
 					resource.TestCheckResourceAttr(
-						"newrelic_alert_condition.foo", "entities.0", "12345"),
-					resource.TestCheckResourceAttr(
 						"newrelic_alert_condition.foo", "term.#", "1"),
 					resource.TestCheckResourceAttr(
 						"newrelic_alert_condition.foo", "term.0.duration", "5"),
@@ -55,8 +53,6 @@ func TestAccNewRelicAlertCondition_Basic(t *testing.T) {
 						"newrelic_alert_condition.foo", "runbook_url", "https://bar.example.com"),
 					resource.TestCheckResourceAttr(
 						"newrelic_alert_condition.foo", "entities.#", "1"),
-					resource.TestCheckResourceAttr(
-						"newrelic_alert_condition.foo", "entities.0", "67890"),
 					resource.TestCheckResourceAttr(
 						"newrelic_alert_condition.foo", "term.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -136,6 +132,10 @@ func testAccCheckNewRelicAlertConditionExists(n string) resource.TestCheckFunc {
 
 func testAccCheckNewRelicAlertConditionConfig(rName string) string {
 	return fmt.Sprintf(`
+data "newrelic_application" "app" {
+	name = "%[2]s"
+}
+
 resource "newrelic_alert_policy" "foo" {
   name = "tf-test-%[1]s"
 }
@@ -143,11 +143,12 @@ resource "newrelic_alert_policy" "foo" {
 resource "newrelic_alert_condition" "foo" {
   policy_id = "${newrelic_alert_policy.foo.id}"
 
-  name        = "tf-test-%[1]s"
-  type        = "apm_app_metric"
-  entities    = ["12345"]
-  metric      = "apdex"
-  runbook_url = "https://foo.example.com"
+  name            = "tf-test-%[1]s"
+  type            = "apm_app_metric"
+  entities        = ["${data.newrelic_application.app.id}"]
+  metric          = "apdex"
+  runbook_url     = "https://foo.example.com"
+  condition_scope = "application"
 
   term {
     duration      = 5
@@ -157,11 +158,15 @@ resource "newrelic_alert_condition" "foo" {
     time_function = "all"
   }
 }
-`, rName)
+`, rName, testAccExpectedApplicationName)
 }
 
 func testAccCheckNewRelicAlertConditionConfigUpdated(rName string) string {
 	return fmt.Sprintf(`
+data "newrelic_application" "app" {
+	name = "%[2]s"
+}
+
 resource "newrelic_alert_policy" "foo" {
   name = "tf-test-updated-%[1]s"
 }
@@ -169,11 +174,12 @@ resource "newrelic_alert_policy" "foo" {
 resource "newrelic_alert_condition" "foo" {
   policy_id = "${newrelic_alert_policy.foo.id}"
 
-  name        = "tf-test-updated-%[1]s"
-  type        = "apm_app_metric"
-  entities    = ["67890"]
-  metric      = "apdex"
-  runbook_url = "https://bar.example.com"
+  name            = "tf-test-updated-%[1]s"
+  type            = "apm_app_metric"
+  entities        = ["${data.newrelic_application.app.id}"]
+  metric          = "apdex"
+  runbook_url     = "https://bar.example.com"
+  condition_scope = "application"
 
   term {
     duration      = 10
@@ -183,7 +189,7 @@ resource "newrelic_alert_condition" "foo" {
     time_function = "all"
   }
 }
-`, rName)
+`, rName, testAccExpectedApplicationName)
 }
 
 // TODO: const testAccCheckNewRelicAlertConditionConfigMulti = `
