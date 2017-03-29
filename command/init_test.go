@@ -508,6 +508,32 @@ func TestInit_backendReinitConfigToExtra(t *testing.T) {
 	}
 }
 
+// make sure inputFalse stops execution on migrate
+func TestInit_inputFalse(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-backend"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{"-input=false", "-backend-config=path=foo"}
+	if code := c.Run([]string{"-input=false"}); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter)
+	}
+
+	args = []string{"-input=false", "-backend-config=path=bar"}
+	if code := c.Run(args); code == 0 {
+		t.Fatal("init should have failed", ui.OutputWriter)
+	}
+}
+
 /*
 func TestInit_remoteState(t *testing.T) {
 	tmp, cwd := testCwd(t)
