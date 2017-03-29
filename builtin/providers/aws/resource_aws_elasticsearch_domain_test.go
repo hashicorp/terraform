@@ -96,7 +96,7 @@ func TestAccAWSElasticSearchDomain_complex(t *testing.T) {
 	})
 }
 
-func TestAccAWSElasticSearch_tags(t *testing.T) {
+func TestAccAWSElasticSearchDomain_tags(t *testing.T) {
 	var domain elasticsearch.ElasticsearchDomainStatus
 	var td elasticsearch.ListTagsOutput
 	ri := acctest.RandInt()
@@ -198,6 +198,10 @@ func testAccESDomainConfig(randInt int) string {
 	return fmt.Sprintf(`
 resource "aws_elasticsearch_domain" "example" {
   domain_name = "tf-test-%d"
+  ebs_options {
+    ebs_enabled = true
+    volume_size = 10
+  }
 }
 `, randInt)
 }
@@ -206,6 +210,10 @@ func testAccESDomainConfig_TagUpdate(randInt int) string {
 	return fmt.Sprintf(`
 resource "aws_elasticsearch_domain" "example" {
   domain_name = "tf-test-%d"
+  ebs_options {
+    ebs_enabled = true
+    volume_size = 10
+  }
 
   tags {
     foo = "bar"
@@ -219,6 +227,10 @@ func testAccESDomainConfig_complex(randInt int) string {
 	return fmt.Sprintf(`
 resource "aws_elasticsearch_domain" "example" {
   domain_name = "tf-test-%d"
+
+  cluster_config {
+    instance_type = "r3.large.elasticsearch"
+  }
 
   advanced_options {
     "indices.fielddata.cache.size" = 80
@@ -248,6 +260,10 @@ func testAccESDomainConfigV23(randInt int) string {
 	return fmt.Sprintf(`
 resource "aws_elasticsearch_domain" "example" {
   domain_name = "tf-test-%d"
+  ebs_options {
+    ebs_enabled = true
+    volume_size = 10
+  }
   elasticsearch_version = "2.3"
 }
 `, randInt)

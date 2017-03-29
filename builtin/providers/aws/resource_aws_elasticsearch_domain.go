@@ -83,6 +83,7 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 						"volume_type": {
 							Type:     schema.TypeString,
 							Optional: true,
+							Computed: true,
 						},
 					},
 				},
