@@ -1300,28 +1300,34 @@
 			"revisionTime": "2016-10-29T20:57:26Z"
 		},
 		{
-			"checksumSHA1": "ADySw3nBHyzEHB6afBSeVRN2A4g=",
+			"checksumSHA1": "SdiAYZOqWQ60ifRUHLwLiDMKMYA=",
 			"path": "github.com/denverdino/aliyungo/common",
-			"revision": "d123f5d1fa71b211b70b2e9b56a62da21076884a",
-			"revisionTime": "2017-01-17T10:57:15Z"
+			"revision": "c4c75afbf7ea86e66672c1b6ed981385b4ad5ec2",
+			"revisionTime": "2017-03-21T07:55:32Z"
 		},
 		{
-			"checksumSHA1": "9ZY3RlumKp5DAMfL08YwMoOOT2o=",
+			"checksumSHA1": "UVYu5rvfoXgJnIpUyGcaovMvpms=",
 			"path": "github.com/denverdino/aliyungo/ecs",
-			"revision": "d123f5d1fa71b211b70b2e9b56a62da21076884a",
-			"revisionTime": "2017-01-17T10:57:15Z"
+			"revision": "c4c75afbf7ea86e66672c1b6ed981385b4ad5ec2",
+			"revisionTime": "2017-03-21T07:55:32Z"
 		},
 		{
-			"checksumSHA1": "QlA7zv05k7HWeR3tg4uHqIlFcg8=",
+			"checksumSHA1": "riQMe2AR7qkLRkQ/MSr8gQp3zL4=",
+			"path": "github.com/denverdino/aliyungo/rds",
+			"revision": "c4c75afbf7ea86e66672c1b6ed981385b4ad5ec2",
+			"revisionTime": "2017-03-21T07:55:32Z"
+		},
+		{
+			"checksumSHA1": "2g6VZONB51rul5YuSBvngH6u4A0=",
 			"path": "github.com/denverdino/aliyungo/slb",
-			"revision": "d123f5d1fa71b211b70b2e9b56a62da21076884a",
-			"revisionTime": "2017-01-17T10:57:15Z"
+			"revision": "c4c75afbf7ea86e66672c1b6ed981385b4ad5ec2",
+			"revisionTime": "2017-03-21T07:55:32Z"
 		},
 		{
 			"checksumSHA1": "Lp0KtT7ycgq31ox3Uzhpxyw0U+Y=",
 			"path": "github.com/denverdino/aliyungo/util",
-			"revision": "d123f5d1fa71b211b70b2e9b56a62da21076884a",
-			"revisionTime": "2017-01-17T10:57:15Z"
+			"revision": "c4c75afbf7ea86e66672c1b6ed981385b4ad5ec2",
+			"revisionTime": "2017-03-21T07:55:32Z"
 		},
 		{
 			"checksumSHA1": "yDQQpeUxwqB3C+4opweg6znWJQk=",
@@ -1396,6 +1402,12 @@
 			"path": "github.com/dustin/go-humanize",
 			"revision": "7a41df006ff9af79a29f0ffa9c5f21fbe6314a2d",
 			"revisionTime": "2017-01-10T07:11:07Z"
+		},
+		{
+			"checksumSHA1": "3Ue4yQFsolS+6tKtrSTtph7GJ74=",
+			"path": "github.com/dustinkirkland/golang-petname",
+			"revision": "242afa0b4f8af1fa581e7ea7f4b6d51735fa3fef",
+			"revisionTime": "2017-01-05T21:50:08Z"
 		},
 		{
 			"checksumSHA1": "GCskdwYAPW2S34918Z5CgNMJ2Wc=",

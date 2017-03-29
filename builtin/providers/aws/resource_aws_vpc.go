@@ -22,6 +22,9 @@ func resourceAwsVpc() *schema.Resource {
 			State: resourceAwsVpcInstanceImport,
 		},
 
+		SchemaVersion: 1,
+		MigrateState:  resourceAwsVpcMigrateState,
+
 		Schema: map[string]*schema.Schema{
 			"cidr_block": {
 				Type:         schema.TypeString,

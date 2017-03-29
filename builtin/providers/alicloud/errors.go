@@ -9,6 +9,7 @@ const (
 	DiskIncorrectStatus       = "IncorrectDiskStatus"
 	DiskCreatingSnapshot      = "DiskCreatingSnapshot"
 	InstanceLockedForSecurity = "InstanceLockedForSecurity"
+	SystemDiskNotFound        = "SystemDiskNotFound"
 	// eip
 	EipIncorrectStatus      = "IncorrectEipStatus"
 	InstanceIncorrectStatus = "IncorrectInstanceStatus"

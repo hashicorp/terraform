@@ -18,7 +18,7 @@ resource "ns1_zone" "tld" {
 }
 
 resource "ns1_record" "www" {
-  zone   = "${ns1_zone.tld.id}"
+  zone   = "${ns1_zone.tld.zone}"
   domain = "www.${ns1_zone.tld.zone}"
   type   = "CNAME"
   ttl    = 60

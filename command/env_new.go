@@ -35,6 +35,11 @@ func (c *EnvNewCommand) Run(args []string) int {
 
 	newEnv := args[0]
 
+	if !validEnvName(newEnv) {
+		c.Ui.Error(fmt.Sprintf(envInvalidName, newEnv))
+		return 1
+	}
+
 	configPath, err := ModulePath(args[1:])
 	if err != nil {
 		c.Ui.Error(err.Error())

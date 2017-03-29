@@ -1219,6 +1219,13 @@ func (m schemaMap) validateList(
 	for i, raw := range raws {
 		key := fmt.Sprintf("%s.%d", k, i)
 
+		// Reify the key value from the ResourceConfig.
+		// If the list was computed we have all raw values, but some of these
+		// may be known in the config, and aren't individually marked as Computed.
+		if r, ok := c.Get(key); ok {
+			raw = r
+		}
+
 		var ws2 []string
 		var es2 []error
 		switch t := schema.Elem.(type) {

@@ -59,6 +59,10 @@ func resourceProfitBricksIPBlockRead(d *schema.ResourceData, meta interface{}) e
 	ipblock := profitbricks.GetIpBlock(d.Id())
 
 	if ipblock.StatusCode > 299 {
+		if ipblock.StatusCode == 404 {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("An error occured while fetching an ip block ID %s %s", d.Id(), ipblock.Response)
 	}
 

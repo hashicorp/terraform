@@ -33,21 +33,22 @@ const (
 	checkCAQLAttr        = "caql"
 	checkCloudWatchAttr  = "cloudwatch"
 	checkCollectorAttr   = "collector"
+	checkConsulAttr      = "consul"
 	checkHTTPAttr        = "http"
 	checkHTTPTrapAttr    = "httptrap"
 	checkICMPPingAttr    = "icmp_ping"
 	checkJSONAttr        = "json"
+	checkMetricAttr      = "metric"
 	checkMetricLimitAttr = "metric_limit"
 	checkMySQLAttr       = "mysql"
 	checkNameAttr        = "name"
 	checkNotesAttr       = "notes"
 	checkPeriodAttr      = "period"
 	checkPostgreSQLAttr  = "postgresql"
-	checkMetricAttr      = "metric"
 	checkStatsdAttr      = "statsd"
+	checkTCPAttr         = "tcp"
 	checkTagsAttr        = "tags"
 	checkTargetAttr      = "target"
-	checkTCPAttr         = "tcp"
 	checkTimeoutAttr     = "timeout"
 	checkTypeAttr        = "type"
 
@@ -75,6 +76,7 @@ const (
 	// Circonus API constants from their API endpoints
 	apiCheckTypeCAQLAttr       apiCheckType = "caql"
 	apiCheckTypeCloudWatchAttr apiCheckType = "cloudwatch"
+	apiCheckTypeConsulAttr     apiCheckType = "consul"
 	apiCheckTypeHTTPAttr       apiCheckType = "http"
 	apiCheckTypeHTTPTrapAttr   apiCheckType = "httptrap"
 	apiCheckTypeICMPPingAttr   apiCheckType = "ping_icmp"
@@ -90,6 +92,7 @@ var checkDescriptions = attrDescrs{
 	checkCAQLAttr:        "CAQL check configuration",
 	checkCloudWatchAttr:  "CloudWatch check configuration",
 	checkCollectorAttr:   "The collector(s) that are responsible for gathering the metrics",
+	checkConsulAttr:      "Consul check configuration",
 	checkHTTPAttr:        "HTTP check configuration",
 	checkHTTPTrapAttr:    "HTTP Trap check configuration",
 	checkICMPPingAttr:    "ICMP ping check configuration",
@@ -157,6 +160,7 @@ func resourceCheck() *schema.Resource {
 					}),
 				},
 			},
+			checkConsulAttr:   schemaCheckConsul,
 			checkHTTPAttr:     schemaCheckHTTP,
 			checkHTTPTrapAttr: schemaCheckHTTPTrap,
 			checkJSONAttr:     schemaCheckJSON,
@@ -577,6 +581,7 @@ func checkConfigToAPI(c *circonusCheck, d *schema.ResourceData) error {
 	checkTypeParseMap := map[string]func(*circonusCheck, interfaceList) error{
 		checkCAQLAttr:       checkConfigToAPICAQL,
 		checkCloudWatchAttr: checkConfigToAPICloudWatch,
+		checkConsulAttr:     checkConfigToAPIConsul,
 		checkHTTPAttr:       checkConfigToAPIHTTP,
 		checkHTTPTrapAttr:   checkConfigToAPIHTTPTrap,
 		checkICMPPingAttr:   checkConfigToAPIICMPPing,
@@ -589,8 +594,17 @@ func checkConfigToAPI(c *circonusCheck, d *schema.ResourceData) error {
 
 	for checkType, fn := range checkTypeParseMap {
 		if listRaw, found := d.GetOk(checkType); found {
-			if err := fn(c, listRaw.(*schema.Set).List()); err != nil {
-				return errwrap.Wrapf(fmt.Sprintf("Unable to parse type %q: {{err}}", string(checkType)), err)
+			switch u := listRaw.(type) {
+			case []interface{}:
+				if err := fn(c, u); err != nil {
+					return errwrap.Wrapf(fmt.Sprintf("Unable to parse type %q: {{err}}", string(checkType)), err)
+				}
+			case *schema.Set:
+				if err := fn(c, u.List()); err != nil {
+					return errwrap.Wrapf(fmt.Sprintf("Unable to parse type %q: {{err}}", string(checkType)), err)
+				}
+			default:
+				return fmt.Errorf("PROVIDER BUG: unsupported check type interface: %q", checkType)
 			}
 		}
 	}
@@ -604,6 +618,7 @@ func parseCheckTypeConfig(c *circonusCheck, d *schema.ResourceData) error {
 	checkTypeConfigHandlers := map[apiCheckType]func(*circonusCheck, *schema.ResourceData) error{
 		apiCheckTypeCAQLAttr:       checkAPIToStateCAQL,
 		apiCheckTypeCloudWatchAttr: checkAPIToStateCloudWatch,
+		apiCheckTypeConsulAttr:     checkAPIToStateConsul,
 		apiCheckTypeHTTPAttr:       checkAPIToStateHTTP,
 		apiCheckTypeHTTPTrapAttr:   checkAPIToStateHTTPTrap,
 		apiCheckTypeICMPPingAttr:   checkAPIToStateICMPPing,
