@@ -1,7 +1,7 @@
 ---
-layout: "oracle"
+layout: "oracleopc"
 page_title: "Oracle: opc_compute_ssh_key"
-sidebar_current: "docs-opc-resource-instance"
+sidebar_current: "docs-oracleopc-resource-ssh-key"
 description: |-
   Creates and manages an SSH key in an OPC identity domain.
 ---

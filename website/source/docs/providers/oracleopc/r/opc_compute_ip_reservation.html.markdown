@@ -1,7 +1,7 @@
 ---
-layout: "oracle"
+layout: "oracleopc"
 page_title: "Oracle: opc_compute_ip_reservation"
-sidebar_current: "docs-opc-resource-ip-assocation"
+sidebar_current: "docs-oracleopc-resource-ip-reservation"
 description: |-
   Creates and manages an IP reservation in an OPC identity domain.
 ---

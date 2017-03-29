@@ -1,7 +1,7 @@
 ---
-layout: "oracle"
+layout: "oracleopc"
 page_title: "Oracle: opc_compute_security_rule"
-sidebar_current: "docs-opc-resource-security-rule"
+sidebar_current: "docs-oracleopc-resource-security-rule"
 description: |-
   Creates and manages a security rule in an OPC identity domain.
 ---
@@ -33,7 +33,7 @@ The following arguments are supported:
 
 * `source_list` - (Required) The source security list (prefixed with `seclist:`), or security IP list (prefixed with
 `seciplist:`).
- 
+
  * `destination_list` - (Required) The destination security list (prefixed with `seclist:`), or security IP list (prefixed with
  `seciplist:`).
 
