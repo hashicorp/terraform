@@ -1,7 +1,7 @@
 ---
 layout: "vcd"
-page_title: "vCloudDirector: vcd_firewall_rules"
-sidebar_current: "docs-vcd-resource-firewall-rules"
+page_title: "vCloudDirector: vcd_edgegateway_vpn"
+sidebar_current: "docs-vcd-resource-edgegateway-vpn"
 description: |-
   Provides a vCloud Director IPsec VPN. This can be used to create, modify, and delete VPN settings and rules.
 ---
