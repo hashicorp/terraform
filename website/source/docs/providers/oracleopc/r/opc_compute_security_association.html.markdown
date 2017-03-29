@@ -1,12 +1,12 @@
 ---
-layout: "oracle"
+layout: "oracleopc"
 page_title: "Oracle: opc_compute_security_association"
-sidebar_current: "docs-opc-resource-security-association"
+sidebar_current: "docs-oracleopc-resource-security-association"
 description: |-
   Creates and manages a security association in an OPC identity domain.
 ---
 
-# opc\_compute\_ip\_reservation
+# opc\_compute\_security\_association
 
 The ``opc_compute_security_association`` resource creates and manages an association between an instance and a security
 list in an OPC identity domain.

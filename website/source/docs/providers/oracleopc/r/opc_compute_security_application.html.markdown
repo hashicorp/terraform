@@ -1,12 +1,12 @@
 ---
-layout: "oracle"
+layout: "oracleopc"
 page_title: "Oracle: opc_compute_security_application"
-sidebar_current: "docs-opc-resource-security-application"
+sidebar_current: "docs-oracleopc-resource-security-application"
 description: |-
   Creates and manages a security application in an OPC identity domain.
 ---
 
-# opc\_compute\_ip\_reservation
+# opc\_compute\_security\_application
 
 The ``opc_compute_security_application`` resource creates and manages a security application in an OPC identity domain.
 

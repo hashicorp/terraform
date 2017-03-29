@@ -1,7 +1,7 @@
 ---
-layout: "oracle"
+layout: "oracleopc"
 page_title: "Oracle: opc_compute_ip_association"
-sidebar_current: "docs-opc-resource-ip-association"
+sidebar_current: "docs-oracleopc-resource-ip-association"
 description: |-
   Creates and manages an IP association in an OPC identity domain.
 ---
