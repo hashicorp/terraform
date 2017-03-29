@@ -18,6 +18,7 @@ IMPROVEMENTS:
 BUG FIXES: 
 
  * provider/aws: Add Support for maintenance_window and back_window to rds_cluster_instance [GH-13134]
+ * provider/azurerm: Network Security Group - ignoring protocol casing at Import time [GH-13153]
  
 
 ## 0.9.2 (March 28, 2017)
