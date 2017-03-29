@@ -6,7 +6,6 @@ IMPROVEMENTS:
  * helper/resource: Allow unknown "pending" states [GH-13099]
  * provider/aws: Add support to set iam_role_arn on cloudformation Stack [GH-12547]
  * provider/aws: Support priority and listener_arn update of alb_listener_rule [GH-13125]
- * provider/aws: Support priority and listener_arn update of alb_listener_rule [GH-13125]
  * provider/aws: Deprecate roles in favour of role in iam_instance_profile [GH-13130]
  * provider/aws: Make alb_target_group_attachment port optional [GH-13139]
  * provider/aws: `aws_api_gateway_domain_name` `certificate_private_key` field marked as sensitive [GH-13147]
@@ -14,7 +13,8 @@ IMPROVEMENTS:
  * provider/aws: `aws_kinesis_firehose_delivery_stream` `password` field marked as sensitive [GH-13147]
  * provider/aws: `aws_opsworks_application` `app_source.0.password` & `ssl_configuration.0.private_key` fields marked as sensitive [GH-13147]
  * provider/aws: `aws_opsworks_stack` `custom_cookbooks_source.0.password` field marked as sensitive [GH-13147]
- 
+ * provider/google: Mark `google_container_cluster`'s `client_key` & `password` inside `master_auth` as sensitive [GH-13148]
+
 BUG FIXES: 
 
  * provider/aws: Add Support for maintenance_window and back_window to rds_cluster_instance [GH-13134]
