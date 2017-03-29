@@ -20,7 +20,6 @@ import (
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/config"
 	"github.com/mitchellh/copystructure"
-	"github.com/mitchellh/hashstructure"
 	"github.com/satori/go.uuid"
 )
 
@@ -813,19 +812,14 @@ func (s *BackendState) Rehash() uint64 {
 		return 0
 	}
 
-	// Use hashstructure to hash only our type with the config.
-	code, err := hashstructure.Hash(map[string]interface{}{
-		"type":   s.Type,
-		"config": s.Config,
-	}, nil)
-
-	// This should never happen since we have just some basic primitives
-	// so panic if there is an error.
-	if err != nil {
-		panic(err)
+	cfg := config.Backend{
+		Type: s.Type,
+		RawConfig: &config.RawConfig{
+			Raw: s.Config,
+		},
 	}
 
-	return code
+	return cfg.Rehash()
 }
 
 // RemoteState is used to track the information about a remote
