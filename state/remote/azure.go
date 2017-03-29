@@ -26,21 +26,27 @@ func azureFactory(conf map[string]string) (Client, error) {
 		return nil, fmt.Errorf("missing 'key' configuration")
 	}
 
+	env, err := getAzureEnvironmentFromConf(conf)
+	if err != nil {
+		return nil, err
+	}
+
 	accessKey, ok := confOrEnv(conf, "access_key", "ARM_ACCESS_KEY")
 	if !ok {
 		resourceGroupName, ok := conf["resource_group_name"]
 		if !ok {
-			return nil, fmt.Errorf("missing 'resource_group' configuration")
+			return nil, fmt.Errorf("missing 'resource_group_name' configuration")
 		}
 
 		var err error
-		accessKey, err = getStorageAccountAccessKey(conf, resourceGroupName, storageAccountName)
+		accessKey, err = getStorageAccountAccessKey(conf, resourceGroupName, storageAccountName, env)
 		if err != nil {
 			return nil, fmt.Errorf("Couldn't read access key from storage account: %s.", err)
 		}
 	}
 
-	storageClient, err := mainStorage.NewBasicClient(storageAccountName, accessKey)
+	storageClient, err := mainStorage.NewClient(storageAccountName, accessKey, env.StorageEndpointSuffix,
+		mainStorage.DefaultAPIVersion, true)
 	if err != nil {
 		return nil, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
 	}
@@ -56,13 +62,13 @@ func azureFactory(conf map[string]string) (Client, error) {
 	}, nil
 }
 
-func getStorageAccountAccessKey(conf map[string]string, resourceGroupName, storageAccountName string) (string, error) {
-	creds, err := getCredentialsFromConf(conf)
+func getStorageAccountAccessKey(conf map[string]string, resourceGroupName, storageAccountName string, env azure.Environment) (string, error) {
+	creds, err := getCredentialsFromConf(conf, env)
 	if err != nil {
 		return "", err
 	}
 
-	oauthConfig, err := azure.PublicCloud.OAuthConfigForTenant(creds.TenantID)
+	oauthConfig, err := env.OAuthConfigForTenant(creds.TenantID)
 	if err != nil {
 		return "", err
 	}
@@ -70,12 +76,12 @@ func getStorageAccountAccessKey(conf map[string]string, resourceGroupName, stora
 		return "", fmt.Errorf("Unable to configure OAuthConfig for tenant %s", creds.TenantID)
 	}
 
-	spt, err := azure.NewServicePrincipalToken(*oauthConfig, creds.ClientID, creds.ClientSecret, azure.PublicCloud.ResourceManagerEndpoint)
+	spt, err := azure.NewServicePrincipalToken(*oauthConfig, creds.ClientID, creds.ClientSecret, env.ResourceManagerEndpoint)
 	if err != nil {
 		return "", err
 	}
 
-	accountsClient := storage.NewAccountsClient(creds.SubscriptionID)
+	accountsClient := storage.NewAccountsClientWithBaseURI(env.ResourceManagerEndpoint, creds.SubscriptionID)
 	accountsClient.Authorizer = spt
 
 	keys, err := accountsClient.ListKeys(resourceGroupName, storageAccountName)
@@ -91,7 +97,7 @@ func getStorageAccountAccessKey(conf map[string]string, resourceGroupName, stora
 	return *accessKeys[0].Value, nil
 }
 
-func getCredentialsFromConf(conf map[string]string) (*riviera.AzureResourceManagerCredentials, error) {
+func getCredentialsFromConf(conf map[string]string, env azure.Environment) (*riviera.AzureResourceManagerCredentials, error) {
 	subscriptionID, ok := confOrEnv(conf, "arm_subscription_id", "ARM_SUBSCRIPTION_ID")
 	if !ok {
 		return nil, fmt.Errorf("missing 'arm_subscription_id' configuration")
@@ -110,11 +116,32 @@ func getCredentialsFromConf(conf map[string]string) (*riviera.AzureResourceManag
 	}
 
 	return &riviera.AzureResourceManagerCredentials{
-		SubscriptionID: subscriptionID,
-		ClientID:       clientID,
-		ClientSecret:   clientSecret,
-		TenantID:       tenantID,
+		SubscriptionID:          subscriptionID,
+		ClientID:                clientID,
+		ClientSecret:            clientSecret,
+		TenantID:                tenantID,
+		ActiveDirectoryEndpoint: env.ActiveDirectoryEndpoint,
+		ResourceManagerEndpoint: env.ResourceManagerEndpoint,
 	}, nil
+}
+
+func getAzureEnvironmentFromConf(conf map[string]string) (azure.Environment, error) {
+	envName, ok := confOrEnv(conf, "environment", "ARM_ENVIRONMENT")
+	if !ok {
+		return azure.PublicCloud, nil
+	}
+
+	env, err := azure.EnvironmentFromName(envName)
+	if err != nil {
+		// try again with wrapped value to support readable values like german instead of AZUREGERMANCLOUD
+		var innerErr error
+		env, innerErr = azure.EnvironmentFromName(fmt.Sprintf("AZURE%sCLOUD", envName))
+		if innerErr != nil {
+			return env, fmt.Errorf("invalid 'environment' configuration: %s", err)
+		}
+	}
+
+	return env, nil
 }
 
 func confOrEnv(conf map[string]string, confKey, envVar string) (string, bool) {

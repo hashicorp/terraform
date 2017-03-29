@@ -19,8 +19,11 @@ func resourceAwsVpc() *schema.Resource {
 		Update: resourceAwsVpcUpdate,
 		Delete: resourceAwsVpcDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceAwsVpcInstanceImport,
 		},
+
+		SchemaVersion: 1,
+		MigrateState:  resourceAwsVpcMigrateState,
 
 		Schema: map[string]*schema.Schema{
 			"cidr_block": {
@@ -55,6 +58,13 @@ func resourceAwsVpc() *schema.Resource {
 				Computed: true,
 			},
 
+			"assign_generated_ipv6_cidr_block": {
+				Type:     schema.TypeBool,
+				ForceNew: true,
+				Optional: true,
+				Default:  false,
+			},
+
 			"main_route_table_id": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -80,6 +90,16 @@ func resourceAwsVpc() *schema.Resource {
 				Computed: true,
 			},
 
+			"ipv6_association_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"ipv6_cidr_block": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -91,11 +111,14 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 	if v, ok := d.GetOk("instance_tenancy"); ok {
 		instance_tenancy = v.(string)
 	}
+
 	// Create the VPC
 	createOpts := &ec2.CreateVpcInput{
-		CidrBlock:       aws.String(d.Get("cidr_block").(string)),
-		InstanceTenancy: aws.String(instance_tenancy),
+		CidrBlock:                   aws.String(d.Get("cidr_block").(string)),
+		InstanceTenancy:             aws.String(instance_tenancy),
+		AmazonProvidedIpv6CidrBlock: aws.Bool(d.Get("assign_generated_ipv6_cidr_block").(bool)),
 	}
+
 	log.Printf("[DEBUG] VPC create config: %#v", *createOpts)
 	vpcResp, err := conn.CreateVpc(createOpts)
 	if err != nil {
@@ -153,6 +176,18 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 
 	// Tags
 	d.Set("tags", tagsToMap(vpc.Tags))
+
+	for _, a := range vpc.Ipv6CidrBlockAssociationSet {
+		if *a.Ipv6CidrBlockState.State == "associated" {
+			d.Set("assign_generated_ipv6_cidr_block", true)
+			d.Set("ipv6_association_id", a.AssociationId)
+			d.Set("ipv6_cidr_block", a.Ipv6CidrBlock)
+		} else {
+			d.Set("assign_generated_ipv6_cidr_block", false)
+			d.Set("ipv6_association_id", "") // we blank these out to remove old entries
+			d.Set("ipv6_cidr_block", "")
+		}
+	}
 
 	// Attributes
 	attribute := "enableDnsSupport"
@@ -452,4 +487,10 @@ func resourceAwsVpcSetDefaultRouteTable(conn *ec2.EC2, d *schema.ResourceData) e
 	d.Set("default_route_table_id", resp.RouteTables[0].RouteTableId)
 
 	return nil
+}
+
+func resourceAwsVpcInstanceImport(
+	d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	d.Set("assign_generated_ipv6_cidr_block", false)
+	return []*schema.ResourceData{d}, nil
 }

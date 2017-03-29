@@ -164,6 +164,29 @@ func TestAccAzureRMLoadBalancerProbe_reapply(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMLoadBalancerProbe_disappears(t *testing.T) {
+	var lb network.LoadBalancer
+	ri := acctest.RandInt()
+	probeName := fmt.Sprintf("probe-%d", ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMLoadBalancerProbe_basic(ri, probeName),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
+					testCheckAzureRMLoadBalancerProbeExists(probeName, &lb),
+					testCheckAzureRMLoadBalancerProbeDisappears(probeName, &lb),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func testCheckAzureRMLoadBalancerProbeExists(natRuleName string, lb *network.LoadBalancer) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		_, _, exists := findLoadBalancerProbeByName(lb, natRuleName)
@@ -183,6 +206,34 @@ func testCheckAzureRMLoadBalancerProbeNotExists(natRuleName string, lb *network.
 		}
 
 		return nil
+	}
+}
+
+func testCheckAzureRMLoadBalancerProbeDisappears(addressPoolName string, lb *network.LoadBalancer) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		conn := testAccProvider.Meta().(*ArmClient).loadBalancerClient
+
+		_, i, exists := findLoadBalancerProbeByName(lb, addressPoolName)
+		if !exists {
+			return fmt.Errorf("A Probe with name %q cannot be found.", addressPoolName)
+		}
+
+		currentProbes := *lb.LoadBalancerPropertiesFormat.Probes
+		probes := append(currentProbes[:i], currentProbes[i+1:]...)
+		lb.LoadBalancerPropertiesFormat.Probes = &probes
+
+		id, err := parseAzureResourceID(*lb.ID)
+		if err != nil {
+			return err
+		}
+
+		_, err = conn.CreateOrUpdate(id.ResourceGroup, *lb.Name, *lb, make(chan struct{}))
+		if err != nil {
+			return fmt.Errorf("Error Creating/Updating LoadBalancer %s", err)
+		}
+
+		_, err = conn.Get(id.ResourceGroup, *lb.Name, "")
+		return err
 	}
 }
 

@@ -36,7 +36,6 @@ resource "azurerm_container_registry" "test" {
     access_key = "${azurerm_storage_account.test.primary_access_key}"
   }
 }
-
 ```
 
 ## Argument Reference

@@ -6,11 +6,21 @@ package backend
 
 import (
 	"context"
+	"errors"
 
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+// This is the name of the default, initial state that every backend
+// must have. This state cannot be deleted.
+const DefaultStateName = "default"
+
+// Error value to return when a named state operation isn't supported.
+// This must be returned rather than a custom error so that the Terraform
+// CLI can detect it and handle it appropriately.
+var ErrNamedStatesNotSupported = errors.New("named states not supported")
 
 // Backend is the minimal interface that must be implemented to enable Terraform.
 type Backend interface {
@@ -22,8 +32,23 @@ type Backend interface {
 
 	// State returns the current state for this environment. This state may
 	// not be loaded locally: the proper APIs should be called on state.State
-	// to load the state.
-	State() (state.State, error)
+	// to load the state. If the state.State is a state.Locker, it's up to the
+	// caller to call Lock and Unlock as needed.
+	//
+	// If the named state doesn't exist it will be created. The "default" state
+	// is always assumed to exist.
+	State(name string) (state.State, error)
+
+	// DeleteState removes the named state if it exists. It is an error
+	// to delete the default state.
+	//
+	// DeleteState does not prevent deleting a state that is in use. It is the
+	// responsibility of the caller to hold a Lock on the state when calling
+	// this method.
+	DeleteState(name string) error
+
+	// States returns a list of configured named states.
+	States() ([]string, error)
 }
 
 // Enhanced implements additional behavior on top of a normal backend.
@@ -38,6 +63,9 @@ type Enhanced interface {
 	// It is up to the implementation to determine what "performing" means.
 	// This DOES NOT BLOCK. The context returned as part of RunningOperation
 	// should be used to block for completion.
+	// If the state used in the operation can be locked, it is the
+	// responsibility of the Backend to lock the state for the duration of the
+	// running operation.
 	Operation(context.Context, *Operation) (*RunningOperation, error)
 }
 
@@ -99,6 +127,13 @@ type Operation struct {
 	// Input/output/control options.
 	UIIn  terraform.UIInput
 	UIOut terraform.UIOutput
+
+	// If LockState is true, the Operation must Lock any
+	// state.Lockers for its duration, and Unlock when complete.
+	LockState bool
+
+	// Environment is the named state that should be loaded from the Backend.
+	Environment string
 }
 
 // RunningOperation is the result of starting an operation.

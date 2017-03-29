@@ -26,6 +26,7 @@ graph.
 # Bootstrap a cluster after all its instances are up
 resource "aws_instance" "cluster" {
   count = 3
+
   // ...
 }
 
@@ -44,7 +45,7 @@ resource "null_resource" "cluster" {
   provisioner "remote-exec" {
     # Bootstrap script called with private_ip of each node in the clutser
     inline = [
-      "bootstrap-cluster.sh ${join(" ", aws_instance.cluster.*.private_ip)}"
+      "bootstrap-cluster.sh ${join(" ", aws_instance.cluster.*.private_ip)}",
     ]
   }
 }

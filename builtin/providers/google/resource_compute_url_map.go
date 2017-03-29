@@ -599,8 +599,8 @@ func resourceComputeUrlMapUpdate(d *schema.ResourceData, meta interface{}) error
 		urlMap.PathMatchers = newPathMatchers
 	}
 
-	if d.HasChange("tests") {
-		_oldTests, _newTests := d.GetChange("path_matcher")
+	if d.HasChange("test") {
+		_oldTests, _newTests := d.GetChange("test")
 		_oldTestsMap := make(map[string]interface{})
 		_newTestsMap := make(map[string]interface{})
 

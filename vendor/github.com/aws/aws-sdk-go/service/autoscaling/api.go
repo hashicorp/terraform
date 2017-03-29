@@ -84,7 +84,7 @@ func (c *AutoScaling) AttachInstancesRequest(input *AttachInstancesInput) (req *
 // API operation AttachInstances for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -157,7 +157,7 @@ func (c *AutoScaling) AttachLoadBalancerTargetGroupsRequest(input *AttachLoadBal
 // API operation AttachLoadBalancerTargetGroups for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -233,7 +233,7 @@ func (c *AutoScaling) AttachLoadBalancersRequest(input *AttachLoadBalancersInput
 // API operation AttachLoadBalancers for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -321,7 +321,7 @@ func (c *AutoScaling) CompleteLifecycleActionRequest(input *CompleteLifecycleAct
 // API operation CompleteLifecycleAction for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -396,16 +396,16 @@ func (c *AutoScaling) CreateAutoScalingGroupRequest(input *CreateAutoScalingGrou
 // API operation CreateAutoScalingGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * AlreadyExists
+//   * ErrCodeAlreadyExistsFault "AlreadyExists"
 //   You already have an Auto Scaling group or launch configuration with this
 //   name.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededFault "LimitExceeded"
 //   You have already reached a limit for your Auto Scaling resources (for example,
 //   groups, launch configurations, or lifecycle hooks). For more information,
 //   see DescribeAccountLimits.
 //
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -480,16 +480,16 @@ func (c *AutoScaling) CreateLaunchConfigurationRequest(input *CreateLaunchConfig
 // API operation CreateLaunchConfiguration for usage and error information.
 //
 // Returned Error Codes:
-//   * AlreadyExists
+//   * ErrCodeAlreadyExistsFault "AlreadyExists"
 //   You already have an Auto Scaling group or launch configuration with this
 //   name.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededFault "LimitExceeded"
 //   You have already reached a limit for your Auto Scaling resources (for example,
 //   groups, launch configurations, or lifecycle hooks). For more information,
 //   see DescribeAccountLimits.
 //
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -563,16 +563,16 @@ func (c *AutoScaling) CreateOrUpdateTagsRequest(input *CreateOrUpdateTagsInput) 
 // API operation CreateOrUpdateTags for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceeded
+//   * ErrCodeLimitExceededFault "LimitExceeded"
 //   You have already reached a limit for your Auto Scaling resources (for example,
 //   groups, launch configurations, or lifecycle hooks). For more information,
 //   see DescribeAccountLimits.
 //
-//   * AlreadyExists
+//   * ErrCodeAlreadyExistsFault "AlreadyExists"
 //   You already have an Auto Scaling group or launch configuration with this
 //   name.
 //
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -654,14 +654,14 @@ func (c *AutoScaling) DeleteAutoScalingGroupRequest(input *DeleteAutoScalingGrou
 // API operation DeleteAutoScalingGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * ScalingActivityInProgress
+//   * ErrCodeScalingActivityInProgressFault "ScalingActivityInProgress"
 //   The operation can't be performed because there are scaling activities in
 //   progress.
 //
-//   * ResourceInUse
+//   * ErrCodeResourceInUseFault "ResourceInUse"
 //   The operation can't be performed because the resource is in use.
 //
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -733,10 +733,10 @@ func (c *AutoScaling) DeleteLaunchConfigurationRequest(input *DeleteLaunchConfig
 // API operation DeleteLaunchConfiguration for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceInUse
+//   * ErrCodeResourceInUseFault "ResourceInUse"
 //   The operation can't be performed because the resource is in use.
 //
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -805,7 +805,7 @@ func (c *AutoScaling) DeleteLifecycleHookRequest(input *DeleteLifecycleHookInput
 // API operation DeleteLifecycleHook for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -873,7 +873,7 @@ func (c *AutoScaling) DeleteNotificationConfigurationRequest(input *DeleteNotifi
 // API operation DeleteNotificationConfiguration for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -944,7 +944,7 @@ func (c *AutoScaling) DeletePolicyRequest(input *DeletePolicyInput) (req *reques
 // API operation DeletePolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -1012,7 +1012,7 @@ func (c *AutoScaling) DeleteScheduledActionRequest(input *DeleteScheduledActionI
 // API operation DeleteScheduledAction for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -1080,7 +1080,7 @@ func (c *AutoScaling) DeleteTagsRequest(input *DeleteTagsInput) (req *request.Re
 // API operation DeleteTags for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -1150,7 +1150,7 @@ func (c *AutoScaling) DescribeAccountLimitsRequest(input *DescribeAccountLimitsI
 // API operation DescribeAccountLimits for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -1216,7 +1216,7 @@ func (c *AutoScaling) DescribeAdjustmentTypesRequest(input *DescribeAdjustmentTy
 // API operation DescribeAdjustmentTypes for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -1288,10 +1288,10 @@ func (c *AutoScaling) DescribeAutoScalingGroupsRequest(input *DescribeAutoScalin
 // API operation DescribeAutoScalingGroups for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidNextToken
+//   * ErrCodeInvalidNextToken "InvalidNextToken"
 //   The NextToken value is not valid.
 //
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -1388,10 +1388,10 @@ func (c *AutoScaling) DescribeAutoScalingInstancesRequest(input *DescribeAutoSca
 // API operation DescribeAutoScalingInstances for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidNextToken
+//   * ErrCodeInvalidNextToken "InvalidNextToken"
 //   The NextToken value is not valid.
 //
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -1482,7 +1482,7 @@ func (c *AutoScaling) DescribeAutoScalingNotificationTypesRequest(input *Describ
 // API operation DescribeAutoScalingNotificationTypes for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -1554,10 +1554,10 @@ func (c *AutoScaling) DescribeLaunchConfigurationsRequest(input *DescribeLaunchC
 // API operation DescribeLaunchConfigurations for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidNextToken
+//   * ErrCodeInvalidNextToken "InvalidNextToken"
 //   The NextToken value is not valid.
 //
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -1648,7 +1648,7 @@ func (c *AutoScaling) DescribeLifecycleHookTypesRequest(input *DescribeLifecycle
 // API operation DescribeLifecycleHookTypes for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -1714,7 +1714,7 @@ func (c *AutoScaling) DescribeLifecycleHooksRequest(input *DescribeLifecycleHook
 // API operation DescribeLifecycleHooks for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -1780,7 +1780,7 @@ func (c *AutoScaling) DescribeLoadBalancerTargetGroupsRequest(input *DescribeLoa
 // API operation DescribeLoadBalancerTargetGroups for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -1849,7 +1849,7 @@ func (c *AutoScaling) DescribeLoadBalancersRequest(input *DescribeLoadBalancersI
 // API operation DescribeLoadBalancers for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -1918,7 +1918,7 @@ func (c *AutoScaling) DescribeMetricCollectionTypesRequest(input *DescribeMetric
 // API operation DescribeMetricCollectionTypes for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -1991,10 +1991,10 @@ func (c *AutoScaling) DescribeNotificationConfigurationsRequest(input *DescribeN
 // API operation DescribeNotificationConfigurations for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidNextToken
+//   * ErrCodeInvalidNextToken "InvalidNextToken"
 //   The NextToken value is not valid.
 //
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -2091,10 +2091,10 @@ func (c *AutoScaling) DescribePoliciesRequest(input *DescribePoliciesInput) (req
 // API operation DescribePolicies for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidNextToken
+//   * ErrCodeInvalidNextToken "InvalidNextToken"
 //   The NextToken value is not valid.
 //
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -2191,10 +2191,10 @@ func (c *AutoScaling) DescribeScalingActivitiesRequest(input *DescribeScalingAct
 // API operation DescribeScalingActivities for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidNextToken
+//   * ErrCodeInvalidNextToken "InvalidNextToken"
 //   The NextToken value is not valid.
 //
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -2285,7 +2285,7 @@ func (c *AutoScaling) DescribeScalingProcessTypesRequest(input *DescribeScalingP
 // API operation DescribeScalingProcessTypes for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -2358,10 +2358,10 @@ func (c *AutoScaling) DescribeScheduledActionsRequest(input *DescribeScheduledAc
 // API operation DescribeScheduledActions for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidNextToken
+//   * ErrCodeInvalidNextToken "InvalidNextToken"
 //   The NextToken value is not valid.
 //
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -2467,10 +2467,10 @@ func (c *AutoScaling) DescribeTagsRequest(input *DescribeTagsInput) (req *reques
 // API operation DescribeTags for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidNextToken
+//   * ErrCodeInvalidNextToken "InvalidNextToken"
 //   The NextToken value is not valid.
 //
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -2561,7 +2561,7 @@ func (c *AutoScaling) DescribeTerminationPolicyTypesRequest(input *DescribeTermi
 // API operation DescribeTerminationPolicyTypes for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -2642,7 +2642,7 @@ func (c *AutoScaling) DetachInstancesRequest(input *DetachInstancesInput) (req *
 // API operation DetachInstances for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -2708,7 +2708,7 @@ func (c *AutoScaling) DetachLoadBalancerTargetGroupsRequest(input *DetachLoadBal
 // API operation DetachLoadBalancerTargetGroups for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -2783,7 +2783,7 @@ func (c *AutoScaling) DetachLoadBalancersRequest(input *DetachLoadBalancersInput
 // API operation DetachLoadBalancers for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -2851,7 +2851,7 @@ func (c *AutoScaling) DisableMetricsCollectionRequest(input *DisableMetricsColle
 // API operation DisableMetricsCollection for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -2921,7 +2921,7 @@ func (c *AutoScaling) EnableMetricsCollectionRequest(input *EnableMetricsCollect
 // API operation EnableMetricsCollection for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -2990,7 +2990,7 @@ func (c *AutoScaling) EnterStandbyRequest(input *EnterStandbyInput) (req *reques
 // API operation EnterStandby for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -3058,11 +3058,11 @@ func (c *AutoScaling) ExecutePolicyRequest(input *ExecutePolicyInput) (req *requ
 // API operation ExecutePolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * ScalingActivityInProgress
+//   * ErrCodeScalingActivityInProgressFault "ScalingActivityInProgress"
 //   The operation can't be performed because there are scaling activities in
 //   progress.
 //
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -3131,7 +3131,7 @@ func (c *AutoScaling) ExitStandbyRequest(input *ExitStandbyInput) (req *request.
 // API operation ExitStandby for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -3227,12 +3227,12 @@ func (c *AutoScaling) PutLifecycleHookRequest(input *PutLifecycleHookInput) (req
 // API operation PutLifecycleHook for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceeded
+//   * ErrCodeLimitExceededFault "LimitExceeded"
 //   You have already reached a limit for your Auto Scaling resources (for example,
 //   groups, launch configurations, or lifecycle hooks). For more information,
 //   see DescribeAccountLimits.
 //
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -3308,12 +3308,12 @@ func (c *AutoScaling) PutNotificationConfigurationRequest(input *PutNotification
 // API operation PutNotificationConfiguration for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceeded
+//   * ErrCodeLimitExceededFault "LimitExceeded"
 //   You have already reached a limit for your Auto Scaling resources (for example,
 //   groups, launch configurations, or lifecycle hooks). For more information,
 //   see DescribeAccountLimits.
 //
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -3387,12 +3387,12 @@ func (c *AutoScaling) PutScalingPolicyRequest(input *PutScalingPolicyInput) (req
 // API operation PutScalingPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceeded
+//   * ErrCodeLimitExceededFault "LimitExceeded"
 //   You have already reached a limit for your Auto Scaling resources (for example,
 //   groups, launch configurations, or lifecycle hooks). For more information,
 //   see DescribeAccountLimits.
 //
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -3465,16 +3465,16 @@ func (c *AutoScaling) PutScheduledUpdateGroupActionRequest(input *PutScheduledUp
 // API operation PutScheduledUpdateGroupAction for usage and error information.
 //
 // Returned Error Codes:
-//   * AlreadyExists
+//   * ErrCodeAlreadyExistsFault "AlreadyExists"
 //   You already have an Auto Scaling group or launch configuration with this
 //   name.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededFault "LimitExceeded"
 //   You have already reached a limit for your Auto Scaling resources (for example,
 //   groups, launch configurations, or lifecycle hooks). For more information,
 //   see DescribeAccountLimits.
 //
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -3563,7 +3563,7 @@ func (c *AutoScaling) RecordLifecycleActionHeartbeatRequest(input *RecordLifecyc
 // API operation RecordLifecycleActionHeartbeat for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -3636,10 +3636,10 @@ func (c *AutoScaling) ResumeProcessesRequest(input *ScalingProcessQuery) (req *r
 // API operation ResumeProcesses for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceInUse
+//   * ErrCodeResourceInUseFault "ResourceInUse"
 //   The operation can't be performed because the resource is in use.
 //
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -3710,11 +3710,11 @@ func (c *AutoScaling) SetDesiredCapacityRequest(input *SetDesiredCapacityInput) 
 // API operation SetDesiredCapacity for usage and error information.
 //
 // Returned Error Codes:
-//   * ScalingActivityInProgress
+//   * ErrCodeScalingActivityInProgressFault "ScalingActivityInProgress"
 //   The operation can't be performed because there are scaling activities in
 //   progress.
 //
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -3785,7 +3785,7 @@ func (c *AutoScaling) SetInstanceHealthRequest(input *SetInstanceHealthInput) (r
 // API operation SetInstanceHealth for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -3854,12 +3854,12 @@ func (c *AutoScaling) SetInstanceProtectionRequest(input *SetInstanceProtectionI
 // API operation SetInstanceProtection for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceeded
+//   * ErrCodeLimitExceededFault "LimitExceeded"
 //   You have already reached a limit for your Auto Scaling resources (for example,
 //   groups, launch configurations, or lifecycle hooks). For more information,
 //   see DescribeAccountLimits.
 //
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -3937,10 +3937,10 @@ func (c *AutoScaling) SuspendProcessesRequest(input *ScalingProcessQuery) (req *
 // API operation SuspendProcesses for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceInUse
+//   * ErrCodeResourceInUseFault "ResourceInUse"
 //   The operation can't be performed because the resource is in use.
 //
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -4010,11 +4010,11 @@ func (c *AutoScaling) TerminateInstanceInAutoScalingGroupRequest(input *Terminat
 // API operation TerminateInstanceInAutoScalingGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * ScalingActivityInProgress
+//   * ErrCodeScalingActivityInProgressFault "ScalingActivityInProgress"
 //   The operation can't be performed because there are scaling activities in
 //   progress.
 //
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //
@@ -4105,11 +4105,11 @@ func (c *AutoScaling) UpdateAutoScalingGroupRequest(input *UpdateAutoScalingGrou
 // API operation UpdateAutoScalingGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * ScalingActivityInProgress
+//   * ErrCodeScalingActivityInProgressFault "ScalingActivityInProgress"
 //   The operation can't be performed because there are scaling activities in
 //   progress.
 //
-//   * ResourceContention
+//   * ErrCodeResourceContentionFault "ResourceContention"
 //   You already have a pending update to an Auto Scaling resource (for example,
 //   a group, instance, or load balancer).
 //

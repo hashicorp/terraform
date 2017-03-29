@@ -1,6 +1,9 @@
 package azurerm
 
 import (
+	"crypto/sha1"
+	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"reflect"
@@ -68,6 +71,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_cdn_endpoint":       resourceArmCdnEndpoint(),
 			"azurerm_cdn_profile":        resourceArmCdnProfile(),
 			"azurerm_container_registry": resourceArmContainerRegistry(),
+			"azurerm_container_service":  resourceArmContainerService(),
 
 			"azurerm_eventhub":                    resourceArmEventHub(),
 			"azurerm_eventhub_authorization_rule": resourceArmEventHubAuthorizationRule(),
@@ -190,6 +194,12 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 
 		client.StopContext = p.StopContext()
 
+		// replaces the context between tests
+		p.MetaReset = func() error {
+			client.StopContext = p.StopContext()
+			return nil
+		}
+
 		// List all the available providers and their registration state to avoid unnecessary
 		// requests. This also lets us check if the provider credentials are correct.
 		providerList, err := client.providers.List(nil, "")
@@ -232,6 +242,7 @@ func registerAzureResourceProvidersWithSubscription(providerList []resources.Pro
 			"Microsoft.Compute":           struct{}{},
 			"Microsoft.Cache":             struct{}{},
 			"Microsoft.ContainerRegistry": struct{}{},
+			"Microsoft.ContainerService":  struct{}{},
 			"Microsoft.Network":           struct{}{},
 			"Microsoft.Cdn":               struct{}{},
 			"Microsoft.Storage":           struct{}{},
@@ -308,4 +319,44 @@ func azureStateRefreshFunc(resourceURI string, client *ArmClient, command rivier
 // Use a custom diff function to avoid creation of new resources.
 func resourceAzurermResourceGroupNameDiffSuppress(k, old, new string, d *schema.ResourceData) bool {
 	return strings.ToLower(old) == strings.ToLower(new)
+}
+
+// ignoreCaseDiffSuppressFunc is a DiffSuppressFunc from helper/schema that is
+// used to ignore any case-changes in a return value.
+func ignoreCaseDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	return strings.ToLower(old) == strings.ToLower(new)
+}
+
+// ignoreCaseStateFunc is a StateFunc from helper/schema that converts the
+// supplied value to lower before saving to state for consistency.
+func ignoreCaseStateFunc(val interface{}) string {
+	return strings.ToLower(val.(string))
+}
+
+func userDataStateFunc(v interface{}) string {
+	switch s := v.(type) {
+	case string:
+		s = base64Encode(s)
+		hash := sha1.Sum([]byte(s))
+		return hex.EncodeToString(hash[:])
+	default:
+		return ""
+	}
+}
+
+// Base64Encode encodes data if the input isn't already encoded using
+// base64.StdEncoding.EncodeToString. If the input is already base64 encoded,
+// return the original input unchanged.
+func base64Encode(data string) string {
+	// Check whether the data is already Base64 encoded; don't double-encode
+	if isBase64Encoded(data) {
+		return data
+	}
+	// data has not been encoded encode and return
+	return base64.StdEncoding.EncodeToString([]byte(data))
+}
+
+func isBase64Encoded(data string) bool {
+	_, err := base64.StdEncoding.DecodeString(data)
+	return err == nil
 }

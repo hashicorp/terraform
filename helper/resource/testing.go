@@ -22,6 +22,13 @@ import (
 
 const TestEnvVar = "TF_ACC"
 
+// TestProvider can be implemented by any ResourceProvider to provide custom
+// reset functionality at the start of an acceptance test.
+// The helper/schema Provider implements this interface.
+type TestProvider interface {
+	TestReset() error
+}
+
 // TestCheckFunc is the callback type used with acceptance tests to check
 // the state of a resource. The state passed in is the latest state known,
 // or in the case of being after a destroy, it is the last known state when
@@ -144,6 +151,11 @@ type TestStep struct {
 	// test to pass.
 	ExpectError *regexp.Regexp
 
+	// PlanOnly can be set to only run `plan` with this configuration, and not
+	// actually apply it. This is useful for ensuring config changes result in
+	// no-op plans
+	PlanOnly bool
+
 	// PreventPostDestroyRefresh can be set to true for cases where data sources
 	// are tested alongside real resources
 	PreventPostDestroyRefresh bool
@@ -216,13 +228,9 @@ func Test(t TestT, c TestCase) {
 		c.PreCheck()
 	}
 
-	// Build our context options that we can
-	ctxProviders := c.ProviderFactories
-	if ctxProviders == nil {
-		ctxProviders = make(map[string]terraform.ResourceProviderFactory)
-		for k, p := range c.Providers {
-			ctxProviders[k] = terraform.ResourceProviderFactoryFixed(p)
-		}
+	ctxProviders, err := testProviderFactories(c)
+	if err != nil {
+		t.Fatal(err)
 	}
 	opts := terraform.ContextOpts{Providers: ctxProviders}
 
@@ -331,6 +339,43 @@ func Test(t TestT, c TestCase) {
 	} else {
 		log.Printf("[WARN] Skipping destroy test since there is no state.")
 	}
+}
+
+// testProviderFactories is a helper to build the ResourceProviderFactory map
+// with pre instantiated ResourceProviders, so that we can reset them for the
+// test, while only calling the factory function once.
+// Any errors are stored so that they can be returned by the factory in
+// terraform to match non-test behavior.
+func testProviderFactories(c TestCase) (map[string]terraform.ResourceProviderFactory, error) {
+	ctxProviders := make(map[string]terraform.ResourceProviderFactory)
+
+	// add any fixed providers
+	for k, p := range c.Providers {
+		ctxProviders[k] = terraform.ResourceProviderFactoryFixed(p)
+	}
+
+	// call any factory functions and store the result.
+	for k, pf := range c.ProviderFactories {
+		p, err := pf()
+		ctxProviders[k] = func() (terraform.ResourceProvider, error) {
+			return p, err
+		}
+	}
+
+	// reset the providers if needed
+	for k, pf := range ctxProviders {
+		// we can ignore any errors here, if we don't have a provider to reset
+		// the error will be handled later
+		p, _ := pf()
+		if p, ok := p.(TestProvider); ok {
+			err := p.TestReset()
+			if err != nil {
+				return nil, fmt.Errorf("[ERROR] failed to reset provider %q: %s", k, err)
+			}
+		}
+	}
+
+	return ctxProviders, nil
 }
 
 // UnitTest is a helper to force the acceptance testing harness to run in the
@@ -549,15 +594,9 @@ func ComposeAggregateTestCheckFunc(fs ...TestCheckFunc) TestCheckFunc {
 // know ahead of time what the values will be.
 func TestCheckResourceAttrSet(name, key string) TestCheckFunc {
 	return func(s *terraform.State) error {
-		ms := s.RootModule()
-		rs, ok := ms.Resources[name]
-		if !ok {
-			return fmt.Errorf("Not found: %s", name)
-		}
-
-		is := rs.Primary
-		if is == nil {
-			return fmt.Errorf("No primary instance: %s", name)
+		is, err := primaryInstanceState(s, name)
+		if err != nil {
+			return err
 		}
 
 		if val, ok := is.Attributes[key]; ok && val != "" {
@@ -568,17 +607,13 @@ func TestCheckResourceAttrSet(name, key string) TestCheckFunc {
 	}
 }
 
+// TestCheckResourceAttr is a TestCheckFunc which validates
+// the value in state for the given name/key combination.
 func TestCheckResourceAttr(name, key, value string) TestCheckFunc {
 	return func(s *terraform.State) error {
-		ms := s.RootModule()
-		rs, ok := ms.Resources[name]
-		if !ok {
-			return fmt.Errorf("Not found: %s", name)
-		}
-
-		is := rs.Primary
-		if is == nil {
-			return fmt.Errorf("No primary instance: %s", name)
+		is, err := primaryInstanceState(s, name)
+		if err != nil {
+			return err
 		}
 
 		if v, ok := is.Attributes[key]; !ok || v != value {
@@ -591,7 +626,7 @@ func TestCheckResourceAttr(name, key, value string) TestCheckFunc {
 				name,
 				key,
 				value,
-				is.Attributes[key])
+				v)
 		}
 
 		return nil
@@ -602,15 +637,9 @@ func TestCheckResourceAttr(name, key, value string) TestCheckFunc {
 // NO value exists in state for the given name/key combination.
 func TestCheckNoResourceAttr(name, key string) TestCheckFunc {
 	return func(s *terraform.State) error {
-		ms := s.RootModule()
-		rs, ok := ms.Resources[name]
-		if !ok {
-			return fmt.Errorf("Not found: %s", name)
-		}
-
-		is := rs.Primary
-		if is == nil {
-			return fmt.Errorf("No primary instance: %s", name)
+		is, err := primaryInstanceState(s, name)
+		if err != nil {
+			return err
 		}
 
 		if _, ok := is.Attributes[key]; ok {
@@ -621,17 +650,13 @@ func TestCheckNoResourceAttr(name, key string) TestCheckFunc {
 	}
 }
 
+// TestMatchResourceAttr is a TestCheckFunc which checks that the value
+// in state for the given name/key combination matches the given regex.
 func TestMatchResourceAttr(name, key string, r *regexp.Regexp) TestCheckFunc {
 	return func(s *terraform.State) error {
-		ms := s.RootModule()
-		rs, ok := ms.Resources[name]
-		if !ok {
-			return fmt.Errorf("Not found: %s", name)
-		}
-
-		is := rs.Primary
-		if is == nil {
-			return fmt.Errorf("No primary instance: %s", name)
+		is, err := primaryInstanceState(s, name)
+		if err != nil {
+			return err
 		}
 
 		if !r.MatchString(is.Attributes[key]) {
@@ -653,6 +678,41 @@ func TestMatchResourceAttr(name, key string, r *regexp.Regexp) TestCheckFunc {
 func TestCheckResourceAttrPtr(name string, key string, value *string) TestCheckFunc {
 	return func(s *terraform.State) error {
 		return TestCheckResourceAttr(name, key, *value)(s)
+	}
+}
+
+// TestCheckResourceAttrPair is a TestCheckFunc which validates that the values
+// in state for a pair of name/key combinations are equal.
+func TestCheckResourceAttrPair(nameFirst, keyFirst, nameSecond, keySecond string) TestCheckFunc {
+	return func(s *terraform.State) error {
+		isFirst, err := primaryInstanceState(s, nameFirst)
+		if err != nil {
+			return err
+		}
+		vFirst, ok := isFirst.Attributes[keyFirst]
+		if !ok {
+			return fmt.Errorf("%s: Attribute '%s' not found", nameFirst, keyFirst)
+		}
+
+		isSecond, err := primaryInstanceState(s, nameSecond)
+		if err != nil {
+			return err
+		}
+		vSecond, ok := isSecond.Attributes[keySecond]
+		if !ok {
+			return fmt.Errorf("%s: Attribute '%s' not found", nameSecond, keySecond)
+		}
+
+		if vFirst != vSecond {
+			return fmt.Errorf(
+				"%s: Attribute '%s' expected %#v, got %#v",
+				nameFirst,
+				keyFirst,
+				vSecond,
+				vFirst)
+		}
+
+		return nil
 	}
 }
 
@@ -708,3 +768,19 @@ type TestT interface {
 
 // This is set to true by unit tests to alter some behavior
 var testTesting = false
+
+// primaryInstanceState returns the primary instance state for the given resource name.
+func primaryInstanceState(s *terraform.State, name string) (*terraform.InstanceState, error) {
+	ms := s.RootModule()
+	rs, ok := ms.Resources[name]
+	if !ok {
+		return nil, fmt.Errorf("Not found: %s", name)
+	}
+
+	is := rs.Primary
+	if is == nil {
+		return nil, fmt.Errorf("No primary instance: %s", name)
+	}
+
+	return is, nil
+}

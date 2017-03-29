@@ -16,12 +16,12 @@ modify, and delete devices.
 ```
 # Create a device and add it to cool_project
 resource "packet_device" "web1" {
-		hostname = "tf.coreos2"
-		plan = "baremetal_1"
-		facility = "ewr1"
-		operating_system = "coreos_stable"
-		billing_cycle = "hourly"
-		project_id = "${packet_project.cool_project.id}"
+  hostname         = "tf.coreos2"
+  plan             = "baremetal_1"
+  facility         = "ewr1"
+  operating_system = "coreos_stable"
+  billing_cycle    = "hourly"
+  project_id       = "${packet_project.cool_project.id}"
 }
 ```
 

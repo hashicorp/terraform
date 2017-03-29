@@ -257,7 +257,7 @@ func setProjectIamPolicy(policy *cloudresourcemanager.Policy, config *Config, pi
 		&cloudresourcemanager.SetIamPolicyRequest{Policy: policy}).Do()
 
 	if err != nil {
-		return fmt.Errorf("Error applying IAM policy for project %q. Policy is %+s, error is %s", pid, policy, err)
+		return fmt.Errorf("Error applying IAM policy for project %q. Policy is %#v, error is %s", pid, policy, err)
 	}
 	return nil
 }
@@ -373,6 +373,8 @@ func jsonPolicyDiffSuppress(k, old, new string, d *schema.ResourceData) bool {
 		log.Printf("[ERROR] Could not unmarshal new policy %s: %v", new, err)
 		return false
 	}
+	oldPolicy.Bindings = mergeBindings(oldPolicy.Bindings)
+	newPolicy.Bindings = mergeBindings(newPolicy.Bindings)
 	if newPolicy.Etag != oldPolicy.Etag {
 		return false
 	}

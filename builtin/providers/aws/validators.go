@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -36,23 +37,23 @@ func validateElastiCacheClusterId(v interface{}, k string) (ws []string, errors 
 	value := v.(string)
 	if (len(value) < 1) || (len(value) > 20) {
 		errors = append(errors, fmt.Errorf(
-			"%q must contain from 1 to 20 alphanumeric characters or hyphens", k))
+			"%q (%q) must contain from 1 to 20 alphanumeric characters or hyphens", k, value))
 	}
 	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
+			"only lowercase alphanumeric characters and hyphens allowed in %q (%q)", k, value))
 	}
 	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"first character of %q must be a letter", k))
+			"first character of %q (%q) must be a letter", k, value))
 	}
 	if regexp.MustCompile(`--`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"%q cannot contain two consecutive hyphens", k))
+			"%q (%q) cannot contain two consecutive hyphens", k, value))
 	}
 	if regexp.MustCompile(`-$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"%q cannot end with a hyphen", k))
+			"%q (%q) cannot end with a hyphen", k, value))
 	}
 	return
 }
@@ -140,7 +141,24 @@ func validateElbName(v interface{}, k string) (ws []string, errors []error) {
 			"%q cannot end with a hyphen: %q", k, value))
 	}
 	return
+}
 
+func validateElbNamePrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only alphanumeric characters and hyphens allowed in %q: %q",
+			k, value))
+	}
+	if len(value) > 6 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 6 characters: %q", k, value))
+	}
+	if regexp.MustCompile(`^-`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot begin with a hyphen: %q", k, value))
+	}
+	return
 }
 
 func validateEcrRepositoryName(v interface{}, k string) (ws []string, errors []error) {
@@ -641,9 +659,10 @@ func validateSecurityRuleType(v interface{}, k string) (ws []string, errors []er
 func validateOnceAWeekWindowFormat(v interface{}, k string) (ws []string, errors []error) {
 	// valid time format is "ddd:hh24:mi"
 	validTimeFormat := "(sun|mon|tue|wed|thu|fri|sat):([0-1][0-9]|2[0-3]):([0-5][0-9])"
+	validTimeFormatConsolidated := "^(" + validTimeFormat + "-" + validTimeFormat + "|)$"
 
 	value := strings.ToLower(v.(string))
-	if !regexp.MustCompile(validTimeFormat + "-" + validTimeFormat).MatchString(value) {
+	if !regexp.MustCompile(validTimeFormatConsolidated).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"%q must satisfy the format of \"ddd:hh24:mi-ddd:hh24:mi\".", k))
 	}
@@ -653,9 +672,10 @@ func validateOnceAWeekWindowFormat(v interface{}, k string) (ws []string, errors
 func validateOnceADayWindowFormat(v interface{}, k string) (ws []string, errors []error) {
 	// valid time format is "hh24:mi"
 	validTimeFormat := "([0-1][0-9]|2[0-3]):([0-5][0-9])"
+	validTimeFormatConsolidated := "^(" + validTimeFormat + "-" + validTimeFormat + "|)$"
 
 	value := v.(string)
-	if !regexp.MustCompile(validTimeFormat + "-" + validTimeFormat).MatchString(value) {
+	if !regexp.MustCompile(validTimeFormatConsolidated).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"%q must satisfy the format of \"hh24:mi-hh24:mi\".", k))
 	}
@@ -741,5 +761,283 @@ func validateAwsEmrEbsVolumeType(v interface{}, k string) (ws []string, errors [
 		errors = append(errors, fmt.Errorf(
 			"%q must be one of ['gp2', 'io1', 'standard']", k))
 	}
+	return
+}
+
+func validateSfnActivityName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) > 80 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 80 characters", k))
+	}
+
+	return
+}
+
+func validateSfnStateMachineDefinition(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) > 1048576 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 1048576 characters", k))
+	}
+	return
+}
+
+func validateSfnStateMachineName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) > 80 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 80 characters", k))
+	}
+
+	if !regexp.MustCompile(`^[a-zA-Z0-9-_]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q must be composed with only these characters [a-zA-Z0-9-_]: %v", k, value))
+	}
+	return
+}
+
+func validateDmsCertificateId(v interface{}, k string) (ws []string, es []error) {
+	val := v.(string)
+
+	if len(val) > 255 {
+		es = append(es, fmt.Errorf("%q must not be longer than 255 characters", k))
+	}
+	if !regexp.MustCompile("^[a-zA-Z][a-zA-Z0-9-]+$").MatchString(val) {
+		es = append(es, fmt.Errorf("%q must start with a letter, only contain alphanumeric characters and hyphens", k))
+	}
+	if strings.Contains(val, "--") {
+		es = append(es, fmt.Errorf("%q must not contain consecutive hyphens", k))
+	}
+	if strings.HasSuffix(val, "-") {
+		es = append(es, fmt.Errorf("%q must not end in a hyphen", k))
+	}
+
+	return
+}
+
+func validateDmsEndpointId(v interface{}, k string) (ws []string, es []error) {
+	val := v.(string)
+
+	if len(val) > 255 {
+		es = append(es, fmt.Errorf("%q must not be longer than 255 characters", k))
+	}
+	if !regexp.MustCompile("^[a-zA-Z][a-zA-Z0-9-]+$").MatchString(val) {
+		es = append(es, fmt.Errorf("%q must start with a letter, only contain alphanumeric characters and hyphens", k))
+	}
+	if strings.Contains(val, "--") {
+		es = append(es, fmt.Errorf("%q must not contain consecutive hyphens", k))
+	}
+	if strings.HasSuffix(val, "-") {
+		es = append(es, fmt.Errorf("%q must not end in a hyphen", k))
+	}
+
+	return
+}
+
+func validateDmsReplicationInstanceId(v interface{}, k string) (ws []string, es []error) {
+	val := v.(string)
+
+	if len(val) > 63 {
+		es = append(es, fmt.Errorf("%q must not be longer than 63 characters", k))
+	}
+	if !regexp.MustCompile("^[a-zA-Z][a-zA-Z0-9-]+$").MatchString(val) {
+		es = append(es, fmt.Errorf("%q must start with a letter, only contain alphanumeric characters and hyphens", k))
+	}
+	if strings.Contains(val, "--") {
+		es = append(es, fmt.Errorf("%q must not contain consecutive hyphens", k))
+	}
+	if strings.HasSuffix(val, "-") {
+		es = append(es, fmt.Errorf("%q must not end in a hyphen", k))
+	}
+
+	return
+}
+
+func validateDmsReplicationSubnetGroupId(v interface{}, k string) (ws []string, es []error) {
+	val := v.(string)
+
+	if val == "default" {
+		es = append(es, fmt.Errorf("%q must not be default", k))
+	}
+	if len(val) > 255 {
+		es = append(es, fmt.Errorf("%q must not be longer than 255 characters", k))
+	}
+	if !regexp.MustCompile(`^[a-zA-Z0-9. _-]+$`).MatchString(val) {
+		es = append(es, fmt.Errorf("%q must only contain alphanumeric characters, periods, spaces, underscores and hyphens", k))
+	}
+
+	return
+}
+
+func validateDmsReplicationTaskId(v interface{}, k string) (ws []string, es []error) {
+	val := v.(string)
+
+	if len(val) > 255 {
+		es = append(es, fmt.Errorf("%q must not be longer than 255 characters", k))
+	}
+	if !regexp.MustCompile("^[a-zA-Z][a-zA-Z0-9-]+$").MatchString(val) {
+		es = append(es, fmt.Errorf("%q must start with a letter, only contain alphanumeric characters and hyphens", k))
+	}
+	if strings.Contains(val, "--") {
+		es = append(es, fmt.Errorf("%q must not contain consecutive hyphens", k))
+	}
+	if strings.HasSuffix(val, "-") {
+		es = append(es, fmt.Errorf("%q must not end in a hyphen", k))
+	}
+
+	return
+}
+
+func validateAppautoscalingScalableDimension(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	dimensions := map[string]bool{
+		"ecs:service:DesiredCount":              true,
+		"ec2:spot-fleet-request:TargetCapacity": true,
+	}
+
+	if !dimensions[value] {
+		errors = append(errors, fmt.Errorf("%q must be a valid scalable dimension value: %q", k, value))
+	}
+	return
+}
+
+func validateAppautoscalingServiceNamespace(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	namespaces := map[string]bool{
+		"ecs": true,
+		"ec2": true,
+	}
+
+	if !namespaces[value] {
+		errors = append(errors, fmt.Errorf("%q must be a valid service namespace value: %q", k, value))
+	}
+	return
+}
+
+func validateConfigRuleSourceOwner(v interface{}, k string) (ws []string, errors []error) {
+	validOwners := []string{
+		"CUSTOM_LAMBDA",
+		"AWS",
+	}
+	owner := v.(string)
+	for _, o := range validOwners {
+		if owner == o {
+			return
+		}
+	}
+	errors = append(errors, fmt.Errorf(
+		"%q contains an invalid owner %q. Valid owners are %q.",
+		k, owner, validOwners))
+	return
+}
+
+func validateConfigExecutionFrequency(v interface{}, k string) (ws []string, errors []error) {
+	validFrequencies := []string{
+		"One_Hour",
+		"Three_Hours",
+		"Six_Hours",
+		"Twelve_Hours",
+		"TwentyFour_Hours",
+	}
+	frequency := v.(string)
+	for _, f := range validFrequencies {
+		if frequency == f {
+			return
+		}
+	}
+	errors = append(errors, fmt.Errorf(
+		"%q contains an invalid frequency %q. Valid frequencies are %q.",
+		k, frequency, validFrequencies))
+	return
+}
+
+func validateAccountAlias(v interface{}, k string) (ws []string, es []error) {
+	val := v.(string)
+
+	if (len(val) < 3) || (len(val) > 63) {
+		es = append(es, fmt.Errorf("%q must contain from 3 to 63 alphanumeric characters or hyphens", k))
+	}
+	if !regexp.MustCompile("^[a-z0-9][a-z0-9-]+$").MatchString(val) {
+		es = append(es, fmt.Errorf("%q must start with an alphanumeric character and only contain lowercase alphanumeric characters and hyphens", k))
+	}
+	if strings.Contains(val, "--") {
+		es = append(es, fmt.Errorf("%q must not contain consecutive hyphens", k))
+	}
+	if strings.HasSuffix(val, "-") {
+		es = append(es, fmt.Errorf("%q must not end in a hyphen", k))
+	}
+	return
+}
+
+func validateApiGatewayApiKeyValue(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) < 30 {
+		errors = append(errors, fmt.Errorf(
+			"%q must be at least 30 characters long", k))
+	}
+	if len(value) > 128 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 128 characters", k))
+	}
+	return
+}
+
+func validateIamRolePolicyName(v interface{}, k string) (ws []string, errors []error) {
+	// https://github.com/boto/botocore/blob/2485f5c/botocore/data/iam/2010-05-08/service-2.json#L8291-L8296
+	value := v.(string)
+	if len(value) > 128 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 128 characters", k))
+	}
+	if !regexp.MustCompile("^[\\w+=,.@-]+$").MatchString(value) {
+		errors = append(errors, fmt.Errorf("%q must match [\\w+=,.@-]", k))
+	}
+	return
+}
+
+func validateIamRolePolicyNamePrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) > 100 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 100 characters", k))
+	}
+	if !regexp.MustCompile("^[\\w+=,.@-]+$").MatchString(value) {
+		errors = append(errors, fmt.Errorf("%q must match [\\w+=,.@-]", k))
+	}
+	return
+}
+
+func validateApiGatewayUsagePlanQuotaSettingsPeriod(v interface{}, k string) (ws []string, errors []error) {
+	validPeriods := []string{
+		apigateway.QuotaPeriodTypeDay,
+		apigateway.QuotaPeriodTypeWeek,
+		apigateway.QuotaPeriodTypeMonth,
+	}
+	period := v.(string)
+	for _, f := range validPeriods {
+		if period == f {
+			return
+		}
+	}
+	errors = append(errors, fmt.Errorf(
+		"%q contains an invalid period %q. Valid period are %q.",
+		k, period, validPeriods))
+	return
+}
+
+func validateApiGatewayUsagePlanQuotaSettings(v map[string]interface{}) (errors []error) {
+	period := v["period"].(string)
+	offset := v["offset"].(int)
+
+	if period == apigateway.QuotaPeriodTypeDay && offset != 0 {
+		errors = append(errors, fmt.Errorf("Usage Plan quota offset must be zero in the DAY period"))
+	}
+
+	if period == apigateway.QuotaPeriodTypeWeek && (offset < 0 || offset > 6) {
+		errors = append(errors, fmt.Errorf("Usage Plan quota offset must be between 0 and 6 inclusive in the WEEK period"))
+	}
+
+	if period == apigateway.QuotaPeriodTypeMonth && (offset < 0 || offset > 27) {
+		errors = append(errors, fmt.Errorf("Usage Plan quota offset must be between 0 and 27 inclusive in the MONTH period"))
+	}
+
 	return
 }

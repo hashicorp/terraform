@@ -6,66 +6,97 @@ import (
 
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/backend/remote-state"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/state/remote"
 )
 
 // New creates a new backend for Consul remote state.
 func New() backend.Backend {
-	return &remotestate.Backend{
-		ConfigureFunc: configure,
+	s := &schema.Backend{
+		Schema: map[string]*schema.Schema{
+			"path": &schema.Schema{
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "Path to store state in Consul",
+			},
 
-		// Set the schema
-		Backend: &schema.Backend{
-			Schema: map[string]*schema.Schema{
-				"path": &schema.Schema{
-					Type:        schema.TypeString,
-					Required:    true,
-					Description: "Path to store state in Consul",
-				},
+			"access_token": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Access token for a Consul ACL",
+				Default:     "", // To prevent input
+			},
 
-				"access_token": &schema.Schema{
-					Type:        schema.TypeString,
-					Optional:    true,
-					Description: "Access token for a Consul ACL",
-					Default:     "", // To prevent input
-				},
+			"address": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Address to the Consul Cluster",
+				Default:     "", // To prevent input
+			},
 
-				"address": &schema.Schema{
-					Type:        schema.TypeString,
-					Optional:    true,
-					Description: "Address to the Consul Cluster",
-				},
+			"scheme": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Scheme to communicate to Consul with",
+				Default:     "", // To prevent input
+			},
 
-				"scheme": &schema.Schema{
-					Type:        schema.TypeString,
-					Optional:    true,
-					Description: "Scheme to communicate to Consul with",
-					Default:     "", // To prevent input
-				},
+			"datacenter": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Datacenter to communicate with",
+				Default:     "", // To prevent input
+			},
 
-				"datacenter": &schema.Schema{
-					Type:        schema.TypeString,
-					Optional:    true,
-					Description: "Datacenter to communicate with",
-					Default:     "", // To prevent input
-				},
+			"http_auth": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "HTTP Auth in the format of 'username:password'",
+				Default:     "", // To prevent input
+			},
 
-				"http_auth": &schema.Schema{
-					Type:        schema.TypeString,
-					Optional:    true,
-					Description: "HTTP Auth in the format of 'username:password'",
-					Default:     "", // To prevent input
-				},
+			"gzip": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Compress the state data using gzip",
+				Default:     false,
+			},
+
+			"lock": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Lock state access",
+				Default:     true,
 			},
 		},
 	}
+
+	result := &Backend{Backend: s}
+	result.Backend.ConfigureFunc = result.configure
+	return result
 }
 
-func configure(ctx context.Context) (remote.Client, error) {
+type Backend struct {
+	*schema.Backend
+
+	// The fields below are set from configure
+	configData *schema.ResourceData
+	lock       bool
+}
+
+func (b *Backend) configure(ctx context.Context) error {
 	// Grab the resource data
-	data := schema.FromContextBackendConfig(ctx)
+	b.configData = schema.FromContextBackendConfig(ctx)
+
+	// Store the lock information
+	b.lock = b.configData.Get("lock").(bool)
+
+	// Initialize a client to test config
+	_, err := b.clientRaw()
+	return err
+}
+
+func (b *Backend) clientRaw() (*consulapi.Client, error) {
+	data := b.configData
 
 	// Configure the client
 	config := consulapi.DefaultConfig()
@@ -99,13 +130,5 @@ func configure(ctx context.Context) (remote.Client, error) {
 		}
 	}
 
-	client, err := consulapi.NewClient(config)
-	if err != nil {
-		return nil, err
-	}
-
-	return &RemoteClient{
-		Client: client,
-		Path:   data.Get("path").(string),
-	}, nil
+	return consulapi.NewClient(config)
 }

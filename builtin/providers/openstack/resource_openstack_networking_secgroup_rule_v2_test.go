@@ -63,6 +63,28 @@ func TestAccNetworkingV2SecGroupRule_lowerCaseCIDR(t *testing.T) {
 	})
 }
 
+func TestAccNetworkingV2SecGroupRule_timeout(t *testing.T) {
+	var secgroup_1 groups.SecGroup
+	var secgroup_2 groups.SecGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckNetworkingV2SecGroupRuleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccNetworkingV2SecGroupRule_timeout,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckNetworkingV2SecGroupExists(
+						"openstack_networking_secgroup_v2.secgroup_1", &secgroup_1),
+					testAccCheckNetworkingV2SecGroupExists(
+						"openstack_networking_secgroup_v2.secgroup_2", &secgroup_2),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckNetworkingV2SecGroupRuleDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
@@ -162,5 +184,45 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup_rule_1" {
   protocol = "tcp"
   remote_ip_prefix = "2001:558:FC00::/39"
   security_group_id = "${openstack_networking_secgroup_v2.secgroup_1.id}"
+}
+`
+
+const testAccNetworkingV2SecGroupRule_timeout = `
+resource "openstack_networking_secgroup_v2" "secgroup_1" {
+  name = "secgroup_1"
+  description = "terraform security group rule acceptance test"
+}
+
+resource "openstack_networking_secgroup_v2" "secgroup_2" {
+  name = "secgroup_2"
+  description = "terraform security group rule acceptance test"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "secgroup_rule_1" {
+  direction = "ingress"
+  ethertype = "IPv4"
+  port_range_max = 22
+  port_range_min = 22
+  protocol = "tcp"
+  remote_ip_prefix = "0.0.0.0/0"
+  security_group_id = "${openstack_networking_secgroup_v2.secgroup_1.id}"
+
+  timeouts {
+    delete = "5m"
+  }
+}
+
+resource "openstack_networking_secgroup_rule_v2" "secgroup_rule_2" {
+  direction = "ingress"
+  ethertype = "IPv4"
+  port_range_max = 80
+  port_range_min = 80
+  protocol = "tcp"
+  remote_group_id = "${openstack_networking_secgroup_v2.secgroup_1.id}"
+  security_group_id = "${openstack_networking_secgroup_v2.secgroup_2.id}"
+
+  timeouts {
+    delete = "5m"
+  }
 }
 `

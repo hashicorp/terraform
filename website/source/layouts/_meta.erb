@@ -23,10 +23,14 @@
     })(window,document,'script','dataLayer','GTM-NR2SD7C');</script>
     <!-- End Google Tag Manager -->
 
+    <!-- Typekit script for Klavika font -->
+    <script src="https://use.typekit.net/wxf7mfi.js"></script>
+    <script>try{Typekit.load({ async: true });}catch(e){}</script>
+
     <%= yield_content :head %>
   </head>
 
-  <body id="page-<%= current_page.data.page_title ? "#{current_page.data.page_title}" : "home" %>" class="page-<%= current_page.data.page_title ? "#{current_page.data.page_title} layout-#{current_page.data.layout} page-sub" : "home layout-#{current_page.data.layout}" %> -displaying-bnr">
+  <body id="page-<%= current_page.data.page_title ? "#{current_page.data.page_title}" : "home" %>" class="page-<%= current_page.data.page_title ? "#{current_page.data.page_title} layout-#{current_page.data.layout} page-sub" : "home layout-#{current_page.data.layout}" %>">
     <!-- Google Tag Manager (noscript) -->
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NR2SD7C"
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>

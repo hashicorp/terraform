@@ -53,7 +53,8 @@ func (n *NodeAbstractResource) ReferenceableName() []string {
 		id = n.Config.Id()
 	} else if n.Addr != nil {
 		addrCopy := n.Addr.Copy()
-		addrCopy.Index = -1
+		addrCopy.Path = nil // ReferenceTransformer handles paths
+		addrCopy.Index = -1 // We handle indexes below
 		id = addrCopy.String()
 	} else {
 		// No way to determine our type.name, just return
@@ -95,8 +96,10 @@ func (n *NodeAbstractResource) References() []string {
 		result = append(result, ReferencesFromConfig(c.RawCount)...)
 		result = append(result, ReferencesFromConfig(c.RawConfig)...)
 		for _, p := range c.Provisioners {
-			result = append(result, ReferencesFromConfig(p.ConnInfo)...)
-			result = append(result, ReferencesFromConfig(p.RawConfig)...)
+			if p.When == config.ProvisionerWhenCreate {
+				result = append(result, ReferencesFromConfig(p.ConnInfo)...)
+				result = append(result, ReferencesFromConfig(p.RawConfig)...)
+			}
 		}
 
 		return result

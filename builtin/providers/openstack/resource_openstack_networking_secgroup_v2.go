@@ -10,6 +10,7 @@ import (
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/groups"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/rules"
 )
 
 func resourceNetworkingSecGroupV2() *schema.Resource {
@@ -19,6 +20,10 @@ func resourceNetworkingSecGroupV2() *schema.Resource {
 		Delete: resourceNetworkingSecGroupV2Delete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
+		},
+
+		Timeouts: &schema.ResourceTimeout{
+			Delete: schema.DefaultTimeout(10 * time.Minute),
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -45,6 +50,11 @@ func resourceNetworkingSecGroupV2() *schema.Resource {
 				ForceNew: true,
 				Computed: true,
 			},
+			"delete_default_rules": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -68,6 +78,17 @@ func resourceNetworkingSecGroupV2Create(d *schema.ResourceData, meta interface{}
 	security_group, err := groups.Create(networkingClient, opts).Extract()
 	if err != nil {
 		return err
+	}
+
+	// Delete the default security group rules if it has been requested.
+	deleteDefaultRules := d.Get("delete_default_rules").(bool)
+	if deleteDefaultRules {
+		for _, rule := range security_group.Rules {
+			if err := rules.Delete(networkingClient, rule.ID).ExtractErr(); err != nil {
+				return fmt.Errorf(
+					"There was a problem deleting a default security group rule: %s", err)
+			}
+		}
 	}
 
 	log.Printf("[DEBUG] OpenStack Neutron Security Group created: %#v", security_group)
@@ -113,7 +134,7 @@ func resourceNetworkingSecGroupV2Delete(d *schema.ResourceData, meta interface{}
 		Pending:    []string{"ACTIVE"},
 		Target:     []string{"DELETED"},
 		Refresh:    waitForSecGroupDelete(networkingClient, d.Id()),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}

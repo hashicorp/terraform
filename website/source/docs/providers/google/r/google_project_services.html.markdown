@@ -3,7 +3,7 @@ layout: "google"
 page_title: "Google: google_project_services"
 sidebar_current: "docs-google-project-services"
 description: |-
- Allows management of API services for a Google Cloud Platform project. 
+ Allows management of API services for a Google Cloud Platform project.
 ---
 
 # google\_project\_services
@@ -16,8 +16,8 @@ in the config will be removed.
 
 ```js
 resource "google_project_services" "project" {
-  project_id = "your-project-id"
-  services = ["iam.googleapis.com", "cloudresourcemanager.googleapis.com"]
+  project = "your-project-id"
+  services   = ["iam.googleapis.com", "cloudresourcemanager.googleapis.com"]
 }
 ```
 
@@ -25,7 +25,7 @@ resource "google_project_services" "project" {
 
 The following arguments are supported:
 
-* `project_id` - (Required) The project ID.
+* `project` - (Required) The project ID.
     Changing this forces a new project to be created.
 
 * `services` - (Required) The list of services that are enabled. Supports

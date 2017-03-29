@@ -202,10 +202,14 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 			if err := validateAwsEcsPlacementConstraint(t, e); err != nil {
 				return err
 			}
-			pc = append(pc, &ecs.PlacementConstraint{
-				Type:       aws.String(t),
-				Expression: aws.String(e),
-			})
+			constraint := &ecs.PlacementConstraint{
+				Type: aws.String(t),
+			}
+			if e != "" {
+				constraint.Expression = aws.String(e)
+			}
+
+			pc = append(pc, constraint)
 		}
 		input.PlacementConstraints = pc
 	}
@@ -236,7 +240,7 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 		return nil
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("%s %q", err, d.Get("name").(string))
 	}
 
 	service := *out.Service
@@ -336,7 +340,10 @@ func flattenServicePlacementConstraints(pcs []*ecs.PlacementConstraint) []map[st
 	for _, pc := range pcs {
 		c := make(map[string]interface{})
 		c["type"] = *pc.Type
-		c["expression"] = *pc.Expression
+		if pc.Expression != nil {
+			c["expression"] = *pc.Expression
+		}
+
 		results = append(results, c)
 	}
 	return results
@@ -351,6 +358,12 @@ func flattenPlacementStrategy(pss []*ecs.PlacementStrategy) []map[string]interfa
 		c := make(map[string]interface{})
 		c["type"] = *ps.Type
 		c["field"] = *ps.Field
+
+		// for some fields the API requires lowercase for creation but will return uppercase on query
+		if *ps.Field == "MEMORY" || *ps.Field == "CPU" {
+			c["field"] = strings.ToLower(*ps.Field)
+		}
+
 		results = append(results, c)
 	}
 	return results
@@ -460,7 +473,7 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 
 	// Wait until it's deleted
 	wait := resource.StateChangeConf{
-		Pending:    []string{"DRAINING"},
+		Pending:    []string{"ACTIVE", "DRAINING"},
 		Target:     []string{"INACTIVE"},
 		Timeout:    10 * time.Minute,
 		MinTimeout: 1 * time.Second,

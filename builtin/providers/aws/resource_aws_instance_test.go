@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -45,7 +46,7 @@ func TestAccAWSInstance_basic(t *testing.T) {
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
 			// Create a volume to cover #1249
-			resource.TestStep{
+			{
 				// Need a resource in this config so the provisioner will be available
 				Config: testAccInstanceConfig_pre,
 				Check: func(*terraform.State) error {
@@ -59,7 +60,7 @@ func TestAccAWSInstance_basic(t *testing.T) {
 				},
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists(
@@ -77,7 +78,7 @@ func TestAccAWSInstance_basic(t *testing.T) {
 			// We repeat the exact same test so that we can be sure
 			// that the user data hash stuff is working without generating
 			// an incorrect diff.
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists(
@@ -93,7 +94,7 @@ func TestAccAWSInstance_basic(t *testing.T) {
 			},
 
 			// Clean up volume created above
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfig,
 				Check: func(*terraform.State) error {
 					conn := testAccProvider.Meta().(*AWSClient).ec2conn
@@ -134,7 +135,7 @@ func TestAccAWSInstance_GP2IopsDevice(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceGP2IopsDevice,
 				//Config: testAccInstanceConfigBlockDevices,
 				Check: resource.ComposeTestCheckFunc(
@@ -199,7 +200,7 @@ func TestAccAWSInstance_blockDevices(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigBlockDevices,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists(
@@ -254,7 +255,7 @@ func TestAccAWSInstance_rootInstanceStore(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: `
 					resource "aws_instance" "foo" {
 						# us-west-2
@@ -323,7 +324,7 @@ func TestAcctABSInstance_noAMIEphemeralDevices(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: `
 					resource "aws_instance" "foo" {
 						# us-west-2
@@ -400,7 +401,7 @@ func TestAccAWSInstance_sourceDestCheck(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigSourceDestDisable,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
@@ -408,7 +409,7 @@ func TestAccAWSInstance_sourceDestCheck(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigSourceDestEnable,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
@@ -416,7 +417,7 @@ func TestAccAWSInstance_sourceDestCheck(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigSourceDestDisable,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
@@ -454,7 +455,7 @@ func TestAccAWSInstance_disableApiTermination(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigDisableAPITermination(true),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
@@ -462,7 +463,7 @@ func TestAccAWSInstance_disableApiTermination(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigDisableAPITermination(false),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
@@ -483,7 +484,7 @@ func TestAccAWSInstance_vpc(t *testing.T) {
 		Providers:       testAccProviders,
 		CheckDestroy:    testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigVPC,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists(
@@ -492,6 +493,29 @@ func TestAccAWSInstance_vpc(t *testing.T) {
 						"aws_instance.foo",
 						"user_data",
 						"562a3e32810edf6ff09994f050f12e799452379d"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSInstance_ipv6_supportAddressCount(t *testing.T) {
+	var v ec2.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceConfigIpv6Support,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(
+						"aws_instance.foo", &v),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo",
+						"ipv6_address_count",
+						"1"),
 				),
 			},
 		},
@@ -517,7 +541,7 @@ func TestAccAWSInstance_multipleRegions(t *testing.T) {
 		ProviderFactories: providerFactories,
 		CheckDestroy:      testAccCheckInstanceDestroyWithProviders(&providers),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigMultipleRegions,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExistsWithProviders(
@@ -540,7 +564,7 @@ func TestAccAWSInstance_NetworkInstanceSecurityGroups(t *testing.T) {
 		Providers:       testAccProviders,
 		CheckDestroy:    testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceNetworkInstanceSecurityGroups,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists(
@@ -560,7 +584,7 @@ func TestAccAWSInstance_NetworkInstanceVPCSecurityGroupIDs(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceNetworkInstanceVPCSecurityGroupIDs,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists(
@@ -583,7 +607,7 @@ func TestAccAWSInstance_tags(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckInstanceConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
@@ -593,12 +617,80 @@ func TestAccAWSInstance_tags(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccCheckInstanceConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
 					testAccCheckTags(&v.Tags, "foo", ""),
 					testAccCheckTags(&v.Tags, "bar", "baz"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSInstance_instanceProfileChange(t *testing.T) {
+	var v ec2.Instance
+	rName := acctest.RandString(5)
+
+	testCheckInstanceProfile := func() resource.TestCheckFunc {
+		return func(*terraform.State) error {
+			if v.IamInstanceProfile == nil {
+				return fmt.Errorf("Instance Profile is nil - we expected an InstanceProfile associated with the Instance")
+			}
+
+			return nil
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_instance.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceConfigWithoutInstanceProfile(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+				),
+			},
+			{
+				Config: testAccInstanceConfigWithInstanceProfile(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					testCheckInstanceProfile(),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSInstance_withIamInstanceProfile(t *testing.T) {
+	var v ec2.Instance
+	rName := acctest.RandString(5)
+
+	testCheckInstanceProfile := func() resource.TestCheckFunc {
+		return func(*terraform.State) error {
+			if v.IamInstanceProfile == nil {
+				return fmt.Errorf("Instance Profile is nil - we expected an InstanceProfile associated with the Instance")
+			}
+
+			return nil
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_instance.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceConfigWithInstanceProfile(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					testCheckInstanceProfile(),
 				),
 			},
 		},
@@ -624,7 +716,7 @@ func TestAccAWSInstance_privateIP(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigPrivateIP,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
@@ -655,7 +747,7 @@ func TestAccAWSInstance_associatePublicIPAndPrivateIP(t *testing.T) {
 		Providers:       testAccProviders,
 		CheckDestroy:    testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigAssociatePublicIPAndPrivateIP,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
@@ -691,7 +783,7 @@ func TestAccAWSInstance_keyPairCheck(t *testing.T) {
 		Providers:       testAccProviders,
 		CheckDestroy:    testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigKeyPair,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
@@ -710,7 +802,7 @@ func TestAccAWSInstance_rootBlockDeviceMismatch(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigRootBlockDeviceMismatch,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
@@ -740,7 +832,7 @@ func TestAccAWSInstance_forceNewAndTagsDrift(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigForceNewAndTagsDrift,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
@@ -748,7 +840,7 @@ func TestAccAWSInstance_forceNewAndTagsDrift(t *testing.T) {
 				),
 				ExpectNonEmptyPlan: true,
 			},
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigForceNewAndTagsDrift_Update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
@@ -756,6 +848,43 @@ func TestAccAWSInstance_forceNewAndTagsDrift(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAccAWSInstance_changeInstanceType(t *testing.T) {
+	var before ec2.Instance
+	var after ec2.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceConfigWithSmallInstanceType,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &before),
+				),
+			},
+			{
+				Config: testAccInstanceConfigUpdateInstanceType,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &after),
+					testAccCheckInstanceNotRecreated(
+						t, &before, &after),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckInstanceNotRecreated(t *testing.T,
+	before, after *ec2.Instance) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if *before.InstanceId != *after.InstanceId {
+			t.Fatalf("AWS Instance IDs have changed. Before %s. After %s", *before.InstanceId, *after.InstanceId)
+		}
+		return nil
+	}
 }
 
 func testAccCheckInstanceDestroy(s *terraform.State) error {
@@ -873,7 +1002,7 @@ func driftTags(instance *ec2.Instance) resource.TestCheckFunc {
 		_, err := conn.CreateTags(&ec2.CreateTagsInput{
 			Resources: []*string{instance.InstanceId},
 			Tags: []*ec2.Tag{
-				&ec2.Tag{
+				{
 					Key:   aws.String("Drift"),
 					Value: aws.String("Happens"),
 				},
@@ -921,6 +1050,34 @@ resource "aws_instance" "foo" {
 }
 `
 
+const testAccInstanceConfigWithSmallInstanceType = `
+resource "aws_instance" "foo" {
+	# us-west-2
+	ami = "ami-55a7ea65"
+	availability_zone = "us-west-2a"
+
+	instance_type = "m3.medium"
+
+	tags {
+	    Name = "tf-acctest"
+	}
+}
+`
+
+const testAccInstanceConfigUpdateInstanceType = `
+resource "aws_instance" "foo" {
+	# us-west-2
+	ami = "ami-55a7ea65"
+	availability_zone = "us-west-2a"
+
+	instance_type = "m3.large"
+
+	tags {
+	    Name = "tf-acctest"
+	}
+}
+`
+
 const testAccInstanceGP2IopsDevice = `
 resource "aws_instance" "foo" {
 	# us-west-2
@@ -934,7 +1091,6 @@ resource "aws_instance" "foo" {
 	root_block_device {
 		volume_type = "gp2"
 		volume_size = 11
-		iops = 330
 	}
 }
 `
@@ -1058,6 +1214,37 @@ resource "aws_instance" "foo" {
 }
 `
 
+const testAccInstanceConfigIpv6Support = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+	assign_generated_ipv6_cidr_block = true
+	tags {
+		Name = "tf-ipv6-instance-acc-test"
+	}
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+	ipv6_cidr_block = "${cidrsubnet(aws_vpc.foo.ipv6_cidr_block, 8, 1)}"
+	tags {
+		Name = "tf-ipv6-instance-acc-test"
+	}
+}
+
+resource "aws_instance" "foo" {
+	# us-west-2
+	ami = "ami-c5eabbf5"
+	instance_type = "t2.micro"
+	subnet_id = "${aws_subnet.foo.id}"
+
+	ipv6_address_count = 1
+	tags {
+		Name = "tf-ipv6-instance-acc-test"
+	}
+}
+`
+
 const testAccInstanceConfigMultipleRegions = `
 provider "aws" {
 	alias = "west"
@@ -1103,6 +1290,49 @@ resource "aws_instance" "foo" {
 	}
 }
 `
+
+func testAccInstanceConfigWithoutInstanceProfile(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_iam_role" "test" {
+	name = "test-%s"
+	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
+}
+
+resource "aws_iam_instance_profile" "test" {
+	name = "test-%s"
+	roles = ["${aws_iam_role.test.name}"]
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-4fccb37f"
+	instance_type = "m1.small"
+	tags {
+		bar = "baz"
+	}
+}`, rName, rName)
+}
+
+func testAccInstanceConfigWithInstanceProfile(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_iam_role" "test" {
+	name = "test-%s"
+	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
+}
+
+resource "aws_iam_instance_profile" "test" {
+	name = "test-%s"
+	roles = ["${aws_iam_role.test.name}"]
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-4fccb37f"
+	instance_type = "m1.small"
+	iam_instance_profile = "${aws_iam_instance_profile.test.name}"
+	tags {
+		bar = "baz"
+	}
+}`, rName, rName)
+}
 
 const testAccInstanceConfigPrivateIP = `
 resource "aws_vpc" "foo" {

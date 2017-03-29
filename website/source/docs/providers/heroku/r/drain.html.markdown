@@ -15,8 +15,8 @@ create and manage Log Drains on Heroku.
 
 ```
 resource "heroku_drain" "default" {
-    app = "test-app"
-    url = "syslog://terraform.example.com:1234"
+  app = "test-app"
+  url = "syslog://terraform.example.com:1234"
 }
 ```
 

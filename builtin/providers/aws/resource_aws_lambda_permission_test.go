@@ -148,13 +148,15 @@ func TestAccAWSLambdaPermission_basic(t *testing.T) {
 	var statement LambdaPolicyStatement
 	endsWithFuncName := regexp.MustCompile(":function:lambda_function_name_perm$")
 
+	rName := fmt.Sprintf("tf_iam_%d", acctest.RandInt())
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSLambdaPermissionDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSLambdaPermissionConfig,
+				Config: testAccAWSLambdaPermissionConfig(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLambdaPermissionExists("aws_lambda_permission.allow_cloudwatch", &statement),
 					resource.TestCheckResourceAttr("aws_lambda_permission.allow_cloudwatch", "action", "lambda:InvokeFunction"),
@@ -399,7 +401,7 @@ func isLambdaPermissionGone(rs *terraform.ResourceState, conn *lambda.Lambda) er
 	params := &lambda.GetPolicyInput{
 		FunctionName: aws.String(rs.Primary.Attributes["function_name"]),
 	}
-	if v, ok := rs.Primary.Attributes["qualifier"]; ok {
+	if v, ok := rs.Primary.Attributes["qualifier"]; ok && v != "" {
 		params.Qualifier = aws.String(v)
 	}
 
@@ -436,7 +438,7 @@ func lambdaPermissionExists(rs *terraform.ResourceState, conn *lambda.Lambda) (*
 	params := &lambda.GetPolicyInput{
 		FunctionName: aws.String(rs.Primary.Attributes["function_name"]),
 	}
-	if v, ok := rs.Primary.Attributes["qualifier"]; ok {
+	if v, ok := rs.Primary.Attributes["qualifier"]; ok && v != "" {
 		params.Qualifier = aws.String(v)
 	}
 
@@ -459,7 +461,8 @@ func lambdaPermissionExists(rs *terraform.ResourceState, conn *lambda.Lambda) (*
 	return findLambdaPolicyStatementById(&policy, rs.Primary.ID)
 }
 
-var testAccAWSLambdaPermissionConfig = `
+func testAccAWSLambdaPermissionConfig(rName string) string {
+	return fmt.Sprintf(`
 resource "aws_lambda_permission" "allow_cloudwatch" {
     statement_id = "AllowExecutionFromCloudWatch"
     action = "lambda:InvokeFunction"
@@ -476,7 +479,7 @@ resource "aws_lambda_function" "test_lambda" {
 }
 
 resource "aws_iam_role" "iam_for_lambda" {
-    name = "iam_for_lambda_perm"
+    name = "%s"
     assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -492,8 +495,8 @@ resource "aws_iam_role" "iam_for_lambda" {
   ]
 }
 EOF
+}`, rName)
 }
-`
 
 var testAccAWSLambdaPermissionConfig_withRawFunctionName = `
 resource "aws_lambda_permission" "with_raw_func_name" {

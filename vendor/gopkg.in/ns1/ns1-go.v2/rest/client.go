@@ -271,3 +271,18 @@ func parseRate(resp *http.Response) RateLimit {
 
 	return rl
 }
+
+// SetTimeParam sets a url timestamp query param given the parameters name.
+func SetTimeParam(key string, t time.Time) func(*url.Values) {
+	return func(v *url.Values) { v.Set(key, strconv.Itoa(int(t.Unix()))) }
+}
+
+// SetBoolParam sets a url boolean query param given the parameters name.
+func SetBoolParam(key string, b bool) func(*url.Values) {
+	return func(v *url.Values) { v.Set(key, strconv.FormatBool(b)) }
+}
+
+// SetStringParam sets a url string query param given the parameters name.
+func SetStringParam(key, val string) func(*url.Values) {
+	return func(v *url.Values) { v.Set(key, val) }
+}

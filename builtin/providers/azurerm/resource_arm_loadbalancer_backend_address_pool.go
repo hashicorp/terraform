@@ -17,6 +17,9 @@ func resourceArmLoadBalancerBackendAddressPool() *schema.Resource {
 		Create: resourceArmLoadBalancerBackendAddressPoolCreate,
 		Read:   resourceArmLoadBalancerBackendAddressPoolRead,
 		Delete: resourceArmLoadBalancerBackendAddressPoolDelete,
+		Importer: &schema.ResourceImporter{
+			State: loadBalancerSubResourceStateImporter,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -25,7 +28,14 @@ func resourceArmLoadBalancerBackendAddressPool() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": locationSchema(),
+			"location": {
+				Type:             schema.TypeString,
+				ForceNew:         true,
+				Optional:         true,
+				StateFunc:        azureRMNormalizeLocation,
+				DiffSuppressFunc: azureRMSuppressLocationDiff,
+				Deprecated:       "location is no longer used",
+			},
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -130,42 +140,48 @@ func resourceArmLoadBalancerBackendAddressPoolCreate(d *schema.ResourceData, met
 }
 
 func resourceArmLoadBalancerBackendAddressPoolRead(d *schema.ResourceData, meta interface{}) error {
+	id, err := parseAzureResourceID(d.Id())
+	if err != nil {
+		return err
+	}
+	name := id.Path["backendAddressPools"]
+
 	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
 	if !exists {
 		d.SetId("")
-		log.Printf("[INFO] LoadBalancer %q not found. Removing from state", d.Get("name").(string))
+		log.Printf("[INFO] LoadBalancer %q not found. Removing from state", name)
 		return nil
 	}
 
-	configs := *loadBalancer.LoadBalancerPropertiesFormat.BackendAddressPools
-	for _, config := range configs {
-		if *config.Name == d.Get("name").(string) {
-			d.Set("name", config.Name)
+	config, _, exists := findLoadBalancerBackEndAddressPoolByName(loadBalancer, name)
+	if !exists {
+		d.SetId("")
+		log.Printf("[INFO] LoadBalancer Backend Address Pool %q not found. Removing from state", name)
+		return nil
+	}
 
-			if config.BackendAddressPoolPropertiesFormat.BackendIPConfigurations != nil {
-				backend_ip_configurations := make([]string, 0, len(*config.BackendAddressPoolPropertiesFormat.BackendIPConfigurations))
-				for _, backendConfig := range *config.BackendAddressPoolPropertiesFormat.BackendIPConfigurations {
-					backend_ip_configurations = append(backend_ip_configurations, *backendConfig.ID)
-				}
+	d.Set("name", config.Name)
+	d.Set("resource_group_name", id.ResourceGroup)
 
-				d.Set("backend_ip_configurations", backend_ip_configurations)
-			}
+	var backend_ip_configurations []string
+	if config.BackendAddressPoolPropertiesFormat.BackendIPConfigurations != nil {
+		for _, backendConfig := range *config.BackendAddressPoolPropertiesFormat.BackendIPConfigurations {
+			backend_ip_configurations = append(backend_ip_configurations, *backendConfig.ID)
+		}
 
-			if config.BackendAddressPoolPropertiesFormat.LoadBalancingRules != nil {
-				load_balancing_rules := make([]string, 0, len(*config.BackendAddressPoolPropertiesFormat.LoadBalancingRules))
-				for _, rule := range *config.BackendAddressPoolPropertiesFormat.LoadBalancingRules {
-					load_balancing_rules = append(load_balancing_rules, *rule.ID)
-				}
+	}
+	d.Set("backend_ip_configurations", backend_ip_configurations)
 
-				d.Set("backend_ip_configurations", load_balancing_rules)
-			}
-
-			break
+	var load_balancing_rules []string
+	if config.BackendAddressPoolPropertiesFormat.LoadBalancingRules != nil {
+		for _, rule := range *config.BackendAddressPoolPropertiesFormat.LoadBalancingRules {
+			load_balancing_rules = append(load_balancing_rules, *rule.ID)
 		}
 	}
+	d.Set("load_balancing_rules", load_balancing_rules)
 
 	return nil
 }

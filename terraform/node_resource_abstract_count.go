@@ -14,6 +14,14 @@ type NodeAbstractCountResource struct {
 
 // GraphNodeEvalable
 func (n *NodeAbstractCountResource) EvalTree() EvalNode {
+	// We only check if the count is computed if we're not validating.
+	// If we're validating we allow computed counts since they just turn
+	// into more computed values.
+	var evalCountCheckComputed EvalNode
+	if !n.Validate {
+		evalCountCheckComputed = &EvalCountCheckComputed{Resource: n.Config}
+	}
+
 	return &EvalSequence{
 		Nodes: []EvalNode{
 			// The EvalTree for a plannable resource primarily involves
@@ -24,7 +32,8 @@ func (n *NodeAbstractCountResource) EvalTree() EvalNode {
 			// into the proper number of instances.
 			&EvalInterpolate{Config: n.Config.RawCount},
 
-			&EvalCountCheckComputed{Resource: n.Config},
+			// Check if the count is computed
+			evalCountCheckComputed,
 
 			// If validation is enabled, perform the validation
 			&EvalIf{

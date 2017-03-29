@@ -153,7 +153,7 @@ func (c *Client) Get() error {
 		// We don't appear to... but is it part of the filename?
 		matchingLen := 0
 		for k, _ := range decompressors {
-			if strings.HasSuffix(u.Path, k) && len(k) > matchingLen {
+			if strings.HasSuffix(u.Path, "."+k) && len(k) > matchingLen {
 				archiveV = k
 				matchingLen = len(k)
 			}

@@ -167,8 +167,8 @@ support for the `us-west-2` region as well:
 variable "amis" {
   type = "map"
   default = {
-    us-east-1 = "ami-13be557e"
-    us-west-2 = "ami-06b94666"
+    us-east-1 = "ami-b374d5a5"
+    us-west-2 = "ami-4b32be2b"
   }
 }
 ```

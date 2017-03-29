@@ -15,21 +15,22 @@ This is a powerful way dynamically set values in templates.
 
 ```
 data "consul_keys" "app" {
-    datacenter = "nyc1"
-    token = "abcd"
+  datacenter = "nyc1"
+  token      = "abcd"
 
-    # Read the launch AMI from Consul
-    key {
-        name = "ami"
-        path = "service/app/launch_ami"
-        default = "ami-1234"
-    }
+  # Read the launch AMI from Consul
+  key {
+    name    = "ami"
+    path    = "service/app/launch_ami"
+    default = "ami-1234"
+  }
 }
 
 # Start our instance with the dynamic ami value
 resource "aws_instance" "app" {
-    ami = "${data.consul_keys.app.var.ami}"
-    ...
+  ami = "${data.consul_keys.app.var.ami}"
+
+  # ...
 }
 ```
 

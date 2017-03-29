@@ -15,38 +15,38 @@ Provides a ECS instance resource.
 ```
 # Create a new ECS instance for classic
 resource "alicloud_security_group" "classic" {
-	name = "tf_test_foo"
-	description = "foo"
+  name        = "tf_test_foo"
+  description = "foo"
 }
 
 resource "alicloud_instance" "classic" {
-	# cn-beijing
-	availability_zone = "cn-beijing-b"
-	security_group_id = "${alicloud_security_group.classic.id}"
+  # cn-beijing
+  availability_zone = "cn-beijing-b"
+  security_group_id = "${alicloud_security_group.classic.id}"
 
-	allocate_public_ip = "true"
+  allocate_public_ip = "true"
 
-	# series II
-	instance_type = "ecs.n1.medium"
-	io_optimized = "optimized"
-	system_disk_category = "cloud_efficiency"
-	image_id = "ubuntu_140405_64_40G_cloudinit_20161115.vhd"
-	instance_name = "test_foo"
+  # series II
+  instance_type        = "ecs.n1.medium"
+  io_optimized         = "optimized"
+  system_disk_category = "cloud_efficiency"
+  image_id             = "ubuntu_140405_64_40G_cloudinit_20161115.vhd"
+  instance_name        = "test_foo"
 }
 
 # Create a new ECS instance for VPC
 resource "alicloud_vpc" "default" {
-	# Other parameters...
+  # Other parameters...
 }
 
 resource "alicloud_vswitch" "default" {
-	# Other parameters...
+  # Other parameters...
 }
 
 resource "alicloud_slb" "vpc" {
-	name = "test-slb-tf"
-	vpc_id =  "${alicloud_vpc.default.id}"
-	vswitch_id = "${alicloud_vswitch.default.id}"
+  name       = "test-slb-tf"
+  vpc_id     = "${alicloud_vpc.default.id}"
+  vswitch_id = "${alicloud_vswitch.default.id}"
 }
 ```
 
@@ -54,16 +54,14 @@ resource "alicloud_slb" "vpc" {
 
 The following arguments are supported:
 
-* `availability_zone` - (Required) The Zone to start the instance in.
 * `image_id` - (Required) The Image to use for the instance.
 * `instance_type` - (Required) The type of instance to start.
-* `security_group_ids` - (Required)  A list of security group ids to associate with. If you are creating Instances in a VPC, use `vpc_security_group_ids` instead.
-`security_group_ids` instead.
+* `io_optimized` - (Required) Valid values are `none`, `optimized`, If `optimized`, the launched ECS instance will be I/O optimized.
+* `security_group_ids` - (Optional)  A list of security group ids to associate with.
+* `availability_zone` - (Optional) The Zone to start the instance in.
 * `instance_name` - (Optional) The name of the ECS. This instance_name can have a string of 2 to 128 characters, must contain only alphanumeric characters or hyphens, such as "-",".","_", and must not begin or end with a hyphen, and must not begin with http:// or https://. If not specified, 
-Terraform will autogenerate a name beginning with `tf-ecs`.
+Terraform will autogenerate a default name is `ECS-Instance`.
 * `allocate_public_ip` - (Optional) Associate a public ip address with an instance in a VPC or Classic. Boolean value, Default is false.
-* `io_optimized` - (Optional) Valid
-  values are `none`, `optimized`, If `optimized`, the launched ECS instance will be I/O optimized. Default is `optimized`.
 * `system_disk_category` - (Optional) Valid values are `cloud`, `cloud_efficiency`, `cloud_ssd`, For I/O optimized instance type, `cloud_ssd` and `cloud_efficiency` disks are supported. For non I/O Optimized instance type, `cloud` disk are supported. 
 * `system_disk_size` - (Optional) Size of the system disk, value range: 40GB ~ 500GB. Default is 40GB.
 * `description` - (Optional) Description of the instance, This description can have a string of 2 to 256 characters, It cannot begin with http:// or https://. Default value is null.
@@ -77,7 +75,6 @@ On other OSs such as Linux, the host name can contain a maximum of 30 characters
 * `vswitch_id` - (Optional) The virtual switch ID to launch in VPC. If you want to create instances in VPC network, this parameter must be set.
 * `instance_charge_type` - (Optional) Valid values are `PrePaid`, `PostPaid`, The default is `PostPaid`.
 * `period` - (Optional) The time that you have bought the resource, in month. Only valid when instance_charge_type is set as `PrePaid`. Value range [1, 12].
-* `private_ip` - (Optional) Private IP address to associate with the instance in a VPC.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
 ## Attributes Reference

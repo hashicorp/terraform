@@ -223,19 +223,19 @@ of several sub-resources - these resources are laid out below.
     `true` for `query_string`, all query strings are forwarded, however only the
     query string keys listed in this argument are cached. When omitted with a
     value of `true` for `query_string`, all query string keys are cached.
-    
+
 ##### Lambda Function Association
 
 Lambda@Edge allows you to associate an AWS Lambda Function with a predefined
 event. You can associate a single function per event type. See [What is
-Lambda@Edge](http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/what-is-lambda-at-edge.html) 
+Lambda@Edge](http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/what-is-lambda-at-edge.html)
 for more information
 
   * `event_type` (Required) - The specific event to trigger this function.
   Valid values: `viewer-request`, `origin-request`, `viewer-response`,
   `origin-response`
 
-  * `lambda_function_arn` (Required) - ARN of the Lambda function.
+  * `lambda_arn` (Required) - ARN of the Lambda function.
 
 ##### Cookies Arguments
 

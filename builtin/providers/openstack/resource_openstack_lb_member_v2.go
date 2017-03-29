@@ -19,6 +19,11 @@ func resourceMemberV2() *schema.Resource {
 		Update: resourceMemberV2Update,
 		Delete: resourceMemberV2Delete,
 
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
 				Type:        schema.TypeString,
@@ -124,15 +129,20 @@ func resourceMemberV2Create(d *schema.ResourceData, meta interface{}) error {
 		log.Printf("[DEBUG] Attempting to create LBaaSV2 member")
 		member, err = pools.CreateMember(networkingClient, poolID, createOpts).Extract()
 		if err != nil {
-			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
-				if errCode.Actual == 409 || errCode.Actual == 500 {
+			switch errCode := err.(type) {
+			case gophercloud.ErrDefault500:
+				log.Printf("[DEBUG] OpenStack LBaaSV2 member is still creating.")
+				return resource.RetryableError(err)
+			case gophercloud.ErrUnexpectedResponseCode:
+				if errCode.Actual == 409 {
 					log.Printf("[DEBUG] OpenStack LBaaSV2 member is still creating.")
 					return resource.RetryableError(err)
 				}
-			}
-			return resource.NonRetryableError(err)
-		}
 
+			default:
+				return resource.NonRetryableError(err)
+			}
+		}
 		return nil
 	})
 
@@ -147,7 +157,7 @@ func resourceMemberV2Create(d *schema.ResourceData, meta interface{}) error {
 		Pending:    []string{"PENDING_CREATE"},
 		Target:     []string{"ACTIVE"},
 		Refresh:    waitForMemberActive(networkingClient, poolID, member.ID),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutCreate),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -228,7 +238,7 @@ func resourceMemberV2Delete(d *schema.ResourceData, meta interface{}) error {
 		Pending:    []string{"ACTIVE", "PENDING_DELETE"},
 		Target:     []string{"DELETED"},
 		Refresh:    waitForMemberDelete(networkingClient, d.Get("pool_id").(string), d.Id()),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -271,19 +281,22 @@ func waitForMemberDelete(networkingClient *gophercloud.ServiceClient, poolID str
 		log.Printf("[DEBUG] Openstack LBaaSV2 Member: %+v", member)
 		err = pools.DeleteMember(networkingClient, poolID, memberID).ExtractErr()
 		if err != nil {
-			if _, ok := err.(gophercloud.ErrDefault404); ok {
+			switch errCode := err.(type) {
+			case gophercloud.ErrDefault404:
 				log.Printf("[DEBUG] Successfully deleted OpenStack LBaaSV2 Member %s", memberID)
 				return member, "DELETED", nil
-			}
-
-			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+			case gophercloud.ErrDefault500:
+				log.Printf("[DEBUG] OpenStack LBaaSV2 Member (%s) is still in use.", memberID)
+				return member, "PENDING_DELETE", nil
+			case gophercloud.ErrUnexpectedResponseCode:
 				if errCode.Actual == 409 {
 					log.Printf("[DEBUG] OpenStack LBaaSV2 Member (%s) is still in use.", memberID)
 					return member, "PENDING_DELETE", nil
 				}
-			}
 
-			return member, "ACTIVE", err
+			default:
+				return member, "ACTIVE", err
+			}
 		}
 
 		log.Printf("[DEBUG] OpenStack LBaaSV2 Member %s still active.", memberID)

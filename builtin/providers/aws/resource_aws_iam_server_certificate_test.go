@@ -2,10 +2,8 @@ package aws
 
 import (
 	"fmt"
-	"math/rand"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -16,14 +14,15 @@ import (
 
 func TestAccAWSIAMServerCertificate_basic(t *testing.T) {
 	var cert iam.ServerCertificate
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckIAMServerCertificateDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccIAMServerCertConfig,
+			{
+				Config: testAccIAMServerCertConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCertExists("aws_iam_server_certificate.test_cert", &cert),
 					testAccCheckAWSServerCertAttributes(&cert),
@@ -41,7 +40,7 @@ func TestAccAWSIAMServerCertificate_name_prefix(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckIAMServerCertificateDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccIAMServerCertConfig_random,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCertExists("aws_iam_server_certificate.test_cert", &cert),
@@ -74,7 +73,7 @@ func TestAccAWSIAMServerCertificate_disappears(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckIAMServerCertificateDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccIAMServerCertConfig_random,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCertExists("aws_iam_server_certificate.test_cert", &cert),
@@ -97,7 +96,7 @@ func TestAccAWSIAMServerCertificate_file(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckIAMServerCertificateDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccIAMServerCertConfig_file(rInt, "iam-ssl-unix-line-endings"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCertExists("aws_iam_server_certificate.test_cert", &cert),
@@ -105,7 +104,7 @@ func TestAccAWSIAMServerCertificate_file(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccIAMServerCertConfig_file(rInt, "iam-ssl-windows-line-endings"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCertExists("aws_iam_server_certificate.test_cert", &cert),
@@ -202,7 +201,8 @@ CqDUFjhydXxYRsxXBBrEiLOE5BdtJR1sH/QHxIJe23C9iHI2nS1NbLziNEApLwC4
 GnSud83VUo9G9w==
 -----END CERTIFICATE-----`)
 
-var testAccIAMServerCertConfig = fmt.Sprintf(`
+func testAccIAMServerCertConfig(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_iam_server_certificate" "test_cert" {
   name = "terraform-test-cert-%d"
   certificate_body = <<EOF
@@ -257,7 +257,8 @@ dg+Sd4Wjm89UQoUUoiIcstY7FPbqfBtYKfh4RYHAHV2BwDFqzZCM
 -----END RSA PRIVATE KEY-----
 EOF
 }
-`, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+`, rInt)
+}
 
 var testAccIAMServerCertConfig_random = `
 resource "aws_iam_server_certificate" "test_cert" {

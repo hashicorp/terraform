@@ -15,8 +15,8 @@ Provides a Rancher Registy resource. This can be used to create registries for r
 ```hcl
 # Create a new Rancher registry
 resource "rancher_registry" "dockerhub" {
-  name = "dockerhub"
-  description = "DockerHub Registry"
+  name           = "dockerhub"
+  description    = "DockerHub Registry"
   environment_id = "${rancher_environment.default.id}"
   server_address = "index.dockerhub.io"
 }
@@ -37,7 +37,15 @@ No further attributes are exported.
 
 ## Import
 
-Registries can be imported using their Rancher API ID, e.g.
+Registries can be imported using the Environment and Registry IDs in the form
+`<environment_id>/<registry_id>`
+
+```
+$ terraform import rancher_registry.private_registry 1a5/1sp31
+```
+
+If the credentials for the Rancher provider have access to the global API, then
+then `environment_id` can be omitted e.g.
 
 ```
 $ terraform import rancher_registry.private_registry 1sp31

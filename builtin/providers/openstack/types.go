@@ -1,6 +1,14 @@
 package openstack
 
 import (
+	"bytes"
+	"encoding/json"
+	"io"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"strings"
+
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/firewalls"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
@@ -11,6 +19,131 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
 )
+
+// LogRoundTripper satisfies the http.RoundTripper interface and is used to
+// customize the default http client RoundTripper to allow for logging.
+type LogRoundTripper struct {
+	rt      http.RoundTripper
+	osDebug bool
+}
+
+// RoundTrip performs a round-trip HTTP request and logs relevant information about it.
+func (lrt *LogRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
+	defer func() {
+		if request.Body != nil {
+			request.Body.Close()
+		}
+	}()
+
+	// for future reference, this is how to access the Transport struct:
+	//tlsconfig := lrt.rt.(*http.Transport).TLSClientConfig
+
+	var err error
+
+	if lrt.osDebug {
+		log.Printf("[DEBUG] OpenStack Request URL: %s %s", request.Method, request.URL)
+
+		if request.Body != nil {
+			request.Body, err = lrt.logRequestBody(request.Body, request.Header)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	response, err := lrt.rt.RoundTrip(request)
+	if response == nil {
+		return nil, err
+	}
+
+	if lrt.osDebug {
+		response.Body, err = lrt.logResponseBody(response.Body, response.Header)
+	}
+
+	return response, err
+}
+
+// logRequestBody will log the HTTP Request body.
+// If the body is JSON, it will attempt to be pretty-formatted.
+func (lrt *LogRoundTripper) logRequestBody(original io.ReadCloser, headers http.Header) (io.ReadCloser, error) {
+	defer original.Close()
+
+	var bs bytes.Buffer
+	_, err := io.Copy(&bs, original)
+	if err != nil {
+		return nil, err
+	}
+
+	contentType := headers.Get("Content-Type")
+	if strings.HasPrefix(contentType, "application/json") {
+		debugInfo := lrt.formatJSON(bs.Bytes())
+		log.Printf("[DEBUG] OpenStack Request Options: %s", debugInfo)
+	} else {
+		log.Printf("[DEBUG] OpenStack Request Options: %s", bs.String())
+	}
+
+	return ioutil.NopCloser(strings.NewReader(bs.String())), nil
+}
+
+// logResponseBody will log the HTTP Response body.
+// If the body is JSON, it will attempt to be pretty-formatted.
+func (lrt *LogRoundTripper) logResponseBody(original io.ReadCloser, headers http.Header) (io.ReadCloser, error) {
+	contentType := headers.Get("Content-Type")
+	if strings.HasPrefix(contentType, "application/json") {
+		var bs bytes.Buffer
+		defer original.Close()
+		_, err := io.Copy(&bs, original)
+		if err != nil {
+			return nil, err
+		}
+		debugInfo := lrt.formatJSON(bs.Bytes())
+		if debugInfo != "" {
+			log.Printf("[DEBUG] OpenStack Response Body: %s", debugInfo)
+		}
+		return ioutil.NopCloser(strings.NewReader(bs.String())), nil
+	}
+
+	log.Printf("[DEBUG] Not logging because OpenStack response body isn't JSON")
+	return original, nil
+}
+
+// formatJSON will try to pretty-format a JSON body.
+// It will also mask known fields which contain sensitive information.
+func (lrt *LogRoundTripper) formatJSON(raw []byte) string {
+	var data map[string]interface{}
+
+	err := json.Unmarshal(raw, &data)
+	if err != nil {
+		log.Printf("[DEBUG] Unable to parse OpenStack JSON: %s", err)
+		return string(raw)
+	}
+
+	// Mask known password fields
+	if v, ok := data["auth"].(map[string]interface{}); ok {
+		if v, ok := v["identity"].(map[string]interface{}); ok {
+			if v, ok := v["password"].(map[string]interface{}); ok {
+				if v, ok := v["user"].(map[string]interface{}); ok {
+					v["password"] = "***"
+				}
+			}
+		}
+	}
+
+	// Ignore the catalog
+	if v, ok := data["token"].(map[string]interface{}); ok {
+		if _, ok := v["catalog"]; ok {
+			return ""
+		}
+	}
+
+	pretty, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		log.Printf("[DEBUG] Unable to re-marshal OpenStack JSON: %s", err)
+		return string(raw)
+	}
+
+	return string(pretty)
+}
 
 // FirewallCreateOpts represents the attributes used when creating a new firewall.
 type FirewallCreateOpts struct {

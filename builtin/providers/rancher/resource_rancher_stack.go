@@ -3,9 +3,11 @@ package rancher
 import (
 	"fmt"
 	"log"
+	"reflect"
 	"strings"
 	"time"
 
+	compose "github.com/docker/libcompose/config"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
@@ -19,7 +21,7 @@ func resourceRancherStack() *schema.Resource {
 		Update: resourceRancherStackUpdate,
 		Delete: resourceRancherStackDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceRancherStackImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -41,12 +43,14 @@ func resourceRancherStack() *schema.Resource {
 				ForceNew: true,
 			},
 			"docker_compose": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:             schema.TypeString,
+				Optional:         true,
+				DiffSuppressFunc: suppressComposeDiff,
 			},
 			"rancher_compose": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:             schema.TypeString,
+				Optional:         true,
+				DiffSuppressFunc: suppressComposeDiff,
 			},
 			"environment": {
 				Type:     schema.TypeMap,
@@ -72,12 +76,14 @@ func resourceRancherStack() *schema.Resource {
 				Optional: true,
 			},
 			"rendered_docker_compose": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:             schema.TypeString,
+				Computed:         true,
+				DiffSuppressFunc: suppressComposeDiff,
 			},
 			"rendered_rancher_compose": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:             schema.TypeString,
+				Computed:         true,
+				DiffSuppressFunc: suppressComposeDiff,
 			},
 		},
 	}
@@ -122,11 +128,26 @@ func resourceRancherStackCreate(d *schema.ResourceData, meta interface{}) error 
 
 func resourceRancherStackRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Refreshing Stack: %s", d.Id())
-	client := meta.(*Config)
+	client, err := meta.(*Config).EnvironmentClient(d.Get("environment_id").(string))
+	if err != nil {
+		return err
+	}
 
 	stack, err := client.Environment.ById(d.Id())
 	if err != nil {
 		return err
+	}
+
+	if stack == nil {
+		log.Printf("[INFO] Stack %s not found", d.Id())
+		d.SetId("")
+		return nil
+	}
+
+	if removed(stack.State) {
+		log.Printf("[INFO] Stack %s was removed on %v", d.Id(), stack.Removed)
+		d.SetId("")
+		return nil
 	}
 
 	config, err := client.Environment.ActionExportconfig(stack, &rancherClient.ComposeConfigInput{})
@@ -138,8 +159,19 @@ func resourceRancherStackRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("description", stack.Description)
 	d.Set("name", stack.Name)
-	d.Set("rendered_docker_compose", strings.Replace(config.DockerComposeConfig, "\r", "", -1))
-	d.Set("rendered_rancher_compose", strings.Replace(config.RancherComposeConfig, "\r", "", -1))
+	dockerCompose := strings.Replace(config.DockerComposeConfig, "\r", "", -1)
+	rancherCompose := strings.Replace(config.RancherComposeConfig, "\r", "", -1)
+
+	catalogID := d.Get("catalog_id")
+	if catalogID == "" {
+		d.Set("docker_compose", dockerCompose)
+		d.Set("rancher_compose", rancherCompose)
+	} else {
+		d.Set("docker_compose", "")
+		d.Set("rancher_compose", "")
+	}
+	d.Set("rendered_docker_compose", dockerCompose)
+	d.Set("rendered_rancher_compose", rancherCompose)
 	d.Set("environment_id", stack.AccountId)
 	d.Set("environment", stack.Environment)
 
@@ -157,6 +189,7 @@ func resourceRancherStackRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("start_on_create", stack.StartOnCreate)
+	d.Set("finish_upgrade", d.Get("finish_upgrade").(bool))
 
 	return nil
 }
@@ -180,7 +213,7 @@ func resourceRancherStackUpdate(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	var newStack rancherClient.Environment
-	if err := client.Update("environment", &stack.Resource, data, &newStack); err != nil {
+	if err = client.Update("environment", &stack.Resource, data, &newStack); err != nil {
 		return err
 	}
 
@@ -310,6 +343,25 @@ func resourceRancherStackDelete(d *schema.ResourceData, meta interface{}) error 
 	return nil
 }
 
+func resourceRancherStackImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	envID, resourceID := splitID(d.Id())
+	d.SetId(resourceID)
+	if envID != "" {
+		d.Set("environment_id", envID)
+	} else {
+		client, err := meta.(*Config).GlobalClient()
+		if err != nil {
+			return []*schema.ResourceData{}, err
+		}
+		stack, err := client.Environment.ById(d.Id())
+		if err != nil {
+			return []*schema.ResourceData{}, err
+		}
+		d.Set("environment_id", stack.AccountId)
+	}
+	return []*schema.ResourceData{d}, nil
+}
+
 // StackStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
 // a Rancher Stack.
 func StackStateRefreshFunc(client *rancherClient.RancherClient, stackID string) resource.StateRefreshFunc {
@@ -356,6 +408,10 @@ func makeStackData(d *schema.ResourceData, meta interface{}) (data map[string]in
 			return data, fmt.Errorf("Failed to get catalog template: %s", err)
 		}
 
+		if template == nil {
+			return data, fmt.Errorf("Unknown catalog template %s", catalogID)
+		}
+
 		dockerCompose = template.Files["docker-compose.yml"].(string)
 		rancherCompose = template.Files["rancher-compose.yml"].(string)
 	}
@@ -381,4 +437,20 @@ func makeStackData(d *schema.ResourceData, meta interface{}) (data map[string]in
 	}
 
 	return data, nil
+}
+
+func suppressComposeDiff(k, old, new string, d *schema.ResourceData) bool {
+	cOld, err := compose.CreateConfig([]byte(old))
+	if err != nil {
+		// TODO: log?
+		return false
+	}
+
+	cNew, err := compose.CreateConfig([]byte(new))
+	if err != nil {
+		// TODO: log?
+		return false
+	}
+
+	return reflect.DeepEqual(cOld, cNew)
 }

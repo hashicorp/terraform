@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -31,14 +32,28 @@ func (c *StatePushCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Read the state
-	f, err := os.Open(args[0])
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
+	// Determine our reader for the input state. This is the filepath
+	// or stdin if "-" is given.
+	var r io.Reader = os.Stdin
+	if args[0] != "-" {
+		f, err := os.Open(args[0])
+		if err != nil {
+			c.Ui.Error(err.Error())
+			return 1
+		}
+
+		// Note: we don't need to defer a Close here because we do a close
+		// automatically below directly after the read.
+
+		r = f
 	}
-	sourceState, err := terraform.ReadState(f)
-	f.Close()
+
+	// Read the state
+	sourceState, err := terraform.ReadState(r)
+	if c, ok := r.(io.Closer); ok {
+		// Close the reader if possible right now since we're done with it.
+		c.Close()
+	}
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error reading source state %q: %s", args[0], err))
 		return 1
@@ -52,7 +67,8 @@ func (c *StatePushCommand) Run(args []string) int {
 	}
 
 	// Get the state
-	state, err := b.State()
+	env := c.Env()
+	state, err := b.State(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load destination state: %s", err))
 		return 1
@@ -107,6 +123,10 @@ Usage: terraform state push [options] PATH
 
   This command works with local state (it will overwrite the local
   state), but is less useful for this use case.
+
+  If PATH is "-", then this command will read the state to push from stdin.
+  Data from stdin is not streamed to the backend: it is loaded completely
+  (until pipe close), verified, and then pushed.
 
 Options:
 

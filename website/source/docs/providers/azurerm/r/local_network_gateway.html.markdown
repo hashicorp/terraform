@@ -14,11 +14,11 @@ Creates a new local network gateway connection over which specific connections c
 
 ```
 resource "azurerm_local_network_gateway" "home" {
-  name = "backHome"
+  name                = "backHome"
   resource_group_name = "${azurerm_resource_group.test.name}"
-  location = "${azurerm_resource_group.test.location}"
-  gateway_address = "12.13.14.15"
-  address_space = ["10.0.0.0/16"]
+  location            = "${azurerm_resource_group.test.location}"
+  gateway_address     = "12.13.14.15"
+  address_space       = ["10.0.0.0/16"]
 }
 ```
 
@@ -35,11 +35,11 @@ The following arguments are supported:
 * `location` - (Required) The location/region where the local network gatway is
     created. Changing this forces a new resource to be created.
 
-* `gateway_address` - (Required) The IP address of the gatway to which to
+* `gateway_address` - (Required) The IP address of the gateway to which to
     connect.
 
 * `address_space` - (Required) The list of string CIDRs representing the
-    addredss spaces the gateway exposes.
+    address spaces the gateway exposes.
 
 ## Attributes Reference
 
@@ -49,7 +49,7 @@ The following attributes are exported:
 
 ## Import
 
-Local Network Gateways can be imported using the `resource id`, e.g. 
+Local Network Gateways can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_local_network_gateway.lng1 /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/microsoft.network/localnetworkgateways/lng1

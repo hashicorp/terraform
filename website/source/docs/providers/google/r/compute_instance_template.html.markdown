@@ -36,8 +36,8 @@ resource "google_compute_instance_template" "foobar" {
   // Create a new boot disk from an image
   disk {
     source_image = "debian-cloud/debian-8"
-    auto_delete = true
-    boot = true
+    auto_delete  = true
+    boot         = true
   }
 
   // Use an existing disk resource
@@ -73,31 +73,31 @@ with `name_prefix`.  Example:
 
 ```
 resource "google_compute_instance_template" "instance_template" {
-    name_prefix = "instance-template-"
-    machine_type = "n1-standard-1"
-    region = "us-central1"
+  name_prefix  = "instance-template-"
+  machine_type = "n1-standard-1"
+  region       = "us-central1"
 
-    // boot disk
-    disk {
-      ...
-    }
+  // boot disk
+  disk {
+    # ...
+  }
 
-    // networking
-    network_interface {
-      ...
-    }
+  // networking
+  network_interface {
+    # ...
+  }
 
-    lifecycle {
-        create_before_destroy = true
-    }
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "google_compute_instance_group_manager" "instance_group_manager" {
-    name = "instance-group-manager"
-    instance_template = "${google_compute_instance_template.instance_template.self_link}"
-    base_instance_name = "instance-group-manager"
-    zone = "us-central1-f"
-    target_size = "1"
+  name               = "instance-group-manager"
+  instance_template  = "${google_compute_instance_template.instance_template.self_link}"
+  base_instance_name = "instance-group-manager"
+  zone               = "us-central1-f"
+  target_size        = "1"
 }
 ```
 
@@ -176,8 +176,12 @@ The `disk` block supports:
 * `disk_name` - (Optional) Name of the disk. When not provided, this defaults
     to the name of the instance.
 
-* `source_image` - (Required if source not set) The name of the image to base
-    this disk off of. Accepts same arguments as a [google_compute_instance image](https://www.terraform.io/docs/providers/google/r/compute_instance.html#image).
+* `source_image` - (Required if source not set) The image from which to
+    initialize this disk. This can be one of: the image's `self_link`,
+    `projects/{project}/global/images/{image}`,
+    `projects/{project}/global/images/family/{family}`, `global/images/{image}`,
+    `global/images/family/{family}`, `family/{family}`, `{project}/{family}`,
+    `{project}/{image}`, `{family}`, or `{image}`.
 
 * `interface` - (Optional) Specifies the disk interface to use for attaching
     this disk.

@@ -1,12 +1,8 @@
 package ns1
 
 import (
-	"net/http"
-
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-
-	ns1 "gopkg.in/ns1/ns1-go.v2/rest"
 )
 
 // Provider returns a terraform.ResourceProvider.
@@ -19,6 +15,18 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("NS1_APIKEY", nil),
 				Description: descriptions["api_key"],
 			},
+			"endpoint": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("NS1_ENDPOINT", nil),
+				Description: descriptions["endpoint"],
+			},
+			"ignore_ssl": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("NS1_IGNORE_SSL", nil),
+				Description: descriptions["ignore_ssl"],
+			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"ns1_zone":          zoneResource(),
@@ -26,6 +34,7 @@ func Provider() terraform.ResourceProvider {
 			"ns1_datasource":    dataSourceResource(),
 			"ns1_datafeed":      dataFeedResource(),
 			"ns1_monitoringjob": monitoringJobResource(),
+			"ns1_notifylist":    notifyListResource(),
 			"ns1_user":          userResource(),
 			"ns1_apikey":        apikeyResource(),
 			"ns1_team":          teamResource(),
@@ -35,10 +44,18 @@ func Provider() terraform.ResourceProvider {
 }
 
 func ns1Configure(d *schema.ResourceData) (interface{}, error) {
-	httpClient := &http.Client{}
-	n := ns1.NewClient(httpClient, ns1.SetAPIKey(d.Get("apikey").(string)))
-	n.RateLimitStrategySleep()
-	return n, nil
+	config := Config{
+		Key: d.Get("apikey").(string),
+	}
+
+	if v, ok := d.GetOk("endpoint"); ok {
+		config.Endpoint = v.(string)
+	}
+	if v, ok := d.GetOk("ignore_ssl"); ok {
+		config.IgnoreSSL = v.(bool)
+	}
+
+	return config.Client()
 }
 
 var descriptions map[string]string

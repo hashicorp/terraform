@@ -26,7 +26,7 @@ func Provider() terraform.ResourceProvider {
 			"region": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_REGION", "cn-beijing"),
+				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_REGION", DEFAULT_REGION),
 				Description: descriptions["region"],
 			},
 		},
@@ -43,6 +43,7 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_disk_attachment":     resourceAliyunDiskAttachment(),
 			"alicloud_security_group":      resourceAliyunSecurityGroup(),
 			"alicloud_security_group_rule": resourceAliyunSecurityGroupRule(),
+			"alicloud_db_instance":         resourceAlicloudDBInstance(),
 			"alicloud_vpc":                 resourceAliyunVpc(),
 			"alicloud_nat_gateway":         resourceAliyunNatGateway(),
 			//both subnet and vswith exists,cause compatible old version, and compatible aws habit.

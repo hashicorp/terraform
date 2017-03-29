@@ -17,7 +17,7 @@
 	<div class="container">
 		<div class="row">
 			<div class="col-md-8">
-				<p class="lead">Terraform enables you to safely and predictably create, change, and
+				<p class="lead lower-opacity">Terraform enables you to safely and predictably create, change, and
 					improve production infrastructure. It is an open source tool that
 					codifies APIs into declarative configuration files that can be shared amongst team members,
 					treated as code, edited, reviewed, and versioned. </p>
@@ -26,6 +26,13 @@
 					<p class="center vert-container">
 						<a class="terra-btn" href="/intro/index.html">Get Started</a>
 					</p>
+				</div>
+				<div class="col-md-12">
+					<div class="vert-container announcement">
+						<p class="center">
+							Announcing Terraform Enterprise, collaboration for teams. <a class="link-highlight" href="https://hashicorp.com/terraform.html">Learn more.</a>
+						</p>
+					</div>
 				</div>
 			</div>
 		</div><!-- /. row -->
@@ -67,17 +74,17 @@
 		<div id="write-section" class="row">
 			<div class="col-sm-12">
 				<h2>Infrastructure as code</h2>
-				<p class="lead">Define infrastructure as code to increase operator productivity and transparency.</p>
+				<p class="lead sub-black">Define infrastructure as code to increase operator productivity and transparency.</p>
 			</div>
 			<img class="feature-image" id="feature-image-write-sm-screen" src="/assets/images/feature-write-bg.svg" />
 			<div class="col-sm-4">
 				<h3>Collaborate &amp; share</h3>
-				<p>Terraform configuration can be stored in version control,
+				<p class="sub-black">Terraform configuration can be stored in version control,
 				shared, and collaborated on by teams of operators.</p>
 				<h3>Evolve your infrastructure</h3>
-				<p>Track the complete history of infrastructure versions.</p>
+				<p class="sub-black">Track the complete history of infrastructure versions.</p>
 				<h3>Automation friendly</h3>
-				<p>If it can be codified, it can be automated.</p>
+				<p class="sub-black">If it can be codified, it can be automated.</p>
 			</div>
 		</div>
 	</div> <!-- /container -->
@@ -91,7 +98,7 @@
 		<div id="plan-section" class="row">
 			<div class="col-sm-12">
 				<h2>One safe workflow across providers</h2>
-				<p class="lead">Terraform provides an elegant user experience for
+				<p class="lead lower-opacity">Terraform provides an elegant user experience for
 					operators to safely and predictably make changes to infrastructure.</p>
 			</div>
 			<div class="col-sm-12">
@@ -100,20 +107,20 @@
 			</div>
 			<div class="col-sm-4">
 				<h3>Map resource dependencies</h3>
-				<p>Understand how a minor change could have potential cascading effects
+				<p class="lower-opacity">Understand how a minor change could have potential cascading effects
 					across an infrastructure before executing that change. Terraform
 					builds a dependency graph from the configurations, and walks this
 					graph to generate plans, refresh state, and more.</p>
 			</div>
 			<div class="col-sm-4">
 				<h3>Separation of plan &amp; apply</h3>
-				<p>Separating plans and applies reduces mistakes and uncertainty at
+				<p class="lower-opacity">Separating plans and applies reduces mistakes and uncertainty at
 					scale. Plans show operators what would happen, applies execute
 					changes.</p>
 			</div>
 			<div class="col-sm-4">
 				<h3>One workflow</h3>
-				<p>Use Terraform to create resources across all major infrastructure
+				<p class="lower-opacity">Use Terraform to create resources across all major infrastructure
 					providers (AWS, GCP, Azure, OpenStack, VMware, and more).</p>
 			</div>
 		</div>
@@ -126,7 +133,7 @@
 		<div id="create-section" class="row">
 			<div class="col-sm-6">
 				<h2>Reproducible infrastructure</h2>
-				<p class="lead">Terraform lets operators easily use the same
+				<p class="lead sub-black">Terraform lets operators easily use the same
 					configurations in multiple places to reduce mistakes and save time.</p>
 			</div>
 			<div class="col-sm-6">
@@ -136,17 +143,17 @@
 		<div class="row">
 			<div class="col-sm-4">
 				<h3>Environment parity</h3>
-				<p>Use the same Terraform configuration to provision identical staging,
+				<p class="sub-black">Use the same Terraform configuration to provision identical staging,
 					QA, and production environments.</p>
 			</div>
 			<div class="col-sm-4">
 				<h3>Shareable modules</h3>
-				<p>Common Terraform configurations can be packaged as modules and used
+				<p class="sub-black">Common Terraform configurations can be packaged as modules and used
 					across teams and organizations.</p>
 			</div>
 			<div class="col-sm-4">
 				<h3>Combine multiple providers consistently</h3>
-				<p>Terraform allows you to effortlessly combine high-level system
+				<p class="sub-black">Terraform allows you to effortlessly combine high-level system
 					providers. Launch a server from one cloud provider, add a DNS entry
 					with its IP with a different provider. Built-in dependency resolution
 					means things happen in the right order.</p>
@@ -155,6 +162,46 @@
 	</div> <!-- /container -->
 	<div class="feature-skew" id="feature-create-bg"></div>
 </div> <!-- /feature -->
+
+<div class="skew-item" id="latest-announcement">
+	<div class="container">
+		<div class="row">
+      <div class="col-md-offset-1 col-md-11 col-sm-12">
+				<h2>Latest</h2>
+			</div>
+      <div class="latest-col latest-col-left col-md-4 col-md-offset-1 col-sm-12">
+        <div class="latest-item">
+          <img src="<%= image_path('webinar-Terraform-4-4-2017.jpg') %>" srcset="<%= image_path('webinar-Terraform-4-4-2017@2x.jpg') %> 2x, <%= image_path('webinar-Terraform-4-4-2017.jpg') %> 1x">
+          <h3 class="latest-title">Join us for a live webinar with Mitchell Hashimoto to learn how Terraform provisions infrastructure across different clouds using a consistent workflow.</h3>
+          <p>
+            <a class="outline-btn small-outline-btn" href="http://hashi.co/2naIBrh">Register Now</a>
+          </p>
+        </div>
+      </div>
+			<div class="latest-col latest-col-right col-md-6 col-sm-12">
+        <div class="latest-item latest-item-text">
+          <h3 class="latest-title">Terraform 0.9 Released</h3>
+          <p class="lower-opacity">
+            Terraform 0.9 adds major new functionality to Terraform. Read the highlights from the 0.9 release
+          </p>
+  				<p>
+					<a class="outline-btn small-outline-btn" href="https://www.hashicorp.com/blog/terraform-0-9/">Read more</a>
+  				</p>
+        </div>
+        <div class="latest-item latest-item-text">
+          <h3 class="">Applying Graph Theory to Infrastructure As Code</h3>
+          <p class="lower-opacity">
+            Watch this talk from HashiConf 2016 where we explore the graph theory at the heart of Terraform's orchestration engine.
+          </p>
+  				<p>
+  					<a class="outline-btn small-outline-btn" href="https://www.youtube.com/watch?v=4Pd9NrZSbGU">Watch Video</a>
+  				</p>
+        </div>
+			</div>
+		</div>
+	</div><!-- /.container -->
+	<div class="feature-skew" id="latest-announcement-bg"></div>
+</div><!-- /#latest-announcement -->
 
 <div class="skew-item" id="demos">
 	<div class="container">
@@ -165,7 +212,7 @@
 
 			<div class="col-md-6 explantion">
 				<h3>Composing Resources</h3>
-        <p>Use attributes from other resources to create an infrastructure
+        <p class="sub-black">Use attributes from other resources to create an infrastructure
 					composed of resources across multiple providers.
 				</p>
 			</div>
@@ -199,7 +246,7 @@
 
 			<div class="col-md-6 explantion">
 				<h3>Fast, Simplified Interaction</h3>
-				<p>Simple and intuitive configuration makes even the most complicated
+				<p class="sub-black">Simple and intuitive configuration makes even the most complicated
 					services approachable: no more web consoles, loading bars, or
 					confusing CLI clients.
 				</p>
@@ -214,22 +261,22 @@
 							<div class="">
 								<div class="display">
 								<p>resource <span class="txt-spe">"aws_elb"</span> <span class="txt-str">"frontend"</span> {</p>
-								<p>    name = <span class="txt-str">"frontend-load-balancer"</span></p>
-								<p>    listener {</p>
-								<p>        instance_port = <span class="txt-int">8000</span></p>
-								<p>        instance_protocol = <span class="txt-str">"http"</span></p>
-								<p>        lb_port = <span class="txt-int">80</span></p>
-								<p>        lb_protocol = <span class="txt-str">"http"</span></p>
-								<p>    }</p>
+								<p>  name = <span class="txt-str">"frontend-load-balancer"</span></p>
+								<p>  listener {</p>
+								<p>    instance_port     = <span class="txt-int">8000</span></p>
+								<p>    instance_protocol = <span class="txt-str">"http"</span></p>
+								<p>    lb_port           = <span class="txt-int">80</span></p>
+								<p>    lb_protocol       = <span class="txt-str">"http"</span></p>
+								<p>  }</p>
 								<p> </p>
-								<p>    instances = [<span class="txt-str">"<span class="txt-var">${aws_instance.app.*.id}</span>"</span>]</p>
+								<p>  instances = [<span class="txt-str">"<span class="txt-var">${aws_instance.app.*.id}</span>"</span>]</p>
 								<p>}</p>
 								<p> </p>
 								<p>resource <span class="txt-spe">"aws_instance"</span> <span class="txt-str">"app"</span> {</p>
-								<p>    count = <span class="txt-int">5</span></p>
+								<p>  count = <span class="txt-int">5</span></p>
 								<p> </p>
-								<p>    ami = <span class="txt-str">"ami-408c7f28"</span></p>
-								<p>    instance_type = <span class="txt-str">"t1.micro"</span></p>
+								<p>  ami           = <span class="txt-str">"ami-408c7f28"</span></p>
+								<p>  instance_type = <span class="txt-str">"t1.micro"</span></p>
 								<p>}</p>
 								</div>
 							</div>
@@ -237,7 +284,7 @@
 					</div>
 			</div> <!-- /.terminal-item -->
 			<div class="cta col-sm-12 col-lg-8 col-lg-offset-2" id="demo-cta">
-				<p class="lead">The intro contains a walkthrough guide, introductory literature, and
+				<p class="lead lower-opacity">The intro contains a walkthrough guide, introductory literature, and
 					a range of examples to experiment with Terraform.</p>
 				<p>
 					<a class="terra-btn" href="/intro/index.html">Get started</a>
@@ -248,26 +295,12 @@
 	<div class="feature-skew" id="demo-bg"></div>
 </div><!-- /#demos -->
 
-<div class="skew-item" id="latest-announcement">
-	<div class="container">
-		<div class="row">
-			<div class="col-sm-12">
-				<p class="lead"><strong>Latest:</strong> We’ve released Terraform 0.8!</p>
-				<p>
-					<a class="outline-btn" href="https://www.hashicorp.com/blog/terraform-0-8.html">Read more</a>
-				</p>
-			</div>
-		</div>
-	</div><!-- /.container -->
-	<div class="feature-skew" id="latest-announcement-bg"></div>
-</div><!-- /#latest-announcement -->
-
 <div class="skew-item" id="enterprise-intro">
 	<div class="container">
 		<div class="row">
 			<div class="col-sm-12">
 				<h2><span>Terraform Enterprise</span></h2>
-				<p class="lead">Collaborative Infrastructure Automation for
+				<p class="lead lower-opacity">Collaborative Infrastructure Automation for
 					organizations. Collaborate on Terraform configurations,
 					 validate changes, and automate provisioning across providers.</p>
 				<p>
@@ -276,4 +309,4 @@
 		</div>
 	</div><!-- / .container -->
 	<div class="feature-skew" id="enterprise-intro-bg"></div>
-</div><!-- / #latest-announcement -->
+</div><!-- / #enterprise-intro -->

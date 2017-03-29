@@ -19,7 +19,7 @@ of items which can be created using the ``chef_data_bag_item`` resource.
 
 ```
 resource "chef_data_bag" "example" {
-    name = "example-data-bag"
+  name = "example-data-bag"
 }
 ```
 

@@ -14,9 +14,9 @@ Creates or registers an SSH key pair.
 
 ```
 resource "cloudstack_ssh_keypair" "default" {
-  name = "myKey"
+  name       = "myKey"
   public_key = "${file("~/.ssh/id_rsa.pub")}"
-  project = "myProject"
+  project    = "myProject"
 }
 ```
 

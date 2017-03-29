@@ -45,29 +45,9 @@ func location_path(locid string) string {
 	return location_col_path() + slash(locid)
 }
 
-// request_col_path returns the string   "/requests"
-func request_col_path() string {
-	return slash("requests")
-}
-
-// request_path returns the string   "/requests/<requestid>"
-func request_path(requestid string) string {
-	return request_col_path() + slash(requestid)
-}
-
-// request_status_path returns the string   "/requests<requestid>/status"
-func request_status_path(requestid string) string {
-	return request_path(requestid) + slash("status")
-}
-
 // snapshot_col_path returns the string "/snapshots"
 func snapshot_col_path() string {
 	return slash("snapshots")
-}
-
-// snapshot_path returns the string "/snapshots/<snapid>"
-func snapshot_path(snapid string) string {
-	return snapshot_col_path() + slash(snapid)
 }
 
 // lan_col_path returns the string "/datacenters/<dcid>/lans"
@@ -113,12 +93,6 @@ func volume_col_path(dcid string) string {
 // volume_path returns the string "/volumes/<volid>"
 func volume_path(dcid, volid string) string {
 	return volume_col_path(dcid) + slash(volid)
-}
-
-// lan_nic_col_path returns the string	/datacenters/<dcid>/lans/<lanid>/nics
-func lan_nic_col(dcid, lanid string) string {
-	return lan_path(dcid, lanid) + slash("nics")
-
 }
 
 //  balnic_col_path returns the string "/loadbalancers/<lbalid>/balancednics"

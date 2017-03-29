@@ -36,6 +36,7 @@ resource "google_compute_instance" "default" {
 
   network_interface {
     network = "default"
+
     access_config {
       // Ephemeral IP
     }
@@ -69,6 +70,10 @@ The following arguments are supported:
 
 * `zone` - (Required) The zone that the machine should be created in.
 
+* `network_interface` - (Required) Networks to attach to the instance. This can
+    be specified multiple times for multiple networks, but GCE is currently
+    limited to just 1. Structure is documented below.
+
 - - -
 
 * `can_ip_forward` - (Optional) Whether to allow sending and receiving of
@@ -86,14 +91,6 @@ The following arguments are supported:
     startup-script metadata key on the created instance and thus the two
     mechanisms are not allowed to be used simultaneously.
 
-* `network_interface` - (Required) Networks to attach to the instance. This can
-    be specified multiple times for multiple networks, but GCE is currently
-    limited to just 1. Structure is documented below.
-
-* `network` - (DEPRECATED, Required) Networks to attach to the instance. This
-    can be specified multiple times for multiple networks. Structure is
-    documented below.
-
 * `project` - (Optional) The project in which the resource belongs. If it
     is not provided, the provider project is used.
 
@@ -108,18 +105,23 @@ The following arguments are supported:
 * `create_timeout` - (Optional) Configurable timeout in minutes for creating instances. Default is 4 minutes.
     Changing this forces a new resource to be created.
 
+---
+
+* `network` - (DEPRECATED, Required) Networks to attach to the instance. This
+    can be specified multiple times for multiple networks. Structure is
+    documented below.
+
 The `disk` block supports: (Note that either disk or image is required, unless
 the type is "local-ssd", in which case scratch must be true).
 
 * `disk` - The name of the existing disk (such as those managed by
     `google_compute_disk`) to attach.
 
-* `image` - The image from which to initialize this
-    disk. Either the full URL, a contraction of the form "project/name", the
-    name of a Google-supported
-    [image family](https://cloud.google.com/compute/docs/images#image_families),
-    or simple the name of an image or image family (in which case the current
-    project is used).
+* `image` - The image from which to initialize this disk. This can be
+    one of: the image's `self_link`, `projects/{project}/global/images/{image}`,
+    `projects/{project}/global/images/family/{family}`, `global/images/{image}`,
+    `global/images/family/{family}`, `family/{family}`, `{project}/{family}`,
+    `{project}/{image}`, `{family}`, or `{image}`.
 
 * `auto_delete` - (Optional) Whether or not the disk should be auto-deleted.
     This defaults to true. Leave true for local SSDs.

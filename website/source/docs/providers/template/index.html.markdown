@@ -18,18 +18,18 @@ Use the navigation to the left to read about the available data sources.
 ```
 # Template for initial configuration bash script
 data "template_file" "init" {
-	template = "${file("init.tpl")}"
+  template = "${file("init.tpl")}"
 
-	vars {
-		consul_address = "${aws_instance.consul.private_ip}"
-	}
+  vars {
+    consul_address = "${aws_instance.consul.private_ip}"
+  }
 }
 
 # Create a web server
 resource "aws_instance" "web" {
-    # ...
+  # ...
 
-	user_data = "${data.template_file.init.rendered}"
+  user_data = "${data.template_file.init.rendered}"
 }
 ```
 
@@ -38,18 +38,18 @@ Or using an inline template:
 ```
 # Template for initial configuration bash script
 data "template_file" "init" {
-	template = "$${consul_address}:1234"
+  template = "$${consul_address}:1234"
 
-	vars {
-		consul_address = "${aws_instance.consul.private_ip}"
-	}
+  vars {
+    consul_address = "${aws_instance.consul.private_ip}"
+  }
 }
 
 # Create a web server
 resource "aws_instance" "web" {
-    # ...
+  # ...
 
-	user_data = "${data.template_file.init.rendered}"
+  user_data = "${data.template_file.init.rendered}"
 }
 ```
 

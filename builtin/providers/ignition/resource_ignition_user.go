@@ -9,8 +9,6 @@ import (
 
 func resourceUser() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceUserCreate,
-		Delete: resourceUserDelete,
 		Exists: resourceUserExists,
 		Read:   resourceUserRead,
 		Schema: map[string]*schema.Schema{
@@ -80,18 +78,13 @@ func resourceUser() *schema.Resource {
 	}
 }
 
-func resourceUserCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceUserRead(d *schema.ResourceData, meta interface{}) error {
 	id, err := buildUser(d, meta.(*cache))
 	if err != nil {
 		return err
 	}
 
 	d.SetId(id)
-	return nil
-}
-
-func resourceUserDelete(d *schema.ResourceData, meta interface{}) error {
-	d.SetId("")
 	return nil
 }
 
@@ -102,10 +95,6 @@ func resourceUserExists(d *schema.ResourceData, meta interface{}) (bool, error) 
 	}
 
 	return id == d.Id(), nil
-}
-
-func resourceUserRead(d *schema.ResourceData, meta interface{}) error {
-	return nil
 }
 
 func buildUser(d *schema.ResourceData, c *cache) (string, error) {

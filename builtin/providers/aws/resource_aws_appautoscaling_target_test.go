@@ -46,6 +46,27 @@ func TestAccAWSAppautoScalingTarget_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSAppautoScalingTarget_spotFleetRequest(t *testing.T) {
+	var target applicationautoscaling.ScalableTarget
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_appautoscaling_target.test",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSAppautoscalingTargetDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSAppautoscalingTargetSpotFleetRequestConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAppautoscalingTargetExists("aws_appautoscaling_target.test", &target),
+					resource.TestCheckResourceAttr("aws_appautoscaling_target.test", "service_namespace", "ec2"),
+					resource.TestCheckResourceAttr("aws_appautoscaling_target.test", "scalable_dimension", "ec2:spot-fleet-request:TargetCapacity"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSAppautoscalingTargetDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).appautoscalingconn
 
@@ -174,6 +195,7 @@ EOF
 resource "aws_ecs_cluster" "foo" {
 	name = "%s"
 }
+
 resource "aws_ecs_task_definition" "task" {
 	family = "foobar"
 	container_definitions = <<EOF
@@ -188,6 +210,7 @@ resource "aws_ecs_task_definition" "task" {
 ]
 EOF
 }
+
 resource "aws_ecs_service" "service" {
 	name = "foobar"
 	cluster = "${aws_ecs_cluster.foo.id}"
@@ -197,11 +220,12 @@ resource "aws_ecs_service" "service" {
 	deployment_maximum_percent = 200
 	deployment_minimum_healthy_percent = 50
 }
+
 resource "aws_appautoscaling_target" "bar" {
 	service_namespace = "ecs"
 	resource_id = "service/${aws_ecs_cluster.foo.name}/${aws_ecs_service.service.name}"
 	scalable_dimension = "ecs:service:DesiredCount"
-	role_arn = "${aws_iam_role.autoscale_role.arn}"	
+	role_arn = "${aws_iam_role.autoscale_role.arn}"
 	min_capacity = 1
 	max_capacity = 3
 }
@@ -266,6 +290,7 @@ EOF
 resource "aws_ecs_cluster" "foo" {
 	name = "%s"
 }
+
 resource "aws_ecs_task_definition" "task" {
 	family = "foobar"
 	container_definitions = <<EOF
@@ -280,6 +305,7 @@ resource "aws_ecs_task_definition" "task" {
 ]
 EOF
 }
+
 resource "aws_ecs_service" "service" {
 	name = "foobar"
 	cluster = "${aws_ecs_cluster.foo.id}"
@@ -289,13 +315,90 @@ resource "aws_ecs_service" "service" {
 	deployment_maximum_percent = 200
 	deployment_minimum_healthy_percent = 50
 }
+
 resource "aws_appautoscaling_target" "bar" {
 	service_namespace = "ecs"
 	resource_id = "service/${aws_ecs_cluster.foo.name}/${aws_ecs_service.service.name}"
 	scalable_dimension = "ecs:service:DesiredCount"
-	role_arn = "${aws_iam_role.autoscale_role.arn}"	
+	role_arn = "${aws_iam_role.autoscale_role.arn}"
 	min_capacity = 2
 	max_capacity = 8
 }
 `, randClusterName, randClusterName, randClusterName)
 }
+
+var testAccAWSAppautoscalingTargetSpotFleetRequestConfig = fmt.Sprintf(`
+resource "aws_iam_role" "fleet_role" {
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": [
+          "spotfleet.amazonaws.com",
+          "ec2.amazonaws.com"
+        ]
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy_attachment" "fleet_role_policy" {
+  role = "${aws_iam_role.fleet_role.name}"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetRole"
+}
+
+resource "aws_spot_fleet_request" "test" {
+  iam_fleet_role = "${aws_iam_role.fleet_role.arn}"
+  spot_price = "0.005"
+  target_capacity = 2
+  valid_until = "2019-11-04T20:44:20Z"
+  terminate_instances_with_expiration = true
+
+  launch_specification {
+    instance_type = "m3.medium"
+    ami = "ami-d06a90b0"
+  }
+}
+
+resource "aws_iam_role" "autoscale_role" {
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "application-autoscaling.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy_attachment" "autoscale_role_policy_a" {
+  role = "${aws_iam_role.autoscale_role.name}"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetRole"
+}
+
+resource "aws_iam_role_policy_attachment" "autoscale_role_policy_b" {
+  role = "${aws_iam_role.autoscale_role.name}"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetAutoscaleRole"
+}
+
+resource "aws_appautoscaling_target" "test" {
+  service_namespace = "ec2"
+  resource_id = "spot-fleet-request/${aws_spot_fleet_request.test.id}"
+  scalable_dimension = "ec2:spot-fleet-request:TargetCapacity"
+  role_arn = "${aws_iam_role.autoscale_role.arn}"
+  min_capacity = 1
+  max_capacity = 3
+}
+`)

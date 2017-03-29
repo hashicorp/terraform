@@ -33,6 +33,24 @@ func TestPlanGraphBuilder(t *testing.T) {
 	}
 }
 
+func TestPlanGraphBuilder_targetModule(t *testing.T) {
+	b := &PlanGraphBuilder{
+		Module:    testModule(t, "graph-builder-plan-target-module-provider"),
+		Providers: []string{"null"},
+		Targets:   []string{"module.child2"},
+	}
+
+	g, err := b.Build(RootModulePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	t.Logf("Graph: %s", g.String())
+
+	testGraphNotContains(t, g, "module.child1.provider.null")
+	testGraphNotContains(t, g, "module.child1.null_resource.foo")
+}
+
 const testPlanGraphBuilderStr = `
 aws_instance.web
   aws_security_group.firewall

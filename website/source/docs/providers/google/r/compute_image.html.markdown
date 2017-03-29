@@ -17,7 +17,8 @@ tarball. For more information see [the official documentation](https://cloud.goo
 
 ```js
 resource "google_compute_image" "bootable-image" {
-  name       = "my-custom-image"
+  name = "my-custom-image"
+
   raw_disk {
     source = "https://storage.googleapis.com/my-bucket/my-disk-image-tarball.tar.gz"
   }
@@ -33,7 +34,7 @@ resource "google_compute_instance" "vm" {
   }
 
   network_interface {
-	network = "default"
+    network = "default"
   }
 }
 ```

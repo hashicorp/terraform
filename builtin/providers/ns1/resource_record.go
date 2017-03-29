@@ -69,7 +69,7 @@ func recordResource() *schema.Resource {
 			"use_client_subnet": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  false,
+				Default:  true,
 			},
 			"answers": &schema.Schema{
 				Type:     schema.TypeSet,
@@ -159,6 +159,9 @@ func recordToResourceData(d *schema.ResourceData, r *dns.Record) error {
 	// 	t := metaStructToDynamic(r.Meta)
 	// 	d.Set("meta", t)
 	// }
+	if r.UseClientSubnet != nil {
+		d.Set("use_client_subnet", *r.UseClientSubnet)
+	}
 	if len(r.Filters) > 0 {
 		filters := make([]map[string]interface{}, len(r.Filters))
 		for i, f := range r.Filters {
@@ -261,10 +264,8 @@ func resourceDataToRecord(r *dns.Record, d *schema.ResourceData) error {
 	// if v, ok := d.GetOk("meta"); ok {
 	// 	metaDynamicToStruct(r.Meta, v)
 	// }
-	useClientSubnetVal := d.Get("use_client_subnet").(bool)
-	if v := strconv.FormatBool(useClientSubnetVal); v != "" {
-		r.UseClientSubnet = &useClientSubnetVal
-	}
+	useClientSubnet := d.Get("use_client_subnet").(bool)
+	r.UseClientSubnet = &useClientSubnet
 
 	if rawFilters := d.Get("filters").([]interface{}); len(rawFilters) > 0 {
 		f := make([]*filter.Filter, len(rawFilters))

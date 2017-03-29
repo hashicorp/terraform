@@ -2,12 +2,14 @@ package vault
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/vault/api"
+	"github.com/mitchellh/go-homedir"
 )
 
 func Provider() terraform.ResourceProvider {
@@ -22,7 +24,7 @@ func Provider() terraform.ResourceProvider {
 			"token": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("VAULT_TOKEN", nil),
+				DefaultFunc: schema.EnvDefaultFunc("VAULT_TOKEN", ""),
 				Description: "Token to use to authenticate to Vault.",
 			},
 			"ca_cert_file": &schema.Schema{
@@ -86,14 +88,14 @@ func Provider() terraform.ResourceProvider {
 
 		ResourcesMap: map[string]*schema.Resource{
 			"vault_generic_secret": genericSecretResource(),
+			"vault_policy":         policyResource(),
 		},
 	}
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	config := &api.Config{
-		Address: d.Get("address").(string),
-	}
+	config := api.DefaultConfig()
+	config.Address = d.Get("address").(string)
 
 	clientAuthI := d.Get("client_auth").([]interface{})
 	if len(clientAuthI) > 1 {
@@ -108,7 +110,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		clientAuthKey = clientAuth["key_file"].(string)
 	}
 
-	config.ConfigureTLS(&api.TLSConfig{
+	err := config.ConfigureTLS(&api.TLSConfig{
 		CACert:   d.Get("ca_cert_file").(string),
 		CAPath:   d.Get("ca_cert_dir").(string),
 		Insecure: d.Get("skip_tls_verify").(bool),
@@ -116,10 +118,28 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		ClientCert: clientAuthCert,
 		ClientKey:  clientAuthKey,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to configure TLS for Vault API: %s", err)
+	}
 
 	client, err := api.NewClient(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to configure Vault API: %s", err)
+	}
+
+	token := d.Get("token").(string)
+	if token == "" {
+		// Use the vault CLI's token, if present.
+		homePath, err := homedir.Dir()
+		if err != nil {
+			return nil, fmt.Errorf("Can't find home directory when looking for ~/.vault-token: %s", err)
+		}
+		tokenBytes, err := ioutil.ReadFile(homePath + "/.vault-token")
+		if err != nil {
+			return nil, fmt.Errorf("No vault token found: %s", err)
+		}
+
+		token = strings.TrimSpace(string(tokenBytes))
 	}
 
 	// In order to enforce our relatively-short lease TTL, we derive a
@@ -135,7 +155,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	// can explicitly be revoked, and this limited scope won't apply to
 	// any secrets that are *written* by Terraform to Vault.
 
-	client.SetToken(d.Get("token").(string))
+	client.SetToken(token)
 	renewable := false
 	childTokenLease, err := client.Auth().Token().Create(&api.TokenCreateRequest{
 		DisplayName:    "terraform",

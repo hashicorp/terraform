@@ -15,9 +15,9 @@ and delete source NATs to allow vApps to send external traffic.
 
 ```
 resource "vcd_snat" "outbound" {
-	edge_gateway = "Edge Gateway Name"
-	external_ip  = "78.101.10.20"
-	internal_ip  = "10.10.0.0/24"
+  edge_gateway = "Edge Gateway Name"
+  external_ip  = "78.101.10.20"
+  internal_ip  = "10.10.0.0/24"
 }
 ```
 

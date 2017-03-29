@@ -9,14 +9,14 @@ import (
 
 func TestIngnitionNetworkdUnit(t *testing.T) {
 	testIgnition(t, `
-		resource "ignition_networkd_unit" "foo" {
+		data "ignition_networkd_unit" "foo" {
 			name = "foo.link"
 			content = "[Match]\nName=eth0\n\n[Network]\nAddress=10.0.1.7\n"
 		}
 
-		resource "ignition_config" "test" {
+		data "ignition_config" "test" {
 			networkd = [
-				"${ignition_networkd_unit.foo.id}",
+				"${data.ignition_networkd_unit.foo.id}",
 			]
 		}
 	`, func(c *types.Config) error {

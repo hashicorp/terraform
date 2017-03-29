@@ -18,6 +18,7 @@ resource "opsgenie_user" "first" {
   full_name = "Cookie Monster"
   role      = "User"
 }
+
 resource "opsgenie_user" "second" {
   username  = "eggman@dr-robotnik.com"
   full_name = "Dr Ivo Eggman Robotnik"
@@ -25,7 +26,8 @@ resource "opsgenie_user" "second" {
 }
 
 resource "opsgenie_team" "test" {
-  name = "example"
+  name        = "example"
+  description = "This team deals with all the things"
 
   member {
     username = "${opsgenie_user.first.username}"
@@ -44,6 +46,8 @@ resource "opsgenie_team" "test" {
 The following arguments are supported:
 
 * `name` - (Required) The name associated with this team. OpsGenie defines that this must not be longer than 100 characters.
+
+* `description` - (Optional) A description for this team.
 
 * `member` - (Optional) A Member block as documented below.
 

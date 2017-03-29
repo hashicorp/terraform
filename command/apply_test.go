@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -55,6 +56,39 @@ func TestApply(t *testing.T) {
 	}
 	if state == nil {
 		t.Fatal("state should not be nil")
+	}
+}
+
+// test apply with locked state
+func TestApply_lockedState(t *testing.T) {
+	statePath := testTempFile(t)
+
+	unlock, err := testLockState("./testdata", statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unlock()
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		testFixturePath("apply"),
+	}
+	if code := c.Run(args); code == 0 {
+		t.Fatal("expected error")
+	}
+
+	output := ui.ErrorWriter.String()
+	if !strings.Contains(output, "lock") {
+		t.Fatal("command output does not look like a lock error:", output)
 	}
 }
 
@@ -550,7 +584,8 @@ func TestApply_plan(t *testing.T) {
 }
 
 func TestApply_plan_backup(t *testing.T) {
-	planPath := testPlanFile(t, testPlan(t))
+	plan := testPlan(t)
+	planPath := testPlanFile(t, plan)
 	statePath := testTempFile(t)
 	backupPath := testTempFile(t)
 
@@ -563,6 +598,11 @@ func TestApply_plan_backup(t *testing.T) {
 		},
 	}
 
+	// create a state file that needs to be backed up
+	err := (&state.LocalState{Path: statePath}).WriteState(plan.State)
+	if err != nil {
+		t.Fatal(err)
+	}
 	args := []string{
 		"-state-out", statePath,
 		"-backup", backupPath,
@@ -759,6 +799,39 @@ func TestApply_planVars(t *testing.T) {
 	}
 	if code := c.Run(args); code == 0 {
 		t.Fatal("should've failed")
+	}
+}
+
+// we should be able to apply a plan file with no other file dependencies
+func TestApply_planNoModuleFiles(t *testing.T) {
+	// temprary data directory which we can remove between commands
+	td, err := ioutil.TempDir("", "tf")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(td)
+
+	defer testChdir(t, td)()
+
+	p := testProvider()
+	planFile := testPlanFile(t, &terraform.Plan{
+		Module: testModule(t, "apply-plan-no-module"),
+	})
+
+	contextOpts := testCtxConfig(p)
+
+	apply := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: contextOpts,
+			Ui:          new(cli.MockUi),
+		},
+	}
+	args := []string{
+		planFile,
+	}
+	apply.Run(args)
+	if p.ValidateCalled {
+		t.Fatal("Validate should not be called with a plan")
 	}
 }
 
@@ -1488,6 +1561,91 @@ func TestApply_disableBackup(t *testing.T) {
 	if err == nil || !os.IsNotExist(err) {
 		t.Fatalf("backup should not exist")
 	}
+}
+
+// Test that the Terraform env is passed through
+func TestApply_terraformEnv(t *testing.T) {
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		testFixturePath("apply-terraform-env"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	expected := strings.TrimSpace(`
+<no state>
+Outputs:
+
+output = default
+	`)
+	testStateOutput(t, statePath, expected)
+}
+
+// Test that the Terraform env is passed through
+func TestApply_terraformEnvNonDefault(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	os.MkdirAll(td, 0755)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// Create new env
+	{
+		ui := new(cli.MockUi)
+		newCmd := &EnvNewCommand{}
+		newCmd.Meta = Meta{Ui: ui}
+		if code := newCmd.Run([]string{"test"}); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+		}
+	}
+
+	// Switch to it
+	{
+		args := []string{"test"}
+		ui := new(cli.MockUi)
+		selCmd := &EnvSelectCommand{}
+		selCmd.Meta = Meta{Ui: ui}
+		if code := selCmd.Run(args); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+		}
+	}
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		testFixturePath("apply-terraform-env"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	statePath := filepath.Join("terraform.tfstate.d", "test", "terraform.tfstate")
+	expected := strings.TrimSpace(`
+<no state>
+Outputs:
+
+output = test
+	`)
+	testStateOutput(t, statePath, expected)
 }
 
 func testHttpServer(t *testing.T) net.Listener {

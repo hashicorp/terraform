@@ -17,10 +17,10 @@ For information about function aliases, see [CreateAlias][2] in the API docs.
 
 ```
 resource "aws_lambda_alias" "test_alias" {
-		name = "testalias"
-		description = "a sample description"
-		function_name = "${aws_lambda_function.lambda_function_test.arn}"
-		function_version = "$LATEST"
+  name             = "testalias"
+  description      = "a sample description"
+  function_name    = "${aws_lambda_function.lambda_function_test.arn}"
+  function_version = "$LATEST"
 }
 ```
 

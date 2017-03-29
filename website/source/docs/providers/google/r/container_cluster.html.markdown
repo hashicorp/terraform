@@ -16,13 +16,13 @@ whole cluster!
 
 ```js
 resource "google_container_cluster" "primary" {
-  name = "marcellus-wallace"
-  zone = "us-central1-a"
+  name               = "marcellus-wallace"
+  zone               = "us-central1-a"
   initial_node_count = 3
 
   additional_zones = [
     "us-central1-b",
-    "us-central1-c"
+    "us-central1-c",
   ]
 
   master_auth {
@@ -35,7 +35,7 @@ resource "google_container_cluster" "primary" {
       "https://www.googleapis.com/auth/compute",
       "https://www.googleapis.com/auth/devstorage.read_only",
       "https://www.googleapis.com/auth/logging.write",
-      "https://www.googleapis.com/auth/monitoring"
+      "https://www.googleapis.com/auth/monitoring",
     ]
   }
 }
@@ -83,8 +83,8 @@ resource "google_container_cluster" "primary" {
     this cluster
 
 * `node_version` - (Optional) The Kubernetes version on the nodes. Also affects
-    the initial master version on cluster creation. Updates affect nodes only. 
-    Defaults to the default version set by GKE which is not necessarily the latest 
+    the initial master version on cluster creation. Updates affect nodes only.
+    Defaults to the default version set by GKE which is not necessarily the latest
     version.
 
 * `project` - (Optional) The project in which the resource belongs. If it
@@ -109,6 +109,9 @@ which the cluster's instances are launched
 * `disk_size_gb` - (Optional) Size of the disk attached to each node, specified
     in GB. The smallest allowed disk size is 10GB. Defaults to 100GB.
 
+* `local_ssd_count` - (Optional) The amount of local SSD disks that will be
+    attached to each cluster node. Defaults to 0.
+
 * `oauth_scopes` - (Optional) The set of Google API scopes to be made available
     on all of the node VMs under the "default" service account. These can be
     either FQDNs, or scope aliases. The following scopes are necessary to ensure
@@ -120,6 +123,14 @@ which the cluster's instances are launched
     if `logging_service` points to Google
   * `monitoring` (`https://www.googleapis.com/auth/monitoring`),
     if `monitoring_service` points to Google
+
+* `service_account` - (Optional) The service account to be used by the Node VMs.
+    If not specified, the "default" service account is used.
+
+* `metadata` - (Optional) The metadata key/value pairs assigned to instances in
+    the cluster.
+
+* `image_type` - (Optional) The image type to use for this node.
 
 **Addons Config** supports the following addons:
 

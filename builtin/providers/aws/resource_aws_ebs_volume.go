@@ -40,7 +40,6 @@ func resourceAwsEbsVolume() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
-				ForceNew: true,
 			},
 			"kms_key_id": {
 				Type:         schema.TypeString,
@@ -53,7 +52,6 @@ func resourceAwsEbsVolume() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
-				ForceNew: true,
 			},
 			"snapshot_id": {
 				Type:     schema.TypeString,
@@ -65,7 +63,6 @@ func resourceAwsEbsVolume() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
-				ForceNew: true,
 			},
 			"tags": tagsSchema(),
 		},
@@ -117,8 +114,7 @@ func resourceAwsEbsVolumeCreate(d *schema.ResourceData, meta interface{}) error 
 		return fmt.Errorf("Error creating EC2 volume: %s", err)
 	}
 
-	log.Println(
-		"[DEBUG] Waiting for Volume to become available")
+	log.Println("[DEBUG] Waiting for Volume to become available")
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"creating"},
@@ -154,6 +150,50 @@ func resourceAWSEbsVolumeUpdate(d *schema.ResourceData, meta interface{}) error 
 			return errwrap.Wrapf("Error updating tags for EBS Volume: {{err}}", err)
 		}
 	}
+
+	requestUpdate := false
+	params := &ec2.ModifyVolumeInput{
+		VolumeId: aws.String(d.Id()),
+	}
+
+	if d.HasChange("size") {
+		requestUpdate = true
+		params.Size = aws.Int64(int64(d.Get("size").(int)))
+	}
+
+	if d.HasChange("type") {
+		requestUpdate = true
+		params.VolumeType = aws.String(d.Get("type").(string))
+	}
+
+	if d.HasChange("iops") {
+		requestUpdate = true
+		params.Iops = aws.Int64(int64(d.Get("iops").(int)))
+	}
+
+	if requestUpdate {
+		result, err := conn.ModifyVolume(params)
+		if err != nil {
+			return err
+		}
+
+		stateConf := &resource.StateChangeConf{
+			Pending:    []string{"creating", "modifying"},
+			Target:     []string{"available"},
+			Refresh:    volumeStateRefreshFunc(conn, *result.VolumeModification.VolumeId),
+			Timeout:    5 * time.Minute,
+			Delay:      10 * time.Second,
+			MinTimeout: 3 * time.Second,
+		}
+
+		_, err = stateConf.WaitForState()
+		if err != nil {
+			return fmt.Errorf(
+				"Error waiting for Volume (%s) to become available: %s",
+				*result.VolumeModification.VolumeId, err)
+		}
+	}
+
 	return resourceAwsEbsVolumeRead(d, meta)
 }
 

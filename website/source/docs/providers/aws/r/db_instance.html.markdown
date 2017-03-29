@@ -31,6 +31,7 @@ for more information.
 ```
 resource "aws_db_instance" "default" {
   allocated_storage    = 10
+  storage_type         = "gp2"
   engine               = "mysql"
   engine_version       = "5.6.17"
   instance_class       = "db.t1.micro"
@@ -56,11 +57,11 @@ The following arguments are supported:
 * `instance_class` - (Required) The instance type of the RDS instance.
 * `storage_type` - (Optional) One of "standard" (magnetic), "gp2" (general
     purpose SSD), or "io1" (provisioned IOPS SSD). The default is "io1" if
-    `iops` is specified, "standard" if not.
+    `iops` is specified, "standard" if not. Note that this behaviour is different from the AWS web console, where the default is "gp2".
 * `final_snapshot_identifier` - (Optional) The name of your final DB snapshot
     when this DB instance is deleted. If omitted, no final snapshot will be
     made.
-* `skip_final_snapshot` - (Optional) Determines whether a final DB snapshot is created before the DB instance is deleted. If true is specified, no DBSnapshot is created. If false is specified, a DB snapshot is created before the DB instance is deleted, using the value from `final_snapshot_identifier`. Default is true.
+* `skip_final_snapshot` - (Optional) Determines whether a final DB snapshot is created before the DB instance is deleted. If true is specified, no DBSnapshot is created. If false is specified, a DB snapshot is created before the DB instance is deleted, using the value from `final_snapshot_identifier`. Default is `false`.
 * `copy_tags_to_snapshot` – (Optional, boolean) On delete, copy all Instance `tags` to
 the final snapshot (if `final_snapshot_identifier` is specified). Default
 `false`
@@ -109,7 +110,7 @@ what IAM permissions are needed to allow Enhanced Monitoring for RDS Instances.
 * `character_set_name` - (Optional) The character set name to use for DB encoding in Oracle instances. This can't be changed.
 [Oracle Character Sets Supported in Amazon RDS](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.OracleCharacterSets.html)
 * `tags` - (Optional) A mapping of tags to assign to the resource.
-* `timezone` - (Optional) Time zone of the DB instance. `timezone` is currently only supported by Microsoft SQL Server. 
+* `timezone` - (Optional) Time zone of the DB instance. `timezone` is currently only supported by Microsoft SQL Server.
 The `timezone` can only be set on creation. See [MSSQL User Guide](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_SQLServer.html#SQLServer.Concepts.General.TimeZone) for more information
 
 ~> **NOTE:** Removing the `replicate_source_db` attribute from an existing RDS
@@ -144,12 +145,25 @@ On Oracle instances the following is exported additionally:
 
 * `character_set_name` - The character set used on Oracle instances.
 
+
+<a id="timeouts"></a>
+## Timeouts
+
+`aws_db_instance` provides the following
+[Timeouts](/docs/configuration/resources.html#timeouts) configuration options:
+
+- `create` - (Default `40 minutes`) Used for Creating Instances, Replicas, and
+restoring from Snapshots
+- `update` - (Default `80 minutes`) Used for Database modifications 
+- `delete` - (Default `40 minutes`) Used for destroying databases. This includes
+the time required to take snapshots
+
 [1]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Replication.html
 [2]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Maintenance.html
 
 ## Import
 
-DB Instances can be imported using the `identifier`, e.g. 
+DB Instances can be imported using the `identifier`, e.g.
 
 ```
 $ terraform import aws_db_instance.default mydb-rds-instance

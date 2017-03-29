@@ -138,6 +138,33 @@ func resourceDockerContainer() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"capabilities": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"add": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
+							ForceNew: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
+						},
+
+						"drop": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
+							ForceNew: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
+						},
+					},
+				},
+				Set: resourceDockerCapabilitiesHash,
+			},
+
 			"volumes": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -394,6 +421,21 @@ func resourceDockerContainer() *schema.Resource {
 			},
 		},
 	}
+}
+
+func resourceDockerCapabilitiesHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	if v, ok := m["add"]; ok {
+		buf.WriteString(fmt.Sprintf("%v-", v))
+	}
+
+	if v, ok := m["remove"]; ok {
+		buf.WriteString(fmt.Sprintf("%v-", v))
+	}
+
+	return hashcode.String(buf.String())
 }
 
 func resourceDockerPortsHash(v interface{}) int {

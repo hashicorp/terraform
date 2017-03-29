@@ -50,9 +50,16 @@ func (c *OutputCommand) Run(args []string) int {
 		return 1
 	}
 
+	env := c.Env()
+
 	// Get the state
-	stateStore, err := b.State()
+	stateStore, err := b.State(env)
 	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+		return 1
+	}
+
+	if err := stateStore.RefreshState(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
 	}
@@ -76,10 +83,13 @@ func (c *OutputCommand) Run(args []string) int {
 	}
 
 	if state.Empty() || len(mod.Outputs) == 0 {
-		c.Ui.Error(fmt.Sprintf(
-			"The state file has no outputs defined. Define an output\n" +
-				"in your configuration with the `output` directive and re-run\n" +
-				"`terraform apply` for it to become available."))
+		c.Ui.Error(
+			"The state file either has no outputs defined, or all the defined\n" +
+				"outputs are empty. Please define an output in your configuration\n" +
+				"with the `output` keyword and run `terraform refresh` for it to\n" +
+				"become available. If you are using interpolation, please verify\n" +
+				"the interpolated value is not empty. You can use the \n" +
+				"`terraform console` command to assist.")
 		return 1
 	}
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -19,6 +20,30 @@ func TestLoadConfig(t *testing.T) {
 		Providers: map[string]string{
 			"aws": "foo",
 			"do":  "bar",
+		},
+	}
+
+	if !reflect.DeepEqual(c, expected) {
+		t.Fatalf("bad: %#v", c)
+	}
+}
+
+func TestLoadConfig_env(t *testing.T) {
+	defer os.Unsetenv("TFTEST")
+	os.Setenv("TFTEST", "hello")
+
+	c, err := LoadConfig(filepath.Join(fixtureDir, "config-env"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := &Config{
+		Providers: map[string]string{
+			"aws":    "hello",
+			"google": "bar",
+		},
+		Provisioners: map[string]string{
+			"local": "hello",
 		},
 	}
 

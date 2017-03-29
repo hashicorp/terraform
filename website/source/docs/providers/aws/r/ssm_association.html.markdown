@@ -14,26 +14,28 @@ Assosciates an SSM Document to an instance.
 
 ```
 resource "aws_security_group" "tf_test_foo" {
-  name = "tf_test_foo"
+  name        = "tf_test_foo"
   description = "foo"
+
   ingress {
-    protocol = "icmp"
-    from_port = -1
-    to_port = -1
+    protocol    = "icmp"
+    from_port   = -1
+    to_port     = -1
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
 resource "aws_instance" "foo" {
   # eu-west-1
-  ami = "ami-f77ac884"
+  ami               = "ami-f77ac884"
   availability_zone = "eu-west-1a"
-  instance_type = "t2.small"
-  security_groups = ["${aws_security_group.tf_test_foo.name}"]
+  instance_type     = "t2.small"
+  security_groups   = ["${aws_security_group.tf_test_foo.name}"]
 }
 
 resource "aws_ssm_document" "foo_document" {
-  name    = "test_document_association-%s",
+  name = "test_document_association-%s"
+
   content = <<DOC
   {
     "schemaVersion": "1.2",
@@ -56,10 +58,9 @@ DOC
 }
 
 resource "aws_ssm_association" "foo" {
-  name        = "test_document_association-%s",
+  name        = "test_document_association-%s"
   instance_id = "${aws_instance.foo.id}"
 }
-
 ```
 
 ## Argument Reference

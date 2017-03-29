@@ -92,7 +92,7 @@ The primary motivation people have to remove state files is in an attempt
 to improve using Terraform with teams. State files can easily result in
 conflicts when two people modify infrastructure at the same time.
 
-[Remote state](/docs/state/remote/index.html) is the recommended solution
+[Remote state](/docs/state/remote.html) is the recommended solution
 to this problem. At the time of writing, remote state works well but there
 are still scenarios that can result in state conflicts. A priority for future
 versions of Terraform is to improve this.

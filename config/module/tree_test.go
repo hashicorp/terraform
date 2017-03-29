@@ -410,6 +410,27 @@ func TestTreeValidate_requiredChildVar(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	err := tree.Validate()
+	if err == nil {
+		t.Fatal("should error")
+	}
+
+	// ensure both variables are mentioned in the output
+	errMsg := err.Error()
+	for _, v := range []string{"feature", "memory"} {
+		if !strings.Contains(errMsg, v) {
+			t.Fatalf("no mention of missing variable %q", v)
+		}
+	}
+}
+
+func TestTreeValidate_unknownModule(t *testing.T) {
+	tree := NewTree("", testConfig(t, "validate-module-unknown"))
+
+	if err := tree.Load(testStorage(t), GetModeNone); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
 	if err := tree.Validate(); err == nil {
 		t.Fatal("should error")
 	}

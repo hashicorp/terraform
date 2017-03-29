@@ -80,26 +80,25 @@ func (c *Lambda) AddPermissionRequest(input *AddPermissionInput) (req *request.R
 // API operation AddPermission for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The resource (for example, a Lambda function or access policy statement)
 //   specified in the request does not exist.
 //
-//   * ResourceConflictException
+//   * ErrCodeResourceConflictException "ResourceConflictException"
 //   The resource already exists.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
 //   an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
-//   * PolicyLengthExceededException
+//   * ErrCodePolicyLengthExceededException "PolicyLengthExceededException"
 //   Lambda function access policy is limited to 20 KB.
 //
-//   * TooManyRequestsException
-
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
 func (c *Lambda) AddPermission(input *AddPermissionInput) (*AddPermissionOutput, error) {
 	req, out := c.AddPermissionRequest(input)
@@ -164,23 +163,22 @@ func (c *Lambda) CreateAliasRequest(input *CreateAliasInput) (req *request.Reque
 // API operation CreateAlias for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The resource (for example, a Lambda function or access policy statement)
 //   specified in the request does not exist.
 //
-//   * ResourceConflictException
+//   * ErrCodeResourceConflictException "ResourceConflictException"
 //   The resource already exists.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
 //   an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
-//   * TooManyRequestsException
-
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
 func (c *Lambda) CreateAlias(input *CreateAliasInput) (*AliasConfiguration, error) {
 	req, out := c.CreateAliasRequest(input)
@@ -265,21 +263,20 @@ func (c *Lambda) CreateEventSourceMappingRequest(input *CreateEventSourceMapping
 // API operation CreateEventSourceMapping for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
 //   an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
-//   * ResourceConflictException
+//   * ErrCodeResourceConflictException "ResourceConflictException"
 //   The resource already exists.
 //
-//   * TooManyRequestsException
-
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The resource (for example, a Lambda function or access policy statement)
 //   specified in the request does not exist.
 //
@@ -351,25 +348,24 @@ func (c *Lambda) CreateFunctionRequest(input *CreateFunctionInput) (req *request
 // API operation CreateFunction for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
 //   an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The resource (for example, a Lambda function or access policy statement)
 //   specified in the request does not exist.
 //
-//   * ResourceConflictException
+//   * ErrCodeResourceConflictException "ResourceConflictException"
 //   The resource already exists.
 //
-//   * TooManyRequestsException
-
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
-//   * CodeStorageExceededException
+//   * ErrCodeCodeStorageExceededException "CodeStorageExceededException"
 //   You have exceeded your maximum total code size per account. Limits (http://docs.aws.amazon.com/lambda/latest/dg/limits.html)
 //
 func (c *Lambda) CreateFunction(input *CreateFunctionInput) (*FunctionConfiguration, error) {
@@ -436,16 +432,15 @@ func (c *Lambda) DeleteAliasRequest(input *DeleteAliasInput) (req *request.Reque
 // API operation DeleteAlias for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
 //   an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
-//   * TooManyRequestsException
-
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
 func (c *Lambda) DeleteAlias(input *DeleteAliasInput) (*DeleteAliasOutput, error) {
 	req, out := c.DeleteAliasRequest(input)
@@ -510,20 +505,19 @@ func (c *Lambda) DeleteEventSourceMappingRequest(input *DeleteEventSourceMapping
 // API operation DeleteEventSourceMapping for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The resource (for example, a Lambda function or access policy statement)
 //   specified in the request does not exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
 //   an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
-//   * TooManyRequestsException
-
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
 func (c *Lambda) DeleteEventSourceMapping(input *DeleteEventSourceMappingInput) (*EventSourceMappingConfiguration, error) {
 	req, out := c.DeleteEventSourceMappingRequest(input)
@@ -598,22 +592,21 @@ func (c *Lambda) DeleteFunctionRequest(input *DeleteFunctionInput) (req *request
 // API operation DeleteFunction for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The resource (for example, a Lambda function or access policy statement)
 //   specified in the request does not exist.
 //
-//   * TooManyRequestsException
-
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
 //   an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
-//   * ResourceConflictException
+//   * ErrCodeResourceConflictException "ResourceConflictException"
 //   The resource already exists.
 //
 func (c *Lambda) DeleteFunction(input *DeleteFunctionInput) (*DeleteFunctionOutput, error) {
@@ -681,10 +674,9 @@ func (c *Lambda) GetAccountSettingsRequest(input *GetAccountSettingsInput) (req 
 // API operation GetAccountSettings for usage and error information.
 //
 // Returned Error Codes:
-//   * TooManyRequestsException
-
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
 //
 func (c *Lambda) GetAccountSettings(input *GetAccountSettingsInput) (*GetAccountSettingsOutput, error) {
@@ -750,20 +742,19 @@ func (c *Lambda) GetAliasRequest(input *GetAliasInput) (req *request.Request, ou
 // API operation GetAlias for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The resource (for example, a Lambda function or access policy statement)
 //   specified in the request does not exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
 //   an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
-//   * TooManyRequestsException
-
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
 func (c *Lambda) GetAlias(input *GetAliasInput) (*AliasConfiguration, error) {
 	req, out := c.GetAliasRequest(input)
@@ -827,20 +818,19 @@ func (c *Lambda) GetEventSourceMappingRequest(input *GetEventSourceMappingInput)
 // API operation GetEventSourceMapping for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The resource (for example, a Lambda function or access policy statement)
 //   specified in the request does not exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
 //   an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
-//   * TooManyRequestsException
-
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
 func (c *Lambda) GetEventSourceMapping(input *GetEventSourceMappingInput) (*EventSourceMappingConfiguration, error) {
 	req, out := c.GetEventSourceMappingRequest(input)
@@ -913,17 +903,16 @@ func (c *Lambda) GetFunctionRequest(input *GetFunctionInput) (req *request.Reque
 // API operation GetFunction for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The resource (for example, a Lambda function or access policy statement)
 //   specified in the request does not exist.
 //
-//   * TooManyRequestsException
-
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
 //   an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
 //   API, that AWS Lambda is unable to assume you will get this exception.
@@ -999,17 +988,16 @@ func (c *Lambda) GetFunctionConfigurationRequest(input *GetFunctionConfiguration
 // API operation GetFunctionConfiguration for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The resource (for example, a Lambda function or access policy statement)
 //   specified in the request does not exist.
 //
-//   * TooManyRequestsException
-
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
 //   an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
 //   API, that AWS Lambda is unable to assume you will get this exception.
@@ -1082,17 +1070,16 @@ func (c *Lambda) GetPolicyRequest(input *GetPolicyInput) (req *request.Request, 
 // API operation GetPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The resource (for example, a Lambda function or access policy statement)
 //   specified in the request does not exist.
 //
-//   * TooManyRequestsException
-
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
 //   an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
 //   API, that AWS Lambda is unable to assume you will get this exception.
@@ -1167,74 +1154,72 @@ func (c *Lambda) InvokeRequest(input *InvokeInput) (req *request.Request, output
 // API operation Invoke for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The resource (for example, a Lambda function or access policy statement)
 //   specified in the request does not exist.
 //
-//   * InvalidRequestContentException
+//   * ErrCodeInvalidRequestContentException "InvalidRequestContentException"
 //   The request body could not be parsed as JSON.
 //
-//   * RequestTooLargeException
+//   * ErrCodeRequestTooLargeException "RequestTooLargeException"
 //   The request payload exceeded the Invoke request body JSON input limit. For
 //   more information, see Limits (http://docs.aws.amazon.com/lambda/latest/dg/limits.html).
 //
-//   * UnsupportedMediaTypeException
+//   * ErrCodeUnsupportedMediaTypeException "UnsupportedMediaTypeException"
 //   The content type of the Invoke request body is not JSON.
 //
-//   * TooManyRequestsException
-
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
 //   an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
-//   * EC2UnexpectedException
+//   * ErrCodeEC2UnexpectedException "EC2UnexpectedException"
 //   AWS Lambda received an unexpected EC2 client exception while setting up for
 //   the Lambda function.
 //
-//   * SubnetIPAddressLimitReachedException
+//   * ErrCodeSubnetIPAddressLimitReachedException "SubnetIPAddressLimitReachedException"
 //   AWS Lambda was not able to set up VPC access for the Lambda function because
 //   one or more configured subnets has no available IP addresses.
 //
-//   * ENILimitReachedException
+//   * ErrCodeENILimitReachedException "ENILimitReachedException"
 //   AWS Lambda was not able to create an Elastic Network Interface (ENI) in the
 //   VPC, specified as part of Lambda function configuration, because the limit
 //   for network interfaces has been reached.
 //
-//   * EC2ThrottledException
+//   * ErrCodeEC2ThrottledException "EC2ThrottledException"
 //   AWS Lambda was throttled by Amazon EC2 during Lambda function initialization
 //   using the execution role provided for the Lambda function.
 //
-//   * EC2AccessDeniedException
-
+//   * ErrCodeEC2AccessDeniedException "EC2AccessDeniedException"
 //
-//   * InvalidSubnetIDException
+//   * ErrCodeInvalidSubnetIDException "InvalidSubnetIDException"
 //   The Subnet ID provided in the Lambda function VPC configuration is invalid.
 //
-//   * InvalidSecurityGroupIDException
+//   * ErrCodeInvalidSecurityGroupIDException "InvalidSecurityGroupIDException"
 //   The Security Group ID provided in the Lambda function VPC configuration is
 //   invalid.
 //
-//   * InvalidZipFileException
+//   * ErrCodeInvalidZipFileException "InvalidZipFileException"
 //   AWS Lambda could not unzip the function zip file.
 //
-//   * KMSDisabledException
+//   * ErrCodeKMSDisabledException "KMSDisabledException"
 //   Lambda was unable to decrypt the environment variables because the KMS key
 //   used is disabled. Check the Lambda function's KMS key settings.
 //
-//   * KMSInvalidStateException
+//   * ErrCodeKMSInvalidStateException "KMSInvalidStateException"
 //   Lambda was unable to decrypt the environment variables because the KMS key
 //   used is in an invalid state for Decrypt. Check the function's KMS key settings.
 //
-//   * KMSAccessDeniedException
+//   * ErrCodeKMSAccessDeniedException "KMSAccessDeniedException"
 //   Lambda was unable to decrypt the environment variables because KMS access
 //   was denied. Check the Lambda function's KMS permissions.
 //
-//   * KMSNotFoundException
+//   * ErrCodeKMSNotFoundException "KMSNotFoundException"
 //   Lambda was unable to decrypt the environment variables because the KMS key
 //   was not found. Check the function's KMS key settings.
 //
@@ -1306,14 +1291,14 @@ func (c *Lambda) InvokeAsyncRequest(input *InvokeAsyncInput) (req *request.Reque
 // API operation InvokeAsync for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The resource (for example, a Lambda function or access policy statement)
 //   specified in the request does not exist.
 //
-//   * InvalidRequestContentException
+//   * ErrCodeInvalidRequestContentException "InvalidRequestContentException"
 //   The request body could not be parsed as JSON.
 //
 func (c *Lambda) InvokeAsync(input *InvokeAsyncInput) (*InvokeAsyncOutput, error) {
@@ -1380,20 +1365,19 @@ func (c *Lambda) ListAliasesRequest(input *ListAliasesInput) (req *request.Reque
 // API operation ListAliases for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The resource (for example, a Lambda function or access policy statement)
 //   specified in the request does not exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
 //   an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
-//   * TooManyRequestsException
-
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
 func (c *Lambda) ListAliases(input *ListAliasesInput) (*ListAliasesOutput, error) {
 	req, out := c.ListAliasesRequest(input)
@@ -1472,20 +1456,19 @@ func (c *Lambda) ListEventSourceMappingsRequest(input *ListEventSourceMappingsIn
 // API operation ListEventSourceMappings for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The resource (for example, a Lambda function or access policy statement)
 //   specified in the request does not exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
 //   an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
-//   * TooManyRequestsException
-
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
 func (c *Lambda) ListEventSourceMappings(input *ListEventSourceMappingsInput) (*ListEventSourceMappingsOutput, error) {
 	req, out := c.ListEventSourceMappingsRequest(input)
@@ -1585,11 +1568,10 @@ func (c *Lambda) ListFunctionsRequest(input *ListFunctionsInput) (req *request.R
 // API operation ListFunctions for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
 //
-//   * TooManyRequestsException
-
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
 func (c *Lambda) ListFunctions(input *ListFunctionsInput) (*ListFunctionsOutput, error) {
 	req, out := c.ListFunctionsRequest(input)
@@ -1676,20 +1658,19 @@ func (c *Lambda) ListVersionsByFunctionRequest(input *ListVersionsByFunctionInpu
 // API operation ListVersionsByFunction for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The resource (for example, a Lambda function or access policy statement)
 //   specified in the request does not exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
 //   an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
-//   * TooManyRequestsException
-
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
 func (c *Lambda) ListVersionsByFunction(input *ListVersionsByFunctionInput) (*ListVersionsByFunctionOutput, error) {
 	req, out := c.ListVersionsByFunctionRequest(input)
@@ -1754,22 +1735,21 @@ func (c *Lambda) PublishVersionRequest(input *PublishVersionInput) (req *request
 // API operation PublishVersion for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The resource (for example, a Lambda function or access policy statement)
 //   specified in the request does not exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
 //   an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
-//   * TooManyRequestsException
-
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
-//   * CodeStorageExceededException
+//   * ErrCodeCodeStorageExceededException "CodeStorageExceededException"
 //   You have exceeded your maximum total code size per account. Limits (http://docs.aws.amazon.com/lambda/latest/dg/limits.html)
 //
 func (c *Lambda) PublishVersion(input *PublishVersionInput) (*FunctionConfiguration, error) {
@@ -1845,20 +1825,19 @@ func (c *Lambda) RemovePermissionRequest(input *RemovePermissionInput) (req *req
 // API operation RemovePermission for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The resource (for example, a Lambda function or access policy statement)
 //   specified in the request does not exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
 //   an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
-//   * TooManyRequestsException
-
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
 func (c *Lambda) RemovePermission(input *RemovePermissionInput) (*RemovePermissionOutput, error) {
 	req, out := c.RemovePermissionRequest(input)
@@ -1923,20 +1902,19 @@ func (c *Lambda) UpdateAliasRequest(input *UpdateAliasInput) (req *request.Reque
 // API operation UpdateAlias for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The resource (for example, a Lambda function or access policy statement)
 //   specified in the request does not exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
 //   an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
-//   * TooManyRequestsException
-
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
 func (c *Lambda) UpdateAlias(input *UpdateAliasInput) (*AliasConfiguration, error) {
 	req, out := c.UpdateAliasRequest(input)
@@ -2013,22 +1991,21 @@ func (c *Lambda) UpdateEventSourceMappingRequest(input *UpdateEventSourceMapping
 // API operation UpdateEventSourceMapping for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The resource (for example, a Lambda function or access policy statement)
 //   specified in the request does not exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
 //   an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
-//   * TooManyRequestsException
-
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
-//   * ResourceConflictException
+//   * ErrCodeResourceConflictException "ResourceConflictException"
 //   The resource already exists.
 //
 func (c *Lambda) UpdateEventSourceMapping(input *UpdateEventSourceMappingInput) (*EventSourceMappingConfiguration, error) {
@@ -2098,22 +2075,21 @@ func (c *Lambda) UpdateFunctionCodeRequest(input *UpdateFunctionCodeInput) (req 
 // API operation UpdateFunctionCode for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The resource (for example, a Lambda function or access policy statement)
 //   specified in the request does not exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
 //   an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
-//   * TooManyRequestsException
-
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
-//   * CodeStorageExceededException
+//   * ErrCodeCodeStorageExceededException "CodeStorageExceededException"
 //   You have exceeded your maximum total code size per account. Limits (http://docs.aws.amazon.com/lambda/latest/dg/limits.html)
 //
 func (c *Lambda) UpdateFunctionCode(input *UpdateFunctionCodeInput) (*FunctionConfiguration, error) {
@@ -2185,20 +2161,19 @@ func (c *Lambda) UpdateFunctionConfigurationRequest(input *UpdateFunctionConfigu
 // API operation UpdateFunctionConfiguration for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   The AWS Lambda service encountered an internal error.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The resource (for example, a Lambda function or access policy statement)
 //   specified in the request does not exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One of the parameters in the request is invalid. For example, if you provided
 //   an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
 //   API, that AWS Lambda is unable to assume you will get this exception.
 //
-//   * TooManyRequestsException
-
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
 //
 func (c *Lambda) UpdateFunctionConfiguration(input *UpdateFunctionConfigurationInput) (*FunctionConfiguration, error) {
 	req, out := c.UpdateFunctionConfigurationRequest(input)
