@@ -6,6 +6,7 @@ package elasticache
 import (
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/private/protocol"
@@ -94,8 +95,23 @@ func (c *ElastiCache) AddTagsToResourceRequest(input *AddTagsToResourceInput) (r
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/AddTagsToResource
 func (c *ElastiCache) AddTagsToResource(input *AddTagsToResourceInput) (*TagListMessage, error) {
 	req, out := c.AddTagsToResourceRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// AddTagsToResourceWithContext is the same as AddTagsToResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See AddTagsToResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) AddTagsToResourceWithContext(ctx aws.Context, input *AddTagsToResourceInput, opts ...request.Option) (*TagListMessage, error) {
+	req, out := c.AddTagsToResourceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opAuthorizeCacheSecurityGroupIngress = "AuthorizeCacheSecurityGroupIngress"
@@ -178,8 +194,23 @@ func (c *ElastiCache) AuthorizeCacheSecurityGroupIngressRequest(input *Authorize
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/AuthorizeCacheSecurityGroupIngress
 func (c *ElastiCache) AuthorizeCacheSecurityGroupIngress(input *AuthorizeCacheSecurityGroupIngressInput) (*AuthorizeCacheSecurityGroupIngressOutput, error) {
 	req, out := c.AuthorizeCacheSecurityGroupIngressRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// AuthorizeCacheSecurityGroupIngressWithContext is the same as AuthorizeCacheSecurityGroupIngress with the addition of
+// the ability to pass a context and additional request options.
+//
+// See AuthorizeCacheSecurityGroupIngress for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) AuthorizeCacheSecurityGroupIngressWithContext(ctx aws.Context, input *AuthorizeCacheSecurityGroupIngressInput, opts ...request.Option) (*AuthorizeCacheSecurityGroupIngressOutput, error) {
+	req, out := c.AuthorizeCacheSecurityGroupIngressRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opCopySnapshot = "CopySnapshot"
@@ -324,8 +355,23 @@ func (c *ElastiCache) CopySnapshotRequest(input *CopySnapshotInput) (req *reques
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/CopySnapshot
 func (c *ElastiCache) CopySnapshot(input *CopySnapshotInput) (*CopySnapshotOutput, error) {
 	req, out := c.CopySnapshotRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// CopySnapshotWithContext is the same as CopySnapshot with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CopySnapshot for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) CopySnapshotWithContext(ctx aws.Context, input *CopySnapshotInput, opts ...request.Option) (*CopySnapshotOutput, error) {
+	req, out := c.CopySnapshotRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opCreateCacheCluster = "CreateCacheCluster"
@@ -442,8 +488,23 @@ func (c *ElastiCache) CreateCacheClusterRequest(input *CreateCacheClusterInput) 
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/CreateCacheCluster
 func (c *ElastiCache) CreateCacheCluster(input *CreateCacheClusterInput) (*CreateCacheClusterOutput, error) {
 	req, out := c.CreateCacheClusterRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// CreateCacheClusterWithContext is the same as CreateCacheCluster with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateCacheCluster for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) CreateCacheClusterWithContext(ctx aws.Context, input *CreateCacheClusterInput, opts ...request.Option) (*CreateCacheClusterOutput, error) {
+	req, out := c.CreateCacheClusterRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opCreateCacheParameterGroup = "CreateCacheParameterGroup"
@@ -522,8 +583,23 @@ func (c *ElastiCache) CreateCacheParameterGroupRequest(input *CreateCacheParamet
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/CreateCacheParameterGroup
 func (c *ElastiCache) CreateCacheParameterGroup(input *CreateCacheParameterGroupInput) (*CreateCacheParameterGroupOutput, error) {
 	req, out := c.CreateCacheParameterGroupRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// CreateCacheParameterGroupWithContext is the same as CreateCacheParameterGroup with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateCacheParameterGroup for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) CreateCacheParameterGroupWithContext(ctx aws.Context, input *CreateCacheParameterGroupInput, opts ...request.Option) (*CreateCacheParameterGroupOutput, error) {
+	req, out := c.CreateCacheParameterGroupRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opCreateCacheSecurityGroup = "CreateCacheSecurityGroup"
@@ -603,8 +679,23 @@ func (c *ElastiCache) CreateCacheSecurityGroupRequest(input *CreateCacheSecurity
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/CreateCacheSecurityGroup
 func (c *ElastiCache) CreateCacheSecurityGroup(input *CreateCacheSecurityGroupInput) (*CreateCacheSecurityGroupOutput, error) {
 	req, out := c.CreateCacheSecurityGroupRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// CreateCacheSecurityGroupWithContext is the same as CreateCacheSecurityGroup with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateCacheSecurityGroup for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) CreateCacheSecurityGroupWithContext(ctx aws.Context, input *CreateCacheSecurityGroupInput, opts ...request.Option) (*CreateCacheSecurityGroupOutput, error) {
+	req, out := c.CreateCacheSecurityGroupRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opCreateCacheSubnetGroup = "CreateCacheSubnetGroup"
@@ -683,8 +774,23 @@ func (c *ElastiCache) CreateCacheSubnetGroupRequest(input *CreateCacheSubnetGrou
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/CreateCacheSubnetGroup
 func (c *ElastiCache) CreateCacheSubnetGroup(input *CreateCacheSubnetGroupInput) (*CreateCacheSubnetGroupOutput, error) {
 	req, out := c.CreateCacheSubnetGroupRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// CreateCacheSubnetGroupWithContext is the same as CreateCacheSubnetGroup with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateCacheSubnetGroup for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) CreateCacheSubnetGroupWithContext(ctx aws.Context, input *CreateCacheSubnetGroupInput, opts ...request.Option) (*CreateCacheSubnetGroupOutput, error) {
+	req, out := c.CreateCacheSubnetGroupRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opCreateReplicationGroup = "CreateReplicationGroup"
@@ -819,8 +925,23 @@ func (c *ElastiCache) CreateReplicationGroupRequest(input *CreateReplicationGrou
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/CreateReplicationGroup
 func (c *ElastiCache) CreateReplicationGroup(input *CreateReplicationGroupInput) (*CreateReplicationGroupOutput, error) {
 	req, out := c.CreateReplicationGroupRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// CreateReplicationGroupWithContext is the same as CreateReplicationGroup with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateReplicationGroup for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) CreateReplicationGroupWithContext(ctx aws.Context, input *CreateReplicationGroupInput, opts ...request.Option) (*CreateReplicationGroupOutput, error) {
+	req, out := c.CreateReplicationGroupRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opCreateSnapshot = "CreateSnapshot"
@@ -920,8 +1041,23 @@ func (c *ElastiCache) CreateSnapshotRequest(input *CreateSnapshotInput) (req *re
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/CreateSnapshot
 func (c *ElastiCache) CreateSnapshot(input *CreateSnapshotInput) (*CreateSnapshotOutput, error) {
 	req, out := c.CreateSnapshotRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// CreateSnapshotWithContext is the same as CreateSnapshot with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateSnapshot for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) CreateSnapshotWithContext(ctx aws.Context, input *CreateSnapshotInput, opts ...request.Option) (*CreateSnapshotOutput, error) {
+	req, out := c.CreateSnapshotRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opDeleteCacheCluster = "DeleteCacheCluster"
@@ -1025,8 +1161,23 @@ func (c *ElastiCache) DeleteCacheClusterRequest(input *DeleteCacheClusterInput) 
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/DeleteCacheCluster
 func (c *ElastiCache) DeleteCacheCluster(input *DeleteCacheClusterInput) (*DeleteCacheClusterOutput, error) {
 	req, out := c.DeleteCacheClusterRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// DeleteCacheClusterWithContext is the same as DeleteCacheCluster with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteCacheCluster for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DeleteCacheClusterWithContext(ctx aws.Context, input *DeleteCacheClusterInput, opts ...request.Option) (*DeleteCacheClusterOutput, error) {
+	req, out := c.DeleteCacheClusterRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opDeleteCacheParameterGroup = "DeleteCacheParameterGroup"
@@ -1104,8 +1255,23 @@ func (c *ElastiCache) DeleteCacheParameterGroupRequest(input *DeleteCacheParamet
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/DeleteCacheParameterGroup
 func (c *ElastiCache) DeleteCacheParameterGroup(input *DeleteCacheParameterGroupInput) (*DeleteCacheParameterGroupOutput, error) {
 	req, out := c.DeleteCacheParameterGroupRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// DeleteCacheParameterGroupWithContext is the same as DeleteCacheParameterGroup with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteCacheParameterGroup for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DeleteCacheParameterGroupWithContext(ctx aws.Context, input *DeleteCacheParameterGroupInput, opts ...request.Option) (*DeleteCacheParameterGroupOutput, error) {
+	req, out := c.DeleteCacheParameterGroupRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opDeleteCacheSecurityGroup = "DeleteCacheSecurityGroup"
@@ -1184,8 +1350,23 @@ func (c *ElastiCache) DeleteCacheSecurityGroupRequest(input *DeleteCacheSecurity
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/DeleteCacheSecurityGroup
 func (c *ElastiCache) DeleteCacheSecurityGroup(input *DeleteCacheSecurityGroupInput) (*DeleteCacheSecurityGroupOutput, error) {
 	req, out := c.DeleteCacheSecurityGroupRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// DeleteCacheSecurityGroupWithContext is the same as DeleteCacheSecurityGroup with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteCacheSecurityGroup for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DeleteCacheSecurityGroupWithContext(ctx aws.Context, input *DeleteCacheSecurityGroupInput, opts ...request.Option) (*DeleteCacheSecurityGroupOutput, error) {
+	req, out := c.DeleteCacheSecurityGroupRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opDeleteCacheSubnetGroup = "DeleteCacheSubnetGroup"
@@ -1258,8 +1439,23 @@ func (c *ElastiCache) DeleteCacheSubnetGroupRequest(input *DeleteCacheSubnetGrou
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/DeleteCacheSubnetGroup
 func (c *ElastiCache) DeleteCacheSubnetGroup(input *DeleteCacheSubnetGroupInput) (*DeleteCacheSubnetGroupOutput, error) {
 	req, out := c.DeleteCacheSubnetGroupRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// DeleteCacheSubnetGroupWithContext is the same as DeleteCacheSubnetGroup with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteCacheSubnetGroup for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DeleteCacheSubnetGroupWithContext(ctx aws.Context, input *DeleteCacheSubnetGroupInput, opts ...request.Option) (*DeleteCacheSubnetGroupOutput, error) {
+	req, out := c.DeleteCacheSubnetGroupRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opDeleteReplicationGroup = "DeleteReplicationGroup"
@@ -1360,8 +1556,23 @@ func (c *ElastiCache) DeleteReplicationGroupRequest(input *DeleteReplicationGrou
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/DeleteReplicationGroup
 func (c *ElastiCache) DeleteReplicationGroup(input *DeleteReplicationGroupInput) (*DeleteReplicationGroupOutput, error) {
 	req, out := c.DeleteReplicationGroupRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// DeleteReplicationGroupWithContext is the same as DeleteReplicationGroup with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteReplicationGroup for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DeleteReplicationGroupWithContext(ctx aws.Context, input *DeleteReplicationGroupInput, opts ...request.Option) (*DeleteReplicationGroupOutput, error) {
+	req, out := c.DeleteReplicationGroupRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opDeleteSnapshot = "DeleteSnapshot"
@@ -1439,8 +1650,23 @@ func (c *ElastiCache) DeleteSnapshotRequest(input *DeleteSnapshotInput) (req *re
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/DeleteSnapshot
 func (c *ElastiCache) DeleteSnapshot(input *DeleteSnapshotInput) (*DeleteSnapshotOutput, error) {
 	req, out := c.DeleteSnapshotRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// DeleteSnapshotWithContext is the same as DeleteSnapshot with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteSnapshot for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DeleteSnapshotWithContext(ctx aws.Context, input *DeleteSnapshotInput, opts ...request.Option) (*DeleteSnapshotOutput, error) {
+	req, out := c.DeleteSnapshotRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opDescribeCacheClusters = "DescribeCacheClusters"
@@ -1537,8 +1763,23 @@ func (c *ElastiCache) DescribeCacheClustersRequest(input *DescribeCacheClustersI
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/DescribeCacheClusters
 func (c *ElastiCache) DescribeCacheClusters(input *DescribeCacheClustersInput) (*DescribeCacheClustersOutput, error) {
 	req, out := c.DescribeCacheClustersRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// DescribeCacheClustersWithContext is the same as DescribeCacheClusters with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeCacheClusters for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DescribeCacheClustersWithContext(ctx aws.Context, input *DescribeCacheClustersInput, opts ...request.Option) (*DescribeCacheClustersOutput, error) {
+	req, out := c.DescribeCacheClustersRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 // DescribeCacheClustersPages iterates over the pages of a DescribeCacheClusters operation,
@@ -1558,12 +1799,36 @@ func (c *ElastiCache) DescribeCacheClusters(input *DescribeCacheClustersInput) (
 //            return pageNum <= 3
 //        })
 //
-func (c *ElastiCache) DescribeCacheClustersPages(input *DescribeCacheClustersInput, fn func(p *DescribeCacheClustersOutput, lastPage bool) (shouldContinue bool)) error {
-	page, _ := c.DescribeCacheClustersRequest(input)
-	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
-	return page.EachPage(func(p interface{}, lastPage bool) bool {
-		return fn(p.(*DescribeCacheClustersOutput), lastPage)
-	})
+func (c *ElastiCache) DescribeCacheClustersPages(input *DescribeCacheClustersInput, fn func(*DescribeCacheClustersOutput, bool) bool) error {
+	return c.DescribeCacheClustersPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeCacheClustersPagesWithContext same as DescribeCacheClustersPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DescribeCacheClustersPagesWithContext(ctx aws.Context, input *DescribeCacheClustersInput, fn func(*DescribeCacheClustersOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy DescribeCacheClustersInput
+			if input != nil {
+				inCpy = *input
+			}
+			req, _ := c.DescribeCacheClustersRequest(&inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*DescribeCacheClustersOutput), !p.HasNextPage())
+	}
+	return p.Err()
 }
 
 const opDescribeCacheEngineVersions = "DescribeCacheEngineVersions"
@@ -1628,8 +1893,23 @@ func (c *ElastiCache) DescribeCacheEngineVersionsRequest(input *DescribeCacheEng
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/DescribeCacheEngineVersions
 func (c *ElastiCache) DescribeCacheEngineVersions(input *DescribeCacheEngineVersionsInput) (*DescribeCacheEngineVersionsOutput, error) {
 	req, out := c.DescribeCacheEngineVersionsRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// DescribeCacheEngineVersionsWithContext is the same as DescribeCacheEngineVersions with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeCacheEngineVersions for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DescribeCacheEngineVersionsWithContext(ctx aws.Context, input *DescribeCacheEngineVersionsInput, opts ...request.Option) (*DescribeCacheEngineVersionsOutput, error) {
+	req, out := c.DescribeCacheEngineVersionsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 // DescribeCacheEngineVersionsPages iterates over the pages of a DescribeCacheEngineVersions operation,
@@ -1649,12 +1929,36 @@ func (c *ElastiCache) DescribeCacheEngineVersions(input *DescribeCacheEngineVers
 //            return pageNum <= 3
 //        })
 //
-func (c *ElastiCache) DescribeCacheEngineVersionsPages(input *DescribeCacheEngineVersionsInput, fn func(p *DescribeCacheEngineVersionsOutput, lastPage bool) (shouldContinue bool)) error {
-	page, _ := c.DescribeCacheEngineVersionsRequest(input)
-	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
-	return page.EachPage(func(p interface{}, lastPage bool) bool {
-		return fn(p.(*DescribeCacheEngineVersionsOutput), lastPage)
-	})
+func (c *ElastiCache) DescribeCacheEngineVersionsPages(input *DescribeCacheEngineVersionsInput, fn func(*DescribeCacheEngineVersionsOutput, bool) bool) error {
+	return c.DescribeCacheEngineVersionsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeCacheEngineVersionsPagesWithContext same as DescribeCacheEngineVersionsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DescribeCacheEngineVersionsPagesWithContext(ctx aws.Context, input *DescribeCacheEngineVersionsInput, fn func(*DescribeCacheEngineVersionsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy DescribeCacheEngineVersionsInput
+			if input != nil {
+				inCpy = *input
+			}
+			req, _ := c.DescribeCacheEngineVersionsRequest(&inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*DescribeCacheEngineVersionsOutput), !p.HasNextPage())
+	}
+	return p.Err()
 }
 
 const opDescribeCacheParameterGroups = "DescribeCacheParameterGroups"
@@ -1733,8 +2037,23 @@ func (c *ElastiCache) DescribeCacheParameterGroupsRequest(input *DescribeCachePa
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/DescribeCacheParameterGroups
 func (c *ElastiCache) DescribeCacheParameterGroups(input *DescribeCacheParameterGroupsInput) (*DescribeCacheParameterGroupsOutput, error) {
 	req, out := c.DescribeCacheParameterGroupsRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// DescribeCacheParameterGroupsWithContext is the same as DescribeCacheParameterGroups with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeCacheParameterGroups for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DescribeCacheParameterGroupsWithContext(ctx aws.Context, input *DescribeCacheParameterGroupsInput, opts ...request.Option) (*DescribeCacheParameterGroupsOutput, error) {
+	req, out := c.DescribeCacheParameterGroupsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 // DescribeCacheParameterGroupsPages iterates over the pages of a DescribeCacheParameterGroups operation,
@@ -1754,12 +2073,36 @@ func (c *ElastiCache) DescribeCacheParameterGroups(input *DescribeCacheParameter
 //            return pageNum <= 3
 //        })
 //
-func (c *ElastiCache) DescribeCacheParameterGroupsPages(input *DescribeCacheParameterGroupsInput, fn func(p *DescribeCacheParameterGroupsOutput, lastPage bool) (shouldContinue bool)) error {
-	page, _ := c.DescribeCacheParameterGroupsRequest(input)
-	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
-	return page.EachPage(func(p interface{}, lastPage bool) bool {
-		return fn(p.(*DescribeCacheParameterGroupsOutput), lastPage)
-	})
+func (c *ElastiCache) DescribeCacheParameterGroupsPages(input *DescribeCacheParameterGroupsInput, fn func(*DescribeCacheParameterGroupsOutput, bool) bool) error {
+	return c.DescribeCacheParameterGroupsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeCacheParameterGroupsPagesWithContext same as DescribeCacheParameterGroupsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DescribeCacheParameterGroupsPagesWithContext(ctx aws.Context, input *DescribeCacheParameterGroupsInput, fn func(*DescribeCacheParameterGroupsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy DescribeCacheParameterGroupsInput
+			if input != nil {
+				inCpy = *input
+			}
+			req, _ := c.DescribeCacheParameterGroupsRequest(&inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*DescribeCacheParameterGroupsOutput), !p.HasNextPage())
+	}
+	return p.Err()
 }
 
 const opDescribeCacheParameters = "DescribeCacheParameters"
@@ -1836,8 +2179,23 @@ func (c *ElastiCache) DescribeCacheParametersRequest(input *DescribeCacheParamet
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/DescribeCacheParameters
 func (c *ElastiCache) DescribeCacheParameters(input *DescribeCacheParametersInput) (*DescribeCacheParametersOutput, error) {
 	req, out := c.DescribeCacheParametersRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// DescribeCacheParametersWithContext is the same as DescribeCacheParameters with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeCacheParameters for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DescribeCacheParametersWithContext(ctx aws.Context, input *DescribeCacheParametersInput, opts ...request.Option) (*DescribeCacheParametersOutput, error) {
+	req, out := c.DescribeCacheParametersRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 // DescribeCacheParametersPages iterates over the pages of a DescribeCacheParameters operation,
@@ -1857,12 +2215,36 @@ func (c *ElastiCache) DescribeCacheParameters(input *DescribeCacheParametersInpu
 //            return pageNum <= 3
 //        })
 //
-func (c *ElastiCache) DescribeCacheParametersPages(input *DescribeCacheParametersInput, fn func(p *DescribeCacheParametersOutput, lastPage bool) (shouldContinue bool)) error {
-	page, _ := c.DescribeCacheParametersRequest(input)
-	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
-	return page.EachPage(func(p interface{}, lastPage bool) bool {
-		return fn(p.(*DescribeCacheParametersOutput), lastPage)
-	})
+func (c *ElastiCache) DescribeCacheParametersPages(input *DescribeCacheParametersInput, fn func(*DescribeCacheParametersOutput, bool) bool) error {
+	return c.DescribeCacheParametersPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeCacheParametersPagesWithContext same as DescribeCacheParametersPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DescribeCacheParametersPagesWithContext(ctx aws.Context, input *DescribeCacheParametersInput, fn func(*DescribeCacheParametersOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy DescribeCacheParametersInput
+			if input != nil {
+				inCpy = *input
+			}
+			req, _ := c.DescribeCacheParametersRequest(&inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*DescribeCacheParametersOutput), !p.HasNextPage())
+	}
+	return p.Err()
 }
 
 const opDescribeCacheSecurityGroups = "DescribeCacheSecurityGroups"
@@ -1940,8 +2322,23 @@ func (c *ElastiCache) DescribeCacheSecurityGroupsRequest(input *DescribeCacheSec
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/DescribeCacheSecurityGroups
 func (c *ElastiCache) DescribeCacheSecurityGroups(input *DescribeCacheSecurityGroupsInput) (*DescribeCacheSecurityGroupsOutput, error) {
 	req, out := c.DescribeCacheSecurityGroupsRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// DescribeCacheSecurityGroupsWithContext is the same as DescribeCacheSecurityGroups with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeCacheSecurityGroups for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DescribeCacheSecurityGroupsWithContext(ctx aws.Context, input *DescribeCacheSecurityGroupsInput, opts ...request.Option) (*DescribeCacheSecurityGroupsOutput, error) {
+	req, out := c.DescribeCacheSecurityGroupsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 // DescribeCacheSecurityGroupsPages iterates over the pages of a DescribeCacheSecurityGroups operation,
@@ -1961,12 +2358,36 @@ func (c *ElastiCache) DescribeCacheSecurityGroups(input *DescribeCacheSecurityGr
 //            return pageNum <= 3
 //        })
 //
-func (c *ElastiCache) DescribeCacheSecurityGroupsPages(input *DescribeCacheSecurityGroupsInput, fn func(p *DescribeCacheSecurityGroupsOutput, lastPage bool) (shouldContinue bool)) error {
-	page, _ := c.DescribeCacheSecurityGroupsRequest(input)
-	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
-	return page.EachPage(func(p interface{}, lastPage bool) bool {
-		return fn(p.(*DescribeCacheSecurityGroupsOutput), lastPage)
-	})
+func (c *ElastiCache) DescribeCacheSecurityGroupsPages(input *DescribeCacheSecurityGroupsInput, fn func(*DescribeCacheSecurityGroupsOutput, bool) bool) error {
+	return c.DescribeCacheSecurityGroupsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeCacheSecurityGroupsPagesWithContext same as DescribeCacheSecurityGroupsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DescribeCacheSecurityGroupsPagesWithContext(ctx aws.Context, input *DescribeCacheSecurityGroupsInput, fn func(*DescribeCacheSecurityGroupsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy DescribeCacheSecurityGroupsInput
+			if input != nil {
+				inCpy = *input
+			}
+			req, _ := c.DescribeCacheSecurityGroupsRequest(&inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*DescribeCacheSecurityGroupsOutput), !p.HasNextPage())
+	}
+	return p.Err()
 }
 
 const opDescribeCacheSubnetGroups = "DescribeCacheSubnetGroups"
@@ -2038,8 +2459,23 @@ func (c *ElastiCache) DescribeCacheSubnetGroupsRequest(input *DescribeCacheSubne
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/DescribeCacheSubnetGroups
 func (c *ElastiCache) DescribeCacheSubnetGroups(input *DescribeCacheSubnetGroupsInput) (*DescribeCacheSubnetGroupsOutput, error) {
 	req, out := c.DescribeCacheSubnetGroupsRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// DescribeCacheSubnetGroupsWithContext is the same as DescribeCacheSubnetGroups with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeCacheSubnetGroups for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DescribeCacheSubnetGroupsWithContext(ctx aws.Context, input *DescribeCacheSubnetGroupsInput, opts ...request.Option) (*DescribeCacheSubnetGroupsOutput, error) {
+	req, out := c.DescribeCacheSubnetGroupsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 // DescribeCacheSubnetGroupsPages iterates over the pages of a DescribeCacheSubnetGroups operation,
@@ -2059,12 +2495,36 @@ func (c *ElastiCache) DescribeCacheSubnetGroups(input *DescribeCacheSubnetGroups
 //            return pageNum <= 3
 //        })
 //
-func (c *ElastiCache) DescribeCacheSubnetGroupsPages(input *DescribeCacheSubnetGroupsInput, fn func(p *DescribeCacheSubnetGroupsOutput, lastPage bool) (shouldContinue bool)) error {
-	page, _ := c.DescribeCacheSubnetGroupsRequest(input)
-	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
-	return page.EachPage(func(p interface{}, lastPage bool) bool {
-		return fn(p.(*DescribeCacheSubnetGroupsOutput), lastPage)
-	})
+func (c *ElastiCache) DescribeCacheSubnetGroupsPages(input *DescribeCacheSubnetGroupsInput, fn func(*DescribeCacheSubnetGroupsOutput, bool) bool) error {
+	return c.DescribeCacheSubnetGroupsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeCacheSubnetGroupsPagesWithContext same as DescribeCacheSubnetGroupsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DescribeCacheSubnetGroupsPagesWithContext(ctx aws.Context, input *DescribeCacheSubnetGroupsInput, fn func(*DescribeCacheSubnetGroupsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy DescribeCacheSubnetGroupsInput
+			if input != nil {
+				inCpy = *input
+			}
+			req, _ := c.DescribeCacheSubnetGroupsRequest(&inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*DescribeCacheSubnetGroupsOutput), !p.HasNextPage())
+	}
+	return p.Err()
 }
 
 const opDescribeEngineDefaultParameters = "DescribeEngineDefaultParameters"
@@ -2138,8 +2598,23 @@ func (c *ElastiCache) DescribeEngineDefaultParametersRequest(input *DescribeEngi
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/DescribeEngineDefaultParameters
 func (c *ElastiCache) DescribeEngineDefaultParameters(input *DescribeEngineDefaultParametersInput) (*DescribeEngineDefaultParametersOutput, error) {
 	req, out := c.DescribeEngineDefaultParametersRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// DescribeEngineDefaultParametersWithContext is the same as DescribeEngineDefaultParameters with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeEngineDefaultParameters for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DescribeEngineDefaultParametersWithContext(ctx aws.Context, input *DescribeEngineDefaultParametersInput, opts ...request.Option) (*DescribeEngineDefaultParametersOutput, error) {
+	req, out := c.DescribeEngineDefaultParametersRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 // DescribeEngineDefaultParametersPages iterates over the pages of a DescribeEngineDefaultParameters operation,
@@ -2159,12 +2634,36 @@ func (c *ElastiCache) DescribeEngineDefaultParameters(input *DescribeEngineDefau
 //            return pageNum <= 3
 //        })
 //
-func (c *ElastiCache) DescribeEngineDefaultParametersPages(input *DescribeEngineDefaultParametersInput, fn func(p *DescribeEngineDefaultParametersOutput, lastPage bool) (shouldContinue bool)) error {
-	page, _ := c.DescribeEngineDefaultParametersRequest(input)
-	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
-	return page.EachPage(func(p interface{}, lastPage bool) bool {
-		return fn(p.(*DescribeEngineDefaultParametersOutput), lastPage)
-	})
+func (c *ElastiCache) DescribeEngineDefaultParametersPages(input *DescribeEngineDefaultParametersInput, fn func(*DescribeEngineDefaultParametersOutput, bool) bool) error {
+	return c.DescribeEngineDefaultParametersPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeEngineDefaultParametersPagesWithContext same as DescribeEngineDefaultParametersPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DescribeEngineDefaultParametersPagesWithContext(ctx aws.Context, input *DescribeEngineDefaultParametersInput, fn func(*DescribeEngineDefaultParametersOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy DescribeEngineDefaultParametersInput
+			if input != nil {
+				inCpy = *input
+			}
+			req, _ := c.DescribeEngineDefaultParametersRequest(&inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*DescribeEngineDefaultParametersOutput), !p.HasNextPage())
+	}
+	return p.Err()
 }
 
 const opDescribeEvents = "DescribeEvents"
@@ -2243,8 +2742,23 @@ func (c *ElastiCache) DescribeEventsRequest(input *DescribeEventsInput) (req *re
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/DescribeEvents
 func (c *ElastiCache) DescribeEvents(input *DescribeEventsInput) (*DescribeEventsOutput, error) {
 	req, out := c.DescribeEventsRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// DescribeEventsWithContext is the same as DescribeEvents with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeEvents for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DescribeEventsWithContext(ctx aws.Context, input *DescribeEventsInput, opts ...request.Option) (*DescribeEventsOutput, error) {
+	req, out := c.DescribeEventsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 // DescribeEventsPages iterates over the pages of a DescribeEvents operation,
@@ -2264,12 +2778,36 @@ func (c *ElastiCache) DescribeEvents(input *DescribeEventsInput) (*DescribeEvent
 //            return pageNum <= 3
 //        })
 //
-func (c *ElastiCache) DescribeEventsPages(input *DescribeEventsInput, fn func(p *DescribeEventsOutput, lastPage bool) (shouldContinue bool)) error {
-	page, _ := c.DescribeEventsRequest(input)
-	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
-	return page.EachPage(func(p interface{}, lastPage bool) bool {
-		return fn(p.(*DescribeEventsOutput), lastPage)
-	})
+func (c *ElastiCache) DescribeEventsPages(input *DescribeEventsInput, fn func(*DescribeEventsOutput, bool) bool) error {
+	return c.DescribeEventsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeEventsPagesWithContext same as DescribeEventsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DescribeEventsPagesWithContext(ctx aws.Context, input *DescribeEventsInput, fn func(*DescribeEventsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy DescribeEventsInput
+			if input != nil {
+				inCpy = *input
+			}
+			req, _ := c.DescribeEventsRequest(&inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*DescribeEventsOutput), !p.HasNextPage())
+	}
+	return p.Err()
 }
 
 const opDescribeReplicationGroups = "DescribeReplicationGroups"
@@ -2349,8 +2887,23 @@ func (c *ElastiCache) DescribeReplicationGroupsRequest(input *DescribeReplicatio
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/DescribeReplicationGroups
 func (c *ElastiCache) DescribeReplicationGroups(input *DescribeReplicationGroupsInput) (*DescribeReplicationGroupsOutput, error) {
 	req, out := c.DescribeReplicationGroupsRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// DescribeReplicationGroupsWithContext is the same as DescribeReplicationGroups with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeReplicationGroups for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DescribeReplicationGroupsWithContext(ctx aws.Context, input *DescribeReplicationGroupsInput, opts ...request.Option) (*DescribeReplicationGroupsOutput, error) {
+	req, out := c.DescribeReplicationGroupsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 // DescribeReplicationGroupsPages iterates over the pages of a DescribeReplicationGroups operation,
@@ -2370,12 +2923,36 @@ func (c *ElastiCache) DescribeReplicationGroups(input *DescribeReplicationGroups
 //            return pageNum <= 3
 //        })
 //
-func (c *ElastiCache) DescribeReplicationGroupsPages(input *DescribeReplicationGroupsInput, fn func(p *DescribeReplicationGroupsOutput, lastPage bool) (shouldContinue bool)) error {
-	page, _ := c.DescribeReplicationGroupsRequest(input)
-	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
-	return page.EachPage(func(p interface{}, lastPage bool) bool {
-		return fn(p.(*DescribeReplicationGroupsOutput), lastPage)
-	})
+func (c *ElastiCache) DescribeReplicationGroupsPages(input *DescribeReplicationGroupsInput, fn func(*DescribeReplicationGroupsOutput, bool) bool) error {
+	return c.DescribeReplicationGroupsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeReplicationGroupsPagesWithContext same as DescribeReplicationGroupsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DescribeReplicationGroupsPagesWithContext(ctx aws.Context, input *DescribeReplicationGroupsInput, fn func(*DescribeReplicationGroupsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy DescribeReplicationGroupsInput
+			if input != nil {
+				inCpy = *input
+			}
+			req, _ := c.DescribeReplicationGroupsRequest(&inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*DescribeReplicationGroupsOutput), !p.HasNextPage())
+	}
+	return p.Err()
 }
 
 const opDescribeReservedCacheNodes = "DescribeReservedCacheNodes"
@@ -2452,8 +3029,23 @@ func (c *ElastiCache) DescribeReservedCacheNodesRequest(input *DescribeReservedC
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/DescribeReservedCacheNodes
 func (c *ElastiCache) DescribeReservedCacheNodes(input *DescribeReservedCacheNodesInput) (*DescribeReservedCacheNodesOutput, error) {
 	req, out := c.DescribeReservedCacheNodesRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// DescribeReservedCacheNodesWithContext is the same as DescribeReservedCacheNodes with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeReservedCacheNodes for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DescribeReservedCacheNodesWithContext(ctx aws.Context, input *DescribeReservedCacheNodesInput, opts ...request.Option) (*DescribeReservedCacheNodesOutput, error) {
+	req, out := c.DescribeReservedCacheNodesRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 // DescribeReservedCacheNodesPages iterates over the pages of a DescribeReservedCacheNodes operation,
@@ -2473,12 +3065,36 @@ func (c *ElastiCache) DescribeReservedCacheNodes(input *DescribeReservedCacheNod
 //            return pageNum <= 3
 //        })
 //
-func (c *ElastiCache) DescribeReservedCacheNodesPages(input *DescribeReservedCacheNodesInput, fn func(p *DescribeReservedCacheNodesOutput, lastPage bool) (shouldContinue bool)) error {
-	page, _ := c.DescribeReservedCacheNodesRequest(input)
-	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
-	return page.EachPage(func(p interface{}, lastPage bool) bool {
-		return fn(p.(*DescribeReservedCacheNodesOutput), lastPage)
-	})
+func (c *ElastiCache) DescribeReservedCacheNodesPages(input *DescribeReservedCacheNodesInput, fn func(*DescribeReservedCacheNodesOutput, bool) bool) error {
+	return c.DescribeReservedCacheNodesPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeReservedCacheNodesPagesWithContext same as DescribeReservedCacheNodesPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DescribeReservedCacheNodesPagesWithContext(ctx aws.Context, input *DescribeReservedCacheNodesInput, fn func(*DescribeReservedCacheNodesOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy DescribeReservedCacheNodesInput
+			if input != nil {
+				inCpy = *input
+			}
+			req, _ := c.DescribeReservedCacheNodesRequest(&inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*DescribeReservedCacheNodesOutput), !p.HasNextPage())
+	}
+	return p.Err()
 }
 
 const opDescribeReservedCacheNodesOfferings = "DescribeReservedCacheNodesOfferings"
@@ -2554,8 +3170,23 @@ func (c *ElastiCache) DescribeReservedCacheNodesOfferingsRequest(input *Describe
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/DescribeReservedCacheNodesOfferings
 func (c *ElastiCache) DescribeReservedCacheNodesOfferings(input *DescribeReservedCacheNodesOfferingsInput) (*DescribeReservedCacheNodesOfferingsOutput, error) {
 	req, out := c.DescribeReservedCacheNodesOfferingsRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// DescribeReservedCacheNodesOfferingsWithContext is the same as DescribeReservedCacheNodesOfferings with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeReservedCacheNodesOfferings for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DescribeReservedCacheNodesOfferingsWithContext(ctx aws.Context, input *DescribeReservedCacheNodesOfferingsInput, opts ...request.Option) (*DescribeReservedCacheNodesOfferingsOutput, error) {
+	req, out := c.DescribeReservedCacheNodesOfferingsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 // DescribeReservedCacheNodesOfferingsPages iterates over the pages of a DescribeReservedCacheNodesOfferings operation,
@@ -2575,12 +3206,36 @@ func (c *ElastiCache) DescribeReservedCacheNodesOfferings(input *DescribeReserve
 //            return pageNum <= 3
 //        })
 //
-func (c *ElastiCache) DescribeReservedCacheNodesOfferingsPages(input *DescribeReservedCacheNodesOfferingsInput, fn func(p *DescribeReservedCacheNodesOfferingsOutput, lastPage bool) (shouldContinue bool)) error {
-	page, _ := c.DescribeReservedCacheNodesOfferingsRequest(input)
-	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
-	return page.EachPage(func(p interface{}, lastPage bool) bool {
-		return fn(p.(*DescribeReservedCacheNodesOfferingsOutput), lastPage)
-	})
+func (c *ElastiCache) DescribeReservedCacheNodesOfferingsPages(input *DescribeReservedCacheNodesOfferingsInput, fn func(*DescribeReservedCacheNodesOfferingsOutput, bool) bool) error {
+	return c.DescribeReservedCacheNodesOfferingsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeReservedCacheNodesOfferingsPagesWithContext same as DescribeReservedCacheNodesOfferingsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DescribeReservedCacheNodesOfferingsPagesWithContext(ctx aws.Context, input *DescribeReservedCacheNodesOfferingsInput, fn func(*DescribeReservedCacheNodesOfferingsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy DescribeReservedCacheNodesOfferingsInput
+			if input != nil {
+				inCpy = *input
+			}
+			req, _ := c.DescribeReservedCacheNodesOfferingsRequest(&inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*DescribeReservedCacheNodesOfferingsOutput), !p.HasNextPage())
+	}
+	return p.Err()
 }
 
 const opDescribeSnapshots = "DescribeSnapshots"
@@ -2664,8 +3319,23 @@ func (c *ElastiCache) DescribeSnapshotsRequest(input *DescribeSnapshotsInput) (r
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/DescribeSnapshots
 func (c *ElastiCache) DescribeSnapshots(input *DescribeSnapshotsInput) (*DescribeSnapshotsOutput, error) {
 	req, out := c.DescribeSnapshotsRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// DescribeSnapshotsWithContext is the same as DescribeSnapshots with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeSnapshots for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DescribeSnapshotsWithContext(ctx aws.Context, input *DescribeSnapshotsInput, opts ...request.Option) (*DescribeSnapshotsOutput, error) {
+	req, out := c.DescribeSnapshotsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 // DescribeSnapshotsPages iterates over the pages of a DescribeSnapshots operation,
@@ -2685,12 +3355,36 @@ func (c *ElastiCache) DescribeSnapshots(input *DescribeSnapshotsInput) (*Describ
 //            return pageNum <= 3
 //        })
 //
-func (c *ElastiCache) DescribeSnapshotsPages(input *DescribeSnapshotsInput, fn func(p *DescribeSnapshotsOutput, lastPage bool) (shouldContinue bool)) error {
-	page, _ := c.DescribeSnapshotsRequest(input)
-	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
-	return page.EachPage(func(p interface{}, lastPage bool) bool {
-		return fn(p.(*DescribeSnapshotsOutput), lastPage)
-	})
+func (c *ElastiCache) DescribeSnapshotsPages(input *DescribeSnapshotsInput, fn func(*DescribeSnapshotsOutput, bool) bool) error {
+	return c.DescribeSnapshotsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeSnapshotsPagesWithContext same as DescribeSnapshotsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) DescribeSnapshotsPagesWithContext(ctx aws.Context, input *DescribeSnapshotsInput, fn func(*DescribeSnapshotsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy DescribeSnapshotsInput
+			if input != nil {
+				inCpy = *input
+			}
+			req, _ := c.DescribeSnapshotsRequest(&inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*DescribeSnapshotsOutput), !p.HasNextPage())
+	}
+	return p.Err()
 }
 
 const opListAllowedNodeTypeModifications = "ListAllowedNodeTypeModifications"
@@ -2768,8 +3462,23 @@ func (c *ElastiCache) ListAllowedNodeTypeModificationsRequest(input *ListAllowed
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/ListAllowedNodeTypeModifications
 func (c *ElastiCache) ListAllowedNodeTypeModifications(input *ListAllowedNodeTypeModificationsInput) (*ListAllowedNodeTypeModificationsOutput, error) {
 	req, out := c.ListAllowedNodeTypeModificationsRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// ListAllowedNodeTypeModificationsWithContext is the same as ListAllowedNodeTypeModifications with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListAllowedNodeTypeModifications for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) ListAllowedNodeTypeModificationsWithContext(ctx aws.Context, input *ListAllowedNodeTypeModificationsInput, opts ...request.Option) (*ListAllowedNodeTypeModificationsOutput, error) {
+	req, out := c.ListAllowedNodeTypeModificationsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opListTagsForResource = "ListTagsForResource"
@@ -2846,8 +3555,23 @@ func (c *ElastiCache) ListTagsForResourceRequest(input *ListTagsForResourceInput
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/ListTagsForResource
 func (c *ElastiCache) ListTagsForResource(input *ListTagsForResourceInput) (*TagListMessage, error) {
 	req, out := c.ListTagsForResourceRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// ListTagsForResourceWithContext is the same as ListTagsForResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListTagsForResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) ListTagsForResourceWithContext(ctx aws.Context, input *ListTagsForResourceInput, opts ...request.Option) (*TagListMessage, error) {
+	req, out := c.ListTagsForResourceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opModifyCacheCluster = "ModifyCacheCluster"
@@ -2948,8 +3672,23 @@ func (c *ElastiCache) ModifyCacheClusterRequest(input *ModifyCacheClusterInput) 
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/ModifyCacheCluster
 func (c *ElastiCache) ModifyCacheCluster(input *ModifyCacheClusterInput) (*ModifyCacheClusterOutput, error) {
 	req, out := c.ModifyCacheClusterRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// ModifyCacheClusterWithContext is the same as ModifyCacheCluster with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ModifyCacheCluster for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) ModifyCacheClusterWithContext(ctx aws.Context, input *ModifyCacheClusterInput, opts ...request.Option) (*ModifyCacheClusterOutput, error) {
+	req, out := c.ModifyCacheClusterRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opModifyCacheParameterGroup = "ModifyCacheParameterGroup"
@@ -3026,8 +3765,23 @@ func (c *ElastiCache) ModifyCacheParameterGroupRequest(input *ModifyCacheParamet
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/ModifyCacheParameterGroup
 func (c *ElastiCache) ModifyCacheParameterGroup(input *ModifyCacheParameterGroupInput) (*CacheParameterGroupNameMessage, error) {
 	req, out := c.ModifyCacheParameterGroupRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// ModifyCacheParameterGroupWithContext is the same as ModifyCacheParameterGroup with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ModifyCacheParameterGroup for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) ModifyCacheParameterGroupWithContext(ctx aws.Context, input *ModifyCacheParameterGroupInput, opts ...request.Option) (*CacheParameterGroupNameMessage, error) {
+	req, out := c.ModifyCacheParameterGroupRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opModifyCacheSubnetGroup = "ModifyCacheSubnetGroup"
@@ -3102,8 +3856,23 @@ func (c *ElastiCache) ModifyCacheSubnetGroupRequest(input *ModifyCacheSubnetGrou
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/ModifyCacheSubnetGroup
 func (c *ElastiCache) ModifyCacheSubnetGroup(input *ModifyCacheSubnetGroupInput) (*ModifyCacheSubnetGroupOutput, error) {
 	req, out := c.ModifyCacheSubnetGroupRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// ModifyCacheSubnetGroupWithContext is the same as ModifyCacheSubnetGroup with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ModifyCacheSubnetGroup for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) ModifyCacheSubnetGroupWithContext(ctx aws.Context, input *ModifyCacheSubnetGroupInput, opts ...request.Option) (*ModifyCacheSubnetGroupOutput, error) {
+	req, out := c.ModifyCacheSubnetGroupRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opModifyReplicationGroup = "ModifyReplicationGroup"
@@ -3214,8 +3983,23 @@ func (c *ElastiCache) ModifyReplicationGroupRequest(input *ModifyReplicationGrou
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/ModifyReplicationGroup
 func (c *ElastiCache) ModifyReplicationGroup(input *ModifyReplicationGroupInput) (*ModifyReplicationGroupOutput, error) {
 	req, out := c.ModifyReplicationGroupRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// ModifyReplicationGroupWithContext is the same as ModifyReplicationGroup with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ModifyReplicationGroup for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) ModifyReplicationGroupWithContext(ctx aws.Context, input *ModifyReplicationGroupInput, opts ...request.Option) (*ModifyReplicationGroupOutput, error) {
+	req, out := c.ModifyReplicationGroupRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opPurchaseReservedCacheNodesOffering = "PurchaseReservedCacheNodesOffering"
@@ -3292,8 +4076,23 @@ func (c *ElastiCache) PurchaseReservedCacheNodesOfferingRequest(input *PurchaseR
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/PurchaseReservedCacheNodesOffering
 func (c *ElastiCache) PurchaseReservedCacheNodesOffering(input *PurchaseReservedCacheNodesOfferingInput) (*PurchaseReservedCacheNodesOfferingOutput, error) {
 	req, out := c.PurchaseReservedCacheNodesOfferingRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// PurchaseReservedCacheNodesOfferingWithContext is the same as PurchaseReservedCacheNodesOffering with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PurchaseReservedCacheNodesOffering for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) PurchaseReservedCacheNodesOfferingWithContext(ctx aws.Context, input *PurchaseReservedCacheNodesOfferingInput, opts ...request.Option) (*PurchaseReservedCacheNodesOfferingOutput, error) {
+	req, out := c.PurchaseReservedCacheNodesOfferingRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opRebootCacheCluster = "RebootCacheCluster"
@@ -3369,8 +4168,23 @@ func (c *ElastiCache) RebootCacheClusterRequest(input *RebootCacheClusterInput) 
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/RebootCacheCluster
 func (c *ElastiCache) RebootCacheCluster(input *RebootCacheClusterInput) (*RebootCacheClusterOutput, error) {
 	req, out := c.RebootCacheClusterRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// RebootCacheClusterWithContext is the same as RebootCacheCluster with the addition of
+// the ability to pass a context and additional request options.
+//
+// See RebootCacheCluster for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) RebootCacheClusterWithContext(ctx aws.Context, input *RebootCacheClusterInput, opts ...request.Option) (*RebootCacheClusterOutput, error) {
+	req, out := c.RebootCacheClusterRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opRemoveTagsFromResource = "RemoveTagsFromResource"
@@ -3443,8 +4257,23 @@ func (c *ElastiCache) RemoveTagsFromResourceRequest(input *RemoveTagsFromResourc
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/RemoveTagsFromResource
 func (c *ElastiCache) RemoveTagsFromResource(input *RemoveTagsFromResourceInput) (*TagListMessage, error) {
 	req, out := c.RemoveTagsFromResourceRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// RemoveTagsFromResourceWithContext is the same as RemoveTagsFromResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See RemoveTagsFromResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) RemoveTagsFromResourceWithContext(ctx aws.Context, input *RemoveTagsFromResourceInput, opts ...request.Option) (*TagListMessage, error) {
+	req, out := c.RemoveTagsFromResourceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opResetCacheParameterGroup = "ResetCacheParameterGroup"
@@ -3522,8 +4351,23 @@ func (c *ElastiCache) ResetCacheParameterGroupRequest(input *ResetCacheParameter
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/ResetCacheParameterGroup
 func (c *ElastiCache) ResetCacheParameterGroup(input *ResetCacheParameterGroupInput) (*CacheParameterGroupNameMessage, error) {
 	req, out := c.ResetCacheParameterGroupRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// ResetCacheParameterGroupWithContext is the same as ResetCacheParameterGroup with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ResetCacheParameterGroup for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) ResetCacheParameterGroupWithContext(ctx aws.Context, input *ResetCacheParameterGroupInput, opts ...request.Option) (*CacheParameterGroupNameMessage, error) {
+	req, out := c.ResetCacheParameterGroupRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opRevokeCacheSecurityGroupIngress = "RevokeCacheSecurityGroupIngress"
@@ -3602,8 +4446,23 @@ func (c *ElastiCache) RevokeCacheSecurityGroupIngressRequest(input *RevokeCacheS
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/RevokeCacheSecurityGroupIngress
 func (c *ElastiCache) RevokeCacheSecurityGroupIngress(input *RevokeCacheSecurityGroupIngressInput) (*RevokeCacheSecurityGroupIngressOutput, error) {
 	req, out := c.RevokeCacheSecurityGroupIngressRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// RevokeCacheSecurityGroupIngressWithContext is the same as RevokeCacheSecurityGroupIngress with the addition of
+// the ability to pass a context and additional request options.
+//
+// See RevokeCacheSecurityGroupIngress for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) RevokeCacheSecurityGroupIngressWithContext(ctx aws.Context, input *RevokeCacheSecurityGroupIngressInput, opts ...request.Option) (*RevokeCacheSecurityGroupIngressOutput, error) {
+	req, out := c.RevokeCacheSecurityGroupIngressRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 // Represents the input of an AddTagsToResource operation.

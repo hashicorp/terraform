@@ -18,6 +18,7 @@ type Handlers struct {
 	UnmarshalError   HandlerList
 	Retry            HandlerList
 	AfterRetry       HandlerList
+	Complete         HandlerList
 }
 
 // Copy returns of this handler's lists.
@@ -33,6 +34,7 @@ func (h *Handlers) Copy() Handlers {
 		UnmarshalMeta:    h.UnmarshalMeta.copy(),
 		Retry:            h.Retry.copy(),
 		AfterRetry:       h.AfterRetry.copy(),
+		Complete:         h.Complete.copy(),
 	}
 }
 
@@ -48,6 +50,7 @@ func (h *Handlers) Clear() {
 	h.ValidateResponse.Clear()
 	h.Retry.Clear()
 	h.AfterRetry.Clear()
+	h.Complete.Clear()
 }
 
 // A HandlerListRunItem represents an entry in the HandlerList which
@@ -85,7 +88,7 @@ func (l *HandlerList) copy() HandlerList {
 	n := HandlerList{
 		AfterEachFn: l.AfterEachFn,
 	}
-	n.list = append([]NamedHandler{}, l.list...)
+	n.list = append(make([]NamedHandler, 0, len(l.list)), l.list...)
 	return n
 }
 
@@ -161,6 +164,16 @@ func HandlerListLogItem(item HandlerListRunItem) bool {
 // to continue iterating.
 func HandlerListStopOnError(item HandlerListRunItem) bool {
 	return item.Request.Error == nil
+}
+
+// WithAppendUserAgent will add a string to the user agent prefixed with a
+// single white space.
+func WithAppendUserAgent(s string) Option {
+	return func(r *Request) {
+		r.Handlers.Build.PushBack(func(r2 *Request) {
+			AddToUserAgent(r, s)
+		})
+	}
 }
 
 // MakeAddToUserAgentHandler will add the name/version pair to the User-Agent request
