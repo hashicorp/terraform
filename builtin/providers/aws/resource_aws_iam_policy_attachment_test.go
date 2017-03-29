@@ -6,6 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
+	randomprovider "github.com/hashicorp/terraform/builtin/providers/random"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -45,8 +46,11 @@ func TestAccAWSPolicyAttachment_paginatedEntities(t *testing.T) {
 	var out iam.ListEntitiesForPolicyOutput
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		PreCheck: func() { testAccPreCheck(t) },
+		Providers: map[string]terraform.ResourceProvider{
+			"aws":    testAccProvider,
+			"random": randomprovider.Provider(),
+		},
 		CheckDestroy: testAccCheckAWSPolicyAttachmentDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
@@ -303,9 +307,13 @@ resource "aws_iam_policy_attachment" "test-attach" {
 }
 
 const testAccAWSPolicyPaginatedAttachConfig = `
+resource "random_id" "user_id" {
+  byte_length = 10
+}
+
 resource "aws_iam_user" "user" {
     count = 101
-    name = "${format("paged-test-user-%d", count.index + 1)}"
+    name = "${format("paged-test-user-${random_id.user_id.hex}-%d", count.index + 1)}"
 }
 
 resource "aws_iam_policy" "policy" {
