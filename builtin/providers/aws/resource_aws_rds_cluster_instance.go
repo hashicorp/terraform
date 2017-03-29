@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -105,6 +106,27 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
 				Computed: true,
 			},
 
+			"preferred_maintenance_window": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				StateFunc: func(v interface{}) string {
+					if v != nil {
+						value := v.(string)
+						return strings.ToLower(value)
+					}
+					return ""
+				},
+				ValidateFunc: validateOnceAWeekWindowFormat,
+			},
+
+			"preferred_backup_window": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateOnceADayWindowFormat,
+			},
+
 			"monitoring_interval": {
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -152,6 +174,14 @@ func resourceAwsRDSClusterInstanceCreate(d *schema.ResourceData, meta interface{
 
 	if attr, ok := d.GetOk("monitoring_role_arn"); ok {
 		createOpts.MonitoringRoleArn = aws.String(attr.(string))
+	}
+
+	if attr, ok := d.GetOk("preferred_backup_window"); ok {
+		createOpts.PreferredBackupWindow = aws.String(attr.(string))
+	}
+
+	if attr, ok := d.GetOk("preferred_maintenance_window"); ok {
+		createOpts.PreferredMaintenanceWindow = aws.String(attr.(string))
 	}
 
 	if attr, ok := d.GetOk("monitoring_interval"); ok {
@@ -239,6 +269,8 @@ func resourceAwsRDSClusterInstanceRead(d *schema.ResourceData, meta interface{})
 	d.Set("kms_key_id", db.KmsKeyId)
 	d.Set("auto_minor_version_upgrade", db.AutoMinorVersionUpgrade)
 	d.Set("promotion_tier", db.PromotionTier)
+	d.Set("preferred_backup_window", db.PreferredBackupWindow)
+	d.Set("preferred_maintenance_window", db.PreferredMaintenanceWindow)
 
 	if db.MonitoringInterval != nil {
 		d.Set("monitoring_interval", db.MonitoringInterval)
@@ -287,6 +319,18 @@ func resourceAwsRDSClusterInstanceUpdate(d *schema.ResourceData, meta interface{
 	if d.HasChange("monitoring_role_arn") {
 		d.SetPartial("monitoring_role_arn")
 		req.MonitoringRoleArn = aws.String(d.Get("monitoring_role_arn").(string))
+		requestUpdate = true
+	}
+
+	if d.HasChange("preferred_backup_window") {
+		d.SetPartial("preferred_backup_window")
+		req.PreferredBackupWindow = aws.String(d.Get("preferred_backup_window").(string))
+		requestUpdate = true
+	}
+
+	if d.HasChange("preferred_maintenance_window") {
+		d.SetPartial("preferred_maintenance_window")
+		req.PreferredMaintenanceWindow = aws.String(d.Get("preferred_maintenance_window").(string))
 		requestUpdate = true
 	}
 
