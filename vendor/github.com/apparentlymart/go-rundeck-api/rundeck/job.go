@@ -31,10 +31,12 @@ type JobDetail struct {
 	ProjectName               string              `xml:"context>project,omitempty"`
 	OptionsConfig             *JobOptions         `xml:"context>options,omitempty"`
 	Description               string              `xml:"description"`
+	ExecutionEnabled          bool                `xml:"executionEnabled"`
 	LogLevel                  string              `xml:"loglevel,omitempty"`
 	AllowConcurrentExecutions bool                `xml:"multipleExecutions,omitempty"`
 	Dispatch                  *JobDispatch        `xml:"dispatch,omitempty"`
 	CommandSequence           *JobCommandSequence `xml:"sequence,omitempty"`
+	Notification              *JobNotification    `xml:"notification,omitempty"`
 	Timeout                   string              `xml:"timeout,omitempty"`
 	Retry                     string              `xml:"retry,omitempty"`
 	NodeFilter                *JobNodeFilter      `xml:"nodefilters,omitempty"`
@@ -43,21 +45,52 @@ type JobDetail struct {
 	 * by this reason omitempty cannot be present.
 	 * This has to be handle by the user.
 	 */
-	NodesSelectedByDefault    bool                `xml:"nodesSelectedByDefault"`
-	Schedule                  *JobSchedule        `xml:"schedule"`
+	NodesSelectedByDefault *Boolean     `xml:"nodesSelectedByDefault"`
+	Schedule               *JobSchedule `xml:"schedule,omitempty"`
+	ScheduleEnabled        bool         `xml:"scheduleEnabled"`
 }
 
+type Boolean struct {
+	Value bool `xml:",chardata"`
+}
+
+type JobNotification struct {
+	OnFailure *Notification `xml:"onfailure,omitempty"`
+	OnStart   *Notification `xml:"onstart,omitempty"`
+	OnSuccess *Notification `xml:"onsuccess,omitempty"`
+}
+
+type Notification struct {
+	Email   *EmailNotification   `xml:"email,omitempty"`
+	WebHook *WebHookNotification `xml:"webhook,omitempty"`
+	Plugin  *JobPlugin           `xml:"plugin"`
+}
+
+type EmailNotification struct {
+	AttachLog  bool               `xml:"attachLog,attr,omitempty"`
+	Recipients NotificationEmails `xml:"recipients,attr"`
+	Subject    string             `xml:"subject,attr"`
+}
+
+type NotificationEmails []string
+
+type WebHookNotification struct {
+	Urls NotificationUrls `xml:"urls,attr"`
+}
+
+type NotificationUrls []string
+
 type JobSchedule struct {
-	XMLName         xml.Name               `xml:"schedule"`
-	DayOfMonth      *JobScheduleDayOfMonth `xml:"dayofmonth,omitempty"`
-	Time            JobScheduleTime        `xml:"time"`
-	Month           JobScheduleMonth       `xml:"month"`
-	WeekDay         *JobScheduleWeekDay    `xml:"weekday,omitempty"`
-	Year            JobScheduleYear        `xml:"year"`
+	XMLName    xml.Name               `xml:"schedule"`
+	DayOfMonth *JobScheduleDayOfMonth `xml:"dayofmonth,omitempty"`
+	Time       JobScheduleTime        `xml:"time"`
+	Month      JobScheduleMonth       `xml:"month"`
+	WeekDay    *JobScheduleWeekDay    `xml:"weekday,omitempty"`
+	Year       JobScheduleYear        `xml:"year"`
 }
 
 type JobScheduleDayOfMonth struct {
-	XMLName      xml.Name `xml:"dayofmonth"`
+	XMLName xml.Name `xml:"dayofmonth"`
 }
 
 type JobScheduleMonth struct {
@@ -73,14 +106,14 @@ type JobScheduleYear struct {
 
 type JobScheduleWeekDay struct {
 	XMLName xml.Name `xml:"weekday"`
-	Day string   `xml:"day,attr"`
+	Day     string   `xml:"day,attr"`
 }
 
 type JobScheduleTime struct {
-	XMLName  xml.Name `xml:"time"`
-	Hour     string   `xml:"hour,attr"`
-	Minute   string   `xml:"minute,attr"`
-	Seconds  string   `xml:"seconds,attr"`
+	XMLName xml.Name `xml:"time"`
+	Hour    string   `xml:"hour,attr"`
+	Minute  string   `xml:"minute,attr"`
+	Seconds string   `xml:"seconds,attr"`
 }
 
 type jobDetailList struct {
@@ -143,7 +176,6 @@ type JobOption struct {
 	Description string `xml:"description,omitempty"`
 }
 
-
 // JobValueChoices is a specialization of []string representing a sequence of predefined values
 // for a job option.
 type JobValueChoices []string
@@ -173,7 +205,7 @@ type JobCommand struct {
 	XMLName xml.Name
 
 	// If the Workflow keepgoing is false, this allows the Workflow to continue when the Error Handler is successful.
-	ContinueOnError bool     `xml:"keepgoingOnSuccess,attr,omitempty"`
+	ContinueOnError bool `xml:"keepgoingOnSuccess,attr,omitempty"`
 
 	// Description
 	Description string `xml:"description,omitempty"`
@@ -223,6 +255,7 @@ type JobCommandJobRef struct {
 	Name           string                    `xml:"name,attr"`
 	GroupName      string                    `xml:"group,attr"`
 	RunForEachNode bool                      `xml:"nodeStep,attr"`
+	Dispatch       *JobDispatch              `xml:"dispatch,omitempty"`
 	NodeFilter     *JobNodeFilter            `xml:"nodefilters,omitempty"`
 	Arguments      JobCommandJobRefArguments `xml:"arg"`
 }
@@ -230,7 +263,7 @@ type JobCommandJobRef struct {
 // JobCommandJobRefArguments is a string representing the arguments in a JobCommandJobRef.
 type JobCommandJobRefArguments string
 
-// JobPlugin is a configuration for a plugin to run within a job.
+// Plugin is a configuration for a plugin to run within a job or notification.
 type JobPlugin struct {
 	XMLName xml.Name
 	Type    string          `xml:"type,attr"`
@@ -243,8 +276,7 @@ type JobPluginConfig map[string]string
 // JobNodeFilter describes which nodes from the project's resource list will run the configured
 // commands.
 type JobNodeFilter struct {
-	ExcludePrecedence bool   `xml:"excludeprecedence"`
-	Query             string `xml:"filter,omitempty"`
+	Query string `xml:"filter,omitempty"`
 }
 
 type jobImportResults struct {
@@ -267,10 +299,11 @@ type jobImportResult struct {
 }
 
 type JobDispatch struct {
-	MaxThreadCount  int    `xml:"threadcount,omitempty"`
-	ContinueOnError bool   `xml:"keepgoing"`
-	RankAttribute   string `xml:"rankAttribute,omitempty"`
-	RankOrder       string `xml:"rankOrder,omitempty"`
+	ExcludePrecedence *Boolean `xml:"excludePrecedence"`
+	MaxThreadCount    int      `xml:"threadcount,omitempty"`
+	ContinueOnError   bool     `xml:"keepgoing"`
+	RankAttribute     string   `xml:"rankAttribute,omitempty"`
+	RankOrder         string   `xml:"rankOrder,omitempty"`
 }
 
 // GetJobSummariesForProject returns summaries of the jobs belonging to the named project.
@@ -343,6 +376,34 @@ func (c *Client) importJob(job *JobDetail, dupeOption string) (*JobSummary, erro
 // DeleteJob deletes the job with the given id.
 func (c *Client) DeleteJob(id string) error {
 	return c.delete([]string{"job", id})
+}
+
+func (c NotificationEmails) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {
+	if len(c) > 0 {
+		return xml.Attr{name, strings.Join(c, ",")}, nil
+	} else {
+		return xml.Attr{}, nil
+	}
+}
+
+func (c *NotificationEmails) UnmarshalXMLAttr(attr xml.Attr) error {
+	values := strings.Split(attr.Value, ",")
+	*c = values
+	return nil
+}
+
+func (c NotificationUrls) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {
+	if len(c) > 0 {
+		return xml.Attr{name, strings.Join(c, ",")}, nil
+	} else {
+		return xml.Attr{}, nil
+	}
+}
+
+func (c *NotificationUrls) UnmarshalXMLAttr(attr xml.Attr) error {
+	values := strings.Split(attr.Value, ",")
+	*c = values
+	return nil
 }
 
 func (c JobValueChoices) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {

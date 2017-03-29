@@ -7,6 +7,7 @@ import (
 	"github.com/apparentlymart/go-rundeck-api/rundeck"
 )
 
+// Provider for rundeck.
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
