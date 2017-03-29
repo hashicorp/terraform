@@ -21,6 +21,9 @@ specified PostgreSQL ROLE owns objects in multiple PostgreSQL databases in the
 same PostgreSQL Cluster, one PostgreSQL provider per database must be created
 and all but the final ``postgresql_role`` must specify a `skip_drop_role`.
 
+~> **Note:** All arguments including role name and password will be stored in the raw state as plain-text.
+[Read more about sensitive data in state](/docs/state/sensitive-data.html).
+
 ## Usage
 
 ```
