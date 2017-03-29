@@ -406,6 +406,64 @@ func TestInit_copyBackendDst(t *testing.T) {
 	}
 }
 
+func TestInit_backendReinitWithExtra(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-backend-empty"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	m := testMetaBackend(t, nil)
+	opts := &BackendOpts{
+		ConfigExtra: map[string]interface{}{"path": "hello"},
+		Init:        true,
+	}
+
+	b, err := m.backendConfig(opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{"-backend-config", "path=hello"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	// Read our saved backend config and verify we have our settings
+	state := testStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+	if v := state.Backend.Config["path"]; v != "hello" {
+		t.Fatalf("bad: %#v", v)
+	}
+
+	if state.Backend.Hash != b.Hash {
+		t.Fatal("mismatched state and config backend hashes")
+	}
+
+	if state.Backend.Rehash() != b.Rehash() {
+		t.Fatal("mismatched state and config re-hashes")
+	}
+
+	// init again and make sure nothing changes
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+	state = testStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+	if v := state.Backend.Config["path"]; v != "hello" {
+		t.Fatalf("bad: %#v", v)
+	}
+
+	if state.Backend.Hash != b.Hash {
+		t.Fatal("mismatched state and config backend hashes")
+	}
+}
+
 /*
 func TestInit_remoteState(t *testing.T) {
 	tmp, cwd := testCwd(t)

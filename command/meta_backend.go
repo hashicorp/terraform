@@ -415,8 +415,16 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, error) {
 	case c != nil && s.Remote.Empty() && !s.Backend.Empty():
 		// If our configuration is the same, then we're just initializing
 		// a previously configured remote backend.
-		if !s.Backend.Empty() && s.Backend.Hash == cHash {
-			return m.backend_C_r_S_unchanged(c, sMgr)
+		if !s.Backend.Empty() {
+			hash := s.Backend.Hash
+			// on init we need an updated hash containing any extra options
+			// that were added after merging.
+			if opts.Init {
+				hash = s.Backend.Rehash()
+			}
+			if hash == cHash {
+				return m.backend_C_r_S_unchanged(c, sMgr)
+			}
 		}
 
 		if !opts.Init {
@@ -451,7 +459,11 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, error) {
 	case c != nil && !s.Remote.Empty() && !s.Backend.Empty():
 		// If the hashes are the same, we have a legacy remote state with
 		// an unchanged stored backend state.
-		if s.Backend.Hash == cHash {
+		hash := s.Backend.Hash
+		if opts.Init {
+			hash = s.Backend.Rehash()
+		}
+		if hash == cHash {
 			if !opts.Init {
 				initReason := fmt.Sprintf(
 					"Legacy remote state found with configured backend %q",
