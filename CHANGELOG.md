@@ -10,6 +10,10 @@ IMPROVEMENTS:
  * provider/aws: Deprecate roles in favour of role in iam_instance_profile [GH-13130]
  * provider/aws: Make alb_target_group_attachment port optional [GH-13139]
  
+BUG FIXES: 
+
+ * provider/aws: Add Support for maintenance_window and back_window to rds_cluster_instance [GH-13134]
+ 
 
 ## 0.9.2 (March 28, 2017)
 
