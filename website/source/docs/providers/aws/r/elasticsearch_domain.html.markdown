@@ -15,6 +15,9 @@ description: |-
 resource "aws_elasticsearch_domain" "es" {
   domain_name           = "tf-test"
   elasticsearch_version = "1.5"
+  cluster_config {
+    instance_type = "r3.large.elasticsearch"
+  }
 
   advanced_options {
     "rest.action.multi.allow_explicit_index" = true
@@ -53,7 +56,7 @@ The following arguments are supported:
 * `domain_name` - (Required) Name of the domain.
 * `access_policies` - (Optional) IAM policy document specifying the access policies for the domain
 * `advanced_options` - (Optional) Key-value string pairs to specify advanced configuration options.
-* `ebs_options` - (Optional) EBS related options, see below.
+* `ebs_options` - (Optional) EBS related options, may be required based on chosen [instance size](https://aws.amazon.com/elasticsearch-service/pricing/). See below.
 * `cluster_config` - (Optional) Cluster configuration of the domain, see below.
 * `snapshot_options` - (Optional) Snapshot related options, see below.
 * `elasticsearch_version` - (Optional) The version of ElasticSearch to deploy. Defaults to `1.5`
@@ -63,7 +66,7 @@ The following arguments are supported:
 
 * `ebs_enabled` - (Required) Whether EBS volumes are attached to data nodes in the domain
 * `volume_type` - (Optional) The type of EBS volumes attached to data nodes.
-* `volume_size` - The size of EBS volumes attached to data nodes.
+* `volume_size` - The size of EBS volumes attached to data nodes (in GB).
 **Required** if `ebs_enabled` is set to `true`.
 * `iops` - (Optional) The baseline input/output (I/O) performance of EBS volumes
 	attached to data nodes. Applicable only for the Provisioned IOPS EBS volume type.

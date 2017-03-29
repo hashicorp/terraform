@@ -6,9 +6,24 @@ IMPROVEMENTS:
  * helper/resource: Allow unknown "pending" states [GH-13099]
  * provider/aws: Add support to set iam_role_arn on cloudformation Stack [GH-12547]
  * provider/aws: Support priority and listener_arn update of alb_listener_rule [GH-13125]
- * provider/aws: Support priority and listener_arn update of alb_listener_rule [GH-13125]
  * provider/aws: Deprecate roles in favour of role in iam_instance_profile [GH-13130]
- 
+ * provider/aws: Make alb_target_group_attachment port optional [GH-13139]
+ * provider/aws: `aws_api_gateway_domain_name` `certificate_private_key` field marked as sensitive [GH-13147]
+ * provider/aws: `aws_directory_service_directory` `password` field marked as sensitive [GH-13147]
+ * provider/aws: `aws_kinesis_firehose_delivery_stream` `password` field marked as sensitive [GH-13147]
+ * provider/aws: `aws_opsworks_application` `app_source.0.password` & `ssl_configuration.0.private_key` fields marked as sensitive [GH-13147]
+ * provider/aws: `aws_opsworks_stack` `custom_cookbooks_source.0.password` field marked as sensitive [GH-13147]
+ * provider/google: Mark `google_container_cluster`'s `client_key` & `password` inside `master_auth` as sensitive [GH-13148]
+
+BUG FIXES: 
+
+ * core: Escaped interpolation-like sequences (like `$${foo}`) now permitted in variable defaults [GH-13137] 
+ * provider/aws: Add Support for maintenance_window and back_window to rds_cluster_instance [GH-13134]
+ * provider/aws: Increase timeout for AMI registration [GH-13159]
+ * provider/aws: Increase timeouts for ELB [GH-13161]
+ * provider/aws: `volume_type` of `aws_elasticsearch_domain.0.ebs_options` marked as `Computed` which prevents spurious diffs [GH-13160]
+ * provider/aws: Don't set DBName on `aws_db_instance` from snapshot [GH-13140]
+ * provider/azurerm: Network Security Group - ignoring protocol casing at Import time [GH-13153]
 
 ## 0.9.2 (March 28, 2017)
 

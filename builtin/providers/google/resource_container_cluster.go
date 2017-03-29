@@ -40,17 +40,19 @@ func resourceContainerCluster() *schema.Resource {
 							Computed: true,
 						},
 						"client_key": &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:      schema.TypeString,
+							Computed:  true,
+							Sensitive: true,
 						},
 						"cluster_ca_certificate": &schema.Schema{
 							Type:     schema.TypeString,
 							Computed: true,
 						},
 						"password": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-							ForceNew: true,
+							Type:      schema.TypeString,
+							Required:  true,
+							ForceNew:  true,
+							Sensitive: true,
 						},
 						"username": &schema.Schema{
 							Type:     schema.TypeString,

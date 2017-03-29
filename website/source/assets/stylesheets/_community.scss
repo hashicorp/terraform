@@ -3,6 +3,7 @@
 
     .person {
         margin-bottom: 40px;
+        min-height: 165px; // enough space for five lines of bio text
 
         h3 {
             text-transform: none;
