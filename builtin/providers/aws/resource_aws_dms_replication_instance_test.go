@@ -169,7 +169,7 @@ resource "aws_dms_replication_instance" "dms_replication_instance" {
 func dmsReplicationInstanceConfigUpdate(randId string) string {
 	return fmt.Sprintf(`
 resource "aws_iam_role" "dms_iam_role" {
-  name = "dms-vpc-role"
+  name = "dms-vpc-role-%[1]s"
   assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"dms.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
 }
 

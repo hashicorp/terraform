@@ -163,6 +163,15 @@ func resourceProfitBricksVolumeRead(d *schema.ResourceData, meta interface{}) er
 	dcId := d.Get("datacenter_id").(string)
 
 	volume := profitbricks.GetVolume(dcId, d.Id())
+
+	if volume.StatusCode > 299 {
+		if volume.StatusCode == 404 {
+			d.SetId("")
+			return nil
+		}
+		return fmt.Errorf("Error occured while fetching a volume ID %s %s", d.Id(), volume.Response)
+	}
+
 	if volume.StatusCode > 299 {
 		return fmt.Errorf("An error occured while fetching a volume ID %s %s", d.Id(), volume.Response)
 

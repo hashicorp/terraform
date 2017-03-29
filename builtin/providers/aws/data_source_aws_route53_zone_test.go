@@ -11,7 +11,7 @@ import (
 
 func TestAccDataSourceAwsRoute53Zone(t *testing.T) {
 	rInt := acctest.RandInt()
-	publicResourceName := "aws_route53_zon.test"
+	publicResourceName := "aws_route53_zone.test"
 	publicDomain := fmt.Sprintf("terraformtestacchz-%d.com.", rInt)
 	privateResourceName := "aws_route53_zone.test_private"
 	privateDomain := fmt.Sprintf("test.acc-%d.", rInt)
