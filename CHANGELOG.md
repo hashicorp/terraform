@@ -17,9 +17,9 @@ IMPROVEMENTS:
 
 BUG FIXES: 
 
+ * core: Escaped interpolation-like sequences (like `$${foo}`) now permitted in variable defaults [GH-13137] 
  * provider/aws: Add Support for maintenance_window and back_window to rds_cluster_instance [GH-13134]
  * provider/azurerm: Network Security Group - ignoring protocol casing at Import time [GH-13153]
- * core: Escaped interpolation-like sequences (like `$${foo}`) now permitted in variable defaults [GH-13137] 
 
 ## 0.9.2 (March 28, 2017)
 
