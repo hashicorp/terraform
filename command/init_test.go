@@ -464,6 +464,50 @@ func TestInit_backendReinitWithExtra(t *testing.T) {
 	}
 }
 
+// move option from config to -backend-config args
+func TestInit_backendReinitConfigToExtra(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-backend"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+	}
+
+	if code := c.Run([]string{"-input=false"}); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	// Read our saved backend config and verify we have our settings
+	state := testStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+	if v := state.Backend.Config["path"]; v != "foo" {
+		t.Fatalf("bad: %#v", v)
+	}
+
+	backendHash := state.Backend.Hash
+
+	// init again but remove the path option from the config
+	cfg := "terraform {\n  backend \"local\" {}\n}\n"
+	if err := ioutil.WriteFile("main.tf", []byte(cfg), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	args := []string{"-input=false", "-backend-config=path=foo"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+	state = testStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+
+	if state.Backend.Hash == backendHash {
+		t.Fatal("state.Backend.Hash was not updated")
+	}
+}
+
 /*
 func TestInit_remoteState(t *testing.T) {
 	tmp, cwd := testCwd(t)

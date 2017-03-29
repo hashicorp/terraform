@@ -1158,6 +1158,16 @@ func (m *Meta) backend_C_r_S_unchanged(
 	c *config.Backend, sMgr state.State) (backend.Backend, error) {
 	s := sMgr.State()
 
+	// it's possible for a backend to be unchanged, and the config itself to
+	// have changed by moving a paramter from the config to `-backend-config`
+	// In this case we only need to update the Hash.
+	if c != nil && s.Backend.Hash != c.Hash {
+		s.Backend.Hash = c.Hash
+		if err := sMgr.WriteState(s); err != nil {
+			return nil, fmt.Errorf(errBackendWriteSaved, err)
+		}
+	}
+
 	// Create the config. We do this from the backend state since this
 	// has the complete configuration data whereas the config itself
 	// may require input.
