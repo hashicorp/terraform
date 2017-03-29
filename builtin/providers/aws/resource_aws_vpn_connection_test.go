@@ -8,11 +8,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSVpnConnection_basic(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
 		IDRefreshName: "aws_vpn_connection.foo",
@@ -31,7 +33,7 @@ func TestAccAWSVpnConnection_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccAwsVpnConnectionConfigUpdate,
+				Config: testAccAwsVpnConnectionConfigUpdate(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccAwsVpnConnection(
 						"aws_vpc.vpc",
@@ -46,6 +48,7 @@ func TestAccAWSVpnConnection_basic(t *testing.T) {
 }
 
 func TestAccAWSVpnConnection_withoutStaticRoutes(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
 		IDRefreshName: "aws_vpn_connection.foo",
@@ -53,7 +56,7 @@ func TestAccAWSVpnConnection_withoutStaticRoutes(t *testing.T) {
 		CheckDestroy:  testAccAwsVpnConnectionDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAwsVpnConnectionConfigUpdate,
+				Config: testAccAwsVpnConnectionConfigUpdate(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccAwsVpnConnection(
 						"aws_vpc.vpc",
@@ -161,47 +164,55 @@ func TestAWSVpnConnection_xmlconfig(t *testing.T) {
 }
 
 const testAccAwsVpnConnectionConfig = `
-resource "aws_vpn_gateway" "vpn_gateway" {
-  tags {
-    Name = "vpn_gateway"
-  }
-}
+	resource "aws_vpn_gateway" "vpn_gateway" {
+	  tags {
+	    Name = "vpn_gateway"
+	  }
+	}
 
-resource "aws_customer_gateway" "customer_gateway" {
-  bgp_asn = 65000
-  ip_address = "178.0.0.1"
-  type = "ipsec.1"
-}
+	resource "aws_customer_gateway" "customer_gateway" {
+	  bgp_asn = 65000
+	  ip_address = "178.0.0.1"
+	  type = "ipsec.1"
+		tags {
+			Name = "main-customer-gateway"
+		}
+	}
 
-resource "aws_vpn_connection" "foo" {
-  vpn_gateway_id = "${aws_vpn_gateway.vpn_gateway.id}"
-  customer_gateway_id = "${aws_customer_gateway.customer_gateway.id}"
-  type = "ipsec.1"
-  static_routes_only = true
-}
-`
+	resource "aws_vpn_connection" "foo" {
+	  vpn_gateway_id = "${aws_vpn_gateway.vpn_gateway.id}"
+	  customer_gateway_id = "${aws_customer_gateway.customer_gateway.id}"
+	  type = "ipsec.1"
+	  static_routes_only = true
+	}
+	`
 
 // Change static_routes_only to be false, forcing a refresh.
-const testAccAwsVpnConnectionConfigUpdate = `
-resource "aws_vpn_gateway" "vpn_gateway" {
-  tags {
-    Name = "vpn_gateway"
-  }
-}
+func testAccAwsVpnConnectionConfigUpdate(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_vpn_gateway" "vpn_gateway" {
+	  tags {
+	    Name = "vpn_gateway"
+	  }
+	}
 
-resource "aws_customer_gateway" "customer_gateway" {
-  bgp_asn = 65000
-  ip_address = "178.0.0.1"
-  type = "ipsec.1"
-}
+	resource "aws_customer_gateway" "customer_gateway" {
+	  bgp_asn = 65000
+	  ip_address = "178.0.0.1"
+	  type = "ipsec.1"
+		tags {
+	    Name = "main-customer-gateway-%d"
+	  }
+	}
 
-resource "aws_vpn_connection" "foo" {
-  vpn_gateway_id = "${aws_vpn_gateway.vpn_gateway.id}"
-  customer_gateway_id = "${aws_customer_gateway.customer_gateway.id}"
-  type = "ipsec.1"
-  static_routes_only = false
+	resource "aws_vpn_connection" "foo" {
+	  vpn_gateway_id = "${aws_vpn_gateway.vpn_gateway.id}"
+	  customer_gateway_id = "${aws_customer_gateway.customer_gateway.id}"
+	  type = "ipsec.1"
+	  static_routes_only = false
+	}
+	`, rInt)
 }
-`
 
 // Test our VPN tunnel config XML parsing
 const testAccAwsVpnTunnelInfoXML = `
