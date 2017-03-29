@@ -1086,6 +1086,5 @@ func jobToResourceData(job *rundeck.JobDetail, d *schema.ResourceData) error {
 		d.Set("nodes_selected_by_default", job.NodesSelectedByDefault.Value)
 	}
 
-	return fmt.Errorf("value: %+v", d.Get("nodes_selected_by_default"))
-	//return nil
+	return nil
 }
