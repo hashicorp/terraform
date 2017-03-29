@@ -3217,6 +3217,110 @@ func TestMetaBackend_planLegacy(t *testing.T) {
 	}
 }
 
+// init a backend using -backend-config options multiple times
+func TestMetaBackend_configureWithExtra(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-backend-empty"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	extras := map[string]interface{}{"path": "hello"}
+	m := testMetaBackend(t, nil)
+	opts := &BackendOpts{
+		ConfigExtra: extras,
+		Init:        true,
+	}
+
+	backendCfg, err := m.backendConfig(opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// init the backend
+	_, err = m.Backend(&BackendOpts{
+		ConfigExtra: extras,
+		Init:        true,
+	})
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	// Check the state
+	s := testStateRead(t, filepath.Join(DefaultDataDir, backendlocal.DefaultStateFilename))
+	if s.Backend.Hash != backendCfg.Hash {
+		t.Fatal("mismatched state and config backend hashes")
+	}
+	if s.Backend.Rehash() == s.Backend.Hash {
+		t.Fatal("saved hash should not match actual hash")
+	}
+	if s.Backend.Rehash() != backendCfg.Rehash() {
+		t.Fatal("mismatched state and config re-hashes")
+	}
+
+	// init the backend again with the same options
+	m = testMetaBackend(t, nil)
+	_, err = m.Backend(&BackendOpts{
+		ConfigExtra: extras,
+		Init:        true,
+	})
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	// Check the state
+	s = testStateRead(t, filepath.Join(DefaultDataDir, backendlocal.DefaultStateFilename))
+	if s.Backend.Hash != backendCfg.Hash {
+		t.Fatal("mismatched state and config backend hashes")
+	}
+}
+
+// move options from config to -backend-config
+func TestMetaBackend_configToExtra(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-backend"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// init the backend
+	m := testMetaBackend(t, nil)
+	_, err := m.Backend(&BackendOpts{
+		Init: true,
+	})
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	// Check the state
+	s := testStateRead(t, filepath.Join(DefaultDataDir, backendlocal.DefaultStateFilename))
+	backendHash := s.Backend.Hash
+
+	// init again but remove the path option from the config
+	cfg := "terraform {\n  backend \"local\" {}\n}\n"
+	if err := ioutil.WriteFile("main.tf", []byte(cfg), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// init the backend again with the  options
+	extras := map[string]interface{}{"path": "hello"}
+	m = testMetaBackend(t, nil)
+	m.forceInitCopy = true
+	_, err = m.Backend(&BackendOpts{
+		ConfigExtra: extras,
+		Init:        true,
+	})
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	s = testStateRead(t, filepath.Join(DefaultDataDir, backendlocal.DefaultStateFilename))
+
+	if s.Backend.Hash == backendHash {
+		t.Fatal("state.Backend.Hash was not updated")
+	}
+}
+
 func testMetaBackend(t *testing.T, args []string) *Meta {
 	var m Meta
 	m.Ui = new(cli.MockUi)
