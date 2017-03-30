@@ -2,6 +2,7 @@
 
 FEATURES:
 
+ * **New Resource:** `aws_lightsail_static_ip` [GH-13175]
  * **New Resource:** `kubernetes_secret` [GH-12960]
 
 IMPROVEMENTS:
