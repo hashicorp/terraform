@@ -765,7 +765,7 @@ func jobFromResourceData(d *schema.ResourceData) (*rundeck.JobDetail, error) {
 		}
 
 		if scheduleCronArray[3] == "?" && scheduleCronArray[5] == "?" {
-			return nil, fmt.Errorf("rundeck schedule_cron format is incorrect, to many ?\nRundeck schedule must be formated like a cron expression, as defined here: http://www.quartz-scheduler.org/documentation/quartz-2.2.x/tutorials/tutorial-lesson-06.html")
+			return nil, fmt.Errorf("rundeck schedule format is incorrect, to many ?\nRundeck schedule must be formated like a cron expression, as defined here: http://www.quartz-scheduler.org/documentation/quartz-2.2.x/tutorials/tutorial-lesson-06.html")
 		} else if scheduleCronArray[5] == "?" {
 			job.Schedule.DayOfMonth = &rundeck.JobScheduleDayOfMonth{}
 			job.Schedule.Month.Day = scheduleCronArray[3]
@@ -774,7 +774,7 @@ func jobFromResourceData(d *schema.ResourceData) (*rundeck.JobDetail, error) {
 				Day: scheduleCronArray[5],
 			}
 		} else {
-			return nil, fmt.Errorf("rundeck schedule_cron format is incorrect, missing ?\nRundeck schedule must be formated like a cron expression, as defined here: http://www.quartz-scheduler.org/documentation/quartz-2.2.x/tutorials/tutorial-lesson-06.html")
+			return nil, fmt.Errorf("rundeck schedule format is incorrect, missing ?\nRundeck schedule must be formated like a cron expression, as defined here: http://www.quartz-scheduler.org/documentation/quartz-2.2.x/tutorials/tutorial-lesson-06.html")
 		}
 	}
 

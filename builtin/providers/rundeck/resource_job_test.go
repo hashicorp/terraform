@@ -116,7 +116,7 @@ resource "rundeck_job" "test" {
   allow_concurrent_executions = 1
   max_thread_count = 1
   rank_order = "ascending"
-  schedule = "0 0 12 * * * *"
+  schedule = "0 0 12 ? * * *"
   option {
     name = "foo"
     default_value = "bar"
@@ -155,7 +155,7 @@ resource "rundeck_job" "test" {
 	node_filter_query = ".*"
 	node_filter_exclude_precedence = false
 	nodes_selected_by_default = true
-	schedule_cron = "0 0 0 ? * * *"
+	schedule = "0 0 0 ? * * *"
 
 	dispatch {
     continue_on_error = true
