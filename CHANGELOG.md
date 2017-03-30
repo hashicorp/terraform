@@ -1,5 +1,9 @@
 ## 0.9.3 (unreleased)
 
+FEATURES:
+
+ * **New Resource:** `kubernetes_secret` [GH-12960]
+
 IMPROVEMENTS:
  
  * config: New interpolation functions `basename` and `dirname`, for file path manipulation [GH-13080]
