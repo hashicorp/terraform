@@ -5,35 +5,30 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/joyent/gosdc/cloudapi"
-)
-
-var (
-	// ErrNoKeyComment will be returned when the key name cannot be generated from
-	// the key comment and is not otherwise specified.
-	ErrNoKeyComment = errors.New("no key comment found to use as a name (and none specified)")
+	"github.com/joyent/triton-go"
 )
 
 func resourceKey() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceKeyCreate,
-		Exists: resourceKeyExists,
-		Read:   resourceKeyRead,
-		Delete: resourceKeyDelete,
+		Create:   resourceKeyCreate,
+		Exists:   resourceKeyExists,
+		Read:     resourceKeyRead,
+		Delete:   resourceKeyDelete,
+		Timeouts: fastResourceTimeout,
 		Importer: &schema.ResourceImporter{
-			State: resourceKeyImporter,
+			State: schema.ImportStatePassthrough,
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
-				Description: "name of this key (will be generated from the key comment, if not set and comment present)",
+			"name": {
+				Description: "Name of the key (generated from the key comment if not set)",
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
 				ForceNew:    true,
 			},
-			"key": &schema.Schema{
-				Description: "content of public key from disk",
+			"key": {
+				Description: "Content of public key from disk in OpenSSH format",
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
@@ -43,18 +38,18 @@ func resourceKey() *schema.Resource {
 }
 
 func resourceKeyCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*cloudapi.Client)
+	client := meta.(*triton.Client)
 
-	if d.Get("name").(string) == "" {
+	if keyName := d.Get("name").(string); keyName == "" {
 		parts := strings.SplitN(d.Get("key").(string), " ", 3)
 		if len(parts) == 3 {
 			d.Set("name", parts[2])
 		} else {
-			return ErrNoKeyComment
+			return errors.New("No key name specified, and key material has no comment")
 		}
 	}
 
-	_, err := client.CreateKey(cloudapi.CreateKeyOpts{
+	_, err := client.Keys().CreateKey(&triton.CreateKeyInput{
 		Name: d.Get("name").(string),
 		Key:  d.Get("key").(string),
 	})
@@ -64,35 +59,28 @@ func resourceKeyCreate(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(d.Get("name").(string))
 
-	err = resourceKeyRead(d, meta)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return resourceKeyRead(d, meta)
 }
 
 func resourceKeyExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	client := meta.(*cloudapi.Client)
+	client := meta.(*triton.Client)
 
-	keys, err := client.ListKeys()
+	_, err := client.Keys().GetKey(&triton.GetKeyInput{
+		KeyName: d.Id(),
+	})
 	if err != nil {
 		return false, err
 	}
 
-	for _, key := range keys {
-		if key.Name == d.Id() {
-			return true, nil
-		}
-	}
-
-	return false, nil
+	return true, nil
 }
 
 func resourceKeyRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*cloudapi.Client)
+	client := meta.(*triton.Client)
 
-	key, err := client.GetKey(d.Id())
+	key, err := client.Keys().GetKey(&triton.GetKeyInput{
+		KeyName: d.Id(),
+	})
 	if err != nil {
 		return err
 	}
@@ -104,15 +92,9 @@ func resourceKeyRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceKeyDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*cloudapi.Client)
+	client := meta.(*triton.Client)
 
-	if err := client.DeleteKey(d.Get("name").(string)); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func resourceKeyImporter(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	return []*schema.ResourceData{d}, nil
+	return client.Keys().DeleteKey(&triton.DeleteKeyInput{
+		KeyName: d.Id(),
+	})
 }
