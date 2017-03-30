@@ -8,7 +8,7 @@ description: |-
 
 # azure
 
-**Kind: Standard (with no locking)**
+**Kind: Standard (with state locking)**
 
 Stores the state as a given key in a given bucket on [Microsoft Azure Storage](https://azure.microsoft.com/en-us/documentation/articles/storage-introduction/).
 
@@ -47,11 +47,17 @@ The following configuration options are supported:
  * `storage_account_name` - (Required) The name of the storage account
  * `container_name` - (Required) The name of the container to use within the storage account
  * `key` - (Required) The key where to place/look for state file inside the container
- * `access_key` / `ARM_ACCESS_KEY` - (Required) Storage account access key
- * `lease_id` / `ARM_LEASE_ID` - (Optional) If set, will be used when writing to storage blob.
- * `resource_group_name` - (Optional) The name of the resource group for the storage account. Required if `access_key` isn't specified.
+ * `access_key` / `ARM_ACCESS_KEY` - (Optional) Storage account access key
  * `environment` / `ARM_ENVIRONMENT` - (Optional) The cloud environment to use. Supported values are:
    * `public` (default)
    * `usgovernment`
    * `german`
    * `china`
+
+The following configuration options must be supplied if `access_key` is not.
+
+ * `resource_group_name` - The resource group which contains the storage account.
+ * `subscription_id` / `ARM_SUBSCRIPTION_ID` - The Azure Subscription ID.
+ * `client_id` / `ARM_CLIENT_ID` - The Azure Client ID.
+ * `client_secret` / `ARM_CLIENT_SECRET` - The Azure Client Secret.
+ * `tenant_id` / `ARM_TENANT_ID` - The Azure Tenant ID.
