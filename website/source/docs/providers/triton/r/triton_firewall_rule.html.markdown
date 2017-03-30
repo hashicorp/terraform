@@ -12,7 +12,7 @@ The `triton_firewall_rule` resource represents a rule for the Triton cloud firew
 
 ## Example Usages
 
-### Allow traffic on ports tcp/80 and tcp/443 to machines with the 'www' tag from any source
+### Allow web traffic on ports tcp/80 and tcp/443 to machines with the 'www' tag from any source
 
 
 ```
@@ -23,19 +23,19 @@ resource "triton_firewall_rule" "www" {
 ```
 
 
-### Allow ssh traffic to all machines from known remote IPs
+### Allow ssh traffic on port tcp/22 to all machines from known remote IPs
 
 
 ```
 resource "triton_firewall_rule" "22" {
-  rule    = "FROM IP w.x.y.z TO all vms ALLOW tcp port 22"
+  rule    = "FROM IP (IP w.x.y.z OR IP w.x.y.z) TO all vms ALLOW tcp port 22"
   enabled = true
 }
 ```
 
 
 
-### Block traffic on port tcp/143 to all machines
+### Block IMAP traffic on port tcp/143 to all machines
 
 ```
 resource "triton_firewall_rule" "imap" {
