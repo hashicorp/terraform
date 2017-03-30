@@ -1,7 +1,7 @@
 ---
 layout: "triton"
 page_title: "Triton: triton_machine"
-sidebar_current: "docs-triton-machine"
+sidebar_current: "docs-triton-resource-machine"
 description: |-
     The `triton_machine` resource represents a virtual machine or infrastructure container running in Triton.
 ---

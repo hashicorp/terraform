@@ -1,7 +1,7 @@
 ---
 layout: "triton"
 page_title: "Triton: triton_fabric"
-sidebar_current: "docs-triton-fabric"
+sidebar_current: "docs-triton-resource-fabric"
 description: |-
     The `triton_fabric` resource represents an SSH fabric for a Triton account.
 ---

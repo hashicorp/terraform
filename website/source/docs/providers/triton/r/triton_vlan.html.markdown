@@ -1,7 +1,7 @@
 ---
 layout: "triton"
 page_title: "Triton: triton_vlan"
-sidebar_current: "docs-triton-vlan"
+sidebar_current: "docs-triton-resource-vlan"
 description: |-
     The `triton_vlan` resource represents an VLAN for a Triton account.
 ---

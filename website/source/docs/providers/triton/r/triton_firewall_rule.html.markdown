@@ -1,7 +1,7 @@
 ---
 layout: "triton"
 page_title: "Triton: triton_firewall_rule"
-sidebar_current: "docs-triton-firewall"
+sidebar_current: "docs-triton-resource-firewall-rule"
 description: |-
     The `triton_firewall_rule` resource represents a rule for the Triton cloud firewall.
 ---
