@@ -76,12 +76,11 @@ body.layout-inner,
 body.layout-remotestate,
 body.layout-terraform,
 body.layout-intro{
-	background: $light-black image-url('sidebar-wire.png') left 62px no-repeat;
+	background-color: white;
 
 	>.container{
-		.col-md-8[role=main]{
+		[role=main]{
 			min-height: 800px;
-			background-color: white;
 
 			>div{
 				position: relative;
@@ -99,7 +98,7 @@ body.layout-intro{
 	margin-right: 4%;
 	max-height: 100vh;
 	overflow: scroll;
-	padding: 50px 0 30px;
+	padding: 80px 0 30px;
 	position: relative;
 	width: 350px;
 	z-index: 20;
@@ -108,10 +107,52 @@ body.layout-intro{
 			color: $purple;
 	}
 
+	mark {
+		background-color: rgba($purple, .2);
+		padding: 0;
+	}
+
+	.has-sublist {
+		> a::before {
+			content: '>';
+		}
+	}
+
+	.nav-back-link {
+		margin-top: -60px;
+
+		a {
+			padding: 6px 15px;
+		}
+	}
+
+	.nav-section-header {
+		border-bottom: 1px solid #dbdada;
+		margin: 40px 0 15px;
+		padding: 6px 15px;
+	}
+
+	.nav-filter {
+		margin: 15px 0;
+	}
+
+	.nav-filter-input {
+		background: url('/assets/images/search.svg') no-repeat 15px center;
+		border: 1px solid #dbdada;
+		padding: 10px 40px;
+		width: 100%;
+	}
+
+	.nav-section-title {
+		color: $purple;
+		font-family: $font-family-open-sans;
+		font-size: 20px;
+		margin: 0;
+		text-transform: none;
+		-webkit-font-smoothing: subpixel-antialiased;
+	}
+
 	.docs-sidenav{
-		padding-top: 15px;
-		padding-bottom: 15px;
-		font-family: $font-family-klavika;
 		font-size: 16px;
 
 		:last-child{
@@ -123,31 +164,19 @@ body.layout-intro{
 			position: relative;
 
 			> a{
-				color: white;
 				@include transition( color 0.5s ease );
+				color: $light-black;
 			}
 
 			> a:hover,
 			> a:focus {
 				background-color: transparent !important;
-				color: white;
 				@include transition( color 0.5s ease );
 			}
 		}
 
 
 		> li {
-			padding: 10px 0;
-
-			>.nav{
-				li{
-					a{
-						font-family: $font-family-open-sans;
-						color: white;
-					}
-				}
-			}
-
 			&.active {
 				>a{
           color: lighten($purple, 4%);
@@ -165,9 +194,6 @@ body.layout-intro{
 					top: 26px;
 					left: -10px;
 				}
-				> a{
-          -webkit-font-smoothing: antialiased;
-				}
 
 				.nav {
 					display: block;
@@ -180,9 +206,8 @@ body.layout-intro{
 			}
 
 			> a {
-				text-transform: uppercase;
-				letter-spacing: 1px;
-        -webkit-font-smoothing: antialiased;
+				font-weight: bold;
+				-webkit-font-smoothing: subpixel-antialiased;
 			}
 		}
 
@@ -212,6 +237,12 @@ body.layout-intro{
 	}
 	@media(min-width: 768px){
 		padding: 10px 20px 80px 20px;
+	}
+
+	h1, h2, h3, h4, h5 {
+		color: $light-black;
+		font-family: $font-family-open-sans;
+		text-transform: none;
 	}
 
 	.lead{
@@ -248,17 +279,12 @@ body.layout-intro{
 
 	h1{
 		margin-top: 72px;
-		color: $purple;
-		font-weight: 400;
-		text-transform: uppercase;
 		letter-spacing: -1px;
     word-wrap: break-word;
 	}
 
 	h2, h3, h4{
 		margin-top: 48px;
-		font-family: $font-family-open-sans;
-		text-transform: none;
 	}
 
 	h2 {
@@ -281,8 +307,10 @@ body.layout-intro{
 	body.layout-inner,
 	body.layout-intro{
 		>.container{
-			.col-md-8[role=main]{
+			[role=main]{
 				min-height: 0;
+				padding: 0;
+
 				&::before {
 					border-left: 9999px solid white;
 				}
@@ -306,7 +334,6 @@ body.layout-intro{
       //all li > a
       li{
         > a{
-          color: black;
           @include transition( color 0.5s ease );
         }
 
@@ -322,8 +349,6 @@ body.layout-intro{
         >.nav{
           li{
             a{
-              color: black;
-
               &:hover{
                 color: $purple;
               }
@@ -335,10 +360,13 @@ body.layout-intro{
   }
 
   .bs-docs-section{
+		padding: 0;
+
     h1{
       font-size: 32px;
       padding-top: 24px;
       border-top: 1px solid #eeeeee;
+			margin-top: 1em;
     }
 
 		h2 {
