@@ -2300,6 +2300,18 @@
 			"revisionTime": "2016-06-16T18:50:15Z"
 		},
 		{
+			"checksumSHA1": "fue8Al8kqw/Q6VFPsNzoky7NIgo=",
+			"path": "github.com/joyent/triton-go",
+			"revision": "ed036af6d128e3c1ef76e92218810d3b298d1407",
+			"revisionTime": "2017-03-30T22:02:44Z"
+		},
+		{
+			"checksumSHA1": "7sIV9LK625xVO9WsV1gaLQgfBeY=",
+			"path": "github.com/joyent/triton-go/authentication",
+			"revision": "ed036af6d128e3c1ef76e92218810d3b298d1407",
+			"revisionTime": "2017-03-30T22:02:44Z"
+		},
+		{
 			"checksumSHA1": "YhQcOsGx8r2S/jkJ0Qt4cZ5BLCU=",
 			"comment": "v0.3.0-33-g53d1c0a",
 			"path": "github.com/jtopjian/cobblerclient",
