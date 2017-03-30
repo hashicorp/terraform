@@ -10,6 +10,7 @@ import (
 	backendatlas "github.com/hashicorp/terraform/backend/atlas"
 	backendlegacy "github.com/hashicorp/terraform/backend/legacy"
 	backendlocal "github.com/hashicorp/terraform/backend/local"
+	backendAzure "github.com/hashicorp/terraform/backend/remote-state/azure"
 	backendconsul "github.com/hashicorp/terraform/backend/remote-state/consul"
 	backendinmem "github.com/hashicorp/terraform/backend/remote-state/inmem"
 	backendS3 "github.com/hashicorp/terraform/backend/remote-state/s3"
@@ -40,6 +41,7 @@ func init() {
 		"inmem":  func() backend.Backend { return backendinmem.New() },
 		"swift":  func() backend.Backend { return backendSwift.New() },
 		"s3":     func() backend.Backend { return backendS3.New() },
+		"azure":  func() backend.Backend { return backendAzure.New() },
 	}
 
 	// Add the legacy remote backends that haven't yet been convertd to
