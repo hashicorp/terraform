@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 )
 
+// GetAccountInfo returns AWS account info from the given IAM role.
 func GetAccountInfo(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string) (string, string, error) {
 	// If we have creds from instance profile, we can use metadata API
 	if authProviderName == ec2rolecreds.ProviderName {
@@ -91,7 +92,7 @@ func parseAccountInfoFromArn(arn string) (string, string, error) {
 	return parts[1], parts[4], nil
 }
 
-// This function is responsible for reading credentials from the
+// GetCredentials is responsible for reading credentials from the
 // environment in the case that they're not explicitly specified
 // in the Terraform configuration.
 func GetCredentials(c *Config) (*awsCredentials.Credentials, error) {
