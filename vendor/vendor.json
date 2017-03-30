@@ -2288,12 +2288,6 @@
 			"revisionTime": "2016-09-13T20:25:01Z"
 		},
 		{
-			"checksumSHA1": "PDzjpRNeytdYU39/PByzwCMvKQ8=",
-			"path": "github.com/joyent/gosdc/cloudapi",
-			"revision": "042c6e9de2b48a646d310e70cc0050c83fe18200",
-			"revisionTime": "2016-04-26T05:09:12Z"
-		},
-		{
 			"checksumSHA1": "N0NRIcJF7aj1wd56DA1N9GpYq/4=",
 			"path": "github.com/joyent/gosign/auth",
 			"revision": "8978c75ffefb3f63a977ad9cbfce40caeb40177e",
