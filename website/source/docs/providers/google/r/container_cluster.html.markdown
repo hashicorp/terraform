@@ -174,3 +174,13 @@ exported:
 
 * `master_auth.cluster_ca_certificate` - Base64 encoded public certificate
     that is the root of trust for the cluster
+
+<a id="timeouts"></a>
+## Timeouts
+
+`google_container_cluster` provides the following
+[Timeouts](/docs/configuration/resources.html#timeouts) configuration options:
+
+- `create` - (Default `30 minutes`) Used for clusters
+- `update` - (Default `10 minutes`) Used for updates to clusters
+- `delete` - (Default `10 minutes`) Used for destroying clusters.
