@@ -157,7 +157,7 @@ URLs for Mercurial repositories support the following query parameters:
 
 ```
 module "consul" {
-  source = "hg::http://hashicorp.com/consul.hg?ref=master"
+  source = "hg::http://hashicorp.com/consul.hg?rev=default"
 }
 ```
 
