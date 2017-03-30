@@ -36,6 +36,7 @@ resource "aws_lambda_function" "test_lambda" {
   function_name = "lambda_function_name"
   role          = "${aws_iam_role.iam_for_lambda.arn}"
   handler       = "exports.handler"
+  runtime       = "nodejs6.10"
 }
 
 resource "aws_iam_role" "iam_for_lambda" {
@@ -85,6 +86,7 @@ resource "aws_lambda_function" "func" {
   function_name = "lambda_called_from_sns"
   role          = "${aws_iam_role.default.arn}"
   handler       = "exports.handler"
+  runtime       = "python2.7"
 }
 
 resource "aws_iam_role" "default" {
