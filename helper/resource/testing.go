@@ -174,6 +174,13 @@ type TestStep struct {
 	// determined by inspecting the state for ResourceName's ID.
 	ImportStateId string
 
+	// ImportStateIdPrefix is the prefix added in front of ImportStateId.
+	// This can be useful in complex import cases, where more than one
+	// attribute needs to be passed on as the Import ID. Mainly in cases
+	// where the ID is not known, and a known prefix needs to be added to
+	// the unset ImportStateId field.
+	ImportStateIdPrefix string
+
 	// ImportStateCheck checks the results of ImportState. It should be
 	// used to verify that the resulting value of ImportState has the
 	// proper resources, IDs, and attributes.
