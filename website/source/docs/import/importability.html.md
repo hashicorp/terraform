@@ -177,7 +177,8 @@ To make a resource importable, please see the
 
 ### Triton
 
-* triton_firewall_rule
 * triton_key
-* triton_machine
+* triton_firewall_rule
 * triton_vlan
+* triton_fabric
+* triton_machine
