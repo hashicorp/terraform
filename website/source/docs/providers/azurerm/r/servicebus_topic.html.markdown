@@ -67,7 +67,7 @@ The following arguments are supported:
     format.
 
 * `duplicate_detection_history_time_window` - (Optional) The duration during which
-    duplicates can be detected. Provided in the [TimeSpan](#timespan-format) format.
+    duplicates can be detected. Provided in the [TimeSpan](#timespan-format) format. Defaults to 10 minutes (`00:10:00`)
 
 * `enable_batched_operations` - (Optional) Boolean flag which controls if server-side
     batched operations are enabled. Defaults to false.
