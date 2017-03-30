@@ -77,6 +77,8 @@ func TestAccAWSALBTargetGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("aws_alb_target_group.test", "health_check.0.healthy_threshold", "3"),
 					resource.TestCheckResourceAttr("aws_alb_target_group.test", "health_check.0.unhealthy_threshold", "3"),
 					resource.TestCheckResourceAttr("aws_alb_target_group.test", "health_check.0.matcher", "200-299"),
+					resource.TestCheckResourceAttr("aws_alb_target_group.test", "tags.%", "1"),
+					resource.TestCheckResourceAttr("aws_alb_target_group.test", "tags.TestName", "TestAccAWSALBTargetGroup_basic"),
 				),
 			},
 		},
