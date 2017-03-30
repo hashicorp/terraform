@@ -426,6 +426,57 @@ func TestMetaBackend_configureNewWithState(t *testing.T) {
 	}
 }
 
+// Newly configured backend with matching local and remote state doesn't prompt
+// for copy.
+func TestMetaBackend_configureNewWithoutCopy(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("backend-new-migrate"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	if err := copy.CopyFile(DefaultStateFilename, "local-state.tfstate"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Setup the meta
+	m := testMetaBackend(t, nil)
+	m.input = false
+
+	// init the backend
+	_, err := m.Backend(&BackendOpts{Init: true})
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	// Verify the state is where we expect
+	f, err := os.Open("local-state.tfstate")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	actual, err := terraform.ReadState(f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if actual.Lineage != "backend-new-migrate" {
+		t.Fatalf("incorrect state lineage: %q", actual.Lineage)
+	}
+
+	// Verify the default paths don't exist
+	if !isEmptyState(DefaultStateFilename) {
+		data, _ := ioutil.ReadFile(DefaultStateFilename)
+
+		t.Fatal("state should not exist, but contains:\n", string(data))
+	}
+
+	// Verify a backup does exist
+	if isEmptyState(DefaultStateFilename + DefaultBackupExtension) {
+		t.Fatal("backup state is empty or missing")
+	}
+}
+
 // Newly configured backend with prior local state and no remote state,
 // but opting to not migrate.
 func TestMetaBackend_configureNewWithStateNoMigrate(t *testing.T) {
