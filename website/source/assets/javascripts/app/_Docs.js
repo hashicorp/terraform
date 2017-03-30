@@ -19,7 +19,6 @@ var Init = {
 
   addEventListeners: function(){
     var _this = this;
-    //console.log(document.querySelectorAll('.navbar-static-top')[0]);
     window.addEventListener('resize', _this.onResize, false);
 
     this.resizeImage();
@@ -27,13 +26,9 @@ var Init = {
 
   buildNavSelect: function(){
     var $sidebar = $('.docs-sidebar'),
-        $formGroup = $('<div class="form-group docs-nav-mobile">').append('<label>Navigation</label>'),
-        $select = $('<select class="form-control visible-xs visible-sm">'),
+        $formGroup = $('<div class="form-group docs-nav-mobile visible-xs visible-sm">').append('<label>Navigation</label>'),
+        $select = $('<select class="form-control">'),
         $options = $([]);
-
-    // hide sidebar
-    // TODO use a better selector? or write this into templates instead of js
-    $sidebar.closest('.col-md-4').wrap($('<div class="hidden-xs hidden-sm"></div>'));
 
     // kick off recursive search/build for nav <option>s
     $options = $options.add(this.buildNavOptions($sidebar.find('ul').first(), 0));
