@@ -3,14 +3,17 @@
 var Init = {
 
   start: function(){
-    var classname = this.hasClass(document.body, 'page-sub');
+    var classname = this.hasClass(document.body, 'page-sub'),
+      _this = this;
 
     if (classname) {
-      this.addEventListeners();
+      _this.addEventListeners();
     }
 
-    this.makeNavSticky();
-    this.buildNavSelect();
+    _this.makeNavSticky();
+    _this.buildNavSelect();
+    _this.initCollapsing();
+    _this.initFilter();
   },
 
   hasClass: function (elem, className) {
@@ -19,6 +22,8 @@ var Init = {
 
   addEventListeners: function(){
     var _this = this;
+
+    $('.nav-filter-input').on('input', $.proxy(_this.onFilterChange, _this));
     window.addEventListener('resize', _this.onResize, false);
 
     this.resizeImage();
@@ -39,6 +44,58 @@ var Init = {
       .change(this.onNavSelectChange);
 
     $formGroup.insertBefore('#main-content');
+  },
+
+  initCollapsing: function() {
+    $('.docs-sidenav ul')
+      .removeClass('nav-visible')
+      .parents('li')
+        .addClass('has-sublist')
+        .click(this.onCollapseClick);
+  },
+
+  initFilter: function() {
+    var _this = this;
+
+    _this.$unfilterableItems = $('.docs-sidenav > li');
+    _this.$filterableLinks = $('.docs-sidenav li a');
+
+    _this.$filterableLinks.each(function(i, el) {
+      var $el = $(el);
+
+      $el.data('text', $el.text().trim());
+    });
+  },
+
+  onCollapseClick: function() {
+    $(this).find('ul').toggleClass('nav-visible');
+  },
+
+  onFilterChange: function(event) {
+    var _this = this,
+        $input = $(event.target),
+        filterString = $input.val().trim().toLowerCase(),
+        matchLength = filterString.length;
+
+    _this.$filterableLinks.each(function(i, el) {
+      var $link = $(el).first(),
+          $item = $link.closest('li'),
+          linkText = $link.data('text'),
+          matchIndex = linkText.toLowerCase().indexOf(filterString),
+          matchEnd = matchIndex + matchLength;
+
+      if (matchIndex == -1) {
+        $item.hide();
+        $link.html(linkText);
+      } else {
+        $link.parents('li').show()
+        $link.html(
+          linkText.substr(0, matchIndex)
+          + '<mark>' + linkText.substr(matchIndex, matchLength) + '</mark>'
+          + linkText.substr(matchEnd)
+        );
+      }
+    });
   },
 
   onNavSelectChange: function(event){
