@@ -102,7 +102,12 @@ func resourceArmLocalNetworkGatewayRead(d *schema.ResourceData, meta interface{}
 	}
 	name := id.Path["localNetworkGateways"]
 	if name == "" {
-		return fmt.Errorf("Cannot find parameter 'localNetworkGateways' from '%s'", id.Path)
+		var pathString, sp string
+		for key, value := range id.Path {
+			pathString += fmt.Sprintf("%s'%s:%s'", sp, key, value)
+			sp = ", "
+		}
+		return fmt.Errorf("Cannot find 'localNetworkGateways' in [%s], make sure it is specified in the ID parameter", pathString)
 	}
 	resGroup := id.ResourceGroup
 
