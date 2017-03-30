@@ -1,7 +1,7 @@
 ---
-layout: "oracle"
+layout: "oracleopc"
 page_title: "Oracle: opc_compute_instance"
-sidebar_current: "docs-opc-resource-instance"
+sidebar_current: "docs-oracleopc-resource-instance"
 description: |-
   Creates and manages an instance in an OPC identity domain.
 ---
