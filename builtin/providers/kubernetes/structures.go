@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"strings"
 
+	"encoding/base64"
 	"github.com/hashicorp/terraform/helper/schema"
 	api "k8s.io/kubernetes/pkg/api/v1"
 )
@@ -98,4 +99,21 @@ func isInternalAnnotationKey(annotationKey string) bool {
 	}
 
 	return false
+}
+
+func byteMapToStringMap(m map[string][]byte) map[string]string {
+	result := make(map[string]string)
+	for k, v := range m {
+		result[k] = string(v)
+	}
+	return result
+}
+
+func base64EncodeStringMap(m map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	for k, v := range m {
+		value := v.(string)
+		result[k] = (base64.StdEncoding.EncodeToString([]byte(value)))
+	}
+	return result
 }
