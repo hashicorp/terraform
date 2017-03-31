@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"regexp"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -31,10 +30,19 @@ func resourceAwsDbOptionGroup() *schema.Resource {
 				Computed: true,
 			},
 			"name": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
+				ValidateFunc:  validateDbOptionGroupName,
+			},
+			"name_prefix": &schema.Schema{
 				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
 				ForceNew:     true,
-				Required:     true,
-				ValidateFunc: validateDbOptionGroupName,
+				ValidateFunc: validateDbOptionGroupNamePrefix,
 			},
 			"engine_name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -48,8 +56,9 @@ func resourceAwsDbOptionGroup() *schema.Resource {
 			},
 			"option_group_description": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
+				Default:  "Managed by Terraform",
 			},
 
 			"option": &schema.Schema{
@@ -107,11 +116,20 @@ func resourceAwsDbOptionGroupCreate(d *schema.ResourceData, meta interface{}) er
 	rdsconn := meta.(*AWSClient).rdsconn
 	tags := tagsFromMapRDS(d.Get("tags").(map[string]interface{}))
 
+	var groupName string
+	if v, ok := d.GetOk("name"); ok {
+		groupName = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		groupName = resource.PrefixedUniqueId(v.(string))
+	} else {
+		groupName = resource.UniqueId()
+	}
+
 	createOpts := &rds.CreateOptionGroupInput{
 		EngineName:             aws.String(d.Get("engine_name").(string)),
 		MajorEngineVersion:     aws.String(d.Get("major_engine_version").(string)),
 		OptionGroupDescription: aws.String(d.Get("option_group_description").(string)),
-		OptionGroupName:        aws.String(d.Get("name").(string)),
+		OptionGroupName:        aws.String(groupName),
 		Tags:                   tags,
 	}
 
@@ -121,7 +139,7 @@ func resourceAwsDbOptionGroupCreate(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Error creating DB Option Group: %s", err)
 	}
 
-	d.SetId(d.Get("name").(string))
+	d.SetId(groupName)
 	log.Printf("[INFO] DB Option Group ID: %s", d.Id())
 
 	return resourceAwsDbOptionGroupUpdate(d, meta)
@@ -342,29 +360,4 @@ func buildRDSOptionGroupARN(identifier, partition, accountid, region string) (st
 	}
 	arn := fmt.Sprintf("arn:%s:rds:%s:%s:og:%s", partition, region, accountid, identifier)
 	return arn, nil
-}
-
-func validateDbOptionGroupName(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"first character of %q must be a letter", k))
-	}
-	if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"only alphanumeric characters and hyphens allowed in %q", k))
-	}
-	if regexp.MustCompile(`--`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"%q cannot contain two consecutive hyphens", k))
-	}
-	if regexp.MustCompile(`-$`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"%q cannot end with a hyphen", k))
-	}
-	if len(value) > 255 {
-		errors = append(errors, fmt.Errorf(
-			"%q cannot be greater than 255 characters", k))
-	}
-	return
 }

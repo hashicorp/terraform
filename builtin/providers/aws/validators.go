@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func validateRdsId(v interface{}, k string) (ws []string, errors []error) {
+func validateRdsIdentifier(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
@@ -29,6 +29,23 @@ func validateRdsId(v interface{}, k string) (ws []string, errors []error) {
 	if regexp.MustCompile(`-$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"%q cannot end with a hyphen", k))
+	}
+	return
+}
+
+func validateRdsIdentifierPrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
+	}
+	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"first character of %q must be a letter", k))
+	}
+	if regexp.MustCompile(`--`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot contain two consecutive hyphens", k))
 	}
 	return
 }
@@ -103,7 +120,27 @@ func validateDbParamGroupName(v interface{}, k string) (ws []string, errors []er
 			"%q cannot be greater than 255 characters", k))
 	}
 	return
+}
 
+func validateDbParamGroupNamePrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
+	}
+	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"first character of %q must be a letter", k))
+	}
+	if regexp.MustCompile(`--`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot contain two consecutive hyphens", k))
+	}
+	if len(value) > 255 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be greater than 226 characters", k))
+	}
+	return
 }
 
 func validateStreamViewType(v interface{}, k string) (ws []string, errors []error) {
@@ -1039,5 +1076,81 @@ func validateApiGatewayUsagePlanQuotaSettings(v map[string]interface{}) (errors 
 		errors = append(errors, fmt.Errorf("Usage Plan quota offset must be between 0 and 27 inclusive in the MONTH period"))
 	}
 
+	return
+}
+
+func validateDbSubnetGroupName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[ .0-9a-z-_]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only lowercase alphanumeric characters, hyphens, underscores, periods, and spaces allowed in %q", k))
+	}
+	if len(value) > 255 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 255 characters", k))
+	}
+	if regexp.MustCompile(`(?i)^default$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q is not allowed as %q", "Default", k))
+	}
+	return
+}
+
+func validateDbSubnetGroupNamePrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[ .0-9a-z-_]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only lowercase alphanumeric characters, hyphens, underscores, periods, and spaces allowed in %q", k))
+	}
+	if len(value) > 229 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 229 characters", k))
+	}
+	return
+}
+
+func validateDbOptionGroupName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"first character of %q must be a letter", k))
+	}
+	if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only alphanumeric characters and hyphens allowed in %q", k))
+	}
+	if regexp.MustCompile(`--`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot contain two consecutive hyphens", k))
+	}
+	if regexp.MustCompile(`-$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot end with a hyphen", k))
+	}
+	if len(value) > 255 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be greater than 255 characters", k))
+	}
+	return
+}
+
+func validateDbOptionGroupNamePrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"first character of %q must be a letter", k))
+	}
+	if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only alphanumeric characters and hyphens allowed in %q", k))
+	}
+	if regexp.MustCompile(`--`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot contain two consecutive hyphens", k))
+	}
+	if len(value) > 229 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be greater than 229 characters", k))
+	}
 	return
 }

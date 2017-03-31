@@ -38,8 +38,9 @@ resource "aws_db_option_group" "bar" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the Option group to be created.
-* `option_group_description` - (Required) The description of the option group.
+* `name` - (Optional, Forces new resource) The name of the option group. If omitted, Terraform will assign a random, unique name.
+* `name_prefix` - (Optional, Forces new resource) Creates a unique name beginning with the specified prefix. Conflicts with `name`.
+* `option_group_description` - (Optional) The description of the option group. Defaults to "Managed by Terraform".
 * `engine_name` - (Required) Specifies the name of the engine that this option group should be associated with..
 * `major_engine_version` - (Required) Specifies the major version of the engine that this option group should be associated with.
 * `option` - (Optional) A list of Options to apply.

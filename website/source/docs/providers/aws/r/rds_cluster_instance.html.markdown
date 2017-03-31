@@ -47,8 +47,8 @@ the [AWS official documentation](https://docs.aws.amazon.com/AmazonRDS/latest/Co
 
 The following arguments are supported:
 
-* `identifier` - (Optional) The Instance Identifier. Must be a lower case
-string. If omitted, a unique identifier will be generated.
+* `identifier` - (Optional, Forces new resource) The indentifier for the RDS instance, if omitted, Terraform will assign a random, unique identifier.
+* `identifier_prefix` - (Optional, Forces new resource) Creates a unique identifier beginning with the specified prefix. Conflicts with `identifer`.
 * `cluster_identifier` - (Required) The identifier of the [`aws_rds_cluster`](/docs/providers/aws/r/rds_cluster.html) in which to launch this instance.
 * `instance_class` - (Required) The instance class to use. For details on CPU
 and memory, see [Scaling Aurora DB Instances][4]. Aurora currently
