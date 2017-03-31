@@ -284,6 +284,20 @@ func resourceAwsAlbTargetGroupRead(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
+	tagsResp, err := elbconn.DescribeTags(&elbv2.DescribeTagsInput{
+		ResourceArns: []*string{aws.String(d.Id())},
+	})
+	if err != nil {
+		return errwrap.Wrapf("Error retrieving Target Group Tags: {{err}}", err)
+	}
+	for _, t := range tagsResp.TagDescriptions {
+		if *t.ResourceArn == d.Id() {
+			if err := d.Set("tags", tagsToMapELBv2(t.Tags)); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
