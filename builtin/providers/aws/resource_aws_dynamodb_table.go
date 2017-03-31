@@ -533,9 +533,8 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 
 			table := tableDescription.Table
 
-			updates := []*dynamodb.GlobalSecondaryIndexUpdate{}
-
 			for _, updatedgsidata := range gsiSet.List() {
+				updates := []*dynamodb.GlobalSecondaryIndexUpdate{}
 				gsidata := updatedgsidata.(map[string]interface{})
 				gsiName := gsidata["name"].(string)
 				gsiWriteCapacity := gsidata["write_capacity"].(int)
@@ -583,6 +582,10 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 					if err != nil {
 						log.Printf("[DEBUG] Error updating table: %s", err)
 						return err
+					}
+
+					if err := waitForGSIToBeActive(d.Id(), gsiName, meta); err != nil {
+						return errwrap.Wrapf("Error waiting for Dynamo DB GSI to be active: {{err}}", err)
 					}
 				}
 			}
