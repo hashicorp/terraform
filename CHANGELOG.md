@@ -33,6 +33,7 @@ BUG FIXES:
  * provider/aws: `volume_type` of `aws_elasticsearch_domain.0.ebs_options` marked as `Computed` which prevents spurious diffs [GH-13160]
  * provider/aws: Don't set DBName on `aws_db_instance` from snapshot [GH-13140]
  * provider/aws: Add DiffSuppression to aws_ecs_service placement_strategies [GH-13220]
+ * provider/aws: Refresh aws_alb_target_group stickiness on manual updates [GH-13199]
  * provider/azurerm: Network Security Group - ignoring protocol casing at Import time [GH-13153]
 
 ## 0.9.2 (March 28, 2017)
