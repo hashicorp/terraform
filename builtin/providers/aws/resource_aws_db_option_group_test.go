@@ -174,6 +174,10 @@ func TestResourceAWSDBOptionGroupName_validation(t *testing.T) {
 			ErrCount: 1,
 		},
 		{
+			Value:    "tESTING123",
+			ErrCount: 1,
+		},
+		{
 			Value:    "testing--123",
 			ErrCount: 1,
 		},

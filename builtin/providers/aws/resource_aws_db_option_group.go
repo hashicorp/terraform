@@ -354,6 +354,10 @@ func validateDbOptionGroupName(v interface{}, k string) (ws []string, errors []e
 		errors = append(errors, fmt.Errorf(
 			"only alphanumeric characters and hyphens allowed in %q", k))
 	}
+	if regexp.MustCompile(`[A-Z]`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only lowercase letters allowed in %q", k))
+	}
 	if regexp.MustCompile(`--`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"%q cannot contain two consecutive hyphens", k))
