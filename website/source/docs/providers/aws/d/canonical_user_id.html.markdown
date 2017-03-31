@@ -1,7 +1,7 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_canonical_user_id"
-sidebar_current: "docs-aws-canonical-user-id"
+sidebar_current: "docs-aws-datasource-canonical-user-id"
 description: |-
   Provides the canonical user ID for the AWS account associated with the provider
   connection to AWS.
