@@ -157,15 +157,6 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 						},
 					},
 				},
-				// GSI names are the uniqueness constraint
-				Set: func(v interface{}) int {
-					var buf bytes.Buffer
-					m := v.(map[string]interface{})
-					buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
-					buf.WriteString(fmt.Sprintf("%d-", m["write_capacity"].(int)))
-					buf.WriteString(fmt.Sprintf("%d-", m["read_capacity"].(int)))
-					return hashcode.String(buf.String())
-				},
 			},
 			"stream_enabled": {
 				Type:     schema.TypeBool,
