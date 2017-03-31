@@ -28,6 +28,7 @@ type State interface {
 	StateWriter
 	StateRefresher
 	StatePersister
+	Locker
 }
 
 // StateReader is the interface for things that can return a state. Retrieving

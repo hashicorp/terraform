@@ -26,3 +26,11 @@ func (s *InmemState) WriteState(state *terraform.State) error {
 func (s *InmemState) PersistState() error {
 	return nil
 }
+
+func (s *InmemState) Lock(*LockInfo) (string, error) {
+	return "", nil
+}
+
+func (s *InmemState) Unlock(string) error {
+	return nil
+}
