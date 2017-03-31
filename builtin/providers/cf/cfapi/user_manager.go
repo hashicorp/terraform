@@ -106,7 +106,7 @@ func NewUserManager(config coreconfig.Reader, uaaGateway net.Gateway, ccGateway 
 func (um *UserManager) loadGroups() (err error) {
 
 	uaaEndpoint := um.config.UaaEndpoint()
-	if uaaEndpoint == "" {
+	if len(uaaEndpoint) == 0 {
 		err = errors.New("UAA endpoint missing from config file")
 		return
 	}
@@ -165,7 +165,7 @@ func (um *UserManager) IsDefaultGroup(group string) (ok bool) {
 func (um *UserManager) GetUser(id string) (user *UAAUser, err error) {
 
 	uaaEndpoint := um.config.UaaEndpoint()
-	if uaaEndpoint == "" {
+	if len(uaaEndpoint) == 0 {
 		err = errors.New("UAA endpoint missing from config file")
 		return
 	}
@@ -183,7 +183,7 @@ func (um *UserManager) CreateUser(
 	username, password, origin, givenName, familyName, email string) (user *UAAUser, err error) {
 
 	uaaEndpoint := um.config.UaaEndpoint()
-	if uaaEndpoint == "" {
+	if len(uaaEndpoint) == 0 {
 		err = errors.New("UAA endpoint missing from config file")
 		return
 	}
@@ -236,7 +236,7 @@ func (um *UserManager) UpdateUser(
 	id, username, givenName, familyName, email string) (user *UAAUser, err error) {
 
 	uaaEndpoint := um.config.UaaEndpoint()
-	if uaaEndpoint == "" {
+	if len(uaaEndpoint) == 0 {
 		err = errors.New("UAA endpoint missing from config file")
 		return
 	}
@@ -278,7 +278,7 @@ func (um *UserManager) ChangePassword(
 	id, oldPassword, newPassword string) (err error) {
 
 	uaaEndpoint := um.config.UaaEndpoint()
-	if uaaEndpoint == "" {
+	if len(uaaEndpoint) == 0 {
 		err = errors.New("UAA endpoint missing from config file")
 		return
 	}
@@ -312,7 +312,7 @@ func (um *UserManager) UpdateRoles(
 	id string, scopesToDelete, scopesToAdd []string, origin string) (err error) {
 
 	uaaEndpoint := um.config.UaaEndpoint()
-	if uaaEndpoint == "" {
+	if len(uaaEndpoint) == 0 {
 		err = errors.New("UAA endpoint missing from config file")
 		return
 	}

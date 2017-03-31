@@ -61,7 +61,7 @@ func NewQuotaManager(config coreconfig.Reader, ccGateway net.Gateway) (dm *Quota
 		spaceRepo: spacequotas.NewCloudControllerSpaceQuotaRepository(config, ccGateway),
 	}
 
-	if dm.apiEndpoint == "" {
+	if len(dm.apiEndpoint) == 0 {
 		err = errors.New("API endpoint missing from config file")
 		return
 	}

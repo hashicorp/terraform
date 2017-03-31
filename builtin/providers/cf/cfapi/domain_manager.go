@@ -61,7 +61,7 @@ func NewDomainManager(config coreconfig.Reader, ccGateway net.Gateway) (dm *Doma
 			config, ccGateway, strategy.NewEndpointStrategy(config.APIVersion())),
 	}
 
-	if dm.apiEndpoint == "" {
+	if len(dm.apiEndpoint) == 0 {
 		err = errors.New("API endpoint missing from config file")
 		return
 	}

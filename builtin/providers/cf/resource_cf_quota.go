@@ -105,7 +105,7 @@ func resourceQuotaRead(d *schema.ResourceData, meta interface{}) (err error) {
 	d.Set("total_services", quota.TotalServices)
 	d.Set("total_routes", quota.TotalRoutes)
 
-	if quota.OrgGUID == "" {
+	if len(quota.OrgGUID) == 0 {
 		d.Set("total_route_ports", quota.TotalReserveredPorts)
 		d.Set("total_private_domains", quota.TotalPrivateDomains)
 	}

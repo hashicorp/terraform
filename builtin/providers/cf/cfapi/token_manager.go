@@ -238,7 +238,7 @@ func (tm *AuthManager) getAuthToken(clientID, clientSecret string, data url.Valu
 	}
 
 	// TODO: get the actual status code
-	if response.Error.Code != "" {
+	if len(response.Error.Code) > 0 {
 		return nil, errors.NewHTTPError(0, response.Error.Code, response.Error.Description)
 	}
 

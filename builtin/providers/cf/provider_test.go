@@ -52,12 +52,12 @@ func testAccEnvironmentSet() bool {
 	uaaClientSecret := os.Getenv("CF_UAA_CLIENT_SECRET")
 	skipSslValidation := strings.ToLower(os.Getenv("CF_SKIP_SSL_VALIDATION"))
 
-	if endpoint == "" ||
-		user == "" ||
-		password == "" ||
-		uaaClientID == "" ||
-		uaaClientSecret == "" ||
-		skipSslValidation == "" {
+	if len(endpoint) == 0 ||
+		len(user) == 0 ||
+		len(password) == 0 ||
+		len(uaaClientID) == 0 ||
+		len(uaaClientSecret) == 0 ||
+		len(skipSslValidation) == 0 {
 
 		fmt.Println("CF_API_URL, CF_USER, CF_PASSWORD, CF_UAA_CLIENT_ID, CF_UAA_CLIENT_SECRET " +
 			"and CF_SKIP_SSL_VALIDATION must be set for acceptance tests to work.")
@@ -119,7 +119,7 @@ func assertListEquals(attributes map[string]string,
 	var n int
 
 	num := attributes[key+".#"]
-	if num != "" {
+	if len(num) > 0 {
 		n, err = strconv.Atoi(num)
 		if err != nil {
 			return
@@ -184,7 +184,7 @@ func assertSetEquals(attributes map[string]string,
 	var n int
 
 	num := attributes[key+".#"]
-	if num != "" {
+	if len(num) > 0 {
 		n, err = strconv.Atoi(num)
 		if err != nil {
 			return

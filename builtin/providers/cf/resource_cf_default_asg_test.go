@@ -94,7 +94,7 @@ func TestAccDefaultRunningAsg_normal(t *testing.T) {
 
 	_, filename, _, _ := runtime.Caller(0)
 	ut := os.Getenv("UNIT_TEST")
-	if !testAccEnvironmentSet() || (ut != "" && ut != filepath.Base(filename)) {
+	if !testAccEnvironmentSet() || (len(ut) > 0 && ut != filepath.Base(filename)) {
 		fmt.Printf("Skipping tests in '%s'.\n", filepath.Base(filename))
 		return
 	}
@@ -136,7 +136,7 @@ func TestAccDefaultStagingAsg_normal(t *testing.T) {
 
 	_, filename, _, _ := runtime.Caller(0)
 	ut := os.Getenv("UNIT_TEST")
-	if !testAccEnvironmentSet() || (ut != "" && ut != filepath.Base(filename)) {
+	if !testAccEnvironmentSet() || (len(ut) > 0 && ut != filepath.Base(filename)) {
 		fmt.Printf("Skipping tests in '%s'.\n", filepath.Base(filename))
 		return
 	}

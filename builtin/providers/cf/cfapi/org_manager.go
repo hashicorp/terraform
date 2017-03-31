@@ -65,7 +65,7 @@ func NewOrgManager(config coreconfig.Reader, ccGateway net.Gateway) (dm *OrgMana
 		repo: organizations.NewCloudControllerOrganizationRepository(config, ccGateway),
 	}
 
-	if dm.apiEndpoint == "" {
+	if len(dm.apiEndpoint) == 0 {
 		err = errors.New("API endpoint missing from config file")
 		return
 	}

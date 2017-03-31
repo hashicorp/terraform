@@ -82,7 +82,7 @@ func NewSession(
 	}
 
 	err = s.initCliConnection(endpoint, user, password, caCert, skipSslValidation)
-	if err == nil && uaaClientID != "" {
+	if err == nil && len(uaaClientID) > 0 {
 		s.userManager.clientToken, err = s.authManager.getClientToken(uaaClientID, uaaClientSecret)
 	}
 	return
@@ -131,7 +131,7 @@ func (s *Session) initCliConnection(
 	s.config.SetDopplerEndpoint(s.ccInfo.DopplerEndpoint)
 	s.config.SetRoutingAPIEndpoint(s.ccInfo.RoutingAPIEndpoint)
 
-	if s.ccInfo.LoggregatorEndpoint == "" {
+	if len(s.ccInfo.LoggregatorEndpoint) == 0 {
 		var endpointDomainRegex = regexp.MustCompile(`^http(s?)://[^\.]+\.([^:]+)`)
 
 		matches := endpointDomainRegex.FindStringSubmatch(endpoint)

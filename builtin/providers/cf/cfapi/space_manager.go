@@ -64,7 +64,7 @@ func NewSpaceManager(config coreconfig.Reader, ccGateway net.Gateway) (dm *Space
 		repo: spaces.NewCloudControllerSpaceRepository(config, ccGateway),
 	}
 
-	if dm.apiEndpoint == "" {
+	if len(dm.apiEndpoint) == 0 {
 		err = errors.New("API endpoint missing from config file")
 		return
 	}
@@ -110,10 +110,12 @@ func (sm *SpaceManager) CreateSpace(
 	allowSSH bool, asgs []interface{}) (id string, err error) {
 
 	payload := map[string]interface{}{
-		"name":                        name,
-		"organization_guid":           orgID,
-		"space_quota_definition_guid": quotaID,
-		"allow_ssh":                   allowSSH,
+		"name":              name,
+		"organization_guid": orgID,
+		"allow_ssh":         allowSSH,
+	}
+	if len(quotaID) > 0 {
+		payload["space_quota_definition_guid"] = quotaID
 	}
 	if len(asgs) > 0 {
 		payload["security_group_guids"] = asgs
