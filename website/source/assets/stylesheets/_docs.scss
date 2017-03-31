@@ -90,17 +90,19 @@ body.layout-intro{
 	}
 }
 
+.nav-col {
+	padding: 0;
+}
+
 .docs-nav-mobile {
 	margin: 15px 0 0;
 }
 
 .docs-sidebar{
-	margin-right: 4%;
 	max-height: 100vh;
 	overflow: scroll;
-	padding: 80px 0 30px;
+	padding: 80px 1em 30px 0;
 	position: relative;
-	width: 350px;
 	z-index: 20;
 
 	a{
