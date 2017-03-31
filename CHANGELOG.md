@@ -9,6 +9,7 @@ FEATURES:
 
 IMPROVEMENTS:
  
+ * backend/remote-state: Add support for assume role extensions to s3 backend [GH-13236]
  * config: New interpolation functions `basename` and `dirname`, for file path manipulation [GH-13080]
  * helper/resource: Allow unknown "pending" states [GH-13099]
  * provider/aws: Add support to set iam_role_arn on cloudformation Stack [GH-12547]
