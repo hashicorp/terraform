@@ -1002,7 +1002,8 @@ func (m *Meta) backend_C_r_s(
 	}
 
 	// If the local state is not empty, we need to potentially do a
-	// state migration to the new backend (with user permission).
+	// state migration to the new backend (with user permission), unless the
+	// destination is also "local"
 	if localS := localState.State(); !localS.Empty() {
 		// Perform the migration
 		err = m.backendMigrateState(&backendMigrateOpts{
@@ -1015,12 +1016,27 @@ func (m *Meta) backend_C_r_s(
 			return nil, err
 		}
 
-		// We always delete the local state
-		if err := localState.WriteState(nil); err != nil {
-			return nil, fmt.Errorf(errBackendMigrateLocalDelete, err)
+		// we usually remove the local state after migration to prevent
+		// confusion, but adding a default local backend block to the config
+		// can get us here too. Don't delete our state if the old and new paths
+		// are the same.
+		erase := true
+		if newLocalB, ok := b.(*backendlocal.Local); ok {
+			if localB, ok := localB.(*backendlocal.Local); ok {
+				if newLocalB.StatePath == localB.StatePath {
+					erase = false
+				}
+			}
 		}
-		if err := localState.PersistState(); err != nil {
-			return nil, fmt.Errorf(errBackendMigrateLocalDelete, err)
+
+		if erase {
+			// We always delete the local state, unless that was our new state too.
+			if err := localState.WriteState(nil); err != nil {
+				return nil, fmt.Errorf(errBackendMigrateLocalDelete, err)
+			}
+			if err := localState.PersistState(); err != nil {
+				return nil, fmt.Errorf(errBackendMigrateLocalDelete, err)
+			}
 		}
 	}
 
