@@ -449,37 +449,45 @@ func resourceProfitBricksServerRead(d *schema.ResourceData, meta interface{}) er
 	serverId := d.Id()
 
 	server := profitbricks.GetServer(dcId, serverId)
-	primarynic := d.Get("primary_nic").(string)
-
+	if server.StatusCode > 299 {
+		if server.StatusCode == 404 {
+			d.SetId("")
+			return nil
+		}
+		return fmt.Errorf("Error occured while fetching a server ID %s %s", d.Id(), server.Response)
+	}
 	d.Set("name", server.Properties.Name)
 	d.Set("cores", server.Properties.Cores)
 	d.Set("ram", server.Properties.Ram)
 	d.Set("availability_zone", server.Properties.AvailabilityZone)
-	d.Set("primary_nic", primarynic)
 
-	nic := profitbricks.GetNic(dcId, serverId, primarynic)
+	if primarynic, ok := d.GetOk("primary_nic"); ok {
+		d.Set("primary_nic", primarynic.(string))
 
-	if len(nic.Properties.Ips) > 0 {
-		d.Set("primary_ip", nic.Properties.Ips[0])
-	}
+		nic := profitbricks.GetNic(dcId, serverId, primarynic.(string))
 
-	if nRaw, ok := d.GetOk("nic"); ok {
-		log.Printf("[DEBUG] parsing nic")
-
-		nicRaw := nRaw.(*schema.Set).List()
-
-		for _, raw := range nicRaw {
-
-			rawMap := raw.(map[string]interface{})
-
-			rawMap["lan"] = nic.Properties.Lan
-			rawMap["name"] = nic.Properties.Name
-			rawMap["dhcp"] = nic.Properties.Dhcp
-			rawMap["nat"] = nic.Properties.Nat
-			rawMap["firewall_active"] = nic.Properties.FirewallActive
-			rawMap["ips"] = nic.Properties.Ips
+		if len(nic.Properties.Ips) > 0 {
+			d.Set("primary_ip", nic.Properties.Ips[0])
 		}
-		d.Set("nic", nicRaw)
+
+		if nRaw, ok := d.GetOk("nic"); ok {
+			log.Printf("[DEBUG] parsing nic")
+
+			nicRaw := nRaw.(*schema.Set).List()
+
+			for _, raw := range nicRaw {
+
+				rawMap := raw.(map[string]interface{})
+
+				rawMap["lan"] = nic.Properties.Lan
+				rawMap["name"] = nic.Properties.Name
+				rawMap["dhcp"] = nic.Properties.Dhcp
+				rawMap["nat"] = nic.Properties.Nat
+				rawMap["firewall_active"] = nic.Properties.FirewallActive
+				rawMap["ips"] = nic.Properties.Ips
+			}
+			d.Set("nic", nicRaw)
+		}
 	}
 
 	if server.Properties.BootVolume != nil {

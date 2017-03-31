@@ -313,14 +313,21 @@ type urlParseFlags int
 
 const (
 	urlIsAbs urlParseFlags = 1 << iota
-	urlWithoutSchema
+	urlOptional
+	urlWithoutPath
 	urlWithoutPort
+	urlWithoutSchema
 )
 
 const urlBasicCheck urlParseFlags = 0
 
 func validateHTTPURL(attrName schemaAttr, checkFlags urlParseFlags) func(v interface{}, key string) (warnings []string, errors []error) {
 	return func(v interface{}, key string) (warnings []string, errors []error) {
+		s := v.(string)
+		if checkFlags&urlOptional != 0 && s == "" {
+			return warnings, errors
+		}
+
 		u, err := url.Parse(v.(string))
 		switch {
 		case err != nil:
@@ -337,6 +344,10 @@ func validateHTTPURL(attrName schemaAttr, checkFlags urlParseFlags) func(v inter
 
 		if checkFlags&urlWithoutSchema != 0 && u.IsAbs() {
 			errors = append(errors, fmt.Errorf("Schema is present on URL %q (HINT: drop the https://%s)", v.(string), v.(string)))
+		}
+
+		if checkFlags&urlWithoutPath != 0 && u.Path != "" {
+			errors = append(errors, fmt.Errorf("Path is present on URL %q (HINT: drop the %s)", v.(string), u.Path))
 		}
 
 		if checkFlags&urlWithoutPort != 0 {

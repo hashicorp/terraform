@@ -88,6 +88,10 @@ func resourceScalewayServer() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"public_ipv6": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"state": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -103,6 +107,9 @@ func resourceScalewayServer() *schema.Resource {
 
 func resourceScalewayServerCreate(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
+
+	mu.Lock()
+	defer mu.Unlock()
 
 	image := d.Get("image").(string)
 	var server = api.ScalewayServerDefinition{
@@ -194,6 +201,10 @@ func resourceScalewayServerRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("private_ip", server.PrivateIP)
 	d.Set("public_ip", server.PublicAddress.IP)
 
+	if server.EnableIPV6 {
+		d.Set("public_ipv6", server.IPV6.Address)
+	}
+
 	d.Set("state", server.State)
 	d.Set("state_detail", server.StateDetail)
 	d.Set("tags", server.Tags)
@@ -209,8 +220,10 @@ func resourceScalewayServerRead(d *schema.ResourceData, m interface{}) error {
 func resourceScalewayServerUpdate(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
 
-	var req api.ScalewayServerPatchDefinition
+	mu.Lock()
+	defer mu.Unlock()
 
+	var req api.ScalewayServerPatchDefinition
 	if d.HasChange("name") {
 		name := d.Get("name").(string)
 		req.Name = &name
@@ -249,6 +262,9 @@ func resourceScalewayServerUpdate(d *schema.ResourceData, m interface{}) error {
 
 func resourceScalewayServerDelete(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
+
+	mu.Lock()
+	defer mu.Unlock()
 
 	s, err := scaleway.GetServer(d.Id())
 	if err != nil {

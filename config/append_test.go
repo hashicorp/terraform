@@ -118,6 +118,31 @@ func TestAppend(t *testing.T) {
 			},
 			false,
 		},
+
+		// appending configs merges terraform blocks
+		{
+			&Config{
+				Terraform: &Terraform{
+					RequiredVersion: "A",
+				},
+			},
+			&Config{
+				Terraform: &Terraform{
+					Backend: &Backend{
+						Type: "test",
+					},
+				},
+			},
+			&Config{
+				Terraform: &Terraform{
+					RequiredVersion: "A",
+					Backend: &Backend{
+						Type: "test",
+					},
+				},
+			},
+			false,
+		},
 	}
 
 	for i, tc := range cases {

@@ -10,6 +10,9 @@ description: |-
 
 Creates a new persistent disk within GCE, based on another disk.
 
+~> **Note:** All arguments including the disk encryption key will be stored in the raw state as plain-text.
+[Read more about sensitive data in state](/docs/state/sensitive-data.html).
+
 ## Example Usage
 
 ```js
@@ -17,7 +20,7 @@ resource "google_compute_disk" "default" {
   name  = "test-disk"
   type  = "pd-ssd"
   zone  = "us-central1-a"
-  image = "debian7-wheezy"
+  image = "debian-cloud/debian-8"
 }
 ```
 
@@ -37,9 +40,11 @@ The following arguments are supported:
     encoded in [RFC 4648 base64](https://tools.ietf.org/html/rfc4648#section-4)
     to encrypt this disk.
 
-* `image` - (Optional) The image from which to initialize this disk. Either the
-    full URL, a contraction of the form "project/name", or just a name (in which
-    case the current project is used).
+* `image` - (Optional) The image from which to initialize this disk. This can be
+    one of: the image's `self_link`, `projects/{project}/global/images/{image}`,
+    `projects/{project}/global/images/family/{family}`, `global/images/{image}`,
+    `global/images/family/{family}`, `family/{family}`, `{project}/{family}`,
+    `{project}/{image}`, `{family}`, or `{image}`.
 
 * `project` - (Optional) The project in which the resource belongs. If it
     is not provided, the provider project is used.

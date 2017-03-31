@@ -42,6 +42,7 @@ The following arguments are supported:
 * `type` - (Required) The type of rule being created. Valid options are `ingress` (inbound)
 or `egress` (outbound).
 * `cidr_blocks` - (Optional) List of CIDR blocks. Cannot be specified with `source_security_group_id`.
+* `ipv6_cidr_blocks` - (Optional) List of IPv6 CIDR blocks.
 * `prefix_list_ids` - (Optional) List of prefix list IDs (for allowing access to VPC endpoints).
 Only valid with `egress`.
 * `from_port` - (Required) The start port (or ICMP type number if protocol is "icmp").

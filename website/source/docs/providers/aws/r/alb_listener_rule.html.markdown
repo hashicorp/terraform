@@ -55,7 +55,7 @@ Action Blocks (for `default_action`) support the following:
 Condition Blocks (for `default_condition`) support the following:
 
 * `field` - (Required) The name of the field. The only valid value is `path-pattern`.
-* `values` - (Required) The path patterns to match.
+* `values` - (Required) The path patterns to match. A maximum of 1 can be defined.
 
 ## Attributes Reference
 

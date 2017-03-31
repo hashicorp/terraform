@@ -158,7 +158,7 @@ resource "circonus_contact_group" "staging-sev3" {
 */
 
 /*
-  pagerduty {
+  pager_duty {
     // NOTE(sean@): needs to be filled in
   }
 */

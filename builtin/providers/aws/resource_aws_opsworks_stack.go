@@ -3,14 +3,17 @@ package aws
 import (
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/opsworks"
 )
 
@@ -25,99 +28,100 @@ func resourceAwsOpsworksStack() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"agent_version": &schema.Schema{
+			"agent_version": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
 
-			"service_role_arn": &schema.Schema{
+			"service_role_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"default_instance_profile_arn": &schema.Schema{
+			"default_instance_profile_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"color": &schema.Schema{
+			"color": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"configuration_manager_name": &schema.Schema{
+			"configuration_manager_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "Chef",
 			},
 
-			"configuration_manager_version": &schema.Schema{
+			"configuration_manager_version": {
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "11.4",
+				Default:  "11.10",
 			},
 
-			"manage_berkshelf": &schema.Schema{
+			"manage_berkshelf": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
 
-			"berkshelf_version": &schema.Schema{
+			"berkshelf_version": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "3.2.0",
 			},
 
-			"custom_cookbooks_source": &schema.Schema{
+			"custom_cookbooks_source": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": &schema.Schema{
+						"type": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"url": &schema.Schema{
+						"url": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"username": &schema.Schema{
+						"username": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"password": &schema.Schema{
+						"password": {
+							Type:      schema.TypeString,
+							Optional:  true,
+							Sensitive: true,
+						},
+
+						"revision": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"revision": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-
-						"ssh_key": &schema.Schema{
+						"ssh_key": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -125,61 +129,68 @@ func resourceAwsOpsworksStack() *schema.Resource {
 				},
 			},
 
-			"custom_json": &schema.Schema{
+			"custom_json": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"default_availability_zone": &schema.Schema{
+			"default_availability_zone": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"default_os": &schema.Schema{
+			"default_os": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "Ubuntu 12.04 LTS",
 			},
 
-			"default_root_device_type": &schema.Schema{
+			"default_root_device_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "instance-store",
 			},
 
-			"default_ssh_key_name": &schema.Schema{
+			"default_ssh_key_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"default_subnet_id": &schema.Schema{
+			"default_subnet_id": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 
-			"hostname_theme": &schema.Schema{
+			"hostname_theme": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "Layer_Dependent",
 			},
 
-			"use_custom_cookbooks": &schema.Schema{
+			"use_custom_cookbooks": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
 
-			"use_opsworks_security_groups": &schema.Schema{
+			"use_opsworks_security_groups": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
 
-			"vpc_id": &schema.Schema{
+			"vpc_id": {
 				Type:     schema.TypeString,
 				ForceNew: true,
+				Computed: true,
 				Optional: true,
+			},
+
+			"stack_endpoint": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -252,6 +263,13 @@ func resourceAwsOpsworksSetStackCustomCookbooksSource(d *schema.ResourceData, v 
 
 func resourceAwsOpsworksStackRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*AWSClient).opsworksconn
+	var conErr error
+	if v := d.Get("stack_endpoint").(string); v != "" {
+		client, conErr = opsworksConnForRegion(v, meta)
+		if conErr != nil {
+			return conErr
+		}
+	}
 
 	req := &opsworks.DescribeStacksInput{
 		StackIds: []*string{
@@ -261,16 +279,53 @@ func resourceAwsOpsworksStackRead(d *schema.ResourceData, meta interface{}) erro
 
 	log.Printf("[DEBUG] Reading OpsWorks stack: %s", d.Id())
 
-	resp, err := client.DescribeStacks(req)
-	if err != nil {
-		if awserr, ok := err.(awserr.Error); ok {
-			if awserr.Code() == "ResourceNotFoundException" {
-				log.Printf("[DEBUG] OpsWorks stack (%s) not found", d.Id())
-				d.SetId("")
-				return nil
+	// notFound represents the number of times we've called DescribeStacks looking
+	// for this Stack. If it's not found in the the default region we're in, we
+	// check us-east-1 in the event this stack was created with Terraform before
+	// version 0.9
+	// See https://github.com/hashicorp/terraform/issues/12842
+	var notFound int
+	var resp *opsworks.DescribeStacksOutput
+	var dErr error
+
+	for {
+		resp, dErr = client.DescribeStacks(req)
+		if dErr != nil {
+			if awserr, ok := dErr.(awserr.Error); ok {
+				if awserr.Code() == "ResourceNotFoundException" {
+					if notFound < 1 {
+						// If we haven't already, try us-east-1, legacy connection
+						notFound++
+						var connErr error
+						client, connErr = opsworksConnForRegion("us-east-1", meta)
+						if connErr != nil {
+							return connErr
+						}
+						// start again from the top of the FOR loop, but with a client
+						// configured to talk to us-east-1
+						continue
+					}
+
+					// We've tried both the original and us-east-1 endpoint, and the stack
+					// is still not found
+					log.Printf("[DEBUG] OpsWorks stack (%s) not found", d.Id())
+					d.SetId("")
+					return nil
+				}
+				// not ResoureNotFoundException, fall through to returning error
+			}
+			return dErr
+		}
+		// If the stack was found, set the stack_endpoint
+		if client.Config.Region != nil && *client.Config.Region != "" {
+			log.Printf("[DEBUG] Setting stack_endpoint for (%s) to (%s)", d.Id(), *client.Config.Region)
+			if err := d.Set("stack_endpoint", *client.Config.Region); err != nil {
+				log.Printf("[WARN] Error setting stack_endpoint: %s", err)
 			}
 		}
-		return err
+		log.Printf("[DEBUG] Breaking stack endpoint search, found stack for (%s)", d.Id())
+		// Break the FOR loop
+		break
 	}
 
 	stack := resp.Stacks[0]
@@ -305,6 +360,40 @@ func resourceAwsOpsworksStackRead(d *schema.ResourceData, meta interface{}) erro
 	resourceAwsOpsworksSetStackCustomCookbooksSource(d, stack.CustomCookbooksSource)
 
 	return nil
+}
+
+// opsworksConn will return a connection for the stack_endpoint in the
+// configuration. Stacks can only be accessed or managed within the endpoint
+// in which they are created, so we allow users to specify an original endpoint
+// for Stacks created before multiple endpoints were offered (Terraform v0.9.0).
+// See:
+//  - https://github.com/hashicorp/terraform/pull/12688
+//  - https://github.com/hashicorp/terraform/issues/12842
+func opsworksConnForRegion(region string, meta interface{}) (*opsworks.OpsWorks, error) {
+	originalConn := meta.(*AWSClient).opsworksconn
+
+	// Regions are the same, no need to reconfigure
+	if originalConn.Config.Region != nil && *originalConn.Config.Region == region {
+		return originalConn, nil
+	}
+
+	// Set up base session
+	sess, err := session.NewSession(&originalConn.Config)
+	if err != nil {
+		return nil, errwrap.Wrapf("Error creating AWS session: {{err}}", err)
+	}
+
+	sess.Handlers.Build.PushBackNamed(addTerraformVersionToUserAgent)
+
+	if extraDebug := os.Getenv("TERRAFORM_AWS_AUTHFAILURE_DEBUG"); extraDebug != "" {
+		sess.Handlers.UnmarshalError.PushFrontNamed(debugAuthFailure)
+	}
+
+	newSession := sess.Copy(&aws.Config{Region: aws.String(region)})
+	newOpsworksconn := opsworks.New(newSession)
+
+	log.Printf("[DEBUG] Returning new OpsWorks client")
+	return newOpsworksconn, nil
 }
 
 func resourceAwsOpsworksStackCreate(d *schema.ResourceData, meta interface{}) error {
@@ -394,6 +483,13 @@ func resourceAwsOpsworksStackCreate(d *schema.ResourceData, meta interface{}) er
 
 func resourceAwsOpsworksStackUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*AWSClient).opsworksconn
+	var conErr error
+	if v := d.Get("stack_endpoint").(string); v != "" {
+		client, conErr = opsworksConnForRegion(v, meta)
+		if conErr != nil {
+			return conErr
+		}
+	}
 
 	err := resourceAwsOpsworksStackValidate(d)
 	if err != nil {
@@ -431,10 +527,12 @@ func resourceAwsOpsworksStackUpdate(d *schema.ResourceData, meta interface{}) er
 	if v, ok := d.GetOk("color"); ok {
 		req.Attributes["Color"] = aws.String(v.(string))
 	}
+
 	req.ChefConfiguration = &opsworks.ChefConfiguration{
 		BerkshelfVersion: aws.String(d.Get("berkshelf_version").(string)),
 		ManageBerkshelf:  aws.Bool(d.Get("manage_berkshelf").(bool)),
 	}
+
 	req.ConfigurationManager = &opsworks.StackConfigurationManager{
 		Name:    aws.String(d.Get("configuration_manager_name").(string)),
 		Version: aws.String(d.Get("configuration_manager_version").(string)),
@@ -452,6 +550,13 @@ func resourceAwsOpsworksStackUpdate(d *schema.ResourceData, meta interface{}) er
 
 func resourceAwsOpsworksStackDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*AWSClient).opsworksconn
+	var conErr error
+	if v := d.Get("stack_endpoint").(string); v != "" {
+		client, conErr = opsworksConnForRegion(v, meta)
+		if conErr != nil {
+			return conErr
+		}
+	}
 
 	req := &opsworks.DeleteStackInput{
 		StackId: aws.String(d.Id()),

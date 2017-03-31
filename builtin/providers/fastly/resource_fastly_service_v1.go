@@ -189,6 +189,19 @@ func resourceServiceV1() *schema.Resource {
 							Optional:    true,
 							Default:     "",
 							Description: "SSL certificate hostname",
+							Deprecated:  "Use ssl_cert_hostname and ssl_sni_hostname instead.",
+						},
+						"ssl_cert_hostname": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "SSL certificate hostname for cert verification",
+						},
+						"ssl_sni_hostname": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "SSL certificate hostname for SNI verification",
 						},
 						// UseSSL is something we want to support in the future, but
 						// requires SSL setup we don't yet have
@@ -1011,6 +1024,8 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 					AutoLoadbalance:     gofastly.CBool(df["auto_loadbalance"].(bool)),
 					SSLCheckCert:        gofastly.CBool(df["ssl_check_cert"].(bool)),
 					SSLHostname:         df["ssl_hostname"].(string),
+					SSLCertHostname:     df["ssl_cert_hostname"].(string),
+					SSLSNIHostname:      df["ssl_sni_hostname"].(string),
 					Shield:              df["shield"].(string),
 					Port:                uint(df["port"].(int)),
 					BetweenBytesTimeout: uint(df["between_bytes_timeout"].(int)),
@@ -1907,7 +1922,7 @@ func flattenBackends(backendList []*gofastly.Backend) []map[string]interface{} {
 		nb := map[string]interface{}{
 			"name":                  b.Name,
 			"address":               b.Address,
-			"auto_loadbalance":      gofastly.CBool(b.AutoLoadbalance),
+			"auto_loadbalance":      b.AutoLoadbalance,
 			"between_bytes_timeout": int(b.BetweenBytesTimeout),
 			"connect_timeout":       int(b.ConnectTimeout),
 			"error_threshold":       int(b.ErrorThreshold),
@@ -1915,8 +1930,10 @@ func flattenBackends(backendList []*gofastly.Backend) []map[string]interface{} {
 			"max_conn":              int(b.MaxConn),
 			"port":                  int(b.Port),
 			"shield":                b.Shield,
-			"ssl_check_cert":        gofastly.CBool(b.SSLCheckCert),
+			"ssl_check_cert":        b.SSLCheckCert,
 			"ssl_hostname":          b.SSLHostname,
+			"ssl_cert_hostname":     b.SSLCertHostname,
+			"ssl_sni_hostname":      b.SSLSNIHostname,
 			"weight":                int(b.Weight),
 			"request_condition":     b.RequestCondition,
 		}

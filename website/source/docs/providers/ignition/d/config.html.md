@@ -15,7 +15,7 @@ Renders an ignition configuration as JSON. It  contains all the disks, partition
 ```
 data "ignition_config" "example" {
 	systemd = [
-		"${ignition_systemd_unit.example.id}",
+		"${data.ignition_systemd_unit.example.id}",
 	]
 }
 ```

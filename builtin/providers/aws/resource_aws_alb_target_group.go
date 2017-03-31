@@ -258,11 +258,19 @@ func resourceAwsAlbTargetGroupRead(d *schema.ResourceData, meta interface{}) err
 	for _, attr := range attrResp.Attributes {
 		switch *attr.Key {
 		case "stickiness.enabled":
-			stickinessMap["enabled"] = *attr.Value
+			enabled, err := strconv.ParseBool(*attr.Value)
+			if err != nil {
+				return fmt.Errorf("Error converting stickiness.enabled to bool: %s", *attr.Value)
+			}
+			stickinessMap["enabled"] = enabled
 		case "stickiness.type":
 			stickinessMap["type"] = *attr.Value
 		case "stickiness.lb_cookie.duration_seconds":
-			stickinessMap["cookie_duration"] = *attr.Value
+			duration, err := strconv.Atoi(*attr.Value)
+			if err != nil {
+				return fmt.Errorf("Error converting stickiness.lb_cookie.duration_seconds to int: %s", *attr.Value)
+			}
+			stickinessMap["cookie_duration"] = duration
 		case "deregistration_delay.timeout_seconds":
 			timeout, err := strconv.Atoi(*attr.Value)
 			if err != nil {
@@ -271,7 +279,24 @@ func resourceAwsAlbTargetGroupRead(d *schema.ResourceData, meta interface{}) err
 			d.Set("deregistration_delay", timeout)
 		}
 	}
-	d.Set("stickiness", []interface{}{stickinessMap})
+
+	if err := d.Set("stickiness", []interface{}{stickinessMap}); err != nil {
+		return err
+	}
+
+	tagsResp, err := elbconn.DescribeTags(&elbv2.DescribeTagsInput{
+		ResourceArns: []*string{aws.String(d.Id())},
+	})
+	if err != nil {
+		return errwrap.Wrapf("Error retrieving Target Group Tags: {{err}}", err)
+	}
+	for _, t := range tagsResp.TagDescriptions {
+		if *t.ResourceArn == d.Id() {
+			if err := d.Set("tags", tagsToMapELBv2(t.Tags)); err != nil {
+				return err
+			}
+		}
+	}
 
 	return nil
 }

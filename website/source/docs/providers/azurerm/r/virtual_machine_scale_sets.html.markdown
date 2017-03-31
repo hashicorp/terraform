@@ -10,6 +10,9 @@ description: |-
 
 Create a virtual machine scale set.
 
+~> **Note:** All arguments including the administrator login and password will be stored in the raw state as plain-text.
+[Read more about sensitive data in state](/docs/state/sensitive-data.html).
+
 ## Example Usage
 
 ```
@@ -122,6 +125,7 @@ The following arguments are supported:
 * `network_profile` - (Required) A collection of network profile block as documented below.
 * `storage_profile_os_disk` - (Required) A storage profile os disk block as documented below
 * `storage_profile_image_reference` - (Optional) A storage profile image reference block as documented below.
+* `extension` - (Optional) Can be specified multiple times to add extension profiles to the scale set. Each `extension` block supports the fields documented below.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
 
@@ -205,6 +209,16 @@ The following arguments are supported:
 * `offer` - (Required) Specifies the offer of the image used to create the virtual machines.
 * `sku` - (Required) Specifies the SKU of the image used to create the virtual machines.
 * `version` - (Optional) Specifies the version of the image used to create the virtual machines.
+
+`extension` supports the following:
+
+* `name` - (Required) Specifies the name of the extension.
+* `publisher` - (Required) The publisher of the extension, available publishers can be found by using the Azure CLI.
+* `type` - (Required) The type of extension, available types for a publisher can be found using the Azure CLI.
+* `type_handler_version` - (Required) Specifies the version of the extension to use, available versions can be found using the Azure CLI.
+* `auto_upgrade_minor_version` - (Optional) Specifies whether or not to use the latest minor version available.
+* `settings` - (Required) The settings passed to the extension, these are specified as a JSON object in a string.
+* `protected_settings` - (Optional) The protected_settings passed to the extension, like settings, these are specified as a JSON object in a string.
 
 ## Attributes Reference
 

@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/helper/variables"
 )
 
 // InitCommand is a Command implementation that takes a Terraform
@@ -19,12 +20,15 @@ type InitCommand struct {
 
 func (c *InitCommand) Run(args []string) int {
 	var flagBackend, flagGet bool
-	var flagConfigFile string
+	var flagConfigExtra map[string]interface{}
+
 	args = c.Meta.process(args, false)
 	cmdFlags := c.flagSet("init")
 	cmdFlags.BoolVar(&flagBackend, "backend", true, "")
-	cmdFlags.StringVar(&flagConfigFile, "backend-config", "", "")
+	cmdFlags.Var((*variables.FlagAny)(&flagConfigExtra), "backend-config", "")
 	cmdFlags.BoolVar(&flagGet, "get", true, "")
+	cmdFlags.BoolVar(&c.forceInitCopy, "force-copy", false, "suppress prompts about copying state data")
+
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -138,9 +142,9 @@ func (c *InitCommand) Run(args []string) int {
 			}
 
 			opts := &BackendOpts{
-				ConfigPath: path,
-				ConfigFile: flagConfigFile,
-				Init:       true,
+				ConfigPath:  path,
+				ConfigExtra: flagConfigExtra,
+				Init:        true,
 			}
 			if _, err := c.Backend(opts); err != nil {
 				c.Ui.Error(err.Error())
@@ -210,8 +214,12 @@ Options:
 
   -backend=true        Configure the backend for this environment.
 
-  -backend-config=path A path to load additional configuration for the backend.
-                       This is merged with what is in the configuration file.
+  -backend-config=path This can be either a path to an HCL file with key/value
+                       assignments (same format as terraform.tfvars) or a
+                       'key=value' format. This is merged with what is in the
+                       configuration file. This can be specified multiple
+                       times. The backend type must be in the configuration
+                       itself.
 
   -get=true            Download any modules for this configuration.
 
@@ -219,6 +227,10 @@ Options:
                        input was required.
 
   -no-color            If specified, output won't contain any color.
+
+  -force-copy          Suppress prompts about copying state data. This is
+                       equivalent to providing a "yes" to all confirmation
+                       prompts.
 
 `
 	return strings.TrimSpace(helpText)

@@ -11,6 +11,10 @@ import (
 	"google.golang.org/api/googleapi"
 )
 
+var (
+	instanceGroupManagerURL = regexp.MustCompile("^https://www.googleapis.com/compute/v1/projects/([a-z][a-z0-9-]{5}(?:[-a-z0-9]{0,23}[a-z0-9])?)/zones/([a-z0-9-]*)/instanceGroupManagers/([^/]*)")
+)
+
 func resourceContainerCluster() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceContainerClusterCreate,
@@ -36,17 +40,19 @@ func resourceContainerCluster() *schema.Resource {
 							Computed: true,
 						},
 						"client_key": &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:      schema.TypeString,
+							Computed:  true,
+							Sensitive: true,
 						},
 						"cluster_ca_certificate": &schema.Schema{
 							Type:     schema.TypeString,
 							Computed: true,
 						},
 						"password": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-							ForceNew: true,
+							Type:      schema.TypeString,
+							Required:  true,
+							ForceNew:  true,
+							Sensitive: true,
 						},
 						"username": &schema.Schema{
 							Type:     schema.TypeString,
@@ -227,6 +233,22 @@ func resourceContainerCluster() *schema.Resource {
 							},
 						},
 
+						"local_ssd_count": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+								value := v.(int)
+
+								if value < 0 {
+									errors = append(errors, fmt.Errorf(
+										"%q cannot be negative", k))
+								}
+								return
+							},
+						},
+
 						"oauth_scopes": &schema.Schema{
 							Type:     schema.TypeList,
 							Optional: true,
@@ -238,6 +260,27 @@ func resourceContainerCluster() *schema.Resource {
 									return canonicalizeServiceScope(v.(string))
 								},
 							},
+						},
+
+						"service_account": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+						},
+
+						"metadata": &schema.Schema{
+							Type:     schema.TypeMap,
+							Optional: true,
+							ForceNew: true,
+							Elem:     schema.TypeString,
+						},
+
+						"image_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
 						},
 					},
 				},
@@ -365,6 +408,10 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 			cluster.NodeConfig.DiskSizeGb = int64(v.(int))
 		}
 
+		if v, ok = nodeConfig["local_ssd_count"]; ok {
+			cluster.NodeConfig.LocalSsdCount = int64(v.(int))
+		}
+
 		if v, ok := nodeConfig["oauth_scopes"]; ok {
 			scopesList := v.([]interface{})
 			scopes := []string{}
@@ -373,6 +420,22 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 			}
 
 			cluster.NodeConfig.OauthScopes = scopes
+		}
+
+		if v, ok = nodeConfig["service_account"]; ok {
+			cluster.NodeConfig.ServiceAccount = v.(string)
+		}
+
+		if v, ok = nodeConfig["metadata"]; ok {
+			m := make(map[string]string)
+			for k, val := range v.(map[string]interface{}) {
+				m[k] = val.(string)
+			}
+			cluster.NodeConfig.Metadata = m
+		}
+
+		if v, ok = nodeConfig["image_type"]; ok {
+			cluster.NodeConfig.ImageType = v.(string)
 		}
 	}
 
@@ -460,7 +523,12 @@ func resourceContainerClusterRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("network", d.Get("network").(string))
 	d.Set("subnetwork", cluster.Subnetwork)
 	d.Set("node_config", flattenClusterNodeConfig(cluster.NodeConfig))
-	d.Set("instance_group_urls", cluster.InstanceGroupUrls)
+
+	if igUrls, err := getInstanceGroupUrlsFromManagerUrls(config, cluster.InstanceGroupUrls); err != nil {
+		return err
+	} else {
+		d.Set("instance_group_urls", igUrls)
+	}
 
 	return nil
 }
@@ -531,11 +599,39 @@ func resourceContainerClusterDelete(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
+// container engine's API currently mistakenly returns the instance group manager's
+// URL instead of the instance group's URL in its responses. This shim detects that
+// error, and corrects it, by fetching the instance group manager URL and retrieving
+// the instance group manager, then using that to look up the instance group URL, which
+// is then substituted.
+//
+// This should be removed when the API response is fixed.
+func getInstanceGroupUrlsFromManagerUrls(config *Config, igmUrls []string) ([]string, error) {
+	instanceGroupURLs := make([]string, 0, len(igmUrls))
+	for _, u := range igmUrls {
+		if !instanceGroupManagerURL.MatchString(u) {
+			instanceGroupURLs = append(instanceGroupURLs, u)
+			continue
+		}
+		matches := instanceGroupManagerURL.FindStringSubmatch(u)
+		instanceGroupManager, err := config.clientCompute.InstanceGroupManagers.Get(matches[1], matches[2], matches[3]).Do()
+		if err != nil {
+			return nil, fmt.Errorf("Error reading instance group manager returned as an instance group URL: %s", err)
+		}
+		instanceGroupURLs = append(instanceGroupURLs, instanceGroupManager.InstanceGroup)
+	}
+	return instanceGroupURLs, nil
+}
+
 func flattenClusterNodeConfig(c *container.NodeConfig) []map[string]interface{} {
 	config := []map[string]interface{}{
 		map[string]interface{}{
-			"machine_type": c.MachineType,
-			"disk_size_gb": c.DiskSizeGb,
+			"machine_type":    c.MachineType,
+			"disk_size_gb":    c.DiskSizeGb,
+			"local_ssd_count": c.LocalSsdCount,
+			"service_account": c.ServiceAccount,
+			"metadata":        c.Metadata,
+			"image_type":      c.ImageType,
 		},
 	}
 

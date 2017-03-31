@@ -70,7 +70,7 @@ $ terraform plan
     public_ip:         "<computed>"
 
 + aws_instance.example
-    ami:                      "ami-13be557e"
+    ami:                      "ami-b374d5a5"
     availability_zone:        "<computed>"
     ebs_block_device.#:       "<computed>"
     ephemeral_block_device.#: "<computed>"
@@ -102,7 +102,7 @@ following:
 ```
 $ terraform apply
 aws_instance.example: Creating...
-  ami:                      "" => "ami-13be557e"
+  ami:                      "" => "ami-b374d5a5"
   instance_type:            "" => "t2.micro"
   [..]
 aws_instance.example: Still creating... (10s elapsed)
@@ -166,7 +166,7 @@ created in parallel to everything else.
 
 ```
 resource "aws_instance" "another" {
-  ami           = "ami-13be557e"
+  ami           = "ami-b374d5a5"
   instance_type = "t2.micro"
 }
 ```

@@ -477,7 +477,9 @@ func (m schemaMap) Input(
 
 		// Skip things that don't require config, if that is even valid
 		// for a provider schema.
-		if !v.Required && !v.Optional {
+		// Required XOR Optional must always be true to validate, so we only
+		// need to check one.
+		if v.Optional {
 			continue
 		}
 
@@ -1217,6 +1219,13 @@ func (m schemaMap) validateList(
 	for i, raw := range raws {
 		key := fmt.Sprintf("%s.%d", k, i)
 
+		// Reify the key value from the ResourceConfig.
+		// If the list was computed we have all raw values, but some of these
+		// may be known in the config, and aren't individually marked as Computed.
+		if r, ok := c.Get(key); ok {
+			raw = r
+		}
+
 		var ws2 []string
 		var es2 []error
 		switch t := schema.Elem.(type) {
@@ -1262,8 +1271,15 @@ func (m schemaMap) validateMap(
 		return nil, []error{fmt.Errorf("%s: should be a map", k)}
 	}
 
-	// If it is not a slice, it is valid
+	// If it is not a slice, validate directly
 	if rawV.Kind() != reflect.Slice {
+		mapIface := rawV.Interface()
+		if _, errs := validateMapValues(k, mapIface.(map[string]interface{}), schema); len(errs) > 0 {
+			return nil, errs
+		}
+		if schema.ValidateFunc != nil {
+			return schema.ValidateFunc(mapIface, k)
+		}
 		return nil, nil
 	}
 
@@ -1279,6 +1295,10 @@ func (m schemaMap) validateMap(
 			return nil, []error{fmt.Errorf(
 				"%s: should be a map", k)}
 		}
+		mapIface := v.Interface()
+		if _, errs := validateMapValues(k, mapIface.(map[string]interface{}), schema); len(errs) > 0 {
+			return nil, errs
+		}
 	}
 
 	if schema.ValidateFunc != nil {
@@ -1293,6 +1313,67 @@ func (m schemaMap) validateMap(
 	}
 
 	return nil, nil
+}
+
+func validateMapValues(k string, m map[string]interface{}, schema *Schema) ([]string, []error) {
+	for key, raw := range m {
+		valueType, err := getValueType(k, schema)
+		if err != nil {
+			return nil, []error{err}
+		}
+
+		switch valueType {
+		case TypeBool:
+			var n bool
+			if err := mapstructure.WeakDecode(raw, &n); err != nil {
+				return nil, []error{fmt.Errorf("%s (%s): %s", k, key, err)}
+			}
+		case TypeInt:
+			var n int
+			if err := mapstructure.WeakDecode(raw, &n); err != nil {
+				return nil, []error{fmt.Errorf("%s (%s): %s", k, key, err)}
+			}
+		case TypeFloat:
+			var n float64
+			if err := mapstructure.WeakDecode(raw, &n); err != nil {
+				return nil, []error{fmt.Errorf("%s (%s): %s", k, key, err)}
+			}
+		case TypeString:
+			var n string
+			if err := mapstructure.WeakDecode(raw, &n); err != nil {
+				return nil, []error{fmt.Errorf("%s (%s): %s", k, key, err)}
+			}
+		default:
+			panic(fmt.Sprintf("Unknown validation type: %#v", schema.Type))
+		}
+	}
+	return nil, nil
+}
+
+func getValueType(k string, schema *Schema) (ValueType, error) {
+	if schema.Elem == nil {
+		return TypeString, nil
+	}
+	if vt, ok := schema.Elem.(ValueType); ok {
+		return vt, nil
+	}
+
+	if s, ok := schema.Elem.(*Schema); ok {
+		if s.Elem == nil {
+			return TypeString, nil
+		}
+		if vt, ok := s.Elem.(ValueType); ok {
+			return vt, nil
+		}
+	}
+
+	if _, ok := schema.Elem.(*Resource); ok {
+		// TODO: We don't actually support this (yet)
+		// but silently pass the validation, until we decide
+		// how to handle nested structures in maps
+		return TypeString, nil
+	}
+	return 0, fmt.Errorf("%s: unexpected map value type: %#v", k, schema.Elem)
 }
 
 func (m schemaMap) validateObject(
@@ -1372,28 +1453,28 @@ func (m schemaMap) validatePrimitive(
 		// Verify that we can parse this as the correct type
 		var n bool
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
-			return nil, []error{err}
+			return nil, []error{fmt.Errorf("%s: %s", k, err)}
 		}
 		decoded = n
 	case TypeInt:
 		// Verify that we can parse this as an int
 		var n int
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
-			return nil, []error{err}
+			return nil, []error{fmt.Errorf("%s: %s", k, err)}
 		}
 		decoded = n
 	case TypeFloat:
 		// Verify that we can parse this as an int
 		var n float64
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
-			return nil, []error{err}
+			return nil, []error{fmt.Errorf("%s: %s", k, err)}
 		}
 		decoded = n
 	case TypeString:
 		// Verify that we can parse this as a string
 		var n string
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
-			return nil, []error{err}
+			return nil, []error{fmt.Errorf("%s: %s", k, err)}
 		}
 		decoded = n
 	default:

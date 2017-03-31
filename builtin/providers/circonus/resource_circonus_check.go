@@ -33,20 +33,22 @@ const (
 	checkCAQLAttr        = "caql"
 	checkCloudWatchAttr  = "cloudwatch"
 	checkCollectorAttr   = "collector"
+	checkConsulAttr      = "consul"
 	checkHTTPAttr        = "http"
 	checkHTTPTrapAttr    = "httptrap"
 	checkICMPPingAttr    = "icmp_ping"
 	checkJSONAttr        = "json"
+	checkMetricAttr      = "metric"
 	checkMetricLimitAttr = "metric_limit"
 	checkMySQLAttr       = "mysql"
 	checkNameAttr        = "name"
 	checkNotesAttr       = "notes"
 	checkPeriodAttr      = "period"
 	checkPostgreSQLAttr  = "postgresql"
-	checkMetricAttr      = "metric"
+	checkStatsdAttr      = "statsd"
+	checkTCPAttr         = "tcp"
 	checkTagsAttr        = "tags"
 	checkTargetAttr      = "target"
-	checkTCPAttr         = "tcp"
 	checkTimeoutAttr     = "timeout"
 	checkTypeAttr        = "type"
 
@@ -61,24 +63,27 @@ const (
 
 	// Out parameters for circonus_check
 	checkOutByCollectorAttr        = "check_by_collector"
-	checkOutCheckUUIDsAttr         = "uuids"
+	checkOutIDAttr                 = "check_id"
 	checkOutChecksAttr             = "checks"
 	checkOutCreatedAttr            = "created"
 	checkOutLastModifiedAttr       = "last_modified"
 	checkOutLastModifiedByAttr     = "last_modified_by"
 	checkOutReverseConnectURLsAttr = "reverse_connect_urls"
+	checkOutCheckUUIDsAttr         = "uuids"
 )
 
 const (
 	// Circonus API constants from their API endpoints
 	apiCheckTypeCAQLAttr       apiCheckType = "caql"
 	apiCheckTypeCloudWatchAttr apiCheckType = "cloudwatch"
+	apiCheckTypeConsulAttr     apiCheckType = "consul"
 	apiCheckTypeHTTPAttr       apiCheckType = "http"
 	apiCheckTypeHTTPTrapAttr   apiCheckType = "httptrap"
 	apiCheckTypeICMPPingAttr   apiCheckType = "ping_icmp"
 	apiCheckTypeJSONAttr       apiCheckType = "json"
 	apiCheckTypeMySQLAttr      apiCheckType = "mysql"
 	apiCheckTypePostgreSQLAttr apiCheckType = "postgres"
+	apiCheckTypeStatsdAttr     apiCheckType = "statsd"
 	apiCheckTypeTCPAttr        apiCheckType = "tcp"
 )
 
@@ -87,27 +92,30 @@ var checkDescriptions = attrDescrs{
 	checkCAQLAttr:        "CAQL check configuration",
 	checkCloudWatchAttr:  "CloudWatch check configuration",
 	checkCollectorAttr:   "The collector(s) that are responsible for gathering the metrics",
+	checkConsulAttr:      "Consul check configuration",
 	checkHTTPAttr:        "HTTP check configuration",
 	checkHTTPTrapAttr:    "HTTP Trap check configuration",
 	checkICMPPingAttr:    "ICMP ping check configuration",
 	checkJSONAttr:        "JSON check configuration",
+	checkMetricAttr:      "Configuration for a stream of metrics",
 	checkMetricLimitAttr: `Setting a metric_limit will enable all (-1), disable (0), or allow up to the specified limit of metrics for this check ("N+", where N is a positive integer)`,
 	checkMySQLAttr:       "MySQL check configuration",
 	checkNameAttr:        "The name of the check bundle that will be displayed in the web interface",
 	checkNotesAttr:       "Notes about this check bundle",
 	checkPeriodAttr:      "The period between each time the check is made",
 	checkPostgreSQLAttr:  "PostgreSQL check configuration",
-	checkMetricAttr:      "Configuration for a stream of metrics",
+	checkStatsdAttr:      "statsd check configuration",
+	checkTCPAttr:         "TCP check configuration",
 	checkTagsAttr:        "A list of tags assigned to the check",
 	checkTargetAttr:      "The target of the check (e.g. hostname, URL, IP, etc)",
-	checkTCPAttr:         "TCP check configuration",
 	checkTimeoutAttr:     "The length of time in seconds (and fractions of a second) before the check will timeout if no response is returned to the collector",
 	checkTypeAttr:        "The check type",
 
-	checkOutChecksAttr:             "",
 	checkOutByCollectorAttr:        "",
 	checkOutCheckUUIDsAttr:         "",
+	checkOutChecksAttr:             "",
 	checkOutCreatedAttr:            "",
+	checkOutIDAttr:                 "",
 	checkOutLastModifiedAttr:       "",
 	checkOutLastModifiedByAttr:     "",
 	checkOutReverseConnectURLsAttr: "",
@@ -152,41 +160,11 @@ func resourceCheck() *schema.Resource {
 					}),
 				},
 			},
+			checkConsulAttr:   schemaCheckConsul,
 			checkHTTPAttr:     schemaCheckHTTP,
 			checkHTTPTrapAttr: schemaCheckHTTPTrap,
 			checkJSONAttr:     schemaCheckJSON,
 			checkICMPPingAttr: schemaCheckICMPPing,
-			checkMetricLimitAttr: &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				Computed: true,
-				ValidateFunc: validateFuncs(
-					validateIntMin(checkMetricLimitAttr, -1),
-				),
-			},
-			checkMySQLAttr: schemaCheckMySQL,
-			checkNameAttr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-			},
-			checkNotesAttr: &schema.Schema{
-				Type:      schema.TypeString,
-				Optional:  true,
-				Computed:  true,
-				StateFunc: suppressWhitespace,
-			},
-			checkPeriodAttr: &schema.Schema{
-				Type:      schema.TypeString,
-				Optional:  true,
-				Computed:  true,
-				StateFunc: normalizeTimeDurationStringToSeconds,
-				ValidateFunc: validateFuncs(
-					validateDurationMin(checkPeriodAttr, defaultCirconusCheckPeriodMin),
-					validateDurationMax(checkPeriodAttr, defaultCirconusCheckPeriodMax),
-				),
-			},
-			checkPostgreSQLAttr: schemaCheckPostgreSQL,
 			checkMetricAttr: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -219,7 +197,39 @@ func resourceCheck() *schema.Resource {
 					}),
 				},
 			},
-			checkTagsAttr: tagMakeConfigSchema(checkTagsAttr),
+			checkMetricLimitAttr: &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Computed: true,
+				ValidateFunc: validateFuncs(
+					validateIntMin(checkMetricLimitAttr, -1),
+				),
+			},
+			checkMySQLAttr: schemaCheckMySQL,
+			checkNameAttr: &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+			checkNotesAttr: &schema.Schema{
+				Type:      schema.TypeString,
+				Optional:  true,
+				Computed:  true,
+				StateFunc: suppressWhitespace,
+			},
+			checkPeriodAttr: &schema.Schema{
+				Type:      schema.TypeString,
+				Optional:  true,
+				Computed:  true,
+				StateFunc: normalizeTimeDurationStringToSeconds,
+				ValidateFunc: validateFuncs(
+					validateDurationMin(checkPeriodAttr, defaultCirconusCheckPeriodMin),
+					validateDurationMax(checkPeriodAttr, defaultCirconusCheckPeriodMax),
+				),
+			},
+			checkPostgreSQLAttr: schemaCheckPostgreSQL,
+			checkStatsdAttr:     schemaCheckStatsd,
+			checkTagsAttr:       tagMakeConfigSchema(checkTagsAttr),
 			checkTargetAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -246,6 +256,10 @@ func resourceCheck() *schema.Resource {
 			},
 
 			// Out parameters
+			checkOutIDAttr: &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			checkOutByCollectorAttr: &schema.Schema{
 				Type:     schema.TypeMap,
 				Computed: true,
@@ -343,6 +357,11 @@ func checkRead(d *schema.ResourceData, meta interface{}) error {
 		checkIDsByCollector[b] = c.Checks[i]
 	}
 
+	var checkID string
+	if len(c.Checks) == 1 {
+		checkID = c.Checks[0]
+	}
+
 	metrics := schema.NewSet(checkMetricChecksum, nil)
 	for _, m := range c.Metrics {
 		metricAttrs := map[string]interface{}{
@@ -403,6 +422,10 @@ func checkRead(d *schema.ResourceData, meta interface{}) error {
 
 	if err := d.Set(checkOutChecksAttr, c.Checks); err != nil {
 		return errwrap.Wrapf(fmt.Sprintf("Unable to store check %q attribute: {{err}}", checkOutChecksAttr), err)
+	}
+
+	if checkID != "" {
+		d.Set(checkOutIDAttr, checkID)
 	}
 
 	d.Set(checkOutCreatedAttr, c.Created)
@@ -558,19 +581,30 @@ func checkConfigToAPI(c *circonusCheck, d *schema.ResourceData) error {
 	checkTypeParseMap := map[string]func(*circonusCheck, interfaceList) error{
 		checkCAQLAttr:       checkConfigToAPICAQL,
 		checkCloudWatchAttr: checkConfigToAPICloudWatch,
+		checkConsulAttr:     checkConfigToAPIConsul,
 		checkHTTPAttr:       checkConfigToAPIHTTP,
 		checkHTTPTrapAttr:   checkConfigToAPIHTTPTrap,
 		checkICMPPingAttr:   checkConfigToAPIICMPPing,
 		checkJSONAttr:       checkConfigToAPIJSON,
 		checkMySQLAttr:      checkConfigToAPIMySQL,
 		checkPostgreSQLAttr: checkConfigToAPIPostgreSQL,
+		checkStatsdAttr:     checkConfigToAPIStatsd,
 		checkTCPAttr:        checkConfigToAPITCP,
 	}
 
 	for checkType, fn := range checkTypeParseMap {
 		if listRaw, found := d.GetOk(checkType); found {
-			if err := fn(c, listRaw.(*schema.Set).List()); err != nil {
-				return errwrap.Wrapf(fmt.Sprintf("Unable to parse type %q: {{err}}", string(checkType)), err)
+			switch u := listRaw.(type) {
+			case []interface{}:
+				if err := fn(c, u); err != nil {
+					return errwrap.Wrapf(fmt.Sprintf("Unable to parse type %q: {{err}}", string(checkType)), err)
+				}
+			case *schema.Set:
+				if err := fn(c, u.List()); err != nil {
+					return errwrap.Wrapf(fmt.Sprintf("Unable to parse type %q: {{err}}", string(checkType)), err)
+				}
+			default:
+				return fmt.Errorf("PROVIDER BUG: unsupported check type interface: %q", checkType)
 			}
 		}
 	}
@@ -584,12 +618,14 @@ func parseCheckTypeConfig(c *circonusCheck, d *schema.ResourceData) error {
 	checkTypeConfigHandlers := map[apiCheckType]func(*circonusCheck, *schema.ResourceData) error{
 		apiCheckTypeCAQLAttr:       checkAPIToStateCAQL,
 		apiCheckTypeCloudWatchAttr: checkAPIToStateCloudWatch,
+		apiCheckTypeConsulAttr:     checkAPIToStateConsul,
 		apiCheckTypeHTTPAttr:       checkAPIToStateHTTP,
 		apiCheckTypeHTTPTrapAttr:   checkAPIToStateHTTPTrap,
 		apiCheckTypeICMPPingAttr:   checkAPIToStateICMPPing,
 		apiCheckTypeJSONAttr:       checkAPIToStateJSON,
 		apiCheckTypeMySQLAttr:      checkAPIToStateMySQL,
 		apiCheckTypePostgreSQLAttr: checkAPIToStatePostgreSQL,
+		apiCheckTypeStatsdAttr:     checkAPIToStateStatsd,
 		apiCheckTypeTCPAttr:        checkAPIToStateTCP,
 	}
 
