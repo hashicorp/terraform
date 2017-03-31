@@ -2,6 +2,7 @@ package state
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -71,6 +72,36 @@ type StatePersister interface {
 type Locker interface {
 	Lock(info *LockInfo) (string, error)
 	Unlock(id string) error
+}
+
+// Lock the state, using the provided context for timeout and cancellation
+// TODO: this should probably backoff somewhat.
+func LockWithContext(s State, info *LockInfo, ctx context.Context) (string, error) {
+	for {
+		id, err := s.Lock(info)
+		if err == nil {
+			return id, nil
+		}
+
+		le, ok := err.(*LockError)
+		if !ok {
+			// not a lock error, so we can't retry
+			return "", err
+		}
+
+		if le.Info.ID == "" {
+			// the lock has no ID, something is wrong so don't keep trying
+			return "", fmt.Errorf("lock error missing ID: %s", err)
+		}
+
+		// there's an existing lock, wait and try again
+		select {
+		case <-ctx.Done():
+			// return the last lock error with the info
+			return "", err
+		case <-time.After(time.Second):
+		}
+	}
 }
 
 // Generate a LockInfo structure, populating the required fields.
