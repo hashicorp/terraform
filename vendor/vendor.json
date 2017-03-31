@@ -1322,6 +1322,12 @@
 			"revisionTime": "2017-03-21T07:55:32Z"
 		},
 		{
+			"checksumSHA1": "+CTfnrGIUEEqOB4I+/x0vBrBLts=",
+			"path": "github.com/deoxxa/aws_signing_client",
+			"revision": "c20ee106809eacdffcc81ac7cb984261f8e3067e",
+			"revisionTime": "2016-11-09T13:10:55Z"
+		},
+		{
 			"checksumSHA1": "yDQQpeUxwqB3C+4opweg6znWJQk=",
 			"comment": "v2.4.0-11-gf219341",
 			"path": "github.com/dgrijalva/jwt-go",
@@ -3487,6 +3493,18 @@
 			"path": "gopkg.in/ns1/ns1-go.v2/rest/model/monitor",
 			"revision": "5bff869d22e76e3699281eaa61d9d285216f321a",
 			"revisionTime": "2017-03-21T12:56:04Z"
+		},
+		{
+			"checksumSHA1": "LQ7UM4srxn3Gv0sxQrmHRjR51u4=",
+			"path": "gopkg.in/olivere/elastic.v5",
+			"revision": "f698dfea7c6cb058bee5de042f1ad3387f678ab1",
+			"revisionTime": "2017-04-10T09:45:24Z"
+		},
+		{
+			"checksumSHA1": "pCApZfp2CeDnWbNVsyzNO62ZUXA=",
+			"path": "gopkg.in/olivere/elastic.v5/uritemplates",
+			"revision": "cf4e58efdcee2e8e7c18dad44d51ed166fb256c2",
+			"revisionTime": "2017-03-26T10:11:08Z"
 		},
 		{
 			"checksumSHA1": "mkLQOQwQwoUc9Kr9+PaVGrKUzI4=",

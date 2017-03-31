@@ -1,0 +1,27 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+          <a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+        </li>
+        <li<%= sidebar_current("docs-elasticsearch-index") %>>
+          <a href="/docs/providers/elasticsearch/index.html">Elasticsearch Provider</a>
+        </li>
+        <li<%= sidebar_current("docs-elasticsearch-resource") %>>
+          <a href="#">Resources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-elasticsearch-resource-index-template") %>>
+              <a href="/docs/providers/elasticsearch/r/index_template.html">elasticsearch_index_template</a>
+            </li>
+            <li<%= sidebar_current("docs-elasticsearch-resource-snapshot-repository") %>>
+              <a href="/docs/providers/elasticsearch/r/snapshot_repository.html">elasticsearch_snapshot_repository</a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= yield %>
+<% end %>
