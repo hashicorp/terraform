@@ -101,9 +101,6 @@ func resourceArmLocalNetworkGatewayRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 	name := id.Path["localNetworkGateways"]
-	if name == "" {
-		return fmt.Errorf("Cannot find parameter 'localNetworkGateways' from '%s'", id.Path)
-	}
 	resGroup := id.ResourceGroup
 
 	resp, err := lnetClient.Get(resGroup, name)
