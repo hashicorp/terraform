@@ -36,6 +36,7 @@ BUG FIXES:
  * provider/aws: Refresh aws_alb_target_group stickiness on manual updates [GH-13199]
  * provider/aws: Preserve default retain_on_delete in cloudfront import [GH-13209]
  * provider/aws: Refresh aws_alb_target_group tags [GH-13200]
+ * provider/aws: Set aws_vpn_connection to recreate when in deleted state [GH-13204]
  * provider/azurerm: Network Security Group - ignoring protocol casing at Import time [GH-13153]
 
 ## 0.9.2 (March 28, 2017)
