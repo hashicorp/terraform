@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"math/rand"
+	"regexp"
 	"testing"
 	"time"
 
@@ -284,6 +285,44 @@ func TestAccAWSDBParameterGroup_basic(t *testing.T) {
 						"aws_db_parameter_group.bar", "parameter.2478663599.value", "utf8"),
 					resource.TestCheckResourceAttr(
 						"aws_db_parameter_group.bar", "tags.%", "2"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBParameterGroup_namePrefix(t *testing.T) {
+	var v rds.DBParameterGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBParameterGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDBParameterGroupConfig_namePrefix,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBParameterGroupExists("aws_db_parameter_group.test", &v),
+					resource.TestMatchResourceAttr(
+						"aws_db_parameter_group.test", "name", regexp.MustCompile("^tf-test-")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBParameterGroup_generatedName(t *testing.T) {
+	var v rds.DBParameterGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBParameterGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDBParameterGroupConfig_generatedName,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBParameterGroupExists("aws_db_parameter_group.test", &v),
 				),
 			},
 		},
@@ -671,3 +710,16 @@ resource "aws_db_parameter_group" "large" {
     parameter { name = "tx_isolation"                        value = "REPEATABLE-READ"                                 }
 }`, n)
 }
+
+const testAccDBParameterGroupConfig_namePrefix = `
+resource "aws_db_parameter_group" "test" {
+	name_prefix = "tf-test-"
+	family = "mysql5.6"
+}
+`
+
+const testAccDBParameterGroupConfig_generatedName = `
+resource "aws_db_parameter_group" "test" {
+	family = "mysql5.6"
+}
+`
