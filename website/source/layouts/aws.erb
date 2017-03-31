@@ -1,13 +1,14 @@
 <% wrap_layout :inner do %>
     <% content_for :sidebar do %>
         <div class="docs-sidebar hidden-print affix-top" role="complementary">
-            <div class="nav-back-link"><a href="/docs/providers/index.html">&laquo; Documentation Home</a></div>
+            <div class="nav-back-link"><a href="/docs/providers/index.html">Documentation Home</a></div>
             <header class="nav-section-header">
                 <h1 class="nav-section-title">AWS Provider</h1>
             </header>
-            <div class="nav-filter">
+            <form class="nav-filter">
                 <input class="nav-filter-input" placeholder="Filter">
-            </div>
+                <button type="reset" aria-label="Clear">&times;</button>
+            </form>
             <ul class="nav docs-sidenav">
                 <li<%= sidebar_current("docs-aws-index") %>>
                     <a href="/docs/providers/aws/index.html">Overview</a>

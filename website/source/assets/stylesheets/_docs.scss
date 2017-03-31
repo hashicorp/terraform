@@ -116,7 +116,17 @@ body.layout-intro{
 
 	.has-sublist {
 		> a::before {
-			content: '>';
+			background: url('/assets/images/chevron-right-square.svg') no-repeat center;
+		}
+
+		&.is-expanded {
+			> a::before {
+				transform: rotate(90deg);
+			}
+
+			> .nav {
+				display: block;
+			}
 		}
 	}
 
@@ -125,6 +135,17 @@ body.layout-intro{
 
 		a {
 			padding: 6px 15px;
+
+			&::before {
+				background-image: url('/assets/images/chevron-right-square-purple.svg');
+				content: '';
+				display: inline-block;
+				height: 10px;
+				margin-right: .5em;
+				opacity: 1;
+				transform: rotate(180deg);
+				width: 10px;
+			}
 		}
 	}
 
@@ -136,6 +157,33 @@ body.layout-intro{
 
 	.nav-filter {
 		margin: 15px 0;
+		position: relative;
+
+		button[type="reset"] {
+			background: white;
+			border: 1px solid transparent;
+			display: none;
+			font-size: 20px;
+			height: 24px;
+			line-height: 24px;
+			padding: 0;
+			position: absolute;
+			right: 10px;
+			top: 50%;
+			transform: translateY(-50%);
+			width: 24px;
+
+			&:hover,
+			&:focus {
+				border-color: #ccc;
+				outline: none;
+			}
+
+			&:active {
+				background-color: #dbdada;
+				outline: none;
+			}
+		}
 	}
 
 	.nav-filter-input {
@@ -143,6 +191,12 @@ body.layout-intro{
 		border: 1px solid #dbdada;
 		padding: 10px 40px;
 		width: 100%;
+
+		&:focus {
+			border-color: $purple;
+			box-shadow: inset 0 0 3px rgba($purple, .6);
+			outline: none;
+		}
 	}
 
 	.nav-section-title {
@@ -161,22 +215,27 @@ body.layout-intro{
 			border-bottom: none;
 		}
 
-		//all li > a
-		li{
-			position: relative;
+		a {
+			background-color: transparent;
+			color: $light-black;
+			overflow: hidden;
+			white-space: nowrap;
 
-			> a{
-				@include transition( color 0.5s ease );
-				color: $light-black;
+			&:hover,
+			&:focus {
+				background-color: rgba($purple, .1);
 			}
 
-			> a:hover,
-			> a:focus {
-				background-color: transparent !important;
-				@include transition( color 0.5s ease );
+			&::before {
+				content: '';
+				display: inline-block;
+				height: 10px;
+				margin-right: .5em;
+				opacity: .6;
+				transition: .1s;
+				width: 10px;
 			}
 		}
-
 
 		> li {
 			&.active {
@@ -185,21 +244,7 @@ body.layout-intro{
 					font-weight: 600;
 				}
 
-				&:before{
-					content: '';
-					position: absolute;
-          width: 6px;
-          height: 8px;
-          background-color: $purple;
-          font-weight: 500;
-          @include skewY(24deg);
-					top: 26px;
-					left: -10px;
-				}
-
 				.nav {
-					display: block;
-
           li.active a {
             color: lighten($purple, 4%);
 						font-weight: 500;
@@ -222,7 +267,8 @@ body.layout-intro{
 
 				> a{
           -webkit-font-smoothing: antialiased;
-					padding: 6px 15px;
+					padding: 6px;
+					padding-right: 0;
 				}
 			}
 		}
