@@ -59,13 +59,6 @@ func (c *UnlockCommand) Run(args []string) int {
 		return 1
 	}
 
-	s, ok := st.(state.Locker)
-	if !ok {
-		c.Ui.Error("The remote state backend in use does not support locking, and therefor\n" +
-			"cannot be unlocked.")
-		return 1
-	}
-
 	isLocal := false
 	switch s := st.(type) {
 	case *state.BackupState:
@@ -103,7 +96,7 @@ func (c *UnlockCommand) Run(args []string) int {
 		}
 	}
 
-	if err := s.Unlock(lockID); err != nil {
+	if err := st.Unlock(lockID); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to unlock state: %s", err))
 		return 1
 	}

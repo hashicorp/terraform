@@ -50,15 +50,10 @@ that no one else is holding a lock.
 // Lock locks the given state and outputs to the user if locking
 // is taking longer than the threshold.
 func Lock(s state.State, info *state.LockInfo, ui cli.Ui, color *colorstring.Colorize) (string, error) {
-	sl, ok := s.(state.Locker)
-	if !ok {
-		return "", nil
-	}
-
 	var lockID string
 
 	err := slowmessage.Do(LockThreshold, func() error {
-		id, err := sl.Lock(info)
+		id, err := s.Lock(info)
 		lockID = id
 		return err
 	}, func() {
@@ -77,13 +72,8 @@ func Lock(s state.State, info *state.LockInfo, ui cli.Ui, color *colorstring.Col
 // Unlock unlocks the given state and outputs to the user if the
 // unlock fails what can be done.
 func Unlock(s state.State, id string, ui cli.Ui, color *colorstring.Colorize) error {
-	sl, ok := s.(state.Locker)
-	if !ok {
-		return nil
-	}
-
 	err := slowmessage.Do(LockThreshold, func() error {
-		return sl.Unlock(id)
+		return s.Unlock(id)
 	}, func() {
 		if ui != nil {
 			ui.Output(color.Color(UnlockMessage))
