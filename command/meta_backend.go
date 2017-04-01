@@ -171,6 +171,7 @@ func (m *Meta) Operation() *backend.Operation {
 		Targets:          m.targets,
 		UIIn:             m.UIInput(),
 		Environment:      m.Env(),
+		LockState:        m.stateLock,
 		StateLockTimeout: m.stateLockTimeout,
 	}
 }

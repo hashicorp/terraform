@@ -48,6 +48,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
+	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -183,7 +184,6 @@ func (c *ApplyCommand) Run(args []string) int {
 	opReq.Plan = plan
 	opReq.PlanRefresh = refresh
 	opReq.Type = backend.OperationTypeApply
-	opReq.LockState = c.Meta.stateLock
 
 	// Perform the operation
 	ctx, ctxCancel := context.WithCancel(context.Background())
@@ -276,6 +276,8 @@ Options:
 
   -lock=true             Lock the state file when locking is supported.
 
+  -lock-timeout=0s       Duration to retry a state lock.
+
   -input=true            Ask for input for variables if not directly set.
 
   -no-color              If specified, output won't contain any color.
@@ -324,6 +326,8 @@ Options:
   -force                 Don't ask for input for destroy confirmation.
 
   -lock=true             Lock the state file when locking is supported.
+
+  -lock-timeout=0s       Duration to retry a state lock.
 
   -no-color              If specified, output won't contain any color.
 

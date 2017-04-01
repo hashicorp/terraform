@@ -32,6 +32,7 @@ func (c *PlanCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	cmdFlags.BoolVar(&detailed, "detailed-exitcode", false, "detailed-exitcode")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
+	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -85,7 +86,6 @@ func (c *PlanCommand) Run(args []string) int {
 	opReq.PlanRefresh = refresh
 	opReq.PlanOutPath = outPath
 	opReq.Type = backend.OperationTypePlan
-	opReq.LockState = c.Meta.stateLock
 
 	// Perform the operation
 	op, err := b.Operation(context.Background(), opReq)
@@ -144,6 +144,8 @@ Options:
   -input=true         Ask for input for variables if not directly set.
 
   -lock=true          Lock the state file when locking is supported.
+
+  -lock-timeout=0s    Duration to retry a state lock.
 
   -module-depth=n     Specifies the depth of modules to show in the output.
                       This does not affect the plan itself, only the output
