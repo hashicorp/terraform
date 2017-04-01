@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
-	clistate "github.com/hashicorp/terraform/command/state"
+	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )

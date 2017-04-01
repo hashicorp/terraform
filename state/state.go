@@ -74,9 +74,9 @@ type Locker interface {
 	Unlock(id string) error
 }
 
-// Lock the state, using the provided context for timeout and cancellation
+// Lock the state, using the provided context for timeout and cancellation.
 // TODO: this should probably backoff somewhat.
-func LockWithContext(s State, info *LockInfo, ctx context.Context) (string, error) {
+func LockWithContext(ctx context.Context, s State, info *LockInfo) (string, error) {
 	for {
 		id, err := s.Lock(info)
 		if err == nil {

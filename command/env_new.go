@@ -5,11 +5,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
-
-	clistate "github.com/hashicorp/terraform/command/state"
 )
 
 type EnvNewCommand struct {
