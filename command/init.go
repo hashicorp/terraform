@@ -28,6 +28,8 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.Var((*variables.FlagAny)(&flagConfigExtra), "backend-config", "")
 	cmdFlags.BoolVar(&flagGet, "get", true, "")
 	cmdFlags.BoolVar(&c.forceInitCopy, "force-copy", false, "suppress prompts about copying state data")
+	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
+	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
@@ -225,6 +227,10 @@ Options:
 
   -input=true          Ask for input if necessary. If false, will error if
                        input was required.
+
+  -lock=true           Lock the state file when locking is supported.
+
+  -lock-timeout=0s     Duration to retry a state lock.
 
   -no-color            If specified, output won't contain any color.
 
