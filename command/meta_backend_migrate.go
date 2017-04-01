@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -217,25 +218,30 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 			errMigrateSingleLoadDefault), opts.TwoType, err)
 	}
 
-	lockInfoOne := state.NewLockInfo()
-	lockInfoOne.Operation = "migration"
-	lockInfoOne.Info = "source state"
+	if m.stateLock {
+		lockCtx, cancel := context.WithTimeout(context.Background(), m.stateLockTimeout)
+		defer cancel()
 
-	lockIDOne, err := clistate.Lock(stateOne, lockInfoOne, m.Ui, m.Colorize())
-	if err != nil {
-		return fmt.Errorf("Error locking source state: %s", err)
+		lockInfoOne := state.NewLockInfo()
+		lockInfoOne.Operation = "migration"
+		lockInfoOne.Info = "source state"
+
+		lockIDOne, err := clistate.Lock(lockCtx, stateOne, lockInfoOne, m.Ui, m.Colorize())
+		if err != nil {
+			return fmt.Errorf("Error locking source state: %s", err)
+		}
+		defer clistate.Unlock(stateOne, lockIDOne, m.Ui, m.Colorize())
+
+		lockInfoTwo := state.NewLockInfo()
+		lockInfoTwo.Operation = "migration"
+		lockInfoTwo.Info = "destination state"
+
+		lockIDTwo, err := clistate.Lock(lockCtx, stateTwo, lockInfoTwo, m.Ui, m.Colorize())
+		if err != nil {
+			return fmt.Errorf("Error locking destination state: %s", err)
+		}
+		defer clistate.Unlock(stateTwo, lockIDTwo, m.Ui, m.Colorize())
 	}
-	defer clistate.Unlock(stateOne, lockIDOne, m.Ui, m.Colorize())
-
-	lockInfoTwo := state.NewLockInfo()
-	lockInfoTwo.Operation = "migration"
-	lockInfoTwo.Info = "destination state"
-
-	lockIDTwo, err := clistate.Lock(stateTwo, lockInfoTwo, m.Ui, m.Colorize())
-	if err != nil {
-		return fmt.Errorf("Error locking destination state: %s", err)
-	}
-	defer clistate.Unlock(stateTwo, lockIDTwo, m.Ui, m.Colorize())
 
 	one := stateOne.State()
 	two := stateTwo.State()

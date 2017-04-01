@@ -90,16 +90,20 @@ type Meta struct {
 	//
 	// stateLock is set to false to disable state locking
 	//
+	// stateLockTimeout is the optional duration to retry a state locks locks
+	// when it is already locked by another process.
+	//
 	// forceInitCopy suppresses confirmation for copying state data during
 	// init.
-	statePath     string
-	stateOutPath  string
-	backupPath    string
-	parallelism   int
-	shadow        bool
-	provider      string
-	stateLock     bool
-	forceInitCopy bool
+	statePath        string
+	stateOutPath     string
+	backupPath       string
+	parallelism      int
+	shadow           bool
+	provider         string
+	stateLock        bool
+	stateLockTimeout time.Duration
+	forceInitCopy    bool
 }
 
 // initStatePaths is used to initialize the default values for

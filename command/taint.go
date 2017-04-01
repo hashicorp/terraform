@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -78,10 +79,13 @@ func (c *TaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	if c.Meta.stateLock {
+	if c.stateLock {
+		lockCtx, cancel := context.WithTimeout(context.Background(), c.stateLockTimeout)
+		defer cancel()
+
 		lockInfo := state.NewLockInfo()
 		lockInfo.Operation = "taint"
-		lockID, err := clistate.Lock(st, lockInfo, c.Ui, c.Colorize())
+		lockID, err := clistate.Lock(lockCtx, st, lockInfo, c.Ui, c.Colorize())
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
 			return 1
