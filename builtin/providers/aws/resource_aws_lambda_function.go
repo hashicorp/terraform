@@ -274,12 +274,8 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 		if err != nil {
 			log.Printf("[DEBUG] Error creating Lambda Function: %s", err)
 
-			if isAWSErr(err, "InvalidParameterValueException", "S3 Error Code: NoSuchKey") {
-				return resource.NonRetryableError(err)
-			}
-
 			if isAWSErr(err, "InvalidParameterValueException", "The role defined for the function cannot be assumed by Lambda") {
-				log.Printf("[ERROR] Received %q, retrying CreateFunction", err)
+				log.Printf("[DEBUG] Received %s, retrying CreateFunction", err)
 				return resource.RetryableError(err)
 			}
 
