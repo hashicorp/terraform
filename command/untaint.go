@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 
-	clistate "github.com/hashicorp/terraform/command/state"
+	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/state"
 )
 
