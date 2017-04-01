@@ -2,9 +2,10 @@
 //
 // This is a separate package so that backends can use this for consistent
 // messaging without creating a circular reference to the command package.
-package message
+package clistate
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -48,12 +49,13 @@ that no one else is holding a lock.
 )
 
 // Lock locks the given state and outputs to the user if locking
-// is taking longer than the threshold.
-func Lock(s state.State, info *state.LockInfo, ui cli.Ui, color *colorstring.Colorize) (string, error) {
+// is taking longer than the threshold.  The lock is retried until the context
+// is cancelled.
+func Lock(ctx context.Context, s state.State, info *state.LockInfo, ui cli.Ui, color *colorstring.Colorize) (string, error) {
 	var lockID string
 
 	err := slowmessage.Do(LockThreshold, func() error {
-		id, err := s.Lock(info)
+		id, err := state.LockWithContext(ctx, s, info)
 		lockID = id
 		return err
 	}, func() {

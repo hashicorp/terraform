@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/state"
 	"github.com/mitchellh/cli"
-
-	clistate "github.com/hashicorp/terraform/command/state"
 )
 
 type EnvDeleteCommand struct {
