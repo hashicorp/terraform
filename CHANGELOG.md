@@ -4,6 +4,7 @@ FEATURES:
 
  * **New Resource:** `aws_lightsail_static_ip` [GH-13175]
  * **New Resource:** `aws_lightsail_static_ip_attachment` [GH-13207]
+ * **New Resource:** `aws_ses_domain_identity` [GH-13098]
  * **New Resource:** `kubernetes_secret` [GH-12960]
  * **New Data Source:** `aws_iam_role` [GH-13213]
 
