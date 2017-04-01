@@ -75,8 +75,10 @@ type Locker interface {
 }
 
 // Lock the state, using the provided context for timeout and cancellation.
-// TODO: this should probably backoff somewhat.
+// This backs off slightly to an upper limit.
 func LockWithContext(ctx context.Context, s State, info *LockInfo) (string, error) {
+	delay := time.Second
+	maxDelay := 16 * time.Second
 	for {
 		id, err := s.Lock(info)
 		if err == nil {
@@ -99,7 +101,10 @@ func LockWithContext(ctx context.Context, s State, info *LockInfo) (string, erro
 		case <-ctx.Done():
 			// return the last lock error with the info
 			return "", err
-		case <-time.After(time.Second):
+		case <-time.After(delay):
+			if delay < maxDelay {
+				delay *= 2
+			}
 		}
 	}
 }
