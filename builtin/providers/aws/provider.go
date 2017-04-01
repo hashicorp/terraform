@@ -386,6 +386,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_route_table":                              resourceAwsRouteTable(),
 			"aws_route_table_association":                  resourceAwsRouteTableAssociation(),
 			"aws_ses_active_receipt_rule_set":              resourceAwsSesActiveReceiptRuleSet(),
+			"aws_ses_domain_identity":                      resourceAwsSesDomainIdentity(),
 			"aws_ses_receipt_filter":                       resourceAwsSesReceiptFilter(),
 			"aws_ses_receipt_rule":                         resourceAwsSesReceiptRule(),
 			"aws_ses_receipt_rule_set":                     resourceAwsSesReceiptRuleSet(),
