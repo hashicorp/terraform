@@ -92,6 +92,7 @@ To make a resource importable, please see the
 * aws_route_table
 * aws_s3_bucket
 * aws_security_group
+* aws_ses_domain_identity
 * aws_ses_receipt_filter
 * aws_ses_receipt_rule_set
 * aws_simpledb_domain
