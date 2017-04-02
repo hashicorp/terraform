@@ -676,7 +676,6 @@ resource "aws_db_instance" "test" {
 	instance_class = "db.t1.micro"
 	password = "password"
 	username = "root"
-	security_group_names = ["default"]
 	publicly_accessible = true
 	skip_final_snapshot = true
 
@@ -692,7 +691,6 @@ resource "aws_db_instance" "test" {
 	instance_class = "db.t1.micro"
 	password = "password"
 	username = "root"
-	security_group_names = ["default"]
 	publicly_accessible = true
 	skip_final_snapshot = true
 
