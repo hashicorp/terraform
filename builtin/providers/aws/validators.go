@@ -482,6 +482,26 @@ func validateLogGroupName(v interface{}, k string) (ws []string, errors []error)
 	return
 }
 
+func validateLogGroupNamePrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	if len(value) > 483 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 483 characters: %q", k, value))
+	}
+
+	// http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLogGroup.html
+	pattern := `^[\.\-_/#A-Za-z0-9]+$`
+	if !regexp.MustCompile(pattern).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q isn't a valid log group name (alphanumeric characters, underscores,"+
+				" hyphens, slashes, hash signs and dots are allowed): %q",
+			k, value))
+	}
+
+	return
+}
+
 func validateS3BucketLifecycleTimestamp(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	_, err := time.Parse(time.RFC3339, fmt.Sprintf("%sT00:00:00Z", value))
