@@ -68,7 +68,9 @@ func expandStringMap(m map[string]interface{}) map[string]string {
 func flattenMetadata(meta api.ObjectMeta) []map[string]interface{} {
 	m := make(map[string]interface{})
 	m["annotations"] = filterAnnotations(meta.Annotations)
-	m["generate_name"] = meta.GenerateName
+	if meta.GenerateName != "" {
+		m["generate_name"] = meta.GenerateName
+	}
 	m["labels"] = meta.Labels
 	m["name"] = meta.Name
 	m["resource_version"] = meta.ResourceVersion
