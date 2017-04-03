@@ -781,7 +781,7 @@ func resourceAwsOpsworksInstanceCreate(d *schema.ResourceData, meta interface{})
 	d.Set("id", instanceId)
 
 	if v, ok := d.GetOk("state"); ok && v.(string) == "running" {
-		err := startOpsworksInstance(d, meta, false)
+		err := startOpsworksInstance(d, meta, true)
 		if err != nil {
 			return err
 		}
@@ -860,7 +860,7 @@ func resourceAwsOpsworksInstanceUpdate(d *schema.ResourceData, meta interface{})
 			}
 		} else {
 			if status != "stopped" && status != "stopping" && status != "shutting_down" {
-				err := stopOpsworksInstance(d, meta, false)
+				err := stopOpsworksInstance(d, meta, true)
 				if err != nil {
 					return err
 				}

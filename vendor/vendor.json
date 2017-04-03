@@ -1970,6 +1970,24 @@
 			"revision": "d30f09973e19c1dfcd120b2d9c4f168e68d6b5d5"
 		},
 		{
+			"checksumSHA1": "Sqz9+8frdOIkyK/v4IjjInZAp4Y=",
+			"path": "github.com/hashicorp/go-oracle-terraform/compute",
+			"revision": "98fdaf3c4bde245e21947487ba722c3d0abaccb2",
+			"revisionTime": "2017-03-29T21:19:34Z"
+		},
+		{
+			"checksumSHA1": "DzK7lYwHt5Isq5Zf73cnQqBO2LI=",
+			"path": "github.com/hashicorp/go-oracle-terraform/helper",
+			"revision": "98fdaf3c4bde245e21947487ba722c3d0abaccb2",
+			"revisionTime": "2017-03-29T21:19:34Z"
+		},
+		{
+			"checksumSHA1": "AyNRs19Es9pDw2VMxVKWuLx3Afg=",
+			"path": "github.com/hashicorp/go-oracle-terraform/opc",
+			"revision": "98fdaf3c4bde245e21947487ba722c3d0abaccb2",
+			"revisionTime": "2017-03-29T21:19:34Z"
+		},
+		{
 			"checksumSHA1": "b0nQutPMJHeUmz4SjpreotAo6Yk=",
 			"path": "github.com/hashicorp/go-plugin",
 			"revision": "f72692aebca2008343a9deb06ddb4b17f7051c15",
@@ -2288,16 +2306,22 @@
 			"revisionTime": "2016-09-13T20:25:01Z"
 		},
 		{
-			"checksumSHA1": "PDzjpRNeytdYU39/PByzwCMvKQ8=",
-			"path": "github.com/joyent/gosdc/cloudapi",
-			"revision": "042c6e9de2b48a646d310e70cc0050c83fe18200",
-			"revisionTime": "2016-04-26T05:09:12Z"
-		},
-		{
 			"checksumSHA1": "N0NRIcJF7aj1wd56DA1N9GpYq/4=",
 			"path": "github.com/joyent/gosign/auth",
 			"revision": "8978c75ffefb3f63a977ad9cbfce40caeb40177e",
 			"revisionTime": "2016-06-16T18:50:15Z"
+		},
+		{
+			"checksumSHA1": "fue8Al8kqw/Q6VFPsNzoky7NIgo=",
+			"path": "github.com/joyent/triton-go",
+			"revision": "66b31a94af28a65e902423879a2820ea34b773fb",
+			"revisionTime": "2017-03-31T18:12:29Z"
+		},
+		{
+			"checksumSHA1": "QzUqkCSn/ZHyIK346xb9V6EBw9U=",
+			"path": "github.com/joyent/triton-go/authentication",
+			"revision": "66b31a94af28a65e902423879a2820ea34b773fb",
+			"revisionTime": "2017-03-31T18:12:29Z"
 		},
 		{
 			"checksumSHA1": "YhQcOsGx8r2S/jkJ0Qt4cZ5BLCU=",

@@ -21,99 +21,120 @@ import (
 func New() backend.Backend {
 	s := &schema.Backend{
 		Schema: map[string]*schema.Schema{
-			"bucket": &schema.Schema{
+			"bucket": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the S3 bucket",
 			},
 
-			"key": &schema.Schema{
+			"key": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The path to the state file inside the bucket",
 			},
 
-			"region": &schema.Schema{
+			"region": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The region of the S3 bucket.",
 				DefaultFunc: schema.EnvDefaultFunc("AWS_DEFAULT_REGION", nil),
 			},
 
-			"endpoint": &schema.Schema{
+			"endpoint": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "A custom endpoint for the S3 API",
 				DefaultFunc: schema.EnvDefaultFunc("AWS_S3_ENDPOINT", ""),
 			},
 
-			"encrypt": &schema.Schema{
+			"encrypt": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Whether to enable server side encryption of the state file",
 				Default:     false,
 			},
 
-			"acl": &schema.Schema{
+			"acl": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Canned ACL to be applied to the state file",
 				Default:     "",
 			},
 
-			"access_key": &schema.Schema{
+			"access_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "AWS access key",
 				Default:     "",
 			},
 
-			"secret_key": &schema.Schema{
+			"secret_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "AWS secret key",
 				Default:     "",
 			},
 
-			"kms_key_id": &schema.Schema{
+			"kms_key_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The ARN of a KMS Key to use for encrypting the state",
 				Default:     "",
 			},
 
-			"lock_table": &schema.Schema{
+			"lock_table": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "DynamoDB table for state locking",
 				Default:     "",
 			},
 
-			"profile": &schema.Schema{
+			"profile": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "AWS profile name",
 				Default:     "",
 			},
 
-			"shared_credentials_file": &schema.Schema{
+			"shared_credentials_file": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Path to a shared credentials file",
 				Default:     "",
 			},
 
-			"token": &schema.Schema{
+			"token": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "MFA token",
 				Default:     "",
 			},
 
-			"role_arn": &schema.Schema{
+			"role_arn": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The role to be assumed",
+				Default:     "",
+			},
+
+			"session_name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The session name to use when assuming the role.",
+				Default:     "",
+			},
+
+			"external_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The external ID to use when assuming the role",
+				Default:     "",
+			},
+
+			"assume_role_policy": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The permissions applied when assuming a role.",
 				Default:     "",
 			},
 		},
@@ -156,12 +177,15 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	var errs []error
 	creds, err := terraformAWS.GetCredentials(&terraformAWS.Config{
-		AccessKey:     data.Get("access_key").(string),
-		SecretKey:     data.Get("secret_key").(string),
-		Token:         data.Get("token").(string),
-		Profile:       data.Get("profile").(string),
-		CredsFilename: data.Get("shared_credentials_file").(string),
-		AssumeRoleARN: data.Get("role_arn").(string),
+		AccessKey:             data.Get("access_key").(string),
+		SecretKey:             data.Get("secret_key").(string),
+		Token:                 data.Get("token").(string),
+		Profile:               data.Get("profile").(string),
+		CredsFilename:         data.Get("shared_credentials_file").(string),
+		AssumeRoleARN:         data.Get("role_arn").(string),
+		AssumeRoleSessionName: data.Get("session_name").(string),
+		AssumeRoleExternalID:  data.Get("external_id").(string),
+		AssumeRolePolicy:      data.Get("assume_role_policy").(string),
 	})
 	if err != nil {
 		return err

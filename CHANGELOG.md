@@ -1,7 +1,16 @@
 ## 0.9.3 (unreleased)
 
+FEATURES:
+
+ * **New Resource:** `aws_lightsail_static_ip` [GH-13175]
+ * **New Resource:** `aws_lightsail_static_ip_attachment` [GH-13207]
+ * **New Resource:** `aws_ses_domain_identity` [GH-13098]
+ * **New Resource:** `kubernetes_secret` [GH-12960]
+ * **New Data Source:** `aws_iam_role` [GH-13213]
+
 IMPROVEMENTS:
  
+ * backend/remote-state: Add support for assume role extensions to s3 backend [GH-13236]
  * config: New interpolation functions `basename` and `dirname`, for file path manipulation [GH-13080]
  * helper/resource: Allow unknown "pending" states [GH-13099]
  * provider/aws: Add support to set iam_role_arn on cloudformation Stack [GH-12547]
@@ -13,13 +22,32 @@ IMPROVEMENTS:
  * provider/aws: `aws_kinesis_firehose_delivery_stream` `password` field marked as sensitive [GH-13147]
  * provider/aws: `aws_opsworks_application` `app_source.0.password` & `ssl_configuration.0.private_key` fields marked as sensitive [GH-13147]
  * provider/aws: `aws_opsworks_stack` `custom_cookbooks_source.0.password` field marked as sensitive [GH-13147]
+ * provider/aws: Support the ability to enable / disable ipv6 support in VPC [GH-12527]
+ * provider/aws: Added API Gateway integration update [GH-13249]
+ * provider/aws: Add `identifier` | `name_prefix` to RDS resources [GH-13232]
+ * provider/aws: Validate `aws_ecs_task_definition.container_definitions` [GH-12161]
+ * provider/aws: Update caller_identity data source [GH-13092]
+ * provider/github: Handle the case when issue labels already exist [GH-13182]
  * provider/google: Mark `google_container_cluster`'s `client_key` & `password` inside `master_auth` as sensitive [GH-13148]
+ * provider/triton: Move to joyent/triton-go [GH-13225]
 
 BUG FIXES: 
 
+ * core: Escaped interpolation-like sequences (like `$${foo}`) now permitted in variable defaults [GH-13137] 
  * provider/aws: Add Support for maintenance_window and back_window to rds_cluster_instance [GH-13134]
+ * provider/aws: Increase timeout for AMI registration [GH-13159]
+ * provider/aws: Increase timeouts for ELB [GH-13161]
+ * provider/aws: `volume_type` of `aws_elasticsearch_domain.0.ebs_options` marked as `Computed` which prevents spurious diffs [GH-13160]
+ * provider/aws: Don't set DBName on `aws_db_instance` from snapshot [GH-13140]
+ * provider/aws: Add DiffSuppression to aws_ecs_service placement_strategies [GH-13220]
+ * provider/aws: Refresh aws_alb_target_group stickiness on manual updates [GH-13199]
+ * provider/aws: Preserve default retain_on_delete in cloudfront import [GH-13209]
+ * provider/aws: Refresh aws_alb_target_group tags [GH-13200]
+ * provider/aws: Set aws_vpn_connection to recreate when in deleted state [GH-13204]
+ * provider/aws: Wait for aws_opsworks_instance to be running when it's specified [GH-13218]
+ * provider/aws: Handle `aws_lambda_function` missing s3 key error [GH-10960]
+ * provider/aws: Set stickiness to computed in alb_target_group [GH-13278]
  * provider/azurerm: Network Security Group - ignoring protocol casing at Import time [GH-13153]
- 
 
 ## 0.9.2 (March 28, 2017)
 
