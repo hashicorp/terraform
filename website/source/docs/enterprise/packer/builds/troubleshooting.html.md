@@ -1,7 +1,7 @@
 ---
-layout: "packer"
+layout: "enterprise"
 page_title: "Troubleshooting Failing Builds"
-sidebar_current: "docs-enterprise-packer-builds-troubleshooting"
+sidebar_current: "docs-enterprise-packerbuilds-troubleshooting"
 description: |-
   Packer builds can fail in Terraform Enterprise for a number of reasons – improper configuration, transient networking errors, and hardware constraints are all possible. 
 ---

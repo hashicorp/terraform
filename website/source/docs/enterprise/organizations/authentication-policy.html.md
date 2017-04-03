@@ -1,5 +1,5 @@
 ---
-layout: "organizations"
+layout: "enterprise"
 page_title: "Organization Authentication Policy"
 sidebar_current: "docs-enterprise-organizations-policy"
 description: |-

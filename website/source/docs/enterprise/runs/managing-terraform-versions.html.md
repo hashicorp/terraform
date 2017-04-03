@@ -1,5 +1,5 @@
 ---
-layout: "runs"
+layout: "enterprise"
 page_title: "Runs: Managing Terraform Versions"
 sidebar_current: "docs-enterprise-runs-versions"
 description: |-

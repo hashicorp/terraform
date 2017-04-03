@@ -1,5 +1,5 @@
 ---
-layout: "accounts"
+layout: "enterprise"
 page_title: "User Authentication in Terraform Enterprise"
 sidebar_current: "docs-enterprise-accounts-authentication"
 description: |-

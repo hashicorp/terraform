@@ -1,5 +1,5 @@
 ---
-layout: "runs"
+layout: "enterprise"
 page_title: "Runs: Scheduling Runs"
 sidebar_current: "docs-enterprise-runs-schedule"
 description: |-
