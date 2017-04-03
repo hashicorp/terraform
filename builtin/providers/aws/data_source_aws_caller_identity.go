@@ -50,8 +50,8 @@ func dataSourceAwsCallerIdentityRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	log.Printf("[DEBUG] Setting AWS Account ID to %s.", *res.Account)
-	d.Set("account_id", *res.Account)
-	d.Set("arn", *res.Arn)
-	d.Set("user_id", *res.UserId)
+	d.Set("account_id", res.Account)
+	d.Set("arn", res.Arn)
+	d.Set("user_id", res.UserId)
 	return nil
 }
