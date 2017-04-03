@@ -3,6 +3,7 @@ package command
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -341,6 +342,9 @@ func (m *Meta) uiHook() *UiHook {
 
 // confirm asks a yes/no confirmation.
 func (m *Meta) confirm(opts *terraform.InputOpts) (bool, error) {
+	if !m.input {
+		return false, errors.New("input disabled")
+	}
 	for {
 		v, err := m.UIInput().Input(opts)
 		if err != nil {

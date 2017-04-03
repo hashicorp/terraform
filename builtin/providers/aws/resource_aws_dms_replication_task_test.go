@@ -102,7 +102,7 @@ func dmsReplicationTaskDestroy(s *terraform.State) error {
 func dmsReplicationTaskConfig(randId string) string {
 	return fmt.Sprintf(`
 resource "aws_iam_role" "dms_iam_role" {
-  name = "dms-vpc-role"
+  name = "dms-vpc-role-%[1]s"
   assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"dms.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
 }
 
