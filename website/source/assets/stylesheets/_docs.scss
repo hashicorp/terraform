@@ -194,7 +194,6 @@ body.layout-intro{
 
 		&:focus {
 			border-color: $purple;
-			box-shadow: inset 0 0 3px rgba($purple, .6);
 			outline: none;
 		}
 	}
@@ -223,7 +222,7 @@ body.layout-intro{
 
 			&:hover,
 			&:focus {
-				background-color: rgba($purple, .1);
+				background-color: rgba(black, .06);
 			}
 
 			&::before {
