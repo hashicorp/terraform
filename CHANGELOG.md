@@ -45,6 +45,7 @@ BUG FIXES:
  * provider/aws: Set aws_vpn_connection to recreate when in deleted state [GH-13204]
  * provider/aws: Wait for aws_opsworks_instance to be running when it's specified [GH-13218]
  * provider/aws: Handle `aws_lambda_function` missing s3 key error [GH-10960]
+ * provider/aws: Set stickiness to computed in alb_target_group [GH-13278]
  * provider/azurerm: Network Security Group - ignoring protocol casing at Import time [GH-13153]
 
 ## 0.9.2 (March 28, 2017)
