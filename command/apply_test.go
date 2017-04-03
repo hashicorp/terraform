@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -89,6 +90,42 @@ func TestApply_lockedState(t *testing.T) {
 	output := ui.ErrorWriter.String()
 	if !strings.Contains(output, "lock") {
 		t.Fatal("command output does not look like a lock error:", output)
+	}
+}
+
+// test apply with locked state, waiting for unlock
+func TestApply_lockedStateWait(t *testing.T) {
+	statePath := testTempFile(t)
+
+	unlock, err := testLockState("./testdata", statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// unlock during apply
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		unlock()
+	}()
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	// wait 4s just in case the lock process doesn't release in under a second,
+	// and we want our context to be alive for a second retry at the 3s mark.
+	args := []string{
+		"-state", statePath,
+		"-lock-timeout", "4s",
+		testFixturePath("apply"),
+	}
+	if code := c.Run(args); code != 0 {
+		log.Fatalf("lock should have succeed in less than 3s: %s", ui.ErrorWriter)
 	}
 }
 
