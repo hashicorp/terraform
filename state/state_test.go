@@ -74,11 +74,18 @@ func TestLockWithContext(t *testing.T) {
 		t.Fatal("lock should have failed immediately")
 	}
 
+	// block until LockwithContext has made a first attempt
+	attempted := make(chan struct{})
+	postLockHook = func() {
+		close(attempted)
+		postLockHook = nil
+	}
+
 	// unlock the state during LockWithContext
 	unlocked := make(chan struct{})
 	go func() {
 		defer close(unlocked)
-		time.Sleep(500 * time.Millisecond)
+		<-attempted
 		if err := s.Unlock(id); err != nil {
 			t.Fatal(err)
 		}
