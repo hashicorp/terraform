@@ -1,38 +1,43 @@
+
+
 <% wrap_layout :inner do %>
-    <% content_for :sidebar do %>
-        <div class="docs-sidebar hidden-print affix-top" role="complementary">
-            <ul class="nav docs-sidenav">
-                <li<%= sidebar_current("docs-home") %>>
-                     <a href="/docs/providers/index.html">&laquo; Documentation Home</a>
-                </li>
-
-                 <li<%= sidebar_current("docs-ibmcloud-index") %>>
-                     <a href="/docs/providers/ibmcloud/index.html">IBM Cloud Provider</a>
-                 </li>
-
-                 <li<%= sidebar_current(/^docs-ibmcloud-datasource/) %>>
-                     <a href="#">Infrastructure Data Sources</a>
-                         <ul class="nav nav-visible">
-                              <li<%= sidebar_current("docs-ibmcloud-datasource-infra-ssh-key") %>>
-			           <a href="/docs/providers/ibmcloud/d/infra_ssh_key.html">infra_ssh_key</a>
-			        </li>
-			 </ul>
-		 </li>
-
-		 <li<%= sidebar_current(/^docs-ibmcloud-resource/) %>>
-                     <a href="#">Infrastructure Resources</a>
-                          <ul class="nav nav-visible">
-                                <li<%= sidebar_current("docs-ibmcloud-resource-infra-ssh-key") %>>
-                                     <a href="/docs/providers/ibmcloud/r/infra_ssh_key.html">infra_ssh_key</a>
-			        </li>
-			        <li<%= sidebar_current("docs-ibmcloud-resource-infra-virtual-guest") %>>
-			             <a href="/docs/providers/ibmcloud/r/infra_virtual_guest.html">infra_virtual_guest</a>
-		                </li>
-		          </ul> 
-		 </li>
-	      </ul>
-	</div>
-	<% end %>
-
-	<%= yield %>
+<% content_for :sidebar do %>
+<div class="docs-sidebar hidden-print affix-top" role="complementary">
+   <ul class="nav docs-sidenav">
+      <li<%= sidebar_current("docs-home") %>>
+         <a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+      </li>
+      <li<%= sidebar_current("docs-ibmcloud-index") %>>
+         <a href="/docs/providers/ibmcloud/index.html">IBM Cloud Provider</a>
+      </li>
+      <li<%= sidebar_current(/^docs-ibmcloud-datasource/) %>>
+         <a href="#">Infrastructure Data Sources</a>
+         <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-ibmcloud-datasource-infra-ssh-key") %>>
+               <a href="/docs/providers/ibmcloud/d/infra_ssh_key.html">infra_ssh_key</a>
+            </li>
+            <li<%= sidebar_current("docs-ibmcloud-datasource-infra-vlan") %>>
+               <a href="/docs/providers/ibmcloud/d/infra_vlan.html">infra_vlan</a>
+            </li>
+         </ul>
+      </li>
+      <li<%= sidebar_current(/^docs-ibmcloud-resource/) %>>
+         <a href="#">Infrastructure Resources</a>
+         <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-ibmcloud-resource-infra-ssh-key") %>>
+               <a href="/docs/providers/ibmcloud/r/infra_ssh_key.html">infra_ssh_key</a>
+            </li>
+            <li<%= sidebar_current("docs-ibmcloud-resource-infra-virtual-guest") %>>
+               <a href="/docs/providers/ibmcloud/r/infra_virtual_guest.html">infra_virtual_guest</a>
+            </li>
+            <li<%= sidebar_current("docs-ibmcloud-resource-infra-vlan") %>>
+               <a href="/docs/providers/ibmcloud/r/infra_vlan.html">infra_vlan</a>
+            </li>
+         </ul>
+      </li>
+   </ul>
+</div>
 <% end %>
+<%= yield %>
+<% end %>
+
