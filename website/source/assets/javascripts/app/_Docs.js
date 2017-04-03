@@ -69,6 +69,7 @@ var Init = {
     var _this = this,
       $activeEl = $('.active');
 
+    // clean up state inherited from template, set up click handlers
     $('.docs-sidenav ul')
       .removeClass('nav-visible')
       .parents('li')
@@ -79,6 +80,7 @@ var Init = {
     _this.$superLists = $('.has-sublist');
     _this.$superLists.filter('.active.has-sublist').addClass('is-expanded');
 
+    // show the active superlist, if buried offscreen
     if ($activeEl.offset().top + 50 > $(window).height()) {
       $activeEl[0].scrollIntoView();
       window.scrollTo(0,0);
@@ -149,7 +151,7 @@ var Init = {
       }
     });
 
-    // make sure non-empty superlists are visible, empty ones hidden
+    // hide/show superlists based on whether they have any hits
     if (filterString.length > 0) {
       _this.$superLists.each(function(index, list) {
         var $list = $(list);
