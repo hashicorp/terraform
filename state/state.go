@@ -74,6 +74,9 @@ type Locker interface {
 	Unlock(id string) error
 }
 
+// test hook to verify that LockWithContext has attempted a lock
+var postLockHook func()
+
 // Lock the state, using the provided context for timeout and cancellation.
 // This backs off slightly to an upper limit.
 func LockWithContext(ctx context.Context, s State, info *LockInfo) (string, error) {
@@ -94,6 +97,10 @@ func LockWithContext(ctx context.Context, s State, info *LockInfo) (string, erro
 		if le.Info.ID == "" {
 			// the lock has no ID, something is wrong so don't keep trying
 			return "", fmt.Errorf("lock error missing ID: %s", err)
+		}
+
+		if postLockHook != nil {
+			postLockHook()
 		}
 
 		// there's an existing lock, wait and try again
