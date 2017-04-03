@@ -101,7 +101,9 @@ var Init = {
 
   onCollapseClick: function(event) {
     event.preventDefault();
-    $(this).closest('.has-sublist').toggleClass('is-expanded');
+    $(event.target)
+      .blur()
+      .closest('.has-sublist').toggleClass('is-expanded');
   },
 
   onFilterInput: function(event) {
