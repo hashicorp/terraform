@@ -1,0 +1,38 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+        <a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+                </li>
+
+        <li<%= sidebar_current("docs-contentful-index") %>>
+        <a href="/docs/providers/contentful/index.html">Contentful Provider</a>
+                </li>
+
+        <li<%= sidebar_current(/^docs-contentful-resource/) %>>
+        <a href="#">Resources</a>
+                <ul class="nav nav-visible">
+                    <li<%= sidebar_current("docs-contentful-resource-contentful_api") %>>
+                        <a href="/docs/providers/contentful/r/contentful_api.html">contentful_api</a>
+                    </li>
+                    <li<%= sidebar_current("docs-contentful-resource-contentful_contenttype") %>>
+                        <a href="/docs/providers/contentful/r/contentful_contenttype.html">contentful_contenttype</a>
+                    </li>
+                    <li<%= sidebar_current("docs-contentful-resource-contentful_locale") %>>
+                        <a href="/docs/providers/contentful/r/contentful_locale.html">contentful_locale</a>
+                    </li>
+                    <li<%= sidebar_current("docs-contentful-resource-contentful_space") %>>
+                        <a href="/docs/providers/contentful/r/contentful_space.html">contentful_space</a>
+                    </li>
+                    <li<%= sidebar_current("docs-contentful-resource-contentful_webhook") %>>
+                        <a href="/docs/providers/contentful/r/contentful_webhook.html">contentful_webhook</a>
+                    </li>
+                </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= yield %>
+  <% end %>
