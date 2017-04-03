@@ -81,6 +81,7 @@ func TestAccAWSVpnConnection_withoutStaticRoutes(t *testing.T) {
 }
 
 func TestAccAWSVpnConnection_disappears(t *testing.T) {
+	rBgpAsn := acctest.RandIntRange(64512, 65534)
 	var vpn ec2.VpnConnection
 
 	resource.Test(t, resource.TestCase{
@@ -89,7 +90,7 @@ func TestAccAWSVpnConnection_disappears(t *testing.T) {
 		CheckDestroy: testAccAwsVpnConnectionDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAwsVpnConnectionConfig,
+				Config: testAccAwsVpnConnectionConfig(rBgpAsn),
 				Check: resource.ComposeTestCheckFunc(
 					testAccAwsVpnConnection(
 						"aws_vpc.vpc",
