@@ -1,8 +1,8 @@
 package contentful
 
 import (
-	"github.com/hashicorp/terraform/helper/schema"
 	contentful "github.com/contentful-labs/contentful-go"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func resourceContentfulLocale() *schema.Resource {

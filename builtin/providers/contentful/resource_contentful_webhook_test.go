@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
+	contentful "github.com/contentful-labs/contentful-go"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	contentful "github.com/contentful-labs/contentful-go"
 )
 
 func TestAccContentfulWebhook_Basic(t *testing.T) {

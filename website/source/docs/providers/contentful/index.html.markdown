@@ -71,7 +71,7 @@ The following arguments are supported:
 
 Both the api token and the organization id can be obtained by creating an account at [`Contentful`](https://www.contentful.com/sign-up).
 
-These can also be provided via environement variables:
+These can also be provided via environment variables:
 
 * CONTENTFUL_MANAGEMENT_TOKEN
 * CONTENTFUL_ORGANIZATION_ID

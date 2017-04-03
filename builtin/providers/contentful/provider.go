@@ -3,9 +3,9 @@ package contentful
 import (
 	"os"
 
+	contentful "github.com/contentful-labs/contentful-go"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-	contentful "github.com/contentful-labs/contentful-go"
 )
 
 // Provider does shit
