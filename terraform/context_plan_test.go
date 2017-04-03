@@ -3095,3 +3095,54 @@ func TestContext2Plan_listOrder(t *testing.T) {
 		t.Fatal("aws_instance.a and aws_instance.b diffs should match:\n", plan)
 	}
 }
+
+// Make sure ignore-changes doesn't interfere with set/list/map diffs.
+// If a resource was being replaced by a RequiresNew attribute that gets
+// ignored, we need to filter the diff properly to properly update rather than
+// replace.
+func TestContext2Plan_ignoreChangesWithFlatmaps(t *testing.T) {
+	m := testModule(t, "plan-ignore-changes-with-flatmaps")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"user_data":   "x",
+								"require_new": "",
+								"set.#":       "1",
+								"set.0.a":     "1",
+								"lst.#":       "1",
+								"lst.0":       "j",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.Diff.String())
+	expected := strings.TrimSpace(testTFPlanDiffIgnoreChangesWithFlatmaps)
+	if actual != expected {
+		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
+	}
+}

@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"sort"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/hil"
@@ -3173,7 +3174,7 @@ func TestSchemaMap_Input(t *testing.T) {
 		 * String decode
 		 */
 
-		"uses input on optional field with no config": {
+		"no input on optional field with no config": {
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
 					Type:     TypeString,
@@ -3181,15 +3182,9 @@ func TestSchemaMap_Input(t *testing.T) {
 				},
 			},
 
-			Input: map[string]string{
-				"availability_zone": "foo",
-			},
-
-			Result: map[string]interface{}{
-				"availability_zone": "foo",
-			},
-
-			Err: false,
+			Input:  map[string]string{},
+			Result: map[string]interface{}{},
+			Err:    false,
 		},
 
 		"input ignored when config has a value": {
@@ -3276,7 +3271,7 @@ func TestSchemaMap_Input(t *testing.T) {
 					DefaultFunc: func() (interface{}, error) {
 						return nil, nil
 					},
-					Optional: true,
+					Required: true,
 				},
 			},
 
@@ -3289,6 +3284,22 @@ func TestSchemaMap_Input(t *testing.T) {
 			},
 
 			Err: false,
+		},
+
+		"input not used when optional default function returns nil": {
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type: TypeString,
+					DefaultFunc: func() (interface{}, error) {
+						return nil, nil
+					},
+					Optional: true,
+				},
+			},
+
+			Input:  map[string]string{},
+			Result: map[string]interface{}{},
+			Err:    false,
 		},
 	}
 
@@ -4913,6 +4924,47 @@ func TestSchemaMap_Validate(t *testing.T) {
 				},
 			},
 			Err: true,
+		},
+
+		// The Validation function should not see interpolation strings from
+		// non-computed values.
+		"set with partially computed list and map": {
+			Schema: map[string]*Schema{
+				"outer": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Computed: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"list": &Schema{
+								Type:     TypeList,
+								Optional: true,
+								Elem: &Schema{
+									Type: TypeString,
+									ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+										if strings.HasPrefix(v.(string), "${") {
+											es = append(es, fmt.Errorf("should not have interpolations"))
+										}
+										return
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			Config: map[string]interface{}{
+				"outer": []map[string]interface{}{
+					{
+						"list": []interface{}{"${var.a}", "${var.b}", "c"},
+					},
+				},
+			},
+			Vars: map[string]string{
+				"var.a": "A",
+				"var.b": config.UnknownVariableValue,
+			},
+			Err: false,
 		},
 	}
 

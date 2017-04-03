@@ -45,6 +45,7 @@ The following arguments are supported:
 
 * `address` - (Optional) The HTTP(S) API address of the agent to use. Defaults to "127.0.0.1:8500".
 * `scheme` - (Optional) The URL scheme of the agent to use ("http" or "https"). Defaults to "http".
+* `http_auth` - (Optional) HTTP Basic Authentication credentials to be used when communicating with Consul, in the format of either `user` or `user:pass`. This may also be specified using the `CONSUL_HTTP_AUTH` environment variable.
 * `datacenter` - (Optional) The datacenter to use. Defaults to that of the agent.
 * `token` - (Optional) The ACL token to use by default when making requests to the agent.
 * `ca_file` - (Optional) A path to a PEM-encoded certificate authority used to verify the remote agent's certificate.

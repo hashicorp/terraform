@@ -20,6 +20,11 @@ Environments are a way to create multiple states that contain
 their own data so a single set of Terraform configurations can manage
 multiple distinct sets of resources.
 
+Environments are currently supported by the following backends:
+
+ * [Consul](/docs/backends/types/consul.html)
+ * [S3](/docs/backends/types/s3.html)
+
 ## Using Environments
 
 Terraform starts with a single environment named "default". This
@@ -34,7 +39,7 @@ to switch environments you can use `terraform env select`, etc.
 For example, creating an environment:
 
 ```
-$ terraform env create bar
+$ terraform env new bar
 Created and switched to environment "bar"!
 
 You're now on a new, empty environment. Environments isolate their state,
@@ -79,11 +84,14 @@ resource "aws_instance" "example" {
 ## Best Practices
 
 An environment alone **should not** be used to manage the difference between
-development, staging, and production. While it is technically possible, it is
-much more manageable and safe to use multiple independently managed Terraform
-configurations linked together with
-[terraform_remote_state](/docs/providers/terraform/d/remote_state.html)
-data sources.
+development, staging, and production. As Terraform configurations get larger,
+it's much more manageable and safer to split one large configuration into many
+smaller ones linked together with terraform_remote_state data sources. This
+allows teams to delegate ownership and reduce the blast radius of changes.
+For each smaller configuration, you can use environments to model the
+differences between development, staging, and production. However, if you have
+one large Terraform configuration, it is riskier and not recommended to use
+environments to model those differences.
 
 The [terraform_remote_state](/docs/providers/terraform/d/remote_state.html)
 resource accepts an `environment` name to target. Therefore, you can link
@@ -117,7 +125,9 @@ For local state, Terraform stores the state environments in a folder
 For [remote state](/docs/state/remote.html), the environments are stored
 directly in the configured [backend](/docs/backends). For example, if you
 use [Consul](/docs/backends/types/consul.html), the environments are stored
-by suffixing the state path with the environment name.
+by suffixing the state path with the environment name. To ensure that
+environment names are stored correctly and safely in all backends, the name
+must be valid to use in a URL path segment without escaping.
 
 The important thing about environment internals is that environments are
 meant to be a shared resource. They aren't a private, local-only notion

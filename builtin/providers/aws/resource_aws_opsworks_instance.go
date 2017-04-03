@@ -565,6 +565,10 @@ func resourceAwsOpsworksInstanceRead(d *schema.ResourceData, meta interface{}) e
 	for _, v := range instance.LayerIds {
 		layerIds = append(layerIds, *v)
 	}
+	layerIds, err = sortListBasedonTFFile(layerIds, d, "layer_ids")
+	if err != nil {
+		return fmt.Errorf("[DEBUG] Error sorting layer_ids attribute: %#v", err)
+	}
 	if err := d.Set("layer_ids", layerIds); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting layer_ids attribute: %#v, error: %#v", layerIds, err)
 	}
@@ -777,7 +781,7 @@ func resourceAwsOpsworksInstanceCreate(d *schema.ResourceData, meta interface{})
 	d.Set("id", instanceId)
 
 	if v, ok := d.GetOk("state"); ok && v.(string) == "running" {
-		err := startOpsworksInstance(d, meta, false)
+		err := startOpsworksInstance(d, meta, true)
 		if err != nil {
 			return err
 		}
@@ -820,7 +824,6 @@ func resourceAwsOpsworksInstanceUpdate(d *schema.ResourceData, meta interface{})
 
 	if v, ok := d.GetOk("layer_ids"); ok {
 		req.LayerIds = expandStringList(v.([]interface{}))
-
 	}
 
 	if v, ok := d.GetOk("os"); ok {
@@ -857,7 +860,7 @@ func resourceAwsOpsworksInstanceUpdate(d *schema.ResourceData, meta interface{})
 			}
 		} else {
 			if status != "stopped" && status != "stopping" && status != "shutting_down" {
-				err := stopOpsworksInstance(d, meta, false)
+				err := stopOpsworksInstance(d, meta, true)
 				if err != nil {
 					return err
 				}

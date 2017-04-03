@@ -6,12 +6,14 @@ import (
 	"testing"
 
 	"github.com/google/go-github/github"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccGithubTeamMembership_basic(t *testing.T) {
 	var membership github.Membership
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
 	testAccGithubTeamMembershipUpdateConfig := fmt.Sprintf(`
 		resource "github_membership" "test_org_membership" {
@@ -20,7 +22,7 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 		}
 
 		resource "github_team" "test_team" {
-			name = "foo"
+			name = "tf-acc-test-team-membership-%s"
 			description = "Terraform acc test group"
 		}
 
@@ -29,7 +31,7 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 			username = "%s"
 			role = "maintainer"
 		}
-	`, testUser, testUser)
+	`, testUser, randString, testUser)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -37,7 +39,7 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 		CheckDestroy: testAccCheckGithubTeamMembershipDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubTeamMembershipConfig,
+				Config: testAccGithubTeamMembershipConfig(randString, testUser),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamMembershipExists("github_team_membership.test_team_membership", &membership),
 					testAccCheckGithubTeamMembershipRoleState("github_team_membership.test_team_membership", "member", &membership),
@@ -55,13 +57,15 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 }
 
 func TestAccGithubTeamMembership_importBasic(t *testing.T) {
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubTeamMembershipDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubTeamMembershipConfig,
+				Config: testAccGithubTeamMembershipConfig(randString, testUser),
 			},
 			{
 				ResourceName:      "github_team_membership.test_team_membership",
@@ -152,14 +156,15 @@ func testAccCheckGithubTeamMembershipRoleState(n, expected string, membership *g
 	}
 }
 
-var testAccGithubTeamMembershipConfig string = fmt.Sprintf(`
+func testAccGithubTeamMembershipConfig(randString, username string) string {
+	return fmt.Sprintf(`
   resource "github_membership" "test_org_membership" {
     username = "%s"
     role = "member"
   }
 
   resource "github_team" "test_team" {
-    name = "foo"
+    name = "tf-acc-test-team-membership-%s"
     description = "Terraform acc test group"
   }
 
@@ -168,4 +173,5 @@ var testAccGithubTeamMembershipConfig string = fmt.Sprintf(`
     username = "%s"
     role = "member"
   }
-`, testUser, testUser)
+`, username, randString, username)
+}

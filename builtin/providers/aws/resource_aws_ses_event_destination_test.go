@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/service/ses"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -46,7 +47,7 @@ func testAccCheckSESEventDestinationDestroy(s *terraform.State) error {
 
 		found := false
 		for _, element := range response.ConfigurationSets {
-			if *element.Name == "some-configuration-set" {
+			if *element.Name == fmt.Sprintf("some-configuration-set-%d", edRandomInteger) {
 				found = true
 			}
 		}
@@ -81,7 +82,7 @@ func testAccCheckAwsSESEventDestinationExists(n string) resource.TestCheckFunc {
 
 		found := false
 		for _, element := range response.ConfigurationSets {
-			if *element.Name == "some-configuration-set" {
+			if *element.Name == fmt.Sprintf("some-configuration-set-%d", edRandomInteger) {
 				found = true
 			}
 		}
@@ -94,7 +95,8 @@ func testAccCheckAwsSESEventDestinationExists(n string) resource.TestCheckFunc {
 	}
 }
 
-const testAccAWSSESEventDestinationConfig = `
+var edRandomInteger = acctest.RandInt()
+var testAccAWSSESEventDestinationConfig = fmt.Sprintf(`
 resource "aws_s3_bucket" "bucket" {
   bucket = "tf-test-bucket-format"
   acl = "private"
@@ -155,7 +157,7 @@ data "aws_iam_policy_document" "fh_felivery_document" {
 }
 
 resource "aws_ses_configuration_set" "test" {
-    name = "some-configuration-set"
+    name = "some-configuration-set-%d"
 }
 
 resource "aws_ses_event_destination" "kinesis" {
@@ -182,4 +184,4 @@ resource "aws_ses_event_destination" "cloudwatch" {
 	value_source = "emailHeader"
   }
 }
-`
+`, edRandomInteger)

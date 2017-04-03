@@ -25,7 +25,7 @@ The command-line flags are all optional. The list of available flags are:
     a key per output. If `NAME` is specified, only the output specified will be
     returned. This can be piped into tools such as `jq` for further processing.
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
-    Ignored when [remote state](/docs/state/remote/index.html) is used.
+    Ignored when [remote state](/docs/state/remote.html) is used.
 * `-module=module_name` - The module path which has needed output.
     By default this is the root path. Other modules can be specified by
     a period-separated list. Example: "foo" would reference the module

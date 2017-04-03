@@ -83,7 +83,7 @@ Here we use `${path.module}` to get a module-relative path.
 
 ## Nested Modules
 
-You can nest a module within another module. This module will be hidden from your root configuration, so you'll have re-expose any
+You can nest a module within another module. This module will be hidden from your root configuration, so you'll have to re-expose any
 variables and outputs you require.
 
 The [get command](/docs/commands/get.html) will automatically get all nested modules.

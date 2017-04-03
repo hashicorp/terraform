@@ -50,6 +50,30 @@ func TestAccNetworkingV2Port_noip(t *testing.T) {
 					testAccCheckNetworkingV2SubnetExists("openstack_networking_subnet_v2.subnet_1", &subnet),
 					testAccCheckNetworkingV2NetworkExists("openstack_networking_network_v2.network_1", &network),
 					testAccCheckNetworkingV2PortExists("openstack_networking_port_v2.port_1", &port),
+					testAccCheckNetworkingV2PortCountFixedIPs(&port, 1),
+				),
+			},
+		},
+	})
+}
+
+func TestAccNetworkingV2Port_multipleNoIP(t *testing.T) {
+	var network networks.Network
+	var port ports.Port
+	var subnet subnets.Subnet
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckNetworkingV2PortDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccNetworkingV2Port_multipleNoIP,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckNetworkingV2SubnetExists("openstack_networking_subnet_v2.subnet_1", &subnet),
+					testAccCheckNetworkingV2NetworkExists("openstack_networking_network_v2.network_1", &network),
+					testAccCheckNetworkingV2PortExists("openstack_networking_port_v2.port_1", &port),
+					testAccCheckNetworkingV2PortCountFixedIPs(&port, 3),
 				),
 			},
 		},
@@ -96,6 +120,48 @@ func TestAccNetworkingV2Port_multipleFixedIPs(t *testing.T) {
 					testAccCheckNetworkingV2SubnetExists("openstack_networking_subnet_v2.subnet_1", &subnet),
 					testAccCheckNetworkingV2NetworkExists("openstack_networking_network_v2.network_1", &network),
 					testAccCheckNetworkingV2PortExists("openstack_networking_port_v2.port_1", &port),
+					testAccCheckNetworkingV2PortCountFixedIPs(&port, 3),
+				),
+			},
+		},
+	})
+}
+
+func TestAccNetworkingV2Port_timeout(t *testing.T) {
+	var network networks.Network
+	var port ports.Port
+	var subnet subnets.Subnet
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckNetworkingV2PortDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccNetworkingV2Port_timeout,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckNetworkingV2SubnetExists("openstack_networking_subnet_v2.subnet_1", &subnet),
+					testAccCheckNetworkingV2NetworkExists("openstack_networking_network_v2.network_1", &network),
+					testAccCheckNetworkingV2PortExists("openstack_networking_port_v2.port_1", &port),
+				),
+			},
+		},
+	})
+}
+
+func TestAccNetworkingV2Port_fixedIPs(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckNetworkingV2PortDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccNetworkingV2Port_fixedIPs,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"openstack_networking_port_v2.port_1", "all_fixed_ips.0", "192.168.199.23"),
+					resource.TestCheckResourceAttr(
+						"openstack_networking_port_v2.port_1", "all_fixed_ips.1", "192.168.199.24"),
 				),
 			},
 		},
@@ -155,6 +221,16 @@ func testAccCheckNetworkingV2PortExists(n string, port *ports.Port) resource.Tes
 	}
 }
 
+func testAccCheckNetworkingV2PortCountFixedIPs(port *ports.Port, expected int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if len(port.FixedIPs) != expected {
+			return fmt.Errorf("Expected %d Fixed IPs, got %d", expected, len(port.FixedIPs))
+		}
+
+		return nil
+	}
+}
+
 const testAccNetworkingV2Port_basic = `
 resource "openstack_networking_network_v2" "network_1" {
   name = "network_1"
@@ -197,6 +273,38 @@ resource "openstack_networking_port_v2" "port_1" {
   name = "port_1"
   admin_state_up = "true"
   network_id = "${openstack_networking_network_v2.network_1.id}"
+
+  fixed_ip {
+    subnet_id =  "${openstack_networking_subnet_v2.subnet_1.id}"
+  }
+}
+`
+
+const testAccNetworkingV2Port_multipleNoIP = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  admin_state_up = "true"
+}
+
+resource "openstack_networking_subnet_v2" "subnet_1" {
+  name = "subnet_1"
+  cidr = "192.168.199.0/24"
+  ip_version = 4
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+}
+
+resource "openstack_networking_port_v2" "port_1" {
+  name = "port_1"
+  admin_state_up = "true"
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+
+  fixed_ip {
+    subnet_id =  "${openstack_networking_subnet_v2.subnet_1.id}"
+  }
+
+  fixed_ip {
+    subnet_id =  "${openstack_networking_subnet_v2.subnet_1.id}"
+  }
 
   fixed_ip {
     subnet_id =  "${openstack_networking_subnet_v2.subnet_1.id}"
@@ -301,6 +409,66 @@ resource "openstack_networking_port_v2" "port_1" {
   fixed_ip {
     subnet_id =  "${openstack_networking_subnet_v2.subnet_1.id}"
     ip_address = "192.168.199.40"
+  }
+}
+`
+
+const testAccNetworkingV2Port_timeout = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  admin_state_up = "true"
+}
+
+resource "openstack_networking_subnet_v2" "subnet_1" {
+  name = "subnet_1"
+  cidr = "192.168.199.0/24"
+  ip_version = 4
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+}
+
+resource "openstack_networking_port_v2" "port_1" {
+  name = "port_1"
+  admin_state_up = "true"
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+
+  fixed_ip {
+    subnet_id =  "${openstack_networking_subnet_v2.subnet_1.id}"
+    ip_address = "192.168.199.23"
+  }
+
+  timeouts {
+    create = "5m"
+    delete = "5m"
+  }
+}
+`
+
+const testAccNetworkingV2Port_fixedIPs = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  admin_state_up = "true"
+}
+
+resource "openstack_networking_subnet_v2" "subnet_1" {
+  name = "subnet_1"
+  cidr = "192.168.199.0/24"
+  ip_version = 4
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+}
+
+resource "openstack_networking_port_v2" "port_1" {
+  name = "port_1"
+  admin_state_up = "true"
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+
+  fixed_ip {
+    subnet_id =  "${openstack_networking_subnet_v2.subnet_1.id}"
+    ip_address = "192.168.199.24"
+  }
+
+  fixed_ip {
+    subnet_id =  "${openstack_networking_subnet_v2.subnet_1.id}"
+    ip_address = "192.168.199.23"
   }
 }
 `

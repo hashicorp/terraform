@@ -852,6 +852,18 @@ func TestInterpolateFuncMerge(t *testing.T) {
 
 }
 
+func TestInterpolateFuncDirname(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${dirname("/foo/bar/baz")}`,
+				"/foo/bar",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncDistinct(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -1777,6 +1789,18 @@ func TestInterpolateFuncElement(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncBasename(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${basename("/foo/bar/baz")}`,
+				"baz",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncBase64Encode(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -2002,7 +2026,7 @@ func TestInterpolateFuncTimestamp(t *testing.T) {
 	}
 
 	if resultTime.Sub(currentTime).Seconds() > 10.0 {
-		t.Fatalf("Timestamp Diff too large. Expected: %s\nRecieved: %s", currentTime.Format(time.RFC3339), result.Value.(string))
+		t.Fatalf("Timestamp Diff too large. Expected: %s\nReceived: %s", currentTime.Format(time.RFC3339), result.Value.(string))
 	}
 }
 
@@ -2065,6 +2089,64 @@ func TestInterpolateFuncPathExpand(t *testing.T) {
 			},
 			{
 				`${pathexpand()}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncSubstr(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${substr("foobar", 0, 0)}`,
+				"",
+				false,
+			},
+			{
+				`${substr("foobar", 0, -1)}`,
+				"foobar",
+				false,
+			},
+			{
+				`${substr("foobar", 0, 3)}`,
+				"foo",
+				false,
+			},
+			{
+				`${substr("foobar", 3, 3)}`,
+				"bar",
+				false,
+			},
+			{
+				`${substr("foobar", -3, 3)}`,
+				"bar",
+				false,
+			},
+
+			// empty string
+			{
+				`${substr("", 0, 0)}`,
+				"",
+				false,
+			},
+
+			// invalid offset
+			{
+				`${substr("", 1, 0)}`,
+				nil,
+				true,
+			},
+
+			// invalid length
+			{
+				`${substr("", 0, 1)}`,
+				nil,
+				true,
+			},
+			{
+				`${substr("", 0, -2)}`,
 				nil,
 				true,
 			},

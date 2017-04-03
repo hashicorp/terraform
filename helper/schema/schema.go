@@ -477,7 +477,9 @@ func (m schemaMap) Input(
 
 		// Skip things that don't require config, if that is even valid
 		// for a provider schema.
-		if !v.Required && !v.Optional {
+		// Required XOR Optional must always be true to validate, so we only
+		// need to check one.
+		if v.Optional {
 			continue
 		}
 
@@ -1216,6 +1218,13 @@ func (m schemaMap) validateList(
 	var es []error
 	for i, raw := range raws {
 		key := fmt.Sprintf("%s.%d", k, i)
+
+		// Reify the key value from the ResourceConfig.
+		// If the list was computed we have all raw values, but some of these
+		// may be known in the config, and aren't individually marked as Computed.
+		if r, ok := c.Get(key); ok {
+			raw = r
+		}
 
 		var ws2 []string
 		var es2 []error

@@ -262,7 +262,7 @@ func (i *Interpolater) valueResourceVar(
 		// If it truly is missing, we'll catch it on a later walk.
 		// This applies only to graph nodes that interpolate during the
 		// config walk, e.g. providers.
-		if i.Operation == walkInput {
+		if i.Operation == walkInput || i.Operation == walkRefresh {
 			result[n] = unknownVariable()
 			return nil
 		}
@@ -539,6 +539,13 @@ func (i *Interpolater) computeResourceMultiVariable(
 	defer i.StateLock.RUnlock()
 
 	unknownVariable := unknownVariable()
+
+	// If we're only looking for input, we don't need to expand a
+	// multi-variable. This prevents us from encountering things that should be
+	// known but aren't because the state has yet to be refreshed.
+	if i.Operation == walkInput {
+		return &unknownVariable, nil
+	}
 
 	// Get the information about this resource variable, and verify
 	// that it exists and such.

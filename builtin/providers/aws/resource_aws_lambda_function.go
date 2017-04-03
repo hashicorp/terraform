@@ -297,14 +297,13 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 	err := resource.Retry(10*time.Minute, func() *resource.RetryError {
 		_, err := conn.CreateFunction(params)
 		if err != nil {
-			log.Printf("[ERROR] Received %q, retrying CreateFunction", err)
-			if awserr, ok := err.(awserr.Error); ok {
-				if awserr.Code() == "InvalidParameterValueException" {
-					log.Printf("[DEBUG] InvalidParameterValueException creating Lambda Function: %s", awserr)
-					return resource.RetryableError(awserr)
-				}
-			}
 			log.Printf("[DEBUG] Error creating Lambda Function: %s", err)
+
+			if isAWSErr(err, "InvalidParameterValueException", "The role defined for the function cannot be assumed by Lambda") {
+				log.Printf("[DEBUG] Received %s, retrying CreateFunction", err)
+				return resource.RetryableError(err)
+			}
+
 			return resource.NonRetryableError(err)
 		}
 		return nil
@@ -389,9 +388,9 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 			last := p.Versions[len(p.Versions)-1]
 			lastVersion = *last.Version
 			lastQualifiedArn = *last.FunctionArn
-			return true
+			return false
 		}
-		return false
+		return true
 	})
 	if err != nil {
 		return err
@@ -416,6 +415,7 @@ func listVersionsByFunctionPages(c *lambda.Lambda, input *lambda.ListVersionsByF
 		if !shouldContinue || lastPage {
 			break
 		}
+		input.Marker = page.NextMarker
 	}
 	return nil
 }

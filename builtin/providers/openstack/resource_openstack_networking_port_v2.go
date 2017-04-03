@@ -24,6 +24,11 @@ func resourceNetworkingPortV2() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
 				Type:        schema.TypeString,
@@ -80,10 +85,9 @@ func resourceNetworkingPortV2() *schema.Resource {
 				Computed: true,
 			},
 			"fixed_ip": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: false,
-				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"subnet_id": &schema.Schema{
@@ -93,7 +97,6 @@ func resourceNetworkingPortV2() *schema.Resource {
 						"ip_address": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							Computed: true,
 						},
 					},
 				},
@@ -122,6 +125,11 @@ func resourceNetworkingPortV2() *schema.Resource {
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,
+			},
+			"all_fixed_ips": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 		},
 	}
@@ -162,7 +170,7 @@ func resourceNetworkingPortV2Create(d *schema.ResourceData, meta interface{}) er
 	stateConf := &resource.StateChangeConf{
 		Target:     []string{"ACTIVE"},
 		Refresh:    waitForNetworkPortActive(networkingClient, p.ID),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutCreate),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -197,15 +205,14 @@ func resourceNetworkingPortV2Read(d *schema.ResourceData, meta interface{}) erro
 	d.Set("security_group_ids", p.SecurityGroups)
 	d.Set("device_id", p.DeviceID)
 
-	// Convert FixedIPs to list of map
-	var ips []map[string]interface{}
+	// Create a slice of all returned Fixed IPs.
+	// This will be in the order returned by the API,
+	// which is usually alpha-numeric.
+	var ips []string
 	for _, ipObject := range p.FixedIPs {
-		ip := make(map[string]interface{})
-		ip["subnet_id"] = ipObject.SubnetID
-		ip["ip_address"] = ipObject.IPAddress
-		ips = append(ips, ip)
+		ips = append(ips, ipObject.IPAddress)
 	}
-	d.Set("fixed_ip", ips)
+	d.Set("all_fixed_ips", ips)
 
 	// Convert AllowedAddressPairs to list of map
 	var pairs []map[string]interface{}
@@ -280,7 +287,7 @@ func resourceNetworkingPortV2Delete(d *schema.ResourceData, meta interface{}) er
 		Pending:    []string{"ACTIVE"},
 		Target:     []string{"DELETED"},
 		Refresh:    waitForNetworkPortDelete(networkingClient, d.Id()),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -304,7 +311,7 @@ func resourcePortSecurityGroupsV2(d *schema.ResourceData) []string {
 }
 
 func resourcePortFixedIpsV2(d *schema.ResourceData) interface{} {
-	rawIP := d.Get("fixed_ip").(*schema.Set).List()
+	rawIP := d.Get("fixed_ip").([]interface{})
 
 	if len(rawIP) == 0 {
 		return nil
