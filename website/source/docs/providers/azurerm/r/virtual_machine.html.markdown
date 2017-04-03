@@ -304,11 +304,20 @@ For more information on the different example configurations, please check out t
 `os_profile_secrets` supports the following:
 
 * `source_vault_id` - (Required) Specifies the key vault to use.
-* `vault_certificates` - (Required, on windows machines) A collection of Vault Certificates as documented below
+* `vault_certificates` - (Required) A collection of Vault Certificates as documented below
 
 `vault_certificates` support the following:
 
-* `certificate_url` - (Required) It is the Base64 encoding of a JSON Object that which is encoded in UTF-8 of which the contents need to be `data`, `dataType` and `password`.
+* `certificate_url` - (Required) Specifies the URI of the key vault secrets in the format of `https://<vaultEndpoint>/secrets/<secretName>/<secretVersion>`. Stored secret is the Base64 encoding of a JSON Object that which is encoded in UTF-8 of which the contents need to be
+
+```
+{ 
+  "data":"<Base64-encoded-certificate>", 
+  "dataType":"pfx",
+  "password":"<pfx-file-password>" 
+}
+```
+
 * `certificate_store` - (Required, on windows machines) Specifies the certificate store on the Virtual Machine where the certificate should be added to.
 
 ## Attributes Reference

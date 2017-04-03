@@ -415,8 +415,16 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, error) {
 	case c != nil && s.Remote.Empty() && !s.Backend.Empty():
 		// If our configuration is the same, then we're just initializing
 		// a previously configured remote backend.
-		if !s.Backend.Empty() && s.Backend.Hash == cHash {
-			return m.backend_C_r_S_unchanged(c, sMgr)
+		if !s.Backend.Empty() {
+			hash := s.Backend.Hash
+			// on init we need an updated hash containing any extra options
+			// that were added after merging.
+			if opts.Init {
+				hash = s.Backend.Rehash()
+			}
+			if hash == cHash {
+				return m.backend_C_r_S_unchanged(c, sMgr)
+			}
 		}
 
 		if !opts.Init {
@@ -451,7 +459,11 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, error) {
 	case c != nil && !s.Remote.Empty() && !s.Backend.Empty():
 		// If the hashes are the same, we have a legacy remote state with
 		// an unchanged stored backend state.
-		if s.Backend.Hash == cHash {
+		hash := s.Backend.Hash
+		if opts.Init {
+			hash = s.Backend.Rehash()
+		}
+		if hash == cHash {
 			if !opts.Init {
 				initReason := fmt.Sprintf(
 					"Legacy remote state found with configured backend %q",
@@ -990,7 +1002,8 @@ func (m *Meta) backend_C_r_s(
 	}
 
 	// If the local state is not empty, we need to potentially do a
-	// state migration to the new backend (with user permission).
+	// state migration to the new backend (with user permission), unless the
+	// destination is also "local"
 	if localS := localState.State(); !localS.Empty() {
 		// Perform the migration
 		err = m.backendMigrateState(&backendMigrateOpts{
@@ -1003,12 +1016,27 @@ func (m *Meta) backend_C_r_s(
 			return nil, err
 		}
 
-		// We always delete the local state
-		if err := localState.WriteState(nil); err != nil {
-			return nil, fmt.Errorf(errBackendMigrateLocalDelete, err)
+		// we usually remove the local state after migration to prevent
+		// confusion, but adding a default local backend block to the config
+		// can get us here too. Don't delete our state if the old and new paths
+		// are the same.
+		erase := true
+		if newLocalB, ok := b.(*backendlocal.Local); ok {
+			if localB, ok := localB.(*backendlocal.Local); ok {
+				if newLocalB.StatePath == localB.StatePath {
+					erase = false
+				}
+			}
 		}
-		if err := localState.PersistState(); err != nil {
-			return nil, fmt.Errorf(errBackendMigrateLocalDelete, err)
+
+		if erase {
+			// We always delete the local state, unless that was our new state too.
+			if err := localState.WriteState(nil); err != nil {
+				return nil, fmt.Errorf(errBackendMigrateLocalDelete, err)
+			}
+			if err := localState.PersistState(); err != nil {
+				return nil, fmt.Errorf(errBackendMigrateLocalDelete, err)
+			}
 		}
 	}
 
@@ -1145,6 +1173,16 @@ func (m *Meta) backend_C_r_S_changed(
 func (m *Meta) backend_C_r_S_unchanged(
 	c *config.Backend, sMgr state.State) (backend.Backend, error) {
 	s := sMgr.State()
+
+	// it's possible for a backend to be unchanged, and the config itself to
+	// have changed by moving a paramter from the config to `-backend-config`
+	// In this case we only need to update the Hash.
+	if c != nil && s.Backend.Hash != c.Hash {
+		s.Backend.Hash = c.Hash
+		if err := sMgr.WriteState(s); err != nil {
+			return nil, fmt.Errorf(errBackendWriteSaved, err)
+		}
+	}
 
 	// Create the config. We do this from the backend state since this
 	// has the complete configuration data whereas the config itself

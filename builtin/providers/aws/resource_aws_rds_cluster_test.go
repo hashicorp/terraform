@@ -40,6 +40,46 @@ func TestAccAWSRDSCluster_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSRDSCluster_namePrefix(t *testing.T) {
+	var v rds.DBCluster
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSClusterConfig_namePrefix(acctest.RandInt()),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSClusterExists("aws_rds_cluster.test", &v),
+					resource.TestMatchResourceAttr(
+						"aws_rds_cluster.test", "cluster_identifier", regexp.MustCompile("^tf-test-")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRDSCluster_generatedName(t *testing.T) {
+	var v rds.DBCluster
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSClusterConfig_generatedName(acctest.RandInt()),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSClusterExists("aws_rds_cluster.test", &v),
+					resource.TestMatchResourceAttr(
+						"aws_rds_cluster.test", "cluster_identifier", regexp.MustCompile("^tf-")),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSRDSCluster_takeFinalSnapshot(t *testing.T) {
 	var v rds.DBCluster
 	rInt := acctest.RandInt()
@@ -320,6 +360,71 @@ resource "aws_rds_cluster" "default" {
     Environment = "production"
   }
 }`, n)
+}
+
+func testAccAWSClusterConfig_namePrefix(n int) string {
+	return fmt.Sprintf(`
+resource "aws_rds_cluster" "test" {
+  cluster_identifier_prefix = "tf-test-"
+  master_username = "root"
+  master_password = "password"
+  db_subnet_group_name = "${aws_db_subnet_group.test.name}"
+  skip_final_snapshot = true
+}
+
+resource "aws_vpc" "test" {
+  cidr_block = "10.0.0.0/16"
+}
+
+resource "aws_subnet" "a" {
+  vpc_id = "${aws_vpc.test.id}"
+  cidr_block = "10.0.0.0/24"
+  availability_zone = "us-west-2a"
+}
+
+resource "aws_subnet" "b" {
+  vpc_id = "${aws_vpc.test.id}"
+  cidr_block = "10.0.1.0/24"
+  availability_zone = "us-west-2b"
+}
+
+resource "aws_db_subnet_group" "test" {
+  name = "tf-test-%d"
+  subnet_ids = ["${aws_subnet.a.id}", "${aws_subnet.b.id}"]
+}
+`, n)
+}
+
+func testAccAWSClusterConfig_generatedName(n int) string {
+	return fmt.Sprintf(`
+resource "aws_rds_cluster" "test" {
+  master_username = "root"
+  master_password = "password"
+  db_subnet_group_name = "${aws_db_subnet_group.test.name}"
+  skip_final_snapshot = true
+}
+
+resource "aws_vpc" "test" {
+  cidr_block = "10.0.0.0/16"
+}
+
+resource "aws_subnet" "a" {
+  vpc_id = "${aws_vpc.test.id}"
+  cidr_block = "10.0.0.0/24"
+  availability_zone = "us-west-2a"
+}
+
+resource "aws_subnet" "b" {
+  vpc_id = "${aws_vpc.test.id}"
+  cidr_block = "10.0.1.0/24"
+  availability_zone = "us-west-2b"
+}
+
+resource "aws_db_subnet_group" "test" {
+  name = "tf-test-%d"
+  subnet_ids = ["${aws_subnet.a.id}", "${aws_subnet.b.id}"]
+}
+`, n)
 }
 
 func testAccAWSClusterConfigWithFinalSnapshot(n int) string {
