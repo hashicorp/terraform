@@ -26,6 +26,7 @@ IMPROVEMENTS:
  * provider/aws: Added API Gateway integration update [GH-13249]
  * provider/aws: Add `identifier` | `name_prefix` to RDS resources [GH-13232]
  * provider/aws: Validate `aws_ecs_task_definition.container_definitions` [GH-12161]
+ * provider/aws: Update caller_identity data source [GH-13092]
  * provider/github: Handle the case when issue labels already exist [GH-13182]
  * provider/google: Mark `google_container_cluster`'s `client_key` & `password` inside `master_auth` as sensitive [GH-13148]
  * provider/triton: Move to joyent/triton-go [GH-13225]
