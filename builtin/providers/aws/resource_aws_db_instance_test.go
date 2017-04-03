@@ -53,6 +53,46 @@ func TestAccAWSDBInstance_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSDBInstance_namePrefix(t *testing.T) {
+	var v rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSDBInstanceConfig_namePrefix,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.test", &v),
+					testAccCheckAWSDBInstanceAttributes(&v),
+					resource.TestMatchResourceAttr(
+						"aws_db_instance.test", "identifier", regexp.MustCompile("^tf-test-")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBInstance_generatedName(t *testing.T) {
+	var v rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSDBInstanceConfig_generatedName,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.test", &v),
+					testAccCheckAWSDBInstanceAttributes(&v),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSDBInstance_kmsKey(t *testing.T) {
 	var v rds.DBInstance
 	keyRegex := regexp.MustCompile("^arn:aws:kms:")
@@ -613,8 +653,8 @@ resource "aws_db_instance" "bar" {
 	username = "foo"
 
 
-	# Maintenance Window is stored in lower case in the API, though not strictly 
-	# documented. Terraform will downcase this to match (as opposed to throw a 
+	# Maintenance Window is stored in lower case in the API, though not strictly
+	# documented. Terraform will downcase this to match (as opposed to throw a
 	# validation error).
 	maintenance_window = "Fri:09:00-Fri:09:30"
 	skip_final_snapshot = true
@@ -622,6 +662,37 @@ resource "aws_db_instance" "bar" {
 	backup_retention_period = 0
 
 	parameter_group_name = "default.mysql5.6"
+
+	timeouts {
+		create = "30m"
+	}
+}`
+
+const testAccAWSDBInstanceConfig_namePrefix = `
+resource "aws_db_instance" "test" {
+	allocated_storage = 10
+	engine = "MySQL"
+	identifier_prefix = "tf-test-"
+	instance_class = "db.t1.micro"
+	password = "password"
+	username = "root"
+	publicly_accessible = true
+	skip_final_snapshot = true
+
+	timeouts {
+		create = "30m"
+	}
+}`
+
+const testAccAWSDBInstanceConfig_generatedName = `
+resource "aws_db_instance" "test" {
+	allocated_storage = 10
+	engine = "MySQL"
+	instance_class = "db.t1.micro"
+	password = "password"
+	username = "root"
+	publicly_accessible = true
+	skip_final_snapshot = true
 
 	timeouts {
 		create = "30m"
@@ -720,7 +791,7 @@ func testAccReplicaInstanceConfig(val int) string {
 
 		parameter_group_name = "default.mysql5.6"
 	}
-	
+
 	resource "aws_db_instance" "replica" {
 		identifier = "tf-replica-db-%d"
 		backup_retention_period = 0

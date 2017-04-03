@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -16,6 +17,8 @@ import (
 func TestAccAWSVpnConnection_basic(t *testing.T) {
 	rInt := acctest.RandInt()
 	rBgpAsn := acctest.RandIntRange(64512, 65534)
+	var vpn ec2.VpnConnection
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
 		IDRefreshName: "aws_vpn_connection.foo",
@@ -30,6 +33,7 @@ func TestAccAWSVpnConnection_basic(t *testing.T) {
 						"aws_vpn_gateway.vpn_gateway",
 						"aws_customer_gateway.customer_gateway",
 						"aws_vpn_connection.foo",
+						&vpn,
 					),
 				),
 			},
@@ -41,6 +45,7 @@ func TestAccAWSVpnConnection_basic(t *testing.T) {
 						"aws_vpn_gateway.vpn_gateway",
 						"aws_customer_gateway.customer_gateway",
 						"aws_vpn_connection.foo",
+						&vpn,
 					),
 				),
 			},
@@ -51,6 +56,7 @@ func TestAccAWSVpnConnection_basic(t *testing.T) {
 func TestAccAWSVpnConnection_withoutStaticRoutes(t *testing.T) {
 	rInt := acctest.RandInt()
 	rBgpAsn := acctest.RandIntRange(64512, 65534)
+	var vpn ec2.VpnConnection
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
 		IDRefreshName: "aws_vpn_connection.foo",
@@ -65,12 +71,81 @@ func TestAccAWSVpnConnection_withoutStaticRoutes(t *testing.T) {
 						"aws_vpn_gateway.vpn_gateway",
 						"aws_customer_gateway.customer_gateway",
 						"aws_vpn_connection.foo",
+						&vpn,
 					),
 					resource.TestCheckResourceAttr("aws_vpn_connection.foo", "static_routes_only", "false"),
 				),
 			},
 		},
 	})
+}
+
+func TestAccAWSVpnConnection_disappears(t *testing.T) {
+	var vpn ec2.VpnConnection
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccAwsVpnConnectionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAwsVpnConnectionConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccAwsVpnConnection(
+						"aws_vpc.vpc",
+						"aws_vpn_gateway.vpn_gateway",
+						"aws_customer_gateway.customer_gateway",
+						"aws_vpn_connection.foo",
+						&vpn,
+					),
+					testAccAWSVpnConnectionDisappears(&vpn),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func testAccAWSVpnConnectionDisappears(connection *ec2.VpnConnection) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+
+		_, err := conn.DeleteVpnConnection(&ec2.DeleteVpnConnectionInput{
+			VpnConnectionId: connection.VpnConnectionId,
+		})
+		if err != nil {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVpnConnectionID.NotFound" {
+				return nil
+			}
+			if err != nil {
+				return err
+			}
+		}
+
+		return resource.Retry(40*time.Minute, func() *resource.RetryError {
+			opts := &ec2.DescribeVpnConnectionsInput{
+				VpnConnectionIds: []*string{connection.VpnConnectionId},
+			}
+			resp, err := conn.DescribeVpnConnections(opts)
+			if err != nil {
+				cgw, ok := err.(awserr.Error)
+				if ok && cgw.Code() == "InvalidVpnConnectionID.NotFound" {
+					return nil
+				}
+				if ok && cgw.Code() == "IncorrectState" {
+					return resource.RetryableError(fmt.Errorf(
+						"Waiting for VPN Connection to be in the correct state: %v", connection.VpnConnectionId))
+				}
+				return resource.NonRetryableError(
+					fmt.Errorf("Error retrieving VPN Connection: %s", err))
+			}
+			if *resp.VpnConnections[0].State == "deleted" {
+				return nil
+			}
+			return resource.RetryableError(fmt.Errorf(
+				"Waiting for VPN Connection: %v", connection.VpnConnectionId))
+		})
+	}
 }
 
 func testAccAwsVpnConnectionDestroy(s *terraform.State) error {
@@ -117,7 +192,8 @@ func testAccAwsVpnConnection(
 	vpcResource string,
 	vpnGatewayResource string,
 	customerGatewayResource string,
-	vpnConnectionResource string) resource.TestCheckFunc {
+	vpnConnectionResource string,
+	vpnConnection *ec2.VpnConnection) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[vpnConnectionResource]
 		if !ok {
@@ -134,13 +210,15 @@ func testAccAwsVpnConnection(
 
 		ec2conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
-		_, err := ec2conn.DescribeVpnConnections(&ec2.DescribeVpnConnectionsInput{
+		resp, err := ec2conn.DescribeVpnConnections(&ec2.DescribeVpnConnectionsInput{
 			VpnConnectionIds: []*string{aws.String(connection.Primary.ID)},
 		})
 
 		if err != nil {
 			return err
 		}
+
+		*vpnConnection = *resp.VpnConnections[0]
 
 		return nil
 	}
