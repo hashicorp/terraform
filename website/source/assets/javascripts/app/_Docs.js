@@ -42,17 +42,68 @@ var Init = {
     var $sidebar = $('.docs-sidebar'),
         $formGroup = $('<div class="form-group docs-nav-mobile visible-xs visible-sm">').append('<label>Navigation</label>'),
         $select = $('<select class="form-control">'),
-        $options = $([]);
+        options = [],
+        optionsHtml = '',
+        i = 0;
 
     // kick off recursive search/build for nav <option>s
-    $options = $options.add(this.buildNavOptions($sidebar.find('ul').first(), 0));
+    options = this.buildNavOptions($sidebar.find('ul').first(), 0);
+
+    // turn options array into html
+    for (; i < options.length; i++) {
+      var opt = options[i];
+
+      optionsHtml += ''
+        + '<option '
+          + 'value="' + opt.href + '" '
+          + (opt.selected ? 'selected' : '')
+        + '>'
+          + opt.text
+        + '</option>';
+    }
 
     $select
-      .append($options)
+      .append(optionsHtml)
       .appendTo($formGroup)
       .change(this.onNavSelectChange);
 
-    $formGroup.insertBefore('#main-content');
+    $formGroup.insertBefore('.bs-docs-section');
+  },
+
+  onNavSelectChange: function(event){
+    location = this.value;
+  },
+
+  buildNavOptions: function($list, level){
+    var _this = this,
+        options = [];
+
+    // look for <a>s and new <ul> inside list item
+    $list.children('li').each(function(index, item){
+      var $item = $(item),
+          $link = $item.children('a'),
+          $sublist = $item.children('ul'),
+          space = '',
+          i = 0;
+
+      // add indentation to indicate current level
+      for (; i<level; i++) {
+        space += '&nbsp;&nbsp;&nbsp;&nbsp;';
+      }
+
+      options.push({
+        text: space + $link[0].textContent,
+        href: $link[0].href,
+        selected: $item.hasClass('active')
+      });
+
+      // if there's a sub <ul>, re-run this method one level deeper
+      if ($sublist.length > 0) {
+        options = options.concat( _this.buildNavOptions($sublist, level+1) );
+      }
+    });
+
+    return options;
   },
 
   clearFilter: function() {
@@ -169,45 +220,6 @@ var Init = {
     if (event.which == 27) {
       this.clearFilter();
     }
-  },
-
-  onNavSelectChange: function(event){
-    location = this.value;
-  },
-
-  buildNavOptions: function($list, level){
-    var _this = this,
-        $options = $([]);
-
-    // look for <a>s and new <ul> inside list item
-    $list.children('li').each(function(index, item){
-      var $item = $(item),
-          $link = $item.children('a').first(),
-          $sublist = $item.children('ul').first(),
-          $option,
-          space = '',
-          i = 0;
-
-      // add indentation to indicate current level
-      for (; i<level; i++) {
-        space += '&nbsp;&nbsp;&nbsp;&nbsp;';
-      }
-
-      $option = $('<option>',{
-        value: $link.attr('href'),
-        html: space + $link.text(),
-        selected: $item.hasClass('active')
-      });
-
-      $options = $options.add($option);
-
-      // if there's a sub <ul>, re-run this method one level deeper
-      if ($sublist.length > 0) {
-        $options = $options.add( _this.buildNavOptions($sublist, (level+1)) );
-      }
-    });
-
-    return $options;
   },
 
   onResize: function() {
