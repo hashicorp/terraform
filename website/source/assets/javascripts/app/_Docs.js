@@ -70,12 +70,12 @@ var Init = {
       $activeEl = $('.active');
 
     // clean up state inherited from template, set up click handlers
+    $('.docs-sidenav').on('click', '.has-sublist > a', _this.onCollapseClick);
     $('.docs-sidenav ul')
       .removeClass('nav-visible')
       .parents('li')
         .addClass('has-sublist')
-          .children('a')
-            .click(this.onCollapseClick);
+          .children('a');
 
     _this.$superLists = $('.has-sublist');
     _this.$superLists.filter('.active.has-sublist').addClass('is-expanded');
