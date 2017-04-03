@@ -1,5 +1,5 @@
 ---
-layout: "runs"
+layout: "enterprise"
 page_title: "AWS Multi-Factor Authentication for Terraform Runs in TFE"
 sidebar_current: "docs-enterprise-runs-multifactor"
 description: |-

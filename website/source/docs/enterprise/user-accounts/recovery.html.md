@@ -1,5 +1,5 @@
 ---
-layout: "accounts"
+layout: "enterprise"
 page_title: "User Account Recovery"
 sidebar_current: "docs-enterprise-accounts-recovery"
 description: |-

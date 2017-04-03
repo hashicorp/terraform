@@ -1,5 +1,5 @@
 ---
-layout: "organizations"
+layout: "enterprise"
 page_title: "Migrate Organization"
 sidebar_current: "docs-enterprise-organizations-migrate"
 description: |-

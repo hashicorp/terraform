@@ -1,5 +1,5 @@
 ---
-layout: "faq"
+layout: "enterprise"
 page_title: "Terraform Enterprise FAQs"
 sidebar_current: "docs-enterprise-faq"
 description: |-

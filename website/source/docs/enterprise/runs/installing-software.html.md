@@ -1,5 +1,5 @@
 ---
-layout: "runs"
+layout: "enterprise"
 page_title: "Runs: Installing Software"
 sidebar_current: "docs-enterprise-runs-installing"
 description: |-

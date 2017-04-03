@@ -1,5 +1,5 @@
 ---
-layout: "organizations"
+layout: "enterprise"
 page_title: "Add a credit card to an organization"
 sidebar_current: "docs-enterprise-organizations-credit"
 description: |-
