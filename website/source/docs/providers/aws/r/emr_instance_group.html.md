@@ -34,7 +34,7 @@ The following arguments are supported:
 * `instance_type` (Required) The EC2 instance type for all instances in the instance group. Changing this forces a new resource to be created.
 * `instance_count` (Optional) Target number of instances for the instance group. Defaults to 0.
 * `ebs_optimized` (Optional) Indicates whether an Amazon EBS volume is EBS-optimized. Changing this forces a new resource to be created.
-* `ebs_config` (Required) One or more `ebs_config` blocks as defined below. Changing this forces a new resource to be created.
+* `ebs_config` (Optional) One or more `ebs_config` blocks as defined below. Changing this forces a new resource to be created.
 
 `ebs_config` supports the following:
 * `iops` - (Optional) The number of I/O operations per second (IOPS) that the volume supports.
