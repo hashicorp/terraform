@@ -312,6 +312,12 @@
 			"versionExact": "v7.2.1"
 		},
 		{
+			"checksumSHA1": "pPH/BoINXxzYDObljpsGZbysMrw=",
+			"path": "github.com/BurntSushi/toml",
+			"revision": "b26d9c308763d68093482582cea63d69be07a0f0",
+			"revisionTime": "2017-03-28T06:15:53Z"
+		},
+		{
 			"checksumSHA1": "ICScouhAqYHoJEpJlJMYg7EzgyY=",
 			"comment": "0.0.2-27-gedd0930",
 			"path": "github.com/CenturyLinkCloud/clc-sdk",
@@ -2604,6 +2610,12 @@
 			"revisionTime": "2016-02-22T16:21:17Z"
 		},
 		{
+			"checksumSHA1": "CxNwJP++vjUAyy3bbJnNss1Il9Q=",
+			"path": "github.com/moul/http2curl",
+			"revision": "4e24498b31dba4683efb9d35c1c8a91e2eda28c8",
+			"revisionTime": "2016-10-31T19:45:48Z"
+		},
+		{
 			"checksumSHA1": "/iig5lYSPCL3C8J7e4nTAevYNDE=",
 			"comment": "v0.2.0-8-g841842b",
 			"path": "github.com/nesv/go-dynect/dynect",
@@ -2898,6 +2910,12 @@
 			"path": "github.com/spotinst/spotinst-sdk-go/spotinst/util/uritemplates",
 			"revision": "e9a0995904e38e1ed662fbd559760e11db8c2a0b",
 			"revisionTime": "2017-02-13T08:20:48Z"
+		},
+		{
+			"checksumSHA1": "/kKwYqD04AkkDZFQhGwklKw3RFA=",
+			"path": "github.com/stretchr/testify",
+			"revision": "4d4bfba8f1d1027c4fdbe371823030df51419987",
+			"revisionTime": "2017-01-30T11:31:45Z"
 		},
 		{
 			"checksumSHA1": "GQ9bu6PuydK3Yor1JgtVKUfEJm8=",
