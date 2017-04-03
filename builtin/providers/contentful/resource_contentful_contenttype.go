@@ -2,7 +2,7 @@ package contentful
 
 import (
 	"github.com/hashicorp/terraform/helper/schema"
-	contentful "github.com/tolgaakyuz/contentful-go"
+	contentful "github.com/contentful-labs/contentful-go"
 )
 
 func resourceContentfulContentType() *schema.Resource {
@@ -78,7 +78,7 @@ func resourceContentfulContentType() *schema.Resource {
 									},
 									"link_type": &schema.Schema{
 										Type:     schema.TypeString,
-										Required: true,
+										Optional: true,
 									},
 								},
 							},

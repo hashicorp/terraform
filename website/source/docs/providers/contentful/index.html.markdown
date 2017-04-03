@@ -8,7 +8,7 @@ description: |-
 
 # Contentful Provider
 
-[`Contentful's`](https://www.contentful.com) is a content management platform for web applications, mobile apps and connected devices. It allows you to create, edit & manage content in the cloud and publish it anywhere via a powerful RESTful JSON API.
+[`Contentful`](https://www.contentful.com) is a content management platform for web applications, mobile apps and connected devices. It allows you to create, edit & manage content in the cloud and publish it anywhere via a powerful RESTful JSON API.
 The Contentful provider allows the development and deployment of those resources.
 
 Use the navigation to the left for more information about the available resources.

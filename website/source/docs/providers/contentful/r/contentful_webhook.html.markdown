@@ -45,13 +45,13 @@ resource "contentful_webhook" "mywebhook" {
 
 * `url` - (Required) HTTP endpoint that will be called to deliver the notification.
 
-* `http_basic_auth_username` - (Required) Username to be used if basic auth is configured on the endpoint.
+* `http_basic_auth_username` - (Optional) Username to be used if basic auth is configured on the endpoint.
 
-* `http_basic_auth_password` - (Required) Password to be used if basic auth is configured on the endpoint.
+* `http_basic_auth_password` - (Optional) Password to be used if basic auth is configured on the endpoint.
 
-* `headers` - (Required) A map of headers and it's values to be sent on the notification.
+* `headers` - (Optional) A map of headers and it's values to be sent on the notification.
 
-* `topics` - (Required) List of strings.
+* `topics` - (Required) List of events that should trigger the webhook.
 
 ## Attributes Reference
 

@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	contentful "github.com/tolgaakyuz/contentful-go"
+	contentful "github.com/contentful-labs/contentful-go"
 )
 
 func TestAccContentfulWebhook_Basic(t *testing.T) {

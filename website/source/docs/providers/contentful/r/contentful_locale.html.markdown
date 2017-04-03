@@ -9,7 +9,7 @@ description: |-
 # contentful\_locale
 
 The ``contentful_locale`` resource creates and manages [locales](https://www.contentful.com/developers/docs/references/content-management-api/#/reference/locales).
-This allow you to define translatable content to be delivered.
+This allows you to define translatable content to be delivered.
 
 ## Usage
 
@@ -39,7 +39,7 @@ resource "contentful_locale" "mylocale" {
 
 * `code` - (Required) Language code.
 
-* `fallback_code` - (Required) If no content exists for a requested locale, the Delivery API will return content in this locale.
+* `fallback_code` - (Optional) If no content exists for a requested locale, the Delivery API will return content in this locale.
 
 * `optional` - (Optional) The default locale used for new content types.
 

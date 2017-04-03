@@ -77,12 +77,7 @@ resource "contentful_contenttype" "product" {
     name = "Brand"
     type = "Link"
 		link_type = "Entry"
-    validations = ["<<VALIDATION
-{
-  "linkContentType": ["${contentful_contenttype.brand.id}"]
-}
-VALIDATION
-    "]
+    validations = ["{\"linkContentType\": [\"${contentful_contenttype.mycontenttype.id}\"]}"]
     required = false
   }
 }
@@ -90,15 +85,15 @@ VALIDATION
 
 ## Argument Reference
 
-* `space_id` - (Required) The space ID where the content type will be created..
+* `space_id` - (Required) The space ID where the content type will be created.
 
 * `name` - (Required) The name of the content type.
 
-* `description` - (Required) The name of the content type.
+* `description` - (Optional) The name of the content type.
 
 * `display_field` - (Required) The name of the content type.
 
-* `field` - (Required) A list of field objects. Their keys are documented bellow.
+* `field` - (Required) A list of field objects. Their keys are documented below.
 
 Each field supports the following:
 
@@ -108,27 +103,27 @@ Each field supports the following:
 
 * `type` - (Required) The type the field holds. In the case of Array fields the items object becomes mandatory. More info about Arrays [here](https://www.contentful.com/developers/docs/concepts/data-model/#array-fields).
 
-* `link_type` - (Required) If the field is of type Link, which kind of link is it. More informations about Links [here](https://www.contentful.com/developers/docs/concepts/links/).
+* `link_type` - (Optional) If the field is of type Link, which kind of link is it. More informations about Links [here](https://www.contentful.com/developers/docs/concepts/links/).
 
-* `required` - (Required) Determines if this field can be left empty.
+* `required` - (Optional) Determines if this field can be left empty.
 
-* `localized` - (Required) Is the field localized.
+* `localized` - (Optional) Is the field localized.
 
-* `disabled` - (Required) Indicates if the field is disabled.
+* `disabled` - (Optional) Indicates if the field is disabled.
 
-* `omitted` - (Required) Indicates if the field is omitted, thus not served in delivery requests.
+* `omitted` - (Optional) Indicates if the field is omitted, thus not served in delivery requests.
 
-* `validations` - (Required) A list of validations in the form of JSON. More details [here](https://www.contentful.com/developers/docs/references/content-management-api/#/reference/content-types)
+* `validations` - (Optional) A list of validations in the form of JSON. More details [here](https://www.contentful.com/developers/docs/references/content-management-api/#/reference/content-types)
 
-* `items` - (Required) A list of item objects when a field is of type Array. This property defines the allowed values in the Array. Their keys are documented bellow.
+* `items` - (Optional) A list of item objects when a field is of type Array. This property defines the allowed values in the Array. Their keys are documented below.
 
 Each field supports the following:
 
 * `type` - (Required) The type this array item holds.
 
-* `validations` - (Required) A list of validations in the form of JSON associated to this array item.
+* `validations` - (Optional) A list of validations in the form of JSON associated to this array item.
 
-* `link_type` - (Required) If this array item is of type Link, which kind of link is it.
+* `link_type` - (Optional) If this array item is of type Link, which kind of link is it.
 
 ## Attributes Reference
 
