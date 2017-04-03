@@ -46,11 +46,13 @@ func Provider() terraform.ResourceProvider {
 
 		DataSourcesMap: map[string]*schema.Resource{
 			"ibmcloud_infra_ssh_key": dataSourceIBMCloudInfraSSHKey(),
+			"ibmcloud_infra_vlan":    dataSourceIBMCloudInfraVlan(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
 			"ibmcloud_infra_ssh_key":       resourceIBMCloudInfraSSHKey(),
 			"ibmcloud_infra_virtual_guest": resourceIBMCloudInfraVirtualGuest(),
+			"ibmcloud_infra_vlan":          resourceIBMCloudInfraVlan(),
 		},
 
 		ConfigureFunc: providerConfigure,
