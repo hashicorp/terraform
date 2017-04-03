@@ -1,0 +1,13 @@
+{
+    "dependencies": {
+        "github.com/BurntSushi/toml": {
+            "branch": "master"
+        },
+        "github.com/moul/http2curl": {
+            "branch": "master"
+        },
+        "github.com/stretchr/testify": {
+            "branch": "master"
+        }
+    }
+}

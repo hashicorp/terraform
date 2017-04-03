@@ -1196,6 +1196,12 @@
 			"revisionTime": "2016-12-21T19:00:05Z"
 		},
 		{
+			"checksumSHA1": "R2WVCxAeYzhn1+J5PAgNCwxTS6Q=",
+			"path": "github.com/contentful-labs/contentful-go",
+			"revision": "3c86614cf55c7606877dc20452d2683ff091f2cc",
+			"revisionTime": "2017-03-31T11:43:15Z"
+		},
+		{
 			"checksumSHA1": "vHgur8rFMm8ewYO5tqJXXXE/XnA=",
 			"comment": "v2.3.0-alpha.0-652-ge552791",
 			"path": "github.com/coreos/etcd/client",
@@ -4481,5 +4487,5 @@
 			"revisionTime": "2017-02-23T17:37:09Z"
 		}
 	],
-	"rootPath": "github.com/hashicorp/terraform"
+	"rootPath": "github.com/contentful-labs/terraform"
 }

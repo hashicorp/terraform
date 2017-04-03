@@ -1,4 +1,4 @@
-package main
+package contentful
 
 import (
 	"github.com/hashicorp/terraform/helper/schema"

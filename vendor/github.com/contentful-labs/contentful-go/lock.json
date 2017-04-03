@@ -1,0 +1,45 @@
+{
+    "memo": "5dcd54ead9e8b7dc3f80b0e29d08ab16687647abfb98ea38ee3d906e149d494c",
+    "projects": [
+        {
+            "name": "github.com/BurntSushi/toml",
+            "branch": "master",
+            "revision": "d94612f9fc140360834f9742158c70b5c5b5535b",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/davecgh/go-spew",
+            "version": "v1.1.0",
+            "revision": "346938d642f2ec3594ed81d874461961cd0faa76",
+            "packages": [
+                "spew"
+            ]
+        },
+        {
+            "name": "github.com/moul/http2curl",
+            "branch": "master",
+            "revision": "4e24498b31dba4683efb9d35c1c8a91e2eda28c8",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/pmezard/go-difflib",
+            "version": "v1.0.0",
+            "revision": "792786c7400a136282c1664665ae0a8db921c6c2",
+            "packages": [
+                "difflib"
+            ]
+        },
+        {
+            "name": "github.com/stretchr/testify",
+            "branch": "master",
+            "revision": "4d4bfba8f1d1027c4fdbe371823030df51419987",
+            "packages": [
+                "assert"
+            ]
+        }
+    ]
+}
