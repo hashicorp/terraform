@@ -3275,6 +3275,51 @@ func TestMetaBackend_configureWithExtra(t *testing.T) {
 	}
 }
 
+// when confniguring a default local state, don't delete local state
+func TestMetaBackend_localDoesNotDeleteLocal(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-backend-empty"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// create our local state
+	orig := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			{
+				Path: []string{"root"},
+				Outputs: map[string]*terraform.OutputState{
+					"foo": {
+						Value: "bar",
+						Type:  "string",
+					},
+				},
+			},
+		},
+	}
+
+	err := (&state.LocalState{Path: DefaultStateFilename}).WriteState(orig)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	m := testMetaBackend(t, nil)
+	m.forceInitCopy = true
+	// init the backend
+	_, err = m.Backend(&BackendOpts{
+		Init: true,
+	})
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	// check that we can read the state
+	s := testStateRead(t, DefaultStateFilename)
+	if s.Empty() {
+		t.Fatal("our state was deleted")
+	}
+}
+
 // move options from config to -backend-config
 func TestMetaBackend_configToExtra(t *testing.T) {
 	// Create a temporary working directory that is empty
