@@ -1,5 +1,5 @@
 ---
-layout: "runs"
+layout: "enterprise"
 page_title: "Runs: Variables and Configuration"
 sidebar_current: "docs-enterprise-runs-variables"
 description: |-

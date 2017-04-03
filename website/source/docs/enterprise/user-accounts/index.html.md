@@ -1,5 +1,5 @@
 ---
-layout: "accounts"
+layout: "enterprise"
 page_title: "User Accounts in Terraform Enterprise"
 sidebar_current: "docs-enterprise-accounts"
 description: |-

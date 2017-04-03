@@ -1,5 +1,5 @@
 ---
-layout: "packer"
+layout: "enterprise"
 page_title: "Packer Features in Terraform Enterprise"
 sidebar_current: "docs-enterprise-packer-index"
 description: |-

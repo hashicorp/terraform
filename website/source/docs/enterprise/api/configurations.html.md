@@ -1,5 +1,5 @@
 ---
-layout: "api"
+layout: "enterprise"
 page_title: "Terraform Configuration API"
 sidebar_current: "docs-enterprise-api-configurations"
 description: |-

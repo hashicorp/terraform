@@ -1,5 +1,5 @@
 ---
-layout: "faq"
+layout: "enterprise"
 page_title: "FAQ: Rolling Deployments"
 sidebar_current: "docs-enterprise-faq-deployments"
 description: |-

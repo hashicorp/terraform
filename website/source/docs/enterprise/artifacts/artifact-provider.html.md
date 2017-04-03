@@ -1,5 +1,5 @@
 ---
-layout: "artifacts"
+layout: "enterprise"
 page_title: "Artifact Provider"
 sidebar_current: "docs-enterprise-artifacts-provider"
 description: |-

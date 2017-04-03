@@ -1,7 +1,7 @@
 ---
 layout: "enterprise"
 page_title: "Terraform Enterprise Glossary"
-sidebar_current: "docs-enterprise"
+sidebar_current: "docs-enterprise-glossary"
 description: |-
   Terminology for Terraform Enterprise.
 ---

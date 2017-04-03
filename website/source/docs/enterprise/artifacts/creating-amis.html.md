@@ -1,5 +1,5 @@
 ---
-layout: "artifacts"
+layout: "enterprise"
 page_title: "Creating AMI Artifacts"
 sidebar_current: "docs-enterprise-artifacts-amis"
 description: |-

@@ -1,5 +1,5 @@
 ---
-layout: "artifacts"
+layout: "enterprise"
 page_title: "Managing Artifact Versions"
 sidebar_current: "docs-enterprise-artifacts-versions"
 description: |-

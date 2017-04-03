@@ -1,5 +1,5 @@
 ---
-layout: "artifacts"
+layout: "enterprise"
 page_title: "Terraform Artifacts"
 sidebar_current: "docs-enterprise-artifacts"
 description: |-

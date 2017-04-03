@@ -1,5 +1,5 @@
 ---
-layout: "api"
+layout: "enterprise"
 page_title: "Runs API"
 sidebar_current: "docs-enterprise-api-runs"
 description: |-

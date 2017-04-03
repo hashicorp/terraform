@@ -1,5 +1,5 @@
 ---
-layout: "runs"
+layout: "enterprise"
 page_title: "About Terraform Enterprise Runs"
 sidebar_current: "docs-enterprise-runs"
 description: |-

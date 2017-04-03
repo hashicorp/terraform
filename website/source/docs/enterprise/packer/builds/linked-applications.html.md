@@ -1,7 +1,7 @@
 ---
-layout: "packer"
+layout: "enterprise"
 page_title: "Linked Applications"
-sidebar_current: "docs-enterprise-packer-builds-linkedapps"
+sidebar_current: "docs-enterprise-packerbuilds-linkedapps"
 description: |-
   Linked applications have been deprecated in favor of the application build pipeline. 
 ---

@@ -1,5 +1,5 @@
 ---
-layout: "organizations"
+layout: "enterprise"
 page_title: "Create and organization"
 sidebar_current: "docs-enterprise-organizations-create"
 description: |-

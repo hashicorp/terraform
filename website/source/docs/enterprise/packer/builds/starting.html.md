@@ -1,7 +1,7 @@
 ---
-layout: "packer"
+layout: "enterprise"
 page_title: "Starting Packer Builds in Terraform Enterprise"
-sidebar_current: "docs-enterprise-packer-builds-starting"
+sidebar_current: "docs-enterprise-packerbuilds-starting"
 description: |-
   Packer builds can be started in Terraform Enterprise in two ways. This post is about how.
 ---

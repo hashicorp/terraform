@@ -1,7 +1,7 @@
 ---
-layout: "packer"
+layout: "enterprise"
 page_title: "About Packer and Artifacts"
-sidebar_current: "docs-enterprise-packer-artifacts"
+sidebar_current: "docs-enterprise-packerartifacts"
 description: |-
   Packer creates and uploads artifacts to Terraform Enterprise.
 ---

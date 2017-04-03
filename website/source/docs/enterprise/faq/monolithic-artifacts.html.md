@@ -1,5 +1,5 @@
 ---
-layout: "faq"
+layout: "enterprise"
 page_title: "FAQ: Monolithic Artifacts"
 sidebar_current: "docs-enterprise-faq-monolithic"
 description: |-

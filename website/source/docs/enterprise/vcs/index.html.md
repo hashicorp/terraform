@@ -1,5 +1,5 @@
 ---
-layout: "vcs"
+layout: "enterprise"
 page_title: "Integration with Version Control Software"
 sidebar_current: "docs-enterprise-vcs"
 description: |-

@@ -1,5 +1,5 @@
 ---
-layout: "state"
+layout: "enterprise"
 page_title: "State: Resolving Conflicts"
 sidebar_current: "docs-enterprise-state-resolving"
 description: |-

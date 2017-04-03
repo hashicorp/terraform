@@ -1,7 +1,7 @@
 ---
-layout: "packer"
+layout: "enterprise"
 page_title: "Running Packer Builds"
-sidebar_current: "docs-enterprise-packer-builds-runbuilds"
+sidebar_current: "docs-enterprise-packerbuilds-runbuilds"
 description: |-
   This briefly covers the internal process of running builds in Terraform Enterprise.
 ---

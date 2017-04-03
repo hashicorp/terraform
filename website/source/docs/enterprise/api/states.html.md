@@ -1,5 +1,5 @@
 ---
-layout: "api"
+layout: "enterprise"
 page_title: "State API"
 sidebar_current: "docs-enterprise-api-states"
 description: |-

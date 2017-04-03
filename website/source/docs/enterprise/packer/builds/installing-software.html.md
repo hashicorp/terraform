@@ -1,7 +1,7 @@
 ---
-layout: "packer"
+layout: "enterprise"
 page_title: "Installing Software with Packer"
-sidebar_current: "docs-enterprise-packer-builds-installing"
+sidebar_current: "docs-enterprise-packerbuilds-installing"
 description: |-
   Installing software with Packer.
 ---

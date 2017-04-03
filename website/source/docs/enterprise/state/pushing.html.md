@@ -1,5 +1,5 @@
 ---
-layout: "state"
+layout: "enterprise"
 page_title: "State: Pushing"
 sidebar_current: "docs-enterprise-state-pushing"
 description: |-

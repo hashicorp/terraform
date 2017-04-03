@@ -1,5 +1,5 @@
 ---
-layout: "runs"
+layout: "enterprise"
 page_title: "Runs: Automatic Applies"
 sidebar_current: "docs-enterprise-runs-applies"
 description: |-
