@@ -1,7 +1,7 @@
 ---
-layout: "packer"
+layout: "enterprise"
 page_title: "Rebuilding Builds"
-sidebar_current: "docs-enterprise-packer-builds-rebuilding"
+sidebar_current: "docs-enterprise-packerbuilds-rebuilding"
 description: |-
   Sometimes builds fail due to temporary or remotely controlled conditions. 
 ---

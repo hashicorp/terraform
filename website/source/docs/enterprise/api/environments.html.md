@@ -1,5 +1,5 @@
 ---
-layout: "api"
+layout: "enterprise"
 page_title: "Environments API"
 sidebar_current: "docs-enterprise-api-environments"
 description: |-

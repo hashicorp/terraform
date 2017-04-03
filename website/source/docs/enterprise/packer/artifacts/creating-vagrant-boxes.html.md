@@ -1,7 +1,7 @@
 ---
-layout: "packer"
+layout: "enterprise"
 page_title: "Creating Vagrant Artifacts"
-sidebar_current: "docs-enterprise-packer-artifacts-vagrant"
+sidebar_current: "docs-enterprise-packerartifacts-vagrant"
 description: |-
   Creating Vagrant artifacts with Terraform Enterprise.
 ---

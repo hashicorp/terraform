@@ -1,5 +1,5 @@
 ---
-layout: "runs"
+layout: "enterprise"
 page_title: "Runs: Notifications"
 sidebar_current: "docs-enterprise-runs-notifications"
 description: |-

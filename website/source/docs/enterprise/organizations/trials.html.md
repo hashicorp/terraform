@@ -1,5 +1,5 @@
 ---
-layout: "organizations"
+layout: "enterprise"
 page_title: "Start an Terraform Enterprise Trial"
 sidebar_current: "docs-enterprise-organizations-trials"
 description: |-

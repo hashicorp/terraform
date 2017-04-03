@@ -1,5 +1,5 @@
 ---
-layout: "state"
+layout: "enterprise"
 page_title: "State: Collaborating"
 sidebar_current: "docs-enterprise-state-collaborating"
 description: |-

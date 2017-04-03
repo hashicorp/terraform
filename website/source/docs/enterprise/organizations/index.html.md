@@ -1,5 +1,5 @@
 ---
-layout: "organizations"
+layout: "enterprise"
 page_title: "Organizations in Terraform Enterprise"
 sidebar_current: "docs-enterprise-organizations"
 description: |-

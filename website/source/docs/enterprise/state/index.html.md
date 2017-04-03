@@ -1,5 +1,5 @@
 ---
-layout: "state"
+layout: "enterprise"
 page_title: "About Remote State"
 sidebar_current: "docs-enterprise-state"
 description: |-

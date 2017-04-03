@@ -1,7 +1,7 @@
 ---
-layout: "api"
+layout: "enterprise"
 page_title: "Configuration Versions API"
-sidebar_current: "docs-enterprise-api-configversions"
+sidebar_current: "docs-enterprise-api-configurations"
 description: |-
   A configuration version represents versions of Terraform configuration.
 ---
