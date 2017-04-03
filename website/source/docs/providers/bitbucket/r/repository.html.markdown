@@ -16,7 +16,7 @@ private, how to fork the repository and other options.
 ## Example Usage
 
 ```
-# Manage your respository
+# Manage your repository
 resource "bitbucket_repository" "infrastructure" {
   owner = "myteam"
   name  = "terraform-code"
