@@ -223,7 +223,7 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 
 	if cnamePrefix != "" {
 		if tier != "WebServer" {
-			return fmt.Errorf("Cannont set cname_prefix for tier: %s.", tier)
+			return fmt.Errorf("Cannot set cname_prefix for tier: %s.", tier)
 		}
 		createOpts.CNAMEPrefix = aws.String(cnamePrefix)
 	}
