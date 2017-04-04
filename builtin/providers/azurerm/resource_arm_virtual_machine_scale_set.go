@@ -19,6 +19,9 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 		Read:   resourceArmVirtualMachineScaleSetRead,
 		Update: resourceArmVirtualMachineScaleSetCreate,
 		Delete: resourceArmVirtualMachineScaleSetDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -497,8 +500,9 @@ func resourceArmVirtualMachineScaleSetRead(d *schema.ResourceData, meta interfac
 		return fmt.Errorf("Error making Read request on Azure Virtual Machine Scale Set %s: %s", name, err)
 	}
 
-	d.Set("location", resp.Location)
 	d.Set("name", resp.Name)
+	d.Set("resource_group_name", resGroup)
+	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 
 	if err := d.Set("sku", flattenAzureRmVirtualMachineScaleSetSku(resp.Sku)); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting Virtual Machine Scale Set Sku error: %#v", err)
