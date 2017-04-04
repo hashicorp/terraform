@@ -310,7 +310,7 @@ resource "aws_iam_user" "user" {
 	name = "${format("paged-test-user-%d-%%d", count.index + 1)}"
 }
 resource "aws_iam_policy" "policy" {
-	name = "test-policy"
+	name = "tf-acc-test-policy-%d"
 	description = "A test policy"
 	policy = <<EOF
 {
@@ -331,5 +331,5 @@ resource "aws_iam_policy_attachment" "test-paginated-attach" {
 	name = "test-attachment"
 	users = ["${aws_iam_user.user.*.name}"]
 	policy_arn = "${aws_iam_policy.policy.arn}"
-}`, rInt)
+}`, rInt, rInt)
 }
