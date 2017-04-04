@@ -57,6 +57,7 @@ BUG FIXES:
  * provider/aws: Increase AMI retry timeouts [GH-13324]
  * provider/aws: Recreate opsworks_stack on change of service_role_arn [GH-13325]
  * provider/azurerm: Network Security Group - ignoring protocol casing at Import time [GH-13153]
+ * provider/azurerm: Fix crash when importing Local Network Gateways [GH-13261]
  * provider/profitbricks: Changed output type of ips variable of ip_block ProfitBricks resource [GH-13290]
 
 ## 0.9.2 (March 28, 2017)
