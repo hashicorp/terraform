@@ -50,6 +50,7 @@ BUG FIXES:
  * provider/aws: Handle `aws_lambda_function` missing s3 key error [GH-10960]
  * provider/aws: Set stickiness to computed in alb_target_group [GH-13278]
  * provider/azurerm: Network Security Group - ignoring protocol casing at Import time [GH-13153]
+ * provider/profitbricks: Changed output type of ips variable of ip_block ProfitBricks resource [GH-13290]
 
 ## 0.9.2 (March 28, 2017)
 
