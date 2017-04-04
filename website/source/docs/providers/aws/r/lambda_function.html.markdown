@@ -41,6 +41,7 @@ resource "aws_lambda_function" "test_lambda" {
   role             = "${aws_iam_role.iam_for_lambda.arn}"
   handler          = "exports.test"
   source_code_hash = "${base64sha256(file("lambda_function_payload.zip"))}"
+  runtime          = "nodejs4.3"
 
   environment {
     variables = {
@@ -50,12 +51,25 @@ resource "aws_lambda_function" "test_lambda" {
 }
 ```
 
+## Specifying the Deployment Package
+
+AWS Lambda expects source code to be provided as a deployment package whose structure varies depending on which `runtime` is in use.
+See [Runtimes][6] for the valid values of `runtime`. The expected structure of the deployment package can be found in
+[the AWS Lambda documentation for each runtime][8].
+
+Once you have created your deployment package you can specify it either directly as a local file (using the `filename` argument) or
+indirectly via Amazon S3 (using the `s3_bucket`, `s3_key` and `s3_object_version` arguments). When providing the deployment
+package via S3 it may be useful to use [the `aws_s3_bucket_object` resource](s3_bucket_object.html) to upload it.
+
+For larger deployment packages it is recommended by Amazon to upload via S3, since the S3 API has better support for uploading
+large files efficiently.
+
 ## Argument Reference
 
-* `filename` - (Optional) A [zip file][2] containing your lambda function source code. If defined, The `s3_*` options cannot be used.
-* `s3_bucket` - (Optional) The S3 bucket location containing your lambda function source code. Conflicts with `filename`.
-* `s3_key` - (Optional) The S3 key of a [zip file][2] containing your lambda function source code. Conflicts with `filename`.
-* `s3_object_version` - (Optional) The object version of your lambda function source code. Conflicts with `filename`.
+* `filename` - (Optional) The path to the function's deployment package within the local filesystem. If defined, The `s3_`-prefixed options cannot be used.
+* `s3_bucket` - (Optional) The S3 bucket location containing the function's deployment package. Conflicts with `filename`.
+* `s3_key` - (Optional) The S3 key of an object containing the function's deployment package. Conflicts with `filename`.
+* `s3_object_version` - (Optional) The object version containing the function's deployment package. Conflicts with `filename`.
 * `function_name` - (Required) A unique name for your Lambda Function.
 * `dead_letter_config` - (Optional) Nested block to configure the function's *dead letter queue*. See details below.
 * `handler` - (Required) The function [entrypoint][3] in your code.
@@ -68,8 +82,7 @@ resource "aws_lambda_function" "test_lambda" {
 * `vpc_config` - (Optional) Provide this to allow your function to access your VPC. Fields documented below. See [Lambda in VPC][7]
 * `environment` - (Optional) The Lambda environment's configuration settings. Fields documented below.
 * `kms_key_arn` - (Optional) The ARN for the KMS encryption key.
-* `source_code_hash` - (Optional) Used to trigger updates. This is only useful in conjunction with `filename`.
-  The only useful value is `${base64sha256(file("file.zip"))}`.
+* `source_code_hash` - (Optional) Used to trigger updates. Must be set to a base64-encoded SHA256 hash of the package file specified with either `filename` or `s3_key`. The usual way to set this is `${base64sha256(file("file.zip"))}`, where "file.zip" is the local filename of the lambda function source archive.
 
 **dead\_letter\_config** is a child block with a single argument:
 
@@ -107,6 +120,7 @@ For **environment** the following attributes are supported:
 [5]: https://docs.aws.amazon.com/lambda/latest/dg/limits.html
 [6]: https://docs.aws.amazon.com/lambda/latest/dg/API_CreateFunction.html#SSS-CreateFunction-request-Runtime
 [7]: http://docs.aws.amazon.com/lambda/latest/dg/vpc.html
+[8]: https://docs.aws.amazon.com/lambda/latest/dg/deployment-package-v2.html
 
 ## Import
 
