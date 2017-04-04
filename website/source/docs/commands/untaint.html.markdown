@@ -47,6 +47,10 @@ certain cases, see above note). The list of available flags are:
   time, there is a maxiumum of one tainted instance per resource, so this flag
   can be safely omitted.
 
+* `-lock=true` - Lock the state file when locking is supported.
+
+* `-lock-timeout=0s` - Duration to retry a state lock.
+
 * `-module=path` - The module path where the resource to untaint exists.
     By default this is the root path. Other modules can be specified by
     a period-separated list. Example: "foo" would reference the module
