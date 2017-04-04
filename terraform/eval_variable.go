@@ -174,9 +174,15 @@ func (n *EvalVariableBlock) setUnknownVariableValueForPath(path string) error {
 	// Otherwise find the correct point in the tree and then set to unknown
 	var current interface{} = n.VariableValues[pathComponents[0]]
 	for i := 1; i < len(pathComponents); i++ {
-		switch current.(type) {
-		case []interface{}, []map[string]interface{}:
-			tCurrent := current.([]interface{})
+		switch tCurrent := current.(type) {
+		case []interface{}:
+			index, err := strconv.Atoi(pathComponents[i])
+			if err != nil {
+				return fmt.Errorf("Cannot convert %s to slice index in path %s",
+					pathComponents[i], path)
+			}
+			current = tCurrent[index]
+		case []map[string]interface{}:
 			index, err := strconv.Atoi(pathComponents[i])
 			if err != nil {
 				return fmt.Errorf("Cannot convert %s to slice index in path %s",
@@ -184,7 +190,6 @@ func (n *EvalVariableBlock) setUnknownVariableValueForPath(path string) error {
 			}
 			current = tCurrent[index]
 		case map[string]interface{}:
-			tCurrent := current.(map[string]interface{})
 			if val, hasVal := tCurrent[pathComponents[i]]; hasVal {
 				current = val
 				continue
