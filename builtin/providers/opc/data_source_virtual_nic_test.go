@@ -50,7 +50,13 @@ resource "opc_compute_instance" "test" {
   }
 }
 
+data "opc_compute_network_interface" "eth0" {
+  instance_name = "${opc_compute_instance.test.name}"
+  instance_id = "${opc_compute_instance.test.id}"
+  interface = "eth0"
+}
+
 data "opc_compute_vnic" "foo" {
-  name = "test-vnic-data-%d"
-}`, rInt, rInt, rInt, rInt)
+  name = "${data.opc_compute_network_interface.eth0.vnic}"
+}`, rInt, rInt, rInt)
 }
