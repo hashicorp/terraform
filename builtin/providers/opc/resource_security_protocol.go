@@ -2,6 +2,7 @@ package opc
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/go-oracle-terraform/compute"
 	"github.com/hashicorp/terraform/helper/schema"
 )

@@ -53,6 +53,7 @@ func Provider() terraform.ResourceProvider {
 			"opc_compute_ip_network":             resourceOPCIPNetwork(),
 			"opc_compute_acl":                    resourceOPCACL(),
 			"opc_compute_image_list":             resourceOPCImageList(),
+			"opc_compute_image_list_entry":       resourceOPCImageListEntry(),
 			"opc_compute_instance":               resourceInstance(),
 			"opc_compute_ip_address_reservation": resourceOPCIPAddressReservation(),
 			"opc_compute_ip_association":         resourceOPCIPAssociation(),
