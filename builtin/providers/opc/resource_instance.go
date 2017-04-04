@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/go-oracle-terraform/compute"
@@ -837,8 +838,20 @@ func readNetworkInterfaces(d *schema.ResourceData, ifaces map[string]compute.Net
 		return d.Set("networking_info", result)
 	}
 
-	for _, iface := range ifaces {
+	for index, iface := range ifaces {
 		res := make(map[string]interface{})
+		// The index returned from the SDK holds the full device_index from the instance.
+		// For users convenience, we simply allow them to specify the integer equivalent of the device_index
+		// so a user could implement several network interfaces via `count`.
+		// Convert the full device_index `ethN` to `N` as an integer.
+		index := strings.TrimPrefix(index, "eth")
+		indexInt, err := strconv.Atoi(index)
+		if err != nil {
+			return err
+		}
+		res["index"] = indexInt
+
+		// Set the proper attributes for this specific network interface
 		if iface.DNS != nil {
 			res["dns"] = iface.DNS
 		}

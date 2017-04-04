@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-// TODO (@jake): Properly create a vNIC Set once instances are finished
 func TestAccOPCRoute_Basic(t *testing.T) {
 	rInt := acctest.RandInt()
 	resName := "opc_compute_route.test"
@@ -41,13 +40,37 @@ func TestAccOPCRoute_Basic(t *testing.T) {
 	})
 }
 
-// TODO (@jake): Properly create a vNIC Set once instances are finished
 func testAccOPCRouteConfig_Basic(rInt int) string {
 	return fmt.Sprintf(`
+resource "opc_compute_ip_network" "foo" {
+  name = "testing-route-%d"
+  description = "testing-route"
+  ip_address_prefix = "10.1.14.0/24"
+}
+
+resource "opc_compute_instance" "foo" {
+  name = "test-route-%d"
+  label = "testing"
+  shape = "oc3"
+  image_list = "/oracle/public/oel_6.7_apaas_16.4.5_1610211300"
+  networking_info {
+    index = 0
+    ip_network = "${opc_compute_ip_network.foo.id}"
+    vnic = "test-vnic-set-%d"
+    shared_network = false
+  }
+}
+
+data "opc_compute_network_interface" "foo" {
+  instance_name = "${opc_compute_instance.foo.name}"
+  instance_id = "${opc_compute_instance.foo.id}"
+  interface = "eth0"
+}
+
 resource "opc_compute_vnic_set" "test" {
   name = "route-test-%d"
   description = "route-testing-%d"
-  virtual_nics = ["jake-manual_eth1"]
+  virtual_nics = ["${data.opc_compute_network_interface.foo.vnic}"]
 }
 
 resource "opc_compute_route" "test" {
@@ -56,15 +79,40 @@ resource "opc_compute_route" "test" {
   admin_distance = 1
   ip_address_prefix = "10.0.12.0/24"
   next_hop_vnic_set = "${opc_compute_vnic_set.test.name}"
-}`, rInt, rInt, rInt, rInt)
+}`, rInt, rInt, rInt, rInt, rInt, rInt, rInt)
 }
 
 func testAccOPCRouteConfig_BasicUpdate(rInt int) string {
 	return fmt.Sprintf(`
+resource "opc_compute_ip_network" "foo" {
+  name = "testing-route-%d"
+  description = "testing-route"
+  ip_address_prefix = "10.1.14.0/24"
+}
+
+resource "opc_compute_instance" "foo" {
+  name = "test-route-%d"
+  label = "testing"
+  shape = "oc3"
+  image_list = "/oracle/public/oel_6.7_apaas_16.4.5_1610211300"
+  networking_info {
+    index = 0
+    ip_network = "${opc_compute_ip_network.foo.id}"
+    vnic = "test-vnic-set-%d"
+    shared_network = false
+  }
+}
+
+data "opc_compute_network_interface" "foo" {
+  instance_name = "${opc_compute_instance.foo.name}"
+  instance_id = "${opc_compute_instance.foo.id}"
+  interface = "eth0"
+}
+
 resource "opc_compute_vnic_set" "test" {
   name = "route-test-%d"
   description = "route-testing-%d"
-  virtual_nics = ["jake-manual_eth1"]
+  virtual_nics = ["${data.opc_compute_network_interface.foo.vnic}"]
 }
 
 resource "opc_compute_route" "test" {
@@ -73,7 +121,7 @@ resource "opc_compute_route" "test" {
   admin_distance = 2
   ip_address_prefix = "10.0.14.0/24"
   next_hop_vnic_set = "${opc_compute_vnic_set.test.name}"
-}`, rInt, rInt, rInt, rInt)
+}`, rInt, rInt, rInt, rInt, rInt, rInt, rInt)
 }
 
 func testAccOPCCheckRouteExists(s *terraform.State) error {
