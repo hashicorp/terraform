@@ -2,6 +2,7 @@ package command
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -53,7 +54,7 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 	// Setup defaults
 	opts.oneEnv = backend.DefaultStateName
 	opts.twoEnv = backend.DefaultStateName
-	opts.force = false
+	opts.force = m.forceInitCopy
 
 	// Determine migration behavior based on whether the source/destionation
 	// supports multi-state.
@@ -163,7 +164,7 @@ func (m *Meta) backendMigrateState_S_S(opts *backendMigrateOpts) error {
 func (m *Meta) backendMigrateState_S_s(opts *backendMigrateOpts) error {
 	currentEnv := m.Env()
 
-	migrate := m.forceInitCopy
+	migrate := opts.force
 	if !migrate {
 		var err error
 		// Ask the user if they want to migrate their existing remote state
@@ -218,6 +219,19 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 			errMigrateSingleLoadDefault), opts.TwoType, err)
 	}
 
+	// Check if we need migration at all.
+	// This is before taking a lock, because they may also correspond to the same lock.
+	one := stateOne.State()
+	two := stateTwo.State()
+
+	// no reason to migrate if the state is already there
+	if one.Equal(two) {
+		// Equal isn't identical; it doesn't check lineage.
+		if one != nil && two != nil && one.Lineage == two.Lineage {
+			return nil
+		}
+	}
+
 	if m.stateLock {
 		lockCtx, cancel := context.WithTimeout(context.Background(), m.stateLockTimeout)
 		defer cancel()
@@ -241,10 +255,21 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 			return fmt.Errorf("Error locking destination state: %s", err)
 		}
 		defer clistate.Unlock(stateTwo, lockIDTwo, m.Ui, m.Colorize())
-	}
 
-	one := stateOne.State()
-	two := stateTwo.State()
+		// We now own a lock, so double check that we have the version
+		// corresponding to the lock.
+		if err := stateOne.RefreshState(); err != nil {
+			return fmt.Errorf(strings.TrimSpace(
+				errMigrateSingleLoadDefault), opts.OneType, err)
+		}
+		if err := stateTwo.RefreshState(); err != nil {
+			return fmt.Errorf(strings.TrimSpace(
+				errMigrateSingleLoadDefault), opts.OneType, err)
+		}
+
+		one = stateOne.State()
+		two = stateTwo.State()
+	}
 
 	// Clear the legacy remote state in both cases. If we're at the migration
 	// step then this won't be used anymore.
@@ -281,6 +306,11 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 	}
 
 	if !opts.force {
+		// Abort if we can't ask for input.
+		if !m.input {
+			return errors.New("error asking for state migration action: inptut disabled")
+		}
+
 		// Confirm with the user whether we want to copy state over
 		confirm, err := confirmFunc(stateOne, stateTwo, opts)
 		if err != nil {
@@ -306,10 +336,6 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 }
 
 func (m *Meta) backendMigrateEmptyConfirm(one, two state.State, opts *backendMigrateOpts) (bool, error) {
-	if m.forceInitCopy {
-		return true, nil
-	}
-
 	inputOpts := &terraform.InputOpts{
 		Id: "backend-migrate-copy-to-empty",
 		Query: fmt.Sprintf(
@@ -370,10 +396,6 @@ func (m *Meta) backendMigrateNonEmptyConfirm(
 	}
 	if err := saveHelper(opts.TwoType, twoPath, two); err != nil {
 		return false, fmt.Errorf("Error saving temporary state: %s", err)
-	}
-
-	if m.forceInitCopy {
-		return true, nil
 	}
 
 	// Ask for confirmation

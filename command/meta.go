@@ -264,6 +264,10 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 	// Set the default Usage to empty
 	f.Usage = func() {}
 
+	// command that bypass locking will supply their own flag on this var, but
+	// set the initial meta value to true as a failsafe.
+	m.stateLock = true
+
 	return f
 }
 
