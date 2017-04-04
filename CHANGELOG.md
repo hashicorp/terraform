@@ -10,9 +10,11 @@ FEATURES:
 
 IMPROVEMENTS:
  
+ * core: add `-lock-timeout` option, which will block and retry locks for the given duration [GH-13262]
  * backend/remote-state: Add support for assume role extensions to s3 backend [GH-13236]
  * config: New interpolation functions `basename` and `dirname`, for file path manipulation [GH-13080]
  * helper/resource: Allow unknown "pending" states [GH-13099]
+ * command/hook_ui: Increase max length of state IDs from 20 to 80 [GH-13317]
  * provider/aws: Add support to set iam_role_arn on cloudformation Stack [GH-12547]
  * provider/aws: Support priority and listener_arn update of alb_listener_rule [GH-13125]
  * provider/aws: Deprecate roles in favour of role in iam_instance_profile [GH-13130]
@@ -27,13 +29,17 @@ IMPROVEMENTS:
  * provider/aws: Add `identifier` | `name_prefix` to RDS resources [GH-13232]
  * provider/aws: Validate `aws_ecs_task_definition.container_definitions` [GH-12161]
  * provider/aws: Update caller_identity data source [GH-13092]
+ * provider/aws: `aws_subnet_ids` data source for getting a list of subnet ids matching certain criteria [GH-13188]
+ * provider/aws: Support ip_address_type for aws_alb [GH-13227]
  * provider/github: Handle the case when issue labels already exist [GH-13182]
  * provider/google: Mark `google_container_cluster`'s `client_key` & `password` inside `master_auth` as sensitive [GH-13148]
  * provider/triton: Move to joyent/triton-go [GH-13225]
 
 BUG FIXES: 
 
- * core: Escaped interpolation-like sequences (like `$${foo}`) now permitted in variable defaults [GH-13137] 
+ * core: Escaped interpolation-like sequences (like `$${foo}`) now permitted in variable defaults [GH-13137]
+ * core: Fix strange issues with computed values in provider configuration that were worked around with `-input=false` [GH-11264], [GH-13264]
+ * core: Fix crash when providing nested maps as variable values in a `module` block [GH-13343]
  * provider/aws: Add Support for maintenance_window and back_window to rds_cluster_instance [GH-13134]
  * provider/aws: Increase timeout for AMI registration [GH-13159]
  * provider/aws: Increase timeouts for ELB [GH-13161]
@@ -47,7 +53,11 @@ BUG FIXES:
  * provider/aws: Wait for aws_opsworks_instance to be running when it's specified [GH-13218]
  * provider/aws: Handle `aws_lambda_function` missing s3 key error [GH-10960]
  * provider/aws: Set stickiness to computed in alb_target_group [GH-13278]
+ * provider/aws: Increase timeout for deploying `cloudfront_distribution` from 40 to 70 mins [GH-13319]
+ * provider/aws: Increase AMI retry timeouts [GH-13324]
+ * provider/aws: Recreate opsworks_stack on change of service_role_arn [GH-13325]
  * provider/azurerm: Network Security Group - ignoring protocol casing at Import time [GH-13153]
+ * provider/profitbricks: Changed output type of ips variable of ip_block ProfitBricks resource [GH-13290]
 
 ## 0.9.2 (March 28, 2017)
 
