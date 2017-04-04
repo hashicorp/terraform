@@ -28,7 +28,7 @@ func resourceComputeInstance() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"disk": &schema.Schema{
 				Type:     schema.TypeList,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -81,6 +81,40 @@ func resourceComputeInstance() *schema.Resource {
 							Optional:  true,
 							ForceNew:  true,
 							Sensitive: true,
+						},
+
+						"disk_encryption_key_sha256": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
+
+			// Preferred way of adding persistent disks to an instance.
+			// Use this instead of `disk` when possible.
+			"attached_disk": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true, // TODO(danawillow): Remove this, support attaching/detaching
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"source": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"device_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+						},
+
+						"disk_encryption_key_raw": &schema.Schema{
+							Type:      schema.TypeString,
+							Optional:  true,
+							Sensitive: true,
+							ForceNew:  true,
 						},
 
 						"disk_encryption_key_sha256": &schema.Schema{
@@ -371,7 +405,11 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 
 	// Build up the list of disks
 	disksCount := d.Get("disk.#").(int)
-	disks := make([]*compute.AttachedDisk, 0, disksCount)
+	attachedDisksCount := d.Get("attached_disk.#").(int)
+	if disksCount+attachedDisksCount == 0 {
+		return fmt.Errorf("At least one disk or attached_disk must be set")
+	}
+	disks := make([]*compute.AttachedDisk, 0, disksCount+attachedDisksCount)
 	for i := 0; i < disksCount; i++ {
 		prefix := fmt.Sprintf("disk.%d", i)
 
@@ -452,6 +490,28 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		if v, ok := d.GetOk(prefix + ".disk_encryption_key_raw"); ok {
 			disk.DiskEncryptionKey = &compute.CustomerEncryptionKey{}
 			disk.DiskEncryptionKey.RawKey = v.(string)
+		}
+
+		disks = append(disks, &disk)
+	}
+
+	for i := 0; i < attachedDisksCount; i++ {
+		prefix := fmt.Sprintf("attached_disk.%d", i)
+		disk := compute.AttachedDisk{
+			Source:     d.Get(prefix + ".source").(string),
+			AutoDelete: false, // Don't allow autodelete; let terraform handle disk deletion
+		}
+
+		disk.Boot = i == 0 && disksCount == 0 // TODO(danawillow): This is super hacky, let's just add a boot field.
+
+		if v, ok := d.GetOk(prefix + ".device_name"); ok {
+			disk.DeviceName = v.(string)
+		}
+
+		if v, ok := d.GetOk(prefix + ".disk_encryption_key_raw"); ok {
+			disk.DiskEncryptionKey = &compute.CustomerEncryptionKey{
+				RawKey: v.(string),
+			}
 		}
 
 		disks = append(disks, &disk)
@@ -791,24 +851,48 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 		d.Set("tags_fingerprint", instance.Tags.Fingerprint)
 	}
 
-	disks := make([]map[string]interface{}, 0, 1)
+	disksCount := d.Get("disk.#").(int)
+	attachedDisksCount := d.Get("attached_disk.#").(int)
+	disks := make([]map[string]interface{}, 0, disksCount)
+	attached_disks := make([]map[string]interface{}, 0, attachedDisksCount)
+
+	if expectedDisks := disksCount + attachedDisksCount; len(instance.Disks) != expectedDisks {
+		return fmt.Errorf("Expected %d disks, API returned %d", expectedDisks, len(instance.Disks))
+	}
+
+	// This loop takes advanatage of the fact that disks are returned in the
+	// order they're created, and we create disks that are part of "disk" before
+	// ones that are part of "attached_disk"
 	for i, disk := range instance.Disks {
-		di := map[string]interface{}{
-			"disk":                    d.Get(fmt.Sprintf("disk.%d.disk", i)),
-			"image":                   d.Get(fmt.Sprintf("disk.%d.image", i)),
-			"type":                    d.Get(fmt.Sprintf("disk.%d.type", i)),
-			"scratch":                 d.Get(fmt.Sprintf("disk.%d.scratch", i)),
-			"auto_delete":             d.Get(fmt.Sprintf("disk.%d.auto_delete", i)),
-			"size":                    d.Get(fmt.Sprintf("disk.%d.size", i)),
-			"device_name":             d.Get(fmt.Sprintf("disk.%d.device_name", i)),
-			"disk_encryption_key_raw": d.Get(fmt.Sprintf("disk.%d.disk_encryption_key_raw", i)),
+		if i < disksCount {
+			di := map[string]interface{}{
+				"disk":                    d.Get(fmt.Sprintf("disk.%d.disk", i)),
+				"image":                   d.Get(fmt.Sprintf("disk.%d.image", i)),
+				"type":                    d.Get(fmt.Sprintf("disk.%d.type", i)),
+				"scratch":                 d.Get(fmt.Sprintf("disk.%d.scratch", i)),
+				"auto_delete":             d.Get(fmt.Sprintf("disk.%d.auto_delete", i)),
+				"size":                    d.Get(fmt.Sprintf("disk.%d.size", i)),
+				"device_name":             d.Get(fmt.Sprintf("disk.%d.device_name", i)),
+				"disk_encryption_key_raw": d.Get(fmt.Sprintf("disk.%d.disk_encryption_key_raw", i)),
+			}
+			if disk.DiskEncryptionKey != nil && disk.DiskEncryptionKey.Sha256 != "" {
+				di["disk_encryption_key_sha256"] = disk.DiskEncryptionKey.Sha256
+			}
+			disks = append(disks, di)
+		} else {
+			di := map[string]interface{}{
+				"source":                  disk.Source,
+				"device_name":             disk.DeviceName,
+				"disk_encryption_key_raw": d.Get(fmt.Sprintf("attached_disk.%d.disk_encryption_key_raw", i-disksCount)),
+			}
+			if disk.DiskEncryptionKey != nil && disk.DiskEncryptionKey.Sha256 != "" {
+				di["disk_encryption_key_sha256"] = disk.DiskEncryptionKey.Sha256
+			}
+			attached_disks = append(attached_disks, di)
 		}
-		if disk.DiskEncryptionKey != nil && disk.DiskEncryptionKey.Sha256 != "" {
-			di["disk_encryption_key_sha256"] = disk.DiskEncryptionKey.Sha256
-		}
-		disks = append(disks, di)
 	}
 	d.Set("disk", disks)
+	d.Set("attached_disk", attached_disks)
 
 	d.Set("self_link", instance.SelfLink)
 	d.SetId(instance.Name)
