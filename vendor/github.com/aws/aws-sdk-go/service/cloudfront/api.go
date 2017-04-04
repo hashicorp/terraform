@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/private/protocol"
@@ -96,8 +97,23 @@ func (c *CloudFront) CreateCloudFrontOriginAccessIdentityRequest(input *CreateCl
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/CreateCloudFrontOriginAccessIdentity
 func (c *CloudFront) CreateCloudFrontOriginAccessIdentity(input *CreateCloudFrontOriginAccessIdentityInput) (*CreateCloudFrontOriginAccessIdentityOutput, error) {
 	req, out := c.CreateCloudFrontOriginAccessIdentityRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// CreateCloudFrontOriginAccessIdentityWithContext is the same as CreateCloudFrontOriginAccessIdentity with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateCloudFrontOriginAccessIdentity for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) CreateCloudFrontOriginAccessIdentityWithContext(ctx aws.Context, input *CreateCloudFrontOriginAccessIdentityInput, opts ...request.Option) (*CreateCloudFrontOriginAccessIdentityOutput, error) {
+	req, out := c.CreateCloudFrontOriginAccessIdentityRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opCreateDistribution = "CreateDistribution2016_11_25"
@@ -273,8 +289,23 @@ func (c *CloudFront) CreateDistributionRequest(input *CreateDistributionInput) (
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/CreateDistribution
 func (c *CloudFront) CreateDistribution(input *CreateDistributionInput) (*CreateDistributionOutput, error) {
 	req, out := c.CreateDistributionRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// CreateDistributionWithContext is the same as CreateDistribution with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateDistribution for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) CreateDistributionWithContext(ctx aws.Context, input *CreateDistributionInput, opts ...request.Option) (*CreateDistributionOutput, error) {
+	req, out := c.CreateDistributionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opCreateDistributionWithTags = "CreateDistributionWithTags2016_11_25"
@@ -451,8 +482,23 @@ func (c *CloudFront) CreateDistributionWithTagsRequest(input *CreateDistribution
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/CreateDistributionWithTags
 func (c *CloudFront) CreateDistributionWithTags(input *CreateDistributionWithTagsInput) (*CreateDistributionWithTagsOutput, error) {
 	req, out := c.CreateDistributionWithTagsRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// CreateDistributionWithTagsWithContext is the same as CreateDistributionWithTags with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateDistributionWithTags for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) CreateDistributionWithTagsWithContext(ctx aws.Context, input *CreateDistributionWithTagsInput, opts ...request.Option) (*CreateDistributionWithTagsOutput, error) {
+	req, out := c.CreateDistributionWithTagsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opCreateInvalidation = "CreateInvalidation2016_11_25"
@@ -535,8 +581,23 @@ func (c *CloudFront) CreateInvalidationRequest(input *CreateInvalidationInput) (
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/CreateInvalidation
 func (c *CloudFront) CreateInvalidation(input *CreateInvalidationInput) (*CreateInvalidationOutput, error) {
 	req, out := c.CreateInvalidationRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// CreateInvalidationWithContext is the same as CreateInvalidation with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateInvalidation for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) CreateInvalidationWithContext(ctx aws.Context, input *CreateInvalidationInput, opts ...request.Option) (*CreateInvalidationOutput, error) {
+	req, out := c.CreateInvalidationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opCreateStreamingDistribution = "CreateStreamingDistribution2016_11_25"
@@ -660,8 +721,23 @@ func (c *CloudFront) CreateStreamingDistributionRequest(input *CreateStreamingDi
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/CreateStreamingDistribution
 func (c *CloudFront) CreateStreamingDistribution(input *CreateStreamingDistributionInput) (*CreateStreamingDistributionOutput, error) {
 	req, out := c.CreateStreamingDistributionRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// CreateStreamingDistributionWithContext is the same as CreateStreamingDistribution with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateStreamingDistribution for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) CreateStreamingDistributionWithContext(ctx aws.Context, input *CreateStreamingDistributionInput, opts ...request.Option) (*CreateStreamingDistributionOutput, error) {
+	req, out := c.CreateStreamingDistributionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opCreateStreamingDistributionWithTags = "CreateStreamingDistributionWithTags2016_11_25"
@@ -760,8 +836,23 @@ func (c *CloudFront) CreateStreamingDistributionWithTagsRequest(input *CreateStr
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/CreateStreamingDistributionWithTags
 func (c *CloudFront) CreateStreamingDistributionWithTags(input *CreateStreamingDistributionWithTagsInput) (*CreateStreamingDistributionWithTagsOutput, error) {
 	req, out := c.CreateStreamingDistributionWithTagsRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// CreateStreamingDistributionWithTagsWithContext is the same as CreateStreamingDistributionWithTags with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateStreamingDistributionWithTags for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) CreateStreamingDistributionWithTagsWithContext(ctx aws.Context, input *CreateStreamingDistributionWithTagsInput, opts ...request.Option) (*CreateStreamingDistributionWithTagsOutput, error) {
+	req, out := c.CreateStreamingDistributionWithTagsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opDeleteCloudFrontOriginAccessIdentity = "DeleteCloudFrontOriginAccessIdentity2016_11_25"
@@ -839,8 +930,23 @@ func (c *CloudFront) DeleteCloudFrontOriginAccessIdentityRequest(input *DeleteCl
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/DeleteCloudFrontOriginAccessIdentity
 func (c *CloudFront) DeleteCloudFrontOriginAccessIdentity(input *DeleteCloudFrontOriginAccessIdentityInput) (*DeleteCloudFrontOriginAccessIdentityOutput, error) {
 	req, out := c.DeleteCloudFrontOriginAccessIdentityRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// DeleteCloudFrontOriginAccessIdentityWithContext is the same as DeleteCloudFrontOriginAccessIdentity with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteCloudFrontOriginAccessIdentity for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) DeleteCloudFrontOriginAccessIdentityWithContext(ctx aws.Context, input *DeleteCloudFrontOriginAccessIdentityInput, opts ...request.Option) (*DeleteCloudFrontOriginAccessIdentityOutput, error) {
+	req, out := c.DeleteCloudFrontOriginAccessIdentityRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opDeleteDistribution = "DeleteDistribution2016_11_25"
@@ -918,8 +1024,23 @@ func (c *CloudFront) DeleteDistributionRequest(input *DeleteDistributionInput) (
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/DeleteDistribution
 func (c *CloudFront) DeleteDistribution(input *DeleteDistributionInput) (*DeleteDistributionOutput, error) {
 	req, out := c.DeleteDistributionRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// DeleteDistributionWithContext is the same as DeleteDistribution with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteDistribution for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) DeleteDistributionWithContext(ctx aws.Context, input *DeleteDistributionInput, opts ...request.Option) (*DeleteDistributionOutput, error) {
+	req, out := c.DeleteDistributionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opDeleteStreamingDistribution = "DeleteStreamingDistribution2016_11_25"
@@ -1032,8 +1153,23 @@ func (c *CloudFront) DeleteStreamingDistributionRequest(input *DeleteStreamingDi
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/DeleteStreamingDistribution
 func (c *CloudFront) DeleteStreamingDistribution(input *DeleteStreamingDistributionInput) (*DeleteStreamingDistributionOutput, error) {
 	req, out := c.DeleteStreamingDistributionRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// DeleteStreamingDistributionWithContext is the same as DeleteStreamingDistribution with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteStreamingDistribution for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) DeleteStreamingDistributionWithContext(ctx aws.Context, input *DeleteStreamingDistributionInput, opts ...request.Option) (*DeleteStreamingDistributionOutput, error) {
+	req, out := c.DeleteStreamingDistributionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opGetCloudFrontOriginAccessIdentity = "GetCloudFrontOriginAccessIdentity2016_11_25"
@@ -1100,8 +1236,23 @@ func (c *CloudFront) GetCloudFrontOriginAccessIdentityRequest(input *GetCloudFro
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/GetCloudFrontOriginAccessIdentity
 func (c *CloudFront) GetCloudFrontOriginAccessIdentity(input *GetCloudFrontOriginAccessIdentityInput) (*GetCloudFrontOriginAccessIdentityOutput, error) {
 	req, out := c.GetCloudFrontOriginAccessIdentityRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// GetCloudFrontOriginAccessIdentityWithContext is the same as GetCloudFrontOriginAccessIdentity with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetCloudFrontOriginAccessIdentity for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) GetCloudFrontOriginAccessIdentityWithContext(ctx aws.Context, input *GetCloudFrontOriginAccessIdentityInput, opts ...request.Option) (*GetCloudFrontOriginAccessIdentityOutput, error) {
+	req, out := c.GetCloudFrontOriginAccessIdentityRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opGetCloudFrontOriginAccessIdentityConfig = "GetCloudFrontOriginAccessIdentityConfig2016_11_25"
@@ -1168,8 +1319,23 @@ func (c *CloudFront) GetCloudFrontOriginAccessIdentityConfigRequest(input *GetCl
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/GetCloudFrontOriginAccessIdentityConfig
 func (c *CloudFront) GetCloudFrontOriginAccessIdentityConfig(input *GetCloudFrontOriginAccessIdentityConfigInput) (*GetCloudFrontOriginAccessIdentityConfigOutput, error) {
 	req, out := c.GetCloudFrontOriginAccessIdentityConfigRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// GetCloudFrontOriginAccessIdentityConfigWithContext is the same as GetCloudFrontOriginAccessIdentityConfig with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetCloudFrontOriginAccessIdentityConfig for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) GetCloudFrontOriginAccessIdentityConfigWithContext(ctx aws.Context, input *GetCloudFrontOriginAccessIdentityConfigInput, opts ...request.Option) (*GetCloudFrontOriginAccessIdentityConfigOutput, error) {
+	req, out := c.GetCloudFrontOriginAccessIdentityConfigRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opGetDistribution = "GetDistribution2016_11_25"
@@ -1236,8 +1402,23 @@ func (c *CloudFront) GetDistributionRequest(input *GetDistributionInput) (req *r
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/GetDistribution
 func (c *CloudFront) GetDistribution(input *GetDistributionInput) (*GetDistributionOutput, error) {
 	req, out := c.GetDistributionRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// GetDistributionWithContext is the same as GetDistribution with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetDistribution for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) GetDistributionWithContext(ctx aws.Context, input *GetDistributionInput, opts ...request.Option) (*GetDistributionOutput, error) {
+	req, out := c.GetDistributionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opGetDistributionConfig = "GetDistributionConfig2016_11_25"
@@ -1304,8 +1485,23 @@ func (c *CloudFront) GetDistributionConfigRequest(input *GetDistributionConfigIn
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/GetDistributionConfig
 func (c *CloudFront) GetDistributionConfig(input *GetDistributionConfigInput) (*GetDistributionConfigOutput, error) {
 	req, out := c.GetDistributionConfigRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// GetDistributionConfigWithContext is the same as GetDistributionConfig with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetDistributionConfig for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) GetDistributionConfigWithContext(ctx aws.Context, input *GetDistributionConfigInput, opts ...request.Option) (*GetDistributionConfigOutput, error) {
+	req, out := c.GetDistributionConfigRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opGetInvalidation = "GetInvalidation2016_11_25"
@@ -1375,8 +1571,23 @@ func (c *CloudFront) GetInvalidationRequest(input *GetInvalidationInput) (req *r
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/GetInvalidation
 func (c *CloudFront) GetInvalidation(input *GetInvalidationInput) (*GetInvalidationOutput, error) {
 	req, out := c.GetInvalidationRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// GetInvalidationWithContext is the same as GetInvalidation with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetInvalidation for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) GetInvalidationWithContext(ctx aws.Context, input *GetInvalidationInput, opts ...request.Option) (*GetInvalidationOutput, error) {
+	req, out := c.GetInvalidationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opGetStreamingDistribution = "GetStreamingDistribution2016_11_25"
@@ -1444,8 +1655,23 @@ func (c *CloudFront) GetStreamingDistributionRequest(input *GetStreamingDistribu
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/GetStreamingDistribution
 func (c *CloudFront) GetStreamingDistribution(input *GetStreamingDistributionInput) (*GetStreamingDistributionOutput, error) {
 	req, out := c.GetStreamingDistributionRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// GetStreamingDistributionWithContext is the same as GetStreamingDistribution with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetStreamingDistribution for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) GetStreamingDistributionWithContext(ctx aws.Context, input *GetStreamingDistributionInput, opts ...request.Option) (*GetStreamingDistributionOutput, error) {
+	req, out := c.GetStreamingDistributionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opGetStreamingDistributionConfig = "GetStreamingDistributionConfig2016_11_25"
@@ -1512,8 +1738,23 @@ func (c *CloudFront) GetStreamingDistributionConfigRequest(input *GetStreamingDi
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/GetStreamingDistributionConfig
 func (c *CloudFront) GetStreamingDistributionConfig(input *GetStreamingDistributionConfigInput) (*GetStreamingDistributionConfigOutput, error) {
 	req, out := c.GetStreamingDistributionConfigRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// GetStreamingDistributionConfigWithContext is the same as GetStreamingDistributionConfig with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetStreamingDistributionConfig for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) GetStreamingDistributionConfigWithContext(ctx aws.Context, input *GetStreamingDistributionConfigInput, opts ...request.Option) (*GetStreamingDistributionConfigOutput, error) {
+	req, out := c.GetStreamingDistributionConfigRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opListCloudFrontOriginAccessIdentities = "ListCloudFrontOriginAccessIdentities2016_11_25"
@@ -1583,8 +1824,23 @@ func (c *CloudFront) ListCloudFrontOriginAccessIdentitiesRequest(input *ListClou
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/ListCloudFrontOriginAccessIdentities
 func (c *CloudFront) ListCloudFrontOriginAccessIdentities(input *ListCloudFrontOriginAccessIdentitiesInput) (*ListCloudFrontOriginAccessIdentitiesOutput, error) {
 	req, out := c.ListCloudFrontOriginAccessIdentitiesRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// ListCloudFrontOriginAccessIdentitiesWithContext is the same as ListCloudFrontOriginAccessIdentities with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListCloudFrontOriginAccessIdentities for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) ListCloudFrontOriginAccessIdentitiesWithContext(ctx aws.Context, input *ListCloudFrontOriginAccessIdentitiesInput, opts ...request.Option) (*ListCloudFrontOriginAccessIdentitiesOutput, error) {
+	req, out := c.ListCloudFrontOriginAccessIdentitiesRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 // ListCloudFrontOriginAccessIdentitiesPages iterates over the pages of a ListCloudFrontOriginAccessIdentities operation,
@@ -1604,12 +1860,36 @@ func (c *CloudFront) ListCloudFrontOriginAccessIdentities(input *ListCloudFrontO
 //            return pageNum <= 3
 //        })
 //
-func (c *CloudFront) ListCloudFrontOriginAccessIdentitiesPages(input *ListCloudFrontOriginAccessIdentitiesInput, fn func(p *ListCloudFrontOriginAccessIdentitiesOutput, lastPage bool) (shouldContinue bool)) error {
-	page, _ := c.ListCloudFrontOriginAccessIdentitiesRequest(input)
-	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
-	return page.EachPage(func(p interface{}, lastPage bool) bool {
-		return fn(p.(*ListCloudFrontOriginAccessIdentitiesOutput), lastPage)
-	})
+func (c *CloudFront) ListCloudFrontOriginAccessIdentitiesPages(input *ListCloudFrontOriginAccessIdentitiesInput, fn func(*ListCloudFrontOriginAccessIdentitiesOutput, bool) bool) error {
+	return c.ListCloudFrontOriginAccessIdentitiesPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListCloudFrontOriginAccessIdentitiesPagesWithContext same as ListCloudFrontOriginAccessIdentitiesPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) ListCloudFrontOriginAccessIdentitiesPagesWithContext(ctx aws.Context, input *ListCloudFrontOriginAccessIdentitiesInput, fn func(*ListCloudFrontOriginAccessIdentitiesOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy ListCloudFrontOriginAccessIdentitiesInput
+			if input != nil {
+				inCpy = *input
+			}
+			req, _ := c.ListCloudFrontOriginAccessIdentitiesRequest(&inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*ListCloudFrontOriginAccessIdentitiesOutput), !p.HasNextPage())
+	}
+	return p.Err()
 }
 
 const opListDistributions = "ListDistributions2016_11_25"
@@ -1679,8 +1959,23 @@ func (c *CloudFront) ListDistributionsRequest(input *ListDistributionsInput) (re
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/ListDistributions
 func (c *CloudFront) ListDistributions(input *ListDistributionsInput) (*ListDistributionsOutput, error) {
 	req, out := c.ListDistributionsRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// ListDistributionsWithContext is the same as ListDistributions with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListDistributions for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) ListDistributionsWithContext(ctx aws.Context, input *ListDistributionsInput, opts ...request.Option) (*ListDistributionsOutput, error) {
+	req, out := c.ListDistributionsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 // ListDistributionsPages iterates over the pages of a ListDistributions operation,
@@ -1700,12 +1995,36 @@ func (c *CloudFront) ListDistributions(input *ListDistributionsInput) (*ListDist
 //            return pageNum <= 3
 //        })
 //
-func (c *CloudFront) ListDistributionsPages(input *ListDistributionsInput, fn func(p *ListDistributionsOutput, lastPage bool) (shouldContinue bool)) error {
-	page, _ := c.ListDistributionsRequest(input)
-	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
-	return page.EachPage(func(p interface{}, lastPage bool) bool {
-		return fn(p.(*ListDistributionsOutput), lastPage)
-	})
+func (c *CloudFront) ListDistributionsPages(input *ListDistributionsInput, fn func(*ListDistributionsOutput, bool) bool) error {
+	return c.ListDistributionsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListDistributionsPagesWithContext same as ListDistributionsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) ListDistributionsPagesWithContext(ctx aws.Context, input *ListDistributionsInput, fn func(*ListDistributionsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy ListDistributionsInput
+			if input != nil {
+				inCpy = *input
+			}
+			req, _ := c.ListDistributionsRequest(&inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*ListDistributionsOutput), !p.HasNextPage())
+	}
+	return p.Err()
 }
 
 const opListDistributionsByWebACLId = "ListDistributionsByWebACLId2016_11_25"
@@ -1771,8 +2090,23 @@ func (c *CloudFront) ListDistributionsByWebACLIdRequest(input *ListDistributions
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/ListDistributionsByWebACLId
 func (c *CloudFront) ListDistributionsByWebACLId(input *ListDistributionsByWebACLIdInput) (*ListDistributionsByWebACLIdOutput, error) {
 	req, out := c.ListDistributionsByWebACLIdRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// ListDistributionsByWebACLIdWithContext is the same as ListDistributionsByWebACLId with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListDistributionsByWebACLId for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) ListDistributionsByWebACLIdWithContext(ctx aws.Context, input *ListDistributionsByWebACLIdInput, opts ...request.Option) (*ListDistributionsByWebACLIdOutput, error) {
+	req, out := c.ListDistributionsByWebACLIdRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opListInvalidations = "ListInvalidations2016_11_25"
@@ -1848,8 +2182,23 @@ func (c *CloudFront) ListInvalidationsRequest(input *ListInvalidationsInput) (re
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/ListInvalidations
 func (c *CloudFront) ListInvalidations(input *ListInvalidationsInput) (*ListInvalidationsOutput, error) {
 	req, out := c.ListInvalidationsRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// ListInvalidationsWithContext is the same as ListInvalidations with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListInvalidations for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) ListInvalidationsWithContext(ctx aws.Context, input *ListInvalidationsInput, opts ...request.Option) (*ListInvalidationsOutput, error) {
+	req, out := c.ListInvalidationsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 // ListInvalidationsPages iterates over the pages of a ListInvalidations operation,
@@ -1869,12 +2218,36 @@ func (c *CloudFront) ListInvalidations(input *ListInvalidationsInput) (*ListInva
 //            return pageNum <= 3
 //        })
 //
-func (c *CloudFront) ListInvalidationsPages(input *ListInvalidationsInput, fn func(p *ListInvalidationsOutput, lastPage bool) (shouldContinue bool)) error {
-	page, _ := c.ListInvalidationsRequest(input)
-	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
-	return page.EachPage(func(p interface{}, lastPage bool) bool {
-		return fn(p.(*ListInvalidationsOutput), lastPage)
-	})
+func (c *CloudFront) ListInvalidationsPages(input *ListInvalidationsInput, fn func(*ListInvalidationsOutput, bool) bool) error {
+	return c.ListInvalidationsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListInvalidationsPagesWithContext same as ListInvalidationsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) ListInvalidationsPagesWithContext(ctx aws.Context, input *ListInvalidationsInput, fn func(*ListInvalidationsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy ListInvalidationsInput
+			if input != nil {
+				inCpy = *input
+			}
+			req, _ := c.ListInvalidationsRequest(&inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*ListInvalidationsOutput), !p.HasNextPage())
+	}
+	return p.Err()
 }
 
 const opListStreamingDistributions = "ListStreamingDistributions2016_11_25"
@@ -1944,8 +2317,23 @@ func (c *CloudFront) ListStreamingDistributionsRequest(input *ListStreamingDistr
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/ListStreamingDistributions
 func (c *CloudFront) ListStreamingDistributions(input *ListStreamingDistributionsInput) (*ListStreamingDistributionsOutput, error) {
 	req, out := c.ListStreamingDistributionsRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// ListStreamingDistributionsWithContext is the same as ListStreamingDistributions with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListStreamingDistributions for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) ListStreamingDistributionsWithContext(ctx aws.Context, input *ListStreamingDistributionsInput, opts ...request.Option) (*ListStreamingDistributionsOutput, error) {
+	req, out := c.ListStreamingDistributionsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 // ListStreamingDistributionsPages iterates over the pages of a ListStreamingDistributions operation,
@@ -1965,12 +2353,36 @@ func (c *CloudFront) ListStreamingDistributions(input *ListStreamingDistribution
 //            return pageNum <= 3
 //        })
 //
-func (c *CloudFront) ListStreamingDistributionsPages(input *ListStreamingDistributionsInput, fn func(p *ListStreamingDistributionsOutput, lastPage bool) (shouldContinue bool)) error {
-	page, _ := c.ListStreamingDistributionsRequest(input)
-	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
-	return page.EachPage(func(p interface{}, lastPage bool) bool {
-		return fn(p.(*ListStreamingDistributionsOutput), lastPage)
-	})
+func (c *CloudFront) ListStreamingDistributionsPages(input *ListStreamingDistributionsInput, fn func(*ListStreamingDistributionsOutput, bool) bool) error {
+	return c.ListStreamingDistributionsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListStreamingDistributionsPagesWithContext same as ListStreamingDistributionsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) ListStreamingDistributionsPagesWithContext(ctx aws.Context, input *ListStreamingDistributionsInput, fn func(*ListStreamingDistributionsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy ListStreamingDistributionsInput
+			if input != nil {
+				inCpy = *input
+			}
+			req, _ := c.ListStreamingDistributionsRequest(&inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	cont := true
+	for p.Next() && cont {
+		cont = fn(p.Page().(*ListStreamingDistributionsOutput), !p.HasNextPage())
+	}
+	return p.Err()
 }
 
 const opListTagsForResource = "ListTagsForResource2016_11_25"
@@ -2041,8 +2453,23 @@ func (c *CloudFront) ListTagsForResourceRequest(input *ListTagsForResourceInput)
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/ListTagsForResource
 func (c *CloudFront) ListTagsForResource(input *ListTagsForResourceInput) (*ListTagsForResourceOutput, error) {
 	req, out := c.ListTagsForResourceRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// ListTagsForResourceWithContext is the same as ListTagsForResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListTagsForResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) ListTagsForResourceWithContext(ctx aws.Context, input *ListTagsForResourceInput, opts ...request.Option) (*ListTagsForResourceOutput, error) {
+	req, out := c.ListTagsForResourceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opTagResource = "TagResource2016_11_25"
@@ -2115,8 +2542,23 @@ func (c *CloudFront) TagResourceRequest(input *TagResourceInput) (req *request.R
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/TagResource
 func (c *CloudFront) TagResource(input *TagResourceInput) (*TagResourceOutput, error) {
 	req, out := c.TagResourceRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// TagResourceWithContext is the same as TagResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See TagResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) TagResourceWithContext(ctx aws.Context, input *TagResourceInput, opts ...request.Option) (*TagResourceOutput, error) {
+	req, out := c.TagResourceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opUntagResource = "UntagResource2016_11_25"
@@ -2189,8 +2631,23 @@ func (c *CloudFront) UntagResourceRequest(input *UntagResourceInput) (req *reque
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/UntagResource
 func (c *CloudFront) UntagResource(input *UntagResourceInput) (*UntagResourceOutput, error) {
 	req, out := c.UntagResourceRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// UntagResourceWithContext is the same as UntagResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UntagResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) UntagResourceWithContext(ctx aws.Context, input *UntagResourceInput, opts ...request.Option) (*UntagResourceOutput, error) {
+	req, out := c.UntagResourceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opUpdateCloudFrontOriginAccessIdentity = "UpdateCloudFrontOriginAccessIdentity2016_11_25"
@@ -2277,8 +2734,23 @@ func (c *CloudFront) UpdateCloudFrontOriginAccessIdentityRequest(input *UpdateCl
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/UpdateCloudFrontOriginAccessIdentity
 func (c *CloudFront) UpdateCloudFrontOriginAccessIdentity(input *UpdateCloudFrontOriginAccessIdentityInput) (*UpdateCloudFrontOriginAccessIdentityOutput, error) {
 	req, out := c.UpdateCloudFrontOriginAccessIdentityRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// UpdateCloudFrontOriginAccessIdentityWithContext is the same as UpdateCloudFrontOriginAccessIdentity with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateCloudFrontOriginAccessIdentity for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) UpdateCloudFrontOriginAccessIdentityWithContext(ctx aws.Context, input *UpdateCloudFrontOriginAccessIdentityInput, opts ...request.Option) (*UpdateCloudFrontOriginAccessIdentityOutput, error) {
+	req, out := c.UpdateCloudFrontOriginAccessIdentityRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opUpdateDistribution = "UpdateDistribution2016_11_25"
@@ -2450,8 +2922,23 @@ func (c *CloudFront) UpdateDistributionRequest(input *UpdateDistributionInput) (
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/UpdateDistribution
 func (c *CloudFront) UpdateDistribution(input *UpdateDistributionInput) (*UpdateDistributionOutput, error) {
 	req, out := c.UpdateDistributionRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// UpdateDistributionWithContext is the same as UpdateDistribution with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateDistribution for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) UpdateDistributionWithContext(ctx aws.Context, input *UpdateDistributionInput, opts ...request.Option) (*UpdateDistributionOutput, error) {
+	req, out := c.UpdateDistributionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opUpdateStreamingDistribution = "UpdateStreamingDistribution2016_11_25"
@@ -2551,8 +3038,23 @@ func (c *CloudFront) UpdateStreamingDistributionRequest(input *UpdateStreamingDi
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2016-11-25/UpdateStreamingDistribution
 func (c *CloudFront) UpdateStreamingDistribution(input *UpdateStreamingDistributionInput) (*UpdateStreamingDistributionOutput, error) {
 	req, out := c.UpdateStreamingDistributionRequest(input)
-	err := req.Send()
-	return out, err
+	return out, req.Send()
+}
+
+// UpdateStreamingDistributionWithContext is the same as UpdateStreamingDistribution with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateStreamingDistribution for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *CloudFront) UpdateStreamingDistributionWithContext(ctx aws.Context, input *UpdateStreamingDistributionInput, opts ...request.Option) (*UpdateStreamingDistributionOutput, error) {
+	req, out := c.UpdateStreamingDistributionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 // A complex type that lists the AWS accounts, if any, that you included in

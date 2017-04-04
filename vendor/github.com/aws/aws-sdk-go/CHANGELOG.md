@@ -1,3 +1,98 @@
+Release v1.8.4 (2017-03-28)
+===
+
+### Service Client Updates
+* `service/batch`: Updates service API, documentation, and paginators
+  * Customers can now provide a retryStrategy as part of the RegisterJobDefinition and SubmitJob API calls. The retryStrategy object has a number value for attempts. This is the number of non successful executions before a job is considered FAILED. In addition, the JobDetail object now has an attempts field and shows all execution attempts.
+* `service/ec2`: Updates service API and documentation
+	* Customers can now tag their Amazon EC2 Instances and Amazon EBS Volumes at
+	the time of their creation. You can do this from the EC2 Instance launch
+	wizard or through the RunInstances or CreateVolume APIs. By tagging
+	resources at the time of creation, you can eliminate the need to run custom
+	tagging scripts after resource creation. In addition, you can now set
+	resource-level permissions on the CreateVolume, CreateTags, DeleteTags, and
+	the RunInstances APIs. This allows you to implement stronger security
+	policies by giving you more granular control over which users and groups
+	have access to these APIs. You can also enforce the use of tagging and
+	control what tag keys and values are set on your resources. When you combine
+	tag usage and resource-level IAM policies together, you can ensure your
+	instances and volumes are properly secured upon creation and achieve more
+	accurate cost allocation reporting. These new features are provided at no
+	additional cost.
+
+### SDK Enhancements
+* `aws/request`: Add retry support for RequestTimeoutException (#1158)
+  * Adds support for retrying RequestTimeoutException error code that is returned by some services.
+
+### SDK Bugs
+* `private/model/api`: Fix Waiter and Paginators panic on nil param inputs (#1157)
+  * Corrects the code generation for Paginators and waiters that caused a panic if nil input parameters were used with the operations.
+Release v1.8.3 (2017-03-27)
+===
+
+## Service Client Updates
+* `service/ssm`: Updates service API, documentation, and paginators
+  * Updated validation rules for SendCommand and RegisterTaskWithMaintenanceWindow APIs.
+Release v1.8.2 (2017-03-24)
+===
+
+Service Client Updates
+---
+* `service/applicationautoscaling`: Updates service API, documentation, and paginators
+  * Application AutoScaling is launching support for a new target resource (AppStream 2.0 Fleets) as a scalable target.
+* `service/cloudtrail`: Updates service API and documentation
+  * Doc-only Update for CloudTrail: Add required parameters for GetEventSelectors and PutEventSelectors
+
+Release v1.8.1 (2017-03-23)
+===
+
+Service Client Updates
+---
+* `service/applicationdiscoveryservice`: Updates service API, documentation, and paginators
+  * Adds export configuration options to the AWS Discovery Service API.
+* `service/elbv2`: Updates waiters
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/lambda`: Updates service API and paginators
+  * Adds support for new runtime Node.js v6.10 for AWS Lambda service
+
+Release v1.8.0 (2017-03-22)
+===
+
+Service Client Updates
+---
+* `service/codebuild`: Updates service documentation
+* `service/directconnect`: Updates service API
+  * Deprecated DescribeConnectionLoa, DescribeInterconnectLoa, AllocateConnectionOnInterconnect and DescribeConnectionsOnInterconnect operations in favor of DescribeLoa, DescribeLoa, AllocateHostedConnection and DescribeHostedConnections respectively.
+* `service/marketplacecommerceanalytics`: Updates service API, documentation, and paginators
+  * This update adds a new data set, us_sales_and_use_tax_records, which enables AWS Marketplace sellers to programmatically access to their U.S. Sales and Use Tax report data.
+* `service/pinpoint`: Updates service API and documentation
+  * Amazon Pinpoint User Segmentation
+  * Added ability to segment endpoints by user attributes in addition to endpoint attributes. Amazon Pinpoint Event Stream Preview
+  * Added functionality to publish raw app analytics and campaign events data as events streams to Kinesis and Kinesis Firehose
+  * The feature provides developers with increased flexibility of exporting raw events to S3, Redshift, Elasticsearch using a Kinesis Firehose stream or enable real time event processing use cases using a Kinesis stream
+* `service/rekognition`: Updates service documentation.
+
+SDK Features
+---
+* `aws/request`: Add support for context.Context to SDK API operation requests (#1132)
+  * Adds support for context.Context to the SDK by adding `WithContext` methods for each API operation, Paginators and Waiters. e.g `PutObjectWithContext`. This change also adds the ability to provide request functional options to the method calls instead of requiring you to use the `Request` API operation method (e.g `PutObjectRequest`).
+  * Adds a `Complete` Request handler list that will be called ever time a request is completed. This includes both success and failure. Complete will only be called once per API operation request.
+  * `private/waiter` package moved from the private group to `aws/request/waiter` and made publicly available.
+  * Adds Context support to all API operations, Waiters(WaitUntil) and Paginators(Pages) methods.
+  * Adds Context support for s3manager and s3crypto clients.
+
+SDK Enhancements
+---
+* `aws/signer/v4`: Adds support for unsigned payload signer config (#1130)
+  * Adds configuration option to the v4.Signer to specify the request's body should not be signed. This will only correclty function on services that support unsigned payload. e.g. S3, Glacier. 
+
+SDK Bug Fixes
+---
+* `service/s3`: Fix S3 HostID to be available in S3 request error message (#1131)
+  * Adds a new type s3.RequestFailure which exposes the S3 HostID value from a S3 API operation response. This is helpful when you have an error with S3, and need to contact support. Both RequestID and HostID are needed.
+* `private/model/api`: Do not return a link if uid is empty (#1133)
+  * Fixes SDK's doc generation to not generate API reference doc links if the SDK us unable to create a valid link.
+* `aws/request`: Optimization to handler list copy to prevent multiple alloc calls. (#1134)
 Release v1.7.9 (2017-03-13)
 ===
 

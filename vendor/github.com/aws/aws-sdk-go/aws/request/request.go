@@ -16,6 +16,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client/metadata"
 )
 
+// CanceledErrorCode is the error code that will be returned by an
+// API request that was canceled. Requests given a aws.Context may
+// return this error when canceled.
+const CanceledErrorCode = "RequestCanceled"
+
 // A Request is the service request to be made.
 type Request struct {
 	Config     aws.Config
@@ -41,12 +46,14 @@ type Request struct {
 	SignedHeaderVals http.Header
 	LastSignedAt     time.Time
 
+	context aws.Context
+
 	built bool
 
-	// Need to persist an intermideant body betweend the input Body and HTTP
+	// Need to persist an intermediate body between the input Body and HTTP
 	// request body because the HTTP Client's transport can maintain a reference
 	// to the HTTP request's body after the client has returned. This value is
-	// safe to use concurrently and rewraps the input Body for each HTTP request.
+	// safe to use concurrently and wrap the input Body for each HTTP request.
 	safeBody *offsetReader
 }
 
@@ -58,14 +65,6 @@ type Operation struct {
 	*Paginator
 
 	BeforePresignFn func(r *Request) error
-}
-
-// Paginator keeps track of pagination configuration for an API operation.
-type Paginator struct {
-	InputTokens     []string
-	OutputTokens    []string
-	LimitToken      string
-	TruncationToken string
 }
 
 // New returns a new Request pointer for the service API
@@ -109,6 +108,60 @@ func New(cfg aws.Config, clientInfo metadata.ClientInfo, handlers Handlers,
 	r.SetBufferBody([]byte{})
 
 	return r
+}
+
+// A Option is a functional option that can augment or modify a request when
+// using a WithContext API operation method.
+type Option func(*Request)
+
+// WithLogLevel is a request option that will set the request to use a specific
+// log level when the request is made.
+//
+//     svc.PutObjectWithContext(ctx, params, request.WithLogLevel(aws.LogDebugWithHTTPBody)
+func WithLogLevel(l aws.LogLevelType) Option {
+	return func(r *Request) {
+		r.Config.LogLevel = aws.LogLevel(l)
+	}
+}
+
+// ApplyOptions will apply each option to the request calling them in the order
+// the were provided.
+func (r *Request) ApplyOptions(opts ...Option) {
+	for _, opt := range opts {
+		opt(r)
+	}
+}
+
+// Context will always returns a non-nil context. If Request does not have a
+// context aws.BackgroundContext will be returned.
+func (r *Request) Context() aws.Context {
+	if r.context != nil {
+		return r.context
+	}
+	return aws.BackgroundContext()
+}
+
+// SetContext adds a Context to the current request that can be used to cancel
+// a in-flight request. The Context value must not be nil, or this method will
+// panic.
+//
+// Unlike http.Request.WithContext, SetContext does not return a copy of the
+// Request. It is not safe to use use a single Request value for multiple
+// requests. A new Request should be created for each API operation request.
+//
+// Go 1.6 and below:
+// The http.Request's Cancel field will be set to the Done() value of
+// the context. This will overwrite the Cancel field's value.
+//
+// Go 1.7 and above:
+// The http.Request.WithContext will be used to set the context on the underlying
+// http.Request. This will create a shallow copy of the http.Request. The SDK
+// may create sub contexts in the future for nested requests such as retries.
+func (r *Request) SetContext(ctx aws.Context) {
+	if ctx == nil {
+		panic("context cannot be nil")
+	}
+	setRequestContext(r, ctx)
 }
 
 // WillRetry returns if the request's can be retried.
@@ -344,6 +397,12 @@ func (r *Request) GetBody() io.ReadSeeker {
 //
 // Send will not close the request.Request's body.
 func (r *Request) Send() error {
+	defer func() {
+		// Regardless of success or failure of the request trigger the Complete
+		// request handlers.
+		r.Handlers.Complete.Run(r)
+	}()
+
 	for {
 		if aws.BoolValue(r.Retryable) {
 			if r.Config.LogLevel.Matches(aws.LogDebugWithRequestRetries) {
@@ -446,6 +505,9 @@ func shouldRetryCancel(r *Request) bool {
 	timeoutErr := false
 	errStr := r.Error.Error()
 	if ok {
+		if awsErr.Code() == CanceledErrorCode {
+			return false
+		}
 		err := awsErr.OrigErr()
 		netErr, netOK := err.(net.Error)
 		timeoutErr = netOK && netErr.Temporary()
