@@ -1,11 +1,10 @@
-package azurerm
+package structure
 
-import "testing"
+import (
+	"testing"
+)
 
-func TestNormalizeJsonString(t *testing.T) {
-	var err error
-	var actual string
-
+func TestNormalizeJsonString_valid(t *testing.T) {
 	// Well formatted and valid.
 	validJson := `{
    "abc": {
@@ -22,7 +21,7 @@ func TestNormalizeJsonString(t *testing.T) {
 }`
 	expected := `{"abc":{"def":123,"xyz":[{"a":"ホリネズミ"},{"b":"1\\n2"}]}}`
 
-	actual, err = normalizeJsonString(validJson)
+	actual, err := NormalizeJsonString(validJson)
 	if err != nil {
 		t.Fatalf("Expected not to throw an error while parsing JSON, but got: %s", err)
 	}
@@ -30,7 +29,9 @@ func TestNormalizeJsonString(t *testing.T) {
 	if actual != expected {
 		t.Fatalf("Got:\n\n%s\n\nExpected:\n\n%s\n", actual, expected)
 	}
+}
 
+func TestNormalizeJsonString_invalid(t *testing.T) {
 	// Well formatted but not valid,
 	// missing closing squre bracket.
 	invalidJson := `{
@@ -43,7 +44,8 @@ func TestNormalizeJsonString(t *testing.T) {
       }
    }
 }`
-	actual, err = normalizeJsonString(invalidJson)
+	expected := `{"abc":{"def":123,"xyz":[{"a":"ホリネズミ"},{"b":"1\\n2"}]}}`
+	actual, err := NormalizeJsonString(invalidJson)
 	if err == nil {
 		t.Fatalf("Expected to throw an error while parsing JSON, but got: %s", err)
 	}
