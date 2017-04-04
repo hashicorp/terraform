@@ -511,8 +511,16 @@ func resourceAwsEcsLoadBalancerHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 
-	buf.WriteString(fmt.Sprintf("%s-", m["target_group_arn"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["elb_name"].(string)))
+	optionalLoadBalancerParams := []string{"target_group_arn", "elb_name"}
+
+	for i := range optionalLoadBalancerParams {
+		paramName := optionalLoadBalancerParams[i]
+
+		if m[paramName] != nil {
+			buf.WriteString(fmt.Sprintf("%s-", m[paramName].(string)))
+		}
+	}
+
 	buf.WriteString(fmt.Sprintf("%s-", m["container_name"].(string)))
 	buf.WriteString(fmt.Sprintf("%d-", m["container_port"].(int)))
 
