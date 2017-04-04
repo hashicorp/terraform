@@ -102,22 +102,19 @@ func (b *Backend) State(name string) (state.State, error) {
 		stateMgr = &state.LockDisabled{Inner: stateMgr}
 	}
 
-	// Get the locker, which we know always exists
-	stateMgrLocker := stateMgr.(state.Locker)
-
 	// Grab a lock, we use this to write an empty state if one doesn't
 	// exist already. We have to write an empty state as a sentinel value
 	// so States() knows it exists.
 	lockInfo := state.NewLockInfo()
 	lockInfo.Operation = "init"
-	lockId, err := stateMgrLocker.Lock(lockInfo)
+	lockId, err := stateMgr.Lock(lockInfo)
 	if err != nil {
 		return nil, fmt.Errorf("failed to lock state in Consul: %s", err)
 	}
 
 	// Local helper function so we can call it multiple places
 	lockUnlock := func(parent error) error {
-		if err := stateMgrLocker.Unlock(lockId); err != nil {
+		if err := stateMgr.Unlock(lockId); err != nil {
 			return fmt.Errorf(strings.TrimSpace(errStateUnlock), lockId, err)
 		}
 
