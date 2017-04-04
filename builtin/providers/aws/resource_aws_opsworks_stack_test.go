@@ -40,6 +40,33 @@ func TestAccAWSOpsworksStackNoVpc(t *testing.T) {
 	})
 }
 
+func TestAccAWSOpsworksStackNoVpcChangeServiceRoleForceNew(t *testing.T) {
+	stackName := fmt.Sprintf("tf-opsworks-acc-%d", acctest.RandInt())
+	var before, after opsworks.Stack
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAwsOpsworksStackDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAwsOpsworksStackConfigNoVpcCreate(stackName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSOpsworksStackExists(
+						"aws_opsworks_stack.tf-acc", false, &before),
+				),
+			},
+			{
+				Config: testAccAwsOpsworksStackConfigNoVpcCreateUpdateServiceRole(stackName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSOpsworksStackExists(
+						"aws_opsworks_stack.tf-acc", false, &after),
+					testAccCheckAWSOpsworksStackRecreated(t, &before, &after),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSOpsworksStackVpc(t *testing.T) {
 	stackName := fmt.Sprintf("tf-opsworks-acc-%d", acctest.RandInt())
 	var opsstack opsworks.Stack
@@ -86,7 +113,7 @@ func TestAccAWSOpsWorksStack_classic_endpoints(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAwsOpsworksStackDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsWorksStack_classic_endpoint(stackName, rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSOpsworksStackExists(
@@ -94,13 +121,23 @@ func TestAccAWSOpsWorksStack_classic_endpoints(t *testing.T) {
 				),
 			},
 			// Ensure that changing to us-west-2 region results in no plan
-			resource.TestStep{
+			{
 				Config:   testAccAwsOpsWorksStack_regional_endpoint(stackName, rInt),
 				PlanOnly: true,
 			},
 		},
 	})
 
+}
+
+func testAccCheckAWSOpsworksStackRecreated(t *testing.T,
+	before, after *opsworks.Stack) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if *before.StackId == *after.StackId {
+			t.Fatalf("Expected change of Opsworks StackIds, but both were %v", before.StackId)
+		}
+		return nil
+	}
 }
 
 func testAccAwsOpsWorksStack_classic_endpoint(rName string, rInt int) string {
@@ -623,6 +660,131 @@ resource "aws_iam_instance_profile" "opsworks_instance" {
     name = "%s_opsworks_instance"
     roles = ["${aws_iam_role.opsworks_instance.name}"]
 }`, name, name, name, name, name)
+}
+
+func testAccAwsOpsworksStackConfigNoVpcCreateUpdateServiceRole(name string) string {
+	return fmt.Sprintf(`
+provider "aws" {
+  region = "us-east-1"
+}
+resource "aws_opsworks_stack" "tf-acc" {
+  name = "%s"
+  region = "us-east-1"
+  service_role_arn = "${aws_iam_role.opsworks_service_new.arn}"
+  default_instance_profile_arn = "${aws_iam_instance_profile.opsworks_instance.arn}"
+  default_availability_zone = "us-east-1a"
+  default_os = "Amazon Linux 2016.09"
+  default_root_device_type = "ebs"
+  custom_json = "{\"key\": \"value\"}"
+  configuration_manager_version = "11.10"
+  use_opsworks_security_groups = false
+}
+
+resource "aws_iam_role" "opsworks_service" {
+    name = "%s_opsworks_service"
+    assume_role_policy = <<EOT
+{
+  "Version": "2008-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "opsworks.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOT
+}
+
+resource "aws_iam_role" "opsworks_service_new" {
+    name = "%s_opsworks_service_new"
+    assume_role_policy = <<EOT
+{
+  "Version": "2008-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "opsworks.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOT
+}
+
+resource "aws_iam_role_policy" "opsworks_service_new" {
+    name = "%s_opsworks_service_new"
+    role = "${aws_iam_role.opsworks_service_new.id}"
+    policy = <<EOT
+{
+  "Statement": [
+    {
+      "Action": [
+        "ec2:*",
+        "iam:PassRole",
+        "cloudwatch:*",
+        "elasticloadbalancing:*",
+        "rds:*"
+      ],
+      "Effect": "Allow",
+      "Resource": ["*"]
+    }
+  ]
+}
+EOT
+}
+
+resource "aws_iam_role_policy" "opsworks_service" {
+    name = "%s_opsworks_service"
+    role = "${aws_iam_role.opsworks_service.id}"
+    policy = <<EOT
+{
+  "Statement": [
+    {
+      "Action": [
+        "ec2:*",
+        "iam:PassRole",
+        "cloudwatch:GetMetricStatistics",
+        "elasticloadbalancing:*",
+        "rds:*"
+      ],
+      "Effect": "Allow",
+      "Resource": ["*"]
+    }
+  ]
+}
+EOT
+}
+
+resource "aws_iam_role" "opsworks_instance" {
+    name = "%s_opsworks_instance"
+    assume_role_policy = <<EOT
+{
+  "Version": "2008-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOT
+}
+
+resource "aws_iam_instance_profile" "opsworks_instance" {
+    name = "%s_opsworks_instance"
+    roles = ["${aws_iam_role.opsworks_instance.name}"]
+}`, name, name, name, name, name, name, name)
 }
 
 ////////////////////////////
