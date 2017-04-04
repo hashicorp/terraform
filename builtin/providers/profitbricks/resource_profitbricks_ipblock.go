@@ -26,7 +26,8 @@ func resourceProfitBricksIPBlock() *schema.Resource {
 				ForceNew: true,
 			},
 			"ips": {
-				Type:     schema.TypeString,
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 				Computed: true,
 			},
 		},
@@ -68,7 +69,7 @@ func resourceProfitBricksIPBlockRead(d *schema.ResourceData, meta interface{}) e
 
 	log.Printf("[INFO] IPS: %s", strings.Join(ipblock.Properties.Ips, ","))
 
-	d.Set("ips", strings.Join(ipblock.Properties.Ips, ","))
+	d.Set("ips", ipblock.Properties.Ips)
 	d.Set("location", ipblock.Properties.Location)
 	d.Set("size", ipblock.Properties.Size)
 

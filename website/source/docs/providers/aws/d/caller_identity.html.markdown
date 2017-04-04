@@ -12,10 +12,6 @@ description: |-
 Use this data source to get the access to the effective Account ID, User ID, and ARN in
 which Terraform is authorized.
 
-~> **NOTE on `aws_caller_identity`:** - an Account ID is only available
-if `skip_requesting_account_id` is not set on the AWS provider. In such
-cases, the data source will return an error.
-
 ## Example Usage
 
 ```

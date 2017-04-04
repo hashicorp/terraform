@@ -17,7 +17,8 @@ import (
 
 func TestAccAWSCustomerGateway_basic(t *testing.T) {
 	var gateway ec2.CustomerGateway
-	randInt := acctest.RandInt()
+	rBgpAsn := acctest.RandIntRange(64512, 65534)
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
 		IDRefreshName: "aws_customer_gateway.foo",
@@ -25,19 +26,19 @@ func TestAccAWSCustomerGateway_basic(t *testing.T) {
 		CheckDestroy:  testAccCheckCustomerGatewayDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCustomerGatewayConfig(randInt),
+				Config: testAccCustomerGatewayConfig(rInt, rBgpAsn),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCustomerGateway("aws_customer_gateway.foo", &gateway),
 				),
 			},
 			{
-				Config: testAccCustomerGatewayConfigUpdateTags(randInt),
+				Config: testAccCustomerGatewayConfigUpdateTags(rInt, rBgpAsn),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCustomerGateway("aws_customer_gateway.foo", &gateway),
 				),
 			},
 			{
-				Config: testAccCustomerGatewayConfigForceReplace(randInt),
+				Config: testAccCustomerGatewayConfigForceReplace(rInt, rBgpAsn),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCustomerGateway("aws_customer_gateway.foo", &gateway),
 				),
@@ -48,7 +49,8 @@ func TestAccAWSCustomerGateway_basic(t *testing.T) {
 
 func TestAccAWSCustomerGateway_similarAlreadyExists(t *testing.T) {
 	var gateway ec2.CustomerGateway
-	randInt := acctest.RandInt()
+	rInt := acctest.RandInt()
+	rBgpAsn := acctest.RandIntRange(64512, 65534)
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
 		IDRefreshName: "aws_customer_gateway.foo",
@@ -56,13 +58,13 @@ func TestAccAWSCustomerGateway_similarAlreadyExists(t *testing.T) {
 		CheckDestroy:  testAccCheckCustomerGatewayDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCustomerGatewayConfig(randInt),
+				Config: testAccCustomerGatewayConfig(rInt, rBgpAsn),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCustomerGateway("aws_customer_gateway.foo", &gateway),
 				),
 			},
 			{
-				Config:      testAccCustomerGatewayConfigIdentical(randInt),
+				Config:      testAccCustomerGatewayConfigIdentical(rInt, rBgpAsn),
 				ExpectError: regexp.MustCompile("An existing customer gateway"),
 			},
 		},
@@ -70,15 +72,16 @@ func TestAccAWSCustomerGateway_similarAlreadyExists(t *testing.T) {
 }
 
 func TestAccAWSCustomerGateway_disappears(t *testing.T) {
+	rInt := acctest.RandInt()
+	rBgpAsn := acctest.RandIntRange(64512, 65534)
 	var gateway ec2.CustomerGateway
-	randInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCustomerGatewayDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCustomerGatewayConfig(randInt),
+				Config: testAccCustomerGatewayConfig(rInt, rBgpAsn),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCustomerGateway("aws_customer_gateway.foo", &gateway),
 					testAccAWSCustomerGatewayDisappears(&gateway),
@@ -194,67 +197,66 @@ func testAccCheckCustomerGateway(gatewayResource string, cgw *ec2.CustomerGatewa
 	}
 }
 
-func testAccCustomerGatewayConfig(randInt int) string {
-	return fmt.Sprintf(`
-	resource "aws_customer_gateway" "foo" {
-		bgp_asn = 65000
-		ip_address = "172.0.0.1"
-		type = "ipsec.1"
-		tags {
-			Name = "foo-gateway-%d"
-		}
-	}
-	`, randInt)
-}
-
-func testAccCustomerGatewayConfigIdentical(randInt int) string {
+func testAccCustomerGatewayConfig(rInt, rBgpAsn int) string {
 	return fmt.Sprintf(`
 		resource "aws_customer_gateway" "foo" {
-			bgp_asn = 65000
+			bgp_asn = %d
 			ip_address = "172.0.0.1"
 			type = "ipsec.1"
 			tags {
 				Name = "foo-gateway-%d"
 			}
 		}
+		`, rBgpAsn, rInt)
+}
 
+func testAccCustomerGatewayConfigIdentical(randInt, rBgpAsn int) string {
+	return fmt.Sprintf(`
+		resource "aws_customer_gateway" "foo" {
+			bgp_asn = %d
+			ip_address = "172.0.0.1"
+			type = "ipsec.1"
+			tags {
+				Name = "foo-gateway-%d"
+			}
+		}
 		resource "aws_customer_gateway" "identical" {
-			bgp_asn = 65000
+			bgp_asn = %d
 			ip_address = "172.0.0.1"
 			type = "ipsec.1"
 			tags {
 				Name = "foo-gateway-identical-%d"
 			}
 		}
-		`, randInt, randInt)
+		`, rBgpAsn, randInt, rBgpAsn, randInt)
 }
 
 // Add the Another: "tag" tag.
-func testAccCustomerGatewayConfigUpdateTags(randInt int) string {
-	return fmt.Sprintf(`
-		resource "aws_customer_gateway" "foo" {
-			bgp_asn = 65000
-			ip_address = "172.0.0.1"
-			type = "ipsec.1"
-			tags {
-				Name = "foo-gateway-%d"
-				Another = "tag-%d"
-			}
-		}
-		`, randInt, randInt)
-}
-
-// Change the ip_address.
-func testAccCustomerGatewayConfigForceReplace(randInt int) string {
+func testAccCustomerGatewayConfigUpdateTags(rInt, rBgpAsn int) string {
 	return fmt.Sprintf(`
 	resource "aws_customer_gateway" "foo" {
-		bgp_asn = 65000
-		ip_address = "172.10.10.1"
+		bgp_asn = %d
+		ip_address = "172.0.0.1"
 		type = "ipsec.1"
 		tags {
 			Name = "foo-gateway-%d"
-			Another = "tag-%d"
+			Another = "tag"
 		}
 	}
-	`, randInt, randInt)
+	`, rBgpAsn, rInt)
+}
+
+// Change the ip_address.
+func testAccCustomerGatewayConfigForceReplace(rInt, rBgpAsn int) string {
+	return fmt.Sprintf(`
+		resource "aws_customer_gateway" "foo" {
+			bgp_asn = %d
+			ip_address = "172.10.10.1"
+			type = "ipsec.1"
+			tags {
+				Name = "foo-gateway-%d"
+				Another = "tag"
+			}
+		}
+		`, rBgpAsn, rInt)
 }

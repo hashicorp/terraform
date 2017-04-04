@@ -53,6 +53,7 @@ func resourceAwsOpsworksStack() *schema.Resource {
 			"service_role_arn": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"default_instance_profile_arn": {
