@@ -51,6 +51,7 @@ BUG FIXES:
  * provider/aws: Handle `aws_lambda_function` missing s3 key error [GH-10960]
  * provider/aws: Set stickiness to computed in alb_target_group [GH-13278]
  * provider/aws: Increase timeout for deploying `cloudfront_distribution` from 40 to 70 mins [GH-13319]
+ * provider/aws: Increase AMI retry timeouts [GH-13324]
  * provider/azurerm: Network Security Group - ignoring protocol casing at Import time [GH-13153]
  * provider/profitbricks: Changed output type of ips variable of ip_block ProfitBricks resource [GH-13290]
 
