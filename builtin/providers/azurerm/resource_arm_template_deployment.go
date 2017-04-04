@@ -155,20 +155,44 @@ func resourceArmTemplateDeploymentRead(d *schema.ResourceData, meta interface{})
 	if resp.Properties.Outputs != nil && len(*resp.Properties.Outputs) > 0 {
 		outputs = make(map[string]string)
 		for key, output := range *resp.Properties.Outputs {
+			log.Printf("[DEBUG] Processing deployment output %s", key)
 			outputMap := output.(map[string]interface{})
 			outputValue, ok := outputMap["value"]
 			if !ok {
 				// No value
 				continue
 			}
+			outputType := outputMap["type"]
+			var outputStringValue string
 
-			outputs[key] = outputValue.(string)
+			switch outputType {
+			case "Bool":
+				if outputValue == false {
+					outputStringValue = "0"
+				} else if outputValue == true {
+					outputStringValue = "1"
+				} else {
+					return fmt.Errorf("Invalid value %s for boolean output %s", outputValue, key)
+				}
+
+			case "String": // Nothing to do
+				fallthrough
+			case "Int":
+				outputStringValue = fmt.Sprint(outputValue)
+
+			case "SecureString", "Object", "SecureObject", "Array":
+				fallthrough
+			default:
+				log.Printf("[WARNING] Ignoring output %s: Outputs of type %s are not currently supported in azurerm_deployment_template.",
+					key, outputType)
+				continue
+			}
+
+			outputs[key] = outputStringValue
 		}
 	}
 
-	d.Set("outputs", outputs)
-
-	return nil
+	return d.Set("outputs", outputs)
 }
 
 func resourceArmTemplateDeploymentDelete(d *schema.ResourceData, meta interface{}) error {
