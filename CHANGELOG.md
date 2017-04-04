@@ -39,6 +39,7 @@ BUG FIXES:
 
  * core: Escaped interpolation-like sequences (like `$${foo}`) now permitted in variable defaults [GH-13137]
  * core: Fix strange issues with computed values in provider configuration that were worked around with `-input=false` [GH-11264], [GH-13264]
+ * core: Fix crash when providing nested maps as variable values in a `module` block [GH-13343]
  * provider/aws: Add Support for maintenance_window and back_window to rds_cluster_instance [GH-13134]
  * provider/aws: Increase timeout for AMI registration [GH-13159]
  * provider/aws: Increase timeouts for ELB [GH-13161]
