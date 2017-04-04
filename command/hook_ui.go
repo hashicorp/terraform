@@ -16,7 +16,7 @@ import (
 )
 
 const defaultPeriodicUiTimer = 10 * time.Second
-const maxIdLen = 20
+const maxIdLen = 80
 
 type UiHook struct {
 	terraform.NilHook
