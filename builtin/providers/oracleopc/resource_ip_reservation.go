@@ -38,7 +38,7 @@ func resourceIPReservation() *schema.Resource {
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			
+
 			"ip": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: false,

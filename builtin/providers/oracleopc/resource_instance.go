@@ -212,7 +212,7 @@ func getStorageAttachments(d *schema.ResourceData) []compute.LaunchPlanStorageAt
 	for _, i := range storage.List() {
 		attrs := i.(map[string]interface{})
 		storageAttachments = append(storageAttachments, compute.LaunchPlanStorageAttachmentSpec{
-			Index: attrs["index"].(int),
+			Index:  attrs["index"].(int),
 			Volume: attrs["volume"].(string),
 		})
 	}
