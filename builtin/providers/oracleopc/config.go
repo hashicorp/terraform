@@ -15,13 +15,13 @@ type Config struct {
 }
 
 type storageAttachment struct {
-	index int
+	index        int
 	instanceName *compute.InstanceName
 }
 
 type OPCClient struct {
 	*compute.AuthenticatedClient
-	MaxRetryTimeout int
+	MaxRetryTimeout                 int
 	storageAttachmentsByVolumeCache map[string][]storageAttachment
 }
 
@@ -38,8 +38,8 @@ func (c *Config) Client() (*OPCClient, error) {
 	}
 
 	opcClient := &OPCClient{
-		AuthenticatedClient: authenticatedClient,
-		MaxRetryTimeout:     c.MaxRetryTimeout,
+		AuthenticatedClient:             authenticatedClient,
+		MaxRetryTimeout:                 c.MaxRetryTimeout,
 		storageAttachmentsByVolumeCache: make(map[string][]storageAttachment),
 	}
 

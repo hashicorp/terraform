@@ -278,7 +278,7 @@ func resourceStorageVolumeDelete(d *schema.ResourceData, meta interface{}) error
 		sva.DeleteStorageAttachment(attachment.Name)
 		sva.WaitForStorageAttachmentDeleted(attachment.Name, meta.(*OPCClient).MaxRetryTimeout)
 		attachmentsToCache[index] = storageAttachment{
-			index: attachment.Index,
+			index:        attachment.Index,
 			instanceName: compute.InstanceNameFromString(attachment.InstanceName),
 		}
 	}
