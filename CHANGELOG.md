@@ -58,6 +58,7 @@ BUG FIXES:
  * provider/aws: Increase AMI retry timeouts [GH-13324]
  * provider/aws: Increase subnet deletion timeout [GH-13356]
  * provider/aws: Increase launch_configuration creation timeout [GH-13357]
+ * provider/aws: Increase Beanstalk env 'ready' timeout [GH-13359]
  * provider/aws: Recreate opsworks_stack on change of service_role_arn [GH-13325]
  * provider/azurerm: Network Security Group - ignoring protocol casing at Import time [GH-13153]
  * provider/azurerm: Fix crash when importing Local Network Gateways [GH-13261]
