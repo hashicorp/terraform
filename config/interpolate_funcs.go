@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
+	"math/rand"
 	"net"
 	"path/filepath"
 	"regexp"
@@ -84,6 +85,7 @@ func Funcs() map[string]ast.Function {
 		"min":          interpolationFuncMin(),
 		"pathexpand":   interpolationFuncPathExpand(),
 		"uuid":         interpolationFuncUUID(),
+		"random":       interpolationFuncRandom(),
 		"replace":      interpolationFuncReplace(),
 		"sha1":         interpolationFuncSha1(),
 		"sha256":       interpolationFuncSha256(),
@@ -1251,6 +1253,24 @@ func interpolationFuncSubstr() ast.Function {
 			}
 
 			return str[offset:length], nil
+		},
+	}
+}
+
+// interpolationFuncRandom
+func interpolationFuncRandom() ast.Function {
+	return ast.Function{
+		ArgTypes: []ast.Type{
+			ast.TypeInt, // min
+			ast.TypeInt, // max
+		},
+		ReturnType: ast.TypeInt,
+		Callback: func(args []interface{}) (interface{}, error) {
+			min := args[0].(int)
+			max := args[1].(int)
+			s1 := rand.NewSource(time.Now().UnixNano())
+			r1 := rand.New(s1)
+			return r1.Intn(max-min) + min, nil
 		},
 	}
 }
