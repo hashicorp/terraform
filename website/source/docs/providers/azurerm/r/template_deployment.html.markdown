@@ -74,7 +74,7 @@ resource "azurerm_template_deployment" "test" {
 }
 DEPLOY
 
-  deployment_mode = "Complete"
+  deployment_mode = "Incremental"
 }
 ```
 
