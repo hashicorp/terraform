@@ -1,29 +1,29 @@
 <% wrap_layout :inner do %>
-	<% content_for :sidebar do %>
-		<div class="docs-sidebar hidden-print affix-top" role="complementary">
-			<ul class="nav docs-sidenav">
-				<li<%= sidebar_current("docs-home") %>>
-					<a href="/docs/providers/index.html">&laquo; Documentation Home</a>
-				</li>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+          <a href="/docs/providers/index.html">All Providers</a>
+        </li>
 
-				<li<%= sidebar_current("docs-template-index") %>>
-					<a href="/docs/providers/template/index.html">Template Provider</a>
-				</li>
+        <li<%= sidebar_current("docs-template-index") %>>
+          <a href="/docs/providers/template/index.html">Template Provider</a>
+        </li>
 
-				<li<%= sidebar_current(/^docs-template-datasource/) %>>
-					<a href="#">Data Sources</a>
-					<ul class="nav nav-visible">
-						<li<%= sidebar_current("docs-template-datasource-file") %>>
-							<a href="/docs/providers/template/d/file.html">template_file</a>
-						</li>
-						<li<%= sidebar_current("docs-template-datasource-cloudinit-config") %>>
-							<a href="/docs/providers/template/d/cloudinit_config.html">template_cloudinit_config</a>
-						</li>
-					</ul>
-				</li>
-			</ul>
-		</div>
-	<% end %>
+        <li<%= sidebar_current("docs-template-datasource") %>>
+          <a href="#">Data Sources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-template-datasource-file") %>>
+              <a href="/docs/providers/template/d/file.html">template_file</a>
+            </li>
+            <li<%= sidebar_current("docs-template-datasource-cloudinit-config") %>>
+              <a href="/docs/providers/template/d/cloudinit_config.html">template_cloudinit_config</a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
 
-	<%= yield %>
+  <%= yield %>
 <% end %>
