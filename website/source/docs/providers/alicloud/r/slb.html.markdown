@@ -1,18 +1,18 @@
 ---
 layout: "alicloud"
 page_title: "Alicloud: alicloud_slb"
-sidebar_current: "docs-alicloud-resource-slb"
+sidebar_current: "docs-alicloud-resource-slb."
 description: |-
   Provides an Application Load Banlancer resource.
 ---
 
-# alicloud\_slb
+# alicloud_slb
 
 Provides an Application Load Balancer resource.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new load balancer for classic
 resource "alicloud_slb" "classic" {
   name                 = "test-slb-tf"
@@ -44,11 +44,11 @@ resource "alicloud_slb" "classic" {
 
 # Create a new load balancer for VPC
 resource "alicloud_vpc" "default" {
-  # Other parameters...
+  # ...
 }
 
 resource "alicloud_vswitch" "default" {
-  # Other parameters...
+  # ...
 }
 
 resource "alicloud_slb" "vpc" {
@@ -62,7 +62,7 @@ resource "alicloud_slb" "vpc" {
 The following arguments are supported:
 
 * `name` - (Optional) The name of the SLB. This name must be unique within your AliCloud account, can have a maximum of 80 characters,
-must contain only alphanumeric characters or hyphens, such as "-","/",".","_", and must not begin or end with a hyphen. If not specified,
+must contain only alphanumeric characters or hyphens, such as "-","/",".","\_", and must not begin or end with a hyphen. If not specified,
 Terraform will autogenerate a name beginning with `tf-lb`.
 * `internet` - (Optional, Forces New Resource) If true, the SLB addressType will be internet, false will be intranet, Default is false. If load balancer launched in VPC, this value must be "false".
 * `internet_charge_type` - (Optional, Forces New Resource) Valid

@@ -6,7 +6,7 @@ description: |-
   Provides a ECS Disk Attachment resource.
 ---
 
-# alicloud\_disk\_attachment
+# alicloud_disk_attachment
 
 Provides an Alicloud ECS Disk Attachment as a resource, to attach and detach disks from ECS Instances.
 
@@ -14,9 +14,7 @@ Provides an Alicloud ECS Disk Attachment as a resource, to attach and detach dis
 
 Basic usage
 
-```
-# Create a new ECS disk-attachment and use it attach one disk to a new instance.
-
+```hcl
 resource "alicloud_security_group" "ecs_sg" {
   name        = "terraform-test-group"
   description = "New security group"

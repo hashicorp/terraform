@@ -6,7 +6,7 @@ description: |-
   Provides an RDS instance resource.
 ---
 
-# alicloud\_db\_instance
+# alicloud_db_instance
 
 Provides an RDS instance resource.  A DB instance is an isolated database
 environment in the cloud.  A DB instance can contain multiple user-created
@@ -14,14 +14,16 @@ databases.
 
 ## Example Usage
 
-```
+```hcl
 resource "alicloud_db_instance" "default" {
-	commodity_code = "rds"
-	engine = "MySQL"
-	engine_version = "5.6"
-	db_instance_class = "rds.mysql.t1.small"
-	db_instance_storage = "10"
-	db_instance_net_type = "Intranet"
+  commodity_code = "rds"
+
+  engine         = "MySQL"
+  engine_version = "5.6"
+
+  db_instance_class    = "rds.mysql.t1.small"
+  db_instance_storage  = "10"
+  db_instance_net_type = "Intranet"
 }
 ```
 
@@ -30,13 +32,13 @@ resource "alicloud_db_instance" "default" {
 The following arguments are supported:
 
 * `engine` - (Required) Database type. Value options: MySQL, SQLServer, PostgreSQL, and PPAS.
-* `engine_version` - (Required) Database version. Value options: 
+* `engine_version` - (Required) Database version. Value options:
     - 5.5/5.6/5.7 for MySQL
     - 2008r2/2012 for SQLServer
     - 9.4 for PostgreSQL
     - 9.3 for PPAS
 * `db_instance_class` - (Required) Instance type. For details, see [Instance type table](https://intl.aliyun.com/help/doc-detail/26312.htm?spm=a3c0i.o26228en.a3.2.bRUHF3).
-* `db_instance_storage` - (Required) User-defined storage space. Value range: 
+* `db_instance_storage` - (Required) User-defined storage space. Value range:
     - [5, 2000] for MySQL/PostgreSQL/PPAS HA dual node edition;
     - [20,1000] for MySQL 5.7 basic single node edition;
     - [10, 2000] for SQL Server 2008R2;
@@ -63,7 +65,7 @@ The following arguments are supported:
 
 The database mapping supports the following:
 
-* `db_name` - (Required) Name of the database requiring a uniqueness check. It may consist of lower case letters, numbers and underlines, and must start with a letter and have no more than 64 characters. 
+* `db_name` - (Required) Name of the database requiring a uniqueness check. It may consist of lower case letters, numbers and underlines, and must start with a letter and have no more than 64 characters.
 * `character_set_name` - (Required) Character set. The value range is limited to the following:
     - MySQL type:
          + utf8
@@ -76,7 +78,7 @@ The database mapping supports the following:
          + SQL_Latin1_General_CP1_CI_AS
          + SQL_Latin1_General_CP1_CS_AS
          + Chinese_PRC_BIN
-* `db_description` - (Optional) Database description, which cannot exceed 256 characters. NOTE: It cannot begin with https://. 
+* `db_description` - (Optional) Database description, which cannot exceed 256 characters. NOTE: It cannot begin with https://.
 
 
 ~> **NOTE:** We neither support modify any of database attribute, nor insert/remove item at the same time.
@@ -103,4 +105,3 @@ The following attributes are exported:
 * `backup_retention_period` - Retention days of the backup.
 * `security_ips` - Security ips of instance whitelist.
 * `connections` - Views all the connection information of a specified instance.
-

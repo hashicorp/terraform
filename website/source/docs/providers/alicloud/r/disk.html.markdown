@@ -1,12 +1,12 @@
 ---
 layout: "alicloud"
 page_title: "Alicloud: alicloud_disk"
-sidebar_current: "docs-alicloud-resource-disk"
+sidebar_current: "docs-alicloud-resource-disk."
 description: |-
   Provides a ECS Disk resource.
 ---
 
-# alicloud\_disk
+# alicloud_disk
 
 Provides a ECS disk resource.
 
@@ -14,10 +14,8 @@ Provides a ECS disk resource.
 
 ## Example Usage
 
-```
-# Create a new ECS disk.
+```hcl
 resource "alicloud_disk" "ecs_disk" {
-  # cn-beijing
   availability_zone = "cn-beijing-b"
   name              = "New-disk"
   description       = "Hello ecs disk."
@@ -34,7 +32,7 @@ resource "alicloud_disk" "ecs_disk" {
 The following arguments are supported:
 
 * `availability_zone` - (Required, Forces new resource) The Zone to create the disk in.
-* `name` - (Optional) Name of the ECS disk. This name can have a string of 2 to 128 characters, must contain only alphanumeric characters or hyphens, such as "-",".","_", and must not begin or end with a hyphen, and must not begin with http:// or https://. Default value is null.
+* `name` - (Optional) Name of the ECS disk. This name can have a string of 2 to 128 characters, must contain only alphanumeric characters or hyphens, such as "-",".","\_", and must not begin or end with a hyphen, and must not begin with http:// or https://. Default value is null.
 * `description` - (Optional) Description of the disk. This description can have a string of 2 to 256 characters, It cannot begin with http:// or https://. Default value is null.
 * `category` - (Optional, Forces new resource) Category of the disk. Valid values are `cloud`, `cloud_efficiency` and `cloud_ssd`. Default is `cloud`.
 * `size` - (Required) The size of the disk in GiBs, and its value depends on `Category`. `cloud` disk value range: 5GB ~ 2000GB and other category disk value range: 20 ~ 32768.

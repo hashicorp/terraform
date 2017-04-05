@@ -6,20 +6,20 @@ description: |-
   Provides an Application Load Banlancer Attachment resource.
 ---
 
-# alicloud\_slb\_attachment
+# alicloud_slb_attachment
 
 Provides an Application Load Balancer Attachment resource.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new load balancer attachment for classic
 resource "alicloud_slb" "default" {
-  # Other parameters...
+  # ...
 }
 
 resource "alicloud_instance" "default" {
-  # Other parameters...
+  # ...
 }
 
 resource "alicloud_slb_attachment" "default" {

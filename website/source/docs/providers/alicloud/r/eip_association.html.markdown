@@ -6,7 +6,7 @@ description: |-
   Provides a ECS EIP Association resource.
 ---
 
-# alicloud\_eip\_association
+# alicloud_eip_association
 
 Provides an Alicloud EIP Association resource, to associate and disassociate Elastic IPs from ECS Instances.
 
@@ -16,9 +16,7 @@ Provides an Alicloud EIP Association resource, to associate and disassociate Ela
 
 ## Example Usage
 
-```
-# Create a new EIP association and use it to associate a EIP form a instance.
-
+```hcl
 resource "alicloud_vpc" "vpc" {
   cidr_block = "10.1.0.0/21"
 }
