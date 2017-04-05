@@ -85,6 +85,12 @@ The following arguments are supported:
 * `unit` - (Optional) The unit for the alarm's associated metric.
 * `extended_statistic` - (Optional) The percentile statistic for the metric associated with the alarm. Specify a value between p0.0 and p100.
 * `treat_missing_data` - (Optional) Sets how this alarm is to handle missing data points. The following values are supported: `missing`, `ignore`, `breaching` and `notBreaching`. Defaults to `missing`.
+* `evaluate_low_sample_count_percentiles` - (Optional) Used only for alarms
+based on percentiles. If you specify `ignore`, the alarm state will not
+change during periods with too few data points to be statistically significant.
+If you specify `evaluate` or omit this parameter, the alarm will always be
+evaluated and possibly change state no matter how many data points are available.
+The following values are supported: `ignore`, and `evaluate`.
 
 ## Attributes Reference
 
