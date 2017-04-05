@@ -487,6 +487,7 @@ resource "aws_redshift_cluster" "test_cluster" {
   master_password = "T3stPass"
   node_type = "dc1.large"
   cluster_type = "single-node"
+	skip_final_snapshot = true
 }`
 
 var testAccKinesisFirehoseDeliveryStreamConfig_RedshiftBasic = testAccKinesisFirehoseDeliveryStreamBaseRedshiftConfig + `
