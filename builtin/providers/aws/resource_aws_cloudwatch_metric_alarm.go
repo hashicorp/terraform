@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsCloudWatchMetricAlarm() *schema.Resource {
@@ -95,6 +96,12 @@ func resourceAwsCloudWatchMetricAlarm() *schema.Resource {
 				Optional:      true,
 				ConflictsWith: []string{"statistic"},
 			},
+			"treat_missing_data": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validation.StringInSlice([]string{"breaching", "notBreaching", "ignore", "missing"}, true),
+			},
 		},
 	}
 }
@@ -161,6 +168,7 @@ func resourceAwsCloudWatchMetricAlarmRead(d *schema.ResourceData, meta interface
 	d.Set("threshold", a.Threshold)
 	d.Set("unit", a.Unit)
 	d.Set("extended_statistic", a.ExtendedStatistic)
+	d.Set("treat_missing_data", a.TreatMissingData)
 
 	return nil
 }
@@ -234,6 +242,10 @@ func getAwsCloudWatchPutMetricAlarmInput(d *schema.ResourceData) cloudwatch.PutM
 
 	if v, ok := d.GetOk("extended_statistic"); ok {
 		params.ExtendedStatistic = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("treat_missing_data"); ok {
+		params.TreatMissingData = aws.String(v.(string))
 	}
 
 	var alarmActions []*string
