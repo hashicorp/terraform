@@ -26,9 +26,9 @@ already.
 
 Atlas configuration looks like the following:
 
-```
+```hcl
 atlas {
-	name = "mitchellh/production-example"
+  name = "mitchellh/production-example"
 }
 ```
 
@@ -51,8 +51,8 @@ set defaults, then use the command-line flags of the
 
 The full syntax is:
 
-```
+```text
 atlas {
-	name = VALUE
+  name = VALUE
 }
 ```

@@ -16,7 +16,7 @@ State will be fetched via GET, updated via POST, and purged with DELETE.
 
 ## Example Usage
 
-```
+```hcl
 terraform {
   backend "http" {
     address = "http://myrest.api.com"
@@ -26,12 +26,12 @@ terraform {
 
 ## Example Referencing
 
-```
+```hcl
 data "terraform_remote_state" "foo" {
-	backend = "http"
-	config {
-		address = "http://my.rest.api.com"
-	}
+  backend = "http"
+  config {
+    address = "http://my.rest.api.com"
+  }
 }
 ```
 

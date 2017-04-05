@@ -14,7 +14,7 @@ bootstrap a resource, cleanup before destroy, run configuration management, etc.
 
 Provisioners are added directly to any resource:
 
-```
+```hcl
 resource "aws_instance" "web" {
   # ...
 
@@ -82,7 +82,7 @@ file.
 
 Example of multiple provisioners:
 
-```
+```hcl
 resource "aws_instance" "web" {
   # ...
 
@@ -102,14 +102,14 @@ By default, provisioners that fail will also cause the Terraform apply
 itself to error. The `on_failure` setting can be used to change this. The
 allowed values are:
 
-  * `"continue"` - Ignore the error and continue with creation or destruction.
+- `"continue"` - Ignore the error and continue with creation or destruction.
 
-  * `"fail"` - Error (the default behavior). If this is a creation provisioner,
+- `"fail"` - Error (the default behavior). If this is a creation provisioner,
     taint the resource.
 
 Example:
 
-```
+```hcl
 resource "aws_instance" "web" {
   # ...
 

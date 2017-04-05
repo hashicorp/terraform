@@ -19,7 +19,7 @@ and generate new token in the
 
 ## Example Configuration
 
-```
+```hcl
 terraform {
   backend "atlas" {
     name         = "bigbang/example"
@@ -33,13 +33,13 @@ Note that for the access token we recommend using a
 
 ## Example Referencing
 
-```
+```hcl
 data "terraform_remote_state" "foo" {
-	backend = "atlas"
-	config {
-		name = "bigbang/example"
-		access_token = "X2iTFefU5aWOjg.atlasv1.YaDa"
-	}
+  backend = "atlas"
+  config {
+    name         = "bigbang/example"
+    access_token = "X2iTFefU5aWOjg.atlasv1.YaDa"
+  }
 }
 ```
 

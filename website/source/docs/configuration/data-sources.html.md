@@ -36,17 +36,19 @@ already.
 
 A data source configuration looks like the following:
 
-```
-// Find the latest available AMI that is tagged with Component = web
+```hcl
+# Find the latest available AMI that is tagged with Component = web
 data "aws_ami" "web" {
   filter {
-    name = "state"
+    name   = "state"
     values = ["available"]
   }
+
   filter {
-    name = "tag:Component"
+    name   = "tag:Component"
     values = ["web"]
   }
+
   most_recent = true
 }
 ```
@@ -65,10 +67,10 @@ Each data instance will export one or more attributes, which can be
 interpolated into other resources using variables of the form
 `data.TYPE.NAME.ATTR`. For example:
 
-```
+```hcl
 resource "aws_instance" "web" {
-    ami = "${data.aws_ami.web.id}"
-    instance_type = "t1.micro"
+  ami           = "${data.aws_ami.web.id}"
+  instance_type = "t1.micro"
 }
 ```
 
@@ -78,13 +80,12 @@ Similarly to [resources](/docs/configuration/resources.html), the
 `provider` meta-parameter can be used where a configuration has
 multiple aliased instances of the same provider:
 
-```
+```hcl
 data "aws_ami" "web" {
   provider = "aws.west"
 
-  // etc...
+  # ...
 }
-
 ```
 
 See the "Multiple Provider Instances" documentation for resources

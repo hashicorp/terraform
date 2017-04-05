@@ -87,7 +87,7 @@ If the value contains an equal sign (`=`), it is parsed as a `key=value` pair.
 The format of this flag is identical to the `-var` flag for plan, apply,
 etc. but applies to configuration keys for backends. For example:
 
-```
+```shell
 $ terraform init \
   -backend-config 'address=demo.consul.io' \
   -backend-config 'path=newpath'
