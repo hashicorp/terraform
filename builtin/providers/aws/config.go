@@ -160,6 +160,14 @@ type AWSClient struct {
 	wafconn               *waf.WAF
 }
 
+func (c *AWSClient) S3() *s3.S3 {
+	return c.s3conn
+}
+
+func (c *AWSClient) DynamoDB() *dynamodb.DynamoDB {
+	return c.dynamodbconn
+}
+
 // Client configures and returns a fully initialized AWSClient
 func (c *Config) Client() (interface{}, error) {
 	// Get the auth and region. This can fail if keys/regions were not
