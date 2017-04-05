@@ -10,9 +10,20 @@
     <link rel="icon" type="image/png" href="<%= image_path("favicons/favicon-32x32.png") %>" sizes="32x32">
     <link rel="icon" type="image/png" href="<%= image_path("favicons/favicon-16x16.png") %>" sizes="16x16">
     <link rel="manifest" href="/android-manifest.json">
-    <link rel="mask-icon" href="<%= image_path("favicons/safari-pinned-tab.svg") %>" color="#23414a">
+    <link rel="mask-icon" href="<%= image_path("favicons/safari-pinned-tab.svg") %>" color="#5C4EE5">
     <meta name="msapplication-config" content="/microsoft-tile.xml" />
     <meta name="theme-color" content="#ffffff">
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@HashiCorp" />
+    <meta name="twitter:creator" content="@HashiCorp" />
+    <meta property="og:url" content="<%= File.join(base_url, current_page.url) %>" />
+    <meta property="og:title" content="<%= title_for(current_page) %>" />
+    <meta property="og:site_name" content="Terraform by HashiCorp"/>
+    <meta property="og:image" content="<%= image_url("og-image.png") %>"/>
+    <meta property="og:image:width" content="1200"/>
+    <meta property="og:image:height" content="1200"/>
+    <meta property="og:description" content="<%= description_for(current_page) %>" />
 
     <title><%= title_for(current_page) %></title>
 
