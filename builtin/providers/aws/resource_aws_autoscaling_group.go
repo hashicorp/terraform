@@ -446,7 +446,6 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("health_check_type", g.HealthCheckType)
 	d.Set("launch_configuration", g.LaunchConfigurationName)
 	d.Set("load_balancers", flattenStringList(g.LoadBalancerNames))
-	d.Set("target_group_arns", flattenStringList(g.TargetGroupARNs))
 
 	if err := d.Set("suspended_processes", flattenAsgSuspendedProcesses(g.SuspendedProcesses)); err != nil {
 		log.Printf("[WARN] Error setting suspended_processes for %q: %s", d.Id(), err)

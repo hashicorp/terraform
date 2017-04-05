@@ -445,15 +445,6 @@ func TestAccAWSAutoScalingGroup_ALB_TargetGroups(t *testing.T) {
 						"aws_autoscaling_group.bar", "target_group_arns.#", "1"),
 				),
 			},
-
-			resource.TestStep{
-				Config: testAccAWSAutoScalingGroupConfig_ALB_TargetGroup_pre,
-				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
-					resource.TestCheckResourceAttr(
-						"aws_autoscaling_group.bar", "target_group_arns.#", "0"),
-				),
-			},
 		},
 	})
 }
