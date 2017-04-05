@@ -16,6 +16,9 @@ func Provider() terraform.ResourceProvider {
 				Description: "The token key for API operations.",
 			},
 		},
+		DataSourcesMap: map[string]*schema.Resource{
+			"digitalocean_snapshot": dataSourceDigitalOceanSnapshot(),
+		},
 
 		ResourcesMap: map[string]*schema.Resource{
 			"digitalocean_domain":       resourceDigitalOceanDomain(),
