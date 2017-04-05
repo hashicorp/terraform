@@ -94,9 +94,9 @@ func LockWithContext(ctx context.Context, s State, info *LockInfo) (string, erro
 			return "", err
 		}
 
-		if le.Info.ID == "" {
-			// the lock has no ID, something is wrong so don't keep trying
-			return "", fmt.Errorf("lock error missing ID: %s", err)
+		if le == nil || le.Info == nil || le.Info.ID == "" {
+			// If we dont' have a complete LockError, there's something wrong with the lock
+			return "", err
 		}
 
 		if postLockHook != nil {
