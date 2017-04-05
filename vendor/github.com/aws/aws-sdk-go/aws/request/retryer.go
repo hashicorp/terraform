@@ -26,8 +26,9 @@ func WithRetryer(cfg *aws.Config, retryer Retryer) *aws.Config {
 // retryableCodes is a collection of service response codes which are retry-able
 // without any further action.
 var retryableCodes = map[string]struct{}{
-	"RequestError":   {},
-	"RequestTimeout": {},
+	"RequestError":            {},
+	"RequestTimeout":          {},
+	"RequestTimeoutException": {}, // Glacier's flavor of RequestTimeout
 }
 
 var throttleCodes = map[string]struct{}{
