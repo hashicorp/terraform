@@ -29,16 +29,12 @@ func TestBackend_impl(t *testing.T) {
 }
 
 func TestBackendConfig(t *testing.T) {
-	// This test just instantiates the client. Shouldn't make any actual
-	// requests nor incur any costs.
-
+	testACC(t)
 	config := map[string]interface{}{
 		"region":     "us-west-1",
 		"bucket":     "tf-test",
 		"key":        "state",
 		"encrypt":    true,
-		"access_key": "ACCESS_KEY",
-		"secret_key": "SECRET_KEY",
 		"lock_table": "dynamoTable",
 	}
 
@@ -58,11 +54,11 @@ func TestBackendConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error when requesting credentials")
 	}
-	if credentials.AccessKeyID != "ACCESS_KEY" {
-		t.Fatalf("Incorrect Access Key Id was populated")
+	if credentials.AccessKeyID == "" {
+		t.Fatalf("No Access Key Id was populated")
 	}
-	if credentials.SecretAccessKey != "SECRET_KEY" {
-		t.Fatalf("Incorrect Secret Access Key was populated")
+	if credentials.SecretAccessKey == "" {
+		t.Fatalf("No Secret Access Key was populated")
 	}
 }
 
