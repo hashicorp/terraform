@@ -1,98 +1,22 @@
-body.page-sub{
-  #footer{
-    padding: 40px 0;
-    margin-top: 0;
+#footer {
+  padding-top: 50px;
 
-    .hashicorp-project{
-      margin-top: 24px;
-      &:hover{
-        svg{
-          .svg-bg-line{
-            opacity: .4;
-          }
+  ul.footer-links {
+    li {
+      a {
+        color: $footer-link-color;
+        font-size: $footer-font-size;
+        font-family: $font-family-open-sans;
+        text-decoration: none;
+
+        &:hover, &:focus, &:active {
+          background-color: transparent;
+          color: $footer-link-color-hover;
+          outline: 0;
         }
-      }      
-    }
-  }
-}
 
-#footer{
-  background-color: white;
-  padding: 150px 0 80px;
-  margin-top: -40px;
-
-  &.white{
-    background-color: $black;
-    .footer-links{
-      li > a {
-        @include project-footer-a-subpage-style();
-      }
-    }
-  }
-
-  .footer-links{
-    li > a {
-      @include project-footer-a-style();
-    }
-  }
-
-  .hashicorp-project{
-    margin-top: 24px;
-  }
-
-  .pull-right{
-    padding-right: 15px;
-  }
-}
-
-.edit-page-link{
-  position: absolute;
-  top: -70px;
-  right: 30px;
-  z-index: 9999;
-
-  a{
-    text-transform: uppercase;
-    color: $black;
-    font-size: 13px;
-  }
-}
-
-@media (max-width: 992px) {
-  .footer-links {
-    display: block;
-    text-align: center;
-
-    ul{
-      display: inline-block;;
-      float: none !important;
-    }
-
-    .footer-hashi{
-      display: block;
-      float: none !important;
-    }
-  }
-}
-
-@media (max-width: 414px) {
-  #footer{
-    ul{
-      display: block;
-      li{
-        display: block;
-        float: none;
-      }
-
-      &.external-links{
-        li{
-          svg{
-            position: relative;
-            left: 0;
-            top: 2px;
-            margin-top: 0;
-            margin-right: 4px;
-          }
+        @media (max-width: 992px) {
+          text-align: center;
         }
       }
     }
