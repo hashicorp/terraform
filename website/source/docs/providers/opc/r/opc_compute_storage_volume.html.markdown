@@ -53,7 +53,7 @@ The following arguments are supported:
 * `tags` - (Optional) Comma-separated strings that tag the storage volume.
 
 `bootable` supports the following:
-* `image_list` - (Optional) Defines an image list.
+* `image_list` - (Required) Defines an image list.
 * `image_list_entry` - (Optional) Defines an image list entry.
 
 ## Attributes Reference

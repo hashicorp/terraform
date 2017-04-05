@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/go-oracle-terraform/compute"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceInstance() *schema.Resource {
@@ -232,9 +233,10 @@ func resourceInstance() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"index": {
-							Type:     schema.TypeInt,
-							Required: true,
-							ForceNew: true,
+							Type:         schema.TypeInt,
+							Required:     true,
+							ForceNew:     true,
+							ValidateFunc: validation.IntBetween(1, 10),
 						},
 						"volume": {
 							Type:     schema.TypeString,
@@ -337,7 +339,7 @@ func resourceInstance() *schema.Resource {
 				Computed: true,
 			},
 
-			"vcable_id": {
+			"vcable": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -401,8 +403,10 @@ func resourceInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		input.SSHKeys = sshKeys
 	}
 
-	// TODO Add storage things
-	//storage := getStorageAttachments(d)
+	storage := getStorageAttachments(d)
+	if len(storage) > 0 {
+		input.Storage = storage
+	}
 
 	if tags := getStringList(d, "tags"); len(tags) > 0 {
 		input.Tags = tags
@@ -476,7 +480,9 @@ func updateInstanceAttributes(d *schema.ResourceData, instance *compute.Instance
 		return err
 	}
 
-	// TODO Set Storage
+	if err := readStorageAttachments(d, instance.Storage); err != nil {
+		return err
+	}
 
 	if err := setStringList(d, "tags", instance.Tags); err != nil {
 		return err
@@ -512,7 +518,7 @@ func updateInstanceAttributes(d *schema.ResourceData, instance *compute.Instance
 		return err
 	}
 
-	d.Set("vcable_id", instance.VCableID)
+	d.Set("vcable", instance.VCableID)
 	d.Set("virtio", instance.Virtio)
 	d.Set("vnc_address", instance.VNC)
 
@@ -537,10 +543,8 @@ func resourceInstanceDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-// TODO Uncomment this when working on storage
-/*
-func getStorageAttachments(d *schema.ResourceData) []compute.StorageAttachment {
-	storageAttachments := []compute.StorageAttachment{}
+func getStorageAttachments(d *schema.ResourceData) []compute.StorageAttachmentInput {
+	storageAttachments := []compute.StorageAttachmentInput{}
 	storage := d.Get("storage").(*schema.Set)
 	for _, i := range storage.List() {
 		attrs := i.(map[string]interface{})
@@ -550,7 +554,7 @@ func getStorageAttachments(d *schema.ResourceData) []compute.StorageAttachment {
 		})
 	}
 	return storageAttachments
-}*/
+}
 
 // Parses instance_attributes from a string to a map[string]interface and returns any errors.
 func getInstanceAttributes(d *schema.ResourceData) (map[string]interface{}, error) {
@@ -894,4 +898,22 @@ func readNetworkInterfaces(d *schema.ResourceData, ifaces map[string]compute.Net
 	}
 
 	return d.Set("networking_info", result)
+}
+
+// Flattens the returned slice of storage attachments to a map
+func readStorageAttachments(d *schema.ResourceData, attachments []compute.StorageAttachment) error {
+	result := make([]map[string]interface{}, 0)
+
+	if attachments == nil || len(attachments) == 0 {
+		return d.Set("storage", nil)
+	}
+
+	for _, attachment := range attachments {
+		res := make(map[string]interface{})
+		res["index"] = attachment.Index
+		res["volume"] = attachment.StorageVolumeName
+		res["name"] = attachment.Name
+		result = append(result, res)
+	}
+	return d.Set("storage", result)
 }

@@ -51,7 +51,7 @@ func resourceOPCStorageVolume() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"image_list": {
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 							ForceNew: true,
 						},
 

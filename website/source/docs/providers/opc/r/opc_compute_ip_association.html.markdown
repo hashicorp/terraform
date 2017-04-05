@@ -3,13 +3,13 @@ layout: "opc"
 page_title: "Oracle: opc_compute_ip_association"
 sidebar_current: "docs-opc-resource-ip-association"
 description: |-
-  Creates and manages an IP association in an OPC identity domain.
+  Creates and manages an IP association in an OPC identity domain for the Shared Network.
 ---
 
 # opc\_compute\_ip\_association
 
 The ``opc_compute_ip_association`` resource creates and manages an association between an IP address and an instance in
-an OPC identity domain.
+an OPC identity domain, for the Shared Network.
 
 ## Example Usage
 

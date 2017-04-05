@@ -61,7 +61,7 @@ func TestAccOPCInstance_sharedNetworking(t *testing.T) {
 					resource.TestCheckResourceAttr(resName, "reverse_dns", "true"),
 					resource.TestCheckResourceAttr(resName, "state", "running"),
 					resource.TestCheckResourceAttr(resName, "tags.#", "2"),
-					resource.TestCheckResourceAttrSet(resName, "vcable_id"),
+					resource.TestCheckResourceAttrSet(resName, "vcable"),
 					resource.TestCheckResourceAttr(resName, "virtio", "false"),
 
 					// Check Data Source to validate networking attributes
@@ -111,6 +111,26 @@ func TestAccOPCInstance_ipNetwork(t *testing.T) {
 					resource.TestCheckResourceAttr(dataName, "ip_network", fmt.Sprintf("testing-ip-network-%d", rInt)),
 					resource.TestCheckResourceAttr(dataName, "vnic", fmt.Sprintf("ip-network-test-%d", rInt)),
 					resource.TestCheckResourceAttr(dataName, "shared_network", "false"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccOPCInstance_storage(t *testing.T) {
+	resName := "opc_compute_instance.test"
+	rInt := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccOPCCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceStorage(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccOPCCheckInstanceExists,
+					resource.TestCheckResourceAttr(resName, "storage.#", "2"),
 				),
 			},
 		},
@@ -226,4 +246,32 @@ data "opc_compute_network_interface" "test" {
   interface = "eth0"
 }
 `, rInt, rInt, rInt)
+}
+
+func testAccInstanceStorage(rInt int) string {
+	return fmt.Sprintf(`
+resource "opc_compute_storage_volume" "foo" {
+  name = "acc-test-instance-%d"
+  size = 1
+}
+
+resource "opc_compute_storage_volume" "bar" {
+  name = "acc-test-instance-2-%d"
+  size = 1
+}
+
+resource "opc_compute_instance" "test" {
+	name = "acc-test-instance-%d"
+	label = "TestAccOPCInstance_basic"
+	shape = "oc3"
+	image_list = "/oracle/public/oel_6.7_apaas_16.4.5_1610211300"
+	storage {
+		volume = "${opc_compute_storage_volume.foo.name}"
+		index = 1
+	}
+	storage {
+	  volume = "${opc_compute_storage_volume.bar.name}"
+	  index = 2
+	}
+}`, rInt, rInt, rInt)
 }
