@@ -56,6 +56,7 @@ BUG FIXES:
  * provider/aws: Set stickiness to computed in alb_target_group [GH-13278]
  * provider/aws: Increase timeout for deploying `cloudfront_distribution` from 40 to 70 mins [GH-13319]
  * provider/aws: Increase AMI retry timeouts [GH-13324]
+ * provider/aws: Increase subnet deletion timeout [GH-13356]
  * provider/aws: Recreate opsworks_stack on change of service_role_arn [GH-13325]
  * provider/azurerm: Network Security Group - ignoring protocol casing at Import time [GH-13153]
  * provider/azurerm: Fix crash when importing Local Network Gateways [GH-13261]
