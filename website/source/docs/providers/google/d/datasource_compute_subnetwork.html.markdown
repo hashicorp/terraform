@@ -8,14 +8,14 @@ description: |-
 
 # google\_compute\_subnetwork
 
-Get a subnetwork within GCE from his name and region.
+Get a subnetwork within GCE from its name and region.
 
 ## Example Usage
 
-```js
+```tf
 datasource "google_compute_subnetwork" "my-subnetwork" {
-  name          = "default-us-east1"
-  region        = "us-east1"
+  name   = "default-us-east1"
+  region = "us-east1"
 }
 ```
 
@@ -35,8 +35,7 @@ The following arguments are supported:
 
 ## Attributes Reference
 
-In addition to the arguments listed above, the following computed attributes are
-exported:
+In addition to the arguments listed above, the following attributes are exported:
 
 * `network` - The network name or resource link to the parent
     network of this subnetwork. 

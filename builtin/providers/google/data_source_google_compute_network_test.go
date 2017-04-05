@@ -15,21 +15,21 @@ func TestAccDataSourceGoogleNetwork(t *testing.T) {
 			resource.TestStep{
 				Config: TestAccDataSourceGoogleNetworkConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccDataSourceGoogleNetworktCheck("data.google_compute_network.my_network"),
+					testAccDataSourceGoogleNetworkCheck("data.google_compute_network.my_network", "google_compute_network.foobar"),
 				),
 			},
 		},
 	})
 }
 
-func testAccDataSourceGoogleNetworktCheck(name string) resource.TestCheckFunc {
+func testAccDataSourceGoogleNetworkCheck(name string, network_name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
 		if !ok {
 			return fmt.Errorf("root module has no resource called %s", name)
 		}
 
-		networkOrigin, ok := s.RootModule().Resources["google_compute_network.foobar"]
+		networkOrigin, ok := s.RootModule().Resources[network_name]
 		if !ok {
 			return fmt.Errorf("can't find google_compute_network.foobar in state")
 		}
@@ -52,10 +52,10 @@ func testAccDataSourceGoogleNetworktCheck(name string) resource.TestCheckFunc {
 			)
 		}
 
-		if attr["name"] != "network-test" {
+		if attr["name"] != networkOrigin.Primary.Attributes["name"] {
 			return fmt.Errorf("bad name %s", attr["name"])
 		}
-		if attr["description"] != "my-description" {
+		if attr["description"] != networkOrigin.Primary.Attributes["description"] {
 			return fmt.Errorf("bad description %s", attr["description"])
 		}
 

@@ -29,7 +29,7 @@ func dataSourceGoogleComputeSubnetwork() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"network_self_link": &schema.Schema{
+			"network": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -77,7 +77,7 @@ func dataSourceGoogleComputeSubnetworkRead(d *schema.ResourceData, meta interfac
 	d.Set("self_link", subnetwork.SelfLink)
 	d.Set("description", subnetwork.Description)
 	d.Set("gateway_address", subnetwork.GatewayAddress)
-	d.Set("network_self_link", subnetwork.Network)
+	d.Set("network", subnetwork.Network)
 
 	//To put subnet id see resource compute subnetnetwork details
 	subnetwork.Region = region

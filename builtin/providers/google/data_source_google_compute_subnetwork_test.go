@@ -16,20 +16,20 @@ func TestAccDataSourceGoogleSubnetwork(t *testing.T) {
 			resource.TestStep{
 				Config: TestAccDataSourceGoogleSubnetworkConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccDataSourceGoogleSubnetworktCheck("data.google_compute_subnetwork.my_subnetwork"),
+					testAccDataSourceGoogleSubnetworkCheck("data.google_compute_subnetwork.my_subnetwork", "google_compute_subnetwork.foobar"),
 				),
 			},
 		},
 	})
 }
 
-func testAccDataSourceGoogleSubnetworktCheck(name string) resource.TestCheckFunc {
+func testAccDataSourceGoogleSubnetworkCheck(name string, subnetwork_name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
 		if !ok {
 			return fmt.Errorf("root module has no resource called %s", name)
 		}
-		network, ok := s.RootModule().Resources["google_compute_network.foobar"]
+		network, ok := s.RootModule().Resources[subnetwork_name]
 		if !ok {
 			return fmt.Errorf("can't find google_compute_network.foobar in state")
 		}
@@ -57,18 +57,18 @@ func testAccDataSourceGoogleSubnetworktCheck(name string) resource.TestCheckFunc
 			)
 		}
 
-		if attr["name"] != "subnetwork-test" {
+		if attr["name"] != subnetworkOrigin.Primary.Attributes["name"] {
 			return fmt.Errorf("bad name %s", attr["name"])
 		}
 
-		if attr["ip_cidr_range"] != "10.0.0.0/24" {
+		if attr["ip_cidr_range"] != subnetworkOrigin.Primary.Attributes["ip_cidr_range"] {
 			return fmt.Errorf("bad ip_cidr_range %s", attr["ip_cidr_range"])
 		}
-		if attr["network_self_link"] != network.Primary.Attributes["self_link"] {
-			return fmt.Errorf("bad network_name %s", attr["network_self_link"])
+		if attr["network"] != network.Primary.Attributes["network"] {
+			return fmt.Errorf("bad network_name %s", attr["network"])
 		}
 
-		if attr["description"] != "my-description" {
+		if attr["description"] != subnetworkOrigin.Primary.Attributes["description"] {
 			return fmt.Errorf("bad description %s", attr["description"])
 		}
 		return nil

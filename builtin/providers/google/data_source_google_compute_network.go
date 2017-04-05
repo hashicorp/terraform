@@ -40,6 +40,7 @@ func dataSourceGoogleComputeNetwork() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+
 			"subnetworks_self_links": {
 				Type:     schema.TypeList,
 				Computed: true,

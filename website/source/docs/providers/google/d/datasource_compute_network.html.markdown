@@ -1,20 +1,20 @@
 ---
 layout: "google"
 page_title: "Google: google_compute_network"
-sidebar_current: "docs-google-datasource-compute-etwork"
+sidebar_current: "docs-google-datasource-compute-network"
 description: |-
   Get a network within GCE.
 ---
 
 # google\_compute\_network
 
-Get a network within GCE from his name.
+Get a network within GCE from its name.
 
 ## Example Usage
 
-```js
+```tf
 datasource "google_compute_network" "my-network" {
-  name          = "default-us-east1"
+  name = "default-us-east1"
 }
 ```
 
@@ -32,8 +32,7 @@ The following arguments are supported:
 
 ## Attributes Reference
 
-In addition to the arguments listed above, the following computed attributes are
-exported:
+In addition to the arguments listed above, the following attributes are exported:
 
 * `network` - The network name or resource link to the parent
     network of this network. 
