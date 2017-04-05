@@ -33,6 +33,7 @@ IMPROVEMENTS:
  * provider/aws: Support ip_address_type for aws_alb [GH-13227]
  * provider/aws: Migrate `aws_dms_*` resources away from AWS waiters [GH-13291]
  * provider/aws: Add support for treat_missing_data to cloudwatch_metric_alarm [GH-13358]
+ * provider/aws: Add support for evaluate_low_sample_count_percentiles to cloudwatch_metric_alarm [GH-13371]
  * provider/cloudstack: Do not force a new resource when updating `cloudstack_loadbalancer_rule` members [GH-11786]
  * provider/github: Handle the case when issue labels already exist [GH-13182]
  * provider/google: Mark `google_container_cluster`'s `client_key` & `password` inside `master_auth` as sensitive [GH-13148]
