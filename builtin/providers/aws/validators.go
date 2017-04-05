@@ -926,8 +926,9 @@ func validateDmsReplicationTaskId(v interface{}, k string) (ws []string, es []er
 func validateAppautoscalingScalableDimension(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	dimensions := map[string]bool{
-		"ecs:service:DesiredCount":              true,
-		"ec2:spot-fleet-request:TargetCapacity": true,
+		"ecs:service:DesiredCount":                     true,
+		"ec2:spot-fleet-request:TargetCapacity":        true,
+		"elasticmapreduce:instancegroup:InstanceCount": true,
 	}
 
 	if !dimensions[value] {
@@ -939,8 +940,9 @@ func validateAppautoscalingScalableDimension(v interface{}, k string) (ws []stri
 func validateAppautoscalingServiceNamespace(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	namespaces := map[string]bool{
-		"ecs": true,
-		"ec2": true,
+		"ecs":              true,
+		"ec2":              true,
+		"elasticmapreduce": true,
 	}
 
 	if !namespaces[value] {
