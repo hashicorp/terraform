@@ -1,57 +1,78 @@
-//
-// Header
-// - Project Specific
-// - edits should be made here
-// --------------------------------------------------
-
-body.page-sub{
-  #header{
-    background-color: $purple;
-  }
-}
-
 #header {
-  .navbar-brand {
-    .logo{
-      width: $project-logo-width;
-      height: $project-logo-height;
-      font-size: 0px;
-      font-family: $font-family-klavika;
-      background: image-url('logo-header.svg') 0 32% no-repeat;
+  background: $header-background-color;
 
-      &:hover{
-        opacity: .6;
+  .navbar-toggle {
+    height: $header-height;
+    margin: 0;
+    padding-right: 15px;
+    border-radius: 0;
+
+    .icon-bar {
+      border: 1px solid $white;
+      border-radius: 0;
+    }
+  }
+
+  .navbar-brand {
+    display: block;
+    margin: 0;
+    padding: 0;
+
+    a {
+      display: flex;
+      align-items: center;
+      height: $header-height;
+      line-height: $header-height;
+
+      svg.logo {
+        transition: opacity 0.15s ease-in-out;
+        @extend svg.logo.white;
+
+        &:hover, &:focus, &:active {
+          opacity: 0.6;
+          outline: 0;
+          text-decoration: none;
+        }
       }
     }
+  }
 
-    .by-hashicorp{
-      margin-top: 2px;
-      &:hover{
-        svg{
-          .svg-bg-line{
-            opacity: .4;
+  ul.nav {
+    li {
+      a {
+        color: $header-link-color;
+        font-size: $header-font-size;
+        font-family: $font-family-open-sans;
+        font-weight: $font-weight-bold;
+        height: $header-height;
+        line-height: $header-height;
+        padding: 0 10px;
+        margin: 0;
+        text-decoration: none;
+
+        &:hover, &:focus, &:active {
+          background-color: transparent;
+          color: $header-link-color-hover;
+          outline: 0;
+
+          svg {
+            fill: $header-link-color-hover;
           }
         }
-      }
-    }
-  }
 
-  .buttons{
-    margin-top: 2px; //baseline everything
-
-    ul.navbar-nav{
-      li {
-        svg path{
-          fill: $white;
+        svg {
+          fill: $header-link-color;
+          position: relative;
+          top: 2px;
+          width: 14px;
+          height: 14px;
+          margin-right: 3px;
         }
       }
     }
   }
 
-  .main-links,
-  .external-links {
-    li > a {
-      @include project-a-style();
-    }
+  .buttons {
+    margin-top: 2px;
   }
 }

@@ -1,117 +1,35 @@
-//
-// Global Site
-// --------------------------------------------------
-
-/*html{
+html {
+  height: 100%;
+  min-height: 100%;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-}*/
+}
 
 body {
-    // -webkit-font-smoothing: subpixel-antialiased;
-    color: $black;
-    font-size: 15px;
-    font-family: $font-family-open-sans;
-    font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+  color: $body-font-color;
+  background-color: $white;
+  font-size: $font-size;
+  font-family: $font-family-open-sans;
+  font-weight: $font-weight-reg;
+  height: 100%;
+  min-height: 100%;
 }
 
 h1, h2, h3, h4, h5 {
-    -webkit-font-smoothing: antialiased;
-    font-family: $font-family-klavika;
-    font-weight: 600;
-}
-h1{
-	font-size: 42px;
-	line-height: 40px;
-	margin-bottom: 24px;
-  text-transform: uppercase;
+  font-family: $font-family-klavika;
+  -webkit-font-smoothing: antialiased;
 }
 
-h2{
-  font-size: 34px;
-  text-transform: uppercase;
+h1 {
+  margin-bottom: 24px;
 }
 
-h3{
-	font-size: 20px;
-	line-height: 20px;
-  text-transform: uppercase;
-}
-
-h4 {
-  font-size: 18px;
-}
-
-p {
-  margin-bottom: 30px;
-  font-size: 16px;
-  font-weight: regular;
-  line-height: 1.5;
-}
-
-p.lead{
-  font-size: 21px;
-  font-weight: 400 !important;
-}
-
-//an alternative color for buttons in the doc body
-.btn-serf{
-	color: $white !important;
-	background-color: $btn-color;
-	border-radius: $btn-border-radius;
-	//@include box-shadow( $shadow );
-}
-
-.highlight{
-	margin-bottom: 18px;
-}
-
-pre {
-	background-color: $black;
-	color: $white;
-	font-size: 14px;
-	font-weight: normal;
-	font-family: "Courier New", Monaco, Menlo, Consolas, monospace;
-	border: none;
-	padding: 20px;
-	margin-bottom: 0;
-}
-
-// Typekit utilites to hide FOUC
+// Avoid FOUT
 .wf-loading {
   visibility: hidden;
 }
+
 .wf-active, .wf-inactive {
   visibility: visible;
-}
-
-
-//fixed grid below 992 to prevent smaller responsive sizes
-@media (max-width: 992px) {
-	.container{
-		max-width: 970px;
-	}
-}
-
-//all below styles are overriding corrections for below (min-width: 992px)
-//below (min-width: 992px) these styles change
-.navbar-nav {
-	margin: 0;
-}
-
-.navbar-right {
-	float: right !important;
-}
-
-.navbar-nav > li {
-	float: left;
-}
-
-.navbar-nav > li > a {
-	padding-top: 15px;
-	padding-bottom: 15px;
-}
-
-.center {
-    text-align: center;
 }

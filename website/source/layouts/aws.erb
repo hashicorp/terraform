@@ -3,14 +3,14 @@
         <div class="docs-sidebar hidden-print affix-top" role="complementary">
             <ul class="nav docs-sidenav">
                 <li<%= sidebar_current("docs-home") %>>
-                    <a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+                    <a href="/docs/providers/index.html">All Providers</a>
                 </li>
 
                 <li<%= sidebar_current("docs-aws-index") %>>
                     <a href="/docs/providers/aws/index.html">AWS Provider</a>
                 </li>
 
-                <li<%= sidebar_current(/^docs-aws-datasource/) %>>
+                <li<%= sidebar_current("docs-aws-datasource") %>>
                 <a href="#">Data Sources</a>
                     <ul class="nav nav-visible">
 
@@ -140,7 +140,7 @@
                     </ul>
                 </li>
 
-                <li<%= sidebar_current(/^docs-aws-resource-api-gateway/) %>>
+                <li<%= sidebar_current("docs-aws-resource-api-gateway") %>>
                     <a href="#">API Gateway Resources</a>
                     <ul class="nav nav-visible">
                         <li<%= sidebar_current("docs-aws-resource-api-gateway-account") %>>
@@ -194,7 +194,7 @@
                     </ul>
                 </li>
 
-              <li<%= sidebar_current(/^docs-aws-resource-appautoscaling/) %>>
+              <li<%= sidebar_current("docs-aws-resource-appautoscaling") %>>
                 <a href="#">App Autoscaling Resources</a>
                 <ul class="nav nav-visible">
 
@@ -208,7 +208,7 @@
                 </ul>
               </li>
 
-                <li<%= sidebar_current(/^docs-aws-resource-cloudformation/) %>>
+                <li<%= sidebar_current("docs-aws-resource-cloudformation") %>>
                     <a href="#">CloudFormation Resources</a>
                     <ul class="nav nav-visible">
                         <li<%= sidebar_current("docs-aws-resource-cloudformation-stack") %>>
@@ -217,7 +217,7 @@
                     </ul>
                 </li>
 
-                <li<%= sidebar_current(/^docs-aws-resource-cloudfront/) %>>
+                <li<%= sidebar_current("docs-aws-resource-cloudfront") %>>
                     <a href="#">CloudFront Resources</a>
                     <ul class="nav nav-visible">
                         <li<%= sidebar_current("docs-aws-resource-cloudfront-distribution") %>>
@@ -229,7 +229,7 @@
                     </ul>
                 </li>
 
-                <li<%= sidebar_current(/^docs-aws-resource-cloudtrail/) %>>
+                <li<%= sidebar_current("docs-aws-resource-cloudtrail") %>>
                     <a href="#">CloudTrail Resources</a>
                     <ul class="nav nav-visible">
                         <li<%= sidebar_current("docs-aws-resource-cloudtrail") %>>
@@ -238,7 +238,7 @@
                     </ul>
                 </li>
 
-                <li<%= sidebar_current(/^docs-aws-resource-cloudwatch/) %>>
+                <li<%= sidebar_current("docs-aws-resource-cloudwatch") %>>
                     <a href="#">CloudWatch Resources</a>
                     <ul class="nav nav-visible">
                         <li<%= sidebar_current("docs-aws-resource-cloudwatch-event-rule") %>>
@@ -281,7 +281,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-codebuild/) %>>
+                <li<%= sidebar_current("docs-aws-resource-codebuild") %>>
                     <a href="#">CodeBuild Resources</a>
                     <ul class="nav nav-visible">
 
@@ -293,7 +293,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-codecommit/) %>>
+                <li<%= sidebar_current("docs-aws-resource-codecommit") %>>
                     <a href="#">CodeCommit Resources</a>
                     <ul class="nav nav-visible">
 
@@ -307,7 +307,7 @@
                     </ul>
                 </li>
 
-                <li<%= sidebar_current(/^docs-aws-resource-codedeploy/) %>>
+                <li<%= sidebar_current("docs-aws-resource-codedeploy") %>>
                     <a href="#">CodeDeploy Resources</a>
                     <ul class="nav nav-visible">
 
@@ -326,7 +326,7 @@
                     </ul>
                 </li>
 
-                <li<%= sidebar_current(/^docs-aws-resource-codepipeline/) %>>
+                <li<%= sidebar_current("docs-aws-resource-codepipeline") %>>
                     <a href="#">CodePipeline Resources</a>
                     <ul class="nav nav-visible">
 
@@ -337,7 +337,7 @@
                     </ul>
                 </li>
 
-                <li<%= sidebar_current(/^docs-aws-resource-config/) %>>
+                <li<%= sidebar_current("docs-aws-resource-config") %>>
                     <a href="#">Config Resources</a>
                     <ul class="nav nav-visible">
 
@@ -360,7 +360,7 @@
                     </ul>
                 </li>
 
-                <li<%= sidebar_current(/^docs-aws-resource-dms/) %>>
+                <li<%= sidebar_current("docs-aws-resource-dms") %>>
                     <a href="#">Database Migration Service</a>
                     <ul class="nav nav-visible">
 
@@ -387,7 +387,7 @@
                     </ul>
                 </li>
 
-                <li<%= sidebar_current(/^docs-aws-resource-directory-service/) %>>
+                <li<%= sidebar_current("docs-aws-resource-directory-service") %>>
                     <a href="#">Directory Service Resources</a>
                     <ul class="nav nav-visible">
 
@@ -399,7 +399,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-dynamodb/) %>>
+                <li<%= sidebar_current("docs-aws-resource-dynamodb") %>>
                     <a href="#">DynamoDB Resources</a>
                     <ul class="nav nav-visible">
 
@@ -411,7 +411,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-(alb|ami|app|autoscaling|ebs|elb|eip|instance|launch|lb|proxy|snapshot|spot|volume|placement|key-pair|elb_attachment|load-balancer)/) %>>
+                <li<%= sidebar_current("docs-aws-resource-(alb|ami|app|autoscaling|ebs|elb|eip|instance|launch|lb|proxy|snapshot|spot|volume|placement|key-pair|elb_attachment|load-balancer)") %>>
                     <a href="#">EC2 Resources</a>
                     <ul class="nav nav-visible">
 
@@ -565,7 +565,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-(ecs|ecr)/) %>>
+                <li<%= sidebar_current("docs-aws-resource-(ecs|ecr)") %>>
                     <a href="#">ECS Resources</a>
                     <ul class="nav nav-visible">
 
@@ -593,7 +593,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-efs/) %>>
+                <li<%= sidebar_current("docs-aws-resource-efs") %>>
                     <a href="#">EFS Resources</a>
                     <ul class="nav nav-visible">
 
@@ -609,7 +609,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-elasticache/) %>>
+                <li<%= sidebar_current("docs-aws-resource-elasticache") %>>
                     <a href="#">ElastiCache Resources</a>
                     <ul class="nav nav-visible">
 
@@ -637,7 +637,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-elastic-beanstalk/) %>>
+                <li<%= sidebar_current("docs-aws-resource-elastic-beanstalk") %>>
                     <a href="#">Elastic Beanstalk Resources</a>
                     <ul class="nav nav-visible">
                         <li<%= sidebar_current("docs-aws-resource-elastic-beanstalk-application") %>>
@@ -656,7 +656,7 @@
                     </ul>
                 </li>
 
-                <li<%= sidebar_current(/^docs-aws-resource-emr/) %>>
+                <li<%= sidebar_current("docs-aws-resource-emr") %>>
                     <a href="#">Elastic Map Reduce Resources</a>
                     <ul class="nav nav-visible">
                         <li<%= sidebar_current("docs-aws-resource-emr-cluster") %>>
@@ -669,7 +669,7 @@
                     </ul>
                 </li>
 
-                <li<%= sidebar_current(/^docs-aws-resource-elasticsearch/) %>>
+                <li<%= sidebar_current("docs-aws-resource-elasticsearch") %>>
                     <a href="#">ElasticSearch Resources</a>
                     <ul class="nav nav-visible">
 
@@ -684,7 +684,7 @@
                     </ul>
                 </li>
 
-                <li<%= sidebar_current(/^docs-aws-resource-elastic-transcoder/) %>>
+                <li<%= sidebar_current("docs-aws-resource-elastic-transcoder") %>>
                     <a href="#">Elastic Transcoder Resources</a>
                     <ul class="nav nav-visible">
 
@@ -699,7 +699,7 @@
                     </ul>
                 </li>
 
-                <li<%= sidebar_current(/^docs-aws-resource-glacier/) %>>
+                <li<%= sidebar_current("docs-aws-resource-glacier") %>>
                     <a href="#">Glacier Resources</a>
                     <ul class="nav nav-visible">
                         <li<%= sidebar_current("docs-aws-resource-glacier-vault") %>>
@@ -709,7 +709,7 @@
                  </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-iam/) %>>
+                <li<%= sidebar_current("docs-aws-resource-iam") %>>
                     <a href="#">IAM Resources</a>
                     <ul class="nav nav-visible">
 
@@ -796,7 +796,7 @@
                     </ul>
                 </li>
 
-                <li<%= sidebar_current(/^docs-aws-resource-inspector/) %>>
+                <li<%= sidebar_current("docs-aws-resource-inspector") %>>
                   <a href="#">Inspector Resources</a>
                   <ul class="nav nav-visible">
 
@@ -816,7 +816,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-kinesis/) %>>
+                <li<%= sidebar_current("docs-aws-resource-kinesis") %>>
                     <a href="#">Kinesis Resources</a>
                     <ul class="nav nav-visible">
 
@@ -827,7 +827,7 @@
                     </ul>
                 </li>
 
-              <li<%= sidebar_current(/^docs-aws-resource-kinesis-firehose/) %>>
+              <li<%= sidebar_current("docs-aws-resource-kinesis-firehose") %>>
                 <a href="#">Kinesis Firehose Resources</a>
                 <ul class="nav nav-visible">
 
@@ -838,7 +838,7 @@
                 </ul>
               </li>
 
-              <li<%= sidebar_current(/^docs-aws-resource-kms/) %>>
+              <li<%= sidebar_current("docs-aws-resource-kms") %>>
                 <a href="#">KMS Resources</a>
                 <ul class="nav nav-visible">
 
@@ -853,7 +853,7 @@
                 </ul>
               </li>
 
-              <li<%= sidebar_current(/^docs-aws-resource-lambda/) %>>
+              <li<%= sidebar_current("docs-aws-resource-lambda") %>>
                   <a href="#">Lambda Resources</a>
                   <ul class="nav nav-visible">
                       <li<%= sidebar_current("docs-aws-resource-lambda-alias") %>>
@@ -871,7 +871,7 @@
                   </ul>
               </li>
 
-                <li<%= sidebar_current(/^docs-aws-resource-lightsail/) %>>
+                <li<%= sidebar_current("docs-aws-resource-lightsail") %>>
                     <a href="#">Lightsail Resources</a>
                     <ul class="nav nav-visible">
 
@@ -898,7 +898,7 @@
                     </ul>
                 </li>
 
-                <li<%= sidebar_current(/^docs-aws-resource-opsworks/) %>>
+                <li<%= sidebar_current("docs-aws-resource-opsworks") %>>
                     <a href="#">OpsWorks Resources</a>
                     <ul class="nav nav-visible">
 
@@ -969,7 +969,7 @@
                     </ul>
                 </li>
 
-                <li<%= sidebar_current(/^docs-aws-resource-(db|rds)/) %>>
+                <li<%= sidebar_current("docs-aws-resource-(db|rds)") %>>
                     <a href="#">RDS Resources</a>
                     <ul class="nav nav-visible">
 
@@ -1012,7 +1012,7 @@
                     </ul>
                 </li>
 
-              <li<%= sidebar_current(/^docs-aws-resource-redshift/) %>>
+              <li<%= sidebar_current("docs-aws-resource-redshift") %>>
                 <a href="#">Redshift Resources</a>
                 <ul class="nav nav-visible">
 
@@ -1035,7 +1035,7 @@
                 </ul>
               </li>
 
-              <li<%= sidebar_current(/^docs-aws-resource-waf/) %>>
+              <li<%= sidebar_current("docs-aws-resource-waf") %>>
                 <a href="#">WAF Resources</a>
                 <ul class="nav nav-visible">
 
@@ -1071,7 +1071,7 @@
               </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-route53/) %>>
+                <li<%= sidebar_current("docs-aws-resource-route53") %>>
                     <a href="#">Route53 Resources</a>
                     <ul class="nav nav-visible">
 
@@ -1099,7 +1099,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-s3/) %>>
+                <li<%= sidebar_current("docs-aws-resource-s3") %>>
                     <a href="#">S3 Resources</a>
                     <ul class="nav nav-visible">
 
@@ -1122,7 +1122,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-ses/) %>>
+                <li<%= sidebar_current("docs-aws-resource-ses") %>>
                     <a href="#">SES Resources</a>
                     <ul class="nav nav-visible">
 
@@ -1158,7 +1158,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-sfn/) %>>
+                <li<%= sidebar_current("docs-aws-resource-sfn") %>>
                     <a href="#">Step Function Resources</a>
                     <ul class="nav nav-visible">
 
@@ -1174,7 +1174,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-simpledb/) %>>
+                <li<%= sidebar_current("docs-aws-resource-simpledb") %>>
                     <a href="#">SimpleDB Resources</a>
                     <ul class="nav nav-visible">
 
@@ -1186,7 +1186,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-sns/) %>>
+                <li<%= sidebar_current("docs-aws-resource-sns") %>>
                     <a href="#">SNS Resources</a>
                     <ul class="nav nav-visible">
 
@@ -1205,7 +1205,7 @@
                     </ul>
                 </li>
 
-                <li<%= sidebar_current(/^docs-aws-resource-ssm/) %>>
+                <li<%= sidebar_current("docs-aws-resource-ssm") %>>
                     <a href="#">SSM Resources</a>
                     <ul class="nav nav-visible">
 
@@ -1224,7 +1224,7 @@
                     </ul>
                 </li>
 
-                <li<%= sidebar_current(/^docs-aws-resource-sqs/) %>>
+                <li<%= sidebar_current("docs-aws-resource-sqs") %>>
                     <a href="#">SQS Resources</a>
                     <ul class="nav nav-visible">
 
@@ -1240,7 +1240,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-(default|customer|egress-only-internet-gateway|flow|internet-gateway|main-route|network|route-|security-group|subnet|vpc|vpn)/) %>>
+                <li<%= sidebar_current("docs-aws-resource-(default|customer|egress-only-internet-gateway|flow|internet-gateway|main-route|network|route-|security-group|subnet|vpc|vpn)") %>>
                     <a href="#">VPC Resources</a>
                     <ul class="nav nav-visible">
 

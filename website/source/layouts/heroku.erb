@@ -1,42 +1,42 @@
 <% wrap_layout :inner do %>
-	<% content_for :sidebar do %>
-		<div class="docs-sidebar hidden-print affix-top" role="complementary">
-			<ul class="nav docs-sidenav">
-				<li<%= sidebar_current("docs-home") %>>
-				<a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+        <a href="/docs/providers/index.html">All Providers</a>
                 </li>
 
-				<li<%= sidebar_current("docs-heroku-index") %>>
-				<a href="/docs/providers/heroku/index.html">Heroku Provider</a>
+        <li<%= sidebar_current("docs-heroku-index") %>>
+        <a href="/docs/providers/heroku/index.html">Heroku Provider</a>
                 </li>
 
-				<li<%= sidebar_current(/^docs-heroku-resource/) %>>
-				<a href="#">Resources</a>
+        <li<%= sidebar_current("docs-heroku-resource") %>>
+        <a href="#">Resources</a>
                 <ul class="nav nav-visible">
                     <li<%= sidebar_current("docs-heroku-resource-addon") %>>
-					<a href="/docs/providers/heroku/r/addon.html">heroku_addon</a>
+          <a href="/docs/providers/heroku/r/addon.html">heroku_addon</a>
                     </li>
 
                     <li<%= sidebar_current("docs-heroku-resource-app") %>>
-					<a href="/docs/providers/heroku/r/app.html">heroku_app</a>
+          <a href="/docs/providers/heroku/r/app.html">heroku_app</a>
                     </li>
 
                     <li<%= sidebar_current("docs-heroku-resource-cert") %>>
-					<a href="/docs/providers/heroku/r/cert.html">heroku_cert</a>
+          <a href="/docs/providers/heroku/r/cert.html">heroku_cert</a>
                     </li>
 
                     <li<%= sidebar_current("docs-heroku-resource-domain") %>>
-					<a href="/docs/providers/heroku/r/domain.html">heroku_domain</a>
+          <a href="/docs/providers/heroku/r/domain.html">heroku_domain</a>
                     </li>
 
                     <li<%= sidebar_current("docs-heroku-resource-drain") %>>
                     <a href="/docs/providers/heroku/r/drain.html">heroku_drain</a>
                     </li>
-				</ul>
-				</li>
-			</ul>
-		</div>
-	<% end %>
+        </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
 
-	<%= yield %>
-	<% end %>
+  <%= yield %>
+  <% end %>
