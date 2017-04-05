@@ -37,6 +37,10 @@ resource "opc_compute_instance" "test_instance" {
                 vnic = "testing-vnic-name"
                 shared_network = false
         }
+        storage {
+          volume = "${opc_compute_storage_volume.foo.name}"
+          index = 1
+        }
 }
 ```
 
@@ -59,6 +63,8 @@ The following arguments are supported:
 * `label` - (Optional) The label to apply to the instance.
 
 * `networking_info` - (Optional) Information pertaining to an individual network interface to be created and attached to the instance. See [Networking Info](#networking-info) below for more information.
+
+* `storage` - (Optional) Information pertaining to an individual storage attachment to be created during instance creation. Please see [Storage Attachments](#storage-attachments) below for more information. 
 
 * `reverse_dns` - (Optional) If set to `true` (default), then reverse DNS records are created. If set to `false`, no reverse DNS records are created.
 
@@ -126,6 +132,22 @@ The following attributes are supported:
 * `shared_network` - (Required) Whether or not the interface is inside the Shared Network or an IP Network.
 * `vnic` - (Optional, IP Network Only) The name of the vNIC created for the IP Network.
 * `vnic_sets` - (Optional, IP Network Only) The array of vNIC Sets the interface was added to.
+
+## Storage Attachments
+
+Each Storage Attachment config manages a single storage attachment that is created _during instance creation_.
+This means that any storage attachments created during instance creation cannot be detached from the instance.
+Use the `resource_storage_attachment` resource to manage storage attachments for instances if you wish to detach the
+storage volumes at a later date.
+
+The following attributes are supported:
+
+* `index` - (Required) The Index number of the volume attachment. `1` is the boot volume for the instance. Values `1-10` allowed.
+* `volume` - (Required) The name of the storage volume to attach to the instance.
+
+In addition to the above attributes, the following attributes are exported for a storage volume
+
+* `name` - Name of the storage volume attachment.
 
 ## Attributes Reference
 

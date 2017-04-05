@@ -3,12 +3,12 @@ layout: "opc"
 page_title: "Oracle: opc_compute_ip_address_reservation"
 sidebar_current: "docs-opc-resource-ip-address-reservation"
 description: |-
-  Creates and manages an IP address reservation in an OPC identity domain.
+  Creates and manages an IP address reservation in an OPC identity domain for an IP Network.
 ---
 
 # opc\_compute\_ip\_address\_reservation
 
-The ``opc_compute_ip_address_reservation`` resource creates and manages an IP address reservation in an OPC identity domain.
+The ``opc_compute_ip_address_reservation`` resource creates and manages an IP address reservation in an OPC identity domain, for an IP Network.
 
 ## Example Usage
 
