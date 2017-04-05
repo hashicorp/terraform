@@ -51,12 +51,10 @@ func resourceInstance() *schema.Resource {
 			// Optional Attributes //
 			/////////////////////////
 			"instance_attributes": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					return true
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.ValidateJsonString,
 			},
 
 			"boot_order": {
@@ -367,7 +365,12 @@ func resourceInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Get optional instance attributes
-	if attributes, err := getInstanceAttributes(d); err != nil && attributes != nil {
+	attributes, attrErr := getInstanceAttributes(d)
+	if attrErr != nil {
+		return attrErr
+	}
+
+	if attributes != nil {
 		input.Attributes = attributes
 	}
 
