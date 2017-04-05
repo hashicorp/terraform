@@ -45,7 +45,7 @@ final command is outputted unless an error occurs earlier.
 
 An example is shown below:
 
-```
+```shell
 $ echo "1 + 5" | terraform console
 6
 ```
