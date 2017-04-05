@@ -35,6 +35,10 @@ import (
 //    in Amazon EMR (http://docs.aws.amazon.com/ElasticMapReduce/latest/ManagementGuide/emr-automatic-scaling.html)
 //    in the Amazon EMR Management Guide.
 //
+//    * AppStream 2.0 fleets. For more information, see Autoscaling Amazon AppStream
+//    2.0 Resources (http://docs.aws.amazon.com/appstream2/latest/developerguide/autoscaling.html)
+//    in the Amazon AppStream 2.0 Developer Guide.
+//
 // For a list of supported regions, see AWS Regions and Endpoints: Application
 // Auto Scaling (http://docs.aws.amazon.com/general/latest/gr/rande.html#as-app_region)
 // in the AWS General Reference.

@@ -107,6 +107,14 @@ const (
 	// The origin access identity is not valid or doesn't exist.
 	ErrCodeInvalidOriginAccessIdentity = "InvalidOriginAccessIdentity"
 
+	// ErrCodeInvalidOriginKeepaliveTimeout for service response error code
+	// "InvalidOriginKeepaliveTimeout".
+	ErrCodeInvalidOriginKeepaliveTimeout = "InvalidOriginKeepaliveTimeout"
+
+	// ErrCodeInvalidOriginReadTimeout for service response error code
+	// "InvalidOriginReadTimeout".
+	ErrCodeInvalidOriginReadTimeout = "InvalidOriginReadTimeout"
+
 	// ErrCodeInvalidProtocolSettings for service response error code
 	// "InvalidProtocolSettings".
 	//
