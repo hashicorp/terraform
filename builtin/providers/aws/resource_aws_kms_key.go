@@ -136,13 +136,6 @@ func resourceAwsKmsKeyRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	resp, err := conn.DescribeKey(req)
 	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			if awsErr.Code() == "NotFoundException" {
-				log.Printf("[WARN] Removing KMS key %s: Key not found", d.Id())
-				d.SetId("")
-				return nil
-			}
-		}
 		return err
 	}
 	metadata := resp.KeyMetadata
