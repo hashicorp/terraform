@@ -105,6 +105,12 @@ func resourceAwsCloudWatchMetricAlarm() *schema.Resource {
 				Default:      "missing",
 				ValidateFunc: validation.StringInSlice([]string{"breaching", "notBreaching", "ignore", "missing"}, true),
 			},
+			"evaluate_low_sample_count_percentiles": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validation.StringInSlice([]string{"evaluate", "ignore"}, true),
+			},
 		},
 	}
 }
@@ -172,6 +178,7 @@ func resourceAwsCloudWatchMetricAlarmRead(d *schema.ResourceData, meta interface
 	d.Set("unit", a.Unit)
 	d.Set("extended_statistic", a.ExtendedStatistic)
 	d.Set("treat_missing_data", a.TreatMissingData)
+	d.Set("evaluate_low_sample_count_percentiles", a.EvaluateLowSampleCountPercentile)
 
 	return nil
 }
@@ -246,6 +253,10 @@ func getAwsCloudWatchPutMetricAlarmInput(d *schema.ResourceData) cloudwatch.PutM
 
 	if v, ok := d.GetOk("extended_statistic"); ok {
 		params.ExtendedStatistic = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("evaluate_low_sample_count_percentiles"); ok {
+		params.EvaluateLowSampleCountPercentile = aws.String(v.(string))
 	}
 
 	var alarmActions []*string
