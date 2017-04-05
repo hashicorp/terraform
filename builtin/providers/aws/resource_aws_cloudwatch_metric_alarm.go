@@ -13,10 +13,13 @@ import (
 
 func resourceAwsCloudWatchMetricAlarm() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAwsCloudWatchMetricAlarmCreate,
-		Read:   resourceAwsCloudWatchMetricAlarmRead,
-		Update: resourceAwsCloudWatchMetricAlarmUpdate,
-		Delete: resourceAwsCloudWatchMetricAlarmDelete,
+		Create:        resourceAwsCloudWatchMetricAlarmCreate,
+		Read:          resourceAwsCloudWatchMetricAlarmRead,
+		Update:        resourceAwsCloudWatchMetricAlarmUpdate,
+		Delete:        resourceAwsCloudWatchMetricAlarmDelete,
+		SchemaVersion: 1,
+		MigrateState:  resourceAwsCloudWatchMetricAlarmMigrateState,
+
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -99,7 +102,7 @@ func resourceAwsCloudWatchMetricAlarm() *schema.Resource {
 			"treat_missing_data": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Computed:     true,
+				Default:      "missing",
 				ValidateFunc: validation.StringInSlice([]string{"breaching", "notBreaching", "ignore", "missing"}, true),
 			},
 		},
@@ -222,6 +225,7 @@ func getAwsCloudWatchPutMetricAlarmInput(d *schema.ResourceData) cloudwatch.PutM
 		Namespace:          aws.String(d.Get("namespace").(string)),
 		Period:             aws.Int64(int64(d.Get("period").(int))),
 		Threshold:          aws.Float64(d.Get("threshold").(float64)),
+		TreatMissingData:   aws.String(d.Get("treat_missing_data").(string)),
 	}
 
 	if v := d.Get("actions_enabled"); v != nil {
@@ -242,10 +246,6 @@ func getAwsCloudWatchPutMetricAlarmInput(d *schema.ResourceData) cloudwatch.PutM
 
 	if v, ok := d.GetOk("extended_statistic"); ok {
 		params.ExtendedStatistic = aws.String(v.(string))
-	}
-
-	if v, ok := d.GetOk("treat_missing_data"); ok {
-		params.TreatMissingData = aws.String(v.(string))
 	}
 
 	var alarmActions []*string
