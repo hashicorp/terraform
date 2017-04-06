@@ -1,7 +1,7 @@
 @import 'bootstrap-sprockets';
 @import 'bootstrap';
 
-@import url("//fonts.googleapis.com/css?family=Open+Sans:400,600");
+@import url('https://fonts.googleapis.com/css?family=Fira+Mono:500|Open+Sans:400,600');
 
 // Mega Nav
 @import 'hashicorp/mega-nav';
@@ -27,7 +27,7 @@
 @import '_logos';
 
 // Pages
-@import "_community";
-@import "_docs";
-@import "_downloads";
-// @import "_home";
+@import '_community';
+@import '_docs';
+@import '_downloads';
+@import '_home';
