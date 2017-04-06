@@ -29,7 +29,7 @@ type Backend struct {
 }
 
 var (
-	backendConfigKey = contextKey("data")
+	backendConfigKey = contextKey("backend config")
 )
 
 // FromContextBackendConfig extracts a ResourceData with the configuration
