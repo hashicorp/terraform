@@ -47,4 +47,13 @@ func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("VCD_VDC"); v == "" {
 		t.Fatal("VCD_VDC must be set for acceptance tests")
 	}
+	if v := os.Getenv("VCD_TEMPLATE"); v == "" {
+		t.Fatal("VCD_TEMPLATE must be set for acceptance tests")
+	}
+	if v := os.Getenv("VCD_CATALOG"); v == "" {
+		t.Fatal("VCD_CATALOG must be set for acceptance tests")
+	}
+	if v := os.Getenv("VCD_NET"); v == "" {
+		t.Fatal("VCD_NET must be set for acceptance tests")
+	}
 }

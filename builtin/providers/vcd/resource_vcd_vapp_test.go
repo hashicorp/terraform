@@ -48,6 +48,30 @@ func TestAccVcdVApp_PowerOff(t *testing.T) {
 	})
 }
 
+func TestAccVcdVApp_GuestProperties(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVcdVAppDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(testAccCheckVcdVApp_guestProperties,
+					os.Getenv("VCD_TEMPLATE"),
+					os.Getenv("VCD_CATALOG"),
+					os.Getenv("VCD_NET")),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"vcd_vapp.foobar", "name", "foobar"),
+					resource.TestCheckResourceAttr(
+						"vcd_vapp.foobar", "guest_properties.role", "bazbox"),
+					resource.TestCheckResourceAttr(
+						"vcd_vapp.foobar", "guest_properties.team", "TeamFoo"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckVcdVAppExists(n string, vapp *govcd.VApp) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -176,5 +200,20 @@ resource "vcd_vapp" "foobar" {
 	cpus = 1
 	ip = "10.10.102.160"
 	power_on = false
+}
+`
+
+const testAccCheckVcdVApp_guestProperties = `
+resource "vcd_vapp" "foobar" {
+  name = "foobar"
+  template_name = "%s"
+  catalog_name = "%s"
+  network_name = "%s"
+  memory = 1024
+  cpus = 1
+  guest_properties = {
+	  role="bazbox"
+	  team="TeamFoo"
+  }
 }
 `
