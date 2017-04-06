@@ -178,11 +178,6 @@ func resourceOPCStorageVolumeSnapshotRead(d *schema.ResourceData, meta interface
 		return fmt.Errorf("Error reading storage volume snapshot '%s': %v", name, err)
 	}
 
-	if result == nil {
-		d.SetId("")
-		return nil
-	}
-
 	d.Set("volume_name", result.Volume)
 	d.Set("description", result.Description)
 	d.Set("name", result.Name)
