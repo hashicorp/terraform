@@ -18,6 +18,7 @@ resource "opc_compute_storage_volume_snapshot" "test" {
   description = "Description for the Storage Volume"
   tags        = ["bar", "foo"]
   collocated  = true
+  volume_name = "${opc_compute_storage_volume.foo.name}"
 }
 ```
 
@@ -25,7 +26,7 @@ resource "opc_compute_storage_volume_snapshot" "test" {
 
 The following arguments are supported:
 
-* `volume` (Required) The name of the storage volume to create the snapshot from.
+* `volume_name` (Required) The name of the storage volume to create the snapshot from.
 * `description` (Optional) The description of the storage volume snapshot.
 * `name` (Optional) The name of the storage volume snapshot. Will be generated if unspecified.
 * `parent_volume_bootable` (Optional) A string value of whether or not the parent volume is 'bootable' or not. Defaults to `"false"`.

@@ -82,7 +82,7 @@ resource "opc_compute_storage_volume_snapshot" "test" {
   name = "test-acc-stor-vol-%d"
   description = "storage volume snapshot"
   collocated = true
-  volume = "${opc_compute_storage_volume.foo.name}"
+  volume_name = "${opc_compute_storage_volume.foo.name}"
 }
 `, rInt, rInt)
 }
