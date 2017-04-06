@@ -8,7 +8,7 @@ description: |-
   of resources.
 ---
 
-# atlas\_artifact
+# atlas_artifact
 
 Provides a [Data Source](/docs/configuration/data-sources.html) to access to deployment
 artifacts managed by Atlas. This can be used to dynamically configure instantiation
@@ -20,7 +20,7 @@ An artifact can be created that has metadata representing
 an AMI in AWS. This AMI can be used to configure an instance. Any changes
 to this artifact will trigger a change to that instance.
 
-```
+```hcl
 # Read the AMI
 data "atlas_artifact" "web" {
   name  = "hashicorp/web"
