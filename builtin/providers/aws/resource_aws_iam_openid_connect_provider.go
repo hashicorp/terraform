@@ -16,6 +16,10 @@ func resourceAwsIamOpenIDConnectProvider() *schema.Resource {
 		Read:   resourceAwsIamOpenIDConnectProviderRead,
 		Update: resourceAwsIamOpenIDConnectProviderUpdate,
 		Delete: resourceAwsIamOpenIDConnectProviderDelete,
+		Exists: resourceAwsIamOpenIDConnectProviderExists,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"arn": &schema.Schema{
@@ -77,8 +81,8 @@ func resourceAwsIamOpenIDConnectProviderRead(d *schema.ResourceData, meta interf
 
 	d.Set("arn", d.Id())
 	d.Set("url", out.Url)
-	d.Set("client_id_list", out.ClientIDList)
-	d.Set("thumbprint_list", out.ThumbprintList)
+	d.Set("client_id_list", flattenStringList(out.ClientIDList))
+	d.Set("thumbprint_list", flattenStringList(out.ThumbprintList))
 
 	return nil
 }
@@ -110,11 +114,28 @@ func resourceAwsIamOpenIDConnectProviderDelete(d *schema.ResourceData, meta inte
 	_, err := iamconn.DeleteOpenIDConnectProvider(input)
 
 	if err != nil {
-		if err, ok := err.(awserr.Error); ok && err.Code() == "NotFound" {
+		if err, ok := err.(awserr.Error); ok && err.Code() == "NoSuchEntity" {
 			return nil
 		}
 		return fmt.Errorf("Error deleting platform application %s", err)
 	}
 
 	return nil
+}
+
+func resourceAwsIamOpenIDConnectProviderExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+	iamconn := meta.(*AWSClient).iamconn
+
+	input := &iam.GetOpenIDConnectProviderInput{
+		OpenIDConnectProviderArn: aws.String(d.Id()),
+	}
+	_, err := iamconn.GetOpenIDConnectProvider(input)
+	if err != nil {
+		if err, ok := err.(awserr.Error); ok && err.Code() == "NoSuchEntity" {
+			return false, nil
+		}
+		return true, err
+	}
+
+	return true, nil
 }
