@@ -62,7 +62,7 @@ The following arguments are supported:
 
 The `record` block supports:
 
-* `preference` - (Required) String representing the “preference” value of the MX records. Records with lower preference value take priority.
+* `preference` - (Required) String representing the "preference” value of the MX records. Records with lower preference value take priority.
 
 * `exchange` - (Required) The mail server responsible for the domain covered by the MX record.
 
