@@ -51,4 +51,4 @@ $ terraform graph | dot -Tpng > graph.png
 ```
 
 Here is an example graph output:
-![Graph Example](graph-example.png)
+![Graph Example](docs/graph-example.png)
