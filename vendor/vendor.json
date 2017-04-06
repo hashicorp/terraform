@@ -1970,10 +1970,10 @@
 			"revision": "d30f09973e19c1dfcd120b2d9c4f168e68d6b5d5"
 		},
 		{
-			"checksumSHA1": "QKusHEboSl00AnORqkjv0gZEhqw=",
+			"checksumSHA1": "mVLpbxsm+8TlXKgkezrh3c5I7+4=",
 			"path": "github.com/hashicorp/go-oracle-terraform/compute",
-			"revision": "15f277fb824b7af18c6bef8d30d84174154f989b",
-			"revisionTime": "2017-04-05T20:02:51Z"
+			"revision": "381402af3554bcca5fa7eeda94d47003e6ba7ee7",
+			"revisionTime": "2017-04-06T04:33:22Z"
 		},
 		{
 			"checksumSHA1": "DzK7lYwHt5Isq5Zf73cnQqBO2LI=",
