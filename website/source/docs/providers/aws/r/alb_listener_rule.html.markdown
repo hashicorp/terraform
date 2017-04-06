@@ -15,7 +15,7 @@ Provides an Application Load Balancer Listener Rule resource.
 ```
 # Create a new load balancer
 resource "aws_alb" "front_end" {
-  # Other parameters...
+  # ...
 }
 
 resource "aws_alb_listener" "front_end" {
