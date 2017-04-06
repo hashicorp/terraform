@@ -23,7 +23,7 @@ configuration management tools, etc.
 To define a provisioner, modify the resource block defining the
 "example" EC2 instance to look like the following:
 
-```
+```hcl
 resource "aws_instance" "example" {
   ami           = "ami-b374d5a5"
   instance_type = "t2.micro"

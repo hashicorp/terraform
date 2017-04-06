@@ -20,7 +20,7 @@ However, when you upgrade you will need to manually delete old plugins from disk
 
 If you don't do this you will see an error message like the following:
 
-```
+```text
 [WARN] /usr/local/bin/terraform-provisioner-file overrides an internal plugin for file-provisioner.
   If you did not expect to see this message you will need to remove the old plugin.
   See https://www.terraform.io/docs/internals/plugins.html

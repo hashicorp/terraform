@@ -21,10 +21,10 @@ already.
 
 Module configuration looks like the following:
 
-```
+```hcl
 module "consul" {
-	source = "github.com/hashicorp/consul/terraform/aws"
-	servers = 5
+  source  = "github.com/hashicorp/consul/terraform/aws"
+  servers = 5
 }
 ```
 
@@ -54,16 +54,16 @@ lists and maps.
 
 The full syntax is:
 
-```
+```text
 module NAME {
-	source = SOURCE_URL
+  source = SOURCE_URL
 
-	CONFIG ...
+  CONFIG ...
 }
 ```
 
 where `CONFIG` is:
 
-```
+```text
 KEY = VALUE
 ```
