@@ -117,3 +117,14 @@ KEY {
 	CONFIG
 }
 ```
+
+## Interpolation
+Providers support [interpolation syntax](/docs/configuration/interpolation.html) allowing dynamic configuration at run time.
+
+```
+provider "aws" {
+	region = "${var.aws_region}"
+}
+```
+
+Only [variables](/docs/configuration/variables) and [remote state](/docs/state/remote.html) are supported, it is not possible to use the output from a resource, module or data source in the interpolation syntax for a provider.
