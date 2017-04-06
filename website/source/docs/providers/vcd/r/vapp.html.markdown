@@ -34,6 +34,10 @@ resource "vcd_vapp" "web" {
     env     = "staging"
     version = "v1"
   }
+
+  guest_properties {
+    role     = "web"
+  }
 }
 ```
 
@@ -57,4 +61,7 @@ The following arguments are supported:
   `dhcp_pool` set with at least one available IP then this will be set with
   DHCP.
 * `metadata` - (Optional) Key value map of metadata to assign to this vApp
+* `guest_properties` - (Optional) Key value map of properties to pass into the
+  OVF environment of the virtual machine in this vApp. Useful for driving
+  configuration management.
 * `power_on` - (Optional) A boolean value stating if this vApp should be powered on. Default to `true`
