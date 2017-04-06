@@ -213,9 +213,8 @@ func resourceVcdVAppUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	if d.HasChange("guest_properties") {
 		_, nraw := d.GetChange("guest_properties")
-		tmp := nraw.(map[string]interface{})
 		guest_properties := make(map[string]string)
-		for k, v := range tmp {
+		for k, v := range nraw.(map[string]interface{}) {
 			guest_properties[k] = v.(string)
 		}
 		task, err := vapp.SetOvf(guest_properties)
