@@ -140,9 +140,6 @@ data "opc_compute_network_interface" "eth0" {
   instance_id = "${opc_compute_instance.test.id}"
   interface = "eth0"
 }
-data "opc_compute_vnic" "foo" {
-  name = "${data.opc_compute_network_interface.eth0.vnic}"
-}
 resource "opc_compute_ip_address_reservation" "test" {
   name = "testing-ip-address-association-%d"
   description = "testing-desc-%d"
@@ -151,7 +148,7 @@ resource "opc_compute_ip_address_reservation" "test" {
 resource "opc_compute_ip_address_association" "test" {
   name = "testing-acc-%d"
   ip_address_reservation = "${opc_compute_ip_address_reservation.test.name}"
-  vnic = "${data.opc_compute_vnic.foo.name}"
+  vnic = "${data.opc_compute_network_interface.eth0.vnic}"
   description = "acctesting ip address association test %d"
   tags = ["tag1", "tag2"]
 }`, rInt, rInt, rInt, rInt, rInt, rInt, rInt)
