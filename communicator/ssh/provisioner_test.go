@@ -127,3 +127,89 @@ func TestProvisioner_connInfoHostname(t *testing.T) {
 		t.Fatalf("bad %v", conf)
 	}
 }
+
+func TestProvisioner_connInfoRemoteForward(t *testing.T) {
+	r := &terraform.InstanceState{
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: map[string]string{
+				"type":        "ssh",
+				"user":        "root",
+				"password":    "supersecret",
+				"private_key": "someprivatekeycontents",
+				"host":        "example.com",
+				"port":        "22",
+				"timeout":     "30s",
+
+				"bastion_host":   "example.com",
+				"remote_forward": "127.0.1.1:8080:127.0.0.1:80,8081:host:8081",
+			},
+		},
+	}
+
+	conf, err := parseConnectionInfo(r)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(conf.RemoteForwardVal) != 2 {
+		t.Fatalf("bad: %v", conf)
+	}
+
+	if conf.RemoteForwardVal[0].BindPort != 8080 {
+		t.Fatalf("bad: %v", conf)
+	}
+
+	if conf.RemoteForwardVal[0].BindHost != "127.0.1.1" {
+		t.Fatalf("bad %v", conf)
+	}
+
+	if conf.RemoteForwardVal[0].Port != 80 {
+		t.Fatalf("bad: %v", conf)
+	}
+
+	if conf.RemoteForwardVal[0].Host != "127.0.0.1" {
+		t.Fatalf("bad %v", conf)
+	}
+
+	if conf.RemoteForwardVal[1].BindPort != 8081 {
+		t.Fatalf("bad: %v", conf)
+	}
+
+	if conf.RemoteForwardVal[1].BindHost != "localhost" {
+		t.Fatalf("bad %v", conf)
+	}
+
+	if conf.RemoteForwardVal[1].Port != 8081 {
+		t.Fatalf("bad: %v", conf)
+	}
+
+	if conf.RemoteForwardVal[1].Host != "host" {
+		t.Fatalf("bad %v", conf)
+	}
+
+}
+
+func TestProvisioner_connInfoRemoteForwardNone(t *testing.T) {
+	r := &terraform.InstanceState{
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: map[string]string{
+				"type":        "ssh",
+				"user":        "root",
+				"password":    "supersecret",
+				"private_key": "someprivatekeycontents",
+				"host":        "example.com",
+				"port":        "22",
+				"timeout":     "30s",
+			},
+		},
+	}
+
+	conf, err := parseConnectionInfo(r)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(conf.RemoteForwardVal) != 0 {
+		t.Fatalf("bad: %v", conf)
+	}
+}

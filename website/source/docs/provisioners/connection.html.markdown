@@ -80,6 +80,20 @@ provisioner "file" {
   only supported SSH authentication agent is
   [Pageant](http://the.earth.li/~sgtatham/putty/0.66/htmldoc/Chapter9.html#pageant).
 
+* `remote_forward` - The set of ports to forward from the remote host (the host
+  being provisioned) to a given host on the local side of the SSH connection (the side
+  running Terraform). The format is a comma separated list of
+  forward instructions similar to `ssh -R`, i.e. `[bind_address]:port:host:hostport`.
+  `bind_address` is the address to bind on the remote host. It is optional and defaults
+  to `localhost`. `port` is the listen port on the remote side of the SSH connection.
+  `host` is the host to connect to on the local side of the SSH connection.
+  `hostport` is the port to connect to on the local side of the SSH connection.
+  For example `localhost:8080:chef.example.com:80` will forward the port 8080 on the
+  remote host (the host being provisioned) to port 80 of `chef.example.com` on the
+  local side of the SSH connection (the host running Terraform). The feature is
+  useful during bootstrapping if the host being provisioned
+  does not yet have direct network access to required resources, e.g. a Chef Server.
+
 **Additional arguments only supported by the `winrm` connection type:**
 
 * `https` - Set to `true` to connect using HTTPS instead of HTTP.

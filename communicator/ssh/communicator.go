@@ -191,7 +191,53 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 		o.Output("Connected!")
 	}
 
+	for _, rf := range c.connInfo.RemoteForwardVal {
+		src := fmt.Sprintf("%v:%v",
+			rf.BindHost, rf.BindPort)
+		dest := fmt.Sprintf("%v:%v",
+			rf.Host, rf.Port)
+		log.Printf("[DEBUG] Setting up remote port forwarding (remote src %v) (local destination %v)", src, dest)
+
+		// Request the remote side to open src port
+		forwardListener, err := c.client.Listen("tcp", src)
+		if err != nil {
+			log.Printf("[WARN] Unable to register remote src %v: %v", src, err.Error())
+		} else {
+			go portForwardAccept(forwardListener, dest)
+		}
+	}
 	return err
+}
+
+func portForwardAccept(l net.Listener, dest string) {
+	defer l.Close()
+	for {
+		sshConn, err := l.Accept()
+		if err != nil {
+			// will return err != null when ssh connection shutdown
+			break
+		}
+		go forwardTraffic(sshConn, dest)
+	}
+}
+
+func forwardTraffic(sshConn net.Conn, dest string) {
+	localConn, err := net.Dial("tcp", dest)
+	if err != nil {
+		log.Printf("[WARN] Unable to connect to local destination %v: %v", dest, err.Error())
+		sshConn.Close()
+		return
+	}
+
+	go func() {
+		io.Copy(sshConn, localConn)
+		sshConn.Close() // shutdown other side of connection
+	}()
+
+	go func() {
+		io.Copy(localConn, sshConn)
+		localConn.Close() // shutdown other side of connection
+	}()
 }
 
 // Disconnect implementation of communicator.Communicator interface

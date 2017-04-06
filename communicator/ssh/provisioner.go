@@ -6,6 +6,9 @@ import (
 	"log"
 	"net"
 	"os"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/communicator/shared"
@@ -31,6 +34,13 @@ const (
 	DefaultTimeout = 5 * time.Minute
 )
 
+type remoteForward struct {
+	BindHost string
+	BindPort int
+	Host     string
+	Port     int
+}
+
 // connectionInfo is decoded from the ConnInfo of the resource. These are the
 // only keys we look at. If a PrivateKey is given, that is used instead
 // of a password.
@@ -50,6 +60,9 @@ type connectionInfo struct {
 	BastionPrivateKey string `mapstructure:"bastion_private_key"`
 	BastionHost       string `mapstructure:"bastion_host"`
 	BastionPort       int    `mapstructure:"bastion_port"`
+
+	RemoteForward    string          `mapstructure:"remote_forward"`
+	RemoteForwardVal []remoteForward `mapstructure:"-"`
 }
 
 // parseConnectionInfo is used to convert the ConnInfo of the InstanceState into
@@ -117,6 +130,37 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 		}
 	}
 
+	rflist := strings.Split(connInfo.RemoteForward, ",")
+	connInfo.RemoteForwardVal = make([]remoteForward, 0, len(rflist))
+	for _, rf := range rflist {
+		if rf == "" {
+			continue
+		}
+		var v remoteForward
+		// expect format of remote forward connection: [bind_address:]port:host:hostport
+		e := regexp.MustCompile("\\[[^]]*\\]|[^:]+").FindAllString(rf, -1)
+		if len(e) < 3 || len(e) > 4 {
+			return connInfo, fmt.Errorf("Failed to parse remote_foward: %s, expected [bind_address:]port:host:hostport", rf)
+		}
+		offset := 0
+		if len(e) == 3 {
+			v.BindHost = "localhost"
+		} else {
+			v.BindHost = shared.IpFormat(e[0])
+			offset++
+		}
+
+		v.BindPort, err = strconv.Atoi(e[offset])
+		if err != nil {
+			return connInfo, fmt.Errorf("Failed to parse port of remote_foward: %s, expected [bind_address:]port:host:hostport", rf)
+		}
+		v.Host = shared.IpFormat(e[offset+1])
+		v.Port, err = strconv.Atoi(e[offset+2])
+		if err != nil {
+			return connInfo, fmt.Errorf("Failed to parse hostport of remote_foward: %s, expected [bind_address:]port:host:hostport", rf)
+		}
+		connInfo.RemoteForwardVal = append(connInfo.RemoteForwardVal, v)
+	}
 	return connInfo, nil
 }
 
