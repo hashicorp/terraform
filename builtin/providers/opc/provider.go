@@ -36,6 +36,7 @@ func Provider() terraform.ResourceProvider {
 				Description: "The HTTP endpoint for OPC API operations.",
 			},
 
+			// TODO Actually implement this
 			"max_retry_timeout": {
 				Type:        schema.TypeInt,
 				Optional:    true,
