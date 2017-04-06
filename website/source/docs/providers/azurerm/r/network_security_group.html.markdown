@@ -75,11 +75,11 @@ The `security_rule` block supports:
 
 * `destination_address_prefix` - (Required) CIDR or destination IP range or * to match any IP. Tags such as ‘VirtualNetwork’, ‘AzureLoadBalancer’ and ‘Internet’ can also be used.
 
-* `access` - (Required) Specifies whether network traffic is allowed or denied. Possible values are “Allow” and “Deny”.
+* `access` - (Required) Specifies whether network traffic is allowed or denied. Possible values are "Allow” and "Deny”.
 
 * `priority` - (Required) Specifies the priority of the rule. The value can be between 100 and 4096. The priority number must be unique for each rule in the collection. The lower the priority number, the higher the priority of the rule.
 
-* `direction` - (Required) The direction specifies if rule will be evaluated on incoming or outgoing traffic. Possible values are “Inbound” and “Outbound”.
+* `direction` - (Required) The direction specifies if rule will be evaluated on incoming or outgoing traffic. Possible values are "Inbound” and "Outbound”.
 
 
 ## Attributes Reference
