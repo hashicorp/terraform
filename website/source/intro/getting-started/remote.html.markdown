@@ -47,7 +47,7 @@ you'll have to run your own Consul server or use a backend that supports locking
 
 First, configure the backend in your configuration:
 
-```
+```hcl
 terraform {
   backend "consul" {
     address = "demo.consul.io"
@@ -71,7 +71,7 @@ no changes:
 
 ```
 $ terraform plan
-...
+# ...
 
 No changes. Infrastructure is up-to-date.
 
@@ -115,7 +115,7 @@ $ export ATLAS_TOKEN=ATLAS_ACCESS_TOKEN
 Replace `ATLAS_ACCESS_TOKEN` with the token generated earlier. Next,
 configure the Terraform Enterprise backend:
 
-```
+```hcl
 terraform {
   backend "atlas" {
     name = "USERNAME/getting-started"
