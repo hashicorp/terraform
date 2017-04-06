@@ -66,6 +66,10 @@ func resourceVcdVApp() *schema.Resource {
 				Type:     schema.TypeMap,
 				Optional: true,
 			},
+			"guest_properties": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+			},
 			"href": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -205,6 +209,23 @@ func resourceVcdVAppUpdate(d *schema.ResourceData, meta interface{}) error {
 	status, err := vapp.GetStatus()
 	if err != nil {
 		return fmt.Errorf("Error getting VApp status: %#v", err)
+	}
+
+	if d.HasChange("guest_properties") {
+		_, nraw := d.GetChange("guest_properties")
+		tmp := nraw.(map[string]interface{})
+		guest_properties := make(map[string]string)
+		for k, v := range tmp {
+			guest_properties[k] = v.(string)
+		}
+		task, err := vapp.SetOvf(guest_properties)
+		if err != nil {
+			return fmt.Errorf("Error updating guest properties: %#v", err)
+		}
+		err = task.WaitTaskCompletion()
+		if err != nil {
+			return fmt.Errorf("Error completing tasks: %#v", err)
+		}
 	}
 
 	if d.HasChange("metadata") {
