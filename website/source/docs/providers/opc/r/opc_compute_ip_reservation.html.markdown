@@ -30,6 +30,8 @@ The following arguments are supported:
 (if true), or may be returned to the pool and replaced with a different IP address when an instance is restarted, or
 deleted and recreated (if false).
 
+* `name` - (Optional) Name of the IP Reservation. Will be generated if unspecified.
+
 * `tags` - (Optional) List of tags that may be applied to the IP reservation.
 
 ## Import

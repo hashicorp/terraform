@@ -67,7 +67,6 @@ func TestAccOPCInstance_sharedNetworking(t *testing.T) {
 					// Check Data Source to validate networking attributes
 					resource.TestCheckResourceAttr(dataName, "shared_network", "true"),
 					resource.TestCheckResourceAttr(dataName, "nat.#", "1"),
-					resource.TestCheckResourceAttr(dataName, "model", "e1000"),
 					resource.TestCheckResourceAttr(dataName, "sec_lists.#", "1"),
 					resource.TestCheckResourceAttr(dataName, "name_servers.#", "0"),
 					resource.TestCheckResourceAttr(dataName, "vnic_sets.#", "0"),
@@ -205,7 +204,6 @@ resource "opc_compute_instance" "test" {
   tags = ["tag1", "tag2"]
   networking_info {
     index = 0
-    model = "e1000"
     nat = ["ippool:/oracle/public/ippool"]
     shared_network = true
   }
