@@ -30,14 +30,20 @@ resource "opc_compute_image_list" "test" {
   description = "Description for the Image List"
 }
 
+resource "opc_compute_image_list_entry" "test" {
+  name           = "${opc_compute_image_list.test.name}"
+  machine_images = [ "/oracle/public/oel_6.7_apaas_16.4.5_1610211300" ]
+  version        = 1
+}
+
 resource "opc_compute_storage_volume" "test" {
-  name        = "storageVolume1"
-  description = "Description for the Bootable Storage Volume"
-  size        = 30
-  tags        = ["first", "second"]
-  bootable {
-  	image_list = "${opc_compute_image_list.test.name}"
-  }
+  name             = "storageVolume1"
+  description      = "Description for the Bootable Storage Volume"
+  size             = 30
+  tags             = ["first", "second"]
+  bootable         = true
+	image_list       = "${opc_compute_image_list.test.name}"
+  image_list_entry = "${opc_compute_image_list_entry.test.version}"
 }
 ```
 
@@ -49,15 +55,10 @@ The following arguments are supported:
 * `description` (Optional) The description of the storage volume.
 * `size` (Required) The size of this storage volume in GB. The allowed range is from 1 GB to 2 TB (2048 GB).
 * `storage_type` - (Optional) - The Type of Storage to provision. Possible values are `/oracle/public/storage/latency` or `/oracle/public/storage/default`. Defaults to `/oracle/public/storage/default`.
-* `bootable` - (Optional) A `bootable` block as defined below.
+* `bootable` - (Optional) Is the Volume Bootable? Defaults to `false`.
+* `image_list` - (Required) Defines an image list. Required if `bootable` is set to `true`.
+* `image_list_entry` - (Optional) Defines an image list entry. Required if `bootable` is set to `true`.
 * `tags` - (Optional) Comma-separated strings that tag the storage volume.
-* `snapshot` - (Optional) Name of the storage volume snapshot if this storage volume is a clone.
-* `snapshot_account` - (Optional) Account of the parent snapshot from which the storage volume is restored.
-* `snapshot_id` - (Optional) Id of the parent snapshot from which the storage volume is restored or cloned.
-
-`bootable` supports the following:
-* `image_list` - (Required) Defines an image list.
-* `image_list_entry` - (Optional) Defines an image list entry.
 
 ## Attributes Reference
 
