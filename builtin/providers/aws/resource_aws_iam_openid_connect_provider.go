@@ -23,10 +23,12 @@ func resourceAwsIamOpenIDConnectProvider() *schema.Resource {
 				Computed: true,
 			},
 			"url": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: false,
-				Required: true,
-				ForceNew: true,
+				Type:             schema.TypeString,
+				Computed:         false,
+				Required:         true,
+				ForceNew:         true,
+				ValidateFunc:     validateOpenIdURL,
+				DiffSuppressFunc: suppressOpenIdURL,
 			},
 			"client-id-list": &schema.Schema{
 				Elem:     &schema.Schema{Type: schema.TypeString},
