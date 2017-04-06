@@ -30,13 +30,13 @@ func resourceAwsIamOpenIDConnectProvider() *schema.Resource {
 				ValidateFunc:     validateOpenIdURL,
 				DiffSuppressFunc: suppressOpenIdURL,
 			},
-			"client-id-list": &schema.Schema{
+			"client_id_list": &schema.Schema{
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Type:     schema.TypeList,
 				Required: true,
 				ForceNew: true,
 			},
-			"thumbprint-list": &schema.Schema{
+			"thumbprint_list": &schema.Schema{
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Type:     schema.TypeList,
 				Required: true,
@@ -58,8 +58,8 @@ func resourceAwsIamOpenIDConnectProviderCreate(d *schema.ResourceData, meta inte
 
 	input := &iam.CreateOpenIDConnectProviderInput{
 		Url:            aws.String(d.Get("url").(string)),
-		ClientIDList:   aws.StringSlice(stringListToStringSlice(d.Get("client-id-list").([]interface{}))),
-		ThumbprintList: aws.StringSlice(stringListToStringSlice(d.Get("thumbprint-list").([]interface{}))),
+		ClientIDList:   aws.StringSlice(stringListToStringSlice(d.Get("client_id_list").([]interface{}))),
+		ThumbprintList: aws.StringSlice(stringListToStringSlice(d.Get("thumbprint_list").([]interface{}))),
 	}
 
 	out, err := iamconn.CreateOpenIDConnectProvider(input)
@@ -84,9 +84,9 @@ func resourceAwsIamOpenIDConnectProviderRead(d *schema.ResourceData, meta interf
 	}
 
 	d.Set("arn", d.Id())
-	d.Set("url", *out.Url)
-	d.Set("client-id-list", out.ClientIDList)
-	d.Set("thumbprint-list", out.ThumbprintList)
+	d.Set("url", out.Url)
+	d.Set("client_id_list", out.ClientIDList)
+	d.Set("thumbprint_list", out.ThumbprintList)
 
 	return nil
 }
@@ -94,7 +94,7 @@ func resourceAwsIamOpenIDConnectProviderRead(d *schema.ResourceData, meta interf
 func resourceAwsIamOpenIDConnectProviderUpdate(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 
-	if d.HasChange("thumbprint-list") {
+	if d.HasChange("thumbprint_list") {
 		input := &iam.UpdateOpenIDConnectProviderThumbprintInput{
 			OpenIDConnectProviderArn: aws.String(d.Id()),
 		}

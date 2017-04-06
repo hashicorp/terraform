@@ -15,10 +15,10 @@ Provides an IAM OpenID Connect provider.
 ```
 resource "aws_iam_openid_connect_provider" "default" {
     url = "https://accounts.google.com"
-    client-id-list = [
+    client_id_list = [
      "266362248691-342342xasdasdasda-apps.googleusercontent.com"
     ]
-    thumbprint-list = []
+    thumbprint_list = []
 }
 ```
 
@@ -27,8 +27,8 @@ resource "aws_iam_openid_connect_provider" "default" {
 The following arguments are supported:
 
 * `url` - (Required) The URL of the identity provider. Corresponds to the _iss_ claim.
-* `client-id-list` - (Required) A list of client IDs (also known as audiences). When a mobile or web app registers with an OpenID Connect provider, they establish a value that identifies the application. (This is the value that's sent as the client_id parameter on OAuth requests.)
-* `thumbprint-list` - (Required) A list of server certificate thumbprints for the OpenID Connect (OIDC) identity provider's server certificate(s). 
+* `client_id_list` - (Required) A list of client IDs (also known as audiences). When a mobile or web app registers with an OpenID Connect provider, they establish a value that identifies the application. (This is the value that's sent as the client_id parameter on OAuth requests.)
+* `thumbprint_list` - (Required) A list of server certificate thumbprints for the OpenID Connect (OIDC) identity provider's server certificate(s). 
 
 ## Attributes Reference
 

@@ -82,9 +82,9 @@ func testAccCheckIAMOpenIDConnectProvider(id string) resource.TestCheckFunc {
 const testAccIAMOpenIDConnectProviderConfig = `
 resource "aws_iam_openid_connect_provider" "goog" {
   url="https://accounts.google.com"
-  client-id-list = [
+  client_id_list = [
      "266362248691-re108qaeld573ia0l6clj2i5ac7r7291.apps.googleusercontent.com"
   ]
-  thumbprint-list = []
+  thumbprint_list = []
 }
 `
