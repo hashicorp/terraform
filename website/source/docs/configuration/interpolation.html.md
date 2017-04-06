@@ -156,6 +156,8 @@ The supported built-in functions are:
   * `ceil(float)` - Returns the least integer value greater than or equal
       to the argument.
 
+  * `chomp(string)` - Removes trailing newlines from the given string.
+
   * `cidrhost(iprange, hostnum)` - Takes an IP address range in CIDR notation
     and creates an IP address with the given host number. For example,
     `cidrhost("10.0.0.0/8", 2)` returns `10.0.0.2`.

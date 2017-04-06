@@ -370,6 +370,32 @@ func TestInterpolateFuncCeil(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncChomp(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${chomp()}`,
+				nil,
+				true,
+			},
+
+			{
+				`${chomp("hello world")}`,
+				"hello world",
+				false,
+			},
+
+			{
+				`${chomp("goodbye\ncruel\nworld\n")}`,
+				`goodbye
+cruel
+world`,
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncMap(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
