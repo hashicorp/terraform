@@ -40,7 +40,8 @@ IMPROVEMENTS:
  * provider/github: Handle the case when issue labels already exist [GH-13182]
  * provider/google: Mark `google_container_cluster`'s `client_key` & `password` inside `master_auth` as sensitive [GH-13148]
  * provider/triton: Move to joyent/triton-go [GH-13225]
-
+ * provider/bitbucket: Refactoring of bitbucket provider with better error support and general improvments [GH-13390]
+ 
 BUG FIXES: 
 
  * core: Escaped interpolation-like sequences (like `$${foo}`) now permitted in variable defaults [GH-13137]
