@@ -309,6 +309,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_iam_group_membership":                     resourceAwsIamGroupMembership(),
 			"aws_iam_group_policy_attachment":              resourceAwsIamGroupPolicyAttachment(),
 			"aws_iam_instance_profile":                     resourceAwsIamInstanceProfile(),
+			"aws_iam_openid_connect_provider":              resourceAwsIamOpenIDConnectProvider(),
 			"aws_iam_policy":                               resourceAwsIamPolicy(),
 			"aws_iam_policy_attachment":                    resourceAwsIamPolicyAttachment(),
 			"aws_iam_role_policy_attachment":               resourceAwsIamRolePolicyAttachment(),

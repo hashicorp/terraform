@@ -1913,3 +1913,35 @@ func TestValidateDbOptionGroupNamePrefix(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateOpenIdURL(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "http://wrong.scheme.com",
+			ErrCount: 1,
+		},
+		{
+			Value:    "ftp://wrong.scheme.co.uk",
+			ErrCount: 1,
+		},
+		{
+			Value:    "%@invalidUrl",
+			ErrCount: 1,
+		},
+		{
+			Value:    "https://example.com/?query=param",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateOpenIdURL(tc.Value, "url")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %d of OpenID URL validation errors, got %d", tc.ErrCount, len(errors))
+		}
+	}
+}
