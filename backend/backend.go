@@ -83,6 +83,24 @@ type Local interface {
 	Context(*Operation) (*terraform.Context, state.State, error)
 }
 
+// Creator can be implemented by backends to automatically create
+// necessary resources during `init`. The backend will be fully configured
+// before Create is called.
+type Creator interface {
+	// CreateRequired reports resources the backend would need to create so
+	// that the user can be promted for confirmation. The values returned are
+	// purely informational, and any number of values > 0 will indicate that
+	// Create needs to be called.
+	RequiresCreate() ([]string, error)
+
+	// Create calls on the Backend implementation to create any resources that
+	// may be required for operation with the current configuration. An
+	// optional context may be passed in if we need to supply a timout for the
+	// required operations. Any resources created by the Backend during Create
+	// cannot be managed by the terraform tool.
+	Create(contex.Context) error
+}
+
 // An operation represents an operation for Terraform to execute.
 //
 // Note that not all fields are supported by all backends and can result

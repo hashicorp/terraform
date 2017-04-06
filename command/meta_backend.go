@@ -1387,6 +1387,20 @@ func (m *Meta) backendInitFromConfig(c *config.Backend) (backend.Backend, error)
 		return nil, fmt.Errorf(errBackendNewConfig, c.Type, err)
 	}
 
+	if b, ok := b.(backend.Creator); ok {
+		requires, err := b.RequiresCreate()
+		if err != nil {
+			return nil, err
+		}
+		if len(requires) > 0 {
+			// PROMPT FOR CREATE
+			err := b.Create(context.Background())
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	return b, nil
 }
 
