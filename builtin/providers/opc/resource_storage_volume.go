@@ -42,6 +42,26 @@ func resourceOPCStorageVolume() *schema.Resource {
 				}, true),
 			},
 
+			"snapshot": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
+			},
+
+			"snapshot_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"snapshot_account": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"bootable": {
 				Type:     schema.TypeList,
 				Optional: true,
@@ -128,7 +148,19 @@ func resourceOPCStorageVolumeCreate(d *schema.ResourceData, meta interface{}) er
 		Tags:        getStringList(d, "tags"),
 	}
 
-	expandOPCStorageVolumeOptionalFields(d, input)
+	expandOPCStorageVolumeOptionalFields(d, &input)
+
+	if v, ok := d.GetOk("snapshot"); ok {
+		input.Snapshot = v.(string)
+	}
+
+	if v, ok := d.GetOk("snapshot_account"); ok {
+		input.SnapshotAccount = v.(string)
+	}
+
+	if v, ok := d.GetOk("snapshot_id"); ok {
+		input.SnapshotID = v.(string)
+	}
 
 	info, err := client.CreateStorageVolume(&input)
 	if err != nil {
@@ -188,6 +220,9 @@ func resourceOPCStorageVolumeRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("name", result.Name)
 	d.Set("description", result.Description)
 	d.Set("storage", result.Properties[0])
+	d.Set("snapshot", result.Snapshot)
+	d.Set("snapshot_id", result.SnapshotID)
+	d.Set("snapshot_account", result.SnapshotAccount)
 	size, err := strconv.Atoi(result.Size)
 	if err != nil {
 		return err
@@ -220,11 +255,11 @@ func resourceOPCStorageVolumeDelete(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func expandOPCStorageVolumeOptionalFields(d *schema.ResourceData, input compute.CreateStorageVolumeInput) {
-	value, exists := d.GetOk("bootable")
-	input.Bootable = exists
-	if exists {
-		configs := value.([]interface{})
+func expandOPCStorageVolumeOptionalFields(d *schema.ResourceData, input *compute.CreateStorageVolumeInput) {
+	bootValue, bootExists := d.GetOk("bootable")
+	input.Bootable = bootExists
+	if bootExists {
+		configs := bootValue.([]interface{})
 		config := configs[0].(map[string]interface{})
 
 		input.ImageList = config["image_list"].(string)
