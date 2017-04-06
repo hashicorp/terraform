@@ -79,9 +79,10 @@ func resourceOPCIPAddressAssociationCreate(d *schema.ResourceData, meta interfac
 
 func resourceOPCIPAddressAssociationRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*compute.Client).IPAddressAssociations()
+	name := d.Id()
 
 	getInput := compute.GetIPAddressAssociationInput{
-		Name: d.Id(),
+		name,
 	}
 	result, err := client.GetIPAddressAssociation(&getInput)
 	if err != nil {
@@ -90,11 +91,11 @@ func resourceOPCIPAddressAssociationRead(d *schema.ResourceData, meta interface{
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error reading IP Address Association %s: %s", getInput.Name, err)
+		return fmt.Errorf("Error reading IP Address Association %s: %s", name, err)
 	}
 	if result == nil {
 		d.SetId("")
-		return fmt.Errorf("Error reading IP Address Association %s: %s", getInput.Name, err)
+		return fmt.Errorf("Error reading IP Address Association %s: %s", name, err)
 	}
 
 	d.Set("name", result.Name)
