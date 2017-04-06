@@ -10,15 +10,6 @@
   h5,
   h6 {
     margin-top: 30px;
-
-    a {
-      color: inherit;
-
-      &:hover, &:active, &:focus {
-        outline: 0;
-        text-decoration: underline;
-      }
-    }
   }
 
   ul.nav.docs-sidenav {
