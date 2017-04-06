@@ -23,54 +23,41 @@ func TestAccDataSourceGoogleSubnetwork(t *testing.T) {
 	})
 }
 
-func testAccDataSourceGoogleSubnetworkCheck(name string, subnetwork_name string) resource.TestCheckFunc {
+func testAccDataSourceGoogleSubnetworkCheck(data_source_name string, resource_name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[name]
+		ds, ok := s.RootModule().Resources[data_source_name]
 		if !ok {
-			return fmt.Errorf("root module has no resource called %s", name)
+			return fmt.Errorf("root module has no resource called %s", data_source_name)
 		}
-		network, ok := s.RootModule().Resources[subnetwork_name]
+
+		rs, ok := s.RootModule().Resources[resource_name]
 		if !ok {
-			return fmt.Errorf("can't find google_compute_network.foobar in state")
+			return fmt.Errorf("can't find %s in state", resource_name)
 		}
 
-		subnetworkOrigin, ok := s.RootModule().Resources["google_compute_subnetwork.foobar"]
-		if !ok {
-			return fmt.Errorf("can't find google_compute_subnetwork.foobar in state")
+		ds_attr := ds.Primary.Attributes
+		rs_attr := rs.Primary.Attributes
+
+		subnetwork_attrs_to_test := []string{
+			"id",
+			"self_link",
+			"name",
+			"description",
+			"ip_cidr_range",
+			"network",
 		}
 
-		attr := rs.Primary.Attributes
-
-		if attr["id"] != subnetworkOrigin.Primary.Attributes["id"] {
-			return fmt.Errorf(
-				"id is %s; want %s",
-				attr["id"],
-				subnetworkOrigin.Primary.Attributes["id"],
-			)
+		for _, attr_to_check := range subnetwork_attrs_to_test {
+			if ds_attr[attr_to_check] != rs_attr[attr_to_check] {
+				return fmt.Errorf(
+					"%s is %s; want %s",
+					attr_to_check,
+					ds_attr[attr_to_check],
+					rs_attr[attr_to_check],
+				)
+			}
 		}
 
-		if attr["self_link"] != subnetworkOrigin.Primary.Attributes["self_link"] {
-			return fmt.Errorf(
-				"self_link is %s; want %s",
-				attr["self_link"],
-				subnetworkOrigin.Primary.Attributes["self_link"],
-			)
-		}
-
-		if attr["name"] != subnetworkOrigin.Primary.Attributes["name"] {
-			return fmt.Errorf("bad name %s", attr["name"])
-		}
-
-		if attr["ip_cidr_range"] != subnetworkOrigin.Primary.Attributes["ip_cidr_range"] {
-			return fmt.Errorf("bad ip_cidr_range %s", attr["ip_cidr_range"])
-		}
-		if attr["network"] != network.Primary.Attributes["network"] {
-			return fmt.Errorf("bad network_name %s", attr["network"])
-		}
-
-		if attr["description"] != subnetworkOrigin.Primary.Attributes["description"] {
-			return fmt.Errorf("bad description %s", attr["description"])
-		}
 		return nil
 	}
 }

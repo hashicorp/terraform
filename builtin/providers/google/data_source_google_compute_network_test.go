@@ -22,43 +22,37 @@ func TestAccDataSourceGoogleNetwork(t *testing.T) {
 	})
 }
 
-func testAccDataSourceGoogleNetworkCheck(name string, network_name string) resource.TestCheckFunc {
+func testAccDataSourceGoogleNetworkCheck(data_source_name string, resource_name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[name]
+		ds, ok := s.RootModule().Resources[data_source_name]
 		if !ok {
-			return fmt.Errorf("root module has no resource called %s", name)
+			return fmt.Errorf("root module has no resource called %s", data_source_name)
 		}
 
-		networkOrigin, ok := s.RootModule().Resources[network_name]
+		rs, ok := s.RootModule().Resources[resource_name]
 		if !ok {
-			return fmt.Errorf("can't find google_compute_network.foobar in state")
+			return fmt.Errorf("can't find %s in state", resource_name)
 		}
 
-		attr := rs.Primary.Attributes
-
-		if attr["id"] != networkOrigin.Primary.Attributes["id"] {
-			return fmt.Errorf(
-				"id is %s; want %s",
-				attr["id"],
-				networkOrigin.Primary.Attributes["id"],
-			)
+		ds_attr := ds.Primary.Attributes
+		rs_attr := rs.Primary.Attributes
+		network_attrs_to_test := []string{
+			"id",
+			"self_link",
+			"name",
+			"description",
 		}
 
-		if attr["self_link"] != networkOrigin.Primary.Attributes["self_link"] {
-			return fmt.Errorf(
-				"self_link is %s; want %s",
-				attr["self_link"],
-				networkOrigin.Primary.Attributes["self_link"],
-			)
+		for _, attr_to_check := range network_attrs_to_test {
+			if ds_attr[attr_to_check] != rs_attr[attr_to_check] {
+				return fmt.Errorf(
+					"%s is %s; want %s",
+					attr_to_check,
+					ds_attr[attr_to_check],
+					rs_attr[attr_to_check],
+				)
+			}
 		}
-
-		if attr["name"] != networkOrigin.Primary.Attributes["name"] {
-			return fmt.Errorf("bad name %s", attr["name"])
-		}
-		if attr["description"] != networkOrigin.Primary.Attributes["description"] {
-			return fmt.Errorf("bad description %s", attr["description"])
-		}
-
 		return nil
 	}
 }

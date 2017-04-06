@@ -39,11 +39,8 @@ In addition to the arguments listed above, the following attributes are exported
 
 * `description` - Description of this network.
 
-* `ip_v4_range` - (DEPRECATED) The IPv4 address range that machines in this network
-   are assigned to, represented as a CIDR block..
-
 * `gateway_ipv4` - The IP address of the gateway.
 
-* `subnetworks_self_links` - the list of subnetworks which belongs to the network
+* `subnetworks_self_links` - the list of subnetworks which belong to the network
 
 * `self_link` - The URI of the resource.

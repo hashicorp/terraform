@@ -27,15 +27,11 @@ func dataSourceGoogleComputeNetwork() *schema.Resource {
 				Computed: true,
 			},
 
-			"ipv4_range": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
 			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -63,7 +59,7 @@ func dataSourceGoogleComputeNetworkRead(d *schema.ResourceData, meta interface{}
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			// The resource doesn't exist anymore
 
-			return fmt.Errorf("Network Not Found")
+			return fmt.Errorf("Network Not Found : %s", d.Get("name"))
 		}
 
 		return fmt.Errorf("Error reading network: %s", err)
@@ -71,7 +67,6 @@ func dataSourceGoogleComputeNetworkRead(d *schema.ResourceData, meta interface{}
 	d.Set("gateway_ipv4", network.GatewayIPv4)
 	d.Set("self_link", network.SelfLink)
 	d.Set("description", network.Description)
-	d.Set("ipv4_range", network.IPv4Range)
 	d.Set("subnetworks_self_links", network.Subnetworks)
 	d.SetId(network.Name)
 	return nil

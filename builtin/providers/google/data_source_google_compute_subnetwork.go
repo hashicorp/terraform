@@ -41,6 +41,7 @@ func dataSourceGoogleComputeSubnetwork() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -79,7 +80,7 @@ func dataSourceGoogleComputeSubnetworkRead(d *schema.ResourceData, meta interfac
 	d.Set("gateway_address", subnetwork.GatewayAddress)
 	d.Set("network", subnetwork.Network)
 
-	//To put subnet id see resource compute subnetnetwork details
+	//Subnet id creation is defined in resource_compute_subnetwork.go
 	subnetwork.Region = region
 	d.SetId(createSubnetID(subnetwork))
 	return nil
