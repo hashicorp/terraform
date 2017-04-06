@@ -23,6 +23,9 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+// type used for schema package context keys
+type contextKey string
+
 // Schema is used to describe the structure of a value.
 //
 // Read the documentation of the struct elements for important details.
