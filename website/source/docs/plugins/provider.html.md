@@ -70,7 +70,7 @@ This structure implements the `ResourceProvider` interface. We
 recommend creating this structure in a function to make testing easier
 later. Example:
 
-```
+```golang
 func Provider() *schema.Provider {
 	return &schema.Provider{
 		...
@@ -100,7 +100,7 @@ As part of the unit tests, you should call `InternalValidate`. This is used
 to verify the structure of the provider and all of the resources, and reports
 an error if it is invalid. An example test is shown below:
 
-```
+```golang
 func TestProvider(t *testing.T) {
 	if err := Provider().(*schema.Provider).InternalValidate(); err != nil {
 		t.Fatalf("err: %s", err)
@@ -118,7 +118,7 @@ These resources are put into the `ResourcesMap` field of the provider
 structure. Again, we recommend creating functions to instantiate these.
 An example is shown below.
 
-```
+```golang
 func resourceComputeAddress() *schema.Resource {
 	return &schema.Resource {
 		...
@@ -211,7 +211,7 @@ subsequent `terraform apply` fixes this resource.
 Most of the time, partial state is not required. When it is, it must be
 specifically enabled. An example is shown below:
 
-```
+```golang
 func resourceUpdate(d *schema.ResourceData, meta interface{}) error {
 	// Enable partial state mode
 	d.Partial(true)

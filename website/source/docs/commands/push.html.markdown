@@ -105,9 +105,8 @@ The variable values can be updated using the `-overwrite` flag or via
 the [Atlas website](https://atlas.hashicorp.com). An example of updating
 just a single variable `foo` is shown below:
 
-```
+```shell
 $ terraform push -var 'foo=bar' -overwrite foo
-...
 ```
 
 Both the `-var` and `-overwrite` flag are required. The `-var` flag

@@ -29,9 +29,9 @@ We'll improve our configuration by assigning an elastic IP to
 the EC2 instance we're managing. Modify your `example.tf` and
 add the following:
 
-```
+```hcl
 resource "aws_eip" "ip" {
-	instance = "${aws_instance.example.id}"
+  instance = "${aws_instance.example.id}"
 }
 ```
 
@@ -145,10 +145,10 @@ However, you can also specify explicit dependencies with the
 we could modify the "aws\_eip" resource to the following, which
 effectively does the same thing and is redundant:
 
-```
+```hcl
 resource "aws_eip" "ip" {
-	instance = "${aws_instance.example.id}"
-	depends_on = ["aws_instance.example"]
+  instance   = "${aws_instance.example.id}"
+  depends_on = ["aws_instance.example"]
 }
 ```
 
@@ -164,7 +164,7 @@ We can now augment the configuration with another EC2 instance.
 Because this doesn't rely on any other resource, it can be
 created in parallel to everything else.
 
-```
+```hcl
 resource "aws_instance" "another" {
   ami           = "ami-b374d5a5"
   instance_type = "t2.micro"

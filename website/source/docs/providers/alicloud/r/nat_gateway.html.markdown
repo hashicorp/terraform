@@ -6,7 +6,7 @@ description: |-
   Provides a resource to create a VPC NAT Gateway.
 ---
 
-# alicloud\_nat\_gateway
+# alicloud_nat_gateway
 
 Provides a resource to create a VPC NAT Gateway.
 
@@ -14,7 +14,7 @@ Provides a resource to create a VPC NAT Gateway.
 
 Basic usage
 
-```
+```hcl
 resource "alicloud_vpc" "vpc" {
   name       = "tf_test_foo"
   cidr_block = "172.16.0.0/12"
@@ -31,11 +31,12 @@ resource "alicloud_nat_gateway" "nat_gateway" {
   spec   = "Small"
   name   = "test_foo"
 
-  bandwidth_packages = [{
-    ip_count  = 1
-    bandwidth = 5
-    zone      = "cn-beijing-b"
-  },
+  bandwidth_packages = [
+    {
+      ip_count  = 1
+      bandwidth = 5
+      zone      = "cn-beijing-b"
+    },
     {
       ip_count  = 2
       bandwidth = 10
@@ -55,7 +56,7 @@ The following arguments are supported:
 
 * `vpc_id` - (Required, Forces New Resorce) The VPC ID.
 * `spec` - (Required, Forces New Resorce) The specification of the nat gateway. Valid values are `Small`, `Middle` and `Large`. Details refer to [Nat Gateway Specification](https://help.aliyun.com/document_detail/42757.html?spm=5176.doc32322.6.559.kFNBzv)
-* `name` - (Optional) Name of the nat gateway. The value can have a string of 2 to 128 characters, must contain only alphanumeric characters or hyphens, such as "-",".","_", and must not begin or end with a hyphen, and must not begin with http:// or https://. Defaults to null.
+* `name` - (Optional) Name of the nat gateway. The value can have a string of 2 to 128 characters, must contain only alphanumeric characters or hyphens, such as "-",".","\_", and must not begin or end with a hyphen, and must not begin with http:// or https://. Defaults to null.
 * `description` - (Optional) Description of the nat gateway, This description can have a string of 2 to 256 characters, It cannot begin with http:// or https://. Defaults to null.
 * `bandwidth_packages` - (Required) A list of bandwidth packages for the nat gatway.
 
