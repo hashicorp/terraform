@@ -26,6 +26,9 @@ type RemoteClient struct {
 	acl                  string
 	kmsKeyID             string
 	lockTable            string
+
+	// TODO: remove with env upgrade after 0.10
+	updatePath string
 }
 
 func (c *RemoteClient) Get() (*remote.Payload, error) {
