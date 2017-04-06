@@ -188,6 +188,7 @@ type GetStorageVolumeInput struct {
 
 func (c *StorageVolumeClient) success(result *StorageVolumeInfo) (*StorageVolumeInfo, error) {
 	c.unqualify(&result.Name)
+	c.unqualify(&result.Snapshot)
 
 	sizeInMegaBytes, err := sizeInGigaBytes(result.Size)
 	if err != nil {
