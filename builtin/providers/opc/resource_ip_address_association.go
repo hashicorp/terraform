@@ -90,7 +90,11 @@ func resourceOPCIPAddressAssociationRead(d *schema.ResourceData, meta interface{
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error reading IP Address Association %s: %s", d.Id(), err)
+		return fmt.Errorf("Error reading IP Address Association %s: %s", getInput.Name, err)
+	}
+	if result == nil {
+		d.SetId("")
+		return fmt.Errorf("Error reading IP Address Association %s: %s", getInput.Name, err)
 	}
 
 	d.Set("name", result.Name)
