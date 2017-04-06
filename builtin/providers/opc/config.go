@@ -2,11 +2,14 @@ package opc
 
 import (
 	"fmt"
-	"net/http"
+	"log"
 	"net/url"
+	"strings"
 
+	"github.com/fsouza/go-dockerclient/external/github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-oracle-terraform/compute"
 	"github.com/hashicorp/go-oracle-terraform/opc"
+	"github.com/hashicorp/terraform/helper/logging"
 )
 
 type Config struct {
@@ -33,9 +36,26 @@ func (c *Config) Client() (*compute.Client, error) {
 		Username:       &c.User,
 		Password:       &c.Password,
 		APIEndpoint:    u,
-		HTTPClient:     http.DefaultClient,
+		HTTPClient:     cleanhttp.DefaultClient(),
+	}
+
+	if logging.IsDebugOrHigher() {
+		config.LogLevel = opc.LogDebug
+		config.Logger = opcLogger{}
 	}
 
 	// TODO: http client wrapping / log level
 	return compute.NewComputeClient(&config)
+}
+
+type opcLogger struct{}
+
+func (l opcLogger) Log(args ...interface{}) {
+	tokens := make([]string, 0, len(args))
+	for _, arg := range args {
+		if token, ok := arg.(string); ok {
+			tokens = append(tokens, token)
+		}
+	}
+	log.Printf("[DEBUG] [go-oracle-terraform]: %s", strings.Join(tokens, " "))
 }
