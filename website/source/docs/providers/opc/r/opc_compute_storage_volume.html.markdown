@@ -51,6 +51,9 @@ The following arguments are supported:
 * `storage_type` - (Optional) - The Type of Storage to provision. Possible values are `/oracle/public/storage/latency` or `/oracle/public/storage/default`. Defaults to `/oracle/public/storage/default`.
 * `bootable` - (Optional) A `bootable` block as defined below.
 * `tags` - (Optional) Comma-separated strings that tag the storage volume.
+* `snapshot` - (Optional) Name of the storage volume snapshot if this storage volume is a clone.
+* `snapshot_account` - (Optional) Account of the parent snapshot from which the storage volume is restored.
+* `snapshot_id` - (Optional) Id of the parent snapshot from which the storage volume is restored or cloned.
 
 `bootable` supports the following:
 * `image_list` - (Required) Defines an image list.
