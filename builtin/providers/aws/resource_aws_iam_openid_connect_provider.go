@@ -45,21 +45,13 @@ func resourceAwsIamOpenIDConnectProvider() *schema.Resource {
 	}
 }
 
-func stringListToStringSlice(stringList []interface{}) []string {
-	ret := []string{}
-	for _, v := range stringList {
-		ret = append(ret, v.(string))
-	}
-	return ret
-}
-
 func resourceAwsIamOpenIDConnectProviderCreate(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 
 	input := &iam.CreateOpenIDConnectProviderInput{
 		Url:            aws.String(d.Get("url").(string)),
-		ClientIDList:   aws.StringSlice(stringListToStringSlice(d.Get("client_id_list").([]interface{}))),
-		ThumbprintList: aws.StringSlice(stringListToStringSlice(d.Get("thumbprint_list").([]interface{}))),
+		ClientIDList:   expandStringList(d.Get("client_id_list").([]interface{})),
+		ThumbprintList: expandStringList(d.Get("thumbprint_list").([]interface{})),
 	}
 
 	out, err := iamconn.CreateOpenIDConnectProvider(input)
@@ -97,6 +89,7 @@ func resourceAwsIamOpenIDConnectProviderUpdate(d *schema.ResourceData, meta inte
 	if d.HasChange("thumbprint_list") {
 		input := &iam.UpdateOpenIDConnectProviderThumbprintInput{
 			OpenIDConnectProviderArn: aws.String(d.Id()),
+			ThumbprintList:           expandStringList(d.Get("thumbprint_list").([]interface{})),
 		}
 
 		_, err := iamconn.UpdateOpenIDConnectProviderThumbprint(input)
