@@ -49,6 +49,48 @@ func TestAccAWSIAMOpenIDConnectProvider_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSIAMOpenIDConnectProvider_importBasic(t *testing.T) {
+	resourceName := "aws_iam_openid_connect_provider.goog"
+	rString := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckIAMOpenIDConnectProviderDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccIAMOpenIDConnectProviderConfig_modified(rString),
+			},
+
+			resource.TestStep{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccAWSIAMOpenIDConnectProvider_disappears(t *testing.T) {
+	rString := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckIAMOpenIDConnectProviderDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccIAMOpenIDConnectProviderConfig(rString),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckIAMOpenIDConnectProvider("aws_iam_openid_connect_provider.goog"),
+					testAccCheckIAMOpenIDConnectProviderDisappears("aws_iam_openid_connect_provider.goog"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func testAccCheckIAMOpenIDConnectProviderDestroy(s *terraform.State) error {
 	iamconn := testAccProvider.Meta().(*AWSClient).iamconn
 
@@ -75,6 +117,25 @@ func testAccCheckIAMOpenIDConnectProviderDestroy(s *terraform.State) error {
 	}
 
 	return nil
+}
+
+func testAccCheckIAMOpenIDConnectProviderDisappears(id string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[id]
+		if !ok {
+			return fmt.Errorf("Not Found: %s", id)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		iamconn := testAccProvider.Meta().(*AWSClient).iamconn
+		_, err := iamconn.DeleteOpenIDConnectProvider(&iam.DeleteOpenIDConnectProviderInput{
+			OpenIDConnectProviderArn: aws.String(rs.Primary.ID),
+		})
+		return err
+	}
 }
 
 func testAccCheckIAMOpenIDConnectProvider(id string) resource.TestCheckFunc {
