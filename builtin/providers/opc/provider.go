@@ -71,6 +71,7 @@ func Provider() terraform.ResourceProvider {
 			"opc_compute_vnic_set":               resourceOPCVNICSet(),
 			"opc_compute_security_protocol":      resourceOPCSecurityProtocol(),
 			"opc_compute_ip_address_prefix_set":  resourceOPCIPAddressPrefixSet(),
+			"opc_compute_ip_address_association": resourceOPCIPAddressAssociation(),
 		},
 
 		ConfigureFunc: providerConfigure,
