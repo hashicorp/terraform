@@ -44,6 +44,8 @@ func NewComputeClient(c *opc.Config) (*Client, error) {
 	// Setup logger; defaults to stdout
 	if c.Logger == nil {
 		client.logger = opc.NewDefaultLogger()
+	} else {
+		client.logger = c.Logger
 	}
 
 	// If LogLevel was not set to something different,
