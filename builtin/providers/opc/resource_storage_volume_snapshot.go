@@ -2,6 +2,7 @@ package opc
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/hashicorp/go-oracle-terraform/compute"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -18,7 +19,7 @@ func resourceOPCStorageVolumeSnapshot() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			// Required Attributes
-			"volume": {
+			"volume_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -40,10 +41,10 @@ func resourceOPCStorageVolumeSnapshot() *schema.Resource {
 			},
 
 			"parent_volume_bootable": {
-				Type:     schema.TypeString,
+				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
-				Default:  "false",
+				Default:  false,
 			},
 
 			"collocated": {
@@ -124,7 +125,7 @@ func resourceOPCStorageVolumeSnapshotCreate(d *schema.ResourceData, meta interfa
 
 	// Get required attribute
 	input := &compute.CreateStorageVolumeSnapshotInput{
-		Volume: d.Get("volume").(string),
+		Volume: d.Get("volume_name").(string),
 	}
 
 	if v, ok := d.GetOk("description"); ok {
@@ -135,8 +136,10 @@ func resourceOPCStorageVolumeSnapshotCreate(d *schema.ResourceData, meta interfa
 		input.Name = v.(string)
 	}
 
-	if v, ok := d.GetOk("parent_volume_bootable"); ok {
-		input.ParentVolumeBootable = v.(string)
+	// Convert parent_volume_bootable to string
+	bootable := d.Get("parent_volume_bootable").(bool)
+	if bootable {
+		input.ParentVolumeBootable = "true"
 	}
 
 	collocated := d.Get("collocated").(bool)
@@ -180,10 +183,9 @@ func resourceOPCStorageVolumeSnapshotRead(d *schema.ResourceData, meta interface
 		return nil
 	}
 
-	d.Set("volume", result.Volume)
+	d.Set("volume_name", result.Volume)
 	d.Set("description", result.Description)
 	d.Set("name", result.Name)
-	d.Set("parent_volume_bootable", result.ParentVolumeBootable)
 	d.Set("property", result.Property)
 	d.Set("platform", result.Platform)
 	d.Set("account", result.Account)
@@ -196,6 +198,12 @@ func resourceOPCStorageVolumeSnapshotRead(d *schema.ResourceData, meta interface
 	d.Set("status_detail", result.StatusDetail)
 	d.Set("status_timestamp", result.StatusTimestamp)
 	d.Set("uri", result.URI)
+
+	bootable, err := strconv.ParseBool(result.ParentVolumeBootable)
+	if err != nil {
+		return fmt.Errorf("Error converting parent volume to boolean: %v", err)
+	}
+	d.Set("parent_volume_bootable", bootable)
 
 	if result.Property != compute.SnapshotPropertyCollocated {
 		d.Set("collocated", false)

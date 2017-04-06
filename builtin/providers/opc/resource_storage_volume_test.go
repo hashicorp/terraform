@@ -238,10 +238,10 @@ resource "opc_compute_storage_volume" "foo" {
 }
 
 resource "opc_compute_storage_volume_snapshot" "foo" {
-		description = "testing-acc"
-		name = "test-acc-stor-snapshot-%d"
-		collocated = true
-		volume = "${opc_compute_storage_volume.foo.name}"
+  description = "testing-acc"
+  name = "test-acc-stor-snapshot-%d"
+  collocated = true
+  volume_name = "${opc_compute_storage_volume.foo.name}"
 }
 
 // Create storage volume from snapshot
