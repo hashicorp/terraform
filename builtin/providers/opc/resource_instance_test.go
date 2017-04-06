@@ -188,7 +188,7 @@ resource "opc_compute_instance" "test" {
 	image_list = "/oracle/public/oel_6.7_apaas_16.4.5_1610211300"
 	instance_attributes = <<JSON
 {
-  "foo" = "bar"
+  "foo": "bar"
 }
 JSON
 }`, rInt)
