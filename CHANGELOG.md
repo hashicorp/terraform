@@ -36,11 +36,11 @@ IMPROVEMENTS:
  * provider/aws: Add support for treat_missing_data to cloudwatch_metric_alarm [GH-13358]
  * provider/aws: Add support for evaluate_low_sample_count_percentiles to cloudwatch_metric_alarm [GH-13371]
  * provider/aws: Fix `aws_s3_bucket` drift detection of logging options [GH-13281]
+ * provider/bitbucket: Improved error handling [GH-13390]
  * provider/cloudstack: Do not force a new resource when updating `cloudstack_loadbalancer_rule` members [GH-11786]
  * provider/github: Handle the case when issue labels already exist [GH-13182]
  * provider/google: Mark `google_container_cluster`'s `client_key` & `password` inside `master_auth` as sensitive [GH-13148]
  * provider/triton: Move to joyent/triton-go [GH-13225]
- * provider/bitbucket: Refactoring of bitbucket provider with better error support and general improvments [GH-13390]
  
 BUG FIXES: 
 
@@ -69,6 +69,7 @@ BUG FIXES:
  * provider/aws: Fix KMS Key reading with Exists method [GH-13348]
  * provider/azurerm: Network Security Group - ignoring protocol casing at Import time [GH-13153]
  * provider/azurerm: Fix crash when importing Local Network Gateways [GH-13261]
+ * provider/bitbucket: Fixed issue where provider would fail with an "EOF" error on some operations [GH-13390]
  * provider/openstack: Refresh volume_attachment from state if NotFound [GH-13342]
  * provider/profitbricks: Changed output type of ips variable of ip_block ProfitBricks resource [GH-13290]
 
