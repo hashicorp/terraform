@@ -128,20 +128,6 @@ func resourceInstance() *schema.Resource {
 							Optional: true,
 						},
 
-						"model": {
-							// Required, Shared Network only.
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-								value := v.(string)
-								if value != "e1000" {
-									errors = append(errors, fmt.Errorf("Model needs to be set to 'e1000', got: %s", value))
-								}
-								return
-							},
-						},
-
 						"name_servers": {
 							// Optional, IP Network + Shared Network
 							Type:     schema.TypeList,
@@ -205,7 +191,6 @@ func resourceInstance() *schema.Resource {
 					buf.WriteString(fmt.Sprintf("%d-", m["index"].(int)))
 					buf.WriteString(fmt.Sprintf("%s-", m["vnic"].(string)))
 					buf.WriteString(fmt.Sprintf("%s-", m["nat"]))
-					buf.WriteString(fmt.Sprintf("%s-", m["model"].(string)))
 					return hashcode.String(buf.String())
 				},
 			},
@@ -618,6 +603,8 @@ func readNetworkInterfacesFromConfig(d *schema.ResourceData) (map[string]compute
 			if ni["shared_network"].(bool) {
 				// Populate shared network parameters
 				info, err = readSharedNetworkFromConfig(ni)
+				// Set 'model' since we're configuring a shared network interface
+				info.Model = compute.NICDefaultModel
 			} else {
 				// Populate IP Network Parameters
 				info, err = readIPNetworkFromConfig(ni)
@@ -703,7 +690,6 @@ func readSharedNetworkFromConfig(ni map[string]interface{}) (compute.NetworkingI
 // function based off of multiple fields in the supplied schema.
 func validateSharedNetwork(ni map[string]interface{}) error {
 	// A Shared Networking Interface MUST have the following attributes set:
-	// - "model"
 	// - "nat"
 	// The following attributes _cannot_ be set for a shared network:
 	// - "ip_address"
@@ -711,9 +697,6 @@ func validateSharedNetwork(ni map[string]interface{}) error {
 	// - "mac_address"
 	// - "vnic"
 	// - "vnic_sets"
-	if d, ok := ni["model"]; !ok || d.(string) == "" {
-		return fmt.Errorf("'model' field needs to be set for a Shared Networking Interface")
-	}
 
 	if _, ok := ni["nat"]; !ok {
 		return fmt.Errorf("'nat' field needs to be set for a Shared Networking Interface")
@@ -820,17 +803,10 @@ func readIPNetworkFromConfig(ni map[string]interface{}) (compute.NetworkingInfo,
 func validateIPNetwork(ni map[string]interface{}) error {
 	// An IP Networking Interface MUST have the following attributes set:
 	// - "ip_network"
-	// The following attributes _cannot_ be set for an IP Network:
-	// - "model"
 
 	// Required to be set
 	if d, ok := ni["ip_network"]; !ok || d.(string) == "" {
 		return fmt.Errorf("'ip_network' field is required for an IP Network interface")
-	}
-
-	// Requird to be unset
-	if d, ok := ni["model"]; ok && d.(string) != "" {
-		return fmt.Errorf("'model' cannot be set in an IP Network Interface")
 	}
 
 	return nil
@@ -872,7 +848,6 @@ func readNetworkInterfaces(d *schema.ResourceData, ifaces map[string]compute.Net
 			res["mac_address"] = iface.MACAddress
 		}
 		if iface.Model != "" {
-			res["model"] = iface.Model
 			// Model can only be set on Shared networks
 			res["shared_network"] = true
 		}
