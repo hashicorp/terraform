@@ -44,7 +44,6 @@ func (c *Config) Client() (*compute.Client, error) {
 		config.Logger = opcLogger{}
 	}
 
-	// TODO: http client wrapping / log level
 	return compute.NewComputeClient(&config)
 }
 
