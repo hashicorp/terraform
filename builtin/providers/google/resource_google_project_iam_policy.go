@@ -80,11 +80,13 @@ func resourceGoogleProjectIamPolicyCreate(d *schema.ResourceData, meta interface
 		// assumes that Terraform owns any common policy that exists in
 		// the template and project at create time.
 		rp := subtractIamPolicy(ep, p)
-		rps, err := json.Marshal(rp)
+
+		// TODO not unit tested but this fixes the IAM policy issue
+		ps, err := json.Marshal(p)
 		if err != nil {
 			return fmt.Errorf("Error marshaling restorable IAM policy: %v", err)
 		}
-		d.Set("restore_policy", string(rps))
+		d.Set("restore_policy", string(ps))
 
 		// Merge the policies together
 		mb := mergeBindings(append(p.Bindings, rp.Bindings...))
@@ -222,8 +224,11 @@ func resourceGoogleProjectIamPolicyDelete(d *schema.ResourceData, meta interface
 		if err != nil {
 			return fmt.Errorf("Error retrieving previous version of changed project IAM policy: %v", err)
 		}
-		ep.Bindings = rp.Bindings
+
+		// TODO not unit tested but this fixes the IAM policy issue
+		ep = subtractIamPolicy(ep, rp)
 	}
+
 	if err = setProjectIamPolicy(ep, config, pid); err != nil {
 		return fmt.Errorf("Error applying IAM policy to project: %v", err)
 	}
