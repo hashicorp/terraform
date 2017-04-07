@@ -1,28 +1,27 @@
 ---
-layout: "vcs"
-page_title: "Git Integration"
-sidebar_current: "docs-enterprise-vcs-git"
+layout: "enterprise"
+page_title: "Git - VCS Integrations - Terraform Enterprise"
+sidebar_current: "docs-enterprise-vcs-git-"
 description: |-
   Git repositories can be integrated with Terraform Enterprise by using push command.
 ---
 
-# Git Integation
+# Git Integration
 
 Git repositories can be integrated with Terraform Enterprise by using
-[`terraform push`](https://www.terraform.io/docs/commands/push.html) to import
-Terraform configuration when changes are committed. When Terraform
-configuration is imported using `terraform push` a plan is automatically queued.
+[`terraform push`](/docs/commands/push.html) to import Terraform configuration
+when changes are committed. When Terraform configuration is imported using
+`terraform push` a plan is automatically queued.
 
-_**Note:** This integration is for Git repositories **not** hosted on GitHub. 
-For repositories on GitHub, there is native [GitHub Integration](/docs/enterprise/vcs/github.html).
+-> This integration is for Git repositories **not** hosted on GitHub. For GitHub, please see the GitHub documentation instead.
 
 ## Setup
 
 Terraform configuration can be manually imported by running `terraform push`
 like below:
 
-```
-$ terraform push -name=$ATLAS_USERNAME/ENV_NAME
+```shell
+$ terraform push -name=$USERNAME/ENV_NAME
 ```
 
 A better option than having to manually run `terraform push` is to run it
@@ -36,7 +35,7 @@ The script below will execute `terraform push` when you push local changes to
 your Git server. Place the script at `.git/pre-push` in your local Git
 repository, set the necessary variables, and ensure the script is executable.
 
-```
+```shell
 #!/bin/bash
 #
 # An example hook script to push Terraform configuration to Terraform Enterprise.
