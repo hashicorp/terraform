@@ -12,6 +12,7 @@ FEATURES:
 IMPROVEMENTS:
  
  * core: add `-lock-timeout` option, which will block and retry locks for the given duration [GH-13262]
+ * core: new `chomp` interpolation function which returns the given string with any trailing newline characters removed [GH-13419]
  * backend/remote-state: Add support for assume role extensions to s3 backend [GH-13236]
  * config: New interpolation functions `basename` and `dirname`, for file path manipulation [GH-13080]
  * helper/resource: Allow unknown "pending" states [GH-13099]
