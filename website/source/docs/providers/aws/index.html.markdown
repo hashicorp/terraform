@@ -176,14 +176,6 @@ The following arguments are supported in the `provider` block:
 * `insecure` - (Optional) Explicitly allow the provider to
   perform "insecure" SSL requests. If omitted, default value is `false`.
 
-* `dynamodb_endpoint` - (Optional) Use this to override the default endpoint
-  URL constructed from the `region`. It's typically used to connect to
-  `dynamodb-local`.
-
-* `kinesis_endpoint` - (Optional) Use this to override the default endpoint
-  URL constructed from the `region`. It's typically used to connect to
-  `kinesalite`.
-
 * `skip_credentials_validation` - (Optional) Skip the credentials
   validation via the STS API. Useful for AWS API implementations that do
   not have STS available or implemented.
@@ -237,6 +229,14 @@ security credentials. You cannot use the passed policy to grant permissions that
 in excess of those allowed by the access policy of the role that is being assumed.
 
 Nested `endpoints` block supports the following:
+
+* `dynamodb` - (Optional) Use this to override the default endpoint
+  URL constructed from the `region`. It's typically used to connect to
+  `dynamodb-local`.
+
+* `kinesis` - (Optional) Use this to override the default endpoint
+  URL constructed from the `region`. It's typically used to connect to
+  `kinesalite`.
 
 * `iam` - (Optional) Use this to override the default endpoint
   URL constructed from the `region`. It's typically used to connect to
