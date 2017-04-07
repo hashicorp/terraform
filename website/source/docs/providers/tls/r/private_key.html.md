@@ -23,10 +23,10 @@ state and does not create any external managed resources.
 
 ## Example Usage
 
-```
+```hcl
 resource "tls_private_key" "example" {
-    algorithm = "ECDSA"
-    ecdsa_curve = "P384"
+  algorithm   = "ECDSA"
+  ecdsa_curve = "P384"
 }
 ```
 
