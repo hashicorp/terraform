@@ -120,7 +120,7 @@ Both ec2_tag_filter and on_premises_tag_filter blocks support the following:
 
 Add triggers to a Deployment Group to receive notifications about events related to deployments or instances in the group. Notifications are sent to subscribers of the SNS topic associated with the trigger. CodeDeploy must have permission to publish to the topic from this deployment group. Trigger Configurations support the following:
 
- * `trigger_events` - (Required) The event type or types for which notifications are triggered. The following values are supported: `DeploymentStart`, `DeploymentSuccess`, `DeploymentFailure`, `DeploymentStop`, `InstanceStart`, `InstanceSuccess`, `InstanceFailure`.
+ * `trigger_events` - (Required) The event type or types for which notifications are triggered. Some values that are supported: `DeploymentStart`, `DeploymentSuccess`, `DeploymentFailure`, `InstanceStart`, `InstanceSuccess`, `InstanceFailure`.  See [the CodeDeploy documentation][1] for all possible values.
  * `trigger_name` - (Required) The name of the notification trigger.
  * `trigger_target_arn` - (Required) The ARN of the SNS topic through which notifications are sent.
 
@@ -147,3 +147,5 @@ The following attributes are exported:
 * `service_role_arn` - The group's service role ARN.
 * `autoscaling_groups` - The autoscaling groups associated with the deployment group.
 * `deployment_config_name` - The name of the group's deployment config.
+
+[1]: http://docs.aws.amazon.com/codedeploy/latest/userguide/monitoring-sns-event-notifications-create-trigger.html
