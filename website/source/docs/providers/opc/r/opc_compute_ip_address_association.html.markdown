@@ -14,10 +14,10 @@ The ``opc_compute_ip_address_association`` resource creates and manages an IP ad
 
 ```
 resource "opc_compute_ip_address_association" "default" {
-        name = "PrefixSet1"
-        ip_address_reservation = "${opc_compute_ip_address_reservation.default.name}"
-        vnic = "${data.opc_compute_vnic.default.name}"
-        tags = ["tags1", "tags2"]
+  name                   = "PrefixSet1"
+  ip_address_reservation = "${opc_compute_ip_address_reservation.default.name}"
+  vnic                   = "${data.opc_compute_vnic.default.name}"
+  tags                   = ["tags1", "tags2"]
 }
 ```
 

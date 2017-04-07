@@ -14,9 +14,9 @@ The ``opc_compute_ip_reservation`` resource creates and manages an IP reservatio
 
 ```
 resource "opc_compute_ip_reservation" "reservation1" {
-        parent_pool = "/oracle/public/ippool"
-        permanent = true
-       	tags = []
+  parent_pool = "/oracle/public/ippool"
+  permanent   = true
+  tags        = [ "test" ]
 }
 ```
 

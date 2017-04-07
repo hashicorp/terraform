@@ -89,7 +89,7 @@ As a working example, if you're importing AWS resources and you have a
 configuration file with the contents below, then Terraform will configure
 the AWS provider with this file.
 
-```
+```hcl
 variable "access_key" {}
 variable "secret_key" {}
 
@@ -108,7 +108,7 @@ may not be valid.
 
 This example will import an AWS instance:
 
-```
+```shell
 $ terraform import aws_instance.foo i-abcd1234
 ```
 
@@ -116,6 +116,6 @@ $ terraform import aws_instance.foo i-abcd1234
 
 The example below will import an AWS instance into a module:
 
-```
+```shell
 $ terraform import module.foo.aws_instance.bar i-abcd1234
 ```

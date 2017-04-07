@@ -15,7 +15,7 @@ state using system APIs, and performs operations locally.
 
 ## Example Configuration
 
-```
+```hcl
 terraform {
   backend "local" {
     path = "relative/path/to/terraform.tfstate"
@@ -25,13 +25,13 @@ terraform {
 
 ## Example Reference
 
-```
+```hcl
 data "terraform_remote_state" "foo" {
-    backend = "local"
+  backend = "local"
 
-    config {
-        path = "${path.module}/../../terraform.tfstate"
-    }
+  config {
+    path = "${path.module}/../../terraform.tfstate"
+  }
 }
 ```
 

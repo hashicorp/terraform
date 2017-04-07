@@ -14,8 +14,8 @@ The ``opc_compute_ip_address_reservation`` resource creates and manages an IP ad
 
 ```
 resource "opc_compute_ip_address_reservation" "default" {
-        name = "IPAddressReservation1"
-        ip_address_pool = "public-ippool"
+  name            = "IPAddressReservation1"
+  ip_address_pool = "public-ippool"
 }
 ```
 

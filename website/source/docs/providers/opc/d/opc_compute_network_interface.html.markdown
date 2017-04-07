@@ -14,9 +14,9 @@ Use this data source to access the configuration of an instance's network interf
 
 ```
 data "opc_compute_network_interface" "foo" {
-  instance_id = "${opc_compute_instance.my_instance.id}"
+  instance_id   = "${opc_compute_instance.my_instance.id}"
   instance_name = "${opc_compute_instance.my_instance.name}"
-  interface = "eth0"
+  interface     = "eth0"
 }
 
 output "mac_address" {
@@ -40,7 +40,7 @@ output "vnic" {
 * `ip_network` - The IP Network assigned to the interface.
 * `mac_address` - The MAC address of the interface.
 * `model` - The model of the NIC card used.
-* `name_servers` - Array of name servers for the interface. 
+* `name_servers` - Array of name servers for the interface.
 * `nat` - The IP Reservation (in IP Networks) associated with the interface.
 * `search_domains` - The search domains that are sent through DHCP as option 119.
 * `sec_lists` - The security lists the interface is added to.

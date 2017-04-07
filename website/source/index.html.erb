@@ -1,312 +1,322 @@
-<!-- Main jumbotron for a primary marketing message or call to action -->
-<div id="jumbotron-mask">
-	<div id="jumbotron">
-		<div class="jumbotron-content" id="jumbotron-content">
-			<div class="container">
-					<div class="row">
-						<div class="col-sm-12">
-							<h2 class="tag-line" id="tag-line" style="visibility: hidden;">Write, plan, and create infrastructure as code</h2>
-						</div>
-					</div>
-				</div>
-		</div>
-	</div>
-</div>
+---
+description: |-
+  Terraform enables you to safely and predictably create, change, and improve
+  production infrastructure. It is an open source tool that codifies APIs into
+  declarative configuration files that can be shared amongst team members,
+  treated as code, edited, reviewed, and versioned.
+---
 
-<div class="cta" id="primary-cta">
-	<div class="container">
-		<div class="row">
-			<div class="col-md-8">
-				<p class="lead lower-opacity">Terraform enables you to safely and predictably create, change, and
-					improve production infrastructure. It is an open source tool that
-					codifies APIs into declarative configuration files that can be shared amongst team members,
-					treated as code, edited, reviewed, and versioned. </p>
-				</div>
-				<div class="col-md-4">
-					<p class="center vert-container">
-						<a class="terra-btn" href="/intro/index.html">Get Started</a>
-					</p>
-				</div>
-				<div class="col-md-12">
-					<div class="vert-container announcement">
-						<p class="center">
-							Announcing Terraform Enterprise, collaboration for teams. <a class="link-highlight" href="https://hashicorp.com/terraform.html">Learn more.</a>
-						</p>
-					</div>
-				</div>
-			</div>
-		</div><!-- /. row -->
-	</div><!-- / .container -->
-</div><!-- / .#primary-cta -->
+<header>
+  <div class="container hero">
+    <div class="row">
+      <div class="col-md-offset-2 col-md-8">
+        <%= inline_svg "logo-hashicorp.svg", height: 120, class: "logo" %>
 
-<div class="temp-skew"></div>
+        <h1>Write, Plan, and Create Infrastructure as Code</h1>
 
-<div id="feature-overview">
-	<div class="container">
-		<div class="row">
-			<div class="col-sm-12">
-				<h2>Features</h2>
-			</div>
-			<div class="col-sm-4">
-				<a href="#write-section" class="feature-card feature-card-write">
-					<h3>Write</h3>
-					<p>Infrastructure as code</p>
-				</a>
-			</div>
-			<div class="col-sm-4">
-				<a href="#plan-section" class="feature-card feature-card-plan">
-					<h3>Plan</h3>
-					<p>Preview changes before applying</p>
-				</a>
-			</div>
-			<div class="col-sm-4">
-				<a href="#create-section" class="feature-card feature-card-create">
-					<h3>Create</h3>
-					<p>Reproducible infrastructure</p>
-				</a>
-			</div>
-		</div>
-	</div>
-</div>
+        <a class="button primary" href="/intro/index.html">Get Started</a>
+        <a class="button" href="/downloads.html">Download <%= latest_version %></a>
+      </div>
+    </div>
+  </div>
+</header>
 
-<div class="skew-item feature" id="feature-write">
-	<div class="container">
-		<div id="write-section" class="row">
-			<div class="col-sm-12">
-				<h2>Infrastructure as code</h2>
-				<p class="lead sub-black">Define infrastructure as code to increase operator productivity and transparency.</p>
-			</div>
-			<img class="feature-image" id="feature-image-write-sm-screen" src="/assets/images/feature-write-bg.svg" />
-			<div class="col-sm-4">
-				<h3>Collaborate &amp; share</h3>
-				<p class="sub-black">Terraform configuration can be stored in version control,
-				shared, and collaborated on by teams of operators.</p>
-				<h3>Evolve your infrastructure</h3>
-				<p class="sub-black">Track the complete history of infrastructure versions.</p>
-				<h3>Automation friendly</h3>
-				<p class="sub-black">If it can be codified, it can be automated.</p>
-			</div>
-		</div>
-	</div> <!-- /container -->
-	<div class="feature-skew" id="feature-write-bg">
-		<img class="feature-image" id="feature-image-write-lg-screen" src="/assets/images/feature-write-bg.svg" />
-	</div>
-</div> <!-- /feature -->
+<section id="features" class="marketing white">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-12">
+        <h2>Simple and Powerful</h2>
+        <p class="lead">
+          Terraform enables you to safely and predictably create, change, and
+          improve production infrastructure. It is an open source tool that
+          codifies APIs into declarative configuration files that can be shared amongst team members,
+          treated as code, edited, reviewed, and versioned.
+        </p>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-sm-4">
+        <a href="#write" class="feature-card">
+          <span>Write</span>
+          <p>Infrastructure as code</p>
+          <%= inline_svg "feature-card-write.svg" %>
+        </a>
+      </div>
+      <div class="col-sm-4">
+        <a href="#plan" class="feature-card">
+          <span>Plan</span>
+          <p>Preview changes before applying</p>
+          <%= inline_svg "feature-card-plan.svg" %>
+        </a>
+      </div>
+      <div class="col-sm-4">
+        <a href="#create" class="feature-card">
+          <span>Create</span>
+          <p>Reproducible infrastructure</p>
+          <%= inline_svg "feature-card-create.svg" %>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
 
-<div class="skew-item feature" id="feature-plan">
-	<div class="container">
-		<div id="plan-section" class="row">
-			<div class="col-sm-12">
-				<h2>One safe workflow across providers</h2>
-				<p class="lead lower-opacity">Terraform provides an elegant user experience for
-					operators to safely and predictably make changes to infrastructure.</p>
-			</div>
-			<div class="col-sm-12">
-				<img class="feature-image" id="feature-image-plan-sm-screen" src="/assets/images/feature-plan-sm-bg.svg" />
-				<img class="feature-image" id="feature-image-plan-lg-screen" src="/assets/images/feature-plan-bg.svg" />
-			</div>
-			<div class="col-sm-4">
-				<h3>Map resource dependencies</h3>
-				<p class="lower-opacity">Understand how a minor change could have potential cascading effects
-					across an infrastructure before executing that change. Terraform
-					builds a dependency graph from the configurations, and walks this
-					graph to generate plans, refresh state, and more.</p>
-			</div>
-			<div class="col-sm-4">
-				<h3>Separation of plan &amp; apply</h3>
-				<p class="lower-opacity">Separating plans and applies reduces mistakes and uncertainty at
-					scale. Plans show operators what would happen, applies execute
-					changes.</p>
-			</div>
-			<div class="col-sm-4">
-				<h3>One workflow</h3>
-				<p class="lower-opacity">Use Terraform to create resources across all major infrastructure
-					providers (AWS, GCP, Azure, OpenStack, VMware, and more).</p>
-			</div>
-		</div>
-	</div> <!-- /container -->
-	<div class="feature-skew" id="feature-plan-bg"></div>
-</div> <!-- /feature -->
+<hr />
 
-<div class="skew-item feature" id="feature-create">
-	<div class="container">
-		<div id="create-section" class="row">
-			<div class="col-sm-6">
-				<h2>Reproducible infrastructure</h2>
-				<p class="lead sub-black">Terraform lets operators easily use the same
-					configurations in multiple places to reduce mistakes and save time.</p>
-			</div>
-			<div class="col-sm-6">
-				<img class="feature-image" id="feature-image-create" src="/assets/images/feature-create-bg.svg" />
-			</div>
-		</div>
-		<div class="row">
-			<div class="col-sm-4">
-				<h3>Environment parity</h3>
-				<p class="sub-black">Use the same Terraform configuration to provision identical staging,
-					QA, and production environments.</p>
-			</div>
-			<div class="col-sm-4">
-				<h3>Shareable modules</h3>
-				<p class="sub-black">Common Terraform configurations can be packaged as modules and used
-					across teams and organizations.</p>
-			</div>
-			<div class="col-sm-4">
-				<h3>Combine multiple providers consistently</h3>
-				<p class="sub-black">Terraform allows you to effortlessly combine high-level system
-					providers. Launch a server from one cloud provider, add a DNS entry
-					with its IP with a different provider. Built-in dependency resolution
-					means things happen in the right order.</p>
-			</div>
-		</div>
-	</div> <!-- /container -->
-	<div class="feature-skew" id="feature-create-bg"></div>
-</div> <!-- /feature -->
+<section id="write" class="marketing">
+  <div class="container">
+    <div class="row">
+      <div class="col-sm-12">
+        <span class="callout">Write</span>
+        <h2>Infrastructure as Code</h2>
+        <p class="lead">
+          Define infrastructure as code to increase operator productivity
+          and transparency.
+        </p>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-sm-5">
+        <h3>Collaborate &amp; share</h3>
+        <p>Terraform configuration can be stored in version control,
+        shared, and collaborated on by teams of operators.</p>
+        <h3>Evolve your infrastructure</h3>
+        <p>Track the complete history of infrastructure versions.</p>
+        <h3>Automation friendly</h3>
+        <p>If it can be codified, it can be automated.</p>
+      </div>
+      <div class="col-sm-7">
+        <%= inline_svg "feature-write-bg.svg", class: "feature-image" %>
+      </div>
+    </div>
+  </div>
+</section>
 
-<div class="skew-item" id="latest-announcement">
-	<div class="container">
-		<div class="row">
-      <div class="col-md-offset-1 col-md-11 col-sm-12">
-				<h2>Latest</h2>
-			</div>
-      <div class="latest-col latest-col-left col-md-4 col-md-offset-1 col-sm-12">
+<section id="plan" class="marketing purple">
+  <div class="container">
+    <div class="row">
+      <div class="col-sm-12">
+        <span class="callout">Plan</span>
+        <h2>One Safe Workflow Across Providers</h2>
+        <p class="lead">Terraform provides an elegant user experience for
+          operators to safely and predictably make changes to infrastructure.</p>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-sm-12">
+        <%= inline_svg "feature-plan-bg.svg", class: "feature-image" %>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-sm-4">
+        <h3>Map Resource Dependencies</h3>
+        <p>
+          Understand how a minor change could have potential cascading effects
+          across an infrastructure before executing that change. Terraform
+          builds a dependency graph from the configurations, and walks this
+          graph to generate plans, refresh state, and more.
+        </p>
+      </div>
+      <div class="col-sm-4">
+        <h3>Separation of Plan &amp; Apply</h3>
+        <p>
+          Separating plans and applies reduces mistakes and uncertainty at
+          scale. Plans show operators what would happen, applies execute
+          changes.
+        </p>
+      </div>
+      <div class="col-sm-4">
+        <h3>One Safe Workflow</h3>
+        <p>
+          Use Terraform to create resources across all major infrastructure
+          providers (AWS, GCP, Azure, OpenStack, VMware, and more).
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="create" class="marketing">
+  <div class="container">
+    <div class="row">
+      <div class="col-sm-6">
+        <span class="callout">Create</span>
+        <h2>Reproducible Infrastructure</h2>
+        <p class="lead">Terraform lets operators easily use the same
+          configurations in multiple places to reduce mistakes and save time.</p>
+      </div>
+      <div class="col-sm-6">
+        <%= inline_svg "feature-create-bg.svg", class: "feature-image" %>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-sm-4">
+        <h3>Environment parity</h3>
+        <p>Use the same Terraform configuration to provision identical staging,
+          QA, and production environments.</p>
+      </div>
+      <div class="col-sm-4">
+        <h3>Shareable modules</h3>
+        <p>Common Terraform configurations can be packaged as modules and used
+          across teams and organizations.</p>
+      </div>
+      <div class="col-sm-4">
+        <h3>Combine multiple providers consistently</h3>
+        <p>Terraform allows you to effortlessly combine high-level system
+          providers. Launch a server from one cloud provider, add a DNS entry
+          with its IP with a different provider. Built-in dependency resolution
+          means things happen in the right order.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="news" class="marketing purple">
+  <div class="container">
+    <div class="row">
+      <div class="col-sm-12">
+        <h2>Latest News</h2>
+      </div>
+      <div class="col-md-5 col-sm-12">
         <div class="latest-item">
-          <img src="<%= image_path('webinar-Terraform-4-4-2017.jpg') %>" srcset="<%= image_path('webinar-Terraform-4-4-2017@2x.jpg') %> 2x, <%= image_path('webinar-Terraform-4-4-2017.jpg') %> 1x">
-          <h3 class="latest-title">Join us for a live webinar with Mitchell Hashimoto to learn how Terraform provisions infrastructure across different clouds using a consistent workflow.</h3>
+          <h3>Coming Soon!</h3>
           <p>
-            <a class="outline-btn small-outline-btn" href="http://hashi.co/2naIBrh">Register Now</a>
+            We have some exciting new announcements planned for Terraform. Check
+            back soon to learn more.
           </p>
+          <p>
         </div>
       </div>
-			<div class="latest-col latest-col-right col-md-6 col-sm-12">
-        <div class="latest-item latest-item-text">
-          <h3 class="latest-title">Terraform 0.9 Released</h3>
-          <p class="lower-opacity">
-            Terraform 0.9 adds major new functionality to Terraform. Read the highlights from the 0.9 release
+      <div class="col-md-offset-1 col-md-6 col-sm-12">
+        <div class="latest-item">
+          <h3>Terraform 0.9 Released</h3>
+          <p>
+            Terraform 0.9 adds major new functionality to Terraform. Read the
+            highlights from the 0.9 release
           </p>
-  				<p>
-					<a class="outline-btn small-outline-btn" href="https://www.hashicorp.com/blog/terraform-0-9/">Read more</a>
-  				</p>
+          <a class="button" href="https://www.hashicorp.com/blog/terraform-0-9/">Read more</a>
         </div>
-        <div class="latest-item latest-item-text">
-          <h3 class="">Applying Graph Theory to Infrastructure As Code</h3>
-          <p class="lower-opacity">
-            Watch this talk from HashiConf 2016 where we explore the graph theory at the heart of Terraform's orchestration engine.
+        <div class="latest-item">
+          <h3>Applying Graph Theory to Infrastructure As Code</h3>
+          <p>
+            Watch this talk from HashiConf 2016 where we explore the graph
+            theory at the heart of Terraform's orchestration engine.
           </p>
-  				<p>
-  					<a class="outline-btn small-outline-btn" href="https://www.youtube.com/watch?v=4Pd9NrZSbGU">Watch Video</a>
-  				</p>
+          <a class="button" href="https://www.youtube.com/watch?v=4Pd9NrZSbGU">Watch Video</a>
         </div>
-			</div>
-		</div>
-	</div><!-- /.container -->
-	<div class="feature-skew" id="latest-announcement-bg"></div>
-</div><!-- /#latest-announcement -->
+      </div>
+    </div>
+  </div>
+  <div class="feature-skew" id="latest-announcement-bg"></div>
+</section>
 
-<div class="skew-item" id="demos">
-	<div class="container">
-		<div class="terminals row">
-			<div class="col-sm-12">
-				<h2>Examples</h2>
-			</div>
+<section id="examples" class="marketing gray">
+  <div class="container">
+    <div class="row">
+      <div class="col-sm-12">
+        <h2>Examples</h2>
+        <h3>Composing Resources</h3>
+        <p>
+          Use attributes from other resources to create an infrastructure
+          composed of resources across multiple providers.
+        </p>
+      </div>
+    </div>
 
-			<div class="col-md-6 explantion">
-				<h3>Composing Resources</h3>
-        <p class="sub-black">Use attributes from other resources to create an infrastructure
-					composed of resources across multiple providers.
-				</p>
-			</div>
+    <div class="row">
+      <div class="col-md-12">
+        <div class="terminal">
+          <span class="circle"></span>
+          <span class="circle"></span>
+          <span class="circle"></span>
+          <div class="terminal-content">
+            <span>resource <span class="txt-spe">"digitalocean_droplet"</span> <span class="txt-str">"web"</span> {</span>
+            <span>  name   = <span class="txt-str">"tf-web"</span></span>
+            <span>  size   = <span class="txt-str">"512mb"</span></span>
+            <span>  image  = <span class="txt-str">"centos-5-8-x32"</span></span>
+            <span>  region = <span class="txt-str">"sfo1"</span></span>
+            <span>}</span>
+            <span> </span>
+            <span>resource <span class="txt-spe">"dnsimple_record"</span> <span class="txt-str">"hello"</span> {</span>
+            <span>  domain = <span class="txt-str">"example.com"</span></span>
+            <span>  name   = <span class="txt-str">"test"</span></span>
+            <span>  value  = <span class="txt-str">"<span class="txt-var">${digitalocean_droplet.web.ipv4_address}</span>"</span></span>
+            <span>  type   = <span class="txt-str">"A"</span></span>
+            <span>}</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
-			<div class="terminal-item col-xs-12 col-lg-12">
-					<div class="terminal">
-						<header>
-							<h4>Example Configuration</h4>
-						</header>
-						<div class="terminal-window">
-							<div class="">
-								<div class="display">
-								<p>resource <span class="txt-spe">"digitalocean_droplet"</span> <span class="txt-str">"web"</span> {</p>
-								<p>  name   = <span class="txt-str">"tf-web"</span></p>
-								<p>  size   = <span class="txt-str">"512mb"</span></p>
-								<p>  image  = <span class="txt-str">"centos-5-8-x32"</span></p>
-								<p>  region = <span class="txt-str">"sfo1"</span></p>
-								<p>}</p>
-								<p> </p>
-								<p>resource <span class="txt-spe">"dnsimple_record"</span> <span class="txt-str">"hello"</span> {</p>
-								<p>  domain = <span class="txt-str">"example.com"</span></p>
-								<p>  name   = <span class="txt-str">"test"</span></p>
-								<p>  value  = <span class="txt-str">"<span class="txt-var">${digitalocean_droplet.web.ipv4_address}</span>"</span></p>
-								<p>  type   = <span class="txt-str">"A"</span></p>
-								<p>}</p>
-								</div>
-							</div>
-						</div>
-					</div>
-			</div> <!-- /.terminal-item -->
+    <div class="row">
+      <div class="col-sm-12">
+        <h3>Fast, Simplified Interaction</h3>
+        <p>
+          Simple and intuitive configuration makes even the most complicated
+          services approachable: no more web consoles, loading bars, or
+          confusing CLI clients.
+        </p>
+      </div>
+    </div>
 
-			<div class="col-md-6 explantion">
-				<h3>Fast, Simplified Interaction</h3>
-				<p class="sub-black">Simple and intuitive configuration makes even the most complicated
-					services approachable: no more web consoles, loading bars, or
-					confusing CLI clients.
-				</p>
-			</div>
+    <div class="row">
+      <div class="col-md-12">
+        <div class="terminal">
+          <span class="circle"></span>
+          <span class="circle"></span>
+          <span class="circle"></span>
+          <div class="terminal-content">
+            <span>resource <span class="txt-spe">"aws_elb"</span> <span class="txt-str">"frontend"</span> {</span>
+            <span>  name = <span class="txt-str">"frontend-load-balancer"</span></span>
+            <span>  listener {</span>
+            <span>    instance_port     = <span class="txt-int">8000</span></span>
+            <span>    instance_protocol = <span class="txt-str">"http"</span></span>
+            <span>    lb_port           = <span class="txt-int">80</span></span>
+            <span>    lb_protocol       = <span class="txt-str">"http"</span></span>
+            <span>  }</span>
+            <span> </span>
+            <span>  instances = [<span class="txt-str">"<span class="txt-var">${aws_instance.app.*.id}</span>"</span>]</span>
+            <span>}</span>
+            <span> </span>
+            <span>resource <span class="txt-spe">"aws_instance"</span> <span class="txt-str">"app"</span> {</span>
+            <span>  count = <span class="txt-int">5</span></span>
+            <span> </span>
+            <span>  ami           = <span class="txt-str">"ami-408c7f28"</span></span>
+            <span>  instance_type = <span class="txt-str">"t1.micro"</span></span>
+            <span>}</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
-			<div class="terminal-item col-xs-12 col-lg-12">
-					<div class="terminal">
-						<header>
-							<h4>Example Configuration</h4>
-						</header>
-						<div class="terminal-window">
-							<div class="">
-								<div class="display">
-								<p>resource <span class="txt-spe">"aws_elb"</span> <span class="txt-str">"frontend"</span> {</p>
-								<p>  name = <span class="txt-str">"frontend-load-balancer"</span></p>
-								<p>  listener {</p>
-								<p>    instance_port     = <span class="txt-int">8000</span></p>
-								<p>    instance_protocol = <span class="txt-str">"http"</span></p>
-								<p>    lb_port           = <span class="txt-int">80</span></p>
-								<p>    lb_protocol       = <span class="txt-str">"http"</span></p>
-								<p>  }</p>
-								<p> </p>
-								<p>  instances = [<span class="txt-str">"<span class="txt-var">${aws_instance.app.*.id}</span>"</span>]</p>
-								<p>}</p>
-								<p> </p>
-								<p>resource <span class="txt-spe">"aws_instance"</span> <span class="txt-str">"app"</span> {</p>
-								<p>  count = <span class="txt-int">5</span></p>
-								<p> </p>
-								<p>  ami           = <span class="txt-str">"ami-408c7f28"</span></p>
-								<p>  instance_type = <span class="txt-str">"t1.micro"</span></p>
-								<p>}</p>
-								</div>
-							</div>
-						</div>
-					</div>
-			</div> <!-- /.terminal-item -->
-			<div class="cta col-sm-12 col-lg-8 col-lg-offset-2" id="demo-cta">
-				<p class="lead lower-opacity">The intro contains a walkthrough guide, introductory literature, and
-					a range of examples to experiment with Terraform.</p>
-				<p>
-					<a class="terra-btn" href="/intro/index.html">Get started</a>
-				</p>
-			</div>
-		</div>
-	</div><!-- /.container -->
-	<div class="feature-skew" id="demo-bg"></div>
-</div><!-- /#demos -->
+    <div class="row">
+      <div class="cta col-sm-12 col-lg-8 col-lg-offset-2" id="demo-cta">
+        <p class="lead" align="center">
+          The intro contains a walkthrough guide, introductory literature, and
+          a range of examples to experiment with Terraform.
+        </p>
+        <p align="center">
+          <a class="button primary" href="/intro/index.html">Get started</a>
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="feature-skew" id="demo-bg"></div>
+</section>
 
-<div class="skew-item" id="enterprise-intro">
-	<div class="container">
-		<div class="row">
-			<div class="col-sm-12">
-				<h2><span>Terraform Enterprise</span></h2>
-				<p class="lead lower-opacity">Collaborative Infrastructure Automation for
-					organizations. Collaborate on Terraform configurations,
-					 validate changes, and automate provisioning across providers.</p>
-				<p>
-					<a class="outline-btn" href="https://www.hashicorp.com/terraform.html">Learn More</a>
-			</div>
-		</div>
-	</div><!-- / .container -->
-	<div class="feature-skew" id="enterprise-intro-bg"></div>
-</div><!-- / #enterprise-intro -->
+<section id="enterprise" class="marketing black">
+  <div class="container">
+    <div class="row">
+      <div class="col-sm-7">
+        <%= inline_svg "terraform-enterprise-logo.svg", width: 300 %>
+        <p class="lead">
+          Collaborative Infrastructure Automation for organizations. Collaborate
+          on Terraform configurations, validate changes, and automate
+          provisioning across providers.
+        </p>
+        <p>
+          <a class="button" href="https://www.hashicorp.com/terraform.html">Learn More</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>

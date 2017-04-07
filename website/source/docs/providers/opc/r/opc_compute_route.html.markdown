@@ -14,12 +14,12 @@ The ``opc_compute_route`` resource creates and manages a route for an IP Network
 
 ```
 resource "opc_compute_route" "foo" {
-       	name = "my-route"
-       	description = "my IP Network route"
-       	admin_distance = 1
-       	ip_address_prefix = "10.0.1.0/24"
-       	next_hop_vnic_set = "${opc_compute_vnic_set.bar.name}"
-       	tags = ["tag1", "tag2"]
+  name              = "my-route"
+  description       = "my IP Network route"
+  admin_distance    = 1
+  ip_address_prefix = "10.0.1.0/24"
+  next_hop_vnic_set = "${opc_compute_vnic_set.bar.name}"
+  tags              = ["tag1", "tag2"]
 }
 ```
 

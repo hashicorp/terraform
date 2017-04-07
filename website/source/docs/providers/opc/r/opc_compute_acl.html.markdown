@@ -14,9 +14,9 @@ The ``opc_compute_acl`` resource creates and manages an ACL in an OPC identity d
 
 ```
 resource "opc_compute_acl" "default" {
-        name = "ACL1"
-        description = "This is a description for an acl"
-        tags = ["tag1", "tag2"]
+  name        = "ACL1"
+  description = "This is a description for an acl"
+  tags        = ["tag1", "tag2"]
 }
 ```
 

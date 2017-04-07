@@ -9,7 +9,7 @@ description: Using modules in Terraform is very similar to defining resources.
 
 Using modules in Terraform is very similar to defining resources:
 
-```
+```shell
 module "consul" {
   source  = "github.com/hashicorp/consul/terraform/aws"
   servers = 3
@@ -26,8 +26,9 @@ The existence of the above configuration will tell Terraform to create the resou
 
 You can instantiate a module multiple times.
 
-```
+```hcl
 # my_buckets.tf
+
 module "assets_bucket" {
   source = "./publish_bucket"
   name   = "assets"
@@ -38,7 +39,8 @@ module "media_bucket" {
   name   = "media"
 }
 ```
-```
+
+```hcl
 # publish_bucket/bucket-and-cloudfront.tf
 
 variable "name" {} # this is the input parameter of the module
@@ -65,9 +67,8 @@ are documented in the [Module sources documentation](/docs/modules/sources.html)
 
 Prior to running any Terraform command with a configuration that uses modules, you'll have to [get](/docs/commands/get.html) the modules. This is done using the [get command](/docs/commands/get.html).
 
-```
+```shell
 $ terraform get
-...
 ```
 
 This command will download the modules if they haven't been already.
@@ -85,7 +86,7 @@ Additionally, because these map directly to variables, module configuration can 
 
 Modules can also specify their own [outputs](/docs/configuration/outputs.html). These outputs can be referenced in other places in your configuration, for example:
 
-```
+```hcl
 resource "aws_instance" "client" {
   ami               = "ami-408c7f28"
   instance_type     = "t1.micro"
@@ -99,8 +100,8 @@ Just like resources, this will create a dependency from the `aws_instance.client
 
 To use module outputs via command line you have to specify the module name before the variable, for example:
 
-```
-terraform output -module=consul server_availability_zone
+```shell
+$ terraform output -module=consul server_availability_zone
 ```
 
 ## Plans and Graphs
@@ -109,15 +110,11 @@ Commands such as the [plan command](/docs/commands/plan.html) and [graph command
 
 For example, with a configuration similar to what we've built above, here is what the graph output looks like by default:
 
-<div class="center">
 ![Terraform Expanded Module Graph](docs/module_graph_expand.png)
-</div>
 
 If instead we set `-module-depth=0`, the graph will look like this:
 
-<div class="center">
 ![Terraform Module Graph](docs/module_graph.png)
-</div>
 
 Other commands work similarly with modules. Note that the `-module-depth` flag is purely a formatting flag; it doesn't affect what modules are created or not.
 
@@ -125,8 +122,8 @@ Other commands work similarly with modules. Note that the `-module-depth` flag i
 
 The [taint command](/docs/commands/taint.html) can be used to _taint_ specific resources within a module:
 
-```
-terraform taint -module=salt_master aws_instance.salt_master
+```shell
+$ terraform taint -module=salt_master aws_instance.salt_master
 ```
 
 It is currently not possible to taint an entire module.

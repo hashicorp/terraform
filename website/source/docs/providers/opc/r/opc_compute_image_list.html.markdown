@@ -1,7 +1,7 @@
 ---
 layout: "opc"
 page_title: "Oracle: opc_compute_image_list"
-sidebar_current: "docs-opc-resource-image-list"
+sidebar_current: "docs-opc-resource-image-list-type"
 description: |-
   Creates and manages an Image List in an OPC identity domain.
 ---

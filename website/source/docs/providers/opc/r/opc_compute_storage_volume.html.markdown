@@ -1,7 +1,7 @@
 ---
 layout: "opc"
 page_title: "Oracle: opc_compute_storage_volume"
-sidebar_current: "docs-opc-resource-storage-volume"
+sidebar_current: "docs-opc-resource-storage-volume-type"
 description: |-
   Creates and manages a storage volume in an OPC identity domain.
 ---

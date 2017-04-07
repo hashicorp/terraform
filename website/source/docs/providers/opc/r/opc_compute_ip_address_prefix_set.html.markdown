@@ -14,9 +14,9 @@ The ``opc_compute_ip_address_prefix_set`` resource creates and manages an IP add
 
 ```
 resource "opc_compute_ip_address_prefix_set" "default" {
-        name = "PrefixSet1"
-        prefixes = ["192.168.0.0/16", "172.120.0.0/24"]
-        tags = ["tags1", "tags2"]
+  name     = "PrefixSet1"
+  prefixes = ["192.168.0.0/16", "172.120.0.0/24"]
+  tags     = ["tags1", "tags2"]
 }
 ```
 

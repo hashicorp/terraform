@@ -14,11 +14,11 @@ The ``opc_compute_sec_rule`` resource creates and manages a sec rule in an OPC i
 
 ```
 resource "opc_compute_sec_rule" "test_rule" {
-	name = "test"
-	source_list = "seclist:${opc_compute_security_list.sec-list1.name}"
-	destination_list = "seciplist:${opc_compute_security_ip_list.sec-ip-list1.name}"
-	action = "permit"
-	application = "${opc_compute_security_application.spring-boot.name}"
+  name             = "test"
+  source_list      = "seclist:${opc_compute_security_list.sec-list1.name}"
+  destination_list = "seciplist:${opc_compute_security_ip_list.sec-ip-list1.name}"
+  action           = "permit"
+  application      = "${opc_compute_security_application.spring-boot.name}"
 }
 ```
 

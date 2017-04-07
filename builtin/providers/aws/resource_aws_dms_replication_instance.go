@@ -3,11 +3,12 @@ package aws
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/private/waiter"
 	dms "github.com/aws/aws-sdk-go/service/databasemigrationservice"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -174,12 +175,23 @@ func resourceAwsDmsReplicationInstanceCreate(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	err = waitForInstanceCreated(conn, d.Get("replication_instance_id").(string), 30, 20)
+	d.SetId(d.Get("replication_instance_id").(string))
+
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"creating"},
+		Target:     []string{"available"},
+		Refresh:    resourceAwsDmsReplicationInstanceStateRefreshFunc(d, meta),
+		Timeout:    d.Timeout(schema.TimeoutCreate),
+		MinTimeout: 10 * time.Second,
+		Delay:      30 * time.Second, // Wait 30 secs before starting
+	}
+
+	// Wait, catching any errors
+	_, err = stateConf.WaitForState()
 	if err != nil {
 		return err
 	}
 
-	d.SetId(d.Get("replication_instance_id").(string))
 	return resourceAwsDmsReplicationInstanceRead(d, meta)
 }
 
@@ -196,6 +208,7 @@ func resourceAwsDmsReplicationInstanceRead(d *schema.ResourceData, meta interfac
 	})
 	if err != nil {
 		if dmserr, ok := err.(awserr.Error); ok && dmserr.Code() == "ResourceNotFoundFault" {
+			log.Printf("[DEBUG] DMS Replication Instance %q Not Found", d.Id())
 			d.SetId("")
 			return nil
 		}
@@ -287,6 +300,21 @@ func resourceAwsDmsReplicationInstanceUpdate(d *schema.ResourceData, meta interf
 			return err
 		}
 
+		stateConf := &resource.StateChangeConf{
+			Pending:    []string{"modifying"},
+			Target:     []string{"available"},
+			Refresh:    resourceAwsDmsReplicationInstanceStateRefreshFunc(d, meta),
+			Timeout:    d.Timeout(schema.TimeoutCreate),
+			MinTimeout: 10 * time.Second,
+			Delay:      30 * time.Second, // Wait 30 secs before starting
+		}
+
+		// Wait, catching any errors
+		_, err = stateConf.WaitForState()
+		if err != nil {
+			return err
+		}
+
 		return resourceAwsDmsReplicationInstanceRead(d, meta)
 	}
 
@@ -307,9 +335,19 @@ func resourceAwsDmsReplicationInstanceDelete(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	waitErr := waitForInstanceDeleted(conn, d.Get("replication_instance_id").(string), 30, 20)
-	if waitErr != nil {
-		return waitErr
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"deleting"},
+		Target:     []string{},
+		Refresh:    resourceAwsDmsReplicationInstanceStateRefreshFunc(d, meta),
+		Timeout:    d.Timeout(schema.TimeoutCreate),
+		MinTimeout: 10 * time.Second,
+		Delay:      30 * time.Second, // Wait 30 secs before starting
+	}
+
+	// Wait, catching any errors
+	_, err = stateConf.WaitForState()
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -355,68 +393,35 @@ func resourceAwsDmsReplicationInstanceSetState(d *schema.ResourceData, instance 
 	return nil
 }
 
-func waitForInstanceCreated(client *dms.DatabaseMigrationService, id string, delay int, maxAttempts int) error {
-	input := &dms.DescribeReplicationInstancesInput{
-		Filters: []*dms.Filter{
-			{
-				Name:   aws.String("replication-instance-id"),
-				Values: []*string{aws.String(id)},
+func resourceAwsDmsReplicationInstanceStateRefreshFunc(
+	d *schema.ResourceData, meta interface{}) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		conn := meta.(*AWSClient).dmsconn
+
+		v, err := conn.DescribeReplicationInstances(&dms.DescribeReplicationInstancesInput{
+			Filters: []*dms.Filter{
+				{
+					Name:   aws.String("replication-instance-id"),
+					Values: []*string{aws.String(d.Id())}, // Must use d.Id() to work with import.
+				},
 			},
-		},
+		})
+		if err != nil {
+			if dmserr, ok := err.(awserr.Error); ok && dmserr.Code() == "ResourceNotFoundFault" {
+				return nil, "", nil
+			}
+			log.Printf("Error on retrieving DMS Replication Instance when waiting: %s", err)
+			return nil, "", err
+		}
+
+		if v == nil {
+			return nil, "", nil
+		}
+
+		if v.ReplicationInstances == nil {
+			return nil, "", fmt.Errorf("Error on retrieving DMS Replication Instance when waiting for State")
+		}
+
+		return v, *v.ReplicationInstances[0].ReplicationInstanceStatus, nil
 	}
-
-	config := waiter.Config{
-		Operation:   "DescribeReplicationInstances",
-		Delay:       delay,
-		MaxAttempts: maxAttempts,
-		Acceptors: []waiter.WaitAcceptor{
-			{
-				State:    "success",
-				Matcher:  "pathAll",
-				Argument: "ReplicationInstances[].ReplicationInstanceStatus",
-				Expected: "available",
-			},
-		},
-	}
-
-	w := waiter.Waiter{
-		Client: client,
-		Input:  input,
-		Config: config,
-	}
-
-	return w.Wait()
-}
-
-func waitForInstanceDeleted(client *dms.DatabaseMigrationService, id string, delay int, maxAttempts int) error {
-	input := &dms.DescribeReplicationInstancesInput{
-		Filters: []*dms.Filter{
-			{
-				Name:   aws.String("replication-instance-id"),
-				Values: []*string{aws.String(id)},
-			},
-		},
-	}
-
-	config := waiter.Config{
-		Operation:   "DescribeReplicationInstances",
-		Delay:       delay,
-		MaxAttempts: maxAttempts,
-		Acceptors: []waiter.WaitAcceptor{
-			{
-				State:    "success",
-				Matcher:  "path",
-				Argument: "length(ReplicationInstances[]) > `0`",
-				Expected: false,
-			},
-		},
-	}
-
-	w := waiter.Waiter{
-		Client: client,
-		Input:  input,
-		Config: config,
-	}
-
-	return w.Wait()
 }
