@@ -1,6 +1,6 @@
 ---
 layout: "enterprise"
-page_title: "Runs: Starting"
+page_title: "Starting - Runs - Terraform Enterprise"
 sidebar_current: "docs-enterprise-runs-starting"
 description: |-
   How to start runs in Terraform Enterprise.
@@ -91,10 +91,12 @@ were referenced. When new versions of those referenced artifacts are uploaded, y
 For example, consider the following Terraform configuration which references an
 artifact named "worker":
 
-    resource "aws_instance" "worker" {
-      ami = "${atlas_artifact.worker.metadata_full.region-us-east-1}"
-      instance_type = "m1.small"
-    }
+```hcl
+resource "aws_instance" "worker" {
+  ami           = "${atlas_artifact.worker.metadata_full.region-us-east-1}"
+  instance_type = "m1.small"
+}
+```
 
 When a new version of the and artifact "worker" is uploaded either manually
 or as the output of a [Packer build](/docs/enterprise/packer/builds/starting.html), a Terraform plan can be automatically triggered with this new artifact version.

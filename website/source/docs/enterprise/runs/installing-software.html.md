@@ -1,6 +1,6 @@
 ---
 layout: "enterprise"
-page_title: "Runs: Installing Software"
+page_title: "Installing Software - Runs - Terraform Enterprise"
 sidebar_current: "docs-enterprise-runs-installing"
 description: |-
   Installing custom software on the Terraform Runners.
@@ -17,14 +17,16 @@ The easiest way to install software on the Packer builder is via the
 `local-exec` provisioner. This will execute commands on the host machine running
 Terraform.
 
-    resource "null_resource" "local-software" {
-      provisioner "local-exec" {
-        command = <<EOH
-    sudo apt-get update
-    sudo apt-get install -y ansible
-    EOH
-      }
-    }
+```hcl
+resource "null_resource" "local-software" {
+  provisioner "local-exec" {
+    command = <<EOH
+sudo apt-get update
+sudo apt-get install -y ansible
+EOH
+  }
+}
+```
 
 Please note that nothing is persisted between Terraform runs, so you will need
 to install custom software on each run.
