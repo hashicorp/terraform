@@ -42,6 +42,26 @@ func resourceOPCStorageVolume() *schema.Resource {
 				}, true),
 			},
 
+			"snapshot": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
+			},
+
+			"snapshot_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"snapshot_account": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"bootable": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -141,6 +161,16 @@ func resourceOPCStorageVolumeCreate(d *schema.ResourceData, meta interface{}) er
 		Tags:           getStringList(d, "tags"),
 	}
 
+	if v, ok := d.GetOk("snapshot"); ok {
+		input.Snapshot = v.(string)
+	}
+	if v, ok := d.GetOk("snapshot_account"); ok {
+		input.SnapshotAccount = v.(string)
+	}
+	if v, ok := d.GetOk("snapshot_id"); ok {
+		input.SnapshotID = v.(string)
+	}
+
 	info, err := client.CreateStorageVolume(&input)
 	if err != nil {
 		return fmt.Errorf("Error creating storage volume %s: %s", name, err)
@@ -211,6 +241,10 @@ func resourceOPCStorageVolumeRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("bootable", result.Bootable)
 	d.Set("image_list", result.ImageList)
 	d.Set("image_list_entry", result.ImageListEntry)
+
+	d.Set("snapshot", result.Snapshot)
+	d.Set("snapshot_id", result.SnapshotID)
+	d.Set("snapshot_account", result.SnapshotAccount)
 
 	if err := setStringList(d, "tags", result.Tags); err != nil {
 		return err
