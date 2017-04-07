@@ -16,7 +16,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the AWS Provider
 provider "aws" {
   access_key = "${var.aws_access_key}"
@@ -64,13 +64,13 @@ Access Key and AWS Secret Key, respectively.  The `AWS_DEFAULT_REGION`
 and `AWS_SESSION_TOKEN` environment variables are also used, if
 applicable:
 
-```
+```hcl
 provider "aws" {}
 ```
 
 Usage:
 
-```
+```hcl
 $ export AWS_ACCESS_KEY_ID="anaccesskey"
 $ export AWS_SECRET_ACCESS_KEY="asecretkey"
 $ export AWS_DEFAULT_REGION="us-west-2"
@@ -91,7 +91,7 @@ method also supports a `profile` configuration and matching
 
 Usage:
 
-```
+```hcl
 provider "aws" {
   region                  = "us-west-2"
   shared_credentials_file = "/Users/tf_user/.aws/creds"
@@ -120,7 +120,7 @@ using the supplied credentials.
 
 Usage:
 
-```
+```hcl
 provider "aws" {
   assume_role {
     role_arn     = "arn:aws:iam::ACCOUNT_ID:role/ROLE_NAME"
@@ -176,14 +176,6 @@ The following arguments are supported in the `provider` block:
 * `insecure` - (Optional) Explicitly allow the provider to
   perform "insecure" SSL requests. If omitted, default value is `false`.
 
-* `dynamodb_endpoint` - (Optional) Use this to override the default endpoint
-  URL constructed from the `region`. It's typically used to connect to
-  `dynamodb-local`.
-
-* `kinesis_endpoint` - (Optional) Use this to override the default endpoint
-  URL constructed from the `region`. It's typically used to connect to
-  `kinesalite`.
-
 * `skip_credentials_validation` - (Optional) Skip the credentials
   validation via the STS API. Useful for AWS API implementations that do
   not have STS available or implemented.
@@ -237,6 +229,14 @@ security credentials. You cannot use the passed policy to grant permissions that
 in excess of those allowed by the access policy of the role that is being assumed.
 
 Nested `endpoints` block supports the following:
+
+* `dynamodb` - (Optional) Use this to override the default endpoint
+  URL constructed from the `region`. It's typically used to connect to
+  `dynamodb-local`.
+
+* `kinesis` - (Optional) Use this to override the default endpoint
+  URL constructed from the `region`. It's typically used to connect to
+  `kinesalite`.
 
 * `iam` - (Optional) Use this to override the default endpoint
   URL constructed from the `region`. It's typically used to connect to

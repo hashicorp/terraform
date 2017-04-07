@@ -1,3 +1,16 @@
+Release v1.8.10 (2017-04-06)
+===
+
+### Service Client Updates
+* `service/elbv2`: Updates service documentation
+
+Release v1.8.9 (2017-04-05)
+===
+
+### Service Client Updates
+* `service/elasticache`: Updates service API, documentation, paginators, and examples
+  * ElastiCache added support for testing the Elasticache Multi-AZ feature with Automatic Failover.
+
 Release v1.8.8 (2017-04-04)
 ===
 
