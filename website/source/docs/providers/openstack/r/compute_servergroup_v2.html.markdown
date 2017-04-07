@@ -35,6 +35,8 @@ The following arguments are supported:
     the Policies section for more information. Changing this creates a new
     server group.
 
+* `value_specs` - (Optional) Map of additional options.
+
 ## Policies
 
 * `affinity` - All instances/servers launched in this group will be hosted on
