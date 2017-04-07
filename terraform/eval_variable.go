@@ -123,22 +123,27 @@ func (n *EvalVariableBlock) Eval(ctx EvalContext) (interface{}, error) {
 	// Get our configuration
 	rc := *n.Config
 	for k, v := range rc.Config {
-		var vString string
-		if err := hilmapstructure.WeakDecode(v, &vString); err == nil {
-			n.VariableValues[k] = vString
-			continue
-		}
+		vKind := reflect.ValueOf(v).Type().Kind()
 
-		var vMap map[string]interface{}
-		if err := hilmapstructure.WeakDecode(v, &vMap); err == nil {
-			n.VariableValues[k] = vMap
-			continue
-		}
-
-		var vSlice []interface{}
-		if err := hilmapstructure.WeakDecode(v, &vSlice); err == nil {
-			n.VariableValues[k] = vSlice
-			continue
+		switch vKind {
+		case reflect.Slice:
+			var vSlice []interface{}
+			if err := hilmapstructure.WeakDecode(v, &vSlice); err == nil {
+				n.VariableValues[k] = vSlice
+				continue
+			}
+		case reflect.Map:
+			var vMap map[string]interface{}
+			if err := hilmapstructure.WeakDecode(v, &vMap); err == nil {
+				n.VariableValues[k] = vMap
+				continue
+			}
+		default:
+			var vString string
+			if err := hilmapstructure.WeakDecode(v, &vString); err == nil {
+				n.VariableValues[k] = vString
+				continue
+			}
 		}
 
 		return nil, fmt.Errorf("Variable value for %s is not a string, list or map type", k)
