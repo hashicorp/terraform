@@ -1,6 +1,6 @@
 ---
 layout: "enterprise"
-page_title: "Runs: How Runs Execute"
+page_title: "Execution - Runs - Terraform Enterprise"
 sidebar_current: "docs-enterprise-runs-execute"
 description: |-
   How runs execute in Terraform Enterprise.
@@ -8,10 +8,9 @@ description: |-
 
 # How Terraform Runs Execute
 
-This briefly covers the internal process of running Terraform plan and
-applies. It is not necessary to know this information, but may be
-valuable to help understand implications of running or debugging failed
-runs.
+This briefly covers the internal process of running Terraform plan and applies.
+It is not necessary to know this information, but may be valuable to help
+understand implications of running or debugging failed runs.
 
 ## Steps of Execution
 
@@ -41,18 +40,18 @@ because Terraform saves partial state and can "pick up where it left off".
 ### Customizing Terraform Execution
 
 As described in the steps above, Terraform will be run against your configuration
-when changes are pushed via GitHub, `terraform push`, or manually queued in the 
+when changes are pushed via GitHub, `terraform push`, or manually queued in the
 UI. There are a few options available to customize the execution of Terraform.
 These are:
 
-- The directory that contains your environment's Terraform configuration can be customized 
+- The directory that contains your environment's Terraform configuration can be customized
 to support directory structures with more than one set of Terraform configuration files.
-To customize the directory for your Environment, set the _Terraform Directory_ 
-property in the [_GitHub Integration_](/docs/enterprise/vcs/github.html) settings for your environment. This is equivalent to 
+To customize the directory for your Environment, set the _Terraform Directory_
+property in the [_GitHub Integration_](/docs/enterprise/vcs/github.html) settings for your environment. This is equivalent to
 passing the `[dir]` argument when running Terraform in your local shell.
-- The directory in which Terraform is executed from can be customized to support directory 
-structures with nested sub-directories or configurations that use Terraform modules with 
-relative paths. To customize the directory used for Terraform execution in your Environment, set the `TF_ATLAS_DIR` 
+- The directory in which Terraform is executed from can be customized to support directory
+structures with nested sub-directories or configurations that use Terraform modules with
+relative paths. To customize the directory used for Terraform execution in your Environment, set the `TF_ATLAS_DIR`
 [environment variable](/docs/enterprise/runs/variables-and-configuration.html#environment-variables)
-to the relative path of the directory - ie. `terraform/production`. This is equivalent to 
+to the relative path of the directory - ie. `terraform/production`. This is equivalent to
 changing directories to the appropriate path in your local shell and then executing Terraform.
