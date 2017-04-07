@@ -82,7 +82,7 @@ resource "opc_compute_ip_reservation" "test" {
 }
 
 resource "opc_compute_ip_association" "test" {
-  vcable      = "${opc_compute_instance.test.vcable_id}"
+  vcable      = "${opc_compute_instance.test.vcable}"
   parent_pool = "ipreservation:${opc_compute_ip_reservation.test.name}"
 }
 `
