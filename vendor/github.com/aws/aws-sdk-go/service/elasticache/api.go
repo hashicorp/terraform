@@ -58,7 +58,7 @@ func (c *ElastiCache) AddTagsToResourceRequest(input *AddTagsToResourceInput) (r
 
 // AddTagsToResource API operation for Amazon ElastiCache.
 //
-// Adds up to 10 cost allocation tags to the named resource. A cost allocation
+// Adds up to 50 cost allocation tags to the named resource. A cost allocation
 // tag is a key-value pair where the key and value are case-sensitive. You can
 // use cost allocation tags to categorize and track your AWS costs.
 //
@@ -87,7 +87,7 @@ func (c *ElastiCache) AddTagsToResourceRequest(input *AddTagsToResourceInput) (r
 //   * ErrCodeTagQuotaPerResourceExceeded "TagQuotaPerResourceExceeded"
 //   The request cannot be processed because it would cause the resource to have
 //   more than the allowed number of tags. The maximum number of tags permitted
-//   on a resource is 10.
+//   on a resource is 50.
 //
 //   * ErrCodeInvalidARNFault "InvalidARN"
 //   The requested Amazon Resource Name (ARN) does not refer to an existing resource.
@@ -477,7 +477,7 @@ func (c *ElastiCache) CreateCacheClusterRequest(input *CreateCacheClusterInput) 
 //   * ErrCodeTagQuotaPerResourceExceeded "TagQuotaPerResourceExceeded"
 //   The request cannot be processed because it would cause the resource to have
 //   more than the allowed number of tags. The maximum number of tags permitted
-//   on a resource is 10.
+//   on a resource is 50.
 //
 //   * ErrCodeInvalidParameterValueException "InvalidParameterValue"
 //   The value for a parameter is invalid.
@@ -552,8 +552,20 @@ func (c *ElastiCache) CreateCacheParameterGroupRequest(input *CreateCacheParamet
 
 // CreateCacheParameterGroup API operation for Amazon ElastiCache.
 //
-// Creates a new cache parameter group. A cache parameter group is a collection
-// of parameters that you apply to all of the nodes in a cache cluster.
+// Creates a new Amazon ElastiCache cache parameter group. An ElastiCache cache
+// parameter group is a collection of parameters and their values that are applied
+// to all of the nodes in any cache cluster or replication group using the CacheParameterGroup.
+//
+// A newly created CacheParameterGroup is an exact duplicate of the default
+// parameter group for the CacheParameterGroupFamily. To customize the newly
+// created CacheParameterGroup you can change the values of specific parameters.
+// For more information, see:
+//
+//    * ModifyCacheParameterGroup (http://docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_ModifyCacheParameterGroup.html)
+//    in the ElastiCache API Reference.
+//
+//    * Parameters and Parameter Groups (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/ParameterGroups.html)
+//    in the ElastiCache User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -855,7 +867,11 @@ func (c *ElastiCache) CreateReplicationGroupRequest(input *CreateReplicationGrou
 // When a Redis (cluster mode disabled) replication group has been successfully
 // created, you can add one or more read replicas to it, up to a total of 5
 // read replicas. You cannot alter a Redis (cluster mode enabled) replication
-// group after it has been created.
+// group after it has been created. However, if you need to increase or decrease
+// the number of node groups (console: shards), you can avail yourself of ElastiCache
+// for Redis' enhanced backup and restore. For more information, see Restoring
+// From a Backup with Cluster Resizing (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/backups-restoring.html)
+// in the ElastiCache User Guide.
 //
 // This operation is valid for Redis only.
 //
@@ -910,7 +926,7 @@ func (c *ElastiCache) CreateReplicationGroupRequest(input *CreateReplicationGrou
 //   * ErrCodeTagQuotaPerResourceExceeded "TagQuotaPerResourceExceeded"
 //   The request cannot be processed because it would cause the resource to have
 //   more than the allowed number of tags. The maximum number of tags permitted
-//   on a resource is 10.
+//   on a resource is 50.
 //
 //   * ErrCodeNodeGroupsPerReplicationGroupQuotaExceededFault "NodeGroupsPerReplicationGroupQuotaExceeded"
 //   The request cannot be processed because it would exceed the maximum of 15
@@ -1724,15 +1740,15 @@ func (c *ElastiCache) DescribeCacheClustersRequest(input *DescribeCacheClustersI
 // identifier is specified, or about a specific cache cluster if a cache cluster
 // identifier is supplied.
 //
-// By default, abbreviated information about the cache clusters are returned.
-// You can use the optional ShowDetails flag to retrieve detailed information
+// By default, abbreviated information about the cache clusters is returned.
+// You can use the optional ShowCacheNodeInfo flag to retrieve detailed information
 // about the cache nodes associated with the cache clusters. These details include
 // the DNS address and port for the cache node endpoint.
 //
-// If the cluster is in the CREATING state, only cluster-level information is
+// If the cluster is in the creating state, only cluster-level information is
 // displayed until all of the nodes are successfully provisioned.
 //
-// If the cluster is in the DELETING state, only cluster-level information is
+// If the cluster is in the deleting state, only cluster-level information is
 // displayed.
 //
 // If cache nodes are currently being added to the cache cluster, node endpoint
@@ -3543,7 +3559,7 @@ func (c *ElastiCache) ListTagsForResourceRequest(input *ListTagsForResourceInput
 // optional. You can use cost allocation tags to categorize and track your AWS
 // costs.
 //
-// You can have a maximum of 10 cost allocation tags on an ElastiCache resource.
+// You can have a maximum of 50 cost allocation tags on an ElastiCache resource.
 // For more information, see Using Cost Allocation Tags in Amazon ElastiCache
 // (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/BestPractices.html).
 //
@@ -4477,6 +4493,151 @@ func (c *ElastiCache) RevokeCacheSecurityGroupIngressWithContext(ctx aws.Context
 	return out, req.Send()
 }
 
+const opTestFailover = "TestFailover"
+
+// TestFailoverRequest generates a "aws/request.Request" representing the
+// client's request for the TestFailover operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See TestFailover for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the TestFailover method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the TestFailoverRequest method.
+//    req, resp := client.TestFailoverRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/TestFailover
+func (c *ElastiCache) TestFailoverRequest(input *TestFailoverInput) (req *request.Request, output *TestFailoverOutput) {
+	op := &request.Operation{
+		Name:       opTestFailover,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &TestFailoverInput{}
+	}
+
+	output = &TestFailoverOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// TestFailover API operation for Amazon ElastiCache.
+//
+// Represents the input of a TestFailover operation which test automatic failover
+// on a specified node group (called shard in the console) in a replication
+// group (called cluster in the console).
+//
+// Note the following
+//
+//    * A customer can use this operation to test automatic failover on up to
+//    5 shards (called node groups in the ElastiCache API and AWS CLI) in any
+//    rolling 24-hour period.
+//
+//    * If calling this operation on shards in different clusters (called replication
+//    groups in the API and CLI), the calls can be made concurrently.
+//
+//    * If calling this operation multiple times on different shards in the
+//    same Redis (cluster mode enabled) replication group, the first node replacement
+//    must complete before a subsequent call can be made.
+//
+//    * To determine whether the node replacement is complete you can check
+//    Events using the Amazon ElastiCache console, the AWS CLI, or the ElastiCache
+//    API. Look for the following automatic failover related events, listed
+//    here in order of occurrance:
+//
+// Replication group message: Test Failover API called for node group <node-group-id>
+//
+// Cache cluster message: Failover from master node <primary-node-id> to replica
+//    node <node-id> completed
+//
+// Replication group message: Failover from master node <primary-node-id> to
+//    replica node <node-id> completed
+//
+// Cache cluster message: Recovering cache nodes <node-id>
+//
+// Cache cluster message: Finished recovery for cache nodes <node-id>
+//
+// For more information see:
+//
+// Viewing ElastiCache Events (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/ECEvents.Viewing.html)
+//    in the ElastiCache User Guide
+//
+// DescribeEvents (http://docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_DescribeEvents.html)
+//    in the ElastiCache API Reference
+//
+// Also see, Testing Multi-AZ with Automatic Failover (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/AutoFailover.html#auto-failover-test)
+// in the ElastiCache User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon ElastiCache's
+// API operation TestFailover for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeAPICallRateForCustomerExceededFault "APICallRateForCustomerExceeded"
+//   The customer has exceeded the allowed rate of API calls.
+//
+//   * ErrCodeInvalidCacheClusterStateFault "InvalidCacheClusterState"
+//   The requested cache cluster is not in the available state.
+//
+//   * ErrCodeInvalidReplicationGroupStateFault "InvalidReplicationGroupState"
+//   The requested replication group is not in the available state.
+//
+//   * ErrCodeNodeGroupNotFoundFault "NodeGroupNotFoundFault"
+//   The node group specified by the NodeGroupId parameter could not be found.
+//   Please verify that the node group exists and that you spelled the NodeGroupId
+//   value correctly.
+//
+//   * ErrCodeReplicationGroupNotFoundFault "ReplicationGroupNotFoundFault"
+//   The specified replication group does not exist.
+//
+//   * ErrCodeTestFailoverNotAvailableFault "TestFailoverNotAvailableFault"
+//
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValue"
+//   The value for a parameter is invalid.
+//
+//   * ErrCodeInvalidParameterCombinationException "InvalidParameterCombination"
+//   Two or more incompatible parameters were specified.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/TestFailover
+func (c *ElastiCache) TestFailover(input *TestFailoverInput) (*TestFailoverOutput, error) {
+	req, out := c.TestFailoverRequest(input)
+	return out, req.Send()
+}
+
+// TestFailoverWithContext is the same as TestFailover with the addition of
+// the ability to pass a context and additional request options.
+//
+// See TestFailover for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ElastiCache) TestFailoverWithContext(ctx aws.Context, input *TestFailoverInput, opts ...request.Option) (*TestFailoverOutput, error) {
+	req, out := c.TestFailoverRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 // Represents the input of an AddTagsToResource operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/AddTagsToResourceMessage
 type AddTagsToResourceInput struct {
@@ -4739,8 +4900,11 @@ type CacheCluster struct {
 	// library.
 	ClientDownloadLandingPage *string `type:"string"`
 
-	// Represents the information required for client programs to connect to a cache
-	// node.
+	// Represents a Memcached cluster endpoint which, if Automatic Discovery is
+	// enabled on the cluster, can be used by an application to connect to any node
+	// in the cluster. The configuration endpoint will always have .cfg in it.
+	//
+	// Example: mem-3.9dvc4r.cfg.usw2.cache.amazonaws.com:11211
 	ConfigurationEndpoint *Endpoint `type:"structure"`
 
 	// The name of the cache engine (memcached or redis) to be used for this cache
@@ -6507,8 +6671,8 @@ type CreateReplicationGroupInput struct {
 	// ReplicaCount.
 	//
 	// If you're creating a Redis (cluster mode disabled) or a Redis (cluster mode
-	// enabled) replication group, you can use this parameter to configure one node
-	// group (shard) or you can omit this parameter.
+	// enabled) replication group, you can use this parameter to individually configure
+	// each node group (shard), or you can omit this parameter.
 	NodeGroupConfiguration []*NodeGroupConfiguration `locationNameList:"NodeGroupConfiguration" type:"list"`
 
 	// The Amazon Resource Name (ARN) of the Amazon Simple Notification Service
@@ -6522,7 +6686,10 @@ type CreateReplicationGroupInput struct {
 	// This parameter is not used if there is more than one node group (shard).
 	// You should use ReplicasPerNodeGroup instead.
 	//
-	// If Multi-AZ is enabled, the value of this parameter must be at least 2.
+	// If AutomaticFailoverEnabled is true, the value of this parameter must be
+	// at least 2. If AutomaticFailoverEnabled is false you can omit this parameter
+	// (it will default to 1), or you can explicitly set it to a value between 2
+	// and 6.
 	//
 	// The maximum permitted value for NumCacheClusters is 6 (primary plus 5 replicas).
 	NumCacheClusters *int64 `type:"integer"`
@@ -6620,9 +6787,11 @@ type CreateReplicationGroupInput struct {
 
 	// A list of Amazon Resource Names (ARN) that uniquely identify the Redis RDB
 	// snapshot files stored in Amazon S3. The snapshot files are used to populate
-	// the replication group. The Amazon S3 object name in the ARN cannot contain
-	// any commas. The list must match the number of node groups (shards) in the
-	// replication group, which means you cannot repartition.
+	// the new replication group. The Amazon S3 object name in the ARN cannot contain
+	// any commas. The new replication group will have the number of node groups
+	// (console: shards) specified by the parameter NumNodeGroups or the number
+	// of node groups configured by NodeGroupConfiguration regardless of the number
+	// of ARNs specified here.
 	//
 	// This parameter is only valid if the Engine parameter is redis.
 	//
@@ -7377,6 +7546,11 @@ type DescribeCacheClustersInput struct {
 	MaxRecords *int64 `type:"integer"`
 
 	// An optional flag that can be included in the DescribeCacheCluster request
+	// to show only nodes (API/CLI: clusters) that are not members of a replication
+	// group. In practice, this mean Memcached and single node Redis clusters.
+	ShowCacheClustersNotInReplicationGroups *bool `type:"boolean"`
+
+	// An optional flag that can be included in the DescribeCacheCluster request
 	// to retrieve information about the individual cache nodes.
 	ShowCacheNodeInfo *bool `type:"boolean"`
 }
@@ -7406,6 +7580,12 @@ func (s *DescribeCacheClustersInput) SetMarker(v string) *DescribeCacheClustersI
 // SetMaxRecords sets the MaxRecords field's value.
 func (s *DescribeCacheClustersInput) SetMaxRecords(v int64) *DescribeCacheClustersInput {
 	s.MaxRecords = &v
+	return s
+}
+
+// SetShowCacheClustersNotInReplicationGroups sets the ShowCacheClustersNotInReplicationGroups field's value.
+func (s *DescribeCacheClustersInput) SetShowCacheClustersNotInReplicationGroups(v bool) *DescribeCacheClustersInput {
+	s.ShowCacheClustersNotInReplicationGroups = &v
 	return s
 }
 
@@ -8052,11 +8232,13 @@ func (s *DescribeEngineDefaultParametersOutput) SetEngineDefaults(v *EngineDefau
 type DescribeEventsInput struct {
 	_ struct{} `type:"structure"`
 
-	// The number of minutes' worth of events to retrieve.
+	// The number of minutes worth of events to retrieve.
 	Duration *int64 `type:"integer"`
 
 	// The end of the time interval for which to retrieve events, specified in ISO
 	// 8601 format.
+	//
+	// Example: 2017-03-30T07:03:49.555Z
 	EndTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
 
 	// An optional marker returned from a prior request. Use this marker for pagination
@@ -8083,6 +8265,8 @@ type DescribeEventsInput struct {
 
 	// The beginning of the time interval to retrieve events for, specified in ISO
 	// 8601 format.
+	//
+	// Example: 2017-03-30T07:03:49.555Z
 	StartTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
 }
 
@@ -8977,10 +9161,18 @@ func (s *ListAllowedNodeTypeModificationsInput) SetReplicationGroupId(v string) 
 	return s
 }
 
+// Represents the allowed node types you can use to modify your cache cluster
+// or replication group.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/AllowedNodeTypeModificationsMessage
 type ListAllowedNodeTypeModificationsOutput struct {
 	_ struct{} `type:"structure"`
 
+	// A string list, each element of which specifies a cache node type which you
+	// can use to scale your cache cluster or replication group.
+	//
+	// When scaling up a Redis cluster or replication group using ModifyCacheCluster
+	// or ModifyReplicationGroup, use a value from this list for the CacheNodeType
+	// parameter.
 	ScaleUpModifications []*string `type:"list"`
 }
 
@@ -9649,6 +9841,9 @@ type ModifyReplicationGroupInput struct {
 	// and create it anew with the earlier engine version.
 	EngineVersion *string `type:"string"`
 
+	// The name of the Node Group (called shard in the console).
+	NodeGroupId *string `type:"string"`
+
 	// The Amazon Resource Name (ARN) of the Amazon SNS topic to which notifications
 	// are sent.
 	//
@@ -9791,6 +9986,12 @@ func (s *ModifyReplicationGroupInput) SetCacheSecurityGroupNames(v []*string) *M
 // SetEngineVersion sets the EngineVersion field's value.
 func (s *ModifyReplicationGroupInput) SetEngineVersion(v string) *ModifyReplicationGroupInput {
 	s.EngineVersion = &v
+	return s
+}
+
+// SetNodeGroupId sets the NodeGroupId field's value.
+func (s *ModifyReplicationGroupInput) SetNodeGroupId(v string) *ModifyReplicationGroupInput {
+	s.NodeGroupId = &v
 	return s
 }
 
@@ -9964,8 +10165,8 @@ type NodeGroupConfiguration struct {
 	// The number of read replica nodes in this node group (shard).
 	ReplicaCount *int64 `type:"integer"`
 
-	// A string that specifies the keyspaces as a series of comma separated values.
-	// Keyspaces are 0 to 16,383. The string is in the format startkey-endkey.
+	// A string that specifies the keyspace for a particular node group. Keyspaces
+	// range from 0 to 16,383. The string is in the format startkey-endkey.
 	//
 	// Example: "0-3999"
 	Slots *string `type:"string"`
@@ -10661,6 +10862,17 @@ type ReplicationGroup struct {
 	// Redis (cluster mode enabled): T1 node types.
 	AutomaticFailover *string `type:"string" enum:"AutomaticFailoverStatus"`
 
+	// The name of the compute and memory capacity node type for each node in the
+	// replication group.
+	CacheNodeType *string `type:"string"`
+
+	// A flag indicating whether or not this replication group is cluster enabled;
+	// i.e., whether its data can be partitioned across multiple shards (API/CLI:
+	// node groups).
+	//
+	// Valid values: true | false
+	ClusterEnabled *bool `type:"boolean"`
+
 	// The configuration endpoint for this replicaiton group. Use the configuration
 	// endpoint to connect to this replication group.
 	ConfigurationEndpoint *Endpoint `type:"structure"`
@@ -10724,6 +10936,18 @@ func (s ReplicationGroup) GoString() string {
 // SetAutomaticFailover sets the AutomaticFailover field's value.
 func (s *ReplicationGroup) SetAutomaticFailover(v string) *ReplicationGroup {
 	s.AutomaticFailover = &v
+	return s
+}
+
+// SetCacheNodeType sets the CacheNodeType field's value.
+func (s *ReplicationGroup) SetCacheNodeType(v string) *ReplicationGroup {
+	s.CacheNodeType = &v
+	return s
+}
+
+// SetClusterEnabled sets the ClusterEnabled field's value.
+func (s *ReplicationGroup) SetClusterEnabled(v bool) *ReplicationGroup {
+	s.ClusterEnabled = &v
 	return s
 }
 
@@ -11681,10 +11905,10 @@ func (s *Subnet) SetSubnetIdentifier(v string) *Subnet {
 type Tag struct {
 	_ struct{} `type:"structure"`
 
-	// The key for the tag.
+	// The key for the tag. May not be null.
 	Key *string `type:"string"`
 
-	// The tag's value. May not be null.
+	// The tag's value. May be null.
 	Value *string `type:"string"`
 }
 
@@ -11710,7 +11934,7 @@ func (s *Tag) SetValue(v string) *Tag {
 	return s
 }
 
-// Represents the output from the AddTagsToResource, ListTagsOnResource, and
+// Represents the output from the AddTagsToResource, ListTagsForResource, and
 // RemoveTagsFromResource operations.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/TagListMessage
 type TagListMessage struct {
@@ -11733,6 +11957,86 @@ func (s TagListMessage) GoString() string {
 // SetTagList sets the TagList field's value.
 func (s *TagListMessage) SetTagList(v []*Tag) *TagListMessage {
 	s.TagList = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/TestFailoverMessage
+type TestFailoverInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the node group (called shard in the console) in this replication
+	// group on which automatic failover is to be tested. You may test automatic
+	// failover on up to 5 node groups in any rolling 24-hour period.
+	//
+	// NodeGroupId is a required field
+	NodeGroupId *string `type:"string" required:"true"`
+
+	// The name of the replication group (console: cluster) whose automatic failover
+	// is being tested by this operation.
+	//
+	// ReplicationGroupId is a required field
+	ReplicationGroupId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s TestFailoverInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TestFailoverInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TestFailoverInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TestFailoverInput"}
+	if s.NodeGroupId == nil {
+		invalidParams.Add(request.NewErrParamRequired("NodeGroupId"))
+	}
+	if s.ReplicationGroupId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReplicationGroupId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetNodeGroupId sets the NodeGroupId field's value.
+func (s *TestFailoverInput) SetNodeGroupId(v string) *TestFailoverInput {
+	s.NodeGroupId = &v
+	return s
+}
+
+// SetReplicationGroupId sets the ReplicationGroupId field's value.
+func (s *TestFailoverInput) SetReplicationGroupId(v string) *TestFailoverInput {
+	s.ReplicationGroupId = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticache-2015-02-02/TestFailoverResult
+type TestFailoverOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Contains all of the attributes of a specific Redis replication group.
+	ReplicationGroup *ReplicationGroup `type:"structure"`
+}
+
+// String returns the string representation
+func (s TestFailoverOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TestFailoverOutput) GoString() string {
+	return s.String()
+}
+
+// SetReplicationGroup sets the ReplicationGroup field's value.
+func (s *TestFailoverOutput) SetReplicationGroup(v *ReplicationGroup) *TestFailoverOutput {
+	s.ReplicationGroup = v
 	return s
 }
 

@@ -12,6 +12,7 @@ FEATURES:
 IMPROVEMENTS:
  
  * core: add `-lock-timeout` option, which will block and retry locks for the given duration [GH-13262]
+ * core: new `chomp` interpolation function which returns the given string with any trailing newline characters removed [GH-13419]
  * backend/remote-state: Add support for assume role extensions to s3 backend [GH-13236]
  * config: New interpolation functions `basename` and `dirname`, for file path manipulation [GH-13080]
  * helper/resource: Allow unknown "pending" states [GH-13099]
@@ -35,11 +36,12 @@ IMPROVEMENTS:
  * provider/aws: Migrate `aws_dms_*` resources away from AWS waiters [GH-13291]
  * provider/aws: Add support for treat_missing_data to cloudwatch_metric_alarm [GH-13358]
  * provider/aws: Add support for evaluate_low_sample_count_percentiles to cloudwatch_metric_alarm [GH-13371]
- * provider/aws: Fix `aws_s3_bucket` drift detection of logging options [GH-13281]
+ * provider/aws: Add `name_prefix` to `aws_alb_target_group` [GH-13442]
  * provider/bitbucket: Improved error handling [GH-13390]
  * provider/cloudstack: Do not force a new resource when updating `cloudstack_loadbalancer_rule` members [GH-11786]
  * provider/github: Handle the case when issue labels already exist [GH-13182]
  * provider/google: Mark `google_container_cluster`'s `client_key` & `password` inside `master_auth` as sensitive [GH-13148]
+ * provider/openstack: Add support for 'value_specs' options to `openstack_compute_servergroup_v2` [GH-13380]
  * provider/triton: Move to joyent/triton-go [GH-13225]
  
 BUG FIXES: 
@@ -66,12 +68,18 @@ BUG FIXES:
  * provider/aws: Increase subnet deletion timeout [GH-13356]
  * provider/aws: Increase launch_configuration creation timeout [GH-13357]
  * provider/aws: Increase Beanstalk env 'ready' timeout [GH-13359]
+ * provider/aws: Raise timeout for deleting APIG REST API [GH-13414]
+ * provider/aws: Raise timeout for attaching/detaching VPN Gateway [GH-13457]
  * provider/aws: Recreate opsworks_stack on change of service_role_arn [GH-13325]
  * provider/aws: Fix KMS Key reading with Exists method [GH-13348]
+ * provider/aws: Fix DynamoDB issues about GSIs indexes [GH-13256]
+ * provider/aws: Fix `aws_s3_bucket` drift detection of logging options [GH-13281]
+ * provider/aws: Update ElasticTranscoderPreset to have default for MaxFrameRate [GH-13422]
  * provider/azurerm: Network Security Group - ignoring protocol casing at Import time [GH-13153]
  * provider/azurerm: Fix crash when importing Local Network Gateways [GH-13261]
  * provider/bitbucket: Fixed issue where provider would fail with an "EOF" error on some operations [GH-13390]
  * provider/openstack: Refresh volume_attachment from state if NotFound [GH-13342]
+ * provider/openstack: Add SOFT_DELETED to delete status [GH-13444]
  * provider/profitbricks: Changed output type of ips variable of ip_block ProfitBricks resource [GH-13290]
 
 ## 0.9.2 (March 28, 2017)

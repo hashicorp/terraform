@@ -14,7 +14,7 @@ for the effective account in which Terraform is working.
 
 ## Example Usage
 
-```
+```hcl
 data "aws_iam_account_alias" "current" {}
 
 output "account_id" {
