@@ -15,6 +15,9 @@ func resourceOPCStorageVolume() *schema.Resource {
 		Read:   resourceOPCStorageVolumeRead,
 		Update: resourceOPCStorageVolumeUpdate,
 		Delete: resourceOPCStorageVolumeDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -63,26 +66,23 @@ func resourceOPCStorageVolume() *schema.Resource {
 			},
 
 			"bootable": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+				ForceNew: true,
+			},
+
+			"image_list": {
+				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
-				MaxItems: 1,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"image_list": {
-							Type:     schema.TypeString,
-							Required: true,
-							ForceNew: true,
-						},
+			},
 
-						"image_list_entry": {
-							Type:     schema.TypeInt,
-							Optional: true,
-							ForceNew: true,
-							Default:  -1,
-						},
-					},
-				},
+			"image_list_entry": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				ForceNew: true,
+				Default:  -1,
 			},
 
 			"tags": tagsOptionalSchema(),
@@ -139,25 +139,37 @@ func resourceOPCStorageVolumeCreate(d *schema.ResourceData, meta interface{}) er
 	description := d.Get("description").(string)
 	size := d.Get("size").(int)
 	storageType := d.Get("storage_type").(string)
+	bootable := d.Get("bootable").(bool)
+	imageList := d.Get("image_list").(string)
+	imageListEntry := d.Get("image_list_entry").(int)
 
-	input := compute.CreateStorageVolumeInput{
-		Name:        name,
-		Description: description,
-		Size:        strconv.Itoa(size),
-		Properties:  []string{storageType},
-		Tags:        getStringList(d, "tags"),
+	if bootable == true {
+		if imageList == "" {
+			return fmt.Errorf("Error: A Bootable Volume must have an Image List!")
+		}
+
+		if imageListEntry == -1 {
+			return fmt.Errorf("Error: A Bootable Volume must have an Image List Entry!")
+		}
 	}
 
-	expandOPCStorageVolumeOptionalFields(d, &input)
+	input := compute.CreateStorageVolumeInput{
+		Name:           name,
+		Description:    description,
+		Size:           strconv.Itoa(size),
+		Properties:     []string{storageType},
+		Bootable:       bootable,
+		ImageList:      imageList,
+		ImageListEntry: imageListEntry,
+		Tags:           getStringList(d, "tags"),
+	}
 
 	if v, ok := d.GetOk("snapshot"); ok {
 		input.Snapshot = v.(string)
 	}
-
 	if v, ok := d.GetOk("snapshot_account"); ok {
 		input.SnapshotAccount = v.(string)
 	}
-
 	if v, ok := d.GetOk("snapshot_id"); ok {
 		input.SnapshotID = v.(string)
 	}
@@ -178,13 +190,17 @@ func resourceOPCStorageVolumeUpdate(d *schema.ResourceData, meta interface{}) er
 	description := d.Get("description").(string)
 	size := d.Get("size").(int)
 	storageType := d.Get("storage_type").(string)
+	imageList := d.Get("image_list").(string)
+	imageListEntry := d.Get("image_list_entry").(int)
 
 	input := compute.UpdateStorageVolumeInput{
-		Name:        name,
-		Description: description,
-		Size:        strconv.Itoa(size),
-		Properties:  []string{storageType},
-		Tags:        getStringList(d, "tags"),
+		Name:           name,
+		Description:    description,
+		Size:           strconv.Itoa(size),
+		Properties:     []string{storageType},
+		ImageList:      imageList,
+		ImageListEntry: imageListEntry,
+		Tags:           getStringList(d, "tags"),
 	}
 	_, err := client.UpdateStorageVolume(&input)
 	if err != nil {
@@ -219,21 +235,23 @@ func resourceOPCStorageVolumeRead(d *schema.ResourceData, meta interface{}) erro
 
 	d.Set("name", result.Name)
 	d.Set("description", result.Description)
-	d.Set("storage", result.Properties[0])
-	d.Set("snapshot", result.Snapshot)
-	d.Set("snapshot_id", result.SnapshotID)
-	d.Set("snapshot_account", result.SnapshotAccount)
+	d.Set("storage_type", result.Properties[0])
 	size, err := strconv.Atoi(result.Size)
 	if err != nil {
 		return err
 	}
 	d.Set("size", size)
+	d.Set("bootable", result.Bootable)
+	d.Set("image_list", result.ImageList)
+	d.Set("image_list_entry", result.ImageListEntry)
+
+	d.Set("snapshot", result.Snapshot)
+	d.Set("snapshot_id", result.SnapshotID)
+	d.Set("snapshot_account", result.SnapshotAccount)
 
 	if err := setStringList(d, "tags", result.Tags); err != nil {
 		return err
 	}
-
-	flattenOPCStorageVolumeOptionalFields(d, result)
 
 	flattenOPCStorageVolumeComputedFields(d, result)
 
@@ -253,24 +271,6 @@ func resourceOPCStorageVolumeDelete(d *schema.ResourceData, meta interface{}) er
 	}
 
 	return nil
-}
-
-func expandOPCStorageVolumeOptionalFields(d *schema.ResourceData, input *compute.CreateStorageVolumeInput) {
-	bootValue, bootExists := d.GetOk("bootable")
-	input.Bootable = bootExists
-	if bootExists {
-		configs := bootValue.([]interface{})
-		config := configs[0].(map[string]interface{})
-
-		input.ImageList = config["image_list"].(string)
-		input.ImageListEntry = config["image_list_entry"].(int)
-	}
-}
-
-func flattenOPCStorageVolumeOptionalFields(d *schema.ResourceData, result *compute.StorageVolumeInfo) {
-	d.Set("bootable", result.Bootable)
-	d.Set("image_list", result.ImageList)
-	d.Set("image_list_entry", result.ImageListEntry)
 }
 
 func flattenOPCStorageVolumeComputedFields(d *schema.ResourceData, result *compute.StorageVolumeInfo) {
