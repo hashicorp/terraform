@@ -237,7 +237,6 @@ Options:
   -force-copy          Suppress prompts about copying state data. This is
                        equivalent to providing a "yes" to all confirmation
                        prompts.
-
 `
 	return strings.TrimSpace(helpText)
 }

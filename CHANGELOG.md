@@ -5,6 +5,7 @@ FEATURES:
  * **New Resource:** `aws_lightsail_static_ip` [GH-13175]
  * **New Resource:** `aws_lightsail_static_ip_attachment` [GH-13207]
  * **New Resource:** `aws_ses_domain_identity` [GH-13098]
+ * **New Resource**: `azurerm_managed_disk` [GH-12455]
  * **New Resource:** `kubernetes_secret` [GH-12960]
  * **New Data Source:** `aws_iam_role` [GH-13213]
 
@@ -31,15 +32,22 @@ IMPROVEMENTS:
  * provider/aws: Update caller_identity data source [GH-13092]
  * provider/aws: `aws_subnet_ids` data source for getting a list of subnet ids matching certain criteria [GH-13188]
  * provider/aws: Support ip_address_type for aws_alb [GH-13227]
+ * provider/aws: Migrate `aws_dms_*` resources away from AWS waiters [GH-13291]
+ * provider/aws: Add support for treat_missing_data to cloudwatch_metric_alarm [GH-13358]
+ * provider/aws: Add support for evaluate_low_sample_count_percentiles to cloudwatch_metric_alarm [GH-13371]
+ * provider/aws: Fix `aws_s3_bucket` drift detection of logging options [GH-13281]
+ * provider/bitbucket: Improved error handling [GH-13390]
+ * provider/cloudstack: Do not force a new resource when updating `cloudstack_loadbalancer_rule` members [GH-11786]
  * provider/github: Handle the case when issue labels already exist [GH-13182]
  * provider/google: Mark `google_container_cluster`'s `client_key` & `password` inside `master_auth` as sensitive [GH-13148]
  * provider/triton: Move to joyent/triton-go [GH-13225]
-
+ 
 BUG FIXES: 
 
  * core: Escaped interpolation-like sequences (like `$${foo}`) now permitted in variable defaults [GH-13137]
  * core: Fix strange issues with computed values in provider configuration that were worked around with `-input=false` [GH-11264], [GH-13264]
  * core: Fix crash when providing nested maps as variable values in a `module` block [GH-13343]
+ * core: `connection` block attributes are now subject to basic validation of attribute names during validate walk [GH-13400]
  * provider/aws: Add Support for maintenance_window and back_window to rds_cluster_instance [GH-13134]
  * provider/aws: Increase timeout for AMI registration [GH-13159]
  * provider/aws: Increase timeouts for ELB [GH-13161]
@@ -55,8 +63,15 @@ BUG FIXES:
  * provider/aws: Set stickiness to computed in alb_target_group [GH-13278]
  * provider/aws: Increase timeout for deploying `cloudfront_distribution` from 40 to 70 mins [GH-13319]
  * provider/aws: Increase AMI retry timeouts [GH-13324]
+ * provider/aws: Increase subnet deletion timeout [GH-13356]
+ * provider/aws: Increase launch_configuration creation timeout [GH-13357]
+ * provider/aws: Increase Beanstalk env 'ready' timeout [GH-13359]
  * provider/aws: Recreate opsworks_stack on change of service_role_arn [GH-13325]
+ * provider/aws: Fix KMS Key reading with Exists method [GH-13348]
  * provider/azurerm: Network Security Group - ignoring protocol casing at Import time [GH-13153]
+ * provider/azurerm: Fix crash when importing Local Network Gateways [GH-13261]
+ * provider/bitbucket: Fixed issue where provider would fail with an "EOF" error on some operations [GH-13390]
+ * provider/openstack: Refresh volume_attachment from state if NotFound [GH-13342]
  * provider/profitbricks: Changed output type of ips variable of ip_block ProfitBricks resource [GH-13290]
 
 ## 0.9.2 (March 28, 2017)

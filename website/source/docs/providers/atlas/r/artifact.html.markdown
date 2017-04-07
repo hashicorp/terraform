@@ -8,14 +8,14 @@ description: |-
   of resources.
 ---
 
-# atlas\_artifact
+# atlas_artifact
 
 Provides access to deployment artifacts managed by Atlas. This can
 be used to dynamically configure instantiation and provisioning
 of resources.
 
-~> **NOTE: This resource is deprecated.**
-Please use the [Atlas Artifact Data Source](/docs/providers/atlas/d/artifact.html)
+!> **This resource is deprecated!** Use the
+[Atlas Artifact Data Source](/docs/providers/atlas/d/artifact.html)
 
 ## Example Usage
 
@@ -23,7 +23,7 @@ An artifact can be created that has metadata representing
 an AMI in AWS. This AMI can be used to configure an instance. Any changes
 to this artifact will trigger a change to that instance.
 
-```
+```hcl
 # Read the AMI
 resource "atlas_artifact" "web" {
   name  = "hashicorp/web"

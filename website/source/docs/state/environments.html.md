@@ -38,7 +38,7 @@ to switch environments you can use `terraform env select`, etc.
 
 For example, creating an environment:
 
-```
+```text
 $ terraform env new bar
 Created and switched to environment "bar"!
 
@@ -62,7 +62,7 @@ Referencing the current environment is useful for changing behavior based
 on the environment. For example, for non-default environments, it may be useful
 to spin up smaller cluster sizes. You can do this:
 
-```
+```hcl
 resource "aws_instance" "example" {
   count = "${terraform.env == "default" ? 5 : 1}"
 
@@ -73,7 +73,7 @@ resource "aws_instance" "example" {
 Another popular use case is using the environment as part of naming or
 tagging behavior:
 
-```
+```hcl
 resource "aws_instance" "example" {
   tags { Name = "web - ${terraform.env}" }
 

@@ -19,36 +19,43 @@ on your instance resources as an extra safety measure.
 ## Example Usage
 
 ```
-resource "opc_compute_instance" "test_instance" {
-       	name = "test"
-       	label = "test"
-       	shape = "oc3"
-       	imageList = "/oracle/public/oel_6.4_2GB_v1"
-       	sshKeys = ["${opc_compute_ssh_key.key1.name}"]
-       	networking_info {
-       	        index = 0
-       	        model = "e1000"
-       	        nat = ["ippool:/oracle/public/ippool"]
-       	        shared_network = true
-       	}
-       	networking_info {
-       	        index = 1
-       	        ip_network = "${opc_compute_ip_network.foo.id}"
-                vnic = "testing-vnic-name"
-                shared_network = false
-        }
-        storage {
-          volume = "${opc_compute_storage_volume.foo.name}"
-          index = 1
-        }
+resource "opc_compute_ip_network" "test" {
+  name                = "internal-network"
+  description         = "Terraform Provisioned Internal Network"
+  ip_address_prefix   = "10.0.1.0/24"
+  public_napt_enabled = false
 }
+
+resource "opc_compute_storage_volume" "test" {
+  name = "internal"
+  size = 100
+}
+
+resource "opc_compute_instance" "test" {
+  name       = "instance1"
+  label      = "Terraform Provisioned Instance"
+  shape      = "oc3"
+  image_list = "/oracle/public/oel_6.7_apaas_16.4.5_1610211300"
+
+  storage {
+    volume = "${opc_compute_storage_volume.test.name}"
+    index  = 1
+  }
+
+  networking_info {
+    index          = 0
+    nat            = ["ippool:/oracle/public/ippool"]
+    shared_network = true
+  }
+}
+
 ```
 
 ## Argument Reference
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the instance. 
+* `name` - (Required) The name of the instance.
 
 * `shape` - (Required) The shape of the instance, e.g. `oc4`.
 
@@ -64,7 +71,7 @@ The following arguments are supported:
 
 * `networking_info` - (Optional) Information pertaining to an individual network interface to be created and attached to the instance. See [Networking Info](#networking-info) below for more information.
 
-* `storage` - (Optional) Information pertaining to an individual storage attachment to be created during instance creation. Please see [Storage Attachments](#storage-attachments) below for more information. 
+* `storage` - (Optional) Information pertaining to an individual storage attachment to be created during instance creation. Please see [Storage Attachments](#storage-attachments) below for more information.
 
 * `reverse_dns` - (Optional) If set to `true` (default), then reverse DNS records are created. If set to `false`, no reverse DNS records are created.
 
@@ -99,7 +106,7 @@ JSON
 }
 ```
 
-This allows the user to have full control over the attributes supplied to an instance during instance creation. 
+This allows the user to have full control over the attributes supplied to an instance during instance creation.
 There are, as well, some attributes that get populated during instance creation, and the full attributes map can be seen
 via the exported `attributes` attribute.
 
@@ -112,10 +119,10 @@ Thus, any configuration changes in the `instance_attributes` field, will not reg
 ## Networking Info
 
 Each `networking_info` config manages a single network interface for the instance.
-The attributes are either required or optional depending on whether or not the interface is 
+The attributes are either required or optional depending on whether or not the interface is
 in the Shared Network, or an IP Network. Some attributes can only be used if the interface is in the Shared
  Network, and same for an interface in an IP Network.
- 
+
 The following attributes are supported:
 
 * `index` - (Required) The numerical index of the network interface. Specified as an integer to allow for use of `count`, but directly maps to `ethX`. ie: With `index` set to `0`, the interface `eth0` will be created. Can only be `0-9`.
@@ -124,7 +131,7 @@ The following attributes are supported:
 * `ip_network` - (Optional, IP Network Only) The IP Network assigned to the interface.
 * `mac_address` - (Optional, IP Network Only) The MAC address of the interface.
 * `model` - (Required, Shared Network Only) The model of the NIC card used. Must be set to `e1000`.
-* `name_servers` - (Optional) Array of name servers for the interface. 
+* `name_servers` - (Optional) Array of name servers for the interface.
 * `nat` - (Optional for IP Networks, Required for the Shared Network) The IP Reservations associated with the interface (IP Network).
  Indicates whether a temporary or permanent public IP address should be assigned to the instance (Shared Network).
 * `search_domains` - (Optional) The search domains that are sent through DHCP as option 119.
@@ -151,7 +158,7 @@ In addition to the above attributes, the following attributes are exported for a
 
 ## Attributes Reference
 
-In addition to the attributes listed above, the following attributes are exported: 
+In addition to the attributes listed above, the following attributes are exported:
 
 * `id` - The `id` of the instance.
 * `attributes` - The full attributes of the instance, as a JSON string.
@@ -179,7 +186,7 @@ In addition to the attributes listed above, the following attributes are exporte
 Instances can be imported using the Instance's combined `Name` and `ID` with a `/` character separating them.
 If viewing an instance in the Oracle Web Console, the instance's `name` and `id` are the last two fields in the instances fully qualified `Name`
 
-For example, in the Web Console an instance's fully qualified name is: 
+For example, in the Web Console an instance's fully qualified name is:
 ```
 /Compute-<identify>/<user>@<account>/<instance_name>/<instance_id>
 ```

@@ -3,14 +3,15 @@
         <div class="docs-sidebar hidden-print affix-top" role="complementary">
             <ul class="nav docs-sidenav">
                 <li<%= sidebar_current("docs-home") %>>
-                    <a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+                    <a href="/docs/providers/index.html">All Providers</a>
                 </li>
 
                 <li<%= sidebar_current("docs-opc-index") %>>
                     <a href="/docs/providers/opc/index.html">Oracle Public Cloud Provider</a>
                 </li>
 
-                <li<%= sidebar_current(/^docs-opc-datasource/) %>>
+
+                <li<%= sidebar_current("docs-opc-datasource") %>>
                 <a href="#">Data Sources</a>
                     <ul class="nav nav-visible">
                         <li<%= sidebar_current("docs-opc-datasource-network-interface") %>>
@@ -21,14 +22,13 @@
                         </li>
                     </ul>
                 </li>
-
-                <li<%= sidebar_current(/^docs-opc-resource/) %>>
+                <li<%= sidebar_current("docs-opc-resource") %>>
                 <a href="#">Resources</a>
                     <ul class="nav nav-visible">
                         <li<%= sidebar_current("docs-opc-resource-acl") %>>
                             <a href="/docs/providers/opc/r/opc_compute_acl.html">opc_compute_acl</a>
                         </li>
-                        <li<%= sidebar_current("docs-opc-resource-image-list") %>>
+                        <li<%= sidebar_current("docs-opc-resource-image-list-type") %>>
                             <a href="/docs/providers/opc/r/opc_compute_image_list.html">opc_compute_image_list</a>
                         </li>
                         <li<%= sidebar_current("docs-opc-resource-image-list-entry") %>>
@@ -85,7 +85,7 @@
                         <li<%= sidebar_current("docs-opc-resource-ssh-key") %>>
                             <a href="/docs/providers/opc/r/opc_compute_ssh_key.html">opc_compute_ssh_key</a>
                         </li>
-                        <li<%= sidebar_current("docs-opc-resource-storage-volume") %>>
+                        <li<%= sidebar_current("docs-opc-resource-storage-volume-type") %>>
                             <a href="/docs/providers/opc/r/opc_compute_storage_volume.html">opc_compute_storage_volume</a>
                         </li>
                         <li<%= sidebar_current("docs-opc-resource-storage-volume-snapshot") %>>
@@ -98,6 +98,7 @@
                 </li>
             </ul>
         </div>
-<% end %>
-<%= yield %>
+    <% end %>
+
+    <%= yield %>
 <% end %>

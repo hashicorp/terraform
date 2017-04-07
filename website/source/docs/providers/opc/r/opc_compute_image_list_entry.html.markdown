@@ -13,11 +13,17 @@ The ``opc_compute_image_list_entry`` resource creates and manages an Image List 
 ## Example Usage
 
 ```
-resource "opc_compute_image_list_entry" "test" {
+resource "opc_compute_image_list" "test" {
   name        = "imagelist1"
-  machine_images = ["image1", "image2"]
-  version = 1
-  attributes = <<JSON
+  description = "This is a description of the Image List"
+  default     = 21
+}
+
+resource "opc_compute_image_list_entry" "test" {
+  name           = "${opc_compute_image_list.test.name}"
+  machine_images = [ "/oracle/public/oel_6.7_apaas_16.4.5_1610211300" ]
+  version        = 1
+  attributes     = <<JSON
 {
   "foo": "bar"
 }

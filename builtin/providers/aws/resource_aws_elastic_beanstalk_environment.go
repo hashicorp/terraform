@@ -125,7 +125,7 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 			"wait_for_ready_timeout": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "10m",
+				Default:  "20m",
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
 					duration, err := time.ParseDuration(value)

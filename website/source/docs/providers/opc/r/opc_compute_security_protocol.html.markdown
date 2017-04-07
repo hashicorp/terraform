@@ -14,10 +14,10 @@ The ``opc_compute_security_protocol`` resource creates and manages a security pr
 
 ```
 resource "opc_compute_security_protocol" "default" {
-        name = "security-protocol-1"
-        dst_ports = ["2045-2050"]
-        src_ports = ["3045-3060"]
-        ip_protocol = "tcp"
+  name        = "security-protocol-1"
+  dst_ports   = ["2045-2050"]
+  src_ports   = ["3045-3060"]
+  ip_protocol = "tcp"
 }
 ```
 
