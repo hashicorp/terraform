@@ -22,6 +22,12 @@ This page assumes you're familiar with the
 [configuration syntax](/docs/configuration/syntax.html)
 already.
 
+~> **Why is this called "atlas"?** Atlas was previously a commercial offering
+from HashiCorp that included a full suite of enterprise products. The products
+have since been broken apart into their individual products, like **Terraform
+Enterprise**. While this transition is in progress, you may see references to
+"atlas" in the documentation. We apologize for the inconvenience.
+
 ## Example
 
 Terraform Enterprise configuration looks like the following:
