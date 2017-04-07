@@ -66,6 +66,7 @@ BUG FIXES:
  * provider/aws: Increase subnet deletion timeout [GH-13356]
  * provider/aws: Increase launch_configuration creation timeout [GH-13357]
  * provider/aws: Increase Beanstalk env 'ready' timeout [GH-13359]
+ * provider/aws: Raise timeout for deleting APIG REST API [GH-13414]
  * provider/aws: Recreate opsworks_stack on change of service_role_arn [GH-13325]
  * provider/aws: Fix KMS Key reading with Exists method [GH-13348]
  * provider/azurerm: Network Security Group - ignoring protocol casing at Import time [GH-13153]
