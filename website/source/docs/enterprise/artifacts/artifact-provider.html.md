@@ -14,6 +14,12 @@ This is used to make data stored in Artifacts available to Terraform for
 interpolation. In the following example, an artifact is defined and references
 an AMI ID stored in Terraform Enterprise.
 
+~> **Why is this called "atlas"?** Atlas was previously a commercial offering
+from HashiCorp that included a full suite of enterprise products. The products
+have since been broken apart into their individual products, like **Terraform
+Enterprise**. While this transition is in progress, you may see references to
+"atlas" in the documentation. We apologize for the inconvenience.
+
 ```hcl
 provider "atlas" {
   # You can also set the atlas token by exporting ATLAS_TOKEN into your env
@@ -46,4 +52,4 @@ diff would be generated when running `terraform plan`.
 This allows you to reference changing artifacts and trigger new deployments upon
 pushing subsequent Packer builds.
 
-Read more about artifacts in the [Terraform documentation](https://terraform.io/docs/providers/atlas/r/artifact.html).
+Read more about artifacts in the [Terraform documentation](https://terraform.io/docs/providers/terraform-enterprise/r/artifact.html).

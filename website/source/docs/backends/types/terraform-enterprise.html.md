@@ -15,6 +15,12 @@ Stores the state in [Terraform Enterprise](https://www.terraform.io/docs/provide
 You can create a new environment in the
 Environments section and generate new token in the Tokens page under Settings.
 
+~> **Why is this called "atlas"?** Atlas was previously a commercial offering
+from HashiCorp that included a full suite of enterprise products. The products
+have since been broken apart into their individual products, like **Terraform
+Enterprise**. While this transition is in progress, you may see references to
+"atlas" in the documentation. We apologize for the inconvenience.
+
 ## Example Configuration
 
 ```hcl

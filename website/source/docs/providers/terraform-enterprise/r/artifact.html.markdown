@@ -3,16 +3,16 @@ layout: "terraform-enterprise"
 page_title: "Terraform Enterprise: atlas_artifact"
 sidebar_current: "docs-terraform-enterprise-resource-artifact"
 description: |-
-  Provides access to deployment artifacts managed by Terraform Enterprise. This can
-  be used to dynamically configure instantiation and provisioning
-  of resources.
+  Provides access to deployment artifacts managed by Terraform Enterprise. This
+  can be used to dynamically configure instantiation and provisioning of
+  resources.
 ---
 
 # atlas_artifact
 
-Provides access to deployment artifacts managed by Atlas. This can
-be used to dynamically configure instantiation and provisioning
-of resources.
+Provides access to deployment artifacts managed by Terraform Enterprise. This
+can be used to dynamically configure instantiation and provisioning of
+resources.
 
 
 ~> **This resource is deprecated!** Please use the
