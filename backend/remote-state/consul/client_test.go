@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 )
 
@@ -97,4 +98,44 @@ func TestConsul_stateLock(t *testing.T) {
 	}
 
 	remote.TestRemoteLocks(t, sA.(*remote.State).Client, sB.(*remote.State).Client)
+}
+
+func TestConsul_destroyLock(t *testing.T) {
+	srv := newConsulTestServer(t)
+	defer srv.Stop()
+
+	// Get the backend
+	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
+		"address": srv.HTTPAddr,
+		"path":    fmt.Sprintf("tf-unit/%s", time.Now().String()),
+	})
+
+	// Grab the client
+	s, err := b.State(backend.DefaultStateName)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	c := s.(*remote.State).Client.(*RemoteClient)
+
+	info := state.NewLockInfo()
+	id, err := c.Lock(info)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lockPath := c.Path + lockSuffix
+
+	if err := c.Unlock(id); err != nil {
+		t.Fatal(err)
+	}
+
+	// get the lock val
+	pair, _, err := c.Client.KV().Get(lockPath, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pair != nil {
+		t.Fatalf("lock key not cleaned up at: %s", pair.Key)
+	}
 }

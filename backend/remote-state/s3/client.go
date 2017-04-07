@@ -113,8 +113,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		return "", nil
 	}
 
-	stateName := fmt.Sprintf("%s/%s", c.bucketName, c.path)
-	info.Path = stateName
+	info.Path = c.lockPath()
 
 	if info.ID == "" {
 		lockID, err := uuid.GenerateUUID()
@@ -127,7 +126,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 
 	putParams := &dynamodb.PutItemInput{
 		Item: map[string]*dynamodb.AttributeValue{
-			"LockID": {S: aws.String(stateName)},
+			"LockID": {S: aws.String(c.lockPath())},
 			"Info":   {S: aws.String(string(info.Marshal()))},
 		},
 		TableName:           aws.String(c.lockTable),
@@ -153,7 +152,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 	getParams := &dynamodb.GetItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
-			"LockID": {S: aws.String(fmt.Sprintf("%s/%s", c.bucketName, c.path))},
+			"LockID": {S: aws.String(c.lockPath())},
 		},
 		ProjectionExpression: aws.String("LockID, Info"),
 		TableName:            aws.String(c.lockTable),
@@ -202,7 +201,7 @@ func (c *RemoteClient) Unlock(id string) error {
 
 	params := &dynamodb.DeleteItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
-			"LockID": {S: aws.String(fmt.Sprintf("%s/%s", c.bucketName, c.path))},
+			"LockID": {S: aws.String(c.lockPath())},
 		},
 		TableName: aws.String(c.lockTable),
 	}
@@ -213,4 +212,8 @@ func (c *RemoteClient) Unlock(id string) error {
 		return lockErr
 	}
 	return nil
+}
+
+func (c *RemoteClient) lockPath() string {
+	return fmt.Sprintf("%s/%s", c.bucketName, c.path)
 }

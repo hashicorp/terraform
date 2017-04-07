@@ -4,6 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"net/url"
+
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -81,60 +85,71 @@ func resourceHookCreate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*BitbucketClient)
 	hook := createHook(d)
 
-	var jsonbuffer []byte
-
-	jsonpayload := bytes.NewBuffer(jsonbuffer)
-	enc := json.NewEncoder(jsonpayload)
-	enc.Encode(hook)
-
-	hook_req, err := client.Post(fmt.Sprintf("2.0/repositories/%s/%s/hooks",
-		d.Get("owner").(string),
-		d.Get("repository").(string),
-	), jsonpayload)
-
-	decoder := json.NewDecoder(hook_req.Body)
-	err = decoder.Decode(&hook)
+	payload, err := json.Marshal(hook)
 	if err != nil {
 		return err
 	}
 
+	hook_req, err := client.Post(fmt.Sprintf("2.0/repositories/%s/%s/hooks",
+		d.Get("owner").(string),
+		d.Get("repository").(string),
+	), bytes.NewBuffer(payload))
+
+	if err != nil {
+		return err
+	}
+
+	body, readerr := ioutil.ReadAll(hook_req.Body)
+	if readerr != nil {
+		return readerr
+	}
+
+	decodeerr := json.Unmarshal(body, &hook)
+	if decodeerr != nil {
+		return decodeerr
+	}
+
 	d.SetId(hook.Uuid)
-	d.Set("uuid", hook.Uuid)
 
 	return resourceHookRead(d, m)
 }
 func resourceHookRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*BitbucketClient)
-	hook_req, err := client.Get(fmt.Sprintf("2.0/repositories/%s/%s/hooks/%s",
+
+	hook_req, _ := client.Get(fmt.Sprintf("2.0/repositories/%s/%s/hooks/%s",
 		d.Get("owner").(string),
 		d.Get("repository").(string),
-		d.Get("uuid").(string),
+		url.PathEscape(d.Id()),
 	))
 
-	if err != nil {
-		return err
+	log.Printf("ID: %s", url.PathEscape(d.Id()))
+
+	if hook_req.StatusCode == 200 {
+		var hook Hook
+
+		body, readerr := ioutil.ReadAll(hook_req.Body)
+		if readerr != nil {
+			return readerr
+		}
+
+		decodeerr := json.Unmarshal(body, &hook)
+		if decodeerr != nil {
+			return decodeerr
+		}
+
+		d.Set("uuid", hook.Uuid)
+		d.Set("description", hook.Description)
+		d.Set("active", hook.Active)
+		d.Set("url", hook.Url)
+
+		eventsList := make([]string, 0, len(hook.Events))
+
+		for _, event := range hook.Events {
+			eventsList = append(eventsList, event)
+		}
+
+		d.Set("events", eventsList)
 	}
-
-	var hook Hook
-
-	decoder := json.NewDecoder(hook_req.Body)
-	err = decoder.Decode(&hook)
-	if err != nil {
-		return err
-	}
-
-	d.Set("uuid", hook.Uuid)
-	d.Set("description", hook.Description)
-	d.Set("active", hook.Active)
-	d.Set("url", hook.Url)
-
-	eventsList := make([]string, 0, len(hook.Events))
-
-	for _, event := range hook.Events {
-		eventsList = append(eventsList, event)
-	}
-
-	d.Set("events", eventsList)
 
 	return nil
 }
@@ -142,25 +157,17 @@ func resourceHookRead(d *schema.ResourceData, m interface{}) error {
 func resourceHookUpdate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*BitbucketClient)
 	hook := createHook(d)
-
-	var jsonbuffer []byte
-
-	jsonpayload := bytes.NewBuffer(jsonbuffer)
-	enc := json.NewEncoder(jsonpayload)
-	enc.Encode(hook)
-
-	hook_req, err := client.Put(fmt.Sprintf("2.0/repositories/%s/%s/hooks/%s",
-		d.Get("owner").(string),
-		d.Get("repository").(string),
-		d.Get("uuid").(string),
-	), jsonpayload)
-
+	payload, err := json.Marshal(hook)
 	if err != nil {
 		return err
 	}
 
-	decoder := json.NewDecoder(hook_req.Body)
-	err = decoder.Decode(&hook)
+	_, err = client.Put(fmt.Sprintf("2.0/repositories/%s/%s/hooks/%s",
+		d.Get("owner").(string),
+		d.Get("repository").(string),
+		url.PathEscape(d.Id()),
+	), bytes.NewBuffer(payload))
+
 	if err != nil {
 		return err
 	}
@@ -174,7 +181,7 @@ func resourceHookExists(d *schema.ResourceData, m interface{}) (bool, error) {
 		hook_req, err := client.Get(fmt.Sprintf("2.0/repositories/%s/%s/hooks/%s",
 			d.Get("owner").(string),
 			d.Get("repository").(string),
-			d.Get("uuid").(string),
+			url.PathEscape(d.Id()),
 		))
 
 		if err != nil {
@@ -182,14 +189,13 @@ func resourceHookExists(d *schema.ResourceData, m interface{}) (bool, error) {
 		}
 
 		if hook_req.StatusCode != 200 {
-			d.SetId("")
-			return false, nil
+			return false, err
 		}
 
 		return true, nil
-	} else {
-		return false, nil
 	}
+
+	return false, nil
 
 }
 
@@ -198,11 +204,9 @@ func resourceHookDelete(d *schema.ResourceData, m interface{}) error {
 	_, err := client.Delete(fmt.Sprintf("2.0/repositories/%s/%s/hooks/%s",
 		d.Get("owner").(string),
 		d.Get("repository").(string),
-		d.Get("uuid").(string),
+		url.PathEscape(d.Id()),
 	))
 
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
+
 }

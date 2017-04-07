@@ -18,7 +18,7 @@ Therefore, you can enter the source of any module, satisfy any required variable
 
 Within a folder containing Terraform configurations, create a subfolder called `child`. In this subfolder, make one empty `main.tf` file. Then, back in the root folder containing the `child` folder, add this to one of your Terraform configuration files:
 
-```
+```hcl
 module "child" {
   source = "./child"
 }
@@ -37,7 +37,7 @@ Inputs of a module are [variables](/docs/configuration/variables.html) and outpu
 
 Let's add a variable and an output to our `child` module.
 
-```
+```hcl
 variable "memory" {}
 
 output "received" {
@@ -49,7 +49,7 @@ This will create a required variable, `memory`, and then an output, `received`, 
 
 You can then configure the module and use the output like so:
 
-```
+```hcl
 module "child" {
   source = "./child"
 
@@ -69,7 +69,7 @@ It is sometimes useful to embed files within the module that aren't Terraform co
 
 In these cases, you can't use a relative path, since paths in Terraform are generally relative to the working directory from which Terraform was executed. Instead, you want to use a module-relative path. To do this, you should use the [path interpolated variables](/docs/configuration/interpolation.html).
 
-```
+```hcl
 resource "aws_instance" "server" {
   # ...
 
