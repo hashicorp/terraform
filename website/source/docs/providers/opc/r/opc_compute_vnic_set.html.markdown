@@ -14,11 +14,11 @@ The ``opc_compute_vnic_set`` resource creates and manages a virtual NIC set in a
 
 ```
 resource "opc_compute_vnic_set" "test_set" {
-        name = "test_vnic_set"
-       	description = "My vnic set"
-       	applied_acls = ["acl1", "acl2"]
-       	virtual_nics = ["nic1", "nic2", "nic3"]
-       	tags = ["xyzzy", "quux"]
+  name         = "test_vnic_set"
+  description  = "My vnic set"
+  applied_acls = ["acl1", "acl2"]
+  virtual_nics = ["nic1", "nic2", "nic3"]
+  tags         = ["xyzzy", "quux"]
 }
 ```
 

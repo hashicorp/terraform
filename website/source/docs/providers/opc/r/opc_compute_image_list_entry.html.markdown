@@ -14,10 +14,10 @@ The ``opc_compute_image_list_entry`` resource creates and manages an Image List 
 
 ```
 resource "opc_compute_image_list_entry" "test" {
-  name        = "imagelist1"
+  name           = "imagelist1"
   machine_images = ["image1", "image2"]
-  version = 1
-  attributes = <<JSON
+  version        = 1
+  attributes     = <<JSON
 {
   "foo": "bar"
 }

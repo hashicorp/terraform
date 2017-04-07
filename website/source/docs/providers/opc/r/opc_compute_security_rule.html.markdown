@@ -14,10 +14,10 @@ The ``opc_compute_security_rule`` resource creates and manages a security rule i
 
 ```
 resource "opc_compute_security_rule" "default" {
-        name = "SecurityRule1"
-        flow_direction = "ingress"
-        acl = "${opc_compute_acl.default.name}"
-        security_protocols = ["${opc_compute_security_protocol.default.name}"]
+  name               = "SecurityRule1"
+  flow_direction     = "ingress"
+  acl                = "${opc_compute_acl.default.name}"
+  security_protocols = ["${opc_compute_security_protocol.default.name}"]
 }
 ```
 

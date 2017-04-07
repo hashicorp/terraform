@@ -14,8 +14,8 @@ The ``opc_compute_security_ip_list`` resource creates and manages a security IP 
 
 ```
 resource "opc_compute_security_ip_list" "sec_ip_list1" {
-	name = "sec-ip-list1"
-	ip_entries = ["217.138.34.4"]
+  name       = "sec-ip-list1"
+  ip_entries = ["217.138.34.4"]
 }
 ```
 
