@@ -16,7 +16,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the AWS Provider
 provider "aws" {
   access_key = "${var.aws_access_key}"
@@ -64,13 +64,13 @@ Access Key and AWS Secret Key, respectively.  The `AWS_DEFAULT_REGION`
 and `AWS_SESSION_TOKEN` environment variables are also used, if
 applicable:
 
-```
+```hcl
 provider "aws" {}
 ```
 
 Usage:
 
-```
+```hcl
 $ export AWS_ACCESS_KEY_ID="anaccesskey"
 $ export AWS_SECRET_ACCESS_KEY="asecretkey"
 $ export AWS_DEFAULT_REGION="us-west-2"
@@ -91,7 +91,7 @@ method also supports a `profile` configuration and matching
 
 Usage:
 
-```
+```hcl
 provider "aws" {
   region                  = "us-west-2"
   shared_credentials_file = "/Users/tf_user/.aws/creds"
@@ -120,7 +120,7 @@ using the supplied credentials.
 
 Usage:
 
-```
+```hcl
 provider "aws" {
   assume_role {
     role_arn     = "arn:aws:iam::ACCOUNT_ID:role/ROLE_NAME"
