@@ -405,7 +405,7 @@ func resourceInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating instance %s: %s", input.Name, err)
 	}
 
-	log.Printf("[DEBUG] Created instance %s: %#v", result.ID)
+	log.Printf("[DEBUG] Created instance %s: %#v", input.Name, result.ID)
 
 	d.SetId(result.ID)
 

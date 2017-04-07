@@ -97,7 +97,7 @@ func testAccCheckImageListEntryDestroy(s *terraform.State) error {
 
 		name, version, err := parseOPCImageListEntryID(rs.Primary.ID)
 		if err != nil {
-			return fmt.Errorf("Error parsing the Image List ID: $+v", err)
+			return fmt.Errorf("Error parsing the Image List ID: %+v", err)
 		}
 
 		input := compute.GetImageListEntryInput{
