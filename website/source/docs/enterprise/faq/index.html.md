@@ -1,6 +1,6 @@
 ---
 layout: "enterprise"
-page_title: "Terraform Enterprise FAQs"
+page_title: "FAQ - Terraform Enterprise"
 sidebar_current: "docs-enterprise-faq"
 description: |-
   Frequently Asked Questions.
