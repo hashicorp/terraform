@@ -74,6 +74,7 @@ BUG FIXES:
  * provider/azurerm: Fix crash when importing Local Network Gateways [GH-13261]
  * provider/bitbucket: Fixed issue where provider would fail with an "EOF" error on some operations [GH-13390]
  * provider/openstack: Refresh volume_attachment from state if NotFound [GH-13342]
+ * provider/openstack: Add SOFT_DELETED to delete status [GH-13444]
  * provider/profitbricks: Changed output type of ips variable of ip_block ProfitBricks resource [GH-13290]
 
 ## 0.9.2 (March 28, 2017)
