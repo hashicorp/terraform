@@ -127,4 +127,4 @@ provider "aws" {
 }
 ```
 
-Only [variables](/docs/configuration/variables) and [remote state](/docs/state/remote.html) are supported, it is not possible to use the output from a resource, module or data source in the interpolation syntax for a provider.
+~> **NOTE:** Only [variables](/docs/configuration/variables) and [remote state](/docs/state/remote.html) are supported at this point, it is not currently possible to use the output from a resource, module or data source in the interpolation syntax for a provider.
