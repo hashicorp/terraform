@@ -56,7 +56,7 @@ The following arguments are supported:
   matching artifact in any build, or a specific number to pin to that
   build. If `build` and `version` are unspecified, `version` will default
   to "latest". Cannot be specified with `version`. Note: `build` is only
-  present if Terraform Enterpris builds the image.
+  present if Terraform Enterprise builds the image.
 
 * `version` - (Optional)  The version of the artifact to filter on. This can
   be "latest", to match against the latest version, "any" to find a matching artifact
