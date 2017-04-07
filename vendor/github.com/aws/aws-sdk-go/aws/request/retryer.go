@@ -1,6 +1,9 @@
 package request
 
 import (
+	"net"
+	"os"
+	"syscall"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -28,6 +31,7 @@ func WithRetryer(cfg *aws.Config, retryer Retryer) *aws.Config {
 var retryableCodes = map[string]struct{}{
 	"RequestError":            {},
 	"RequestTimeout":          {},
+	ErrCodeResponseTimeout:    {},
 	"RequestTimeoutException": {}, // Glacier's flavor of RequestTimeout
 }
 
@@ -69,12 +73,32 @@ func isCodeExpiredCreds(code string) bool {
 	return ok
 }
 
+func isSerializationErrorRetryable(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	if aerr, ok := err.(awserr.Error); ok {
+		return isCodeRetryable(aerr.Code())
+	}
+
+	if opErr, ok := err.(*net.OpError); ok {
+		if sysErr, ok := opErr.Err.(*os.SyscallError); ok {
+			return sysErr.Err == syscall.ECONNRESET
+		}
+	}
+
+	return false
+}
+
 // IsErrorRetryable returns whether the error is retryable, based on its Code.
 // Returns false if the request has no Error set.
 func (r *Request) IsErrorRetryable() bool {
 	if r.Error != nil {
-		if err, ok := r.Error.(awserr.Error); ok {
+		if err, ok := r.Error.(awserr.Error); ok && err.Code() != ErrCodeSerialization {
 			return isCodeRetryable(err.Code())
+		} else if ok {
+			return isSerializationErrorRetryable(err.OrigErr())
 		}
 	}
 	return false

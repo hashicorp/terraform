@@ -19,7 +19,7 @@ const (
 	// ErrCodeDuplicateLoadBalancerNameException for service response error code
 	// "DuplicateLoadBalancerName".
 	//
-	// A load balancer with the specified name already exists for this account.
+	// A load balancer with the specified name already exists.
 	ErrCodeDuplicateLoadBalancerNameException = "DuplicateLoadBalancerName"
 
 	// ErrCodeDuplicateTagKeysException for service response error code
