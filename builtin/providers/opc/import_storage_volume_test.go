@@ -118,6 +118,28 @@ func TestAccOPCStorageVolume_importImageListEntry(t *testing.T) {
 	})
 }
 
+func TestAccOPCStorageVolume_importLowLatency(t *testing.T) {
+	resourceName := "opc_compute_storage_volume.test"
+	rInt := acctest.RandInt()
+	config := testAccStorageVolumeLowLatency(rInt)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: opcResourceCheck(resourceName, testAccCheckStorageVolumeDestroyed),
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccOPCStorageVolume_importFromSnapshot(t *testing.T) {
 	resourceName := "opc_compute_storage_volume.test"
 	rInt := acctest.RandInt()
