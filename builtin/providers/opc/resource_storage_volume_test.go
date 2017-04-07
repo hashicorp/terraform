@@ -136,6 +136,30 @@ func TestAccOPCStorageVolume_ImageListEntry(t *testing.T) {
 	})
 }
 
+func TestAccOPCStorageVolume_FromSnapshot(t *testing.T) {
+	volumeResourceName := "opc_compute_storage_volume.test"
+	rInt := acctest.RandInt()
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: opcResourceCheck(volumeResourceName, testAccCheckStorageVolumeDestroyed),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccStorageVolumeFromSnapshot(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					opcResourceCheck(volumeResourceName, testAccCheckStorageVolumeExists),
+					resource.TestCheckResourceAttr(volumeResourceName, "name", fmt.Sprintf("test-acc-stor-vol-final-%d", rInt)),
+					resource.TestCheckResourceAttrSet(volumeResourceName, "snapshot"),
+					resource.TestCheckResourceAttrSet(volumeResourceName, "snapshot_id"),
+					resource.TestCheckResourceAttr(volumeResourceName, "size", "5"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckStorageVolumeExists(state *OPCResourceState) error {
 	sv := state.Client.StorageVolumes()
 	volumeName := state.Attributes["name"]
@@ -251,3 +275,28 @@ resource "opc_compute_storage_volume" "test" {
   size = 2048
 }
 `
+
+func testAccStorageVolumeFromSnapshot(rInt int) string {
+	return fmt.Sprintf(`
+  // Initial Storage Volume to create snapshot with
+  resource "opc_compute_storage_volume" "foo" {
+    name = "test-acc-stor-vol-%d"
+    description = "Acc Test intermediary storage volume for snapshot"
+    size = 5
+  }
+
+  resource "opc_compute_storage_volume_snapshot" "foo" {
+    description = "testing-acc"
+    name = "test-acc-stor-snapshot-%d"
+    collocated = true
+    volume_name = "${opc_compute_storage_volume.foo.name}"
+  }
+
+  // Create storage volume from snapshot
+  resource "opc_compute_storage_volume" "test" {
+    name = "test-acc-stor-vol-final-%d"
+    description = "storage volume from snapshot"
+    size = 5
+    snapshot_id = "${opc_compute_storage_volume_snapshot.foo.snapshot_id}"
+  }`, rInt, rInt, rInt)
+}
