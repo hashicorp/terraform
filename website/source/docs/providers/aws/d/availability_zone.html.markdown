@@ -25,7 +25,7 @@ which provides a list of the available zones.
 The following example shows how this data source might be used to derive
 VPC and subnet CIDR prefixes systematically for an availability zone.
 
-```
+```hcl
 variable "region_number" {
   # Arbitrary mapping of region name to number to use in
   # a VPC's CIDR prefix.

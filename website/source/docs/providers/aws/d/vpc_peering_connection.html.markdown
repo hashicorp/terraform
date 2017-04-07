@@ -13,7 +13,7 @@ a specific VPC peering connection.
 
 ## Example Usage
 
-```
+```hcl
 # Declare the data source
 data "aws_vpc_peering_connection" "pc" {
   vpc_id          = "${aws_vpc.foo.id}"
