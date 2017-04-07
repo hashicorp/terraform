@@ -1,6 +1,6 @@
 ---
 layout: "enterprise"
-page_title: "Creating AMI Artifacts"
+page_title: "Creating AMIs - Artifacts - Terraform Enterprise"
 sidebar_current: "docs-enterprise-artifacts-amis"
 description: |-
   Creating AMI Artifacts with Packer.
