@@ -112,7 +112,7 @@ func TestAccAWSALB_namePrefix(t *testing.T) {
 					testAccCheckAWSALBExists("aws_alb.alb_test", &conf),
 					resource.TestCheckResourceAttrSet("aws_alb.alb_test", "name"),
 					resource.TestMatchResourceAttr("aws_alb.alb_test", "name",
-						regexp.MustCompile("^tf-lb")),
+						regexp.MustCompile("^tf-lb-")),
 				),
 			},
 		},
@@ -600,7 +600,7 @@ resource "aws_security_group" "alb_test" {
 func testAccAWSALBConfig_namePrefix() string {
 	return fmt.Sprintf(`
 resource "aws_alb" "alb_test" {
-  name_prefix     = "tf-lb"
+  name_prefix     = "tf-lb-"
   internal        = true
   security_groups = ["${aws_security_group.alb_test.id}"]
   subnets         = ["${aws_subnet.alb_test.*.id}"]
