@@ -397,13 +397,16 @@ func resourceAwsS3BucketCreate(d *schema.ResourceData, meta interface{}) error {
 
 	// Get the bucket and acl
 	bucket := d.Get("bucket").(string)
-	acl := d.Get("acl").(string)
-
-	log.Printf("[DEBUG] S3 bucket create: %s, ACL: %s", bucket, acl)
+	log.Printf("[DEBUG] S3 bucket create: %s", bucket)
 
 	req := &s3.CreateBucketInput{
 		Bucket: aws.String(bucket),
-		ACL:    aws.String(acl),
+	}
+
+	if acl, ok := d.GetOk("acl"); ok {
+		acl := acl.(string)
+		req.ACL = aws.String(acl)
+		log.Printf("[DEBUG] S3 bucket %s has canned ACL %s", bucket, acl)
 	}
 
 	var awsRegion string
