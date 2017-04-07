@@ -51,6 +51,14 @@
 			"versionExact": "v8.1.0-beta"
 		},
 		{
+			"checksumSHA1": "iAZi+Mh1Tivk3bdBbAEz+bd5nPg=",
+			"path": "github.com/Azure/azure-sdk-for-go/arm/disk",
+			"revision": "ecf40e315d5ab0ca6d7b3b7f7fbb5c1577814813",
+			"revisionTime": "2017-03-02T00:14:02Z",
+			"version": "v8.1.0-beta",
+			"versionExact": "v8.1.0-beta"
+		},
+		{
 			"checksumSHA1": "ro1i9qoJcSgbWgV7D93wXhBwoL8=",
 			"comment": "v2.1.1-beta-8-gca4d906",
 			"path": "github.com/Azure/azure-sdk-for-go/arm/eventhub",

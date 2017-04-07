@@ -1,29 +1,29 @@
 <% wrap_layout :inner do %>
-	<% content_for :sidebar do %>
-		<div class="docs-sidebar hidden-print affix-top" role="complementary">
-			<ul class="nav docs-sidenav">
-				<li<%= sidebar_current("docs-home") %>>
-					<a href="/docs/providers/index.html">&laquo; Documentation Home</a>
-				</li>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+          <a href="/docs/providers/index.html">All Providers</a>
+        </li>
 
-				<li<%= sidebar_current("docs-grafana-index") %>>
-					<a href="/docs/providers/grafana/index.html">Grafana Provider</a>
-				</li>
+        <li<%= sidebar_current("docs-grafana-index") %>>
+          <a href="/docs/providers/grafana/index.html">Grafana Provider</a>
+        </li>
 
-				<li<%= sidebar_current(/^docs-grafana-resource/) %>>
-					<a href="#">Resources</a>
-					<ul class="nav nav-visible">
-						<li<%= sidebar_current("docs-grafana-resource-dashboard") %>>
-							<a href="/docs/providers/grafana/r/dashboard.html">grafana_dashboard</a>
-						</li>
-						<li<%= sidebar_current("docs-grafana-resource-data-source") %>>
-							<a href="/docs/providers/grafana/r/data_source.html">grafana_data_source</a>
-						</li>
-					</ul>
-				</li>
-			</ul>
-		</div>
-	<% end %>
+        <li<%= sidebar_current("docs-grafana-resource") %>>
+          <a href="#">Resources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-grafana-resource-dashboard") %>>
+              <a href="/docs/providers/grafana/r/dashboard.html">grafana_dashboard</a>
+            </li>
+            <li<%= sidebar_current("docs-grafana-resource-data-source") %>>
+              <a href="/docs/providers/grafana/r/data_source.html">grafana_data_source</a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
 
-	<%= yield %>
+  <%= yield %>
 <% end %>
