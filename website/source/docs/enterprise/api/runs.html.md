@@ -1,6 +1,6 @@
 ---
 layout: "enterprise"
-page_title: "Runs API"
+page_title: "Runs - API - Terraform Enterprise"
 sidebar_current: "docs-enterprise-api-runs"
 description: |-
   Runs in Terraform Enterprise represents a two step Terraform plan and a subsequent apply.
@@ -8,44 +8,58 @@ description: |-
 
 # Runs API
 
-Runs in Terraform Enterprise represents a two step Terraform plan and a subsequent apply.
+Runs in Terraform Enterprise represents a two step Terraform plan and a
+subsequent apply.
 
 Runs are queued under [environments](/docs/enterprise/api/environments.html)
 and require a two-step confirmation workflow. However, environments
 can be configured to auto-apply to avoid this.
 
-### Run Attributes
+## Queue Run
 
-<table class="apidocs">
-  <tr>
-    <th>Attribute</th>
-    <th>Description</th>
-    <th>Required</th>
-  </tr>
-  <tr>
-    <td><code>destroy</code></td>
-    <td>If set to <code>true</code>, this run will be a destroy plan.</td>
-    <td>No</td>
-  </tr>
-</table>
+Starts a new run (plan) in the environment. Requires a configuration version to
+be present on the environment to succeed, but will otherwise 404.
 
-### Actions
+| Method | Path           |
+| :----- | :------------- |
+| `POST` | `/environments/:username/:name/plan` |
 
-The following actions can be performed on this resource.
+### Parameters
 
-<dl>
-  <dt>Queue a run</dt>
-  <dd>POST /api/v1/environments/:username/:name/plan</dd>
-</dl>
+- `:username` `(string: <required>)` - Specifies the username or organization
+  name under which to get the latest configuration version. This username must
+  already exist in the system, and the user must have permission to create new
+  configuration versions under this namespace. This is specified as part of the
+  URL.
 
-### Examples
+- `:name` `(string: <required>)` - Specifies the name of the configuration for
+  which to get the latest configuration. This is specified as part of the URL.
 
-#### Queueing a new run
+- `destroy` `(bool: false)` - Specifies if the plan should be a destroy plan.
 
-Starts a new run (plan) in the environment. Requires a configuration
-version to be present on the environment to succeed, but will otherwise 404.
+### Sample Payload
 
-    $ curl %{ATLAS_URL}/api/v1/environments/%{DEFAULT_USERNAME}/test/plan \
-        -X POST \
-        -d "" \
-        -H "X-Atlas-Token: $ATLAS_TOKEN"
+```json
+{
+  "destroy": false
+}
+```
+
+### Sample Request
+
+```text
+$ curl \
+    --request POST \
+    --header "X-Atlas-Token: ..." \
+    --header "Content-Type: application/json" \
+    --data @payload.json \
+    https://atlas.hashicorp.com/api/v1/environments/my-organization/my-environment/plan
+```
+
+### Sample Response
+
+```json
+{
+  "success": true
+}
+```
