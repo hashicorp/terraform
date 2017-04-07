@@ -25,7 +25,7 @@ for more details.
 
 ## Example Usage
 
-```
+```hcl
 resource "vault_generic_secret" "example" {
   path = "secret/foo"
 
