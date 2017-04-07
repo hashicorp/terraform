@@ -1,6 +1,6 @@
 ---
 layout: "enterprise"
-page_title: "About Terraform Enterprise Runs"
+page_title: "Runs - Terraform Enterprise"
 sidebar_current: "docs-enterprise-runs"
 description: |-
   A "run" in Atlas represents the logical grouping of two Terraform steps - a "plan" and an "apply".
@@ -8,13 +8,13 @@ description: |-
 
 # About Terraform Enterprise Runs
 
-A "run" represents the logical grouping of two Terraform steps - a
-"plan" and an "apply". The distinction between these two phases of a Terraform
-run are documented below.
+A "run" represents the logical grouping of two Terraform steps - a "plan" and an
+"apply". The distinction between these two phases of a Terraform run are
+documented below.
 
-When a [new run is created](/docs/enterprise/runs/starting.html), Terraform Enterprise automatically
-queues a Terraform plan. Because a plan does not change the state of
-infrastructure, it is safe to execute a plan multiple times without
+When a [new run is created](/docs/enterprise/runs/starting.html), Terraform
+Enterprise automatically queues a Terraform plan. Because a plan does not change
+the state of infrastructure, it is safe to execute a plan multiple times without
 consequence. An apply executes the output of a plan and actively changes
 infrastructure. To prevent race conditions, the platform will only execute one
 plan/apply at a time (plans for validating GitHub Pull Requests are allowed to
@@ -26,8 +26,8 @@ Terraform plans and applies below.
 During the plan phase of a run, the command `terraform plan` is executed.
 Terraform performs a refresh and then determines what actions are necessary to
 reach the desired state specified in the Terraform configuration files. A
-successful plan outputs an executable file that is securely stored in Terrafrom Enterprise
-and may be used in the subsequent apply.
+successful plan outputs an executable file that is securely stored in Terraform
+Enterprise and may be used in the subsequent apply.
 
 Terraform plans do not change the state of infrastructure, so it is
 safe to execute a plan multiple times. In fact, there are a number of components
@@ -42,11 +42,11 @@ infrastructure** by applying the changes required to reach the desired state
 specified in the Terraform configuration file.
 
 While Terraform plans are safe to run multiple times, Terraform applies often
-change active infrastructure. Because of this, the default behavior 
+change active infrastructure. Because of this, the default behavior
 is to require user confirmation as part of the
 [Terraform run execution](/docs/enterprise/runs/how-runs-execute.html). Upon
 user confirmation, the Terraform apply will be queued and executed. It is also
-possible to configure 
+possible to configure
 [automatic applies](/docs/enterprise/runs/automatic-applies.html), but this option is
 disabled by default.
 
