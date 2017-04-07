@@ -303,7 +303,7 @@ func (c *ELBV2) CreateLoadBalancerRequest(input *CreateLoadBalancerInput) (req *
 //
 // Returned Error Codes:
 //   * ErrCodeDuplicateLoadBalancerNameException "DuplicateLoadBalancerName"
-//   A load balancer with the specified name already exists for this account.
+//   A load balancer with the specified name already exists.
 //
 //   * ErrCodeTooManyLoadBalancersException "TooManyLoadBalancers"
 //   You've reached the limit on the number of load balancers for your AWS account.
@@ -1477,7 +1477,8 @@ func (c *ELBV2) DescribeSSLPoliciesRequest(input *DescribeSSLPoliciesInput) (req
 //
 // Describes the specified policies or all policies used for SSL negotiation.
 //
-// Note that the only supported policy at this time is ELBSecurityPolicy-2015-05.
+// For more information, see Security Policies (http://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html#describe-ssl-policies)
+// in the Application Load Balancers Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1557,7 +1558,8 @@ func (c *ELBV2) DescribeTagsRequest(input *DescribeTagsInput) (req *request.Requ
 
 // DescribeTags API operation for Elastic Load Balancing.
 //
-// Describes the tags for the specified resources.
+// Describes the tags for the specified resources. You can describe the tags
+// for one or more Application Load Balancers and target groups.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1964,7 +1966,7 @@ func (c *ELBV2) ModifyListenerRequest(input *ModifyListenerInput) (req *request.
 // Any properties that you do not specify retain their current values. However,
 // changing the protocol from HTTPS to HTTP removes the security policy and
 // SSL certificate properties. If you change the protocol from HTTP to HTTPS,
-// you must add the security policy.
+// you must add the security policy and server certificate.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3304,7 +3306,7 @@ type CreateLoadBalancerInput struct {
 
 	// The name of the load balancer.
 	//
-	// This name must be unique within your AWS account, can have a maximum of 32
+	// This name must be unique per region per account, can have a maximum of 32
 	// characters, must contain only alphanumeric characters or hyphens, and must
 	// not begin or end with a hyphen.
 	//
@@ -3446,10 +3448,25 @@ type CreateRuleInput struct {
 	// Actions is a required field
 	Actions []*Action `type:"list" required:"true"`
 
-	// A condition. Each condition has the field path-pattern and specifies one
-	// path pattern. A path pattern is case sensitive, can be up to 128 characters
-	// in length, and can contain any of the following characters. Note that you
-	// can include up to three wildcard characters in a path pattern.
+	// A condition. Each condition specifies a field name and a single value.
+	//
+	// If the field name is host-header, you can specify a single host name (for
+	// example, my.example.com). A host name is case insensitive, can be up to 128
+	// characters in length, and can contain any of the following characters. Note
+	// that you can include up to three wildcard characters.
+	//
+	//    * A-Z, a-z, 0-9
+	//
+	//    * - .
+	//
+	//    * * (matches 0 or more characters)
+	//
+	//    * ? (matches exactly 1 character)
+	//
+	// If the field name is path-pattern, you can specify a single path pattern.
+	// A path pattern is case sensitive, can be up to 128 characters in length,
+	// and can contain any of the following characters. Note that you can include
+	// up to three wildcard characters.
 	//
 	//    * A-Z, a-z, 0-9
 	//
@@ -3603,6 +3620,10 @@ type CreateTargetGroupInput struct {
 	Matcher *Matcher `type:"structure"`
 
 	// The name of the target group.
+	//
+	// This name must be unique per region per account, can have a maximum of 32
+	// characters, must contain only alphanumeric characters or hyphens, and must
+	// not begin or end with a hyphen.
 	//
 	// Name is a required field
 	Name *string `type:"string" required:"true"`
@@ -4240,7 +4261,8 @@ func (s *DescribeLoadBalancerAttributesOutput) SetAttributes(v []*LoadBalancerAt
 type DescribeLoadBalancersInput struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Names (ARN) of the load balancers.
+	// The Amazon Resource Names (ARN) of the load balancers. You can specify up
+	// to 20 load balancers in a single call.
 	LoadBalancerArns []*string `type:"list"`
 
 	// The marker for the next set of results. (You received this marker from a
@@ -5106,8 +5128,9 @@ func (s *LoadBalancerState) SetReason(v string) *LoadBalancerState {
 type Matcher struct {
 	_ struct{} `type:"structure"`
 
-	// The HTTP codes. The default value is 200. You can specify multiple values
-	// (for example, "200,202") or a range of values (for example, "200-299").
+	// The HTTP codes. You can specify values between 200 and 499. The default value
+	// is 200. You can specify multiple values (for example, "200,202") or a range
+	// of values (for example, "200-299").
 	//
 	// HttpCode is a required field
 	HttpCode *string `type:"string" required:"true"`
@@ -5163,7 +5186,9 @@ type ModifyListenerInput struct {
 	// The protocol for connections from clients to the load balancer.
 	Protocol *string `type:"string" enum:"ProtocolEnum"`
 
-	// The security policy that defines which ciphers and protocols are supported.
+	// The security policy that defines which protocols and ciphers are supported.
+	// For more information, see Security Policies (http://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html#describe-ssl-policies)
+	// in the Application Load Balancers Guide.
 	SslPolicy *string `type:"string"`
 }
 
@@ -5881,14 +5906,28 @@ func (s *Rule) SetRuleArn(v string) *Rule {
 type RuleCondition struct {
 	_ struct{} `type:"structure"`
 
-	// The only possible value is path-pattern.
+	// The name of the field. The possible values are host-header and path-pattern.
 	Field *string `type:"string"`
 
-	// The path pattern. You can specify a single path pattern.
+	// The condition value.
 	//
-	// A path pattern is case sensitive, can be up to 128 characters in length,
-	// and can contain any of the following characters. Note that you can include
-	// up to three wildcard characters in a path pattern.
+	// If the field name is host-header, you can specify a single host name (for
+	// example, my.example.com). A host name is case insensitive, can be up to 128
+	// characters in length, and can contain any of the following characters. Note
+	// that you can include up to three wildcard characters.
+	//
+	//    * A-Z, a-z, 0-9
+	//
+	//    * - .
+	//
+	//    * * (matches 0 or more characters)
+	//
+	//    * ? (matches exactly 1 character)
+	//
+	// If the field name is path-pattern, you can specify a single path pattern
+	// (for example, /img/*). A path pattern is case sensitive, can be up to 128
+	// characters in length, and can contain any of the following characters. Note
+	// that you can include up to three wildcard characters.
 	//
 	//    * A-Z, a-z, 0-9
 	//
