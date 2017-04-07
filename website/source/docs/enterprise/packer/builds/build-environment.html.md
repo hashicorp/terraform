@@ -1,6 +1,6 @@
 ---
 layout: "enterprise"
-page_title: "Packer Build Environment"
+page_title: "Build Environment - Packer Builds - Terraform Enterprise"
 sidebar_current: "docs-enterprise-packerbuilds-environment"
 description: |-
   This page outlines the environment that Packer runs in within Terraform Enterprise.
@@ -8,7 +8,8 @@ description: |-
 
 # Packer Build Environment
 
-This page outlines the environment that Packer runs in within Terraform Enterprise.
+This page outlines the environment that Packer runs in within Terraform
+Enterprise.
 
 ### Supported Builders
 
@@ -40,16 +41,20 @@ with [Packer Provisioners](https://packer.io/docs/templates/provisioners.html).
 
 An example of this with the Shell provisioner is below.
 
-    "provisioners": [
-      {
-        "type": "shell",
-        "scripts": [
-          "scripts/vagrant.sh",
-          "scripts/dependencies.sh",
-          "scripts/cleanup.sh"
-        ]
-      }
-    ]
+```json
+{
+  "provisioners": [
+    {
+      "type": "shell",
+      "scripts": [
+        "scripts/vagrant.sh",
+        "scripts/dependencies.sh",
+        "scripts/cleanup.sh"
+      ]
+    }
+  ]
+}
+```
 
 We encourage use of relative paths over absolute paths to maintain portability
 between Terraform Enterprise and local builds.
@@ -129,9 +134,9 @@ resource was created outside of GitHub (like using `packer push` or
 
 ### Base Artifact Variable Injection
 
-A base artifact can be selected on the "Settings" page for a build configuration.
-During each build, the latest artifact version will have it's external
-ID (such as an AMI for AWS) injected as an environment variable for the
+A base artifact can be selected on the "Settings" page for a build
+configuration. During each build, the latest artifact version will have it's
+external ID (such as an AMI for AWS) injected as an environment variable for the
 environment.
 
 The keys for the following artifact types will be injected:
@@ -144,22 +149,22 @@ The keys for the following artifact types will be injected:
 You can then reference this artifact in your Packer template, like this
 AWS example:
 
+```json
+{
+  "variables": {
+      "base_ami": "{{env `ATLAS_BASE_ARTIFACT_AWS_AMI_ID`}}"
+  },
+  "builders": [
     {
-      "variables": {
-          "base_ami": "{{env `ATLAS_BASE_ARTIFACT_AWS_AMI_ID`}}"
-      },
-      "builders": [
-        {
-          "type": "amazon-ebs",
-          "access_key": "",
-          "secret_key": "",
-          "region": "us-east-1",
-          "source_ami": "{{user `base_ami`}}"
-        }
-      ]
+      "type": "amazon-ebs",
+      "access_key": "",
+      "secret_key": "",
+      "region": "us-east-1",
+      "source_ami": "{{user `base_ami`}}"
     }
-
-- - -
+  ]
+}
+```
 
 ## Notes on Security
 

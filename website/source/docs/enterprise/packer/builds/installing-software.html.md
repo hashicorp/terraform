@@ -1,6 +1,6 @@
 ---
 layout: "enterprise"
-page_title: "Installing Software with Packer"
+page_title: "Installing Software - Packer Builds - Terraform Enterprise"
 sidebar_current: "docs-enterprise-packerbuilds-installing"
 description: |-
   Installing software with Packer.

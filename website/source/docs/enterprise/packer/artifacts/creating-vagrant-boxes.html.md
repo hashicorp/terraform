@@ -1,6 +1,6 @@
 ---
 layout: "enterprise"
-page_title: "Creating Vagrant Artifacts"
+page_title: "Creating Vagrant Boxes - Packer Artifacts - Terraform Enterprise"
 sidebar_current: "docs-enterprise-packerartifacts-vagrant"
 description: |-
   Creating Vagrant artifacts with Terraform Enterprise.
@@ -8,37 +8,42 @@ description: |-
 
 # Creating Vagrant Boxes with Packer
 
-We recommend using Packer to create boxes, as is it is fully repeatable and keeps a strong
-history of changes within Terraform Enterprise.
+We recommend using Packer to create boxes, as is it is fully repeatable and
+keeps a strong history of changes within Terraform Enterprise.
 
 ## Getting Started
 
-Using Packer requires more up front effort, but the repeatable and
-automated builds will end any manual management of boxes. Additionally,
-all boxes will be stored and served from Terraform Enterprise, keeping a history along
-the way.
+Using Packer requires more up front effort, but the repeatable and automated
+builds will end any manual management of boxes. Additionally, all boxes will be
+stored and served from Terraform Enterprise, keeping a history along the way.
 
 ## Post-Processors
 
-Packer uses [post-processors](https://packer.io/docs/templates/post-processors.html) to define how to process
-images and artifacts after provisioning. Both the `vagrant` and `atlas` post-processors must be used in order
-to upload Vagrant Boxes to Terraform Enterprise via Packer.
+Packer uses
+[post-processors](https://packer.io/docs/templates/post-processors.html) to
+define how to process images and artifacts after provisioning. Both the
+`vagrant` and `atlas` post-processors must be used in order to upload Vagrant
+Boxes to Terraform Enterprise via Packer.
 
 It's important that they are [sequenced](https://packer.io/docs/templates/post-processors.html)
 in the Packer template so they run in order. This is done by nesting arrays:
 
-    "post-processors": [
-      [
-        {
-          "type": "vagrant"
-          ...
-        },
-        {
-          "type": "atlas"
-          ...
-        }
-      ]
+```javascript
+{
+  "post-processors": [
+    [
+      {
+        "type": "vagrant"
+        // ...
+      },
+      {
+        "type": "atlas"
+        // ...
+      }
     ]
+  ]
+}
+```
 
 Sequencing automatically passes the resulting artifact from one
 post-processor to the next – in this case, the `.box` file.
@@ -49,10 +54,12 @@ The [Vagrant post-processor](https://packer.io/docs/post-processors/vagrant.html
 from the build (an `.ovf` file, for example) into a `.box` file before
 passing it to the `atlas` post-processor.
 
-    {
-      "type": "vagrant",
-      "keep_input_artifact": false
-    }
+```json
+{
+  "type": "vagrant",
+  "keep_input_artifact": false
+}
+```
 
 The input artifact (i.e and `.ovf` file) does not need to be kept when building Vagrant Boxes,
 as the resulting `.box` will contain it.
@@ -61,15 +68,17 @@ as the resulting `.box` will contain it.
 
 The [post-processor](https://packer.io/docs/post-processors/atlas.html) takes the resulting `.box` file and uploads it adding metadata about the box version.
 
-    {
-      "type": "atlas",
-      "artifact": "%{DEFAULT_USERNAME}/dev-environment",
-      "artifact_type": "vagrant.box",
-      "metadata": {
-        "provider": "vmware_desktop",
-        "version": "0.0.1"
-      }
-    }
+```json
+{
+  "type": "atlas",
+  "artifact": "my-username/dev-environment",
+  "artifact_type": "vagrant.box",
+  "metadata": {
+    "provider": "vmware_desktop",
+    "version": "0.0.1"
+  }
+}
+```
 
 #### Attributes Required
 
@@ -98,31 +107,35 @@ An example post-processor block for Terraform Enterprise and Vagrant is below. I
 the build runs on both VMware and Virtualbox creating two
 different providers for the same box version (`0.0.1`).
 
-    "post-processors": [
-      [
-        {
-          "type": "vagrant",
-          "keep_input_artifact": false
-        },
-        {
-          "type": "atlas",
-          "only": ["vmware-iso"],
-          "artifact": "%{DEFAULT_USERNAME}/dev-environment",
-          "artifact_type": "vagrant.box",
-          "metadata": {
-            "provider": "vmware_desktop",
-            "version": "0.0.1"
-          }
-        },
-        {
-          "type": "atlas",
-          "only": ["virtualbox-iso"],
-          "artifact": "%{DEFAULT_USERNAME}/dev-environment",
-          "artifact_type": "vagrant.box",
-          "metadata": {
-            "provider": "virtualbox",
-            "version": "0.0.1"
-          }
+```json
+{
+  "post-processors": [
+    [
+      {
+        "type": "vagrant",
+        "keep_input_artifact": false
+      },
+      {
+        "type": "atlas",
+        "only": ["vmware-iso"],
+        "artifact": "my-username/dev-environment",
+        "artifact_type": "vagrant.box",
+        "metadata": {
+          "provider": "vmware_desktop",
+          "version": "0.0.1"
         }
-      ]
+      },
+      {
+        "type": "atlas",
+        "only": ["virtualbox-iso"],
+        "artifact": "my-username/dev-environment",
+        "artifact_type": "vagrant.box",
+        "metadata": {
+          "provider": "virtualbox",
+          "version": "0.0.1"
+        }
+      }
     ]
+  ]
+}
+```
