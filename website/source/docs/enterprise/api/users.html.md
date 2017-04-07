@@ -1,6 +1,6 @@
 ---
 layout: "enterprise"
-page_title: "Users API"
+page_title: "Users - API - Terraform Enterprise"
 sidebar_current: "docs-enterprise-api-users"
 description: |-
   Users are both users and organizations in Terraform Enterprise. They are the parent resource of all resources.
@@ -12,21 +12,38 @@ Users are both users and organizations in Terraform Enterprise. They are the
 parent resource of all resources.
 
 Currently, only the retrieval of users is available on the API. Additionally,
-only Vagrant box resources will be listed. Boxes will
-be returned based on permissions over the organization, or user.
+only Vagrant box resources will be listed. Boxes will be returned based on
+permissions over the organization, or user.
 
-### Actions
+## Read User
 
-The following actions can be performed on this resource.
+This endpoint retrieves information about a single user.
 
-<dl>
-  <dt>Show</dt>
-  <dd>GET /api/v1/user/:username</dd>
-</dl>
+| Method | Path           |
+| :----- | :------------- |
+| `GET`  | `/user/:username` |
 
-### Examples
+### Parameters
 
-#### Retrieve a user
+- `:username` `(string: <required>)` - Specifies the username to search. This is
+  specified as part of the URL.
 
-    $ curl %{ATLAS_URL}/api/v1/user/%{DEFAULT_USERNAME} \
-        -H "X-Atlas-Token: $ATLAS_TOKEN"
+### Sample Request
+
+```text
+$ curl \
+    --header "X-Atlas-Token: ..." \
+    https://atlas.hashicorp.com/api/v1/user/my-user
+```
+
+### Sample Response
+
+```json
+{
+  "username": "sally-seashell",
+  "avatar_url": "https://www.gravatar.com/avatar/...",
+  "profile_html": "Sally is...",
+  "profile_markdown": "Sally is...",
+  "boxes": []
+}
+```

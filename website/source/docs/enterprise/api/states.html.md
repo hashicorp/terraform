@@ -1,6 +1,6 @@
 ---
 layout: "enterprise"
-page_title: "State API"
+page_title: "State - API - Terraform Enterprise"
 sidebar_current: "docs-enterprise-api-states"
 description: |-
   State represents the status of your infrastructure at the last time Terraform was run.
@@ -8,45 +8,60 @@ description: |-
 
 # State API
 
-State represents the status of your infrastructure at the last time Terraform was run. States can be pushed to Terraform Enterprise from Terraform's CLI after an apply is done locally, or state is automatically stored if the apply is done in Terraform Enterprise.
+State represents the status of your infrastructure at the last time Terraform
+was run. States can be pushed to Terraform Enterprise from Terraform's CLI after
+an apply is done locally, or state is automatically stored if the apply is done
+in Terraform Enterprise.
 
-### State Attributes
+## List of States
 
-<table class="apidocs">
-  <tr>
-    <th>Attribute</th>
-    <th>Description</th>
-    <th>Required</th>
-  </tr>
-  <tr>
-    <td><code>username</code></td>
-    <td>If supplied, only return states belonging to the organization with this username.</td>
-    <td>No</td>
-  </tr>
-</table>
+This endpoint gets a list of states accessible to the user corresponding to the
+provided token.
 
-### Actions
+| Method | Path           |
+| :----- | :------------- |
+| `GET`  | `/terraform/state` |
 
-The following actions can be performed on this resource.
+### Parameters
 
-<dl>
-  <dt>Get a list of states accessible to a user</dt>
-  <dd>GET /api/v1/terraform/state</dd>
-</dl>
+- `?username` `(string: "")` - Specifies the organization/username to filter
+  states
 
-### Examples
+- `?page` `(int: 1)` - Specifies the pagination, which defaults to page 1.
 
-#### Getting a list of Terraform states
+### Sample Requests
 
-    $ curl %{ATLAS_URL}/api/v1/terraform/state \
-        -H "X-Atlas-Token: $ATLAS_TOKEN"
+```text
+$ curl \
+    --header "X-Atlas-Token: ..." \
+    https://atlas.hashicorp.com/api/v1/terraform/state
+```
 
-#### Getting a list of Terraform states for an organization
+```text
+$ curl \
+    --header "X-Atlas-Token: ..." \
+    https://atlas.hashicorp.com/api/v1/terraform/state?username=acme
+```
 
-    $ curl %{ATLAS_URL}/api/v1/terraform/state?username=acme_inc \
-        -H "X-Atlas-Token: $ATLAS_TOKEN"
+### Sample Response
 
-#### Getting second page of list of Terraform states
-
-    $ curl %{ATLAS_URL}/api/v1/terraform/state?page=2 \
-        -H "X-Atlas-Token: $ATLAS_TOKEN"
+```json
+{
+  "states": [
+    {
+      "updated_at": "2017-02-03T19:52:37.693Z",
+      "environment": {
+        "username": "my-organization",
+        "name": "docs-demo-one"
+      }
+    },
+    {
+      "updated_at": "2017-04-06T15:48:49.677Z",
+      "environment": {
+        "username": "my-organization",
+        "name": "docs-demo-two"
+      }
+    }
+  ]
+}
+```
