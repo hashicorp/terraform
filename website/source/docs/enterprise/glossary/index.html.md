@@ -1,6 +1,6 @@
 ---
 layout: "enterprise"
-page_title: "Terraform Enterprise Glossary"
+page_title: "Glossary - Terraform Enterprise"
 sidebar_current: "docs-enterprise-glossary"
 description: |-
   Terminology for Terraform Enterprise.
@@ -8,119 +8,117 @@ description: |-
 
 # Glossary
 
-Terraform Enterprise, and this documentation, covers a large set of terminology adopted
-from tools, industry standards and the community. This glossary
-seeks to define as many of those terms as possible to help increase
-understanding in interfacing with the platform and reading documentation.
+Terraform Enterprise, and this documentation, covers a large set of terminology
+adopted from tools, industry standards and the community. This glossary seeks to
+define as many of those terms as possible to help increase understanding in
+interfacing with the platform and reading documentation.
 
-### Authentication Tokens
+## Authentication Tokens
 
-Authentication tokens are tokens used to authenticate with Terraform Enterprise via
-APIs or through tools. Authentication tokens can be revoked, expired
-or created under any user.
+Authentication tokens are tokens used to authenticate with Terraform Enterprise
+via APIs or through tools. Authentication tokens can be revoked, expired or
+created under any user.
 
-### ACL
+## ACL
 
-ACL is an acronym for access control list. This defines access
-to a set of resources. Access to an object in Terraform Enterprise limited to "read"
-for certain users is an example of an ACL.
+ACL is an acronym for access control list. This defines access to a set of
+resources. Access to an object in Terraform Enterprise limited to "read" for
+certain users is an example of an ACL.
 
-### Alert
+## Alert
 
-An alert represents a health check status change on a Consul node that
-is sent to Terraform Enterprise, and then recorded and distributed to various
+An alert represents a health check status change on a Consul node that is sent
+to Terraform Enterprise, and then recorded and distributed to various
 notification methods.
 
-### Application
+## Application
 
-An application is a set of code that represents an application that should
-be deployed. Applications can be linked to builds to be made
-available in the Packer environment.
+An application is a set of code that represents an application that should be
+deployed. Applications can be linked to builds to be made available in the
+Packer environment.
 
-### Apply
+## Apply
 
-An apply is the second step of the two steps required for
-Terraform to make changes to infrastructure. The apply is the process
-of communicating with external APIs to make the changes.
+An apply is the second step of the two steps required for Terraform to make
+changes to infrastructure. The apply is the process of communicating with
+external APIs to make the changes.
 
-### Artifact
+## Artifact
 
-An artifact is an abstract representation of something you wish to
-store and use again that has undergone configuration, compilation or
-some other build process. An artifact is typically
-an image created by Packer that is then deployed by Terraform, or used
-locally with Vagrant.
+An artifact is an abstract representation of something you wish to store and use
+again that has undergone configuration, compilation or some other build process.
+An artifact is typically an image created by Packer that is then deployed by
+Terraform, or used locally with Vagrant.
 
-### Box
+## Box
 
-Boxes are a Vagrant specific package format. Vagrant can install
-and uses images in box format.
+Boxes are a Vagrant specific package format. Vagrant can install and uses images
+in box format.
 
-### Build
+## Build
 
-Builds are resources that represent Packer configurations. A build
-is a generic name, sometimes called a "Build Configuration" when
-defined in the Terraform Enterprise UI.
+Builds are resources that represent Packer configurations. A build is a generic
+name, sometimes called a "Build Configuration" when defined in the Terraform
+Enterprise UI.
 
-### Build Configuration
+## Build Configuration
 
-A build configuration are settings associated with a resource that
-creates artifacts via builds. A build configuration is the name
-in `packer push -name acemeinc/web`.
+A build configuration are settings associated with a resource that creates
+artifacts via builds. A build configuration is the name in `packer push -name
+acemeinc/web`.
 
-### Catalog
+## Catalog
 
-The box catalog is a publicly available index of Vagrant Boxes
-that can be downloaded from Terraform Enterprise and used for development.
+The box catalog is a publicly available index of Vagrant Boxes that can be
+downloaded from Terraform Enterprise and used for development.
 
-### Consul
+## Consul
 
-[Consul](https://consul.io) is a HashiCorp tool for service discovery, configuration,
-and orchestration. Consul enables rapid deployment, configuration, monitoring and
-maintenance of service-oriented architectures.
+[Consul](https://consul.io) is a HashiCorp tool for service discovery,
+configuration, and orchestration. Consul enables rapid deployment,
+configuration, monitoring and maintenance of service-oriented architectures.
 
-### Datacenter
+## Datacenter
 
-A datacenter represents a group of nodes in the same network or
-datacenter within Consul.
+A datacenter represents a group of nodes in the same network or datacenter
+within Consul.
 
-### Environment
+## Environment
 
-Environments show the real-time status of your infrastructure,
-any pending changes, and its change history. Environments can be configured
-to use any or all of these three components.
+Environments show the real-time status of your infrastructure, any pending
+changes, and its change history. Environments can be configured to use any or
+all of these three components.
 
-Environments are the namespace of your Terraform Enterprise managed infrastructure.
-As an example, if you to have a production environment
-for a company named Acme Inc., your environment
-may be named `%{DEFAULT_USERNAME}/production`.
+Environments are the namespace of your Terraform Enterprise managed
+infrastructure. As an example, if you to have a production environment for a
+company named Acme Inc., your environment may be named
+`my-username/production`.
 
-To read more about features provided under environments,
-read the [Terraform](/docs/enterprise) sections.
+To read more about features provided under environments, read the
+[Terraform](/docs/enterprise) sections.
 
-### Environment Variables
+## Environment Variables
 
 Environment variables injected into the environment of Packer builds or
 Terraform Runs (plans and applies).
 
-### Flapping
+## Flapping
 
-Flapping is something entering and leaving a healthy state rapidly. It is typically associated with a health checks that
-briefly report unhealthy status before recovering.
+Flapping is something entering and leaving a healthy state rapidly. It is
+typically associated with a health checks that briefly report unhealthy status
+before recovering.
 
-### Health Check
+## Health Check
 
 Health checks trigger alerts by changing status on a Consul node. That status
-change is seen by Terraform Enterprise, when connected, and an associated alert is
-recorded and sent to any configured notification methods, like
-email.
+change is seen by Terraform Enterprise, when connected, and an associated alert
+is recorded and sent to any configured notification methods, like email.
 
-### Infrastructure
+## Infrastructure
 
-An infrastructure is a stateful representation of a set of Consul
-datacenters.
+An infrastructure is a stateful representation of a set of Consul datacenters.
 
-### Managed Node
+## Managed Node
 
 Managed node is the billing metric for Terraform Enterprise. For Consul Enterprise, a node is a host
 with a Consul agent on it. For Terraform Enterprise, a node is a compute
@@ -130,79 +128,77 @@ as compute resources.
 
 All [Terraform Enterprise features](/docs/enterprise) are paid.
 
-### Operator
+## Operator
 
-An operator is a person who is making changes to infrastructure or
-settings.
+An operator is a person who is making changes to infrastructure or settings.
 
-### Packer
+## Packer
 
-[Packer](https://packer.io) is a tool for creating images for platforms such as Amazon AWS,
-OpenStack, VMware, VirtualBox, Docker, and more — all from a single
+[Packer](https://packer.io) is a tool for creating images for platforms such as
+Amazon AWS, OpenStack, VMware, VirtualBox, Docker, and more — all from a single
 source configuration.
 
-### Packer Template
+## Packer Template
 
-A Packer template is a JSON file that configure the various components
-of Packer in order to create one or more machine images.
+A Packer template is a JSON file that configure the various components of Packer
+in order to create one or more machine images.
 
-### Plan
+## Plan
 
-A plan is the second step of the two steps required for
-Terraform to make changes to infrastructure. The plan is the process
-of determining what changes will be made to.
+A plan is the second step of the two steps required for Terraform to make
+changes to infrastructure. The plan is the process of determining what changes
+will be made to.
 
-### Providers
+## Providers
 
-Providers are often referenced when discussing Packer
-or Terraform. Terraform providers manage resources in Terraform.
+Providers are often referenced when discussing Packer or Terraform. Terraform
+providers manage resources in Terraform.
 [Read more](https://terraform.io/docs/providers/index.html).
 
-### Post-Processors
+## Post-Processors
 
-The post-processor section within a Packer template configures
-any post-processing that will be done to images built by the builders.
-Examples of post-processing would be compressing files, uploading
-artifacts, etc..
+The post-processor section within a Packer template configures any
+post-processing that will be done to images built by the builders. Examples of
+post-processing would be compressing files, uploading artifacts, etc..
 
-### Registry
+## Registry
 
-Often referred to as the "Artifact Registry", the registry
-stores artifacts, be it images or IDs for cloud provider images.
+Often referred to as the "Artifact Registry", the registry stores artifacts, be
+it images or IDs for cloud provider images.
 
-### Run
+## Run
 
 A run represents a two step Terraform plan and a subsequent apply.
 
-### Service
+## Service
 
-A service in Consul represents an application or service, which
-could be active on any number of nodes.
+A service in Consul represents an application or service, which could be active
+on any number of nodes.
 
-### Share
+## Share
 
-Shares are let you instantly share public access to your running
-Vagrant environment (virtual machine).
+Shares are let you instantly share public access to your running Vagrant
+environment (virtual machine).
 
-### State
+## State
 
-Terraform state is the state of your managed infrastructure from the last
-time Terraform was run. By default this state is stored in a local file
-named `terraform.tfstate`, but it can also be stored in Terraform Enterprise
-and is then called "Remote state".
+Terraform state is the state of your managed infrastructure from the last time
+Terraform was run. By default this state is stored in a local file named
+`terraform.tfstate`, but it can also be stored in Terraform Enterprise and is
+then called "Remote state".
 
-### Terraform
+## Terraform
 
-[Terraform](https://terraform.io) is a tool for safely and
-efficiently changing infrastructure across providers.
+[Terraform](https://terraform.io) is a tool for safely and efficiently changing
+infrastructure across providers.
 
-### Terraform Configuration
+## Terraform Configuration
 
-Terraform configuration is the configuration files and any
-files that may be used in provisioners like `remote-exec`.
+Terraform configuration is the configuration files and any files that may be
+used in provisioners like `remote-exec`.
 
-### Terraform Variables
+## Terraform Variables
 
-Variables in Terraform, uploaded with `terraform push` or
-set in the UI. These differ from environment variables
-as they are a first class Terraform variable used in interpolation.
+Variables in Terraform, uploaded with `terraform push` or set in the UI. These
+differ from environment variables as they are a first class Terraform variable
+used in interpolation.
