@@ -44,7 +44,7 @@ For example usage see the
 
 ## Locking and Teamwork
 
-Terraform will automatic lock state depending on the
+Terraform will automatically lock state depending on the
 [backend](/docs/backends) used. Please see the full page dedicated
 to [state locking](/docs/state/locking.html).
 

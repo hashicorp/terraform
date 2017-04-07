@@ -16,8 +16,6 @@ To persist logged output you can set `TF_LOG_PATH` in order to force the log to 
 
 If you find a bug with Terraform, please include the detailed log by using a service such as gist.
 
-<a id="interpreting-a-crash-log"></a>
-
 ## Interpreting a Crash Log
 
 If Terraform ever crashes (a "panic" in the Go runtime), it saves a log file
@@ -35,7 +33,7 @@ backtrace immediately following. So the first thing to do is to search the file
 for `panic: `, which should jump you right to this message. It will look
 something like this:
 
-```
+```text
 panic: runtime error: invalid memory address or nil pointer dereference
 
 goroutine 123 [running]:
@@ -61,7 +59,7 @@ created by net/rpc.(*Server).ServeCodec
 
 The key part of this message is the first two lines that involve `hashicorp/terraform`. In this example:
 
-```
+```text
 github.com/hashicorp/terraform/builtin/providers/aws.resourceAwsSomeResourceCreate(...)
 	/opt/gopath/src/github.com/hashicorp/terraform/builtin/providers/aws/resource_aws_some_resource.go:123 +0x123
 ```

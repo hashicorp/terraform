@@ -6,13 +6,13 @@ description: |-
     Provides a list of Availability Zones which can be used by an Alicloud account.
 ---
 
-# alicloud\_zones
+# alicloud_zones
 
 The Zones data source allows access to the list of Alicloud Zones which can be accessed by an Alicloud account within the region configured in the provider.
 
 ## Example Usage
 
-```
+```hcl
 # Declare the data source
 data "alicloud_zones" "default" {
   "available_instance_type" = "ecs.s2.large"
@@ -24,7 +24,7 @@ data "alicloud_zones" "default" {
 resource "alicloud_instance" "instance" {
   availability_zone = "${data.alicloud_zones.default.zones.0.id}"
 
-  # Other properties...
+  # ...
 }
 ```
 

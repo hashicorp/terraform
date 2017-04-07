@@ -18,7 +18,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the Atlas provider
 provider "atlas" {
   token = "${var.atlas_token}"
@@ -40,4 +40,3 @@ The following arguments are supported:
 
 * `token` - (Required) API token. This can also be specified with the
   `ATLAS_TOKEN` shell environment variable.
-
