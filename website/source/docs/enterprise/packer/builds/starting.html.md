@@ -1,6 +1,6 @@
 ---
 layout: "enterprise"
-page_title: "Starting Packer Builds in Terraform Enterprise"
+page_title: "Starting - Packer Builds - Terraform Enterprise"
 sidebar_current: "docs-enterprise-packerbuilds-starting"
 description: |-
   Packer builds can be started in Terraform Enterprise in two ways. This post is about how.
@@ -8,33 +8,36 @@ description: |-
 
 # Starting Packer Builds in Terraform Enterprise
 
-Packer builds can be started in in two ways: `packer push`
-to upload the template and directory or via a GitHub connection that retrieves
-the contents of a repository after changes to the default branch (usually
-master).
+Packer builds can be started in in two ways: `packer push` to upload the
+template and directory or via a GitHub connection that retrieves the contents of
+a repository after changes to the default branch (usually master).
 
 ### Packer Push
 
-Packer `push` is a [Packer command](https://packer.io/docs/command-line/push.html)
-that packages and uploads a Packer template and directory. This then creates a build which performs `packer build` against the uploaded template
-and packaged directory.
+Packer `push` is a
+[Packer command](https://packer.io/docs/command-line/push.html) that packages
+and uploads a Packer template and directory. This then creates a build which
+performs `packer build` against the uploaded template and packaged directory.
 
-The directory is included in order to run any associated provisioners,
-builds or post-processors that all might use local files. For example,
-a shell script or set of Puppet modules used in a Packer build needs
-to be part of the upload for Packer to be run remotely.
+The directory is included in order to run any associated provisioners, builds or
+post-processors that all might use local files. For example, a shell script or
+set of Puppet modules used in a Packer build needs to be part of the upload for
+Packer to be run remotely.
 
 By default, everything in your directory is uploaded as part of the push.
 
-However, it's not always the case that the entire directory should be uploaded. Often,
-temporary or cache directories and files like `.git`, `.tmp` will be included by default. This
-can cause builds to fail at certain sizes and should be avoided. You can
-specify [exclusions](https://packer.io/docs/templates/push.html#exclude) to avoid this situation.
+However, it's not always the case that the entire directory should be uploaded.
+Often, temporary or cache directories and files like `.git`, `.tmp` will be
+included by default. This can cause builds to fail at certain sizes and should
+be avoided. You can specify
+[exclusions](https://packer.io/docs/templates/push.html#exclude) to avoid this
+situation.
 
-Packer also allows for a [VCS option](https://packer.io/docs/templates/push.html#vcs)
-that will detect your VCS (if there is one) and only upload the files that are tracked by the VCS.
-This is useful for automatically excluding ignored files. In a VCS
-like git, this basically does a `git ls-files`.
+Packer also allows for a
+[VCS option](https://packer.io/docs/templates/push.html#vcs) that will detect
+your VCS (if there is one) and only upload the files that are tracked by the
+VCS. This is useful for automatically excluding ignored files. In a VCS like
+git, this basically does a `git ls-files`.
 
 
 ### GitHub Webhooks
