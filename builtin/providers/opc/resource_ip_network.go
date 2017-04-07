@@ -13,6 +13,9 @@ func resourceOPCIPNetwork() *schema.Resource {
 		Read:   resourceOPCIPNetworkRead,
 		Update: resourceOPCIPNetworkUpdate,
 		Delete: resourceOPCIPNetworkDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
