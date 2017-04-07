@@ -136,6 +136,27 @@ func TestAccOPCStorageVolume_ImageListEntry(t *testing.T) {
 	})
 }
 
+func TestAccOPCStorageVolume_LowLatency(t *testing.T) {
+	volumeResourceName := "opc_compute_storage_volume.test"
+	rInt := acctest.RandInt()
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: opcResourceCheck(volumeResourceName, testAccCheckStorageVolumeDestroyed),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccStorageVolumeLowLatency(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					opcResourceCheck(volumeResourceName, testAccCheckStorageVolumeExists),
+					resource.TestCheckResourceAttr(volumeResourceName, "storage_type", "/oracle/public/storage/latency"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccOPCStorageVolume_FromSnapshot(t *testing.T) {
 	volumeResourceName := "opc_compute_storage_volume.test"
 	rInt := acctest.RandInt()
@@ -159,8 +180,6 @@ func TestAccOPCStorageVolume_FromSnapshot(t *testing.T) {
 		},
 	})
 }
-
-// TODO: test Premium storage
 
 func testAccCheckStorageVolumeExists(state *OPCResourceState) error {
 	sv := state.Client.StorageVolumes()
@@ -301,4 +320,14 @@ func testAccStorageVolumeFromSnapshot(rInt int) string {
     size        = 5
     snapshot_id = "${opc_compute_storage_volume_snapshot.foo.snapshot_id}"
   }`, rInt, rInt, rInt)
+}
+
+func testAccStorageVolumeLowLatency(rInt int) string {
+	return fmt.Sprintf(`
+  resource "opc_compute_storage_volume" "test" {
+    name         = "test-acc-stor-vol-ll-%d"
+    description  = "Acc Test Storage Volume Low Latency"
+    storage_type = "/oracle/public/storage/latency"
+    size         = 5
+  }`, rInt)
 }
