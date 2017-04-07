@@ -1,7 +1,7 @@
 ---
 layout: "docs"
 page_title: "Configuring Terraform Enterprise"
-sidebar_current: "docs-config-tfe"
+sidebar_current: "docs-config-terraform-enterprise"
 description: |-
   Terraform Enterprise is the ideal way to use Terraform in a team environment. Terraform Enterprise will run Terraform for you, safely handle parallelization across different team members, save run history along with plans, and more.
 ---

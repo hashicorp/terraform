@@ -118,16 +118,6 @@ is recorded and sent to any configured notification methods, like email.
 
 An infrastructure is a stateful representation of a set of Consul datacenters.
 
-## Managed Node
-
-Managed node is the billing metric for Terraform Enterprise. For Consul Enterprise, a node is a host
-with a Consul agent on it. For Terraform Enterprise, a node is a compute
-resource managed by Terraform. See [Managed Nodes](/docs/enterprise/billing)
-for more details about which Terraform resources and resource properties are counted
-as compute resources.
-
-All [Terraform Enterprise features](/docs/enterprise) are paid.
-
 ## Operator
 
 An operator is a person who is making changes to infrastructure or settings.

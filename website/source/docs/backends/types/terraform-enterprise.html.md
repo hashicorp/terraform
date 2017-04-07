@@ -1,7 +1,7 @@
 ---
 layout: "backend-types"
 page_title: "Backend Type: terraform enterprise"
-sidebar_current: "docs-backends-types-standard-tfe"
+sidebar_current: "docs-backends-types-standard-terraform-enterprise"
 description: |-
   Terraform can store the state in Terraform Enterprise
 ---
