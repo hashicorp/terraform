@@ -3,12 +3,12 @@ layout: "opc"
 page_title: "Oracle: opc_compute_ip_address_association"
 sidebar_current: "docs-opc-resource-ip-address-association"
 description: |-
-  Creates and manages an IP address association in an OPC identity domain.
+  Creates and manages an IP address association in an OPC identity domain, for an IP Network.
 ---
 
 # opc\_compute\_ip\_address\_association
 
-The ``opc_compute_ip_address_association`` resource creates and manages an IP address association between an IP address reservation and a virtual NIC in an OPC identity domain.
+The ``opc_compute_ip_address_association`` resource creates and manages an IP address association between an IP address reservation and a virtual NIC in an OPC identity domain, for an IP Network.
 
 ## Example Usage
 
