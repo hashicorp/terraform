@@ -45,7 +45,6 @@ The following arguments are supported:
 
 * `endpoint` - (Optional) The API endpoint to use, associated with your Oracle Public Cloud account. This is known as the `REST Endpoint` within the Oracle portal. It can also be sourced from the `OPC_ENDPOINT` environment variable.
 
-Max num seconds to wait for successful response when operating on resources within OPC (defaults to 3000)
 * `max_retry_timeout` - (Optional) The maximum number of seconds to wait for a successful response when operating on resources within Oracle Public Cloud. It can also be sourced from the `OPC_MAX_RETRY_TIMEOUT` environment variable. Defaults to 3000 seconds.
 
 ## Testing
