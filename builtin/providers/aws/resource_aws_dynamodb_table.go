@@ -39,6 +39,9 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		SchemaVersion: 1,
+		MigrateState:  resourceAwsDynamoDbTableMigrateState,
+
 		Schema: map[string]*schema.Schema{
 			"arn": {
 				Type:     schema.TypeString,
@@ -156,15 +159,6 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 					},
-				},
-				// GSI names are the uniqueness constraint
-				Set: func(v interface{}) int {
-					var buf bytes.Buffer
-					m := v.(map[string]interface{})
-					buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
-					buf.WriteString(fmt.Sprintf("%d-", m["write_capacity"].(int)))
-					buf.WriteString(fmt.Sprintf("%d-", m["read_capacity"].(int)))
-					return hashcode.String(buf.String())
 				},
 			},
 			"stream_enabled": {
@@ -533,9 +527,8 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 
 			table := tableDescription.Table
 
-			updates := []*dynamodb.GlobalSecondaryIndexUpdate{}
-
 			for _, updatedgsidata := range gsiSet.List() {
+				updates := []*dynamodb.GlobalSecondaryIndexUpdate{}
 				gsidata := updatedgsidata.(map[string]interface{})
 				gsiName := gsidata["name"].(string)
 				gsiWriteCapacity := gsidata["write_capacity"].(int)
@@ -583,6 +576,10 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 					if err != nil {
 						log.Printf("[DEBUG] Error updating table: %s", err)
 						return err
+					}
+
+					if err := waitForGSIToBeActive(d.Id(), gsiName, meta); err != nil {
+						return errwrap.Wrapf("Error waiting for Dynamo DB GSI to be active: {{err}}", err)
 					}
 				}
 			}
