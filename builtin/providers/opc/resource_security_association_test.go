@@ -122,7 +122,7 @@ resource "opc_compute_instance" "test" {
 
 resource "opc_compute_security_association" "test" {
   name    = "acc-test-sec-ass-%d"
-  vcable  = "${opc_compute_instance.test.vcable_id}"
+  vcable  = "${opc_compute_instance.test.vcable}"
   seclist = "${opc_compute_security_list.test.name}"
 }
 `

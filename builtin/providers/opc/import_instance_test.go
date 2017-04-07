@@ -25,10 +25,11 @@ func TestAccOPCInstance_importBasic(t *testing.T) {
 				Config: testAccInstanceBasic(rInt),
 			},
 			{
-				ResourceName:        resourceName,
-				ImportState:         true,
-				ImportStateVerify:   true,
-				ImportStateIdPrefix: instanceName + "/",
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateIdPrefix:     instanceName + "/",
+				ImportStateVerifyIgnore: []string{"instance_attributes"},
 			},
 		},
 	})
