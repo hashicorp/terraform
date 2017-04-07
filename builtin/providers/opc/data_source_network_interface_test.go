@@ -39,7 +39,6 @@ func TestAccOPCDataSourceNetworkInterface_sharedNetwork(t *testing.T) {
 			{
 				Config: testAccDataSourceNetworkInterfaceShared(rInt),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(resName, "model", "e1000"),
 					resource.TestCheckResourceAttr(resName, "nat.#", "1"),
 					resource.TestCheckResourceAttr(resName, "shared_network", "true"),
 					resource.TestCheckResourceAttr(resName, "sec_lists.#", "1"),
@@ -89,7 +88,6 @@ resource "opc_compute_instance" "test" {
   tags = ["tag1", "tag2"]
   networking_info {
     index = 0
-    model = "e1000"
     nat = ["ippool:/oracle/public/ippool"]
     shared_network = true
   }
