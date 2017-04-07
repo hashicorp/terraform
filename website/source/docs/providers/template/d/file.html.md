@@ -16,7 +16,7 @@ Option 1: From a file:
 
 Reference the template path:
 
-```
+```hcl
 data "template_file" "init" {
     template = "${file("${path.module}/init.tpl")}"
 
@@ -28,7 +28,7 @@ data "template_file" "init" {
 
 Inside the file, reference the variable as such:
 
-```
+```bash
 #!/bin/bash
 
 echo "CONSUL_ADDRESS = ${consul_address}" > /tmp/iplist
@@ -36,7 +36,7 @@ echo "CONSUL_ADDRESS = ${consul_address}" > /tmp/iplist
 
 Option 2: Inline:
 
-```
+```hcl
 data "template_file" "init" {
     template = "$${consul_address}:1234"
 
