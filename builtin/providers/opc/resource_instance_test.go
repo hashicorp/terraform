@@ -177,8 +177,6 @@ func testAccOPCCheckInstanceDestroy(s *terraform.State) error {
 	return nil
 }
 
-const validSSHKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCqw6JwbjIkZEr5UcMojtxhk6Zum39NOihHNXEvRWDt5WssX8TH/ghpv3D25K1pJkf+wfAi17HwEmYwPMEyEHENS443v6RZbXvzCkUWzkJzq7Zvbdqld038km31La2QUoMMp1KL5zk1nM65xCeQDVcR/h++03EScB2CuzTpAV6khMdfgOJgxm361kfrDVRwc1HQrAOpOnzkpPfwqBrYWqN1UnKvuO77Wk8z5LBe03EPNru3bLE3s3qHI9hjO0gXMiVUi0KyNxdWfDO8esqQlKavHAeePyrRA55YF8kBB5dEl4tVNOqpY/8TRnGN1mOe0LWxa8Ytz1wbyS49knsNVTel"
-
 func testAccInstanceBasic(rInt int) string {
 	return fmt.Sprintf(`
 resource "opc_compute_instance" "test" {
