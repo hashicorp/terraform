@@ -73,6 +73,7 @@ BUG FIXES:
  * provider/aws: Raise timeout for attaching/detaching VPN Gateway [GH-13457]
  * provider/aws: Recreate opsworks_stack on change of service_role_arn [GH-13325]
  * provider/aws: Fix KMS Key reading with Exists method [GH-13348]
+ * provider/aws: Fix DynamoDB issues about GSIs indexes [GH-13256]
  * provider/azurerm: Network Security Group - ignoring protocol casing at Import time [GH-13153]
  * provider/azurerm: Fix crash when importing Local Network Gateways [GH-13261]
  * provider/bitbucket: Fixed issue where provider would fail with an "EOF" error on some operations [GH-13390]
