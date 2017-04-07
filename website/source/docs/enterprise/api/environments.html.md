@@ -1,6 +1,6 @@
 ---
 layout: "enterprise"
-page_title: "Environments API"
+page_title: "Environments - API - Terraform Enterprise"
 sidebar_current: "docs-enterprise-api-environments"
 description: |-
   Environments represent running infrastructure managed by Terraform.
@@ -10,58 +10,60 @@ description: |-
 
 Environments represent running infrastructure managed by Terraform.
 
-Environments can also be connected to Consul clusters.
-This documentation covers the environment interactions with Terraform.
+Environments can also be connected to Consul clusters. This documentation covers
+the environment interactions with Terraform.
 
-### Environment Attributes
+## Get Latest Configuration Version
 
-<table class="apidocs">
-  <tr>
-    <th>Attribute</th>
-    <th>Description</th>
-    <th>Required</th>
-  </tr>
-  <tr>
-    <td><code>variables</code></td>
-    <td>A key/value map of Terraform variables to be updated. Existing
-      variables will only be removed when their value is empty. Variables
-      of the same key will be overwritten.</td>
-    <td>Yes</td>
-  </tr>
-</table>
-<br>
-<div class="alert-infos">
-  <div class="row alert-info">
-    Note: Only string variables can be updated via the API currently.
-    Creating or updating HCL variables is not yet supported.
-  </div>
-</div>
+This endpoint updates the Terraform variables for an environment. Due to the
+sensitive nature of variables, they are not returned on success.
 
-### Actions
+| Method | Path           |
+| :----- | :------------- |
+| `PUT`  | `/environments/:username/:name/variables` |
 
-The following actions can be performed on this resource.
+### Parameters
 
-<dl>
-  <dt>Update variables</dt>
-  <dd>PUT /api/v1/environments/:username/:name/variables</dd>
-</dl>
+- `:username` `(string: <required>)` - Specifies the username or organization
+  name under which to update variables. This username must already exist in the
+  system, and the user must have permission to create new configuration versions
+  under this namespace. This is specified as part of the URL.
 
-### Examples
+- `:name` `(string: <required>)` - Specifies the name of the environment for
+  which to update variables. This is specified as part of the URL.
 
-#### Updating Terraform variables
+- `variables` `(map<string|string>)` - Specifies a key-value map of Terraform
+  variables to be updated. Existing variables will only be removed when their
+  value is empty. Variables of the same key will be overwritten.
 
-Updates the Terraform variables for an environment. Due to the sensitive nature
-of variables, they will not returned on success.
+    -> Note: Only string variables can be updated via the API currently. Creating or updating HCL variables is not yet supported.
 
-    $ cat variables.json
-    {
-      "variables": {
-          "desired_capacity": "15",
-          "foo": "bar"
-      }
-    }
-    $ curl %{ATLAS_URL}/api/v1/environments/%{DEFAULT_USERNAME}/test/variables \
-        -X PUT \
-        -H 'Content-Type: application/json' \
-        -d @variables.json \
-        -H "X-Atlas-Token: $ATLAS_TOKEN"
+### Sample Payload
+
+```json
+{
+  "variables": {
+    "desired_capacity": "15",
+    "foo": "bar"
+  }
+}
+```
+
+### Sample Request
+
+```text
+$ curl \
+    --header "X-Atlas-Token: ..." \
+    --header "Content-Type: application/json" \
+    --request PUT \
+    --data @payload.json \
+    https://atlas.hashicorp.com/api/v1/environments/my-organization/my-environment/variables
+```
+
+### Sample Response
+
+
+```text
+```
+
+(empty body)
