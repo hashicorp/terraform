@@ -370,6 +370,60 @@ func TestInterpolateFuncCeil(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncChomp(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${chomp()}`,
+				nil,
+				true,
+			},
+
+			{
+				`${chomp("hello world")}`,
+				"hello world",
+				false,
+			},
+
+			{
+				fmt.Sprintf(`${chomp("%s")}`, "goodbye\ncruel\nworld"),
+				"goodbye\ncruel\nworld",
+				false,
+			},
+
+			{
+				fmt.Sprintf(`${chomp("%s")}`, "goodbye\r\nwindows\r\nworld"),
+				"goodbye\r\nwindows\r\nworld",
+				false,
+			},
+
+			{
+				fmt.Sprintf(`${chomp("%s")}`, "goodbye\ncruel\nworld\n"),
+				"goodbye\ncruel\nworld",
+				false,
+			},
+
+			{
+				fmt.Sprintf(`${chomp("%s")}`, "goodbye\ncruel\nworld\n\n\n\n"),
+				"goodbye\ncruel\nworld",
+				false,
+			},
+
+			{
+				fmt.Sprintf(`${chomp("%s")}`, "goodbye\r\nwindows\r\nworld\r\n"),
+				"goodbye\r\nwindows\r\nworld",
+				false,
+			},
+
+			{
+				fmt.Sprintf(`${chomp("%s")}`, "goodbye\r\nwindows\r\nworld\r\n\r\n\r\n\r\n"),
+				"goodbye\r\nwindows\r\nworld",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncMap(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{

@@ -58,6 +58,7 @@ func Funcs() map[string]ast.Function {
 		"base64encode": interpolationFuncBase64Encode(),
 		"base64sha256": interpolationFuncBase64Sha256(),
 		"ceil":         interpolationFuncCeil(),
+		"chomp":        interpolationFuncChomp(),
 		"cidrhost":     interpolationFuncCidrHost(),
 		"cidrnetmask":  interpolationFuncCidrNetmask(),
 		"cidrsubnet":   interpolationFuncCidrSubnet(),
@@ -455,6 +456,18 @@ func interpolationFuncCeil() ast.Function {
 		ReturnType: ast.TypeInt,
 		Callback: func(args []interface{}) (interface{}, error) {
 			return int(math.Ceil(args[0].(float64))), nil
+		},
+	}
+}
+
+// interpolationFuncChomp removes trailing newlines from the given string
+func interpolationFuncChomp() ast.Function {
+	newlines := regexp.MustCompile(`(?:\r\n?|\n)*\z`)
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return newlines.ReplaceAllString(args[0].(string), ""), nil
 		},
 	}
 }
