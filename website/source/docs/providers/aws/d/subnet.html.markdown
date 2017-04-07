@@ -1,7 +1,7 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_subnet"
-sidebar_current: "docs-aws-datasource-subnet"
+sidebar_current: "docs-aws-datasource-subnet-x"
 description: |-
     Provides details about a specific VPC subnet
 ---
@@ -20,7 +20,7 @@ The following example shows how one might accept a subnet id as a variable
 and use this data source to obtain the data necessary to create a security
 group that allows connections from hosts in that subnet.
 
-```
+```hcl
 variable "subnet_id" {}
 
 data "aws_subnet" "selected" {

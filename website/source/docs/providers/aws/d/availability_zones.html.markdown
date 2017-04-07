@@ -17,7 +17,7 @@ which provides some details about a specific availability zone.
 
 ## Example Usage
 
-```
+```hcl
 # Declare the data source
 data "aws_availability_zones" "available" {}
 

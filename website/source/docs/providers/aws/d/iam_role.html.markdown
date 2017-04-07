@@ -1,6 +1,6 @@
 ---
 layout: "aws"
-page_title: "AWS: aws_iam_role
+page_title: "AWS: aws_iam_role"
 sidebar_current: "docs-aws-datasource-iam-role"
 description: |-
   Get information on a Amazon IAM role
@@ -14,7 +14,7 @@ properties without having to hard code ARNs as input.
 
 ## Example Usage
 
-```
+```hcl
 data "aws_iam_role" "example" {
   role_name = "an_example_role_name"
 }

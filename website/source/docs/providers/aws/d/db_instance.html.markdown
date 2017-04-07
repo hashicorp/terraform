@@ -12,7 +12,7 @@ Use this data source to get information about an RDS instance
 
 ## Example Usage
 
-```
+```hcl
 data "aws_db_instance" "database" {
   db_instance_identifier = "my-test-database"
 }

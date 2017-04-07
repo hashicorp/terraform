@@ -12,7 +12,7 @@ Use this data source to lookup information about IAM Server Certificates.
 
 ## Example Usage
 
-```
+```hcl
 data "aws_iam_server_certificate" "my-domain" {
   name_prefix = "my-domain.org"
   latest      = true

@@ -14,7 +14,7 @@ which Terraform is authorized.
 
 ## Example Usage
 
-```
+```hcl
 data "aws_caller_identity" "current" {}
 
 output "account_id" {

@@ -16,7 +16,7 @@ This resource can be useful for getting back a list of subnet ids for a vpc.
 
 The following shows outputing all cidr blocks for every subnet id in a vpc.
 
-```
+```hcl
 data "aws_subnet_ids" "example" {
   vpc_id = "${var.vpc_id}"
 }

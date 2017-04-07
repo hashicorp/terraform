@@ -13,7 +13,7 @@ resources.
 
 ## Example Usage
 
-```
+```hcl
 data "aws_ami" "nat_ami" {
   most_recent      = true
   executable_users = ["self"]
