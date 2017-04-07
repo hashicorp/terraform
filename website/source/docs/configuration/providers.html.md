@@ -114,3 +114,14 @@ KEY {
   CONFIG
 }
 ```
+
+## Interpolation
+Providers support [interpolation syntax](/docs/configuration/interpolation.html) allowing dynamic configuration at run time.
+
+```hcl
+provider "aws" {
+  region = "${var.aws_region}"
+}
+```
+
+-> **NOTE:** Because providers are one of the first things loaded when Terraform parses the graph, it is not possible to use the output from modules or resources as inputs to the provider. At this time, only [variables](/docs/configuration/variables.html) and [data sources](/docs/configuration/data-sources.html), including [remote state](/docs/providers/terraform/d/remote_state.html) may be used in an interpolation inside a provider stanza.
