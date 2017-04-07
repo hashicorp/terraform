@@ -14,7 +14,7 @@ properties without having to hard code ARNs as input.
 
 ## Example Usage
 
-```
+```hcl
 data "aws_iam_role" "example" {
   role_name = "an_example_role_name"
 }
