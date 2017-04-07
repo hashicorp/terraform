@@ -1978,14 +1978,14 @@
 		{
 			"checksumSHA1": "DzK7lYwHt5Isq5Zf73cnQqBO2LI=",
 			"path": "github.com/hashicorp/go-oracle-terraform/helper",
-			"revision": "98fdaf3c4bde245e21947487ba722c3d0abaccb2",
-			"revisionTime": "2017-03-29T21:19:34Z"
+			"revision": "5508daed82ecd55b71d45e8a149e99d24825e5bb",
+			"revisionTime": "2017-04-06T17:51:51Z"
 		},
 		{
 			"checksumSHA1": "AyNRs19Es9pDw2VMxVKWuLx3Afg=",
 			"path": "github.com/hashicorp/go-oracle-terraform/opc",
-			"revision": "98fdaf3c4bde245e21947487ba722c3d0abaccb2",
-			"revisionTime": "2017-03-29T21:19:34Z"
+			"revision": "5508daed82ecd55b71d45e8a149e99d24825e5bb",
+			"revisionTime": "2017-04-06T17:51:51Z"
 		},
 		{
 			"checksumSHA1": "b0nQutPMJHeUmz4SjpreotAo6Yk=",
