@@ -15,6 +15,9 @@ func resourceOPCStorageVolume() *schema.Resource {
 		Read:   resourceOPCStorageVolumeRead,
 		Update: resourceOPCStorageVolumeUpdate,
 		Delete: resourceOPCStorageVolumeDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -232,7 +235,7 @@ func resourceOPCStorageVolumeRead(d *schema.ResourceData, meta interface{}) erro
 
 	d.Set("name", result.Name)
 	d.Set("description", result.Description)
-	d.Set("storage", result.Properties[0])
+	d.Set("storage_type", result.Properties[0])
 	size, err := strconv.Atoi(result.Size)
 	if err != nil {
 		return err
