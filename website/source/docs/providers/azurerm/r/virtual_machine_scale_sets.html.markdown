@@ -177,7 +177,7 @@ The following arguments are supported:
 * `disable_password_authentication` - (Required) Specifies whether password authentication should be disabled.
 * `ssh_keys` - (Optional) Specifies a collection of `path` and `key_data` to be placed on the virtual machine.
 
-~> **Note:** Please note that the only allowed `path` is `/home/<username>/.ssh/authorized_keys` due to a limitation of Azure_
+~> _**Note:** Please note that the only allowed `path` is `/home/<username>/.ssh/authorized_keys` due to a limitation of Azure_
 
 
 `network_profile` supports the following:
@@ -225,3 +225,12 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The virtual machine scale set ID.
+
+
+## Import
+
+Virtual Machine Scale Sets can be imported using the `resource id`, e.g.
+
+```
+terraform import azurerm_virtual_machine_scale_set.scaleset1 /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Compute/virtualMachineScaleSets/scaleset1
+```

@@ -26,7 +26,6 @@ func TestAccAzureRMVirtualMachineScaleSet_importBasic(t *testing.T) {
 				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
-				//ImportStateVerifyIgnore: []string{"os_profile.XXXXXXXXX.custom_data"},
 			},
 		},
 	})
@@ -50,7 +49,6 @@ func TestAccAzureRMVirtualMachineScaleSet_importLoadBalancer(t *testing.T) {
 				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
-				//ImportStateVerifyIgnore: []string{"os_profile.XXXXXXXXX.custom_data"},
 			},
 		},
 	})
