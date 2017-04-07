@@ -19,27 +19,34 @@ on your instance resources as an extra safety measure.
 ## Example Usage
 
 ```
-resource "opc_compute_instance" "test_instance" {
-  name      = "test"
-  label     = "test"
-  shape     = "oc3"
-  imageList = "/oracle/public/oel_6.4_2GB_v1"
-  sshKeys   = ["${opc_compute_ssh_key.key1.name}"]
+resource "opc_compute_storage_volume" "test" {
+  name = "internal"
+  size = 100
+}
+
+resource "opc_compute_instance" "test" {
+	name      = "instance1"
+	label      = "Terraform Provisioned Instance"
+	shape      = "oc3"
+	image_list = "/oracle/public/oel_6.7_apaas_16.4.5_1610211300"
+
+	storage {
+		volume = "${opc_compute_storage_volume.test.name}"
+		index = 1
+	}
+
   networking_info {
     index          = 0
     model          = "e1000"
     nat            = ["ippool:/oracle/public/ippool"]
     shared_network = true
   }
+
   networking_info {
     index          = 1
     ip_network     = "${opc_compute_ip_network.foo.id}"
     vnic           = "testing-vnic-name"
     shared_network = false
-  }
-  storage {
-    volume = "${opc_compute_storage_volume.foo.name}"
-    index  = 1
   }
 }
 ```
