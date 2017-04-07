@@ -1,22 +1,18 @@
 ---
-layout: "tfe"
+layout: "terraform-enterprise"
 page_title: "Terraform Enterprise: atlas_artifact"
-sidebar_current: "docs-tfe-resource-artifact"
+sidebar_current: "docs-terraform-enterprise-data-artifact"
 description: |-
-  Provides access to deployment artifacts managed by Terraform Enterprise. This can
+  Provides a data source to deployment artifacts managed by Terraform Enterprise. This can
   be used to dynamically configure instantiation and provisioning
   of resources.
 ---
 
 # atlas_artifact
 
-Provides access to deployment artifacts managed by Atlas. This can
-be used to dynamically configure instantiation and provisioning
-of resources.
-
-
-~> **This resource is deprecated!** Please use the
-[Artifact Data Source](/docs/providers/tfe/d/artifact.html)
+Provides a [Data Source](/docs/configuration/data-sources.html) to access to deployment
+artifacts managed by Terraform Enterprise. This can be used to dynamically configure instantiation
+and provisioning of resources.
 
 ## Example Usage
 
@@ -26,7 +22,7 @@ to this artifact will trigger a change to that instance.
 
 ```hcl
 # Read the AMI
-resource "atlas_artifact" "web" {
+data "atlas_artifact" "web" {
   name  = "hashicorp/web"
   type  = "amazon.image"
   build = "latest"
@@ -39,7 +35,7 @@ resource "atlas_artifact" "web" {
 # Start our instance with the dynamic ami value
 # Remember to include the AWS region as it is part of the full ID
 resource "aws_instance" "app" {
-  ami = "${atlas_artifact.web.metadata_full.region-us-east-1}"
+  ami = "${data.atlas_artifact.web.metadata_full.region-us-east-1}"
 
   # ...
 }
@@ -60,7 +56,7 @@ The following arguments are supported:
   matching artifact in any build, or a specific number to pin to that
   build. If `build` and `version` are unspecified, `version` will default
   to "latest". Cannot be specified with `version`. Note: `build` is only
-  present if Terraform Enterprise builds the image.
+  present if Terraform Enterpris builds the image.
 
 * `version` - (Optional)  The version of the artifact to filter on. This can
   be "latest", to match against the latest version, "any" to find a matching artifact
