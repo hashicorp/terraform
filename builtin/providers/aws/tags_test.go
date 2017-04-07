@@ -80,6 +80,24 @@ func TestIgnoringTags(t *testing.T) {
 	}
 }
 
+func TestAcceptableTags(t *testing.T) {
+	var ignoredTags []*ec2.Tag
+	ignoredTags = append(ignoredTags, &ec2.Tag{
+
+		Key:   aws.String("aws_allowedtag"),
+		Value: aws.String("foo"),
+	})
+	ignoredTags = append(ignoredTags, &ec2.Tag{
+		Key:   aws.String("awsome"),
+		Value: aws.String("baz"),
+	})
+	for _, tag := range ignoredTags {
+		if tagIgnored(tag) {
+			t.Fatalf("Tag %v with value %v ignored, but should not be!", *tag.Key, *tag.Value)
+		}
+	}
+}
+
 // testAccCheckTags can be used to check the tags on a resource.
 func testAccCheckTags(
 	ts *[]*ec2.Tag, key string, value string) resource.TestCheckFunc {
