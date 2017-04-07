@@ -126,7 +126,7 @@ The `client_auth` configuration block accepts the following arguments:
 
 ## Example Usage
 
-```
+```hcl
 provider "vault" {
   # It is strongly recommended to configure this provider through the
   # environment variables described above, so that each user can have
