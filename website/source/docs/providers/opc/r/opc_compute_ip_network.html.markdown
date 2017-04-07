@@ -14,12 +14,12 @@ The ``opc_compute_ip_network`` resource creates and manages an IP Network.
 
 ```
 resource "opc_compute_ip_network" "foo" {
-       	name = "my-ip-network"
-       	description = "my IP Network"
-       	ip_address_prefix = "10.0.1.0/24"
-       	ip_network_exchange = "${opc_compute_ip_exchange.foo.name}"
-       	public_napt_enabled = false
-       	tags = ["tag1", "tag2"]
+  name                = "my-ip-network"
+  description         = "my IP Network"
+  ip_address_prefix   = "10.0.1.0/24"
+  ip_network_exchange = "${opc_compute_ip_exchange.foo.name}"
+  public_napt_enabled = false
+  tags                = ["tag1", "tag2"]
 }
 ```
 

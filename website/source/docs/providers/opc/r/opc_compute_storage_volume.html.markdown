@@ -36,7 +36,7 @@ resource "opc_compute_storage_volume" "test" {
   size        = 30
   tags        = ["first", "second"]
   bootable {
-  	image_list = "${opc_compute_image_list.test.name}"
+    image_list = "${opc_compute_image_list.test.name}"
   }
 }
 ```

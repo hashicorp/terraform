@@ -14,9 +14,9 @@ The ``opc_compute_security_application`` resource creates and manages a security
 
 ```
 resource "opc_compute_security_application" "tomcat" {
-	name     = "tomcat"
-	protocol = "tcp"
-	dport    = "8080"
+  name     = "tomcat"
+  protocol = "tcp"
+  dport    = "8080"
 }
 ```
 
@@ -24,10 +24,10 @@ resource "opc_compute_security_application" "tomcat" {
 
 ```
 resource "opc_compute_security_application" "tomcat" {
-	name     = "tomcat"
-	protocol = "icmp"
-	icmptype = "echo"
-	icmpcode = "protocol"
+  name     = "tomcat"
+  protocol = "icmp"
+  icmptype = "echo"
+  icmpcode = "protocol"
 }
 ```
 

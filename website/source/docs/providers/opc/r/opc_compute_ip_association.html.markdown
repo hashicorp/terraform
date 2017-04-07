@@ -15,8 +15,8 @@ an OPC identity domain, for the Shared Network.
 
 ```
 resource "opc_compute_ip_association" "instance1_reservation1" {
-       	vcable = "${opc_compute_instance.test_instance.vcable}"
-       	parentpool = "ipreservation:${opc_compute_ip_reservation.reservation1.name}"
+  vcable     = "${opc_compute_instance.test_instance.vcable}"
+  parentpool = "ipreservation:${opc_compute_ip_reservation.reservation1.name}"
 }
 ```
 

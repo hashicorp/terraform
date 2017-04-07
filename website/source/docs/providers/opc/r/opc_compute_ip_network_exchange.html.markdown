@@ -14,7 +14,7 @@ The ``opc_compute_ip_network_exchange`` resource creates and manages an IP netwo
 
 ```
 resource "opc_compute_ip_network_exchange" "default" {
-        name = "NetworkExchange1"
+  name = "NetworkExchange1"
 }
 ```
 

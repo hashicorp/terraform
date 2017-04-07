@@ -14,9 +14,9 @@ The ``opc_compute_ssh_key`` resource creates and manages an SSH key in an OPC id
 
 ```
 resource "opc_compute_ssh_key" "%s" {
-	name = "test-key"
-	key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCqw6JwbjIk..."
-	enabled = true
+  name    = "test-key"
+  key     = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCqw6JwbjIk..."
+  enabled = true
 }
 ```
 
