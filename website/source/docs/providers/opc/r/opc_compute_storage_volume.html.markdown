@@ -42,7 +42,7 @@ resource "opc_compute_storage_volume" "test" {
   size             = 30
   tags             = ["first", "second"]
   bootable         = true
-	image_list       = "${opc_compute_image_list.test.name}"
+  image_list       = "${opc_compute_image_list.test.name}"
   image_list_entry = "${opc_compute_image_list_entry.test.version}"
 }
 ```
@@ -56,8 +56,8 @@ The following arguments are supported:
 * `size` (Required) The size of this storage volume in GB. The allowed range is from 1 GB to 2 TB (2048 GB).
 * `storage_type` - (Optional) - The Type of Storage to provision. Possible values are `/oracle/public/storage/latency` or `/oracle/public/storage/default`. Defaults to `/oracle/public/storage/default`.
 * `bootable` - (Optional) Is the Volume Bootable? Defaults to `false`.
-* `image_list` - (Required) Defines an image list. Required if `bootable` is set to `true`.
-* `image_list_entry` - (Optional) Defines an image list entry. Required if `bootable` is set to `true`.
+* `image_list` - (Optional) Defines an image list. Required if `bootable` is set to `true`, optional if set to `false`.
+* `image_list_entry` - (Optional) Defines an image list entry. Required if `bootable` is set to `true`, optional if set to `false`.
 * `tags` - (Optional) Comma-separated strings that tag the storage volume.
 
 ## Attributes Reference
