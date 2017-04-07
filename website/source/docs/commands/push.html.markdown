@@ -48,7 +48,7 @@ The command-line flags are all optional. The list of available flags are:
   configurations not just to your account but to other accounts and
   organizations. This setting can also be set in the configuration
   in the
-  [Terraform Enterprise section](/docs/configuration/tfe.html).
+  [Terraform Enterprise section](/docs/configuration/terraform-enterprise.html).
 
 * `-no-color` - Disables output with coloring
 
@@ -88,7 +88,7 @@ The reason Terraform uploads all of these files is because Terraform
 cannot know what is and isn't being used for provisioning, so it uploads
 all the files to be safe. To exclude certain files, specify the `-exclude`
 flag when pushing, or specify the `exclude` parameter in the
-[Terraform Enterprise configuration section](/docs/configuration/tfe.html).
+[Terraform Enterprise configuration section](/docs/configuration/terraform-enterprise.html).
 
 ## Terraform Variables
 

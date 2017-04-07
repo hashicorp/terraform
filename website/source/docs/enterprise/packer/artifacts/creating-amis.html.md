@@ -51,7 +51,7 @@ Below is a complete example Packer template that starts an AWS instance.
       "source_ami": "ami-2ccc7a44",
       "instance_type": "c3.large",
       "ssh_username": "ubuntu",
-      "ami_name": "TFE Example {{ timestamp }}"
+      "ami_name": "Terraform Enterprise Example {{ timestamp }}"
     }
   ],
   "post-processors": [

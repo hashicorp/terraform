@@ -1,7 +1,7 @@
 ---
-layout: "tfe"
+layout: "terraform-enterprise"
 page_title: "Provider: Terraform Enterprise"
-sidebar_current: "docs-tfe-index"
+sidebar_current: "docs-terraform-enterprise-index"
 description: |-
   The Terraform Enterprise provider is used to interact with configuration,
   artifacts, and metadata managed by the Terraform Enterprise service.
@@ -40,4 +40,3 @@ The following arguments are supported:
 
 * `token` - (Required) API token. This can also be specified with the
   `ATLAS_TOKEN` shell environment variable.
-
