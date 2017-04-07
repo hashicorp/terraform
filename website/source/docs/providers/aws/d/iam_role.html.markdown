@@ -1,12 +1,12 @@
 ---
 layout: "aws"
-page_title: "AWS: aws_iam_role"
-sidebar_current: "docs-aws-datasource-iam-role"
+page_title: AWS: aws_iam_role
+sidebar_current: docs-aws-datasource-iam-role
 description: |-
   Get information on a Amazon IAM role
 ---
 
-# aws\_iam\_role
+# aws_iam_role
 
 This data source can be used to fetch information about a specific
 IAM role. By using this data source, you can reference IAM role
