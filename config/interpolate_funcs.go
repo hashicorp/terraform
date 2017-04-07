@@ -462,11 +462,12 @@ func interpolationFuncCeil() ast.Function {
 
 // interpolationFuncChomp removes trailing newlines from the given string
 func interpolationFuncChomp() ast.Function {
+	newlines := regexp.MustCompile(`(?:\r\n?|\n)*\z`)
 	return ast.Function{
 		ArgTypes:   []ast.Type{ast.TypeString},
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
-			return strings.TrimRight(args[0].(string), "\n"), nil
+			return newlines.ReplaceAllString(args[0].(string), ""), nil
 		},
 	}
 }
