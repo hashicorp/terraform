@@ -580,20 +580,23 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Read the ACL policy
-	pol, err := s3conn.GetBucketAcl(&s3.GetBucketAclInput{
-		Bucket: aws.String(d.Id()),
-	})
-	log.Printf("[DEBUG] S3 bucket: %s, read ACL policy: %+v", d.Id(), pol)
-	if err != nil {
-		return err
-	}
+	// Do not evaluate if `acl` is set.
+	if _, ok := d.GetOk("acl"); !ok {
+		pol, err := s3conn.GetBucketAcl(&s3.GetBucketAclInput{
+			Bucket: aws.String(d.Id()),
+		})
+		log.Printf("[DEBUG] S3 bucket: %s, read ACL policy: %+v", d.Id(), pol)
+		if err != nil {
+			return err
+		}
 
-	b, err := json.Marshal(pol)
-	if err != nil {
-		return err
-	}
-	if err := d.Set("acl_policy", string(b)); err != nil {
-		return err
+		b, err := json.Marshal(pol)
+		if err != nil {
+			return err
+		}
+		if err := d.Set("acl_policy", string(b)); err != nil {
+			return err
+		}
 	}
 
 	// Read the CORS
