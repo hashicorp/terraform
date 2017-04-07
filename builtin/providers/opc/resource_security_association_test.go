@@ -101,7 +101,7 @@ resource "opc_compute_instance" "test" {
 }
 
 resource "opc_compute_security_association" "test" {
-  vcable  = "${opc_compute_instance.test.vcable_id}"
+  vcable  = "${opc_compute_instance.test.vcable}"
   seclist = "${opc_compute_security_list.test.name}"
 }
 `
