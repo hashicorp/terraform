@@ -47,9 +47,6 @@ type Meta struct {
 	// Modify the data directory location. Defaults to DefaultDataDir
 	dataDir string
 
-	// Fully Qualified version of DataDir
-	dataDirAbs string
-
 	//----------------------------------------------------------
 	// Private: do not set these
 	//----------------------------------------------------------
@@ -150,7 +147,7 @@ func (m *Meta) DataDir() string {
 
 // DataDirAbs returns the DataDir as an absolute path
 func (m *Meta) DataDirAbs() string {
-	dataDirAbs, _ := filepath.Abs(m.dataDir)
+	dataDirAbs, _ := filepath.Abs(m.DataDir())
 	return dataDirAbs
 }
 
