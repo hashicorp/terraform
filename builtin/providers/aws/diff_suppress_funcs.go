@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"log"
+	"net/url"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -57,4 +58,20 @@ func suppressEquivalentJsonDiffs(k, old, new string, d *schema.ResourceData) boo
 	}
 
 	return jsonBytesEqual(ob.Bytes(), nb.Bytes())
+}
+
+func suppressOpenIdURL(k, old, new string, d *schema.ResourceData) bool {
+	oldUrl, err := url.Parse(old)
+	if err != nil {
+		return false
+	}
+
+	newUrl, err := url.Parse(new)
+	if err != nil {
+		return false
+	}
+
+	oldUrl.Scheme = "https"
+
+	return oldUrl.String() == newUrl.String()
 }
