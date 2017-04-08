@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"path/filepath"
 
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/backend"
@@ -45,6 +46,9 @@ type Meta struct {
 
 	// Modify the data directory location. Defaults to DefaultDataDir
 	dataDir string
+
+	// Fully Qualified version of DataDir
+	dataDirAbs string
 
 	//----------------------------------------------------------
 	// Private: do not set these
@@ -142,6 +146,12 @@ func (m *Meta) DataDir() string {
 	}
 
 	return dataDir
+}
+
+// DataDirAbs returns the DataDir as an absolute path
+func (m *Meta) DataDirAbs() string {
+	dataDirAbs, _ := filepath.Abs(m.dataDir)
+	return dataDirAbs
 }
 
 const (
