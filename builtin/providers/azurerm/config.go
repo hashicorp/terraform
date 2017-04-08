@@ -21,6 +21,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/servicebus"
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
 	"github.com/Azure/azure-sdk-for-go/arm/trafficmanager"
+	"github.com/Azure/azure-sdk-for-go/arm/web"
 	mainStorage "github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
@@ -99,6 +100,9 @@ type ArmClient struct {
 	serviceBusSubscriptionsClient servicebus.SubscriptionsClient
 
 	keyVaultClient keyvault.VaultsClient
+
+	appsClient            web.AppsClient
+	appServicePlansClient web.AppServicePlansClient
 }
 
 func withRequestLogging() autorest.SendDecorator {
@@ -457,6 +461,18 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	kvc.Authorizer = spt
 	kvc.Sender = autorest.CreateSender(withRequestLogging())
 	client.keyVaultClient = kvc
+
+	ac := web.NewAppsClientWithBaseURI(endpoint, c.SubscriptionID)
+	setUserAgent(&ac.Client)
+	ac.Authorizer = spt
+	ac.Sender = autorest.CreateSender(withRequestLogging())
+	client.appsClient = ac
+
+	aspc := web.NewAppServicePlansClientWithBaseURI(endpoint, c.SubscriptionID)
+	setUserAgent(&aspc.Client)
+	aspc.Authorizer = spt
+	aspc.Sender = autorest.CreateSender(withRequestLogging())
+	client.appServicePlansClient = aspc
 
 	return &client, nil
 }
