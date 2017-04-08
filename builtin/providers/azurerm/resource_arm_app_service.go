@@ -28,7 +28,7 @@ func resourceArmAppService() *schema.Resource {
 			"skip_dns_registration": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  "",
+				Default:  true,
 			},
 			"skip_custom_domain_verification": {
 				Type:     schema.TypeBool,
@@ -38,7 +38,7 @@ func resourceArmAppService() *schema.Resource {
 			"force_dns_registration": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  true,
+				Default:  false,
 			},
 			"ttl_in_seconds": {
 				Type:     schema.TypeString,
