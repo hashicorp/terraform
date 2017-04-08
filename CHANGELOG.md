@@ -2,6 +2,7 @@
 
 FEATURES:
 
+ * **New Resource:** `aws_iam_openid_connect_provider` [GH-13456]
  * **New Resource:** `aws_lightsail_static_ip` [GH-13175]
  * **New Resource:** `aws_lightsail_static_ip_attachment` [GH-13207]
  * **New Resource:** `aws_ses_domain_identity` [GH-13098]
