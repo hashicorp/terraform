@@ -14,7 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"path/filepath"
 
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/backend"
