@@ -71,6 +71,27 @@ func TestAccRecord_updated(t *testing.T) {
 	})
 }
 
+func TestAccRecord_SPF(t *testing.T) {
+	var record dns.Record
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRecordSPF,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRecordExists("ns1_record.spf", &record),
+					testAccCheckRecordDomain(&record, "terraform-record-test.io"),
+					testAccCheckRecordTTL(&record, 86400),
+					testAccCheckRecordUseClientSubnet(&record, true),
+					testAccCheckRecordAnswerRdata(&record, "v=DKIM1; k=rsa; p=XXXXXXXX"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckRecordExists(n string, record *dns.Record) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -290,6 +311,23 @@ resource "ns1_record" "it" {
 
   filters {
     filter = "geotarget_country"
+  }
+}
+
+resource "ns1_zone" "test" {
+  zone = "terraform-record-test.io"
+}
+`
+
+const testAccRecordSPF = `
+resource "ns1_record" "spf" {
+  zone              = "${ns1_zone.test.zone}"
+  domain            = "${ns1_zone.test.zone}"
+  type              = "SPF"
+  ttl               = 86400
+  use_client_subnet = "true"
+  answers = {
+    answer = "v=DKIM1; k=rsa; p=XXXXXXXX"
   }
 }
 
