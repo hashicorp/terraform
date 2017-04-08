@@ -93,11 +93,11 @@ func (sm *SpaceManager) FindSpace(name string) (space CCSpace, err error) {
 }
 
 // ReadSpace -
-func (sm *SpaceManager) ReadSpace(orgID string) (space CCSpace, err error) {
+func (sm *SpaceManager) ReadSpace(spaceID string) (space CCSpace, err error) {
 
 	resource := &CCSpaceResource{}
 	err = sm.ccGateway.GetResource(
-		fmt.Sprintf("%s/v2/spaces/%s", sm.apiEndpoint, orgID), &resource)
+		fmt.Sprintf("%s/v2/spaces/%s", sm.apiEndpoint, spaceID), &resource)
 
 	space = resource.Entity
 	space.ID = resource.Metadata.GUID
@@ -163,22 +163,22 @@ func (sm *SpaceManager) UpdateSpace(space CCSpace, asgs []interface{}) (err erro
 }
 
 // AddUsers -
-func (sm *SpaceManager) AddUsers(orgID string, userIDs []string, role SpaceRole) (err error) {
+func (sm *SpaceManager) AddUsers(spaceID string, userIDs []string, role SpaceRole) (err error) {
 
 	for _, uid := range userIDs {
 		err = sm.ccGateway.UpdateResource(sm.apiEndpoint,
-			fmt.Sprintf("/v2/spaces/%s/%s/%s", orgID, role, uid),
+			fmt.Sprintf("/v2/spaces/%s/%s/%s", spaceID, role, uid),
 			strings.NewReader(""))
 	}
 	return
 }
 
 // RemoveUsers -
-func (sm *SpaceManager) RemoveUsers(orgID string, userIDs []string, role SpaceRole) (err error) {
+func (sm *SpaceManager) RemoveUsers(spaceID string, userIDs []string, role SpaceRole) (err error) {
 
 	for _, uid := range userIDs {
 		err = sm.ccGateway.DeleteResource(sm.apiEndpoint,
-			fmt.Sprintf("/v2/spaces/%s/%s/%s", orgID, role, uid))
+			fmt.Sprintf("/v2/spaces/%s/%s/%s", spaceID, role, uid))
 	}
 	return
 }
