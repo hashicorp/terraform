@@ -2,6 +2,7 @@ package cloudfoundry
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -60,6 +61,31 @@ func getListChanges(old interface{}, new interface{}) (remove []string, add []st
 		a = true
 		for i, r := range remove {
 			if nn == r {
+				remove = append(remove[:i], remove[i+1:]...)
+				a = false
+				break
+			}
+		}
+		if a {
+			add = append(add, nn)
+		}
+	}
+	return
+}
+
+// getListChangedSchemaLists -
+func getListChangedSchemaLists(old interface{}, new interface{}) (remove []map[string]interface{}, add []map[string]interface{}) {
+
+	var a bool
+
+	for _, o := range old.(*schema.Set).List() {
+		remove = append(remove, o.(map[string]interface{}))
+	}
+	for _, n := range new.(*schema.Set).List() {
+		nn := n.(map[string]interface{})
+		a = true
+		for i, r := range remove {
+			if reflect.DeepEqual(nn, r) {
 				remove = append(remove[:i], remove[i+1:]...)
 				a = false
 				break

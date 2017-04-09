@@ -30,27 +30,50 @@ resource "cf_asg" "svc" {
 resource "cf_user" "tl" {
     name = "teamlead@acme.com"
 }
+resource "cf_user_org_role" "tl" {
+    user = "${cf_user.tl.id}"
+	role {
+		org = "${cf_org.org1.id}"
+	}
+}
 resource "cf_user" "dev1" {
     name = "developer1@acme.com"
+}
+resource "cf_user_org_role" "dev1" {
+    user = "${cf_user.dev1.id}"
+	role {
+		org = "${cf_org.org1.id}"
+	}
 }
 resource "cf_user" "dev2" {
     name = "developer2@acme.com"
 }
+resource "cf_user_org_role" "dev2" {
+    user = "${cf_user.dev2.id}"
+	role {
+		org = "${cf_org.org1.id}"
+	}
+}
 resource "cf_user" "dev3" {
     name = "developer3@acme.com"
+}
+resource "cf_user_org_role" "dev3" {
+    user = "${cf_user.dev3.id}"
+	role {
+		org = "${cf_org.org1.id}"
+	}
 }
 resource "cf_user" "adr" {
     name = "auditor@acme.com"
 }
+resource "cf_user_org_role" "adr" {
+    user = "${cf_user.adr.id}"
+	role {
+		org = "${cf_org.org1.id}"
+	}
+}
 resource "cf_org" "org1" {
 	name = "organization-one"
-	members = [ 
-		"${cf_user.tl.id}", 
-		"${cf_user.dev1.id}", 
-		"${cf_user.dev2.id}", 
-		"${cf_user.dev3.id}", 
-		"${cf_user.adr.id}" 
-	]
 }
 resource "cf_quota" "dev" {
 	name = "50g"

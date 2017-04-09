@@ -96,18 +96,27 @@ func defaultPcfDevOrgID() string {
 	return pcfDevOrgID
 }
 
-func assertEquals(attributes map[string]string,
-	key string, expected interface{}) error {
-	v := attributes[key]
-	if v != expected {
-		return fmt.Errorf("expected resource '%s' to be '%s' but it was '%s'", key, v, expected)
+func assertContains(str string, list []string) bool {
+	for _, s := range list {
+		if str == s {
+			return true
+		}
 	}
-	return nil
+	return false
 }
 
 func assertSame(actual interface{}, expected interface{}) error {
 	if actual != expected {
 		return fmt.Errorf("expected '%s' found '%s' ", expected, actual)
+	}
+	return nil
+}
+
+func assertEquals(attributes map[string]string,
+	key string, expected interface{}) error {
+	v := attributes[key]
+	if v != expected {
+		return fmt.Errorf("expected resource '%s' to be '%s' but it was '%s'", key, v, expected)
 	}
 	return nil
 }
@@ -166,6 +175,7 @@ func assertListEquals(attributes map[string]string,
 			for j := 0; j < actualLen; j++ {
 				if match(values, j) {
 					found++
+					break
 				}
 			}
 		}

@@ -8,29 +8,15 @@ description: |-
 
 # cf\_org
 
-Provides a Cloud Foundry resource for managing Cloud Foundry [organizations](https://docs.cloudfoundry.org/concepts/roles.html).
+Provides a Cloud Foundry resource for managing Cloud Foundry [organizations](https://docs.cloudfoundry.org/concepts/roles.html). To associate users with specific org roles use the [cf_user_org_role](user_org_role.html) resource.
 
 ## Example Usage
 
-The following example creates an org with two members in addition to users assigned with managers and auditors roles. It is important to define all the members of the org so that Org managers can assign space roles. Each member ID is referenced from resources defined elsewhere in the same Terraform configuration
+The following example creates an org with a specific org-wide quota.
 
 ```
 resource "cf_org" "o1" {
-
     name = "organization-one"
-
-    members = [
-        "${cf_user.dev1.id}",
-        "${cf_user.dev2.id}" 		
-    ]
-    managers = [ 
-        "${cf_user.manager1.id}" 
-    ]
-    auditors = [ 
-        "${cf_user.auditor1.id}",
-		"${cf_user.auditor2.id}" 
-    ]
-
     quota = "${cf_quota.runaway.id}"
 }
 ```
@@ -40,10 +26,6 @@ resource "cf_org" "o1" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the Org in Cloud Foundry
-* `members` - (Optional) Members of the Org that do not have a specific Org level role but will be assigned to Spaces
-* `managers` - (Optional) Members who can administer the Org, such as create spaces and assign roles
-* `billing_managers` - (Optional) Members who can create and manage billing account and payment information
-* `auditors` - (Optional) Members who can view but cannot edit user information and Org quota usage information
 * `quota` - (Optional) The quota or plan to be given to this Org
 
 ## Attributes Reference

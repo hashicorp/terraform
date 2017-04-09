@@ -17,11 +17,16 @@ The following example creates a user and attaches additional UAA roles to grant 
 
 ```
 resource "cf_user" "admin-service-user" {
+    
     name = "cf-admin"
     password = "Passw0rd"
+    
     given_name = "John"
     family_name = "Doe"
+
     groups = [ "cloud_controller.admin", "scim.read", "scim.write" ]
+
+    orgs = [ "${cf_org.org1.id}", "${cf_org.org2.id}" ]
 }
 ```
 
@@ -36,6 +41,7 @@ The following arguments are supported:
 * `family_name` - (Optional) The family name of the user
 * `email` - (Optional) The email address of the user
 * `groups` - (Optional) Any UAA `groups` / `roles` to associated the user with
+* `orgs` - (Optional) List of [orgs](org.html) this user will be a associated with. This does not assign a role to the user, which needs to be done via the [cf_user_org_role](user_org_role.html.html) resource. However, the user must be associated with the org before he/she can be assigned a role in a [space](space.html) within that org.
 
 ## Attributes Reference
 

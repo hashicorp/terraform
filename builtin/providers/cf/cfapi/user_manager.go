@@ -87,6 +87,21 @@ type CCUserList struct {
 	Resources []CCUserResource `json:"resources"`
 }
 
+// UserRoleInOrg -
+type UserRoleInOrg string
+
+// UserIsOrgManager -
+const UserIsOrgManager = UserRoleInOrg("managed_organizations")
+
+// UserIsOrgBillingManager -
+const UserIsOrgBillingManager = UserRoleInOrg("billing_managed_organizations")
+
+// UserIsOrgAuditor -
+const UserIsOrgAuditor = UserRoleInOrg("audited_organizations")
+
+// UserIsOrgMember -
+const UserIsOrgMember = UserRoleInOrg("organizations")
+
 // NewUserManager -
 func NewUserManager(config coreconfig.Reader, uaaGateway net.Gateway, ccGateway net.Gateway) (um *UserManager, err error) {
 
@@ -348,6 +363,27 @@ func (um *UserManager) UpdateRoles(
 		}
 	}
 
+	return
+}
+
+// RemoveUserFromOrg -
+func (um *UserManager) RemoveUserFromOrg(userID string, orgID string) error {
+
+	return um.ccGateway.DeleteResource(um.config.APIEndpoint(),
+		fmt.Sprintf("/v2/users/%s/organizations/%s", userID, orgID))
+}
+
+// ListOrgsForUser -
+func (um *UserManager) ListOrgsForUser(userID string, orgRole UserRoleInOrg) (orgIDs []string, err error) {
+
+	orgList := &CCOrgResourceList{}
+	err = um.ccGateway.GetResource(
+		fmt.Sprintf("%s/v2/users/%s/%s", um.config.APIEndpoint(), userID, orgRole), orgList)
+
+	orgIDs = []string{}
+	for _, o := range orgList.Resources {
+		orgIDs = append(orgIDs, o.Metadata.GUID)
+	}
 	return
 }
 

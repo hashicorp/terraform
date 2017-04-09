@@ -175,7 +175,7 @@ func (s *Session) initCliConnection(
 	if err != nil {
 		return err
 	}
-	s.orgManager, err = NewOrgManager(s.config, s.ccGateway)
+	s.orgManager, err = NewOrgManager(s.config, s.ccGateway, s.Log)
 	if err != nil {
 		return err
 	}

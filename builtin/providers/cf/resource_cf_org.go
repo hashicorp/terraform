@@ -22,30 +22,6 @@ func resourceOrg() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"members": &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      resourceStringHash,
-			},
-			"managers": &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      resourceStringHash,
-			},
-			"billing_managers": &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      resourceStringHash,
-			},
-			"auditors": &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      resourceStringHash,
-			},
 			"quota": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -92,34 +68,13 @@ func resourceOrgRead(d *schema.ResourceData, meta interface{}) (err error) {
 	id := d.Id()
 	om := session.OrgManager()
 
-	var (
-		org cfapi.CCOrg
-
-		members, managers, billingManagers, auditors []interface{}
-	)
-
+	var org cfapi.CCOrg
 	if org, err = om.ReadOrg(id); err != nil {
-		return
-	}
-	if members, err = om.ListUsers(id, cfapi.OrgRoleMember); err != nil {
-		return
-	}
-	if managers, err = om.ListUsers(id, cfapi.OrgRoleManager); err != nil {
-		return
-	}
-	if billingManagers, err = om.ListUsers(id, cfapi.OrgRoleBillingManager); err != nil {
-		return
-	}
-	if auditors, err = om.ListUsers(id, cfapi.OrgRoleAuditor); err != nil {
 		return
 	}
 
 	d.Set("name", org.Name)
 	d.Set("quota", org.QuotaGUID)
-	d.Set("members", schema.NewSet(resourceStringHash, members))
-	d.Set("managers", schema.NewSet(resourceStringHash, managers))
-	d.Set("billing_managers", schema.NewSet(resourceStringHash, billingManagers))
-	d.Set("auditors", schema.NewSet(resourceStringHash, auditors))
 	return
 }
 
@@ -158,40 +113,6 @@ func resourceOrgUpdate(d *schema.ResourceData, meta interface{}) (err error) {
 			return err
 		}
 	}
-
-	old, new := d.GetChange("members")
-	remove, add := getListChanges(old, new)
-	if err = om.RemoveUsers(id, remove, cfapi.OrgRoleMember); err != nil {
-		return
-	}
-	if err = om.AddUsers(id, add, cfapi.OrgRoleMember); err != nil {
-		return
-	}
-
-	old, new = d.GetChange("managers")
-	remove, add = getListChanges(old, new)
-	if err = om.RemoveUsers(id, remove, cfapi.OrgRoleManager); err != nil {
-		return
-	}
-	if err = om.AddUsers(id, add, cfapi.OrgRoleManager); err != nil {
-		return
-	}
-
-	old, new = d.GetChange("billing_managers")
-	remove, add = getListChanges(old, new)
-	if err = om.RemoveUsers(id, remove, cfapi.OrgRoleBillingManager); err != nil {
-		return
-	}
-	if err = om.AddUsers(id, add, cfapi.OrgRoleBillingManager); err != nil {
-		return
-	}
-
-	old, new = d.GetChange("auditors")
-	remove, add = getListChanges(old, new)
-	if err = om.RemoveUsers(id, remove, cfapi.OrgRoleAuditor); err != nil {
-		return
-	}
-	err = om.AddUsers(id, add, cfapi.OrgRoleAuditor)
 
 	return
 }
