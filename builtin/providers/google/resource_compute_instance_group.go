@@ -66,7 +66,9 @@ func resourceComputeInstanceGroup() *schema.Resource {
 
 			"network": &schema.Schema{
 				Type:     schema.TypeString,
+				Optional: true,
 				Computed: true,
+				ForceNew: true,
 			},
 
 			"project": &schema.Schema{
@@ -126,6 +128,10 @@ func resourceComputeInstanceGroupCreate(d *schema.ResourceData, meta interface{}
 
 	if v, ok := d.GetOk("named_port"); ok {
 		instanceGroup.NamedPorts = getNamedPorts(v.([]interface{}))
+	}
+
+	if v, ok := d.GetOk("network"); ok {
+		instanceGroup.Network = v.(string)
 	}
 
 	log.Printf("[DEBUG] InstanceGroup insert request: %#v", instanceGroup)

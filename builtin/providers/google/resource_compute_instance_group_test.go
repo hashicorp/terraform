@@ -14,6 +14,12 @@ import (
 func TestAccComputeInstanceGroup_basic(t *testing.T) {
 	var instanceGroup compute.InstanceGroup
 	var instanceName = fmt.Sprintf("instancegroup-test-%s", acctest.RandString(10))
+	projs := []string{
+		"GOOGLE_PROJECT",
+		"GCLOUD_PROJECT",
+		"CLOUDSDK_CORE_PROJECT",
+	}
+	var network = fmt.Sprintf("https://www.googleapis.com/compute/v1/projects/%s/global/networks/default", multiEnvSearch(projs))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -21,12 +27,16 @@ func TestAccComputeInstanceGroup_basic(t *testing.T) {
 		CheckDestroy: testAccComputeInstanceGroup_destroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeInstanceGroup_basic(instanceName),
+				Config: testAccComputeInstanceGroup_basic(instanceName, network),
 				Check: resource.ComposeTestCheckFunc(
 					testAccComputeInstanceGroup_exists(
 						"google_compute_instance_group.basic", &instanceGroup),
 					testAccComputeInstanceGroup_exists(
 						"google_compute_instance_group.empty", &instanceGroup),
+					testAccComputeInstanceGroup_exists(
+						"google_compute_instance_group.empty-with-network", &instanceGroup),
+					testAccComputeInstanceGroup_network(
+						"google_compute_instance_group.empty-with-network", network, &instanceGroup),
 				),
 			},
 		},
@@ -201,7 +211,34 @@ func testAccComputeInstanceGroup_named_ports(n string, np map[string]int64, inst
 	}
 }
 
-func testAccComputeInstanceGroup_basic(instance string) string {
+func testAccComputeInstanceGroup_network(n string, network string, instanceGroup *compute.InstanceGroup) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		config := testAccProvider.Meta().(*Config)
+
+		instanceGroup, err := config.clientCompute.InstanceGroups.Get(
+			config.Project, rs.Primary.Attributes["zone"], rs.Primary.ID).Do()
+		if err != nil {
+			return err
+		}
+
+		if instanceGroup.Network != network {
+			return fmt.Errorf("network incorrect: actual=%s vs expected=%s", instanceGroup.Network, network)
+		}
+
+		return nil
+	}
+}
+
+func testAccComputeInstanceGroup_basic(instance, network string) string {
 	return fmt.Sprintf(`
 	resource "google_compute_instance" "ig_instance" {
 		name = "%s"
@@ -245,7 +282,22 @@ func testAccComputeInstanceGroup_basic(instance string) string {
 			name = "https"
 			port = "8443"
 		}
-	}`, instance, instance, instance)
+	}
+
+	resource "google_compute_instance_group" "empty-with-network" {
+		description = "Terraform test instance group empty-with-network"
+		name = "%s-empty-with-network"
+		network = "%s"
+		zone = "us-central1-c"
+			named_port {
+			name = "http"
+			port = "8080"
+		}
+		named_port {
+			name = "https"
+			port = "8443"
+		}
+	}`, instance, instance, instance, instance, network)
 }
 
 func testAccComputeInstanceGroup_update(instance string) string {
