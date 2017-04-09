@@ -104,6 +104,19 @@ func (d *ResourceData) GetOk(key string) (interface{}, bool) {
 	return r.Value, exists
 }
 
+// GetOkAllowZero returns the data for the given key and whether or
+// not the key has been set to some value at some point.
+// This method does not check if the value is non-zero, unlike GetOk.
+//
+// The first result will not necessarilly be nil if the value doesn't exist.
+// The second result should be checked to determine this information.
+func (d *ResourceData) GetOkAllowZero(key string) (interface{}, bool) {
+	r := d.getRaw(key, getSourceSet)
+	exists := r.Exists && !r.Computed
+
+	return r.Value, exists
+}
+
 func (d *ResourceData) getRaw(key string, level getSource) getResult {
 	var parts []string
 	if key != "" {

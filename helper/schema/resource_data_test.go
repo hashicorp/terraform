@@ -1082,6 +1082,250 @@ func TestResourceDataGetOk(t *testing.T) {
 	}
 }
 
+func TestResourceDataGetOkAllowZero(t *testing.T) {
+	cases := []struct {
+		Schema map[string]*Schema
+		State  *terraform.InstanceState
+		Diff   *terraform.InstanceDiff
+		Key    string
+		Value  interface{}
+		Ok     bool
+	}{
+		/*
+		 * Primitives
+		 */
+		// This case is regarded to be OK since
+		// the Computed field in the diff is not set.
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "",
+					},
+				},
+			},
+
+			Key:   "availability_zone",
+			Value: "",
+			Ok:    true,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old:         "",
+						New:         "",
+						NewComputed: true,
+					},
+				},
+			},
+
+			Key:   "availability_zone",
+			Value: "",
+			Ok:    false,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "availability_zone",
+			Value: "",
+			Ok:    false,
+		},
+
+		/*
+		 * Lists
+		 */
+
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					Elem:     &Schema{Type: TypeInt},
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "ports",
+			Value: []interface{}{},
+			Ok:    false,
+		},
+
+		/*
+		 * Map
+		 */
+
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeMap,
+					Optional: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "ports",
+			Value: map[string]interface{}{},
+			Ok:    false,
+		},
+
+		/*
+		 * Set
+		 */
+
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set:      func(a interface{}) int { return a.(int) },
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "ports",
+			Value: []interface{}{},
+			Ok:    false,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set:      func(a interface{}) int { return a.(int) },
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "ports.0",
+			Value: 0,
+			Ok:    false,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set:      func(a interface{}) int { return a.(int) },
+				},
+			},
+
+			State: nil,
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ports.#": &terraform.ResourceAttrDiff{
+						Old: "0",
+						New: "0",
+					},
+				},
+			},
+
+			Key:   "ports",
+			Value: []interface{}{},
+			Ok:    true,
+		},
+
+		// Unlike the GetOk, the GetOkAllowZero treats zero-value as zero-value,
+		// rather than an unset value.
+		{
+			Schema: map[string]*Schema{
+				"from_port": &Schema{
+					Type:     TypeInt,
+					Optional: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"from_port": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "0",
+					},
+				},
+			},
+
+			Key:   "from_port",
+			Value: 0,
+			Ok:    true,
+		},
+	}
+
+	for i, tc := range cases {
+		d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		v, ok := d.GetOkAllowZero(tc.Key)
+		if s, ok := v.(*Set); ok {
+			v = s.List()
+		}
+
+		if !reflect.DeepEqual(v, tc.Value) {
+			t.Fatalf("Bad: %d\n\n%#v", i, v)
+		}
+		if ok != tc.Ok {
+			t.Fatalf("%d: expected ok: %t, got: %t", i, tc.Ok, ok)
+		}
+	}
+}
+
 func TestResourceDataTimeout(t *testing.T) {
 	cases := []struct {
 		Name     string
