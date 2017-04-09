@@ -16,6 +16,8 @@ import (
 
 // DomainManager -
 type DomainManager struct {
+	log *Logger
+
 	config    coreconfig.Reader
 	ccGateway net.Gateway
 
@@ -49,9 +51,11 @@ type CCDomainList struct {
 }
 
 // NewDomainManager -
-func NewDomainManager(config coreconfig.Reader, ccGateway net.Gateway) (dm *DomainManager, err error) {
+func newDomainManager(config coreconfig.Reader, ccGateway net.Gateway, logger *Logger) (dm *DomainManager, err error) {
 
 	dm = &DomainManager{
+		log: logger,
+
 		config:    config,
 		ccGateway: ccGateway,
 

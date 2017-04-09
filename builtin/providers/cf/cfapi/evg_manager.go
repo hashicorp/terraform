@@ -12,6 +12,8 @@ import (
 
 // EVGManager -
 type EVGManager struct {
+	log *Logger
+
 	config    coreconfig.Reader
 	ccGateway net.Gateway
 
@@ -19,9 +21,11 @@ type EVGManager struct {
 }
 
 // NewEVGManager -
-func NewEVGManager(config coreconfig.Reader, ccGateway net.Gateway) (dm *EVGManager, err error) {
+func newEVGManager(config coreconfig.Reader, ccGateway net.Gateway, logger *Logger) (dm *EVGManager, err error) {
 
 	dm = &EVGManager{
+		log: logger,
+
 		config:    config,
 		ccGateway: ccGateway,
 

@@ -17,6 +17,8 @@ import (
 
 // ASGManager -
 type ASGManager struct {
+	log *Logger
+
 	config    coreconfig.Reader
 	ccGateway net.Gateway
 
@@ -53,9 +55,11 @@ type CCASGResource struct {
 }
 
 // NewASGManager -
-func NewASGManager(config coreconfig.Reader, ccGateway net.Gateway) (dm *ASGManager, err error) {
+func newASGManager(config coreconfig.Reader, ccGateway net.Gateway, logger *Logger) (dm *ASGManager, err error) {
 
 	dm = &ASGManager{
+		log: logger,
+
 		config:    config,
 		ccGateway: ccGateway,
 

@@ -155,23 +155,23 @@ func (s *Session) initCliConnection(
 	s.ccGateway.SetTokenRefresher(s.authManager)
 	s.uaaGateway.SetTokenRefresher(s.authManager)
 
-	s.userManager, err = NewUserManager(s.config, s.uaaGateway, s.ccGateway)
+	s.userManager, err = newUserManager(s.config, s.uaaGateway, s.ccGateway, s.Log)
 	if err != nil {
 		return err
 	}
-	s.domainManager, err = NewDomainManager(s.config, s.ccGateway)
+	s.domainManager, err = newDomainManager(s.config, s.ccGateway, s.Log)
 	if err != nil {
 		return err
 	}
-	s.asgManager, err = NewASGManager(s.config, s.ccGateway)
+	s.asgManager, err = newASGManager(s.config, s.ccGateway, s.Log)
 	if err != nil {
 		return err
 	}
-	s.evgManager, err = NewEVGManager(s.config, s.ccGateway)
+	s.evgManager, err = newEVGManager(s.config, s.ccGateway, s.Log)
 	if err != nil {
 		return err
 	}
-	s.quotaManager, err = NewQuotaManager(s.config, s.ccGateway)
+	s.quotaManager, err = newQuotaManager(s.config, s.ccGateway, s.Log)
 	if err != nil {
 		return err
 	}
@@ -179,11 +179,11 @@ func (s *Session) initCliConnection(
 	if err != nil {
 		return err
 	}
-	s.spaceManager, err = NewSpaceManager(s.config, s.ccGateway)
+	s.spaceManager, err = newSpaceManager(s.config, s.ccGateway, s.Log)
 	if err != nil {
 		return err
 	}
-	s.serviceManager, err = NewServiceManager(s.config, s.ccGateway)
+	s.serviceManager, err = newServiceManager(s.config, s.ccGateway, s.Log)
 	if err != nil {
 		return err
 	}

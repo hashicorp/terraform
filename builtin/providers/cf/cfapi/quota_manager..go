@@ -16,6 +16,8 @@ import (
 
 // QuotaManager -
 type QuotaManager struct {
+	log *Logger
+
 	config    coreconfig.Reader
 	ccGateway net.Gateway
 
@@ -49,9 +51,11 @@ type CCQuotaResource struct {
 }
 
 // NewQuotaManager -
-func NewQuotaManager(config coreconfig.Reader, ccGateway net.Gateway) (dm *QuotaManager, err error) {
+func newQuotaManager(config coreconfig.Reader, ccGateway net.Gateway, logger *Logger) (dm *QuotaManager, err error) {
 
 	dm = &QuotaManager{
+		log: logger,
+
 		config:    config,
 		ccGateway: ccGateway,
 

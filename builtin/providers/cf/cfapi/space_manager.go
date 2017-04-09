@@ -16,6 +16,8 @@ import (
 
 // SpaceManager -
 type SpaceManager struct {
+	log *Logger
+
 	config    coreconfig.Reader
 	ccGateway net.Gateway
 
@@ -53,9 +55,11 @@ const SpaceRoleDeveloper = SpaceRole("developers")
 const SpaceRoleAuditor = SpaceRole("auditors")
 
 // NewSpaceManager -
-func NewSpaceManager(config coreconfig.Reader, ccGateway net.Gateway) (dm *SpaceManager, err error) {
+func newSpaceManager(config coreconfig.Reader, ccGateway net.Gateway, logger *Logger) (dm *SpaceManager, err error) {
 
 	dm = &SpaceManager{
+		log: logger,
+
 		config:    config,
 		ccGateway: ccGateway,
 

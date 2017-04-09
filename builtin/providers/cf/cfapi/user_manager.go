@@ -16,6 +16,8 @@ import (
 
 // UserManager -
 type UserManager struct {
+	log *Logger
+
 	config     coreconfig.Reader
 	uaaGateway net.Gateway
 	ccGateway  net.Gateway
@@ -103,9 +105,11 @@ const UserIsOrgAuditor = UserRoleInOrg("audited_organizations")
 const UserIsOrgMember = UserRoleInOrg("organizations")
 
 // NewUserManager -
-func NewUserManager(config coreconfig.Reader, uaaGateway net.Gateway, ccGateway net.Gateway) (um *UserManager, err error) {
+func newUserManager(config coreconfig.Reader, uaaGateway net.Gateway, ccGateway net.Gateway, logger *Logger) (um *UserManager, err error) {
 
 	um = &UserManager{
+		log: logger,
+
 		config:        config,
 		uaaGateway:    uaaGateway,
 		ccGateway:     ccGateway,

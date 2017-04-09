@@ -16,6 +16,8 @@ import (
 
 // ServiceManager -
 type ServiceManager struct {
+	log *Logger
+
 	config    coreconfig.Reader
 	ccGateway net.Gateway
 
@@ -71,9 +73,11 @@ type CCUserProvidedServiceUpdateRequest struct {
 }
 
 // NewServiceManager -
-func NewServiceManager(config coreconfig.Reader, ccGateway net.Gateway) (sm *ServiceManager, err error) {
+func newServiceManager(config coreconfig.Reader, ccGateway net.Gateway, logger *Logger) (sm *ServiceManager, err error) {
 
 	sm = &ServiceManager{
+		log: logger,
+
 		config:      config,
 		ccGateway:   ccGateway,
 		apiEndpoint: config.APIEndpoint(),
