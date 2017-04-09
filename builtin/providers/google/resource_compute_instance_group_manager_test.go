@@ -20,6 +20,7 @@ func TestAccInstanceGroupManager_basic(t *testing.T) {
 	target := fmt.Sprintf("igm-test-%s", acctest.RandString(10))
 	igm1 := fmt.Sprintf("igm-test-%s", acctest.RandString(10))
 	igm2 := fmt.Sprintf("igm-test-%s", acctest.RandString(10))
+	igm3 := fmt.Sprintf("igm-test-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -27,12 +28,14 @@ func TestAccInstanceGroupManager_basic(t *testing.T) {
 		CheckDestroy: testAccCheckInstanceGroupManagerDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccInstanceGroupManager_basic(template, target, igm1, igm2),
+				Config: testAccInstanceGroupManager_basic(template, target, igm1, igm2, igm3),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceGroupManagerExists(
 						"google_compute_instance_group_manager.igm-basic", &manager),
 					testAccCheckInstanceGroupManagerExists(
 						"google_compute_instance_group_manager.igm-no-tp", &manager),
+					testAccCheckInstanceGroupManagerExists(
+						"google_compute_instance_group_manager.igm-size-zero", &manager),
 				),
 			},
 		},
@@ -334,7 +337,7 @@ func testAccCheckInstanceGroupManagerUpdateStrategy(n, strategy string) resource
 	}
 }
 
-func testAccInstanceGroupManager_basic(template, target, igm1, igm2 string) string {
+func testAccInstanceGroupManager_basic(template, target, igm1, igm2, igm3 string) string {
 	return fmt.Sprintf(`
 	resource "google_compute_instance_template" "igm-basic" {
 		name = "%s"
@@ -385,7 +388,16 @@ func testAccInstanceGroupManager_basic(template, target, igm1, igm2 string) stri
 		zone = "us-central1-c"
 		target_size = 2
 	}
-	`, template, target, igm1, igm2)
+
+	resource "google_compute_instance_group_manager" "igm-size-zero" {
+		description = "Terraform test instance group manager"
+		name = "%s"
+		instance_template = "${google_compute_instance_template.igm-basic.self_link}"
+		base_instance_name = "igm-target-zero"
+		zone = "us-central1-c"
+		target_size = 0
+	}
+	`, template, target, igm1, igm2, igm3)
 }
 
 func testAccInstanceGroupManager_update(template, target, igm string) string {

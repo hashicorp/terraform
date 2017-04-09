@@ -134,7 +134,7 @@ func resourceComputeInstanceGroupManagerCreate(d *schema.ResourceData, meta inte
 
 	// Get group size, default to 1 if not given
 	var target_size int64 = 1
-	if v, ok := d.GetOk("target_size"); ok {
+	if v, ok := d.GetOkAllowZero("target_size"); ok {
 		target_size = int64(v.(int))
 	}
 
@@ -144,6 +144,7 @@ func resourceComputeInstanceGroupManagerCreate(d *schema.ResourceData, meta inte
 		BaseInstanceName: d.Get("base_instance_name").(string),
 		InstanceTemplate: d.Get("instance_template").(string),
 		TargetSize:       target_size,
+		ForceSendFields:  []string{"Name", "BaseInstanceName", "InstanceTemplate", "TargetSize"},
 	}
 
 	// Set optional fields
@@ -256,7 +257,6 @@ func resourceComputeInstanceGroupManagerRead(d *schema.ResourceData, meta interf
 	d.Set("named_port", flattenNamedPorts(manager.NamedPorts))
 	d.Set("fingerprint", manager.Fingerprint)
 	d.Set("instance_group", manager.InstanceGroup)
-	d.Set("target_size", manager.TargetSize)
 	d.Set("self_link", manager.SelfLink)
 	update_strategy, ok := d.GetOk("update_strategy")
 	if !ok {
