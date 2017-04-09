@@ -430,7 +430,7 @@ func updateAwsSSMDocument(d *schema.ResourceData, meta interface{}) error {
 
 		newDefaultVersion = d.Get("latest_version").(string)
 	} else if err != nil {
-		return fmt.Errorf("Error updating SSM document %s: %s", name, err)
+		return errwrap.Wrapf("Error updating SSM document: {{err}}", err)
 	} else {
 		log.Printf("[INFO] Updating the default version to the new version %s: %s", newDefaultVersion, d.Id())
 		newDefaultVersion = *updated.DocumentDescription.DocumentVersion
@@ -444,7 +444,7 @@ func updateAwsSSMDocument(d *schema.ResourceData, meta interface{}) error {
 	_, err = ssmconn.UpdateDocumentDefaultVersion(updateVersionParams)
 
 	if err != nil {
-		return fmt.Errorf("Error updating the default document version to that of the updated document %s: %s", name, err)
+		return errwrap.Wrapf("Error updating the default document version to that of the updated document: {{err}}", err)
 	}
 	return nil
 }
