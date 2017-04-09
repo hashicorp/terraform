@@ -414,8 +414,9 @@ func updateAwsSSMDocument(d *schema.ResourceData, meta interface{}) error {
 	name := d.Get("name").(string)
 
 	params := &ssm.UpdateDocumentInput{
-		Name:    aws.String(name),
-		Content: aws.String(d.Get("content").(string)),
+		Name:            aws.String(name),
+		Content:         aws.String(d.Get("content").(string)),
+		DocumentVersion: aws.String(d.Get("default_version").(string)),
 	}
 
 	newDefaultVersion := d.Get("default_version").(string)
