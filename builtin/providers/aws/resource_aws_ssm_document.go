@@ -35,6 +35,10 @@ func resourceAwsSsmDocument() *schema.Resource {
 				Required:     true,
 				ValidateFunc: validateAwsSSMDocumentType,
 			},
+			"schema_version": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"created_date": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -173,6 +177,7 @@ func resourceAwsSsmDocumentRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("created_date", doc.CreatedDate)
 	d.Set("default_version", doc.DefaultVersion)
 	d.Set("description", doc.Description)
+	d.Set("schema_version", doc.SchemaVersion)
 
 	if _, ok := d.GetOk("document_type"); ok {
 		d.Set("document_type", doc.DocumentType)
