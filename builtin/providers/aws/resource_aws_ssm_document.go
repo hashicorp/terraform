@@ -413,7 +413,7 @@ func updateAwsSSMDocument(d *schema.ResourceData, meta interface{}) error {
 
 	name := d.Get("name").(string)
 
-	params := &ssm.UpdateDocumentInput{
+	updateDocInput := &ssm.UpdateDocumentInput{
 		Name:            aws.String(name),
 		Content:         aws.String(d.Get("content").(string)),
 		DocumentVersion: aws.String(d.Get("default_version").(string)),
@@ -422,7 +422,7 @@ func updateAwsSSMDocument(d *schema.ResourceData, meta interface{}) error {
 	newDefaultVersion := d.Get("default_version").(string)
 
 	ssmconn := meta.(*AWSClient).ssmconn
-	updated, err := ssmconn.UpdateDocument(params)
+	updated, err := ssmconn.UpdateDocument(updateDocInput)
 
 	if isAWSErr(err, "DuplicateDocumentContent", "") {
 		log.Printf("[DEBUG] Content is a duplicate of the latest version so update is not necessary: %s", d.Id())
@@ -436,12 +436,12 @@ func updateAwsSSMDocument(d *schema.ResourceData, meta interface{}) error {
 		newDefaultVersion = *updated.DocumentDescription.DocumentVersion
 	}
 
-	updateVersionParams := &ssm.UpdateDocumentDefaultVersionInput{
+	updateDefaultInput := &ssm.UpdateDocumentDefaultVersionInput{
 		Name:            aws.String(name),
 		DocumentVersion: aws.String(newDefaultVersion),
 	}
 
-	_, err = ssmconn.UpdateDocumentDefaultVersion(updateVersionParams)
+	_, err = ssmconn.UpdateDocumentDefaultVersion(updateDefaultInput)
 
 	if err != nil {
 		return errwrap.Wrapf("Error updating the default document version to that of the updated document: {{err}}", err)
