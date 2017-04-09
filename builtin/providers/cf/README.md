@@ -1,6 +1,6 @@
 # Terraform Cloud Foundry Provider Dev Docs
 
-This document is in place for developer documentation. User documentation is located [HERE](https://www.terraform.io/docs/providers/cloudfoundry/) on Terraform's website.
+This document is in place for developer documentation. User documentation is located [HERE](https://www.terraform.io/docs/providers/cloudfoundry/) on Terraform's website. The project backlog is maintained here by [Pivotal Tracker](https://www.pivotaltracker.com/n/projects/1913977).
 
 ## Running the Acceptance Tests
 
