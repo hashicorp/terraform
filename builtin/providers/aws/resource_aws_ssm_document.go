@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,6 +13,10 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+)
+
+const (
+	MINIMUM_VERSIONED_SCHEMA = 2.0
 )
 
 func resourceAwsSsmDocument() *schema.Resource {
@@ -243,6 +248,23 @@ func resourceAwsSsmDocumentUpdate(d *schema.ResourceData, meta interface{}) erro
 		log.Printf("[DEBUG] Not setting document permissions on %q", d.Id())
 	}
 
+	if !d.HasChange("content") {
+		return nil
+	}
+
+	if schemaVersion, ok := d.GetOk("schemaVersion"); ok {
+		schemaNumber, _ := strconv.ParseFloat(schemaVersion.(string), 64)
+
+		if schemaNumber < MINIMUM_VERSIONED_SCHEMA {
+			log.Printf("[DEBUG] Skipping document update because document version is not 2.0 %q", d.Id())
+			return nil
+		}
+	}
+
+	if err := updateAwsSSMDocument(d, meta); err != nil {
+		return err
+	}
+
 	return resourceAwsSsmDocumentRead(d, meta)
 }
 
@@ -383,6 +405,46 @@ func deleteDocumentPermissions(d *schema.ResourceData, meta interface{}) error {
 		return errwrap.Wrapf("[ERROR] Error removing permissions for SSM document: {{err}}", err)
 	}
 
+	return nil
+}
+
+func updateAwsSSMDocument(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[INFO] Updating SSM Document: %s", d.Id())
+
+	name := d.Get("name").(string)
+
+	params := &ssm.UpdateDocumentInput{
+		Name:    aws.String(name),
+		Content: aws.String(d.Get("content").(string)),
+	}
+
+	newDefaultVersion := d.Get("default_version").(string)
+
+	ssmconn := meta.(*AWSClient).ssmconn
+	updated, err := ssmconn.UpdateDocument(params)
+
+	if isAWSErr(err, "DuplicateDocumentContent", "") {
+		log.Printf("[DEBUG] Content is a duplicate of the latest version so update is not necessary: %s", d.Id())
+		log.Printf("[INFO] Updating the default version to the latest version %s: %s", newDefaultVersion, d.Id())
+
+		newDefaultVersion = d.Get("latest_version").(string)
+	} else if err != nil {
+		return fmt.Errorf("Error updating SSM document %s: %s", name, err)
+	} else {
+		log.Printf("[INFO] Updating the default version to the new version %s: %s", newDefaultVersion, d.Id())
+		newDefaultVersion = *updated.DocumentDescription.DocumentVersion
+	}
+
+	updateVersionParams := &ssm.UpdateDocumentDefaultVersionInput{
+		Name:            aws.String(name),
+		DocumentVersion: aws.String(newDefaultVersion),
+	}
+
+	_, err = ssmconn.UpdateDocumentDefaultVersion(updateVersionParams)
+
+	if err != nil {
+		return fmt.Errorf("Error updating the default document version to that of the updated document %s: %s", name, err)
+	}
 	return nil
 }
 
