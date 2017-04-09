@@ -72,7 +72,7 @@ func TestAccInstanceGroupManager_update(t *testing.T) {
 					testAccCheckInstanceGroupManagerExists(
 						"google_compute_instance_group_manager.igm-update", &manager),
 					testAccCheckInstanceGroupManagerUpdated(
-						"google_compute_instance_group_manager.igm-update", 3,
+						"google_compute_instance_group_manager.igm-update", 0,
 						"google_compute_target_pool.igm-update", template2),
 					testAccCheckInstanceGroupManagerNamedPorts(
 						"google_compute_instance_group_manager.igm-update",
@@ -514,7 +514,7 @@ func testAccInstanceGroupManager_update2(template1, target, template2, igm strin
 		target_pools = ["${google_compute_target_pool.igm-update.self_link}"]
 		base_instance_name = "igm-update"
 		zone = "us-central1-c"
-		target_size = 3
+		target_size = 0
 		named_port {
 			name = "customhttp"
 			port = 8080

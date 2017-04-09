@@ -384,7 +384,7 @@ func resourceComputeInstanceGroupManagerUpdate(d *schema.ResourceData, meta inte
 
 	// If size changes trigger a resize
 	if d.HasChange("target_size") {
-		if v, ok := d.GetOk("target_size"); ok {
+		if v, ok := d.GetOkAllowZero("target_size"); ok {
 			// Only do anything if the new size is set
 			target_size := int64(v.(int))
 
