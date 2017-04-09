@@ -2,7 +2,7 @@ package fastly
 
 import "fmt"
 
-func validateS3FormatVersion(v interface{}, k string) (ws []string, errors []error) {
+func validateLoggingFormatVersion(v interface{}, k string) (ws []string, errors []error) {
 	value := uint(v.(int))
 	validVersions := map[uint]struct{}{
 		1: {},
