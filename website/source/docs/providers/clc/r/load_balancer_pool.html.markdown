@@ -6,7 +6,7 @@ description: |-
   Manages a CLC load balancer pool.
 ---
 
-# clc\_load\_balancer\_pool
+# clc_load_balancer_pool
 
 Manages a CLC load balancer pool. Manage related frontend with [clc_load_balancer](load_balancer.html)
 
@@ -15,7 +15,7 @@ See also [Complete API documentation](https://www.ctl.io/api-docs/v2/#shared-loa
 ## Example Usage
 
 
-```
+```hcl
 # Provision a load balancer pool
 resource "clc_load_balancer_pool" "pool" {
   data_center   = "${clc_group.frontends.location_id}"
@@ -68,9 +68,3 @@ following:
 * `ipAddress` (Required, string) The destination internal ip of pool node.
 * `privatePort` (Required, int) The destination port on the pool node.
 * `status` (Optional, string) Either "enabled" or "disabled".
-
-
-
-
-
-
