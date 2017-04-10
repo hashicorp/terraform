@@ -155,6 +155,8 @@ Defined below.
 Defined below.
 * `sumologic` - (Optional) A Sumologic endpoint to send streaming logs too.
 Defined below.
+* `gcslogging` - (Optional) A gcs endpoint to send streaming logs too.
+Defined below.
 * `response_object` - (Optional) Allows you to create synthetic responses that exist entirely on the varnish machine. Useful for creating error or maintenance pages that exists outside the scope of your datacenter. Best when used with Condition objects.
 * `vcl` - (Optional) A set of custom VCL configuration blocks. The
 ability to upload custom VCL code is not enabled by default for new Fastly
@@ -322,9 +324,20 @@ The `sumologic` block supports:
 * `name` - (Required) A unique name to identify this Sumologic endpoint.
 * `url` - (Required) The URL to Sumologic collector endpoint
 * `format` - (Optional) Apache-style string or VCL variables to use for log formatting. Defaults to Apache Common Log format (`%h %l %u %t %r %>s`)
-* `format_version` - (Optional) The version of the custom logging format used for the configured endpoint. Can be either 1 (the default, version 1 log format) or 2 (the version 2 log format). 
+* `format_version` - (Optional) The version of the custom logging format used for the configured endpoint. Can be either 1 (the default, version 1 log format) or 2 (the version 2 log format).
 * `response_condition` - (Optional) Name of already defined `condition` to apply. This `condition` must be of type `RESPONSE`. For detailed information about Conditionals, see [Fastly's Documentation on Conditionals][fastly-conditionals].
 * `message_type` - (Optional) How the message should be formatted. One of: classic, loggly, logplex, blank. See [Fastly's Documentation on Sumologic][fastly-sumologic]
+
+The `gcslogging` block supports:
+
+* `name` - (Required) A unique name to identify this GCS endpoint.
+* `email` - (Required) The email address associated with the target GCS bucket on your account.
+* `bucket_name` - (Required) The name of the bucket in which to store the logs.
+* `secret_key` - (Required) The secret key associated with the target gcs bucket on your account.
+* `format` - (Optional) Apache-style string or VCL variables to use for log formatting. Defaults to Apache Common Log format (`%h %l %u %t %r %>s`)
+* `format_version` - (Optional) The version of the custom logging format used for the configured endpoint. Can be either 1 (the default, version 1 log format) or 2 (the version 2 log format).
+* `response_condition` - (Optional) Name of already defined `condition` to apply. This `condition` must be of type `RESPONSE`. For detailed information about Conditionals, see [Fastly's Documentation on Conditionals][fastly-conditionals].
+* `message_type` - (Optional) How the message should be formatted. One of: classic, loggly, logplex, blank. See [Fastly's Documentation on GCS][fastly-gcs]
 
 The `response_object` block supports:
 
@@ -369,3 +382,4 @@ Service.
 [fastly-cname]: https://docs.fastly.com/guides/basic-setup/adding-cname-records
 [fastly-conditionals]: https://docs.fastly.com/guides/conditions/using-conditions
 [fastly-sumologic]: https://docs.fastly.com/api/logging#logging_sumologic
+[fastly-gcs]: https://docs.fastly.com/api/logging#logging_gcs
