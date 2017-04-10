@@ -6,13 +6,13 @@ description: |-
   Creates egress firewall rules for a given network.
 ---
 
-# cloudstack\_egress\_firewall
+# cloudstack_egress_firewall
 
 Creates egress firewall rules for a given network.
 
 ## Example Usage
 
-```
+```hcl
 resource "cloudstack_egress_firewall" "default" {
   network_id = "6eb22f91-7454-4107-89f4-36afcdf33021"
 

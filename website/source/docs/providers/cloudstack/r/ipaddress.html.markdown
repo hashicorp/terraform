@@ -6,13 +6,13 @@ description: |-
   Acquires and associates a public IP.
 ---
 
-# cloudstack\_ipaddress
+# cloudstack_ipaddress
 
 Acquires and associates a public IP.
 
 ## Example Usage
 
-```
+```hcl
 resource "cloudstack_ipaddress" "default" {
   network_id = "6eb22f91-7454-4107-89f4-36afcdf33021"
 }
