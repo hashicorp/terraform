@@ -6,14 +6,14 @@ description: |-
   Reads values from the Consul key/value store.
 ---
 
-# consul\_keys
+# consul_keys
 
 The `consul_keys` resource reads values from the Consul key/value store.
 This is a powerful way dynamically set values in templates.
 
 ## Example Usage
 
-```
+```hcl
 data "consul_keys" "app" {
   datacenter = "nyc1"
   token      = "abcd"
