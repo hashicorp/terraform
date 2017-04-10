@@ -38,6 +38,7 @@ IMPROVEMENTS:
  * provider/aws: Add support for treat_missing_data to cloudwatch_metric_alarm [GH-13358]
  * provider/aws: Add support for evaluate_low_sample_count_percentiles to cloudwatch_metric_alarm [GH-13371]
  * provider/aws: Add `name_prefix` to `aws_alb_target_group` [GH-13442]
+ * provider/aws: Add support for EMR clusters to aws_appautoscaling_target [GH-13368]
  * provider/bitbucket: Improved error handling [GH-13390]
  * provider/cloudstack: Do not force a new resource when updating `cloudstack_loadbalancer_rule` members [GH-11786]
  * provider/fastly: Add support for Sumologic logging [GH-12541]
