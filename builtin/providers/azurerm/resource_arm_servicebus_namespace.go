@@ -132,7 +132,7 @@ func resourceArmServiceBusNamespaceRead(d *schema.ResourceData, meta interface{}
 
 	resp, err := namespaceClient.Get(resGroup, name)
 	if err != nil {
-		return fmt.Errorf("Error making Read request on Azure ServiceBus Namespace %s: %s", name, err)
+		return fmt.Errorf("Error making Read request on Azure ServiceBus Namespace %s: %+v", name, err)
 	}
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
@@ -147,7 +147,7 @@ func resourceArmServiceBusNamespaceRead(d *schema.ResourceData, meta interface{}
 
 	keys, err := namespaceClient.ListKeys(resGroup, name, serviceBusNamespaceDefaultAuthorizationRule)
 	if err != nil {
-		log.Printf("[ERROR] Unable to List default keys for Namespace %s: %s", name, err)
+		log.Printf("[ERROR] Unable to List default keys for Namespace %s: %+v", name, err)
 	} else {
 		d.Set("default_primary_connection_string", keys.PrimaryConnectionString)
 		d.Set("default_secondary_connection_string", keys.SecondaryConnectionString)
@@ -173,7 +173,7 @@ func resourceArmServiceBusNamespaceDelete(d *schema.ResourceData, meta interface
 	resp, err := namespaceClient.Delete(resGroup, name, make(chan struct{}))
 
 	if resp.StatusCode != http.StatusNotFound {
-		return fmt.Errorf("Error issuing Azure ARM delete request of ServiceBus Namespace'%s': %s", name, err)
+		return fmt.Errorf("Error issuing Azure ARM delete request of ServiceBus Namespace'%s': %+v", name, err)
 	}
 
 	return nil
