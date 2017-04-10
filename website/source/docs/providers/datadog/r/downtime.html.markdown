@@ -6,13 +6,13 @@ description: |-
   Provides a Datadog downtime resource. This can be used to create and manage downtimes.
 ---
 
-# datadog\_downtime
+# datadog_downtime
 
 Provides a Datadog downtime resource. This can be used to create and manage Datadog downtimes.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new daily 1700-0900 Datadog downtime
 resource "datadog_downtime" "foo" {
   scope = ["*"]
