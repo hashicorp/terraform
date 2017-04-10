@@ -153,6 +153,8 @@ order to destroy the Service, set `force_destroy` to `true`. Default `false`.
 Defined below.
 * `papertrail` - (Optional) A Papertrail endpoint to send streaming logs too.
 Defined below.
+* `sumologic` - (Optional) A Sumologic endpoint to send streaming logs too.
+Defined below.
 * `response_object` - (Optional) Allows you to create synthetic responses that exist entirely on the varnish machine. Useful for creating error or maintenance pages that exists outside the scope of your datacenter. Best when used with Condition objects.
 * `vcl` - (Optional) A set of custom VCL configuration blocks. The
 ability to upload custom VCL code is not enabled by default for new Fastly
@@ -315,6 +317,15 @@ The `papertrail` block supports:
 * `response_condition` - (Optional) Name of already defined `condition` to apply. This `condition` must be of type `RESPONSE`. For detailed information about Conditionals,
 see [Fastly's Documentation on Conditionals][fastly-conditionals].
 
+The `sumologic` block supports:
+
+* `name` - (Required) A unique name to identify this Sumologic endpoint.
+* `url` - (Required) The URL to Sumologic collector endpoint
+* `format` - (Optional) Apache-style string or VCL variables to use for log formatting. Defaults to Apache Common Log format (`%h %l %u %t %r %>s`)
+* `format_version` - (Optional) The version of the custom logging format used for the configured endpoint. Can be either 1 (the default, version 1 log format) or 2 (the version 2 log format). 
+* `response_condition` - (Optional) Name of already defined `condition` to apply. This `condition` must be of type `RESPONSE`. For detailed information about Conditionals, see [Fastly's Documentation on Conditionals][fastly-conditionals].
+* `message_type` - (Optional) How the message should be formatted. One of: classic, loggly, logplex, blank. See [Fastly's Documentation on Sumologic][fastly-sumologic]
+
 The `response_object` block supports:
 
 * `name` - (Required) A unique name to identify this Response Object.
@@ -357,3 +368,4 @@ Service.
 [fastly-s3]: https://docs.fastly.com/guides/integrations/amazon-s3
 [fastly-cname]: https://docs.fastly.com/guides/basic-setup/adding-cname-records
 [fastly-conditionals]: https://docs.fastly.com/guides/conditions/using-conditions
+[fastly-sumologic]: https://docs.fastly.com/api/logging#logging_sumologic

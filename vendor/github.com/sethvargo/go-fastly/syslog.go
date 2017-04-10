@@ -18,6 +18,7 @@ type Syslog struct {
 	TLSCACert         string     `mapstructure:"tls_ca_cert"`
 	Token             string     `mapstructure:"token"`
 	Format            string     `mapstructure:"format"`
+	FormatVersion     uint       `mapstructure:"format_version"`
 	ResponseCondition string     `mapstructure:"response_condition"`
 	CreatedAt         *time.Time `mapstructure:"created_at"`
 	UpdatedAt         *time.Time `mapstructure:"updated_at"`
@@ -81,6 +82,7 @@ type CreateSyslogInput struct {
 	TLSCACert         string       `form:"tls_ca_cert,omitempty"`
 	Token             string       `form:"token,omitempty"`
 	Format            string       `form:"format,omitempty"`
+	FormatVersion     uint         `form:"format_version,omitempty"`
 	ResponseCondition string       `form:"response_condition,omitempty"`
 }
 
@@ -162,6 +164,7 @@ type UpdateSyslogInput struct {
 	TLSCACert         string       `form:"tls_ca_cert,omitempty"`
 	Token             string       `form:"token,omitempty"`
 	Format            string       `form:"format,omitempty"`
+	FormatVersion     uint         `form:"format_version,omitempty"`
 	ResponseCondition string       `form:"response_condition,omitempty"`
 }
 
