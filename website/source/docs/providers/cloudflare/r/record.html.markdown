@@ -6,13 +6,13 @@ description: |-
   Provides a Cloudflare record resource.
 ---
 
-# cloudflare\_record
+# cloudflare_record
 
 Provides a Cloudflare record resource.
 
 ## Example Usage
 
-```
+```hcl
 # Add a record to the domain
 resource "cloudflare_record" "foobar" {
   domain = "${var.cloudflare_domain}"
@@ -47,4 +47,3 @@ The following attributes are exported:
 * `priority` - The priority of the record
 * `hostname` - The FQDN of the record
 * `proxied` - (Optional) Whether the record gets Cloudflare's origin protection.
-

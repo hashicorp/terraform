@@ -20,7 +20,7 @@ For additional documentation, see the [CLC Developer Center](https://www.ctl.io/
 
 ## Example Usage
 
-```
+```hcl
 # Configure the CLC Provider
 provider "clc" {
   username = "${var.clc_username}"

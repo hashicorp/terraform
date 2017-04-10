@@ -16,10 +16,10 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 provider "kubernetes" {
   config_context_auth_info = "ops"
-  config_context_cluster = "mycluster"
+  config_context_cluster   = "mycluster"
 }
 
 resource "kubernetes_namespace" "example" {
@@ -58,13 +58,14 @@ Read [more about `kubectl` in the official docs](https://kubernetes.io/docs/user
 
 The other way is **statically** define all the credentials:
 
-```
+```hcl
 provider "kubernetes" {
-  host = "https://104.196.242.174"
+  host     = "https://104.196.242.174"
   username = "ClusterMaster"
   password = "MindTheGap"
-  client_certificate = "${file("~/.kube/client-cert.pem")}"
-  client_key = "${file("~/.kube/client-key.pem")}"
+
+  client_certificate     = "${file("~/.kube/client-cert.pem")}"
+  client_key             = "${file("~/.kube/client-key.pem")}"
   cluster_ca_certificate = "${file("~/.kube/cluster-ca-cert.pem")}"
 }
 ```
