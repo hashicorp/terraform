@@ -5,8 +5,6 @@ Terraform
 - [![Gitter chat](https://badges.gitter.im/hashicorp-terraform/Lobby.png)](https://gitter.im/hashicorp-terraform/Lobby)
 - Mailing list: [Google Groups](http://groups.google.com/group/terraform-tool)
 
-![Terraform](https://raw.githubusercontent.com/hashicorp/terraform/master/website/source/assets/images/readme.png)
-
 Terraform is a tool for building, changing, and versioning infrastructure safely and efficiently. Terraform can manage existing and popular service providers as well as custom in-house solutions.
 
 The key features of Terraform are:
