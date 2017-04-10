@@ -6,7 +6,7 @@ description: |-
   Creates and manages a node in Chef Server.
 ---
 
-# chef\_node
+# chef_node
 
 A [node](http://docs.chef.io/nodes.html) is a computer whose
 configuration is managed by Chef.
@@ -19,7 +19,7 @@ Chef server.
 
 ## Example Usage
 
-```
+```hcl
 resource "chef_node" "example" {
   name             = "example-environment"
   environment_name = "${chef_environment.example.name}"
