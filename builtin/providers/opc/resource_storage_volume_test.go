@@ -281,7 +281,7 @@ resource "opc_compute_image_list_entry" "test" {
 }
 
 resource "opc_compute_storage_volume" "test" {
-  name             = "test-acc-stor-vol-bootable-%d"
+  name             = "test-acc-stor-vol-image-list-entry-%d"
   description      = "Provider Acceptance Tests Storage Volume Image List Entry"
   size             = 20
   tags             = ["bar", "foo"]
