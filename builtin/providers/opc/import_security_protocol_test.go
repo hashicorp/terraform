@@ -32,11 +32,11 @@ func TestAccOPCSecurityProtocol_importBasic(t *testing.T) {
 		},
 	})
 }
-func TestAccOPCSecurityProtocol_importDisabled(t *testing.T) {
+func TestAccOPCSecurityProtocol_importComplete(t *testing.T) {
 	resourceName := "opc_compute_security_protocol.test"
 
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccOPCSecurityProtocolFull, ri)
+	config := fmt.Sprintf(testAccOPCSecurityProtocolComplete, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
