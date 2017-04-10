@@ -146,9 +146,16 @@ func (c *envUpgrader) Put(data []byte) error {
 // move the state to the new location, put the datam and remove the old state
 func (c *envUpgrader) putUpgrade(data []byte) error {
 	// make a copy of the client with the new path
-	newClient := new(RemoteClient)
-	*newClient = *c.RemoteClient
-	newClient.path = c.backend.path(c.name)
+	newClient := &RemoteClient{
+		s3Client:             c.RemoteClient.s3Client,
+		dynClient:            c.RemoteClient.dynClient,
+		bucketName:           c.RemoteClient.bucketName,
+		path:                 c.backend.path(c.name),
+		serverSideEncryption: c.RemoteClient.serverSideEncryption,
+		acl:                  c.RemoteClient.acl,
+		kmsKeyID:             c.RemoteClient.kmsKeyID,
+		lockTable:            c.RemoteClient.lockTable,
+	}
 
 	// we lock the new state if we have a lock on the old
 	if c.lockInfo != nil {
