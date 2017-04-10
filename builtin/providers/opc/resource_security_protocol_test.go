@@ -29,10 +29,34 @@ func TestAccOPCSecurityProtocol_Basic(t *testing.T) {
 	})
 }
 
-func TestAccOPCSecurityProtocol_Full(t *testing.T) {
+func TestAccOPCSecurityProtocol_Complete(t *testing.T) {
 	protocolResourceName := "opc_compute_security_protocol.test"
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccOPCSecurityProtocolFull, ri)
+	config := fmt.Sprintf(testAccOPCSecurityProtocolComplete, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckSecurityProtocolDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckSecurityProtocolExists,
+					resource.TestCheckResourceAttr(protocolResourceName, "description", "Terraform Acceptance Test"),
+					resource.TestCheckResourceAttr(protocolResourceName, "dst_ports.0", "2025-2030"),
+					resource.TestCheckResourceAttr(protocolResourceName, "src_ports.0", "3025-3030"),
+					resource.TestCheckResourceAttr(protocolResourceName, "ip_protocol", "tcp"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccOPCSecurityProtocol_Update(t *testing.T) {
+	protocolResourceName := "opc_compute_security_protocol.test"
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccOPCSecurityProtocolComplete, ri)
 	config2 := fmt.Sprintf(testAccOPCSecurityProtocolUpdated, ri)
 
 	resource.Test(t, resource.TestCase{
@@ -109,7 +133,7 @@ resource "opc_compute_security_protocol" "test" {
 }
 `
 
-const testAccOPCSecurityProtocolFull = `
+const testAccOPCSecurityProtocolComplete = `
 resource "opc_compute_security_protocol" "test" {
   name        = "acc-security-protocol-%d"
   description = "Terraform Acceptance Test"
