@@ -15,7 +15,7 @@ Use the navigation to the left to read about the available data sources.
 
 ## Example Usage
 
-```
+```hcl
 # Template for initial configuration bash script
 data "template_file" "init" {
   template = "${file("init.tpl")}"
@@ -35,7 +35,7 @@ resource "aws_instance" "web" {
 
 Or using an inline template:
 
-```
+```hcl
 # Template for initial configuration bash script
 data "template_file" "init" {
   template = "$${consul_address}:1234"
