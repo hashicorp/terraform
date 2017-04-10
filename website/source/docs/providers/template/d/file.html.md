@@ -6,7 +6,7 @@ description: |-
   Renders a template from a file.
 ---
 
-# template\_file
+# template_file
 
 Renders a template from a file.
 
@@ -18,11 +18,11 @@ Reference the template path:
 
 ```hcl
 data "template_file" "init" {
-    template = "${file("${path.module}/init.tpl")}"
+  template = "${file("${path.module}/init.tpl")}"
 
-    vars {
-        consul_address = "${aws_instance.consul.private_ip}"
-    }
+  vars {
+    consul_address = "${aws_instance.consul.private_ip}"
+  }
 }
 ```
 
@@ -38,11 +38,11 @@ Option 2: Inline:
 
 ```hcl
 data "template_file" "init" {
-    template = "$${consul_address}:1234"
+  template = "$${consul_address}:1234"
 
-    vars {
-        consul_address = "${aws_instance.consul.private_ip}"
-    }
+  vars {
+    consul_address = "${aws_instance.consul.private_ip}"
+  }
 }
 ```
 
@@ -83,14 +83,14 @@ To access interpolations that are normally available to Terraform
 configuration (such as other variables, resource attributes, module
 outputs, etc.) you'll have to expose them via `vars` as shown below:
 
-```
+```hcl
 data "template_file" "init" {
-    # ...
+  # ...
 
-    vars {
-        foo  = "${var.foo}"
-        attr = "${aws_instance.foo.private_ip}"
-    }
+  vars {
+    foo  = "${var.foo}"
+    attr = "${aws_instance.foo.private_ip}"
+  }
 }
 ```
 
@@ -99,13 +99,13 @@ data "template_file" "init" {
 Inline templates allow you to specify the template string inline without
 loading a file. An example is shown below:
 
-```
+```hcl
 data "template_file" "init" {
-    template = "$${consul_address}:1234"
+  template = "$${consul_address}:1234"
 
-    vars {
-        consul_address = "${aws_instance.consul.private_ip}"
-    }
+  vars {
+    consul_address = "${aws_instance.consul.private_ip}"
+  }
 }
 ```
 
@@ -116,15 +116,15 @@ the template.
 
 An example of mixing escaped and non-escaped interpolations in a template:
 
-```
+```hcl
 variable "port" { default = 80 }
 
 data "template_file" "init" {
-    template = "$${foo}:${var.port}"
+  template = "$${foo}:${var.port}"
 
-    vars {
-        foo = "${count.index}"
-    }
+  vars {
+    foo = "${count.index}"
+  }
 }
 ```
 
