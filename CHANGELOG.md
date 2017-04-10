@@ -82,6 +82,7 @@ BUG FIXES:
  * provider/aws: Add support for updating SSM documents [GH-13491]
  * provider/azurerm: Network Security Group - ignoring protocol casing at Import time [GH-13153]
  * provider/azurerm: Fix crash when importing Local Network Gateways [GH-13261]
+ * provider/azurerm: Defaulting the value of `duplicate_detection_history_time_window` for `azurerm_servicebus_topic` [GH-13223]
  * provider/bitbucket: Fixed issue where provider would fail with an "EOF" error on some operations [GH-13390]
  * provider/ns1: No splitting answer on SPF records. [GH-13260]
  * provider/openstack: Refresh volume_attachment from state if NotFound [GH-13342]
