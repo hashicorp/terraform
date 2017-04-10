@@ -78,6 +78,7 @@ BUG FIXES:
  * provider/aws: Fix `aws_s3_bucket` drift detection of logging options [GH-13281]
  * provider/aws: Update ElasticTranscoderPreset to have default for MaxFrameRate [GH-13422]
  * provider/aws: Fix aws_ami_launch_permission refresh when AMI disappears [GH-13469]
+ * provider/aws: Add support for updating SSM documents [GH-13491]
  * provider/azurerm: Network Security Group - ignoring protocol casing at Import time [GH-13153]
  * provider/azurerm: Fix crash when importing Local Network Gateways [GH-13261]
  * provider/bitbucket: Fixed issue where provider would fail with an "EOF" error on some operations [GH-13390]
