@@ -317,7 +317,6 @@ resource "aws_efs_file_system" "foo" {
 func testAccAWSEFSFileSystemConfigPagedTags(rInt int) string {
 	return fmt.Sprintf(`
 	resource "aws_efs_file_system" "foo" {
-		creation_token = "radeksimko"
 		tags {
 			Name = "foo-efs-%d"
 			Another = "tag"
@@ -338,7 +337,6 @@ func testAccAWSEFSFileSystemConfigPagedTags(rInt int) string {
 func testAccAWSEFSFileSystemConfigWithTags(rInt int) string {
 	return fmt.Sprintf(`
 	resource "aws_efs_file_system" "foo-with-tags" {
-		creation_token = "yada_yada"
 		tags {
 			Name = "foo-efs-%d"
 			Another = "tag"

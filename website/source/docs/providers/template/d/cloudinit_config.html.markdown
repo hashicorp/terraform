@@ -12,7 +12,7 @@ Renders a multi-part cloud-init config from source files.
 
 ## Example Usage
 
-```
+```hcl
 # Render a part using a `template_file`
 data "template_file" "script" {
   template = "${file("${path.module}/init.tpl")}"

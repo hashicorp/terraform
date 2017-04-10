@@ -2,6 +2,7 @@
 
 FEATURES:
 
+ * **New Resource:** `aws_iam_openid_connect_provider` [GH-13456]
  * **New Resource:** `aws_lightsail_static_ip` [GH-13175]
  * **New Resource:** `aws_lightsail_static_ip_attachment` [GH-13207]
  * **New Resource:** `aws_ses_domain_identity` [GH-13098]
@@ -75,9 +76,11 @@ BUG FIXES:
  * provider/aws: Fix DynamoDB issues about GSIs indexes [GH-13256]
  * provider/aws: Fix `aws_s3_bucket` drift detection of logging options [GH-13281]
  * provider/aws: Update ElasticTranscoderPreset to have default for MaxFrameRate [GH-13422]
+ * provider/aws: Fix aws_ami_launch_permission refresh when AMI disappears [GH-13469]
  * provider/azurerm: Network Security Group - ignoring protocol casing at Import time [GH-13153]
  * provider/azurerm: Fix crash when importing Local Network Gateways [GH-13261]
  * provider/bitbucket: Fixed issue where provider would fail with an "EOF" error on some operations [GH-13390]
+ * provider/ns1: No splitting answer on SPF records. [GH-13260]
  * provider/openstack: Refresh volume_attachment from state if NotFound [GH-13342]
  * provider/openstack: Add SOFT_DELETED to delete status [GH-13444]
  * provider/profitbricks: Changed output type of ips variable of ip_block ProfitBricks resource [GH-13290]

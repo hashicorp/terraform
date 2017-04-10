@@ -11,7 +11,7 @@ description: |-
 
 ## Example Usage
 
-```
+```hcl
 resource "vault_policy" "example" {
   name = "dev-team"
 
