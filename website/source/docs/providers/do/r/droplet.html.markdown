@@ -34,6 +34,8 @@ The following arguments are supported:
 * `size` - (Required) The instance size to start
 * `backups` - (Optional) Boolean controlling if backups are made. Defaults to
    false.
+* `monitoring` - (Optional) Boolean controlling whether monitoring agent is installed.
+   Defaults to false.
 * `ipv6` - (Optional) Boolean controlling if IPv6 is enabled. Defaults to false.
 * `private_networking` - (Optional) Boolean controlling if private networks are
    enabled. Defaults to false.

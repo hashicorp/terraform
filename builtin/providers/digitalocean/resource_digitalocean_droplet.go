@@ -107,6 +107,11 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 				Optional: true,
 			},
 
+			"monitoring": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
 			"ipv4_address": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -167,6 +172,10 @@ func resourceDigitalOceanDropletCreate(d *schema.ResourceData, meta interface{})
 
 	if attr, ok := d.GetOk("private_networking"); ok {
 		opts.PrivateNetworking = attr.(bool)
+	}
+
+	if attr, ok := d.GetOk("monitoring"); ok {
+		opts.Monitoring = attr.(bool)
 	}
 
 	if attr, ok := d.GetOk("user_data"); ok {
