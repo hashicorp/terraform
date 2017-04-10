@@ -6,7 +6,7 @@ description: |-
   Creates and manages repository webhooks within Github organizations
 ---
 
-# github\_repository\_webhook
+# github_repository_webhook
 
 This resource allows you to create and manage webhooks for repositories within your
 Github organization.
@@ -16,10 +16,10 @@ outside of organizations.
 
 ## Example Usage
 
-```
+```hcl
 resource "github_repository" "repo" {
-  name = "foo"
-  description = "Terraform acceptance tests"
+  name         = "foo"
+  description  = "Terraform acceptance tests"
   homepage_url = "http://example.com/"
 
   private = false
@@ -29,11 +29,13 @@ resource "github_repository_webhook" "foo" {
   repository = "${github_repository.repo.name}"
 
   name = "web"
+
   configuration {
-    url = "https://google.de/"
+    url          = "https://google.de/"
     content_type = "form"
     insecure_ssl = false
   }
+
   active = false
 
   events = ["issues"]

@@ -13,15 +13,17 @@ Read more about namespaces at https://kubernetes.io/docs/user-guide/namespaces/
 
 ## Example Usage
 
-```
+```hcl
 resource "kubernetes_namespace" "example" {
   metadata {
     annotations {
       name = "example-annotation"
     }
+
     labels {
       mylabel = "label-value"
     }
+
     name = "TerraformExampleNamespace"
   }
 }
