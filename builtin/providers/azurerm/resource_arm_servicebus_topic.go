@@ -55,6 +55,7 @@ func resourceArmServiceBusTopic() *schema.Resource {
 			"duplicate_detection_history_time_window": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 
 			"enable_batched_operations": {
@@ -172,7 +173,7 @@ func resourceArmServiceBusTopicRead(d *schema.ResourceData, meta interface{}) er
 
 	resp, err := client.Get(resGroup, namespaceName, name)
 	if err != nil {
-		return fmt.Errorf("Error making Read request on Azure ServiceBus Topic %s: %s", name, err)
+		return fmt.Errorf("Error making Read request on Azure ServiceBus Topic %s: %+v", name, err)
 	}
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
