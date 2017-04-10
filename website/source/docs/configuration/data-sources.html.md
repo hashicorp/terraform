@@ -88,7 +88,7 @@ data "aws_ami" "web" {
 }
 ```
 
-See the "Multiple Provider Instances" documentation for resources
+See the ["Multiple Provider Instances"](/docs/configuration/resources.html#multiple-provider-instances) documentation for resources
 for more information.
 
 ## Data Source Lifecycle
