@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -299,13 +300,14 @@ func TestAccAWSEcsServiceWithPlacementConstraints(t *testing.T) {
 }
 
 func TestAccAWSEcsServiceWithPlacementConstraints_emptyExpression(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEcsServiceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSEcsServiceWithPlacementConstraintEmptyExpression,
+				Config: testAccAWSEcsServiceWithPlacementConstraintEmptyExpression(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.mongo"),
 					resource.TestCheckResourceAttr("aws_ecs_service.mongo", "placement_constraints.#", "1"),
@@ -482,34 +484,36 @@ resource "aws_ecs_service" "mongo" {
 }
 `
 
-var testAccAWSEcsServiceWithPlacementConstraintEmptyExpression = `
-resource "aws_ecs_cluster" "default" {
-	name = "terraformecstest212"
+func testAccAWSEcsServiceWithPlacementConstraintEmptyExpression(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_ecs_cluster" "default" {
+		name = "terraformecstest%d"
+	}
+	resource "aws_ecs_task_definition" "mongo" {
+	  family = "mongodb"
+	  container_definitions = <<DEFINITION
+	[
+	  {
+	    "cpu": 128,
+	    "essential": true,
+	    "image": "mongo:latest",
+	    "memory": 128,
+	    "name": "mongodb"
+	  }
+	]
+	DEFINITION
+	}
+	resource "aws_ecs_service" "mongo" {
+	  name = "mongodb-%d"
+	  cluster = "${aws_ecs_cluster.default.id}"
+	  task_definition = "${aws_ecs_task_definition.mongo.arn}"
+	  desired_count = 1
+	  placement_constraints {
+		  type = "distinctInstance"
+	  }
+	}
+	`, rInt, rInt)
 }
-resource "aws_ecs_task_definition" "mongo" {
-  family = "mongodb"
-  container_definitions = <<DEFINITION
-[
-  {
-    "cpu": 128,
-    "essential": true,
-    "image": "mongo:latest",
-    "memory": 128,
-    "name": "mongodb"
-  }
-]
-DEFINITION
-}
-resource "aws_ecs_service" "mongo" {
-  name = "mongodb"
-  cluster = "${aws_ecs_cluster.default.id}"
-  task_definition = "${aws_ecs_task_definition.mongo.arn}"
-  desired_count = 1
-  placement_constraints {
-	  type = "distinctInstance"
-  }
-}
-`
 
 var testAccAWSEcsService_withIamRole = `
 resource "aws_ecs_cluster" "main" {
