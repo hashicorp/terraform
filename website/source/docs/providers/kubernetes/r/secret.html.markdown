@@ -18,7 +18,7 @@ The resource will by default create a secret which is available to any pod in th
 
 ## Example Usage
 
-```
+```hcl
 resource "kubernetes_secret" "example" {
   metadata {
     name = "basic-auth"
