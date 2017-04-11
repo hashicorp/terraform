@@ -45,11 +45,7 @@ func resourceArmEventHubAuthorizationRule() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
+			"location": locationSchema(),
 
 			"listen": {
 				Type:     schema.TypeBool,
