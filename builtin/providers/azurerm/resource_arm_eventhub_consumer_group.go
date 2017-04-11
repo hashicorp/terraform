@@ -45,11 +45,7 @@ func resourceArmEventHubConsumerGroup() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
+			"location": locationSchema(),
 
 			"user_metadata": {
 				Type:     schema.TypeString,
