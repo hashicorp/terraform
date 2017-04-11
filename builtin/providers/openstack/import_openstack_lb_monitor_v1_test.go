@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccOpenStackLBMonitorV1_importBasic(t *testing.T) {
+func TestAccLBV1Monitor_importBasic(t *testing.T) {
 	resourceName := "openstack_lb_monitor_v1.monitor_1"
 
 	resource.Test(t, resource.TestCase{
