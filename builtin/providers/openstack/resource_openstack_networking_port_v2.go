@@ -236,7 +236,11 @@ func resourceNetworkingPortV2Update(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	var updateOpts ports.UpdateOpts
+	// var updateOpts ports.UpdateOpts
+	updateOpts := ports.UpdateOpts{
+		AllowedAddressPairs: resourceAllowedAddressPairsV2(d),
+		SecurityGroups:      resourcePortSecurityGroupsV2(d),
+	}
 
 	if d.HasChange("name") {
 		updateOpts.Name = d.Get("name").(string)
@@ -250,20 +254,12 @@ func resourceNetworkingPortV2Update(d *schema.ResourceData, meta interface{}) er
 		updateOpts.DeviceOwner = d.Get("device_owner").(string)
 	}
 
-	if d.HasChange("security_group_ids") {
-		updateOpts.SecurityGroups = resourcePortSecurityGroupsV2(d)
-	}
-
 	if d.HasChange("device_id") {
 		updateOpts.DeviceID = d.Get("device_id").(string)
 	}
 
 	if d.HasChange("fixed_ip") {
 		updateOpts.FixedIPs = resourcePortFixedIpsV2(d)
-	}
-
-	if d.HasChange("allowed_address_pairs") {
-		updateOpts.AllowedAddressPairs = resourceAllowedAddressPairsV2(d)
 	}
 
 	log.Printf("[DEBUG] Updating Port %s with options: %+v", d.Id(), updateOpts)
@@ -331,10 +327,6 @@ func resourcePortFixedIpsV2(d *schema.ResourceData) interface{} {
 func resourceAllowedAddressPairsV2(d *schema.ResourceData) []ports.AddressPair {
 	// ports.AddressPair
 	rawPairs := d.Get("allowed_address_pairs").(*schema.Set).List()
-
-	if len(rawPairs) == 0 {
-		return nil
-	}
 
 	pairs := make([]ports.AddressPair, len(rawPairs))
 	for i, raw := range rawPairs {
