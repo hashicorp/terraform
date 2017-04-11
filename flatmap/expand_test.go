@@ -147,6 +147,22 @@ func TestExpand(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			Map: map[string]string{
+				"struct.#":           "1",
+				"struct.0.name":      "hello",
+				"struct.0.set.#":     "0",
+				"struct.0.set.0.key": "value",
+			},
+			Key: "struct",
+			Output: []interface{}{
+				map[string]interface{}{
+					"name": "hello",
+					"set":  []interface{}{},
+				},
+			},
+		},
 	}
 
 	for _, tc := range cases {
