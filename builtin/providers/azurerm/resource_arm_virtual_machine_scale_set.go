@@ -587,7 +587,7 @@ func flattenAzureRmVirtualMachineScaleSetOsProfileLinuxConfig(config *compute.Li
 	result["disable_password_authentication"] = *config.DisablePasswordAuthentication
 
 	if config.SSH != nil && len(*config.SSH.PublicKeys) > 0 {
-		ssh_keys := make([]map[string]interface{}, len(*config.SSH.PublicKeys))
+		ssh_keys := make([]map[string]interface{}, 0, len(*config.SSH.PublicKeys))
 		for _, i := range *config.SSH.PublicKeys {
 			key := make(map[string]interface{})
 			key["path"] = *i.Path
@@ -1090,12 +1090,12 @@ func expandAzureRmVirtualMachineScaleSetOsProfileLinuxConfig(d *schema.ResourceD
 	linuxConfig := osProfilesLinuxConfig[0].(map[string]interface{})
 	disablePasswordAuth := linuxConfig["disable_password_authentication"].(bool)
 
-	config := &compute.LinuxConfiguration{
-		DisablePasswordAuthentication: &disablePasswordAuth,
-	}
 	linuxKeys := linuxConfig["ssh_keys"].([]interface{})
 	sshPublicKeys := make([]compute.SSHPublicKey, 0, len(linuxKeys))
 	for _, key := range linuxKeys {
+		if key == nil {
+			continue
+		}
 		sshKey := key.(map[string]interface{})
 		path := sshKey["path"].(string)
 		keyData := sshKey["key_data"].(string)
@@ -1108,8 +1108,11 @@ func expandAzureRmVirtualMachineScaleSetOsProfileLinuxConfig(d *schema.ResourceD
 		sshPublicKeys = append(sshPublicKeys, sshPublicKey)
 	}
 
-	config.SSH = &compute.SSHConfiguration{
-		PublicKeys: &sshPublicKeys,
+	config := &compute.LinuxConfiguration{
+		DisablePasswordAuthentication: &disablePasswordAuth,
+		SSH: &compute.SSHConfiguration{
+			PublicKeys: &sshPublicKeys,
+		},
 	}
 
 	return config, nil
