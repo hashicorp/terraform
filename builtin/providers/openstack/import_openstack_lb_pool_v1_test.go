@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccOpenStackLBPoolV1_importBasic(t *testing.T) {
+func TestAccLBV1Pool_importBasic(t *testing.T) {
 	resourceName := "openstack_lb_pool_v1.pool_1"
 
 	resource.Test(t, resource.TestCase{
