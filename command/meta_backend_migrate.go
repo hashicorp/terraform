@@ -56,7 +56,7 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 	opts.twoEnv = backend.DefaultStateName
 	opts.force = m.forceInitCopy
 
-	// Determine migration behavior based on whether the source/destionation
+	// Determine migration behavior based on whether the source/destination
 	// supports multi-state.
 	switch {
 	// Single-state to single-state. This is the easiest case: we just
@@ -441,7 +441,7 @@ type backendMigrateOpts struct {
 const errMigrateLoadStates = `
 Error inspecting state in %q: %s
 
-Prior to changing backends, Terraform inspects the source and destionation
+Prior to changing backends, Terraform inspects the source and destination
 states to determine what kind of migration steps need to be taken, if any.
 Terraform failed to load the states. The data in both the source and the
 destination remain unmodified. Please resolve the above error and try again.
