@@ -20,7 +20,7 @@ underlying Circonus API.
 
 ## Usage
 
-```
+```hcl
 variable api_token {
   default = "my-token"
 }
@@ -202,7 +202,7 @@ either `60s` or `300s` for CloudWatch metrics.
 
 Example CloudWatch check (partial metrics collection):
 
-```
+```hcl
 variable "cloudwatch_rds_tags" {
   type = "list"
   default = [
@@ -336,7 +336,7 @@ check also returns a set of metrics that are a variant of:
 
 Example Consul check (partial metrics collection):
 
-```
+```hcl
 resource "circonus_check" "consul_server" {
   active = true
   name = "%s"
@@ -579,7 +579,7 @@ for additional details.
 
 Sample `tcp` check:
 
-```
+```hcl
 resource "circonus_check" "tcp_check" {
   name = "TCP and TLS check"
   notes = "Obtains the connect time and TTL for the TLS cert"
@@ -643,7 +643,7 @@ resource "circonus_check" "tcp_check" {
 Terraform (and that the referenced [`circonus_metric`](metric.html) has already
 been imported):
 
-```
+```hcl
 provider "circonus" {
   alias = "b8fec159-f9e5-4fe6-ad2c-dc1ec6751586"
 }

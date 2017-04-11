@@ -6,7 +6,8 @@ FEATURES:
  * **New Resource:** `aws_lightsail_static_ip` [GH-13175]
  * **New Resource:** `aws_lightsail_static_ip_attachment` [GH-13207]
  * **New Resource:** `aws_ses_domain_identity` [GH-13098]
- * **New Resource**: `azurerm_managed_disk` [GH-12455]
+ * **New Resource:** `azurerm_managed_disk` [GH-12455]
+ * **New Resource:** `kubernetes_persistent_volume` [GH-13277]
  * **New Resource:** `kubernetes_secret` [GH-12960]
  * **New Data Source:** `aws_iam_role` [GH-13213]
 
@@ -38,14 +39,17 @@ IMPROVEMENTS:
  * provider/aws: Add support for treat_missing_data to cloudwatch_metric_alarm [GH-13358]
  * provider/aws: Add support for evaluate_low_sample_count_percentiles to cloudwatch_metric_alarm [GH-13371]
  * provider/aws: Add `name_prefix` to `aws_alb_target_group` [GH-13442]
+ * provider/aws: Add support for EMR clusters to aws_appautoscaling_target [GH-13368]
  * provider/bitbucket: Improved error handling [GH-13390]
  * provider/cloudstack: Do not force a new resource when updating `cloudstack_loadbalancer_rule` members [GH-11786]
  * provider/fastly: Add support for Sumologic logging [GH-12541]
  * provider/github: Handle the case when issue labels already exist [GH-13182]
  * provider/google: Mark `google_container_cluster`'s `client_key` & `password` inside `master_auth` as sensitive [GH-13148]
+ * provider/kubernetes: Allow defining custom config context [GH-12958]
  * provider/openstack: Add support for 'value_specs' options to `openstack_compute_servergroup_v2` [GH-13380]
  * provider/statuscake: Add support for StatusCake TriggerRate field [GH-13340]
  * provider/triton: Move to joyent/triton-go [GH-13225]
+ * provisioner/chef: Make sure we add new Chef-Vault clients as clients [GH-13525]
  
 BUG FIXES: 
 
@@ -84,6 +88,7 @@ BUG FIXES:
  * provider/azurerm: Fix crash when importing Local Network Gateways [GH-13261]
  * provider/azurerm: Defaulting the value of `duplicate_detection_history_time_window` for `azurerm_servicebus_topic` [GH-13223]
  * provider/bitbucket: Fixed issue where provider would fail with an "EOF" error on some operations [GH-13390]
+ * provider/kubernetes: Use PATCH to update namespace [GH-13114]
  * provider/ns1: No splitting answer on SPF records. [GH-13260]
  * provider/openstack: Refresh volume_attachment from state if NotFound [GH-13342]
  * provider/openstack: Add SOFT_DELETED to delete status [GH-13444]

@@ -6,13 +6,13 @@ description: |-
   Get DNS CNAME record set.
 ---
 
-# dns\_cname\_record\_set
+# dns_cname_record_set
 
 Use this data source to get DNS CNAME record set of the host.
 
 ## Example Usage
 
-```
+```hcl
 data "dns_cname_record_set" "hashicorp" {
   host = "www.hashicorp.com"
 }

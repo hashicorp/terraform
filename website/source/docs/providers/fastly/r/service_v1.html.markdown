@@ -6,7 +6,7 @@ description: |-
   Provides an Fastly Service
 ---
 
-# fastly\_service\_v1
+# fastly_service_v1
 
 Provides a Fastly Service, representing the configuration for a website, app,
 API, or anything else to be served through Fastly. A Service encompasses Domains
@@ -20,7 +20,7 @@ on their documentation site for guidance.
 
 Basic usage:
 
-```
+```hcl
 resource "fastly_service_v1" "demo" {
   name = "demofastly"
 
@@ -41,7 +41,7 @@ resource "fastly_service_v1" "demo" {
 
 Basic usage with an Amazon S3 Website and that removes the `x-amz-request-id` header:
 
-```
+```hcl
 resource "fastly_service_v1" "demo" {
   name = "demofastly"
 
@@ -89,7 +89,7 @@ Basic usage with [custom
 VCL](https://docs.fastly.com/guides/vcl/uploading-custom-vcl) (must be
 enabled on your Fastly account):
 
-```
+```hcl
 resource "fastly_service_v1" "demo" {
   name = "demofastly"
 
