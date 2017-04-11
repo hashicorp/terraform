@@ -218,6 +218,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_api_gateway_integration_response":         resourceAwsApiGatewayIntegrationResponse(),
 			"aws_api_gateway_method":                       resourceAwsApiGatewayMethod(),
 			"aws_api_gateway_method_response":              resourceAwsApiGatewayMethodResponse(),
+			"aws_api_gateway_method_settings":              resourceAwsApiGatewayMethodSettings(),
 			"aws_api_gateway_model":                        resourceAwsApiGatewayModel(),
 			"aws_api_gateway_resource":                     resourceAwsApiGatewayResource(),
 			"aws_api_gateway_rest_api":                     resourceAwsApiGatewayRestApi(),
