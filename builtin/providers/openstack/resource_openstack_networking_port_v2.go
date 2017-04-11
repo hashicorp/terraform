@@ -236,7 +236,10 @@ func resourceNetworkingPortV2Update(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	// var updateOpts ports.UpdateOpts
+	// security_group_ids and allowed_address_pairs are able to send empty arrays
+	// to denote the removal of each. But their default zero-value is translated
+	// to "null", which has been reported to cause problems in vendor-modified
+	// OpenStack clouds. Therefore, we must set them in each request update.
 	updateOpts := ports.UpdateOpts{
 		AllowedAddressPairs: resourceAllowedAddressPairsV2(d),
 		SecurityGroups:      resourcePortSecurityGroupsV2(d),
