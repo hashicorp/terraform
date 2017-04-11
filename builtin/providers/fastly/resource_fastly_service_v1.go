@@ -641,6 +641,49 @@ func resourceServiceV1() *schema.Resource {
 				},
 			},
 
+			"gcslogging": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						// Required fields
+						"name": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Unique name to refer to this logging setup",
+						},
+						"email": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The email address associated with the target GCS bucket on your account.",
+						},
+						"bucket_name": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The name of the bucket in which to store the logs.",
+						},
+						"secret_key": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The secret key associated with the target gcs bucket on your account.",
+						},
+						// Optional fields
+						"format": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "%h %l %u %t %r %>s",
+							Description: "Apache-style string or VCL variables to use for log formatting",
+						},
+						"response_condition": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "Name of a condition to apply this logging.",
+						},
+					},
+				},
+			},
+
 			"response_object": {
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -1437,6 +1480,59 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 
 				log.Printf("[DEBUG] Create Sumologic Opts: %#v", opts)
 				_, err := conn.CreateSumologic(&opts)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		// find difference in gcslogging
+		if d.HasChange("gcslogging") {
+			os, ns := d.GetChange("gcslogging")
+			if os == nil {
+				os = new(schema.Set)
+			}
+			if ns == nil {
+				ns = new(schema.Set)
+			}
+
+			oss := os.(*schema.Set)
+			nss := ns.(*schema.Set)
+			removeGcslogging := oss.Difference(nss).List()
+			addGcslogging := nss.Difference(oss).List()
+
+			// DELETE old gcslogging configurations
+			for _, pRaw := range removeGcslogging {
+				sf := pRaw.(map[string]interface{})
+				opts := gofastly.DeleteGCSInput{
+					Service: d.Id(),
+					Version: latestVersion,
+					Name:    sf["name"].(string),
+				}
+
+				log.Printf("[DEBUG] Fastly gcslogging removal opts: %#v", opts)
+				err := conn.DeleteGCS(&opts)
+				if err != nil {
+					return err
+				}
+			}
+
+			// POST new/updated gcslogging
+			for _, pRaw := range addGcslogging {
+				sf := pRaw.(map[string]interface{})
+				opts := gofastly.CreateGCSInput{
+					Service:           d.Id(),
+					Version:           latestVersion,
+					Name:              sf["name"].(string),
+					User:              sf["email"].(string),
+					Bucket:            sf["bucket_name"].(string),
+					SecretKey:         sf["secret_key"].(string),
+					Format:            sf["format"].(string),
+					ResponseCondition: sf["response_condition"].(string),
+				}
+
+				log.Printf("[DEBUG] Create Sumologic Opts: %#v", opts)
+				_, err := conn.CreateGCS(&opts)
 				if err != nil {
 					return err
 				}
