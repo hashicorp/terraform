@@ -3,8 +3,8 @@ package cloudfoundry
 import (
 	"fmt"
 
-	"github.com/appbricks/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/builtin/providers/cf/cfapi"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
