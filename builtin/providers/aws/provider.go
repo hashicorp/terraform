@@ -172,6 +172,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_eip":                      dataSourceAwsEip(),
 			"aws_elb_hosted_zone_id":       dataSourceAwsElbHostedZoneId(),
 			"aws_elb_service_account":      dataSourceAwsElbServiceAccount(),
+			"aws_kinesis_stream":           dataSourceAwsKinesisStream(),
 			"aws_iam_account_alias":        dataSourceAwsIamAccountAlias(),
 			"aws_iam_policy_document":      dataSourceAwsIamPolicyDocument(),
 			"aws_iam_server_certificate":   dataSourceAwsIAMServerCertificate(),
