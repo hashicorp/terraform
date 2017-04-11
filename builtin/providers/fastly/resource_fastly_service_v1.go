@@ -1554,7 +1554,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 					ResponseCondition: sf["response_condition"].(string),
 				}
 
-				log.Printf("[DEBUG] Create Sumologic Opts: %#v", opts)
+				log.Printf("[DEBUG] Create GCS Opts: %#v", opts)
 				_, err := conn.CreateGCS(&opts)
 				if err != nil {
 					return err
@@ -2478,32 +2478,32 @@ func flattenSumologics(sumologicList []*gofastly.Sumologic) []map[string]interfa
 }
 
 func flattenGCS(gcsList []*gofastly.GCS) []map[string]interface{} {
-	var gl []map[string]interface{}
-	for _, p := range gcsList {
+	var GCSList []map[string]interface{}
+	for _, currentGCS := range gcsList {
 		// Convert gcs to a map for saving to state.
-		ns := map[string]interface{}{
-			"name":               p.Name,
-			"email":              p.User,
-			"bucket_name":        p.Bucket,
-			"secret_key":         p.SecretKey,
-			"path":               p.Path,
-			"period":             int(p.Period),
-			"gzip_level":         int(p.GzipLevel),
-			"response_condition": p.ResponseCondition,
-			"format":             p.Format,
+		GCSMapString := map[string]interface{}{
+			"name":               currentGCS.Name,
+			"email":              currentGCS.User,
+			"bucket_name":        currentGCS.Bucket,
+			"secret_key":         currentGCS.SecretKey,
+			"path":               currentGCS.Path,
+			"period":             int(currentGCS.Period),
+			"gzip_level":         int(currentGCS.GzipLevel),
+			"response_condition": currentGCS.ResponseCondition,
+			"format":             currentGCS.Format,
 		}
 
 		// prune any empty values that come from the default string value in structs
-		for k, v := range ns {
+		for k, v := range GCSMapString {
 			if v == "" {
-				delete(ns, k)
+				delete(GCSMapString, k)
 			}
 		}
 
-		gl = append(gl, ns)
+		GCSList = append(GCSList, GCSMapString)
 	}
 
-	return gl
+	return GCSList
 }
 
 func flattenResponseObjects(responseObjectList []*gofastly.ResponseObject) []map[string]interface{} {
