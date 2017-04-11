@@ -49,6 +49,7 @@ IMPROVEMENTS:
  * provider/openstack: Add support for 'value_specs' options to `openstack_compute_servergroup_v2` [GH-13380]
  * provider/statuscake: Add support for StatusCake TriggerRate field [GH-13340]
  * provider/triton: Move to joyent/triton-go [GH-13225]
+ * provisioner/chef: Make sure we add new Chef-Vault clients as clients [GH-13525]
  
 BUG FIXES: 
 
