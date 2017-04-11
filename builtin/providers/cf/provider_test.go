@@ -17,6 +17,8 @@ import (
 var testAccProviders map[string]terraform.ResourceProvider
 var testAccProvider *schema.Provider
 
+var testSession *cfapi.Session
+
 var pcfDevOrgID string
 
 func init() {
@@ -66,16 +68,13 @@ func testAccEnvironmentSet() bool {
 	return true
 }
 
-func defaultPcfDevOrgID() string {
+func tesSession() *cfapi.Session {
 
-	if len(pcfDevOrgID) == 0 && testAccEnvironmentSet() {
+	if !testAccEnvironmentSet() {
+		panic(fmt.Errorf("ERROR! test CF_* environment variables have not been set"))
+	}
 
-		var (
-			err       error
-			session   *cfapi.Session
-			pcfDevOrg cfapi.CCOrg
-		)
-
+	if testSession == nil {
 		c := Config{
 			endpoint:        os.Getenv("CF_API_URL"),
 			User:            os.Getenv("CF_USER"),
@@ -85,15 +84,45 @@ func defaultPcfDevOrgID() string {
 		}
 		c.SkipSslValidation, _ = strconv.ParseBool(os.Getenv("CF_SKIP_SSL_VALIDATION"))
 
+		var (
+			err     error
+			session *cfapi.Session
+		)
+
 		if session, err = c.Client(); err != nil {
+			fmt.Printf("ERROR! Error creating a new session: %s\n", err.Error())
 			panic(err.Error())
 		}
-		if pcfDevOrg, err = session.OrgManager().FindOrg("pcfdev-org"); err != nil {
+		testSession = session
+	}
+	return testSession
+}
+
+func defaultPcfDevOrgID() string {
+
+	if len(pcfDevOrgID) == 0 {
+
+		var (
+			err       error
+			pcfDevOrg cfapi.CCOrg
+		)
+
+		if pcfDevOrg, err = tesSession().OrgManager().FindOrg("pcfdev-org"); err != nil {
 			panic(err.Error())
 		}
 		pcfDevOrgID = pcfDevOrg.ID
 	}
 	return pcfDevOrgID
+}
+
+func deleteMySQLServiceBroker(name string) {
+
+	session := tesSession()
+	sm := session.ServiceManager()
+	serviceBrokerID, err := sm.GetServiceBrokerID(name)
+	if err == nil {
+		sm.ForceDeleteServiceBroker(serviceBrokerID)
+	}
 }
 
 func assertContains(str string, list []string) bool {

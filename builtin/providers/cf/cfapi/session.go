@@ -155,6 +155,8 @@ func (s *Session) initCliConnection(
 	s.ccGateway.SetTokenRefresher(s.authManager)
 	s.uaaGateway.SetTokenRefresher(s.authManager)
 
+	s.ccGateway.PollingEnabled = false
+
 	s.userManager, err = newUserManager(s.config, s.uaaGateway, s.ccGateway, s.Log)
 	if err != nil {
 		return err

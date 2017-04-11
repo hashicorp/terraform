@@ -23,7 +23,78 @@ type ServiceManager struct {
 
 	apiEndpoint string
 
-	repo api.ServiceRepository
+	repo   api.ServiceRepository
+	sbRepo api.ServiceBrokerRepository
+}
+
+// CCService -
+type CCService struct {
+	ID string
+
+	ServiceBrokerGUID string `json:"service_broker_guid,omitempty"`
+
+	Label       string `json:"label,omitempty"`
+	Description string `json:"description,omitempty"`
+
+	Active         bool `json:"active,omitempty"`
+	Bindable       bool `json:"bindable,omitempty"`
+	PlanUpdateable bool `json:"plan_updateable,omitempty"`
+
+	Extra string `json:"extra,omitempty"`
+
+	Tags     []string `json:"tags,omitempty"`
+	Requires []string `json:"requires,omitempty"`
+
+	ServicePlans []CCServicePlan
+}
+
+// CCServiceResource -
+type CCServiceResource struct {
+	Metadata resources.Metadata `json:"metadata"`
+	Entity   CCService          `json:"entity"`
+}
+
+// CCServiceResourceList -
+type CCServiceResourceList struct {
+	Resources []CCServiceResource `json:"resources"`
+}
+
+// CCServicePlan -
+type CCServicePlan struct {
+	ID string
+
+	Name        string `json:"name"`
+	Description string `json:"description"`
+
+	Free   bool `json:"free"`
+	Public bool `json:"public"`
+	Active bool `json:"active"`
+}
+
+// CCServicePlanResource -
+type CCServicePlanResource struct {
+	Metadata resources.Metadata `json:"metadata"`
+	Entity   CCServicePlan      `json:"entity"`
+}
+
+// CCServicePlanResourceList -
+type CCServicePlanResourceList struct {
+	Resources []CCServicePlanResource `json:"resources"`
+}
+
+// CCServiceBroker -
+type CCServiceBroker struct {
+	Name         string `json:"name,omitempty"`
+	BrokerURL    string `json:"broker_url,omitempty"`
+	AuthUserName string `json:"auth_username,omitempty"`
+	AuthPassword string `json:"auth_password,omitempty"`
+	SpaceGUID    string `json:"space_guid,omitempty"`
+}
+
+// CCServiceBrokerResource -
+type CCServiceBrokerResource struct {
+	Metadata resources.Metadata `json:"metadata"`
+	Entity   CCServiceBroker    `json:"entity"`
 }
 
 // CCServiceInstance -
@@ -81,16 +152,251 @@ func newServiceManager(config coreconfig.Reader, ccGateway net.Gateway, logger *
 		config:      config,
 		ccGateway:   ccGateway,
 		apiEndpoint: config.APIEndpoint(),
-		repo:        api.NewCloudControllerServiceRepository(config, ccGateway),
+
+		repo:   api.NewCloudControllerServiceRepository(config, ccGateway),
+		sbRepo: api.NewCloudControllerServiceBrokerRepository(config, ccGateway),
 	}
 
 	return
 }
 
-// CreateServiceInstance -
-func (sm *ServiceManager) CreateServiceInstance(name string, servicePlanID string, spaceID string, params map[string]interface{}, tags []string) (id string, err error) {
+// ReadServiceInfo -
+func (sm *ServiceManager) ReadServiceInfo(serviceBrokerID string) (services []CCService, err error) {
 
-	path := "/v2/service_instances?accepts_incomplete=true"
+	if err = sm.ccGateway.ListPaginatedResources(sm.apiEndpoint,
+		fmt.Sprintf("/v2/services?q=service_broker_guid:%s", serviceBrokerID),
+		CCServiceResource{}, func(resource interface{}) bool {
+
+			sr := resource.(CCServiceResource)
+			service := sr.Entity
+			service.ID = sr.Metadata.GUID
+
+			if err = sm.ccGateway.ListPaginatedResources(sm.apiEndpoint,
+				fmt.Sprintf("/v2/services/%s/service_plans", service.ID),
+				CCServicePlanResource{}, func(resource interface{}) bool {
+
+					spr := resource.(CCServicePlanResource)
+					servicePlan := spr.Entity
+					servicePlan.ID = spr.Metadata.GUID
+
+					service.ServicePlans = append(service.ServicePlans, servicePlan)
+					return true
+
+				}); err != nil {
+
+				sm.log.DebugMessage("WARNING! Unable to retrieve service plans for service '%s': %s", service.ID, err.Error())
+				err = nil
+			}
+
+			services = append(services, service)
+			return true
+
+		}); err != nil {
+
+		return
+	}
+	return
+}
+
+// CreateServiceBroker -
+func (sm *ServiceManager) CreateServiceBroker(name, brokerURL, authUserName, authPassword, spaceGUID string) (id string, err error) {
+	path := "/v2/service_brokers"
+	request := CCServiceBroker{
+		Name:         name,
+		BrokerURL:    brokerURL,
+		AuthUserName: authUserName,
+		AuthPassword: authPassword,
+	}
+	if len(spaceGUID) > 0 {
+		request.SpaceGUID = spaceGUID
+	}
+
+	body, err := json.Marshal(request)
+	if err != nil {
+		return
+	}
+
+	resource := CCServiceBrokerResource{}
+	err = sm.ccGateway.CreateResource(sm.apiEndpoint, path, bytes.NewReader(body), &resource)
+
+	id = resource.Metadata.GUID
+	return
+}
+
+// UpdateServiceBroker -
+func (sm *ServiceManager) UpdateServiceBroker(serviceBrokerID,
+	name, brokerURL, authUserName, authPassword, spaceGUID string) (serviceBroker CCServiceBroker, err error) {
+
+	path := fmt.Sprintf("/v2/service_brokers/%s", serviceBrokerID)
+	request := CCServiceBroker{
+		Name:         name,
+		BrokerURL:    brokerURL,
+		AuthUserName: authUserName,
+		AuthPassword: authPassword,
+	}
+	if len(spaceGUID) > 0 {
+		request.SpaceGUID = spaceGUID
+	}
+
+	body, err := json.Marshal(request)
+	if err != nil {
+		return
+	}
+
+	resource := CCServiceBrokerResource{}
+	err = sm.ccGateway.UpdateResource(sm.apiEndpoint, path, bytes.NewReader(body), &resource)
+
+	serviceBroker = resource.Entity
+	return
+}
+
+// ReadServiceBroker -
+func (sm *ServiceManager) ReadServiceBroker(serviceBrokerID string) (serviceBroker CCServiceBroker, err error) {
+
+	url := fmt.Sprintf("%s/v2/service_brokers/%s", sm.apiEndpoint, serviceBrokerID)
+
+	resource := CCServiceBrokerResource{}
+	err = sm.ccGateway.GetResource(url, &resource)
+	if err != nil {
+		return
+	}
+
+	serviceBroker = resource.Entity
+	return
+}
+
+// DeleteServiceBroker -
+func (sm *ServiceManager) DeleteServiceBroker(serviceBrokerID string) (err error) {
+
+	err = sm.ccGateway.DeleteResource(sm.apiEndpoint, fmt.Sprintf("/v2/service_brokers/%s", serviceBrokerID))
+	return
+}
+
+// ForceDeleteServiceBroker -
+func (sm *ServiceManager) ForceDeleteServiceBroker(serviceBrokerID string) (err error) {
+
+	services, err := sm.ReadServiceInfo(serviceBrokerID)
+	if err != nil {
+		return
+	}
+
+	for _, s := range services {
+		for _, sp := range s.ServicePlans {
+
+			if err = sm.ccGateway.ListPaginatedResources(sm.apiEndpoint,
+				fmt.Sprintf("/v2/service_instances?q=service_plan_guid:%s", sp.ID),
+				CCServiceInstanceResource{}, func(resource interface{}) bool {
+
+					sir := resource.(CCServiceInstanceResource)
+
+					if err = sm.ccGateway.DeleteResource(sm.apiEndpoint,
+						fmt.Sprintf("/v2/service_instances/%s?purge=true", sir.Metadata.GUID)); err != nil {
+
+						sm.log.DebugMessage("WARNING! Unable to delete service instance '%s': %s", sir.Metadata.GUID, err.Error())
+						err = nil
+					}
+					return true
+
+				}); err != nil {
+
+				sm.log.DebugMessage("WARNING! Unable to retrieve service instances for service '%s': %s", sp.ID, err.Error())
+				err = nil
+			}
+		}
+	}
+
+	return sm.DeleteServiceBroker(serviceBrokerID)
+}
+
+// GetServiceBrokerID -
+func (sm *ServiceManager) GetServiceBrokerID(name string) (id string, err error) {
+
+	sb, err := sm.sbRepo.FindByName(name)
+	if err != nil {
+		return
+	}
+	id = sb.GUID
+	return
+}
+
+// CreateServicePlanAccess -
+func (sm *ServiceManager) CreateServicePlanAccess(servicePlanGUID, orgGUID string) (servicePlanAccessGUID string, err error) {
+	path := "/v2/service_plan_visibilities"
+	request := map[string]string{
+		"service_plan_guid": servicePlanGUID,
+		"organization_guid": orgGUID,
+	}
+
+	body, err := json.Marshal(request)
+	if err != nil {
+		return
+	}
+
+	response := make(map[string]interface{})
+	err = sm.ccGateway.CreateResource(sm.apiEndpoint, path, bytes.NewReader(body), &response)
+	if err != nil {
+		return
+	}
+	servicePlanAccessGUID = response["metadata"].(map[string]interface{})["guid"].(string)
+	return
+}
+
+// UpdateServicePlanAccess -
+func (sm *ServiceManager) UpdateServicePlanAccess(servicePlanAccessGUID,
+	servicePlanGUID, orgGUID string) (err error) {
+
+	path := fmt.Sprintf("/v2/service_plan_visibilities/%s", servicePlanAccessGUID)
+	request := map[string]string{
+		"service_plan_guid": servicePlanGUID,
+		"organization_guid": orgGUID,
+	}
+
+	body, err := json.Marshal(request)
+	if err != nil {
+		return
+	}
+
+	response := make(map[string]interface{})
+	err = sm.ccGateway.UpdateResource(sm.apiEndpoint, path, bytes.NewReader(body), &response)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// ReadServicePlanAccess -
+func (sm *ServiceManager) ReadServicePlanAccess(servicePlanAccessGUID string) (planGUID, orgGUID string, err error) {
+
+	url := fmt.Sprintf("%s/v2/service_plan_visibilities/%s", sm.apiEndpoint, servicePlanAccessGUID)
+
+	response := make(map[string]interface{})
+	err = sm.ccGateway.GetResource(url, &response)
+	if err != nil {
+		return
+	}
+
+	if entity, ok := response["entity"]; ok {
+		planGUID = entity.(map[string]interface{})["service_plan_guid"].(string)
+		orgGUID = entity.(map[string]interface{})["organization_guid"].(string)
+	} else {
+		err = errors.NewModelNotFoundError("service plan access", servicePlanAccessGUID)
+	}
+
+	return
+}
+
+// DeleteServicePlanAccess -
+func (sm *ServiceManager) DeleteServicePlanAccess(servicePlanAccessGUID string) (err error) {
+
+	err = sm.ccGateway.DeleteResource(sm.apiEndpoint, fmt.Sprintf("/v2/service_plan_visibilities/%s", servicePlanAccessGUID))
+	return
+}
+
+// CreateServiceInstance -
+func (sm *ServiceManager) CreateServiceInstance(name, servicePlanID, spaceID string,
+	params map[string]interface{}, tags []string) (id string, err error) {
+
+	path := "/v2/service_instances"
 	request := models.ServiceInstanceCreateRequest{
 		Name:      name,
 		PlanGUID:  servicePlanID,
@@ -112,9 +418,10 @@ func (sm *ServiceManager) CreateServiceInstance(name string, servicePlanID strin
 }
 
 // UpdateServiceInstance -
-func (sm *ServiceManager) UpdateServiceInstance(serviceInstanceID string, name string, servicePlanID string, params map[string]interface{}, tags []string) (serviceInstance CCServiceInstance, err error) {
+func (sm *ServiceManager) UpdateServiceInstance(serviceInstanceID, name, servicePlanID string,
+	params map[string]interface{}, tags []string) (serviceInstance CCServiceInstance, err error) {
 
-	path := fmt.Sprintf("/v2/service_instances/%s?accepts_incomplete=true", serviceInstanceID)
+	path := fmt.Sprintf("/v2/service_instances/%s", serviceInstanceID)
 	request := CCServiceInstanceUpdateRequest{
 		Name:            name,
 		ServicePlanGUID: servicePlanID,
@@ -127,9 +434,10 @@ func (sm *ServiceManager) UpdateServiceInstance(serviceInstanceID string, name s
 		return
 	}
 
-	resource := CCServiceInstance{}
+	resource := CCServiceInstanceResource{}
 	err = sm.ccGateway.UpdateResource(sm.apiEndpoint, path, bytes.NewReader(jsonBytes), &resource)
 
+	serviceInstance = resource.Entity
 	return
 }
 
@@ -137,6 +445,7 @@ func (sm *ServiceManager) UpdateServiceInstance(serviceInstanceID string, name s
 func (sm *ServiceManager) ReadServiceInstance(serviceInstanceID string) (serviceInstance CCServiceInstance, err error) {
 
 	path := fmt.Sprintf("%s/v2/service_instances/%s", sm.apiEndpoint, serviceInstanceID)
+
 	resource := CCServiceInstanceResource{}
 	err = sm.ccGateway.GetResource(path, &resource)
 	if err != nil {
@@ -144,7 +453,6 @@ func (sm *ServiceManager) ReadServiceInstance(serviceInstanceID string) (service
 	}
 
 	serviceInstance = resource.Entity
-
 	return
 }
 
@@ -184,16 +492,13 @@ func (sm *ServiceManager) FindServiceInstance(name string, spaceID string) (serv
 	}
 
 	return
-
 }
 
 // DeleteServiceInstance -
 func (sm *ServiceManager) DeleteServiceInstance(serviceInstanceID string) (err error) {
 
 	err = sm.ccGateway.DeleteResource(sm.apiEndpoint, fmt.Sprintf("/v2/service_instances/%s", serviceInstanceID))
-
 	return
-
 }
 
 // CreateUserProvidedService -
@@ -263,9 +568,7 @@ func (sm *ServiceManager) UpdateUserProvidedService(serviceInstanceID string, na
 func (sm *ServiceManager) DeleteUserProvidedService(serviceInstanceID string) (err error) {
 
 	err = sm.ccGateway.DeleteResource(sm.apiEndpoint, fmt.Sprintf("/v2/user_provided_service_instances/%s", serviceInstanceID))
-
 	return
-
 }
 
 // FindServicePlanID -
