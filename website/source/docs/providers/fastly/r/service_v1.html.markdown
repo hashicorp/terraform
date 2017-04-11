@@ -334,6 +334,13 @@ The `gcslogging` block supports:
 * `email` - (Required) The email address associated with the target GCS bucket on your account.
 * `bucket_name` - (Required) The name of the bucket in which to store the logs.
 * `secret_key` - (Required) The secret key associated with the target gcs bucket on your account.
+* `path` - (Optional) Path to store the files. Must end with a trailing slash.
+If this field is left empty, the files will be saved in the bucket's root path.
+* `period` - (Optional) How frequently the logs should be transferred, in
+seconds. Default `3600`.
+* `gzip_level` - (Optional) Level of GZIP compression, from `0-9`. `0` is no
+compression. `1` is fastest and least compressed, `9` is slowest and most
+compressed. Default `0`.
 * `format` - (Optional) Apache-style string or VCL variables to use for log formatting. Defaults to Apache Common Log format (`%h %l %u %t %r %>s`)
 * `response_condition` - (Optional) Name of already defined `condition` to apply. This `condition` must be of type `RESPONSE`. For detailed information about Conditionals, see [Fastly's Documentation on Conditionals][fastly-conditionals].
 

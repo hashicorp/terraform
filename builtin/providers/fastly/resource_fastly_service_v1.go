@@ -668,11 +668,34 @@ func resourceServiceV1() *schema.Resource {
 							Description: "The secret key associated with the target gcs bucket on your account.",
 						},
 						// Optional fields
+						"path": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Path to store the files. Must end with a trailing slash",
+						},
+						"gzip_level": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     0,
+							Description: "Gzip Compression level",
+						},
+						"period": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     3600,
+							Description: "How frequently the logs should be transferred, in seconds (Default 3600)",
+						},
 						"format": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "%h %l %u %t %r %>s",
 							Description: "Apache-style string or VCL variables to use for log formatting",
+						},
+						"timestamp_format": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "%Y-%m-%dT%H:%M:%S.000",
+							Description: "specified timestamp formatting (default `%Y-%m-%dT%H:%M:%S.000`)",
 						},
 						"response_condition": {
 							Type:        schema.TypeString,
@@ -1972,6 +1995,22 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 			log.Printf("[WARN] Error setting Sumologic for (%s): %s", d.Id(), err)
 		}
 
+		// refresh GCS Logging
+		log.Printf("[DEBUG] Refreshing GCS for (%s)", d.Id())
+		GCSList, err := conn.ListGCSs(&gofastly.ListGCSsInput{
+			Service: d.Id(),
+			Version: s.ActiveVersion.Number,
+		})
+
+		if err != nil {
+			return fmt.Errorf("[ERR] Error looking up GCS for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+		}
+
+		gcsl := flattenGCS(GCSList)
+		if err := d.Set("gcs", gcsl); err != nil {
+			log.Printf("[WARN] Error setting gcs for (%s): %s", d.Id(), err)
+		}
+
 		// refresh Response Objects
 		log.Printf("[DEBUG] Refreshing Response Object for (%s)", d.Id())
 		responseObjectList, err := conn.ListResponseObjects(&gofastly.ListResponseObjectsInput{
@@ -2436,6 +2475,35 @@ func flattenSumologics(sumologicList []*gofastly.Sumologic) []map[string]interfa
 	}
 
 	return l
+}
+
+func flattenGCS(gcsList []*gofastly.GCS) []map[string]interface{} {
+	var gl []map[string]interface{}
+	for _, p := range gcsList {
+		// Convert gcs to a map for saving to state.
+		ns := map[string]interface{}{
+			"name":               p.Name,
+			"email":              p.User,
+			"bucket_name":        p.Bucket,
+			"secret_key":         p.SecretKey,
+			"path":               p.Path,
+			"period":             int(p.Period),
+			"gzip_level":         int(p.GzipLevel),
+			"response_condition": p.ResponseCondition,
+			"format":             p.Format,
+		}
+
+		// prune any empty values that come from the default string value in structs
+		for k, v := range ns {
+			if v == "" {
+				delete(ns, k)
+			}
+		}
+
+		gl = append(gl, ns)
+	}
+
+	return gl
 }
 
 func flattenResponseObjects(responseObjectList []*gofastly.ResponseObject) []map[string]interface{} {
