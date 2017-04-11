@@ -19,45 +19,45 @@ func resourceScalewayServer() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"image": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-			"type": &schema.Schema{
+			"image": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"bootscript": &schema.Schema{
+			"type": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+			"bootscript": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"tags": &schema.Schema{
+			"tags": {
 				Type: schema.TypeList,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 				Optional: true,
 			},
-			"enable_ipv6": &schema.Schema{
+			"enable_ipv6": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"dynamic_ip_required": &schema.Schema{
+			"dynamic_ip_required": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"security_group": &schema.Schema{
+			"security_group": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"volume": &schema.Schema{
+			"volume": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
@@ -68,36 +68,36 @@ func resourceScalewayServer() *schema.Resource {
 							Required:     true,
 							ValidateFunc: validateVolumeSize,
 						},
-						"type": &schema.Schema{
+						"type": {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validateVolumeType,
 						},
-						"volume_id": &schema.Schema{
+						"volume_id": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
 					},
 				},
 			},
-			"private_ip": &schema.Schema{
+			"private_ip": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"public_ip": &schema.Schema{
+			"public_ip": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"public_ipv6": &schema.Schema{
+			"public_ipv6": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"state": &schema.Schema{
+			"state": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"state_detail": &schema.Schema{
+			"state_detail": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
