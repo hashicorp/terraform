@@ -64,6 +64,7 @@ type Module struct {
 type ProviderConfig struct {
 	Name      string
 	Alias     string
+	Version   string
 	RawConfig *RawConfig
 }
 
@@ -349,7 +350,8 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	// Check that providers aren't declared multiple times.
+	// Check that providers aren't declared multiple times, and that versions
+	// aren't used yet since they aren't properly supported.
 	providerSet := make(map[string]struct{})
 	for _, p := range c.ProviderConfigs {
 		name := p.FullName()
@@ -358,6 +360,13 @@ func (c *Config) Validate() error {
 				"provider.%s: declared multiple times, you can only declare a provider once",
 				name))
 			continue
+		}
+
+		if p.Version != "" {
+			errs = append(errs, fmt.Errorf(
+				"provider.%s: version constraints are not yet supported; remove the 'version' argument from configuration",
+				name,
+			))
 		}
 
 		providerSet[name] = struct{}{}

@@ -207,6 +207,12 @@ func TestConfigValidate_table(t *testing.T) {
 			false,
 			"",
 		},
+		{
+			"provider with version constraint",
+			"provider-version",
+			true,
+			"version constraints are not yet supported",
+		},
 	}
 
 	for i, tc := range cases {
@@ -671,5 +677,26 @@ func TestConfigDataCount(t *testing.T) {
 	// it's not a real key and won't validate.
 	if _, ok := c.Resources[0].RawConfig.Raw["count"]; ok {
 		t.Fatal("count key still exists in RawConfig")
+	}
+}
+
+func TestConfigProviderVersion(t *testing.T) {
+	c := testConfig(t, "provider-version")
+
+	if len(c.ProviderConfigs) != 1 {
+		t.Fatal("expected 1 provider")
+	}
+
+	p := c.ProviderConfigs[0]
+	if p.Name != "aws" {
+		t.Fatalf("expected provider name 'aws', got %q", p.Name)
+	}
+
+	if p.Version != "0.0.1" {
+		t.Fatalf("expected providers version '0.0.1', got %q", p.Version)
+	}
+
+	if _, ok := p.RawConfig.Raw["version"]; ok {
+		t.Fatal("'version' should not exist in raw config")
 	}
 }
