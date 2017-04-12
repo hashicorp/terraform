@@ -99,6 +99,7 @@ BUG FIXES:
  * provider/openstack: Refresh volume_attachment from state if NotFound [GH-13342]
  * provider/openstack: Add SOFT_DELETED to delete status [GH-13444]
  * provider/profitbricks: Changed output type of ips variable of ip_block ProfitBricks resource [GH-13290]
+ * provider/template: Fix panic in cloudinit config [GH-13581]
 
 ## 0.9.2 (March 28, 2017)
 
