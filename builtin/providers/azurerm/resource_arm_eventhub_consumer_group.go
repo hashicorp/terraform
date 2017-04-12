@@ -109,7 +109,7 @@ func resourceArmEventHubConsumerGroupRead(d *schema.ResourceData, meta interface
 
 	resp, err := eventhubClient.Get(resGroup, namespaceName, eventHubName, name)
 	if err != nil {
-		return fmt.Errorf("Error making Read request on Azure EventHub Consumer Group %s: %s", name, err)
+		return fmt.Errorf("Error making Read request on Azure EventHub Consumer Group %s: %+v", name, err)
 	}
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
@@ -141,7 +141,7 @@ func resourceArmEventHubConsumerGroupDelete(d *schema.ResourceData, meta interfa
 	resp, err := eventhubClient.Delete(resGroup, namespaceName, eventHubName, name)
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Error issuing Azure ARM delete request of EventHub Consumer Group '%s': %s", name, err)
+		return fmt.Errorf("Error issuing Azure ARM delete request of EventHub Consumer Group '%s': %+v", name, err)
 	}
 
 	return nil
