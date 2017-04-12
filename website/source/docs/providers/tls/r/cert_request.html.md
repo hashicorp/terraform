@@ -65,7 +65,7 @@ corresponding to the similarly-named attributes defined in
 
 * `organization` (string)
 
-* `organizational_unit` (string)
+* `organizational_unit` (list of strings)
 
 * `street_address` (list of strings)
 
