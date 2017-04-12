@@ -29,14 +29,7 @@ func resourceArmLoadBalancerProbe() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:             schema.TypeString,
-				ForceNew:         true,
-				Optional:         true,
-				StateFunc:        azureRMNormalizeLocation,
-				DiffSuppressFunc: azureRMSuppressLocationDiff,
-				Deprecated:       "location is no longer used",
-			},
+			"location": deprecatedLocationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
