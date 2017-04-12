@@ -15,7 +15,7 @@ Provides an Application Load Balancer Listener Rule resource.
 ```
 # Create a new load balancer
 resource "aws_alb" "front_end" {
-  # Other parameters...
+  # ...
 }
 
 resource "aws_alb_listener" "front_end" {
@@ -55,7 +55,7 @@ Action Blocks (for `default_action`) support the following:
 Condition Blocks (for `default_condition`) support the following:
 
 * `field` - (Required) The name of the field. The only valid value is `path-pattern`.
-* `values` - (Required) The path patterns to match.
+* `values` - (Required) The path patterns to match. A maximum of 1 can be defined.
 
 ## Attributes Reference
 

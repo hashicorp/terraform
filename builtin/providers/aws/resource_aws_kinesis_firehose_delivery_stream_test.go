@@ -439,7 +439,7 @@ resource "aws_cloudwatch_log_stream" "test" {
 
 resource "aws_kinesis_firehose_delivery_stream" "test_stream" {
   depends_on = ["aws_iam_role_policy.firehose"]
-  name = "terraform-kinesis-firehose-basictest-cloudwatch"
+  name = "terraform-kinesis-firehose-cloudwatch-%d"
   destination = "s3"
   s3_configuration {
     role_arn = "${aws_iam_role.firehose.arn}"
@@ -451,7 +451,7 @@ resource "aws_kinesis_firehose_delivery_stream" "test_stream" {
     }
   }
 }
-`, rInt, accountId, rInt, rInt, rInt, rInt)
+`, rInt, accountId, rInt, rInt, rInt, rInt, rInt)
 }
 
 var testAccKinesisFirehoseDeliveryStreamConfig_s3basic = testAccKinesisFirehoseDeliveryStreamBaseConfig + `
@@ -487,6 +487,7 @@ resource "aws_redshift_cluster" "test_cluster" {
   master_password = "T3stPass"
   node_type = "dc1.large"
   cluster_type = "single-node"
+	skip_final_snapshot = true
 }`
 
 var testAccKinesisFirehoseDeliveryStreamConfig_RedshiftBasic = testAccKinesisFirehoseDeliveryStreamBaseRedshiftConfig + `

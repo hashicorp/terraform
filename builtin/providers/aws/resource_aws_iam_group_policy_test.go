@@ -7,18 +7,20 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSIAMGroupPolicy_basic(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckIAMGroupPolicyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccIAMGroupPolicyConfig,
+			{
+				Config: testAccIAMGroupPolicyConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckIAMGroupPolicy(
 						"aws_iam_group.group",
@@ -26,8 +28,8 @@ func TestAccAWSIAMGroupPolicy_basic(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
-				Config: testAccIAMGroupPolicyConfigUpdate,
+			{
+				Config: testAccIAMGroupPolicyConfigUpdate(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckIAMGroupPolicy(
 						"aws_iam_group.group",
@@ -40,14 +42,15 @@ func TestAccAWSIAMGroupPolicy_basic(t *testing.T) {
 }
 
 func TestAccAWSIAMGroupPolicy_namePrefix(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
 		IDRefreshName: "aws_iam_group_policy.test",
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckIAMGroupPolicyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccIAMGroupPolicyConfig_namePrefix,
+			{
+				Config: testAccIAMGroupPolicyConfig_namePrefix(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckIAMGroupPolicy(
 						"aws_iam_group.test",
@@ -60,14 +63,15 @@ func TestAccAWSIAMGroupPolicy_namePrefix(t *testing.T) {
 }
 
 func TestAccAWSIAMGroupPolicy_generatedName(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
 		IDRefreshName: "aws_iam_group_policy.test",
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckIAMGroupPolicyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccIAMGroupPolicyConfig_generatedName,
+			{
+				Config: testAccIAMGroupPolicyConfig_generatedName(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckIAMGroupPolicy(
 						"aws_iam_group.test",
@@ -142,86 +146,90 @@ func testAccCheckIAMGroupPolicy(
 	}
 }
 
-const testAccIAMGroupPolicyConfig = `
-resource "aws_iam_group" "group" {
-	name = "test_group"
-	path = "/"
-}
+func testAccIAMGroupPolicyConfig(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_iam_group" "group" {
+		name = "test_group_%d"
+		path = "/"
+	}
 
-resource "aws_iam_group_policy" "foo" {
-	name = "foo_policy"
-	group = "${aws_iam_group.group.name}"
-	policy = <<EOF
+	resource "aws_iam_group_policy" "foo" {
+		name = "foo_policy_%d"
+		group = "${aws_iam_group.group.name}"
+		policy = <<EOF
 {
-  "Version": "2012-10-17",
-  "Statement": {
-    "Effect": "Allow",
-    "Action": "*",
-    "Resource": "*"
-  }
+	"Version": "2012-10-17",
+	"Statement": {
+		"Effect": "Allow",
+		"Action": "*",
+		"Resource": "*"
+	}
 }
 EOF
-}
-`
-
-const testAccIAMGroupPolicyConfig_namePrefix = `
-resource "aws_iam_group" "test" {
-	name = "test_group"
-	path = "/"
+	}`, rInt, rInt)
 }
 
-resource "aws_iam_group_policy" "test" {
-	name_prefix = "test-"
-	group = "${aws_iam_group.test.name}"
-	policy = <<EOF
+func testAccIAMGroupPolicyConfig_namePrefix(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_iam_group" "test" {
+		name = "test_group_%d"
+		path = "/"
+	}
+
+	resource "aws_iam_group_policy" "test" {
+		name_prefix = "test-%d"
+		group = "${aws_iam_group.test.name}"
+		policy = <<EOF
 {
-  "Version": "2012-10-17",
-  "Statement": {
-    "Effect": "Allow",
-    "Action": "*",
-    "Resource": "*"
-  }
+	"Version": "2012-10-17",
+	"Statement": {
+		"Effect": "Allow",
+		"Action": "*",
+		"Resource": "*"
+	}
 }
 EOF
-}
-`
-
-const testAccIAMGroupPolicyConfig_generatedName = `
-resource "aws_iam_group" "test" {
-	name = "test_group"
-	path = "/"
+	}`, rInt, rInt)
 }
 
-resource "aws_iam_group_policy" "test" {
-	group = "${aws_iam_group.test.name}"
-	policy = <<EOF
+func testAccIAMGroupPolicyConfig_generatedName(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_iam_group" "test" {
+		name = "test_group_%d"
+		path = "/"
+	}
+
+	resource "aws_iam_group_policy" "test" {
+		group = "${aws_iam_group.test.name}"
+		policy = <<EOF
 {
-  "Version": "2012-10-17",
-  "Statement": {
-    "Effect": "Allow",
-    "Action": "*",
-    "Resource": "*"
-  }
+	"Version": "2012-10-17",
+	"Statement": {
+		"Effect": "Allow",
+		"Action": "*",
+		"Resource": "*"
+	}
 }
 EOF
-}
-`
-
-const testAccIAMGroupPolicyConfigUpdate = `
-resource "aws_iam_group" "group" {
-	name = "test_group"
-	path = "/"
+	}`, rInt)
 }
 
-resource "aws_iam_group_policy" "foo" {
-	name = "foo_policy"
-	group = "${aws_iam_group.group.name}"
-	policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}}"
-}
+func testAccIAMGroupPolicyConfigUpdate(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_iam_group" "group" {
+		name = "test_group_%d"
+		path = "/"
+	}
 
-resource "aws_iam_group_policy" "bar" {
-	name = "bar_policy"
-	group = "${aws_iam_group.group.name}"
-	policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}}"
+	resource "aws_iam_group_policy" "foo" {
+		name = "foo_policy_%d"
+		group = "${aws_iam_group.group.name}"
+		policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}}"
+	}
+
+	resource "aws_iam_group_policy" "bar" {
+		name = "bar_policy_%d"
+		group = "${aws_iam_group.group.name}"
+		policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}}"
+	}`, rInt, rInt, rInt)
 }
-`

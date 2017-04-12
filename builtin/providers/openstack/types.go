@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/servergroups"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/firewalls"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/rules"
@@ -97,7 +98,9 @@ func (lrt *LogRoundTripper) logResponseBody(original io.ReadCloser, headers http
 			return nil, err
 		}
 		debugInfo := lrt.formatJSON(bs.Bytes())
-		log.Printf("[DEBUG] OpenStack Response Body: %s", debugInfo)
+		if debugInfo != "" {
+			log.Printf("[DEBUG] OpenStack Response Body: %s", debugInfo)
+		}
 		return ioutil.NopCloser(strings.NewReader(bs.String())), nil
 	}
 
@@ -124,6 +127,13 @@ func (lrt *LogRoundTripper) formatJSON(raw []byte) string {
 					v["password"] = "***"
 				}
 			}
+		}
+	}
+
+	// Ignore the catalog
+	if v, ok := data["token"].(map[string]interface{}); ok {
+		if _, ok := v["catalog"]; ok {
+			return ""
 		}
 	}
 
@@ -239,6 +249,18 @@ func (opts RuleCreateOpts) ToRuleCreateMap() (map[string]interface{}, error) {
 	}
 
 	return b, nil
+}
+
+// ServerGroupCreateOpts represents the attributes used when creating a new router.
+type ServerGroupCreateOpts struct {
+	servergroups.CreateOpts
+	ValueSpecs map[string]string `json:"value_specs,omitempty"`
+}
+
+// ToServerGroupCreateMap casts a CreateOpts struct to a map.
+// It overrides routers.ToServerGroupCreateMap to add the ValueSpecs field.
+func (opts ServerGroupCreateOpts) ToServerGroupCreateMap() (map[string]interface{}, error) {
+	return BuildRequest(opts, "server_group")
 }
 
 // SubnetCreateOpts represents the attributes used when creating a new subnet.

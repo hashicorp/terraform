@@ -14,9 +14,9 @@ Use the navigation to the left to read about the available resources.
 
 ## Usage
 
-```
+```hcl
 provider "circonus" {
-  key     = "b8fec159-f9e5-4fe6-ad2c-dc1ec6751586"
+  key = "b8fec159-f9e5-4fe6-ad2c-dc1ec6751586"
 }
 ```
 

@@ -6,7 +6,7 @@ description: |-
   Manages the lifecycle of a CLC server.
 ---
 
-# clc\_server
+# clc_server
 
 Manages a CLC server.
 
@@ -19,7 +19,7 @@ Resources and Documentation:
 
 ## Example Usage
 
-```
+```hcl
 # Provision a server
 resource "clc_server" "node" {
   name_template    = "trusty"
@@ -162,7 +162,7 @@ are configured via this block.
 
 Example:
 
-```
+```hcl
 # Configure the CLC Provider
 provider "clc_server" "ubuntu" {
   # ...
@@ -172,8 +172,3 @@ provider "clc_server" "ubuntu" {
   }
 }
 ```
-
-
-
-
-

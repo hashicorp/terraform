@@ -1,137 +1,37 @@
-//
-// Button Styles
-// --------------------------------------------------
-
-.outline-btn{
-	position: relative;
-	display: inline-block;
-	// Extra 3px of bottom padding compensates for ::after content
-	padding: 20px 30px 23px;
-	background-color: transparent;
-	color: $white;
-	border: 2px solid $white;
-	//border-radius: $btn-border-radius;
-	font-size: 20px;
-	font-weight: 500;
-	text-transform: uppercase;
-	letter-spacing: 2px;
-	text-decoration: none !important;
-	@include transition(background-color .3s ease-in-out);
-
-	&::after {
-		font-size: 1.2em;
-		content: "»";
-		position: relative;
-		left: 5px;
-	}
-
-	&.purple{
-		color: $purple;
-		border: 2px solid $purple;
-	}
-
-  &.small-outline-btn{
-    font-size: 16px;
-    padding: 0px 15px 3px 10px;
-    letter-spacing: 0;
-    border: 2px solid rgba(255, 255, 255, .7);
-  }
-
-	&:hover{
-		color: $white;
-		background-color: rgba(255, 255, 255, .2);
-		@include transition(background-color .3s ease-in-out);
-
-		&.purple{
-			background-color: rgba(255, 255, 255, .5);
-		}
-	}
-}
-
-.simple-btn{
-	position: relative;
-	display: inline-block;
-	// Extra 3px of bottom padding compensates for ::after content
-	background-color: transparent;
-	color: $white;
-	font-size: 16px;
-	font-weight: 500;
-	text-transform: uppercase;
-	text-decoration: none !important;
-	@include transition(color .3s ease-in-out);
-
-	&::after {
-		font-size: 1.2em;
-		content: "»";
-		position: relative;
-		left: 5px;
-	}
-
-	&:hover{
-		color: rgba(255, 255, 255, .4);
-		@include transition(color .3s ease-in-out);
-	}
-}
-
-.terra-btn{
-	position: relative;
-	display: inline-block;
-	// Extra 3px of bottom padding compensates for ::after content
-	padding: 20px 30px 23px;
-	color: white;
-  background-color: $purple;
-	font-size: 20px;
-	font-weight: 500;
-	text-transform: uppercase;
-	letter-spacing: 2px;
-  @include transition( background-color 0.3s ease );
-
-	&::after {
-		font-size: 1.2em;
-		content: "»";
-		position: relative;
-		left: 5px;
-	}
-
-  &:hover{
-		color: white;
-    background-color: rgba(130, 47, 247, 0.8);
-		text-decoration: none;
-    @include transition( background-color 0.3s ease );
-  }
-}
-
-@media (max-width: 768px) {
-	.outline-btn, .terra-btn{
-		font-size: 16px;
-		text-align: center;
-	}
-}
-
-//animation on header main nav link hover
-/*.li-under a::after {
-  position: absolute;
-  top: 68%;
-  left: 50%;
-  margin-left: -4px;
-  width: 6px;
-  height: 6px;
-  background-color: white;
-  content: '';
-  opacity: 0;
+.button {
+  background: $button-background;
+  border: 1px solid $button-font-color;
+  box-shadow: 3px 4px 0 rgba(0,0,0,0.1);
+  color: $button-font-color;
+  display: inline-block;
+  font-family: $button-font-family;
+  font-size: $button-font-size;
+  font-weight: $button-font-weight;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+  padding: 10px 30px;
+  text-transform: uppercase;
   text-decoration: none;
-  -webkit-transition: height 0.3s, opacity 0.3s, -webkit-transform 0.3s;
-  -moz-transition: height 0.3s, opacity 0.3s, -moz-transform 0.3s;
-  transition: height 0.3s, opacity 0.3s, transform 0.3s;
-  -webkit-transform: translateY(-10px);
-  -moz-transform: translateY(-10px);
-  transform: translateY(-10px);
-}
 
-.li-under a:hover::after,
-.li-under a:focus::after {
-    opacity: 1;
-    -webkit-transform: skewY(15deg) translateY(10px);
-    -moz-transform: skewY(15deg) translateY(10px);
-    transform: skewY(15deg) translateY(10px);
-}*/
+  &:hover,
+  &:active,
+  &:focus {
+    text-decoration: none;
+  }
+
+  &:hover {
+    background: $button-font-color;
+    border: 1px solid $button-font-color;
+    color: $button-background;
+  }
+
+  &.primary {
+    background: $button-primary-background;
+    border: 1px solid darken($button-primary-background, 5%);
+    color: $button-primary-font-color;
+
+    &:hover {
+      background: lighten($button-primary-background, 5%);
+    }
+  }
+}

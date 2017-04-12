@@ -19,6 +19,9 @@ Certs uploaded to IAM can easily work with other AWS services such as:
 For information about server certificates in IAM, see [Managing Server
 Certificates][2] in AWS Documentation.
 
+~> **Note:** All arguments including the private key will be stored in the raw state as plain-text.
+[Read more about sensitive data in state](/docs/state/sensitive-data.html).
+
 ## Example Usage
 
 **Using certs on file:**
@@ -46,7 +49,7 @@ EOF
   private_key = <<EOF
 -----BEGIN RSA PRIVATE KEY-----
 [......] # cert contents
------END CERTIFICATE-----
+-----END RSA PRIVATE KEY-----
 EOF
 }
 ```

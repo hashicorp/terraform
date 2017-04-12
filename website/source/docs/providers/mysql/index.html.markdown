@@ -18,7 +18,7 @@ Use the navigation to the left to read about the available resources.
 
 The following is a minimal example:
 
-```
+```hcl
 # Configure the MySQL provider
 provider "mysql" {
   endpoint = "my-database.example.com:3306"
@@ -36,7 +36,7 @@ This provider can be used in conjunction with other resources that create
 MySQL servers. For example, ``aws_db_instance`` is able to create MySQL
 servers in Amazon's RDS service.
 
-```
+```hcl
 # Create a database server
 resource "aws_db_instance" "default" {
   engine         = "mysql"

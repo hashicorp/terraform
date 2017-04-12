@@ -14,7 +14,7 @@ The ``circonus_contact_group`` resource creates and manages a
 
 ## Usage
 
-```
+```hcl
 resource "circonus_contact_group" "myteam-alerts" {
   name = "MyTeam Alerts"
 
@@ -259,7 +259,7 @@ Either an `address` or `user` attribute is required.
 `circonus_contact_group` supports importing resources.  Supposing the following
 Terraform:
 
-```
+```hcl
 provider "circonus" {
   alias = "b8fec159-f9e5-4fe6-ad2c-dc1ec6751586"
 }

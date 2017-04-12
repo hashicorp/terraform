@@ -1500,7 +1500,7 @@ DIFF:
 
 DESTROY/CREATE: aws_instance.foo
   type: "" => "aws_instance"
-  vars: "" => "foo"
+  vars: "foo" => "foo"
 
 STATE:
 
@@ -1568,6 +1568,17 @@ STATE:
 aws_instance.foo:
   ID = bar
   ami = ami-abcd1234
+`
+
+const testTFPlanDiffIgnoreChangesWithFlatmaps = `
+UPDATE: aws_instance.foo
+  lst.#:   "1" => "2"
+  lst.0:   "j" => "j"
+  lst.1:   "" => "k"
+  set.#:   "1" => "1"
+  set.0.a: "1" => "1"
+  set.0.b: "" => "2"
+  type:    "" => "aws_instance"
 `
 
 const testTerraformPlanIgnoreChangesWildcardStr = `

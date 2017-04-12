@@ -32,6 +32,13 @@ func TestAccGithubIssueLabel_basic(t *testing.T) {
 					testAccCheckGithubIssueLabelAttributes(&label, "bar", "FFFFFF"),
 				),
 			},
+			{
+				Config: testAccGitHubIssueLabelExistsConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubIssueLabelExists("github_issue_label.test", &label),
+					testAccCheckGithubIssueLabelAttributes(&label, "enhancement", "FF00FF"),
+				),
+			},
 		},
 	})
 }
@@ -134,3 +141,16 @@ resource "github_issue_label" "test" {
   color      = "FFFFFF"
 }
 `, testRepo)
+
+var testAccGitHubIssueLabelExistsConfig string = fmt.Sprintf(`
+// Create a repository which has the default labels
+resource "github_repository" "test" {
+  name = "tf-acc-repo-label-abc1234"
+}
+
+resource "github_issue_label" "test" {
+  repository = "${github_repository.test.name}"
+  name       = "enhancement" // Important! This is a pre-created label
+  color      = "FF00FF"
+}
+`)

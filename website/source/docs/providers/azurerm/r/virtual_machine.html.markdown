@@ -196,6 +196,102 @@ resource "azurerm_virtual_machine" "test" {
 }
 ```
 
+## Example Usage with Managed Disks
+
+```
+resource "azurerm_resource_group" "test" {
+  name     = "acctestrg"
+  location = "West US 2"
+}
+
+resource "azurerm_virtual_network" "test" {
+  name                = "acctvn"
+  address_space       = ["10.0.0.0/16"]
+  location            = "West US 2"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_subnet" "test" {
+  name                 = "acctsub"
+  resource_group_name  = "${azurerm_resource_group.test.name}"
+  virtual_network_name = "${azurerm_virtual_network.test.name}"
+  address_prefix       = "10.0.2.0/24"
+}
+
+resource "azurerm_network_interface" "test" {
+  name                = "acctni"
+  location            = "West US 2"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+
+  ip_configuration {
+    name                          = "testconfiguration1"
+    subnet_id                     = "${azurerm_subnet.test.id}"
+    private_ip_address_allocation = "dynamic"
+  }
+}
+
+resource "azurerm_managed_disk" "test" {
+  name                 = "datadisk_existing"
+  location             = "West US 2"
+  resource_group_name  = "${azurerm_resource_group.test.name}"
+  storage_account_type = "Standard_LRS"
+  create_option        = "Empty"
+  disk_size_gb         = "1023"
+}
+
+resource "azurerm_virtual_machine" "test" {
+  name                  = "acctvm"
+  location              = "West US 2"
+  resource_group_name   = "${azurerm_resource_group.test.name}"
+  network_interface_ids = ["${azurerm_network_interface.test.id}"]
+  vm_size               = "Standard_DS1_v2"
+
+  storage_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "14.04.2-LTS"
+    version   = "latest"
+  }
+
+  storage_os_disk {
+    name              = "myosdisk1"
+    caching           = "ReadWrite"
+    create_option     = "FromImage"
+    managed_disk_type = "Standard_LRS"
+  }
+
+  storage_data_disk {
+    name              = "datadisk_new"
+    managed_disk_type = "Standard_LRS"
+    create_option     = "Empty"
+    lun               = 0
+    disk_size_gb      = "1023"
+  }
+
+  storage_data_disk {
+    name            = "${azurerm_managed_disk.test.name}"
+    managed_disk_id = "${azurerm_managed_disk.test.id}"
+    create_option   = "Attach"
+    lun             = 1
+    disk_size_gb    = "${azurerm_managed_disk.test.disk_size_gb}"
+  }
+
+  os_profile {
+    computer_name  = "hostname"
+    admin_username = "testadmin"
+    admin_password = "Password1234!"
+  }
+
+  os_profile_linux_config {
+    disable_password_authentication = false
+  }
+
+  tags {
+    environment = "staging"
+  }
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -220,6 +316,7 @@ The following arguments are supported:
 * `os_profile_linux_config` - (Required, when a linux machine) A Linux config block as documented below.
 * `os_profile_secrets` - (Optional) A collection of Secret blocks as documented below.
 * `network_interface_ids` - (Required) Specifies the list of resource IDs for the network interfaces associated with the virtual machine.
+* `primary_network_interface_id` - (Optional) Specifies the resource ID for the primary network interface associated with the virtual machine.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
 For more information on the different example configurations, please check out the [azure documentation](https://msdn.microsoft.com/en-us/library/mt163591.aspx#Anchor_2)
@@ -245,7 +342,9 @@ For more information on the different example configurations, please check out t
 `storage_os_disk` supports the following:
 
 * `name` - (Required) Specifies the disk name.
-* `vhd_uri` - (Required) Specifies the vhd uri. Changing this forces a new resource to be created.
+* `vhd_uri` - (Optional) Specifies the vhd uri. Changing this forces a new resource to be created. Cannot be used with managed disks.
+* `managed_disk_type` - (Optional) Specifies the type of managed disk to create. Value you must be either `Standard_LRS` or `Premium_LRS`. Cannot be used when `vhd_uri` is specified.
+* `managed_disk_id` - (Optional) Specifies an existing managed disk to use by id. Can only be used when `create_option` is `Attach`. Cannot be used when `vhd_uri` is specified.
 * `create_option` - (Required) Specifies how the virtual machine should be created. Possible values are `attach` and `FromImage`.
 * `caching` - (Optional) Specifies the caching requirements.
 * `image_uri` - (Optional) Specifies the image_uri in the form publisherName:offer:skus:version. `image_uri` can also specify the [VHD uri](https://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-cli-deploy-templates/#create-a-custom-vm-image) of a custom VM image to clone. When cloning a custom disk image the `os_type` documented below becomes required.
@@ -255,7 +354,9 @@ For more information on the different example configurations, please check out t
 `storage_data_disk` supports the following:
 
 * `name` - (Required) Specifies the name of the data disk.
-* `vhd_uri` - (Required) Specifies the uri of the location in storage where the vhd for the virtual machine should be placed.
+* `vhd_uri` - (Optional) Specifies the uri of the location in storage where the vhd for the virtual machine should be placed. Cannot be used with managed disks.
+* `managed_disk_type` - (Optional) Specifies the type of managed disk to create. Value you must be either `Standard_LRS` or `Premium_LRS`. Cannot be used when `vhd_uri` is specified.
+* `managed_disk_id` - (Optional) Specifies an existing managed disk to use by id. Can only be used when `create_option` is `Attach`. Cannot be used when `vhd_uri` is specified.
 * `create_option` - (Required) Specifies how the data disk should be created.
 * `disk_size_gb` - (Required) Specifies the size of the data disk in gigabytes.
 * `caching` - (Optional) Specifies the caching requirements.
@@ -303,11 +404,20 @@ For more information on the different example configurations, please check out t
 `os_profile_secrets` supports the following:
 
 * `source_vault_id` - (Required) Specifies the key vault to use.
-* `vault_certificates` - (Required, on windows machines) A collection of Vault Certificates as documented below
+* `vault_certificates` - (Required) A collection of Vault Certificates as documented below
 
 `vault_certificates` support the following:
 
-* `certificate_url` - (Required) It is the Base64 encoding of a JSON Object that which is encoded in UTF-8 of which the contents need to be `data`, `dataType` and `password`.
+* `certificate_url` - (Required) Specifies the URI of the key vault secrets in the format of `https://<vaultEndpoint>/secrets/<secretName>/<secretVersion>`. Stored secret is the Base64 encoding of a JSON Object that which is encoded in UTF-8 of which the contents need to be
+
+```
+{ 
+  "data":"<Base64-encoded-certificate>", 
+  "dataType":"pfx",
+  "password":"<pfx-file-password>" 
+}
+```
+
 * `certificate_store` - (Required, on windows machines) Specifies the certificate store on the Virtual Machine where the certificate should be added to.
 
 ## Attributes Reference

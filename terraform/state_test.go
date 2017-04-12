@@ -1898,6 +1898,62 @@ func TestReadState_prune(t *testing.T) {
 	}
 }
 
+func TestReadState_pruneDependencies(t *testing.T) {
+	state := &State{
+		Serial:  9,
+		Lineage: "5d1ad1a1-4027-4665-a908-dbe6adff11d8",
+		Remote: &RemoteState{
+			Type: "http",
+			Config: map[string]string{
+				"url": "http://my-cool-server.com/",
+			},
+		},
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Dependencies: []string{
+					"aws_instance.bar",
+					"aws_instance.bar",
+				},
+				Resources: map[string]*ResourceState{
+					"foo": &ResourceState{
+						Dependencies: []string{
+							"aws_instance.baz",
+							"aws_instance.baz",
+						},
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+	state.init()
+
+	buf := new(bytes.Buffer)
+	if err := WriteState(state, buf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual, err := ReadState(buf)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// make sure the duplicate Dependencies are filtered
+	modDeps := actual.Modules[0].Dependencies
+	resourceDeps := actual.Modules[0].Resources["foo"].Dependencies
+
+	if len(modDeps) > 1 || modDeps[0] != "aws_instance.bar" {
+		t.Fatalf("expected 1 module depends_on entry, got %q", modDeps)
+	}
+
+	if len(resourceDeps) > 1 || resourceDeps[0] != "aws_instance.baz" {
+		t.Fatalf("expected 1 resource depends_on entry, got  %q", resourceDeps)
+	}
+}
+
 func TestResourceNameSort(t *testing.T) {
 	names := []string{
 		"a",

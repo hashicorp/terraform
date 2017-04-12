@@ -6,13 +6,13 @@ description: |-
   Creates a Network ACL for the given VPC.
 ---
 
-# cloudstack\_network\_acl
+# cloudstack_network_acl
 
 Creates a Network ACL for the given VPC.
 
 ## Example Usage
 
-```
+```hcl
 resource "cloudstack_network_acl" "default" {
   name   = "test-acl"
   vpc_id = "76f6e8dc-07e3-4971-b2a2-8831b0cc4cb4"
@@ -40,4 +40,3 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The ID of the Network ACL
-

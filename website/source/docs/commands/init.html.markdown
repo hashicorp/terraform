@@ -54,6 +54,15 @@ The command-line flags are all optional. The list of available flags are:
 * `-input=true` - Ask for input interactively if necessary. If this is false
   and input is required, `init` will error.
 
+* `-lock=true` - Lock the state file when locking is supported.
+
+* `-lock-timeout=0s` - Duration to retry a state lock.
+
+* `-no-color` - If specified, output won't contain any color.
+
+* `-force-copy` -  Suppress prompts about copying state data. This is equivalent
+  to providing a "yes" to all confirmation prompts.
+
 ## Backend Config
 
 The `-backend-config` can take a path or `key=value` pair to specify additional
@@ -78,7 +87,7 @@ If the value contains an equal sign (`=`), it is parsed as a `key=value` pair.
 The format of this flag is identical to the `-var` flag for plan, apply,
 etc. but applies to configuration keys for backends. For example:
 
-```
+```shell
 $ terraform init \
   -backend-config 'address=demo.consul.io' \
   -backend-config 'path=newpath'

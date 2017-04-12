@@ -15,11 +15,11 @@ Provides an Application Load Balancer Listener resource.
 ```
 # Create a new load balancer
 resource "aws_alb" "front_end" {
-  # Other parameters...
+  # ...
 }
 
 resource "aws_alb_target_group" "front_end" {
-  # Other parameters...
+  # ...
 }
 
 resource "aws_alb_listener" "front_end" {
@@ -43,7 +43,7 @@ The following arguments are supported:
 * `load_balancer_arn` - (Required, Forces New Resource) The ARN of the load balancer.
 * `port` - (Required) The port on which the load balancer is listening.
 * `protocol` - (Optional) The protocol for connections from clients to the load balancer. Valid values are `HTTP` and `HTTPS`. Defaults to `HTTP`.
-* `ssl_policy` - (Optional) The name of the SSL Policy for the listener. Required if `protocol` is `HTTPS`. The only valid value is currently `ELBSecurityPolicy-2015-05`.
+* `ssl_policy` - (Optional) The name of the SSL Policy for the listener. Required if `protocol` is `HTTPS`.
 * `certificate_arn` - (Optional) The ARN of the SSL server certificate. Exactly one certificate is required if the protocol is HTTPS.
 * `default_action` - (Required) An Action block. Action blocks are documented below.
 

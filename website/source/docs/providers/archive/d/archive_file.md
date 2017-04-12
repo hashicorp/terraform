@@ -6,17 +6,17 @@ description: |-
   Generates an archive from content, a file, or directory of files.
 ---
 
-# archive\_file
+# archive_file
 
 Generates an archive from content, a file, or directory of files.
 
 ## Example Usage
 
-```
+```hcl
 data "archive_file" "init" {
-    type        = "zip"
-    source_file = "${path.module}/init.tpl"
-    output_path = "${path.module}/files/init.zip"
+  type        = "zip"
+  source_file = "${path.module}/init.tpl"
+  output_path = "${path.module}/files/init.zip"
 }
 ```
 

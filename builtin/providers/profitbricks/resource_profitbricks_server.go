@@ -449,7 +449,13 @@ func resourceProfitBricksServerRead(d *schema.ResourceData, meta interface{}) er
 	serverId := d.Id()
 
 	server := profitbricks.GetServer(dcId, serverId)
-
+	if server.StatusCode > 299 {
+		if server.StatusCode == 404 {
+			d.SetId("")
+			return nil
+		}
+		return fmt.Errorf("Error occured while fetching a server ID %s %s", d.Id(), server.Response)
+	}
 	d.Set("name", server.Properties.Name)
 	d.Set("cores", server.Properties.Cores)
 	d.Set("ram", server.Properties.Ram)

@@ -2,6 +2,7 @@ package rancher
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -87,7 +88,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 			return config, err
 		}
 
-		if apiURL == "" {
+		if apiURL == "" && config.URL != "" {
 			u, err := url.Parse(config.URL)
 			if err != nil {
 				return config, err
@@ -102,6 +103,10 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		if secretKey == "" {
 			secretKey = config.SecretKey
 		}
+	}
+
+	if apiURL == "" {
+		return &Config{}, fmt.Errorf("No api_url provided")
 	}
 
 	config := &Config{

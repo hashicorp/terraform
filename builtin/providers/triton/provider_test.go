@@ -32,13 +32,13 @@ func testAccPreCheck(t *testing.T) {
 	sdcURL := os.Getenv("SDC_URL")
 	account := os.Getenv("SDC_ACCOUNT")
 	keyID := os.Getenv("SDC_KEY_ID")
-	keyMaterial := os.Getenv("SDC_KEY_MATERIAL")
 
 	if sdcURL == "" {
 		sdcURL = "https://us-west-1.api.joyentcloud.com"
 	}
 
-	if sdcURL == "" || account == "" || keyID == "" || keyMaterial == "" {
-		t.Fatal("SDC_ACCOUNT, SDC_KEY_ID and SDC_KEY_MATERIAL must be set for acceptance tests")
+	if sdcURL == "" || account == "" || keyID == "" {
+		t.Fatal("SDC_ACCOUNT and SDC_KEY_ID must be set for acceptance tests. To test with the SSH" +
+			" private key signer, SDC_KEY_MATERIAL must also be set.")
 	}
 }

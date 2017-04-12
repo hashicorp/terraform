@@ -1,59 +1,60 @@
-.downloads {
-    margin-top: 20px;
+body.layout-downloads {
+  #inner {
+    .downloads {
+      margin-top: 20px;
 
-    .description {
+      .description {
         margin-bottom: 20px;
-    }
+      }
 
-    .download {
+      .download {
+        align-items: center;
         border-bottom: 1px solid #b2b2b2;
-        padding-bottom: 15px;
-        margin-top: 10px;
-        margin-bottom: 10px;
+        display: flex;
+        padding: 15px;
 
         .details {
-            padding-left: 95px;
+          padding-left: 20px;
 
-            h2 {
-                margin-top: 30px;
+          h2 {
+            margin-top: 4px;
+            border: none;
+          }
+
+          ul {
+            padding-left: 0px;
+            margin: -8px 0 0 0;
+          }
+
+          li {
+            display: inline-block;
+
+            &:after {
+              content: " | ";
             }
 
-            ul {
-                padding-left: 0px;
+            &:last-child:after {
+              content: "";
             }
-
-            li {
-                display: inline-block;
-
-                &:after {
-                    content: " | ";
-                }
-
-                &:last-child:after {
-                    content: "";
-                }
-            }
+          }
         }
 
         .icon {
-            img {
-                width: 75px;
-            }
+          svg {
+            width: 75px;
+          }
         }
 
         .os-name {
-            font-size: 40px;
-            margin-bottom: -3px;
+          font-size: 40px;
+          margin-bottom: -3px;
         }
-    }
+      }
 
-    .poweredby {
+      .poweredby {
         margin-top: 20px;
-
-        img {
-            display: block;
-            margin: 0 auto;
-            width: 122px;
-        }
+        text-align: center;
+      }
     }
+  }
 }

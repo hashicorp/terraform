@@ -16,7 +16,7 @@ in the config will be removed.
 
 ```js
 resource "google_project_services" "project" {
-  project_id = "your-project-id"
+  project = "your-project-id"
   services   = ["iam.googleapis.com", "cloudresourcemanager.googleapis.com"]
 }
 ```
@@ -25,7 +25,7 @@ resource "google_project_services" "project" {
 
 The following arguments are supported:
 
-* `project_id` - (Required) The project ID.
+* `project` - (Required) The project ID.
     Changing this forces a new project to be created.
 
 * `services` - (Required) The list of services that are enabled. Supports

@@ -31,7 +31,7 @@ Each is documented further below.
 
 The easiest source is the local file path. For maximum portability, this should be a relative file path into a subdirectory. This allows you to organize your Terraform configuration into modules within one repository, for example:
 
-```
+```hcl
 module "consul" {
   source = "./consul"
 }
@@ -43,7 +43,7 @@ Updates for file paths are automatic: when "downloading" the module using the [g
 
 Terraform will automatically recognize GitHub URLs and turn them into a link to the specific Git repository. The syntax is simple:
 
-```
+```hcl
 module "consul" {
   source = "github.com/hashicorp/example"
 }
@@ -51,7 +51,7 @@ module "consul" {
 
 Subdirectories within the repository can also be referenced:
 
-```
+```hcl
 module "consul" {
   source = "github.com/hashicorp/example//subdir"
 }
@@ -59,7 +59,7 @@ module "consul" {
 
 These will fetch the modules using HTTPS.  If you want to use SSH instead:
 
-```
+```hcl
 module "consul" {
   source = "git@github.com:hashicorp/example.git//subdir"
 }
@@ -73,11 +73,11 @@ You can use the same parameters to GitHub repositories as you can generic Git re
 
 ### Private GitHub Repos
 
-If you need Terraform to be able to fetch modules from private GitHub repos on a remote machine (like Atlas or a CI server), you'll need to provide Terraform with credentials that can be used to authenticate as a user with read access to the private repo.
+If you need Terraform to be able to fetch modules from private GitHub repos on a remote machine (like Terraform Enterprise or a CI server), you'll need to provide Terraform with credentials that can be used to authenticate as a user with read access to the private repo.
 
 First, create a [machine user](https://developer.github.com/guides/managing-deploy-keys/#machine-users) on GitHub with read access to the private repo in question, then embed this user's credentials into the `source` parameter:
 
-```
+```hcl
 module "private-infra" {
   source = "git::https://MACHINE-USER:MACHINE-PASS@github.com/org/privatemodules//modules/foo"
 }
@@ -89,7 +89,7 @@ module "private-infra" {
 
 Terraform will automatically recognize BitBucket URLs and turn them into a link to the specific Git or Mercurial repository, for example:
 
-```
+```hcl
 module "consul" {
   source = "bitbucket.org/hashicorp/consul"
 }
@@ -97,7 +97,7 @@ module "consul" {
 
 Subdirectories within the repository can also be referenced:
 
-```
+```hcl
 module "consul" {
   source = "bitbucket.org/hashicorp/consul//subdir"
 }
@@ -111,7 +111,7 @@ BitBucket URLs will require that Git or Mercurial is installed on your system, d
 
 Generic Git repositories are also supported. The value of `source` in this case should be a complete Git-compatible URL. Using generic Git repositories requires that Git is installed on your system.
 
-```
+```hcl
 module "consul" {
   source = "git://hashicorp.com/consul.git"
 }
@@ -119,7 +119,7 @@ module "consul" {
 
 You can also use protocols such as HTTP or SSH to reference a module, but you'll have specify to Terraform that it is a Git module, by prefixing the URL with `git::` like so:
 
-```
+```hcl
 module "consul" {
   source = "git::https://hashicorp.com/consul.git"
 }
@@ -135,7 +135,7 @@ The URLs for Git repositories support the following query parameters:
 
   * `ref` - The ref to checkout. This can be a branch, tag, commit, etc.
 
-```
+```hcl
 module "consul" {
   source = "git::https://hashicorp.com/consul.git?ref=master"
 }
@@ -145,7 +145,7 @@ module "consul" {
 
 Generic Mercurial repositories are supported. The value of `source` in this case should be a complete Mercurial-compatible URL. Using generic Mercurial repositories requires that Mercurial is installed on your system. You must tell Terraform that your `source` is a Mercurial repository by prefixing it with `hg::`.
 
-```
+```hcl
 module "consul" {
   source = "hg::http://hashicorp.com/consul.hg"
 }
@@ -155,9 +155,9 @@ URLs for Mercurial repositories support the following query parameters:
 
   * `rev` - The rev to checkout. This can be a branch, tag, commit, etc.
 
-```
+```hcl
 module "consul" {
-  source = "hg::http://hashicorp.com/consul.hg?ref=master"
+  source = "hg::http://hashicorp.com/consul.hg?rev=default"
 }
 ```
 
@@ -172,8 +172,8 @@ Terraform then looks for the resulting module URL in the following order:
 
 2. Terraform will look for a `<meta>` tag with the name of `terraform-get`, for example:
 
-```
-<meta name=“terraform-get” content="github.com/hashicorp/example" />
+```html
+<meta name="terraform-get” content="github.com/hashicorp/example" />
 ```
 
 ### S3 Bucket
@@ -189,7 +189,7 @@ Here are a couple of examples.
 
 Using the `s3` protocol.
 
-```
+```hcl
 module "consul" {
   source = "s3::https://s3-eu-west-1.amazonaws.com/consulbucket/consul.zip"
 }
@@ -197,7 +197,7 @@ module "consul" {
 
 Or directly using the bucket's URL.
 
-```
+```hcl
 module "consul" {
   source = "consulbucket.s3-eu-west-1.amazonaws.com/consul.zip"
 }
@@ -215,4 +215,3 @@ archive formats:
 * zip
 * gz
 * bz2
-

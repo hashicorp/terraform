@@ -136,7 +136,7 @@ func dataSourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) erro
 
 				if matchingTags && matchingVPC {
 					if hostedZoneFound != nil {
-						return fmt.Errorf("multplie Route53Zone found please use vpc_id option to filter")
+						return fmt.Errorf("multiple Route53Zone found please use vpc_id option to filter")
 					} else {
 						hostedZoneFound = hostedZone
 					}

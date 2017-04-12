@@ -102,7 +102,7 @@ func (n *NodeAbstractResource) References() []string {
 			}
 		}
 
-		return result
+		return uniqueStrings(result)
 	}
 
 	// If we have state, that is our next source

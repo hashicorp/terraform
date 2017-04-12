@@ -6,13 +6,13 @@ description: |-
   Provides a Datadog user resource. This can be used to create and manage users.
 ---
 
-# datadog\_user
+# datadog_user
 
 Provides a Datadog user resource. This can be used to create and manage Datadog users.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new Datadog user
 resource "datadog_user" "foo" {
   email  = "new@example.com"

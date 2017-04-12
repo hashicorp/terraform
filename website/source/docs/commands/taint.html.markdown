@@ -47,6 +47,10 @@ The command-line flags are all optional. The list of available flags are:
 * `-backup=path` - Path to the backup file. Defaults to `-state-out` with
   the ".backup" extension. Disabled by setting to "-".
 
+* `-lock=true` - Lock the state file when locking is supported.
+
+* `-lock-timeout=0s` - Duration to retry a state lock.
+
 * `-module=path` - The module path where the resource to taint exists.
     By default this is the root path. Other modules can be specified by
     a period-separated list. Example: "foo" would reference the module

@@ -1,823 +1,326 @@
-//
-// Home
-// --------------------------------------------------
-
-body.page-home {
-	h2.tag-line {
-	  font-size: 40px;
-	}
-
-	#primary-cta{
-		position: relative;
-		margin-top: -30px;
-		padding-bottom: 40px;
-		color: $white;
-		background: $black;
-		z-index: 99;
-
-		.terra-btn{
-			margin-top: 30px;
-		}
-	}
-
-	.temp-skew {
-		position: relative;
-		height: 240px;
-		background-color: #000;
-		@include skewY(-3deg);
-		margin-top: -100px;
-		-webkit-backface-visibility: hidden;
-		border: 2px solid #000;
-		z-index: 0;
-	}
-
-	.announcement {
-		margin-top: 60px;
-		border: 1px solid rgba(255,255,255,.3);
-		padding: 25px 10px;
-
-		p {
-			color: $gray;
-			line-height: 1.2;
-			margin-bottom: 0;
-
-			a {
-				color: $purple;
-				text-decoration: underline;
-				// inline-block ensures links doesn't text-wrap;
-				display: inline-block;
-			}
-		}
-	}
-
-	#customer-logos{
-		position: relative;
-		width: 100%;
-		margin-top: -100px;
-		padding: 60px 0;
-		color: $white;
-
-		>.container {
-			z-index: 91;
-		}
-
-		p {
-			text-transform: uppercase;
-			letter-spacing: 2px;
-		}
-
-		#customer-logos-bg{
-			z-index: 30;
-			background: $black;
-			background-size: 100%;
-			@include skewY(-3deg);
-		}
-	}
-
-	ul.customer-list{
-		padding-left: 15px;
-
-		li{
-			display: inline-block;
-			width: 16%;
-			height: 80px;
-			text-indent: 100%;
-	    white-space: nowrap;
-	    overflow: hidden;
-		}
-
-		#nike {
-			background: transparent image-url("customer-logos/nike.svg") left no-repeat;
-			background-size: 80px;
-		}
-
-		#hbo {
-			background: transparent image-url("customer-logos/hbo.svg") left no-repeat;
-			background-size: 80px;
-		}
-
-		#target {
-			background: transparent image-url("customer-logos/target.svg") left no-repeat;
-			background-size: 50px;
-		}
-
-		#capital-one {
-			background: transparent image-url("customer-logos/capital-one.svg") left no-repeat;
-			background-size: 100px;
-		}
-
-		#home-depot {
-			background: transparent image-url("customer-logos/home-depot.svg") left no-repeat;
-			background-size: 50px;
-		}
-
-		#hotels-dot-com {
-			background: transparent image-url("customer-logos/hotels-dot-com.svg") left no-repeat;
-			background-size: 100px;
-		}
-	}
-
-	#feature-overview{
-		position: relative;
-		padding: 120px 0;
-		border-bottom: 2px solid #E6E7E8;
-		z-index: 80;
-	}
-
-	.feature-card{
-		display: block;
-		height: 200px;
-		border: 2px solid #E6E7E8;
-		margin-bottom: 15px;
-		padding:20px;
-		font-size: 18px;
-
-		h3{
-			margin:0;
-			padding: 0;
-			color: $purple;
-			font-size: 16px;
-			line-height: 1.2;
-			font-weight: 400;
-			text-transform: uppercase;
-		}
-
-		p{
-			color: #000;
-			font-size: 16px;
-			line-height: 1.2;
-			font-weight: 400;
-			text-transform: uppercase;
-			letter-spacing: 1px;
-		}
-
-		&.feature-card-write{
-			background: image-url("feature-card-write.svg") left 20px top 70% no-repeat;
-			background-size: 80%;
-		}
-
-		&.feature-card-plan{
-			background: image-url("feature-card-plan.svg") left 0 top 69% no-repeat;
-			background-size: 100%;
-		}
-
-		&.feature-card-create{
-			background: image-url("feature-card-create.svg") left 0 top 70% no-repeat;
-			background-size: 80%;
-		}
-
-		&:hover {
-			border: 2px solid $purple;
-			text-decoration: none;
-		}
-	}
-
-	.feature{
-
-		p.lead{
-			max-width: 30em;
-		}
-	}
-
-	.skew-item{
-		>.container{
-			position: relative;
-			top: 0;
-			z-index: 11;
-		}
-
-		.feature-skew{
-			position: absolute;
-			top: 0px;
-			bottom: 0px;
-			left: 0px;
-			width: 100%;
-			height: 100%;
-		}
-	}
-
-	#feature-write{
-		position: relative;
-		padding: 180px 0 120px;
-		margin-top: -80px;
-
-
-		>.container {
-			z-index: 71;
-		}
-
-		// This svg appears twice in the markup and swapped for layout purposes.
-		// Image for small screens. Styles below are for larger screens.
-		#feature-image-write-sm-screen {
-			display: block;
-			position: relative;
-			margin: 0 auto;
-			width:80%;
-			max-width: 400px;
-		}
-
-		// Image hidden, made visible for larger screens
-		#feature-image-write-lg-screen {
-			display: none;
-			position: absolute;
-			bottom: 2px;
-			right: 3%;
-			width: 581px;
-			@include skewY(-3deg);
-		}
-
-		#feature-write-bg{
-			background: $white;
-			z-index: 70;
-			@include skewY(3deg);
-			overflow: hidden;
-		}
-	}
-
-	#feature-plan{
-		position: relative;
-		color: $white;
-		background-size: 80%;
-		position: relative;
-		padding: 220px 0 180px;
-		margin-top: -80px;
-
-		>.container {
-			z-index: 61;
-			// background: image-url("feature-plan-bg.svg") 0% 45% no-repeat;
-			background-size: 100%;
-		}
-
-		// This svg appears twice in the markup and swapped for layout purposes.
-		// Image for small screens. Styles below are for larger screens.
-		#feature-image-plan-sm-screen {
-			display: block;
-			position: relative;
-			margin: 0 auto;
-			width: 100%;
-			max-width: 400px;
-		}
-
-		// Image hidden, made visible for larger screens
-		#feature-image-plan-lg-screen {
-			display: none;
-			position: relative;
-			width: 100%;
-		}
-
-		#feature-plan-bg{
-			background: $purple;
-			z-index: 60;
-			@include skewY(-3deg);
-		}
-	}
-
-	#feature-create{
-		position: relative;
-		margin-top: -80px;
-		padding: 240px 0 180px;
-
-		>.container{
-			z-index: 51;
-		}
-
-		#feature-image-create {
-			display: block;
-			max-width: 500px;
-			padding-left: 10px;
-			margin: 0 auto;
-			margin-bottom: 40px;
-		}
-
-		#feature-image-create-lg-screen{
-			display: none;
-		}
-
-		#feature-create-bg{
-			@include skewY(3deg);
-
-			z-index: 50;
-			overflow: hidden;
-		}
-	}
-
-	#demos{
-		position: relative;
-		padding: 120px 0 60px;
-		margin-top: -80px;
-
-		>.container{
-			z-index: 41;
-		}
-
-		#demo-bg{
-			background-color: #E6E7E8;
-			@include skewY(3deg);
-			z-index: 40;
-		}
-
-		h2{
-			text-align: center;
-		}
-
-		p {
-			margin-bottom: 20px;
-		}
-
-		.terminals{
-			margin-bottom: 80px;
-
-			.terminal-item{
-				margin-bottom: 80px;
-
-				&.last{
-					border-bottom: none;
-				}
-				>header{
-					.left{
-						span.icn{
-							display: inline-block;
-							width: 83px;
-							height: 74px;
-						}
-					}
-
-					.right{
-						padding-left: 25px;
-					}
-				}
-
-				.terminal{
-
-					border: 2px solid #1e1e1e;
-					background: $black;
-					//border-radius: 4px;
-
-					header{
-						position: relative;
-						text-align: center;
-						padding: 3px;
-						border-bottom: 2px solid #1e1e1e;
-
-						h4{
-							font-size: 14px;
-							letter-spacing: 1px;
-							color: white;
-						}
-
-						ul.shell-dots{
-							position: absolute;
-							top: 10px;
-							left: 8px;
-							padding-left: 0;
-
-							li{
-								&.d1{
-									background-color: #4a08a7;
-								}
-								&.d2{
-									background-color: #6517cf;
-								}
-								&.d3{
-									background-color: #7b29ee;
-								}
-
-								display: inline-block;
-								width: 12px;
-								height: 12px;
-								border-radius: 6px;
-								margin-left: 6px;
-							}
-						}
-					}
-
-					.terminal-window{
-						min-height: 140px;
-						padding: 20px;
-						font-size: 15px;
-						color: $white;
-						background-color: transparent;
-						overflow:auto;
-						font-weight: 500;
-						-webkit-font-smoothing: subpixel-antialiased;
-
-						p {
-							font-family: "Courier New", Monaco, Menlo, Consolas, monospace;
-						}
-
-						.txt-spe {
-							color: lighten($blue, 5%);
-							font-weight: 600;
-						}
-
-						.txt-var {
-							color: lighten($purple, 8%);
-							font-weight: 600;
-						}
-
-						.txt-str {
-							color: lighten($green, 2%);
-						}
-
-						.txt-int {
-							color: lighten($orange, 2%);
-							font-weight: 600;
-						}
-
-						p{
-							margin-bottom: 2px;
-							white-space: pre-wrap;
-						}
-						.cursor {
-							background-color: lighten($purple, 5%);
-						}
-					}
-				}
-
-				.feature-bullets{
-					list-style-type: none;
-					padding-left: 35px;
-
-					li{
-						padding: 5px 0 5px 45px;
-					}
-				}
-			}
-		}
-	}
-
-	#demo-cta{
-		text-align: center;
-	}
-
-	#latest-announcement{
-		position: relative;
-		margin-top: -80px;
-		padding: 160px 0 200px;
-		color: $white;
-  	text-align: left;
-
-		>.container{
-			z-index: 51;
-		}
-
-    h2{
-      margin-bottom: 60px;
-    }
-
-    .latest-col-right{
-      position: relative;
-      padding-left: 60px;
-
-      &:after{
-        content: '';
-        position: absolute;
-        left: 30px;
-        top: 0;
-        width: 2px;
-        height: 100%;
-        background-color: rgba(255, 255, 255, .15);
+#page-home {
+  // Override the main header
+  #header {
+    background: $home-header-background-color;
+
+    .navbar-toggle {
+      .icon-bar {
+        border: 1px solid $home-header-link-color;
       }
     }
 
-    .latest-item{
-      &.latest-item-text{
-        border-bottom: 2px solid rgba(255, 255, 255, .15);
+    .navbar-brand {
+      a {
+        svg.logo {
+          @extend svg.logo.color;
+        }
+      }
+    }
 
-        &:first-child{
-          h3{
-            margin-top: 0;
+    ul.nav {
+      li {
+        a {
+          color: $home-header-link-color;
+
+          &:hover, &:focus, &:active {
+            background-color: transparent;
+            color: $home-header-link-color-hover;
+
+            svg {
+              fill: $home-header-link-color-hover;
+            }
+          }
+
+          svg {
+            fill: $home-header-link-color;
+          }
+        }
+      }
+    }
+  }
+
+  header {
+    .hero {
+      margin: 140px auto 160px auto;
+      text-align: center;
+
+      .button {
+        margin: 5px;
+
+        @media (max-width: 768px) {
+          display: block;
+          margin-top: 10px;
+          text-align: center;
+        }
+      }
+
+      svg {
+        max-width: 90%;
+      }
+    }
+  }
+
+  section {
+    background: $white;
+    padding: 100px 0;
+  }
+
+  section.marketing {
+    h2 {
+      font-family: $font-family-klavika;
+      font-size: 36px;
+      font-weight: $font-weight-bold;
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+      margin: 20px 0 10px 0;
+      padding: 0;
+      text-transform: uppercase;
+    }
+
+    h3 {
+      color: $black;
+      font-size: 20px;
+      font-weight: $font-weight-bold;
+      line-height: 1.2;
+      margin: 50px 0 15px 0;
+      text-transform: uppercase;
+    }
+
+    p {
+      font-family: $font-family-open-sans;
+      font-size: 16px;
+      letter-spacing: 0.01em;
+      line-height: 1.5;
+      margin: 0 0 10px;
+    }
+
+    p.lead {
+      font-size: 20px;
+      margin: 15px 0 30px 0;
+    }
+
+    span.callout {
+      background: $black;
+      color: $white;
+      display: inline-block;
+      font-family: $font-family-klavika;
+      font-size: 18px;
+      font-weight: $font-weight-bold;
+      line-height: 1;
+      margin: 0;
+      padding: 5px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    &.purple {
+      background: $terraform-purple;
+
+      h2 {
+        color: $white;
+      }
+
+      p {
+        color: $white;
+      }
+
+      span.callout {
+        background: $white;
+        color: $terraform-purple;
+      }
+
+      .button {
+        border: none;
+      }
+    }
+
+    &.black {
+      background: $black;
+
+      h2 {
+        color: $white;
+      }
+
+      p {
+        color: $white;
+      }
+
+      span.callout {
+        background: $white;
+        color: $black;
+      }
+
+      .button {
+        border: none;
+      }
+    }
+
+    &#features {
+      .feature-card {
+        border: 1px solid $gray-darker;
+        color: $gray-darker;
+        display: block;
+        height: 200px;
+        font-weight: $font-weight-bold;
+        padding: 20px;
+        margin-bottom: 15px;
+        text-transform: uppercase;
+        transition: all 0.1s ease-in-out;
+
+        p {
+          line-height: 1.25em;
+        }
+
+        span {
+          color: $terraform-purple;
+          display: block;
+          font-weight: $font-weight-bold;
+          margin-bottom: 10px;
+        }
+
+        svg {
+          display: block;
+          margin-top: 20px;
+          max-width: 100%;
+
+          path {
+            transition: all 0.1s ease-in-out;
+            fill: $gray-dark;
           }
         }
 
-        &:last-child{
-          border-bottom: none;
-        }
-      }
+        &:hover, &:active, &:focus {
+          border: 1px solid $terraform-purple;
+          color: $terraform-purple;
+          text-decoration: none;
 
-      img{
-        box-shadow: 8px 8px 8px rgba(0,0,0,.25);
-        margin-bottom: 10px;
-        max-width: 100%;
-      }
-
-      h3{
-        line-height: 1.2;
-        font-family: $font-family-open-sans;
-        text-transform: none;
-      }
-
-      p{
-        margin-bottom: 10px;
-      }
-
-      a{
-        margin-top: 5px;
-        margin-bottom: 10px;
-      }
-    }
-	}
-
-	#latest-announcement-bg{
-		@include skewY(-3deg);
-		z-index: 30;
-		background: $purple image-url("latest-announce-bg.svg") bottom left no-repeat;
-		background-size: cover;
-	}
-
-	#enterprise-intro{
-		position: relative;
-		padding: 220px 0 180px;
-		margin-top: -80px;
-		color: #fff;
-
-		>.container{
-			z-index: 31;
-		}
-
-		h2{
-			position: relative;
-			left: -5px;
-			margin-bottom: 20px;
-			background: image-url("terraform-enterprise-logo.svg") top left no-repeat;
-			background-size: 320px;
-			overflow: hidden;
-
-			span {margin-left: -200%}
-		}
-
-		.lead{
-			max-width: 30em;
-			margin-bottom: 40px;
-		}
-
-		#enterprise-intro-bg{
-			background: #000 image-url("enterprise-callout-bg.svg") bottom right no-repeat;
-			background-size: 80%;
-			@include skewY(3deg);
-			z-index: 20;
-		}
-	}
-
-	@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-		#demos{
-			.terminals{
-				.terminal-item{
-					.feature-bullets{
-						li{
-							background-size: 12px 12px;
-						}
-					}
-				}
-			}
-		}
-	}
-
-	@media (min-width: 768px) {
-		#feature-write{
-			// Hide image for small screens
-			#feature-image-write-sm-screen {
-				display: none;
-			}
-
-			// Image hidden, made visible for larger screens
-			#feature-image-write-lg-screen {
-				display: block;
-			}
-		}
-
-		#feature-plan{
-			// Hide image for small screens
-			#feature-image-plan-sm-screen {
-				display: none;
-			}
-
-			// Image hidden, made visible for larger screens
-			#feature-image-plan-lg-screen {
-				display: block;
-			}
-		}
-	}
-
-	@media (min-width: 1024px) {
-		#feature-write{
-			#feature-image-write-lg-screen {
-				right: 10%;
-				width: 640px;
-			}
-		}
-	}
-
-	@media (min-width: 1440px) {
-
-		#feature-write{
-			padding: 280px 0 200px;
-			margin-top: -120px;
-		}
-
-		#feature-plan{
-			padding: 320px 0 200px;
-			margin-top: -120px;
-		}
-
-		#feature-create{
-			padding: 320px 0 200px;
-			margin-top: -120px;
-		}
-
-		#latest-announcement{
-			margin-top: -140px;
-			padding: 180px 0 240px;
-		}
-
-		#enterprise-intro{
-			margin-top: -140px;
-			padding: 320px 0 180px;
-		}
-	}
-
-	@media (max-width: 992px) {
-
-		#demos{
-			.terminals{
-				.terminal-item{
-					>header{
-						.left{
-							span.icn{
-							}
-						}
-
-						.right{
-							padding-left: 54px;
-						}
-					}
-				}
-			}
-		}
-
-    #latest-announcement{
-      .latest-col-left{
-        .latest-item{
-          border-bottom: 2px solid rgba(255, 255, 255, .15);
-        }
-      }
-
-      .latest-col-right{
-        padding-left: 15px;
-
-        &:after{
-          width: 0;
-        }
-      }
-
-      .latest-item{
-        padding-bottom: 30px;
-        margin-bottom: 30px;
-
-        &.latest-item-text{
-          border-bottom: 2px solid rgba(255, 255, 255, .15);
-
-          &:first-child{
-            h3{
-              margin-top: 20px;
+          svg {
+            path {
+              fill: $terraform-purple;
+              transition: all 0.1s ease-in-out;
             }
           }
         }
       }
     }
-	}
 
-	@media (max-width: 768px) {
-		h2{
-			margin-bottom: 40px;
-			font-size: 28px;
-			line-height: 32px;
-			letter-spacing: 2px;
-			text-transform: uppercase;
-			font-weight: regular;
-		}
+    &#plan {
+      h3 {
+        color: $white;
+      }
+    }
 
-		h3{
-			margin-bottom: 10px;
-			font-size: 16px;
-			line-height: 1.2;
-			letter-spacing: 1px;
-			text-transform: uppercase;
-			font-weight: bold;
-		}
+    &#news {
+      img {
+        box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.25);
+        margin: 0 0 20px 0;
+      }
 
-		p{
-			font-size: 14px;
-		}
+      h2 {
+        margin-bottom: 50px;
+      }
 
-		p.lead{
-			font-size: 17px;
-		}
+      h3 {
+        color: $white;
+        margin-top: 0;
+        text-transform: none;
+      }
 
-		#primary-cta{
-			padding-bottom: 100px;
-		}
+      div.latest-item {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+        margin-bottom: 20px;
+        padding-bottom: 20px;
 
-		#customer-logos{
-			padding: 40px 0;
+        &:last-child {
+          border: none;
+          margin-bottom: 0;
+          padding-bottom: 0;
+        }
 
-			p {
-				display: block;
-				position: relative;
-				width: 100%;
-				text-align: center;
-			}
+        p {
+          padding: 0 0 10px 0;
+        }
 
-			#customer-logos-bg{
-				z-index: 30;
-				background: $black;
-				background-size: 100%;
-				@include skewY(-3deg);
+        .button {
+          &:hover {
+            background: $white;
+            color: $terraform-purple;
+          }
+        }
+      }
+    }
 
-			}
+    &#examples {
+      background: #EDEDED;
 
-			ul.customer-list{
-				padding-left: 15px;
+      h1, h2, h3, h4, h5, h6, p {
+        color: $black;
+      }
+    }
 
-				li{
-					display: inline-block;
-					width: 16%;
-					height: 80px;
-					text-indent: 100%;
-			    white-space: nowrap;
-			    overflow: hidden;
-				}
+    &#enterprise {
+      background-image: image-url('enterprise-callout-bg.svg');
+      background-position: right bottom;
+      background-repeat: no-repeat;
+      background-size: 80%;
+    }
+  }
 
-				#nike {
-					background: transparent image-url("customer-logos/nike.svg") left no-repeat;
-					background-size: 40px;
-				}
+  .terminal {
+    border: 1px solid $white;
+    background-color: $black;
+    box-sizing: border-box;
+    color: $white;
+    font-family: $font-family-monospace;
+    font-size: 16px;
+    line-height: 1.8;
+    margin: 20px auto;
+    padding: 10px 20px 20px 20px;
 
-				#hbo {
-					background: transparent image-url("customer-logos/hbo.svg") left no-repeat;
-					background-size: 40px;
-				}
+    .terminal-content {
+      margin-top: 15px;
+      overflow-x: scroll;
+      width: 100%;
+      white-space: nowrap;
 
-				#target {
-					background: transparent image-url("customer-logos/target.svg") left no-repeat;
-					background-size: 30px;
-				}
+      span {
+        display: block;
+        white-space: pre;
 
-				#capital-one {
-					background: transparent image-url("customer-logos/capital-one.svg") left no-repeat;
-					background-size: 40px;
-				}
+        span {
+          display: inline;
+        }
 
-				#home-depot {
-					background: transparent image-url("customer-logos/home-depot.svg") left no-repeat;
-					background-size: 30px;
-				}
+        &.text-pink {
+          color: lighten($consul-pink, 20%);
+        }
+      }
+    }
 
-				#hotels-dot-com {
-					background: transparent image-url("customer-logos/hotels-dot-com.svg") left no-repeat;
-					background-size: 40px;
-				}
-			}
+    span.circle {
+      &:before {
+        content: '\25CF';
+        color: $white;
+        font-size: 20px;
+        line-height: 100%;
+        height: 100%;
+      }
+    }
 
-			ul.customer-list{
-				 display: block;
-				 position: relative;
-				 width: 100%;
-				 margin: 0 auto;
-				 padding: 0;
-				 text-align: center;
+    span.txt-spe {
+      color: #7190EA;
+    }
 
-				li{
-					display: inline-block;
-					position: relative;
-					width: 40px;
-					height: 40px;
-					margin: 0 2%;
-					text-indent: 100%;
-			    white-space: nowrap;
-			    overflow: hidden;
-				}
-			}
-		}
+    span.txt-str {
+      color: #64E86C;
+    }
 
+    span.txt-int {
+      color: #E89264;
+    }
 
-		#demos{
-
-			.terminals{
-				.terminal-item{
-					>header{
-						.left{
-							span.icn{
-								padding-bottom: 15px;
-							}
-						}
-
-						.right{
-							padding-left: 15px;
-						}
-					}
-				}
-			}
-		}
-	}
+    span.txt-var {
+      color: #9A56f9;
+    }
+  }
 }

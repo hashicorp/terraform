@@ -6,13 +6,13 @@ description: |-
   Manages a Kickstart File within Cobbler.
 ---
 
-# cobbler\_kickstart\_file
+# cobbler_kickstart_file
 
 Manages a Kickstart File within Cobbler.
 
 ## Example Usage
 
-```
+```hcl
 resource "cobbler_kickstart_file" "my_kickstart" {
   name = "/var/lib/cobbler/kickstarts/my_kickstart.ks"
   body = "<content of kickstart file>"

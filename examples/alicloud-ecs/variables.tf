@@ -8,6 +8,10 @@ variable "image_id" {
   default = "ubuntu_140405_64_40G_cloudinit_20161115.vhd"
 }
 
+variable "availability_zones" {
+  default = ""
+}
+
 variable "role" {
   default = "work"
 }
@@ -22,9 +26,6 @@ variable "ecs_type" {
 }
 variable "ecs_password" {
   default = "Test12345"
-}
-variable "availability_zones" {
-  default = "cn-beijing-b"
 }
 variable "allocate_public_ip" {
   default = true
@@ -41,11 +42,15 @@ variable "io_optimized" {
 }
 
 variable "disk_category" {
-  default = "cloud_ssd"
+  default = "cloud_efficiency"
 }
 variable "disk_size" {
   default = "40"
 }
 variable "device_name" {
   default = "/dev/xvdb"
+}
+
+variable "nic_type" {
+  default = "internet"
 }

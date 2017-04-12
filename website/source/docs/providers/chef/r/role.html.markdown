@@ -13,7 +13,7 @@ that can apply across multiple nodes that perform the same function.
 
 ## Example Usage
 
-```
+```hcl
 resource "chef_role" "example" {
   name     = "example-role"
   run_list = ["recipe[example]"]
