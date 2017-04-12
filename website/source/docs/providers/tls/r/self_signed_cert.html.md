@@ -27,23 +27,23 @@ Load Balancer*, *Elastic Beanstalk*, *CloudFront* or *OpsWorks*.
 
 ## Example Usage
 
-```
+```hcl
 resource "tls_self_signed_cert" "example" {
-    key_algorithm = "ECDSA"
-    private_key_pem = "${file(\"private_key.pem\")}"
+  key_algorithm   = "ECDSA"
+  private_key_pem = "${file(\"private_key.pem\")}"
 
-    subject {
-        common_name = "example.com"
-        organization = "ACME Examples, Inc"
-    }
+  subject {
+    common_name  = "example.com"
+    organization = "ACME Examples, Inc"
+  }
 
-    validity_period_hours = 12
+  validity_period_hours = 12
 
-    allowed_uses = [
-        "key_encipherment",
-        "digital_signature",
-        "server_auth",
-    ]
+  allowed_uses = [
+    "key_encipherment",
+    "digital_signature",
+    "server_auth",
+  ]
 }
 ```
 

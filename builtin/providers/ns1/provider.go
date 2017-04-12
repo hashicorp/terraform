@@ -1,13 +1,8 @@
 package ns1
 
 import (
-	"crypto/tls"
-	"net/http"
-
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-
-	ns1 "gopkg.in/ns1/ns1-go.v2/rest"
 )
 
 // Provider returns a terraform.ResourceProvider.
@@ -49,22 +44,18 @@ func Provider() terraform.ResourceProvider {
 }
 
 func ns1Configure(d *schema.ResourceData) (interface{}, error) {
-	httpClient := &http.Client{}
-	decos := []func(*ns1.Client){}
-	decos = append(decos, ns1.SetAPIKey(d.Get("apikey").(string)))
-	if v, ok := d.GetOk("endpoint"); ok {
-		decos = append(decos, ns1.SetEndpoint(v.(string)))
-	}
-	if _, ok := d.GetOk("ignore_ssl"); ok {
-		tr := &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}
-		httpClient.Transport = tr
+	config := Config{
+		Key: d.Get("apikey").(string),
 	}
 
-	n := ns1.NewClient(httpClient, decos...)
-	n.RateLimitStrategySleep()
-	return n, nil
+	if v, ok := d.GetOk("endpoint"); ok {
+		config.Endpoint = v.(string)
+	}
+	if v, ok := d.GetOk("ignore_ssl"); ok {
+		config.IgnoreSSL = v.(bool)
+	}
+
+	return config.Client()
 }
 
 var descriptions map[string]string

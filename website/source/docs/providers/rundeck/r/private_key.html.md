@@ -14,7 +14,7 @@ it runs commands.
 
 ## Example Usage
 
-```
+```hcl
 resource "rundeck_private_key" "anvils" {
     path = "anvils/id_rsa"
     key_material = "${file("/id_rsa")}"

@@ -1,24 +1,24 @@
 <% wrap_layout :inner do %>
-	<% content_for :sidebar do %>
-		<div class="docs-sidebar hidden-print affix-top" role="complementary">
-			<ul class="nav docs-sidenav">
-				<li<%= sidebar_current("docs-home") %>>
-				<a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+        <a href="/docs/providers/index.html">All Providers</a>
                 </li>
 
-				<li<%= sidebar_current("docs-do-index") %>>
-				<a href="/docs/providers/do/index.html">DigitalOcean Provider</a>
+        <li<%= sidebar_current("docs-do-index") %>>
+        <a href="/docs/providers/do/index.html">DigitalOcean Provider</a>
                 </li>
 
-				<li<%= sidebar_current(/^docs-do-resource/) %>>
-				<a href="#">Resources</a>
+        <li<%= sidebar_current("docs-do-resource") %>>
+        <a href="#">Resources</a>
                 <ul class="nav nav-visible">
                     <li<%= sidebar_current("docs-do-resource-domain") %>>
-					<a href="/docs/providers/do/r/domain.html">digitalocean_domain</a>
+          <a href="/docs/providers/do/r/domain.html">digitalocean_domain</a>
                     </li>
 
                     <li<%= sidebar_current("docs-do-resource-droplet") %>>
-					<a href="/docs/providers/do/r/droplet.html">digitalocean_droplet</a>
+          <a href="/docs/providers/do/r/droplet.html">digitalocean_droplet</a>
                     </li>
 
                   <li<%= sidebar_current("docs-do-resource-floating-ip") %>>
@@ -30,7 +30,7 @@
                   </li>
 
                     <li<%= sidebar_current("docs-do-resource-record") %>>
-					<a href="/docs/providers/do/r/record.html">digitalocean_record</a>
+          <a href="/docs/providers/do/r/record.html">digitalocean_record</a>
                     </li>
 
                     <li<%= sidebar_current("docs-do-resource-ssh-key") %>>
@@ -42,11 +42,11 @@
                     <li<%= sidebar_current("docs-do-resource-volume") %>>
                     <a href="/docs/providers/do/r/volume.html">digitalocean_volume</a>
                     </li>
-				</ul>
-				</li>
-			</ul>
-		</div>
-	<% end %>
+        </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
 
-	<%= yield %>
-	<% end %>
+  <%= yield %>
+  <% end %>

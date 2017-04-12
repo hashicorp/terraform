@@ -9,6 +9,39 @@ resource "alicloud_security_group" "group" {
   description = "New security group"
 }
 
+resource "alicloud_security_group_rule" "http-in" {
+  type = "ingress"
+  ip_protocol = "tcp"
+  nic_type = "internet"
+  policy = "accept"
+  port_range = "80/80"
+  priority = 1
+  security_group_id = "${alicloud_security_group.group.id}"
+  cidr_ip = "0.0.0.0/0"
+}
+
+resource "alicloud_security_group_rule" "https-in" {
+  type = "ingress"
+  ip_protocol = "tcp"
+  nic_type = "internet"
+  policy = "accept"
+  port_range = "443/443"
+  priority = 1
+  security_group_id = "${alicloud_security_group.group.id}"
+  cidr_ip = "0.0.0.0/0"
+}
+
+resource "alicloud_security_group_rule" "ssh-in" {
+  type = "ingress"
+  ip_protocol = "tcp"
+  nic_type = "internet"
+  policy = "accept"
+  port_range = "22/22"
+  priority = 1
+  security_group_id = "${alicloud_security_group.group.id}"
+  cidr_ip = "0.0.0.0/0"
+}
+
 
 resource "alicloud_disk" "disk" {
   availability_zone = "${var.availability_zones}"

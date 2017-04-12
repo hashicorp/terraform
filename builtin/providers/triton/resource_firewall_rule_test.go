@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/joyent/gosdc/cloudapi"
+	"github.com/joyent/triton-go"
 )
 
 func TestAccTritonFirewallRule_basic(t *testing.T) {
@@ -17,7 +17,7 @@ func TestAccTritonFirewallRule_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckTritonFirewallRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckTritonFirewallRuleExists("triton_firewall_rule.test"),
@@ -36,20 +36,20 @@ func TestAccTritonFirewallRule_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckTritonFirewallRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckTritonFirewallRuleExists("triton_firewall_rule.test"),
-					resource.TestCheckResourceAttr("triton_firewall_rule.test", "rule", "FROM any TO tag www ALLOW tcp PORT 80"),
+					resource.TestCheckResourceAttr("triton_firewall_rule.test", "rule", "FROM any TO tag \"www\" ALLOW tcp PORT 80"),
 					resource.TestCheckResourceAttr("triton_firewall_rule.test", "enabled", "false"),
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckTritonFirewallRuleExists("triton_firewall_rule.test"),
-					resource.TestCheckResourceAttr("triton_firewall_rule.test", "rule", "FROM any TO tag www BLOCK tcp PORT 80"),
+					resource.TestCheckResourceAttr("triton_firewall_rule.test", "rule", "FROM any TO tag \"www\" BLOCK tcp PORT 80"),
 					resource.TestCheckResourceAttr("triton_firewall_rule.test", "enabled", "true"),
 				),
 			},
@@ -66,20 +66,20 @@ func TestAccTritonFirewallRule_enable(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckTritonFirewallRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckTritonFirewallRuleExists("triton_firewall_rule.test"),
-					resource.TestCheckResourceAttr("triton_firewall_rule.test", "rule", "FROM any TO tag www ALLOW tcp PORT 80"),
+					resource.TestCheckResourceAttr("triton_firewall_rule.test", "rule", "FROM any TO tag \"www\" ALLOW tcp PORT 80"),
 					resource.TestCheckResourceAttr("triton_firewall_rule.test", "enabled", "false"),
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckTritonFirewallRuleExists("triton_firewall_rule.test"),
-					resource.TestCheckResourceAttr("triton_firewall_rule.test", "rule", "FROM any TO tag www ALLOW tcp PORT 80"),
+					resource.TestCheckResourceAttr("triton_firewall_rule.test", "rule", "FROM any TO tag \"www\" ALLOW tcp PORT 80"),
 					resource.TestCheckResourceAttr("triton_firewall_rule.test", "enabled", "true"),
 				),
 			},
@@ -94,15 +94,19 @@ func testCheckTritonFirewallRuleExists(name string) resource.TestCheckFunc {
 		if !ok {
 			return fmt.Errorf("Not found: %s", name)
 		}
-		conn := testAccProvider.Meta().(*cloudapi.Client)
+		conn := testAccProvider.Meta().(*triton.Client)
 
-		rule, err := conn.GetFirewallRule(rs.Primary.ID)
-		if err != nil {
+		resp, err := conn.Firewall().GetFirewallRule(&triton.GetFirewallRuleInput{
+			ID: rs.Primary.ID,
+		})
+		if err != nil && triton.IsResourceNotFound(err) {
 			return fmt.Errorf("Bad: Check Firewall Rule Exists: %s", err)
+		} else if err != nil {
+			return err
 		}
 
-		if rule == nil {
-			return fmt.Errorf("Bad: Firewall rule %q does not exist", rs.Primary.ID)
+		if resp == nil {
+			return fmt.Errorf("Bad: Firewall Rule %q does not exist", rs.Primary.ID)
 		}
 
 		return nil
@@ -110,20 +114,24 @@ func testCheckTritonFirewallRuleExists(name string) resource.TestCheckFunc {
 }
 
 func testCheckTritonFirewallRuleDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*cloudapi.Client)
+	conn := testAccProvider.Meta().(*triton.Client)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "triton_firewall_rule" {
 			continue
 		}
 
-		resp, err := conn.GetFirewallRule(rs.Primary.ID)
-		if err != nil {
+		resp, err := conn.Firewall().GetFirewallRule(&triton.GetFirewallRuleInput{
+			ID: rs.Primary.ID,
+		})
+		if triton.IsResourceNotFound(err) {
 			return nil
+		} else if err != nil {
+			return err
 		}
 
 		if resp != nil {
-			return fmt.Errorf("Bad: Firewall rule %q still exists", rs.Primary.ID)
+			return fmt.Errorf("Bad: Firewall Rule %q still exists", rs.Primary.ID)
 		}
 	}
 
@@ -132,21 +140,21 @@ func testCheckTritonFirewallRuleDestroy(s *terraform.State) error {
 
 var testAccTritonFirewallRule_basic = `
 resource "triton_firewall_rule" "test" {
-	rule = "FROM any TO tag www ALLOW tcp PORT 80"
-    enabled = false
+	rule = "FROM any TO tag \"www\" ALLOW tcp PORT 80"
+	enabled = false
 }
 `
 
 var testAccTritonFirewallRule_update = `
 resource "triton_firewall_rule" "test" {
-	rule = "FROM any TO tag www BLOCK tcp PORT 80"
+	rule = "FROM any TO tag \"www\" BLOCK tcp PORT 80"
 	enabled = true
 }
 `
 
 var testAccTritonFirewallRule_enable = `
 resource "triton_firewall_rule" "test" {
-	rule = "FROM any TO tag www ALLOW tcp PORT 80"
+	rule = "FROM any TO tag \"www\" ALLOW tcp PORT 80"
 	enabled = true
 }
 `

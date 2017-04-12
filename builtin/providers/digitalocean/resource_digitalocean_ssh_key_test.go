@@ -3,16 +3,21 @@ package digitalocean
 import (
 	"fmt"
 	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/digitalocean/godo"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccDigitalOceanSSHKey_Basic(t *testing.T) {
 	var key godo.Key
+	rInt := acctest.RandInt()
+	publicKeyMaterial, _, err := acctest.RandSSHKeyPair("digitalocean@ssh-acceptance-test")
+	if err != nil {
+		t.Fatalf("Cannot generate test SSH key pair: %s", err)
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -20,14 +25,13 @@ func TestAccDigitalOceanSSHKey_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckDigitalOceanSSHKeyDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckDigitalOceanSSHKeyConfig_basic(testAccValidPublicKey),
+				Config: testAccCheckDigitalOceanSSHKeyConfig_basic(rInt, publicKeyMaterial),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanSSHKeyExists("digitalocean_ssh_key.foobar", &key),
-					testAccCheckDigitalOceanSSHKeyAttributes(&key),
 					resource.TestCheckResourceAttr(
-						"digitalocean_ssh_key.foobar", "name", "foobar"),
+						"digitalocean_ssh_key.foobar", "name", fmt.Sprintf("foobar-%d", rInt)),
 					resource.TestCheckResourceAttr(
-						"digitalocean_ssh_key.foobar", "public_key", strings.TrimSpace(testAccValidPublicKey)),
+						"digitalocean_ssh_key.foobar", "public_key", publicKeyMaterial),
 				),
 			},
 		},
@@ -56,17 +60,6 @@ func testAccCheckDigitalOceanSSHKeyDestroy(s *terraform.State) error {
 	}
 
 	return nil
-}
-
-func testAccCheckDigitalOceanSSHKeyAttributes(key *godo.Key) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-
-		if key.Name != "foobar" {
-			return fmt.Errorf("Bad name: %s", key.Name)
-		}
-
-		return nil
-	}
 }
 
 func testAccCheckDigitalOceanSSHKeyExists(n string, key *godo.Key) resource.TestCheckFunc {
@@ -105,13 +98,10 @@ func testAccCheckDigitalOceanSSHKeyExists(n string, key *godo.Key) resource.Test
 	}
 }
 
-func testAccCheckDigitalOceanSSHKeyConfig_basic(key string) string {
+func testAccCheckDigitalOceanSSHKeyConfig_basic(rInt int, key string) string {
 	return fmt.Sprintf(`
 resource "digitalocean_ssh_key" "foobar" {
-    name = "foobar"
+    name = "foobar-%d"
     public_key = "%s"
-}`, key)
+}`, rInt, key)
 }
-
-var testAccValidPublicKey = `ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCKVmnMOlHKcZK8tpt3MP1lqOLAcqcJzhsvJcjscgVERRN7/9484SOBJ3HSKxxNG5JN8owAjy5f9yYwcUg+JaUVuytn5Pv3aeYROHGGg+5G346xaq3DAwX6Y5ykr2fvjObgncQBnuU5KHWCECO/4h8uWuwh/kfniXPVjFToc+gnkqA+3RKpAecZhFXwfalQ9mMuYGFxn+fwn8cYEApsJbsEmb0iJwPiZ5hjFC8wREuiTlhPHDgkBLOiycd20op2nXzDbHfCHInquEe/gYxEitALONxm0swBOwJZwlTDOB7C6y2dzlrtxr1L59m7pCkWI4EtTRLvleehBoj3u7jB4usR`
-var testAccValidImportPublicKey = `ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCwelf/LV8TKOd6ZCcDwU9L8YRdVwfR2q8E+Bzamcxwb1U41vnfyvEZbzx0aeXimdHipOql0SG2tu9Z+bzekROVc13OP/gtGRlWwZ9RoKE8hFHanhi0K2tC6OWagsvmHpW/xptsYAo2k+eRJJo0iy/hLNG2c1v5rrjg6xwnSL3+a7bFM4xNDux5sNYCmxIBfIL+4rQ8XBlxsjMrGoev/uumZ0yc75JtBCOSZbdie936pvVmoAf4nhxNbe5lOxp+18zHhBbO2fjhux4xmf4hLM2gHsdBGqtnphzLh3d1+uMIpv7ZMTKN7pBw53xQxw7hhDYuNKc8FkQ8xK6IL5bu/Ar/`

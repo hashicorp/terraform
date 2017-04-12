@@ -7,24 +7,27 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/inspector"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSInspectorTemplate_basic(t *testing.T) {
+	rInt := acctest.RandInt()
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSInspectorTemplateDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSInspectorTemplateAssessment,
+				Config: testAccAWSInspectorTemplateAssessment(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSInspectorTemplateExists("aws_inspector_assessment_template.foo"),
 				),
 			},
 			resource.TestStep{
-				Config: testAccCheckAWSInspectorTemplatetModified,
+				Config: testAccCheckAWSInspectorTemplatetModified(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSInspectorTargetExists("aws_inspector_assessment_template.foo"),
 				),
@@ -74,20 +77,21 @@ func testAccCheckAWSInspectorTemplateExists(name string) resource.TestCheckFunc 
 	}
 }
 
-var testAccAWSInspectorTemplateAssessment = `
+func testAccAWSInspectorTemplateAssessment(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_inspector_resource_group" "foo" {
 	tags {
-	  Name  = "bar"
+	  Name  = "tf-acc-test-%d"
   }
 }
 
 resource "aws_inspector_assessment_target" "foo" {
-	name = "foo"
+	name = "tf-acc-test-basic-%d"
 	resource_group_arn =  "${aws_inspector_resource_group.foo.arn}"
 }
 
 resource "aws_inspector_assessment_template" "foo" {
-  name = "foo template"
+  name = "tf-acc-test-basic-tpl-%d"
   target_arn    = "${aws_inspector_assessment_target.foo.arn}"
   duration      = 3600
 
@@ -97,22 +101,24 @@ resource "aws_inspector_assessment_template" "foo" {
 	  "arn:aws:inspector:us-west-2:758058086616:rulespackage/0-JJOtZiqQ",
 	  "arn:aws:inspector:us-west-2:758058086616:rulespackage/0-vg5GGHSD",
   ]
-}`
+}`, rInt, rInt, rInt)
+}
 
-var testAccCheckAWSInspectorTemplatetModified = `
+func testAccCheckAWSInspectorTemplatetModified(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_inspector_resource_group" "foo" {
 	tags {
-	  Name  = "bar"
+	  Name  = "tf-acc-test-%d"
   }
 }
 
 resource "aws_inspector_assessment_target" "foo" {
-	name = "foo"
+	name = "tf-acc-test-basic-%d"
 	resource_group_arn =  "${aws_inspector_resource_group.foo.arn}"
 }
 
 resource "aws_inspector_assessment_template" "foo" {
-  name = "bar template"
+  name = "tf-acc-test-basic-tpl-%d"
   target_arn    = "${aws_inspector_assessment_target.foo.arn}"
   duration      = 3600
 
@@ -122,4 +128,5 @@ resource "aws_inspector_assessment_template" "foo" {
 	  "arn:aws:inspector:us-west-2:758058086616:rulespackage/0-JJOtZiqQ",
 	  "arn:aws:inspector:us-west-2:758058086616:rulespackage/0-vg5GGHSD",
   ]
-}`
+}`, rInt, rInt, rInt)
+}

@@ -209,6 +209,19 @@ func loadTerraformHcl(list *ast.ObjectList) (*Terraform, error) {
 	// Get our one item
 	item := list.Items[0]
 
+	// This block should have an empty top level ObjectItem.  If there are keys
+	// here, it's likely because we have a flattened JSON object, and we can
+	// lift this into a nested ObjectList to decode properly.
+	if len(item.Keys) > 0 {
+		item = &ast.ObjectItem{
+			Val: &ast.ObjectType{
+				List: &ast.ObjectList{
+					Items: []*ast.ObjectItem{item},
+				},
+			},
+		}
+	}
+
 	// We need the item value as an ObjectList
 	var listVal *ast.ObjectList
 	if ot, ok := item.Val.(*ast.ObjectType); ok {

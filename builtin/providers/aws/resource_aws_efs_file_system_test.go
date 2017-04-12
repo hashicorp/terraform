@@ -82,6 +82,7 @@ func TestResourceAWSEFSFileSystem_hasEmptyFileSystems(t *testing.T) {
 }
 
 func TestAccAWSEFSFileSystem_basic(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -104,7 +105,7 @@ func TestAccAWSEFSFileSystem_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccAWSEFSFileSystemConfigWithTags,
+				Config: testAccAWSEFSFileSystemConfigWithTags(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckEfsFileSystem(
 						"aws_efs_file_system.foo-with-tags",
@@ -116,7 +117,7 @@ func TestAccAWSEFSFileSystem_basic(t *testing.T) {
 					testAccCheckEfsFileSystemTags(
 						"aws_efs_file_system.foo-with-tags",
 						map[string]string{
-							"Name":    "foo-efs",
+							"Name":    fmt.Sprintf("foo-efs-%d", rInt),
 							"Another": "tag",
 						},
 					),
@@ -143,13 +144,14 @@ func TestAccAWSEFSFileSystem_basic(t *testing.T) {
 }
 
 func TestAccAWSEFSFileSystem_pagedTags(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckEfsFileSystemDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSEFSFileSystemConfigPagedTags,
+				Config: testAccAWSEFSFileSystemConfigPagedTags(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"aws_efs_file_system.foo",
@@ -312,34 +314,36 @@ resource "aws_efs_file_system" "foo" {
 }
 `
 
-const testAccAWSEFSFileSystemConfigPagedTags = `
-resource "aws_efs_file_system" "foo" {
-	creation_token = "radeksimko"
-	tags {
-		Name = "foo-efs"
-		Another = "tag"
-		Test = "yes"
-		User = "root"
-		Page = "1"
-		Environment = "prod"
-		CostCenter = "terraform"
-		AcceptanceTest = "PagedTags"
-		CreationToken = "radek"
-		PerfMode = "max"
-		Region = "us-west-2"
+func testAccAWSEFSFileSystemConfigPagedTags(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_efs_file_system" "foo" {
+		tags {
+			Name = "foo-efs-%d"
+			Another = "tag"
+			Test = "yes"
+			User = "root"
+			Page = "1"
+			Environment = "prod"
+			CostCenter = "terraform"
+			AcceptanceTest = "PagedTags"
+			CreationToken = "radek"
+			PerfMode = "max"
+			Region = "us-west-2"
+		}
 	}
+	`, rInt)
 }
-`
 
-const testAccAWSEFSFileSystemConfigWithTags = `
-resource "aws_efs_file_system" "foo-with-tags" {
-	creation_token = "yada_yada"
-	tags {
-		Name = "foo-efs"
-		Another = "tag"
+func testAccAWSEFSFileSystemConfigWithTags(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_efs_file_system" "foo-with-tags" {
+		tags {
+			Name = "foo-efs-%d"
+			Another = "tag"
+		}
 	}
+	`, rInt)
 }
-`
 
 const testAccAWSEFSFileSystemConfigWithPerformanceMode = `
 resource "aws_efs_file_system" "foo-with-performance-mode" {

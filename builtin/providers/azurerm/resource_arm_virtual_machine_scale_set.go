@@ -9,6 +9,8 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/structure"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceArmVirtualMachineScaleSet() *schema.Resource {
@@ -374,16 +376,16 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 						"settings": {
 							Type:             schema.TypeString,
 							Optional:         true,
-							ValidateFunc:     validateJsonString,
-							DiffSuppressFunc: suppressDiffVirtualMachineExtensionSettings,
+							ValidateFunc:     validation.ValidateJsonString,
+							DiffSuppressFunc: structure.SuppressJsonDiff,
 						},
 
 						"protected_settings": {
 							Type:             schema.TypeString,
 							Optional:         true,
 							Sensitive:        true,
-							ValidateFunc:     validateJsonString,
-							DiffSuppressFunc: suppressDiffVirtualMachineExtensionSettings,
+							ValidateFunc:     validation.ValidateJsonString,
+							DiffSuppressFunc: structure.SuppressJsonDiff,
 						},
 					},
 				},
@@ -784,7 +786,7 @@ func flattenAzureRmVirtualMachineScaleSetExtensionProfile(profile *compute.Virtu
 			}
 
 			if properties.Settings != nil {
-				settings, err := flattenArmVirtualMachineExtensionSettings(*properties.Settings)
+				settings, err := structure.FlattenJsonToString(*properties.Settings)
 				if err != nil {
 					return nil, err
 				}
@@ -1227,7 +1229,7 @@ func expandAzureRMVirtualMachineScaleSetExtensions(d *schema.ResourceData) (*com
 		}
 
 		if s := config["settings"].(string); s != "" {
-			settings, err := expandArmVirtualMachineExtensionSettings(s)
+			settings, err := structure.ExpandJsonFromString(s)
 			if err != nil {
 				return nil, fmt.Errorf("unable to parse settings: %s", err)
 			}
@@ -1235,7 +1237,7 @@ func expandAzureRMVirtualMachineScaleSetExtensions(d *schema.ResourceData) (*com
 		}
 
 		if s := config["protected_settings"].(string); s != "" {
-			protectedSettings, err := expandArmVirtualMachineExtensionSettings(s)
+			protectedSettings, err := structure.ExpandJsonFromString(s)
 			if err != nil {
 				return nil, fmt.Errorf("unable to parse protected_settings: %s", err)
 			}

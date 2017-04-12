@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"testing"
 
@@ -32,6 +33,21 @@ func TestAccAWSNetworkAclRule_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSNetworkAclRule_missingParam(t *testing.T) {
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSNetworkAclRuleDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccAWSNetworkAclRuleMissingParam,
+				ExpectError: regexp.MustCompile("Either `cidr_block` or `ipv6_cidr_block` must be defined"),
+			},
+		},
+	})
+}
+
 func TestAccAWSNetworkAclRule_ipv6(t *testing.T) {
 	var networkAcl ec2.NetworkAcl
 
@@ -45,6 +61,25 @@ func TestAccAWSNetworkAclRule_ipv6(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSNetworkAclRuleExists("aws_network_acl_rule.baz", &networkAcl),
 				),
+			},
+		},
+	})
+}
+
+func TestAccAWSNetworkAclRule_allProtocol(t *testing.T) {
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSNetworkAclRuleDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:             testAccAWSNetworkAclRuleAllProtocolConfig,
+				ExpectNonEmptyPlan: false,
+			},
+			{
+				Config:             testAccAWSNetworkAclRuleAllProtocolConfigNoRealUpdate,
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})
@@ -211,6 +246,65 @@ resource "aws_network_acl_rule" "wibble" {
 	cidr_block = "0.0.0.0/0"
 	icmp_type = -1
 	icmp_code = -1
+}
+`
+
+const testAccAWSNetworkAclRuleMissingParam = `
+provider "aws" {
+  region = "us-east-1"
+}
+resource "aws_vpc" "foo" {
+	cidr_block = "10.3.0.0/16"
+}
+resource "aws_network_acl" "bar" {
+	vpc_id = "${aws_vpc.foo.id}"
+}
+resource "aws_network_acl_rule" "baz" {
+	network_acl_id = "${aws_network_acl.bar.id}"
+	rule_number = 200
+	egress = false
+	protocol = "tcp"
+	rule_action = "allow"
+	from_port = 22
+	to_port = 22
+}
+`
+
+const testAccAWSNetworkAclRuleAllProtocolConfigNoRealUpdate = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.3.0.0/16"
+}
+resource "aws_network_acl" "bar" {
+	vpc_id = "${aws_vpc.foo.id}"
+}
+resource "aws_network_acl_rule" "baz" {
+	network_acl_id = "${aws_network_acl.bar.id}"
+	rule_number = 150
+	egress = false
+	protocol = "all"
+	rule_action = "allow"
+	cidr_block = "0.0.0.0/0"
+	from_port = 22
+	to_port = 22
+}
+`
+
+const testAccAWSNetworkAclRuleAllProtocolConfig = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.3.0.0/16"
+}
+resource "aws_network_acl" "bar" {
+	vpc_id = "${aws_vpc.foo.id}"
+}
+resource "aws_network_acl_rule" "baz" {
+	network_acl_id = "${aws_network_acl.bar.id}"
+	rule_number = 150
+	egress = false
+	protocol = "-1"
+	rule_action = "allow"
+	cidr_block = "0.0.0.0/0"
+	from_port = 22
+	to_port = 22
 }
 `
 

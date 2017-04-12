@@ -661,7 +661,7 @@ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
 func testAccBeanstalkWorkerEnvConfig(rInt int) string {
 	return fmt.Sprintf(`
  resource "aws_iam_instance_profile" "tftest" {
-	 name = "tftest_profile"
+	 name = "tftest_profile-%d"
 	 roles = ["${aws_iam_role.tftest.name}"]
  }
 
@@ -693,7 +693,7 @@ func testAccBeanstalkWorkerEnvConfig(rInt int) string {
 		 name      = "IamInstanceProfile"
 		 value     = "${aws_iam_instance_profile.tftest.name}"
 	 }
- }`, rInt, rInt)
+ }`, rInt, rInt, rInt)
 }
 
 func testAccBeanstalkEnvCnamePrefixConfig(randString string, rInt int) string {
@@ -937,24 +937,24 @@ resource "aws_s3_bucket_object" "default" {
 }
 
 resource "aws_elastic_beanstalk_application" "default" {
-  name = "tf-test-name"
+  name = "tf-test-name-%d"
   description = "tf-test-desc"
 }
 
 resource "aws_elastic_beanstalk_application_version" "default" {
-  application = "tf-test-name"
+  application = "tf-test-name-%d"
   name = "tf-test-version-label"
   bucket = "${aws_s3_bucket.default.id}"
   key = "${aws_s3_bucket_object.default.id}"
 }
 
 resource "aws_elastic_beanstalk_environment" "default" {
-  name = "tf-test-name"
+  name = "tf-test-name-%d"
   application = "${aws_elastic_beanstalk_application.default.name}"
   version_label = "${aws_elastic_beanstalk_application_version.default.name}"
   solution_stack_name = "64bit Amazon Linux running Python"
 }
-`, randInt)
+`, randInt, randInt, randInt, randInt)
 }
 
 func testAccBeanstalkEnvApplicationVersionConfigUpdate(randInt int) string {
@@ -970,22 +970,22 @@ resource "aws_s3_bucket_object" "default" {
 }
 
 resource "aws_elastic_beanstalk_application" "default" {
-  name = "tf-test-name"
+  name = "tf-test-name-%d"
   description = "tf-test-desc"
 }
 
 resource "aws_elastic_beanstalk_application_version" "default" {
-  application = "tf-test-name"
+  application = "tf-test-name-%d"
   name = "tf-test-version-label-v2"
   bucket = "${aws_s3_bucket.default.id}"
   key = "${aws_s3_bucket_object.default.id}"
 }
 
 resource "aws_elastic_beanstalk_environment" "default" {
-  name = "tf-test-name"
+  name = "tf-test-name-%d"
   application = "${aws_elastic_beanstalk_application.default.name}"
   version_label = "${aws_elastic_beanstalk_application_version.default.name}"
   solution_stack_name = "64bit Amazon Linux running Python"
 }
-`, randInt)
+`, randInt, randInt, randInt, randInt)
 }

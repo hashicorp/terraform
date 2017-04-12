@@ -6,7 +6,7 @@ description: |-
   Creates a site to site VPN local customer gateway.
 ---
 
-# cloudstack\_vpn\_customer\_gateway
+# cloudstack_vpn_customer_gateway
 
 Creates a site to site VPN local customer gateway.
 
@@ -14,7 +14,7 @@ Creates a site to site VPN local customer gateway.
 
 Basic usage:
 
-```
+```hcl
 resource "cloudstack_vpn_customer_gateway" "default" {
   name       = "test-vpc"
   cidr       = "10.0.0.0/8"

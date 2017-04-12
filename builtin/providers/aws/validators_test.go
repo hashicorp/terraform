@@ -1732,3 +1732,216 @@ func TestValidateApiGatewayUsagePlanQuotaSettings(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateElbName(t *testing.T) {
+	validNames := []string{
+		"tf-test-elb",
+	}
+
+	for _, s := range validNames {
+		_, errors := validateElbName(s, "name")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid ELB name: %v", s, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"tf.test.elb.1",
+		"tf-test-elb-tf-test-elb-tf-test-elb",
+		"-tf-test-elb",
+		"tf-test-elb-",
+	}
+
+	for _, s := range invalidNames {
+		_, errors := validateElbName(s, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid ELB name: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateElbNamePrefix(t *testing.T) {
+	validNamePrefixes := []string{
+		"test-",
+	}
+
+	for _, s := range validNamePrefixes {
+		_, errors := validateElbNamePrefix(s, "name_prefix")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid ELB name prefix: %v", s, errors)
+		}
+	}
+
+	invalidNamePrefixes := []string{
+		"tf.test.elb.",
+		"tf-test",
+		"-test",
+	}
+
+	for _, s := range invalidNamePrefixes {
+		_, errors := validateElbNamePrefix(s, "name_prefix")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid ELB name prefix: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateDbSubnetGroupName(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "tEsting",
+			ErrCount: 1,
+		},
+		{
+			Value:    "testing?",
+			ErrCount: 1,
+		},
+		{
+			Value:    "default",
+			ErrCount: 1,
+		},
+		{
+			Value:    randomString(300),
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateDbSubnetGroupName(tc.Value, "aws_db_subnet_group")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected the DB Subnet Group name to trigger a validation error")
+		}
+	}
+}
+
+func TestValidateDbSubnetGroupNamePrefix(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "tEsting",
+			ErrCount: 1,
+		},
+		{
+			Value:    "testing?",
+			ErrCount: 1,
+		},
+		{
+			Value:    randomString(230),
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateDbSubnetGroupNamePrefix(tc.Value, "aws_db_subnet_group")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected the DB Subnet Group name prefix to trigger a validation error")
+		}
+	}
+}
+
+func TestValidateDbOptionGroupName(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "testing123!",
+			ErrCount: 1,
+		},
+		{
+			Value:    "1testing123",
+			ErrCount: 1,
+		},
+		{
+			Value:    "testing--123",
+			ErrCount: 1,
+		},
+		{
+			Value:    "testing123-",
+			ErrCount: 1,
+		},
+		{
+			Value:    randomString(256),
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateDbOptionGroupName(tc.Value, "aws_db_option_group_name")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected the DB Option Group Name to trigger a validation error")
+		}
+	}
+}
+
+func TestValidateDbOptionGroupNamePrefix(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "testing123!",
+			ErrCount: 1,
+		},
+		{
+			Value:    "1testing123",
+			ErrCount: 1,
+		},
+		{
+			Value:    "testing--123",
+			ErrCount: 1,
+		},
+		{
+			Value:    randomString(230),
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateDbOptionGroupNamePrefix(tc.Value, "aws_db_option_group_name")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected the DB Option Group name prefix to trigger a validation error")
+		}
+	}
+}
+
+func TestValidateOpenIdURL(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "http://wrong.scheme.com",
+			ErrCount: 1,
+		},
+		{
+			Value:    "ftp://wrong.scheme.co.uk",
+			ErrCount: 1,
+		},
+		{
+			Value:    "%@invalidUrl",
+			ErrCount: 1,
+		},
+		{
+			Value:    "https://example.com/?query=param",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateOpenIdURL(tc.Value, "url")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %d of OpenID URL validation errors, got %d", tc.ErrCount, len(errors))
+		}
+	}
+}

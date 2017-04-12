@@ -17,7 +17,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the GitHub Provider
 provider "github" {
   token        = "${var.github_token}"

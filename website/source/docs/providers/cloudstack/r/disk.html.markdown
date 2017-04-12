@@ -6,21 +6,21 @@ description: |-
   Creates a disk volume from a disk offering. This disk volume will be attached to a virtual machine if the optional parameters are configured.
 ---
 
-# cloudstack\_disk
+# cloudstack_disk
 
 Creates a disk volume from a disk offering. This disk volume will be attached to
 a virtual machine if the optional parameters are configured.
 
 ## Example Usage
 
-```
+```hcl
 resource "cloudstack_disk" "default" {
-  name            = "test-disk"
-  attach          = "true"
-  disk_offering   = "custom"
-  size            = 50
-  virtual_machine = "server-1"
-  zone            = "zone-1"
+  name               = "test-disk"
+  attach             = "true"
+  disk_offering      = "custom"
+  size               = 50
+  virtual_machine_id = "server-1"
+  zone               = "zone-1"
 }
 ```
 

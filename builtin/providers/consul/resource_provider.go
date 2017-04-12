@@ -35,6 +35,12 @@ func Provider() terraform.ResourceProvider {
 				}, "http"),
 			},
 
+			"http_auth": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CONSUL_HTTP_AUTH", ""),
+			},
+
 			"ca_file": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,

@@ -6,13 +6,13 @@ description: |-
   Get DNS A record set.
 ---
 
-# dns\_a\_record\_set
+# dns_a_record_set
 
 Use this data source to get DNS A records of the host.
 
 ## Example Usage
 
-```
+```hcl
 data "dns_a_record_set" "google" {
   host = "google.com"
 }

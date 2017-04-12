@@ -6,7 +6,7 @@ description: |-
   Creates a private gateway.
 ---
 
-# cloudstack\_private\_gateway
+# cloudstack_private_gateway
 
 Creates a private gateway for the given VPC.
 
@@ -14,7 +14,7 @@ Creates a private gateway for the given VPC.
 
 ## Example Usage
 
-```
+```hcl
 resource "cloudstack_private_gateway" "default" {
   gateway    = "10.0.0.1"
   ip_address = "10.0.0.2"
@@ -55,4 +55,3 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The ID of the private gateway.
-

@@ -6,7 +6,7 @@ description: |-
   Writes values into the Consul key/value store.
 ---
 
-# consul\_keys
+# consul_keys
 
 The `consul_keys` resource writes sets of individual values into Consul.
 This is a powerful way to expose infrastructure details to clients.
@@ -20,7 +20,7 @@ remove errant keys not present in the configuration, consider using the
 
 ## Example Usage
 
-```
+```hcl
 resource "consul_keys" "app" {
   datacenter = "nyc1"
   token      = "abcd"

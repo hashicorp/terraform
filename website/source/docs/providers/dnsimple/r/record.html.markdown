@@ -12,7 +12,7 @@ Provides a DNSimple record resource.
 
 ## Example Usage
 
-```
+```hcl
 # Add a record to the root domain
 resource "dnsimple_record" "foobar" {
   domain = "${var.dnsimple_domain}"
@@ -23,7 +23,7 @@ resource "dnsimple_record" "foobar" {
 }
 ```
 
-```
+```hcl
 # Add a record to a sub-domain
 resource "dnsimple_record" "foobar" {
   domain = "${var.dnsimple_domain}"

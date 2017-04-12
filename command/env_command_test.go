@@ -103,6 +103,44 @@ func TestEnv_createAndList(t *testing.T) {
 	}
 }
 
+// Don't allow names that aren't URL safe
+func TestEnv_createInvalid(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	os.MkdirAll(td, 0755)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	newCmd := &EnvNewCommand{}
+
+	envs := []string{"test_a*", "test_b/foo", "../../../test_c", "好_d"}
+
+	// create multiple envs
+	for _, env := range envs {
+		ui := new(cli.MockUi)
+		newCmd.Meta = Meta{Ui: ui}
+		if code := newCmd.Run([]string{env}); code == 0 {
+			t.Fatalf("expected failure: \n%s", ui.OutputWriter)
+		}
+	}
+
+	// list envs to make sure none were created
+	listCmd := &EnvListCommand{}
+	ui := new(cli.MockUi)
+	listCmd.Meta = Meta{Ui: ui}
+
+	if code := listCmd.Run(nil); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+
+	actual := strings.TrimSpace(ui.OutputWriter.String())
+	expected := "* default"
+
+	if actual != expected {
+		t.Fatalf("\nexpected: %q\nactual:  %q", expected, actual)
+	}
+}
+
 func TestEnv_createWithState(t *testing.T) {
 	td := tempDir(t)
 	os.MkdirAll(td, 0755)
