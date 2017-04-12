@@ -2,6 +2,7 @@
 
 FEATURES:
 
+ * **New Resource:** `aws_api_gateway_method_settings` [GH-13542]
  * **New Resource:** `aws_api_gateway_stage` [GH-13540]
  * **New Resource:** `aws_iam_openid_connect_provider` [GH-13456]
  * **New Resource:** `aws_lightsail_static_ip` [GH-13175]
