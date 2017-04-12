@@ -20,6 +20,13 @@ import (
 // but also for data sources. In the case of data sources, the Create,
 // Update and Delete functions must not be provided.
 type Resource struct {
+	// Name is used as the name for docs.
+	Name string
+
+	// Description is used as the description for docs.
+	// It should be relatively short (a few sentences max)
+	Description string
+
 	// Schema is the schema for the configuration of this resource.
 	//
 	// The keys of this map are the configuration keys, and the values
