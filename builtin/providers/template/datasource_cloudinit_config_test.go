@@ -1,9 +1,8 @@
 package template
 
 import (
-	"testing"
-
 	"regexp"
+	"testing"
 
 	r "github.com/hashicorp/terraform/helper/resource"
 )
