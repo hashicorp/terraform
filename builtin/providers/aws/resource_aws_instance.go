@@ -887,7 +887,7 @@ func readBlockDevicesFromInstance(instance *ec2.Instance, conn *ec2.EC2) (map[st
 
 	instanceBlockDevices := make(map[string]*ec2.InstanceBlockDeviceMapping)
 	for _, bd := range instance.BlockDeviceMappings {
-		if bd.Ebs != nil {
+		if bd.Ebs != nil && bd.Ebs.VolumeId != nil {
 			instanceBlockDevices[*bd.Ebs.VolumeId] = bd
 		}
 	}
