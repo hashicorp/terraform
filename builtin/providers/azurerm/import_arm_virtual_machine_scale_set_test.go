@@ -31,6 +31,29 @@ func TestAccAzureRMVirtualMachineScaleSet_importBasic(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMVirtualMachineScaleSet_importLinux(t *testing.T) {
+	resourceName := "azurerm_virtual_machine_scale_set.test"
+
+	ri := acctest.RandInt()
+	config := testAccAzureRMVirtualMachineScaleSet_linux(ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMVirtualMachineScaleSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccAzureRMVirtualMachineScaleSet_importLoadBalancer(t *testing.T) {
 	resourceName := "azurerm_virtual_machine_scale_set.test"
 
