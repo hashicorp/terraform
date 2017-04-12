@@ -15,6 +15,7 @@ import (
 
 func TestAccAWSDynamoDbTable_basic(t *testing.T) {
 	var conf dynamodb.DescribeTableOutput
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -22,14 +23,14 @@ func TestAccAWSDynamoDbTable_basic(t *testing.T) {
 		CheckDestroy: testAccCheckAWSDynamoDbTableDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSDynamoDbConfigInitialState(),
+				Config: testAccAWSDynamoDbConfigInitialState(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInitialAWSDynamoDbTableExists("aws_dynamodb_table.basic-dynamodb-table", &conf),
 					testAccCheckInitialAWSDynamoDbTableConf("aws_dynamodb_table.basic-dynamodb-table"),
 				),
 			},
 			{
-				Config: testAccAWSDynamoDbConfigAddSecondaryGSI,
+				Config: testAccAWSDynamoDbConfigAddSecondaryGSI(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDynamoDbTableWasUpdated("aws_dynamodb_table.basic-dynamodb-table"),
 				),
@@ -363,7 +364,7 @@ func dynamoDbAttributesToMap(attributes *[]*dynamodb.AttributeDefinition) map[st
 	return attrmap
 }
 
-func testAccAWSDynamoDbConfigInitialState() string {
+func testAccAWSDynamoDbConfigInitialState(rInt int) string {
 	return fmt.Sprintf(`
 resource "aws_dynamodb_table" "basic-dynamodb-table" {
   name = "TerraformTestTable-%d"
@@ -407,12 +408,13 @@ resource "aws_dynamodb_table" "basic-dynamodb-table" {
     projection_type = "KEYS_ONLY"
   }
 }
-`, acctest.RandInt())
+`, rInt)
 }
 
-const testAccAWSDynamoDbConfigAddSecondaryGSI = `
+func testAccAWSDynamoDbConfigAddSecondaryGSI(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_dynamodb_table" "basic-dynamodb-table" {
-  name = "TerraformTestTable"
+  name = "TerraformTestTable-%d"
   read_capacity = 20
   write_capacity = 20
   hash_key = "TestTableHashKey"
@@ -454,7 +456,8 @@ resource "aws_dynamodb_table" "basic-dynamodb-table" {
     non_key_attributes = ["TestNonKeyAttribute"]
   }
 }
-`
+`, rInt)
+}
 
 func testAccAWSDynamoDbConfigStreamSpecification() string {
 	return fmt.Sprintf(`

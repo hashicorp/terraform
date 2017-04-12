@@ -3,19 +3,20 @@ package aws
 import (
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
 func TestAccAWSDynamoDbTable_importBasic(t *testing.T) {
 	resourceName := "aws_dynamodb_table.basic-dynamodb-table"
-
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDynamoDbTableDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSDynamoDbConfigInitialState(),
+				Config: testAccAWSDynamoDbConfigInitialState(rInt),
 			},
 
 			{
