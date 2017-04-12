@@ -1,4 +1,4 @@
-## 0.9.3 (unreleased)
+## 0.9.3 (April 12, 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
  * provider/aws: Fix a critical bug in `aws_emr_cluster` in order to preserve the ordering 
