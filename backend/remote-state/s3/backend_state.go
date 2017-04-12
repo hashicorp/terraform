@@ -14,15 +14,20 @@ import (
 )
 
 const (
-	// This will be used as directory name, the odd looking colon is simply to
-	// reduce the chance of name conflicts with existing objects.
-	keyEnvPrefix = "env:"
+	keyEnvPrefix = "-env:"
 )
 
 func (b *Backend) States() ([]string, error) {
+	// fetch deprecated envs
+	old, err := b.oldStates()
+	if err != nil {
+		return nil, err
+	}
+
+	prefix := b.keyName + keyEnvPrefix
 	params := &s3.ListObjectsInput{
 		Bucket: &b.bucketName,
-		Prefix: aws.String(keyEnvPrefix + "/"),
+		Prefix: aws.String(prefix),
 	}
 
 	resp, err := b.s3Client.ListObjects(params)
@@ -30,33 +35,32 @@ func (b *Backend) States() ([]string, error) {
 		return nil, err
 	}
 
-	var envs []string
+	envs := map[string]struct{}{}
 	for _, obj := range resp.Contents {
-		env := keyEnv(*obj.Key)
-		if env != "" {
-			envs = append(envs, env)
+		key := *obj.Key
+		if strings.HasPrefix(key, prefix) {
+			name := strings.TrimPrefix(key, prefix)
+			// we store the state in a key, not a directory
+			if strings.Contains(name, "/") {
+				continue
+			}
+
+			envs[name] = struct{}{}
 		}
 	}
 
-	sort.Strings(envs)
-	envs = append([]string{backend.DefaultStateName}, envs...)
-	return envs, nil
-}
-
-// extract the env name from the S3 key
-func keyEnv(key string) string {
-	parts := strings.Split(key, "/")
-	if len(parts) < 3 {
-		// no env here
-		return ""
+	result := []string{backend.DefaultStateName}
+	for name := range envs {
+		result = append(result, name)
 	}
 
-	if parts[0] != keyEnvPrefix {
-		// not our key, so ignore
-		return ""
+	// add old envs
+	for _, name := range old {
+		result = append(result, name)
 	}
 
-	return parts[1]
+	sort.Strings(result[1:])
+	return result, nil
 }
 
 func (b *Backend) DeleteState(name string) error {
@@ -78,6 +82,22 @@ func (b *Backend) DeleteState(name string) error {
 }
 
 func (b *Backend) State(name string) (state.State, error) {
+	oldStates, err := b.oldStates()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, n := range oldStates {
+		if n == name {
+			return b.oldState(name)
+		}
+	}
+	return b.state(name)
+}
+
+// TODO: recombine State after deprecated env code is removed
+func (b *Backend) state(name string) (state.State, error) {
+
 	client := &RemoteClient{
 		s3Client:             b.s3Client,
 		dynClient:            b.dynClient,
@@ -97,42 +117,32 @@ func (b *Backend) State(name string) (state.State, error) {
 		// take a lock on this state while we write it
 		lockInfo := state.NewLockInfo()
 		lockInfo.Operation = "init"
-		lockId, err := client.Lock(lockInfo)
+		lockID, err := client.Lock(lockInfo)
 		if err != nil {
 			return nil, fmt.Errorf("failed to lock s3 state: %s", err)
 		}
 
-		// Local helper function so we can call it multiple places
-		lockUnlock := func(parent error) error {
-			if err := stateMgr.Unlock(lockId); err != nil {
-				return fmt.Errorf(strings.TrimSpace(errStateUnlock), lockId, err)
-			}
-			return parent
-		}
+		unlock := lockUnlock(stateMgr, lockID)
 
 		// Grab the value
 		if err := stateMgr.RefreshState(); err != nil {
-			err = lockUnlock(err)
-			return nil, err
+			return nil, unlock(err)
 		}
 
 		// If we have no state, we have to create an empty state
 		if v := stateMgr.State(); v == nil {
 			if err := stateMgr.WriteState(terraform.NewState()); err != nil {
-				err = lockUnlock(err)
-				return nil, err
+				return nil, unlock(err)
 			}
 			if err := stateMgr.PersistState(); err != nil {
-				err = lockUnlock(err)
-				return nil, err
+				return nil, unlock(err)
 			}
 		}
 
 		// Unlock, the state should now be initialized
-		if err := lockUnlock(nil); err != nil {
+		if err := unlock(nil); err != nil {
 			return nil, err
 		}
-
 	}
 
 	return stateMgr, nil
@@ -147,7 +157,17 @@ func (b *Backend) path(name string) string {
 		return b.keyName
 	}
 
-	return strings.Join([]string{keyEnvPrefix, name, b.keyName}, "/")
+	return b.keyName + keyEnvPrefix + name
+}
+
+// helper function so we can call it multiple places and combine errors
+func lockUnlock(stateMgr state.State, id string) func(error) error {
+	return func(parent error) error {
+		if err := stateMgr.Unlock(id); err != nil {
+			return fmt.Errorf(strings.TrimSpace(errStateUnlock), id, err)
+		}
+		return parent
+	}
 }
 
 const errStateUnlock = `

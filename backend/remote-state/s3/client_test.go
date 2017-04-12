@@ -21,18 +21,17 @@ func TestRemoteClient(t *testing.T) {
 	keyName := "testState"
 
 	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"bucket":  bucketName,
-		"key":     keyName,
-		"encrypt": true,
+		"bucket": bucketName,
+		"key":    keyName,
 	}).(*Backend)
+
+	createS3Bucket(t, b.s3Client, bucketName)
+	defer deleteS3Bucket(t, b.s3Client, bucketName)
 
 	state, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	createS3Bucket(t, b.s3Client, bucketName)
-	defer deleteS3Bucket(t, b.s3Client, bucketName)
 
 	remote.TestClient(t, state.(*remote.State).Client)
 }
@@ -57,6 +56,11 @@ func TestRemoteClientLocks(t *testing.T) {
 		"lock_table": bucketName,
 	}).(*Backend)
 
+	createS3Bucket(t, b1.s3Client, bucketName)
+	defer deleteS3Bucket(t, b1.s3Client, bucketName)
+	createDynamoDBTable(t, b1.dynClient, bucketName)
+	defer deleteDynamoDBTable(t, b1.dynClient, bucketName)
+
 	s1, err := b1.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
@@ -66,11 +70,6 @@ func TestRemoteClientLocks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	createS3Bucket(t, b1.s3Client, bucketName)
-	defer deleteS3Bucket(t, b1.s3Client, bucketName)
-	createDynamoDBTable(t, b1.dynClient, bucketName)
-	defer deleteDynamoDBTable(t, b1.dynClient, bucketName)
 
 	remote.TestRemoteLocks(t, s1.(*remote.State).Client, s2.(*remote.State).Client)
 }
