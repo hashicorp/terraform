@@ -1,6 +1,8 @@
 ## 0.9.4 (Unreleased)
 
+BUG FIXES: 
 
+ * core: Add the close provider/provisioner transformers back [GH-13102]
 
 ## 0.9.3 (April 12, 2017)
 
