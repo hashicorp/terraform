@@ -4,7 +4,7 @@ BUG FIXES:
 
  * core: Add the close provider/provisioner transformers back [GH-13102]
 
-FEATURES:
+IMPROVEMENTS:
  * google: `google_compute_address` and `google_compute_global_address` are now importable [GH-13270]
 
 ## 0.9.3 (April 12, 2017)
