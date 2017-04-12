@@ -184,7 +184,8 @@ func TestAccAWSRouteTable_tags(t *testing.T) {
 	})
 }
 
-func TestAccAWSRouteTable_panic(t *testing.T) {
+// For GH-13545, Fixes panic on an empty route config block
+func TestAccAWSRouteTable_panicEmptyRoute(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
 		IDRefreshName: "aws_route_table.foo",
@@ -192,7 +193,7 @@ func TestAccAWSRouteTable_panic(t *testing.T) {
 		CheckDestroy:  testAccCheckRouteTableDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccRouteTableConfigPanic,
+				Config:      testAccRouteTableConfigPanicEmptyRoute,
 				ExpectError: regexp.MustCompile("The request must contain the parameter destinationCidrBlock or destinationIpv6CidrBlock"),
 			},
 		},
@@ -514,7 +515,8 @@ resource "aws_route_table" "foo" {
 }
 `
 
-const testAccRouteTableConfigPanic = `
+// For GH-13545
+const testAccRouteTableConfigPanicEmptyRoute = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.2.0.0/16"
 }
