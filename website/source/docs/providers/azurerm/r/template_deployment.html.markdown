@@ -74,7 +74,7 @@ resource "azurerm_template_deployment" "test" {
 }
 DEPLOY
 
-  deployment_mode = "Complete"
+  deployment_mode = "Incremental"
 }
 ```
 
@@ -98,3 +98,7 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The Template Deployment ID.
+
+## Note
+
+Terraform does not know about the individual resources created by Azure using a deployment template and therefore cannot delete these resources during a destroy. Destroying a template deployment removes the associated deployment operations, but will not delete the Azure resources created by the deployment. In order to delete these resources, the containing resource group must also be destroyed. [More information](https://docs.microsoft.com/en-us/rest/api/resources/deployments#Deployments_Delete).
