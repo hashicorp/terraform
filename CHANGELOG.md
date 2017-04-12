@@ -86,6 +86,7 @@ BUG FIXES:
  * provider/aws: Update ElasticTranscoderPreset to have default for MaxFrameRate [GH-13422]
  * provider/aws: Fix aws_ami_launch_permission refresh when AMI disappears [GH-13469]
  * provider/aws: Add support for updating SSM documents [GH-13491]
+ * provider/aws: Fix panic on nil route configs [GH-13548]
  * provider/azurerm: Network Security Group - ignoring protocol casing at Import time [GH-13153]
  * provider/azurerm: Fix crash when importing Local Network Gateways [GH-13261]
  * provider/azurerm: Defaulting the value of `duplicate_detection_history_time_window` for `azurerm_servicebus_topic` [GH-13223]
