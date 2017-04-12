@@ -39,7 +39,11 @@ func nameFromResourceData(nameMap map[string]interface{}) (*pkix.Name, error) {
 		result.Organization = []string{value.(string)}
 	}
 	if value := nameMap["organizational_unit"]; value != nil {
-		result.OrganizationalUnit = []string{value.(string)}
+		valueI := value.([]interface{})
+		result.OrganizationalUnit = make([]string, len(valueI))
+		for i, vi := range valueI {
+			result.OrganizationalUnit[i] = vi.(string)
+		}
 	}
 	if value := nameMap["street_address"]; value != nil {
 		valueI := value.([]interface{})
@@ -78,8 +82,11 @@ var nameSchema *schema.Resource = &schema.Resource{
 			Optional: true,
 		},
 		"organizational_unit": &schema.Schema{
-			Type:     schema.TypeString,
+			Type:     schema.TypeList,
 			Optional: true,
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
+			},
 		},
 		"street_address": &schema.Schema{
 			Type:     schema.TypeList,
