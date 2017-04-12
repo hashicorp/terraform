@@ -1,5 +1,11 @@
 ## 0.9.3 (unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+ * provider/aws: Fix a critical bug in `aws_emr_cluster` in order to preserve the ordering 
+   of any arguments in `bootstrap_action`. Terraform will now enforce the ordering  
+   from the configuration. As a result, `aws_emr_cluster` resources may need to be
+   recreated, as there is no API to update them in-place
+
 FEATURES:
 
  * **New Resource:** `aws_api_gateway_method_settings` [GH-13542]
