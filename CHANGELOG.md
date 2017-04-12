@@ -89,6 +89,7 @@ BUG FIXES:
  * provider/azurerm: Network Security Group - ignoring protocol casing at Import time [GH-13153]
  * provider/azurerm: Fix crash when importing Local Network Gateways [GH-13261]
  * provider/azurerm: Defaulting the value of `duplicate_detection_history_time_window` for `azurerm_servicebus_topic` [GH-13223]
+ * provider/azurerm: Event Hubs making the Location field idempotent [GH-13570]
  * provider/bitbucket: Fixed issue where provider would fail with an "EOF" error on some operations [GH-13390]
  * provider/kubernetes: Use PATCH to update namespace [GH-13114]
  * provider/ns1: No splitting answer on SPF records. [GH-13260]
