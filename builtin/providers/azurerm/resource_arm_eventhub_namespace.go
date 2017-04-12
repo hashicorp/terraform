@@ -90,7 +90,7 @@ func resourceArmEventHubNamespaceCreate(d *schema.ResourceData, meta interface{}
 	capacity := int32(d.Get("capacity").(int))
 	tags := d.Get("tags").(map[string]interface{})
 
-	parameters := eventhub.NamespaceCreateOrUpdateParameters{
+	parameters := eventhub.Namespace{
 		Location: &location,
 		Sku: &eventhub.Sku{
 			Name:     eventhub.SkuName(sku),
