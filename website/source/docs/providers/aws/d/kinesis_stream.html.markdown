@@ -25,19 +25,6 @@ data "aws_kinesis_stream" "stream" {
 
 * `name` - (Required) The name of the Kinesis Stream.
 
-
-/*
-arn (string)
-closed_shards (list of shard ids)
-creation_timestamp (int)
-name (string)
-open_shards (list of shard ids)
-retention_period (int)
-shard_level_metrics (list of metrics)
-status (string)
-tags (map)
-*/
-
 ## Attributes Reference
 
 `id` is set to the Amazon Resource Name (ARN) of the Kinesis Stream. In addition, the following attributes
