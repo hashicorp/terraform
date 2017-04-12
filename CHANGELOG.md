@@ -111,7 +111,7 @@ BUG FIXES:
 
 ## 0.9.2 (March 28, 2017)
 
-BACKWARDS IMCOMPATIBILITIES / NOTES:
+BACKWARDS INCOMPATIBILITIES / NOTES:
 
  * provider/openstack: Port Fixed IPs are able to be read again using the original numerical notation. However, Fixed IP configurations which are obtaining addresses via DHCP must now use the `all_fixed_ips` attribute to reference the returned IP address.
  * Environment names must be safe to use as a URL path segment without escaping, and is enforced by the CLI.
@@ -192,7 +192,7 @@ BUG FIXES:
 
 ## 0.9.1 (March 17, 2017)
 
-BACKWARDS IMCOMPATIBILITIES / NOTES:
+BACKWARDS INCOMPATIBILITIES / NOTES:
 
  * provider/pagerduty: the deprecated `name_regex` field has been removed from vendor data source ([#12396](https://github.com/hashicorp/terraform/issues/12396))
 
