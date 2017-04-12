@@ -24,8 +24,8 @@ import (
 // LogRoundTripper satisfies the http.RoundTripper interface and is used to
 // customize the default http client RoundTripper to allow for logging.
 type LogRoundTripper struct {
-	rt      http.RoundTripper
-	osDebug bool
+	Rt      http.RoundTripper
+	OsDebug bool
 }
 
 // RoundTrip performs a round-trip HTTP request and logs relevant information about it.
@@ -37,11 +37,11 @@ func (lrt *LogRoundTripper) RoundTrip(request *http.Request) (*http.Response, er
 	}()
 
 	// for future reference, this is how to access the Transport struct:
-	//tlsconfig := lrt.rt.(*http.Transport).TLSClientConfig
+	//tlsconfig := lrt.Rt.(*http.Transport).TLSClientConfig
 
 	var err error
 
-	if lrt.osDebug {
+	if lrt.OsDebug {
 		log.Printf("[DEBUG] OpenStack Request URL: %s %s", request.Method, request.URL)
 
 		if request.Body != nil {
@@ -52,12 +52,12 @@ func (lrt *LogRoundTripper) RoundTrip(request *http.Request) (*http.Response, er
 		}
 	}
 
-	response, err := lrt.rt.RoundTrip(request)
+	response, err := lrt.Rt.RoundTrip(request)
 	if response == nil {
 		return nil, err
 	}
 
-	if lrt.osDebug {
+	if lrt.OsDebug {
 		response.Body, err = lrt.logResponseBody(response.Body, response.Header)
 	}
 
