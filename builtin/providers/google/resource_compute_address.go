@@ -14,7 +14,12 @@ func resourceComputeAddress() *schema.Resource {
 		Create: resourceComputeAddressCreate,
 		Read:   resourceComputeAddressRead,
 		Delete: resourceComputeAddressDelete,
-
+		Importer: &schema.ResourceImporter{
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				d.Set("name", d.Id())
+				return []*schema.ResourceData{d}, nil
+			},
+		},
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
