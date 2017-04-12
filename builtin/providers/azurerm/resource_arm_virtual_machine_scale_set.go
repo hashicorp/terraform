@@ -99,6 +99,7 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 						"custom_data": {
 							Type:      schema.TypeString,
 							Optional:  true,
+							ForceNew:  true,
 							StateFunc: userDataStateFunc,
 						},
 					},
@@ -726,12 +727,7 @@ func flattenAzureRMVirtualMachineScaleSetOsProfile(profile *compute.VirtualMachi
 	result["admin_username"] = *profile.AdminUsername
 
 	if profile.CustomData != nil {
-		data, err := base64Decode(*profile.CustomData)
-		if err != nil {
-			return nil, err
-		}
-		result["custom_data"] = data
-
+		result["custom_data"] = *profile.CustomData
 	}
 
 	return []interface{}{result}, nil
@@ -863,7 +859,11 @@ func resourceArmVirtualMachineScaleSetsOsProfileHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["computer_name_prefix"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["admin_username"].(string)))
 	if m["custom_data"] != nil {
-		buf.WriteString(fmt.Sprintf("%s-", m["custom_data"].(string)))
+		customData := m["custom_data"].(string)
+		if !isBase64Encoded(customData) {
+			customData = base64Encode(customData)
+		}
+		buf.WriteString(fmt.Sprintf("%s-", customData))
 	}
 	return hashcode.String(buf.String())
 }
