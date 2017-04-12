@@ -67,6 +67,7 @@ The following arguments are supported:
 * `release_label` - (Required) The release label for the Amazon EMR release
 * `master_instance_type` - (Required) The EC2 instance type of the master node
 * `service_role` - (Required) IAM role that will be assumed by the Amazon EMR service to access AWS resources
+* `security_configuration` - (Optional) The security configuration name to attach to the EMR cluster, the security configuration cannot be created through Terraform
 * `core_instance_type` - (Optional) The EC2 instance type of the slave nodes
 * `core_instance_count` - (Optional) Number of Amazon EC2 instances used to execute the job flow. EMR will use one node as the cluster's master node and use the remainder of the nodes (`core_instance_count`-1) as core nodes. Default `1`
 * `log_uri` - (Optional) S3 bucket to write the log files of the job flow. If a value
