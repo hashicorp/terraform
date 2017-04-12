@@ -89,8 +89,9 @@ func (client VaultsClient) CreateOrUpdatePreparer(resourceGroupName string, vaul
 		"vaultName":         autorest.Encode("path", vaultName),
 	}
 
+	const APIVersion = "2015-06-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -154,8 +155,9 @@ func (client VaultsClient) DeletePreparer(resourceGroupName string, vaultName st
 		"vaultName":         autorest.Encode("path", vaultName),
 	}
 
+	const APIVersion = "2015-06-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -216,8 +218,9 @@ func (client VaultsClient) GetPreparer(resourceGroupName string, vaultName strin
 		"vaultName":         autorest.Encode("path", vaultName),
 	}
 
+	const APIVersion = "2015-06-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -278,9 +281,10 @@ func (client VaultsClient) ListPreparer(filter string, top *int32) (*http.Reques
 		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2015-11-01"
 	queryParameters := map[string]interface{}{
 		"$filter":     autorest.Encode("query", filter),
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 	if top != nil {
 		queryParameters["$top"] = autorest.Encode("query", *top)
@@ -369,8 +373,9 @@ func (client VaultsClient) ListByResourceGroupPreparer(resourceGroupName string,
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2015-06-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 	if top != nil {
 		queryParameters["$top"] = autorest.Encode("query", *top)

@@ -80,8 +80,9 @@ func (client VirtualMachineExtensionsClient) CreateOrUpdatePreparer(resourceGrou
 		"vmName":            autorest.Encode("path", vmName),
 	}
 
+	const APIVersion = "2016-04-30-preview"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -151,8 +152,9 @@ func (client VirtualMachineExtensionsClient) DeletePreparer(resourceGroupName st
 		"vmName":            autorest.Encode("path", vmName),
 	}
 
+	const APIVersion = "2016-04-30-preview"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -218,8 +220,9 @@ func (client VirtualMachineExtensionsClient) GetPreparer(resourceGroupName strin
 		"vmName":            autorest.Encode("path", vmName),
 	}
 
+	const APIVersion = "2016-04-30-preview"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 	if len(expand) > 0 {
 		queryParameters["$expand"] = autorest.Encode("query", expand)

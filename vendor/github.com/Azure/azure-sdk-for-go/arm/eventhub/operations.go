@@ -1,4 +1,4 @@
-package cdn
+package eventhub
 
 // Copyright (c) Microsoft and contributors.  All rights reserved.
 //
@@ -24,48 +24,46 @@ import (
 	"net/http"
 )
 
-// EdgeNodesClient is the use these APIs to manage Azure CDN resources through
-// the Azure Resource Manager. You must make sure that requests made to these
-// resources are secure.
-type EdgeNodesClient struct {
+// OperationsClient is the azure Event Hubs client
+type OperationsClient struct {
 	ManagementClient
 }
 
-// NewEdgeNodesClient creates an instance of the EdgeNodesClient client.
-func NewEdgeNodesClient(subscriptionID string) EdgeNodesClient {
-	return NewEdgeNodesClientWithBaseURI(DefaultBaseURI, subscriptionID)
+// NewOperationsClient creates an instance of the OperationsClient client.
+func NewOperationsClient(subscriptionID string) OperationsClient {
+	return NewOperationsClientWithBaseURI(DefaultBaseURI, subscriptionID)
 }
 
-// NewEdgeNodesClientWithBaseURI creates an instance of the EdgeNodesClient
+// NewOperationsClientWithBaseURI creates an instance of the OperationsClient
 // client.
-func NewEdgeNodesClientWithBaseURI(baseURI string, subscriptionID string) EdgeNodesClient {
-	return EdgeNodesClient{NewWithBaseURI(baseURI, subscriptionID)}
+func NewOperationsClientWithBaseURI(baseURI string, subscriptionID string) OperationsClient {
+	return OperationsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// List lists all the edge nodes of a CDN service.
-func (client EdgeNodesClient) List() (result EdgenodeResult, err error) {
+// List lists all of the available event hub REST API operations.
+func (client OperationsClient) List() (result OperationListResult, err error) {
 	req, err := client.ListPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.EdgeNodesClient", "List", nil, "Failure preparing request")
+		return result, autorest.NewErrorWithError(err, "eventhub.OperationsClient", "List", nil, "Failure preparing request")
 	}
 
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "cdn.EdgeNodesClient", "List", resp, "Failure sending request")
+		return result, autorest.NewErrorWithError(err, "eventhub.OperationsClient", "List", resp, "Failure sending request")
 	}
 
 	result, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.EdgeNodesClient", "List", resp, "Failure responding to request")
+		err = autorest.NewErrorWithError(err, "eventhub.OperationsClient", "List", resp, "Failure responding to request")
 	}
 
 	return
 }
 
 // ListPreparer prepares the List request.
-func (client EdgeNodesClient) ListPreparer() (*http.Request, error) {
-	const APIVersion = "2016-10-02"
+func (client OperationsClient) ListPreparer() (*http.Request, error) {
+	const APIVersion = "2015-08-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -73,20 +71,20 @@ func (client EdgeNodesClient) ListPreparer() (*http.Request, error) {
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
 		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPath("/providers/Microsoft.Cdn/edgenodes"),
+		autorest.WithPath("/providers/Microsoft.EventHub/operations"),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare(&http.Request{})
 }
 
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
-func (client EdgeNodesClient) ListSender(req *http.Request) (*http.Response, error) {
+func (client OperationsClient) ListSender(req *http.Request) (*http.Response, error) {
 	return autorest.SendWithSender(client, req)
 }
 
 // ListResponder handles the response to the List request. The method always
 // closes the http.Response Body.
-func (client EdgeNodesClient) ListResponder(resp *http.Response) (result EdgenodeResult, err error) {
+func (client OperationsClient) ListResponder(resp *http.Response) (result OperationListResult, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -98,10 +96,10 @@ func (client EdgeNodesClient) ListResponder(resp *http.Response) (result Edgenod
 }
 
 // ListNextResults retrieves the next set of results, if any.
-func (client EdgeNodesClient) ListNextResults(lastResults EdgenodeResult) (result EdgenodeResult, err error) {
-	req, err := lastResults.EdgenodeResultPreparer()
+func (client OperationsClient) ListNextResults(lastResults OperationListResult) (result OperationListResult, err error) {
+	req, err := lastResults.OperationListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.EdgeNodesClient", "List", nil, "Failure preparing next results request")
+		return result, autorest.NewErrorWithError(err, "eventhub.OperationsClient", "List", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -110,12 +108,12 @@ func (client EdgeNodesClient) ListNextResults(lastResults EdgenodeResult) (resul
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "cdn.EdgeNodesClient", "List", resp, "Failure sending next results request")
+		return result, autorest.NewErrorWithError(err, "eventhub.OperationsClient", "List", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.EdgeNodesClient", "List", resp, "Failure responding to next results request")
+		err = autorest.NewErrorWithError(err, "eventhub.OperationsClient", "List", resp, "Failure responding to next results request")
 	}
 
 	return

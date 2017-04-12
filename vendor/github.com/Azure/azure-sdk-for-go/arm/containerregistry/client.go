@@ -27,9 +27,6 @@ import (
 )
 
 const (
-	// APIVersion is the version of the Containerregistry
-	APIVersion = "2016-06-27-preview"
-
 	// DefaultBaseURI is the default URI used for the service Containerregistry
 	DefaultBaseURI = "https://management.azure.com"
 )
@@ -38,7 +35,6 @@ const (
 type ManagementClient struct {
 	autorest.Client
 	BaseURI        string
-	APIVersion     string
 	SubscriptionID string
 }
 
@@ -52,7 +48,6 @@ func NewWithBaseURI(baseURI string, subscriptionID string) ManagementClient {
 	return ManagementClient{
 		Client:         autorest.NewClientWithUserAgent(UserAgent()),
 		BaseURI:        baseURI,
-		APIVersion:     APIVersion,
 		SubscriptionID: subscriptionID,
 	}
 }

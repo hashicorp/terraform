@@ -18,43 +18,12 @@ package containerservice
 // Changes may cause incorrect behavior and will be lost if the code is
 // regenerated.
 
-import (
-	"bytes"
-	"fmt"
-	"strings"
-)
-
-const (
-	major           = "8"
-	minor           = "1"
-	patch           = "0"
-	tag             = "beta"
-	userAgentFormat = "Azure-SDK-For-Go/%s arm-%s/%s"
-)
-
-// cached results of UserAgent and Version to prevent repeated operations.
-var (
-	userAgent string
-	version   string
-)
-
 // UserAgent returns the UserAgent string to use when sending http.Requests.
 func UserAgent() string {
-	if userAgent == "" {
-		userAgent = fmt.Sprintf(userAgentFormat, Version(), "containerservice", "2017-01-31")
-	}
-	return userAgent
+	return "Azure-SDK-For-Go/v9.0.0-beta arm-containerservice/2016-09-30"
 }
 
 // Version returns the semantic version (see http://semver.org) of the client.
 func Version() string {
-	if version == "" {
-		versionBuilder := bytes.NewBufferString(fmt.Sprintf("%s.%s.%s", major, minor, patch))
-		if tag != "" {
-			versionBuilder.WriteRune('-')
-			versionBuilder.WriteString(strings.TrimPrefix(tag, "-"))
-		}
-		version = string(versionBuilder.Bytes())
-	}
-	return version
+	return "v9.0.0-beta"
 }

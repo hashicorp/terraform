@@ -89,8 +89,9 @@ func (client DeploymentsClient) CancelPreparer(resourceGroupName string, deploym
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2016-09-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -164,8 +165,9 @@ func (client DeploymentsClient) CheckExistencePreparer(resourceGroupName string,
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2016-09-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -214,7 +216,7 @@ func (client DeploymentsClient) CreateOrUpdate(resourceGroupName string, deploym
 				{Target: "deploymentName", Name: validation.MinLength, Rule: 1, Chain: nil},
 				{Target: "deploymentName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
 		{TargetValue: parameters,
-			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
+			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: true,
 				Chain: []validation.Constraint{{Target: "parameters.Properties.TemplateLink", Name: validation.Null, Rule: false,
 					Chain: []validation.Constraint{{Target: "parameters.Properties.TemplateLink.URI", Name: validation.Null, Rule: true, Chain: nil}}},
 					{Target: "parameters.Properties.ParametersLink", Name: validation.Null, Rule: false,
@@ -250,8 +252,9 @@ func (client DeploymentsClient) CreateOrUpdatePreparer(resourceGroupName string,
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2016-09-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -341,8 +344,9 @@ func (client DeploymentsClient) DeletePreparer(resourceGroupName string, deploym
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2016-09-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -418,8 +422,9 @@ func (client DeploymentsClient) ExportTemplatePreparer(resourceGroupName string,
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2016-09-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -493,8 +498,9 @@ func (client DeploymentsClient) GetPreparer(resourceGroupName string, deployment
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2016-09-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -566,8 +572,9 @@ func (client DeploymentsClient) ListPreparer(resourceGroupName string, filter st
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2016-09-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 	if len(filter) > 0 {
 		queryParameters["$filter"] = autorest.Encode("query", filter)
@@ -644,7 +651,7 @@ func (client DeploymentsClient) Validate(resourceGroupName string, deploymentNam
 				{Target: "deploymentName", Name: validation.MinLength, Rule: 1, Chain: nil},
 				{Target: "deploymentName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
 		{TargetValue: parameters,
-			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
+			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: true,
 				Chain: []validation.Constraint{{Target: "parameters.Properties.TemplateLink", Name: validation.Null, Rule: false,
 					Chain: []validation.Constraint{{Target: "parameters.Properties.TemplateLink.URI", Name: validation.Null, Rule: true, Chain: nil}}},
 					{Target: "parameters.Properties.ParametersLink", Name: validation.Null, Rule: false,
@@ -680,8 +687,9 @@ func (client DeploymentsClient) ValidatePreparer(resourceGroupName string, deplo
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2016-09-01"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(

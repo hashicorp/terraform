@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -14,12 +15,13 @@ const oneTB = uint64(1099511627776)
 
 // File represents a file on a share.
 type File struct {
-	fsc        *FileServiceClient
-	Metadata   map[string]string
-	Name       string `xml:"Name"`
-	parent     *Directory
-	Properties FileProperties `xml:"Properties"`
-	share      *Share
+	fsc                *FileServiceClient
+	Metadata           map[string]string
+	Name               string `xml:"Name"`
+	parent             *Directory
+	Properties         FileProperties `xml:"Properties"`
+	share              *Share
+	FileCopyProperties FileCopyState
 }
 
 // FileProperties contains various properties of a file.
@@ -38,10 +40,10 @@ type FileProperties struct {
 // FileCopyState contains various properties of a file copy operation.
 type FileCopyState struct {
 	CompletionTime string
-	ID             string
+	ID             string `header:"x-ms-copy-id"`
 	Progress       string
 	Source         string
-	Status         string
+	Status         string `header:"x-ms-copy-status"`
 	StatusDesc     string
 }
 
@@ -49,6 +51,24 @@ type FileCopyState struct {
 type FileStream struct {
 	Body       io.ReadCloser
 	ContentMD5 string
+}
+
+// FileRequestOptions will be passed to misc file operations.
+// Currently just Timeout (in seconds) but will expand.
+type FileRequestOptions struct {
+	Timeout uint // timeout duration in seconds.
+}
+
+// getParameters, construct parameters for FileRequestOptions.
+// currently only timeout, but expecting to grow as functionality fills out.
+func (p FileRequestOptions) getParameters() url.Values {
+	out := url.Values{}
+
+	if p.Timeout != 0 {
+		out.Set("timeout", fmt.Sprintf("%v", p.Timeout))
+	}
+
+	return out
 }
 
 // FileRanges contains a list of file range information for a file.
@@ -104,13 +124,36 @@ func (f *File) Create(maxSize uint64) error {
 		"x-ms-type":           "file",
 	}
 
-	headers, err := f.fsc.createResource(f.buildPath(), resourceFile, mergeMDIntoExtraHeaders(f.Metadata, extraHeaders))
+	headers, err := f.fsc.createResource(f.buildPath(), resourceFile, nil, mergeMDIntoExtraHeaders(f.Metadata, extraHeaders), []int{http.StatusCreated})
 	if err != nil {
 		return err
 	}
 
 	f.Properties.Length = maxSize
 	f.updateEtagAndLastModified(headers)
+	return nil
+}
+
+// CopyFile operation copied a file/blob from the sourceURL to the path provided.
+//
+// See https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/copy-file
+func (f *File) CopyFile(sourceURL string, options *FileRequestOptions) error {
+	extraHeaders := map[string]string{
+		"x-ms-type":        "file",
+		"x-ms-copy-source": sourceURL,
+	}
+
+	var parameters url.Values
+	if options != nil {
+		parameters = options.getParameters()
+	}
+
+	headers, err := f.fsc.createResource(f.buildPath(), resourceFile, parameters, mergeMDIntoExtraHeaders(f.Metadata, extraHeaders), []int{http.StatusAccepted})
+	if err != nil {
+		return err
+	}
+
+	f.updateEtagLastModifiedAndCopyHeaders(headers)
 	return nil
 }
 
@@ -127,7 +170,7 @@ func (f *File) Delete() error {
 func (f *File) DeleteIfExists() (bool, error) {
 	resp, err := f.fsc.deleteResourceNoClose(f.buildPath(), resourceFile)
 	if resp != nil {
-		defer resp.body.Close()
+		defer readAndCloseBody(resp.body)
 		if resp.statusCode == http.StatusAccepted || resp.statusCode == http.StatusNotFound {
 			return resp.statusCode == http.StatusAccepted, nil
 		}
@@ -221,6 +264,7 @@ func (f *File) ListRanges(listRange *FileRange) (*FileRanges, error) {
 	var cl uint64
 	cl, err = strconv.ParseUint(resp.headers.Get("x-ms-content-length"), 10, 64)
 	if err != nil {
+		ioutil.ReadAll(resp.body)
 		return nil, err
 	}
 
@@ -272,7 +316,7 @@ func (f *File) modifyRange(bytes io.Reader, fileRange FileRange, contentMD5 *str
 	if err != nil {
 		return nil, err
 	}
-	defer resp.body.Close()
+	defer readAndCloseBody(resp.body)
 	return resp.headers, checkRespCode(resp.statusCode, []int{http.StatusCreated})
 }
 
@@ -316,6 +360,14 @@ func (f *File) SetProperties() error {
 func (f *File) updateEtagAndLastModified(headers http.Header) {
 	f.Properties.Etag = headers.Get("Etag")
 	f.Properties.LastModified = headers.Get("Last-Modified")
+}
+
+// updates Etag, last modified date and x-ms-copy-id
+func (f *File) updateEtagLastModifiedAndCopyHeaders(headers http.Header) {
+	f.Properties.Etag = headers.Get("Etag")
+	f.Properties.LastModified = headers.Get("Last-Modified")
+	f.FileCopyProperties.ID = headers.Get("X-Ms-Copy-Id")
+	f.FileCopyProperties.Status = headers.Get("X-Ms-Copy-Status")
 }
 
 // updates file properties from the specified HTTP header

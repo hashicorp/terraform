@@ -15,16 +15,18 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/Azure/go-autorest/autorest/azure"
 )
 
 const (
-	// DefaultBaseURL is the domain name used for storage requests when a
-	// default client is created.
+	// DefaultBaseURL is the domain name used for storage requests in the
+	// public cloud when a default client is created.
 	DefaultBaseURL = "core.windows.net"
 
-	// DefaultAPIVersion is the  Azure Storage API version string used when a
+	// DefaultAPIVersion is the Azure Storage API version string used when a
 	// basic client is created.
-	DefaultAPIVersion = "2015-02-21"
+	DefaultAPIVersion = "2015-04-05"
 
 	defaultUseHTTPS = true
 
@@ -131,7 +133,15 @@ func NewBasicClient(accountName, accountKey string) (Client, error) {
 		return NewEmulatorClient()
 	}
 	return NewClient(accountName, accountKey, DefaultBaseURL, DefaultAPIVersion, defaultUseHTTPS)
+}
 
+// NewBasicClientOnSovereignCloud constructs a Client with given storage service name and
+// key in the referenced cloud.
+func NewBasicClientOnSovereignCloud(accountName, accountKey string, env azure.Environment) (Client, error) {
+	if accountName == StorageEmulatorAccountName {
+		return NewEmulatorClient()
+	}
+	return NewClient(accountName, accountKey, env.StorageEndpointSuffix, DefaultAPIVersion, defaultUseHTTPS)
 }
 
 //NewEmulatorClient contructs a Client intended to only work with Azure
@@ -347,7 +357,7 @@ func (c Client) exec(verb, url string, headers map[string]string, body io.Reader
 	statusCode := resp.StatusCode
 	if statusCode >= 400 && statusCode <= 505 {
 		var respBody []byte
-		respBody, err = readResponseBody(resp)
+		respBody, err = readAndCloseBody(resp.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -406,7 +416,7 @@ func (c Client) execInternalJSON(verb, url string, headers map[string]string, bo
 	statusCode := resp.StatusCode
 	if statusCode >= 400 && statusCode <= 505 {
 		var respBody []byte
-		respBody, err = readResponseBody(resp)
+		respBody, err = readAndCloseBody(resp.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -424,9 +434,9 @@ func (c Client) execInternalJSON(verb, url string, headers map[string]string, bo
 	return respToRet, nil
 }
 
-func readResponseBody(resp *http.Response) ([]byte, error) {
-	defer resp.Body.Close()
-	out, err := ioutil.ReadAll(resp.Body)
+func readAndCloseBody(body io.ReadCloser) ([]byte, error) {
+	defer body.Close()
+	out, err := ioutil.ReadAll(body)
 	if err == io.EOF {
 		err = nil
 	}

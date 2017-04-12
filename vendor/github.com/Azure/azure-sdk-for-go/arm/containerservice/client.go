@@ -1,5 +1,5 @@
 // Package containerservice implements the Azure ARM Containerservice service
-// API version 2017-01-31.
+// API version 2016-09-30.
 //
 // The Container Service Client.
 package containerservice
@@ -27,9 +27,6 @@ import (
 )
 
 const (
-	// APIVersion is the version of the Containerservice
-	APIVersion = "2017-01-31"
-
 	// DefaultBaseURI is the default URI used for the service Containerservice
 	DefaultBaseURI = "https://management.azure.com"
 )
@@ -38,7 +35,6 @@ const (
 type ManagementClient struct {
 	autorest.Client
 	BaseURI        string
-	APIVersion     string
 	SubscriptionID string
 }
 
@@ -52,7 +48,6 @@ func NewWithBaseURI(baseURI string, subscriptionID string) ManagementClient {
 	return ManagementClient{
 		Client:         autorest.NewClientWithUserAgent(UserAgent()),
 		BaseURI:        baseURI,
-		APIVersion:     APIVersion,
 		SubscriptionID: subscriptionID,
 	}
 }

@@ -112,8 +112,9 @@ func (client ContainerServicesClient) CreateOrUpdatePreparer(resourceGroupName s
 		"subscriptionId":       autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2016-09-30"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -186,8 +187,9 @@ func (client ContainerServicesClient) DeletePreparer(resourceGroupName string, c
 		"subscriptionId":       autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2016-09-30"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -254,8 +256,9 @@ func (client ContainerServicesClient) GetPreparer(resourceGroupName string, cont
 		"subscriptionId":       autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2016-09-30"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -314,8 +317,9 @@ func (client ContainerServicesClient) ListPreparer() (*http.Request, error) {
 		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2016-09-30"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -402,8 +406,9 @@ func (client ContainerServicesClient) ListByResourceGroupPreparer(resourceGroupN
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2016-09-30"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
