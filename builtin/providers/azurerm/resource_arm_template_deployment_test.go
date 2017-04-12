@@ -275,7 +275,14 @@ var testAccAzureRMTemplateDeployment_withParams = `
   }
 
   output "test" {
-    value = "${azurerm_template_deployment.test.outputs.testOutput}"
+    value = "${azurerm_template_deployment.test.outputs["testOutput"]}"
+  }
+
+  resource "azurerm_storage_container" "using-outputs" {
+    name = "vhds"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    storage_account_name = "${azurerm_template_deployment.test.outputs["accountName"]}"
+    container_access_type = "private"
   }
 
   resource "azurerm_template_deployment" "test" {
@@ -339,6 +346,10 @@ var testAccAzureRMTemplateDeployment_withParams = `
     "testOutput": {
       "type": "string",
       "value": "Output Value"
+    },
+    "accountName": {
+      "type": "string",
+      "value": "[variables('storageAccountName')]"
     }
   }
 }

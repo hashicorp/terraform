@@ -70,11 +70,21 @@ resource "azurerm_template_deployment" "test" {
         }
       }
     }
-  ]
+  ],
+  "outputs": {
+    "storageAccountName": {
+      "type": "string",
+      "value": "[variables('storageAccountName')]"
+    }
+  }
 }
 DEPLOY
 
   deployment_mode = "Complete"
+}
+
+output "storageAccountName" {
+  value = "${azurerm_template_deployment.test.outputs["storageAccountName"]}"
 }
 ```
 
@@ -91,7 +101,7 @@ The following arguments are supported:
     specified within the template, and Terraform will not be aware of this.
 * `template_body` - (Optional) Specifies the JSON definition for the template.
 * `parameters` - (Optional) Specifies the name and value pairs that define the deployment parameters for the template.
-
+* `outputs` - (Computed) A map generated from the `"outputs"` section of the template. Only string outputs are supported, values can be accessed using `.outputs["name"]`
 
 ## Attributes Reference
 
