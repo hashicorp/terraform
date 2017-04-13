@@ -70,7 +70,8 @@ func TestAccComputeInstanceTemplate_networkIP(t *testing.T) {
 						"google_compute_instance_template.foobar", &instanceTemplate),
 					testAccCheckComputeInstanceTemplateNetwork(&instanceTemplate),
 					resource.TestCheckResourceAttr(
-						"google_compute_instance_template.foobar", "network_interface.0.network_ip", networkIP),
+						"google_compute_instance_template.foobar", "network_interface.0.network_ip",
+						instanceTemplate.Properties.NetworkInterfaces[0].NetworkIP),
 				),
 			},
 		},
