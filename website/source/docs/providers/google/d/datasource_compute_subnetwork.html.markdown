@@ -13,7 +13,7 @@ Get a subnetwork within GCE from its name and region.
 ## Example Usage
 
 ```tf
-datasource "google_compute_subnetwork" "my-subnetwork" {
+data "google_compute_subnetwork" "my-subnetwork" {
   name   = "default-us-east1"
   region = "us-east1"
 }

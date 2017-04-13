@@ -13,7 +13,7 @@ Get a network within GCE from its name.
 ## Example Usage
 
 ```tf
-datasource "google_compute_network" "my-network" {
+data "google_compute_network" "my-network" {
   name = "default-us-east1"
 }
 ```
