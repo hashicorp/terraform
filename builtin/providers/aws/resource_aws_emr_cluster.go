@@ -138,10 +138,10 @@ func resourceAwsEMRCluster() *schema.Resource {
 							Required: true,
 						},
 						"args": {
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
 							Optional: true,
+							ForceNew: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
-							Set:      schema.HashString,
 						},
 					},
 				},
@@ -381,6 +381,18 @@ func resourceAwsEMRClusterRead(d *schema.ResourceData, meta interface{}) error {
 	if err := d.Set("ec2_attributes", flattenEc2Attributes(cluster.Ec2InstanceAttributes)); err != nil {
 		log.Printf("[ERR] Error setting EMR Ec2 Attributes: %s", err)
 	}
+
+	respBootstraps, err := emrconn.ListBootstrapActions(&emr.ListBootstrapActionsInput{
+		ClusterId: cluster.Id,
+	})
+	if err != nil {
+		log.Printf("[WARN] Error listing bootstrap actions: %s", err)
+	}
+
+	if err := d.Set("bootstrap_action", flattenBootstrapArguments(respBootstraps.BootstrapActions)); err != nil {
+		log.Printf("[WARN] Error setting Bootstrap Actions: %s", err)
+	}
+
 	return nil
 }
 
@@ -589,6 +601,20 @@ func flattenEc2Attributes(ia *emr.Ec2InstanceAttributes) []map[string]interface{
 	return result
 }
 
+func flattenBootstrapArguments(actions []*emr.Command) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0)
+
+	for _, b := range actions {
+		attrs := make(map[string]interface{})
+		attrs["name"] = *b.Name
+		attrs["path"] = *b.ScriptPath
+		attrs["args"] = flattenStringList(b.Args)
+		result = append(result, attrs)
+	}
+
+	return result
+}
+
 func loadGroups(d *schema.ResourceData, meta interface{}) ([]*emr.InstanceGroup, error) {
 	emrconn := meta.(*AWSClient).emrconn
 	reqGrps := &emr.ListInstanceGroupsInput{
@@ -699,7 +725,7 @@ func expandBootstrapActions(bootstrapActions []interface{}) []*emr.BootstrapActi
 		actionAttributes := raw.(map[string]interface{})
 		actionName := actionAttributes["name"].(string)
 		actionPath := actionAttributes["path"].(string)
-		actionArgs := actionAttributes["args"].(*schema.Set).List()
+		actionArgs := actionAttributes["args"].([]interface{})
 
 		action := &emr.BootstrapActionConfig{
 			Name: aws.String(actionName),

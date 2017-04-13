@@ -16,10 +16,10 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 provider "kubernetes" {
   config_context_auth_info = "ops"
-  config_context_cluster = "mycluster"
+  config_context_cluster   = "mycluster"
 }
 
 resource "kubernetes_namespace" "example" {
@@ -33,18 +33,39 @@ resource "kubernetes_namespace" "example" {
 
 There are generally two ways to configure the Kubernetes provider.
 
+### File config
+
 The provider always first tries to load **a config file** from a given
-(or default) location - this requires valid `config_context_auth_info` & `config_context_cluster`.
+(or default) location. Depending on whether you have current context set
+this _may_ require `config_context_auth_info` and/or `config_context_cluster`
+and/or `config_context`.
+
+#### Setting default config context
+
+Here's an example for how to set default context and avoid all provider configuration:
+
+```
+kubectl config set-context default-system \
+  --cluster=chosen-cluster \
+  --user=chosen-user
+
+kubectl config use-context default-system
+```
+
+Read [more about `kubectl` in the official docs](https://kubernetes.io/docs/user-guide/kubectl-overview/).
+
+### Statically defined credentials
 
 The other way is **statically** define all the credentials:
 
-```
+```hcl
 provider "kubernetes" {
-  host = "https://104.196.242.174"
+  host     = "https://104.196.242.174"
   username = "ClusterMaster"
   password = "MindTheGap"
-  client_certificate = "${file("~/.kube/client-cert.pem")}"
-  client_key = "${file("~/.kube/client-key.pem")}"
+
+  client_certificate     = "${file("~/.kube/client-cert.pem")}"
+  client_key             = "${file("~/.kube/client-key.pem")}"
   cluster_ca_certificate = "${file("~/.kube/cluster-ca-cert.pem")}"
 }
 ```
@@ -64,5 +85,6 @@ The following arguments are supported:
 * `client_key` - (Optional) PEM-encoded client certificate key for TLS authentication. Can be sourced from `KUBE_CLIENT_KEY_DATA`.
 * `cluster_ca_certificate` - (Optional) PEM-encoded root certificates bundle for TLS authentication. Can be sourced from `KUBE_CLUSTER_CA_CERT_DATA`.
 * `config_path` - (Optional) Path to the kube config file. Can be sourced from `KUBE_CONFIG`. Defaults to `~/.kube/config`.
+* `config_context` - (Optional) Context to choose from the config file. Can be sourced from `KUBE_CTX`.
 * `config_context_auth_info` - (Optional) Authentication info context of the kube config (name of the kubeconfig user, `--user` flag in `kubectl`). Can be sourced from `KUBE_CTX_AUTH_INFO`.
 * `config_context_cluster` - (Optional) Cluster context of the kube config (name of the kubeconfig cluster, `--cluster` flag in `kubectl`). Can be sourced from `KUBE_CTX_CLUSTER`.

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"k8s.io/kubernetes/pkg/api/resource"
 	apiValidation "k8s.io/kubernetes/pkg/api/validation"
 	utilValidation "k8s.io/kubernetes/pkg/util/validation"
 )
@@ -54,6 +55,18 @@ func validateLabels(value interface{}, key string) (ws []string, es []error) {
 		val := v.(string)
 		for _, msg := range utilValidation.IsValidLabelValue(val) {
 			es = append(es, fmt.Errorf("%s (%q) %s", key, val, msg))
+		}
+	}
+	return
+}
+
+func validateResourceList(value interface{}, key string) (ws []string, es []error) {
+	m := value.(map[string]interface{})
+	for k, v := range m {
+		val := v.(string)
+		_, err := resource.ParseQuantity(val)
+		if err != nil {
+			es = append(es, fmt.Errorf("%s.%s (%q): %s", key, k, val, err))
 		}
 	}
 	return

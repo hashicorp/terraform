@@ -1163,6 +1163,8 @@ func (m *ModuleState) prune() {
 			delete(m.Outputs, k)
 		}
 	}
+
+	m.Dependencies = uniqueStrings(m.Dependencies)
 }
 
 func (m *ModuleState) sort() {
@@ -1526,8 +1528,9 @@ func (s *ResourceState) prune() {
 			i--
 		}
 	}
-
 	s.Deposed = s.Deposed[:n]
+
+	s.Dependencies = uniqueStrings(s.Dependencies)
 }
 
 func (s *ResourceState) sort() {
