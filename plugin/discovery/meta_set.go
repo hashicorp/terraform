@@ -149,3 +149,33 @@ func (s PluginMetaSet) ConstrainVersions(reqd map[string]semver.Range) map[strin
 	}
 	return ret
 }
+
+// OverridePaths returns a new set where any existing plugins with the given
+// names are removed and replaced with the single path given in the map.
+//
+// This is here only to continue to support the legacy way of overriding
+// plugin binaries in the .terraformrc file. It treats all given plugins
+// as pre-versioning (version 0.0.0). This mechanism will eventually be
+// phased out, with vendor directories being the intended replacement.
+func (s PluginMetaSet) OverridePaths(paths map[string]string) PluginMetaSet {
+	ret := make(PluginMetaSet)
+	for p := range s {
+		if _, ok := paths[p.Name]; ok {
+			// Skip plugins that we're overridding
+			continue
+		}
+
+		ret.Add(p)
+	}
+
+	// Now add the metadata for overriding plugins
+	for name, path := range paths {
+		ret.Add(PluginMeta{
+			Name:    name,
+			Version: "0.0.0",
+			Path:    path,
+		})
+	}
+
+	return ret
+}
