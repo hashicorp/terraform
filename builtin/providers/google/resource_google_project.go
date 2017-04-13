@@ -100,13 +100,13 @@ func resourceGoogleProjectCreate(d *schema.ResourceData, meta interface{}) error
 		return fmt.Errorf("Error creating project %s (%s): %s.", project.ProjectId, project.Name, err)
 	}
 
-	d.SetId(pid)
-
 	// Wait for the operation to complete
 	waitErr := resourceManagerOperationWait(config, op, "project to create")
 	if waitErr != nil {
 		return waitErr
 	}
+
+	d.SetId(pid)
 
 	// Set the billing account
 	if v, ok := d.GetOk("billing_account"); ok {
