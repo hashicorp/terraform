@@ -8,15 +8,15 @@ import (
 )
 
 func TestAccAWSDynamoDbTable_importBasic(t *testing.T) {
-	resourceName := "aws_dynamodb_table.basic-dynamodb-table"
-	rInt := acctest.RandInt()
+	resourceName := "aws_dynamodb_table.basic-dynamodb-table"]
+	rName := acctest.RandomWithPrefix("TerraformTestTable-")
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDynamoDbTableDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSDynamoDbConfigInitialState(rInt),
+				Config: testAccAWSDynamoDbConfigInitialState(rName),
 			},
 
 			{

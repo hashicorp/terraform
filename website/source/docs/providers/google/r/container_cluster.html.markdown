@@ -85,6 +85,8 @@ resource "google_container_cluster" "primary" {
 * `node_config` -  (Optional) The machine type and image to use for all nodes in
     this cluster
 
+* `node_pool` - (Optional) List of node pools associated with this cluster.
+
 * `node_version` - (Optional) The Kubernetes version on the nodes. Also affects
     the initial master version on cluster creation. Updates affect nodes only.
     Defaults to the default version set by GKE which is not necessarily the latest
@@ -155,6 +157,16 @@ addons_config {
   }
 }
 ```
+
+**Node Pool** supports the following arguments:
+
+* `initial_node_count` - (Required) The initial node count for the pool.
+
+* `name` - (Optional) The name of the node pool. If left blank, Terraform will
+    auto-generate a unique name.
+
+* `name_prefix` - (Optional) Creates a unique name for the node pool beginning
+    with the specified prefix. Conflicts with `name`.
 
 ## Attributes Reference
 

@@ -17,20 +17,22 @@ func TestAccAWSDynamoDbTable_basic(t *testing.T) {
 	var conf dynamodb.DescribeTableOutput
 	rInt := acctest.RandInt()
 
+	rName := acctest.RandomWithPrefix("TerraformTestTable-")
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDynamoDbTableDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSDynamoDbConfigInitialState(rInt),
+				Config: testAccAWSDynamoDbConfigInitialState(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInitialAWSDynamoDbTableExists("aws_dynamodb_table.basic-dynamodb-table", &conf),
 					testAccCheckInitialAWSDynamoDbTableConf("aws_dynamodb_table.basic-dynamodb-table"),
 				),
 			},
 			{
-				Config: testAccAWSDynamoDbConfigAddSecondaryGSI(rInt),
+				Config: testAccAWSDynamoDbConfigAddSecondaryGSI(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDynamoDbTableWasUpdated("aws_dynamodb_table.basic-dynamodb-table"),
 				),
@@ -364,10 +366,10 @@ func dynamoDbAttributesToMap(attributes *[]*dynamodb.AttributeDefinition) map[st
 	return attrmap
 }
 
-func testAccAWSDynamoDbConfigInitialState(rInt int) string {
+func testAccAWSDynamoDbConfigInitialState(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_dynamodb_table" "basic-dynamodb-table" {
-  name = "TerraformTestTable-%d"
+  name = "%s"
   read_capacity = 10
   write_capacity = 20
   hash_key = "TestTableHashKey"
@@ -408,13 +410,13 @@ resource "aws_dynamodb_table" "basic-dynamodb-table" {
     projection_type = "KEYS_ONLY"
   }
 }
-`, rInt)
+`, rName)
 }
 
-func testAccAWSDynamoDbConfigAddSecondaryGSI(rInt int) string {
+func testAccAWSDynamoDbConfigAddSecondaryGSI(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_dynamodb_table" "basic-dynamodb-table" {
-  name = "TerraformTestTable-%d"
+  name = "%s"
   read_capacity = 20
   write_capacity = 20
   hash_key = "TestTableHashKey"
@@ -455,8 +457,7 @@ resource "aws_dynamodb_table" "basic-dynamodb-table" {
     projection_type = "INCLUDE"
     non_key_attributes = ["TestNonKeyAttribute"]
   }
-}
-`, rInt)
+}`, rName)
 }
 
 func testAccAWSDynamoDbConfigStreamSpecification() string {

@@ -1,7 +1,32 @@
-## 0.9.3 (unreleased)
+## 0.9.4 (Unreleased)
+
+BUG FIXES: 
+
+ * core: Add the close provider/provisioner transformers back [GH-13102]
 
 FEATURES:
 
+* **New Data Source:** `google_compute_network` [GH-12442]
+* **New Data Source:** `google_compute_subnetwork` [GH-12442]
+
+IMPROVEMENTS:
+ * google: `google_compute_address` and `google_compute_global_address` are now importable [GH-13270]
+ 
+BUG FIXES:
+
+ * provider/openstack: Fix updating Ports [GH-13604]
+
+## 0.9.3 (April 12, 2017)
+
+BACKWARDS INCOMPATIBILITIES / NOTES:
+ * provider/aws: Fix a critical bug in `aws_emr_cluster` in order to preserve the ordering 
+   of any arguments in `bootstrap_action`. Terraform will now enforce the ordering  
+   from the configuration. As a result, `aws_emr_cluster` resources may need to be
+   recreated, as there is no API to update them in-place [GH-13580]
+
+FEATURES:
+
+ * **New Resource:** `aws_api_gateway_method_settings` [GH-13542]
  * **New Resource:** `aws_api_gateway_stage` [GH-13540]
  * **New Resource:** `aws_iam_openid_connect_provider` [GH-13456]
  * **New Resource:** `aws_lightsail_static_ip` [GH-13175]
@@ -18,6 +43,7 @@ IMPROVEMENTS:
  * core: add `-lock-timeout` option, which will block and retry locks for the given duration [GH-13262]
  * core: new `chomp` interpolation function which returns the given string with any trailing newline characters removed [GH-13419]
  * backend/remote-state: Add support for assume role extensions to s3 backend [GH-13236]
+ * backend/remote-state: Filter extra entries from s3 environment listings [GH-13596]
  * config: New interpolation functions `basename` and `dirname`, for file path manipulation [GH-13080]
  * helper/resource: Allow unknown "pending" states [GH-13099]
  * command/hook_ui: Increase max length of state IDs from 20 to 80 [GH-13317]
@@ -42,11 +68,13 @@ IMPROVEMENTS:
  * provider/aws: Add support for evaluate_low_sample_count_percentiles to cloudwatch_metric_alarm [GH-13371]
  * provider/aws: Add `name_prefix` to `aws_alb_target_group` [GH-13442]
  * provider/aws: Add support for EMR clusters to aws_appautoscaling_target [GH-13368]
+ * provider/aws: Add import capabilities to codecommit_repository [GH-13577]
  * provider/bitbucket: Improved error handling [GH-13390]
  * provider/cloudstack: Do not force a new resource when updating `cloudstack_loadbalancer_rule` members [GH-11786]
  * provider/fastly: Add support for Sumologic logging [GH-12541]
  * provider/github: Handle the case when issue labels already exist [GH-13182]
  * provider/google: Mark `google_container_cluster`'s `client_key` & `password` inside `master_auth` as sensitive [GH-13148]
+ * provider/google: Add node_pool field in resource_container_cluster [GH-13402]
  * provider/kubernetes: Allow defining custom config context [GH-12958]
  * provider/openstack: Add support for 'value_specs' options to `openstack_compute_servergroup_v2` [GH-13380]
  * provider/statuscake: Add support for StatusCake TriggerRate field [GH-13340]
@@ -86,19 +114,23 @@ BUG FIXES:
  * provider/aws: Update ElasticTranscoderPreset to have default for MaxFrameRate [GH-13422]
  * provider/aws: Fix aws_ami_launch_permission refresh when AMI disappears [GH-13469]
  * provider/aws: Add support for updating SSM documents [GH-13491]
+ * provider/aws: Fix panic on nil route configs [GH-13548]
  * provider/azurerm: Network Security Group - ignoring protocol casing at Import time [GH-13153]
  * provider/azurerm: Fix crash when importing Local Network Gateways [GH-13261]
  * provider/azurerm: Defaulting the value of `duplicate_detection_history_time_window` for `azurerm_servicebus_topic` [GH-13223]
+ * provider/azurerm: Event Hubs making the Location field idempotent [GH-13570]
  * provider/bitbucket: Fixed issue where provider would fail with an "EOF" error on some operations [GH-13390]
+ * provider/dnsimple: Handle 404 on DNSimple records [GH-13131]
  * provider/kubernetes: Use PATCH to update namespace [GH-13114]
  * provider/ns1: No splitting answer on SPF records. [GH-13260]
  * provider/openstack: Refresh volume_attachment from state if NotFound [GH-13342]
  * provider/openstack: Add SOFT_DELETED to delete status [GH-13444]
  * provider/profitbricks: Changed output type of ips variable of ip_block ProfitBricks resource [GH-13290]
+ * provider/template: Fix panic in cloudinit config [GH-13581]
 
 ## 0.9.2 (March 28, 2017)
 
-BACKWARDS IMCOMPATIBILITIES / NOTES:
+BACKWARDS INCOMPATIBILITIES / NOTES:
 
  * provider/openstack: Port Fixed IPs are able to be read again using the original numerical notation. However, Fixed IP configurations which are obtaining addresses via DHCP must now use the `all_fixed_ips` attribute to reference the returned IP address.
  * Environment names must be safe to use as a URL path segment without escaping, and is enforced by the CLI.
@@ -179,7 +211,7 @@ BUG FIXES:
 
 ## 0.9.1 (March 17, 2017)
 
-BACKWARDS IMCOMPATIBILITIES / NOTES:
+BACKWARDS INCOMPATIBILITIES / NOTES:
 
  * provider/pagerduty: the deprecated `name_regex` field has been removed from vendor data source ([#12396](https://github.com/hashicorp/terraform/issues/12396))
 

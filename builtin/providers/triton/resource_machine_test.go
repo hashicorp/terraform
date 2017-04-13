@@ -64,7 +64,7 @@ func TestAccTritonMachine_dns(t *testing.T) {
 
 func TestAccTritonMachine_nic(t *testing.T) {
 	machineName := fmt.Sprintf("acctest-%d", acctest.RandInt())
-	config := testAccTritonMachine_singleNIC(machineName, acctest.RandIntRange(1024, 2048))
+	config := testAccTritonMachine_singleNIC(machineName, acctest.RandIntRange(1024, 2048), acctest.RandIntRange(0, 256))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -89,9 +89,10 @@ func TestAccTritonMachine_nic(t *testing.T) {
 func TestAccTritonMachine_addNIC(t *testing.T) {
 	machineName := fmt.Sprintf("acctest-%d", acctest.RandInt())
 	vlanNumber := acctest.RandIntRange(1024, 2048)
+	subnetNumber := acctest.RandIntRange(0, 256)
 
-	singleNICConfig := testAccTritonMachine_singleNIC(machineName, vlanNumber)
-	dualNICConfig := testAccTritonMachine_dualNIC(machineName, vlanNumber)
+	singleNICConfig := testAccTritonMachine_singleNIC(machineName, vlanNumber, subnetNumber)
+	dualNICConfig := testAccTritonMachine_dualNIC(machineName, vlanNumber, subnetNumber)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -361,7 +362,7 @@ resource "triton_machine" "test" {
   }
 }
 `
-var testAccTritonMachine_singleNIC = func(name string, vlanNumber int) string {
+var testAccTritonMachine_singleNIC = func(name string, vlanNumber int, subnetNumber int) string {
 	return fmt.Sprintf(`resource "triton_vlan" "test" {
 	  vlan_id = %d
 	  name = "%s-vlan"
@@ -373,10 +374,10 @@ resource "triton_fabric" "test" {
 	description = "test network"
 	vlan_id = "${triton_vlan.test.vlan_id}"
 
-	subnet = "10.10.0.0/24"
-	gateway = "10.10.0.1"
-	provision_start_ip = "10.10.0.10"
-	provision_end_ip = "10.10.0.250"
+	subnet = "10.%d.0.0/24"
+	gateway = "10.%d.0.1"
+	provision_start_ip = "10.%d.0.10"
+	provision_end_ip = "10.%d.0.250"
 
 	resolvers = ["8.8.8.8", "8.8.4.4"]
 }
@@ -393,10 +394,10 @@ resource "triton_machine" "test" {
 	nic {
 		network = "${triton_fabric.test.id}"
 	}
-}`, vlanNumber, name, name, name)
+}`, vlanNumber, name, name, subnetNumber, subnetNumber, subnetNumber, subnetNumber, name)
 }
 
-var testAccTritonMachine_dualNIC = func(name string, vlanNumber int) string {
+var testAccTritonMachine_dualNIC = func(name string, vlanNumber, subnetNumber int) string {
 	return fmt.Sprintf(`resource "triton_vlan" "test" {
 	  vlan_id = %d
 	  name = "%s-vlan"
@@ -408,10 +409,10 @@ resource "triton_fabric" "test" {
 	description = "test network"
 	vlan_id = "${triton_vlan.test.vlan_id}"
 
-	subnet = "10.10.0.0/24"
-	gateway = "10.10.0.1"
-	provision_start_ip = "10.10.0.10"
-	provision_end_ip = "10.10.0.250"
+	subnet = "10.%d.0.0/24"
+	gateway = "10.%d.0.1"
+	provision_start_ip = "10.%d.0.10"
+	provision_end_ip = "10.%d.0.250"
 
 	resolvers = ["8.8.8.8", "8.8.4.4"]
 }
@@ -421,10 +422,10 @@ resource "triton_fabric" "test_add" {
 	description = "test network 2"
 	vlan_id = "${triton_vlan.test.vlan_id}"
 
-	subnet = "172.23.0.0/24"
-	gateway = "172.23.0.1"
-	provision_start_ip = "172.23.0.10"
-	provision_end_ip = "172.23.0.250"
+	subnet = "172.23.%d.0/24"
+	gateway = "172.23.%d.1"
+	provision_start_ip = "172.23.%d.10"
+	provision_end_ip = "172.23.%d.250"
 
 	resolvers = ["8.8.8.8", "8.8.4.4"]
 }
@@ -444,7 +445,7 @@ resource "triton_machine" "test" {
 	nic {
 		network = "${triton_fabric.test_add.id}"
 	}
-}`, vlanNumber, name, name, name, name)
+}`, vlanNumber, name, name, subnetNumber, subnetNumber, subnetNumber, subnetNumber, name, subnetNumber, subnetNumber, subnetNumber, subnetNumber, name)
 }
 
 var testAccTritonMachine_dns = `
