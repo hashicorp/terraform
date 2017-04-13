@@ -114,6 +114,12 @@ func expandArray(m map[string]string, prefix string) []interface{} {
 }
 
 func expandMap(m map[string]string, prefix string) map[string]interface{} {
+	// Submaps may not have a '%' key, so we can't count on this value being
+	// here. If we don't have a count, just procede as if we have have a map.
+	if count, ok := m[prefix+"%"]; ok && count == "0" {
+		return map[string]interface{}{}
+	}
+
 	result := make(map[string]interface{})
 	for k := range m {
 		if !strings.HasPrefix(k, prefix) {
