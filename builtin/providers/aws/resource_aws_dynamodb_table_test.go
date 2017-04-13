@@ -16,7 +16,7 @@ import (
 func TestAccAWSDynamoDbTable_basic(t *testing.T) {
 	var conf dynamodb.DescribeTableOutput
 
-        rName := acctest.RandomWithPrefix("TerraformTestTable-")
+	rName := acctest.RandomWithPrefix("TerraformTestTable-")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -24,14 +24,14 @@ func TestAccAWSDynamoDbTable_basic(t *testing.T) {
 		CheckDestroy: testAccCheckAWSDynamoDbTableDestroy,
 		Steps: []resource.TestStep{
 			{
-                                Config: testAccAWSDynamoDbConfigInitialState(rName),
+				Config: testAccAWSDynamoDbConfigInitialState(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInitialAWSDynamoDbTableExists("aws_dynamodb_table.basic-dynamodb-table", &conf),
 					testAccCheckInitialAWSDynamoDbTableConf("aws_dynamodb_table.basic-dynamodb-table"),
 				),
 			},
 			{
-                                Config: testAccAWSDynamoDbConfigAddSecondaryGSI(rName),
+				Config: testAccAWSDynamoDbConfigAddSecondaryGSI(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDynamoDbTableWasUpdated("aws_dynamodb_table.basic-dynamodb-table"),
 				),
@@ -413,7 +413,7 @@ resource "aws_dynamodb_table" "basic-dynamodb-table" {
 }
 
 func testAccAWSDynamoDbConfigAddSecondaryGSI(rName string) string {
-        return fmt.Sprintf(`
+	return fmt.Sprintf(`
 resource "aws_dynamodb_table" "basic-dynamodb-table" {
   name = "%s"
   read_capacity = 20
