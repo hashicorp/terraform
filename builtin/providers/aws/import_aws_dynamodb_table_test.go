@@ -8,8 +8,7 @@ import (
 )
 
 func TestAccAWSDynamoDbTable_importBasic(t *testing.T) {
-	resourceName := "aws_dynamodb_table.basic-dynamodb-table"]
-	
+	resourceName := "aws_dynamodb_table.basic-dynamodb-table"
 	rName := acctest.RandomWithPrefix("TerraformTestTable-")
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
