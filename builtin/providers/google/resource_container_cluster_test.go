@@ -132,6 +132,57 @@ func TestAccContainerCluster_backend(t *testing.T) {
 	})
 }
 
+func TestAccContainerCluster_withNodePoolBasic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckContainerClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainerCluster_withNodePoolBasic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckContainerCluster(
+						"google_container_cluster.with_node_pool"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccContainerCluster_withNodePoolNamePrefix(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckContainerClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainerCluster_withNodePoolNamePrefix,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckContainerCluster(
+						"google_container_cluster.with_node_pool_name_prefix"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccContainerCluster_withNodePoolMultiple(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckContainerClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainerCluster_withNodePoolMultiple,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckContainerCluster(
+						"google_container_cluster.with_node_pool_multiple"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckContainerClusterDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
@@ -220,6 +271,13 @@ func testAccCheckContainerCluster(n string) resource.TestCheckFunc {
 			if cluster.AddonsConfig.HorizontalPodAutoscaling != nil {
 				clusterTests = append(clusterTests, clusterTestField{"addons_config.0.horizontal_pod_autoscaling.0.disabled", strconv.FormatBool(cluster.AddonsConfig.HorizontalPodAutoscaling.Disabled)})
 			}
+		}
+
+		for i, np := range cluster.NodePools {
+			prefix := fmt.Sprintf("node_pool.%d.", i)
+			clusterTests = append(clusterTests,
+				clusterTestField{prefix + "name", np.Name},
+				clusterTestField{prefix + "initial_node_count", strconv.FormatInt(np.InitialNodeCount, 10)})
 		}
 
 		for _, attrs := range clusterTests {
@@ -478,3 +536,56 @@ resource "google_container_cluster" "primary" {
   }
 }
 `, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
+
+var testAccContainerCluster_withNodePoolBasic = fmt.Sprintf(`
+resource "google_container_cluster" "with_node_pool" {
+	name = "tf-cluster-nodepool-test-%s"
+	zone = "us-central1-a"
+
+	master_auth {
+		username = "mr.yoda"
+		password = "adoy.rm"
+	}
+
+	node_pool {
+		name               = "tf-cluster-nodepool-test-%s"
+		initial_node_count = 2
+	}
+}`, acctest.RandString(10), acctest.RandString(10))
+
+var testAccContainerCluster_withNodePoolNamePrefix = fmt.Sprintf(`
+resource "google_container_cluster" "with_node_pool_name_prefix" {
+	name = "tf-cluster-nodepool-test-%s"
+	zone = "us-central1-a"
+
+	master_auth {
+		username = "mr.yoda"
+		password = "adoy.rm"
+	}
+
+	node_pool {
+		name_prefix        = "tf-np-test"
+		initial_node_count = 2
+	}
+}`, acctest.RandString(10))
+
+var testAccContainerCluster_withNodePoolMultiple = fmt.Sprintf(`
+resource "google_container_cluster" "with_node_pool_multiple" {
+	name = "tf-cluster-nodepool-test-%s"
+	zone = "us-central1-a"
+
+	master_auth {
+		username = "mr.yoda"
+		password = "adoy.rm"
+	}
+
+	node_pool {
+		name               = "tf-cluster-nodepool-test-%s"
+		initial_node_count = 2
+	}
+
+	node_pool {
+		name               = "tf-cluster-nodepool-test-%s"
+		initial_node_count = 3
+	}
+}`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))

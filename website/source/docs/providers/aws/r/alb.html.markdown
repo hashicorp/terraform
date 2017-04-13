@@ -46,13 +46,16 @@ must contain only alphanumeric characters or hyphens, and must not begin or end 
 Terraform will autogenerate a name beginning with `tf-lb`.
 * `name_prefix` - (Optional) Creates a unique name beginning with the specified prefix. Conflicts with `name`.
 * `internal` - (Optional) If true, the ALB will be internal.
-* `security_groups` - (Optional) A list of security group IDs to assign to the ELB.
+* `security_groups` - (Optional) A list of security group IDs to assign to the ALB.
 * `access_logs` - (Optional) An Access Logs block. Access Logs documented below.
-* `subnets` - (Required) A list of subnet IDs to attach to the ELB.
+* `subnets` - (Required) A list of subnet IDs to attach to the ALB.
 * `idle_timeout` - (Optional) The time in seconds that the connection is allowed to be idle. Default: 60.
 * `enable_deletion_protection` - (Optional) If true, deletion of the load balancer will be disabled via
    the AWS API. This will prevent Terraform from deleting the load balancer. Defaults to `false`.
+* `ip_address_type` - (Optional) The type of IP addresses used by the subnets for your load balancer. The possible values are `ipv4` and `dualstack`
 * `tags` - (Optional) A mapping of tags to assign to the resource.
+
+~> **NOTE::** Please note that internal ALBs can only use `ipv4` as the ip_address_type. You can only change to `dualstack` ip_address_type if the selected subnets are IPv6 enabled.
 
 Access Logs (`access_logs`) support the following:
 

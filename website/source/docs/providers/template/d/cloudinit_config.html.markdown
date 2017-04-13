@@ -6,13 +6,13 @@ description: |-
   Renders a multi-part cloud-init config from source files.
 ---
 
-# template\_cloudinit\_config
+# template_cloudinit_config
 
 Renders a multi-part cloud-init config from source files.
 
 ## Example Usage
 
-```
+```hcl
 # Render a part using a `template_file`
 data "template_file" "script" {
   template = "${file("${path.module}/init.tpl")}"

@@ -92,6 +92,7 @@ To make a resource importable, please see the
 * aws_route_table
 * aws_s3_bucket
 * aws_security_group
+* aws_ses_domain_identity
 * aws_ses_receipt_filter
 * aws_ses_receipt_rule_set
 * aws_simpledb_domain
@@ -140,9 +141,11 @@ To make a resource importable, please see the
 
 ### Google
 
+* google_compute_address
 * google_compute_autoscaler
 * google_compute_firewall
 * google_compute_forwarding_rule
+* google_compute_global_address
 * google_compute_http_health_check
 * google_compute_instance_group_manager
 * google_compute_instance_template
@@ -177,7 +180,8 @@ To make a resource importable, please see the
 
 ### Triton
 
-* triton_firewall_rule
 * triton_key
-* triton_machine
+* triton_firewall_rule
 * triton_vlan
+* triton_fabric
+* triton_machine

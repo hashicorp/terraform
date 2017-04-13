@@ -66,6 +66,11 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("KUBE_CONFIG", "~/.kube/config"),
 				Description: "Path to the kube config file, defaults to ~/.kube/config",
 			},
+			"config_context": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("KUBE_CTX", ""),
+			},
 			"config_context_auth_info": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -81,8 +86,11 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"kubernetes_config_map": resourceKubernetesConfigMap(),
-			"kubernetes_namespace":  resourceKubernetesNamespace(),
+			"kubernetes_config_map":              resourceKubernetesConfigMap(),
+			"kubernetes_namespace":               resourceKubernetesNamespace(),
+			"kubernetes_persistent_volume":       resourceKubernetesPersistentVolume(),
+			"kubernetes_persistent_volume_claim": resourceKubernetesPersistentVolumeClaim(),
+			"kubernetes_secret":                  resourceKubernetesSecret(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
@@ -140,22 +148,32 @@ func tryLoadingConfigFile(d *schema.ResourceData) (*restclient.Config, error) {
 	loader := &clientcmd.ClientConfigLoadingRules{
 		ExplicitPath: path,
 	}
+
 	overrides := &clientcmd.ConfigOverrides{}
-	ctxSuffix := "; no context"
+	ctxSuffix := "; default context"
+
+	ctx, ctxOk := d.GetOk("config_context")
 	authInfo, authInfoOk := d.GetOk("config_context_auth_info")
 	cluster, clusterOk := d.GetOk("config_context_cluster")
-	if authInfoOk || clusterOk {
+	if ctxOk || authInfoOk || clusterOk {
+		ctxSuffix = "; overriden context"
+		if ctxOk {
+			overrides.CurrentContext = ctx.(string)
+			ctxSuffix += fmt.Sprintf("; config ctx: %s", overrides.CurrentContext)
+			log.Printf("[DEBUG] Using custom current context: %q", overrides.CurrentContext)
+		}
+
 		overrides.Context = clientcmdapi.Context{}
 		if authInfoOk {
 			overrides.Context.AuthInfo = authInfo.(string)
+			ctxSuffix += fmt.Sprintf("; auth_info: %s", overrides.Context.AuthInfo)
 		}
 		if clusterOk {
 			overrides.Context.Cluster = cluster.(string)
+			ctxSuffix += fmt.Sprintf("; cluster: %s", overrides.Context.Cluster)
 		}
-		ctxSuffix = fmt.Sprintf("; auth_info: %s, cluster: %s",
-			overrides.Context.AuthInfo, overrides.Context.Cluster)
+		log.Printf("[DEBUG] Using overidden context: %#v", overrides.Context)
 	}
-	log.Printf("[DEBUG] Using override context: %#v", *overrides)
 
 	cc := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loader, overrides)
 	cfg, err := cc.ClientConfig()

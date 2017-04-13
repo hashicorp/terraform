@@ -2,6 +2,7 @@ package state
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -28,6 +29,7 @@ type State interface {
 	StateWriter
 	StateRefresher
 	StatePersister
+	Locker
 }
 
 // StateReader is the interface for things that can return a state. Retrieving
@@ -70,6 +72,48 @@ type StatePersister interface {
 type Locker interface {
 	Lock(info *LockInfo) (string, error)
 	Unlock(id string) error
+}
+
+// test hook to verify that LockWithContext has attempted a lock
+var postLockHook func()
+
+// Lock the state, using the provided context for timeout and cancellation.
+// This backs off slightly to an upper limit.
+func LockWithContext(ctx context.Context, s State, info *LockInfo) (string, error) {
+	delay := time.Second
+	maxDelay := 16 * time.Second
+	for {
+		id, err := s.Lock(info)
+		if err == nil {
+			return id, nil
+		}
+
+		le, ok := err.(*LockError)
+		if !ok {
+			// not a lock error, so we can't retry
+			return "", err
+		}
+
+		if le == nil || le.Info == nil || le.Info.ID == "" {
+			// If we dont' have a complete LockError, there's something wrong with the lock
+			return "", err
+		}
+
+		if postLockHook != nil {
+			postLockHook()
+		}
+
+		// there's an existing lock, wait and try again
+		select {
+		case <-ctx.Done():
+			// return the last lock error with the info
+			return "", err
+		case <-time.After(delay):
+			if delay < maxDelay {
+				delay *= 2
+			}
+		}
+	}
 }
 
 // Generate a LockInfo structure, populating the required fields.

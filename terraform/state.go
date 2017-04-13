@@ -801,6 +801,27 @@ func (s *BackendState) Empty() bool {
 	return s == nil || s.Type == ""
 }
 
+// Rehash returns a unique content hash for this backend's configuration
+// as a uint64 value.
+// The Hash stored in the backend state needs to match the config itself, but
+// we need to compare the backend config after it has been combined with all
+// options.
+// This function must match the implementation used by config.Backend.
+func (s *BackendState) Rehash() uint64 {
+	if s == nil {
+		return 0
+	}
+
+	cfg := config.Backend{
+		Type: s.Type,
+		RawConfig: &config.RawConfig{
+			Raw: s.Config,
+		},
+	}
+
+	return cfg.Rehash()
+}
+
 // RemoteState is used to track the information about a remote
 // state store that we push/pull state to.
 type RemoteState struct {
@@ -1142,6 +1163,8 @@ func (m *ModuleState) prune() {
 			delete(m.Outputs, k)
 		}
 	}
+
+	m.Dependencies = uniqueStrings(m.Dependencies)
 }
 
 func (m *ModuleState) sort() {
@@ -1505,8 +1528,9 @@ func (s *ResourceState) prune() {
 			i--
 		}
 	}
-
 	s.Deposed = s.Deposed[:n]
+
+	s.Dependencies = uniqueStrings(s.Dependencies)
 }
 
 func (s *ResourceState) sort() {

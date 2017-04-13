@@ -27,7 +27,7 @@ configurations that are applied within Terraform Enterprise.
 
 ## Example Usage
 
-```
+```hcl
 data "external" "example" {
   program = ["python", "${path.module}/example-data-source.py"]
 
@@ -94,7 +94,7 @@ language.
 The following example shows some input/output boilerplate code for a
 data source implemented in bash:
 
-```
+```bash
 #!/bin/bash
 
 # Exit if any of the intermediate steps fail

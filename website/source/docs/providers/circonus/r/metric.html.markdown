@@ -15,10 +15,10 @@ created.
 
 ## Usage
 
-```
+```hcl
 resource "circonus_metric" "used" {
-  name = "_usage`0`_used"
-  type = "numeric"
+  name  = "_usage`0`_used"
+  type  = "numeric"
   units = "qty"
 
   tags = {
@@ -49,7 +49,7 @@ resource "circonus_metric" "used" {
 `circonus_metric` supports importing resources.  Supposing the following
 Terraform:
 
-```
+```hcl
 provider "circonus" {
   alias = "b8fec159-f9e5-4fe6-ad2c-dc1ec6751586"
 }

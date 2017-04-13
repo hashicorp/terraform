@@ -6,13 +6,13 @@ description: |-
   Creates firewall rules for a given IP address.
 ---
 
-# cloudstack\_firewall
+# cloudstack_firewall
 
 Creates firewall rules for a given IP address.
 
 ## Example Usage
 
-```
+```hcl
 resource "cloudstack_firewall" "default" {
   ip_address_id = "30b21801-d4b3-4174-852b-0c0f30bdbbfb"
 

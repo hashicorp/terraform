@@ -6,6 +6,7 @@ import (
 	"net"
 	"regexp"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/container/v1"
 	"google.golang.org/api/googleapi"
@@ -23,12 +24,6 @@ func resourceContainerCluster() *schema.Resource {
 		Delete: resourceContainerClusterDelete,
 
 		Schema: map[string]*schema.Schema{
-			"initial_node_count": &schema.Schema{
-				Type:     schema.TypeInt,
-				Required: true,
-				ForceNew: true,
-			},
-
 			"master_auth": &schema.Schema{
 				Type:     schema.TypeList,
 				Required: true,
@@ -40,17 +35,19 @@ func resourceContainerCluster() *schema.Resource {
 							Computed: true,
 						},
 						"client_key": &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:      schema.TypeString,
+							Computed:  true,
+							Sensitive: true,
 						},
 						"cluster_ca_certificate": &schema.Schema{
 							Type:     schema.TypeString,
 							Computed: true,
 						},
 						"password": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-							ForceNew: true,
+							Type:      schema.TypeString,
+							Required:  true,
+							ForceNew:  true,
+							Sensitive: true,
 						},
 						"username": &schema.Schema{
 							Type:     schema.TypeString,
@@ -91,6 +88,12 @@ func resourceContainerCluster() *schema.Resource {
 			"zone": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
+			},
+
+			"initial_node_count": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
 				ForceNew: true,
 			},
 
@@ -290,6 +293,36 @@ func resourceContainerCluster() *schema.Resource {
 				Computed: true,
 			},
 
+			"node_pool": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Computed: true,
+				ForceNew: true, // TODO(danawillow): Add ability to add/remove nodePools
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"initial_node_count": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+							ForceNew: true,
+						},
+
+						"name": &schema.Schema{
+							Type:          schema.TypeString,
+							Optional:      true,
+							Computed:      true,
+							ConflictsWith: []string{"node_pool.name_prefix"},
+							ForceNew:      true,
+						},
+
+						"name_prefix": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+					},
+				},
+			},
+
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -437,6 +470,33 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
+	nodePoolsCount := d.Get("node_pool.#").(int)
+	if nodePoolsCount > 0 {
+		nodePools := make([]*container.NodePool, 0, nodePoolsCount)
+		for i := 0; i < nodePoolsCount; i++ {
+			prefix := fmt.Sprintf("node_pool.%d", i)
+
+			nodeCount := d.Get(prefix + ".initial_node_count").(int)
+
+			var name string
+			if v, ok := d.GetOk(prefix + ".name"); ok {
+				name = v.(string)
+			} else if v, ok := d.GetOk(prefix + ".name_prefix"); ok {
+				name = resource.PrefixedUniqueId(v.(string))
+			} else {
+				name = resource.UniqueId()
+			}
+
+			nodePool := &container.NodePool{
+				Name:             name,
+				InitialNodeCount: int64(nodeCount),
+			}
+
+			nodePools = append(nodePools, nodePool)
+		}
+		cluster.NodePools = nodePools
+	}
+
 	req := &container.CreateClusterRequest{
 		Cluster: cluster,
 	}
@@ -521,6 +581,7 @@ func resourceContainerClusterRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("network", d.Get("network").(string))
 	d.Set("subnetwork", cluster.Subnetwork)
 	d.Set("node_config", flattenClusterNodeConfig(cluster.NodeConfig))
+	d.Set("node_pool", flattenClusterNodePools(d, cluster.NodePools))
 
 	if igUrls, err := getInstanceGroupUrlsFromManagerUrls(config, cluster.InstanceGroupUrls); err != nil {
 		return err
@@ -638,4 +699,21 @@ func flattenClusterNodeConfig(c *container.NodeConfig) []map[string]interface{} 
 	}
 
 	return config
+}
+
+func flattenClusterNodePools(d *schema.ResourceData, c []*container.NodePool) []map[string]interface{} {
+	count := len(c)
+
+	nodePools := make([]map[string]interface{}, 0, count)
+
+	for i, np := range c {
+		nodePool := map[string]interface{}{
+			"name":               np.Name,
+			"name_prefix":        d.Get(fmt.Sprintf("node_pool.%d.name_prefix", i)),
+			"initial_node_count": np.InitialNodeCount,
+		}
+		nodePools = append(nodePools, nodePool)
+	}
+
+	return nodePools
 }

@@ -1,13 +1,13 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/state"
 	"github.com/mitchellh/cli"
-
-	clistate "github.com/hashicorp/terraform/command/state"
 )
 
 type EnvDeleteCommand struct {
@@ -93,15 +93,20 @@ func (c *EnvDeleteCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Lock the state if we can
-	lockInfo := state.NewLockInfo()
-	lockInfo.Operation = "env delete"
-	lockID, err := clistate.Lock(sMgr, lockInfo, c.Ui, c.Colorize())
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
-		return 1
+	if c.stateLock {
+		lockCtx, cancel := context.WithTimeout(context.Background(), c.stateLockTimeout)
+		defer cancel()
+
+		// Lock the state if we can
+		lockInfo := state.NewLockInfo()
+		lockInfo.Operation = "env delete"
+		lockID, err := clistate.Lock(lockCtx, sMgr, lockInfo, c.Ui, c.Colorize())
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
+			return 1
+		}
+		defer clistate.Unlock(sMgr, lockID, c.Ui, c.Colorize())
 	}
-	defer clistate.Unlock(sMgr, lockID, c.Ui, c.Colorize())
 
 	err = b.DeleteState(delEnv)
 	if err != nil {

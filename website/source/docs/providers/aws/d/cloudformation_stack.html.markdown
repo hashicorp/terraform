@@ -13,7 +13,7 @@ outputs and other useful data including the template body.
 
 ## Example Usage
 
-```
+```hcl
 data "aws_cloudformation_stack" "network" {
   name = "my-network-stack"
 }

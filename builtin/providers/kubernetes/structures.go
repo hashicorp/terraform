@@ -5,7 +5,9 @@ import (
 	"net/url"
 	"strings"
 
+	"encoding/base64"
 	"github.com/hashicorp/terraform/helper/schema"
+	"k8s.io/kubernetes/pkg/api/resource"
 	api "k8s.io/kubernetes/pkg/api/v1"
 )
 
@@ -64,10 +66,20 @@ func expandStringMap(m map[string]interface{}) map[string]string {
 	return result
 }
 
+func expandStringSlice(s []interface{}) []string {
+	result := make([]string, len(s), len(s))
+	for k, v := range s {
+		result[k] = v.(string)
+	}
+	return result
+}
+
 func flattenMetadata(meta api.ObjectMeta) []map[string]interface{} {
 	m := make(map[string]interface{})
 	m["annotations"] = filterAnnotations(meta.Annotations)
-	m["generate_name"] = meta.GenerateName
+	if meta.GenerateName != "" {
+		m["generate_name"] = meta.GenerateName
+	}
 	m["labels"] = meta.Labels
 	m["name"] = meta.Name
 	m["resource_version"] = meta.ResourceVersion
@@ -98,4 +110,91 @@ func isInternalAnnotationKey(annotationKey string) bool {
 	}
 
 	return false
+}
+
+func byteMapToStringMap(m map[string][]byte) map[string]string {
+	result := make(map[string]string)
+	for k, v := range m {
+		result[k] = string(v)
+	}
+	return result
+}
+
+func ptrToString(s string) *string {
+	return &s
+}
+
+func ptrToInt(i int) *int {
+	return &i
+}
+
+func ptrToBool(b bool) *bool {
+	return &b
+}
+
+func ptrToInt32(i int32) *int32 {
+	return &i
+}
+
+func sliceOfString(slice []interface{}) []string {
+	result := make([]string, len(slice), len(slice))
+	for i, s := range slice {
+		result[i] = s.(string)
+	}
+	return result
+}
+
+func base64EncodeStringMap(m map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	for k, v := range m {
+		value := v.(string)
+		result[k] = (base64.StdEncoding.EncodeToString([]byte(value)))
+	}
+	return result
+}
+
+func flattenResourceList(l api.ResourceList) map[string]string {
+	m := make(map[string]string)
+	for k, v := range l {
+		m[string(k)] = v.String()
+	}
+	return m
+}
+
+func expandMapToResourceList(m map[string]interface{}) (api.ResourceList, error) {
+	out := make(map[api.ResourceName]resource.Quantity)
+	for stringKey, v := range m {
+		key := api.ResourceName(stringKey)
+		value, err := resource.ParseQuantity(v.(string))
+		if err != nil {
+			return out, err
+		}
+
+		out[key] = value
+	}
+	return out, nil
+}
+
+func flattenPersistentVolumeAccessModes(in []api.PersistentVolumeAccessMode) *schema.Set {
+	var out = make([]interface{}, len(in), len(in))
+	for i, v := range in {
+		out[i] = string(v)
+	}
+	return schema.NewSet(schema.HashString, out)
+}
+
+func expandPersistentVolumeAccessModes(s []interface{}) []api.PersistentVolumeAccessMode {
+	out := make([]api.PersistentVolumeAccessMode, len(s), len(s))
+	for i, v := range s {
+		out[i] = api.PersistentVolumeAccessMode(v.(string))
+	}
+	return out
+}
+
+func newStringSet(f schema.SchemaSetFunc, in []string) *schema.Set {
+	var out = make([]interface{}, len(in), len(in))
+	for i, v := range in {
+		out[i] = v
+	}
+	return schema.NewSet(f, out)
 }

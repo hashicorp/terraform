@@ -6,13 +6,13 @@ description: |-
   Get DNS TXT record set.
 ---
 
-# dns\_txt\_record\_set
+# dns_txt_record_set
 
 Use this data source to get DNS TXT record set of the host.
 
 ## Example Usage
 
-```
+```hcl
 data "dns_txt_record_set" "hashicorp" {
   host = "www.hashicorp.com"
 }

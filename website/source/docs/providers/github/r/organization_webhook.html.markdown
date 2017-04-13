@@ -6,20 +6,22 @@ description: |-
   Creates and manages webhooks for Github organizations
 ---
 
-# github\_organization\_webhook
+# github_organization_webhook
 
 This resource allows you to create and manage webhooks for Github organization.
 
 ## Example Usage
 
-```
+```hcl
 resource "github_organization_webhook" "foo" {
   name = "web"
+
   configuration {
-    url = "https://google.de/"
+    url          = "https://google.de/"
     content_type = "form"
     insecure_ssl = false
   }
+
   active = false
 
   events = ["issues"]

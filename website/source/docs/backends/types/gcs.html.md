@@ -14,11 +14,11 @@ Stores the state as a given key in a given bucket on [Google Cloud Storage](http
 
 ## Example Configuration
 
-```
+```hcl
 terraform {
   backend "gcs" {
-    bucket = "tf-state-prod"
-    path   = "path/terraform.tfstate"
+    bucket  = "tf-state-prod"
+    path    = "path/terraform.tfstate"
     project = "myproject"
   }
 }
@@ -27,17 +27,15 @@ terraform {
 ## Example Referencing
 
 ```hcl
-# setup remote state data source
 data "terraform_remote_state" "foo" {
-	backend = "gcs"
-	config {
-		bucket = "terraform-state-prod"
-		path = "network/terraform.tfstate"
-		project = "goopro"
-	}
+  backend = "gcs"
+  config {
+    bucket  = "terraform-state-prod"
+    path    = "network/terraform.tfstate"
+    project = "goopro"
+  }
 }
 
-# read value from data source
 resource "template_file" "bar" {
   template = "${greeting}"
 

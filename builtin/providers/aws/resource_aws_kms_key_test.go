@@ -37,6 +37,29 @@ func TestAccAWSKmsKey_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSKmsKey_disappears(t *testing.T) {
+	var key kms.KeyMetadata
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSKmsKeyDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSKmsKey,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSKmsKeyExists("aws_kms_key.foo", &key),
+				),
+			},
+			{
+				Config:             testAccAWSKmsKey_other_region,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func TestAccAWSKmsKey_policy(t *testing.T) {
 	var key kms.KeyMetadata
 	expectedPolicyText := `{"Version":"2012-10-17","Id":"kms-tf-1","Statement":[{"Sid":"Enable IAM User Permissions","Effect":"Allow","Principal":{"AWS":"*"},"Action":"kms:*","Resource":"*"}]}`
@@ -216,6 +239,32 @@ func testAccCheckAWSKmsKeyIsEnabled(key *kms.KeyMetadata, isEnabled bool) resour
 
 var kmsTimestamp = time.Now().Format(time.RFC1123)
 var testAccAWSKmsKey = fmt.Sprintf(`
+resource "aws_kms_key" "foo" {
+    description = "Terraform acc test %s"
+    deletion_window_in_days = 7
+    policy = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Id": "kms-tf-1",
+  "Statement": [
+    {
+      "Sid": "Enable IAM User Permissions",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "*"
+      },
+      "Action": "kms:*",
+      "Resource": "*"
+    }
+  ]
+}
+POLICY
+}`, kmsTimestamp)
+
+var testAccAWSKmsKey_other_region = fmt.Sprintf(`
+provider "aws" { 
+	region = "us-east-1"
+}
 resource "aws_kms_key" "foo" {
     description = "Terraform acc test %s"
     deletion_window_in_days = 7

@@ -3,6 +3,7 @@ package bitbucket
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -49,7 +50,7 @@ func resourceDefaultReviewersCreate(d *schema.ResourceData, m interface{}) error
 	client := m.(*BitbucketClient)
 
 	for _, user := range d.Get("reviewers").(*schema.Set).List() {
-		reviewer_resp, err := client.PutOnly(fmt.Sprintf("2.0/repositories/%s/%s/default-reviewers/%s",
+		reviewerResp, err := client.PutOnly(fmt.Sprintf("2.0/repositories/%s/%s/default-reviewers/%s",
 			d.Get("owner").(string),
 			d.Get("repository").(string),
 			user,
@@ -59,11 +60,11 @@ func resourceDefaultReviewersCreate(d *schema.ResourceData, m interface{}) error
 			return err
 		}
 
-		if reviewer_resp.StatusCode != 200 {
-			return fmt.Errorf("Failed to create reviewer %s got code %d", user.(string), reviewer_resp.StatusCode)
+		if reviewerResp.StatusCode != 200 {
+			return fmt.Errorf("Failed to create reviewer %s got code %d", user.(string), reviewerResp.StatusCode)
 		}
 
-		defer reviewer_resp.Body.Close()
+		defer reviewerResp.Body.Close()
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s/reviewers", d.Get("owner").(string), d.Get("repository").(string)))
@@ -72,26 +73,26 @@ func resourceDefaultReviewersCreate(d *schema.ResourceData, m interface{}) error
 func resourceDefaultReviewersRead(d *schema.ResourceData, m interface{}) error {
 	client := m.(*BitbucketClient)
 
-	reviewers_response, err := client.Get(fmt.Sprintf("2.0/repositories/%s/%s/default-reviewers",
+	reviewersResponse, err := client.Get(fmt.Sprintf("2.0/repositories/%s/%s/default-reviewers",
 		d.Get("owner").(string),
 		d.Get("repository").(string),
 	))
 
 	var reviewers PaginatedReviewers
 
-	decoder := json.NewDecoder(reviewers_response.Body)
+	decoder := json.NewDecoder(reviewersResponse.Body)
 	err = decoder.Decode(&reviewers)
 	if err != nil {
 		return err
 	}
 
-	terraform_reviewers := make([]string, 0, len(reviewers.Values))
+	terraformReviewers := make([]string, 0, len(reviewers.Values))
 
 	for _, reviewer := range reviewers.Values {
-		terraform_reviewers = append(terraform_reviewers, reviewer.Username)
+		terraformReviewers = append(terraformReviewers, reviewer.Username)
 	}
 
-	d.Set("reviewers", terraform_reviewers)
+	d.Set("reviewers", terraformReviewers)
 
 	return nil
 }

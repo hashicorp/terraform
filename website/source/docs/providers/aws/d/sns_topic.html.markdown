@@ -14,7 +14,7 @@ without having to hard code the ARNs as input.
 
 ## Example Usage
 
-```
+```hcl
 data "aws_sns_topic" "example" {
   name = "an_example_topic"
 }

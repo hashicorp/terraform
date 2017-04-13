@@ -6,13 +6,13 @@ description: |-
   Manages a Snippet within Cobbler.
 ---
 
-# cobbler\_snippet
+# cobbler_snippet
 
 Manages a Snippet within Cobbler.
 
 ## Example Usage
 
-```
+```hcl
 resource "cobbler_snippet" "my_snippet" {
   name = "/var/lib/cobbler/snippets/my_snippet"
   body = "<content of snippet>"

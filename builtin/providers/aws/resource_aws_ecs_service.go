@@ -118,6 +118,12 @@ func resourceAwsEcsService() *schema.Resource {
 							Type:     schema.TypeString,
 							ForceNew: true,
 							Optional: true,
+							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+								if strings.ToLower(old) == strings.ToLower(new) {
+									return true
+								}
+								return false
+							},
 						},
 					},
 				},
@@ -504,9 +510,14 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 func resourceAwsEcsLoadBalancerHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
+
 	buf.WriteString(fmt.Sprintf("%s-", m["elb_name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["container_name"].(string)))
 	buf.WriteString(fmt.Sprintf("%d-", m["container_port"].(int)))
+
+	if s := m["target_group_arn"].(string); s != "" {
+		buf.WriteString(fmt.Sprintf("%s-", s))
+	}
 
 	return hashcode.String(buf.String())
 }

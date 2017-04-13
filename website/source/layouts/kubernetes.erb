@@ -1,29 +1,38 @@
 <% wrap_layout :inner do %>
-	<% content_for :sidebar do %>
-		<div class="docs-sidebar hidden-print affix-top" role="complementary">
-			<ul class="nav docs-sidenav">
-				<li<%= sidebar_current("docs-home") %>>
-					<a href="/docs/providers/index.html">&laquo; Documentation Home</a>
-				</li>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+          <a href="/docs/providers/index.html">All Providers</a>
+        </li>
 
-				<li<%= sidebar_current("docs-kubernetes-index") %>>
-					<a href="/docs/providers/kubernetes/index.html">Kubernetes Provider</a>
-				</li>
+        <li<%= sidebar_current("docs-kubernetes-index") %>>
+          <a href="/docs/providers/kubernetes/index.html">Kubernetes Provider</a>
+        </li>
 
-				<li<%= sidebar_current(/^docs-kubernetes-resource/) %>>
-					<a href="#">Resources</a>
-					<ul class="nav nav-visible">
-						<li<%= sidebar_current("docs-kubernetes-resource-config-map") %>>
-							<a href="/docs/providers/kubernetes/r/config_map.html">kubernetes_config_map</a>
-						</li>
-						<li<%= sidebar_current("docs-kubernetes-resource-namespace") %>>
-							<a href="/docs/providers/kubernetes/r/namespace.html">kubernetes_namespace</a>
-						</li>
-					</ul>
-				</li>
-			</ul>
-		</div>
-	<% end %>
+        <li<%= sidebar_current("docs-kubernetes-resource") %>>
+          <a href="#">Resources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-kubernetes-resource-config-map") %>>
+              <a href="/docs/providers/kubernetes/r/config_map.html">kubernetes_config_map</a>
+            </li>
+            <li<%= sidebar_current("docs-kubernetes-resource-namespace") %>>
+              <a href="/docs/providers/kubernetes/r/namespace.html">kubernetes_namespace</a>
+            </li>
+            <li<%= sidebar_current("docs-kubernetes-resource-persistent-volume") %>>
+              <a href="/docs/providers/kubernetes/r/persistent_volume.html">kubernetes_persistent_volume</a>
+            </li>
+            <li<%= sidebar_current("docs-kubernetes-resource-persistent-volume-claim") %>>
+              <a href="/docs/providers/kubernetes/r/persistent_volume_claim.html">kubernetes_persistent_volume_claim</a>
+            </li>
+            <li<%= sidebar_current("docs-kubernetes-resource-secret") %>>
+                            <a href="/docs/providers/kubernetes/r/secret.html">kubernetes_secret</a>
+                        </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
 
-	<%= yield %>
+  <%= yield %>
 <% end %>
