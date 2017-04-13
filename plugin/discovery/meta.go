@@ -1,6 +1,10 @@
 package discovery
 
 import (
+	"crypto/sha256"
+	"io"
+	"os"
+
 	"github.com/blang/semver"
 )
 
@@ -25,4 +29,22 @@ type PluginMeta struct {
 // an error if the version string is not semver-syntax-compliant.
 func (m PluginMeta) VersionObj() (semver.Version, error) {
 	return semver.Make(m.Version)
+}
+
+// SHA256 returns a SHA256 hash of the content of the referenced executable
+// file, or an error if the file's contents cannot be read.
+func (m PluginMeta) SHA256() ([]byte, error) {
+	f, err := os.Open(m.Path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	h := sha256.New()
+	_, err = io.Copy(h, f)
+	if err != nil {
+		return nil, err
+	}
+
+	return h.Sum(nil), nil
 }
