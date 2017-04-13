@@ -311,7 +311,7 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 	// name contained uppercase characters.
 	d.SetId(strings.ToLower(*resp.CacheCluster.CacheClusterId))
 
-	pending := []string{"creating", "modifying", "restoring"}
+	pending := []string{"creating", "modifying", "restoring", "snapshotting"}
 	stateConf := &resource.StateChangeConf{
 		Pending:    pending,
 		Target:     []string{"available"},
