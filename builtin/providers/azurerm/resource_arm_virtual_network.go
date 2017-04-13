@@ -100,12 +100,11 @@ func resourceArmVirtualNetworkCreate(d *schema.ResourceData, meta interface{}) e
 	networkSecurityGroupNames := make([]string, 0)
 	for _, subnet := range *vnet.VirtualNetworkPropertiesFormat.Subnets {
 		if subnet.NetworkSecurityGroup != nil {
-			subnetId := *subnet.NetworkSecurityGroup.ID
-			id, err := parseAzureResourceID(subnetId)
+			nsgName, err := parseNetworkSecurityGroupName(*subnet.NetworkSecurityGroup.ID)
 			if err != nil {
-				return fmt.Errorf("[ERROR] Unable to Parse Network Security Group ID '%s': %+v", subnetId, err)
+				return err
 			}
-			nsgName := id.Path["networkSecurityGroups"]
+
 			networkSecurityGroupNames = append(networkSecurityGroupNames, nsgName)
 		}
 	}
@@ -198,7 +197,13 @@ func resourceArmVirtualNetworkDelete(d *schema.ResourceData, meta interface{}) e
 	resGroup := id.ResourceGroup
 	name := id.Path["virtualNetworks"]
 
-	// TODO: lock any associated NSG's
+	nsgNames, err := expandAzureRmVirtualNetworkVirtualNetworkSecurityGroupNames(d)
+	if err != nil {
+		return fmt.Errorf("[ERROR] Error parsing Network Security Group ID's: %+v", err)
+	}
+
+	azureRMVirtualNetworkLockNetworkSecurityGroups(&nsgNames)
+	defer azureRMVirtualNetworkUnlockNetworkSecurityGroups(&nsgNames)
 
 	_, err = vnetClient.Delete(resGroup, name, make(chan struct{}))
 
@@ -262,6 +267,38 @@ func resourceAzureSubnetHash(v interface{}) int {
 		subnet = subnet + securityGroup.(string)
 	}
 	return hashcode.String(subnet)
+}
+
+func parseNetworkSecurityGroupName(networkSecurityGroupId string) (string, error) {
+	id, err := parseAzureResourceID(networkSecurityGroupId)
+	if err != nil {
+		return "", fmt.Errorf("[ERROR] Unable to Parse Network Security Group ID '%s': %+v", networkSecurityGroupId, err)
+	}
+
+	return id.Path["networkSecurityGroups"], nil
+}
+
+func expandAzureRmVirtualNetworkVirtualNetworkSecurityGroupNames(d *schema.ResourceData) ([]string, error) {
+	nsgNames := make([]string, 0)
+
+	if v, ok := d.GetOk("subnet"); ok {
+		subnets := v.(*schema.Set).List()
+		for _, subnet := range subnets {
+			subnet := subnet.(map[string]interface{})
+
+			networkSecurityGroupId := subnet["security_group"].(string)
+			if networkSecurityGroupId != "" {
+				nsgName, err := parseNetworkSecurityGroupName(networkSecurityGroupId)
+				if err != nil {
+					return nil, err
+				}
+
+				nsgNames = append(nsgNames, nsgName)
+			}
+		}
+	}
+
+	return nsgNames, nil
 }
 
 func azureRMVirtualNetworkUnlockNetworkSecurityGroups(networkSecurityGroupNames *[]string) {
