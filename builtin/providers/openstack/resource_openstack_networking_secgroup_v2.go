@@ -167,6 +167,11 @@ func waitForSecGroupDelete(networkingClient *gophercloud.ServiceClient, secGroup
 				log.Printf("[DEBUG] Successfully deleted OpenStack Neutron Security Group %s", secGroupId)
 				return r, "DELETED", nil
 			}
+			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+				if errCode.Actual == 409 {
+					return r, "ACTIVE", nil
+				}
+			}
 			return r, "ACTIVE", err
 		}
 
