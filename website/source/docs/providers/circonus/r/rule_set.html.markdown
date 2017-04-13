@@ -13,16 +13,16 @@ The ``circonus_rule_set`` resource creates and manages a
 
 ## Usage
 
-```
+```hcl
 variable "myapp-tags" {
-  type = "list"
+  type    = "list"
   default = [ "app:myapp", "owner:myteam" ]
 }
 
 resource "circonus_rule_set" "myapp-cert-ttl-alert" {
-  check = "${circonus_check.myapp-https.checks[0]}"
+  check       = "${circonus_check.myapp-https.checks[0]}"
   metric_name = "cert_end_in"
-  link = "https://wiki.example.org/playbook/how-to-renew-cert"
+  link        = "https://wiki.example.org/playbook/how-to-renew-cert"
 
   if {
     value {
@@ -106,7 +106,7 @@ resource "circonus_rule_set" "myapp-healthy-alert" {
       # average over the last 10min.  Any transient problems should have
       # resolved themselves by now.  Something's wrong, need to page someone.
       over {
-        last = "10m"
+        last  = "10m"
         using = "average"
       }
       max_value = "500"
@@ -127,7 +127,7 @@ resource "circonus_rule_set" "myapp-healthy-alert" {
     }
 
     then {
-      notify = [ "${circonus_contact_group.myapp-owners.id}" ]
+      notify   = [ "${circonus_contact_group.myapp-owners.id}" ]
       severity = 3
     }
   }
@@ -331,7 +331,7 @@ A `then` block can have the following attributes:
 Terraform (and that the referenced [`circonus_metric`](metric.html)
 and [`circonus_check`](check.html) have already been imported):
 
-```
+```hcl
 resource "circonus_rule_set" "icmp-latency-alert" {
   check = "${circonus_check.api_latency.checks[0]}"
   metric_name = "maximum"

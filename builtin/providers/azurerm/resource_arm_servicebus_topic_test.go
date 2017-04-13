@@ -165,7 +165,7 @@ func testCheckAzureRMServiceBusTopicDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("ServiceBus Topic still exists:\n%#v", resp.TopicProperties)
+			return fmt.Errorf("ServiceBus Topic still exists:\n%+v", resp.TopicProperties)
 		}
 	}
 
@@ -191,7 +191,7 @@ func testCheckAzureRMServiceBusTopicExists(name string) resource.TestCheckFunc {
 
 		resp, err := client.Get(resourceGroup, namespaceName, topicName)
 		if err != nil {
-			return fmt.Errorf("Bad: Get on serviceBusTopicsClient: %s", err)
+			return fmt.Errorf("Bad: Get on serviceBusTopicsClient: %+v", err)
 		}
 
 		if resp.StatusCode == http.StatusNotFound {

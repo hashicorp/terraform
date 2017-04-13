@@ -136,6 +136,7 @@ func TestAccAWSElasticacheReplicationGroup_updateNodeSize(t *testing.T) {
 func TestAccAWSElasticacheReplicationGroup_updateParameterGroup(t *testing.T) {
 	var rg elasticache.ReplicationGroup
 	rName := acctest.RandString(10)
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -151,11 +152,11 @@ func TestAccAWSElasticacheReplicationGroup_updateParameterGroup(t *testing.T) {
 			},
 
 			{
-				Config: testAccAWSElasticacheReplicationGroupConfigUpdatedParameterGroup(rName),
+				Config: testAccAWSElasticacheReplicationGroupConfigUpdatedParameterGroup(rName, rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSElasticacheReplicationGroupExists("aws_elasticache_replication_group.bar", &rg),
 					resource.TestCheckResourceAttr(
-						"aws_elasticache_replication_group.bar", "parameter_group_name", "allkeys-lru"),
+						"aws_elasticache_replication_group.bar", "parameter_group_name", fmt.Sprintf("allkeys-lru-%d", rInt)),
 				),
 			},
 		},
@@ -395,7 +396,7 @@ resource "aws_elasticache_replication_group" "bar" {
 }`, rName, rName, rName)
 }
 
-func testAccAWSElasticacheReplicationGroupConfigUpdatedParameterGroup(rName string) string {
+func testAccAWSElasticacheReplicationGroupConfigUpdatedParameterGroup(rName string, rInt int) string {
 	return fmt.Sprintf(`
 provider "aws" {
   region = "us-east-1"
@@ -418,7 +419,7 @@ resource "aws_elasticache_security_group" "bar" {
 }
 
 resource "aws_elasticache_parameter_group" "bar" {
-    name = "allkeys-lru"
+    name = "allkeys-lru-%d"
     family = "redis3.2"
 
     parameter {
@@ -436,7 +437,7 @@ resource "aws_elasticache_replication_group" "bar" {
     parameter_group_name = "${aws_elasticache_parameter_group.bar.name}"
     security_group_names = ["${aws_elasticache_security_group.bar.name}"]
     apply_immediately = true
-}`, rName, rName, rName)
+}`, rName, rName, rInt, rName)
 }
 
 func testAccAWSElasticacheReplicationGroupConfigUpdatedDescription(rName string) string {

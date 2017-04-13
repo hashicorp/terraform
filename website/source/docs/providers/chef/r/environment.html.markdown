@@ -6,7 +6,7 @@ description: |-
   Creates and manages an environment in Chef Server.
 ---
 
-# chef\_environment
+# chef_environment
 
 An [environment](http://docs.chef.io/environments.html) is a container for
 Chef nodes that share a set of attribute values and may have a set of version
@@ -14,7 +14,7 @@ constraints for which cookbook versions may be used on its nodes.
 
 ## Example Usage
 
-```
+```hcl
 resource "chef_environment" "example" {
   name = "example-environment"
 }

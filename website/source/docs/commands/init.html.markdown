@@ -66,7 +66,7 @@ The command-line flags are all optional. The list of available flags are:
 ## Backend Config
 
 The `-backend-config` can take a path or `key=value` pair to specify additional
-backend configuration when [initialize a backend](/docs/backends/init.html).
+backend configuration when [initializing a backend](/docs/backends/init.html).
 
 This is particularly useful for
 [partial configuration of backends](/docs/backends/config.html). Partial

@@ -140,7 +140,7 @@ func testCheckAzureRMServiceBusNamespaceDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("ServiceBus Namespace still exists:\n%#v", resp.NamespaceProperties)
+			return fmt.Errorf("ServiceBus Namespace still exists:\n%+v", resp)
 		}
 	}
 
@@ -165,7 +165,7 @@ func testCheckAzureRMServiceBusNamespaceExists(name string) resource.TestCheckFu
 
 		resp, err := conn.Get(resourceGroup, namespaceName)
 		if err != nil {
-			return fmt.Errorf("Bad: Get on serviceBusNamespacesClient: %s", err)
+			return fmt.Errorf("Bad: Get on serviceBusNamespacesClient: %+v", err)
 		}
 
 		if resp.StatusCode == http.StatusNotFound {

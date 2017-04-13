@@ -6,7 +6,7 @@ description: |-
   Provides a list of nodes in a given Consul datacenter.
 ---
 
-# consul\_catalog\_nodes
+# consul_catalog_nodes
 
 The `consul_catalog_nodes` data source returns a list of Consul nodes that have
 been registered with the Consul cluster in a given datacenter.  By specifying a
@@ -15,9 +15,12 @@ nodes from a different WAN-attached Consul datacenter.
 
 ## Example Usage
 
-```
+```hcl
 data "consul_catalog_nodes" "read-dc1-nodes" {
-  # query_options {  #    # Optional parameter: implicitly uses the current datacenter of the agent  #    datacenter = "dc1"  # }
+  query_options {
+    # Optional parameter: implicitly uses the current datacenter of the agent  
+    datacenter = "dc1"
+  }
 }
 
 # Set the description to a whitespace delimited list of the node names

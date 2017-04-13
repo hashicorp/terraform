@@ -1,6 +1,7 @@
 package template
 
 import (
+	"regexp"
 	"testing"
 
 	r "github.com/hashicorp/terraform/helper/resource"
@@ -58,7 +59,7 @@ func TestRender(t *testing.T) {
 		r.UnitTest(t, r.TestCase{
 			Providers: testProviders,
 			Steps: []r.TestStep{
-				r.TestStep{
+				{
 					Config: tt.ResourceBlock,
 					Check: r.ComposeTestCheckFunc(
 						r.TestCheckResourceAttr("data.template_cloudinit_config.foo", "rendered", tt.Expected),
@@ -69,12 +70,23 @@ func TestRender(t *testing.T) {
 	}
 }
 
-var testCloudInitConfig_basic = `
-data "template_cloudinit_config" "config" {
-  part {
-    content_type = "text/x-shellscript"
-    content      = "baz"
-  }
-}`
+// From GH-13572, Correctly handle panic on a misconfigured cloudinit part
+func TestRender_handlePanic(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		Providers: testProviders,
+		Steps: []r.TestStep{
+			{
+				Config:      testCloudInitConfig_misconfiguredParts,
+				ExpectError: regexp.MustCompile("Unable to parse parts in cloudinit resource declaration"),
+			},
+		},
+	})
+}
 
-var testCloudInitConfig_basic_expected = `Content-Type: multipart/mixed; boundary=\"MIMEBOUNDARY\"\nMIME-Version: 1.0\r\n--MIMEBOUNDARY\r\nContent-Transfer-Encoding: 7bit\r\nContent-Type: text/x-shellscript\r\nMime-Version: 1.0\r\n\r\nbaz\r\n--MIMEBOUNDARY--\r\n`
+var testCloudInitConfig_misconfiguredParts = `
+data "template_cloudinit_config" "foo" {
+  part {
+    content = ""
+  }
+}
+`

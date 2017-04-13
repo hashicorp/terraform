@@ -6,7 +6,7 @@ description: |-
   Manages a CLC load balacner.
 ---
 
-# clc\_load\_balancer
+# clc_load_balancer
 
 Manages a CLC load balancer. Manage connected backends with [clc_load_balancer_pool](load_balancer_pool.html)
 
@@ -14,8 +14,7 @@ See also [Complete API documentation](https://www.ctl.io/api-docs/v2/#shared-loa
 
 ## Example Usage
 
-
-```
+```hcl
 # Provision a load balancer
 resource "clc_load_balancer" "api" {
   data_center = "${clc_group.frontends.location_id}"
@@ -38,8 +37,3 @@ The following arguments are supported:
 * `data_center` - (Required, string) The datacenter location of both parent group and this group.
 * `status` - (Required, string) Either "enabled" or "disabled"
 * `description` - (Optional, string) Description for server group (visible in control portal only)
-
-
-
-
-

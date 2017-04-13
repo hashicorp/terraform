@@ -15,35 +15,35 @@ https://login.circonus.com/resources/api/calls/graph).
 
 ## Usage
 
-```
+```hcl
 variable "myapp-tags" {
-  type = "list"
+  type    = "list"
   default = [ "app:myapp", "owner:myteam" ]
 }
 
 resource "circonus_graph" "latency-graph" {
-  name = "Latency Graph"
+  name        = "Latency Graph"
   description = "A sample graph showing off two data points"
-  notes = "Misc notes about this graph"
+  notes       = "Misc notes about this graph"
   graph_style = "line"
-  line_style = "stepped"
+  line_style  = "stepped"
 
   metric {
-    check = "${circonus_check.api_latency.checks[0]}"
+    check       = "${circonus_check.api_latency.checks[0]}"
     metric_name = "maximum"
     metric_type = "numeric"
-    name = "Maximum Latency"
-    axis = "left"
-    color = "#657aa6"
+    name        = "Maximum Latency"
+    axis        = "left"
+    color       = "#657aa6"
   }
 
   metric {
-    check = "${circonus_check.api_latency.checks[0]}"
+    check       = "${circonus_check.api_latency.checks[0]}"
     metric_name = "minimum"
     metric_type = "numeric"
-    name = "Minimum Latency"
-    axis = "right"
-    color = "#0000ff"
+    name        = "Minimum Latency"
+    axis        = "right"
+    color       = "#0000ff"
   }
 
   tags = [ "${var.myapp-tags}" ]
@@ -151,18 +151,18 @@ set to the graph rendering engine.
 Terraform (and that the referenced [`circonus_metric`](metric.html)
 and [`circonus_check`](check.html) have already been imported):
 
-```
+```text
 resource "circonus_graph" "icmp-graph" {
-  name = "Test graph"
+  name        = "Test graph"
   graph_style = "line"
-  line_style = "stepped"
+  line_style  = "stepped"
 
   metric {
-    check = "${circonus_check.api_latency.checks[0]}"
+    check       = "${circonus_check.api_latency.checks[0]}"
     metric_name = "maximum"
     metric_type = "numeric"
-    name = "Maximum Latency"
-    axis = "left"
+    name        = "Maximum Latency"
+    axis        = "left"
   }
 }
 ```

@@ -121,7 +121,8 @@ The `disk` block supports:
 * `type` - (Optional) 'eager_zeroed' (the default), 'lazy', or 'thin' are supported options.
 * `vmdk` - (Required if template and size not provided) Path to a vmdk in a vSphere datastore.
 * `bootable` - (Optional) Set to 'true' if a vmdk was given and it should attempt to boot after creation.
-* `controller_type` = (Optional) Controller type to attach the disk to.  'scsi' (the default), or 'ide' are supported options.
+* `controller_type` - (Optional) Controller type to attach the disk to.  'scsi' (the default), or 'ide' are supported options.
+* `keep_on_remove` - (Optional) Set to 'true' to not delete a disk on removal.
 
 <a id="cdrom"></a>
 ## CDROM

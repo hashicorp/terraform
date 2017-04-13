@@ -18,7 +18,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the Fastly Provider
 provider "fastly" {
   api_key = "test"
@@ -49,7 +49,7 @@ Fastly provider block:
 
 Usage:
 
-```
+```hcl
 provider "fastly" {
   api_key = "test"
 }
@@ -67,7 +67,7 @@ You can provide your API key via `FASTLY_API_KEY` environment variable,
 representing your Fastly API key. When using this method, you may omit the
 Fastly `provider` block entirely:
 
-```
+```hcl
 resource "fastly_service_v1" "myservice" {
   # ...
 }

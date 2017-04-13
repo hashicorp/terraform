@@ -6,7 +6,7 @@ description: |-
   Renders a multi-part cloud-init config from source files.
 ---
 
-# template\_cloudinit\_config
+# template_cloudinit_config
 
 Renders a multi-part cloud-init config from source files.
 
