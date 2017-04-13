@@ -102,7 +102,6 @@ type ArmClient struct {
 	keyVaultClient keyvault.VaultsClient
 
 	appsClient            web.AppsClient
-	appServicePlansClient web.AppServicePlansClient
 }
 
 func withRequestLogging() autorest.SendDecorator {
@@ -467,12 +466,6 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	ac.Authorizer = spt
 	ac.Sender = autorest.CreateSender(withRequestLogging())
 	client.appsClient = ac
-
-	aspc := web.NewAppServicePlansClientWithBaseURI(endpoint, c.SubscriptionID)
-	setUserAgent(&aspc.Client)
-	aspc.Authorizer = spt
-	aspc.Sender = autorest.CreateSender(withRequestLogging())
-	client.appServicePlansClient = aspc
 
 	return &client, nil
 }
