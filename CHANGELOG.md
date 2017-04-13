@@ -6,6 +6,10 @@ BUG FIXES:
 
 IMPROVEMENTS:
  * google: `google_compute_address` and `google_compute_global_address` are now importable [GH-13270]
+ 
+BUG FIXES:
+
+ * provider/openstack: Fix updating Ports [GH-13604]
 
 ## 0.9.3 (April 12, 2017)
 
