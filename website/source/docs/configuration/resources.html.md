@@ -229,6 +229,50 @@ resource "aws_instance" "app" {
 }
 ```
 
+### Dependencies between resources generated with `count`
+
+You can also have interdependencies between resources generated using count.
+This example shows how to attach an `aws_s3_bucket_policy` to each `aws_s3_bucket`
+resources generated using a list of domains:
+
+```hcl
+variable "domains_list" {
+  type = "list"
+  default = {
+    "my-bucket-foo",
+    "my-bucket-bar",
+  }
+}
+
+resource "aws_s3_bucket" "my-buckets" {
+  count  = "${length(var.domains_list)}"
+  bucket = "${element(var.domains_list, count.index)}"
+  website {
+    index_document = "index.html"
+    error_document = "error.html"
+  }
+}
+
+resource "aws_s3_bucket_policy" "my-buckets" {
+  count  = "${length(var.domains_list)}"
+  bucket = "${element(aws_s3_bucket.my-buckets.*.id, count.index)}"
+  policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowPublicAccess",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "${element(aws_s3_bucket.my-buckets.*.arn, count.index)}/*"
+        }
+    ]
+}
+EOF
+}
+```
+
 ## Multiple Provider Instances
 
 By default, a resource targets the provider based on its type. For example
