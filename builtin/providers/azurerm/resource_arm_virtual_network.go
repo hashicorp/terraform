@@ -97,6 +97,22 @@ func resourceArmVirtualNetworkCreate(d *schema.ResourceData, meta interface{}) e
 		Tags: expandTags(tags),
 	}
 
+	networkSecurityGroupNames := make([]string, 0)
+	for _, subnet := range *vnet.VirtualNetworkPropertiesFormat.Subnets {
+		if subnet.NetworkSecurityGroup != nil {
+			subnetId := *subnet.NetworkSecurityGroup.ID
+			id, err := parseAzureResourceID(subnetId)
+			if err != nil {
+				return fmt.Errorf("[ERROR] Unable to Parse Network Security Group ID '%s': %+v", subnetId, err)
+			}
+			nsgName := id.Path["networkSecurityGroups"]
+			networkSecurityGroupNames = append(networkSecurityGroupNames, nsgName)
+		}
+	}
+
+	azureRMVirtualNetworkLockNetworkSecurityGroups(&networkSecurityGroupNames)
+	defer azureRMVirtualNetworkUnlockNetworkSecurityGroups(&networkSecurityGroupNames)
+
 	_, err := vnetClient.CreateOrUpdate(resGroup, name, vnet, make(chan struct{}))
 	if err != nil {
 		return err
@@ -182,6 +198,8 @@ func resourceArmVirtualNetworkDelete(d *schema.ResourceData, meta interface{}) e
 	resGroup := id.ResourceGroup
 	name := id.Path["virtualNetworks"]
 
+	// TODO: lock any associated NSG's
+
 	_, err = vnetClient.Delete(resGroup, name, make(chan struct{}))
 
 	return err
@@ -244,4 +262,15 @@ func resourceAzureSubnetHash(v interface{}) int {
 		subnet = subnet + securityGroup.(string)
 	}
 	return hashcode.String(subnet)
+}
+
+func azureRMVirtualNetworkUnlockNetworkSecurityGroups(networkSecurityGroupNames *[]string) {
+	for _, networkSecurityGroupName := range *networkSecurityGroupNames {
+		armMutexKV.Unlock(networkSecurityGroupName)
+	}
+}
+func azureRMVirtualNetworkLockNetworkSecurityGroups(networkSecurityGroupNames *[]string) {
+	for _, networkSecurityGroupName := range *networkSecurityGroupNames {
+		armMutexKV.Lock(networkSecurityGroupName)
+	}
 }
