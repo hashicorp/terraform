@@ -1,9 +1,5 @@
 ## 0.9.4 (Unreleased)
 
-BUG FIXES: 
-
- * core: Add the close provider/provisioner transformers back [GH-13102]
-
 FEATURES:
 
 * **New Data Source:** `google_compute_network` [GH-12442]
@@ -14,6 +10,8 @@ IMPROVEMENTS:
  
 BUG FIXES:
 
+ * core: Add the close provider/provisioner transformers back [GH-13102]
+ * provider/google: Stop setting the id when project creation fails [GH-13644]
  * provider/openstack: Fix updating Ports [GH-13604]
 
 ## 0.9.3 (April 12, 2017)
