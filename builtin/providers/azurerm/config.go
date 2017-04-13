@@ -101,7 +101,7 @@ type ArmClient struct {
 
 	keyVaultClient keyvault.VaultsClient
 
-	appsClient            web.AppsClient
+	appsClient web.AppsClient
 }
 
 func withRequestLogging() autorest.SendDecorator {
