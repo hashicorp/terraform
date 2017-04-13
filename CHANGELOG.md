@@ -4,6 +4,11 @@ BUG FIXES:
 
  * core: Add the close provider/provisioner transformers back [GH-13102]
 
+FEATURES:
+
+* **New Data Source:** `google_compute_network` [GH-12442]
+* **New Data Source:** `google_compute_subnetwork` [GH-12442]
+
 IMPROVEMENTS:
  * google: `google_compute_address` and `google_compute_global_address` are now importable [GH-13270]
  
