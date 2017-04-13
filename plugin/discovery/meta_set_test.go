@@ -343,3 +343,77 @@ func TestPluginMetaSetConstrainVersions(t *testing.T) {
 	}
 
 }
+
+func TestPluginMetaSetOverridePaths(t *testing.T) {
+
+	metas := []PluginMeta{
+		{
+			Name:    "foo",
+			Version: "1.0.0",
+			Path:    "test-foo-1",
+		},
+		{
+			Name:    "foo",
+			Version: "2.0.0",
+			Path:    "test-foo-2",
+		},
+		{
+			Name:    "foo",
+			Version: "3.0.0",
+			Path:    "test-foo-3",
+		},
+		{
+			Name:    "bar",
+			Version: "0.0.5",
+			Path:    "test-bar-5",
+		},
+		{
+			Name:    "bar",
+			Version: "0.0.6",
+			Path:    "test-bar-6",
+		},
+		{
+			Name:    "baz",
+			Version: "0.0.1",
+			Path:    "test-bar",
+		},
+	}
+	s := make(PluginMetaSet)
+
+	for _, p := range metas {
+		s.Add(p)
+	}
+
+	ns := s.OverridePaths(map[string]string{
+		"foo": "override-foo",
+		"fun": "override-fun",
+	})
+
+	if got, want := ns.Count(), 5; got != want {
+		t.Errorf("got %d metas; want %d", got, want)
+	}
+
+	if !ns.Has(metas[3]) {
+		t.Errorf("new set is missing %#v", metas[3])
+	}
+	if !ns.Has(metas[4]) {
+		t.Errorf("new set is missing %#v", metas[4])
+	}
+	if !ns.Has(metas[5]) {
+		t.Errorf("new set is missing %#v", metas[5])
+	}
+	if !ns.Has(PluginMeta{
+		Name:    "foo",
+		Version: "0.0.0",
+		Path:    "override-foo",
+	}) {
+		t.Errorf("new set is missing 'foo' override")
+	}
+	if !ns.Has(PluginMeta{
+		Name:    "fun",
+		Version: "0.0.0",
+		Path:    "override-fun",
+	}) {
+		t.Errorf("new set is missing 'fun' override")
+	}
+}
