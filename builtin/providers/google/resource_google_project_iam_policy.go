@@ -86,7 +86,7 @@ func resourceGoogleProjectIamPolicyCreate(d *schema.ResourceData, meta interface
 		if err != nil {
 			return fmt.Errorf("Error marshaling restorable IAM policy: %v", err)
 		}
-		d.Set("restore_policy", string(ps))
+		d.Set("policy_data", string(ps))
 
 		// Merge the policies together
 		mb := mergeBindings(append(p.Bindings, rp.Bindings...))
@@ -109,27 +109,8 @@ func resourceGoogleProjectIamPolicyRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	var bindings []*cloudresourcemanager.Binding
-	if v, ok := d.GetOk("restore_policy"); ok {
-		var restored cloudresourcemanager.Policy
-		// if there's a restore policy, subtract it from the policy_data
-		err := json.Unmarshal([]byte(v.(string)), &restored)
-		if err != nil {
-			return fmt.Errorf("Error unmarshaling restorable IAM policy: %v", err)
-		}
-		subtracted := subtractIamPolicy(p, &restored)
-		bindings = subtracted.Bindings
-	} else {
-		bindings = p.Bindings
-	}
-	// we only marshal the bindings, because only the bindings get set in the config
-	pBytes, err := json.Marshal(&cloudresourcemanager.Policy{Bindings: bindings})
-	if err != nil {
-		return fmt.Errorf("Error marshaling IAM policy: %v", err)
-	}
 	log.Printf("[DEBUG]: Setting etag=%s", p.Etag)
 	d.Set("etag", p.Etag)
-	d.Set("policy_data", string(pBytes))
 	return nil
 }
 
@@ -218,15 +199,14 @@ func resourceGoogleProjectIamPolicyDelete(d *schema.ResourceData, meta interface
 		ep.Bindings = make([]*cloudresourcemanager.Binding, 0)
 
 	} else {
-		// A non-authoritative policy should set the policy to the value of "restore_policy" in state
-		// Get the previous policy from state
-		rp, err := getRestoreIamPolicy(d)
+		// A non-authoritative policy should set the policy to the value of existing policy on GCP minus "policy_data" in state
+		pp, err := getResourceIamPolicy(d)
 		if err != nil {
 			return fmt.Errorf("Error retrieving previous version of changed project IAM policy: %v", err)
 		}
 
 		// TODO not unit tested but this fixes the IAM policy issue
-		ep = subtractIamPolicy(ep, rp)
+		ep = subtractIamPolicy(ep, pp)
 	}
 
 	if err = setProjectIamPolicy(ep, config, pid); err != nil {
