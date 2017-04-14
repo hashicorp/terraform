@@ -32,9 +32,10 @@ type Meta struct {
 	// command with a Meta field. These are expected to be set externally
 	// (not from within the command itself).
 
-	Color       bool                   // True if output should be colored
-	ContextOpts *terraform.ContextOpts // Opts copied to initialize
-	Ui          cli.Ui                 // Ui for output
+	Color            bool             // True if output should be colored
+	GlobalPluginDirs []string         // Additional paths to search for plugins
+	PluginOverrides  *PluginOverrides // legacy overrides from .terraformrc file
+	Ui               cli.Ui           // Ui for output
 
 	// ExtraHooks are extra hooks to add to the context.
 	ExtraHooks []terraform.Hook
@@ -45,6 +46,9 @@ type Meta struct {
 
 	// Modify the data directory location. Defaults to DefaultDataDir
 	dataDir string
+
+	// Override certain behavior for tests within this package
+	testingOverrides *testingOverrides
 
 	//----------------------------------------------------------
 	// Private: do not set these
@@ -107,6 +111,16 @@ type Meta struct {
 	stateLockTimeout time.Duration
 	forceInitCopy    bool
 	reconfigure      bool
+}
+
+type PluginOverrides struct {
+	Providers    map[string]string
+	Provisioners map[string]string
+}
+
+type testingOverrides struct {
+	Providers    map[string]terraform.ResourceProviderFactory
+	Provisioners map[string]terraform.ResourceProvisionerFactory
 }
 
 // initStatePaths is used to initialize the default values for
@@ -199,14 +213,7 @@ func (m *Meta) StdinPiped() bool {
 // context with the settings from this Meta.
 func (m *Meta) contextOpts() *terraform.ContextOpts {
 	var opts terraform.ContextOpts
-	if v := m.ContextOpts; v != nil {
-		opts = *v
-	}
-
 	opts.Hooks = []terraform.Hook{m.uiHook(), &terraform.DebugHook{}}
-	if m.ContextOpts != nil {
-		opts.Hooks = append(opts.Hooks, m.ContextOpts.Hooks...)
-	}
 	opts.Hooks = append(opts.Hooks, m.ExtraHooks...)
 
 	vs := make(map[string]interface{})
@@ -225,6 +232,17 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 	opts.UIInput = m.UIInput()
 	opts.Parallelism = m.parallelism
 	opts.Shadow = m.shadow
+
+	// If testingOverrides are set, we'll skip the plugin discovery process
+	// and just work with what we've been given, thus allowing the tests
+	// to provide mock providers and provisioners.
+	if m.testingOverrides != nil {
+		opts.Providers = m.testingOverrides.Providers
+		opts.Provisioners = m.testingOverrides.Provisioners
+	} else {
+		opts.Providers = m.providerFactories()
+		opts.Provisioners = m.provisionerFactories()
+	}
 
 	opts.Meta = &terraform.ContextMeta{
 		Env: m.Env(),
