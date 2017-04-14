@@ -98,6 +98,7 @@ func resourceAwsDbParameterGroupCreate(d *schema.ResourceData, meta interface{})
 	} else {
 		groupName = resource.UniqueId()
 	}
+	d.Set("name", groupName)
 
 	createOpts := rds.CreateDBParameterGroupInput{
 		DBParameterGroupName:   aws.String(groupName),
