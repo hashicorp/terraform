@@ -104,6 +104,14 @@ func resourceArmSubnetCreate(d *schema.ResourceData, meta interface{}) error {
 		properties.RouteTable = &network.RouteTable{
 			ID: &rtId,
 		}
+
+		routeTableName, err := parseRouteTableName(rtId)
+		if err != nil {
+			return err
+		}
+
+		armMutexKV.Lock(routeTableName)
+		defer armMutexKV.Unlock(routeTableName)
 	}
 
 	subnet := network.Subnet{
@@ -199,6 +207,17 @@ func resourceArmSubnetDelete(d *schema.ResourceData, meta interface{}) error {
 
 		armMutexKV.Lock(networkSecurityGroupName)
 		defer armMutexKV.Unlock(networkSecurityGroupName)
+	}
+
+	if v, ok := d.GetOk("route_table_id"); ok {
+		rtId := v.(string)
+		routeTableName, err := parseRouteTableName(rtId)
+		if err != nil {
+			return err
+		}
+
+		armMutexKV.Lock(routeTableName)
+		defer armMutexKV.Unlock(routeTableName)
 	}
 
 	armMutexKV.Lock(vnetName)
