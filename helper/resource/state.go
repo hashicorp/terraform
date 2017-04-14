@@ -2,6 +2,7 @@ package resource
 
 import (
 	"log"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -25,6 +26,7 @@ type StateChangeConf struct {
 	Refresh        StateRefreshFunc // Refreshes the current state
 	Target         []string         // Target state
 	Timeout        time.Duration    // The amount of time to wait before timeout
+	TimeoutGrace   time.Duration    // The grace period to wait for the last refresh to finish before timing out
 	MinTimeout     time.Duration    // Smallest time to wait before refreshes
 	PollInterval   time.Duration    // Override MinTimeout/backoff and only poll this often
 	NotFoundChecks int              // Number of times to allow not found
@@ -71,6 +73,7 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 	}
 	var lastResult atomic.Value
 	lastResult.Store(Result{})
+	var refreshMutex sync.Mutex
 
 	doneCh := make(chan struct{})
 	go func() {
@@ -82,6 +85,12 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 		wait := 100 * time.Millisecond
 
 		for {
+			// Intentionally not deferring the Unlock
+			// if this function returns, I don't want to let the timeout
+			// code run; it should pick up on the channel closing
+			// this does mean, however, that any continue statements MUST call
+			// refreshMutex.Unlock() before continue
+			refreshMutex.Lock()
 			res, currentState, err := conf.Refresh()
 			result := Result{
 				Result: res,
@@ -100,6 +109,7 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 				if conf.ContinuousTargetOccurence == targetOccurence {
 					return
 				} else {
+					refreshMutex.Unlock()
 					continue
 				}
 			}
@@ -128,6 +138,11 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 						if conf.ContinuousTargetOccurence == targetOccurence {
 							return
 						} else {
+							// FIXME: I think this continue is buggy, it's continuing the for
+							// loop just above, not continuing on the big for loop to check
+							// the resource status?
+							// If this is fixed, then uncomment the following line
+							// refreshMutex.Unlock()
 							continue
 						}
 					}
@@ -172,6 +187,7 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 			if targetOccurence == 0 {
 				wait *= 2
 			}
+			refreshMutex.Unlock()
 		}
 	}()
 
@@ -180,12 +196,48 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 		r := lastResult.Load().(Result)
 		return r.Result, r.Error
 	case <-time.After(conf.Timeout):
-		r := lastResult.Load().(Result)
-		return nil, &TimeoutError{
-			LastError:     r.Error,
-			LastState:     r.State,
-			Timeout:       conf.Timeout,
-			ExpectedState: conf.Target,
+		// There is special processing to handle the case where conf.Refresh is an
+		// asynchronous method that can create resources (e.g., a call to create
+		// a cloud resource). It's possible that, when we hit the timeout, the
+		// asynchronous process is actually going to succeed and provision a
+		// resource, but we'll never see it here. So, we create a mutex around the
+		// refresh attempts and then give it a grace period of 5 seconds (chosen
+		// somewhat arbitrarily) to finish processing the existing call before we
+		// give up. Note that we never actually release the mutex here in order to
+		// prevent the refresh function from getting called yet again.
+		// The length of the grace period is a tradeoff. If we don't have a grace
+		// period, we could leak resources. If we have an infinite grace period,
+		// then we might never timeout if conf.Refresh never finishes.
+		mutexLockCh := make(chan struct{})
+		go func() {
+			refreshMutex.Lock()
+			close(mutexLockCh)
+		}()
+		select {
+		case <-doneCh:
+			r := lastResult.Load().(Result)
+			return r.Result, r.Error
+		// The mutex is only unlocked at the end of the for loop, i.e., right before
+		// retrying. Which means if we succeed in getting this lock, the last
+		// attempt didn't succeed, so we should still process it as a timeout.
+		case <-mutexLockCh:
+			r := lastResult.Load().(Result)
+			return nil, &TimeoutError{
+				LastError:     r.Error,
+				LastState:     r.State,
+				Timeout:       conf.Timeout,
+				ExpectedState: conf.Target,
+			}
+		// This case means that the existing call to conf.Refresh took over 5
+		// seconds from the time we hit the timeout, so just give up
+		case <-time.After(conf.TimeoutGrace):
+			r := lastResult.Load().(Result)
+			return nil, &TimeoutError{
+				LastError:     r.Error,
+				LastState:     r.State,
+				Timeout:       conf.Timeout,
+				ExpectedState: conf.Target,
+			}
 		}
 	}
 }
