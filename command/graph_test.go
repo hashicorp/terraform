@@ -16,8 +16,8 @@ func TestGraph(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &GraphCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -38,8 +38,8 @@ func TestGraph_multipleArgs(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &GraphCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -65,8 +65,8 @@ func TestGraph_noArgs(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &GraphCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -105,8 +105,8 @@ func TestGraph_plan(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &GraphCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
