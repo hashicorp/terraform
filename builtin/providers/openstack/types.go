@@ -3,7 +3,6 @@ package openstack
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -76,15 +75,7 @@ func (lrt *LogRoundTripper) logRequest(original io.ReadCloser, headers http.Head
 		return nil, err
 	}
 
-	// Log request headers
-	var requestHeaders []string
-	for name, header := range headers {
-		name = strings.ToLower(name)
-		for _, h := range header {
-			requestHeaders = append(requestHeaders, fmt.Sprintf("%v: %v", name, h))
-		}
-	}
-	log.Printf("[DEBUG] Openstack Request headers:\n%s", strings.Join(requestHeaders, "\n"))
+	log.Printf("[DEBUG] Openstack Request headers:\n%s", strings.Join(RedactHeaders(headers), "\n"))
 
 	// Handle request contentType
 	contentType := headers.Get("Content-Type")
@@ -101,15 +92,7 @@ func (lrt *LogRoundTripper) logRequest(original io.ReadCloser, headers http.Head
 // logResponse will log the HTTP Response details.
 // If the body is JSON, it will attempt to be pretty-formatted.
 func (lrt *LogRoundTripper) logResponse(original io.ReadCloser, headers http.Header) (io.ReadCloser, error) {
-	// Log response headers
-	var responseHeaders []string
-	for name, header := range headers {
-		name = strings.ToLower(name)
-		for _, h := range header {
-			responseHeaders = append(responseHeaders, fmt.Sprintf("%v: %v", name, h))
-		}
-	}
-	log.Printf("[DEBUG] Openstack Response headers:\n%s", strings.Join(responseHeaders, "\n"))
+	log.Printf("[DEBUG] Openstack Response headers:\n%s", strings.Join(RedactHeaders(headers), "\n"))
 
 	contentType := headers.Get("Content-Type")
 	if strings.HasPrefix(contentType, "application/json") {
