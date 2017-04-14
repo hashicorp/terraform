@@ -31,7 +31,7 @@ type CCSpace struct {
 	ID string
 
 	Name      string `json:"name"`
-	AllowSSH  bool   `json:"allow_ssh,omitempty"`
+	AllowSSH  bool   `json:"allow_ssh"`
 	OrgGUID   string `json:"organization_guid"`
 	QuotaGUID string `json:"space_quota_definition_guid,omitempty"`
 }
