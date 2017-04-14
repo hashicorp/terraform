@@ -6,7 +6,8 @@ FEATURES:
 * **New Data Source:** `google_compute_subnetwork` [GH-12442]
 
 IMPROVEMENTS:
- * google: `google_compute_address` and `google_compute_global_address` are now importable [GH-13270]
+ * provider/aws: Add an option to skip getting the supported EC2 platforms [GH-13672]
+ * provider/google: `google_compute_address` and `google_compute_global_address` are now importable [GH-13270]
  
 BUG FIXES:
 
