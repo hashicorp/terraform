@@ -33,9 +33,9 @@ The following arguments are supported:
 * `test_type` - (Required) The type of Test. Either HTTP or TCP
 * `paused` - (Optional) Whether or not the test is paused. Defaults to false.
 * `timeout` - (Optional) The timeout of the test in seconds.
-* `contact_id` - (Optional) The ID of the contact group to associate with the test.
 * `confirmations` - (Optional) The number of confirmation servers to use in order to detect downtime. Defaults to 0.
 * `port` - (Optional) The port to use when specifying a TCP test.
+* `trigger_rate` - (Optional) The number of minutes to wait before sending an alert. Default is `5`.
 
 
 ## Attributes Reference

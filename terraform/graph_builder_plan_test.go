@@ -65,6 +65,17 @@ openstack_floating_ip.random
   provider.openstack
 provider.aws
   openstack_floating_ip.random
+provider.aws (close)
+  aws_instance.web
+  aws_load_balancer.weblb
+  aws_security_group.firewall
+  provider.aws
 provider.openstack
+provider.openstack (close)
+  openstack_floating_ip.random
+  provider.openstack
+root
+  provider.aws (close)
+  provider.openstack (close)
 var.foo
 `

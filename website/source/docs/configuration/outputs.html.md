@@ -58,6 +58,11 @@ These are the parameters that can be set:
   map. This usually includes an interpolation since outputs that are static
   aren't usually useful.
 
+- `description` (optional) - A human-friendly description for the output. This
+  is primarily for documentation for users using your Terraform configuration. A
+  future version of Terraform will expose these descriptions as part of some
+  Terraform CLI command.
+
 - `depends_on` (list of strings) - Explicit dependencies that this output has.
   These dependencies will be created before this output value is processed. The
   dependencies are in the format of `TYPE.NAME`, for example `aws_instance.web`.

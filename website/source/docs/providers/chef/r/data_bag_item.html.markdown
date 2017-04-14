@@ -6,7 +6,7 @@ description: |-
   Creates and manages an object within a data bag in Chef Server.
 ---
 
-# chef\_data\_bag\_item
+# chef_data_bag_item
 
 A [data bag](http://docs.chef.io/data_bags.html) is a collection of
 configuration objects that are stored as JSON in Chef Server and can be
@@ -17,7 +17,7 @@ data bag itself, use the ``chef_data_bag`` resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "chef_data_bag_item" "example" {
   data_bag_name = "example-data-bag"
 

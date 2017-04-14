@@ -6,14 +6,14 @@ description: |-
   Provides access to Node data in Consul. This can be used to define a node.
 ---
 
-# consul\_node
+# consul_node
 
 Provides access to Node data in Consul. This can be used to define a
 node. Currently, defining health checks is not supported.
 
 ## Example Usage
 
-```
+```hcl
 resource "consul_node" "foobar" {
   address = "192.168.10.10"
   name    = "foobar"

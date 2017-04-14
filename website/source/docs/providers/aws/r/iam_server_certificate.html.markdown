@@ -49,7 +49,7 @@ EOF
   private_key = <<EOF
 -----BEGIN RSA PRIVATE KEY-----
 [......] # cert contents
------END CERTIFICATE-----
+-----END RSA PRIVATE KEY-----
 EOF
 }
 ```

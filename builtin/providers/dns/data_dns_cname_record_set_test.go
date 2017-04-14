@@ -17,7 +17,7 @@ func TestAccDnsCnameRecordSet_Basic(t *testing.T) {
 			  host = "www.hashicorp.com"
 			}
 			`,
-			"s.shared.global.fastly.net.",
+			"dualstack.s.shared.global.fastly.net.",
 		},
 	}
 
