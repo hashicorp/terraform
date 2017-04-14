@@ -17,8 +17,8 @@ func TestInit(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -54,8 +54,8 @@ func TestInit_cwd(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -81,8 +81,8 @@ func TestInit_empty(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -96,8 +96,8 @@ func TestInit_multipleArgs(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -134,8 +134,8 @@ func TestInit_dstInSrc(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -162,8 +162,8 @@ func TestInit_get(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -189,8 +189,8 @@ func TestInit_copyGet(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -222,8 +222,8 @@ func TestInit_backend(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -248,8 +248,8 @@ func TestInit_backendUnset(t *testing.T) {
 		ui := new(cli.MockUi)
 		c := &InitCommand{
 			Meta: Meta{
-				ContextOpts: testCtxConfig(testProvider()),
-				Ui:          ui,
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
 			},
 		}
 
@@ -273,8 +273,8 @@ func TestInit_backendUnset(t *testing.T) {
 		ui := new(cli.MockUi)
 		c := &InitCommand{
 			Meta: Meta{
-				ContextOpts: testCtxConfig(testProvider()),
-				Ui:          ui,
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
 			},
 		}
 
@@ -301,8 +301,8 @@ func TestInit_backendConfigFile(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -333,8 +333,8 @@ func TestInit_backendConfigFileChange(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -360,8 +360,8 @@ func TestInit_backendConfigKV(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -387,8 +387,8 @@ func TestInit_copyBackendDst(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -426,8 +426,8 @@ func TestInit_backendReinitWithExtra(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -474,8 +474,8 @@ func TestInit_backendReinitConfigToExtra(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -518,8 +518,8 @@ func TestInit_inputFalse(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -546,7 +546,7 @@ func TestInit_remoteState(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
+			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:          ui,
 		},
 	}
@@ -582,7 +582,7 @@ func TestInit_remoteStateSubdir(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
+			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:          ui,
 		},
 	}
@@ -626,7 +626,7 @@ func TestInit_remoteStateWithLocal(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
+			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:          ui,
 		},
 	}
@@ -664,7 +664,7 @@ func TestInit_remoteStateWithRemote(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
+			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:          ui,
 		},
 	}

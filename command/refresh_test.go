@@ -22,8 +22,8 @@ func TestRefresh(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &RefreshCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -71,8 +71,8 @@ func TestRefresh_empty(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &RefreshCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -105,8 +105,8 @@ func TestRefresh_lockedState(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &RefreshCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -145,8 +145,8 @@ func TestRefresh_cwd(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &RefreshCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -217,8 +217,8 @@ func TestRefresh_defaultState(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &RefreshCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -290,8 +290,8 @@ func TestRefresh_futureState(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &RefreshCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -333,8 +333,8 @@ func TestRefresh_pastState(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &RefreshCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -392,8 +392,8 @@ func TestRefresh_outPath(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &RefreshCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -467,8 +467,8 @@ func TestRefresh_var(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &RefreshCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -497,8 +497,8 @@ func TestRefresh_varFile(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &RefreshCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -532,8 +532,8 @@ func TestRefresh_varFileDefault(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &RefreshCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -582,8 +582,8 @@ func TestRefresh_varsUnset(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &RefreshCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -622,8 +622,8 @@ func TestRefresh_backup(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &RefreshCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -707,8 +707,8 @@ func TestRefresh_disableBackup(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &RefreshCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -776,8 +776,8 @@ func TestRefresh_displaysOutputs(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &RefreshCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
