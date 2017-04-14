@@ -95,3 +95,13 @@ func parseAzureResourceID(id string) (*ResourceID, error) {
 
 	return idObj, nil
 }
+
+func parseRouteTableName(routeTableId string) (string, error) {
+	id, err := parseAzureResourceID(routeTableId)
+
+	if err != nil {
+		return "", fmt.Errorf("[ERROR] Unable to parse Route Table ID '%s': %+v", routeTableId, err)
+	}
+
+	return id.Path["routeTables"], nil
+}
