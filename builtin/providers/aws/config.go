@@ -97,6 +97,7 @@ type Config struct {
 	Insecure         bool
 
 	SkipCredsValidation     bool
+	SkipGetEC2Platforms     bool
 	SkipRegionValidation    bool
 	SkipRequestingAccountId bool
 	SkipMetadataApiCheck    bool
@@ -280,13 +281,15 @@ func (c *Config) Client() (interface{}, error) {
 
 	client.ec2conn = ec2.New(awsEc2Sess)
 
-	supportedPlatforms, err := GetSupportedEC2Platforms(client.ec2conn)
-	if err != nil {
-		// We intentionally fail *silently* because there's a chance
-		// user just doesn't have ec2:DescribeAccountAttributes permissions
-		log.Printf("[WARN] Unable to get supported EC2 platforms: %s", err)
-	} else {
-		client.supportedplatforms = supportedPlatforms
+	if !c.SkipGetEC2Platforms {
+		supportedPlatforms, err := GetSupportedEC2Platforms(client.ec2conn)
+		if err != nil {
+			// We intentionally fail *silently* because there's a chance
+			// user just doesn't have ec2:DescribeAccountAttributes permissions
+			log.Printf("[WARN] Unable to get supported EC2 platforms: %s", err)
+		} else {
+			client.supportedplatforms = supportedPlatforms
+		}
 	}
 
 	client.acmconn = acm.New(sess)
