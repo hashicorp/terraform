@@ -17,8 +17,8 @@ func TestStateList(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &StateListCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -48,8 +48,8 @@ func TestStateList_backendState(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &StateListCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -74,8 +74,8 @@ func TestStateList_noState(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &StateListCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
