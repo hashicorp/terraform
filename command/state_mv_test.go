@@ -47,8 +47,8 @@ func TestStateMv(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -114,8 +114,8 @@ func TestStateMv_backupExplicit(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -169,8 +169,8 @@ func TestStateMv_stateOutNew(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -241,8 +241,8 @@ func TestStateMv_stateOutExisting(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -282,8 +282,8 @@ func TestStateMv_noState(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -343,8 +343,8 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -521,8 +521,8 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -602,8 +602,8 @@ func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
