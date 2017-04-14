@@ -31,8 +31,8 @@ func TestOutput(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &OutputCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -79,8 +79,8 @@ func TestModuleOutput(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &OutputCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -129,8 +129,8 @@ func TestModuleOutputs(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &OutputCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -177,8 +177,8 @@ func TestOutput_nestedListAndMap(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &OutputCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -216,8 +216,8 @@ func TestOutput_json(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &OutputCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -256,8 +256,8 @@ func TestMissingModuleOutput(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &OutputCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -292,8 +292,8 @@ func TestOutput_badVar(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &OutputCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -330,8 +330,8 @@ func TestOutput_blank(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &OutputCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -355,8 +355,8 @@ func TestOutput_manyArgs(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &OutputCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -373,8 +373,8 @@ func TestOutput_noArgs(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &OutputCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -391,8 +391,8 @@ func TestOutput_noState(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &OutputCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -420,8 +420,8 @@ func TestOutput_noVars(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &OutputCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 
@@ -480,8 +480,8 @@ func TestOutput_stateDefault(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &OutputCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
 		},
 	}
 

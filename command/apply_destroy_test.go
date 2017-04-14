@@ -33,8 +33,8 @@ func TestApply_destroy(t *testing.T) {
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -123,8 +123,8 @@ func TestApply_destroyLockedState(t *testing.T) {
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -155,8 +155,8 @@ func TestApply_destroyPlan(t *testing.T) {
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 
@@ -199,8 +199,8 @@ func TestApply_destroyTargeted(t *testing.T) {
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
 		},
 	}
 

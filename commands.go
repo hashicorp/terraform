@@ -30,9 +30,10 @@ func init() {
 	}
 
 	meta := command.Meta{
-		Color:       true,
-		ContextOpts: &ContextOpts,
-		Ui:          Ui,
+		Color:            true,
+		GlobalPluginDirs: globalPluginDirs(),
+		PluginOverrides:  &PluginOverrides,
+		Ui:               Ui,
 	}
 
 	// The command list is included in the terraform -help
