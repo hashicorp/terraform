@@ -11,6 +11,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
  * core: Add the close provider/provisioner transformers back [GH-13102]
+ * provider/azurerm: azurerm_redis_cache resource missing hostname [GH-13650]
  * provider/google: Stop setting the id when project creation fails [GH-13644]
  * provider/openstack: Fix updating Ports [GH-13604]
 
