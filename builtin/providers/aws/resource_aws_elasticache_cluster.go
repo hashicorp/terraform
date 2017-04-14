@@ -572,7 +572,7 @@ func resourceAwsElasticacheClusterDelete(d *schema.ResourceData, meta interface{
 
 	log.Printf("[DEBUG] Waiting for deletion: %v", d.Id())
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"creating", "available", "deleting", "incompatible-parameters", "incompatible-network", "restore-failed"},
+		Pending:    []string{"creating", "available", "deleting", "incompatible-parameters", "incompatible-network", "restore-failed", "snapshotting"},
 		Target:     []string{},
 		Refresh:    cacheClusterStateRefreshFunc(conn, d.Id(), "", []string{}),
 		Timeout:    40 * time.Minute,
