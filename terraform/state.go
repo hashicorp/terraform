@@ -1960,11 +1960,11 @@ func ReadStateV2(jsonBytes []byte) (*State, error) {
 		}
 	}
 
-	// Sort it
-	state.sort()
-
 	// catch any unitialized fields in the state
 	state.init()
+
+	// Sort it
+	state.sort()
 
 	return state, nil
 }
@@ -1995,11 +1995,11 @@ func ReadStateV3(jsonBytes []byte) (*State, error) {
 		}
 	}
 
-	// Sort it
-	state.sort()
-
 	// catch any unitialized fields in the state
 	state.init()
+
+	// Sort it
+	state.sort()
 
 	// Now we write the state back out to detect any changes in normaliztion.
 	// If our state is now written out differently, bump the serial number to
@@ -2020,11 +2020,16 @@ func ReadStateV3(jsonBytes []byte) (*State, error) {
 
 // WriteState writes a state somewhere in a binary format.
 func WriteState(d *State, dst io.Writer) error {
-	// Make sure it is sorted
-	d.sort()
+	// writing a nil state is a noop.
+	if d == nil {
+		return nil
+	}
 
 	// make sure we have no uninitialized fields
 	d.init()
+
+	// Make sure it is sorted
+	d.sort()
 
 	// Ensure the version is set
 	d.Version = StateVersion
