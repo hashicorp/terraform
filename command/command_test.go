@@ -69,8 +69,8 @@ func testFixturePath(name string) string {
 	return filepath.Join(fixtureDir, name)
 }
 
-func testCtxConfig(p terraform.ResourceProvider) *terraform.ContextOpts {
-	return &terraform.ContextOpts{
+func metaOverridesForProvider(p terraform.ResourceProvider) *testingOverrides {
+	return &testingOverrides{
 		Providers: map[string]terraform.ResourceProviderFactory{
 			"test": func() (terraform.ResourceProvider, error) {
 				return p, nil
@@ -79,8 +79,8 @@ func testCtxConfig(p terraform.ResourceProvider) *terraform.ContextOpts {
 	}
 }
 
-func testCtxConfigWithShell(p terraform.ResourceProvider, pr terraform.ResourceProvisioner) *terraform.ContextOpts {
-	return &terraform.ContextOpts{
+func metaOverridesForProviderAndProvisioner(p terraform.ResourceProvider, pr terraform.ResourceProvisioner) *testingOverrides {
+	return &testingOverrides{
 		Providers: map[string]terraform.ResourceProviderFactory{
 			"test": func() (terraform.ResourceProvider, error) {
 				return p, nil
