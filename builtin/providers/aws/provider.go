@@ -178,6 +178,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_iam_server_certificate":   dataSourceAwsIAMServerCertificate(),
 			"aws_instance":                 dataSourceAwsInstance(),
 			"aws_ip_ranges":                dataSourceAwsIPRanges(),
+			"aws_kms_alias":                dataSourceAwsKmsAlias(),
 			"aws_kms_secret":               dataSourceAwsKmsSecret(),
 			"aws_partition":                dataSourceAwsPartition(),
 			"aws_prefix_list":              dataSourceAwsPrefixList(),

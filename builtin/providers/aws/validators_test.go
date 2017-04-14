@@ -1945,3 +1945,35 @@ func TestValidateOpenIdURL(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateAwsKmsName(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "alias/aws/s3",
+			ErrCount: 0,
+		},
+		{
+			Value:    "alias/hashicorp",
+			ErrCount: 0,
+		},
+		{
+			Value:    "hashicorp",
+			ErrCount: 1,
+		},
+		{
+			Value:    "hashicorp/terraform",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateAwsKmsName(tc.Value, "name")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("AWS KMS Alias Name validation failed: %v", errors)
+		}
+	}
+
+}
