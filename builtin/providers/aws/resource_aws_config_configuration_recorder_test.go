@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSConfigConfigurationRecorder_basic(t *testing.T) {
+func testAccConfigConfigurationRecorder_basic(t *testing.T) {
 	var cr configservice.ConfigurationRecorder
 	rInt := acctest.RandInt()
 	expectedName := fmt.Sprintf("tf-acc-test-%d", rInt)
@@ -39,7 +39,7 @@ func TestAccAWSConfigConfigurationRecorder_basic(t *testing.T) {
 	})
 }
 
-func TestAccAWSConfigConfigurationRecorder_allParams(t *testing.T) {
+func testAccConfigConfigurationRecorder_allParams(t *testing.T) {
 	var cr configservice.ConfigurationRecorder
 	rInt := acctest.RandInt()
 	expectedName := fmt.Sprintf("tf-acc-test-%d", rInt)
@@ -70,7 +70,7 @@ func TestAccAWSConfigConfigurationRecorder_allParams(t *testing.T) {
 	})
 }
 
-func TestAccAWSConfigConfigurationRecorder_importBasic(t *testing.T) {
+func testAccConfigConfigurationRecorder_importBasic(t *testing.T) {
 	resourceName := "aws_config_configuration_recorder.foo"
 	rInt := acctest.RandInt()
 
