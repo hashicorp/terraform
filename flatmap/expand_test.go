@@ -163,17 +163,29 @@ func TestExpand(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			Map: map[string]string{
+				"empty_map_of_sets.%":         "0",
+				"empty_map_of_sets.set1.#":    "0",
+				"empty_map_of_sets.set1.1234": "x",
+			},
+			Key:    "empty_map_of_sets",
+			Output: map[string]interface{}{},
+		},
 	}
 
 	for _, tc := range cases {
-		actual := Expand(tc.Map, tc.Key)
-		if !reflect.DeepEqual(actual, tc.Output) {
-			t.Errorf(
-				"Key: %v\nMap:\n\n%#v\n\nOutput:\n\n%#v\n\nExpected:\n\n%#v\n",
-				tc.Key,
-				tc.Map,
-				actual,
-				tc.Output)
-		}
+		t.Run(tc.Key, func(t *testing.T) {
+			actual := Expand(tc.Map, tc.Key)
+			if !reflect.DeepEqual(actual, tc.Output) {
+				t.Errorf(
+					"Key: %v\nMap:\n\n%#v\n\nOutput:\n\n%#v\n\nExpected:\n\n%#v\n",
+					tc.Key,
+					tc.Map,
+					actual,
+					tc.Output)
+			}
+		})
 	}
 }
