@@ -39,6 +39,10 @@ type Team struct {
 	Organization    *Organization `json:"organization,omitempty"`
 	MembersURL      *string       `json:"members_url,omitempty"`
 	RepositoriesURL *string       `json:"repositories_url,omitempty"`
+
+	// LDAPDN is only available in GitHub Enterprise and when the team
+	// membership is synchronized with LDAP.
+	LDAPDN *string `json:"ldap_dn,omitempty"`
 }
 
 func (t Team) String() string {
@@ -413,9 +417,6 @@ func (s *OrganizationsService) ListPendingTeamInvitations(ctx context.Context, t
 	if err != nil {
 		return nil, nil, err
 	}
-
-	// TODO: remove custom Accept header when this API fully launches.
-	req.Header.Set("Accept", mediaTypeOrgMembershipPreview)
 
 	var pendingInvitations []*Invitation
 	resp, err := s.client.Do(ctx, req, &pendingInvitations)

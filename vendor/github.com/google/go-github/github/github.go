@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	libraryVersion = "4"
+	libraryVersion = "6"
 	defaultBaseURL = "https://api.github.com/"
 	uploadBaseURL  = "https://uploads.github.com/"
 	userAgent      = "go-github/" + libraryVersion
@@ -89,14 +89,14 @@ const (
 	// https://developer.github.com/changes/2016-09-14-Integrations-Early-Access/
 	mediaTypeIntegrationPreview = "application/vnd.github.machine-man-preview+json"
 
-	// https://developer.github.com/changes/2016-11-28-preview-org-membership/
-	mediaTypeOrgMembershipPreview = "application/vnd.github.korra-preview+json"
-
 	// https://developer.github.com/changes/2017-01-05-commit-search-api/
 	mediaTypeCommitSearchPreview = "application/vnd.github.cloak-preview+json"
 
 	// https://developer.github.com/changes/2016-12-14-reviews-api/
 	mediaTypePullRequestReviewsPreview = "application/vnd.github.black-cat-preview+json"
+
+	// https://developer.github.com/changes/2017-02-28-user-blocking-apis-and-webhook/
+	mediaTypeBlockUsersPreview = "application/vnd.github.giant-sentry-fist-preview+json"
 )
 
 // A Client manages communication with the GitHub API.
@@ -390,7 +390,7 @@ func parseRate(r *http.Response) Rate {
 // The provided ctx must be non-nil. If it is canceled or times out,
 // ctx.Err() will be returned.
 func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*Response, error) {
-	req = req.WithContext(ctx)
+	ctx, req = withContext(ctx, req)
 
 	rateLimitCategory := category(req.URL.Path)
 

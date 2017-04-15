@@ -40,12 +40,24 @@ type GPGEmail struct {
 	Verified *bool   `json:"verified,omitempty"`
 }
 
-// ListGPGKeys lists the current user's GPG keys. It requires authentication
+// ListGPGKeys lists the public GPG keys for a user. Passing the empty
+// string will fetch keys for the authenticated user. It requires authentication
 // via Basic Auth or via OAuth with at least read:gpg_key scope.
-//
-// GitHub API docs: https://developer.github.com/v3/users/gpg_keys/#list-your-gpg-keys
-func (s *UsersService) ListGPGKeys(ctx context.Context) ([]*GPGKey, *Response, error) {
-	req, err := s.client.NewRequest("GET", "user/gpg_keys", nil)
+
+// GitHub API docs: https://developer.github.com/v3/users/gpg_keys/#list-gpg-keys-for-a-user
+func (s *UsersService) ListGPGKeys(ctx context.Context, user string, opt *ListOptions) ([]*GPGKey, *Response, error) {
+	var u string
+	if user != "" {
+		u = fmt.Sprintf("users/%v/gpg_keys", user)
+	} else {
+		u = "user/gpg_keys"
+	}
+	u, err := addOptions(u, opt)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	req, err := s.client.NewRequest("GET", u, nil)
 	if err != nil {
 		return nil, nil, err
 	}

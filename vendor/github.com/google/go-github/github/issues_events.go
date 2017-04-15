@@ -44,7 +44,7 @@ type IssueEvent struct {
 	//       Someone unspecified @mentioned the Actor [sic] in an issue comment body.
 	//
 	//     assigned, unassigned
-	//       The Actor assigned the issue to or removed the assignment from the Assignee.
+	//       The Assigner assigned the issue to or removed the assignment from the Assignee.
 	//
 	//     labeled, unlabeled
 	//       The Actor added or removed the Label from the issue.
@@ -65,6 +65,7 @@ type IssueEvent struct {
 
 	// Only present on certain events; see above.
 	Assignee  *User      `json:"assignee,omitempty"`
+	Assigner  *User      `json:"assigner,omitempty"`
 	CommitID  *string    `json:"commit_id,omitempty"`
 	Milestone *Milestone `json:"milestone,omitempty"`
 	Label     *Label     `json:"label,omitempty"`
