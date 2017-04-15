@@ -14,6 +14,7 @@ BUG FIXES:
  * core: Add the close provider/provisioner transformers back [GH-13102]
  * core: Fix a crash condition by improving the flatmap.Expand() logic [GH-13541]
  * provider/aws: Fix DB Parameter Group Name [GH-13279]
+ * provider/aws: Increase default number of retries from 11 to 25 [GH-13673]
  * provider/aws: Use mutex & retry for WAF change operations [GH-13656]
  * provider/azurerm: azurerm_redis_cache resource missing hostname [GH-13650]
  * provider/google: Stop setting the id when project creation fails [GH-13644]
