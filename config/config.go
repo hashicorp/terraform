@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/blang/semver"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
@@ -350,8 +351,8 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	// Check that providers aren't declared multiple times, and that versions
-	// aren't used yet since they aren't properly supported.
+	// Check that providers aren't declared multiple times and that their
+	// version constraints, where present, are syntactically valid.
 	providerSet := make(map[string]struct{})
 	for _, p := range c.ProviderConfigs {
 		name := p.FullName()
@@ -363,10 +364,13 @@ func (c *Config) Validate() error {
 		}
 
 		if p.Version != "" {
-			errs = append(errs, fmt.Errorf(
-				"provider.%s: version constraints are not yet supported; remove the 'version' argument from configuration",
-				name,
-			))
+			_, err := semver.ParseRange(p.Version)
+			if err != nil {
+				errs = append(errs, fmt.Errorf(
+					"provider.%s: invalid version constraint %q: %s",
+					name, p.Version, err,
+				))
+			}
 		}
 
 		providerSet[name] = struct{}{}
