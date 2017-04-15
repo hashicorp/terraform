@@ -70,7 +70,7 @@ func Provider() terraform.ResourceProvider {
 			"max_retries": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Default:     11,
+				Default:     25,
 				Description: descriptions["max_retries"],
 			},
 
