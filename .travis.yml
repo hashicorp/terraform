@@ -29,7 +29,7 @@ script:
 - GOOS=windows go build
 branches:
   only:
-  - master
+  - aws-wafregional-ci
 notifications:
   irc:
     channels:
