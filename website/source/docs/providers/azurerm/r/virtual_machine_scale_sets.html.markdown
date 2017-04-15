@@ -90,18 +90,134 @@ resource "azurerm_virtual_machine_scale_set" "test" {
     }
   }
 
-  storage_profile_os_disk {
+  storage_os_disk {
     name           = "osDiskProfile"
     caching        = "ReadWrite"
     create_option  = "FromImage"
     vhd_containers = ["${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}"]
   }
 
-  storage_profile_image_reference {
+  storage_image_reference {
     publisher = "Canonical"
     offer     = "UbuntuServer"
     sku       = "14.04.2-LTS"
     version   = "latest"
+  }
+}
+```
+
+## Example Usage with Managed Disks
+
+```
+resource "azurerm_resource_group" "test" {
+  name     = "acctestrg"
+  location = "West US 2"
+}
+
+resource "azurerm_virtual_network" "test" {
+  name                = "acctvn"
+  address_space       = ["10.0.0.0/16"]
+  location            = "West US 2"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_subnet" "test" {
+  name                 = "acctsub"
+  resource_group_name  = "${azurerm_resource_group.test.name}"
+  virtual_network_name = "${azurerm_virtual_network.test.name}"
+  address_prefix       = "10.0.2.0/24"
+}
+
+resource "azurerm_public_ip" "demoterraformips" {
+  name                         = "demoterraformip"
+  location                     = "West US 2"
+  resource_group_name          = "${azurerm_resource_group.demoterraform.name}"
+  public_ip_address_allocation = "static"
+  domain_name_label            = "${azurerm_resource_group.demoterraform.name}"
+
+  tags {
+    environment = "TerraformDemo"
+  }
+}
+
+resource "azurerm_lb" "demoterraformlb" {
+  name                = "demoterraformlb"
+  location            = "West US 2"
+  resource_group_name = "${azurerm_resource_group.demoterraform.name}"
+
+  frontend_ip_configuration {
+    name                 = "PublicIPAddress"
+    public_ip_address_id = "${azurerm_public_ip.demoterraformips.id}"
+  }
+}
+
+resource "azurerm_lb_backend_address_pool" "bpepool" {
+  resource_group_name = "${azurerm_resource_group.demoterraform.name}"
+  loadbalancer_id     = "${azurerm_lb.demoterraformlb.id}"
+  name                = "BackEndAddressPool"
+}
+
+resource "azurerm_lb_nat_pool" "lbnatpool" {
+  count = 3
+  resource_group_name = "${azurerm_resource_group.demoterraform.name}"
+  name                           = "ssh"
+  loadbalancer_id                = "${azurerm_lb.demoterraformlb.id}"
+  protocol                       = "Tcp"
+  frontend_port_start            = 50000
+  frontend_port_end              = 50119
+  backend_port                   = 22
+  frontend_ip_configuration_name = "PublicIPAddress"
+}
+
+resource "azurerm_virtual_machine_scale_set" "test" {
+  name                  = "acctvm"
+  location              = "West US 2"
+  resource_group_name   = "${azurerm_resource_group.test.name}"
+  upgrade_policy_mode   = "Manual"
+
+  sku {
+    name     = "Standard_A0"
+    tier     = "Standard"
+    capacity = "${var.terraform_vmss_count}"
+  }
+
+  storage_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "14.04.2-LTS"
+    version   = "latest"
+  }
+
+  storage_os_disk {
+    caching           = "ReadWrite"
+    create_option     = "FromImage"
+    managed_disk_type = "Standard_LRS"
+  }
+
+  os_profile {
+    computer_name  = "hostname"
+    admin_username = "testadmin"
+    admin_password = "Password1234!"
+  }
+
+  os_profile_linux_config {
+    disable_password_authentication = false
+  }
+
+  network_profile {
+    name    = "terraformnetworkprofile"
+    primary = true
+
+    ip_configuration {
+      name      = "TestIPConfiguration"
+      subnet_id = "${azurerm_subnet.demoterraformsubnet.id}"
+      load_balancer_backend_address_pool_ids = ["${azurerm_lb_backend_address_pool.bpepool.id}"]
+      load_balancer_inbound_nat_rules_ids = ["${element(azurerm_lb_nat_pool.lbnatpool.*.id, count.index)}"]
+    }
+  }
+
+  tags {
+    environment = "staging"
   }
 }
 ```
@@ -123,8 +239,8 @@ The following arguments are supported:
 * `os_profile_windows_config` - (Required, when a windows machine) A Windows config block as documented below.
 * `os_profile_linux_config` - (Required, when a linux machine) A Linux config block as documented below.
 * `network_profile` - (Required) A collection of network profile block as documented below.
-* `storage_profile_os_disk` - (Required) A storage profile os disk block as documented below
-* `storage_profile_image_reference` - (Optional) A storage profile image reference block as documented below.
+* `storage_os_disk` - (Required) A storage profile os disk block as documented below
+* `storage_image_reference` - (Optional) A storage profile image reference block as documented below.
 * `extension` - (Optional) Can be specified multiple times to add extension profiles to the scale set. Each `extension` block supports the fields documented below.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
@@ -191,11 +307,13 @@ The following arguments are supported:
 * `name` - (Required) Specifies name of the IP configuration.
 * `subnet_id` - (Required) Specifies the identifier of the subnet.
 * `load_balancer_backend_address_pool_ids` - (Optional) Specifies an array of references to backend address pools of load balancers. A scale set can reference backend address pools of one public and one internal load balancer. Multiple scale sets cannot use the same load balancer.
+* `load_balancer_inbound_nat_rules_ids` - (Optional) Specifies an array of references to inbound NAT rules for load balancers.
 
-`storage_profile_os_disk` supports the following:
+`storage_os_disk` supports the following:
 
 * `name` - (Required) Specifies the disk name.
 * `vhd_containers` - (Optional) Specifies the vhd uri. This property is ignored if using a custom image.
+* `managed_disk_type` - (Optional) Specifies the type of managed disk to create. Value you must be either `Standard_LRS` or `Premium_LRS`. Cannot be used when `vhd_uri` is specified.
 * `create_option` - (Required) Specifies how the virtual machine should be created. The only possible option is `FromImage`.
 * `caching` - (Required) Specifies the caching requirements.
 * `image` - (Optional) Specifies the blob uri for user image. A virtual machine scale set creates an os disk in the same container as the user image.
@@ -203,7 +321,7 @@ The following arguments are supported:
                        If this property is set then vhd_containers is ignored.
 * `os_type` - (Optional) Specifies the operating system Type, valid values are windows, linux.
 
-`storage_profile_image_reference` supports the following:
+`storage_image_reference` supports the following:
 
 * `publisher` - (Required) Specifies the publisher of the image used to create the virtual machines
 * `offer` - (Required) Specifies the offer of the image used to create the virtual machines.
