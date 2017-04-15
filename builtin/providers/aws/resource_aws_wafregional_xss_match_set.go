@@ -61,24 +61,19 @@ func resourceAwsWafRegionalXssMatchSetCreate(d *schema.ResourceData, meta interf
 
 	log.Printf("[INFO] Creating XssMatchSet: %s", d.Get("name").(string))
 
-	// ChangeToken
-	var ct *waf.GetChangeTokenInput
+	wr := newWafRegionalRetryer(conn)
+	out, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
+		params := &waf.CreateXssMatchSetInput{
+			ChangeToken: token,
+			Name:        aws.String(d.Get("name").(string)),
+		}
 
-	res, err := conn.GetChangeToken(ct)
-	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error getting change token: {{err}}", err)
-	}
-
-	params := &waf.CreateXssMatchSetInput{
-		ChangeToken: res.ChangeToken,
-		Name:        aws.String(d.Get("name").(string)),
-	}
-
-	resp, err := conn.CreateXssMatchSet(params)
-
+		return conn.CreateXssMatchSet(params)
+	})
 	if err != nil {
 		return errwrap.Wrapf("[ERROR] Error creating XssMatchSet: {{err}}", err)
 	}
+	resp := out.(*waf.CreateXssMatchSetOutput)
 
 	d.SetId(*resp.XssMatchSet.XssMatchSetId)
 
@@ -126,17 +121,15 @@ func resourceAwsWafRegionalXssMatchSetDelete(d *schema.ResourceData, meta interf
 		return errwrap.Wrapf("[ERROR] Error deleting XssMatchSet: {{err}}", err)
 	}
 
-	var ct *waf.GetChangeTokenInput
+	wr := newWafRegionalRetryer(conn)
+	_, err = wr.RetryWithToken(func(token *string) (interface{}, error) {
+		req := &waf.DeleteXssMatchSetInput{
+			ChangeToken:   token,
+			XssMatchSetId: aws.String(d.Id()),
+		}
 
-	resp, err := conn.GetChangeToken(ct)
-
-	req := &waf.DeleteXssMatchSetInput{
-		ChangeToken:   resp.ChangeToken,
-		XssMatchSetId: aws.String(d.Id()),
-	}
-
-	_, err = conn.DeleteXssMatchSet(req)
-
+		return conn.DeleteXssMatchSet(req)
+	})
 	if err != nil {
 		return errwrap.Wrapf("[ERROR] Error deleting XssMatchSet: {{err}}", err)
 	}
@@ -147,32 +140,28 @@ func resourceAwsWafRegionalXssMatchSetDelete(d *schema.ResourceData, meta interf
 func updateXssMatchSetResourceWR(d *schema.ResourceData, meta interface{}, ChangeAction string) error {
 	conn := meta.(*AWSClient).wafregionalconn
 
-	var ct *waf.GetChangeTokenInput
-
-	resp, err := conn.GetChangeToken(ct)
-	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error getting change token: {{err}}", err)
-	}
-
-	req := &waf.UpdateXssMatchSetInput{
-		ChangeToken:   resp.ChangeToken,
-		XssMatchSetId: aws.String(d.Id()),
-	}
-
-	xssMatchTuples := d.Get("xss_match_tuples").(*schema.Set)
-	for _, xssMatchTuple := range xssMatchTuples.List() {
-		xmt := xssMatchTuple.(map[string]interface{})
-		xssMatchTupleUpdate := &waf.XssMatchSetUpdate{
-			Action: aws.String(ChangeAction),
-			XssMatchTuple: &waf.XssMatchTuple{
-				FieldToMatch:       expandFieldToMatch(xmt["field_to_match"].(*schema.Set).List()[0].(map[string]interface{})),
-				TextTransformation: aws.String(xmt["text_transformation"].(string)),
-			},
+	wr := newWafRegionalRetryer(conn)
+	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
+		req := &waf.UpdateXssMatchSetInput{
+			ChangeToken:   token,
+			XssMatchSetId: aws.String(d.Id()),
 		}
-		req.Updates = append(req.Updates, xssMatchTupleUpdate)
-	}
 
-	_, err = conn.UpdateXssMatchSet(req)
+		xssMatchTuples := d.Get("xss_match_tuples").(*schema.Set)
+		for _, xssMatchTuple := range xssMatchTuples.List() {
+			xmt := xssMatchTuple.(map[string]interface{})
+			xssMatchTupleUpdate := &waf.XssMatchSetUpdate{
+				Action: aws.String(ChangeAction),
+				XssMatchTuple: &waf.XssMatchTuple{
+					FieldToMatch:       expandFieldToMatch(xmt["field_to_match"].(*schema.Set).List()[0].(map[string]interface{})),
+					TextTransformation: aws.String(xmt["text_transformation"].(string)),
+				},
+			}
+			req.Updates = append(req.Updates, xssMatchTupleUpdate)
+		}
+
+		return conn.UpdateXssMatchSet(req)
+	})
 	if err != nil {
 		return errwrap.Wrapf("[ERROR] Error updating XssMatchSet: {{err}}", err)
 	}

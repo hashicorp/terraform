@@ -96,44 +96,38 @@ func testAccCheckAWSWafRegionalXssMatchSetDisappears(v *waf.XssMatchSet) resourc
 	return func(s *terraform.State) error {
 		conn := testAccProvider.Meta().(*AWSClient).wafregionalconn
 
-		var ct *waf.GetChangeTokenInput
-
-		resp, err := conn.GetChangeToken(ct)
-		if err != nil {
-			return fmt.Errorf("Error getting change token: %s", err)
-		}
-
-		req := &waf.UpdateXssMatchSetInput{
-			ChangeToken:   resp.ChangeToken,
-			XssMatchSetId: v.XssMatchSetId,
-		}
-
-		for _, xssMatchTuple := range v.XssMatchTuples {
-			xssMatchTupleUpdate := &waf.XssMatchSetUpdate{
-				Action: aws.String("DELETE"),
-				XssMatchTuple: &waf.XssMatchTuple{
-					FieldToMatch:       xssMatchTuple.FieldToMatch,
-					TextTransformation: xssMatchTuple.TextTransformation,
-				},
+		wr := newWafRegionalRetryer(conn)
+		_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
+			req := &waf.UpdateXssMatchSetInput{
+				ChangeToken:   token,
+				XssMatchSetId: v.XssMatchSetId,
 			}
-			req.Updates = append(req.Updates, xssMatchTupleUpdate)
-		}
-		_, err = conn.UpdateXssMatchSet(req)
+
+			for _, xssMatchTuple := range v.XssMatchTuples {
+				xssMatchTupleUpdate := &waf.XssMatchSetUpdate{
+					Action: aws.String("DELETE"),
+					XssMatchTuple: &waf.XssMatchTuple{
+						FieldToMatch:       xssMatchTuple.FieldToMatch,
+						TextTransformation: xssMatchTuple.TextTransformation,
+					},
+				}
+				req.Updates = append(req.Updates, xssMatchTupleUpdate)
+			}
+			return conn.UpdateXssMatchSet(req)
+		})
 		if err != nil {
 			return errwrap.Wrapf("[ERROR] Error updating XssMatchSet: {{err}}", err)
 		}
 
-		resp, err = conn.GetChangeToken(ct)
+		_, err = wr.RetryWithToken(func(token *string) (interface{}, error) {
+			opts := &waf.DeleteXssMatchSetInput{
+				ChangeToken:   token,
+				XssMatchSetId: v.XssMatchSetId,
+			}
+			return conn.DeleteXssMatchSet(opts)
+		})
 		if err != nil {
-			return errwrap.Wrapf("[ERROR] Error getting change token: {{err}}", err)
-		}
-
-		opts := &waf.DeleteXssMatchSetInput{
-			ChangeToken:   resp.ChangeToken,
-			XssMatchSetId: v.XssMatchSetId,
-		}
-		if _, err := conn.DeleteXssMatchSet(opts); err != nil {
-			return err
+			return errwrap.Wrapf("[ERROR] Error deleting XssMatchSet: {{err}}", err)
 		}
 		return nil
 	}

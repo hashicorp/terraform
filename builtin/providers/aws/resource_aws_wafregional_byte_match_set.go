@@ -69,24 +69,19 @@ func resourceAwsWafRegionalByteMatchSetCreate(d *schema.ResourceData, meta inter
 
 	log.Printf("[INFO] Creating ByteMatchSet: %s", d.Get("name").(string))
 
-	// ChangeToken
-	var ct *waf.GetChangeTokenInput
-
-	res, err := conn.GetChangeToken(ct)
-	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error getting change token: {{err}}", err)
-	}
-
-	params := &waf.CreateByteMatchSetInput{
-		ChangeToken: res.ChangeToken,
-		Name:        aws.String(d.Get("name").(string)),
-	}
-
-	resp, err := conn.CreateByteMatchSet(params)
+	wr := newWafRegionalRetryer(conn)
+	out, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
+		params := &waf.CreateByteMatchSetInput{
+			ChangeToken: token,
+			Name:        aws.String(d.Get("name").(string)),
+		}
+		return conn.CreateByteMatchSet(params)
+	})
 
 	if err != nil {
 		return errwrap.Wrapf("[ERROR] Error creating ByteMatchSet: {{err}}", err)
 	}
+	resp := out.(*waf.CreateByteMatchSetOutput)
 
 	d.SetId(*resp.ByteMatchSet.ByteMatchSetId)
 
@@ -138,17 +133,14 @@ func resourceAwsWafRegionalByteMatchSetDelete(d *schema.ResourceData, meta inter
 		return errwrap.Wrapf("[ERROR] Error deleting ByteMatchSet: {{err}}", err)
 	}
 
-	var ct *waf.GetChangeTokenInput
-
-	resp, err := conn.GetChangeToken(ct)
-
-	req := &waf.DeleteByteMatchSetInput{
-		ChangeToken:    resp.ChangeToken,
-		ByteMatchSetId: aws.String(d.Id()),
-	}
-
-	_, err = conn.DeleteByteMatchSet(req)
-
+	wr := newWafRegionalRetryer(conn)
+	_, err = wr.RetryWithToken(func(token *string) (interface{}, error) {
+		req := &waf.DeleteByteMatchSetInput{
+			ChangeToken:    token,
+			ByteMatchSetId: aws.String(d.Id()),
+		}
+		return conn.DeleteByteMatchSet(req)
+	})
 	if err != nil {
 		return errwrap.Wrapf("[ERROR] Error deleting ByteMatchSet: {{err}}", err)
 	}
@@ -159,34 +151,30 @@ func resourceAwsWafRegionalByteMatchSetDelete(d *schema.ResourceData, meta inter
 func updateByteMatchSetResourceWR(d *schema.ResourceData, meta interface{}, ChangeAction string) error {
 	conn := meta.(*AWSClient).wafregionalconn
 
-	var ct *waf.GetChangeTokenInput
-
-	resp, err := conn.GetChangeToken(ct)
-	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error getting change token: {{err}}", err)
-	}
-
-	req := &waf.UpdateByteMatchSetInput{
-		ChangeToken:    resp.ChangeToken,
-		ByteMatchSetId: aws.String(d.Id()),
-	}
-
-	ByteMatchTuples := d.Get("byte_match_tuples").(*schema.Set)
-	for _, ByteMatchTuple := range ByteMatchTuples.List() {
-		ByteMatch := ByteMatchTuple.(map[string]interface{})
-		ByteMatchUpdate := &waf.ByteMatchSetUpdate{
-			Action: aws.String(ChangeAction),
-			ByteMatchTuple: &waf.ByteMatchTuple{
-				FieldToMatch:         expandFieldToMatchWR(ByteMatch["field_to_match"].(*schema.Set).List()[0].(map[string]interface{})),
-				PositionalConstraint: aws.String(ByteMatch["positional_constraint"].(string)),
-				TargetString:         []byte(ByteMatch["target_string"].(string)),
-				TextTransformation:   aws.String(ByteMatch["text_transformation"].(string)),
-			},
+	wr := newWafRegionalRetryer(conn)
+	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
+		req := &waf.UpdateByteMatchSetInput{
+			ChangeToken:    token,
+			ByteMatchSetId: aws.String(d.Id()),
 		}
-		req.Updates = append(req.Updates, ByteMatchUpdate)
-	}
 
-	_, err = conn.UpdateByteMatchSet(req)
+		ByteMatchTuples := d.Get("byte_match_tuples").(*schema.Set)
+		for _, ByteMatchTuple := range ByteMatchTuples.List() {
+			ByteMatch := ByteMatchTuple.(map[string]interface{})
+			ByteMatchUpdate := &waf.ByteMatchSetUpdate{
+				Action: aws.String(ChangeAction),
+				ByteMatchTuple: &waf.ByteMatchTuple{
+					FieldToMatch:         expandFieldToMatch(ByteMatch["field_to_match"].(*schema.Set).List()[0].(map[string]interface{})),
+					PositionalConstraint: aws.String(ByteMatch["positional_constraint"].(string)),
+					TargetString:         []byte(ByteMatch["target_string"].(string)),
+					TextTransformation:   aws.String(ByteMatch["text_transformation"].(string)),
+				},
+			}
+			req.Updates = append(req.Updates, ByteMatchUpdate)
+		}
+
+		return conn.UpdateByteMatchSet(req)
+	})
 	if err != nil {
 		return errwrap.Wrapf("[ERROR] Error updating ByteMatchSet: {{err}}", err)
 	}
