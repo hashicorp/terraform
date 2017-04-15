@@ -50,7 +50,7 @@ func (m *Meta) providerFactories() map[string]terraform.ResourceProviderFactory 
 		// by name, we're guaranteed that the metas in our set all have
 		// valid versions and that there's at least one meta.
 		newest := metas.Newest()
-		client := newest.Client()
+		client := tfplugin.Client(newest)
 		factories[name] = providerFactory(client)
 	}
 
@@ -99,7 +99,7 @@ func (m *Meta) provisionerFactories() map[string]terraform.ResourceProvisionerFa
 		// by name, we're guaranteed that the metas in our set all have
 		// valid versions and that there's at least one meta.
 		newest := metas.Newest()
-		client := newest.Client()
+		client := tfplugin.Client(newest)
 		factories[name] = provisionerFactory(client)
 	}
 
