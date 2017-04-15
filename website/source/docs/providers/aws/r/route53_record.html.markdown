@@ -144,5 +144,5 @@ Weighted routing policies support the following:
 Route53 Records can be imported using ID of the record, e.g.
 
 ```
-$ terraform import aws_route53_record.myrecord Z4KAPRWWNC7JR_dev.example.com_NS
+$ terraform import aws_route53_record.myrecord Z4KAPRWWNC7JR_dev.example.com_NS_dev
 ```
