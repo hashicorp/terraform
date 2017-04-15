@@ -67,6 +67,7 @@ func Provider() terraform.ResourceProvider {
 
 		ResourcesMap: map[string]*schema.Resource{
 			// These resources use the Azure ARM SDK
+			"azurerm_app_gateway":        resourceArmAppGateway(),
 			"azurerm_availability_set":   resourceArmAvailabilitySet(),
 			"azurerm_cdn_endpoint":       resourceArmCdnEndpoint(),
 			"azurerm_cdn_profile":        resourceArmCdnProfile(),
