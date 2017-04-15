@@ -137,11 +137,7 @@ func resourceUltradnsRdpoolRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("description", p.Description)
 	d.Set("order", p.Order)
 
-	// TODO: rigorously test this to see if we can remove the error handling
-
-	//TODO
-
-	//err = d.Set("rdata", makeSetFromStrings(r.RData))
+	err = d.Set("rdata", makeSetFromStrings(r.RData))
 	//err = d.Set("rdata", makeSetFromRdataAlone(r.RData))
 	if err != nil {
 		return fmt.Errorf("rdata set failed: %#v", err)
