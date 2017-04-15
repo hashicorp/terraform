@@ -484,11 +484,21 @@ func init() {
 			"being executed. If the API request still fails, an error is\n" +
 			"thrown.",
 
+		"cloudformation_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
+
+		"cloudwatch_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
+
+		"cloudwatchevents_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
+
+		"cloudwatchlogs_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
+
 		"dynamodb_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n" +
 			"It's typically used to connect to dynamodb-local.",
 
 		"kinesis_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n" +
 			"It's typically used to connect to kinesalite.",
+
+		"kms_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
 
 		"iam_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
 
@@ -496,7 +506,13 @@ func init() {
 
 		"elb_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
 
+		"rds_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
+
 		"s3_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
+
+		"sns_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
+
+		"sqs_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
 
 		"insecure": "Explicitly allow the provider to perform \"insecure\" SSL requests. If omitted," +
 			"default value is `false`",
@@ -574,12 +590,20 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 	for _, endpointsSetI := range endpointsSet.List() {
 		endpoints := endpointsSetI.(map[string]interface{})
+		config.CloudFormationEndpoint = endpoints["cloudformation"].(string)
+		config.CloudWatchEndpoint = endpoints["cloudwatch"].(string)
+		config.CloudWatchEventsEndpoint = endpoints["cloudwatchevents"].(string)
+		config.CloudWatchLogsEndpoint = endpoints["cloudwatchlogs"].(string)
 		config.DynamoDBEndpoint = endpoints["dynamodb"].(string)
-		config.IamEndpoint = endpoints["iam"].(string)
 		config.Ec2Endpoint = endpoints["ec2"].(string)
 		config.ElbEndpoint = endpoints["elb"].(string)
+		config.IamEndpoint = endpoints["iam"].(string)
 		config.KinesisEndpoint = endpoints["kinesis"].(string)
+		config.KmsEndpoint = endpoints["kms"].(string)
+		config.RdsEndpoint = endpoints["rds"].(string)
 		config.S3Endpoint = endpoints["s3"].(string)
+		config.SnsEndpoint = endpoints["sns"].(string)
+		config.SqsEndpoint = endpoints["sqs"].(string)
 	}
 
 	if v, ok := d.GetOk("allowed_account_ids"); ok {
@@ -648,6 +672,30 @@ func endpointsSchema() *schema.Schema {
 		Optional: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
+				"cloudwatch": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "",
+					Description: descriptions["cloudwatch_endpoint"],
+				},
+				"cloudwatchevents": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "",
+					Description: descriptions["cloudwatchevents_endpoint"],
+				},
+				"cloudwatchlogs": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "",
+					Description: descriptions["cloudwatchlogs_endpoint"],
+				},
+				"cloudformation": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "",
+					Description: descriptions["cloudformation_endpoint"],
+				},
 				"dynamodb": {
 					Type:        schema.TypeString,
 					Optional:    true,
@@ -680,11 +728,35 @@ func endpointsSchema() *schema.Schema {
 					Default:     "",
 					Description: descriptions["kinesis_endpoint"],
 				},
+				"kms": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "",
+					Description: descriptions["kms_endpoint"],
+				},
+				"rds": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "",
+					Description: descriptions["rds_endpoint"],
+				},
 				"s3": {
 					Type:        schema.TypeString,
 					Optional:    true,
 					Default:     "",
 					Description: descriptions["s3_endpoint"],
+				},
+				"sns": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "",
+					Description: descriptions["sns_endpoint"],
+				},
+				"sqs": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "",
+					Description: descriptions["sqs_endpoint"],
 				},
 			},
 		},
@@ -695,12 +767,20 @@ func endpointsSchema() *schema.Schema {
 func endpointsToHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["cloudwatch"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["cloudwatchevents"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["cloudwatchlogs"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["cloudformation"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["dynamodb"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["iam"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["ec2"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["elb"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["kinesis"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["kms"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["rds"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["s3"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["sns"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["sqs"].(string)))
 
 	return hashcode.String(buf.String())
 }

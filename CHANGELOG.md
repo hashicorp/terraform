@@ -4,6 +4,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 * provider/aws: Users of aws_cloudfront_distributions with custom_origins have been broken due to changes in the AWS API requiring   `OriginReadTimeout` being set for updates. This has been fixed and will show as a change in terraform plan / apply. [GH-13367]
 * provider/aws: Users of China and Gov clouds, cannot use the new tagging of volumes created as part of aws_instances [GH-14055]
+* provider/aws: Add custom endpoint options for CloudFormation, CloudWatch, KMS, RDS, SNS, SQS
 
 FEATURES:
 
