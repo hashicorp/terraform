@@ -4,11 +4,8 @@ import (
 	"crypto/sha256"
 	"io"
 	"os"
-	"os/exec"
 
 	"github.com/blang/semver"
-	plugin "github.com/hashicorp/go-plugin"
-	tfplugin "github.com/hashicorp/terraform/plugin"
 )
 
 // PluginMeta is metadata about a plugin, useful for launching the plugin
@@ -50,20 +47,4 @@ func (m PluginMeta) SHA256() ([]byte, error) {
 	}
 
 	return h.Sum(nil), nil
-}
-
-// ClientConfig returns a configuration object that can be used to instantiate
-// a client for the referenced plugin.
-func (m PluginMeta) ClientConfig() *plugin.ClientConfig {
-	return &plugin.ClientConfig{
-		Cmd:             exec.Command(m.Path),
-		HandshakeConfig: tfplugin.Handshake,
-		Managed:         true,
-		Plugins:         tfplugin.PluginMap,
-	}
-}
-
-// Client returns a plugin client for the referenced plugin.
-func (m PluginMeta) Client() *plugin.Client {
-	return plugin.NewClient(m.ClientConfig())
 }
