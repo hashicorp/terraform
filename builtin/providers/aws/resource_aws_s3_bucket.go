@@ -211,8 +211,9 @@ func resourceAwsS3Bucket() *schema.Resource {
 						},
 						"prefix": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
+						"tags": tagsSchema(),
 						"enabled": {
 							Type:     schema.TypeBool,
 							Required: true,
@@ -763,9 +764,21 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 			if lifecycleRule.ID != nil && *lifecycleRule.ID != "" {
 				rule["id"] = *lifecycleRule.ID
 			}
-			// Prefix
-			if lifecycleRule.Prefix != nil && *lifecycleRule.Prefix != "" {
-				rule["prefix"] = *lifecycleRule.Prefix
+			filter := lifecycleRule.Filter
+			if filter.And != nil {
+				// Prefix
+				if filter.And.Prefix != nil && *filter.And.Prefix != "" {
+					rule["prefix"] = *filter.And.Prefix
+				}
+				// Tag
+				if len(filter.And.Tags) > 0 {
+					rule["tags"] = tagsToMapS3(filter.And.Tags)
+				}
+			} else {
+				// Prefix
+				if filter.Prefix != nil && *filter.Prefix != "" {
+					rule["prefix"] = *filter.Prefix
+				}
 			}
 			// Enabled
 			if lifecycleRule.Status != nil {
@@ -1495,9 +1508,20 @@ func resourceAwsS3BucketLifecycleUpdate(s3conn *s3.S3, d *schema.ResourceData) e
 	for i, lifecycleRule := range lifecycleRules {
 		r := lifecycleRule.(map[string]interface{})
 
-		rule := &s3.LifecycleRule{
-			Prefix: aws.String(r["prefix"].(string)),
+		rule := &s3.LifecycleRule{}
+
+		// Filter
+		tags := r["tags"].(map[string]interface{})
+		filter := &s3.LifecycleRuleFilter{}
+		if len(tags) > 0 {
+			lifecycleRuleAndOp := &s3.LifecycleRuleAndOperator{}
+			lifecycleRuleAndOp.SetPrefix(r["prefix"].(string))
+			lifecycleRuleAndOp.SetTags(tagsFromMapS3(tags))
+			filter.SetAnd(lifecycleRuleAndOp)
+		} else {
+			filter.SetPrefix(r["prefix"].(string))
 		}
+		rule.SetFilter(filter)
 
 		// ID
 		if val, ok := r["id"].(string); ok && val != "" {

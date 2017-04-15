@@ -560,6 +560,14 @@ func TestAccAWSS3Bucket_Lifecycle(t *testing.T) {
 						"aws_s3_bucket.bucket", "lifecycle_rule.1.expiration.2855832418.days", "0"),
 					resource.TestCheckResourceAttr(
 						"aws_s3_bucket.bucket", "lifecycle_rule.1.expiration.2855832418.expired_object_delete_marker", "false"),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "lifecycle_rule.2.id", "id3"),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "lifecycle_rule.2.prefix", "path3/"),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "lifecycle_rule.2.tags.tagKey", "tagValue"),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "lifecycle_rule.2.tags.terraform", "hashicorp"),
 				),
 			},
 			{
@@ -1390,6 +1398,19 @@ resource "aws_s3_bucket" "bucket" {
 	lifecycle_rule {
 		id = "id2"
 		prefix = "path2/"
+		enabled = true
+
+		expiration {
+			date = "2016-01-12"
+		}
+	}
+	lifecycle_rule {
+		id = "id3"
+		prefix = "path3/"
+		tags {
+			"tagKey" = "tagValue"
+			"terraform" = "hashicorp"
+		}
 		enabled = true
 
 		expiration {
