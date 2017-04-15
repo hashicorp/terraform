@@ -81,7 +81,7 @@ func testCheckAzureRMAppGatewayDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("App Gateway still exists:\n%#v", resp.Properties)
+			return fmt.Errorf("App Gateway still exists:\n%#v", resp.ApplicationGatewayPropertiesFormat)
 		}
 	}
 
