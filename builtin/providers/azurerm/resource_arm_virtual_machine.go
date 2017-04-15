@@ -1325,8 +1325,8 @@ func expandAzureRmVirtualMachineDataDisk(d *schema.ResourceData) ([]compute.Data
 			return nil, fmt.Errorf("[ERROR] Conflict between `vhd_uri` and `managed_disk_type` (only one or the other can be used)")
 		}
 		//END: code to be removed after GH-13016 is merged
-		if managedDiskID == "" && strings.EqualFold(string(data_disk.CreateOption), string(compute.Attach)) {
-			return nil, fmt.Errorf("[ERROR] Must specify which disk to attach")
+		if managedDiskID == "" && vhdURI == "" && strings.EqualFold(string(data_disk.CreateOption), string(compute.Attach)) {
+			return nil, fmt.Errorf("[ERROR] Must specify `vhd_uri` or `managed_disk_id` to attach")
 		}
 
 		if v := config["caching"].(string); v != "" {
