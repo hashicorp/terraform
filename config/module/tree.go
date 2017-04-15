@@ -92,6 +92,25 @@ func (t *Tree) Children() map[string]*Tree {
 	return t.children
 }
 
+// DeepEach calls the provided callback for the receiver and then all of
+// its descendents in the tree, allowing an operation to be performed on
+// all modules in the tree.
+//
+// Parents will be visited before their children but otherwise the order is
+// not defined.
+func (t *Tree) DeepEach(cb func(*Tree)) {
+	t.lock.RLock()
+	defer t.lock.RUnlock()
+	t.deepEach(cb)
+}
+
+func (t *Tree) deepEach(cb func(*Tree)) {
+	cb(t)
+	for _, c := range t.children {
+		c.deepEach(cb)
+	}
+}
+
 // Loaded says whether or not this tree has been loaded or not yet.
 func (t *Tree) Loaded() bool {
 	t.lock.RLock()
