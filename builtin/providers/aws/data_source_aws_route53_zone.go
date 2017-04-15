@@ -104,6 +104,10 @@ func dataSourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) erro
 							break
 						}
 					}
+					// if we specified a vpc_id but private_zone is false and the name matches
+					if *hostedZone.Config.PrivateZone == false {
+						matchingVPC = true
+					}
 				} else {
 					matchingVPC = true
 				}

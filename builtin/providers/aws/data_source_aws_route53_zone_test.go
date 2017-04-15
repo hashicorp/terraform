@@ -28,9 +28,13 @@ func TestAccDataSourceAwsRoute53Zone(t *testing.T) {
 					testAccDataSourceAwsRoute53ZoneCheck(
 						publicResourceName, "data.aws_route53_zone.by_name", publicDomain),
 					testAccDataSourceAwsRoute53ZoneCheck(
+						publicResourceName, "data.aws_route53_zone.public_with_vpc", publicDomain),
+					testAccDataSourceAwsRoute53ZoneCheck(
 						privateResourceName, "data.aws_route53_zone.by_vpc", privateDomain),
 					testAccDataSourceAwsRoute53ZoneCheck(
 						privateResourceName, "data.aws_route53_zone.by_tag", privateDomain),
+					testAccDataSourceAwsRoute53ZoneCheck(
+						privateResourceName, "data.aws_route53_zone.by_name_explicit_private", privateDomain),
 				),
 			},
 		},
@@ -79,9 +83,21 @@ func testAccDataSourceAwsRoute53ZoneConfig(rInt int) string {
 		cidr_block = "172.16.0.0/16"
 	}
 
+	resource "aws_vpc" "test_multiple" {
+		cidr_block = "172.17.0.0/16"
+	}
+
 	resource "aws_route53_zone" "test_private" {
 		name = "test.acc-%d."
 		vpc_id = "${aws_vpc.test.id}"
+		tags {
+			Environment = "dev-%d"
+		}
+	}
+
+	resource "aws_route53_zone" "test_multiple_private" {
+		name = "test.acc-%d."
+		vpc_id = "${aws_vpc.test_multiple.id}"
 		tags {
 			Environment = "dev-%d"
 		}
@@ -94,10 +110,17 @@ func testAccDataSourceAwsRoute53ZoneConfig(rInt int) string {
 
 	data "aws_route53_zone" "by_tag" {
 	 name = "${aws_route53_zone.test_private.name}"
+	 vpc_id = "${aws_vpc.test.id}"
 	 private_zone = true
 	 tags {
 		 Environment = "dev-%d"
 	 }
+	}
+
+	data "aws_route53_zone" "by_name_explicit_private" {
+		name = "${aws_route53_zone.test_private.name}"
+		vpc_id = "${aws_vpc.test.id}"
+		private_zone = true
 	}
 
 	resource "aws_route53_zone" "test" {
@@ -110,5 +133,11 @@ func testAccDataSourceAwsRoute53ZoneConfig(rInt int) string {
 
 	data "aws_route53_zone" "by_name" {
 		name = "${data.aws_route53_zone.by_zone_id.name}"
-	}`, rInt, rInt, rInt, rInt)
+	}
+
+	data "aws_route53_zone" "public_with_vpc" {
+		name = "${data.aws_route53_zone.by_zone_id.name}"
+		vpc_id = "${aws_vpc.test.id}"
+		private_zone = false
+	}`, rInt, rInt, rInt, rInt, rInt, rInt)
 }
