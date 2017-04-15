@@ -208,10 +208,16 @@ func TestConfigValidate_table(t *testing.T) {
 			"",
 		},
 		{
-			"provider with version constraint",
+			"provider with valid version constraint",
 			"provider-version",
+			false,
+			"",
+		},
+		{
+			"provider with invalid version constraint",
+			"provider-version-invalid",
 			true,
-			"version constraints are not yet supported",
+			"invalid version constraint",
 		},
 	}
 
