@@ -227,6 +227,12 @@ func resourceAliyunRunInstance(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	if args.IoOptimized == "optimized" {
+		args.IoOptimized = ecs.IoOptimized("true")
+	} else {
+		args.IoOptimized = ecs.IoOptimized("false")
+	}
+
 	runArgs, err := buildAliyunRunInstancesArgs(d, meta)
 	if err != nil {
 		return err
@@ -579,11 +585,7 @@ func buildAliyunInstanceArgs(d *schema.ResourceData, meta interface{}) (*ecs.Cre
 	}
 
 	if v := d.Get("io_optimized").(string); v != "" {
-		if v == "optimized" {
-			args.IoOptimized = ecs.IoOptimized("true")
-		} else {
-			args.IoOptimized = ecs.IoOptimized("false")
-		}
+		args.IoOptimized = ecs.IoOptimized(v)
 	}
 
 	vswitchValue := d.Get("subnet_id").(string)

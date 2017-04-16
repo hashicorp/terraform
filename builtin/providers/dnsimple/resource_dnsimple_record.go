@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/dnsimple/dnsimple-go/dnsimple"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -104,6 +105,11 @@ func resourceDNSimpleRecordRead(d *schema.ResourceData, meta interface{}) error 
 
 	resp, err := provider.client.Zones.GetRecord(provider.config.Account, d.Get("domain").(string), recordID)
 	if err != nil {
+		if err != nil && strings.Contains(err.Error(), "404") {
+			log.Printf("DNSimple Record Not Found - Refreshing from State")
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Couldn't find DNSimple Record: %s", err)
 	}
 

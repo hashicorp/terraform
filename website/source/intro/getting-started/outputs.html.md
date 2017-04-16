@@ -29,9 +29,9 @@ Let's define an output to show us the public IP address of the
 elastic IP address that we create. Add this to any of your
 `*.tf` files:
 
-```
+```hcl
 output "ip" {
-	value = "${aws_eip.ip.public_ip}"
+  value = "${aws_eip.ip.public_ip}"
 }
 ```
 

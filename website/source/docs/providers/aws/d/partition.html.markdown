@@ -12,7 +12,7 @@ Use this data source to lookup current AWS partition in which Terraform is worki
 
 ## Example Usage
 
-```
+```hcl
 data "aws_partition" "current" {}
 
 data "aws_iam_policy_document" "s3_policy" {

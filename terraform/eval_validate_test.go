@@ -178,3 +178,117 @@ func TestEvalValidateResource_ignoreWarnings(t *testing.T) {
 		t.Fatalf("Expected no error, got: %s", err)
 	}
 }
+
+func TestEvalValidateProvisioner_valid(t *testing.T) {
+	mp := &MockResourceProvisioner{}
+	var p ResourceProvisioner = mp
+	ctx := &MockEvalContext{}
+
+	cfg := &ResourceConfig{}
+	connInfo, err := config.NewRawConfig(map[string]interface{}{})
+	if err != nil {
+		t.Fatalf("failed to make connInfo: %s", err)
+	}
+	connConfig := NewResourceConfig(connInfo)
+
+	node := &EvalValidateProvisioner{
+		Provisioner: &p,
+		Config:      &cfg,
+		ConnConfig:  &connConfig,
+	}
+
+	result, err := node.Eval(ctx)
+	if err != nil {
+		t.Fatalf("node.Eval failed: %s", err)
+	}
+	if result != nil {
+		t.Errorf("node.Eval returned non-nil result")
+	}
+
+	if !mp.ValidateCalled {
+		t.Fatalf("p.Config not called")
+	}
+	if mp.ValidateConfig != cfg {
+		t.Errorf("p.Config called with wrong config")
+	}
+}
+
+func TestEvalValidateProvisioner_warning(t *testing.T) {
+	mp := &MockResourceProvisioner{}
+	var p ResourceProvisioner = mp
+	ctx := &MockEvalContext{}
+
+	cfg := &ResourceConfig{}
+	connInfo, err := config.NewRawConfig(map[string]interface{}{})
+	if err != nil {
+		t.Fatalf("failed to make connInfo: %s", err)
+	}
+	connConfig := NewResourceConfig(connInfo)
+
+	node := &EvalValidateProvisioner{
+		Provisioner: &p,
+		Config:      &cfg,
+		ConnConfig:  &connConfig,
+	}
+
+	mp.ValidateReturnWarns = []string{"foo is deprecated"}
+
+	_, err = node.Eval(ctx)
+	if err == nil {
+		t.Fatalf("node.Eval succeeded; want error")
+	}
+
+	valErr, ok := err.(*EvalValidateError)
+	if !ok {
+		t.Fatalf("node.Eval error is %#v; want *EvalValidateError", valErr)
+	}
+
+	warns := valErr.Warnings
+	if warns == nil || len(warns) != 1 {
+		t.Fatalf("wrong number of warnings in %#v; want one warning", warns)
+	}
+	if warns[0] != mp.ValidateReturnWarns[0] {
+		t.Fatalf("wrong warning %q; want %q", warns[0], mp.ValidateReturnWarns[0])
+	}
+}
+
+func TestEvalValidateProvisioner_connectionInvalid(t *testing.T) {
+	var p ResourceProvisioner = &MockResourceProvisioner{}
+	ctx := &MockEvalContext{}
+
+	cfg := &ResourceConfig{}
+	connInfo, err := config.NewRawConfig(map[string]interface{}{
+		"bananananananana": "foo",
+		"bazaz":            "bar",
+	})
+	if err != nil {
+		t.Fatalf("failed to make connInfo: %s", err)
+	}
+	connConfig := NewResourceConfig(connInfo)
+
+	node := &EvalValidateProvisioner{
+		Provisioner: &p,
+		Config:      &cfg,
+		ConnConfig:  &connConfig,
+	}
+
+	_, err = node.Eval(ctx)
+	if err == nil {
+		t.Fatalf("node.Eval succeeded; want error")
+	}
+
+	valErr, ok := err.(*EvalValidateError)
+	if !ok {
+		t.Fatalf("node.Eval error is %#v; want *EvalValidateError", valErr)
+	}
+
+	errs := valErr.Errors
+	if errs == nil || len(errs) != 2 {
+		t.Fatalf("wrong number of errors in %#v; want two errors", errs)
+	}
+
+	errStr := errs[0].Error()
+	if !(strings.Contains(errStr, "bananananananana") || strings.Contains(errStr, "bazaz")) {
+		t.Fatalf("wrong first error %q; want something about our invalid connInfo keys", errStr)
+	}
+}

@@ -8,7 +8,7 @@ description: |-
 
 # aws\_inspector\_resource\_group
 
-Provides a Inspector assessment template
+Provides a Inspector resource group
 
 ## Example Usage
 

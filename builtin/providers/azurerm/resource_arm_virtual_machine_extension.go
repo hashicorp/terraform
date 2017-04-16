@@ -1,13 +1,13 @@
 package azurerm
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"reflect"
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/structure"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceArmVirtualMachineExtensions() *schema.Resource {
@@ -21,7 +21,7 @@ func resourceArmVirtualMachineExtensions() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -29,29 +29,29 @@ func resourceArmVirtualMachineExtensions() *schema.Resource {
 
 			"location": locationSchema(),
 
-			"resource_group_name": &schema.Schema{
+			"resource_group_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"virtual_machine_name": &schema.Schema{
+			"virtual_machine_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"publisher": &schema.Schema{
+			"publisher": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"type_handler_version": &schema.Schema{
+			"type_handler_version": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
@@ -61,20 +61,20 @@ func resourceArmVirtualMachineExtensions() *schema.Resource {
 				Optional: true,
 			},
 
-			"settings": &schema.Schema{
+			"settings": {
 				Type:             schema.TypeString,
 				Optional:         true,
-				ValidateFunc:     validateJsonString,
-				DiffSuppressFunc: suppressDiffVirtualMachineExtensionSettings,
+				ValidateFunc:     validation.ValidateJsonString,
+				DiffSuppressFunc: structure.SuppressJsonDiff,
 			},
 
 			// due to the sensitive nature, these are not returned by the API
-			"protected_settings": &schema.Schema{
+			"protected_settings": {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Sensitive:        true,
-				ValidateFunc:     validateJsonString,
-				DiffSuppressFunc: suppressDiffVirtualMachineExtensionSettings,
+				ValidateFunc:     validation.ValidateJsonString,
+				DiffSuppressFunc: structure.SuppressJsonDiff,
 			},
 
 			"tags": tagsSchema(),
@@ -107,7 +107,7 @@ func resourceArmVirtualMachineExtensionsCreate(d *schema.ResourceData, meta inte
 	}
 
 	if settingsString := d.Get("settings").(string); settingsString != "" {
-		settings, err := expandArmVirtualMachineExtensionSettings(settingsString)
+		settings, err := structure.ExpandJsonFromString(settingsString)
 		if err != nil {
 			return fmt.Errorf("unable to parse settings: %s", err)
 		}
@@ -115,7 +115,7 @@ func resourceArmVirtualMachineExtensionsCreate(d *schema.ResourceData, meta inte
 	}
 
 	if protectedSettingsString := d.Get("protected_settings").(string); protectedSettingsString != "" {
-		protectedSettings, err := expandArmVirtualMachineExtensionSettings(protectedSettingsString)
+		protectedSettings, err := structure.ExpandJsonFromString(protectedSettingsString)
 		if err != nil {
 			return fmt.Errorf("unable to parse protected_settings: %s", err)
 		}
@@ -172,7 +172,7 @@ func resourceArmVirtualMachineExtensionsRead(d *schema.ResourceData, meta interf
 	d.Set("auto_upgrade_minor_version", resp.VirtualMachineExtensionProperties.AutoUpgradeMinorVersion)
 
 	if resp.VirtualMachineExtensionProperties.Settings != nil {
-		settings, err := flattenArmVirtualMachineExtensionSettings(*resp.VirtualMachineExtensionProperties.Settings)
+		settings, err := structure.FlattenJsonToString(*resp.VirtualMachineExtensionProperties.Settings)
 		if err != nil {
 			return fmt.Errorf("unable to parse settings from response: %s", err)
 		}
@@ -198,35 +198,4 @@ func resourceArmVirtualMachineExtensionsDelete(d *schema.ResourceData, meta inte
 	_, err = client.Delete(resGroup, vmName, name, make(chan struct{}))
 
 	return nil
-}
-
-func expandArmVirtualMachineExtensionSettings(jsonString string) (map[string]interface{}, error) {
-	var result map[string]interface{}
-
-	err := json.Unmarshal([]byte(jsonString), &result)
-
-	return result, err
-}
-
-func flattenArmVirtualMachineExtensionSettings(settingsMap map[string]interface{}) (string, error) {
-	result, err := json.Marshal(settingsMap)
-	if err != nil {
-		return "", err
-	}
-
-	return string(result), nil
-}
-
-func suppressDiffVirtualMachineExtensionSettings(k, old, new string, d *schema.ResourceData) bool {
-	oldMap, err := expandArmVirtualMachineExtensionSettings(old)
-	if err != nil {
-		return false
-	}
-
-	newMap, err := expandArmVirtualMachineExtensionSettings(new)
-	if err != nil {
-		return false
-	}
-
-	return reflect.DeepEqual(oldMap, newMap)
 }

@@ -1,7 +1,7 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_alb"
-sidebar_current: "docs-aws-datasource-alb"
+sidebar_current: "docs-aws-datasource-alb-x"
 description: |-
   Provides an Application Load Balancer data source.
 ---
@@ -16,7 +16,7 @@ with it, etc.
 
 ## Example Usage
 
-```
+```hcl
 variable "alb_arn" {
   type    = "string"
   default = ""

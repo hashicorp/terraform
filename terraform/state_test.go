@@ -1450,66 +1450,6 @@ func TestInstanceState_MergeDiff(t *testing.T) {
 	}
 }
 
-// Make sure we don't leave empty maps or arrays in the flatmapped Attributes,
-// since those may affect the counts of a parent structure.
-func TestInstanceState_MergeDiffRemoveCounts(t *testing.T) {
-	is := InstanceState{
-		ID: "foo",
-		Attributes: map[string]string{
-			"all.#":        "3",
-			"all.1111":     "x",
-			"all.1234.#":   "1",
-			"all.1234.0":   "a",
-			"all.5678.%":   "1",
-			"all.5678.key": "val",
-
-			// nested empty lists need to be removed cleanly
-			"all.nested.#":         "0",
-			"all.nested.0.empty.#": "0",
-			"all.nested.1.empty.#": "0",
-
-			// the value has a prefix that matches another key
-			// and ntohing should happen to this.
-			"all.nested_value": "y",
-		},
-	}
-
-	diff := &InstanceDiff{
-		Attributes: map[string]*ResourceAttrDiff{
-			"all.#": &ResourceAttrDiff{
-				Old: "3",
-				New: "1",
-			},
-			"all.1234.0": &ResourceAttrDiff{
-				NewRemoved: true,
-			},
-			"all.1234.#": &ResourceAttrDiff{
-				Old: "1",
-				New: "0",
-			},
-			"all.5678.key": &ResourceAttrDiff{
-				NewRemoved: true,
-			},
-			"all.5678.%": &ResourceAttrDiff{
-				Old: "1",
-				New: "0",
-			},
-		},
-	}
-
-	is2 := is.MergeDiff(diff)
-
-	expected := map[string]string{
-		"all.#":            "1",
-		"all.1111":         "x",
-		"all.nested_value": "y",
-	}
-
-	if !reflect.DeepEqual(expected, is2.Attributes) {
-		t.Fatalf("bad: %#v", is2.Attributes)
-	}
-}
-
 // GH-12183. This tests that a list with a computed set generates the
 // right partial state. This never failed but is put here for completion
 // of the test case for GH-12183.
@@ -1895,6 +1835,62 @@ func TestReadState_prune(t *testing.T) {
 
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("got:\n%#v", actual)
+	}
+}
+
+func TestReadState_pruneDependencies(t *testing.T) {
+	state := &State{
+		Serial:  9,
+		Lineage: "5d1ad1a1-4027-4665-a908-dbe6adff11d8",
+		Remote: &RemoteState{
+			Type: "http",
+			Config: map[string]string{
+				"url": "http://my-cool-server.com/",
+			},
+		},
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Dependencies: []string{
+					"aws_instance.bar",
+					"aws_instance.bar",
+				},
+				Resources: map[string]*ResourceState{
+					"foo": &ResourceState{
+						Dependencies: []string{
+							"aws_instance.baz",
+							"aws_instance.baz",
+						},
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+	state.init()
+
+	buf := new(bytes.Buffer)
+	if err := WriteState(state, buf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual, err := ReadState(buf)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// make sure the duplicate Dependencies are filtered
+	modDeps := actual.Modules[0].Dependencies
+	resourceDeps := actual.Modules[0].Resources["foo"].Dependencies
+
+	if len(modDeps) > 1 || modDeps[0] != "aws_instance.bar" {
+		t.Fatalf("expected 1 module depends_on entry, got %q", modDeps)
+	}
+
+	if len(resourceDeps) > 1 || resourceDeps[0] != "aws_instance.baz" {
+		t.Fatalf("expected 1 resource depends_on entry, got  %q", resourceDeps)
 	}
 }
 

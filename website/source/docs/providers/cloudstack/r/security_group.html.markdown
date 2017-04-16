@@ -6,13 +6,13 @@ description: |-
   Creates a security group.
 ---
 
-# cloudstack\_security\_group
+# cloudstack_security_group
 
 Creates a security group.
 
 ## Example Usage
 
-```
+```hcl
 resource "cloudstack_security_group" "default" {
   name        = "allow_web"
   description = "Allow access to HTTP and HTTPS"
@@ -37,4 +37,3 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The ID of the security group.
-

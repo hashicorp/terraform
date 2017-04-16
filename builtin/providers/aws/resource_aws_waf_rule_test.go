@@ -99,47 +99,40 @@ func testAccCheckAWSWafRuleDisappears(v *waf.Rule) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		conn := testAccProvider.Meta().(*AWSClient).wafconn
 
-		// ChangeToken
-		var ct *waf.GetChangeTokenInput
-
-		resp, err := conn.GetChangeToken(ct)
-		if err != nil {
-			return fmt.Errorf("Error getting change token: %s", err)
-		}
-
-		req := &waf.UpdateRuleInput{
-			ChangeToken: resp.ChangeToken,
-			RuleId:      v.RuleId,
-		}
-
-		for _, Predicate := range v.Predicates {
-			Predicate := &waf.RuleUpdate{
-				Action: aws.String("DELETE"),
-				Predicate: &waf.Predicate{
-					Negated: Predicate.Negated,
-					Type:    Predicate.Type,
-					DataId:  Predicate.DataId,
-				},
+		wr := newWafRetryer(conn, "global")
+		_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
+			req := &waf.UpdateRuleInput{
+				ChangeToken: token,
+				RuleId:      v.RuleId,
 			}
-			req.Updates = append(req.Updates, Predicate)
-		}
 
-		_, err = conn.UpdateRule(req)
+			for _, Predicate := range v.Predicates {
+				Predicate := &waf.RuleUpdate{
+					Action: aws.String("DELETE"),
+					Predicate: &waf.Predicate{
+						Negated: Predicate.Negated,
+						Type:    Predicate.Type,
+						DataId:  Predicate.DataId,
+					},
+				}
+				req.Updates = append(req.Updates, Predicate)
+			}
+
+			return conn.UpdateRule(req)
+		})
 		if err != nil {
 			return fmt.Errorf("Error Updating WAF Rule: %s", err)
 		}
 
-		resp, err = conn.GetChangeToken(ct)
+		_, err = wr.RetryWithToken(func(token *string) (interface{}, error) {
+			opts := &waf.DeleteRuleInput{
+				ChangeToken: token,
+				RuleId:      v.RuleId,
+			}
+			return conn.DeleteRule(opts)
+		})
 		if err != nil {
-			return fmt.Errorf("Error getting change token for waf Rule: %s", err)
-		}
-
-		opts := &waf.DeleteRuleInput{
-			ChangeToken: resp.ChangeToken,
-			RuleId:      v.RuleId,
-		}
-		if _, err := conn.DeleteRule(opts); err != nil {
-			return err
+			return fmt.Errorf("Error Deleting WAF Rule: %s", err)
 		}
 		return nil
 	}

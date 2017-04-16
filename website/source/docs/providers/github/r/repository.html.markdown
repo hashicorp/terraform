@@ -6,7 +6,7 @@ description: |-
   Creates and manages repositories within Github organizations
 ---
 
-# github\_repository
+# github_repository
 
 This resource allows you to create and manage repositories within your
 Github organization.
@@ -16,7 +16,7 @@ outside of organizations.
 
 ## Example Usage
 
-```
+```hcl
 resource "github_repository" "example" {
   name        = "example"
   description = "My awesome codebase"

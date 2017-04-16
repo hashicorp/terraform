@@ -6,7 +6,7 @@ description: |-
   Provides a GitHub membership resource.
 ---
 
-# github\_membership
+# github_membership
 
 Provides a GitHub membership resource.
 
@@ -16,7 +16,7 @@ destroyed, either the invitation will be cancelled or the user will be removed.
 
 ## Example Usage
 
-```
+```hcl
 # Add a user to the organization
 resource "github_membership" "membership_for_some_user" {
   username = "SomeUser"

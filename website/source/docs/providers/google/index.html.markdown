@@ -26,7 +26,7 @@ provider "google" {
 
 // Create a new instance
 resource "google_compute_instance" "default" {
-  // ...
+  # ...
 }
 ```
 

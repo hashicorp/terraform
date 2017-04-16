@@ -6,7 +6,7 @@ description: |-
   Provides a list of services in a given Consul datacenter.
 ---
 
-# consul\_catalog\_services
+# consul_catalog_services
 
 The `consul_catalog_services` data source returns a list of Consul services that
 have been registered with the Consul cluster in a given datacenter.  By
@@ -18,9 +18,12 @@ source, which provides a detailed response about a specific Consul service.
 
 ## Example Usage
 
-```
+```hcl
 data "consul_catalog_services" "read-dc1" {
-  # query_options {  #    # Optional parameter: implicitly uses the current datacenter of the agent  #    datacenter = "dc1"  # }
+  query_options {
+    # Optional parameter: implicitly uses the current datacenter of the agent  
+    datacenter = "dc1"
+  }
 }
 
 # Set the description to a whitespace delimited list of the services

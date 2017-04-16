@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -107,20 +108,21 @@ func TestAccAWSEcsServiceWithARN(t *testing.T) {
 }
 
 func TestAccAWSEcsServiceWithFamilyAndRevision(t *testing.T) {
+	rName := acctest.RandomWithPrefix("tf-test")
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEcsServiceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSEcsServiceWithFamilyAndRevision,
+				Config: testAccAWSEcsServiceWithFamilyAndRevision(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.jenkins"),
 				),
 			},
 
 			{
-				Config: testAccAWSEcsServiceWithFamilyAndRevisionModified,
+				Config: testAccAWSEcsServiceWithFamilyAndRevisionModified(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.jenkins"),
 				),
@@ -734,13 +736,14 @@ var testAccAWSEcsService_withLbChanges_modified = fmt.Sprintf(
 	tpl_testAccAWSEcsService_withLbChanges,
 	"nginx:latest", "nginx", 80, 8080, 8080, "nginx", 80)
 
-var testAccAWSEcsServiceWithFamilyAndRevision = `
+func testAccAWSEcsServiceWithFamilyAndRevision(rName string) string {
+	return fmt.Sprintf(`
 resource "aws_ecs_cluster" "default" {
-	name = "terraformecstest2"
+	name = "%s"
 }
 
 resource "aws_ecs_task_definition" "jenkins" {
-  family = "jenkins"
+  family = "%s"
   container_definitions = <<DEFINITION
 [
   {
@@ -755,20 +758,21 @@ DEFINITION
 }
 
 resource "aws_ecs_service" "jenkins" {
-  name = "jenkins"
+  name = "%s"
   cluster = "${aws_ecs_cluster.default.id}"
   task_definition = "${aws_ecs_task_definition.jenkins.family}:${aws_ecs_task_definition.jenkins.revision}"
   desired_count = 1
+}`, rName, rName, rName)
 }
-`
 
-var testAccAWSEcsServiceWithFamilyAndRevisionModified = `
+func testAccAWSEcsServiceWithFamilyAndRevisionModified(rName string) string {
+	return fmt.Sprintf(`
 resource "aws_ecs_cluster" "default" {
-	name = "terraformecstest2"
+	name = "%s"
 }
 
 resource "aws_ecs_task_definition" "jenkins" {
-  family = "jenkins"
+  family = "%s"
   container_definitions = <<DEFINITION
 [
   {
@@ -783,12 +787,12 @@ DEFINITION
 }
 
 resource "aws_ecs_service" "jenkins" {
-  name = "jenkins"
+  name = "%s"
   cluster = "${aws_ecs_cluster.default.id}"
   task_definition = "${aws_ecs_task_definition.jenkins.family}:${aws_ecs_task_definition.jenkins.revision}"
   desired_count = 1
+}`, rName, rName, rName)
 }
-`
 
 var testAccAWSEcsServiceWithRenamedCluster = `
 resource "aws_ecs_cluster" "default" {

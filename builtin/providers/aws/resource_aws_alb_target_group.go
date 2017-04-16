@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -37,10 +38,18 @@ func resourceAwsAlbTargetGroup() *schema.Resource {
 			},
 
 			"name": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
+				ValidateFunc:  validateAwsAlbTargetGroupName,
+			},
+			"name_prefix": {
 				Type:         schema.TypeString,
-				Required:     true,
+				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: validateAwsAlbTargetGroupName,
+				ValidateFunc: validateAwsAlbTargetGroupNamePrefix,
 			},
 
 			"port": {
@@ -73,6 +82,7 @@ func resourceAwsAlbTargetGroup() *schema.Resource {
 			"stickiness": {
 				Type:     schema.TypeList,
 				Optional: true,
+				Computed: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -171,8 +181,17 @@ func resourceAwsAlbTargetGroup() *schema.Resource {
 func resourceAwsAlbTargetGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
+	var groupName string
+	if v, ok := d.GetOk("name"); ok {
+		groupName = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		groupName = resource.PrefixedUniqueId(v.(string))
+	} else {
+		groupName = resource.PrefixedUniqueId("tf-")
+	}
+
 	params := &elbv2.CreateTargetGroupInput{
-		Name:     aws.String(d.Get("name").(string)),
+		Name:     aws.String(groupName),
 		Port:     aws.Int64(int64(d.Get("port").(int))),
 		Protocol: aws.String(d.Get("protocol").(string)),
 		VpcId:    aws.String(d.Get("vpc_id").(string)),
@@ -459,14 +478,6 @@ func validateAwsAlbTargetGroupHealthCheckProtocol(v interface{}, k string) (ws [
 	}
 
 	errors = append(errors, fmt.Errorf("%q must be either %q or %q", k, "HTTP", "HTTPS"))
-	return
-}
-
-func validateAwsAlbTargetGroupName(v interface{}, k string) (ws []string, errors []error) {
-	name := v.(string)
-	if len(name) > 32 {
-		errors = append(errors, fmt.Errorf("%q (%q) cannot be longer than '32' characters", k, name))
-	}
 	return
 }
 

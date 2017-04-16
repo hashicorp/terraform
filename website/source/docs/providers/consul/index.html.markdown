@@ -17,7 +17,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the Consul provider
 provider "consul" {
   address    = "demo.consul.io:80"
@@ -51,4 +51,3 @@ The following arguments are supported:
 * `ca_file` - (Optional) A path to a PEM-encoded certificate authority used to verify the remote agent's certificate.
 * `cert_file` - (Optional) A path to a PEM-encoded certificate provided to the remote agent; requires use of `key_file`.
 * `key_file`- (Optional) A path to a PEM-encoded private key, required if `cert_file` is specified.
-

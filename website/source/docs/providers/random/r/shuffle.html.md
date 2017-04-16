@@ -13,7 +13,7 @@ of strings given as an argument.
 
 ## Example Usage
 
-```
+```hcl
 resource "random_shuffle" "az" {
   input = ["us-west-1a", "us-west-1c", "us-west-1d", "us-west-1e"]
   result_count = 2

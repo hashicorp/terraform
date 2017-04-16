@@ -74,8 +74,6 @@ interpolate the current index in a multi-count resource. For more
 information on `count`, see the [resource configuration
 page](/docs/configuration/resources.html).
 
-<a id="path-variables"></a>
-
 #### Path information
 
 The syntax is `path.TYPE`. TYPE can be `cwd`, `module`, or `root`.
@@ -90,12 +88,11 @@ The syntax is `terraform.FIELD`. This variable type contains metadata about
 the currently executing Terraform run. FIELD can currently only be `env` to
 reference the currently active [state environment](/docs/state/environments.html).
 
-<a id="conditionals"></a>
 ## Conditionals
 
 Interpolations may contain conditionals to branch on the final value.
 
-```
+```hcl
 resource "aws_instance" "web" {
   subnet = "${var.env == "production" ? var.prod_subnet : var.dev_subnet}"
 }
@@ -103,7 +100,9 @@ resource "aws_instance" "web" {
 
 The conditional syntax is the well-known ternary operation:
 
-    CONDITION ? TRUEVAL : FALSEVAL
+```text
+CONDITION ? TRUEVAL : FALSEVAL
+```
 
 The condition can be any valid interpolation syntax, such as variable
 access, a function call, or even another conditional. The true and false
@@ -119,7 +118,7 @@ The support operators are:
 A common use case for conditionals is to enable/disable a resource by
 conditionally setting the count:
 
-```
+```hcl
 resource "aws_instance" "vpn" {
   count = "${var.something ? 1 : 0}"
 }
@@ -129,7 +128,6 @@ In the example above, the "vpn" resource will only be included if
 "var.something" evaluates to true. Otherwise, the VPN resource will
 not be created at all.
 
-<a id="functions"></a>
 ## Built-in Functions
 
 Terraform ships with built-in functions. Functions are called with the
@@ -155,6 +153,8 @@ The supported built-in functions are:
 
   * `ceil(float)` - Returns the least integer value greater than or equal
       to the argument.
+
+  * `chomp(string)` - Removes trailing newlines from the given string.
 
   * `cidrhost(iprange, hostnum)` - Takes an IP address range in CIDR notation
     and creates an IP address with the given host number. For example,
@@ -290,7 +290,7 @@ The supported built-in functions are:
       as a regular expression. If using a regular expression, `replace`
       can reference subcaptures in the regular expression by using `$n` where
       `n` is the index or name of the subcapture. If using a regular expression,
-      the syntax conforms to the [re2 regular expression syntax](https://code.google.com/p/re2/wiki/Syntax).
+      the syntax conforms to the [re2 regular expression syntax](https://github.com/google/re2/wiki/Syntax).
 
   * `sha1(string)` - Returns a (conventional) hexadecimal representation of the
     SHA-1 hash of the given string.
@@ -322,7 +322,7 @@ The supported built-in functions are:
       `a_resource_param = ["${split(",", var.CSV_STRING)}"]`.
       Example: `split(",", module.amod.server_ids)`
 
-  * `substr(string, offset, length)` - Extracts a substring from the input string. A negative offset is interpreted as being equivalent to a positive offset measured backwards from the end of the string. A length of `-1` is interpretted as meaning "until the end of the string".
+  * `substr(string, offset, length)` - Extracts a substring from the input string. A negative offset is interpreted as being equivalent to a positive offset measured backwards from the end of the string. A length of `-1` is interpreted as meaning "until the end of the string".
 
   * `timestamp()` - Returns a UTC timestamp string in RFC 3339 format. This string will change with every
    invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the
@@ -347,7 +347,6 @@ The supported built-in functions are:
       of the key used to encrypt their initial password, you might use:
       `zipmap(aws_iam_user.users.*.name, aws_iam_user_login_profile.users.*.key_fingerprint)`.
 
-<a id="templates"></a>
 ## Templates
 
 Long strings can be managed using templates.
@@ -358,7 +357,7 @@ computed `rendered` attribute containing the result.
 
 A template data source looks like:
 
-```
+```hcl
 data "template_file" "example" {
   template = "$${hello} $${world}!"
   vars {
@@ -383,7 +382,7 @@ details on template usage, please see the
 Here is an example that combines the capabilities of templates with the interpolation
 from `count` to give us a parameterized template, unique to each resource instance:
 
-```
+```hcl
 variable "count" {
   default = 2
 }
@@ -396,41 +395,42 @@ variable "hostnames" {
 }
 
 data "template_file" "web_init" {
-  // here we expand multiple template_files - the same number as we have instances
+  # Expand multiple template files - the same number as we have instances
   count    = "${var.count}"
   template = "${file("templates/web_init.tpl")}"
   vars {
-    // that gives us access to use count.index to do the lookup
+    # that gives us access to use count.index to do the lookup
     hostname = "${lookup(var.hostnames, count.index)}"
   }
 }
 
 resource "aws_instance" "web" {
-  // ...
+  # ...
   count = "${var.count}"
-  // here we link each web instance to the proper template_file
+
+  # Link each web instance to the proper template_file
   user_data = "${element(data.template_file.web_init.*.rendered, count.index)}"
 }
 ```
 
-With this, we will build a list of `template_file.web_init` data sources which we can
-use in combination with our list of `aws_instance.web` resources.
+With this, we will build a list of `template_file.web_init` data sources which
+we can use in combination with our list of `aws_instance.web` resources.
 
-<a id="math"></a>
 ## Math
 
 Simple math can be performed in interpolations:
 
-```
+```hcl
 variable "count" {
   default = 2
 }
 
 resource "aws_instance" "web" {
-  // ...
+  # ...
+
   count = "${var.count}"
 
-  // tag the instance with a counter starting at 1, ie. web-001
+  # Tag the instance with a counter starting at 1, ie. web-001
   tags {
     Name = "${format("web-%03d", count.index + 1)}"
   }
@@ -446,7 +446,7 @@ Operator precedences is the standard mathematical order of operations:
 *Multiply* (`*`), *Divide* (`/`), and *Modulo* (`%`) have precedence over
 *Add* (`+`) and *Subtract* (`-`). Parenthesis can be used to force ordering.
 
-```
+```text
 "${2 * 4 + 3 * 3}" # computes to 17
 "${3 * 3 + 2 * 4}" # computes to 17
 "${2 * (4 + 3) * 3}" # computes to 42
