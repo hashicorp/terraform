@@ -28,7 +28,7 @@ resource "aws_waf_ipset" "ipset" {
 The following arguments are supported:
 
 * `name` - (Required) The name or description of the IPSet.
-* `ip_set_descriptors` - (Required) The IP address type and IP address range (in CIDR notation) from which web requests originate.
+* `ip_set_descriptors` - (Optional) The IP address type and IP address range (in CIDR notation) from which web requests originate.
 
 ## Remarks
 
