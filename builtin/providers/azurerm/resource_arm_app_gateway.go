@@ -721,7 +721,7 @@ func resourceArmAppGatewayRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("probe", flattenAppGatewayProbes(appGateway.ApplicationGatewayPropertiesFormat.Probes))
 	d.Set("request_routing_rule", flattenAppGatewayRequestRoutingRules(appGateway.ApplicationGatewayPropertiesFormat.RequestRoutingRules))
 	d.Set("url_path_map", flattenAppGatewayURLPathMaps(appGateway.ApplicationGatewayPropertiesFormat.URLPathMaps))
-	d.Set("ssl_certificate", flattenAppGatewaySslCertificates(appGateway.ApplicationGatewayPropertiesFormat.SslCertificates))
+	d.Set("ssl_certificate", schema.NewSet(hashAppGatewatSslCertificates, flattenAppGatewaySslCertificates(appGateway.ApplicationGatewayPropertiesFormat.SslCertificates)))
 
 	if appGateway.ApplicationGatewayPropertiesFormat.WebApplicationFirewallConfiguration != nil {
 		d.Set("waf_configuration", schema.NewSet(hashAppGatewayWafConfig,
@@ -1504,8 +1504,6 @@ func flattenAppGatewaySslCertificates(certs *[]network.ApplicationGatewaySslCert
 		certConfig := map[string]interface{}{
 			"id":               *config.ID,
 			"name":             *config.Name,
-			"data":             *config.ApplicationGatewaySslCertificatePropertiesFormat.Data,
-			"password":         *config.ApplicationGatewaySslCertificatePropertiesFormat.Password,
 			"public_cert_data": *config.ApplicationGatewaySslCertificatePropertiesFormat.PublicCertData,
 		}
 
@@ -1530,6 +1528,15 @@ func hashAppGatewayWafConfig(v interface{}) int {
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%t-", m["enabled"].(bool)))
 	buf.WriteString(fmt.Sprintf("%s-", m["firewall_mode"].(string)))
+
+	return hashcode.String(buf.String())
+}
+
+func hashAppGatewatSslCertificates(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["public_cert_data"].(string)))
 
 	return hashcode.String(buf.String())
 }
