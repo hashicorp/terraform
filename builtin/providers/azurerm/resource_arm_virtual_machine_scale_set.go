@@ -94,9 +94,8 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 						},
 
 						"custom_data": {
-							Type:      schema.TypeString,
-							Optional:  true,
-							StateFunc: userDataStateFunc,
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 					},
 				},
@@ -985,7 +984,6 @@ func expandAzureRMVirtualMachineScaleSetsOsProfile(d *schema.ResourceData) (*com
 	}
 
 	if customData != "" {
-		customData = base64Encode(customData)
 		osProfile.CustomData = &customData
 	}
 

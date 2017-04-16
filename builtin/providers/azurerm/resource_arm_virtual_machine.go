@@ -332,13 +332,14 @@ func resourceArmVirtualMachine() *schema.Resource {
 						"admin_password": {
 							Type:     schema.TypeString,
 							Required: true,
+							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+								return true
+							},
 						},
 
 						"custom_data": {
-							Type:      schema.TypeString,
-							Optional:  true,
-							Computed:  true,
-							StateFunc: userDataStateFunc,
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 					},
 				},
@@ -1132,7 +1133,6 @@ func expandAzureRmVirtualMachineOsProfile(d *schema.ResourceData) (*compute.OSPr
 	}
 
 	if v := osProfile["custom_data"].(string); v != "" {
-		v = base64Encode(v)
 		profile.CustomData = &v
 	}
 
