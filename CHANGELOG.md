@@ -8,6 +8,7 @@ FEATURES:
 IMPROVEMENTS:
  * state/remote/swift: Support Openstack request logging [GH-13583]
  * provider/aws: Add an option to skip getting the supported EC2 platforms [GH-13672]
+ * provider/aws: Add `name_prefix` support to `aws_cloudwatch_log_group` [GH-13273]
  * provider/azurerm: VM Scale Sets - import support [GH-13464]
  * provider/google: `google_compute_address` and `google_compute_global_address` are now importable [GH-13270]
  
