@@ -312,13 +312,15 @@ The following arguments are supported:
 `storage_os_disk` supports the following:
 
 * `name` - (Required) Specifies the disk name.
-* `vhd_containers` - (Optional) Specifies the vhd uri. This property is ignored if using a custom image.
-* `managed_disk_type` - (Optional) Specifies the type of managed disk to create. Value you must be either `Standard_LRS` or `Premium_LRS`. Cannot be used when `vhd_uri` is specified.
+* `vhd_containers` - (Optional) Specifies the vhd uri. Cannot be used when `image` or `managed_disk_type` is specified.
+* `managed_disk_type` - (Optional) Specifies the type of managed disk to create. Value you must be either `Standard_LRS` or `Premium_LRS`. Cannot be used when `vhd_containers` or `image` is specified.
 * `create_option` - (Required) Specifies how the virtual machine should be created. The only possible option is `FromImage`.
-* `caching` - (Required) Specifies the caching requirements.
+* `caching` - (Optional) Specifies the caching requirements.
 * `image` - (Optional) Specifies the blob uri for user image. A virtual machine scale set creates an os disk in the same container as the user image.
                        Updating the osDisk image causes the existing disk to be deleted and a new one created with the new image. If the VM scale set is in Manual upgrade mode then the virtual machines are not updated until they have manualUpgrade applied to them.
-                       If this property is set then vhd_containers is ignored.
+                       Cannot be used when `vhd_containers` or `managed_disk_type` is specified.
+                       Cannot be used when `storage_image_reference` is specified.
+                       Have to specify `os_type` when defined.
 * `os_type` - (Optional) Specifies the operating system Type, valid values are windows, linux.
 
 `storage_image_reference` supports the following:
