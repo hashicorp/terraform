@@ -18,6 +18,7 @@ BUG FIXES:
  * provider/aws: Fix DB Parameter Group Name [GH-13279]
  * provider/aws: Increase default number of retries from 11 to 25 [GH-13673]
  * provider/aws: Use mutex & retry for WAF change operations [GH-13656]
+ * provider/aws: Remove aws_vpc_dhcp_options if not found [GH-13610]
  * provider/azurerm: azurerm_redis_cache resource missing hostname [GH-13650]
  * provider/google: Stop setting the id when project creation fails [GH-13644]
  * provider/openstack: Fix updating Ports [GH-13604]
