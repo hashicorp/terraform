@@ -85,7 +85,7 @@ Nested `ebs_block_device` blocks have the following structure:
 an image during a copy operation. This parameter is only required if you want to use a non-default CMK;
 if this parameter is not specified, the default CMK for EBS is used
 
-~> **Note:** You must specify `encrypted` or `snapshot_id` but not both.
+~> **Note:** You can specify `encrypted` or `snapshot_id` but not both.
 
 Nested `ephemeral_block_device` blocks have the following structure:
 
