@@ -290,7 +290,7 @@ The supported built-in functions are:
       as a regular expression. If using a regular expression, `replace`
       can reference subcaptures in the regular expression by using `$n` where
       `n` is the index or name of the subcapture. If using a regular expression,
-      the syntax conforms to the [re2 regular expression syntax](https://code.google.com/p/re2/wiki/Syntax).
+      the syntax conforms to the [re2 regular expression syntax](https://github.com/google/re2/wiki/Syntax).
 
   * `sha1(string)` - Returns a (conventional) hexadecimal representation of the
     SHA-1 hash of the given string.
