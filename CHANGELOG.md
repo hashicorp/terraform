@@ -16,7 +16,8 @@ BUG FIXES:
 
  * core: Add the close provider/provisioner transformers back [GH-13102]
  * core: Fix a crash condition by improving the flatmap.Expand() logic [GH-13541]
- * provider/alicloud: Fix create PrePaid instance (#13661) [GH-13662]
+ * provider/alicloud: Fix create PrePaid instance [GH-13662]
+ * provider/alicloud: Fix allocate public ip error [GH-13268]
  * provider/aws: Fix DB Parameter Group Name [GH-13279]
  * provider/aws: Increase default number of retries from 11 to 25 [GH-13673]
  * provider/aws: Use mutex & retry for WAF change operations [GH-13656]
