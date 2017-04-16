@@ -87,6 +87,7 @@ func Provider() terraform.ResourceProvider {
 
 		ResourcesMap: map[string]*schema.Resource{
 			"kubernetes_config_map":              resourceKubernetesConfigMap(),
+			"kubernetes_limit_range":             resourceKubernetesLimitRange(),
 			"kubernetes_namespace":               resourceKubernetesNamespace(),
 			"kubernetes_persistent_volume":       resourceKubernetesPersistentVolume(),
 			"kubernetes_persistent_volume_claim": resourceKubernetesPersistentVolumeClaim(),
