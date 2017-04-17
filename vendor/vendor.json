@@ -62,7 +62,7 @@
 			"versionExact": "v10.0.2-beta"
 		},
 		{
-			"checksumSHA1": "eautqQaMqPwrTLVl81qpTSVtxI8=",
+			"checksumSHA1": "alxwmuEr53BrRKt7DMwL/Kia7pw=",
 			"comment": "v2.1.1-beta-8-gca4d906",
 			"path": "github.com/Azure/azure-sdk-for-go/arm/documentdb",
 			"revision": "ecf40e315d5ab0ca6d7b3b7f7fbb5c1577814813",
@@ -71,6 +71,7 @@
 			"versionExact": "v8.1.0-beta"
 		},
 		{
+			"checksumSHA1": "eautqQaMqPwrTLVl81qpTSVtxI8=",
 			"path": "github.com/Azure/azure-sdk-for-go/arm/eventhub",
 			"revision": "5841475edc7c8725d79885d635aa8956f97fdf0e",
 			"revisionTime": "2017-05-10T22:14:13Z",
