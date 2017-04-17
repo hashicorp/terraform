@@ -16,14 +16,14 @@ to date on the latest available version of the tag.
 
 ## Example Usage
 
-```
+```hcl
 data "docker_registry_image" "ubuntu" {
-    name = "ubuntu:precise"
+  name = "ubuntu:precise"
 }
 
 resource "docker_image" "ubuntu" {
-    name = "${data.docker_image.ubuntu.name}"
-    pull_trigger = "${data.docker_registry_image.ubuntu.sha256_digest}"
+  name          = "${data.docker_registry_image.ubuntu.name}"
+  pull_triggers = ["${data.docker_registry_image.ubuntu.sha256_digest}"]
 }
 ```
 
@@ -37,4 +37,4 @@ The following arguments are supported:
 
 The following attributes are exported in addition to the above configuration:
 
-* `id` (string) - The ID of the image, as stored on the registry.
+* `sha256_digest` (string) - The content digest of the image, as stored on the registry.

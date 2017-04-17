@@ -6,31 +6,30 @@ description: |-
   Writes values into the Consul key/value store.
 ---
 
-# consul\_keys
+# consul_keys
 
-`consul_keys` writes sets of individual values into Consul.
+The `consul_keys` resource writes sets of individual values into Consul.
 This is a powerful way to expose infrastructure details to clients.
 
-This resource manages individual keys, and thus it can create, update and
-delete the keys explicitly given. Howver, It is not able to detect and remove
-additional keys that have been added by non-Terraform means. To manage
-*all* keys sharing a common prefix, and thus have Terraform remove errant keys
-not present in the configuration, consider using the `consul_key_prefix`
-resource instead.
+This resource manages individual keys, and thus it can create, update
+and delete the keys explicitly given. However, it is not able to detect
+and remove additional keys that have been added by non-Terraform means.
+To manage *all* keys sharing a common prefix, and thus have Terraform
+remove errant keys not present in the configuration, consider using the
+`consul_key_prefix` resource instead.
 
 ## Example Usage
 
-```
+```hcl
 resource "consul_keys" "app" {
-    datacenter = "nyc1"
-    token = "abcd"
+  datacenter = "nyc1"
+  token      = "abcd"
 
-    # Set the CNAME of our load balancer as a key
-    key {
-        name = "elb_cname"
-        path = "service/app/elb_address"
-        value = "${aws_elb.app.dns_name}"
-    }
+  # Set the CNAME of our load balancer as a key
+  key {
+    path  = "service/app/elb_address"
+    value = "${aws_elb.app.dns_name}"
+  }
 }
 ```
 
@@ -60,11 +59,11 @@ The `key` block supports the following:
 
 ### Deprecated `key` arguments
 
-Prior to Terraform 0.7 this resource was used both to read *and* write the
+Prior to Terraform 0.7, this resource was used both to read *and* write the
 Consul key/value store. The read functionality has moved to the `consul_keys`
 *data source*, whose documentation can be found via the navigation.
 
-The pre-0.7 interface for reading is still supported for backward compatibilty,
+The pre-0.7 interface for reading keys is still supported for backward compatibility,
 but will be removed in a future version of Terraform.
 
 ## Attributes Reference

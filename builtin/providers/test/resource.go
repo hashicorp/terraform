@@ -97,6 +97,13 @@ func testResource() *schema.Resource {
 				Type:     schema.TypeMap,
 				Computed: true,
 			},
+			"list": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 			"list_of_map": {
 				Type:     schema.TypeList,
 				Optional: true,

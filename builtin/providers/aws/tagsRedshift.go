@@ -2,6 +2,7 @@ package aws
 
 import (
 	"log"
+	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/redshift"
@@ -69,10 +70,13 @@ func diffTagsRedshift(oldTags, newTags []*redshift.Tag) ([]*redshift.Tag, []*red
 func tagsFromMapRedshift(m map[string]interface{}) []*redshift.Tag {
 	result := make([]*redshift.Tag, 0, len(m))
 	for k, v := range m {
-		result = append(result, &redshift.Tag{
+		t := &redshift.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v.(string)),
-		})
+		}
+		if !tagIgnoredRedshift(t) {
+			result = append(result, t)
+		}
 	}
 
 	return result
@@ -81,8 +85,24 @@ func tagsFromMapRedshift(m map[string]interface{}) []*redshift.Tag {
 func tagsToMapRedshift(ts []*redshift.Tag) map[string]string {
 	result := make(map[string]string)
 	for _, t := range ts {
-		result[*t.Key] = *t.Value
+		if !tagIgnoredRedshift(t) {
+			result[*t.Key] = *t.Value
+		}
 	}
 
 	return result
+}
+
+// compare a tag against a list of strings and checks if it should
+// be ignored or not
+func tagIgnoredRedshift(t *redshift.Tag) bool {
+	filter := []string{"^aws:*"}
+	for _, v := range filter {
+		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
+		if r, _ := regexp.MatchString(v, *t.Key); r == true {
+			log.Printf("[DEBUG] Found AWS specific tag %s (val: %s), ignoring.\n", *t.Key, *t.Value)
+			return true
+		}
+	}
+	return false
 }

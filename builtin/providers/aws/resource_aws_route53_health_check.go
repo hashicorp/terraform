@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -69,6 +69,7 @@ func resourceAwsRoute53HealthCheck() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+
 			"measure_latency": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -93,6 +94,31 @@ func resourceAwsRoute53HealthCheck() *schema.Resource {
 					}
 					return
 				},
+			},
+
+			"cloudwatch_alarm_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"cloudwatch_alarm_region": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"insufficient_data_health_status": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"reference_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"enable_sni": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
 			},
 
 			"tags": tagsSchema(),
@@ -133,6 +159,27 @@ func resourceAwsRoute53HealthCheckUpdate(d *schema.ResourceData, meta interface{
 	}
 	if d.HasChange("child_health_threshold") {
 		updateHealthCheck.HealthThreshold = aws.Int64(int64(d.Get("child_health_threshold").(int)))
+	}
+
+	if d.HasChange("search_string") {
+		updateHealthCheck.SearchString = aws.String(d.Get("search_string").(string))
+	}
+
+	if d.HasChange("cloudwatch_alarm_name") || d.HasChange("cloudwatch_alarm_region") {
+		cloudwatchAlarm := &route53.AlarmIdentifier{
+			Name:   aws.String(d.Get("cloudwatch_alarm_name").(string)),
+			Region: aws.String(d.Get("cloudwatch_alarm_region").(string)),
+		}
+
+		updateHealthCheck.AlarmIdentifier = cloudwatchAlarm
+	}
+
+	if d.HasChange("insufficient_data_health_status") {
+		updateHealthCheck.InsufficientDataHealthStatus = aws.String(d.Get("insufficient_data_health_status").(string))
+	}
+
+	if d.HasChange("enable_sni") {
+		updateHealthCheck.EnableSNI = aws.Bool(d.Get("enable_sni").(bool))
 	}
 
 	_, err := conn.UpdateHealthCheck(updateHealthCheck)
@@ -182,7 +229,7 @@ func resourceAwsRoute53HealthCheckCreate(d *schema.ResourceData, meta interface{
 		healthConfig.ResourcePath = aws.String(v.(string))
 	}
 
-	if *healthConfig.Type != route53.HealthCheckTypeCalculated {
+	if *healthConfig.Type != route53.HealthCheckTypeCalculated && *healthConfig.Type != route53.HealthCheckTypeCloudwatchMetric {
 		if v, ok := d.GetOk("measure_latency"); ok {
 			healthConfig.MeasureLatency = aws.Bool(v.(bool))
 		}
@@ -190,6 +237,10 @@ func resourceAwsRoute53HealthCheckCreate(d *schema.ResourceData, meta interface{
 
 	if v, ok := d.GetOk("invert_healthcheck"); ok {
 		healthConfig.Inverted = aws.Bool(v.(bool))
+	}
+
+	if v, ok := d.GetOk("enable_sni"); ok {
+		healthConfig.EnableSNI = aws.Bool(v.(bool))
 	}
 
 	if *healthConfig.Type == route53.HealthCheckTypeCalculated {
@@ -202,8 +253,31 @@ func resourceAwsRoute53HealthCheckCreate(d *schema.ResourceData, meta interface{
 		}
 	}
 
+	if *healthConfig.Type == route53.HealthCheckTypeCloudwatchMetric {
+		cloudwatchAlarmIdentifier := &route53.AlarmIdentifier{}
+
+		if v, ok := d.GetOk("cloudwatch_alarm_name"); ok {
+			cloudwatchAlarmIdentifier.Name = aws.String(v.(string))
+		}
+
+		if v, ok := d.GetOk("cloudwatch_alarm_region"); ok {
+			cloudwatchAlarmIdentifier.Region = aws.String(v.(string))
+		}
+
+		healthConfig.AlarmIdentifier = cloudwatchAlarmIdentifier
+
+		if v, ok := d.GetOk("insufficient_data_health_status"); ok {
+			healthConfig.InsufficientDataHealthStatus = aws.String(v.(string))
+		}
+	}
+
+	callerRef := resource.UniqueId()
+	if v, ok := d.GetOk("reference_name"); ok {
+		callerRef = fmt.Sprintf("%s-%s", v.(string), callerRef)
+	}
+
 	input := &route53.CreateHealthCheckInput{
-		CallerReference:   aws.String(time.Now().Format(time.RFC3339Nano)),
+		CallerReference:   aws.String(callerRef),
 		HealthCheckConfig: healthConfig,
 	}
 
@@ -252,6 +326,13 @@ func resourceAwsRoute53HealthCheckRead(d *schema.ResourceData, meta interface{})
 	d.Set("invert_healthcheck", updated.Inverted)
 	d.Set("child_healthchecks", updated.ChildHealthChecks)
 	d.Set("child_health_threshold", updated.HealthThreshold)
+	d.Set("insufficient_data_health_status", updated.InsufficientDataHealthStatus)
+	d.Set("enable_sni", updated.EnableSNI)
+
+	if updated.AlarmIdentifier != nil {
+		d.Set("cloudwatch_alarm_name", updated.AlarmIdentifier.Name)
+		d.Set("cloudwatch_alarm_region", updated.AlarmIdentifier.Region)
+	}
 
 	// read the tags
 	req := &route53.ListTagsForResourceInput{

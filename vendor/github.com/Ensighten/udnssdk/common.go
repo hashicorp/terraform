@@ -1,7 +1,9 @@
 package udnssdk
 
+import "net/http"
+
 // GetResultByURI just requests a URI
-func (c *Client) GetResultByURI(uri string) (*Response, error) {
+func (c *Client) GetResultByURI(uri string) (*http.Response, error) {
 	req, err := c.NewRequest("GET", uri, nil)
 	if err != nil {
 		return nil, err
@@ -9,7 +11,7 @@ func (c *Client) GetResultByURI(uri string) (*Response, error) {
 	res, err := c.HTTPClient.Do(req)
 
 	if err != nil {
-		return &Response{Response: res}, err
+		return res, err
 	}
-	return &Response{Response: res}, err
+	return res, err
 }

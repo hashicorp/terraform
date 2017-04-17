@@ -3,9 +3,9 @@ package azurerm
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"testing"
 
-	"github.com/Azure/azure-sdk-for-go/core/http"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -166,7 +166,7 @@ func testCheckAzureRMTrafficManagerProfileDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("Traffic Manager profile sitll exists:\n%#v", resp.Properties)
+			return fmt.Errorf("Traffic Manager profile sitll exists:\n%#v", resp.ProfileProperties)
 		}
 	}
 
@@ -175,7 +175,7 @@ func testCheckAzureRMTrafficManagerProfileDestroy(s *terraform.State) error {
 
 var testAccAzureRMTrafficManagerProfile_weighted = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -199,7 +199,7 @@ resource "azurerm_traffic_manager_profile" "test" {
 
 var testAccAzureRMTrafficManagerProfile_performance = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -223,7 +223,7 @@ resource "azurerm_traffic_manager_profile" "test" {
 
 var testAccAzureRMTrafficManagerProfile_priority = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -247,7 +247,7 @@ resource "azurerm_traffic_manager_profile" "test" {
 
 var testAccAzureRMTrafficManagerProfile_withTags = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -276,7 +276,7 @@ resource "azurerm_traffic_manager_profile" "test" {
 
 var testAccAzureRMTrafficManagerProfile_withTagsUpdated = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 

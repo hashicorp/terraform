@@ -13,11 +13,11 @@ in your projects.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new Project
 resource "packet_project" "tf_project_1" {
-    name = "Terraform Fun"
-    payment_method = "payment-method-id"
+  name           = "Terraform Fun"
+  payment_method = "payment-method-id"
 }
 ```
 

@@ -83,6 +83,9 @@ func getImageDigest(registry, image, tag, username, password string) (string, er
 		req.SetBasicAuth(username, password)
 	}
 
+	// Set this header so that we get the v2 manifest back from the registry.
+	req.Header.Set("Accept", "application/vnd.docker.distribution.manifest.v2+json")
+
 	resp, err := client.Do(req)
 
 	if err != nil {

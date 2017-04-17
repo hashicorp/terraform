@@ -35,7 +35,8 @@ func TestReadUpgradeStateV1toV3(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(actual, roundTripped) {
-		t.Fatalf("bad: %#v", actual)
+		t.Logf("actual:\n%#v", actual)
+		t.Fatalf("roundTripped:\n%#v", roundTripped)
 	}
 }
 

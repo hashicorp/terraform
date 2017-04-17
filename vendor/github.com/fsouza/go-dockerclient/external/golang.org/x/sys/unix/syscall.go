@@ -19,7 +19,7 @@
 // These calls return err == nil to indicate success; otherwise
 // err represents an operating system error describing the failure and
 // holds a value of type syscall.Errno.
-package unix
+package unix // import "github.com/fsouza/go-dockerclient/external/golang.org/x/sys/unix"
 
 import "unsafe"
 

@@ -578,7 +578,7 @@ func (s *VPCService) NewListVPCsParams() *ListVPCsParams {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *VPCService) GetVPCID(name string, opts ...OptionFunc) (string, error) {
+func (s *VPCService) GetVPCID(name string, opts ...OptionFunc) (string, int, error) {
 	p := &ListVPCsParams{}
 	p.p = make(map[string]interface{})
 
@@ -586,38 +586,38 @@ func (s *VPCService) GetVPCID(name string, opts ...OptionFunc) (string, error) {
 
 	for _, fn := range opts {
 		if err := fn(s.cs, p); err != nil {
-			return "", err
+			return "", -1, err
 		}
 	}
 
 	l, err := s.ListVPCs(p)
 	if err != nil {
-		return "", err
+		return "", -1, err
 	}
 
 	if l.Count == 0 {
-		return "", fmt.Errorf("No match found for %s: %+v", name, l)
+		return "", l.Count, fmt.Errorf("No match found for %s: %+v", name, l)
 	}
 
 	if l.Count == 1 {
-		return l.VPCs[0].Id, nil
+		return l.VPCs[0].Id, l.Count, nil
 	}
 
 	if l.Count > 1 {
 		for _, v := range l.VPCs {
 			if v.Name == name {
-				return v.Id, nil
+				return v.Id, l.Count, nil
 			}
 		}
 	}
-	return "", fmt.Errorf("Could not find an exact match for %s: %+v", name, l)
+	return "", l.Count, fmt.Errorf("Could not find an exact match for %s: %+v", name, l)
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
 func (s *VPCService) GetVPCByName(name string, opts ...OptionFunc) (*VPC, int, error) {
-	id, err := s.GetVPCID(name, opts...)
+	id, count, err := s.GetVPCID(name, opts...)
 	if err != nil {
-		return nil, -1, err
+		return nil, count, err
 	}
 
 	r, count, err := s.GetVPCByID(id, opts...)
@@ -1818,7 +1818,7 @@ func (s *VPCService) NewListVPCOfferingsParams() *ListVPCOfferingsParams {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *VPCService) GetVPCOfferingID(name string, opts ...OptionFunc) (string, error) {
+func (s *VPCService) GetVPCOfferingID(name string, opts ...OptionFunc) (string, int, error) {
 	p := &ListVPCOfferingsParams{}
 	p.p = make(map[string]interface{})
 
@@ -1826,38 +1826,38 @@ func (s *VPCService) GetVPCOfferingID(name string, opts ...OptionFunc) (string, 
 
 	for _, fn := range opts {
 		if err := fn(s.cs, p); err != nil {
-			return "", err
+			return "", -1, err
 		}
 	}
 
 	l, err := s.ListVPCOfferings(p)
 	if err != nil {
-		return "", err
+		return "", -1, err
 	}
 
 	if l.Count == 0 {
-		return "", fmt.Errorf("No match found for %s: %+v", name, l)
+		return "", l.Count, fmt.Errorf("No match found for %s: %+v", name, l)
 	}
 
 	if l.Count == 1 {
-		return l.VPCOfferings[0].Id, nil
+		return l.VPCOfferings[0].Id, l.Count, nil
 	}
 
 	if l.Count > 1 {
 		for _, v := range l.VPCOfferings {
 			if v.Name == name {
-				return v.Id, nil
+				return v.Id, l.Count, nil
 			}
 		}
 	}
-	return "", fmt.Errorf("Could not find an exact match for %s: %+v", name, l)
+	return "", l.Count, fmt.Errorf("Could not find an exact match for %s: %+v", name, l)
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
 func (s *VPCService) GetVPCOfferingByName(name string, opts ...OptionFunc) (*VPCOffering, int, error) {
-	id, err := s.GetVPCOfferingID(name, opts...)
+	id, count, err := s.GetVPCOfferingID(name, opts...)
 	if err != nil {
-		return nil, -1, err
+		return nil, count, err
 	}
 
 	r, count, err := s.GetVPCOfferingByID(id, opts...)

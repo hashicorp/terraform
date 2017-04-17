@@ -17,24 +17,25 @@ or [dynamic](https://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/as-sc
 (policy-based) scaling.
 
 ## Example Usage
-```
+
+```hcl
 resource "aws_autoscaling_policy" "bat" {
-  name = "foobar3-terraform-test"
-  scaling_adjustment = 4
-  adjustment_type = "ChangeInCapacity"
-  cooldown = 300
+  name                   = "foobar3-terraform-test"
+  scaling_adjustment     = 4
+  adjustment_type        = "ChangeInCapacity"
+  cooldown               = 300
   autoscaling_group_name = "${aws_autoscaling_group.bar.name}"
 }
 
 resource "aws_autoscaling_group" "bar" {
-  availability_zones = ["us-east-1a"]
-  name = "foobar3-terraform-test"
-  max_size = 5
-  min_size = 2
+  availability_zones        = ["us-east-1a"]
+  name                      = "foobar3-terraform-test"
+  max_size                  = 5
+  min_size                  = 2
   health_check_grace_period = 300
-  health_check_type = "ELB"
-  force_delete = true
-  launch_configuration = "${aws_launch_configuration.foo.name}"
+  health_check_type         = "ELB"
+  force_delete              = true
+  launch_configuration      = "${aws_launch_configuration.foo.name}"
 }
 ```
 
@@ -59,7 +60,7 @@ The following arguments are only available to "StepScaling" type policies:
 * `step_adjustments` - (Optional) A set of adjustments that manage
 group scaling. These have the following structure:
 
-```
+```hcl
 step_adjustment {
   scaling_adjustment = -1
   metric_interval_lower_bound = 1.0

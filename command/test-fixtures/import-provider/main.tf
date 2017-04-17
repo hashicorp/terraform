@@ -1,0 +1,3 @@
+provider "test" {
+    foo = "bar"
+}

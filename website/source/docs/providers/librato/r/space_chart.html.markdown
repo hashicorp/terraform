@@ -13,15 +13,15 @@ create and manage charts in Librato Spaces.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new Librato space
 resource "librato_space" "my_space" {
-    name = "My New Space"
+  name = "My New Space"
 }
 
 # Create a new chart
 resource "librato_space_chart" "server_temperature" {
-  name = "Server Temperature"
+  name     = "Server Temperature"
   space_id = "${librato_space.my_space.id}"
 
   stream {
@@ -30,15 +30,15 @@ resource "librato_space_chart" "server_temperature" {
   }
 
   stream {
-    metric = "environmental_temp"
-    source = "*"
-    group_function = "breakout"
+    metric           = "environmental_temp"
+    source           = "*"
+    group_function   = "breakout"
     summary_function = "average"
   }
 
   stream {
-    metric = "server_temp"
-    source = "%"
+    metric         = "server_temp"
+    source         = "%"
     group_function = "average"
   }
 }
@@ -96,7 +96,7 @@ The `stream` block supports:
 * `min` - (Optional) Theoretical minimum Y-axis value.
 * `max` - (Optional) Theoretical maximum Y-axis value.
 * `transform_function` - (Optional) Linear formula to run on each measurement
-  prior to visualizaton.
+  prior to visualization.
 * `period` - (Optional) An integer value of seconds that defines the period this
   stream reports at. This aids in the display of the stream and allows the
   period to be used in stream display transforms.

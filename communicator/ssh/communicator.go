@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/terraform/communicator/remote"
@@ -27,6 +28,13 @@ const (
 	DefaultShebang = "#!/bin/sh\n"
 )
 
+// randShared is a global random generator object that is shared.
+// This must be shared since it is seeded by the current time and
+// creating multiple can result in the same values. By using a shared
+// RNG we assure different numbers per call.
+var randLock sync.Mutex
+var randShared *rand.Rand
+
 // Communicator represents the SSH communicator
 type Communicator struct {
 	connInfo *connectionInfo
@@ -34,7 +42,8 @@ type Communicator struct {
 	config   *sshConfig
 	conn     net.Conn
 	address  string
-	rand     *rand.Rand
+
+	lock sync.Mutex
 }
 
 type sshConfig struct {
@@ -66,11 +75,22 @@ func New(s *terraform.InstanceState) (*Communicator, error) {
 		return nil, err
 	}
 
+	// Setup the random number generator once. The seed value is the
+	// time multiplied by the PID. This can overflow the int64 but that
+	// is okay. We multiply by the PID in case we have multiple processes
+	// grabbing this at the same time. This is possible with Terraform and
+	// if we communicate to the same host at the same instance, we could
+	// overwrite the same files. Multiplying by the PID prevents this.
+	randLock.Lock()
+	defer randLock.Unlock()
+	if randShared == nil {
+		randShared = rand.New(rand.NewSource(
+			time.Now().UnixNano() * int64(os.Getpid())))
+	}
+
 	comm := &Communicator{
 		connInfo: connInfo,
 		config:   config,
-		// Seed our own rand source so that script paths are not deterministic
-		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 
 	return comm, nil
@@ -78,6 +98,10 @@ func New(s *terraform.InstanceState) (*Communicator, error) {
 
 // Connect implementation of communicator.Communicator interface
 func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
+	// Grab a lock so we can modify our internal attributes
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
 	if c.conn != nil {
 		c.conn.Close()
 	}
@@ -172,8 +196,19 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 
 // Disconnect implementation of communicator.Communicator interface
 func (c *Communicator) Disconnect() error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
 	if c.config.sshAgent != nil {
-		return c.config.sshAgent.Close()
+		if err := c.config.sshAgent.Close(); err != nil {
+			return err
+		}
+	}
+
+	if c.conn != nil {
+		conn := c.conn
+		c.conn = nil
+		return conn.Close()
 	}
 
 	return nil
@@ -186,9 +221,12 @@ func (c *Communicator) Timeout() time.Duration {
 
 // ScriptPath implementation of communicator.Communicator interface
 func (c *Communicator) ScriptPath() string {
+	randLock.Lock()
+	defer randLock.Unlock()
+
 	return strings.Replace(
 		c.connInfo.ScriptPath, "%RAND%",
-		strconv.FormatInt(int64(c.rand.Int31()), 10), -1)
+		strconv.FormatInt(int64(randShared.Int31()), 10), -1)
 }
 
 // Start implementation of communicator.Communicator interface
@@ -254,8 +292,25 @@ func (c *Communicator) Upload(path string, input io.Reader) error {
 	// which works for unix and windows
 	targetDir = filepath.ToSlash(targetDir)
 
+	// Skip copying if we can get the file size directly from common io.Readers
+	size := int64(0)
+
+	switch src := input.(type) {
+	case *os.File:
+		fi, err := src.Stat()
+		if err != nil {
+			size = fi.Size()
+		}
+	case *bytes.Buffer:
+		size = int64(src.Len())
+	case *bytes.Reader:
+		size = int64(src.Len())
+	case *strings.Reader:
+		size = int64(src.Len())
+	}
+
 	scpFunc := func(w io.Writer, stdoutR *bufio.Reader) error {
-		return scpUploadFile(targetFile, input, w, stdoutR)
+		return scpUploadFile(targetFile, input, w, stdoutR, size)
 	}
 
 	return c.scpSession("scp -vt "+targetDir, scpFunc)
@@ -452,45 +507,50 @@ func checkSCPStatus(r *bufio.Reader) error {
 	return nil
 }
 
-func scpUploadFile(dst string, src io.Reader, w io.Writer, r *bufio.Reader) error {
-	// Create a temporary file where we can copy the contents of the src
-	// so that we can determine the length, since SCP is length-prefixed.
-	tf, err := ioutil.TempFile("", "terraform-upload")
-	if err != nil {
-		return fmt.Errorf("Error creating temporary file for upload: %s", err)
-	}
-	defer os.Remove(tf.Name())
-	defer tf.Close()
+func scpUploadFile(dst string, src io.Reader, w io.Writer, r *bufio.Reader, size int64) error {
+	if size == 0 {
+		// Create a temporary file where we can copy the contents of the src
+		// so that we can determine the length, since SCP is length-prefixed.
+		tf, err := ioutil.TempFile("", "terraform-upload")
+		if err != nil {
+			return fmt.Errorf("Error creating temporary file for upload: %s", err)
+		}
+		defer os.Remove(tf.Name())
+		defer tf.Close()
 
-	log.Println("Copying input data into temporary file so we can read the length")
-	if _, err := io.Copy(tf, src); err != nil {
-		return err
-	}
+		log.Println("Copying input data into temporary file so we can read the length")
+		if _, err := io.Copy(tf, src); err != nil {
+			return err
+		}
 
-	// Sync the file so that the contents are definitely on disk, then
-	// read the length of it.
-	if err := tf.Sync(); err != nil {
-		return fmt.Errorf("Error creating temporary file for upload: %s", err)
-	}
+		// Sync the file so that the contents are definitely on disk, then
+		// read the length of it.
+		if err := tf.Sync(); err != nil {
+			return fmt.Errorf("Error creating temporary file for upload: %s", err)
+		}
 
-	// Seek the file to the beginning so we can re-read all of it
-	if _, err := tf.Seek(0, 0); err != nil {
-		return fmt.Errorf("Error creating temporary file for upload: %s", err)
-	}
+		// Seek the file to the beginning so we can re-read all of it
+		if _, err := tf.Seek(0, 0); err != nil {
+			return fmt.Errorf("Error creating temporary file for upload: %s", err)
+		}
 
-	fi, err := tf.Stat()
-	if err != nil {
-		return fmt.Errorf("Error creating temporary file for upload: %s", err)
+		fi, err := tf.Stat()
+		if err != nil {
+			return fmt.Errorf("Error creating temporary file for upload: %s", err)
+		}
+
+		src = tf
+		size = fi.Size()
 	}
 
 	// Start the protocol
 	log.Println("Beginning file upload...")
-	fmt.Fprintln(w, "C0644", fi.Size(), dst)
+	fmt.Fprintln(w, "C0644", size, dst)
 	if err := checkSCPStatus(r); err != nil {
 		return err
 	}
 
-	if _, err := io.Copy(w, tf); err != nil {
+	if _, err := io.Copy(w, src); err != nil {
 		return err
 	}
 
@@ -554,7 +614,7 @@ func scpUploadDir(root string, fs []os.FileInfo, w io.Writer, r *bufio.Reader) e
 
 			err = func() error {
 				defer f.Close()
-				return scpUploadFile(fi.Name(), f, w, r)
+				return scpUploadFile(fi.Name(), f, w, r, fi.Size())
 			}()
 
 			if err != nil {

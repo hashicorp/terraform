@@ -31,6 +31,10 @@ The command-line flags are all optional. The list of available flags are:
 * `-backup=path` - Path to the backup file. Defaults to `-state-out` with
   the ".backup" extension. Disabled by setting to "-".
 
+* `-lock=true` - Lock the state file when locking is supported.
+
+* `-lock-timeout=0s` - Duration to retry a state lock.
+
 * `-input=true` - Ask for input for variables if not directly set.
 
 * `-no-color` - Disables output with coloring.
@@ -43,9 +47,11 @@ The command-line flags are all optional. The list of available flags are:
   apply.
 
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
+  Ignored when [remote state](/docs/state/remote.html) is used.
 
 * `-state-out=path` - Path to write updated state file. By default, the
-  `-state` path will be used.
+  `-state` path will be used. Ignored when
+  [remote state](/docs/state/remote.html) is used.
 
 * `-target=resource` - A [Resource
   Address](/docs/internals/resource-addressing.html) to target. Operation will

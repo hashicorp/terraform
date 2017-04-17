@@ -28,7 +28,7 @@ func resourceAwsSecurityGroup() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
@@ -44,7 +44,7 @@ func resourceAwsSecurityGroup() *schema.Resource {
 				},
 			},
 
-			"name_prefix": &schema.Schema{
+			"name_prefix": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -58,7 +58,7 @@ func resourceAwsSecurityGroup() *schema.Resource {
 				},
 			},
 
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -73,49 +73,61 @@ func resourceAwsSecurityGroup() *schema.Resource {
 				},
 			},
 
-			"vpc_id": &schema.Schema{
+			"vpc_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
 
-			"ingress": &schema.Schema{
+			"ingress": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"from_port": &schema.Schema{
+						"from_port": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
 
-						"to_port": &schema.Schema{
+						"to_port": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
 
-						"protocol": &schema.Schema{
+						"protocol": {
 							Type:      schema.TypeString,
 							Required:  true,
 							StateFunc: protocolStateFunc,
 						},
 
-						"cidr_blocks": &schema.Schema{
+						"cidr_blocks": {
 							Type:     schema.TypeList,
 							Optional: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
+							Elem: &schema.Schema{
+								Type:         schema.TypeString,
+								ValidateFunc: validateCIDRNetworkAddress,
+							},
 						},
 
-						"security_groups": &schema.Schema{
+						"ipv6_cidr_blocks": {
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Schema{
+								Type:         schema.TypeString,
+								ValidateFunc: validateCIDRNetworkAddress,
+							},
+						},
+
+						"security_groups": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Set:      schema.HashString,
 						},
 
-						"self": &schema.Schema{
+						"self": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  false,
@@ -125,48 +137,60 @@ func resourceAwsSecurityGroup() *schema.Resource {
 				Set: resourceAwsSecurityGroupRuleHash,
 			},
 
-			"egress": &schema.Schema{
+			"egress": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"from_port": &schema.Schema{
+						"from_port": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
 
-						"to_port": &schema.Schema{
+						"to_port": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
 
-						"protocol": &schema.Schema{
+						"protocol": {
 							Type:      schema.TypeString,
 							Required:  true,
 							StateFunc: protocolStateFunc,
 						},
 
-						"cidr_blocks": &schema.Schema{
+						"cidr_blocks": {
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Schema{
+								Type:         schema.TypeString,
+								ValidateFunc: validateCIDRNetworkAddress,
+							},
+						},
+
+						"ipv6_cidr_blocks": {
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Schema{
+								Type:         schema.TypeString,
+								ValidateFunc: validateCIDRNetworkAddress,
+							},
+						},
+
+						"prefix_list_ids": {
 							Type:     schema.TypeList,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 
-						"prefix_list_ids": &schema.Schema{
-							Type:     schema.TypeList,
-							Optional: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
-						},
-
-						"security_groups": &schema.Schema{
+						"security_groups": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Set:      schema.HashString,
 						},
 
-						"self": &schema.Schema{
+						"self": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  false,
@@ -176,7 +200,7 @@ func resourceAwsSecurityGroup() *schema.Resource {
 				Set: resourceAwsSecurityGroupRuleHash,
 			},
 
-			"owner_id": &schema.Schema{
+			"owner_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -239,6 +263,10 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 			d.Id(), err)
 	}
 
+	if err := setTags(conn, d); err != nil {
+		return err
+	}
+
 	// AWS defaults all Security Groups to have an ALLOW ALL egress rule. Here we
 	// revoke that rule, so users don't unknowingly have/use it.
 	group := resp.(*ec2.SecurityGroup)
@@ -248,11 +276,11 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 		req := &ec2.RevokeSecurityGroupEgressInput{
 			GroupId: createResp.GroupId,
 			IpPermissions: []*ec2.IpPermission{
-				&ec2.IpPermission{
+				{
 					FromPort: aws.Int64(int64(0)),
 					ToPort:   aws.Int64(int64(0)),
 					IpRanges: []*ec2.IpRange{
-						&ec2.IpRange{
+						{
 							CidrIp: aws.String("0.0.0.0/0"),
 						},
 					},
@@ -340,11 +368,12 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
-	if err := setTags(conn, d); err != nil {
-		return err
+	if !d.IsNewResource() {
+		if err := setTags(conn, d); err != nil {
+			return err
+		}
+		d.SetPartial("tags")
 	}
-
-	d.SetPartial("tags")
 
 	return resourceAwsSecurityGroupRead(d, meta)
 }
@@ -353,6 +382,10 @@ func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) er
 	conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[DEBUG] Security Group destroy: %v", d.Id())
+
+	if err := deleteLingeringLambdaENIs(conn, d); err != nil {
+		return fmt.Errorf("Failed to delete Lambda ENIs: %s", err)
+	}
 
 	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 		_, err := conn.DeleteSecurityGroup(&ec2.DeleteSecurityGroupInput{
@@ -392,6 +425,18 @@ func resourceAwsSecurityGroupRuleHash(v interface{}) int {
 	// We need to make sure to sort the strings below so that we always
 	// generate the same hash code no matter what is in the set.
 	if v, ok := m["cidr_blocks"]; ok {
+		vs := v.([]interface{})
+		s := make([]string, len(vs))
+		for i, raw := range vs {
+			s[i] = raw.(string)
+		}
+		sort.Strings(s)
+
+		for _, v := range s {
+			buf.WriteString(fmt.Sprintf("%s-", v))
+		}
+	}
+	if v, ok := m["ipv6_cidr_blocks"]; ok {
 		vs := v.([]interface{})
 		s := make([]string, len(vs))
 		for i, raw := range vs {
@@ -465,6 +510,20 @@ func resourceAwsSecurityGroupIPPermGather(groupId string, permissions []*ec2.IpP
 			}
 
 			m["cidr_blocks"] = list
+		}
+
+		if len(perm.Ipv6Ranges) > 0 {
+			raw, ok := m["ipv6_cidr_blocks"]
+			if !ok {
+				raw = make([]string, 0, len(perm.Ipv6Ranges))
+			}
+			list := raw.([]string)
+
+			for _, ip := range perm.Ipv6Ranges {
+				list = append(list, *ip.CidrIpv6)
+			}
+
+			m["ipv6_cidr_blocks"] = list
 		}
 
 		if len(perm.PrefixListIds) > 0 {
@@ -690,8 +749,9 @@ func matchRules(rType string, local []interface{}, remote []map[string]interface
 			// local rule we're examining
 			rHash := idHash(rType, r["protocol"].(string), r["to_port"].(int64), r["from_port"].(int64), remoteSelfVal)
 			if rHash == localHash {
-				var numExpectedCidrs, numExpectedPrefixLists, numExpectedSGs, numRemoteCidrs, numRemotePrefixLists, numRemoteSGs int
+				var numExpectedCidrs, numExpectedIpv6Cidrs, numExpectedPrefixLists, numExpectedSGs, numRemoteCidrs, numRemoteIpv6Cidrs, numRemotePrefixLists, numRemoteSGs int
 				var matchingCidrs []string
+				var matchingIpv6Cidrs []string
 				var matchingSGs []string
 				var matchingPrefixLists []string
 
@@ -700,6 +760,10 @@ func matchRules(rType string, local []interface{}, remote []map[string]interface
 				lcRaw, ok := l["cidr_blocks"]
 				if ok {
 					numExpectedCidrs = len(l["cidr_blocks"].([]interface{}))
+				}
+				liRaw, ok := l["ipv6_cidr_blocks"]
+				if ok {
+					numExpectedIpv6Cidrs = len(l["ipv6_cidr_blocks"].([]interface{}))
 				}
 				lpRaw, ok := l["prefix_list_ids"]
 				if ok {
@@ -714,6 +778,10 @@ func matchRules(rType string, local []interface{}, remote []map[string]interface
 				if ok {
 					numRemoteCidrs = len(r["cidr_blocks"].([]string))
 				}
+				riRaw, ok := r["ipv6_cidr_blocks"]
+				if ok {
+					numRemoteIpv6Cidrs = len(r["ipv6_cidr_blocks"].([]string))
+				}
 				rpRaw, ok := r["prefix_list_ids"]
 				if ok {
 					numRemotePrefixLists = len(r["prefix_list_ids"].([]string))
@@ -727,6 +795,10 @@ func matchRules(rType string, local []interface{}, remote []map[string]interface
 				// check some early failures
 				if numExpectedCidrs > numRemoteCidrs {
 					log.Printf("[DEBUG] Local rule has more CIDR blocks, continuing (%d/%d)", numExpectedCidrs, numRemoteCidrs)
+					continue
+				}
+				if numExpectedIpv6Cidrs > numRemoteIpv6Cidrs {
+					log.Printf("[DEBUG] Local rule has more IPV6 CIDR blocks, continuing (%d/%d)", numExpectedIpv6Cidrs, numRemoteIpv6Cidrs)
 					continue
 				}
 				if numExpectedPrefixLists > numRemotePrefixLists {
@@ -752,7 +824,7 @@ func matchRules(rType string, local []interface{}, remote []map[string]interface
 				if rcRaw != nil {
 					remoteCidrs = rcRaw.([]string)
 				}
-				// convert remote cidrs to a set, for easy comparisions
+				// convert remote cidrs to a set, for easy comparisons
 				var list []interface{}
 				for _, s := range remoteCidrs {
 					list = append(list, s)
@@ -763,6 +835,29 @@ func matchRules(rType string, local []interface{}, remote []map[string]interface
 				for _, s := range localCidrSet.List() {
 					if remoteCidrSet.Contains(s) {
 						matchingCidrs = append(matchingCidrs, s.(string))
+					}
+				}
+
+				//IPV6 CIDRs
+				var localIpv6Cidrs []interface{}
+				if liRaw != nil {
+					localIpv6Cidrs = liRaw.([]interface{})
+				}
+				localIpv6CidrSet := schema.NewSet(schema.HashString, localIpv6Cidrs)
+
+				var remoteIpv6Cidrs []string
+				if riRaw != nil {
+					remoteIpv6Cidrs = riRaw.([]string)
+				}
+				var listIpv6 []interface{}
+				for _, s := range remoteIpv6Cidrs {
+					listIpv6 = append(listIpv6, s)
+				}
+				remoteIpv6CidrSet := schema.NewSet(schema.HashString, listIpv6)
+
+				for _, s := range localIpv6CidrSet.List() {
+					if remoteIpv6CidrSet.Contains(s) {
+						matchingIpv6Cidrs = append(matchingIpv6Cidrs, s.(string))
 					}
 				}
 
@@ -821,72 +916,92 @@ func matchRules(rType string, local []interface{}, remote []map[string]interface
 				// match, and then remove those elements from the remote rule, so that
 				// this remote rule can still be considered by other local rules
 				if numExpectedCidrs == len(matchingCidrs) {
-					if numExpectedPrefixLists == len(matchingPrefixLists) {
-						if numExpectedSGs == len(matchingSGs) {
-							// confirm that self references match
-							var lSelf bool
-							var rSelf bool
-							if _, ok := l["self"]; ok {
-								lSelf = l["self"].(bool)
-							}
-							if _, ok := r["self"]; ok {
-								rSelf = r["self"].(bool)
-							}
-							if rSelf == lSelf {
-								delete(r, "self")
-								// pop local cidrs from remote
-								diffCidr := remoteCidrSet.Difference(localCidrSet)
-								var newCidr []string
-								for _, cRaw := range diffCidr.List() {
-									newCidr = append(newCidr, cRaw.(string))
+					if numExpectedIpv6Cidrs == len(matchingIpv6Cidrs) {
+						if numExpectedPrefixLists == len(matchingPrefixLists) {
+							if numExpectedSGs == len(matchingSGs) {
+								// confirm that self references match
+								var lSelf bool
+								var rSelf bool
+								if _, ok := l["self"]; ok {
+									lSelf = l["self"].(bool)
 								}
-
-								// reassigning
-								if len(newCidr) > 0 {
-									r["cidr_blocks"] = newCidr
-								} else {
-									delete(r, "cidr_blocks")
+								if _, ok := r["self"]; ok {
+									rSelf = r["self"].(bool)
 								}
+								if rSelf == lSelf {
+									delete(r, "self")
+									// pop local cidrs from remote
+									diffCidr := remoteCidrSet.Difference(localCidrSet)
+									var newCidr []string
+									for _, cRaw := range diffCidr.List() {
+										newCidr = append(newCidr, cRaw.(string))
+									}
 
-								// pop local prefix lists from remote
-								diffPrefixLists := remotePrefixListsSet.Difference(localPrefixListsSet)
-								var newPrefixLists []string
-								for _, pRaw := range diffPrefixLists.List() {
-									newPrefixLists = append(newPrefixLists, pRaw.(string))
+									// reassigning
+									if len(newCidr) > 0 {
+										r["cidr_blocks"] = newCidr
+									} else {
+										delete(r, "cidr_blocks")
+									}
+
+									//// IPV6
+									//// Comparison
+									diffIpv6Cidr := remoteIpv6CidrSet.Difference(localIpv6CidrSet)
+									var newIpv6Cidr []string
+									for _, cRaw := range diffIpv6Cidr.List() {
+										newIpv6Cidr = append(newIpv6Cidr, cRaw.(string))
+									}
+
+									// reassigning
+									if len(newIpv6Cidr) > 0 {
+										r["ipv6_cidr_blocks"] = newIpv6Cidr
+									} else {
+										delete(r, "ipv6_cidr_blocks")
+									}
+
+									// pop local prefix lists from remote
+									diffPrefixLists := remotePrefixListsSet.Difference(localPrefixListsSet)
+									var newPrefixLists []string
+									for _, pRaw := range diffPrefixLists.List() {
+										newPrefixLists = append(newPrefixLists, pRaw.(string))
+									}
+
+									// reassigning
+									if len(newPrefixLists) > 0 {
+										r["prefix_list_ids"] = newPrefixLists
+									} else {
+										delete(r, "prefix_list_ids")
+									}
+
+									// pop local sgs from remote
+									diffSGs := remoteSGSet.Difference(localSGSet)
+									if len(diffSGs.List()) > 0 {
+										r["security_groups"] = diffSGs
+									} else {
+										delete(r, "security_groups")
+									}
+
+									saves = append(saves, l)
 								}
-
-								// reassigning
-								if len(newPrefixLists) > 0 {
-									r["prefix_list_ids"] = newPrefixLists
-								} else {
-									delete(r, "prefix_list_ids")
-								}
-
-								// pop local sgs from remote
-								diffSGs := remoteSGSet.Difference(localSGSet)
-								if len(diffSGs.List()) > 0 {
-									r["security_groups"] = diffSGs
-								} else {
-									delete(r, "security_groups")
-								}
-
-								saves = append(saves, l)
 							}
 						}
+
 					}
 				}
 			}
 		}
 	}
-
 	// Here we catch any remote rules that have not been stripped of all self,
 	// cidrs, and security groups. We'll add remote rules here that have not been
 	// matched locally, and let the graph sort things out. This will happen when
 	// rules are added externally to Terraform
 	for _, r := range remote {
-		var lenCidr, lenPrefixLists, lenSGs int
+		var lenCidr, lenIpv6Cidr, lenPrefixLists, lenSGs int
 		if rCidrs, ok := r["cidr_blocks"]; ok {
 			lenCidr = len(rCidrs.([]string))
+		}
+		if rIpv6Cidrs, ok := r["ipv6_cidr_blocks"]; ok {
+			lenIpv6Cidr = len(rIpv6Cidrs.([]string))
 		}
 		if rPrefixLists, ok := r["prefix_list_ids"]; ok {
 			lenPrefixLists = len(rPrefixLists.([]string))
@@ -901,7 +1016,7 @@ func matchRules(rType string, local []interface{}, remote []map[string]interface
 			}
 		}
 
-		if lenSGs+lenCidr+lenPrefixLists > 0 {
+		if lenSGs+lenCidr+lenIpv6Cidr+lenPrefixLists > 0 {
 			log.Printf("[DEBUG] Found a remote Rule that wasn't empty: (%#v)", r)
 			saves = append(saves, r)
 		}
@@ -946,7 +1061,7 @@ func protocolForValue(v string) string {
 		return "-1"
 	}
 	// if it's a name like tcp, return that
-	if _, ok := protocolIntegers()[protocol]; ok {
+	if _, ok := sgProtocolIntegers()[protocol]; ok {
 		return protocol
 	}
 	// convert to int, look for that value
@@ -958,7 +1073,7 @@ func protocolForValue(v string) string {
 		return protocol
 	}
 
-	for k, v := range protocolIntegers() {
+	for k, v := range sgProtocolIntegers() {
 		if p == v {
 			// guard against protocolIntegers sometime in the future not having lower
 			// case ids in the map
@@ -969,4 +1084,105 @@ func protocolForValue(v string) string {
 	// fall through
 	log.Printf("[WARN] Unable to determine valid protocol: no matching protocols found")
 	return protocol
+}
+
+// a map of protocol names and their codes, defined at
+// https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml,
+// documented to be supported by AWS Security Groups
+// http://docs.aws.amazon.com/fr_fr/AWSEC2/latest/APIReference/API_IpPermission.html
+// Similar to protocolIntegers() used by Network ACLs, but explicitly only
+// supports "tcp", "udp", "icmp", and "all"
+func sgProtocolIntegers() map[string]int {
+	var protocolIntegers = make(map[string]int)
+	protocolIntegers = map[string]int{
+		"udp":  17,
+		"tcp":  6,
+		"icmp": 1,
+		"all":  -1,
+	}
+	return protocolIntegers
+}
+
+// The AWS Lambda service creates ENIs behind the scenes and keeps these around for a while
+// which would prevent SGs attached to such ENIs from being destroyed
+func deleteLingeringLambdaENIs(conn *ec2.EC2, d *schema.ResourceData) error {
+	// Here we carefully find the offenders
+	params := &ec2.DescribeNetworkInterfacesInput{
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("group-id"),
+				Values: []*string{aws.String(d.Id())},
+			},
+			{
+				Name:   aws.String("description"),
+				Values: []*string{aws.String("AWS Lambda VPC ENI: *")},
+			},
+			{
+				Name:   aws.String("requester-id"),
+				Values: []*string{aws.String("*:awslambda_*")},
+			},
+		},
+	}
+	networkInterfaceResp, err := conn.DescribeNetworkInterfaces(params)
+	if err != nil {
+		return err
+	}
+
+	// Then we detach and finally delete those
+	v := networkInterfaceResp.NetworkInterfaces
+	for _, eni := range v {
+		if eni.Attachment != nil {
+			detachNetworkInterfaceParams := &ec2.DetachNetworkInterfaceInput{
+				AttachmentId: eni.Attachment.AttachmentId,
+			}
+			_, detachNetworkInterfaceErr := conn.DetachNetworkInterface(detachNetworkInterfaceParams)
+
+			if detachNetworkInterfaceErr != nil {
+				return detachNetworkInterfaceErr
+			}
+
+			log.Printf("[DEBUG] Waiting for ENI (%s) to become detached", *eni.NetworkInterfaceId)
+			stateConf := &resource.StateChangeConf{
+				Pending: []string{"true"},
+				Target:  []string{"false"},
+				Refresh: networkInterfaceAttachedRefreshFunc(conn, *eni.NetworkInterfaceId),
+				Timeout: 10 * time.Minute,
+			}
+			if _, err := stateConf.WaitForState(); err != nil {
+				return fmt.Errorf(
+					"Error waiting for ENI (%s) to become detached: %s", *eni.NetworkInterfaceId, err)
+			}
+		}
+
+		deleteNetworkInterfaceParams := &ec2.DeleteNetworkInterfaceInput{
+			NetworkInterfaceId: eni.NetworkInterfaceId,
+		}
+		_, deleteNetworkInterfaceErr := conn.DeleteNetworkInterface(deleteNetworkInterfaceParams)
+
+		if deleteNetworkInterfaceErr != nil {
+			return deleteNetworkInterfaceErr
+		}
+	}
+
+	return nil
+}
+
+func networkInterfaceAttachedRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+
+		describe_network_interfaces_request := &ec2.DescribeNetworkInterfacesInput{
+			NetworkInterfaceIds: []*string{aws.String(id)},
+		}
+		describeResp, err := conn.DescribeNetworkInterfaces(describe_network_interfaces_request)
+
+		if err != nil {
+			log.Printf("[ERROR] Could not find network interface %s. %s", id, err)
+			return nil, "", err
+		}
+
+		eni := describeResp.NetworkInterfaces[0]
+		hasAttachment := strconv.FormatBool(eni.Attachment != nil)
+		log.Printf("[DEBUG] ENI %s has attachment state %s", id, hasAttachment)
+		return eni, hasAttachment, nil
+	}
 }

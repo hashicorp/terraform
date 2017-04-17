@@ -16,27 +16,28 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the Chef provider
 provider "chef" {
-     server_url = "https://api.chef.io/organizations/example/"
+  server_url = "https://api.chef.io/organizations/example/"
 
-     // You can set up a "Client" within the Chef Server management console.
-     client_name = "terraform"
-     private_key_pem = "${file(\"chef-terraform.pem\")}"
+  # You can set up a "Client" within the Chef Server management console.
+  client_name  = "terraform"
+  key_material = "${file("chef-terraform.pem")}"
 }
 
 # Create a Chef Environment
 resource "chef_environment" "production" {
-    name = "production"
+  name = "production"
 }
 
 # Create a Chef Role
 resource "chef_role" "app_server" {
-    name = "app_server"
-    run_list = [
-        "recipe[terraform]"
-    ]
+  name = "app_server"
+
+  run_list = [
+    "recipe[terraform]",
+  ]
 }
 ```
 
@@ -51,9 +52,9 @@ The following arguments are supported:
 * `client_name` - (Required) The name of the client account to use when making
   requests. This must have been already configured on the Chef server.
   May be provided instead via the ``CHEF_CLIENT_NAME`` environment variable.
-* `private_key_pem` - (Required) The PEM-formatted private key belonging to
+* `key_material` - (Required) The PEM-formatted private key contents belonging to
   the configured client. This is issued by the server when a new client object
-  is created. May be provided instead in a file whose path is in the
+  is created. May be provided via the
   ``CHEF_PRIVATE_KEY_FILE`` environment variable.
 * `allow_unverified_ssl` - (Optional) Boolean indicating whether to make
   requests to a Chef server whose SSL certicate cannot be verified. Defaults

@@ -5,8 +5,6 @@ import (
 	"log"
 	"strings"
 
-	mysqlc "github.com/ziutek/mymysql/mysql"
-
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -56,7 +54,7 @@ func resourceGrant() *schema.Resource {
 }
 
 func CreateGrant(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(mysqlc.Conn)
+	conn := meta.(*providerConfiguration).Conn
 
 	// create a comma-delimited string of privileges
 	var privileges string
@@ -90,12 +88,23 @@ func CreateGrant(d *schema.ResourceData, meta interface{}) error {
 }
 
 func ReadGrant(d *schema.ResourceData, meta interface{}) error {
-	// At this time, all attributes are supplied by the user
+	conn := meta.(*providerConfiguration).Conn
+
+	stmtSQL := fmt.Sprintf("SHOW GRANTS FOR '%s'@'%s'",
+		d.Get("user").(string),
+		d.Get("host").(string))
+
+	log.Println("Executing statement:", stmtSQL)
+
+	_, _, err := conn.Query(stmtSQL)
+	if err != nil {
+		d.SetId("")
+	}
 	return nil
 }
 
 func DeleteGrant(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(mysqlc.Conn)
+	conn := meta.(*providerConfiguration).Conn
 
 	stmtSQL := fmt.Sprintf("REVOKE GRANT OPTION ON %s.* FROM '%s'@'%s'",
 		d.Get("database").(string),

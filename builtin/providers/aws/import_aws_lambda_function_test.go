@@ -11,7 +11,8 @@ import (
 func TestAccAWSLambdaFunction_importLocalFile(t *testing.T) {
 	resourceName := "aws_lambda_function.lambda_function_test"
 
-	rName := fmt.Sprintf("tf_test_%s", acctest.RandString(5))
+	rSt := acctest.RandString(5)
+	rName := fmt.Sprintf("tf_test_%s", rSt)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -19,14 +20,14 @@ func TestAccAWSLambdaFunction_importLocalFile(t *testing.T) {
 		CheckDestroy: testAccCheckLambdaFunctionDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSLambdaConfigBasic(rName),
+				Config: testAccAWSLambdaConfigBasic(rName, rSt),
 			},
 
 			resource.TestStep{
 				ResourceName:            resourceName,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"filename"},
+				ImportStateVerifyIgnore: []string{"filename", "publish"},
 			},
 		},
 	})
@@ -35,7 +36,8 @@ func TestAccAWSLambdaFunction_importLocalFile(t *testing.T) {
 func TestAccAWSLambdaFunction_importLocalFile_VPC(t *testing.T) {
 	resourceName := "aws_lambda_function.lambda_function_test"
 
-	rName := fmt.Sprintf("tf_test_%s", acctest.RandString(5))
+	rSt := acctest.RandString(5)
+	rName := fmt.Sprintf("tf_test_%s", rSt)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -43,14 +45,14 @@ func TestAccAWSLambdaFunction_importLocalFile_VPC(t *testing.T) {
 		CheckDestroy: testAccCheckLambdaFunctionDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSLambdaConfigWithVPC(rName),
+				Config: testAccAWSLambdaConfigWithVPC(rName, rSt),
 			},
 
 			resource.TestStep{
 				ResourceName:            resourceName,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"filename"},
+				ImportStateVerifyIgnore: []string{"filename", "publish"},
 			},
 		},
 	})
@@ -59,7 +61,8 @@ func TestAccAWSLambdaFunction_importLocalFile_VPC(t *testing.T) {
 func TestAccAWSLambdaFunction_importS3(t *testing.T) {
 	resourceName := "aws_lambda_function.lambda_function_s3test"
 
-	rName := fmt.Sprintf("tf_test_%s", acctest.RandString(5))
+	rSt := acctest.RandString(5)
+	rName := fmt.Sprintf("tf_test_%s", rSt)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -67,14 +70,14 @@ func TestAccAWSLambdaFunction_importS3(t *testing.T) {
 		CheckDestroy: testAccCheckLambdaFunctionDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSLambdaConfigS3(rName),
+				Config: testAccAWSLambdaConfigS3(rName, rSt),
 			},
 
 			resource.TestStep{
 				ResourceName:            resourceName,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"s3_bucket", "s3_key"},
+				ImportStateVerifyIgnore: []string{"s3_bucket", "s3_key", "publish"},
 			},
 		},
 	})

@@ -1,0 +1,25 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <ul class="nav docs-sidenav">
+      <li>
+        <a class="back" href="/docs/providers/index.html">All Providers</a>
+      </li>
+
+      <li<%= sidebar_current("docs-archive-index") %>>
+        <a class="back" href="/docs/providers/archive/index.html">Archive Provider</a>
+      </li>
+
+      <h4>Data Sources</h4>
+
+      <li<%= sidebar_current("docs-archive-datasource") %>>
+        <ul class="nav nav-visible">
+          <li<%= sidebar_current("docs-archive-datasource-archive-file") %>>
+            <a href="/docs/providers/archive/d/archive_file.html">archive_file</a>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  <% end %>
+
+  <%= yield %>
+<% end %>

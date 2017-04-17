@@ -2,13 +2,13 @@ package docker
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"testing"
 
 	dc "github.com/fsouza/go-dockerclient"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"os"
 )
 
 var contentDigestRegexp = regexp.MustCompile(`\A[A-Za-z0-9_\+\.-]+:[A-Fa-f0-9]+\z`)
@@ -90,6 +90,22 @@ func TestAccDockerImage_data(t *testing.T) {
 	})
 }
 
+func TestAccDockerImage_data_pull_trigger(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                  func() { testAccPreCheck(t) },
+		Providers:                 testAccProviders,
+		PreventPostDestroyRefresh: true,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDockerImageFromDataConfigWithPullTrigger,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestMatchResourceAttr("docker_image.foobarbazoo", "latest", contentDigestRegexp),
+				),
+			},
+		},
+	})
+}
+
 func TestAccDockerImage_data_private(t *testing.T) {
 	registry := os.Getenv("DOCKER_REGISTRY_ADDRESS")
 	image := os.Getenv("DOCKER_PRIVATE_IMAGE")
@@ -102,7 +118,7 @@ func TestAccDockerImage_data_private(t *testing.T) {
 			resource.TestStep{
 				Config: fmt.Sprintf(testAccDockerImageFromDataPrivateConfig, registry, image),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestMatchResourceAttr("docker_image.foobarzoobaz", "latest", contentDigestRegexp),
+					resource.TestMatchResourceAttr("docker_image.foo_private", "latest", contentDigestRegexp),
 				),
 			},
 		},
@@ -151,7 +167,17 @@ data "docker_registry_image" "foobarbaz" {
 }
 resource "docker_image" "foobarbaz" {
 	name = "${data.docker_registry_image.foobarbaz.name}"
-	pull_trigger = "${data.docker_registry_image.foobarbaz.sha256_digest}"
+	pull_triggers = ["${data.docker_registry_image.foobarbaz.sha256_digest}"]
+}
+`
+
+const testAccDockerImageFromDataConfigWithPullTrigger = `
+data "docker_registry_image" "foobarbazoo" {
+	name = "alpine:3.1"
+}
+resource "docker_image" "foobarbazoo" {
+	name = "${data.docker_registry_image.foobarbazoo.name}"
+	pull_trigger = "${data.docker_registry_image.foobarbazoo.sha256_digest}"
 }
 `
 
@@ -162,13 +188,13 @@ provider "docker" {
 		address = "%s"
 	}
 }
-data "docker_registry_image" "foobarzoobaz" {
+data "docker_registry_image" "foo_private" {
 	provider = "docker.private"
 	name = "%s"
 }
-resource "docker_image" "foobarzoobaz" {
+resource "docker_image" "foo_private" {
 	provider = "docker.private"
-	name = "${data.docker_registry_image.foobarzoobaz.name}"
-	pull_trigger = "${data.docker_registry_image.foobarzoobaz.sha256_digest}"
+	name = "${data.docker_registry_image.foo_private.name}"
+	pull_triggers = ["${data.docker_registry_image.foo_private.sha256_digest}"]
 }
 `

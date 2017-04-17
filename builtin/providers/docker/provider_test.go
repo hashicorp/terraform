@@ -1,12 +1,12 @@
 package docker
 
 import (
+	"os"
 	"os/exec"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-	"os"
 )
 
 var testAccProviders map[string]terraform.ResourceProvider

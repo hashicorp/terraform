@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestResourceAWSEFSReferenceName_validation(t *testing.T) {
+func TestResourceAWSEFSFileSystem_validateReferenceName(t *testing.T) {
 	var value string
 	var errors []error
 
@@ -27,35 +27,20 @@ func TestResourceAWSEFSReferenceName_validation(t *testing.T) {
 	value = acctest.RandString(32)
 	_, errors = validateReferenceName(value, "reference_name")
 	if len(errors) != 0 {
-		t.Fatalf("Expected to trigger a validation error")
+		t.Fatalf("Expected not to trigger a validation error")
 	}
 }
 
-func TestResourceAWSEFSPerformanceMode_validation(t *testing.T) {
-	type testCase struct {
+func TestResourceAWSEFSFileSystem_validatePerformanceModeType(t *testing.T) {
+	_, errors := validatePerformanceModeType("incorrect", "performance_mode")
+	if len(errors) == 0 {
+		t.Fatalf("Expected to trigger a validation error")
+	}
+
+	var testCases = []struct {
 		Value    string
 		ErrCount int
-	}
-
-	invalidCases := []testCase{
-		{
-			Value:    "garrusVakarian",
-			ErrCount: 1,
-		},
-		{
-			Value:    acctest.RandString(80),
-			ErrCount: 1,
-		},
-	}
-
-	for _, tc := range invalidCases {
-		_, errors := validatePerformanceModeType(tc.Value, "performance_mode")
-		if len(errors) != tc.ErrCount {
-			t.Fatalf("Expected to trigger a validation error")
-		}
-	}
-
-	validCases := []testCase{
+	}{
 		{
 			Value:    "generalPurpose",
 			ErrCount: 0,
@@ -66,23 +51,50 @@ func TestResourceAWSEFSPerformanceMode_validation(t *testing.T) {
 		},
 	}
 
-	for _, tc := range validCases {
-		_, errors := validatePerformanceModeType(tc.Value, "aws_efs_file_system")
+	for _, tc := range testCases {
+		_, errors := validatePerformanceModeType(tc.Value, "performance_mode")
 		if len(errors) != tc.ErrCount {
 			t.Fatalf("Expected not to trigger a validation error")
 		}
 	}
 }
 
+func TestResourceAWSEFSFileSystem_hasEmptyFileSystems(t *testing.T) {
+	fs := &efs.DescribeFileSystemsOutput{
+		FileSystems: []*efs.FileSystemDescription{},
+	}
+
+	var actual bool
+
+	actual = hasEmptyFileSystems(fs)
+	if !actual {
+		t.Fatalf("Expected return value to be true, got %t", actual)
+	}
+
+	// Add an empty file system.
+	fs.FileSystems = append(fs.FileSystems, &efs.FileSystemDescription{})
+
+	actual = hasEmptyFileSystems(fs)
+	if actual {
+		t.Fatalf("Expected return value to be false, got %t", actual)
+	}
+
+}
+
 func TestAccAWSEFSFileSystem_basic(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckEfsFileSystemDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSEFSFileSystemConfig,
 				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"aws_efs_file_system.foo",
+						"performance_mode",
+						"generalPurpose"),
 					testAccCheckEfsFileSystem(
 						"aws_efs_file_system.foo",
 					),
@@ -92,8 +104,8 @@ func TestAccAWSEFSFileSystem_basic(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
-				Config: testAccAWSEFSFileSystemConfigWithTags,
+			{
+				Config: testAccAWSEFSFileSystemConfigWithTags(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckEfsFileSystem(
 						"aws_efs_file_system.foo-with-tags",
@@ -105,13 +117,13 @@ func TestAccAWSEFSFileSystem_basic(t *testing.T) {
 					testAccCheckEfsFileSystemTags(
 						"aws_efs_file_system.foo-with-tags",
 						map[string]string{
-							"Name":    "foo-efs",
+							"Name":    fmt.Sprintf("foo-efs-%d", rInt),
 							"Another": "tag",
 						},
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSEFSFileSystemConfigWithPerformanceMode,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckEfsFileSystem(
@@ -125,6 +137,33 @@ func TestAccAWSEFSFileSystem_basic(t *testing.T) {
 						"aws_efs_file_system.foo-with-performance-mode",
 						"maxIO",
 					),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSEFSFileSystem_pagedTags(t *testing.T) {
+	rInt := acctest.RandInt()
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckEfsFileSystemDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSEFSFileSystemConfigPagedTags(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"aws_efs_file_system.foo",
+						"tags.%",
+						"11"),
+					//testAccCheckEfsFileSystem(
+					//	"aws_efs_file_system.foo",
+					//),
+					//testAccCheckEfsFileSystemPerformanceMode(
+					//	"aws_efs_file_system.foo",
+					//	"generalPurpose",
+					//),
 				),
 			},
 		},
@@ -271,19 +310,40 @@ func testAccCheckEfsFileSystemPerformanceMode(resourceID string, expectedMode st
 
 const testAccAWSEFSFileSystemConfig = `
 resource "aws_efs_file_system" "foo" {
-	reference_name = "radeksimko"
+	creation_token = "radeksimko"
 }
 `
 
-const testAccAWSEFSFileSystemConfigWithTags = `
-resource "aws_efs_file_system" "foo-with-tags" {
-	reference_name = "yada_yada"
-	tags {
-		Name = "foo-efs"
-		Another = "tag"
+func testAccAWSEFSFileSystemConfigPagedTags(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_efs_file_system" "foo" {
+		tags {
+			Name = "foo-efs-%d"
+			Another = "tag"
+			Test = "yes"
+			User = "root"
+			Page = "1"
+			Environment = "prod"
+			CostCenter = "terraform"
+			AcceptanceTest = "PagedTags"
+			CreationToken = "radek"
+			PerfMode = "max"
+			Region = "us-west-2"
+		}
 	}
+	`, rInt)
 }
-`
+
+func testAccAWSEFSFileSystemConfigWithTags(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_efs_file_system" "foo-with-tags" {
+		tags {
+			Name = "foo-efs-%d"
+			Another = "tag"
+		}
+	}
+	`, rInt)
+}
 
 const testAccAWSEFSFileSystemConfigWithPerformanceMode = `
 resource "aws_efs_file_system" "foo-with-performance-mode" {

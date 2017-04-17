@@ -13,7 +13,7 @@ import (
 
 func TestAccAzureRMTemplateDeployment_basic(t *testing.T) {
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMTemplateDeployment_basicExample, ri, ri)
+	config := fmt.Sprintf(testAccAzureRMTemplateDeployment_basicMultiple, ri, ri)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -24,6 +24,26 @@ func TestAccAzureRMTemplateDeployment_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMTemplateDeploymentExists("azurerm_template_deployment.test"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMTemplateDeployment_disappears(t *testing.T) {
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMTemplateDeployment_basicSingle, ri, ri, ri)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMTemplateDeploymentDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMTemplateDeploymentExists("azurerm_template_deployment.test"),
+					testCheckAzureRMTemplateDeploymentDisappears("azurerm_template_deployment.test"),
+				),
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
@@ -93,6 +113,31 @@ func testCheckAzureRMTemplateDeploymentExists(name string) resource.TestCheckFun
 	}
 }
 
+func testCheckAzureRMTemplateDeploymentDisappears(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		// Ensure we have enough information in state to look up in API
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		name := rs.Primary.Attributes["name"]
+		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
+		if !hasResourceGroup {
+			return fmt.Errorf("Bad: no resource group found in state for template deployment: %s", name)
+		}
+
+		conn := testAccProvider.Meta().(*ArmClient).deploymentsClient
+
+		_, err := conn.Delete(resourceGroup, name, make(chan struct{}))
+		if err != nil {
+			return fmt.Errorf("Bad: Delete on deploymentsClient: %s", err)
+		}
+
+		return nil
+	}
+}
+
 func testCheckAzureRMTemplateDeploymentDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*ArmClient).vmClient
 
@@ -111,16 +156,56 @@ func testCheckAzureRMTemplateDeploymentDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("Template Deployment still exists:\n%#v", resp.Properties)
+			return fmt.Errorf("Template Deployment still exists:\n%#v", resp.VirtualMachineProperties)
 		}
 	}
 
 	return nil
 }
 
-var testAccAzureRMTemplateDeployment_basicExample = `
+var testAccAzureRMTemplateDeployment_basicSingle = `
   resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
+    location = "West US"
+  }
+
+  resource "azurerm_template_deployment" "test" {
+    name = "acctesttemplate-%d"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    template_body = <<DEPLOY
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "variables": {
+    "location": "[resourceGroup().location]",
+    "publicIPAddressType": "Dynamic",
+    "apiVersion": "2015-06-15",
+    "dnsLabelPrefix": "[concat('terraform-tdacctest', uniquestring(resourceGroup().id))]"
+  },
+  "resources": [
+     {
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "[variables('apiVersion')]",
+      "name": "acctestpip-%d",
+      "location": "[variables('location')]",
+      "properties": {
+        "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
+        "dnsSettings": {
+          "domainNameLabel": "[variables('dnsLabelPrefix')]"
+        }
+      }
+    }
+  ]
+}
+DEPLOY
+    deployment_mode = "Complete"
+  }
+
+`
+
+var testAccAzureRMTemplateDeployment_basicMultiple = `
+  resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
     location = "West US"
   }
 
@@ -151,7 +236,7 @@ var testAccAzureRMTemplateDeployment_basicExample = `
     "publicIPAddressName": "[concat('myPublicIp', uniquestring(resourceGroup().id))]",
     "publicIPAddressType": "Dynamic",
     "apiVersion": "2015-06-15",
-    "dnsLabelPrefix": "terraform-tdacctest"
+    "dnsLabelPrefix": "[concat('terraform-tdacctest', uniquestring(resourceGroup().id))]"
   },
   "resources": [
     {
@@ -185,7 +270,7 @@ DEPLOY
 
 var testAccAzureRMTemplateDeployment_withParams = `
   resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
   }
 
@@ -270,7 +355,7 @@ DEPLOY
 // StorageAccount name is too long, forces error
 var testAccAzureRMTemplateDeployment_withError = `
   resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
   }
 

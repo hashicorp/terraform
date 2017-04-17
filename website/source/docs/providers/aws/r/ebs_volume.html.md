@@ -12,7 +12,7 @@ Manages a single EBS volume.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_ebs_volume" "example" {
     availability_zone = "us-west-2a"
     size = 40
@@ -31,10 +31,10 @@ The following arguments are supported:
 * `availability_zone` - (Required) The AZ where the EBS volume will exist.
 * `encrypted` - (Optional) If true, the disk will be encrypted.
 * `iops` - (Optional) The amount of IOPS to provision for the disk.
-* `size` - (Optional) The size of the drive in GB.
+* `size` - (Optional) The size of the drive in GiBs.
 * `snapshot_id` (Optional) A snapshot to base the EBS volume off of.
-* `type` - (Optional) The type of EBS volume. Can be "standard", "gp2", "io1", or "st1" (Default: "standard").
-* `kms_key_id` - (Optional) The ARN for the KMS encryption key. When specifying `kms_key_id`, `encrypted` needs to be set to true
+* `type` - (Optional) The type of EBS volume. Can be "standard", "gp2", "io1", "sc1" or "st1" (Default: "standard").
+* `kms_key_id` - (Optional) The ARN for the KMS encryption key. When specifying `kms_key_id`, `encrypted` needs to be set to true.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
 ## Attributes Reference

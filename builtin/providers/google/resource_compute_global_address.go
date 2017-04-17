@@ -14,7 +14,12 @@ func resourceComputeGlobalAddress() *schema.Resource {
 		Create: resourceComputeGlobalAddressCreate,
 		Read:   resourceComputeGlobalAddressRead,
 		Delete: resourceComputeGlobalAddressDelete,
-
+		Importer: &schema.ResourceImporter{
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				d.Set("name", d.Id())
+				return []*schema.ResourceData{d}, nil
+			},
+		},
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -60,7 +65,7 @@ func resourceComputeGlobalAddressCreate(d *schema.ResourceData, meta interface{}
 	// It probably maybe worked, so store the ID now
 	d.SetId(addr.Name)
 
-	err = computeOperationWaitGlobal(config, op, "Creating Global Address")
+	err = computeOperationWaitGlobal(config, op, project, "Creating Global Address")
 	if err != nil {
 		return err
 	}
@@ -112,7 +117,7 @@ func resourceComputeGlobalAddressDelete(d *schema.ResourceData, meta interface{}
 		return fmt.Errorf("Error deleting address: %s", err)
 	}
 
-	err = computeOperationWaitGlobal(config, op, "Deleting Global Address")
+	err = computeOperationWaitGlobal(config, op, project, "Deleting Global Address")
 	if err != nil {
 		return err
 	}

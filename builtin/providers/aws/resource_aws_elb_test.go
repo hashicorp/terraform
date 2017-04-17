@@ -26,7 +26,7 @@ func TestAccAWSELB_basic(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -70,7 +70,7 @@ func TestAccAWSELB_fullCharacterRange(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testAccAWSELBFullRangeOfCharacters, lbName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.foo", &conf),
@@ -82,8 +82,10 @@ func TestAccAWSELB_fullCharacterRange(t *testing.T) {
 	})
 }
 
-func TestAccAWSELB_AccessLogs(t *testing.T) {
+func TestAccAWSELB_AccessLogs_enabled(t *testing.T) {
 	var conf elb.LoadBalancerDescription
+
+	rName := fmt.Sprintf("terraform-access-logs-bucket-%d", acctest.RandInt())
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
@@ -91,32 +93,101 @@ func TestAccAWSELB_AccessLogs(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBAccessLogs,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.foo", &conf),
 				),
 			},
 
-			resource.TestStep{
-				Config: testAccAWSELBAccessLogsOn,
+			{
+				Config: testAccAWSELBAccessLogsOn(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.foo", &conf),
 					resource.TestCheckResourceAttr(
 						"aws_elb.foo", "access_logs.#", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_elb.foo", "access_logs.0.bucket", "terraform-access-logs-bucket"),
+						"aws_elb.foo", "access_logs.0.bucket", rName),
 					resource.TestCheckResourceAttr(
 						"aws_elb.foo", "access_logs.0.interval", "5"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "access_logs.0.enabled", "true"),
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSELBAccessLogs,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.foo", &conf),
 					resource.TestCheckResourceAttr(
 						"aws_elb.foo", "access_logs.#", "0"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSELB_AccessLogs_disabled(t *testing.T) {
+	var conf elb.LoadBalancerDescription
+
+	rName := fmt.Sprintf("terraform-access-logs-bucket-%d", acctest.RandInt())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_elb.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSELBAccessLogs,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.foo", &conf),
+				),
+			},
+
+			{
+				Config: testAccAWSELBAccessLogsDisabled(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.foo", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "access_logs.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "access_logs.0.bucket", rName),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "access_logs.0.interval", "5"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "access_logs.0.enabled", "false"),
+				),
+			},
+
+			{
+				Config: testAccAWSELBAccessLogs,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.foo", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "access_logs.#", "0"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSELB_namePrefix(t *testing.T) {
+	var conf elb.LoadBalancerDescription
+	nameRegex := regexp.MustCompile("^test-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_elb.test",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSELB_namePrefix,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.test", &conf),
+					resource.TestMatchResourceAttr(
+						"aws_elb.test", "name", nameRegex),
 				),
 			},
 		},
@@ -133,7 +204,7 @@ func TestAccAWSELB_generatedName(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBGeneratedName,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.foo", &conf),
@@ -154,7 +225,7 @@ func TestAccAWSELB_availabilityZones(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -169,7 +240,7 @@ func TestAccAWSELB_availabilityZones(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfig_AvailabilityZonesUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -195,7 +266,7 @@ func TestAccAWSELB_tags(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -205,7 +276,7 @@ func TestAccAWSELB_tags(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfig_TagUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -236,12 +307,42 @@ func TestAccAWSELB_iam_server_cert(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccELBIAMServerCertConfig(
 					fmt.Sprintf("tf-acctest-%s", acctest.RandString(10))),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
 					testCheck,
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSELB_swap_subnets(t *testing.T) {
+	var conf elb.LoadBalancerDescription
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_elb.ourapp",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSELBConfig_subnets,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.ourapp", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.ourapp", "subnets.#", "2"),
+				),
+			},
+
+			{
+				Config: testAccAWSELBConfig_subnet_swap,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.ourapp", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.ourapp", "subnets.#", "2"),
 				),
 			},
 		},
@@ -284,7 +385,7 @@ func TestAccAWSELB_InstanceAttaching(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -292,7 +393,7 @@ func TestAccAWSELB_InstanceAttaching(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigNewInstance,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -312,7 +413,7 @@ func TestAccAWSELBUpdate_Listener(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -322,7 +423,7 @@ func TestAccAWSELBUpdate_Listener(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigListener_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -343,7 +444,7 @@ func TestAccAWSELB_HealthCheck(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigHealthCheck,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -371,14 +472,14 @@ func TestAccAWSELBUpdate_HealthCheck(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigHealthCheck,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "health_check.0.healthy_threshold", "5"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigHealthCheck_update,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -398,7 +499,7 @@ func TestAccAWSELB_Timeout(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigIdleTimeout,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -418,7 +519,7 @@ func TestAccAWSELBUpdate_Timeout(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigIdleTimeout,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -426,7 +527,7 @@ func TestAccAWSELBUpdate_Timeout(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigIdleTimeout_update,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -445,7 +546,7 @@ func TestAccAWSELB_ConnectionDraining(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigConnectionDraining,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -467,7 +568,7 @@ func TestAccAWSELBUpdate_ConnectionDraining(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigConnectionDraining,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -478,7 +579,7 @@ func TestAccAWSELBUpdate_ConnectionDraining(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigConnectionDraining_update_timeout,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -489,7 +590,7 @@ func TestAccAWSELBUpdate_ConnectionDraining(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigConnectionDraining_update_disable,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -508,7 +609,7 @@ func TestAccAWSELB_SecurityGroups(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfig,
 				Check: resource.ComposeTestCheckFunc(
 					// ELBs get a default security group
@@ -517,7 +618,7 @@ func TestAccAWSELB_SecurityGroups(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigSecurityGroups,
 				Check: resource.ComposeTestCheckFunc(
 					// Count should still be one as we swap in a custom security group
@@ -596,6 +697,183 @@ func TestResourceAWSELB_validateElbNameCannotEndWithHyphen(t *testing.T) {
 
 	if len(errors) != 1 {
 		t.Fatalf("Expected the ELB Name to trigger a validation error")
+	}
+}
+
+func TestResourceAWSELB_validateAccessLogsInterval(t *testing.T) {
+	type testCases struct {
+		Value    int
+		ErrCount int
+	}
+
+	invalidCases := []testCases{
+		{
+			Value:    0,
+			ErrCount: 1,
+		},
+		{
+			Value:    10,
+			ErrCount: 1,
+		},
+		{
+			Value:    -1,
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateAccessLogsInterval(tc.Value, "interval")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
+	}
+
+}
+
+func TestResourceAWSELB_validateListenerProtocol(t *testing.T) {
+	type testCases struct {
+		Value    string
+		ErrCount int
+	}
+
+	invalidCases := []testCases{
+		{
+			Value:    "",
+			ErrCount: 1,
+		},
+		{
+			Value:    "incorrect",
+			ErrCount: 1,
+		},
+		{
+			Value:    "HTTP:",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateListenerProtocol(tc.Value, "protocol")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
+	}
+
+	validCases := []testCases{
+		{
+			Value:    "TCP",
+			ErrCount: 0,
+		},
+		{
+			Value:    "ssl",
+			ErrCount: 0,
+		},
+		{
+			Value:    "HTTP",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range validCases {
+		_, errors := validateListenerProtocol(tc.Value, "protocol")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
+		}
+	}
+}
+
+func TestResourceAWSELB_validateHealthCheckTarget(t *testing.T) {
+	type testCase struct {
+		Value    string
+		ErrCount int
+	}
+
+	randomRunes := func(n int) string {
+		rand.Seed(time.Now().UTC().UnixNano())
+
+		// A complete set of modern Katakana characters.
+		runes := []rune("アイウエオ" +
+			"カキクケコガギグゲゴサシスセソザジズゼゾ" +
+			"タチツテトダヂヅデドナニヌネノハヒフヘホ" +
+			"バビブベボパピプペポマミムメモヤユヨラリ" +
+			"ルレロワヰヱヲン")
+
+		s := make([]rune, n)
+		for i := range s {
+			s[i] = runes[rand.Intn(len(runes))]
+		}
+		return string(s)
+	}
+
+	validCases := []testCase{
+		{
+			Value:    "TCP:1234",
+			ErrCount: 0,
+		},
+		{
+			Value:    "http:80/test",
+			ErrCount: 0,
+		},
+		{
+			Value:    fmt.Sprintf("HTTP:8080/%s", randomRunes(5)),
+			ErrCount: 0,
+		},
+		{
+			Value:    "SSL:8080",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range validCases {
+		_, errors := validateHeathCheckTarget(tc.Value, "target")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
+		}
+	}
+
+	invalidCases := []testCase{
+		{
+			Value:    "",
+			ErrCount: 1,
+		},
+		{
+			Value:    "TCP:",
+			ErrCount: 1,
+		},
+		{
+			Value:    "TCP:1234/",
+			ErrCount: 1,
+		},
+		{
+			Value:    "SSL:8080/",
+			ErrCount: 1,
+		},
+		{
+			Value:    "HTTP:8080",
+			ErrCount: 1,
+		},
+		{
+			Value:    "incorrect-value",
+			ErrCount: 1,
+		},
+		{
+			Value:    "TCP:123456",
+			ErrCount: 1,
+		},
+		{
+			Value:    "incorrect:80/",
+			ErrCount: 1,
+		},
+		{
+			Value:    fmt.Sprintf("HTTP:8080/%s%s", randomString(512), randomRunes(512)),
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateHeathCheckTarget(tc.Value, "target")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
 	}
 }
 
@@ -788,12 +1066,14 @@ resource "aws_elb" "foo" {
   }
 }
 `
-const testAccAWSELBAccessLogsOn = `
+
+func testAccAWSELBAccessLogsOn(r string) string {
+	return fmt.Sprintf(`
 # an S3 bucket configured for Access logs
 # The 797873946194 is the AWS ID for us-west-2, so this test
 # must be ran in us-west-2
 resource "aws_s3_bucket" "acceslogs_bucket" {
-  bucket = "terraform-access-logs-bucket"
+  bucket = "%s"
   acl = "private"
   force_destroy = true
   policy = <<EOF
@@ -806,7 +1086,7 @@ resource "aws_s3_bucket" "acceslogs_bucket" {
       "Principal": {
         "AWS": "arn:aws:iam::797873946194:root"
       },
-      "Resource": "arn:aws:s3:::terraform-access-logs-bucket/*",
+      "Resource": "arn:aws:s3:::%s/*",
       "Sid": "Stmt1446575236270"
     }
   ],
@@ -829,6 +1109,68 @@ resource "aws_elb" "foo" {
 		interval = 5
 		bucket = "${aws_s3_bucket.acceslogs_bucket.bucket}"
 	}
+}
+`, r, r)
+}
+
+func testAccAWSELBAccessLogsDisabled(r string) string {
+	return fmt.Sprintf(`
+# an S3 bucket configured for Access logs
+# The 797873946194 is the AWS ID for us-west-2, so this test
+# must be ran in us-west-2
+resource "aws_s3_bucket" "acceslogs_bucket" {
+  bucket = "%s"
+  acl = "private"
+  force_destroy = true
+  policy = <<EOF
+{
+  "Id": "Policy1446577137248",
+  "Statement": [
+    {
+      "Action": "s3:PutObject",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::797873946194:root"
+      },
+      "Resource": "arn:aws:s3:::%s/*",
+      "Sid": "Stmt1446575236270"
+    }
+  ],
+  "Version": "2012-10-17"
+}
+EOF
+}
+
+resource "aws_elb" "foo" {
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
+
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+
+	access_logs {
+		interval = 5
+		bucket = "${aws_s3_bucket.acceslogs_bucket.bucket}"
+		enabled = false
+	}
+}
+`, r, r)
+}
+
+const testAccAWSELB_namePrefix = `
+resource "aws_elb" "test" {
+  name_prefix = "test-"
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
+
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
 }
 `
 
@@ -1152,3 +1494,127 @@ resource "aws_elb" "bar" {
 }
 `, certName)
 }
+
+const testAccAWSELBConfig_subnets = `
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_vpc" "azelb" {
+  cidr_block           = "10.1.0.0/16"
+  enable_dns_hostnames = true
+
+  tags {
+    Name = "subnet-vpc"
+  }
+}
+
+resource "aws_subnet" "public_a_one" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.1.0/24"
+  availability_zone = "us-west-2a"
+}
+
+resource "aws_subnet" "public_b_one" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.7.0/24"
+  availability_zone = "us-west-2b"
+}
+
+resource "aws_subnet" "public_a_two" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.2.0/24"
+  availability_zone = "us-west-2a"
+}
+
+resource "aws_elb" "ourapp" {
+  name = "terraform-asg-deployment-example"
+
+  subnets = [
+    "${aws_subnet.public_a_one.id}",
+    "${aws_subnet.public_b_one.id}",
+  ]
+
+  listener {
+    instance_port     = 80
+    instance_protocol = "http"
+    lb_port           = 80
+    lb_protocol       = "http"
+  }
+
+  depends_on = ["aws_internet_gateway.gw"]
+}
+
+resource "aws_internet_gateway" "gw" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  tags {
+    Name = "main"
+  }
+}
+`
+
+const testAccAWSELBConfig_subnet_swap = `
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_vpc" "azelb" {
+  cidr_block           = "10.1.0.0/16"
+  enable_dns_hostnames = true
+
+  tags {
+    Name = "subnet-vpc"
+  }
+}
+
+resource "aws_subnet" "public_a_one" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.1.0/24"
+  availability_zone = "us-west-2a"
+}
+
+resource "aws_subnet" "public_b_one" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.7.0/24"
+  availability_zone = "us-west-2b"
+}
+
+resource "aws_subnet" "public_a_two" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.2.0/24"
+  availability_zone = "us-west-2a"
+}
+
+resource "aws_elb" "ourapp" {
+  name = "terraform-asg-deployment-example"
+
+  subnets = [
+    "${aws_subnet.public_a_two.id}",
+    "${aws_subnet.public_b_one.id}",
+  ]
+
+  listener {
+    instance_port     = 80
+    instance_protocol = "http"
+    lb_port           = 80
+    lb_protocol       = "http"
+  }
+
+  depends_on = ["aws_internet_gateway.gw"]
+}
+
+resource "aws_internet_gateway" "gw" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  tags {
+    Name = "main"
+  }
+}
+`

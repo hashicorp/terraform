@@ -1,12 +1,12 @@
 package docker
 
 import (
+	"fmt"
+	"os"
 	"regexp"
 	"testing"
 
-	"fmt"
 	"github.com/hashicorp/terraform/helper/resource"
-	"os"
 )
 
 var registryDigestRegexp = regexp.MustCompile(`\A[A-Za-z0-9_\+\.-]+:[A-Fa-f0-9]+\z`)

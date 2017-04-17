@@ -19,7 +19,7 @@ func TestAccDigitalOceanDomain_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDigitalOceanDomainDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testAccCheckDigitalOceanDomainConfig_basic, domainName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanDomainExists("digitalocean_domain.foobar", &domain),

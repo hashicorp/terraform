@@ -59,6 +59,47 @@ func TestAccStorageCustomAttributes(t *testing.T) {
 	})
 }
 
+func TestAccStorageStorageClass(t *testing.T) {
+	bucketName := fmt.Sprintf("tf-test-acc-bucket-%d", acctest.RandInt())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGoogleStorageDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testGoogleStorageBucketsReaderStorageClass(bucketName, "MULTI_REGIONAL", ""),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudStorageBucketExists(
+						"google_storage_bucket.bucket", bucketName),
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket.bucket", "storage_class", "MULTI_REGIONAL"),
+				),
+			},
+			{
+				Config: testGoogleStorageBucketsReaderStorageClass(bucketName, "NEARLINE", ""),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudStorageBucketExists(
+						"google_storage_bucket.bucket", bucketName),
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket.bucket", "storage_class", "NEARLINE"),
+				),
+			},
+			{
+				Config: testGoogleStorageBucketsReaderStorageClass(bucketName, "REGIONAL", "us-central1"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudStorageBucketExists(
+						"google_storage_bucket.bucket", bucketName),
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket.bucket", "storage_class", "REGIONAL"),
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket.bucket", "location", "us-central1"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccStorageBucketUpdate(t *testing.T) {
 	bucketName := fmt.Sprintf("tf-test-acl-bucket-%d", acctest.RandInt())
 
@@ -225,4 +266,18 @@ resource "google_storage_bucket" "bucket" {
 	force_destroy = "true"
 }
 `, bucketName)
+}
+
+func testGoogleStorageBucketsReaderStorageClass(bucketName, storageClass, location string) string {
+	var locationBlock string
+	if location != "" {
+		locationBlock = fmt.Sprintf(`
+	location = "%s"`, location)
+	}
+	return fmt.Sprintf(`
+resource "google_storage_bucket" "bucket" {
+	name = "%s"
+	storage_class = "%s"%s
+}
+`, bucketName, storageClass, locationBlock)
 }

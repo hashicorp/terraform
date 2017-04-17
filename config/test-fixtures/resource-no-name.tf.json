@@ -1,0 +1,11 @@
+{
+  "resource" : {
+    "aws_security_group" : {
+      "allow_external_http_https" : {
+        "tags" : {
+          "Name" : "allow_external_http_https"
+        }
+      }
+    }
+  }
+}

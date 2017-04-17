@@ -12,6 +12,29 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestAccAWSOpsworksInstance_importBasic(t *testing.T) {
+	stackName := fmt.Sprintf("tf-%d", acctest.RandInt())
+	resourceName := "aws_opsworks_instance.tf-acc"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAwsOpsworksInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAwsOpsworksInstanceConfigCreate(stackName),
+			},
+
+			{
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"state"}, //state is something we pass to the API and get back as status :(
+			},
+		},
+	})
+}
+
 func TestAccAWSOpsworksInstance(t *testing.T) {
 	stackName := fmt.Sprintf("tf-%d", acctest.RandInt())
 	var opsinst opsworks.Instance
@@ -20,7 +43,7 @@ func TestAccAWSOpsworksInstance(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAwsOpsworksInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksInstanceConfigCreate(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSOpsworksInstanceExists(
@@ -45,7 +68,10 @@ func TestAccAWSOpsworksInstance(t *testing.T) {
 						"aws_opsworks_instance.tf-acc", "architecture", "x86_64",
 					),
 					resource.TestCheckResourceAttr(
-						"aws_opsworks_instance.tf-acc", "os", "Amazon Linux 2014.09", // inherited from opsworks_stack_test
+						"aws_opsworks_instance.tf-acc", "tenancy", "default",
+					),
+					resource.TestCheckResourceAttr(
+						"aws_opsworks_instance.tf-acc", "os", "Amazon Linux 2016.09", // inherited from opsworks_stack_test
 					),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_instance.tf-acc", "root_device_type", "ebs", // inherited from opsworks_stack_test
@@ -55,7 +81,7 @@ func TestAccAWSOpsworksInstance(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksInstanceConfigUpdate(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSOpsworksInstanceExists(
@@ -72,6 +98,9 @@ func TestAccAWSOpsworksInstance(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_instance.tf-acc", "os", "Amazon Linux 2015.09",
+					),
+					resource.TestCheckResourceAttr(
+						"aws_opsworks_instance.tf-acc", "tenancy", "default",
 					),
 				),
 			},
@@ -124,6 +153,9 @@ func testAccCheckAWSOpsworksInstanceAttributes(
 		}
 		if *opsinst.Architecture != "x86_64" {
 			return fmt.Errorf("Unexpected architecture: %s", *opsinst.Architecture)
+		}
+		if *opsinst.Tenancy != "default" {
+			return fmt.Errorf("Unexpected tenancy: %s", *opsinst.Tenancy)
 		}
 		if *opsinst.InfrastructureClass != "ec2" {
 			return fmt.Errorf("Unexpected infrastructure class: %s", *opsinst.InfrastructureClass)

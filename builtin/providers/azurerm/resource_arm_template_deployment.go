@@ -143,13 +143,14 @@ func resourceArmTemplateDeploymentRead(d *schema.ResourceData, meta interface{})
 	}
 
 	resp, err := deployClient.Get(resGroup, name)
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
-	}
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure RM Template Deployment %s: %s", name, err)
 	}
+
 	var outputs map[string]string
 	if resp.Properties.Outputs != nil && len(*resp.Properties.Outputs) > 0 {
 		outputs = make(map[string]string)

@@ -6,7 +6,7 @@
 //
 // For more information on how to write Go apps for Google App Engine, see:
 // https://cloud.google.com/appengine/docs/go/
-package appengine
+package appengine // import "google.golang.org/appengine"
 
 import (
 	"net/http"

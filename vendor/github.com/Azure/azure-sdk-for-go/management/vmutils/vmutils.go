@@ -22,7 +22,7 @@ func NewVMConfiguration(name string, roleSize string) vm.Role {
 	}
 }
 
-// ConfigureForLinux adds configuration for when deploying a generalized Linux
+// ConfigureForLinux adds configuration when deploying a generalized Linux
 // image. If "password" is left empty, SSH password security will be disabled by
 // default. Certificates with SSH public keys should already be uploaded to the
 // cloud service where the VM will be deployed and referenced here only by their
@@ -57,7 +57,7 @@ func ConfigureForLinux(role *vm.Role, hostname, user, password string, sshPubkey
 	return nil
 }
 
-// ConfigureForWindows adds configuration for when deploying a generalized
+// ConfigureForWindows adds configuration when deploying a generalized
 // Windows image. timeZone can be left empty. For a complete list of supported
 // time zone entries, you can either refer to the values listed in the registry
 // entry "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Time
@@ -76,6 +76,35 @@ func ConfigureForWindows(role *vm.Role, hostname, user, password string, enableA
 			config.TimeZone = timeZone
 		},
 	)
+
+	return nil
+}
+
+// ConfigureWithCustomDataForLinux configures custom data for Linux-based images.
+// The customData contains either cloud-init or shell script to be executed upon start.
+//
+// The function expects the customData to be base64-encoded.
+func ConfigureWithCustomDataForLinux(role *vm.Role, customData string) error {
+	return configureWithCustomData(role, customData, vm.ConfigurationSetTypeLinuxProvisioning)
+}
+
+// ConfigureWithCustomDataForWindows configures custom data for Windows-based images.
+// The customData contains either cloud-init or shell script to be executed upon start.
+//
+// The function expects the customData to be base64-encoded.
+func ConfigureWithCustomDataForWindows(role *vm.Role, customData string) error {
+	return configureWithCustomData(role, customData, vm.ConfigurationSetTypeWindowsProvisioning)
+}
+
+func configureWithCustomData(role *vm.Role, customData string, typ vm.ConfigurationSetType) error {
+	if role == nil {
+		return fmt.Errorf(errParamNotSpecified, "role")
+	}
+
+	role.ConfigurationSets = updateOrAddConfig(role.ConfigurationSets, typ,
+		func(config *vm.ConfigurationSet) {
+			config.CustomData = customData
+		})
 
 	return nil
 }

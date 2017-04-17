@@ -12,7 +12,7 @@ Creates a Traffic Manager Endpoint.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_traffic_manager_profile" "test" {
   name                = "profile1"
   resource_group_name = "${azurerm_resource_group.test.name}"
@@ -30,7 +30,7 @@ resource "azurerm_traffic_manager_profile" "test" {
     port     = 80
     path     = "/"
   }
-  
+
   tags {
     environment = "Production"
   }
@@ -50,16 +50,16 @@ resource "azurerm_traffic_manager_endpoint" "test" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the virtual network. Changing this forces a
+* `name` - (Required) The name of the Traffic Manager endpoint. Changing this forces a
     new resource to be created.
 
 * `resource_group_name` - (Required) The name of the resource group in which to
-    create the virtual network.
+    create the Traffic Manager endpoint.
 
 * `profile_name` - (Required) The name of the Traffic Manager Profile to attach
-    create the virtual network.
+    create the Traffic Manager endpoint.
 
-* `endpoint_status` - (Optional) The status of the Endpoint, can be set to 
+* `endpoint_status` - (Optional) The status of the Endpoint, can be set to
     either `Enabled` or `Disabled`. Defaults to `Enabled`.
 
 * `type` - (Required) The Endpoint type, must be one of:
@@ -73,7 +73,7 @@ The following arguments are supported:
 
 * `target_resource_id` - (Optional) The resource id of an Azure resource to
     target. This argument must be provided for an endpoint of type
-    `azureEndpoints`.
+    `azureEndpoints` or `nestedEndpoints`.
 
 * `weight` - (Optional) Specifies how much traffic should be distributed to this
     endpoint, this must be specified for Profiles using the  `Weighted` traffic
@@ -92,7 +92,7 @@ The following arguments are supported:
 
 * `min_child_endpoints` - (Optional) This argument specifies the minimum number
     of endpoints that must be ‘online’ in the child profile in order for the
-    parent profile to direct traffic to any of the endpoints in that child 
+    parent profile to direct traffic to any of the endpoints in that child
     profile. This argument only applies to Endpoints of type `nestedEndpoints`
     and defaults to `1`.
 
@@ -104,7 +104,7 @@ The following attributes are exported:
 
 ## Import
 
-Traffic Manager Endpoints can be imported using the `resource id`, e.g. 
+Traffic Manager Endpoints can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_traffic_manager_endpoint.testEndpoints /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Network/trafficManagerProfiles/mytrafficmanagerprofile1/azureEndpoints/mytrafficmanagerendpoint

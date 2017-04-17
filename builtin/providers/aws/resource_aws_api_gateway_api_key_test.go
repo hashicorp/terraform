@@ -20,7 +20,7 @@ func TestAccAWSAPIGatewayApiKey_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSAPIGatewayApiKeyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSAPIGatewayApiKeyConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAPIGatewayApiKeyExists("aws_api_gateway_api_key.test", &conf),
@@ -29,6 +29,12 @@ func TestAccAWSAPIGatewayApiKey_basic(t *testing.T) {
 						"aws_api_gateway_api_key.test", "name", "foo"),
 					resource.TestCheckResourceAttr(
 						"aws_api_gateway_api_key.test", "description", "Managed by Terraform"),
+					resource.TestCheckResourceAttrSet(
+						"aws_api_gateway_api_key.test", "created_date"),
+					resource.TestCheckResourceAttrSet(
+						"aws_api_gateway_api_key.test", "last_updated_date"),
+					resource.TestCheckResourceAttr(
+						"aws_api_gateway_api_key.custom", "value", "MyCustomToken#@&\"'(§!ç)-_*$€¨^£%ù+=/:.;?,|"),
 				),
 			},
 		},
@@ -166,6 +172,17 @@ resource "aws_api_gateway_deployment" "test" {
 resource "aws_api_gateway_api_key" "test" {
   name = "foo"
   enabled = true
+
+  stage_key {
+    rest_api_id = "${aws_api_gateway_rest_api.test.id}"
+    stage_name = "${aws_api_gateway_deployment.test.stage_name}"
+  }
+}
+
+resource "aws_api_gateway_api_key" "custom" {
+  name = "bar"
+  enabled = true
+  value = "MyCustomToken#@&\"'(§!ç)-_*$€¨^£%ù+=/:.;?,|"
 
   stage_key {
     rest_api_id = "${aws_api_gateway_rest_api.test.id}"

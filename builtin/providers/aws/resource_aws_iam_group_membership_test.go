@@ -57,6 +57,26 @@ func TestAccAWSGroupMembership_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSGroupMembership_paginatedUserList(t *testing.T) {
+	var group iam.GetGroupOutput
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSGroupMembershipDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSGroupMemberConfigPaginatedUserList,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSGroupMembershipExists("aws_iam_group_membership.team", &group),
+					resource.TestCheckResourceAttr(
+						"aws_iam_group_membership.team", "users.#", "101"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSGroupMembershipDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).iamconn
 
@@ -137,12 +157,10 @@ func testAccCheckAWSGroupMembershipAttributes(group *iam.GetGroupOutput, users [
 const testAccAWSGroupMemberConfig = `
 resource "aws_iam_group" "group" {
 	name = "test-group-%s"
-	path = "/"
 }
 
 resource "aws_iam_user" "user" {
 	name = "test-user-%s"
-	path = "/"
 }
 
 resource "aws_iam_group_membership" "team" {
@@ -155,22 +173,18 @@ resource "aws_iam_group_membership" "team" {
 const testAccAWSGroupMemberConfigUpdate = `
 resource "aws_iam_group" "group" {
 	name = "test-group-%s"
-	path = "/"
 }
 
 resource "aws_iam_user" "user" {
 	name = "test-user-%s"
-	path = "/"
 }
 
 resource "aws_iam_user" "user_two" {
 	name = "test-user-two-%s"
-	path = "/"
 }
 
 resource "aws_iam_user" "user_three" {
 	name = "test-user-three-%s"
-	path = "/"
 }
 
 resource "aws_iam_group_membership" "team" {
@@ -186,12 +200,10 @@ resource "aws_iam_group_membership" "team" {
 const testAccAWSGroupMemberConfigUpdateDown = `
 resource "aws_iam_group" "group" {
 	name = "test-group-%s"
-	path = "/"
 }
 
 resource "aws_iam_user" "user_three" {
 	name = "test-user-three-%s"
-	path = "/"
 }
 
 resource "aws_iam_group_membership" "team" {
@@ -200,5 +212,22 @@ resource "aws_iam_group_membership" "team" {
 		"${aws_iam_user.user_three.name}",
 	]
 	group = "${aws_iam_group.group.name}"
+}
+`
+
+const testAccAWSGroupMemberConfigPaginatedUserList = `
+resource "aws_iam_group" "group" {
+	name = "test-paginated-group"
+}
+
+resource "aws_iam_group_membership" "team" {
+	name = "tf-testing-paginated-group-membership"
+	users = ["${aws_iam_user.user.*.name}"]
+	group = "${aws_iam_group.group.name}"
+}
+
+resource "aws_iam_user" "user" {
+	count = 101
+	name = "${format("paged-test-user-%d", count.index + 1)}"
 }
 `

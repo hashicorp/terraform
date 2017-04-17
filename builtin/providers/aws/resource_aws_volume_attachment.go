@@ -21,25 +21,30 @@ func resourceAwsVolumeAttachment() *schema.Resource {
 		Delete: resourceAwsVolumeAttachmentDelete,
 
 		Schema: map[string]*schema.Schema{
-			"device_name": &schema.Schema{
+			"device_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"instance_id": &schema.Schema{
+			"instance_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"volume_id": &schema.Schema{
+			"volume_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"force_detach": &schema.Schema{
+			"force_detach": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
+			"skip_destroy": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
@@ -54,20 +59,59 @@ func resourceAwsVolumeAttachmentCreate(d *schema.ResourceData, meta interface{})
 	iID := d.Get("instance_id").(string)
 	vID := d.Get("volume_id").(string)
 
-	opts := &ec2.AttachVolumeInput{
-		Device:     aws.String(name),
-		InstanceId: aws.String(iID),
-		VolumeId:   aws.String(vID),
+	// Find out if the volume is already attached to the instance, in which case
+	// we have nothing to do
+	request := &ec2.DescribeVolumesInput{
+		VolumeIds: []*string{aws.String(vID)},
+		Filters: []*ec2.Filter{
+			&ec2.Filter{
+				Name:   aws.String("attachment.instance-id"),
+				Values: []*string{aws.String(iID)},
+			},
+			&ec2.Filter{
+				Name:   aws.String("attachment.device"),
+				Values: []*string{aws.String(name)},
+			},
+		},
 	}
 
-	log.Printf("[DEBUG] Attaching Volume (%s) to Instance (%s)", vID, iID)
-	_, err := conn.AttachVolume(opts)
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			return fmt.Errorf("[WARN] Error attaching volume (%s) to instance (%s), message: \"%s\", code: \"%s\"",
-				vID, iID, awsErr.Message(), awsErr.Code())
+	vols, err := conn.DescribeVolumes(request)
+	if (err != nil) || (len(vols.Volumes) == 0) {
+		// This handles the situation where the instance is created by
+		// a spot request and whilst the request has been fulfilled the
+		// instance is not running yet
+		stateConf := &resource.StateChangeConf{
+			Pending:    []string{"pending"},
+			Target:     []string{"running"},
+			Refresh:    InstanceStateRefreshFunc(conn, iID),
+			Timeout:    10 * time.Minute,
+			Delay:      10 * time.Second,
+			MinTimeout: 3 * time.Second,
 		}
-		return err
+
+		_, err = stateConf.WaitForState()
+		if err != nil {
+			return fmt.Errorf(
+				"Error waiting for instance (%s) to become ready: %s",
+				iID, err)
+		}
+
+		// not attached
+		opts := &ec2.AttachVolumeInput{
+			Device:     aws.String(name),
+			InstanceId: aws.String(iID),
+			VolumeId:   aws.String(vID),
+		}
+
+		log.Printf("[DEBUG] Attaching Volume (%s) to Instance (%s)", vID, iID)
+		_, err := conn.AttachVolume(opts)
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				return fmt.Errorf("[WARN] Error attaching volume (%s) to instance (%s), message: \"%s\", code: \"%s\"",
+					vID, iID, awsErr.Message(), awsErr.Code())
+			}
+			return err
+		}
 	}
 
 	stateConf := &resource.StateChangeConf{
@@ -136,7 +180,7 @@ func resourceAwsVolumeAttachmentRead(d *schema.ResourceData, meta interface{}) e
 		},
 	}
 
-	_, err := conn.DescribeVolumes(request)
+	vols, err := conn.DescribeVolumes(request)
 	if err != nil {
 		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVolume.NotFound" {
 			d.SetId("")
@@ -144,11 +188,23 @@ func resourceAwsVolumeAttachmentRead(d *schema.ResourceData, meta interface{}) e
 		}
 		return fmt.Errorf("Error reading EC2 volume %s for instance: %s: %#v", d.Get("volume_id").(string), d.Get("instance_id").(string), err)
 	}
+
+	if len(vols.Volumes) == 0 || *vols.Volumes[0].State == "available" {
+		log.Printf("[DEBUG] Volume Attachment (%s) not found, removing from state", d.Id())
+		d.SetId("")
+	}
+
 	return nil
 }
 
 func resourceAwsVolumeAttachmentDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
+
+	if _, ok := d.GetOk("skip_destroy"); ok {
+		log.Printf("[INFO] Found skip_destroy to be true, removing attachment %q from state", d.Id())
+		d.SetId("")
+		return nil
+	}
 
 	vID := d.Get("volume_id").(string)
 	iID := d.Get("instance_id").(string)
@@ -161,6 +217,10 @@ func resourceAwsVolumeAttachmentDelete(d *schema.ResourceData, meta interface{})
 	}
 
 	_, err := conn.DetachVolume(opts)
+	if err != nil {
+		return fmt.Errorf("Failed to detach Volume (%s) from Instance (%s): %s",
+			vID, iID, err)
+	}
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"detaching"},
 		Target:     []string{"detached"},

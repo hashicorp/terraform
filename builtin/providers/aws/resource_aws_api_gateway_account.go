@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -95,15 +94,16 @@ func resourceAwsApiGatewayAccountUpdate(d *schema.ResourceData, meta interface{}
 
 	// Retry due to eventual consistency of IAM
 	expectedErrMsg := "The role ARN does not have required permissions set to API Gateway"
+	otherErrMsg := "API Gateway could not successfully write to CloudWatch Logs using the ARN specified"
 	var out *apigateway.Account
 	var err error
 	err = resource.Retry(2*time.Minute, func() *resource.RetryError {
 		out, err = conn.UpdateAccount(&input)
 
 		if err != nil {
-			if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "BadRequestException" &&
-				awsErr.Message() == expectedErrMsg {
-				log.Printf("[DEBUG] Retrying API Gateway Account update: %s", awsErr)
+			if isAWSErr(err, "BadRequestException", expectedErrMsg) ||
+				isAWSErr(err, "BadRequestException", otherErrMsg) {
+				log.Printf("[DEBUG] Retrying API Gateway Account update: %s", err)
 				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)

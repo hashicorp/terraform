@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	mysqlc "github.com/ziutek/mymysql/mysql"
+	"github.com/hashicorp/go-version"
 
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -40,7 +40,7 @@ func resourceUser() *schema.Resource {
 }
 
 func CreateUser(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(mysqlc.Conn)
+	conn := meta.(*providerConfiguration).Conn
 
 	stmtSQL := fmt.Sprintf("CREATE USER '%s'@'%s'",
 		d.Get("user").(string),
@@ -64,17 +64,28 @@ func CreateUser(d *schema.ResourceData, meta interface{}) error {
 }
 
 func UpdateUser(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(mysqlc.Conn)
+	conf := meta.(*providerConfiguration)
 
 	if d.HasChange("password") {
 		_, newpw := d.GetChange("password")
-		stmtSQL := fmt.Sprintf("ALTER USER '%s'@'%s' IDENTIFIED BY '%s'",
-			d.Get("user").(string),
-			d.Get("host").(string),
-			newpw.(string))
+		var stmtSQL string
+
+		/* ALTER USER syntax introduced in MySQL 5.7.6 deprecates SET PASSWORD (GH-8230) */
+		ver, _ := version.NewVersion("5.7.6")
+		if conf.ServerVersion.LessThan(ver) {
+			stmtSQL = fmt.Sprintf("SET PASSWORD FOR '%s'@'%s' = PASSWORD('%s')",
+				d.Get("user").(string),
+				d.Get("host").(string),
+				newpw.(string))
+		} else {
+			stmtSQL = fmt.Sprintf("ALTER USER '%s'@'%s' IDENTIFIED BY '%s'",
+				d.Get("user").(string),
+				d.Get("host").(string),
+				newpw.(string))
+		}
 
 		log.Println("Executing query:", stmtSQL)
-		_, _, err := conn.Query(stmtSQL)
+		_, _, err := conf.Conn.Query(stmtSQL)
 		if err != nil {
 			return err
 		}
@@ -84,12 +95,26 @@ func UpdateUser(d *schema.ResourceData, meta interface{}) error {
 }
 
 func ReadUser(d *schema.ResourceData, meta interface{}) error {
-	// At this time, all attributes are supplied by the user
+	conn := meta.(*providerConfiguration).Conn
+
+	stmtSQL := fmt.Sprintf("SELECT USER FROM mysql.user WHERE USER='%s'",
+		d.Get("user").(string))
+
+	log.Println("Executing statement:", stmtSQL)
+
+	rows, _, err := conn.Query(stmtSQL)
+	log.Println("Returned rows:", len(rows))
+	if err != nil {
+		return err
+	}
+	if len(rows) == 0 {
+		d.SetId("")
+	}
 	return nil
 }
 
 func DeleteUser(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(mysqlc.Conn)
+	conn := meta.(*providerConfiguration).Conn
 
 	stmtSQL := fmt.Sprintf("DROP USER '%s'@'%s'",
 		d.Get("user").(string),

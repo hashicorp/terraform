@@ -47,6 +47,10 @@ certain cases, see above note). The list of available flags are:
   time, there is a maxiumum of one tainted instance per resource, so this flag
   can be safely omitted.
 
+* `-lock=true` - Lock the state file when locking is supported.
+
+* `-lock-timeout=0s` - Duration to retry a state lock.
+
 * `-module=path` - The module path where the resource to untaint exists.
     By default this is the root path. Other modules can be specified by
     a period-separated list. Example: "foo" would reference the module
@@ -56,6 +60,8 @@ certain cases, see above note). The list of available flags are:
 * `-no-color` - Disables output with coloring
 
 * `-state=path` - Path to read and write the state file to. Defaults to "terraform.tfstate".
+  Ignored when [remote state](/docs/state/remote.html) is used.
 
 * `-state-out=path` - Path to write updated state file. By default, the
-  `-state` path will be used.
+  `-state` path will be used. Ignored when
+  [remote state](/docs/state/remote.html) is used.

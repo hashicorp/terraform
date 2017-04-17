@@ -1,0 +1,62 @@
+<% wrap_layout :inner do %>
+<% content_for :sidebar do %>
+<div class="docs-sidebar hidden-print affix-top" role="complementary">
+    <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+            <a href="/docs/providers/index.html">All Providers</a>
+        </li>
+
+        <li<%= sidebar_current("docs-pagerduty-index") %>>
+            <a href="/docs/providers/pagerduty/index.html">PagerDuty Provider</a>
+        </li>
+
+        <li<%= sidebar_current("docs-pagerduty-datasource") %>>
+            <a href="#">Data Sources</a>
+            <ul class="nav nav-visible">
+                <li<%= sidebar_current("docs-pagerduty-datasource-user") %>>
+                    <a href="/docs/providers/pagerduty/d/user.html">pagerduty_user</a>
+                </li>
+                <li<%= sidebar_current("docs-pagerduty-datasource-schedule") %>>
+                    <a href="/docs/providers/pagerduty/d/schedule.html">pagerduty_schedule</a>
+                </li>
+                <li<%= sidebar_current("docs-pagerduty-datasource-vendor") %>>
+                    <a href="/docs/providers/pagerduty/d/vendor.html">pagerduty_vendor</a>
+                </li>
+                <li<%= sidebar_current("docs-pagerduty-datasource-escalation-policy") %>>
+                    <a href="/docs/providers/pagerduty/d/escalation_policy.html">pagerduty_escalation_policy</a>
+                </li>
+            </ul>
+        </li>
+
+        <li<%= sidebar_current("docs-pagerduty-resource") %>>
+            <a href="#">Resources</a>
+            <ul class="nav nav-visible">
+                <li<%= sidebar_current("docs-pagerduty-resource-addon") %>>
+                    <a href="/docs/providers/pagerduty/r/addon.html">pagerduty_addon</a>
+                </li>
+                <li<%= sidebar_current("docs-pagerduty-resource-user") %>>
+                    <a href="/docs/providers/pagerduty/r/user.html">pagerduty_user</a>
+                </li>
+                <li<%= sidebar_current("docs-pagerduty-resource-team") %>>
+                    <a href="/docs/providers/pagerduty/r/team.html">pagerduty_team</a>
+                </li>
+                <li<%= sidebar_current("docs-pagerduty-resource-escalation_policy") %>>
+                    <a href="/docs/providers/pagerduty/r/escalation_policy.html">pagerduty_escalation_policy</a>
+                </li>
+                <li<%= sidebar_current("docs-pagerduty-resource-schedule") %>>
+                    <a href="/docs/providers/pagerduty/r/schedule.html">pagerduty_schedule</a>
+                </li>
+                <li<%= sidebar_current("docs-pagerduty-resource-service") %>>
+                    <a href="/docs/providers/pagerduty/r/service.html">pagerduty_service</a>
+                </li>
+                <li<%= sidebar_current("docs-pagerduty-resource-service-integration") %>>
+                    <a href="/docs/providers/pagerduty/r/service_integration.html">pagerduty_service_integration</a>
+                </li>
+            </ul>
+        </li>
+    </ul>
+</div>
+<% end %>
+
+<%= yield %>
+<% end %>

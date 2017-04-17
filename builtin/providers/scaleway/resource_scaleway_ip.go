@@ -13,12 +13,16 @@ func resourceScalewayIP() *schema.Resource {
 		Read:   resourceScalewayIPRead,
 		Update: resourceScalewayIPUpdate,
 		Delete: resourceScalewayIPDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
-			"server": &schema.Schema{
+			"server": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"ip": &schema.Schema{
+			"ip": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -28,7 +32,10 @@ func resourceScalewayIP() *schema.Resource {
 
 func resourceScalewayIPCreate(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
+
+	mu.Lock()
 	resp, err := scaleway.NewIP()
+	mu.Unlock()
 	if err != nil {
 		return err
 	}
@@ -62,6 +69,10 @@ func resourceScalewayIPRead(d *schema.ResourceData, m interface{}) error {
 
 func resourceScalewayIPUpdate(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
+
+	mu.Lock()
+	defer mu.Unlock()
+
 	if d.HasChange("server") {
 		if d.Get("server").(string) != "" {
 			log.Printf("[DEBUG] Attaching IP %q to server %q\n", d.Id(), d.Get("server").(string))
@@ -70,7 +81,7 @@ func resourceScalewayIPUpdate(d *schema.ResourceData, m interface{}) error {
 			}
 		} else {
 			log.Printf("[DEBUG] Detaching IP %q\n", d.Id())
-			return DetachIP(scaleway, d.Id())
+			return scaleway.DetachIP(d.Id())
 		}
 	}
 
@@ -79,6 +90,10 @@ func resourceScalewayIPUpdate(d *schema.ResourceData, m interface{}) error {
 
 func resourceScalewayIPDelete(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
+
+	mu.Lock()
+	defer mu.Unlock()
+
 	err := scaleway.DeleteIP(d.Id())
 	if err != nil {
 		return err

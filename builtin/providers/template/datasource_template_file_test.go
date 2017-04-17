@@ -2,8 +2,6 @@ package template
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -26,6 +24,7 @@ func TestTemplateRendering(t *testing.T) {
 		{`{a="foo"}`, `$${a}`, `foo`},
 		{`{a="hello"}`, `$${replace(a, "ello", "i")}`, `hi`},
 		{`{}`, `${1+2+3}`, `6`},
+		{`{}`, `/`, `/`},
 	}
 
 	for _, tt := range cases {
@@ -44,30 +43,6 @@ func TestTemplateRendering(t *testing.T) {
 				},
 			},
 		})
-	}
-}
-
-func TestValidateTemplateAttribute(t *testing.T) {
-	file, err := ioutil.TempFile("", "testtemplate")
-	if err != nil {
-		t.Fatal(err)
-	}
-	file.WriteString("Hello world.")
-	file.Close()
-	defer os.Remove(file.Name())
-
-	ws, es := validateTemplateAttribute(file.Name(), "test")
-
-	if len(es) != 0 {
-		t.Fatalf("Unexpected errors: %#v", es)
-	}
-
-	if len(ws) != 1 {
-		t.Fatalf("Expected 1 warning, got %d", len(ws))
-	}
-
-	if !strings.Contains(ws[0], "Specifying a path directly is deprecated") {
-		t.Fatalf("Expected warning about path, got: %s", ws[0])
 	}
 }
 
@@ -122,8 +97,8 @@ func TestValidateVarsAttribute(t *testing.T) {
 func TestTemplateSharedMemoryRace(t *testing.T) {
 	var wg sync.WaitGroup
 	for i := 0; i < 100; i++ {
-		go func(wg *sync.WaitGroup, t *testing.T, i int) {
-			wg.Add(1)
+		wg.Add(1)
+		go func(t *testing.T, i int) {
 			out, err := execute("don't panic!", map[string]interface{}{})
 			if err != nil {
 				t.Fatalf("err: %s", err)
@@ -132,7 +107,7 @@ func TestTemplateSharedMemoryRace(t *testing.T) {
 				t.Fatalf("bad output: %s", out)
 			}
 			wg.Done()
-		}(&wg, t, i)
+		}(t, i)
 	}
 	wg.Wait()
 }

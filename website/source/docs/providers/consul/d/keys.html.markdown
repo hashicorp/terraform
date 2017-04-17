@@ -6,30 +6,31 @@ description: |-
   Reads values from the Consul key/value store.
 ---
 
-# consul\_keys
+# consul_keys
 
-`consul_keys` reads values from the Consul key/value store.
+The `consul_keys` resource reads values from the Consul key/value store.
 This is a powerful way dynamically set values in templates.
 
 ## Example Usage
 
-```
+```hcl
 data "consul_keys" "app" {
-    datacenter = "nyc1"
-    token = "abcd"
+  datacenter = "nyc1"
+  token      = "abcd"
 
-    # Read the launch AMI from Consul
-    key {
-        name = "ami"
-        path = "service/app/launch_ami"
-        default = "ami-1234"
-    }
+  # Read the launch AMI from Consul
+  key {
+    name    = "ami"
+    path    = "service/app/launch_ami"
+    default = "ami-1234"
+  }
 }
 
 # Start our instance with the dynamic ami value
 resource "aws_instance" "app" {
-    ami = "${data.consul_keys.app.var.ami}"
-    ...
+  ami = "${data.consul_keys.app.var.ami}"
+
+  # ...
 }
 ```
 
@@ -56,7 +57,7 @@ The `key` block supports the following:
   or written to.
 
 * `default` - (Optional) This is the default value to set for `var.<name>`
-  if the key does not exist in Consul. Defaults to the empty string.
+  if the key does not exist in Consul. Defaults to an empty string.
 
 ## Attributes Reference
 

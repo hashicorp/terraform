@@ -251,6 +251,9 @@ func (lt *opsworksLayerType) SchemaResource() *schema.Resource {
 			client := meta.(*AWSClient).opsworksconn
 			return lt.Delete(d, client)
 		},
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: resourceSchema,
 	}

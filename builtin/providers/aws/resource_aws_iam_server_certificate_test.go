@@ -2,27 +2,27 @@ package aws
 
 import (
 	"fmt"
-	"math/rand"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSIAMServerCertificate_basic(t *testing.T) {
 	var cert iam.ServerCertificate
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckIAMServerCertificateDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccIAMServerCertConfig,
+			{
+				Config: testAccIAMServerCertConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCertExists("aws_iam_server_certificate.test_cert", &cert),
 					testAccCheckAWSServerCertAttributes(&cert),
@@ -40,7 +40,7 @@ func TestAccAWSIAMServerCertificate_name_prefix(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckIAMServerCertificateDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccIAMServerCertConfig_random,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCertExists("aws_iam_server_certificate.test_cert", &cert),
@@ -62,7 +62,7 @@ func TestAccAWSIAMServerCertificate_disappears(t *testing.T) {
 		})
 
 		if err != nil {
-			return fmt.Errorf("Error destorying cert in test: %s", err)
+			return fmt.Errorf("Error destroying cert in test: %s", err)
 		}
 
 		return nil
@@ -73,7 +73,7 @@ func TestAccAWSIAMServerCertificate_disappears(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckIAMServerCertificateDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccIAMServerCertConfig_random,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCertExists("aws_iam_server_certificate.test_cert", &cert),
@@ -81,6 +81,35 @@ func TestAccAWSIAMServerCertificate_disappears(t *testing.T) {
 					testDestroyCert,
 				),
 				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func TestAccAWSIAMServerCertificate_file(t *testing.T) {
+	var cert iam.ServerCertificate
+
+	rInt := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckIAMServerCertificateDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccIAMServerCertConfig_file(rInt, "iam-ssl-unix-line-endings"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCertExists("aws_iam_server_certificate.test_cert", &cert),
+					testAccCheckAWSServerCertAttributes(&cert),
+				),
+			},
+
+			{
+				Config: testAccIAMServerCertConfig_file(rInt, "iam-ssl-windows-line-endings"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCertExists("aws_iam_server_certificate.test_cert", &cert),
+					testAccCheckAWSServerCertAttributes(&cert),
+				),
 			},
 		},
 	})
@@ -172,7 +201,8 @@ CqDUFjhydXxYRsxXBBrEiLOE5BdtJR1sH/QHxIJe23C9iHI2nS1NbLziNEApLwC4
 GnSud83VUo9G9w==
 -----END CERTIFICATE-----`)
 
-var testAccIAMServerCertConfig = fmt.Sprintf(`
+func testAccIAMServerCertConfig(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_iam_server_certificate" "test_cert" {
   name = "terraform-test-cert-%d"
   certificate_body = <<EOF
@@ -227,7 +257,8 @@ dg+Sd4Wjm89UQoUUoiIcstY7FPbqfBtYKfh4RYHAHV2BwDFqzZCM
 -----END RSA PRIVATE KEY-----
 EOF
 }
-`, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+`, rInt)
+}
 
 var testAccIAMServerCertConfig_random = `
 resource "aws_iam_server_certificate" "test_cert" {
@@ -285,3 +316,43 @@ dg+Sd4Wjm89UQoUUoiIcstY7FPbqfBtYKfh4RYHAHV2BwDFqzZCM
 EOF
 }
 `
+
+// iam-ssl-unix-line-endings
+func testAccIAMServerCertConfig_file(rInt int, fName string) string {
+	return fmt.Sprintf(`
+resource "aws_iam_server_certificate" "test_cert" {
+  name = "terraform-test-cert-%d"
+  certificate_body = "${file("test-fixtures/%s.pem")}"
+
+	private_key =  <<EOF
+-----BEGIN RSA PRIVATE KEY-----
+MIIEowIBAAKCAQEAv4sWWwIkbm3FmnjK676VCe5SuAFdEb6KtCpxNeVX3UGnmGmZ
+EjKGcYK1bHEMFQvGuHhY3dVX/SMPMpP3vqguA7LeGPnoJ2p/4mVnWqAw3lscHeab
+dpVaeuewtsGx/BlIRuTcqG39wTWcra2g1Vb6vOdLeb56hXdmf8NQ3AaVmvjaEY2z
+oROfaNRFjvwROpGZbjvG+N/zp4iju9QsclpjrHJqs+qQvwNlrM6a9jTqFQa8bAYG
+fLuC6B9eoMb4jydw8GwYkZICYeZVXyjREIH1SNj5O9IxBGkQOhWW/Ksa6CWwPy2j
+/j7tRyy4MaVFg3qOYg4LfuY6L+PBF9YvVhRrgwIDAQABAoIBAFqJ4h1Om+3e0WK8
+6h4YzdYN4ue7LUTv7hxPW4gASlH5cMDoWURywX3yLNN/dBiWom4b5NWmvJqY8dwU
+eSyTznxNFhJ0PjozaxOWnw4FXlQceOPhV2bsHgKudadNU1Y4lSN9lpe+tg2Xy+GE
+ituM66RTKCf502w3DioiJpx6OEkxuhrnsQAWNcGB0MnTukm2f+629V+04R5MT5V1
+nY+5Phx2BpHgYzWBKh6Px1puu7xFv5SMQda1ndlPIKb4cNp0yYn+1lHNjbOE7QL/
+oEpWgrauS5Zk/APK33v/p3wVYHrKocIFHlPiCW0uIJJLsOZDY8pQXpTlc+/xGLLy
+WBu4boECgYEA6xO+1UNh6ndJ3xGuNippH+ucTi/uq1+0tG1bd63v+75tn5l4LyY2
+CWHRaWVlVn+WnDslkQTJzFD68X+9M7Cc4oP6WnhTyPamG7HlGv5JxfFHTC9GOKmz
+sSc624BDmqYJ7Xzyhe5kc3iHzqG/L72ZF1aijZdrodQMSY1634UX6aECgYEA0Jdr
+cBPSN+mgmEY6ogN5h7sO5uNV3TQQtW2IslfWZn6JhSRF4Rf7IReng48CMy9ZhFBy
+Q7H2I1pDGjEC9gQHhgVfm+FyMSVqXfCHEW/97pvvu9ougHA0MhPep1twzTGrqg+K
+f3PLW8hVkGyCrTfWgbDlPsHgsocA/wTaQOheaqMCgYBat5z+WemQfQZh8kXDm2xE
+KD2Cota9BcsLkeQpdFNXWC6f167cqydRSZFx1fJchhJOKjkeFLX3hgzBY6VVLEPu
+2jWj8imLNTv3Fhiu6RD5NVppWRkFRuAUbmo1SPNN2+Oa5YwGCXB0a0Alip/oQYex
+zPogIB4mLlmrjNCtL4SB4QKBgCEHKMrZSJrz0irqS9RlanPUaZqjenAJE3A2xMNA
+Z0FZXdsIEEyA6JGn1i1dkoKaR7lMp5sSbZ/RZfiatBZSMwLEjQv4mYUwoHP5Ztma
++wEyDbaX6G8L1Sfsv3+OWgETkVPfHBXsNtH0mZ/BnrtgsQVeBh52wmZiPAUlNo26
+fWCzAoGBAJOjqovLelLWzyQGqPFx/MwuI56UFXd1CmFlCIvF2WxCFmk3tlExoCN1
+HqSpt92vsgYgV7+lAb4U7Uy/v012gwiU1LK+vyAE9geo3pTjG73BNzG4H547xtbY
+dg+Sd4Wjm89UQoUUoiIcstY7FPbqfBtYKfh4RYHAHV2BwDFqzZCM
+-----END RSA PRIVATE KEY-----
+EOF
+}
+`, rInt, fName)
+}

@@ -101,7 +101,7 @@ func resourceComputeGlobalForwardingRuleCreate(d *schema.ResourceData, meta inte
 	// It probably maybe worked, so store the ID now
 	d.SetId(frule.Name)
 
-	err = computeOperationWaitGlobal(config, op, "Creating Global Fowarding Rule")
+	err = computeOperationWaitGlobal(config, op, project, "Creating Global Fowarding Rule")
 	if err != nil {
 		return err
 	}
@@ -128,7 +128,7 @@ func resourceComputeGlobalForwardingRuleUpdate(d *schema.ResourceData, meta inte
 			return fmt.Errorf("Error updating target: %s", err)
 		}
 
-		err = computeOperationWaitGlobal(config, op, "Updating Global Forwarding Rule")
+		err = computeOperationWaitGlobal(config, op, project, "Updating Global Forwarding Rule")
 		if err != nil {
 			return err
 		}
@@ -186,7 +186,7 @@ func resourceComputeGlobalForwardingRuleDelete(d *schema.ResourceData, meta inte
 		return fmt.Errorf("Error deleting GlobalForwardingRule: %s", err)
 	}
 
-	err = computeOperationWaitGlobal(config, op, "Deleting GlobalForwarding Rule")
+	err = computeOperationWaitGlobal(config, op, project, "Deleting GlobalForwarding Rule")
 	if err != nil {
 		return err
 	}

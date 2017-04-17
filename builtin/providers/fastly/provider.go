@@ -18,6 +18,9 @@ func Provider() terraform.ResourceProvider {
 				Description: "Fastly API Key from https://app.fastly.com/#account",
 			},
 		},
+		DataSourcesMap: map[string]*schema.Resource{
+			"fastly_ip_ranges": dataSourceFastlyIPRanges(),
+		},
 		ResourcesMap: map[string]*schema.Resource{
 			"fastly_service_v1": resourceServiceV1(),
 		},

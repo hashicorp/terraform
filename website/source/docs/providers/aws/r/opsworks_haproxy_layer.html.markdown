@@ -12,10 +12,10 @@ Provides an OpsWorks haproxy layer resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_opsworks_haproxy_layer" "lb" {
-    stack_id = "${aws_opsworks_stack.main.id}"
-    stats_password = "foobarbaz"
+  stack_id       = "${aws_opsworks_stack.main.id}"
+  stats_password = "foobarbaz"
 }
 ```
 

@@ -7,11 +7,10 @@ import (
 	"os/user"
 	"strings"
 
+	dc "github.com/fsouza/go-dockerclient"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-
-	dc "github.com/fsouza/go-dockerclient"
 )
 
 func Provider() terraform.ResourceProvider {
@@ -22,6 +21,25 @@ func Provider() terraform.ResourceProvider {
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("DOCKER_HOST", "unix:///var/run/docker.sock"),
 				Description: "The Docker daemon address",
+			},
+
+			"ca_material": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("DOCKER_CA_MATERIAL", ""),
+				Description: "PEM-encoded content of Docker host CA certificate",
+			},
+			"cert_material": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("DOCKER_CERT_MATERIAL", ""),
+				Description: "PEM-encoded content of Docker client certificate",
+			},
+			"key_material": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("DOCKER_KEY_MATERIAL", ""),
+				Description: "PEM-encoded content of Docker client private key",
 			},
 
 			"cert_path": &schema.Schema{
@@ -89,6 +107,9 @@ func Provider() terraform.ResourceProvider {
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := DockerConfig{
 		Host:     d.Get("host").(string),
+		Ca:       d.Get("ca_material").(string),
+		Cert:     d.Get("cert_material").(string),
+		Key:      d.Get("key_material").(string),
 		CertPath: d.Get("cert_path").(string),
 	}
 
@@ -154,19 +175,20 @@ func providerSetToRegistryAuth(authSet *schema.Set) (*dc.AuthConfigurations, err
 
 		// For each registry_auth block, generate an AuthConfiguration using either
 		// username/password or the given config file
-		if username, ok := auth["username"].(string); ok && username != "" {
+		if username, ok := auth["username"]; ok && username.(string) != "" {
 			authConfig.Username = auth["username"].(string)
 			authConfig.Password = auth["password"].(string)
-		} else if configFile, ok := auth["config_file"].(string); ok && configFile != "" {
-			if strings.HasPrefix(configFile, "~/") {
+		} else if configFile, ok := auth["config_file"]; ok && configFile.(string) != "" {
+			filePath := configFile.(string)
+			if strings.HasPrefix(filePath, "~/") {
 				usr, err := user.Current()
 				if err != nil {
 					return nil, err
 				}
-				configFile = strings.Replace(configFile, "~", usr.HomeDir, 1)
+				filePath = strings.Replace(filePath, "~", usr.HomeDir, 1)
 			}
 
-			r, err := os.Open(configFile)
+			r, err := os.Open(filePath)
 			if err != nil {
 				return nil, fmt.Errorf("Error opening docker registry config file: %v", err)
 			}
@@ -187,7 +209,7 @@ func providerSetToRegistryAuth(authSet *schema.Set) (*dc.AuthConfigurations, err
 
 			if !foundRegistry {
 				return nil, fmt.Errorf("Couldn't find registry config for '%s' in file: %s",
-					authConfig.ServerAddress, configFile)
+					authConfig.ServerAddress, filePath)
 			}
 		}
 

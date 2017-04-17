@@ -1,9 +1,11 @@
 package schema
 
 import (
+	"fmt"
 	"math"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -1077,6 +1079,78 @@ func TestResourceDataGetOk(t *testing.T) {
 		if ok != tc.Ok {
 			t.Fatalf("%d: expected ok: %t, got: %t", i, tc.Ok, ok)
 		}
+	}
+}
+
+func TestResourceDataTimeout(t *testing.T) {
+	cases := []struct {
+		Name     string
+		Rd       *ResourceData
+		Expected *ResourceTimeout
+	}{
+		{
+			Name:     "Basic example default",
+			Rd:       &ResourceData{timeouts: timeoutForValues(10, 3, 0, 15, 0)},
+			Expected: expectedTimeoutForValues(10, 3, 0, 15, 0),
+		},
+		{
+			Name:     "Resource and config match update, create",
+			Rd:       &ResourceData{timeouts: timeoutForValues(10, 0, 3, 0, 0)},
+			Expected: expectedTimeoutForValues(10, 0, 3, 0, 0),
+		},
+		{
+			Name:     "Resource provides default",
+			Rd:       &ResourceData{timeouts: timeoutForValues(10, 0, 0, 0, 7)},
+			Expected: expectedTimeoutForValues(10, 7, 7, 7, 7),
+		},
+		{
+			Name:     "Resource provides default and delete",
+			Rd:       &ResourceData{timeouts: timeoutForValues(10, 0, 0, 15, 7)},
+			Expected: expectedTimeoutForValues(10, 7, 7, 15, 7),
+		},
+		{
+			Name:     "Resource provides default, config overwrites other values",
+			Rd:       &ResourceData{timeouts: timeoutForValues(10, 3, 0, 0, 13)},
+			Expected: expectedTimeoutForValues(10, 3, 13, 13, 13),
+		},
+	}
+
+	keys := timeoutKeys()
+	for i, c := range cases {
+		t.Run(fmt.Sprintf("%d-%s", i, c.Name), func(t *testing.T) {
+
+			for _, k := range keys {
+				got := c.Rd.Timeout(k)
+				var ex *time.Duration
+				switch k {
+				case TimeoutCreate:
+					ex = c.Expected.Create
+				case TimeoutRead:
+					ex = c.Expected.Read
+				case TimeoutUpdate:
+					ex = c.Expected.Update
+				case TimeoutDelete:
+					ex = c.Expected.Delete
+				case TimeoutDefault:
+					ex = c.Expected.Default
+				}
+
+				if got > 0 && ex == nil {
+					t.Fatalf("Unexpected value in (%s), case %d check 1:\n\texpected: %#v\n\tgot: %#v", k, i, ex, got)
+				}
+				if got == 0 && ex != nil {
+					t.Fatalf("Unexpected value in (%s), case %d check 2:\n\texpected: %#v\n\tgot: %#v", k, i, *ex, got)
+				}
+
+				// confirm values
+				if ex != nil {
+					if got != *ex {
+						t.Fatalf("Timeout %s case (%d) expected (%#v), got (%#v)", k, i, *ex, got)
+					}
+				}
+			}
+
+		})
 	}
 }
 
@@ -2959,6 +3033,111 @@ func TestResourceDataState_schema(t *testing.T) {
 	}
 }
 
+func TestResourceData_nonStringValuesInMap(t *testing.T) {
+	cases := []struct {
+		Schema       map[string]*Schema
+		Diff         *terraform.InstanceDiff
+		MapFieldName string
+		ItemName     string
+		ExpectedType string
+	}{
+		{
+			Schema: map[string]*Schema{
+				"boolMap": &Schema{
+					Type:     TypeMap,
+					Elem:     TypeBool,
+					Optional: true,
+				},
+			},
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"boolMap.%": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "1",
+					},
+					"boolMap.boolField": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "true",
+					},
+				},
+			},
+			MapFieldName: "boolMap",
+			ItemName:     "boolField",
+			ExpectedType: "bool",
+		},
+		{
+			Schema: map[string]*Schema{
+				"intMap": &Schema{
+					Type:     TypeMap,
+					Elem:     TypeInt,
+					Optional: true,
+				},
+			},
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"intMap.%": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "1",
+					},
+					"intMap.intField": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "8",
+					},
+				},
+			},
+			MapFieldName: "intMap",
+			ItemName:     "intField",
+			ExpectedType: "int",
+		},
+		{
+			Schema: map[string]*Schema{
+				"floatMap": &Schema{
+					Type:     TypeMap,
+					Elem:     TypeFloat,
+					Optional: true,
+				},
+			},
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"floatMap.%": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "1",
+					},
+					"floatMap.floatField": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "8.22",
+					},
+				},
+			},
+			MapFieldName: "floatMap",
+			ItemName:     "floatField",
+			ExpectedType: "float64",
+		},
+	}
+
+	for _, c := range cases {
+		d, err := schemaMap(c.Schema).Data(nil, c.Diff)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		m, ok := d.Get(c.MapFieldName).(map[string]interface{})
+		if !ok {
+			t.Fatalf("expected %q to be castable to a map", c.MapFieldName)
+		}
+		field, ok := m[c.ItemName]
+		if !ok {
+			t.Fatalf("expected %q in the map", c.ItemName)
+		}
+
+		typeName := reflect.TypeOf(field).Name()
+		if typeName != c.ExpectedType {
+			t.Fatalf("expected %q to be %q, it is %q.",
+				c.ItemName, c.ExpectedType, typeName)
+		}
+	}
+}
+
 func TestResourceDataSetConnInfo(t *testing.T) {
 	d := &ResourceData{}
 	d.SetId("foo")
@@ -2973,6 +3152,24 @@ func TestResourceDataSetConnInfo(t *testing.T) {
 	actual := d.State()
 	if !reflect.DeepEqual(actual.Ephemeral.ConnInfo, expected) {
 		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestResourceDataSetMeta_Timeouts(t *testing.T) {
+	d := &ResourceData{}
+	d.SetId("foo")
+
+	rt := ResourceTimeout{
+		Create: DefaultTimeout(7 * time.Minute),
+	}
+
+	d.timeouts = &rt
+
+	expected := expectedForValues(7, 0, 0, 0, 0)
+
+	actual := d.State()
+	if !reflect.DeepEqual(actual.Meta[TimeoutKey], expected) {
+		t.Fatalf("Bad Meta_timeout match:\n\texpected: %#v\n\tgot: %#v", expected, actual.Meta[TimeoutKey])
 	}
 }
 

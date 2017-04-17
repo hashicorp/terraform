@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas_v2/pools"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/pools"
 )
 
 func resourcePoolV2() *schema.Resource {
@@ -18,6 +18,11 @@ func resourcePoolV2() *schema.Resource {
 		Read:   resourcePoolV2Read,
 		Update: resourcePoolV2Update,
 		Delete: resourcePoolV2Delete,
+
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -50,7 +55,7 @@ func resourcePoolV2() *schema.Resource {
 				ForceNew: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
-					if value != "lTCP" && value != "HTTP" && value != "HTTPS" {
+					if value != "TCP" && value != "HTTP" && value != "HTTPS" {
 						errors = append(errors, fmt.Errorf(
 							"Only 'TCP', 'HTTP', and 'HTTPS' are supported values for 'protocol'"))
 					}
@@ -131,7 +136,7 @@ func resourcePoolV2() *schema.Resource {
 
 func resourcePoolV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -162,10 +167,33 @@ func resourcePoolV2Create(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
-	pool, err := pools.Create(networkingClient, createOpts).Extract()
+
+	var pool *pools.Pool
+	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		var err error
+		log.Printf("[DEBUG] Attempting to create LBaaSV2 pool")
+		pool, err = pools.Create(networkingClient, createOpts).Extract()
+		if err != nil {
+			switch errCode := err.(type) {
+			case gophercloud.ErrDefault500:
+				log.Printf("[DEBUG] OpenStack LBaaSV2 pool is still creating.")
+				return resource.RetryableError(err)
+			case gophercloud.ErrUnexpectedResponseCode:
+				if errCode.Actual == 409 {
+					log.Printf("[DEBUG] OpenStack LBaaSV2 pool is still creating.")
+					return resource.RetryableError(err)
+				}
+			default:
+				return resource.NonRetryableError(err)
+			}
+		}
+		return nil
+	})
+
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack LBaaSV2 pool: %s", err)
 	}
+
 	log.Printf("[INFO] pool ID: %s", pool.ID)
 
 	log.Printf("[DEBUG] Waiting for Openstack LBaaSV2 pool (%s) to become available.", pool.ID)
@@ -174,7 +202,7 @@ func resourcePoolV2Create(d *schema.ResourceData, meta interface{}) error {
 		Pending:    []string{"PENDING_CREATE"},
 		Target:     []string{"ACTIVE"},
 		Refresh:    waitForPoolActive(networkingClient, pool.ID),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutCreate),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -191,7 +219,7 @@ func resourcePoolV2Create(d *schema.ResourceData, meta interface{}) error {
 
 func resourcePoolV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -201,7 +229,7 @@ func resourcePoolV2Read(d *schema.ResourceData, meta interface{}) error {
 		return CheckDeleted(d, err, "LBV2 Pool")
 	}
 
-	log.Printf("[DEBUG] Retreived OpenStack LBaaSV2 Pool %s: %+v", d.Id(), pool)
+	log.Printf("[DEBUG] Retrieved OpenStack LBaaSV2 Pool %s: %+v", d.Id(), pool)
 
 	d.Set("lb_method", pool.LBMethod)
 	d.Set("protocol", pool.Protocol)
@@ -217,7 +245,7 @@ func resourcePoolV2Read(d *schema.ResourceData, meta interface{}) error {
 
 func resourcePoolV2Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -249,7 +277,7 @@ func resourcePoolV2Update(d *schema.ResourceData, meta interface{}) error {
 
 func resourcePoolV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -258,7 +286,7 @@ func resourcePoolV2Delete(d *schema.ResourceData, meta interface{}) error {
 		Pending:    []string{"ACTIVE", "PENDING_DELETE"},
 		Target:     []string{"DELETED"},
 		Refresh:    waitForPoolDelete(networkingClient, d.Id()),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -291,27 +319,29 @@ func waitForPoolDelete(networkingClient *gophercloud.ServiceClient, poolID strin
 
 		pool, err := pools.Get(networkingClient, poolID).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return pool, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack LBaaSV2 Pool %s", poolID)
 				return pool, "DELETED", nil
 			}
+			return pool, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] Openstack LBaaSV2 Pool: %+v", pool)
 		err = pools.Delete(networkingClient, poolID).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return pool, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack LBaaSV2 Pool %s", poolID)
 				return pool, "DELETED", nil
 			}
+
+			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+				if errCode.Actual == 409 {
+					log.Printf("[DEBUG] OpenStack LBaaSV2 Pool (%s) is still in use.", poolID)
+					return pool, "ACTIVE", nil
+				}
+			}
+
+			return pool, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack LBaaSV2 Pool %s still active.", poolID)

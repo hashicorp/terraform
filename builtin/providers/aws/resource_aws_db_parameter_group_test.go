@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"math/rand"
+	"regexp"
 	"testing"
 	"time"
 
@@ -290,6 +291,83 @@ func TestAccAWSDBParameterGroup_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSDBParameterGroup_namePrefix(t *testing.T) {
+	var v rds.DBParameterGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBParameterGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDBParameterGroupConfig_namePrefix,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBParameterGroupExists("aws_db_parameter_group.test", &v),
+					resource.TestMatchResourceAttr(
+						"aws_db_parameter_group.test", "name", regexp.MustCompile("^tf-test-")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBParameterGroup_generatedName(t *testing.T) {
+	var v rds.DBParameterGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBParameterGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDBParameterGroupConfig_generatedName,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBParameterGroupExists("aws_db_parameter_group.test", &v),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBParameterGroup_withApplyMethod(t *testing.T) {
+	var v rds.DBParameterGroup
+
+	groupName := fmt.Sprintf("parameter-group-test-terraform-%d", acctest.RandInt())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBParameterGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSDBParameterGroupConfigWithApplyMethod(groupName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBParameterGroupExists("aws_db_parameter_group.bar", &v),
+					testAccCheckAWSDBParameterGroupAttributes(&v, groupName),
+					resource.TestCheckResourceAttr(
+						"aws_db_parameter_group.bar", "name", groupName),
+					resource.TestCheckResourceAttr(
+						"aws_db_parameter_group.bar", "family", "mysql5.6"),
+					resource.TestCheckResourceAttr(
+						"aws_db_parameter_group.bar", "description", "Managed by Terraform"),
+					resource.TestCheckResourceAttr(
+						"aws_db_parameter_group.bar", "parameter.2421266705.name", "character_set_server"),
+					resource.TestCheckResourceAttr(
+						"aws_db_parameter_group.bar", "parameter.2421266705.value", "utf8"),
+					resource.TestCheckResourceAttr(
+						"aws_db_parameter_group.bar", "parameter.2421266705.apply_method", "immediate"),
+					resource.TestCheckResourceAttr(
+						"aws_db_parameter_group.bar", "parameter.2478663599.name", "character_set_client"),
+					resource.TestCheckResourceAttr(
+						"aws_db_parameter_group.bar", "parameter.2478663599.value", "utf8"),
+					resource.TestCheckResourceAttr(
+						"aws_db_parameter_group.bar", "parameter.2478663599.apply_method", "pending-reboot"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSDBParameterGroup_Only(t *testing.T) {
 	var v rds.DBParameterGroup
 
@@ -470,6 +548,26 @@ resource "aws_db_parameter_group" "bar" {
 }`, n)
 }
 
+func testAccAWSDBParameterGroupConfigWithApplyMethod(n string) string {
+	return fmt.Sprintf(`
+resource "aws_db_parameter_group" "bar" {
+	name = "%s"
+	family = "mysql5.6"
+	parameter {
+	  name = "character_set_server"
+	  value = "utf8"
+	}
+	parameter {
+	  name = "character_set_client"
+	  value = "utf8"
+	  apply_method = "pending-reboot"
+	}
+	tags {
+		foo = "bar"
+	}
+}`, n)
+}
+
 func testAccAWSDBParameterGroupAddParametersConfig(n string) string {
 	return fmt.Sprintf(`
 resource "aws_db_parameter_group" "bar" {
@@ -612,3 +710,26 @@ resource "aws_db_parameter_group" "large" {
     parameter { name = "tx_isolation"                        value = "REPEATABLE-READ"                                 }
 }`, n)
 }
+
+const testAccDBParameterGroupConfig_namePrefix = `
+resource "aws_db_parameter_group" "test" {
+	name_prefix = "tf-test-"
+	family = "mysql5.6"
+
+	parameter {
+		name = "sync_binlog"
+		value = 0
+	}
+}
+`
+
+const testAccDBParameterGroupConfig_generatedName = `
+resource "aws_db_parameter_group" "test" {
+	family = "mysql5.6"
+
+	parameter {
+		name = "sync_binlog"
+		value = 0
+	}
+}
+`

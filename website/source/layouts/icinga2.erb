@@ -1,0 +1,35 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+          <a href="/docs/providers/index.html">All Providers</a>
+        </li>
+
+        <li<%= sidebar_current("docs-icinga2-index") %>>
+          <a href="/docs/providers/icinga2/index.html">Icinga2 Provider</a>
+        </li>
+
+        <li<%= sidebar_current("docs-icinga2-resource") %>>
+          <a href="#">Resources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-icinga2-resource-checkcommand") %>>
+              <a href="/docs/providers/icinga2/r/checkcommands.html">icinga2_checkcommand</a>
+            </li>
+            <li<%= sidebar_current("docs-icinga2-resource-host") %>>
+              <a href="/docs/providers/icinga2/r/host.html">icinga2_host</a>
+            </li>
+            <li<%= sidebar_current("docs-icinga2-resource-hostgroup") %>>
+              <a href="/docs/providers/icinga2/r/hostgroup.html">icinga2_hostgroup</a>
+            </li>
+            <li<%= sidebar_current("docs-icinga2-resource-continuous_query") %>>
+              <a href="/docs/providers/icinga2/r/service.html">icinga2_service</a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= yield %>
+<% end %>

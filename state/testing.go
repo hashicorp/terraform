@@ -1,7 +1,6 @@
 package state
 
 import (
-	"bytes"
 	"reflect"
 	"testing"
 
@@ -29,12 +28,12 @@ func TestState(t *testing.T, s interface{}) {
 
 	// Check that the initial state is correct
 	if state := reader.State(); !current.Equal(state) {
-		t.Fatalf("not initial: %#v\n\n%#v", state, current)
+		t.Fatalf("not initial:\n%#v\n\n%#v", state, current)
 	}
 
 	// Write a new state and verify that we have it
 	if ws, ok := s.(StateWriter); ok {
-		current.Modules = append(current.Modules, &terraform.ModuleState{
+		current.AddModuleState(&terraform.ModuleState{
 			Path: []string{"root"},
 			Outputs: map[string]*terraform.OutputState{
 				"bar": &terraform.OutputState{
@@ -50,7 +49,7 @@ func TestState(t *testing.T, s interface{}) {
 		}
 
 		if actual := reader.State(); !actual.Equal(current) {
-			t.Fatalf("bad: %#v\n\n%#v", actual, current)
+			t.Fatalf("bad:\n%#v\n\n%#v", actual, current)
 		}
 	}
 
@@ -93,8 +92,7 @@ func TestState(t *testing.T, s interface{}) {
 		}
 
 		// Change the serial
-		currentCopy := *current
-		current = &currentCopy
+		current = current.DeepCopy()
 		current.Modules = []*terraform.ModuleState{
 			&terraform.ModuleState{
 				Path: []string{"root", "somewhere"},
@@ -146,7 +144,7 @@ func TestStateInitial() *terraform.State {
 		},
 	}
 
-	var scratch bytes.Buffer
-	terraform.WriteState(initial, &scratch)
+	initial.Init()
+
 	return initial
 }

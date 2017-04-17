@@ -28,6 +28,8 @@ func TestAccAWSAPIGatewayIntegrationResponse_basic(t *testing.T) {
 						"aws_api_gateway_integration_response.test", "response_templates.application/json", ""),
 					resource.TestCheckResourceAttr(
 						"aws_api_gateway_integration_response.test", "response_templates.application/xml", "#set($inputRoot = $input.path('$'))\n{ }"),
+					resource.TestCheckNoResourceAttr(
+						"aws_api_gateway_integration_response.test", "content_handling"),
 				),
 			},
 
@@ -40,6 +42,8 @@ func TestAccAWSAPIGatewayIntegrationResponse_basic(t *testing.T) {
 						"aws_api_gateway_integration_response.test", "response_templates.application/json", "$input.path('$')"),
 					resource.TestCheckResourceAttr(
 						"aws_api_gateway_integration_response.test", "response_templates.application/xml", ""),
+					resource.TestCheckResourceAttr(
+						"aws_api_gateway_integration_response.test", "content_handling", "CONVERT_TO_BINARY"),
 				),
 			},
 		},
@@ -185,11 +189,9 @@ resource "aws_api_gateway_method_response" "error" {
     "application/json" = "Error"
   }
 
-	response_parameters_in_json = <<PARAMS
-	{
-		"method.response.header.Content-Type": true
+	response_parameters = {
+		"method.response.header.Content-Type" = true
 	}
-	PARAMS
 }
 
 resource "aws_api_gateway_integration" "test" {
@@ -217,11 +219,9 @@ resource "aws_api_gateway_integration_response" "test" {
     "application/xml" = "#set($inputRoot = $input.path('$'))\n{ }"
   }
 
-	response_parameters_in_json = <<PARAMS
-	{
-		"method.response.header.Content-Type": "integration.response.body.type"
+	response_parameters = {
+		"method.response.header.Content-Type" = "integration.response.body.type"
 	}
-	PARAMS
 }
 `
 
@@ -257,11 +257,9 @@ resource "aws_api_gateway_method_response" "error" {
     "application/json" = "Error"
   }
 
-	response_parameters_in_json = <<PARAMS
-	{
-		"method.response.header.Content-Type": true
+	response_parameters = {
+		"method.response.header.Content-Type" = true
 	}
-	PARAMS
 }
 
 resource "aws_api_gateway_integration" "test" {
@@ -287,6 +285,8 @@ resource "aws_api_gateway_integration_response" "test" {
     "application/json" = "$input.path('$')"
     "application/xml" = ""
   }
+
+  content_handling = "CONVERT_TO_BINARY"
 
 }
 `

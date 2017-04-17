@@ -15,34 +15,43 @@ Provides a DynamoDB table resource
 The following dynamodb table description models the table and GSI shown
 in the [AWS SDK example documentation](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/GSI.html)
 
-```
+```hcl
 resource "aws_dynamodb_table" "basic-dynamodb-table" {
-    name = "GameScores"
-    read_capacity = 20
-    write_capacity = 20
-    hash_key = "UserId"
-    range_key = "GameTitle"
-    attribute {
-      name = "UserId"
-      type = "S"
-    }
-    attribute {
-      name = "GameTitle"
-      type = "S"
-    }
-    attribute {
-      name = "TopScore"
-      type = "N"
-    }
-    global_secondary_index {
-      name = "GameTitleIndex"
-      hash_key = "GameTitle"
-      range_key = "TopScore"
-      write_capacity = 10
-      read_capacity = 10
-      projection_type = "INCLUDE"
-      non_key_attributes = [ "UserId" ]
-    }
+  name           = "GameScores"
+  read_capacity  = 20
+  write_capacity = 20
+  hash_key       = "UserId"
+  range_key      = "GameTitle"
+
+  attribute {
+    name = "UserId"
+    type = "S"
+  }
+
+  attribute {
+    name = "GameTitle"
+    type = "S"
+  }
+
+  attribute {
+    name = "TopScore"
+    type = "N"
+  }
+
+  global_secondary_index {
+    name               = "GameTitleIndex"
+    hash_key           = "GameTitle"
+    range_key          = "TopScore"
+    write_capacity     = 10
+    read_capacity      = 10
+    projection_type    = "INCLUDE"
+    non_key_attributes = ["UserId"]
+  }
+
+  tags {
+    Name        = "dynamodb-table-1"
+    Environment = "production"
+  }
 }
 ```
 
@@ -69,6 +78,7 @@ definition after you have created the resource.
 * `global_secondary_index` - (Optional) Describe a GSO for the table;
   subject to the normal limits on the number of GSIs, projected
 attributes, etc.
+* `tags` - (Optional) A map of tags to populate on the created table.
 
 For both `local_secondary_index` and `global_secondary_index` objects,
 the following properties are supported:
@@ -116,3 +126,11 @@ The following attributes are exported:
 * `id` - The name of the table
 * `stream_arn` - The ARN of the Table Stream. Only available when `stream_enabled = true`
 
+
+## Import
+
+DynamoDB tables can be imported using the `name`, e.g.
+
+```
+$ terraform import aws_dynamodb_table.basic-dynamodb-table GameScores
+```

@@ -12,15 +12,15 @@ Manages a V2 Neutron subnet resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_networking_network_v2" "network_1" {
-  name = "tf_test_network"
+  name           = "tf_test_network"
   admin_state_up = "true"
 }
 
 resource "openstack_networking_subnet_v2" "subnet_1" {
   network_id = "${openstack_networking_network_v2.network_1.id}"
-  cidr = "192.168.199.0/24"
+  cidr       = "192.168.199.0/24"
 }
 ```
 
@@ -72,6 +72,8 @@ The following arguments are supported:
     with IPs from this subnet (not including local subnet route). The host_route
     object structure is documented below. Changing this updates the host routes
     for the existing subnet.
+
+* `value_specs` - (Optional) Map of additional options.
 
 The `allocation_pools` block supports:
 

@@ -24,10 +24,19 @@ want to wait, you need to use the `retain_on_delete` flag.
 
 The following example below creates a CloudFront distribution with an S3 origin.
 
-```
+```hcl
+resource "aws_s3_bucket" "b" {
+  bucket = "mybucket"
+  acl    = "private"
+
+  tags {
+    Name = "My bucket"
+  }
+}
+
 resource "aws_cloudfront_distribution" "s3_distribution" {
   origin {
-    domain_name = "mybucket.s3.amazonaws.com"
+    domain_name = "${aws_s3_bucket.b.bucket_domain_name}"
     origin_id   = "myS3Origin"
 
     s3_origin_config {
@@ -36,6 +45,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   }
 
   enabled             = true
+  is_ipv6_enabled     = true
   comment             = "Some comment"
   default_root_object = "index.html"
 
@@ -75,6 +85,10 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     }
   }
 
+  tags {
+    Environment = "production"
+  }
+
   viewer_certificate {
     cloudfront_default_certificate = true
   }
@@ -97,11 +111,9 @@ of several sub-resources - these resources are laid out below.
   * `comment` (Optional) - Any comments you want to include about the
     distribution.
 
-  * `custom_error_response` (Optional) - One or more [custom error
-    response](#custom-error-response-arguments) elements (multiples allowed).
+  * `custom_error_response` (Optional) - One or more [custom error response](#custom-error-response-arguments) elements (multiples allowed).
 
-  * `default_cache_behavior` (Required) - The [default cache
-    behavior](#default-cache-behavior-arguments) for this distribution (maximum
+  * `default_cache_behavior` (Required) - The [default cache behavior](#default-cache-behavior-arguments) for this distribution (maximum
     one).
 
   * `default_root_object` (Optional) - The object that you want CloudFront to
@@ -109,6 +121,12 @@ of several sub-resources - these resources are laid out below.
 
   * `enabled` (Required) - Whether the distribution is enabled to accept end
     user requests for content.
+
+  * `is_ipv6_enabled` (Optional) - Whether the IPv6 is enabled for the distribution.
+
+  * `http_version` (Optional) - The maximum HTTP version to support on the
+    distribution. Allowed values are `http1.1` and `http2`. The default is
+    `http2`.
 
   * `logging_config` (Optional) - The [logging
     configuration](#logging-config-arguments) that controls how logs are written
@@ -122,6 +140,8 @@ of several sub-resources - these resources are laid out below.
 
   * `restrictions` (Required) - The [restriction
     configuration](#restrictions-arguments) for this distribution (maximum one).
+
+  * `tags` - (Optional) A mapping of tags to assign to the resource.
 
   * `viewer_certificate` (Required) - The [SSL
     configuration](#viewer-certificate-arguments) for this distribution (maximum
@@ -151,9 +171,12 @@ of several sub-resources - these resources are laid out below.
     object is in a CloudFront cache before CloudFront forwards another request
     in the absence of an `Cache-Control max-age` or `Expires` header.
 
-  * `forwarded_values` (Required) - The [forwarded values
-    configuration](#forwarded-values-arguments) that specifies how CloudFront
+  * `forwarded_values` (Required) - The [forwarded values configuration](#forwarded-values-arguments) that specifies how CloudFront
     handles query strings, cookies and headers (maximum one).
+
+  * `lambda_function_association` (Optional) - A config block that triggers a lambda function with
+  specific actions. Defined below, maximum 4. **Lambda@Edge is in technical
+  Preview, and must be enabled on your AWS account to be used**
 
   * `max_ttl` (Required) - The maximum amount of time (in seconds) that an
     object is in a CloudFront cache before CloudFront forwards another request
@@ -195,6 +218,24 @@ of several sub-resources - these resources are laid out below.
 
   * `query_string` (Required) - Indicates whether you want CloudFront to forward
     query strings to the origin that is associated with this cache behavior.
+
+  * `query_string_cache_keys` (Optional) - When specified, along with a value of
+    `true` for `query_string`, all query strings are forwarded, however only the
+    query string keys listed in this argument are cached. When omitted with a
+    value of `true` for `query_string`, all query string keys are cached.
+
+##### Lambda Function Association
+
+Lambda@Edge allows you to associate an AWS Lambda Function with a predefined
+event. You can associate a single function per event type. See [What is
+Lambda@Edge](http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/what-is-lambda-at-edge.html)
+for more information
+
+  * `event_type` (Required) - The specific event to trigger this function.
+  Valid values: `viewer-request`, `origin-request`, `viewer-response`,
+  `origin-response`
+
+  * `lambda_arn` (Required) - ARN of the Lambda function.
 
 ##### Cookies Arguments
 
@@ -299,7 +340,8 @@ The arguments of `geo_restriction` are:
 
   * `acm_certificate_arn` - The ARN of the [AWS Certificate Manager][6]
     certificate that you wish to use with this distribution. Specify this,
-    `cloudfront_default_certificate`, or `iam_certificate_id`.
+    `cloudfront_default_certificate`, or `iam_certificate_id`.  The ACM
+    certificate must be in  US-EAST-1.
 
   * `cloudfront_default_certificate` - `true` if you want viewers to use HTTPS
     to request your objects and you're using the CloudFront domain name for your
@@ -347,7 +389,7 @@ The following attributes are exported:
 
   * `etag` - The current version of the distribution's information. For example:
     `E2QWRUHAPOMQZL`.
-  
+
   * `hosted_zone_id` - The CloudFront Route 53 zone ID that can be used to
      route an [Alias Resource Record Set][7] to. This attribute is simply an
      alias for the zone ID `Z2FDTNDATAQYW2`.
@@ -360,3 +402,12 @@ The following attributes are exported:
 [5]: /docs/providers/aws/r/cloudfront_origin_access_identity.html
 [6]: https://aws.amazon.com/certificate-manager/
 [7]: http://docs.aws.amazon.com/Route53/latest/APIReference/CreateAliasRRSAPI.html
+
+
+## Import
+
+Cloudfront Distributions can be imported using the `id`, e.g.
+
+```
+$ terraform import aws_cloudfront_distribution.distribution E74FTE3EXAMPLE
+```

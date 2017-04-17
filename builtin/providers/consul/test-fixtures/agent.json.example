@@ -1,0 +1,11 @@
+{
+    "ca_file": "./cacert.pem",
+    "cert_file": "./agentcert.pem",
+    "datacenter": "dc1",
+    "domain": "hashicorp.test",
+    "key_file": "./agentkey.pem",
+    "ports": {
+        "https": 8943
+    },
+    "verify_incoming": true
+}

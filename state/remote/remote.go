@@ -2,6 +2,8 @@ package remote
 
 import (
 	"fmt"
+
+	"github.com/hashicorp/terraform/state"
 )
 
 // Client is the interface that must be implemented for a remote state
@@ -11,6 +13,13 @@ type Client interface {
 	Get() (*Payload, error)
 	Put([]byte) error
 	Delete() error
+}
+
+// ClientLocker is an optional interface that allows a remote state
+// backend to enable state lock/unlock.
+type ClientLocker interface {
+	Client
+	state.Locker
 }
 
 // Payload is the return value from the remote state storage.
@@ -36,16 +45,12 @@ func NewClient(t string, conf map[string]string) (Client, error) {
 // BuiltinClients is the list of built-in clients that can be used with
 // NewClient.
 var BuiltinClients = map[string]Factory{
-	"atlas":       atlasFactory,
+	"artifactory": artifactoryFactory,
 	"azure":       azureFactory,
-	"consul":      consulFactory,
 	"etcd":        etcdFactory,
 	"gcs":         gcsFactory,
 	"http":        httpFactory,
-	"s3":          s3Factory,
+	"local":       fileFactory,
 	"swift":       swiftFactory,
-	"artifactory": artifactoryFactory,
-
-	// This is used for development purposes only.
-	"_local": fileFactory,
+	"manta":       mantaFactory,
 }

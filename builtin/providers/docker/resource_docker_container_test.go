@@ -1,6 +1,8 @@
 package docker
 
 import (
+	"archive/tar"
+	"bytes"
 	"fmt"
 	"testing"
 
@@ -126,6 +128,22 @@ func TestAccDockerContainer_customized(t *testing.T) {
 			return fmt.Errorf("Container has wrong dns search setting: %v", c.HostConfig.DNS[0])
 		}
 
+		if len(c.HostConfig.CapAdd) != 1 {
+			return fmt.Errorf("Container does not have the correct number of Capabilities in ADD: %d", len(c.HostConfig.CapAdd))
+		}
+
+		if c.HostConfig.CapAdd[0] != "ALL" {
+			return fmt.Errorf("Container has wrong CapAdd setting: %v", c.HostConfig.CapAdd[0])
+		}
+
+		if len(c.HostConfig.CapDrop) != 1 {
+			return fmt.Errorf("Container does not have the correct number of Capabilities in Drop: %d", len(c.HostConfig.CapDrop))
+		}
+
+		if c.HostConfig.CapDrop[0] != "SYS_ADMIN" {
+			return fmt.Errorf("Container has wrong CapDrop setting: %v", c.HostConfig.CapDrop[0])
+		}
+
 		if c.HostConfig.CPUShares != 32 {
 			return fmt.Errorf("Container has wrong cpu shares setting: %d", c.HostConfig.CPUShares)
 		}
@@ -171,6 +189,55 @@ func TestAccDockerContainer_customized(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccDockerContainerCustomizedConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccContainerRunning("docker_container.foo", &c),
+					testCheck,
+				),
+			},
+		},
+	})
+}
+
+func TestAccDockerContainer_upload(t *testing.T) {
+	var c dc.Container
+
+	testCheck := func(*terraform.State) error {
+		client := testAccProvider.Meta().(*dc.Client)
+
+		buf := new(bytes.Buffer)
+		opts := dc.DownloadFromContainerOptions{
+			OutputStream: buf,
+			Path:         "/terraform/test.txt",
+		}
+
+		if err := client.DownloadFromContainer(c.ID, opts); err != nil {
+			return fmt.Errorf("Unable to download a file from container: %s", err)
+		}
+
+		r := bytes.NewReader(buf.Bytes())
+		tr := tar.NewReader(r)
+
+		if _, err := tr.Next(); err != nil {
+			return fmt.Errorf("Unable to read content of tar archive: %s", err)
+		}
+
+		fbuf := new(bytes.Buffer)
+		fbuf.ReadFrom(tr)
+		content := fbuf.String()
+
+		if content != "foo" {
+			return fmt.Errorf("file content is invalid")
+		}
+
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDockerContainerUploadConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning("docker_container.foo", &c),
 					testCheck,
@@ -260,6 +327,12 @@ resource "docker_container" "foo" {
 	memory = 512
 	memory_swap = 2048
 	cpu_shares = 32
+
+	capabilities {
+		add= ["ALL"]
+		drop = ["SYS_ADMIN"]
+	}
+
 	dns = ["8.8.8.8"]
 	dns_opts = ["rotate"]
 	dns_search = ["example.com"]
@@ -282,6 +355,22 @@ resource "docker_container" "foo" {
 	host {
 		host = "testhost2"
 		ip = "10.0.2.0"
+	}
+}
+`
+
+const testAccDockerContainerUploadConfig = `
+resource "docker_image" "foo" {
+	name = "nginx:latest"
+}
+
+resource "docker_container" "foo" {
+	name = "tf-test"
+	image = "${docker_image.foo.latest}"
+
+	upload {
+		content = "foo"
+		file = "/terraform/test.txt"
 	}
 }
 `

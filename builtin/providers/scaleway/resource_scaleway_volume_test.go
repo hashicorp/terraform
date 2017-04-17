@@ -60,7 +60,7 @@ func testAccCheckScalewayVolumeAttributes(n string) resource.TestCheckFunc {
 		if volume.Name != "test" {
 			return fmt.Errorf("volume has wrong name: %q", volume.Name)
 		}
-		if volume.Size != 2000000000 {
+		if volume.Size != 2e+09 {
 			return fmt.Errorf("volume has wrong size: %d", volume.Size)
 		}
 		if volume.VolumeType != "l_ssd" {

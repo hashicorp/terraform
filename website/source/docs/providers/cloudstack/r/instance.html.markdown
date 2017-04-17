@@ -6,20 +6,20 @@ description: |-
   Creates and automatically starts a virtual machine based on a service offering, disk offering, and template.
 ---
 
-# cloudstack\_instance
+# cloudstack_instance
 
 Creates and automatically starts a virtual machine based on a service offering,
 disk offering, and template.
 
 ## Example Usage
 
-```
+```hcl
 resource "cloudstack_instance" "web" {
-    name = "server-1"
-    service_offering= "small"
-    network_id = "6eb22f91-7454-4107-89f4-36afcdf33021"
-    template = "CentOS 6.5"
-    zone = "zone-1"
+  name             = "server-1"
+  service_offering = "small"
+  network_id       = "6eb22f91-7454-4107-89f4-36afcdf33021"
+  template         = "CentOS 6.5"
+  zone             = "zone-1"
 }
 ```
 
@@ -82,4 +82,3 @@ The following attributes are exported:
 
 * `id` - The instance ID.
 * `display_name` - The display name of the instance.
-

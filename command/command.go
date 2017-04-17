@@ -2,6 +2,8 @@ package command
 
 import (
 	"fmt"
+	"log"
+	"os"
 
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
@@ -26,8 +28,53 @@ const DefaultBackupExtension = ".backup"
 // operations as it walks the dependency graph.
 const DefaultParallelism = 10
 
+// ErrUnsupportedLocalOp is the common error message shown for operations
+// that require a backend.Local.
+const ErrUnsupportedLocalOp = `The configured backend doesn't support this operation.
+
+The "backend" in Terraform defines how Terraform operates. The default
+backend performs all operations locally on your machine. Your configuration
+is configured to use a non-local backend. This backend doesn't support this
+operation.
+
+If you want to use the state from the backend but force all other data
+(configuration, variables, etc.) to come locally, you can force local
+behavior with the "-local" flag.
+`
+
+// ModulePath returns the path to the root module from the CLI args.
+//
+// This centralizes the logic for any commands that expect a module path
+// on their CLI args. This will verify that only one argument is given
+// and that it is a path to configuration.
+//
+// If your command accepts more than one arg, then change the slice bounds
+// to pass validation.
+func ModulePath(args []string) (string, error) {
+	// TODO: test
+
+	if len(args) > 1 {
+		return "", fmt.Errorf("Too many command line arguments. Configuration path expected.")
+	}
+
+	if len(args) == 0 {
+		path, err := os.Getwd()
+		if err != nil {
+			return "", fmt.Errorf("Error getting pwd: %s", err)
+		}
+
+		return path, nil
+	}
+
+	return args[0], nil
+}
+
 func validateContext(ctx *terraform.Context, ui cli.Ui) bool {
-	if ws, es := ctx.Validate(); len(ws) > 0 || len(es) > 0 {
+	log.Println("[INFO] Validating the context...")
+	ws, es := ctx.Validate()
+	log.Printf("[INFO] Validation result: %d warnings, %d errors", len(ws), len(es))
+
+	if len(ws) > 0 || len(es) > 0 {
 		ui.Output(
 			"There are warnings and/or errors related to your configuration. Please\n" +
 				"fix these before continuing.\n")

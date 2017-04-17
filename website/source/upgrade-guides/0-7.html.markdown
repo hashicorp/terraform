@@ -89,9 +89,9 @@ This allows double quote characters to be expressed properly within strings insi
 
 ## Safer `terraform plan` Behavior
 
-Prior to v0.7, the `terraform plan` command had the potential to write updates to the state if changes were detected during the Refresh step (which happens by default during `plan`). Some configurations have metadata that changes which every read, so Refresh would always result in changes to the state, and therefore a write.
+Prior to v0.7, the `terraform plan` command had the potential to write updates to the state if changes were detected during the Refresh step (which happens by default during `plan`). Some configurations have metadata that changes with every read, so Refresh would always result in changes to the state, and therefore a write.
 
-In collaborative enviroments with shared remote state, this potential side effect of `plan` would cause unnecessary contention over the state, and potentially even interfere with active `apply` operations if they were happening simultaneously elsewhere.
+In collaborative environments with shared remote state, this potential side effect of `plan` would cause unnecessary contention over the state, and potentially even interfere with active `apply` operations if they were happening simultaneously elsewhere.
 
 Terraform v0.7 addresses this by changing the Refresh process that is run during `terraform plan` to always be an in-memory only refresh. New state information detected during this step will not be persisted to permanent state storage.
 
@@ -130,6 +130,34 @@ data "template_file" "example" {
 }
 resource "aws_instance" "example" {
   user_data = "${data.template_file.example.rendered}"
+  # ...
+}
+```
+
+Referencing remote state outputs has also changed. The `.output` keyword is no longer required.
+
+For example, a config like this:
+
+```
+resource "terraform_remote_state" "example" {
+  # ...
+}
+
+resource "aws_instance" "example" {
+  ami = "${terraform_remote_state.example.output.ami_id}"
+  # ...
+}
+```
+
+Would now look like this:
+
+```
+data "terraform_remote_state" "example" {
+  # ...
+}
+
+resource "aws_instance" "example" {
+  ami = "${data.terraform_remote_state.example.ami_id}"
   # ...
 }
 ```
@@ -189,10 +217,10 @@ variable "amis" {
 }
 ```
 
-The key "us-west-2" could be overridden using `-var "amis.us-west-2=overriden_value"` (or equivalent in an environment variable or `tfvars` file). The syntax for this has now changed - instead maps from the command line will be merged with the default value, with maps from flags taking precedence. The syntax for overriding individual values is now:
+The key "us-west-2" could be overridden using `-var "amis.us-west-2=overridden_value"` (or equivalent in an environment variable or `tfvars` file). The syntax for this has now changed - instead maps from the command line will be merged with the default value, with maps from flags taking precedence. The syntax for overriding individual values is now:
 
 ```
--var 'amis = { us-west-2 = "overriden_value" }'
+-var 'amis = { us-west-2 = "overridden_value" }'
 ```
 
 This will give the map the effective value:
@@ -200,9 +228,9 @@ This will give the map the effective value:
 ```
 {
   us-east-1 = "ami-123456"
-  us-west-2 = "overriden_value"
+  us-west-2 = "overridden_value"
   eu-west-1 = "ami-789123"
 }
 ```
 
-It's also possible to override the values in a variables file, either in `terraform.tfvars` or specified using the `-var-file` flag. 
+It's also possible to override the values in a variables file, either in `terraform.tfvars` or specified using the `-var-file` flag.

@@ -28,12 +28,7 @@ func resourceArmPublicIp() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -42,12 +37,11 @@ func resourceArmPublicIp() *schema.Resource {
 			},
 
 			"public_ip_address_allocation": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validatePublicIpAllocation,
-				StateFunc: func(val interface{}) string {
-					return strings.ToLower(val.(string))
-				},
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateFunc:     validatePublicIpAllocation,
+				StateFunc:        ignoreCaseStateFunc,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"idle_timeout_in_minutes": {
@@ -125,15 +119,15 @@ func resourceArmPublicIpCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if v, ok := d.GetOk("idle_timeout_in_minutes"); ok {
-		idle_timeout := v.(int32)
+		idle_timeout := int32(v.(int))
 		properties.IdleTimeoutInMinutes = &idle_timeout
 	}
 
 	publicIp := network.PublicIPAddress{
-		Name:       &name,
-		Location:   &location,
-		Properties: &properties,
-		Tags:       expandTags(tags),
+		Name:                            &name,
+		Location:                        &location,
+		PublicIPAddressPropertiesFormat: &properties,
+		Tags: expandTags(tags),
 	}
 
 	_, err := publicIPClient.CreateOrUpdate(resGroup, name, publicIp, make(chan struct{}))
@@ -165,24 +159,25 @@ func resourceArmPublicIpRead(d *schema.ResourceData, meta interface{}) error {
 	name := id.Path["publicIPAddresses"]
 
 	resp, err := publicIPClient.Get(resGroup, name, "")
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
-	}
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure public ip %s: %s", name, err)
 	}
 
+	d.Set("resource_group_name", resGroup)
 	d.Set("location", resp.Location)
 	d.Set("name", resp.Name)
-	d.Set("public_ip_address_allocation", strings.ToLower(string(resp.Properties.PublicIPAllocationMethod)))
+	d.Set("public_ip_address_allocation", strings.ToLower(string(resp.PublicIPAddressPropertiesFormat.PublicIPAllocationMethod)))
 
-	if resp.Properties.DNSSettings != nil && resp.Properties.DNSSettings.Fqdn != nil && *resp.Properties.DNSSettings.Fqdn != "" {
-		d.Set("fqdn", resp.Properties.DNSSettings.Fqdn)
+	if resp.PublicIPAddressPropertiesFormat.DNSSettings != nil && resp.PublicIPAddressPropertiesFormat.DNSSettings.Fqdn != nil && *resp.PublicIPAddressPropertiesFormat.DNSSettings.Fqdn != "" {
+		d.Set("fqdn", resp.PublicIPAddressPropertiesFormat.DNSSettings.Fqdn)
 	}
 
-	if resp.Properties.IPAddress != nil && *resp.Properties.IPAddress != "" {
-		d.Set("ip_address", resp.Properties.IPAddress)
+	if resp.PublicIPAddressPropertiesFormat.IPAddress != nil && *resp.PublicIPAddressPropertiesFormat.IPAddress != "" {
+		d.Set("ip_address", resp.PublicIPAddressPropertiesFormat.IPAddress)
 	}
 
 	flattenAndSetTags(d, resp.Tags)

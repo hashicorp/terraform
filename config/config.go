@@ -17,7 +17,7 @@ import (
 
 // NameRegexp is the regular expression that all names (modules, providers,
 // resources, etc.) must follow.
-var NameRegexp = regexp.MustCompile(`\A[A-Za-z0-9\-\_]+\z`)
+var NameRegexp = regexp.MustCompile(`(?i)\A[A-Z0-9_][A-Z0-9\-\_]*\z`)
 
 // Config is the configuration that comes from loading a collection
 // of Terraform templates.
@@ -27,6 +27,7 @@ type Config struct {
 	// any meaningful directory.
 	Dir string
 
+	Terraform       *Terraform
 	Atlas           *AtlasConfig
 	Modules         []*Module
 	ProviderConfigs []*ProviderConfig
@@ -128,6 +129,9 @@ type Provisioner struct {
 	Type      string
 	RawConfig *RawConfig
 	ConnInfo  *RawConfig
+
+	When      ProvisionerWhen
+	OnFailure ProvisionerOnFailure
 }
 
 // Copy returns a copy of this Provisioner
@@ -136,6 +140,8 @@ func (p *Provisioner) Copy() *Provisioner {
 		Type:      p.Type,
 		RawConfig: p.RawConfig.Copy(),
 		ConnInfo:  p.ConnInfo.Copy(),
+		When:      p.When,
+		OnFailure: p.OnFailure,
 	}
 }
 
@@ -152,9 +158,11 @@ type Variable struct {
 // output marked Sensitive will be output in a masked form following
 // application, but will still be available in state.
 type Output struct {
-	Name      string
-	Sensitive bool
-	RawConfig *RawConfig
+	Name        string
+	DependsOn   []string
+	Description string
+	Sensitive   bool
+	RawConfig   *RawConfig
 }
 
 // VariableType is the type of value a variable is holding, and returned
@@ -203,7 +211,14 @@ func (r *Module) Id() string {
 
 // Count returns the count of this resource.
 func (r *Resource) Count() (int, error) {
-	v, err := strconv.ParseInt(r.RawCount.Value().(string), 0, 0)
+	raw := r.RawCount.Value()
+	count, ok := r.RawCount.Value().(string)
+	if !ok {
+		return 0, fmt.Errorf(
+			"expected count to be a string or int, got %T", raw)
+	}
+
+	v, err := strconv.ParseInt(count, 0, 0)
 	if err != nil {
 		return 0, err
 	}
@@ -236,10 +251,29 @@ func (c *Config) Validate() error {
 			"Unknown root level key: %s", k))
 	}
 
+	// Validate the Terraform config
+	if tf := c.Terraform; tf != nil {
+		errs = append(errs, c.Terraform.Validate()...)
+	}
+
 	vars := c.InterpolatedVariables()
 	varMap := make(map[string]*Variable)
 	for _, v := range c.Variables {
+		if _, ok := varMap[v.Name]; ok {
+			errs = append(errs, fmt.Errorf(
+				"Variable '%s': duplicate found. Variable names must be unique.",
+				v.Name))
+		}
+
 		varMap[v.Name] = v
+	}
+
+	for k, _ := range varMap {
+		if !NameRegexp.MatchString(k) {
+			errs = append(errs, fmt.Errorf(
+				"variable %q: variable name must match regular expresion %s",
+				k, NameRegexp))
+		}
 	}
 
 	for _, v := range c.Variables {
@@ -251,8 +285,15 @@ func (c *Config) Validate() error {
 		}
 
 		interp := false
-		fn := func(ast.Node) (interface{}, error) {
-			interp = true
+		fn := func(n ast.Node) (interface{}, error) {
+			// LiteralNode is a literal string (outside of a ${ ... } sequence).
+			// interpolationWalker skips most of these. but in particular it
+			// visits those that have escaped sequences (like $${foo}) as a
+			// signal that *some* processing is required on this string. For
+			// our purposes here though, this is fine and not an interpolation.
+			if _, ok := n.(*ast.LiteralNode); !ok {
+				interp = true
+			}
 			return "", nil
 		}
 
@@ -458,20 +499,22 @@ func (c *Config) Validate() error {
 					"%s: resource count can't reference count variable: %s",
 					n,
 					v.FullKey()))
+			case *SimpleVariable:
+				errs = append(errs, fmt.Errorf(
+					"%s: resource count can't reference variable: %s",
+					n,
+					v.FullKey()))
+
+			// Good
 			case *ModuleVariable:
-				errs = append(errs, fmt.Errorf(
-					"%s: resource count can't reference module variable: %s",
-					n,
-					v.FullKey()))
 			case *ResourceVariable:
-				errs = append(errs, fmt.Errorf(
-					"%s: resource count can't reference resource variable: %s",
-					n,
-					v.FullKey()))
+			case *TerraformVariable:
 			case *UserVariable:
-				// Good
+
 			default:
-				panic("Unknown type in count var: " + n)
+				errs = append(errs, fmt.Errorf(
+					"Internal error. Unknown type in count var in %s: %T",
+					n, v))
 			}
 		}
 
@@ -497,36 +540,10 @@ func (c *Config) Validate() error {
 		}
 		r.RawCount.init()
 
-		// Verify depends on points to resources that all exist
-		for _, d := range r.DependsOn {
-			// Check if we contain interpolations
-			rc, err := NewRawConfig(map[string]interface{}{
-				"value": d,
-			})
-			if err == nil && len(rc.Variables) > 0 {
-				errs = append(errs, fmt.Errorf(
-					"%s: depends on value cannot contain interpolations: %s",
-					n, d))
-				continue
-			}
+		// Validate DependsOn
+		errs = append(errs, c.validateDependsOn(n, r.DependsOn, resources, modules)...)
 
-			if _, ok := resources[d]; !ok {
-				errs = append(errs, fmt.Errorf(
-					"%s: resource depends on non-existent resource '%s'",
-					n, d))
-			}
-		}
-
-		// Verify provider points to a provider that is configured
-		if r.Provider != "" {
-			if _, ok := providerSet[r.Provider]; !ok {
-				errs = append(errs, fmt.Errorf(
-					"%s: resource depends on non-configured provider '%s'",
-					n, r.Provider))
-			}
-		}
-
-		// Verify provisioners don't contain any splats
+		// Verify provisioners
 		for _, p := range r.Provisioners {
 			// This validation checks that there are now splat variables
 			// referencing ourself. This currently is not allowed.
@@ -558,6 +575,49 @@ func (c *Config) Validate() error {
 					break
 				}
 			}
+
+			// Check for invalid when/onFailure values, though this should be
+			// picked up by the loader we check here just in case.
+			if p.When == ProvisionerWhenInvalid {
+				errs = append(errs, fmt.Errorf(
+					"%s: provisioner 'when' value is invalid", n))
+			}
+			if p.OnFailure == ProvisionerOnFailureInvalid {
+				errs = append(errs, fmt.Errorf(
+					"%s: provisioner 'on_failure' value is invalid", n))
+			}
+		}
+
+		// Verify ignore_changes contains valid entries
+		for _, v := range r.Lifecycle.IgnoreChanges {
+			if strings.Contains(v, "*") && v != "*" {
+				errs = append(errs, fmt.Errorf(
+					"%s: ignore_changes does not support using a partial string "+
+						"together with a wildcard: %s", n, v))
+			}
+		}
+
+		// Verify ignore_changes has no interpolations
+		rc, err := NewRawConfig(map[string]interface{}{
+			"root": r.Lifecycle.IgnoreChanges,
+		})
+		if err != nil {
+			errs = append(errs, fmt.Errorf(
+				"%s: lifecycle ignore_changes error: %s",
+				n, err))
+		} else if len(rc.Interpolations) > 0 {
+			errs = append(errs, fmt.Errorf(
+				"%s: lifecycle ignore_changes cannot contain interpolations",
+				n))
+		}
+
+		// If it is a data source then it can't have provisioners
+		if r.Mode == DataResourceMode {
+			if _, ok := r.RawConfig.Raw["provisioner"]; ok {
+				errs = append(errs, fmt.Errorf(
+					"%s: data sources cannot have provisioners",
+					n))
+			}
 		}
 	}
 
@@ -581,43 +641,66 @@ func (c *Config) Validate() error {
 	}
 
 	// Check that all outputs are valid
-	for _, o := range c.Outputs {
-		var invalidKeys []string
-		valueKeyFound := false
-		for k := range o.RawConfig.Raw {
-			if k == "value" {
-				valueKeyFound = true
-				continue
-			}
-			if k == "sensitive" {
-				if sensitive, ok := o.RawConfig.config[k].(bool); ok {
-					if sensitive {
-						o.Sensitive = true
-					}
-					continue
-				}
-
+	{
+		found := make(map[string]struct{})
+		for _, o := range c.Outputs {
+			// Verify the output is new
+			if _, ok := found[o.Name]; ok {
 				errs = append(errs, fmt.Errorf(
-					"%s: value for 'sensitive' must be boolean",
+					"%s: duplicate output. output names must be unique.",
 					o.Name))
 				continue
 			}
-			invalidKeys = append(invalidKeys, k)
-		}
-		if len(invalidKeys) > 0 {
-			errs = append(errs, fmt.Errorf(
-				"%s: output has invalid keys: %s",
-				o.Name, strings.Join(invalidKeys, ", ")))
-		}
-		if !valueKeyFound {
-			errs = append(errs, fmt.Errorf(
-				"%s: output is missing required 'value' key", o.Name))
-		}
+			found[o.Name] = struct{}{}
 
-		for _, v := range o.RawConfig.Variables {
-			if _, ok := v.(*CountVariable); ok {
+			var invalidKeys []string
+			valueKeyFound := false
+			for k := range o.RawConfig.Raw {
+				if k == "value" {
+					valueKeyFound = true
+					continue
+				}
+				if k == "sensitive" {
+					if sensitive, ok := o.RawConfig.config[k].(bool); ok {
+						if sensitive {
+							o.Sensitive = true
+						}
+						continue
+					}
+
+					errs = append(errs, fmt.Errorf(
+						"%s: value for 'sensitive' must be boolean",
+						o.Name))
+					continue
+				}
+				if k == "description" {
+					if desc, ok := o.RawConfig.config[k].(string); ok {
+						o.Description = desc
+						continue
+					}
+
+					errs = append(errs, fmt.Errorf(
+						"%s: value for 'description' must be string",
+						o.Name))
+					continue
+				}
+				invalidKeys = append(invalidKeys, k)
+			}
+			if len(invalidKeys) > 0 {
 				errs = append(errs, fmt.Errorf(
-					"%s: count variables are only valid within resources", o.Name))
+					"%s: output has invalid keys: %s",
+					o.Name, strings.Join(invalidKeys, ", ")))
+			}
+			if !valueKeyFound {
+				errs = append(errs, fmt.Errorf(
+					"%s: output is missing required 'value' key", o.Name))
+			}
+
+			for _, v := range o.RawConfig.Variables {
+				if _, ok := v.(*CountVariable); ok {
+					errs = append(errs, fmt.Errorf(
+						"%s: count variables are only valid within resources", o.Name))
+				}
 			}
 		}
 	}
@@ -755,6 +838,48 @@ func (c *Config) validateVarContextFn(
 	}
 }
 
+func (c *Config) validateDependsOn(
+	n string,
+	v []string,
+	resources map[string]*Resource,
+	modules map[string]*Module) []error {
+	// Verify depends on points to resources that all exist
+	var errs []error
+	for _, d := range v {
+		// Check if we contain interpolations
+		rc, err := NewRawConfig(map[string]interface{}{
+			"value": d,
+		})
+		if err == nil && len(rc.Variables) > 0 {
+			errs = append(errs, fmt.Errorf(
+				"%s: depends on value cannot contain interpolations: %s",
+				n, d))
+			continue
+		}
+
+		// If it is a module, verify it is a module
+		if strings.HasPrefix(d, "module.") {
+			name := d[len("module."):]
+			if _, ok := modules[name]; !ok {
+				errs = append(errs, fmt.Errorf(
+					"%s: resource depends on non-existent module '%s'",
+					n, name))
+			}
+
+			continue
+		}
+
+		// Check resources
+		if _, ok := resources[d]; !ok {
+			errs = append(errs, fmt.Errorf(
+				"%s: resource depends on non-existent resource '%s'",
+				n, d))
+		}
+	}
+
+	return errs
+}
+
 func (m *Module) mergerName() string {
 	return m.Id()
 }
@@ -782,7 +907,10 @@ func (o *Output) mergerMerge(m merger) merger {
 
 	result := *o
 	result.Name = o2.Name
+	result.Description = o2.Description
 	result.RawConfig = result.RawConfig.merge(o2.RawConfig)
+	result.Sensitive = o2.Sensitive
+	result.DependsOn = o2.DependsOn
 
 	return &result
 }
@@ -809,6 +937,10 @@ func (c *ProviderConfig) mergerMerge(m merger) merger {
 	result := *c
 	result.Name = c2.Name
 	result.RawConfig = result.RawConfig.merge(c2.RawConfig)
+
+	if c2.Alias != "" {
+		result.Alias = c2.Alias
+	}
 
 	return &result
 }
@@ -845,6 +977,9 @@ func (v *Variable) Merge(v2 *Variable) *Variable {
 	// The names should be the same, but the second name always wins.
 	result.Name = v2.Name
 
+	if v2.DeclaredType != "" {
+		result.DeclaredType = v2.DeclaredType
+	}
 	if v2.Default != nil {
 		result.Default = v2.Default
 	}

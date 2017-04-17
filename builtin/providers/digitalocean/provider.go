@@ -9,7 +9,7 @@ import (
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"token": &schema.Schema{
+			"token": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("DIGITALOCEAN_TOKEN", nil),
@@ -18,13 +18,14 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"digitalocean_domain":      resourceDigitalOceanDomain(),
-			"digitalocean_droplet":     resourceDigitalOceanDroplet(),
-			"digitalocean_floating_ip": resourceDigitalOceanFloatingIp(),
-			"digitalocean_record":      resourceDigitalOceanRecord(),
-			"digitalocean_ssh_key":     resourceDigitalOceanSSHKey(),
-			"digitalocean_tag":         resourceDigitalOceanTag(),
-			"digitalocean_volume":      resourceDigitalOceanVolume(),
+			"digitalocean_domain":       resourceDigitalOceanDomain(),
+			"digitalocean_droplet":      resourceDigitalOceanDroplet(),
+			"digitalocean_floating_ip":  resourceDigitalOceanFloatingIp(),
+			"digitalocean_loadbalancer": resourceDigitalOceanLoadbalancer(),
+			"digitalocean_record":       resourceDigitalOceanRecord(),
+			"digitalocean_ssh_key":      resourceDigitalOceanSSHKey(),
+			"digitalocean_tag":          resourceDigitalOceanTag(),
+			"digitalocean_volume":       resourceDigitalOceanVolume(),
 		},
 
 		ConfigureFunc: providerConfigure,

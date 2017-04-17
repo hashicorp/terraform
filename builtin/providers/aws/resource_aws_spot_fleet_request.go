@@ -2,9 +2,6 @@ package aws
 
 import (
 	"bytes"
-	"crypto/sha1"
-	"encoding/base64"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"strconv"
@@ -25,74 +22,83 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 		Delete: resourceAwsSpotFleetRequestDelete,
 		Update: resourceAwsSpotFleetRequestUpdate,
 
+		SchemaVersion: 1,
+		MigrateState:  resourceAwsSpotFleetRequestMigrateState,
+
 		Schema: map[string]*schema.Schema{
-			"iam_fleet_role": &schema.Schema{
+			"iam_fleet_role": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
+			"replace_unhealthy_instances": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+				Default:  false,
+			},
 			// http://docs.aws.amazon.com/sdk-for-go/api/service/ec2.html#type-SpotFleetLaunchSpecification
 			// http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_SpotFleetLaunchSpecification.html
-			"launch_specification": &schema.Schema{
+			"launch_specification": {
 				Type:     schema.TypeSet,
 				Required: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"vpc_security_group_ids": &schema.Schema{
+						"vpc_security_group_ids": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Computed: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Set:      schema.HashString,
 						},
-						"associate_public_ip_address": &schema.Schema{
+						"associate_public_ip_address": {
 							Type:     schema.TypeBool,
 							Optional: true,
-							Default:  true,
+							Default:  false,
 						},
-						"ebs_block_device": &schema.Schema{
+						"ebs_block_device": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Computed: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"delete_on_termination": &schema.Schema{
+									"delete_on_termination": {
 										Type:     schema.TypeBool,
 										Optional: true,
 										Default:  true,
 										ForceNew: true,
 									},
-									"device_name": &schema.Schema{
+									"device_name": {
 										Type:     schema.TypeString,
 										Required: true,
 										ForceNew: true,
 									},
-									"encrypted": &schema.Schema{
+									"encrypted": {
 										Type:     schema.TypeBool,
 										Optional: true,
 										Computed: true,
 										ForceNew: true,
 									},
-									"iops": &schema.Schema{
+									"iops": {
 										Type:     schema.TypeInt,
 										Optional: true,
 										Computed: true,
 										ForceNew: true,
 									},
-									"snapshot_id": &schema.Schema{
+									"snapshot_id": {
 										Type:     schema.TypeString,
 										Optional: true,
 										Computed: true,
 										ForceNew: true,
 									},
-									"volume_size": &schema.Schema{
+									"volume_size": {
 										Type:     schema.TypeInt,
 										Optional: true,
 										Computed: true,
 										ForceNew: true,
 									},
-									"volume_type": &schema.Schema{
+									"volume_type": {
 										Type:     schema.TypeString,
 										Optional: true,
 										Computed: true,
@@ -102,18 +108,18 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 							},
 							Set: hashEbsBlockDevice,
 						},
-						"ephemeral_block_device": &schema.Schema{
+						"ephemeral_block_device": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Computed: true,
 							ForceNew: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"device_name": &schema.Schema{
+									"device_name": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"virtual_name": &schema.Schema{
+									"virtual_name": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
@@ -121,7 +127,7 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 							},
 							Set: hashEphemeralBlockDevice,
 						},
-						"root_block_device": &schema.Schema{
+						"root_block_device": {
 							// TODO: This is a set because we don't support singleton
 							//       sub-resources today. We'll enforce that the set only ever has
 							//       length zero or one below. When TF gains support for
@@ -134,25 +140,25 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 								// Termination flag on the block device mapping entry for the root
 								// device volume." - bit.ly/ec2bdmap
 								Schema: map[string]*schema.Schema{
-									"delete_on_termination": &schema.Schema{
+									"delete_on_termination": {
 										Type:     schema.TypeBool,
 										Optional: true,
 										Default:  true,
 										ForceNew: true,
 									},
-									"iops": &schema.Schema{
+									"iops": {
 										Type:     schema.TypeInt,
 										Optional: true,
 										Computed: true,
 										ForceNew: true,
 									},
-									"volume_size": &schema.Schema{
+									"volume_size": {
 										Type:     schema.TypeInt,
 										Optional: true,
 										Computed: true,
 										ForceNew: true,
 									},
-									"volume_type": &schema.Schema{
+									"volume_type": {
 										Type:     schema.TypeString,
 										Optional: true,
 										Computed: true,
@@ -162,76 +168,77 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 							},
 							Set: hashRootBlockDevice,
 						},
-						"ebs_optimized": &schema.Schema{
+						"ebs_optimized": {
 							Type:     schema.TypeBool,
 							Optional: true,
+							Default:  false,
 						},
-						"iam_instance_profile": &schema.Schema{
+						"iam_instance_profile": {
 							Type:     schema.TypeString,
 							ForceNew: true,
 							Optional: true,
 						},
-						"ami": &schema.Schema{
+						"ami": {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
 						},
-						"instance_type": &schema.Schema{
+						"instance_type": {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
 						},
-						"key_name": &schema.Schema{
+						"key_name": {
 							Type:         schema.TypeString,
 							Optional:     true,
 							ForceNew:     true,
 							Computed:     true,
 							ValidateFunc: validateSpotFleetRequestKeyName,
 						},
-						"monitoring": &schema.Schema{
+						"monitoring": {
 							Type:     schema.TypeBool,
 							Optional: true,
+							Default:  false,
 						},
-						//									"network_interface_set"
-						"placement_group": &schema.Schema{
+						"placement_group": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 							ForceNew: true,
 						},
-						"spot_price": &schema.Schema{
+						"spot_price": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
-						"subnet_id": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
-							ForceNew: true,
-						},
-						"user_data": &schema.Schema{
+						"user_data": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 							StateFunc: func(v interface{}) string {
 								switch v.(type) {
 								case string:
-									hash := sha1.Sum([]byte(v.(string)))
-									return hex.EncodeToString(hash[:])
+									return userDataHashSum(v.(string))
 								default:
 									return ""
 								}
 							},
 						},
-						"weighted_capacity": &schema.Schema{
+						"weighted_capacity": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
-						"availability_zone": &schema.Schema{
+						"subnet_id": {
 							Type:     schema.TypeString,
 							Optional: true,
+							Computed: true,
+							ForceNew: true,
+						},
+						"availability_zone": {
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
 							ForceNew: true,
 						},
 					},
@@ -239,48 +246,48 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 				Set: hashLaunchSpecification,
 			},
 			// Everything on a spot fleet is ForceNew except target_capacity
-			"target_capacity": &schema.Schema{
+			"target_capacity": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: false,
 			},
-			"allocation_strategy": &schema.Schema{
+			"allocation_strategy": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "lowestPrice",
 				ForceNew: true,
 			},
-			"excess_capacity_termination_policy": &schema.Schema{
+			"excess_capacity_termination_policy": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "Default",
 				ForceNew: false,
 			},
-			"spot_price": &schema.Schema{
+			"spot_price": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"terminate_instances_with_expiration": &schema.Schema{
+			"terminate_instances_with_expiration": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 			},
-			"valid_from": &schema.Schema{
+			"valid_from": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"valid_until": &schema.Schema{
+			"valid_until": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"spot_request_state": &schema.Schema{
+			"spot_request_state": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"client_token": &schema.Schema{
+			"client_token": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -290,13 +297,17 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 
 func buildSpotFleetLaunchSpecification(d map[string]interface{}, meta interface{}) (*ec2.SpotFleetLaunchSpecification, error) {
 	conn := meta.(*AWSClient).ec2conn
+
 	opts := &ec2.SpotFleetLaunchSpecification{
 		ImageId:      aws.String(d["ami"].(string)),
 		InstanceType: aws.String(d["instance_type"].(string)),
 		SpotPrice:    aws.String(d["spot_price"].(string)),
-		Placement: &ec2.SpotPlacement{
-			AvailabilityZone: aws.String(d["availability_zone"].(string)),
-		},
+	}
+
+	if v, ok := d["availability_zone"]; ok {
+		opts.Placement = &ec2.SpotPlacement{
+			AvailabilityZone: aws.String(v.(string)),
+		}
 	}
 
 	if v, ok := d["ebs_optimized"]; ok {
@@ -316,72 +327,7 @@ func buildSpotFleetLaunchSpecification(d map[string]interface{}, meta interface{
 	}
 
 	if v, ok := d["user_data"]; ok {
-		opts.UserData = aws.String(
-			base64.StdEncoding.EncodeToString([]byte(v.(string))))
-	}
-
-	// check for non-default Subnet, and cast it to a String
-	subnet, hasSubnet := d["subnet_id"]
-	subnetID := subnet.(string)
-
-	var associatePublicIPAddress bool
-	if v, ok := d["associate_public_ip_address"]; ok {
-		associatePublicIPAddress = v.(bool)
-	}
-
-	var groups []*string
-	if v, ok := d["security_groups"]; ok {
-		// Security group names.
-		// For a nondefault VPC, you must use security group IDs instead.
-		// See http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_RunInstances.html
-		sgs := v.(*schema.Set).List()
-		if len(sgs) > 0 && hasSubnet {
-			log.Printf("[WARN] Deprecated. Attempting to use 'security_groups' within a VPC instance. Use 'vpc_security_group_ids' instead.")
-		}
-		for _, v := range sgs {
-			str := v.(string)
-			groups = append(groups, aws.String(str))
-		}
-	}
-
-	if hasSubnet && associatePublicIPAddress {
-		// If we have a non-default VPC / Subnet specified, we can flag
-		// AssociatePublicIpAddress to get a Public IP assigned. By default these are not provided.
-		// You cannot specify both SubnetId and the NetworkInterface.0.* parameters though, otherwise
-		// you get: Network interfaces and an instance-level subnet ID may not be specified on the same request
-		// You also need to attach Security Groups to the NetworkInterface instead of the instance,
-		// to avoid: Network interfaces and an instance-level security groups may not be specified on
-		// the same request
-		ni := &ec2.InstanceNetworkInterfaceSpecification{
-			AssociatePublicIpAddress: aws.Bool(associatePublicIPAddress),
-			DeviceIndex:              aws.Int64(int64(0)),
-			SubnetId:                 aws.String(subnetID),
-			Groups:                   groups,
-		}
-
-		if v, ok := d["private_ip"]; ok {
-			ni.PrivateIpAddress = aws.String(v.(string))
-		}
-
-		if v := d["vpc_security_group_ids"].(*schema.Set); v.Len() > 0 {
-			for _, v := range v.List() {
-				ni.Groups = append(ni.Groups, aws.String(v.(string)))
-			}
-		}
-
-		opts.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{ni}
-	} else {
-		if subnetID != "" {
-			opts.SubnetId = aws.String(subnetID)
-		}
-
-		if v, ok := d["vpc_security_group_ids"]; ok {
-			if s := v.(*schema.Set); s.Len() > 0 {
-				for _, v := range s.List() {
-					opts.SecurityGroups = append(opts.SecurityGroups, &ec2.GroupIdentifier{GroupId: aws.String(v.(string))})
-				}
-			}
-		}
+		opts.UserData = aws.String(base64Encode([]byte(v.(string))))
 	}
 
 	if v, ok := d["key_name"]; ok {
@@ -394,6 +340,46 @@ func buildSpotFleetLaunchSpecification(d map[string]interface{}, meta interface{
 			return nil, err
 		}
 		opts.WeightedCapacity = aws.Float64(wc)
+	}
+
+	var securityGroupIds []*string
+	if v, ok := d["vpc_security_group_ids"]; ok {
+		if s := v.(*schema.Set); s.Len() > 0 {
+			for _, v := range s.List() {
+				securityGroupIds = append(securityGroupIds, aws.String(v.(string)))
+			}
+		}
+	}
+
+	subnetId, hasSubnetId := d["subnet_id"]
+	if hasSubnetId {
+		opts.SubnetId = aws.String(subnetId.(string))
+	}
+
+	associatePublicIpAddress, hasPublicIpAddress := d["associate_public_ip_address"]
+	if hasPublicIpAddress && associatePublicIpAddress.(bool) == true && hasSubnetId {
+
+		// If we have a non-default VPC / Subnet specified, we can flag
+		// AssociatePublicIpAddress to get a Public IP assigned. By default these are not provided.
+		// You cannot specify both SubnetId and the NetworkInterface.0.* parameters though, otherwise
+		// you get: Network interfaces and an instance-level subnet ID may not be specified on the same request
+		// You also need to attach Security Groups to the NetworkInterface instead of the instance,
+		// to avoid: Network interfaces and an instance-level security groups may not be specified on
+		// the same request
+		ni := &ec2.InstanceNetworkInterfaceSpecification{
+			AssociatePublicIpAddress: aws.Bool(true),
+			DeleteOnTermination:      aws.Bool(true),
+			DeviceIndex:              aws.Int64(int64(0)),
+			SubnetId:                 aws.String(subnetId.(string)),
+			Groups:                   securityGroupIds,
+		}
+
+		opts.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{ni}
+		opts.SubnetId = aws.String("")
+	} else {
+		for _, id := range securityGroupIds {
+			opts.SecurityGroups = append(opts.SecurityGroups, &ec2.GroupIdentifier{GroupId: id})
+		}
 	}
 
 	blockDevices, err := readSpotFleetBlockDeviceMappingsFromConfig(d, conn)
@@ -545,6 +531,7 @@ func resourceAwsSpotFleetRequestCreate(d *schema.ResourceData, meta interface{})
 		TargetCapacity:                   aws.Int64(int64(d.Get("target_capacity").(int))),
 		ClientToken:                      aws.String(resource.UniqueId()),
 		TerminateInstancesWithExpiration: aws.Bool(d.Get("terminate_instances_with_expiration").(bool)),
+		ReplaceUnhealthyInstances:        aws.Bool(d.Get("replace_unhealthy_instances").(bool)),
 	}
 
 	if v, ok := d.GetOk("excess_capacity_termination_policy"); ok {
@@ -610,7 +597,50 @@ func resourceAwsSpotFleetRequestCreate(d *schema.ResourceData, meta interface{})
 
 	d.SetId(*resp.SpotFleetRequestId)
 
+	log.Printf("[INFO] Spot Fleet Request ID: %s", d.Id())
+	log.Println("[INFO] Waiting for Spot Fleet Request to be active")
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"submitted"},
+		Target:     []string{"active"},
+		Refresh:    resourceAwsSpotFleetRequestStateRefreshFunc(d, meta),
+		Timeout:    10 * time.Minute,
+		MinTimeout: 10 * time.Second,
+		Delay:      30 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
+	if err != nil {
+		return err
+	}
+
 	return resourceAwsSpotFleetRequestRead(d, meta)
+}
+
+func resourceAwsSpotFleetRequestStateRefreshFunc(d *schema.ResourceData, meta interface{}) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		conn := meta.(*AWSClient).ec2conn
+		req := &ec2.DescribeSpotFleetRequestsInput{
+			SpotFleetRequestIds: []*string{aws.String(d.Id())},
+		}
+		resp, err := conn.DescribeSpotFleetRequests(req)
+
+		if err != nil {
+			log.Printf("Error on retrieving Spot Fleet Request when waiting: %s", err)
+			return nil, "", nil
+		}
+
+		if resp == nil {
+			return nil, "", nil
+		}
+
+		if len(resp.SpotFleetRequestConfigs) == 0 {
+			return nil, "", nil
+		}
+
+		spotFleetRequest := resp.SpotFleetRequestConfigs[0]
+
+		return spotFleetRequest, *spotFleetRequest.SpotFleetRequestState, nil
+	}
 }
 
 func resourceAwsSpotFleetRequestRead(d *schema.ResourceData, meta interface{}) error {
@@ -626,7 +656,7 @@ func resourceAwsSpotFleetRequestRead(d *schema.ResourceData, meta interface{}) e
 		// If the spot request was not found, return nil so that we can show
 		// that it is gone.
 		ec2err, ok := err.(awserr.Error)
-		if ok && ec2err.Code() == "InvalidSpotFleetRequestID.NotFound" {
+		if ok && ec2err.Code() == "InvalidSpotFleetRequestId.NotFound" {
 			d.SetId("")
 			return nil
 		}
@@ -693,29 +723,26 @@ func resourceAwsSpotFleetRequestRead(d *schema.ResourceData, meta interface{}) e
 			aws.TimeValue(config.ValidUntil).Format(awsAutoscalingScheduleTimeLayout))
 	}
 
+	d.Set("replace_unhealthy_instances", config.ReplaceUnhealthyInstances)
 	d.Set("launch_specification", launchSpecsToSet(config.LaunchSpecifications, conn))
 
 	return nil
 }
 
-func launchSpecsToSet(ls []*ec2.SpotFleetLaunchSpecification, conn *ec2.EC2) *schema.Set {
-	specs := &schema.Set{F: hashLaunchSpecification}
-	for _, val := range ls {
-		dn, err := fetchRootDeviceName(aws.StringValue(val.ImageId), conn)
+func launchSpecsToSet(launchSpecs []*ec2.SpotFleetLaunchSpecification, conn *ec2.EC2) *schema.Set {
+	specSet := &schema.Set{F: hashLaunchSpecification}
+	for _, spec := range launchSpecs {
+		rootDeviceName, err := fetchRootDeviceName(aws.StringValue(spec.ImageId), conn)
 		if err != nil {
 			log.Panic(err)
-		} else {
-			ls := launchSpecToMap(val, dn)
-			specs.Add(ls)
 		}
+
+		specSet.Add(launchSpecToMap(spec, rootDeviceName))
 	}
-	return specs
+	return specSet
 }
 
-func launchSpecToMap(
-	l *ec2.SpotFleetLaunchSpecification,
-	rootDevName *string,
-) map[string]interface{} {
+func launchSpecToMap(l *ec2.SpotFleetLaunchSpecification, rootDevName *string) map[string]interface{} {
 	m := make(map[string]interface{})
 
 	m["root_block_device"] = rootBlockDeviceToSet(l.BlockDeviceMappings, rootDevName)
@@ -747,10 +774,7 @@ func launchSpecToMap(
 	}
 
 	if l.UserData != nil {
-		ud_dec, err := base64.StdEncoding.DecodeString(aws.StringValue(l.UserData))
-		if err == nil {
-			m["user_data"] = string(ud_dec)
-		}
+		m["user_data"] = userDataHashSum(aws.StringValue(l.UserData))
 	}
 
 	if l.KeyName != nil {
@@ -765,16 +789,28 @@ func launchSpecToMap(
 		m["subnet_id"] = aws.StringValue(l.SubnetId)
 	}
 
+	securityGroupIds := &schema.Set{F: schema.HashString}
+	if len(l.NetworkInterfaces) > 0 {
+		// This resource auto-creates one network interface when associate_public_ip_address is true
+		for _, group := range l.NetworkInterfaces[0].Groups {
+			securityGroupIds.Add(aws.StringValue(group))
+		}
+	} else {
+		for _, group := range l.SecurityGroups {
+			securityGroupIds.Add(aws.StringValue(group.GroupId))
+		}
+	}
+	m["vpc_security_group_ids"] = securityGroupIds
+
 	if l.WeightedCapacity != nil {
-		m["weighted_capacity"] = fmt.Sprintf("%.3f", aws.Float64Value(l.WeightedCapacity))
+		m["weighted_capacity"] = strconv.FormatFloat(*l.WeightedCapacity, 'f', 0, 64)
 	}
 
-	// m["security_groups"] = securityGroupsToSet(l.SecutiryGroups)
 	return m
 }
 
 func ebsBlockDevicesToSet(bdm []*ec2.BlockDeviceMapping, rootDevName *string) *schema.Set {
-	set := &schema.Set{F: hashEphemeralBlockDevice}
+	set := &schema.Set{F: hashEbsBlockDevice}
 
 	for _, val := range bdm {
 		if val.Ebs != nil {
@@ -903,18 +939,53 @@ func resourceAwsSpotFleetRequestUpdate(d *schema.ResourceData, meta interface{})
 func resourceAwsSpotFleetRequestDelete(d *schema.ResourceData, meta interface{}) error {
 	// http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CancelSpotFleetRequests.html
 	conn := meta.(*AWSClient).ec2conn
+	terminateInstances := d.Get("terminate_instances_with_expiration").(bool)
 
 	log.Printf("[INFO] Cancelling spot fleet request: %s", d.Id())
-	_, err := conn.CancelSpotFleetRequests(&ec2.CancelSpotFleetRequestsInput{
+	resp, err := conn.CancelSpotFleetRequests(&ec2.CancelSpotFleetRequestsInput{
 		SpotFleetRequestIds: []*string{aws.String(d.Id())},
-		TerminateInstances:  aws.Bool(d.Get("terminate_instances_with_expiration").(bool)),
+		TerminateInstances:  aws.Bool(terminateInstances),
 	})
 
 	if err != nil {
 		return fmt.Errorf("Error cancelling spot request (%s): %s", d.Id(), err)
 	}
 
-	return nil
+	// check response successfulFleetRequestSet to make sure our request was canceled
+	var found bool
+	for _, s := range resp.SuccessfulFleetRequests {
+		if *s.SpotFleetRequestId == d.Id() {
+			found = true
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("[ERR] Spot Fleet request (%s) was not found to be successfully canceled, dangling resources may exit", d.Id())
+	}
+
+	// Only wait for instance termination if requested
+	if !terminateInstances {
+		return nil
+	}
+
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
+		resp, err := conn.DescribeSpotFleetInstances(&ec2.DescribeSpotFleetInstancesInput{
+			SpotFleetRequestId: aws.String(d.Id()),
+		})
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
+
+		if len(resp.ActiveInstances) == 0 {
+			log.Printf("[DEBUG] Active instance count is 0 for Spot Fleet Request (%s), removing", d.Id())
+			return nil
+		}
+
+		log.Printf("[DEBUG] Active instance count in Spot Fleet Request (%s): %d", d.Id(), len(resp.ActiveInstances))
+
+		return resource.RetryableError(
+			fmt.Errorf("fleet still has (%d) running instances", len(resp.ActiveInstances)))
+	})
 }
 
 func hashEphemeralBlockDevice(v interface{}) int {
@@ -934,27 +1005,25 @@ func hashLaunchSpecification(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["ami"].(string)))
-	if m["availability_zone"] != nil && m["availability_zone"] != "" {
+	if m["availability_zone"] != "" {
 		buf.WriteString(fmt.Sprintf("%s-", m["availability_zone"].(string)))
-	} else if m["subnet_id"] != nil && m["subnet_id"] != "" {
+	}
+	if m["subnet_id"] != "" {
 		buf.WriteString(fmt.Sprintf("%s-", m["subnet_id"].(string)))
-	} else {
-		panic(
-			fmt.Sprintf(
-				"Must set one of:\navailability_zone %#v\nsubnet_id: %#v",
-				m["availability_zone"],
-				m["subnet_id"]))
 	}
 	buf.WriteString(fmt.Sprintf("%s-", m["instance_type"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["spot_price"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["user_data"].(string)))
 	return hashcode.String(buf.String())
 }
 
 func hashEbsBlockDevice(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["device_name"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["snapshot_id"].(string)))
+	if name, ok := m["device_name"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", name.(string)))
+	}
+	if id, ok := m["snapshot_id"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", id.(string)))
+	}
 	return hashcode.String(buf.String())
 }

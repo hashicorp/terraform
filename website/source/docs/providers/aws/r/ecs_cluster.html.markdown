@@ -12,7 +12,7 @@ Provides an ECS cluster.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_ecs_cluster" "foo" {
   name = "white-hart"
 }

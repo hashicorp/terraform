@@ -1,12 +1,12 @@
 package command
 
 import (
+	"context"
 	"fmt"
-	"log"
-	"os"
 	"strings"
 
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/config/module"
 )
 
 // PlanCommand is a Command implementation that compares a Terraform
@@ -29,124 +29,96 @@ func (c *PlanCommand) Run(args []string) int {
 	cmdFlags.StringVar(&outPath, "out", "", "path")
 	cmdFlags.IntVar(
 		&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
+	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	cmdFlags.BoolVar(&detailed, "detailed-exitcode", false, "detailed-exitcode")
+	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
+	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
 	}
 
-	var path string
-	args = cmdFlags.Args()
-	if len(args) > 1 {
-		c.Ui.Error(
-			"The plan command expects at most one argument with the path\n" +
-				"to a Terraform configuration.\n")
-		cmdFlags.Usage()
-		return 1
-	} else if len(args) == 1 {
-		path = args[0]
-	} else {
-		var err error
-		path, err = os.Getwd()
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
-		}
-	}
-
-	countHook := new(CountHook)
-	c.Meta.extraHooks = []terraform.Hook{countHook}
-
-	ctx, _, err := c.Context(contextOpts{
-		Destroy:     destroy,
-		Path:        path,
-		StatePath:   c.Meta.statePath,
-		Parallelism: c.Meta.parallelism,
-	})
+	configPath, err := ModulePath(cmdFlags.Args())
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
 	}
 
-	if err := ctx.Input(c.InputMode()); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error configuring: %s", err))
-		return 1
-	}
-
-	if !validateContext(ctx, c.Ui) {
-		return 1
-	}
-
-	if refresh {
-		c.Ui.Output("Refreshing Terraform state in-memory prior to plan...")
-		c.Ui.Output("The refreshed state will be used to calculate this plan, but")
-		c.Ui.Output("will not be persisted to local or remote state storage.\n")
-		_, err := ctx.Refresh()
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
-			return 1
-		}
-		c.Ui.Output("")
-	}
-
-	plan, err := ctx.Plan()
+	// Check if the path is a plan
+	plan, err := c.Plan(configPath)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error running plan: %s", err))
+		c.Ui.Error(err.Error())
 		return 1
 	}
+	if plan != nil {
+		// Disable refreshing no matter what since we only want to show the plan
+		refresh = false
 
-	if outPath != "" {
-		log.Printf("[INFO] Writing plan output to: %s", outPath)
-		f, err := os.Create(outPath)
-		if err == nil {
-			defer f.Close()
-			err = terraform.WritePlan(plan, f)
-		}
+		// Set the config path to empty for backend loading
+		configPath = ""
+	}
+
+	// Load the module if we don't have one yet (not running from plan)
+	var mod *module.Tree
+	if plan == nil {
+		mod, err = c.Module(configPath)
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error writing plan file: %s", err))
+			c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
 			return 1
 		}
 	}
 
-	if plan.Diff.Empty() {
-		c.Ui.Output(
-			"No changes. Infrastructure is up-to-date. This means that Terraform\n" +
-				"could not detect any differences between your configuration and\n" +
-				"the real physical resources that exist. As a result, Terraform\n" +
-				"doesn't need to do anything.")
-		return 0
+	// Load the backend
+	b, err := c.Backend(&BackendOpts{
+		ConfigPath: configPath,
+		Plan:       plan,
+	})
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+		return 1
 	}
 
-	if outPath == "" {
-		c.Ui.Output(strings.TrimSpace(planHeaderNoOutput) + "\n")
-	} else {
-		c.Ui.Output(fmt.Sprintf(
-			strings.TrimSpace(planHeaderYesOutput)+"\n",
-			outPath))
+	// Build the operation
+	opReq := c.Operation()
+	opReq.Destroy = destroy
+	opReq.Module = mod
+	opReq.Plan = plan
+	opReq.PlanRefresh = refresh
+	opReq.PlanOutPath = outPath
+	opReq.Type = backend.OperationTypePlan
+
+	// Perform the operation
+	op, err := b.Operation(context.Background(), opReq)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error starting operation: %s", err))
+		return 1
 	}
 
-	c.Ui.Output(FormatPlan(&FormatPlanOpts{
-		Plan:        plan,
-		Color:       c.Colorize(),
-		ModuleDepth: moduleDepth,
-	}))
+	// Wait for the operation to complete
+	<-op.Done()
+	if err := op.Err; err != nil {
+		c.Ui.Error(err.Error())
+		return 1
+	}
 
-	c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
-		"[reset][bold]Plan:[reset] "+
-			"%d to add, %d to change, %d to destroy.",
-		countHook.ToAdd+countHook.ToRemoveAndAdd,
-		countHook.ToChange,
-		countHook.ToRemove+countHook.ToRemoveAndAdd)))
+	/*
+		err = terraform.SetDebugInfo(DefaultDataDir)
+		if err != nil {
+			c.Ui.Error(err.Error())
+			return 1
+		}
+	*/
 
-	if detailed {
+	if detailed && !op.PlanEmpty {
 		return 2
 	}
+
 	return 0
 }
 
 func (c *PlanCommand) Help() string {
 	helpText := `
-Usage: terraform plan [options] [dir]
+Usage: terraform plan [options] [DIR-OR-PLAN]
 
   Generates an execution plan for Terraform.
 
@@ -154,6 +126,9 @@ Usage: terraform plan [options] [dir]
   sense for what Terraform will do. Optionally, the plan can be saved to
   a Terraform plan file, and apply can take this plan file to execute
   this plan exactly.
+
+  If a saved plan is passed as an argument, this command will output
+  the saved plan contents. It will not modify the given plan.
 
 Options:
 
@@ -167,6 +142,10 @@ Options:
                       2 - Succeeded, there is a diff
 
   -input=true         Ask for input for variables if not directly set.
+
+  -lock=true          Lock the state file when locking is supported.
+
+  -lock-timeout=0s    Duration to retry a state lock.
 
   -module-depth=n     Specifies the depth of modules to show in the output.
                       This does not affect the plan itself, only the output
@@ -202,28 +181,3 @@ Options:
 func (c *PlanCommand) Synopsis() string {
 	return "Generate and show an execution plan"
 }
-
-const planHeaderNoOutput = `
-The Terraform execution plan has been generated and is shown below.
-Resources are shown in alphabetical order for quick scanning. Green resources
-will be created (or destroyed and then created if an existing resource
-exists), yellow resources are being changed in-place, and red resources
-will be destroyed. Cyan entries are data sources to be read.
-
-Note: You didn't specify an "-out" parameter to save this plan, so when
-"apply" is called, Terraform can't guarantee this is what will execute.
-`
-
-const planHeaderYesOutput = `
-The Terraform execution plan has been generated and is shown below.
-Resources are shown in alphabetical order for quick scanning. Green resources
-will be created (or destroyed and then created if an existing resource
-exists), yellow resources are being changed in-place, and red resources
-will be destroyed. Cyan entries are data sources to be read.
-
-Your plan was also saved to the path below. Call the "apply" subcommand
-with this plan file and Terraform will exactly execute this execution
-plan.
-
-Path: %s
-`

@@ -75,41 +75,6 @@ func TestAccDMERecordCName(t *testing.T) {
 	})
 }
 
-/*
-
-ANAME can't be tested under sandbox, as the value of the ANAME must be a
-resolvable address.
-
-func TestAccDMERecordAName(t *testing.T) {
-	var record dnsmadeeasy.Record
-	domainid := os.Getenv("DME_DOMAINID")
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckDMERecordDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: fmt.Sprintf(testDMERecordConfigAName, domainid),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckDMERecordExists("dme_record.test", &record),
-					resource.TestCheckResourceAttr(
-						"dme_record.test", "domainid", domainid),
-					resource.TestCheckResourceAttr(
-						"dme_record.test", "name", "testaname"),
-					resource.TestCheckResourceAttr(
-						"dme_record.test", "type", "ANAME"),
-					resource.TestCheckResourceAttr(
-						"dme_record.test", "value", "foo"),
-					resource.TestCheckResourceAttr(
-						"dme_record.test", "ttl", "2000"),
-				),
-			},
-		},
-	})
-}
-*/
-
 func TestAccDMERecordMX(t *testing.T) {
 	var record dnsmadeeasy.Record
 	domainid := os.Getenv("DME_DOMAINID")

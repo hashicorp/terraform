@@ -13,18 +13,19 @@ Provides an ECR repository policy.
 Note that currently only one policy may be applied to a repository.
 
 ~> **NOTE on ECR Availability**: The EC2 Container Registry is not yet rolled out
-in all regions - available regions are listed  
+in all regions - available regions are listed
 [the AWS Docs](https://docs.aws.amazon.com/general/latest/gr/rande.html#ecr_region).
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_ecr_repository" "foo" {
   name = "bar"
 }
 
 resource "aws_ecr_repository_policy" "foopolicy" {
   repository = "${aws_ecr_repository.foo.name}"
+
   policy = <<EOF
 {
     "Version": "2008-10-17",

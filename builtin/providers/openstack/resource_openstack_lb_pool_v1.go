@@ -10,10 +10,10 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/members"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/pools"
-	"github.com/rackspace/gophercloud/pagination"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas/members"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas/pools"
+	"github.com/gophercloud/gophercloud/pagination"
 )
 
 func resourceLBPoolV1() *schema.Resource {
@@ -24,6 +24,11 @@ func resourceLBPoolV1() *schema.Resource {
 		Delete: resourceLBPoolV1Delete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
+		},
+
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -115,18 +120,26 @@ func resourceLBPoolV1() *schema.Resource {
 
 func resourceLBPoolV1Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
 	createOpts := pools.CreateOpts{
 		Name:     d.Get("name").(string),
-		Protocol: d.Get("protocol").(string),
 		SubnetID: d.Get("subnet_id").(string),
-		LBMethod: d.Get("lb_method").(string),
 		TenantID: d.Get("tenant_id").(string),
 		Provider: d.Get("lb_provider").(string),
+	}
+
+	if v, ok := d.GetOk("protocol"); ok {
+		protocol := resourceLBPoolV1DetermineProtocol(v.(string))
+		createOpts.Protocol = protocol
+	}
+
+	if v, ok := d.GetOk("lb_method"); ok {
+		lbMethod := resourceLBPoolV1DetermineLBMethod(v.(string))
+		createOpts.LBMethod = lbMethod
 	}
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
@@ -142,7 +155,7 @@ func resourceLBPoolV1Create(d *schema.ResourceData, meta interface{}) error {
 		Pending:    []string{"PENDING_CREATE"},
 		Target:     []string{"ACTIVE"},
 		Refresh:    waitForLBPoolActive(networkingClient, p.ID),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutCreate),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -177,7 +190,7 @@ func resourceLBPoolV1Create(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLBPoolV1Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -187,7 +200,7 @@ func resourceLBPoolV1Read(d *schema.ResourceData, meta interface{}) error {
 		return CheckDeleted(d, err, "LB pool")
 	}
 
-	log.Printf("[DEBUG] Retreived OpenStack LB Pool %s: %+v", d.Id(), p)
+	log.Printf("[DEBUG] Retrieved OpenStack LB Pool %s: %+v", d.Id(), p)
 
 	d.Set("name", p.Name)
 	d.Set("protocol", p.Protocol)
@@ -197,13 +210,14 @@ func resourceLBPoolV1Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("tenant_id", p.TenantID)
 	d.Set("monitor_ids", p.MonitorIDs)
 	d.Set("member_ids", p.MemberIDs)
+	d.Set("region", GetRegion(d))
 
 	return nil
 }
 
 func resourceLBPoolV1Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -213,7 +227,9 @@ func resourceLBPoolV1Update(d *schema.ResourceData, meta interface{}) error {
 	// Gophercloud complains if one is empty.
 	if d.HasChange("name") || d.HasChange("lb_method") {
 		updateOpts.Name = d.Get("name").(string)
-		updateOpts.LBMethod = d.Get("lb_method").(string)
+
+		lbMethod := resourceLBPoolV1DetermineLBMethod(d.Get("lb_method").(string))
+		updateOpts.LBMethod = lbMethod
 	}
 
 	log.Printf("[DEBUG] Updating OpenStack LB Pool %s with options: %+v", d.Id(), updateOpts)
@@ -224,7 +240,7 @@ func resourceLBPoolV1Update(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if d.HasChange("monitor_ids") {
-		oldMIDsRaw, newMIDsRaw := d.GetChange("security_groups")
+		oldMIDsRaw, newMIDsRaw := d.GetChange("monitor_ids")
 		oldMIDsSet, newMIDsSet := oldMIDsRaw.(*schema.Set), newMIDsRaw.(*schema.Set)
 		monitorsToAdd := newMIDsSet.Difference(oldMIDsSet)
 		monitorsToRemove := oldMIDsSet.Difference(newMIDsSet)
@@ -298,7 +314,7 @@ func resourceLBPoolV1Update(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLBPoolV1Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -320,7 +336,7 @@ func resourceLBPoolV1Delete(d *schema.ResourceData, meta interface{}) error {
 		Pending:    []string{"ACTIVE", "PENDING_DELETE"},
 		Target:     []string{"DELETED"},
 		Refresh:    waitForLBPoolDelete(networkingClient, d.Id()),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -379,6 +395,32 @@ func resourceLBMemberV1Hash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
+func resourceLBPoolV1DetermineProtocol(v string) pools.LBProtocol {
+	var protocol pools.LBProtocol
+	switch v {
+	case "TCP":
+		protocol = pools.ProtocolTCP
+	case "HTTP":
+		protocol = pools.ProtocolHTTP
+	case "HTTPS":
+		protocol = pools.ProtocolHTTPS
+	}
+
+	return protocol
+}
+
+func resourceLBPoolV1DetermineLBMethod(v string) pools.LBMethod {
+	var lbMethod pools.LBMethod
+	switch v {
+	case "ROUND_ROBIN":
+		lbMethod = pools.LBMethodRoundRobin
+	case "LEAST_CONNECTIONS":
+		lbMethod = pools.LBMethodLeastConnections
+	}
+
+	return lbMethod
+}
+
 func waitForLBPoolActive(networkingClient *gophercloud.ServiceClient, poolId string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		p, err := pools.Get(networkingClient, poolId).Extract()
@@ -401,27 +443,21 @@ func waitForLBPoolDelete(networkingClient *gophercloud.ServiceClient, poolId str
 
 		p, err := pools.Get(networkingClient, poolId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return p, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack LB Pool %s", poolId)
 				return p, "DELETED", nil
 			}
+			return p, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack LB Pool: %+v", p)
 		err = pools.Delete(networkingClient, poolId).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return p, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack LB Pool %s", poolId)
 				return p, "DELETED", nil
 			}
+			return p, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack LB Pool %s still active.", poolId)

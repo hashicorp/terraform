@@ -2,16 +2,25 @@ package command
 
 import (
 	"bufio"
+	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/hashicorp/go-getter"
-	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/backend/local"
+	"github.com/hashicorp/terraform/helper/experiment"
+	"github.com/hashicorp/terraform/helper/variables"
+	"github.com/hashicorp/terraform/helper/wrappedstreams"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
@@ -19,20 +28,30 @@ import (
 
 // Meta are the meta-options that are available on all or most commands.
 type Meta struct {
-	Color       bool
-	ContextOpts *terraform.ContextOpts
-	Ui          cli.Ui
+	// The exported fields below should be set by anyone using a
+	// command with a Meta field. These are expected to be set externally
+	// (not from within the command itself).
 
-	// State read when calling `Context`. This is available after calling
-	// `Context`.
-	state       state.State
-	stateResult *StateResult
+	Color       bool                   // True if output should be colored
+	ContextOpts *terraform.ContextOpts // Opts copied to initialize
+	Ui          cli.Ui                 // Ui for output
 
-	// This can be set by the command itself to provide extra hooks.
-	extraHooks []terraform.Hook
+	// ExtraHooks are extra hooks to add to the context.
+	ExtraHooks []terraform.Hook
 
-	// This can be set by tests to change some directories
+	//----------------------------------------------------------
+	// Protected: commands can set these
+	//----------------------------------------------------------
+
+	// Modify the data directory location. Defaults to DefaultDataDir
 	dataDir string
+
+	//----------------------------------------------------------
+	// Private: do not set these
+	//----------------------------------------------------------
+
+	// backendState is the currently active backend state
+	backendState *terraform.BackendState
 
 	// Variables for the context (private)
 	autoKey       string
@@ -43,6 +62,7 @@ type Meta struct {
 	// Targets for this context (private)
 	targets []string
 
+	// Internal fields
 	color bool
 	oldUi cli.Ui
 
@@ -63,10 +83,27 @@ type Meta struct {
 	//
 	// parallelism is used to control the number of concurrent operations
 	// allowed when walking the graph
-	statePath    string
-	stateOutPath string
-	backupPath   string
-	parallelism  int
+	//
+	// shadow is used to enable/disable the shadow graph
+	//
+	// provider is to specify specific resource providers
+	//
+	// stateLock is set to false to disable state locking
+	//
+	// stateLockTimeout is the optional duration to retry a state locks locks
+	// when it is already locked by another process.
+	//
+	// forceInitCopy suppresses confirmation for copying state data during
+	// init.
+	statePath        string
+	stateOutPath     string
+	backupPath       string
+	parallelism      int
+	shadow           bool
+	provider         string
+	stateLock        bool
+	stateLockTimeout time.Duration
+	forceInitCopy    bool
 }
 
 // initStatePaths is used to initialize the default values for
@@ -95,81 +132,6 @@ func (m *Meta) Colorize() *colorstring.Colorize {
 		Disable: !m.color,
 		Reset:   true,
 	}
-}
-
-// Context returns a Terraform Context taking into account the context
-// options used to initialize this meta configuration.
-func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
-	opts := m.contextOpts()
-
-	// First try to just read the plan directly from the path given.
-	f, err := os.Open(copts.Path)
-	if err == nil {
-		plan, err := terraform.ReadPlan(f)
-		f.Close()
-		if err == nil {
-			// Setup our state
-			state, statePath, err := StateFromPlan(m.statePath, m.stateOutPath, plan)
-			if err != nil {
-				return nil, false, fmt.Errorf("Error loading plan: %s", err)
-			}
-
-			// Set our state
-			m.state = state
-
-			// this is used for printing the saved location later
-			if m.stateOutPath == "" {
-				m.stateOutPath = statePath
-			}
-
-			if len(m.variables) > 0 {
-				return nil, false, fmt.Errorf(
-					"You can't set variables with the '-var' or '-var-file' flag\n" +
-						"when you're applying a plan file. The variables used when\n" +
-						"the plan was created will be used. If you wish to use different\n" +
-						"variable values, create a new plan file.")
-			}
-
-			ctx, err := plan.Context(opts)
-			return ctx, true, err
-		}
-	}
-
-	// Load the statePath if not given
-	if copts.StatePath != "" {
-		m.statePath = copts.StatePath
-	}
-
-	// Tell the context if we're in a destroy plan / apply
-	opts.Destroy = copts.Destroy
-
-	// Store the loaded state
-	state, err := m.State()
-	if err != nil {
-		return nil, false, err
-	}
-
-	// Load the root module
-	var mod *module.Tree
-	if copts.Path != "" {
-		mod, err = module.NewTreeModule("", copts.Path)
-		if err != nil {
-			return nil, false, fmt.Errorf("Error loading config: %s", err)
-		}
-	} else {
-		mod = module.NewEmptyTree()
-	}
-
-	err = mod.Load(m.moduleStorage(m.DataDir()), copts.GetMode)
-	if err != nil {
-		return nil, false, fmt.Errorf("Error downloading modules: %s", err)
-	}
-
-	opts.Module = mod
-	opts.Parallelism = copts.Parallelism
-	opts.State = state.State()
-	ctx, err := terraform.NewContext(opts)
-	return ctx, false, err
 }
 
 // DataDir returns the directory where local data will be stored.
@@ -206,59 +168,10 @@ func (m *Meta) InputMode() terraform.InputMode {
 
 	var mode terraform.InputMode
 	mode |= terraform.InputModeProvider
-	if len(m.variables) == 0 {
-		mode |= terraform.InputModeVar
-		mode |= terraform.InputModeVarUnset
-	}
+	mode |= terraform.InputModeVar
+	mode |= terraform.InputModeVarUnset
 
 	return mode
-}
-
-// State returns the state for this meta.
-func (m *Meta) State() (state.State, error) {
-	if m.state != nil {
-		return m.state, nil
-	}
-
-	result, err := State(m.StateOpts())
-	if err != nil {
-		return nil, err
-	}
-
-	m.state = result.State
-	m.stateOutPath = result.StatePath
-	m.stateResult = result
-	return m.state, nil
-}
-
-// StateRaw is used to setup the state manually.
-func (m *Meta) StateRaw(opts *StateOpts) (*StateResult, error) {
-	result, err := State(opts)
-	if err != nil {
-		return nil, err
-	}
-
-	m.state = result.State
-	m.stateOutPath = result.StatePath
-	m.stateResult = result
-	return result, nil
-}
-
-// StateOpts returns the default state options
-func (m *Meta) StateOpts() *StateOpts {
-	localPath := m.statePath
-	if localPath == "" {
-		localPath = DefaultStateFilename
-	}
-	remotePath := filepath.Join(m.DataDir(), DefaultStateFilename)
-
-	return &StateOpts{
-		LocalPath:     localPath,
-		LocalPathOut:  m.stateOutPath,
-		RemotePath:    remotePath,
-		RemoteRefresh: true,
-		BackupPath:    m.backupPath,
-	}
 }
 
 // UIInput returns a UIInput object to be used for asking for input.
@@ -268,31 +181,30 @@ func (m *Meta) UIInput() terraform.UIInput {
 	}
 }
 
-// PersistState is used to write out the state, handling backup of
-// the existing state file and respecting path configurations.
-func (m *Meta) PersistState(s *terraform.State) error {
-	if err := m.state.WriteState(s); err != nil {
-		return err
+// StdinPiped returns true if the input is piped.
+func (m *Meta) StdinPiped() bool {
+	fi, err := wrappedstreams.Stdin().Stat()
+	if err != nil {
+		// If there is an error, let's just say its not piped
+		return false
 	}
 
-	return m.state.PersistState()
-}
-
-// Input returns true if we should ask for input for context.
-func (m *Meta) Input() bool {
-	return !test && m.input && len(m.variables) == 0
+	return fi.Mode()&os.ModeNamedPipe != 0
 }
 
 // contextOpts returns the options to use to initialize a Terraform
 // context with the settings from this Meta.
 func (m *Meta) contextOpts() *terraform.ContextOpts {
-	var opts terraform.ContextOpts = *m.ContextOpts
-	opts.Hooks = make(
-		[]terraform.Hook,
-		len(m.ContextOpts.Hooks)+len(m.extraHooks)+1)
-	opts.Hooks[0] = m.uiHook()
-	copy(opts.Hooks[1:], m.ContextOpts.Hooks)
-	copy(opts.Hooks[len(m.ContextOpts.Hooks)+1:], m.extraHooks)
+	var opts terraform.ContextOpts
+	if v := m.ContextOpts; v != nil {
+		opts = *v
+	}
+
+	opts.Hooks = []terraform.Hook{m.uiHook(), &terraform.DebugHook{}}
+	if m.ContextOpts != nil {
+		opts.Hooks = append(opts.Hooks, m.ContextOpts.Hooks...)
+	}
+	opts.Hooks = append(opts.Hooks, m.ExtraHooks...)
 
 	vs := make(map[string]interface{})
 	for k, v := range opts.Variables {
@@ -305,8 +217,15 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 		vs[k] = v
 	}
 	opts.Variables = vs
+
 	opts.Targets = m.targets
 	opts.UIInput = m.UIInput()
+	opts.Parallelism = m.parallelism
+	opts.Shadow = m.shadow
+
+	opts.Meta = &terraform.ContextMeta{
+		Env: m.Env(),
+	}
 
 	return &opts
 }
@@ -315,13 +234,19 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 func (m *Meta) flagSet(n string) *flag.FlagSet {
 	f := flag.NewFlagSet(n, flag.ContinueOnError)
 	f.BoolVar(&m.input, "input", true, "input")
-	f.Var((*FlagTypedKV)(&m.variables), "var", "variables")
-	f.Var((*FlagKVFile)(&m.variables), "var-file", "variable file")
+	f.Var((*variables.Flag)(&m.variables), "var", "variables")
+	f.Var((*variables.FlagFile)(&m.variables), "var-file", "variable file")
 	f.Var((*FlagStringSlice)(&m.targets), "target", "resource to target")
 
 	if m.autoKey != "" {
-		f.Var((*FlagKVFile)(&m.autoVariables), m.autoKey, "variable file")
+		f.Var((*variables.FlagFile)(&m.autoVariables), m.autoKey, "variable file")
 	}
+
+	// Advanced (don't need documentation, or unlikely to be set)
+	f.BoolVar(&m.shadow, "shadow", true, "shadow graph")
+
+	// Experimental features
+	experiment.Flag(f)
 
 	// Create an io.Writer that writes to our Ui properly for errors.
 	// This is kind of a hack, but it does the job. Basically: create
@@ -338,6 +263,10 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 
 	// Set the default Usage to empty
 	f.Usage = func() {}
+
+	// command that bypass locking will supply their own flag on this var, but
+	// set the initial meta value to true as a failsafe.
+	m.stateLock = true
 
 	return f
 }
@@ -419,6 +348,27 @@ func (m *Meta) uiHook() *UiHook {
 	}
 }
 
+// confirm asks a yes/no confirmation.
+func (m *Meta) confirm(opts *terraform.InputOpts) (bool, error) {
+	if !m.input {
+		return false, errors.New("input disabled")
+	}
+	for {
+		v, err := m.UIInput().Input(opts)
+		if err != nil {
+			return false, fmt.Errorf(
+				"Error asking for confirmation: %s", err)
+		}
+
+		switch strings.ToLower(v) {
+		case "no":
+			return false, nil
+		case "yes":
+			return true, nil
+		}
+	}
+}
+
 const (
 	// ModuleDepthDefault is the default value for
 	// module depth, which can be overridden by flag
@@ -438,23 +388,86 @@ func (m *Meta) addModuleDepthFlag(flags *flag.FlagSet, moduleDepth *int) {
 	}
 }
 
-// contextOpts are the options used to load a context from a command.
-type contextOpts struct {
-	// Path to the directory where the root module is.
-	Path string
+// outputShadowError outputs the error from ctx.ShadowError. If the
+// error is nil then nothing happens. If output is false then it isn't
+// outputted to the user (you can define logic to guard against outputting).
+func (m *Meta) outputShadowError(err error, output bool) bool {
+	// Do nothing if no error
+	if err == nil {
+		return false
+	}
 
-	// StatePath is the path to the state file. If this is empty, then
-	// no state will be loaded. It is also okay for this to be a path to
-	// a file that doesn't exist; it is assumed that this means that there
-	// is simply no state.
-	StatePath string
+	// If not outputting, do nothing
+	if !output {
+		return false
+	}
 
-	// GetMode is the module.GetMode to use when loading the module tree.
-	GetMode module.GetMode
+	// Write the shadow error output to a file
+	path := fmt.Sprintf("terraform-error-%d.log", time.Now().UTC().Unix())
+	if err := ioutil.WriteFile(path, []byte(err.Error()), 0644); err != nil {
+		// If there is an error writing it, just let it go
+		log.Printf("[ERROR] Error writing shadow error: %s", err)
+		return false
+	}
 
-	// Set to true when running a destroy plan/apply.
-	Destroy bool
+	// Output!
+	m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
+		"[reset][bold][yellow]\nExperimental feature failure! Please report a bug.\n\n"+
+			"This is not an error. Your Terraform operation completed successfully.\n"+
+			"Your real infrastructure is unaffected by this message.\n\n"+
+			"[reset][yellow]While running, Terraform sometimes tests experimental features in the\n"+
+			"background. These features cannot affect real state and never touch\n"+
+			"real infrastructure. If the features work properly, you see nothing.\n"+
+			"If the features fail, this message appears.\n\n"+
+			"You can report an issue at: https://github.com/hashicorp/terraform/issues\n\n"+
+			"The failure was written to %q. Please\n"+
+			"double check this file contains no sensitive information and report\n"+
+			"it with your issue.\n\n"+
+			"This is not an error. Your terraform operation completed successfully\n"+
+			"and your real infrastructure is unaffected by this message.",
+		path,
+	)))
 
-	// Number of concurrent operations allowed
-	Parallelism int
+	return true
+}
+
+// Env returns the name of the currently configured environment, corresponding
+// to the desired named state.
+func (m *Meta) Env() string {
+	dataDir := m.dataDir
+	if m.dataDir == "" {
+		dataDir = DefaultDataDir
+	}
+
+	envData, err := ioutil.ReadFile(filepath.Join(dataDir, local.DefaultEnvFile))
+	current := string(bytes.TrimSpace(envData))
+	if current == "" {
+		current = backend.DefaultStateName
+	}
+
+	if err != nil && !os.IsNotExist(err) {
+		// always return the default if we can't get an environment name
+		log.Printf("[ERROR] failed to read current environment: %s", err)
+	}
+
+	return current
+}
+
+// SetEnv saves the named environment to the local filesystem.
+func (m *Meta) SetEnv(name string) error {
+	dataDir := m.dataDir
+	if m.dataDir == "" {
+		dataDir = DefaultDataDir
+	}
+
+	err := os.MkdirAll(dataDir, 0755)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(filepath.Join(dataDir, local.DefaultEnvFile), []byte(name), 0644)
+	if err != nil {
+		return err
+	}
+	return nil
 }

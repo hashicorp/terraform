@@ -313,7 +313,7 @@ func TestRulesMixedMatching(t *testing.T) {
 				},
 			},
 		},
-		// a local rule with 2 cidrs, remote has 4 cidrs, shoudl be saved to match
+		// a local rule with 2 cidrs, remote has 4 cidrs, should be saved to match
 		// the local but also an extra rule found
 		{
 			local: []interface{}{

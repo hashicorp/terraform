@@ -25,6 +25,10 @@ func testStepImportState(
 
 		importId = resource.Primary.ID
 	}
+	importPrefix := step.ImportStateIdPrefix
+	if importPrefix != "" {
+		importId = fmt.Sprintf("%s%s", importPrefix, importId)
+	}
 
 	// Setup the context. We initialize with an empty state. We use the
 	// full config for provider configurations.
@@ -78,7 +82,7 @@ func testStepImportState(
 			// Find the existing resource
 			var oldR *terraform.ResourceState
 			for _, r2 := range old {
-				if r2.Primary != nil && r2.Primary.ID == r.Primary.ID {
+				if r2.Primary != nil && r2.Primary.ID == r.Primary.ID && r2.Type == r.Type {
 					oldR = r2
 					break
 				}

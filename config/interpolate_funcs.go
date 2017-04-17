@@ -7,14 +7,16 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/apparentlymart/go-cidr/cidr"
 	"github.com/hashicorp/go-uuid"
@@ -51,18 +53,23 @@ func listVariableValueToStringSlice(values []ast.Variable) ([]string, error) {
 // Funcs is the mapping of built-in functions for configuration.
 func Funcs() map[string]ast.Function {
 	return map[string]ast.Function{
+		"basename":     interpolationFuncBasename(),
 		"base64decode": interpolationFuncBase64Decode(),
 		"base64encode": interpolationFuncBase64Encode(),
 		"base64sha256": interpolationFuncBase64Sha256(),
+		"ceil":         interpolationFuncCeil(),
+		"chomp":        interpolationFuncChomp(),
 		"cidrhost":     interpolationFuncCidrHost(),
 		"cidrnetmask":  interpolationFuncCidrNetmask(),
 		"cidrsubnet":   interpolationFuncCidrSubnet(),
 		"coalesce":     interpolationFuncCoalesce(),
 		"compact":      interpolationFuncCompact(),
 		"concat":       interpolationFuncConcat(),
+		"dirname":      interpolationFuncDirname(),
 		"distinct":     interpolationFuncDistinct(),
 		"element":      interpolationFuncElement(),
 		"file":         interpolationFuncFile(),
+		"floor":        interpolationFuncFloor(),
 		"format":       interpolationFuncFormat(),
 		"formatlist":   interpolationFuncFormatList(),
 		"index":        interpolationFuncIndex(),
@@ -72,17 +79,25 @@ func Funcs() map[string]ast.Function {
 		"list":         interpolationFuncList(),
 		"lower":        interpolationFuncLower(),
 		"map":          interpolationFuncMap(),
+		"max":          interpolationFuncMax(),
 		"md5":          interpolationFuncMd5(),
 		"merge":        interpolationFuncMerge(),
+		"min":          interpolationFuncMin(),
+		"pathexpand":   interpolationFuncPathExpand(),
 		"uuid":         interpolationFuncUUID(),
 		"replace":      interpolationFuncReplace(),
 		"sha1":         interpolationFuncSha1(),
 		"sha256":       interpolationFuncSha256(),
 		"signum":       interpolationFuncSignum(),
+		"slice":        interpolationFuncSlice(),
 		"sort":         interpolationFuncSort(),
 		"split":        interpolationFuncSplit(),
+		"substr":       interpolationFuncSubstr(),
+		"timestamp":    interpolationFuncTimestamp(),
+		"title":        interpolationFuncTitle(),
 		"trimspace":    interpolationFuncTrimSpace(),
 		"upper":        interpolationFuncUpper(),
+		"zipmap":       interpolationFuncZipMap(),
 	}
 }
 
@@ -385,6 +400,122 @@ func interpolationFuncFormat() ast.Function {
 	}
 }
 
+// interpolationFuncMax returns the maximum of the numeric arguments
+func interpolationFuncMax() ast.Function {
+	return ast.Function{
+		ArgTypes:     []ast.Type{ast.TypeFloat},
+		ReturnType:   ast.TypeFloat,
+		Variadic:     true,
+		VariadicType: ast.TypeFloat,
+		Callback: func(args []interface{}) (interface{}, error) {
+			max := args[0].(float64)
+
+			for i := 1; i < len(args); i++ {
+				max = math.Max(max, args[i].(float64))
+			}
+
+			return max, nil
+		},
+	}
+}
+
+// interpolationFuncMin returns the minimum of the numeric arguments
+func interpolationFuncMin() ast.Function {
+	return ast.Function{
+		ArgTypes:     []ast.Type{ast.TypeFloat},
+		ReturnType:   ast.TypeFloat,
+		Variadic:     true,
+		VariadicType: ast.TypeFloat,
+		Callback: func(args []interface{}) (interface{}, error) {
+			min := args[0].(float64)
+
+			for i := 1; i < len(args); i++ {
+				min = math.Min(min, args[i].(float64))
+			}
+
+			return min, nil
+		},
+	}
+}
+
+// interpolationFuncPathExpand will expand any `~`'s found with the full file path
+func interpolationFuncPathExpand() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return homedir.Expand(args[0].(string))
+		},
+	}
+}
+
+// interpolationFuncCeil returns the the least integer value greater than or equal to the argument
+func interpolationFuncCeil() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeFloat},
+		ReturnType: ast.TypeInt,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return int(math.Ceil(args[0].(float64))), nil
+		},
+	}
+}
+
+// interpolationFuncChomp removes trailing newlines from the given string
+func interpolationFuncChomp() ast.Function {
+	newlines := regexp.MustCompile(`(?:\r\n?|\n)*\z`)
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return newlines.ReplaceAllString(args[0].(string), ""), nil
+		},
+	}
+}
+
+// interpolationFuncFloorreturns returns the greatest integer value less than or equal to the argument
+func interpolationFuncFloor() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeFloat},
+		ReturnType: ast.TypeInt,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return int(math.Floor(args[0].(float64))), nil
+		},
+	}
+}
+
+func interpolationFuncZipMap() ast.Function {
+	return ast.Function{
+		ArgTypes: []ast.Type{
+			ast.TypeList, // Keys
+			ast.TypeList, // Values
+		},
+		ReturnType: ast.TypeMap,
+		Callback: func(args []interface{}) (interface{}, error) {
+			keys := args[0].([]ast.Variable)
+			values := args[1].([]ast.Variable)
+
+			if len(keys) != len(values) {
+				return nil, fmt.Errorf("count of keys (%d) does not match count of values (%d)",
+					len(keys), len(values))
+			}
+
+			for i, val := range keys {
+				if val.Type != ast.TypeString {
+					return nil, fmt.Errorf("keys must be strings. value at position %d is %s",
+						i, val.Type.Printable())
+				}
+			}
+
+			result := map[string]ast.Variable{}
+			for i := 0; i < len(keys); i++ {
+				result[keys[i].Value.(string)] = values[i]
+			}
+
+			return result, nil
+		},
+	}
+}
+
 // interpolationFuncFormatList implements the "formatlist" function that does
 // string formatting on lists.
 func interpolationFuncFormatList() ast.Function {
@@ -399,15 +530,25 @@ func interpolationFuncFormatList() ast.Function {
 			varargs := make([]interface{}, len(args)-1)
 			copy(varargs, args[1:])
 
+			// Verify we have some arguments
+			if len(varargs) == 0 {
+				return nil, fmt.Errorf("no arguments to formatlist")
+			}
+
 			// Convert arguments that are lists into slices.
 			// Confirm along the way that all lists have the same length (n).
 			var n int
+			listSeen := false
 			for i := 1; i < len(args); i++ {
 				s, ok := args[i].([]ast.Variable)
 				if !ok {
 					continue
 				}
 
+				// Mark that we've seen at least one list
+				listSeen = true
+
+				// Convert the ast.Variable to a slice of strings
 				parts, err := listVariableValueToStringSlice(s)
 				if err != nil {
 					return nil, err
@@ -427,8 +568,11 @@ func interpolationFuncFormatList() ast.Function {
 				}
 			}
 
-			if n == 0 {
-				return nil, errors.New("no lists in arguments to formatlist")
+			// If we didn't see a list this is an error because we
+			// can't determine the return value length.
+			if !listSeen {
+				return nil, fmt.Errorf(
+					"formatlist requires at least one list argument")
 			}
 
 			// Do the formatting.
@@ -468,6 +612,17 @@ func interpolationFuncIndex() ast.Function {
 				}
 			}
 			return nil, fmt.Errorf("Could not find '%s' in '%s'", needle, haystack)
+		},
+	}
+}
+
+// interpolationFuncBasename implements the "dirname" function.
+func interpolationFuncDirname() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return filepath.Dir(args[0].(string)), nil
 		},
 	}
 }
@@ -667,6 +822,42 @@ func interpolationFuncSignum() ast.Function {
 	}
 }
 
+// interpolationFuncSlice returns a portion of the input list between from, inclusive and to, exclusive.
+func interpolationFuncSlice() ast.Function {
+	return ast.Function{
+		ArgTypes: []ast.Type{
+			ast.TypeList, // inputList
+			ast.TypeInt,  // from
+			ast.TypeInt,  // to
+		},
+		ReturnType: ast.TypeList,
+		Variadic:   false,
+		Callback: func(args []interface{}) (interface{}, error) {
+			inputList := args[0].([]ast.Variable)
+			from := args[1].(int)
+			to := args[2].(int)
+
+			if from < 0 {
+				return nil, fmt.Errorf("from index must be >= 0")
+			}
+			if to > len(inputList) {
+				return nil, fmt.Errorf("to index must be <= length of the input list")
+			}
+			if from > to {
+				return nil, fmt.Errorf("from index must be <= to index")
+			}
+
+			var outputList []ast.Variable
+			for i, val := range inputList {
+				if i >= from && i < to {
+					outputList = append(outputList, val)
+				}
+			}
+			return outputList, nil
+		},
+	}
+}
+
 // interpolationFuncSort sorts a list of a strings lexographically
 func interpolationFuncSort() ast.Function {
 	return ast.Function{
@@ -842,6 +1033,17 @@ func interpolationFuncValues(vs map[string]ast.Variable) ast.Function {
 	}
 }
 
+// interpolationFuncBasename implements the "basename" function.
+func interpolationFuncBasename() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return filepath.Base(args[0].(string)), nil
+		},
+	}
+}
+
 // interpolationFuncBase64Encode implements the "base64encode" function that
 // allows Base64 encoding.
 func interpolationFuncBase64Encode() ast.Function {
@@ -993,6 +1195,75 @@ func interpolationFuncUUID() ast.Function {
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
 			return uuid.GenerateUUID()
+		},
+	}
+}
+
+// interpolationFuncTimestamp
+func interpolationFuncTimestamp() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return time.Now().UTC().Format(time.RFC3339), nil
+		},
+	}
+}
+
+// interpolationFuncTitle implements the "title" function that returns a copy of the
+// string in which first characters of all the words are capitalized.
+func interpolationFuncTitle() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			toTitle := args[0].(string)
+			return strings.Title(toTitle), nil
+		},
+	}
+}
+
+// interpolationFuncSubstr implements the "substr" function that allows strings
+// to be truncated.
+func interpolationFuncSubstr() ast.Function {
+	return ast.Function{
+		ArgTypes: []ast.Type{
+			ast.TypeString, // input string
+			ast.TypeInt,    // offset
+			ast.TypeInt,    // length
+		},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			str := args[0].(string)
+			offset := args[1].(int)
+			length := args[2].(int)
+
+			// Interpret a negative offset as being equivalent to a positive
+			// offset taken from the end of the string.
+			if offset < 0 {
+				offset += len(str)
+			}
+
+			// Interpret a length of `-1` as indicating that the substring
+			// should start at `offset` and continue until the end of the
+			// string. Any other negative length (other than `-1`) is invalid.
+			if length == -1 {
+				length = len(str)
+			} else if length >= 0 {
+				length += offset
+			} else {
+				return nil, fmt.Errorf("length should be a non-negative integer")
+			}
+
+			if offset > len(str) {
+				return nil, fmt.Errorf("offset cannot be larger than the length of the string")
+			}
+
+			if length > len(str) {
+				return nil, fmt.Errorf("'offset + length' cannot be larger than the length of the string")
+			}
+
+			return str[offset:length], nil
 		},
 	}
 }

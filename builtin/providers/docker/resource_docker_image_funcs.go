@@ -211,15 +211,11 @@ func findImage(d *schema.ResourceData, client *dc.Client, authConfig *dc.AuthCon
 		return nil, fmt.Errorf("Empty image name is not allowed")
 	}
 
-	foundImage := searchLocalImages(data, imageName)
-
-	if foundImage == nil {
-		if err := pullImage(&data, client, authConfig, imageName); err != nil {
-			return nil, fmt.Errorf("Unable to pull image %s: %s", imageName, err)
-		}
+	if err := pullImage(&data, client, authConfig, imageName); err != nil {
+		return nil, fmt.Errorf("Unable to pull image %s: %s", imageName, err)
 	}
 
-	foundImage = searchLocalImages(data, imageName)
+	foundImage := searchLocalImages(data, imageName)
 	if foundImage != nil {
 		return foundImage, nil
 	}

@@ -14,53 +14,58 @@ This is a data source which can be used to construct a JSON representation of
 an IAM policy document, for use with resources which expect policy documents,
 such as the `aws_iam_policy` resource.
 
-```
+```hcl
 data "aws_iam_policy_document" "example" {
-    statement {
-        sid = "1"
-        actions = [
-            "s3:ListAllMyBuckets",
-            "s3:GetBucketLocation",
-        ]
-        resources = [
-            "arn:aws:s3:::*",
-        ]
-    }
+  statement {
+    sid = "1"
 
-    statement {
-        actions = [
-            "s3:ListBucket",
-        ]
-        resources = [
-            "arn:aws:s3:::${var.s3_bucket_name}",
-        ]
-        condition {
-            test = "StringLike"
-            variable = "s3:prefix"
-            values = [
-                "",
-                "home/",
-                "home/&{aws:username}/",
-            ]
-        }
-    }
+    actions = [
+      "s3:ListAllMyBuckets",
+      "s3:GetBucketLocation",
+    ]
 
-    statement {
-        actions = [
-            "s3:*",
-        ]
-        resources = [
-            "arn:aws:s3:::${var.s3_bucket_name}/home/&{aws:username}",
-            "arn:aws:s3:::${var.s3_bucket_name}/home/&{aws:username}/*",
-        ]
-    }
+    resources = [
+      "arn:aws:s3:::*",
+    ]
+  }
 
+  statement {
+    actions = [
+      "s3:ListBucket",
+    ]
+
+    resources = [
+      "arn:aws:s3:::${var.s3_bucket_name}",
+    ]
+
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+
+      values = [
+        "",
+        "home/",
+        "home/&{aws:username}/",
+      ]
+    }
+  }
+
+  statement {
+    actions = [
+      "s3:*",
+    ]
+
+    resources = [
+      "arn:aws:s3:::${var.s3_bucket_name}/home/&{aws:username}",
+      "arn:aws:s3:::${var.s3_bucket_name}/home/&{aws:username}/*",
+    ]
+  }
 }
 
 resource "aws_iam_policy" "example" {
-    name = "example_policy"
-    path = "/"
-    policy = "${data.aws_iam_policy.example.json}"
+  name   = "example_policy"
+  path   = "/"
+  policy = "${data.aws_iam_policy_document.example.json}"
 }
 ```
 
@@ -88,7 +93,7 @@ each accept the following arguments:
   apply to. Used to apply a policy statement to all actions *except* those
   listed.
 * `resources` (Optional) - A list of resource ARNs that this statement applies
-  to.
+  to. This is required by AWS if used for an IAM policy.
 * `not_resources` (Optional) - A list of resource ARNs that this statement
   does *not* apply to. Used to apply a policy statement to all resources
   *except* those listed.
@@ -140,3 +145,24 @@ The following attribute is exported:
 
 * `json` - The above arguments serialized as a standard JSON policy document.
 
+## Example with Multiple Principals
+
+Showing how you can use this as an assume role policy as well as showing how you can specify multiple principal blocks with different types.
+
+```hcl
+data "aws_iam_policy_document" "event_stream_bucket_role_assume_role_policy" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["firehose.amazonaws.com"]
+    }
+
+    principals {
+      type        = "AWS"
+      identifiers = ["${var.trusted_role_arn}"]
+    }
+  }
+}
+```

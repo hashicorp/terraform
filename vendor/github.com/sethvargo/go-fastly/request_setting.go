@@ -110,15 +110,15 @@ type CreateRequestSettingInput struct {
 	Version string
 
 	Name             string               `form:"name,omitempty"`
-	ForceMiss        Compatibool          `form:"force_miss,omitempty"`
-	ForceSSL         Compatibool          `form:"force_ssl,omitempty"`
+	ForceMiss        *Compatibool         `form:"force_miss,omitempty"`
+	ForceSSL         *Compatibool         `form:"force_ssl,omitempty"`
 	Action           RequestSettingAction `form:"action,omitempty"`
-	BypassBusyWait   Compatibool          `form:"bypass_busy_wait,omitempty"`
+	BypassBusyWait   *Compatibool         `form:"bypass_busy_wait,omitempty"`
 	MaxStaleAge      uint                 `form:"max_stale_age,omitempty"`
 	HashKeys         string               `form:"hash_keys,omitempty"`
 	XForwardedFor    RequestSettingXFF    `form:"xff,omitempty"`
-	TimerSupport     Compatibool          `form:"timer_support,omitempty"`
-	GeoHeaders       Compatibool          `form:"geo_headers,omitempty"`
+	TimerSupport     *Compatibool         `form:"timer_support,omitempty"`
+	GeoHeaders       *Compatibool         `form:"geo_headers,omitempty"`
 	DefaultHost      string               `form:"default_host,omitempty"`
 	RequestCondition string               `form:"request_condition,omitempty"`
 }
@@ -197,15 +197,15 @@ type UpdateRequestSettingInput struct {
 	Name string
 
 	NewName          string               `form:"name,omitempty"`
-	ForceMiss        Compatibool          `form:"force_miss,omitempty"`
-	ForceSSL         Compatibool          `form:"force_ssl,omitempty"`
+	ForceMiss        *Compatibool         `form:"force_miss,omitempty"`
+	ForceSSL         *Compatibool         `form:"force_ssl,omitempty"`
 	Action           RequestSettingAction `form:"action,omitempty"`
-	BypassBusyWait   Compatibool          `form:"bypass_busy_wait,omitempty"`
+	BypassBusyWait   *Compatibool         `form:"bypass_busy_wait,omitempty"`
 	MaxStaleAge      uint                 `form:"max_stale_age,omitempty"`
 	HashKeys         string               `form:"hash_keys,omitempty"`
 	XForwardedFor    RequestSettingXFF    `form:"xff,omitempty"`
-	TimerSupport     Compatibool          `form:"timer_support,omitempty"`
-	GeoHeaders       Compatibool          `form:"geo_headers,omitempty"`
+	TimerSupport     *Compatibool         `form:"timer_support,omitempty"`
+	GeoHeaders       *Compatibool         `form:"geo_headers,omitempty"`
 	DefaultHost      string               `form:"default_host,omitempty"`
 	RequestCondition string               `form:"request_condition,omitempty"`
 }

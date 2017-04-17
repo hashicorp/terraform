@@ -16,21 +16,21 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the Datadog provider
 provider "datadog" {
-	api_key = "${var.datadog_api_key}"
-	app_key = "${var.datadog_app_key}"
+  api_key = "${var.datadog_api_key}"
+  app_key = "${var.datadog_app_key}"
 }
 
-# Create a new monitor 
+# Create a new monitor
 resource "datadog_monitor" "default" {
-    ...
+  # ...
 }
 
 # Create a new timeboard
 resource "datadog_timeboard" "default" {
-    ...
+  # ...
 }
 ```
 
@@ -38,6 +38,5 @@ resource "datadog_timeboard" "default" {
 
 The following arguments are supported:
 
-* `api_key` - (Required) Datadog API key
-* `app_key` - (Required) Datadog APP key
-
+* `api_key` - (Required) Datadog API key. This can also be set via the `DATADOG_API_KEY` environment variable.
+* `app_key` - (Required) Datadog APP key. This can also be set via the `DATADOG_APP_KEY` environment variable.

@@ -99,6 +99,8 @@ func dataSourceAwsS3BucketObject() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"tags": tagsSchemaComputed(),
 		},
 	}
 }
@@ -130,7 +132,7 @@ func dataSourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) e
 	log.Printf("[DEBUG] Reading S3 object: %s", input)
 	out, err := conn.HeadObject(&input)
 	if err != nil {
-		return fmt.Errorf("Failed getting S3 object: %s", err)
+		return fmt.Errorf("Failed getting S3 object: %s Bucket: %q Object: %q", err, bucket, key)
 	}
 	if out.DeleteMarker != nil && *out.DeleteMarker == true {
 		return fmt.Errorf("Requested S3 object %q%s has been deleted",
@@ -155,9 +157,15 @@ func dataSourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("metadata", pointersMapToStringList(out.Metadata))
 	d.Set("server_side_encryption", out.ServerSideEncryption)
 	d.Set("sse_kms_key_id", out.SSEKMSKeyId)
-	d.Set("storage_class", out.StorageClass)
 	d.Set("version_id", out.VersionId)
 	d.Set("website_redirect_location", out.WebsiteRedirectLocation)
+
+	// The "STANDARD" (which is also the default) storage
+	// class when set would not be included in the results.
+	d.Set("storage_class", s3.StorageClassStandard)
+	if out.StorageClass != nil {
+		d.Set("storage_class", out.StorageClass)
+	}
 
 	if isContentTypeAllowed(out.ContentType) {
 		input := s3.GetObjectInput{
@@ -194,6 +202,16 @@ func dataSourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) e
 		log.Printf("[INFO] Ignoring body of S3 object %s with Content-Type %q",
 			uniqueId, contentType)
 	}
+
+	tagResp, err := conn.GetObjectTagging(
+		&s3.GetObjectTaggingInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(key),
+		})
+	if err != nil {
+		return err
+	}
+	d.Set("tags", tagsToMapS3(tagResp.TagSet))
 
 	return nil
 }

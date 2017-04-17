@@ -21,64 +21,64 @@ func resourceAwsSesReceiptRule() *schema.Resource {
 		Delete: resourceAwsSesReceiptRuleDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"rule_set_name": &schema.Schema{
+			"rule_set_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"after": &schema.Schema{
+			"after": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"enabled": &schema.Schema{
+			"enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
 
-			"recipients": &schema.Schema{
+			"recipients": {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 				Set:      schema.HashString,
 			},
 
-			"scan_enabled": &schema.Schema{
+			"scan_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
 
-			"tls_policy": &schema.Schema{
+			"tls_policy": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"add_header_action": &schema.Schema{
+			"add_header_action": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"header_name": &schema.Schema{
+						"header_name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"header_value": &schema.Schema{
+						"header_value": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"position": &schema.Schema{
+						"position": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
@@ -95,37 +95,37 @@ func resourceAwsSesReceiptRule() *schema.Resource {
 				},
 			},
 
-			"bounce_action": &schema.Schema{
+			"bounce_action": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"message": &schema.Schema{
+						"message": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"sender": &schema.Schema{
+						"sender": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"smtp_reply_code": &schema.Schema{
+						"smtp_reply_code": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"status_code": &schema.Schema{
+						"status_code": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"topic_arn": &schema.Schema{
+						"topic_arn": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"position": &schema.Schema{
+						"position": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
@@ -152,28 +152,28 @@ func resourceAwsSesReceiptRule() *schema.Resource {
 				},
 			},
 
-			"lambda_action": &schema.Schema{
+			"lambda_action": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"function_arn": &schema.Schema{
+						"function_arn": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"invocation_type": &schema.Schema{
+						"invocation_type": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
-						"topic_arn": &schema.Schema{
+						"topic_arn": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"position": &schema.Schema{
+						"position": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
@@ -198,32 +198,33 @@ func resourceAwsSesReceiptRule() *schema.Resource {
 				},
 			},
 
-			"s3_action": &schema.Schema{
+			"s3_action": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"bucket_name": &schema.Schema{
+						"bucket_name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"kms_key_arn": &schema.Schema{
+						"kms_key_arn": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validateArn,
+						},
+
+						"object_key_prefix": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"object_key_prefix": &schema.Schema{
+						"topic_arn": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"topic_arn": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-
-						"position": &schema.Schema{
+						"position": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
@@ -252,17 +253,17 @@ func resourceAwsSesReceiptRule() *schema.Resource {
 				},
 			},
 
-			"sns_action": &schema.Schema{
+			"sns_action": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"topic_arn": &schema.Schema{
+						"topic_arn": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"position": &schema.Schema{
+						"position": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
@@ -278,22 +279,22 @@ func resourceAwsSesReceiptRule() *schema.Resource {
 				},
 			},
 
-			"stop_action": &schema.Schema{
+			"stop_action": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"scope": &schema.Schema{
+						"scope": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"topic_arn": &schema.Schema{
+						"topic_arn": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"position": &schema.Schema{
+						"position": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
@@ -314,22 +315,22 @@ func resourceAwsSesReceiptRule() *schema.Resource {
 				},
 			},
 
-			"workmail_action": &schema.Schema{
+			"workmail_action": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"organization_arn": &schema.Schema{
+						"organization_arn": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"topic_arn": &schema.Schema{
+						"topic_arn": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"position": &schema.Schema{
+						"position": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
@@ -442,7 +443,7 @@ func resourceAwsSesReceiptRuleRead(d *schema.ResourceData, meta interface{}) err
 			addHeaderAction := map[string]interface{}{
 				"header_name":  *element.AddHeaderAction.HeaderName,
 				"header_value": *element.AddHeaderAction.HeaderValue,
-				"position":     i,
+				"position":     i + 1,
 			}
 			addHeaderActionList = append(addHeaderActionList, addHeaderAction)
 		}
@@ -452,7 +453,7 @@ func resourceAwsSesReceiptRuleRead(d *schema.ResourceData, meta interface{}) err
 				"message":         *element.BounceAction.Message,
 				"sender":          *element.BounceAction.Sender,
 				"smtp_reply_code": *element.BounceAction.SmtpReplyCode,
-				"position":        i,
+				"position":        i + 1,
 			}
 
 			if element.BounceAction.StatusCode != nil {
@@ -469,7 +470,7 @@ func resourceAwsSesReceiptRuleRead(d *schema.ResourceData, meta interface{}) err
 		if element.LambdaAction != nil {
 			lambdaAction := map[string]interface{}{
 				"function_arn": *element.LambdaAction.FunctionArn,
-				"position":     i,
+				"position":     i + 1,
 			}
 
 			if element.LambdaAction.InvocationType != nil {
@@ -486,7 +487,7 @@ func resourceAwsSesReceiptRuleRead(d *schema.ResourceData, meta interface{}) err
 		if element.S3Action != nil {
 			s3Action := map[string]interface{}{
 				"bucket_name": *element.S3Action.BucketName,
-				"position":    i,
+				"position":    i + 1,
 			}
 
 			if element.S3Action.KmsKeyArn != nil {
@@ -507,7 +508,7 @@ func resourceAwsSesReceiptRuleRead(d *schema.ResourceData, meta interface{}) err
 		if element.SNSAction != nil {
 			snsAction := map[string]interface{}{
 				"topic_arn": *element.SNSAction.TopicArn,
-				"position":  i,
+				"position":  i + 1,
 			}
 
 			snsActionList = append(snsActionList, snsAction)
@@ -516,7 +517,7 @@ func resourceAwsSesReceiptRuleRead(d *schema.ResourceData, meta interface{}) err
 		if element.StopAction != nil {
 			stopAction := map[string]interface{}{
 				"scope":    *element.StopAction.Scope,
-				"position": i,
+				"position": i + 1,
 			}
 
 			if element.StopAction.TopicArn != nil {
@@ -529,7 +530,7 @@ func resourceAwsSesReceiptRuleRead(d *schema.ResourceData, meta interface{}) err
 		if element.WorkmailAction != nil {
 			workmailAction := map[string]interface{}{
 				"organization_arn": *element.WorkmailAction.OrganizationArn,
-				"position":         i,
+				"position":         i + 1,
 			}
 
 			if element.WorkmailAction.TopicArn != nil {

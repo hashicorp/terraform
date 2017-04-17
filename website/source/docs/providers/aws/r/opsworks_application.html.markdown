@@ -1,6 +1,6 @@
 ---
 layout: "aws"
-page_title: "AWS: aws_opsworks_aplication"
+page_title: "AWS: aws_opsworks_application"
 sidebar_current: "docs-aws-resource-opsworks-application"
 description: |-
   Provides an OpsWorks application resource.
@@ -12,35 +12,41 @@ Provides an OpsWorks application resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_opsworks_application" "foo-app" {
-  name = "foobar application"
-  short_name = "foobar"
-  stack_id = "${aws_opsworks_stack.stack.id}"
-  type = "rails"
+  name        = "foobar application"
+  short_name  = "foobar"
+  stack_id    = "${aws_opsworks_stack.stack.id}"
+  type        = "rails"
   description = "This is a Rails application"
+
   domains = [
     "example.com",
-    "sub.example.com"
+    "sub.example.com",
   ]
+
   environment = {
-    key = "key"
-    value = "value"
+    key    = "key"
+    value  = "value"
     secure = false
   }
+
   app_source = {
-    type = "git"
+    type     = "git"
     revision = "master"
-    url = "https://github.com/example.git"
+    url      = "https://github.com/example.git"
   }
+
   enable_ssl = true
+
   ssl_configuration = {
     private_key = "${file("./foobar.key")}"
     certificate = "${file("./foobar.crt")}"
   }
-  document_root = "public"
+
+  document_root         = "public"
   auto_bundle_on_deploy = true
-  rails_env = "staging"
+  rails_env             = "staging"
 }
 ```
 
@@ -79,7 +85,7 @@ An `environment` block supports the following arguments:
 
 * `key` - (Required) Variable name.
 * `value` - (Required) Variable value.
-* `secret` - (Optional) Set visibility of the variable value to `true` or `false`.
+* `secure` - (Optional) Set visibility of the variable value to `true` or `false`.
 
 A `ssl_configuration` block supports the following arguments (can only be defined once per resource):
 

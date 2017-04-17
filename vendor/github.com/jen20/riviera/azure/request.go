@@ -117,8 +117,7 @@ func (request *Request) Execute() (*Response, error) {
 
 	var urlString string
 
-	// Base URL should already be validated by now so Parse is safe without error handling
-	urlObj, _ := url.Parse(request.client.BaseURL)
+	urlObj, _ := url.Parse(request.client.resourceManagerEndpoint)
 
 	// Determine whether to use the URLPathFunc or the URI explicitly set in the request
 	if request.URI == nil {

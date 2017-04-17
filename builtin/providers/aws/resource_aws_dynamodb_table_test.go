@@ -14,19 +14,24 @@ import (
 )
 
 func TestAccAWSDynamoDbTable_basic(t *testing.T) {
+	var conf dynamodb.DescribeTableOutput
+
+	rName := acctest.RandomWithPrefix("TerraformTestTable-")
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDynamoDbTableDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSDynamoDbConfigInitialState(),
+			{
+				Config: testAccAWSDynamoDbConfigInitialState(rName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckInitialAWSDynamoDbTableExists("aws_dynamodb_table.basic-dynamodb-table"),
+					testAccCheckInitialAWSDynamoDbTableExists("aws_dynamodb_table.basic-dynamodb-table", &conf),
+					testAccCheckInitialAWSDynamoDbTableConf("aws_dynamodb_table.basic-dynamodb-table"),
 				),
 			},
-			resource.TestStep{
-				Config: testAccAWSDynamoDbConfigAddSecondaryGSI,
+			{
+				Config: testAccAWSDynamoDbConfigAddSecondaryGSI(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDynamoDbTableWasUpdated("aws_dynamodb_table.basic-dynamodb-table"),
 				),
@@ -36,19 +41,69 @@ func TestAccAWSDynamoDbTable_basic(t *testing.T) {
 }
 
 func TestAccAWSDynamoDbTable_streamSpecification(t *testing.T) {
+	var conf dynamodb.DescribeTableOutput
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDynamoDbTableDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSDynamoDbConfigStreamSpecification(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckInitialAWSDynamoDbTableExists("aws_dynamodb_table.basic-dynamodb-table"),
+					testAccCheckInitialAWSDynamoDbTableExists("aws_dynamodb_table.basic-dynamodb-table", &conf),
+					testAccCheckInitialAWSDynamoDbTableConf("aws_dynamodb_table.basic-dynamodb-table"),
 					resource.TestCheckResourceAttr(
 						"aws_dynamodb_table.basic-dynamodb-table", "stream_enabled", "true"),
 					resource.TestCheckResourceAttr(
 						"aws_dynamodb_table.basic-dynamodb-table", "stream_view_type", "KEYS_ONLY"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDynamoDbTable_tags(t *testing.T) {
+	var conf dynamodb.DescribeTableOutput
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDynamoDbTableDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSDynamoDbConfigTags(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInitialAWSDynamoDbTableExists("aws_dynamodb_table.basic-dynamodb-table", &conf),
+					testAccCheckInitialAWSDynamoDbTableConf("aws_dynamodb_table.basic-dynamodb-table"),
+					resource.TestCheckResourceAttr(
+						"aws_dynamodb_table.basic-dynamodb-table", "tags.%", "3"),
+				),
+			},
+		},
+	})
+}
+
+// https://github.com/hashicorp/terraform/issues/13243
+func TestAccAWSDynamoDbTable_gsiUpdate(t *testing.T) {
+	var conf dynamodb.DescribeTableOutput
+	name := acctest.RandString(10)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDynamoDbTableDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSDynamoDbConfigGsiUpdate(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInitialAWSDynamoDbTableExists("aws_dynamodb_table.test", &conf),
+				),
+			},
+			{
+				Config: testAccAWSDynamoDbConfigGsiUpdated(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInitialAWSDynamoDbTableExists("aws_dynamodb_table.test", &conf),
 				),
 			},
 		},
@@ -125,9 +180,9 @@ func testAccCheckAWSDynamoDbTableDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckInitialAWSDynamoDbTableExists(n string) resource.TestCheckFunc {
+func testAccCheckInitialAWSDynamoDbTableExists(n string, table *dynamodb.DescribeTableOutput) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		fmt.Printf("[DEBUG] Trying to create initial table state!")
+		log.Printf("[DEBUG] Trying to create initial table state!")
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
@@ -146,13 +201,42 @@ func testAccCheckInitialAWSDynamoDbTableExists(n string) resource.TestCheckFunc 
 		resp, err := conn.DescribeTable(params)
 
 		if err != nil {
-			fmt.Printf("[ERROR] Problem describing table '%s': %s", rs.Primary.ID, err)
-			return err
+			return fmt.Errorf("[ERROR] Problem describing table '%s': %s", rs.Primary.ID, err)
+		}
+
+		*table = *resp
+
+		return nil
+	}
+}
+
+func testAccCheckInitialAWSDynamoDbTableConf(n string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		log.Printf("[DEBUG] Trying to create initial table state!")
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No DynamoDB table name specified!")
+		}
+
+		conn := testAccProvider.Meta().(*AWSClient).dynamodbconn
+
+		params := &dynamodb.DescribeTableInput{
+			TableName: aws.String(rs.Primary.ID),
+		}
+
+		resp, err := conn.DescribeTable(params)
+
+		if err != nil {
+			return fmt.Errorf("[ERROR] Problem describing table '%s': %s", rs.Primary.ID, err)
 		}
 
 		table := resp.Table
 
-		fmt.Printf("[DEBUG] Checking on table %s", rs.Primary.ID)
+		log.Printf("[DEBUG] Checking on table %s", rs.Primary.ID)
 
 		if *table.ProvisionedThroughput.WriteCapacityUnits != 20 {
 			return fmt.Errorf("Provisioned write capacity was %d, not 20!", table.ProvisionedThroughput.WriteCapacityUnits)
@@ -281,126 +365,316 @@ func dynamoDbAttributesToMap(attributes *[]*dynamodb.AttributeDefinition) map[st
 	return attrmap
 }
 
-func testAccAWSDynamoDbConfigInitialState() string {
+func testAccAWSDynamoDbConfigInitialState(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_dynamodb_table" "basic-dynamodb-table" {
-    name = "TerraformTestTable-%d"
-		read_capacity = 10
-		write_capacity = 20
-		hash_key = "TestTableHashKey"
-		range_key = "TestTableRangeKey"
-		attribute {
-			name = "TestTableHashKey"
-			type = "S"
-		}
-		attribute {
-			name = "TestTableRangeKey"
-			type = "S"
-		}
-		attribute {
-			name = "TestLSIRangeKey"
-			type = "N"
-		}
-		attribute {
-			name = "TestGSIRangeKey"
-			type = "S"
-		}
-		local_secondary_index {
-			name = "TestTableLSI"
-			range_key = "TestLSIRangeKey"
-			projection_type = "ALL"
-		}
-		global_secondary_index {
-			name = "InitialTestTableGSI"
-			hash_key = "TestTableHashKey"
-			range_key = "TestGSIRangeKey"
-			write_capacity = 10
-			read_capacity = 10
-			projection_type = "KEYS_ONLY"
-		}
+  name = "%s"
+  read_capacity = 10
+  write_capacity = 20
+  hash_key = "TestTableHashKey"
+  range_key = "TestTableRangeKey"
+
+  attribute {
+    name = "TestTableHashKey"
+    type = "S"
+  }
+
+  attribute {
+    name = "TestTableRangeKey"
+    type = "S"
+  }
+
+  attribute {
+    name = "TestLSIRangeKey"
+    type = "N"
+  }
+
+  attribute {
+    name = "TestGSIRangeKey"
+    type = "S"
+  }
+
+  local_secondary_index {
+    name = "TestTableLSI"
+    range_key = "TestLSIRangeKey"
+    projection_type = "ALL"
+  }
+
+  global_secondary_index {
+    name = "InitialTestTableGSI"
+    hash_key = "TestTableHashKey"
+    range_key = "TestGSIRangeKey"
+    write_capacity = 10
+    read_capacity = 10
+    projection_type = "KEYS_ONLY"
+  }
 }
-`, acctest.RandInt())
+`, rName)
 }
 
-const testAccAWSDynamoDbConfigAddSecondaryGSI = `
+func testAccAWSDynamoDbConfigAddSecondaryGSI(rName string) string {
+	return fmt.Sprintf(`
 resource "aws_dynamodb_table" "basic-dynamodb-table" {
-    name = "TerraformTestTable"
-		read_capacity = 20
-		write_capacity = 20
-		hash_key = "TestTableHashKey"
-		range_key = "TestTableRangeKey"
-		attribute {
-			name = "TestTableHashKey"
-			type = "S"
-		}
-		attribute {
-			name = "TestTableRangeKey"
-			type = "S"
-		}
-		attribute {
-			name = "TestLSIRangeKey"
-			type = "N"
-		}
-		attribute {
-			name = "ReplacementGSIRangeKey"
-			type = "N"
-		}
-		local_secondary_index {
-			name = "TestTableLSI"
-			range_key = "TestLSIRangeKey"
-			projection_type = "ALL"
-		}
-		global_secondary_index {
-			name = "ReplacementTestTableGSI"
-			hash_key = "TestTableHashKey"
-			range_key = "ReplacementGSIRangeKey"
-			write_capacity = 5
-			read_capacity = 5
-			projection_type = "INCLUDE"
-			non_key_attributes = ["TestNonKeyAttribute"]
-		}
+  name = "%s"
+  read_capacity = 20
+  write_capacity = 20
+  hash_key = "TestTableHashKey"
+  range_key = "TestTableRangeKey"
+
+  attribute {
+    name = "TestTableHashKey"
+    type = "S"
+  }
+
+  attribute {
+    name = "TestTableRangeKey"
+    type = "S"
+  }
+
+  attribute {
+    name = "TestLSIRangeKey"
+    type = "N"
+  }
+
+  attribute {
+    name = "ReplacementGSIRangeKey"
+    type = "N"
+  }
+
+  local_secondary_index {
+    name = "TestTableLSI"
+    range_key = "TestLSIRangeKey"
+    projection_type = "ALL"
+  }
+
+  global_secondary_index {
+    name = "ReplacementTestTableGSI"
+    hash_key = "TestTableHashKey"
+    range_key = "ReplacementGSIRangeKey"
+    write_capacity = 5
+    read_capacity = 5
+    projection_type = "INCLUDE"
+    non_key_attributes = ["TestNonKeyAttribute"]
+  }
+}`, rName)
 }
-`
 
 func testAccAWSDynamoDbConfigStreamSpecification() string {
 	return fmt.Sprintf(`
 resource "aws_dynamodb_table" "basic-dynamodb-table" {
-    name = "TerraformTestStreamTable-%d"
-	read_capacity = 10
-	write_capacity = 20
-	hash_key = "TestTableHashKey"
-	range_key = "TestTableRangeKey"
-	attribute {
-		name = "TestTableHashKey"
-		type = "S"
-	}
-	attribute {
-		name = "TestTableRangeKey"
-		type = "S"
-	}
-	attribute {
-		name = "TestLSIRangeKey"
-		type = "N"
-	}
-	attribute {
-		name = "TestGSIRangeKey"
-		type = "S"
-	}
-	local_secondary_index {
-		name = "TestTableLSI"
-		range_key = "TestLSIRangeKey"
-		projection_type = "ALL"
-	}
-	global_secondary_index {
-		name = "InitialTestTableGSI"
-		hash_key = "TestTableHashKey"
-		range_key = "TestGSIRangeKey"
-		write_capacity = 10
-		read_capacity = 10
-		projection_type = "KEYS_ONLY"
-	}
-	stream_enabled = true
-	stream_view_type = "KEYS_ONLY"
+  name = "TerraformTestStreamTable-%d"
+  read_capacity = 10
+  write_capacity = 20
+  hash_key = "TestTableHashKey"
+  range_key = "TestTableRangeKey"
+
+  attribute {
+    name = "TestTableHashKey"
+    type = "S"
+  }
+
+  attribute {
+    name = "TestTableRangeKey"
+    type = "S"
+  }
+
+  attribute {
+    name = "TestLSIRangeKey"
+    type = "N"
+  }
+
+  attribute {
+    name = "TestGSIRangeKey"
+    type = "S"
+  }
+
+  local_secondary_index {
+    name = "TestTableLSI"
+    range_key = "TestLSIRangeKey"
+    projection_type = "ALL"
+  }
+
+  global_secondary_index {
+    name = "InitialTestTableGSI"
+    hash_key = "TestTableHashKey"
+    range_key = "TestGSIRangeKey"
+    write_capacity = 10
+    read_capacity = 10
+    projection_type = "KEYS_ONLY"
+  }
+  stream_enabled = true
+  stream_view_type = "KEYS_ONLY"
 }
 `, acctest.RandInt())
+}
+
+func testAccAWSDynamoDbConfigTags() string {
+	return fmt.Sprintf(`
+resource "aws_dynamodb_table" "basic-dynamodb-table" {
+  name = "TerraformTestTable-%d"
+  read_capacity = 10
+  write_capacity = 20
+  hash_key = "TestTableHashKey"
+  range_key = "TestTableRangeKey"
+
+  attribute {
+    name = "TestTableHashKey"
+    type = "S"
+  }
+
+  attribute {
+    name = "TestTableRangeKey"
+    type = "S"
+  }
+
+  attribute {
+    name = "TestLSIRangeKey"
+    type = "N"
+  }
+
+  attribute {
+    name = "TestGSIRangeKey"
+    type = "S"
+  }
+
+  local_secondary_index {
+    name = "TestTableLSI"
+    range_key = "TestLSIRangeKey"
+    projection_type = "ALL"
+  }
+
+  global_secondary_index {
+    name = "InitialTestTableGSI"
+    hash_key = "TestTableHashKey"
+    range_key = "TestGSIRangeKey"
+    write_capacity = 10
+    read_capacity = 10
+    projection_type = "KEYS_ONLY"
+  }
+
+  tags {
+    Name = "terraform-test-table-%d"
+    AccTest = "yes"
+    Testing = "absolutely"
+  }
+}
+`, acctest.RandInt(), acctest.RandInt())
+}
+
+func testAccAWSDynamoDbConfigGsiUpdate(name string) string {
+	return fmt.Sprintf(`
+variable "capacity" {
+  default = 10
+}
+
+resource "aws_dynamodb_table" "test" {
+  name           = "tf-acc-test-%s"
+  read_capacity  = "${var.capacity}"
+  write_capacity = "${var.capacity}"
+  hash_key       = "id"
+
+  attribute {
+    name = "id"
+    type = "S"
+  }
+
+  attribute {
+    name = "att1"
+    type = "S"
+  }
+
+  attribute {
+    name = "att2"
+    type = "S"
+  }
+
+  attribute {
+    name = "att3"
+    type = "S"
+  }
+
+  global_secondary_index {
+    name            = "att1-index"
+    hash_key        = "att1"
+    write_capacity  = "${var.capacity}"
+    read_capacity   = "${var.capacity}"
+    projection_type = "ALL"
+  }
+
+  global_secondary_index {
+    name            = "att2-index"
+    hash_key        = "att2"
+    write_capacity  = "${var.capacity}"
+    read_capacity   = "${var.capacity}"
+    projection_type = "ALL"
+  }
+
+  global_secondary_index {
+    name            = "att3-index"
+    hash_key        = "att3"
+    write_capacity  = "${var.capacity}"
+    read_capacity   = "${var.capacity}"
+    projection_type = "ALL"
+  }
+}
+`, name)
+}
+
+func testAccAWSDynamoDbConfigGsiUpdated(name string) string {
+	return fmt.Sprintf(`
+variable "capacity" {
+  default = 20
+}
+
+resource "aws_dynamodb_table" "test" {
+  name           = "tf-acc-test-%s"
+  read_capacity  = "${var.capacity}"
+  write_capacity = "${var.capacity}"
+  hash_key       = "id"
+
+  attribute {
+    name = "id"
+    type = "S"
+  }
+
+  attribute {
+    name = "att1"
+    type = "S"
+  }
+
+  attribute {
+    name = "att2"
+    type = "S"
+  }
+
+  attribute {
+    name = "att3"
+    type = "S"
+  }
+
+  global_secondary_index {
+    name            = "att1-index"
+    hash_key        = "att1"
+    write_capacity  = "${var.capacity}"
+    read_capacity   = "${var.capacity}"
+    projection_type = "ALL"
+  }
+
+  global_secondary_index {
+    name            = "att2-index"
+    hash_key        = "att2"
+    write_capacity  = "${var.capacity}"
+    read_capacity   = "${var.capacity}"
+    projection_type = "ALL"
+  }
+
+  global_secondary_index {
+    name            = "att3-index"
+    hash_key        = "att3"
+    write_capacity  = "${var.capacity}"
+    read_capacity   = "${var.capacity}"
+    projection_type = "ALL"
+  }
+}
+`, name)
 }

@@ -14,12 +14,16 @@ func resourceScalewaySecurityGroup() *schema.Resource {
 		Read:   resourceScalewaySecurityGroupRead,
 		Update: resourceScalewaySecurityGroupUpdate,
 		Delete: resourceScalewaySecurityGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
@@ -29,6 +33,9 @@ func resourceScalewaySecurityGroup() *schema.Resource {
 
 func resourceScalewaySecurityGroupCreate(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
+
+	mu.Lock()
+	defer mu.Unlock()
 
 	req := api.ScalewayNewSecurityGroup{
 		Name:         d.Get("name").(string),
@@ -90,6 +97,9 @@ func resourceScalewaySecurityGroupRead(d *schema.ResourceData, m interface{}) er
 func resourceScalewaySecurityGroupUpdate(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
 
+	mu.Lock()
+	defer mu.Unlock()
+
 	var req = api.ScalewayUpdateSecurityGroup{
 		Organization: scaleway.Organization,
 		Name:         d.Get("name").(string),
@@ -107,6 +117,9 @@ func resourceScalewaySecurityGroupUpdate(d *schema.ResourceData, m interface{}) 
 
 func resourceScalewaySecurityGroupDelete(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
+
+	mu.Lock()
+	defer mu.Unlock()
 
 	err := scaleway.DeleteSecurityGroup(d.Id())
 	if err != nil {

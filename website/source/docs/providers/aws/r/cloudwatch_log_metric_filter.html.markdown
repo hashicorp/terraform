@@ -12,21 +12,21 @@ Provides a CloudWatch Log Metric Filter resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_cloudwatch_log_metric_filter" "yada" {
-  name = "MyAppAccessCount"
-  pattern = ""
+  name           = "MyAppAccessCount"
+  pattern        = ""
   log_group_name = "${aws_cloudwatch_log_group.dada.name}"
 
   metric_transformation {
-  	name = "EventCount"
-  	namespace = "YourNamespace"
-  	value = "1"
+    name      = "EventCount"
+    namespace = "YourNamespace"
+    value     = "1"
   }
 }
 
 resource "aws_cloudwatch_log_group" "dada" {
-	name = "MyApp/access.log"
+  name = "MyApp/access.log"
 }
 ```
 

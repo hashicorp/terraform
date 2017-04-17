@@ -1,0 +1,33 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+          <a href="/docs/providers/index.html">All Providers</a>
+        </li>
+
+        <li<%= sidebar_current("docs-ignition-index") %>>
+          <a href="/docs/providers/ignition/index.html">Ignition Provider</a>
+        </li>
+
+        <li<%= sidebar_current("docs-ignition-datasource") %>>
+          <a href="#">Data Sources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-ignition-datasource-config") %>><a href="/docs/providers/ignition/d/config.html">ignition_config</a></li>
+            <li<%= sidebar_current("docs-ignition-datasource-disk") %>><a href="/docs/providers/ignition/d/disk.html">ignition_disk</a></li>
+            <li<%= sidebar_current("docs-ignition-datasource-raid") %>><a href="/docs/providers/ignition/d/raid.html">ignition_raid</a></li>
+            <li<%= sidebar_current("docs-ignition-datasource-filesystem") %>><a href="/docs/providers/ignition/d/filesystem.html">ignition_filesystem</a></li>
+            <li<%= sidebar_current("docs-ignition-datasource-file") %>><a href="/docs/providers/ignition/d/file.html">ignition_file</a></li>
+            <li<%= sidebar_current("docs-ignition-datasource-systemd-unit") %>><a href="/docs/providers/ignition/d/systemd_unit.html">ignition_systemd_unit</a></li>
+            <li<%= sidebar_current("docs-ignition-datasource-networkd-unit") %>><a href="/docs/providers/ignition/d/networkd_unit.html">ignition_networkd_unit</a></li>
+            <li<%= sidebar_current("docs-ignition-datasource-user") %>><a href="/docs/providers/ignition/d/user.html">ignition_user</a></li>
+            <li<%= sidebar_current("docs-ignition-datasource-group") %>><a href="/docs/providers/ignition/d/group.html">ignition_group</a></li>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= yield %>
+<% end %>

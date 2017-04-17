@@ -119,7 +119,7 @@ type CreateHeaderInput struct {
 
 	Name              string       `form:"name,omitempty"`
 	Action            HeaderAction `form:"action,omitempty"`
-	IgnoreIfSet       Compatibool  `form:"ignore_if_set,omitempty"`
+	IgnoreIfSet       *Compatibool `form:"ignore_if_set,omitempty"`
 	Type              HeaderType   `form:"type,omitempty"`
 	Destination       string       `form:"dst,omitempty"`
 	Source            string       `form:"src,omitempty"`
@@ -204,7 +204,7 @@ type UpdateHeaderInput struct {
 
 	NewName           string       `form:"name,omitempty"`
 	Action            HeaderAction `form:"action,omitempty"`
-	IgnoreIfSet       Compatibool  `form:"ignore_if_set,omitempty"`
+	IgnoreIfSet       *Compatibool `form:"ignore_if_set,omitempty"`
 	Type              HeaderType   `form:"type,omitempty"`
 	Destination       string       `form:"dst,omitempty"`
 	Source            string       `form:"src,omitempty"`

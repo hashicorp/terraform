@@ -23,7 +23,7 @@ For more information on Amazon Aurora, see [Aurora on Amazon RDS][2] in the Amaz
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_rds_cluster_instance" "cluster_instances" {
   count              = 2
   identifier         = "aurora-cluster-demo-${count.index}"
@@ -33,7 +33,7 @@ resource "aws_rds_cluster_instance" "cluster_instances" {
 
 resource "aws_rds_cluster" "default" {
   cluster_identifier = "aurora-cluster-demo"
-  availability_zones = ["us-west-2a","us-west-2b","us-west-2c"]
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
   database_name      = "mydb"
   master_username    = "foo"
   master_password    = "barbut8chars"
@@ -47,12 +47,13 @@ the [AWS official documentation](https://docs.aws.amazon.com/AmazonRDS/latest/Co
 
 The following arguments are supported:
 
-* `identifier` - (Optional) The Instance Identifier. Must be a lower case
-string. If omitted, a unique identifier will be generated.
+* `identifier` - (Optional, Forces new resource) The indentifier for the RDS instance, if omitted, Terraform will assign a random, unique identifier.
+* `identifier_prefix` - (Optional, Forces new resource) Creates a unique identifier beginning with the specified prefix. Conflicts with `identifer`.
 * `cluster_identifier` - (Required) The identifier of the [`aws_rds_cluster`](/docs/providers/aws/r/rds_cluster.html) in which to launch this instance.
 * `instance_class` - (Required) The instance class to use. For details on CPU
 and memory, see [Scaling Aurora DB Instances][4]. Aurora currently
   supports the below instance classes.
+  - db.t2.medium
   - db.r3.large
   - db.r3.xlarge
   - db.r3.2xlarge
@@ -65,8 +66,16 @@ details on controlling this property.
 * `db_parameter_group_name` - (Optional) The name of the DB parameter group to associate with this instance.
 * `apply_immediately` - (Optional) Specifies whether any database modifications
      are applied immediately, or during the next maintenance window. Default is`false`.
-* `storage_encrypted` - (Optional) Specifies whether the DB cluster instance is encrypted. The default is `false` if not specified.
-* `kms_key_id` - (Optional) The ARN for the KMS encryption key. When specifying `kms_key_id`, `storage_encrypted` needs to be set to true
+* `monitoring_role_arn` - (Optional) The ARN for the IAM role that permits RDS to send
+enhanced monitoring metrics to CloudWatch Logs. You can find more information on the [AWS Documentation](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Monitoring.html)
+what IAM permissions are needed to allow Enhanced Monitoring for RDS Instances.
+* `monitoring_interval` - (Optional) The interval, in seconds, between points when Enhanced Monitoring metrics are collected for the DB instance. To disable collecting Enhanced Monitoring metrics, specify 0. The default is 0. Valid Values: 0, 1, 5, 10, 15, 30, 60.
+* `promotion_tier` - (Optional) Default 0. Failover Priority setting on instance level. The reader who has lower tier has higher priority to get promoter to writer. 
+* `preferred_backup_window` - (Optional) The daily time range during which automated backups are created if automated backups are enabled.
+  Eg: "04:00-09:00"
+* `preferred_maintenance_window` - (Optional) The window to perform maintenance in.
+  Syntax: "ddd:hh24:mi-ddd:hh24:mi". Eg: "Mon:00:00-Mon:03:00".
+* `auto_minor_version_upgrade` - (Optional) Indicates that minor engine upgrades will be applied automatically to the DB instance during the maintenance window. Default `true`.
 * `tags` - (Optional) A mapping of tags to assign to the instance.
 
 ## Attributes Reference
@@ -86,6 +95,8 @@ this instance is a read replica
 * `database_name` - The database name
 * `port` - The database port
 * `status` - The RDS instance status
+* `storage_encrypted` - Specifies whether the DB cluster is encrypted.
+* `kms_key_id` - The ARN for the KMS encryption key if one is set to the cluster.
 
 [2]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Aurora.html
 [3]: /docs/providers/aws/r/rds_cluster.html

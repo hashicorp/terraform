@@ -12,7 +12,7 @@ Provides a SimpleDB domain resource
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_simpledb_domain" "users" {
   name = "users"
 }
@@ -32,7 +32,7 @@ The following attributes are exported:
 
 ## Import
 
-SimpleDB Domains can be imported using the `name`, e.g. 
+SimpleDB Domains can be imported using the `name`, e.g.
 
 ```
 $ terraform import aws_simpledb_domain.users users

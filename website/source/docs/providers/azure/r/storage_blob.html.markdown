@@ -12,15 +12,15 @@ Creates a new storage blob within a given storage container on Azure.
 
 ## Example Usage
 
-```
+```hcl
 resource "azure_storage_blob" "foo" {
-    name = "tftesting-blob"
-    storage_service_name = "tfstorserv"
-    storage_container_name = "terraform-storage-container"
-    type = "PageBlob"
-    size = 1024
+  name                   = "tftesting-blob"
+  storage_service_name   = "tfstorserv"
+  storage_container_name = "terraform-storage-container"
+  type                   = "PageBlob"
+  size                   = 1024
 }
-````
+```
 
 ## Argument Reference
 

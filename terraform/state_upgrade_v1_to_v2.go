@@ -38,6 +38,7 @@ func upgradeStateV1ToV2(old *stateV1) (*State, error) {
 	}
 
 	newState.sort()
+	newState.init()
 
 	return newState, nil
 }
@@ -63,9 +64,18 @@ func (old *moduleStateV1) upgradeToV2() (*ModuleState, error) {
 		return nil, nil
 	}
 
-	path, err := copystructure.Copy(old.Path)
+	pathRaw, err := copystructure.Copy(old.Path)
 	if err != nil {
 		return nil, fmt.Errorf("Error upgrading ModuleState V1: %v", err)
+	}
+	path, ok := pathRaw.([]string)
+	if !ok {
+		return nil, fmt.Errorf("Error upgrading ModuleState V1: path is not a list of strings")
+	}
+	if len(path) == 0 {
+		// We found some V1 states with a nil path. Assume root and catch
+		// duplicate path errors later (as part of Validate).
+		path = rootModulePath
 	}
 
 	// Outputs needs upgrading to use the new structure
@@ -93,7 +103,7 @@ func (old *moduleStateV1) upgradeToV2() (*ModuleState, error) {
 	}
 
 	return &ModuleState{
-		Path:         path.([]string),
+		Path:         path,
 		Outputs:      outputs,
 		Resources:    resources,
 		Dependencies: dependencies.([]string),
@@ -149,16 +159,22 @@ func (old *instanceStateV1) upgradeToV2() (*InstanceState, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error upgrading InstanceState V1: %v", err)
 	}
+
 	meta, err := copystructure.Copy(old.Meta)
 	if err != nil {
 		return nil, fmt.Errorf("Error upgrading InstanceState V1: %v", err)
+	}
+
+	newMeta := make(map[string]interface{})
+	for k, v := range meta.(map[string]string) {
+		newMeta[k] = v
 	}
 
 	return &InstanceState{
 		ID:         old.ID,
 		Attributes: attributes.(map[string]string),
 		Ephemeral:  *ephemeral,
-		Meta:       meta.(map[string]string),
+		Meta:       newMeta,
 	}, nil
 }
 

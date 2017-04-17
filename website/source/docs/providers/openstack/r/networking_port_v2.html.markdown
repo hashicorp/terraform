@@ -12,15 +12,15 @@ Manages a V2 port resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_networking_network_v2" "network_1" {
-  name = "network_1"
+  name           = "network_1"
   admin_state_up = "true"
 }
 
 resource "openstack_networking_port_v2" "port_1" {
-  name = "port_1"
-  network_id = "${openstack_networking_network_v2.network_1.id}"
+  name           = "port_1"
+  network_id     = "${openstack_networking_network_v2.network_1.id}"
   admin_state_up = "true"
 }
 ```
@@ -63,6 +63,11 @@ The following arguments are supported:
 * `fixed_ip` - (Optional) An array of desired IPs for this port. The structure is
     described below.
 
+* `allowed_address_pairs` - (Optional) An IP/MAC Address pair of additional IP
+    addresses that can be active on this port. The structure is described
+    below.
+
+* `value_specs` - (Optional) Map of additional options.
 
 The `fixed_ip` block supports:
 
@@ -72,6 +77,12 @@ this port.
 * `ip_address` - (Optional) IP address desired in the subnet for this port. If
 you don't specify `ip_address`, an available IP address from the specified
 subnet will be allocated to this port.
+
+The `allowed_address_pairs` block supports:
+
+* `ip_address` - (Required) The additional IP address.
+
+* `mac_address` - (Optional) The additional MAC address.
 
 ## Attributes Reference
 
@@ -84,7 +95,9 @@ The following attributes are exported:
 * `device_owner` - See Argument Reference above.
 * `security_group_ids` - See Argument Reference above.
 * `device_id` - See Argument Reference above.
-* `fixed_ip/ip_address` - See Argument Reference above.
+* `fixed_ip` - See Argument Reference above.
+* `all fixed_ips` - The collection of Fixed IP addresses on the port in the
+  order returned by the Network v2 API.
 
 ## Import
 

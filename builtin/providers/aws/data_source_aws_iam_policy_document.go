@@ -1,6 +1,8 @@
 package aws
 
 import (
+	"fmt"
+
 	"encoding/json"
 	"strings"
 
@@ -41,6 +43,15 @@ func dataSourceAwsIamPolicyDocument() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "Allow",
+							ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+								switch v.(string) {
+								case "Allow", "Deny":
+									return
+								default:
+									es = append(es, fmt.Errorf("%q must be either \"Allow\" or \"Deny\"", k))
+									return
+								}
+							},
 						},
 						"actions":        setOfString,
 						"not_actions":    setOfString,
@@ -150,12 +161,19 @@ func dataSourceAwsIamPolicyDocumentRead(d *schema.ResourceData, meta interface{}
 	return nil
 }
 
-func dataSourceAwsIamPolicyDocumentReplaceVarsInList(in []string) []string {
-	out := make([]string, len(in))
-	for i, item := range in {
-		out[i] = dataSourceAwsIamPolicyDocumentVarReplacer.Replace(item)
+func dataSourceAwsIamPolicyDocumentReplaceVarsInList(in interface{}) interface{} {
+	switch v := in.(type) {
+	case string:
+		return dataSourceAwsIamPolicyDocumentVarReplacer.Replace(v)
+	case []string:
+		out := make([]string, len(v))
+		for i, item := range v {
+			out[i] = dataSourceAwsIamPolicyDocumentVarReplacer.Replace(item)
+		}
+		return out
+	default:
+		panic("dataSourceAwsIamPolicyDocumentReplaceVarsInList: input not string nor []string")
 	}
-	return out
 }
 
 func dataSourceAwsIamPolicyDocumentMakeConditions(in []interface{}) IAMPolicyStatementConditionSet {

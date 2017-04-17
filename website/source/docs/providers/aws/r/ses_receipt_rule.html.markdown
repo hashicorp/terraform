@@ -12,17 +12,17 @@ Provides an SES receipt rule resource
 
 ## Example Usage
 
-```
+```hcl
 # Add a header to the email and store it in S3
 resource "aws_ses_receipt_rule" "store" {
-  name = "store"
+  name          = "store"
   rule_set_name = "default-rule-set"
-  recipients = ["karen@example.com"]
-  enabled = true
-  scan_enabled = true
+  recipients    = ["karen@example.com"]
+  enabled       = true
+  scan_enabled  = true
 
   add_header_action {
-    header_name = "Custom-Header"
+    header_name  = "Custom-Header"
     header_value = "Added by SES"
   }
 
@@ -40,7 +40,6 @@ The following arguments are supported:
 * `rule_set_name` - (Required) The name of the rule set
 * `after` - (Optional) The name of the rule to place this rule after
 * `enabled` - (Optional) If true, the rule will be enabled
-* `recipients` - (Optional) A list of email addresses
 * `recipients` - (Optional) A list of email addresses
 * `scan_enabled` - (Optional) If true, incoming emails will be scanned for spam and viruses
 * `tls_policy` - (Optional) Require or Optional

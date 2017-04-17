@@ -3,12 +3,14 @@ layout: "docs"
 page_title: "Configuration Syntax"
 sidebar_current: "docs-config-syntax"
 description: |-
-  The syntax of Terraform configurations is custom. It is meant to strike a balance between human readable and editable as well as being machine-friendly. For machine-friendliness, Terraform can also read JSON configurations. For general Terraform configurations, however, we recommend using the Terraform syntax.
+  The syntax of Terraform configurations is custom. It is meant to strike a
+  balance between human readable and editable as well as being machine-friendly.
+  For machine-friendliness, Terraform can also read JSON configurations. For
+  general Terraform configurations, however, we recommend using the Terraform
+  syntax.
 ---
 
 # Configuration Syntax
-
-<a id="hcl"></a>
 
 The syntax of Terraform configurations is called [HashiCorp Configuration
 Language (HCL)](https://github.com/hashicorp/hcl). It is meant to strike a
@@ -21,7 +23,7 @@ syntax.
 
 Here is an example of Terraform's HCL syntax:
 
-```
+```hcl
 # An AMI
 variable "ami" {
   description = "the AMI to use"
@@ -64,12 +66,6 @@ Basic bullet point reference:
   * Numbers are assumed to be base 10. If you prefix a number with
     `0x`, it is treated as a hexadecimal number.
 
-  * Numbers can be suffixed with `kKmMgG` for some multiple of 10.
-    For example: `1k` is equal to `1000`.
-
-  * Numbers can be suffixed with `[kKmMgG]b` for power of 2 multiples,
-    example: `1kb` is equal to `1024`.
-
   * Boolean values: `true`, `false`.
 
   * Lists of primitive types can be made with square brackets (`[]`).
@@ -86,13 +82,15 @@ such as the "resource" and "variable" in the example above. These
 sections are similar to maps, but visually look better. For example,
 these are nearly equivalent:
 
-```
+```hcl
 variable "ami" {
   description = "the AMI to use"
 }
+```
 
-# is equal to:
+is equal to:
 
+```hcl
 variable = [{
   "ami": {
     "description": "the AMI to use",
@@ -111,25 +109,25 @@ The above example converted to JSON:
 
 ```json
 {
-	"variable": {
-		"ami": {
-			"description": "the AMI to use"
-		}
-	},
+  "variable": {
+    "ami": {
+      "description": "the AMI to use"
+    }
+  },
 
-	"resource": {
-		"aws_instance": {
-			"web": {
-				"ami": "${var.ami}",
-				"count": 2,
-				"source_dest_check": false,
+  "resource": {
+    "aws_instance": {
+      "web": {
+        "ami": "${var.ami}",
+        "count": 2,
+        "source_dest_check": false,
 
-				"connection": {
-					"user": "root"
-				}
-			}
-		}
-	}
+        "connection": {
+          "user": "root"
+        }
+      }
+    }
+  }
 }
 ```
 

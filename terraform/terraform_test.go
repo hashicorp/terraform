@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/logging"
 )
 
@@ -22,7 +23,13 @@ import (
 const fixtureDir = "./test-fixtures"
 
 func TestMain(m *testing.M) {
+	// We want to shadow on tests just to make sure the shadow graph works
+	// in case we need it and to find any race issues.
+	experiment.SetEnabled(experiment.X_shadow, true)
+
+	experiment.Flag(flag.CommandLine)
 	flag.Parse()
+
 	if testing.Verbose() {
 		// if we're verbose, use the logging requested by TF_LOG
 		logging.SetOutput()
@@ -30,6 +37,12 @@ func TestMain(m *testing.M) {
 		// otherwise silence all logs
 		log.SetOutput(ioutil.Discard)
 	}
+
+	// Make sure shadow operations fail our real tests
+	contextFailOnShadowError = true
+
+	// Always DeepCopy the Diff on every Plan during a test
+	contextTestDeepCopyOnPlan = true
 
 	os.Exit(m.Run())
 }
@@ -47,11 +60,18 @@ func tempDir(t *testing.T) string {
 }
 
 // tempEnv lets you temporarily set an environment variable. It returns
+// a function to defer to reset the old value.
 // the old value that should be set via a defer.
-func tempEnv(t *testing.T, k string, v string) string {
-	old := os.Getenv(k)
+func tempEnv(t *testing.T, k string, v string) func() {
+	old, oldOk := os.LookupEnv(k)
 	os.Setenv(k, v)
-	return old
+	return func() {
+		if !oldOk {
+			os.Unsetenv(k)
+		} else {
+			os.Setenv(k, old)
+		}
+	}
 }
 
 func testConfig(t *testing.T, name string) *config.Config {
@@ -163,6 +183,10 @@ func (h *HookRecordApplyOrder) PreApply(
 	info *InstanceInfo,
 	s *InstanceState,
 	d *InstanceDiff) (HookAction, error) {
+	if d.Empty() {
+		return HookActionContinue, nil
+	}
+
 	if h.Active {
 		h.l.Lock()
 		defer h.l.Unlock()
@@ -237,6 +261,27 @@ aws_instance.foo:
   type = aws_instance
 `
 
+const testTerraformApplyDataBasicStr = `
+data.null_data_source.testing:
+  ID = yo
+`
+
+const testTerraformApplyRefCountStr = `
+aws_instance.bar:
+  ID = foo
+  foo = 3
+  type = aws_instance
+
+  Dependencies:
+    aws_instance.foo
+aws_instance.foo.0:
+  ID = foo
+aws_instance.foo.1:
+  ID = foo
+aws_instance.foo.2:
+  ID = foo
+`
+
 const testTerraformApplyProviderAliasStr = `
 aws_instance.bar:
   ID = foo
@@ -247,6 +292,14 @@ aws_instance.foo:
   ID = foo
   num = 2
   type = aws_instance
+`
+
+const testTerraformApplyProviderAliasConfigStr = `
+another_instance.bar:
+  ID = foo
+  provider = another.two
+another_instance.foo:
+  ID = foo
 `
 
 const testTerraformApplyEmptyModuleStr = `
@@ -369,6 +422,20 @@ aws_instance.foo.1:
   type = aws_instance
 `
 
+const testTerraformApplyCountVariableRefStr = `
+aws_instance.bar:
+  ID = foo
+  foo = 2
+  type = aws_instance
+
+  Dependencies:
+    aws_instance.foo
+aws_instance.foo.0:
+  ID = foo
+aws_instance.foo.1:
+  ID = foo
+`
+
 const testTerraformApplyMinimalStr = `
 aws_instance.bar:
   ID = foo
@@ -443,11 +510,31 @@ module.child:
     provider = aws.eu
 `
 
+const testTerraformApplyModuleVarRefExistingStr = `
+aws_instance.foo:
+  ID = foo
+  foo = bar
+
+module.child:
+  aws_instance.foo:
+    ID = foo
+    type = aws_instance
+    value = bar
+`
+
 const testTerraformApplyOutputOrphanStr = `
 <no state>
 Outputs:
 
 foo = bar
+`
+
+const testTerraformApplyOutputOrphanModuleStr = `
+module.child:
+  <no state>
+  Outputs:
+
+  foo = bar
 `
 
 const testTerraformApplyProvisionerStr = `
@@ -461,6 +548,13 @@ aws_instance.foo:
   dynamical = computed_dynamical
   num = 2
   type = aws_instance
+`
+
+const testTerraformApplyProvisionerModuleStr = `
+<no state>
+module.child:
+  aws_instance.bar:
+    ID = foo
 `
 
 const testTerraformApplyProvisionerFailStr = `
@@ -517,6 +611,27 @@ aws_instance.foo.2:
   type = aws_instance
 `
 
+const testTerraformApplyProvisionerMultiSelfRefSingleStr = `
+aws_instance.foo.0:
+  ID = foo
+  foo = number 0
+  type = aws_instance
+aws_instance.foo.1:
+  ID = foo
+  foo = number 1
+  type = aws_instance
+
+  Dependencies:
+    aws_instance.foo.0
+aws_instance.foo.2:
+  ID = foo
+  foo = number 2
+  type = aws_instance
+
+  Dependencies:
+    aws_instance.foo.0
+`
+
 const testTerraformApplyProvisionerDiffStr = `
 aws_instance.bar:
   ID = foo
@@ -565,6 +680,43 @@ aws_instance.bar:
 aws_instance.foo:
   ID = foo
   num = 2
+`
+
+const testTerraformApplyResourceDependsOnModuleStr = `
+aws_instance.a:
+  ID = foo
+
+  Dependencies:
+    module.child
+
+module.child:
+  aws_instance.child:
+    ID = foo
+`
+
+const testTerraformApplyResourceDependsOnModuleDeepStr = `
+aws_instance.a:
+  ID = foo
+
+  Dependencies:
+    module.child
+
+module.child.grandchild:
+  aws_instance.c:
+    ID = foo
+`
+
+const testTerraformApplyResourceDependsOnModuleInModuleStr = `
+<no state>
+module.child:
+  aws_instance.b:
+    ID = foo
+
+    Dependencies:
+      module.grandchild
+module.child.grandchild:
+  aws_instance.c:
+    ID = foo
 `
 
 const testTerraformApplyTaintStr = `
@@ -793,6 +945,24 @@ CREATE: aws_instance.foo
   list.#: "" => "<computed>"
   num:    "" => "2"
   type:   "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
+const testTerraformPlanComputedMultiIndexStr = `
+DIFF:
+
+CREATE: aws_instance.bar
+  foo:  "" => "<computed>"
+  type: "" => "aws_instance"
+CREATE: aws_instance.foo.0
+  ip.#: "" => "<computed>"
+  type: "" => "aws_instance"
+CREATE: aws_instance.foo.1
+  ip.#: "" => "<computed>"
+  type: "" => "aws_instance"
 
 STATE:
 
@@ -1082,7 +1252,6 @@ DIFF:
 DESTROY: aws_instance.foo
 
 module.child:
-  DESTROY MODULE
   DESTROY: aws_instance.foo
 
 STATE:
@@ -1099,10 +1268,8 @@ const testTerraformPlanModuleDestroyCycleStr = `
 DIFF:
 
 module.a_module:
-  DESTROY MODULE
   DESTROY: aws_instance.a
 module.b_module:
-  DESTROY MODULE
   DESTROY: aws_instance.b
 
 STATE:
@@ -1119,7 +1286,6 @@ const testTerraformPlanModuleDestroyMultivarStr = `
 DIFF:
 
 module.child:
-  DESTROY MODULE
   DESTROY: aws_instance.foo.0
   DESTROY: aws_instance.foo.1
 
@@ -1223,6 +1389,19 @@ module.child:
     ID = baz
 `
 
+const testTerraformPlanModuleProviderVarStr = `
+DIFF:
+
+module.child:
+  CREATE: aws_instance.test
+    type:  "" => "aws_instance"
+    value: "" => "hello"
+
+STATE:
+
+<no state>
+`
+
 const testTerraformPlanModuleVarStr = `
 DIFF:
 
@@ -1316,6 +1495,21 @@ aws_instance.foo:
   num = 2
 `
 
+const testTerraformPlanTaintIgnoreChangesStr = `
+DIFF:
+
+DESTROY/CREATE: aws_instance.foo
+  type: "" => "aws_instance"
+  vars: "foo" => "foo"
+
+STATE:
+
+aws_instance.foo: (tainted)
+  ID = foo
+  type = aws_instance
+  vars = foo
+`
+
 const testTerraformPlanMultipleTaintStr = `
 DIFF:
 
@@ -1376,6 +1570,30 @@ aws_instance.foo:
   ami = ami-abcd1234
 `
 
+const testTFPlanDiffIgnoreChangesWithFlatmaps = `
+UPDATE: aws_instance.foo
+  lst.#:   "1" => "2"
+  lst.0:   "j" => "j"
+  lst.1:   "" => "k"
+  set.#:   "1" => "1"
+  set.0.a: "1" => "1"
+  set.0.b: "" => "2"
+  type:    "" => "aws_instance"
+`
+
+const testTerraformPlanIgnoreChangesWildcardStr = `
+DIFF:
+
+
+
+STATE:
+
+aws_instance.foo:
+  ID = bar
+  ami = ami-abcd1234
+  instance_type = t2.micro
+`
+
 const testTerraformPlanComputedValueInMap = `
 DIFF:
 
@@ -1413,3 +1631,28 @@ module.mod2:
 STATE:
 
 <no state>`
+
+const testTerraformInputHCL = `
+hcl_instance.hcltest:
+  ID = foo
+  bar.w = z
+  bar.x = y
+  foo.# = 2
+  foo.0 = a
+  foo.1 = b
+  type = hcl_instance
+`
+
+const testTerraformRefreshDataRefDataStr = `
+data.null_data_source.bar:
+  ID = foo
+  bar = yes
+  type = null_data_source
+
+  Dependencies:
+    data.null_data_source.foo
+data.null_data_source.foo:
+  ID = foo
+  foo = yes
+  type = null_data_source
+`

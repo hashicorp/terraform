@@ -63,3 +63,37 @@ resource "docker_network" "foo" {
   name = "bar"
 }
 `
+
+func TestAccDockerNetwork_internal(t *testing.T) {
+	var n dc.Network
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDockerNetworkInternalConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccNetwork("docker_network.foobar", &n),
+					testAccNetworkInternal(&n, true),
+				),
+			},
+		},
+	})
+}
+
+func testAccNetworkInternal(network *dc.Network, internal bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if network.Internal != internal {
+			return fmt.Errorf("Bad value for attribute 'internal': %t", network.Internal)
+		}
+		return nil
+	}
+}
+
+const testAccDockerNetworkInternalConfig = `
+resource "docker_network" "foobar" {
+  name = "foobar"
+  internal = "true"
+}
+`

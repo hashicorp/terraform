@@ -6,21 +6,21 @@ description: |-
   Creates network ACL rules for a given network ACL.
 ---
 
-# cloudstack\_network\_acl\_rule
+# cloudstack_network_acl_rule
 
 Creates network ACL rules for a given network ACL.
 
 ## Example Usage
 
-```
+```hcl
 resource "cloudstack_network_acl_rule" "default" {
   acl_id = "f3843ce0-334c-4586-bbd3-0c2e2bc946c6"
 
   rule {
-    action = "allow"
-    cidr_list = ["10.0.0.0/8"]
-    protocol = "tcp"
-    ports = ["80", "1000-2000"]
+    action       = "allow"
+    cidr_list    = ["10.0.0.0/8"]
+    protocol     = "tcp"
+    ports        = ["80", "1000-2000"]
     traffic_type = "ingress"
   }
 }
@@ -45,7 +45,7 @@ The following arguments are supported:
 
 * `parallelism` (Optional) Specifies how much rules will be created or deleted
     concurrently. (defaults 2)
-    
+
 The `rule` block supports:
 
 * `action` - (Optional) The action for the rule. Valid options are: `allow` and

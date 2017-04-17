@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"net/url"
 	"regexp"
 	"time"
 
@@ -19,19 +20,22 @@ func resourceAwsIamRole() *schema.Resource {
 		Read:   resourceAwsIamRoleRead,
 		Update: resourceAwsIamRoleUpdate,
 		Delete: resourceAwsIamRoleDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"unique_id": &schema.Schema{
+			"unique_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
@@ -52,7 +56,7 @@ func resourceAwsIamRole() *schema.Resource {
 				},
 			},
 
-			"name_prefix": &schema.Schema{
+			"name_prefix": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -71,16 +75,23 @@ func resourceAwsIamRole() *schema.Resource {
 				},
 			},
 
-			"path": &schema.Schema{
+			"path": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "/",
 				ForceNew: true,
 			},
 
-			"assume_role_policy": &schema.Schema{
+			"assume_role_policy": {
+				Type:             schema.TypeString,
+				Required:         true,
+				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
+				ValidateFunc:     validateJsonString,
+			},
+
+			"create_date": {
 				Type:     schema.TypeString,
-				Required: true,
+				Computed: true,
 			},
 		},
 	}
@@ -105,11 +116,11 @@ func resourceAwsIamRoleCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	var createResp *iam.CreateRoleOutput
-	err := resource.Retry(10*time.Second, func() *resource.RetryError {
+	err := resource.Retry(30*time.Second, func() *resource.RetryError {
 		var err error
 		createResp, err = iamconn.CreateRole(request)
-		// IAM roles can take ~10 seconds to propagate in AWS:
-		// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
+		// IAM users (referenced in Principal field of assume policy)
+		// can take ~30 seconds to propagate in AWS
 		if isAWSErr(err, "MalformedPolicyDocument", "Invalid principal in policy") {
 			return resource.RetryableError(err)
 		}
@@ -172,6 +183,17 @@ func resourceAwsIamRoleReadResult(d *schema.ResourceData, role *iam.Role) error 
 		return err
 	}
 	if err := d.Set("unique_id", role.RoleId); err != nil {
+		return err
+	}
+	if err := d.Set("create_date", role.CreateDate.Format(time.RFC3339)); err != nil {
+		return err
+	}
+
+	assumRolePolicy, err := url.QueryUnescape(*role.AssumeRolePolicyDocument)
+	if err != nil {
+		return err
+	}
+	if err := d.Set("assume_role_policy", assumRolePolicy); err != nil {
 		return err
 	}
 	return nil

@@ -6,8 +6,8 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/layer3/routers"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers"
 )
 
 func resourceNetworkingRouterRouteV2() *schema.Resource {
@@ -52,22 +52,18 @@ func resourceNetworkingRouterRouteV2Create(d *schema.ResourceData, meta interfac
 	var nextHop string = d.Get("next_hop").(string)
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
 	n, err := routers.Get(networkingClient, routerId).Extract()
 	if err != nil {
-		httpError, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-		if !ok {
-			return fmt.Errorf("Error retrieving OpenStack Neutron Router: %s", err)
-		}
-
-		if httpError.Actual == 404 {
+		if _, ok := err.(gophercloud.ErrDefault404); ok {
 			d.SetId("")
 			return nil
 		}
+
 		return fmt.Errorf("Error retrieving OpenStack Neutron Router: %s", err)
 	}
 
@@ -114,22 +110,18 @@ func resourceNetworkingRouterRouteV2Read(d *schema.ResourceData, meta interface{
 	routerId := d.Get("router_id").(string)
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
 	n, err := routers.Get(networkingClient, routerId).Extract()
 	if err != nil {
-		httpError, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-		if !ok {
-			return fmt.Errorf("Error retrieving OpenStack Neutron Router: %s", err)
-		}
-
-		if httpError.Actual == 404 {
+		if _, ok := err.(gophercloud.ErrDefault404); ok {
 			d.SetId("")
 			return nil
 		}
+
 		return fmt.Errorf("Error retrieving OpenStack Neutron Router: %s", err)
 	}
 
@@ -161,21 +153,17 @@ func resourceNetworkingRouterRouteV2Delete(d *schema.ResourceData, meta interfac
 
 	config := meta.(*Config)
 
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
 	n, err := routers.Get(networkingClient, routerId).Extract()
 	if err != nil {
-		httpError, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-		if !ok {
-			return fmt.Errorf("Error retrieving OpenStack Neutron Router: %s", err)
-		}
-
-		if httpError.Actual == 404 {
+		if _, ok := err.(gophercloud.ErrDefault404); ok {
 			return nil
 		}
+
 		return fmt.Errorf("Error retrieving OpenStack Neutron Router: %s", err)
 	}
 
