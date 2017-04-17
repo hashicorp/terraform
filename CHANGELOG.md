@@ -4,6 +4,7 @@ FEATURES:
 
 * **New Data Source:** `google_compute_network` [GH-12442]
 * **New Data Source:** `google_compute_subnetwork` [GH-12442]
+* **New Resource:** `local_file` for creating local files (please see the docs for caveats) [GH-12757]
 
 IMPROVEMENTS:
  * state/remote/swift: Support Openstack request logging [GH-13583]
