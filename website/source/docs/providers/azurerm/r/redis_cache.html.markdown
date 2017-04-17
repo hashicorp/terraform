@@ -12,7 +12,7 @@ Creates a new Redis Cache Resource
 
 ## Example Usage (Basic)
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acceptanceTestResourceGroup1"
   location = "West US"
@@ -35,7 +35,7 @@ resource "azurerm_redis_cache" "test" {
 
 ## Example Usage (Standard)
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acceptanceTestResourceGroup1"
   location = "West US"
@@ -57,7 +57,8 @@ resource "azurerm_redis_cache" "test" {
 ```
 
 ## Example Usage (Premium with Clustering)
-```
+
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acceptanceTestResourceGroup1"
   location = "West US"
@@ -105,7 +106,8 @@ The following arguments are supported:
 * `shard_count` - (Optional) *Only available when using the Premium SKU* The number of Shards to create on the Redis Cluster.
 
 * `redis_configuration` - (Required) Potential Redis configuration values - with some limitations by SKU - defaults/details are shown below.
-```
+
+```hcl
 redis_configuration {
   maxclients         = "512"
   maxmemory_reserve" = "10"

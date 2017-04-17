@@ -15,7 +15,7 @@ Creates a topic in Google's pubsub queueing system. For more information see
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_pubsub_topic" "default" {
   name = "default-topic"
 }

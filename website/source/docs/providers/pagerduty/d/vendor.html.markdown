@@ -12,7 +12,7 @@ Use this data source to get information about a specific [vendor][1] that you ca
 
 ## Example Usage
 
-```
+```hcl
 data "pagerduty_vendor" "datadog" {
   name = "Datadog"
 }

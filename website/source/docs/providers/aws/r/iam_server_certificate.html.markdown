@@ -26,7 +26,7 @@ Certificates][2] in AWS Documentation.
 
 **Using certs on file:**
 
-```
+```hcl
 resource "aws_iam_server_certificate" "test_cert" {
   name             = "some_test_cert"
   certificate_body = "${file("self-ca-cert.pem")}"
@@ -36,7 +36,7 @@ resource "aws_iam_server_certificate" "test_cert" {
 
 **Example with cert in-line:**
 
-```
+```hcl
 resource "aws_iam_server_certificate" "test_cert_alt" {
   name = "alt_test_cert"
 
@@ -63,8 +63,7 @@ recommended you utilize the `name_prefix` attribute and enable the
 to create a new, updated `aws_iam_server_certificate` resource and replace it in
 dependant resources before attempting to destroy the old version.
 
-
-```
+```hcl
 resource "aws_iam_server_certificate" "test_cert" {
   name_prefix      = "example-cert"
   certificate_body = "${file("self-ca-cert.pem")}"

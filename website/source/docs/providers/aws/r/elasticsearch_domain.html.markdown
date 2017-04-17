@@ -11,7 +11,7 @@ description: |-
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_elasticsearch_domain" "es" {
   domain_name           = "tf-test"
   elasticsearch_version = "1.5"

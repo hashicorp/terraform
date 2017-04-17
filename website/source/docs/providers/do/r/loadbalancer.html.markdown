@@ -13,7 +13,7 @@ modify, and delete Load Balancers.
 
 ## Example Usage
 
-```
+```hcl
 resource "digitalocean_droplet" "web" {
   name      = "web-1"
   size      = "512mb"

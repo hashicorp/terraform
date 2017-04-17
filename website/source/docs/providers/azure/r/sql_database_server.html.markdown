@@ -12,7 +12,7 @@ Allocates a new SQL Database Server on Azure.
 
 ## Example Usage
 
-```
+```hcl
 resource "azure_sql_database_server" "sql-serv" {
   name     = "<computed>"
   location = "West US"

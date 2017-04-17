@@ -14,7 +14,7 @@ Provides a customer gateway inside a VPC. These objects can be connected to VPN 
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_customer_gateway" "main" {
   bgp_asn    = 65000
   ip_address = "172.83.124.10"

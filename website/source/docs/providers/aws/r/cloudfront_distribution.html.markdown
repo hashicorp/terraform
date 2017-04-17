@@ -24,7 +24,7 @@ want to wait, you need to use the `retain_on_delete` flag.
 
 The following example below creates a CloudFront distribution with an S3 origin.
 
-```
+```hcl
 resource "aws_s3_bucket" "b" {
   bucket = "mybucket"
   acl    = "private"

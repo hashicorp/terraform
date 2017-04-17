@@ -15,7 +15,7 @@ Associate a floating IP to an instance. This can be used instead of the
 
 ### Automatically detect the correct network
 
-```
+```hcl
 resource "openstack_compute_instance_v2" "instance_1" {
   name            = "instance_1"
   image_id        = "ad091b52-742f-469e-8f3c-fd81cadf0743"
@@ -36,7 +36,7 @@ resource "openstack_compute_floatingip_associate_v2" "fip_1" {
 
 ### Explicitly set the network to attach to
 
-```
+```hcl
 resource "openstack_compute_instance_v2" "instance_1" {
   name            = "instance_1"
   image_id        = "ad091b52-742f-469e-8f3c-fd81cadf0743"

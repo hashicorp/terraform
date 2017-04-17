@@ -16,7 +16,7 @@ For more information see
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_ssl_certificate" "default" {
   name_prefix = "my-certificate-"
   description = "a description"

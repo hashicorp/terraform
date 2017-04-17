@@ -20,7 +20,7 @@ documentation](https://cloud.google.com/compute/docs/autoscaler/) and
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_instance_template" "foobar" {
   name           = "foobar"
   machine_type   = "n1-standard-1"

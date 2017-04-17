@@ -13,7 +13,7 @@ For additional details please refer to [API documentation](https://developer.sca
 
 ## Example Usage
 
-```
+```hcl
 resource "scaleway_server" "test" {
   name    = "test"
   image   = "aecaed73-51a5-4439-a127-6d8229847145"
