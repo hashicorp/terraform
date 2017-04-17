@@ -20,7 +20,7 @@ resource "aws_elasticsearch_domain" "es" {
   }
 
   advanced_options {
-    "rest.action.multi.allow_explicit_index" = true
+    "rest.action.multi.allow_explicit_index" = "true"
   }
 
   access_policies = <<CONFIG
