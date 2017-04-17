@@ -12,7 +12,7 @@ Use this data source to get information about a specific user within OpsGenie.
 
 ## Example Usage
 
-```
+```hcl
 data "opsgenie_user" "cookie_monster" {
   username = "me@cookie-monster.com"
 }

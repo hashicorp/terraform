@@ -12,7 +12,7 @@ Provides an ElastiCache Replication Group resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_elasticache_replication_group" "bar" {
   replication_group_id          = "tf-rep-group-1"
   replication_group_description = "test description"

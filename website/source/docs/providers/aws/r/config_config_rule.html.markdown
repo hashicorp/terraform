@@ -14,7 +14,7 @@ Provides an AWS Config Rule.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_config_config_rule" "r" {
   name = "example"
 

@@ -14,7 +14,7 @@ Creates a new bucket ACL in Google cloud storage service(GCS).
 
 Example creating an ACL on a bucket with one owner, and one reader.
 
-```js
+```hcl
 resource "google_storage_bucket" "image-store" {
   name     = "image-store-bucket"
   location = "EU"

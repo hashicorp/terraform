@@ -28,7 +28,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 provider "influxdb" {
   url      = "http://influxdb.example.com/"
   username = "terraform"

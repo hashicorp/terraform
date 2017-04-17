@@ -15,7 +15,7 @@ detach volumes from AWS Instances.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_volume_attachment" "ebs_att" {
   device_name = "/dev/sdh"
   volume_id   = "${aws_ebs_volume.example.id}"

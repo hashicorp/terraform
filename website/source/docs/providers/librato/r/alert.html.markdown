@@ -13,7 +13,7 @@ create and manage alerts on Librato.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new Librato alert
 resource "librato_alert" "myalert" {
   name        = "MyAlert"

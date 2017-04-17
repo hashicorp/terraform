@@ -14,7 +14,7 @@ Provides an VPC resource.
 
 Basic usage:
 
-```
+```hcl
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
 }
@@ -22,7 +22,7 @@ resource "aws_vpc" "main" {
 
 Basic usage with tags:
 
-```
+```hcl
 resource "aws_vpc" "main" {
   cidr_block       = "10.0.0.0/16"
   instance_tenancy = "dedicated"

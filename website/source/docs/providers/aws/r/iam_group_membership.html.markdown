@@ -14,7 +14,7 @@ more information on managing IAM Groups or IAM Users, see [IAM Groups][1] or
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_iam_group_membership" "team" {
   name = "tf-testing-group-membership"
 

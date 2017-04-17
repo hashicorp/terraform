@@ -15,7 +15,7 @@ and [API](https://cloud.google.com/compute/docs/instance-groups/manager/v1beta2/
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_instance_group_manager" "foobar" {
   name        = "terraform-test"
   description = "Terraform test instance group manager"

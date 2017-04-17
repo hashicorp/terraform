@@ -19,7 +19,7 @@ it's better to use `aws_ami_launch_permission` instead.
 
 ## Example Usage
 
-```
+```hcl
 # Create an AMI that will start a machine whose root device is backed by
 # an EBS volume populated from a snapshot. It is assumed that such a snapshot
 # already exists with the id "snap-xxxxxxxx".

@@ -12,7 +12,7 @@ Defines a new connection to a remote network through a VPN tunnel.
 
 ## Example Usage
 
-```
+```hcl
 resource "azure_local_network_connection" "localnet" {
   name                   = "terraform-local-network-connection"
   vpn_gateway_address    = "45.12.189.2"

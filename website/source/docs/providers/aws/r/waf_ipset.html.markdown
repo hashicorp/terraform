@@ -12,7 +12,7 @@ Provides a WAF IPSet Resource
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_waf_ipset" "ipset" {
   name = "tfIPSet"
 

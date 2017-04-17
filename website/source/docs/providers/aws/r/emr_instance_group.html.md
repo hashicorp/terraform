@@ -17,7 +17,7 @@ Terraform will resize any Instance Group to zero when destroying the resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_emr_instance_group" "task" {
   cluster_id     = "${aws_emr_cluster.tf-test-cluster.id}"
   instance_count = 1

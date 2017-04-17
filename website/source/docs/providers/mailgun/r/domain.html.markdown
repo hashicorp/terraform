@@ -13,7 +13,7 @@ create and manage applications on Mailgun.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new Mailgun domain
 resource "mailgun_domain" "default" {
   name          = "test.example.com"

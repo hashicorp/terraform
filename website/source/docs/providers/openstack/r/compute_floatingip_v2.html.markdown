@@ -15,7 +15,7 @@ but only networking floating IPs can be used with load balancers.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_compute_floatingip_v2" "floatip_1" {
   pool = "public"
 }

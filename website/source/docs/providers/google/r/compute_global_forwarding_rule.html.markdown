@@ -15,7 +15,7 @@ documentation](https://cloud.google.com/compute/docs/load-balancing/http/global-
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_global_forwarding_rule" "default" {
   name       = "test"
   target     = "${google_compute_target_http_proxy.default.self_link}"

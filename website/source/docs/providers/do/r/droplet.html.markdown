@@ -14,7 +14,7 @@ modify, and delete Droplets. Droplets also support
 
 ## Example Usage
 
-```
+```hcl
 # Create a new Web Droplet in the nyc2 region
 resource "digitalocean_droplet" "web" {
   image  = "ubuntu-14-04-x64"

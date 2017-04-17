@@ -12,7 +12,7 @@ Provides an API Gateway Usage Plan.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_api_gateway_rest_api" "myapi" {
   name = "MyDemoAPI"
 }

@@ -12,7 +12,7 @@ Provides a Inspector resource group
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_inspector_resource_group" "bar" {
   tags {
     Name = "foo"

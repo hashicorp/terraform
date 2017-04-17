@@ -12,7 +12,7 @@ Manages a V2 listener resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_lb_listener_v2" "listener_1" {
   protocol        = "HTTP"
   protocol_port   = 8080
