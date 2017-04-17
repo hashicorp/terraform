@@ -30,6 +30,8 @@ for more information.
 
 ## Example Usage
 
+### Simple DB Instance
+
 ```
 resource "aws_db_instance" "default" {
   allocated_storage    = 10
@@ -42,6 +44,46 @@ resource "aws_db_instance" "default" {
   password             = "bar"
   db_subnet_group_name = "my_database_subnet_group"
   parameter_group_name = "default.mysql5.6"
+}
+```
+
+### Encrypted Instance with Cross-region Read Replica
+
+```
+resource "aws_db_instance" "master" {
+  identifier           = "master"
+  allocated_storage    = 30
+  storage_encrypted    = "true"
+  engine               = "mysql"
+  engine_version       = "5.6.17"
+  instance_class       = "db.t2.large"
+  name                 = "mydb"
+  username             = "foo"
+  password             = "bar"
+  db_subnet_group_name = "my_database_subnet_group"
+  parameter_group_name = "default.mysql5.6"
+  backup_window = "03:01-06:00"
+  backup_retention_period = "7"
+  maintenance_window = "Mon:00:00-Mon:03:00"
+}
+
+resource "aws_db_instance" "replica" {
+  identifier = "read-replica"
+  replicate_source_db = "${aws_db_instance.master.arn}"
+  # Smallest instance size supporting encryption at rest
+  instance_class = "db.t2.large"
+  name = "mydb"
+  port = "5432"
+  multi_az = true
+  publicly_accessible = false
+  copy_tags_to_snapshot = true
+  db_subnet_group_name = "my_subnet_group_in_destination_region"
+  vpc_security_group_ids = [
+    "replica_security_group"
+  ]
+  storage_encrypted = "true"
+  destination_region = "eu-central-1"
+  kms_key_id = "<arn_of_kms_key_in_destination_region>"
 }
 ```
 
@@ -91,7 +133,7 @@ the final snapshot (if `final_snapshot_identifier` is specified). Default
 * `db_subnet_group_name` - (Optional) Name of DB subnet group. DB instance will be created in the VPC associated with the DB subnet group. If unspecified, will be created in the `default` VPC, or in EC2 Classic, if available.
 * `parameter_group_name` - (Optional) Name of the DB parameter group to associate.
 * `option_group_name` - (Optional) Name of the DB option group to associate.
-* `storage_encrypted` - (Optional) Specifies whether the DB instance is encrypted. The default is `false` if not specified.
+* `storage_encrypted` - (Optional) Specifies whether the DB instance is encrypted. The default is `false` if not specified. Required when creating encrypted cross-region read replica.
 * `apply_immediately` - (Optional) Specifies whether any database modifications
      are applied immediately, or during the next maintenance window. Default is
      `false`. See [Amazon RDS Documentation for more information.](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html)
@@ -109,12 +151,13 @@ database, and to use this value as the source database. This correlates to the
 enhanced monitoring metrics to CloudWatch Logs. You can find more information on the [AWS Documentation](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Monitoring.html)
 what IAM permissions are needed to allow Enhanced Monitoring for RDS Instances.
 * `monitoring_interval` - (Optional) The interval, in seconds, between points when Enhanced Monitoring metrics are collected for the DB instance. To disable collecting Enhanced Monitoring metrics, specify 0. The default is 0. Valid Values: 0, 1, 5, 10, 15, 30, 60.
-* `kms_key_id` - (Optional) The ARN for the KMS encryption key.
+* `kms_key_id` - (Optional) The ARN for the KMS encryption key. *Required* when creating an encrypted cross-region read replica. Set value to ARN of key in destination region.
 * `character_set_name` - (Optional) The character set name to use for DB encoding in Oracle instances. This can't be changed.
 [Oracle Character Sets Supported in Amazon RDS](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.OracleCharacterSets.html)
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 * `timezone` - (Optional) Time zone of the DB instance. `timezone` is currently only supported by Microsoft SQL Server.
 The `timezone` can only be set on creation. See [MSSQL User Guide](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_SQLServer.html#SQLServer.Concepts.General.TimeZone) for more information
+* `destination_region` - (Required for cross-region read replica) The region where to create a read replica.
 
 ~> **NOTE:** Removing the `replicate_source_db` attribute from an existing RDS
 Replicate database managed by Terraform will promote the database to a fully

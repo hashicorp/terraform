@@ -190,6 +190,48 @@ func TestAccAWSDBInstanceReplica(t *testing.T) {
 	})
 }
 
+func TestAccAWSDBInstanceReplicaCrossRegionEncrypted(t *testing.T) {
+	var s, r rds.DBInstance
+	keyRegex := regexp.MustCompile("^arn:aws:kms:")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccReplicaInstanceCrossRegionEncryptedConfig(rand.New(rand.NewSource(time.Now().UnixNano())).Int()),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &s),
+					testAccCheckAWSDBInstanceExists("aws_db_instance.replica", &r),
+					testAccCheckAWSDBInstanceReplicaAttributes(&s, &r),
+					resource.TestMatchResourceAttr(
+						"aws_db_instance.replica", "kms_key_id", keyRegex),
+				),
+			},
+		},
+	})
+}
+func TestAccAWSDBInstanceReplicaCrossRegionUnEncrypted(t *testing.T) {
+	var s, r rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccReplicaInstanceCrossRegionUnEncryptedConfig(rand.New(rand.NewSource(time.Now().UnixNano())).Int()),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &s),
+					testAccCheckAWSDBInstanceExists("aws_db_instance.replica", &r),
+					testAccCheckAWSDBInstanceReplicaAttributes(&s, &r),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSDBInstanceNoSnapshot(t *testing.T) {
 	var snap rds.DBInstance
 
@@ -808,6 +850,232 @@ func testAccReplicaInstanceConfig(val int) string {
 		}
 	}
 	`, val, val)
+}
+
+func testAccReplicaInstanceCrossRegionEncryptedConfig(val int) string {
+	return fmt.Sprintf(`
+provider "aws" {
+	alias = "eu"
+	region = "eu-central-1"
+}
+
+resource "aws_kms_key" "foo" {
+	provider = "aws.eu"
+	description = "Terraform-test-enc %d"
+	policy = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Id": "kms-tf-1",
+  "Statement": [
+    {
+      "Sid": "Enable IAM User Permissions",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "*"
+      },
+      "Action": "kms:*",
+      "Resource": "*"
+    }
+  ]
+}
+POLICY
+}
+	resource "aws_vpc" "vpc" {
+		provider             = "aws.eu"
+		cidr_block           = "172.18.0.0/22"
+		enable_dns_support   = "true"
+		enable_dns_hostnames = "true"
+
+		tags {
+			Name = "bar-test-vpc-%d"
+		}
+	}
+
+        resource "aws_main_route_table_association" "main_route_table" {
+        	provider       = "aws.eu"
+          	vpc_id         = "${aws_vpc.vpc.id}"
+          	route_table_id = "${aws_vpc.vpc.main_route_table_id}"
+        }
+
+        resource "aws_subnet" "subnet_private_1a" {
+        	provider          = "aws.eu"
+          	vpc_id            = "${aws_vpc.vpc.id}"
+          	cidr_block        = "172.18.0.0/23"
+          	availability_zone = "eu-central-1a"
+
+          	tags {
+            		Name      = "subnet-private-1a-%d"
+          	}
+        }
+
+        resource "aws_subnet" "subnet_private_1b" {
+        	provider          = "aws.eu"
+          	vpc_id            = "${aws_vpc.vpc.id}"
+          	cidr_block        = "172.18.2.0/23"
+          	availability_zone = "eu-central-1b"
+
+          	tags {
+            		Name      = "subnet-private-1b-%d"
+          	}
+        }
+
+        resource "aws_db_subnet_group" "foo_test" {
+		provider = "aws.eu"
+		name = "foobarbaz-test-%d"
+  		description = "$baz-test"
+  		subnet_ids = [
+  			"${aws_subnet.subnet_private_1a.id}",
+  			"${aws_subnet.subnet_private_1b.id}",
+  		]
+  		tags {
+    			Name = "foobarbaz-test-%d"
+  		}
+	}
+
+	resource "aws_db_instance" "bar" {
+		identifier = "foobarbaz-test-terraform-%d"
+
+		allocated_storage = 5
+		engine = "mysql"
+		engine_version = "5.6.21"
+		instance_class = "db.t2.large"
+		name = "baz"
+		password = "barbarbarbar"
+		username = "foo"
+
+		backup_retention_period = 1
+		skip_final_snapshot = true
+
+		parameter_group_name = "default.mysql5.6"
+
+		storage_encrypted = "true"
+	}
+
+	resource "aws_db_instance" "replica" {
+		identifier = "tf-replica-db-%d"
+		backup_retention_period = 0
+		replicate_source_db = "${aws_db_instance.bar.arn}"
+		allocated_storage = "${aws_db_instance.bar.allocated_storage}"
+		engine = "${aws_db_instance.bar.engine}"
+		engine_version = "${aws_db_instance.bar.engine_version}"
+		instance_class = "${aws_db_instance.bar.instance_class}"
+		password = "${aws_db_instance.bar.password}"
+		username = "${aws_db_instance.bar.username}"
+		db_subnet_group_name = "${aws_db_subnet_group.foo_test.id}"
+		skip_final_snapshot = true
+		tags {
+			Name = "tf-replica-db-%d"
+		}
+		destination_region = "eu-central-1"
+		source_region = "us-west-2"
+
+		storage_encrypted = "true"
+		kms_key_id = "${aws_kms_key.foo.arn}"
+
+	}
+	`, val, val, val, val, val, val, val, val, val)
+}
+
+func testAccReplicaInstanceCrossRegionUnEncryptedConfig(val int) string {
+	return fmt.Sprintf(`
+	provider "aws" {
+	alias = "eu"
+	region = "eu-central-1"
+	}
+
+	resource "aws_vpc" "vpc" {
+		provider             = "aws.eu"
+		cidr_block           = "172.18.0.0/22"
+		enable_dns_support   = "true"
+		enable_dns_hostnames = "true"
+
+		tags {
+			Name = "baz-test-vpc-%d"
+		}
+	}
+
+        resource "aws_main_route_table_association" "main_route_table" {
+        	provider       = "aws.eu"
+          	vpc_id         = "${aws_vpc.vpc.id}"
+          	route_table_id = "${aws_vpc.vpc.main_route_table_id}"
+        }
+
+        resource "aws_subnet" "subnet_private_1a" {
+        	provider          = "aws.eu"
+          	vpc_id            = "${aws_vpc.vpc.id}"
+          	cidr_block        = "172.18.0.0/23"
+          	availability_zone = "eu-central-1a"
+
+          	tags {
+            		Name      = "subnet-private-1a-%d"
+          	}
+        }
+
+        resource "aws_subnet" "subnet_private_1b" {
+        	provider          = "aws.eu"
+          	vpc_id            = "${aws_vpc.vpc.id}"
+          	cidr_block        = "172.18.2.0/23"
+          	availability_zone = "eu-central-1b"
+
+          	tags {
+            		Name      = "subnet-private-1b-%d"
+          	}
+        }
+
+        resource "aws_db_subnet_group" "foo_test" {
+		provider = "aws.eu"
+		name = "foobaz-test-%d"
+  		description = "$baz-test"
+  		subnet_ids = [
+  			"${aws_subnet.subnet_private_1a.id}",
+  			"${aws_subnet.subnet_private_1b.id}",
+  		]
+  		tags {
+    			Name = "foobaz-test-%d"
+  		}
+	}
+
+	resource "aws_db_instance" "bar" {
+		identifier = "foobaz-test-terraform-%d"
+
+		allocated_storage = 5
+		engine = "mysql"
+		engine_version = "5.6.21"
+		instance_class = "db.t2.micro"
+		name = "baz"
+		password = "barbarbarbar"
+		username = "foo"
+
+		backup_retention_period = 1
+		skip_final_snapshot = true
+
+		parameter_group_name = "default.mysql5.6"
+
+		storage_encrypted = "false"
+	}
+
+	resource "aws_db_instance" "replica" {
+		provider                = "aws.eu"
+		identifier              = "tf-replica-db-%d"
+		backup_retention_period = 0
+		replicate_source_db     = "${aws_db_instance.bar.arn}"
+		allocated_storage       = "${aws_db_instance.bar.allocated_storage}"
+		engine                  = "${aws_db_instance.bar.engine}"
+		engine_version          = "${aws_db_instance.bar.engine_version}"
+		instance_class          = "${aws_db_instance.bar.instance_class}"
+		password                = "${aws_db_instance.bar.password}"
+		username                = "${aws_db_instance.bar.username}"
+		db_subnet_group_name    = "${aws_db_subnet_group.foo_test.id}"
+		skip_final_snapshot     = true
+		tags {
+			Name = "tf-replica-db-%d"
+		}
+		destination_region      = "eu-central-1"
+		source_region      = "us-west-2"
+		storage_encrypted       = "false"
+
+	}
+	`, val, val, val, val, val, val, val, val)
 }
 
 func testAccSnapshotInstanceConfig() string {

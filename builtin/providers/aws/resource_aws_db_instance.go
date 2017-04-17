@@ -336,6 +336,16 @@ func resourceAwsDbInstance() *schema.Resource {
 			},
 
 			"tags": tagsSchema(),
+
+			"destination_region": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"source_region": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -364,6 +374,7 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	if v, ok := d.GetOk("replicate_source_db"); ok {
+
 		opts := rds.CreateDBInstanceReadReplicaInput{
 			SourceDBInstanceIdentifier: aws.String(v.(string)),
 			CopyTagsToSnapshot:         aws.Bool(d.Get("copy_tags_to_snapshot").(bool)),
@@ -372,6 +383,44 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 			PubliclyAccessible:         aws.Bool(d.Get("publicly_accessible").(bool)),
 			Tags:                       tags,
 		}
+
+		var needToPreSign, storageEncrypted bool = false, false
+
+		kms_attr, kms_ok := d.GetOk("kms_key_id")
+		if kms_ok {
+			opts.KmsKeyId = aws.String(kms_attr.(string))
+		}
+
+		if encrypted, ok := d.GetOk("storage_encrypted"); ok {
+			storageEncrypted = encrypted.(bool)
+		}
+
+		// Firstly check whether setting destination_region. If set assume cross-region replication.
+		if attr, ok := d.GetOk("destination_region"); ok {
+			opts.DestinationRegion = aws.String(attr.(string))
+
+			// Secondly ascertain whether encrypted (currently by requiring storageEncrypted).
+			// Can we detect between encrypted & non-encrypted without also requiring
+			// storageEncrypted to be set?
+			if storageEncrypted {
+				// If true validate kms_key_id is set.
+				if !kms_ok {
+					return fmt.Errorf(`provider.aws: aws_db_instance: %s: "kms_key_id" is
+					 required when creating an encrypted cross-region read replica`, identifier)
+				}
+				needToPreSign = true
+			}
+
+			// Because destination_region set we need source_region set, specifically for encrypted... do we need to discriminate?
+			sourceRegion, s_r_ok := d.GetOk("source_region")
+			if !s_r_ok {
+				return fmt.Errorf(`provider.aws: aws_db_instance: %s: "source_region" is
+					 required when creating an encrypted cross-region read replica `, identifier)
+			}
+			opts.SourceRegion = aws.String(sourceRegion.(string))
+
+		}
+
 		if attr, ok := d.GetOk("iops"); ok {
 			opts.Iops = aws.Int64(int64(attr.(int)))
 		}
@@ -404,11 +453,27 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 			opts.OptionGroupName = aws.String(attr.(string))
 		}
 
+		req, out := conn.CreateDBInstanceReadReplicaRequest(&opts)
+
+		if needToPreSign {
+			preSignedUrl, presign_err := req.Presign(5 * time.Minute)
+
+			if presign_err != nil {
+				return fmt.Errorf(`provider.aws: aws_db_instance: %s: error encountered
+				calling Presign on request: %s `, identifier, presign_err)
+			}
+			opts.PreSignedUrl = aws.String(preSignedUrl)
+		}
+
 		log.Printf("[DEBUG] DB Instance Replica create configuration: %#v", opts)
-		_, err := conn.CreateDBInstanceReadReplica(&opts)
+
+		err := req.Send()
+
 		if err != nil {
+			log.Printf("[DEBUG] DB Instance Replica response output: %#v", out)
 			return fmt.Errorf("Error creating DB Instance: %s", err)
 		}
+
 	} else if _, ok := d.GetOk("snapshot_identifier"); ok {
 		opts := rds.RestoreDBInstanceFromDBSnapshotInput{
 			DBInstanceClass:         aws.String(d.Get("instance_class").(string)),
