@@ -202,7 +202,7 @@ func TestAccDockerContainer_upload(t *testing.T) {
 	var c dc.Container
 
 	testCheck := func(*terraform.State) error {
-		client := testAccProvider.Meta().(*dc.Client)
+		client := testAccProvider.Meta().(*ProviderConfig).DockerClient
 
 		buf := new(bytes.Buffer)
 		opts := dc.DownloadFromContainerOptions{
