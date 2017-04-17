@@ -12,7 +12,7 @@ Provides a load balancer policy, which can be attached to an ELB listener or bac
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_elb" "wu-tang" {
   name               = "wu-tang"
   availability_zones = ["us-east-1a"]
@@ -89,7 +89,7 @@ resource "aws_load_balancer_listener_policy" "wu-tang-listener-policies-443" {
 
 Where the file `pubkey` in the current directory contains only the _public key_ of the certificate.
 
-```
+```shell
 cat wu-tang-ca.pem | openssl x509 -pubkey -noout | grep -v '\-\-\-\-' | tr -d '\n' > wu-tang-pubkey
 ```
 

@@ -14,7 +14,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the Logentries provider
 provider "logentries" {
   account_key = "${var.logentries_account_key}"

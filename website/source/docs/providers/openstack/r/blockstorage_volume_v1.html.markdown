@@ -12,7 +12,7 @@ Manages a V1 volume resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_blockstorage_volume_v1" "volume_1" {
   region      = "RegionOne"
   name        = "tf-test-volume"

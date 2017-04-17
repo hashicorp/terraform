@@ -13,7 +13,7 @@ modify, and delete devices.
 
 ## Example Usage
 
-```
+```hcl
 # Create a device and add it to cool_project
 resource "packet_device" "web1" {
   hostname         = "tf.coreos2"

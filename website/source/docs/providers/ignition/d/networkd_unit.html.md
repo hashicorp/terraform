@@ -12,7 +12,7 @@ Describes the desired state of the networkd units.
 
 ## Example Usage
 
-```
+```hcl
 data "ignition_networkd_unit" "example" {
 	name = "00-eth0.network"
 	content = "[Match]\nName=eth0\n\n[Network]\nAddress=10.0.1.7"

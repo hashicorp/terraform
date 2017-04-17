@@ -11,7 +11,8 @@ description: |-
 Provides an UltraDNS Traffic Controller pool resource.
 
 ## Example Usage
-```
+
+```hcl
 # Create a Traffic Controller pool
 resource "ultradns_tcpool" "pool" {
   zone        = "${var.ultradns_domain}"

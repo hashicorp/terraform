@@ -16,7 +16,7 @@ in all regions - available regions are listed
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_ecr_repository" "foo" {
   name = "bar"
 }

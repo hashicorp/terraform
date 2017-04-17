@@ -12,7 +12,7 @@ Manages a V2 port resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_networking_network_v2" "network_1" {
   name           = "network_1"
   admin_state_up = "true"

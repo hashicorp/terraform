@@ -12,7 +12,7 @@ Provides a [Route53 Delegation Set](https://docs.aws.amazon.com/Route53/latest/A
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_route53_delegation_set" "main" {
   reference_name = "DynDNS"
 }

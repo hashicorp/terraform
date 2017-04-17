@@ -12,7 +12,7 @@ Describes the desired group additions to the passwd database.
 
 ## Example Usage
 
-```
+```hcl
 data "ignition_group" "foo" {
 	name = "foo"
 }

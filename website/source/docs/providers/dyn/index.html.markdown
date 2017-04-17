@@ -16,7 +16,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the Dyn provider
 provider "dyn" {
   customer_name = "${var.dyn_customer_name}"

@@ -15,7 +15,7 @@ device creation.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new SSH key
 resource "packet_ssh_key" "key1" {
   name       = "terraform-1"

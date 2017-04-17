@@ -11,7 +11,8 @@ description: |-
 Provides a CloudWatch Metric Alarm resource.
 
 ## Example Usage
-```
+
+```hcl
 resource "aws_cloudwatch_metric_alarm" "foobar" {
   alarm_name                = "terraform-test-foobar5"
   comparison_operator       = "GreaterThanOrEqualToThreshold"
@@ -27,7 +28,8 @@ resource "aws_cloudwatch_metric_alarm" "foobar" {
 ```
 
 ## Example in Conjunction with Scaling Policies
-```
+
+```hcl
 resource "aws_autoscaling_policy" "bat" {
   name                   = "foobar3-terraform-test"
   scaling_adjustment     = 4
@@ -97,7 +99,6 @@ The following values are supported: `ignore`, and `evaluate`.
 The following attributes are exported:
 
 * `id` - The ID of the health check
-
 
 ## Import
 

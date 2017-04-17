@@ -14,7 +14,7 @@ Attaches a policy to an S3 bucket resource.
 
 ### Using versioning
 
-```
+```hcl
 resource "aws_s3_bucket" "b" {
   # Arguments
 }

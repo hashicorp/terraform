@@ -12,7 +12,7 @@ The test resource allows StatusCake tests to be managed by Terraform.
 
 ## Example Usage
 
-```
+```hcl
 resource "statuscake_test" "google" {
   website_name = "google.com"
   website_url  = "www.google.com"

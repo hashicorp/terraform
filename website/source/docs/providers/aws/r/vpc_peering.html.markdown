@@ -16,7 +16,7 @@ use the `aws_vpc_peering_connection_accepter` resource to manage the accepter's 
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_vpc_peering_connection" "foo" {
   peer_owner_id = "${var.peer_owner_id}"
   peer_vpc_id   = "${aws_vpc.bar.id}"
@@ -26,7 +26,7 @@ resource "aws_vpc_peering_connection" "foo" {
 
 Basic usage with connection options:
 
-```
+```hcl
 resource "aws_vpc_peering_connection" "foo" {
   peer_owner_id = "${var.peer_owner_id}"
   peer_vpc_id   = "${aws_vpc.bar.id}"
@@ -44,7 +44,7 @@ resource "aws_vpc_peering_connection" "foo" {
 
 Basic usage with tags:
 
-```
+```hcl
 resource "aws_vpc_peering_connection" "foo" {
   peer_owner_id = "${var.peer_owner_id}"
   peer_vpc_id   = "${aws_vpc.bar.id}"

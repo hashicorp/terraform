@@ -12,7 +12,7 @@ Provides a CloudWatch Logs subscription filter resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_cloudwatch_log_subscription_filter" "test_lambdafunction_logfilter" {
   name            = "test_lambdafunction_logfilter"
   role_arn        = "${aws_iam_role.iam_for_lambda.arn}"

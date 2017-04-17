@@ -14,8 +14,7 @@ application with the same configuration settings.
 
 ## Example Usage
 
-
-```
+```hcl
 resource "aws_elastic_beanstalk_application" "tftest" {
   name        = "tf-test-name"
   description = "tf-test-desc"
