@@ -12,7 +12,7 @@ Manages a network within GCE.
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_network" "default" {
   name                    = "test"
   auto_create_subnetworks = "true"

@@ -30,7 +30,7 @@ for more information.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_db_instance" "default" {
   allocated_storage    = 10
   storage_type         = "gp2"

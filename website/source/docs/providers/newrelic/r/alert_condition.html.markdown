@@ -10,7 +10,7 @@ description: |-
 
 ## Example Usage
 
-```
+```hcl
 data "newrelic_application" "app" {
   name = "my-app"
 }

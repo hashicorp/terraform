@@ -12,7 +12,7 @@ Provides a DigitalOcean Block Storage volume which can be attached to a Droplet 
 
 ## Example Usage
 
-```
+```hcl
 resource "digitalocean_volume" "foobar" {
   region      = "nyc1"
   name        = "baz"

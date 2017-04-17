@@ -13,7 +13,7 @@ A [service](https://v2.developer.pagerduty.com/v2/page/api-reference#!/Services/
 
 ## Example Usage
 
-```
+```hcl
 resource "pagerduty_user" "example" {
   name  = "Earline Greenholt"
   email = "125.greenholt.earline@graham.name"
@@ -79,7 +79,7 @@ When using `type = "use_support_hours"` in the `incident_urgency_rule` block you
 
 Below is an example for a `pagerduty_service` resource with `incident_urgency_rules` with `type = "use_support_hours"`, `support_hours` and a default `scheduled_action` as well.
 
-```
+```hcl
 resource "pagerduty_service" "foo" {
   name                    = "bar"
   description             = "bar bar bar"

@@ -15,7 +15,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the PowerDNS provider
 provider "powerdns" {
   api_key    = "${var.pdns_api_key}"

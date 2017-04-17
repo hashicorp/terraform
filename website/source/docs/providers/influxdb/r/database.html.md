@@ -12,7 +12,7 @@ The database resource allows a database to be created on an InfluxDB server.
 
 ## Example Usage
 
-```
+```hcl
 resource "influxdb_database" "metrics" {
     name = "awesome_app"
 }

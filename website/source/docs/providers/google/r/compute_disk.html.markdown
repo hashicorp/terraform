@@ -15,7 +15,7 @@ Creates a new persistent disk within GCE, based on another disk.
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_disk" "default" {
   name  = "test-disk"
   type  = "pd-ssd"

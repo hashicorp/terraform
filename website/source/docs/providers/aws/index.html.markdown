@@ -48,7 +48,7 @@ AWS provider block:
 
 Usage:
 
-```
+```hcl
 provider "aws" {
   region     = "us-west-2"
   access_key = "anaccesskey"

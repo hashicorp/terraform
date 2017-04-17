@@ -10,7 +10,7 @@ description: |-
 
 Attaches a Managed IAM Policy to an IAM role
 
-```
+```hcl
 resource "aws_iam_role" "role" {
     name = "test-role"
 }
