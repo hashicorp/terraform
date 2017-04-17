@@ -46,7 +46,7 @@ func TestAccAzureRMDocumentDbMaxIntervalInSeconds_validation(t *testing.T) {
 	}
 }
 
-//
+// TODO: validation for max staleness
 
 func TestAccAzureRMDocumentDb_standard(t *testing.T) {
 

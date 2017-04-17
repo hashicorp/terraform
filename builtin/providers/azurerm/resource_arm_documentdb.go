@@ -292,7 +292,16 @@ func expandAzureRmDocumentDbFailoverPolicies(databaseName string, d *schema.Reso
 		}
 	}
 
-	// TODO: all priorities must be unique
+	// all priorities must be unique
+	locationIds := make(map[int]struct{}, len(locations))
+	for _, location := range locations {
+		if _, ok := locationIds[location.FailoverPriority]; ok {
+			err := fmt.Errorf("Each DocumentDB Failover Policy needs to be unique")
+			return nil, err
+		}
+
+		locationIds[location.FailoverPriority] = struct{}{}
+	}
 
 	if !containsWriteLocation {
 		err := fmt.Errorf("DocumentDB Failover Policy should contain a Write Location (Location '0')")
