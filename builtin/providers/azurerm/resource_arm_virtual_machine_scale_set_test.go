@@ -550,14 +550,14 @@ resource "azurerm_virtual_machine_scale_set" "test" {
       load_balancer_backend_address_pool_ids = ["${azurerm_lb_backend_address_pool.test.id}"]
     }
   }
-  storage_profile_os_disk {
+  storage_os_disk {
     name           = "osDiskProfile"
     caching        = "ReadWrite"
     create_option  = "FromImage"
     os_type        = "linux"
     vhd_containers = ["${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}"]
   }
-  storage_profile_image_reference {
+  storage_image_reference {
     publisher = "Canonical"
     offer     = "UbuntuServer"
     sku       = "14.04.2-LTS"
@@ -649,14 +649,14 @@ resource "azurerm_virtual_machine_scale_set" "test" {
       load_balancer_backend_address_pool_ids = ["${azurerm_lb_backend_address_pool.test.id}"]
     }
   }
-  storage_profile_os_disk {
+  storage_os_disk {
     name           = "osDiskProfile"
     caching        = "ReadWrite"
     create_option  = "FromImage"
     os_type        = "linux"
     vhd_containers = ["${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}"]
   }
-  storage_profile_image_reference {
+  storage_image_reference {
     publisher = "Canonical"
     offer     = "UbuntuServer"
     sku       = "14.04.2-LTS"
