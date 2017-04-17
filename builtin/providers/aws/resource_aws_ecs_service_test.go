@@ -244,13 +244,15 @@ func TestAccAWSEcsService_withEcsClusterName(t *testing.T) {
 }
 
 func TestAccAWSEcsService_withAlb(t *testing.T) {
+	rName := acctest.RandomWithPrefix("tf-acc")
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEcsServiceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSEcsServiceWithAlb,
+				Config: testAccAWSEcsServiceWithAlb(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.with_alb"),
 				),
@@ -874,11 +876,15 @@ resource "aws_ecs_service" "jenkins" {
 }
 `
 
-var testAccAWSEcsServiceWithAlb = `
+func testAccAWSEcsServiceWithAlb(rName string) string {
+	return fmt.Sprintf(`
 data "aws_availability_zones" "available" {}
 
 resource "aws_vpc" "main" {
   cidr_block = "10.10.0.0/16"
+	tags {
+		Name = "TestAccAWSEcsService_withAlb"
+	}
 }
 
 resource "aws_subnet" "main" {
@@ -889,11 +895,11 @@ resource "aws_subnet" "main" {
 }
 
 resource "aws_ecs_cluster" "main" {
-  name = "terraform_acc_test_ecs_15"
+  name = "%s"
 }
 
 resource "aws_ecs_task_definition" "with_lb_changes" {
-  family = "tf_acc_test_ghost_lbd"
+  family = "%s"
   container_definitions = <<DEFINITION
 [
   {
@@ -914,7 +920,7 @@ DEFINITION
 }
 
 resource "aws_iam_role" "ecs_service" {
-    name = "tf_acc_test_15_role"
+    name = "%s"
     assume_role_policy = <<EOF
 {
   "Version": "2008-10-17",
@@ -933,7 +939,7 @@ EOF
 }
 
 resource "aws_iam_role_policy" "ecs_service" {
-    name = "tf_acc_test_15_policy"
+    name = "%s"
     role = "${aws_iam_role.ecs_service.name}"
     policy = <<EOF
 {
@@ -957,14 +963,14 @@ EOF
 }
 
 resource "aws_alb_target_group" "test" {
-  name = "tf-acc-test-ecs-ghost"
+  name = "%s"
   port = 80
   protocol = "HTTP"
   vpc_id = "${aws_vpc.main.id}"
 }
 
 resource "aws_alb" "main" {
-  name            = "tf-acc-test-test-alb-ecs"
+  name            = "%s"
   internal        = true
   subnets         = ["${aws_subnet.main.*.id}"]
 }
@@ -981,7 +987,7 @@ resource "aws_alb_listener" "front_end" {
 }
 
 resource "aws_ecs_service" "with_alb" {
-  name = "tf-acc-test-ecs-ghost"
+  name = "%s"
   cluster = "${aws_ecs_cluster.main.id}"
   task_definition = "${aws_ecs_task_definition.with_lb_changes.arn}"
   desired_count = 1
@@ -998,4 +1004,5 @@ resource "aws_ecs_service" "with_alb" {
     "aws_alb_listener.front_end"
   ]
 }
-`
+`, rName, rName, rName, rName, rName, rName, rName)
+}
