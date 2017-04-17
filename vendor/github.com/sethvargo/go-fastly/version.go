@@ -7,14 +7,14 @@ import (
 
 // Version represents a distinct configuration version.
 type Version struct {
-	Number    string     `mapstructure:"number"`
-	Comment   string     `mapstructure:"comment"`
-	ServiceID string     `mapstructure:"service_id"`
-	Active    bool       `mapstructure:"active"`
-	Locked    bool       `mapstructure:"locked"`
-	Deployed  bool       `mapstructure:"deployed"`
-	Staging   bool       `mapstructure:"staging"`
-	Testing   bool       `mapstructure:"testing"`
+	Number    int    `mapstructure:"number"`
+	Comment   string `mapstructure:"comment"`
+	ServiceID string `mapstructure:"service_id"`
+	Active    bool   `mapstructure:"active"`
+	Locked    bool   `mapstructure:"locked"`
+	Deployed  bool   `mapstructure:"deployed"`
+	Staging   bool   `mapstructure:"staging"`
+	Testing   bool   `mapstructure:"testing"`
 }
 
 // versionsByNumber is a sortable list of versions. This is used by the version
@@ -114,7 +114,7 @@ type GetVersionInput struct {
 	Service string
 
 	// Version is the version number to fetch (required).
-	Version string
+	Version int
 }
 
 // GetVersion fetches a version with the given information.
@@ -123,11 +123,11 @@ func (c *Client) GetVersion(i *GetVersionInput) (*Version, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d", i.Service, i.Version)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -145,7 +145,7 @@ type UpdateVersionInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	Comment string `form:"comment,omitempty"`
 }
@@ -156,11 +156,11 @@ func (c *Client) UpdateVersion(i *UpdateVersionInput) (*Version, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d", i.Service, i.Version)
 	resp, err := c.PutForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -178,7 +178,7 @@ type ActivateVersionInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 }
 
 // ActivateVersion activates the given version.
@@ -187,11 +187,11 @@ func (c *Client) ActivateVersion(i *ActivateVersionInput) (*Version, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/activate", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/activate", i.Service, i.Version)
 	resp, err := c.Put(path, nil)
 	if err != nil {
 		return nil, err
@@ -209,7 +209,7 @@ type DeactivateVersionInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 }
 
 // DeactivateVersion deactivates the given version.
@@ -218,11 +218,11 @@ func (c *Client) DeactivateVersion(i *DeactivateVersionInput) (*Version, error) 
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/deactivate", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/deactivate", i.Service, i.Version)
 	resp, err := c.Put(path, nil)
 	if err != nil {
 		return nil, err
@@ -240,7 +240,7 @@ type CloneVersionInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 }
 
 // CloneVersion creates a clone of the version with and returns a new
@@ -251,11 +251,11 @@ func (c *Client) CloneVersion(i *CloneVersionInput) (*Version, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/clone", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/clone", i.Service, i.Version)
 	resp, err := c.Put(path, nil)
 	if err != nil {
 		return nil, err
@@ -273,7 +273,7 @@ type ValidateVersionInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 }
 
 // ValidateVersion validates if the given version is okay.
@@ -284,11 +284,11 @@ func (c *Client) ValidateVersion(i *ValidateVersionInput) (bool, string, error) 
 		return false, msg, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return false, msg, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/validate", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/validate", i.Service, i.Version)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return false, msg, err
@@ -308,7 +308,7 @@ type LockVersionInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 }
 
 // LockVersion locks the specified version.
@@ -317,11 +317,11 @@ func (c *Client) LockVersion(i *LockVersionInput) (*Version, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/lock", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/lock", i.Service, i.Version)
 	resp, err := c.Put(path, nil)
 	if err != nil {
 		return nil, err

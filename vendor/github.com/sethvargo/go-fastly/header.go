@@ -51,7 +51,7 @@ type HeaderType string
 // Header represents a header response from the Fastly API.
 type Header struct {
 	ServiceID string `mapstructure:"service_id"`
-	Version   string `mapstructure:"version"`
+	Version   int    `mapstructure:"version"`
 
 	Name              string       `mapstructure:"name"`
 	Action            HeaderAction `mapstructure:"action"`
@@ -83,7 +83,7 @@ type ListHeadersInput struct {
 	Service string
 
 	// Version is the specific configuration version (required).
-	Version string
+	Version int
 }
 
 // ListHeaders returns the list of headers for the configuration version.
@@ -92,11 +92,11 @@ func (c *Client) ListHeaders(i *ListHeadersInput) ([]*Header, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/header", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/header", i.Service, i.Version)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -115,7 +115,7 @@ type CreateHeaderInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	Name              string       `form:"name,omitempty"`
 	Action            HeaderAction `form:"action,omitempty"`
@@ -137,11 +137,11 @@ func (c *Client) CreateHeader(i *CreateHeaderInput) (*Header, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/header", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/header", i.Service, i.Version)
 	resp, err := c.PostForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -159,7 +159,7 @@ type GetHeaderInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the header to fetch.
 	Name string
@@ -171,7 +171,7 @@ func (c *Client) GetHeader(i *GetHeaderInput) (*Header, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -179,7 +179,7 @@ func (c *Client) GetHeader(i *GetHeaderInput) (*Header, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/header/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/header/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -197,7 +197,7 @@ type UpdateHeaderInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the header to update.
 	Name string
@@ -222,7 +222,7 @@ func (c *Client) UpdateHeader(i *UpdateHeaderInput) (*Header, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -230,7 +230,7 @@ func (c *Client) UpdateHeader(i *UpdateHeaderInput) (*Header, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/header/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/header/%s", i.Service, i.Version, i.Name)
 	resp, err := c.PutForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -248,7 +248,7 @@ type DeleteHeaderInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the header to delete (required).
 	Name string
@@ -260,7 +260,7 @@ func (c *Client) DeleteHeader(i *DeleteHeaderInput) error {
 		return ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return ErrMissingVersion
 	}
 
@@ -268,7 +268,7 @@ func (c *Client) DeleteHeader(i *DeleteHeaderInput) error {
 		return ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/header/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/header/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Delete(path, nil)
 	if err != nil {
 		return err
