@@ -446,6 +446,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_waf_xss_match_set":                    resourceAwsWafXssMatchSet(),
 			"aws_waf_sql_injection_match_set":          resourceAwsWafSqlInjectionMatchSet(),
 			"aws_wafregional_byte_match_set":           resourceAwsWafRegionalByteMatchSet(),
+			"aws_wafregional_sql_injection_match_set":  resourceAwsWafRegionalSqlInjectionMatchSet(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
