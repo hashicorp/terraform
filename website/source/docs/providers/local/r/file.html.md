@@ -6,14 +6,20 @@ description: |-
   Generates a local file from content.
 ---
 
-# local\_file
+# local_file
 
-Generates a local file from a given content.
+Generates a local file with the given content.
+
+~> **Note** When working with local files, Terraform will detect the resource
+as having been deleted each time a configuration is applied on a new machine
+where the file is not present and will generate a diff to re-create it. This
+may cause "noise" in diffs in environments where configurations are routinely
+applied by many different users or within automation systems.
 
 ## Example Usage
 
-```
-data "local_file" "foo" {
+```hcl
+resource "local_file" "foo" {
     content     = "foo!"
     filename = "${path.module}/foo.bar"
 }
@@ -23,8 +29,9 @@ data "local_file" "foo" {
 
 The following arguments are supported:
 
-* `content` - (required) The content of file to create.
+* `content` - (Required) The content of file to create.
 
-* `filename` - (required) The path of the file to create.
+* `filename` - (Required) The path of the file to create.
 
-NOTE: Any required parent folders are created automatically. Additionally, any existing file will get overwritten.
+Any required parent directories will be created automatically, and any existing
+file with the given name will be overwritten.
