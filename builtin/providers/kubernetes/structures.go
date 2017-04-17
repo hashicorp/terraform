@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"k8s.io/kubernetes/pkg/api/resource"
 	api "k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/types"
 )
 
 func idParts(id string) (string, string) {
@@ -370,6 +371,98 @@ func flattenLimitRangeSpec(in api.LimitRangeSpec) []interface{} {
 	}
 	out[0] = map[string]interface{}{
 		"limit": limits,
+	}
+	return out
+}
+
+func expandLocalObjectReferences(r []interface{}) []api.LocalObjectReference {
+	if len(r) == 0 {
+		return []api.LocalObjectReference{}
+	}
+	out := make([]api.LocalObjectReference, len(r), len(r))
+	for i, v := range r {
+		ref := api.LocalObjectReference{}
+		refMap := v.(map[string]interface{})
+		if v, ok := refMap["name"].(string); ok {
+			ref.Name = v
+		}
+		out[i] = ref
+	}
+	return out
+}
+
+func flattenLocalObjectReferences(in []api.LocalObjectReference) []interface{} {
+	out := make([]interface{}, len(in), len(in))
+	for i, ref := range in {
+		refMap := make(map[string]interface{}, 0)
+		if ref.Name != "" {
+			refMap["name"] = ref.Name
+		}
+		out[i] = refMap
+	}
+	return out
+}
+
+func expandObjectReferences(r []interface{}) []api.ObjectReference {
+	if len(r) == 0 {
+		return []api.ObjectReference{}
+	}
+	out := make([]api.ObjectReference, len(r), len(r))
+	for i, v := range r {
+		ref := api.ObjectReference{}
+		refMap := v.(map[string]interface{})
+		if v, ok := refMap["api_version"].(string); ok {
+			ref.APIVersion = v
+		}
+		if v, ok := refMap["field_path"].(string); ok {
+			ref.FieldPath = v
+		}
+		if v, ok := refMap["kind"].(string); ok {
+			ref.Kind = v
+		}
+		if v, ok := refMap["name"].(string); ok {
+			ref.Name = v
+		}
+		if v, ok := refMap["namespace"].(string); ok {
+			ref.Namespace = v
+		}
+		if v, ok := refMap["resource_version"].(string); ok {
+			ref.ResourceVersion = v
+		}
+		if v, ok := refMap["uid"].(string); ok {
+			ref.UID = types.UID(v)
+		}
+		out[i] = ref
+	}
+	return out
+}
+
+func flattenObjectReferences(in []api.ObjectReference) []interface{} {
+	out := make([]interface{}, len(in), len(in))
+	for i, ref := range in {
+		refMap := make(map[string]interface{}, 0)
+		if ref.APIVersion != "" {
+			refMap["api_version"] = ref.APIVersion
+		}
+		if ref.FieldPath != "" {
+			refMap["field_path"] = ref.FieldPath
+		}
+		if ref.Kind != "" {
+			refMap["kind"] = ref.Kind
+		}
+		if ref.Name != "" {
+			refMap["name"] = ref.Name
+		}
+		if ref.Namespace != "" {
+			refMap["namespace"] = ref.Namespace
+		}
+		if ref.ResourceVersion != "" {
+			refMap["resource_version"] = ref.ResourceVersion
+		}
+		if ref.UID != "" {
+			refMap["uid"] = string(ref.UID)
+		}
+		out[i] = refMap
 	}
 	return out
 }
