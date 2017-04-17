@@ -207,6 +207,7 @@ func TestValidateArn(t *testing.T) {
 		"arn:aws:lambda:eu-west-1:319201112229:function:myCustomFunction",                  // Lambda function
 		"arn:aws:lambda:eu-west-1:319201112229:function:myCustomFunction:Qualifier",        // Lambda func qualifier
 		"arn:aws-us-gov:s3:::corp_bucket/object.png",                                       // GovCloud ARN
+		"arn:aws-us-gov:kms:us-gov-west-1:123456789012:key/some-uuid-abc123",               // GovCloud KMS ARN
 	}
 	for _, v := range validNames {
 		_, errors := validateArn(v, "arn")
