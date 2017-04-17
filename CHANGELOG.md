@@ -12,6 +12,7 @@ IMPROVEMENTS:
  * provider/aws: Add `name_prefix` support to `aws_cloudwatch_log_group` [GH-13273]
  * provider/azurerm: VM Scale Sets - import support [GH-13464]
  * provider/google: `google_compute_address` and `google_compute_global_address` are now importable [GH-13270]
+ * provider/vault: `vault_generic_secret` resource can now optionally detect drift if it has appropriate access [GH-11776]
  
 BUG FIXES:
 
