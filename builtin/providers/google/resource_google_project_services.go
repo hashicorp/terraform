@@ -155,12 +155,17 @@ func getConfigServices(d *schema.ResourceData) (services []string) {
 func getApiServices(pid string, config *Config) ([]string, error) {
 	apiServices := make([]string, 0)
 	// Get services from the API
-	svcResp, err := config.clientServiceMan.Services.List().ConsumerId("project:" + pid).Do()
-	if err != nil {
-		return apiServices, err
-	}
-	for _, v := range svcResp.Services {
-		apiServices = append(apiServices, v.ServiceName)
+	token := ""
+	for paginate := true; paginate; {
+		svcResp, err := config.clientServiceMan.Services.List().ConsumerId("project:" + pid).PageToken(token).Do()
+		if err != nil {
+			return apiServices, err
+		}
+		for _, v := range svcResp.Services {
+			apiServices = append(apiServices, v.ServiceName)
+		}
+		token = svcResp.NextPageToken
+		paginate = token != ""
 	}
 	return apiServices, nil
 }
