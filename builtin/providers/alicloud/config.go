@@ -5,6 +5,7 @@ import (
 
 	"github.com/denverdino/aliyungo/common"
 	"github.com/denverdino/aliyungo/ecs"
+	"github.com/denverdino/aliyungo/ess"
 	"github.com/denverdino/aliyungo/rds"
 	"github.com/denverdino/aliyungo/slb"
 )
@@ -20,6 +21,7 @@ type Config struct {
 type AliyunClient struct {
 	Region  common.Region
 	ecsconn *ecs.Client
+	essconn *ess.Client
 	rdsconn *rds.Client
 	// use new version
 	ecsNewconn *ecs.Client
@@ -60,6 +62,11 @@ func (c *Config) Client() (*AliyunClient, error) {
 		return nil, err
 	}
 
+	essconn, err := c.essConn()
+	if err != nil {
+		return nil, err
+	}
+
 	return &AliyunClient{
 		Region:     c.Region,
 		ecsconn:    ecsconn,
@@ -67,6 +74,7 @@ func (c *Config) Client() (*AliyunClient, error) {
 		vpcconn:    vpcconn,
 		slbconn:    slbconn,
 		rdsconn:    rdsconn,
+		essconn:    essconn,
 	}, nil
 }
 
@@ -122,4 +130,9 @@ func (c *Config) vpcConn() (*ecs.Client, error) {
 	client.SetBusinessInfo(BusinessInfoKey)
 	return client, nil
 
+}
+func (c *Config) essConn() (*ess.Client, error) {
+	client := ess.NewESSClient(c.AccessKey, c.SecretKey, c.Region)
+	client.SetBusinessInfo(BusinessInfoKey)
+	return client, nil
 }

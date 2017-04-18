@@ -18,7 +18,7 @@ connection into management.
 
 ## Example Usage
 
-```
+```hcl
 provider "aws" {
   // Requester's credentials.
 }

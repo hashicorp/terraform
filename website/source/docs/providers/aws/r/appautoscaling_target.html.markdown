@@ -11,7 +11,8 @@ description: |-
 Provides an Application AutoScaling ScalableTarget resource.
 
 ## Example Usage
-```
+
+```hcl
 resource "aws_appautoscaling_target" "ecs_target" {
   max_capacity       = 4
   min_capacity       = 1

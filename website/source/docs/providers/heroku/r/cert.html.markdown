@@ -12,7 +12,7 @@ Provides a Heroku SSL certificate resource. It allows to set a given certificate
 
 ## Example Usage
 
-```
+```hcl
 # Create a new Heroku app
 resource "heroku_app" "default" {
   name = "test-app"

@@ -10,7 +10,7 @@ Provides an RDS DB parameter group resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_db_parameter_group" "default" {
   name   = "rds-pg"
   family = "mysql5.6"

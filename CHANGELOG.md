@@ -1,13 +1,68 @@
-## 0.9.3 (unreleased)
+## 0.9.4 (Unreleased)
 
 FEATURES:
 
+* **New Data Source:** `aws_kms_alias` [GH-13669]
+* **New Data Source:** `google_compute_network` [GH-12442]
+* **New Data Source:** `google_compute_subnetwork` [GH-12442]
+* **New Resource:** `local_file` for creating local files (please see the docs for caveats) [GH-12757]
+* **New Resource:**  `alicloud_ess_scalinggroup` [GH-13731]
+* **New Resource:**  `alicloud_ess_scalingconfiguration` [GH-13731]
+* **New Resource:**  `alicloud_ess_scalingrule` [GH-13731]
+* **New Resource:**  `alicloud_ess_schedule` [GH-13731]
+* **New Resource:**  `alicloud_snat_entry` [GH-13731]
+* **New Resource:**  `alicloud_forward_entry` [GH-13731]
+
+
+IMPROVEMENTS:
+ * state/remote/swift: Support Openstack request logging [GH-13583]
+ * provider/aws: Add an option to skip getting the supported EC2 platforms [GH-13672]
+ * provider/aws: Add `name_prefix` support to `aws_cloudwatch_log_group` [GH-13273]
+ * provider/azurerm: VM Scale Sets - import support [GH-13464]
+ * provider/digitalocean: Export droplet prices [GH-13720]
+ * provider/google: `google_compute_address` and `google_compute_global_address` are now importable [GH-13270]
+ * provider/vault: `vault_generic_secret` resource can now optionally detect drift if it has appropriate access [GH-11776]
+ 
+BUG FIXES:
+
+ * core: Add the close provider/provisioner transformers back [GH-13102]
+ * core: Fix a crash condition by improving the flatmap.Expand() logic [GH-13541]
+ * provider/alicloud: Fix create PrePaid instance [GH-13662]
+ * provider/alicloud: Fix allocate public ip error [GH-13268]
+ * provider/alicloud: alicloud_security_group_rule: check ptr before use it [GH-13731)
+ * provider/alicloud: alicloud_instance: fix ecs internet_max_bandwidth_out cannot set zero bug [GH-13731]
+ * provider/aws: Fix DB Parameter Group Name [GH-13279]
+ * provider/aws: Increase default number of retries from 11 to 25 [GH-13673]
+ * provider/aws: Use mutex & retry for WAF change operations [GH-13656]
+ * provider/aws: Remove aws_vpc_dhcp_options if not found [GH-13610]
+ * provider/aws: Remove aws_network_acl_rule if not found [GH-13608]
+ * provider/aws: Allow GovCloud KMS ARNs to pass validation in `kms_key_id` attributes [GH-13699]
+ * provider/azurerm: azurerm_redis_cache resource missing hostname [GH-13650]
+ * provider/azurerm: Locking around Network Security Group / Subnets [GH-13637]
+ * provider/fastly: Fix issue with using 0 for `default_ttl` [GH-13648]
+ * provider/google: Stop setting the id when project creation fails [GH-13644]
+ * provider/newrelic: newrelic_alert_condition - `condition_scope` must be `application` or `instance` [GH-12972]
+ * provider/openstack: Fix updating Ports [GH-13604]
+
+## 0.9.3 (April 12, 2017)
+
+BACKWARDS INCOMPATIBILITIES / NOTES:
+ * provider/aws: Fix a critical bug in `aws_emr_cluster` in order to preserve the ordering 
+   of any arguments in `bootstrap_action`. Terraform will now enforce the ordering  
+   from the configuration. As a result, `aws_emr_cluster` resources may need to be
+   recreated, as there is no API to update them in-place [GH-13580]
+
+FEATURES:
+
+ * **New Resource:** `aws_api_gateway_method_settings` [GH-13542]
+ * **New Resource:** `aws_api_gateway_stage` [GH-13540]
  * **New Resource:** `aws_iam_openid_connect_provider` [GH-13456]
  * **New Resource:** `aws_lightsail_static_ip` [GH-13175]
  * **New Resource:** `aws_lightsail_static_ip_attachment` [GH-13207]
  * **New Resource:** `aws_ses_domain_identity` [GH-13098]
  * **New Resource:** `azurerm_managed_disk` [GH-12455]
  * **New Resource:** `kubernetes_persistent_volume` [GH-13277]
+ * **New Resource:** `kubernetes_persistent_volume_claim` [GH-13527]
  * **New Resource:** `kubernetes_secret` [GH-12960]
  * **New Data Source:** `aws_iam_role` [GH-13213]
 
@@ -16,6 +71,7 @@ IMPROVEMENTS:
  * core: add `-lock-timeout` option, which will block and retry locks for the given duration [GH-13262]
  * core: new `chomp` interpolation function which returns the given string with any trailing newline characters removed [GH-13419]
  * backend/remote-state: Add support for assume role extensions to s3 backend [GH-13236]
+ * backend/remote-state: Filter extra entries from s3 environment listings [GH-13596]
  * config: New interpolation functions `basename` and `dirname`, for file path manipulation [GH-13080]
  * helper/resource: Allow unknown "pending" states [GH-13099]
  * command/hook_ui: Increase max length of state IDs from 20 to 80 [GH-13317]
@@ -40,11 +96,13 @@ IMPROVEMENTS:
  * provider/aws: Add support for evaluate_low_sample_count_percentiles to cloudwatch_metric_alarm [GH-13371]
  * provider/aws: Add `name_prefix` to `aws_alb_target_group` [GH-13442]
  * provider/aws: Add support for EMR clusters to aws_appautoscaling_target [GH-13368]
+ * provider/aws: Add import capabilities to codecommit_repository [GH-13577]
  * provider/bitbucket: Improved error handling [GH-13390]
  * provider/cloudstack: Do not force a new resource when updating `cloudstack_loadbalancer_rule` members [GH-11786]
  * provider/fastly: Add support for Sumologic logging [GH-12541]
  * provider/github: Handle the case when issue labels already exist [GH-13182]
  * provider/google: Mark `google_container_cluster`'s `client_key` & `password` inside `master_auth` as sensitive [GH-13148]
+ * provider/google: Add node_pool field in resource_container_cluster [GH-13402]
  * provider/kubernetes: Allow defining custom config context [GH-12958]
  * provider/openstack: Add support for 'value_specs' options to `openstack_compute_servergroup_v2` [GH-13380]
  * provider/statuscake: Add support for StatusCake TriggerRate field [GH-13340]
@@ -84,19 +142,23 @@ BUG FIXES:
  * provider/aws: Update ElasticTranscoderPreset to have default for MaxFrameRate [GH-13422]
  * provider/aws: Fix aws_ami_launch_permission refresh when AMI disappears [GH-13469]
  * provider/aws: Add support for updating SSM documents [GH-13491]
+ * provider/aws: Fix panic on nil route configs [GH-13548]
  * provider/azurerm: Network Security Group - ignoring protocol casing at Import time [GH-13153]
  * provider/azurerm: Fix crash when importing Local Network Gateways [GH-13261]
  * provider/azurerm: Defaulting the value of `duplicate_detection_history_time_window` for `azurerm_servicebus_topic` [GH-13223]
+ * provider/azurerm: Event Hubs making the Location field idempotent [GH-13570]
  * provider/bitbucket: Fixed issue where provider would fail with an "EOF" error on some operations [GH-13390]
+ * provider/dnsimple: Handle 404 on DNSimple records [GH-13131]
  * provider/kubernetes: Use PATCH to update namespace [GH-13114]
  * provider/ns1: No splitting answer on SPF records. [GH-13260]
  * provider/openstack: Refresh volume_attachment from state if NotFound [GH-13342]
  * provider/openstack: Add SOFT_DELETED to delete status [GH-13444]
  * provider/profitbricks: Changed output type of ips variable of ip_block ProfitBricks resource [GH-13290]
+ * provider/template: Fix panic in cloudinit config [GH-13581]
 
 ## 0.9.2 (March 28, 2017)
 
-BACKWARDS IMCOMPATIBILITIES / NOTES:
+BACKWARDS INCOMPATIBILITIES / NOTES:
 
  * provider/openstack: Port Fixed IPs are able to be read again using the original numerical notation. However, Fixed IP configurations which are obtaining addresses via DHCP must now use the `all_fixed_ips` attribute to reference the returned IP address.
  * Environment names must be safe to use as a URL path segment without escaping, and is enforced by the CLI.
@@ -177,7 +239,7 @@ BUG FIXES:
 
 ## 0.9.1 (March 17, 2017)
 
-BACKWARDS IMCOMPATIBILITIES / NOTES:
+BACKWARDS INCOMPATIBILITIES / NOTES:
 
  * provider/pagerduty: the deprecated `name_regex` field has been removed from vendor data source ([#12396](https://github.com/hashicorp/terraform/issues/12396))
 

@@ -535,7 +535,7 @@ func testAccCheckDBInstanceDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*AliyunClient)
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "alicloud_db_instance.foo" {
+		if rs.Type != "alicloud_db_instance" {
 			continue
 		}
 

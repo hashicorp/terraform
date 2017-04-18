@@ -440,10 +440,10 @@
 			"revisionTime": "2015-08-30T18:26:16Z"
 		},
 		{
-			"checksumSHA1": "csR8njyJfkweB0RCtfnLwgXNeqQ=",
+			"checksumSHA1": "kMfAFLobZymMrCOm/Xi/g9gnJOU=",
 			"path": "github.com/ajg/form",
-			"revision": "7ff89c75808766205bfa4411abb436c98c33eb5e",
-			"revisionTime": "2016-06-29T21:43:12Z"
+			"revision": "523a5da1a92f01b01f840b61689c0340a0243532",
+			"revisionTime": "2016-08-22T23:00:20Z"
 		},
 		{
 			"checksumSHA1": "kn+zdUr5TNsoAX8BgjOaWYtMT5U=",
@@ -1118,6 +1118,14 @@
 			"versionExact": "v1.8.10"
 		},
 		{
+			"checksumSHA1": "QgNbH3Mxe4jiu3IN+vPAnz/IWbw=",
+			"path": "github.com/aws/aws-sdk-go/service/wafregional",
+			"revision": "d643bdf04f2cc6f95424f9f4e69037a563fc0736",
+			"revisionTime": "2017-04-06T18:01:00Z",
+			"version": "v1.8.10",
+			"versionExact": "v1.8.10"
+		},
+		{
 			"checksumSHA1": "nqw2Qn5xUklssHTubS5HDvEL9L4=",
 			"path": "github.com/bgentry/go-netrc/netrc",
 			"revision": "9fd32a8b3d3d3f9d43c341bfe098430e07609480",
@@ -1292,34 +1300,40 @@
 			"revisionTime": "2016-10-29T20:57:26Z"
 		},
 		{
-			"checksumSHA1": "SdiAYZOqWQ60ifRUHLwLiDMKMYA=",
+			"checksumSHA1": "4YIveqfMA1MH8oX8YMG7rDSl+ms=",
 			"path": "github.com/denverdino/aliyungo/common",
-			"revision": "c4c75afbf7ea86e66672c1b6ed981385b4ad5ec2",
-			"revisionTime": "2017-03-21T07:55:32Z"
+			"revision": "afcc6903e3f10217da17e315558b3f829718ee04",
+			"revisionTime": "2017-04-13T09:54:00Z"
 		},
 		{
-			"checksumSHA1": "UVYu5rvfoXgJnIpUyGcaovMvpms=",
+			"checksumSHA1": "WkWWoA5aRYkE2apOEQdAOfn+9cc=",
 			"path": "github.com/denverdino/aliyungo/ecs",
-			"revision": "c4c75afbf7ea86e66672c1b6ed981385b4ad5ec2",
-			"revisionTime": "2017-03-21T07:55:32Z"
+			"revision": "afcc6903e3f10217da17e315558b3f829718ee04",
+			"revisionTime": "2017-04-13T09:54:00Z"
+		},
+		{
+			"checksumSHA1": "BgIs8qwCMRM8xL6oLeo2Ki1QwBc=",
+			"path": "github.com/denverdino/aliyungo/ess",
+			"revision": "afcc6903e3f10217da17e315558b3f829718ee04",
+			"revisionTime": "2017-04-13T09:54:00Z"
 		},
 		{
 			"checksumSHA1": "riQMe2AR7qkLRkQ/MSr8gQp3zL4=",
 			"path": "github.com/denverdino/aliyungo/rds",
-			"revision": "c4c75afbf7ea86e66672c1b6ed981385b4ad5ec2",
-			"revisionTime": "2017-03-21T07:55:32Z"
+			"revision": "afcc6903e3f10217da17e315558b3f829718ee04",
+			"revisionTime": "2017-04-13T09:54:00Z"
 		},
 		{
 			"checksumSHA1": "2g6VZONB51rul5YuSBvngH6u4A0=",
 			"path": "github.com/denverdino/aliyungo/slb",
-			"revision": "c4c75afbf7ea86e66672c1b6ed981385b4ad5ec2",
-			"revisionTime": "2017-03-21T07:55:32Z"
+			"revision": "afcc6903e3f10217da17e315558b3f829718ee04",
+			"revisionTime": "2017-04-13T09:54:00Z"
 		},
 		{
-			"checksumSHA1": "Lp0KtT7ycgq31ox3Uzhpxyw0U+Y=",
+			"checksumSHA1": "piZlmhWPLGxYkXLysTrjcXllO4c=",
 			"path": "github.com/denverdino/aliyungo/util",
-			"revision": "c4c75afbf7ea86e66672c1b6ed981385b4ad5ec2",
-			"revisionTime": "2017-03-21T07:55:32Z"
+			"revision": "afcc6903e3f10217da17e315558b3f829718ee04",
+			"revisionTime": "2017-04-13T09:54:00Z"
 		},
 		{
 			"checksumSHA1": "yDQQpeUxwqB3C+4opweg6znWJQk=",
@@ -2294,10 +2308,10 @@
 			"revisionTime": "2016-06-16T18:50:15Z"
 		},
 		{
-			"checksumSHA1": "fue8Al8kqw/Q6VFPsNzoky7NIgo=",
+			"checksumSHA1": "2HimxaJVVp2QDVQ0570L71Zd5s4=",
 			"path": "github.com/joyent/triton-go",
-			"revision": "66b31a94af28a65e902423879a2820ea34b773fb",
-			"revisionTime": "2017-03-31T18:12:29Z"
+			"revision": "5db9e2b6a4c1f7ffd2a7e7aa625f42dba956608c",
+			"revisionTime": "2017-04-12T23:23:58Z"
 		},
 		{
 			"checksumSHA1": "QzUqkCSn/ZHyIK346xb9V6EBw9U=",
@@ -2725,10 +2739,10 @@
 			"revisionTime": "2016-08-11T16:27:25Z"
 		},
 		{
-			"checksumSHA1": "lOEkLP94OsQSLFp+38rY1GjnMtk=",
+			"checksumSHA1": "SUK6xOTZDwljlX/AoHAmgoz0e1E=",
 			"path": "github.com/paultyng/go-newrelic/api",
-			"revision": "81a8e05b0e494285f1322f99f3c6f93c8f1192b1",
-			"revisionTime": "2016-11-29T00:49:55Z"
+			"revision": "5fbf16b273dd4b544c9588450c58711d9f46f912",
+			"revisionTime": "2017-03-27T18:23:21Z"
 		},
 		{
 			"checksumSHA1": "mUb0GqsJK4UDh3Kx8TobjzvDUG4=",
@@ -2858,10 +2872,10 @@
 			"revisionTime": "2017-03-13T16:33:22Z"
 		},
 		{
-			"checksumSHA1": "bCpL8ZdY+y7OGwiN3hZzbQI5oM0=",
+			"checksumSHA1": "Je4BagkuoS2e+IlNJOf0+6JoB1g=",
 			"path": "github.com/sethvargo/go-fastly",
-			"revision": "43b7f97296d6c8e3a7bc083ab91101fbbc8c2f94",
-			"revisionTime": "2017-02-28T16:12:19Z"
+			"revision": "6e883a4c1524445805f33ddb1ab2a09a49ce4b1c",
+			"revisionTime": "2017-04-17T16:09:14Z"
 		},
 		{
 			"checksumSHA1": "8tEiK6vhVXuUbnWME5XNWLgvtSo=",
@@ -3495,10 +3509,10 @@
 			"revisionTime": "2016-11-01T17:03:53Z"
 		},
 		{
-			"checksumSHA1": "12GqsW8PiRPnezDDy0v4brZrndM=",
+			"checksumSHA1": "fALlQNY1fM99NesfLJ50KguWsio=",
 			"path": "gopkg.in/yaml.v2",
-			"revision": "a5b47d31c556af34a302ce5d659e6fea44d90de0",
-			"revisionTime": "2016-09-28T15:37:09Z"
+			"revision": "cd8b52f8269e0feb286dfeef29f8fe4d5b397e0b",
+			"revisionTime": "2017-04-07T17:21:22Z"
 		},
 		{
 			"checksumSHA1": "OcJdNALtPXoFOieAZjznhm7ufuU=",

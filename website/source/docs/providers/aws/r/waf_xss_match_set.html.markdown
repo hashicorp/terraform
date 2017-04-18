@@ -12,7 +12,7 @@ Provides a WAF XSS Match Set Resource
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_waf_xss_match_set" "xss_match_set" {
   name = "xss_match_set"
 

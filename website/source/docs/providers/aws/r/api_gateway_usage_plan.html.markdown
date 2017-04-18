@@ -6,13 +6,13 @@ description: |-
   Provides an API Gateway Usage Plan.
 ---
 
-# aws\_api\_usage\_plan
+# aws_api_gateway_usage_plan
 
 Provides an API Gateway Usage Plan.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_api_gateway_rest_api" "myapi" {
   name = "MyDemoAPI"
 }

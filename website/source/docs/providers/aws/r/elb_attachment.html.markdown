@@ -18,7 +18,7 @@ instances in conjunction with an ELB Attachment resource. Doing so will cause a
 conflict and will overwrite attachments.
 ## Example Usage
 
-```
+```hcl
 # Create a new load balancer attachment
 resource "aws_elb_attachment" "baz" {
   elb      = "${aws_elb.bar.id}"

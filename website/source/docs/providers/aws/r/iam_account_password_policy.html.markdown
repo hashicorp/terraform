@@ -16,7 +16,7 @@ in the official AWS docs.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_iam_account_password_policy" "strict" {
   minimum_password_length        = 8
   require_lowercase_characters   = true

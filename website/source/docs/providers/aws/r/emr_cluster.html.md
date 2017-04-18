@@ -14,7 +14,7 @@ for more information.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_emr_cluster" "emr-test-cluster" {
   name          = "emr-test-arn"
   release_label = "emr-4.6.0"

@@ -13,7 +13,7 @@ modify, and delete firewall settings and rules.
 
 ## Example Usage
 
-```
+```hcl
 resource "vcd_firewall_rules" "fw" {
   edge_gateway   = "Edge Gateway Name"
   default_action = "drop"

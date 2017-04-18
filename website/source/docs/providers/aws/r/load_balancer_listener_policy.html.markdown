@@ -13,7 +13,7 @@ Attaches a load balancer policy to an ELB Listener.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_elb" "wu-tang" {
   name               = "wu-tang"
   availability_zones = ["us-east-1a"]

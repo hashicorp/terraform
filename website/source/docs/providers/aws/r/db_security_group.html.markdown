@@ -15,7 +15,7 @@ attribute instead.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_db_security_group" "default" {
   name = "rds_sg"
 

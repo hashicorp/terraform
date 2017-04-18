@@ -16,34 +16,41 @@ import (
 	"time"
 )
 
-// NewEncoder returns a new form encoder.
-func NewEncoder(w io.Writer) *encoder {
-	return &encoder{w, defaultDelimiter, defaultEscape}
+// NewEncoder returns a new form Encoder.
+func NewEncoder(w io.Writer) *Encoder {
+	return &Encoder{w, defaultDelimiter, defaultEscape, false}
 }
 
-// encoder provides a way to encode to a Writer.
-type encoder struct {
+// Encoder provides a way to encode to a Writer.
+type Encoder struct {
 	w io.Writer
 	d rune
 	e rune
+	z bool
 }
 
-// DelimitWith sets r as the delimiter used for composite keys by encoder e and returns the latter; it is '.' by default.
-func (e *encoder) DelimitWith(r rune) *encoder {
+// DelimitWith sets r as the delimiter used for composite keys by Encoder e and returns the latter; it is '.' by default.
+func (e *Encoder) DelimitWith(r rune) *Encoder {
 	e.d = r
 	return e
 }
 
-// EscapeWith sets r as the escape used for delimiters (and to escape itself) by encoder e and returns the latter; it is '\\' by default.
-func (e *encoder) EscapeWith(r rune) *encoder {
+// EscapeWith sets r as the escape used for delimiters (and to escape itself) by Encoder e and returns the latter; it is '\\' by default.
+func (e *Encoder) EscapeWith(r rune) *Encoder {
 	e.e = r
 	return e
 }
 
-// Encode encodes dst as form and writes it out using the encoder's Writer.
-func (e encoder) Encode(dst interface{}) error {
+// KeepZeros sets whether Encoder e should keep zero (default) values in their literal form when encoding, and returns the former; by default zero values are not kept, but are rather encoded as the empty string.
+func (e *Encoder) KeepZeros(z bool) *Encoder {
+	e.z = z
+	return e
+}
+
+// Encode encodes dst as form and writes it out using the Encoder's Writer.
+func (e Encoder) Encode(dst interface{}) error {
 	v := reflect.ValueOf(dst)
-	n, err := encodeToNode(v)
+	n, err := encodeToNode(v, e.z)
 	if err != nil {
 		return err
 	}
@@ -61,7 +68,7 @@ func (e encoder) Encode(dst interface{}) error {
 // EncodeToString encodes dst as a form and returns it as a string.
 func EncodeToString(dst interface{}) (string, error) {
 	v := reflect.ValueOf(dst)
-	n, err := encodeToNode(v)
+	n, err := encodeToNode(v, false)
 	if err != nil {
 		return "", err
 	}
@@ -72,7 +79,7 @@ func EncodeToString(dst interface{}) (string, error) {
 // EncodeToValues encodes dst as a form and returns it as Values.
 func EncodeToValues(dst interface{}) (url.Values, error) {
 	v := reflect.ValueOf(dst)
-	n, err := encodeToNode(v)
+	n, err := encodeToNode(v, false)
 	if err != nil {
 		return nil, err
 	}
@@ -80,41 +87,41 @@ func EncodeToValues(dst interface{}) (url.Values, error) {
 	return vs, nil
 }
 
-func encodeToNode(v reflect.Value) (n node, err error) {
+func encodeToNode(v reflect.Value, z bool) (n node, err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("%v", e)
 		}
 	}()
-	return getNode(encodeValue(v)), nil
+	return getNode(encodeValue(v, z)), nil
 }
 
-func encodeValue(v reflect.Value) interface{} {
+func encodeValue(v reflect.Value, z bool) interface{} {
 	t := v.Type()
 	k := v.Kind()
 
 	if s, ok := marshalValue(v); ok {
 		return s
-	} else if isEmptyValue(v) {
+	} else if !z && isEmptyValue(v) {
 		return "" // Treat the zero value as the empty string.
 	}
 
 	switch k {
 	case reflect.Ptr, reflect.Interface:
-		return encodeValue(v.Elem())
+		return encodeValue(v.Elem(), z)
 	case reflect.Struct:
 		if t.ConvertibleTo(timeType) {
 			return encodeTime(v)
 		} else if t.ConvertibleTo(urlType) {
 			return encodeURL(v)
 		}
-		return encodeStruct(v)
+		return encodeStruct(v, z)
 	case reflect.Slice:
-		return encodeSlice(v)
+		return encodeSlice(v, z)
 	case reflect.Array:
-		return encodeArray(v)
+		return encodeArray(v, z)
 	case reflect.Map:
-		return encodeMap(v)
+		return encodeMap(v, z)
 	case reflect.Invalid, reflect.Uintptr, reflect.UnsafePointer, reflect.Chan, reflect.Func:
 		panic(t.String() + " has unsupported kind " + t.Kind().String())
 	default:
@@ -122,7 +129,7 @@ func encodeValue(v reflect.Value) interface{} {
 	}
 }
 
-func encodeStruct(v reflect.Value) interface{} {
+func encodeStruct(v reflect.Value, z bool) interface{} {
 	t := v.Type()
 	n := node{}
 	for i := 0; i < t.NumField(); i++ {
@@ -134,37 +141,37 @@ func encodeStruct(v reflect.Value) interface{} {
 		} else if fv := v.Field(i); oe && isEmptyValue(fv) {
 			delete(n, k)
 		} else {
-			n[k] = encodeValue(fv)
+			n[k] = encodeValue(fv, z)
 		}
 	}
 	return n
 }
 
-func encodeMap(v reflect.Value) interface{} {
+func encodeMap(v reflect.Value, z bool) interface{} {
 	n := node{}
 	for _, i := range v.MapKeys() {
-		k := getString(encodeValue(i))
-		n[k] = encodeValue(v.MapIndex(i))
+		k := getString(encodeValue(i, z))
+		n[k] = encodeValue(v.MapIndex(i), z)
 	}
 	return n
 }
 
-func encodeArray(v reflect.Value) interface{} {
+func encodeArray(v reflect.Value, z bool) interface{} {
 	n := node{}
 	for i := 0; i < v.Len(); i++ {
-		n[strconv.Itoa(i)] = encodeValue(v.Index(i))
+		n[strconv.Itoa(i)] = encodeValue(v.Index(i), z)
 	}
 	return n
 }
 
-func encodeSlice(v reflect.Value) interface{} {
+func encodeSlice(v reflect.Value, z bool) interface{} {
 	t := v.Type()
 	if t.Elem().Kind() == reflect.Uint8 {
 		return string(v.Bytes()) // Encode byte slices as a single string by default.
 	}
 	n := node{}
 	for i := 0; i < v.Len(); i++ {
-		n[strconv.Itoa(i)] = encodeValue(v.Index(i))
+		n[strconv.Itoa(i)] = encodeValue(v.Index(i), z)
 	}
 	return n
 }

@@ -534,6 +534,9 @@ resource "aws_kinesis_firehose_delivery_stream" "test_stream" {
 var testAccKinesisFirehoseDeliveryStreamBaseElasticsearchConfig = testAccKinesisFirehoseDeliveryStreamBaseConfig + `
 resource "aws_elasticsearch_domain" "test_cluster" {
   domain_name = "es-test-%d"
+  cluster_config {
+    instance_type = "r3.large.elasticsearch"
+  }
 
   access_policies = <<CONFIG
 {

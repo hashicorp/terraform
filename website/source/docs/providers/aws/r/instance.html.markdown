@@ -13,7 +13,7 @@ and deleted. Instances also support [provisioning](/docs/provisioners/index.html
 
 ## Example Usage
 
-```
+```hcl
 # Create a new instance of the latest Ubuntu 14.04 on an
 # t2.micro node with an AWS Tag naming it "HelloWorld"
 provider "aws" {
@@ -76,7 +76,7 @@ instances. See [Shutdown Behavior](https://docs.aws.amazon.com/AWSEC2/latest/Use
   the destination address does not match the instance. Used for NAT or VPNs. Defaults true.
 * `user_data` - (Optional) The user data to provide when launching the instance.
 * `iam_instance_profile` - (Optional) The IAM Instance Profile to
-  launch the instance with.
+  launch the instance with. Specified as the name of the Instance Profile.
 * `ipv6_address_count`- (Optional) A number of IPv6 addresses to associate with the primary network interface. Amazon EC2 chooses the IPv6 addresses from the range of your subnet.
 * `ipv6_addresses` - (Optional) Specify one or more IPv6 addresses from the range of the subnet to associate with the primary network interface
 * `tags` - (Optional) A mapping of tags to assign to the resource.
