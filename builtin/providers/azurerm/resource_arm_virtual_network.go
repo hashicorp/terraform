@@ -275,7 +275,10 @@ func expandAzureRmVirtualNetworkVirtualNetworkSecurityGroupNames(d *schema.Resou
 	if v, ok := d.GetOk("subnet"); ok {
 		subnets := v.(*schema.Set).List()
 		for _, subnet := range subnets {
-			subnet := subnet.(map[string]interface{})
+			subnet, ok := subnet.(map[string]interface{})
+			if !ok {
+				return nil, fmt.Errorf("[ERROR] Subnet should be a Hash - was '%+v'", subnet)
+			}
 
 			networkSecurityGroupId := subnet["security_group"].(string)
 			if networkSecurityGroupId != "" {
