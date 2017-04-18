@@ -21,7 +21,7 @@ before_deploy:
 deploy:
   - provider: script
     skip_cleanup: true
-    script: "./deploy.sh"
+    script: cd $TEST_DIR && "./deploy.sh"
     on:
       repo: 10thmagnitude/terraform
       branch: 101-vm-simple-linux
