@@ -99,19 +99,12 @@ func resourceAwsSpotInstanceRequestCreate(d *schema.ResourceData, meta interface
 			SecurityGroups:      instanceOpts.SecurityGroups,
 			SubnetId:            instanceOpts.SubnetID,
 			UserData:            instanceOpts.UserData64,
+			NetworkInterfaces:   instanceOpts.NetworkInterfaces,
 		},
 	}
 
 	if v, ok := d.GetOk("block_duration_minutes"); ok {
 		spotOpts.BlockDurationMinutes = aws.Int64(int64(v.(int)))
-	}
-
-	// If the instance is configured with a Network Interface (a subnet, has
-	// public IP, etc), then the instanceOpts.SecurityGroupIds and SubnetId will
-	// be nil
-	if len(instanceOpts.NetworkInterfaces) > 0 {
-		spotOpts.LaunchSpecification.SecurityGroupIds = instanceOpts.NetworkInterfaces[0].Groups
-		spotOpts.LaunchSpecification.SubnetId = instanceOpts.NetworkInterfaces[0].SubnetId
 	}
 
 	// Make the spot instance request
