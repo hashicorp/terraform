@@ -131,7 +131,7 @@ func (client *AliyunClient) QueryInstancesById(id string) (instance *ecs.Instanc
 	}
 
 	if len(instances) == 0 {
-		return nil, common.GetClientErrorFromString(InstanceNotfound)
+		return nil, GetNotFoundErrorFromString(InstanceNotfound)
 	}
 
 	return &instances[0], nil
@@ -244,7 +244,7 @@ func (client *AliyunClient) DescribeSecurityGroupRule(securityGroupId, direction
 			return &p, nil
 		}
 	}
-	return nil, nil
+	return nil, GetNotFoundErrorFromString("Security group rule not found")
 
 }
 
