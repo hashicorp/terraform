@@ -5,6 +5,13 @@ FEATURES:
 * **New Data Source:** `google_compute_network` [GH-12442]
 * **New Data Source:** `google_compute_subnetwork` [GH-12442]
 * **New Resource:** `local_file` for creating local files (please see the docs for caveats) [GH-12757]
+* **New Resource:**  `alicloud_ess_scalinggroup` [GH-13731]
+* **New Resource:**  `alicloud_ess_scalingconfiguration` [GH-13731]
+* **New Resource:**  `alicloud_ess_scalingrule` [GH-13731]
+* **New Resource:**  `alicloud_ess_schedule` [GH-13731]
+* **New Resource:**  `alicloud_snat_entry` [GH-13731]
+* **New Resource:**  `alicloud_forward_entry` [GH-13731]
+
 
 IMPROVEMENTS:
  * state/remote/swift: Support Openstack request logging [GH-13583]
@@ -21,6 +28,8 @@ BUG FIXES:
  * core: Fix a crash condition by improving the flatmap.Expand() logic [GH-13541]
  * provider/alicloud: Fix create PrePaid instance [GH-13662]
  * provider/alicloud: Fix allocate public ip error [GH-13268]
+ * provider/alicloud: alicloud_security_group_rule: check ptr before use it [GH-13731)
+ * provider/alicloud: alicloud_instance: fix ecs internet_max_bandwidth_out cannot set zero bug [GH-13731]
  * provider/aws: Fix DB Parameter Group Name [GH-13279]
  * provider/aws: Increase default number of retries from 11 to 25 [GH-13673]
  * provider/aws: Use mutex & retry for WAF change operations [GH-13656]
