@@ -2,8 +2,8 @@ package oneandone
 
 import (
 	"github.com/1and1/oneandone-cloudserver-sdk-go"
-	"github.com/StackPointCloud/terraform/helper/validation"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 	"strings"
 )
 
