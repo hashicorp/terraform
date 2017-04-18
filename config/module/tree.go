@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/blang/semver"
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config"
 )
@@ -92,22 +93,45 @@ func (t *Tree) Children() map[string]*Tree {
 	return t.children
 }
 
-// DeepEach calls the provided callback for the receiver and then all of
-// its descendents in the tree, allowing an operation to be performed on
-// all modules in the tree.
+// RequiredProviderPlugins returns a map from provider plugin names to their
+// required semver Ranges, for the entire tree of modules beneath the receiver.
 //
-// Parents will be visited before their children but otherwise the order is
-// not defined.
-func (t *Tree) DeepEach(cb func(*Tree)) {
-	t.lock.RLock()
-	defer t.lock.RUnlock()
-	t.deepEach(cb)
+// This includes both providers that are explicitly requested by provider
+// blocks and those that are used implicitly by instantiating one of their
+// resource types. In the latter case, the returned semver Range will
+// accept any version of the provider.
+//
+// This method will panic if any of the configuration's provider plugin
+// constraints cannot be parsed as valid semver ranges. This is guaranteed
+// not to happen for any configuration that has successfully passed a call
+// to config.Validate.
+func (t *Tree) RequiredProviderPlugins() map[string]semver.Range {
+	reqd := make(map[string]semver.Range)
+	t.populateRequiredProviderPlugins(nil, reqd)
+	return reqd
 }
 
-func (t *Tree) deepEach(cb func(*Tree)) {
-	cb(t)
+func (t *Tree) populateRequiredProviderPlugins(
+	inheritConfigs map[string]*config.ProviderConfig,
+	reqd map[string]semver.Range,
+) {
+	t.lock.RLock()
+	defer t.lock.RUnlock()
+
+	cfg := t.Config()
+	providerConfigs := cfg.ProviderConfigsByFullName(inheritConfigs)
+	resourceConfigs := cfg.Resources
+	reqdHere := config.RequiredProviders(resourceConfigs, providerConfigs).RequiredRanges()
+	for name, spec := range reqdHere {
+		if existing, exists := reqd[name]; exists {
+			reqd[name] = existing.AND(spec)
+		} else {
+			reqd[name] = spec
+		}
+	}
+
 	for _, c := range t.children {
-		c.deepEach(cb)
+		c.populateRequiredProviderPlugins(providerConfigs, reqd)
 	}
 }
 
