@@ -752,6 +752,46 @@ func (s *State) sort() {
 	}
 }
 
+// RequiredProviders returns information about the providers required to
+// process resource instances in the receiving state. This is the state
+// analog to Config.RequiredProviders in the "config" package, and can be
+// used to detect providers required by orphaned and deposed instances,
+// none of which are directly represented in config.
+//
+// No version constraint information is available in state, so the constraints
+// returned will accept any version of the providers needed. If the user
+// wishes to use a particular version to destroy, they must retain the
+// provider configuration block in the configuration long enough to destroy
+// the state-only instances.
+func (s *State) RequiredProviders() config.ProviderVersionConstraints {
+	reqd := map[string]struct{}{}
+
+	for _, ms := range s.Modules {
+		for _, rs := range ms.Resources {
+			providerName := config.ResourceProviderFullName(
+				rs.Type, rs.Provider,
+			)
+			// If we get back a name like "aws.foo", that's an alias for
+			// provider aws and we only care about the "aws" part for
+			// our purposes here.
+			if dotPos := strings.Index(providerName, "."); dotPos != -1 {
+				providerName = providerName[0:dotPos]
+			}
+
+			reqd[providerName] = struct{}{}
+		}
+	}
+
+	ret := make(config.ProviderVersionConstraints)
+	for providerName := range reqd {
+		ret[providerName] = config.ProviderVersionConstraint{
+			Constraint:   ">=0.0.0", // accept any version
+			ProviderType: providerName,
+		}
+	}
+	return ret
+}
+
 func (s *State) String() string {
 	if s == nil {
 		return "<nil>"
