@@ -14,8 +14,8 @@ import (
 func TestAccOneandoneLoadbalancer_Basic(t *testing.T) {
 	var lb oneandone.LoadBalancer
 
-	name := "test"
-	name_updated := "test1"
+	name := "test_orig"
+	name_updated := "test_cp"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -37,7 +37,7 @@ func TestAccOneandoneLoadbalancer_Basic(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccCheckOneandoneLoadbalancer_basic, name_updated),
+				Config: fmt.Sprintf(testAccCheckOneandoneLoadbalancer_update, name_updated),
 				Check: resource.ComposeTestCheckFunc(
 					func(*terraform.State) error {
 						time.Sleep(10 * time.Second)
@@ -119,7 +119,7 @@ resource "oneandone_loadbalancer" "lb" {
   persistence_time = 60
   health_check_test = "TCP"
   health_check_interval = 300
-  datacenter = "GB"
+  datacenter = "US"
   rules = [
     {
       protocol = "TCP"
@@ -131,6 +131,25 @@ resource "oneandone_loadbalancer" "lb" {
       protocol = "TCP"
       port_balancer = 9090
       port_server = 9099
+      source_ip = "0.0.0.0"
+    }
+  ]
+}`
+
+const testAccCheckOneandoneLoadbalancer_update = `
+resource "oneandone_loadbalancer" "lb" {
+  name = "%s"
+  method = "ROUND_ROBIN"
+  persistence = true
+  persistence_time = 60
+  health_check_test = "TCP"
+  health_check_interval = 300
+  datacenter = "US"
+  rules = [
+    {
+      protocol = "TCP"
+      port_balancer = 8080
+      port_server = 8089
       source_ip = "0.0.0.0"
     }
   ]

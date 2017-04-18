@@ -1,8 +1,8 @@
 package oneandone
 
 import (
-	"fmt"
 	"github.com/1and1/oneandone-cloudserver-sdk-go"
+	"github.com/StackPointCloud/terraform/helper/validation"
 	"github.com/hashicorp/terraform/helper/schema"
 	"strings"
 )
@@ -14,9 +14,6 @@ func resourceOneandOneFirewallPolicy() *schema.Resource {
 		Read:   resourceOneandOneFirewallRead,
 		Update: resourceOneandOneFirewallUpdate,
 		Delete: resourceOneandOneFirewallDelete,
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
@@ -35,24 +32,14 @@ func resourceOneandOneFirewallPolicy() *schema.Resource {
 							Required: true,
 						},
 						"port_from": {
-							Type:     schema.TypeInt,
-							Optional: true,
-							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-								if v.(int) < 1 && v.(int) > 65535 {
-									errors = append(errors, fmt.Errorf("Port end range must be between 1 and %s", "65535"))
-								}
-								return
-							},
+							Type:         schema.TypeInt,
+							Optional:     true,
+							ValidateFunc: validation.IntBetween(1, 65535),
 						},
 						"port_to": {
-							Type:     schema.TypeInt,
-							Optional: true,
-							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-								if v.(int) < 1 && v.(int) > 65535 {
-									errors = append(errors, fmt.Errorf("Port end range must be between 1 and %s", "65535"))
-								}
-								return
-							},
+							Type:         schema.TypeInt,
+							Optional:     true,
+							ValidateFunc: validation.IntBetween(1, 65535),
 						},
 						"source_ip": {
 							Type:     schema.TypeString,
@@ -99,16 +86,20 @@ func resourceOneandOneFirewallCreate(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
-	config.API.WaitForState(fw, "ACTIVE", 10, config.Retries)
-
 	return resourceOneandOneFirewallRead(d, meta)
 }
 
 func resourceOneandOneFirewallUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	_, err := config.API.UpdateFirewallPolicy(d.Id(), d.Get("name").(string), d.Get("description").(string))
-	if err != nil {
-		return err
+	if d.HasChange("name") || d.HasChange("description") {
+		fw, err := config.API.UpdateFirewallPolicy(d.Id(), d.Get("name").(string), d.Get("description").(string))
+		if err != nil {
+			return err
+		}
+		err = config.API.WaitForState(fw, "ACTIVE", 10, config.Retries)
+		if err != nil {
+			return err
+		}
 	}
 
 	if d.HasChange("rules") {
@@ -186,7 +177,6 @@ func resourceOneandOneFirewallRead(d *schema.ResourceData, meta interface{}) err
 
 	d.Set("rules", readRules(d, fw.Rules))
 	d.Set("description", fw.Description)
-	d.Set("ips", readServerIps(fw.ServerIps))
 
 	return nil
 }
@@ -205,21 +195,6 @@ func resourceOneandOneFirewallDelete(d *schema.ResourceData, meta interface{}) e
 	}
 
 	return nil
-}
-
-func readServerIps(ips []oneandone.ServerIpInfo) []map[string]interface{} {
-	raw := make([]map[string]interface{}, 0, len(ips))
-
-	for _, ip := range ips {
-		toAdd := map[string]interface{}{
-			"id": ip.Id,
-			"ip": ip.Ip,
-		}
-
-		raw = append(raw, toAdd)
-	}
-
-	return raw
 }
 
 func readRules(d *schema.ResourceData, rules []oneandone.FirewallPolicyRule) interface{} {

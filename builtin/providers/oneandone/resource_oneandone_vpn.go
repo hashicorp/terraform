@@ -18,9 +18,6 @@ func resourceOneandOneVPN() *schema.Resource {
 		Read:   resourceOneandOneVPNRead,
 		Update: resourceOneandOneVPNUpdate,
 		Delete: resourceOneandOneVPNDelete,
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
 		Schema: map[string]*schema.Schema{
 
 			"name": {

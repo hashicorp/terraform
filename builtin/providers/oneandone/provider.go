@@ -1,14 +1,9 @@
 package oneandone
 
 import (
-	"crypto/x509"
-	"encoding/pem"
-	"errors"
 	"github.com/1and1/oneandone-cloudserver-sdk-go"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-	"golang.org/x/crypto/ssh"
-	"io/ioutil"
 )
 
 func Provider() terraform.ResourceProvider {
@@ -21,14 +16,16 @@ func Provider() terraform.ResourceProvider {
 				Description: "1&1 token for API operations.",
 			},
 			"retries": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Default:  50,
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     50,
+				DefaultFunc: schema.EnvDefaultFunc("ONEANDONE_RETRIES", nil),
 			},
 			"endpoint": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  oneandone.BaseUrl,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     oneandone.BaseUrl,
+				DefaultFunc: schema.EnvDefaultFunc("ONEANDONE_ENDPOINT", nil),
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
@@ -56,39 +53,4 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		Endpoint: endpoint,
 	}
 	return config.Client()
-}
-
-func getSshKey(path string) (privatekey string, publickey string, err error) {
-	pemBytes, err := ioutil.ReadFile(path)
-
-	if err != nil {
-		return "", "", err
-	}
-
-	block, _ := pem.Decode(pemBytes)
-
-	if block == nil {
-		return "", "", errors.New("File " + path + " contains nothing")
-	}
-
-	priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-
-	if err != nil {
-		return "", "", err
-	}
-
-	priv_blk := pem.Block{
-		Type:    "RSA PRIVATE KEY",
-		Headers: nil,
-		Bytes:   x509.MarshalPKCS1PrivateKey(priv),
-	}
-
-	pub, err := ssh.NewPublicKey(&priv.PublicKey)
-	if err != nil {
-		return "", "", err
-	}
-	publickey = string(ssh.MarshalAuthorizedKey(pub))
-	privatekey = string(pem.EncodeToMemory(&priv_blk))
-
-	return privatekey, publickey, nil
 }

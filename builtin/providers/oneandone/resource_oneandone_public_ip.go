@@ -13,9 +13,6 @@ func resourceOneandOnePublicIp() *schema.Resource {
 		Read:   resourceOneandOnePublicIpRead,
 		Update: resourceOneandOnePublicIpUpdate,
 		Delete: resourceOneandOnePublicIpDelete,
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
 		Schema: map[string]*schema.Schema{
 			"ip_type": { //IPV4 or IPV6
 				Type:     schema.TypeString,

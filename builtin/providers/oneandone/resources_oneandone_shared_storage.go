@@ -13,11 +13,7 @@ func resourceOneandOneSharedStorage() *schema.Resource {
 		Read:   resourceOneandOneSharedStorageRead,
 		Update: resourceOneandOneSharedStorageUpdate,
 		Delete: resourceOneandOneSharedStorageDelete,
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
 		Schema: map[string]*schema.Schema{
-
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,

@@ -14,9 +14,6 @@ func resourceOneandOneLoadbalancer() *schema.Resource {
 		Read:   resourceOneandOneLoadbalancerRead,
 		Update: resourceOneandOneLoadbalancerUpdate,
 		Delete: resourceOneandOneLoadbalancerDelete,
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
 		Schema: map[string]*schema.Schema{
 
 			"name": {
@@ -28,8 +25,9 @@ func resourceOneandOneLoadbalancer() *schema.Resource {
 				Optional: true,
 			},
 			"method": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validateMethod,
 			},
 			"datacenter": {
 				Type:     schema.TypeString,
@@ -201,7 +199,7 @@ func getLBRules(d *schema.ResourceData) []oneandone.LoadBalancerRule {
 func resourceOneandOneLoadbalancerUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	if d.HasChange("name") || d.HasChange("description") || d.HasChange("method") || d.HasChange("persistence") || d.HasChange("persistence_time") || d.HasChange("health_check_test") || d.HasChange("healt_check_interval") {
+	if d.HasChange("name") || d.HasChange("description") || d.HasChange("method") || d.HasChange("persistence") || d.HasChange("persistence_time") || d.HasChange("health_check_test") || d.HasChange("health_check_interval") {
 		lb := oneandone.LoadBalancerRequest{}
 		if d.HasChange("name") {
 			_, n := d.GetChange("name")
@@ -368,4 +366,14 @@ func resourceOneandOneLoadbalancerDelete(d *schema.ResourceData, meta interface{
 	}
 
 	return nil
+}
+
+func validateMethod(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	if value != "ROUND_ROBIN" && value != "LEAST_CONNECTIONS" {
+		errors = append(errors, fmt.Errorf("%q value sholud be either 'ROUND_ROBIN' or 'LEAST_CONNECTIONS' not %q", k, value))
+	}
+
+	return
 }

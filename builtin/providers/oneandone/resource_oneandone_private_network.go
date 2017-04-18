@@ -14,9 +14,6 @@ func resourceOneandOnePrivateNetwork() *schema.Resource {
 		Read:   resourceOneandOnePrivateNetworkRead,
 		Update: resourceOneandOnePrivateNetworkUpdate,
 		Delete: resourceOneandOnePrivateNetworkDelete,
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,

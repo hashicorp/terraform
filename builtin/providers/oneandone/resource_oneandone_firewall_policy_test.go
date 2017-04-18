@@ -38,7 +38,7 @@ func TestAccOneandoneFirewall_Basic(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccCheckOneandoneFirewall_basic, name_updated),
+				Config: fmt.Sprintf(testAccCheckOneandoneFirewall_update, name_updated),
 
 				Check: resource.ComposeTestCheckFunc(
 					func(*terraform.State) error {
@@ -139,5 +139,40 @@ resource "oneandone_firewall_policy" "fw" {
       "port_to" = 22
       "source_ip" = "0.0.0.0"
     }
+  ]
+}`
+
+const testAccCheckOneandoneFirewall_update = `
+resource "oneandone_firewall_policy" "fw" {
+  name = "%s"
+  rules = [
+    {
+      "protocol" = "TCP"
+      "port_from" = 80
+      "port_to" = 80
+      "source_ip" = "0.0.0.0"
+    },
+    {
+      "protocol" = "ICMP"
+      "source_ip" = "0.0.0.0"
+    },
+    {
+      "protocol" = "TCP"
+      "port_from" = 43
+      "port_to" = 43
+      "source_ip" = "0.0.0.0"
+    },
+    {
+      "protocol" = "TCP"
+      "port_from" = 22
+      "port_to" = 22
+      "source_ip" = "0.0.0.0"
+    },
+    {
+      "protocol" = "TCP"
+      "port_from" = 88
+      "port_to" = 88
+      "source_ip" = "0.0.0.0"
+    },
   ]
 }`

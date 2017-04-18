@@ -12,9 +12,6 @@ func resourceOneandOneMonitoringPolicy() *schema.Resource {
 		Read:   resourceOneandOneMonitoringPolicyRead,
 		Update: resourceOneandOneMonitoringPolicyUpdate,
 		Delete: resourceOneandOneMonitoringPolicyDelete,
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
