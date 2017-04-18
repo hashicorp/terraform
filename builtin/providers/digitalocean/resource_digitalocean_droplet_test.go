@@ -333,6 +333,14 @@ func testAccCheckDigitalOceanDropletAttributes(droplet *godo.Droplet) resource.T
 			return fmt.Errorf("Bad size_slug: %s", droplet.Size.Slug)
 		}
 
+		if droplet.Size.PriceHourly != 0.00744 {
+			return fmt.Errorf("Bad price_hourly: %s", droplet.Size.PriceHourly)
+		}
+
+		if droplet.Size.PriceMonthly != 5.0 {
+			return fmt.Errorf("Bad price_monthly: %s", droplet.Size.PriceMonthly)
+		}
+
 		if droplet.Region.Slug != "nyc3" {
 			return fmt.Errorf("Bad region_slug: %s", droplet.Region.Slug)
 		}

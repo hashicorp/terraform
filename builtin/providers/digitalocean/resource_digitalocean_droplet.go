@@ -63,6 +63,16 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 				Computed: true,
 			},
 
+			"price_hourly": {
+				Type:     schema.TypeFloat,
+				Computed: true,
+			},
+
+			"price_monthly": {
+				Type:     schema.TypeFloat,
+				Computed: true,
+			},
+
 			"resize_disk": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -259,6 +269,8 @@ func resourceDigitalOceanDropletRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("name", droplet.Name)
 	d.Set("region", droplet.Region.Slug)
 	d.Set("size", droplet.Size.Slug)
+	d.Set("price_hourly", droplet.Size.PriceHourly)
+	d.Set("price_monthly", droplet.Size.PriceMonthly)
 	d.Set("disk", droplet.Disk)
 	d.Set("vcpus", droplet.Vcpus)
 	d.Set("status", droplet.Status)
