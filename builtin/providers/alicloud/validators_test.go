@@ -353,7 +353,7 @@ func TestValidateInternetMaxBandWidthOut(t *testing.T) {
 		}
 	}
 
-	invalidInternetMaxBandWidthOut := []int{-2, 0, 101, 123}
+	invalidInternetMaxBandWidthOut := []int{-2, 101, 123}
 	for _, v := range invalidInternetMaxBandWidthOut {
 		_, errors := validateInternetMaxBandWidthOut(v, "internet_max_bandwidth_out")
 		if len(errors) == 0 {
