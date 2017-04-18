@@ -38,6 +38,7 @@ BUG FIXES:
  * provider/aws: Remove aws_network_acl_rule if not found [GH-13608]
  * provider/aws: Allow GovCloud KMS ARNs to pass validation in `kms_key_id` attributes [GH-13699]
  * provider/azurerm: azurerm_redis_cache resource missing hostname [GH-13650]
+ * provider/azurerm: Locking around Network Security Group / Subnets [GH-13637]
  * provider/google: Stop setting the id when project creation fails [GH-13644]
  * provider/newrelic: newrelic_alert_condition - `condition_scope` must be `application` or `instance` [GH-12972]
  * provider/openstack: Fix updating Ports [GH-13604]
