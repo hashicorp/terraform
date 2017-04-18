@@ -58,7 +58,7 @@ func TestAccAzureRMVirtualMachineScaleSet_linuxUpdated(t *testing.T) {
 
 func TestAccAzureRMVirtualMachineScaleSet_basicLinux_managedDisk(t *testing.T) {
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMVirtualMachineScaleSet_basicLinux_managedDisk, ri, ri, ri, ri, ri, ri, ri, ri)
+	config := fmt.Sprintf(testAccAzureRMVirtualMachineScaleSet_basicLinux_managedDisk, ri, ri, ri, ri, ri, ri)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -687,36 +687,6 @@ resource "azurerm_subnet" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
     virtual_network_name = "${azurerm_virtual_network.test.name}"
     address_prefix = "10.0.2.0/24"
-}
-
-resource "azurerm_network_interface" "test" {
-    name = "acctni-%d"
-    location = "West US 2"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-
-    ip_configuration {
-    	name = "testconfiguration1"
-    	subnet_id = "${azurerm_subnet.test.id}"
-    	private_ip_address_allocation = "dynamic"
-    }
-}
-
-resource "azurerm_storage_account" "test" {
-    name = "accsa%d"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "West US 2"
-    account_type = "Standard_LRS"
-
-    tags {
-        environment = "staging"
-    }
-}
-
-resource "azurerm_storage_container" "test" {
-    name = "vhds"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    storage_account_name = "${azurerm_storage_account.test.name}"
-    container_access_type = "private"
 }
 
 resource "azurerm_virtual_machine_scale_set" "test" {
