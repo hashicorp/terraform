@@ -39,6 +39,7 @@ BUG FIXES:
  * provider/aws: Allow GovCloud KMS ARNs to pass validation in `kms_key_id` attributes [GH-13699]
  * provider/azurerm: azurerm_redis_cache resource missing hostname [GH-13650]
  * provider/azurerm: Locking around Network Security Group / Subnets [GH-13637]
+ * provider/fastly: Fix issue with using 0 for `default_ttl` [GH-13648]
  * provider/google: Stop setting the id when project creation fails [GH-13644]
  * provider/newrelic: newrelic_alert_condition - `condition_scope` must be `application` or `instance` [GH-12972]
  * provider/openstack: Fix updating Ports [GH-13604]
