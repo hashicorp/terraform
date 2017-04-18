@@ -126,16 +126,16 @@ func resourceRepositoryUpdate(d *schema.ResourceData, m interface{}) error {
 	client := m.(*BitbucketClient)
 	repository := newRepositoryFromResource(d)
 
-	var jsonbuffer []byte
+	bytedata, err := json.Marshal(repository)
 
-	jsonpayload := bytes.NewBuffer(jsonbuffer)
-	enc := json.NewEncoder(jsonpayload)
-	enc.Encode(repository)
+	if err != nil {
+		return err
+	}
 
-	_, err := client.Put(fmt.Sprintf("2.0/repositories/%s/%s",
+	_, err = client.Put(fmt.Sprintf("2.0/repositories/%s/%s",
 		d.Get("owner").(string),
 		d.Get("name").(string),
-	), jsonpayload)
+	), bytes.NewBuffer(bytedata))
 
 	if err != nil {
 		return err
