@@ -1,5 +1,11 @@
 package terraform
 
+import (
+	"fmt"
+
+	"github.com/hashicorp/terraform/plugin/discovery"
+)
+
 // ResourceProvider is an interface that must be implemented by any
 // resource provider: the thing that creates and manages the resources in
 // a Terraform configuration.
@@ -169,6 +175,50 @@ type ResourceType struct {
 // DataSource is a data source that a resource provider implements.
 type DataSource struct {
 	Name string
+}
+
+// ResourceProviderResolver is an interface implemented by objects that are
+// able to resolve a given set of resource provider version constraints
+// into ResourceProviderFactory callbacks.
+type ResourceProviderResolver interface {
+	// Given a constraint map, return a ResourceProviderFactory for each
+	// requested provider. If some or all of the constraints cannot be
+	// satisfied, return a non-nil slice of errors describing the problems.
+	ResolveProviders(reqd discovery.PluginRequirements) (map[string]ResourceProviderFactory, []error)
+}
+
+// ResourceProviderResolverFunc wraps a callback function and turns it into
+// a ResourceProviderResolver implementation, for convenience in situations
+// where a function and its associated closure are sufficient as a resolver
+// implementation.
+type ResourceProviderResolverFunc func(reqd discovery.PluginRequirements) (map[string]ResourceProviderFactory, []error)
+
+// ResolveProviders implements ResourceProviderResolver by calling the
+// wrapped function.
+func (f ResourceProviderResolverFunc) ResolveProviders(reqd discovery.PluginRequirements) (map[string]ResourceProviderFactory, []error) {
+	return f(reqd)
+}
+
+// ResourceProviderResolverFixed returns a ResourceProviderResolver that
+// has a fixed set of provider factories provided by the caller. The returned
+// resolver ignores version constraints entirely and just returns the given
+// factory for each requested provider name.
+//
+// This function is primarily used in tests, to provide mock providers or
+// in-process providers under test.
+func ResourceProviderResolverFixed(factories map[string]ResourceProviderFactory) ResourceProviderResolver {
+	return ResourceProviderResolverFunc(func(reqd discovery.PluginRequirements) (map[string]ResourceProviderFactory, []error) {
+		ret := make(map[string]ResourceProviderFactory, len(reqd))
+		var errs []error
+		for name := range reqd {
+			if factory, exists := factories[name]; exists {
+				ret[name] = factory
+			} else {
+				errs = append(errs, fmt.Errorf("provider %q is not available", name))
+			}
+		}
+		return ret, errs
+	})
 }
 
 // ResourceProviderFactory is a function type that creates a new instance
