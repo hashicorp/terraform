@@ -89,6 +89,14 @@ func resourceArmSubnetCreate(d *schema.ResourceData, meta interface{}) error {
 		properties.NetworkSecurityGroup = &network.SecurityGroup{
 			ID: &nsgId,
 		}
+
+		networkSecurityGroupName, err := parseNetworkSecurityGroupName(nsgId)
+		if err != nil {
+			return err
+		}
+
+		armMutexKV.Lock(networkSecurityGroupName)
+		defer armMutexKV.Unlock(networkSecurityGroupName)
 	}
 
 	if v, ok := d.GetOk("route_table_id"); ok {
@@ -181,6 +189,17 @@ func resourceArmSubnetDelete(d *schema.ResourceData, meta interface{}) error {
 	resGroup := id.ResourceGroup
 	name := id.Path["subnets"]
 	vnetName := id.Path["virtualNetworks"]
+
+	if v, ok := d.GetOk("network_security_group_id"); ok {
+		networkSecurityGroupId := v.(string)
+		networkSecurityGroupName, err := parseNetworkSecurityGroupName(networkSecurityGroupId)
+		if err != nil {
+			return err
+		}
+
+		armMutexKV.Lock(networkSecurityGroupName)
+		defer armMutexKV.Unlock(networkSecurityGroupName)
+	}
 
 	armMutexKV.Lock(vnetName)
 	defer armMutexKV.Unlock(vnetName)
