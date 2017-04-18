@@ -1,42 +1,27 @@
-dist: trusty
-sudo: false
-language: go
-go:
-- 1.8
+language: generic
 
-# add TF_CONSUL_TEST=1 to run consul tests
-# they were causing timouts in travis
+# establish environment variables
 env:
-  - CONSUL_VERSION=0.7.5 GOMAXPROCS=4
+  - TEST_DIR=examples/101-vm-simple-linux
+#   global:
+#     - GH_USER_NAME="travis-ci"
+#     - GH_USER_EMAIL="mikedball@gmail.com"
+#     - GH_REPO="10thmagnitude/terraform"
+#     # encrypted GH_TOKEN and AWS credentials
+#     - secure: "EBtNoRGUNjgom7lk6+O7Zh9A33X/251Cg7j5C+HqfkPMQcQwS6MEAXPT1vbnh1HoQixR1e6VTHdXxvWyE/14+98qtJiHnSbGiY67ZvQNDuFLb2+PKx7xhhl9heNj8Xk1K1SYJtfYQZIvZNl32V9db6eR3r7kKlWlpUVmnSnXrnm4ztI8se45OX/XPjAnARdBvkpbcTSprrAf7Qudc5R86ain18tJah6PICd12TIH4Cpdcr6CVL8kRK808VH+AS2oii7QcKXc084gBOJJLCiwa2DrcSEPOOk0AIn5ft+XVcaCsV6oOc6NliFKEPoJkaxbYWtunDlnqgB6epuaGrf99TfCg4E9R8sXBFqJwdMGDu3xM6Nddw87tMj/oCbUmjrNnl4qAxIMBD2TdjwFS1lNaXAML8W/jx3bNGSEg5MAYrqLL32eJta/vxRJwpCVnXUHxef9JcZMNZcvuKMdHC98JQIYbGRRFZ0cFtqMe63tgWafCi3WS+FIqSWnGdiKZ7dS110ANHaiQkDAZKTlh/9YJpzR9LyOoq7xXYtQIUovyDD2j498mAkcgByEbyZ39k6xMvLHHXsdUq25tdaMvqE3ZUASIDWqDk1QPfxkXX6n62Tj2X1HCA+3JI/DKyEfzt3QV4rntiP4Qv9jSuxNpd47rgsgVFg+HGJmko9QzAA/g+E="
 
-# Fetch consul for the backend and provider tests
-before_install:
-  - curl -sLo consul.zip https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip
-  - unzip consul.zip
-  - mkdir ~/bin
-  - mv consul ~/bin
-  - export PATH="~/bin:$PATH"
+# install terraform
+before_deploy:
+  - curl -fSL "https://releases.hashicorp.com/terraform/0.9.3/terraform_0.9.3_linux_amd64.zip" -o terraform.zip
+  - sudo unzip terraform.zip -d /opt/terraform
+  - sudo ln -s /opt/terraform/terraform /usr/bin/terraform
+  - rm -f terraform.zip
 
-install:
-# This script is used by the Travis build to install a cookie for
-# go.googlesource.com so rate limits are higher when using `go get` to fetch
-# packages that live there.
-# See: https://github.com/golang/go/issues/12933
-- bash scripts/gogetcookie.sh
-- go get github.com/kardianos/govendor
-script:
-- make vet vendor-status test
-- GOOS=windows go build
-branches:
-  only:
-  - master
-notifications:
-  irc:
-    channels:
-    - irc.freenode.org#terraform-tool
-    skip_join: true
-    use_notice: true
-matrix:
-  fast_finish: true
-  allow_failures:
-  - go: tip
+# terraform apply
+deploy:
+  - provider: script
+    skip_cleanup: true
+    script: "./deploy.sh"
+    on:
+      repo: 10thmagnitude/terraform
+      branch: 101-vm-simple-linux
