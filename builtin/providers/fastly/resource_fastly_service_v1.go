@@ -37,7 +37,7 @@ func resourceServiceV1() *schema.Resource {
 			// creating and activating. It's used internally, but also exported for
 			// users to see.
 			"active_version": {
-				Type:     schema.TypeString,
+				Type:     schema.TypeInt,
 				Computed: true,
 			},
 
@@ -866,14 +866,14 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if needsChange {
-		latestVersion := d.Get("active_version").(string)
-		if latestVersion == "" {
+		latestVersion := d.Get("active_version").(int)
+		if latestVersion == 0 {
 			// If the service was just created, there is an empty Version 1 available
 			// that is unlocked and can be updated
-			latestVersion = "1"
+			latestVersion = 1
 		} else {
 			// Clone the latest version, giving us an unlocked version we can modify
-			log.Printf("[DEBUG] Creating clone of version (%s) for updates", latestVersion)
+			log.Printf("[DEBUG] Creating clone of version (%d) for updates", latestVersion)
 			newVersion, err := conn.CloneVersion(&gofastly.CloneVersionInput{
 				Service: d.Id(),
 				Version: latestVersion,
@@ -1684,7 +1684,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 			Version: latestVersion,
 		})
 		if err != nil {
-			return fmt.Errorf("[ERR] Error activating version (%s): %s", latestVersion, err)
+			return fmt.Errorf("[ERR] Error activating version (%d): %s", latestVersion, err)
 		}
 
 		// Only if the version is valid and activated do we set the active_version.
@@ -1726,7 +1726,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 	// If CreateService succeeds, but initial updates to the Service fail, we'll
 	// have an empty ActiveService version (no version is active, so we can't
 	// query for information on it)
-	if s.ActiveVersion.Number != "" {
+	if s.ActiveVersion.Number != 0 {
 		settingsOpts := gofastly.GetSettingsInput{
 			Service: d.Id(),
 			Version: s.ActiveVersion.Number,
@@ -1735,7 +1735,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 			d.Set("default_host", settings.DefaultHost)
 			d.Set("default_ttl", settings.DefaultTTL)
 		} else {
-			return fmt.Errorf("[ERR] Error looking up Version settings for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Version settings for (%s), version (%d): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		// TODO: update go-fastly to support an ActiveVersion struct, which contains
@@ -1748,7 +1748,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Domains for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Domains for (%s), version (%d): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		// Refresh Domains
@@ -1766,7 +1766,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Backends for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Backends for (%s), version (%d): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		bl := flattenBackends(backendList)
@@ -1783,7 +1783,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Headers for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Headers for (%s), version (%d): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		hl := flattenHeaders(headerList)
@@ -1800,7 +1800,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Gzips for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Gzips for (%s), version (%d): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		gl := flattenGzips(gzipsList)
@@ -1817,7 +1817,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Healthcheck for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Healthcheck for (%s), version (%d): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		hcl := flattenHealthchecks(healthcheckList)
@@ -1834,7 +1834,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up S3 Logging for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up S3 Logging for (%s), version (%d): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		sl := flattenS3s(s3List)
@@ -1851,7 +1851,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Papertrail for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Papertrail for (%s), version (%d): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		pl := flattenPapertrails(papertrailList)
@@ -1868,7 +1868,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Sumologic for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Sumologic for (%s), version (%d): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		sul := flattenSumologics(sumologicList)
@@ -1884,7 +1884,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Response Object for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Response Object for (%s), version (%d): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		rol := flattenResponseObjects(responseObjectList)
@@ -1901,7 +1901,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Conditions for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Conditions for (%s), version (%d): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		cl := flattenConditions(conditionList)
@@ -1918,7 +1918,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Request Settings for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Request Settings for (%s), version (%d): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		rl := flattenRequestSettings(rsList)
@@ -1934,7 +1934,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 			Version: s.ActiveVersion.Number,
 		})
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up VCLs for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up VCLs for (%s), version (%d): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		vl := flattenVCLs(vclList)
@@ -1950,7 +1950,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 			Version: s.ActiveVersion.Number,
 		})
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Cache Settings for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Cache Settings for (%s), version (%d): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		csl := flattenCacheSettings(cslList)
@@ -1981,7 +1981,7 @@ func resourceServiceV1Delete(d *schema.ResourceData, meta interface{}) error {
 			return err
 		}
 
-		if s.ActiveVersion.Number != "" {
+		if s.ActiveVersion.Number != 0 {
 			_, err := conn.DeactivateVersion(&gofastly.DeactivateVersionInput{
 				Service: d.Id(),
 				Version: s.ActiveVersion.Number,

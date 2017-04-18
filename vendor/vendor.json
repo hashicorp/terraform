@@ -440,10 +440,10 @@
 			"revisionTime": "2015-08-30T18:26:16Z"
 		},
 		{
-			"checksumSHA1": "csR8njyJfkweB0RCtfnLwgXNeqQ=",
+			"checksumSHA1": "kMfAFLobZymMrCOm/Xi/g9gnJOU=",
 			"path": "github.com/ajg/form",
-			"revision": "7ff89c75808766205bfa4411abb436c98c33eb5e",
-			"revisionTime": "2016-06-29T21:43:12Z"
+			"revision": "523a5da1a92f01b01f840b61689c0340a0243532",
+			"revisionTime": "2016-08-22T23:00:20Z"
 		},
 		{
 			"checksumSHA1": "kn+zdUr5TNsoAX8BgjOaWYtMT5U=",
@@ -2872,10 +2872,10 @@
 			"revisionTime": "2017-03-13T16:33:22Z"
 		},
 		{
-			"checksumSHA1": "bCpL8ZdY+y7OGwiN3hZzbQI5oM0=",
+			"checksumSHA1": "Je4BagkuoS2e+IlNJOf0+6JoB1g=",
 			"path": "github.com/sethvargo/go-fastly",
-			"revision": "43b7f97296d6c8e3a7bc083ab91101fbbc8c2f94",
-			"revisionTime": "2017-02-28T16:12:19Z"
+			"revision": "6e883a4c1524445805f33ddb1ab2a09a49ce4b1c",
+			"revisionTime": "2017-04-17T16:09:14Z"
 		},
 		{
 			"checksumSHA1": "8tEiK6vhVXuUbnWME5XNWLgvtSo=",
@@ -3509,10 +3509,10 @@
 			"revisionTime": "2016-11-01T17:03:53Z"
 		},
 		{
-			"checksumSHA1": "12GqsW8PiRPnezDDy0v4brZrndM=",
+			"checksumSHA1": "fALlQNY1fM99NesfLJ50KguWsio=",
 			"path": "gopkg.in/yaml.v2",
-			"revision": "a5b47d31c556af34a302ce5d659e6fea44d90de0",
-			"revisionTime": "2016-09-28T15:37:09Z"
+			"revision": "cd8b52f8269e0feb286dfeef29f8fe4d5b397e0b",
+			"revisionTime": "2017-04-07T17:21:22Z"
 		},
 		{
 			"checksumSHA1": "OcJdNALtPXoFOieAZjznhm7ufuU=",
