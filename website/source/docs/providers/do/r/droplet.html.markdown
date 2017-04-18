@@ -65,6 +65,8 @@ The following attributes are exported:
 * `ipv4_address_private` - The private networking IPv4 address
 * `locked` - Is the Droplet locked
 * `private_networking` - Is private networking enabled
+* `price_hourly` - Droplet hourly price
+* `price_monthly` - Droplet monthly price
 * `size` - The instance size
 * `disk` - The size of the instance's disk in GB
 * `vcpus` - The number of the instance's virtual CPUs
