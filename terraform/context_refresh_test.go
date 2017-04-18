@@ -605,7 +605,7 @@ func TestContext2Refresh_dataOrphan(t *testing.T) {
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
 					"data.null_data_source.bar": &ResourceState{
-						Type: "foo",
+						Type: "null_data_source",
 						Primary: &InstanceState{
 							ID: "foo",
 						},
