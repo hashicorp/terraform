@@ -11,7 +11,8 @@ description: |-
 Provides an UltraDNS HTTP probe
 
 ## Example Usage
-```
+
+```hcl
 resource "ultradns_probe_http" "probe" {
   zone        = "${ultradns_tcpool.pool.zone}"
   name        = "${ultradns_tcpool.pool.name}"

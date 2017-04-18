@@ -12,7 +12,7 @@ Provides a CodeBuild Project resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_iam_role" "codebuild_role" {
   name = "codebuild-role-"
 

@@ -3,9 +3,10 @@ package alicloud
 import (
 	"fmt"
 	"github.com/denverdino/aliyungo/ecs"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"log"
 	"strings"
+	"time"
 )
 
 func resourceAliyunSecurityGroupRule() *schema.Resource {
@@ -141,7 +142,7 @@ func resourceAliyunSecurityGroupRuleRead(d *schema.ResourceData, meta interface{
 		}
 		return fmt.Errorf("Error SecurityGroup rule: %#v", err)
 	}
-	log.Printf("[WARN]sg %s, type %s, protocol %s, port %s, rule %#v", sgId, direction, ip_protocol, port_range, rule)
+
 	d.Set("type", rule.Direction)
 	d.Set("ip_protocol", strings.ToLower(string(rule.IpProtocol)))
 	d.Set("nic_type", rule.NicType)
@@ -163,7 +164,7 @@ func resourceAliyunSecurityGroupRuleRead(d *schema.ResourceData, meta interface{
 	return nil
 }
 
-func resourceAliyunSecurityGroupRuleDelete(d *schema.ResourceData, meta interface{}) error {
+func deleteSecurityGroupRule(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*AliyunClient)
 	ruleType := d.Get("type").(string)
 
@@ -187,6 +188,30 @@ func resourceAliyunSecurityGroupRuleDelete(d *schema.ResourceData, meta interfac
 		AuthorizeSecurityGroupEgressArgs: *args,
 	}
 	return client.RevokeSecurityGroupEgress(revokeArgs)
+}
+
+func resourceAliyunSecurityGroupRuleDelete(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*AliyunClient)
+	parts := strings.Split(d.Id(), ":")
+	sgId, direction, ip_protocol, port_range, nic_type := parts[0], parts[1], parts[2], parts[3], parts[4]
+
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
+		err := deleteSecurityGroupRule(d, meta)
+
+		if err != nil {
+			resource.RetryableError(fmt.Errorf("Security group rule in use - trying again while it is deleted."))
+		}
+
+		_, err = client.DescribeSecurityGroupRule(sgId, direction, nic_type, ip_protocol, port_range)
+		if err != nil {
+			if notFoundError(err) {
+				return nil
+			}
+			return resource.NonRetryableError(err)
+		}
+
+		return resource.RetryableError(fmt.Errorf("Security group rule in use - trying again while it is deleted."))
+	})
 
 }
 

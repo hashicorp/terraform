@@ -16,7 +16,7 @@ Lightsail.
 
 ## Example Usage, creating a new Key Pair
 
-```
+```hcl
 # Create a new Lightsail Key Pair
 resource "aws_lightsail_key_pair" "lg_key_pair" {
   name = "lg_key_pair"
@@ -25,7 +25,7 @@ resource "aws_lightsail_key_pair" "lg_key_pair" {
 
 ## Create new Key Pair, encrypting the private key with a PGP Key
 
-```
+```hcl
 resource "aws_lightsail_key_pair" "lg_key_pair" {
   name    = "lg_key_pair"
   pgp_key = "keybase:keybaseusername"
@@ -34,7 +34,7 @@ resource "aws_lightsail_key_pair" "lg_key_pair" {
 
 ## Import an existing public key
 
-```
+```hcl
 resource "aws_lightsail_key_pair" "lg_key_pair" {
   name       = "importing"
   public_key = "${file("~/.ssh/id_rsa.pub")}"

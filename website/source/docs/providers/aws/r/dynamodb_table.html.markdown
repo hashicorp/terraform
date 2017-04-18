@@ -15,7 +15,7 @@ Provides a DynamoDB table resource
 The following dynamodb table description models the table and GSI shown
 in the [AWS SDK example documentation](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/GSI.html)
 
-```
+```hcl
 resource "aws_dynamodb_table" "basic-dynamodb-table" {
   name           = "GameScores"
   read_capacity  = 20

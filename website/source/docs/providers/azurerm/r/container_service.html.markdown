@@ -14,7 +14,8 @@ Creates an Azure Container Service Instance
 [Read more about sensitive data in state](/docs/state/sensitive-data.html).
 
 ## Example Usage (DCOS)
-```
+
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acctestRG1"
   location = "West US"
@@ -59,7 +60,7 @@ resource "azurerm_container_service" "test" {
 
 ## Example Usage (Kubernetes)
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acctestRG1"
   location = "West US"
@@ -108,7 +109,8 @@ resource "azurerm_container_service" "test" {
 ```
 
 ## Example Usage (Swarm)
-```
+
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acctestRG1"
   location = "West US"

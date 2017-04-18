@@ -2,8 +2,10 @@ package openstack
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 
+	"github.com/Unknwon/com"
 	"github.com/gophercloud/gophercloud"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -57,4 +59,24 @@ func MapValueSpecs(d *schema.ResourceData) map[string]string {
 		m[key] = val.(string)
 	}
 	return m
+}
+
+// List of headers that need to be redacted
+var REDACT_HEADERS = []string{"x-auth-token", "x-auth-key", "x-service-token",
+	"x-storage-token", "x-account-meta-temp-url-key", "x-account-meta-temp-url-key-2",
+	"x-container-meta-temp-url-key", "x-container-meta-temp-url-key-2", "set-cookie",
+	"x-subject-token"}
+
+// RedactHeaders processes a headers object, returning a redacted list
+func RedactHeaders(headers http.Header) (processedHeaders []string) {
+	for name, header := range headers {
+		for _, v := range header {
+			if com.IsSliceContainsStr(REDACT_HEADERS, name) {
+				processedHeaders = append(processedHeaders, fmt.Sprintf("%v: %v", name, "***"))
+			} else {
+				processedHeaders = append(processedHeaders, fmt.Sprintf("%v: %v", name, v))
+			}
+		}
+	}
+	return
 }

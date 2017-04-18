@@ -70,7 +70,7 @@ func Provider() terraform.ResourceProvider {
 			"max_retries": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Default:     11,
+				Default:     25,
 				Description: descriptions["max_retries"],
 			},
 
@@ -120,6 +120,13 @@ func Provider() terraform.ResourceProvider {
 				Optional:    true,
 				Default:     false,
 				Description: descriptions["skip_credentials_validation"],
+			},
+
+			"skip_get_ec2_platforms": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["skip_get_ec2_platforms"],
 			},
 
 			"skip_region_validation": {
@@ -178,6 +185,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_iam_server_certificate":   dataSourceAwsIAMServerCertificate(),
 			"aws_instance":                 dataSourceAwsInstance(),
 			"aws_ip_ranges":                dataSourceAwsIPRanges(),
+			"aws_kms_alias":                dataSourceAwsKmsAlias(),
 			"aws_kms_secret":               dataSourceAwsKmsSecret(),
 			"aws_partition":                dataSourceAwsPartition(),
 			"aws_prefix_list":              dataSourceAwsPrefixList(),
@@ -218,9 +226,11 @@ func Provider() terraform.ResourceProvider {
 			"aws_api_gateway_integration_response":         resourceAwsApiGatewayIntegrationResponse(),
 			"aws_api_gateway_method":                       resourceAwsApiGatewayMethod(),
 			"aws_api_gateway_method_response":              resourceAwsApiGatewayMethodResponse(),
+			"aws_api_gateway_method_settings":              resourceAwsApiGatewayMethodSettings(),
 			"aws_api_gateway_model":                        resourceAwsApiGatewayModel(),
 			"aws_api_gateway_resource":                     resourceAwsApiGatewayResource(),
 			"aws_api_gateway_rest_api":                     resourceAwsApiGatewayRestApi(),
+			"aws_api_gateway_stage":                        resourceAwsApiGatewayStage(),
 			"aws_api_gateway_usage_plan":                   resourceAwsApiGatewayUsagePlan(),
 			"aws_api_gateway_usage_plan_key":               resourceAwsApiGatewayUsagePlanKey(),
 			"aws_app_cookie_stickiness_policy":             resourceAwsAppCookieStickinessPolicy(),
@@ -487,6 +497,9 @@ func init() {
 		"skip_credentials_validation": "Skip the credentials validation via STS API. " +
 			"Used for AWS API implementations that do not have STS available/implemented.",
 
+		"skip_get_ec2_platforms": "Skip getting the supported EC2 platforms. " +
+			"Used by users that don't have ec2:DescribeAccountAttributes permissions.",
+
 		"skip_region_validation": "Skip static validation of region name. " +
 			"Used by users of alternative AWS-like APIs or users w/ access to regions that are not public (yet).",
 
@@ -526,6 +539,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		MaxRetries:              d.Get("max_retries").(int),
 		Insecure:                d.Get("insecure").(bool),
 		SkipCredsValidation:     d.Get("skip_credentials_validation").(bool),
+		SkipGetEC2Platforms:     d.Get("skip_get_ec2_platforms").(bool),
 		SkipRegionValidation:    d.Get("skip_region_validation").(bool),
 		SkipRequestingAccountId: d.Get("skip_requesting_account_id").(bool),
 		SkipMetadataApiCheck:    d.Get("skip_metadata_api_check").(bool),

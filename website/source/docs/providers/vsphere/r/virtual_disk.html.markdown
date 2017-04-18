@@ -12,7 +12,7 @@ Provides a VMware virtual disk resource.  This can be used to create and delete 
 
 ## Example Usage
 
-```
+```hcl
 resource "vsphere_virtual_disk" "myDisk" {
   size	     	= 2
   vmdk_path  	= "myDisk.vmdk"

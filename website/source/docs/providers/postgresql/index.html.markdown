@@ -14,7 +14,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Usage
 
-```
+```hcl
 provider "postgresql" {
   host            = "postgres_server_ip"
   port            = 5432
@@ -28,7 +28,7 @@ provider "postgresql" {
 
 Configuring multiple servers can be done by specifying the alias option.
 
-```
+```hcl
 provider "postgresql" {
   alias    = "pg1"
   host     = "postgres_server_ip1"

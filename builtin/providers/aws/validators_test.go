@@ -207,6 +207,7 @@ func TestValidateArn(t *testing.T) {
 		"arn:aws:lambda:eu-west-1:319201112229:function:myCustomFunction",                  // Lambda function
 		"arn:aws:lambda:eu-west-1:319201112229:function:myCustomFunction:Qualifier",        // Lambda func qualifier
 		"arn:aws-us-gov:s3:::corp_bucket/object.png",                                       // GovCloud ARN
+		"arn:aws-us-gov:kms:us-gov-west-1:123456789012:key/some-uuid-abc123",               // GovCloud KMS ARN
 	}
 	for _, v := range validNames {
 		_, errors := validateArn(v, "arn")
@@ -410,7 +411,7 @@ func TestValidateLogGroupName(t *testing.T) {
 	for _, v := range validNames {
 		_, errors := validateLogGroupName(v, "name")
 		if len(errors) != 0 {
-			t.Fatalf("%q should be a valid Log Metric Filter Transformation Name: %q", v, errors)
+			t.Fatalf("%q should be a valid Log Group name: %q", v, errors)
 		}
 	}
 
@@ -427,7 +428,42 @@ func TestValidateLogGroupName(t *testing.T) {
 	for _, v := range invalidNames {
 		_, errors := validateLogGroupName(v, "name")
 		if len(errors) == 0 {
-			t.Fatalf("%q should be an invalid Log Metric Filter Transformation Name", v)
+			t.Fatalf("%q should be an invalid Log Group name", v)
+		}
+	}
+}
+
+func TestValidateLogGroupNamePrefix(t *testing.T) {
+	validNames := []string{
+		"ValidLogGroupName",
+		"ValidLogGroup.Name",
+		"valid/Log-group",
+		"1234",
+		"YadaValid#0123",
+		"Also_valid-name",
+		strings.Repeat("W", 483),
+	}
+	for _, v := range validNames {
+		_, errors := validateLogGroupNamePrefix(v, "name_prefix")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Log Group name prefix: %q", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"Here is a name with: colon",
+		"and here is another * invalid name",
+		"also $ invalid",
+		"This . is also %% invalid@!)+(",
+		"*",
+		"",
+		// length > 483
+		strings.Repeat("W", 484),
+	}
+	for _, v := range invalidNames {
+		_, errors := validateLogGroupNamePrefix(v, "name_prefix")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid Log Group name prefix", v)
 		}
 	}
 }
@@ -1944,4 +1980,36 @@ func TestValidateOpenIdURL(t *testing.T) {
 			t.Fatalf("Expected %d of OpenID URL validation errors, got %d", tc.ErrCount, len(errors))
 		}
 	}
+}
+
+func TestValidateAwsKmsName(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "alias/aws/s3",
+			ErrCount: 0,
+		},
+		{
+			Value:    "alias/hashicorp",
+			ErrCount: 0,
+		},
+		{
+			Value:    "hashicorp",
+			ErrCount: 1,
+		},
+		{
+			Value:    "hashicorp/terraform",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateAwsKmsName(tc.Value, "name")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("AWS KMS Alias Name validation failed: %v", errors)
+		}
+	}
+
 }

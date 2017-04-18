@@ -218,7 +218,7 @@ func resourceAlicloudDBInstanceCreate(d *schema.ResourceData, meta interface{}) 
 
 	// wait instance status change from Creating to running
 	if err := conn.WaitForInstance(d.Id(), rds.Running, defaultLongTimeout); err != nil {
-		log.Printf("[DEBUG] WaitForInstance %s got error: %#v", rds.Running, err)
+		return fmt.Errorf("WaitForInstance %s got error: %#v", rds.Running, err)
 	}
 
 	if err := modifySecurityIps(d.Id(), d.Get("security_ips"), meta); err != nil {
@@ -386,6 +386,11 @@ func resourceAlicloudDBInstanceRead(d *schema.ResourceData, meta interface{}) er
 	if err != nil {
 		return err
 	}
+	if resp.Databases.Database == nil {
+		d.SetId("")
+		return nil
+	}
+
 	d.Set("db_mappings", flattenDatabaseMappings(resp.Databases.Database))
 
 	argn := rds.DescribeDBInstanceNetInfoArgs{

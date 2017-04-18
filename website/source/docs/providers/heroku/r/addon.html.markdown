@@ -13,7 +13,7 @@ services to a Heroku app.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new Heroku app
 resource "heroku_app" "default" {
   name = "test-app"

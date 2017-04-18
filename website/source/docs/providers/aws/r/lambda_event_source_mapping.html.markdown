@@ -15,7 +15,7 @@ For information about event source mappings, see [CreateEventSourceMapping][2] i
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_lambda_event_source_mapping" "event_source_mapping" {
   batch_size        = 100
   event_source_arn  = "arn:aws:kinesis:REGION:123456789012:stream/stream_name"

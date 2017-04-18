@@ -48,6 +48,7 @@ func TestAccAlicloudNatGateway_basic(t *testing.T) {
 						"alicloud_nat_gateway.foo",
 						"name",
 						"test_foo"),
+					testAccCheckNatgatewayIpAddress("alicloud_nat_gateway.foo", &nat),
 				),
 			},
 		},
@@ -94,6 +95,31 @@ func TestAccAlicloudNatGateway_spec(t *testing.T) {
 		},
 	})
 
+}
+
+func testAccCheckNatgatewayIpAddress(n string, nat *ecs.NatGatewaySetType) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No NatGateway ID is set")
+		}
+
+		client := testAccProvider.Meta().(*AliyunClient)
+		natGateway, err := client.DescribeNatGateway(rs.Primary.ID)
+
+		if err != nil {
+			return err
+		}
+		if natGateway == nil {
+			return fmt.Errorf("Natgateway not found")
+		}
+
+		return nil
+	}
 }
 
 func testAccCheckNatGatewayExists(n string, nat *ecs.NatGatewaySetType) resource.TestCheckFunc {
@@ -164,7 +190,7 @@ resource "alicloud_vpc" "foo" {
 resource "alicloud_vswitch" "foo" {
 	vpc_id = "${alicloud_vpc.foo.id}"
 	cidr_block = "172.16.0.0/21"
-	availability_zone = "${data.alicloud_zones.default.zones.0.id}"
+	availability_zone = "${data.alicloud_zones.default.zones.2.id}"
 }
 
 resource "alicloud_nat_gateway" "foo" {
@@ -174,11 +200,19 @@ resource "alicloud_nat_gateway" "foo" {
 	bandwidth_packages = [{
 	  ip_count = 1
 	  bandwidth = 5
-	  zone = "${data.alicloud_zones.default.zones.0.id}"
+	  zone = "${data.alicloud_zones.default.zones.2.id}"
 	}, {
 	  ip_count = 2
-	  bandwidth = 10
-	  zone = "${data.alicloud_zones.default.zones.0.id}"
+	  bandwidth = 6
+	  zone = "${data.alicloud_zones.default.zones.2.id}"
+	}, {
+	  ip_count = 3
+	  bandwidth = 7
+	  zone = "${data.alicloud_zones.default.zones.2.id}"
+	}, {
+	  ip_count = 1
+	  bandwidth = 8
+	  zone = "${data.alicloud_zones.default.zones.2.id}"
 	}]
 	depends_on = [
     	"alicloud_vswitch.foo"]

@@ -137,6 +137,26 @@ func TestResourceAWSNetworkAclRule_validateICMPArgumentValue(t *testing.T) {
 
 }
 
+func TestAccAWSNetworkAclRule_deleteRule(t *testing.T) {
+	var networkAcl ec2.NetworkAcl
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSNetworkAclRuleDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSNetworkAclRuleBasicConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSNetworkAclRuleExists("aws_network_acl_rule.baz", &networkAcl),
+					testAccCheckAWSNetworkAclRuleDelete("aws_network_acl_rule.baz"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func testAccCheckAWSNetworkAclRuleDestroy(s *terraform.State) error {
 
 	for _, rs := range s.RootModule().Resources {
@@ -179,7 +199,7 @@ func testAccCheckAWSNetworkAclRuleExists(n string, networkAcl *ec2.NetworkAcl) r
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("No Network ACL Id is set")
+			return fmt.Errorf("No Network ACL Rule Id is set")
 		}
 
 		req := &ec2.DescribeNetworkAclsInput{
@@ -206,6 +226,40 @@ func testAccCheckAWSNetworkAclRuleExists(n string, networkAcl *ec2.NetworkAcl) r
 			}
 		}
 		return fmt.Errorf("Entry not found: %s", resp.NetworkAcls[0])
+	}
+}
+
+func testAccCheckAWSNetworkAclRuleDelete(n string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No Network ACL Rule Id is set")
+		}
+
+		egress, err := strconv.ParseBool(rs.Primary.Attributes["egress"])
+		if err != nil {
+			return err
+		}
+		ruleNo, err := strconv.ParseInt(rs.Primary.Attributes["rule_number"], 10, 64)
+		if err != nil {
+			return err
+		}
+
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+		_, err = conn.DeleteNetworkAclEntry(&ec2.DeleteNetworkAclEntryInput{
+			NetworkAclId: aws.String(rs.Primary.Attributes["network_acl_id"]),
+			RuleNumber:   aws.Int64(ruleNo),
+			Egress:       aws.Bool(egress),
+		})
+		if err != nil {
+			return fmt.Errorf("Error deleting Network ACL Rule (%s) in testAccCheckAWSNetworkAclRuleDelete: %s", rs.Primary.ID, err)
+		}
+
+		return nil
 	}
 }
 

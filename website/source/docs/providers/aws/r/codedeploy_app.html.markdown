@@ -12,7 +12,7 @@ Provides a CodeDeploy application to be used as a basis for deployments
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_codedeploy_app" "foo" {
   name = "foo"
 }
