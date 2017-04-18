@@ -2,6 +2,7 @@
 
 FEATURES:
 
+* **New Data Source:** `aws_kms_alias` [GH-13669]
 * **New Data Source:** `google_compute_network` [GH-12442]
 * **New Data Source:** `google_compute_subnetwork` [GH-12442]
 * **New Resource:** `local_file` for creating local files (please see the docs for caveats) [GH-12757]
