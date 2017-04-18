@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/1and1/oneandone-cloudserver-sdk-go"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 	"log"
 	"strings"
 )
@@ -66,24 +67,14 @@ func resourceOneandOneLoadbalancer() *schema.Resource {
 							Required: true,
 						},
 						"port_balancer": {
-							Type:     schema.TypeInt,
-							Required: true,
-							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-								if v.(int) < 1 && v.(int) > 65535 {
-									errors = append(errors, fmt.Errorf("Port end range must be between 1 and %s", "65535"))
-								}
-								return
-							},
+							Type:         schema.TypeInt,
+							Required:     true,
+							ValidateFunc: validation.IntBetween(1, 65535),
 						},
 						"port_server": {
-							Type:     schema.TypeInt,
-							Required: true,
-							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-								if v.(int) < 1 && v.(int) > 65535 {
-									errors = append(errors, fmt.Errorf("Port end range must be between 1 and %s", "65535"))
-								}
-								return
-							},
+							Type:         schema.TypeInt,
+							Required:     true,
+							ValidateFunc: validation.IntBetween(1, 65535),
 						},
 						"source_ip": {
 							Type:     schema.TypeString,
