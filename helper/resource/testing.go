@@ -235,11 +235,11 @@ func Test(t TestT, c TestCase) {
 		c.PreCheck()
 	}
 
-	ctxProviders, err := testProviderFactories(c)
+	providerResolver, err := testProviderResolver(c)
 	if err != nil {
 		t.Fatal(err)
 	}
-	opts := terraform.ContextOpts{Providers: ctxProviders}
+	opts := terraform.ContextOpts{ProviderResolver: providerResolver}
 
 	// A single state variable to track the lifecycle, starting with no state
 	var state *terraform.State
@@ -348,12 +348,12 @@ func Test(t TestT, c TestCase) {
 	}
 }
 
-// testProviderFactories is a helper to build the ResourceProviderFactory map
+// testProviderResolver is a helper to build a ResourceProviderResolver
 // with pre instantiated ResourceProviders, so that we can reset them for the
 // test, while only calling the factory function once.
 // Any errors are stored so that they can be returned by the factory in
 // terraform to match non-test behavior.
-func testProviderFactories(c TestCase) (map[string]terraform.ResourceProviderFactory, error) {
+func testProviderResolver(c TestCase) (terraform.ResourceProviderResolver, error) {
 	ctxProviders := make(map[string]terraform.ResourceProviderFactory)
 
 	// add any fixed providers
@@ -382,7 +382,7 @@ func testProviderFactories(c TestCase) (map[string]terraform.ResourceProviderFac
 		}
 	}
 
-	return ctxProviders, nil
+	return terraform.ResourceProviderResolverFixed(ctxProviders), nil
 }
 
 // UnitTest is a helper to force the acceptance testing harness to run in the

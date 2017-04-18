@@ -1,9 +1,12 @@
 package terraform
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 
 	"github.com/blang/semver"
+	"github.com/hashicorp/terraform/config/module"
 )
 
 // ResourceProvider is an interface that must be implemented by any
@@ -251,4 +254,50 @@ func ProviderHasDataSource(p ResourceProvider, n string) bool {
 	}
 
 	return false
+}
+
+// resourceProviderFactories matches available plugins to constraints in
+// config to produce a map of compatible provider plugins if possible, or
+// an error if the currently-available plugins are insufficient.
+//
+// This should be called only with configurations that have passed calls
+// to config.Validate(), which ensures that all of the given version
+// constraints are valid. It will panic if any invalid constraints are present.
+func resourceProviderFactories(resolver ResourceProviderResolver, root *module.Tree, state *State) (map[string]ResourceProviderFactory, error) {
+	cons := make(map[string]semver.Range)
+
+	require := func(name string, spec semver.Range) {
+		if existing, exists := cons[name]; exists {
+			cons[name] = existing.AND(spec)
+		} else {
+			cons[name] = spec
+		}
+	}
+
+	if root != nil {
+		reqd := root.RequiredProviderPlugins()
+		for name, spec := range reqd {
+			require(name, spec)
+		}
+	}
+
+	if state != nil {
+		reqd := state.RequiredProviders().RequiredRanges()
+		for name, spec := range reqd {
+			require(name, spec)
+		}
+	}
+
+	ret, errs := resolver.ResolveProviders(cons)
+	if errs != nil {
+		errBuf := &bytes.Buffer{}
+		errBuf.WriteString("Can't satisfy provider requirements with currently-installed plugins:\n\n")
+		for _, err := range errs {
+			fmt.Fprintf(errBuf, "* %s\n", err)
+		}
+		errBuf.WriteString("\nRun 'terraform init' to install the necessary provider plugins.\n")
+		return nil, errors.New(errBuf.String())
+	}
+
+	return ret, nil
 }

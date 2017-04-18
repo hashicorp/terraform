@@ -71,21 +71,25 @@ func testFixturePath(name string) string {
 
 func metaOverridesForProvider(p terraform.ResourceProvider) *testingOverrides {
 	return &testingOverrides{
-		Providers: map[string]terraform.ResourceProviderFactory{
-			"test": func() (terraform.ResourceProvider, error) {
-				return p, nil
+		ProviderResolver: terraform.ResourceProviderResolverFixed(
+			map[string]terraform.ResourceProviderFactory{
+				"test": func() (terraform.ResourceProvider, error) {
+					return p, nil
+				},
 			},
-		},
+		),
 	}
 }
 
 func metaOverridesForProviderAndProvisioner(p terraform.ResourceProvider, pr terraform.ResourceProvisioner) *testingOverrides {
 	return &testingOverrides{
-		Providers: map[string]terraform.ResourceProviderFactory{
-			"test": func() (terraform.ResourceProvider, error) {
-				return p, nil
+		ProviderResolver: terraform.ResourceProviderResolverFixed(
+			map[string]terraform.ResourceProviderFactory{
+				"test": func() (terraform.ResourceProvider, error) {
+					return p, nil
+				},
 			},
-		},
+		),
 		Provisioners: map[string]terraform.ResourceProvisionerFactory{
 			"shell": func() (terraform.ResourceProvisioner, error) {
 				return pr, nil
