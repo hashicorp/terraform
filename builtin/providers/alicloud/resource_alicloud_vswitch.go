@@ -68,7 +68,7 @@ func resourceAliyunSwitchCreate(d *schema.ResourceData, meta interface{}) error 
 		return fmt.Errorf("WaitForVSwitchAvailable got a error: %s", err)
 	}
 
-	return resourceAliyunSwitchRead(d, meta)
+	return resourceAliyunSwitchUpdate(d, meta)
 }
 
 func resourceAliyunSwitchRead(d *schema.ResourceData, meta interface{}) error {
@@ -139,7 +139,7 @@ func resourceAliyunSwitchUpdate(d *schema.ResourceData, meta interface{}) error 
 
 	d.Partial(false)
 
-	return nil
+	return resourceAliyunSwitchRead(d, meta)
 }
 
 func resourceAliyunSwitchDelete(d *schema.ResourceData, meta interface{}) error {

@@ -17,7 +17,7 @@ whole cluster!
 
 ## Example usage
 
-```js
+```hcl
 resource "google_container_cluster" "primary" {
   name               = "marcellus-wallace"
   zone               = "us-central1-a"

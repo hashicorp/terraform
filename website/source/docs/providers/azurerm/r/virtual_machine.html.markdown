@@ -12,7 +12,7 @@ Create a virtual machine.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acctestrg"
   location = "West US"
@@ -101,7 +101,7 @@ resource "azurerm_virtual_machine" "test" {
 
 ## Example Usage with additional Empty DataDisk
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acctestrg"
   location = "West US"
@@ -198,7 +198,7 @@ resource "azurerm_virtual_machine" "test" {
 
 ## Example Usage with Managed Disks
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acctestrg"
   location = "West US 2"
@@ -410,7 +410,7 @@ For more information on the different example configurations, please check out t
 
 * `certificate_url` - (Required) Specifies the URI of the key vault secrets in the format of `https://<vaultEndpoint>/secrets/<secretName>/<secretVersion>`. Stored secret is the Base64 encoding of a JSON Object that which is encoded in UTF-8 of which the contents need to be
 
-```
+```json
 { 
   "data":"<Base64-encoded-certificate>", 
   "dataType":"pfx",

@@ -14,7 +14,7 @@ Provides an API Gateway API Key.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_api_gateway_rest_api" "MyDemoAPI" {
   name = "MyDemoAPI"
 }

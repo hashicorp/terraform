@@ -12,7 +12,7 @@ Provides a proxy protocol policy, which allows an ELB to carry a client connecti
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_elb" "lb" {
   name               = "test-lb"
   availability_zones = ["us-east-1a"]

@@ -13,7 +13,7 @@ create and manage Log Drains on Heroku.
 
 ## Example Usage
 
-```
+```hcl
 resource "heroku_drain" "default" {
   app = "test-app"
   url = "syslog://terraform.example.com:1234"

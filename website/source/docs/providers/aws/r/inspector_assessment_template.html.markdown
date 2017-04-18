@@ -12,7 +12,7 @@ Provides a Inspector assessment template
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_inspector_assessment_template" "foo" {
   name       = "bar template"
   target_arn = "${aws_inspector_assessment_target.foo.arn}"

@@ -353,7 +353,7 @@ func validateArn(v interface{}, k string) (ws []string, errors []error) {
 	}
 
 	// http://docs.aws.amazon.com/lambda/latest/dg/API_AddPermission.html
-	pattern := `^arn:[\w-]+:([a-zA-Z0-9\-])+:([a-z]{2}-[a-z]+-\d{1})?:(\d{12})?:(.*)$`
+	pattern := `^arn:[\w-]+:([a-zA-Z0-9\-])+:([a-z]{2}-(gov-)?[a-z]+-\d{1})?:(\d{12})?:(.*)$`
 	if !regexp.MustCompile(pattern).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"%q doesn't look like a valid ARN (%q): %q",
@@ -469,6 +469,26 @@ func validateLogGroupName(v interface{}, k string) (ws []string, errors []error)
 	if len(value) > 512 {
 		errors = append(errors, fmt.Errorf(
 			"%q cannot be longer than 512 characters: %q", k, value))
+	}
+
+	// http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLogGroup.html
+	pattern := `^[\.\-_/#A-Za-z0-9]+$`
+	if !regexp.MustCompile(pattern).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q isn't a valid log group name (alphanumeric characters, underscores,"+
+				" hyphens, slashes, hash signs and dots are allowed): %q",
+			k, value))
+	}
+
+	return
+}
+
+func validateLogGroupNamePrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	if len(value) > 483 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 483 characters: %q", k, value))
 	}
 
 	// http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLogGroup.html
@@ -1186,6 +1206,15 @@ func validateOpenIdURL(v interface{}, k string) (ws []string, errors []error) {
 	}
 	if len(u.Query()) > 0 {
 		errors = append(errors, fmt.Errorf("%q cannot contain query parameters per the OIDC standard", k))
+	}
+	return
+}
+
+func validateAwsKmsName(v interface{}, k string) (ws []string, es []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^(alias\/)[a-zA-Z0-9:/_-]+$`).MatchString(value) {
+		es = append(es, fmt.Errorf(
+			"%q must begin with 'alias/' and be comprised of only [a-zA-Z0-9:/_-]", k))
 	}
 	return
 }

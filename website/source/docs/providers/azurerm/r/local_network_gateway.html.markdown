@@ -12,7 +12,7 @@ Creates a new local network gateway connection over which specific connections c
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_local_network_gateway" "home" {
   name                = "backHome"
   resource_group_name = "${azurerm_resource_group.test.name}"

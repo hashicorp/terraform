@@ -12,7 +12,7 @@ Manages a firewall resource within GCE.
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_firewall" "default" {
   name    = "test"
   network = "${google_compute_network.other.name}"

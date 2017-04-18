@@ -14,7 +14,7 @@ Provides a S3 bucket resource.
 
 ### Private Bucket w/ Tags
 
-```
+```hcl
 resource "aws_s3_bucket" "b" {
   bucket = "my_tf_test_bucket"
   acl    = "private"
@@ -28,7 +28,7 @@ resource "aws_s3_bucket" "b" {
 
 ### Static Website Hosting
 
-```
+```hcl
 resource "aws_s3_bucket" "b" {
   bucket = "s3-website-test.hashicorp.com"
   acl    = "public-read"
@@ -54,7 +54,7 @@ EOF
 
 ### Using CORS
 
-```
+```hcl
 resource "aws_s3_bucket" "b" {
   bucket = "s3-website-test.hashicorp.com"
   acl    = "public-read"
@@ -71,7 +71,7 @@ resource "aws_s3_bucket" "b" {
 
 ### Using versioning
 
-```
+```hcl
 resource "aws_s3_bucket" "b" {
   bucket = "my_tf_test_bucket"
   acl    = "private"
@@ -84,7 +84,7 @@ resource "aws_s3_bucket" "b" {
 
 ### Enable Logging
 
-```
+```hcl
 resource "aws_s3_bucket" "log_bucket" {
   bucket = "my_tf_log_bucket"
   acl    = "log-delivery-write"
@@ -103,7 +103,7 @@ resource "aws_s3_bucket" "b" {
 
 ### Using object lifecycle
 
-```
+```hcl
 resource "aws_s3_bucket" "bucket" {
   bucket = "my-bucket"
   acl    = "private"
@@ -170,7 +170,7 @@ resource "aws_s3_bucket" "versioning_bucket" {
 
 ### Using replication configuration
 
-```
+```hcl
 provider "aws" {
   alias  = "west"
   region = "eu-west-1"

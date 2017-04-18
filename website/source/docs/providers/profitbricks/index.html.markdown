@@ -18,7 +18,7 @@ Use the navigation to the left to read about the available resources.
 The provider needs to be configured with proper credentials before it can be used.
 
 
-```
+```hcl
 $ export PROFITBRICKS_USERNAME="profitbricks_username"
 $ export PROFITBRICKS_PASSWORD="profitbricks_password"
 $ export PROFITBRICKS_API_URL="profitbricks_rest_url"
@@ -32,7 +32,7 @@ The credentials provided in `.tf` file will override credentials in the environm
 ## Example Usage
 
 
-```
+```hcl
 provider "profitbricks" {
   username = "profitbricks_username"
   password = "profitbricks_password"

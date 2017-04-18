@@ -26,7 +26,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 provider "grafana" {
   url  = "http://grafana.example.com/"
   auth = "1234abcd"

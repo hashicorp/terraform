@@ -14,7 +14,7 @@ Provides an IAM instance profile.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_iam_instance_profile" "test_profile" {
   name  = "test_profile"
   role = "${aws_iam_role.role.name}"
@@ -49,10 +49,10 @@ The following arguments are supported:
 * `name` - (Optional, Forces new resource) The profile's name. If omitted, Terraform will assign a random, unique name.
 * `name_prefix` - (Optional, Forces new resource) Creates a unique name beginning with the specified prefix. Conflicts with `name`.
 * `path` - (Optional, default "/") Path in which to create the profile.
-* `role` - (Optional) The role name to include in the profile. This.
 * `roles` - (**Deprecated**)
 A list of role names to include in the profile.  The current default is 1.  If you see an error message similar to `Cannot exceed quota for InstanceSessionsPerInstanceProfile: 1`, then you must contact AWS support and ask for a limit increase.
  WARNING: This is deprecated since [version 0.9.3 (April 12, 2017)](https://github.com/hashicorp/terraform/blob/master/CHANGELOG.md#093-april-12-2017), as >= 2 roles are not possible. See [issue #11575](https://github.com/hashicorp/terraform/issues/11575).
+* `role` - (Optional) The role name to include in the profile.
 
 ## Attribute Reference
 

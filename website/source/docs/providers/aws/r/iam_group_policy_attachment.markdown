@@ -10,7 +10,7 @@ description: |-
 
 Attaches a Managed IAM Policy to an IAM group
 
-```
+```hcl
 resource "aws_iam_group" "group" {
   name = "test-group"
 }

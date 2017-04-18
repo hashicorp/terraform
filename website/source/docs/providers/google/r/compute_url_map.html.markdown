@@ -16,7 +16,7 @@ and
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_url_map" "foobar" {
   name        = "urlmap"
   description = "a description"

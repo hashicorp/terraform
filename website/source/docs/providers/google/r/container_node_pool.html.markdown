@@ -15,7 +15,7 @@ and
 
 ## Example usage
 
-```tf
+```hcl
 resource "google_container_node_pool" "np" {
   name               = "my-node-pool"
   zone               = "us-central1-a"
