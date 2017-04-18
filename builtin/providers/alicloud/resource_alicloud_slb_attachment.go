@@ -64,10 +64,14 @@ func resourceAliyunSlbAttachmentRead(d *schema.ResourceData, meta interface{}) e
 	if err != nil {
 		if notFoundError(err) {
 			d.SetId("")
-			return fmt.Errorf("Read special SLB Id not found: %#v", err)
+			return nil
 		}
+		return fmt.Errorf("Read special SLB Id not found: %#v", err)
+	}
 
-		return err
+	if loadBalancer == nil {
+		d.SetId("")
+		return nil
 	}
 
 	backendServerType := loadBalancer.BackendServers

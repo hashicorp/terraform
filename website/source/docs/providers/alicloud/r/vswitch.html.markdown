@@ -6,7 +6,7 @@ description: |-
   Provides a Alicloud VPC switch resource.
 ---
 
-# alicloud_vswitch
+# alicloud\_vswitch
 
 Provides a VPC switch resource.
 
@@ -14,7 +14,7 @@ Provides a VPC switch resource.
 
 Basic Usage
 
-```hcl
+```
 resource "alicloud_vpc" "vpc" {
   name       = "tf_test_foo"
   cidr_block = "172.16.0.0/12"

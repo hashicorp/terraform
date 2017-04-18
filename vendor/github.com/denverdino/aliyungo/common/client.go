@@ -13,6 +13,14 @@ import (
 	"github.com/denverdino/aliyungo/util"
 )
 
+// RemovalPolicy.N add index to array item
+// RemovalPolicy=["a", "b"] => RemovalPolicy.1="a" RemovalPolicy.2="b"
+type FlattenArray []string
+
+// string contains underline which will be replaced with dot
+// SystemDisk_Category => SystemDisk.Category
+type UnderlineString string
+
 // A Client represents a client of ECS services
 type Client struct {
 	AccessKeyId     string //Access Key Id
@@ -107,6 +115,75 @@ func (client *Client) Invoke(action string, args interface{}, response interface
 
 	query := util.ConvertToQueryValues(request)
 	util.SetQueryValues(args, &query)
+
+	// Sign request
+	signature := util.CreateSignatureForRequest(ECSRequestMethod, &query, client.AccessKeySecret)
+
+	// Generate the request URL
+	requestURL := client.endpoint + "?" + query.Encode() + "&Signature=" + url.QueryEscape(signature)
+
+	httpReq, err := http.NewRequest(ECSRequestMethod, requestURL, nil)
+
+	if err != nil {
+		return GetClientError(err)
+	}
+
+	// TODO move to util and add build val flag
+	httpReq.Header.Set("X-SDK-Client", `AliyunGO/`+Version+client.businessInfo)
+
+	t0 := time.Now()
+	httpResp, err := client.httpClient.Do(httpReq)
+	t1 := time.Now()
+	if err != nil {
+		return GetClientError(err)
+	}
+	statusCode := httpResp.StatusCode
+
+	if client.debug {
+		log.Printf("Invoke %s %s %d (%v)", ECSRequestMethod, requestURL, statusCode, t1.Sub(t0))
+	}
+
+	defer httpResp.Body.Close()
+	body, err := ioutil.ReadAll(httpResp.Body)
+
+	if err != nil {
+		return GetClientError(err)
+	}
+
+	if client.debug {
+		var prettyJSON bytes.Buffer
+		err = json.Indent(&prettyJSON, body, "", "    ")
+		log.Println(string(prettyJSON.Bytes()))
+	}
+
+	if statusCode >= 400 && statusCode <= 599 {
+		errorResponse := ErrorResponse{}
+		err = json.Unmarshal(body, &errorResponse)
+		ecsError := &Error{
+			ErrorResponse: errorResponse,
+			StatusCode:    statusCode,
+		}
+		return ecsError
+	}
+
+	err = json.Unmarshal(body, response)
+	//log.Printf("%++v", response)
+	if err != nil {
+		return GetClientError(err)
+	}
+
+	return nil
+}
+
+// Invoke sends the raw HTTP request for ECS services
+func (client *Client) InvokeByFlattenMethod(action string, args interface{}, response interface{}) error {
+
+	request := Request{}
+	request.init(client.version, action, client.AccessKeyId)
+
+	query := util.ConvertToQueryValues(request)
+
+	util.SetQueryValueByFlattenMethod(args, &query)
 
 	// Sign request
 	signature := util.CreateSignatureForRequest(ECSRequestMethod, &query, client.AccessKeySecret)
