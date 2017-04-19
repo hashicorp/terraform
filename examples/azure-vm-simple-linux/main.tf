@@ -110,11 +110,3 @@ resource "azurerm_virtual_machine" "vm" {
     storage_uri = "${azurerm_storage_account.stor.primary_blob_endpoint}"
   }
 }
-
-output "hostname" {
-  value = "${var.hostname}"
-}
-
-output "vm_fqdn" {
-  value = "${azurerm_public_ip.pip.fqdn}"
-}
