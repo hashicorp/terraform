@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -94,6 +95,146 @@ func TestAccAWSWafIPSet_changeNameForceNew(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAccAWSWafIPSet_changeDescriptors(t *testing.T) {
+	var before, after waf.IPSet
+	ipsetName := fmt.Sprintf("ip-set-%s", acctest.RandString(5))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSWafIPSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSWafIPSetConfig(ipsetName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSWafIPSetExists("aws_waf_ipset.ipset", &before),
+					resource.TestCheckResourceAttr(
+						"aws_waf_ipset.ipset", "name", ipsetName),
+					resource.TestCheckResourceAttr(
+						"aws_waf_ipset.ipset", "ip_set_descriptors.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_waf_ipset.ipset", "ip_set_descriptors.4037960608.type", "IPV4"),
+					resource.TestCheckResourceAttr(
+						"aws_waf_ipset.ipset", "ip_set_descriptors.4037960608.value", "192.0.7.0/24"),
+				),
+			},
+			{
+				Config: testAccAWSWafIPSetConfigChangeIPSetDescriptors(ipsetName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSWafIPSetExists("aws_waf_ipset.ipset", &after),
+					resource.TestCheckResourceAttr(
+						"aws_waf_ipset.ipset", "name", ipsetName),
+					resource.TestCheckResourceAttr(
+						"aws_waf_ipset.ipset", "ip_set_descriptors.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_waf_ipset.ipset", "ip_set_descriptors.115741513.type", "IPV4"),
+					resource.TestCheckResourceAttr(
+						"aws_waf_ipset.ipset", "ip_set_descriptors.115741513.value", "192.0.8.0/24"),
+				),
+			},
+		},
+	})
+}
+
+func TestDiffWafIpSetDescriptors(t *testing.T) {
+	testCases := []struct {
+		Old             []interface{}
+		New             []interface{}
+		ExpectedUpdates []*waf.IPSetUpdate
+	}{
+		{
+			// Change
+			Old: []interface{}{
+				map[string]interface{}{"type": "IPV4", "value": "192.0.7.0/24"},
+			},
+			New: []interface{}{
+				map[string]interface{}{"type": "IPV4", "value": "192.0.8.0/24"},
+			},
+			ExpectedUpdates: []*waf.IPSetUpdate{
+				&waf.IPSetUpdate{
+					Action: aws.String(waf.ChangeActionDelete),
+					IPSetDescriptor: &waf.IPSetDescriptor{
+						Type:  aws.String("IPV4"),
+						Value: aws.String("192.0.7.0/24"),
+					},
+				},
+				&waf.IPSetUpdate{
+					Action: aws.String(waf.ChangeActionInsert),
+					IPSetDescriptor: &waf.IPSetDescriptor{
+						Type:  aws.String("IPV4"),
+						Value: aws.String("192.0.8.0/24"),
+					},
+				},
+			},
+		},
+		{
+			// Fresh IPSet
+			Old: []interface{}{},
+			New: []interface{}{
+				map[string]interface{}{"type": "IPV4", "value": "10.0.1.0/24"},
+				map[string]interface{}{"type": "IPV4", "value": "10.0.2.0/24"},
+				map[string]interface{}{"type": "IPV4", "value": "10.0.3.0/24"},
+			},
+			ExpectedUpdates: []*waf.IPSetUpdate{
+				&waf.IPSetUpdate{
+					Action: aws.String(waf.ChangeActionInsert),
+					IPSetDescriptor: &waf.IPSetDescriptor{
+						Type:  aws.String("IPV4"),
+						Value: aws.String("10.0.1.0/24"),
+					},
+				},
+				&waf.IPSetUpdate{
+					Action: aws.String(waf.ChangeActionInsert),
+					IPSetDescriptor: &waf.IPSetDescriptor{
+						Type:  aws.String("IPV4"),
+						Value: aws.String("10.0.2.0/24"),
+					},
+				},
+				&waf.IPSetUpdate{
+					Action: aws.String(waf.ChangeActionInsert),
+					IPSetDescriptor: &waf.IPSetDescriptor{
+						Type:  aws.String("IPV4"),
+						Value: aws.String("10.0.3.0/24"),
+					},
+				},
+			},
+		},
+		{
+			// Deletion
+			Old: []interface{}{
+				map[string]interface{}{"type": "IPV4", "value": "192.0.7.0/24"},
+				map[string]interface{}{"type": "IPV4", "value": "192.0.8.0/24"},
+			},
+			New: []interface{}{},
+			ExpectedUpdates: []*waf.IPSetUpdate{
+				&waf.IPSetUpdate{
+					Action: aws.String(waf.ChangeActionDelete),
+					IPSetDescriptor: &waf.IPSetDescriptor{
+						Type:  aws.String("IPV4"),
+						Value: aws.String("192.0.7.0/24"),
+					},
+				},
+				&waf.IPSetUpdate{
+					Action: aws.String(waf.ChangeActionDelete),
+					IPSetDescriptor: &waf.IPSetDescriptor{
+						Type:  aws.String("IPV4"),
+						Value: aws.String("192.0.8.0/24"),
+					},
+				},
+			},
+		},
+	}
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			updates := diffWafIpSetDescriptors(tc.Old, tc.New)
+			if !reflect.DeepEqual(updates, tc.ExpectedUpdates) {
+				t.Fatalf("IPSet updates don't match.\nGiven: %s\nExpected: %s",
+					updates, tc.ExpectedUpdates)
+			}
+		})
+	}
 }
 
 func testAccCheckAWSWafIPSetDisappears(v *waf.IPSet) resource.TestCheckFunc {

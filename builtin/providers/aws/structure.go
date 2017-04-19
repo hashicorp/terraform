@@ -2017,3 +2017,13 @@ func buildLambdaInvokeArn(lambdaArn, region string) string {
 	return fmt.Sprintf("arn:aws:apigateway:%s:lambda:path/%s/functions/%s/invocations",
 		region, apiVersion, lambdaArn)
 }
+
+func sliceContainsMap(l []interface{}, m map[string]interface{}) (int, bool) {
+	for i, t := range l {
+		if reflect.DeepEqual(m, t.(map[string]interface{})) {
+			return i, true
+		}
+	}
+
+	return -1, false
+}
