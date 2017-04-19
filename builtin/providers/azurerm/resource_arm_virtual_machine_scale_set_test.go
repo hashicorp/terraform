@@ -182,7 +182,7 @@ func TestAccAzureRMVirtualMachineScaleSet_osDiskTypeConflict(t *testing.T) {
 				Config:      config,
 				ExpectError: regexp.MustCompile("Conflict between `vhd_containers`"),
 				//Use below code instead once GH-13019 has been merged
-				//ExpectError: regexp.MustCompile("conflicts with storage_os_disk.0.vhd_containers"),
+				//ExpectError: regexp.MustCompile("conflicts with storage_profile_os_disk.0.vhd_containers"),
 			},
 		},
 	})
@@ -452,14 +452,14 @@ resource "azurerm_virtual_machine_scale_set" "test" {
       }
   }
 
-  storage_os_disk {
+  storage_profile_os_disk {
     name = "osDiskProfile"
     caching       = "ReadWrite"
     create_option = "FromImage"
     vhd_containers = ["${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}"]
   }
 
-  storage_image_reference {
+  storage_profile_image_reference {
     publisher = "Canonical"
     offer     = "UbuntuServer"
     sku       = "16.04-LTS"
@@ -550,14 +550,14 @@ resource "azurerm_virtual_machine_scale_set" "test" {
       load_balancer_backend_address_pool_ids = ["${azurerm_lb_backend_address_pool.test.id}"]
     }
   }
-  storage_os_disk {
+  storage_profile_os_disk {
     name           = "osDiskProfile"
     caching        = "ReadWrite"
     create_option  = "FromImage"
     os_type        = "linux"
     vhd_containers = ["${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}"]
   }
-  storage_image_reference {
+  storage_profile_image_reference {
     publisher = "Canonical"
     offer     = "UbuntuServer"
     sku       = "14.04.2-LTS"
@@ -649,14 +649,14 @@ resource "azurerm_virtual_machine_scale_set" "test" {
       load_balancer_backend_address_pool_ids = ["${azurerm_lb_backend_address_pool.test.id}"]
     }
   }
-  storage_os_disk {
+  storage_profile_os_disk {
     name           = "osDiskProfile"
     caching        = "ReadWrite"
     create_option  = "FromImage"
     os_type        = "linux"
     vhd_containers = ["${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}"]
   }
-  storage_image_reference {
+  storage_profile_image_reference {
     publisher = "Canonical"
     offer     = "UbuntuServer"
     sku       = "14.04.2-LTS"
@@ -716,14 +716,14 @@ resource "azurerm_virtual_machine_scale_set" "test" {
       }
   }
 
-  storage_os_disk {
+  storage_profile_os_disk {
 	name 		  = "os-disk"
     caching       = "ReadWrite"
     create_option = "FromImage"
     managed_disk_type = "Standard_LRS"
   }
 
-  storage_image_reference {
+  storage_profile_image_reference {
     publisher = "Canonical"
     offer     = "UbuntuServer"
     sku       = "16.04-LTS"
@@ -826,14 +826,14 @@ resource "azurerm_virtual_machine_scale_set" "test" {
       	}
   	}
 
-  	storage_os_disk {
+  	storage_profile_os_disk {
     	name 		   = "os-disk"
     	caching        = "ReadWrite"
     	create_option  = "FromImage"
     	vhd_containers = [ "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}" ]
   	}
 
-  	storage_image_reference {
+  	storage_profile_image_reference {
     	publisher = "Canonical"
     	offer     = "UbuntuServer"
     	sku       = "16.04-LTS"
@@ -904,14 +904,14 @@ resource "azurerm_virtual_machine_scale_set" "test" {
       	}
   	}
 
-  	storage_os_disk {
+  	storage_profile_os_disk {
     	name 		   = "os-disk"
     	caching        = "ReadWrite"
     	create_option  = "FromImage"
     	vhd_containers = [ "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}" ]
   	}
 
-  	storage_image_reference {
+  	storage_profile_image_reference {
     	publisher = "Canonical"
     	offer     = "UbuntuServer"
     	sku       = "16.04-LTS"
@@ -982,14 +982,14 @@ resource "azurerm_virtual_machine_scale_set" "test" {
       	}
   	}
 
-  	storage_os_disk {
+  	storage_profile_os_disk {
     	name 		   = "os-disk"
     	caching        = "ReadWrite"
     	create_option  = "FromImage"
     	vhd_containers = [ "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}" ]
   	}
 
-  	storage_image_reference {
+  	storage_profile_image_reference {
     	publisher = "Canonical"
     	offer     = "UbuntuServer"
     	sku       = "16.04-LTS"
@@ -1080,14 +1080,14 @@ resource "azurerm_virtual_machine_scale_set" "test" {
       	}
   	}
 
-  	storage_os_disk {
+  	storage_profile_os_disk {
     	name 		   = "os-disk"
     	caching        = "ReadWrite"
     	create_option  = "FromImage"
     	vhd_containers = [ "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}" ]
   	}
 
-  	storage_image_reference {
+  	storage_profile_image_reference {
     	publisher = "Canonical"
     	offer     = "UbuntuServer"
     	sku       = "16.04-LTS"
@@ -1183,7 +1183,7 @@ resource "azurerm_virtual_machine_scale_set" "test" {
       }
   }
 
-  storage_os_disk {
+  storage_profile_os_disk {
 	name 		  = "os-disk"
     caching       = "ReadWrite"
     create_option = "FromImage"
@@ -1191,7 +1191,7 @@ resource "azurerm_virtual_machine_scale_set" "test" {
     vhd_containers = ["should_cause_conflict"]
   }
 
-  storage_image_reference {
+  storage_profile_image_reference {
     publisher = "Canonical"
     offer     = "UbuntuServer"
     sku       = "16.04-LTS"

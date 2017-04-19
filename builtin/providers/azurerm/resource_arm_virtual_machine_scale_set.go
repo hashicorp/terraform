@@ -282,7 +282,7 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 				Set: resourceArmVirtualMachineScaleSetNetworkConfigurationHash,
 			},
 
-			"storage_os_disk": {
+			"storage_profile_os_disk": {
 				Type:     schema.TypeSet,
 				Required: true,
 				MaxItems: 1,
@@ -309,7 +309,7 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 							Type:          schema.TypeString,
 							Optional:      true,
 							Computed:      true,
-							ConflictsWith: []string{"storage_os_disk.vhd_containers"},
+							ConflictsWith: []string{"storage_profile_os_disk.vhd_containers"},
 							ValidateFunc: validation.StringInSlice([]string{
 								string(compute.PremiumLRS),
 								string(compute.StandardLRS),
@@ -319,6 +319,7 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 						"caching": {
 							Type:     schema.TypeString,
 							Optional: true,
+							Computed: true,
 						},
 
 						"os_type": {
@@ -335,7 +336,7 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 				Set: resourceArmVirtualMachineScaleSetStorageProfileOsDiskHash,
 			},
 
-			"storage_image_reference": {
+			"storage_profile_image_reference": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
@@ -442,7 +443,7 @@ func resourceArmVirtualMachineScaleSetCreate(d *schema.ResourceData, meta interf
 		return err
 	}
 	storageProfile.OsDisk = osDisk
-	if _, ok := d.GetOk("storage_image_reference"); ok {
+	if _, ok := d.GetOk("storage_profile_image_reference"); ok {
 		imageRef, err := expandAzureRmVirtualMachineScaleSetStorageProfileImageReference(d)
 		if err != nil {
 			return err
@@ -565,12 +566,12 @@ func resourceArmVirtualMachineScaleSetRead(d *schema.ResourceData, meta interfac
 	}
 
 	if properties.VirtualMachineProfile.StorageProfile.ImageReference != nil {
-		if err := d.Set("storage_image_reference", flattenAzureRmVirtualMachineScaleSetStorageProfileImageReference(properties.VirtualMachineProfile.StorageProfile.ImageReference)); err != nil {
+		if err := d.Set("storage_profile_image_reference", flattenAzureRmVirtualMachineScaleSetStorageProfileImageReference(properties.VirtualMachineProfile.StorageProfile.ImageReference)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Scale Set Storage Profile Image Reference error: %#v", err)
 		}
 	}
 
-	if err := d.Set("storage_os_disk", flattenAzureRmVirtualMachineScaleSetStorageProfileOSDisk(properties.VirtualMachineProfile.StorageProfile.OsDisk)); err != nil {
+	if err := d.Set("storage_profile_os_disk", flattenAzureRmVirtualMachineScaleSetStorageProfileOSDisk(properties.VirtualMachineProfile.StorageProfile.OsDisk)); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting Virtual Machine Scale Set Storage Profile OS Disk error: %#v", err)
 	}
 
@@ -1077,7 +1078,7 @@ func expandAzureRMVirtualMachineScaleSetsOsProfile(d *schema.ResourceData) (*com
 }
 
 func expandAzureRMVirtualMachineScaleSetsStorageProfileOsDisk(d *schema.ResourceData) (*compute.VirtualMachineScaleSetOSDisk, error) {
-	osDiskConfigs := d.Get("storage_os_disk").(*schema.Set).List()
+	osDiskConfigs := d.Get("storage_profile_os_disk").(*schema.Set).List()
 
 	osDiskConfig := osDiskConfigs[0].(map[string]interface{})
 	name := osDiskConfig["name"].(string)
@@ -1132,7 +1133,7 @@ func expandAzureRMVirtualMachineScaleSetsStorageProfileOsDisk(d *schema.Resource
 }
 
 func expandAzureRmVirtualMachineScaleSetStorageProfileImageReference(d *schema.ResourceData) (*compute.ImageReference, error) {
-	storageImageRefs := d.Get("storage_image_reference").(*schema.Set).List()
+	storageImageRefs := d.Get("storage_profile_image_reference").(*schema.Set).List()
 
 	storageImageRef := storageImageRefs[0].(map[string]interface{})
 

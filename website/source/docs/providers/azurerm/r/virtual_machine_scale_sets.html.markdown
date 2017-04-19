@@ -90,14 +90,14 @@ resource "azurerm_virtual_machine_scale_set" "test" {
     }
   }
 
-  storage_os_disk {
+  storage_profile_os_disk {
     name           = "osDiskProfile"
     caching        = "ReadWrite"
     create_option  = "FromImage"
     vhd_containers = ["${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}"]
   }
 
-  storage_image_reference {
+  storage_profile_image_reference {
     publisher = "Canonical"
     offer     = "UbuntuServer"
     sku       = "14.04.2-LTS"
@@ -181,14 +181,14 @@ resource "azurerm_virtual_machine_scale_set" "test" {
     capacity = "${var.terraform_vmss_count}"
   }
 
-  storage_image_reference {
+  storage_profile_image_reference {
     publisher = "Canonical"
     offer     = "UbuntuServer"
     sku       = "14.04.2-LTS"
     version   = "latest"
   }
 
-  storage_os_disk {
+  storage_profile_os_disk {
     caching           = "ReadWrite"
     create_option     = "FromImage"
     managed_disk_type = "Standard_LRS"
@@ -239,8 +239,8 @@ The following arguments are supported:
 * `os_profile_windows_config` - (Required, when a windows machine) A Windows config block as documented below.
 * `os_profile_linux_config` - (Required, when a linux machine) A Linux config block as documented below.
 * `network_profile` - (Required) A collection of network profile block as documented below.
-* `storage_os_disk` - (Required) A storage profile os disk block as documented below
-* `storage_image_reference` - (Optional) A storage profile image reference block as documented below.
+* `storage_profile_os_disk` - (Required) A storage profile os disk block as documented below
+* `storage_profile_image_reference` - (Optional) A storage profile image reference block as documented below.
 * `extension` - (Optional) Can be specified multiple times to add extension profiles to the scale set. Each `extension` block supports the fields documented below.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
@@ -309,7 +309,7 @@ The following arguments are supported:
 * `load_balancer_backend_address_pool_ids` - (Optional) Specifies an array of references to backend address pools of load balancers. A scale set can reference backend address pools of one public and one internal load balancer. Multiple scale sets cannot use the same load balancer.
 * `load_balancer_inbound_nat_rules_ids` - (Optional) Specifies an array of references to inbound NAT rules for load balancers.
 
-`storage_os_disk` supports the following:
+`storage_profile_os_disk` supports the following:
 
 * `name` - (Required) Specifies the disk name.
 * `vhd_containers` - (Optional) Specifies the vhd uri. Cannot be used when `image` or `managed_disk_type` is specified.
@@ -319,11 +319,11 @@ The following arguments are supported:
 * `image` - (Optional) Specifies the blob uri for user image. A virtual machine scale set creates an os disk in the same container as the user image.
                        Updating the osDisk image causes the existing disk to be deleted and a new one created with the new image. If the VM scale set is in Manual upgrade mode then the virtual machines are not updated until they have manualUpgrade applied to them.
                        Cannot be used when `vhd_containers` or `managed_disk_type` is specified.
-                       Cannot be used when `storage_image_reference` is specified.
+                       Cannot be used when `storage_profile_image_reference` is specified.
                        Have to specify `os_type` when defined.
 * `os_type` - (Optional) Specifies the operating system Type, valid values are windows, linux.
 
-`storage_image_reference` supports the following:
+`storage_profile_image_reference` supports the following:
 
 * `publisher` - (Required) Specifies the publisher of the image used to create the virtual machines
 * `offer` - (Required) Specifies the offer of the image used to create the virtual machines.

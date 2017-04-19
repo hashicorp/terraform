@@ -6,12 +6,13 @@ import (
 	"strings"
 	"testing"
 
+	"regexp"
+
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/azure-sdk-for-go/arm/disk"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"regexp"
 )
 
 func TestAccAzureRMVirtualMachine_basicLinuxMachine(t *testing.T) {
@@ -613,7 +614,7 @@ func TestAccAzureRMVirtualMachine_osDiskTypeConflict(t *testing.T) {
 				Config:      config,
 				ExpectError: regexp.MustCompile("Conflict between `vhd_uri`"),
 				//Use below code instead once GH-13019 has been merged
-				//ExpectError: regexp.MustCompile("conflicts with storage_os_disk.0.vhd_uri"),
+				//ExpectError: regexp.MustCompile("conflicts with storage_profile_os_disk.0.vhd_uri"),
 			},
 		},
 	})
@@ -939,7 +940,7 @@ resource "azurerm_virtual_machine" "test" {
 	version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "myosdisk1"
         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
         caching = "ReadWrite"
@@ -1010,7 +1011,7 @@ resource "azurerm_virtual_machine" "test" {
 	version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "osd-%d"
         caching = "ReadWrite"
         create_option = "FromImage"
@@ -1081,7 +1082,7 @@ resource "azurerm_virtual_machine" "test" {
 	version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "osd-%d"
         caching = "ReadWrite"
         create_option = "FromImage"
@@ -1160,7 +1161,7 @@ resource "azurerm_virtual_machine" "test" {
 	version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "osd-%d"
         caching = "ReadWrite"
         create_option = "FromImage"
@@ -1258,7 +1259,7 @@ resource "azurerm_virtual_machine" "test" {
 	version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "myosdisk1"
         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
         caching = "ReadWrite"
@@ -1351,7 +1352,7 @@ resource "azurerm_virtual_machine" "test" {
 	version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "myosdisk1"
         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
         caching = "ReadWrite"
@@ -1433,7 +1434,7 @@ resource "azurerm_virtual_machine" "test" {
 	version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "myosdisk1"
         caching = "ReadWrite"
         create_option = "FromImage"
@@ -1704,7 +1705,7 @@ resource "azurerm_virtual_machine" "test" {
 	version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "myosdisk1"
         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
         caching = "ReadWrite"
@@ -1783,7 +1784,7 @@ resource "azurerm_virtual_machine" "test" {
 	version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "osd-%d"
         caching = "ReadWrite"
         create_option = "FromImage"
@@ -1862,7 +1863,7 @@ resource "azurerm_virtual_machine" "test" {
 	version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "myosdisk1"
         caching = "ReadWrite"
         create_option = "FromImage"
@@ -1957,7 +1958,7 @@ resource "azurerm_virtual_machine" "test" {
 	version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "myosdisk1"
         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
         caching = "ReadWrite"
@@ -2044,7 +2045,7 @@ resource "azurerm_virtual_machine" "test" {
 	version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "myosdisk1"
         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
         caching = "ReadWrite"
@@ -2127,7 +2128,7 @@ resource "azurerm_virtual_machine" "test" {
 	version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "myosdisk1"
         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
         caching = "ReadWrite"
@@ -2211,7 +2212,7 @@ resource "azurerm_virtual_machine" "test" {
 	version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "myosdisk1"
         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
         caching = "ReadWrite"
@@ -2301,7 +2302,7 @@ resource "azurerm_virtual_machine" "test" {
 	version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "myosdisk1"
         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
         caching = "ReadWrite"
@@ -2392,7 +2393,7 @@ resource "azurerm_virtual_machine" "test" {
 	version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "myosdisk1"
         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
         caching = "ReadWrite"
@@ -2485,7 +2486,7 @@ var testAccAzureRMVirtualMachine_withAvailabilitySet = `
  	version = "latest"
      }
 
-     storage_os_disk {
+     storage_profile_os_disk {
          name = "myosdisk1"
          vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
          caching = "ReadWrite"
@@ -2576,7 +2577,7 @@ var testAccAzureRMVirtualMachine_updateAvailabilitySet = `
  	version = "latest"
      }
 
-     storage_os_disk {
+     storage_profile_os_disk {
          name = "myosdisk1"
          vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
          caching = "ReadWrite"
@@ -2660,7 +2661,7 @@ var testAccAzureRMVirtualMachine_updateMachineName = `
  	version = "latest"
      }
 
-     storage_os_disk {
+     storage_profile_os_disk {
          name = "myosdisk1"
          vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
          caching = "ReadWrite"
@@ -2744,7 +2745,7 @@ resource "azurerm_virtual_machine" "test" {
 	version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "myosdisk1"
         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
         caching = "ReadWrite"
@@ -2834,7 +2835,7 @@ resource "azurerm_virtual_machine" "test" {
 	version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "myosdisk1"
         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
         caching = "ReadWrite"
@@ -2923,7 +2924,7 @@ resource "azurerm_virtual_machine" "test" {
 	version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "myosdisk1"
         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdiskchanged2.vhd"
         caching = "ReadWrite"
@@ -3013,7 +3014,7 @@ resource "azurerm_virtual_machine" "test" {
 	version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "myosdisk1"
         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
         caching = "ReadWrite"
@@ -3097,7 +3098,7 @@ resource "azurerm_virtual_machine" "test" {
 	version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "myosdisk1"
         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
         caching = "ReadWrite"
@@ -3188,7 +3189,7 @@ resource "azurerm_virtual_machine" "test" {
         version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "myosdisk1"
         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
         caching = "ReadWrite"
@@ -3272,7 +3273,7 @@ resource "azurerm_virtual_machine" "test" {
         version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "myosdisk1"
         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
         caching = "ReadWrite"
@@ -3337,7 +3338,7 @@ resource "azurerm_virtual_machine" "test" {
 	version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "osd-%d"
         caching = "ReadWrite"
         create_option = "FromImage"
@@ -3418,7 +3419,7 @@ resource "azurerm_virtual_machine" "test" {
 	version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "osd-%d"
         caching = "ReadWrite"
         create_option = "FromImage"
@@ -3539,7 +3540,7 @@ resource "azurerm_virtual_machine" "test" {
 	version = "latest"
     }
 
-    storage_os_disk {
+    storage_profile_os_disk {
         name = "myosdisk1"
         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
         caching = "ReadWrite"
