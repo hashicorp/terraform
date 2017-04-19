@@ -12,9 +12,9 @@ terraform plan \
   -var 'admin_password='$KEY \
   -var 'admin_username='$KEY \
   -var 'resource_group='$KEY
-  -out ./out.tfplan
+  -out=out.tfplan
 
-terraform apply ./out.tfplan
+terraform apply out.tfplan
 
 
 # TODO: determine external validation, possibly Azure CLI
