@@ -446,9 +446,10 @@
 			"revisionTime": "2016-08-22T23:00:20Z"
 		},
 		{
-			"checksumSHA1": "kn+zdUr5TNsoAX8BgjOaWYtMT5U=",
+			"checksumSHA1": "FIL83loX9V9APvGQIjJpbxq53F0=",
 			"path": "github.com/apparentlymart/go-cidr/cidr",
-			"revision": "a3ebdb999b831ecb6ab8a226e31b07b2b9061c47"
+			"revision": "7e4b007599d4e2076d9a81be723b3912852dda2c",
+			"revisionTime": "2017-04-18T07:21:50Z"
 		},
 		{
 			"checksumSHA1": "yicZ9OtLcy3iCgraWO015yeoO5E=",
