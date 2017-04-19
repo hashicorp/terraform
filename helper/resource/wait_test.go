@@ -25,6 +25,20 @@ func TestRetry(t *testing.T) {
 	}
 }
 
+func TestRetry_grace(t *testing.T) {
+	t.Parallel()
+
+	f := func() *RetryError {
+		time.Sleep(2 * time.Second)
+		return nil
+	}
+
+	err := RetryWithGrace(1*time.Second, 2*time.Second, f)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestRetry_timeout(t *testing.T) {
 	t.Parallel()
 

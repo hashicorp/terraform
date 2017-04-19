@@ -19,6 +19,13 @@ func TimeoutStateRefreshFunc() StateRefreshFunc {
 	}
 }
 
+func SlowSuccessfulStateRefreshFunc(d time.Duration) StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		time.Sleep(d)
+		return struct{}{}, "running", nil
+	}
+}
+
 func SuccessfulStateRefreshFunc() StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		return struct{}{}, "running", nil
@@ -126,6 +133,24 @@ func TestWaitForState_inconsistent_negative(t *testing.T) {
 	expectedErr := "timeout while waiting for state to become 'done' (last state: 'done', timeout: 90ms)"
 	if err.Error() != expectedErr {
 		t.Fatalf("Errors don't match.\nExpected: %q\nGiven: %q\n", expectedErr, err.Error())
+	}
+}
+
+func TestWaitForState_GracePeriod(t *testing.T) {
+	conf := &StateChangeConf{
+		Pending:      []string{"pending", "incomplete"},
+		Target:       []string{"running"},
+		Refresh:      SlowSuccessfulStateRefreshFunc(2 * time.Second),
+		Timeout:      1 * time.Second,
+		TimeoutGrace: 2 * time.Second,
+	}
+
+	obj, err := conf.WaitForState()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if obj == nil {
+		t.Fatalf("should return obj")
 	}
 }
 

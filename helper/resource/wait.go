@@ -5,19 +5,24 @@ import (
 	"time"
 )
 
-// Retry is a basic wrapper around StateChangeConf that will just retry
-// a function until it no longer returns an error.
 func Retry(timeout time.Duration, f RetryFunc) error {
+	return RetryWithGrace(timeout, 0, f)
+}
+
+// RetryWithGrace is a basic wrapper around StateChangeConf that will just retry
+// a function until it no longer returns an error.
+func RetryWithGrace(timeout, grace time.Duration, f RetryFunc) error {
 	// These are used to pull the error out of the function; need a mutex to
 	// avoid a data race.
 	var resultErr error
 	var resultErrMu sync.Mutex
 
 	c := &StateChangeConf{
-		Pending:    []string{"retryableerror"},
-		Target:     []string{"success"},
-		Timeout:    timeout,
-		MinTimeout: 500 * time.Millisecond,
+		Pending:      []string{"retryableerror"},
+		Target:       []string{"success"},
+		Timeout:      timeout,
+		TimeoutGrace: grace,
+		MinTimeout:   500 * time.Millisecond,
 		Refresh: func() (interface{}, string, error) {
 			rerr := f()
 
