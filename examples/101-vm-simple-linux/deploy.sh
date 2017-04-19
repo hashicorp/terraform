@@ -2,8 +2,6 @@
 
 set -o errexit -o nounset
 
-cd terraform
-
 terraform get
 terraform plan
 terraform apply
