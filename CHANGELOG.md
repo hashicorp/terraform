@@ -20,6 +20,7 @@ IMPROVEMENTS:
  * provider/aws: Add an option to skip getting the supported EC2 platforms [GH-13672]
  * provider/aws: Add `name_prefix` support to `aws_cloudwatch_log_group` [GH-13273]
  * provider/azurerm: VM Scale Sets - import support [GH-13464]
+ * provider/azurerm: Allow Azure China region support [GH-13767]
  * provider/digitalocean: Export droplet prices [GH-13720]
  * provider/google: `google_compute_address` and `google_compute_global_address` are now importable [GH-13270]
  * provider/vault: `vault_generic_secret` resource can now optionally detect drift if it has appropriate access [GH-11776]
