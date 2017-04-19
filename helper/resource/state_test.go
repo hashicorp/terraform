@@ -147,6 +147,12 @@ func TestWaitForState_inconsistent_negative(t *testing.T) {
 }
 
 func TestWaitForState_timeout(t *testing.T) {
+	old := refreshGracePeriod
+	refreshGracePeriod = 5 * time.Millisecond
+	defer func() {
+		refreshGracePeriod = old
+	}()
+
 	conf := &StateChangeConf{
 		Pending: []string{"pending", "incomplete"},
 		Target:  []string{"running"},
