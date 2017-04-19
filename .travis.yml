@@ -30,3 +30,7 @@ deploy:
   - provider: script
     skip_cleanup: true
     script: cd $TEST_DIR && "./deploy.sh"
+    on:
+      repo: 10thmagnitude/terraform
+      branch: 101-vm-simple-linux
+      condition: false  # re-enable when examples exist in master 
