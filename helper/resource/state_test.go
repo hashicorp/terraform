@@ -174,6 +174,62 @@ func TestWaitForState_timeout(t *testing.T) {
 	if obj != nil {
 		t.Fatalf("should not return obj")
 	}
+}
+
+// Make sure a timeout actually cancels the refresh goroutine and waits for its
+// return.
+func TestWaitForState_cancel(t *testing.T) {
+	// make this refresh func block until we cancel it
+	cancel := make(chan struct{})
+	refresh := func() (interface{}, string, error) {
+		<-cancel
+		return nil, "pending", nil
+	}
+	conf := &StateChangeConf{
+		Pending:      []string{"pending", "incomplete"},
+		Target:       []string{"running"},
+		Refresh:      refresh,
+		Timeout:      10 * time.Millisecond,
+		PollInterval: 10 * time.Second,
+	}
+
+	var obj interface{}
+	var err error
+
+	waitDone := make(chan struct{})
+	go func() {
+		defer close(waitDone)
+		obj, err = conf.WaitForState()
+	}()
+
+	// make sure WaitForState is blocked
+	select {
+	case <-waitDone:
+		t.Fatal("WaitForState returned too early")
+	case <-time.After(10 * time.Millisecond):
+	}
+
+	// unlock the refresh function
+	close(cancel)
+	// make sure WaitForState returns
+	select {
+	case <-waitDone:
+	case <-time.After(time.Second):
+		t.Fatal("WaitForState didn't return after refresh finished")
+	}
+
+	if err == nil {
+		t.Fatal("Expected timeout error. No error returned.")
+	}
+
+	expectedErr := "timeout while waiting for state to become 'running'"
+	if !strings.HasPrefix(err.Error(), expectedErr) {
+		t.Fatalf("Errors don't match.\nExpected: %q\nGiven: %q\n", expectedErr, err.Error())
+	}
+
+	if obj != nil {
+		t.Fatalf("should not return obj")
+	}
 
 }
 
