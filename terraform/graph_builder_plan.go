@@ -120,6 +120,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&CloseProviderTransformer{},
 		&CloseProvisionerTransformer{},
 
+		// Add the node to fix the state count boundaries
+		&CountBoundaryTransformer{},
+
 		// Single root
 		&RootTransformer{},
 	}
