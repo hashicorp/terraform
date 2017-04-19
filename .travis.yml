@@ -10,6 +10,11 @@ env:
 #     # encrypted GH_TOKEN and AWS credentials
 #     - secure: "EBtNoRGUNjgom7lk6+O7Zh9A33X/251Cg7j5C+HqfkPMQcQwS6MEAXPT1vbnh1HoQixR1e6VTHdXxvWyE/14+98qtJiHnSbGiY67ZvQNDuFLb2+PKx7xhhl9heNj8Xk1K1SYJtfYQZIvZNl32V9db6eR3r7kKlWlpUVmnSnXrnm4ztI8se45OX/XPjAnARdBvkpbcTSprrAf7Qudc5R86ain18tJah6PICd12TIH4Cpdcr6CVL8kRK808VH+AS2oii7QcKXc084gBOJJLCiwa2DrcSEPOOk0AIn5ft+XVcaCsV6oOc6NliFKEPoJkaxbYWtunDlnqgB6epuaGrf99TfCg4E9R8sXBFqJwdMGDu3xM6Nddw87tMj/oCbUmjrNnl4qAxIMBD2TdjwFS1lNaXAML8W/jx3bNGSEg5MAYrqLL32eJta/vxRJwpCVnXUHxef9JcZMNZcvuKMdHC98JQIYbGRRFZ0cFtqMe63tgWafCi3WS+FIqSWnGdiKZ7dS110ANHaiQkDAZKTlh/9YJpzR9LyOoq7xXYtQIUovyDD2j498mAkcgByEbyZ39k6xMvLHHXsdUq25tdaMvqE3ZUASIDWqDk1QPfxkXX6n62Tj2X1HCA+3JI/DKyEfzt3QV4rntiP4Qv9jSuxNpd47rgsgVFg+HGJmko9QzAA/g+E="
 
+branches:
+  only:
+  - master
+  - /^(?i:topic)-.*$/
+
 # install terraform
 before_deploy:
   - curl -fSL "https://releases.hashicorp.com/terraform/0.9.3/terraform_0.9.3_linux_amd64.zip" -o terraform.zip
