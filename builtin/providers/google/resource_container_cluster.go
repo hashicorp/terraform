@@ -297,13 +297,11 @@ func resourceContainerCluster() *schema.Resource {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
-				ForceNew: true, // TODO(danawillow): Add ability to add/remove nodePools
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"initial_node_count": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
-							ForceNew: true,
 						},
 
 						"name": &schema.Schema{
@@ -311,13 +309,11 @@ func resourceContainerCluster() *schema.Resource {
 							Optional:      true,
 							Computed:      true,
 							ConflictsWith: []string{"node_pool.name_prefix"},
-							ForceNew:      true,
 						},
 
 						"name_prefix": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: true,
 						},
 					},
 				},
@@ -329,6 +325,24 @@ func resourceContainerCluster() *schema.Resource {
 				ForceNew: true,
 			},
 		},
+	}
+}
+
+func buildNodePool(np map[string]interface{}) *container.NodePool {
+	var name string
+	if n, k := np["name"]; k {
+		name = n.(string)
+	} else if n, k := np["name_prefix"]; k {
+		name = resource.PrefixedUniqueId(n.(string))
+	} else {
+		name = resource.UniqueId()
+	}
+
+	nodeCount := np["initial_node_count"].(int)
+
+	return &container.NodePool{
+		Name:             name,
+		InitialNodeCount: int64(nodeCount),
 	}
 }
 
@@ -475,24 +489,8 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 		nodePools := make([]*container.NodePool, 0, nodePoolsCount)
 		for i := 0; i < nodePoolsCount; i++ {
 			prefix := fmt.Sprintf("node_pool.%d", i)
-
-			nodeCount := d.Get(prefix + ".initial_node_count").(int)
-
-			var name string
-			if v, ok := d.GetOk(prefix + ".name"); ok {
-				name = v.(string)
-			} else if v, ok := d.GetOk(prefix + ".name_prefix"); ok {
-				name = resource.PrefixedUniqueId(v.(string))
-			} else {
-				name = resource.UniqueId()
-			}
-
-			nodePool := &container.NodePool{
-				Name:             name,
-				InitialNodeCount: int64(nodeCount),
-			}
-
-			nodePools = append(nodePools, nodePool)
+			np := d.Get(prefix).(map[string]interface{})
+			nodePools = append(nodePools, buildNodePool(np))
 		}
 		cluster.NodePools = nodePools
 	}
@@ -545,6 +543,7 @@ func resourceContainerClusterRead(d *schema.ResourceData, meta interface{}) erro
 
 		return err
 	}
+	log.Printf("[INFO] Read cluster: %+v", cluster)
 
 	d.Set("name", cluster.Name)
 	d.Set("zone", cluster.Zone)
@@ -602,27 +601,127 @@ func resourceContainerClusterUpdate(d *schema.ResourceData, meta interface{}) er
 
 	zoneName := d.Get("zone").(string)
 	clusterName := d.Get("name").(string)
-	desiredNodeVersion := d.Get("node_version").(string)
 
-	req := &container.UpdateClusterRequest{
-		Update: &container.ClusterUpdate{
-			DesiredNodeVersion: desiredNodeVersion,
-		},
-	}
-	op, err := config.clientContainer.Projects.Zones.Clusters.Update(
-		project, zoneName, clusterName, req).Do()
-	if err != nil {
-		return err
+	d.Partial(true)
+
+	if d.HasChange("node_pool") {
+		from, to := d.GetChange("node_pool")
+
+		// node pool configs keyed by name
+		fromMap := make(map[string]map[string]interface{})
+		toMap := make(map[string]map[string]interface{})
+
+		// node pools to add and remove
+		addNp := make([]*container.NodePool, 0, 0)
+		rmNp := make([]string, 0, 0)
+
+		for _, v := range from.([]interface{}) {
+			np := v.(map[string]interface{})
+			nameKey := np["name"].(string)
+			fromMap[nameKey] = np
+		}
+
+		for _, v := range to.([]interface{}) {
+			np := v.(map[string]interface{})
+			nameKey := np["name"].(string)
+			toMap[nameKey] = np
+
+			f, ok := fromMap[nameKey]
+			if !ok {
+				// The node pool is in 'to' but not 'from', so it is being added.
+				addNp = append(addNp, buildNodePool(np))
+			} else if np["initial_node_count"] != f["initial_node_count"] {
+				return fmt.Errorf("Cannot change property initial_node_count on node_pool %s", nameKey)
+			}
+		}
+
+		for name, _ := range fromMap {
+			_, ok := toMap[name]
+			if !ok {
+				// The node pool is in 'from' but not 'to', so it is being removed.
+				rmNp = append(rmNp, name)
+			}
+		}
+
+		for _, np := range addNp {
+			req := &container.CreateNodePoolRequest{
+				NodePool: np,
+			}
+			op, err := config.clientContainer.Projects.Zones.Clusters.NodePools.Create(project, zoneName, clusterName, req).Do()
+			if err != nil {
+				return err
+			}
+			// Wait until it's updated
+			waitErr := containerOperationWait(config, op, project, zoneName, "adding GKE node pool", 10, 2)
+			if waitErr != nil {
+				return waitErr
+			}
+
+			log.Printf("[INFO] GKE cluster %s has added a node pool %s", d.Id(), np.Name)
+		}
+
+		for _, npName := range rmNp {
+			op, err := config.clientContainer.Projects.Zones.Clusters.NodePools.Delete(project, zoneName, clusterName, npName).Do()
+			if err != nil {
+				return err
+			}
+			// Wait until it's updated
+			waitErr := containerOperationWait(config, op, project, zoneName, "deleting GKE node pool", 10, 2)
+			if waitErr != nil {
+				return waitErr
+			}
+
+			log.Printf("[INFO] GKE cluster %s has deleted a node pool %s", d.Id(), npName)
+		}
+		d.SetPartial("node_pool")
 	}
 
-	// Wait until it's updated
-	waitErr := containerOperationWait(config, op, project, zoneName, "updating GKE cluster", 10, 2)
-	if waitErr != nil {
-		return waitErr
-	}
+	if d.HasChange("node_version") {
+		desiredNodeVersion := d.Get("node_version").(string)
 
-	log.Printf("[INFO] GKE cluster %s has been updated to %s", d.Id(),
-		desiredNodeVersion)
+		nodePoolsCount := d.Get("node_pool.#").(int)
+		reqs := make([]*container.UpdateClusterRequest, 0, 0)
+		if nodePoolsCount == 0 {
+			req := &container.UpdateClusterRequest{
+				Update: &container.ClusterUpdate{
+					DesiredNodeVersion: desiredNodeVersion,
+				},
+			}
+			reqs = append(reqs, req)
+		}
+		for i := 0; i < nodePoolsCount; i++ {
+			prefix := fmt.Sprintf("node_pool.%d", i)
+			req := &container.UpdateClusterRequest{
+				Update: &container.ClusterUpdate{
+					DesiredNodeVersion: desiredNodeVersion,
+					DesiredNodePoolId:  d.Get(prefix + ".name").(string),
+				},
+			}
+			reqs = append(reqs, req)
+		}
+		for _, req := range reqs {
+			op, err := config.clientContainer.Projects.Zones.Clusters.Update(
+				project, zoneName, clusterName, req).Do()
+			if err != nil {
+				return err
+			}
+
+			// Wait until it's updated
+			waitErr := containerOperationWait(config, op, project, zoneName, "updating GKE cluster", 10, 2)
+			if waitErr != nil {
+				return waitErr
+			}
+
+			np := req.Update.DesiredNodePoolId
+			if np == "" {
+				np = "default"
+			}
+			log.Printf("[INFO] GKE cluster %s has been updated to %s for node pool %s", d.Id(),
+				desiredNodeVersion, np)
+		}
+		d.SetPartial("node_version")
+	}
+	d.Partial(false)
 
 	return resourceContainerClusterRead(d, meta)
 }
