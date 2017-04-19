@@ -128,9 +128,18 @@ func resourceAwsInstance() *schema.Resource {
 				Computed: true,
 			},
 
+			// TODO: Deprecate me
 			"network_interface_id": {
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+
+			"primary_network_interface": {
+				ConflictsWith: []string{"associate_public_ip_address", "subnet_id", "private_ip", "vpc_security_group_ids", "security_groups", "ipv6_addresses", "ipv6_address_count"},
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				Computed:      true,
 			},
 
 			"public_ip": {
@@ -533,7 +542,8 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		for _, ni := range instance.NetworkInterfaces {
 			if *ni.Attachment.DeviceIndex == 0 {
 				d.Set("subnet_id", ni.SubnetId)
-				d.Set("network_interface_id", ni.NetworkInterfaceId)
+				d.Set("network_interface_id", ni.NetworkInterfaceId) // TODO: Deprecate me
+				d.Set("primary_network_interface", ni.NetworkInterfaceId)
 				d.Set("associate_public_ip_address", ni.Association != nil)
 				d.Set("ipv6_address_count", len(ni.Ipv6Addresses))
 
@@ -544,7 +554,8 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	} else {
 		d.Set("subnet_id", instance.SubnetId)
-		d.Set("network_interface_id", "")
+		d.Set("network_interface_id", "") // TODO: Deprecate me
+		d.Set("primary_network_interface", "")
 	}
 
 	if err := d.Set("ipv6_addresses", ipv6Addresses); err != nil {
@@ -1260,6 +1271,9 @@ func buildAwsInstanceOpts(
 		}
 	}
 
+	// Check if using non-defaullt primary network interface
+	interface_id, interfaceOk := d.GetOk("primary_network_interface")
+
 	if hasSubnet && associatePublicIPAddress {
 		// If we have a non-default VPC / Subnet specified, we can flag
 		// AssociatePublicIpAddress to get a Public IP assigned. By default these are not provided.
@@ -1283,6 +1297,13 @@ func buildAwsInstanceOpts(
 			for _, v := range v.List() {
 				ni.Groups = append(ni.Groups, aws.String(v.(string)))
 			}
+		}
+
+		opts.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{ni}
+	} else if interfaceOk {
+		ni := &ec2.InstanceNetworkInterfaceSpecification{
+			DeviceIndex:        aws.Int64(int64(0)),
+			NetworkInterfaceId: aws.String(interface_id.(string)),
 		}
 
 		opts.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{ni}

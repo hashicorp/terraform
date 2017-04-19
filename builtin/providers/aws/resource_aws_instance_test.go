@@ -877,6 +877,27 @@ func TestAccAWSInstance_changeInstanceType(t *testing.T) {
 	})
 }
 
+func TestAccAWSInstance_primaryNetworkInterface(t *testing.T) {
+	var instance ec2.Instance
+	var ini ec2.NetworkInterface
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceConfigPrimaryNetworkInterface,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &instance),
+					testAccCheckAWSENIExists("aws_network_interface.bar", &ini),
+					resource.TestCheckResourceAttrSet("aws_instance.foo", "primary_network_interface"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckInstanceNotRecreated(t *testing.T,
 	before, after *ec2.Instance) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -1534,5 +1555,37 @@ resource "aws_instance" "foo" {
 	ami = "ami-22b9a343"
 	instance_type = "t2.micro"
 	subnet_id = "${aws_subnet.foo.id}"
+}
+`
+
+const testAccInstanceConfigPrimaryNetworkInterface = `
+resource "aws_vpc" "foo" {
+  cidr_block = "172.16.0.0/16"
+  tags {
+    Name = "tf-instance-test"
+  }
+}
+
+resource "aws_subnet" "foo" {
+  vpc_id = "${aws_vpc.foo.id}"
+  cidr_block = "172.16.10.0/24"
+  availability_zone = "us-west-2a"
+  tags {
+    Name = "tf-instance-test"
+  }
+}
+
+resource "aws_network_interface" "bar" {
+  subnet_id = "${aws_subnet.foo.id}"
+  private_ips = ["172.16.10.100"]
+  tags {
+    Name = "primary_network_interface"
+  }
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-22b9a343"
+	instance_type = "t2.micro"
+	primary_network_interface = "${aws_network_interface.bar.id}"
 }
 `
