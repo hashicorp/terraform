@@ -138,6 +138,29 @@ func TestAccAWSWafIPSet_changeDescriptors(t *testing.T) {
 	})
 }
 
+func TestAccAWSWafIPSet_noDescriptors(t *testing.T) {
+	var ipset waf.IPSet
+	ipsetName := fmt.Sprintf("ip-set-%s", acctest.RandString(5))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSWafIPSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSWafIPSetConfig_noDescriptors(ipsetName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSWafIPSetExists("aws_waf_ipset.ipset", &ipset),
+					resource.TestCheckResourceAttr(
+						"aws_waf_ipset.ipset", "name", ipsetName),
+					resource.TestCheckResourceAttr(
+						"aws_waf_ipset.ipset", "ip_set_descriptors.#", "0"),
+				),
+			},
+		},
+	})
+}
+
 func TestDiffWafIpSetDescriptors(t *testing.T) {
 	testCases := []struct {
 		Old             []interface{}
@@ -367,5 +390,11 @@ func testAccAWSWafIPSetConfigChangeIPSetDescriptors(name string) string {
     type = "IPV4"
     value = "192.0.8.0/24"
   }
+}`, name)
+}
+
+func testAccAWSWafIPSetConfig_noDescriptors(name string) string {
+	return fmt.Sprintf(`resource "aws_waf_ipset" "ipset" {
+  name = "%s"
 }`, name)
 }
