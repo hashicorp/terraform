@@ -2,23 +2,11 @@
 
 set -o errexit -o nounset
 
-# generate a unique string for CI deployment
-KEY=$(cat /dev/urandom | tr -cd 'a-f0-9' | head -c 16)
+HOSTNAME=$(cat /dev/urandom | tr -cd 'a-f0-9' | head -c 16)
 
 terraform get
-
-terraform plan \
-  -var 'dns_name='$KEY \
-  -var 'admin_password='$KEY \
-  -var 'admin_username='$KEY \
-  -var 'resource_group='$KEY
-
-terraform apply
-  -var 'dns_name='$KEY \
-  -var 'admin_password='$KEY \
-  -var 'admin_username='$KEY \
-  -var 'resource_group='$KEY
-
+terraform plan -var 'dns_name='$HOSTNAME
+terraform apply -var 'dns_name='$HOSTNAME
 
 # TODO: determine external validation, possibly Azure CLI
 
