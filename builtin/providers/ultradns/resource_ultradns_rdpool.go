@@ -28,12 +28,6 @@ func resourceUltradnsRdpool() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"order": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				// 0-255 char
-				// FIXED | RANDOM | ROUND_ROBIN
-			},
 			"rdata": &schema.Schema{
 				Type:     schema.TypeSet,
 				Set:      schema.HashString,
@@ -41,10 +35,32 @@ func resourceUltradnsRdpool() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			// Optional
+			"order": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "ROUND_ROBIN",
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					if value != "ROUND_ROBIN" && value != "FIXED" && value != "RANDOM" {
+						errors = append(errors, fmt.Errorf(
+							"Only 'ROUND_ROBIN', 'FIXED', and 'RANDOM' are supported values for 'order'"))
+					}
+					return
+				},
+			},
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				// 0-255 char
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					if v != nil {
+						value := v.(string)
+						if len(value) > 255 {
+							errors = append(errors, fmt.Errorf(
+								"'description' length must be 0-255"))
+						}
+					}
+					return
+				},
 			},
 			"ttl": &schema.Schema{
 				Type:     schema.TypeInt,
@@ -111,8 +127,7 @@ func resourceUltradnsRdpoolRead(d *schema.ResourceData, meta interface{}) error 
 	r := rrsets[0]
 
 	zone := d.Get("zone")
-	// ttl
-	d.Set("ttl", r.TTL)
+
 	// hostname
 	if r.OwnerName == "" {
 		d.Set("hostname", zone)
@@ -134,11 +149,11 @@ func resourceUltradnsRdpoolRead(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	// Set simple values
+	d.Set("ttl", r.TTL)
 	d.Set("description", p.Description)
 	d.Set("order", p.Order)
 
 	err = d.Set("rdata", makeSetFromStrings(r.RData))
-	//err = d.Set("rdata", makeSetFromRdataAlone(r.RData))
 	if err != nil {
 		return fmt.Errorf("rdata set failed: %#v", err)
 	}
@@ -186,13 +201,12 @@ func resourceUltradnsRdpoolDelete(d *schema.ResourceData, meta interface{}) erro
 func newRRSetResourceFromRdpool(d *schema.ResourceData) (rRSetResource, error) {
 	//rDataRaw := d.Get("rdata").(*schema.Set).List()
 	r := rRSetResource{
-		// "The only valid rrtype value for SiteBacker or Traffic Controller pools is A"
+		// "The only valid rrtype value for RDpools is A"
 		// per https://portal.ultradns.com/static/docs/REST-API_User_Guide.pdf
 		RRType:    "A",
 		Zone:      d.Get("zone").(string),
 		OwnerName: d.Get("name").(string),
 		TTL:       d.Get("ttl").(int),
-		//RData:     unzipRdataHosts(rDataRaw),
 	}
 	if attr, ok := d.GetOk("rdata"); ok {
 		rdata := attr.(*schema.Set).List()
@@ -212,28 +226,4 @@ func newRRSetResourceFromRdpool(d *schema.ResourceData) (rRSetResource, error) {
 	r.Profile = rp
 
 	return r, nil
-}
-
-// zip RData into []map[string]interface{}
-func zipRDataAlone(rds []string) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0, len(rds))
-	for _, rd := range rds {
-		r := map[string]interface{}{
-			//	"host": rds[i],
-			"host": rd,
-		}
-		result = append(result, r)
-	}
-	return result
-}
-
-// makeSetFromRdatas encodes an array of Rdata into a
-// *schema.Set in the appropriate structure for the schema
-func makeSetFromRdataAlone(rds []string) *schema.Set {
-	s := &schema.Set{F: hashRdatas}
-	rs := zipRDataAlone(rds)
-	for _, r := range rs {
-		s.Add(r)
-	}
-	return s
 }
