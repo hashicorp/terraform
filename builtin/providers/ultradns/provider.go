@@ -38,6 +38,7 @@ func Provider() terraform.ResourceProvider {
 			"ultradns_probe_ping": resourceUltradnsProbePing(),
 			"ultradns_record":     resourceUltradnsRecord(),
 			"ultradns_tcpool":     resourceUltradnsTcpool(),
+			"ultradns_rdpool":     resourceUltradnsRdpool(),
 		},
 
 		ConfigureFunc: providerConfigure,
