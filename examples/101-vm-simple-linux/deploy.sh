@@ -2,9 +2,11 @@
 
 set -o errexit -o nounset
 
+HOSTNAME=$(cat /dev/urandom | tr -cd 'a-f0-9' | head -c 16)
+
 terraform get
 terraform plan
-terraform apply
+terraform apply HOSTNAME
 
 # echo "Setting git user name"
 # git config user.name $GH_USER_NAME
