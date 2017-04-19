@@ -3,6 +3,7 @@ package azurerm
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -13,7 +14,10 @@ import (
 func TestAccAzureRMSubnet_basic(t *testing.T) {
 
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMSubnet_basic, ri, ri, ri)
+	config := fmt.Sprintf(testAccAzureRMSubnet_basic, ri, ri, ri, ri, ri)
+	subscriptionID := os.Getenv("ARM_SUBSCRIPTION_ID")
+	nsg_id := fmt.Sprintf("/subscriptions/%s/resourceGroups/acctestRG-%d/providers/Microsoft.Network/networkSecurityGroups/acctestNSG%d", subscriptionID, ri, ri)
+	rt_id := fmt.Sprintf("/subscriptions/%s/resourceGroups/acctestRG-%d/providers/Microsoft.Network/routeTables/acctestRT%d", subscriptionID, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -24,6 +28,50 @@ func TestAccAzureRMSubnet_basic(t *testing.T) {
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMSubnetExists("azurerm_subnet.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_subnet.test", "network_security_group_id", nsg_id),
+					resource.TestCheckResourceAttr(
+						"azurerm_subnet.test", "route_table_id", rt_id),
+					resource.TestCheckResourceAttr(
+						"azurerm_subnet.test", "address_prefix", "10.0.2.0/24"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMSubnet_update(t *testing.T) {
+
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAzureRMSubnet_basic, ri, ri, ri, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMSubnet_update, ri, ri, ri, ri, ri)
+	subscriptionID := os.Getenv("ARM_SUBSCRIPTION_ID")
+	nsg_id := fmt.Sprintf("/subscriptions/%s/resourceGroups/acctestRG-%d/providers/Microsoft.Network/networkSecurityGroups/acctestNSG%d", subscriptionID, ri, ri)
+	rt_id := fmt.Sprintf("/subscriptions/%s/resourceGroups/acctestRG-%d/providers/Microsoft.Network/routeTables/acctestRT%d", subscriptionID, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMSubnetDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMSubnetExists("azurerm_subnet.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_subnet.test", "network_security_group_id", nsg_id),
+					resource.TestCheckResourceAttr(
+						"azurerm_subnet.test", "route_table_id", rt_id),
+				),
+			},
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMSubnetExists("azurerm_subnet.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_subnet.test", "network_security_group_id", ""),
+					resource.TestCheckResourceAttr(
+						"azurerm_subnet.test", "route_table_id", ""),
 				),
 			},
 		},
@@ -147,10 +195,59 @@ resource "azurerm_virtual_network" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
+resource "azurerm_network_security_group" "test" {
+    name = "acctestNSG%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_route_table" "test" {
+    name = "acctestRT%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
 resource "azurerm_subnet" "test" {
     name = "acctestsubnet%d"
     resource_group_name = "${azurerm_resource_group.test.name}"
     virtual_network_name = "${azurerm_virtual_network.test.name}"
     address_prefix = "10.0.2.0/24"
+    network_security_group_id  = "${azurerm_network_security_group.test.id}"
+    route_table_id = "${azurerm_route_table.test.id}"
+}
+`
+
+var testAccAzureRMSubnet_update = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "West US"
+}
+
+resource "azurerm_virtual_network" "test" {
+    name = "acctestvirtnet%d"
+    address_space = ["10.0.0.0/16"]
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_network_security_group" "test" {
+    name = "acctestNSG%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_route_table" "test" {
+    name = "acctestRT%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_subnet" "test" {
+    name = "acctestsubnet%d"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    virtual_network_name = "${azurerm_virtual_network.test.name}"
+    address_prefix = "10.0.2.0/24"
+    network_security_group_id  = ""
+    route_table_id = ""
 }
 `
