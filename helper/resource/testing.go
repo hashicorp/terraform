@@ -367,7 +367,10 @@ func testProviderFactories(c TestCase) (map[string]terraform.ResourceProviderFac
 	for k, pf := range ctxProviders {
 		// we can ignore any errors here, if we don't have a provider to reset
 		// the error will be handled later
-		p, _ := pf()
+		p, err := pf()
+		if err != nil {
+			return nil, err
+		}
 		if p, ok := p.(TestProvider); ok {
 			err := p.TestReset()
 			if err != nil {
