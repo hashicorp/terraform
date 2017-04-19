@@ -157,8 +157,10 @@ The supported built-in functions are:
   * `chomp(string)` - Removes trailing newlines from the given string.
 
   * `cidrhost(iprange, hostnum)` - Takes an IP address range in CIDR notation
-    and creates an IP address with the given host number. For example,
-    `cidrhost("10.0.0.0/8", 2)` returns `10.0.0.2`.
+    and creates an IP address with the given host number. If given host
+    number is negative, the count starts from the end of the range.
+    For example, `cidrhost("10.0.0.0/8", 2)` returns `10.0.0.2` and
+    `cidrhost("10.0.0.0/8", -2)` returns `10.255.255.254`.
 
   * `cidrnetmask(iprange)` - Takes an IP address range in CIDR notation
     and returns the address-formatted subnet mask format that some
