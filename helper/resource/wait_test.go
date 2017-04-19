@@ -54,14 +54,18 @@ func TestRetry_timeout(t *testing.T) {
 }
 
 func TestRetry_hang(t *testing.T) {
-	t.Parallel()
+	old := refreshGracePeriod
+	refreshGracePeriod = 50 * time.Millisecond
+	defer func() {
+		refreshGracePeriod = old
+	}()
 
 	f := func() *RetryError {
 		time.Sleep(2 * time.Second)
 		return nil
 	}
 
-	err := Retry(1*time.Second, f)
+	err := Retry(50*time.Millisecond, f)
 	if err == nil {
 		t.Fatal("should error")
 	}
