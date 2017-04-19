@@ -100,13 +100,16 @@ func resourceAwsWafIPSetRead(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsWafIPSetUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).wafconn
 
-	o, n := d.GetChange("ip_set_descriptors")
-	oldD, newD := o.(*schema.Set).List(), n.(*schema.Set).List()
+	if d.HasChange("ip_set_descriptors") {
+		o, n := d.GetChange("ip_set_descriptors")
+		oldD, newD := o.(*schema.Set).List(), n.(*schema.Set).List()
 
-	err := updateWafIpSetDescriptors(d.Id(), oldD, newD, conn)
-	if err != nil {
-		return fmt.Errorf("Error Updating WAF IPSet: %s", err)
+		err := updateWafIpSetDescriptors(d.Id(), oldD, newD, conn)
+		if err != nil {
+			return fmt.Errorf("Error Updating WAF IPSet: %s", err)
+		}
 	}
+
 	return resourceAwsWafIPSetRead(d, meta)
 }
 
@@ -114,15 +117,17 @@ func resourceAwsWafIPSetDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).wafconn
 
 	oldDescriptors := d.Get("ip_set_descriptors").(*schema.Set).List()
-	noDescriptors := []interface{}{}
 
-	err := updateWafIpSetDescriptors(d.Id(), oldDescriptors, noDescriptors, conn)
-	if err != nil {
-		return fmt.Errorf("Error updating IPSetDescriptors: %s", err)
+	if len(oldDescriptors) > 0 {
+		noDescriptors := []interface{}{}
+		err := updateWafIpSetDescriptors(d.Id(), oldDescriptors, noDescriptors, conn)
+		if err != nil {
+			return fmt.Errorf("Error updating IPSetDescriptors: %s", err)
+		}
 	}
 
 	wr := newWafRetryer(conn, "global")
-	_, err = wr.RetryWithToken(func(token *string) (interface{}, error) {
+	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		req := &waf.DeleteIPSetInput{
 			ChangeToken: token,
 			IPSetId:     aws.String(d.Id()),
