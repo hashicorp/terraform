@@ -15,6 +15,9 @@ branches:
   - master
   - /^(?i:topic)-.*$/
 
+
+##todo: switch to before_script and script
+
 # install terraform
 before_deploy:
   - curl -fSL "https://releases.hashicorp.com/terraform/0.9.3/terraform_0.9.3_linux_amd64.zip" -o terraform.zip
@@ -27,6 +30,3 @@ deploy:
   - provider: script
     skip_cleanup: true
     script: cd $TEST_DIR && "./deploy.sh"
-    on:
-      repo: 10thmagnitude/terraform
-      branch: 101-vm-simple-linux
