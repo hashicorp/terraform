@@ -63,8 +63,6 @@ The following arguments are supported:
     expirationTime when creating a table, that value takes precedence
     over the default expiration time indicated by this property.
 
-  * `retain_on_delete` - (Optional) Retain the resource when destroying through Terraform.
-
   * `labels` - (Optional) A mapping of labels to assign to the resource.
 
 ## Attributes Reference

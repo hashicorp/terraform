@@ -99,13 +99,6 @@ func resourceBigQueryDataset() *schema.Resource {
 				},
 			},
 
-			// Skip destroying the resource
-			"retain_on_delete": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-			},
-
 			// Labels: [Experimental] The labels associated with this dataset. You
 			// can use these to organize and group your datasets. You can set this
 			// property when inserting or updating a dataset.
@@ -278,12 +271,6 @@ func resourceBigQueryDatasetUpdate(d *schema.ResourceData, meta interface{}) err
 
 func resourceBigQueryDatasetDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-
-	if d.Get("retain_on_delete").(bool) {
-		log.Printf("[WARN] Removing BigQuery dataset ID %q with `retain_on_delete` set. Please delete this dataset manually.", d.Id())
-		d.SetId("")
-		return nil
-	}
 
 	log.Printf("[INFO] Deleting BigQuery dataset: %s", d.Id())
 
