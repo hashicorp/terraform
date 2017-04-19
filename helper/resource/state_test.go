@@ -2,6 +2,8 @@ package resource
 
 import (
 	"errors"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -109,11 +111,18 @@ func TestWaitForState_inconsistent_positive(t *testing.T) {
 }
 
 func TestWaitForState_inconsistent_negative(t *testing.T) {
+	refreshCount := int64(0)
+	f := InconsistentStateRefreshFunc()
+	refresh := func() (interface{}, string, error) {
+		atomic.AddInt64(&refreshCount, 1)
+		return f()
+	}
+
 	conf := &StateChangeConf{
 		Pending:                   []string{"replicating"},
 		Target:                    []string{"done"},
-		Refresh:                   InconsistentStateRefreshFunc(),
-		Timeout:                   90 * time.Millisecond,
+		Refresh:                   refresh,
+		Timeout:                   85 * time.Millisecond,
 		PollInterval:              10 * time.Millisecond,
 		ContinuousTargetOccurence: 4,
 	}
@@ -123,13 +132,27 @@ func TestWaitForState_inconsistent_negative(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected timeout error. No error returned.")
 	}
-	expectedErr := "timeout while waiting for state to become 'done' (last state: 'done', timeout: 90ms)"
-	if err.Error() != expectedErr {
-		t.Fatalf("Errors don't match.\nExpected: %q\nGiven: %q\n", expectedErr, err.Error())
+
+	// we can't guarantee the exact number of refresh calls in the tests by
+	// timing them, but we want to make sure the test at least went through th
+	// required states.
+	if atomic.LoadInt64(&refreshCount) < 6 {
+		t.Fatal("refreshed called too few times")
+	}
+
+	expectedErr := "timeout while waiting for state to become 'done'"
+	if !strings.HasPrefix(err.Error(), expectedErr) {
+		t.Fatalf("error prefix doesn't match.\nExpected: %q\nGiven: %q\n", expectedErr, err.Error())
 	}
 }
 
 func TestWaitForState_timeout(t *testing.T) {
+	old := refreshGracePeriod
+	refreshGracePeriod = 5 * time.Millisecond
+	defer func() {
+		refreshGracePeriod = old
+	}()
+
 	conf := &StateChangeConf{
 		Pending: []string{"pending", "incomplete"},
 		Target:  []string{"running"},
@@ -145,6 +168,62 @@ func TestWaitForState_timeout(t *testing.T) {
 
 	expectedErr := "timeout while waiting for state to become 'running' (timeout: 1ms)"
 	if err.Error() != expectedErr {
+		t.Fatalf("Errors don't match.\nExpected: %q\nGiven: %q\n", expectedErr, err.Error())
+	}
+
+	if obj != nil {
+		t.Fatalf("should not return obj")
+	}
+}
+
+// Make sure a timeout actually cancels the refresh goroutine and waits for its
+// return.
+func TestWaitForState_cancel(t *testing.T) {
+	// make this refresh func block until we cancel it
+	cancel := make(chan struct{})
+	refresh := func() (interface{}, string, error) {
+		<-cancel
+		return nil, "pending", nil
+	}
+	conf := &StateChangeConf{
+		Pending:      []string{"pending", "incomplete"},
+		Target:       []string{"running"},
+		Refresh:      refresh,
+		Timeout:      10 * time.Millisecond,
+		PollInterval: 10 * time.Second,
+	}
+
+	var obj interface{}
+	var err error
+
+	waitDone := make(chan struct{})
+	go func() {
+		defer close(waitDone)
+		obj, err = conf.WaitForState()
+	}()
+
+	// make sure WaitForState is blocked
+	select {
+	case <-waitDone:
+		t.Fatal("WaitForState returned too early")
+	case <-time.After(10 * time.Millisecond):
+	}
+
+	// unlock the refresh function
+	close(cancel)
+	// make sure WaitForState returns
+	select {
+	case <-waitDone:
+	case <-time.After(time.Second):
+		t.Fatal("WaitForState didn't return after refresh finished")
+	}
+
+	if err == nil {
+		t.Fatal("Expected timeout error. No error returned.")
+	}
+
+	expectedErr := "timeout while waiting for state to become 'running'"
+	if !strings.HasPrefix(err.Error(), expectedErr) {
 		t.Fatalf("Errors don't match.\nExpected: %q\nGiven: %q\n", expectedErr, err.Error())
 	}
 
