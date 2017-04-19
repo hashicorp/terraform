@@ -6,8 +6,8 @@ import (
 	"strings"
 )
 
-const WaitForVolumeReadyTimeout = 30
-const WaitForVolumeDeleteTimeout = 30
+const WaitForVolumeReadyTimeout = 600
+const WaitForVolumeDeleteTimeout = 600
 
 // StorageVolumeClient is a client for the Storage Volume functions of the Compute API.
 type StorageVolumeClient struct {
