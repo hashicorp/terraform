@@ -831,6 +831,14 @@
 			"versionExact": "v1.8.10"
 		},
 		{
+			"checksumSHA1": "L8F5aJdwCvoNwrP6prtHSdklijM=",
+			"path": "github.com/aws/aws-sdk-go/service/cognitoidentity",
+			"revision": "d643bdf04f2cc6f95424f9f4e69037a563fc0736",
+			"revisionTime": "2017-04-06T18:01:00Z",
+			"version": "=v1.8.10",
+			"versionExact": "v1.8.10"
+		},
+		{
 			"checksumSHA1": "gSm1lj0J4klQMw7jHE0fU/RV+4Y=",
 			"path": "github.com/aws/aws-sdk-go/service/configservice",
 			"revision": "d643bdf04f2cc6f95424f9f4e69037a563fc0736",
