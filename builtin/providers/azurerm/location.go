@@ -16,7 +16,6 @@ func locationSchema() *schema.Schema {
 	}
 }
 
-
 func deprecatedLocationSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:             schema.TypeString,
