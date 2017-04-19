@@ -11,7 +11,7 @@ terraform plan \
   -var 'dns_name='$KEY \
   -var 'admin_password='$KEY \
   -var 'admin_username='$KEY \
-  -var 'resource_group='$KEY
+  -var 'resource_group='$KEY \
   -out=out.tfplan
 
 terraform apply out.tfplan
