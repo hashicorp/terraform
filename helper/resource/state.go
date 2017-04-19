@@ -114,20 +114,19 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 
 			// If we're waiting for the absence of a thing, then return
 			if res == nil && len(conf.Target) == 0 {
-				targetOccurence += 1
+				targetOccurence++
 				if conf.ContinuousTargetOccurence == targetOccurence {
 					result.Done = true
 					resCh <- result
 					return
-				} else {
-					continue
 				}
+				continue
 			}
 
 			if res == nil {
 				// If we didn't find the resource, check if we have been
 				// not finding it for awhile, and if so, report an error.
-				notfoundTick += 1
+				notfoundTick++
 				if notfoundTick > conf.NotFoundChecks {
 					result.Error = &NotFoundError{
 						LastError: err,
@@ -144,14 +143,13 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 				for _, allowed := range conf.Target {
 					if currentState == allowed {
 						found = true
-						targetOccurence += 1
+						targetOccurence++
 						if conf.ContinuousTargetOccurence == targetOccurence {
 							result.Done = true
 							resCh <- result
 							return
-						} else {
-							continue
 						}
+						continue
 					}
 				}
 
@@ -237,7 +235,7 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 					}
 
 					if !ok {
-						// the the goroutine returned
+						// the goroutine returned
 						break forSelect
 					}
 
