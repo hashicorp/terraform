@@ -2,6 +2,8 @@ package resource
 
 import (
 	"errors"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -109,11 +111,18 @@ func TestWaitForState_inconsistent_positive(t *testing.T) {
 }
 
 func TestWaitForState_inconsistent_negative(t *testing.T) {
+	refreshCount := int64(0)
+	f := InconsistentStateRefreshFunc()
+	refresh := func() (interface{}, string, error) {
+		atomic.AddInt64(&refreshCount, 1)
+		return f()
+	}
+
 	conf := &StateChangeConf{
 		Pending:                   []string{"replicating"},
 		Target:                    []string{"done"},
-		Refresh:                   InconsistentStateRefreshFunc(),
-		Timeout:                   90 * time.Millisecond,
+		Refresh:                   refresh,
+		Timeout:                   85 * time.Millisecond,
 		PollInterval:              10 * time.Millisecond,
 		ContinuousTargetOccurence: 4,
 	}
@@ -123,9 +132,17 @@ func TestWaitForState_inconsistent_negative(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected timeout error. No error returned.")
 	}
-	expectedErr := "timeout while waiting for state to become 'done' (last state: 'done', timeout: 90ms)"
-	if err.Error() != expectedErr {
-		t.Fatalf("Errors don't match.\nExpected: %q\nGiven: %q\n", expectedErr, err.Error())
+
+	// we can't guarantee the exact number of refresh calls in the tests by
+	// timing them, but we want to make sure the test at least went through th
+	// required states.
+	if atomic.LoadInt64(&refreshCount) < 6 {
+		t.Fatal("refreshed called too few times")
+	}
+
+	expectedErr := "timeout while waiting for state to become 'done'"
+	if !strings.HasPrefix(err.Error(), expectedErr) {
+		t.Fatalf("error prefix doesn't match.\nExpected: %q\nGiven: %q\n", expectedErr, err.Error())
 	}
 }
 
