@@ -48,6 +48,7 @@ BUG FIXES:
  * provider/google: Stop setting the id when project creation fails [GH-13644]
  * provider/newrelic: newrelic_alert_condition - `condition_scope` must be `application` or `instance` [GH-12972]
  * provider/openstack: Fix updating Ports [GH-13604]
+ * provider/rabbitmq: Allow users without tags [GH-13798]
 
 ## 0.9.3 (April 12, 2017)
 
