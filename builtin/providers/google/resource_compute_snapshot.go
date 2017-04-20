@@ -59,6 +59,11 @@ func resourceComputeSnapshot() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"source_disk_link": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -137,6 +142,8 @@ func resourceComputeSnapshotRead(d *schema.ResourceData, meta interface{}) error
 	}
 
 	d.Set("self_link", snapshot.SelfLink)
+	d.Set("source_disk_link", snapshot.SourceDisk)
+	d.Set("name", snapshot.Name)
 
 	if snapshot.SnapshotEncryptionKey != nil && snapshot.SnapshotEncryptionKey.Sha256 != "" {
 		d.Set("snapshot_encryption_key_sha256", snapshot.SnapshotEncryptionKey.Sha256)
@@ -145,8 +152,6 @@ func resourceComputeSnapshotRead(d *schema.ResourceData, meta interface{}) error
 	if snapshot.SourceDiskEncryptionKey != nil && snapshot.SourceDiskEncryptionKey.Sha256 != "" {
 		d.Set("source_disk_encryption_key_sha256", snapshot.SourceDiskEncryptionKey.Sha256)
 	}
-
-	d.Set("source_disk", snapshot.SourceDisk)
 
 	return nil
 }
