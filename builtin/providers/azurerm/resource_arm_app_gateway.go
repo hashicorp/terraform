@@ -580,6 +580,30 @@ func resourceArmAppGateway() *schema.Resource {
 					},
 				},
 			},
+			//TODO: implement authentication certificates
+			"authentication_certificates": {
+				Type: schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id": {
+							Type: schema.TypeString,
+							Computed: true,
+						},
+
+						"name": {
+							Type: schema.TypeString,
+							Required: true,
+						},
+
+						"data": {
+							Type: schema.TypeString,
+							Required: true,
+							Sensitive: true,
+						},
+					},
+				},
+			},
 
 			"ssl_certificate": {
 				Type:     schema.TypeList,
@@ -632,7 +656,7 @@ func resourceArmAppGatewayCreate(d *schema.ResourceData, meta interface{}) error
 	resGroup := d.Get("resource_group_name").(string)
 	tags := d.Get("tags").(map[string]interface{})
 
-	// Gateway ID is needed to link subresources together in expand functions
+	// Gateway ID is needed to link sub-resources together in expand functions
 	gatewayID := fmt.Sprintf(
 		"/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/applicationGateways/%s",
 		armClient.subscriptionId, resGroup, name)
@@ -721,7 +745,7 @@ func resourceArmAppGatewayRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("probe", flattenAppGatewayProbes(appGateway.ApplicationGatewayPropertiesFormat.Probes))
 	d.Set("request_routing_rule", flattenAppGatewayRequestRoutingRules(appGateway.ApplicationGatewayPropertiesFormat.RequestRoutingRules))
 	d.Set("url_path_map", flattenAppGatewayURLPathMaps(appGateway.ApplicationGatewayPropertiesFormat.URLPathMaps))
-	d.Set("ssl_certificate", schema.NewSet(hashAppGatewatSslCertificates, flattenAppGatewaySslCertificates(appGateway.ApplicationGatewayPropertiesFormat.SslCertificates)))
+	d.Set("ssl_certificate", schema.NewSet(hashAppGatewaySslCertificates, flattenAppGatewaySslCertificates(appGateway.ApplicationGatewayPropertiesFormat.SslCertificates)))
 
 	if appGateway.ApplicationGatewayPropertiesFormat.WebApplicationFirewallConfiguration != nil {
 		d.Set("waf_configuration", schema.NewSet(hashAppGatewayWafConfig,
@@ -1050,7 +1074,7 @@ func expandAppGatewayProbes(d *schema.ResourceData) *[]network.ApplicationGatewa
 
 		name := data["name"].(string)
 		protocol := data["protocol"].(string)
-		path := data["path"].(string)
+		probePath := data["path"].(string)
 		host := data["host"].(string)
 		interval := int32(data["interval"].(int))
 		timeout := int32(data["timeout"].(int))
@@ -1060,7 +1084,7 @@ func expandAppGatewayProbes(d *schema.ResourceData) *[]network.ApplicationGatewa
 			Name: &name,
 			ApplicationGatewayProbePropertiesFormat: &network.ApplicationGatewayProbePropertiesFormat{
 				Protocol:           network.ApplicationGatewayProtocol(protocol),
-				Path:               &path,
+				Path:               &probePath,
 				Host:               &host,
 				Interval:           &interval,
 				Timeout:            &timeout,
@@ -1482,8 +1506,8 @@ func flattenAppGatewayURLPathMaps(pathMaps *[]network.ApplicationGatewayURLPathM
 			}
 
 			paths := make([]interface{}, 0, len(*pathRuleConfig.ApplicationGatewayPathRulePropertiesFormat.Paths))
-			for _, path := range *pathRuleConfig.ApplicationGatewayPathRulePropertiesFormat.Paths {
-				paths = append(paths, path)
+			for _, rulePath := range *pathRuleConfig.ApplicationGatewayPathRulePropertiesFormat.Paths {
+				paths = append(paths, rulePath)
 			}
 			rule["paths"] = paths
 
@@ -1532,7 +1556,7 @@ func hashAppGatewayWafConfig(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func hashAppGatewatSslCertificates(v interface{}) int {
+func hashAppGatewaySslCertificates(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
