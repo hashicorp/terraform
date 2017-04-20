@@ -98,7 +98,7 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The Template Deployment ID.
-* `outputs` - A map of supported scalar output types returned from the deployment (currently, Azure template outputs of type String, Int and Bool are supported, and are converted to strings - others will be ignored).
+* `outputs` - A map of supported scalar output types returned from the deployment (currently, Azure Template Deployment outputs of type String, Int and Bool are supported, and are converted to strings - others will be ignored).
 
 ## Note
 
