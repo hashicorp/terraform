@@ -354,11 +354,13 @@ func resourceArmVirtualMachine() *schema.Resource {
 						"provision_vm_agent": {
 							Type:     schema.TypeBool,
 							Optional: true,
+							ForceNew: true,
 							Default:  true,
 						},
 						"enable_automatic_upgrades": {
 							Type:     schema.TypeBool,
 							Optional: true,
+							ForceNew: true,
 							Default:  false,
 						},
 						"winrm": {
