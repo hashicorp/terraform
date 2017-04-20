@@ -12,7 +12,7 @@ Provides a Spotinst AWS group resource.
 
 ## Example Usage
 
-```
+```hcl
 # Create an AWS group
 resource "spotinst_aws_group" "workers" {
   name = "workers-group"

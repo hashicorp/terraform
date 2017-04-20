@@ -56,6 +56,40 @@ func TestAccAWSS3Bucket_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSS3Bucket_namePrefix(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSS3BucketDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSS3BucketConfig_namePrefix,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.test"),
+					resource.TestMatchResourceAttr(
+						"aws_s3_bucket.test", "bucket", regexp.MustCompile("^tf-test-")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSS3Bucket_generatedName(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSS3BucketDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSS3BucketConfig_generatedName,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.test"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSS3Bucket_region(t *testing.T) {
 	rInt := acctest.RandInt()
 
@@ -1601,3 +1635,15 @@ resource "aws_s3_bucket" "destination" {
 }
 `, randInt, randInt, randInt)
 }
+
+const testAccAWSS3BucketConfig_namePrefix = `
+resource "aws_s3_bucket" "test" {
+	bucket_prefix = "tf-test-"
+}
+`
+
+const testAccAWSS3BucketConfig_generatedName = `
+resource "aws_s3_bucket" "test" {
+	bucket_prefix = "tf-test-"
+}
+`

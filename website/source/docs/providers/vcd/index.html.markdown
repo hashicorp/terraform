@@ -16,7 +16,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the VMware vCloud Director Provider
 provider "vcd" {
   user                 = "${var.vcd_user}"

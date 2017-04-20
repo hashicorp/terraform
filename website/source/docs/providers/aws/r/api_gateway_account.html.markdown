@@ -14,7 +14,7 @@ Provides a settings of an API Gateway Account. Settings is applied region-wide p
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_api_gateway_account" "demo" {
   cloudwatch_role_arn = "${aws_iam_role.cloudwatch.arn}"
 }

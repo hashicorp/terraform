@@ -542,7 +542,22 @@ func TestInterpolateFuncCidrHost(t *testing.T) {
 				false,
 			},
 			{
+				`${cidrhost("192.168.1.0/24", -5)}`,
+				"192.168.1.251",
+				false,
+			},
+			{
+				`${cidrhost("192.168.1.0/24", -256)}`,
+				"192.168.1.0",
+				false,
+			},
+			{
 				`${cidrhost("192.168.1.0/30", 255)}`,
+				nil,
+				true, // 255 doesn't fit in two bits
+			},
+			{
+				`${cidrhost("192.168.1.0/30", -255)}`,
 				nil,
 				true, // 255 doesn't fit in two bits
 			},

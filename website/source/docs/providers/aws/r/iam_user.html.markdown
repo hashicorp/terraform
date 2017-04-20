@@ -12,7 +12,7 @@ Provides an IAM user.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_iam_user" "lb" {
   name = "loadbalancer"
   path = "/system/"

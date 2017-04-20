@@ -12,7 +12,7 @@ Creates a Traffic Manager Endpoint.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_traffic_manager_profile" "test" {
   name                = "profile1"
   resource_group_name = "${azurerm_resource_group.test.name}"
@@ -50,14 +50,14 @@ resource "azurerm_traffic_manager_endpoint" "test" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the virtual network. Changing this forces a
+* `name` - (Required) The name of the Traffic Manager endpoint. Changing this forces a
     new resource to be created.
 
 * `resource_group_name` - (Required) The name of the resource group in which to
-    create the virtual network.
+    create the Traffic Manager endpoint.
 
 * `profile_name` - (Required) The name of the Traffic Manager Profile to attach
-    create the virtual network.
+    create the Traffic Manager endpoint.
 
 * `endpoint_status` - (Optional) The status of the Endpoint, can be set to
     either `Enabled` or `Disabled`. Defaults to `Enabled`.
@@ -73,7 +73,7 @@ The following arguments are supported:
 
 * `target_resource_id` - (Optional) The resource id of an Azure resource to
     target. This argument must be provided for an endpoint of type
-    `azureEndpoints`.
+    `azureEndpoints` or `nestedEndpoints`.
 
 * `weight` - (Optional) Specifies how much traffic should be distributed to this
     endpoint, this must be specified for Profiles using the  `Weighted` traffic

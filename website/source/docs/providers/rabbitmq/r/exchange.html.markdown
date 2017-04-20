@@ -12,7 +12,7 @@ The ``rabbitmq_exchange`` resource creates and manages an exchange.
 
 ## Example Usage
 
-```
+```hcl
 resource "rabbitmq_vhost" "test" {
   name = "test"
 }

@@ -14,7 +14,7 @@ Use this data source to get information about a specific [escalation policy][1] 
 
 ## Example Usage
 
-```
+```hcl
 data "pagerduty_escalation_policy" "test" {
   name = "Engineering Escalation Policy"
 }

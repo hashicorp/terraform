@@ -267,7 +267,7 @@ func testAccCheckAWSClusterSnapshot(rInt int) resource.TestCheckFunc {
 			}
 
 			// Try and delete the snapshot before we check for the cluster not found
-			snapshot_identifier := fmt.Sprintf("foobarbaz-test-terraform-final-snapshot-%d", rInt)
+			snapshot_identifier := fmt.Sprintf("tf-acctest-rdscluster-snapshot-%d", rInt)
 
 			awsClient := testAccProvider.Meta().(*AWSClient)
 			conn := awsClient.rdsconn
@@ -436,7 +436,6 @@ resource "aws_rds_cluster" "default" {
   master_username = "foo"
   master_password = "mustbeeightcharaters"
   db_cluster_parameter_group_name = "default.aurora5.6"
-  skip_final_snapshot = true
   final_snapshot_identifier = "tf-acctest-rdscluster-snapshot-%d"
   tags {
     Environment = "production"

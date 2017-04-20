@@ -298,7 +298,7 @@ func resourceArmRedisCacheRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("resource_group_name", resGroup)
 	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 	d.Set("ssl_port", resp.SslPort)
-	d.Set("host_name", resp.HostName)
+	d.Set("hostname", resp.HostName)
 	d.Set("port", resp.Port)
 	d.Set("enable_non_ssl_port", resp.EnableNonSslPort)
 	d.Set("capacity", resp.Sku.Capacity)

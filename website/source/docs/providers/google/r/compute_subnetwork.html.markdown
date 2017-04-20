@@ -12,7 +12,7 @@ Manages a subnetwork within GCE.
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_subnetwork" "default-us-east1" {
   name          = "default-us-east1"
   ip_cidr_range = "10.0.0.0/16"

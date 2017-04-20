@@ -1,3 +1,40 @@
+Release v1.8.13 (2017-04-18)
+===
+
+### Service Client Updates
+* `service/lambda`: Updates service API and documentation
+  * You can use tags to group and filter your Lambda functions, making it easier to analyze them for billing allocation purposes. For more information, see Tagging Lambda Functions.  You can now write or upgrade your Lambda functions using Python version 3.6. For more information, see Programming Model for Authoring Lambda Functions in Python. Note: Features will be rolled out in the US regions on 4/19.
+
+### SDK Enhancements
+* `aws/request`: add support for appengine's custom standard library (#1190)
+  * Remove syscall error checking on appengine platforms.
+
+Release v1.8.12 (2017-04-11)
+===
+
+### Service Client Updates
+* `service/apigateway`: Updates service API and documentation
+  * API Gateway request validators
+* `service/batch`: Updates service API and documentation
+  * API Update for AWS Batch: Customer provided AMI for MANAGED Compute Environment
+* `service/gamelift`: Updates service API and documentation
+  * Allows developers to utilize an improved workflow when calling our Queues API and introduces a new feature that allows developers to specify a maximum allowable latency per Queue.
+* `service/opsworks`: Updates service API, documentation, and paginators
+  * Cloudwatch Logs agent configuration can now be attached to OpsWorks Layers using CreateLayer and UpdateLayer. OpsWorks will then automatically install and manage the CloudWatch Logs agent on the instances part of the OpsWorks Layer.
+
+### SDK Bugs
+* `aws/client`: Fix clients polluting handler list (#1197)
+  * Fixes the clients potentially polluting the passed in handler list with the client's customizations. This change ensures every client always works with a clean copy of the request handlers and it cannot pollute the handlers back upstream.
+  * Fixes #1184
+* `aws/request`: Fix waiter error match condition (#1195)
+  * Fixes the waiters's matching overwriting the request's err, effectively ignoring the error condition. This broke waiters with the FailureWaiterState matcher state.
+Release v1.8.11 (2017-04-07)
+===
+
+### Service Client Updates
+* `service/redshift`: Updates service API, documentation, and paginators
+  * This update adds the GetClusterCredentials API which is used to get temporary login credentials to the cluster. AccountWithRestoreAccess now has a new member AccountAlias, this is the identifier of the AWS support account authorized to restore the specified snapshot. This is added to support the feature where the customer can share their snapshot with the Amazon Redshift Support Account without having to manually specify the AWS Redshift Service account ID on the AWS Console/API.
+
 Release v1.8.10 (2017-04-06)
 ===
 

@@ -15,7 +15,7 @@ tarball. For more information see [the official documentation](https://cloud.goo
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_image" "bootable-image" {
   name = "my-custom-image"
 

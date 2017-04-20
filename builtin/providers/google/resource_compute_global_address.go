@@ -14,7 +14,9 @@ func resourceComputeGlobalAddress() *schema.Resource {
 		Create: resourceComputeGlobalAddressCreate,
 		Read:   resourceComputeGlobalAddressRead,
 		Delete: resourceComputeGlobalAddressDelete,
-
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -92,6 +94,7 @@ func resourceComputeGlobalAddressRead(d *schema.ResourceData, meta interface{}) 
 
 	d.Set("address", addr.Address)
 	d.Set("self_link", addr.SelfLink)
+	d.Set("name", addr.Name)
 
 	return nil
 }

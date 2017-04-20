@@ -12,7 +12,7 @@ Describes the desired state of the system’s RAID.
 
 ## Example Usage
 
-```
+```hcl
 data "ignition_raid" "md" {
 	name = "data"
 	level = "stripe"

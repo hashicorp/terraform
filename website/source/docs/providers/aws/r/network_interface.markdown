@@ -12,7 +12,7 @@ Provides an Elastic network interface (ENI) resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_network_interface" "test" {
   subnet_id       = "${aws_subnet.public_a.id}"
   private_ips     = ["10.0.0.50"]

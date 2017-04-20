@@ -12,7 +12,7 @@ Provides an OpsWorks application resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_opsworks_application" "foo-app" {
   name        = "foobar application"
   short_name  = "foobar"

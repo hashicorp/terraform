@@ -31,7 +31,7 @@ for more information.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_rds_cluster" "default" {
   cluster_identifier      = "aurora-cluster-demo"
   availability_zones      = ["us-west-2a", "us-west-2b", "us-west-2c"]
@@ -111,7 +111,6 @@ load-balanced across replicas
 * `replication_source_identifier` - ARN  of the source DB cluster if this DB cluster is created as a Read Replica.
 
 [1]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Replication.html
-
 [2]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Aurora.html
 [3]: /docs/providers/aws/r/rds_cluster_instance.html
 [4]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Maintenance.html

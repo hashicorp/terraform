@@ -6,7 +6,7 @@ description: |-
   Provides a Alicloud Security Group Rule resource.
 ---
 
-# alicloud_security_group_rule
+# alicloud\_security\_group\_rule
 
 Provides a security group rule resource.
 Represents a single `ingress` or `egress` group rule, which can be added to external Security Groups.
@@ -18,7 +18,7 @@ Represents a single `ingress` or `egress` group rule, which can be added to exte
 
 Basic Usage
 
-```hcl
+```
 resource "alicloud_security_group" "default" {
   name = "default"
 }

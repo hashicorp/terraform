@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
-	"github.com/hashicorp/errwrap"
 	"net/url"
+
+	"github.com/hashicorp/errwrap"
 )
 
 type MachinesClient struct {
@@ -18,6 +20,21 @@ type MachinesClient struct {
 // machine functionality in the Triton API.
 func (c *Client) Machines() *MachinesClient {
 	return &MachinesClient{c}
+}
+
+const (
+	machineCNSTagDisable    = "triton.cns.disable"
+	machineCNSTagReversePTR = "triton.cns.reverse_ptr"
+	machineCNSTagServices   = "triton.cns.services"
+)
+
+// MachineCNS is a container for the CNS-specific attributes.  In the API these
+// values are embedded within a Machine's Tags attribute, however they are
+// exposed to the caller as their native types.
+type MachineCNS struct {
+	Disable    *bool
+	ReversePTR *string
+	Services   []string
 }
 
 type Machine struct {
@@ -41,6 +58,14 @@ type Machine struct {
 	ComputeNode     string            `json:"compute_node"`
 	Package         string            `json:"package"`
 	DomainNames     []string          `json:"dns_names"`
+	CNS             MachineCNS
+}
+
+// _Machine is a private facade over Machine that handles the necessary API
+// overrides from vmapi's machine endpoint(s).
+type _Machine struct {
+	Machine
+	Tags map[string]interface{} `json:"tags"`
 }
 
 type NIC struct {
@@ -57,7 +82,19 @@ type GetMachineInput struct {
 	ID string
 }
 
+func (gmi *GetMachineInput) Validate() error {
+	if gmi.ID == "" {
+		return fmt.Errorf("machine ID can not be empty")
+	}
+
+	return nil
+}
+
 func (client *MachinesClient) GetMachine(input *GetMachineInput) (*Machine, error) {
+	if err := input.Validate(); err != nil {
+		return nil, errwrap.Wrapf("unable to get machine: {{err}}", err)
+	}
+
 	path := fmt.Sprintf("/%s/machines/%s", client.accountName, input.ID)
 	response, err := client.executeRequestRaw(http.MethodGet, path, nil)
 	if response != nil {
@@ -73,13 +110,51 @@ func (client *MachinesClient) GetMachine(input *GetMachineInput) (*Machine, erro
 			client.decodeError(response.StatusCode, response.Body))
 	}
 
-	var result *Machine
+	var result *_Machine
 	decoder := json.NewDecoder(response.Body)
 	if err = decoder.Decode(&result); err != nil {
 		return nil, errwrap.Wrapf("Error decoding GetMachine response: {{err}}", err)
 	}
 
-	return result, nil
+	native, err := result.toNative()
+	if err != nil {
+		return nil, errwrap.Wrapf("unable to convert API response for machines to native type: {{err}}", err)
+	}
+
+	return native, nil
+}
+
+func (client *MachinesClient) GetMachines() ([]*Machine, error) {
+	path := fmt.Sprintf("/%s/machines", client.accountName)
+	response, err := client.executeRequestRaw(http.MethodGet, path, nil)
+	if response != nil {
+		defer response.Body.Close()
+	}
+	if response.StatusCode == http.StatusNotFound {
+		return nil, &TritonError{
+			Code: "ResourceNotFound",
+		}
+	}
+	if err != nil {
+		return nil, errwrap.Wrapf("Error executing GetMachines request: {{err}}",
+			client.decodeError(response.StatusCode, response.Body))
+	}
+
+	var results []*_Machine
+	decoder := json.NewDecoder(response.Body)
+	if err = decoder.Decode(&results); err != nil {
+		return nil, errwrap.Wrapf("Error decoding GetMachines response: {{err}}", err)
+	}
+
+	machines := make([]*Machine, 0, len(results))
+	for _, machineAPI := range results {
+		native, err := machineAPI.toNative()
+		if err != nil {
+			return nil, errwrap.Wrapf("unable to convert API response for machines to native type: {{err}}", err)
+		}
+		machines = append(machines, native)
+	}
+	return machines, nil
 }
 
 type CreateMachineInput struct {
@@ -93,23 +168,31 @@ type CreateMachineInput struct {
 	Metadata        map[string]string
 	Tags            map[string]string
 	FirewallEnabled bool
+	CNS             MachineCNS
 }
 
-func transformCreateMachineInput(input *CreateMachineInput) map[string]interface{} {
-	result := make(map[string]interface{}, 8+len(input.Metadata)+len(input.Tags))
+func (input *CreateMachineInput) toAPI() map[string]interface{} {
+	const numExtraParams = 8
+	result := make(map[string]interface{}, numExtraParams+len(input.Metadata)+len(input.Tags))
+
 	result["firewall_enabled"] = input.FirewallEnabled
+
 	if input.Name != "" {
 		result["name"] = input.Name
 	}
+
 	if input.Package != "" {
 		result["package"] = input.Package
 	}
+
 	if input.Image != "" {
 		result["image"] = input.Image
 	}
+
 	if len(input.Networks) > 0 {
 		result["networks"] = input.Networks
 	}
+
 	locality := struct {
 		Strict bool     `json:"strict"`
 		Near   []string `json:"near,omitempty"`
@@ -123,6 +206,11 @@ func transformCreateMachineInput(input *CreateMachineInput) map[string]interface
 	for key, value := range input.Tags {
 		result[fmt.Sprintf("tag.%s", key)] = value
 	}
+
+	// Deliberately clobber any user-specified Tags with the attributes from the
+	// CNS struct.
+	input.CNS.toTags(result)
+
 	for key, value := range input.Metadata {
 		result[fmt.Sprintf("metadata.%s", key)] = value
 	}
@@ -131,7 +219,7 @@ func transformCreateMachineInput(input *CreateMachineInput) map[string]interface
 }
 
 func (client *MachinesClient) CreateMachine(input *CreateMachineInput) (*Machine, error) {
-	respReader, err := client.executeRequest(http.MethodPost, "/my/machines", transformCreateMachineInput(input))
+	respReader, err := client.executeRequest(http.MethodPost, "/my/machines", input.toAPI())
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -309,13 +397,14 @@ func (client *MachinesClient) ListMachineTags(input *ListMachineTagsInput) (map[
 		return nil, errwrap.Wrapf("Error executing ListMachineTags request: {{err}}", err)
 	}
 
-	var result map[string]string
+	var result map[string]interface{}
 	decoder := json.NewDecoder(respReader)
 	if err = decoder.Decode(&result); err != nil {
 		return nil, errwrap.Wrapf("Error decoding ListMachineTags response: {{err}}", err)
 	}
 
-	return result, nil
+	_, tags := machineTagsExtractMeta(result)
+	return tags, nil
 }
 
 type UpdateMachineMetadataInput struct {
@@ -469,4 +558,62 @@ func (client *MachinesClient) RemoveNIC(input *RemoveNICInput) error {
 	}
 
 	return nil
+}
+
+var reservedMachineCNSTags = map[string]struct{}{
+	machineCNSTagDisable:    {},
+	machineCNSTagReversePTR: {},
+	machineCNSTagServices:   {},
+}
+
+// machineTagsExtractMeta() extracts all of the misc parameters from Tags and
+// returns a clean CNS and Tags struct.
+func machineTagsExtractMeta(tags map[string]interface{}) (MachineCNS, map[string]string) {
+	nativeCNS := MachineCNS{}
+	nativeTags := make(map[string]string, len(tags))
+	for k, raw := range tags {
+		if _, found := reservedMachineCNSTags[k]; found {
+			switch k {
+			case machineCNSTagDisable:
+				b := raw.(bool)
+				nativeCNS.Disable = &b
+			case machineCNSTagReversePTR:
+				s := raw.(string)
+				nativeCNS.ReversePTR = &s
+			case machineCNSTagServices:
+				nativeCNS.Services = strings.Split(raw.(string), ",")
+			default:
+				// TODO(seanc@): should assert, logic fail
+			}
+		} else {
+			nativeTags[k] = raw.(string)
+		}
+	}
+
+	return nativeCNS, nativeTags
+}
+
+// toNative() exports a given _Machine (API representation) to its native object
+// format.
+func (api *_Machine) toNative() (*Machine, error) {
+	m := Machine(api.Machine)
+	m.CNS, m.Tags = machineTagsExtractMeta(api.Tags)
+	return &m, nil
+}
+
+// toTags() injects its state information into a Tags map suitable for use to
+// submit an API call to the vmapi machine endpoint
+func (mcns *MachineCNS) toTags(m map[string]interface{}) {
+	if mcns.Disable != nil {
+		s := fmt.Sprintf("%t", mcns.Disable)
+		m[machineCNSTagDisable] = &s
+	}
+
+	if mcns.ReversePTR != nil {
+		m[machineCNSTagReversePTR] = &mcns.ReversePTR
+	}
+
+	if len(mcns.Services) > 0 {
+		m[machineCNSTagServices] = strings.Join(mcns.Services, ",")
+	}
 }
