@@ -14,7 +14,7 @@ docker run --rm -it -v \
   hashicorp/terraform:light \
   get
 
-docker run
+docker run --rm -it -v \
   -e ARM_CLIENT_ID="$ARM_CLIENT_ID" \
   -e ARM_CLIENT_SECRET="$ARM_CLIENT_SECRET" \
   -e ARM_SUBSCRIPTION_ID="$ARM_SUBSCRIPTION_ID" \
