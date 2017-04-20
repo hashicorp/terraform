@@ -6,28 +6,25 @@ set -o errexit -o nounset
 # KEY=$(cat /dev/urandom | tr -cd 'a-z' | head -c 12)
 # PASSWORD=$KEY$(cat /dev/urandom | tr -cd 'A-Z' | head -c 2)$(cat /dev/urandom | tr -cd '0-9' | head -c 2)
 
-KEY=$1
-PASSWORD=$2
-
 docker run --rm -it -v \
   $(pwd):/data -w /data \
   hashicorp/terraform:light \
   get
 
 docker run --rm -it -v \
-  -e ARM_CLIENT_ID="$ARM_CLIENT_ID" \
-  -e ARM_CLIENT_SECRET="$ARM_CLIENT_SECRET" \
-  -e ARM_SUBSCRIPTION_ID="$ARM_SUBSCRIPTION_ID" \
-  -e ARM_TENANT_ID="$ARM_SUBSCRIPTION_ID" \
+  -e ARM_CLIENT_ID=$ARM_CLIENT_ID \
+  -e ARM_CLIENT_SECRET=$ARM_CLIENT_SECRET \
+  -e ARM_SUBSCRIPTION_ID=$ARM_SUBSCRIPTION_ID \
+  -e ARM_TENANT_ID=$ARM_SUBSCRIPTION_ID \
   $(pwd):/data -w /data \
   hashicorp/terraform:light \
   plan -var dns_name=$KEY -var resource_group=$KEY -var admin_username=$KEY -var admin_password=$PASSWORD -out=out.tfplan
 
 docker run --rm -it -v \
-  -e ARM_CLIENT_ID="$ARM_CLIENT_ID" \
-  -e ARM_CLIENT_SECRET="$ARM_CLIENT_SECRET" \
-  -e ARM_SUBSCRIPTION_ID="$ARM_SUBSCRIPTION_ID" \
-  -e ARM_TENANT_ID="$ARM_SUBSCRIPTION_ID" \
+  -e ARM_CLIENT_ID=$ARM_CLIENT_ID \
+  -e ARM_CLIENT_SECRET=$ARM_CLIENT_SECRET \
+  -e ARM_SUBSCRIPTION_ID=$ARM_SUBSCRIPTION_ID \
+  -e ARM_TENANT_ID=$ARM_SUBSCRIPTION_ID \
   $(pwd):/data -w /data \
   hashicorp/terraform:light \
   apply out.tfplan
