@@ -23,7 +23,7 @@ additional config if the AWS_SDK_LOAD_CONFIG environment variable is set.
 Alternatively you can explicitly create a Session with shared config enabled.
 To do this you can use NewSessionWithOptions to configure how the Session will
 be created. Using the NewSessionWithOptions with SharedConfigState set to
-SharedConfigEnabled will create the session as if the AWS_SDK_LOAD_CONFIG
+SharedConfigEnable will create the session as if the AWS_SDK_LOAD_CONFIG
 environment variable was set.
 
 Creating Sessions
@@ -84,7 +84,7 @@ override the shared config state (AWS_SDK_LOAD_CONFIG).
 
 	// Force enable Shared Config support
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: SharedConfigEnable,
+		SharedConfigState: session.SharedConfigEnable,
 	}))
 
 Adding Handlers

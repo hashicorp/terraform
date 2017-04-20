@@ -1017,7 +1017,16 @@ func (v *Variable) ValidateTypeAndDefault() error {
 	// If an explicit type is declared, ensure it is valid
 	if v.DeclaredType != "" {
 		if _, ok := typeStringMap[v.DeclaredType]; !ok {
-			return fmt.Errorf("Variable '%s' must be of type string or map - '%s' is not a valid type", v.Name, v.DeclaredType)
+			validTypes := []string{}
+			for k := range typeStringMap {
+				validTypes = append(validTypes, k)
+			}
+			return fmt.Errorf(
+				"Variable '%s' type must be one of [%s] - '%s' is not a valid type",
+				v.Name,
+				strings.Join(validTypes, ", "),
+				v.DeclaredType,
+			)
 		}
 	}
 

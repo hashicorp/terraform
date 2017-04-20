@@ -67,7 +67,7 @@ func (c *OpsWorks) AssignInstanceRequest(input *AssignInstanceInput) (req *reque
 //    * You can assign registered Amazon EC2 instances only to custom layers.
 //
 //    * You cannot use this action with instances that were created with AWS
-//    OpsWorks.
+//    OpsWorks Stacks.
 //
 // Required Permissions: To use this action, an AWS Identity and Access Management
 // (IAM) user must have a Manage permissions level for the stack or an attached
@@ -1698,7 +1698,7 @@ func (c *OpsWorks) DeregisterInstanceRequest(input *DeregisterInstanceInput) (re
 //
 // Deregister a registered Amazon EC2 or on-premises instance. This action removes
 // the instance from the stack and returns it to your control. This action can
-// not be used with instances that were created with AWS OpsWorks.
+// not be used with instances that were created with AWS OpsWorks Stacks.
 //
 // Required Permissions: To use this action, an IAM user must have a Manage
 // permissions level for the stack or an attached policy that explicitly grants
@@ -1967,9 +1967,9 @@ func (c *OpsWorks) DescribeAgentVersionsRequest(input *DescribeAgentVersionsInpu
 
 // DescribeAgentVersions API operation for AWS OpsWorks.
 //
-// Describes the available AWS OpsWorks agent versions. You must specify a stack
-// ID or a configuration manager. DescribeAgentVersions returns a list of available
-// agent versions for the specified stack or configuration manager.
+// Describes the available AWS OpsWorks Stacks agent versions. You must specify
+// a stack ID or a configuration manager. DescribeAgentVersions returns a list
+// of available agent versions for the specified stack or configuration manager.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2054,7 +2054,7 @@ func (c *OpsWorks) DescribeAppsRequest(input *DescribeAppsInput) (req *request.R
 //
 // Requests a description of a specified set of apps.
 //
-// You must specify at least one of the parameters.
+// This call accepts only one resource-identifying parameter.
 //
 // Required Permissions: To use this action, an IAM user must have a Show, Deploy,
 // or Manage permissions level for the stack, or an attached policy that explicitly
@@ -2144,7 +2144,7 @@ func (c *OpsWorks) DescribeCommandsRequest(input *DescribeCommandsInput) (req *r
 //
 // Describes the results of specified commands.
 //
-// You must specify at least one of the parameters.
+// This call accepts only one resource-identifying parameter.
 //
 // Required Permissions: To use this action, an IAM user must have a Show, Deploy,
 // or Manage permissions level for the stack, or an attached policy that explicitly
@@ -2234,7 +2234,7 @@ func (c *OpsWorks) DescribeDeploymentsRequest(input *DescribeDeploymentsInput) (
 //
 // Requests a description of a specified set of deployments.
 //
-// You must specify at least one of the parameters.
+// This call accepts only one resource-identifying parameter.
 //
 // Required Permissions: To use this action, an IAM user must have a Show, Deploy,
 // or Manage permissions level for the stack, or an attached policy that explicitly
@@ -2330,13 +2330,15 @@ func (c *OpsWorks) DescribeEcsClustersRequest(input *DescribeEcsClustersInput) (
 //
 // Describes Amazon ECS clusters that are registered with a stack. If you specify
 // only a stack ID, you can use the MaxResults and NextToken parameters to paginate
-// the response. However, AWS OpsWorks currently supports only one cluster per
-// layer, so the result set has a maximum of one element.
+// the response. However, AWS OpsWorks Stacks currently supports only one cluster
+// per layer, so the result set has a maximum of one element.
 //
 // Required Permissions: To use this action, an IAM user must have a Show, Deploy,
 // or Manage permissions level for the stack or an attached policy that explicitly
 // grants permission. For more information on user permissions, see Managing
 // User Permissions (http://docs.aws.amazon.com/opsworks/latest/userguide/opsworks-security-users.html).
+//
+// This call accepts only one resource-identifying parameter.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2471,7 +2473,7 @@ func (c *OpsWorks) DescribeElasticIpsRequest(input *DescribeElasticIpsInput) (re
 //
 // Describes Elastic IP addresses (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html).
 //
-// You must specify at least one of the parameters.
+// This call accepts only one resource-identifying parameter.
 //
 // Required Permissions: To use this action, an IAM user must have a Show, Deploy,
 // or Manage permissions level for the stack, or an attached policy that explicitly
@@ -2561,7 +2563,7 @@ func (c *OpsWorks) DescribeElasticLoadBalancersRequest(input *DescribeElasticLoa
 //
 // Describes a stack's Elastic Load Balancing instances.
 //
-// You must specify at least one of the parameters.
+// This call accepts only one resource-identifying parameter.
 //
 // Required Permissions: To use this action, an IAM user must have a Show, Deploy,
 // or Manage permissions level for the stack, or an attached policy that explicitly
@@ -2651,7 +2653,7 @@ func (c *OpsWorks) DescribeInstancesRequest(input *DescribeInstancesInput) (req 
 //
 // Requests a description of a set of instances.
 //
-// You must specify at least one of the parameters.
+// This call accepts only one resource-identifying parameter.
 //
 // Required Permissions: To use this action, an IAM user must have a Show, Deploy,
 // or Manage permissions level for the stack, or an attached policy that explicitly
@@ -2741,7 +2743,7 @@ func (c *OpsWorks) DescribeLayersRequest(input *DescribeLayersInput) (req *reque
 //
 // Requests a description of one or more layers in a specified stack.
 //
-// You must specify at least one of the parameters.
+// This call accepts only one resource-identifying parameter.
 //
 // Required Permissions: To use this action, an IAM user must have a Show, Deploy,
 // or Manage permissions level for the stack, or an attached policy that explicitly
@@ -3088,7 +3090,7 @@ func (c *OpsWorks) DescribeRaidArraysRequest(input *DescribeRaidArraysInput) (re
 //
 // Describe an instance's RAID arrays.
 //
-// You must specify at least one of the parameters.
+// This call accepts only one resource-identifying parameter.
 //
 // Required Permissions: To use this action, an IAM user must have a Show, Deploy,
 // or Manage permissions level for the stack, or an attached policy that explicitly
@@ -3183,6 +3185,8 @@ func (c *OpsWorks) DescribeRdsDbInstancesRequest(input *DescribeRdsDbInstancesIn
 // grants permissions. For more information on user permissions, see Managing
 // User Permissions (http://docs.aws.amazon.com/opsworks/latest/userguide/opsworks-security-users.html).
 //
+// This call accepts only one resource-identifying parameter.
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -3264,12 +3268,14 @@ func (c *OpsWorks) DescribeServiceErrorsRequest(input *DescribeServiceErrorsInpu
 
 // DescribeServiceErrors API operation for AWS OpsWorks.
 //
-// Describes AWS OpsWorks service errors.
+// Describes AWS OpsWorks Stacks service errors.
 //
 // Required Permissions: To use this action, an IAM user must have a Show, Deploy,
 // or Manage permissions level for the stack, or an attached policy that explicitly
 // grants permissions. For more information on user permissions, see Managing
 // User Permissions (http://docs.aws.amazon.com/opsworks/latest/userguide/opsworks-security-users.html).
+//
+// This call accepts only one resource-identifying parameter.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3796,7 +3802,7 @@ func (c *OpsWorks) DescribeVolumesRequest(input *DescribeVolumesInput) (req *req
 //
 // Describes an instance's Amazon EBS volumes.
 //
-// You must specify at least one of the parameters.
+// This call accepts only one resource-identifying parameter.
 //
 // Required Permissions: To use this action, an IAM user must have a Show, Deploy,
 // or Manage permissions level for the stack, or an attached policy that explicitly
@@ -4509,15 +4515,21 @@ func (c *OpsWorks) RegisterInstanceRequest(input *RegisterInstanceInput) (req *r
 
 // RegisterInstance API operation for AWS OpsWorks.
 //
-// Registers instances with a specified stack that were created outside of AWS
-// OpsWorks.
+// Registers instances that were created outside of AWS OpsWorks Stacks with
+// a specified stack.
 //
 // We do not recommend using this action to register instances. The complete
-// registration operation has two primary steps, installing the AWS OpsWorks
-// agent on the instance and registering the instance with the stack. RegisterInstance
+// registration operation includes two tasks: installing the AWS OpsWorks Stacks
+// agent on the instance, and registering the instance with the stack. RegisterInstance
 // handles only the second step. You should instead use the AWS CLI register
 // command, which performs the entire registration operation. For more information,
-// see  Registering an Instance with an AWS OpsWorks Stack (http://docs.aws.amazon.com/opsworks/latest/userguide/registered-instances-register.html).
+// see  Registering an Instance with an AWS OpsWorks Stacks Stack (http://docs.aws.amazon.com/opsworks/latest/userguide/registered-instances-register.html).
+//
+// Registered instances have the same requirements as instances that are created
+// by using the CreateInstance API. For example, registered instances must be
+// running a supported Linux-based operating system, and they must have a supported
+// instance type. For more information about requirements for instances that
+// you want to register, see  Preparing the Instance (http://docs.aws.amazon.com/opsworks/latest/userguide/registered-instances-register-registering-preparer.html).
 //
 // Required Permissions: To use this action, an IAM user must have a Manage
 // permissions level for the stack or an attached policy that explicitly grants
@@ -5435,7 +5447,7 @@ func (c *OpsWorks) UnassignInstanceRequest(input *UnassignInstanceInput) (req *r
 // Unassigns a registered instance from all of it's layers. The instance remains
 // in the stack as an unassigned instance and can be assigned to another layer,
 // as needed. You cannot use this action with instances that were created with
-// AWS OpsWorks.
+// AWS OpsWorks Stacks.
 //
 // Required Permissions: To use this action, an IAM user must have a Manage
 // permissions level for the stack or an attached policy that explicitly grants
@@ -6828,7 +6840,7 @@ func (s AttachElasticLoadBalancerOutput) GoString() string {
 }
 
 // Describes a load-based auto scaling upscaling or downscaling threshold configuration,
-// which specifies when AWS OpsWorks starts or stops load-based instances.
+// which specifies when AWS OpsWorks Stacks starts or stops load-based instances.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/AutoScalingThresholds
 type AutoScalingThresholds struct {
 	_ struct{} `type:"structure"`
@@ -6838,9 +6850,9 @@ type AutoScalingThresholds struct {
 	// be in the same region as the stack.
 	//
 	// To use custom alarms, you must update your service role to allow cloudwatch:DescribeAlarms.
-	// You can either have AWS OpsWorks update the role for you when you first use
-	// this feature or you can edit the role manually. For more information, see
-	// Allowing AWS OpsWorks to Act on Your Behalf (http://docs.aws.amazon.com/opsworks/latest/userguide/opsworks-security-servicerole.html).
+	// You can either have AWS OpsWorks Stacks update the role for you when you
+	// first use this feature or you can edit the role manually. For more information,
+	// see Allowing AWS OpsWorks Stacks to Act on Your Behalf (http://docs.aws.amazon.com/opsworks/latest/userguide/opsworks-security-servicerole.html).
 	Alarms []*string `type:"list"`
 
 	// The CPU utilization threshold, as a percent of the available CPU. A value
@@ -6848,13 +6860,13 @@ type AutoScalingThresholds struct {
 	CpuThreshold *float64 `type:"double"`
 
 	// The amount of time (in minutes) after a scaling event occurs that AWS OpsWorks
-	// should ignore metrics and suppress additional scaling events. For example,
-	// AWS OpsWorks adds new instances following an upscaling event but the instances
-	// won't start reducing the load until they have been booted and configured.
-	// There is no point in raising additional scaling events during that operation,
-	// which typically takes several minutes. IgnoreMetricsTime allows you to direct
-	// AWS OpsWorks to suppress scaling events long enough to get the new instances
-	// online.
+	// Stacks should ignore metrics and suppress additional scaling events. For
+	// example, AWS OpsWorks Stacks adds new instances following an upscaling event
+	// but the instances won't start reducing the load until they have been booted
+	// and configured. There is no point in raising additional scaling events during
+	// that operation, which typically takes several minutes. IgnoreMetricsTime
+	// allows you to direct AWS OpsWorks Stacks to suppress scaling events long
+	// enough to get the new instances online.
 	IgnoreMetricsTime *int64 `min:"1" type:"integer"`
 
 	// The number of instances to add or remove when the load exceeds a threshold.
@@ -6950,7 +6962,7 @@ type BlockDeviceMapping struct {
 
 	// The device name that is exposed to the instance, such as /dev/sdh. For the
 	// root device, you can use the explicit device name or you can set this parameter
-	// to ROOT_DEVICE and AWS OpsWorks will provide the correct device name.
+	// to ROOT_DEVICE and AWS OpsWorks Stacks will provide the correct device name.
 	DeviceName *string `type:"string"`
 
 	// An EBSBlockDevice that defines how to configure an Amazon EBS volume when
@@ -7036,20 +7048,21 @@ func (s *ChefConfiguration) SetManageBerkshelf(v bool) *ChefConfiguration {
 type CloneStackInput struct {
 	_ struct{} `type:"structure"`
 
-	// The default AWS OpsWorks agent version. You have the following options:
+	// The default AWS OpsWorks Stacks agent version. You have the following options:
 	//
-	//    * Auto-update - Set this parameter to LATEST. AWS OpsWorks automatically
+	//    * Auto-update - Set this parameter to LATEST. AWS OpsWorks Stacks automatically
 	//    installs new agent versions on the stack's instances as soon as they are
 	//    available.
 	//
 	//    * Fixed version - Set this parameter to your preferred agent version.
 	//    To update the agent version, you must edit the stack configuration and
-	//    specify a new version. AWS OpsWorks then automatically installs that version
-	//    on the stack's instances.
+	//    specify a new version. AWS OpsWorks Stacks then automatically installs
+	//    that version on the stack's instances.
 	//
 	// The default setting is LATEST. To specify an agent version, you must use
 	// the complete version number, not the abbreviated number shown on the console.
 	// For a list of available agent version numbers, call DescribeAgentVersions.
+	// AgentVersion cannot be set to Chef 12.2.
 	//
 	// You can also specify an agent version when you create or update an instance,
 	// which overrides the stack's default setting.
@@ -7105,12 +7118,13 @@ type CloneStackInput struct {
 	// The stack's operating system, which must be set to one of the following.
 	//
 	//    * A supported Linux operating system: An Amazon Linux version, such as
-	//    Amazon Linux 2016.03, Amazon Linux 2015.09, or Amazon Linux 2015.03.
+	//    Amazon Linux 2016.09, Amazon Linux 2016.03, Amazon Linux 2015.09, or Amazon
+	//    Linux 2015.03.
 	//
 	//    * A supported Ubuntu operating system, such as Ubuntu 16.04 LTS, Ubuntu
 	//    14.04 LTS, or Ubuntu 12.04 LTS.
 	//
-	//    * CentOS 7
+	//    * CentOS Linux 7
 	//
 	//    * Red Hat Enterprise Linux 7
 	//
@@ -7123,7 +7137,8 @@ type CloneStackInput struct {
 	//    OpsWorks, see Using Custom AMIs (http://docs.aws.amazon.com/opsworks/latest/userguide/workinginstances-custom-ami.html).
 	//
 	// The default option is the parent stack's operating system. For more information
-	// on the supported operating systems, see AWS OpsWorks Operating Systems (http://docs.aws.amazon.com/opsworks/latest/userguide/workinginstances-os.html).
+	// on the supported operating systems, see AWS OpsWorks Stacks Operating Systems
+	// (http://docs.aws.amazon.com/opsworks/latest/userguide/workinginstances-os.html).
 	//
 	// You can specify a different Linux operating system for the cloned stack,
 	// but you cannot change from Linux to Windows or Windows to Linux.
@@ -7190,11 +7205,12 @@ type CloneStackInput struct {
 	Region *string `type:"string"`
 
 	// The stack AWS Identity and Access Management (IAM) role, which allows AWS
-	// OpsWorks to work with AWS resources on your behalf. You must set this parameter
-	// to the Amazon Resource Name (ARN) for an existing IAM role. If you create
-	// a stack by using the AWS OpsWorks console, it creates the role for you. You
-	// can obtain an existing stack's IAM ARN programmatically by calling DescribePermissions.
-	// For more information about IAM ARNs, see Using Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html).
+	// OpsWorks Stacks to work with AWS resources on your behalf. You must set this
+	// parameter to the Amazon Resource Name (ARN) for an existing IAM role. If
+	// you create a stack by using the AWS OpsWorks Stacks console, it creates the
+	// role for you. You can obtain an existing stack's IAM ARN programmatically
+	// by calling DescribePermissions. For more information about IAM ARNs, see
+	// Using Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html).
 	//
 	// You must set this parameter to a valid service role ARN or the action will
 	// fail; there is no default value. You can specify the source stack's service
@@ -7211,25 +7227,25 @@ type CloneStackInput struct {
 	// Whether to use custom cookbooks.
 	UseCustomCookbooks *bool `type:"boolean"`
 
-	// Whether to associate the AWS OpsWorks built-in security groups with the stack's
-	// layers.
+	// Whether to associate the AWS OpsWorks Stacks built-in security groups with
+	// the stack's layers.
 	//
-	// AWS OpsWorks provides a standard set of built-in security groups, one for
-	// each layer, which are associated with layers by default. With UseOpsworksSecurityGroups
+	// AWS OpsWorks Stacks provides a standard set of built-in security groups,
+	// one for each layer, which are associated with layers by default. With UseOpsworksSecurityGroups
 	// you can instead provide your own custom security groups. UseOpsworksSecurityGroups
 	// has the following settings:
 	//
-	//    * True - AWS OpsWorks automatically associates the appropriate built-in
-	//    security group with each layer (default setting). You can associate additional
-	//    security groups with a layer after you create it but you cannot delete
-	//    the built-in security group.
+	//    * True - AWS OpsWorks Stacks automatically associates the appropriate
+	//    built-in security group with each layer (default setting). You can associate
+	//    additional security groups with a layer after you create it but you cannot
+	//    delete the built-in security group.
 	//
-	//    * False - AWS OpsWorks does not associate built-in security groups with
-	//    layers. You must create appropriate Amazon Elastic Compute Cloud (Amazon
-	//    EC2) security groups and associate a security group with each layer that
-	//    you create. However, you can still manually associate a built-in security
-	//    group with a layer on creation; custom security groups are required only
-	//    for those layers that need custom settings.
+	//    * False - AWS OpsWorks Stacks does not associate built-in security groups
+	//    with layers. You must create appropriate Amazon Elastic Compute Cloud
+	//    (Amazon EC2) security groups and associate a security group with each
+	//    layer that you create. However, you can still manually associate a built-in
+	//    security group with a layer on creation; custom security groups are required
+	//    only for those layers that need custom settings.
 	//
 	// For more information, see Create a New Stack (http://docs.aws.amazon.com/opsworks/latest/userguide/workingstacks-creating.html).
 	UseOpsworksSecurityGroups *bool `type:"boolean"`
@@ -7245,9 +7261,10 @@ type CloneStackInput struct {
 	//
 	// If the VPC ID corresponds to a default VPC and you have specified either
 	// the DefaultAvailabilityZone or the DefaultSubnetId parameter only, AWS OpsWorks
-	// infers the value of the other parameter. If you specify neither parameter,
-	// AWS OpsWorks sets these parameters to the first valid Availability Zone for
-	// the specified region and the corresponding default VPC subnet ID, respectively.
+	// Stacks infers the value of the other parameter. If you specify neither parameter,
+	// AWS OpsWorks Stacks sets these parameters to the first valid Availability
+	// Zone for the specified region and the corresponding default VPC subnet ID,
+	// respectively.
 	//
 	// If you specify a nondefault VPC ID, note the following:
 	//
@@ -7255,8 +7272,8 @@ type CloneStackInput struct {
 	//
 	//    * You must specify a value for DefaultSubnetId.
 	//
-	// For more information on how to use AWS OpsWorks with a VPC, see Running a
-	// Stack in a VPC (http://docs.aws.amazon.com/opsworks/latest/userguide/workingstacks-vpc.html).
+	// For more information on how to use AWS OpsWorks Stacks with a VPC, see Running
+	// a Stack in a VPC (http://docs.aws.amazon.com/opsworks/latest/userguide/workingstacks-vpc.html).
 	// For more information on default VPC and EC2 Classic, see Supported Platforms
 	// (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-supported-platforms.html).
 	VpcId *string `type:"string"`
@@ -7442,6 +7459,185 @@ func (s CloneStackOutput) GoString() string {
 // SetStackId sets the StackId field's value.
 func (s *CloneStackOutput) SetStackId(v string) *CloneStackOutput {
 	s.StackId = &v
+	return s
+}
+
+// Describes the Amazon CloudWatch logs configuration for a layer.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/CloudWatchLogsConfiguration
+type CloudWatchLogsConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// Whether CloudWatch Logs is enabled for a layer.
+	Enabled *bool `type:"boolean"`
+
+	// A list of configuration options for CloudWatch Logs.
+	LogStreams []*CloudWatchLogsLogStream `type:"list"`
+}
+
+// String returns the string representation
+func (s CloudWatchLogsConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CloudWatchLogsConfiguration) GoString() string {
+	return s.String()
+}
+
+// SetEnabled sets the Enabled field's value.
+func (s *CloudWatchLogsConfiguration) SetEnabled(v bool) *CloudWatchLogsConfiguration {
+	s.Enabled = &v
+	return s
+}
+
+// SetLogStreams sets the LogStreams field's value.
+func (s *CloudWatchLogsConfiguration) SetLogStreams(v []*CloudWatchLogsLogStream) *CloudWatchLogsConfiguration {
+	s.LogStreams = v
+	return s
+}
+
+// Describes the Amazon CloudWatch logs configuration for a layer. For detailed
+// information about members of this data type, see the CloudWatch Logs Agent
+// Reference (http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/AgentReference.html).
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/CloudWatchLogsLogStream
+type CloudWatchLogsLogStream struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies the max number of log events in a batch, up to 10000. The default
+	// value is 1000.
+	BatchCount *int64 `type:"integer"`
+
+	// Specifies the maximum size of log events in a batch, in bytes, up to 1048576
+	// bytes. The default value is 32768 bytes. This size is calculated as the sum
+	// of all event messages in UTF-8, plus 26 bytes for each log event.
+	BatchSize *int64 `type:"integer"`
+
+	// Specifies the time duration for the batching of log events. The minimum value
+	// is 5000ms and default value is 5000ms.
+	BufferDuration *int64 `type:"integer"`
+
+	// Specifies how the time stamp is extracted from logs. For more information,
+	// see the CloudWatch Logs Agent Reference (http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/AgentReference.html).
+	DatetimeFormat *string `type:"string"`
+
+	// Specifies the encoding of the log file so that the file can be read correctly.
+	// The default is utf_8. Encodings supported by Python codecs.decode() can be
+	// used here.
+	Encoding *string `type:"string" enum:"CloudWatchLogsEncoding"`
+
+	// Specifies log files that you want to push to CloudWatch Logs.
+	//
+	// File can point to a specific file or multiple files (by using wild card characters
+	// such as /var/log/system.log*). Only the latest file is pushed to CloudWatch
+	// Logs, based on file modification time. We recommend that you use wild card
+	// characters to specify a series of files of the same type, such as access_log.2014-06-01-01,
+	// access_log.2014-06-01-02, and so on by using a pattern like access_log.*.
+	// Don't use a wildcard to match multiple file types, such as access_log_80
+	// and access_log_443. To specify multiple, different file types, add another
+	// log stream entry to the configuration file, so that each log file type is
+	// stored in a different log group.
+	//
+	// Zipped files are not supported.
+	File *string `type:"string"`
+
+	// Specifies the range of lines for identifying a file. The valid values are
+	// one number, or two dash-delimited numbers, such as '1', '2-5'. The default
+	// value is '1', meaning the first line is used to calculate the fingerprint.
+	// Fingerprint lines are not sent to CloudWatch Logs unless all specified lines
+	// are available.
+	FileFingerprintLines *string `type:"string"`
+
+	// Specifies where to start to read data (start_of_file or end_of_file). The
+	// default is start_of_file. This setting is only used if there is no state
+	// persisted for that log stream.
+	InitialPosition *string `type:"string" enum:"CloudWatchLogsInitialPosition"`
+
+	// Specifies the destination log group. A log group is created automatically
+	// if it doesn't already exist. Log group names can be between 1 and 512 characters
+	// long. Allowed characters include a-z, A-Z, 0-9, '_' (underscore), '-' (hyphen),
+	// '/' (forward slash), and '.' (period).
+	LogGroupName *string `type:"string"`
+
+	// Specifies the pattern for identifying the start of a log message.
+	MultiLineStartPattern *string `type:"string"`
+
+	// Specifies the time zone of log event time stamps.
+	TimeZone *string `type:"string" enum:"CloudWatchLogsTimeZone"`
+}
+
+// String returns the string representation
+func (s CloudWatchLogsLogStream) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CloudWatchLogsLogStream) GoString() string {
+	return s.String()
+}
+
+// SetBatchCount sets the BatchCount field's value.
+func (s *CloudWatchLogsLogStream) SetBatchCount(v int64) *CloudWatchLogsLogStream {
+	s.BatchCount = &v
+	return s
+}
+
+// SetBatchSize sets the BatchSize field's value.
+func (s *CloudWatchLogsLogStream) SetBatchSize(v int64) *CloudWatchLogsLogStream {
+	s.BatchSize = &v
+	return s
+}
+
+// SetBufferDuration sets the BufferDuration field's value.
+func (s *CloudWatchLogsLogStream) SetBufferDuration(v int64) *CloudWatchLogsLogStream {
+	s.BufferDuration = &v
+	return s
+}
+
+// SetDatetimeFormat sets the DatetimeFormat field's value.
+func (s *CloudWatchLogsLogStream) SetDatetimeFormat(v string) *CloudWatchLogsLogStream {
+	s.DatetimeFormat = &v
+	return s
+}
+
+// SetEncoding sets the Encoding field's value.
+func (s *CloudWatchLogsLogStream) SetEncoding(v string) *CloudWatchLogsLogStream {
+	s.Encoding = &v
+	return s
+}
+
+// SetFile sets the File field's value.
+func (s *CloudWatchLogsLogStream) SetFile(v string) *CloudWatchLogsLogStream {
+	s.File = &v
+	return s
+}
+
+// SetFileFingerprintLines sets the FileFingerprintLines field's value.
+func (s *CloudWatchLogsLogStream) SetFileFingerprintLines(v string) *CloudWatchLogsLogStream {
+	s.FileFingerprintLines = &v
+	return s
+}
+
+// SetInitialPosition sets the InitialPosition field's value.
+func (s *CloudWatchLogsLogStream) SetInitialPosition(v string) *CloudWatchLogsLogStream {
+	s.InitialPosition = &v
+	return s
+}
+
+// SetLogGroupName sets the LogGroupName field's value.
+func (s *CloudWatchLogsLogStream) SetLogGroupName(v string) *CloudWatchLogsLogStream {
+	s.LogGroupName = &v
+	return s
+}
+
+// SetMultiLineStartPattern sets the MultiLineStartPattern field's value.
+func (s *CloudWatchLogsLogStream) SetMultiLineStartPattern(v string) *CloudWatchLogsLogStream {
+	s.MultiLineStartPattern = &v
+	return s
+}
+
+// SetTimeZone sets the TimeZone field's value.
+func (s *CloudWatchLogsLogStream) SetTimeZone(v string) *CloudWatchLogsLogStream {
+	s.TimeZone = &v
 	return s
 }
 
@@ -7636,9 +7832,9 @@ type CreateAppInput struct {
 
 	// The app type. Each supported type is associated with a particular layer.
 	// For example, PHP applications are associated with a PHP layer. AWS OpsWorks
-	// deploys an application to those instances that are members of the corresponding
-	// layer. If your app isn't one of the standard types, or you prefer to implement
-	// your own Deploy recipes, specify other.
+	// Stacks deploys an application to those instances that are members of the
+	// corresponding layer. If your app isn't one of the standard types, or you
+	// prefer to implement your own Deploy recipes, specify other.
 	//
 	// Type is a required field
 	Type *string `type:"string" required:"true" enum:"AppType"`
@@ -7927,18 +8123,19 @@ func (s *CreateDeploymentOutput) SetDeploymentId(v string) *CreateDeploymentOutp
 type CreateInstanceInput struct {
 	_ struct{} `type:"structure"`
 
-	// The default AWS OpsWorks agent version. You have the following options:
+	// The default AWS OpsWorks Stacks agent version. You have the following options:
 	//
 	//    * INHERIT - Use the stack's default agent version setting.
 	//
 	//    * version_number - Use the specified agent version. This value overrides
 	//    the stack's default setting. To update the agent version, edit the instance
-	//    configuration and specify a new version. AWS OpsWorks then automatically
+	//    configuration and specify a new version. AWS OpsWorks Stacks then automatically
 	//    installs that version on the instance.
 	//
 	// The default setting is INHERIT. To specify an agent version, you must use
 	// the complete version number, not the abbreviated number shown on the console.
 	// For a list of available agent version numbers, call DescribeAgentVersions.
+	// AgentVersion cannot be set to Chef 12.2.
 	AgentVersion *string `type:"string"`
 
 	// A custom AMI ID to be used to create the instance. The AMI should be based
@@ -8001,12 +8198,13 @@ type CreateInstanceInput struct {
 	// The instance's operating system, which must be set to one of the following.
 	//
 	//    * A supported Linux operating system: An Amazon Linux version, such as
-	//    Amazon Linux 2016.03, Amazon Linux 2015.09, or Amazon Linux 2015.03.
+	//    Amazon Linux 2016.09, Amazon Linux 2016.03, Amazon Linux 2015.09, or Amazon
+	//    Linux 2015.03.
 	//
 	//    * A supported Ubuntu operating system, such as Ubuntu 16.04 LTS, Ubuntu
 	//    14.04 LTS, or Ubuntu 12.04 LTS.
 	//
-	//    * CentOS 7
+	//    * CentOS Linux 7
 	//
 	//    * Red Hat Enterprise Linux 7
 	//
@@ -8018,15 +8216,15 @@ type CreateInstanceInput struct {
 	//    * A custom AMI: Custom.
 	//
 	// For more information on the supported operating systems, see AWS OpsWorks
-	// Operating Systems (http://docs.aws.amazon.com/opsworks/latest/userguide/workinginstances-os.html).
+	// Stacks Operating Systems (http://docs.aws.amazon.com/opsworks/latest/userguide/workinginstances-os.html).
 	//
 	// The default option is the current Amazon Linux version. If you set this parameter
 	// to Custom, you must use the CreateInstance action's AmiId parameter to specify
 	// the custom AMI that you want to use. Block device mappings are not supported
 	// if the value is Custom. For more information on the supported operating systems,
 	// see Operating Systems (http://docs.aws.amazon.com/opsworks/latest/userguide/workinginstances-os.html)For
-	// more information on how to use custom AMIs with AWS OpsWorks, see Using Custom
-	// AMIs (http://docs.aws.amazon.com/opsworks/latest/userguide/workinginstances-custom-ami.html).
+	// more information on how to use custom AMIs with AWS OpsWorks Stacks, see
+	// Using Custom AMIs (http://docs.aws.amazon.com/opsworks/latest/userguide/workinginstances-custom-ami.html).
 	Os *string `type:"string"`
 
 	// The instance root device type. For more information, see Storage for the
@@ -8043,7 +8241,7 @@ type CreateInstanceInput struct {
 
 	// The ID of the instance's subnet. If the stack is running in a VPC, you can
 	// use this parameter to override the stack's default subnet ID value and direct
-	// AWS OpsWorks to launch the instance in a different subnet.
+	// AWS OpsWorks Stacks to launch the instance in a different subnet.
 	SubnetId *string `type:"string"`
 
 	// The instance's tenancy option. The default option is no tenancy, or if the
@@ -8243,6 +8441,10 @@ type CreateLayerInput struct {
 	// a Layer (http://docs.aws.amazon.com/opsworks/latest/userguide/workinglayers-basics-edit.html).
 	AutoAssignPublicIps *bool `type:"boolean"`
 
+	// Specifies CloudWatch Logs configuration options for the layer. For more information,
+	// see CloudWatchLogsLogStream.
+	CloudWatchLogsConfiguration *CloudWatchLogsConfiguration `type:"structure"`
+
 	// The ARN of an IAM profile to be used for the layer's EC2 instances. For more
 	// information about IAM ARNs, see Using Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html).
 	CustomInstanceProfileArn *string `type:"string"`
@@ -8286,13 +8488,13 @@ type CreateLayerInput struct {
 	Packages []*string `type:"list"`
 
 	// For custom layers only, use this parameter to specify the layer's short name,
-	// which is used internally by AWS OpsWorks and by Chef recipes. The short name
-	// is also used as the name for the directory where your app files are installed.
-	// It can have a maximum of 200 characters, which are limited to the alphanumeric
-	// characters, '-', '_', and '.'.
+	// which is used internally by AWS OpsWorks Stacks and by Chef recipes. The
+	// short name is also used as the name for the directory where your app files
+	// are installed. It can have a maximum of 200 characters, which are limited
+	// to the alphanumeric characters, '-', '_', and '.'.
 	//
-	// The built-in layers' short names are defined by AWS OpsWorks. For more information,
-	// see the Layer Reference (http://docs.aws.amazon.com/opsworks/latest/userguide/layers.html).
+	// The built-in layers' short names are defined by AWS OpsWorks Stacks. For
+	// more information, see the Layer Reference (http://docs.aws.amazon.com/opsworks/latest/userguide/layers.html).
 	//
 	// Shortname is a required field
 	Shortname *string `type:"string" required:"true"`
@@ -8373,6 +8575,12 @@ func (s *CreateLayerInput) SetAutoAssignElasticIps(v bool) *CreateLayerInput {
 // SetAutoAssignPublicIps sets the AutoAssignPublicIps field's value.
 func (s *CreateLayerInput) SetAutoAssignPublicIps(v bool) *CreateLayerInput {
 	s.AutoAssignPublicIps = &v
+	return s
+}
+
+// SetCloudWatchLogsConfiguration sets the CloudWatchLogsConfiguration field's value.
+func (s *CreateLayerInput) SetCloudWatchLogsConfiguration(v *CloudWatchLogsConfiguration) *CreateLayerInput {
+	s.CloudWatchLogsConfiguration = v
 	return s
 }
 
@@ -8489,21 +8697,21 @@ func (s *CreateLayerOutput) SetLayerId(v string) *CreateLayerOutput {
 type CreateStackInput struct {
 	_ struct{} `type:"structure"`
 
-	// The default AWS OpsWorks agent version. You have the following options:
+	// The default AWS OpsWorks Stacks agent version. You have the following options:
 	//
-	//    * Auto-update - Set this parameter to LATEST. AWS OpsWorks automatically
+	//    * Auto-update - Set this parameter to LATEST. AWS OpsWorks Stacks automatically
 	//    installs new agent versions on the stack's instances as soon as they are
 	//    available.
 	//
 	//    * Fixed version - Set this parameter to your preferred agent version.
 	//    To update the agent version, you must edit the stack configuration and
-	//    specify a new version. AWS OpsWorks then automatically installs that version
-	//    on the stack's instances.
+	//    specify a new version. AWS OpsWorks Stacks then automatically installs
+	//    that version on the stack's instances.
 	//
 	// The default setting is the most recent release of the agent. To specify an
 	// agent version, you must use the complete version number, not the abbreviated
 	// number shown on the console. For a list of available agent version numbers,
-	// call DescribeAgentVersions.
+	// call DescribeAgentVersions. AgentVersion cannot be set to Chef 12.2.
 	//
 	// You can also specify an agent version when you create or update an instance,
 	// which overrides the stack's default setting.
@@ -8556,12 +8764,13 @@ type CreateStackInput struct {
 	// You can specify one of the following.
 	//
 	//    * A supported Linux operating system: An Amazon Linux version, such as
-	//    Amazon Linux 2016.03, Amazon Linux 2015.09, or Amazon Linux 2015.03.
+	//    Amazon Linux 2016.09, Amazon Linux 2016.03, Amazon Linux 2015.09, or Amazon
+	//    Linux 2015.03.
 	//
 	//    * A supported Ubuntu operating system, such as Ubuntu 16.04 LTS, Ubuntu
 	//    14.04 LTS, or Ubuntu 12.04 LTS.
 	//
-	//    * CentOS 7
+	//    * CentOS Linux 7
 	//
 	//    * Red Hat Enterprise Linux 7
 	//
@@ -8574,7 +8783,8 @@ type CreateStackInput struct {
 	//    you create instances. For more information, see  Using Custom AMIs (http://docs.aws.amazon.com/opsworks/latest/userguide/workinginstances-custom-ami.html).
 	//
 	// The default option is the current Amazon Linux version. For more information
-	// on the supported operating systems, see AWS OpsWorks Operating Systems (http://docs.aws.amazon.com/opsworks/latest/userguide/workinginstances-os.html).
+	// on the supported operating systems, see AWS OpsWorks Stacks Operating Systems
+	// (http://docs.aws.amazon.com/opsworks/latest/userguide/workinginstances-os.html).
 	DefaultOs *string `type:"string"`
 
 	// The default root device type. This value is the default for all instances
@@ -8643,9 +8853,9 @@ type CreateStackInput struct {
 	Region *string `type:"string" required:"true"`
 
 	// The stack's AWS Identity and Access Management (IAM) role, which allows AWS
-	// OpsWorks to work with AWS resources on your behalf. You must set this parameter
-	// to the Amazon Resource Name (ARN) for an existing IAM role. For more information
-	// about IAM ARNs, see Using Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html).
+	// OpsWorks Stacks to work with AWS resources on your behalf. You must set this
+	// parameter to the Amazon Resource Name (ARN) for an existing IAM role. For
+	// more information about IAM ARNs, see Using Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html).
 	//
 	// ServiceRoleArn is a required field
 	ServiceRoleArn *string `type:"string" required:"true"`
@@ -8653,21 +8863,21 @@ type CreateStackInput struct {
 	// Whether the stack uses custom cookbooks.
 	UseCustomCookbooks *bool `type:"boolean"`
 
-	// Whether to associate the AWS OpsWorks built-in security groups with the stack's
-	// layers.
+	// Whether to associate the AWS OpsWorks Stacks built-in security groups with
+	// the stack's layers.
 	//
-	// AWS OpsWorks provides a standard set of built-in security groups, one for
-	// each layer, which are associated with layers by default. With UseOpsworksSecurityGroups
+	// AWS OpsWorks Stacks provides a standard set of built-in security groups,
+	// one for each layer, which are associated with layers by default. With UseOpsworksSecurityGroups
 	// you can instead provide your own custom security groups. UseOpsworksSecurityGroups
 	// has the following settings:
 	//
-	//    * True - AWS OpsWorks automatically associates the appropriate built-in
-	//    security group with each layer (default setting). You can associate additional
-	//    security groups with a layer after you create it, but you cannot delete
-	//    the built-in security group.
+	//    * True - AWS OpsWorks Stacks automatically associates the appropriate
+	//    built-in security group with each layer (default setting). You can associate
+	//    additional security groups with a layer after you create it, but you cannot
+	//    delete the built-in security group.
 	//
-	//    * False - AWS OpsWorks does not associate built-in security groups with
-	//    layers. You must create appropriate EC2 security groups and associate
+	//    * False - AWS OpsWorks Stacks does not associate built-in security groups
+	//    with layers. You must create appropriate EC2 security groups and associate
 	//    a security group with each layer that you create. However, you can still
 	//    manually associate a built-in security group with a layer on creation;
 	//    custom security groups are required only for those layers that need custom
@@ -8687,9 +8897,10 @@ type CreateStackInput struct {
 	//
 	// If the VPC ID corresponds to a default VPC and you have specified either
 	// the DefaultAvailabilityZone or the DefaultSubnetId parameter only, AWS OpsWorks
-	// infers the value of the other parameter. If you specify neither parameter,
-	// AWS OpsWorks sets these parameters to the first valid Availability Zone for
-	// the specified region and the corresponding default VPC subnet ID, respectively.
+	// Stacks infers the value of the other parameter. If you specify neither parameter,
+	// AWS OpsWorks Stacks sets these parameters to the first valid Availability
+	// Zone for the specified region and the corresponding default VPC subnet ID,
+	// respectively.
 	//
 	// If you specify a nondefault VPC ID, note the following:
 	//
@@ -8697,8 +8908,8 @@ type CreateStackInput struct {
 	//
 	//    * You must specify a value for DefaultSubnetId.
 	//
-	// For more information on how to use AWS OpsWorks with a VPC, see Running a
-	// Stack in a VPC (http://docs.aws.amazon.com/opsworks/latest/userguide/workingstacks-vpc.html).
+	// For more information on how to use AWS OpsWorks Stacks with a VPC, see Running
+	// a Stack in a VPC (http://docs.aws.amazon.com/opsworks/latest/userguide/workingstacks-vpc.html).
 	// For more information on default VPC and EC2-Classic, see Supported Platforms
 	// (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-supported-platforms.html).
 	VpcId *string `type:"string"`
@@ -8894,9 +9105,9 @@ type CreateUserProfileInput struct {
 
 	// The user's SSH user name. The allowable characters are [a-z], [A-Z], [0-9],
 	// '-', and '_'. If the specified name includes other punctuation marks, AWS
-	// OpsWorks removes them. For example, my.name will be changed to myname. If
-	// you do not specify an SSH user name, AWS OpsWorks generates one from the
-	// IAM user name.
+	// OpsWorks Stacks removes them. For example, my.name will be changed to myname.
+	// If you do not specify an SSH user name, AWS OpsWorks Stacks generates one
+	// from the IAM user name.
 	SshUsername *string `type:"string"`
 }
 
@@ -9458,9 +9669,9 @@ type DeploymentCommand struct {
 	//    whose OS you want to upgrade, such as Amazon Linux 2014.09. You must also
 	//    set the allow_reboot argument to true.
 	//
-	//    * allow_reboot - Specifies whether to allow AWS OpsWorks to reboot the
-	//    instances if necessary, after installing the updates. This argument can
-	//    be set to either true or false. The default value is false.
+	//    * allow_reboot - Specifies whether to allow AWS OpsWorks Stacks to reboot
+	//    the instances if necessary, after installing the updates. This argument
+	//    can be set to either true or false. The default value is false.
 	//
 	// For example, to upgrade an instance to Amazon Linux 2014.09, set Args to
 	// the following.
@@ -9493,9 +9704,9 @@ type DeploymentCommand struct {
 	//    The default setting is {"migrate":["false"]}.
 	//
 	//    * rollback Roll the app back to the previous version. When you update
-	//    an app, AWS OpsWorks stores the previous version, up to a maximum of five
-	//    versions. You can use this command to roll an app back as many as four
-	//    versions.
+	//    an app, AWS OpsWorks Stacks stores the previous version, up to a maximum
+	//    of five versions. You can use this command to roll an app back as many
+	//    as four versions.
 	//
 	//    * start: Start the app's web or application server.
 	//
@@ -9764,9 +9975,9 @@ func (s DeregisterRdsDbInstanceOutput) GoString() string {
 type DeregisterVolumeInput struct {
 	_ struct{} `type:"structure"`
 
-	// The AWS OpsWorks volume ID, which is the GUID that AWS OpsWorks assigned
-	// to the instance when you registered the volume with the stack, not the Amazon
-	// EC2 volume ID.
+	// The AWS OpsWorks Stacks volume ID, which is the GUID that AWS OpsWorks Stacks
+	// assigned to the instance when you registered the volume with the stack, not
+	// the Amazon EC2 volume ID.
 	//
 	// VolumeId is a required field
 	VolumeId *string `type:"string" required:"true"`
@@ -10871,7 +11082,7 @@ func (s *DescribeStackProvisioningParametersInput) SetStackId(v string) *Describ
 type DescribeStackProvisioningParametersOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The AWS OpsWorks agent installer's URL.
+	// The AWS OpsWorks Stacks agent installer's URL.
 	AgentInstallerUrl *string `type:"string"`
 
 	// An embedded object that contains the provisioning parameters.
@@ -11755,7 +11966,7 @@ func (s *GetHostnameSuggestionOutput) SetLayerId(v string) *GetHostnameSuggestio
 type GrantAccessInput struct {
 	_ struct{} `type:"structure"`
 
-	// The instance's AWS OpsWorks ID.
+	// The instance's AWS OpsWorks Stacks ID.
 	//
 	// InstanceId is a required field
 	InstanceId *string `type:"string" required:"true"`
@@ -11929,7 +12140,7 @@ type Instance struct {
 	// For registered instances, who performed the registration.
 	RegisteredBy *string `type:"string"`
 
-	// The instance's reported AWS OpsWorks agent version.
+	// The instance's reported AWS OpsWorks Stacks agent version.
 	ReportedAgentVersion *string `type:"string"`
 
 	// For registered instances, the reported operating system.
@@ -12480,10 +12691,10 @@ type Layer struct {
 	// The layer attributes.
 	//
 	// For the HaproxyStatsPassword, MysqlRootPassword, and GangliaPassword attributes,
-	// AWS OpsWorks returns *****FILTERED***** instead of the actual value
+	// AWS OpsWorks Stacks returns *****FILTERED***** instead of the actual value
 	//
-	// For an ECS Cluster layer, AWS OpsWorks the EcsClusterArn attribute is set
-	// to the cluster's ARN.
+	// For an ECS Cluster layer, AWS OpsWorks Stacks the EcsClusterArn attribute
+	// is set to the cluster's ARN.
 	Attributes map[string]*string `type:"map"`
 
 	// Whether to automatically assign an Elastic IP address (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html)
@@ -12494,6 +12705,9 @@ type Layer struct {
 	// IP address to the layer's instances. For more information, see How to Edit
 	// a Layer (http://docs.aws.amazon.com/opsworks/latest/userguide/workinglayers-basics-edit.html).
 	AutoAssignPublicIps *bool `type:"boolean"`
+
+	// The Amazon CloudWatch Logs configuration settings for the layer.
+	CloudWatchLogsConfiguration *CloudWatchLogsConfiguration `type:"structure"`
 
 	// Date when the layer was created.
 	CreatedAt *string `type:"string"`
@@ -12512,12 +12726,13 @@ type Layer struct {
 	// An array containing the layer's custom security group IDs.
 	CustomSecurityGroupIds []*string `type:"list"`
 
-	// AWS OpsWorks supports five lifecycle events: setup, configuration, deploy,
-	// undeploy, and shutdown. For each layer, AWS OpsWorks runs a set of standard
-	// recipes for each event. In addition, you can provide custom recipes for any
-	// or all layers and events. AWS OpsWorks runs custom event recipes after the
-	// standard recipes. LayerCustomRecipes specifies the custom recipes for a particular
-	// layer to be run in response to each of the five events.
+	// AWS OpsWorks Stacks supports five lifecycle events: setup, configuration,
+	// deploy, undeploy, and shutdown. For each layer, AWS OpsWorks Stacks runs
+	// a set of standard recipes for each event. In addition, you can provide custom
+	// recipes for any or all layers and events. AWS OpsWorks Stacks runs custom
+	// event recipes after the standard recipes. LayerCustomRecipes specifies the
+	// custom recipes for a particular layer to be run in response to each of the
+	// five events.
 	//
 	// To specify a recipe, use the cookbook's directory name in the repository
 	// followed by two colons and the recipe name, which is the recipe's file name
@@ -12594,6 +12809,12 @@ func (s *Layer) SetAutoAssignElasticIps(v bool) *Layer {
 // SetAutoAssignPublicIps sets the AutoAssignPublicIps field's value.
 func (s *Layer) SetAutoAssignPublicIps(v bool) *Layer {
 	s.AutoAssignPublicIps = &v
+	return s
+}
+
+// SetCloudWatchLogsConfiguration sets the CloudWatchLogsConfiguration field's value.
+func (s *Layer) SetCloudWatchLogsConfiguration(v *CloudWatchLogsConfiguration) *Layer {
+	s.CloudWatchLogsConfiguration = v
 	return s
 }
 
@@ -12736,7 +12957,7 @@ type LoadBasedAutoScalingConfiguration struct {
 	_ struct{} `type:"structure"`
 
 	// An AutoScalingThresholds object that describes the downscaling configuration,
-	// which defines how and when AWS OpsWorks reduces the number of instances.
+	// which defines how and when AWS OpsWorks Stacks reduces the number of instances.
 	DownScaling *AutoScalingThresholds `type:"structure"`
 
 	// Whether load-based auto scaling is enabled for the layer.
@@ -12746,7 +12967,7 @@ type LoadBasedAutoScalingConfiguration struct {
 	LayerId *string `type:"string"`
 
 	// An AutoScalingThresholds object that describes the upscaling configuration,
-	// which defines how and when AWS OpsWorks increases the number of instances.
+	// which defines how and when AWS OpsWorks Stacks increases the number of instances.
 	UpScaling *AutoScalingThresholds `type:"structure"`
 }
 
@@ -13004,7 +13225,7 @@ type RdsDbInstance struct {
 	// The DB instance identifier.
 	DbInstanceIdentifier *string `type:"string"`
 
-	// AWS OpsWorks returns *****FILTERED***** instead of the actual value.
+	// AWS OpsWorks Stacks returns *****FILTERED***** instead of the actual value.
 	DbPassword *string `type:"string"`
 
 	// The master user name.
@@ -13013,9 +13234,10 @@ type RdsDbInstance struct {
 	// The instance's database engine.
 	Engine *string `type:"string"`
 
-	// Set to true if AWS OpsWorks was unable to discover the Amazon RDS instance.
-	// AWS OpsWorks attempts to discover the instance only once. If this value is
-	// set to true, you must deregister the instance and then register it again.
+	// Set to true if AWS OpsWorks Stacks is unable to discover the Amazon RDS instance.
+	// AWS OpsWorks Stacks attempts to discover the instance only once. If this
+	// value is set to true, you must deregister the instance, and then register
+	// it again.
 	MissingOnRds *bool `type:"boolean"`
 
 	// The instance's ARN.
@@ -13024,7 +13246,7 @@ type RdsDbInstance struct {
 	// The instance's AWS region.
 	Region *string `type:"string"`
 
-	// The ID of the stack that the instance is registered with.
+	// The ID of the stack with which the instance is registered.
 	StackId *string `type:"string"`
 }
 
@@ -13146,12 +13368,13 @@ func (s RebootInstanceOutput) GoString() string {
 	return s.String()
 }
 
-// AWS OpsWorks supports five lifecycle events: setup, configuration, deploy,
-// undeploy, and shutdown. For each layer, AWS OpsWorks runs a set of standard
-// recipes for each event. In addition, you can provide custom recipes for any
-// or all layers and events. AWS OpsWorks runs custom event recipes after the
-// standard recipes. LayerCustomRecipes specifies the custom recipes for a particular
-// layer to be run in response to each of the five events.
+// AWS OpsWorks Stacks supports five lifecycle events: setup, configuration,
+// deploy, undeploy, and shutdown. For each layer, AWS OpsWorks Stacks runs
+// a set of standard recipes for each event. In addition, you can provide custom
+// recipes for any or all layers and events. AWS OpsWorks Stacks runs custom
+// event recipes after the standard recipes. LayerCustomRecipes specifies the
+// custom recipes for a particular layer to be run in response to each of the
+// five events.
 //
 // To specify a recipe, use the cookbook's directory name in the repository
 // followed by two colons and the recipe name, which is the recipe's file name
@@ -13472,7 +13695,7 @@ func (s *RegisterInstanceInput) SetStackId(v string) *RegisterInstanceInput {
 type RegisterInstanceOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The registered instance's AWS OpsWorks ID.
+	// The registered instance's AWS OpsWorks Stacks ID.
 	InstanceId *string `type:"string"`
 }
 
@@ -13756,7 +13979,7 @@ func (s *SelfUserProfile) SetSshUsername(v string) *SelfUserProfile {
 	return s
 }
 
-// Describes an AWS OpsWorks service error.
+// Describes an AWS OpsWorks Stacks service error.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/ServiceError
 type ServiceError struct {
 	_ struct{} `type:"structure"`
@@ -13832,7 +14055,7 @@ type SetLoadBasedAutoScalingInput struct {
 
 	// An AutoScalingThresholds object with the downscaling threshold configuration.
 	// If the load falls below these thresholds for a specified amount of time,
-	// AWS OpsWorks stops a specified number of instances.
+	// AWS OpsWorks Stacks stops a specified number of instances.
 	DownScaling *AutoScalingThresholds `type:"structure"`
 
 	// Enables load-based auto scaling for the layer.
@@ -13845,7 +14068,7 @@ type SetLoadBasedAutoScalingInput struct {
 
 	// An AutoScalingThresholds object with the upscaling threshold configuration.
 	// If the load exceeds these thresholds for a specified amount of time, AWS
-	// OpsWorks starts a specified number of instances.
+	// OpsWorks Stacks starts a specified number of instances.
 	UpScaling *AutoScalingThresholds `type:"structure"`
 }
 
@@ -14102,8 +14325,8 @@ type ShutdownEventConfiguration struct {
 	// see Connection Draining (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/TerminologyandKeyConcepts.html#conn-drain)
 	DelayUntilElbConnectionsDrained *bool `type:"boolean"`
 
-	// The time, in seconds, that AWS OpsWorks will wait after triggering a Shutdown
-	// event before shutting down an instance.
+	// The time, in seconds, that AWS OpsWorks Stacks will wait after triggering
+	// a Shutdown event before shutting down an instance.
 	ExecutionTimeout *int64 `type:"integer"`
 }
 
@@ -14146,20 +14369,20 @@ type Source struct {
 	// For more information on how to safely handle IAM credentials, see http://docs.aws.amazon.com/general/latest/gr/aws-access-keys-best-practices.html
 	// (http://docs.aws.amazon.com/general/latest/gr/aws-access-keys-best-practices.html).
 	//
-	// In responses, AWS OpsWorks returns *****FILTERED***** instead of the actual
-	// value.
+	// In responses, AWS OpsWorks Stacks returns *****FILTERED***** instead of the
+	// actual value.
 	Password *string `type:"string"`
 
-	// The application's version. AWS OpsWorks enables you to easily deploy new
-	// versions of an application. One of the simplest approaches is to have branches
-	// or revisions in your repository that represent different versions that can
-	// potentially be deployed.
+	// The application's version. AWS OpsWorks Stacks enables you to easily deploy
+	// new versions of an application. One of the simplest approaches is to have
+	// branches or revisions in your repository that represent different versions
+	// that can potentially be deployed.
 	Revision *string `type:"string"`
 
 	// In requests, the repository's SSH key.
 	//
-	// In responses, AWS OpsWorks returns *****FILTERED***** instead of the actual
-	// value.
+	// In responses, AWS OpsWorks Stacks returns *****FILTERED***** instead of the
+	// actual value.
 	SshKey *string `type:"string"`
 
 	// The repository type.
@@ -14372,8 +14595,8 @@ type Stack struct {
 	// Whether the stack uses custom cookbooks.
 	UseCustomCookbooks *bool `type:"boolean"`
 
-	// Whether the stack automatically associates the AWS OpsWorks built-in security
-	// groups with the stack's layers.
+	// Whether the stack automatically associates the AWS OpsWorks Stacks built-in
+	// security groups with the stack's layers.
 	UseOpsworksSecurityGroups *bool `type:"boolean"`
 
 	// The VPC ID; applicable only if the stack is running in a VPC.
@@ -14850,7 +15073,7 @@ func (s StopStackOutput) GoString() string {
 type TemporaryCredential struct {
 	_ struct{} `type:"structure"`
 
-	// The instance's AWS OpsWorks ID.
+	// The instance's AWS OpsWorks Stacks ID.
 	InstanceId *string `type:"string"`
 
 	// The password.
@@ -15282,18 +15505,20 @@ func (s UpdateElasticIpOutput) GoString() string {
 type UpdateInstanceInput struct {
 	_ struct{} `type:"structure"`
 
-	// The default AWS OpsWorks agent version. You have the following options:
+	// The default AWS OpsWorks Stacks agent version. You have the following options:
 	//
 	//    * INHERIT - Use the stack's default agent version setting.
 	//
 	//    * version_number - Use the specified agent version. This value overrides
 	//    the stack's default setting. To update the agent version, you must edit
-	//    the instance configuration and specify a new version. AWS OpsWorks then
-	//    automatically installs that version on the instance.
+	//    the instance configuration and specify a new version. AWS OpsWorks Stacks
+	//    then automatically installs that version on the instance.
 	//
 	// The default setting is INHERIT. To specify an agent version, you must use
 	// the complete version number, not the abbreviated number shown on the console.
 	// For a list of available agent version numbers, call DescribeAgentVersions.
+	//
+	// AgentVersion cannot be set to Chef 12.2.
 	AgentVersion *string `type:"string"`
 
 	// The ID of the AMI that was used to create the instance. The value of this
@@ -15347,12 +15572,13 @@ type UpdateInstanceInput struct {
 	// You cannot update an instance that is using a custom AMI.
 	//
 	//    * A supported Linux operating system: An Amazon Linux version, such as
-	//    Amazon Linux 2016.03, Amazon Linux 2015.09, or Amazon Linux 2015.03.
+	//    Amazon Linux 2016.09, Amazon Linux 2016.03, Amazon Linux 2015.09, or Amazon
+	//    Linux 2015.03.
 	//
 	//    * A supported Ubuntu operating system, such as Ubuntu 16.04 LTS, Ubuntu
 	//    14.04 LTS, or Ubuntu 12.04 LTS.
 	//
-	//    * CentOS 7
+	//    * CentOS Linux 7
 	//
 	//    * Red Hat Enterprise Linux 7
 	//
@@ -15362,7 +15588,7 @@ type UpdateInstanceInput struct {
 	//    Windows Server 2012 R2 with SQL Server Web.
 	//
 	// For more information on the supported operating systems, see AWS OpsWorks
-	// Operating Systems (http://docs.aws.amazon.com/opsworks/latest/userguide/workinginstances-os.html).
+	// Stacks Operating Systems (http://docs.aws.amazon.com/opsworks/latest/userguide/workinginstances-os.html).
 	//
 	// The default option is the current Amazon Linux version. If you set this parameter
 	// to Custom, you must use the AmiId parameter to specify the custom AMI that
@@ -15505,6 +15731,10 @@ type UpdateLayerInput struct {
 	// a Layer (http://docs.aws.amazon.com/opsworks/latest/userguide/workinglayers-basics-edit.html).
 	AutoAssignPublicIps *bool `type:"boolean"`
 
+	// Specifies CloudWatch Logs configuration options for the layer. For more information,
+	// see CloudWatchLogsLogStream.
+	CloudWatchLogsConfiguration *CloudWatchLogsConfiguration `type:"structure"`
+
 	// The ARN of an IAM profile to be used for all of the layer's EC2 instances.
 	// For more information about IAM ARNs, see Using Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html).
 	CustomInstanceProfileArn *string `type:"string"`
@@ -15547,13 +15777,13 @@ type UpdateLayerInput struct {
 	Packages []*string `type:"list"`
 
 	// For custom layers only, use this parameter to specify the layer's short name,
-	// which is used internally by AWS OpsWorksand by Chef. The short name is also
-	// used as the name for the directory where your app files are installed. It
-	// can have a maximum of 200 characters and must be in the following format:
+	// which is used internally by AWS OpsWorks Stacks and by Chef. The short name
+	// is also used as the name for the directory where your app files are installed.
+	// It can have a maximum of 200 characters and must be in the following format:
 	// /\A[a-z0-9\-\_\.]+\Z/.
 	//
-	// The built-in layers' short names are defined by AWS OpsWorks. For more information,
-	// see the Layer Reference (http://docs.aws.amazon.com/opsworks/latest/userguide/layers.html)
+	// The built-in layers' short names are defined by AWS OpsWorks Stacks. For
+	// more information, see the Layer Reference (http://docs.aws.amazon.com/opsworks/latest/userguide/layers.html)
 	Shortname *string `type:"string"`
 
 	// Whether to use Amazon EBS-optimized instances.
@@ -15611,6 +15841,12 @@ func (s *UpdateLayerInput) SetAutoAssignElasticIps(v bool) *UpdateLayerInput {
 // SetAutoAssignPublicIps sets the AutoAssignPublicIps field's value.
 func (s *UpdateLayerInput) SetAutoAssignPublicIps(v bool) *UpdateLayerInput {
 	s.AutoAssignPublicIps = &v
+	return s
+}
+
+// SetCloudWatchLogsConfiguration sets the CloudWatchLogsConfiguration field's value.
+func (s *UpdateLayerInput) SetCloudWatchLogsConfiguration(v *CloudWatchLogsConfiguration) *UpdateLayerInput {
+	s.CloudWatchLogsConfiguration = v
 	return s
 }
 
@@ -15822,20 +16058,21 @@ func (s UpdateRdsDbInstanceOutput) GoString() string {
 type UpdateStackInput struct {
 	_ struct{} `type:"structure"`
 
-	// The default AWS OpsWorks agent version. You have the following options:
+	// The default AWS OpsWorks Stacks agent version. You have the following options:
 	//
-	//    * Auto-update - Set this parameter to LATEST. AWS OpsWorks automatically
+	//    * Auto-update - Set this parameter to LATEST. AWS OpsWorks Stacks automatically
 	//    installs new agent versions on the stack's instances as soon as they are
 	//    available.
 	//
 	//    * Fixed version - Set this parameter to your preferred agent version.
 	//    To update the agent version, you must edit the stack configuration and
-	//    specify a new version. AWS OpsWorks then automatically installs that version
-	//    on the stack's instances.
+	//    specify a new version. AWS OpsWorks Stacks then automatically installs
+	//    that version on the stack's instances.
 	//
 	// The default setting is LATEST. To specify an agent version, you must use
 	// the complete version number, not the abbreviated number shown on the console.
 	// For a list of available agent version numbers, call DescribeAgentVersions.
+	// AgentVersion cannot be set to Chef 12.2.
 	//
 	// You can also specify an agent version when you create or update an instance,
 	// which overrides the stack's default setting.
@@ -15884,12 +16121,13 @@ type UpdateStackInput struct {
 	// The stack's operating system, which must be set to one of the following:
 	//
 	//    * A supported Linux operating system: An Amazon Linux version, such as
-	//    Amazon Linux 2016.03, Amazon Linux 2015.09, or Amazon Linux 2015.03.
+	//    Amazon Linux 2016.09, Amazon Linux 2016.03, Amazon Linux 2015.09, or Amazon
+	//    Linux 2015.03.
 	//
 	//    * A supported Ubuntu operating system, such as Ubuntu 16.04 LTS, Ubuntu
 	//    14.04 LTS, or Ubuntu 12.04 LTS.
 	//
-	//    * CentOS 7
+	//    * CentOS Linux 7
 	//
 	//    * Red Hat Enterprise Linux 7
 	//
@@ -15903,7 +16141,8 @@ type UpdateStackInput struct {
 	//    OpsWorks, see Using Custom AMIs (http://docs.aws.amazon.com/opsworks/latest/userguide/workinginstances-custom-ami.html).
 	//
 	// The default option is the stack's current operating system. For more information
-	// on the supported operating systems, see AWS OpsWorks Operating Systems (http://docs.aws.amazon.com/opsworks/latest/userguide/workinginstances-os.html).
+	// on the supported operating systems, see AWS OpsWorks Stacks Operating Systems
+	// (http://docs.aws.amazon.com/opsworks/latest/userguide/workinginstances-os.html).
 	DefaultOs *string `type:"string"`
 
 	// The default root device type. This value is used by default for all instances
@@ -15912,8 +16151,8 @@ type UpdateStackInput struct {
 	DefaultRootDeviceType *string `type:"string" enum:"RootDeviceType"`
 
 	// A default Amazon EC2 key-pair name. The default value is none. If you specify
-	// a key-pair name, AWS OpsWorks installs the public key on the instance and
-	// you can use the private key with an SSH client to log in to the instance.
+	// a key-pair name, AWS OpsWorks Stacks installs the public key on the instance
+	// and you can use the private key with an SSH client to log in to the instance.
 	// For more information, see  Using SSH to Communicate with an Instance (http://docs.aws.amazon.com/opsworks/latest/userguide/workinginstances-ssh.html)
 	// and  Managing SSH Access (http://docs.aws.amazon.com/opsworks/latest/userguide/security-ssh-access.html).
 	// You can override this setting by specifying a different key pair, or no key
@@ -15973,21 +16212,21 @@ type UpdateStackInput struct {
 	// Whether the stack uses custom cookbooks.
 	UseCustomCookbooks *bool `type:"boolean"`
 
-	// Whether to associate the AWS OpsWorks built-in security groups with the stack's
-	// layers.
+	// Whether to associate the AWS OpsWorks Stacks built-in security groups with
+	// the stack's layers.
 	//
-	// AWS OpsWorks provides a standard set of built-in security groups, one for
-	// each layer, which are associated with layers by default. UseOpsworksSecurityGroups
+	// AWS OpsWorks Stacks provides a standard set of built-in security groups,
+	// one for each layer, which are associated with layers by default. UseOpsworksSecurityGroups
 	// allows you to provide your own custom security groups instead of using the
 	// built-in groups. UseOpsworksSecurityGroups has the following settings:
 	//
-	//    * True - AWS OpsWorks automatically associates the appropriate built-in
-	//    security group with each layer (default setting). You can associate additional
-	//    security groups with a layer after you create it, but you cannot delete
-	//    the built-in security group.
+	//    * True - AWS OpsWorks Stacks automatically associates the appropriate
+	//    built-in security group with each layer (default setting). You can associate
+	//    additional security groups with a layer after you create it, but you cannot
+	//    delete the built-in security group.
 	//
-	//    * False - AWS OpsWorks does not associate built-in security groups with
-	//    layers. You must create appropriate EC2 security groups and associate
+	//    * False - AWS OpsWorks Stacks does not associate built-in security groups
+	//    with layers. You must create appropriate EC2 security groups and associate
 	//    a security group with each layer that you create. However, you can still
 	//    manually associate a built-in security group with a layer on. Custom security
 	//    groups are required only for those layers that need custom settings.
@@ -16160,9 +16399,9 @@ type UpdateUserProfileInput struct {
 
 	// The user's SSH user name. The allowable characters are [a-z], [A-Z], [0-9],
 	// '-', and '_'. If the specified name includes other punctuation marks, AWS
-	// OpsWorks removes them. For example, my.name will be changed to myname. If
-	// you do not specify an SSH user name, AWS OpsWorks generates one from the
-	// IAM user name.
+	// OpsWorks Stacks removes them. For example, my.name will be changed to myname.
+	// If you do not specify an SSH user name, AWS OpsWorks Stacks generates one
+	// from the IAM user name.
 	SshUsername *string `type:"string"`
 }
 
@@ -16745,6 +16984,308 @@ const (
 
 	// AutoScalingTypeTimer is a AutoScalingType enum value
 	AutoScalingTypeTimer = "timer"
+)
+
+// Specifies the encoding of the log file so that the file can be read correctly.
+// The default is utf_8. Encodings supported by Python codecs.decode() can be
+// used here.
+const (
+	// CloudWatchLogsEncodingAscii is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingAscii = "ascii"
+
+	// CloudWatchLogsEncodingBig5 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingBig5 = "big5"
+
+	// CloudWatchLogsEncodingBig5hkscs is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingBig5hkscs = "big5hkscs"
+
+	// CloudWatchLogsEncodingCp037 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp037 = "cp037"
+
+	// CloudWatchLogsEncodingCp424 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp424 = "cp424"
+
+	// CloudWatchLogsEncodingCp437 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp437 = "cp437"
+
+	// CloudWatchLogsEncodingCp500 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp500 = "cp500"
+
+	// CloudWatchLogsEncodingCp720 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp720 = "cp720"
+
+	// CloudWatchLogsEncodingCp737 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp737 = "cp737"
+
+	// CloudWatchLogsEncodingCp775 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp775 = "cp775"
+
+	// CloudWatchLogsEncodingCp850 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp850 = "cp850"
+
+	// CloudWatchLogsEncodingCp852 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp852 = "cp852"
+
+	// CloudWatchLogsEncodingCp855 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp855 = "cp855"
+
+	// CloudWatchLogsEncodingCp856 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp856 = "cp856"
+
+	// CloudWatchLogsEncodingCp857 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp857 = "cp857"
+
+	// CloudWatchLogsEncodingCp858 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp858 = "cp858"
+
+	// CloudWatchLogsEncodingCp860 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp860 = "cp860"
+
+	// CloudWatchLogsEncodingCp861 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp861 = "cp861"
+
+	// CloudWatchLogsEncodingCp862 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp862 = "cp862"
+
+	// CloudWatchLogsEncodingCp863 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp863 = "cp863"
+
+	// CloudWatchLogsEncodingCp864 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp864 = "cp864"
+
+	// CloudWatchLogsEncodingCp865 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp865 = "cp865"
+
+	// CloudWatchLogsEncodingCp866 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp866 = "cp866"
+
+	// CloudWatchLogsEncodingCp869 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp869 = "cp869"
+
+	// CloudWatchLogsEncodingCp874 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp874 = "cp874"
+
+	// CloudWatchLogsEncodingCp875 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp875 = "cp875"
+
+	// CloudWatchLogsEncodingCp932 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp932 = "cp932"
+
+	// CloudWatchLogsEncodingCp949 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp949 = "cp949"
+
+	// CloudWatchLogsEncodingCp950 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp950 = "cp950"
+
+	// CloudWatchLogsEncodingCp1006 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp1006 = "cp1006"
+
+	// CloudWatchLogsEncodingCp1026 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp1026 = "cp1026"
+
+	// CloudWatchLogsEncodingCp1140 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp1140 = "cp1140"
+
+	// CloudWatchLogsEncodingCp1250 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp1250 = "cp1250"
+
+	// CloudWatchLogsEncodingCp1251 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp1251 = "cp1251"
+
+	// CloudWatchLogsEncodingCp1252 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp1252 = "cp1252"
+
+	// CloudWatchLogsEncodingCp1253 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp1253 = "cp1253"
+
+	// CloudWatchLogsEncodingCp1254 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp1254 = "cp1254"
+
+	// CloudWatchLogsEncodingCp1255 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp1255 = "cp1255"
+
+	// CloudWatchLogsEncodingCp1256 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp1256 = "cp1256"
+
+	// CloudWatchLogsEncodingCp1257 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp1257 = "cp1257"
+
+	// CloudWatchLogsEncodingCp1258 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingCp1258 = "cp1258"
+
+	// CloudWatchLogsEncodingEucJp is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingEucJp = "euc_jp"
+
+	// CloudWatchLogsEncodingEucJis2004 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingEucJis2004 = "euc_jis_2004"
+
+	// CloudWatchLogsEncodingEucJisx0213 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingEucJisx0213 = "euc_jisx0213"
+
+	// CloudWatchLogsEncodingEucKr is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingEucKr = "euc_kr"
+
+	// CloudWatchLogsEncodingGb2312 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingGb2312 = "gb2312"
+
+	// CloudWatchLogsEncodingGbk is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingGbk = "gbk"
+
+	// CloudWatchLogsEncodingGb18030 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingGb18030 = "gb18030"
+
+	// CloudWatchLogsEncodingHz is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingHz = "hz"
+
+	// CloudWatchLogsEncodingIso2022Jp is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingIso2022Jp = "iso2022_jp"
+
+	// CloudWatchLogsEncodingIso2022Jp1 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingIso2022Jp1 = "iso2022_jp_1"
+
+	// CloudWatchLogsEncodingIso2022Jp2 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingIso2022Jp2 = "iso2022_jp_2"
+
+	// CloudWatchLogsEncodingIso2022Jp2004 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingIso2022Jp2004 = "iso2022_jp_2004"
+
+	// CloudWatchLogsEncodingIso2022Jp3 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingIso2022Jp3 = "iso2022_jp_3"
+
+	// CloudWatchLogsEncodingIso2022JpExt is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingIso2022JpExt = "iso2022_jp_ext"
+
+	// CloudWatchLogsEncodingIso2022Kr is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingIso2022Kr = "iso2022_kr"
+
+	// CloudWatchLogsEncodingLatin1 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingLatin1 = "latin_1"
+
+	// CloudWatchLogsEncodingIso88592 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingIso88592 = "iso8859_2"
+
+	// CloudWatchLogsEncodingIso88593 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingIso88593 = "iso8859_3"
+
+	// CloudWatchLogsEncodingIso88594 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingIso88594 = "iso8859_4"
+
+	// CloudWatchLogsEncodingIso88595 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingIso88595 = "iso8859_5"
+
+	// CloudWatchLogsEncodingIso88596 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingIso88596 = "iso8859_6"
+
+	// CloudWatchLogsEncodingIso88597 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingIso88597 = "iso8859_7"
+
+	// CloudWatchLogsEncodingIso88598 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingIso88598 = "iso8859_8"
+
+	// CloudWatchLogsEncodingIso88599 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingIso88599 = "iso8859_9"
+
+	// CloudWatchLogsEncodingIso885910 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingIso885910 = "iso8859_10"
+
+	// CloudWatchLogsEncodingIso885913 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingIso885913 = "iso8859_13"
+
+	// CloudWatchLogsEncodingIso885914 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingIso885914 = "iso8859_14"
+
+	// CloudWatchLogsEncodingIso885915 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingIso885915 = "iso8859_15"
+
+	// CloudWatchLogsEncodingIso885916 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingIso885916 = "iso8859_16"
+
+	// CloudWatchLogsEncodingJohab is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingJohab = "johab"
+
+	// CloudWatchLogsEncodingKoi8R is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingKoi8R = "koi8_r"
+
+	// CloudWatchLogsEncodingKoi8U is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingKoi8U = "koi8_u"
+
+	// CloudWatchLogsEncodingMacCyrillic is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingMacCyrillic = "mac_cyrillic"
+
+	// CloudWatchLogsEncodingMacGreek is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingMacGreek = "mac_greek"
+
+	// CloudWatchLogsEncodingMacIceland is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingMacIceland = "mac_iceland"
+
+	// CloudWatchLogsEncodingMacLatin2 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingMacLatin2 = "mac_latin2"
+
+	// CloudWatchLogsEncodingMacRoman is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingMacRoman = "mac_roman"
+
+	// CloudWatchLogsEncodingMacTurkish is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingMacTurkish = "mac_turkish"
+
+	// CloudWatchLogsEncodingPtcp154 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingPtcp154 = "ptcp154"
+
+	// CloudWatchLogsEncodingShiftJis is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingShiftJis = "shift_jis"
+
+	// CloudWatchLogsEncodingShiftJis2004 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingShiftJis2004 = "shift_jis_2004"
+
+	// CloudWatchLogsEncodingShiftJisx0213 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingShiftJisx0213 = "shift_jisx0213"
+
+	// CloudWatchLogsEncodingUtf32 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingUtf32 = "utf_32"
+
+	// CloudWatchLogsEncodingUtf32Be is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingUtf32Be = "utf_32_be"
+
+	// CloudWatchLogsEncodingUtf32Le is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingUtf32Le = "utf_32_le"
+
+	// CloudWatchLogsEncodingUtf16 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingUtf16 = "utf_16"
+
+	// CloudWatchLogsEncodingUtf16Be is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingUtf16Be = "utf_16_be"
+
+	// CloudWatchLogsEncodingUtf16Le is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingUtf16Le = "utf_16_le"
+
+	// CloudWatchLogsEncodingUtf7 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingUtf7 = "utf_7"
+
+	// CloudWatchLogsEncodingUtf8 is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingUtf8 = "utf_8"
+
+	// CloudWatchLogsEncodingUtf8Sig is a CloudWatchLogsEncoding enum value
+	CloudWatchLogsEncodingUtf8Sig = "utf_8_sig"
+)
+
+// Specifies where to start to read data (start_of_file or end_of_file). The
+// default is start_of_file. It's only used if there is no state persisted for
+// that log stream.
+const (
+	// CloudWatchLogsInitialPositionStartOfFile is a CloudWatchLogsInitialPosition enum value
+	CloudWatchLogsInitialPositionStartOfFile = "start_of_file"
+
+	// CloudWatchLogsInitialPositionEndOfFile is a CloudWatchLogsInitialPosition enum value
+	CloudWatchLogsInitialPositionEndOfFile = "end_of_file"
+)
+
+// The preferred time zone for logs streamed to CloudWatch Logs. Valid values
+// are LOCAL and UTC, for Coordinated Universal Time.
+const (
+	// CloudWatchLogsTimeZoneLocal is a CloudWatchLogsTimeZone enum value
+	CloudWatchLogsTimeZoneLocal = "LOCAL"
+
+	// CloudWatchLogsTimeZoneUtc is a CloudWatchLogsTimeZone enum value
+	CloudWatchLogsTimeZoneUtc = "UTC"
 )
 
 const (
