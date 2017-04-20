@@ -12,7 +12,7 @@ func TestAccAzureRMSubnet_importBasic(t *testing.T) {
 	resourceName := "azurerm_subnet.test"
 
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMSubnet_basic, ri, ri, ri)
+	config := fmt.Sprintf(testAccAzureRMSubnet_basic, ri, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
