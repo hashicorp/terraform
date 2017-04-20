@@ -4,7 +4,7 @@ set -o errexit -o nounset
 
 # generate a unique string for CI deployment
 KEY=$(cat /dev/urandom | tr -cd 'a-z' | head -c 12)
-PASSWORD=KEY
+PASSWORD=$KEY
 PASSWORD+=$(cat /dev/urandom | tr -cd 'A-Z' | head -c 2)
 PASSWORD+=$(cat /dev/urandom | tr -cd '0-9' | head -c 2)
 
