@@ -25,4 +25,4 @@ deploy:
       branch: topic-101-vm-simple-linux
 
 # TODO: possibly use Azure CLI to delete the resource group
-after_deploy: terraform destroy -force
+after_deploy: cd $TEST_DIR && terraform destroy -force
