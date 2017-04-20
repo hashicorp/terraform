@@ -157,7 +157,7 @@ func ResolvePluginPaths(paths []string) PluginMetaSet {
 
 		s.Add(PluginMeta{
 			Name:    name,
-			Version: version,
+			Version: VersionStr(version),
 			Path:    path,
 		})
 		found[nameVersion{name, version}] = struct{}{}

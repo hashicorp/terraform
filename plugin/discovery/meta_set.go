@@ -1,9 +1,5 @@
 package discovery
 
-import (
-	"github.com/blang/semver"
-)
-
 // A PluginMetaSet is a set of PluginMeta objects meeting a certain criteria.
 //
 // Methods on this type allow filtering of the set to produce subsets that
@@ -44,7 +40,7 @@ func (s PluginMetaSet) ValidateVersions() (valid, invalid PluginMetaSet) {
 	valid = make(PluginMetaSet)
 	invalid = make(PluginMetaSet)
 	for p := range s {
-		if _, err := p.VersionObj(); err == nil {
+		if _, err := p.Version.Parse(); err == nil {
 			valid.Add(p)
 		} else {
 			invalid.Add(p)
@@ -97,14 +93,14 @@ func (s PluginMetaSet) Newest() PluginMeta {
 
 	var first = true
 	var winner PluginMeta
-	var winnerVersion semver.Version
+	var winnerVersion Version
 	for p := range s {
-		version, err := p.VersionObj()
+		version, err := p.Version.Parse()
 		if err != nil {
 			panic(err)
 		}
 
-		if first == true || version.GT(winnerVersion) {
+		if first == true || version.newerThan(winnerVersion) {
 			winner = p
 			winnerVersion = version
 			first = false
@@ -114,11 +110,11 @@ func (s PluginMetaSet) Newest() PluginMeta {
 	return winner
 }
 
-// ConstrainVersions takes a map of version constraints by name and attempts to
+// ConstrainVersions takes a set of requirements and attempts to
 // return a map from name to a set of metas that have the matching
 // name and an appropriate version.
 //
-// If any of the given constraints match *no* plugins then its PluginMetaSet
+// If any of the given requirements match *no* plugins then its PluginMetaSet
 // in the returned map will be nil.
 //
 // All viable metas are returned, so the caller can apply any desired filtering
@@ -128,22 +124,22 @@ func (s PluginMetaSet) Newest() PluginMeta {
 // If any of the metas in the set have invalid version strings then this
 // function will panic. Use ValidateVersions() first to filter out metas with
 // invalid versions.
-func (s PluginMetaSet) ConstrainVersions(reqd map[string]semver.Range) map[string]PluginMetaSet {
+func (s PluginMetaSet) ConstrainVersions(reqd PluginRequirements) map[string]PluginMetaSet {
 	ret := make(map[string]PluginMetaSet)
 	for p := range s {
 		name := p.Name
-		constraint, ok := reqd[name]
+		allowedVersions, ok := reqd[name]
 		if !ok {
 			continue
 		}
 		if _, ok := ret[p.Name]; !ok {
 			ret[p.Name] = make(PluginMetaSet)
 		}
-		version, err := p.VersionObj()
+		version, err := p.Version.Parse()
 		if err != nil {
 			panic(err)
 		}
-		if constraint(version) {
+		if allowedVersions.Has(version) {
 			ret[p.Name].Add(p)
 		}
 	}
