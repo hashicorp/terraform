@@ -12,7 +12,7 @@ Provides an IAM group.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_iam_group" "developers" {
   name = "developers"
   path = "/users/"

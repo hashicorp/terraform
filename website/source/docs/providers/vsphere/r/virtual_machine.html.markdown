@@ -13,7 +13,7 @@ modify, and delete virtual machines.
 
 ## Example Usage
 
-```
+```hcl
 resource "vsphere_virtual_machine" "web" {
   name   = "terraform-web"
   vcpu   = 2
@@ -31,7 +31,7 @@ resource "vsphere_virtual_machine" "web" {
 
 ## Example Usage VMware Cluster
 
-```
+```hcl
 resource "vsphere_virtual_machine" "lb" {
   name          = "lb01"
   folder        = "Loadbalancers"

@@ -16,7 +16,7 @@ schema version you must recreate the resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_ssm_document" "foo" {
   name          = "test_document"
   document_type = "Command"

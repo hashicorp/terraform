@@ -1033,7 +1033,7 @@ func flattenAzureRmVirtualMachineOsProfileLinuxConfiguration(config *compute.Lin
 	result["disable_password_authentication"] = *config.DisablePasswordAuthentication
 
 	if config.SSH != nil && len(*config.SSH.PublicKeys) > 0 {
-		ssh_keys := make([]map[string]interface{}, len(*config.SSH.PublicKeys))
+		ssh_keys := make([]map[string]interface{}, 0, len(*config.SSH.PublicKeys))
 		for _, i := range *config.SSH.PublicKeys {
 			key := make(map[string]interface{})
 			key["path"] = *i.Path

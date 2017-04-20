@@ -12,7 +12,7 @@ Create a Key Vault.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "resourceGroup1"
   location = "West US"

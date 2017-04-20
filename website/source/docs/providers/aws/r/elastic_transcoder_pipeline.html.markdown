@@ -12,7 +12,7 @@ Provides an Elastic Transcoder pipeline resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_elastictranscoder_pipeline" "bar" {
   input_bucket = "${aws_s3_bucket.input_bucket.bucket}"
   name         = "aws_elastictranscoder_pipeline_tf_test_"

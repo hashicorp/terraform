@@ -12,7 +12,7 @@ Creates a routing entry on a OpenStack V2 router.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_networking_router_v2" "router_1" {
   name           = "router_1"
   admin_state_up = "true"

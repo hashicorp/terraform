@@ -12,7 +12,21 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSSpotDatafeedSubscription_basic(t *testing.T) {
+func TestAccAWSSpotDatafeedSubscription(t *testing.T) {
+	cases := map[string]func(t *testing.T){
+		"basic":      testAccAWSSpotDatafeedSubscription_basic,
+		"disappears": testAccAWSSpotDatafeedSubscription_disappears,
+		"import":     testAccAWSSpotDatafeedSubscription_importBasic,
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			tc(t)
+		})
+	}
+}
+
+func testAccAWSSpotDatafeedSubscription_basic(t *testing.T) {
 	var subscription ec2.SpotDatafeedSubscription
 	ri := acctest.RandInt()
 
@@ -21,7 +35,7 @@ func TestAccAWSSpotDatafeedSubscription_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSpotDatafeedSubscriptionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSSpotDatafeedSubscription(ri),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSpotDatafeedSubscriptionExists("aws_spot_datafeed_subscription.default", &subscription),
@@ -55,7 +69,7 @@ func testAccCheckAWSSpotDatafeedSubscriptionDisappears(subscription *ec2.SpotDat
 	}
 }
 
-func TestAccAWSSpotDatafeedSubscription_disappears(t *testing.T) {
+func testAccAWSSpotDatafeedSubscription_disappears(t *testing.T) {
 	var subscription ec2.SpotDatafeedSubscription
 	ri := acctest.RandInt()
 
@@ -64,7 +78,7 @@ func TestAccAWSSpotDatafeedSubscription_disappears(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSpotDatafeedSubscriptionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSSpotDatafeedSubscription(ri),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSpotDatafeedSubscriptionExists("aws_spot_datafeed_subscription.default", &subscription),

@@ -11,7 +11,8 @@ description: |-
 Provides an UltraDNS Directional Controller pool resource.
 
 ## Example Usage
-```
+
+```hcl
 # Create a Directional Controller pool
 resource "ultradns_dirpool" "pool" {
   zone        = "${var.ultradns_domain}"

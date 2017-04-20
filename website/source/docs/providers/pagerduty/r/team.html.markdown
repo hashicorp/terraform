@@ -14,7 +14,7 @@ The account must have the `teams` ability to use the following resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "pagerduty_team" "example" {
   name        = "Engineering"
   description = "All engineering"

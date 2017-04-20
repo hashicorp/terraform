@@ -11,7 +11,7 @@ description: |-
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_elasticsearch_domain" "es" {
   domain_name           = "tf-test"
   elasticsearch_version = "1.5"
@@ -20,7 +20,7 @@ resource "aws_elasticsearch_domain" "es" {
   }
 
   advanced_options {
-    "rest.action.multi.allow_explicit_index" = true
+    "rest.action.multi.allow_explicit_index" = "true"
   }
 
   access_policies = <<CONFIG

@@ -12,7 +12,7 @@ The dashboard resource allows a dashboard to created on a Grafana server.
 
 ## Example Usage
 
-```
+```hcl
 resource "grafana_dashboard" "metrics" {
   config_json = "${file("grafana-dashboard.json")}"
 }
@@ -28,7 +28,7 @@ using the `grafana_data_source` resource. In order to ensure that a data
 source is created before a dashboard that refers to it, use the `depends_on`
 meta-parameter:
 
-```
+```hcl
     depends_on = ["grafana_data_source.metrics"]
 ```
 

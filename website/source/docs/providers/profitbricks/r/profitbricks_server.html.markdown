@@ -14,7 +14,7 @@ Manages a Servers on ProfitBricks
 
 This resource will create an operational server. After this section completes, the provisioner can be called.
 
-```
+```hcl
 resource "profitbricks_server" "example" {
   name              = "server"
   datacenter_id     = "${profitbricks_datacenter.example.id}"

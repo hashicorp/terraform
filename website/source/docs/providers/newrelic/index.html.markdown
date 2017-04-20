@@ -16,7 +16,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the New Relic provider
 provider "newrelic" {
   api_key = "${var.newrelic_api_key}"

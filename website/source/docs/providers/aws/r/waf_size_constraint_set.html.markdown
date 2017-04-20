@@ -12,7 +12,7 @@ Provides a WAF Size Constraint Set Resource
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_waf_size_constraint_set" "size_constraint_set" {
   name = "tfsize_constraints"
 

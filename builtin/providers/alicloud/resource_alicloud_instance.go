@@ -8,8 +8,10 @@ import (
 	"encoding/json"
 	"github.com/denverdino/aliyungo/common"
 	"github.com/denverdino/aliyungo/ecs"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"strings"
+	"time"
 )
 
 func resourceAliyunInstance() *schema.Resource {
@@ -193,11 +195,8 @@ func resourceAliyunInstanceCreate(d *schema.ResourceData, meta interface{}) erro
 	//d.Set("system_disk_category", d.Get("system_disk_category"))
 	//d.Set("system_disk_size", d.Get("system_disk_size"))
 
-	if d.Get("allocate_public_ip").(bool) {
-		_, err := conn.AllocatePublicIpAddress(d.Id())
-		if err != nil {
-			log.Printf("[DEBUG] AllocatePublicIpAddress for instance got error: %#v", err)
-		}
+	if err := allocateIpAndBandWidthRelative(d, meta); err != nil {
+		return fmt.Errorf("allocateIpAndBandWidthRelative err: %#v", err)
 	}
 
 	// after instance created, its status is pending,
@@ -226,6 +225,12 @@ func resourceAliyunRunInstance(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	if args.IoOptimized == "optimized" {
+		args.IoOptimized = ecs.IoOptimized("true")
+	} else {
+		args.IoOptimized = ecs.IoOptimized("false")
+	}
+
 	runArgs, err := buildAliyunRunInstancesArgs(d, meta)
 	if err != nil {
 		return err
@@ -246,14 +251,15 @@ func resourceAliyunRunInstance(d *schema.ResourceData, meta interface{}) error {
 	d.Set("system_disk_category", d.Get("system_disk_category"))
 	d.Set("system_disk_size", d.Get("system_disk_size"))
 
-	if d.Get("allocate_public_ip").(bool) {
-		_, err := conn.AllocatePublicIpAddress(d.Id())
-		if err != nil {
-			log.Printf("[DEBUG] AllocatePublicIpAddress for instance got error: %#v", err)
-		}
+	// after instance created, its status change from pending, starting to running
+	if err := conn.WaitForInstanceAsyn(d.Id(), ecs.Running, defaultTimeout); err != nil {
+		log.Printf("[DEBUG] WaitForInstance %s got error: %#v", ecs.Running, err)
 	}
 
-	// after instance created, its status change from pending, starting to running
+	if err := allocateIpAndBandWidthRelative(d, meta); err != nil {
+		return fmt.Errorf("allocateIpAndBandWidthRelative err: %#v", err)
+	}
+
 	if err := conn.WaitForInstanceAsyn(d.Id(), ecs.Running, defaultTimeout); err != nil {
 		log.Printf("[DEBUG] WaitForInstance %s got error: %#v", ecs.Running, err)
 	}
@@ -451,30 +457,47 @@ func resourceAliyunInstanceDelete(d *schema.ResourceData, meta interface{}) erro
 	client := meta.(*AliyunClient)
 	conn := client.ecsconn
 
-	instance, err := client.QueryInstancesById(d.Id())
-	if err != nil {
-		if notFoundError(err) {
-			return nil
-		}
-		return fmt.Errorf("Error DescribeInstanceAttribute: %#v", err)
-	}
-
-	if instance.Status != ecs.Stopped {
-		if err := conn.StopInstance(d.Id(), true); err != nil {
-			return err
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
+		instance, err := client.QueryInstancesById(d.Id())
+		if err != nil {
+			if notFoundError(err) {
+				return nil
+			}
 		}
 
-		if err := conn.WaitForInstance(d.Id(), ecs.Stopped, defaultTimeout); err != nil {
-			return err
+		if instance.Status != ecs.Stopped {
+			if err := conn.StopInstance(d.Id(), true); err != nil {
+				return resource.RetryableError(fmt.Errorf("ECS stop error - trying again."))
+			}
+
+			if err := conn.WaitForInstance(d.Id(), ecs.Stopped, defaultTimeout); err != nil {
+				return resource.RetryableError(fmt.Errorf("Waiting for ecs stopped timeout - trying again."))
+			}
+		}
+
+		if err := conn.DeleteInstance(d.Id()); err != nil {
+			return resource.RetryableError(fmt.Errorf("ECS Instance in use - trying again while it is deleted."))
+		}
+
+		return nil
+	})
+
+}
+
+func allocateIpAndBandWidthRelative(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AliyunClient).ecsconn
+	if d.Get("allocate_public_ip").(bool) {
+		if d.Get("internet_max_bandwidth_out") == 0 {
+			return fmt.Errorf("Error: if allocate_public_ip is true than the internet_max_bandwidth_out cannot equal zero.")
+		}
+		_, err := conn.AllocatePublicIpAddress(d.Id())
+		if err != nil {
+			return fmt.Errorf("[DEBUG] AllocatePublicIpAddress for instance got error: %#v", err)
 		}
 	}
-
-	if err := conn.DeleteInstance(d.Id()); err != nil {
-		return err
-	}
-
 	return nil
 }
+
 func buildAliyunRunInstancesArgs(d *schema.ResourceData, meta interface{}) (*ecs.RunInstanceArgs, error) {
 	args := &ecs.RunInstanceArgs{
 		MaxAmount: DEFAULT_INSTANCE_COUNT,
@@ -560,7 +583,6 @@ func buildAliyunInstanceArgs(d *schema.ResourceData, meta interface{}) (*ecs.Cre
 		args.Description = v
 	}
 
-	log.Printf("[DEBUG] SystemDisk is %d", systemDiskSize)
 	if v := d.Get("internet_charge_type").(string); v != "" {
 		args.InternetChargeType = common.InternetChargeType(v)
 	}
@@ -578,11 +600,7 @@ func buildAliyunInstanceArgs(d *schema.ResourceData, meta interface{}) (*ecs.Cre
 	}
 
 	if v := d.Get("io_optimized").(string); v != "" {
-		if v == "optimized" {
-			args.IoOptimized = ecs.IoOptimized("true")
-		} else {
-			args.IoOptimized = ecs.IoOptimized("false")
-		}
+		args.IoOptimized = ecs.IoOptimized(v)
 	}
 
 	vswitchValue := d.Get("subnet_id").(string)

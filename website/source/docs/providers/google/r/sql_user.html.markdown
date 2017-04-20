@@ -17,7 +17,7 @@ Creates a new Google SQL User on a Google SQL User Instance. For more informatio
 
 Example creating a SQL User.
 
-```js
+```hcl
 resource "google_sql_database_instance" "master" {
   name = "master-instance"
 

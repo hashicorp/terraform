@@ -12,7 +12,7 @@ Provides a NS1 Monitoring Job resource. This can be used to create, modify, and 
 
 ## Example Usage
 
-```
+```hcl
 resource "ns1_monitoringjob" "uswest_monitor" {
   name          = "uswest"
   active        = true

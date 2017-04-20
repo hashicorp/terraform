@@ -39,6 +39,7 @@ import (
 	influxdbprovider "github.com/hashicorp/terraform/builtin/providers/influxdb"
 	kubernetesprovider "github.com/hashicorp/terraform/builtin/providers/kubernetes"
 	libratoprovider "github.com/hashicorp/terraform/builtin/providers/librato"
+	localprovider "github.com/hashicorp/terraform/builtin/providers/local"
 	logentriesprovider "github.com/hashicorp/terraform/builtin/providers/logentries"
 	mailgunprovider "github.com/hashicorp/terraform/builtin/providers/mailgun"
 	mysqlprovider "github.com/hashicorp/terraform/builtin/providers/mysql"
@@ -47,6 +48,7 @@ import (
 	ns1provider "github.com/hashicorp/terraform/builtin/providers/ns1"
 	nullprovider "github.com/hashicorp/terraform/builtin/providers/null"
 	oneandoneprovider "github.com/hashicorp/terraform/builtin/providers/oneandone"
+	opcprovider "github.com/hashicorp/terraform/builtin/providers/opc"
 	openstackprovider "github.com/hashicorp/terraform/builtin/providers/openstack"
 	opsgenieprovider "github.com/hashicorp/terraform/builtin/providers/opsgenie"
 	packetprovider "github.com/hashicorp/terraform/builtin/providers/packet"
@@ -116,6 +118,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"influxdb":     influxdbprovider.Provider,
 	"kubernetes":   kubernetesprovider.Provider,
 	"librato":      libratoprovider.Provider,
+	"local":        localprovider.Provider,
 	"logentries":   logentriesprovider.Provider,
 	"mailgun":      mailgunprovider.Provider,
 	"mysql":        mysqlprovider.Provider,
@@ -123,6 +126,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"nomad":        nomadprovider.Provider,
 	"ns1":          ns1provider.Provider,
 	"null":         nullprovider.Provider,
+	"opc":          opcprovider.Provider,
 	"oneandone":    oneandoneprovider.Provider,
 	"openstack":    openstackprovider.Provider,
 	"opsgenie":     opsgenieprovider.Provider,

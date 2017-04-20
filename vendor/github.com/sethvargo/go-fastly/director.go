@@ -25,7 +25,7 @@ type DirectorType uint8
 // Director represents a director response from the Fastly API.
 type Director struct {
 	ServiceID string `mapstructure:"service_id"`
-	Version   string `mapstructure:"version"`
+	Version   int    `mapstructure:"version"`
 
 	Name     string       `mapstructure:"name"`
 	Comment  string       `mapstructure:"comment"`
@@ -51,7 +51,7 @@ type ListDirectorsInput struct {
 	Service string
 
 	// Version is the specific configuration version (required).
-	Version string
+	Version int
 }
 
 // ListDirectors returns the list of directors for the configuration version.
@@ -60,11 +60,11 @@ func (c *Client) ListDirectors(i *ListDirectorsInput) ([]*Director, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/director", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/director", i.Service, i.Version)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -83,7 +83,7 @@ type CreateDirectorInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	Name    string       `form:"name,omitempty"`
 	Comment string       `form:"comment,omitempty"`
@@ -98,11 +98,11 @@ func (c *Client) CreateDirector(i *CreateDirectorInput) (*Director, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/director", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/director", i.Service, i.Version)
 	resp, err := c.PostForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -120,7 +120,7 @@ type GetDirectorInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the director to fetch.
 	Name string
@@ -132,7 +132,7 @@ func (c *Client) GetDirector(i *GetDirectorInput) (*Director, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -140,7 +140,7 @@ func (c *Client) GetDirector(i *GetDirectorInput) (*Director, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/director/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/director/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -158,7 +158,7 @@ type UpdateDirectorInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the director to update.
 	Name string
@@ -175,7 +175,7 @@ func (c *Client) UpdateDirector(i *UpdateDirectorInput) (*Director, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -183,7 +183,7 @@ func (c *Client) UpdateDirector(i *UpdateDirectorInput) (*Director, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/director/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/director/%s", i.Service, i.Version, i.Name)
 	resp, err := c.PutForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -201,7 +201,7 @@ type DeleteDirectorInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the director to delete (required).
 	Name string
@@ -213,7 +213,7 @@ func (c *Client) DeleteDirector(i *DeleteDirectorInput) error {
 		return ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return ErrMissingVersion
 	}
 
@@ -221,7 +221,7 @@ func (c *Client) DeleteDirector(i *DeleteDirectorInput) error {
 		return ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/director/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/director/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Delete(path, nil)
 	if err != nil {
 		return err
