@@ -42,6 +42,7 @@ BUG FIXES:
  * provider/azurerm: azurerm_redis_cache resource missing hostname [GH-13650]
  * provider/azurerm: Locking around Network Security Group / Subnets [GH-13637]
  * provider/azurerm: Locking route table on subnet create/delete [GH-13791]
+ * provider/azurerm: VM's - fixes a bug where ssh_keys could contain a null entry [GH-13755]
  * provider/fastly: Fix issue with using 0 for `default_ttl` [GH-13648]
  * provider/google: Stop setting the id when project creation fails [GH-13644]
  * provider/newrelic: newrelic_alert_condition - `condition_scope` must be `application` or `instance` [GH-12972]
