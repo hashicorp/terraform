@@ -3,7 +3,7 @@
 set -o errexit -o nounset
 
 # generate a unique string for CI deployment
-KEY=$(cat /dev/urandom | tr -cd 'a-f0-9' | head -c 16)
+KEY=$(cat /dev/urandom | tr -cd 'a-z' | head -c 16)
 
 terraform get
 
