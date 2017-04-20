@@ -354,26 +354,23 @@ func Test(t TestT, c TestCase) {
 // Any errors are stored so that they can be returned by the factory in
 // terraform to match non-test behavior.
 func testProviderFactories(c TestCase) (map[string]terraform.ResourceProviderFactory, error) {
-	ctxProviders := make(map[string]terraform.ResourceProviderFactory)
-
+	ctxProviders := c.ProviderFactories // make(map[string]terraform.ResourceProviderFactory)
+	if ctxProviders == nil {
+		ctxProviders = make(map[string]terraform.ResourceProviderFactory)
+	}
 	// add any fixed providers
 	for k, p := range c.Providers {
 		ctxProviders[k] = terraform.ResourceProviderFactoryFixed(p)
-	}
-
-	// call any factory functions and store the result.
-	for k, pf := range c.ProviderFactories {
-		p, err := pf()
-		ctxProviders[k] = func() (terraform.ResourceProvider, error) {
-			return p, err
-		}
 	}
 
 	// reset the providers if needed
 	for k, pf := range ctxProviders {
 		// we can ignore any errors here, if we don't have a provider to reset
 		// the error will be handled later
-		p, _ := pf()
+		p, err := pf()
+		if err != nil {
+			return nil, err
+		}
 		if p, ok := p.(TestProvider); ok {
 			err := p.TestReset()
 			if err != nil {

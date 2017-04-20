@@ -165,6 +165,13 @@ const (
 	// requests made by Amazon Redshift on your behalf. Wait and retry the request.
 	ErrCodeDependentServiceRequestThrottlingFault = "DependentServiceRequestThrottlingFault"
 
+	// ErrCodeDependentServiceUnavailableFault for service response error code
+	// "DependentServiceUnavailableFault".
+	//
+	// Your request cannot be completed because a dependent internal service is
+	// temporarily unavailable. Wait 30 to 60 seconds and try again.
+	ErrCodeDependentServiceUnavailableFault = "DependentServiceUnavailableFault"
+
 	// ErrCodeEventSubscriptionQuotaExceededFault for service response error code
 	// "EventSubscriptionQuotaExceeded".
 	//

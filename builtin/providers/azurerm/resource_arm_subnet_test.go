@@ -13,7 +13,7 @@ import (
 func TestAccAzureRMSubnet_basic(t *testing.T) {
 
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMSubnet_basic, ri, ri, ri)
+	config := fmt.Sprintf(testAccAzureRMSubnet_basic, ri, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -33,7 +33,7 @@ func TestAccAzureRMSubnet_basic(t *testing.T) {
 func TestAccAzureRMSubnet_disappears(t *testing.T) {
 
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMSubnet_basic, ri, ri, ri)
+	config := fmt.Sprintf(testAccAzureRMSubnet_basic, ri, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -152,5 +152,22 @@ resource "azurerm_subnet" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
     virtual_network_name = "${azurerm_virtual_network.test.name}"
     address_prefix = "10.0.2.0/24"
+	route_table_id = "${azurerm_route_table.test.id}" 
+}
+
+resource "azurerm_route_table" "test" {
+	name = "acctestroutetable%d"
+	resource_group_name = "${azurerm_resource_group.test.name}"
+	location = "West US"
+}
+
+resource "azurerm_route" "test" {
+	name = "acctestroute%d"
+	resource_group_name = "${azurerm_resource_group.test.name}"
+	route_table_name  = "${azurerm_route_table.test.name}" 
+
+	address_prefix = "10.100.0.0/14" 
+	next_hop_type = "VirtualAppliance" 
+	next_hop_in_ip_address = "10.10.1.1" 
 }
 `

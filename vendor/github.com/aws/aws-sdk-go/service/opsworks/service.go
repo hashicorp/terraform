@@ -11,20 +11,20 @@ import (
 	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
-// Welcome to the AWS OpsWorks API Reference. This guide provides descriptions,
-// syntax, and usage examples for AWS OpsWorks actions and data types, including
-// common parameters and error codes.
+// Welcome to the AWS OpsWorks Stacks API Reference. This guide provides descriptions,
+// syntax, and usage examples for AWS OpsWorks Stacks actions and data types,
+// including common parameters and error codes.
 //
-// AWS OpsWorks is an application management service that provides an integrated
-// experience for overseeing the complete application lifecycle. For information
-// about this product, go to the AWS OpsWorks (http://aws.amazon.com/opsworks/)
+// AWS OpsWorks Stacks is an application management service that provides an
+// integrated experience for overseeing the complete application lifecycle.
+// For information about this product, go to the AWS OpsWorks (http://aws.amazon.com/opsworks/)
 // details page.
 //
 // SDKs and CLI
 //
-// The most common way to use the AWS OpsWorks API is by using the AWS Command
-// Line Interface (CLI) or by using one of the AWS SDKs to implement applications
-// in your preferred language. For more information, see:
+// The most common way to use the AWS OpsWorks Stacks API is by using the AWS
+// Command Line Interface (CLI) or by using one of the AWS SDKs to implement
+// applications in your preferred language. For more information, see:
 //
 //    * AWS CLI (http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html)
 //
@@ -42,17 +42,21 @@ import (
 //
 // Endpoints
 //
-// AWS OpsWorks supports the following endpoints, all HTTPS. You must connect
-// to one of the following endpoints. Stacks can only be accessed or managed
-// within the endpoint in which they are created.
+// AWS OpsWorks Stacks supports the following endpoints, all HTTPS. You must
+// connect to one of the following endpoints. Stacks can only be accessed or
+// managed within the endpoint in which they are created.
 //
 //    * opsworks.us-east-1.amazonaws.com
+//
+//    * opsworks.us-east-2.amazonaws.com
 //
 //    * opsworks.us-west-1.amazonaws.com
 //
 //    * opsworks.us-west-2.amazonaws.com
 //
 //    * opsworks.eu-west-1.amazonaws.com
+//
+//    * opsworks.eu-west-2.amazonaws.com
 //
 //    * opsworks.eu-central-1.amazonaws.com
 //

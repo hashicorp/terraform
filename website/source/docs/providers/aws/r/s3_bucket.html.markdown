@@ -172,7 +172,6 @@ resource "aws_s3_bucket" "versioning_bucket" {
 
 ```hcl
 provider "aws" {
-  alias  = "west"
   region = "eu-west-1"
 }
 
@@ -248,7 +247,6 @@ resource "aws_iam_policy_attachment" "replication" {
 }
 
 resource "aws_s3_bucket" "destination" {
-  provider = "aws.west"
   bucket   = "tf-test-bucket-destination-12345"
   region   = "eu-west-1"
 
@@ -288,7 +286,8 @@ resource "aws_s3_bucket" "bucket" {
 
 The following arguments are supported:
 
-* `bucket` - (Required) The name of the bucket.
+* `bucket` - (Optional, Forces new resource) The name of the bucket. If omitted, Terraform will assign a random, unique name.
+* `bucket_prefix` - (Optional, Forces new resource) Creates a unique bucket name beginning with the specified prefix. Conflicts with `name`.
 * `acl` - (Optional) The [canned ACL](https://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl) to apply. Defaults to "private".
 * `policy` - (Optional) A valid [bucket policy](https://docs.aws.amazon.com/AmazonS3/latest/dev/example-bucket-policies.html) JSON document. Note that if the policy document is not specific enough (but still valid), Terraform may view the policy as constantly changing in a `terraform plan`. In this case, please make sure you use the verbose/specific version of the policy.
 
