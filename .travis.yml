@@ -17,12 +17,6 @@ branches:
 before_deploy:
   - KEY=$(cat /dev/urandom | tr -cd 'a-z' | head -c 12)
   - PASSWORD=$KEY$(cat /dev/urandom | tr -cd 'A-Z' | head -c 2)$(cat /dev/urandom | tr -cd '0-9' | head -c 2)
-  # - curl -fSL "https://releases.hashicorp.com/terraform/0.9.2/terraform_0.9.2_linux_amd64.zip" -o terraform.zip
-  # - sudo unzip terraform.zip -d /opt/terraform
-  # - sudo ln -s /opt/terraform/terraform /usr/bin/terraform
-  # - rm -f terraform.zip
-
-#
 
 # terraform deploy script
 deploy:
