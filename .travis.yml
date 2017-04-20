@@ -28,10 +28,10 @@ before_deploy:
 deploy:
   - provider: script
     skip_cleanup: true
-    script: cd $TEST_DIR && docker run --rm -it -v ./:/data --workdir=/data hashicorp/terraform:light "terraform get; terraform plan -var 'dns_name='$KEY -var 'admin_password='$PASSWORD -var 'admin_username='$KEY -var 'resource_group='$KEY -out=out.tfplan; terraform apply out.tfplan"
+    script: cd $TEST_DIR && ./deploy.sh $KEY $PASSWORD
     on:
       repo: 10thmagnitude/terraform
       branch: topic-101-vm-simple-linux
 
 # TODO: possibly use Azure CLI to delete the resource group
-after_deploy: cd $TEST_DIR && docker run --rm -it azuresdk/azure-cli-python "az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID && az group delete $KEY"
+# after_deploy: docker run --rm -it azuresdk/azure-cli-python "az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID && az group delete $KEY"

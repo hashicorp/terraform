@@ -3,21 +3,21 @@
 set -o errexit -o nounset
 
 # generate a unique string for CI deployment
-KEY=$(cat /dev/urandom | tr -cd 'a-z' | head -c 12)
-PASSWORD=$KEY
-PASSWORD+=$(cat /dev/urandom | tr -cd 'A-Z' | head -c 2)
-PASSWORD+=$(cat /dev/urandom | tr -cd '0-9' | head -c 2)
+# KEY=$(cat /dev/urandom | tr -cd 'a-z' | head -c 12)
+# PASSWORD=$KEY$(cat /dev/urandom | tr -cd 'A-Z' | head -c 2)$(cat /dev/urandom | tr -cd '0-9' | head -c 2)
 
-terraform get
+KEY=$1
+PASSWORD=$2
 
-terraform plan \
-  -var 'dns_name='$KEY \
-  -var 'admin_password='$PASSWORD \
-  -var 'admin_username='$KEY \
-  -var 'resource_group='$KEY \
-  -out=out.tfplan
+docker run --rm -it -v $(pwd):/data -w /data hashicorp/terraform:light get
+docker run --rm -it -v $(pwd):/data -w /data hashicorp/terraform:light plan -var dns_name=$KEY -var admin_password=$PASSWORD -var admin_username=$KEY -var resource_group=$KEY -out=out.tfplan
+docker run --rm -it -v $(pwd):/data -w /data hashicorp/terraform:light apply out.tfplan
 
-terraform apply out.tfplan
+# terraform get
+#
+# terraform plan -var 'dns_name='$KEY -var 'admin_password='$PASSWORD -var 'admin_username='$KEY -var 'resource_group='$KEY -out=out.tfplan
+#
+# terraform apply out.tfplan
 
 
 # TODO: determine external validation, possibly Azure CLI
