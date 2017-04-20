@@ -117,6 +117,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
 
+		// Add the node to fix the state count boundaries
+		&CountBoundaryTransformer{},
+
 		// Target
 		&TargetsTransformer{Targets: b.Targets},
 

@@ -100,11 +100,11 @@ resource "test_resource" "foo" {
 	})
 }
 
-// Test that a grandchild data source that is based off of count works, ie:
-// dependency chain foo -> bar -> baz. This was failing because
-// CountBoundaryTransformer is being run during apply instead of plan, which
-// meant that it wasn't firing after data sources were potentially changing
-// state and causing diff/interpolation issues.
+// TestDataSource_dataSourceCountGrandChild tests that a grandchild data source
+// that is based off of count works, ie: dependency chain foo -> bar -> baz.
+// This was failing because CountBoundaryTransformer is being run during apply
+// instead of plan, which meant that it wasn't firing after data sources were
+// potentially changing state and causing diff/interpolation issues.
 //
 // This happens after the initial apply, after state is saved.
 func TestDataSource_dataSourceCountGrandChild(t *testing.T) {
