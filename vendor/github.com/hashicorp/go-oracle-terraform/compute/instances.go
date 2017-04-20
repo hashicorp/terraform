@@ -364,7 +364,11 @@ func (c *InstancesClient) GetInstance(input *GetInstanceInput) (*InstanceInfo, e
 	}
 	responseBody.SSHKeys = sshKeyNames
 
-	responseBody.Networking = c.unqualifyNetworking(responseBody.Networking)
+	var networkingErr error
+	responseBody.Networking, networkingErr = c.unqualifyNetworking(responseBody.Networking)
+	if networkingErr != nil {
+		return nil, networkingErr
+	}
 	responseBody.Storage = c.unqualifyStorage(responseBody.Storage)
 
 	return &responseBody, nil
@@ -481,8 +485,9 @@ func (c *InstancesClient) qualifyNetworking(info map[string]NetworkingInfo) map[
 	return qualifiedNetworks
 }
 
-func (c *InstancesClient) unqualifyNetworking(info map[string]NetworkingInfo) map[string]NetworkingInfo {
+func (c *InstancesClient) unqualifyNetworking(info map[string]NetworkingInfo) (map[string]NetworkingInfo, error) {
 	// Unqualify ip network
+	var err error
 	unqualifiedNetworks := map[string]NetworkingInfo{}
 	for k, v := range info {
 		unq := v
@@ -493,7 +498,10 @@ func (c *InstancesClient) unqualifyNetworking(info map[string]NetworkingInfo) ma
 			unq.Vnic = c.getUnqualifiedName(v.Vnic)
 		}
 		if v.Nat != nil {
-			unq.Nat = c.unqualifyNat(v.Nat)
+			unq.Nat, err = c.unqualifyNat(v.Nat)
+			if err != nil {
+				return nil, err
+			}
 		}
 		if v.VnicSets != nil {
 			unq.VnicSets = c.getUnqualifiedList(v.VnicSets)
@@ -507,7 +515,7 @@ func (c *InstancesClient) unqualifyNetworking(info map[string]NetworkingInfo) ma
 		}
 		unqualifiedNetworks[k] = unq
 	}
-	return unqualifiedNetworks
+	return unqualifiedNetworks, nil
 }
 
 func (c *InstancesClient) qualifyNat(nat []string, shared bool) []string {
@@ -526,7 +534,7 @@ func (c *InstancesClient) qualifyNat(nat []string, shared bool) []string {
 	return qualifiedNats
 }
 
-func (c *InstancesClient) unqualifyNat(nat []string) []string {
+func (c *InstancesClient) unqualifyNat(nat []string) ([]string, error) {
 	unQualifiedNats := []string{}
 	for _, v := range nat {
 		if strings.HasPrefix(v, "ippool:/oracle") {
@@ -534,10 +542,13 @@ func (c *InstancesClient) unqualifyNat(nat []string) []string {
 			continue
 		}
 		n := strings.Split(v, ":")
+		if len(n) < 1 {
+			return nil, fmt.Errorf("Error unqualifying NAT: %s", v)
+		}
 		u := n[1]
 		unQualifiedNats = append(unQualifiedNats, c.getUnqualifiedName(u))
 	}
-	return unQualifiedNats
+	return unQualifiedNats, nil
 }
 
 func (c *InstancesClient) unqualifyStorage(attachments []StorageAttachment) []StorageAttachment {
