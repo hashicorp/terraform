@@ -1,7 +1,7 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_vpc_endpoint"
-sidebar_current: "docs-aws-datasource-vpc-endpoint"
+sidebar_current: "docs-aws-datasource-vpc-endpoint-x"
 description: |-
     Provides details about a specific VPC endpoint.
 ---
@@ -13,7 +13,7 @@ a specific VPC endpoint.
 
 ## Example Usage
 
-```
+```hcl
 # Declare the data source
 data "aws_vpc_endpoint" "s3" {
   vpc_id       = "${aws_vpc.foo.id}"

@@ -36,8 +36,27 @@ func TestAccAWSDefaultNetworkAcl_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSDefaultNetworkConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccGetWSDefaultNetworkAcl("aws_default_network_acl.default", &networkAcl),
-					testAccCheckAWSDefaultACLAttributes(&networkAcl, []*ec2.NetworkAclEntry{}, 0),
+					testAccGetAWSDefaultNetworkAcl("aws_default_network_acl.default", &networkAcl),
+					testAccCheckAWSDefaultACLAttributes(&networkAcl, []*ec2.NetworkAclEntry{}, 0, 2),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDefaultNetworkAcl_basicIpv6Vpc(t *testing.T) {
+	var networkAcl ec2.NetworkAcl
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDefaultNetworkAclDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSDefaultNetworkConfig_basicIpv6Vpc,
+				Check: resource.ComposeTestCheckFunc(
+					testAccGetAWSDefaultNetworkAcl("aws_default_network_acl.default", &networkAcl),
+					testAccCheckAWSDefaultACLAttributes(&networkAcl, []*ec2.NetworkAclEntry{}, 0, 4),
 				),
 			},
 		},
@@ -58,8 +77,8 @@ func TestAccAWSDefaultNetworkAcl_deny_ingress(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSDefaultNetworkConfig_deny_ingress,
 				Check: resource.ComposeTestCheckFunc(
-					testAccGetWSDefaultNetworkAcl("aws_default_network_acl.default", &networkAcl),
-					testAccCheckAWSDefaultACLAttributes(&networkAcl, []*ec2.NetworkAclEntry{defaultEgressAcl}, 0),
+					testAccGetAWSDefaultNetworkAcl("aws_default_network_acl.default", &networkAcl),
+					testAccCheckAWSDefaultACLAttributes(&networkAcl, []*ec2.NetworkAclEntry{defaultEgressAcl}, 0, 2),
 				),
 			},
 		},
@@ -77,8 +96,8 @@ func TestAccAWSDefaultNetworkAcl_SubnetRemoval(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSDefaultNetworkConfig_Subnets,
 				Check: resource.ComposeTestCheckFunc(
-					testAccGetWSDefaultNetworkAcl("aws_default_network_acl.default", &networkAcl),
-					testAccCheckAWSDefaultACLAttributes(&networkAcl, []*ec2.NetworkAclEntry{}, 2),
+					testAccGetAWSDefaultNetworkAcl("aws_default_network_acl.default", &networkAcl),
+					testAccCheckAWSDefaultACLAttributes(&networkAcl, []*ec2.NetworkAclEntry{}, 2, 2),
 				),
 			},
 
@@ -88,8 +107,8 @@ func TestAccAWSDefaultNetworkAcl_SubnetRemoval(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSDefaultNetworkConfig_Subnets_remove,
 				Check: resource.ComposeTestCheckFunc(
-					testAccGetWSDefaultNetworkAcl("aws_default_network_acl.default", &networkAcl),
-					testAccCheckAWSDefaultACLAttributes(&networkAcl, []*ec2.NetworkAclEntry{}, 2),
+					testAccGetAWSDefaultNetworkAcl("aws_default_network_acl.default", &networkAcl),
+					testAccCheckAWSDefaultACLAttributes(&networkAcl, []*ec2.NetworkAclEntry{}, 2, 2),
 				),
 				ExpectNonEmptyPlan: true,
 			},
@@ -108,8 +127,8 @@ func TestAccAWSDefaultNetworkAcl_SubnetReassign(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSDefaultNetworkConfig_Subnets,
 				Check: resource.ComposeTestCheckFunc(
-					testAccGetWSDefaultNetworkAcl("aws_default_network_acl.default", &networkAcl),
-					testAccCheckAWSDefaultACLAttributes(&networkAcl, []*ec2.NetworkAclEntry{}, 2),
+					testAccGetAWSDefaultNetworkAcl("aws_default_network_acl.default", &networkAcl),
+					testAccCheckAWSDefaultACLAttributes(&networkAcl, []*ec2.NetworkAclEntry{}, 2, 2),
 				),
 			},
 
@@ -128,8 +147,8 @@ func TestAccAWSDefaultNetworkAcl_SubnetReassign(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSDefaultNetworkConfig_Subnets_move,
 				Check: resource.ComposeTestCheckFunc(
-					testAccGetWSDefaultNetworkAcl("aws_default_network_acl.default", &networkAcl),
-					testAccCheckAWSDefaultACLAttributes(&networkAcl, []*ec2.NetworkAclEntry{}, 0),
+					testAccGetAWSDefaultNetworkAcl("aws_default_network_acl.default", &networkAcl),
+					testAccCheckAWSDefaultACLAttributes(&networkAcl, []*ec2.NetworkAclEntry{}, 0, 2),
 				),
 			},
 		},
@@ -141,14 +160,14 @@ func testAccCheckAWSDefaultNetworkAclDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckAWSDefaultACLAttributes(acl *ec2.NetworkAcl, rules []*ec2.NetworkAclEntry, subnetCount int) resource.TestCheckFunc {
+func testAccCheckAWSDefaultACLAttributes(acl *ec2.NetworkAcl, rules []*ec2.NetworkAclEntry, subnetCount int, hiddenRuleCount int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		aclEntriesCount := len(acl.Entries)
 		ruleCount := len(rules)
 
-		// Default ACL has 2 hidden rules we can't do anything about
-		ruleCount = ruleCount + 2
+		// Default ACL has hidden rules we can't do anything about
+		ruleCount = ruleCount + hiddenRuleCount
 
 		if ruleCount != aclEntriesCount {
 			return fmt.Errorf("Expected (%d) Rules, got (%d)", ruleCount, aclEntriesCount)
@@ -162,7 +181,7 @@ func testAccCheckAWSDefaultACLAttributes(acl *ec2.NetworkAcl, rules []*ec2.Netwo
 	}
 }
 
-func testAccGetWSDefaultNetworkAcl(n string, networkAcl *ec2.NetworkAcl) resource.TestCheckFunc {
+func testAccGetAWSDefaultNetworkAcl(n string, networkAcl *ec2.NetworkAcl) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -423,6 +442,29 @@ resource "aws_default_network_acl" "default" {
 
   tags {
     Name = "TestAccAWSDefaultNetworkAcl_SubnetRemoval"
+  }
+}
+`
+
+const testAccAWSDefaultNetworkConfig_basicIpv6Vpc = `
+provider "aws" {
+  region = "us-east-2"
+}
+
+resource "aws_vpc" "tftestvpc" {
+	cidr_block = "10.1.0.0/16"
+	assign_generated_ipv6_cidr_block = true
+
+	tags {
+		Name = "TestAccAWSDefaultNetworkAcl_basicIpv6Vpc"
+	}
+}
+
+resource "aws_default_network_acl" "default" {
+  default_network_acl_id = "${aws_vpc.tftestvpc.default_network_acl_id}"
+
+  tags {
+    Name = "TestAccAWSDefaultNetworkAcl_basicIpv6Vpc"
   }
 }
 `

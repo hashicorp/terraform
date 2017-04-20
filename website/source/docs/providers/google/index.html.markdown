@@ -16,7 +16,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```js
+```hcl
 // Configure the Google Cloud provider
 provider "google" {
   credentials = "${file("account.json")}"
@@ -26,7 +26,7 @@ provider "google" {
 
 // Create a new instance
 resource "google_compute_instance" "default" {
-  // ...
+  # ...
 }
 ```
 

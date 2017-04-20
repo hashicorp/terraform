@@ -37,7 +37,7 @@ func resourceServiceV1() *schema.Resource {
 			// creating and activating. It's used internally, but also exported for
 			// users to see.
 			"active_version": {
-				Type:     schema.TypeString,
+				Type:     schema.TypeInt,
 				Computed: true,
 			},
 
@@ -539,7 +539,7 @@ func resourceServiceV1() *schema.Resource {
 							Optional:     true,
 							Default:      1,
 							Description:  "The version of the custom logging format used for the configured endpoint. Can be either 1 or 2. (Default: 1)",
-							ValidateFunc: validateS3FormatVersion,
+							ValidateFunc: validateLoggingFormatVersion,
 						},
 						"timestamp_format": {
 							Type:        schema.TypeString,
@@ -590,6 +590,52 @@ func resourceServiceV1() *schema.Resource {
 							Optional:    true,
 							Default:     "",
 							Description: "Name of a condition to apply this logging",
+						},
+					},
+				},
+			},
+			"sumologic": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						// Required fields
+						"name": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Unique name to refer to this logging setup",
+						},
+						"url": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The URL to POST to.",
+						},
+						// Optional fields
+						"format": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "%h %l %u %t %r %>s",
+							Description: "Apache-style string or VCL variables to use for log formatting",
+						},
+						"format_version": {
+							Type:         schema.TypeInt,
+							Optional:     true,
+							Default:      1,
+							Description:  "The version of the custom logging format used for the configured endpoint. Can be either 1 or 2. (Default: 1)",
+							ValidateFunc: validateLoggingFormatVersion,
+						},
+						"response_condition": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "Name of a condition to apply this logging.",
+						},
+						"message_type": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							Default:      "classic",
+							Description:  "How the message should be formatted.",
+							ValidateFunc: validateLoggingMessageType,
 						},
 					},
 				},
@@ -820,14 +866,14 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if needsChange {
-		latestVersion := d.Get("active_version").(string)
-		if latestVersion == "" {
+		latestVersion := d.Get("active_version").(int)
+		if latestVersion == 0 {
 			// If the service was just created, there is an empty Version 1 available
 			// that is unlocked and can be updated
-			latestVersion = "1"
+			latestVersion = 1
 		} else {
 			// Clone the latest version, giving us an unlocked version we can modify
-			log.Printf("[DEBUG] Creating clone of version (%s) for updates", latestVersion)
+			log.Printf("[DEBUG] Creating clone of version (%d) for updates", latestVersion)
 			newVersion, err := conn.CloneVersion(&gofastly.CloneVersionInput{
 				Service: d.Id(),
 				Version: latestVersion,
@@ -1344,6 +1390,59 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 
+		// find difference in Sumologic
+		if d.HasChange("sumologic") {
+			os, ns := d.GetChange("sumologic")
+			if os == nil {
+				os = new(schema.Set)
+			}
+			if ns == nil {
+				ns = new(schema.Set)
+			}
+
+			oss := os.(*schema.Set)
+			nss := ns.(*schema.Set)
+			removeSumologic := oss.Difference(nss).List()
+			addSumologic := nss.Difference(oss).List()
+
+			// DELETE old sumologic configurations
+			for _, pRaw := range removeSumologic {
+				sf := pRaw.(map[string]interface{})
+				opts := gofastly.DeleteSumologicInput{
+					Service: d.Id(),
+					Version: latestVersion,
+					Name:    sf["name"].(string),
+				}
+
+				log.Printf("[DEBUG] Fastly Sumologic removal opts: %#v", opts)
+				err := conn.DeleteSumologic(&opts)
+				if err != nil {
+					return err
+				}
+			}
+
+			// POST new/updated Sumologic
+			for _, pRaw := range addSumologic {
+				sf := pRaw.(map[string]interface{})
+				opts := gofastly.CreateSumologicInput{
+					Service:           d.Id(),
+					Version:           latestVersion,
+					Name:              sf["name"].(string),
+					URL:               sf["url"].(string),
+					Format:            sf["format"].(string),
+					FormatVersion:     sf["format_version"].(int),
+					ResponseCondition: sf["response_condition"].(string),
+					MessageType:       sf["message_type"].(string),
+				}
+
+				log.Printf("[DEBUG] Create Sumologic Opts: %#v", opts)
+				_, err := conn.CreateSumologic(&opts)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
 		// find difference in Response Object
 		if d.HasChange("response_object") {
 			or, nr := d.GetChange("response_object")
@@ -1565,7 +1664,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		// validate version
-		log.Printf("[DEBUG] Validating Fastly Service (%s), Version (%s)", d.Id(), latestVersion)
+		log.Printf("[DEBUG] Validating Fastly Service (%s), Version (%v)", d.Id(), latestVersion)
 		valid, msg, err := conn.ValidateVersion(&gofastly.ValidateVersionInput{
 			Service: d.Id(),
 			Version: latestVersion,
@@ -1579,13 +1678,13 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 			return fmt.Errorf("[ERR] Invalid configuration for Fastly Service (%s): %s", d.Id(), msg)
 		}
 
-		log.Printf("[DEBUG] Activating Fastly Service (%s), Version (%s)", d.Id(), latestVersion)
+		log.Printf("[DEBUG] Activating Fastly Service (%s), Version (%v)", d.Id(), latestVersion)
 		_, err = conn.ActivateVersion(&gofastly.ActivateVersionInput{
 			Service: d.Id(),
 			Version: latestVersion,
 		})
 		if err != nil {
-			return fmt.Errorf("[ERR] Error activating version (%s): %s", latestVersion, err)
+			return fmt.Errorf("[ERR] Error activating version (%d): %s", latestVersion, err)
 		}
 
 		// Only if the version is valid and activated do we set the active_version.
@@ -1627,7 +1726,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 	// If CreateService succeeds, but initial updates to the Service fail, we'll
 	// have an empty ActiveService version (no version is active, so we can't
 	// query for information on it)
-	if s.ActiveVersion.Number != "" {
+	if s.ActiveVersion.Number != 0 {
 		settingsOpts := gofastly.GetSettingsInput{
 			Service: d.Id(),
 			Version: s.ActiveVersion.Number,
@@ -1636,7 +1735,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 			d.Set("default_host", settings.DefaultHost)
 			d.Set("default_ttl", settings.DefaultTTL)
 		} else {
-			return fmt.Errorf("[ERR] Error looking up Version settings for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Version settings for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		// TODO: update go-fastly to support an ActiveVersion struct, which contains
@@ -1649,7 +1748,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Domains for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Domains for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		// Refresh Domains
@@ -1667,7 +1766,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Backends for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Backends for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		bl := flattenBackends(backendList)
@@ -1684,7 +1783,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Headers for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Headers for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		hl := flattenHeaders(headerList)
@@ -1701,7 +1800,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Gzips for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Gzips for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		gl := flattenGzips(gzipsList)
@@ -1718,7 +1817,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Healthcheck for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Healthcheck for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		hcl := flattenHealthchecks(healthcheckList)
@@ -1735,7 +1834,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up S3 Logging for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up S3 Logging for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		sl := flattenS3s(s3List)
@@ -1752,13 +1851,29 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Papertrail for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Papertrail for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		pl := flattenPapertrails(papertrailList)
 
 		if err := d.Set("papertrail", pl); err != nil {
 			log.Printf("[WARN] Error setting Papertrail for (%s): %s", d.Id(), err)
+		}
+
+		// refresh Sumologic Logging
+		log.Printf("[DEBUG] Refreshing Sumologic for (%s)", d.Id())
+		sumologicList, err := conn.ListSumologics(&gofastly.ListSumologicsInput{
+			Service: d.Id(),
+			Version: s.ActiveVersion.Number,
+		})
+
+		if err != nil {
+			return fmt.Errorf("[ERR] Error looking up Sumologic for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
+		}
+
+		sul := flattenSumologics(sumologicList)
+		if err := d.Set("sumologic", sul); err != nil {
+			log.Printf("[WARN] Error setting Sumologic for (%s): %s", d.Id(), err)
 		}
 
 		// refresh Response Objects
@@ -1769,7 +1884,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Response Object for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Response Object for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		rol := flattenResponseObjects(responseObjectList)
@@ -1786,7 +1901,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Conditions for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Conditions for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		cl := flattenConditions(conditionList)
@@ -1803,7 +1918,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Request Settings for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Request Settings for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		rl := flattenRequestSettings(rsList)
@@ -1819,7 +1934,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 			Version: s.ActiveVersion.Number,
 		})
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up VCLs for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up VCLs for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		vl := flattenVCLs(vclList)
@@ -1835,7 +1950,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 			Version: s.ActiveVersion.Number,
 		})
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Cache Settings for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Cache Settings for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		csl := flattenCacheSettings(cslList)
@@ -1866,7 +1981,7 @@ func resourceServiceV1Delete(d *schema.ResourceData, meta interface{}) error {
 			return err
 		}
 
-		if s.ActiveVersion.Number != "" {
+		if s.ActiveVersion.Number != 0 {
 			_, err := conn.DeactivateVersion(&gofastly.DeactivateVersionInput{
 				Service: d.Id(),
 				Version: s.ActiveVersion.Number,
@@ -1922,7 +2037,7 @@ func flattenBackends(backendList []*gofastly.Backend) []map[string]interface{} {
 		nb := map[string]interface{}{
 			"name":                  b.Name,
 			"address":               b.Address,
-			"auto_loadbalance":      gofastly.CBool(b.AutoLoadbalance),
+			"auto_loadbalance":      b.AutoLoadbalance,
 			"between_bytes_timeout": int(b.BetweenBytesTimeout),
 			"connect_timeout":       int(b.ConnectTimeout),
 			"error_threshold":       int(b.ErrorThreshold),
@@ -1930,7 +2045,7 @@ func flattenBackends(backendList []*gofastly.Backend) []map[string]interface{} {
 			"max_conn":              int(b.MaxConn),
 			"port":                  int(b.Port),
 			"shield":                b.Shield,
-			"ssl_check_cert":        gofastly.CBool(b.SSLCheckCert),
+			"ssl_check_cert":        b.SSLCheckCert,
 			"ssl_hostname":          b.SSLHostname,
 			"ssl_cert_hostname":     b.SSLCertHostname,
 			"ssl_sni_hostname":      b.SSLSNIHostname,
@@ -2179,7 +2294,7 @@ func flattenS3s(s3List []*gofastly.S3) []map[string]interface{} {
 func flattenPapertrails(papertrailList []*gofastly.Papertrail) []map[string]interface{} {
 	var pl []map[string]interface{}
 	for _, p := range papertrailList {
-		// Convert S3s to a map for saving to state.
+		// Convert Papertrails to a map for saving to state.
 		ns := map[string]interface{}{
 			"name":               p.Name,
 			"address":            p.Address,
@@ -2199,6 +2314,32 @@ func flattenPapertrails(papertrailList []*gofastly.Papertrail) []map[string]inte
 	}
 
 	return pl
+}
+
+func flattenSumologics(sumologicList []*gofastly.Sumologic) []map[string]interface{} {
+	var l []map[string]interface{}
+	for _, p := range sumologicList {
+		// Convert Sumologic to a map for saving to state.
+		ns := map[string]interface{}{
+			"name":               p.Name,
+			"url":                p.URL,
+			"format":             p.Format,
+			"response_condition": p.ResponseCondition,
+			"message_type":       p.MessageType,
+			"format_version":     int(p.FormatVersion),
+		}
+
+		// prune any empty values that come from the default string value in structs
+		for k, v := range ns {
+			if v == "" {
+				delete(ns, k)
+			}
+		}
+
+		l = append(l, ns)
+	}
+
+	return l
 }
 
 func flattenResponseObjects(responseObjectList []*gofastly.ResponseObject) []map[string]interface{} {

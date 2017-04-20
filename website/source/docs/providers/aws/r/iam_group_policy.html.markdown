@@ -12,7 +12,7 @@ Provides an IAM policy attached to a group.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_iam_group_policy" "my_developer_policy" {
   name  = "my_developer_policy"
   group = "${aws_iam_group.my_developers.id}"
@@ -45,7 +45,10 @@ The following arguments are supported:
 
 * `policy` - (Required) The policy document. This is a JSON formatted string.
   The heredoc syntax or `file` function is helpful here.
-* `name` - (Required) Name of the policy.
+* `name` - (Optional) The name of the policy. If omitted, Terraform will
+assign a random, unique name.
+* `name_prefix` - (Optional) Creates a unique name beginning with the specified
+  prefix. Conflicts with `name`.
 * `group` - (Required) The IAM group to attach to the policy.
 
 ## Attributes Reference

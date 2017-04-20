@@ -354,6 +354,25 @@ func TestAccAWSSecurityGroupRule_ExpectInvalidTypeError(t *testing.T) {
 	})
 }
 
+func TestAccAWSSecurityGroupRule_ExpectInvalidCIDR(t *testing.T) {
+	rInt := acctest.RandInt()
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccAWSSecurityGroupRuleInvalidIPv4CIDR(rInt),
+				ExpectError: regexp.MustCompile("invalid CIDR address: 1.2.3.4/33"),
+			},
+			{
+				Config:      testAccAWSSecurityGroupRuleInvalidIPv6CIDR(rInt),
+				ExpectError: regexp.MustCompile("invalid CIDR address: ::/244"),
+			},
+		},
+	})
+}
+
 // testing partial match implementation
 func TestAccAWSSecurityGroupRule_PartialMatching_basic(t *testing.T) {
 	var group ec2.SecurityGroup
@@ -1165,4 +1184,36 @@ func testAccAWSSecurityGroupRuleExpectInvalidType(rInt int) string {
 		security_group_id        = "${aws_security_group.web.id}"
 		source_security_group_id = "${aws_security_group.web.id}"
 	}`, rInt)
+}
+
+func testAccAWSSecurityGroupRuleInvalidIPv4CIDR(rInt int) string {
+	return fmt.Sprintf(`
+resource "aws_security_group" "foo" {
+  name = "testing-failure-%d"
+}
+
+resource "aws_security_group_rule" "ing" {
+  type = "ingress"
+  from_port = 0
+  to_port = 0
+  protocol = "-1"
+  cidr_blocks = ["1.2.3.4/33"]
+  security_group_id = "${aws_security_group.foo.id}"
+}`, rInt)
+}
+
+func testAccAWSSecurityGroupRuleInvalidIPv6CIDR(rInt int) string {
+	return fmt.Sprintf(`
+resource "aws_security_group" "foo" {
+  name = "testing-failure-%d"
+}
+
+resource "aws_security_group_rule" "ing" {
+  type = "egress"
+  from_port = 0
+  to_port = 0
+  protocol = "-1"
+  ipv6_cidr_blocks = ["::/244"]
+  security_group_id = "${aws_security_group.foo.id}"
+}`, rInt)
 }

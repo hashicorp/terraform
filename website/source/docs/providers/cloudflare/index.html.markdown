@@ -3,21 +3,21 @@ layout: "cloudflare"
 page_title: "Provider: Cloudflare"
 sidebar_current: "docs-cloudflare-index"
 description: |-
-  The CloudFlare provider is used to interact with the DNS resources supported by CloudFlare. The provider needs to be configured with the proper credentials before it can be used.
+  The Cloudflare provider is used to interact with the DNS resources supported by Cloudflare. The provider needs to be configured with the proper credentials before it can be used.
 ---
 
-# CloudFlare Provider
+# Cloudflare Provider
 
-The CloudFlare provider is used to interact with the
-DNS resources supported by CloudFlare. The provider needs to be configured
+The Cloudflare provider is used to interact with the
+DNS resources supported by Cloudflare. The provider needs to be configured
 with the proper credentials before it can be used.
 
 Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
-# Configure the CloudFlare provider
+```hcl
+# Configure the Cloudflare provider
 provider "cloudflare" {
   email = "${var.cloudflare_email}"
   token = "${var.cloudflare_token}"

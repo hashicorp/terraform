@@ -84,8 +84,8 @@ func hashCheckMySQL(v interface{}) int {
 func checkConfigToAPIMySQL(c *circonusCheck, l interfaceList) error {
 	c.Type = string(apiCheckTypeMySQL)
 
-	// Iterate over all `postgres` attributes, even though we have a max of 1 in
-	// the schema.
+	// Iterate over all `mysql` attributes, even though we have a max of 1 in the
+	// schema.
 	for _, mapRaw := range l {
 		mysqlConfig := newInterfaceMap(mapRaw)
 

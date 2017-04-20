@@ -6,13 +6,13 @@ description: |-
   Provides a Datadog timeboard resource. This can be used to create and manage timeboards.
 ---
 
-# datadog\_timeboard
+# datadog_timeboard
 
 Provides a Datadog timeboard resource. This can be used to create and manage Datadog timeboards.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new Datadog timeboard
 resource "datadog_timeboard" "redis" {
   title       = "Redis Timeboard (created via Terraform)"

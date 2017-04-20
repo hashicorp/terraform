@@ -172,6 +172,28 @@ func TestAccAWSELB_AccessLogs_disabled(t *testing.T) {
 	})
 }
 
+func TestAccAWSELB_namePrefix(t *testing.T) {
+	var conf elb.LoadBalancerDescription
+	nameRegex := regexp.MustCompile("^test-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_elb.test",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSELB_namePrefix,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.test", &conf),
+					resource.TestMatchResourceAttr(
+						"aws_elb.test", "name", nameRegex),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSELB_generatedName(t *testing.T) {
 	var conf elb.LoadBalancerDescription
 	generatedNameRegexp := regexp.MustCompile("^tf-lb-")
@@ -1137,6 +1159,20 @@ resource "aws_elb" "foo" {
 }
 `, r, r)
 }
+
+const testAccAWSELB_namePrefix = `
+resource "aws_elb" "test" {
+  name_prefix = "test-"
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
+
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+}
+`
 
 const testAccAWSELBGeneratedName = `
 resource "aws_elb" "foo" {

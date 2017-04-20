@@ -39,6 +39,7 @@ import (
 	influxdbprovider "github.com/hashicorp/terraform/builtin/providers/influxdb"
 	kubernetesprovider "github.com/hashicorp/terraform/builtin/providers/kubernetes"
 	libratoprovider "github.com/hashicorp/terraform/builtin/providers/librato"
+	localprovider "github.com/hashicorp/terraform/builtin/providers/local"
 	logentriesprovider "github.com/hashicorp/terraform/builtin/providers/logentries"
 	mailgunprovider "github.com/hashicorp/terraform/builtin/providers/mailgun"
 	mysqlprovider "github.com/hashicorp/terraform/builtin/providers/mysql"
@@ -115,6 +116,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"influxdb":     influxdbprovider.Provider,
 	"kubernetes":   kubernetesprovider.Provider,
 	"librato":      libratoprovider.Provider,
+	"local":        localprovider.Provider,
 	"logentries":   logentriesprovider.Provider,
 	"mailgun":      mailgunprovider.Provider,
 	"mysql":        mysqlprovider.Provider,

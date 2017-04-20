@@ -6,13 +6,13 @@ description: |-
   Provides a Datadog monitor resource. This can be used to create and manage monitors.
 ---
 
-# datadog\_monitor
+# datadog_monitor
 
 Provides a Datadog monitor resource. This can be used to create and manage Datadog monitors.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new Datadog monitor
 resource "datadog_monitor" "foo" {
   name               = "Name for monitor foo"

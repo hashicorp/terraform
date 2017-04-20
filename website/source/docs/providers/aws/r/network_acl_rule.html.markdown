@@ -12,7 +12,7 @@ Creates an entry (a rule) in a network ACL with the specified rule number.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_network_acl" "bar" {
   vpc_id = "${aws_vpc.foo.id}"
 }
@@ -28,6 +28,8 @@ resource "aws_network_acl_rule" "bar" {
   to_port        = 22
 }
 ```
+
+~> **Note:** One of either `cidr_block` or `ipv6_cidr_block` is required.
 
 ## Argument Reference
 

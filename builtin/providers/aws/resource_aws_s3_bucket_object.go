@@ -275,7 +275,7 @@ func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) err
 			Key:    aws.String(key),
 		})
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed to get object tags (bucket: %s, key: %s): %s", bucket, key, err)
 	}
 	d.Set("tags", tagsToMapS3(tagResp.TagSet))
 

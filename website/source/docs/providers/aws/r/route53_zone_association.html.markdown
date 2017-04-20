@@ -12,7 +12,7 @@ Provides a Route53 private Hosted Zone to VPC association resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_vpc" "primary" {
   cidr_block           = "10.6.0.0/16"
   enable_dns_hostnames = true

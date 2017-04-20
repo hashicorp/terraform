@@ -12,10 +12,10 @@ Renders an ignition configuration as JSON. It  contains all the disks, partition
 
 ## Example Usage
 
-```
+```hcl
 data "ignition_config" "example" {
 	systemd = [
-		"${ignition_systemd_unit.example.id}",
+		"${data.ignition_systemd_unit.example.id}",
 	]
 }
 ```

@@ -33,6 +33,24 @@ func TestAccLBV1Member_basic(t *testing.T) {
 	})
 }
 
+func TestAccLBV1Member_timeout(t *testing.T) {
+	var member members.Member
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLBV1MemberDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccLBV1Member_timeout,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckLBV1MemberExists("openstack_lb_member_v1.member_1", &member),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckLBV1MemberDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
@@ -137,5 +155,37 @@ resource "openstack_lb_member_v1" "member_1" {
   port = 80
   admin_state_up = false
   pool_id = "${openstack_lb_pool_v1.pool_1.id}"
+}
+`
+
+const testAccLBV1Member_timeout = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  admin_state_up = "true"
+}
+
+resource "openstack_networking_subnet_v2" "subnet_1" {
+  cidr = "192.168.199.0/24"
+  ip_version = 4
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+}
+
+resource "openstack_lb_pool_v1" "pool_1" {
+  name = "pool_1"
+  protocol = "HTTP"
+  lb_method = "ROUND_ROBIN"
+  subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
+}
+
+resource "openstack_lb_member_v1" "member_1" {
+  address = "192.168.199.10"
+  port = 80
+  admin_state_up = true
+  pool_id = "${openstack_lb_pool_v1.pool_1.id}"
+
+  timeouts {
+    create = "5m"
+    delete = "5m"
+  }
 }
 `

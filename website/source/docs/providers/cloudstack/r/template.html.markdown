@@ -6,13 +6,13 @@ description: |-
   Registers an existing template into the CloudStack cloud.
 ---
 
-# cloudstack\_template
+# cloudstack_template
 
 Registers an existing template into the CloudStack cloud.
 
 ## Example Usage
 
-```
+```hcl
 resource "cloudstack_template" "centos64" {
   name       = "CentOS 6.4 x64"
   format     = "VHD"

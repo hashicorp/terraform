@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"regexp"
 	"testing"
 
@@ -117,8 +118,13 @@ func buildDataSourceTestProgram() (string, error) {
 		return "", fmt.Errorf("failed to build test stub program: %s", err)
 	}
 
+	gopath := os.Getenv("GOPATH")
+	if gopath == "" {
+		gopath = filepath.Join(os.Getenv("HOME") + "/go")
+	}
+
 	programPath := path.Join(
-		os.Getenv("GOPATH"), "bin", "tf-acc-external-data-source",
+		filepath.SplitList(gopath)[0], "bin", "tf-acc-external-data-source",
 	)
 	return programPath, nil
 }

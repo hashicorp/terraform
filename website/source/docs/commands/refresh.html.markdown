@@ -31,6 +31,14 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-no-color` - Disables output with coloring
 
+* `-input=true` - Ask for input for variables if not directly set.
+
+* `-lock=true` - Lock the state file when locking is supported.
+
+* `-lock-timeout=0s` - Duration to retry a state lock.
+
+* `-no-color` - If specified, output won't contain any color.
+
 * `-state=path` - Path to read and write the state file to. Defaults to "terraform.tfstate".
   Ignored when [remote state](/docs/state/remote.html) is used.
 

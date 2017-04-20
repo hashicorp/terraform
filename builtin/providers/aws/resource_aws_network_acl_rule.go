@@ -41,6 +41,12 @@ func resourceAwsNetworkAclRule() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					if old == "all" && new == "-1" || old == "-1" && new == "all" {
+						return true
+					}
+					return false
+				},
 			},
 			"rule_action": {
 				Type:     schema.TypeString,
@@ -109,12 +115,19 @@ func resourceAwsNetworkAclRuleCreate(d *schema.ResourceData, meta interface{}) e
 		},
 	}
 
-	if v, ok := d.GetOk("cidr_block"); ok {
-		params.CidrBlock = aws.String(v.(string))
+	cidr, hasCidr := d.GetOk("cidr_block")
+	ipv6Cidr, hasIpv6Cidr := d.GetOk("ipv6_cidr_block")
+
+	if hasCidr == false && hasIpv6Cidr == false {
+		return fmt.Errorf("Either `cidr_block` or `ipv6_cidr_block` must be defined")
 	}
 
-	if v, ok := d.GetOk("ipv6_cidr_block"); ok {
-		params.Ipv6CidrBlock = aws.String(v.(string))
+	if hasCidr {
+		params.CidrBlock = aws.String(cidr.(string))
+	}
+
+	if hasIpv6Cidr {
+		params.Ipv6CidrBlock = aws.String(ipv6Cidr.(string))
 	}
 
 	// Specify additional required fields for ICMP. For the list
@@ -150,9 +163,13 @@ func resourceAwsNetworkAclRuleCreate(d *schema.ResourceData, meta interface{}) e
 	// API (see issue GH-4721). Retry the `findNetworkAclRule` function until it is
 	// visible (which in most cases is likely immediately).
 	err = resource.Retry(3*time.Minute, func() *resource.RetryError {
-		_, findErr := findNetworkAclRule(d, meta)
+		r, findErr := findNetworkAclRule(d, meta)
 		if findErr != nil {
 			return resource.RetryableError(findErr)
+		}
+		if r == nil {
+			err := fmt.Errorf("Network ACL rule (%s) not found", d.Id())
+			return resource.RetryableError(err)
 		}
 
 		return nil
@@ -168,6 +185,11 @@ func resourceAwsNetworkAclRuleRead(d *schema.ResourceData, meta interface{}) err
 	resp, err := findNetworkAclRule(d, meta)
 	if err != nil {
 		return err
+	}
+	if resp == nil {
+		log.Printf("[DEBUG] Network ACL rule (%s) not found", d.Id())
+		d.SetId("")
+		return nil
 	}
 
 	d.Set("rule_number", resp.RuleNumber)
@@ -244,7 +266,11 @@ func findNetworkAclRule(d *schema.ResourceData, meta interface{}) (*ec2.NetworkA
 		return nil, fmt.Errorf("Error Finding Network Acl Rule %d: %s", d.Get("rule_number").(int), err.Error())
 	}
 
-	if resp == nil || len(resp.NetworkAcls) != 1 || resp.NetworkAcls[0] == nil {
+	if resp == nil || len(resp.NetworkAcls) == 0 || resp.NetworkAcls[0] == nil {
+		// Missing NACL rule.
+		return nil, nil
+	}
+	if len(resp.NetworkAcls) > 1 {
 		return nil, fmt.Errorf(
 			"Expected to find one Network ACL, got: %#v",
 			resp.NetworkAcls)

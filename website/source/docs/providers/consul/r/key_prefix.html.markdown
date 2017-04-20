@@ -7,7 +7,7 @@ description: |-
   common name prefix.
 ---
 
-# consul\_key\_prefix
+# consul_key_prefix
 
 Allows Terraform to manage a "namespace" of Consul keys that share a common
 name prefix.
@@ -33,7 +33,7 @@ those keys were created outside of Terraform.
 
 ## Example Usage
 
-```
+```hcl
 resource "consul_key_prefix" "myapp_config" {
   datacenter = "nyc1"
   token      = "abcd"

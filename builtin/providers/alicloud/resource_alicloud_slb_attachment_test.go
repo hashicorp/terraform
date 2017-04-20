@@ -79,9 +79,30 @@ resource "alicloud_security_group" "foo" {
 	description = "foo"
 }
 
+resource "alicloud_security_group_rule" "http-in" {
+  	type = "ingress"
+  	ip_protocol = "tcp"
+  	nic_type = "internet"
+  	policy = "accept"
+  	port_range = "80/80"
+  	priority = 1
+  	security_group_id = "${alicloud_security_group.foo.id}"
+  	cidr_ip = "0.0.0.0/0"
+}
+
+resource "alicloud_security_group_rule" "ssh-in" {
+  	type = "ingress"
+  	ip_protocol = "tcp"
+  	nic_type = "internet"
+  	policy = "accept"
+  	port_range = "22/22"
+  	priority = 1
+  	security_group_id = "${alicloud_security_group.foo.id}"
+  	cidr_ip = "0.0.0.0/0"
+}
+
 resource "alicloud_instance" "foo" {
 	# cn-beijing
-	availability_zone = "cn-beijing-b"
 	image_id = "ubuntu_140405_64_40G_cloudinit_20161115.vhd"
 
 	# series II

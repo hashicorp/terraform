@@ -12,7 +12,7 @@ Use this data source to get the [IP ranges][1] of various AWS products and servi
 
 ## Example Usage
 
-```
+```hcl
 data "aws_ip_ranges" "european_ec2" {
   regions  = ["eu-west-1", "eu-central-1"]
   services = ["ec2"]

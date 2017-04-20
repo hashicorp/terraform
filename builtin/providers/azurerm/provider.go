@@ -85,6 +85,8 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_lb_probe":                resourceArmLoadBalancerProbe(),
 			"azurerm_lb_rule":                 resourceArmLoadBalancerRule(),
 
+			"azurerm_managed_disk": resourceArmManagedDisk(),
+
 			"azurerm_key_vault":                 resourceArmKeyVault(),
 			"azurerm_local_network_gateway":     resourceArmLocalNetworkGateway(),
 			"azurerm_network_interface":         resourceArmNetworkInterface(),
@@ -344,7 +346,7 @@ func userDataStateFunc(v interface{}) string {
 	}
 }
 
-// Base64Encode encodes data if the input isn't already encoded using
+// base64Encode encodes data if the input isn't already encoded using
 // base64.StdEncoding.EncodeToString. If the input is already base64 encoded,
 // return the original input unchanged.
 func base64Encode(data string) string {

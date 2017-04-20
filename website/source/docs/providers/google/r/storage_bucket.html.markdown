@@ -15,7 +15,7 @@ Creates a new bucket in Google cloud storage service(GCS). Currently, it will no
 
 Example creating a private bucket in standard storage, in the EU region.
 
-```js
+```hcl
 resource "google_storage_bucket" "image-store" {
   name     = "image-store-bucket"
   location = "EU"

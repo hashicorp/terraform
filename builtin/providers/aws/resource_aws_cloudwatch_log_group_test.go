@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
@@ -24,6 +25,43 @@ func TestAccAWSCloudWatchLogGroup_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchLogGroupExists("aws_cloudwatch_log_group.foobar", &lg),
 					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "retention_in_days", "0"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSCloudWatchLogGroup_namePrefix(t *testing.T) {
+	var lg cloudwatchlogs.LogGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCloudWatchLogGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSCloudWatchLogGroup_namePrefix,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudWatchLogGroupExists("aws_cloudwatch_log_group.test", &lg),
+					resource.TestMatchResourceAttr("aws_cloudwatch_log_group.test", "name", regexp.MustCompile("^tf-test-")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSCloudWatchLogGroup_generatedName(t *testing.T) {
+	var lg cloudwatchlogs.LogGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCloudWatchLogGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSCloudWatchLogGroup_generatedName,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudWatchLogGroupExists("aws_cloudwatch_log_group.test", &lg),
 				),
 			},
 		},
@@ -256,3 +294,13 @@ resource "aws_cloudwatch_log_group" "charlie" {
 }
 `, rInt, rInt+1, rInt+2)
 }
+
+const testAccAWSCloudWatchLogGroup_namePrefix = `
+resource "aws_cloudwatch_log_group" "test" {
+    name_prefix = "tf-test-"
+}
+`
+
+const testAccAWSCloudWatchLogGroup_generatedName = `
+resource "aws_cloudwatch_log_group" "test" {}
+`

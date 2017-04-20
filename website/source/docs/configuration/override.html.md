@@ -35,17 +35,17 @@ Terraform configurations.
 
 If you have a Terraform configuration `example.tf` with the contents:
 
-```
+```hcl
 resource "aws_instance" "web" {
-    ami = "ami-408c7f28"
+  ami = "ami-408c7f28"
 }
 ```
 
 And you created a file `override.tf` with the contents:
 
-```
+```hcl
 resource "aws_instance" "web" {
-    ami = "foo"
+  ami = "foo"
 }
 ```
 

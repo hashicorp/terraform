@@ -23,10 +23,10 @@ already.
 
 A resource configuration looks like the following:
 
-```
+```hcl
 resource "aws_instance" "web" {
-    ami = "ami-408c7f28"
-    instance_type = "t1.micro"
+  ami           = "ami-408c7f28"
+  instance_type = "t1.micro"
 }
 ```
 
@@ -41,86 +41,79 @@ configuration is dependent on the type, and is documented for each
 resource type in the
 [providers section](/docs/providers/index.html).
 
-<a id="meta-parameters"></a>
 ### Meta-parameters
 
 There are **meta-parameters** available to all resources:
 
-  * `count` (int) - The number of identical resources to create.
-      This doesn't apply to all resources. For details on using variables in
-      conjunction with count, see [Using Variables with
-     `count`](#using-variables-with-count) below.
+- `count` (int) - The number of identical resources to create. This doesn't
+  apply to all resources. For details on using variables in conjunction with
+  count, see [Using Variables with `count`](#using-variables-with-count) below.
 
-~> **NOTE:** Modules don't currently support the `count` parameter.
+    -> Modules don't currently support the `count` parameter.
 
-  * `depends_on` (list of strings) - Explicit dependencies that this
-      resource has. These dependencies will be created before this
-      resource. For syntax and other details, see the section below on
-      [explicit dependencies](#explicit-dependencies).
+- `depends_on` (list of strings) - Explicit dependencies that this resource has.
+  These dependencies will be created before this resource. For syntax and other
+  details, see the section below on [explicit
+  dependencies](#explicit-dependencies).
 
-  * `provider` (string) - The name of a specific provider to use for
-      this resource. The name is in the format of `TYPE.ALIAS`, for example,
-      `aws.west`. Where `west` is set using the `alias` attribute in a
-      provider. See [multiple provider instances](#multi-provider-instances).
+- `provider` (string) - The name of a specific provider to use for this
+  resource. The name is in the format of `TYPE.ALIAS`, for example, `aws.west`.
+  Where `west` is set using the `alias` attribute in a provider. See [multiple
+  provider instances](#multi-provider-instances).
 
-  * `lifecycle` (configuration block) - Customizes the lifecycle
-      behavior of the resource. The specific options are documented
-      below.
+- `lifecycle` (configuration block) - Customizes the lifecycle behavior of the
+  resource. The specific options are documented below.
 
-The `lifecycle` block allows the following keys to be set:
+    The `lifecycle` block allows the following keys to be set:
 
-  * `create_before_destroy` (bool) - This flag is used to ensure
-      the replacement of a resource is created before the original
-      instance is destroyed. As an example, this can be used to
-      create an new DNS record before removing an old record.
+  - `create_before_destroy` (bool) - This flag is used to ensure the replacement
+    of a resource is created before the original instance is destroyed. As an
+    example, this can be used to create an new DNS record before removing an old
+    record.
 
-  * `prevent_destroy` (bool) - This flag provides extra protection against the
-      destruction of a given resource. When this is set to `true`, any plan
-      that includes a destroy of this resource will return an error message.
+        ~> Resources that utilize the `create_before_destroy` key can only
+        depend on other resources that also include `create_before_destroy`.
+        Referencing a resource that does not include `create_before_destroy`
+        will result in a dependency graph cycle.
 
-<a id="ignore-changes"></a>
+  - `prevent_destroy` (bool) - This flag provides extra protection against the
+    destruction of a given resource. When this is set to `true`, any plan that
+    includes a destroy of this resource will return an error message.
 
-  * `ignore_changes` (list of strings) - Customizes how diffs are evaluated for
-      resources, allowing individual attributes to be ignored through changes.
-      As an example, this can be used to ignore dynamic changes to the
-      resource from external resources. Other meta-parameters cannot be ignored.
+  - `ignore_changes` (list of strings) - Customizes how diffs are evaluated for
+    resources, allowing individual attributes to be ignored through changes. As
+    an example, this can be used to ignore dynamic changes to the resource from
+    external resources. Other meta-parameters cannot be ignored.
 
-~> **NOTE on create\_before\_destroy and dependencies:** Resources that utilize
-the `create_before_destroy` key can only depend on other resources that also
-include `create_before_destroy`. Referencing a resource that does not include
-`create_before_destroy` will result in a dependency graph cycle.
-
-~> **NOTE on ignore\_changes:** Ignored attribute names can be matched by their
-name, not state ID. For example, if an `aws_route_table` has two routes defined
-and the `ignore_changes` list contains "route", both routes will be ignored.
-Additionally you can also use a single entry with a wildcard (e.g. `"*"`)
-which will match all attribute names. Using a partial string together with a
-wildcard (e.g. `"rout*"`) is **not** supported.
-
-
-<a id="timeouts"></a>
+        ~> Ignored attribute names can be matched by their name, not state ID.
+        For example, if an `aws_route_table` has two routes defined and the
+        `ignore_changes` list contains "route", both routes will be ignored.
+        Additionally you can also use a single entry with a wildcard (e.g. `"*"`)
+        which will match all attribute names. Using a partial string together
+        with a wildcard (e.g. `"rout*"`) is **not** supported.
 
 ### Timeouts
 
 Individual Resources may provide a `timeouts` block to enable users to configure the
 amount of time a specific operation is allowed to take before being considered
-an error. For example, the 
-[aws_db_instance](/docs/providers/aws/r/db_instance.html#timeouts) 
-resource provides configurable timeouts for the 
+an error. For example, the
+[aws_db_instance](/docs/providers/aws/r/db_instance.html#timeouts)
+resource provides configurable timeouts for the
 `create`, `update`, and `delete` operations. Any Resource that provies Timeouts
 will document the default values for that operation, and users can overwrite
-them in their configuration. 
+them in their configuration.
 
 Example overwriting the `create` and `delete` timeouts:
 
-```
+```hcl
 resource "aws_db_instance" "timeout_example" {
-  allocated_storage    = 10
-  engine               = "mysql"
-  engine_version       = "5.6.17"
-  instance_class       = "db.t1.micro"
-  name                 = "mydb"
-  [...]
+  allocated_storage = 10
+  engine            = "mysql"
+  engine_version    = "5.6.17"
+  instance_class    = "db.t1.micro"
+  name              = "mydb"
+
+  # ...
 
   timeouts {
     create = "60m"
@@ -133,8 +126,6 @@ Individual Resources must opt-in to providing configurable Timeouts, and
 attempting to configure the timeout for a Resource that does not support
 Timeouts, or overwriting a specific action that the Resource does not specify as
 an option, will result in an error. Valid units of time are  `s`, `m`, `h`.
-
-<a id="explicit-dependencies"></a>
 
 ### Explicit Dependencies
 
@@ -158,8 +149,8 @@ be allowed to determine dependencies automatically.
 
 The syntax of `depends_on` is a list of resources and modules:
 
-  * Resources are `TYPE.NAME`, such as `aws_instance.web`.
-  * Modules are `module.NAME`, such as `module.foo`.
+- Resources are `TYPE.NAME`, such as `aws_instance.web`.
+- Modules are `module.NAME`, such as `module.foo`.
 
 When a resource depends on a module, _everything_ in that module must be
 created before the resource is created.
@@ -167,7 +158,7 @@ created before the resource is created.
 An example of a resource depending on both a module and resource is shown
 below. Note that `depends_on` can contain any number of dependencies:
 
-```
+```hcl
 resource "aws_instance" "web" {
   depends_on = ["aws_instance.leader", "module.vpc"]
 }
@@ -178,8 +169,6 @@ In almost every case, Terraform's automatic dependency system is the best-case
 scenario by having your resources depend only on what they explicitly use.
 Please think carefully before you use `depends_on` to determine if Terraform
 could automatically do this a better way.
-
-<a id="connection-block"></a>
 
 ### Connection block
 
@@ -196,8 +185,6 @@ but other data must be specified by the user.
 The full list of settings that can be specified are listed on
 the [provisioner connection page](/docs/provisioners/connection.html).
 
-<a id="provisioners"></a>
-
 ### Provisioners
 
 Within a resource, you can specify zero or more **provisioner
@@ -213,8 +200,6 @@ provide more specific connection info for a specific provisioner.
 An example use case might be to use a different user to log in
 for a single provisioner.
 
-<a id="using-variables-with-count"></a>
-
 ## Using Variables With `count`
 
 When declaring multiple instances of a resource using [`count`](#count), it is
@@ -228,7 +213,7 @@ For example, here's how you could create three [AWS
 Instances](/docs/providers/aws/r/instance.html) each with their own
 static IP address:
 
-```
+```hcl
 variable "instance_ips" {
   default = {
     "0" = "10.11.12.100"
@@ -244,8 +229,6 @@ resource "aws_instance" "app" {
 }
 ```
 
-<a id="multi-provider-instances"></a>
-
 ## Multiple Provider Instances
 
 By default, a resource targets the provider based on its type. For example
@@ -257,7 +240,7 @@ a provider that is configured multiple times to support multiple regions, etc.
 
 To target another provider, set the `provider` field:
 
-```
+```hcl
 resource "aws_instance" "foo" {
 	provider = "aws.west"
 
@@ -269,7 +252,7 @@ The value of the field should be `TYPE` or `TYPE.ALIAS`. The `ALIAS` value
 comes from the `alias` field value when configuring the
 [provider](/docs/configuration/providers.html).
 
-```
+```hcl
 provider "aws" {
   alias = "west"
 
@@ -283,7 +266,7 @@ If no `provider` field is specified, the default provider is used.
 
 The full syntax is:
 
-```
+```text
 resource TYPE NAME {
 	CONFIG ...
 	[count = COUNT]
@@ -299,7 +282,7 @@ resource TYPE NAME {
 
 where `CONFIG` is:
 
-```
+```text
 KEY = VALUE
 
 KEY {
@@ -309,7 +292,7 @@ KEY {
 
 where `LIFECYCLE` is:
 
-```
+```text
 lifecycle {
     [create_before_destroy = true|false]
     [prevent_destroy = true|false]
@@ -319,7 +302,7 @@ lifecycle {
 
 where `CONNECTION` is:
 
-```
+```text
 connection {
 	KEY = VALUE
 	...
@@ -328,7 +311,7 @@ connection {
 
 where `PROVISIONER` is:
 
-```
+```text
 provisioner NAME {
 	CONFIG ...
 

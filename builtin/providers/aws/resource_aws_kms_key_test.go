@@ -1,3 +1,4 @@
+// make testacc TEST=./builtin/providers/aws/ TESTARGS='-run=TestAccAWSKmsKey_'
 package aws
 
 import (
@@ -31,6 +32,29 @@ func TestAccAWSKmsKey_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSKmsKeyExists("aws_kms_key.foo", &keyAfter),
 				),
+			},
+		},
+	})
+}
+
+func TestAccAWSKmsKey_disappears(t *testing.T) {
+	var key kms.KeyMetadata
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSKmsKeyDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSKmsKey,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSKmsKeyExists("aws_kms_key.foo", &key),
+				),
+			},
+			{
+				Config:             testAccAWSKmsKey_other_region,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
@@ -89,6 +113,25 @@ func TestAccAWSKmsKey_isEnabled(t *testing.T) {
 					resource.TestCheckResourceAttr("aws_kms_key.bar", "is_enabled", "true"),
 					testAccCheckAWSKmsKeyIsEnabled(&key3, true),
 					resource.TestCheckResourceAttr("aws_kms_key.bar", "enable_key_rotation", "true"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSKmsKey_tags(t *testing.T) {
+	var keyBefore kms.KeyMetadata
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSKmsKeyDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSKmsKey_tags,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSKmsKeyExists("aws_kms_key.foo", &keyBefore),
+					resource.TestCheckResourceAttr("aws_kms_key.foo", "tags.%", "2"),
 				),
 			},
 		},
@@ -218,6 +261,32 @@ resource "aws_kms_key" "foo" {
 POLICY
 }`, kmsTimestamp)
 
+var testAccAWSKmsKey_other_region = fmt.Sprintf(`
+provider "aws" { 
+	region = "us-east-1"
+}
+resource "aws_kms_key" "foo" {
+    description = "Terraform acc test %s"
+    deletion_window_in_days = 7
+    policy = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Id": "kms-tf-1",
+  "Statement": [
+    {
+      "Sid": "Enable IAM User Permissions",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "*"
+      },
+      "Action": "kms:*",
+      "Resource": "*"
+    }
+  ]
+}
+POLICY
+}`, kmsTimestamp)
+
 var testAccAWSKmsKey_removedPolicy = fmt.Sprintf(`
 resource "aws_kms_key" "foo" {
     description = "Terraform acc test %s"
@@ -243,4 +312,13 @@ resource "aws_kms_key" "bar" {
     deletion_window_in_days = 7
     enable_key_rotation = true
     is_enabled = true
+}`, kmsTimestamp)
+
+var testAccAWSKmsKey_tags = fmt.Sprintf(`
+resource "aws_kms_key" "foo" {
+    description = "Terraform acc test %s"
+	tags {
+		Key1 = "Value One"
+		Description = "Very interesting"
+	}
 }`, kmsTimestamp)
