@@ -12,13 +12,13 @@ Provides a NS1 Record resource. This can be used to create, modify, and delete r
 
 ## Example Usage
 
-```
+```hcl
 resource "ns1_zone" "tld" {
   zone = "terraform.example"
 }
 
 resource "ns1_record" "www" {
-  zone   = "${ns1_zone.tld.id}"
+  zone   = "${ns1_zone.tld.zone}"
   domain = "www.${ns1_zone.tld.zone}"
   type   = "CNAME"
   ttl    = 60

@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -28,6 +29,66 @@ func TestAccAWSDBOptionGroup_basic(t *testing.T) {
 					testAccCheckAWSDBOptionGroupAttributes(&v),
 					resource.TestCheckResourceAttr(
 						"aws_db_option_group.bar", "name", rName),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBOptionGroup_namePrefix(t *testing.T) {
+	var v rds.OptionGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBOptionGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSDBOptionGroup_namePrefix,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBOptionGroupExists("aws_db_option_group.test", &v),
+					testAccCheckAWSDBOptionGroupAttributes(&v),
+					resource.TestMatchResourceAttr(
+						"aws_db_option_group.test", "name", regexp.MustCompile("^tf-test-")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBOptionGroup_generatedName(t *testing.T) {
+	var v rds.OptionGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBOptionGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSDBOptionGroup_generatedName,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBOptionGroupExists("aws_db_option_group.test", &v),
+					testAccCheckAWSDBOptionGroupAttributes(&v),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBOptionGroup_defaultDescription(t *testing.T) {
+	var v rds.OptionGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBOptionGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSDBOptionGroup_defaultDescription(acctest.RandInt()),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBOptionGroupExists("aws_db_option_group.test", &v),
+					resource.TestCheckResourceAttr(
+						"aws_db_option_group.test", "option_group_description", "Managed by Terraform"),
 				),
 			},
 		},
@@ -160,42 +221,6 @@ func testAccCheckAWSDBOptionGroupAttributes(v *rds.OptionGroup) resource.TestChe
 	}
 }
 
-func TestResourceAWSDBOptionGroupName_validation(t *testing.T) {
-	cases := []struct {
-		Value    string
-		ErrCount int
-	}{
-		{
-			Value:    "testing123!",
-			ErrCount: 1,
-		},
-		{
-			Value:    "1testing123",
-			ErrCount: 1,
-		},
-		{
-			Value:    "testing--123",
-			ErrCount: 1,
-		},
-		{
-			Value:    "testing123-",
-			ErrCount: 1,
-		},
-		{
-			Value:    randomString(256),
-			ErrCount: 1,
-		},
-	}
-
-	for _, tc := range cases {
-		_, errors := validateDbOptionGroupName(tc.Value, "aws_db_option_group_name")
-
-		if len(errors) != tc.ErrCount {
-			t.Fatalf("Expected the DB Option Group Name to trigger a validation error")
-		}
-	}
-}
-
 func testAccCheckAWSDBOptionGroupExists(n string, v *rds.OptionGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -292,6 +317,7 @@ resource "aws_db_instance" "bar" {
 	maintenance_window = "Fri:09:00-Fri:09:30"
 
 	backup_retention_period = 0
+	skip_final_snapshot = true
 
 	option_group_name = "${aws_db_option_group.bar.name}"
 }
@@ -386,4 +412,31 @@ resource "aws_db_option_group" "bar" {
   }
 }
 `, r)
+}
+
+const testAccAWSDBOptionGroup_namePrefix = `
+resource "aws_db_option_group" "test" {
+  name_prefix = "tf-test-"
+  option_group_description = "Test option group for terraform"
+  engine_name = "mysql"
+  major_engine_version = "5.6"
+}
+`
+
+const testAccAWSDBOptionGroup_generatedName = `
+resource "aws_db_option_group" "test" {
+  option_group_description = "Test option group for terraform"
+  engine_name = "mysql"
+  major_engine_version = "5.6"
+}
+`
+
+func testAccAWSDBOptionGroup_defaultDescription(n int) string {
+	return fmt.Sprintf(`
+resource "aws_db_option_group" "test" {
+  name = "tf-test-%d"
+  engine_name = "mysql"
+  major_engine_version = "5.6"
+}
+`, n)
 }

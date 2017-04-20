@@ -15,7 +15,7 @@ a PostgreSQL database.
 
 ## Usage
 
-```
+```hcl
 resource "postgresql_role" "app_www" {
   name = "app_www"
 }
@@ -76,7 +76,7 @@ The `policy` block supports:
 `postgresql_schema` supports importing resources.  Supposing the following
 Terraform:
 
-```
+```hcl
 resource "postgresql_schema" "public" {
   name = "public"
 }

@@ -18,7 +18,7 @@ public IP as an input variable and needs to determine the other.
 The following example shows how one might accept a public IP as a variable
 and use this data source to obtain the allocation ID.
 
-```
+```hcl
 variable "instance_id" {}
 variable "public_ip" {}
 

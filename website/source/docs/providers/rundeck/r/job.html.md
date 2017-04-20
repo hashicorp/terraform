@@ -16,7 +16,7 @@ Each job belongs to a project. A project can be created with the `rundeck_projec
 
 ## Example Usage
 
-```
+```hcl
 resource "rundeck_job" "bounceweb" {
     name = "Bounce Web Servers"
     project_name = "anvils"

@@ -12,7 +12,7 @@ Provides an VPC subnet resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_subnet" "main" {
   vpc_id     = "${aws_vpc.main.id}"
   cidr_block = "10.0.1.0/24"
@@ -48,8 +48,6 @@ The following attributes are exported:
 * `availability_zone`- The AZ for the subnet.
 * `cidr_block` - The CIDR block for the subnet.
 * `vpc_id` - The VPC ID.
-
-
 
 ## Import
 

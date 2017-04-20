@@ -1,8 +1,10 @@
 package circonus
 
 import (
+	"regexp"
 	"testing"
 
+	"github.com/circonus-labs/circonus-gometrics/api/config"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
@@ -16,6 +18,7 @@ func TestAccCirconusCheckJSON_basic(t *testing.T) {
 				Config: testAccCirconusCheckJSONConfig1,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("circonus_check.usage", "active", "true"),
+					resource.TestMatchResourceAttr("circonus_check.usage", "check_id", regexp.MustCompile(config.CheckCIDRegex)),
 					resource.TestCheckResourceAttr("circonus_check.usage", "collector.#", "1"),
 					resource.TestCheckResourceAttr("circonus_check.usage", "collector.2388330941.id", "/broker/1"),
 					resource.TestCheckResourceAttr("circonus_check.usage", "json.#", "1"),
@@ -54,7 +57,7 @@ func TestAccCirconusCheckJSON_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_check.usage", "metric.3280673139.unit", "qty"),
 					resource.TestCheckResourceAttr("circonus_check.usage", "tags.#", "2"),
 					resource.TestCheckResourceAttr("circonus_check.usage", "tags.3241999189", "source:circonus"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "tags.3839162439", "source:unittest"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "tags.1401442048", "lifecycle:unittest"),
 					resource.TestCheckResourceAttr("circonus_check.usage", "target", "api.circonus.com"),
 					resource.TestCheckResourceAttr("circonus_check.usage", "type", "json"),
 				),
@@ -101,7 +104,7 @@ func TestAccCirconusCheckJSON_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_check.usage", "metric.3280673139.unit", "qty"),
 					resource.TestCheckResourceAttr("circonus_check.usage", "tags.#", "2"),
 					resource.TestCheckResourceAttr("circonus_check.usage", "tags.3241999189", "source:circonus"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "tags.3839162439", "source:unittest"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "tags.1401442048", "lifecycle:unittest"),
 					resource.TestCheckResourceAttr("circonus_check.usage", "target", "api.circonus.com"),
 					resource.TestCheckResourceAttr("circonus_check.usage", "type", "json"),
 				),
@@ -165,7 +168,7 @@ resource "circonus_check" "usage" {
     unit = "${coalesce(circonus_metric.limit.unit, var.usage_default_unit)}"
   }
 
-  tags = [ "source:circonus", "source:unittest" ]
+  tags = [ "source:circonus", "lifecycle:unittest" ]
 }
 `
 
@@ -225,6 +228,6 @@ resource "circonus_check" "usage" {
     unit = "${coalesce(circonus_metric.limit.unit, var.usage_default_unit)}"
   }
 
-  tags = [ "source:circonus", "source:unittest" ]
+  tags = [ "source:circonus", "lifecycle:unittest" ]
 }
 `

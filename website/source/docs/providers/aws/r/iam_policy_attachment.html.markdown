@@ -12,7 +12,7 @@ Attaches a Managed IAM Policy to user(s), role(s), and/or group(s)
 
 ~> **NOTE:** The aws_iam_policy_attachment resource is only meant to be used once for each managed policy. All of the users/roles/groups that a single policy is being attached to should be declared by a single aws_iam_policy_attachment resource.
 
-```
+```hcl
 resource "aws_iam_user" "user" {
   name = "test-user"
 }
@@ -33,9 +33,9 @@ resource "aws_iam_policy" "policy" {
 
 resource "aws_iam_policy_attachment" "test-attach" {
   name       = "test-attachment"
-  users      = ["{aws_iam_user.user.name}"]
-  roles      = ["{aws_iam_role.role.name}"]
-  groups     = ["{aws_iam_group.group.name}"]
+  users      = ["${aws_iam_user.user.name}"]
+  roles      = ["${aws_iam_role.role.name}"]
+  groups     = ["${aws_iam_group.group.name}"]
   policy_arn = "${aws_iam_policy.policy.arn}"
 }
 ```

@@ -370,6 +370,60 @@ func TestInterpolateFuncCeil(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncChomp(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${chomp()}`,
+				nil,
+				true,
+			},
+
+			{
+				`${chomp("hello world")}`,
+				"hello world",
+				false,
+			},
+
+			{
+				fmt.Sprintf(`${chomp("%s")}`, "goodbye\ncruel\nworld"),
+				"goodbye\ncruel\nworld",
+				false,
+			},
+
+			{
+				fmt.Sprintf(`${chomp("%s")}`, "goodbye\r\nwindows\r\nworld"),
+				"goodbye\r\nwindows\r\nworld",
+				false,
+			},
+
+			{
+				fmt.Sprintf(`${chomp("%s")}`, "goodbye\ncruel\nworld\n"),
+				"goodbye\ncruel\nworld",
+				false,
+			},
+
+			{
+				fmt.Sprintf(`${chomp("%s")}`, "goodbye\ncruel\nworld\n\n\n\n"),
+				"goodbye\ncruel\nworld",
+				false,
+			},
+
+			{
+				fmt.Sprintf(`${chomp("%s")}`, "goodbye\r\nwindows\r\nworld\r\n"),
+				"goodbye\r\nwindows\r\nworld",
+				false,
+			},
+
+			{
+				fmt.Sprintf(`${chomp("%s")}`, "goodbye\r\nwindows\r\nworld\r\n\r\n\r\n\r\n"),
+				"goodbye\r\nwindows\r\nworld",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncMap(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -488,7 +542,22 @@ func TestInterpolateFuncCidrHost(t *testing.T) {
 				false,
 			},
 			{
+				`${cidrhost("192.168.1.0/24", -5)}`,
+				"192.168.1.251",
+				false,
+			},
+			{
+				`${cidrhost("192.168.1.0/24", -256)}`,
+				"192.168.1.0",
+				false,
+			},
+			{
 				`${cidrhost("192.168.1.0/30", 255)}`,
+				nil,
+				true, // 255 doesn't fit in two bits
+			},
+			{
+				`${cidrhost("192.168.1.0/30", -255)}`,
 				nil,
 				true, // 255 doesn't fit in two bits
 			},
@@ -850,6 +919,18 @@ func TestInterpolateFuncMerge(t *testing.T) {
 		},
 	})
 
+}
+
+func TestInterpolateFuncDirname(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${dirname("/foo/bar/baz")}`,
+				"/foo/bar",
+				false,
+			},
+		},
+	})
 }
 
 func TestInterpolateFuncDistinct(t *testing.T) {
@@ -1777,6 +1858,18 @@ func TestInterpolateFuncElement(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncBasename(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${basename("/foo/bar/baz")}`,
+				"baz",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncBase64Encode(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -2002,7 +2095,7 @@ func TestInterpolateFuncTimestamp(t *testing.T) {
 	}
 
 	if resultTime.Sub(currentTime).Seconds() > 10.0 {
-		t.Fatalf("Timestamp Diff too large. Expected: %s\nRecieved: %s", currentTime.Format(time.RFC3339), result.Value.(string))
+		t.Fatalf("Timestamp Diff too large. Expected: %s\nReceived: %s", currentTime.Format(time.RFC3339), result.Value.(string))
 	}
 }
 
@@ -2065,6 +2158,64 @@ func TestInterpolateFuncPathExpand(t *testing.T) {
 			},
 			{
 				`${pathexpand()}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncSubstr(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${substr("foobar", 0, 0)}`,
+				"",
+				false,
+			},
+			{
+				`${substr("foobar", 0, -1)}`,
+				"foobar",
+				false,
+			},
+			{
+				`${substr("foobar", 0, 3)}`,
+				"foo",
+				false,
+			},
+			{
+				`${substr("foobar", 3, 3)}`,
+				"bar",
+				false,
+			},
+			{
+				`${substr("foobar", -3, 3)}`,
+				"bar",
+				false,
+			},
+
+			// empty string
+			{
+				`${substr("", 0, 0)}`,
+				"",
+				false,
+			},
+
+			// invalid offset
+			{
+				`${substr("", 1, 0)}`,
+				nil,
+				true,
+			},
+
+			// invalid length
+			{
+				`${substr("", 0, 1)}`,
+				nil,
+				true,
+			},
+			{
+				`${substr("", 0, -2)}`,
 				nil,
 				true,
 			},

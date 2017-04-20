@@ -95,3 +95,12 @@ func parseAzureResourceID(id string) (*ResourceID, error) {
 
 	return idObj, nil
 }
+
+func parseNetworkSecurityGroupName(networkSecurityGroupId string) (string, error) {
+	id, err := parseAzureResourceID(networkSecurityGroupId)
+	if err != nil {
+		return "", fmt.Errorf("[ERROR] Unable to Parse Network Security Group ID '%s': %+v", networkSecurityGroupId, err)
+	}
+
+	return id.Path["networkSecurityGroups"], nil
+}

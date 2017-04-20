@@ -12,7 +12,7 @@ Allows creation and management of a Google Cloud Platform project and its
 associated enabled services/APIs.
 
 Projects created with this resource must be associated with an Organization.
-See the [Organization documentation](https://cloud.google.com/resource-manager/docs/quickstart) for more details.
+See the [Organization documentation](https://cloud.google.com/resource-manager/docs/quickstarts) for more details.
 
 The service account used to run Terraform when creating a `google_project`
 resource must have `roles/resourcemanager.projectCreator`. See the
@@ -39,7 +39,7 @@ Terraform. Only newly added projects are affected.
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_project" "my_project" {
   project_id = "your-project-id"
   org_id     = "1234567"
@@ -67,7 +67,7 @@ The following arguments are supported:
     This is required if you are creating a new project.
     Changing this forces a new project to be created.
 
-* `billing_acount` - (Optional) The alphanumeric ID of the billing account this project
+* `billing_account` - (Optional) The alphanumeric ID of the billing account this project
     belongs to. The user or service account performing this operation with Terraform
     must have Billing Account Administrator privileges (`roles/billing.admin`) in
     the organization. See [Google Cloud Billing API Access Control](https://cloud.google.com/billing/v1/how-tos/access-control)

@@ -14,8 +14,8 @@ This allows you to manage your webhooks on a repository.
 
 ## Example Usage
 
-```
-# Manage your respositories hooks
+```hcl
+# Manage your repositories hooks
 resource "bitbucket_hook" "deploy_on_push" {
   owner       = "myteam"
   repository  = "terraform-code"

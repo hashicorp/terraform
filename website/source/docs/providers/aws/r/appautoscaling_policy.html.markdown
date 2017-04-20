@@ -11,7 +11,8 @@ description: |-
 Provides an Application AutoScaling Policy resource.
 
 ## Example Usage
-```
+
+```hcl
 resource "aws_appautoscaling_target" "ecs_target" {
   max_capacity       = 4
   min_capacity       = 1
@@ -53,7 +54,7 @@ The following arguments are supported:
 * `service_namespace` - (Required) The AWS service namespace of the scalable target. Valid values are `ecs` for Amazon ECS services and `ec2` Amazon EC2 Spot fleet requests.
 * `step_adjustment` - (Optional) A set of adjustments that manage scaling. These have the following structure:
 
-  ```
+  ```hcl
   step_adjustment {
     metric_interval_lower_bound = 1.0
     metric_interval_upper_bound = 2.0

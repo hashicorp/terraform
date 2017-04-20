@@ -3,15 +3,17 @@ package aws
 import (
 	"fmt"
 	"net"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func validateRdsId(v interface{}, k string) (ws []string, errors []error) {
+func validateRdsIdentifier(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
@@ -28,6 +30,23 @@ func validateRdsId(v interface{}, k string) (ws []string, errors []error) {
 	if regexp.MustCompile(`-$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"%q cannot end with a hyphen", k))
+	}
+	return
+}
+
+func validateRdsIdentifierPrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
+	}
+	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"first character of %q must be a letter", k))
+	}
+	if regexp.MustCompile(`--`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot contain two consecutive hyphens", k))
 	}
 	return
 }
@@ -102,7 +121,27 @@ func validateDbParamGroupName(v interface{}, k string) (ws []string, errors []er
 			"%q cannot be greater than 255 characters", k))
 	}
 	return
+}
 
+func validateDbParamGroupNamePrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
+	}
+	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"first character of %q must be a letter", k))
+	}
+	if regexp.MustCompile(`--`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot contain two consecutive hyphens", k))
+	}
+	if len(value) > 255 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be greater than 226 characters", k))
+	}
+	return
 }
 
 func validateStreamViewType(v interface{}, k string) (ws []string, errors []error) {
@@ -140,7 +179,24 @@ func validateElbName(v interface{}, k string) (ws []string, errors []error) {
 			"%q cannot end with a hyphen: %q", k, value))
 	}
 	return
+}
 
+func validateElbNamePrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only alphanumeric characters and hyphens allowed in %q: %q",
+			k, value))
+	}
+	if len(value) > 6 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 6 characters: %q", k, value))
+	}
+	if regexp.MustCompile(`^-`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot begin with a hyphen: %q", k, value))
+	}
+	return
 }
 
 func validateEcrRepositoryName(v interface{}, k string) (ws []string, errors []error) {
@@ -297,7 +353,7 @@ func validateArn(v interface{}, k string) (ws []string, errors []error) {
 	}
 
 	// http://docs.aws.amazon.com/lambda/latest/dg/API_AddPermission.html
-	pattern := `^arn:[\w-]+:([a-zA-Z0-9\-])+:([a-z]{2}-[a-z]+-\d{1})?:(\d{12})?:(.*)$`
+	pattern := `^arn:[\w-]+:([a-zA-Z0-9\-])+:([a-z]{2}-(gov-)?[a-z]+-\d{1})?:(\d{12})?:(.*)$`
 	if !regexp.MustCompile(pattern).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"%q doesn't look like a valid ARN (%q): %q",
@@ -413,6 +469,26 @@ func validateLogGroupName(v interface{}, k string) (ws []string, errors []error)
 	if len(value) > 512 {
 		errors = append(errors, fmt.Errorf(
 			"%q cannot be longer than 512 characters: %q", k, value))
+	}
+
+	// http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLogGroup.html
+	pattern := `^[\.\-_/#A-Za-z0-9]+$`
+	if !regexp.MustCompile(pattern).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q isn't a valid log group name (alphanumeric characters, underscores,"+
+				" hyphens, slashes, hash signs and dots are allowed): %q",
+			k, value))
+	}
+
+	return
+}
+
+func validateLogGroupNamePrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	if len(value) > 483 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 483 characters: %q", k, value))
 	}
 
 	// http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLogGroup.html
@@ -871,8 +947,9 @@ func validateDmsReplicationTaskId(v interface{}, k string) (ws []string, es []er
 func validateAppautoscalingScalableDimension(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	dimensions := map[string]bool{
-		"ecs:service:DesiredCount":              true,
-		"ec2:spot-fleet-request:TargetCapacity": true,
+		"ecs:service:DesiredCount":                     true,
+		"ec2:spot-fleet-request:TargetCapacity":        true,
+		"elasticmapreduce:instancegroup:InstanceCount": true,
 	}
 
 	if !dimensions[value] {
@@ -884,8 +961,9 @@ func validateAppautoscalingScalableDimension(v interface{}, k string) (ws []stri
 func validateAppautoscalingServiceNamespace(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	namespaces := map[string]bool{
-		"ecs": true,
-		"ec2": true,
+		"ecs":              true,
+		"ec2":              true,
+		"elasticmapreduce": true,
 	}
 
 	if !namespaces[value] {
@@ -926,7 +1004,7 @@ func validateConfigExecutionFrequency(v interface{}, k string) (ws []string, err
 		}
 	}
 	errors = append(errors, fmt.Errorf(
-		"%q contains an invalid freqency %q. Valid frequencies are %q.",
+		"%q contains an invalid frequency %q. Valid frequencies are %q.",
 		k, frequency, validFrequencies))
 	return
 }
@@ -946,6 +1024,197 @@ func validateAccountAlias(v interface{}, k string) (ws []string, es []error) {
 	if strings.HasSuffix(val, "-") {
 		es = append(es, fmt.Errorf("%q must not end in a hyphen", k))
 	}
+	return
+}
 
+func validateApiGatewayApiKeyValue(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) < 30 {
+		errors = append(errors, fmt.Errorf(
+			"%q must be at least 30 characters long", k))
+	}
+	if len(value) > 128 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 128 characters", k))
+	}
+	return
+}
+
+func validateIamRolePolicyName(v interface{}, k string) (ws []string, errors []error) {
+	// https://github.com/boto/botocore/blob/2485f5c/botocore/data/iam/2010-05-08/service-2.json#L8291-L8296
+	value := v.(string)
+	if len(value) > 128 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 128 characters", k))
+	}
+	if !regexp.MustCompile("^[\\w+=,.@-]+$").MatchString(value) {
+		errors = append(errors, fmt.Errorf("%q must match [\\w+=,.@-]", k))
+	}
+	return
+}
+
+func validateIamRolePolicyNamePrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) > 100 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 100 characters", k))
+	}
+	if !regexp.MustCompile("^[\\w+=,.@-]+$").MatchString(value) {
+		errors = append(errors, fmt.Errorf("%q must match [\\w+=,.@-]", k))
+	}
+	return
+}
+
+func validateApiGatewayUsagePlanQuotaSettingsPeriod(v interface{}, k string) (ws []string, errors []error) {
+	validPeriods := []string{
+		apigateway.QuotaPeriodTypeDay,
+		apigateway.QuotaPeriodTypeWeek,
+		apigateway.QuotaPeriodTypeMonth,
+	}
+	period := v.(string)
+	for _, f := range validPeriods {
+		if period == f {
+			return
+		}
+	}
+	errors = append(errors, fmt.Errorf(
+		"%q contains an invalid period %q. Valid period are %q.",
+		k, period, validPeriods))
+	return
+}
+
+func validateApiGatewayUsagePlanQuotaSettings(v map[string]interface{}) (errors []error) {
+	period := v["period"].(string)
+	offset := v["offset"].(int)
+
+	if period == apigateway.QuotaPeriodTypeDay && offset != 0 {
+		errors = append(errors, fmt.Errorf("Usage Plan quota offset must be zero in the DAY period"))
+	}
+
+	if period == apigateway.QuotaPeriodTypeWeek && (offset < 0 || offset > 6) {
+		errors = append(errors, fmt.Errorf("Usage Plan quota offset must be between 0 and 6 inclusive in the WEEK period"))
+	}
+
+	if period == apigateway.QuotaPeriodTypeMonth && (offset < 0 || offset > 27) {
+		errors = append(errors, fmt.Errorf("Usage Plan quota offset must be between 0 and 27 inclusive in the MONTH period"))
+	}
+
+	return
+}
+
+func validateDbSubnetGroupName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[ .0-9a-z-_]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only lowercase alphanumeric characters, hyphens, underscores, periods, and spaces allowed in %q", k))
+	}
+	if len(value) > 255 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 255 characters", k))
+	}
+	if regexp.MustCompile(`(?i)^default$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q is not allowed as %q", "Default", k))
+	}
+	return
+}
+
+func validateDbSubnetGroupNamePrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[ .0-9a-z-_]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only lowercase alphanumeric characters, hyphens, underscores, periods, and spaces allowed in %q", k))
+	}
+	if len(value) > 229 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 229 characters", k))
+	}
+	return
+}
+
+func validateDbOptionGroupName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"first character of %q must be a letter", k))
+	}
+	if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only alphanumeric characters and hyphens allowed in %q", k))
+	}
+	if regexp.MustCompile(`--`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot contain two consecutive hyphens", k))
+	}
+	if regexp.MustCompile(`-$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot end with a hyphen", k))
+	}
+	if len(value) > 255 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be greater than 255 characters", k))
+	}
+	return
+}
+
+func validateDbOptionGroupNamePrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"first character of %q must be a letter", k))
+	}
+	if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only alphanumeric characters and hyphens allowed in %q", k))
+	}
+	if regexp.MustCompile(`--`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot contain two consecutive hyphens", k))
+	}
+	if len(value) > 229 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be greater than 229 characters", k))
+	}
+	return
+}
+
+func validateAwsAlbTargetGroupName(v interface{}, k string) (ws []string, errors []error) {
+	name := v.(string)
+	if len(name) > 32 {
+		errors = append(errors, fmt.Errorf("%q (%q) cannot be longer than '32' characters", k, name))
+	}
+	return
+}
+
+func validateAwsAlbTargetGroupNamePrefix(v interface{}, k string) (ws []string, errors []error) {
+	name := v.(string)
+	if len(name) > 32 {
+		errors = append(errors, fmt.Errorf("%q (%q) cannot be longer than '6' characters", k, name))
+	}
+	return
+}
+
+func validateOpenIdURL(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	u, err := url.Parse(value)
+	if err != nil {
+		errors = append(errors, fmt.Errorf("%q has to be a valid URL", k))
+		return
+	}
+	if u.Scheme != "https" {
+		errors = append(errors, fmt.Errorf("%q has to use HTTPS scheme (i.e. begin with https://)", k))
+	}
+	if len(u.Query()) > 0 {
+		errors = append(errors, fmt.Errorf("%q cannot contain query parameters per the OIDC standard", k))
+	}
+	return
+}
+
+func validateAwsKmsName(v interface{}, k string) (ws []string, es []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^(alias\/)[a-zA-Z0-9:/_-]+$`).MatchString(value) {
+		es = append(es, fmt.Errorf(
+			"%q must begin with 'alias/' and be comprised of only [a-zA-Z0-9:/_-]", k))
+	}
 	return
 }

@@ -26,7 +26,8 @@ func resourceProfitBricksIPBlock() *schema.Resource {
 				ForceNew: true,
 			},
 			"ips": {
-				Type:     schema.TypeString,
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 				Computed: true,
 			},
 		},
@@ -59,12 +60,16 @@ func resourceProfitBricksIPBlockRead(d *schema.ResourceData, meta interface{}) e
 	ipblock := profitbricks.GetIpBlock(d.Id())
 
 	if ipblock.StatusCode > 299 {
+		if ipblock.StatusCode == 404 {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("An error occured while fetching an ip block ID %s %s", d.Id(), ipblock.Response)
 	}
 
 	log.Printf("[INFO] IPS: %s", strings.Join(ipblock.Properties.Ips, ","))
 
-	d.Set("ips", strings.Join(ipblock.Properties.Ips, ","))
+	d.Set("ips", ipblock.Properties.Ips)
 	d.Set("location", ipblock.Properties.Location)
 	d.Set("size", ipblock.Properties.Size)
 

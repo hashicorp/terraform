@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -18,6 +19,7 @@ func resourceAwsKmsKey() *schema.Resource {
 		Read:   resourceAwsKmsKeyRead,
 		Update: resourceAwsKmsKeyUpdate,
 		Delete: resourceAwsKmsKeyDelete,
+		Exists: resourceAwsKmsKeyExists,
 
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
@@ -80,6 +82,7 @@ func resourceAwsKmsKey() *schema.Resource {
 					return
 				},
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -97,6 +100,9 @@ func resourceAwsKmsKeyCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 	if v, exists := d.GetOk("policy"); exists {
 		req.Policy = aws.String(v.(string))
+	}
+	if v, exists := d.GetOk("tags"); exists {
+		req.Tags = tagsFromMapKMS(v.(map[string]interface{}))
 	}
 
 	var resp *kms.CreateKeyOutput
@@ -170,6 +176,14 @@ func resourceAwsKmsKeyRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.Set("enable_key_rotation", krs.KeyRotationEnabled)
 
+	tagList, err := conn.ListResourceTags(&kms.ListResourceTagsInput{
+		KeyId: metadata.KeyId,
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to get KMS key tags (key: %s): %s", d.Get("key_id").(string), err)
+	}
+	d.Set("tags", tagsToMapKMS(tagList.Tags))
+
 	return nil
 }
 
@@ -213,6 +227,10 @@ func _resourceAwsKmsKeyUpdate(d *schema.ResourceData, meta interface{}, isFresh 
 		if err := updateKmsKeyStatus(conn, d.Id(), d.Get("is_enabled").(bool)); err != nil {
 			return err
 		}
+	}
+
+	if err := setTagsKMS(conn, d, d.Id()); err != nil {
+		return err
 	}
 
 	return resourceAwsKmsKeyRead(d, meta)
@@ -350,6 +368,30 @@ func updateKmsKeyRotationStatus(conn *kms.KMS, d *schema.ResourceData) error {
 	}
 
 	return nil
+}
+
+func resourceAwsKmsKeyExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+	conn := meta.(*AWSClient).kmsconn
+
+	req := &kms.DescribeKeyInput{
+		KeyId: aws.String(d.Id()),
+	}
+	resp, err := conn.DescribeKey(req)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "NotFoundException" {
+				return false, nil
+			}
+		}
+		return false, err
+	}
+	metadata := resp.KeyMetadata
+
+	if *metadata.KeyState == "PendingDeletion" {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func resourceAwsKmsKeyDelete(d *schema.ResourceData, meta interface{}) error {

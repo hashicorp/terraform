@@ -12,7 +12,7 @@ Manages a network within GCE.
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_network" "default" {
   name                    = "test"
   auto_create_subnetworks = "true"
@@ -52,5 +52,7 @@ In addition to the arguments listed above, the following computed attributes are
 exported:
 
 * `gateway_ipv4` - The IPv4 address of the gateway.
+
+* `name` - The unique name of the network.
 
 * `self_link` - The URI of the created resource.

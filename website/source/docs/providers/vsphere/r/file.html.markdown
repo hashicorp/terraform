@@ -16,7 +16,7 @@ Updates to file resources will handle moving a file to a new destination (datace
 
 **Upload file to vSphere:**
 
-```
+```hcl
 resource "vsphere_file" "ubuntu_disk_upload" {
   datacenter       = "my_datacenter"
   datastore        = "local"
@@ -27,7 +27,7 @@ resource "vsphere_file" "ubuntu_disk_upload" {
 
 **Copy file within vSphere:**
 
-```
+```hcl
 resource "vsphere_file" "ubuntu_disk_copy" {
   source_datacenter = "my_datacenter"
   datacenter        = "my_datacenter"

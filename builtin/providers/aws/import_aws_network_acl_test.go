@@ -23,11 +23,11 @@ func TestAccAWSNetworkAcl_importBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSNetworkAclDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSNetworkAclEgressNIngressConfig,
 			},
 
-			resource.TestStep{
+			{
 				ResourceName:      "aws_network_acl.bar",
 				ImportState:       true,
 				ImportStateVerify: true,

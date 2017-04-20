@@ -13,6 +13,7 @@ func Provider() terraform.ResourceProvider {
 		ResourcesMap: map[string]*schema.Resource{
 			"random_id":      resourceId(),
 			"random_shuffle": resourceShuffle(),
+			"random_pet":     resourcePet(),
 		},
 	}
 }

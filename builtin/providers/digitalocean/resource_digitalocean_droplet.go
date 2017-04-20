@@ -63,6 +63,16 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 				Computed: true,
 			},
 
+			"price_hourly": {
+				Type:     schema.TypeFloat,
+				Computed: true,
+			},
+
+			"price_monthly": {
+				Type:     schema.TypeFloat,
+				Computed: true,
+			},
+
 			"resize_disk": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -259,6 +269,8 @@ func resourceDigitalOceanDropletRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("name", droplet.Name)
 	d.Set("region", droplet.Region.Slug)
 	d.Set("size", droplet.Size.Slug)
+	d.Set("price_hourly", droplet.Size.PriceHourly)
+	d.Set("price_monthly", droplet.Size.PriceMonthly)
 	d.Set("disk", droplet.Disk)
 	d.Set("vcpus", droplet.Vcpus)
 	d.Set("status", droplet.Status)
@@ -322,8 +334,9 @@ func resourceDigitalOceanDropletUpdate(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("invalid droplet id: %v", err)
 	}
 
-	if d.HasChange("size") {
-		oldSize, newSize := d.GetChange("size")
+	resize_disk := d.Get("resize_disk").(bool)
+	if d.HasChange("size") || d.HasChange("resize_disk") && resize_disk {
+		newSize := d.Get("size")
 
 		_, _, err = client.DropletActions.PowerOff(id)
 		if err != nil && !strings.Contains(err.Error(), "Droplet is already powered off") {
@@ -339,13 +352,7 @@ func resourceDigitalOceanDropletUpdate(d *schema.ResourceData, meta interface{})
 		}
 
 		// Resize the droplet
-		resize_disk := d.Get("resize_disk")
-		switch {
-		case resize_disk == true:
-			_, _, err = client.DropletActions.Resize(id, newSize.(string), true)
-		case resize_disk == false:
-			_, _, err = client.DropletActions.Resize(id, newSize.(string), false)
-		}
+		action, _, err := client.DropletActions.Resize(id, newSize.(string), resize_disk)
 		if err != nil {
 			newErr := powerOnAndWait(d, meta)
 			if newErr != nil {
@@ -356,11 +363,8 @@ func resourceDigitalOceanDropletUpdate(d *schema.ResourceData, meta interface{})
 				"Error resizing droplet (%s): %s", d.Id(), err)
 		}
 
-		// Wait for the size to change
-		_, err = WaitForDropletAttribute(
-			d, newSize.(string), []string{"", oldSize.(string)}, "size", meta)
-
-		if err != nil {
+		// Wait for the resize action to complete.
+		if err := waitForAction(client, action); err != nil {
 			newErr := powerOnAndWait(d, meta)
 			if newErr != nil {
 				return fmt.Errorf(

@@ -43,7 +43,7 @@ the same until new random values are desired.
 
 For example:
 
-```
+```hcl
 resource "random_id" "server" {
   keepers = {
     # Generate a new id each time we switch to a new AMI id

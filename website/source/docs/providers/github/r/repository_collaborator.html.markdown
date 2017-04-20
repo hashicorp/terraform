@@ -6,7 +6,7 @@ description: |-
   Provides a GitHub repository collaborator resource.
 ---
 
-# github\_repository_collaborator
+# github_repository_collaborator
 
 Provides a GitHub repository collaborator resource.
 
@@ -26,7 +26,7 @@ Further documentation on GitHub collaborators:
 
 ## Example Usage
 
-```
+```hcl
 # Add a collaborator to a repository
 resource "github_repository_collaborator" "a_repo_collaborator" {
   repository = "our-cool-repo"

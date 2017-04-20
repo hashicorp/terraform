@@ -12,7 +12,7 @@ Manages a V2 Server Group resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_compute_servergroup_v2" "test-sg" {
   name     = "my-sg"
   policies = ["anti-affinity"]
@@ -34,6 +34,8 @@ The following arguments are supported:
     two policies are available right now, and both are mutually exclusive. See
     the Policies section for more information. Changing this creates a new
     server group.
+
+* `value_specs` - (Optional) Map of additional options.
 
 ## Policies
 

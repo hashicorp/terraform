@@ -12,32 +12,32 @@ func dataSourceScalewayImage() *schema.Resource {
 		Read: dataSourceScalewayImageRead,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
-			"name_filter": &schema.Schema{
+			"name_filter": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"architecture": &schema.Schema{
+			"architecture": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 			// Computed values.
-			"organization": &schema.Schema{
+			"organization": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"public": &schema.Schema{
+			"public": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
-			"creation_date": &schema.Schema{
+			"creation_date": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

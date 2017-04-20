@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/servergroups"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/firewalls"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/rules"
@@ -23,8 +24,8 @@ import (
 // LogRoundTripper satisfies the http.RoundTripper interface and is used to
 // customize the default http client RoundTripper to allow for logging.
 type LogRoundTripper struct {
-	rt      http.RoundTripper
-	osDebug bool
+	Rt      http.RoundTripper
+	OsDebug bool
 }
 
 // RoundTrip performs a round-trip HTTP request and logs relevant information about it.
@@ -36,36 +37,36 @@ func (lrt *LogRoundTripper) RoundTrip(request *http.Request) (*http.Response, er
 	}()
 
 	// for future reference, this is how to access the Transport struct:
-	//tlsconfig := lrt.rt.(*http.Transport).TLSClientConfig
+	//tlsconfig := lrt.Rt.(*http.Transport).TLSClientConfig
 
 	var err error
 
-	if lrt.osDebug {
+	if lrt.OsDebug {
 		log.Printf("[DEBUG] OpenStack Request URL: %s %s", request.Method, request.URL)
 
 		if request.Body != nil {
-			request.Body, err = lrt.logRequestBody(request.Body, request.Header)
+			request.Body, err = lrt.logRequest(request.Body, request.Header)
 			if err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	response, err := lrt.rt.RoundTrip(request)
+	response, err := lrt.Rt.RoundTrip(request)
 	if response == nil {
 		return nil, err
 	}
 
-	if lrt.osDebug {
-		response.Body, err = lrt.logResponseBody(response.Body, response.Header)
+	if lrt.OsDebug {
+		response.Body, err = lrt.logResponse(response.Body, response.Header)
 	}
 
 	return response, err
 }
 
-// logRequestBody will log the HTTP Request body.
+// logRequest will log the HTTP Request details.
 // If the body is JSON, it will attempt to be pretty-formatted.
-func (lrt *LogRoundTripper) logRequestBody(original io.ReadCloser, headers http.Header) (io.ReadCloser, error) {
+func (lrt *LogRoundTripper) logRequest(original io.ReadCloser, headers http.Header) (io.ReadCloser, error) {
 	defer original.Close()
 
 	var bs bytes.Buffer
@@ -74,20 +75,25 @@ func (lrt *LogRoundTripper) logRequestBody(original io.ReadCloser, headers http.
 		return nil, err
 	}
 
+	log.Printf("[DEBUG] Openstack Request headers:\n%s", strings.Join(RedactHeaders(headers), "\n"))
+
+	// Handle request contentType
 	contentType := headers.Get("Content-Type")
 	if strings.HasPrefix(contentType, "application/json") {
 		debugInfo := lrt.formatJSON(bs.Bytes())
-		log.Printf("[DEBUG] OpenStack Request Options: %s", debugInfo)
+		log.Printf("[DEBUG] OpenStack Request Body: %s", debugInfo)
 	} else {
-		log.Printf("[DEBUG] OpenStack Request Options: %s", bs.String())
+		log.Printf("[DEBUG] OpenStack Request Body: %s", bs.String())
 	}
 
 	return ioutil.NopCloser(strings.NewReader(bs.String())), nil
 }
 
-// logResponseBody will log the HTTP Response body.
+// logResponse will log the HTTP Response details.
 // If the body is JSON, it will attempt to be pretty-formatted.
-func (lrt *LogRoundTripper) logResponseBody(original io.ReadCloser, headers http.Header) (io.ReadCloser, error) {
+func (lrt *LogRoundTripper) logResponse(original io.ReadCloser, headers http.Header) (io.ReadCloser, error) {
+	log.Printf("[DEBUG] Openstack Response headers:\n%s", strings.Join(RedactHeaders(headers), "\n"))
+
 	contentType := headers.Get("Content-Type")
 	if strings.HasPrefix(contentType, "application/json") {
 		var bs bytes.Buffer
@@ -97,7 +103,9 @@ func (lrt *LogRoundTripper) logResponseBody(original io.ReadCloser, headers http
 			return nil, err
 		}
 		debugInfo := lrt.formatJSON(bs.Bytes())
-		log.Printf("[DEBUG] OpenStack Response Body: %s", debugInfo)
+		if debugInfo != "" {
+			log.Printf("[DEBUG] OpenStack Response Body: %s", debugInfo)
+		}
 		return ioutil.NopCloser(strings.NewReader(bs.String())), nil
 	}
 
@@ -124,6 +132,13 @@ func (lrt *LogRoundTripper) formatJSON(raw []byte) string {
 					v["password"] = "***"
 				}
 			}
+		}
+	}
+
+	// Ignore the catalog
+	if v, ok := data["token"].(map[string]interface{}); ok {
+		if _, ok := v["catalog"]; ok {
+			return ""
 		}
 	}
 
@@ -239,6 +254,18 @@ func (opts RuleCreateOpts) ToRuleCreateMap() (map[string]interface{}, error) {
 	}
 
 	return b, nil
+}
+
+// ServerGroupCreateOpts represents the attributes used when creating a new router.
+type ServerGroupCreateOpts struct {
+	servergroups.CreateOpts
+	ValueSpecs map[string]string `json:"value_specs,omitempty"`
+}
+
+// ToServerGroupCreateMap casts a CreateOpts struct to a map.
+// It overrides routers.ToServerGroupCreateMap to add the ValueSpecs field.
+func (opts ServerGroupCreateOpts) ToServerGroupCreateMap() (map[string]interface{}, error) {
+	return BuildRequest(opts, "server_group")
 }
 
 // SubnetCreateOpts represents the attributes used when creating a new subnet.

@@ -11,7 +11,8 @@ description: |-
 Provides a CloudTrail resource.
 
 ## Example Usage
-```
+
+```hcl
 resource "aws_cloudtrail" "foobar" {
   name                          = "tf-trail-foobar"
   s3_bucket_name                = "${aws_s3_bucket.foo.id}"

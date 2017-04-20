@@ -22,9 +22,12 @@ given domain name which is an alias (either Route53 alias or
 traditional CNAME) to the Cloudfront domain name exported in the
 `cloudfront_domain_name` attribute.
 
+~> **Note:** All arguments including the private key will be stored in the raw state as plain-text.
+[Read more about sensitive data in state](/docs/state/sensitive-data.html).
+
 ## Example Usage
 
-```
+```hcl
 resource "aws_api_gateway_domain_name" "example" {
   domain_name = "api.example.com"
 

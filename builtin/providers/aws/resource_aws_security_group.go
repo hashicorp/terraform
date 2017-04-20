@@ -105,13 +105,19 @@ func resourceAwsSecurityGroup() *schema.Resource {
 						"cidr_blocks": {
 							Type:     schema.TypeList,
 							Optional: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
+							Elem: &schema.Schema{
+								Type:         schema.TypeString,
+								ValidateFunc: validateCIDRNetworkAddress,
+							},
 						},
 
 						"ipv6_cidr_blocks": {
 							Type:     schema.TypeList,
 							Optional: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
+							Elem: &schema.Schema{
+								Type:         schema.TypeString,
+								ValidateFunc: validateCIDRNetworkAddress,
+							},
 						},
 
 						"security_groups": {
@@ -156,13 +162,19 @@ func resourceAwsSecurityGroup() *schema.Resource {
 						"cidr_blocks": {
 							Type:     schema.TypeList,
 							Optional: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
+							Elem: &schema.Schema{
+								Type:         schema.TypeString,
+								ValidateFunc: validateCIDRNetworkAddress,
+							},
 						},
 
 						"ipv6_cidr_blocks": {
 							Type:     schema.TypeList,
 							Optional: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
+							Elem: &schema.Schema{
+								Type:         schema.TypeString,
+								ValidateFunc: validateCIDRNetworkAddress,
+							},
 						},
 
 						"prefix_list_ids": {

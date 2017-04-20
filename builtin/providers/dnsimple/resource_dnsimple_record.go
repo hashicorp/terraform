@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/dnsimple/dnsimple-go/dnsimple"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -58,6 +59,7 @@ func resourceDNSimpleRecord() *schema.Resource {
 			"priority": {
 				Type:     schema.TypeString,
 				Computed: true,
+				Optional: true,
 			},
 		},
 	}
@@ -74,6 +76,10 @@ func resourceDNSimpleRecordCreate(d *schema.ResourceData, meta interface{}) erro
 	}
 	if attr, ok := d.GetOk("ttl"); ok {
 		newRecord.TTL, _ = strconv.Atoi(attr.(string))
+	}
+
+	if attr, ok := d.GetOk("priority"); ok {
+		newRecord.Priority, _ = strconv.Atoi(attr.(string))
 	}
 
 	log.Printf("[DEBUG] DNSimple Record create configuration: %#v", newRecord)
@@ -99,6 +105,11 @@ func resourceDNSimpleRecordRead(d *schema.ResourceData, meta interface{}) error 
 
 	resp, err := provider.client.Zones.GetRecord(provider.config.Account, d.Get("domain").(string), recordID)
 	if err != nil {
+		if err != nil && strings.Contains(err.Error(), "404") {
+			log.Printf("DNSimple Record Not Found - Refreshing from State")
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Couldn't find DNSimple Record: %s", err)
 	}
 
@@ -140,6 +151,10 @@ func resourceDNSimpleRecordUpdate(d *schema.ResourceData, meta interface{}) erro
 	}
 	if attr, ok := d.GetOk("ttl"); ok {
 		updateRecord.TTL, _ = strconv.Atoi(attr.(string))
+	}
+
+	if attr, ok := d.GetOk("priority"); ok {
+		updateRecord.Priority, _ = strconv.Atoi(attr.(string))
 	}
 
 	log.Printf("[DEBUG] DNSimple Record update configuration: %#v", updateRecord)

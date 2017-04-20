@@ -262,7 +262,7 @@ func (i *Interpolater) valueResourceVar(
 		// If it truly is missing, we'll catch it on a later walk.
 		// This applies only to graph nodes that interpolate during the
 		// config walk, e.g. providers.
-		if i.Operation == walkInput {
+		if i.Operation == walkInput || i.Operation == walkRefresh {
 			result[n] = unknownVariable()
 			return nil
 		}
@@ -306,10 +306,10 @@ func (i *Interpolater) valueSimpleVar(
 	// relied on this for their template_file data sources. We should
 	// remove this at some point but there isn't any rush.
 	return fmt.Errorf(
-		"invalid variable syntax: %q. If this is part of inline `template` parameter\n"+
+		"invalid variable syntax: %q. Did you mean 'var.%s'? If this is part of inline `template` parameter\n"+
 			"then you must escape the interpolation with two dollar signs. For\n"+
 			"example: ${a} becomes $${a}.",
-		n)
+		n, n)
 }
 
 func (i *Interpolater) valueTerraformVar(
@@ -539,6 +539,13 @@ func (i *Interpolater) computeResourceMultiVariable(
 	defer i.StateLock.RUnlock()
 
 	unknownVariable := unknownVariable()
+
+	// If we're only looking for input, we don't need to expand a
+	// multi-variable. This prevents us from encountering things that should be
+	// known but aren't because the state has yet to be refreshed.
+	if i.Operation == walkInput {
+		return &unknownVariable, nil
+	}
 
 	// Get the information about this resource variable, and verify
 	// that it exists and such.

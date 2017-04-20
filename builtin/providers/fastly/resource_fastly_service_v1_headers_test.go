@@ -81,7 +81,7 @@ func TestAccFastlyServiceV1_headers_basic(t *testing.T) {
 	domainName1 := fmt.Sprintf("%s.notadomain.com", acctest.RandString(10))
 
 	log1 := gofastly.Header{
-		Version:     "1",
+		Version:     1,
 		Name:        "remove x-amz-request-id",
 		Destination: "http.x-amz-request-id",
 		Type:        "cache",
@@ -90,7 +90,7 @@ func TestAccFastlyServiceV1_headers_basic(t *testing.T) {
 	}
 
 	log2 := gofastly.Header{
-		Version:     "1",
+		Version:     1,
 		Name:        "remove s3 server",
 		Destination: "http.Server",
 		Type:        "cache",
@@ -100,7 +100,7 @@ func TestAccFastlyServiceV1_headers_basic(t *testing.T) {
 	}
 
 	log3 := gofastly.Header{
-		Version:     "1",
+		Version:     1,
 		Name:        "DESTROY S3",
 		Destination: "http.Server",
 		Type:        "cache",
@@ -109,7 +109,7 @@ func TestAccFastlyServiceV1_headers_basic(t *testing.T) {
 	}
 
 	log4 := gofastly.Header{
-		Version:           "1",
+		Version:           1,
 		Name:              "Add server name",
 		Destination:       "http.server-name",
 		Type:              "request",

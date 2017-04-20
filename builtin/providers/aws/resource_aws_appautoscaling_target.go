@@ -20,33 +20,33 @@ func resourceAwsAppautoscalingTarget() *schema.Resource {
 		Delete: resourceAwsAppautoscalingTargetDelete,
 
 		Schema: map[string]*schema.Schema{
-			"max_capacity": &schema.Schema{
+			"max_capacity": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
-			"min_capacity": &schema.Schema{
+			"min_capacity": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
-			"resource_id": &schema.Schema{
+			"resource_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"role_arn": &schema.Schema{
+			"role_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"scalable_dimension": &schema.Schema{
+			"scalable_dimension": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateAppautoscalingScalableDimension,
 			},
-			"service_namespace": &schema.Schema{
+			"service_namespace": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
@@ -115,12 +115,6 @@ func resourceAwsAppautoscalingTargetRead(d *schema.ResourceData, meta interface{
 
 	return nil
 }
-
-// Updating Target is not supported
-// func getAwsAppautoscalingTargetUpdate(d *schema.ResourceData, meta interface{}) error {
-//   conn := meta.(*AWSClient).appautoscalingconn
-
-// }
 
 func resourceAwsAppautoscalingTargetDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).appautoscalingconn

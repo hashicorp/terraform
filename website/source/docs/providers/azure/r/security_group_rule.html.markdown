@@ -24,7 +24,7 @@ updating the state with regards to them.
 
 ## Example Usage
 
-```
+```hcl
 resource "azure_security_group" "web" {
   # ...
 }

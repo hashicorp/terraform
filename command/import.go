@@ -35,6 +35,8 @@ func (c *ImportCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.StringVar(&configPath, "config", pwd, "path")
 	cmdFlags.StringVar(&c.Meta.provider, "provider", "", "provider")
+	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
+	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -161,6 +163,10 @@ Options:
                       via the input prompts or env vars.
 
   -input=true         Ask for input for variables if not directly set.
+
+  -lock=true          Lock the state file when locking is supported.
+
+  -lock-timeout=0s    Duration to retry a state lock.
 
   -no-color           If specified, output won't contain any color.
 

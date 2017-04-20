@@ -22,6 +22,10 @@ func resourceNetworkingSecGroupV2() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		Timeouts: &schema.ResourceTimeout{
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
 				Type:        schema.TypeString,
@@ -130,7 +134,7 @@ func resourceNetworkingSecGroupV2Delete(d *schema.ResourceData, meta interface{}
 		Pending:    []string{"ACTIVE"},
 		Target:     []string{"DELETED"},
 		Refresh:    waitForSecGroupDelete(networkingClient, d.Id()),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -162,6 +166,11 @@ func waitForSecGroupDelete(networkingClient *gophercloud.ServiceClient, secGroup
 			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Neutron Security Group %s", secGroupId)
 				return r, "DELETED", nil
+			}
+			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+				if errCode.Actual == 409 {
+					return r, "ACTIVE", nil
+				}
 			}
 			return r, "ACTIVE", err
 		}

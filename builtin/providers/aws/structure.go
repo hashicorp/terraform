@@ -1490,6 +1490,22 @@ func sortInterfaceSlice(in []interface{}) []interface{} {
 	return b
 }
 
+// This function sorts List A to look like a list found in the tf file.
+func sortListBasedonTFFile(in []string, d *schema.ResourceData, listName string) ([]string, error) {
+	if attributeCount, ok := d.Get(listName + ".#").(int); ok {
+		for i := 0; i < attributeCount; i++ {
+			currAttributeId := d.Get(listName + "." + strconv.Itoa(i))
+			for j := 0; j < len(in); j++ {
+				if currAttributeId == in[j] {
+					in[i], in[j] = in[j], in[i]
+				}
+			}
+		}
+		return in, nil
+	}
+	return in, fmt.Errorf("Could not find list: %s", listName)
+}
+
 func flattenApiGatewayThrottleSettings(settings *apigateway.ThrottleSettings) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, 1)
 
@@ -1848,4 +1864,64 @@ func flattenInspectorTags(cfTags []*cloudformation.Tag) map[string]string {
 		tags[*t.Key] = *t.Value
 	}
 	return tags
+}
+
+func flattenApiGatewayUsageApiStages(s []*apigateway.ApiStage) []map[string]interface{} {
+	stages := make([]map[string]interface{}, 0)
+
+	for _, bd := range s {
+		if bd.ApiId != nil && bd.Stage != nil {
+			stage := make(map[string]interface{})
+			stage["api_id"] = *bd.ApiId
+			stage["stage"] = *bd.Stage
+
+			stages = append(stages, stage)
+		}
+	}
+
+	if len(stages) > 0 {
+		return stages
+	}
+
+	return nil
+}
+
+func flattenApiGatewayUsagePlanThrottling(s *apigateway.ThrottleSettings) []map[string]interface{} {
+	settings := make(map[string]interface{}, 0)
+
+	if s == nil {
+		return nil
+	}
+
+	if s.BurstLimit != nil {
+		settings["burst_limit"] = *s.BurstLimit
+	}
+
+	if s.RateLimit != nil {
+		settings["rate_limit"] = *s.RateLimit
+	}
+
+	return []map[string]interface{}{settings}
+}
+
+func flattenApiGatewayUsagePlanQuota(s *apigateway.QuotaSettings) []map[string]interface{} {
+	settings := make(map[string]interface{}, 0)
+
+	if s == nil {
+		return nil
+	}
+
+	if s.Limit != nil {
+		settings["limit"] = *s.Limit
+	}
+
+	if s.Offset != nil {
+		settings["offset"] = *s.Offset
+	}
+
+	if s.Period != nil {
+		settings["period"] = *s.Period
+	}
+
+	return []map[string]interface{}{settings}
 }

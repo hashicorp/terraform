@@ -12,7 +12,7 @@ Use this data source to get information about a specific [user][1] that you can 
 
 ## Example Usage
 
-```
+```hcl
 data "pagerduty_user" "me" {
   email = "me@example.com"
 }

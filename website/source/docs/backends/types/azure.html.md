@@ -30,7 +30,6 @@ Note that for the access credentials we recommend using a
 ## Example Referencing
 
 ```hcl
-# setup remote state data source
 data "terraform_remote_state" "foo" {
   backend = "azure"
   config {

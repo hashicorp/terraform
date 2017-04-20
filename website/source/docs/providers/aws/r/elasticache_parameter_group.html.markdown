@@ -10,7 +10,7 @@ Provides an ElastiCache parameter group resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_elasticache_parameter_group" "default" {
   name   = "cache-params"
   family = "redis2.8"

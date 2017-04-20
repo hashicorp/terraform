@@ -20,6 +20,11 @@ func resourceLoadBalancerV2() *schema.Resource {
 		Update: resourceLoadBalancerV2Update,
 		Delete: resourceLoadBalancerV2Delete,
 
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(20 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
 				Type:        schema.TypeString,
@@ -138,7 +143,7 @@ func resourceLoadBalancerV2Create(d *schema.ResourceData, meta interface{}) erro
 		Pending:    []string{"PENDING_CREATE"},
 		Target:     []string{"ACTIVE"},
 		Refresh:    waitForLoadBalancerActive(networkingClient, lb.ID),
-		Timeout:    20 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutCreate),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -245,7 +250,7 @@ func resourceLoadBalancerV2Delete(d *schema.ResourceData, meta interface{}) erro
 		Pending:    []string{"ACTIVE", "PENDING_DELETE"},
 		Target:     []string{"DELETED"},
 		Refresh:    waitForLoadBalancerDelete(networkingClient, d.Id()),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
