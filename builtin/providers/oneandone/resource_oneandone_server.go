@@ -478,16 +478,9 @@ func resourceOneandOneServerUpdate(d *schema.ResourceData, meta interface{}) err
 func resourceOneandOneServerDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	server, err := config.API.ShutdownServer(d.Id(), false)
-
-	if err != nil {
-		return err
-	}
-	err = config.API.WaitForState(server, "POWERED_OFF", 10, config.Retries)
-
 	_, ok := d.GetOk("ip")
 
-	server, err = config.API.DeleteServer(d.Id(), ok)
+	server, err := config.API.DeleteServer(d.Id(), ok)
 	if err != nil {
 		return err
 	}

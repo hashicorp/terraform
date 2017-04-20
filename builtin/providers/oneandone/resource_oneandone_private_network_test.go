@@ -113,9 +113,9 @@ func testAccCheckOneandonePrivateNetworkExists(n string, server *oneandone.Priva
 
 const testAccCheckOneandonePrivateNetwork_basic = `
 resource "oneandone_server" "server1" {
-  name = "server01"
+  name = "server_private_net_01"
   description = "ttt"
-  image = "centos"
+  image = "CoreOS_Stable_64std"
   datacenter = "US"
   vcores = 1
   cores_per_processor = 1
@@ -130,9 +130,9 @@ resource "oneandone_server" "server1" {
 }
 
 resource "oneandone_server" "server2" {
-  name = "server02"
+  name = "server_private_net_02"
   description = "ttt"
-  image = "centos"
+  image = "CoreOS_Stable_64std"
   datacenter = "US"
   vcores = 1
   cores_per_processor = 1
@@ -149,7 +149,7 @@ resource "oneandone_server" "server2" {
 resource "oneandone_private_network" "pn" {
   name = "%s",
   description = "new private net"
-  datacenter = "GB"
+  datacenter = "US"
   network_address = "192.168.7.0"
   subnet_mask = "255.255.255.0"
     server_ids = [

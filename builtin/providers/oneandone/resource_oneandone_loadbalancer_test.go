@@ -14,8 +14,8 @@ import (
 func TestAccOneandoneLoadbalancer_Basic(t *testing.T) {
 	var lb oneandone.LoadBalancer
 
-	name := "test_orig"
-	name_updated := "test_cp"
+	name := "test_loadbalancer"
+	name_updated := "test_loadbalancer_renamed"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
