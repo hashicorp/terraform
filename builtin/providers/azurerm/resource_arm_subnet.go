@@ -46,13 +46,11 @@ func resourceArmSubnet() *schema.Resource {
 			"network_security_group_id": {
 				Type:     schema.TypeString,
 				Optional: true,
-				Computed: true,
 			},
 
 			"route_table_id": {
 				Type:     schema.TypeString,
 				Optional: true,
-				Computed: true,
 			},
 
 			"ip_configurations": {
@@ -174,6 +172,20 @@ func resourceArmSubnetRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	} else {
 		d.Set("ip_configurations", []string{})
+	}
+
+	d.Set("address_prefix", *resp.Properties.AddressPrefix)
+
+	if resp.Properties.RouteTable == nil {
+		d.Set("route_table_id", nil)
+	} else {
+		d.Set("route_table_id", *resp.Properties.RouteTable.ID)
+	}
+
+	if resp.Properties.NetworkSecurityGroup == nil {
+		d.Set("network_security_group_id", nil)
+	} else {
+		d.Set("network_security_group_id", *resp.Properties.NetworkSecurityGroup.ID)
 	}
 
 	return nil
