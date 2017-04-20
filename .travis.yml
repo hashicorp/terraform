@@ -24,6 +24,7 @@ deploy:
       repo: 10thmagnitude/terraform
       branch: topic-101-vm-simple-linux
 
+# TODO: possibly use Azure CLI to delete the resource group
 after_deploy:
   - provider: script
     script: terraform destroy
