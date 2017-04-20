@@ -135,7 +135,7 @@ func testCheckAzureRMAppGatewaySslCertificateAssigned(name string, certName stri
 		}
 
 		for _, listener := range *resp.HTTPListeners {
-			if *listener.SslCertificate.ID == *certId {
+			if listener.SslCertificate != nil && *listener.SslCertificate.ID == *certId {
 				return nil
 			}
 		}
