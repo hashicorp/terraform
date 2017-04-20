@@ -3,13 +3,15 @@
 set -o errexit -o nounset
 
 # generate a unique string for CI deployment
-KEY=$(cat /dev/urandom | tr -cd 'a-z' | head -c 16)
+KEY=$(cat /dev/urandom | tr -cd 'a-z' | head -c 8)
+KEY+=$(cat /dev/urandom | tr -cd '0-9' | head -c 8)
+PASSWORD=KEY+"#"
 
 terraform get
 
 terraform plan \
   -var 'dns_name='$KEY \
-  -var 'admin_password='$KEY \
+  -var 'admin_password='$PASSWORD \
   -var 'admin_username='$KEY \
   -var 'resource_group='$KEY \
   -out=out.tfplan
