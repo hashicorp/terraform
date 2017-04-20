@@ -159,36 +159,37 @@ func resourceArmTemplateDeploymentRead(d *schema.ResourceData, meta interface{})
 			outputMap := output.(map[string]interface{})
 			outputValue, ok := outputMap["value"]
 			if !ok {
-				// No value
+				log.Printf("[DEBUG] No value - skipping")
 				continue
 			}
-			outputType := outputMap["type"]
-			var outputStringValue string
+			outputType, ok := outputMap["type"]
+			if !ok {
+				log.Printf("[DEBUG] No type - skipping")
+				continue
+			}
 
-			switch outputType {
-			case "Bool":
-				if outputValue == false {
-					outputStringValue = "0"
-				} else if outputValue == true {
-					outputStringValue = "1"
+			var outputValueString string
+			switch strings.ToLower(outputType.(string)) {
+			case "bool":
+				// Use explicit "0"/"1" strings for boolean
+				if outputValue.(bool) {
+					outputValueString = "1"
 				} else {
-					return fmt.Errorf("Invalid value %s for boolean output %s", outputValue, key)
+					outputValueString = "0"
 				}
 
-			case "String": // Nothing to do
-				fallthrough
-			case "Int":
-				outputStringValue = fmt.Sprint(outputValue)
+			case "string":
+				outputValueString = outputValue.(string)
 
-			case "SecureString", "Object", "SecureObject", "Array":
-				fallthrough
+			case "int":
+				outputValueString = fmt.Sprint(outputValue)
+
 			default:
-				log.Printf("[WARNING] Ignoring output %s: Outputs of type %s are not currently supported in azurerm_deployment_template.",
+				log.Printf("[WARN] Ignoring output %s: Outputs of type %s are not currently supported in azurerm_template_deployment.",
 					key, outputType)
 				continue
 			}
-
-			outputs[key] = outputStringValue
+			outputs[key] = outputValueString
 		}
 	}
 
