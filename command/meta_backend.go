@@ -352,6 +352,13 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, error) {
 		s = terraform.NewState()
 	}
 
+	// if we want to force reconfiguration of the backend, we set the backend
+	// state to nil on this copy. This will direct us through the correct
+	// configuration path in the switch statement below.
+	if m.reconfigure {
+		s.Backend = nil
+	}
+
 	// Upon return, we want to set the state we're using in-memory so that
 	// we can access it for commands.
 	m.backendState = nil
