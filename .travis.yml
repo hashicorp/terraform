@@ -1,5 +1,8 @@
 sudo: required
 
+services:
+  - docker
+
 language: generic
 
 # establish environment variables
