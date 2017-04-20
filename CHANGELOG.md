@@ -47,6 +47,7 @@ BUG FIXES:
  * provider/azurerm: VM's - fixes a bug where ssh_keys could contain a null entry [GH-13755]
  * provider/fastly: Fix issue with using 0 for `default_ttl` [GH-13648]
  * provider/google: Stop setting the id when project creation fails [GH-13644]
+ * provider/logentries: Refresh from state when resources not found [GH-13810]
  * provider/newrelic: newrelic_alert_condition - `condition_scope` must be `application` or `instance` [GH-12972]
  * provider/openstack: Fix updating Ports [GH-13604]
  * provider/rabbitmq: Allow users without tags [GH-13798]
