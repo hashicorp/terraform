@@ -46,3 +46,11 @@ The following arguments are supported:
 ## Attributes Reference
 
 This resource exports no further attributes.
+
+## Import
+
+Node can be imported using the `name`, e.g.
+
+```
+$ terraform import chef_node.sample my-sample-trail
+```
