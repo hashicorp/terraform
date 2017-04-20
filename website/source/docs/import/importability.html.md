@@ -150,6 +150,7 @@ To make a resource importable, please see the
 * google_compute_instance_group_manager
 * google_compute_instance_template
 * google_compute_target_pool
+* google_dns_managed_zone
 * google_project
 
 ### OpenStack
