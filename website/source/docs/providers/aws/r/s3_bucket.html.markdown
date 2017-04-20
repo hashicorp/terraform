@@ -287,7 +287,8 @@ resource "aws_s3_bucket" "bucket" {
 The following arguments are supported:
 
 * `bucket` - (Required) The name of the bucket.
-* `acl` - (Optional) The [canned ACL](https://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl) to apply. Defaults to "private".
+* `acl` - (Optional) The [canned ACL](https://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl) to apply.
+* `acl_policy` - (Optional) The JSON-formatted [ACL policy](https://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#sample-acl) to apply. This is the same format described [here](http://docs.aws.amazon.com/cli/latest/reference/s3api/put-bucket-acl.html).
 * `policy` - (Optional) A valid [bucket policy](https://docs.aws.amazon.com/AmazonS3/latest/dev/example-bucket-policies.html) JSON document. Note that if the policy document is not specific enough (but still valid), Terraform may view the policy as constantly changing in a `terraform plan`. In this case, please make sure you use the verbose/specific version of the policy.
 
 * `tags` - (Optional) A mapping of tags to assign to the bucket.
