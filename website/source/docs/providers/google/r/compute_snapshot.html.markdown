@@ -29,7 +29,7 @@ The following arguments are supported:
 
 * `zone` - (Required) The zone where the source disk is located.
 
-* `source_disk` - (Required) The disk which will be used as the source of the snapshot
+* `source_disk` - (Required) The disk which will be used as the source of the snapshot.
 
 - - -
 
@@ -60,5 +60,7 @@ exported:
     (https://tools.ietf.org/html/rfc4648#section-4) encoded SHA-256 hash of the
     [customer-supplied encryption key](https://cloud.google.com/compute/docs/disks/customer-supplied-encryption)
     that protects the source disk.
+
+* `source_disk_link` - The URI of the source disk.
 
 * `self_link` - The URI of the created resource.
