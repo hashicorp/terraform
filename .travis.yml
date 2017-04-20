@@ -15,14 +15,14 @@ branches:
 
 # install terraform
 before_deploy:
-  - KEY=$(cat /dev/urandom | tr -cd 'a-z' | head -c 12)
-  - PASSWORD=$KEY$(cat /dev/urandom | tr -cd 'A-Z' | head -c 2)$(cat /dev/urandom | tr -cd '0-9' | head -c 2)
+  - export KEY=$(cat /dev/urandom | tr -cd 'a-z' | head -c 12)
+  - export PASSWORD=$KEY$(cat /dev/urandom | tr -cd 'A-Z' | head -c 2)$(cat /dev/urandom | tr -cd '0-9' | head -c 2)
 
 # terraform deploy script
 deploy:
   - provider: script
     skip_cleanup: true
-    script: cd $TEST_DIR && ./deploy.sh $KEY $PASSWORD
+    script: cd $TEST_DIR && ./deploy.sh
     on:
       repo: 10thmagnitude/terraform
       branch: topic-101-vm-simple-linux
