@@ -3234,11 +3234,12 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 		State: s,
 	})
 
-	_, e := ctx.Validate()
+	w, e := ctx.Validate()
+	if len(w) > 0 {
+		t.Fatalf("warnings generated on validate: %#v", w)
+	}
 	if len(e) > 0 {
-		for _, err := range e {
-			t.Errorf("bad: %s", err)
-		}
+		t.Fatalf("errors generated on validate: %#v", e)
 	}
 
 	_, err := ctx.Refresh()
