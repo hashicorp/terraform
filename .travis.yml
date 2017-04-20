@@ -1,7 +1,7 @@
-# sudo: required
-#
-# services:
-#   - docker
+sudo: required
+
+services:
+  - docker
 
 language: generic
 
@@ -13,15 +13,18 @@ branches:
   only:
   - /^(?i:topic)-.*$/
 
-# before_install:
-#   - docker pull azuresdk/azure-cli-python
+before_install:
+  - docker pull hashicorp/terraform
+  - docker pull azuresdk/azure-cli-python
 
 # install terraform
 before_deploy:
-  - curl -fSL "https://releases.hashicorp.com/terraform/0.9.2/terraform_0.9.2_linux_amd64.zip" -o terraform.zip
-  - sudo unzip terraform.zip -d /opt/terraform
-  - sudo ln -s /opt/terraform/terraform /usr/bin/terraform
-  - rm -f terraform.zip
+  - KEY=$(cat /dev/urandom | tr -cd 'a-z' | head -c 12)
+  - PASSWORD=$KEY$(cat /dev/urandom | tr -cd 'A-Z' | head -c 2)$(cat /dev/urandom | tr -cd '0-9' | head -c 2)
+  # - curl -fSL "https://releases.hashicorp.com/terraform/0.9.2/terraform_0.9.2_linux_amd64.zip" -o terraform.zip
+  # - sudo unzip terraform.zip -d /opt/terraform
+  # - sudo ln -s /opt/terraform/terraform /usr/bin/terraform
+  # - rm -f terraform.zip
 
 #
 
@@ -29,10 +32,10 @@ before_deploy:
 deploy:
   - provider: script
     skip_cleanup: true
-    script: cd $TEST_DIR && chmod +x ./deploy.sh && ./deploy.sh
+    script: cd $TEST_DIR && docker run --rm -it hashicorp/terraform:light "terraform get; terraform plan -var 'dns_name='$KEY -var 'admin_password='$PASSWORD -var 'admin_username='$KEY -var 'resource_group='$KEY -out=out.tfplan; terraform apply out.tfplan"
     on:
       repo: 10thmagnitude/terraform
       branch: topic-101-vm-simple-linux
 
 # TODO: possibly use Azure CLI to delete the resource group
-after_deploy: cd $TEST_DIR && terraform destroy -force
+after_deploy: cd $TEST_DIR && docker run --rm -it azuresdk/azure-cli-python "az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID && az group delete $KEY"
