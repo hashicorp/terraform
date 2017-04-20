@@ -377,8 +377,8 @@ For more information on the different example configurations, please check out t
 
 `os_profile_windows_config` supports the following:
 
-* `provision_vm_agent` - (Optional)
-* `enable_automatic_upgrades` - (Optional)
+* `provision_vm_agent` - (Optional) Should the Azure Agent be Provisioned on the VM? This is needed for some Azure functionality, such as VM Extensions. Changing this forces a new resource to be created.
+* `enable_automatic_upgrades` - (Optional) Should updates be installed through Microsoft Update automatically? Changing this forces a new resource to be created.
 * `winrm` - (Optional) A collection of WinRM configuration blocks as documented below.
 * `additional_unattend_config` - (Optional) An Additional Unattended Config block as documented below.
 
@@ -411,10 +411,10 @@ For more information on the different example configurations, please check out t
 * `certificate_url` - (Required) Specifies the URI of the key vault secrets in the format of `https://<vaultEndpoint>/secrets/<secretName>/<secretVersion>`. Stored secret is the Base64 encoding of a JSON Object that which is encoded in UTF-8 of which the contents need to be
 
 ```json
-{ 
-  "data":"<Base64-encoded-certificate>", 
+{
+  "data":"<Base64-encoded-certificate>",
   "dataType":"pfx",
-  "password":"<pfx-file-password>" 
+  "password":"<pfx-file-password>"
 }
 ```
 
