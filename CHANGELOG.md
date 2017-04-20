@@ -2,6 +2,7 @@
 
 FEATURES:
 
+* **New Provider:** `opc` - Oracle Public Cloud [GH-13468]
 * **New Data Source:** `aws_kms_alias` [GH-13669]
 * **New Data Source:** `google_compute_network` [GH-12442]
 * **New Data Source:** `google_compute_subnetwork` [GH-12442]
