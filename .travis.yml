@@ -13,10 +13,6 @@ branches:
   only:
   - /^(?i:topic)-.*$/
 
-before_install:
-  - docker pull hashicorp/terraform
-  - docker pull azuresdk/azure-cli-python
-
 # install terraform
 before_deploy:
   - KEY=$(cat /dev/urandom | tr -cd 'a-z' | head -c 12)
