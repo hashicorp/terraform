@@ -23,3 +23,7 @@ deploy:
     on:
       repo: 10thmagnitude/terraform
       branch: topic-101-vm-simple-linux
+
+after_deploy:
+  - provider: script
+    script: terraform destroy

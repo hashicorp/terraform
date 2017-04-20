@@ -4,7 +4,8 @@ set -o errexit -o nounset
 
 # generate a unique string for CI deployment
 KEY=$(cat /dev/urandom | tr -cd 'a-z' | head -c 8)
-KEY+=$(cat /dev/urandom | tr -cd '0-9' | head -c 8)
+KEY+=$(cat /dev/urandom | tr -cd 'A-Z' | head -c 4)
+KEY+=$(cat /dev/urandom | tr -cd '0-9' | head -c 4)
 PASSWORD=KEY+"#"
 
 terraform get
@@ -20,8 +21,6 @@ terraform apply out.tfplan
 
 
 # TODO: determine external validation, possibly Azure CLI
-
-terraform destroy
 
 # echo "Setting git user name"
 # git config user.name $GH_USER_NAME
