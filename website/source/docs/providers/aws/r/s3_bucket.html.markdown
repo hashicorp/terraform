@@ -172,7 +172,6 @@ resource "aws_s3_bucket" "versioning_bucket" {
 
 ```hcl
 provider "aws" {
-  alias  = "west"
   region = "eu-west-1"
 }
 
@@ -248,7 +247,6 @@ resource "aws_iam_policy_attachment" "replication" {
 }
 
 resource "aws_s3_bucket" "destination" {
-  provider = "aws.west"
   bucket   = "tf-test-bucket-destination-12345"
   region   = "eu-west-1"
 
