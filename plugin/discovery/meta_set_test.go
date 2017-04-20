@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-
-	"github.com/blang/semver"
 )
 
 func TestPluginMetaSetManipulation(t *testing.T) {
@@ -264,13 +262,13 @@ func TestPluginMetaSetNewest(t *testing.T) {
 			for _, version := range test.versions {
 				s.Add(PluginMeta{
 					Name:    "foo",
-					Version: version,
+					Version: VersionStr(version),
 					Path:    "foo-V" + version,
 				})
 			}
 
 			newest := s.Newest()
-			if newest.Version != test.want {
+			if newest.Version != VersionStr(test.want) {
 				t.Errorf("version is %q; want %q", newest.Version, test.want)
 			}
 		})
@@ -311,11 +309,11 @@ func TestPluginMetaSetConstrainVersions(t *testing.T) {
 		s.Add(p)
 	}
 
-	byName := s.ConstrainVersions(map[string]semver.Range{
-		"foo": semver.MustParseRange(">=2.0.0"),
-		"bar": semver.MustParseRange(">=0.0.0"),
-		"baz": semver.MustParseRange(">=1.0.0"),
-		"fun": semver.MustParseRange(">5.0.0"),
+	byName := s.ConstrainVersions(PluginRequirements{
+		"foo": ConstraintStr(">=2.0.0").MustParse(),
+		"bar": ConstraintStr(">=0.0.0").MustParse(),
+		"baz": ConstraintStr(">=1.0.0").MustParse(),
+		"fun": ConstraintStr(">5.0.0").MustParse(),
 	})
 	if got, want := len(byName), 3; got != want {
 		t.Errorf("%d keys in map; want %d", got, want)
