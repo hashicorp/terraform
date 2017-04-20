@@ -354,7 +354,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 						"provision_vm_agent": {
 							Type:     schema.TypeBool,
 							Optional: true,
-							Default:  false,
+							Default:  true,
 						},
 						"enable_automatic_upgrades": {
 							Type:     schema.TypeBool,
