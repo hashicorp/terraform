@@ -121,6 +121,9 @@ To make a resource importable, please see the
 * azurerm_storage_account
 * azurerm_virtual_network
 
+### Chef
+* chef_node
+
 ### Circonus
 
 * circonus_check
