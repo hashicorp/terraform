@@ -12,22 +12,22 @@ Creates a new Event Hub as a nested resource within a Event Hub Namespace.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
-    name = "resourceGroup1"
-    location = "West US"
+  name     = "resourceGroup1"
+  location = "West US"
 }
 
 resource "azurerm_eventhub_namespace" "test" {
-    name = "acceptanceTestEventHubNamespace"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    sku = "Basic"
-    capacity = 2
+  name                = "acceptanceTestEventHubNamespace"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  sku                 = "Basic"
+  capacity            = 2
 
-    tags {
-        environment = "Production"
-    }
+  tags {
+    environment = "Production"
+  }
 }
 
 resource "azurerm_eventhub" "test" {
@@ -66,7 +66,7 @@ The following attributes are exported:
 
 ## Import
 
-EventHub's can be imported using the `resource id`, e.g.
+EventHubs can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_eventhub.eventhub1 /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/group1/providers/Microsoft.EventHub/namespaces/namespace1/eventhubs/eventhub1

@@ -112,6 +112,10 @@ func (p *shadowResourceProvisionerReal) Apply(
 	return err
 }
 
+func (p *shadowResourceProvisionerReal) Stop() error {
+	return p.ResourceProvisioner.Stop()
+}
+
 // shadowResourceProvisionerShadow is the shadow resource provisioner. Function
 // calls never affect real resources. This is paired with the "real" side
 // which must be called properly to enable recording.
@@ -226,6 +230,13 @@ func (p *shadowResourceProvisionerShadow) Apply(
 	}
 
 	return result.ResultErr
+}
+
+func (p *shadowResourceProvisionerShadow) Stop() error {
+	// For the shadow, we always just return nil since a Stop indicates
+	// that we were interrupted and shadows are disabled during interrupts
+	// anyways.
+	return nil
 }
 
 // The structs for the various function calls are put below. These structs

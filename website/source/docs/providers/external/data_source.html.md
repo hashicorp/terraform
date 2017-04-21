@@ -27,7 +27,7 @@ configurations that are applied within Terraform Enterprise.
 
 ## Example Usage
 
-```
+```hcl
 data "external" "example" {
   program = ["python", "${path.module}/example-data-source.py"]
 
@@ -75,7 +75,7 @@ The following arguments are supported:
   arguments containing spaces.
 
 * `query` - (Optional) A map of string values to pass to the external program
-  as the query arguments. If not supplied, the program will recieve an empty
+  as the query arguments. If not supplied, the program will receive an empty
   object as its input.
 
 ## Attributes Reference
@@ -94,7 +94,7 @@ language.
 The following example shows some input/output boilerplate code for a
 data source implemented in bash:
 
-```
+```bash
 #!/bin/bash
 
 # Exit if any of the intermediate steps fail

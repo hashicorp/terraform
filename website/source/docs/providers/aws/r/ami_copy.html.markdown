@@ -22,15 +22,16 @@ block until the new AMI is available for use on new instances.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_ami_copy" "example" {
-    name = "terraform-example"
-    description = "A copy of ami-xxxxxxxx"
-    source_ami_id = "ami-xxxxxxxx"
-    source_ami_region = "us-west-1"
-    tags {
-        Name = "HelloWorld"
-    }
+  name              = "terraform-example"
+  description       = "A copy of ami-xxxxxxxx"
+  source_ami_id     = "ami-xxxxxxxx"
+  source_ami_region = "us-west-1"
+
+  tags {
+    Name = "HelloWorld"
+  }
 }
 ```
 
@@ -41,10 +42,10 @@ The following arguments are supported:
 * `name` - (Required) A region-unique name for the AMI.
 * `source_ami_id` - (Required) The id of the AMI to copy. This id must be valid in the region
   given by `source_ami_region`.
-* `source_region` - (Required) The region from which the AMI will be copied. This may be the
+* `source_ami_region` - (Required) The region from which the AMI will be copied. This may be the
   same as the AWS provider region in order to create a copy within the same region.
 * `encrypted` - (Optional) Specifies whether the destination snapshots of the copied image should be encrypted. Defaults to `false`
-* `kms_key_id` - (Optional) The full ARN of the KMS Key to use when encrypting the snapshots of an image during a copy operation. If not specified, then the default AWS KMS Key will be used 
+* `kms_key_id` - (Optional) The full ARN of the KMS Key to use when encrypting the snapshots of an image during a copy operation. If not specified, then the default AWS KMS Key will be used
 
 This resource also exposes the full set of arguments from the [`aws_ami`](ami.html) resource.
 

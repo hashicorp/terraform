@@ -17,7 +17,7 @@ which provides some details about a specific availability zone.
 
 ## Example Usage
 
-```
+```hcl
 # Declare the data source
 data "aws_availability_zones" "available" {}
 
@@ -26,13 +26,13 @@ data "aws_availability_zones" "available" {}
 resource "aws_subnet" "primary" {
   availability_zone = "${data.aws_availability_zones.available.names[0]}"
 
-  # Other properties...
+  # ...
 }
 
 resource "aws_subnet" "secondary" {
   availability_zone = "${data.aws_availability_zones.available.names[1]}"
 
-  # Other properties...
+  # ...
 }
 ```
 

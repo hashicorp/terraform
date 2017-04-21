@@ -75,8 +75,10 @@ func resourceAwsKeyPairCreate(d *schema.ResourceData, meta interface{}) error {
 		keyName = v.(string)
 	} else if v, ok := d.GetOk("key_name_prefix"); ok {
 		keyName = resource.PrefixedUniqueId(v.(string))
+		d.Set("key_name", keyName)
 	} else {
 		keyName = resource.UniqueId()
+		d.Set("key_name", keyName)
 	}
 
 	publicKey := d.Get("public_key").(string)

@@ -48,7 +48,7 @@ resource_type.resource_name[N]
 
 Given a Terraform config that includes:
 
-```
+```hcl
 resource "aws_instance" "web" {
   # ...
   count = 4
@@ -56,7 +56,6 @@ resource "aws_instance" "web" {
 ```
 
 An address like this:
-
 
 ```
 aws_instance.web[3]
@@ -67,6 +66,5 @@ Refers to only the last instance in the config, and an address like this:
 ```
 aws_instance.web
 ```
-
 
 Refers to all four "web" instances.

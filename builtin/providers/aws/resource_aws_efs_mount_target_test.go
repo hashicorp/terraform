@@ -10,12 +10,14 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/efs"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSEFSMountTarget_basic(t *testing.T) {
 	var mount efs.MountTargetDescription
+	ct := fmt.Sprintf("createtoken-%d", acctest.RandInt())
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -23,7 +25,7 @@ func TestAccAWSEFSMountTarget_basic(t *testing.T) {
 		CheckDestroy: testAccCheckEfsMountTargetDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSEFSMountTargetConfig,
+				Config: testAccAWSEFSMountTargetConfig(ct),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckEfsMountTarget(
 						"aws_efs_mount_target.alpha",
@@ -32,12 +34,12 @@ func TestAccAWSEFSMountTarget_basic(t *testing.T) {
 					resource.TestMatchResourceAttr(
 						"aws_efs_mount_target.alpha",
 						"dns_name",
-						regexp.MustCompile("^us-west-2a.[^.]+.efs.us-west-2.amazonaws.com$"),
+						regexp.MustCompile("^[^.]+.efs.us-west-2.amazonaws.com$"),
 					),
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSEFSMountTargetConfigModified,
+				Config: testAccAWSEFSMountTargetConfigModified(ct),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckEfsMountTarget(
 						"aws_efs_mount_target.alpha",
@@ -46,7 +48,7 @@ func TestAccAWSEFSMountTarget_basic(t *testing.T) {
 					resource.TestMatchResourceAttr(
 						"aws_efs_mount_target.alpha",
 						"dns_name",
-						regexp.MustCompile("^us-west-2a.[^.]+.efs.us-west-2.amazonaws.com$"),
+						regexp.MustCompile("^[^.]+.efs.us-west-2.amazonaws.com$"),
 					),
 					testAccCheckEfsMountTarget(
 						"aws_efs_mount_target.beta",
@@ -55,7 +57,7 @@ func TestAccAWSEFSMountTarget_basic(t *testing.T) {
 					resource.TestMatchResourceAttr(
 						"aws_efs_mount_target.beta",
 						"dns_name",
-						regexp.MustCompile("^us-west-2b.[^.]+.efs.us-west-2.amazonaws.com$"),
+						regexp.MustCompile("^[^.]+.efs.us-west-2.amazonaws.com$"),
 					),
 				),
 			},
@@ -66,13 +68,15 @@ func TestAccAWSEFSMountTarget_basic(t *testing.T) {
 func TestAccAWSEFSMountTarget_disappears(t *testing.T) {
 	var mount efs.MountTargetDescription
 
+	ct := fmt.Sprintf("createtoken-%d", acctest.RandInt())
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVpnGatewayDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSEFSMountTargetConfig,
+				Config: testAccAWSEFSMountTargetConfig(ct),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckEfsMountTarget(
 						"aws_efs_mount_target.alpha",
@@ -87,10 +91,9 @@ func TestAccAWSEFSMountTarget_disappears(t *testing.T) {
 }
 
 func TestResourceAWSEFSMountTarget_mountTargetDnsName(t *testing.T) {
-	actual := resourceAwsEfsMountTargetDnsName("non-existent-1c",
-		"fs-123456ab", "non-existent-1")
+	actual := resourceAwsEfsMountTargetDnsName("fs-123456ab", "non-existent-1")
 
-	expected := "non-existent-1c.fs-123456ab.efs.non-existent-1.amazonaws.com"
+	expected := "fs-123456ab.efs.non-existent-1.amazonaws.com"
 	if actual != expected {
 		t.Fatalf("Expected EFS mount target DNS name to be %s, got %s",
 			expected, actual)
@@ -218,9 +221,10 @@ func testAccAWSEFSMountTargetDisappears(mount *efs.MountTargetDescription) resou
 
 }
 
-const testAccAWSEFSMountTargetConfig = `
+func testAccAWSEFSMountTargetConfig(ct string) string {
+	return fmt.Sprintf(`
 resource "aws_efs_file_system" "foo" {
-	creation_token = "radeksimko"
+	creation_token = "%s"
 }
 
 resource "aws_efs_mount_target" "alpha" {
@@ -237,11 +241,13 @@ resource "aws_subnet" "alpha" {
 	availability_zone = "us-west-2a"
 	cidr_block = "10.0.1.0/24"
 }
-`
+`, ct)
+}
 
-const testAccAWSEFSMountTargetConfigModified = `
+func testAccAWSEFSMountTargetConfigModified(ct string) string {
+	return fmt.Sprintf(`
 resource "aws_efs_file_system" "foo" {
-	creation_token = "radeksimko"
+	creation_token = "%s"
 }
 
 resource "aws_efs_mount_target" "alpha" {
@@ -269,4 +275,5 @@ resource "aws_subnet" "beta" {
 	availability_zone = "us-west-2b"
 	cidr_block = "10.0.2.0/24"
 }
-`
+`, ct)
+}

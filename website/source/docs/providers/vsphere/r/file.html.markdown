@@ -16,25 +16,25 @@ Updates to file resources will handle moving a file to a new destination (datace
 
 **Upload file to vSphere:**
 
-```
+```hcl
 resource "vsphere_file" "ubuntu_disk_upload" {
-  datacenter = "my_datacenter"
-  datastore = "local"
-  source_file = "/home/ubuntu/my_disks/custom_ubuntu.vmdk"
+  datacenter       = "my_datacenter"
+  datastore        = "local"
+  source_file      = "/home/ubuntu/my_disks/custom_ubuntu.vmdk"
   destination_file = "/my_path/disks/custom_ubuntu.vmdk"
 }
 ```
 
 **Copy file within vSphere:**
 
-```
+```hcl
 resource "vsphere_file" "ubuntu_disk_copy" {
   source_datacenter = "my_datacenter"
-  datacenter = "my_datacenter"
-  source_datastore = "local"
-  datastore = "local"
-  source_file = "/my_path/disks/custom_ubuntu.vmdk"
-  destination_file = "/my_path/custom_ubuntu_id.vmdk"
+  datacenter        = "my_datacenter"
+  source_datastore  = "local"
+  datastore         = "local"
+  source_file       = "/my_path/disks/custom_ubuntu.vmdk"
+  destination_file  = "/my_path/custom_ubuntu_id.vmdk"
 }
 ```
 

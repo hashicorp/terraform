@@ -46,20 +46,3 @@ func (t *ExpandTransform) Transform(v dag.Vertex) (dag.Vertex, error) {
 	log.Printf("[DEBUG] vertex %q: static expanding", dag.VertexName(ev))
 	return ev.Expand(t.Builder)
 }
-
-type GraphNodeBasicSubgraph struct {
-	NameValue string
-	Graph     *Graph
-}
-
-func (n *GraphNodeBasicSubgraph) Name() string {
-	return n.NameValue
-}
-
-func (n *GraphNodeBasicSubgraph) Subgraph() dag.Grapher {
-	return n.Graph
-}
-
-func (n *GraphNodeBasicSubgraph) FlattenGraph() *Graph {
-	return n.Graph
-}

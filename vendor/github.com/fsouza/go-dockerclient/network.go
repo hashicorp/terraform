@@ -5,12 +5,11 @@
 package docker
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-
-	"golang.org/x/net/context"
 )
 
 // ErrNetworkAlreadyExists is the error returned by CreateNetwork when the
@@ -30,7 +29,6 @@ type Network struct {
 	Options    map[string]string
 	Internal   bool
 	EnableIPv6 bool `json:"EnableIPv6"`
-	Labels     map[string]string
 }
 
 // Endpoint contains network resources allocated and used for a container in a network
@@ -68,11 +66,11 @@ type NetworkFilterOpts map[string]map[string]bool
 //
 // See goo.gl/zd2mx4 for more details.
 func (c *Client) FilteredListNetworks(opts NetworkFilterOpts) ([]Network, error) {
-	params, err := json.Marshal(opts)
-	if err != nil {
+	params := bytes.NewBuffer(nil)
+	if err := json.NewEncoder(params).Encode(&opts); err != nil {
 		return nil, err
 	}
-	path := "/networks?filters=" + string(params)
+	path := "/networks?filters=" + params.String()
 	resp, err := c.do("GET", path, doOptions{})
 	if err != nil {
 		return nil, err
@@ -110,23 +108,21 @@ func (c *Client) NetworkInfo(id string) (*Network, error) {
 //
 // See https://goo.gl/6GugX3 for more details.
 type CreateNetworkOptions struct {
-	Name           string                 `json:"Name" yaml:"Name"`
-	Driver         string                 `json:"Driver" yaml:"Driver"`
-	IPAM           IPAMOptions            `json:"IPAM" yaml:"IPAM"`
-	Options        map[string]interface{} `json:"Options" yaml:"Options"`
-	Labels         map[string]string      `json:"Labels" yaml:"Labels"`
-	CheckDuplicate bool                   `json:"CheckDuplicate" yaml:"CheckDuplicate"`
-	Internal       bool                   `json:"Internal" yaml:"Internal"`
-	EnableIPv6     bool                   `json:"EnableIPv6" yaml:"EnableIPv6"`
-	Context        context.Context        `json:"-"`
+	Name           string                 `json:"Name"`
+	CheckDuplicate bool                   `json:"CheckDuplicate"`
+	Driver         string                 `json:"Driver"`
+	IPAM           IPAMOptions            `json:"IPAM"`
+	Options        map[string]interface{} `json:"Options"`
+	Internal       bool                   `json:"Internal"`
+	EnableIPv6     bool                   `json:"EnableIPv6"`
 }
 
 // IPAMOptions controls IP Address Management when creating a network
 //
 // See https://goo.gl/T8kRVH for more details.
 type IPAMOptions struct {
-	Driver string       `json:"Driver" yaml:"Driver"`
-	Config []IPAMConfig `json:"Config" yaml:"Config"`
+	Driver string       `json:"Driver"`
+	Config []IPAMConfig `json:"Config"`
 }
 
 // IPAMConfig represents IPAM configurations
@@ -148,8 +144,7 @@ func (c *Client) CreateNetwork(opts CreateNetworkOptions) (*Network, error) {
 		"POST",
 		"/networks/create",
 		doOptions{
-			data:    opts,
-			context: opts.Context,
+			data: opts,
 		},
 	)
 	if err != nil {
@@ -205,26 +200,15 @@ type NetworkConnectionOptions struct {
 
 	// Force is only applicable to the DisconnectNetwork call
 	Force bool
-
-	Context context.Context `json:"-"`
 }
 
 // EndpointConfig stores network endpoint details
 //
 // See https://goo.gl/RV7BJU for more details.
 type EndpointConfig struct {
-	IPAMConfig          *EndpointIPAMConfig `json:"IPAMConfig,omitempty" yaml:"IPAMConfig,omitempty"`
-	Links               []string            `json:"Links,omitempty" yaml:"Links,omitempty"`
-	Aliases             []string            `json:"Aliases,omitempty" yaml:"Aliases,omitempty"`
-	NetworkID           string              `json:"NetworkID,omitempty" yaml:"NetworkID,omitempty"`
-	EndpointID          string              `json:"EndpointID,omitempty" yaml:"EndpointID,omitempty"`
-	Gateway             string              `json:"Gateway,omitempty" yaml:"Gateway,omitempty"`
-	IPAddress           string              `json:"IPAddress,omitempty" yaml:"IPAddress,omitempty"`
-	IPPrefixLen         int                 `json:"IPPrefixLen,omitempty" yaml:"IPPrefixLen,omitempty"`
-	IPv6Gateway         string              `json:"IPv6Gateway,omitempty" yaml:"IPv6Gateway,omitempty"`
-	GlobalIPv6Address   string              `json:"GlobalIPv6Address,omitempty" yaml:"GlobalIPv6Address,omitempty"`
-	GlobalIPv6PrefixLen int                 `json:"GlobalIPv6PrefixLen,omitempty" yaml:"GlobalIPv6PrefixLen,omitempty"`
-	MacAddress          string              `json:"MacAddress,omitempty" yaml:"MacAddress,omitempty"`
+	IPAMConfig *EndpointIPAMConfig
+	Links      []string
+	Aliases    []string
 }
 
 // EndpointIPAMConfig represents IPAM configurations for an
@@ -241,10 +225,7 @@ type EndpointIPAMConfig struct {
 //
 // See https://goo.gl/6GugX3 for more details.
 func (c *Client) ConnectNetwork(id string, opts NetworkConnectionOptions) error {
-	resp, err := c.do("POST", "/networks/"+id+"/connect", doOptions{
-		data:    opts,
-		context: opts.Context,
-	})
+	resp, err := c.do("POST", "/networks/"+id+"/connect", doOptions{data: opts})
 	if err != nil {
 		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
 			return &NoSuchNetworkOrContainer{NetworkID: id, ContainerID: opts.Container}

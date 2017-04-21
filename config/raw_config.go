@@ -240,14 +240,24 @@ func (r *RawConfig) interpolate(fn interpolationWalkerFunc) error {
 }
 
 func (r *RawConfig) merge(r2 *RawConfig) *RawConfig {
+	if r == nil && r2 == nil {
+		return nil
+	}
+
+	if r == nil {
+		r = &RawConfig{}
+	}
+
 	rawRaw, err := copystructure.Copy(r.Raw)
 	if err != nil {
 		panic(err)
 	}
 
 	raw := rawRaw.(map[string]interface{})
-	for k, v := range r2.Raw {
-		raw[k] = v
+	if r2 != nil {
+		for k, v := range r2.Raw {
+			raw[k] = v
+		}
 	}
 
 	result, err := NewRawConfig(raw)

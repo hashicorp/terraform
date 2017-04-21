@@ -16,17 +16,17 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the AWS Provider
 provider "aws" {
-    access_key = "${var.aws_access_key}"
-    secret_key = "${var.aws_secret_key}"
-    region = "us-east-1"
+  access_key = "${var.aws_access_key}"
+  secret_key = "${var.aws_secret_key}"
+  region     = "us-east-1"
 }
 
 # Create a web server
 resource "aws_instance" "web" {
-    ...
+  # ...
 }
 ```
 
@@ -48,7 +48,7 @@ AWS provider block:
 
 Usage:
 
-```
+```hcl
 provider "aws" {
   region     = "us-west-2"
   access_key = "anaccesskey"
@@ -64,13 +64,13 @@ Access Key and AWS Secret Key, respectively.  The `AWS_DEFAULT_REGION`
 and `AWS_SESSION_TOKEN` environment variables are also used, if
 applicable:
 
-```
+```hcl
 provider "aws" {}
 ```
 
 Usage:
 
-```
+```hcl
 $ export AWS_ACCESS_KEY_ID="anaccesskey"
 $ export AWS_SECRET_ACCESS_KEY="asecretkey"
 $ export AWS_DEFAULT_REGION="us-west-2"
@@ -91,11 +91,11 @@ method also supports a `profile` configuration and matching
 
 Usage:
 
-```
+```hcl
 provider "aws" {
-  region                   = "us-west-2"
-  shared_credentials_file  = "/Users/tf_user/.aws/creds"
-  profile                  = "customprofile"
+  region                  = "us-west-2"
+  shared_credentials_file = "/Users/tf_user/.aws/creds"
+  profile                 = "customprofile"
 }
 ```
 
@@ -120,12 +120,12 @@ using the supplied credentials.
 
 Usage:
 
-```
+```hcl
 provider "aws" {
   assume_role {
-    role_arn = "arn:aws:iam::ACCOUNT_ID:role/ROLE_NAME"
+    role_arn     = "arn:aws:iam::ACCOUNT_ID:role/ROLE_NAME"
     session_name = "SESSION_NAME"
-    external_id = "EXTERNAL_ID"
+    external_id  = "EXTERNAL_ID"
   }
 }
 ```
@@ -176,17 +176,17 @@ The following arguments are supported in the `provider` block:
 * `insecure` - (Optional) Explicitly allow the provider to
   perform "insecure" SSL requests. If omitted, default value is `false`.
 
-* `dynamodb_endpoint` - (Optional) Use this to override the default endpoint
-  URL constructed from the `region`. It's typically used to connect to
-  `dynamodb-local`.
-
-* `kinesis_endpoint` - (Optional) Use this to override the default endpoint
-  URL constructed from the `region`. It's typically used to connect to
-  `kinesalite`.
-
 * `skip_credentials_validation` - (Optional) Skip the credentials
   validation via the STS API. Useful for AWS API implementations that do
   not have STS available or implemented.
+
+* `skip_get_ec2_platforms` - (Optional) Skip getting the supported EC2
+  platforms. Used by users that don't have ec2:DescribeAccountAttributes
+  permissions.
+
+* `skip_region_validation` - (Optional) Skip validation of provided region name.
+  Useful for AWS-like implementations that use their own region names
+  or to bypass the validation for regions that aren't publicly available yet.
 
 * `skip_requesting_account_id` - (Optional) Skip requesting the account
   ID.  Useful for AWS API implementations that do not have the IAM, STS
@@ -227,7 +227,20 @@ The nested `assume_role` block supports the following:
 * `external_id` - (Optional) The external ID to use when making the
   AssumeRole call.
 
+* `policy` - (Optional) A more restrictive policy to apply to the temporary credentials.
+This gives you a way to further restrict the permissions for the resulting temporary
+security credentials. You cannot use the passed policy to grant permissions that are
+in excess of those allowed by the access policy of the role that is being assumed.
+
 Nested `endpoints` block supports the following:
+
+* `dynamodb` - (Optional) Use this to override the default endpoint
+  URL constructed from the `region`. It's typically used to connect to
+  `dynamodb-local`.
+
+* `kinesis` - (Optional) Use this to override the default endpoint
+  URL constructed from the `region`. It's typically used to connect to
+  `kinesalite`.
 
 * `iam` - (Optional) Use this to override the default endpoint
   URL constructed from the `region`. It's typically used to connect to

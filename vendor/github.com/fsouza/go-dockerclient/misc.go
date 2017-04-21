@@ -1,4 +1,4 @@
-// Copyright 2013 go-dockerclient authors. All rights reserved.
+// Copyright 2015 go-dockerclient authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,15 +6,12 @@ package docker
 
 import (
 	"encoding/json"
-	"net"
 	"strings"
-
-	"github.com/docker/docker/api/types/swarm"
 )
 
 // Version returns version information about the docker server.
 //
-// See https://goo.gl/mU7yje for more details.
+// See https://goo.gl/ND9R8L for more details.
 func (c *Client) Version() (*Env, error) {
 	resp, err := c.do("GET", "/version", doOptions{})
 	if err != nil {
@@ -53,9 +50,8 @@ type DockerInfo struct {
 	BridgeNfIptables   bool
 	BridgeNfIP6tables  bool `json:"BridgeNfIp6tables"`
 	Debug              bool
-	OomKillDisable     bool
-	ExperimentalBuild  bool
 	NFd                int
+	OomKillDisable     bool
 	NGoroutines        int
 	SystemTime         string
 	ExecutionDriver    string
@@ -67,7 +63,6 @@ type DockerInfo struct {
 	OSType             string
 	Architecture       string
 	IndexServerAddress string
-	RegistryConfig     *ServiceConfig
 	NCPU               int
 	MemTotal           int64
 	DockerRootDir      string
@@ -76,10 +71,10 @@ type DockerInfo struct {
 	NoProxy            string
 	Name               string
 	Labels             []string
+	ExperimentalBuild  bool
 	ServerVersion      string
 	ClusterStore       string
 	ClusterAdvertise   string
-	Swarm              swarm.Info
 }
 
 // PluginsInfo is a struct with the plugins registered with the docker daemon
@@ -92,50 +87,6 @@ type PluginsInfo struct {
 	Network []string
 	// List of Authorization plugins registered
 	Authorization []string
-}
-
-// ServiceConfig stores daemon registry services configuration.
-//
-// for more information, see: https://goo.gl/7iFFDz
-type ServiceConfig struct {
-	InsecureRegistryCIDRs []*NetIPNet
-	IndexConfigs          map[string]*IndexInfo
-	Mirrors               []string
-}
-
-// NetIPNet is the net.IPNet type, which can be marshalled and
-// unmarshalled to JSON.
-//
-// for more information, see: https://goo.gl/7iFFDz
-type NetIPNet net.IPNet
-
-// MarshalJSON returns the JSON representation of the IPNet.
-//
-func (ipnet *NetIPNet) MarshalJSON() ([]byte, error) {
-	return json.Marshal((*net.IPNet)(ipnet).String())
-}
-
-// UnmarshalJSON sets the IPNet from a byte array of JSON.
-//
-func (ipnet *NetIPNet) UnmarshalJSON(b []byte) (err error) {
-	var ipnetStr string
-	if err = json.Unmarshal(b, &ipnetStr); err == nil {
-		var cidr *net.IPNet
-		if _, cidr, err = net.ParseCIDR(ipnetStr); err == nil {
-			*ipnet = NetIPNet(*cidr)
-		}
-	}
-	return
-}
-
-// IndexInfo contains information about a registry.
-//
-// for more information, see: https://goo.gl/7iFFDz
-type IndexInfo struct {
-	Name     string
-	Mirrors  []string
-	Secure   bool
-	Official bool
 }
 
 // Info returns system-wide information about the Docker server.
@@ -155,17 +106,13 @@ func (c *Client) Info() (*DockerInfo, error) {
 }
 
 // ParseRepositoryTag gets the name of the repository and returns it splitted
-// in two parts: the repository and the tag. It ignores the digest when it is
-// present.
+// in two parts: the repository and the tag.
 //
 // Some examples:
 //
 //     localhost.localdomain:5000/samalba/hipache:latest -> localhost.localdomain:5000/samalba/hipache, latest
 //     localhost.localdomain:5000/samalba/hipache -> localhost.localdomain:5000/samalba/hipache, ""
-//     busybox:latest@sha256:4a731fb46adc5cefe3ae374a8b6020fc1b6ad667a279647766e9a3cd89f6fa92 -> busybox, latest
 func ParseRepositoryTag(repoTag string) (repository string, tag string) {
-	parts := strings.SplitN(repoTag, "@", 2)
-	repoTag = parts[0]
 	n := strings.LastIndex(repoTag, ":")
 	if n < 0 {
 		return repoTag, ""

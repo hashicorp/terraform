@@ -16,14 +16,16 @@ import (
 )
 
 var AttributeMap = map[string]string{
-	"delay_seconds":              "DelaySeconds",
-	"max_message_size":           "MaximumMessageSize",
-	"message_retention_seconds":  "MessageRetentionPeriod",
-	"receive_wait_time_seconds":  "ReceiveMessageWaitTimeSeconds",
-	"visibility_timeout_seconds": "VisibilityTimeout",
-	"policy":                     "Policy",
-	"redrive_policy":             "RedrivePolicy",
-	"arn":                        "QueueArn",
+	"delay_seconds":               "DelaySeconds",
+	"max_message_size":            "MaximumMessageSize",
+	"message_retention_seconds":   "MessageRetentionPeriod",
+	"receive_wait_time_seconds":   "ReceiveMessageWaitTimeSeconds",
+	"visibility_timeout_seconds":  "VisibilityTimeout",
+	"policy":                      "Policy",
+	"redrive_policy":              "RedrivePolicy",
+	"arn":                         "QueueArn",
+	"fifo_queue":                  "FifoQueue",
+	"content_based_deduplication": "ContentBasedDeduplication",
 }
 
 // A number of these are marked as computed because if you don't
@@ -90,6 +92,17 @@ func resourceAwsSqsQueue() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"fifo_queue": {
+				Type:     schema.TypeBool,
+				Default:  false,
+				ForceNew: true,
+				Optional: true,
+			},
+			"content_based_deduplication": {
+				Type:     schema.TypeBool,
+				Default:  false,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -98,6 +111,22 @@ func resourceAwsSqsQueueCreate(d *schema.ResourceData, meta interface{}) error {
 	sqsconn := meta.(*AWSClient).sqsconn
 
 	name := d.Get("name").(string)
+	fq := d.Get("fifo_queue").(bool)
+	cbd := d.Get("content_based_deduplication").(bool)
+
+	if fq {
+		if errors := validateSQSFifoQueueName(name, "name"); len(errors) > 0 {
+			return fmt.Errorf("Error validating the FIFO queue name: %v", errors)
+		}
+	} else {
+		if errors := validateSQSQueueName(name, "name"); len(errors) > 0 {
+			return fmt.Errorf("Error validating SQS queue name: %v", errors)
+		}
+	}
+
+	if !fq && cbd {
+		return fmt.Errorf("Content based deduplication can only be set with FIFO queues")
+	}
 
 	log.Printf("[DEBUG] SQS queue create: %s", name)
 
@@ -112,9 +141,12 @@ func resourceAwsSqsQueueCreate(d *schema.ResourceData, meta interface{}) error {
 	for k, s := range resource.Schema {
 		if attrKey, ok := AttributeMap[k]; ok {
 			if value, ok := d.GetOk(k); ok {
-				if s.Type == schema.TypeInt {
+				switch s.Type {
+				case schema.TypeInt:
 					attributes[attrKey] = aws.String(strconv.Itoa(value.(int)))
-				} else {
+				case schema.TypeBool:
+					attributes[attrKey] = aws.String(strconv.FormatBool(value.(bool)))
+				default:
 					attributes[attrKey] = aws.String(value.(string))
 				}
 			}
@@ -147,9 +179,12 @@ func resourceAwsSqsQueueUpdate(d *schema.ResourceData, meta interface{}) error {
 			if d.HasChange(k) {
 				log.Printf("[DEBUG] Updating %s", attrKey)
 				_, n := d.GetChange(k)
-				if s.Type == schema.TypeInt {
+				switch s.Type {
+				case schema.TypeInt:
 					attributes[attrKey] = aws.String(strconv.Itoa(n.(int)))
-				} else {
+				case schema.TypeBool:
+					attributes[attrKey] = aws.String(strconv.FormatBool(n.(bool)))
+				default:
 					attributes[attrKey] = aws.String(n.(string))
 				}
 			}
@@ -201,20 +236,34 @@ func resourceAwsSqsQueueRead(d *schema.ResourceData, meta interface{}) error {
 		// iKey = internal struct key, oKey = AWS Attribute Map key
 		for iKey, oKey := range AttributeMap {
 			if attrmap[oKey] != nil {
-				if resource.Schema[iKey].Type == schema.TypeInt {
+				switch resource.Schema[iKey].Type {
+				case schema.TypeInt:
 					value, err := strconv.Atoi(*attrmap[oKey])
 					if err != nil {
 						return err
 					}
 					d.Set(iKey, value)
 					log.Printf("[DEBUG] Reading %s => %s -> %d", iKey, oKey, value)
-				} else {
+				case schema.TypeBool:
+					value, err := strconv.ParseBool(*attrmap[oKey])
+					if err != nil {
+						return err
+					}
+					d.Set(iKey, value)
+					log.Printf("[DEBUG] Reading %s => %s -> %t", iKey, oKey, value)
+				default:
 					log.Printf("[DEBUG] Reading %s => %s -> %s", iKey, oKey, *attrmap[oKey])
 					d.Set(iKey, *attrmap[oKey])
 				}
 			}
 		}
 	}
+
+	// Since AWS does not send the FifoQueue attribute back when the queue
+	// is a standard one (even to false), this enforces the queue to be set
+	// to the correct value.
+	d.Set("fifo_queue", d.Get("fifo_queue").(bool))
+	d.Set("content_based_deduplication", d.Get("content_based_deduplication").(bool))
 
 	return nil
 }

@@ -58,10 +58,11 @@ func resourceCloudStackLoadBalancerRule() *schema.Resource {
 			},
 
 			"member_ids": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Required: true,
-				ForceNew: true,
+				ForceNew: false,
 				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
 			},
 
 			"project": &schema.Schema{
@@ -124,7 +125,7 @@ func resourceCloudStackLoadBalancerRuleCreate(d *schema.ResourceData, meta inter
 	ap := cs.LoadBalancer.NewAssignToLoadBalancerRuleParams(r.Id)
 
 	var mbs []string
-	for _, id := range d.Get("member_ids").([]interface{}) {
+	for _, id := range d.Get("member_ids").(*schema.Set).List() {
 		mbs = append(mbs, id.(string))
 	}
 
@@ -171,6 +172,18 @@ func resourceCloudStackLoadBalancerRuleRead(d *schema.ResourceData, meta interfa
 
 	setValueOrID(d, "project", lb.Project, lb.Projectid)
 
+	p := cs.LoadBalancer.NewListLoadBalancerRuleInstancesParams(d.Id())
+	l, err := cs.LoadBalancer.ListLoadBalancerRuleInstances(p)
+	if err != nil {
+		return err
+	}
+
+	var mbs []string
+	for _, i := range l.LoadBalancerRuleInstances {
+		mbs = append(mbs, i.Id)
+	}
+	d.Set("member_ids", mbs)
+
 	return nil
 }
 
@@ -215,6 +228,41 @@ func resourceCloudStackLoadBalancerRuleUpdate(d *schema.ResourceData, meta inter
 				"Error updating load balancer rule %s", name)
 		}
 	}
+
+	if d.HasChange("member_ids") {
+		o, n := d.GetChange("member_ids")
+		ombs, nmbs := o.(*schema.Set), n.(*schema.Set)
+
+		setToStringList := func(s *schema.Set) []string {
+			l := make([]string, s.Len())
+			for i, v := range s.List() {
+				l[i] = v.(string)
+			}
+			return l
+		}
+
+		membersToAdd := setToStringList(nmbs.Difference(ombs))
+		membersToRemove := setToStringList(ombs.Difference(nmbs))
+
+		log.Printf("[DEBUG] Members to add: %v, remove: %v", membersToAdd, membersToRemove)
+
+		if len(membersToAdd) > 0 {
+			p := cs.LoadBalancer.NewAssignToLoadBalancerRuleParams(d.Id())
+			p.SetVirtualmachineids(membersToAdd)
+			if _, err := cs.LoadBalancer.AssignToLoadBalancerRule(p); err != nil {
+				return err
+			}
+		}
+
+		if len(membersToRemove) > 0 {
+			p := cs.LoadBalancer.NewRemoveFromLoadBalancerRuleParams(d.Id())
+			p.SetVirtualmachineids(membersToRemove)
+			if _, err := cs.LoadBalancer.RemoveFromLoadBalancerRule(p); err != nil {
+				return err
+			}
+		}
+	}
+
 	return resourceCloudStackLoadBalancerRuleRead(d, meta)
 }
 

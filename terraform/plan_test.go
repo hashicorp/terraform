@@ -31,6 +31,10 @@ func TestReadWritePlan(t *testing.T) {
 									RequiresNew: true,
 								},
 							},
+
+							Meta: map[string]interface{}{
+								"foo": []interface{}{1, 2, 3},
+							},
 						},
 					},
 				},

@@ -1,0 +1,62 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <ul class="nav docs-sidenav">
+      <li>
+        <a class="back" href="/docs/backends/index.html">Backends</a>
+      </li>
+
+      <li<%= sidebar_current("docs-backends-types-index") %>>
+        <a class="back" href="/docs/backends/types/index.html">Backend Types</a>
+      </li>
+
+      <h4>Enhanced Backends</h4>
+
+      <li<%= sidebar_current("docs-backends-types-enhanced-") %>>
+        <ul class="nav nav-visible">
+          <li<%= sidebar_current("docs-backends-types-enhanced-local") %>>
+            <a href="/docs/backends/types/local.html">local</a>
+          </li>
+        </ul>
+      </li>
+
+      <h4>Standard Backends</h4>
+
+      <li<%= sidebar_current("docs-backends-types-standard-") %>>
+        <ul class="nav nav-visible">
+          <li<%= sidebar_current("docs-backends-types-standard-artifactory") %>>
+            <a href="/docs/backends/types/artifactory.html">artifactory</a>
+          </li>
+          <li<%= sidebar_current("docs-backends-types-standard-azure") %>>
+            <a href="/docs/backends/types/azure.html">azure</a>
+          </li>
+          <li<%= sidebar_current("docs-backends-types-standard-consul") %>>
+            <a href="/docs/backends/types/consul.html">consul</a>
+          </li>
+          <li<%= sidebar_current("docs-backends-types-standard-etcd") %>>
+            <a href="/docs/backends/types/etcd.html">etcd</a>
+          </li>
+          <li<%= sidebar_current("docs-backends-types-standard-gcs") %>>
+            <a href="/docs/backends/types/gcs.html">gcs</a>
+          </li>
+          <li<%= sidebar_current("docs-backends-types-standard-http") %>>
+            <a href="/docs/backends/types/http.html">http</a>
+          </li>
+          <li<%= sidebar_current("docs-backends-types-standard-manta") %>>
+            <a href="/docs/backends/types/manta.html">manta</a>
+          </li>
+          <li<%= sidebar_current("docs-backends-types-standard-s3") %>>
+            <a href="/docs/backends/types/s3.html">s3</a>
+          </li>
+          <li<%= sidebar_current("docs-backends-types-standard-swift") %>>
+            <a href="/docs/backends/types/swift.html">swift</a>
+          </li>
+          <li<%= sidebar_current("docs-backends-types-standard-terraform-enterprise") %>>
+            <a href="/docs/backends/types/terraform-enterprise.html">terraform enterprise</a>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  <% end %>
+
+  <%= yield %>
+<% end %>

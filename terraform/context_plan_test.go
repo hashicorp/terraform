@@ -532,6 +532,9 @@ func TestContext2Plan_moduleProviderInherit(t *testing.T) {
 					state *InstanceState,
 					c *ResourceConfig) (*InstanceDiff, error) {
 					v, _ := c.Get("from")
+
+					l.Lock()
+					defer l.Unlock()
 					calls = append(calls, v.(string))
 					return testDiffFn(info, state, c)
 				}
@@ -550,6 +553,52 @@ func TestContext2Plan_moduleProviderInherit(t *testing.T) {
 	expected := []string{"child", "root"}
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+// This tests (for GH-11282) that deeply nested modules properly inherit
+// configuration.
+func TestContext2Plan_moduleProviderInheritDeep(t *testing.T) {
+	var l sync.Mutex
+
+	m := testModule(t, "plan-module-provider-inherit-deep")
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": func() (ResourceProvider, error) {
+				l.Lock()
+				defer l.Unlock()
+
+				var from string
+				p := testProvider("aws")
+				p.ConfigureFn = func(c *ResourceConfig) error {
+					v, ok := c.Get("from")
+					if !ok || v.(string) != "root" {
+						return fmt.Errorf("bad")
+					}
+
+					from = v.(string)
+					return nil
+				}
+
+				p.DiffFn = func(
+					info *InstanceInfo,
+					state *InstanceState,
+					c *ResourceConfig) (*InstanceDiff, error) {
+					if from != "root" {
+						return nil, fmt.Errorf("bad resource")
+					}
+
+					return testDiffFn(info, state, c)
+				}
+				return p, nil
+			},
+		},
+	})
+
+	_, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
 	}
 }
 
@@ -582,6 +631,9 @@ func TestContext2Plan_moduleProviderDefaults(t *testing.T) {
 					state *InstanceState,
 					c *ResourceConfig) (*InstanceDiff, error) {
 					v, _ := c.Get("from")
+
+					l.Lock()
+					defer l.Unlock()
 					calls = append(calls, v.(string))
 					return testDiffFn(info, state, c)
 				}
@@ -631,6 +683,8 @@ func TestContext2Plan_moduleProviderDefaultsVar(t *testing.T) {
 						buf.WriteString(v.(string) + "\n")
 					}
 
+					l.Lock()
+					defer l.Unlock()
 					calls = append(calls, buf.String())
 					return nil
 				}
@@ -654,6 +708,29 @@ func TestContext2Plan_moduleProviderDefaultsVar(t *testing.T) {
 	}
 	if !reflect.DeepEqual(calls, expected) {
 		t.Fatalf("BAD: %#v", calls)
+	}
+}
+
+func TestContext2Plan_moduleProviderVar(t *testing.T) {
+	m := testModule(t, "plan-module-provider-var")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanModuleProviderVarStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
 	}
 }
 
@@ -1319,6 +1396,31 @@ func TestContext2Plan_computedList(t *testing.T) {
 	}
 }
 
+// GH-8695. This tests that you can index into a computed list on a
+// splatted resource.
+func TestContext2Plan_computedMultiIndex(t *testing.T) {
+	m := testModule(t, "plan-computed-multi-index")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanComputedMultiIndexStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestContext2Plan_count(t *testing.T) {
 	m := testModule(t, "plan-count")
 	p := testProvider("aws")
@@ -1380,6 +1482,74 @@ func TestContext2Plan_countComputedModule(t *testing.T) {
 	if !strings.Contains(fmt.Sprintf("%s", err), expectedErr) {
 		t.Fatalf("expected err would contain %q\nerr: %s\n",
 			expectedErr, err)
+	}
+}
+
+func TestContext2Plan_countModuleStatic(t *testing.T) {
+	m := testModule(t, "plan-count-module-static")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(`
+DIFF:
+
+module.child:
+  CREATE: aws_instance.foo.0
+  CREATE: aws_instance.foo.1
+  CREATE: aws_instance.foo.2
+
+STATE:
+
+<no state>
+`)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+func TestContext2Plan_countModuleStaticGrandchild(t *testing.T) {
+	m := testModule(t, "plan-count-module-static-grandchild")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(`
+DIFF:
+
+module.child.child:
+  CREATE: aws_instance.foo.0
+  CREATE: aws_instance.foo.1
+  CREATE: aws_instance.foo.2
+
+STATE:
+
+<no state>
+`)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
 	}
 }
 
@@ -2316,6 +2486,80 @@ STATE:
 	}
 }
 
+// Test that targeting a module properly plans any inputs that depend
+// on another module.
+func TestContext2Plan_targetedCrossModule(t *testing.T) {
+	m := testModule(t, "plan-targeted-cross-module")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Targets: []string{"module.B"},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(`
+DIFF:
+
+module.A:
+  CREATE: aws_instance.foo
+    foo:  "" => "bar"
+    type: "" => "aws_instance"
+module.B:
+  CREATE: aws_instance.bar
+    foo:  "" => "<computed>"
+    type: "" => "aws_instance"
+
+STATE:
+
+<no state>
+	`)
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
+func TestContext2Plan_targetedModuleWithProvider(t *testing.T) {
+	m := testModule(t, "plan-targeted-module-with-provider")
+	p := testProvider("null")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"null": testProviderFuncFixed(p),
+		},
+		Targets: []string{"module.child2"},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(`
+DIFF:
+
+module.child2:
+  CREATE: null_resource.foo
+
+STATE:
+
+<no state>
+	`)
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
 func TestContext2Plan_targetedOrphan(t *testing.T) {
 	m := testModule(t, "plan-targeted-orphan")
 	p := testProvider("aws")
@@ -2520,12 +2764,6 @@ aws_instance.foo.0:
   ID = i-abc0
 aws_instance.foo.1:
   ID = i-abc1
-aws_instance.foo.10:
-  ID = i-abc10
-aws_instance.foo.11:
-  ID = i-abc11
-aws_instance.foo.12:
-  ID = i-abc12
 aws_instance.foo.2:
   ID = i-abc2
 aws_instance.foo.3:
@@ -2542,6 +2780,12 @@ aws_instance.foo.8:
   ID = i-abc8
 aws_instance.foo.9:
   ID = i-abc9
+aws_instance.foo.10:
+  ID = i-abc10
+aws_instance.foo.11:
+  ID = i-abc11
+aws_instance.foo.12:
+  ID = i-abc12
 	`)
 	if actual != expected {
 		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
@@ -2830,5 +3074,83 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 	}
 	if _, ok := moduleDiff.Resources["data.aws_vpc.bar.1"]; !ok {
 		t.Fatalf("missing diff for data.aws_vpc.bar.1")
+	}
+}
+
+// interpolated lists need to be stored in the original order.
+func TestContext2Plan_listOrder(t *testing.T) {
+	m := testModule(t, "plan-list-order")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	rDiffs := plan.Diff.Modules[0].Resources
+	rDiffA := rDiffs["aws_instance.a"]
+	rDiffB := rDiffs["aws_instance.b"]
+
+	if !rDiffA.Equal(rDiffB) {
+		t.Fatal("aws_instance.a and aws_instance.b diffs should match:\n", plan)
+	}
+}
+
+// Make sure ignore-changes doesn't interfere with set/list/map diffs.
+// If a resource was being replaced by a RequiresNew attribute that gets
+// ignored, we need to filter the diff properly to properly update rather than
+// replace.
+func TestContext2Plan_ignoreChangesWithFlatmaps(t *testing.T) {
+	m := testModule(t, "plan-ignore-changes-with-flatmaps")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"user_data":   "x",
+								"require_new": "",
+								"set.#":       "1",
+								"set.0.a":     "1",
+								"lst.#":       "1",
+								"lst.0":       "j",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.Diff.String())
+	expected := strings.TrimSpace(testTFPlanDiffIgnoreChangesWithFlatmaps)
+	if actual != expected {
+		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
 	}
 }

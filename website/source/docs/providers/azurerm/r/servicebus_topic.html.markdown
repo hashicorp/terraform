@@ -15,30 +15,30 @@ higher.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
-    name = "resourceGroup1"
-    location = "West US"
+  name     = "resourceGroup1"
+  location = "West US"
 }
 
 resource "azurerm_servicebus_namespace" "test" {
-    name = "acceptanceTestServiceBusNamespace"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    sku = "standard"
+  name                = "acceptanceTestServiceBusNamespace"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  sku                 = "standard"
 
-    tags {
-        environment = "Production"
-    }
+  tags {
+    environment = "Production"
+  }
 }
 
 resource "azurerm_servicebus_topic" "test" {
-    name = "testTopic"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    namespace_name = "${azurerm_servicebus_namespace.test.name}"
+  name                = "testTopic"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  namespace_name      = "${azurerm_servicebus_namespace.test.name}"
 
-    enable_partitioning = true
+  enable_partitioning = true
 }
 ```
 
@@ -67,7 +67,7 @@ The following arguments are supported:
     format.
 
 * `duplicate_detection_history_time_window` - (Optional) The duration during which
-    duplicates can be detected. Provided in the [TimeSpan](#timespan-format) format.
+    duplicates can be detected. Provided in the [TimeSpan](#timespan-format) format. Defaults to 10 minutes (`00:10:00`)
 
 * `enable_batched_operations` - (Optional) Boolean flag which controls if server-side
     batched operations are enabled. Defaults to false.
@@ -85,9 +85,8 @@ The following arguments are supported:
     Changing this forces a new resource to be created.
 
 * `max_size_in_megabytes` - (Optional) Integer value which controls the size of
-    memory allocated for the topic. Supported values are multiples of 1024 up to
-    5120, if `enable_partitioning` is enabled then 16 partitions will be created
-    per GB, making the maximum possible topic size 81920 (5120 * 16).
+    memory allocated for the topic. For supported values see the "Queue/topic size"
+    section of [this document](https://docs.microsoft.com/en-us/azure/service-bus-messaging/service-bus-quotas).
 
 * `requires_duplicate_detection` - (Optional) Boolean flag which controls whether
     the Topic requires duplicate detection. Defaults to false. Changing this forces
@@ -109,7 +108,7 @@ The following attributes are exported:
 
 ## Import
 
-Service Bus Topics can be imported using the `resource id`, e.g. 
+Service Bus Topics can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_servicebus_topic.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/microsoft.servicebus/namespaces/sbns1/topics/sntopic1

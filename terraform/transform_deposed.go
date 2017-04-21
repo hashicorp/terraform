@@ -127,6 +127,12 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 					State:  &state,
 					Output: &diff,
 				},
+				// Call pre-apply hook
+				&EvalApplyPre{
+					Info:  info,
+					State: &state,
+					Diff:  &diff,
+				},
 				&EvalApply{
 					Info:     info,
 					State:    &state,

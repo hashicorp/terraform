@@ -3,11 +3,13 @@ package azurerm
 import (
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func resourceGroupAndLBNameFromId(loadBalancerId string) (string, string, error) {
@@ -141,4 +143,25 @@ func validateLoadBalancerPrivateIpAddressAllocation(v interface{}, k string) (ws
 		errors = append(errors, fmt.Errorf("LoadBalancer Allocations can only be Static or Dynamic"))
 	}
 	return
+}
+
+// sets the loadbalancer_id in the ResourceData from the sub resources full id
+func loadBalancerSubResourceStateImporter(d *schema.ResourceData, m interface{}) ([]*schema.ResourceData, error) {
+	r, err := regexp.Compile(`.+\/loadBalancers\/.+?\/`)
+	if err != nil {
+		return nil, err
+	}
+
+	lbID := strings.TrimSuffix(r.FindString(d.Id()), "/")
+	parsed, err := parseAzureResourceID(lbID)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse loadbalancer id from %s", d.Id())
+	}
+
+	if parsed.Path["loadBalancers"] == "" {
+		return nil, fmt.Errorf("parsed ID is invalid")
+	}
+
+	d.Set("loadbalancer_id", lbID)
+	return []*schema.ResourceData{d}, nil
 }

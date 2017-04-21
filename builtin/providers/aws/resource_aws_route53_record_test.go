@@ -339,6 +339,56 @@ func TestAccAWSRoute53Record_TypeChange(t *testing.T) {
 	})
 }
 
+func TestAccAWSRoute53Record_SetIdentiferChange(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route53_record.basic_to_weighted",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRoute53RecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53RecordSetIdentifierChangePre,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.basic_to_weighted"),
+				),
+			},
+
+			// Cause a change, which will trigger a refresh
+			resource.TestStep{
+				Config: testAccRoute53RecordSetIdentifierChangePost,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.basic_to_weighted"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRoute53Record_AliasChange(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route53_record.elb_alias_change",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRoute53RecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53RecordAliasChangePre,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.elb_alias_change"),
+				),
+			},
+
+			// Cause a change, which will trigger a refresh
+			resource.TestStep{
+				Config: testAccRoute53RecordAliasChangePost,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.elb_alias_change"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSRoute53Record_empty(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
@@ -1019,6 +1069,82 @@ resource "aws_route53_record" "sample" {
   type = "A"
   ttl = "30"
   records = ["127.0.0.1", "8.8.8.8"]
+}
+`
+
+const testAccRoute53RecordSetIdentifierChangePre = `
+resource "aws_route53_zone" "main" {
+	name = "notexample.com"
+}
+
+resource "aws_route53_record" "basic_to_weighted" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "sample"
+  type = "A"
+  ttl = "30"
+  records = ["127.0.0.1", "8.8.8.8"]
+}
+`
+
+const testAccRoute53RecordSetIdentifierChangePost = `
+resource "aws_route53_zone" "main" {
+	name = "notexample.com"
+}
+
+resource "aws_route53_record" "basic_to_weighted" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "sample"
+  type = "A"
+  ttl = "30"
+  records = ["127.0.0.1", "8.8.8.8"]
+  set_identifier = "cluster-a"
+  weighted_routing_policy {
+    weight = 100
+  }
+}
+`
+
+const testAccRoute53RecordAliasChangePre = `
+resource "aws_route53_zone" "main" {
+	name = "notexample.com"
+}
+
+resource "aws_elb" "alias_change" {
+  name = "foobar-tf-elb-alias-change"
+  availability_zones = ["us-west-2a"]
+
+  listener {
+    instance_port = 80
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+}
+
+resource "aws_route53_record" "elb_alias_change" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "alias-change"
+  type = "A"
+
+  alias {
+    zone_id = "${aws_elb.alias_change.zone_id}"
+    name = "${aws_elb.alias_change.dns_name}"
+    evaluate_target_health = true
+  }
+}
+`
+
+const testAccRoute53RecordAliasChangePost = `
+resource "aws_route53_zone" "main" {
+	name = "notexample.com"
+}
+
+resource "aws_route53_record" "elb_alias_change" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "alias-change"
+  type = "CNAME"
+  ttl = "30"
+  records = ["www.terraform.io"]
 }
 `
 

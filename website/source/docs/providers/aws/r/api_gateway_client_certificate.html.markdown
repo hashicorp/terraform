@@ -12,11 +12,10 @@ Provides an API Gateway Client Certificate.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_api_gateway_client_certificate" "demo" {
   description = "My client certificate"
 }
-
 ```
 
 ## Argument Reference

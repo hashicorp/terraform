@@ -12,10 +12,10 @@ Manages a network within GCE.
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_network" "default" {
-  name       = "test"
-  ipv4_range = "10.0.0.0/16"
+  name                    = "test"
+  auto_create_subnetworks = "true"
 }
 ```
 
@@ -37,9 +37,9 @@ The following arguments are supported:
 
 * `description` - (Optional) A brief description of this resource.
 
-* `ipv4_range` - (Optional) The IPv4 address range that machines in this network
+* `ipv4_range` - (DEPRECATED, Optional) The IPv4 address range that machines in this network
     are assigned to, represented as a CIDR block. If not set, an auto or custom
-    subnetted network will be created, depending on the value of  
+    subnetted network will be created, depending on the value of
     `auto_create_subnetworks` attribute. This attribute may not be used if
     `auto_create_subnetworks` is specified. This attribute is deprecated.
 
@@ -53,4 +53,15 @@ exported:
 
 * `gateway_ipv4` - The IPv4 address of the gateway.
 
+* `name` - The unique name of the network.
+
 * `self_link` - The URI of the created resource.
+
+
+## Import
+
+Networks can be imported using the `name`, e.g.
+
+```
+$ terraform import google_compute_network.public my_network_name
+```

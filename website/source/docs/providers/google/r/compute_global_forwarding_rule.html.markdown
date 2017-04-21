@@ -10,12 +10,12 @@ description: |-
 
 Manages a Global Forwarding Rule within GCE. This binds an ip and port to a target HTTP(s) proxy. For more
 information see [the official
-documentation](https://cloud.google.com/compute/docs/load-balancing/network/forwarding-rules) and
+documentation](https://cloud.google.com/compute/docs/load-balancing/http/global-forwarding-rules) and
 [API](https://cloud.google.com/compute/docs/reference/latest/globalForwardingRules).
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_global_forwarding_rule" "default" {
   name       = "test"
   target     = "${google_compute_target_http_proxy.default.self_link}"
@@ -41,6 +41,7 @@ resource "google_compute_url_map" "default" {
   path_matcher {
     name            = "allpaths"
     default_service = "${google_compute_backend_service.default.self_link}"
+
     path_rule {
       paths   = ["/*"]
       service = "${google_compute_backend_service.default.self_link}"

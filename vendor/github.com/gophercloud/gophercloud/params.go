@@ -232,7 +232,7 @@ func isZero(v reflect.Value) bool {
 		if v.IsNil() {
 			return true
 		}
-		return isZero(v.Elem())
+		return false
 	case reflect.Func, reflect.Map, reflect.Slice:
 		return v.IsNil()
 	case reflect.Array:
@@ -307,7 +307,11 @@ func BuildQueryString(opts interface{}) (*url.URL, error) {
 
 				// if the field is set, add it to the slice of query pieces
 				if !isZero(v) {
+				loop:
 					switch v.Kind() {
+					case reflect.Ptr:
+						v = v.Elem()
+						goto loop
 					case reflect.String:
 						params.Add(tags[0], v.String())
 					case reflect.Int:

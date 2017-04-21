@@ -30,11 +30,18 @@ func resourceAwsElb() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
+				ValidateFunc:  validateElbName,
+			},
+			"name_prefix": &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				Computed:     true,
 				ForceNew:     true,
-				ValidateFunc: validateElbName,
+				ValidateFunc: validateElbNamePrefix,
 			},
 
 			"internal": &schema.Schema{
@@ -115,6 +122,7 @@ func resourceAwsElb() *schema.Resource {
 			"access_logs": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"interval": &schema.Schema{
@@ -246,7 +254,11 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 	if v, ok := d.GetOk("name"); ok {
 		elbName = v.(string)
 	} else {
-		elbName = resource.PrefixedUniqueId("tf-lb-")
+		if v, ok := d.GetOk("name_prefix"); ok {
+			elbName = resource.PrefixedUniqueId(v.(string))
+		} else {
+			elbName = resource.PrefixedUniqueId("tf-lb-")
+		}
 		d.Set("name", elbName)
 	}
 
@@ -275,7 +287,7 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[DEBUG] ELB create configuration: %#v", elbOpts)
-	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
 		_, err := elbconn.CreateLoadBalancer(elbOpts)
 
 		if err != nil {
@@ -387,12 +399,33 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 	d.Set("subnets", flattenStringList(lb.Subnets))
-	d.Set("idle_timeout", lbAttrs.ConnectionSettings.IdleTimeout)
+	if lbAttrs.ConnectionSettings != nil {
+		d.Set("idle_timeout", lbAttrs.ConnectionSettings.IdleTimeout)
+	}
 	d.Set("connection_draining", lbAttrs.ConnectionDraining.Enabled)
 	d.Set("connection_draining_timeout", lbAttrs.ConnectionDraining.Timeout)
 	d.Set("cross_zone_load_balancing", lbAttrs.CrossZoneLoadBalancing.Enabled)
 	if lbAttrs.AccessLog != nil {
-		if err := d.Set("access_logs", flattenAccessLog(lbAttrs.AccessLog)); err != nil {
+		// The AWS API does not allow users to remove access_logs, only disable them.
+		// During creation of the ELB, Terraform sets the access_logs to disabled,
+		// so there should not be a case where lbAttrs.AccessLog above is nil.
+
+		// Here we do not record the remove value of access_log if:
+		// - there is no access_log block in the configuration
+		// - the remote access_logs are disabled
+		//
+		// This indicates there is no access_log in the configuration.
+		// - externally added access_logs will be enabled, so we'll detect the drift
+		// - locally added access_logs will be in the config, so we'll add to the
+		// API/state
+		// See https://github.com/hashicorp/terraform/issues/10138
+		_, n := d.GetChange("access_logs")
+		elbal := lbAttrs.AccessLog
+		nl := n.([]interface{})
+		if len(nl) == 0 && !*elbal.Enabled {
+			elbal = nil
+		}
+		if err := d.Set("access_logs", flattenAccessLog(elbal)); err != nil {
 			return err
 		}
 	}
@@ -455,7 +488,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 
 			// Occasionally AWS will error with a 'duplicate listener', without any
 			// other listeners on the ELB. Retry here to eliminate that.
-			err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+			err := resource.Retry(5*time.Minute, func() *resource.RetryError {
 				log.Printf("[DEBUG] ELB Create Listeners opts: %s", createListenersOpts)
 				if _, err := elbconn.CreateLoadBalancerListeners(createListenersOpts); err != nil {
 					if awsErr, ok := err.(awserr.Error); ok {
@@ -533,18 +566,16 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		logs := d.Get("access_logs").([]interface{})
-		if len(logs) > 1 {
-			return fmt.Errorf("Only one access logs config per ELB is supported")
-		} else if len(logs) == 1 {
-			log := logs[0].(map[string]interface{})
+		if len(logs) == 1 {
+			l := logs[0].(map[string]interface{})
 			accessLog := &elb.AccessLog{
-				Enabled:      aws.Bool(log["enabled"].(bool)),
-				EmitInterval: aws.Int64(int64(log["interval"].(int))),
-				S3BucketName: aws.String(log["bucket"].(string)),
+				Enabled:      aws.Bool(l["enabled"].(bool)),
+				EmitInterval: aws.Int64(int64(l["interval"].(int))),
+				S3BucketName: aws.String(l["bucket"].(string)),
 			}
 
-			if log["bucket_prefix"] != "" {
-				accessLog.S3BucketPrefix = aws.String(log["bucket_prefix"].(string))
+			if l["bucket_prefix"] != "" {
+				accessLog.S3BucketPrefix = aws.String(l["bucket_prefix"].(string))
 			}
 
 			attrs.LoadBalancerAttributes.AccessLog = accessLog
@@ -715,7 +746,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 			}
 
 			log.Printf("[DEBUG] ELB attach subnets opts: %s", attachOpts)
-			err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+			err := resource.Retry(5*time.Minute, func() *resource.RetryError {
 				_, err := elbconn.AttachLoadBalancerToSubnets(attachOpts)
 				if err != nil {
 					if awsErr, ok := err.(awserr.Error); ok {

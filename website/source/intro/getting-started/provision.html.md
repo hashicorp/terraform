@@ -23,9 +23,9 @@ configuration management tools, etc.
 To define a provisioner, modify the resource block defining the
 "example" EC2 instance to look like the following:
 
-```
+```hcl
 resource "aws_instance" "example" {
-  ami           = "ami-13be557e"
+  ami           = "ami-b374d5a5"
   instance_type = "t2.micro"
 
   provisioner "local-exec" {
@@ -61,7 +61,7 @@ then run `apply`:
 ```
 $ terraform apply
 aws_instance.example: Creating...
-  ami:           "" => "ami-13be557e"
+  ami:           "" => "ami-b374d5a5"
   instance_type: "" => "t2.micro"
 aws_eip.ip: Creating...
   instance: "" => "i-213f350a"
@@ -99,6 +99,20 @@ resource will be created, but does not say it will ever be deleted.
 If you create an execution plan with a tainted resource, however, the
 plan will clearly state that the resource will be destroyed because
 it is tainted.
+
+## Destroy Provisioners
+
+Provisioners can also be defined that run only during a destroy
+operation. These are useful for performing system cleanup, extracting
+data, etc.
+
+For many resources, using built-in cleanup mechanisms is recommended
+if possible (such as init scripts), but provisioners can be used if
+necessary.
+
+The getting started guide won't show any destroy provisioner examples.
+If you need to use destroy provisioners, please
+[see the provisioner documentation](/docs/provisioners).
 
 ## Next
 

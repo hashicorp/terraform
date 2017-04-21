@@ -121,6 +121,7 @@ func resourceComputeBackendService() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Removed:  "region has been removed as it was never used",
 			},
 
 			"self_link": &schema.Schema{

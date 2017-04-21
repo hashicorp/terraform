@@ -24,7 +24,7 @@ func TestSMCUserVariables(t *testing.T) {
 		"foo":     "bar",
 		"map.foo": "baz",
 	})
-	if len(errs) != 0 {
+	if len(errs) == 0 {
 		t.Fatalf("err: %#v", errs)
 	}
 

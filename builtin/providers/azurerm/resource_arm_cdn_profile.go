@@ -78,7 +78,7 @@ func resourceArmCdnProfileCreate(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read CND Profile %s (resource group %s) ID", name, resGroup)
+		return fmt.Errorf("Cannot read CDN Profile %s (resource group %s) ID", name, resGroup)
 	}
 
 	d.SetId(*read.ID)

@@ -58,7 +58,7 @@ func processFile(filename string, in io.Reader, out io.Writer, stdin bool, opts 
 
 	res, err := printer.Format(src)
 	if err != nil {
-		return err
+		return fmt.Errorf("In %s: %s", filename, err)
 	}
 
 	if !bytes.Equal(src, res) {

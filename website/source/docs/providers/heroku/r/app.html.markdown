@@ -13,15 +13,15 @@ create and manage applications on Heroku.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new Heroku app
 resource "heroku_app" "default" {
-    name = "my-cool-app"
-    region = "us"
+  name   = "my-cool-app"
+  region = "us"
 
-    config_vars {
-        FOOBAR = "baz"
-    }
+  config_vars {
+    FOOBAR = "baz"
+  }
 }
 ```
 

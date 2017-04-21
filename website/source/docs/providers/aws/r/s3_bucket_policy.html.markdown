@@ -14,7 +14,7 @@ Attaches a policy to an S3 bucket resource.
 
 ### Using versioning
 
-```
+```hcl
 resource "aws_s3_bucket" "b" {
   # Arguments
 }
@@ -24,7 +24,7 @@ data "aws_iam_policy_document" "b" {
 }
 
 resource "aws_s3_bucket_policy" "b" {
-  bucket = "${aws_s3_bucket.b.bucket}"
+  bucket = "${aws_s3_bucket.b.id}"
   policy = "${data.aws_iam_policy_document.b.json}"
 }
 ```

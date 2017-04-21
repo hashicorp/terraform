@@ -76,6 +76,13 @@ func (c *RPCClient) SyncStreams(stdout io.Writer, stderr io.Writer) error {
 // Close closes the connection. The client is no longer usable after this
 // is called.
 func (c *RPCClient) Close() error {
+	// Call the control channel and ask it to gracefully exit. If this
+	// errors, then we save it so that we always return an error but we
+	// want to try to close the other channels anyways.
+	var empty struct{}
+	returnErr := c.control.Call("Control.Quit", true, &empty)
+
+	// Close the other streams we have
 	if err := c.control.Close(); err != nil {
 		return err
 	}
@@ -85,8 +92,14 @@ func (c *RPCClient) Close() error {
 	if err := c.stderr.Close(); err != nil {
 		return err
 	}
+	if err := c.broker.Close(); err != nil {
+		return err
+	}
 
-	return c.broker.Close()
+	// Return back the error we got from Control.Quit. This is very important
+	// since we MUST return non-nil error if this fails so that Client.Kill
+	// will properly try a process.Kill.
+	return returnErr
 }
 
 func (c *RPCClient) Dispense(name string) (interface{}, error) {

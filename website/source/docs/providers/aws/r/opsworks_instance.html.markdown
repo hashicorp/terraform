@@ -12,7 +12,7 @@ Provides an OpsWorks instance resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_opsworks_instance" "my-instance" {
   stack_id = "${aws_opsworks_stack.my-stack.id}"
 
@@ -37,7 +37,7 @@ The following arguments are supported:
 * `install_updates_on_boot` - (Optional) Controls where to install OS and package updates when the instance boots.  Defaults to `true`.
 * `auto_scaling_type` - (Optional) Creates load-based or time-based instances.  If set, can be either: `"load"` or `"timer"`.
 * `availability_zone` - (Optional) Name of the availability zone where instances will be created
-  by default. 
+  by default.
 * `ebs_optimized` - (Optional) If true, the launched EC2 instance will be EBS-optimized.
 * `hostname` - (Optional) The instance's host name.
 * `architecture` - (Optional) Machine architecture for created instances.  Can be either `"x86_64"` (the default) or `"i386"`
@@ -47,6 +47,7 @@ The following arguments are supported:
 * `ssh_key_name` - (Optional) Name of the SSH keypair that instances will have by default.
 * `agent_version` - (Optional) The AWS OpsWorks agent to install.  Defaults to `"INHERIT"`.
 * `subnet_id` - (Optional) Subnet ID to attach to
+* `tenancy` - (Optional) Instance tenancy to use. Can be one of `"default"`, `"dedicated"` or `"host"`
 * `virtualization_type` - (Optional) Keyword to choose what virtualization mode created instances
   will use. Can be either `"paravirtual"` or `"hvm"`.
 * `root_block_device` - (Optional) Customize details about the root block
@@ -120,13 +121,22 @@ The following attributes are exported:
 * `agent_version` - The AWS OpsWorks agent version.
 * `availability_zone` - The availability zone of the instance.
 * `ssh_key_name` - The key name of the instance
-* `public_dns` - The public DNS name assigned to the instance. For EC2-VPC, this 
+* `public_dns` - The public DNS name assigned to the instance. For EC2-VPC, this
   is only available if you've enabled DNS hostnames for your VPC
 * `public_ip` - The public IP address assigned to the instance, if applicable.
-* `private_dns` - The private DNS name assigned to the instance. Can only be 
-  used inside the Amazon EC2, and only available if you've enabled DNS hostnames 
+* `private_dns` - The private DNS name assigned to the instance. Can only be
+  used inside the Amazon EC2, and only available if you've enabled DNS hostnames
   for your VPC
 * `private_ip` - The private IP address assigned to the instance
 * `subnet_id` - The VPC subnet ID.
+* `tenancy` - The Instance tenancy
 * `security_group_ids` - The associated security groups.
+
+## Import
+
+Opsworks Instances can be imported using the `instance id`, e.g.
+
+```
+$ terraform import aws_opsworks_instance.my_instance 4d6d1710-ded9-42a1-b08e-b043ad7af1e2
+```
 

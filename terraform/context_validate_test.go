@@ -44,6 +44,28 @@ func TestContext2Validate_badVar(t *testing.T) {
 	}
 }
 
+func TestContext2Validate_varMapOverrideOld(t *testing.T) {
+	m := testModule(t, "validate-module-pc-vars")
+	p := testProvider("aws")
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]interface{}{
+			"foo.foo": "bar",
+		},
+	})
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) == 0 {
+		t.Fatalf("bad: %s", e)
+	}
+}
+
 func TestContext2Validate_varNoDefaultExplicitType(t *testing.T) {
 	m := testModule(t, "validate-var-no-default-explicit-type")
 	c := testContext2(t, &ContextOpts{
@@ -90,6 +112,28 @@ func TestContext2Validate_computedVar(t *testing.T) {
 		for _, err := range e {
 			t.Errorf("bad: %s", err)
 		}
+	}
+}
+
+// Test that validate allows through computed counts. We do this and allow
+// them to fail during "plan" since we can't know if the computed values
+// can be realized during a plan.
+func TestContext2Validate_countComputed(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "validate-count-computed")
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("bad: %s", e)
 	}
 }
 
@@ -884,6 +928,7 @@ func TestContext2Validate_PlanGraphBuilder(t *testing.T) {
 		Targets:   c.targets,
 	}).Build(RootModulePath)
 
+	defer c.acquireRun("validate-test")()
 	walker, err := c.walk(graph, graph, walkValidate)
 	if err != nil {
 		t.Fatal(err)

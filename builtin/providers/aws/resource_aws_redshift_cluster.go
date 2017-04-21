@@ -101,6 +101,7 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 					}
 					return strings.ToLower(val.(string))
 				},
+				ValidateFunc: validateOnceAWeekWindowFormat,
 			},
 
 			"cluster_parameter_group_name": {
@@ -187,7 +188,7 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 			"skip_final_snapshot": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  true,
+				Default:  false,
 			},
 
 			"endpoint": {
@@ -244,6 +245,11 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 				Optional: true,
 			},
 
+			"owner_account": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -271,6 +277,10 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 			NodeType:                         aws.String(d.Get("node_type").(string)),
 			PubliclyAccessible:               aws.Bool(d.Get("publicly_accessible").(bool)),
 			AutomatedSnapshotRetentionPeriod: aws.Int64(int64(d.Get("automated_snapshot_retention_period").(int))),
+		}
+
+		if v, ok := d.GetOk("owner_account"); ok {
+			restoreOpts.OwnerAccount = aws.String(v.(string))
 		}
 
 		if v, ok := d.GetOk("snapshot_cluster_identifier"); ok {
@@ -328,6 +338,14 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 		d.SetId(*resp.Cluster.ClusterIdentifier)
 
 	} else {
+		if _, ok := d.GetOk("master_password"); !ok {
+			return fmt.Errorf(`provider.aws: aws_redshift_cluster: %s: "master_password": required field is not set`, d.Get("cluster_identifier").(string))
+		}
+
+		if _, ok := d.GetOk("master_username"); !ok {
+			return fmt.Errorf(`provider.aws: aws_redshift_cluster: %s: "master_username": required field is not set`, d.Get("cluster_identifier").(string))
+		}
+
 		createOpts := &redshift.CreateClusterInput{
 			ClusterIdentifier:                aws.String(d.Get("cluster_identifier").(string)),
 			Port:                             aws.Int64(int64(d.Get("port").(int))),
@@ -408,7 +426,7 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 		Pending:    []string{"creating", "backing-up", "modifying", "restoring"},
 		Target:     []string{"available"},
 		Refresh:    resourceAwsRedshiftClusterStateRefreshFunc(d, meta),
-		Timeout:    40 * time.Minute,
+		Timeout:    75 * time.Minute,
 		MinTimeout: 10 * time.Second,
 	}
 
@@ -586,8 +604,8 @@ func resourceAwsRedshiftClusterUpdate(d *schema.ResourceData, meta interface{}) 
 		requestUpdate = true
 	}
 
-	if d.HasChange("vpc_security_group_ips") {
-		req.VpcSecurityGroupIds = expandStringList(d.Get("vpc_security_group_ips").(*schema.Set).List())
+	if d.HasChange("vpc_security_group_ids") {
+		req.VpcSecurityGroupIds = expandStringList(d.Get("vpc_security_group_ids").(*schema.Set).List())
 		requestUpdate = true
 	}
 
@@ -845,9 +863,9 @@ func validateRedshiftClusterIdentifier(v interface{}, k string) (ws []string, er
 
 func validateRedshiftClusterDbName(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if !regexp.MustCompile(`^[0-9A-Za-z_$]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^[0-9a-z_$]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"only alphanumeric characters, underscores, and dollar signs are allowed in %q", k))
+			"only lowercase alphanumeric characters, underscores, and dollar signs are allowed in %q", k))
 	}
 	if !regexp.MustCompile(`^[a-zA-Z_]`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
@@ -912,6 +930,10 @@ func validateRedshiftClusterMasterPassword(v interface{}, k string) (ws []string
 	if !regexp.MustCompile(`^.*[0-9].*`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"%q must contain at least one number", k))
+	}
+	if !regexp.MustCompile(`^[^\@\/'" ]*$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot contain [/@\"' ]", k))
 	}
 	if len(value) < 8 {
 		errors = append(errors, fmt.Errorf("%q must be at least 8 characters", k))

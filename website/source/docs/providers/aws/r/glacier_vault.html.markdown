@@ -14,20 +14,20 @@ Provides a Glacier Vault Resource. You can refer to the [Glacier Developer Guide
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_sns_topic" "aws_sns_topic" {
   name = "glacier-sns-topic"
 }
 
 resource "aws_glacier_vault" "my_archive" {
-    name = "MyArchive"
+  name = "MyArchive"
 
-    notification {
-      sns_topic = "${aws_sns_topic.aws_sns_topic.arn}"
-      events = ["ArchiveRetrievalCompleted","InventoryRetrievalCompleted"]
-    }
+  notification {
+    sns_topic = "${aws_sns_topic.aws_sns_topic.arn}"
+    events    = ["ArchiveRetrievalCompleted", "InventoryRetrievalCompleted"]
+  }
 
-    access_policy = <<EOF
+  access_policy = <<EOF
 {
     "Version":"2012-10-17",
     "Statement":[
@@ -45,9 +45,9 @@ resource "aws_glacier_vault" "my_archive" {
 }
 EOF
 
-    tags {
-      Test = "MyArchive"
-    }
+  tags {
+    Test = "MyArchive"
+  }
 }
 ```
 
@@ -75,7 +75,7 @@ The following attributes are exported:
 
 ## Import
 
-Glacier Vaults can be imported using the `name`, e.g. 
+Glacier Vaults can be imported using the `name`, e.g.
 
 ```
 $ terraform import aws_glacier_vault.archive my_archive

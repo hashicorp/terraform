@@ -88,13 +88,34 @@ type Value struct {
 // The Provider should not need to implement its own mutexes, because
 // that will be managed by Credentials.
 type Provider interface {
-	// Refresh returns nil if it successfully retrieved the value.
+	// Retrieve returns nil if it successfully retrieved the value.
 	// Error is returned if the value were not obtainable, or empty.
 	Retrieve() (Value, error)
 
 	// IsExpired returns if the credentials are no longer valid, and need
 	// to be retrieved.
 	IsExpired() bool
+}
+
+// An ErrorProvider is a stub credentials provider that always returns an error
+// this is used by the SDK when construction a known provider is not possible
+// due to an error.
+type ErrorProvider struct {
+	// The error to be returned from Retrieve
+	Err error
+
+	// The provider name to set on the Retrieved returned Value
+	ProviderName string
+}
+
+// Retrieve will always return the error that the ErrorProvider was created with.
+func (p ErrorProvider) Retrieve() (Value, error) {
+	return Value{ProviderName: p.ProviderName}, p.Err
+}
+
+// IsExpired will always return not expired.
+func (p ErrorProvider) IsExpired() bool {
+	return false
 }
 
 // A Expiry provides shared expiration logic to be used by credentials

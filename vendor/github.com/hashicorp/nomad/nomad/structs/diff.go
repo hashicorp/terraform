@@ -130,6 +130,11 @@ func (j *Job) Diff(other *Job, contextual bool) (*JobDiff, error) {
 		diff.Objects = append(diff.Objects, pDiff)
 	}
 
+	// ParameterizedJob diff
+	if cDiff := parameterizedJobDiff(j.ParameterizedJob, other.ParameterizedJob, contextual); cDiff != nil {
+		diff.Objects = append(diff.Objects, cDiff)
+	}
+
 	return diff, nil
 }
 
@@ -368,6 +373,12 @@ func (t *Task) Diff(other *Task, contextual bool) (*TaskDiff, error) {
 	lDiff := primitiveObjectDiff(t.LogConfig, other.LogConfig, nil, "LogConfig", contextual)
 	if lDiff != nil {
 		diff.Objects = append(diff.Objects, lDiff)
+	}
+
+	// Dispatch payload diff
+	dDiff := primitiveObjectDiff(t.DispatchPayload, other.DispatchPayload, nil, "DispatchPayload", contextual)
+	if dDiff != nil {
+		diff.Objects = append(diff.Objects, dDiff)
 	}
 
 	// Artifacts diff
@@ -624,6 +635,44 @@ func vaultDiff(old, new *Vault, contextual bool) *ObjectDiff {
 	// Policies diffs
 	if setDiff := stringSetDiff(old.Policies, new.Policies, "Policies", contextual); setDiff != nil {
 		diff.Objects = append(diff.Objects, setDiff)
+	}
+
+	return diff
+}
+
+// parameterizedJobDiff returns the diff of two parameterized job objects. If
+// contextual diff is enabled, all fields will be returned, even if no diff
+// occurred.
+func parameterizedJobDiff(old, new *ParameterizedJobConfig, contextual bool) *ObjectDiff {
+	diff := &ObjectDiff{Type: DiffTypeNone, Name: "ParameterizedJob"}
+	var oldPrimitiveFlat, newPrimitiveFlat map[string]string
+
+	if reflect.DeepEqual(old, new) {
+		return nil
+	} else if old == nil {
+		old = &ParameterizedJobConfig{}
+		diff.Type = DiffTypeAdded
+		newPrimitiveFlat = flatmap.Flatten(new, nil, true)
+	} else if new == nil {
+		new = &ParameterizedJobConfig{}
+		diff.Type = DiffTypeDeleted
+		oldPrimitiveFlat = flatmap.Flatten(old, nil, true)
+	} else {
+		diff.Type = DiffTypeEdited
+		oldPrimitiveFlat = flatmap.Flatten(old, nil, true)
+		newPrimitiveFlat = flatmap.Flatten(new, nil, true)
+	}
+
+	// Diff the primitive fields.
+	diff.Fields = fieldDiffs(oldPrimitiveFlat, newPrimitiveFlat, contextual)
+
+	// Meta diffs
+	if optionalDiff := stringSetDiff(old.MetaOptional, new.MetaOptional, "MetaOptional", contextual); optionalDiff != nil {
+		diff.Objects = append(diff.Objects, optionalDiff)
+	}
+
+	if requiredDiff := stringSetDiff(old.MetaRequired, new.MetaRequired, "MetaRequired", contextual); requiredDiff != nil {
+		diff.Objects = append(diff.Objects, requiredDiff)
 	}
 
 	return diff

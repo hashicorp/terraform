@@ -17,21 +17,20 @@ or when deployed internally to an organization.
 
 ## Example Usage
 
-```
+```hcl
 resource "tls_locally_signed_cert" "example" {
-    cert_request_pem = "${file(\"cert_request.pem\")}"
+  cert_request_pem   = "${file("cert_request.pem")}"
+  ca_key_algorithm   = "ECDSA"
+  ca_private_key_pem = "${file("ca_private_key.pem")}"
+  ca_cert_pem        = "${file("ca_cert.pem")}"
 
-    ca_key_algorithm = "ECDSA"
-    ca_private_key_pem = "${file(\"ca_private_key.pem\")}"
-    ca_cert_pem = "${file(\"ca_cert.pem\")}"
+  validity_period_hours = 12
 
-    validity_period_hours = 12
-
-    allowed_uses = [
-        "key_encipherment",
-        "digital_signature",
-        "server_auth",
-    ]
+  allowed_uses = [
+    "key_encipherment",
+    "digital_signature",
+    "server_auth",
+  ]
 }
 ```
 
@@ -79,6 +78,7 @@ both [Key Usage](https://tools.ietf.org/html/rfc5280#section-4.2.1.3) and
 * `data_encipherment`
 * `key_agreement`
 * `cert_signing`
+* `crl_signing`
 * `encipher_only`
 * `decipher_only`
 * `any_extended`

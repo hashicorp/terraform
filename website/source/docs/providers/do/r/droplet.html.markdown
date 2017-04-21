@@ -14,13 +14,13 @@ modify, and delete Droplets. Droplets also support
 
 ## Example Usage
 
-```
+```hcl
 # Create a new Web Droplet in the nyc2 region
 resource "digitalocean_droplet" "web" {
-    image = "ubuntu-14-04-x64"
-    name = "web-1"
-    region = "nyc2"
-    size = "512mb"
+  image  = "ubuntu-14-04-x64"
+  name   = "web-1"
+  region = "nyc2"
+  size   = "512mb"
 }
 ```
 
@@ -65,6 +65,8 @@ The following attributes are exported:
 * `ipv4_address_private` - The private networking IPv4 address
 * `locked` - Is the Droplet locked
 * `private_networking` - Is private networking enabled
+* `price_hourly` - Droplet hourly price
+* `price_monthly` - Droplet monthly price
 * `size` - The instance size
 * `disk` - The size of the instance's disk in GB
 * `vcpus` - The number of the instance's virtual CPUs
@@ -74,7 +76,7 @@ The following attributes are exported:
 
 ## Import
 
-Droplets can be imported using the droplet `id`, e.g. 
+Droplets can be imported using the droplet `id`, e.g.
 
 ```
 terraform import digitalocean_droplet.mydroplet 100823

@@ -3,7 +3,7 @@ package datadog
 import (
 	"log"
 
-	"github.com/zorkian/go-datadog-api"
+	"gopkg.in/zorkian/go-datadog-api.v2"
 )
 
 // Config holds API and APP keys to authenticate to Datadog.
@@ -13,11 +13,10 @@ type Config struct {
 }
 
 // Client returns a new Datadog client.
-func (c *Config) Client() (*datadog.Client, error) {
+func (c *Config) Client() *datadog.Client {
 
 	client := datadog.NewClient(c.APIKey, c.APPKey)
-
 	log.Printf("[INFO] Datadog Client configured ")
 
-	return client, nil
+	return client
 }

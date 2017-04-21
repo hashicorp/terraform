@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/api/compute/v1"
@@ -16,14 +15,6 @@ import (
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"account_file": &schema.Schema{
-				Type:         schema.TypeString,
-				Optional:     true,
-				DefaultFunc:  schema.EnvDefaultFunc("GOOGLE_ACCOUNT_FILE", nil),
-				ValidateFunc: validateAccountFile,
-				Deprecated:   "Use the credentials field instead",
-			},
-
 			"credentials": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -57,10 +48,14 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"google_iam_policy": dataSourceGoogleIamPolicy(),
+			"google_compute_network":    dataSourceGoogleComputeNetwork(),
+			"google_compute_subnetwork": dataSourceGoogleComputeSubnetwork(),
+			"google_compute_zones":      dataSourceGoogleComputeZones(),
+			"google_iam_policy":         dataSourceGoogleIamPolicy(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
+			"google_bigquery_dataset":               resourceBigQueryDataset(),
 			"google_compute_autoscaler":             resourceComputeAutoscaler(),
 			"google_compute_address":                resourceComputeAddress(),
 			"google_compute_backend_service":        resourceComputeBackendService(),
@@ -69,6 +64,7 @@ func Provider() terraform.ResourceProvider {
 			"google_compute_forwarding_rule":        resourceComputeForwardingRule(),
 			"google_compute_global_address":         resourceComputeGlobalAddress(),
 			"google_compute_global_forwarding_rule": resourceComputeGlobalForwardingRule(),
+			"google_compute_health_check":           resourceComputeHealthCheck(),
 			"google_compute_http_health_check":      resourceComputeHttpHealthCheck(),
 			"google_compute_https_health_check":     resourceComputeHttpsHealthCheck(),
 			"google_compute_image":                  resourceComputeImage(),
@@ -78,6 +74,7 @@ func Provider() terraform.ResourceProvider {
 			"google_compute_instance_template":      resourceComputeInstanceTemplate(),
 			"google_compute_network":                resourceComputeNetwork(),
 			"google_compute_project_metadata":       resourceComputeProjectMetadata(),
+			"google_compute_region_backend_service": resourceComputeRegionBackendService(),
 			"google_compute_route":                  resourceComputeRoute(),
 			"google_compute_ssl_certificate":        resourceComputeSslCertificate(),
 			"google_compute_subnetwork":             resourceComputeSubnetwork(),
@@ -88,12 +85,15 @@ func Provider() terraform.ResourceProvider {
 			"google_compute_vpn_gateway":            resourceComputeVpnGateway(),
 			"google_compute_vpn_tunnel":             resourceComputeVpnTunnel(),
 			"google_container_cluster":              resourceContainerCluster(),
+			"google_container_node_pool":            resourceContainerNodePool(),
 			"google_dns_managed_zone":               resourceDnsManagedZone(),
 			"google_dns_record_set":                 resourceDnsRecordSet(),
 			"google_sql_database":                   resourceSqlDatabase(),
 			"google_sql_database_instance":          resourceSqlDatabaseInstance(),
 			"google_sql_user":                       resourceSqlUser(),
 			"google_project":                        resourceGoogleProject(),
+			"google_project_iam_policy":             resourceGoogleProjectIamPolicy(),
+			"google_project_services":               resourceGoogleProjectServices(),
 			"google_pubsub_topic":                   resourcePubsubTopic(),
 			"google_pubsub_subscription":            resourcePubsubSubscription(),
 			"google_service_account":                resourceGoogleServiceAccount(),
@@ -109,9 +109,6 @@ func Provider() terraform.ResourceProvider {
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	credentials := d.Get("credentials").(string)
-	if credentials == "" {
-		credentials = d.Get("account_file").(string)
-	}
 	config := Config{
 		Credentials: credentials,
 		Project:     d.Get("project").(string),
@@ -123,36 +120,6 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	}
 
 	return &config, nil
-}
-
-func validateAccountFile(v interface{}, k string) (warnings []string, errors []error) {
-	if v == nil {
-		return
-	}
-
-	value := v.(string)
-
-	if value == "" {
-		return
-	}
-
-	contents, wasPath, err := pathorcontents.Read(value)
-	if err != nil {
-		errors = append(errors, fmt.Errorf("Error loading Account File: %s", err))
-	}
-	if wasPath {
-		warnings = append(warnings, `account_file was provided as a path instead of
-as file contents. This support will be removed in the future. Please update
-your configuration to use ${file("filename.json")} instead.`)
-	}
-
-	var account accountFile
-	if err := json.Unmarshal([]byte(contents), &account); err != nil {
-		errors = append(errors,
-			fmt.Errorf("account_file not valid JSON '%s': %s", contents, err))
-	}
-
-	return
 }
 
 func validateCredentials(v interface{}, k string) (warnings []string, errors []error) {
@@ -265,17 +232,20 @@ func getNetworkLink(d *schema.ResourceData, config *Config, field string) (strin
 func getNetworkName(d *schema.ResourceData, field string) (string, error) {
 	if v, ok := d.GetOk(field); ok {
 		network := v.(string)
-
-		if strings.HasPrefix(network, "https://www.googleapis.com/compute/") {
-			// extract the network name from SelfLink URL
-			networkName := network[strings.LastIndex(network, "/")+1:]
-			if networkName == "" {
-				return "", fmt.Errorf("network url not valid")
-			}
-			return networkName, nil
-		}
-
-		return network, nil
+		return getNetworkNameFromSelfLink(network)
 	}
 	return "", nil
+}
+
+func getNetworkNameFromSelfLink(network string) (string, error) {
+	if strings.HasPrefix(network, "https://www.googleapis.com/compute/") {
+		// extract the network name from SelfLink URL
+		networkName := network[strings.LastIndex(network, "/")+1:]
+		if networkName == "" {
+			return "", fmt.Errorf("network url not valid")
+		}
+		return networkName, nil
+	}
+
+	return network, nil
 }

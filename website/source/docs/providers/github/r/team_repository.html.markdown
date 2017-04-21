@@ -6,7 +6,7 @@ description: |-
   Manages the associations between teams and repositories.
 ---
 
-# github\_team_repository
+# github_team_repository
 
 This resource manages relationships between teams and repositories
 in your Github organization.
@@ -20,7 +20,7 @@ to do that, see [`github_repository`](repository.html).
 
 ## Example Usage
 
-```
+```hcl
 # Add a repository to the team
 resource "github_team" "some_team" {
   name        = "SomeTeam"

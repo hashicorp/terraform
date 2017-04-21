@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -29,9 +31,21 @@ func resourceAwsS3Bucket() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"bucket": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"bucket_prefix"},
+			},
+			"bucket_prefix": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
+			},
+
+			"bucket_domain_name": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"arn": {
@@ -147,8 +161,10 @@ func resourceAwsS3Bucket() *schema.Resource {
 			},
 
 			"versioning": {
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
+				Computed: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"enabled": {
@@ -156,14 +172,12 @@ func resourceAwsS3Bucket() *schema.Resource {
 							Optional: true,
 							Default:  false,
 						},
+						"mfa_delete": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
 					},
-				},
-				Set: func(v interface{}) int {
-					var buf bytes.Buffer
-					m := v.(map[string]interface{})
-					buf.WriteString(fmt.Sprintf("%t-", m["enabled"].(bool)))
-
-					return hashcode.String(buf.String())
 				},
 			},
 
@@ -314,6 +328,65 @@ func resourceAwsS3Bucket() *schema.Resource {
 				ValidateFunc: validateS3BucketRequestPayerType,
 			},
 
+			"replication_configuration": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"role": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"rules": {
+							Type:     schema.TypeSet,
+							Required: true,
+							Set:      rulesHash,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"id": {
+										Type:         schema.TypeString,
+										Optional:     true,
+										ValidateFunc: validateS3BucketReplicationRuleId,
+									},
+									"destination": {
+										Type:     schema.TypeSet,
+										MaxItems: 1,
+										MinItems: 1,
+										Required: true,
+										Set:      destinationHash,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"bucket": {
+													Type:         schema.TypeString,
+													Required:     true,
+													ValidateFunc: validateArn,
+												},
+												"storage_class": {
+													Type:         schema.TypeString,
+													Optional:     true,
+													ValidateFunc: validateS3BucketReplicationDestinationStorageClass,
+												},
+											},
+										},
+									},
+									"prefix": {
+										Type:         schema.TypeString,
+										Required:     true,
+										ValidateFunc: validateS3BucketReplicationRulePrefix,
+									},
+									"status": {
+										Type:         schema.TypeString,
+										Required:     true,
+										ValidateFunc: validateS3BucketReplicationRuleStatus,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -323,7 +396,15 @@ func resourceAwsS3BucketCreate(d *schema.ResourceData, meta interface{}) error {
 	s3conn := meta.(*AWSClient).s3conn
 
 	// Get the bucket and acl
-	bucket := d.Get("bucket").(string)
+	var bucket string
+	if v, ok := d.GetOk("bucket"); ok {
+		bucket = v.(string)
+	} else if v, ok := d.GetOk("bucket_prefix"); ok {
+		bucket = resource.PrefixedUniqueId(v.(string))
+	} else {
+		bucket = resource.UniqueId()
+	}
+	d.Set("bucket", bucket)
 	acl := d.Get("acl").(string)
 
 	log.Printf("[DEBUG] S3 bucket create: %s, ACL: %s", bucket, acl)
@@ -347,6 +428,10 @@ func resourceAwsS3BucketCreate(d *schema.ResourceData, meta interface{}) error {
 		req.CreateBucketConfiguration = &s3.CreateBucketConfiguration{
 			LocationConstraint: aws.String(awsRegion),
 		}
+	}
+
+	if err := validateS3BucketName(bucket, awsRegion); err != nil {
+		return fmt.Errorf("Error validating S3 bucket name: %s", err)
 	}
 
 	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
@@ -380,7 +465,7 @@ func resourceAwsS3BucketCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 	s3conn := meta.(*AWSClient).s3conn
 	if err := setTagsS3(s3conn, d); err != nil {
-		return err
+		return fmt.Errorf("%q: %s", d.Get("bucket").(string), err)
 	}
 
 	if d.HasChange("policy") {
@@ -436,6 +521,12 @@ func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	if d.HasChange("replication_configuration") {
+		if err := resourceAwsS3BucketReplicationConfigurationUpdate(s3conn, d); err != nil {
+			return err
+		}
+	}
+
 	return resourceAwsS3BucketRead(d, meta)
 }
 
@@ -462,6 +553,8 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	if _, ok := d.GetOk("bucket"); !ok {
 		d.Set("bucket", d.Id())
 	}
+
+	d.Set("bucket_domain_name", bucketDomainName(d.Get("bucket").(string)))
 
 	// Read the policy
 	if _, ok := d.GetOk("policy"); ok {
@@ -582,13 +675,19 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	log.Printf("[DEBUG] S3 Bucket: %s, versioning: %v", d.Id(), versioning)
-	if versioning.Status != nil && *versioning.Status == s3.BucketVersioningStatusEnabled {
+	if versioning != nil {
 		vcl := make([]map[string]interface{}, 0, 1)
 		vc := make(map[string]interface{})
-		if *versioning.Status == s3.BucketVersioningStatusEnabled {
+		if versioning.Status != nil && *versioning.Status == s3.BucketVersioningStatusEnabled {
 			vc["enabled"] = true
 		} else {
 			vc["enabled"] = false
+		}
+
+		if versioning.MFADelete != nil && *versioning.MFADelete == s3.MFADeleteEnabled {
+			vc["mfa_delete"] = true
+		} else {
+			vc["mfa_delete"] = false
 		}
 		vcl = append(vcl, vc)
 		if err := d.Set("versioning", vcl); err != nil {
@@ -644,8 +743,8 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[DEBUG] S3 Bucket: %s, logging: %v", d.Id(), logging)
+	lcl := make([]map[string]interface{}, 0, 1)
 	if v := logging.LoggingEnabled; v != nil {
-		lcl := make([]map[string]interface{}, 0, 1)
 		lc := make(map[string]interface{})
 		if *v.TargetBucket != "" {
 			lc["target_bucket"] = *v.TargetBucket
@@ -654,9 +753,9 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 			lc["target_prefix"] = *v.TargetPrefix
 		}
 		lcl = append(lcl, lc)
-		if err := d.Set("logging", lcl); err != nil {
-			return err
-		}
+	}
+	if err := d.Set("logging", lcl); err != nil {
+		return err
 	}
 
 	// Read the lifecycle configuration
@@ -763,6 +862,24 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	// Read the bucket replication configuration
+	replication, err := s3conn.GetBucketReplication(&s3.GetBucketReplicationInput{
+		Bucket: aws.String(d.Id()),
+	})
+	if err != nil {
+		if awsError, ok := err.(awserr.RequestFailure); ok && awsError.StatusCode() != 404 {
+			return err
+		}
+	}
+
+	log.Printf("[DEBUG] S3 Bucket: %s, read replication configuration: %v", d.Id(), replication)
+	if r := replication.ReplicationConfiguration; r != nil {
+		if err := d.Set("replication_configuration", flattenAwsS3BucketReplicationConfiguration(replication.ReplicationConfiguration)); err != nil {
+			log.Printf("[DEBUG] Error setting replication configuration: %s", err)
+			return err
+		}
+	}
+
 	// Add the region as an attribute
 	location, err := s3conn.GetBucketLocation(
 		&s3.GetBucketLocationInput{
@@ -810,7 +927,7 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.Set("arn", fmt.Sprint("arn:aws:s3:::", d.Id()))
+	d.Set("arn", fmt.Sprintf("arn:%s:s3:::%s", meta.(*AWSClient).partition, d.Id()))
 
 	return nil
 }
@@ -878,7 +995,7 @@ func resourceAwsS3BucketDelete(d *schema.ResourceData, meta interface{}) error {
 				return resourceAwsS3BucketDelete(d, meta)
 			}
 		}
-		return fmt.Errorf("Error deleting S3 Bucket: %s", err)
+		return fmt.Errorf("Error deleting S3 Bucket: %s %q", err, d.Get("bucket").(string))
 	}
 	return nil
 }
@@ -1112,6 +1229,10 @@ func websiteEndpoint(s3conn *s3.S3, d *schema.ResourceData) (*S3Website, error) 
 	return WebsiteEndpoint(bucket, region), nil
 }
 
+func bucketDomainName(bucket string) string {
+	return fmt.Sprintf("%s.s3.amazonaws.com", bucket)
+}
+
 func WebsiteEndpoint(bucket string, region string) *S3Website {
 	domain := WebsiteDomainUrl(region)
 	return &S3Website{Endpoint: fmt.Sprintf("%s.%s", bucket, domain), Domain: domain}
@@ -1167,7 +1288,7 @@ func resourceAwsS3BucketAclUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
 }
 
 func resourceAwsS3BucketVersioningUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
-	v := d.Get("versioning").(*schema.Set).List()
+	v := d.Get("versioning").([]interface{})
 	bucket := d.Get("bucket").(string)
 	vc := &s3.VersioningConfiguration{}
 
@@ -1179,6 +1300,13 @@ func resourceAwsS3BucketVersioningUpdate(s3conn *s3.S3, d *schema.ResourceData) 
 		} else {
 			vc.Status = aws.String(s3.BucketVersioningStatusSuspended)
 		}
+
+		if c["mfa_delete"].(bool) {
+			vc.MFADelete = aws.String(s3.MFADeleteEnabled)
+		} else {
+			vc.MFADelete = aws.String(s3.MFADeleteDisabled)
+		}
+
 	} else {
 		vc.Status = aws.String(s3.BucketVersioningStatusSuspended)
 	}
@@ -1270,6 +1398,91 @@ func resourceAwsS3BucketRequestPayerUpdate(s3conn *s3.S3, d *schema.ResourceData
 	return nil
 }
 
+func resourceAwsS3BucketReplicationConfigurationUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
+	bucket := d.Get("bucket").(string)
+	replicationConfiguration := d.Get("replication_configuration").([]interface{})
+
+	if len(replicationConfiguration) == 0 {
+		i := &s3.DeleteBucketReplicationInput{
+			Bucket: aws.String(bucket),
+		}
+
+		err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+			if _, err := s3conn.DeleteBucketReplication(i); err != nil {
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("Error removing S3 bucket replication: %s", err)
+		}
+		return nil
+	}
+
+	hasVersioning := false
+	// Validate that bucket versioning is enabled
+	if versioning, ok := d.GetOk("versioning"); ok {
+		v := versioning.([]interface{})
+
+		if v[0].(map[string]interface{})["enabled"].(bool) {
+			hasVersioning = true
+		}
+	}
+
+	if !hasVersioning {
+		return fmt.Errorf("versioning must be enabled to allow S3 bucket replication")
+	}
+
+	c := replicationConfiguration[0].(map[string]interface{})
+
+	rc := &s3.ReplicationConfiguration{}
+	if val, ok := c["role"]; ok {
+		rc.Role = aws.String(val.(string))
+	}
+
+	rcRules := c["rules"].(*schema.Set).List()
+	rules := []*s3.ReplicationRule{}
+	for _, v := range rcRules {
+		rr := v.(map[string]interface{})
+		rcRule := &s3.ReplicationRule{
+			Prefix: aws.String(rr["prefix"].(string)),
+			Status: aws.String(rr["status"].(string)),
+		}
+
+		if rrid, ok := rr["id"]; ok {
+			rcRule.ID = aws.String(rrid.(string))
+		}
+
+		ruleDestination := &s3.Destination{}
+		if destination, ok := rr["destination"]; ok {
+			dest := destination.(*schema.Set).List()
+
+			bd := dest[0].(map[string]interface{})
+			ruleDestination.Bucket = aws.String(bd["bucket"].(string))
+
+			if storageClass, ok := bd["storage_class"]; ok && storageClass != "" {
+				ruleDestination.StorageClass = aws.String(storageClass.(string))
+			}
+		}
+		rcRule.Destination = ruleDestination
+		rules = append(rules, rcRule)
+	}
+
+	rc.Rules = rules
+	i := &s3.PutBucketReplicationInput{
+		Bucket: aws.String(bucket),
+		ReplicationConfiguration: rc,
+	}
+	log.Printf("[DEBUG] S3 put bucket replication configuration: %#v", i)
+
+	_, err := s3conn.PutBucketReplication(i)
+	if err != nil {
+		return fmt.Errorf("Error putting S3 replication configuration: %s", err)
+	}
+
+	return nil
+}
+
 func resourceAwsS3BucketLifecycleUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
 	bucket := d.Get("bucket").(string)
 
@@ -1287,7 +1500,7 @@ func resourceAwsS3BucketLifecycleUpdate(s3conn *s3.S3, d *schema.ResourceData) e
 			return nil
 		})
 		if err != nil {
-			return fmt.Errorf("Error putting S3 lifecycle: %s", err)
+			return fmt.Errorf("Error removing S3 lifecycle: %s", err)
 		}
 		return nil
 	}
@@ -1418,6 +1631,46 @@ func resourceAwsS3BucketLifecycleUpdate(s3conn *s3.S3, d *schema.ResourceData) e
 	return nil
 }
 
+func flattenAwsS3BucketReplicationConfiguration(r *s3.ReplicationConfiguration) []map[string]interface{} {
+	replication_configuration := make([]map[string]interface{}, 0, 1)
+	m := make(map[string]interface{})
+
+	if r.Role != nil && *r.Role != "" {
+		m["role"] = *r.Role
+	}
+
+	rules := make([]interface{}, 0, len(r.Rules))
+	for _, v := range r.Rules {
+		t := make(map[string]interface{})
+		if v.Destination != nil {
+			rd := make(map[string]interface{})
+			if v.Destination.Bucket != nil {
+				rd["bucket"] = *v.Destination.Bucket
+			}
+			if v.Destination.StorageClass != nil {
+				rd["storage_class"] = *v.Destination.StorageClass
+			}
+			t["destination"] = schema.NewSet(destinationHash, []interface{}{rd})
+		}
+
+		if v.ID != nil {
+			t["id"] = *v.ID
+		}
+		if v.Prefix != nil {
+			t["prefix"] = *v.Prefix
+		}
+		if v.Status != nil {
+			t["status"] = *v.Status
+		}
+		rules = append(rules, t)
+	}
+	m["rules"] = schema.NewSet(rulesHash, rules)
+
+	replication_configuration = append(replication_configuration, m)
+
+	return replication_configuration
+}
+
 func normalizeRoutingRules(w []*s3.RoutingRule) (string, error) {
 	withNulls, err := json.Marshal(w)
 	if err != nil {
@@ -1507,6 +1760,40 @@ func validateS3BucketRequestPayerType(v interface{}, k string) (ws []string, err
 	return
 }
 
+// validateS3BucketName validates any S3 bucket name that is not inside the us-east-1 region.
+// Buckets outside of this region have to be DNS-compliant. After the same restrictions are
+// applied to buckets in the us-east-1 region, this function can be refactored as a SchemaValidateFunc
+func validateS3BucketName(value string, region string) error {
+	if region != "us-east-1" {
+		if (len(value) < 3) || (len(value) > 63) {
+			return fmt.Errorf("%q must contain from 3 to 63 characters", value)
+		}
+		if !regexp.MustCompile(`^[0-9a-z-.]+$`).MatchString(value) {
+			return fmt.Errorf("only lowercase alphanumeric characters and hyphens allowed in %q", value)
+		}
+		if regexp.MustCompile(`^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$`).MatchString(value) {
+			return fmt.Errorf("%q must not be formatted as an IP address", value)
+		}
+		if strings.HasPrefix(value, `.`) {
+			return fmt.Errorf("%q cannot start with a period", value)
+		}
+		if strings.HasSuffix(value, `.`) {
+			return fmt.Errorf("%q cannot end with a period", value)
+		}
+		if strings.Contains(value, `..`) {
+			return fmt.Errorf("%q can be only one period between labels", value)
+		}
+	} else {
+		if len(value) > 255 {
+			return fmt.Errorf("%q must contain less than 256 characters", value)
+		}
+		if !regexp.MustCompile(`^[0-9a-zA-Z-._]+$`).MatchString(value) {
+			return fmt.Errorf("only alphanumeric characters, hyphens, periods, and underscores allowed in %q", value)
+		}
+	}
+	return nil
+}
+
 func expirationHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
@@ -1530,6 +1817,35 @@ func transitionHash(v interface{}) int {
 	}
 	if v, ok := m["days"]; ok {
 		buf.WriteString(fmt.Sprintf("%d-", v.(int)))
+	}
+	if v, ok := m["storage_class"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+	return hashcode.String(buf.String())
+}
+
+func rulesHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	if v, ok := m["id"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+	if v, ok := m["prefix"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+	if v, ok := m["status"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+	return hashcode.String(buf.String())
+}
+
+func destinationHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	if v, ok := m["bucket"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 	if v, ok := m["storage_class"]; ok {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))

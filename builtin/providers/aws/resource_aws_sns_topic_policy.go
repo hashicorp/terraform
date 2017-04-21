@@ -102,7 +102,7 @@ func resourceAwsSnsTopicPolicyRead(d *schema.ResourceData, meta interface{}) err
 }
 
 func resourceAwsSnsTopicPolicyDelete(d *schema.ResourceData, meta interface{}) error {
-	accountId, err := getAccountIdFromSnsTopicArn(d.Id())
+	accountId, err := getAccountIdFromSnsTopicArn(d.Id(), meta.(*AWSClient).partition)
 	if err != nil {
 		return err
 	}
@@ -134,9 +134,10 @@ func resourceAwsSnsTopicPolicyDelete(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func getAccountIdFromSnsTopicArn(arn string) (string, error) {
+func getAccountIdFromSnsTopicArn(arn, partition string) (string, error) {
 	// arn:aws:sns:us-west-2:123456789012:test-new
-	re := regexp.MustCompile("^arn:aws:sns:[^:]+:([0-9]{12}):.+")
+	// arn:aws-us-gov:sns:us-west-2:123456789012:test-new
+	re := regexp.MustCompile(fmt.Sprintf("^arn:%s:sns:[^:]+:([0-9]{12}):.+", partition))
 	matches := re.FindStringSubmatch(arn)
 	if len(matches) != 2 {
 		return "", fmt.Errorf("Unable to get account ID from ARN (%q)", arn)

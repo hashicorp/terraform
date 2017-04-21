@@ -1,24 +1,24 @@
 package google
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
-	"reflect"
-	"sort"
+	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/api/cloudresourcemanager/v1"
 )
 
 var (
-	projectId = multiEnvSearch([]string{
-		"GOOGLE_PROJECT",
-		"GCLOUD_PROJECT",
-		"CLOUDSDK_CORE_PROJECT",
+	org = multiEnvSearch([]string{
+		"GOOGLE_ORG",
 	})
+
+	pname          = "Terraform Acceptance Tests"
+	originalPolicy *cloudresourcemanager.Policy
 )
 
 func multiEnvSearch(ks []string) string {
@@ -30,77 +30,124 @@ func multiEnvSearch(ks []string) string {
 	return ""
 }
 
-// Test that a Project resource can be created and destroyed
-func TestAccGoogleProject_associate(t *testing.T) {
+// Test that a Project resource can be created and an IAM policy
+// associated
+func TestAccGoogleProject_create(t *testing.T) {
+	pid := "terraform-" + acctest.RandString(10)
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
+			// This step imports an existing project
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccGoogleProject_basic, projectId),
+				Config: testAccGoogleProject_create(pid, pname, org),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGoogleProjectExists("google_project.acceptance"),
+					testAccCheckGoogleProjectExists("google_project.acceptance", pid),
 				),
 			},
 		},
 	})
 }
 
-// Test that a Project resource can be created, an IAM Policy
-// associated with it, and then destroyed
-func TestAccGoogleProject_iamPolicy1(t *testing.T) {
-	var policy *cloudresourcemanager.Policy
+// Test that a Project resource can be created with an associated
+// billing account
+func TestAccGoogleProject_createBilling(t *testing.T) {
+	skipIfEnvNotSet(t,
+		[]string{
+			"GOOGLE_ORG",
+			"GOOGLE_BILLING_ACCOUNT",
+		}...,
+	)
+
+	billingId := os.Getenv("GOOGLE_BILLING_ACCOUNT")
+	pid := "terraform-" + acctest.RandString(10)
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGoogleProjectDestroy,
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			// First step inventories the project's existing IAM policy
+			// This step creates a new project with a billing account
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccGoogleProject_basic, projectId),
+				Config: testAccGoogleProject_createBilling(pid, pname, org, billingId),
 				Check: resource.ComposeTestCheckFunc(
-					testAccGoogleProjectExistingPolicy(policy),
+					testAccCheckGoogleProjectHasBillingAccount("google_project.acceptance", pid, billingId),
 				),
-			},
-			// Second step applies an IAM policy from a data source. The application
-			// merges policies, so we validate the expected state.
-			resource.TestStep{
-				Config: fmt.Sprintf(testAccGoogleProject_policy1, projectId),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGoogleProjectExists("google_project.acceptance"),
-					testAccCheckGoogleProjectIamPolicyIsMerged("google_project.acceptance", "data.google_iam_policy.admin", policy),
-				),
-			},
-			// Finally, remove the custom IAM policy from config and apply, then
-			// confirm that the project is in its original state.
-			resource.TestStep{
-				Config: fmt.Sprintf(testAccGoogleProject_basic, projectId),
 			},
 		},
 	})
 }
 
-func testAccCheckGoogleProjectDestroy(s *terraform.State) error {
-	return nil
+// Test that a Project resource can be created and updated
+// with billing account information
+func TestAccGoogleProject_updateBilling(t *testing.T) {
+	skipIfEnvNotSet(t,
+		[]string{
+			"GOOGLE_ORG",
+			"GOOGLE_BILLING_ACCOUNT",
+			"GOOGLE_BILLING_ACCOUNT_2",
+		}...,
+	)
+
+	billingId := os.Getenv("GOOGLE_BILLING_ACCOUNT")
+	billingId2 := os.Getenv("GOOGLE_BILLING_ACCOUNT_2")
+	pid := "terraform-" + acctest.RandString(10)
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			// This step creates a new project without a billing account
+			resource.TestStep{
+				Config: testAccGoogleProject_create(pid, pname, org),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGoogleProjectExists("google_project.acceptance", pid),
+				),
+			},
+			// Update to include a billing account
+			resource.TestStep{
+				Config: testAccGoogleProject_createBilling(pid, pname, org, billingId),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGoogleProjectHasBillingAccount("google_project.acceptance", pid, billingId),
+				),
+			},
+			// Update to a different  billing account
+			resource.TestStep{
+				Config: testAccGoogleProject_createBilling(pid, pname, org, billingId2),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGoogleProjectHasBillingAccount("google_project.acceptance", pid, billingId2),
+				),
+			},
+		},
+	})
 }
 
-// Retrieve the existing policy (if any) for a GCP Project
-func testAccGoogleProjectExistingPolicy(p *cloudresourcemanager.Policy) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		c := testAccProvider.Meta().(*Config)
-		var err error
-		p, err = getProjectIamPolicy(projectId, c)
-		if err != nil {
-			return fmt.Errorf("Failed to retrieve IAM Policy for project %q: %s", projectId, err)
-		}
-		if len(p.Bindings) == 0 {
-			return fmt.Errorf("Refuse to run test against project with zero IAM Bindings. This is likely an error in the test code that is not properly identifying the IAM policy of a project.")
-		}
-		return nil
-	}
+// Test that a Project resource merges the IAM policies that already
+// exist, and won't lock people out.
+func TestAccGoogleProject_merge(t *testing.T) {
+	pid := "terraform-" + acctest.RandString(10)
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			// when policy_data is set, merge
+			{
+				Config: testAccGoogleProject_toMerge(pid, pname, org),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGoogleProjectExists("google_project.acceptance", pid),
+					testAccCheckGoogleProjectHasMoreBindingsThan(pid, 1),
+				),
+			},
+			// when policy_data is unset, restore to what it was
+			{
+				Config: testAccGoogleProject_mergeEmpty(pid, pname, org),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGoogleProjectExists("google_project.acceptance", pid),
+					testAccCheckGoogleProjectHasMoreBindingsThan(pid, 0),
+				),
+			},
+		},
+	})
 }
 
-func testAccCheckGoogleProjectExists(r string) resource.TestCheckFunc {
+func testAccCheckGoogleProjectExists(r, pid string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[r]
 		if !ok {
@@ -111,361 +158,89 @@ func testAccCheckGoogleProjectExists(r string) resource.TestCheckFunc {
 			return fmt.Errorf("No ID is set")
 		}
 
-		if rs.Primary.ID != projectId {
-			return fmt.Errorf("Expected project %q to match ID %q in state", projectId, rs.Primary.ID)
+		if rs.Primary.ID != pid {
+			return fmt.Errorf("Expected project %q to match ID %q in state", pid, rs.Primary.ID)
 		}
 
 		return nil
 	}
 }
 
-func testAccCheckGoogleProjectIamPolicyIsMerged(projectRes, policyRes string, original *cloudresourcemanager.Policy) resource.TestCheckFunc {
+func testAccCheckGoogleProjectHasBillingAccount(r, pid, billingId string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		// Get the project resource
-		project, ok := s.RootModule().Resources[projectRes]
+		rs, ok := s.RootModule().Resources[r]
 		if !ok {
-			return fmt.Errorf("Not found: %s", projectRes)
-		}
-		// The project ID should match the config's project ID
-		if project.Primary.ID != projectId {
-			return fmt.Errorf("Expected project %q to match ID %q in state", projectId, project.Primary.ID)
+			return fmt.Errorf("Not found: %s", r)
 		}
 
-		var projectP, policyP cloudresourcemanager.Policy
-		// The project should have a policy
-		ps, ok := project.Primary.Attributes["policy_data"]
-		if !ok {
-			return fmt.Errorf("Project resource %q did not have a 'policy_data' attribute. Attributes were %#v", project.Primary.Attributes["id"], project.Primary.Attributes)
-		}
-		if err := json.Unmarshal([]byte(ps), &projectP); err != nil {
-			return err
+		// State should match expected
+		if rs.Primary.Attributes["billing_account"] != billingId {
+			return fmt.Errorf("Billing ID in state (%s) does not match expected value (%s)", rs.Primary.Attributes["billing_account"], billingId)
 		}
 
-		// The data policy resource should have a policy
-		policy, ok := s.RootModule().Resources[policyRes]
-		if !ok {
-			return fmt.Errorf("Not found: %s", policyRes)
-		}
-		ps, ok = policy.Primary.Attributes["policy_data"]
-		if !ok {
-			return fmt.Errorf("Data policy resource %q did not have a 'policy_data' attribute. Attributes were %#v", policy.Primary.Attributes["id"], project.Primary.Attributes)
-		}
-		if err := json.Unmarshal([]byte(ps), &policyP); err != nil {
-			return err
-		}
-
-		// The bindings in both policies should be identical
-		if !reflect.DeepEqual(derefBindings(projectP.Bindings), derefBindings(policyP.Bindings)) {
-			return fmt.Errorf("Project and data source policies do not match: project policy is %+v, data resource policy is  %+v", derefBindings(projectP.Bindings), derefBindings(policyP.Bindings))
-		}
-
-		// Merge the project policy in Terrafomr state with the policy the project had before the config was applied
-		expected := make([]*cloudresourcemanager.Binding, 0)
-		expected = append(expected, original.Bindings...)
-		expected = append(expected, projectP.Bindings...)
-		expectedM := mergeBindings(expected)
-
-		// Retrieve the actual policy from the project
-		c := testAccProvider.Meta().(*Config)
-		actual, err := getProjectIamPolicy(projectId, c)
+		// Actual value in API should match state and expected
+		// Read the billing account
+		config := testAccProvider.Meta().(*Config)
+		ba, err := config.clientBilling.Projects.GetBillingInfo(prefixedProject(pid)).Do()
 		if err != nil {
-			return fmt.Errorf("Failed to retrieve IAM Policy for project %q: %s", projectId, err)
+			return fmt.Errorf("Error reading billing account for project %q: %v", prefixedProject(pid), err)
 		}
-		actualM := mergeBindings(actual.Bindings)
-
-		// The bindings should match, indicating the policy was successfully applied and merged
-		if !reflect.DeepEqual(derefBindings(actualM), derefBindings(expectedM)) {
-			return fmt.Errorf("Actual and expected project policies do not match: actual policy is %+v, expected policy is  %+v", derefBindings(actualM), derefBindings(expectedM))
+		if billingId != strings.TrimPrefix(ba.BillingAccountName, "billingAccounts/") {
+			return fmt.Errorf("Billing ID returned by API (%s) did not match expected value (%s)", ba.BillingAccountName, billingId)
 		}
-
 		return nil
 	}
 }
 
-func TestIamRolesToMembersBinding(t *testing.T) {
-	table := []struct {
-		expect []*cloudresourcemanager.Binding
-		input  map[string]map[string]bool
-	}{
-		{
-			expect: []*cloudresourcemanager.Binding{
-				{
-					Role: "role-1",
-					Members: []string{
-						"member-1",
-						"member-2",
-					},
-				},
-			},
-			input: map[string]map[string]bool{
-				"role-1": map[string]bool{
-					"member-1": true,
-					"member-2": true,
-				},
-			},
-		},
-		{
-			expect: []*cloudresourcemanager.Binding{
-				{
-					Role: "role-1",
-					Members: []string{
-						"member-1",
-						"member-2",
-					},
-				},
-			},
-			input: map[string]map[string]bool{
-				"role-1": map[string]bool{
-					"member-1": true,
-					"member-2": true,
-				},
-			},
-		},
-		{
-			expect: []*cloudresourcemanager.Binding{
-				{
-					Role:    "role-1",
-					Members: []string{},
-				},
-			},
-			input: map[string]map[string]bool{
-				"role-1": map[string]bool{},
-			},
-		},
-	}
-
-	for _, test := range table {
-		got := rolesToMembersBinding(test.input)
-
-		sort.Sort(Binding(got))
-		for i, _ := range got {
-			sort.Strings(got[i].Members)
+func testAccCheckGoogleProjectHasMoreBindingsThan(pid string, count int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		policy, err := getProjectIamPolicy(pid, testAccProvider.Meta().(*Config))
+		if err != nil {
+			return err
 		}
-
-		if !reflect.DeepEqual(derefBindings(got), derefBindings(test.expect)) {
-			t.Errorf("got %+v, expected %+v", derefBindings(got), derefBindings(test.expect))
+		if len(policy.Bindings) <= count {
+			return fmt.Errorf("Expected more than %d bindings, got %d: %#v", count, len(policy.Bindings), policy.Bindings)
 		}
-	}
-}
-func TestIamRolesToMembersMap(t *testing.T) {
-	table := []struct {
-		input  []*cloudresourcemanager.Binding
-		expect map[string]map[string]bool
-	}{
-		{
-			input: []*cloudresourcemanager.Binding{
-				{
-					Role: "role-1",
-					Members: []string{
-						"member-1",
-						"member-2",
-					},
-				},
-			},
-			expect: map[string]map[string]bool{
-				"role-1": map[string]bool{
-					"member-1": true,
-					"member-2": true,
-				},
-			},
-		},
-		{
-			input: []*cloudresourcemanager.Binding{
-				{
-					Role: "role-1",
-					Members: []string{
-						"member-1",
-						"member-2",
-						"member-1",
-						"member-2",
-					},
-				},
-			},
-			expect: map[string]map[string]bool{
-				"role-1": map[string]bool{
-					"member-1": true,
-					"member-2": true,
-				},
-			},
-		},
-		{
-			input: []*cloudresourcemanager.Binding{
-				{
-					Role: "role-1",
-				},
-			},
-			expect: map[string]map[string]bool{
-				"role-1": map[string]bool{},
-			},
-		},
-	}
-
-	for _, test := range table {
-		got := rolesToMembersMap(test.input)
-		if !reflect.DeepEqual(got, test.expect) {
-			t.Errorf("got %+v, expected %+v", got, test.expect)
-		}
+		return nil
 	}
 }
 
-func TestIamMergeBindings(t *testing.T) {
-	table := []struct {
-		input  []*cloudresourcemanager.Binding
-		expect []cloudresourcemanager.Binding
-	}{
-		{
-			input: []*cloudresourcemanager.Binding{
-				{
-					Role: "role-1",
-					Members: []string{
-						"member-1",
-						"member-2",
-					},
-				},
-				{
-					Role: "role-1",
-					Members: []string{
-						"member-3",
-					},
-				},
-			},
-			expect: []cloudresourcemanager.Binding{
-				{
-					Role: "role-1",
-					Members: []string{
-						"member-1",
-						"member-2",
-						"member-3",
-					},
-				},
-			},
-		},
-		{
-			input: []*cloudresourcemanager.Binding{
-				{
-					Role: "role-1",
-					Members: []string{
-						"member-3",
-						"member-4",
-					},
-				},
-				{
-					Role: "role-1",
-					Members: []string{
-						"member-2",
-						"member-1",
-					},
-				},
-				{
-					Role: "role-2",
-					Members: []string{
-						"member-1",
-					},
-				},
-				{
-					Role: "role-1",
-					Members: []string{
-						"member-5",
-					},
-				},
-				{
-					Role: "role-3",
-					Members: []string{
-						"member-1",
-					},
-				},
-				{
-					Role: "role-2",
-					Members: []string{
-						"member-2",
-					},
-				},
-			},
-			expect: []cloudresourcemanager.Binding{
-				{
-					Role: "role-1",
-					Members: []string{
-						"member-1",
-						"member-2",
-						"member-3",
-						"member-4",
-						"member-5",
-					},
-				},
-				{
-					Role: "role-2",
-					Members: []string{
-						"member-1",
-						"member-2",
-					},
-				},
-				{
-					Role: "role-3",
-					Members: []string{
-						"member-1",
-					},
-				},
-			},
-		},
-	}
-
-	for _, test := range table {
-		got := mergeBindings(test.input)
-		sort.Sort(Binding(got))
-		for i, _ := range got {
-			sort.Strings(got[i].Members)
-		}
-
-		if !reflect.DeepEqual(derefBindings(got), test.expect) {
-			t.Errorf("\ngot %+v\nexpected %+v", derefBindings(got), test.expect)
-		}
-	}
-}
-
-func derefBindings(b []*cloudresourcemanager.Binding) []cloudresourcemanager.Binding {
-	db := make([]cloudresourcemanager.Binding, len(b))
-
-	for i, v := range b {
-		db[i] = *v
-	}
-	return db
-}
-
-type Binding []*cloudresourcemanager.Binding
-
-func (b Binding) Len() int {
-	return len(b)
-}
-func (b Binding) Swap(i, j int) {
-	b[i], b[j] = b[j], b[i]
-}
-func (b Binding) Less(i, j int) bool {
-	return b[i].Role < b[j].Role
-}
-
-var testAccGoogleProject_basic = `
+func testAccGoogleProject_toMerge(pid, name, org string) string {
+	return fmt.Sprintf(`
 resource "google_project" "acceptance" {
-    id = "%v"
-}`
-
-var testAccGoogleProject_policy1 = `
-resource "google_project" "acceptance" {
-    id = "%v"
-    policy_data = "${data.google_iam_policy.admin.policy_data}"
+    project_id = "%s"
+    name = "%s"
+    org_id = "%s"
 }
 
-data "google_iam_policy" "admin" {
-  binding {
-    role = "roles/storage.objectViewer"
-    members = [
-      "user:evanbrown@google.com",
-    ]
-  }
-  binding {
-    role = "roles/compute.instanceAdmin"
-    members = [
-      "user:evanbrown@google.com",
-      "user:evandbrown@gmail.com",
-    ]
-  }
-}`
+resource "google_project_iam_policy" "acceptance" {
+    project = "${google_project.acceptance.project_id}"
+    policy_data = "${data.google_iam_policy.acceptance.policy_data}"
+}
+
+data "google_iam_policy" "acceptance" {
+    binding {
+        role = "roles/storage.objectViewer"
+	members = [
+	  "user:evanbrown@google.com",
+	]
+    }
+}`, pid, name, org)
+}
+
+func testAccGoogleProject_mergeEmpty(pid, name, org string) string {
+	return fmt.Sprintf(`
+resource "google_project" "acceptance" {
+    project_id = "%s"
+    name = "%s"
+    org_id = "%s"
+}`, pid, name, org)
+}
+
+func skipIfEnvNotSet(t *testing.T, envs ...string) {
+	for _, k := range envs {
+		if os.Getenv(k) == "" {
+			t.Skipf("Environment variable %s is not set", k)
+		}
+	}
+}

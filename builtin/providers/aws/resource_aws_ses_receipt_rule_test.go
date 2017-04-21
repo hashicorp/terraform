@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ses"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -111,7 +112,7 @@ func testAccCheckAwsSESReceiptRuleExists(n string) resource.TestCheckFunc {
 
 		params := &ses.DescribeReceiptRuleInput{
 			RuleName:    aws.String("basic"),
-			RuleSetName: aws.String("test-me"),
+			RuleSetName: aws.String(fmt.Sprintf("test-me-%d", srrsRandomInt)),
 		}
 
 		response, err := conn.DescribeReceiptRule(params)
@@ -153,7 +154,7 @@ func testAccCheckAwsSESReceiptRuleOrder(n string) resource.TestCheckFunc {
 		conn := testAccProvider.Meta().(*AWSClient).sesConn
 
 		params := &ses.DescribeReceiptRuleSetInput{
-			RuleSetName: aws.String("test-me"),
+			RuleSetName: aws.String(fmt.Sprintf("test-me-%d", srrsRandomInt)),
 		}
 
 		response, err := conn.DescribeReceiptRuleSet(params)
@@ -185,8 +186,8 @@ func testAccCheckAwsSESReceiptRuleActions(n string) resource.TestCheckFunc {
 		conn := testAccProvider.Meta().(*AWSClient).sesConn
 
 		params := &ses.DescribeReceiptRuleInput{
-			RuleName:    aws.String("actions"),
-			RuleSetName: aws.String("test-me"),
+			RuleName:    aws.String("actions4"),
+			RuleSetName: aws.String(fmt.Sprintf("test-me-%d", srrsRandomInt)),
 		}
 
 		response, err := conn.DescribeReceiptRule(params)
@@ -227,9 +228,10 @@ func testAccCheckAwsSESReceiptRuleActions(n string) resource.TestCheckFunc {
 	}
 }
 
-const testAccAWSSESReceiptRuleBasicConfig = `
+var srrsRandomInt = acctest.RandInt()
+var testAccAWSSESReceiptRuleBasicConfig = fmt.Sprintf(`
 resource "aws_ses_receipt_rule_set" "test" {
-    rule_set_name = "test-me"
+    rule_set_name = "test-me-%d"
 }
 
 resource "aws_ses_receipt_rule" "basic" {
@@ -240,11 +242,11 @@ resource "aws_ses_receipt_rule" "basic" {
     scan_enabled = true
     tls_policy = "Require"
 }
-`
+`, srrsRandomInt)
 
-const testAccAWSSESReceiptRuleOrderConfig = `
+var testAccAWSSESReceiptRuleOrderConfig = fmt.Sprintf(`
 resource "aws_ses_receipt_rule_set" "test" {
-    rule_set_name = "test-me"
+    rule_set_name = "test-me-%d"
 }
 
 resource "aws_ses_receipt_rule" "second" {
@@ -257,36 +259,36 @@ resource "aws_ses_receipt_rule" "first" {
     name = "first"
     rule_set_name = "${aws_ses_receipt_rule_set.test.rule_set_name}"
 }
-`
+`, srrsRandomInt)
 
-const testAccAWSSESReceiptRuleActionsConfig = `
+var testAccAWSSESReceiptRuleActionsConfig = fmt.Sprintf(`
 resource "aws_s3_bucket" "emails" {
     bucket = "ses-terraform-emails"
 }
 
 resource "aws_ses_receipt_rule_set" "test" {
-    rule_set_name = "test-me"
+    rule_set_name = "test-me-%d"
 }
 
 resource "aws_ses_receipt_rule" "actions" {
-    name = "actions"
+    name = "actions4"
     rule_set_name = "${aws_ses_receipt_rule_set.test.rule_set_name}"
 
     add_header_action {
-	header_name = "Added-By"
-	header_value = "Terraform"
-	position = 1
+			header_name = "Added-By"
+			header_value = "Terraform"
+			position = 1
     }
 
     add_header_action {
-	header_name = "Another-Header"
-	header_value = "First"
-	position = 0
+			header_name = "Another-Header"
+			header_value = "First"
+			position = 0
     }
 
     stop_action {
-	scope = "RuleSet"
-	position = 2
+			scope = "RuleSet"
+			position = 2
     }
 }
-`
+`, srrsRandomInt)

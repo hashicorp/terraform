@@ -12,13 +12,14 @@ Provides an SNS topic policy resource
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_sns_topic" "test" {
   name = "my-topic-with-policy"
 }
 
 resource "aws_sns_topic_policy" "custom" {
   arn = "${aws_sns_topic.test.arn}"
+
   policy = <<POLICY
 {
   "Version": "2012-10-17",

@@ -2,6 +2,7 @@ package pagerduty
 
 import (
 	"fmt"
+
 	"github.com/google/go-querystring/query"
 )
 
@@ -13,16 +14,26 @@ type Channel struct {
 	Type string
 }
 
+// Context are to be included with the trigger such as links to graphs or images.
+type Context struct {
+	Alt  string
+	Href string
+	Src  string
+	Text string
+	Type string
+}
+
 // LogEntry is a list of all of the events that happened to an incident.
 type LogEntry struct {
 	APIObject
-	CreatedAt    string `json:"created_at"`
-	Agent        Agent
-	Channel      Channel
-	Incident     Incident
-	Teams        []Team
-	Contexts     []string
-	EventDetails map[string]string
+	CreatedAt              string `json:"created_at"`
+	Agent                  Agent
+	Channel                Channel
+	Incident               Incident
+	Teams                  []Team
+	Contexts               []Context
+	AcknowledgementTimeout int `json:"acknowledgement_timeout"`
+	EventDetails           map[string]string
 }
 
 // ListLogEntryResponse is the response data when calling the ListLogEntry API endpoint.
@@ -35,8 +46,8 @@ type ListLogEntryResponse struct {
 type ListLogEntriesOptions struct {
 	APIListObject
 	TimeZone   string   `url:"time_zone"`
-	Since      string   `url:"omitempty"`
-	Until      string   `url:"omitempty"`
+	Since      string   `url:"since,omitempty"`
+	Until      string   `url:"until,omitempty"`
 	IsOverview bool     `url:"is_overview,omitempty"`
 	Includes   []string `url:"include,omitempty,brackets"`
 }

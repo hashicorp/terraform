@@ -36,6 +36,59 @@ func TestAccAWSVpc_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSVpc_enableIpv6(t *testing.T) {
+	var vpc ec2.Vpc
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVpcDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccVpcConfigIpv6Enabled,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckVpcExists("aws_vpc.foo", &vpc),
+					testAccCheckVpcCidr(&vpc, "10.1.0.0/16"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc.foo", "cidr_block", "10.1.0.0/16"),
+					resource.TestCheckResourceAttrSet(
+						"aws_vpc.foo", "ipv6_association_id"),
+					resource.TestCheckResourceAttrSet(
+						"aws_vpc.foo", "ipv6_cidr_block"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc.foo", "assign_generated_ipv6_cidr_block", "true"),
+				),
+			},
+			{
+				Config: testAccVpcConfigIpv6Disabled,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckVpcExists("aws_vpc.foo", &vpc),
+					testAccCheckVpcCidr(&vpc, "10.1.0.0/16"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc.foo", "cidr_block", "10.1.0.0/16"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc.foo", "assign_generated_ipv6_cidr_block", "false"),
+				),
+			},
+			{
+				Config: testAccVpcConfigIpv6Enabled,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckVpcExists("aws_vpc.foo", &vpc),
+					testAccCheckVpcCidr(&vpc, "10.1.0.0/16"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc.foo", "cidr_block", "10.1.0.0/16"),
+					resource.TestCheckResourceAttrSet(
+						"aws_vpc.foo", "ipv6_association_id"),
+					resource.TestCheckResourceAttrSet(
+						"aws_vpc.foo", "ipv6_cidr_block"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc.foo", "assign_generated_ipv6_cidr_block", "true"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSVpc_dedicatedTenancy(t *testing.T) {
 	var vpc ec2.Vpc
 
@@ -246,6 +299,19 @@ func TestAccAWSVpc_classiclinkOptionSet(t *testing.T) {
 }
 
 const testAccVpcConfig = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+`
+
+const testAccVpcConfigIpv6Enabled = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+	assign_generated_ipv6_cidr_block = true
+}
+`
+
+const testAccVpcConfigIpv6Disabled = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
 }
