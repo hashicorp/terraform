@@ -34,3 +34,5 @@ The following attributes are exported:
 
 * `instance_id` - Instance ID.
 * `network_interface_id` - Network interface ID.
+* `attachment_id` - The ENI Attachment ID.
+* `status` - The status of the Network Interface Attachment.
