@@ -47,6 +47,7 @@ import (
 	nomadprovider "github.com/hashicorp/terraform/builtin/providers/nomad"
 	ns1provider "github.com/hashicorp/terraform/builtin/providers/ns1"
 	nullprovider "github.com/hashicorp/terraform/builtin/providers/null"
+	oneandoneprovider "github.com/hashicorp/terraform/builtin/providers/oneandone"
 	opcprovider "github.com/hashicorp/terraform/builtin/providers/opc"
 	openstackprovider "github.com/hashicorp/terraform/builtin/providers/openstack"
 	opsgenieprovider "github.com/hashicorp/terraform/builtin/providers/opsgenie"
@@ -126,6 +127,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"ns1":          ns1provider.Provider,
 	"null":         nullprovider.Provider,
 	"opc":          opcprovider.Provider,
+	"oneandone":    oneandoneprovider.Provider,
 	"openstack":    openstackprovider.Provider,
 	"opsgenie":     opsgenieprovider.Provider,
 	"packet":       packetprovider.Provider,
