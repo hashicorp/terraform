@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -1924,4 +1925,75 @@ func flattenApiGatewayUsagePlanQuota(s *apigateway.QuotaSettings) []map[string]i
 	}
 
 	return []map[string]interface{}{settings}
+}
+
+func expandCognitoSupportedLoginProviders(config map[string]interface{}) map[string]*string {
+	m := map[string]*string{}
+	for k, v := range config {
+		s := v.(string)
+		m[k] = &s
+	}
+	return m
+}
+
+func flattenCognitoSupportedLoginProviders(config map[string]*string) map[string]string {
+	m := map[string]string{}
+	for k, v := range config {
+		m[k] = *v
+	}
+	return m
+}
+
+func expandCognitoIdentityProviders(s *schema.Set) []*cognitoidentity.Provider {
+	ips := make([]*cognitoidentity.Provider, 0)
+
+	for _, v := range s.List() {
+		s := v.(map[string]interface{})
+
+		ip := &cognitoidentity.Provider{}
+
+		if sv, ok := s["client_id"].(string); ok {
+			ip.ClientId = aws.String(sv)
+		}
+
+		if sv, ok := s["provider_name"].(string); ok {
+			ip.ProviderName = aws.String(sv)
+		}
+
+		if sv, ok := s["server_side_token_check"].(bool); ok {
+			ip.ServerSideTokenCheck = aws.Bool(sv)
+		}
+
+		ips = append(ips, ip)
+	}
+
+	return ips
+}
+
+func flattenCognitoIdentityProviders(ips []*cognitoidentity.Provider) []map[string]interface{} {
+	values := make([]map[string]interface{}, 0)
+
+	for _, v := range ips {
+		ip := make(map[string]interface{})
+
+		if v == nil {
+			return nil
+		}
+
+		if v.ClientId != nil {
+			ip["client_id"] = *v.ClientId
+		}
+
+		if v.ProviderName != nil {
+			ip["provider_name"] = *v.ProviderName
+		}
+
+		if v.ServerSideTokenCheck != nil {
+			ip["server_side_token_check"] = *v.ServerSideTokenCheck
+		}
+
+		values = append(values, ip)
+	}
+
+	return values
 }

@@ -2011,5 +2011,170 @@ func TestValidateAwsKmsName(t *testing.T) {
 			t.Fatalf("AWS KMS Alias Name validation failed: %v", errors)
 		}
 	}
+}
 
+func TestValidateCognitoIdentityPoolName(t *testing.T) {
+	validValues := []string{
+		"123",
+		"1 2 3",
+		"foo",
+		"foo bar",
+		"foo_bar",
+		"1foo 2bar 3",
+	}
+
+	for _, s := range validValues {
+		_, errors := validateCognitoIdentityPoolName(s, "identity_pool_name")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid Cognito Identity Pool Name: %v", s, errors)
+		}
+	}
+
+	invalidValues := []string{
+		"1-2-3",
+		"foo!",
+		"foo-bar",
+		"foo-bar",
+		"foo1-bar2",
+	}
+
+	for _, s := range invalidValues {
+		_, errors := validateCognitoIdentityPoolName(s, "identity_pool_name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid Cognito Identity Pool Name: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateCognitoProviderDeveloperName(t *testing.T) {
+	validValues := []string{
+		"1",
+		"foo",
+		"1.2",
+		"foo1-bar2-baz3",
+		"foo_bar",
+	}
+
+	for _, s := range validValues {
+		_, errors := validateCognitoProviderDeveloperName(s, "developer_provider_name")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid Cognito Provider Developer Name: %v", s, errors)
+		}
+	}
+
+	invalidValues := []string{
+		"foo!",
+		"foo:bar",
+		"foo/bar",
+		"foo;bar",
+	}
+
+	for _, s := range invalidValues {
+		_, errors := validateCognitoProviderDeveloperName(s, "developer_provider_name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid Cognito Provider Developer Name: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateCognitoSupportedLoginProviders(t *testing.T) {
+	validValues := []string{
+		"foo",
+		"7346241598935552",
+		"123456789012.apps.googleusercontent.com",
+		"foo_bar",
+		"foo;bar",
+		"foo/bar",
+		"foo-bar",
+		"xvz1evFS4wEEPTGEFPHBog;kAcSOqF21Fu85e7zjz7ZN2U4ZRhfV3WpwPAoE3Z7kBw",
+		strings.Repeat("W", 128),
+	}
+
+	for _, s := range validValues {
+		_, errors := validateCognitoSupportedLoginProviders(s, "supported_login_providers")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid Cognito Supported Login Providers: %v", s, errors)
+		}
+	}
+
+	invalidValues := []string{
+		"",
+		strings.Repeat("W", 129), // > 128
+		"foo:bar_baz",
+		"foobar,foobaz",
+		"foobar=foobaz",
+	}
+
+	for _, s := range invalidValues {
+		_, errors := validateCognitoSupportedLoginProviders(s, "supported_login_providers")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid Cognito Supported Login Providers: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateCognitoIdentityProvidersClientId(t *testing.T) {
+	validValues := []string{
+		"7lhlkkfbfb4q5kpp90urffao",
+		"12345678",
+		"foo_123",
+		strings.Repeat("W", 128),
+	}
+
+	for _, s := range validValues {
+		_, errors := validateCognitoIdentityProvidersClientId(s, "client_id")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid Cognito Identity Provider Client ID: %v", s, errors)
+		}
+	}
+
+	invalidValues := []string{
+		"",
+		strings.Repeat("W", 129), // > 128
+		"foo-bar",
+		"foo:bar",
+		"foo;bar",
+	}
+
+	for _, s := range invalidValues {
+		_, errors := validateCognitoIdentityProvidersClientId(s, "client_id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid Cognito Identity Provider Client ID: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateCognitoIdentityProvidersProviderName(t *testing.T) {
+	validValues := []string{
+		"foo",
+		"7346241598935552",
+		"foo_bar",
+		"foo:bar",
+		"foo/bar",
+		"foo-bar",
+		"cognito-idp.us-east-1.amazonaws.com/us-east-1_Zr231apJu",
+		strings.Repeat("W", 128),
+	}
+
+	for _, s := range validValues {
+		_, errors := validateCognitoIdentityProvidersProviderName(s, "provider_name")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid Cognito Identity Provider Name: %v", s, errors)
+		}
+	}
+
+	invalidValues := []string{
+		"",
+		strings.Repeat("W", 129), // > 128
+		"foo;bar_baz",
+		"foobar,foobaz",
+		"foobar=foobaz",
+	}
+
+	for _, s := range invalidValues {
+		_, errors := validateCognitoIdentityProvidersProviderName(s, "provider_name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid Cognito Identity Provider Name: %v", s, errors)
+		}
+	}
 }
