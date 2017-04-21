@@ -61,3 +61,4 @@ The following attributes are exported:
 * `storage_type` - Specifies the storage type associated with DB instance.
 * `timezone` - The time zone of the DB instance.
 * `vpc_security_groups` - Provides a list of VPC security group elements that the DB instance belongs to.
+* `replicate_source_db` - The identifier of the source DB that this is a replica of.
