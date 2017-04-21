@@ -65,6 +65,24 @@ func TestAccAzureRMNetworkInterface_enableIPForwarding(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMNetworkInterface_multipleLoadBalancers(t *testing.T) {
+	rInt := acctest.RandInt()
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMNetworkInterfaceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMNetworkInterface_multipleLoadBalancers(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMNetworkInterfaceExists("azurerm_network_interface.test1"),
+					testCheckAzureRMNetworkInterfaceExists("azurerm_network_interface.test2"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAzureRMNetworkInterface_withTags(t *testing.T) {
 	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
@@ -322,6 +340,136 @@ resource "azurerm_network_interface" "test" {
 
     tags {
 	environment = "staging"
+    }
+}
+`, rInt)
+}
+
+func testAccAzureRMNetworkInterface_multipleLoadBalancers(rInt int) string {
+	return fmt.Sprintf(`
+resource "azurerm_resource_group" "test" {
+    name = "acctest-rg-%d"
+    location = "West US"
+}
+
+resource "azurerm_virtual_network" "test" {
+    name = "acceptanceTestVirtualNetwork1"
+    address_space = ["10.0.0.0/16"]
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_subnet" "test" {
+    name = "testsubnet"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    virtual_network_name = "${azurerm_virtual_network.test.name}"
+    address_prefix = "10.0.2.0/24"
+}
+
+resource "azurerm_public_ip" "testext" {
+  name                         = "testpublicipext"
+  location                     = "West US"
+  resource_group_name          = "${azurerm_resource_group.test.name}"
+  public_ip_address_allocation = "static"
+}
+
+resource "azurerm_lb" "testext" {
+  name                = "testlbext"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+
+  frontend_ip_configuration {
+    name                 = "publicipext"
+    public_ip_address_id = "${azurerm_public_ip.testext.id}"
+  }
+}
+
+resource "azurerm_lb_backend_address_pool" "testext" {
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  loadbalancer_id     = "${azurerm_lb.testext.id}"
+  name                = "testbackendpoolext"
+}
+
+resource "azurerm_lb_nat_rule" "testext" {
+  name = "testnatruleext"
+  location = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  loadbalancer_id = "${azurerm_lb.testext.id}"
+  protocol = "Tcp"
+  frontend_port = 3389
+  backend_port = 3390
+  frontend_ip_configuration_name = "publicipext"
+}
+
+resource "azurerm_public_ip" "testint" {
+  name                         = "testpublicipint"
+  location                     = "West US"
+  resource_group_name          = "${azurerm_resource_group.test.name}"
+  public_ip_address_allocation = "static"
+}
+
+resource "azurerm_lb" "testint" {
+  name                = "testlbint"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+
+  frontend_ip_configuration {
+    name                 		  = "publicipint"
+    subnet_id                     = "${azurerm_subnet.test.id}"
+    private_ip_address_allocation = "Dynamic"
+  }
+}
+
+resource "azurerm_lb_backend_address_pool" "testint" {
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  loadbalancer_id     = "${azurerm_lb.testint.id}"
+  name                = "testbackendpoolint"
+}
+
+resource "azurerm_lb_nat_rule" "testint" {
+  name = "testnatruleint"
+  location = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  loadbalancer_id = "${azurerm_lb.testint.id}"
+  protocol = "Tcp"
+  frontend_port = 3389
+  backend_port = 3391
+  frontend_ip_configuration_name = "publicipint"
+}
+
+resource "azurerm_network_interface" "test1" {
+    name = "acceptanceTestNetworkInterface1"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    enable_ip_forwarding = true
+
+    ip_configuration {
+    	name = "testconfiguration1"
+    	subnet_id = "${azurerm_subnet.test.id}"
+    	private_ip_address_allocation = "dynamic"
+		load_balancer_backend_address_pools_ids = [
+			"${azurerm_lb_backend_address_pool.testext.id}",
+			"${azurerm_lb_backend_address_pool.testint.id}",
+		]
+    }
+}
+
+resource "azurerm_network_interface" "test2" {
+    name = "acceptanceTestNetworkInterface2"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    enable_ip_forwarding = true
+
+    ip_configuration {
+    	name = "testconfiguration1"
+    	subnet_id = "${azurerm_subnet.test.id}"
+    	private_ip_address_allocation = "dynamic"
+		load_balancer_inbound_nat_rules_ids = [
+			"${azurerm_lb_nat_rule.testext.id}",
+			"${azurerm_lb_nat_rule.testint.id}",
+		]
     }
 }
 `, rInt)

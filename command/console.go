@@ -3,9 +3,9 @@ package command
 import (
 	"bufio"
 	"fmt"
-	"os"
 	"strings"
 
+	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
 	"github.com/hashicorp/terraform/repl"
 
@@ -30,30 +30,39 @@ func (c *ConsoleCommand) Run(args []string) int {
 		return 1
 	}
 
-	pwd, err := os.Getwd()
+	configPath, err := ModulePath(cmdFlags.Args())
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
+		c.Ui.Error(err.Error())
 		return 1
 	}
 
-	var configPath string
-	args = cmdFlags.Args()
-	if len(args) > 1 {
-		c.Ui.Error("The console command expects at most one argument.")
-		cmdFlags.Usage()
+	// Load the module
+	mod, err := c.Module(configPath)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
 		return 1
-	} else if len(args) == 1 {
-		configPath = args[0]
-	} else {
-		configPath = pwd
 	}
 
-	// Build the context based on the arguments given
-	ctx, _, err := c.Context(contextOpts{
-		Path:        configPath,
-		PathEmptyOk: true,
-		StatePath:   c.Meta.statePath,
-	})
+	// Load the backend
+	b, err := c.Backend(&BackendOpts{ConfigPath: configPath})
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+		return 1
+	}
+
+	// We require a local backend
+	local, ok := b.(backend.Local)
+	if !ok {
+		c.Ui.Error(ErrUnsupportedLocalOp)
+		return 1
+	}
+
+	// Build the operation
+	opReq := c.Operation()
+	opReq.Module = mod
+
+	// Get the context
+	ctx, _, err := local.Context(opReq)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1

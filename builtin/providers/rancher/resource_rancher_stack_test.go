@@ -3,6 +3,7 @@ package rancher
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -114,6 +115,56 @@ func TestAccRancherStack_catalog(t *testing.T) {
 	})
 }
 
+func TestAccRancherStack_disappears(t *testing.T) {
+	var stack rancherClient.Environment
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRancherStackDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRancherStackConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRancherStackExists("rancher_stack.foo", &stack),
+					testAccRancherStackDisappears(&stack),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func testAccRancherStackDisappears(stack *rancherClient.Environment) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		client, err := testAccProvider.Meta().(*Config).EnvironmentClient(stack.AccountId)
+		if err != nil {
+			return err
+		}
+
+		if err := client.Environment.Delete(stack); err != nil {
+			return fmt.Errorf("Error deleting Stack: %s", err)
+		}
+
+		stateConf := &resource.StateChangeConf{
+			Pending:    []string{"active", "removed", "removing"},
+			Target:     []string{"removed"},
+			Refresh:    StackStateRefreshFunc(client, stack.Id),
+			Timeout:    10 * time.Minute,
+			Delay:      1 * time.Second,
+			MinTimeout: 3 * time.Second,
+		}
+
+		_, waitErr := stateConf.WaitForState()
+		if waitErr != nil {
+			return fmt.Errorf(
+				"Error waiting for stack (%s) to be removed: %s", stack.Id, waitErr)
+		}
+
+		return nil
+	}
+}
+
 func testAccCheckRancherStackExists(n string, stack *rancherClient.Environment) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -126,7 +177,10 @@ func testAccCheckRancherStackExists(n string, stack *rancherClient.Environment) 
 			return fmt.Errorf("No App Name is set")
 		}
 
-		client := testAccProvider.Meta().(*Config)
+		client, err := testAccProvider.Meta().(*Config).EnvironmentClient(rs.Primary.Attributes["environment_id"])
+		if err != nil {
+			return err
+		}
 
 		foundStack, err := client.Environment.ById(rs.Primary.ID)
 		if err != nil {
@@ -165,12 +219,15 @@ func testAccCheckRancherStackAttributes(stack *rancherClient.Environment, enviro
 }
 
 func testAccCheckRancherStackDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*Config)
-
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "rancher_stack" {
 			continue
 		}
+		client, err := testAccProvider.Meta().(*Config).GlobalClient()
+		if err != nil {
+			return err
+		}
+
 		stack, err := client.Environment.ById(rs.Primary.ID)
 
 		if err == nil {

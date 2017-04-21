@@ -1,0 +1,25 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <ul class="nav docs-sidenav">
+      <li<%= sidebar_current("docs-home") %>>
+        <a class="back" href="/docs/providers/index.html">All Providers</a>
+      </li>
+
+      <li<%= sidebar_current("docs-arukas-index") %>>
+        <a class="back" href="/docs/providers/arukas/index.html">Arukas Provider</a>
+      </li>
+
+      <h4>Data Sources</h4>
+
+      <li<%= sidebar_current("docs-arukas-resource") %>>
+        <ul class="nav nav-visible">
+          <li<%= sidebar_current("docs-arukas-resource-container") %>>
+            <a href="/docs/providers/arukas/r/container.html">arukas_container</a>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  <% end %>
+
+  <%= yield %>
+<% end %>

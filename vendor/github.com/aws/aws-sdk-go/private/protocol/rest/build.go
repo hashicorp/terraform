@@ -4,6 +4,7 @@ package rest
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -65,6 +66,11 @@ func BuildAsGET(r *request.Request) {
 func buildLocationElements(r *request.Request, v reflect.Value, buildGETQuery bool) {
 	query := r.HTTPRequest.URL.Query()
 
+	// Setup the raw path to match the base path pattern. This is needed
+	// so that when the path is mutated a custom escaped version can be
+	// stored in RawPath that will be used by the Go client.
+	r.HTTPRequest.URL.RawPath = r.HTTPRequest.URL.Path
+
 	for i := 0; i < v.NumField(); i++ {
 		m := v.Field(i)
 		if n := v.Type().Field(i).Name; n[0:1] == strings.ToLower(n[0:1]) {
@@ -77,26 +83,33 @@ func buildLocationElements(r *request.Request, v reflect.Value, buildGETQuery bo
 			if name == "" {
 				name = field.Name
 			}
-			if m.Kind() == reflect.Ptr {
+			if kind := m.Kind(); kind == reflect.Ptr {
 				m = m.Elem()
+			} else if kind == reflect.Interface {
+				if !m.Elem().IsValid() {
+					continue
+				}
 			}
 			if !m.IsValid() {
+				continue
+			}
+			if field.Tag.Get("ignore") != "" {
 				continue
 			}
 
 			var err error
 			switch field.Tag.Get("location") {
 			case "headers": // header maps
-				err = buildHeaderMap(&r.HTTPRequest.Header, m, field.Tag.Get("locationName"))
+				err = buildHeaderMap(&r.HTTPRequest.Header, m, field.Tag)
 			case "header":
-				err = buildHeader(&r.HTTPRequest.Header, m, name)
+				err = buildHeader(&r.HTTPRequest.Header, m, name, field.Tag)
 			case "uri":
-				err = buildURI(r.HTTPRequest.URL, m, name)
+				err = buildURI(r.HTTPRequest.URL, m, name, field.Tag)
 			case "querystring":
-				err = buildQueryString(query, m, name)
+				err = buildQueryString(query, m, name, field.Tag)
 			default:
 				if buildGETQuery {
-					err = buildQueryString(query, m, name)
+					err = buildQueryString(query, m, name, field.Tag)
 				}
 			}
 			r.Error = err
@@ -107,7 +120,9 @@ func buildLocationElements(r *request.Request, v reflect.Value, buildGETQuery bo
 	}
 
 	r.HTTPRequest.URL.RawQuery = query.Encode()
-	updatePath(r.HTTPRequest.URL, r.HTTPRequest.URL.Path, aws.BoolValue(r.Config.DisableRestProtocolURICleaning))
+	if !aws.BoolValue(r.Config.DisableRestProtocolURICleaning) {
+		cleanPath(r.HTTPRequest.URL)
+	}
 }
 
 func buildBody(r *request.Request, v reflect.Value) {
@@ -135,8 +150,8 @@ func buildBody(r *request.Request, v reflect.Value) {
 	}
 }
 
-func buildHeader(header *http.Header, v reflect.Value, name string) error {
-	str, err := convertType(v)
+func buildHeader(header *http.Header, v reflect.Value, name string, tag reflect.StructTag) error {
+	str, err := convertType(v, tag)
 	if err == errValueNotSet {
 		return nil
 	} else if err != nil {
@@ -148,9 +163,10 @@ func buildHeader(header *http.Header, v reflect.Value, name string) error {
 	return nil
 }
 
-func buildHeaderMap(header *http.Header, v reflect.Value, prefix string) error {
+func buildHeaderMap(header *http.Header, v reflect.Value, tag reflect.StructTag) error {
+	prefix := tag.Get("locationName")
 	for _, key := range v.MapKeys() {
-		str, err := convertType(v.MapIndex(key))
+		str, err := convertType(v.MapIndex(key), tag)
 		if err == errValueNotSet {
 			continue
 		} else if err != nil {
@@ -163,23 +179,24 @@ func buildHeaderMap(header *http.Header, v reflect.Value, prefix string) error {
 	return nil
 }
 
-func buildURI(u *url.URL, v reflect.Value, name string) error {
-	value, err := convertType(v)
+func buildURI(u *url.URL, v reflect.Value, name string, tag reflect.StructTag) error {
+	value, err := convertType(v, tag)
 	if err == errValueNotSet {
 		return nil
 	} else if err != nil {
 		return awserr.New("SerializationError", "failed to encode REST request", err)
 	}
 
-	uri := u.Path
-	uri = strings.Replace(uri, "{"+name+"}", EscapePath(value, true), -1)
-	uri = strings.Replace(uri, "{"+name+"+}", EscapePath(value, false), -1)
-	u.Path = uri
+	u.Path = strings.Replace(u.Path, "{"+name+"}", value, -1)
+	u.Path = strings.Replace(u.Path, "{"+name+"+}", value, -1)
+
+	u.RawPath = strings.Replace(u.RawPath, "{"+name+"}", EscapePath(value, true), -1)
+	u.RawPath = strings.Replace(u.RawPath, "{"+name+"+}", EscapePath(value, false), -1)
 
 	return nil
 }
 
-func buildQueryString(query url.Values, v reflect.Value, name string) error {
+func buildQueryString(query url.Values, v reflect.Value, name string, tag reflect.StructTag) error {
 	switch value := v.Interface().(type) {
 	case []*string:
 		for _, item := range value {
@@ -196,7 +213,7 @@ func buildQueryString(query url.Values, v reflect.Value, name string) error {
 			}
 		}
 	default:
-		str, err := convertType(v)
+		str, err := convertType(v, tag)
 		if err == errValueNotSet {
 			return nil
 		} else if err != nil {
@@ -208,27 +225,17 @@ func buildQueryString(query url.Values, v reflect.Value, name string) error {
 	return nil
 }
 
-func updatePath(url *url.URL, urlPath string, disableRestProtocolURICleaning bool) {
-	scheme, query := url.Scheme, url.RawQuery
+func cleanPath(u *url.URL) {
+	hasSlash := strings.HasSuffix(u.Path, "/")
 
-	hasSlash := strings.HasSuffix(urlPath, "/")
+	// clean up path, removing duplicate `/`
+	u.Path = path.Clean(u.Path)
+	u.RawPath = path.Clean(u.RawPath)
 
-	// clean up path
-	if !disableRestProtocolURICleaning {
-		urlPath = path.Clean(urlPath)
+	if hasSlash && !strings.HasSuffix(u.Path, "/") {
+		u.Path += "/"
+		u.RawPath += "/"
 	}
-	if hasSlash && !strings.HasSuffix(urlPath, "/") {
-		urlPath += "/"
-	}
-
-	// get formatted URL minus scheme so we can build this into Opaque
-	url.Scheme, url.Path, url.RawQuery = "", "", ""
-	s := url.String()
-	url.Scheme = scheme
-	url.RawQuery = query
-
-	// build opaque URI
-	url.Opaque = s + urlPath
 }
 
 // EscapePath escapes part of a URL path in Amazon style
@@ -245,7 +252,7 @@ func EscapePath(path string, encodeSep bool) string {
 	return buf.String()
 }
 
-func convertType(v reflect.Value) (string, error) {
+func convertType(v reflect.Value, tag reflect.StructTag) (string, error) {
 	v = reflect.Indirect(v)
 	if !v.IsValid() {
 		return "", errValueNotSet
@@ -265,6 +272,16 @@ func convertType(v reflect.Value) (string, error) {
 		str = strconv.FormatFloat(value, 'f', -1, 64)
 	case time.Time:
 		str = value.UTC().Format(RFC822)
+	case aws.JSONValue:
+		b, err := json.Marshal(value)
+		if err != nil {
+			return "", err
+		}
+		if tag.Get("location") == "header" {
+			str = base64.StdEncoding.EncodeToString(b)
+		} else {
+			str = string(b)
+		}
 	default:
 		err := fmt.Errorf("Unsupported value for param %v (%s)", v.Interface(), v.Type())
 		return "", err

@@ -2,7 +2,11 @@ package aws
 
 import (
 	"fmt"
+	"log"
+	"strings"
+
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -92,6 +96,12 @@ func hasLaunchPermission(conn *ec2.EC2, image_id string, account_id string) (boo
 		Attribute: aws.String("launchPermission"),
 	})
 	if err != nil {
+		// When an AMI disappears out from under a launch permission resource, we will
+		// see either InvalidAMIID.NotFound or InvalidAMIID.Unavailable.
+		if ec2err, ok := err.(awserr.Error); ok && strings.HasPrefix(ec2err.Code(), "InvalidAMIID") {
+			log.Printf("[DEBUG] %s no longer exists, so we'll drop launch permission for %s from the state", image_id, account_id)
+			return false, nil
+		}
 		return false, err
 	}
 

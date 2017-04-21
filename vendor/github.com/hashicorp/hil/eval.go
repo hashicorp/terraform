@@ -232,6 +232,8 @@ func evalNode(raw ast.Node) (EvalNode, error) {
 		return &evalIndex{n}, nil
 	case *ast.Call:
 		return &evalCall{n}, nil
+	case *ast.Conditional:
+		return &evalConditional{n}, nil
 	case *ast.Output:
 		return &evalOutput{n}, nil
 	case *ast.LiteralNode:
@@ -272,6 +274,23 @@ func (v *evalCall) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type, e
 	}
 
 	return result, function.ReturnType, nil
+}
+
+type evalConditional struct{ *ast.Conditional }
+
+func (v *evalConditional) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type, error) {
+	// On the stack we have literal nodes representing the resulting values
+	// of the condition, true and false expressions, but they are in reverse
+	// order.
+	falseLit := stack.Pop().(*ast.LiteralNode)
+	trueLit := stack.Pop().(*ast.LiteralNode)
+	condLit := stack.Pop().(*ast.LiteralNode)
+
+	if condLit.Value.(bool) {
+		return trueLit.Value, trueLit.Typex, nil
+	} else {
+		return falseLit.Value, trueLit.Typex, nil
+	}
 }
 
 type evalIndex struct{ *ast.Index }

@@ -5,8 +5,6 @@ import (
 	"os"
 	"testing"
 
-	"regexp"
-
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -104,7 +102,41 @@ func TestAccAzureRMLoadBalancerNatRule_update(t *testing.T) {
 	})
 }
 
-func TestAccAzureRMLoadBalancerNatRule_duplicate(t *testing.T) {
+func TestAccAzureRMLoadBalancerNatRule_reapply(t *testing.T) {
+	var lb network.LoadBalancer
+	ri := acctest.RandInt()
+	natRuleName := fmt.Sprintf("NatRule-%d", ri)
+
+	deleteNatRuleState := func(s *terraform.State) error {
+		return s.Remove("azurerm_lb_nat_rule.test")
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMLoadBalancerNatRule_basic(ri, natRuleName),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
+					testCheckAzureRMLoadBalancerNatRuleExists(natRuleName, &lb),
+					deleteNatRuleState,
+				),
+				ExpectNonEmptyPlan: true,
+			},
+			{
+				Config: testAccAzureRMLoadBalancerNatRule_basic(ri, natRuleName),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
+					testCheckAzureRMLoadBalancerNatRuleExists(natRuleName, &lb),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMLoadBalancerNatRule_disappears(t *testing.T) {
 	var lb network.LoadBalancer
 	ri := acctest.RandInt()
 	natRuleName := fmt.Sprintf("NatRule-%d", ri)
@@ -115,12 +147,13 @@ func TestAccAzureRMLoadBalancerNatRule_duplicate(t *testing.T) {
 		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAzureRMLoadBalancerNatRule_multipleRules(ri, natRuleName, natRuleName),
+				Config: testAccAzureRMLoadBalancerNatRule_basic(ri, natRuleName),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
 					testCheckAzureRMLoadBalancerNatRuleExists(natRuleName, &lb),
+					testCheckAzureRMLoadBalancerNatRuleDisappears(natRuleName, &lb),
 				),
-				ExpectError: regexp.MustCompile(fmt.Sprintf("A NAT Rule with name %q already exists.", natRuleName)),
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
@@ -145,6 +178,34 @@ func testCheckAzureRMLoadBalancerNatRuleNotExists(natRuleName string, lb *networ
 		}
 
 		return nil
+	}
+}
+
+func testCheckAzureRMLoadBalancerNatRuleDisappears(natRuleName string, lb *network.LoadBalancer) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		conn := testAccProvider.Meta().(*ArmClient).loadBalancerClient
+
+		_, i, exists := findLoadBalancerNatRuleByName(lb, natRuleName)
+		if !exists {
+			return fmt.Errorf("A Nat Rule with name %q cannot be found.", natRuleName)
+		}
+
+		currentRules := *lb.LoadBalancerPropertiesFormat.InboundNatRules
+		rules := append(currentRules[:i], currentRules[i+1:]...)
+		lb.LoadBalancerPropertiesFormat.InboundNatRules = &rules
+
+		id, err := parseAzureResourceID(*lb.ID)
+		if err != nil {
+			return err
+		}
+
+		_, err = conn.CreateOrUpdate(id.ResourceGroup, *lb.Name, *lb, make(chan struct{}))
+		if err != nil {
+			return fmt.Errorf("Error Creating/Updating LoadBalancer %s", err)
+		}
+
+		_, err = conn.Get(id.ResourceGroup, *lb.Name, "")
+		return err
 	}
 }
 

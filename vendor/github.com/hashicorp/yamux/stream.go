@@ -91,10 +91,13 @@ START:
 	case streamRemoteClose:
 		fallthrough
 	case streamClosed:
+		s.recvLock.Lock()
 		if s.recvBuf == nil || s.recvBuf.Len() == 0 {
+			s.recvLock.Unlock()
 			s.stateLock.Unlock()
 			return 0, io.EOF
 		}
+		s.recvLock.Unlock()
 	case streamReset:
 		s.stateLock.Unlock()
 		return 0, ErrConnectionReset
@@ -118,12 +121,17 @@ START:
 
 WAIT:
 	var timeout <-chan time.Time
+	var timer *time.Timer
 	if !s.readDeadline.IsZero() {
 		delay := s.readDeadline.Sub(time.Now())
-		timeout = time.After(delay)
+		timer = time.NewTimer(delay)
+		timeout = timer.C
 	}
 	select {
 	case <-s.recvNotifyCh:
+		if timer != nil {
+			timer.Stop()
+		}
 		goto START
 	case <-timeout:
 		return 0, ErrTimeout
@@ -327,7 +335,7 @@ func (s *Stream) processFlags(flags uint16) error {
 		if s.state == streamSYNSent {
 			s.state = streamEstablished
 		}
-		s.session.establishStream()
+		s.session.establishStream(s.id)
 	}
 	if flags&flagFIN == flagFIN {
 		switch s.state {
@@ -348,9 +356,6 @@ func (s *Stream) processFlags(flags uint16) error {
 		}
 	}
 	if flags&flagRST == flagRST {
-		if s.state == streamSYNSent {
-			s.session.establishStream()
-		}
 		s.state = streamReset
 		closeStream = true
 		s.notifyWaiting()

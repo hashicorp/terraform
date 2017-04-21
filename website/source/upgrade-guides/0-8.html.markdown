@@ -8,10 +8,6 @@ description: |-
 
 # Upgrading to Terraform v0.8
 
-~> **Terraform 0.8 is still a release candidate.** The final stable version
-   has not been released yet. This upgrade guide may still change between now and
-   the final version.
-
 Terraform v0.8 is a major release and thus includes some backwards
 incompatibilities that you'll need to consider when upgrading. This guide is
 meant to help with that process.

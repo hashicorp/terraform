@@ -6,7 +6,7 @@ description: |-
   Provides access to Agent Service data in Consul. This can be used to define a service associated with a particular agent. Currently, defining health checks for an agent service is not supported.
 ---
 
-# consul\_agent\_service
+# consul_agent_service
 
 Provides access to the agent service data in Consul. This can be used to
 define a service associated with a particular agent. Currently, defining
@@ -14,12 +14,12 @@ health checks for an agent service is not supported.
 
 ## Example Usage
 
-```
+```hcl
 resource "consul_agent_service" "app" {
-    address = "www.google.com"
-    name = "google"
-    port = 80
-    tags = ["tag0", "tag1"]
+  address = "www.google.com"
+  name    = "google"
+  port    = 80
+  tags    = ["tag0", "tag1"]
 }
 ```
 

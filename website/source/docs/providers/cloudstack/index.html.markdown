@@ -17,17 +17,17 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the CloudStack Provider
 provider "cloudstack" {
-    api_url = "${var.cloudstack_api_url}"
-    api_key = "${var.cloudstack_api_key}"
-    secret_key = "${var.cloudstack_secret_key}"
+  api_url    = "${var.cloudstack_api_url}"
+  api_key    = "${var.cloudstack_api_key}"
+  secret_key = "${var.cloudstack_secret_key}"
 }
 
 # Create a web server
 resource "cloudstack_instance" "web" {
-    ...
+  # ...
 }
 ```
 

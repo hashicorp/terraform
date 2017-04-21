@@ -19,7 +19,7 @@ func TestAccAWSAutoscalingLifecycleHook_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSAutoscalingLifecycleHookDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSAutoscalingLifecycleHookConfig(resourceName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLifecycleHookExists("aws_autoscaling_lifecycle_hook.foobar"),
@@ -34,13 +34,15 @@ func TestAccAWSAutoscalingLifecycleHook_basic(t *testing.T) {
 }
 
 func TestAccAWSAutoscalingLifecycleHook_omitDefaultResult(t *testing.T) {
+	rName := acctest.RandString(10)
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSAutoscalingLifecycleHookDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSAutoscalingLifecycleHookConfig_omitDefaultResult(acctest.RandString(10)),
+			{
+				Config: testAccAWSAutoscalingLifecycleHookConfig_omitDefaultResult(rName, rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLifecycleHookExists("aws_autoscaling_lifecycle_hook.foobar"),
 					resource.TestCheckResourceAttr("aws_autoscaling_lifecycle_hook.foobar", "default_result", "ABANDON"),
@@ -191,7 +193,7 @@ EOF
 `, name, name)
 }
 
-func testAccAWSAutoscalingLifecycleHookConfig_omitDefaultResult(name string) string {
+func testAccAWSAutoscalingLifecycleHookConfig_omitDefaultResult(name string, rInt int) string {
 	return fmt.Sprintf(`
 resource "aws_launch_configuration" "foobar" {
   name          = "%s"
@@ -200,7 +202,7 @@ resource "aws_launch_configuration" "foobar" {
 }
 
 resource "aws_sqs_queue" "foobar" {
-  name                      = "foobar"
+  name                      = "foobar-%d"
   delay_seconds             = 90
   max_message_size          = 2048
   message_retention_seconds = 86400
@@ -208,7 +210,7 @@ resource "aws_sqs_queue" "foobar" {
 }
 
 resource "aws_iam_role" "foobar" {
-  name = "foobar"
+  name = "foobar-%d"
 
   assume_role_policy = <<EOF
 {
@@ -223,7 +225,7 @@ EOF
 }
 
 resource "aws_iam_role_policy" "foobar" {
-  name = "foobar"
+  name = "foobar-%d"
   role = "${aws_iam_role.foobar.id}"
 
   policy = <<EOF
@@ -263,7 +265,7 @@ resource "aws_autoscaling_group" "foobar" {
 }
 
 resource "aws_autoscaling_lifecycle_hook" "foobar" {
-  name                   = "foobar"
+  name                   = "foobar-%d"
   autoscaling_group_name = "${aws_autoscaling_group.foobar.name}"
   heartbeat_timeout      = 2000
   lifecycle_transition   = "autoscaling:EC2_INSTANCE_LAUNCHING"
@@ -276,5 +278,5 @@ EOF
 
   notification_target_arn = "${aws_sqs_queue.foobar.arn}"
   role_arn                = "${aws_iam_role.foobar.arn}"
-}`, name, name)
+}`, name, rInt, rInt, rInt, name, rInt)
 }

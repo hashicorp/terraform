@@ -12,7 +12,7 @@ Use this data source to get information about a specific [user][1] that you can 
 
 ## Example Usage
 
-```
+```hcl
 data "pagerduty_user" "me" {
   email = "me@example.com"
 }
@@ -36,7 +36,7 @@ resource "pagerduty_escalation_policy" "foo" {
 
 The following arguments are supported:
 
-* `email` - (Required) The email to use to find a user in the PagerDuty API.  
+* `email` - (Required) The email to use to find a user in the PagerDuty API.
 
 ## Attributes Reference
 * `name` - The short name of the found user.

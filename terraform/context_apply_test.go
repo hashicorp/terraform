@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -1329,6 +1330,82 @@ func testContext2Apply_destroyDependsOnStateOnly(t *testing.T) {
 	}
 }
 
+// Test that destroy ordering is correct with dependencies only
+// in the state within a module (GH-11749)
+func TestContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T) {
+	// It is possible for this to be racy, so we loop a number of times
+	// just to check.
+	for i := 0; i < 10; i++ {
+		testContext2Apply_destroyDependsOnStateOnlyModule(t)
+	}
+}
+
+func testContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T) {
+	m := testModule(t, "empty")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{"root", "child"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID:         "foo",
+							Attributes: map[string]string{},
+						},
+					},
+
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID:         "bar",
+							Attributes: map[string]string{},
+						},
+						Dependencies: []string{"aws_instance.foo"},
+					},
+				},
+			},
+		},
+	}
+
+	// Record the order we see Apply
+	var actual []string
+	var actualLock sync.Mutex
+	p.ApplyFn = func(
+		info *InstanceInfo, _ *InstanceState, _ *InstanceDiff) (*InstanceState, error) {
+		actualLock.Lock()
+		defer actualLock.Unlock()
+		actual = append(actual, info.Id)
+		return nil, nil
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State:       state,
+		Destroy:     true,
+		Parallelism: 1, // To check ordering
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := []string{"aws_instance.bar", "aws_instance.foo"}
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestContext2Apply_dataBasic(t *testing.T) {
 	m := testModule(t, "apply-data-basic")
 	p := testProvider("null")
@@ -1663,6 +1740,7 @@ func TestContext2Apply_cancel(t *testing.T) {
 				if ctx.sh.Stopped() {
 					break
 				}
+				time.Sleep(10 * time.Millisecond)
 			}
 		}
 
@@ -1716,6 +1794,147 @@ func TestContext2Apply_cancel(t *testing.T) {
 	}
 
 	if !p.StopCalled {
+		t.Fatal("stop should be called")
+	}
+}
+
+func TestContext2Apply_cancelBlock(t *testing.T) {
+	m := testModule(t, "apply-cancel-block")
+	p := testProvider("aws")
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	applyCh := make(chan struct{})
+	p.DiffFn = testDiffFn
+	p.ApplyFn = func(*InstanceInfo, *InstanceState, *InstanceDiff) (*InstanceState, error) {
+		close(applyCh)
+
+		for !ctx.sh.Stopped() {
+			// Wait for stop to be called. We call Gosched here so that
+			// the other goroutines can always be scheduled to set Stopped.
+			runtime.Gosched()
+		}
+
+		// Sleep
+		time.Sleep(100 * time.Millisecond)
+
+		return &InstanceState{
+			ID: "foo",
+		}, nil
+	}
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Start the Apply in a goroutine
+	var applyErr error
+	stateCh := make(chan *State)
+	go func() {
+		state, err := ctx.Apply()
+		if err != nil {
+			applyErr = err
+		}
+
+		stateCh <- state
+	}()
+
+	stopDone := make(chan struct{})
+	go func() {
+		defer close(stopDone)
+		<-applyCh
+		ctx.Stop()
+	}()
+
+	// Make sure that stop blocks
+	select {
+	case <-stopDone:
+		t.Fatal("stop should block")
+	case <-time.After(10 * time.Millisecond):
+	}
+
+	// Wait for stop
+	select {
+	case <-stopDone:
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("stop should be done")
+	}
+
+	// Wait for apply to complete
+	state := <-stateCh
+	if applyErr != nil {
+		t.Fatalf("err: %s", applyErr)
+	}
+
+	checkStateString(t, state, `
+aws_instance.foo:
+  ID = foo
+	`)
+}
+
+func TestContext2Apply_cancelProvisioner(t *testing.T) {
+	m := testModule(t, "apply-cancel-provisioner")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	pr := testProvisioner()
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	prStopped := make(chan struct{})
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
+		// Start the stop process
+		go ctx.Stop()
+
+		<-prStopped
+		return nil
+	}
+	pr.StopFn = func() error {
+		close(prStopped)
+		return nil
+	}
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Start the Apply in a goroutine
+	var applyErr error
+	stateCh := make(chan *State)
+	go func() {
+		state, err := ctx.Apply()
+		if err != nil {
+			applyErr = err
+		}
+
+		stateCh <- state
+	}()
+
+	// Wait for completion
+	state := <-stateCh
+	if applyErr != nil {
+		t.Fatalf("err: %s", applyErr)
+	}
+
+	checkStateString(t, state, `
+aws_instance.foo: (tainted)
+  ID = foo
+  num = 2
+  type = aws_instance
+	`)
+
+	if !pr.StopCalled {
 		t.Fatal("stop should be called")
 	}
 }
@@ -2708,6 +2927,49 @@ func TestContext2Apply_moduleBool(t *testing.T) {
 	}
 }
 
+// Tests that a module can be targeted and everything is properly created.
+// This adds to the plan test to also just verify that apply works.
+func TestContext2Apply_moduleTarget(t *testing.T) {
+	m := testModule(t, "plan-targeted-cross-module")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Targets: []string{"module.B"},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, state, `
+<no state>
+module.A:
+  aws_instance.foo:
+    ID = foo
+    foo = bar
+    type = aws_instance
+
+  Outputs:
+
+  value = foo
+module.B:
+  aws_instance.bar:
+    ID = foo
+    foo = foo
+    type = aws_instance
+	`)
+}
+
 func TestContext2Apply_multiProvider(t *testing.T) {
 	m := testModule(t, "apply-multi-provider")
 	p := testProvider("aws")
@@ -2745,6 +3007,205 @@ func TestContext2Apply_multiProvider(t *testing.T) {
 	if actual != expected {
 		t.Fatalf("bad: \n%s", actual)
 	}
+}
+
+func TestContext2Apply_multiProviderDestroy(t *testing.T) {
+	m := testModule(t, "apply-multi-provider-destroy")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	p2 := testProvider("do")
+	p2.ApplyFn = testApplyFn
+	p2.DiffFn = testDiffFn
+
+	var state *State
+
+	// First, create the instances
+	{
+		ctx := testContext2(t, &ContextOpts{
+			Module: m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws":   testProviderFuncFixed(p),
+				"vault": testProviderFuncFixed(p2),
+			},
+		})
+
+		if _, err := ctx.Plan(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		s, err := ctx.Apply()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		state = s
+	}
+
+	// Destroy them
+	{
+		// Verify that aws_instance.bar is destroyed first
+		var checked bool
+		var called int32
+		var lock sync.Mutex
+		applyFn := func(
+			info *InstanceInfo,
+			is *InstanceState,
+			id *InstanceDiff) (*InstanceState, error) {
+			lock.Lock()
+			defer lock.Unlock()
+
+			if info.HumanId() == "aws_instance.bar" {
+				checked = true
+
+				// Sleep to allow parallel execution
+				time.Sleep(50 * time.Millisecond)
+
+				// Verify that called is 0 (dep not called)
+				if atomic.LoadInt32(&called) != 0 {
+					return nil, fmt.Errorf("nothing else should be called")
+				}
+			}
+
+			atomic.AddInt32(&called, 1)
+			return testApplyFn(info, is, id)
+		}
+
+		// Set the apply functions
+		p.ApplyFn = applyFn
+		p2.ApplyFn = applyFn
+
+		ctx := testContext2(t, &ContextOpts{
+			Destroy: true,
+			State:   state,
+			Module:  m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws":   testProviderFuncFixed(p),
+				"vault": testProviderFuncFixed(p2),
+			},
+		})
+
+		if _, err := ctx.Plan(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		s, err := ctx.Apply()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if !checked {
+			t.Fatal("should be checked")
+		}
+
+		state = s
+	}
+
+	checkStateString(t, state, `<no state>`)
+}
+
+// This is like the multiProviderDestroy test except it tests that
+// dependent resources within a child module that inherit provider
+// configuration are still destroyed first.
+func TestContext2Apply_multiProviderDestroyChild(t *testing.T) {
+	m := testModule(t, "apply-multi-provider-destroy-child")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	p2 := testProvider("do")
+	p2.ApplyFn = testApplyFn
+	p2.DiffFn = testDiffFn
+
+	var state *State
+
+	// First, create the instances
+	{
+		ctx := testContext2(t, &ContextOpts{
+			Module: m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws":   testProviderFuncFixed(p),
+				"vault": testProviderFuncFixed(p2),
+			},
+		})
+
+		if _, err := ctx.Plan(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		s, err := ctx.Apply()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		state = s
+	}
+
+	// Destroy them
+	{
+		// Verify that aws_instance.bar is destroyed first
+		var checked bool
+		var called int32
+		var lock sync.Mutex
+		applyFn := func(
+			info *InstanceInfo,
+			is *InstanceState,
+			id *InstanceDiff) (*InstanceState, error) {
+			lock.Lock()
+			defer lock.Unlock()
+
+			if info.HumanId() == "module.child.aws_instance.bar" {
+				checked = true
+
+				// Sleep to allow parallel execution
+				time.Sleep(50 * time.Millisecond)
+
+				// Verify that called is 0 (dep not called)
+				if atomic.LoadInt32(&called) != 0 {
+					return nil, fmt.Errorf("nothing else should be called")
+				}
+			}
+
+			atomic.AddInt32(&called, 1)
+			return testApplyFn(info, is, id)
+		}
+
+		// Set the apply functions
+		p.ApplyFn = applyFn
+		p2.ApplyFn = applyFn
+
+		ctx := testContext2(t, &ContextOpts{
+			Destroy: true,
+			State:   state,
+			Module:  m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws":   testProviderFuncFixed(p),
+				"vault": testProviderFuncFixed(p2),
+			},
+		})
+
+		if _, err := ctx.Plan(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		s, err := ctx.Apply()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if !checked {
+			t.Fatal("should be checked")
+		}
+
+		state = s
+	}
+
+	checkStateString(t, state, `
+<no state>
+module.child:
+  <no state>
+`)
 }
 
 func TestContext2Apply_multiVar(t *testing.T) {
@@ -3754,6 +4215,625 @@ aws_instance.web: (1 deposed)
 aws_instance.web:
   ID = quux
 	`)
+}
+
+// Verify that a normal provisioner with on_failure "continue" set won't
+// taint the resource and continues executing.
+func TestContext2Apply_provisionerFailContinue(t *testing.T) {
+	m := testModule(t, "apply-provisioner-fail-continue")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
+		return fmt.Errorf("provisioner error")
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, state, `
+aws_instance.foo:
+  ID = foo
+  foo = bar
+  type = aws_instance
+  `)
+
+	// Verify apply was invoked
+	if !pr.ApplyCalled {
+		t.Fatalf("provisioner not invoked")
+	}
+}
+
+// Verify that a normal provisioner with on_failure "continue" records
+// the error with the hook.
+func TestContext2Apply_provisionerFailContinueHook(t *testing.T) {
+	h := new(MockHook)
+	m := testModule(t, "apply-provisioner-fail-continue")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
+		return fmt.Errorf("provisioner error")
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Hooks:  []Hook{h},
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !h.PostProvisionCalled {
+		t.Fatal("PostProvision not called")
+	}
+	if h.PostProvisionErrorArg == nil {
+		t.Fatal("should have error")
+	}
+}
+
+func TestContext2Apply_provisionerDestroy(t *testing.T) {
+	m := testModule(t, "apply-provisioner-destroy")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
+		val, ok := c.Config["foo"]
+		if !ok || val != "destroy" {
+			t.Fatalf("bad value for foo: %v %#v", val, c)
+		}
+
+		return nil
+	}
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module:  m,
+		State:   state,
+		Destroy: true,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, state, `<no state>`)
+
+	// Verify apply was invoked
+	if !pr.ApplyCalled {
+		t.Fatalf("provisioner not invoked")
+	}
+}
+
+// Verify that on destroy provisioner failure, nothing happens to the instance
+func TestContext2Apply_provisionerDestroyFail(t *testing.T) {
+	m := testModule(t, "apply-provisioner-destroy")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
+		return fmt.Errorf("provisioner error")
+	}
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module:  m,
+		State:   state,
+		Destroy: true,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err == nil {
+		t.Fatal("should error")
+	}
+
+	checkStateString(t, state, `
+aws_instance.foo:
+  ID = bar
+	`)
+
+	// Verify apply was invoked
+	if !pr.ApplyCalled {
+		t.Fatalf("provisioner not invoked")
+	}
+}
+
+// Verify that on destroy provisioner failure with "continue" that
+// we continue to the next provisioner.
+func TestContext2Apply_provisionerDestroyFailContinue(t *testing.T) {
+	m := testModule(t, "apply-provisioner-destroy-continue")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	var l sync.Mutex
+	var calls []string
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
+		val, ok := c.Config["foo"]
+		if !ok {
+			t.Fatalf("bad value for foo: %v %#v", val, c)
+		}
+
+		l.Lock()
+		defer l.Unlock()
+		calls = append(calls, val.(string))
+		return fmt.Errorf("provisioner error")
+	}
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module:  m,
+		State:   state,
+		Destroy: true,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, state, `<no state>`)
+
+	// Verify apply was invoked
+	if !pr.ApplyCalled {
+		t.Fatalf("provisioner not invoked")
+	}
+
+	expected := []string{"one", "two"}
+	if !reflect.DeepEqual(calls, expected) {
+		t.Fatalf("bad: %#v", calls)
+	}
+}
+
+// Verify that on destroy provisioner failure with "continue" that
+// we continue to the next provisioner. But if the next provisioner defines
+// to fail, then we fail after running it.
+func TestContext2Apply_provisionerDestroyFailContinueFail(t *testing.T) {
+	m := testModule(t, "apply-provisioner-destroy-fail")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	var l sync.Mutex
+	var calls []string
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
+		val, ok := c.Config["foo"]
+		if !ok {
+			t.Fatalf("bad value for foo: %v %#v", val, c)
+		}
+
+		l.Lock()
+		defer l.Unlock()
+		calls = append(calls, val.(string))
+		return fmt.Errorf("provisioner error")
+	}
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module:  m,
+		State:   state,
+		Destroy: true,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err == nil {
+		t.Fatal("should error")
+	}
+
+	checkStateString(t, state, `
+aws_instance.foo:
+  ID = bar
+  `)
+
+	// Verify apply was invoked
+	if !pr.ApplyCalled {
+		t.Fatalf("provisioner not invoked")
+	}
+
+	expected := []string{"one", "two"}
+	if !reflect.DeepEqual(calls, expected) {
+		t.Fatalf("bad: %#v", calls)
+	}
+}
+
+// Verify destroy provisioners are not run for tainted instances.
+func TestContext2Apply_provisionerDestroyTainted(t *testing.T) {
+	m := testModule(t, "apply-provisioner-destroy")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	destroyCalled := false
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
+		expected := "create"
+		if rs.ID == "bar" {
+			destroyCalled = true
+			return nil
+		}
+
+		val, ok := c.Config["foo"]
+		if !ok || val != expected {
+			t.Fatalf("bad value for foo: %v %#v", val, c)
+		}
+
+		return nil
+	}
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID:      "bar",
+							Tainted: true,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		State:  state,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, state, `
+aws_instance.foo:
+  ID = foo
+  foo = bar
+  type = aws_instance
+	`)
+
+	// Verify apply was invoked
+	if !pr.ApplyCalled {
+		t.Fatalf("provisioner not invoked")
+	}
+
+	if destroyCalled {
+		t.Fatal("destroy should not be called")
+	}
+}
+
+func TestContext2Apply_provisionerDestroyModule(t *testing.T) {
+	m := testModule(t, "apply-provisioner-destroy-module")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
+		val, ok := c.Config["foo"]
+		if !ok || val != "value" {
+			t.Fatalf("bad value for foo: %v %#v", val, c)
+		}
+
+		return nil
+	}
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{"root", "child"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module:  m,
+		State:   state,
+		Destroy: true,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, state, `
+module.child:
+  <no state>`)
+
+	// Verify apply was invoked
+	if !pr.ApplyCalled {
+		t.Fatalf("provisioner not invoked")
+	}
+}
+
+func TestContext2Apply_provisionerDestroyRef(t *testing.T) {
+	m := testModule(t, "apply-provisioner-destroy-ref")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
+		val, ok := c.Config["foo"]
+		if !ok || val != "hello" {
+			return fmt.Errorf("bad value for foo: %v %#v", val, c)
+		}
+
+		return nil
+	}
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"key": "hello",
+							},
+						},
+					},
+
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module:  m,
+		State:   state,
+		Destroy: true,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, state, `<no state>`)
+
+	// Verify apply was invoked
+	if !pr.ApplyCalled {
+		t.Fatalf("provisioner not invoked")
+	}
+}
+
+// Test that a destroy provisioner referencing an invalid key errors.
+func TestContext2Apply_provisionerDestroyRefInvalid(t *testing.T) {
+	m := testModule(t, "apply-provisioner-destroy-ref")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
+		return nil
+	}
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module:  m,
+		State:   state,
+		Destroy: true,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err == nil {
+		t.Fatal("expected error")
+	}
 }
 
 func TestContext2Apply_provisionerResourceRef(t *testing.T) {
@@ -6094,6 +7174,38 @@ module.child:
 	`)
 }
 
+// GH-10911 untargeted outputs should not be in the graph, and therefore
+// not execute.
+func TestContext2Apply_targetedModuleUnrelatedOutputs(t *testing.T) {
+	m := testModule(t, "apply-targeted-module-unrelated-outputs")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Targets: []string{"module.child2"},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, state, `
+<no state>
+module.child2:
+  aws_instance.foo:
+    ID = foo
+	`)
+}
+
 func TestContext2Apply_targetedModuleResource(t *testing.T) {
 	m := testModule(t, "apply-targeted-module-resource")
 	p := testProvider("aws")
@@ -6561,7 +7673,7 @@ template_file.child:
   type = template_file
 
   Dependencies:
-    template_file.parent
+    template_file.parent.*
 template_file.parent:
   ID = foo
   template = Hi
@@ -6900,5 +8012,126 @@ module.middle.bottom:
 		`)
 	if actual != expected {
 		t.Fatalf("expected: \n%s\n\nbad: \n%s", expected, actual)
+	}
+}
+
+// If a data source explicitly depends on another resource, it's because we need
+// that resource to be applied first.
+func TestContext2Apply_dataDependsOn(t *testing.T) {
+	p := testProvider("null")
+	m := testModule(t, "apply-data-depends-on")
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"null": testProviderFuncFixed(p),
+		},
+	})
+
+	// the "provisioner" here writes to this variable, because the intent is to
+	// create a dependency which can't be viewed through the graph, and depends
+	// solely on the configuration providing "depends_on"
+	provisionerOutput := ""
+
+	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
+		// the side effect of the resource being applied
+		provisionerOutput = "APPLIED"
+		return testApplyFn(info, s, d)
+	}
+
+	p.DiffFn = testDiffFn
+	p.ReadDataDiffFn = testDataDiffFn
+
+	p.ReadDataApplyFn = func(*InstanceInfo, *InstanceDiff) (*InstanceState, error) {
+		// Read the artifact created by our dependency being applied.
+		// Without any "depends_on", this would be skipped as it's assumed the
+		// initial diff during refresh was all that's needed.
+		return &InstanceState{
+			ID: "read",
+			Attributes: map[string]string{
+				"foo": provisionerOutput,
+			},
+		}, nil
+	}
+
+	_, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	root := state.ModuleByPath(RootModulePath)
+	actual := root.Resources["data.null_data_source.read"].Primary.Attributes["foo"]
+
+	expected := "APPLIED"
+	if actual != expected {
+		t.Fatalf("bad:\n%s", strings.TrimSpace(state.String()))
+	}
+}
+
+func TestContext2Apply_terraformEnv(t *testing.T) {
+	m := testModule(t, "apply-terraform-env")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Meta:   &ContextMeta{Env: "foo"},
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := state.RootModule().Outputs["output"]
+	expected := "foo"
+	if actual == nil || actual.Value != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+// verify that multiple config references only create a single depends_on entry
+func TestContext2Apply_multiRef(t *testing.T) {
+	m := testModule(t, "apply-multi-ref")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	deps := state.Modules[0].Resources["aws_instance.other"].Dependencies
+	if len(deps) > 1 || deps[0] != "aws_instance.create" {
+		t.Fatalf("expected 1 depends_on entry for aws_instance.create, got %q", deps)
 	}
 }

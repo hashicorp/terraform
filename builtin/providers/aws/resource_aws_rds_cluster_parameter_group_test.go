@@ -3,6 +3,7 @@ package aws
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"testing"
 	"time"
 
@@ -28,7 +29,7 @@ func TestAccAWSDBClusterParameterGroup_basic(t *testing.T) {
 				Config: testAccAWSDBClusterParameterGroupConfig(parameterGroupName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBClusterParameterGroupExists("aws_rds_cluster_parameter_group.bar", &v),
-					testAccCheckAWSDBClusterParameterGroupAttributes(&v),
+					testAccCheckAWSDBClusterParameterGroupAttributes(&v, parameterGroupName),
 					resource.TestCheckResourceAttr(
 						"aws_rds_cluster_parameter_group.bar", "name", parameterGroupName),
 					resource.TestCheckResourceAttr(
@@ -55,7 +56,7 @@ func TestAccAWSDBClusterParameterGroup_basic(t *testing.T) {
 				Config: testAccAWSDBClusterParameterGroupAddParametersConfig(parameterGroupName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBClusterParameterGroupExists("aws_rds_cluster_parameter_group.bar", &v),
-					testAccCheckAWSDBClusterParameterGroupAttributes(&v),
+					testAccCheckAWSDBClusterParameterGroupAttributes(&v, parameterGroupName),
 					resource.TestCheckResourceAttr(
 						"aws_rds_cluster_parameter_group.bar", "name", parameterGroupName),
 					resource.TestCheckResourceAttr(
@@ -84,6 +85,44 @@ func TestAccAWSDBClusterParameterGroup_basic(t *testing.T) {
 						"aws_rds_cluster_parameter_group.bar", "parameter.2478663599.value", "utf8"),
 					resource.TestCheckResourceAttr(
 						"aws_rds_cluster_parameter_group.bar", "tags.%", "2"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBClusterParameterGroup_namePrefix(t *testing.T) {
+	var v rds.DBClusterParameterGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBClusterParameterGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSDBClusterParameterGroupConfig_namePrefix,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBClusterParameterGroupExists("aws_rds_cluster_parameter_group.test", &v),
+					resource.TestMatchResourceAttr(
+						"aws_rds_cluster_parameter_group.test", "name", regexp.MustCompile("^tf-test-")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBClusterParameterGroup_generatedName(t *testing.T) {
+	var v rds.DBClusterParameterGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBClusterParameterGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSDBClusterParameterGroupConfig_generatedName,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBClusterParameterGroupExists("aws_rds_cluster_parameter_group.test", &v),
 				),
 			},
 		},
@@ -126,7 +165,7 @@ func TestAccAWSDBClusterParameterGroupOnly(t *testing.T) {
 				Config: testAccAWSDBClusterParameterGroupOnlyConfig(parameterGroupName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBClusterParameterGroupExists("aws_rds_cluster_parameter_group.bar", &v),
-					testAccCheckAWSDBClusterParameterGroupAttributes(&v),
+					testAccCheckAWSDBClusterParameterGroupAttributes(&v, parameterGroupName),
 					resource.TestCheckResourceAttr(
 						"aws_rds_cluster_parameter_group.bar", "name", parameterGroupName),
 					resource.TestCheckResourceAttr(
@@ -213,15 +252,15 @@ func testAccCheckAWSDBClusterParameterGroupDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckAWSDBClusterParameterGroupAttributes(v *rds.DBClusterParameterGroup) resource.TestCheckFunc {
+func testAccCheckAWSDBClusterParameterGroupAttributes(v *rds.DBClusterParameterGroup, name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if *v.DBClusterParameterGroupName != "cluster-parameter-group-test-terraform" {
-			return fmt.Errorf("bad name: %#v", v.DBClusterParameterGroupName)
+		if *v.DBClusterParameterGroupName != name {
+			return fmt.Errorf("bad name: %#v expected: %v", *v.DBClusterParameterGroupName, name)
 		}
 
 		if *v.DBParameterGroupFamily != "aurora5.6" {
-			return fmt.Errorf("bad family: %#v", v.DBParameterGroupFamily)
+			return fmt.Errorf("bad family: %#v", *v.DBParameterGroupFamily)
 		}
 
 		return nil
@@ -365,3 +404,15 @@ func testAccAWSDBClusterParameterGroupOnlyConfig(name string) string {
   family      = "aurora5.6"
 }`, name)
 }
+
+const testAccAWSDBClusterParameterGroupConfig_namePrefix = `
+resource "aws_rds_cluster_parameter_group" "test" {
+  name_prefix = "tf-test-"
+  family = "aurora5.6"
+}
+`
+const testAccAWSDBClusterParameterGroupConfig_generatedName = `
+resource "aws_rds_cluster_parameter_group" "test" {
+  family = "aurora5.6"
+}
+`

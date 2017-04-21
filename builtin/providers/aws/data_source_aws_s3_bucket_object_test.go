@@ -1,3 +1,4 @@
+// make testacc TEST=./builtin/providers/aws/ TESTARGS='-run=TestAccDataSourceAWSS3BucketObject_'
 package aws
 
 import (
@@ -39,7 +40,7 @@ func TestAccDataSourceAWSS3BucketObject_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "etag", "b10a8db164e0754105b7a99be72e3fe5"),
 					resource.TestMatchResourceAttr("data.aws_s3_bucket_object.obj", "last_modified",
 						regexp.MustCompile("^[a-zA-Z]{3}, [0-9]+ [a-zA-Z]+ [0-9]{4} [0-9:]+ [A-Z]+$")),
-					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "body", ""),
+					resource.TestCheckNoResourceAttr("data.aws_s3_bucket_object.obj", "body"),
 				),
 			},
 		},
@@ -145,7 +146,7 @@ func TestAccDataSourceAWSS3BucketObject_allParams(t *testing.T) {
 					resource.TestMatchResourceAttr("data.aws_s3_bucket_object.obj", "last_modified",
 						regexp.MustCompile("^[a-zA-Z]{3}, [0-9]+ [a-zA-Z]+ [0-9]{4} [0-9:]+ [A-Z]+$")),
 					resource.TestMatchResourceAttr("data.aws_s3_bucket_object.obj", "version_id", regexp.MustCompile("^.{32}$")),
-					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "body", ""),
+					resource.TestCheckNoResourceAttr("data.aws_s3_bucket_object.obj", "body"),
 					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "cache_control", "no-cache"),
 					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "content_disposition", "attachment"),
 					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "content_encoding", "gzip"),
@@ -160,6 +161,7 @@ func TestAccDataSourceAWSS3BucketObject_allParams(t *testing.T) {
 					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "expires", ""),
 					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "website_redirect_location", ""),
 					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "metadata.%", "0"),
+					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "tags.%", "1"),
 				),
 			},
 		},
@@ -284,6 +286,9 @@ CONTENT
 	content_disposition = "attachment"
 	content_encoding = "gzip"
 	content_language = "en-GB"
+	tags {
+		Key1 = "Value 1"
+	}
 }
 `, randInt, randInt)
 

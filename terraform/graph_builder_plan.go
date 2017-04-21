@@ -1,6 +1,8 @@
 package terraform
 
 import (
+	"sync"
+
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/dag"
 )
@@ -26,6 +28,9 @@ type PlanGraphBuilder struct {
 	// Providers is the list of providers supported.
 	Providers []string
 
+	// Provisioners is the list of provisioners supported.
+	Provisioners []string
+
 	// Targets are resources to target
 	Targets []string
 
@@ -34,6 +39,16 @@ type PlanGraphBuilder struct {
 
 	// Validate will do structural validation of the graph.
 	Validate bool
+
+	// CustomConcrete can be set to customize the node types created
+	// for various parts of the plan. This is useful in order to customize
+	// the plan behavior.
+	CustomConcrete         bool
+	ConcreteProvider       ConcreteProviderNodeFunc
+	ConcreteResource       ConcreteResourceNodeFunc
+	ConcreteResourceOrphan ConcreteResourceNodeFunc
+
+	once sync.Once
 }
 
 // See GraphBuilder
@@ -47,29 +62,12 @@ func (b *PlanGraphBuilder) Build(path []string) (*Graph, error) {
 
 // See GraphBuilder
 func (b *PlanGraphBuilder) Steps() []GraphTransformer {
-	// Custom factory for creating providers.
-	concreteProvider := func(a *NodeAbstractProvider) dag.Vertex {
-		return &NodeApplyableProvider{
-			NodeAbstractProvider: a,
-		}
-	}
-
-	concreteResource := func(a *NodeAbstractResource) dag.Vertex {
-		return &NodePlannableResource{
-			NodeAbstractResource: a,
-		}
-	}
-
-	concreteResourceOrphan := func(a *NodeAbstractResource) dag.Vertex {
-		return &NodePlannableResourceOrphan{
-			NodeAbstractResource: a,
-		}
-	}
+	b.once.Do(b.init)
 
 	steps := []GraphTransformer{
 		// Creates all the resources represented in the config
 		&ConfigTransformer{
-			Concrete: concreteResource,
+			Concrete: b.ConcreteResource,
 			Module:   b.Module,
 		},
 
@@ -78,7 +76,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// Add orphan resources
 		&OrphanResourceTransformer{
-			Concrete: concreteResourceOrphan,
+			Concrete: b.ConcreteResourceOrphan,
 			State:    b.State,
 			Module:   b.Module,
 		},
@@ -89,6 +87,28 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Attach the state
 		&AttachStateTransformer{State: b.State},
 
+		// Add root variables
+		&RootVariableTransformer{Module: b.Module},
+
+		// Create all the providers
+		&MissingProviderTransformer{Providers: b.Providers, Concrete: b.ConcreteProvider},
+		&ProviderTransformer{},
+		&DisableProviderTransformer{},
+		&ParentProviderTransformer{},
+		&AttachProviderConfigTransformer{Module: b.Module},
+
+		// Provisioner-related transformations. Only add these if requested.
+		GraphTransformIf(
+			func() bool { return b.Provisioners != nil },
+			GraphTransformMulti(
+				&MissingProvisionerTransformer{Provisioners: b.Provisioners},
+				&ProvisionerTransformer{},
+			),
+		),
+
+		// Add module variables
+		&ModuleVariableTransformer{Module: b.Module},
+
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
 		&ReferenceTransformer{},
@@ -96,22 +116,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Target
 		&TargetsTransformer{Targets: b.Targets},
 
-		// Create all the providers
-		&MissingProviderTransformer{Providers: b.Providers, Concrete: concreteProvider},
-		&ProviderTransformer{},
-		&DisableProviderTransformer{},
-		&ParentProviderTransformer{},
-		&AttachProviderConfigTransformer{Module: b.Module},
-
-		// Add root variables
-		&RootVariableTransformer{Module: b.Module},
-
-		// Add module variables
-		&ModuleVariableTransformer{Module: b.Module},
-
-		// Connect references again to connect the providers, module variables,
-		// etc. This is idempotent.
-		&ReferenceTransformer{},
+		// Close opened plugin connections
+		&CloseProviderTransformer{},
+		&CloseProvisionerTransformer{},
 
 		// Single root
 		&RootTransformer{},
@@ -124,4 +131,31 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 	}
 
 	return steps
+}
+
+func (b *PlanGraphBuilder) init() {
+	// Do nothing if the user requests customizing the fields
+	if b.CustomConcrete {
+		return
+	}
+
+	b.ConcreteProvider = func(a *NodeAbstractProvider) dag.Vertex {
+		return &NodeApplyableProvider{
+			NodeAbstractProvider: a,
+		}
+	}
+
+	b.ConcreteResource = func(a *NodeAbstractResource) dag.Vertex {
+		return &NodePlannableResource{
+			NodeAbstractCountResource: &NodeAbstractCountResource{
+				NodeAbstractResource: a,
+			},
+		}
+	}
+
+	b.ConcreteResourceOrphan = func(a *NodeAbstractResource) dag.Vertex {
+		return &NodePlannableResourceOrphan{
+			NodeAbstractResource: a,
+		}
+	}
 }

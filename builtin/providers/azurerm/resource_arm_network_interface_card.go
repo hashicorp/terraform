@@ -79,9 +79,11 @@ func resourceArmNetworkInterface() *schema.Resource {
 						},
 
 						"private_ip_address_allocation": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validateNetworkInterfacePrivateIpAddressAllocation,
+							Type:             schema.TypeString,
+							Required:         true,
+							ValidateFunc:     validateNetworkInterfacePrivateIpAddressAllocation,
+							StateFunc:        ignoreCaseStateFunc,
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"public_ip_address_id": {
@@ -170,6 +172,14 @@ func resourceArmNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 		properties.NetworkSecurityGroup = &network.SecurityGroup{
 			ID: &nsgId,
 		}
+
+		networkSecurityGroupName, err := parseNetworkSecurityGroupName(nsgId)
+		if err != nil {
+			return err
+		}
+
+		armMutexKV.Lock(networkSecurityGroupName)
+		defer armMutexKV.Unlock(networkSecurityGroupName)
 	}
 
 	dns, hasDns := d.GetOk("dns_servers")
@@ -306,6 +316,17 @@ func resourceArmNetworkInterfaceDelete(d *schema.ResourceData, meta interface{})
 	resGroup := id.ResourceGroup
 	name := id.Path["networkInterfaces"]
 
+	if v, ok := d.GetOk("network_security_group_id"); ok {
+		networkSecurityGroupId := v.(string)
+		networkSecurityGroupName, err := parseNetworkSecurityGroupName(networkSecurityGroupId)
+		if err != nil {
+			return err
+		}
+
+		armMutexKV.Lock(networkSecurityGroupName)
+		defer armMutexKV.Unlock(networkSecurityGroupName)
+	}
+
 	_, err = ifaceClient.Delete(resGroup, name, make(chan struct{}))
 
 	return err
@@ -324,10 +345,16 @@ func resourceArmNetworkInterfaceIpConfigurationHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%s-", m["public_ip_address_id"].(string)))
 	}
 	if m["load_balancer_backend_address_pools_ids"] != nil {
-		buf.WriteString(fmt.Sprintf("%s-", m["load_balancer_backend_address_pools_ids"].(*schema.Set).GoString()))
+		ids := m["load_balancer_backend_address_pools_ids"].(*schema.Set).List()
+		for _, id := range ids {
+			buf.WriteString(fmt.Sprintf("%d-", schema.HashString(id.(string))))
+		}
 	}
 	if m["load_balancer_inbound_nat_rules_ids"] != nil {
-		buf.WriteString(fmt.Sprintf("%s-", m["load_balancer_inbound_nat_rules_ids"].(*schema.Set).GoString()))
+		ids := m["load_balancer_inbound_nat_rules_ids"].(*schema.Set).List()
+		for _, id := range ids {
+			buf.WriteString(fmt.Sprintf("%d-", schema.HashString(id.(string))))
+		}
 	}
 
 	return hashcode.String(buf.String())

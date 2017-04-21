@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -17,18 +18,25 @@ func TestAccGithubIssueLabel_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGithubIssueLabelDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccGithubIssueLabelConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubIssueLabelExists("github_issue_label.test", &label),
 					testAccCheckGithubIssueLabelAttributes(&label, "foo", "000000"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccGithubIssueLabelUpdateConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubIssueLabelExists("github_issue_label.test", &label),
 					testAccCheckGithubIssueLabelAttributes(&label, "bar", "FFFFFF"),
+				),
+			},
+			{
+				Config: testAccGitHubIssueLabelExistsConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubIssueLabelExists("github_issue_label.test", &label),
+					testAccCheckGithubIssueLabelAttributes(&label, "enhancement", "FF00FF"),
 				),
 			},
 		},
@@ -41,10 +49,10 @@ func TestAccGithubIssueLabel_importBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGithubIssueLabelDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccGithubIssueLabelConfig,
 			},
-			resource.TestStep{
+			{
 				ResourceName:      "github_issue_label.test",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -68,7 +76,7 @@ func testAccCheckGithubIssueLabelExists(n string, label *github.Label) resource.
 		o := testAccProvider.Meta().(*Organization).name
 		r, n := parseTwoPartID(rs.Primary.ID)
 
-		githubLabel, _, err := conn.Issues.GetLabel(o, r, n)
+		githubLabel, _, err := conn.Issues.GetLabel(context.TODO(), o, r, n)
 		if err != nil {
 			return err
 		}
@@ -102,7 +110,7 @@ func testAccGithubIssueLabelDestroy(s *terraform.State) error {
 
 		o := testAccProvider.Meta().(*Organization).name
 		r, n := parseTwoPartID(rs.Primary.ID)
-		label, res, err := conn.Issues.GetLabel(o, r, n)
+		label, res, err := conn.Issues.GetLabel(context.TODO(), o, r, n)
 
 		if err == nil {
 			if label != nil &&
@@ -133,3 +141,16 @@ resource "github_issue_label" "test" {
   color      = "FFFFFF"
 }
 `, testRepo)
+
+var testAccGitHubIssueLabelExistsConfig string = fmt.Sprintf(`
+// Create a repository which has the default labels
+resource "github_repository" "test" {
+  name = "tf-acc-repo-label-abc1234"
+}
+
+resource "github_issue_label" "test" {
+  repository = "${github_repository.test.name}"
+  name       = "enhancement" // Important! This is a pre-created label
+  color      = "FF00FF"
+}
+`)

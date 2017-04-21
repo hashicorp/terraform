@@ -12,11 +12,11 @@ Manages a V2 monitor resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_lb_monitor_v2" "monitor_1" {
-  type = "PING"
-  delay = 20
-  timeout = 10
+  type        = "PING"
+  delay       = 20
+  timeout     = 10
   max_retries = 5
 }
 ```

@@ -1,12 +1,16 @@
 package azurerm
 
 import (
+	"crypto/sha1"
+	"encoding/base64"
+	"encoding/hex"
 	"fmt"
+	"log"
 	"reflect"
 	"strings"
-
 	"sync"
 
+	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/mutexkv"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -43,6 +47,18 @@ func Provider() terraform.ResourceProvider {
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("ARM_TENANT_ID", ""),
 			},
+
+			"environment": {
+				Type:        schema.TypeString,
+				Required:    true,
+				DefaultFunc: schema.EnvDefaultFunc("ARM_ENVIRONMENT", "public"),
+			},
+
+			"skip_provider_registration": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("ARM_SKIP_PROVIDER_REGISTRATION", false),
+			},
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
@@ -51,12 +67,16 @@ func Provider() terraform.ResourceProvider {
 
 		ResourcesMap: map[string]*schema.Resource{
 			// These resources use the Azure ARM SDK
-			"azurerm_availability_set": resourceArmAvailabilitySet(),
-			"azurerm_cdn_endpoint":     resourceArmCdnEndpoint(),
-			"azurerm_cdn_profile":      resourceArmCdnProfile(),
+			"azurerm_availability_set":   resourceArmAvailabilitySet(),
+			"azurerm_cdn_endpoint":       resourceArmCdnEndpoint(),
+			"azurerm_cdn_profile":        resourceArmCdnProfile(),
+			"azurerm_container_registry": resourceArmContainerRegistry(),
+			"azurerm_container_service":  resourceArmContainerService(),
 
-			"azurerm_eventhub":           resourceArmEventHub(),
-			"azurerm_eventhub_namespace": resourceArmEventHubNamespace(),
+			"azurerm_eventhub":                    resourceArmEventHub(),
+			"azurerm_eventhub_authorization_rule": resourceArmEventHubAuthorizationRule(),
+			"azurerm_eventhub_consumer_group":     resourceArmEventHubConsumerGroup(),
+			"azurerm_eventhub_namespace":          resourceArmEventHubNamespace(),
 
 			"azurerm_lb":                      resourceArmLoadBalancer(),
 			"azurerm_lb_backend_address_pool": resourceArmLoadBalancerBackendAddressPool(),
@@ -65,12 +85,15 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_lb_probe":                resourceArmLoadBalancerProbe(),
 			"azurerm_lb_rule":                 resourceArmLoadBalancerRule(),
 
+			"azurerm_managed_disk": resourceArmManagedDisk(),
+
 			"azurerm_key_vault":                 resourceArmKeyVault(),
 			"azurerm_local_network_gateway":     resourceArmLocalNetworkGateway(),
 			"azurerm_network_interface":         resourceArmNetworkInterface(),
 			"azurerm_network_security_group":    resourceArmNetworkSecurityGroup(),
 			"azurerm_network_security_rule":     resourceArmNetworkSecurityRule(),
 			"azurerm_public_ip":                 resourceArmPublicIp(),
+			"azurerm_redis_cache":               resourceArmRedisCache(),
 			"azurerm_route":                     resourceArmRoute(),
 			"azurerm_route_table":               resourceArmRouteTable(),
 			"azurerm_servicebus_namespace":      resourceArmServiceBusNamespace(),
@@ -119,10 +142,12 @@ func Provider() terraform.ResourceProvider {
 type Config struct {
 	ManagementURL string
 
-	SubscriptionID string
-	ClientID       string
-	ClientSecret   string
-	TenantID       string
+	SubscriptionID           string
+	ClientID                 string
+	ClientSecret             string
+	TenantID                 string
+	Environment              string
+	SkipProviderRegistration bool
 
 	validateCredentialsOnce sync.Once
 }
@@ -142,6 +167,9 @@ func (c *Config) validate() error {
 	if c.TenantID == "" {
 		err = multierror.Append(err, fmt.Errorf("Tenant ID must be configured for the AzureRM provider"))
 	}
+	if c.Environment == "" {
+		err = multierror.Append(err, fmt.Errorf("Environment must be configured for the AzureRM provider"))
+	}
 
 	return err.ErrorOrNil()
 }
@@ -149,10 +177,12 @@ func (c *Config) validate() error {
 func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 	return func(d *schema.ResourceData) (interface{}, error) {
 		config := &Config{
-			SubscriptionID: d.Get("subscription_id").(string),
-			ClientID:       d.Get("client_id").(string),
-			ClientSecret:   d.Get("client_secret").(string),
-			TenantID:       d.Get("tenant_id").(string),
+			SubscriptionID:           d.Get("subscription_id").(string),
+			ClientID:                 d.Get("client_id").(string),
+			ClientSecret:             d.Get("client_secret").(string),
+			TenantID:                 d.Get("tenant_id").(string),
+			Environment:              d.Get("environment").(string),
+			SkipProviderRegistration: d.Get("skip_provider_registration").(bool),
 		}
 
 		if err := config.validate(); err != nil {
@@ -166,30 +196,36 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 
 		client.StopContext = p.StopContext()
 
-		err = registerAzureResourceProvidersWithSubscription(client.rivieraClient)
+		// replaces the context between tests
+		p.MetaReset = func() error {
+			client.StopContext = p.StopContext()
+			return nil
+		}
+
+		// List all the available providers and their registration state to avoid unnecessary
+		// requests. This also lets us check if the provider credentials are correct.
+		providerList, err := client.providers.List(nil, "")
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Unable to list provider registration status, it is possible that this is due to invalid "+
+				"credentials or the service principal does not have permission to use the Resource Manager API, Azure "+
+				"error: %s", err)
+		}
+
+		if !config.SkipProviderRegistration {
+			err = registerAzureResourceProvidersWithSubscription(*providerList.Value, client.providers)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		return client, nil
 	}
 }
 
-func registerProviderWithSubscription(providerName string, client *riviera.Client) error {
-	request := client.NewRequest()
-	request.Command = riviera.RegisterResourceProvider{
-		Namespace: providerName,
-	}
-
-	response, err := request.Execute()
+func registerProviderWithSubscription(providerName string, client resources.ProvidersClient) error {
+	_, err := client.Register(providerName)
 	if err != nil {
-		return fmt.Errorf("Cannot request provider registration for Azure Resource Manager: %s.", err)
-	}
-
-	if !response.IsSuccessful() {
-		return fmt.Errorf("Credentials for accessing the Azure Resource Manager API are likely " +
-			"to be incorrect, or\n  the service principal does not have permission to use " +
-			"the Azure Service Management\n  API.")
+		return fmt.Errorf("Cannot register provider %s with Azure Resource Manager: %s.", providerName, err)
 	}
 
 	return nil
@@ -201,17 +237,43 @@ var providerRegistrationOnce sync.Once
 // all Azure resource providers which the Terraform provider may require (regardless of
 // whether they are actually used by the configuration or not). It was confirmed by Microsoft
 // that this is the approach their own internal tools also take.
-func registerAzureResourceProvidersWithSubscription(client *riviera.Client) error {
+func registerAzureResourceProvidersWithSubscription(providerList []resources.Provider, client resources.ProvidersClient) error {
 	var err error
 	providerRegistrationOnce.Do(func() {
-		// We register Microsoft.Compute during client initialization
-		providers := []string{"Microsoft.Network", "Microsoft.Cdn", "Microsoft.Storage", "Microsoft.Sql", "Microsoft.Search", "Microsoft.Resources", "Microsoft.ServiceBus", "Microsoft.KeyVault", "Microsoft.EventHub"}
+		providers := map[string]struct{}{
+			"Microsoft.Compute":           struct{}{},
+			"Microsoft.Cache":             struct{}{},
+			"Microsoft.ContainerRegistry": struct{}{},
+			"Microsoft.ContainerService":  struct{}{},
+			"Microsoft.Network":           struct{}{},
+			"Microsoft.Cdn":               struct{}{},
+			"Microsoft.Storage":           struct{}{},
+			"Microsoft.Sql":               struct{}{},
+			"Microsoft.Search":            struct{}{},
+			"Microsoft.Resources":         struct{}{},
+			"Microsoft.ServiceBus":        struct{}{},
+			"Microsoft.KeyVault":          struct{}{},
+			"Microsoft.EventHub":          struct{}{},
+		}
+
+		// filter out any providers already registered
+		for _, p := range providerList {
+			if _, ok := providers[*p.Namespace]; !ok {
+				continue
+			}
+
+			if strings.ToLower(*p.RegistrationState) == "registered" {
+				log.Printf("[DEBUG] Skipping provider registration for namespace %s\n", *p.Namespace)
+				delete(providers, *p.Namespace)
+			}
+		}
 
 		var wg sync.WaitGroup
 		wg.Add(len(providers))
-		for _, providerName := range providers {
+		for providerName := range providers {
 			go func(p string) {
 				defer wg.Done()
+				log.Printf("[DEBUG] Registering provider with namespace %s\n", p)
 				if innerErr := registerProviderWithSubscription(p, client); err != nil {
 					err = innerErr
 				}
@@ -259,4 +321,44 @@ func azureStateRefreshFunc(resourceURI string, client *ArmClient, command rivier
 // Use a custom diff function to avoid creation of new resources.
 func resourceAzurermResourceGroupNameDiffSuppress(k, old, new string, d *schema.ResourceData) bool {
 	return strings.ToLower(old) == strings.ToLower(new)
+}
+
+// ignoreCaseDiffSuppressFunc is a DiffSuppressFunc from helper/schema that is
+// used to ignore any case-changes in a return value.
+func ignoreCaseDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	return strings.ToLower(old) == strings.ToLower(new)
+}
+
+// ignoreCaseStateFunc is a StateFunc from helper/schema that converts the
+// supplied value to lower before saving to state for consistency.
+func ignoreCaseStateFunc(val interface{}) string {
+	return strings.ToLower(val.(string))
+}
+
+func userDataStateFunc(v interface{}) string {
+	switch s := v.(type) {
+	case string:
+		s = base64Encode(s)
+		hash := sha1.Sum([]byte(s))
+		return hex.EncodeToString(hash[:])
+	default:
+		return ""
+	}
+}
+
+// base64Encode encodes data if the input isn't already encoded using
+// base64.StdEncoding.EncodeToString. If the input is already base64 encoded,
+// return the original input unchanged.
+func base64Encode(data string) string {
+	// Check whether the data is already Base64 encoded; don't double-encode
+	if isBase64Encoded(data) {
+		return data
+	}
+	// data has not been encoded encode and return
+	return base64.StdEncoding.EncodeToString([]byte(data))
+}
+
+func isBase64Encoded(data string) bool {
+	_, err := base64.StdEncoding.DecodeString(data)
+	return err == nil
 }

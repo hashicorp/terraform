@@ -24,6 +24,11 @@ func resourceBlockStorageVolumeV1() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
 				Type:        schema.TypeString,
@@ -112,15 +117,15 @@ func resourceBlockStorageVolumeV1Create(d *schema.ResourceData, meta interface{}
 	}
 
 	createOpts := &volumes.CreateOpts{
-		Description:  d.Get("description").(string),
-		Availability: d.Get("availability_zone").(string),
-		Name:         d.Get("name").(string),
-		Size:         d.Get("size").(int),
-		SnapshotID:   d.Get("snapshot_id").(string),
-		SourceVolID:  d.Get("source_vol_id").(string),
-		ImageID:      d.Get("image_id").(string),
-		VolumeType:   d.Get("volume_type").(string),
-		Metadata:     resourceContainerMetadataV2(d),
+		Description:      d.Get("description").(string),
+		AvailabilityZone: d.Get("availability_zone").(string),
+		Name:             d.Get("name").(string),
+		Size:             d.Get("size").(int),
+		SnapshotID:       d.Get("snapshot_id").(string),
+		SourceVolID:      d.Get("source_vol_id").(string),
+		ImageID:          d.Get("image_id").(string),
+		VolumeType:       d.Get("volume_type").(string),
+		Metadata:         resourceContainerMetadataV2(d),
 	}
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
@@ -129,9 +134,6 @@ func resourceBlockStorageVolumeV1Create(d *schema.ResourceData, meta interface{}
 		return fmt.Errorf("Error creating OpenStack volume: %s", err)
 	}
 	log.Printf("[INFO] Volume ID: %s", v.ID)
-
-	// Store the ID now
-	d.SetId(v.ID)
 
 	// Wait for the volume to become available.
 	log.Printf(
@@ -142,7 +144,7 @@ func resourceBlockStorageVolumeV1Create(d *schema.ResourceData, meta interface{}
 		Pending:    []string{"downloading", "creating"},
 		Target:     []string{"available"},
 		Refresh:    VolumeV1StateRefreshFunc(blockStorageClient, v.ID),
-		Timeout:    10 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutCreate),
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -153,6 +155,9 @@ func resourceBlockStorageVolumeV1Create(d *schema.ResourceData, meta interface{}
 			"Error waiting for volume (%s) to become ready: %s",
 			v.ID, err)
 	}
+
+	// Store the ID now
+	d.SetId(v.ID)
 
 	return resourceBlockStorageVolumeV1Read(d, meta)
 }
@@ -278,7 +283,7 @@ func resourceBlockStorageVolumeV1Delete(d *schema.ResourceData, meta interface{}
 		Pending:    []string{"deleting", "downloading", "available"},
 		Target:     []string{"deleted"},
 		Refresh:    VolumeV1StateRefreshFunc(blockStorageClient, d.Id()),
-		Timeout:    10 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -312,6 +317,12 @@ func VolumeV1StateRefreshFunc(client *gophercloud.ServiceClient, volumeID string
 				return v, "deleted", nil
 			}
 			return nil, "", err
+		}
+
+		if v.Status == "error" {
+			return v, v.Status, fmt.Errorf("There was an error creating the volume. " +
+				"Please check with your cloud admin or check the Block Storage " +
+				"API logs to see why this error occurred.")
 		}
 
 		return v, v.Status, nil

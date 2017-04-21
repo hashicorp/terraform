@@ -1,0 +1,44 @@
+<% wrap_layout :inner do %>
+<% content_for :sidebar do %>
+<div class="docs-sidebar hidden-print affix-top" role="complementary">
+    <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+            <a href="/docs/providers/index.html">All Providers</a>
+        </li>
+
+        <li<%= sidebar_current("docs-newrelic-index") %>>
+            <a href="/docs/providers/newrelic/index.html">New Relic Provider</a>
+        </li>
+
+        <li<%= sidebar_current("docs-newrelic-datasource") %>>
+            <a href="#">Data Sources</a>
+            <ul class="nav nav-visible">
+                <li<%= sidebar_current("docs-newrelic-datasource-application") %>>
+                    <a href="/docs/providers/newrelic/d/application.html">newrelic_application</a>
+                </li>
+            </ul>
+        </li>
+
+        <li<%= sidebar_current("docs-newrelic-resource") %>>
+            <a href="#">Resources</a>
+            <ul class="nav nav-visible">
+                <li<%= sidebar_current("docs-newrelic-resource-alert-channel") %>>
+                    <a href="/docs/providers/newrelic/r/alert_channel.html">newrelic_alert_channel</a>
+                </li>
+                <li<%= sidebar_current("docs-newrelic-resource-alert-condition") %>>
+                    <a href="/docs/providers/newrelic/r/alert_condition.html">newrelic_alert_condition</a>
+                </li>
+                <li<%= sidebar_current("docs-newrelic-resource-alert-policy") %>>
+                    <a href="/docs/providers/newrelic/r/alert_policy.html">newrelic_alert_policy</a>
+                </li>
+                <li<%= sidebar_current("docs-newrelic-resource-alert-policy-channel") %>>
+                    <a href="/docs/providers/newrelic/r/alert_policy_channel.html">newrelic_alert_policy_channel</a>
+                </li>
+            </ul>
+        </li>
+    </ul>
+</div>
+<% end %>
+
+<%= yield %>
+<% end %>

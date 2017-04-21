@@ -84,6 +84,7 @@ func resourceAwsApiGatewayResourceRead(d *schema.ResourceData, meta interface{})
 
 	d.Set("parent_id", resource.ParentId)
 	d.Set("path_part", resource.PathPart)
+	d.Set("path", resource.Path)
 
 	return nil
 }

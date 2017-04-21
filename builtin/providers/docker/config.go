@@ -24,6 +24,10 @@ func (c *Config) NewClient() (*dc.Client, error) {
 			return nil, fmt.Errorf("ca_material, cert_material, and key_material must be specified")
 		}
 
+		if c.CertPath != "" {
+			return nil, fmt.Errorf("cert_path must not be specified")
+		}
+
 		return dc.NewTLSClientFromBytes(c.Host, []byte(c.Cert), []byte(c.Key), []byte(c.Ca))
 	}
 

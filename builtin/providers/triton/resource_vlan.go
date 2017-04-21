@@ -5,23 +5,24 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/joyent/gosdc/cloudapi"
+	"github.com/joyent/triton-go"
 )
 
 func resourceVLAN() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceVLANCreate,
-		Exists: resourceVLANExists,
-		Read:   resourceVLANRead,
-		Update: resourceVLANUpdate,
-		Delete: resourceVLANDelete,
+		Create:   resourceVLANCreate,
+		Exists:   resourceVLANExists,
+		Read:     resourceVLANRead,
+		Update:   resourceVLANUpdate,
+		Delete:   resourceVLANDelete,
+		Timeouts: fastResourceTimeout,
 		Importer: &schema.ResourceImporter{
-			State: resourceVLANImporter,
+			State: schema.ImportStatePassthrough,
 		},
 
 		Schema: map[string]*schema.Schema{
 			"vlan_id": {
-				Description: "number between 0-4095 indicating VLAN ID",
+				Description: "Number between 0-4095 indicating VLAN ID",
 				Required:    true,
 				ForceNew:    true,
 				Type:        schema.TypeInt,
@@ -39,7 +40,7 @@ func resourceVLAN() *schema.Resource {
 				Type:        schema.TypeString,
 			},
 			"description": {
-				Description: "Optional description of the VLAN",
+				Description: "Description of the VLAN",
 				Optional:    true,
 				Type:        schema.TypeString,
 			},
@@ -48,10 +49,10 @@ func resourceVLAN() *schema.Resource {
 }
 
 func resourceVLANCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*cloudapi.Client)
+	client := meta.(*triton.Client)
 
-	vlan, err := client.CreateFabricVLAN(cloudapi.FabricVLAN{
-		Id:          int16(d.Get("vlan_id").(int)),
+	vlan, err := client.Fabrics().CreateFabricVLAN(&triton.CreateFabricVLANInput{
+		ID:          d.Get("vlan_id").(int),
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
 	})
@@ -59,33 +60,39 @@ func resourceVLANCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.SetId(resourceVLANIDString(vlan.Id))
+	d.SetId(strconv.Itoa(vlan.ID))
 	return resourceVLANRead(d, meta)
 }
 
 func resourceVLANExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	client := meta.(*cloudapi.Client)
+	client := meta.(*triton.Client)
 
-	id, err := resourceVLANIDInt16(d.Id())
+	id, err := resourceVLANIDInt(d.Id())
 	if err != nil {
 		return false, err
 	}
 
-	vlan, err := client.GetFabricVLAN(id)
-
-	return vlan != nil && err == nil, err
+	return resourceExists(client.Fabrics().GetFabricVLAN(&triton.GetFabricVLANInput{
+		ID: id,
+	}))
 }
 
 func resourceVLANRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*cloudapi.Client)
+	client := meta.(*triton.Client)
 
-	vlan, err := client.GetFabricVLAN(int16(d.Get("vlan_id").(int)))
+	id, err := resourceVLANIDInt(d.Id())
 	if err != nil {
 		return err
 	}
 
-	d.SetId(resourceVLANIDString(vlan.Id))
-	d.Set("vlan_id", vlan.Id)
+	vlan, err := client.Fabrics().GetFabricVLAN(&triton.GetFabricVLANInput{
+		ID: id,
+	})
+	if err != nil {
+		return err
+	}
+
+	d.Set("vlan_id", vlan.ID)
 	d.Set("name", vlan.Name)
 	d.Set("description", vlan.Description)
 
@@ -93,10 +100,10 @@ func resourceVLANRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceVLANUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*cloudapi.Client)
+	client := meta.(*triton.Client)
 
-	vlan, err := client.UpdateFabricVLAN(cloudapi.FabricVLAN{
-		Id:          int16(d.Get("vlan_id").(int)),
+	vlan, err := client.Fabrics().UpdateFabricVLAN(&triton.UpdateFabricVLANInput{
+		ID:          d.Get("vlan_id").(int),
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
 	})
@@ -104,36 +111,28 @@ func resourceVLANUpdate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.SetId(resourceVLANIDString(vlan.Id))
+	d.SetId(strconv.Itoa(vlan.ID))
 	return resourceVLANRead(d, meta)
 }
 
 func resourceVLANDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*cloudapi.Client)
+	client := meta.(*triton.Client)
 
-	id, err := resourceVLANIDInt16(d.Id())
+	id, err := resourceVLANIDInt(d.Id())
 	if err != nil {
 		return err
 	}
 
-	return client.DeleteFabricVLAN(id)
+	return client.Fabrics().DeleteFabricVLAN(&triton.DeleteFabricVLANInput{
+		ID: id,
+	})
 }
 
-// convenience conversion functions
-
-func resourceVLANIDString(id int16) string {
-	return strconv.Itoa(int(id))
-}
-
-func resourceVLANIDInt16(id string) (int16, error) {
-	result, err := strconv.ParseInt(id, 10, 16)
+func resourceVLANIDInt(id string) (int, error) {
+	result, err := strconv.ParseInt(id, 10, 32)
 	if err != nil {
-		return 0, err
+		return -1, err
 	}
 
-	return int16(result), nil
-}
-
-func resourceVLANImporter(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	return []*schema.ResourceData{d}, nil
+	return int(result), nil
 }

@@ -12,7 +12,7 @@ import (
 )
 
 func TestAccComputeV2ServerGroup_basic(t *testing.T) {
-	var serverGroup servergroups.ServerGroup
+	var sg servergroups.ServerGroup
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -22,7 +22,7 @@ func TestAccComputeV2ServerGroup_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccComputeV2ServerGroup_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckComputeV2ServerGroupExists(t, "openstack_compute_servergroup_v2.mysg", &serverGroup),
+					testAccCheckComputeV2ServerGroupExists("openstack_compute_servergroup_v2.sg_1", &sg),
 				),
 			},
 		},
@@ -41,8 +41,8 @@ func TestAccComputeV2ServerGroup_affinity(t *testing.T) {
 			resource.TestStep{
 				Config: testAccComputeV2ServerGroup_affinity,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckComputeV2ServerGroupExists(t, "openstack_compute_servergroup_v2.mysg", &sg),
-					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.myinstance", &instance),
+					testAccCheckComputeV2ServerGroupExists("openstack_compute_servergroup_v2.sg_1", &sg),
+					testAccCheckComputeV2InstanceExists("openstack_compute_instance_v2.instance_1", &instance),
 					testAccCheckComputeV2InstanceInServerGroup(&instance, &sg),
 				),
 			},
@@ -54,7 +54,7 @@ func testAccCheckComputeV2ServerGroupDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	computeClient, err := config.computeV2Client(OS_REGION_NAME)
 	if err != nil {
-		return fmt.Errorf("(testAccCheckComputeV2ServerGroupDestroy) Error creating OpenStack compute client: %s", err)
+		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
 
 	for _, rs := range s.RootModule().Resources {
@@ -71,7 +71,7 @@ func testAccCheckComputeV2ServerGroupDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckComputeV2ServerGroupExists(t *testing.T, n string, kp *servergroups.ServerGroup) resource.TestCheckFunc {
+func testAccCheckComputeV2ServerGroupExists(n string, kp *servergroups.ServerGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -85,7 +85,7 @@ func testAccCheckComputeV2ServerGroupExists(t *testing.T, n string, kp *servergr
 		config := testAccProvider.Meta().(*Config)
 		computeClient, err := config.computeV2Client(OS_REGION_NAME)
 		if err != nil {
-			return fmt.Errorf("(testAccCheckComputeV2ServerGroupExists) Error creating OpenStack compute client: %s", err)
+			return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 		}
 
 		found, err := servergroups.Get(computeClient, rs.Primary.ID).Extract()
@@ -117,22 +117,24 @@ func testAccCheckComputeV2InstanceInServerGroup(instance *servers.Server, sg *se
 	}
 }
 
-var testAccComputeV2ServerGroup_basic = `
-  resource "openstack_compute_servergroup_v2" "mysg" {
-		name = "mysg"
-		policies = ["affinity"]
-  }`
+const testAccComputeV2ServerGroup_basic = `
+resource "openstack_compute_servergroup_v2" "sg_1" {
+  name = "sg_1"
+  policies = ["affinity"]
+}
+`
 
-var testAccComputeV2ServerGroup_affinity = `
-	resource "openstack_compute_servergroup_v2" "mysg" {
-		name = "mysg"
-		policies = ["affinity"]
-	}
+const testAccComputeV2ServerGroup_affinity = `
+resource "openstack_compute_servergroup_v2" "sg_1" {
+  name = "sg_1"
+  policies = ["affinity"]
+}
 
-	resource "openstack_compute_instance_v2" "myinstance" {
-		name = "myinstance"
-		security_groups = ["default"]
-		scheduler_hints {
-			group = "${openstack_compute_servergroup_v2.mysg.id}"
-		}
-	}`
+resource "openstack_compute_instance_v2" "instance_1" {
+  name = "instance_1"
+  security_groups = ["default"]
+  scheduler_hints {
+    group = "${openstack_compute_servergroup_v2.sg_1.id}"
+  }
+}
+`

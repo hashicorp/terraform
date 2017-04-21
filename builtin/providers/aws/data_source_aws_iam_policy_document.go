@@ -1,6 +1,8 @@
 package aws
 
 import (
+	"fmt"
+
 	"encoding/json"
 	"strings"
 
@@ -41,6 +43,15 @@ func dataSourceAwsIamPolicyDocument() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "Allow",
+							ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+								switch v.(string) {
+								case "Allow", "Deny":
+									return
+								default:
+									es = append(es, fmt.Errorf("%q must be either \"Allow\" or \"Deny\"", k))
+									return
+								}
+							},
 						},
 						"actions":        setOfString,
 						"not_actions":    setOfString,

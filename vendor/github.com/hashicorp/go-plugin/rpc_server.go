@@ -7,12 +7,16 @@ import (
 	"log"
 	"net"
 	"net/rpc"
+	"sync"
 
 	"github.com/hashicorp/yamux"
 )
 
 // RPCServer listens for network connections and then dispenses interface
 // implementations over net/rpc.
+//
+// After setting the fields below, they shouldn't be read again directly
+// from the structure which may be reading/writing them concurrently.
 type RPCServer struct {
 	Plugins map[string]Plugin
 
@@ -22,6 +26,12 @@ type RPCServer struct {
 	// make our own custom one we pipe across.
 	Stdout io.Reader
 	Stderr io.Reader
+
+	// DoneCh should be set to a non-nil channel that will be closed
+	// when the control requests the RPC server to end.
+	DoneCh chan<- struct{}
+
+	lock sync.Mutex
 }
 
 // Accept accepts connections on a listener and serves requests for
@@ -84,11 +94,43 @@ func (s *RPCServer) ServeConn(conn io.ReadWriteCloser) {
 	// Use the control connection to build the dispenser and serve the
 	// connection.
 	server := rpc.NewServer()
+	server.RegisterName("Control", &controlServer{
+		server: s,
+	})
 	server.RegisterName("Dispenser", &dispenseServer{
 		broker:  broker,
 		plugins: s.Plugins,
 	})
 	server.ServeConn(control)
+}
+
+// done is called internally by the control server to trigger the
+// doneCh to close which is listened to by the main process to cleanly
+// exit.
+func (s *RPCServer) done() {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	if s.DoneCh != nil {
+		close(s.DoneCh)
+		s.DoneCh = nil
+	}
+}
+
+// dispenseServer dispenses variousinterface implementations for Terraform.
+type controlServer struct {
+	server *RPCServer
+}
+
+func (c *controlServer) Quit(
+	null bool, response *struct{}) error {
+	// End the server
+	c.server.done()
+
+	// Always return true
+	*response = struct{}{}
+
+	return nil
 }
 
 // dispenseServer dispenses variousinterface implementations for Terraform.

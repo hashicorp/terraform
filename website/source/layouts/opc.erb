@@ -1,0 +1,104 @@
+<% wrap_layout :inner do %>
+    <% content_for :sidebar do %>
+        <div class="docs-sidebar hidden-print affix-top" role="complementary">
+            <ul class="nav docs-sidenav">
+                <li<%= sidebar_current("docs-home") %>>
+                    <a href="/docs/providers/index.html">All Providers</a>
+                </li>
+
+                <li<%= sidebar_current("docs-opc-index") %>>
+                    <a href="/docs/providers/opc/index.html">Oracle Public Cloud Provider</a>
+                </li>
+
+
+                <li<%= sidebar_current("docs-opc-datasource") %>>
+                <a href="#">Data Sources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-opc-datasource-network-interface") %>>
+                            <a href="/docs/providers/opc/d/opc_compute_network_interface.html">opc_compute_network_interface</a>
+                        </li>
+                        <li<%= sidebar_current("docs-opc-datasource-vnic") %>>
+                            <a href="/docs/providers/opc/d/opc_compute_vnic.html">opc_compute_vnic</a>
+                        </li>
+                    </ul>
+                </li>
+                <li<%= sidebar_current("docs-opc-resource") %>>
+                <a href="#">Resources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-opc-resource-acl") %>>
+                            <a href="/docs/providers/opc/r/opc_compute_acl.html">opc_compute_acl</a>
+                        </li>
+                        <li<%= sidebar_current("docs-opc-resource-image-list-type") %>>
+                            <a href="/docs/providers/opc/r/opc_compute_image_list.html">opc_compute_image_list</a>
+                        </li>
+                        <li<%= sidebar_current("docs-opc-resource-image-list-entry") %>>
+                            <a href="/docs/providers/opc/r/opc_compute_image_list_entry.html">opc_compute_image_list_entry</a>
+                        </li>
+                        <li<%= sidebar_current("docs-opc-resource-instance") %>>
+                            <a href="/docs/providers/opc/r/opc_compute_instance.html">opc_compute_instance</a>
+                        </li>
+                        <li<%= sidebar_current("docs-opc-resource-ip-address-association") %>>
+                            <a href="/docs/providers/opc/r/opc_compute_ip_address_association.html">opc_compute_ip_address_association</a>
+                        </li>
+                        <li<%= sidebar_current("docs-opc-resource-ip-address-prefix-set") %>>
+                            <a href="/docs/providers/opc/r/opc_compute_ip_address_prefix_set.html">opc_compute_ip_address_prefix_set</a>
+                        </li>
+                        <li<%= sidebar_current("docs-opc-resource-ip-address-reservation") %>>
+                            <a href="/docs/providers/opc/r/opc_compute_ip_address_reservation.html">opc_compute_ip_address_reservation</a>
+                        </li>
+                        <li<%= sidebar_current("docs-opc-resource-ip-association") %>>
+                            <a href="/docs/providers/opc/r/opc_compute_ip_association.html">opc_compute_ip_association</a>
+                        </li>
+                        <li<%= sidebar_current("docs-opc-resource-ip-network") %>>
+                            <a href="/docs/providers/opc/r/opc_compute_ip_network.html">opc_compute_ip_network</a>
+                        </li>
+                        <li<%= sidebar_current("docs-opc-resource-ip-network-exchange") %>>
+                            <a href="/docs/providers/opc/r/opc_compute_ip_network_exchange.html">opc_compute_ip_network_exchange</a>
+                        </li>
+                        <li<%= sidebar_current("docs-opc-resource-ip-reservation") %>>
+                            <a href="/docs/providers/opc/r/opc_compute_ip_reservation.html">opc_compute_ip_reservation</a>
+                        </li>
+                        <li<%= sidebar_current("docs-opc-resource-route") %>>
+                            <a href="/docs/providers/opc/r/opc_compute_route.html">opc_compute_route</a>
+                        </li>
+                        <li<%= sidebar_current("docs-opc-resource-sec-rule") %>>
+                            <a href="/docs/providers/opc/r/opc_compute_sec_rule.html">opc_compute_sec_rule</a>
+                        </li>
+                        <li<%= sidebar_current("docs-opc-resource-security-application") %>>
+                            <a href="/docs/providers/opc/r/opc_compute_security_application.html">opc_compute_security_application</a>
+                        </li>
+                        <li<%= sidebar_current("docs-opc-resource-security-association") %>>
+                            <a href="/docs/providers/opc/r/opc_compute_security_association.html">opc_compute_security_association</a>
+                        </li>
+                        <li<%= sidebar_current("docs-opc-resource-security-ip-list") %>>
+                            <a href="/docs/providers/opc/r/opc_compute_security_ip_list.html">opc_compute_security_ip_list</a>
+                        </li>
+                        <li<%= sidebar_current("docs-opc-resource-security-list") %>>
+                            <a href="/docs/providers/opc/r/opc_compute_security_list.html">opc_compute_security_list</a>
+                        </li>
+                        <li<%= sidebar_current("docs-opc-resource-security-protocol") %>>
+                            <a href="/docs/providers/opc/r/opc_compute_security_protocol.html">opc_compute_security_protocol</a>
+                        </li>
+                        <li<%= sidebar_current("docs-opc-resource-security-rule") %>>
+                            <a href="/docs/providers/opc/r/opc_compute_security_rule.html">opc_compute_security_rule</a>
+                        </li>
+                        <li<%= sidebar_current("docs-opc-resource-ssh-key") %>>
+                            <a href="/docs/providers/opc/r/opc_compute_ssh_key.html">opc_compute_ssh_key</a>
+                        </li>
+                        <li<%= sidebar_current("docs-opc-resource-storage-volume-type") %>>
+                            <a href="/docs/providers/opc/r/opc_compute_storage_volume.html">opc_compute_storage_volume</a>
+                        </li>
+                        <li<%= sidebar_current("docs-opc-resource-storage-volume-snapshot") %>>
+                            <a href="/docs/providers/opc/r/opc_compute_storage_volume_snapshot.html">opc_compute_storage_volume_snapshot</a>
+                        </li>
+                        <li<%= sidebar_current("docs-opc-resource-vnic-set") %>>
+                            <a href="/docs/providers/opc/r/opc_compute_vnic_set.html">opc_compute_vnic_set</a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    <% end %>
+
+    <%= yield %>
+<% end %>

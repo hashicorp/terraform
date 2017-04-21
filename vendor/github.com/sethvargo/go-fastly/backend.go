@@ -8,7 +8,7 @@ import (
 // Backend represents a backend response from the Fastly API.
 type Backend struct {
 	ServiceID string `mapstructure:"service_id"`
-	Version   string `mapstructure:"version"`
+	Version   int    `mapstructure:"version"`
 
 	Name                string   `mapstructure:"name"`
 	Address             string   `mapstructure:"address"`
@@ -26,6 +26,9 @@ type Backend struct {
 	Shield              string   `mapstructure:"shield"`
 	UseSSL              bool     `mapstructure:"use_ssl"`
 	SSLCheckCert        bool     `mapstructure:"ssl_check_cert"`
+	SSLCACert           string   `mapstructure:"ssl_ca_cert"`
+	SSLClientCert       string   `mapstructure:"ssl_client_cert"`
+	SSLClientKey        string   `mapstructure:"ssl_client_key"`
 	SSLHostname         string   `mapstructure:"ssl_hostname"`
 	SSLCertHostname     string   `mapstructure:"ssl_cert_hostname"`
 	SSLSNIHostname      string   `mapstructure:"ssl_sni_hostname"`
@@ -50,7 +53,7 @@ type ListBackendsInput struct {
 	Service string
 
 	// Version is the specific configuration version (required).
-	Version string
+	Version int
 }
 
 // ListBackends returns the list of backends for the configuration version.
@@ -59,11 +62,11 @@ func (c *Client) ListBackends(i *ListBackendsInput) ([]*Backend, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/backend", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/backend", i.Service, i.Version)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -82,7 +85,7 @@ type CreateBackendInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	Name                string       `form:"name,omitempty"`
 	Address             string       `form:"address,omitempty"`
@@ -99,6 +102,9 @@ type CreateBackendInput struct {
 	Shield              string       `form:"shield,omitempty"`
 	UseSSL              *Compatibool `form:"use_ssl,omitempty"`
 	SSLCheckCert        *Compatibool `form:"ssl_check_cert,omitempty"`
+	SSLCACert           string       `form:"ssl_ca_cert,omitempty"`
+	SSLClientCert       string       `form:"ssl_client_cert,omitempty"`
+	SSLClientKey        string       `form:"ssl_client_key,omitempty"`
 	SSLHostname         string       `form:"ssl_hostname,omitempty"`
 	SSLCertHostname     string       `form:"ssl_cert_hostname,omitempty"`
 	SSLSNIHostname      string       `form:"ssl_sni_hostname,omitempty"`
@@ -113,11 +119,11 @@ func (c *Client) CreateBackend(i *CreateBackendInput) (*Backend, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/backend", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/backend", i.Service, i.Version)
 	resp, err := c.PostForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -135,7 +141,7 @@ type GetBackendInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the backend to fetch.
 	Name string
@@ -147,7 +153,7 @@ func (c *Client) GetBackend(i *GetBackendInput) (*Backend, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -155,7 +161,7 @@ func (c *Client) GetBackend(i *GetBackendInput) (*Backend, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/backend/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/backend/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -173,7 +179,7 @@ type UpdateBackendInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the backend to update.
 	Name string
@@ -193,6 +199,9 @@ type UpdateBackendInput struct {
 	Shield              string       `form:"shield,omitempty"`
 	UseSSL              *Compatibool `form:"use_ssl,omitempty"`
 	SSLCheckCert        *Compatibool `form:"ssl_check_cert,omitempty"`
+	SSLCACert           string       `form:"ssl_ca_cert,omitempty"`
+	SSLClientCert       string       `form:"ssl_client_cert,omitempty"`
+	SSLClientKey        string       `form:"ssl_client_key,omitempty"`
 	SSLHostname         string       `form:"ssl_hostname,omitempty"`
 	SSLCertHostname     string       `form:"ssl_cert_hostname,omitempty"`
 	SSLSNIHostname      string       `form:"ssl_sni_hostname,omitempty"`
@@ -207,7 +216,7 @@ func (c *Client) UpdateBackend(i *UpdateBackendInput) (*Backend, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -215,7 +224,7 @@ func (c *Client) UpdateBackend(i *UpdateBackendInput) (*Backend, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/backend/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/backend/%s", i.Service, i.Version, i.Name)
 	resp, err := c.PutForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -233,7 +242,7 @@ type DeleteBackendInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the backend to delete (required).
 	Name string
@@ -245,7 +254,7 @@ func (c *Client) DeleteBackend(i *DeleteBackendInput) error {
 		return ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return ErrMissingVersion
 	}
 
@@ -253,7 +262,7 @@ func (c *Client) DeleteBackend(i *DeleteBackendInput) error {
 		return ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/backend/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/backend/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Delete(path, nil)
 	if err != nil {
 		return err

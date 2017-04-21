@@ -13,43 +13,43 @@ func dataSourceScalewayBootscript() *schema.Resource {
 		Read: dataSourceScalewayBootscriptRead,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"name_filter": &schema.Schema{
+			"name_filter": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"architecture": &schema.Schema{
+			"architecture": {
 				Type:     schema.TypeString,
 				Computed: true,
 				Optional: true,
 			},
 			// Computed values.
-			"organization": &schema.Schema{
+			"organization": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"public": &schema.Schema{
+			"public": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
-			"boot_cmd_args": &schema.Schema{
+			"boot_cmd_args": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"dtb": &schema.Schema{
+			"dtb": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"initrd": &schema.Schema{
+			"initrd": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"kernel": &schema.Schema{
+			"kernel": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -80,12 +80,16 @@ func dataSourceScalewayBootscriptRead(d *schema.ResourceData, meta interface{}) 
 
 	var isMatch func(api.ScalewayBootscript) bool
 
+	architecture := d.Get("architecture")
 	if name, ok := d.GetOk("name"); ok {
 		isMatch = func(s api.ScalewayBootscript) bool {
-			return s.Title == name.(string)
+			architectureMatch := true
+			if architecture != "" {
+				architectureMatch = architecture == s.Arch
+			}
+			return s.Title == name.(string) && architectureMatch
 		}
 	} else if nameFilter, ok := d.GetOk("name_filter"); ok {
-		architecture := d.Get("architecture")
 		exp, err := regexp.Compile(nameFilter.(string))
 		if err != nil {
 			return err

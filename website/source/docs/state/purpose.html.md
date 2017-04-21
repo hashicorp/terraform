@@ -41,7 +41,7 @@ must keep track of metadata such as dependencies.
 
 Terraform typically uses the configuration to determine dependency order.
 However, when you delete a resource from a Terraform configuration, Terraform
-must know to delete that resource. Terraform can see that a mapping exists
+must know how to delete that resource. Terraform can see that a mapping exists
 for a resource not in your configuration and plan to destroy. However, since
 the configuration no longer exists, it no longer knows the proper destruction
 order.
@@ -88,11 +88,11 @@ state is treated as the record of truth.
 
 ## Syncing
 
-The primary motivation people have to remove state files is in an attempt
+The primary motivation people have for using remote state files is in an attempt
 to improve using Terraform with teams. State files can easily result in
 conflicts when two people modify infrastructure at the same time.
 
-[Remote state](/docs/state/remote/index.html) is the recommended solution
+[Remote state](/docs/state/remote.html) is the recommended solution
 to this problem. At the time of writing, remote state works well but there
 are still scenarios that can result in state conflicts. A priority for future
 versions of Terraform is to improve this.

@@ -10,12 +10,13 @@ description: |-
 
 Provides an IAM policy.
 
-```
+```hcl
 resource "aws_iam_policy" "policy" {
-    name = "test_policy"
-    path = "/"
-    description = "My test policy"
-    policy = <<EOF
+  name        = "test_policy"
+  path        = "/"
+  description = "My test policy"
+
+  policy = <<EOF
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -37,7 +38,7 @@ EOF
 The following arguments are supported:
 
 * `description` - (Optional) Description of the IAM policy.
-* `name` - (Optional, Forces new resource) The name of the policy.
+* `name` - (Optional, Forces new resource) The name of the policy. If omitted, Terraform will assign a random, unique name.
 * `name_prefix` - (Optional, Forces new resource) Creates a unique name beginning with the specified prefix. Conflicts with `name`.
 * `path` - (Optional, default "/") Path in which to create the policy.
   See [IAM Identifiers](https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html) for more information.
@@ -56,3 +57,11 @@ The following attributes are exported:
 * `name` - The name of the policy.
 * `path` - The path of the policy in IAM.
 * `policy` - The policy document.
+
+## Import
+
+IAM Policies can be imported using the `arn`, e.g.
+
+```
+$ terraform import aws_iam_policy.administrator arn:aws:iam::123456789012:policy/UsersManageOwnCredentials
+```

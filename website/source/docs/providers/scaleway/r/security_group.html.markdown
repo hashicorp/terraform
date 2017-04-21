@@ -13,9 +13,9 @@ For additional details please refer to [API documentation](https://developer.sca
 
 ## Example Usage
 
-```
+```hcl
 resource "scaleway_security_group" "test" {
-  name = "test"
+  name        = "test"
   description = "test"
 }
 ```

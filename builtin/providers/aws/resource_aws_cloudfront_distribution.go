@@ -102,6 +102,24 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 								},
 							},
 						},
+						"lambda_function_association": {
+							Type:     schema.TypeSet,
+							Optional: true,
+							MaxItems: 4,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"event_type": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"lambda_arn": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+							},
+							Set: lambdaFunctionAssociationHash,
+						},
 						"max_ttl": {
 							Type:     schema.TypeInt,
 							Required: true,
@@ -231,6 +249,24 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 									},
 								},
 							},
+						},
+						"lambda_function_association": {
+							Type:     schema.TypeSet,
+							Optional: true,
+							MaxItems: 4,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"event_type": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"lambda_arn": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+							},
+							Set: lambdaFunctionAssociationHash,
 						},
 						"max_ttl": {
 							Type:     schema.TypeInt,
@@ -635,10 +671,10 @@ func resourceAwsCloudFrontDistributionDelete(d *schema.ResourceData, meta interf
 // but that might change in the future.
 func resourceAwsCloudFrontDistributionWaitUntilDeployed(id string, meta interface{}) error {
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"InProgress", "Deployed"},
+		Pending:    []string{"InProgress"},
 		Target:     []string{"Deployed"},
 		Refresh:    resourceAwsCloudFrontWebDistributionStateRefreshFunc(id, meta),
-		Timeout:    40 * time.Minute,
+		Timeout:    70 * time.Minute,
 		MinTimeout: 15 * time.Second,
 		Delay:      10 * time.Minute,
 	}

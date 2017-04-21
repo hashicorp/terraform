@@ -12,20 +12,20 @@ Allows you to manage an Azure SQL Database
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
-   name = "acceptanceTestResourceGroup1"
-   location = "West US"
+  name     = "acceptanceTestResourceGroup1"
+  location = "West US"
 }
+
 resource "azurerm_sql_database" "test" {
-    name = "MySQLDatabase"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "West US"
+  name                = "MySQLDatabase"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  location            = "West US"
 
-
-    tags {
-    	environment = "production"
-    }
+  tags {
+    environment = "production"
+  }
 }
 ```
 ## Argument Reference

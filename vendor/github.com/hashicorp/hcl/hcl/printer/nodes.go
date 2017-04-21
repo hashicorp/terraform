@@ -134,6 +134,7 @@ func (p *printer) output(n interface{}) []byte {
 				// Go through all the comments in the group. The group
 				// should be printed together, not separated by double newlines.
 				printed := false
+				newlinePrinted := false
 				for _, comment := range c.List {
 					// We only care about comments after the previous item
 					// we've printed so that comments are printed in the
@@ -144,8 +145,9 @@ func (p *printer) output(n interface{}) []byte {
 						// we don't do this if prev is invalid which means the
 						// beginning of the file since the first comment should
 						// be at the first line.
-						if p.prev.IsValid() && index == len(t.Items) {
+						if !newlinePrinted && p.prev.IsValid() && index == len(t.Items) {
 							buf.Write([]byte{newline, newline})
+							newlinePrinted = true
 						}
 
 						// Write the actual comment.
@@ -171,7 +173,28 @@ func (p *printer) output(n interface{}) []byte {
 
 			buf.Write(p.output(t.Items[index]))
 			if index != len(t.Items)-1 {
-				buf.Write([]byte{newline, newline})
+				// Always write a newline to separate us from the next item
+				buf.WriteByte(newline)
+
+				// Need to determine if we're going to separate the next item
+				// with a blank line. The logic here is simple, though there
+				// are a few conditions:
+				//
+				//   1. The next object is more than one line away anyways,
+				//      so we need an empty line.
+				//
+				//   2. The next object is not a "single line" object, so
+				//      we need an empty line.
+				//
+				//   3. This current object is not a single line object,
+				//      so we need an empty line.
+				current := t.Items[index]
+				next := t.Items[index+1]
+				if next.Pos().Line != t.Items[index].Pos().Line+1 ||
+					!p.isSingleLineObject(next) ||
+					!p.isSingleLineObject(current) {
+					buf.WriteByte(newline)
+				}
 			}
 			index++
 		}
@@ -207,7 +230,7 @@ func (p *printer) literalType(lit *ast.LiteralType) []byte {
 	case token.STRING:
 		// If this is a multiline string, poison lines 2+ so we don't
 		// indent them.
-		if bytes.ContainsRune(result, '\n') {
+		if bytes.IndexRune(result, '\n') >= 0 {
 			result = p.heredocIndent(result)
 		}
 	}
@@ -263,17 +286,24 @@ func (p *printer) objectType(o *ast.ObjectType) []byte {
 	var nextItem token.Pos
 	var commented, newlinePrinted bool
 	for {
+		// Determine the location of the next actual non-comment
+		// item. If we're at the end, the next item is the closing brace
+		if index != len(o.List.Items) {
+			nextItem = o.List.Items[index].Pos()
+		} else {
+			nextItem = o.Rbrace
+		}
 
-		// Print stand alone comments
+		// Go through the standalone comments in the file and print out
+		// the comments that we should be for this object item.
 		for _, c := range p.standaloneComments {
+			printed := false
+			var lastCommentPos token.Pos
 			for _, comment := range c.List {
-				// if we hit the end, last item should be the brace
-				if index != len(o.List.Items) {
-					nextItem = o.List.Items[index].Pos()
-				} else {
-					nextItem = o.Rbrace
-				}
-
+				// We only care about comments after the previous item
+				// we've printed so that comments are printed in the
+				// correct locations (between two objects for example).
+				// And before the next item.
 				if comment.Pos().After(p.prev) && comment.Pos().Before(nextItem) {
 					// If there are standalone comments and the initial newline has not
 					// been printed yet, do it now.
@@ -288,11 +318,33 @@ func (p *printer) objectType(o *ast.ObjectType) []byte {
 						buf.WriteByte(newline)
 					}
 
+					// Store this position
+					lastCommentPos = comment.Pos()
+
+					// output the comment itself
 					buf.Write(p.indent(p.heredocIndent([]byte(comment.Text))))
+
+					// Set printed to true to note that we printed something
+					printed = true
+
+					/*
+						if index != len(o.List.Items) {
+							buf.WriteByte(newline) // do not print on the end
+						}
+					*/
+				}
+			}
+
+			// Stuff to do if we had comments
+			if printed {
+				// Always write a newline
+				buf.WriteByte(newline)
+
+				// If there is another item in the object and our comment
+				// didn't hug it directly, then make sure there is a blank
+				// line separating them.
+				if nextItem != o.Rbrace && nextItem.Line != lastCommentPos.Line+1 {
 					buf.WriteByte(newline)
-					if index != len(o.List.Items) {
-						buf.WriteByte(newline) // do not print on the end
-					}
 				}
 			}
 		}
@@ -474,6 +526,13 @@ func (p *printer) list(l *ast.ListType) []byte {
 	insertSpaceBeforeItem := false
 	lastHadLeadComment := false
 	for i, item := range l.List {
+		// Keep track of whether this item is a heredoc since that has
+		// unique behavior.
+		heredoc := false
+		if lit, ok := item.(*ast.LiteralType); ok && lit.Token.Type == token.HEREDOC {
+			heredoc = true
+		}
+
 		if item.Pos().Line != l.Lbrack.Line {
 			// multiline list, add newline before we add each item
 			buf.WriteByte(newline)
@@ -503,7 +562,16 @@ func (p *printer) list(l *ast.ListType) []byte {
 			val := p.output(item)
 			curLen := len(val)
 			buf.Write(p.indent(val))
-			buf.WriteString(",")
+
+			// if this item is a heredoc, then we output the comma on
+			// the next line. This is the only case this happens.
+			comma := []byte{','}
+			if heredoc {
+				buf.WriteByte(newline)
+				comma = p.indent(comma)
+			}
+
+			buf.Write(comma)
 
 			if lit, ok := item.(*ast.LiteralType); ok && lit.LineComment != nil {
 				// if the next item doesn't have any comments, do not align
@@ -532,10 +600,35 @@ func (p *printer) list(l *ast.ListType) []byte {
 				buf.WriteByte(blank)
 				insertSpaceBeforeItem = false
 			}
-			buf.Write(p.output(item))
+
+			// Output the item itself
+			// also indent each line
+			val := p.output(item)
+			curLen := len(val)
+			buf.Write(val)
+
+			// If this is a heredoc item we always have to output a newline
+			// so that it parses properly.
+			if heredoc {
+				buf.WriteByte(newline)
+			}
+
+			// If this isn't the last element, write a comma.
 			if i != len(l.List)-1 {
 				buf.WriteString(",")
 				insertSpaceBeforeItem = true
+			}
+
+			if lit, ok := item.(*ast.LiteralType); ok && lit.LineComment != nil {
+				// if the next item doesn't have any comments, do not align
+				buf.WriteByte(blank) // align one space
+				for i := 0; i < longestLine-curLen; i++ {
+					buf.WriteByte(blank)
+				}
+
+				for _, comment := range lit.LineComment.List {
+					buf.WriteString(comment.Text)
+				}
 			}
 		}
 
@@ -611,6 +704,36 @@ func (p *printer) heredocIndent(buf []byte) []byte {
 		bol = c == '\n'
 	}
 	return res
+}
+
+// isSingleLineObject tells whether the given object item is a single
+// line object such as "obj {}".
+//
+// A single line object:
+//
+//   * has no lead comments (hence multi-line)
+//   * has no assignment
+//   * has no values in the stanza (within {})
+//
+func (p *printer) isSingleLineObject(val *ast.ObjectItem) bool {
+	// If there is a lead comment, can't be one line
+	if val.LeadComment != nil {
+		return false
+	}
+
+	// If there is assignment, we always break by line
+	if val.Assign.IsValid() {
+		return false
+	}
+
+	// If it isn't an object type, then its not a single line object
+	ot, ok := val.Val.(*ast.ObjectType)
+	if !ok {
+		return false
+	}
+
+	// If the object has no items, it is single line!
+	return len(ot.List.Items) == 0
 }
 
 func lines(txt string) int {

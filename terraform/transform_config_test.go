@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 )
 
@@ -43,6 +44,80 @@ func TestConfigTransformer(t *testing.T) {
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testConfigTransformerGraphBasicStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
+func TestConfigTransformer_mode(t *testing.T) {
+	g := Graph{Path: RootModulePath}
+	tf := &ConfigTransformer{
+		Module:     testModule(t, "transform-config-mode-data"),
+		ModeFilter: true,
+		Mode:       config.DataResourceMode,
+	}
+	if err := tf.Transform(&g); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(`
+data.aws_ami.foo
+`)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
+func TestConfigTransformer_nonUnique(t *testing.T) {
+	addr, err := ParseResourceAddress("aws_instance.web")
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	g := Graph{Path: RootModulePath}
+	g.Add(&NodeAbstractResource{Addr: addr})
+	tf := &ConfigTransformer{Module: testModule(t, "graph-basic")}
+	if err := tf.Transform(&g); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(`
+aws_instance.web
+aws_instance.web
+aws_load_balancer.weblb
+aws_security_group.firewall
+openstack_floating_ip.random
+`)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
+func TestConfigTransformer_unique(t *testing.T) {
+	addr, err := ParseResourceAddress("aws_instance.web")
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	g := Graph{Path: RootModulePath}
+	g.Add(&NodeAbstractResource{Addr: addr})
+	tf := &ConfigTransformer{
+		Module: testModule(t, "graph-basic"),
+		Unique: true,
+	}
+	if err := tf.Transform(&g); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(`
+aws_instance.web
+aws_load_balancer.weblb
+aws_security_group.firewall
+openstack_floating_ip.random
+`)
 	if actual != expected {
 		t.Fatalf("bad:\n\n%s", actual)
 	}

@@ -12,25 +12,25 @@ Provides a DNSimple record resource.
 
 ## Example Usage
 
-```
+```hcl
 # Add a record to the root domain
 resource "dnsimple_record" "foobar" {
-	domain = "${var.dnsimple_domain}"
-	name = ""
-	value = "192.168.0.11"
-	type = "A"
-	ttl = 3600
+  domain = "${var.dnsimple_domain}"
+  name   = ""
+  value  = "192.168.0.11"
+  type   = "A"
+  ttl    = 3600
 }
 ```
 
-```
+```hcl
 # Add a record to a sub-domain
 resource "dnsimple_record" "foobar" {
-	domain = "${var.dnsimple_domain}"
-	name = "terraform"
-	value = "192.168.0.11"
-	type = "A"
-	ttl = 3600
+  domain = "${var.dnsimple_domain}"
+  name   = "terraform"
+  value  = "192.168.0.11"
+  type   = "A"
+  ttl    = 3600
 }
 ```
 
@@ -43,6 +43,7 @@ The following arguments are supported:
 * `value` - (Required) The value of the record
 * `type` - (Required) The type of the record
 * `ttl` - (Optional) The TTL of the record
+* `priority` - (Optional) The priority of the record - only useful for some record types
 
 
 ## Attributes Reference

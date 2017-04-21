@@ -17,7 +17,7 @@ may be used in the configuration of other resources such as ``aws_key_pair``.
 
 ## Example Usage
 
-```
+```hcl
 resource "rundeck_public_key" "anvils" {
     path = "anvils/id_rsa.pub"
     key_material = "ssh-rsa yada-yada-yada"

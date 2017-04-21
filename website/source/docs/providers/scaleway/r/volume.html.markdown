@@ -8,25 +8,24 @@ description: |-
 
 # scaleway\_volume
 
-Provides ARM volumes. This allows volumes to be created, updated and deleted.
+Provides volumes. This allows volumes to be created, updated and deleted.
 For additional details please refer to [API documentation](https://developer.scaleway.com/#volumes).
 
 ## Example Usage
 
-```
+```hcl
 resource "scaleway_server" "test" {
-  name = "test"
-  image = "aecaed73-51a5-4439-a127-6d8229847145"
-  type = "C2S"
+  name    = "test"
+  image   = "aecaed73-51a5-4439-a127-6d8229847145"
+  type    = "C2S"
   volumes = ["${scaleway_volume.test.id}"]
 }
 
 resource "scaleway_volume" "test" {
-  name = "test"
+  name       = "test"
   size_in_gb = 20
-  type = "l_ssd"
+  type       = "l_ssd"
 }
-
 ```
 
 ## Argument Reference

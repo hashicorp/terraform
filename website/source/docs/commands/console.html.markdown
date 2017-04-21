@@ -45,15 +45,15 @@ final command is outputted unless an error occurs earlier.
 
 An example is shown below:
 
-```
+```shell
 $ echo "1 + 5" | terraform console
 6
 ```
 
 ## Remote State
 
-The `terraform console `command will read configured state even if it
-is [remote](/docs/state/remote/index.html). This is great for scripting
+The `terraform console` command will read configured state even if it
+is [remote](/docs/state/remote.html). This is great for scripting
 state reading in CI environments or other remote scenarios.
 
 After configuring remote state, run a `terraform remote pull` command

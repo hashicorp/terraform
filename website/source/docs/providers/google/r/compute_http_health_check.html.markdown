@@ -17,7 +17,7 @@ and
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_http_health_check" "default" {
   name         = "test"
   request_path = "/health_check"

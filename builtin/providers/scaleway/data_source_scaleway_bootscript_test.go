@@ -2,30 +2,11 @@ package scaleway
 
 import (
 	"fmt"
-	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
-
-func TestAccScalewayDataSourceBootscript_Basic(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckScalewayBootscriptConfig,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckBootscriptID("data.scaleway_bootscript.debug"),
-					resource.TestCheckResourceAttr("data.scaleway_bootscript.debug", "architecture", "x86_64"),
-					resource.TestCheckResourceAttr("data.scaleway_bootscript.debug", "public", "true"),
-					resource.TestMatchResourceAttr("data.scaleway_bootscript.debug", "kernel", regexp.MustCompile("4.8.3")),
-				),
-			},
-		},
-	})
-}
 
 func TestAccScalewayDataSourceBootscript_Filtered(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -64,12 +45,6 @@ func testAccCheckBootscriptID(n string) resource.TestCheckFunc {
 		return nil
 	}
 }
-
-const testAccCheckScalewayBootscriptConfig = `
-data "scaleway_bootscript" "debug" {
-  name = "x86_64 4.8.3 debug #1"
-}
-`
 
 const testAccCheckScalewayBootscriptFilterConfig = `
 data "scaleway_bootscript" "debug" {

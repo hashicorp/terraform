@@ -16,6 +16,10 @@ import (
 // a Mercurial repository.
 type HgGetter struct{}
 
+func (g *HgGetter) ClientMode(_ *url.URL) (ClientMode, error) {
+	return ClientModeDir, nil
+}
+
 func (g *HgGetter) Get(dst string, u *url.URL) error {
 	if _, err := exec.LookPath("hg"); err != nil {
 		return fmt.Errorf("hg must be available and on the PATH")

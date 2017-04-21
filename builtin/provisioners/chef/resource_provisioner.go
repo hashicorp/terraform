@@ -94,6 +94,7 @@ type Provisioner struct {
 	PolicyName            string   `mapstructure:"policy_name"`
 	HTTPProxy             string   `mapstructure:"http_proxy"`
 	HTTPSProxy            string   `mapstructure:"https_proxy"`
+	NamedRunList          string   `mapstructure:"named_run_list"`
 	NOProxy               []string `mapstructure:"no_proxy"`
 	NodeName              string   `mapstructure:"node_name"`
 	OhaiHints             []string `mapstructure:"ohai_hints"`
@@ -130,6 +131,11 @@ type Provisioner struct {
 
 // ResourceProvisioner represents a generic chef provisioner
 type ResourceProvisioner struct{}
+
+func (r *ResourceProvisioner) Stop() error {
+	// Noop for now. TODO in the future.
+	return nil
+}
 
 // Apply executes the file provisioner
 func (r *ResourceProvisioner) Apply(
@@ -353,7 +359,7 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 		p.UserKey = p.ValidationKey
 	}
 
-	if attrs, ok := c.Config["attributes_json"].(string); ok {
+	if attrs, ok := c.Config["attributes_json"].(string); ok && !c.IsComputed("attributes_json") {
 		var m map[string]interface{}
 		if err := json.Unmarshal([]byte(attrs), &m); err != nil {
 			return nil, fmt.Errorf("Error parsing attributes_json: %v", err)
@@ -361,7 +367,7 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 		p.attributes = m
 	}
 
-	if vaults, ok := c.Config["vault_json"].(string); ok {
+	if vaults, ok := c.Config["vault_json"].(string); ok && !c.IsComputed("vault_json") {
 		var m map[string]interface{}
 		if err := json.Unmarshal([]byte(vaults), &m); err != nil {
 			return nil, fmt.Errorf("Error parsing vault_json: %v", err)
@@ -573,7 +579,7 @@ func (p *Provisioner) configureVaultsFunc(
 
 		for vault, items := range p.vaults {
 			for _, item := range items {
-				updateCmd := fmt.Sprintf("%s vault update %s %s -A %s -M client %s",
+				updateCmd := fmt.Sprintf("%s vault update %s %s -C %s -M client %s",
 					knifeCmd,
 					vault,
 					item,
@@ -598,9 +604,12 @@ func (p *Provisioner) runChefClientFunc(
 		var cmd string
 
 		// Policyfiles do not support chef environments, so don't pass the `-E` flag.
-		if p.UsePolicyfile {
+		switch {
+		case p.UsePolicyfile && p.NamedRunList == "":
 			cmd = fmt.Sprintf("%s -j %q", chefCmd, fb)
-		} else {
+		case p.UsePolicyfile && p.NamedRunList != "":
+			cmd = fmt.Sprintf("%s -j %q -n %q", chefCmd, fb, p.NamedRunList)
+		default:
 			cmd = fmt.Sprintf("%s -j %q -E %q", chefCmd, fb, p.Environment)
 		}
 

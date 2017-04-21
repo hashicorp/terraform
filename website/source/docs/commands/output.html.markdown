@@ -25,7 +25,7 @@ The command-line flags are all optional. The list of available flags are:
     a key per output. If `NAME` is specified, only the output specified will be
     returned. This can be piped into tools such as `jq` for further processing.
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
-    Ignored when [remote state](/docs/state/remote/index.html) is used.
+    Ignored when [remote state](/docs/state/remote.html) is used.
 * `-module=module_name` - The module path which has needed output.
     By default this is the root path. Other modules can be specified by
     a period-separated list. Example: "foo" would reference the module
@@ -36,7 +36,7 @@ The command-line flags are all optional. The list of available flags are:
 
 These examples assume the following Terraform output snippet.
 
-```ruby
+```hcl
 output "lb_address" {
   value = "${aws_alb.web.public_dns}"
 }
@@ -48,20 +48,20 @@ output "instance_ips" {
 
 To list all outputs:
 
-```text
+```shell
 $ terraform output
 ```
 
 To query for the DNS address of the load balancer:
 
-```text
+```shell
 $ terraform output lb_address
 my-app-alb-1657023003.us-east-1.elb.amazonaws.com
 ```
 
 To query for all instance IP addresses:
 
-```text
+```shell
 $ terraform output instance_ips
 test = [
     54.43.114.12,
@@ -74,6 +74,6 @@ To query for a particular value in a list, use `-json` and a JSON
 command-line parser such as [jq](https://stedolan.github.io/jq/).
 For example, to query for the first instance's IP address:
 
-```text
+```shell
 $ terraform output -json instance_ips | jq '.value[0]'
 ```

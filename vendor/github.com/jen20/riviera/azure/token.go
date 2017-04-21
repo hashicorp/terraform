@@ -19,6 +19,9 @@ func init() {
 }
 
 type tokenRequester struct {
+	activeDirectoryEndpoint string
+	resourceManagerEndpoint string
+
 	clientID     string
 	clientSecret string
 	tenantID     string
@@ -31,21 +34,23 @@ type tokenRequester struct {
 	currentToken *token
 }
 
-func newTokenRequester(client *retryablehttp.Client, clientID, clientSecret, tenantID string) *tokenRequester {
+func newTokenRequester(client *retryablehttp.Client, creds *AzureResourceManagerCredentials) *tokenRequester {
 	return &tokenRequester{
-		clientID:      clientID,
-		clientSecret:  clientSecret,
-		tenantID:      tenantID,
-		refreshWithin: 5 * time.Minute,
-		httpClient:    client,
+		activeDirectoryEndpoint: creds.ActiveDirectoryEndpoint,
+		resourceManagerEndpoint: creds.ResourceManagerEndpoint,
+		clientID:                creds.ClientID,
+		clientSecret:            creds.ClientSecret,
+		tenantID:                creds.TenantID,
+		refreshWithin:           5 * time.Minute,
+		httpClient:              client,
 	}
 }
 
 // addAuthorizationToRequest adds an Authorization header to an http.Request, having ensured
 // that the token is sufficiently fresh. This may invoke network calls, so should not be
 // relied on to return quickly.
-func (tr *tokenRequester) addAuthorizationToRequest(request *retryablehttp.Request, endpoints Endpoints) error {
-	token, err := tr.getUsableToken(endpoints)
+func (tr *tokenRequester) addAuthorizationToRequest(request *retryablehttp.Request) error {
+	token, err := tr.getUsableToken()
 	if err != nil {
 		return fmt.Errorf("Error obtaining authorization token: %s", err)
 	}
@@ -54,7 +59,7 @@ func (tr *tokenRequester) addAuthorizationToRequest(request *retryablehttp.Reque
 	return nil
 }
 
-func (tr *tokenRequester) getUsableToken(endpoints Endpoints) (*token, error) {
+func (tr *tokenRequester) getUsableToken() (*token, error) {
 	tr.l.Lock()
 	defer tr.l.Unlock()
 
@@ -62,7 +67,7 @@ func (tr *tokenRequester) getUsableToken(endpoints Endpoints) (*token, error) {
 		return tr.currentToken, nil
 	}
 
-	newToken, err := tr.refreshToken(endpoints)
+	newToken, err := tr.refreshToken()
 	if err != nil {
 		return nil, fmt.Errorf("Error refreshing token: %s", err)
 	}
@@ -71,14 +76,14 @@ func (tr *tokenRequester) getUsableToken(endpoints Endpoints) (*token, error) {
 	return newToken, nil
 }
 
-func (tr *tokenRequester) refreshToken(endpoints Endpoints) (*token, error) {
-	oauthURL := fmt.Sprintf("%s/%s/oauth2/%s?api-version=1.0", endpoints.activeDirectoryEndpointUrl, tr.tenantID, "token")
+func (tr *tokenRequester) refreshToken() (*token, error) {
+	oauthURL := fmt.Sprintf("%s/%s/oauth2/%s?api-version=1.0", tr.activeDirectoryEndpoint, tr.tenantID, "token")
 
 	v := url.Values{}
 	v.Set("client_id", tr.clientID)
 	v.Set("client_secret", tr.clientSecret)
 	v.Set("grant_type", "client_credentials")
-	v.Set("resource", strings.TrimSuffix(endpoints.resourceManagerEndpointUrl, "/")+"/")
+	v.Set("resource", strings.TrimSuffix(tr.resourceManagerEndpoint, "/")+"/")
 
 	var newToken token
 	response, err := tr.httpClient.PostForm(oauthURL, v)

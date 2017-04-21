@@ -23,7 +23,7 @@ the following contents.
 -> **Note**: that the file can be named anything, since Terraform loads all
 files ending in `.tf` in a directory.
 
-```
+```hcl
 variable "access_key" {}
 variable "secret_key" {}
 variable "region" {
@@ -41,7 +41,7 @@ variables.
 
 Next, replace the AWS provider configuration with the following:
 
-```
+```hcl
 provider "aws" {
   access_key = "${var.access_key}"
   secret_key = "${var.secret_key}"
@@ -69,7 +69,7 @@ accepts this flag, such as `apply`, `plan`, and `refresh`:
 $ terraform plan \
   -var 'access_key=foo' \
   -var 'secret_key=bar'
-...
+# ...
 ```
 
 Once again, setting variables this way will not save them, and they'll
@@ -81,7 +81,7 @@ To persist variable values, create a file and assign variables within
 this file. Create a file named `terraform.tfvars` with the following
 contents:
 
-```
+```hcl
 access_key = "foo"
 secret_key = "bar"
 ```
@@ -92,12 +92,6 @@ named something else, you can use the `-var-file` flag directly to
 specify a file. These files are the same syntax as Terraform
 configuration files. And like Terraform configuration files, these files
 can also be JSON.
-
-#### From environment variables
-
-Terraform will read environment variables in the form of `TF_VAR_name`
-to find the value for a variable. For example, the `TF_VAR_access_key`
-variable can be set to set the `access_key` variable.
 
 We don't recommend saving usernames and password to version control, But you
 can create a local secret variables file and use `-var-file` to load it.
@@ -110,7 +104,14 @@ $ terraform plan \
   -var-file="secret.tfvars" \
   -var-file="production.tfvars"
 ```
--> **Note**: Environment variables can only populate string-type variables. 
+
+#### From environment variables
+
+Terraform will read environment variables in the form of `TF_VAR_name`
+to find the value for a variable. For example, the `TF_VAR_access_key`
+variable can be set to set the `access_key` variable.
+
+-> **Note**: Environment variables can only populate string-type variables.
 List and map type variables must be populated via one of the other mechanisms.
 
 #### UI Input
@@ -132,8 +133,9 @@ for the variable.
 <a id="lists"></a>
 ## Lists
 
-Lists are defined either explicitly or implicity
-```
+Lists are defined either explicitly or implicitly
+
+```hcl
 # implicitly by using brackets [...]
 variable "cidrs" { default = [] }
 
@@ -142,12 +144,11 @@ variable "cidrs" { type = "list" }
 ```
 
 You can specify lists in a `terraform.tfvars` file:
-```
+
+```hcl
 cidrs = [ "10.0.0.0/16", "10.1.0.0/16" ]
 ```
 
-<a id="mappings"></a>
-<a id="maps"></a>
 ## Maps
 
 We've replaced our sensitive strings with variables, but we still
@@ -160,12 +161,12 @@ Maps are a way to create variables that are lookup tables. An example
 will show this best. Let's extract our AMIs into a map and add
 support for the `us-west-2` region as well:
 
-```
+```hcl
 variable "amis" {
   type = "map"
   default = {
-    us-east-1 = "ami-13be557e"
-    us-west-2 = "ami-06b94666"
+    "us-east-1" = "ami-b374d5a5"
+    "us-west-2" = "ami-4b32be2b"
   }
 }
 ```
@@ -176,7 +177,7 @@ demonstrates both.
 
 Then, replace the `aws_instance` with the following:
 
-```
+```hcl
 resource "aws_instance" "example" {
   ami           = "${lookup(var.amis, var.region)}"
   instance_type = "t2.micro"
@@ -192,7 +193,6 @@ While we don't use it in our example, it is worth noting that you
 can also do a static lookup of a map directly with
 `${var.amis["us-east-1"]}`.
 
-<a id="assigning-maps"></a>
 ## Assigning Maps
 
 We set defaults above, but maps can also be set using the `-var` and
@@ -200,7 +200,7 @@ We set defaults above, but maps can also be set using the `-var` and
 
 ```
 $ terraform plan -var 'amis={ us-east-1 = "foo", us-west-2 = "bar" }'
-...
+# ...
 ```
 
 -> **Note**: Even if every key will be assigned as input, the variable must be
@@ -209,7 +209,7 @@ established as a map by setting its default to `{}`.
 Here is an example of setting a map's keys from a file. Starting with these
 variable definitions:
 
-```
+```hcl
 variable "region" {}
 variable "amis" {
   type = "map"
@@ -218,16 +218,16 @@ variable "amis" {
 
 You can specify keys in a `terraform.tfvars` file:
 
-```
+```hcl
 amis = {
-  us-east-1 = "ami-abc123"
-  us-west-2 = "ami-def456"
+  "us-east-1" = "ami-abc123"
+  "us-west-2" = "ami-def456"
 }
 ```
 
 And access them via `lookup()`:
 
-```
+```hcl
 output "ami" {
   value = "${lookup(var.amis, var.region)}"
 }
@@ -243,7 +243,6 @@ Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
 Outputs:
 
   ami = ami-def456
-
 ```
 
 ## Next

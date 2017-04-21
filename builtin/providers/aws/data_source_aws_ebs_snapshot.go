@@ -2,6 +2,8 @@ package aws
 
 import (
 	"fmt"
+	"log"
+	"sort"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -14,7 +16,12 @@ func dataSourceAwsEbsSnapshot() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			//selection criteria
 			"filter": dataSourceFiltersSchema(),
-
+			"most_recent": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+				ForceNew: true,
+			},
 			"owners": {
 				Type:     schema.TypeList,
 				Optional: true,
@@ -110,16 +117,41 @@ func dataSourceAwsEbsSnapshotRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
+	var snapshot *ec2.Snapshot
 	if len(resp.Snapshots) < 1 {
 		return fmt.Errorf("Your query returned no results. Please change your search criteria and try again.")
 	}
 
 	if len(resp.Snapshots) > 1 {
-		return fmt.Errorf("Your query returned more than one result. Please try a more specific search criteria.")
+		recent := d.Get("most_recent").(bool)
+		log.Printf("[DEBUG] aws_ebs_snapshot - multiple results found and `most_recent` is set to: %t", recent)
+		if recent {
+			snapshot = mostRecentSnapshot(resp.Snapshots)
+		} else {
+			return fmt.Errorf("Your query returned more than one result. Please try a more specific search criteria.")
+		}
+	} else {
+		snapshot = resp.Snapshots[0]
 	}
 
 	//Single Snapshot found so set to state
-	return snapshotDescriptionAttributes(d, resp.Snapshots[0])
+	return snapshotDescriptionAttributes(d, snapshot)
+}
+
+type snapshotSort []*ec2.Snapshot
+
+func (a snapshotSort) Len() int      { return len(a) }
+func (a snapshotSort) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a snapshotSort) Less(i, j int) bool {
+	itime := *a[i].StartTime
+	jtime := *a[j].StartTime
+	return itime.Unix() < jtime.Unix()
+}
+
+func mostRecentSnapshot(snapshots []*ec2.Snapshot) *ec2.Snapshot {
+	sortedSnapshots := snapshots
+	sort.Sort(snapshotSort(sortedSnapshots))
+	return sortedSnapshots[len(sortedSnapshots)-1]
 }
 
 func snapshotDescriptionAttributes(d *schema.ResourceData, snapshot *ec2.Snapshot) error {

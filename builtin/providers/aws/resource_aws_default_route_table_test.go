@@ -20,7 +20,7 @@ func TestAccAWSDefaultRouteTable_basic(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckDefaultRouteTableDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDefaultRouteTableConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(
@@ -40,7 +40,7 @@ func TestAccAWSDefaultRouteTable_swap(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckDefaultRouteTableDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDefaultRouteTable_change,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(
@@ -53,7 +53,7 @@ func TestAccAWSDefaultRouteTable_swap(t *testing.T) {
 			// behavior that may happen, in which case a follow up plan will show (in
 			// this case) a diff as the table now needs to be updated to match the
 			// config
-			resource.TestStep{
+			{
 				Config: testAccDefaultRouteTable_change_mod,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(
@@ -74,7 +74,7 @@ func TestAccAWSDefaultRouteTable_vpc_endpoint(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckDefaultRouteTableDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDefaultRouteTable_vpc_endpoint,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(

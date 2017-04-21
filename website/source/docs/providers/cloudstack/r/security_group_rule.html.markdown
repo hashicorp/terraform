@@ -6,13 +6,13 @@ description: |-
   Authorizes and revokes both ingress and egress rulea for a given security group.
 ---
 
-# cloudstack\_security\_group\_rule
+# cloudstack_security_group_rule
 
 Authorizes and revokes both ingress and egress rulea for a given security group.
 
 ## Example Usage
 
-```
+```hcl
 resource "cloudstack_security_group_rule" "web" {
   security_group_id = "e340b62b-fbc2-4081-8f67-e40455c44bce"
 
@@ -69,4 +69,3 @@ The `rule` block supports:
 The following attributes are exported:
 
 * `id` - The security group ID for which the rules are created.
-
