@@ -53,6 +53,7 @@ BUG FIXES:
  * provider/aws: Remove aws_vpc_dhcp_options if not found [GH-13610]
  * provider/aws: Remove aws_network_acl_rule if not found [GH-13608]
  * provider/aws: Allow GovCloud KMS ARNs to pass validation in `kms_key_id` attributes [GH-13699]
+ * provider/aws: Changing aws_opsworks_instance should ForceNew [GH-13839]
  * provider/azurerm: azurerm_redis_cache resource missing hostname [GH-13650]
  * provider/azurerm: Locking around Network Security Group / Subnets [GH-13637]
  * provider/azurerm: Locking route table on subnet create/delete [GH-13791]
