@@ -295,6 +295,24 @@ func resourceArmAppGateway() *schema.Resource {
 							Required: true,
 						},
 
+						"authentication_certificate": {
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"name": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+
+									"id": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+								},
+							},
+						},
+
 						"probe_name": {
 							Type:     schema.TypeString,
 							Optional: true,
@@ -580,8 +598,8 @@ func resourceArmAppGateway() *schema.Resource {
 					},
 				},
 			},
-			//TODO: implement authentication certificates
-			"authentication_certificates": {
+
+			"authentication_certificate": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
@@ -673,6 +691,7 @@ func resourceArmAppGatewayCreate(d *schema.ResourceData, meta interface{}) error
 	properties.Probes = expandAppGatewayProbes(d)
 	properties.RequestRoutingRules = expandAppGatewayRequestRoutingRules(d, gatewayID)
 	properties.URLPathMaps = expandAppGatewayURLPathMaps(d, gatewayID)
+	properties.AuthenticationCertificates = expandAppGatewayAuthenticationCertificates(d)
 	properties.SslCertificates = expandAppGatewaySslCertificates(d)
 
 	if _, ok := d.GetOk("waf_configuration"); ok {
@@ -745,6 +764,7 @@ func resourceArmAppGatewayRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("probe", flattenAppGatewayProbes(appGateway.ApplicationGatewayPropertiesFormat.Probes))
 	d.Set("request_routing_rule", flattenAppGatewayRequestRoutingRules(appGateway.ApplicationGatewayPropertiesFormat.RequestRoutingRules))
 	d.Set("url_path_map", flattenAppGatewayURLPathMaps(appGateway.ApplicationGatewayPropertiesFormat.URLPathMaps))
+	d.Set("authentication_certificate", schema.NewSet(hashAppGatewayAuthenticationCertificates, flattenAppGatewayAuthenticationCertificates(appGateway.ApplicationGatewayPropertiesFormat.AuthenticationCertificates)))
 	d.Set("ssl_certificate", schema.NewSet(hashAppGatewaySslCertificates, flattenAppGatewaySslCertificates(appGateway.ApplicationGatewayPropertiesFormat.SslCertificates)))
 
 	if appGateway.ApplicationGatewayPropertiesFormat.WebApplicationFirewallConfiguration != nil {
@@ -1003,6 +1023,23 @@ func expandAppGatewayBackendHTTPSettings(d *schema.ResourceData, gatewayID strin
 			},
 		}
 
+		if data["authentication_certificate"] != nil {
+			authCerts := data["authentication_certificate"].([]interface{})
+			authCertSubResources := make([]network.SubResource, 0, len(authCerts))
+
+			for _, rawAuthCert := range authCerts {
+				authCert := rawAuthCert.(map[string]interface{})
+				authCertID := fmt.Sprintf("%s/authenticationCertificates/%s", gatewayID, authCert["name"])
+				authCertSubResource := network.SubResource{
+					ID: &authCertID,
+				}
+
+				authCertSubResources = append(authCertSubResources, authCertSubResource)
+			}
+
+			setting.ApplicationGatewayBackendHTTPSettingsPropertiesFormat.AuthenticationCertificates = &authCertSubResources
+		}
+
 		probeName := data["probe_name"].(string)
 		if probeName != "" {
 			probeID := fmt.Sprintf("%s/probes/%s", gatewayID, probeName)
@@ -1214,6 +1251,32 @@ func expandAppGatewayURLPathMaps(d *schema.ResourceData, gatewayID string) *[]ne
 	return &pathMaps
 }
 
+func expandAppGatewayAuthenticationCertificates(d *schema.ResourceData) *[]network.ApplicationGatewayAuthenticationCertificate {
+	configs := d.Get("authentication_certificate").([]interface{})
+	authCerts := make([]network.ApplicationGatewayAuthenticationCertificate, 0, len(configs))
+
+	for _, configRaw := range configs {
+		raw := configRaw.(map[string]interface{})
+
+		name := raw["name"].(string)
+		data := raw["data"].(string)
+
+		// data must be base64 encoded
+		data = base64.StdEncoding.EncodeToString([]byte(data))
+
+		cert := network.ApplicationGatewayAuthenticationCertificate{
+			Name: &name,
+			ApplicationGatewayAuthenticationCertificatePropertiesFormat: &network.ApplicationGatewayAuthenticationCertificatePropertiesFormat{
+				Data: &data,
+			},
+		}
+
+		authCerts = append(authCerts, cert)
+	}
+
+	return &authCerts
+}
+
 func expandAppGatewaySslCertificates(d *schema.ResourceData) *[]network.ApplicationGatewaySslCertificate {
 	configs := d.Get("ssl_certificate").([]interface{})
 	sslCerts := make([]network.ApplicationGatewaySslCertificate, 0, len(configs))
@@ -1371,6 +1434,21 @@ func flattenAppGatewayBackendHTTPSettings(backendSettings *[]network.Application
 			"request_timeout":       int(*config.ApplicationGatewayBackendHTTPSettingsPropertiesFormat.RequestTimeout),
 		}
 
+		if config.ApplicationGatewayBackendHTTPSettingsPropertiesFormat.AuthenticationCertificates != nil {
+			authCerts := make([]interface{}, 0, len(*config.ApplicationGatewayBackendHTTPSettingsPropertiesFormat.AuthenticationCertificates))
+
+			for _, config := range *config.ApplicationGatewayBackendHTTPSettingsPropertiesFormat.AuthenticationCertificates {
+				authCert := map[string]interface{}{
+					"name": path.Base(*config.ID),
+					"id":   *config.ID,
+				}
+
+				authCerts = append(authCerts, authCert)
+			}
+
+			settings["authentication_certificate"] = authCerts
+		}
+
 		if config.ApplicationGatewayBackendHTTPSettingsPropertiesFormat.Probe != nil {
 			settings["probe_name"] = path.Base(*config.ApplicationGatewayBackendHTTPSettingsPropertiesFormat.Probe.ID)
 			settings["probe_id"] = *config.ApplicationGatewayBackendHTTPSettingsPropertiesFormat.Probe.ID
@@ -1521,6 +1599,21 @@ func flattenAppGatewayURLPathMaps(pathMaps *[]network.ApplicationGatewayURLPathM
 	return result
 }
 
+func flattenAppGatewayAuthenticationCertificates(certs *[]network.ApplicationGatewayAuthenticationCertificate) []interface{} {
+	result := make([]interface{}, 0, len(*certs))
+
+	for _, config := range *certs {
+		certConfig := map[string]interface{}{
+			"id":   *config.ID,
+			"name": *config.Name,
+		}
+
+		result = append(result, certConfig)
+	}
+
+	return result
+}
+
 func flattenAppGatewaySslCertificates(certs *[]network.ApplicationGatewaySslCertificate) []interface{} {
 	result := make([]interface{}, 0, len(*certs))
 
@@ -1552,6 +1645,14 @@ func hashAppGatewayWafConfig(v interface{}) int {
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%t-", m["enabled"].(bool)))
 	buf.WriteString(fmt.Sprintf("%s-", m["firewall_mode"].(string)))
+
+	return hashcode.String(buf.String())
+}
+
+func hashAppGatewayAuthenticationCertificates(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
 
 	return hashcode.String(buf.String())
 }
