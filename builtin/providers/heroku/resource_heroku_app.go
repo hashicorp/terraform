@@ -16,6 +16,7 @@ import (
 type herokuApplication struct {
 	Name             string
 	Region           string
+	Space            string
 	Stack            string
 	GitURL           string
 	WebURL           string
@@ -62,6 +63,9 @@ func (a *application) Update() error {
 			a.App.Stack = app.Stack.Name
 			a.App.GitURL = app.GitURL
 			a.App.WebURL = app.WebURL
+			if app.Space != nil {
+				a.App.Space = app.Space.Name
+			}
 			if app.Organization != nil {
 				a.App.OrganizationName = app.Organization.Name
 			} else {
@@ -94,6 +98,12 @@ func resourceHerokuApp() *schema.Resource {
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
+			},
+
+			"space": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"region": {
@@ -257,6 +267,11 @@ func resourceHerokuOrgAppCreate(d *schema.ResourceData, meta interface{}) error 
 		log.Printf("[DEBUG] App region: %s", vs)
 		opts.Region = &vs
 	}
+	if v, ok := d.GetOk("space"); ok {
+		vs := v.(string)
+		log.Printf("[DEBUG] App space: %s", vs)
+		opts.Space = &vs
+	}
 	if v, ok := d.GetOk("stack"); ok {
 		vs := v.(string)
 		log.Printf("[DEBUG] App stack: %s", vs)
@@ -320,6 +335,8 @@ func resourceHerokuAppRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("config_vars", configVarsValue)
 	d.Set("all_config_vars", app.Vars)
 	if organizationApp {
+		d.Set("space", app.App.Space)
+
 		orgDetails := map[string]interface{}{
 			"name":     app.App.OrganizationName,
 			"locked":   app.App.Locked,
