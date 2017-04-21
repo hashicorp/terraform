@@ -21,6 +21,7 @@ FEATURES:
 * **New Resource:**  `alicloud_ess_schedule` [GH-13731]
 * **New Resource:**  `alicloud_snat_entry` [GH-13731]
 * **New Resource:**  `alicloud_forward_entry` [GH-13731]
+* **New Resource:**  `aws_cognito_identity_pool` [GH-13783]
 * **New Resource:**  `github_branch_protection` [GH-10476]
 * **New Resource:**  `google_bigquery_dataset` [GH-13436]
 
