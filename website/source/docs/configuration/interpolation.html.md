@@ -179,6 +179,9 @@ The supported built-in functions are:
   * `coalesce(string1, string2, ...)` - Returns the first non-empty value from
     the given arguments. At least two arguments must be provided.
 
+  * `coalescelist(list1, list2, ...)` - Returns the first non-empty list from
+    the given arguments. At least two arguments must be provided.
+
   * `compact(list)` - Removes empty string elements from a list. This can be
      useful in some cases, for example when passing joined lists as module
      variables or when parsing module outputs.
