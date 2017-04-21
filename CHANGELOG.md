@@ -32,6 +32,7 @@ FEATURES:
 
 IMPROVEMENTS:
  * config: The interpolation function `cidrhost` now accepts a negative host number to count backwards from the end of the range [GH-13765]
+ * config: New interpolation function `matchkeys` for using values from one list to filter corresponding values from another list using a matching set. [GH-13847]
  * state/remote/swift: Support Openstack request logging [GH-13583]
  * provider/aws: Add an option to skip getting the supported EC2 platforms [GH-13672]
  * provider/aws: Add `name_prefix` support to `aws_cloudwatch_log_group` [GH-13273]
