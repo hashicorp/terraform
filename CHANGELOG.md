@@ -1,5 +1,12 @@
 ## 0.9.4 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+ * provider/template: Fix invalid MIME formatting in `template_cloudinit_config`.
+   While the change itself is not breaking the data source it may be referenced
+   e.g. in `aws_launch_configuration` and similar resources which are immutable
+   and the formatting change will therefore trigger recreation [GH-13752]
+
 FEATURES:
 
 * **New Provider:** `opc` - Oracle Public Cloud [GH-13468]
