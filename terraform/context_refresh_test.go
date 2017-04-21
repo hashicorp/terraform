@@ -605,7 +605,7 @@ func TestContext2Refresh_dataOrphan(t *testing.T) {
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
 					"data.null_data_source.bar": &ResourceState{
-						Type: "foo",
+						Type: "null_data_source",
 						Primary: &InstanceState{
 							ID: "foo",
 						},
@@ -894,6 +894,7 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
 					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "i-abc123",
 							Attributes: map[string]string{
@@ -912,6 +913,7 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 				Path: append(rootModulePath, "child"),
 				Resources: map[string]*ResourceState{
 					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "i-bcd234",
 							Attributes: map[string]string{
@@ -938,6 +940,7 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 				Path: append(rootModulePath, "child", "grandchild"),
 				Resources: map[string]*ResourceState{
 					"aws_instance.baz": &ResourceState{
+						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "i-cde345",
 						},

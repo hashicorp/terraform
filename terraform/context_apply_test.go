@@ -7770,6 +7770,7 @@ func TestContext2Apply_targetedWithTaintedInState(t *testing.T) {
 					Path: rootModulePath,
 					Resources: map[string]*ResourceState{
 						"aws_instance.ifailedprovisioners": &ResourceState{
+							Type: "aws_instance",
 							Primary: &InstanceState{
 								ID:      "ifailedprovisioners",
 								Tainted: true,
@@ -7897,6 +7898,7 @@ func TestContext2Apply_ignoreChangesWithDep(t *testing.T) {
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
 					"aws_instance.foo.0": &ResourceState{
+						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "i-abc123",
 							Attributes: map[string]string{
@@ -7906,6 +7908,7 @@ func TestContext2Apply_ignoreChangesWithDep(t *testing.T) {
 						},
 					},
 					"aws_instance.foo.1": &ResourceState{
+						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "i-bcd234",
 							Attributes: map[string]string{
@@ -7915,6 +7918,7 @@ func TestContext2Apply_ignoreChangesWithDep(t *testing.T) {
 						},
 					},
 					"aws_eip.foo.0": &ResourceState{
+						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "eip-abc123",
 							Attributes: map[string]string{
@@ -7924,6 +7928,7 @@ func TestContext2Apply_ignoreChangesWithDep(t *testing.T) {
 						},
 					},
 					"aws_eip.foo.1": &ResourceState{
+						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "eip-bcd234",
 							Attributes: map[string]string{
