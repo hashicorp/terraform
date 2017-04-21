@@ -37,6 +37,15 @@ type VersionSet struct {
 	raw version.Constraints
 }
 
+// AllVersions is a VersionSet containing all versions
+var AllVersions VersionSet
+
+func init() {
+	AllVersions = VersionSet{
+		raw: make(version.Constraints, 0),
+	}
+}
+
 // Has returns true if the given version is in the receiving set.
 func (s VersionSet) Has(v Version) bool {
 	return s.raw.Check(v.raw)
