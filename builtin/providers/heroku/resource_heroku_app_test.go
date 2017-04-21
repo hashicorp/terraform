@@ -128,7 +128,37 @@ func TestAccHerokuApp_Organization(t *testing.T) {
 				Config: testAccCheckHerokuAppConfig_organization(appName, org),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAppExistsOrg("heroku_app.foobar", &app),
-					testAccCheckHerokuAppAttributesOrg(&app, appName, org),
+					testAccCheckHerokuAppAttributesOrg(&app, appName, "", org),
+				),
+			},
+		},
+	})
+}
+
+func TestAccHerokuApp_Space(t *testing.T) {
+	var app heroku.OrganizationApp
+	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
+	org := os.Getenv("HEROKU_ORGANIZATION")
+	space := os.Getenv("HEROKU_SPACE")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			if org == "" {
+				t.Skip("HEROKU_ORGANIZATION is not set; skipping test.")
+			}
+			if space == "" {
+				t.Skip("HEROKU_SPACE is not set; skipping test.")
+			}
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckHerokuAppDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckHerokuAppConfig_space(appName, space, org),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckHerokuAppExistsOrg("heroku_app.foobar", &app),
+					testAccCheckHerokuAppAttributesOrg(&app, appName, space, org),
 				),
 			},
 		},
@@ -230,12 +260,21 @@ func testAccCheckHerokuAppAttributesNoVars(app *heroku.AppInfoResult, appName st
 	}
 }
 
-func testAccCheckHerokuAppAttributesOrg(app *heroku.OrganizationApp, appName string, org string) resource.TestCheckFunc {
+func testAccCheckHerokuAppAttributesOrg(app *heroku.OrganizationApp, appName, space, org string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*heroku.Service)
 
-		if app.Region.Name != "us" {
+		if app.Region.Name != "us" && app.Region.Name != "virginia" {
 			return fmt.Errorf("Bad region: %s", app.Region.Name)
+		}
+
+		var appSpace string
+		if app.Space != nil {
+			appSpace = app.Space.Name
+		}
+
+		if appSpace != space {
+			return fmt.Errorf("Bad space: %s", appSpace)
 		}
 
 		if app.Stack.Name != "cedar-14" {
@@ -370,4 +409,21 @@ resource "heroku_app" "foobar" {
     FOO = "bar"
   }
 }`, appName, org)
+}
+
+func testAccCheckHerokuAppConfig_space(appName, space, org string) string {
+	return fmt.Sprintf(`
+resource "heroku_app" "foobar" {
+  name   = "%s"
+  space  = "%s"
+  region = "virginia"
+
+  organization {
+    name = "%s"
+  }
+
+  config_vars {
+    FOO = "bar"
+  }
+}`, appName, space, org)
 }
