@@ -229,7 +229,7 @@ func TestInit_getUpdate(t *testing.T) {
 	}
 
 	args := []string{
-		"-update-modules=true",
+		"-update-modules",
 		testFixturePath("init-get"),
 	}
 	if code := c.Run(args); code != 0 {
