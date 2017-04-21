@@ -10,6 +10,8 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 FEATURES:
 
 * **New Provider:** `opc` - Oracle Public Cloud [GH-13468]
+* **New Data Source:** `aws_ami_ids` [GH-13844]
+* **New Data Source:** `aws_ebs_snapshot_ids` [GH-13844]
 * **New Data Source:** `aws_kms_alias` [GH-13669]
 * **New Data Source:** `aws_kinesis_stream` [GH-13562]
 * **New Data Source:** `digitalocean_image` [GH-13787]
