@@ -687,3 +687,22 @@ func TestConfigDataCount(t *testing.T) {
 		t.Fatal("count key still exists in RawConfig")
 	}
 }
+
+func TestConfigModuleCount(t *testing.T) {
+	c := testConfig(t, "module-count")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("should be valid: %s", err)
+	}
+
+	actual, err := c.Modules[0].Count()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if actual != 1 {
+		t.Fatalf("bad: %#v", actual)
+	}
+
+	if _, ok := c.Modules[0].RawConfig.Raw["count"]; ok {
+		t.Fatal("count key still exists in RawConfig")
+	}
+}

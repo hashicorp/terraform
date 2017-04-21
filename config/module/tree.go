@@ -104,11 +104,13 @@ func (t *Tree) Loaded() bool {
 // This is only the imports of _this_ level of the tree. To retrieve the
 // full nested imports, you'll have to traverse the tree.
 func (t *Tree) Modules() []*Module {
-	result := make([]*Module, len(t.config.Modules))
-	for i, m := range t.config.Modules {
-		result[i] = &Module{
-			Name:   m.Name,
-			Source: m.Source,
+	result := make([]*Module, 0, len(t.config.Modules))
+	for _, m := range t.config.Modules {
+		if count, _ := m.Count(); count > 0 {
+			result = append(result, &Module{
+				Name:   m.Name,
+				Source: m.Source,
+			})
 		}
 	}
 
@@ -306,6 +308,9 @@ func (t *Tree) Validate() error {
 	// Go over all the modules and verify that any parameters are valid
 	// variables into the module in question.
 	for _, m := range t.config.Modules {
+		if count, _ := m.Count(); count < 1 {
+			continue
+		}
 		tree, ok := children[m.Name]
 		if !ok {
 			// This should never happen because Load watches us
