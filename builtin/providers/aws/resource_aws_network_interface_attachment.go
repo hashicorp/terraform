@@ -15,26 +15,36 @@ import (
 func resourceAwsNetworkInterfaceAttachment() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsNetworkInterfaceAttachmentCreate,
-		Read:   resourceAwsNetworkInterfaceRead,
+		Read:   resourceAwsNetworkInterfaceAttachmentRead,
 		Delete: resourceAwsNetworkInterfaceAttachmentDelete,
 
 		Schema: map[string]*schema.Schema{
-			"device_index": &schema.Schema{
+			"device_index": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"instance_id": &schema.Schema{
+			"instance_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"network_interface_id": &schema.Schema{
+			"network_interface_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+			},
+
+			"attachment_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"status": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -57,7 +67,7 @@ func resourceAwsNetworkInterfaceAttachmentCreate(d *schema.ResourceData, meta in
 	resp, err := conn.AttachNetworkInterface(opts)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
-			return fmt.Errorf("[WARN] Error attaching network interface (%s) to instance (%s), message: \"%s\", code: \"%s\"",
+			return fmt.Errorf("Error attaching network interface (%s) to instance (%s), message: \"%s\", code: \"%s\"",
 				network_interface_id, instance_id, awsErr.Message(), awsErr.Code())
 		}
 		return err
@@ -79,13 +89,53 @@ func resourceAwsNetworkInterfaceAttachmentCreate(d *schema.ResourceData, meta in
 	}
 
 	d.SetId(*resp.AttachmentId)
-	return resourceAwsNetworkInterfaceRead(d, meta)
+	return resourceAwsNetworkInterfaceAttachmentRead(d, meta)
+}
+
+func resourceAwsNetworkInterfaceAttachmentRead(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).ec2conn
+
+	interfaceId := d.Get("network_interface_id").(string)
+
+	req := &ec2.DescribeNetworkInterfacesInput{
+		NetworkInterfaceIds: []*string{aws.String(interfaceId)},
+	}
+
+	resp, err := conn.DescribeNetworkInterfaces(req)
+	if err != nil {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidNetworkInterfaceID.NotFound" {
+			// The ENI is gone now, so just remove the attachment from the state
+			d.SetId("")
+			return nil
+		}
+
+		return fmt.Errorf("Error retrieving ENI: %s", err)
+	}
+	if len(resp.NetworkInterfaces) != 1 {
+		return fmt.Errorf("Unable to find ENI (%s): %#v", interfaceId, resp.NetworkInterfaces)
+	}
+
+	eni := resp.NetworkInterfaces[0]
+
+	if eni.Attachment == nil {
+		// Interface is no longer attached, remove from state
+		d.SetId("")
+		return nil
+	}
+
+	d.Set("attachment_id", eni.Attachment.AttachmentId)
+	d.Set("device_index", eni.Attachment.DeviceIndex)
+	d.Set("instance_id", eni.Attachment.InstanceId)
+	d.Set("network_interface_id", eni.NetworkInterfaceId)
+	d.Set("status", eni.Attachment.Status)
+
+	return nil
 }
 
 func resourceAwsNetworkInterfaceAttachmentDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	network_interface_id := d.Get("network_interface_id").(string)
+	interfaceId := d.Get("network_interface_id").(string)
 
 	detach_request := &ec2.DetachNetworkInterfaceInput{
 		AttachmentId: aws.String(d.Id()),
@@ -99,17 +149,17 @@ func resourceAwsNetworkInterfaceAttachmentDelete(d *schema.ResourceData, meta in
 		}
 	}
 
-	log.Printf("[DEBUG] Waiting for ENI (%s) to become dettached", network_interface_id)
+	log.Printf("[DEBUG] Waiting for ENI (%s) to become dettached", interfaceId)
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"true"},
 		Target:  []string{"false"},
-		Refresh: networkInterfaceAttachmentRefreshFunc(conn, network_interface_id),
+		Refresh: networkInterfaceAttachmentRefreshFunc(conn, interfaceId),
 		Timeout: 10 * time.Minute,
 	}
 
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf(
-			"Error waiting for ENI (%s) to become dettached: %s", network_interface_id, err)
+			"Error waiting for ENI (%s) to become dettached: %s", interfaceId, err)
 	}
 
 	return nil
