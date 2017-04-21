@@ -582,23 +582,23 @@ func resourceArmAppGateway() *schema.Resource {
 			},
 			//TODO: implement authentication certificates
 			"authentication_certificates": {
-				Type: schema.TypeList,
+				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
-							Type: schema.TypeString,
+							Type:     schema.TypeString,
 							Computed: true,
 						},
 
 						"name": {
-							Type: schema.TypeString,
+							Type:     schema.TypeString,
 							Required: true,
 						},
 
 						"data": {
-							Type: schema.TypeString,
-							Required: true,
+							Type:      schema.TypeString,
+							Required:  true,
 							Sensitive: true,
 						},
 					},
