@@ -19,26 +19,24 @@ func TestResourceFastlyFlattenGCS(t *testing.T) {
 		{
 			remote: []*gofastly.GCS{
 				&gofastly.GCS{
-					Name:              "GCS collector",
-					User:              "email@example.com",
-					Bucket:            "bucketName",
-					SecretKey:         "secretKey",
-					Format:            "log format",
-					ResponseCondition: "condition 1",
-					Period:            3600,
-					GzipLevel:         0,
+					Name:      "GCS collector",
+					User:      "email@example.com",
+					Bucket:    "bucketName",
+					SecretKey: "secretKey",
+					Format:    "log format",
+					Period:    3600,
+					GzipLevel: 0,
 				},
 			},
 			local: []map[string]interface{}{
 				map[string]interface{}{
-					"name":               "GCS collector",
-					"email":              "email@example.com",
-					"bucket_name":        "bucketName",
-					"secret_key":         "secretKey",
-					"format":             "log format",
-					"response_condition": "condition 1",
-					"period":             3600,
-					"gzip_level":         0,
+					"name":        "GCS collector",
+					"email":       "email@example.com",
+					"bucket_name": "bucketName",
+					"secret_key":  "secretKey",
+					"format":      "log format",
+					"period":      3600,
+					"gzip_level":  0,
 				},
 			},
 		},
@@ -76,7 +74,7 @@ func TestAccFastlyServiceV1_gcslogging(t *testing.T) {
 func testAccCheckFastlyServiceV1Attributes_gcs(service *gofastly.ServiceDetail, name, gcsName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if service.Name != gcsName {
+		if service.Name != name {
 			return fmt.Errorf("Bad name, expected (%s), got (%s)", name, service.Name)
 		}
 
@@ -125,7 +123,7 @@ resource "fastly_service_v1" "foo" {
 		bucket_name = "bucketName",
 		secret_key = "secretKey",
 		format = "log format",
-		response_condition = "condition 1",
+		response_condition = "",
 	}
 
   force_destroy = true
