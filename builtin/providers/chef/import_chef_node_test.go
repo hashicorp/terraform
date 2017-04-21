@@ -25,7 +25,7 @@ func TestAccChefNode_importBasic(t *testing.T) {
 				ResourceName:            "chef_node.test",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{},
+				ImportStateVerifyIgnore: []string{"automatic_attributes_json", "default_attributes_json", "normal_attributes_json", "override_attributes_json"}, // Attributes are not imported currently
 			},
 		},
 	})
