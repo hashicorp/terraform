@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSConfigConfigurationRecorderStatus_basic(t *testing.T) {
+func testAccConfigConfigurationRecorderStatus_basic(t *testing.T) {
 	var cr configservice.ConfigurationRecorder
 	var crs configservice.ConfigurationRecorderStatus
 	rInt := acctest.RandInt()
@@ -36,7 +36,7 @@ func TestAccAWSConfigConfigurationRecorderStatus_basic(t *testing.T) {
 	})
 }
 
-func TestAccAWSConfigConfigurationRecorderStatus_startEnabled(t *testing.T) {
+func testAccConfigConfigurationRecorderStatus_startEnabled(t *testing.T) {
 	var cr configservice.ConfigurationRecorder
 	var crs configservice.ConfigurationRecorderStatus
 	rInt := acctest.RandInt()
@@ -81,7 +81,7 @@ func TestAccAWSConfigConfigurationRecorderStatus_startEnabled(t *testing.T) {
 	})
 }
 
-func TestAccAWSConfigConfigurationRecorderStatus_importBasic(t *testing.T) {
+func testAccConfigConfigurationRecorderStatus_importBasic(t *testing.T) {
 	resourceName := "aws_config_configuration_recorder_status.foo"
 	rInt := acctest.RandInt()
 

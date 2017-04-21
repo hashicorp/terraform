@@ -15,7 +15,7 @@ outside of your VPC from initiating an IPv6 connection with your instance.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
 	assign_amazon_ipv6_cidr_block = true

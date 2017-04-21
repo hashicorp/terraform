@@ -1,25 +1,83 @@
 ## 0.9.4 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+ * provider/template: Fix invalid MIME formatting in `template_cloudinit_config`.
+   While the change itself is not breaking the data source it may be referenced
+   e.g. in `aws_launch_configuration` and similar resources which are immutable
+   and the formatting change will therefore trigger recreation [GH-13752]
+
 FEATURES:
 
+* **New Provider:** `opc` - Oracle Public Cloud [GH-13468]
+* **New Provider:** `oneandone` [GH-13633]
+* **New Data Source:** `aws_ami_ids` [GH-13844]
+* **New Data Source:** `aws_ebs_snapshot_ids` [GH-13844]
+* **New Data Source:** `aws_kms_alias` [GH-13669]
+* **New Data Source:** `aws_kinesis_stream` [GH-13562]
+* **New Data Source:** `digitalocean_image` [GH-13787]
 * **New Data Source:** `google_compute_network` [GH-12442]
 * **New Data Source:** `google_compute_subnetwork` [GH-12442]
+* **New Resource:** `local_file` for creating local files (please see the docs for caveats) [GH-12757]
+* **New Resource:**  `alicloud_ess_scalinggroup` [GH-13731]
+* **New Resource:**  `alicloud_ess_scalingconfiguration` [GH-13731]
+* **New Resource:**  `alicloud_ess_scalingrule` [GH-13731]
+* **New Resource:**  `alicloud_ess_schedule` [GH-13731]
+* **New Resource:**  `alicloud_snat_entry` [GH-13731]
+* **New Resource:**  `alicloud_forward_entry` [GH-13731]
+* **New Resource:**  `aws_cognito_identity_pool` [GH-13783]
+* **New Resource:**  `github_branch_protection` [GH-10476]
+* **New Resource:**  `google_bigquery_dataset` [GH-13436]
+
 
 IMPROVEMENTS:
+ * config: The interpolation function `cidrhost` now accepts a negative host number to count backwards from the end of the range [GH-13765]
+ * config: New interpolation function `matchkeys` for using values from one list to filter corresponding values from another list using a matching set. [GH-13847]
  * state/remote/swift: Support Openstack request logging [GH-13583]
  * provider/aws: Add an option to skip getting the supported EC2 platforms [GH-13672]
+ * provider/aws: Add `name_prefix` support to `aws_cloudwatch_log_group` [GH-13273]
+ * provider/aws: Add `bucket_prefix` to `aws_s3_bucket` [GH-13274]
+ * provider/aws: Add replica_source_db to the aws_db_instance datasource [GH-13842]
+ * provider/aws: Add IPv6 outputs to aws_subnet datasource [GH-13841]
+ * provider/aws: Exercise SecondaryPrivateIpAddressCount for network interface [GH-10590]
+ * provider/azurerm: VM Scale Sets - import support [GH-13464]
+ * provider/azurerm: Allow Azure China region support [GH-13767]
+ * provider/digitalocean: Export droplet prices [GH-13720]
+ * provider/fastly: Add support for GCS logging [GH-13553]
  * provider/google: `google_compute_address` and `google_compute_global_address` are now importable [GH-13270]
+ * provider/google: `google_compute_network` is now importable  [GH-13834]
+ * provider/vault: `vault_generic_secret` resource can now optionally detect drift if it has appropriate access [GH-11776]
  
 BUG FIXES:
 
  * core: Add the close provider/provisioner transformers back [GH-13102]
  * core: Fix a crash condition by improving the flatmap.Expand() logic [GH-13541]
+ * provider/alicloud: Fix create PrePaid instance [GH-13662]
+ * provider/alicloud: Fix allocate public ip error [GH-13268]
+ * provider/alicloud: alicloud_security_group_rule: check ptr before use it [GH-13731)
+ * provider/alicloud: alicloud_instance: fix ecs internet_max_bandwidth_out cannot set zero bug [GH-13731]
  * provider/aws: Fix DB Parameter Group Name [GH-13279]
  * provider/aws: Increase default number of retries from 11 to 25 [GH-13673]
  * provider/aws: Use mutex & retry for WAF change operations [GH-13656]
+ * provider/aws: Remove aws_vpc_dhcp_options if not found [GH-13610]
+ * provider/aws: Remove aws_network_acl_rule if not found [GH-13608]
+ * provider/aws: Allow GovCloud KMS ARNs to pass validation in `kms_key_id` attributes [GH-13699]
+ * provider/aws: Changing aws_opsworks_instance should ForceNew [GH-13839]
+ * provider/aws: Fix issue importing some Security Groups and Rules based on rule structure [GH-13630]
  * provider/azurerm: azurerm_redis_cache resource missing hostname [GH-13650]
+ * provider/azurerm: Locking around Network Security Group / Subnets [GH-13637]
+ * provider/azurerm: Locking route table on subnet create/delete [GH-13791]
+ * provider/azurerm: VM's - fixes a bug where ssh_keys could contain a null entry [GH-13755]
+ * provider/fastly: Fix issue with using 0 for `default_ttl` [GH-13648]
+ * provider/fastly: Add ability to associate a healthcheck to a backend [GH-13539]
  * provider/google: Stop setting the id when project creation fails [GH-13644]
+ * provider/google: Make ports in resource_compute_forwarding_rule ForceNew [GH-13833]
+ * provider/logentries: Refresh from state when resources not found [GH-13810]
+ * provider/newrelic: newrelic_alert_condition - `condition_scope` must be `application` or `instance` [GH-12972]
+ * provider/opc: fixed issue with unqualifying nats [GH-13826]
+ * provider/opc: Fix instance label if unset [GH-13846]
  * provider/openstack: Fix updating Ports [GH-13604]
+ * provider/rabbitmq: Allow users without tags [GH-13798]
 
 ## 0.9.3 (April 12, 2017)
 

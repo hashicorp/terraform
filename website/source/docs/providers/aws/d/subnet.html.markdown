@@ -50,6 +50,8 @@ subnet whose data will be exported as attributes.
 
 * `cidr_block` - (Optional) The cidr block of the desired subnet.
 
+* `ipv6_cidr_block` - (Optional) The Ipv6 cidr block of the desired subnet
+
 * `default_for_az` - (Optional) Boolean constraint for whether the desired
   subnet must be the default subnet for its associated availability zone.
 

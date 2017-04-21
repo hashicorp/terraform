@@ -12,7 +12,7 @@ Provides a CloudWatch Event Target resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_cloudwatch_event_target" "yada" {
   target_id = "Yada"
   rule      = "${aws_cloudwatch_event_rule.console.name}"

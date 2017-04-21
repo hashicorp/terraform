@@ -12,7 +12,7 @@ Provides a WAF Byte Match Set Resource
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_waf_byte_match_set" "byte_set" {
   name = "tf_waf_byte_match_set"
 

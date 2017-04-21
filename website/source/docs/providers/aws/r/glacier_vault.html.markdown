@@ -14,7 +14,7 @@ Provides a Glacier Vault Resource. You can refer to the [Glacier Developer Guide
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_sns_topic" "aws_sns_topic" {
   name = "glacier-sns-topic"
 }

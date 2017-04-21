@@ -12,7 +12,7 @@ Enables you to manage DNS zones within Azure DNS. These zones are hosted on Azur
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acceptanceTestResourceGroup1"
   location = "West US"

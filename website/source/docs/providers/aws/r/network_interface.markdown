@@ -12,7 +12,7 @@ Provides an Elastic network interface (ENI) resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_network_interface" "test" {
   subnet_id       = "${aws_subnet.public_a.id}"
   private_ips     = ["10.0.0.50"]
@@ -32,6 +32,7 @@ The following arguments are supported:
 * `subnet_id` - (Required) Subnet ID to create the ENI in.
 * `description` - (Optional) A description for the network interface.
 * `private_ips` - (Optional) List of private IPs to assign to the ENI.
+* `private_ips_count` - (Optional) Number of private IPs to assign to the ENI.
 * `security_groups` - (Optional) List of security group IDs to assign to the ENI.
 * `attachment` - (Optional) Block to define the attachment of the ENI. Documented below.
 * `source_dest_check` - (Optional) Whether to enable source destination checking for the ENI. Default true.

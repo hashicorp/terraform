@@ -12,7 +12,7 @@ The ``rabbitmq_vhost`` resource creates and manages a vhost.
 
 ## Example Usage
 
-```
+```hcl
 resource "rabbitmq_vhost" "my_vhost" {
   name = "my_vhost"
 }

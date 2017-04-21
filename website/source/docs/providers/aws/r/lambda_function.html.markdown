@@ -14,7 +14,7 @@ For information about Lambda and how to use it, see [What is AWS Lambda?][1]
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_iam_role" "iam_for_lambda" {
   name = "iam_for_lambda"
 

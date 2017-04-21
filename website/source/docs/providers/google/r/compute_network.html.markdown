@@ -12,7 +12,7 @@ Manages a network within GCE.
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_network" "default" {
   name                    = "test"
   auto_create_subnetworks = "true"
@@ -56,3 +56,12 @@ exported:
 * `name` - The unique name of the network.
 
 * `self_link` - The URI of the created resource.
+
+
+## Import
+
+Networks can be imported using the `name`, e.g.
+
+```
+$ terraform import google_compute_network.public my_network_name
+```

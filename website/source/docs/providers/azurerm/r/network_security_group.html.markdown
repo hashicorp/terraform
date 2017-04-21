@@ -12,7 +12,7 @@ Create a network security group that contains a list of network security rules.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acceptanceTestResourceGroup1"
   location = "West US"

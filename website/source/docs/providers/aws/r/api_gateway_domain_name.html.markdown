@@ -27,7 +27,7 @@ traditional CNAME) to the Cloudfront domain name exported in the
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_api_gateway_domain_name" "example" {
   domain_name = "api.example.com"
 

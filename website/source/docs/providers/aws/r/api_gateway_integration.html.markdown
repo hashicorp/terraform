@@ -12,7 +12,7 @@ Provides an HTTP Method Integration for an API Gateway Integration.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_api_gateway_rest_api" "MyDemoAPI" {
   name        = "MyDemoAPI"
   description = "This is my API for demonstration purposes"
@@ -54,7 +54,7 @@ EOF
 
 ## Lambda integration
 
-```
+```hcl
 # Variables
 variable "myregion" {}
 variable "accountId" {}
