@@ -4,26 +4,26 @@ resource "azurerm_resource_group" "rg" {
 }
 
 resource "azurerm_virtual_network" "vnet" {
-  name                = "${var.virtual_network_name}"
+  name                = "${var.hostname}vnet"
   location            = "${var.location}"
   address_space       = ["${var.address_space}"]
   resource_group_name = "${azurerm_resource_group.rg.name}"
 }
 
 resource "azurerm_subnet" "subnet" {
-  name                 = "${var.rg_prefix}subnet"
+  name                 = "${var.hostname}subnet"
   virtual_network_name = "${azurerm_virtual_network.vnet.name}"
   resource_group_name  = "${azurerm_resource_group.rg.name}"
   address_prefix       = "${var.subnet_prefix}"
 }
 
 resource "azurerm_network_interface" "nic" {
-  name                      = "${var.rg_prefix}nic"
+  name                      = "${var.hostname}nic"
   location                  = "${var.location}"
   resource_group_name       = "${azurerm_resource_group.rg.name}"
 
   ip_configuration {
-    name                          = "${var.rg_prefix}ipconfig"
+    name                          = "${var.hostname}ipconfig"
     subnet_id                     = "${azurerm_subnet.subnet.id}"
     private_ip_address_allocation = "Dynamic"
     public_ip_address_id          = "${azurerm_public_ip.pip.id}"
@@ -31,44 +31,32 @@ resource "azurerm_network_interface" "nic" {
 }
 
 resource "azurerm_public_ip" "pip" {
-  name                         = "${var.rg_prefix}-ip"
+  name                         = "${var.hostname}-ip"
   location                     = "${var.location}"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
   public_ip_address_allocation = "dynamic"
-  domain_name_label            = "${var.dns_name}"
+  domain_name_label            = "${var.hostname}"
 }
 
 resource "azurerm_storage_account" "stor" {
-  name                = "${var.hostname}stor"
+  name                = "${var.storage_account_name}"
   location            = "${var.location}"
   resource_group_name = "${azurerm_resource_group.rg.name}"
   account_type        = "${var.storage_account_type}"
 }
 
-resource "azurerm_storage_container" "storc" {
-  name                  = "${var.hostname}-vhds"
-  resource_group_name   = "${azurerm_resource_group.rg.name}"
-  storage_account_name  = "${azurerm_storage_account.stor.name}"
-  container_access_type = "private"
-}
-
 resource "azurerm_virtual_machine" "vm" {
-  name                  = "${var.rg_prefix}vm"
+  name                  = "${var.hostname}"
   location              = "${var.location}"
   resource_group_name   = "${azurerm_resource_group.rg.name}"
   vm_size               = "${var.vm_size}"
   network_interface_ids = ["${azurerm_network_interface.nic.id}"]
 
-  storage_image_reference {
-    publisher = "${var.image_publisher}"
-    offer     = "${var.image_offer}"
-    sku       = "${var.image_sku}"
-    version   = "${var.image_version}"
-  }
-
   storage_os_disk {
     name          = "${var.hostname}-osdisk1"
-    image_uri       = "${var.image_uri}"
+    image_uri     = "${var.image_uri}"
+    vhd_uri       = ""
+    os_type       = "${var.os_type}"
     caching       = "ReadWrite"
     create_option = "FromImage"
   }
@@ -79,16 +67,4 @@ resource "azurerm_virtual_machine" "vm" {
     admin_password = "${var.admin_password}"
   }
 
-  boot_diagnostics {
-    enabled     = "true"
-    storage_uri = "${azurerm_storage_account.stor.primary_blob_endpoint}"
-  }
-}
-
-output "hostname" {
-  value = "${var.hostname}"
-}
-
-output "vm_fqdn" {
-  value = "${azurerm_public_ip.pip.fqdn}"
 }

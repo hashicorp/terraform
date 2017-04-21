@@ -7,3 +7,6 @@ Azure requires that an application is added to Azure Active Directory to generat
 
 `image_uri` - Specifies the `image_uri` in the form publisherName:offer:skus:version. `image_uri` can also specify the VHD uri of a custom VM image to clone.
 `os_type` -  When cloning a custom disk image the `os_type` documented below becomes required. Specifies the operating system Type, valid values are windows, linux. 
+
+**Storage Accounts can be imported using the resource id, e.g.**
+`terraform import azurerm_storage_account.storageAcc1 /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/myresourcegroup/providers/Microsoft.Storage/storageAccounts/myaccount`
