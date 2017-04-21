@@ -131,6 +131,48 @@ func New() backend.Backend {
 				Description: "The permissions applied when assuming a role.",
 				Default:     "",
 			},
+
+			"insecure": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Use insecure connection to S3.",
+				Default:     false,
+			},
+
+			"skip_creds_validation": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Set to skip credentials validation.",
+				Default:     false,
+			},
+
+			"skip_region_validation": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Set to skip AWS region validation.",
+				Default:     false,
+			},
+
+			"skip_requesting_account_id": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Set to skip requesting account ID.",
+				Default:     false,
+			},
+
+			"skip_metadata_api_check": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Set to skip metadata API check.",
+				Default:     false,
+			},
+
+			"s3_force_path_style": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Set to force S3 path style.",
+				Default:     false,
+			},
 		},
 	}
 
@@ -170,17 +212,23 @@ func (b *Backend) configure(ctx context.Context) error {
 	b.lockTable = data.Get("lock_table").(string)
 
 	cfg := &terraformAWS.Config{
-		AccessKey:             data.Get("access_key").(string),
-		AssumeRoleARN:         data.Get("role_arn").(string),
-		AssumeRoleExternalID:  data.Get("external_id").(string),
-		AssumeRolePolicy:      data.Get("assume_role_policy").(string),
-		AssumeRoleSessionName: data.Get("session_name").(string),
-		CredsFilename:         data.Get("shared_credentials_file").(string),
-		Profile:               data.Get("profile").(string),
-		Region:                data.Get("region").(string),
-		S3Endpoint:            data.Get("endpoint").(string),
-		SecretKey:             data.Get("secret_key").(string),
-		Token:                 data.Get("token").(string),
+		AccessKey:               data.Get("access_key").(string),
+		AssumeRoleARN:           data.Get("role_arn").(string),
+		AssumeRoleExternalID:    data.Get("external_id").(string),
+		AssumeRolePolicy:        data.Get("assume_role_policy").(string),
+		AssumeRoleSessionName:   data.Get("session_name").(string),
+		CredsFilename:           data.Get("shared_credentials_file").(string),
+		Profile:                 data.Get("profile").(string),
+		Region:                  data.Get("region").(string),
+		S3Endpoint:              data.Get("endpoint").(string),
+		SecretKey:               data.Get("secret_key").(string),
+		Token:                   data.Get("token").(string),
+		Insecure:                data.Get("insecure").(bool),
+		SkipCredsValidation:     data.Get("skip_creds_validation").(bool),
+		SkipRegionValidation:    data.Get("skip_region_validation").(bool),
+		SkipRequestingAccountId: data.Get("skip_requesting_account_id").(bool),
+		SkipMetadataApiCheck:    data.Get("skip_metadata_api_check").(bool),
+		S3ForcePathStyle:        data.Get("s3_force_path_style").(bool),
 	}
 
 	client, err := cfg.Client()
