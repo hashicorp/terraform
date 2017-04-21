@@ -36,6 +36,7 @@ IMPROVEMENTS:
  * provider/aws: Add `name_prefix` support to `aws_cloudwatch_log_group` [GH-13273]
  * provider/aws: Add `bucket_prefix` to `aws_s3_bucket` [GH-13274]
  * provider/aws: Add replica_source_db to the aws_db_instance datasource [GH-13842]
+ * provider/aws: Add IPv6 outputs to aws_subnet datasource [GH-13841]
  * provider/azurerm: VM Scale Sets - import support [GH-13464]
  * provider/azurerm: Allow Azure China region support [GH-13767]
  * provider/digitalocean: Export droplet prices [GH-13720]
