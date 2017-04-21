@@ -12,7 +12,7 @@ Manages a Private Network on 1&1
 
 ## Example Usage
 
-```
+```hcl
 resource "oneandone_private_network" "pn" {
   name = "pn_test",
   description = "new stuff001"

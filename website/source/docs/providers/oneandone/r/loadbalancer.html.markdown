@@ -12,7 +12,7 @@ Manages a Load Balancer on 1&1
 
 ## Example Usage
 
-```
+```hcl
 resource "oneandone_loadbalancer" "lb" {
   name = "test_lb"
   method = "ROUND_ROBIN"

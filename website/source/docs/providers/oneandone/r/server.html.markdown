@@ -12,7 +12,7 @@ Manages a Server on 1&1
 
 ## Example Usage
 
-```
+```hcl
 resource "oneandone_server" "server" {
   name = "Example"
   description = "Terraform 1and1 tutorial"
