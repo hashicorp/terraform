@@ -212,6 +212,37 @@ func TestInit_copyGet(t *testing.T) {
 	}
 }
 
+func TestInit_getUpdate(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	os.MkdirAll(td, 0755)
+	// copy.CopyDir(testFixturePath("init-get"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-update-modules=true",
+		testFixturePath("init-get"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	// Check output
+	output := ui.OutputWriter.String()
+	if !strings.Contains(output, "(update)") {
+		t.Fatalf("doesn't look like get: %s", output)
+	}
+}
+
 func TestInit_backend(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)

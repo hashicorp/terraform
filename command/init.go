@@ -19,14 +19,15 @@ type InitCommand struct {
 }
 
 func (c *InitCommand) Run(args []string) int {
-	var flagBackend, flagGet bool
+	var flagBackend, flagGet, flagGetUpdate bool
 	var flagConfigExtra map[string]interface{}
 
 	args = c.Meta.process(args, false)
 	cmdFlags := c.flagSet("init")
 	cmdFlags.BoolVar(&flagBackend, "backend", true, "")
 	cmdFlags.Var((*variables.FlagAny)(&flagConfigExtra), "backend-config", "")
-	cmdFlags.BoolVar(&flagGet, "get", true, "")
+	cmdFlags.BoolVar(&flagGet, "get", true, "get modules")
+	cmdFlags.BoolVar(&flagGetUpdate, "update-modules", false, "update modules")
 	cmdFlags.BoolVar(&c.forceInitCopy, "force-copy", false, "suppress prompts about copying state data")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
@@ -121,10 +122,15 @@ func (c *InitCommand) Run(args []string) int {
 		if flagGet && len(conf.Modules) > 0 {
 			header = true
 
+			mode := module.GetModeGet
+			if flagGetUpdate {
+				mode = module.GetModeUpdate
+			}
+
 			c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
 				"[reset][bold]" +
 					"Downloading modules (if any)...")))
-			if err := getModules(&c.Meta, path, module.GetModeGet); err != nil {
+			if err := getModules(&c.Meta, path, mode); err != nil {
 				c.Ui.Error(fmt.Sprintf(
 					"Error downloading modules: %s", err))
 				return 1
