@@ -2777,6 +2777,52 @@ func TestSchemaMap_Diff(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			Name: "List with computed schema and ForceNew",
+			Schema: map[string]*Schema{
+				"config": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					ForceNew: true,
+					Elem: &Schema{
+						Type: TypeString,
+					},
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"config.#": "2",
+					"config.0": "a",
+					"config.1": "b",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"config": []interface{}{"${var.a}", "${var.b}"},
+			},
+
+			ConfigVariables: map[string]ast.Variable{
+				"var.a": interfaceToVariableSwallowError(
+					config.UnknownVariableValue),
+				"var.b": interfaceToVariableSwallowError(
+					config.UnknownVariableValue),
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"config.#": &terraform.ResourceAttrDiff{
+						Old:         "2",
+						New:         "",
+						RequiresNew: true,
+						NewComputed: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
 	}
 
 	for i, tc := range cases {
