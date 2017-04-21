@@ -65,6 +65,8 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-reconfigure` - Reconfigure the backend, ignoring any saved configuration.
 
+* `-update-modules` - Update any existing downloaded modules for this configuration.
+
 ## Backend Config
 
 The `-backend-config` can take a path or `key=value` pair to specify additional
