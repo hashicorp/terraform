@@ -1,0 +1,47 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+          <a href="/docs/providers/index.html">All Providers</a>
+        </li>
+
+        <li<%= sidebar_current("docs-oneandone-index") %>>
+          <a href="/docs/providers/oneandone/index.html">1&1 Provider</a>
+        </li>
+
+        <li<%= sidebar_current("docs-oneandone-resource") %>>
+          <a href="#">Resources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-oneandone-resource-firewall-policy") %>>
+              <a href="/docs/providers/oneandone/r/firewall_policy.html">oneandone_firewall_policy</a>
+            </li>
+            <li<%= sidebar_current("docs-oneandone-resource-loadbalancer") %>>
+                          <a href="/docs/providers/oneandone/r/loadbalancer.html">oneandone_loadbalancer</a>
+            </li>
+            <li<%= sidebar_current("docs-oneandone-resource-monitoring-policy") %>>
+              <a href="/docs/providers/oneandone/r/monitoring_policy.html">oneandone_monitoring_policy</a>
+            </li>
+            <li<%= sidebar_current("docs-oneandone-resource-private-network") %>>
+              <a href="/docs/providers/oneandone/r/private_network.html">oneandone_private_network</a>
+            </li>
+            <li<%= sidebar_current("docs-oneandone-resource-public-ip") %>>
+              <a href="/docs/providers/oneandone/r/public_ip.html">oneandone_public_ip</a>
+            </li>
+            <li<%= sidebar_current("docs-oneandone-resource-server") %>>
+              <a href="/docs/providers/oneandone/r/server.html">oneandone_server</a>
+            </li>
+            <li<%= sidebar_current("docs-oneandone-resource-shared-storage") %>>
+              <a href="/docs/providers/oneandone/r/shared_storage.html">oneandone_shared_storage</a>
+            </li>
+            <li<%= sidebar_current("docs-oneandone-resource-vpn") %>>
+              <a href="/docs/providers/oneandone/r/vpn.html">oneandone_vpn</a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= yield %>
+<% end %>

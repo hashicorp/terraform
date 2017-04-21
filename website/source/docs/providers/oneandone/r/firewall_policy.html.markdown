@@ -1,7 +1,7 @@
 ---
 layout: "oneandone"
 page_title: "1&1: oneandone_firewall_policy"
-sidebar_current: "docs-oneandone-resource-firwall-policy"
+sidebar_current: "docs-oneandone-resource-firewall-policy"
 description: |-
   Creates and manages 1&1 Firewall Policy.
 ---
@@ -12,7 +12,7 @@ Manages a Firewall Policy on 1&1
 
 ## Example Usage
 
-```
+```hcl
 resource "oneandone_firewall_policy" "fw" {
   name = "test_fw_011"
   rules = [
