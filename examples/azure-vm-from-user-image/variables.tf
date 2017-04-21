@@ -4,7 +4,7 @@ variable "resource_group" {
 
 variable "image_uri" {
   description = "Specifies the image_uri in the form publisherName:offer:skus:version. image_uri can also specify the VHD uri of a custom VM image to clone."
-  default = "https://myvmstor.blob.core.windows.net/vhds/armvm5yt3s3judzp66osDisk.vhd"
+  default = "https://myrgdisks276.blob.core.windows.net/vhds/originalvm20170421170101.vhd"
 }
 
 variable "os_type" {
@@ -29,6 +29,7 @@ variable "subnet_prefix" {
 
 variable "storage_account_name" {
   description = "The name of the storage account in which the image from which you are cloning resides."
+  default     = "myrgsisks276"
 }
 
 variable "storage_account_type" {
@@ -38,6 +39,7 @@ variable "storage_account_type" {
 
 variable "vm_size" {
   description = "Specifies the size of the virtual machine. This must be the same as the vm image from which you are copying."
+  default     = "Standard_DS1_v2"
 }
 
 variable "hostname" {

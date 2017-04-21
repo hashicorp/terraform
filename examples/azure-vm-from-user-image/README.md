@@ -1,4 +1,4 @@
-# Create a Virtual Machine from a User Image
+# [Create a Virtual Machine from a User Image](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/cli-deploy-templates#create-a-custom-vm-image)
 **Prerequisite - The Storage Account with the User Image VHD should already exist**
 
 This template allows you to create a Virtual Machines from a User image. This template also deploys a Virtual Network, Public IP addresses and a Network Interface.
