@@ -744,6 +744,7 @@ func (m schemaMap) diffList(
 		diff.Attributes[k+".#"] = &terraform.ResourceAttrDiff{
 			Old:         oldStr,
 			NewComputed: true,
+			RequiresNew: schema.ForceNew,
 		}
 		return nil
 	}
