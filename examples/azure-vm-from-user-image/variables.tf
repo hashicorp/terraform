@@ -4,6 +4,7 @@ variable "resource_group" {
 
 variable "image_uri" {
   description = "Specifies the image_uri in the form publisherName:offer:skus:version. image_uri can also specify the VHD uri of a custom VM image to clone."
+  default = "https://myvmstor.blob.core.windows.net/vhds/armvm5yt3s3judzp66osDisk.vhd"
 }
 
 variable "os_type" {
