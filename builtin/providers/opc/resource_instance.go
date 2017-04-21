@@ -80,6 +80,7 @@ func resourceInstance() *schema.Resource {
 			"label": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
