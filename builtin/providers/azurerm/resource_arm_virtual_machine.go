@@ -24,6 +24,8 @@ func resourceArmVirtualMachine() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
+		SchemaVersion: 1,
+		MigrateState:  resourceAzureRMVirtualMachineMigrateState,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -361,7 +363,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 							Type:     schema.TypeBool,
 							Optional: true,
 							ForceNew: true,
-							Default:  false,
+							Default:  true,
 						},
 						"winrm": {
 							Type:     schema.TypeList,
