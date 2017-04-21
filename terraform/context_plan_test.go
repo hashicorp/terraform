@@ -2950,6 +2950,7 @@ func TestContext2Plan_ignoreChanges(t *testing.T) {
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
 					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID:         "bar",
 							Attributes: map[string]string{"ami": "ami-abcd1234"},
