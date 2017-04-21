@@ -12,7 +12,7 @@ Manages a VPN on 1&1
 
 ## Example Usage
 
-```
+```hcl
 resource "oneandone_public_ip" "ip" {
   "ip_type" = "IPV4"
   "reverse_dns" = "test.1and1.com"

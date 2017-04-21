@@ -18,7 +18,7 @@ Use the navigation to the left to read about the available resources.
 The provider needs to be configured with proper credentials before it can be used.
 
 
-```
+```text
 $ export ONEANDONE_TOKEN="oneandone_token"
 ```
 
@@ -30,7 +30,7 @@ The credentials provided in `.tf` file will override credentials in the environm
 ## Example Usage
 
 
-```
+```hcl
 provider "oneandone"{
   token = "oneandone_token"
   endpoint = "oneandone_endpoint"

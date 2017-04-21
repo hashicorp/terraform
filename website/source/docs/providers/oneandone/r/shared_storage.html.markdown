@@ -12,7 +12,7 @@ Manages a Shared Storage on 1&1
 
 ## Example Usage
 
-```
+```hcl
 resource "oneandone_shared_storage" "storage" {
   name = "test_storage1"
   description = "1234"

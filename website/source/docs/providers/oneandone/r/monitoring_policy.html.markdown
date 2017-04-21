@@ -12,7 +12,7 @@ Manages a Monitoring Policy on 1&1
 
 ## Example Usage
 
-```
+```hcl
 resource "oneandone_monitoring_policy" "mp" {
   name = "test_mp"
   agent = true

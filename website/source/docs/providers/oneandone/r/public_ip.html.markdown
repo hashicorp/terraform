@@ -12,7 +12,7 @@ Manages a Public IP on 1&1
 
 ## Example Usage
 
-```
+```hcl
 resource "oneandone_vpn" "vpn" {
   datacenter = "GB"
   name = "test_vpn_01"
