@@ -17,6 +17,8 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
+var SECURITY_GROUPS *ec2.DescribeSecurityGroupsOutput
+
 func resourceAwsSecurityGroup() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsSecurityGroupCreate,
@@ -707,30 +709,30 @@ func resourceAwsSecurityGroupUpdateRules(
 // a security group.
 func SGStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		req := &ec2.DescribeSecurityGroupsInput{
-			GroupIds: []*string{aws.String(id)},
-		}
-		resp, err := conn.DescribeSecurityGroups(req)
-		if err != nil {
-			if ec2err, ok := err.(awserr.Error); ok {
-				if ec2err.Code() == "InvalidSecurityGroupID.NotFound" ||
-					ec2err.Code() == "InvalidGroup.NotFound" {
-					resp = nil
-					err = nil
-				}
-			}
+		var group *ec2.SecurityGroup
+
+		if SECURITY_GROUPS == nil {
+			req := &ec2.DescribeSecurityGroupsInput{}
+			resp, err := conn.DescribeSecurityGroups(req)
 
 			if err != nil {
 				log.Printf("Error on SGStateRefresh: %s", err)
 				return nil, "", err
 			}
+
+			SECURITY_GROUPS = resp
 		}
 
-		if resp == nil {
+		for _, sg := range SECURITY_GROUPS.SecurityGroups {
+			if id == *sg.GroupId {
+				group = sg
+			}
+		}
+
+		if group == nil {
 			return nil, "", nil
 		}
 
-		group := resp.SecurityGroups[0]
 		return group, "exists", nil
 	}
 }
