@@ -619,3 +619,7 @@ func testProvider() *terraform.MockResourceProvider {
 const testConfigStr = `
 resource "test_instance" "foo" {}
 `
+
+const testConfigStrProvider = `
+provider "test" {}
+`
