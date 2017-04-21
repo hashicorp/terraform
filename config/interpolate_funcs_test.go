@@ -964,36 +964,67 @@ func TestInterpolateFuncDistinct(t *testing.T) {
 	})
 }
 
-func TestInterpolateFuncFilter(t *testing.T) {
+func TestInterpolateFuncMatchKeys(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
 			// normal usage
 			{
-				`${filter(list("a", "b", "c"), list("ref1", "ref2", "ref3"), "ref2")}`,
+				`${matchkeys(list("a", "b", "c"), list("ref1", "ref2", "ref3"), list("ref2"))}`,
 				[]interface{}{"b"},
+				false,
+			},
+			// normal usage 2, check the order
+			{
+				`${matchkeys(list("a", "b", "c"), list("ref1", "ref2", "ref3"), list("ref2", "ref1"))}`,
+				[]interface{}{"a", "b"},
+				false,
+			},
+			// duplicate item in searchset
+			{
+				`${matchkeys(list("a", "b", "c"), list("ref1", "ref2", "ref3"), list("ref2", "ref2"))}`,
+				[]interface{}{"b"},
+				false,
+			},
+			// no matches
+			{
+				`${matchkeys(list("a", "b", "c"), list("ref1", "ref2", "ref3"), list("ref4"))}`,
+				[]interface{}{},
+				false,
+			},
+			// no matches 2
+			{
+				`${matchkeys(list("a", "b", "c"), list("ref1", "ref2", "ref3"), list())}`,
+				[]interface{}{},
 				false,
 			},
 			// zero case
 			{
-				`${filter(list(), list(), "nope")}`,
+				`${matchkeys(list(), list(), list("nope"))}`,
 				[]interface{}{},
 				false,
 			},
-			// non-string list is an error
+			// complex values
 			{
-				`${filter(list(list("a"), list("a")), list("a"), "a")}`,
+				`${matchkeys(list(list("a", "a")), list("a"), list("a"))}`,
+				[]interface{}{[]interface{}{"a", "a"}},
+				false,
+			},
+			// errors
+			// different types
+			{
+				`${matchkeys(list("a"), list(1), list("a"))}`,
 				nil,
 				true,
 			},
-			// non-string keys list is an error
+			// different types
 			{
-				`${filter(list("a"), list(list("a"), list("a")), "a")}`,
+				`${matchkeys(list("a"), list(list("a"), list("a")), list("a"))}`,
 				nil,
 				true,
 			},
 			// lists of different length is an error
 			{
-				`${filter(list("a"), list("a", "b"), "a")}`,
+				`${matchkeys(list("a"), list("a", "b"), list("a"))}`,
 				nil,
 				true,
 			},

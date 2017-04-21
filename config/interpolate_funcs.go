@@ -69,7 +69,7 @@ func Funcs() map[string]ast.Function {
 		"distinct":     interpolationFuncDistinct(),
 		"element":      interpolationFuncElement(),
 		"file":         interpolationFuncFile(),
-		"filter":       interpolationFuncFilter(),
+		"matchkeys":    interpolationFuncMatchKeys(),
 		"floor":        interpolationFuncFloor(),
 		"format":       interpolationFuncFormat(),
 		"formatlist":   interpolationFuncFormatList(),
@@ -669,41 +669,54 @@ func appendIfMissing(slice []string, element string) []string {
 	return append(slice, element)
 }
 
-// interpolationFuncFilter implements the "filter" function that
-// removes elements from a list
-func interpolationFuncFilter() ast.Function {
+// for two lists `keys` and `values` of equal length, returns all elements
+// from `values` where the corresponding element from `keys` is in `searchset`.
+func interpolationFuncMatchKeys() ast.Function {
 	return ast.Function{
-		ArgTypes:   []ast.Type{ast.TypeList, ast.TypeList, ast.TypeString},
+		ArgTypes:   []ast.Type{ast.TypeList, ast.TypeList, ast.TypeList},
 		ReturnType: ast.TypeList,
 		Callback: func(args []interface{}) (interface{}, error) {
-			var list []string
+			output := make([]ast.Variable, 0)
 
-			argument, _ := args[0].([]ast.Variable)
+			values, _ := args[0].([]ast.Variable)
 			keys, _ := args[1].([]ast.Variable)
-			searchkey, _ := args[2].(string)
+			searchset, _ := args[2].([]ast.Variable)
 
-			if len(argument) != len(keys) {
-				return nil, fmt.Errorf("length of lists should be equal")
+			if len(keys) != len(values) {
+				return nil, fmt.Errorf("length of keys and values should be equal")
 			}
 
-			for i, element := range argument {
-				if element.Type != ast.TypeString {
-					return nil, fmt.Errorf(
-						"only works for flat lists, this list contains elements of %s",
-						element.Type.Printable())
-				}
-				if keys[i].Type != ast.TypeString {
-					return nil, fmt.Errorf(
-						"only works for flat lists, this list contains elements of %s",
-						keys[i].Type.Printable())
-				}
-				if keys[i].Value.(string) == searchkey {
-					list = append(list, element.Value.(string))
+			for i, key := range keys {
+				for _, search := range searchset {
+					if res, err := compareSimpleVariables(key, search); err != nil {
+						return nil, err
+					} else if res == true {
+						output = append(output, values[i])
+						break
+					}
 				}
 			}
-
-			return stringSliceToVariableValue(list), nil
+			// if searchset is empty, then output is an empty list as well.
+			// if we haven't matched any key, then output is an empty list.
+			return output, nil
 		},
+	}
+}
+
+// compare two variables of the same type, i.e. non complex one, such as TypeList or TypeMap
+func compareSimpleVariables(a, b ast.Variable) (bool, error) {
+	if a.Type != b.Type {
+		return false, fmt.Errorf(
+			"won't compare items of different types %s and %s",
+			a.Type.Printable(), b.Type.Printable())
+	}
+	switch a.Type {
+	case ast.TypeString:
+		return a.Value.(string) == b.Value.(string), nil
+	default:
+		return false, fmt.Errorf(
+			"can't compare items of type %s",
+			a.Type.Printable())
 	}
 }
 
