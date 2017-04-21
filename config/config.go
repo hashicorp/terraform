@@ -384,7 +384,7 @@ func (c *Config) Validate() error {
 	// Check that all references to modules are valid
 	modules := make(map[string]*Module)
 	dupped := make(map[string]struct{})
-	for n, m := range c.Modules {
+	for _, m := range c.Modules {
 		// Check for duplicates
 		if _, ok := modules[m.Id()]; ok {
 			if _, ok := dupped[m.Id()]; !ok {
@@ -405,12 +405,12 @@ func (c *Config) Validate() error {
 			case *CountVariable:
 				errs = append(errs, fmt.Errorf(
 					"%s: resource count can't reference count variable: %s",
-					n,
+					m.Id(),
 					v.FullKey()))
 			case *SimpleVariable:
 				errs = append(errs, fmt.Errorf(
 					"%s: resource count can't reference variable: %s",
-					n,
+					m.Id(),
 					v.FullKey()))
 
 			// Good
@@ -422,7 +422,7 @@ func (c *Config) Validate() error {
 			default:
 				errs = append(errs, fmt.Errorf(
 					"Internal error. Unknown type in count var in %s: %T",
-					n, v))
+					m.Id(), v))
 			}
 		}
 
@@ -444,7 +444,7 @@ func (c *Config) Validate() error {
 		if err != nil {
 			errs = append(errs, fmt.Errorf(
 				"%s: resource count must be an integer",
-				n))
+				m.Id()))
 		}
 		m.RawCount.init()
 
