@@ -28,6 +28,7 @@ FEATURES:
 * **New Resource:**  `aws_cognito_identity_pool` [GH-13783]
 * **New Resource:**  `github_branch_protection` [GH-10476]
 * **New Resource:**  `google_bigquery_dataset` [GH-13436]
+* **New Interpolation Function:** `coalescelist()` [GH-12537]
 
 
 IMPROVEMENTS:
