@@ -1117,6 +1117,11 @@ resource "azurerm_app_gateway" "test" {
     "TLSv1_0",
   ]
 
+  waf_configuration {
+    enabled = "true"
+    firewall_mode = "Detection"
+  }
+
   gateway_ip_configuration {
     # id = computed
     name      = "gw-ip-config1"
