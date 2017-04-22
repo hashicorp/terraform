@@ -24,6 +24,7 @@ func resourceAwsOrganization() *schema.Resource {
 			"feature_set": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Default:      "ALL",
 				ValidateFunc: validation.StringInSlice([]string{"ALL", "CONSOLIDATED_BILLING"}, true),
 			},
 		},
