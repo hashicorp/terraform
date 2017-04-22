@@ -1,6 +1,7 @@
 package command
 
 import (
+	"fmt"
 	"log"
 	"os/exec"
 	"strings"
@@ -11,7 +12,35 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func (m *Meta) providerFactories() map[string]terraform.ResourceProviderFactory {
+// multiVersionProviderResolver is an implementation of
+// terraform.ResourceProviderResolver that matches the given version constraints
+// against a set of versioned provider plugins to find the newest version of
+// each that satisfies the given constraints.
+type multiVersionProviderResolver struct {
+	Available discovery.PluginMetaSet
+}
+
+func (r *multiVersionProviderResolver) ResolveProviders(
+	reqd discovery.PluginRequirements,
+) (map[string]terraform.ResourceProviderFactory, []error) {
+	factories := make(map[string]terraform.ResourceProviderFactory, len(reqd))
+	var errs []error
+
+	candidates := r.Available.ConstrainVersions(reqd)
+	for name := range reqd {
+		if metas := candidates[name]; metas != nil {
+			newest := metas.Newest()
+			client := tfplugin.Client(newest)
+			factories[name] = providerFactory(client)
+		} else {
+			errs = append(errs, fmt.Errorf("provider.%s: no suitable version installed", name))
+		}
+	}
+
+	return factories, errs
+}
+
+func (m *Meta) providerResolver() terraform.ResourceProviderResolver {
 	var dirs []string
 
 	// When searching the following directories, earlier entries get precedence
@@ -25,36 +54,9 @@ func (m *Meta) providerFactories() map[string]terraform.ResourceProviderFactory 
 	plugins := discovery.FindPlugins("provider", dirs)
 	plugins, _ = plugins.ValidateVersions()
 
-	// For now our goal is to just find the latest version of each plugin
-	// we have on the system, emulating our pre-versioning behavior.
-	// TODO: Reorganize how providers are handled so that we can use
-	// version constraints from configuration to select which plugins
-	// we will use when multiple are available.
-
-	factories := make(map[string]terraform.ResourceProviderFactory)
-
-	// Wire up the internal provisioners first. These might be overridden
-	// by discovered providers below.
-	for name := range InternalProviders {
-		client, err := internalPluginClient("provider", name)
-		if err != nil {
-			log.Printf("[WARN] failed to build command line for internal plugin %q: %s", name, err)
-			continue
-		}
-		factories[name] = providerFactory(client)
+	return &multiVersionProviderResolver{
+		Available: plugins,
 	}
-
-	byName := plugins.ByName()
-	for name, metas := range byName {
-		// Since we validated versions above and we partitioned the sets
-		// by name, we're guaranteed that the metas in our set all have
-		// valid versions and that there's at least one meta.
-		newest := metas.Newest()
-		client := tfplugin.Client(newest)
-		factories[name] = providerFactory(client)
-	}
-
-	return factories
 }
 
 func (m *Meta) provisionerFactories() map[string]terraform.ResourceProvisionerFactory {
