@@ -1,6 +1,8 @@
 package terraform
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 
 	"github.com/hashicorp/terraform/plugin/discovery"
@@ -251,4 +253,26 @@ func ProviderHasDataSource(p ResourceProvider, n string) bool {
 	}
 
 	return false
+}
+
+// resourceProviderFactories matches available plugins to the given version
+// requirements to produce a map of compatible provider plugins if possible,
+// or an error if the currently-available plugins are insufficient.
+//
+// This should be called only with configurations that have passed calls
+// to config.Validate(), which ensures that all of the given version
+// constraints are valid. It will panic if any invalid constraints are present.
+func resourceProviderFactories(resolver ResourceProviderResolver, reqd discovery.PluginRequirements) (map[string]ResourceProviderFactory, error) {
+	ret, errs := resolver.ResolveProviders(reqd)
+	if errs != nil {
+		errBuf := &bytes.Buffer{}
+		errBuf.WriteString("Can't satisfy provider requirements with currently-installed plugins:\n\n")
+		for _, err := range errs {
+			fmt.Fprintf(errBuf, "* %s\n", err)
+		}
+		errBuf.WriteString("\nRun 'terraform init' to install the necessary provider plugins.\n")
+		return nil, errors.New(errBuf.String())
+	}
+
+	return ret, nil
 }
