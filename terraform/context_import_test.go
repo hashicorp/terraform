@@ -8,7 +8,9 @@ import (
 
 func TestContextImport_basic(t *testing.T) {
 	p := testProvider("aws")
+	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
+		Module: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -43,7 +45,9 @@ func TestContextImport_basic(t *testing.T) {
 
 func TestContextImport_countIndex(t *testing.T) {
 	p := testProvider("aws")
+	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
+		Module: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -79,7 +83,9 @@ func TestContextImport_countIndex(t *testing.T) {
 
 func TestContextImport_collision(t *testing.T) {
 	p := testProvider("aws")
+	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
+		Module: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -131,7 +137,9 @@ func TestContextImport_collision(t *testing.T) {
 
 func TestContextImport_missingType(t *testing.T) {
 	p := testProvider("aws")
+	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
+		Module: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -166,7 +174,9 @@ func TestContextImport_missingType(t *testing.T) {
 
 func TestContextImport_moduleProvider(t *testing.T) {
 	p := testProvider("aws")
+	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
+		Module: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -191,8 +201,6 @@ func TestContextImport_moduleProvider(t *testing.T) {
 
 		return nil
 	}
-
-	m := testModule(t, "import-provider")
 
 	state, err := ctx.Import(&ImportOpts{
 		Module: m,
@@ -221,7 +229,9 @@ func TestContextImport_moduleProvider(t *testing.T) {
 // Test that import sets up the graph properly for provider inheritance
 func TestContextImport_providerInherit(t *testing.T) {
 	p := testProvider("aws")
+	m := testModule(t, "import-provider-inherit")
 	ctx := testContext2(t, &ContextOpts{
+		Module: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -247,8 +257,6 @@ func TestContextImport_providerInherit(t *testing.T) {
 		return nil
 	}
 
-	m := testModule(t, "import-provider-inherit")
-
 	_, err := ctx.Import(&ImportOpts{
 		Module: m,
 		Targets: []*ImportTarget{
@@ -271,8 +279,9 @@ func TestContextImport_providerInherit(t *testing.T) {
 // that configuration for import.
 func TestContextImport_providerVarConfig(t *testing.T) {
 	p := testProvider("aws")
+	m := testModule(t, "import-provider-vars")
 	ctx := testContext2(t, &ContextOpts{
-		Module: testModule(t, "import-provider-vars"),
+		Module: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -327,8 +336,9 @@ func TestContextImport_providerVarConfig(t *testing.T) {
 // Test that provider configs can't reference resources.
 func TestContextImport_providerNonVarConfig(t *testing.T) {
 	p := testProvider("aws")
+	m := testModule(t, "import-provider-non-vars")
 	ctx := testContext2(t, &ContextOpts{
-		Module: testModule(t, "import-provider-non-vars"),
+		Module: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -358,7 +368,9 @@ func TestContextImport_providerNonVarConfig(t *testing.T) {
 
 func TestContextImport_refresh(t *testing.T) {
 	p := testProvider("aws")
+	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
+		Module: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -401,7 +413,9 @@ func TestContextImport_refresh(t *testing.T) {
 
 func TestContextImport_refreshNil(t *testing.T) {
 	p := testProvider("aws")
+	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
+		Module: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -441,7 +455,9 @@ func TestContextImport_refreshNil(t *testing.T) {
 
 func TestContextImport_module(t *testing.T) {
 	p := testProvider("aws")
+	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
+		Module: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -477,7 +493,9 @@ func TestContextImport_module(t *testing.T) {
 
 func TestContextImport_moduleDepth2(t *testing.T) {
 	p := testProvider("aws")
+	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
+		Module: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -513,7 +531,9 @@ func TestContextImport_moduleDepth2(t *testing.T) {
 
 func TestContextImport_moduleDiff(t *testing.T) {
 	p := testProvider("aws")
+	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
+		Module: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -565,7 +585,9 @@ func TestContextImport_moduleDiff(t *testing.T) {
 
 func TestContextImport_moduleExisting(t *testing.T) {
 	p := testProvider("aws")
+	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
+		Module: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -617,7 +639,9 @@ func TestContextImport_moduleExisting(t *testing.T) {
 
 func TestContextImport_multiState(t *testing.T) {
 	p := testProvider("aws")
+	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
+		Module: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -657,7 +681,9 @@ func TestContextImport_multiState(t *testing.T) {
 
 func TestContextImport_multiStateSame(t *testing.T) {
 	p := testProvider("aws")
+	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
+		Module: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
@@ -701,7 +727,9 @@ func TestContextImport_multiStateSame(t *testing.T) {
 
 func TestContextImport_customProvider(t *testing.T) {
 	p := testProvider("aws")
+	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
+		Module: m,
 		ProviderResolver: ResourceProviderResolverFixed(
 			map[string]ResourceProviderFactory{
 				"aws": testProviderFuncFixed(p),
