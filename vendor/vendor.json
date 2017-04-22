@@ -2844,10 +2844,16 @@
 			"revisionTime": "2015-09-07T02:38:54Z"
 		},
 		{
-			"checksumSHA1": "qn7N2kqSpKKi3YglZNyoQxp4aKs=",
-			"path": "github.com/rancher/go-rancher/client",
-			"revision": "bdb84801f2cf82be73e210ff586c531b07c83c42",
-			"revisionTime": "2016-07-27T23:27:26Z"
+			"checksumSHA1": "u5s2PZ7fzCOqQX7bVPf9IJ+qNLQ=",
+			"path": "github.com/rancher/go-rancher",
+			"revision": "ec24b7f12fca9f78fbfcd62a0ea8bce14ade8792",
+			"revisionTime": "2017-04-07T04:09:43Z"
+		},
+		{
+			"checksumSHA1": "PDlJwzfadZAKtXoAp/BEZCmj6Dg=",
+			"path": "github.com/rancher/go-rancher/v2",
+			"revision": "ec24b7f12fca9f78fbfcd62a0ea8bce14ade8792",
+			"revisionTime": "2017-04-07T04:09:43Z"
 		},
 		{
 			"checksumSHA1": "3GxN1UayE1AG4mG+Cg+MlzqoWT8=",
