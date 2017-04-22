@@ -4,47 +4,34 @@ variable "resource_group" {
 
 variable "image_uri" {
   description = "Specifies the image_uri in the form publisherName:offer:skus:version. image_uri can also specify the VHD uri of a custom VM image to clone."
-  default = "https://myrgdisks276.blob.core.windows.net/vhds/originalvm20170421170101.vhd"
-}
-
-variable "primary_blob_endpoint" {
-  description = ""
-  default     = "https://myrgdisks276.blob.core.windows.net/"
 }
 
 variable "os_type" {
   description = "Specifies the operating system Type, valid values are windows, linux."
-  default = "linux"
 }
 
 variable "location" {
   description = "The location/region where the virtual network is created. Changing this forces a new resource to be created."
-  default     = "southcentralus"
 }
 
 variable "address_space" {
   description = "The address space that is used by the virtual network. You can supply more than one address space. Changing this forces a new resource to be created."
-  default     = "10.0.0.0/16"
 }
 
 variable "subnet_prefix" {
   description = "The address prefix to use for the subnet."
-  default     = "10.0.0.0/24"
 }
 
 variable "storage_account_name" {
   description = "The name of the storage account in which the image from which you are cloning resides."
-  default     = "myrgsisks276"
 }
 
 variable "storage_account_type" {
   description = "Defines the type of storage account to be created. Valid options are Standard_LRS, Standard_ZRS, Standard_GRS, Standard_RAGRS, Premium_LRS. Changing this is sometimes valid - see the Azure documentation for more information on which types of accounts can be converted into other types."
-  default     = "Standard_LRS"
 }
 
 variable "vm_size" {
   description = "Specifies the size of the virtual machine. This must be the same as the vm image from which you are copying."
-  default     = "Standard_DS1_v2"
 }
 
 variable "hostname" {
@@ -53,10 +40,8 @@ variable "hostname" {
 
 variable "admin_username" {
   description = "administrator user name"
-  default     = "vmadmin"
 }
 
 variable "admin_password" {
   description = "administrator password (recommended to disable password auth)"
-  default     = "T3rr@f0rmP@ssword"
 }
