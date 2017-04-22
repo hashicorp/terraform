@@ -7,6 +7,11 @@ variable "image_uri" {
   default = "https://myrgdisks276.blob.core.windows.net/vhds/originalvm20170421170101.vhd"
 }
 
+variable "primary_blob_endpoint" {
+  description = ""
+  default     = "https://myrgdisks276.blob.core.windows.net/"
+}
+
 variable "os_type" {
   description = "Specifies the operating system Type, valid values are windows, linux."
   default = "linux"

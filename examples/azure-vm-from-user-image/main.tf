@@ -38,13 +38,6 @@ resource "azurerm_public_ip" "pip" {
   domain_name_label            = "${var.hostname}"
 }
 
-resource "azurerm_storage_account" "stor" {
-  name                = "${var.storage_account_name}"
-  location            = "${var.location}"
-  resource_group_name = "${azurerm_resource_group.rg.name}"
-  account_type        = "${var.storage_account_type}"
-}
-
 resource "azurerm_virtual_machine" "vm" {
   name                  = "${var.hostname}"
   location              = "${var.location}"
@@ -55,7 +48,7 @@ resource "azurerm_virtual_machine" "vm" {
   storage_os_disk {
     name          = "${var.hostname}-osdisk1"
     image_uri     = "${var.image_uri}"
-    vhd_uri       = "${azurerm_storage_account.stor.primary_blob_endpoint}vhds/${var.hostname}osdisk.vhd"
+    vhd_uri       = "${var.primary_blob_endpoint}vhds/${var.hostname}osdisk.vhd"
     os_type       = "${var.os_type}"
     caching       = "ReadWrite"
     create_option = "FromImage"
