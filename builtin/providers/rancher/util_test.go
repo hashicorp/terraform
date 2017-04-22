@@ -3,7 +3,7 @@ package rancher
 import (
 	"testing"
 
-	"github.com/rancher/go-rancher/client"
+	"github.com/rancher/go-rancher/v2"
 )
 
 var idTests = []struct {
@@ -46,10 +46,10 @@ var orchestrationTests = []struct {
 	project       *client.Project
 	orchestration string
 }{
-	{&client.Project{}, "cattle"},
-	{&client.Project{Swarm: true}, "swarm"},
-	{&client.Project{Mesos: true}, "mesos"},
-	{&client.Project{Kubernetes: true}, "kubernetes"},
+	{&client.Project{Orchestration: "cattle"}, "cattle"},
+	{&client.Project{Orchestration: "swarm"}, "swarm"},
+	{&client.Project{Orchestration: "mesos"}, "mesos"},
+	{&client.Project{Orchestration: "kubernetes"}, "kubernetes"},
 }
 
 func TestActiveOrchestration(t *testing.T) {

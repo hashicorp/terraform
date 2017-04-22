@@ -3,7 +3,7 @@ package rancher
 import (
 	"log"
 
-	rancherClient "github.com/rancher/go-rancher/client"
+	rancherClient "github.com/rancher/go-rancher/v2"
 	"github.com/raphink/go-rancher/catalog"
 )
 
@@ -12,6 +12,7 @@ type Config struct {
 	APIURL    string
 	AccessKey string
 	SecretKey string
+	V2Client  bool
 }
 
 // GlobalClient creates a Rancher client scoped to the global API
