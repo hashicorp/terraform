@@ -46,6 +46,7 @@ options to narrow down the list AWS returns.
 
 ## Attributes Reference
 
-`ids` is set to the list of AMI IDs.
+`ids` is set to the list of AMI IDs, sorted by creation time in descending
+order.
 
 [1]: http://docs.aws.amazon.com/cli/latest/reference/ec2/describe-images.html

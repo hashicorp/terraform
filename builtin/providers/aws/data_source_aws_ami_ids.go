@@ -36,10 +36,9 @@ func dataSourceAwsAmiIds() *schema.Resource {
 			},
 			"tags": dataSourceTagsSchema(),
 			"ids": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      schema.HashString,
 			},
 		},
 	}
@@ -101,7 +100,7 @@ func dataSourceAwsAmiIdsRead(d *schema.ResourceData, meta interface{}) error {
 		filteredImages = resp.Images[:]
 	}
 
-	for _, image := range filteredImages {
+	for _, image := range sortImages(filteredImages) {
 		imageIds = append(imageIds, *image.ImageId)
 	}
 
