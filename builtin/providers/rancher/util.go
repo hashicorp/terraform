@@ -3,7 +3,7 @@ package rancher
 import (
 	"strings"
 
-	"github.com/rancher/go-rancher/client"
+	"github.com/rancher/go-rancher/v2"
 )
 
 const (
@@ -13,18 +13,7 @@ const (
 
 // GetActiveOrchestration get the name of the active orchestration for a environment
 func getActiveOrchestration(project *client.Project) string {
-	orch := "cattle"
-
-	switch {
-	case project.Swarm:
-		orch = "swarm"
-	case project.Mesos:
-		orch = "mesos"
-	case project.Kubernetes:
-		orch = "kubernetes"
-	}
-
-	return orch
+	return project.Orchestration
 }
 
 func removed(state string) bool {
@@ -41,4 +30,29 @@ func splitID(id string) (envID, resourceID string) {
 // NewListOpts wraps around client.NewListOpts()
 func NewListOpts() *client.ListOpts {
 	return client.NewListOpts()
+}
+
+func populateProjectTemplateIDs(config *Config) error {
+	cli, err := config.GlobalClient()
+	if err != nil {
+		return err
+	}
+
+	for projectTemplate := range defaultProjectTemplates {
+		templates, err := cli.ProjectTemplate.List(&client.ListOpts{
+			Filters: map[string]interface{}{
+				"isPublic": true,
+				"name":     projectTemplate,
+				"sort":     "created",
+			},
+		})
+		if err != nil {
+			return err
+		}
+
+		if len(templates.Data) > 0 {
+			defaultProjectTemplates[projectTemplate] = templates.Data[0].Id
+		}
+	}
+	return nil
 }

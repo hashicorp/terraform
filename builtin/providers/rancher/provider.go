@@ -6,11 +6,13 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
 
+// CLIConfig used to store data from file.
 type CLIConfig struct {
 	AccessKey   string `json:"accessKey"`
 	SecretKey   string `json:"secretKey"`
@@ -71,7 +73,7 @@ func init() {
 
 		"secret_key": "API secret used to authenticate with the rancher server",
 
-		"api_url": "The URL to the rancher API",
+		"api_url": "The URL to the rancher API, must include version uri (ie. v1 or v2-beta)",
 
 		"config": "Path to the Rancher client cli.json config file",
 	}
@@ -110,9 +112,10 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	}
 
 	config := &Config{
-		APIURL:    apiURL + "/v1",
+		APIURL:    apiURL,
 		AccessKey: accessKey,
 		SecretKey: secretKey,
+		V2Client:  strings.Contains(apiURL, "v2"),
 	}
 
 	_, err := config.GlobalClient()

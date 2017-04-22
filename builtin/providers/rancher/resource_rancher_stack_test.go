@@ -7,11 +7,11 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	rancherClient "github.com/rancher/go-rancher/client"
+	rancherClient "github.com/rancher/go-rancher/v2"
 )
 
 func TestAccRancherStack_basic(t *testing.T) {
-	var stack rancherClient.Environment
+	var stack rancherClient.Stack
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -47,7 +47,7 @@ func TestAccRancherStack_basic(t *testing.T) {
 }
 
 func TestAccRancherStack_compose(t *testing.T) {
-	var stack rancherClient.Environment
+	var stack rancherClient.Stack
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -74,7 +74,7 @@ func TestAccRancherStack_compose(t *testing.T) {
 //upgrading a stack automatically starts the services which never
 //completes if there is no host available
 func TestAccRancherStack_catalog(t *testing.T) {
-	var stack rancherClient.Environment
+	var stack rancherClient.Stack
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -116,7 +116,7 @@ func TestAccRancherStack_catalog(t *testing.T) {
 }
 
 func TestAccRancherStack_disappears(t *testing.T) {
-	var stack rancherClient.Environment
+	var stack rancherClient.Stack
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -135,14 +135,14 @@ func TestAccRancherStack_disappears(t *testing.T) {
 	})
 }
 
-func testAccRancherStackDisappears(stack *rancherClient.Environment) resource.TestCheckFunc {
+func testAccRancherStackDisappears(stack *rancherClient.Stack) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client, err := testAccProvider.Meta().(*Config).EnvironmentClient(stack.AccountId)
 		if err != nil {
 			return err
 		}
 
-		if err := client.Environment.Delete(stack); err != nil {
+		if err := client.Stack.Delete(stack); err != nil {
 			return fmt.Errorf("Error deleting Stack: %s", err)
 		}
 
@@ -165,7 +165,7 @@ func testAccRancherStackDisappears(stack *rancherClient.Environment) resource.Te
 	}
 }
 
-func testAccCheckRancherStackExists(n string, stack *rancherClient.Environment) resource.TestCheckFunc {
+func testAccCheckRancherStackExists(n string, stack *rancherClient.Stack) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -182,7 +182,7 @@ func testAccCheckRancherStackExists(n string, stack *rancherClient.Environment) 
 			return err
 		}
 
-		foundStack, err := client.Environment.ById(rs.Primary.ID)
+		foundStack, err := client.Stack.ById(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
@@ -197,7 +197,7 @@ func testAccCheckRancherStackExists(n string, stack *rancherClient.Environment) 
 	}
 }
 
-func testAccCheckRancherStackAttributes(stack *rancherClient.Environment, environment map[string]string, startOnCreate bool) resource.TestCheckFunc {
+func testAccCheckRancherStackAttributes(stack *rancherClient.Stack, environment map[string]string, startOnCreate bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		if len(stack.Environment) != len(environment) {
@@ -228,7 +228,7 @@ func testAccCheckRancherStackDestroy(s *terraform.State) error {
 			return err
 		}
 
-		stack, err := client.Environment.ById(rs.Primary.ID)
+		stack, err := client.Stack.ById(rs.Primary.ID)
 
 		if err == nil {
 			if stack != nil &&
