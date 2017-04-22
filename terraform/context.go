@@ -57,7 +57,7 @@ type ContextOpts struct {
 	Parallelism        int
 	State              *State
 	StateFutureAllowed bool
-	Providers          map[string]ResourceProviderFactory
+	ProviderResolver   ResourceProviderResolver
 	Provisioners       map[string]ResourceProvisionerFactory
 	Shadow             bool
 	Targets            []string
@@ -166,13 +166,26 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 	//        set by environment variables if necessary. This includes
 	//        values taken from -var-file in addition.
 	variables := make(map[string]interface{})
-
 	if opts.Module != nil {
 		var err error
 		variables, err = Variables(opts.Module, opts.Variables)
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	// Bind available provider plugins to the constraints in config
+	var providers map[string]ResourceProviderFactory
+	if opts.ProviderResolver != nil {
+		var err error
+		deps := moduleTreeDependencies(opts.Module, state)
+		reqd := deps.AllPluginRequirements()
+		providers, err = resourceProviderFactories(opts.ProviderResolver, reqd)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		providers = make(map[string]ResourceProviderFactory)
 	}
 
 	diff := opts.Diff
@@ -182,7 +195,7 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 
 	return &Context{
 		components: &basicComponentFactory{
-			providers:    opts.Providers,
+			providers:    providers,
 			provisioners: opts.Provisioners,
 		},
 		destroy:   opts.Destroy,
