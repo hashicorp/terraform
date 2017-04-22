@@ -119,8 +119,8 @@ type PluginOverrides struct {
 }
 
 type testingOverrides struct {
-	Providers    map[string]terraform.ResourceProviderFactory
-	Provisioners map[string]terraform.ResourceProvisionerFactory
+	ProviderResolver terraform.ResourceProviderResolver
+	Provisioners     map[string]terraform.ResourceProvisionerFactory
 }
 
 // initStatePaths is used to initialize the default values for
@@ -237,10 +237,10 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 	// and just work with what we've been given, thus allowing the tests
 	// to provide mock providers and provisioners.
 	if m.testingOverrides != nil {
-		opts.Providers = m.testingOverrides.Providers
+		opts.ProviderResolver = m.testingOverrides.ProviderResolver
 		opts.Provisioners = m.testingOverrides.Provisioners
 	} else {
-		opts.Providers = m.providerFactories()
+		opts.ProviderResolver = m.providerResolver()
 		opts.Provisioners = m.provisionerFactories()
 	}
 
