@@ -158,8 +158,8 @@ func updateByteMatchSetResourceWR(d *schema.ResourceData, meta interface{}, Chan
 			ByteMatchSetId: aws.String(d.Id()),
 		}
 
-		ByteMatchTuples := d.Get("byte_match_tuples").(*schema.Set)
-		for _, ByteMatchTuple := range ByteMatchTuples.List() {
+		byteMatchTuples := d.Get("byte_match_tuples").(*schema.Set)
+		for _, ByteMatchTuple := range byteMatchTuples.List() {
 			ByteMatch := ByteMatchTuple.(map[string]interface{})
 			ByteMatchUpdate := &waf.ByteMatchSetUpdate{
 				Action: aws.String(ChangeAction),
