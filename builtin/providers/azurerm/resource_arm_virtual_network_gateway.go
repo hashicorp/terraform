@@ -9,17 +9,19 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/arm/network"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
 )
 
-func resourceArmvirtualNetworkGateway() *schema.Resource {
+func resourceArmVirtualNetworkGateway() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmvirtualNetworkGatewayCreate,
-		Read:   resourceArmvirtualNetworkGatewayRead,
-		Update: resourceArmvirtualNetworkGatewayCreate,
-		Delete: resourceArmvirtualNetworkGatewayDelete,
+		Create: resourceArmVirtualNetworkGatewayCreate,
+		Read:   resourceArmVirtualNetworkGatewayRead,
+		Update: resourceArmVirtualNetworkGatewayCreate,
+		Delete: resourceArmVirtualNetworkGatewayDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -46,6 +48,7 @@ func resourceArmvirtualNetworkGateway() *schema.Resource {
 					string(network.VirtualNetworkGatewayTypeExpressRoute),
 					string(network.VirtualNetworkGatewayTypeVpn),
 				}, false),
+				ForceNew: true,
 			},
 
 			"vpn_type": {
@@ -55,11 +58,12 @@ func resourceArmvirtualNetworkGateway() *schema.Resource {
 					string(network.RouteBased),
 					string(network.PolicyBased),
 				}, false),
+				ForceNew: true,
 			},
 
 			"enable_bgp": {
 				Type:     schema.TypeBool,
-				Required: true,
+				Optional: true,
 			},
 
 			"active_active": {
@@ -80,6 +84,7 @@ func resourceArmvirtualNetworkGateway() *schema.Resource {
 								string(network.VirtualNetworkGatewaySkuNameBasic),
 								string(network.VirtualNetworkGatewaySkuNameStandard),
 								string(network.VirtualNetworkGatewaySkuNameHighPerformance),
+								string(network.VirtualNetworkGatewaySkuNameUltraPerformance),
 							}, false),
 						},
 						"tier": {
@@ -89,6 +94,7 @@ func resourceArmvirtualNetworkGateway() *schema.Resource {
 								string(network.VirtualNetworkGatewaySkuTierBasic),
 								string(network.VirtualNetworkGatewaySkuTierStandard),
 								string(network.VirtualNetworkGatewaySkuTierHighPerformance),
+								string(network.VirtualNetworkGatewaySkuTierUltraPerformance),
 							}, false),
 						},
 						"capacity": {
@@ -100,28 +106,30 @@ func resourceArmvirtualNetworkGateway() *schema.Resource {
 				Set: hashVirtualNetworkGatewaySku,
 			},
 
-			// used TypeList here so the private_ip_address can be referenced
 			"ip_configuration": {
 				Type:     schema.TypeList,
 				Required: true,
 				MinItems: 1,
+				MaxItems: 2,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
+							Default:  "vnetGatewayConfig",
 						},
 						"private_ip_address_allocation": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 							ValidateFunc: validation.StringInSlice([]string{
 								string(network.Static),
 								string(network.Dynamic),
 							}, false),
+							Default: string(network.Dynamic),
 						},
 						"subnet_id": {
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 						},
 						"public_ip_address_id": {
 							Type:     schema.TypeString,
@@ -134,7 +142,6 @@ func resourceArmvirtualNetworkGateway() *schema.Resource {
 			"vpn_client_configuration": {
 				Type:     schema.TypeSet,
 				Optional: true,
-				Computed: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -165,7 +172,6 @@ func resourceArmvirtualNetworkGateway() *schema.Resource {
 						"revoked_certificate": {
 							Type:     schema.TypeSet,
 							Optional: true,
-							Computed: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"name": {
@@ -194,25 +200,24 @@ func resourceArmvirtualNetworkGateway() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"asn": {
 							Type:     schema.TypeInt,
-							Required: true,
+							Optional: true,
 						},
 						"peering_address": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
 						"peer_weight": {
 							Type:     schema.TypeInt,
-							Required: true,
+							Optional: true,
 						},
 					},
 				},
 				Set: hashVirtualNetworkGatewayBgpSettings,
 			},
 
-			"gateway_default_site_id": {
+			"default_local_network_gateway_id": {
 				Type:     schema.TypeString,
 				Optional: true,
-				Computed: true,
 			},
 
 			"tags": tagsSchema(),
@@ -220,8 +225,9 @@ func resourceArmvirtualNetworkGateway() *schema.Resource {
 	}
 }
 
-func resourceArmvirtualNetworkGatewayCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*ArmClient).vnetGatewayClient
+func resourceArmVirtualNetworkGatewayCreate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*ArmClient)
+	vnetGatewayClient := client.vnetGatewayClient
 
 	log.Printf("[INFO] preparing arguments for Azure ARM Virtual Network Gateway creation.")
 
@@ -234,36 +240,45 @@ func resourceArmvirtualNetworkGatewayCreate(d *schema.ResourceData, meta interfa
 		Name:     &name,
 		Location: &location,
 		Tags:     expandTags(tags),
-		VirtualNetworkGatewayPropertiesFormat: getArmvirtualNetworkGatewayProperties(d),
+		VirtualNetworkGatewayPropertiesFormat: getArmVirtualNetworkGatewayProperties(d),
 	}
 
-	_, err := client.CreateOrUpdate(resGroup, name, gateway, make(chan struct{}))
+	_, err := vnetGatewayClient.CreateOrUpdate(resGroup, name, gateway, make(chan struct{}))
 	if err != nil {
 		return err
 	}
 
-	read, err := client.Get(resGroup, name)
+	read, err := vnetGatewayClient.Get(resGroup, name)
 	if err != nil {
 		return err
 	}
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read VirtualNetwork Gateway %s (resource group %s) ID", name, resGroup)
+		return fmt.Errorf("Cannot read VirtualNetworkGateway %s (resource group %s) ID", name, resGroup)
+	}
+
+	log.Printf("[DEBUG] Waiting for VirtualNetworkGateway (%s) to become available", name)
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"Accepted", "Updating"},
+		Target:  []string{"Succeeded"},
+		Refresh: virtualNetworkGatewayStateRefreshFunc(client, resGroup, name, false),
+		Timeout: 60 * time.Minute,
+	}
+	if _, err := stateConf.WaitForState(); err != nil {
+		return fmt.Errorf("Error waiting for VirtualNetworkGateway (%s) to become available: %s", name, err)
 	}
 
 	d.SetId(*read.ID)
 
-	return resourceArmvirtualNetworkGatewayRead(d, meta)
+	return resourceArmVirtualNetworkGatewayRead(d, meta)
 }
 
-func resourceArmvirtualNetworkGatewayRead(d *schema.ResourceData, meta interface{}) error {
+func resourceArmVirtualNetworkGatewayRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient).vnetGatewayClient
 
-	id, err := parseAzureResourceID(d.Id())
+	resGroup, name, err := resourceGroupAndVirtualNetworkGatewayFromId(d.Id())
 	if err != nil {
 		return err
 	}
-	resGroup := id.ResourceGroup
-	name := id.Path["virtualNetworkGateways"]
 
 	resp, err := client.Get(resGroup, name)
 	if err != nil {
@@ -273,6 +288,7 @@ func resourceArmvirtualNetworkGatewayRead(d *schema.ResourceData, meta interface
 		}
 		return fmt.Errorf("Error making Read request on VirtualNetwork Gateway %s: %s", name, err)
 	}
+
 	gw := *resp.VirtualNetworkGatewayPropertiesFormat
 
 	d.Set("name", resp.Name)
@@ -288,7 +304,7 @@ func resourceArmvirtualNetworkGatewayRead(d *schema.ResourceData, meta interface
 	}
 
 	if gw.GatewayDefaultSite != nil {
-		d.Set("gateway_default_site_id", gw.GatewayDefaultSite.ID)
+		d.Set("default_local_network_gateway_id", gw.GatewayDefaultSite.ID)
 	}
 
 	d.Set("ip_configuration", flattenArmVirtualNetworkGatewayIPConfigurations(gw.IPConfigurations))
@@ -299,7 +315,8 @@ func resourceArmvirtualNetworkGatewayRead(d *schema.ResourceData, meta interface
 	}
 
 	if gw.BgpSettings != nil {
-		d.Set("bgp_settings", schema.NewSet(hashVirtualNetworkGatewayBgpSettings, flattenArmVirtualNetworkGatewayBgpSettings(gw.BgpSettings)))
+		bgpSettingsFlat := flattenArmVirtualNetworkGatewayBgpSettings(gw.BgpSettings)
+		d.Set("bgp_settings", schema.NewSet(hashVirtualNetworkGatewayBgpSettings, bgpSettingsFlat))
 	}
 
 	flattenAndSetTags(d, resp.Tags)
@@ -307,30 +324,58 @@ func resourceArmvirtualNetworkGatewayRead(d *schema.ResourceData, meta interface
 	return nil
 }
 
-func resourceArmvirtualNetworkGatewayDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*ArmClient).vnetGatewayClient
+func resourceArmVirtualNetworkGatewayDelete(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*ArmClient)
+	vnetGatewayClient := client.vnetGatewayClient
 
-	id, err := parseAzureResourceID(d.Id())
-	if err != nil {
-		return err
-	}
-	resGroup := id.ResourceGroup
-	name := id.Path["virtualNetworkGateways"]
-
-	_, err = client.Delete(resGroup, name, make(chan struct{}))
+	resGroup, name, err := resourceGroupAndVirtualNetworkGatewayFromId(d.Id())
 	if err != nil {
 		return err
 	}
 
-	// Gateways aren't fully cleaned up when the API indicates the delete operation
+	_, err = vnetGatewayClient.Delete(resGroup, name, make(chan struct{}))
+	if err != nil {
+		return err
+	}
+
+	log.Printf("[DEBUG] Waiting for VirtualNetworkGateway (%s) to be removed", name)
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"Accepted", "Deleting"},
+		Target:  []string{"NotFound"},
+		Refresh: virtualNetworkGatewayStateRefreshFunc(client, resGroup, name, true),
+		Timeout: 15 * time.Minute,
+	}
+	if _, err := stateConf.WaitForState(); err != nil {
+		return fmt.Errorf("Error waiting for VirtualNetworkGateway (%s) to be removed: %s", name, err)
+	}
+
+	// Gateways are not fully cleaned up when the API indicates the delete operation
 	// has finished, this workaround was suggested by Azure support to avoid conflicts
-	// when modifying/deleting the related subnet or network.
-	time.Sleep(time.Minute * 15)
+	// when modifying/deleting the related subnet or network. Although the API indicated
+	// that the Virtual Network Gateway does not exist anymore, there is still a link
+	// to the Gateway Subnet it has been associated with. This causes an error when
+	// trying to delete the Gateway Subnet immediately after the Virtual Network Gateway
+	// has been deleted.
 
+	d.SetId("")
 	return nil
 }
 
-func getArmvirtualNetworkGatewayProperties(d *schema.ResourceData) *network.VirtualNetworkGatewayPropertiesFormat {
+func virtualNetworkGatewayStateRefreshFunc(client *ArmClient, resourceGroupName string, virtualNetworkGateway string, withNotFound bool) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		res, err := client.vnetGatewayClient.Get(resourceGroupName, virtualNetworkGateway)
+		if err != nil {
+			if withNotFound && res.StatusCode == http.StatusNotFound {
+				return res, "NotFound", nil
+			}
+			return nil, "", fmt.Errorf("Error issuing read request in virtualNetworkGatewayStateRefreshFunc to Azure ARM for VirtualNetworkGateway '%s' (RG: '%s'): %s", virtualNetworkGateway, resourceGroupName, err)
+		}
+
+		return res, *res.VirtualNetworkGatewayPropertiesFormat.ProvisioningState, nil
+	}
+}
+
+func getArmVirtualNetworkGatewayProperties(d *schema.ResourceData) *network.VirtualNetworkGatewayPropertiesFormat {
 	gatewayType := network.VirtualNetworkGatewayType(d.Get("type").(string))
 	vpnType := network.VpnType(d.Get("vpn_type").(string))
 	enableBgp := d.Get("enable_bgp").(bool)
@@ -345,7 +390,7 @@ func getArmvirtualNetworkGatewayProperties(d *schema.ResourceData) *network.Virt
 		IPConfigurations: expandArmVirtualNetworkGatewayIPConfigurations(d),
 	}
 
-	if gatewayDefaultSiteID := d.Get("gateway_default_site_id").(string); gatewayDefaultSiteID != "" {
+	if gatewayDefaultSiteID := d.Get("default_local_network_gateway_id").(string); gatewayDefaultSiteID != "" {
 		props.GatewayDefaultSite = &network.SubResource{
 			ID: &gatewayDefaultSiteID,
 		}
@@ -514,8 +559,8 @@ func flattenArmVirtualNetworkGatewayVpnClientConfig(cfg *network.VpnClientConfig
 	rootCerts := make([]interface{}, 0, len(*cfg.VpnClientRootCertificates))
 	for _, cert := range *cfg.VpnClientRootCertificates {
 		v := map[string]interface{}{
-			"name":             cert.Name,
-			"public_cert_data": cert.VpnClientRootCertificatePropertiesFormat.PublicCertData,
+			"name":             *cert.Name,
+			"public_cert_data": *cert.VpnClientRootCertificatePropertiesFormat.PublicCertData,
 		}
 		rootCerts = append(rootCerts, v)
 	}
@@ -524,8 +569,8 @@ func flattenArmVirtualNetworkGatewayVpnClientConfig(cfg *network.VpnClientConfig
 	revokedCerts := make([]interface{}, 0, len(*cfg.VpnClientRevokedCertificates))
 	for _, cert := range *cfg.VpnClientRevokedCertificates {
 		v := map[string]interface{}{
-			"name":       cert.Name,
-			"thumbprint": cert.VpnClientRevokedCertificatePropertiesFormat.Thumbprint,
+			"name":       *cert.Name,
+			"thumbprint": *cert.VpnClientRevokedCertificatePropertiesFormat.Thumbprint,
 		}
 		revokedCerts = append(revokedCerts, v)
 	}
@@ -607,4 +652,34 @@ func hashVirtualNetworkGatewaySku(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["tier"].(string)))
 
 	return hashcode.String(buf.String())
+}
+
+func resourceGroupAndVirtualNetworkGatewayFromId(virtualNetworkGatewayId string) (string, string, error) {
+	id, err := parseAzureResourceID(virtualNetworkGatewayId)
+	if err != nil {
+		return "", "", err
+	}
+	name := id.Path["virtualNetworkGateways"]
+	resGroup := id.ResourceGroup
+
+	return resGroup, name, nil
+}
+
+func retrieveVirtualNetworkGatewayById(virtualNetworkGatewayId string, meta interface{}) (*network.VirtualNetworkGateway, bool, error) {
+	vnetGatewayClient := meta.(*ArmClient).vnetGatewayClient
+
+	resGroup, name, err := resourceGroupAndVirtualNetworkGatewayFromId(virtualNetworkGatewayId)
+	if err != nil {
+		return nil, false, errwrap.Wrapf("Error Getting VirtualNetworkGateway Name and Group: {{err}}", err)
+	}
+
+	resp, err := vnetGatewayClient.Get(resGroup, name)
+	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			return nil, false, nil
+		}
+		return nil, false, fmt.Errorf("Error making Read request on Azure VirtualNetworkGateway %s: %s", name, err)
+	}
+
+	return &resp, true, nil
 }

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/Azure/azure-sdk-for-go/arm/network"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -96,15 +97,10 @@ func resourceArmLocalNetworkGatewayCreate(d *schema.ResourceData, meta interface
 func resourceArmLocalNetworkGatewayRead(d *schema.ResourceData, meta interface{}) error {
 	lnetClient := meta.(*ArmClient).localNetConnClient
 
-	id, err := parseAzureResourceID(d.Id())
+	resGroup, name, err := resourceGroupAndLocalNetworkGatewayFromId(d.Id())
 	if err != nil {
 		return err
 	}
-	name := id.Path["localNetworkGateways"]
-	if name == "" {
-		return fmt.Errorf("Cannot find 'localNetworkGateways' in '%s', make sure it is specified in the ID parameter", d.Id())
-	}
-	resGroup := id.ResourceGroup
 
 	resp, err := lnetClient.Get(resGroup, name)
 	if err != nil {
@@ -133,12 +129,10 @@ func resourceArmLocalNetworkGatewayRead(d *schema.ResourceData, meta interface{}
 func resourceArmLocalNetworkGatewayDelete(d *schema.ResourceData, meta interface{}) error {
 	lnetClient := meta.(*ArmClient).localNetConnClient
 
-	id, err := parseAzureResourceID(d.Id())
+	resGroup, name, err := resourceGroupAndLocalNetworkGatewayFromId(d.Id())
 	if err != nil {
 		return err
 	}
-	name := id.Path["localNetworkGateways"]
-	resGroup := id.ResourceGroup
 
 	_, err = lnetClient.Delete(resGroup, name, make(chan struct{}))
 	if err != nil {
@@ -146,4 +140,34 @@ func resourceArmLocalNetworkGatewayDelete(d *schema.ResourceData, meta interface
 	}
 
 	return nil
+}
+
+func resourceGroupAndLocalNetworkGatewayFromId(localNetworkGatewayId string) (string, string, error) {
+	id, err := parseAzureResourceID(localNetworkGatewayId)
+	if err != nil {
+		return "", "", err
+	}
+	name := id.Path["localNetworkGateways"]
+	resGroup := id.ResourceGroup
+
+	return resGroup, name, nil
+}
+
+func retrieveLocalNetworkGatewayById(localNetworkGatewayId string, meta interface{}) (*network.LocalNetworkGateway, bool, error) {
+	lnetClient := meta.(*ArmClient).localNetConnClient
+
+	resGroup, name, err := resourceGroupAndLocalNetworkGatewayFromId(localNetworkGatewayId)
+	if err != nil {
+		return nil, false, errwrap.Wrapf("Error Getting LocalNetworkGateway Name and Group: {{err}}", err)
+	}
+
+	resp, err := lnetClient.Get(resGroup, name)
+	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			return nil, false, nil
+		}
+		return nil, false, fmt.Errorf("Error making Read request on Azure LocalNetworkGateway %s: %s", name, err)
+	}
+
+	return &resp, true, nil
 }

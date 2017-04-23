@@ -6,7 +6,9 @@ import (
 	"net/http"
 
 	"github.com/Azure/azure-sdk-for-go/arm/network"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"time"
 )
 
 func resourceArmSubnet() *schema.Resource {
@@ -225,5 +227,48 @@ func resourceArmSubnetDelete(d *schema.ResourceData, meta interface{}) error {
 
 	_, err = subnetClient.Delete(resGroup, vnetName, name, make(chan struct{}))
 
+	// After deleting a gateway subnet, we check if the subnet has been deleted and
+	// retry if necessary. This is necessary as a workaround for scenarios in which
+	// a gateway subnet is deleted immediately after its previously associated
+	// virtual network gateway has been deleted. Unfortunately, the Azure Management
+	// API does not provide information on the state, therefore we try for a
+	// limited period of time.
+	if err != nil && name == "GatewaySubnet" {
+		err = resourceArmSubnetRetryDeleteGatewaySubnet(subnetClient, name, vnetName, resGroup)
+	}
+
 	return err
+}
+
+func resourceArmSubnetRetryDeleteGatewaySubnet(subnetClient network.SubnetsClient, name string, vnetName string, resGroup string) error {
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"Deleting", "Failed"},
+		Target:  []string{"NotFound"},
+		Refresh: func() (interface{}, string, error) {
+			resp, err := subnetClient.Get(resGroup, vnetName, name, "")
+
+			if err != nil {
+				if resp.StatusCode == http.StatusNotFound {
+					return resp, "NotFound", nil
+				}
+
+				return nil, "", fmt.Errorf("Error issuing read request when retrying to delete Gateway Subnet %s/%s (resource group %s): %s", vnetName, name, resGroup, err)
+			}
+
+			// Retry deletion of gateway subnet if provisioning state is failed
+			if *resp.SubnetPropertiesFormat.ProvisioningState == "Failed" {
+				log.Printf("[DEBUG] Retry deleting Gateway Subnet %s/%s after failed provisioning state.", vnetName, name)
+				subnetClient.Delete(resGroup, vnetName, name, make(chan struct{}))
+			}
+
+			return resp, *resp.SubnetPropertiesFormat.ProvisioningState, nil
+		},
+		PollInterval: 30 * time.Second,
+		Timeout:      15 * time.Minute,
+	}
+	if _, err := stateConf.WaitForState(); err != nil {
+		return fmt.Errorf("Error waiting for Gateway Subnet %s/%s to be removed: %s", vnetName, name, err)
+	}
+
+	return nil
 }
