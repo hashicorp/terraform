@@ -41,6 +41,7 @@ IMPROVEMENTS:
  * provider/aws: Add replica_source_db to the aws_db_instance datasource [GH-13842]
  * provider/aws: Add IPv6 outputs to aws_subnet datasource [GH-13841]
  * provider/aws: Exercise SecondaryPrivateIpAddressCount for network interface [GH-10590]
+ * provider/aws: Add tagging support to the 'aws_lambda_function' resource [GH-13873]
  * provider/azurerm: VM Scale Sets - import support [GH-13464]
  * provider/azurerm: Allow Azure China region support [GH-13767]
  * provider/digitalocean: Export droplet prices [GH-13720]
