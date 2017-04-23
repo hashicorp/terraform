@@ -31,6 +31,10 @@ func TestAccDigitalOceanDroplet_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"digitalocean_droplet.foobar", "size", "512mb"),
 					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "price_hourly", "0.00744"),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "price_monthly", "5"),
+					resource.TestCheckResourceAttr(
 						"digitalocean_droplet.foobar", "image", "centos-7-x64"),
 					resource.TestCheckResourceAttr(
 						"digitalocean_droplet.foobar", "region", "nyc3"),
