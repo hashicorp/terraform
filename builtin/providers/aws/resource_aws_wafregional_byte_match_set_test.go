@@ -30,7 +30,7 @@ func TestAccAWSWafRegionalByteMatchSet_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_wafregional_byte_match_set.byte_set", "name", byteMatchSet),
 					resource.TestCheckResourceAttr(
-						"aws_wafregional_byte_match_set.byte_set", "byte_match_tuples.#", "2"),
+						"aws_wafregional_byte_match_set.byte_set", "byte_match_tuple.#", "2"),
 				),
 			},
 		},
@@ -54,7 +54,7 @@ func TestAccAWSWafRegionalByteMatchSet_changeNameForceNew(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_wafregional_byte_match_set.byte_set", "name", byteMatchSet),
 					resource.TestCheckResourceAttr(
-						"aws_wafregional_byte_match_set.byte_set", "byte_match_tuples.#", "2"),
+						"aws_wafregional_byte_match_set.byte_set", "byte_match_tuple.#", "2"),
 				),
 			},
 			{
@@ -64,7 +64,7 @@ func TestAccAWSWafRegionalByteMatchSet_changeNameForceNew(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_wafregional_byte_match_set.byte_set", "name", byteMatchSetNewName),
 					resource.TestCheckResourceAttr(
-						"aws_wafregional_byte_match_set.byte_set", "byte_match_tuples.#", "2"),
+						"aws_wafregional_byte_match_set.byte_set", "byte_match_tuple.#", "2"),
 				),
 			},
 		},
@@ -201,7 +201,7 @@ func testAccAWSWafRegionalByteMatchSetConfig(name string) string {
 	return fmt.Sprintf(`
 resource "aws_wafregional_byte_match_set" "byte_set" {
   name = "%s"
-  byte_match_tuples {
+  byte_match_tuple {
     text_transformation = "NONE"
     target_string = "badrefer1"
     positional_constraint = "CONTAINS"
@@ -211,7 +211,7 @@ resource "aws_wafregional_byte_match_set" "byte_set" {
     }
   }
 
-  byte_match_tuples {
+  byte_match_tuple {
     text_transformation = "NONE"
     target_string = "badrefer2"
     positional_constraint = "CONTAINS"
@@ -227,7 +227,7 @@ func testAccAWSWafRegionalByteMatchSetConfigChangeName(name string) string {
 	return fmt.Sprintf(`
 resource "aws_wafregional_byte_match_set" "byte_set" {
   name = "%s"
-  byte_match_tuples {
+  byte_match_tuple {
     text_transformation = "NONE"
     target_string = "badrefer1"
     positional_constraint = "CONTAINS"
@@ -237,7 +237,7 @@ resource "aws_wafregional_byte_match_set" "byte_set" {
     }
   }
 
-  byte_match_tuples {
+  byte_match_tuple {
     text_transformation = "NONE"
     target_string = "badrefer2"
     positional_constraint = "CONTAINS"

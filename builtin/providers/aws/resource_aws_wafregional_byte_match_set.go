@@ -23,7 +23,7 @@ func resourceAwsWafRegionalByteMatchSet() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"byte_match_tuples": &schema.Schema{
+			"byte_match_tuple": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
@@ -133,7 +133,7 @@ func resourceAwsWafRegionalByteMatchSetRead(d *schema.ResourceData, meta interfa
 		}
 		tuples = append(tuples, tuple)
 	}
-	d.Set("byte_match_tuples", tuples)
+	d.Set("byte_match_tuple", tuples)
 	d.Set("name", resp.ByteMatchSet.Name)
 
 	return nil
@@ -142,8 +142,8 @@ func resourceAwsWafRegionalByteMatchSetRead(d *schema.ResourceData, meta interfa
 func resourceAwsWafRegionalByteMatchSetUpdate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Updating ByteMatchSet: %s", d.Get("name").(string))
 
-	if d.HasChange("byte_match_tuples") {
-		o, n := d.GetChange("byte_match_tuples")
+	if d.HasChange("byte_match_tuple") {
+		o, n := d.GetChange("byte_match_tuple")
 		oldT, newT := o.(*schema.Set).List(), n.(*schema.Set).List()
 
 		err := updateByteMatchSetResourceWR(d, meta, oldT, newT)
@@ -159,7 +159,7 @@ func resourceAwsWafRegionalByteMatchSetDelete(d *schema.ResourceData, meta inter
 
 	log.Printf("[INFO] Deleting ByteMatchSet: %s", d.Get("name").(string))
 
-	oldT := d.Get("byte_match_tuples").(*schema.Set).List()
+	oldT := d.Get("byte_match_tuple").(*schema.Set).List()
 
 	if len(oldT) > 0 {
 		var newT []interface{}
