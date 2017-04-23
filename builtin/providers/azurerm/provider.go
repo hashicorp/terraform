@@ -113,6 +113,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_virtual_machine":           resourceArmVirtualMachine(),
 			"azurerm_virtual_machine_scale_set": resourceArmVirtualMachineScaleSet(),
 			"azurerm_virtual_network":           resourceArmVirtualNetwork(),
+			"azurerm_virtual_network_gateway":   resourceArmvirtualNetworkGateway(),
 			"azurerm_virtual_network_peering":   resourceArmVirtualNetworkPeering(),
 
 			// These resources use the Riviera SDK
