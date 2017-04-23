@@ -83,6 +83,7 @@ large files efficiently.
 * `environment` - (Optional) The Lambda environment's configuration settings. Fields documented below.
 * `kms_key_arn` - (Optional) The ARN for the KMS encryption key.
 * `source_code_hash` - (Optional) Used to trigger updates. Must be set to a base64-encoded SHA256 hash of the package file specified with either `filename` or `s3_key`. The usual way to set this is `${base64sha256(file("file.zip"))}`, where "file.zip" is the local filename of the lambda function source archive.
+* `tags` - (Optional) A mapping of tags to assign to the object.
 
 **dead\_letter\_config** is a child block with a single argument:
 
