@@ -18,6 +18,7 @@ before_deploy:
   - export KEY=$(cat /dev/urandom | tr -cd 'a-z' | head -c 12)
   - export PASSWORD=$KEY$(cat /dev/urandom | tr -cd 'A-Z' | head -c 2)$(cat /dev/urandom | tr -cd '0-9' | head -c 2)
 
+
 # terraform deploy script
 deploy:
   - provider: script
@@ -27,5 +28,9 @@ deploy:
       repo: 10thmagnitude/terraform
       branch: topic-101-vm-simple-linux
 
-# TODO: possibly use Azure CLI to delete the resource group
-after_deploy: docker run --rm -it azuresdk/azure-cli-python sh -c "az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID; az group delete -y -n $KEY"
+# destroy resources with Azure CLI
+after_deploy:
+  - docker run --rm -it \
+      azuresdk/azure-cli-python \
+      sh -c "az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID; \
+             az group delete -y -n $KEY"
