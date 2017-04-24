@@ -108,12 +108,13 @@ func resourceAwsSecurityGroupRule() *schema.Resource {
 
 func resourceAwsSecurityGroupRuleCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
+	cache := meta.(*AWSClient).Cache()
 	sg_id := d.Get("security_group_id").(string)
 
 	awsMutexKV.Lock(sg_id)
 	defer awsMutexKV.Unlock(sg_id)
 
-	sg, err := findResourceSecurityGroup(conn, sg_id)
+	sg, err := findResourceSecurityGroup(conn, cache, sg_id)
 	if err != nil {
 		return err
 	}
@@ -187,7 +188,7 @@ information and instructions for recovery. Error message: %s`, sg_id, awsErr.Mes
 	log.Printf("[DEBUG] Computed group rule ID %s", id)
 
 	retErr := resource.Retry(5*time.Minute, func() *resource.RetryError {
-		sg, err := findResourceSecurityGroup(conn, sg_id)
+		sg, err := findResourceSecurityGroup(conn, cache, sg_id)
 
 		if err != nil {
 			log.Printf("[DEBUG] Error finding Security Group (%s) for Rule (%s): %s", sg_id, id, err)
@@ -225,8 +226,9 @@ information and instructions for recovery. Error message: %s`, sg_id, awsErr.Mes
 
 func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
+	cache := meta.(*AWSClient).Cache()
 	sg_id := d.Get("security_group_id").(string)
-	sg, err := findResourceSecurityGroup(conn, sg_id)
+	sg, err := findResourceSecurityGroup(conn, cache, sg_id)
 	if _, notFound := err.(securityGroupNotFound); notFound {
 		// The security group containing this rule no longer exists.
 		d.SetId("")
@@ -280,12 +282,13 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 
 func resourceAwsSecurityGroupRuleDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
+	cache := meta.(*AWSClient).Cache()
 	sg_id := d.Get("security_group_id").(string)
 
 	awsMutexKV.Lock(sg_id)
 	defer awsMutexKV.Unlock(sg_id)
 
-	sg, err := findResourceSecurityGroup(conn, sg_id)
+	sg, err := findResourceSecurityGroup(conn, cache, sg_id)
 	if err != nil {
 		return err
 	}
@@ -334,25 +337,25 @@ func resourceAwsSecurityGroupRuleDelete(d *schema.ResourceData, meta interface{}
 	return nil
 }
 
-func findResourceSecurityGroup(conn *ec2.EC2, id string) (*ec2.SecurityGroup, error) {
-	req := &ec2.DescribeSecurityGroupsInput{
-		GroupIds: []*string{aws.String(id)},
-	}
-	resp, err := conn.DescribeSecurityGroups(req)
-	if err, ok := err.(awserr.Error); ok && err.Code() == "InvalidGroup.NotFound" {
-		return nil, securityGroupNotFound{id, nil}
-	}
+func findResourceSecurityGroup(conn *ec2.EC2, cache *Cache, id string) (*ec2.SecurityGroup, error) {
+	var group *ec2.SecurityGroup
+	err := updateSecurityGroupCache(conn, cache)
+
 	if err != nil {
 		return nil, err
 	}
-	if resp == nil {
-		return nil, securityGroupNotFound{id, nil}
-	}
-	if len(resp.SecurityGroups) != 1 || resp.SecurityGroups[0] == nil {
-		return nil, securityGroupNotFound{id, resp.SecurityGroups}
+
+	for _, sg := range cache.SecurityGroups.SecurityGroups {
+		if id == *sg.GroupId {
+			group = sg
+		}
 	}
 
-	return resp.SecurityGroups[0], nil
+	if group == nil {
+		return nil, securityGroupNotFound{id, nil}
+	}
+
+	return group, nil
 }
 
 type securityGroupNotFound struct {

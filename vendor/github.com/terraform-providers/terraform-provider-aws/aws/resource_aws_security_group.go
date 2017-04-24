@@ -706,22 +706,30 @@ func resourceAwsSecurityGroupUpdateRules(
 	return nil
 }
 
+func updateSecurityGroupCache(conn *ec2.EC2, cache *Cache) error {
+	if cache.SecurityGroups == nil {
+		req := &ec2.DescribeSecurityGroupsInput{}
+		resp, err := conn.DescribeSecurityGroups(req)
+
+		if err != nil {
+			log.Printf("Error on SGStateRefresh: %s", err)
+			return err
+		}
+
+		cache.SecurityGroups = resp
+	}
+	return nil
+}
+
 // SGStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
 // a security group.
 func SGStateRefreshFunc(conn *ec2.EC2, cache *Cache, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		var group *ec2.SecurityGroup
+		err := updateSecurityGroupCache(conn, cache)
 
-		if cache.SecurityGroups == nil {
-			req := &ec2.DescribeSecurityGroupsInput{}
-			resp, err := conn.DescribeSecurityGroups(req)
-
-			if err != nil {
-				log.Printf("Error on SGStateRefresh: %s", err)
-				return nil, "", err
-			}
-
-			cache.SecurityGroups = resp
+		if err != nil {
+			return nil, "", nil
 		}
 
 		for _, sg := range cache.SecurityGroups.SecurityGroups {

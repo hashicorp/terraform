@@ -117,7 +117,7 @@ type Config struct {
 }
 
 type Cache struct {
-	SecurityGroups  *ec2.DescribeSecurityGroupsOutput
+	SecurityGroups *ec2.DescribeSecurityGroupsOutput
 }
 
 type AWSClient struct {
@@ -182,7 +182,7 @@ type AWSClient struct {
 }
 
 func (c *AWSClient) Cache() *Cache {
-	if (c.cache == nil) {
+	if c.cache == nil {
 		c.cache = &Cache{}
 	}
 	return c.cache
