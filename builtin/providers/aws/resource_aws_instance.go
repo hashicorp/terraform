@@ -128,18 +128,43 @@ func resourceAwsInstance() *schema.Resource {
 				Computed: true,
 			},
 
-			// TODO: Deprecate me
+			// TODO: Deprecate me v0.10.0
 			"network_interface_id": {
+				Type:       schema.TypeString,
+				Computed:   true,
+				Deprecated: "Please use `primary_network_interface_id` instead",
+			},
+
+			"primary_network_interface_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"primary_network_interface": {
-				ConflictsWith: []string{"associate_public_ip_address", "subnet_id", "private_ip", "vpc_security_group_ids", "security_groups", "ipv6_addresses", "ipv6_address_count"},
-				Type:          schema.TypeString,
+			"network_interface": {
+				ConflictsWith: []string{"associate_public_ip_address", "subnet_id", "private_ip", "vpc_security_group_ids", "security_groups", "ipv6_addresses", "ipv6_address_count", "source_dest_check"},
+				Type:          schema.TypeSet,
 				Optional:      true,
-				ForceNew:      true,
 				Computed:      true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"delete_on_termination": {
+							Type:     schema.TypeBool,
+							Default:  false,
+							Optional: true,
+							ForceNew: true,
+						},
+						"network_interface_id": {
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+						"device_index": {
+							Type:     schema.TypeInt,
+							Required: true,
+							ForceNew: true,
+						},
+					},
+				},
 			},
 
 			"public_ip": {
@@ -537,25 +562,62 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("private_ip", instance.PrivateIpAddress)
 	d.Set("iam_instance_profile", iamInstanceProfileArnToName(instance.IamInstanceProfile))
 
+	// Set configured Network Interface Device Index Slice
+	// We only want to read, and populate state for the configured network_interface attachments. Otherwise, other
+	// resources have the potential to attach network interfaces to the instance, and cause a perpetual create/destroy
+	// diff. We should only read on changes configured for this specific resource because of this.
+	var configuredDeviceIndexes []int
+	if v, ok := d.GetOk("network_interface"); ok {
+		vL := v.(*schema.Set).List()
+		for _, vi := range vL {
+			mVi := vi.(map[string]interface{})
+			configuredDeviceIndexes = append(configuredDeviceIndexes, mVi["device_index"].(int))
+		}
+	}
+
 	var ipv6Addresses []string
 	if len(instance.NetworkInterfaces) > 0 {
-		for _, ni := range instance.NetworkInterfaces {
-			if *ni.Attachment.DeviceIndex == 0 {
-				d.Set("subnet_id", ni.SubnetId)
-				d.Set("network_interface_id", ni.NetworkInterfaceId) // TODO: Deprecate me
-				d.Set("primary_network_interface", ni.NetworkInterfaceId)
-				d.Set("associate_public_ip_address", ni.Association != nil)
-				d.Set("ipv6_address_count", len(ni.Ipv6Addresses))
-
-				for _, address := range ni.Ipv6Addresses {
-					ipv6Addresses = append(ipv6Addresses, *address.Ipv6Address)
+		var primaryNetworkInterface ec2.InstanceNetworkInterface
+		var networkInterfaces []map[string]interface{}
+		for _, iNi := range instance.NetworkInterfaces {
+			ni := make(map[string]interface{})
+			if *iNi.Attachment.DeviceIndex == 0 {
+				primaryNetworkInterface = *iNi
+			}
+			// If the attached network device is inside our configuration, refresh state with values found.
+			// Otherwise, assume the network device was attached via an outside resource.
+			for _, index := range configuredDeviceIndexes {
+				if index == int(*iNi.Attachment.DeviceIndex) {
+					ni["device_index"] = *iNi.Attachment.DeviceIndex
+					ni["network_interface_id"] = *iNi.NetworkInterfaceId
+					ni["delete_on_termination"] = *iNi.Attachment.DeleteOnTermination
 				}
 			}
+			// Don't add empty network interfaces to schema
+			if len(ni) == 0 {
+				continue
+			}
+			networkInterfaces = append(networkInterfaces, ni)
 		}
+		if err := d.Set("network_interface", networkInterfaces); err != nil {
+			return fmt.Errorf("Error setting network_interfaces: %v", err)
+		}
+
+		// Set primary network interface details
+		d.Set("subnet_id", primaryNetworkInterface.SubnetId)
+		d.Set("network_interface_id", primaryNetworkInterface.NetworkInterfaceId) // TODO: Deprecate me v0.10.0
+		d.Set("primary_network_interface_id", primaryNetworkInterface.NetworkInterfaceId)
+		d.Set("associate_public_ip_address", primaryNetworkInterface.Association != nil)
+		d.Set("ipv6_address_count", len(primaryNetworkInterface.Ipv6Addresses))
+
+		for _, address := range primaryNetworkInterface.Ipv6Addresses {
+			ipv6Addresses = append(ipv6Addresses, *address.Ipv6Address)
+		}
+
 	} else {
 		d.Set("subnet_id", instance.SubnetId)
-		d.Set("network_interface_id", "") // TODO: Deprecate me
-		d.Set("primary_network_interface", "")
+		d.Set("network_interface_id", "") // TODO: Deprecate me v0.10.0
+		d.Set("primary_network_interface_id", "")
 	}
 
 	if err := d.Set("ipv6_addresses", ipv6Addresses); err != nil {
@@ -682,24 +744,28 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	if d.HasChange("source_dest_check") || d.IsNewResource() {
-		// SourceDestCheck can only be set on VPC instances	// AWS will return an error of InvalidParameterCombination if we attempt
-		// to modify the source_dest_check of an instance in EC2 Classic
-		log.Printf("[INFO] Modifying `source_dest_check` on Instance %s", d.Id())
-		_, err := conn.ModifyInstanceAttribute(&ec2.ModifyInstanceAttributeInput{
-			InstanceId: aws.String(d.Id()),
-			SourceDestCheck: &ec2.AttributeBooleanValue{
-				Value: aws.Bool(d.Get("source_dest_check").(bool)),
-			},
-		})
-		if err != nil {
-			if ec2err, ok := err.(awserr.Error); ok {
-				// Toloerate InvalidParameterCombination error in Classic, otherwise
-				// return the error
-				if "InvalidParameterCombination" != ec2err.Code() {
-					return err
+	// SourceDestCheck can only be modified on an instance without manually specified network interfaces.
+	// SourceDestCheck, in that case, is configured at the network interface level
+	if _, ok := d.GetOk("network_interface"); !ok {
+		if d.HasChange("source_dest_check") || d.IsNewResource() {
+			// SourceDestCheck can only be set on VPC instances	// AWS will return an error of InvalidParameterCombination if we attempt
+			// to modify the source_dest_check of an instance in EC2 Classic
+			log.Printf("[INFO] Modifying `source_dest_check` on Instance %s", d.Id())
+			_, err := conn.ModifyInstanceAttribute(&ec2.ModifyInstanceAttributeInput{
+				InstanceId: aws.String(d.Id()),
+				SourceDestCheck: &ec2.AttributeBooleanValue{
+					Value: aws.Bool(d.Get("source_dest_check").(bool)),
+				},
+			})
+			if err != nil {
+				if ec2err, ok := err.(awserr.Error); ok {
+					// Tolerate InvalidParameterCombination error in Classic, otherwise
+					// return the error
+					if "InvalidParameterCombination" != ec2err.Code() {
+						return err
+					}
+					log.Printf("[WARN] Attempted to modify SourceDestCheck on non VPC instance: %s", ec2err.Message())
 				}
-				log.Printf("[WARN] Attempted to modify SourceDestCheck on non VPC instance: %s", ec2err.Message())
 			}
 		}
 	}
@@ -1019,6 +1085,55 @@ func fetchRootDeviceName(ami string, conn *ec2.EC2) (*string, error) {
 	return rootDeviceName, nil
 }
 
+func buildNetworkInterfaceOpts(d *schema.ResourceData, groups []*string, nInterfaces interface{}) []*ec2.InstanceNetworkInterfaceSpecification {
+	networkInterfaces := []*ec2.InstanceNetworkInterfaceSpecification{}
+	// Get necessary items
+	associatePublicIPAddress := d.Get("associate_public_ip_address").(bool)
+	subnet, hasSubnet := d.GetOk("subnet_id")
+
+	if hasSubnet && associatePublicIPAddress {
+		// If we have a non-default VPC / Subnet specified, we can flag
+		// AssociatePublicIpAddress to get a Public IP assigned. By default these are not provided.
+		// You cannot specify both SubnetId and the NetworkInterface.0.* parameters though, otherwise
+		// you get: Network interfaces and an instance-level subnet ID may not be specified on the same request
+		// You also need to attach Security Groups to the NetworkInterface instead of the instance,
+		// to avoid: Network interfaces and an instance-level security groups may not be specified on
+		// the same request
+		ni := &ec2.InstanceNetworkInterfaceSpecification{
+			AssociatePublicIpAddress: aws.Bool(associatePublicIPAddress),
+			DeviceIndex:              aws.Int64(int64(0)),
+			SubnetId:                 aws.String(subnet.(string)),
+			Groups:                   groups,
+		}
+
+		if v, ok := d.GetOk("private_ip"); ok {
+			ni.PrivateIpAddress = aws.String(v.(string))
+		}
+
+		if v := d.Get("vpc_security_group_ids").(*schema.Set); v.Len() > 0 {
+			for _, v := range v.List() {
+				ni.Groups = append(ni.Groups, aws.String(v.(string)))
+			}
+		}
+
+		networkInterfaces = append(networkInterfaces, ni)
+	} else {
+		// If we have manually specified network interfaces, build and attach those here.
+		vL := nInterfaces.(*schema.Set).List()
+		for _, v := range vL {
+			ini := v.(map[string]interface{})
+			ni := &ec2.InstanceNetworkInterfaceSpecification{
+				DeviceIndex:         aws.Int64(int64(ini["device_index"].(int))),
+				NetworkInterfaceId:  aws.String(ini["network_interface_id"].(string)),
+				DeleteOnTermination: aws.Bool(ini["delete_on_termination"].(bool)),
+			}
+			networkInterfaces = append(networkInterfaces, ni)
+		}
+	}
+
+	return networkInterfaces
+}
+
 func readBlockDeviceMappingsFromConfig(
 	d *schema.ResourceData, conn *ec2.EC2) ([]*ec2.BlockDeviceMapping, error) {
 	blockDevices := make([]*ec2.BlockDeviceMapping, 0)
@@ -1271,43 +1386,10 @@ func buildAwsInstanceOpts(
 		}
 	}
 
-	// Check if using non-defaullt primary network interface
-	interface_id, interfaceOk := d.GetOk("primary_network_interface")
+	networkInterfaces, interfacesOk := d.GetOk("network_interface")
 
-	if hasSubnet && associatePublicIPAddress {
-		// If we have a non-default VPC / Subnet specified, we can flag
-		// AssociatePublicIpAddress to get a Public IP assigned. By default these are not provided.
-		// You cannot specify both SubnetId and the NetworkInterface.0.* parameters though, otherwise
-		// you get: Network interfaces and an instance-level subnet ID may not be specified on the same request
-		// You also need to attach Security Groups to the NetworkInterface instead of the instance,
-		// to avoid: Network interfaces and an instance-level security groups may not be specified on
-		// the same request
-		ni := &ec2.InstanceNetworkInterfaceSpecification{
-			AssociatePublicIpAddress: aws.Bool(associatePublicIPAddress),
-			DeviceIndex:              aws.Int64(int64(0)),
-			SubnetId:                 aws.String(subnetID),
-			Groups:                   groups,
-		}
-
-		if v, ok := d.GetOk("private_ip"); ok {
-			ni.PrivateIpAddress = aws.String(v.(string))
-		}
-
-		if v := d.Get("vpc_security_group_ids").(*schema.Set); v.Len() > 0 {
-			for _, v := range v.List() {
-				ni.Groups = append(ni.Groups, aws.String(v.(string)))
-			}
-		}
-
-		opts.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{ni}
-	} else if interfaceOk {
-		ni := &ec2.InstanceNetworkInterfaceSpecification{
-			DeviceIndex:        aws.Int64(int64(0)),
-			NetworkInterfaceId: aws.String(interface_id.(string)),
-		}
-
-		opts.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{ni}
-	} else {
+	// If simply specifying a subnetID, privateIP, Security Groups, or VPC Security Groups, build these now
+	if !hasSubnet && !associatePublicIPAddress && !interfacesOk {
 		if subnetID != "" {
 			opts.SubnetID = aws.String(subnetID)
 		}
@@ -1327,6 +1409,9 @@ func buildAwsInstanceOpts(
 				opts.SecurityGroupIDs = append(opts.SecurityGroupIDs, aws.String(v.(string)))
 			}
 		}
+	} else {
+		// Otherwise we're attaching (a) network interface(s)
+		opts.NetworkInterfaces = buildNetworkInterfaceOpts(d, groups, networkInterfaces)
 	}
 
 	if v, ok := d.GetOk("key_name"); ok {
