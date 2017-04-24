@@ -22,6 +22,9 @@ deploy:
   - provider: script
     skip_cleanup: true
     script: cd $TEST_DIR && ./deploy.sh
+    on:
+      repo: 10thmagnitude/terraform
+      branch: topic-101-vm-simple-linux
 
 # destroy resources with Azure CLI
 after_deploy:
