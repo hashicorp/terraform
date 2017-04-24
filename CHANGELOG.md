@@ -70,6 +70,7 @@ BUG FIXES:
  * provider/aws: Remove aws_vpc_dhcp_options if not found [GH-13610]
  * provider/aws: Remove aws_network_acl_rule if not found [GH-13608]
  * provider/aws: Use mutex & retry for WAF change operations [GH-13656]
+ * provider/aws: Adding support for ipv6 to aws_subnets needs migration [GH-13876]
  * provider/azurerm: azurerm_redis_cache resource missing hostname [GH-13650]
  * provider/azurerm: Locking around Network Security Group / Subnets [GH-13637]
  * provider/azurerm: Locking route table on subnet create/delete [GH-13791]
