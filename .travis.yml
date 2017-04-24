@@ -1,36 +1,32 @@
+sudo: required
+
+services:
+  - docker
+
 language: generic
 
 # establish environment variables
 env:
-  - TEST_DIR=examples/101-vm-simple-linux
-#   global:
-#     - GH_USER_NAME="travis-ci"
-#     - GH_USER_EMAIL="mikedball@gmail.com"
-#     - GH_REPO="10thmagnitude/terraform"
-#     # encrypted GH_TOKEN and AWS credentials
-#     - secure: "EBtNoRGUNjgom7lk6+O7Zh9A33X/251Cg7j5C+HqfkPMQcQwS6MEAXPT1vbnh1HoQixR1e6VTHdXxvWyE/14+98qtJiHnSbGiY67ZvQNDuFLb2+PKx7xhhl9heNj8Xk1K1SYJtfYQZIvZNl32V9db6eR3r7kKlWlpUVmnSnXrnm4ztI8se45OX/XPjAnARdBvkpbcTSprrAf7Qudc5R86ain18tJah6PICd12TIH4Cpdcr6CVL8kRK808VH+AS2oii7QcKXc084gBOJJLCiwa2DrcSEPOOk0AIn5ft+XVcaCsV6oOc6NliFKEPoJkaxbYWtunDlnqgB6epuaGrf99TfCg4E9R8sXBFqJwdMGDu3xM6Nddw87tMj/oCbUmjrNnl4qAxIMBD2TdjwFS1lNaXAML8W/jx3bNGSEg5MAYrqLL32eJta/vxRJwpCVnXUHxef9JcZMNZcvuKMdHC98JQIYbGRRFZ0cFtqMe63tgWafCi3WS+FIqSWnGdiKZ7dS110ANHaiQkDAZKTlh/9YJpzR9LyOoq7xXYtQIUovyDD2j498mAkcgByEbyZ39k6xMvLHHXsdUq25tdaMvqE3ZUASIDWqDk1QPfxkXX6n62Tj2X1HCA+3JI/DKyEfzt3QV4rntiP4Qv9jSuxNpd47rgsgVFg+HGJmko9QzAA/g+E="
+  - TEST_DIR=examples/azure-vm-simple-linux
 
 branches:
   only:
   - master
   - /^(?i:topic)-.*$/
 
-
-##todo: switch to before_script and script
-
 # install terraform
 before_deploy:
-  - curl -fSL "https://releases.hashicorp.com/terraform/0.9.3/terraform_0.9.3_linux_amd64.zip" -o terraform.zip
-  - sudo unzip terraform.zip -d /opt/terraform
-  - sudo ln -s /opt/terraform/terraform /usr/bin/terraform
-  - rm -f terraform.zip
+  - export KEY=$(cat /dev/urandom | tr -cd 'a-z' | head -c 12)
+  - export PASSWORD=$KEY$(cat /dev/urandom | tr -cd 'A-Z' | head -c 2)$(cat /dev/urandom | tr -cd '0-9' | head -c 2)
 
-# terraform apply
+# terraform deploy script
 deploy:
   - provider: script
     skip_cleanup: true
-    script: cd $TEST_DIR && "./deploy.sh"
+    script: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./deploy.sh
     on:
       repo: 10thmagnitude/terraform
-      branch: 101-vm-simple-linux
-      condition: false  # re-enable when examples exist in master 
+      branch: topic-101-vm-simple-linux
+
+# destroy resources with Azure CLI
+after_deploy: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./after_deploy.sh
