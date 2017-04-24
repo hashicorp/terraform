@@ -104,9 +104,13 @@ func resourceAwsIotTopicRule() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 						},
+						"hash_key_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 						"payload_field": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
 						"range_key_field": &schema.Schema{
 							Type:     schema.TypeString,
@@ -115,6 +119,10 @@ func resourceAwsIotTopicRule() *schema.Resource {
 						"range_key_value": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
+						},
+						"range_key_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 						"role_arn": &schema.Schema{
 							Type:     schema.TypeString,
@@ -340,9 +348,7 @@ func createTopicRulePayload(d *schema.ResourceData) *iot.TopicRulePayload {
 	// Add DynamoDB actions
 	for _, a := range dynamoDbActions {
 		raw := a.(map[string]interface{})
-		// TODO: add hash_key_type
-		// TODO: add range_key_type
-		actions[i] = &iot.Action{
+		act := &iot.Action{
 			DynamoDB: &iot.DynamoDBAction{
 				HashKeyField:  aws.String(raw["hash_key_field"].(string)),
 				HashKeyValue:  aws.String(raw["hash_key_value"].(string)),
@@ -350,9 +356,18 @@ func createTopicRulePayload(d *schema.ResourceData) *iot.TopicRulePayload {
 				RangeKeyValue: aws.String(raw["range_key_value"].(string)),
 				RoleArn:       aws.String(raw["role_arn"].(string)),
 				TableName:     aws.String(raw["table_name"].(string)),
-				PayloadField:  aws.String(raw["payload_field"].(string)),
 			},
 		}
+		if hkt, ok := raw["hash_key_type"].(string); ok {
+			act.DynamoDB.HashKeyType = aws.String(hkt)
+		}
+		if rkt, ok := raw["range_key_type"].(string); ok {
+			act.DynamoDB.RangeKeyType = aws.String(rkt)
+		}
+		if plf, ok := raw["payload_field"].(string); ok {
+			act.DynamoDB.PayloadField = aws.String(plf)
+		}
+		actions[i] = act
 		i++
 	}
 
@@ -505,8 +520,10 @@ func resourceAwsIotTopicRuleRead(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	d.SetId(*out.Rule.RuleName)
-	d.Set("arn", *out.RuleArn)
+	d.Set("arn", out.RuleArn)
+	d.Set("name", out.Rule.RuleName)
+	d.Set("enabled", !(*out.Rule.RuleDisabled))
+	d.Set("sql", out.Rule.Sql)
 
 	return nil
 }
