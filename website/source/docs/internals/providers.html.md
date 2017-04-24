@@ -167,7 +167,23 @@ If `Removed` is set to anything but the empty string, when a config file sets or
 Information on what Default, DefaultFunc, and InputDefault do, what they mean, and when to use them.
 
 ### Working With Sets and Lists
-Information on Set and List types and how to use them, along with some of their quirks.
+Sometimes your Provider needs to model fields that accept a group of values, not just a single value. In this case, you want either a set or a list. A rule of thumb is that if order is not important, you want a set. Otherwise, you want a list. If in doubt, you probably want a list. One thing to know is that a set can only have one of each value in it; if you want the same value to appear in the group twice, you want a list.
+
+To make a field accept a set, set its `Type` property to `schema.TypeSet`. The `Set` property of the field can be set to a [`schema.SchemaSetFunc`](https://godoc.org/github.com/hashicorp/terraform/helper/schema#SchemaSetFunc) to customize the way your values are hashed into keys, but unless you know you need it, we recommend you just leave it empty and use the default hashing function.
+
+To make a field accept a list, set its `Type` property to `schema.TypeList`.
+
+Regardless of whether the field accepts a list or a set, you need to also set the `Elem` property to an instance of a `*schema.Schema` or a `*schema.Resource`. A `*schema.Schema` will just be a simple value, but a `*schema.Resource` houses a more complex structure, and could have its own lifecycle for elements being added and removed.
+
+When using a `*schema.Resource` as the `Elem` for a set, it's important to know that fields on the `*schema.Resource` that are have their `Computed` property set to `true` will cause problems. This should be avoided. You should also avoid nesting a set inside of another set, as changing the contents of the inner set will mark the outer set as changed, which leads to some hard-to-understand diffs.
+
+Also, keep in mind that it's hard to know the "key" for set items ahead of time, so it will be hard to interpolate specific items of the set. Lists do not have this problem, as the "key" is always their position in the list.
+
+Note, however, that inserting a new item into the list at any point but the end of the list will cause every item following the newly inserted item to think it has "changed", even though only its position in the list has changed. When you're able to update the entire list atomically, this isn't such a big deal, but if updating the list involves making an API call for each element that has changed, this can get messy.
+
+If you're in doubt as to whether to use a list or a set, err on the side of the list, as it's easier to switch from a list to a set than to switch from a set to a list.
+
+Finally, know that the optional [validation function](TODO) you can supply will not work with lists or sets.
 
 ### Understanding `ResourceData`
 When working with the `Create`, `Read`, `Update`, `Destroy`, and `Exists` methods on your Provider, it’s almost impossible to not run into `ResourceData`. It’s a type that is used all over, so it’s important to understand it. But `ResourceData` can also be tricky, because it’s not abstracting a single logical concept in Terraform.
