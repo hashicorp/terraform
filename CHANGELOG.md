@@ -44,6 +44,7 @@ IMPROVEMENTS:
  * provider/aws: Add IPv6 outputs to aws_subnet datasource [GH-13841]
  * provider/aws: Exercise SecondaryPrivateIpAddressCount for network interface [GH-10590]
  * provider/aws: Expose execution ARN + invoke URL for APIG deployment [GH-13889]
+ * provider/aws: Expose invoke ARN from Lambda function (for API Gateway) [GH-13890]
  * provider/aws: Add tagging support to the 'aws_lambda_function' resource [GH-13873]
  * provider/aws: Validate WAF metric names [GH-13885]
  * provider/azurerm: VM Scale Sets - import support [GH-13464]
