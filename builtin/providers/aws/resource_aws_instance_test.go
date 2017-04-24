@@ -616,13 +616,62 @@ func TestAccAWSInstance_tags(t *testing.T) {
 					testAccCheckTags(&v.Tags, "#", ""),
 				),
 			},
-
 			{
 				Config: testAccCheckInstanceConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
 					testAccCheckTags(&v.Tags, "foo", ""),
 					testAccCheckTags(&v.Tags, "bar", "baz"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSInstance_volumeTags(t *testing.T) {
+	var v ec2.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckInstanceConfigNoVolumeTags,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					resource.TestCheckNoResourceAttr(
+						"aws_instance.foo", "volume_tags"),
+				),
+			},
+			{
+				Config: testAccCheckInstanceConfigWithVolumeTags,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "volume_tags.%", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "volume_tags.Name", "acceptance-test-volume-tag"),
+				),
+			},
+			{
+				Config: testAccCheckInstanceConfigWithVolumeTagsUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "volume_tags.%", "2"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "volume_tags.Name", "acceptance-test-volume-tag"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "volume_tags.Environment", "dev"),
+				),
+			},
+			{
+				Config: testAccCheckInstanceConfigNoVolumeTags,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					resource.TestCheckNoResourceAttr(
+						"aws_instance.foo", "volume_tags"),
 				),
 			},
 		},
@@ -1277,6 +1326,117 @@ resource "aws_instance" "foo" {
 	instance_type = "m1.small"
 	tags {
 		foo = "bar"
+	}
+}
+`
+
+const testAccCheckInstanceConfigNoVolumeTags = `
+resource "aws_instance" "foo" {
+	ami = "ami-55a7ea65"
+
+	instance_type = "m3.medium"
+
+	root_block_device {
+		volume_type = "gp2"
+		volume_size = 11
+	}
+	ebs_block_device {
+		device_name = "/dev/sdb"
+		volume_size = 9
+	}
+	ebs_block_device {
+		device_name = "/dev/sdc"
+		volume_size = 10
+		volume_type = "io1"
+		iops = 100
+	}
+
+	ebs_block_device {
+		device_name = "/dev/sdd"
+		volume_size = 12
+		encrypted = true
+	}
+
+	ephemeral_block_device {
+		device_name = "/dev/sde"
+		virtual_name = "ephemeral0"
+	}
+}
+`
+
+const testAccCheckInstanceConfigWithVolumeTags = `
+resource "aws_instance" "foo" {
+	ami = "ami-55a7ea65"
+
+	instance_type = "m3.medium"
+
+	root_block_device {
+		volume_type = "gp2"
+		volume_size = 11
+	}
+	ebs_block_device {
+		device_name = "/dev/sdb"
+		volume_size = 9
+	}
+	ebs_block_device {
+		device_name = "/dev/sdc"
+		volume_size = 10
+		volume_type = "io1"
+		iops = 100
+	}
+
+	ebs_block_device {
+		device_name = "/dev/sdd"
+		volume_size = 12
+		encrypted = true
+	}
+
+	ephemeral_block_device {
+		device_name = "/dev/sde"
+		virtual_name = "ephemeral0"
+	}
+
+	volume_tags {
+		Name = "acceptance-test-volume-tag"
+	}
+}
+`
+
+const testAccCheckInstanceConfigWithVolumeTagsUpdate = `
+resource "aws_instance" "foo" {
+	ami = "ami-55a7ea65"
+
+	instance_type = "m3.medium"
+
+	root_block_device {
+		volume_type = "gp2"
+		volume_size = 11
+	}
+	ebs_block_device {
+		device_name = "/dev/sdb"
+		volume_size = 9
+	}
+	ebs_block_device {
+		device_name = "/dev/sdc"
+		volume_size = 10
+		volume_type = "io1"
+		iops = 100
+	}
+
+	ebs_block_device {
+		device_name = "/dev/sdd"
+		volume_size = 12
+		encrypted = true
+	}
+
+	ephemeral_block_device {
+		device_name = "/dev/sde"
+		virtual_name = "ephemeral0"
+	}
+
+	volume_tags {
+		Name = "acceptance-test-volume-tag"
+		Environment = "dev"
 	}
 }
 `

@@ -200,6 +200,8 @@ func resourceAwsInstance() *schema.Resource {
 
 			"tags": tagsSchema(),
 
+			"volume_tags": tagsSchema(),
+
 			"block_device": {
 				Type:     schema.TypeMap,
 				Optional: true,
@@ -396,6 +398,34 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		runOpts.Ipv6Addresses = ipv6Addresses
 	}
 
+	tagsSpec := make([]*ec2.TagSpecification, 0)
+
+	if v, ok := d.GetOk("tags"); ok {
+		tags := tagsFromMap(v.(map[string]interface{}))
+
+		spec := &ec2.TagSpecification{
+			ResourceType: aws.String("instance"),
+			Tags:         tags,
+		}
+
+		tagsSpec = append(tagsSpec, spec)
+	}
+
+	if v, ok := d.GetOk("volume_tags"); ok {
+		tags := tagsFromMap(v.(map[string]interface{}))
+
+		spec := &ec2.TagSpecification{
+			ResourceType: aws.String("volume"),
+			Tags:         tags,
+		}
+
+		tagsSpec = append(tagsSpec, spec)
+	}
+
+	if len(tagsSpec) > 0 {
+		runOpts.TagSpecifications = tagsSpec
+	}
+
 	// Create the instance
 	log.Printf("[DEBUG] Run configuration: %s", runOpts)
 
@@ -563,6 +593,10 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("tags", tagsToMap(instance.Tags))
 
+	if err := readVolumeTags(conn, d); err != nil {
+		return err
+	}
+
 	if err := readSecurityGroups(d, instance); err != nil {
 		return err
 	}
@@ -605,16 +639,27 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
 	d.Partial(true)
-	if err := setTags(conn, d); err != nil {
-		return err
-	} else {
-		d.SetPartial("tags")
+
+	if d.HasChange("tags") && !d.IsNewResource() {
+		if err := setTags(conn, d); err != nil {
+			return err
+		} else {
+			d.SetPartial("tags")
+		}
+	}
+
+	if d.HasChange("volume_tags") && !d.IsNewResource() {
+		if err := setVolumeTags(conn, d); err != nil {
+			return err
+		} else {
+			d.SetPartial("volume_tags")
+		}
 	}
 
 	if d.HasChange("iam_instance_profile") && !d.IsNewResource() {
 		request := &ec2.DescribeIamInstanceProfileAssociationsInput{
 			Filters: []*ec2.Filter{
-				&ec2.Filter{
+				{
 					Name:   aws.String("instance-id"),
 					Values: []*string{aws.String(d.Id())},
 				},
@@ -1125,6 +1170,39 @@ func readBlockDeviceMappingsFromConfig(
 	return blockDevices, nil
 }
 
+func readVolumeTags(conn *ec2.EC2, d *schema.ResourceData) error {
+	volumeIds, err := getAwsInstanceVolumeIds(conn, d)
+	if err != nil {
+		return err
+	}
+
+	tagsResp, err := conn.DescribeTags(&ec2.DescribeTagsInput{
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("resource-id"),
+				Values: volumeIds,
+			},
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	var tags []*ec2.Tag
+
+	for _, t := range tagsResp.Tags {
+		tag := &ec2.Tag{
+			Key:   t.Key,
+			Value: t.Value,
+		}
+		tags = append(tags, tag)
+	}
+
+	d.Set("volume_tags", tagsToMap(tags))
+
+	return nil
+}
+
 // Determine whether we're referring to security groups with
 // IDs or names. We use a heuristic to figure this out. By default,
 // we use IDs if we're in a VPC. However, if we previously had an
@@ -1371,4 +1449,28 @@ func userDataHashSum(user_data string) string {
 
 	hash := sha1.Sum(v)
 	return hex.EncodeToString(hash[:])
+}
+
+func getAwsInstanceVolumeIds(conn *ec2.EC2, d *schema.ResourceData) ([]*string, error) {
+	volumeIds := make([]*string, 0)
+
+	opts := &ec2.DescribeVolumesInput{
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("attachment.instance-id"),
+				Values: []*string{aws.String(d.Id())},
+			},
+		},
+	}
+
+	resp, err := conn.DescribeVolumes(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, v := range resp.Volumes {
+		volumeIds = append(volumeIds, v.VolumeId)
+	}
+
+	return volumeIds, nil
 }
