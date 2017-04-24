@@ -50,34 +50,65 @@ func resourceAwsSecurityGroupImportState(
 }
 
 func resourceAwsSecurityGroupImportStatePerm(sg *ec2.SecurityGroup, ruleType string, perm *ec2.IpPermission) ([]*schema.ResourceData, error) {
+	/*
+	   Create a seperate Security Group Rule for:
+	   * The collection of IpRanges (cidr_blocks)
+	   * The collection of Ipv6Ranges (ipv6_cidr_blocks)
+	   * Each individual UserIdGroupPair (source_security_group_id)
+
+	   If, for example, a security group has rules for:
+	   * 2 IpRanges
+	   * 2 Ipv6Ranges
+	   * 2 UserIdGroupPairs
+
+	   This would generate 4 security group rules:
+	   * 1 for the collection of IpRanges
+	   * 1 for the collection of Ipv6Ranges
+	   * 1 for the first UserIdGroupPair
+	   * 1 for the second UserIdGroupPair
+	*/
 	var result []*schema.ResourceData
 
-	if len(perm.UserIdGroupPairs) == 0 {
-		r, err := resourceAwsSecurityGroupImportStatePermPair(sg, ruleType, perm)
+	if perm.IpRanges != nil {
+		p := &ec2.IpPermission{
+			FromPort:      perm.FromPort,
+			IpProtocol:    perm.IpProtocol,
+			PrefixListIds: perm.PrefixListIds,
+			ToPort:        perm.ToPort,
+			IpRanges:      perm.IpRanges,
+		}
+
+		r, err := resourceAwsSecurityGroupImportStatePermPair(sg, ruleType, p)
 		if err != nil {
 			return nil, err
 		}
 		result = append(result, r)
-	} else {
-		// If the rule contained more than one source security group, this
-		// will iterate over them and create one rule for each
-		// source security group.
+	}
+
+	if perm.Ipv6Ranges != nil {
+		p := &ec2.IpPermission{
+			FromPort:      perm.FromPort,
+			IpProtocol:    perm.IpProtocol,
+			PrefixListIds: perm.PrefixListIds,
+			ToPort:        perm.ToPort,
+			Ipv6Ranges:    perm.Ipv6Ranges,
+		}
+
+		r, err := resourceAwsSecurityGroupImportStatePermPair(sg, ruleType, p)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, r)
+	}
+
+	if len(perm.UserIdGroupPairs) > 0 {
 		for _, pair := range perm.UserIdGroupPairs {
 			p := &ec2.IpPermission{
-				FromPort:      perm.FromPort,
-				IpProtocol:    perm.IpProtocol,
-				PrefixListIds: perm.PrefixListIds,
-				ToPort:        perm.ToPort,
-
+				FromPort:         perm.FromPort,
+				IpProtocol:       perm.IpProtocol,
+				PrefixListIds:    perm.PrefixListIds,
+				ToPort:           perm.ToPort,
 				UserIdGroupPairs: []*ec2.UserIdGroupPair{pair},
-			}
-
-			if perm.Ipv6Ranges != nil {
-				p.Ipv6Ranges = perm.Ipv6Ranges
-			}
-
-			if perm.IpRanges != nil {
-				p.IpRanges = perm.IpRanges
 			}
 
 			r, err := resourceAwsSecurityGroupImportStatePermPair(sg, ruleType, p)

@@ -179,6 +179,9 @@ The supported built-in functions are:
   * `coalesce(string1, string2, ...)` - Returns the first non-empty value from
     the given arguments. At least two arguments must be provided.
 
+  * `coalescelist(list1, list2, ...)` - Returns the first non-empty list from
+    the given arguments. At least two arguments must be provided.
+
   * `compact(list)` - Removes empty string elements from a list. This can be
      useful in some cases, for example when passing joined lists as module
      variables or when parsing module outputs.
@@ -207,6 +210,15 @@ The supported built-in functions are:
       to other base locations. For example, when using `file()` from inside a
       module, you generally want to make the path relative to the module base,
       like this: `file("${path.module}/file")`.
+
+  * `matchkeys(values, keys, searchset)` - For two lists `values` and `keys` of
+      equal length, returns all elements from `values` where the corresponding
+      element from `keys` exists in the `searchset` list.  E.g.
+      `matchkeys(aws_instance.example.*.id,
+      aws_instance.example.*.availability_zone, list("us-west-2a"))` will return a
+      list of the instance IDs of the `aws_instance.example` instances in
+      `"us-west-2a"`. No match will result in empty list. Items of `keys` are
+      processed sequentially, so the order of returned `values` is preserved.
 
   * `floor(float)` - Returns the greatest integer value less than or equal to
       the argument.

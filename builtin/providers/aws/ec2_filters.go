@@ -111,11 +111,11 @@ func ec2CustomFiltersSchema() *schema.Schema {
 		Optional: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
-				"name": &schema.Schema{
+				"name": {
 					Type:     schema.TypeString,
 					Required: true,
 				},
-				"values": &schema.Schema{
+				"values": {
 					Type:     schema.TypeSet,
 					Required: true,
 					Elem: &schema.Schema{

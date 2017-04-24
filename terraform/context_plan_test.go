@@ -532,6 +532,9 @@ func TestContext2Plan_moduleProviderInherit(t *testing.T) {
 					state *InstanceState,
 					c *ResourceConfig) (*InstanceDiff, error) {
 					v, _ := c.Get("from")
+
+					l.Lock()
+					defer l.Unlock()
 					calls = append(calls, v.(string))
 					return testDiffFn(info, state, c)
 				}
@@ -628,6 +631,9 @@ func TestContext2Plan_moduleProviderDefaults(t *testing.T) {
 					state *InstanceState,
 					c *ResourceConfig) (*InstanceDiff, error) {
 					v, _ := c.Get("from")
+
+					l.Lock()
+					defer l.Unlock()
 					calls = append(calls, v.(string))
 					return testDiffFn(info, state, c)
 				}
@@ -677,6 +683,8 @@ func TestContext2Plan_moduleProviderDefaultsVar(t *testing.T) {
 						buf.WriteString(v.(string) + "\n")
 					}
 
+					l.Lock()
+					defer l.Unlock()
 					calls = append(calls, buf.String())
 					return nil
 				}
