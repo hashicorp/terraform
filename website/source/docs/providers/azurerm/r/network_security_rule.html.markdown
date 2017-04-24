@@ -48,7 +48,7 @@ The following arguments are supported:
 * `resource_group_name` - (Required) The name of the resource group in which to
     create the Network Security Rule.
 
-* `network_security_group_name` - (Required) The name of the Network Security Group that we want to attach the rule to.
+* `network_security_group_name` - (Required) The name of the Network Security Group that we want to attach the rule to. Changing this forces a new resource to be created.
 
 * `description` - (Optional) A description for this rule. Restricted to 140 characters.
 

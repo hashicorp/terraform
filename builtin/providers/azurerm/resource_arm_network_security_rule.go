@@ -34,6 +34,7 @@ func resourceArmNetworkSecurityRule() *schema.Resource {
 			"network_security_group_name": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"description": {
