@@ -707,6 +707,8 @@ func resourceAwsSecurityGroupUpdateRules(
 }
 
 func updateSecurityGroupCache(conn *ec2.EC2, cache *Cache) error {
+	mtKey := "security_groups_cache"
+	awsMutexKV.Lock(mtKey)
 	if cache.SecurityGroups == nil {
 		req := &ec2.DescribeSecurityGroupsInput{}
 		resp, err := conn.DescribeSecurityGroups(req)
@@ -718,6 +720,7 @@ func updateSecurityGroupCache(conn *ec2.EC2, cache *Cache) error {
 
 		cache.SecurityGroups = resp
 	}
+	awsMutexKV.Unlock(mtKey)
 	return nil
 }
 
