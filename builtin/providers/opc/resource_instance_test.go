@@ -136,6 +136,27 @@ func TestAccOPCInstance_storage(t *testing.T) {
 	})
 }
 
+func TestAccOPCInstance_emptyLabel(t *testing.T) {
+	resName := "opc_compute_instance.test"
+	rInt := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccOPCCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceEmptyLabel(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccOPCCheckInstanceExists,
+					resource.TestCheckResourceAttr(resName, "name", fmt.Sprintf("acc-test-instance-%d", rInt)),
+					resource.TestCheckResourceAttrSet(resName, "label"),
+				),
+			},
+		},
+	})
+}
+
 func testAccOPCCheckInstanceExists(s *terraform.State) error {
 	client := testAccProvider.Meta().(*compute.Client).Instances()
 
@@ -270,4 +291,18 @@ resource "opc_compute_instance" "test" {
 	  index = 2
 	}
 }`, rInt, rInt, rInt)
+}
+
+func testAccInstanceEmptyLabel(rInt int) string {
+	return fmt.Sprintf(`
+resource "opc_compute_instance" "test" {
+	name = "acc-test-instance-%d"
+	shape = "oc3"
+	image_list = "/oracle/public/oel_6.7_apaas_16.4.5_1610211300"
+	instance_attributes = <<JSON
+{
+  "foo": "bar"
+}
+JSON
+}`, rInt)
 }

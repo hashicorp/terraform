@@ -140,7 +140,7 @@ func renderPartsToWriter(parts cloudInitParts, writer io.Writer) error {
 	}
 
 	writer.Write([]byte(fmt.Sprintf("Content-Type: multipart/mixed; boundary=\"%s\"\n", mimeWriter.Boundary())))
-	writer.Write([]byte("MIME-Version: 1.0\r\n"))
+	writer.Write([]byte("MIME-Version: 1.0\r\n\r\n"))
 
 	for _, part := range parts {
 		header := textproto.MIMEHeader{}

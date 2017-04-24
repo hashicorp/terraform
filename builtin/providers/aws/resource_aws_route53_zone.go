@@ -300,7 +300,7 @@ func deleteAllRecordsInHostedZoneId(hostedZoneId, hostedZoneName string, conn *r
 		changes := make([]*route53.Change, 0)
 		// 100 items per page returned by default
 		for _, set := range sets {
-			if *set.Name == hostedZoneName+"." && (*set.Type == "NS" || *set.Type == "SOA") {
+			if strings.TrimSuffix(*set.Name, ".") == strings.TrimSuffix(hostedZoneName, ".") && (*set.Type == "NS" || *set.Type == "SOA") {
 				// Zone NS & SOA records cannot be deleted
 				continue
 			}
