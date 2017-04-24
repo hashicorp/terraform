@@ -281,6 +281,8 @@ func resourceArmRedisCacheRead(d *schema.ResourceData, meta interface{}) error {
 	name := id.Path["Redis"]
 
 	resp, err := client.Get(resGroup, name)
+
+	// covers if the resource has been deleted outside of TF, but is still in the state
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		return nil
