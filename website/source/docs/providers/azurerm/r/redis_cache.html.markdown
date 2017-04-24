@@ -45,7 +45,7 @@ resource "azurerm_redis_cache" "test" {
   name                = "test"
   location            = "${azurerm_resource_group.test.location}"
   resource_group_name = "${azurerm_resource_group.test.name}"
-  capacity            = 1
+  capacity            = 2
   family              = "C"
   sku_name            = "Standard"
   enable_non_ssl_port = false
