@@ -69,6 +69,7 @@ BUG FIXES:
  * provider/aws: Fix DB Parameter Group Name [GH-13279]
  * provider/aws: Fix issue importing some Security Groups and Rules based on rule structure [GH-13630]
  * provider/aws: Fix issue for cross account IAM role with `aws_lambda_permission` [GH-13865]
+ * provider/aws: Fix WAF IPSet descriptors removal on update [GH-13766]
  * provider/aws: Increase default number of retries from 11 to 25 [GH-13673]
  * provider/aws: Remove aws_vpc_dhcp_options if not found [GH-13610]
  * provider/aws: Remove aws_network_acl_rule if not found [GH-13608]
