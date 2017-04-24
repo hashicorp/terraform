@@ -15,19 +15,14 @@ branches:
 
 # install terraform
 before_deploy:
-  - export KEY=$(cat /dev/urandom | tr -cd 'a-z' | head -c 12)
-  - export PASSWORD=$KEY$(cat /dev/urandom | tr -cd 'A-Z' | head -c 2)$(cat /dev/urandom | tr -cd '0-9' | head -c 2)
-
+  - cd $TEST_DIR && ./before_deploy.sh
 
 # terraform deploy script
 deploy:
   - provider: script
     skip_cleanup: true
     script: cd $TEST_DIR && ./deploy.sh
-    on:
-      repo: 10thmagnitude/terraform
-      branch: topic-101-vm-simple-linux
 
 # destroy resources with Azure CLI
 after_deploy:
-  - docker run --rm -it azuresdk/azure-cli-python sh -c "az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID; az group delete -y -n $KEY"
+  - cd $TEST_DIR && ./after_deploy.sh
