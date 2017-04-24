@@ -1,0 +1,4 @@
+{
+  "go.gopath": "D:\\CSG\\dev\\github\\Terraform\\terraform\\src;D:\\CSG\\dev\\github\\Terraform\\terraform\\vendor;D:\\CSG\\dev\\github\\Terraform\\terraform\\terraform;D:\\CSG\\dev\\github\\Terraform\\terraform\\builtin\\providers",
+  "go.toolsGopath":"C:\\tools\\go"
+}
