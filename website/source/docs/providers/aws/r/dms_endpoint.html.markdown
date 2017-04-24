@@ -15,7 +15,7 @@ Provides a DMS (Data Migration Service) endpoint resource. DMS endpoints can be 
 
 ## Example Usage
 
-```
+```hcl
 # Create a new endpoint
 resource "aws_dms_endpoint" "test" {
   certificate_arn             = "arn:aws:acm:us-east-1:123456789012:certificate/12345678-1234-1234-1234-123456789012"

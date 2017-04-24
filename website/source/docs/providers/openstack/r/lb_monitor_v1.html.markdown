@@ -12,7 +12,7 @@ Manages a V1 load balancer monitor resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_lb_monitor_v1" "monitor_1" {
   type           = "PING"
   delay          = 30

@@ -12,7 +12,7 @@ Creates a new Route Table Resource
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acceptanceTestResourceGroup1"
   location = "West US"

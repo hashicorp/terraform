@@ -37,7 +37,7 @@ func resourceServiceV1() *schema.Resource {
 			// creating and activating. It's used internally, but also exported for
 			// users to see.
 			"active_version": {
-				Type:     schema.TypeString,
+				Type:     schema.TypeInt,
 				Computed: true,
 			},
 
@@ -107,6 +107,80 @@ func resourceServiceV1() *schema.Resource {
 				Description: "The default hostname for the version",
 			},
 
+			"healthcheck": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						// required fields
+						"name": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "A name to refer to this healthcheck",
+						},
+						"host": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Which host to check",
+						},
+						"path": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The path to check",
+						},
+						// optional fields
+						"check_interval": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     5000,
+							Description: "How often to run the healthcheck in milliseconds",
+						},
+						"expected_response": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     200,
+							Description: "The status code expected from the host",
+						},
+						"http_version": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "1.1",
+							Description: "Whether to use version 1.0 or 1.1 HTTP",
+						},
+						"initial": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     2,
+							Description: "When loading a config, the initial number of probes to be seen as OK",
+						},
+						"method": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "HEAD",
+							Description: "Which HTTP method to use",
+						},
+						"threshold": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     3,
+							Description: "How many healthchecks must succeed to be considered healthy",
+						},
+						"timeout": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     500,
+							Description: "Timeout in milliseconds",
+						},
+						"window": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     5,
+							Description: "The number of most recent healthcheck queries to keep for this healthcheck",
+						},
+					},
+				},
+			},
+
 			"backend": {
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -153,6 +227,12 @@ func resourceServiceV1() *schema.Resource {
 							Optional:    true,
 							Default:     15000,
 							Description: "How long to wait for the first bytes in milliseconds",
+						},
+						"healthcheck": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "The healthcheck name that should be used for this Backend",
 						},
 						"max_conn": {
 							Type:        schema.TypeInt,
@@ -398,80 +478,6 @@ func resourceServiceV1() *schema.Resource {
 							Optional:    true,
 							Default:     "",
 							Description: "Optional name of a response condition to apply.",
-						},
-					},
-				},
-			},
-
-			"healthcheck": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						// required fields
-						"name": {
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "A name to refer to this healthcheck",
-						},
-						"host": {
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "Which host to check",
-						},
-						"path": {
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "The path to check",
-						},
-						// optional fields
-						"check_interval": {
-							Type:        schema.TypeInt,
-							Optional:    true,
-							Default:     5000,
-							Description: "How often to run the healthcheck in milliseconds",
-						},
-						"expected_response": {
-							Type:        schema.TypeInt,
-							Optional:    true,
-							Default:     200,
-							Description: "The status code expected from the host",
-						},
-						"http_version": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Default:     "1.1",
-							Description: "Whether to use version 1.0 or 1.1 HTTP",
-						},
-						"initial": {
-							Type:        schema.TypeInt,
-							Optional:    true,
-							Default:     2,
-							Description: "When loading a config, the initial number of probes to be seen as OK",
-						},
-						"method": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Default:     "HEAD",
-							Description: "Which HTTP method to use",
-						},
-						"threshold": {
-							Type:        schema.TypeInt,
-							Optional:    true,
-							Default:     3,
-							Description: "How many healthchecks must succeed to be considered healthy",
-						},
-						"timeout": {
-							Type:        schema.TypeInt,
-							Optional:    true,
-							Default:     500,
-							Description: "Timeout in milliseconds",
-						},
-						"window": {
-							Type:        schema.TypeInt,
-							Optional:    true,
-							Default:     5,
-							Description: "The number of most recent healthcheck queries to keep for this healthcheck",
 						},
 					},
 				},
@@ -866,14 +872,14 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if needsChange {
-		latestVersion := d.Get("active_version").(string)
-		if latestVersion == "" {
+		latestVersion := d.Get("active_version").(int)
+		if latestVersion == 0 {
 			// If the service was just created, there is an empty Version 1 available
 			// that is unlocked and can be updated
-			latestVersion = "1"
+			latestVersion = 1
 		} else {
 			// Clone the latest version, giving us an unlocked version we can modify
-			log.Printf("[DEBUG] Creating clone of version (%s) for updates", latestVersion)
+			log.Printf("[DEBUG] Creating clone of version (%d) for updates", latestVersion)
 			newVersion, err := conn.CloneVersion(&gofastly.CloneVersionInput{
 				Service: d.Id(),
 				Version: latestVersion,
@@ -1028,6 +1034,65 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 
+		// Healthchecks need to be updated BEFORE backends
+		if d.HasChange("healthcheck") {
+			oh, nh := d.GetChange("healthcheck")
+			if oh == nil {
+				oh = new(schema.Set)
+			}
+			if nh == nil {
+				nh = new(schema.Set)
+			}
+
+			ohs := oh.(*schema.Set)
+			nhs := nh.(*schema.Set)
+			removeHealthCheck := ohs.Difference(nhs).List()
+			addHealthCheck := nhs.Difference(ohs).List()
+
+			// DELETE old healthcheck configurations
+			for _, hRaw := range removeHealthCheck {
+				hf := hRaw.(map[string]interface{})
+				opts := gofastly.DeleteHealthCheckInput{
+					Service: d.Id(),
+					Version: latestVersion,
+					Name:    hf["name"].(string),
+				}
+
+				log.Printf("[DEBUG] Fastly Healthcheck removal opts: %#v", opts)
+				err := conn.DeleteHealthCheck(&opts)
+				if err != nil {
+					return err
+				}
+			}
+
+			// POST new/updated Healthcheck
+			for _, hRaw := range addHealthCheck {
+				hf := hRaw.(map[string]interface{})
+
+				opts := gofastly.CreateHealthCheckInput{
+					Service:          d.Id(),
+					Version:          latestVersion,
+					Name:             hf["name"].(string),
+					Host:             hf["host"].(string),
+					Path:             hf["path"].(string),
+					CheckInterval:    uint(hf["check_interval"].(int)),
+					ExpectedResponse: uint(hf["expected_response"].(int)),
+					HTTPVersion:      hf["http_version"].(string),
+					Initial:          uint(hf["initial"].(int)),
+					Method:           hf["method"].(string),
+					Threshold:        uint(hf["threshold"].(int)),
+					Timeout:          uint(hf["timeout"].(int)),
+					Window:           uint(hf["window"].(int)),
+				}
+
+				log.Printf("[DEBUG] Create Healthcheck Opts: %#v", opts)
+				_, err := conn.CreateHealthCheck(&opts)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
 		// find difference in backends
 		if d.HasChange("backend") {
 			ob, nb := d.GetChange("backend")
@@ -1081,6 +1146,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 					MaxConn:             uint(df["max_conn"].(int)),
 					Weight:              uint(df["weight"].(int)),
 					RequestCondition:    df["request_condition"].(string),
+					HealthCheck:         df["healthcheck"].(string),
 				}
 
 				log.Printf("[DEBUG] Create Backend Opts: %#v", opts)
@@ -1204,65 +1270,6 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 
 				log.Printf("[DEBUG] Fastly Gzip Addition opts: %#v", opts)
 				_, err := conn.CreateGzip(&opts)
-				if err != nil {
-					return err
-				}
-			}
-		}
-
-		// find difference in Healthcheck
-		if d.HasChange("healthcheck") {
-			oh, nh := d.GetChange("healthcheck")
-			if oh == nil {
-				oh = new(schema.Set)
-			}
-			if nh == nil {
-				nh = new(schema.Set)
-			}
-
-			ohs := oh.(*schema.Set)
-			nhs := nh.(*schema.Set)
-			removeHealthCheck := ohs.Difference(nhs).List()
-			addHealthCheck := nhs.Difference(ohs).List()
-
-			// DELETE old healthcheck configurations
-			for _, hRaw := range removeHealthCheck {
-				hf := hRaw.(map[string]interface{})
-				opts := gofastly.DeleteHealthCheckInput{
-					Service: d.Id(),
-					Version: latestVersion,
-					Name:    hf["name"].(string),
-				}
-
-				log.Printf("[DEBUG] Fastly Healthcheck removal opts: %#v", opts)
-				err := conn.DeleteHealthCheck(&opts)
-				if err != nil {
-					return err
-				}
-			}
-
-			// POST new/updated Healthcheck
-			for _, hRaw := range addHealthCheck {
-				hf := hRaw.(map[string]interface{})
-
-				opts := gofastly.CreateHealthCheckInput{
-					Service:          d.Id(),
-					Version:          latestVersion,
-					Name:             hf["name"].(string),
-					Host:             hf["host"].(string),
-					Path:             hf["path"].(string),
-					CheckInterval:    uint(hf["check_interval"].(int)),
-					ExpectedResponse: uint(hf["expected_response"].(int)),
-					HTTPVersion:      hf["http_version"].(string),
-					Initial:          uint(hf["initial"].(int)),
-					Method:           hf["method"].(string),
-					Threshold:        uint(hf["threshold"].(int)),
-					Timeout:          uint(hf["timeout"].(int)),
-					Window:           uint(hf["window"].(int)),
-				}
-
-				log.Printf("[DEBUG] Create Healthcheck Opts: %#v", opts)
-				_, err := conn.CreateHealthCheck(&opts)
 				if err != nil {
 					return err
 				}
@@ -1664,7 +1671,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		// validate version
-		log.Printf("[DEBUG] Validating Fastly Service (%s), Version (%s)", d.Id(), latestVersion)
+		log.Printf("[DEBUG] Validating Fastly Service (%s), Version (%v)", d.Id(), latestVersion)
 		valid, msg, err := conn.ValidateVersion(&gofastly.ValidateVersionInput{
 			Service: d.Id(),
 			Version: latestVersion,
@@ -1678,13 +1685,13 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 			return fmt.Errorf("[ERR] Invalid configuration for Fastly Service (%s): %s", d.Id(), msg)
 		}
 
-		log.Printf("[DEBUG] Activating Fastly Service (%s), Version (%s)", d.Id(), latestVersion)
+		log.Printf("[DEBUG] Activating Fastly Service (%s), Version (%v)", d.Id(), latestVersion)
 		_, err = conn.ActivateVersion(&gofastly.ActivateVersionInput{
 			Service: d.Id(),
 			Version: latestVersion,
 		})
 		if err != nil {
-			return fmt.Errorf("[ERR] Error activating version (%s): %s", latestVersion, err)
+			return fmt.Errorf("[ERR] Error activating version (%d): %s", latestVersion, err)
 		}
 
 		// Only if the version is valid and activated do we set the active_version.
@@ -1726,7 +1733,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 	// If CreateService succeeds, but initial updates to the Service fail, we'll
 	// have an empty ActiveService version (no version is active, so we can't
 	// query for information on it)
-	if s.ActiveVersion.Number != "" {
+	if s.ActiveVersion.Number != 0 {
 		settingsOpts := gofastly.GetSettingsInput{
 			Service: d.Id(),
 			Version: s.ActiveVersion.Number,
@@ -1735,7 +1742,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 			d.Set("default_host", settings.DefaultHost)
 			d.Set("default_ttl", settings.DefaultTTL)
 		} else {
-			return fmt.Errorf("[ERR] Error looking up Version settings for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Version settings for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		// TODO: update go-fastly to support an ActiveVersion struct, which contains
@@ -1748,7 +1755,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Domains for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Domains for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		// Refresh Domains
@@ -1766,7 +1773,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Backends for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Backends for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		bl := flattenBackends(backendList)
@@ -1783,7 +1790,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Headers for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Headers for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		hl := flattenHeaders(headerList)
@@ -1800,7 +1807,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Gzips for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Gzips for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		gl := flattenGzips(gzipsList)
@@ -1817,7 +1824,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Healthcheck for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Healthcheck for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		hcl := flattenHealthchecks(healthcheckList)
@@ -1834,7 +1841,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up S3 Logging for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up S3 Logging for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		sl := flattenS3s(s3List)
@@ -1851,7 +1858,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Papertrail for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Papertrail for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		pl := flattenPapertrails(papertrailList)
@@ -1868,7 +1875,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Sumologic for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Sumologic for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		sul := flattenSumologics(sumologicList)
@@ -1884,7 +1891,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Response Object for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Response Object for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		rol := flattenResponseObjects(responseObjectList)
@@ -1901,7 +1908,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Conditions for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Conditions for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		cl := flattenConditions(conditionList)
@@ -1918,7 +1925,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Request Settings for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Request Settings for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		rl := flattenRequestSettings(rsList)
@@ -1934,7 +1941,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 			Version: s.ActiveVersion.Number,
 		})
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up VCLs for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up VCLs for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		vl := flattenVCLs(vclList)
@@ -1950,7 +1957,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 			Version: s.ActiveVersion.Number,
 		})
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Cache Settings for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Cache Settings for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		csl := flattenCacheSettings(cslList)
@@ -1981,7 +1988,7 @@ func resourceServiceV1Delete(d *schema.ResourceData, meta interface{}) error {
 			return err
 		}
 
-		if s.ActiveVersion.Number != "" {
+		if s.ActiveVersion.Number != 0 {
 			_, err := conn.DeactivateVersion(&gofastly.DeactivateVersionInput{
 				Service: d.Id(),
 				Version: s.ActiveVersion.Number,
@@ -2051,6 +2058,7 @@ func flattenBackends(backendList []*gofastly.Backend) []map[string]interface{} {
 			"ssl_sni_hostname":      b.SSLSNIHostname,
 			"weight":                int(b.Weight),
 			"request_condition":     b.RequestCondition,
+			"healthcheck":           b.HealthCheck,
 		}
 
 		bl = append(bl, nb)

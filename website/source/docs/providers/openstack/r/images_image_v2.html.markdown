@@ -12,7 +12,7 @@ Manages a V2 Image resource within OpenStack Glance.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_images_image_v2" "rancheros" {
   name   = "RancherOS"
   image_source_url = "https://releases.rancher.com/os/latest/rancheros-openstack.img"

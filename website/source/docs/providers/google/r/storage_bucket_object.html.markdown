@@ -15,7 +15,7 @@ Creates a new object inside an exisiting bucket in Google cloud storage service 
 
 Example creating a public object in an existing `image-store` bucket.
 
-```js
+```hcl
 resource "google_storage_bucket_object" "picture" {
   name   = "butterfly01"
   source = "/images/nature/garden-tiger-moth.jpg"

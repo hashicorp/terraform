@@ -52,6 +52,7 @@ func (c *Client) ListAlertChannels() ([]AlertChannel, error) {
 	return c.queryAlertChannels()
 }
 
+// CreateAlertChannel allows you to create an alert channel with the specified data and links.
 func (c *Client) CreateAlertChannel(channel AlertChannel) (*AlertChannel, error) {
 	// TODO: support attaching policy ID's here?
 	// qs := map[string]string{
@@ -59,7 +60,7 @@ func (c *Client) CreateAlertChannel(channel AlertChannel) (*AlertChannel, error)
 	// }
 
 	if len(channel.Links.PolicyIDs) > 0 {
-		return nil, fmt.Errorf("You cannot create an alert channel with policy IDs, you must attach polidy IDs after creation.")
+		return nil, fmt.Errorf("cannot create an alert channel with policy IDs, you must attach polidy IDs after creation")
 	}
 
 	req := struct {
@@ -80,6 +81,7 @@ func (c *Client) CreateAlertChannel(channel AlertChannel) (*AlertChannel, error)
 	return &resp.Channels[0], nil
 }
 
+// DeleteAlertChannel deletes the alert channel with the specified ID.
 func (c *Client) DeleteAlertChannel(id int) error {
 	u := &url.URL{Path: fmt.Sprintf("/alerts_channels/%v.json", id)}
 	_, err := c.Do("DELETE", u.String(), nil, nil)

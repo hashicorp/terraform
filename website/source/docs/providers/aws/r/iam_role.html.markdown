@@ -12,7 +12,7 @@ Provides an IAM role.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_iam_role" "test_role" {
   name = "test_role"
 
@@ -58,7 +58,7 @@ The following attributes are exported:
 
 ## Example of Using Data Source for Assume Role Policy
 
-```
+```hcl
 data "aws_iam_policy_document" "instance-assume-role-policy" {
   statement {
     actions = ["sts:AssumeRole"]

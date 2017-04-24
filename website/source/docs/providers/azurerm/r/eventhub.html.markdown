@@ -12,7 +12,7 @@ Creates a new Event Hub as a nested resource within a Event Hub Namespace.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "resourceGroup1"
   location = "West US"

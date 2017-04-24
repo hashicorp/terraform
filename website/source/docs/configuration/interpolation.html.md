@@ -157,8 +157,10 @@ The supported built-in functions are:
   * `chomp(string)` - Removes trailing newlines from the given string.
 
   * `cidrhost(iprange, hostnum)` - Takes an IP address range in CIDR notation
-    and creates an IP address with the given host number. For example,
-    `cidrhost("10.0.0.0/8", 2)` returns `10.0.0.2`.
+    and creates an IP address with the given host number. If given host
+    number is negative, the count starts from the end of the range.
+    For example, `cidrhost("10.0.0.0/8", 2)` returns `10.0.0.2` and
+    `cidrhost("10.0.0.0/8", -2)` returns `10.255.255.254`.
 
   * `cidrnetmask(iprange)` - Takes an IP address range in CIDR notation
     and returns the address-formatted subnet mask format that some
@@ -290,7 +292,7 @@ The supported built-in functions are:
       as a regular expression. If using a regular expression, `replace`
       can reference subcaptures in the regular expression by using `$n` where
       `n` is the index or name of the subcapture. If using a regular expression,
-      the syntax conforms to the [re2 regular expression syntax](https://code.google.com/p/re2/wiki/Syntax).
+      the syntax conforms to the [re2 regular expression syntax](https://github.com/google/re2/wiki/Syntax).
 
   * `sha1(string)` - Returns a (conventional) hexadecimal representation of the
     SHA-1 hash of the given string.

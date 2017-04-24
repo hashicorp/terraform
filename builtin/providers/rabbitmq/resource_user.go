@@ -35,7 +35,7 @@ func resourceUser() *schema.Resource {
 
 			"tags": &schema.Schema{
 				Type:     schema.TypeList,
-				Required: true,
+				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 		},
@@ -49,13 +49,17 @@ func CreateUser(d *schema.ResourceData, meta interface{}) error {
 
 	var tagList []string
 	for _, v := range d.Get("tags").([]interface{}) {
-		tagList = append(tagList, v.(string))
+		if v, ok := v.(string); ok {
+			tagList = append(tagList, v)
+		}
 	}
-	tags := strings.Join(tagList, ",")
 
 	userSettings := rabbithole.UserSettings{
 		Password: d.Get("password").(string),
-		Tags:     tags,
+	}
+
+	if len(tagList) > 0 {
+		userSettings.Tags = strings.Join(tagList, ",")
 	}
 
 	log.Printf("[DEBUG] RabbitMQ: Attempting to create user %s", name)
@@ -87,8 +91,10 @@ func ReadUser(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("name", user.Name)
 
-	tags := strings.Split(user.Tags, ",")
-	d.Set("tags", tags)
+	if len(user.Tags) > 0 {
+		tags := strings.Split(user.Tags, ",")
+		d.Set("tags", tags)
+	}
 
 	return nil
 }
@@ -124,12 +130,14 @@ func UpdateUser(d *schema.ResourceData, meta interface{}) error {
 
 		var tagList []string
 		for _, v := range newTags.([]interface{}) {
-			tagList = append(tagList, v.(string))
+			if v, ok := v.(string); ok {
+				tagList = append(tagList, v)
+			}
 		}
-		tags := strings.Join(tagList, ",")
 
-		userSettings := rabbithole.UserSettings{
-			Tags: tags,
+		userSettings := rabbithole.UserSettings{}
+		if len(tagList) > 0 {
+			userSettings.Tags = strings.Join(tagList, ",")
 		}
 
 		log.Printf("[DEBUG] RabbitMQ: Attempting to update tags for %s", name)

@@ -12,7 +12,7 @@ Adds permission to create volumes off of a given EBS Snapshot.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_snapshot_create_volume_permission" "example_perm" {
   snapshot_id = "${aws_ebs_snapshot.example_snapshot.id}"
   account_id  = "12345678"

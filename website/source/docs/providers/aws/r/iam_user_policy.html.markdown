@@ -12,7 +12,7 @@ Provides an IAM policy attached to a user.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_iam_user_policy" "lb_ro" {
   name = "test"
   user = "${aws_iam_user.lb.name}"
