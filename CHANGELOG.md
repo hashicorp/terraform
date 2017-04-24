@@ -26,6 +26,7 @@ FEATURES:
 * **New Resource:**  `alicloud_snat_entry` [GH-13731]
 * **New Resource:**  `alicloud_forward_entry` [GH-13731]
 * **New Resource:**  `aws_cognito_identity_pool` [GH-13783]
+* **New Resource:**  `aws_network_interface_attachment` [GH-13861]
 * **New Resource:**  `github_branch_protection` [GH-10476]
 * **New Resource:**  `google_bigquery_dataset` [GH-13436]
 * **New Interpolation Function:** `coalescelist()` [GH-12537]
