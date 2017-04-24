@@ -281,12 +281,15 @@ func resourceArmRedisCacheRead(d *schema.ResourceData, meta interface{}) error {
 	name := id.Path["Redis"]
 
 	resp, err := client.Get(resGroup, name)
-	if err != nil {
-		return fmt.Errorf("Error making Read request on Azure Redis Cache %s: %s", name, err)
-	}
+
+	// covers if the resource has been deleted outside of TF, but is still in the state
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		return nil
+	}
+
+	if err != nil {
+		return fmt.Errorf("Error making Read request on Azure Redis Cache %s: %s", name, err)
 	}
 
 	keysResp, err := client.ListKeys(resGroup, name)
