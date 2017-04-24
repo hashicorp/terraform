@@ -21,6 +21,22 @@ func resourceAwsOrganization() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"master_account_arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"master_account_email": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"master_account_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"feature_set": {
 				Type:         schema.TypeString,
 				Optional:     true,
