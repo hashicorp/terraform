@@ -47,6 +47,7 @@ IMPROVEMENTS:
  * provider/aws: Expose invoke ARN from Lambda function (for API Gateway) [GH-13890]
  * provider/aws: Add tagging support to the 'aws_lambda_function' resource [GH-13873]
  * provider/aws: Validate WAF metric names [GH-13885]
+ * provider/aws: Allow AWS Subnet to change IPv6 CIDR Block without ForceNew [GH-13909]
  * provider/azurerm: VM Scale Sets - import support [GH-13464]
  * provider/azurerm: Allow Azure China region support [GH-13767]
  * provider/digitalocean: Export droplet prices [GH-13720]
