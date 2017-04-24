@@ -2011,3 +2011,9 @@ func flattenCognitoIdentityProviders(ips []*cognitoidentity.Provider) []map[stri
 
 	return values
 }
+
+func buildLambdaInvokeArn(lambdaArn, region string) string {
+	apiVersion := "2015-03-31"
+	return fmt.Sprintf("arn:aws:apigateway:%s:lambda:path/%s/functions/%s/invocations",
+		region, apiVersion, lambdaArn)
+}
