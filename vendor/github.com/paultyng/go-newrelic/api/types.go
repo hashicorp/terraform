@@ -3,6 +3,7 @@ package api
 import "errors"
 
 var (
+	// ErrNotFound is returned when the resource was not found in New Relic.
 	ErrNotFound = errors.New("newrelic: Resource not found")
 )
 
@@ -57,7 +58,8 @@ type AlertCondition struct {
 	Metric      string                    `json:"metric,omitempty"`
 	RunbookURL  string                    `json:"runbook_url,omitempty"`
 	Terms       []AlertConditionTerm      `json:"terms,omitempty"`
-	UserDefined AlertConditionUserDefined `json:"uder_defined,omitempty"`
+	UserDefined AlertConditionUserDefined `json:"user_defined,omitempty"`
+	Scope       string                    `json:"condition_scope,omitempty"`
 }
 
 // AlertChannelLinks represent the links between policies and alert channels
@@ -74,6 +76,7 @@ type AlertChannel struct {
 	Links         AlertChannelLinks      `json:"links,omitempty"`
 }
 
+// ApplicationSummary represents performance information about a New Relic application.
 type ApplicationSummary struct {
 	ResponseTime            float64 `json:"response_time"`
 	Throughput              float64 `json:"throughput"`
@@ -85,6 +88,7 @@ type ApplicationSummary struct {
 	ConcurrentInstanceCount int     `json:"concurrent_instance_count"`
 }
 
+// ApplicationEndUserSummary represents performance information about a New Relic application.
 type ApplicationEndUserSummary struct {
 	ResponseTime float64 `json:"response_time"`
 	Throughput   float64 `json:"throughput"`
@@ -92,6 +96,7 @@ type ApplicationEndUserSummary struct {
 	ApdexScore   float64 `json:"apdex_score"`
 }
 
+// ApplicationSettings represents some of the settings of a New Relic application.
 type ApplicationSettings struct {
 	AppApdexThreshold        float64 `json:"app_apdex_threshold,omitempty"`
 	EndUserApdexThreshold    float64 `json:"end_user_apdex_threshold,omitempty"`
@@ -99,6 +104,7 @@ type ApplicationSettings struct {
 	UseServerSideConfig      bool    `json:"use_server_side_config,omitempty"`
 }
 
+// ApplicationLinks represents all the links for a New Relic application.
 type ApplicationLinks struct {
 	ServerIDs     []int `json:"servers,omitempty"`
 	HostIDs       []int `json:"application_hosts,omitempty"`
@@ -106,6 +112,7 @@ type ApplicationLinks struct {
 	AlertPolicyID int   `json:"alert_policy"`
 }
 
+// Application represents information about a New Relic application.
 type Application struct {
 	ID             int                       `json:"id,omitempty"`
 	Name           string                    `json:"name,omitempty"`
@@ -117,4 +124,84 @@ type Application struct {
 	EndUserSummary ApplicationEndUserSummary `json:"end_user_summary,omitempty"`
 	Settings       ApplicationSettings       `json:"settings,omitempty"`
 	Links          ApplicationLinks          `json:"links,omitempty"`
+}
+
+// PluginDetails represents information about a New Relic plugin.
+type PluginDetails struct {
+	Description           int    `json:"description"`
+	IsPublic              string `json:"is_public"`
+	CreatedAt             string `json:"created_at,omitempty"`
+	UpdatedAt             string `json:"updated_at,omitempty"`
+	LastPublishedAt       string `json:"last_published_at,omitempty"`
+	HasUnpublishedChanges bool   `json:"has_unpublished_changes"`
+	BrandingImageURL      string `json:"branding_image_url"`
+	UpgradedAt            string `json:"upgraded_at,omitempty"`
+	ShortName             string `json:"short_name"`
+	PublisherAboutURL     string `json:"publisher_about_url"`
+	PublisherSupportURL   string `json:"publisher_support_url"`
+	DownloadURL           string `json:"download_url"`
+	FirstEditedAt         string `json:"first_edited_at,omitempty"`
+	LastEditedAt          string `json:"last_edited_at,omitempty"`
+	FirstPublishedAt      string `json:"first_published_at,omitempty"`
+	PublishedVersion      string `json:"published_version"`
+}
+
+// MetricThreshold represents the different thresholds for a metric in an alert.
+type MetricThreshold struct {
+	Caution  float64 `json:"caution"`
+	Critical float64 `json:"critical"`
+}
+
+// MetricValue represents the observed value of a metric.
+type MetricValue struct {
+	Raw       float64 `json:"raw"`
+	Formatted string  `json:"formatted"`
+}
+
+// MetricTimeslice represents the values of a metric over a given time.
+type MetricTimeslice struct {
+	From   string                 `json:"from,omitempty"`
+	To     string                 `json:"to,omitempty"`
+	Values map[string]interface{} `json:"values,omitempty"`
+}
+
+// Metric represents data for a specific metric.
+type Metric struct {
+	Name       string            `json:"name"`
+	Timeslices []MetricTimeslice `json:"timeslices"`
+}
+
+// SummaryMetric represents summary information for a specific metric.
+type SummaryMetric struct {
+	ID            int             `json:"id"`
+	Name          string          `json:"name"`
+	Metric        string          `json:"metric"`
+	ValueFunction string          `json:"value_function"`
+	Thresholds    MetricThreshold `json:"thresholds"`
+	Values        MetricValue     `json:"values"`
+}
+
+// Plugin represents information about a New Relic plugin.
+type Plugin struct {
+	ID                  int             `json:"id"`
+	Name                string          `json:"name,omitempty"`
+	GUID                string          `json:"guid,omitempty"`
+	Publisher           string          `json:"publisher,omitempty"`
+	ComponentAgentCount int             `json:"component_agent_count"`
+	Details             PluginDetails   `json:"details"`
+	SummaryMetrics      []SummaryMetric `json:"summary_metrics"`
+}
+
+// Component represnets information about a New Relic component.
+type Component struct {
+	ID             int             `json:"id"`
+	Name           string          `json:"name,omitempty"`
+	HealthStatus   string          `json:"health_status,omitempty"`
+	SummaryMetrics []SummaryMetric `json:"summary_metrics"`
+}
+
+// ComponentMetric represents metric information for a specific component.
+type ComponentMetric struct {
+	Name   string   `json:"name,omitempty"`
+	Values []string `json:"values"`
 }

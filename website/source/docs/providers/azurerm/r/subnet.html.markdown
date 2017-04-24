@@ -12,7 +12,7 @@ Creates a new subnet. Subnets represent network segments within the IP space def
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acceptanceTestResourceGroup1"
   location = "West US"

@@ -16,7 +16,8 @@ and [API](https://cloud.google.com/compute/docs/reference/latest/instanceGroups)
 ## Example Usage
 
 ### Empty instance group
-```js
+
+```hcl
 resource "google_compute_instance_group" "test" {
   name        = "terraform-test"
   description = "Terraform test instance group"
@@ -25,7 +26,8 @@ resource "google_compute_instance_group" "test" {
 ```
 
 ### With instances and named ports
-```js
+
+```hcl
 resource "google_compute_instance_group" "webservers" {
   name        = "terraform-webservers"
   description = "Terraform test instance group"

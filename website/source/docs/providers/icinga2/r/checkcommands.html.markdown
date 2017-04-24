@@ -13,7 +13,7 @@ and deleted.
 
 ## Example Usage
 
-```
+```hcl
 # Configure a new checkcommand on an Icinga2 Server, that can be used to monitor hosts and/or services
 provider "icinga2" {
   api_url = "https://192.168.33.5:5665/v1"

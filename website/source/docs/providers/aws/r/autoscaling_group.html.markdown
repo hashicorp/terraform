@@ -12,7 +12,7 @@ Provides an AutoScaling Group resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_placement_group" "test" {
   name     = "test"
   strategy = "cluster"

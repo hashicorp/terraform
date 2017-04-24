@@ -18,7 +18,7 @@ Use the navigation to the left to read about the available resources.
 
 This config will write a single service unit (shown below) with the contents of an example service. This unit will be enabled as a dependency of multi-user.target and therefore start on boot
 
-```
+```hcl
 # Systemd unit data resource containing the unit definition
 data "ignition_systemd_unit" "example" {
   name = "example.service"

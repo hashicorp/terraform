@@ -24,7 +24,7 @@ resource "kubernetes_namespace" "example" {
       mylabel = "label-value"
     }
 
-    name = "TerraformExampleNamespace"
+    name = "terraform-example-namespace"
   }
 }
 
@@ -59,5 +59,5 @@ The following arguments are supported:
 Namespaces can be imported using their name, e.g.
 
 ```
-$ terraform import kubernetes_namespace.n TerraformExampleNamespace
+$ terraform import kubernetes_namespace.n terraform-example-namespace
 ```

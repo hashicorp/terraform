@@ -12,7 +12,7 @@ Provides a Dyn DNS record resource.
 
 ## Example Usage
 
-```
+```hcl
 # Add a record to the domain
 resource "dyn_record" "foobar" {
   zone  = "${var.dyn_zone}"

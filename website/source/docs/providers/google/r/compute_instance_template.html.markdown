@@ -17,7 +17,7 @@ and
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_instance_template" "foobar" {
   name        = "terraform-test"
   description = "template description"
@@ -71,7 +71,7 @@ it's recommended to specify `create_before_destroy` in a [lifecycle][2] block.
 Either omit the Instance Template `name` attribute, or specify a partial name
 with `name_prefix`.  Example:
 
-```
+```hcl
 resource "google_compute_instance_template" "instance_template" {
   name_prefix  = "instance-template-"
   machine_type = "n1-standard-1"

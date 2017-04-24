@@ -12,7 +12,7 @@ Provides an OpsWorks stack resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_opsworks_stack" "main" {
   name                         = "awesome-stack"
   region                       = "us-west-1"
@@ -77,7 +77,6 @@ The `custom_cookbooks_source` block supports the following arguments:
 The following attributes are exported:
 
 * `id` - The id of the stack.
-
 
 ## Import
 

@@ -12,7 +12,7 @@ Manages a V2 pool resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_lb_pool_v2" "pool_1" {
   protocol    = "ProtocolHTTP"
   lb_method   = "ROUND_ROBIN"

@@ -12,7 +12,7 @@ Manages a Virtual Data Center on ProfitBricks
 
 ## Example Usage
 
-```
+```hcl
 resource "profitbricks_datacenter" "example" {
   name        = "datacenter name"
   location    = "us/las"

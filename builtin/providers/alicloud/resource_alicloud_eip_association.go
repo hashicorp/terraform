@@ -66,7 +66,7 @@ func resourceAliyunEipAssociationRead(d *schema.ResourceData, meta interface{}) 
 			d.SetId("")
 			return nil
 		}
-		return err
+		return fmt.Errorf("Error Describe Eip Attribute: %#v", err)
 	}
 
 	if eip.InstanceId != instanceId {

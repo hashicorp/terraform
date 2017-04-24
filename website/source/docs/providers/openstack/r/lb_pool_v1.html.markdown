@@ -12,7 +12,7 @@ Manages a V1 load balancer pool resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_lb_pool_v1" "pool_1" {
   name        = "tf_test_lb_pool"
   protocol    = "HTTP"

@@ -108,20 +108,20 @@ func TestAccFastlyServiceV1_gzips_basic(t *testing.T) {
 	domainName1 := fmt.Sprintf("%s.notadomain.com", acctest.RandString(10))
 
 	log1 := gofastly.Gzip{
-		Version:        "1",
+		Version:        1,
 		Name:           "gzip file types",
 		Extensions:     "js css",
 		CacheCondition: "testing_condition",
 	}
 
 	log2 := gofastly.Gzip{
-		Version:      "1",
+		Version:      1,
 		Name:         "gzip extensions",
 		ContentTypes: "text/css text/html",
 	}
 
 	log3 := gofastly.Gzip{
-		Version:      "1",
+		Version:      1,
 		Name:         "all",
 		Extensions:   "js html css",
 		ContentTypes: "text/javascript application/x-javascript application/javascript text/css text/html",

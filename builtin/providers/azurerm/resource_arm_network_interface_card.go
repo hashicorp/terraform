@@ -172,6 +172,14 @@ func resourceArmNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 		properties.NetworkSecurityGroup = &network.SecurityGroup{
 			ID: &nsgId,
 		}
+
+		networkSecurityGroupName, err := parseNetworkSecurityGroupName(nsgId)
+		if err != nil {
+			return err
+		}
+
+		armMutexKV.Lock(networkSecurityGroupName)
+		defer armMutexKV.Unlock(networkSecurityGroupName)
 	}
 
 	dns, hasDns := d.GetOk("dns_servers")
@@ -307,6 +315,17 @@ func resourceArmNetworkInterfaceDelete(d *schema.ResourceData, meta interface{})
 	}
 	resGroup := id.ResourceGroup
 	name := id.Path["networkInterfaces"]
+
+	if v, ok := d.GetOk("network_security_group_id"); ok {
+		networkSecurityGroupId := v.(string)
+		networkSecurityGroupName, err := parseNetworkSecurityGroupName(networkSecurityGroupId)
+		if err != nil {
+			return err
+		}
+
+		armMutexKV.Lock(networkSecurityGroupName)
+		defer armMutexKV.Unlock(networkSecurityGroupName)
+	}
 
 	_, err = ifaceClient.Delete(resGroup, name, make(chan struct{}))
 

@@ -15,7 +15,7 @@ within a PostgreSQL server instance.
 
 ## Usage
 
-```
+```hcl
 resource "postgresql_database" "my_db" {
   name              = "my_db"
   owner             = "my_role"
@@ -87,7 +87,7 @@ resource "postgresql_database" "my_db" {
 `postgresql_database` supports importing resources.  Supposing the following
 Terraform:
 
-```
+```hcl
 provider "postgresql" {
   alias = "admindb"
 }
