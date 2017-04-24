@@ -29,7 +29,7 @@ before_deploy:
 deploy:
   - provider: script
     skip_cleanup: true
-    script: cd $TEST_DIR && chmod +X ./deploy.sh && ./deploy.sh
+    script: cd $TEST_DIR && ./deploy.sh
     on:
       repo: 10thmagnitude/terraform
       branch: topic-101-vm-from-user-image
