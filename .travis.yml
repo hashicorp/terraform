@@ -1,42 +1,42 @@
-dist: trusty
-sudo: false
-language: go
-go:
-- 1.8
+sudo: required
 
-# add TF_CONSUL_TEST=1 to run consul tests
-# they were causing timouts in travis
+services:
+  - docker
+
+language: generic
+
+# on branches: ignore multiple commits that will queue build jobs, just run latest commit
+git:
+  depth: 1
+
+# establish environment variables
 env:
-  - CONSUL_VERSION=0.7.5 GOMAXPROCS=4
+  - TEST_DIR=examples/azure-vm-from-user-image
 
-# Fetch consul for the backend and provider tests
-before_install:
-  - curl -sLo consul.zip https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip
-  - unzip consul.zip
-  - mkdir ~/bin
-  - mv consul ~/bin
-  - export PATH="~/bin:$PATH"
-
-install:
-# This script is used by the Travis build to install a cookie for
-# go.googlesource.com so rate limits are higher when using `go get` to fetch
-# packages that live there.
-# See: https://github.com/golang/go/issues/12933
-- bash scripts/gogetcookie.sh
-- go get github.com/kardianos/govendor
-script:
-- make vet vendor-status test
-- GOOS=windows go build
 branches:
   only:
-  - master
-notifications:
-  irc:
-    channels:
-    - irc.freenode.org#terraform-tool
-    skip_join: true
-    use_notice: true
-matrix:
-  fast_finish: true
-  allow_failures:
-  - go: tip
+  - /^(?i:topic)-.*$/
+
+# install terraform
+before_deploy:
+  - export KEY=$(cat /dev/urandom | tr -cd 'a-z' | head -c 12)
+  - export PASSWORD=$KEY$(cat /dev/urandom | tr -cd 'A-Z' | head -c 2)$(cat /dev/urandom | tr -cd '0-9' | head -c 2)
+  - export IMAGE_URI='https://DISK.blob.core.windows.net/vhds/ORIGINAL-VM.vhd'
+  - export PRIMARY_BLOB_ENDPOINT='https://DISK.blob.core.windows.net/'
+
+
+# terraform deploy script
+deploy:
+  - provider: script
+    skip_cleanup: true
+    script: cd $TEST_DIR && ./deploy.sh
+    on:
+      repo: 10thmagnitude/terraform
+      branch: topic-101-vm-from-user-image
+
+# destroy resources with Azure CLI
+after_deploy:
+  - docker run --rm -it \
+      azuresdk/azure-cli-python \
+      sh -c "az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID; \
+             az group delete -y -n $KEY"

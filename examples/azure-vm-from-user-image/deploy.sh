@@ -2,23 +2,18 @@
 
 set -o errexit -o nounset
 
-# generate a unique string for CI deployment
-KEY=$(cat /dev/urandom | tr -cd 'a-z' | head -c 12)
-PASSWORD=KEY
-PASSWORD+=$(cat /dev/urandom | tr -cd 'A-Z' | head -c 2)
-PASSWORD+=$(cat /dev/urandom | tr -cd '0-9' | head -c 2)
-
-terraform get
-
-terraform plan \
-  -var 'dns_name='$KEY \
-  -var 'admin_password='$PASSWORD \
-  -var 'admin_username='$KEY \
-  -var 'resource_group='$KEY \
-  -out=out.tfplan
-
-terraform apply out.tfplan
-
+docker run --rm -it \
+  -e ARM_CLIENT_ID \
+  -e ARM_CLIENT_SECRET \
+  -e ARM_SUBSCRIPTION_ID \
+  -e ARM_TENANT_ID \
+  -v $(pwd):/data \
+  --entrypoint "/bin/sh" \
+  hashicorp/terraform:light \
+  -c "cd /data; \
+      /bin/terraform get; \
+      /bin/terraform validate; \
+      /bin/terraform plan -out=out.tfplan -var hostname=$KEY -var resource_group=$KEY -var admin_username=$KEY -var admin_password=$PASSWORD -var image_uri=$IMAGE_URI -var primary_blob_endpoint=$PRIMARY_BLOB_ENDPOINT -var storage_account_name=$KEY; /bin/terraform apply out.tfplan"
 
 # TODO: determine external validation, possibly Azure CLI
 
