@@ -22,6 +22,9 @@ func resourceAwsSubnet() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		SchemaVersion: 1,
+		MigrateState:  resourceAwsSubnetMigrateState,
+
 		Schema: map[string]*schema.Schema{
 			"vpc_id": {
 				Type:     schema.TypeString,
