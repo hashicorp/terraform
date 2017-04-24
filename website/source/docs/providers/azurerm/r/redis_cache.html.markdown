@@ -95,9 +95,11 @@ The following arguments are supported:
 * `resource_group_name` - (Required) The name of the resource group in which to
     create the Redis instance.
 
-* `capacity` - (Required) This corresponds to the size of the Redis instance you wish to use (e.g. a C0 would be 0, P3 would be 3 etc).
+* `capacity` - (Required) The size of the Redis cache to deploy. Valid values for a SKU `family` of C (Basic/Standard) are `0, 1, 2, 3, 4, 5, 6`, and for P (Premium) `family` are `1, 2, 3, 4`.
 
-* `family` - (Required) The pricing group for the Redis Family - either "C" or "P" at present.
+* `family` - (Required) The SKU family to use. Valid values are `C` and `P`, where C = Basic/Standard, P = Premium.
+
+The pricing group for the Redis Family - either "C" or "P" at present.
 
 * `sku_name` - (Required) The SKU of Redis to use - can be either Basic, Standard or Premium.
 
@@ -110,7 +112,7 @@ The following arguments are supported:
 ```hcl
 redis_configuration {
   maxclients         = "512"
-  maxmemory_reserve" = "10"
+  maxmemory_reserve  = "10"
   maxmemory_delta    = "2"
   maxmemory_policy   = "allkeys-lru"
 }
