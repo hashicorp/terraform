@@ -15,7 +15,9 @@ branches:
 
 # install terraform
 before_deploy:
-  - cd $TEST_DIR && ./before_deploy.sh
+  - provider: script
+    skip_cleanup: true
+    script: cd $TEST_DIR && ./before_deploy.sh
 
 # terraform deploy script
 deploy:
@@ -28,4 +30,6 @@ deploy:
 
 # destroy resources with Azure CLI
 after_deploy:
-  - cd $TEST_DIR && ./after_deploy.sh
+  - provider: script
+    skip_cleanup: true
+    script: cd $TEST_DIR && ./after_deploy.sh
