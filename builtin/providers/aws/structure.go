@@ -1927,6 +1927,20 @@ func flattenApiGatewayUsagePlanQuota(s *apigateway.QuotaSettings) []map[string]i
 	return []map[string]interface{}{settings}
 }
 
+func buildApiGatewayInvokeURL(restApiId, region, stageName string) string {
+	return fmt.Sprintf("https://%s.execute-api.%s.amazonaws.com/%s",
+		restApiId, region, stageName)
+}
+
+func buildApiGatewayExecutionARN(restApiId, region, accountId string) (string, error) {
+	if accountId == "" {
+		return "", fmt.Errorf("Unable to build execution ARN for %s as account ID is missing",
+			restApiId)
+	}
+	return fmt.Sprintf("arn:aws:execute-api:%s:%s:%s",
+		region, accountId, restApiId), nil
+}
+
 func expandCognitoSupportedLoginProviders(config map[string]interface{}) map[string]*string {
 	m := map[string]*string{}
 	for k, v := range config {
