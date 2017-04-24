@@ -69,6 +69,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provision "initial-setup", type: "shell", inline: $script
   config.vm.synced_folder '.', '/opt/gopath/src/github.com/hashicorp/terraform'
 
+  config.vm.provider "docker" do |v, override|
+    override.vm.box = "tknerr/baseimage-ubuntu-#{UBUNTUVERSION}"
+  end
 
   ["vmware_fusion", "vmware_workstation"].each do |p|
     config.vm.provider p do |v|
