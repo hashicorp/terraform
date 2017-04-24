@@ -1,19 +1,31 @@
+sudo: required
+
+services:
+  - docker
+
 language: generic
 
 # establish environment variables
 env:
-  - TEST_DIR=examples/101-vm-simple-linux
+  - TEST_DIR=examples/azure-vm-simple-linux
 
 branches:
   only:
   - master
-  - /^(?i:topic)-.*$/
 
+# install terraform
+before_deploy:
+  - export KEY=$(cat /dev/urandom | tr -cd 'a-z' | head -c 12)
+  - export PASSWORD=$KEY$(cat /dev/urandom | tr -cd 'A-Z' | head -c 2)$(cat /dev/urandom | tr -cd '0-9' | head -c 2)
+
+# terraform deploy script
 deploy:
   - provider: script
     skip_cleanup: true
-    script: cd $TEST_DIR && "./deploy.sh"
+    script: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./deploy.sh
     on:
       repo: 10thmagnitude/terraform
-      branch: 101-vm-simple-linux
-      condition: false  # re-enable when examples exist in master
+      branch: master
+
+# destroy resources with Azure CLI
+after_deploy: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./after_deploy.sh
