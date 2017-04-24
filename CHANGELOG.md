@@ -33,6 +33,7 @@ FEATURES:
 
 
 IMPROVEMENTS:
+ * helper/schema: Disallow validation+diff suppression on computed fields [GH-13878]
  * config: The interpolation function `cidrhost` now accepts a negative host number to count backwards from the end of the range [GH-13765]
  * config: New interpolation function `matchkeys` for using values from one list to filter corresponding values from another list using a matching set. [GH-13847]
  * state/remote/swift: Support Openstack request logging [GH-13583]
