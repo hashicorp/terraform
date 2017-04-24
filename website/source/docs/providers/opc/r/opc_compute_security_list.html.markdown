@@ -6,7 +6,7 @@ description: |-
   Creates and manages a security list in an OPC identity domain.
 ---
 
-# opc\_compute\_ip\_reservation
+# opc\_compute\_security\_list
 
 The ``opc_compute_security_list`` resource creates and manages a security list in an OPC identity domain.
 

@@ -22,6 +22,9 @@ func resourceAwsSubnet() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		SchemaVersion: 1,
+		MigrateState:  resourceAwsSubnetMigrateState,
+
 		Schema: map[string]*schema.Schema{
 			"vpc_id": {
 				Type:     schema.TypeString,
@@ -38,7 +41,6 @@ func resourceAwsSubnet() *schema.Resource {
 			"ipv6_cidr_block": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 			},
 
 			"availability_zone": {
@@ -141,9 +143,15 @@ func resourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("cidr_block", subnet.CidrBlock)
 	d.Set("map_public_ip_on_launch", subnet.MapPublicIpOnLaunch)
 	d.Set("assign_ipv6_address_on_creation", subnet.AssignIpv6AddressOnCreation)
-	if subnet.Ipv6CidrBlockAssociationSet != nil {
-		d.Set("ipv6_cidr_block", subnet.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock)
-		d.Set("ipv6_cidr_block_association_id", subnet.Ipv6CidrBlockAssociationSet[0].AssociationId)
+	for _, a := range subnet.Ipv6CidrBlockAssociationSet {
+		if *a.Ipv6CidrBlockState.State == "associated" { //we can only ever have 1 IPv6 block associated at once
+			d.Set("ipv6_cidr_block_association_id", a.AssociationId)
+			d.Set("ipv6_cidr_block", a.Ipv6CidrBlock)
+			break
+		} else {
+			d.Set("ipv6_cidr_block_association_id", "") // we blank these out to remove old entries
+			d.Set("ipv6_cidr_block", "")
+		}
 	}
 	d.Set("tags", tagsToMap(subnet.Tags))
 
@@ -197,6 +205,73 @@ func resourceAwsSubnetUpdate(d *schema.ResourceData, meta interface{}) error {
 		} else {
 			d.SetPartial("map_public_ip_on_launch")
 		}
+	}
+
+	// We have to be careful here to not go through a change of association if this is a new resource
+	// A New resource here would denote that the Update func is called by the Create func
+	if d.HasChange("ipv6_cidr_block") && !d.IsNewResource() {
+		// We need to handle that we disassociate the IPv6 CIDR block before we try and associate the new one
+		// This could be an issue as, we could error out when we try and add the new one
+		// We may need to roll back the state and reattach the old one if this is the case
+
+		_, new := d.GetChange("ipv6_cidr_block")
+
+		//Firstly we have to disassociate the old IPv6 CIDR Block
+		disassociateOps := &ec2.DisassociateSubnetCidrBlockInput{
+			AssociationId: aws.String(d.Get("ipv6_cidr_block_association_id").(string)),
+		}
+
+		_, err := conn.DisassociateSubnetCidrBlock(disassociateOps)
+		if err != nil {
+			return err
+		}
+
+		// Wait for the CIDR to become disassociated
+		log.Printf(
+			"[DEBUG] Waiting for IPv6 CIDR (%s) to become disassociated",
+			d.Id())
+		stateConf := &resource.StateChangeConf{
+			Pending: []string{"disassociating", "associated"},
+			Target:  []string{"disassociated"},
+			Refresh: SubnetIpv6CidrStateRefreshFunc(conn, d.Id(), d.Get("ipv6_cidr_block_association_id").(string)),
+			Timeout: 1 * time.Minute,
+		}
+		if _, err := stateConf.WaitForState(); err != nil {
+			return fmt.Errorf(
+				"Error waiting for IPv6 CIDR (%s) to become disassociated: %s",
+				d.Id(), err)
+		}
+
+		//Now we need to try and associate the new CIDR block
+		associatesOpts := &ec2.AssociateSubnetCidrBlockInput{
+			SubnetId:      aws.String(d.Id()),
+			Ipv6CidrBlock: aws.String(new.(string)),
+		}
+
+		resp, err := conn.AssociateSubnetCidrBlock(associatesOpts)
+		if err != nil {
+			//The big question here is, do we want to try and reassociate the old one??
+			//If we have a failure here, then we may be in a situation that we have nothing associated
+			return err
+		}
+
+		// Wait for the CIDR to become associated
+		log.Printf(
+			"[DEBUG] Waiting for IPv6 CIDR (%s) to become associated",
+			d.Id())
+		stateConf = &resource.StateChangeConf{
+			Pending: []string{"associating", "disassociated"},
+			Target:  []string{"associated"},
+			Refresh: SubnetIpv6CidrStateRefreshFunc(conn, d.Id(), *resp.Ipv6CidrBlockAssociation.AssociationId),
+			Timeout: 1 * time.Minute,
+		}
+		if _, err := stateConf.WaitForState(); err != nil {
+			return fmt.Errorf(
+				"Error waiting for IPv6 CIDR (%s) to become associated: %s",
+				d.Id(), err)
+		}
+
+		d.SetPartial("ipv6_cidr_block")
 	}
 
 	d.Partial(false)
@@ -269,5 +344,40 @@ func SubnetStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc 
 
 		subnet := resp.Subnets[0]
 		return subnet, *subnet.State, nil
+	}
+}
+
+func SubnetIpv6CidrStateRefreshFunc(conn *ec2.EC2, id string, associationId string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		opts := &ec2.DescribeSubnetsInput{
+			SubnetIds: []*string{aws.String(id)},
+		}
+		resp, err := conn.DescribeSubnets(opts)
+		if err != nil {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidSubnetID.NotFound" {
+				resp = nil
+			} else {
+				log.Printf("Error on SubnetIpv6CidrStateRefreshFunc: %s", err)
+				return nil, "", err
+			}
+		}
+
+		if resp == nil {
+			// Sometimes AWS just has consistency issues and doesn't see
+			// our instance yet. Return an empty state.
+			return nil, "", nil
+		}
+
+		if resp.Subnets[0].Ipv6CidrBlockAssociationSet == nil {
+			return nil, "", nil
+		}
+
+		for _, association := range resp.Subnets[0].Ipv6CidrBlockAssociationSet {
+			if *association.AssociationId == associationId {
+				return association, *association.Ipv6CidrBlockState.State, nil
+			}
+		}
+
+		return nil, "", nil
 	}
 }
