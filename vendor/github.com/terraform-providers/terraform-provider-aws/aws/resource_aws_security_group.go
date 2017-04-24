@@ -17,8 +17,6 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-var SECURITY_GROUPS *ec2.DescribeSecurityGroupsOutput
-
 func resourceAwsSecurityGroup() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsSecurityGroupCreate,
@@ -214,6 +212,7 @@ func resourceAwsSecurityGroup() *schema.Resource {
 
 func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
+	cache := meta.(*AWSClient).Cache()
 
 	securityGroupOpts := &ec2.CreateSecurityGroupInput{}
 
@@ -254,7 +253,7 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{""},
 		Target:  []string{"exists"},
-		Refresh: SGStateRefreshFunc(conn, d.Id()),
+		Refresh: SGStateRefreshFunc(conn, cache, d.Id()),
 		Timeout: 10 * time.Minute,
 	}
 
@@ -332,8 +331,9 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 
 func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
+	cache := meta.(*AWSClient).Cache()
 
-	sgRaw, _, err := SGStateRefreshFunc(conn, d.Id())()
+	sgRaw, _, err := SGStateRefreshFunc(conn, cache, d.Id())()
 	if err != nil {
 		return err
 	}
@@ -374,8 +374,9 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 
 func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
+	cache := meta.(*AWSClient).Cache()
 
-	sgRaw, _, err := SGStateRefreshFunc(conn, d.Id())()
+	sgRaw, _, err := SGStateRefreshFunc(conn, cache, d.Id())()
 	if err != nil {
 		return err
 	}
@@ -707,11 +708,11 @@ func resourceAwsSecurityGroupUpdateRules(
 
 // SGStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
 // a security group.
-func SGStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
+func SGStateRefreshFunc(conn *ec2.EC2, cache *Cache, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		var group *ec2.SecurityGroup
 
-		if SECURITY_GROUPS == nil {
+		if cache.SecurityGroups == nil {
 			req := &ec2.DescribeSecurityGroupsInput{}
 			resp, err := conn.DescribeSecurityGroups(req)
 
@@ -720,10 +721,10 @@ func SGStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 				return nil, "", err
 			}
 
-			SECURITY_GROUPS = resp
+			cache.SecurityGroups = resp
 		}
 
-		for _, sg := range SECURITY_GROUPS.SecurityGroups {
+		for _, sg := range cache.SecurityGroups.SecurityGroups {
 			if id == *sg.GroupId {
 				group = sg
 			}

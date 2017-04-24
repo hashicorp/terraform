@@ -116,7 +116,12 @@ type Config struct {
 	S3ForcePathStyle        bool
 }
 
+type Cache struct {
+	SecurityGroups  *ec2.DescribeSecurityGroupsOutput
+}
+
 type AWSClient struct {
+	cache                 *Cache
 	cfconn                *cloudformation.CloudFormation
 	cloudfrontconn        *cloudfront.CloudFront
 	cloudtrailconn        *cloudtrail.CloudTrail
@@ -174,6 +179,13 @@ type AWSClient struct {
 	ssmconn               *ssm.SSM
 	wafconn               *waf.WAF
 	wafregionalconn       *wafregional.WAFRegional
+}
+
+func (c *AWSClient) Cache() *Cache {
+	if (c.cache == nil) {
+		c.cache = &Cache{}
+	}
+	return c.cache
 }
 
 func (c *AWSClient) S3() *s3.S3 {
