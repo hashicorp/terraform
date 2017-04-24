@@ -41,8 +41,8 @@ func resourceAwsIotPolicyAttachmentCreate(d *schema.ResourceData, meta interface
 
 	for _, p := range d.Get("principals").(*schema.Set).List() {
 		_, err := conn.AttachPrincipalPolicy(&iot.AttachPrincipalPolicyInput{
-			Principal:  aws.String(d.Get("policy").(string)),
-			PolicyName: aws.String(p.(string)),
+			Principal:  aws.String(p.(string)),
+			PolicyName: aws.String(d.Get("policy").(string)),
 		})
 
 		if err != nil {
