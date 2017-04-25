@@ -98,6 +98,7 @@ BUG FIXES:
  * provider/fastly: Add ability to associate a healthcheck to a backend [GH-13539]
  * provider/google: Stop setting the id when project creation fails [GH-13644]
  * provider/google: Make ports in resource_compute_forwarding_rule ForceNew [GH-13833]
+ * provider/google: Validation fixes for forwarding rules [GH-13952]
  * provider/ignition: Internal cache moved to global, instead per provider instance [GH-13919]
  * provider/logentries: Refresh from state when resources not found [GH-13810]
  * provider/newrelic: newrelic_alert_condition - `condition_scope` must be `application` or `instance` [GH-12972]
