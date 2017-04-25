@@ -15,13 +15,14 @@ import (
 )
 
 func TestAccAWSGlacierVault_basic(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGlacierVaultDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccGlacierVault_basic,
+				Config: testAccGlacierVault_basic(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGlacierVaultExists("aws_glacier_vault.test"),
 				),
@@ -208,11 +209,13 @@ func testAccCheckGlacierVaultDestroy(s *terraform.State) error {
 	return nil
 }
 
-const testAccGlacierVault_basic = `
+func testAccGlacierVault_basic(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_glacier_vault" "test" {
-  name = "my_test_vault"
+  name = "my_test_vault_%d"
 }
-`
+`, rInt)
+}
 
 func testAccGlacierVault_full(rInt int) string {
 	return fmt.Sprintf(`
