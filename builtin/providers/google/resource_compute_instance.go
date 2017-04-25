@@ -3,6 +3,7 @@ package google
 import (
 	"fmt"
 	"log"
+	"reflect"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -29,7 +30,6 @@ func resourceComputeInstance() *schema.Resource {
 			"disk": &schema.Schema{
 				Type:     schema.TypeList,
 				Required: true,
-				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						// TODO(mitchellh): one of image or disk is required
@@ -37,49 +37,43 @@ func resourceComputeInstance() *schema.Resource {
 						"disk": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: true,
 						},
 
 						"image": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: true,
 						},
 
 						"type": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: true,
 						},
 
 						"scratch": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
-							ForceNew: true,
 						},
 
 						"auto_delete": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  true,
-							ForceNew: true,
 						},
 
 						"size": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
-							ForceNew: true,
 						},
 
 						"device_name": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							Computed: true,
 						},
 
 						"disk_encryption_key_raw": &schema.Schema{
 							Type:      schema.TypeString,
 							Optional:  true,
-							ForceNew:  true,
 							Sensitive: true,
 						},
 
@@ -342,6 +336,78 @@ func getInstance(config *Config, d *schema.ResourceData) (*compute.Instance, err
 	return instance, nil
 }
 
+func createDisk(d map[string]interface{}, boot bool, config *Config, project string, zone *compute.Zone) (*compute.AttachedDisk, error) {
+	disk := &compute.AttachedDisk{
+		Type:       "PERSISTENT",
+		Mode:       "READ_WRITE",
+		Boot:       boot,
+		AutoDelete: d["auto_delete"].(bool),
+	}
+
+	if d["disk"] != "" {
+		if d["type"] != "" {
+			return nil, fmt.Errorf("Error: cannot define both disk and type.")
+		}
+	}
+
+	// Load up the disk for this disk if specified
+	if diskName := d["disk"].(string); diskName != "" {
+		diskData, err := config.clientCompute.Disks.Get(
+			project, zone.Name, diskName).Do()
+		if err != nil {
+			return nil, fmt.Errorf(
+				"Error loading disk '%s': %s", diskName, err)
+		}
+
+		disk.Source = diskData.SelfLink
+	} else {
+		// Create a new disk
+		disk.InitializeParams = &compute.AttachedDiskInitializeParams{}
+	}
+
+	if v := d["scratch"]; v.(bool) {
+		disk.Type = "SCRATCH"
+	}
+
+	// Load up the image for this disk if specified
+	if imageName := d["image"].(string); imageName != "" {
+		imageUrl, err := resolveImage(config, imageName)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"Error resolving image name '%s': %s",
+				imageName, err)
+		}
+
+		disk.InitializeParams.SourceImage = imageUrl
+	}
+
+	if diskTypeName := d["type"].(string); diskTypeName != "" {
+		diskType, err := readDiskType(config, zone, diskTypeName)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"Error loading disk type '%s': %s",
+				diskTypeName, err)
+		}
+
+		disk.InitializeParams.DiskType = diskType.SelfLink
+	}
+
+	if diskSizeGb := d["size"].(int); diskSizeGb != 0 {
+		disk.InitializeParams.DiskSizeGb = int64(diskSizeGb)
+	}
+
+	if v := d["device_name"]; v != "" {
+		disk.DeviceName = v.(string)
+	}
+
+	if v := d["disk_encryption_key_raw"]; v != "" {
+		disk.DiskEncryptionKey = &compute.CustomerEncryptionKey{}
+		disk.DiskEncryptionKey.RawKey = v.(string)
+	}
+
+	return disk, nil
+}
+
 func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
@@ -375,86 +441,11 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 	for i := 0; i < disksCount; i++ {
 		prefix := fmt.Sprintf("disk.%d", i)
 
-		// var sourceLink string
-
-		// Build the disk
-		var disk compute.AttachedDisk
-		disk.Type = "PERSISTENT"
-		disk.Mode = "READ_WRITE"
-		disk.Boot = i == 0
-		disk.AutoDelete = d.Get(prefix + ".auto_delete").(bool)
-
-		if _, ok := d.GetOk(prefix + ".disk"); ok {
-			if _, ok := d.GetOk(prefix + ".type"); ok {
-				return fmt.Errorf(
-					"Error: cannot define both disk and type.")
-			}
+		disk, err := createDisk(d.Get(prefix).(map[string]interface{}), i == 0, config, project, zone)
+		if err != nil {
+			return err
 		}
-
-		// Load up the disk for this disk if specified
-		if v, ok := d.GetOk(prefix + ".disk"); ok {
-			diskName := v.(string)
-			diskData, err := config.clientCompute.Disks.Get(
-				project, zone.Name, diskName).Do()
-			if err != nil {
-				return fmt.Errorf(
-					"Error loading disk '%s': %s",
-					diskName, err)
-			}
-
-			disk.Source = diskData.SelfLink
-		} else {
-			// Create a new disk
-			disk.InitializeParams = &compute.AttachedDiskInitializeParams{}
-		}
-
-		if v, ok := d.GetOk(prefix + ".scratch"); ok {
-			if v.(bool) {
-				disk.Type = "SCRATCH"
-			}
-		}
-
-		// Load up the image for this disk if specified
-		if v, ok := d.GetOk(prefix + ".image"); ok {
-			imageName := v.(string)
-
-			imageUrl, err := resolveImage(config, imageName)
-			if err != nil {
-				return fmt.Errorf(
-					"Error resolving image name '%s': %s",
-					imageName, err)
-			}
-
-			disk.InitializeParams.SourceImage = imageUrl
-		}
-
-		if v, ok := d.GetOk(prefix + ".type"); ok {
-			diskTypeName := v.(string)
-			diskType, err := readDiskType(config, zone, diskTypeName)
-			if err != nil {
-				return fmt.Errorf(
-					"Error loading disk type '%s': %s",
-					diskTypeName, err)
-			}
-
-			disk.InitializeParams.DiskType = diskType.SelfLink
-		}
-
-		if v, ok := d.GetOk(prefix + ".size"); ok {
-			diskSizeGb := v.(int)
-			disk.InitializeParams.DiskSizeGb = int64(diskSizeGb)
-		}
-
-		if v, ok := d.GetOk(prefix + ".device_name"); ok {
-			disk.DeviceName = v.(string)
-		}
-
-		if v, ok := d.GetOk(prefix + ".disk_encryption_key_raw"); ok {
-			disk.DiskEncryptionKey = &compute.CustomerEncryptionKey{}
-			disk.DiskEncryptionKey.RawKey = v.(string)
-		}
-
-		disks = append(disks, &disk)
+		disks = append(disks, disk)
 	}
 
 	networksCount := d.Get("network.#").(int)
@@ -800,7 +791,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 			"scratch":                 d.Get(fmt.Sprintf("disk.%d.scratch", i)),
 			"auto_delete":             d.Get(fmt.Sprintf("disk.%d.auto_delete", i)),
 			"size":                    d.Get(fmt.Sprintf("disk.%d.size", i)),
-			"device_name":             d.Get(fmt.Sprintf("disk.%d.device_name", i)),
+			"device_name":             disk.DeviceName,
 			"disk_encryption_key_raw": d.Get(fmt.Sprintf("disk.%d.disk_encryption_key_raw", i)),
 		}
 		if disk.DiskEncryptionKey != nil && disk.DiskEncryptionKey.Sha256 != "" {
@@ -824,7 +815,14 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
-	zone := d.Get("zone").(string)
+	// Get the zone
+	log.Printf("[DEBUG] Loading zone: %s", d.Get("zone").(string))
+	zone, err := config.clientCompute.Zones.Get(
+		project, d.Get("zone").(string)).Do()
+	if err != nil {
+		return fmt.Errorf(
+			"Error loading zone '%s': %s", d.Get("zone").(string), err)
+	}
 
 	instance, err := getInstance(config, d)
 	if err != nil {
@@ -860,12 +858,12 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 				return fmt.Errorf("Error updating metadata: %s", err)
 			}
 			op, err := config.clientCompute.Instances.SetMetadata(
-				project, zone, d.Id(), md).Do()
+				project, zone.Name, d.Id(), md).Do()
 			if err != nil {
 				return fmt.Errorf("Error updating metadata: %s", err)
 			}
 
-			opErr := computeOperationWaitZone(config, op, project, zone, "metadata to update")
+			opErr := computeOperationWaitZone(config, op, project, zone.Name, "metadata to update")
 			if opErr != nil {
 				return opErr
 			}
@@ -880,12 +878,12 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 	if d.HasChange("tags") {
 		tags := resourceInstanceTags(d)
 		op, err := config.clientCompute.Instances.SetTags(
-			project, zone, d.Id(), tags).Do()
+			project, zone.Name, d.Id(), tags).Do()
 		if err != nil {
 			return fmt.Errorf("Error updating tags: %s", err)
 		}
 
-		opErr := computeOperationWaitZone(config, op, project, zone, "tags to update")
+		opErr := computeOperationWaitZone(config, op, project, zone.Name, "tags to update")
 		if opErr != nil {
 			return opErr
 		}
@@ -910,13 +908,13 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 		}
 
 		op, err := config.clientCompute.Instances.SetScheduling(project,
-			zone, d.Id(), scheduling).Do()
+			zone.Name, d.Id(), scheduling).Do()
 
 		if err != nil {
 			return fmt.Errorf("Error updating scheduling policy: %s", err)
 		}
 
-		opErr := computeOperationWaitZone(config, op, project, zone,
+		opErr := computeOperationWaitZone(config, op, project, zone.Name,
 			"scheduling policy update")
 		if opErr != nil {
 			return opErr
@@ -954,11 +952,11 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 				// Delete any accessConfig that currently exists in instNetworkInterface
 				for _, ac := range instNetworkInterface.AccessConfigs {
 					op, err := config.clientCompute.Instances.DeleteAccessConfig(
-						project, zone, d.Id(), ac.Name, networkName).Do()
+						project, zone.Name, d.Id(), ac.Name, networkName).Do()
 					if err != nil {
 						return fmt.Errorf("Error deleting old access_config: %s", err)
 					}
-					opErr := computeOperationWaitZone(config, op, project, zone,
+					opErr := computeOperationWaitZone(config, op, project, zone.Name,
 						"old access_config to delete")
 					if opErr != nil {
 						return opErr
@@ -974,11 +972,11 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 						NatIP: d.Get(acPrefix + ".nat_ip").(string),
 					}
 					op, err := config.clientCompute.Instances.AddAccessConfig(
-						project, zone, d.Id(), networkName, ac).Do()
+						project, zone.Name, d.Id(), networkName, ac).Do()
 					if err != nil {
 						return fmt.Errorf("Error adding new access_config: %s", err)
 					}
-					opErr := computeOperationWaitZone(config, op, project, zone,
+					opErr := computeOperationWaitZone(config, op, project, zone.Name,
 						"new access_config to add")
 					if opErr != nil {
 						return opErr
@@ -986,8 +984,75 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 				}
 			}
 		}
+		d.SetPartial("network_interface")
 	}
 
+	if d.HasChange("disk") {
+		oldDisks, newDisks := d.GetChange("disk")
+
+		// For each disk that was previously in the config, loop over all disks currently in the config
+		// and check if they are exactly the same (there is no unique identifier for disks within instances,
+		// so the only thing we can check is that all the fields are the same). If there is no match for a
+		// disk in the new config, detach it.
+		for i, v := range oldDisks.([]interface{}) {
+			oldDisk := v.(map[string]interface{})
+			found := false
+			for _, _v := range newDisks.([]interface{}) {
+				newDisk := _v.(map[string]interface{})
+				if reflect.DeepEqual(oldDisk, newDisk) {
+					found = true
+				}
+			}
+			if !found {
+				log.Printf("[DEBUG] Detaching disk: %v", oldDisk)
+				if i == 0 {
+					// Note: a better way to do this would be to check the "index" field. At this point, that isn't
+					// a supported field in the TF resource so checking i == 0 will always work. If that field is
+					// added, however, we'll want to change this to use that field.
+					return fmt.Errorf("Detaching the boot disk is prohibited")
+				}
+				dn := oldDisk["device_name"]
+				if dn == "" {
+					return fmt.Errorf("Cannot detach disk with empty device_name")
+				}
+				op, err := config.clientCompute.Instances.DetachDisk(project, zone.Name, d.Id(), dn.(string)).Do()
+				if err != nil {
+					return fmt.Errorf("Error detaching disk: %s", err)
+				}
+				opErr := computeOperationWaitZone(config, op, project, zone.Name, "detaching disk")
+				if opErr != nil {
+					return opErr
+				}
+			}
+		}
+
+		// Likewise, but if a disk from the new config is missing from the old config, attach it.
+		for i, v := range newDisks.([]interface{}) {
+			newDisk := v.(map[string]interface{})
+			found := false
+			for _, _v := range oldDisks.([]interface{}) {
+				oldDisk := _v.(map[string]interface{})
+				if reflect.DeepEqual(oldDisk, newDisk) {
+					found = true
+				}
+			}
+			if !found {
+				log.Printf("[DEBUG] Attaching disk: %v", newDisk)
+				disk, err := createDisk(newDisk, i == 0, config, project, zone)
+				if err != nil {
+					return err
+				}
+				op, err := config.clientCompute.Instances.AttachDisk(project, zone.Name, d.Id(), disk).Do()
+				if err != nil {
+					return fmt.Errorf("Error attaching new disk: %s", err)
+				}
+				opErr := computeOperationWaitZone(config, op, project, zone.Name, "attaching new disk")
+				if opErr != nil {
+					return opErr
+				}
+			}
+		}
+	}
 	// We made it, disable partial mode
 	d.Partial(false)
 
