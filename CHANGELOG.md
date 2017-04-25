@@ -56,6 +56,7 @@ IMPROVEMENTS:
  * provider/fastly: Add support for GCS logging [GH-13553]
  * provider/google: `google_compute_address` and `google_compute_global_address` are now importable [GH-13270]
  * provider/google: `google_compute_network` is now importable  [GH-13834]
+ * provider/heroku: Set App buildpacks from config [GH-13910]
  * provider/vault: `vault_generic_secret` resource can now optionally detect drift if it has appropriate access [GH-11776]
  
 BUG FIXES:
