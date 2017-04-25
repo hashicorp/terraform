@@ -89,11 +89,11 @@ func resourceTemplateDirCreate(d *schema.ResourceData, meta interface{}) error {
 
 	// Recursively crawl the input files/directories and generate the output ones.
 	err := filepath.Walk(sourceDir, func(p string, f os.FileInfo, err error) error {
-		if f.IsDir() {
-			return nil
-		}
 		if err != nil {
 			return err
+		}
+		if f.IsDir() {
+			return nil
 		}
 
 		relPath, _ := filepath.Rel(sourceDir, p)
