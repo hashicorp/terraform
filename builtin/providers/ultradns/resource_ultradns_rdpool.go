@@ -7,6 +7,7 @@ import (
 
 	"github.com/Ensighten/udnssdk"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceUltradnsRdpool() *schema.Resource {
@@ -39,28 +40,16 @@ func resourceUltradnsRdpool() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "ROUND_ROBIN",
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					if value != "ROUND_ROBIN" && value != "FIXED" && value != "RANDOM" {
-						errors = append(errors, fmt.Errorf(
-							"Only 'ROUND_ROBIN', 'FIXED', and 'RANDOM' are supported values for 'order'"))
-					}
-					return
-				},
+				ValidateFunc: validation.StringInSlice([]string{
+					"ROUND_ROBIN",
+					"FIXED",
+					"RANDOM",
+				}, false),
 			},
 			"description": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					if v != nil {
-						value := v.(string)
-						if len(value) > 255 {
-							errors = append(errors, fmt.Errorf(
-								"'description' length must be 0-255"))
-						}
-					}
-					return
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringLenBetween(0, 255),
 			},
 			"ttl": &schema.Schema{
 				Type:     schema.TypeInt,
