@@ -58,6 +58,9 @@ IMPROVEMENTS:
  
 BUG FIXES:
 
+ * core: Prevent resource.Retry from adding untracked resources after the timeout: [GH-13778]
+ * core: Allow a schema.TypeList to be ForceNew and computed [GH-13863]
+ * core: Fix crash when refresh or apply build an invalid graph [GH-13665]
  * core: Add the close provider/provisioner transformers back [GH-13102]
  * core: Fix a crash condition by improving the flatmap.Expand() logic [GH-13541]
  * provider/alicloud: Fix create PrePaid instance [GH-13662]
