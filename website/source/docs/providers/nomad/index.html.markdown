@@ -34,3 +34,6 @@ The following arguments are supported:
 
 * `address` - (Optional) The HTTP(S) API address of the Nomad agent to use. Defaults to `http://127.0.0.1:4646`. The `NOMAD_ADDR` environment variable can also be used.
 * `region` - (Optional) The Nomad region to target. The `NOMAD_REGION` environment variable can also be used.
+* `ca_file` - (Optional) A path to a PEM-encoded certificate authority used to verify the remote agent's certificate. The `NOMAD_CACERT` environment variable can also be used.
+* `cert_file` - (Optional) A path to a PEM-encoded certificate provided to the remote agent; requires use of `key_file`. The `NOMAD_CLIENT_CERT` environment variable can also be used.
+* `key_file`- (Optional) A path to a PEM-encoded private key, required if `cert_file` is specified. The `NOMAD_CLIENT_KEY` environment variable can also be used.
