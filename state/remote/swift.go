@@ -18,6 +18,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/objects"
+	tf_openstack "github.com/hashicorp/terraform/builtin/providers/openstack"
 )
 
 const TFSTATE_NAME = "tfstate.tf"
@@ -249,8 +250,19 @@ func (c *SwiftClient) validateConfig(conf map[string]string) (err error) {
 		config.BuildNameToCertificate()
 	}
 
+	// if OS_DEBUG is set, log the requests and responses
+	var osDebug bool
+	if os.Getenv("OS_DEBUG") != "" {
+		osDebug = true
+	}
+
 	transport := &http.Transport{Proxy: http.ProxyFromEnvironment, TLSClientConfig: config}
-	provider.HTTPClient.Transport = transport
+	provider.HTTPClient = http.Client{
+		Transport: &tf_openstack.LogRoundTripper{
+			Rt:      transport,
+			OsDebug: osDebug,
+		},
+	}
 
 	err = openstack.Authenticate(provider, ao)
 	if err != nil {

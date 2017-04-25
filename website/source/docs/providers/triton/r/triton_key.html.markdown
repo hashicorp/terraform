@@ -14,8 +14,7 @@ The `triton_key` resource represents an SSH key for a Triton account.
 
 Create a key
 
-
-```
+```hcl
 resource "triton_key" "example" {
   name = "Example Key"
   key  = "${file("keys/id_rsa")}"
@@ -31,4 +30,3 @@ The following arguments are supported:
 
 * `key` - (string, Required, Change forces new resource)
     The SSH key material. In order to read this from a file, use the `file` interpolation.
-

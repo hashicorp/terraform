@@ -1,6 +1,7 @@
 package s3
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -30,29 +31,34 @@ func (b *Backend) States() ([]string, error) {
 		return nil, err
 	}
 
-	var envs []string
+	envs := []string{backend.DefaultStateName}
 	for _, obj := range resp.Contents {
-		env := keyEnv(*obj.Key)
+		env := b.keyEnv(*obj.Key)
 		if env != "" {
 			envs = append(envs, env)
 		}
 	}
 
-	sort.Strings(envs)
-	envs = append([]string{backend.DefaultStateName}, envs...)
+	sort.Strings(envs[1:])
 	return envs, nil
 }
 
 // extract the env name from the S3 key
-func keyEnv(key string) string {
-	parts := strings.Split(key, "/")
+func (b *Backend) keyEnv(key string) string {
+	// we have 3 parts, the prefix, the env name, and the key name
+	parts := strings.SplitN(key, "/", 3)
 	if len(parts) < 3 {
 		// no env here
 		return ""
 	}
 
+	// shouldn't happen since we listed by prefix
 	if parts[0] != keyEnvPrefix {
-		// not our key, so ignore
+		return ""
+	}
+
+	// not our key, so don't include it in our listing
+	if parts[2] != b.keyName {
 		return ""
 	}
 
@@ -78,6 +84,10 @@ func (b *Backend) DeleteState(name string) error {
 }
 
 func (b *Backend) State(name string) (state.State, error) {
+	if name == "" {
+		return nil, errors.New("missing state name")
+	}
+
 	client := &RemoteClient{
 		s3Client:             b.s3Client,
 		dynClient:            b.dynClient,

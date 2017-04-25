@@ -12,7 +12,7 @@ Provides a DMS (Data Migration Service) replication task resource. DMS replicati
 
 ## Example Usage
 
-```
+```hcl
 # Create a new replication task
 resource "aws_dms_replication_task" "test" {
   cdc_start_time            = 1484346880

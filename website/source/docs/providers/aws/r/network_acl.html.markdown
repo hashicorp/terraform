@@ -13,7 +13,7 @@ to your security groups in order to add an additional layer of security to your 
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_network_acl" "main" {
   vpc_id = "${aws_vpc.main.id}"
 

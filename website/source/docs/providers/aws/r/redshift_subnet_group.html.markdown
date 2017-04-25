@@ -12,7 +12,7 @@ Creates a new Amazon Redshift subnet group. You must provide a list of one or mo
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_vpc" "foo" {
   cidr_block = "10.1.0.0/16"
 }

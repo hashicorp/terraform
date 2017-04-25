@@ -48,7 +48,7 @@ AWS provider block:
 
 Usage:
 
-```
+```hcl
 provider "aws" {
   region     = "us-west-2"
   access_key = "anaccesskey"
@@ -179,6 +179,10 @@ The following arguments are supported in the `provider` block:
 * `skip_credentials_validation` - (Optional) Skip the credentials
   validation via the STS API. Useful for AWS API implementations that do
   not have STS available or implemented.
+
+* `skip_get_ec2_platforms` - (Optional) Skip getting the supported EC2
+  platforms. Used by users that don't have ec2:DescribeAccountAttributes
+  permissions.
 
 * `skip_region_validation` - (Optional) Skip validation of provided region name.
   Useful for AWS-like implementations that use their own region names

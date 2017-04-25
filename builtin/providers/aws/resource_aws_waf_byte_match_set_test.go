@@ -96,49 +96,43 @@ func testAccCheckAWSWafByteMatchSetDisappears(v *waf.ByteMatchSet) resource.Test
 	return func(s *terraform.State) error {
 		conn := testAccProvider.Meta().(*AWSClient).wafconn
 
-		// ChangeToken
-		var ct *waf.GetChangeTokenInput
-
-		resp, err := conn.GetChangeToken(ct)
-		if err != nil {
-			return fmt.Errorf("Error getting change token: %s", err)
-		}
-
-		req := &waf.UpdateByteMatchSetInput{
-			ChangeToken:    resp.ChangeToken,
-			ByteMatchSetId: v.ByteMatchSetId,
-		}
-
-		for _, ByteMatchTuple := range v.ByteMatchTuples {
-			ByteMatchUpdate := &waf.ByteMatchSetUpdate{
-				Action: aws.String("DELETE"),
-				ByteMatchTuple: &waf.ByteMatchTuple{
-					FieldToMatch:         ByteMatchTuple.FieldToMatch,
-					PositionalConstraint: ByteMatchTuple.PositionalConstraint,
-					TargetString:         ByteMatchTuple.TargetString,
-					TextTransformation:   ByteMatchTuple.TextTransformation,
-				},
+		wr := newWafRetryer(conn, "global")
+		_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
+			req := &waf.UpdateByteMatchSetInput{
+				ChangeToken:    token,
+				ByteMatchSetId: v.ByteMatchSetId,
 			}
-			req.Updates = append(req.Updates, ByteMatchUpdate)
-		}
 
-		_, err = conn.UpdateByteMatchSet(req)
+			for _, ByteMatchTuple := range v.ByteMatchTuples {
+				ByteMatchUpdate := &waf.ByteMatchSetUpdate{
+					Action: aws.String("DELETE"),
+					ByteMatchTuple: &waf.ByteMatchTuple{
+						FieldToMatch:         ByteMatchTuple.FieldToMatch,
+						PositionalConstraint: ByteMatchTuple.PositionalConstraint,
+						TargetString:         ByteMatchTuple.TargetString,
+						TextTransformation:   ByteMatchTuple.TextTransformation,
+					},
+				}
+				req.Updates = append(req.Updates, ByteMatchUpdate)
+			}
+
+			return conn.UpdateByteMatchSet(req)
+		})
 		if err != nil {
 			return errwrap.Wrapf("[ERROR] Error updating ByteMatchSet: {{err}}", err)
 		}
 
-		resp, err = conn.GetChangeToken(ct)
+		_, err = wr.RetryWithToken(func(token *string) (interface{}, error) {
+			opts := &waf.DeleteByteMatchSetInput{
+				ChangeToken:    token,
+				ByteMatchSetId: v.ByteMatchSetId,
+			}
+			return conn.DeleteByteMatchSet(opts)
+		})
 		if err != nil {
-			return errwrap.Wrapf("[ERROR] Error getting change token: {{err}}", err)
+			return errwrap.Wrapf("[ERROR] Error deleting ByteMatchSet: {{err}}", err)
 		}
 
-		opts := &waf.DeleteByteMatchSetInput{
-			ChangeToken:    resp.ChangeToken,
-			ByteMatchSetId: v.ByteMatchSetId,
-		}
-		if _, err := conn.DeleteByteMatchSet(opts); err != nil {
-			return err
-		}
 		return nil
 	}
 }

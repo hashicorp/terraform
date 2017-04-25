@@ -18,7 +18,7 @@ a conflict of rule settings and will overwrite rules.
 
 ## Example usage with tags:
 
-```
+```hcl
 resource "aws_route_table" "r" {
   vpc_id = "${aws_vpc.default.id}"
 

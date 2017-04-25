@@ -10,7 +10,7 @@ Provides an RDS DB option group resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_db_option_group" "bar" {
   name                     = "option-group-test-terraform"
   option_group_description = "Terraform Option Group"

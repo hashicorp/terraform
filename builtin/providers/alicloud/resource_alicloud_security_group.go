@@ -74,6 +74,11 @@ func resourceAliyunSecurityGroupRead(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error DescribeSecurityGroupAttribute: %#v", err)
 	}
 
+	if sg == nil {
+		d.SetId("")
+		return nil
+	}
+
 	d.Set("name", sg.SecurityGroupName)
 	d.Set("description", sg.Description)
 

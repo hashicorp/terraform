@@ -157,8 +157,10 @@ The supported built-in functions are:
   * `chomp(string)` - Removes trailing newlines from the given string.
 
   * `cidrhost(iprange, hostnum)` - Takes an IP address range in CIDR notation
-    and creates an IP address with the given host number. For example,
-    `cidrhost("10.0.0.0/8", 2)` returns `10.0.0.2`.
+    and creates an IP address with the given host number. If given host
+    number is negative, the count starts from the end of the range.
+    For example, `cidrhost("10.0.0.0/8", 2)` returns `10.0.0.2` and
+    `cidrhost("10.0.0.0/8", -2)` returns `10.255.255.254`.
 
   * `cidrnetmask(iprange)` - Takes an IP address range in CIDR notation
     and returns the address-formatted subnet mask format that some
@@ -175,6 +177,9 @@ The supported built-in functions are:
     `2607:f298:6051:516c:200::/72`.
 
   * `coalesce(string1, string2, ...)` - Returns the first non-empty value from
+    the given arguments. At least two arguments must be provided.
+
+  * `coalescelist(list1, list2, ...)` - Returns the first non-empty list from
     the given arguments. At least two arguments must be provided.
 
   * `compact(list)` - Removes empty string elements from a list. This can be
@@ -205,6 +210,15 @@ The supported built-in functions are:
       to other base locations. For example, when using `file()` from inside a
       module, you generally want to make the path relative to the module base,
       like this: `file("${path.module}/file")`.
+
+  * `matchkeys(values, keys, searchset)` - For two lists `values` and `keys` of
+      equal length, returns all elements from `values` where the corresponding
+      element from `keys` exists in the `searchset` list.  E.g.
+      `matchkeys(aws_instance.example.*.id,
+      aws_instance.example.*.availability_zone, list("us-west-2a"))` will return a
+      list of the instance IDs of the `aws_instance.example` instances in
+      `"us-west-2a"`. No match will result in empty list. Items of `keys` are
+      processed sequentially, so the order of returned `values` is preserved.
 
   * `floor(float)` - Returns the greatest integer value less than or equal to
       the argument.
@@ -290,7 +304,7 @@ The supported built-in functions are:
       as a regular expression. If using a regular expression, `replace`
       can reference subcaptures in the regular expression by using `$n` where
       `n` is the index or name of the subcapture. If using a regular expression,
-      the syntax conforms to the [re2 regular expression syntax](https://code.google.com/p/re2/wiki/Syntax).
+      the syntax conforms to the [re2 regular expression syntax](https://github.com/google/re2/wiki/Syntax).
 
   * `sha1(string)` - Returns a (conventional) hexadecimal representation of the
     SHA-1 hash of the given string.

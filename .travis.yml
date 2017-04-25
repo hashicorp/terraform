@@ -29,14 +29,10 @@ before_deploy:
 deploy:
   - provider: script
     skip_cleanup: true
-    script: cd $TEST_DIR && ./deploy.sh
+    script: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./deploy.sh
     on:
       repo: 10thmagnitude/terraform
       branch: topic-101-vm-from-user-image
 
-# destroy resources with Azure CLI
-after_deploy:
-  - docker run --rm -it \
-      azuresdk/azure-cli-python \
-      sh -c "az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID; \
-             az group delete -y -n $KEY"
+# cleanup
+after_deploy: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./after_deploy.sh

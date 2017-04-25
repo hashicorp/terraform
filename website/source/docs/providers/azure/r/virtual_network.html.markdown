@@ -13,7 +13,7 @@ optionally be configured with a security group to be associated with the subnet.
 
 ## Example Usage
 
-```
+```hcl
 resource "azure_virtual_network" "default" {
   name          = "test-network"
   address_space = ["10.1.2.0/24"]

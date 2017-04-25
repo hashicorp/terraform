@@ -86,7 +86,7 @@ func resourceAliyunVpcCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Timeout when WaitForVpcAvailable")
 	}
 
-	return resourceAliyunVpcRead(d, meta)
+	return resourceAliyunVpcUpdate(d, meta)
 }
 
 func resourceAliyunVpcRead(d *schema.ResourceData, meta interface{}) error {
@@ -144,7 +144,7 @@ func resourceAliyunVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	d.Partial(false)
 
-	return nil
+	return resourceAliyunVpcRead(d, meta)
 }
 
 func resourceAliyunVpcDelete(d *schema.ResourceData, meta interface{}) error {

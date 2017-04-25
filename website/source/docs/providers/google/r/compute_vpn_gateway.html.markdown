@@ -14,7 +14,7 @@ Manages a VPN Gateway in the GCE network. For more info, read the
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_network" "network1" {
   name       = "network1"
   ipv4_range = "10.120.0.0/16"

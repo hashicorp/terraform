@@ -12,7 +12,7 @@ Provides a WAF SQL Injection Match Set Resource
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_waf_sql_injection_match_set" "sql_injection_match_set" {
   name = "tf-sql_injection_match_set"
 

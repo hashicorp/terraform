@@ -12,7 +12,7 @@ With [add-ons](https://v2.developer.pagerduty.com/v2/page/api-reference#!/Add-on
 
 ## Example Usage
 
-```
+```hcl
 resource "pagerduty_addon" "example" {
   name = "Internal Status Page"
   src  = "https://intranet.example.com/status"

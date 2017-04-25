@@ -96,45 +96,39 @@ func testAccCheckAWSWafSizeConstraintSetDisappears(v *waf.SizeConstraintSet) res
 	return func(s *terraform.State) error {
 		conn := testAccProvider.Meta().(*AWSClient).wafconn
 
-		var ct *waf.GetChangeTokenInput
-
-		resp, err := conn.GetChangeToken(ct)
-		if err != nil {
-			return fmt.Errorf("Error getting change token: %s", err)
-		}
-
-		req := &waf.UpdateSizeConstraintSetInput{
-			ChangeToken:         resp.ChangeToken,
-			SizeConstraintSetId: v.SizeConstraintSetId,
-		}
-
-		for _, sizeConstraint := range v.SizeConstraints {
-			sizeConstraintUpdate := &waf.SizeConstraintSetUpdate{
-				Action: aws.String("DELETE"),
-				SizeConstraint: &waf.SizeConstraint{
-					FieldToMatch:       sizeConstraint.FieldToMatch,
-					ComparisonOperator: sizeConstraint.ComparisonOperator,
-					Size:               sizeConstraint.Size,
-					TextTransformation: sizeConstraint.TextTransformation,
-				},
+		wr := newWafRetryer(conn, "global")
+		_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
+			req := &waf.UpdateSizeConstraintSetInput{
+				ChangeToken:         token,
+				SizeConstraintSetId: v.SizeConstraintSetId,
 			}
-			req.Updates = append(req.Updates, sizeConstraintUpdate)
-		}
-		_, err = conn.UpdateSizeConstraintSet(req)
+
+			for _, sizeConstraint := range v.SizeConstraints {
+				sizeConstraintUpdate := &waf.SizeConstraintSetUpdate{
+					Action: aws.String("DELETE"),
+					SizeConstraint: &waf.SizeConstraint{
+						FieldToMatch:       sizeConstraint.FieldToMatch,
+						ComparisonOperator: sizeConstraint.ComparisonOperator,
+						Size:               sizeConstraint.Size,
+						TextTransformation: sizeConstraint.TextTransformation,
+					},
+				}
+				req.Updates = append(req.Updates, sizeConstraintUpdate)
+			}
+			return conn.UpdateSizeConstraintSet(req)
+		})
 		if err != nil {
 			return errwrap.Wrapf("[ERROR] Error updating SizeConstraintSet: {{err}}", err)
 		}
 
-		resp, err = conn.GetChangeToken(ct)
+		_, err = wr.RetryWithToken(func(token *string) (interface{}, error) {
+			opts := &waf.DeleteSizeConstraintSetInput{
+				ChangeToken:         token,
+				SizeConstraintSetId: v.SizeConstraintSetId,
+			}
+			return conn.DeleteSizeConstraintSet(opts)
+		})
 		if err != nil {
-			return errwrap.Wrapf("[ERROR] Error getting change token: {{err}}", err)
-		}
-
-		opts := &waf.DeleteSizeConstraintSetInput{
-			ChangeToken:         resp.ChangeToken,
-			SizeConstraintSetId: v.SizeConstraintSetId,
-		}
-		if _, err := conn.DeleteSizeConstraintSet(opts); err != nil {
 			return err
 		}
 		return nil
