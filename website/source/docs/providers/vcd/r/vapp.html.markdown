@@ -19,14 +19,14 @@ resource "vcd_network" "net" {
 }
 
 resource "vcd_vapp" "web" {
-  name          = "web"
-  catalog_name  = "Boxes"
-  template_name = "lampstack-1.10.1-ubuntu-10.04"
-  memory        = 2048
-  cpus          = 1
+  name            = "web"
+  catalog_name    = "Boxes"
+  template_name   = "lampstack-1.10.1-ubuntu-10.04"
+  memory          = 2048
+  cpus            = 1
+  storage_profile = "fast_ssd_storage"
 
   network_name = "${vcd_network.net.name}"
-  network_href = "${vcd_network.net.href}"
   ip           = "10.10.104.160"
 
   metadata {
@@ -48,9 +48,9 @@ The following arguments are supported:
 * `cpus` - (Optional) The number of virtual CPUs to allocate to the vApp
 * `initscript` (Optional) A script to be run only on initial boot
 * `network_name` - (Required) Name of the network this vApp should join
-* `network_href` - (Optional) The vCloud Director generated href of the network this vApp
-  should join. If empty it will use the network name and query vCloud Director to discover
-  this
+* `description` - (Optional) Description attached to vApp
+* `storage_profile` - (Optional) Name of the storage policy which should be used
+  for the VM
 * `ip` - (Optional) The IP to assign to this vApp. Must be an IP address or
   one of dhcp, allocated or none. If given the address must be within the
   `static_ip_pool` set for the network. If left blank, and the network has
