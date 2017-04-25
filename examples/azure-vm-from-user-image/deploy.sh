@@ -16,8 +16,6 @@ docker run --rm -it \
       /bin/terraform plan -out=out.tfplan -var hostname=$KEY -var resource_group=$EXISTING_RESOURCE_GROUP -var admin_username=$KEY -var admin_password=$PASSWORD -var image_uri=$EXISTING_IMAGE_URI -var storage_account_name=$EXISTING_STORAGE_ACCOUNT_NAME; \
       /bin/terraform apply out.tfplan"
 
-# TODO: determine external validation, possibly Azure CLI
-
 # echo "Setting git user name"
 # git config user.name $GH_USER_NAME
 #
