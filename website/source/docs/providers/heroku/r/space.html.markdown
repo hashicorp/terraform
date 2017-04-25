@@ -44,5 +44,5 @@ The following attributes are exported:
 
 * `id` - The ID of the space.
 * `name` - The space's name.
-* `plan` - The space's organization.
+* `organization` - The space's organization.
 * `region` - The space's region.
