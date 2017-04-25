@@ -12,7 +12,7 @@ The ``rabbitmq_queue`` resource creates and manages a queue.
 
 ## Example Usage
 
-```
+```hcl
 resource "rabbitmq_vhost" "test" {
   name = "test"
 }

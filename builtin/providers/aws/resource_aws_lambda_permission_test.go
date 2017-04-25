@@ -332,6 +332,30 @@ func TestAccAWSLambdaPermission_withSNS(t *testing.T) {
 	})
 }
 
+func TestAccAWSLambdaPermission_withIAMRole(t *testing.T) {
+	var statement LambdaPolicyStatement
+	endsWithFuncName := regexp.MustCompile(":function:lambda_function_name_perm_iamrole$")
+	endsWithRoleName := regexp.MustCompile("/iam_for_lambda_perm_iamrole$")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSLambdaPermissionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSLambdaPermissionConfig_withIAMRole,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckLambdaPermissionExists("aws_lambda_permission.iam_role", &statement),
+					resource.TestCheckResourceAttr("aws_lambda_permission.iam_role", "action", "lambda:InvokeFunction"),
+					resource.TestMatchResourceAttr("aws_lambda_permission.iam_role", "principal", endsWithRoleName),
+					resource.TestCheckResourceAttr("aws_lambda_permission.iam_role", "statement_id", "AllowExecutionFromIAMRole"),
+					resource.TestMatchResourceAttr("aws_lambda_permission.iam_role", "function_name", endsWithFuncName),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckLambdaPermissionExists(n string, statement *LambdaPolicyStatement) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -706,6 +730,42 @@ resource "aws_lambda_function" "my-func" {
 
 resource "aws_iam_role" "police" {
     name = "iam_for_lambda_perm_with_sns"
+    assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "lambda.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+`
+
+var testAccAWSLambdaPermissionConfig_withIAMRole = `
+resource "aws_lambda_permission" "iam_role" {
+    statement_id = "AllowExecutionFromIAMRole"
+    action = "lambda:InvokeFunction"
+    function_name = "${aws_lambda_function.my-func.arn}"
+    principal = "${aws_iam_role.police.arn}"
+}
+
+resource "aws_lambda_function" "my-func" {
+    filename = "test-fixtures/lambdatest.zip"
+    function_name = "lambda_function_name_perm_iamrole"
+    role = "${aws_iam_role.police.arn}"
+    handler = "exports.handler"
+    runtime = "nodejs4.3"
+}
+
+resource "aws_iam_role" "police" {
+    name = "iam_for_lambda_perm_iamrole"
     assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",

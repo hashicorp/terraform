@@ -21,17 +21,17 @@ func TestValidateInstancePort(t *testing.T) {
 }
 
 func TestValidateInstanceProtocol(t *testing.T) {
-	validProtocals := []string{"http", "tcp", "https", "udp"}
-	for _, v := range validProtocals {
-		_, errors := validateInstanceProtocol(v, "instance_protocal")
+	validProtocols := []string{"http", "tcp", "https", "udp"}
+	for _, v := range validProtocols {
+		_, errors := validateInstanceProtocol(v, "instance_protocol")
 		if len(errors) != 0 {
 			t.Fatalf("%q should be a valid instance protocol: %q", v, errors)
 		}
 	}
 
-	invalidProtocals := []string{"HTTP", "abc", "ecmp", "dubbo"}
-	for _, v := range invalidProtocals {
-		_, errors := validateInstanceProtocol(v, "instance_protocal")
+	invalidProtocols := []string{"HTTP", "abc", "ecmp", "dubbo"}
+	for _, v := range invalidProtocols {
+		_, errors := validateInstanceProtocol(v, "instance_protocol")
 		if len(errors) == 0 {
 			t.Fatalf("%q should be an invalid instance protocol", v)
 		}
@@ -353,7 +353,7 @@ func TestValidateInternetMaxBandWidthOut(t *testing.T) {
 		}
 	}
 
-	invalidInternetMaxBandWidthOut := []int{-2, 0, 101, 123}
+	invalidInternetMaxBandWidthOut := []int{-2, 101, 123}
 	for _, v := range invalidInternetMaxBandWidthOut {
 		_, errors := validateInternetMaxBandWidthOut(v, "internet_max_bandwidth_out")
 		if len(errors) == 0 {

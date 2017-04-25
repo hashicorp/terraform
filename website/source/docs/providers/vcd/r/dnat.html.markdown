@@ -13,7 +13,7 @@ and delete destination NATs to map an external IP/port to a VM.
 
 ## Example Usage
 
-```
+```hcl
 resource "vcd_dnat" "web" {
   edge_gateway = "Edge Gateway Name"
   external_ip  = "78.101.10.20"

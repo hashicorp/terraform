@@ -56,14 +56,12 @@ func dataSourceConsulCatalogNodes() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						catalogNodesNodeID: &schema.Schema{
-							Type:         schema.TypeString,
-							Computed:     true,
-							ValidateFunc: makeValidationFunc(catalogNodesNodeID, []interface{}{validateRegexp(`^[\S]+$`)}),
+							Type:     schema.TypeString,
+							Computed: true,
 						},
 						catalogNodesNodeName: &schema.Schema{
-							Type:         schema.TypeString,
-							Computed:     true,
-							ValidateFunc: makeValidationFunc(catalogNodesNodeName, []interface{}{validateRegexp(`^[\S]+$`)}),
+							Type:     schema.TypeString,
+							Computed: true,
 						},
 						catalogNodesNodeAddress: &schema.Schema{
 							Type:     schema.TypeString,

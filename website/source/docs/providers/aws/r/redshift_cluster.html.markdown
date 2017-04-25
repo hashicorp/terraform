@@ -13,7 +13,7 @@ Provides a Redshift Cluster Resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_redshift_cluster" "default" {
   cluster_identifier = "tf-redshift-cluster"
   database_name      = "mydb"

@@ -49,6 +49,9 @@ The command-line flags are all optional. The list of available flags are:
   for the backend. This can be specified multiple times. Flags specified
   later in the line override those specified earlier if they conflict.
 
+* `-force-copy` -  Suppress prompts about copying state data. This is equivalent
+  to providing a "yes" to all confirmation prompts.
+
 * `-get=true` - Download any modules for this configuration.
 
 * `-input=true` - Ask for input interactively if necessary. If this is false
@@ -60,13 +63,12 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-no-color` - If specified, output won't contain any color.
 
-* `-force-copy` -  Suppress prompts about copying state data. This is equivalent
-  to providing a "yes" to all confirmation prompts.
+* `-reconfigure` - Reconfigure the backend, ignoring any saved configuration.
 
 ## Backend Config
 
 The `-backend-config` can take a path or `key=value` pair to specify additional
-backend configuration when [initialize a backend](/docs/backends/init.html).
+backend configuration when [initializing a backend](/docs/backends/init.html).
 
 This is particularly useful for
 [partial configuration of backends](/docs/backends/config.html). Partial

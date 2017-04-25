@@ -1,8 +1,5 @@
 # Very simple deployment of a Linux VM
 
-<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2Fazure-quickstart-templates%2Fmaster%2F101-vm-simple-linux%2Fazuredeploy.json" target="_blank">
-    <img src="http://azuredeploy.net/deploybutton.png"/>
-</a>
 <a href="http://armviz.io/#/?load=https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2Fazure-quickstart-templates%2Fmaster%2F101-vm-simple-linux%2Fazuredeploy.json" target="_blank">
     <img src="http://armviz.io/visualizebutton.png"/>
 </a>
@@ -12,7 +9,7 @@ This template allows you to deploy a simple Linux VM using a few different optio
 This template takes a minimum amount of parameters and deploys a Linux VM, using the latest patched version.
 
 ## main.tf
-The `main.tf` file contains the actual resources that will be deployed. It also contains the Azure Resource Group definition and any defined variables. 
+The `main.tf` file contains the actual resources that will be deployed. It also contains the Azure Resource Group definition and any defined variables.
 
 ## outputs.tf
 This data is outputted when `terraform apply` is called, and can be queried using the `terraform output` command.
@@ -25,12 +22,3 @@ If a `terraform.tfvars` file is present in the current directory, Terraform auto
 
 ## variables.tf
 The `variables.tf` file contains all of the input parameters that the user can specify when deploying this Terraform template.
-
-## .gitignore
-If you are committing this template to source control, please insure that the following files are added to your `.gitignore` file.
-
-```
-terraform.tfstate*
-terraform.tfvars
-provider.tf*
-```

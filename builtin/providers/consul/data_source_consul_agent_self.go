@@ -181,9 +181,6 @@ func dataSourceConsulAgentSelf() *schema.Resource {
 			agentSelfACLDisabledTTL: {
 				Computed: true,
 				Type:     schema.TypeString,
-				ValidateFunc: makeValidationFunc(agentSelfACLDisabledTTL, validatorInputs{
-					validateDurationMin("0ns"),
-				}),
 			},
 			agentSelfACLDownPolicy: {
 				Computed: true,
@@ -196,9 +193,6 @@ func dataSourceConsulAgentSelf() *schema.Resource {
 			agentSelfACLTTL: {
 				Computed: true,
 				Type:     schema.TypeString,
-				ValidateFunc: makeValidationFunc(agentSelfACLTTL, validatorInputs{
-					validateDurationMin("0ns"),
-				}),
 			},
 			agentSelfAddresses: {
 				Computed: true,
@@ -275,23 +269,14 @@ func dataSourceConsulAgentSelf() *schema.Resource {
 			agentSelfCheckDeregisterIntervalMin: {
 				Computed: true,
 				Type:     schema.TypeString,
-				ValidateFunc: makeValidationFunc(agentSelfCheckDeregisterIntervalMin, validatorInputs{
-					validateDurationMin("0ns"),
-				}),
 			},
 			agentSelfCheckReapInterval: {
 				Computed: true,
 				Type:     schema.TypeString,
-				ValidateFunc: makeValidationFunc(agentSelfCheckReapInterval, validatorInputs{
-					validateDurationMin("0ns"),
-				}),
 			},
 			agentSelfCheckUpdateInterval: {
 				Computed: true,
 				Type:     schema.TypeString,
-				ValidateFunc: makeValidationFunc(agentSelfCheckUpdateInterval, validatorInputs{
-					validateDurationMin("0ns"),
-				}),
 			},
 			agentSelfClientAddr: {
 				Computed: true,
@@ -317,16 +302,10 @@ func dataSourceConsulAgentSelf() *schema.Resource {
 						agentSelfDNSMaxStale: {
 							Computed: true,
 							Type:     schema.TypeString,
-							ValidateFunc: makeValidationFunc(agentSelfDNSMaxStale, validatorInputs{
-								validateDurationMin("0ns"),
-							}),
 						},
 						agentSelfDNSNodeTTL: {
 							Computed: true,
 							Type:     schema.TypeString,
-							ValidateFunc: makeValidationFunc(agentSelfDNSNodeTTL, validatorInputs{
-								validateDurationMin("0ns"),
-							}),
 						},
 						agentSelfDNSOnlyPassing: {
 							Computed: true,
@@ -335,16 +314,10 @@ func dataSourceConsulAgentSelf() *schema.Resource {
 						agentSelfDNSRecursorTimeout: {
 							Computed: true,
 							Type:     schema.TypeString,
-							ValidateFunc: makeValidationFunc(agentSelfDNSRecursorTimeout, validatorInputs{
-								validateDurationMin("0ns"),
-							}),
 						},
 						agentSelfDNSServiceTTL: {
 							Computed: true,
 							Type:     schema.TypeString,
-							ValidateFunc: makeValidationFunc(agentSelfDNSServiceTTL, validatorInputs{
-								validateDurationMin("0ns"),
-							}),
 						},
 						agentSelfDNSUDPAnswerLimit: {
 							Computed: true,
@@ -406,9 +379,6 @@ func dataSourceConsulAgentSelf() *schema.Resource {
 			agentSelfID: {
 				Computed: true,
 				Type:     schema.TypeString,
-				ValidateFunc: makeValidationFunc(agentSelfID, validatorInputs{
-					validateRegexp(`(?i)^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$`),
-				}),
 			},
 			agentSelfLeaveOnInt: {
 				Computed: true,
@@ -434,9 +404,6 @@ func dataSourceConsulAgentSelf() *schema.Resource {
 						agentSelfPerformanceRaftMultiplier: {
 							Computed: true,
 							Type:     schema.TypeString, // FIXME(sean@): should be schema.TypeInt
-							ValidateFunc: makeValidationFunc(agentSelfPerformanceRaftMultiplier, validatorInputs{
-								validateIntMin(0),
-							}),
 						},
 					},
 				},
@@ -453,58 +420,30 @@ func dataSourceConsulAgentSelf() *schema.Resource {
 						agentSelfSchemaPortsDNS: {
 							Computed: true,
 							Type:     schema.TypeInt,
-							ValidateFunc: makeValidationFunc(agentSelfSchemaPortsDNS, validatorInputs{
-								validateIntMin(1),
-								validateIntMax(65535),
-							}),
 						},
 						agentSelfSchemaPortsHTTP: {
 							Computed: true,
 							Type:     schema.TypeInt,
-							ValidateFunc: makeValidationFunc(agentSelfSchemaPortsHTTP, validatorInputs{
-								validateIntMin(1),
-								validateIntMax(65535),
-							}),
 						},
 						agentSelfSchemaPortsHTTPS: {
 							Computed: true,
 							Type:     schema.TypeInt,
-							ValidateFunc: makeValidationFunc(agentSelfSchemaPortsHTTPS, validatorInputs{
-								validateIntMin(1),
-								validateIntMax(65535),
-							}),
 						},
 						agentSelfSchemaPortsRPC: {
 							Computed: true,
 							Type:     schema.TypeInt,
-							ValidateFunc: makeValidationFunc(agentSelfSchemaPortsRPC, validatorInputs{
-								validateIntMin(1),
-								validateIntMax(65535),
-							}),
 						},
 						agentSelfSchemaPortsSerfLAN: {
 							Computed: true,
 							Type:     schema.TypeInt,
-							ValidateFunc: makeValidationFunc(agentSelfSchemaPortsSerfLAN, validatorInputs{
-								validateIntMin(1),
-								validateIntMax(65535),
-							}),
 						},
 						agentSelfSchemaPortsSerfWAN: {
 							Computed: true,
 							Type:     schema.TypeInt,
-							ValidateFunc: makeValidationFunc(agentSelfSchemaPortsSerfWAN, validatorInputs{
-								validateIntMin(1),
-								validateIntMax(65535),
-							}),
 						},
 						agentSelfSchemaPortsServer: {
 							Computed: true,
 							Type:     schema.TypeInt,
-							ValidateFunc: makeValidationFunc(agentSelfSchemaPortsServer, validatorInputs{
-								validateIntMin(1),
-								validateIntMax(65535),
-							}),
 						},
 					},
 				},
@@ -516,16 +455,10 @@ func dataSourceConsulAgentSelf() *schema.Resource {
 			agentSelfReconnectTimeoutLAN: {
 				Computed: true,
 				Type:     schema.TypeString,
-				ValidateFunc: makeValidationFunc(agentSelfReconnectTimeoutLAN, validatorInputs{
-					validateDurationMin("0ns"),
-				}),
 			},
 			agentSelfReconnectTimeoutWAN: {
 				Computed: true,
 				Type:     schema.TypeString,
-				ValidateFunc: makeValidationFunc(agentSelfReconnectTimeoutWAN, validatorInputs{
-					validateDurationMin("0ns"),
-				}),
 			},
 			agentSelfRejoinAfterLeave: {
 				Computed: true,
@@ -612,9 +545,6 @@ func dataSourceConsulAgentSelf() *schema.Resource {
 			agentSelfSessionTTLMin: {
 				Computed: true,
 				Type:     schema.TypeString,
-				ValidateFunc: makeValidationFunc(agentSelfSessionTTLMin, validatorInputs{
-					validateDurationMin("0ns"),
-				}),
 			},
 			agentSelfStartJoin: {
 				Computed: true,
@@ -702,9 +632,6 @@ func dataSourceConsulAgentSelf() *schema.Resource {
 						agentSelfTelemetryCirconusSubmissionInterval: &schema.Schema{
 							Type:     schema.TypeString,
 							Computed: true,
-							ValidateFunc: makeValidationFunc(agentSelfTelemetryCirconusSubmissionInterval, validatorInputs{
-								validateDurationMin("0ns"),
-							}),
 						},
 						agentSelfTelemetryEnableHostname: &schema.Schema{
 							Type:     schema.TypeString,
