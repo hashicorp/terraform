@@ -33,6 +33,8 @@ FEATURES:
 
 
 IMPROVEMENTS:
+
+ * core: Add a `-reconfigure` flag to the `init` command, to configure a backend while ignoring any saved configuration [GH-13825]
  * helper/schema: Disallow validation+diff suppression on computed fields [GH-13878]
  * config: The interpolation function `cidrhost` now accepts a negative host number to count backwards from the end of the range [GH-13765]
  * config: New interpolation function `matchkeys` for using values from one list to filter corresponding values from another list using a matching set. [GH-13847]
