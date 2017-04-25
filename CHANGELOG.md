@@ -60,6 +60,7 @@ IMPROVEMENTS:
  * provider/google: `google_compute_network` is now importable  [GH-13834]
  * provider/google: add attached_disk field to google_compute_instance [GH-13443]
  * provider/heroku: Set App buildpacks from config [GH-13910]
+ * provider/heroku: Create Heroku app in a private space [GH-13862]
  * provider/vault: `vault_generic_secret` resource can now optionally detect drift if it has appropriate access [GH-11776]
  
 BUG FIXES:
