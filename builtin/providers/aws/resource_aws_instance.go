@@ -1388,8 +1388,12 @@ func buildAwsInstanceOpts(
 
 	networkInterfaces, interfacesOk := d.GetOk("network_interface")
 
-	// If simply specifying a subnetID, privateIP, Security Groups, or VPC Security Groups, build these now
-	if !hasSubnet && !associatePublicIPAddress && !interfacesOk {
+	// If setting subnet and public address, OR manual network interfaces, populate those now.
+	if hasSubnet && associatePublicIPAddress || interfacesOk {
+		// Otherwise we're attaching (a) network interface(s)
+		opts.NetworkInterfaces = buildNetworkInterfaceOpts(d, groups, networkInterfaces)
+	} else {
+		// If simply specifying a subnetID, privateIP, Security Groups, or VPC Security Groups, build these now
 		if subnetID != "" {
 			opts.SubnetID = aws.String(subnetID)
 		}
@@ -1409,9 +1413,6 @@ func buildAwsInstanceOpts(
 				opts.SecurityGroupIDs = append(opts.SecurityGroupIDs, aws.String(v.(string)))
 			}
 		}
-	} else {
-		// Otherwise we're attaching (a) network interface(s)
-		opts.NetworkInterfaces = buildNetworkInterfaceOpts(d, groups, networkInterfaces)
 	}
 
 	if v, ok := d.GetOk("key_name"); ok {
@@ -1425,7 +1426,6 @@ func buildAwsInstanceOpts(
 	if len(blockDevices) > 0 {
 		opts.BlockDeviceMappings = blockDevices
 	}
-
 	return opts, nil
 }
 
