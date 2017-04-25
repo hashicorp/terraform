@@ -13,7 +13,7 @@ docker run --rm -it \
   -c "cd /data; \
       /bin/terraform get; \
       /bin/terraform validate; \
-      /bin/terraform plan -out=out.tfplan -var hostname=$KEY -var resource_group=$KEY -var admin_username=$KEY -var admin_password=$PASSWORD -var image_uri=$IMAGE_URI -var primary_blob_endpoint=$PRIMARY_BLOB_ENDPOINT -var storage_account_name=$KEY; /bin/terraform apply out.tfplan"
+      /bin/terraform plan -out=out.tfplan -var hostname=$KEY -var resource_group=$RG -var admin_username=$KEY -var admin_password=$PASSWORD -var image_uri=$IMAGE_URI -var storage_account_name=$STORAGE_ACCOUNT_NAME; /bin/terraform apply out.tfplan"
 
 # TODO: determine external validation, possibly Azure CLI
 

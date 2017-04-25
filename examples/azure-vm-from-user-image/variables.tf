@@ -1,5 +1,6 @@
 variable "resource_group" {
   description = "The name of the resource group in which the image to clone resides."
+  default     = "myrg"
 }
 
 variable "image_uri" {
@@ -8,22 +9,22 @@ variable "image_uri" {
 
 variable "os_type" {
   description = "Specifies the operating system Type, valid values are windows, linux."
-  default="linux"
+  default     = "linux"
 }
 
 variable "location" {
   description = "The location/region where the virtual network is created. Changing this forces a new resource to be created."
-  default="southcentralus"
+  default     = "southcentralus"
 }
 
 variable "address_space" {
   description = "The address space that is used by the virtual network. You can supply more than one address space. Changing this forces a new resource to be created."
-  default="10.0.0.0/16"
+  default     = "10.0.0.0/24"
 }
 
 variable "subnet_prefix" {
   description = "The address prefix to use for the subnet."
-  default="10.0.0.0/24"
+  default     = "10.0.0.0/24"
 }
 
 variable "storage_account_name" {
@@ -32,12 +33,12 @@ variable "storage_account_name" {
 
 variable "storage_account_type" {
   description = "Defines the type of storage account to be created. Valid options are Standard_LRS, Standard_ZRS, Standard_GRS, Standard_RAGRS, Premium_LRS. Changing this is sometimes valid - see the Azure documentation for more information on which types of accounts can be converted into other types."
-  default="Standard_LRS"
+  default     = "Premium_LRS"
 }
 
 variable "vm_size" {
   description = "Specifies the size of the virtual machine. This must be the same as the vm image from which you are copying."
-  default="Standard_DS1_v2"
+  default     = "Standard_DS1_v2"
 }
 
 variable "hostname" {
@@ -46,9 +47,10 @@ variable "hostname" {
 
 variable "admin_username" {
   description = "administrator user name"
-  default="vmadmin"
+  default     = "vmadmin"
 }
 
 variable "admin_password" {
   description = "administrator password (recommended to disable password auth)"
+  default     = "T3rr@f0rmP@ssword"
 }
