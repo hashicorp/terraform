@@ -21,9 +21,9 @@ branches:
 before_deploy:
   - export KEY=$(cat /dev/urandom | tr -cd 'a-z' | head -c 12)
   - export PASSWORD=$KEY$(cat /dev/urandom | tr -cd 'A-Z' | head -c 2)$(cat /dev/urandom | tr -cd '0-9' | head -c 2)
-  - export IMAGE_URI=https://myrgdisks640.blob.core.windows.net/vhds/original-vm20170424164303.vhd
-  - export STORAGE_ACCOUNT_NAME=myrgdisks640
-  - export RG=myrg
+  - export EXISTING_IMAGE_URI=https://myrgdisks640.blob.core.windows.net/vhds/original-vm20170424164303.vhd
+  - export EXISTING_STORAGE_ACCOUNT_NAME=myrgdisks640
+  - export EXISTING_RESOURCE_GROUP=myrg
 
 # terraform deploy script
 deploy:
