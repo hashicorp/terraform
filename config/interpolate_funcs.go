@@ -81,6 +81,7 @@ func Funcs() map[string]ast.Function {
 		"jsonencode":   interpolationFuncJSONEncode(),
 		"length":       interpolationFuncLength(),
 		"list":         interpolationFuncList(),
+		"log":          interpolationFuncLog(),
 		"lower":        interpolationFuncLower(),
 		"map":          interpolationFuncMap(),
 		"max":          interpolationFuncMax(),
@@ -485,6 +486,17 @@ func interpolationFuncCeil() ast.Function {
 		ReturnType: ast.TypeInt,
 		Callback: func(args []interface{}) (interface{}, error) {
 			return int(math.Ceil(args[0].(float64))), nil
+		},
+	}
+}
+
+// interpolationFuncLog returns the logarithnm.
+func interpolationFuncLog() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeFloat, ast.TypeFloat},
+		ReturnType: ast.TypeFloat,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return math.Log(args[0].(float64)) / math.Log(args[1].(float64)), nil
 		},
 	}
 }
