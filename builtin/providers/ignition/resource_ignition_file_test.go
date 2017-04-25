@@ -20,6 +20,18 @@ func TestIngnitionFile(t *testing.T) {
 			gid = 84
 		}
 
+		data "ignition_file" "bar" {
+			filesystem = "bar"
+			path = "/bar"
+			content {
+				content = "bar $${bar} $${foo+10}"
+				vars {
+					bar = "foo"
+					foo = 32
+				}
+			}
+		}
+
 		data "ignition_file" "qux" {
 			filesystem = "qux"
 			path = "/qux"
@@ -33,11 +45,12 @@ func TestIngnitionFile(t *testing.T) {
 		data "ignition_config" "test" {
 			files = [
 				"${data.ignition_file.foo.id}",
+				"${data.ignition_file.bar.id}",
 				"${data.ignition_file.qux.id}",
 			]
 		}
 	`, func(c *types.Config) error {
-		if len(c.Storage.Files) != 2 {
+		if len(c.Storage.Files) != 3 {
 			return fmt.Errorf("arrays, found %d", len(c.Storage.Arrays))
 		}
 
@@ -67,6 +80,15 @@ func TestIngnitionFile(t *testing.T) {
 		}
 
 		f = c.Storage.Files[1]
+		if f.Filesystem != "bar" {
+			return fmt.Errorf("filesystem, found %q", f.Filesystem)
+		}
+
+		if f.Contents.Source.String() != "data:text/plain;charset=utf-8;base64,YmFyIGZvbyA0Mg==" {
+			return fmt.Errorf("contents.source, found %q", f.Contents.Source)
+		}
+
+		f = c.Storage.Files[2]
 		if f.Filesystem != "qux" {
 			return fmt.Errorf("filesystem, found %q", f.Filesystem)
 		}
