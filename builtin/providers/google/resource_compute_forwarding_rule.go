@@ -89,6 +89,7 @@ func resourceComputeForwardingRule() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 				Set:      schema.HashString,
+				MaxItems: 5,
 			},
 
 			"project": &schema.Schema{
