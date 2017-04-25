@@ -248,7 +248,7 @@ func TestModuleTreeDependencies(t *testing.T) {
 				root = testModule(t, test.ConfigDir)
 			}
 
-			got := moduleTreeDependencies(root, test.State)
+			got := ModuleTreeDependencies(root, test.State)
 			if !got.Equal(test.Want) {
 				t.Errorf(
 					"wrong dependency tree\ngot:  %s\nwant: %s",
