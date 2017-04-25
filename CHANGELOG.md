@@ -29,6 +29,7 @@ FEATURES:
 * **New Resource:**  `aws_network_interface_attachment` [GH-13861]
 * **New Resource:**  `github_branch_protection` [GH-10476]
 * **New Resource:**  `google_bigquery_dataset` [GH-13436]
+* **New Resource:**  `heroku_space` [GH-13921]
 * **New Resource:**  `template_dir` for producing a directory from templates [GH-13652]
 * **New Interpolation Function:** `coalescelist()` [GH-12537]
 
