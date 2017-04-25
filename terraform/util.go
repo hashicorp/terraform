@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"sort"
 	"strings"
 )
 
@@ -54,7 +55,10 @@ func resourceProvider(t, alias string) string {
 
 	idx := strings.IndexRune(t, '_')
 	if idx == -1 {
-		return ""
+		// If no underscores, the resource name is assumed to be
+		// also the provider name, e.g. if the provider exposes
+		// only a single resource of each type.
+		return t
 	}
 
 	return t[:idx]
@@ -69,4 +73,21 @@ func strSliceContains(haystack []string, needle string) bool {
 		}
 	}
 	return false
+}
+
+// deduplicate a slice of strings
+func uniqueStrings(s []string) []string {
+	if len(s) < 2 {
+		return s
+	}
+
+	sort.Strings(s)
+	result := make([]string, 1, len(s))
+	result[0] = s[0]
+	for i := 1; i < len(s); i++ {
+		if s[i] != result[len(result)-1] {
+			result = append(result, s[i])
+		}
+	}
+	return result
 }

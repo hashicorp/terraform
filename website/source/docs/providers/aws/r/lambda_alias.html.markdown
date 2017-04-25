@@ -15,12 +15,12 @@ For information about function aliases, see [CreateAlias][2] in the API docs.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_lambda_alias" "test_alias" {
-		name = "testalias"
-		description = "a sample description"
-		function_name = "${aws_lambda_function.lambda_function_test.arn}"
-		function_version = "$LATEST"
+  name             = "testalias"
+  description      = "a sample description"
+  function_name    = "${aws_lambda_function.lambda_function_test.arn}"
+  function_version = "$LATEST"
 }
 ```
 
@@ -30,6 +30,10 @@ resource "aws_lambda_alias" "test_alias" {
 * `description` - (Optional) Description of the alias.
 * `function_name` - (Required) The function ARN of the Lambda function for which you want to create an alias.
 * `function_version` - (Required) Lambda function version for which you are creating the alias. Pattern: `(\$LATEST|[0-9]+)`.
+
+## Attributes Reference
+
+* `arn` - The Amazon Resource Name (ARN) identifying your Lambda function alias.
 
 [1]: http://docs.aws.amazon.com/lambda/latest/dg/welcome.html
 [2]: http://docs.aws.amazon.com/lambda/latest/dg/API_CreateAlias.html

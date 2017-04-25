@@ -6,20 +6,20 @@ description: |-
   Creates firewall rules for a given IP address.
 ---
 
-# cloudstack\_firewall
+# cloudstack_firewall
 
 Creates firewall rules for a given IP address.
 
 ## Example Usage
 
-```
+```hcl
 resource "cloudstack_firewall" "default" {
   ip_address_id = "30b21801-d4b3-4174-852b-0c0f30bdbbfb"
 
   rule {
     cidr_list = ["10.0.0.0/8"]
-    protocol = "tcp"
-    ports = ["80", "1000-2000"]
+    protocol  = "tcp"
+    ports     = ["80", "1000-2000"]
   }
 }
 ```
@@ -31,9 +31,6 @@ The following arguments are supported:
 * `ip_address_id` - (Required) The IP address ID for which to create the
     firewall rules. Changing this forces a new resource to be created.
 
-* `ipaddress` - (Required, Deprecated) The IP address or ID for which to create
-    the firewall rules. Changing this forces a new resource to be created.
-
 * `managed` - (Optional) USE WITH CAUTION! If enabled all the firewall rules for
     this IP address will be managed by this resource. This means it will delete
     all firewall rules that are not in your config! (defaults false)
@@ -43,13 +40,10 @@ The following arguments are supported:
 
 * `parallelism` (Optional) Specifies how much rules will be created or deleted
     concurrently. (defaults 2)
-    
+
 The `rule` block supports:
 
 * `cidr_list` - (Required) A CIDR list to allow access to the given ports.
-
-* `source_cidr` - (Optional, Deprecated) The source CIDR to allow access to the
-    given ports. This attribute is deprecated, please use `cidr_list` instead.
 
 * `protocol` - (Required) The name of the protocol to allow. Valid options are:
     `tcp`, `udp` and `icmp`.

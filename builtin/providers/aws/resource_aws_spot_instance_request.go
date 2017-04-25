@@ -116,7 +116,25 @@ func resourceAwsSpotInstanceRequestCreate(d *schema.ResourceData, meta interface
 
 	// Make the spot instance request
 	log.Printf("[DEBUG] Requesting spot bid opts: %s", spotOpts)
-	resp, err := conn.RequestSpotInstances(spotOpts)
+
+	var resp *ec2.RequestSpotInstancesOutput
+	err = resource.Retry(15*time.Second, func() *resource.RetryError {
+		var err error
+		resp, err = conn.RequestSpotInstances(spotOpts)
+		// IAM instance profiles can take ~10 seconds to propagate in AWS:
+		// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
+		if isAWSErr(err, "InvalidParameterValue", "Invalid IAM Instance Profile") {
+			log.Printf("[DEBUG] Invalid IAM Instance Profile referenced, retrying...")
+			return resource.RetryableError(err)
+		}
+		// IAM roles can also take time to propagate in AWS:
+		if isAWSErr(err, "InvalidParameterValue", " has no associated IAM Roles") {
+			log.Printf("[DEBUG] IAM Instance Profile appears to have no IAM roles, retrying...")
+			return resource.RetryableError(err)
+		}
+		return resource.NonRetryableError(err)
+	})
+
 	if err != nil {
 		return fmt.Errorf("Error requesting spot instances: %s", err)
 	}
@@ -244,6 +262,32 @@ func readInstance(d *schema.ResourceData, meta interface{}) error {
 				"type": "ssh",
 				"host": *instance.PrivateIpAddress,
 			})
+		}
+		if err := readBlockDevices(d, instance, conn); err != nil {
+			return err
+		}
+
+		var ipv6Addresses []string
+		if len(instance.NetworkInterfaces) > 0 {
+			for _, ni := range instance.NetworkInterfaces {
+				if *ni.Attachment.DeviceIndex == 0 {
+					d.Set("subnet_id", ni.SubnetId)
+					d.Set("network_interface_id", ni.NetworkInterfaceId)
+					d.Set("associate_public_ip_address", ni.Association != nil)
+					d.Set("ipv6_address_count", len(ni.Ipv6Addresses))
+
+					for _, address := range ni.Ipv6Addresses {
+						ipv6Addresses = append(ipv6Addresses, *address.Ipv6Address)
+					}
+				}
+			}
+		} else {
+			d.Set("subnet_id", instance.SubnetId)
+			d.Set("network_interface_id", "")
+		}
+
+		if err := d.Set("ipv6_addresses", ipv6Addresses); err != nil {
+			log.Printf("[WARN] Error setting ipv6_addresses for AWS Spot Instance (%s): %s", d.Id(), err)
 		}
 	}
 

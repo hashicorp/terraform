@@ -18,42 +18,65 @@ func resourceAwsApiGatewayApiKey() *schema.Resource {
 		Read:   resourceAwsApiGatewayApiKeyRead,
 		Update: resourceAwsApiGatewayApiKeyUpdate,
 		Delete: resourceAwsApiGatewayApiKeyDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "Managed by Terraform",
 			},
 
-			"enabled": &schema.Schema{
+			"enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
 
-			"stage_key": &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
+			"stage_key": {
+				Type:       schema.TypeSet,
+				Optional:   true,
+				Deprecated: "Since the API Gateway usage plans feature was launched on August 11, 2016, usage plans are now required to associate an API key with an API stage",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"rest_api_id": &schema.Schema{
+						"rest_api_id": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"stage_name": &schema.Schema{
+						"stage_name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 					},
 				},
+			},
+
+			"created_date": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"last_updated_date": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"value": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ForceNew:     true,
+				Sensitive:    true,
+				ValidateFunc: validateApiGatewayApiKeyValue,
 			},
 		},
 	}
@@ -67,6 +90,7 @@ func resourceAwsApiGatewayApiKeyCreate(d *schema.ResourceData, meta interface{})
 		Name:        aws.String(d.Get("name").(string)),
 		Description: aws.String(d.Get("description").(string)),
 		Enabled:     aws.Bool(d.Get("enabled").(bool)),
+		Value:       aws.String(d.Get("value").(string)),
 		StageKeys:   expandApiGatewayStageKeys(d),
 	})
 	if err != nil {
@@ -83,7 +107,8 @@ func resourceAwsApiGatewayApiKeyRead(d *schema.ResourceData, meta interface{}) e
 	log.Printf("[DEBUG] Reading API Gateway API Key: %s", d.Id())
 
 	apiKey, err := conn.GetApiKey(&apigateway.GetApiKeyInput{
-		ApiKey: aws.String(d.Id()),
+		ApiKey:       aws.String(d.Id()),
+		IncludeValue: aws.Bool(true),
 	})
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NotFoundException" {
@@ -97,6 +122,16 @@ func resourceAwsApiGatewayApiKeyRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("name", apiKey.Name)
 	d.Set("description", apiKey.Description)
 	d.Set("enabled", apiKey.Enabled)
+	d.Set("stage_key", flattenApiGatewayStageKeys(apiKey.StageKeys))
+	d.Set("value", apiKey.Value)
+
+	if err := d.Set("created_date", apiKey.CreatedDate.Format(time.RFC3339)); err != nil {
+		log.Printf("[DEBUG] Error setting created_date: %s", err)
+	}
+
+	if err := d.Set("last_updated_date", apiKey.LastUpdatedDate.Format(time.RFC3339)); err != nil {
+		log.Printf("[DEBUG] Error setting last_updated_date: %s", err)
+	}
 
 	return nil
 }

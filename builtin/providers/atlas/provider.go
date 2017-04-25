@@ -31,6 +31,10 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"atlas_artifact": dataSourceAtlasArtifact(),
+		},
+
 		ResourcesMap: map[string]*schema.Resource{
 			"atlas_artifact": resourceArtifact(),
 		},
@@ -48,6 +52,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 			return nil, err
 		}
 	}
+	client.DefaultHeader.Set(terraform.VersionHeader, terraform.VersionString())
 	client.Token = d.Get("token").(string)
 
 	return client, nil

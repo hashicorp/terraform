@@ -98,11 +98,15 @@ func Serve(opts *ServeConfig) {
 	}
 	defer listener.Close()
 
+	// Create the channel to tell us when we're done
+	doneCh := make(chan struct{})
+
 	// Create the RPC server to dispense
 	server := &RPCServer{
 		Plugins: opts.Plugins,
 		Stdout:  stdout_r,
 		Stderr:  stderr_r,
+		DoneCh:  doneCh,
 	}
 
 	// Output the address and service name to stdout so that core can bring it up.
@@ -134,7 +138,10 @@ func Serve(opts *ServeConfig) {
 	os.Stderr = stderr_w
 
 	// Serve
-	server.Accept(listener)
+	go server.Accept(listener)
+
+	// Wait for the graceful exit
+	<-doneCh
 }
 
 func serverListener() (net.Listener, error) {
@@ -183,5 +190,33 @@ func serverListener_unix() (net.Listener, error) {
 		return nil, err
 	}
 
-	return net.Listen("unix", path)
+	l, err := net.Listen("unix", path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Wrap the listener in rmListener so that the Unix domain socket file
+	// is removed on close.
+	return &rmListener{
+		Listener: l,
+		Path:     path,
+	}, nil
+}
+
+// rmListener is an implementation of net.Listener that forwards most
+// calls to the listener but also removes a file as part of the close. We
+// use this to cleanup the unix domain socket on close.
+type rmListener struct {
+	net.Listener
+	Path string
+}
+
+func (l *rmListener) Close() error {
+	// Close the listener itself
+	if err := l.Listener.Close(); err != nil {
+		return err
+	}
+
+	// Remove the file
+	return os.Remove(l.Path)
 }

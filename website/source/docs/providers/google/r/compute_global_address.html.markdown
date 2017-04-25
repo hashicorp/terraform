@@ -15,7 +15,7 @@ Creates a static IP address resource global to a Google Compute Engine project. 
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_global_address" "default" {
   name = "test-address"
 }

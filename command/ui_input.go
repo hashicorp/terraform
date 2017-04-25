@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"strings"
 	"sync"
+	"unicode"
 
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/colorstring"
@@ -18,6 +19,8 @@ import (
 
 var defaultInputReader io.Reader
 var defaultInputWriter io.Writer
+var testInputResponse []string
+var testInputResponseMap map[string]string
 
 // UIInput is an implementation of terraform.UIInput that asks the CLI
 // for input stdin.
@@ -63,6 +66,27 @@ func (i *UIInput) Input(opts *terraform.InputOpts) (string, error) {
 		return "", errors.New("interrupted")
 	}
 
+	// If we have test results, return those. testInputResponse is the
+	// "old" way of doing it and we should remove that.
+	if testInputResponse != nil {
+		v := testInputResponse[0]
+		testInputResponse = testInputResponse[1:]
+		return v, nil
+	}
+
+	// testInputResponseMap is the new way for test responses, based on
+	// the query ID.
+	if testInputResponseMap != nil {
+		v, ok := testInputResponseMap[opts.Id]
+		if !ok {
+			return "", fmt.Errorf("unexpected input request in test: %s", opts.Id)
+		}
+
+		return v, nil
+	}
+
+	log.Printf("[DEBUG] command: asking for input: %q", opts.Query)
+
 	// Listen for interrupts so we can cancel the input ask
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, os.Interrupt)
@@ -95,12 +119,13 @@ func (i *UIInput) Input(opts *terraform.InputOpts) (string, error) {
 	// interrupt this if we are interrupted (SIGINT)
 	result := make(chan string, 1)
 	go func() {
-		var line string
-		if _, err := fmt.Fscanln(r, &line); err != nil {
+		buf := bufio.NewReader(r)
+		line, err := buf.ReadString('\n')
+		if err != nil {
 			log.Printf("[ERR] UIInput scan err: %s", err)
 		}
 
-		result <- line
+		result <- strings.TrimRightFunc(line, unicode.IsSpace)
 	}()
 
 	select {

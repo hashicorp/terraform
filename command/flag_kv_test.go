@@ -2,16 +2,15 @@ package command
 
 import (
 	"flag"
-	"io/ioutil"
 	"reflect"
 	"testing"
 )
 
-func TestFlagKV_impl(t *testing.T) {
-	var _ flag.Value = new(FlagKV)
+func TestFlagStringKV_impl(t *testing.T) {
+	var _ flag.Value = new(FlagStringKV)
 }
 
-func TestFlagKV(t *testing.T) {
+func TestFlagStringKV(t *testing.T) {
 	cases := []struct {
 		Input  string
 		Output map[string]string
@@ -46,69 +45,19 @@ func TestFlagKV(t *testing.T) {
 			nil,
 			true,
 		},
+
+		{
+			"key=/path",
+			map[string]string{"key": "/path"},
+			false,
+		},
 	}
 
 	for _, tc := range cases {
-		f := new(FlagKV)
+		f := new(FlagStringKV)
 		err := f.Set(tc.Input)
 		if err != nil != tc.Error {
-			t.Fatalf("bad error. Input: %#v", tc.Input)
-		}
-
-		actual := map[string]string(*f)
-		if !reflect.DeepEqual(actual, tc.Output) {
-			t.Fatalf("bad: %#v", actual)
-		}
-	}
-}
-
-func TestFlagKVFile_impl(t *testing.T) {
-	var _ flag.Value = new(FlagKVFile)
-}
-
-func TestFlagKVFile(t *testing.T) {
-	inputLibucl := `
-foo = "bar"
-`
-
-	inputJson := `{
-		"foo": "bar"}`
-
-	cases := []struct {
-		Input  string
-		Output map[string]string
-		Error  bool
-	}{
-		{
-			inputLibucl,
-			map[string]string{"foo": "bar"},
-			false,
-		},
-
-		{
-			inputJson,
-			map[string]string{"foo": "bar"},
-			false,
-		},
-
-		{
-			`map.key = "foo"`,
-			map[string]string{"map.key": "foo"},
-			false,
-		},
-	}
-
-	path := testTempFile(t)
-
-	for _, tc := range cases {
-		if err := ioutil.WriteFile(path, []byte(tc.Input), 0644); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		f := new(FlagKVFile)
-		err := f.Set(path)
-		if err != nil != tc.Error {
-			t.Fatalf("bad error. Input: %#v, err: %s", tc.Input, err)
+			t.Fatalf("bad error. Input: %#v\n\nError: %s", tc.Input, err)
 		}
 
 		actual := map[string]string(*f)

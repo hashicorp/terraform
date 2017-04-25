@@ -17,6 +17,15 @@ func TestRootTransformer(t *testing.T) {
 	}
 
 	{
+		transform := &MissingProviderTransformer{
+			Providers: []string{"aws", "do"},
+		}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
 		transform := &ProviderTransformer{}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)

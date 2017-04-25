@@ -1,10 +1,24 @@
-all: build
+VERSION?="0.3.22"
 
-init:
-	bundle
+build:
+	@echo "==> Starting build in Docker..."
+	@docker run \
+		--interactive \
+		--rm \
+		--tty \
+		--volume "$(shell pwd):/website" \
+		hashicorp/middleman-hashicorp:${VERSION} \
+		bundle exec middleman build --verbose --clean
 
-dev: init
-	bundle exec middleman server
+website:
+	@echo "==> Starting website in Docker..."
+	@docker run \
+		--interactive \
+		--rm \
+		--tty \
+		--publish "4567:4567" \
+		--publish "35729:35729" \
+		--volume "$(shell pwd):/website" \
+		hashicorp/middleman-hashicorp:${VERSION}
 
-build: init
-	bundle exec middleman build
+.PHONY: build website

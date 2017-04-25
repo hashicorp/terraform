@@ -2,18 +2,17 @@ package openstack
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/floatingip"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/floatingips"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 )
 
 func TestAccComputeV2FloatingIP_basic(t *testing.T) {
-	var floatingIP floatingip.FloatingIP
+	var fip floatingips.FloatingIP
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -23,7 +22,7 @@ func TestAccComputeV2FloatingIP_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccComputeV2FloatingIP_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckComputeV2FloatingIPExists(t, "openstack_compute_floatingip_v2.foo", &floatingIP),
+					testAccCheckComputeV2FloatingIPExists("openstack_compute_floatingip_v2.fip_1", &fip),
 				),
 			},
 		},
@@ -32,22 +31,7 @@ func TestAccComputeV2FloatingIP_basic(t *testing.T) {
 
 func TestAccComputeV2FloatingIP_attach(t *testing.T) {
 	var instance servers.Server
-	var fip floatingip.FloatingIP
-	var testAccComputeV2FloatingIP_attach = fmt.Sprintf(`
-    resource "openstack_compute_floatingip_v2" "myip" {
-    }
-
-    resource "openstack_compute_instance_v2" "foo" {
-      name = "terraform-test"
-      security_groups = ["default"]
-      floating_ip = "${openstack_compute_floatingip_v2.myip.address}"
-
-      network {
-        uuid = "%s"
-      }
-    }`,
-		os.Getenv("OS_NETWORK_ID"))
-
+	var fip floatingips.FloatingIP
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -56,8 +40,8 @@ func TestAccComputeV2FloatingIP_attach(t *testing.T) {
 			resource.TestStep{
 				Config: testAccComputeV2FloatingIP_attach,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckComputeV2FloatingIPExists(t, "openstack_compute_floatingip_v2.myip", &fip),
-					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
+					testAccCheckComputeV2FloatingIPExists("openstack_compute_floatingip_v2.fip_1", &fip),
+					testAccCheckComputeV2InstanceExists("openstack_compute_instance_v2.instance_1", &instance),
 					testAccCheckComputeV2InstanceFloatingIPAttach(&instance, &fip),
 				),
 			},
@@ -69,7 +53,7 @@ func testAccCheckComputeV2FloatingIPDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	computeClient, err := config.computeV2Client(OS_REGION_NAME)
 	if err != nil {
-		return fmt.Errorf("(testAccCheckComputeV2FloatingIPDestroy) Error creating OpenStack compute client: %s", err)
+		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
 
 	for _, rs := range s.RootModule().Resources {
@@ -77,7 +61,7 @@ func testAccCheckComputeV2FloatingIPDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, err := floatingip.Get(computeClient, rs.Primary.ID).Extract()
+		_, err := floatingips.Get(computeClient, rs.Primary.ID).Extract()
 		if err == nil {
 			return fmt.Errorf("FloatingIP still exists")
 		}
@@ -86,7 +70,7 @@ func testAccCheckComputeV2FloatingIPDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckComputeV2FloatingIPExists(t *testing.T, n string, kp *floatingip.FloatingIP) resource.TestCheckFunc {
+func testAccCheckComputeV2FloatingIPExists(n string, kp *floatingips.FloatingIP) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -100,10 +84,10 @@ func testAccCheckComputeV2FloatingIPExists(t *testing.T, n string, kp *floatingi
 		config := testAccProvider.Meta().(*Config)
 		computeClient, err := config.computeV2Client(OS_REGION_NAME)
 		if err != nil {
-			return fmt.Errorf("(testAccCheckComputeV2FloatingIPExists) Error creating OpenStack compute client: %s", err)
+			return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 		}
 
-		found, err := floatingip.Get(computeClient, rs.Primary.ID).Extract()
+		found, err := floatingips.Get(computeClient, rs.Primary.ID).Extract()
 		if err != nil {
 			return err
 		}
@@ -118,6 +102,22 @@ func testAccCheckComputeV2FloatingIPExists(t *testing.T, n string, kp *floatingi
 	}
 }
 
-var testAccComputeV2FloatingIP_basic = `
-  resource "openstack_compute_floatingip_v2" "foo" {
-  }`
+const testAccComputeV2FloatingIP_basic = `
+resource "openstack_compute_floatingip_v2" "fip_1" {
+}
+`
+
+var testAccComputeV2FloatingIP_attach = fmt.Sprintf(`
+resource "openstack_compute_floatingip_v2" "fip_1" {
+}
+
+resource "openstack_compute_instance_v2" "instance_1" {
+	name = "instance_1"
+	security_groups = ["default"]
+	floating_ip = "${openstack_compute_floatingip_v2.fip_1.address}"
+
+	network {
+		uuid = "%s"
+	}
+}
+`, OS_NETWORK_ID)

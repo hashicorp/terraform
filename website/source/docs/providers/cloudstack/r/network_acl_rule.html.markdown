@@ -6,21 +6,21 @@ description: |-
   Creates network ACL rules for a given network ACL.
 ---
 
-# cloudstack\_network\_acl\_rule
+# cloudstack_network_acl_rule
 
 Creates network ACL rules for a given network ACL.
 
 ## Example Usage
 
-```
+```hcl
 resource "cloudstack_network_acl_rule" "default" {
   acl_id = "f3843ce0-334c-4586-bbd3-0c2e2bc946c6"
 
   rule {
-    action = "allow"
-    cidr_list = ["10.0.0.0/8"]
-    protocol = "tcp"
-    ports = ["80", "1000-2000"]
+    action       = "allow"
+    cidr_list    = ["10.0.0.0/8"]
+    protocol     = "tcp"
+    ports        = ["80", "1000-2000"]
     traffic_type = "ingress"
   }
 }
@@ -33,9 +33,6 @@ The following arguments are supported:
 * `acl_id` - (Required) The network ACL ID for which to create the rules.
     Changing this forces a new resource to be created.
 
-* `aclid` - (Required, Deprecated) The network ACL ID for which to create
-    the rules. Changing this forces a new resource to be created.
-
 * `managed` - (Optional) USE WITH CAUTION! If enabled all the firewall rules for
     this network ACL will be managed by this resource. This means it will delete
     all firewall rules that are not in your config! (defaults false)
@@ -43,9 +40,12 @@ The following arguments are supported:
 * `rule` - (Optional) Can be specified multiple times. Each rule block supports
     fields documented below. If `managed = false` at least one rule is required!
 
+* `project` - (Optional) The name or ID of the project to deploy this
+    instance to. Changing this forces a new resource to be created.
+
 * `parallelism` (Optional) Specifies how much rules will be created or deleted
     concurrently. (defaults 2)
-    
+
 The `rule` block supports:
 
 * `action` - (Optional) The action for the rule. Valid options are: `allow` and
@@ -53,17 +53,14 @@ The `rule` block supports:
 
 * `cidr_list` - (Required) A CIDR list to allow access to the given ports.
 
-* `source_cidr` - (Optional, Deprecated) The source CIDR to allow access to the
-    given ports. This attribute is deprecated, please use `cidr_list` instead.
-
 * `protocol` - (Required) The name of the protocol to allow. Valid options are:
     `tcp`, `udp`, `icmp`, `all` or a valid protocol number.
 
-* `icmp_type` - (Optional) The ICMP type to allow. This can only be specified if
-    the protocol is ICMP.
+* `icmp_type` - (Optional) The ICMP type to allow, or `-1` to allow `any`. This
+    can only be specified if the protocol is ICMP. (defaults 0)
 
-* `icmp_code` - (Optional) The ICMP code to allow. This can only be specified if
-    the protocol is ICMP.
+* `icmp_code` - (Optional) The ICMP code to allow, or `-1` to allow `any`. This
+    can only be specified if the protocol is ICMP. (defaults 0)
 
 * `ports` - (Optional) List of ports and/or port ranges to allow. This can only
     be specified if the protocol is TCP, UDP, ALL or a valid protocol number.

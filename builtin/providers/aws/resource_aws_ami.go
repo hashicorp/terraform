@@ -13,7 +13,15 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+)
+
+const (
+	AWSAMIRetryTimeout       = 40 * time.Minute
+	AWSAMIDeleteRetryTimeout = 90 * time.Minute
+	AWSAMIRetryDelay         = 5 * time.Second
+	AWSAMIRetryMinTimeout    = 3 * time.Second
 )
 
 func resourceAwsAmi() *schema.Resource {
@@ -62,12 +70,18 @@ func resourceAwsAmiCreate(d *schema.ResourceData, meta interface{}) error {
 			DeviceName: aws.String(ebsBlockDev["device_name"].(string)),
 			Ebs: &ec2.EbsBlockDevice{
 				DeleteOnTermination: aws.Bool(ebsBlockDev["delete_on_termination"].(bool)),
-				VolumeSize:          aws.Int64(int64(ebsBlockDev["volume_size"].(int))),
 				VolumeType:          aws.String(ebsBlockDev["volume_type"].(string)),
 			},
 		}
-		if iops := ebsBlockDev["iops"].(int); iops != 0 {
-			blockDev.Ebs.Iops = aws.Int64(int64(iops))
+		if iops, ok := ebsBlockDev["iops"]; ok {
+			if iop := iops.(int); iop != 0 {
+				blockDev.Ebs.Iops = aws.Int64(int64(iop))
+			}
+		}
+		if size, ok := ebsBlockDev["volume_size"]; ok {
+			if s := size.(int); s != 0 {
+				blockDev.Ebs.VolumeSize = aws.Int64(int64(s))
+			}
 		}
 		encrypted := ebsBlockDev["encrypted"].(bool)
 		if snapshotId := ebsBlockDev["snapshot_id"].(string); snapshotId != "" {
@@ -121,6 +135,12 @@ func resourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 
 	res, err := client.DescribeImages(req)
 	if err != nil {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidAMIID.NotFound" {
+			log.Printf("[DEBUG] %s no longer exists, so we'll drop it from the state", id)
+			d.SetId("")
+			return nil
+		}
+
 		return err
 	}
 
@@ -174,12 +194,15 @@ func resourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 				"delete_on_termination": *blockDev.Ebs.DeleteOnTermination,
 				"encrypted":             *blockDev.Ebs.Encrypted,
 				"iops":                  0,
-				"snapshot_id":           *blockDev.Ebs.SnapshotId,
 				"volume_size":           int(*blockDev.Ebs.VolumeSize),
 				"volume_type":           *blockDev.Ebs.VolumeType,
 			}
 			if blockDev.Ebs.Iops != nil {
 				ebsBlockDev["iops"] = int(*blockDev.Ebs.Iops)
+			}
+			// The snapshot ID might not be set.
+			if blockDev.Ebs.SnapshotId != nil {
+				ebsBlockDev["snapshot_id"] = *blockDev.Ebs.SnapshotId
 			}
 			ebsBlockDevs = append(ebsBlockDevs, ebsBlockDev)
 		} else {
@@ -266,7 +289,56 @@ func resourceAwsAmiDelete(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	// Verify that the image is actually removed, if not we need to wait for it to be removed
+	if err := resourceAwsAmiWaitForDestroy(d.Id(), client); err != nil {
+		return err
+	}
+
+	// No error, ami was deleted successfully
 	d.SetId("")
+	return nil
+}
+
+func AMIStateRefreshFunc(client *ec2.EC2, id string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		emptyResp := &ec2.DescribeImagesOutput{}
+
+		resp, err := client.DescribeImages(&ec2.DescribeImagesInput{ImageIds: []*string{aws.String(id)}})
+		if err != nil {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidAMIID.NotFound" {
+				return emptyResp, "destroyed", nil
+			} else if resp != nil && len(resp.Images) == 0 {
+				return emptyResp, "destroyed", nil
+			} else {
+				return emptyResp, "", fmt.Errorf("Error on refresh: %+v", err)
+			}
+		}
+
+		if resp == nil || resp.Images == nil || len(resp.Images) == 0 {
+			return emptyResp, "destroyed", nil
+		}
+
+		// AMI is valid, so return it's state
+		return resp.Images[0], *resp.Images[0].State, nil
+	}
+}
+
+func resourceAwsAmiWaitForDestroy(id string, client *ec2.EC2) error {
+	log.Printf("Waiting for AMI %s to be deleted...", id)
+
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"available", "pending", "failed"},
+		Target:     []string{"destroyed"},
+		Refresh:    AMIStateRefreshFunc(client, id),
+		Timeout:    AWSAMIDeleteRetryTimeout,
+		Delay:      AWSAMIRetryDelay,
+		MinTimeout: AWSAMIRetryTimeout,
+	}
+
+	_, err := stateConf.WaitForState()
+	if err != nil {
+		return fmt.Errorf("Error waiting for AMI (%s) to be deleted: %v", id, err)
+	}
 
 	return nil
 }
@@ -274,51 +346,20 @@ func resourceAwsAmiDelete(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsAmiWaitForAvailable(id string, client *ec2.EC2) (*ec2.Image, error) {
 	log.Printf("Waiting for AMI %s to become available...", id)
 
-	req := &ec2.DescribeImagesInput{
-		ImageIds: []*string{aws.String(id)},
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"pending"},
+		Target:     []string{"available"},
+		Refresh:    AMIStateRefreshFunc(client, id),
+		Timeout:    AWSAMIRetryTimeout,
+		Delay:      AWSAMIRetryDelay,
+		MinTimeout: AWSAMIRetryMinTimeout,
 	}
-	pollsWhereNotFound := 0
-	for {
-		res, err := client.DescribeImages(req)
-		if err != nil {
-			// When using RegisterImage (for aws_ami) the AMI sometimes isn't available at all
-			// right after the API responds, so we need to tolerate a couple Not Found errors
-			// before an available AMI shows up.
-			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidAMIID.NotFound" {
-				pollsWhereNotFound++
-				// We arbitrarily stop polling after getting a "not found" error five times,
-				// assuming that the AMI has been deleted by something other than Terraform.
-				if pollsWhereNotFound > 5 {
-					return nil, fmt.Errorf("gave up waiting for AMI to be created: %s", err)
-				}
-				time.Sleep(4 * time.Second)
-				continue
-			}
-			return nil, fmt.Errorf("error reading AMI: %s", err)
-		}
 
-		if len(res.Images) != 1 {
-			return nil, fmt.Errorf("new AMI vanished while pending")
-		}
-
-		state := *res.Images[0].State
-
-		if state == "pending" {
-			// Give it a few seconds before we poll again.
-			time.Sleep(4 * time.Second)
-			continue
-		}
-
-		if state == "available" {
-			// We're done!
-			return res.Images[0], nil
-		}
-
-		// If we're not pending or available then we're in one of the invalid/error
-		// states, so stop polling and bail out.
-		stateReason := *res.Images[0].StateReason
-		return nil, fmt.Errorf("new AMI became %s while pending: %s", state, stateReason)
+	info, err := stateConf.WaitForState()
+	if err != nil {
+		return nil, fmt.Errorf("Error waiting for AMI (%s) to be ready: %v", id, err)
 	}
+	return info.(*ec2.Image), nil
 }
 
 func resourceAwsAmiCommonSchema(computed bool) map[string]*schema.Schema {
@@ -344,58 +385,58 @@ func resourceAwsAmiCommonSchema(computed bool) map[string]*schema.Schema {
 	}
 
 	return map[string]*schema.Schema{
-		"id": &schema.Schema{
+		"id": {
 			Type:     schema.TypeString,
 			Computed: true,
 		},
-		"image_location": &schema.Schema{
+		"image_location": {
 			Type:     schema.TypeString,
 			Optional: !computed,
 			Computed: true,
 			ForceNew: !computed,
 		},
-		"architecture": &schema.Schema{
+		"architecture": {
 			Type:     schema.TypeString,
 			Optional: !computed,
 			Computed: computed,
 			ForceNew: !computed,
 			Default:  architectureDefault,
 		},
-		"description": &schema.Schema{
+		"description": {
 			Type:     schema.TypeString,
 			Optional: true,
 		},
-		"kernel_id": &schema.Schema{
+		"kernel_id": {
 			Type:     schema.TypeString,
 			Optional: !computed,
 			Computed: computed,
 			ForceNew: !computed,
 		},
-		"name": &schema.Schema{
+		"name": {
 			Type:     schema.TypeString,
 			Required: true,
 			ForceNew: true,
 		},
-		"ramdisk_id": &schema.Schema{
+		"ramdisk_id": {
 			Type:     schema.TypeString,
 			Optional: !computed,
 			Computed: computed,
 			ForceNew: !computed,
 		},
-		"root_device_name": &schema.Schema{
+		"root_device_name": {
 			Type:     schema.TypeString,
 			Optional: !computed,
 			Computed: computed,
 			ForceNew: !computed,
 		},
-		"sriov_net_support": &schema.Schema{
+		"sriov_net_support": {
 			Type:     schema.TypeString,
 			Optional: !computed,
 			Computed: computed,
 			ForceNew: !computed,
 			Default:  sriovNetSupportDefault,
 		},
-		"virtualization_type": &schema.Schema{
+		"virtualization_type": {
 			Type:     schema.TypeString,
 			Optional: !computed,
 			Computed: computed,
@@ -410,13 +451,13 @@ func resourceAwsAmiCommonSchema(computed bool) map[string]*schema.Schema {
 		// on which root device attributes can be overridden for an instance to
 		// not apply when registering an AMI.
 
-		"ebs_block_device": &schema.Schema{
+		"ebs_block_device": {
 			Type:     schema.TypeSet,
 			Optional: true,
 			Computed: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
-					"delete_on_termination": &schema.Schema{
+					"delete_on_termination": {
 						Type:     schema.TypeBool,
 						Optional: !computed,
 						Default:  deleteEbsOnTerminationDefault,
@@ -424,42 +465,42 @@ func resourceAwsAmiCommonSchema(computed bool) map[string]*schema.Schema {
 						Computed: computed,
 					},
 
-					"device_name": &schema.Schema{
+					"device_name": {
 						Type:     schema.TypeString,
 						Required: !computed,
 						ForceNew: !computed,
 						Computed: computed,
 					},
 
-					"encrypted": &schema.Schema{
+					"encrypted": {
 						Type:     schema.TypeBool,
 						Optional: !computed,
 						Computed: computed,
 						ForceNew: !computed,
 					},
 
-					"iops": &schema.Schema{
+					"iops": {
 						Type:     schema.TypeInt,
 						Optional: !computed,
 						Computed: computed,
 						ForceNew: !computed,
 					},
 
-					"snapshot_id": &schema.Schema{
+					"snapshot_id": {
 						Type:     schema.TypeString,
 						Optional: !computed,
 						Computed: computed,
 						ForceNew: !computed,
 					},
 
-					"volume_size": &schema.Schema{
+					"volume_size": {
 						Type:     schema.TypeInt,
 						Optional: !computed,
 						Computed: true,
 						ForceNew: !computed,
 					},
 
-					"volume_type": &schema.Schema{
+					"volume_type": {
 						Type:     schema.TypeString,
 						Optional: !computed,
 						Computed: computed,
@@ -477,20 +518,20 @@ func resourceAwsAmiCommonSchema(computed bool) map[string]*schema.Schema {
 			},
 		},
 
-		"ephemeral_block_device": &schema.Schema{
+		"ephemeral_block_device": {
 			Type:     schema.TypeSet,
 			Optional: true,
 			Computed: true,
 			ForceNew: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
-					"device_name": &schema.Schema{
+					"device_name": {
 						Type:     schema.TypeString,
 						Required: !computed,
 						Computed: computed,
 					},
 
-					"virtual_name": &schema.Schema{
+					"virtual_name": {
 						Type:     schema.TypeString,
 						Required: !computed,
 						Computed: computed,
@@ -512,7 +553,7 @@ func resourceAwsAmiCommonSchema(computed bool) map[string]*schema.Schema {
 		// resources record that they implicitly created new EBS snapshots that we should
 		// now manage. Not set by aws_ami, since the snapshots used there are presumed to
 		// be independently managed.
-		"manage_ebs_snapshots": &schema.Schema{
+		"manage_ebs_snapshots": {
 			Type:     schema.TypeBool,
 			Computed: true,
 			ForceNew: true,

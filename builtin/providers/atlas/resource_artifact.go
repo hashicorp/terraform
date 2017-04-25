@@ -22,9 +22,10 @@ func resourceArtifact() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:       schema.TypeString,
+				Required:   true,
+				ForceNew:   true,
+				Deprecated: `atlas_artifact is now deprecated. Use the Atlas Artifact Data Source instead. See https://terraform.io/docs/providers/atlas/d/artifact.html`,
 			},
 
 			"type": &schema.Schema{

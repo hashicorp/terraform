@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/digitalocean/godo"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -15,30 +16,38 @@ func resourceDigitalOceanSSHKey() *schema.Resource {
 		Read:   resourceDigitalOceanSSHKeyRead,
 		Update: resourceDigitalOceanSSHKeyUpdate,
 		Delete: resourceDigitalOceanSSHKeyDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"public_key": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+			"public_key": {
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: resourceDigitalOceanSSHKeyPublicKeyDiffSuppress,
 			},
 
-			"fingerprint": &schema.Schema{
+			"fingerprint": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 		},
 	}
+}
+
+func resourceDigitalOceanSSHKeyPublicKeyDiffSuppress(k, old, new string, d *schema.ResourceData) bool {
+	return strings.TrimSpace(old) == strings.TrimSpace(new)
 }
 
 func resourceDigitalOceanSSHKeyCreate(d *schema.ResourceData, meta interface{}) error {
@@ -84,6 +93,7 @@ func resourceDigitalOceanSSHKeyRead(d *schema.ResourceData, meta interface{}) er
 
 	d.Set("name", key.Name)
 	d.Set("fingerprint", key.Fingerprint)
+	d.Set("public_key", key.PublicKey)
 
 	return nil
 }

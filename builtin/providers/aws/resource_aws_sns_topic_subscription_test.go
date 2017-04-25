@@ -7,18 +7,21 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sns"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSSNSTopicSubscription_basic(t *testing.T) {
+	ri := acctest.RandInt()
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSNSTopicSubscriptionDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSSNSTopicSubscriptionConfig,
+				Config: testAccAWSSNSTopicSubscriptionConfig(ri),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSNSTopicExists("aws_sns_topic.test_topic"),
 					testAccCheckAWSSNSTopicSubscriptionExists("aws_sns_topic_subscription.test_subscription"),
@@ -83,13 +86,14 @@ func testAccCheckAWSSNSTopicSubscriptionExists(n string) resource.TestCheckFunc 
 	}
 }
 
-const testAccAWSSNSTopicSubscriptionConfig = `
+func testAccAWSSNSTopicSubscriptionConfig(i int) string {
+	return fmt.Sprintf(`
 resource "aws_sns_topic" "test_topic" {
     name = "terraform-test-topic"
 }
 
 resource "aws_sqs_queue" "test_queue" {
-	name = "terraform-subscription-test-queue"
+	name = "terraform-subscription-test-queue-%d"
 }
 
 resource "aws_sns_topic_subscription" "test_subscription" {
@@ -97,4 +101,5 @@ resource "aws_sns_topic_subscription" "test_subscription" {
     protocol = "sqs"
     endpoint = "${aws_sqs_queue.test_queue.arn}"
 }
-`
+`, i)
+}

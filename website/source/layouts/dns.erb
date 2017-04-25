@@ -1,0 +1,51 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+        <a href="/docs/providers/index.html">All Providers</a>
+                </li>
+
+        <li<%= sidebar_current("docs-dns-index") %>>
+        <a href="/docs/providers/dns/index.html">DNS Provider</a>
+                </li>
+
+                <li<%= sidebar_current("docs-aws-datasource") %>>
+                <a href="#">Data Sources</a>
+                    <ul class="nav nav-visible">
+
+                        <li<%= sidebar_current("docs-dns-datasource-a-record-set") %>>
+                            <a href="/docs/providers/dns/d/dns_a_record_set.html">dns_a_record_set</a>
+                        </li>
+                        <li<%= sidebar_current("docs-dns-datasource-cname-record-set") %>>
+                            <a href="/docs/providers/dns/d/dns_cname_record_set.html">dns_cname_record_set</a>
+                        </li>
+                        <li<%= sidebar_current("docs-dns-datasource-txt-record-set") %>>
+                            <a href="/docs/providers/dns/d/dns_txt_record_set.html">dns_txt_record_set</a>
+                        </li>
+                    </ul>
+                </li>
+
+        <li<%= sidebar_current("docs-dns") %>>
+        <a href="#">Resources</a>
+                <ul class="nav nav-visible">
+                    <li<%= sidebar_current("docs-dns-a-record-set") %>>
+          <a href="/docs/providers/dns/r/dns_a_record_set.html">dns_a_record_set</a>
+                    </li>
+                    <li<%= sidebar_current("docs-dns-aaaa-record-set") %>>
+          <a href="/docs/providers/dns/r/dns_aaaa_record_set.html">dns_aaaa_record_set</a>
+                    </li>
+                    <li<%= sidebar_current("docs-dns-cname-record") %>>
+          <a href="/docs/providers/dns/r/dns_cname_record.html">dns_cname_record</a>
+                    </li>
+                    <li<%= sidebar_current("docs-dns-ptr-record") %>>
+          <a href="/docs/providers/dns/r/dns_ptr_record.html">dns_ptr_record</a>
+                    </li>
+                </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= yield %>
+<% end %>

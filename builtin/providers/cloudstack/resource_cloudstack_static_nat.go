@@ -23,13 +23,6 @@ func resourceCloudStackStaticNAT() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"network_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
-			},
-
 			"virtual_machine_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -37,6 +30,13 @@ func resourceCloudStackStaticNAT() *schema.Resource {
 			},
 
 			"vm_guest_ip": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -50,20 +50,42 @@ func resourceCloudStackStaticNATCreate(d *schema.ResourceData, meta interface{})
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	ipaddressid := d.Get("ip_address_id").(string)
-	virtualmachineid := d.Get("virtual_machine_id").(string)
+
+	vm, _, err := cs.VirtualMachine.GetVirtualMachineByID(
+		d.Get("virtual_machine_id").(string),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
+	if err != nil {
+		return err
+	}
 
 	// Create a new parameter struct
-	p := cs.NAT.NewEnableStaticNatParams(ipaddressid, virtualmachineid)
-
-	if networkid, ok := d.GetOk("network_id"); ok {
-		p.SetNetworkid(networkid.(string))
-	}
+	p := cs.NAT.NewEnableStaticNatParams(ipaddressid, vm.Id)
 
 	if vmGuestIP, ok := d.GetOk("vm_guest_ip"); ok {
 		p.SetVmguestip(vmGuestIP.(string))
+
+		// Set the network ID based on the guest IP, needed when the public IP address
+		// is not associated with any network yet
+	NICS:
+		for _, nic := range vm.Nic {
+			if vmGuestIP.(string) == nic.Ipaddress {
+				p.SetNetworkid(nic.Networkid)
+				break NICS
+			}
+			for _, ip := range nic.Secondaryip {
+				if vmGuestIP.(string) == ip.Ipaddress {
+					p.SetNetworkid(nic.Networkid)
+					break NICS
+				}
+			}
+		}
+	} else {
+		// If no guest IP is configured, use the primary NIC
+		p.SetNetworkid(vm.Nic[0].Networkid)
 	}
 
-	_, err := cs.NAT.EnableStaticNat(p)
+	_, err = cs.NAT.EnableStaticNat(p)
 	if err != nil {
 		return fmt.Errorf("Error enabling static NAT: %s", err)
 	}
@@ -77,7 +99,10 @@ func resourceCloudStackStaticNATExists(d *schema.ResourceData, meta interface{})
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Get the IP address details
-	ip, count, err := cs.Address.GetPublicIpAddressByID(d.Id())
+	ip, count, err := cs.Address.GetPublicIpAddressByID(
+		d.Id(),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
 	if err != nil {
 		if count == 0 {
 			log.Printf("[DEBUG] IP address with ID %s no longer exists", d.Id())
@@ -94,7 +119,10 @@ func resourceCloudStackStaticNATRead(d *schema.ResourceData, meta interface{}) e
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Get the IP address details
-	ip, count, err := cs.Address.GetPublicIpAddressByID(d.Id())
+	ip, count, err := cs.Address.GetPublicIpAddressByID(
+		d.Id(),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
 	if err != nil {
 		if count == 0 {
 			log.Printf("[DEBUG] IP address with ID %s no longer exists", d.Id())
@@ -111,9 +139,10 @@ func resourceCloudStackStaticNATRead(d *schema.ResourceData, meta interface{}) e
 		return nil
 	}
 
-	d.Set("network_id", ip.Associatednetworkid)
 	d.Set("virtual_machine_id", ip.Virtualmachineid)
 	d.Set("vm_guest_ip", ip.Vmipaddress)
+
+	setValueOrID(d, "project", ip.Project, ip.Projectid)
 
 	return nil
 }

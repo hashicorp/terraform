@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"log"
 
+	"errors"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 	"golang.org/x/net/context"
+	"path"
 )
 
 type virtualDisk struct {
@@ -49,9 +51,9 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 				Default:  "eagerZeroedThick",
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
-					if value != "thin" && value != "eagerZeroedThick" {
+					if value != "thin" && value != "eagerZeroedThick" && value != "lazy" {
 						errors = append(errors, fmt.Errorf(
-							"only 'thin' and 'eagerZeroedThick' are supported values for 'type'"))
+							"only 'thin', 'eagerZeroedThick', and 'lazy' are supported values for 'type'"))
 					}
 					return
 				},
@@ -115,15 +117,26 @@ func resourceVSphereVirtualDiskCreate(d *schema.ResourceData, meta interface{}) 
 		vDisk.datastore = v.(string)
 	}
 
-	diskPath := fmt.Sprintf("[%v] %v", vDisk.datastore, vDisk.vmdkPath)
+	finder := find.NewFinder(client.Client, true)
 
-	err := createHardDisk(client, vDisk.size, diskPath, vDisk.initType, vDisk.adapterType, vDisk.datacenter)
+	dc, err := getDatacenter(client, d.Get("datacenter").(string))
+	if err != nil {
+		return fmt.Errorf("Error finding Datacenter: %s: %s", vDisk.datacenter, err)
+	}
+	finder = finder.SetDatacenter(dc)
+
+	ds, err := getDatastore(finder, vDisk.datastore)
+	if err != nil {
+		return fmt.Errorf("Error finding Datastore: %s: %s", vDisk.datastore, err)
+	}
+
+	err = createHardDisk(client, vDisk.size, ds.Path(vDisk.vmdkPath), vDisk.initType, vDisk.adapterType, vDisk.datacenter)
 	if err != nil {
 		return err
 	}
 
-	d.SetId(diskPath)
-	log.Printf("[DEBUG] Virtual Disk id: %v", diskPath)
+	d.SetId(ds.Path(vDisk.vmdkPath))
+	log.Printf("[DEBUG] Virtual Disk id: %v", ds.Path(vDisk.vmdkPath))
 
 	return resourceVSphereVirtualDiskRead(d, meta)
 }
@@ -169,15 +182,66 @@ func resourceVSphereVirtualDiskRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	fileInfo, err := ds.Stat(context.TODO(), vDisk.vmdkPath)
+	ctx := context.TODO()
+	b, err := ds.Browser(ctx)
 	if err != nil {
-		log.Printf("[DEBUG] resourceVSphereVirtualDiskRead - stat failed on: %v", vDisk.vmdkPath)
-		d.SetId("")
 		return err
 	}
-	fileInfo = fileInfo.GetFileInfo()
+
+	// `Datastore.Stat` does not allow to query `VmDiskFileQuery`. Instead, we
+	// search the datastore manually.
+	spec := types.HostDatastoreBrowserSearchSpec{
+		Query: []types.BaseFileQuery{&types.VmDiskFileQuery{Details: &types.VmDiskFileQueryFlags{
+			CapacityKb: true,
+			DiskType:   true,
+		}}},
+		Details: &types.FileQueryFlags{
+			FileSize:     true,
+			FileType:     true,
+			Modification: true,
+			FileOwner:    types.NewBool(true),
+		},
+		MatchPattern: []string{path.Base(vDisk.vmdkPath)},
+	}
+
+	dsPath := ds.Path(path.Dir(vDisk.vmdkPath))
+	task, err := b.SearchDatastore(context.TODO(), dsPath, &spec)
+
+	if err != nil {
+		log.Printf("[DEBUG] resourceVSphereVirtualDiskRead - could not search datastore for: %v", vDisk.vmdkPath)
+		return err
+	}
+
+	info, err := task.WaitForResult(context.TODO(), nil)
+	if err != nil {
+		if info == nil || info.Error != nil {
+			_, ok := info.Error.Fault.(*types.FileNotFound)
+			if ok {
+				log.Printf("[DEBUG] resourceVSphereVirtualDiskRead - could not find: %v", vDisk.vmdkPath)
+				d.SetId("")
+				return nil
+			}
+		}
+
+		log.Printf("[DEBUG] resourceVSphereVirtualDiskRead - could not search datastore for: %v", vDisk.vmdkPath)
+		return err
+	}
+
+	res := info.Result.(types.HostDatastoreBrowserSearchResults)
+	log.Printf("[DEBUG] num results: %d", len(res.File))
+	if len(res.File) == 0 {
+		d.SetId("")
+		log.Printf("[DEBUG] resourceVSphereVirtualDiskRead - could not find: %v", vDisk.vmdkPath)
+		return nil
+	}
+
+	if len(res.File) != 1 {
+		return errors.New("Datastore search did not return exactly one result")
+	}
+
+	fileInfo := res.File[0]
 	log.Printf("[DEBUG] resourceVSphereVirtualDiskRead - fileinfo: %#v", fileInfo)
-	size := fileInfo.(*types.FileInfo).FileSize / 1024 / 1024 / 1024
+	size := fileInfo.(*types.VmDiskFileInfo).CapacityKb / 1024 / 1024
 
 	d.SetId(vDisk.vmdkPath)
 
@@ -207,7 +271,16 @@ func resourceVSphereVirtualDiskDelete(d *schema.ResourceData, meta interface{}) 
 	if err != nil {
 		return err
 	}
-	diskPath := fmt.Sprintf("[%v] %v", vDisk.datastore, vDisk.vmdkPath)
+
+	finder := find.NewFinder(client.Client, true)
+	finder = finder.SetDatacenter(dc)
+
+	ds, err := getDatastore(finder, vDisk.datastore)
+	if err != nil {
+		return err
+	}
+
+	diskPath := ds.Path(vDisk.vmdkPath)
 
 	virtualDiskManager := object.NewVirtualDiskManager(client.Client)
 
@@ -229,11 +302,21 @@ func resourceVSphereVirtualDiskDelete(d *schema.ResourceData, meta interface{}) 
 
 // createHardDisk creates a new Hard Disk.
 func createHardDisk(client *govmomi.Client, size int, diskPath string, diskType string, adapterType string, dc string) error {
+	var vDiskType string
+	switch diskType {
+	case "thin":
+		vDiskType = "thin"
+	case "eagerZeroedThick":
+		vDiskType = "eagerZeroedThick"
+	case "lazy":
+		vDiskType = "preallocated"
+	}
+
 	virtualDiskManager := object.NewVirtualDiskManager(client.Client)
 	spec := &types.FileBackedVirtualDiskSpec{
 		VirtualDiskSpec: types.VirtualDiskSpec{
 			AdapterType: adapterType,
-			DiskType:    diskType,
+			DiskType:    vDiskType,
 		},
 		CapacityKb: int64(1024 * 1024 * size),
 	}

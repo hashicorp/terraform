@@ -13,9 +13,9 @@ modify, and delete virtual machines.
 
 ## Example Usage
 
-```
+```hcl
 resource "vsphere_virtual_machine" "web" {
-  name   = "terraform_web"
+  name   = "terraform-web"
   vcpu   = 2
   memory = 4096
 
@@ -31,28 +31,28 @@ resource "vsphere_virtual_machine" "web" {
 
 ## Example Usage VMware Cluster
 
-```
+```hcl
 resource "vsphere_virtual_machine" "lb" {
-  name   = "lb01"
-  folder = "Loadbalancers"
-  vcpu   = 2
-  memory = 4096
-  domain = "MYDOMAIN"
-  datacenter = "EAST"
-  cluster = "Production Cluster"
+  name          = "lb01"
+  folder        = "Loadbalancers"
+  vcpu          = 2
+  memory        = 4096
+  domain        = "MYDOMAIN"
+  datacenter    = "EAST"
+  cluster       = "Production Cluster"
   resource_pool = "Production Cluster/Resources/Production Servers"
 
   gateway = "10.20.30.254"
 
   network_interface {
-      label = "10_20_30_VMNet"
-      ipv4_address = "10.20.30.40"
-      ipv4_prefix_length = "24"
+    label              = "10_20_30_VMNet"
+    ipv4_address       = "10.20.30.40"
+    ipv4_prefix_length = "24"
   }
 
   disk {
     datastore = "EAST/VMFS01-EAST"
-    template = "Templates/Centos7"
+    template  = "Templates/Centos7"
   }
 }
 ```
@@ -61,7 +61,7 @@ resource "vsphere_virtual_machine" "lb" {
 
 The following arguments are supported:
 
-* `name` - (Required) The virtual machine name
+* `name` - (Required) The virtual machine name (cannot contain underscores and must be less than 15 characters)
 * `vcpu` - (Required) The number of virtual CPUs to allocate to the virtual machine
 * `memory` - (Required) The amount of RAM (in MB) to allocate to the virtual machine
 * `memory_reservation` - (Optional) The amount of RAM (in MB) to reserve physical memory resource; defaults to 0 (means not to reserve)
@@ -75,6 +75,7 @@ The following arguments are supported:
 * `dns_servers` - (Optional) List of DNS servers for the virtual network adapter; defaults to 8.8.8.8, 8.8.4.4
 * `network_interface` - (Required) Configures virtual network interfaces; see [Network Interfaces](#network-interfaces) below for details.
 * `disk` - (Required) Configures virtual disks; see [Disks](#disks) below for details
+* `detach_unknown_disks_on_delete` - (Optional) will detach disks not managed by this resource on delete (avoids deletion of disks attached after resource creation outside of Terraform scope).
 * `cdrom` - (Optional) Configures a CDROM device and mounts an image as its media; see [CDROM](#cdrom) below for more details.
 * `windows_opt_config` - (Optional) Extra options for clones of Windows machines.
 * `linked_clone` - (Optional) Specifies if the new machine is a [linked clone](https://www.vmware.com/support/ws5/doc/ws_clone_overview.html#wp1036396) of another machine or not.
@@ -117,10 +118,11 @@ The `disk` block supports:
 * `size` - (Required if template and bootable_vmdks_path not provided) Size of this disk (in GB).
 * `name` - (Required if size is provided when creating a new disk) This "name" is used for the disk file name in vSphere, when the new disk is created.
 * `iops` - (Optional) Number of virtual iops to allocate for this disk.
-* `type` - (Optional) 'eager_zeroed' (the default), or 'thin' are supported options.
+* `type` - (Optional) 'eager_zeroed' (the default), 'lazy', or 'thin' are supported options.
 * `vmdk` - (Required if template and size not provided) Path to a vmdk in a vSphere datastore.
 * `bootable` - (Optional) Set to 'true' if a vmdk was given and it should attempt to boot after creation.
-* `controller_type` = (Optional) Controller type to attach the disk to.  'scsi' (the default), or 'ide' are supported options.
+* `controller_type` - (Optional) Controller type to attach the disk to.  'scsi' (the default), or 'ide' are supported options.
+* `keep_on_remove` - (Optional) Set to 'true' to not delete a disk on removal.
 
 <a id="cdrom"></a>
 ## CDROM
@@ -135,6 +137,7 @@ The `cdrom` block supports:
 The following attributes are exported:
 
 * `id` - The instance ID.
+* `uuid` - The instance UUID.
 * `name` - See Argument Reference above.
 * `vcpu` - See Argument Reference above.
 * `memory` - See Argument Reference above.

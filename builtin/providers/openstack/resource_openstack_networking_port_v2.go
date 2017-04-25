@@ -1,15 +1,17 @@
 package openstack
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/ports"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 )
 
 func resourceNetworkingPortV2() *schema.Resource {
@@ -18,6 +20,14 @@ func resourceNetworkingPortV2() *schema.Resource {
 		Read:   resourceNetworkingPortV2Read,
 		Update: resourceNetworkingPortV2Update,
 		Delete: resourceNetworkingPortV2Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -78,7 +88,6 @@ func resourceNetworkingPortV2() *schema.Resource {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: false,
-				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"subnet_id": &schema.Schema{
@@ -88,10 +97,39 @@ func resourceNetworkingPortV2() *schema.Resource {
 						"ip_address": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+						},
+					},
+				},
+			},
+			"allowed_address_pairs": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: false,
+				Computed: true,
+				Set:      allowedAddressPairsHash,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"ip_address": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"mac_address": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
 							Computed: true,
 						},
 					},
 				},
+			},
+			"value_specs": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: true,
+			},
+			"all_fixed_ips": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 		},
 	}
@@ -99,21 +137,25 @@ func resourceNetworkingPortV2() *schema.Resource {
 
 func resourceNetworkingPortV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	createOpts := ports.CreateOpts{
-		Name:           d.Get("name").(string),
-		AdminStateUp:   resourcePortAdminStateUpV2(d),
-		NetworkID:      d.Get("network_id").(string),
-		MACAddress:     d.Get("mac_address").(string),
-		TenantID:       d.Get("tenant_id").(string),
-		DeviceOwner:    d.Get("device_owner").(string),
-		SecurityGroups: resourcePortSecurityGroupsV2(d),
-		DeviceID:       d.Get("device_id").(string),
-		FixedIPs:       resourcePortFixedIpsV2(d),
+	createOpts := PortCreateOpts{
+		ports.CreateOpts{
+			Name:                d.Get("name").(string),
+			AdminStateUp:        resourcePortAdminStateUpV2(d),
+			NetworkID:           d.Get("network_id").(string),
+			MACAddress:          d.Get("mac_address").(string),
+			TenantID:            d.Get("tenant_id").(string),
+			DeviceOwner:         d.Get("device_owner").(string),
+			SecurityGroups:      resourcePortSecurityGroupsV2(d),
+			DeviceID:            d.Get("device_id").(string),
+			FixedIPs:            resourcePortFixedIpsV2(d),
+			AllowedAddressPairs: resourceAllowedAddressPairsV2(d),
+		},
+		MapValueSpecs(d),
 	}
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
@@ -128,7 +170,7 @@ func resourceNetworkingPortV2Create(d *schema.ResourceData, meta interface{}) er
 	stateConf := &resource.StateChangeConf{
 		Target:     []string{"ACTIVE"},
 		Refresh:    waitForNetworkPortActive(networkingClient, p.ID),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutCreate),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -142,7 +184,7 @@ func resourceNetworkingPortV2Create(d *schema.ResourceData, meta interface{}) er
 
 func resourceNetworkingPortV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -152,7 +194,7 @@ func resourceNetworkingPortV2Read(d *schema.ResourceData, meta interface{}) erro
 		return CheckDeleted(d, err, "port")
 	}
 
-	log.Printf("[DEBUG] Retreived Port %s: %+v", d.Id(), p)
+	log.Printf("[DEBUG] Retrieved Port %s: %+v", d.Id(), p)
 
 	d.Set("name", p.Name)
 	d.Set("admin_state_up", p.AdminStateUp)
@@ -163,27 +205,45 @@ func resourceNetworkingPortV2Read(d *schema.ResourceData, meta interface{}) erro
 	d.Set("security_group_ids", p.SecurityGroups)
 	d.Set("device_id", p.DeviceID)
 
-	// Convert FixedIPs to list of map
-	var ips []map[string]interface{}
+	// Create a slice of all returned Fixed IPs.
+	// This will be in the order returned by the API,
+	// which is usually alpha-numeric.
+	var ips []string
 	for _, ipObject := range p.FixedIPs {
-		ip := make(map[string]interface{})
-		ip["subnet_id"] = ipObject.SubnetID
-		ip["ip_address"] = ipObject.IPAddress
-		ips = append(ips, ip)
+		ips = append(ips, ipObject.IPAddress)
 	}
-	d.Set("fixed_ip", ips)
+	d.Set("all_fixed_ips", ips)
+
+	// Convert AllowedAddressPairs to list of map
+	var pairs []map[string]interface{}
+	for _, pairObject := range p.AllowedAddressPairs {
+		pair := make(map[string]interface{})
+		pair["ip_address"] = pairObject.IPAddress
+		pair["mac_address"] = pairObject.MACAddress
+		pairs = append(pairs, pair)
+	}
+	d.Set("allowed_address_pairs", pairs)
+
+	d.Set("region", GetRegion(d))
 
 	return nil
 }
 
 func resourceNetworkingPortV2Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	var updateOpts ports.UpdateOpts
+	// security_group_ids and allowed_address_pairs are able to send empty arrays
+	// to denote the removal of each. But their default zero-value is translated
+	// to "null", which has been reported to cause problems in vendor-modified
+	// OpenStack clouds. Therefore, we must set them in each request update.
+	updateOpts := ports.UpdateOpts{
+		AllowedAddressPairs: resourceAllowedAddressPairsV2(d),
+		SecurityGroups:      resourcePortSecurityGroupsV2(d),
+	}
 
 	if d.HasChange("name") {
 		updateOpts.Name = d.Get("name").(string)
@@ -195,10 +255,6 @@ func resourceNetworkingPortV2Update(d *schema.ResourceData, meta interface{}) er
 
 	if d.HasChange("device_owner") {
 		updateOpts.DeviceOwner = d.Get("device_owner").(string)
-	}
-
-	if d.HasChange("security_group_ids") {
-		updateOpts.SecurityGroups = resourcePortSecurityGroupsV2(d)
 	}
 
 	if d.HasChange("device_id") {
@@ -221,7 +277,7 @@ func resourceNetworkingPortV2Update(d *schema.ResourceData, meta interface{}) er
 
 func resourceNetworkingPortV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -230,7 +286,7 @@ func resourceNetworkingPortV2Delete(d *schema.ResourceData, meta interface{}) er
 		Pending:    []string{"ACTIVE"},
 		Target:     []string{"DELETED"},
 		Refresh:    waitForNetworkPortDelete(networkingClient, d.Id()),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -269,7 +325,21 @@ func resourcePortFixedIpsV2(d *schema.ResourceData) interface{} {
 		}
 	}
 	return ip
+}
 
+func resourceAllowedAddressPairsV2(d *schema.ResourceData) []ports.AddressPair {
+	// ports.AddressPair
+	rawPairs := d.Get("allowed_address_pairs").(*schema.Set).List()
+
+	pairs := make([]ports.AddressPair, len(rawPairs))
+	for i, raw := range rawPairs {
+		rawMap := raw.(map[string]interface{})
+		pairs[i] = ports.AddressPair{
+			IPAddress:  rawMap["ip_address"].(string),
+			MACAddress: rawMap["mac_address"].(string),
+		}
+	}
+	return pairs
 }
 
 func resourcePortAdminStateUpV2(d *schema.ResourceData) *bool {
@@ -280,6 +350,14 @@ func resourcePortAdminStateUpV2(d *schema.ResourceData) *bool {
 	}
 
 	return &value
+}
+
+func allowedAddressPairsHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s", m["ip_address"].(string)))
+
+	return hashcode.String(buf.String())
 }
 
 func waitForNetworkPortActive(networkingClient *gophercloud.ServiceClient, portId string) resource.StateRefreshFunc {
@@ -304,26 +382,20 @@ func waitForNetworkPortDelete(networkingClient *gophercloud.ServiceClient, portI
 
 		p, err := ports.Get(networkingClient, portId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return p, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Port %s", portId)
 				return p, "DELETED", nil
 			}
+			return p, "ACTIVE", err
 		}
 
 		err = ports.Delete(networkingClient, portId).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return p, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Port %s", portId)
 				return p, "DELETED", nil
 			}
+			return p, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack Port %s still active.\n", portId)

@@ -3,22 +3,28 @@
         <div class="docs-sidebar hidden-print affix-top" role="complementary">
             <ul class="nav docs-sidenav">
                 <li<%= sidebar_current("docs-home") %>>
-                    <a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+                    <a href="/docs/providers/index.html">All Providers</a>
                 </li>
 
                 <li<%= sidebar_current("docs-triton-index") %>>
-                    <a href="/docs/providers/triton/index.html">Triton Provider</a>
+                    <a href="/docs/providers/triton/index.html">Joyent Triton Provider</a>
                 </li>
 
-                <li<%= sidebar_current(/^docs-triton-resource/) %>>
+                <li<%= sidebar_current("docs-triton-resource") %>>
                     <a href="#">Resources</a>
 
                     <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-triton-resource-key") %>>
+                            <a href="/docs/providers/triton/r/triton_key.html">triton_key</a>
+                        </li>
                         <li<%= sidebar_current("docs-triton-resource-firewall-rule") %>>
                             <a href="/docs/providers/triton/r/triton_firewall_rule.html">triton_firewall_rule</a>
                         </li>
-                        <li<%= sidebar_current("docs-triton-resource-key") %>>
-                            <a href="/docs/providers/triton/r/triton_key.html">triton_key</a>
+                        <li<%= sidebar_current("docs-triton-resource-vlan") %>>
+                            <a href="/docs/providers/triton/r/triton_vlan.html">triton_vlan</a>
+                        </li>
+                        <li<%= sidebar_current("docs-triton-resource-fabric") %>>
+                            <a href="/docs/providers/triton/r/triton_fabric.html">triton_fabric</a>
                         </li>
                         <li<%= sidebar_current("docs-triton-resource-machine") %>>
                             <a href="/docs/providers/triton/r/triton_machine.html">triton_machine</a>

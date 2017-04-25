@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/members"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas/members"
 )
 
 func resourceLBMemberV1() *schema.Resource {
@@ -18,6 +18,14 @@ func resourceLBMemberV1() *schema.Resource {
 		Read:   resourceLBMemberV1Read,
 		Update: resourceLBMemberV1Update,
 		Delete: resourceLBMemberV1Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -63,7 +71,7 @@ func resourceLBMemberV1() *schema.Resource {
 
 func resourceLBMemberV1Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -86,9 +94,9 @@ func resourceLBMemberV1Create(d *schema.ResourceData, meta interface{}) error {
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"PENDING_CREATE"},
-		Target:     []string{"ACTIVE", "INACTIVE"},
+		Target:     []string{"ACTIVE", "INACTIVE", "CREATED", "DOWN"},
 		Refresh:    waitForLBMemberActive(networkingClient, m.ID),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutCreate),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -101,8 +109,9 @@ func resourceLBMemberV1Create(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(m.ID)
 
 	// Due to the way Gophercloud is currently set up, AdminStateUp must be set post-create
+	asu := d.Get("admin_state_up").(bool)
 	updateOpts := members.UpdateOpts{
-		AdminStateUp: d.Get("admin_state_up").(bool),
+		AdminStateUp: &asu,
 	}
 
 	log.Printf("[DEBUG] OpenStack LB Member Update Options: %#v", createOpts)
@@ -116,7 +125,7 @@ func resourceLBMemberV1Create(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLBMemberV1Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -126,17 +135,21 @@ func resourceLBMemberV1Read(d *schema.ResourceData, meta interface{}) error {
 		return CheckDeleted(d, err, "LB member")
 	}
 
-	log.Printf("[DEBUG] Retreived OpenStack LB member %s: %+v", d.Id(), m)
+	log.Printf("[DEBUG] Retrieved OpenStack LB member %s: %+v", d.Id(), m)
 
+	d.Set("address", m.Address)
+	d.Set("pool_id", m.PoolID)
+	d.Set("port", m.ProtocolPort)
 	d.Set("weight", m.Weight)
 	d.Set("admin_state_up", m.AdminStateUp)
+	d.Set("region", GetRegion(d))
 
 	return nil
 }
 
 func resourceLBMemberV1Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -144,7 +157,7 @@ func resourceLBMemberV1Update(d *schema.ResourceData, meta interface{}) error {
 	var updateOpts members.UpdateOpts
 	if d.HasChange("admin_state_up") {
 		asu := d.Get("admin_state_up").(bool)
-		updateOpts.AdminStateUp = asu
+		updateOpts.AdminStateUp = &asu
 	}
 
 	log.Printf("[DEBUG] Updating LB member %s with options: %+v", d.Id(), updateOpts)
@@ -159,7 +172,7 @@ func resourceLBMemberV1Update(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLBMemberV1Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -173,7 +186,7 @@ func resourceLBMemberV1Delete(d *schema.ResourceData, meta interface{}) error {
 		Pending:    []string{"ACTIVE", "PENDING_DELETE"},
 		Target:     []string{"DELETED"},
 		Refresh:    waitForLBMemberDelete(networkingClient, d.Id()),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -209,14 +222,11 @@ func waitForLBMemberDelete(networkingClient *gophercloud.ServiceClient, memberId
 
 		m, err := members.Get(networkingClient, memberId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return m, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack LB member %s", memberId)
 				return m, "DELETED", nil
 			}
+			return m, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack LB member %s still active.", memberId)

@@ -1,7 +1,7 @@
 ---
 layout: "tls"
 page_title: "TLS: tls_cert_request"
-sidebar_current: "docs-tls-resourse-cert-request"
+sidebar_current: "docs-tls-data-source-cert-request"
 description: |-
   Creates a PEM-encoded certificate request.
 ---
@@ -16,17 +16,25 @@ for a particular certificate authority in order to provision a new certificate.
 This is a *logical resource*, so it contributes only to the current Terraform
 state and does not create any external managed resources.
 
+~> **Compatibility Note** From Terraform 0.7.0 to 0.7.4 this resource was
+converted to a data source, and the resource form of it was deprecated. This
+turned out to be a design error since a cert request includes a random number
+in the form of the signature nonce, and so the data source form of this
+resource caused non-convergent configuration. The data source form is no longer
+supported as of Terraform 0.7.5 and any users should return to using the
+resource form.
+
 ## Example Usage
 
-```
+```hcl
 resource "tls_cert_request" "example" {
-    key_algorithm = "ECDSA"
-    private_key_pem = "${file(\"private_key.pem\")}"
+  key_algorithm   = "ECDSA"
+  private_key_pem = "${file("private_key.pem")}"
 
-    subject {
-        common_name = "example.com"
-        organization = "ACME Examples, Inc"
-    }
+  subject {
+    common_name  = "example.com"
+    organization = "ACME Examples, Inc"
+  }
 }
 ```
 

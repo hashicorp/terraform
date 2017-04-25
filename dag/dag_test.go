@@ -1,12 +1,31 @@
 package dag
 
 import (
+	"flag"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"os"
 	"reflect"
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/hashicorp/terraform/helper/logging"
 )
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+	if testing.Verbose() {
+		// if we're verbose, use the logging requested by TF_LOG
+		logging.SetOutput()
+	} else {
+		// otherwise silence all logs
+		log.SetOutput(ioutil.Discard)
+	}
+
+	os.Exit(m.Run())
+}
 
 func TestAcyclicGraphRoot(t *testing.T) {
 	var g AcyclicGraph
@@ -258,6 +277,33 @@ func TestAcyclicGraphWalk_error(t *testing.T) {
 	}
 
 	t.Fatalf("bad: %#v", visits)
+}
+
+func TestAcyclicGraph_ReverseDepthFirstWalk_WithRemoval(t *testing.T) {
+	var g AcyclicGraph
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Connect(BasicEdge(3, 2))
+	g.Connect(BasicEdge(2, 1))
+
+	var visits []Vertex
+	var lock sync.Mutex
+	err := g.ReverseDepthFirstWalk([]Vertex{1}, func(v Vertex, d int) error {
+		lock.Lock()
+		defer lock.Unlock()
+		visits = append(visits, v)
+		g.Remove(v)
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := []Vertex{1, 2, 3}
+	if !reflect.DeepEqual(visits, expected) {
+		t.Fatalf("expected: %#v, got: %#v", expected, visits)
+	}
 }
 
 const testGraphTransReductionStr = `

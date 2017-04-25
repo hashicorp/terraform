@@ -6,6 +6,15 @@ import (
 	"github.com/hashicorp/terraform/dag"
 )
 
+// GraphNodeTargetable is an interface for graph nodes to implement when they
+// need to be told about incoming targets. This is useful for nodes that need
+// to respect targets as they dynamically expand. Note that the list of targets
+// provided will contain every target provided, and each implementing graph
+// node must filter this list to targets considered relevant.
+type GraphNodeTargetable interface {
+	SetTargets([]ResourceAddress)
+}
+
 // TargetsTransformer is a GraphTransformer that, when the user specifies a
 // list of resources to target, limits the graph to only those resources and
 // their dependencies.
@@ -28,8 +37,10 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 		if err != nil {
 			return err
 		}
+
 		t.ParsedTargets = addrs
 	}
+
 	if len(t.ParsedTargets) > 0 {
 		targetedNodes, err := t.selectTargetedNodes(g, t.ParsedTargets)
 		if err != nil {
@@ -37,14 +48,20 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 		}
 
 		for _, v := range g.Vertices() {
-			if _, ok := v.(GraphNodeAddressable); ok {
-				if !targetedNodes.Include(v) {
-					log.Printf("[DEBUG] Removing %q, filtered by targeting.", dag.VertexName(v))
-					g.Remove(v)
-				}
+			removable := false
+			if _, ok := v.(GraphNodeResource); ok {
+				removable = true
+			}
+			if vr, ok := v.(RemovableIfNotTargeted); ok {
+				removable = vr.RemoveIfNotTargeted()
+			}
+			if removable && !targetedNodes.Include(v) {
+				log.Printf("[DEBUG] Removing %q, filtered by targeting.", dag.VertexName(v))
+				g.Remove(v)
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -57,6 +74,7 @@ func (t *TargetsTransformer) parseTargetAddresses() ([]ResourceAddress, error) {
 		}
 		addrs[i] = *ta
 	}
+
 	return addrs, nil
 }
 
@@ -93,20 +111,34 @@ func (t *TargetsTransformer) selectTargetedNodes(
 			}
 		}
 	}
+
 	return targetedNodes, nil
 }
 
 func (t *TargetsTransformer) nodeIsTarget(
 	v dag.Vertex, addrs []ResourceAddress) bool {
-	r, ok := v.(GraphNodeAddressable)
+	r, ok := v.(GraphNodeResource)
 	if !ok {
 		return false
 	}
-	addr := r.ResourceAddress()
+
+	addr := r.ResourceAddr()
 	for _, targetAddr := range addrs {
 		if targetAddr.Equals(addr) {
 			return true
 		}
 	}
+
 	return false
+}
+
+// RemovableIfNotTargeted is a special interface for graph nodes that
+// aren't directly addressable, but need to be removed from the graph when they
+// are not targeted. (Nodes that are not directly targeted end up in the set of
+// targeted nodes because something that _is_ targeted depends on them.) The
+// initial use case for this interface is GraphNodeConfigVariable, which was
+// having trouble interpolating for module variables in targeted scenarios that
+// filtered out the resource node being referenced.
+type RemovableIfNotTargeted interface {
+	RemoveIfNotTargeted() bool
 }

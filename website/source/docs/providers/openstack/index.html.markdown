@@ -16,18 +16,18 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the OpenStack Provider
 provider "openstack" {
-    user_name  = "admin"
-    tenant_name = "admin"
-    password  = "pwd"
-    auth_url  = "http://myauthurl:5000/v2.0"
+  user_name   = "admin"
+  tenant_name = "admin"
+  password    = "pwd"
+  auth_url    = "http://myauthurl:5000/v2.0"
 }
 
 # Create a web server
 resource "openstack_compute_instance_v2" "test-server" {
-    ...
+  # ...
 }
 ```
 
@@ -35,56 +35,82 @@ resource "openstack_compute_instance_v2" "test-server" {
 
 The following arguments are supported:
 
-* `auth_url` - (Required) If omitted, the `OS_AUTH_URL` environment
-    variable is used.
+* `auth_url` - (Required) The Identity authentication URL. If omitted, the
+  `OS_AUTH_URL` environment variable is used.
 
-* `user_name` - (Optional; Required for Identity V2) If omitted, the
-    `OS_USERNAME` environment variable is used.
+* `user_name` - (Optional) The Username to login with. If omitted, the
+  `OS_USERNAME` environment variable is used.
 
-* `user_id` - (Optional)
+* `user_id` - (Optional) The User ID to login with. If omitted, the
+  `OS_USER_ID` environment variable is used.
 
-* `password` - (Optional; Required if not using `api_key`) If omitted, the
-    `OS_PASSWORD` environment variable is used.
+* `tenant_id` - (Optional) The ID of the Tenant (Identity v2) or Project
+  (Identity v3) to login with. If omitted, the `OS_TENANT_ID` or
+  `OS_PROJECT_ID` environment variables are used.
+
+* `tenant_name` - (Optional) The Name of the Tenant (Identity v2) or Project
+  (Identity v3) to login with. If omitted, the `OS_TENANT_NAME` or
+  `OS_PROJECT_NAME` environment variable are used.
+
+* `password` - (Optional) The Password to login with. If omitted, the
+  `OS_PASSWORD` environment variable is used.
 
 * `token` - (Optional; Required if not using `user_name` and `password`)
-    A token is an expiring, temporary means of access issued via the
-    Keystone service. By specifying a token, you do not have to
-    specify a username/password combination, since the token was
-    already created by a username/password out of band of Terraform.
-    If ommitted, the `OS_AUTH_TOKEN` environment variable is used.
+  A token is an expiring, temporary means of access issued via the Keystone
+  service. By specifying a token, you do not have to specify a username/password
+  combination, since the token was already created by a username/password out of
+  band of Terraform. If omitted, the `OS_AUTH_TOKEN` environment variable is used.
 
-* `api_key` - (Optional; Required if not using `password`) An API Key
-    is issued by a cloud provider as alternative password. Unless
-    your cloud provider has documentation referencing an API Key,
-    you can safely ignore this argument. If omitted, the `OS_API_KEY`
-    environment variable is used.
+* `domain_id` - (Optional) The ID of the Domain to scope to (Identity v3). If
+  If omitted, the following environment variables are checked (in this order):
+  `OS_USER_DOMAIN_ID`, `OS_PROJECT_DOMAIN_ID`, `OS_DOMAIN_ID`.
 
-* `domain_id` - (Optional) If omitted, the `OS_DOMAIN_ID` environment
-    variable is used.
+* `domain_name` - (Optional) The Name of the Domain to scope to (Identity v3).
+  If omitted, the following environment variables are checked (in this order):
+  `OS_USER_DOMAIN_NAME`, `OS_PROJECT_DOMAIN_NAME`, `OS_DOMAIN_NAME`,
+  `DEFAULT_DOMAIN`.
 
-* `domain_name` - (Optional) If omitted, the `OS_DOMAIN_NAME`
-    environment variable is used.
-
-* `tenant_id` - (Optional)
-
-* `tenant_name` - (Optional) If omitted, the `OS_TENANT_NAME` environment
-    variable is used.
-
-* `insecure` - (Optional) Explicitly allow the provider to perform
-    "insecure" SSL requests. If omitted, default value is `false`
+* `insecure` - (Optional) Trust self-signed SSL certificates. If omitted, the
+  `OS_INSECURE` environment variable is used.
 
 * `cacert_file` - (Optional) Specify a custom CA certificate when communicating
-    over SSL. If omitted, the `OS_CACERT` environment variable is used.
+  over SSL. You can specify either a path to the file or the contents of the
+  certificate. If omitted, the `OS_CACERT` environment variable is used.
 
 * `cert` - (Optional) Specify client certificate file for SSL client
-    authentication. If omitted the `OS_CERT` environment variable is used.
+  authentication. You can specify either a path to the file or the contents of
+  the certificate. If omitted the `OS_CERT` environment variable is used.
 
 * `key` - (Optional) Specify client private key file for SSL client
-    authentication. If omitted the `OS_KEY` environment variable is used.
+  authentication. You can specify either a path to the file or the contents of
+  the key. If omitted the `OS_KEY` environment variable is used.
 
 * `endpoint_type` - (Optional) Specify which type of endpoint to use from the
-    service catalog. It can be set using the OS_ENDPOINT_TYPE environment
-    variable. If not set, public endpoints is used.
+  service catalog. It can be set using the OS_ENDPOINT_TYPE environment
+  variable. If not set, public endpoints is used.
+
+* `swauth` - (Optional) Set to `true` to authenticate against Swauth, a
+  Swift-native authentication system. If omitted, the `OS_SWAUTH` environment
+  variable is used. You must also set `username` to the Swauth/Swift username
+  such as `username:project`. Set the `password` to the Swauth/Swift key.
+  Finally, set `auth_url` as the location of the Swift service. Note that this
+  will only work when used with the OpenStack Object Storage resources.
+
+## Additional Logging
+
+This provider has the ability to log all HTTP requests and responses between
+Terraform and the OpenStack cloud which is useful for troubleshooting and
+debugging.
+
+To enable these logs, set the `OS_DEBUG` environment variable to `1` along
+with the usual `TF_LOG=DEBUG` environment variable:
+
+```shell
+$ OS_DEBUG=1 TF_LOG=DEBUG terraform apply
+```
+
+If you submit these logs with a bug report, please ensure any sensitive
+information has been scrubbed first!
 
 ## Rackspace Compatibility
 
@@ -102,11 +128,11 @@ instances as shown below:
 
 ```
 resource "openstack_compute_instance_v2" "my_instance" {
-  name = "my_instance"
-  region = "DFW"
-  image_id = "fabe045f-43f8-4991-9e6c-5cabd617538c"
+  name      = "my_instance"
+  region    = "DFW"
+  image_id  = "fabe045f-43f8-4991-9e6c-5cabd617538c"
   flavor_id = "general1-4"
-  key_pair = "provisioning_key"
+  key_pair  = "provisioning_key"
 
   network {
     uuid = "00000000-0000-0000-0000-000000000000"
@@ -144,14 +170,18 @@ variables must also be set:
 
 * `OS_NETWORK_ID` - The UUID of a network in your test environment.
 
-To make development easier, the `builtin/providers/openstack/devstack/deploy.sh`
-script will assist in installing and configuring a standardized
-[DevStack](http://docs.openstack.org/developer/devstack/) environment along with
-Golang, Terraform, and all development dependencies. It will also set the required
-environment variables in the `devstack/openrc` file.
+* `OS_EXTGW_ID` - The UUID of the external gateway.
 
-Do not run the `deploy.sh` script on your workstation or any type of production
-server. Instead, run the script within a disposable virtual machine.
-[Here's](https://github.com/berendt/terraform-configurations) an example of a
-Terraform configuration that will create an OpenStack instance and then install and
-configure DevStack inside.
+You should be able to use any OpenStack environment to develop on as long as the
+above environment variables are set.
+
+Most of Terraform's OpenStack support is done in a standardized Packstack
+all-in-one environment. You can find the scripts to build this environment
+[here](https://github.com/jtopjian/terraform-devstack/tree/master/packstack-standard).
+The included `main.tf` file will need to be modified for your specific
+environment. Once it's up and running, you will have access to a standard,
+up-to-date OpenStack environment with the latest OpenStack services.
+
+If you require access to deprecated services, such as Keystone v2 and
+LBaaS v1, you can use the "legacy" environment
+[here](https://github.com/jtopjian/terraform-devstack/tree/master/packstack-legacy).

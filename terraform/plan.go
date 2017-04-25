@@ -20,12 +20,19 @@ func init() {
 
 // Plan represents a single Terraform execution plan, which contains
 // all the information necessary to make an infrastructure change.
+//
+// A plan has to contain basically the entire state of the world
+// necessary to make a change: the state, diff, config, backend config, etc.
+// This is so that it can run alone without any other data.
 type Plan struct {
 	Diff    *Diff
 	Module  *module.Tree
 	State   *State
-	Vars    map[string]string
+	Vars    map[string]interface{}
 	Targets []string
+
+	// Backend is the backend that this plan should use and store data with.
+	Backend *BackendState
 
 	once sync.Once
 }
@@ -38,8 +45,13 @@ func (p *Plan) Context(opts *ContextOpts) (*Context, error) {
 	opts.Diff = p.Diff
 	opts.Module = p.Module
 	opts.State = p.State
-	opts.Variables = p.Vars
 	opts.Targets = p.Targets
+
+	opts.Variables = make(map[string]interface{})
+	for k, v := range p.Vars {
+		opts.Variables[k] = v
+	}
+
 	return NewContext(opts)
 }
 
@@ -65,7 +77,7 @@ func (p *Plan) init() {
 		}
 
 		if p.Vars == nil {
-			p.Vars = make(map[string]string)
+			p.Vars = make(map[string]interface{})
 		}
 	})
 }

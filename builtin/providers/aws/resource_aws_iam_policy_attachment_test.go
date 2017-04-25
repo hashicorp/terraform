@@ -6,6 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -13,30 +14,53 @@ import (
 func TestAccAWSPolicyAttachment_basic(t *testing.T) {
 	var out iam.ListEntitiesForPolicyOutput
 
+	user1 := fmt.Sprintf("test-user-%d", acctest.RandInt())
+	user2 := fmt.Sprintf("test-user-%d", acctest.RandInt())
+	user3 := fmt.Sprintf("test-user-%d", acctest.RandInt())
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSPolicyAttachmentDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSPolicyAttachConfig,
+				Config: testAccAWSPolicyAttachConfig(user1),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSPolicyAttachmentExists("aws_iam_policy_attachment.test-attach", 3, &out),
-					testAccCheckAWSPolicyAttachmentAttributes([]string{"test-user"}, []string{"test-role"}, []string{"test-group"}, &out),
+					testAccCheckAWSPolicyAttachmentAttributes([]string{user1}, []string{"test-role"}, []string{"test-group"}, &out),
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSPolicyAttachConfigUpdate,
+				Config: testAccAWSPolicyAttachConfigUpdate(user1, user2, user3),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSPolicyAttachmentExists("aws_iam_policy_attachment.test-attach", 6, &out),
-					testAccCheckAWSPolicyAttachmentAttributes([]string{"test-user3", "test-user3"}, []string{"test-role2", "test-role3"}, []string{"test-group2", "test-group3"}, &out),
+					testAccCheckAWSPolicyAttachmentAttributes([]string{user3, user3}, []string{"test-role2", "test-role3"}, []string{"test-group2", "test-group3"}, &out),
 				),
 			},
 		},
 	})
 }
-func testAccCheckAWSPolicyAttachmentDestroy(s *terraform.State) error {
 
+func TestAccAWSPolicyAttachment_paginatedEntities(t *testing.T) {
+	var out iam.ListEntitiesForPolicyOutput
+	rInt := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSPolicyAttachmentDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSPolicyPaginatedAttachConfig(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSPolicyAttachmentExists("aws_iam_policy_attachment.test-paginated-attach", 101, &out),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckAWSPolicyAttachmentDestroy(s *terraform.State) error {
 	return nil
 }
 
@@ -74,6 +98,7 @@ func testAccCheckAWSPolicyAttachmentExists(n string, c int64, out *iam.ListEntit
 		return nil
 	}
 }
+
 func testAccCheckAWSPolicyAttachmentAttributes(users []string, roles []string, groups []string, out *iam.ListEntitiesForPolicyOutput) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		uc := len(users)
@@ -108,9 +133,10 @@ func testAccCheckAWSPolicyAttachmentAttributes(users []string, roles []string, g
 	}
 }
 
-const testAccAWSPolicyAttachConfig = `
+func testAccAWSPolicyAttachConfig(u1 string) string {
+	return fmt.Sprintf(`
 resource "aws_iam_user" "user" {
-    name = "test-user"
+    name = "%s"
 }
 resource "aws_iam_role" "role" {
     name = "test-role"
@@ -130,7 +156,6 @@ resource "aws_iam_role" "role" {
 }
 EOF
 }
-
 resource "aws_iam_group" "group" {
     name = "test-group"
 }
@@ -160,18 +185,19 @@ resource "aws_iam_policy_attachment" "test-attach" {
     roles = ["${aws_iam_role.role.name}"]
     groups = ["${aws_iam_group.group.name}"]
     policy_arn = "${aws_iam_policy.policy.arn}"
+}`, u1)
 }
-`
 
-const testAccAWSPolicyAttachConfigUpdate = `
+func testAccAWSPolicyAttachConfigUpdate(u1, u2, u3 string) string {
+	return fmt.Sprintf(`
 resource "aws_iam_user" "user" {
-    name = "test-user"
+    name = "%s"
 }
 resource "aws_iam_user" "user2" {
-    name = "test-user2"
+    name = "%s"
 }
 resource "aws_iam_user" "user3" {
-    name = "test-user3"
+    name = "%s"
 }
 resource "aws_iam_role" "role" {
     name = "test-role"
@@ -274,5 +300,36 @@ resource "aws_iam_policy_attachment" "test-attach" {
         "${aws_iam_group.group3.name}"
     ]
     policy_arn = "${aws_iam_policy.policy.arn}"
+}`, u1, u2, u3)
 }
-`
+
+func testAccAWSPolicyPaginatedAttachConfig(rInt int) string {
+	return fmt.Sprintf(`
+resource "aws_iam_user" "user" {
+	count = 101
+	name = "${format("paged-test-user-%d-%%d", count.index + 1)}"
+}
+resource "aws_iam_policy" "policy" {
+	name = "tf-acc-test-policy-%d"
+	description = "A test policy"
+	policy = <<EOF
+{
+"Version": "2012-10-17",
+"Statement": [
+	{
+		"Action": [
+			"iam:ChangePassword"
+		],
+		"Resource": "*",
+		"Effect": "Allow"
+	}
+]
+}
+EOF
+}
+resource "aws_iam_policy_attachment" "test-paginated-attach" {
+	name = "test-attachment"
+	users = ["${aws_iam_user.user.*.name}"]
+	policy_arn = "${aws_iam_policy.policy.arn}"
+}`, rInt, rInt)
+}

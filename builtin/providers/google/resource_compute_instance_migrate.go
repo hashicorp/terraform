@@ -32,6 +32,13 @@ func resourceComputeInstanceMigrateState(
 			return is, err
 		}
 		return is, nil
+	case 2:
+		log.Println("[INFO] Found Compute Instance State v2; migrating to v3")
+		is, err := migrateStateV2toV3(is)
+		if err != nil {
+			return is, err
+		}
+		return is, nil
 	default:
 		return is, fmt.Errorf("Unexpected schema version: %d", v)
 	}
@@ -135,6 +142,13 @@ func migrateStateV1toV2(is *terraform.InstanceState) (*terraform.InstanceState, 
 		}
 	}
 
+	log.Printf("[DEBUG] Attributes after migration: %#v", is.Attributes)
+	return is, nil
+}
+
+func migrateStateV2toV3(is *terraform.InstanceState) (*terraform.InstanceState, error) {
+	log.Printf("[DEBUG] Attributes before migration: %#v", is.Attributes)
+	is.Attributes["create_timeout"] = "4"
 	log.Printf("[DEBUG] Attributes after migration: %#v", is.Attributes)
 	return is, nil
 }

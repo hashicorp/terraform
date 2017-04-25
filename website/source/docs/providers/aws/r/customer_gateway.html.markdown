@@ -14,14 +14,15 @@ Provides a customer gateway inside a VPC. These objects can be connected to VPN 
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_customer_gateway" "main" {
-    bgp_asn = 65000
-    ip_address = "172.83.124.10"
-    type = "ipsec.1"
-    tags {
-        Name = "main-customer-gateway"
-    }
+  bgp_asn    = 65000
+  ip_address = "172.83.124.10"
+  type       = "ipsec.1"
+
+  tags {
+    Name = "main-customer-gateway"
+  }
 }
 ```
 
@@ -44,3 +45,12 @@ The following attributes are exported:
 * `ip_address` - The IP address of the gateway's Internet-routable external interface.
 * `type` - The type of customer gateway.
 * `tags` - Tags applied to the gateway.
+
+
+## Import
+
+Customer Gateways can be imported using the `id`, e.g.
+
+```
+$ terraform import aws_customer_gateway.main cgw-b4dc3961
+```

@@ -79,7 +79,7 @@ func TestAWSRoute53RecordMigrateStateV1toV2(t *testing.T) {
 			},
 		},
 		"v0_2": {
-			StateVersion: 1,
+			StateVersion: 0,
 			Attributes: map[string]string{
 				"weight": "-1",
 			},

@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
+	riviera "github.com/jen20/riviera/azure"
 )
 
 func resourceArmVirtualMachine() *schema.Resource {
@@ -18,6 +21,9 @@ func resourceArmVirtualMachine() *schema.Resource {
 		Read:   resourceArmVirtualMachineRead,
 		Update: resourceArmVirtualMachineCreate,
 		Delete: resourceArmVirtualMachineDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -26,12 +32,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -42,7 +43,6 @@ func resourceArmVirtualMachine() *schema.Resource {
 			"plan": {
 				Type:     schema.TypeSet,
 				Optional: true,
-				Computed: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -69,15 +69,17 @@ func resourceArmVirtualMachine() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
+				ForceNew: true,
 				StateFunc: func(id interface{}) string {
 					return strings.ToLower(id.(string))
 				},
 			},
 
 			"license_type": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateLicenseType,
 			},
 
 			"vm_size": {
@@ -89,28 +91,33 @@ func resourceArmVirtualMachine() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
+				ForceNew: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"publisher": {
 							Type:     schema.TypeString,
 							Required: true,
+							ForceNew: true,
 						},
 
 						"offer": {
 							Type:     schema.TypeString,
 							Required: true,
+							ForceNew: true,
 						},
 
 						"sku": {
 							Type:     schema.TypeString,
 							Required: true,
+							ForceNew: true,
 						},
 
 						"version": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
+							ForceNew: true,
 						},
 					},
 				},
@@ -135,7 +142,27 @@ func resourceArmVirtualMachine() *schema.Resource {
 
 						"vhd_uri": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
+							ForceNew: true,
+						},
+
+						"managed_disk_id": {
+							Type:          schema.TypeString,
+							Optional:      true,
+							ForceNew:      true,
+							Computed:      true,
+							ConflictsWith: []string{"storage_os_disk.vhd_uri"},
+						},
+
+						"managed_disk_type": {
+							Type:          schema.TypeString,
+							Optional:      true,
+							Computed:      true,
+							ConflictsWith: []string{"storage_os_disk.vhd_uri"},
+							ValidateFunc: validation.StringInSlice([]string{
+								string(compute.PremiumLRS),
+								string(compute.StandardLRS),
+							}, true),
 						},
 
 						"image_uri": {
@@ -150,12 +177,25 @@ func resourceArmVirtualMachine() *schema.Resource {
 						},
 
 						"create_option": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:             schema.TypeString,
+							Required:         true,
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
+						},
+
+						"disk_size_gb": {
+							Type:         schema.TypeInt,
+							Optional:     true,
+							ValidateFunc: validateDiskSizeGB,
 						},
 					},
 				},
 				Set: resourceArmVirtualMachineStorageOsDiskHash,
+			},
+
+			"delete_os_disk_on_termination": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
 			},
 
 			"storage_data_disk": {
@@ -170,29 +210,104 @@ func resourceArmVirtualMachine() *schema.Resource {
 
 						"vhd_uri": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
+						},
+
+						"managed_disk_id": {
+							Type:          schema.TypeString,
+							Optional:      true,
+							ForceNew:      true,
+							Computed:      true,
+							ConflictsWith: []string{"storage_data_disk.vhd_uri"},
+						},
+
+						"managed_disk_type": {
+							Type:          schema.TypeString,
+							Optional:      true,
+							Computed:      true,
+							ConflictsWith: []string{"storage_data_disk.vhd_uri"},
+							ValidateFunc: validation.StringInSlice([]string{
+								string(compute.PremiumLRS),
+								string(compute.StandardLRS),
+							}, true),
 						},
 
 						"create_option": {
+							Type:             schema.TypeString,
+							Required:         true,
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
+						},
+
+						"caching": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
+							Computed: true,
 						},
 
 						"disk_size_gb": {
-							Type:     schema.TypeInt,
-							Required: true,
-							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-								value := v.(int)
-								if value < 1 || value > 1023 {
-									errors = append(errors, fmt.Errorf(
-										"The `disk_size_gb` can only be between 1 and 1023"))
-								}
-								return
-							},
+							Type:         schema.TypeInt,
+							Optional:     true,
+							Computed:     true,
+							ValidateFunc: validateDiskSizeGB,
 						},
 
 						"lun": {
 							Type:     schema.TypeInt,
+							Required: true,
+						},
+					},
+				},
+			},
+
+			"delete_data_disks_on_termination": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
+			"diagnostics_profile": {
+				Type:          schema.TypeSet,
+				Optional:      true,
+				MaxItems:      1,
+				ConflictsWith: []string{"boot_diagnostics"},
+				Deprecated:    "Use field boot_diagnostics instead",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"boot_diagnostics": {
+							Type:     schema.TypeSet,
+							Required: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"enabled": {
+										Type:     schema.TypeBool,
+										Required: true,
+									},
+
+									"storage_uri": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+
+			"boot_diagnostics": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+
+						"storage_uri": {
+							Type:     schema.TypeString,
 							Required: true,
 						},
 					},
@@ -207,8 +322,8 @@ func resourceArmVirtualMachine() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"computer_name": {
 							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							ForceNew: true,
+							Required: true,
 						},
 
 						"admin_username": {
@@ -222,9 +337,10 @@ func resourceArmVirtualMachine() *schema.Resource {
 						},
 
 						"custom_data": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							Type:      schema.TypeString,
+							Optional:  true,
+							Computed:  true,
+							StateFunc: userDataStateFunc,
 						},
 					},
 				},
@@ -332,7 +448,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 						},
 
 						"vault_certificates": {
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -360,9 +476,23 @@ func resourceArmVirtualMachine() *schema.Resource {
 				Set: schema.HashString,
 			},
 
+			"primary_network_interface_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
+}
+
+func validateLicenseType(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if value != "" && value != "Windows_Server" {
+		errors = append(errors, fmt.Errorf(
+			"[ERROR] license_type must be 'Windows_Server' or empty"))
+	}
+	return
 }
 
 func resourceArmVirtualMachineCreate(d *schema.ResourceData, meta interface{}) error {
@@ -411,6 +541,18 @@ func resourceArmVirtualMachineCreate(d *schema.ResourceData, meta interface{}) e
 		StorageProfile: &storageProfile,
 	}
 
+	if v, ok := d.GetOk("license_type"); ok {
+		license := v.(string)
+		properties.LicenseType = &license
+	}
+
+	if _, ok := d.GetOk("boot_diagnostics"); ok {
+		diagnosticsProfile := expandAzureRmVirtualMachineDiagnosticsProfile(d)
+		if diagnosticsProfile != nil {
+			properties.DiagnosticsProfile = diagnosticsProfile
+		}
+	}
+
 	osProfile, err := expandAzureRmVirtualMachineOsProfile(d)
 	if err != nil {
 		return err
@@ -427,10 +569,10 @@ func resourceArmVirtualMachineCreate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	vm := compute.VirtualMachine{
-		Name:       &name,
-		Location:   &location,
-		Properties: &properties,
-		Tags:       expandedTags,
+		Name:                     &name,
+		Location:                 &location,
+		VirtualMachineProperties: &properties,
+		Tags: expandedTags,
 	}
 
 	if _, ok := d.GetOk("plan"); ok {
@@ -471,67 +613,87 @@ func resourceArmVirtualMachineRead(d *schema.ResourceData, meta interface{}) err
 	name := id.Path["virtualMachines"]
 
 	resp, err := vmClient.Get(resGroup, name, "")
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
-	}
+
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure Virtual Machine %s: %s", name, err)
 	}
 
+	d.Set("name", resp.Name)
+	d.Set("resource_group_name", resGroup)
+	d.Set("location", resp.Location)
+
 	if resp.Plan != nil {
-		if err := d.Set("plan", flattenAzureRmVirtualMachinePlan(resp.Plan)); err != nil {
+		if err := d.Set("plan", schema.NewSet(resourceArmVirtualMachinePlanHash, flattenAzureRmVirtualMachinePlan(resp.Plan))); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Plan error: %#v", err)
 		}
 	}
 
-	if resp.Properties.AvailabilitySet != nil {
-		d.Set("availability_set_id", strings.ToLower(*resp.Properties.AvailabilitySet.ID))
+	if resp.VirtualMachineProperties.AvailabilitySet != nil {
+		d.Set("availability_set_id", strings.ToLower(*resp.VirtualMachineProperties.AvailabilitySet.ID))
 	}
 
-	d.Set("vm_size", resp.Properties.HardwareProfile.VMSize)
+	d.Set("vm_size", resp.VirtualMachineProperties.HardwareProfile.VMSize)
 
-	if resp.Properties.StorageProfile.ImageReference != nil {
-		if err := d.Set("storage_image_reference", schema.NewSet(resourceArmVirtualMachineStorageImageReferenceHash, flattenAzureRmVirtualMachineImageReference(resp.Properties.StorageProfile.ImageReference))); err != nil {
+	if resp.VirtualMachineProperties.StorageProfile.ImageReference != nil {
+		if err := d.Set("storage_image_reference", schema.NewSet(resourceArmVirtualMachineStorageImageReferenceHash, flattenAzureRmVirtualMachineImageReference(resp.VirtualMachineProperties.StorageProfile.ImageReference))); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage Image Reference error: %#v", err)
 		}
 	}
 
-	if err := d.Set("storage_os_disk", schema.NewSet(resourceArmVirtualMachineStorageOsDiskHash, flattenAzureRmVirtualMachineOsDisk(resp.Properties.StorageProfile.OsDisk))); err != nil {
+	if err := d.Set("storage_os_disk", schema.NewSet(resourceArmVirtualMachineStorageOsDiskHash, flattenAzureRmVirtualMachineOsDisk(resp.VirtualMachineProperties.StorageProfile.OsDisk))); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Disk error: %#v", err)
 	}
 
-	if resp.Properties.StorageProfile.DataDisks != nil {
-		if err := d.Set("storage_data_disk", flattenAzureRmVirtualMachineDataDisk(resp.Properties.StorageProfile.DataDisks)); err != nil {
+	if resp.VirtualMachineProperties.StorageProfile.DataDisks != nil {
+		if err := d.Set("storage_data_disk", flattenAzureRmVirtualMachineDataDisk(resp.VirtualMachineProperties.StorageProfile.DataDisks)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage Data Disks error: %#v", err)
 		}
 	}
 
-	if err := d.Set("os_profile", schema.NewSet(resourceArmVirtualMachineStorageOsProfileHash, flattenAzureRmVirtualMachineOsProfile(resp.Properties.OsProfile))); err != nil {
+	if err := d.Set("os_profile", schema.NewSet(resourceArmVirtualMachineStorageOsProfileHash, flattenAzureRmVirtualMachineOsProfile(resp.VirtualMachineProperties.OsProfile))); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile: %#v", err)
 	}
 
-	if resp.Properties.OsProfile.WindowsConfiguration != nil {
-		if err := d.Set("os_profile_windows_config", flattenAzureRmVirtualMachineOsProfileWindowsConfiguration(resp.Properties.OsProfile.WindowsConfiguration)); err != nil {
+	if resp.VirtualMachineProperties.OsProfile.WindowsConfiguration != nil {
+		if err := d.Set("os_profile_windows_config", flattenAzureRmVirtualMachineOsProfileWindowsConfiguration(resp.VirtualMachineProperties.OsProfile.WindowsConfiguration)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile Windows Configuration: %#v", err)
 		}
 	}
 
-	if resp.Properties.OsProfile.LinuxConfiguration != nil {
-		if err := d.Set("os_profile_linux_config", flattenAzureRmVirtualMachineOsProfileLinuxConfiguration(resp.Properties.OsProfile.LinuxConfiguration)); err != nil {
+	if resp.VirtualMachineProperties.OsProfile.LinuxConfiguration != nil {
+		if err := d.Set("os_profile_linux_config", flattenAzureRmVirtualMachineOsProfileLinuxConfiguration(resp.VirtualMachineProperties.OsProfile.LinuxConfiguration)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile Linux Configuration: %#v", err)
 		}
 	}
 
-	if resp.Properties.OsProfile.Secrets != nil {
-		if err := d.Set("os_profile_secrets", flattenAzureRmVirtualMachineOsProfileSecrets(resp.Properties.OsProfile.Secrets)); err != nil {
+	if resp.VirtualMachineProperties.OsProfile.Secrets != nil {
+		if err := d.Set("os_profile_secrets", flattenAzureRmVirtualMachineOsProfileSecrets(resp.VirtualMachineProperties.OsProfile.Secrets)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile Secrets: %#v", err)
 		}
 	}
 
-	if resp.Properties.NetworkProfile != nil {
-		if err := d.Set("network_interface_ids", flattenAzureRmVirtualMachineNetworkInterfaces(resp.Properties.NetworkProfile)); err != nil {
+	if resp.VirtualMachineProperties.DiagnosticsProfile != nil && resp.VirtualMachineProperties.DiagnosticsProfile.BootDiagnostics != nil {
+		if err := d.Set("boot_diagnostics", flattenAzureRmVirtualMachineDiagnosticsProfile(resp.VirtualMachineProperties.DiagnosticsProfile.BootDiagnostics)); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Diagnostics Profile: %#v", err)
+		}
+	}
+
+	if resp.VirtualMachineProperties.NetworkProfile != nil {
+		if err := d.Set("network_interface_ids", flattenAzureRmVirtualMachineNetworkInterfaces(resp.VirtualMachineProperties.NetworkProfile)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage Network Interfaces: %#v", err)
+		}
+
+		if resp.VirtualMachineProperties.NetworkProfile.NetworkInterfaces != nil {
+			for _, nic := range *resp.VirtualMachineProperties.NetworkProfile.NetworkInterfaces {
+				if nic.NetworkInterfaceReferenceProperties != nil && *nic.NetworkInterfaceReferenceProperties.Primary {
+					d.Set("primary_network_interface_id", nic.ID)
+					break
+				}
+			}
 		}
 	}
 
@@ -550,9 +712,111 @@ func resourceArmVirtualMachineDelete(d *schema.ResourceData, meta interface{}) e
 	resGroup := id.ResourceGroup
 	name := id.Path["virtualMachines"]
 
-	_, err = vmClient.Delete(resGroup, name, make(chan struct{}))
+	if _, err = vmClient.Delete(resGroup, name, make(chan struct{})); err != nil {
+		return err
+	}
 
-	return err
+	// delete OS Disk if opted in
+	if deleteOsDisk := d.Get("delete_os_disk_on_termination").(bool); deleteOsDisk {
+		log.Printf("[INFO] delete_os_disk_on_termination is enabled, deleting disk from %s", name)
+
+		osDisk, err := expandAzureRmVirtualMachineOsDisk(d)
+		if err != nil {
+			return fmt.Errorf("Error expanding OS Disk: %s", err)
+		}
+
+		if osDisk.Vhd != nil {
+			if err = resourceArmVirtualMachineDeleteVhd(*osDisk.Vhd.URI, meta); err != nil {
+				return fmt.Errorf("Error deleting OS Disk VHD: %s", err)
+			}
+		} else if osDisk.ManagedDisk != nil {
+			if err = resourceArmVirtualMachineDeleteManagedDisk(*osDisk.ManagedDisk.ID, meta); err != nil {
+				return fmt.Errorf("Error deleting OS Managed Disk: %s", err)
+			}
+		} else {
+			return fmt.Errorf("Unable to locate OS managed disk properties from %s", name)
+		}
+	}
+
+	// delete Data disks if opted in
+	if deleteDataDisks := d.Get("delete_data_disks_on_termination").(bool); deleteDataDisks {
+		log.Printf("[INFO] delete_data_disks_on_termination is enabled, deleting each data disk from %s", name)
+
+		disks, err := expandAzureRmVirtualMachineDataDisk(d)
+		if err != nil {
+			return fmt.Errorf("Error expanding Data Disks: %s", err)
+		}
+
+		for _, disk := range disks {
+			if disk.Vhd != nil {
+				if err = resourceArmVirtualMachineDeleteVhd(*disk.Vhd.URI, meta); err != nil {
+					return fmt.Errorf("Error deleting Data Disk VHD: %s", err)
+				}
+			} else if disk.ManagedDisk != nil {
+				if err = resourceArmVirtualMachineDeleteManagedDisk(*disk.ManagedDisk.ID, meta); err != nil {
+					return fmt.Errorf("Error deleting Data Managed Disk: %s", err)
+				}
+			} else {
+				return fmt.Errorf("Unable to locate data managed disk properties from %s", name)
+			}
+		}
+	}
+
+	return nil
+}
+
+func resourceArmVirtualMachineDeleteVhd(uri string, meta interface{}) error {
+	vhdURL, err := url.Parse(uri)
+	if err != nil {
+		return fmt.Errorf("Cannot parse Disk VHD URI: %s", err)
+	}
+
+	// VHD URI is in the form: https://storageAccountName.blob.core.windows.net/containerName/blobName
+	storageAccountName := strings.Split(vhdURL.Host, ".")[0]
+	path := strings.Split(strings.TrimPrefix(vhdURL.Path, "/"), "/")
+	containerName := path[0]
+	blobName := path[1]
+
+	storageAccountResourceGroupName, err := findStorageAccountResourceGroup(meta, storageAccountName)
+	if err != nil {
+		return fmt.Errorf("Error finding resource group for storage account %s: %s", storageAccountName, err)
+	}
+
+	blobClient, saExists, err := meta.(*ArmClient).getBlobStorageClientForStorageAccount(storageAccountResourceGroupName, storageAccountName)
+	if err != nil {
+		return fmt.Errorf("Error creating blob store client for VHD deletion: %s", err)
+	}
+
+	if !saExists {
+		log.Printf("[INFO] Storage Account %q in resource group %q doesn't exist so the VHD blob won't exist", storageAccountName, storageAccountResourceGroupName)
+		return nil
+	}
+
+	log.Printf("[INFO] Deleting VHD blob %s", blobName)
+	_, err = blobClient.DeleteBlobIfExists(containerName, blobName, nil)
+	if err != nil {
+		return fmt.Errorf("Error deleting VHD blob: %s", err)
+	}
+
+	return nil
+}
+
+func resourceArmVirtualMachineDeleteManagedDisk(managedDiskID string, meta interface{}) error {
+	diskClient := meta.(*ArmClient).diskClient
+
+	id, err := parseAzureResourceID(managedDiskID)
+	if err != nil {
+		return err
+	}
+	resGroup := id.ResourceGroup
+	name := id.Path["disks"]
+
+	_, err = diskClient.Delete(resGroup, name, make(chan struct{}))
+	if err != nil {
+		return fmt.Errorf("Error deleting Managed Disk (%s %s) %s", name, resGroup, err)
+	}
+
+	return nil
 }
 
 func resourceArmVirtualMachinePlanHash(v interface{}) int {
@@ -587,8 +851,9 @@ func resourceArmVirtualMachineStorageOsDiskHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["vhd_uri"].(string)))
-
+	if m["vhd_uri"] != nil {
+		buf.WriteString(fmt.Sprintf("%s-", m["vhd_uri"].(string)))
+	}
 	return hashcode.String(buf.String())
 }
 
@@ -612,13 +877,13 @@ func resourceArmVirtualMachineStorageOsProfileWindowsConfigHash(v interface{}) i
 	return hashcode.String(buf.String())
 }
 
-func flattenAzureRmVirtualMachinePlan(plan *compute.Plan) map[string]interface{} {
+func flattenAzureRmVirtualMachinePlan(plan *compute.Plan) []interface{} {
 	result := make(map[string]interface{})
 	result["name"] = *plan.Name
 	result["publisher"] = *plan.Publisher
 	result["product"] = *plan.Product
 
-	return result
+	return []interface{}{result}
 }
 
 func flattenAzureRmVirtualMachineImageReference(image *compute.ImageReference) []interface{} {
@@ -629,6 +894,17 @@ func flattenAzureRmVirtualMachineImageReference(image *compute.ImageReference) [
 
 	if image.Version != nil {
 		result["version"] = *image.Version
+	}
+
+	return []interface{}{result}
+}
+
+func flattenAzureRmVirtualMachineDiagnosticsProfile(profile *compute.BootDiagnostics) []interface{} {
+	result := make(map[string]interface{})
+
+	result["enabled"] = *profile.Enabled
+	if profile.StorageURI != nil {
+		result["storage_uri"] = *profile.StorageURI
 	}
 
 	return []interface{}{result}
@@ -675,9 +951,18 @@ func flattenAzureRmVirtualMachineDataDisk(disks *[]compute.DataDisk) interface{}
 	for i, disk := range *disks {
 		l := make(map[string]interface{})
 		l["name"] = *disk.Name
-		l["vhd_uri"] = *disk.Vhd.URI
+		if disk.Vhd != nil {
+			l["vhd_uri"] = *disk.Vhd.URI
+		}
+		if disk.ManagedDisk != nil {
+			l["managed_disk_type"] = string(disk.ManagedDisk.StorageAccountType)
+			l["managed_disk_id"] = *disk.ManagedDisk.ID
+		}
 		l["create_option"] = disk.CreateOption
-		l["disk_size_gb"] = *disk.DiskSizeGB
+		l["caching"] = string(disk.Caching)
+		if disk.DiskSizeGB != nil {
+			l["disk_size_gb"] = *disk.DiskSizeGB
+		}
 		l["lun"] = *disk.Lun
 
 		result[i] = l
@@ -730,7 +1015,10 @@ func flattenAzureRmVirtualMachineOsProfileWindowsConfiguration(config *compute.W
 			c["pass"] = i.PassName
 			c["component"] = i.ComponentName
 			c["setting_name"] = i.SettingName
-			c["content"] = *i.Content
+
+			if i.Content != nil {
+				c["content"] = *i.Content
+			}
 
 			content = append(content, c)
 		}
@@ -747,7 +1035,7 @@ func flattenAzureRmVirtualMachineOsProfileLinuxConfiguration(config *compute.Lin
 	result["disable_password_authentication"] = *config.DisablePasswordAuthentication
 
 	if config.SSH != nil && len(*config.SSH.PublicKeys) > 0 {
-		ssh_keys := make([]map[string]interface{}, len(*config.SSH.PublicKeys))
+		ssh_keys := make([]map[string]interface{}, 0, len(*config.SSH.PublicKeys))
 		for _, i := range *config.SSH.PublicKeys {
 			key := make(map[string]interface{})
 			key["path"] = *i.Path
@@ -768,9 +1056,18 @@ func flattenAzureRmVirtualMachineOsProfileLinuxConfiguration(config *compute.Lin
 func flattenAzureRmVirtualMachineOsDisk(disk *compute.OSDisk) []interface{} {
 	result := make(map[string]interface{})
 	result["name"] = *disk.Name
-	result["vhd_uri"] = *disk.Vhd.URI
+	if disk.Vhd != nil {
+		result["vhd_uri"] = *disk.Vhd.URI
+	}
+	if disk.ManagedDisk != nil {
+		result["managed_disk_type"] = string(disk.ManagedDisk.StorageAccountType)
+		result["managed_disk_id"] = *disk.ManagedDisk.ID
+	}
 	result["create_option"] = disk.CreateOption
 	result["caching"] = disk.Caching
+	if disk.DiskSizeGB != nil {
+		result["disk_size_gb"] = *disk.DiskSizeGB
+	}
 
 	return []interface{}{result}
 }
@@ -798,9 +1095,11 @@ func expandAzureRmVirtualMachineOsProfile(d *schema.ResourceData) (*compute.OSPr
 
 	adminUsername := osProfile["admin_username"].(string)
 	adminPassword := osProfile["admin_password"].(string)
+	computerName := osProfile["computer_name"].(string)
 
 	profile := &compute.OSProfile{
 		AdminUsername: &adminUsername,
+		ComputerName:  &computerName,
 	}
 
 	if adminPassword != "" {
@@ -834,10 +1133,8 @@ func expandAzureRmVirtualMachineOsProfile(d *schema.ResourceData) (*compute.OSPr
 		}
 	}
 
-	if v := osProfile["computer_name"].(string); v != "" {
-		profile.ComputerName = &v
-	}
 	if v := osProfile["custom_data"].(string); v != "" {
+		v = base64Encode(v)
 		profile.CustomData = &v
 	}
 
@@ -859,7 +1156,7 @@ func expandAzureRmVirtualMachineOsProfileSecrets(d *schema.ResourceData) *[]comp
 		}
 
 		if v := config["vault_certificates"]; v != nil {
-			certsConfig := v.(*schema.Set).List()
+			certsConfig := v.([]interface{})
 			certs := make([]compute.VaultCertificate, 0, len(certsConfig))
 			for _, certConfig := range certsConfig {
 				config := certConfig.(map[string]interface{})
@@ -912,8 +1209,10 @@ func expandAzureRmVirtualMachineOsProfileLinuxConfig(d *schema.ResourceData) (*c
 		sshPublicKeys = append(sshPublicKeys, sshPublicKey)
 	}
 
-	config.SSH = &compute.SSHConfiguration{
-		PublicKeys: &sshPublicKeys,
+	if len(sshPublicKeys) > 0 {
+		config.SSH = &compute.SSHConfiguration{
+			PublicKeys: &sshPublicKeys,
+		}
 	}
 
 	return config, nil
@@ -938,22 +1237,22 @@ func expandAzureRmVirtualMachineOsProfileWindowsConfig(d *schema.ResourceData) (
 	if v := osProfileConfig["winrm"]; v != nil {
 		winRm := v.([]interface{})
 		if len(winRm) > 0 {
-			winRmListners := make([]compute.WinRMListener, 0, len(winRm))
+			winRmListeners := make([]compute.WinRMListener, 0, len(winRm))
 			for _, winRmConfig := range winRm {
 				config := winRmConfig.(map[string]interface{})
 
 				protocol := config["protocol"].(string)
-				winRmListner := compute.WinRMListener{
+				winRmListener := compute.WinRMListener{
 					Protocol: compute.ProtocolTypes(protocol),
 				}
 				if v := config["certificate_url"].(string); v != "" {
-					winRmListner.CertificateURL = &v
+					winRmListener.CertificateURL = &v
 				}
 
-				winRmListners = append(winRmListners, winRmListner)
+				winRmListeners = append(winRmListeners, winRmListener)
 			}
 			config.WinRM = &compute.WinRMConfiguration{
-				Listeners: &winRmListners,
+				Listeners: &winRmListeners,
 			}
 		}
 	}
@@ -990,25 +1289,81 @@ func expandAzureRmVirtualMachineDataDisk(d *schema.ResourceData) ([]compute.Data
 		config := disk_config.(map[string]interface{})
 
 		name := config["name"].(string)
-		vhd := config["vhd_uri"].(string)
 		createOption := config["create_option"].(string)
+		vhdURI := config["vhd_uri"].(string)
+		managedDiskType := config["managed_disk_type"].(string)
+		managedDiskID := config["managed_disk_id"].(string)
 		lun := int32(config["lun"].(int))
-		disk_size := int32(config["disk_size_gb"].(int))
 
 		data_disk := compute.DataDisk{
-			Name: &name,
-			Vhd: &compute.VirtualHardDisk{
-				URI: &vhd,
-			},
+			Name:         &name,
 			Lun:          &lun,
-			DiskSizeGB:   &disk_size,
 			CreateOption: compute.DiskCreateOptionTypes(createOption),
+		}
+
+		if vhdURI != "" {
+			data_disk.Vhd = &compute.VirtualHardDisk{
+				URI: &vhdURI,
+			}
+		}
+
+		managedDisk := &compute.ManagedDiskParameters{}
+
+		if managedDiskType != "" {
+			managedDisk.StorageAccountType = compute.StorageAccountTypes(managedDiskType)
+			data_disk.ManagedDisk = managedDisk
+		}
+
+		if managedDiskID != "" {
+			managedDisk.ID = &managedDiskID
+			data_disk.ManagedDisk = managedDisk
+		}
+
+		//BEGIN: code to be removed after GH-13016 is merged
+		if vhdURI != "" && managedDiskID != "" {
+			return nil, fmt.Errorf("[ERROR] Conflict between `vhd_uri` and `managed_disk_id` (only one or the other can be used)")
+		}
+		if vhdURI != "" && managedDiskType != "" {
+			return nil, fmt.Errorf("[ERROR] Conflict between `vhd_uri` and `managed_disk_type` (only one or the other can be used)")
+		}
+		//END: code to be removed after GH-13016 is merged
+		if managedDiskID == "" && strings.EqualFold(string(data_disk.CreateOption), string(compute.Attach)) {
+			return nil, fmt.Errorf("[ERROR] Must specify which disk to attach")
+		}
+
+		if v := config["caching"].(string); v != "" {
+			data_disk.Caching = compute.CachingTypes(v)
+		}
+
+		if v := config["disk_size_gb"]; v != nil {
+			diskSize := int32(config["disk_size_gb"].(int))
+			data_disk.DiskSizeGB = &diskSize
 		}
 
 		data_disks = append(data_disks, data_disk)
 	}
 
 	return data_disks, nil
+}
+
+func expandAzureRmVirtualMachineDiagnosticsProfile(d *schema.ResourceData) *compute.DiagnosticsProfile {
+	bootDiagnostics := d.Get("boot_diagnostics").([]interface{})
+
+	diagnosticsProfile := &compute.DiagnosticsProfile{}
+	if len(bootDiagnostics) > 0 {
+		bootDiagnostic := bootDiagnostics[0].(map[string]interface{})
+
+		diagnostic := &compute.BootDiagnostics{
+			Enabled:    riviera.Bool(bootDiagnostic["enabled"].(bool)),
+			StorageURI: riviera.String(bootDiagnostic["storage_uri"].(string)),
+		}
+
+		diagnosticsProfile.BootDiagnostics = diagnostic
+
+		return diagnosticsProfile
+	}
+
+	return nil
 }
 
 func expandAzureRmVirtualMachineImageReference(d *schema.ResourceData) (*compute.ImageReference, error) {
@@ -1031,14 +1386,20 @@ func expandAzureRmVirtualMachineImageReference(d *schema.ResourceData) (*compute
 
 func expandAzureRmVirtualMachineNetworkProfile(d *schema.ResourceData) compute.NetworkProfile {
 	nicIds := d.Get("network_interface_ids").(*schema.Set).List()
+	primaryNicId := d.Get("primary_network_interface_id").(string)
 	network_interfaces := make([]compute.NetworkInterfaceReference, 0, len(nicIds))
 
 	network_profile := compute.NetworkProfile{}
 
 	for _, nic := range nicIds {
 		id := nic.(string)
+		primary := id == primaryNicId
+
 		network_interface := compute.NetworkInterfaceReference{
 			ID: &id,
+			NetworkInterfaceReferenceProperties: &compute.NetworkInterfaceReferenceProperties{
+				Primary: &primary,
+			},
 		}
 		network_interfaces = append(network_interfaces, network_interface)
 	}
@@ -1051,28 +1412,57 @@ func expandAzureRmVirtualMachineNetworkProfile(d *schema.ResourceData) compute.N
 func expandAzureRmVirtualMachineOsDisk(d *schema.ResourceData) (*compute.OSDisk, error) {
 	disks := d.Get("storage_os_disk").(*schema.Set).List()
 
-	disk := disks[0].(map[string]interface{})
+	config := disks[0].(map[string]interface{})
 
-	name := disk["name"].(string)
-	vhdURI := disk["vhd_uri"].(string)
-	imageURI := disk["image_uri"].(string)
-	createOption := disk["create_option"].(string)
+	name := config["name"].(string)
+	imageURI := config["image_uri"].(string)
+	createOption := config["create_option"].(string)
+	vhdURI := config["vhd_uri"].(string)
+	managedDiskType := config["managed_disk_type"].(string)
+	managedDiskID := config["managed_disk_id"].(string)
 
 	osDisk := &compute.OSDisk{
-		Name: &name,
-		Vhd: &compute.VirtualHardDisk{
-			URI: &vhdURI,
-		},
+		Name:         &name,
 		CreateOption: compute.DiskCreateOptionTypes(createOption),
 	}
 
-	if v := disk["image_uri"].(string); v != "" {
+	if vhdURI != "" {
+		osDisk.Vhd = &compute.VirtualHardDisk{
+			URI: &vhdURI,
+		}
+	}
+
+	managedDisk := &compute.ManagedDiskParameters{}
+
+	if managedDiskType != "" {
+		managedDisk.StorageAccountType = compute.StorageAccountTypes(managedDiskType)
+		osDisk.ManagedDisk = managedDisk
+	}
+
+	if managedDiskID != "" {
+		managedDisk.ID = &managedDiskID
+		osDisk.ManagedDisk = managedDisk
+	}
+
+	//BEGIN: code to be removed after GH-13016 is merged
+	if vhdURI != "" && managedDiskID != "" {
+		return nil, fmt.Errorf("[ERROR] Conflict between `vhd_uri` and `managed_disk_id` (only one or the other can be used)")
+	}
+	if vhdURI != "" && managedDiskType != "" {
+		return nil, fmt.Errorf("[ERROR] Conflict between `vhd_uri` and `managed_disk_type` (only one or the other can be used)")
+	}
+	//END: code to be removed after GH-13016 is merged
+	if managedDiskID == "" && strings.EqualFold(string(osDisk.CreateOption), string(compute.Attach)) {
+		return nil, fmt.Errorf("[ERROR] Must specify which disk to attach")
+	}
+
+	if v := config["image_uri"].(string); v != "" {
 		osDisk.Image = &compute.VirtualHardDisk{
 			URI: &imageURI,
 		}
 	}
 
-	if v := disk["os_type"].(string); v != "" {
+	if v := config["os_type"].(string); v != "" {
 		if v == "linux" {
 			osDisk.OsType = compute.Linux
 		} else if v == "windows" {
@@ -1082,9 +1472,38 @@ func expandAzureRmVirtualMachineOsDisk(d *schema.ResourceData) (*compute.OSDisk,
 		}
 	}
 
-	if v := disk["caching"].(string); v != "" {
+	if v := config["caching"].(string); v != "" {
 		osDisk.Caching = compute.CachingTypes(v)
 	}
 
+	if v := config["disk_size_gb"].(int); v != 0 {
+		diskSize := int32(v)
+		osDisk.DiskSizeGB = &diskSize
+	}
+
 	return osDisk, nil
+}
+
+func findStorageAccountResourceGroup(meta interface{}, storageAccountName string) (string, error) {
+	client := meta.(*ArmClient).resourceFindClient
+	filter := fmt.Sprintf("name eq '%s' and resourceType eq 'Microsoft.Storage/storageAccounts'", storageAccountName)
+	expand := ""
+	var pager *int32
+
+	rf, err := client.List(filter, expand, pager)
+	if err != nil {
+		return "", fmt.Errorf("Error making resource request for query %s: %s", filter, err)
+	}
+
+	results := *rf.Value
+	if len(results) != 1 {
+		return "", fmt.Errorf("Wrong number of results making resource request for query %s: %d", filter, len(results))
+	}
+
+	id, err := parseAzureResourceID(*results[0].ID)
+	if err != nil {
+		return "", err
+	}
+
+	return id.ResourceGroup, nil
 }

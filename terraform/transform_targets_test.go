@@ -17,6 +17,20 @@ func TestTargetsTransformer(t *testing.T) {
 	}
 
 	{
+		transform := &AttachResourceConfigTransformer{Module: mod}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &ReferenceTransformer{}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
 		transform := &TargetsTransformer{Targets: []string{"aws_instance.me"}}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -43,6 +57,20 @@ func TestTargetsTransformer_destroy(t *testing.T) {
 	{
 		tf := &ConfigTransformer{Module: mod}
 		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &AttachResourceConfigTransformer{Module: mod}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &ReferenceTransformer{}
+		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}

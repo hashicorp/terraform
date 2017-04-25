@@ -2,6 +2,7 @@ package aws
 
 import (
 	"log"
+	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
@@ -72,10 +73,13 @@ func diffTagsCloudtrail(oldTags, newTags []*cloudtrail.Tag) ([]*cloudtrail.Tag, 
 func tagsFromMapCloudtrail(m map[string]interface{}) []*cloudtrail.Tag {
 	var result []*cloudtrail.Tag
 	for k, v := range m {
-		result = append(result, &cloudtrail.Tag{
+		t := &cloudtrail.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v.(string)),
-		})
+		}
+		if !tagIgnoredCloudtrail(t) {
+			result = append(result, t)
+		}
 	}
 
 	return result
@@ -85,8 +89,24 @@ func tagsFromMapCloudtrail(m map[string]interface{}) []*cloudtrail.Tag {
 func tagsToMapCloudtrail(ts []*cloudtrail.Tag) map[string]string {
 	result := make(map[string]string)
 	for _, t := range ts {
-		result[*t.Key] = *t.Value
+		if !tagIgnoredCloudtrail(t) {
+			result[*t.Key] = *t.Value
+		}
 	}
 
 	return result
+}
+
+// compare a tag against a list of strings and checks if it should
+// be ignored or not
+func tagIgnoredCloudtrail(t *cloudtrail.Tag) bool {
+	filter := []string{"^aws:*"}
+	for _, v := range filter {
+		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
+		if r, _ := regexp.MatchString(v, *t.Key); r == true {
+			log.Printf("[DEBUG] Found AWS specific tag %s (val: %s), ignoring.\n", *t.Key, *t.Value)
+			return true
+		}
+	}
+	return false
 }

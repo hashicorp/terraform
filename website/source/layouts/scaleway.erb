@@ -1,0 +1,53 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+          <a href="/docs/providers/index.html">All Providers</a>
+        </li>
+
+        <li<%= sidebar_current("docs-scaleway-index") %>>
+          <a href="/docs/providers/scaleway/index.html">Scaleway Provider</a>
+        </li>
+
+        <li<%= sidebar_current("docs-scaleway-datasource") %>>
+          <a href="#">Data Sources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-scaleway-datasource-bootscript") %>>
+              <a href="/docs/providers/scaleway/d/bootscript.html">scaleway_bootscript</a>
+            </li>
+            <li<%= sidebar_current("docs-scaleway-datasource-image") %>>
+              <a href="/docs/providers/scaleway/d/image.html">scaleway_image</a>
+            </li>
+          </ul>
+        </li>
+
+        <li<%= sidebar_current("docs-scaleway-resource") %>>
+          <a href="#">Resources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-scaleway-resource-ip") %>>
+              <a href="/docs/providers/scaleway/r/ip.html">scaleway_ip</a>
+            </li>
+            <li<%= sidebar_current("docs-scaleway-resource-server") %>>
+              <a href="/docs/providers/scaleway/r/server.html">scaleway_server</a>
+            </li>
+            <li<%= sidebar_current("docs-scaleway-resource-security_group") %>>
+              <a href="/docs/providers/scaleway/r/security_group.html">scaleway_security_group</a>
+            </li>
+            <li<%= sidebar_current("docs-scaleway-resource-security_group_rule") %>>
+              <a href="/docs/providers/scaleway/r/security_group_rule.html">scaleway_security_group_rule</a>
+            </li>
+            <li<%= sidebar_current("docs-scaleway-resource-volume") %>>
+              <a href="/docs/providers/scaleway/r/volume.html">scaleway_volume</a>
+            </li>
+            <li<%= sidebar_current("docs-scaleway-resource-volume_attachment") %>>
+              <a href="/docs/providers/scaleway/r/volume_attachment.html">scaleway_volume_attachment</a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= yield %>
+<% end %>

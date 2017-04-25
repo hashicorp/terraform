@@ -12,14 +12,14 @@ Manages a v1 firewall rule resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_fw_rule_v1" "rule_1" {
-  name = "my_rule"
-  description = "drop TELNET traffic"
-  action = "deny"
-  protocol = "tcp"
+  name             = "my_rule"
+  description      = "drop TELNET traffic"
+  action           = "deny"
+  protocol         = "tcp"
   destination_port = "23"
-  enabled = "true"
+  enabled          = "true"
 }
 ```
 
@@ -39,7 +39,8 @@ The following arguments are supported:
     updates the `description` of an existing firewall rule.
 
 * `protocol` - (Required) The protocol type on which the firewall rule operates.
-    Changing this updates the `protocol` of an existing firewall rule.
+    Valid values are: `tcp`, `udp`, `icmp`, and `any`. Changing this updates the
+    `protocol` of an existing firewall rule.
 
 * `action` - (Required) Action to be taken ( must be "allow" or "deny") when the
     firewall rule matches. Changing this updates the `action` of an existing
@@ -72,6 +73,8 @@ The following arguments are supported:
     wants to create a firewall rule for another tenant. Changing this creates a
     new firewall rule.
 
+* `value_specs` - (Optional) Map of additional options.
+
 ## Attributes Reference
 
 The following attributes are exported:
@@ -88,3 +91,11 @@ The following attributes are exported:
 * `destination_port` - See Argument Reference above.
 * `enabled` - See Argument Reference above.
 * `tenant_id` - See Argument Reference above.
+
+## Import
+
+Firewall Rules can be imported using the `id`, e.g.
+
+```
+$ terraform import openstack_fw_rule_v1.rule_1 8dbc0c28-e49c-463f-b712-5c5d1bbac327
+```

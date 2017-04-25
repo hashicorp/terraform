@@ -74,6 +74,14 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, err
 	}
 
+	// Replace all env vars
+	for k, v := range result.Providers {
+		result.Providers[k] = os.ExpandEnv(v)
+	}
+	for k, v := range result.Provisioners {
+		result.Provisioners[k] = os.ExpandEnv(v)
+	}
+
 	return &result, nil
 }
 
@@ -169,14 +177,22 @@ func (c1 *Config) Merge(c2 *Config) *Config {
 		result.Providers[k] = v
 	}
 	for k, v := range c2.Providers {
+		if v1, ok := c1.Providers[k]; ok {
+			log.Printf("[INFO] Local %s provider configuration '%s' overrides '%s'", k, v, v1)
+		}
 		result.Providers[k] = v
 	}
 	for k, v := range c1.Provisioners {
 		result.Provisioners[k] = v
 	}
 	for k, v := range c2.Provisioners {
+		if v1, ok := c1.Provisioners[k]; ok {
+			log.Printf("[INFO] Local %s provisioner configuration '%s' overrides '%s'", k, v, v1)
+		}
 		result.Provisioners[k] = v
 	}
+	result.DisableCheckpoint = c1.DisableCheckpoint || c2.DisableCheckpoint
+	result.DisableCheckpointSignature = c1.DisableCheckpointSignature || c2.DisableCheckpointSignature
 
 	return &result
 }

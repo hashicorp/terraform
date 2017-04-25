@@ -1,9 +1,13 @@
 package aws
 
 import (
+	"fmt"
+	"log"
+	"regexp"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -16,21 +20,25 @@ func resourceAwsIamSamlProvider() *schema.Resource {
 		Update: resourceAwsIamSamlProviderUpdate,
 		Delete: resourceAwsIamSamlProviderDelete,
 
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"valid_until": &schema.Schema{
+			"valid_until": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"saml_metadata_document": &schema.Schema{
+			"saml_metadata_document": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
@@ -64,11 +72,21 @@ func resourceAwsIamSamlProviderRead(d *schema.ResourceData, meta interface{}) er
 	}
 	out, err := iamconn.GetSAMLProvider(input)
 	if err != nil {
+		if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
+			log.Printf("[WARN] IAM SAML Provider %q not found.", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 
 	validUntil := out.ValidUntil.Format(time.RFC1123)
 	d.Set("arn", d.Id())
+	name, err := extractNameFromIAMSamlProviderArn(d.Id(), meta.(*AWSClient).partition)
+	if err != nil {
+		return err
+	}
+	d.Set("name", name)
 	d.Set("valid_until", validUntil)
 	d.Set("saml_metadata_document", *out.SAMLMetadataDocument)
 
@@ -99,4 +117,14 @@ func resourceAwsIamSamlProviderDelete(d *schema.ResourceData, meta interface{}) 
 	_, err := iamconn.DeleteSAMLProvider(input)
 
 	return err
+}
+
+func extractNameFromIAMSamlProviderArn(arn, partition string) (string, error) {
+	// arn:aws:iam::123456789012:saml-provider/tf-salesforce-test
+	r := regexp.MustCompile(fmt.Sprintf("^arn:%s:iam::[0-9]{12}:saml-provider/(.+)$", partition))
+	submatches := r.FindStringSubmatch(arn)
+	if len(submatches) != 2 {
+		return "", fmt.Errorf("Unable to extract name from a given ARN: %q", arn)
+	}
+	return submatches[1], nil
 }

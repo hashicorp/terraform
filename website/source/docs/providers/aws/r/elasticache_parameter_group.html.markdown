@@ -10,20 +10,20 @@ Provides an ElastiCache parameter group resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_elasticache_parameter_group" "default" {
-    name = "cache-params"
-    family = "redis2.8"
+  name   = "cache-params"
+  family = "redis2.8"
 
-    parameter {
-        name = "activerehashing"
-        value = "yes"
-    }
+  parameter {
+    name  = "activerehashing"
+    value = "yes"
+  }
 
-    parameter {
-        name = "min-slaves-to-write"
-        value = "2"
-    }
+  parameter {
+    name  = "min-slaves-to-write"
+    value = "2"
+  }
 }
 ```
 
@@ -46,3 +46,12 @@ Parameter blocks support the following:
 The following attributes are exported:
 
 * `id` - The ElastiCache parameter group name.
+
+
+## Import
+
+ElastiCache Parameter Groups can be imported using the `name`, e.g.
+
+```
+$ terraform import aws_elasticache_parameter_group.default redis-params
+```

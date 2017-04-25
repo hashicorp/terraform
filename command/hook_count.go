@@ -1,6 +1,7 @@
 package command
 
 import (
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/terraform/terraform"
@@ -46,7 +47,7 @@ func (h *CountHook) PreApply(
 	}
 
 	action := countHookActionChange
-	if d.Destroy {
+	if d.GetDestroy() {
 		action = countHookActionRemove
 	} else if s.ID == "" {
 		action = countHookActionAdd
@@ -89,6 +90,11 @@ func (h *CountHook) PostDiff(
 	terraform.HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
+
+	// We don't count anything for data sources
+	if strings.HasPrefix(n.Id, "data.") {
+		return terraform.HookActionContinue, nil
+	}
 
 	switch d.ChangeType() {
 	case terraform.DiffDestroyCreate:

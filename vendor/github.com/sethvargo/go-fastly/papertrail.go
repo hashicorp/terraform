@@ -9,7 +9,7 @@ import (
 // Papertrail represents a papertrail response from the Fastly API.
 type Papertrail struct {
 	ServiceID string `mapstructure:"service_id"`
-	Version   string `mapstructure:"version"`
+	Version   int    `mapstructure:"version"`
 
 	Name              string     `mapstructure:"name"`
 	Address           string     `mapstructure:"address"`
@@ -37,7 +37,7 @@ type ListPapertrailsInput struct {
 	Service string
 
 	// Version is the specific configuration version (required).
-	Version string
+	Version int
 }
 
 // ListPapertrails returns the list of papertrails for the configuration version.
@@ -46,11 +46,11 @@ func (c *Client) ListPapertrails(i *ListPapertrailsInput) ([]*Papertrail, error)
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/papertrail", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/papertrail", i.Service, i.Version)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ type CreatePapertrailInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	Name              string     `form:"name,omitempty"`
 	Address           string     `form:"address,omitempty"`
@@ -87,11 +87,11 @@ func (c *Client) CreatePapertrail(i *CreatePapertrailInput) (*Papertrail, error)
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/papertrail", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/papertrail", i.Service, i.Version)
 	resp, err := c.PostForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -109,7 +109,7 @@ type GetPapertrailInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the papertrail to fetch.
 	Name string
@@ -121,7 +121,7 @@ func (c *Client) GetPapertrail(i *GetPapertrailInput) (*Papertrail, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -129,7 +129,7 @@ func (c *Client) GetPapertrail(i *GetPapertrailInput) (*Papertrail, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/papertrail/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/papertrail/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -147,7 +147,7 @@ type UpdatePapertrailInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the papertrail to update.
 	Name string
@@ -168,7 +168,7 @@ func (c *Client) UpdatePapertrail(i *UpdatePapertrailInput) (*Papertrail, error)
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -176,7 +176,7 @@ func (c *Client) UpdatePapertrail(i *UpdatePapertrailInput) (*Papertrail, error)
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/papertrail/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/papertrail/%s", i.Service, i.Version, i.Name)
 	resp, err := c.PutForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -194,7 +194,7 @@ type DeletePapertrailInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the papertrail to delete (required).
 	Name string
@@ -206,7 +206,7 @@ func (c *Client) DeletePapertrail(i *DeletePapertrailInput) error {
 		return ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return ErrMissingVersion
 	}
 
@@ -214,7 +214,7 @@ func (c *Client) DeletePapertrail(i *DeletePapertrailInput) error {
 		return ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/papertrail/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/papertrail/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Delete(path, nil)
 	if err != nil {
 		return err

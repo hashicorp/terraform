@@ -91,7 +91,7 @@ type ServicePrincipalNoSecret struct {
 // SetAuthenticationValues is a method of the interface ServicePrincipalSecret
 // It only returns an error for the ServicePrincipalNoSecret type
 func (noSecret *ServicePrincipalNoSecret) SetAuthenticationValues(spt *ServicePrincipalToken, v *url.Values) error {
-	return fmt.Errorf("Manually created ServicePrincipalToken does not contain secret material to retrieve a new access token.")
+	return fmt.Errorf("Manually created ServicePrincipalToken does not contain secret material to retrieve a new access token")
 }
 
 // ServicePrincipalSecret is an interface that allows various secret mechanism to fill the form
@@ -137,8 +137,8 @@ func (secret *ServicePrincipalCertificateSecret) SignJwt(spt *ServicePrincipalTo
 
 	token := jwt.New(jwt.SigningMethodRS256)
 	token.Header["x5t"] = thumbprint
-	token.Claims = map[string]interface{}{
-		"aud": spt.oauthConfig.TokenEndpoint,
+	token.Claims = jwt.MapClaims{
+		"aud": spt.oauthConfig.TokenEndpoint.String(),
 		"iss": spt.clientID,
 		"sub": spt.clientID,
 		"jti": base64.URLEncoding.EncodeToString(jti),
@@ -147,7 +147,7 @@ func (secret *ServicePrincipalCertificateSecret) SignJwt(spt *ServicePrincipalTo
 	}
 
 	signedString, err := token.SignedString(secret.PrivateKey)
-	return signedString, nil
+	return signedString, err
 }
 
 // SetAuthenticationValues is a method of the interface ServicePrincipalSecret.
@@ -302,7 +302,7 @@ func (spt *ServicePrincipalToken) refreshInternal(resource string) error {
 
 	var newToken Token
 	err = autorest.Respond(resp,
-		autorest.WithErrorUnlessOK(),
+		autorest.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&newToken),
 		autorest.ByClosing())
 	if err != nil {

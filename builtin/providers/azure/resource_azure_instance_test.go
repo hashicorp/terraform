@@ -38,6 +38,8 @@ func TestAccAzureInstance_basic(t *testing.T) {
 						"azure_instance.foo", "location", "West US"),
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "endpoint.2462817782.public_port", "22"),
+					resource.TestCheckResourceAttr(
+						"azure_instance.foo", "custom_data", "0ea0f28b0c42d6bef7d0c7ab4886324feaa8b5e1"),
 				),
 			},
 		},
@@ -104,6 +106,8 @@ func TestAccAzureInstance_advanced(t *testing.T) {
 						"azure_instance.foo", "security_group", "terraform-security-group1"),
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "endpoint.1814039778.public_port", "3389"),
+					resource.TestCheckResourceAttr(
+						"azure_instance.foo", "custom_data", "04c589e0edaa5ffe185d1e5532e77d1b2ac4b948"),
 				),
 			},
 		},
@@ -437,6 +441,7 @@ resource "azure_instance" "foo" {
     location = "West US"
     username = "terraform"
     password = "Pass!admin123"
+    custom_data = "# Hello world"
 
     endpoint {
         name = "SSH"
@@ -448,9 +453,9 @@ resource "azure_instance" "foo" {
 
 var testAccAzureInstance_separateHostedService = `
 resource "azure_hosted_service" "foo" {
-	name = "%s"
-	location = "West US"
-	ephemeral_contents = true
+    name = "%s"
+    location = "West US"
+    ephemeral_contents = true
 }
 
 resource "azure_instance" "foo" {
@@ -475,16 +480,16 @@ var testAccAzureInstance_advanced = fmt.Sprintf(`
 resource "azure_virtual_network" "foo" {
     name = "terraform-vnet-advanced-test"
     address_space = ["10.1.2.0/24"]
-		location = "West US"
+        location = "West US"
 
-		subnet {
+        subnet {
         name = "subnet1"
-				address_prefix = "10.1.2.0/25"
-		}
+                address_prefix = "10.1.2.0/25"
+        }
 
-		subnet {
+        subnet {
         name = "subnet2"
-				address_prefix = "10.1.2.128/25"
+                address_prefix = "10.1.2.128/25"
     }
 }
 
@@ -501,8 +506,8 @@ resource "azure_security_group_rule" "foo" {
     source_port_range = "*"
     destination_address_prefix = "*"
     destination_port_range = "3389"
-	action = "Deny"
-	type = "Inbound"
+    action = "Deny"
+    type = "Inbound"
     protocol = "TCP"
 }
 
@@ -518,6 +523,7 @@ resource "azure_instance" "foo" {
     security_group = "${azure_security_group.foo.name}"
     username = "terraform"
     password = "Pass!admin123"
+    custom_data = "IyBIZWxsbyB3b3JsZA=="
 
     endpoint {
         name = "RDP"
@@ -531,16 +537,16 @@ var testAccAzureInstance_update = fmt.Sprintf(`
 resource "azure_virtual_network" "foo" {
     name = "terraform-vnet-update-test"
     address_space = ["10.1.2.0/24"]
-		location = "West US"
+    location = "West US"
 
     subnet {
         name = "subnet1"
-		address_prefix = "10.1.2.0/25"
-	}
+        address_prefix = "10.1.2.0/25"
+    }
 
     subnet {
         name = "subnet2"
-		address_prefix = "10.1.2.128/25"
+        address_prefix = "10.1.2.128/25"
     }
 }
 
@@ -557,8 +563,8 @@ resource "azure_security_group_rule" "foo" {
     source_port_range = "*"
     destination_address_prefix = "*"
     destination_port_range = "3389"
-	type = "Inbound"
-	action = "Deny"
+    type = "Inbound"
+    action = "Deny"
     protocol = "TCP"
 }
 
@@ -575,8 +581,8 @@ resource "azure_security_group_rule" "bar" {
     source_port_range = "*"
     destination_address_prefix = "*"
     destination_port_range = "3389"
-	type = "Inbound"
-	action = "Deny"
+    type = "Inbound"
+    action = "Deny"
     protocol = "TCP"
 }
 

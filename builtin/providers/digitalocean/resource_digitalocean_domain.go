@@ -13,15 +13,18 @@ func resourceDigitalOceanDomain() *schema.Resource {
 		Create: resourceDigitalOceanDomainCreate,
 		Read:   resourceDigitalOceanDomainRead,
 		Delete: resourceDigitalOceanDomainDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"ip_address": &schema.Schema{
+			"ip_address": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,

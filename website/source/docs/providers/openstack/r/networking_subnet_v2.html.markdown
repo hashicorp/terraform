@@ -12,15 +12,15 @@ Manages a V2 Neutron subnet resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_networking_network_v2" "network_1" {
-  name = "tf_test_network"
+  name           = "tf_test_network"
   admin_state_up = "true"
 }
 
 resource "openstack_networking_subnet_v2" "subnet_1" {
   network_id = "${openstack_networking_network_v2.network_1.id}"
-  cidr = "192.168.199.0/24"
+  cidr       = "192.168.199.0/24"
 }
 ```
 
@@ -73,6 +73,8 @@ The following arguments are supported:
     object structure is documented below. Changing this updates the host routes
     for the existing subnet.
 
+* `value_specs` - (Optional) Map of additional options.
+
 The `allocation_pools` block supports:
 
 * `start` - (Required) The starting address.
@@ -100,3 +102,11 @@ The following attributes are exported:
 * `enable_dhcp` - See Argument Reference above.
 * `dns_nameservers` - See Argument Reference above.
 * `host_routes` - See Argument Reference above.
+
+## Import
+
+Subnets can be imported using the `id`, e.g.
+
+```
+$ terraform import openstack_networking_subnet_v2.subnet_1 da4faf16-5546-41e4-8330-4d0002b74048
+```

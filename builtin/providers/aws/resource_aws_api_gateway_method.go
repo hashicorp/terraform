@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -45,6 +46,11 @@ func resourceAwsApiGatewayMethod() *schema.Resource {
 				Required: true,
 			},
 
+			"authorizer_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"api_key_required": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -57,9 +63,18 @@ func resourceAwsApiGatewayMethod() *schema.Resource {
 				Elem:     schema.TypeString,
 			},
 
+			"request_parameters": &schema.Schema{
+				Type:          schema.TypeMap,
+				Elem:          schema.TypeBool,
+				Optional:      true,
+				ConflictsWith: []string{"request_parameters_in_json"},
+			},
+
 			"request_parameters_in_json": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"request_parameters"},
+				Deprecated:    "Use field request_parameters instead",
 			},
 		},
 	}
@@ -68,28 +83,45 @@ func resourceAwsApiGatewayMethod() *schema.Resource {
 func resourceAwsApiGatewayMethodCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).apigateway
 
-	models := make(map[string]string)
-	for k, v := range d.Get("request_models").(map[string]interface{}) {
-		models[k] = v.(string)
-	}
-
-	parameters := make(map[string]bool)
-	if v, ok := d.GetOk("request_parameters_in_json"); ok {
-		if err := json.Unmarshal([]byte(v.(string)), &parameters); err != nil {
-			return fmt.Errorf("Error unmarshaling request_parameters_in_json: %s", err)
-		}
-	}
-
-	_, err := conn.PutMethod(&apigateway.PutMethodInput{
+	input := apigateway.PutMethodInput{
 		AuthorizationType: aws.String(d.Get("authorization").(string)),
 		HttpMethod:        aws.String(d.Get("http_method").(string)),
 		ResourceId:        aws.String(d.Get("resource_id").(string)),
 		RestApiId:         aws.String(d.Get("rest_api_id").(string)),
-		RequestModels:     aws.StringMap(models),
-		// TODO reimplement once [GH-2143](https://github.com/hashicorp/terraform/issues/2143) has been implemented
-		RequestParameters: aws.BoolMap(parameters),
 		ApiKeyRequired:    aws.Bool(d.Get("api_key_required").(bool)),
-	})
+	}
+
+	models := make(map[string]string)
+	for k, v := range d.Get("request_models").(map[string]interface{}) {
+		models[k] = v.(string)
+	}
+	if len(models) > 0 {
+		input.RequestModels = aws.StringMap(models)
+	}
+
+	parameters := make(map[string]bool)
+	if kv, ok := d.GetOk("request_parameters"); ok {
+		for k, v := range kv.(map[string]interface{}) {
+			parameters[k], ok = v.(bool)
+			if !ok {
+				value, _ := strconv.ParseBool(v.(string))
+				parameters[k] = value
+			}
+		}
+		input.RequestParameters = aws.BoolMap(parameters)
+	}
+	if v, ok := d.GetOk("request_parameters_in_json"); ok {
+		if err := json.Unmarshal([]byte(v.(string)), &parameters); err != nil {
+			return fmt.Errorf("Error unmarshaling request_parameters_in_json: %s", err)
+		}
+		input.RequestParameters = aws.BoolMap(parameters)
+	}
+
+	if v, ok := d.GetOk("authorizer_id"); ok {
+		input.AuthorizerId = aws.String(v.(string))
+	}
+
+	_, err := conn.PutMethod(&input)
 	if err != nil {
 		return fmt.Errorf("Error creating API Gateway Method: %s", err)
 	}
@@ -118,7 +150,12 @@ func resourceAwsApiGatewayMethodRead(d *schema.ResourceData, meta interface{}) e
 	}
 	log.Printf("[DEBUG] Received API Gateway Method: %s", out)
 	d.SetId(fmt.Sprintf("agm-%s-%s-%s", d.Get("rest_api_id").(string), d.Get("resource_id").(string), d.Get("http_method").(string)))
+	d.Set("request_parameters", aws.BoolValueMap(out.RequestParameters))
 	d.Set("request_parameters_in_json", aws.BoolValueMap(out.RequestParameters))
+	d.Set("api_key_required", out.ApiKeyRequired)
+	d.Set("authorization_type", out.AuthorizationType)
+	d.Set("authorizer_id", out.AuthorizerId)
+	d.Set("request_models", aws.StringValueMap(out.RequestModels))
 
 	return nil
 }
@@ -141,11 +178,52 @@ func resourceAwsApiGatewayMethodUpdate(d *schema.ResourceData, meta interface{})
 	}
 
 	if d.HasChange("request_parameters_in_json") {
-		ops, err := expandApiGatewayMethodParametersJSONOperations(d, "request_parameters_in_json", "requestParameters")
+		ops, err := deprecatedExpandApiGatewayMethodParametersJSONOperations(d, "request_parameters_in_json", "requestParameters")
 		if err != nil {
 			return err
 		}
 		operations = append(operations, ops...)
+	}
+
+	if d.HasChange("request_parameters") {
+		parameters := make(map[string]bool)
+		var ok bool
+		for k, v := range d.Get("request_parameters").(map[string]interface{}) {
+			parameters[k], ok = v.(bool)
+			if !ok {
+				value, _ := strconv.ParseBool(v.(string))
+				parameters[k] = value
+			}
+		}
+		ops, err := expandApiGatewayMethodParametersOperations(d, "request_parameters", "requestParameters")
+		if err != nil {
+			return err
+		}
+		operations = append(operations, ops...)
+	}
+
+	if d.HasChange("authorization") {
+		operations = append(operations, &apigateway.PatchOperation{
+			Op:    aws.String("replace"),
+			Path:  aws.String("/authorizationType"),
+			Value: aws.String(d.Get("authorization").(string)),
+		})
+	}
+
+	if d.HasChange("authorizer_id") {
+		operations = append(operations, &apigateway.PatchOperation{
+			Op:    aws.String("replace"),
+			Path:  aws.String("/authorizerId"),
+			Value: aws.String(d.Get("authorizer_id").(string)),
+		})
+	}
+
+	if d.HasChange("api_key_required") {
+		operations = append(operations, &apigateway.PatchOperation{
+			Op:    aws.String("replace"),
+			Path:  aws.String("/apiKeyRequired"),
+			Value: aws.String(fmt.Sprintf("%t", d.Get("api_key_required").(bool))),
+		})
 	}
 
 	method, err := conn.UpdateMethod(&apigateway.UpdateMethodInput{

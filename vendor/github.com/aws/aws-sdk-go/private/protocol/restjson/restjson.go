@@ -1,9 +1,9 @@
-// Package restjson provides RESTful JSON serialisation of AWS
+// Package restjson provides RESTful JSON serialization of AWS
 // requests and responses.
 package restjson
 
-//go:generate go run ../../../models/protocol_tests/generate.go ../../../models/protocol_tests/input/rest-json.json build_test.go
-//go:generate go run ../../../models/protocol_tests/generate.go ../../../models/protocol_tests/output/rest-json.json unmarshal_test.go
+//go:generate go run -tags codegen ../../../models/protocol_tests/generate.go ../../../models/protocol_tests/input/rest-json.json build_test.go
+//go:generate go run -tags codegen ../../../models/protocol_tests/generate.go ../../../models/protocol_tests/output/rest-json.json unmarshal_test.go
 
 import (
 	"encoding/json"

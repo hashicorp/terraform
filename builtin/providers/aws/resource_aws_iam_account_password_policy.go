@@ -17,6 +17,9 @@ func resourceAwsIamAccountPasswordPolicy() *schema.Resource {
 		Read:   resourceAwsIamAccountPasswordPolicyRead,
 		Update: resourceAwsIamAccountPasswordPolicyUpdate,
 		Delete: resourceAwsIamAccountPasswordPolicyDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"allow_users_to_change_password": &schema.Schema{

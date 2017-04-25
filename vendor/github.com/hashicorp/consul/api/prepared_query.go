@@ -25,6 +25,11 @@ type ServiceQuery struct {
 	// Service is the service to query.
 	Service string
 
+	// Near allows baking in the name of a node to automatically distance-
+	// sort from. The magic "_agent" value is supported, which sorts near
+	// the agent which initiated the request by default.
+	Near string
+
 	// Failover controls what we do if there are no healthy nodes in the
 	// local datacenter.
 	Failover QueryDatacenterOptions
@@ -38,6 +43,22 @@ type ServiceQuery struct {
 	// this list it must be present. If the tag is preceded with "!" then
 	// it is disallowed.
 	Tags []string
+
+	// NodeMeta is a map of required node metadata fields. If a key/value
+	// pair is in this map it must be present on the node in order for the
+	// service entry to be returned.
+	NodeMeta map[string]string
+}
+
+// QueryTemplate carries the arguments for creating a templated query.
+type QueryTemplate struct {
+	// Type specifies the type of the query template. Currently only
+	// "name_prefix_match" is supported. This field is required.
+	Type string
+
+	// Regexp allows specifying a regex pattern to match against the name
+	// of the query being executed.
+	Regexp string
 }
 
 // PrepatedQueryDefinition defines a complete prepared query.
@@ -67,6 +88,11 @@ type PreparedQueryDefinition struct {
 	// DNS has options that control how the results of this query are
 	// served over DNS.
 	DNS QueryDNSOptions
+
+	// Template is used to pass through the arguments for creating a
+	// prepared query with an attached template. If a template is given,
+	// interpolations are possible in other struct fields.
+	Template QueryTemplate
 }
 
 // PreparedQueryExecuteResponse has the results of executing a query.
@@ -146,19 +172,18 @@ func (c *PreparedQuery) Get(queryID string, q *QueryOptions) ([]*PreparedQueryDe
 }
 
 // Delete is used to delete a specific prepared query.
-func (c *PreparedQuery) Delete(queryID string, q *QueryOptions) (*QueryMeta, error) {
+func (c *PreparedQuery) Delete(queryID string, q *WriteOptions) (*WriteMeta, error) {
 	r := c.c.newRequest("DELETE", "/v1/query/"+queryID)
-	r.setQueryOptions(q)
+	r.setWriteOptions(q)
 	rtt, resp, err := requireOK(c.c.doRequest(r))
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
-	qm.RequestTime = rtt
-	return qm, nil
+	wm := &WriteMeta{}
+	wm.RequestTime = rtt
+	return wm, nil
 }
 
 // Execute is used to execute a specific prepared query. You can execute using

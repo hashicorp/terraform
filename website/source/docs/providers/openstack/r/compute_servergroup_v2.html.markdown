@@ -12,9 +12,9 @@ Manages a V2 Server Group resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_compute_servergroup_v2" "test-sg" {
-  name = "my-sg"
+  name     = "my-sg"
   policies = ["anti-affinity"]
 }
 ```
@@ -35,6 +35,8 @@ The following arguments are supported:
     the Policies section for more information. Changing this creates a new
     server group.
 
+* `value_specs` - (Optional) Map of additional options.
+
 ## Policies
 
 * `affinity` - All instances/servers launched in this group will be hosted on
@@ -51,3 +53,11 @@ The following attributes are exported:
 * `name` - See Argument Reference above.
 * `policies` - See Argument Reference above.
 * `members` - The instances that are part of this server group.
+
+## Import
+
+Server Groups can be imported using the `id`, e.g.
+
+```
+$ terraform import openstack_compute_servergroup_v2.test-sg 1bc30ee9-9d5b-4c30-bdd5-7f1e663f5edf
+```

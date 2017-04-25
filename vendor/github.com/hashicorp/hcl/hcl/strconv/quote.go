@@ -27,7 +27,7 @@ func Unquote(s string) (t string, err error) {
 	if quote != '"' {
 		return "", ErrSyntax
 	}
-	if contains(s, '\n') {
+	if !contains(s, '$') && !contains(s, '{') && contains(s, '\n') {
 		return "", ErrSyntax
 	}
 
@@ -49,7 +49,7 @@ func Unquote(s string) (t string, err error) {
 	for len(s) > 0 {
 		// If we're starting a '${}' then let it through un-unquoted.
 		// Specifically: we don't unquote any characters within the `${}`
-		// section, except for escaped backslashes, which we handle specifically.
+		// section.
 		if s[0] == '$' && len(s) > 1 && s[1] == '{' {
 			buf = append(buf, '$', '{')
 			s = s[2:]
@@ -63,16 +63,6 @@ func Unquote(s string) (t string, err error) {
 				}
 
 				s = s[size:]
-
-				// We special case escaped backslashes in interpolations, converting
-				// them to their unescaped equivalents.
-				if r == '\\' {
-					q, _ := utf8.DecodeRuneInString(s)
-					switch q {
-					case '\\':
-						continue
-					}
-				}
 
 				n := utf8.EncodeRune(runeTmp[:], r)
 				buf = append(buf, runeTmp[:n]...)
@@ -95,6 +85,10 @@ func Unquote(s string) (t string, err error) {
 				// in case there's another interpolation in this string.
 				continue
 			}
+		}
+
+		if s[0] == '\n' {
+			return "", ErrSyntax
 		}
 
 		c, multibyte, ss, err := unquoteChar(s, quote)

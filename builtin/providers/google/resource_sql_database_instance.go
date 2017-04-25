@@ -3,6 +3,7 @@ package google
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -70,6 +71,7 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 						"crash_safe_replication": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
+							Computed: true,
 						},
 						"database_flags": &schema.Schema{
 							Type:     schema.TypeList,
@@ -86,6 +88,18 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 									},
 								},
 							},
+						},
+						"disk_autoresize": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+						"disk_size": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"disk_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 						"ip_configuration": &schema.Schema{
 							Type:     schema.TypeList,
@@ -139,6 +153,33 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 								},
 							},
 						},
+						"maintenance_window": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"day": &schema.Schema{
+										Type:     schema.TypeInt,
+										Optional: true,
+										ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+											return validateNumericRange(v, k, 1, 7)
+										},
+									},
+									"hour": &schema.Schema{
+										Type:     schema.TypeInt,
+										Optional: true,
+										ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+											return validateNumericRange(v, k, 0, 23)
+										},
+									},
+									"update_track": &schema.Schema{
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+								},
+							},
+						},
 						"pricing_plan": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
@@ -154,7 +195,7 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 			"database_version": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "MYSQL_5_5",
+				Default:  "MYSQL_5_6",
 				ForceNew: true,
 			},
 
@@ -323,6 +364,18 @@ func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{})
 		settings.CrashSafeReplicationEnabled = v.(bool)
 	}
 
+	if v, ok := _settings["disk_autoresize"]; ok && v.(bool) {
+		settings.StorageAutoResize = v.(bool)
+	}
+
+	if v, ok := _settings["disk_size"]; ok && v.(int) > 0 {
+		settings.DataDiskSizeGb = int64(v.(int))
+	}
+
+	if v, ok := _settings["disk_type"]; ok && len(v.(string)) > 0 {
+		settings.DataDiskType = v.(string)
+	}
+
 	if v, ok := _settings["database_flags"]; ok {
 		settings.DatabaseFlags = make([]*sqladmin.DatabaseFlags, 0)
 		_databaseFlagsList := v.([]interface{})
@@ -401,6 +454,25 @@ func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{})
 
 			if vp, okp := _locationPreference["zone"]; okp {
 				settings.LocationPreference.Zone = vp.(string)
+			}
+		}
+	}
+
+	if v, ok := _settings["maintenance_window"]; ok && len(v.([]interface{})) > 0 {
+		settings.MaintenanceWindow = &sqladmin.MaintenanceWindow{}
+		_maintenanceWindow := v.([]interface{})[0].(map[string]interface{})
+
+		if vp, okp := _maintenanceWindow["day"]; okp {
+			settings.MaintenanceWindow.Day = int64(vp.(int))
+		}
+
+		if vp, okp := _maintenanceWindow["hour"]; okp {
+			settings.MaintenanceWindow.Hour = int64(vp.(int))
+		}
+
+		if vp, ok := _maintenanceWindow["update_track"]; ok {
+			if len(vp.(string)) > 0 {
+				settings.MaintenanceWindow.UpdateTrack = vp.(string)
 			}
 		}
 	}
@@ -500,7 +572,30 @@ func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	return resourceSqlDatabaseInstanceRead(d, meta)
+	err = resourceSqlDatabaseInstanceRead(d, meta)
+	if err != nil {
+		return err
+	}
+
+	// If a root user exists with a wildcard ('%') hostname, delete it.
+	users, err := config.clientSqlAdmin.Users.List(project, instance.Name).Do()
+	if err != nil {
+		return fmt.Errorf("Error, attempting to list users associated with instance %s: %s", instance.Name, err)
+	}
+	for _, u := range users.Items {
+		if u.Name == "root" && u.Host == "%" {
+			op, err = config.clientSqlAdmin.Users.Delete(project, instance.Name, u.Host, u.Name).Do()
+			if err != nil {
+				return fmt.Errorf("Error, failed to delete default 'root'@'*' user, but the database was created successfully: %s", err)
+			}
+			err = sqladminOperationWait(config, op, "Delete default root User")
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) error {
@@ -564,7 +659,7 @@ func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) e
 				_backupConfiguration["enabled"] = settings.BackupConfiguration.Enabled
 			}
 
-			if vp, okp := _backupConfiguration["start_time"]; okp && vp != nil {
+			if vp, okp := _backupConfiguration["start_time"]; okp && len(vp.(string)) > 0 {
 				_backupConfiguration["start_time"] = settings.BackupConfiguration.StartTime
 			}
 
@@ -575,6 +670,24 @@ func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) e
 
 	if v, ok := _settings["crash_safe_replication"]; ok && v != nil {
 		_settings["crash_safe_replication"] = settings.CrashSafeReplicationEnabled
+	}
+
+	if v, ok := _settings["disk_autoresize"]; ok && v != nil {
+		if v.(bool) {
+			_settings["disk_autoresize"] = settings.StorageAutoResize
+		}
+	}
+
+	if v, ok := _settings["disk_size"]; ok && v != nil {
+		if v.(int) > 0 && settings.DataDiskSizeGb < int64(v.(int)) {
+			_settings["disk_size"] = settings.DataDiskSizeGb
+		}
+	}
+
+	if v, ok := _settings["disk_type"]; ok && v != nil {
+		if len(v.(string)) > 0 {
+			_settings["disk_type"] = settings.DataDiskType
+		}
 	}
 
 	if v, ok := _settings["database_flags"]; ok && len(v.([]interface{})) > 0 {
@@ -617,9 +730,13 @@ func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) e
 			}
 
 			if vp, okp := _ipConfiguration["authorized_networks"]; okp && vp != nil {
+				_authorizedNetworksList := vp.([]interface{})
 				_ipc_map := make(map[string]interface{})
-				// First keep track of localy defined ip configurations
-				for _, _ipc := range _ipConfigurationList {
+				// First keep track of locally defined ip configurations
+				for _, _ipc := range _authorizedNetworksList {
+					if _ipc == nil {
+						continue
+					}
 					_entry := _ipc.(map[string]interface{})
 					if _entry["value"] == nil {
 						continue
@@ -671,6 +788,25 @@ func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) e
 
 			_locationPreferenceList[0] = _locationPreference
 			_settings["location_preference"] = _locationPreferenceList[0]
+		}
+	}
+
+	if v, ok := _settings["maintenance_window"]; ok && len(v.([]interface{})) > 0 &&
+		settings.MaintenanceWindow != nil {
+		_maintenanceWindow := v.([]interface{})[0].(map[string]interface{})
+
+		if vp, okp := _maintenanceWindow["day"]; okp && vp != nil {
+			_maintenanceWindow["day"] = settings.MaintenanceWindow.Day
+		}
+
+		if vp, okp := _maintenanceWindow["hour"]; okp && vp != nil {
+			_maintenanceWindow["hour"] = settings.MaintenanceWindow.Hour
+		}
+
+		if vp, ok := _maintenanceWindow["update_track"]; ok && vp != nil {
+			if len(vp.(string)) > 0 {
+				_maintenanceWindow["update_track"] = settings.MaintenanceWindow.UpdateTrack
+			}
 		}
 	}
 
@@ -754,7 +890,7 @@ func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("ip_address", _ipAddresses)
 
 	if v, ok := d.GetOk("master_instance_name"); ok && v != nil {
-		d.Set("master_instance_name", instance.MasterInstanceName)
+		d.Set("master_instance_name", strings.TrimPrefix(instance.MasterInstanceName, project+":"))
 	}
 
 	d.Set("self_link", instance.SelfLink)
@@ -836,6 +972,20 @@ func resourceSqlDatabaseInstanceUpdate(d *schema.ResourceData, meta interface{})
 			settings.CrashSafeReplicationEnabled = v.(bool)
 		}
 
+		if v, ok := _settings["disk_autoresize"]; ok && v.(bool) {
+			settings.StorageAutoResize = v.(bool)
+		}
+
+		if v, ok := _settings["disk_size"]; ok {
+			if v.(int) > 0 && int64(v.(int)) > instance.Settings.DataDiskSizeGb {
+				settings.DataDiskSizeGb = int64(v.(int))
+			}
+		}
+
+		if v, ok := _settings["disk_type"]; ok && len(v.(string)) > 0 {
+			settings.DataDiskType = v.(string)
+		}
+
 		_oldDatabaseFlags := make([]interface{}, 0)
 		if ov, ook := _o["database_flags"]; ook {
 			_oldDatabaseFlags = ov.([]interface{})
@@ -911,7 +1061,7 @@ func resourceSqlDatabaseInstanceUpdate(d *schema.ResourceData, meta interface{})
 				}
 
 				if vp, okp := _ipConfiguration["authorized_networks"]; okp || len(_oldAuthorizedNetworkList) > 0 {
-					oldAuthorizedNetworks := settings.IpConfiguration.AuthorizedNetworks
+					oldAuthorizedNetworks := instance.Settings.IpConfiguration.AuthorizedNetworks
 					settings.IpConfiguration.AuthorizedNetworks = make([]*sqladmin.AclEntry, 0)
 
 					_authorizedNetworksList := make([]interface{}, 0)
@@ -932,28 +1082,26 @@ func resourceSqlDatabaseInstanceUpdate(d *schema.ResourceData, meta interface{})
 								settings.IpConfiguration.AuthorizedNetworks, entry)
 						}
 					}
-					// finally, insert only those that were previously defined
+					// finally, update old entries and insert new ones
 					// and are still defined.
 					for _, _ipc := range _authorizedNetworksList {
 						_entry := _ipc.(map[string]interface{})
-						if _, ok_old := _oipc_map[_entry["value"].(string)]; ok_old {
-							entry := &sqladmin.AclEntry{}
+						entry := &sqladmin.AclEntry{}
 
-							if vpp, okpp := _entry["expiration_time"]; okpp {
-								entry.ExpirationTime = vpp.(string)
-							}
-
-							if vpp, okpp := _entry["name"]; okpp {
-								entry.Name = vpp.(string)
-							}
-
-							if vpp, okpp := _entry["value"]; okpp {
-								entry.Value = vpp.(string)
-							}
-
-							settings.IpConfiguration.AuthorizedNetworks = append(
-								settings.IpConfiguration.AuthorizedNetworks, entry)
+						if vpp, okpp := _entry["expiration_time"]; okpp {
+							entry.ExpirationTime = vpp.(string)
 						}
+
+						if vpp, okpp := _entry["name"]; okpp {
+							entry.Name = vpp.(string)
+						}
+
+						if vpp, okpp := _entry["value"]; okpp {
+							entry.Value = vpp.(string)
+						}
+
+						settings.IpConfiguration.AuthorizedNetworks = append(
+							settings.IpConfiguration.AuthorizedNetworks, entry)
 					}
 				}
 			}
@@ -975,6 +1123,25 @@ func resourceSqlDatabaseInstanceUpdate(d *schema.ResourceData, meta interface{})
 
 				if vp, okp := _locationPreference["zone"]; okp {
 					settings.LocationPreference.Zone = vp.(string)
+				}
+			}
+		}
+
+		if v, ok := _settings["maintenance_window"]; ok && len(v.([]interface{})) > 0 {
+			settings.MaintenanceWindow = &sqladmin.MaintenanceWindow{}
+			_maintenanceWindow := v.([]interface{})[0].(map[string]interface{})
+
+			if vp, okp := _maintenanceWindow["day"]; okp {
+				settings.MaintenanceWindow.Day = int64(vp.(int))
+			}
+
+			if vp, okp := _maintenanceWindow["hour"]; okp {
+				settings.MaintenanceWindow.Hour = int64(vp.(int))
+			}
+
+			if vp, ok := _maintenanceWindow["update_track"]; ok {
+				if len(vp.(string)) > 0 {
+					settings.MaintenanceWindow.UpdateTrack = vp.(string)
 				}
 			}
 		}
@@ -1025,4 +1192,13 @@ func resourceSqlDatabaseInstanceDelete(d *schema.ResourceData, meta interface{})
 	}
 
 	return nil
+}
+
+func validateNumericRange(v interface{}, k string, min int, max int) (ws []string, errors []error) {
+	value := v.(int)
+	if min > value || value > max {
+		errors = append(errors, fmt.Errorf(
+			"%q outside range %d-%d.", k, min, max))
+	}
+	return
 }

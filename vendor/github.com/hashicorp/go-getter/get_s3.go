@@ -7,11 +7,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
+	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
@@ -19,6 +19,45 @@ import (
 // S3Getter is a Getter implementation that will download a module from
 // a S3 bucket.
 type S3Getter struct{}
+
+func (g *S3Getter) ClientMode(u *url.URL) (ClientMode, error) {
+	// Parse URL
+	region, bucket, path, _, creds, err := g.parseUrl(u)
+	if err != nil {
+		return 0, err
+	}
+
+	// Create client config
+	config := g.getAWSConfig(region, creds)
+	sess := session.New(config)
+	client := s3.New(sess)
+
+	// List the object(s) at the given prefix
+	req := &s3.ListObjectsInput{
+		Bucket: aws.String(bucket),
+		Prefix: aws.String(path),
+	}
+	resp, err := client.ListObjects(req)
+	if err != nil {
+		return 0, err
+	}
+
+	for _, o := range resp.Contents {
+		// Use file mode on exact match.
+		if *o.Key == path {
+			return ClientModeFile, nil
+		}
+
+		// Use dir mode if child keys are found.
+		if strings.HasPrefix(*o.Key, path+"/") {
+			return ClientModeDir, nil
+		}
+	}
+
+	// There was no match, so just return file mode. The download is going
+	// to fail but we will let S3 return the proper error later.
+	return ClientModeFile, nil
+}
 
 func (g *S3Getter) Get(dst string, u *url.URL) error {
 	// Parse URL
@@ -138,11 +177,21 @@ func (g *S3Getter) getObject(client *s3.S3, dst, bucket, key, version string) er
 func (g *S3Getter) getAWSConfig(region string, creds *credentials.Credentials) *aws.Config {
 	conf := &aws.Config{}
 	if creds == nil {
+		// Grab the metadata URL
+		metadataURL := os.Getenv("AWS_METADATA_URL")
+		if metadataURL == "" {
+			metadataURL = "http://169.254.169.254:80/latest"
+		}
+
 		creds = credentials.NewChainCredentials(
 			[]credentials.Provider{
 				&credentials.EnvProvider{},
 				&credentials.SharedCredentialsProvider{Filename: "", Profile: ""},
-				&ec2rolecreds.EC2RoleProvider{ExpiryWindow: 5 * time.Minute},
+				&ec2rolecreds.EC2RoleProvider{
+					Client: ec2metadata.New(session.New(&aws.Config{
+						Endpoint: aws.String(metadataURL),
+					})),
+				},
 			})
 	}
 

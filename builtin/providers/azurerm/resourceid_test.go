@@ -12,6 +12,18 @@ func TestParseAzureResourceID(t *testing.T) {
 		expectError        bool
 	}{
 		{
+			// Missing "resourceGroups".
+			"/subscriptions/00000000-0000-0000-0000-000000000000//myResourceGroup/",
+			nil,
+			true,
+		},
+		{
+			// Empty resource group ID.
+			"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups//",
+			nil,
+			true,
+		},
+		{
 			"random",
 			nil,
 			true,
@@ -97,6 +109,20 @@ func TestParseAzureResourceID(t *testing.T) {
 				Provider:       "Microsoft.Cdn",
 				Path: map[string]string{
 					"profiles": "acceptanceTestCdnProfile1",
+				},
+			},
+			false,
+		},
+		{
+			"/subscriptions/34ca515c-4629-458e-bf7c-738d77e0d0ea/resourceGroups/testGroup1/providers/Microsoft.ServiceBus/namespaces/testNamespace1/topics/testTopic1/subscriptions/testSubscription1",
+			&ResourceID{
+				SubscriptionID: "34ca515c-4629-458e-bf7c-738d77e0d0ea",
+				ResourceGroup:  "testGroup1",
+				Provider:       "Microsoft.ServiceBus",
+				Path: map[string]string{
+					"namespaces":    "testNamespace1",
+					"topics":        "testTopic1",
+					"subscriptions": "testSubscription1",
 				},
 			},
 			false,

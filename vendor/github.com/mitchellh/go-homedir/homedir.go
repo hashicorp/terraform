@@ -87,7 +87,7 @@ func dirUnix() (string, error) {
 	cmd := exec.Command("getent", "passwd", strconv.Itoa(os.Getuid()))
 	cmd.Stdout = &stdout
 	if err := cmd.Run(); err != nil {
-		// If "getent" is missing, ignore it
+		// If the error is ErrNotFound, we ignore it. Otherwise, return it.
 		if err != exec.ErrNotFound {
 			return "", err
 		}
@@ -118,6 +118,11 @@ func dirUnix() (string, error) {
 }
 
 func dirWindows() (string, error) {
+	// First prefer the HOME environmental variable
+	if home := os.Getenv("HOME"); home != "" {
+		return home, nil
+	}
+
 	drive := os.Getenv("HOMEDRIVE")
 	path := os.Getenv("HOMEPATH")
 	home := drive + path

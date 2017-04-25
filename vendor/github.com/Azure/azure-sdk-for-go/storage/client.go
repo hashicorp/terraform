@@ -12,8 +12,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"regexp"
-	"sort"
+	"runtime"
 	"strconv"
 	"strings"
 )
@@ -29,10 +28,22 @@ const (
 
 	defaultUseHTTPS = true
 
+	// StorageEmulatorAccountName is the fixed storage account used by Azure Storage Emulator
+	StorageEmulatorAccountName = "devstoreaccount1"
+
+	// StorageEmulatorAccountKey is the the fixed storage account used by Azure Storage Emulator
+	StorageEmulatorAccountKey = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=="
+
 	blobServiceName  = "blob"
 	tableServiceName = "table"
 	queueServiceName = "queue"
 	fileServiceName  = "file"
+
+	storageEmulatorBlob  = "127.0.0.1:10000"
+	storageEmulatorTable = "127.0.0.1:10002"
+	storageEmulatorQueue = "127.0.0.1:10001"
+
+	userAgentHeader = "User-Agent"
 )
 
 // Client is the object that needs to be constructed to perform
@@ -42,11 +53,13 @@ type Client struct {
 	// requests.  If it is nil, http.DefaultClient is used.
 	HTTPClient *http.Client
 
-	accountName string
-	accountKey  []byte
-	useHTTPS    bool
-	baseURL     string
-	apiVersion  string
+	accountName      string
+	accountKey       []byte
+	useHTTPS         bool
+	UseSharedKeyLite bool
+	baseURL          string
+	apiVersion       string
+	userAgent        string
 }
 
 type storageResponse struct {
@@ -114,7 +127,17 @@ func (e UnexpectedStatusCodeError) Got() int {
 // NewBasicClient constructs a Client with given storage service name and
 // key.
 func NewBasicClient(accountName, accountKey string) (Client, error) {
+	if accountName == StorageEmulatorAccountName {
+		return NewEmulatorClient()
+	}
 	return NewClient(accountName, accountKey, DefaultBaseURL, DefaultAPIVersion, defaultUseHTTPS)
+
+}
+
+//NewEmulatorClient contructs a Client intended to only work with Azure
+//Storage Emulator
+func NewEmulatorClient() (Client, error) {
+	return NewClient(StorageEmulatorAccountName, StorageEmulatorAccountKey, DefaultBaseURL, DefaultAPIVersion, false)
 }
 
 // NewClient constructs a Client. This should be used if the caller wants
@@ -132,16 +155,49 @@ func NewClient(accountName, accountKey, blobServiceBaseURL, apiVersion string, u
 
 	key, err := base64.StdEncoding.DecodeString(accountKey)
 	if err != nil {
-		return c, err
+		return c, fmt.Errorf("azure: malformed storage account key: %v", err)
 	}
 
-	return Client{
-		accountName: accountName,
-		accountKey:  key,
-		useHTTPS:    useHTTPS,
-		baseURL:     blobServiceBaseURL,
-		apiVersion:  apiVersion,
-	}, nil
+	c = Client{
+		accountName:      accountName,
+		accountKey:       key,
+		useHTTPS:         useHTTPS,
+		baseURL:          blobServiceBaseURL,
+		apiVersion:       apiVersion,
+		UseSharedKeyLite: false,
+	}
+	c.userAgent = c.getDefaultUserAgent()
+	return c, nil
+}
+
+func (c Client) getDefaultUserAgent() string {
+	return fmt.Sprintf("Go/%s (%s-%s) Azure-SDK-For-Go/%s storage-dataplane/%s",
+		runtime.Version(),
+		runtime.GOARCH,
+		runtime.GOOS,
+		sdkVersion,
+		c.apiVersion,
+	)
+}
+
+// AddToUserAgent adds an extension to the current user agent
+func (c *Client) AddToUserAgent(extension string) error {
+	if extension != "" {
+		c.userAgent = fmt.Sprintf("%s %s", c.userAgent, extension)
+		return nil
+	}
+	return fmt.Errorf("Extension was empty, User Agent stayed as %s", c.userAgent)
+}
+
+// protectUserAgent is used in funcs that include extraheaders as a parameter.
+// It prevents the User-Agent header to be overwritten, instead if it happens to
+// be present, it gets added to the current User-Agent. Use it before getStandardHeaders
+func (c *Client) protectUserAgent(extraheaders map[string]string) map[string]string {
+	if v, ok := extraheaders[userAgentHeader]; ok {
+		c.AddToUserAgent(v)
+		delete(extraheaders, userAgentHeader)
+	}
+	return extraheaders
 }
 
 func (c Client) getBaseURL(service string) string {
@@ -149,8 +205,19 @@ func (c Client) getBaseURL(service string) string {
 	if c.useHTTPS {
 		scheme = "https"
 	}
-
-	host := fmt.Sprintf("%s.%s.%s", c.accountName, service, c.baseURL)
+	host := ""
+	if c.accountName == StorageEmulatorAccountName {
+		switch service {
+		case blobServiceName:
+			host = storageEmulatorBlob
+		case tableServiceName:
+			host = storageEmulatorTable
+		case queueServiceName:
+			host = storageEmulatorQueue
+		}
+	} else {
+		host = fmt.Sprintf("%s.%s.%s", c.accountName, service, c.baseURL)
+	}
 
 	u := &url.URL{
 		Scheme: scheme,
@@ -165,8 +232,13 @@ func (c Client) getEndpoint(service, path string, params url.Values) string {
 		panic(err)
 	}
 
-	if path == "" {
-		path = "/" // API doesn't accept path segments not starting with '/'
+	// API doesn't accept path segments not starting with '/'
+	if !strings.HasPrefix(path, "/") {
+		path = fmt.Sprintf("/%v", path)
+	}
+
+	if c.accountName == StorageEmulatorAccountName {
+		path = fmt.Sprintf("/%v%v", StorageEmulatorAccountName, path)
 	}
 
 	u.Path = path
@@ -177,173 +249,69 @@ func (c Client) getEndpoint(service, path string, params url.Values) string {
 // GetBlobService returns a BlobStorageClient which can operate on the blob
 // service of the storage account.
 func (c Client) GetBlobService() BlobStorageClient {
-	return BlobStorageClient{c}
+	b := BlobStorageClient{
+		client: c,
+	}
+	b.client.AddToUserAgent(blobServiceName)
+	b.auth = sharedKey
+	if c.UseSharedKeyLite {
+		b.auth = sharedKeyLite
+	}
+	return b
 }
 
 // GetQueueService returns a QueueServiceClient which can operate on the queue
 // service of the storage account.
 func (c Client) GetQueueService() QueueServiceClient {
-	return QueueServiceClient{c}
+	q := QueueServiceClient{
+		client: c,
+	}
+	q.client.AddToUserAgent(queueServiceName)
+	q.auth = sharedKey
+	if c.UseSharedKeyLite {
+		q.auth = sharedKeyLite
+	}
+	return q
 }
 
 // GetTableService returns a TableServiceClient which can operate on the table
 // service of the storage account.
 func (c Client) GetTableService() TableServiceClient {
-	return TableServiceClient{c}
+	t := TableServiceClient{
+		client: c,
+	}
+	t.client.AddToUserAgent(tableServiceName)
+	t.auth = sharedKeyForTable
+	if c.UseSharedKeyLite {
+		t.auth = sharedKeyLiteForTable
+	}
+	return t
 }
 
 // GetFileService returns a FileServiceClient which can operate on the file
 // service of the storage account.
 func (c Client) GetFileService() FileServiceClient {
-	return FileServiceClient{c}
-}
-
-func (c Client) createAuthorizationHeader(canonicalizedString string) string {
-	signature := c.computeHmac256(canonicalizedString)
-	return fmt.Sprintf("%s %s:%s", "SharedKey", c.accountName, signature)
-}
-
-func (c Client) getAuthorizationHeader(verb, url string, headers map[string]string) (string, error) {
-	canonicalizedResource, err := c.buildCanonicalizedResource(url)
-	if err != nil {
-		return "", err
+	f := FileServiceClient{
+		client: c,
 	}
-
-	canonicalizedString := c.buildCanonicalizedString(verb, headers, canonicalizedResource)
-	return c.createAuthorizationHeader(canonicalizedString), nil
+	f.client.AddToUserAgent(fileServiceName)
+	f.auth = sharedKey
+	if c.UseSharedKeyLite {
+		f.auth = sharedKeyLite
+	}
+	return f
 }
 
 func (c Client) getStandardHeaders() map[string]string {
 	return map[string]string{
-		"x-ms-version": c.apiVersion,
-		"x-ms-date":    currentTimeRfc1123Formatted(),
+		userAgentHeader: c.userAgent,
+		"x-ms-version":  c.apiVersion,
+		"x-ms-date":     currentTimeRfc1123Formatted(),
 	}
 }
 
-func (c Client) buildCanonicalizedHeader(headers map[string]string) string {
-	cm := make(map[string]string)
-
-	for k, v := range headers {
-		headerName := strings.TrimSpace(strings.ToLower(k))
-		match, _ := regexp.MatchString("x-ms-", headerName)
-		if match {
-			cm[headerName] = v
-		}
-	}
-
-	if len(cm) == 0 {
-		return ""
-	}
-
-	keys := make([]string, 0, len(cm))
-	for key := range cm {
-		keys = append(keys, key)
-	}
-
-	sort.Strings(keys)
-
-	ch := ""
-
-	for i, key := range keys {
-		if i == len(keys)-1 {
-			ch += fmt.Sprintf("%s:%s", key, cm[key])
-		} else {
-			ch += fmt.Sprintf("%s:%s\n", key, cm[key])
-		}
-	}
-	return ch
-}
-
-func (c Client) buildCanonicalizedResourceTable(uri string) (string, error) {
-	errMsg := "buildCanonicalizedResourceTable error: %s"
-	u, err := url.Parse(uri)
-	if err != nil {
-		return "", fmt.Errorf(errMsg, err.Error())
-	}
-
-	cr := "/" + c.accountName
-
-	if len(u.Path) > 0 {
-		cr += u.Path
-	}
-
-	return cr, nil
-}
-
-func (c Client) buildCanonicalizedResource(uri string) (string, error) {
-	errMsg := "buildCanonicalizedResource error: %s"
-	u, err := url.Parse(uri)
-	if err != nil {
-		return "", fmt.Errorf(errMsg, err.Error())
-	}
-
-	cr := "/" + c.accountName
-
-	if len(u.Path) > 0 {
-		cr += u.Path
-	}
-
-	params, err := url.ParseQuery(u.RawQuery)
-	if err != nil {
-		return "", fmt.Errorf(errMsg, err.Error())
-	}
-
-	if len(params) > 0 {
-		cr += "\n"
-		keys := make([]string, 0, len(params))
-		for key := range params {
-			keys = append(keys, key)
-		}
-
-		sort.Strings(keys)
-
-		for i, key := range keys {
-			if len(params[key]) > 1 {
-				sort.Strings(params[key])
-			}
-
-			if i == len(keys)-1 {
-				cr += fmt.Sprintf("%s:%s", key, strings.Join(params[key], ","))
-			} else {
-				cr += fmt.Sprintf("%s:%s\n", key, strings.Join(params[key], ","))
-			}
-		}
-	}
-
-	return cr, nil
-}
-
-func (c Client) buildCanonicalizedString(verb string, headers map[string]string, canonicalizedResource string) string {
-	contentLength := headers["Content-Length"]
-	if contentLength == "0" {
-		contentLength = ""
-	}
-	canonicalizedString := fmt.Sprintf("%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s",
-		verb,
-		headers["Content-Encoding"],
-		headers["Content-Language"],
-		contentLength,
-		headers["Content-MD5"],
-		headers["Content-Type"],
-		headers["Date"],
-		headers["If-Modified-Since"],
-		headers["If-Match"],
-		headers["If-None-Match"],
-		headers["If-Unmodified-Since"],
-		headers["Range"],
-		c.buildCanonicalizedHeader(headers),
-		canonicalizedResource)
-
-	return canonicalizedString
-}
-
-func (c Client) exec(verb, url string, headers map[string]string, body io.Reader) (*storageResponse, error) {
-	authHeader, err := c.getAuthorizationHeader(verb, url, headers)
-	if err != nil {
-		return nil, err
-	}
-	headers["Authorization"] = authHeader
-
+func (c Client) exec(verb, url string, headers map[string]string, body io.Reader, auth authentication) (*storageResponse, error) {
+	headers, err := c.addAuthorizationHeader(verb, url, headers, auth)
 	if err != nil {
 		return nil, err
 	}
@@ -384,12 +352,13 @@ func (c Client) exec(verb, url string, headers map[string]string, body io.Reader
 			return nil, err
 		}
 
+		requestID := resp.Header.Get("x-ms-request-id")
 		if len(respBody) == 0 {
-			// no error in response body
-			err = fmt.Errorf("storage: service returned without a response body (%s)", resp.Status)
+			// no error in response body, might happen in HEAD requests
+			err = serviceErrFromStatusCode(resp.StatusCode, resp.Status, requestID)
 		} else {
 			// response contains storage service error object, unmarshal
-			storageErr, errIn := serviceErrFromXML(respBody, resp.StatusCode, resp.Header.Get("x-ms-request-id"))
+			storageErr, errIn := serviceErrFromXML(respBody, resp.StatusCode, requestID)
 			if err != nil { // error unmarshaling the error response
 				err = errIn
 			}
@@ -408,7 +377,12 @@ func (c Client) exec(verb, url string, headers map[string]string, body io.Reader
 		body:       resp.Body}, nil
 }
 
-func (c Client) execInternalJSON(verb, url string, headers map[string]string, body io.Reader) (*odataResponse, error) {
+func (c Client) execInternalJSON(verb, url string, headers map[string]string, body io.Reader, auth authentication) (*odataResponse, error) {
+	headers, err := c.addAuthorizationHeader(verb, url, headers, auth)
+	if err != nil {
+		return nil, err
+	}
+
 	req, err := http.NewRequest(verb, url, body)
 	for k, v := range headers {
 		req.Header.Add(k, v)
@@ -438,8 +412,8 @@ func (c Client) execInternalJSON(verb, url string, headers map[string]string, bo
 		}
 
 		if len(respBody) == 0 {
-			// no error in response body
-			err = fmt.Errorf("storage: service returned without a response body (%d)", resp.StatusCode)
+			// no error in response body, might happen in HEAD requests
+			err = serviceErrFromStatusCode(resp.StatusCode, resp.Status, resp.Header.Get("x-ms-request-id"))
 			return respToRet, err
 		}
 		// try unmarshal as odata.error json
@@ -448,28 +422,6 @@ func (c Client) execInternalJSON(verb, url string, headers map[string]string, bo
 	}
 
 	return respToRet, nil
-}
-
-func (c Client) createSharedKeyLite(url string, headers map[string]string) (string, error) {
-	can, err := c.buildCanonicalizedResourceTable(url)
-
-	if err != nil {
-		return "", err
-	}
-	strToSign := headers["x-ms-date"] + "\n" + can
-
-	hmac := c.computeHmac256(strToSign)
-	return fmt.Sprintf("SharedKeyLite %s:%s", c.accountName, hmac), nil
-}
-
-func (c Client) execTable(verb, url string, headers map[string]string, body io.Reader) (*odataResponse, error) {
-	var err error
-	headers["Authorization"], err = c.createSharedKeyLite(url, headers)
-	if err != nil {
-		return nil, err
-	}
-
-	return c.execInternalJSON(verb, url, headers, body)
 }
 
 func readResponseBody(resp *http.Response) ([]byte, error) {
@@ -489,6 +441,15 @@ func serviceErrFromXML(body []byte, statusCode int, requestID string) (AzureStor
 	storageErr.StatusCode = statusCode
 	storageErr.RequestID = requestID
 	return storageErr, nil
+}
+
+func serviceErrFromStatusCode(code int, status string, requestID string) AzureStorageServiceError {
+	return AzureStorageServiceError{
+		StatusCode: code,
+		Code:       status,
+		RequestID:  requestID,
+		Message:    "no response body was available for error status code",
+	}
 }
 
 func (e AzureStorageServiceError) Error() string {

@@ -53,34 +53,38 @@ func testStep(
 			"Error refreshing: %s", err)
 	}
 
-	// Plan!
-	if p, err := ctx.Plan(); err != nil {
-		return state, fmt.Errorf(
-			"Error planning: %s", err)
-	} else {
-		log.Printf("[WARN] Test: Step plan: %s", p)
-	}
-
-	// We need to keep a copy of the state prior to destroying
-	// such that destroy steps can verify their behaviour in the check
-	// function
-	stateBeforeApplication := state.DeepCopy()
-
-	// Apply!
-	state, err = ctx.Apply()
-	if err != nil {
-		return state, fmt.Errorf("Error applying: %s", err)
-	}
-
-	// Check! Excitement!
-	if step.Check != nil {
-		if step.Destroy {
-			if err := step.Check(stateBeforeApplication); err != nil {
-				return state, fmt.Errorf("Check failed: %s", err)
-			}
+	// If this step is a PlanOnly step, skip over this first Plan and subsequent
+	// Apply, and use the follow up Plan that checks for perpetual diffs
+	if !step.PlanOnly {
+		// Plan!
+		if p, err := ctx.Plan(); err != nil {
+			return state, fmt.Errorf(
+				"Error planning: %s", err)
 		} else {
-			if err := step.Check(state); err != nil {
-				return state, fmt.Errorf("Check failed: %s", err)
+			log.Printf("[WARN] Test: Step plan: %s", p)
+		}
+
+		// We need to keep a copy of the state prior to destroying
+		// such that destroy steps can verify their behaviour in the check
+		// function
+		stateBeforeApplication := state.DeepCopy()
+
+		// Apply!
+		state, err = ctx.Apply()
+		if err != nil {
+			return state, fmt.Errorf("Error applying: %s", err)
+		}
+
+		// Check! Excitement!
+		if step.Check != nil {
+			if step.Destroy {
+				if err := step.Check(stateBeforeApplication); err != nil {
+					return state, fmt.Errorf("Check failed: %s", err)
+				}
+			} else {
+				if err := step.Check(state); err != nil {
+					return state, fmt.Errorf("Check failed: %s", err)
+				}
 			}
 		}
 	}

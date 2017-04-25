@@ -1,0 +1,44 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+        <a href="/docs/providers/index.html">All Providers</a>
+        </li>
+
+        <li<%= sidebar_current("docs-rabbitmq-index") %>>
+        <a href="/docs/providers/rabbitmq/index.html">RabbitMQ Provider</a>
+        </li>
+
+        <li<%= sidebar_current("docs-rabbitmq-resource") %>>
+          <a href="#">Resources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-rabbitmq-resource-binding") %>>
+              <a href="/docs/providers/rabbitmq/r/binding.html">rabbitmq_binding</a>
+            </li>
+            <li<%= sidebar_current("docs-rabbitmq-resource-exchange") %>>
+              <a href="/docs/providers/rabbitmq/r/exchange.html">rabbitmq_exchange</a>
+            </li>
+            <li<%= sidebar_current("docs-rabbitmq-resource-permissions") %>>
+              <a href="/docs/providers/rabbitmq/r/permissions.html">rabbitmq_permissions</a>
+            </li>
+            <li<%= sidebar_current("docs-rabbitmq-resource-policy") %>>
+              <a href="/docs/providers/rabbitmq/r/policy.html">rabbitmq_policy</a>
+            </li>
+            <li<%= sidebar_current("docs-rabbitmq-resource-queue") %>>
+              <a href="/docs/providers/rabbitmq/r/queue.html">rabbitmq_queue</a>
+            </li>
+            <li<%= sidebar_current("docs-rabbitmq-resource-user") %>>
+              <a href="/docs/providers/rabbitmq/r/user.html">rabbitmq_user</a>
+            </li>
+            <li<%= sidebar_current("docs-rabbitmq-resource-vhost") %>>
+              <a href="/docs/providers/rabbitmq/r/vhost.html">rabbitmq_vhost</a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= yield %>
+  <% end %>

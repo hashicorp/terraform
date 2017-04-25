@@ -1,6 +1,7 @@
 variable "clc_username" {
   default = "<username>"
 }
+
 variable "clc_password" {
   default = "<password>"
 }

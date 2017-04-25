@@ -25,7 +25,7 @@ to see what resources Terraform will destroy.
 
 ```
 $ terraform plan -destroy
-...
+# ...
 
 - aws_instance.example
 ```
@@ -45,7 +45,7 @@ aws_instance.example: Destroying...
 
 Apply complete! Resources: 0 added, 0 changed, 1 destroyed.
 
-...
+# ...
 ```
 
 The `terraform destroy` command should ask you to verify that you
@@ -63,4 +63,6 @@ resources, Terraform will destroy in the proper order.
 You now know how to create, modify, and destroy infrastructure
 from a local machine.
 
-Next, we learn how to [use Terraform remotely and the associated benefits](/intro/getting-started/remote.html).
+Next, we move on to features that make Terraform configurations
+slightly more useful: [variables, resource dependencies, provisioning,
+and more](/intro/getting-started/dependencies.html).

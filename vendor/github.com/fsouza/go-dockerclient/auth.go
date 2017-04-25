@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -122,17 +123,36 @@ func authConfigs(confs map[string]dockerConfig) (*AuthConfigurations, error) {
 	return c, nil
 }
 
+// AuthStatus returns the authentication status for Docker API versions >= 1.23.
+type AuthStatus struct {
+	Status        string `json:"Status,omitempty" yaml:"Status,omitempty"`
+	IdentityToken string `json:"IdentityToken,omitempty" yaml:"IdentityToken,omitempty"`
+}
+
 // AuthCheck validates the given credentials. It returns nil if successful.
 //
-// See https://goo.gl/m2SleN for more details.
-func (c *Client) AuthCheck(conf *AuthConfiguration) error {
+// For Docker API versions >= 1.23, the AuthStatus struct will be populated, otherwise it will be empty.`
+//
+// See https://goo.gl/6nsZkH for more details.
+func (c *Client) AuthCheck(conf *AuthConfiguration) (AuthStatus, error) {
+	var authStatus AuthStatus
 	if conf == nil {
-		return fmt.Errorf("conf is nil")
+		return authStatus, fmt.Errorf("conf is nil")
 	}
 	resp, err := c.do("POST", "/auth", doOptions{data: conf})
 	if err != nil {
-		return err
+		return authStatus, err
 	}
-	resp.Body.Close()
-	return nil
+	defer resp.Body.Close()
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return authStatus, err
+	}
+	if len(data) == 0 {
+		return authStatus, nil
+	}
+	if err := json.Unmarshal(data, &authStatus); err != nil {
+		return authStatus, err
+	}
+	return authStatus, nil
 }

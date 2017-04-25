@@ -78,7 +78,7 @@ func resourceAwsCodeDeployAppRead(d *schema.ResourceData, meta interface{}) erro
 		}
 	}
 
-	d.Set("name", *resp.Application.ApplicationName)
+	d.Set("name", resp.Application.ApplicationName)
 
 	return nil
 }

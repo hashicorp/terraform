@@ -25,7 +25,7 @@ var (
 type Options struct {
 	List  bool // list files whose formatting differs
 	Write bool // write result to (source) file instead of stdout
-	Diff  bool // display diffs instead of rewriting files
+	Diff  bool // display diffs of formatting changes
 }
 
 func isValidFile(f os.FileInfo, extensions []string) bool {
@@ -58,7 +58,7 @@ func processFile(filename string, in io.Reader, out io.Writer, stdin bool, opts 
 
 	res, err := printer.Format(src)
 	if err != nil {
-		return err
+		return fmt.Errorf("In %s: %s", filename, err)
 	}
 
 	if !bytes.Equal(src, res) {

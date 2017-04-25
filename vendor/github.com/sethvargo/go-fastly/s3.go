@@ -6,25 +6,34 @@ import (
 	"time"
 )
 
+type S3Redundancy string
+
+const (
+	S3RedundancyStandard S3Redundancy = "standard"
+	S3RedundancyReduced  S3Redundancy = "reduced_redundancy"
+)
+
 // S3 represents a S3 response from the Fastly API.
 type S3 struct {
 	ServiceID string `mapstructure:"service_id"`
-	Version   string `mapstructure:"version"`
+	Version   int    `mapstructure:"version"`
 
-	Name              string     `mapstructure:"name"`
-	BucketName        string     `mapstructure:"bucket_name"`
-	Domain            string     `mapstructure:"domain"`
-	AccessKey         string     `mapstructure:"access_key"`
-	SecretKey         string     `mapstructure:"secret_key"`
-	Path              string     `mapstructure:"path"`
-	Period            uint       `mapstructure:"period"`
-	GzipLevel         uint       `mapstructure:"gzip_level"`
-	Format            string     `mapstructure:"format"`
-	ResponseCondition string     `mapstructure:"response_condition"`
-	TimestampFormat   string     `mapstructure:"timestamp_format"`
-	CreatedAt         *time.Time `mapstructure:"created_at"`
-	UpdatedAt         *time.Time `mapstructure:"updated_at"`
-	DeletedAt         *time.Time `mapstructure:"deleted_at"`
+	Name              string       `mapstructure:"name"`
+	BucketName        string       `mapstructure:"bucket_name"`
+	Domain            string       `mapstructure:"domain"`
+	AccessKey         string       `mapstructure:"access_key"`
+	SecretKey         string       `mapstructure:"secret_key"`
+	Path              string       `mapstructure:"path"`
+	Period            uint         `mapstructure:"period"`
+	GzipLevel         uint         `mapstructure:"gzip_level"`
+	Format            string       `mapstructure:"format"`
+	FormatVersion     uint         `mapstructure:"format_version"`
+	ResponseCondition string       `mapstructure:"response_condition"`
+	TimestampFormat   string       `mapstructure:"timestamp_format"`
+	Redundancy        S3Redundancy `mapstructure:"redundancy"`
+	CreatedAt         *time.Time   `mapstructure:"created_at"`
+	UpdatedAt         *time.Time   `mapstructure:"updated_at"`
+	DeletedAt         *time.Time   `mapstructure:"deleted_at"`
 }
 
 // s3sByName is a sortable list of S3s.
@@ -43,7 +52,7 @@ type ListS3sInput struct {
 	Service string
 
 	// Version is the specific configuration version (required).
-	Version string
+	Version int
 }
 
 // ListS3s returns the list of S3s for the configuration version.
@@ -52,11 +61,11 @@ func (c *Client) ListS3s(i *ListS3sInput) ([]*S3, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/s3", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/s3", i.Service, i.Version)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -75,19 +84,21 @@ type CreateS3Input struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
-	Name              string `form:"name,omitempty"`
-	BucketName        string `form:"bucket_name,omitempty"`
-	Domain            string `form:"domain,omitempty"`
-	AccessKey         string `form:"access_key,omitempty"`
-	SecretKey         string `form:"secret_key,omitempty"`
-	Path              string `form:"path,omitempty"`
-	Period            uint   `form:"period,omitempty"`
-	GzipLevel         uint   `form:"gzip_level,omitempty"`
-	Format            string `form:"format,omitempty"`
-	ResponseCondition string `form:"response_condition,omitempty"`
-	TimestampFormat   string `form:"timestamp_format,omitempty"`
+	Name              string       `form:"name,omitempty"`
+	BucketName        string       `form:"bucket_name,omitempty"`
+	Domain            string       `form:"domain,omitempty"`
+	AccessKey         string       `form:"access_key,omitempty"`
+	SecretKey         string       `form:"secret_key,omitempty"`
+	Path              string       `form:"path,omitempty"`
+	Period            uint         `form:"period,omitempty"`
+	GzipLevel         uint         `form:"gzip_level,omitempty"`
+	Format            string       `form:"format,omitempty"`
+	FormatVersion     uint         `form:"format_version,omitempty"`
+	ResponseCondition string       `form:"response_condition,omitempty"`
+	TimestampFormat   string       `form:"timestamp_format,omitempty"`
+	Redundancy        S3Redundancy `form:"redundancy,omitempty"`
 }
 
 // CreateS3 creates a new Fastly S3.
@@ -96,11 +107,11 @@ func (c *Client) CreateS3(i *CreateS3Input) (*S3, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/s3", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/s3", i.Service, i.Version)
 	resp, err := c.PostForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -118,7 +129,7 @@ type GetS3Input struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the S3 to fetch.
 	Name string
@@ -130,7 +141,7 @@ func (c *Client) GetS3(i *GetS3Input) (*S3, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -138,7 +149,7 @@ func (c *Client) GetS3(i *GetS3Input) (*S3, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/s3/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/s3/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -156,22 +167,24 @@ type UpdateS3Input struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the S3 to update.
 	Name string
 
-	NewName           string `form:"name,omitempty"`
-	BucketName        string `form:"bucket_name,omitempty"`
-	Domain            string `form:"domain,omitempty"`
-	AccessKey         string `form:"access_key,omitempty"`
-	SecretKey         string `form:"secret_key,omitempty"`
-	Path              string `form:"path,omitempty"`
-	Period            uint   `form:"period,omitempty"`
-	GzipLevel         uint   `form:"gzip_level,omitempty"`
-	Format            string `form:"format,omitempty"`
-	ResponseCondition string `form:"response_condition,omitempty"`
-	TimestampFormat   string `form:"timestamp_format,omitempty"`
+	NewName           string       `form:"name,omitempty"`
+	BucketName        string       `form:"bucket_name,omitempty"`
+	Domain            string       `form:"domain,omitempty"`
+	AccessKey         string       `form:"access_key,omitempty"`
+	SecretKey         string       `form:"secret_key,omitempty"`
+	Path              string       `form:"path,omitempty"`
+	Period            uint         `form:"period,omitempty"`
+	GzipLevel         uint         `form:"gzip_level,omitempty"`
+	Format            string       `form:"format,omitempty"`
+	FormatVersion     uint         `form:"format_version,omitempty"`
+	ResponseCondition string       `form:"response_condition,omitempty"`
+	TimestampFormat   string       `form:"timestamp_format,omitempty"`
+	Redundancy        S3Redundancy `form:"redundancy,omitempty"`
 }
 
 // UpdateS3 updates a specific S3.
@@ -180,7 +193,7 @@ func (c *Client) UpdateS3(i *UpdateS3Input) (*S3, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -188,7 +201,7 @@ func (c *Client) UpdateS3(i *UpdateS3Input) (*S3, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/s3/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/s3/%s", i.Service, i.Version, i.Name)
 	resp, err := c.PutForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -206,7 +219,7 @@ type DeleteS3Input struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the S3 to delete (required).
 	Name string
@@ -218,7 +231,7 @@ func (c *Client) DeleteS3(i *DeleteS3Input) error {
 		return ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return ErrMissingVersion
 	}
 
@@ -226,7 +239,7 @@ func (c *Client) DeleteS3(i *DeleteS3Input) error {
 		return ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/s3/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/s3/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Delete(path, nil)
 	if err != nil {
 		return err

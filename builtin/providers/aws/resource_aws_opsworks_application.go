@@ -21,80 +21,98 @@ func resourceAwsOpsworksApplication() *schema.Resource {
 		Update: resourceAwsOpsworksApplicationUpdate,
 		Delete: resourceAwsOpsworksApplicationDelete,
 		Schema: map[string]*schema.Schema{
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"short_name": &schema.Schema{
+			"short_name": {
 				Type:     schema.TypeString,
 				Computed: true,
 				Optional: true,
 			},
 			// aws-flow-ruby | java | rails | php | nodejs | static | other
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Required: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+
+					expected := [7]string{"aws-flow-ruby", "java", "rails", "php", "nodejs", "static", "other"}
+
+					found := false
+					for _, b := range expected {
+						if b == value {
+							found = true
+						}
+					}
+					if !found {
+						errors = append(errors, fmt.Errorf(
+							"%q has to be one of [aws-flow-ruby, java, rails, php, nodejs, static, other]", k))
+					}
+					return
+				},
 			},
-			"stack_id": &schema.Schema{
+			"stack_id": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 			// TODO: the following 4 vals are really part of the Attributes array. We should validate that only ones relevant to the chosen type are set, perhaps. (what is the default type? how do they map?)
-			"document_root": &schema.Schema{
+			"document_root": {
 				Type:     schema.TypeString,
 				Optional: true,
 				//Default:  "public",
 			},
-			"rails_env": &schema.Schema{
+			"rails_env": {
 				Type:     schema.TypeString,
 				Optional: true,
 				//Default:  "production",
 			},
-			"auto_bundle_on_deploy": &schema.Schema{
+			"auto_bundle_on_deploy": {
 				Type:     schema.TypeString,
 				Optional: true,
 				//Default:  true,
 			},
-			"aws_flow_ruby_settings": &schema.Schema{
+			"aws_flow_ruby_settings": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"app_source": &schema.Schema{
+			"app_source": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": &schema.Schema{
+						"type": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"url": &schema.Schema{
+						"url": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"username": &schema.Schema{
+						"username": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"password": &schema.Schema{
+						"password": {
+							Type:      schema.TypeString,
+							Optional:  true,
+							Sensitive: true,
+						},
+
+						"revision": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"revision": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-
-						"ssh_key": &schema.Schema{
+						"ssh_key": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -104,41 +122,41 @@ func resourceAwsOpsworksApplication() *schema.Resource {
 			// AutoSelectOpsworksMysqlInstance, OpsworksMysqlInstance, or RdsDbInstance.
 			// anything beside auto select will lead into failure in case the instance doesn't exist
 			// XXX: validation?
-			"data_source_type": &schema.Schema{
+			"data_source_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"data_source_database_name": &schema.Schema{
+			"data_source_database_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"data_source_arn": &schema.Schema{
+			"data_source_arn": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"domains": &schema.Schema{
+			"domains": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			"environment": &schema.Schema{
+			"environment": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"key": &schema.Schema{
+						"key": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"value": &schema.Schema{
+						"value": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"secure": &schema.Schema{
+						"secure": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  true,
@@ -146,18 +164,18 @@ func resourceAwsOpsworksApplication() *schema.Resource {
 					},
 				},
 			},
-			"enable_ssl": &schema.Schema{
+			"enable_ssl": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"ssl_configuration": &schema.Schema{
+			"ssl_configuration": {
 				Type:     schema.TypeList,
 				Optional: true,
 				//Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"certificate": &schema.Schema{
+						"certificate": {
 							Type:     schema.TypeString,
 							Required: true,
 							StateFunc: func(v interface{}) string {
@@ -169,9 +187,10 @@ func resourceAwsOpsworksApplication() *schema.Resource {
 								}
 							},
 						},
-						"private_key": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
+						"private_key": {
+							Type:      schema.TypeString,
+							Required:  true,
+							Sensitive: true,
 							StateFunc: func(v interface{}) string {
 								switch v.(type) {
 								case string:
@@ -181,7 +200,7 @@ func resourceAwsOpsworksApplication() *schema.Resource {
 								}
 							},
 						},
-						"chain": &schema.Schema{
+						"chain": {
 							Type:     schema.TypeString,
 							Optional: true,
 							StateFunc: func(v interface{}) string {
@@ -211,29 +230,32 @@ func resourceAwsOpsworksApplicationValidate(d *schema.ResourceData) error {
 		return fmt.Errorf("Only one ssl_configuration is permitted.")
 	}
 
-	if d.Get("type").(string) == opsworks.AppTypeRails {
+	if d.Get("type") == opsworks.AppTypeNodejs || d.Get("type") == opsworks.AppTypeJava {
+		// allowed attributes: none
+		if d.Get("document_root").(string) != "" || d.Get("rails_env").(string) != "" || d.Get("auto_bundle_on_deploy").(string) != "" || d.Get("aws_flow_ruby_settings").(string) != "" {
+			return fmt.Errorf("No additional attributes are allowed for app type '%s'.", d.Get("type").(string))
+		}
+	} else if d.Get("type") == opsworks.AppTypeRails {
+		// allowed attributes: document_root, rails_env, auto_bundle_on_deploy
+		if d.Get("aws_flow_ruby_settings").(string) != "" {
+			return fmt.Errorf("Only 'document_root, rails_env, auto_bundle_on_deploy' are allowed for app type '%s'.", opsworks.AppTypeRails)
+		}
+		// rails_env is required
 		if _, ok := d.GetOk("rails_env"); !ok {
 			return fmt.Errorf("Set rails_env must be set if type is set to rails.")
 		}
-	}
-	switch d.Get("type").(string) {
-	case opsworks.AppTypeStatic:
-	case opsworks.AppTypeRails:
-	case opsworks.AppTypePhp:
-	case opsworks.AppTypeOther:
-	case opsworks.AppTypeNodejs:
-	case opsworks.AppTypeJava:
-	case opsworks.AppTypeAwsFlowRuby:
-		log.Printf("[DEBUG] type supported")
-	default:
-		return fmt.Errorf("opsworks_application.type must be one of %s, %s, %s, %s, %s, %s, %s",
-			opsworks.AppTypeStatic,
-			opsworks.AppTypeRails,
-			opsworks.AppTypePhp,
-			opsworks.AppTypeOther,
-			opsworks.AppTypeNodejs,
-			opsworks.AppTypeJava,
-			opsworks.AppTypeAwsFlowRuby)
+	} else if d.Get("type") == opsworks.AppTypePhp || d.Get("type") == opsworks.AppTypeStatic || d.Get("type") == opsworks.AppTypeOther {
+		log.Printf("[DEBUG] the app type is : %s", d.Get("type").(string))
+		log.Printf("[DEBUG] the attributes are: document_root '%s', rails_env '%s', auto_bundle_on_deploy '%s', aws_flow_ruby_settings '%s'", d.Get("document_root").(string), d.Get("rails_env").(string), d.Get("auto_bundle_on_deploy").(string), d.Get("aws_flow_ruby_settings").(string))
+		// allowed attributes: document_root
+		if d.Get("rails_env").(string) != "" || d.Get("auto_bundle_on_deploy").(string) != "" || d.Get("aws_flow_ruby_settings").(string) != "" {
+			return fmt.Errorf("Only 'document_root' is allowed for app type '%s'.", d.Get("type").(string))
+		}
+	} else if d.Get("type") == opsworks.AppTypeAwsFlowRuby {
+		// allowed attributes: aws_flow_ruby_settings
+		if d.Get("document_root").(string) != "" || d.Get("rails_env").(string) != "" || d.Get("auto_bundle_on_deploy").(string) != "" {
+			return fmt.Errorf("Only 'aws_flow_ruby_settings' is allowed for app type '%s'.", d.Get("type").(string))
+		}
 	}
 
 	return nil
@@ -331,6 +353,11 @@ func resourceAwsOpsworksApplicationCreate(d *schema.ResourceData, meta interface
 func resourceAwsOpsworksApplicationUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*AWSClient).opsworksconn
 
+	err := resourceAwsOpsworksApplicationValidate(d)
+	if err != nil {
+		return err
+	}
+
 	req := &opsworks.UpdateAppInput{
 		AppId:            aws.String(d.Id()),
 		Name:             aws.String(d.Get("name").(string)),
@@ -347,10 +374,8 @@ func resourceAwsOpsworksApplicationUpdate(d *schema.ResourceData, meta interface
 
 	log.Printf("[DEBUG] Updating OpsWorks layer: %s", d.Id())
 
-	var resp *opsworks.UpdateAppOutput
-	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
-		var cerr error
-		resp, cerr = client.UpdateApp(req)
+	err = resource.Retry(2*time.Minute, func() *resource.RetryError {
+		_, cerr := client.UpdateApp(req)
 		if cerr != nil {
 			log.Printf("[INFO] client error")
 			if opserr, ok := cerr.(awserr.Error); ok {
@@ -550,9 +575,6 @@ func resourceAwsOpsworksSetApplicationSsl(d *schema.ResourceData, v *opsworks.Ss
 }
 
 func resourceAwsOpsworksApplicationAttributes(d *schema.ResourceData) map[string]*string {
-	if d.Get("type") != opsworks.AppTypeRails {
-		return nil
-	}
 	attributes := make(map[string]*string)
 
 	if val := d.Get("document_root").(string); len(val) > 0 {
@@ -582,19 +604,30 @@ func resourceAwsOpsworksSetApplicationAttributes(d *schema.ResourceData, v map[s
 	d.Set("aws_flow_ruby_settings", nil)
 	d.Set("auto_bundle_on_deploy", nil)
 
-	if d.Get("type") != opsworks.AppTypeRails {
+	if d.Get("type") == opsworks.AppTypeNodejs || d.Get("type") == opsworks.AppTypeJava {
+		return
+	} else if d.Get("type") == opsworks.AppTypeRails {
+		if val, ok := v[opsworks.AppAttributesKeysDocumentRoot]; ok {
+			d.Set("document_root", val)
+		}
+		if val, ok := v[opsworks.AppAttributesKeysRailsEnv]; ok {
+			d.Set("rails_env", val)
+		}
+		if val, ok := v[opsworks.AppAttributesKeysAutoBundleOnDeploy]; ok {
+			d.Set("auto_bundle_on_deploy", val)
+		}
+		return
+	} else if d.Get("type") == opsworks.AppTypePhp || d.Get("type") == opsworks.AppTypeStatic || d.Get("type") == opsworks.AppTypeOther {
+		if val, ok := v[opsworks.AppAttributesKeysDocumentRoot]; ok {
+			d.Set("document_root", val)
+		}
+		return
+	} else if d.Get("type") == opsworks.AppTypeAwsFlowRuby {
+		if val, ok := v[opsworks.AppAttributesKeysAwsFlowRubySettings]; ok {
+			d.Set("aws_flow_ruby_settings", val)
+		}
 		return
 	}
-	if val, ok := v[opsworks.AppAttributesKeysDocumentRoot]; ok {
-		d.Set("document_root", val)
-	}
-	if val, ok := v[opsworks.AppAttributesKeysAwsFlowRubySettings]; ok {
-		d.Set("aws_flow_ruby_settings", val)
-	}
-	if val, ok := v[opsworks.AppAttributesKeysRailsEnv]; ok {
-		d.Set("rails_env", val)
-	}
-	if val, ok := v[opsworks.AppAttributesKeysAutoBundleOnDeploy]; ok {
-		d.Set("auto_bundle_on_deploy", val)
-	}
+
+	return
 }

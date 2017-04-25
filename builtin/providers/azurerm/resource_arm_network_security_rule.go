@@ -14,6 +14,9 @@ func resourceArmNetworkSecurityRule() *schema.Resource {
 		Read:   resourceArmNetworkSecurityRuleRead,
 		Update: resourceArmNetworkSecurityRuleCreate,
 		Delete: resourceArmNetworkSecurityRuleDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -137,8 +140,8 @@ func resourceArmNetworkSecurityRuleCreate(d *schema.ResourceData, meta interface
 	}
 
 	sgr := network.SecurityRule{
-		Name:       &name,
-		Properties: &properties,
+		Name: &name,
+		SecurityRulePropertiesFormat: &properties,
 	}
 
 	_, err := secClient.CreateOrUpdate(resGroup, nsgName, name, sgr, make(chan struct{}))
@@ -172,13 +175,25 @@ func resourceArmNetworkSecurityRuleRead(d *schema.ResourceData, meta interface{}
 	sgRuleName := id.Path["securityRules"]
 
 	resp, err := secRuleClient.Get(resGroup, networkSGName, sgRuleName)
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
-	}
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure Network Security Rule %s: %s", sgRuleName, err)
 	}
+
+	d.Set("resource_group_name", resGroup)
+	d.Set("access", resp.SecurityRulePropertiesFormat.Access)
+	d.Set("destination_address_prefix", resp.SecurityRulePropertiesFormat.DestinationAddressPrefix)
+	d.Set("destination_port_range", resp.SecurityRulePropertiesFormat.DestinationPortRange)
+	d.Set("direction", resp.SecurityRulePropertiesFormat.Direction)
+	d.Set("description", resp.SecurityRulePropertiesFormat.Description)
+	d.Set("name", resp.Name)
+	d.Set("priority", resp.SecurityRulePropertiesFormat.Priority)
+	d.Set("protocol", resp.SecurityRulePropertiesFormat.Protocol)
+	d.Set("source_address_prefix", resp.SecurityRulePropertiesFormat.SourceAddressPrefix)
+	d.Set("source_port_range", resp.SecurityRulePropertiesFormat.SourcePortRange)
 
 	return nil
 }

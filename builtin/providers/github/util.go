@@ -8,6 +8,11 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
+const (
+	// https://developer.github.com/guides/traversing-with-pagination/#basics-of-pagination
+	maxPerPage = 100
+)
+
 func toGithubID(id string) int {
 	githubID, _ := strconv.Atoi(id)
 	return githubID

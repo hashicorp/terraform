@@ -8,6 +8,11 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+// UnknownValue is a sentinel value that can be used to denote
+// that a value of a variable (or map element, list element, etc.)
+// is unknown. This will always have the type ast.TypeUnknown.
+const UnknownValue = "74D93920-ED26-11E3-AC10-0800200C9A66"
+
 var hilMapstructureDecodeHookSlice []interface{}
 var hilMapstructureDecodeHookStringSlice []string
 var hilMapstructureDecodeHookMap map[string]interface{}
@@ -42,8 +47,18 @@ func hilMapstructureWeakDecode(m interface{}, rawVal interface{}) error {
 }
 
 func InterfaceToVariable(input interface{}) (ast.Variable, error) {
+	if inputVariable, ok := input.(ast.Variable); ok {
+		return inputVariable, nil
+	}
+
 	var stringVal string
 	if err := hilMapstructureWeakDecode(input, &stringVal); err == nil {
+		// Special case the unknown value to turn into "unknown"
+		if stringVal == UnknownValue {
+			return ast.Variable{Value: UnknownValue, Type: ast.TypeUnknown}, nil
+		}
+
+		// Otherwise return the string value
 		return ast.Variable{
 			Type:  ast.TypeString,
 			Value: stringVal,
@@ -85,4 +100,60 @@ func InterfaceToVariable(input interface{}) (ast.Variable, error) {
 	}
 
 	return ast.Variable{}, fmt.Errorf("value for conversion must be a string, interface{} or map[string]interface: got %T", input)
+}
+
+func VariableToInterface(input ast.Variable) (interface{}, error) {
+	if input.Type == ast.TypeString {
+		if inputStr, ok := input.Value.(string); ok {
+			return inputStr, nil
+		} else {
+			return nil, fmt.Errorf("ast.Variable with type string has value which is not a string")
+		}
+	}
+
+	if input.Type == ast.TypeList {
+		inputList, ok := input.Value.([]ast.Variable)
+		if !ok {
+			return nil, fmt.Errorf("ast.Variable with type list has value which is not a []ast.Variable")
+		}
+
+		result := make([]interface{}, 0)
+		if len(inputList) == 0 {
+			return result, nil
+		}
+
+		for _, element := range inputList {
+			if convertedElement, err := VariableToInterface(element); err == nil {
+				result = append(result, convertedElement)
+			} else {
+				return nil, err
+			}
+		}
+
+		return result, nil
+	}
+
+	if input.Type == ast.TypeMap {
+		inputMap, ok := input.Value.(map[string]ast.Variable)
+		if !ok {
+			return nil, fmt.Errorf("ast.Variable with type map has value which is not a map[string]ast.Variable")
+		}
+
+		result := make(map[string]interface{}, 0)
+		if len(inputMap) == 0 {
+			return result, nil
+		}
+
+		for key, value := range inputMap {
+			if convertedValue, err := VariableToInterface(value); err == nil {
+				result[key] = convertedValue
+			} else {
+				return nil, err
+			}
+		}
+
+		return result, nil
+	}
+
+	return nil, fmt.Errorf("unknown input type: %s", input.Type)
 }

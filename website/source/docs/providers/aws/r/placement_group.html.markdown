@@ -13,10 +13,10 @@ in [AWS Docs](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/placement-grou
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_placement_group" "web" {
-    name = "hunky-dory-pg"
-    strategy = "cluster"
+  name     = "hunky-dory-pg"
+  strategy = "cluster"
 }
 ```
 
@@ -32,3 +32,11 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The name of the placement group.
+
+## Import
+
+Placement groups can be imported using the `name`, e.g.
+
+```
+$ terraform import aws_placement_group.prod_pg production-placement-group
+```

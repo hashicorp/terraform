@@ -1,0 +1,236 @@
+---
+layout: "downloads"
+page_title: "Upgrading to Terraform 0.7"
+sidebar_current: "upgrade-guides-0-7"
+description: |-
+  Upgrading to Terraform v0.7
+---
+
+# Upgrading to Terraform v0.7
+
+Terraform v0.7 is a major release, and thus includes some backwards incompatibilities that you'll need to consider when upgrading. This guide is meant to help with that process.
+
+The goal of this guide is to cover the most common upgrade concerns and issues that would benefit from more explanation and background. The exhaustive list of changes will always be the [Terraform Changelog](https://github.com/hashicorp/terraform/blob/master/CHANGELOG.md). After reviewing this guide, review the Changelog to check on specific notes about the resources and providers you use.
+
+## Plugin Binaries
+
+Before v0.7, Terraform's built-in plugins for providers and provisioners were each distributed as separate binaries.
+
+```
+terraform               # core binary
+terraform-provider-*    # provider plugins
+terraform-provisioner-* # provisioner plugins
+```
+
+These binaries needed to all be extracted to somewhere in your `$PATH` or in the `~/.terraform.d` directory for Terraform to work.
+
+As of v0.7, all built-in plugins ship embedded in a single binary. This means that if you just extract the v0.7 archive into a path, you may still have the old separate binaries in your `$PATH`. You'll need to remove them manually.
+
+For example, if you keep Terraform binaries in `/usr/local/bin` you can clear out the old external binaries like this:
+
+```
+rm /usr/local/bin/terraform-*
+```
+
+External plugin binaries continue to work using the same pattern, but due to updates to the RPC protocol, they will need to be recompiled to be compatible with Terraform v0.7.x.
+
+## Maps in Displayed Plans
+
+When displaying a plan, Terraform now distinguishes attributes of type map by using a `%` character for the "length field".
+
+Here is an example showing a diff that includes both a list and a map:
+
+```
+somelist.#:  "0" => "1"
+somelist.0:  "" => "someitem"
+somemap.%:   "0" => "1"
+somemap.foo: "" => "bar"
+```
+
+## Interpolation Changes
+
+There are a few changes to Terraform's interpolation language that may require updates to your configs.
+
+### String Concatenation
+
+The `concat()` interpolation function used to work for both lists and strings. It now only works for lists.
+
+```
+"${concat(var.foo, "-suffix")}"     # => Error! No longer supported.
+```
+
+Instead, you can use variable interpolation for string concatenation.
+
+```
+"${var.foo}-suffix"
+```
+
+### Nested Quotes and Escaping
+
+Escaped quotes inside of interpolations were supported to retain backwards compatibility with older versions of Terraform that allowed them.
+
+Now, escaped quotes will no longer work in the interpolation context:
+
+```
+"${lookup(var.somemap, \"somekey\")}"      # => Syntax Error!
+```
+
+Instead, treat each set of interpolation braces (`${}`) as a new quoting context:
+
+```
+"${lookup(var.somemap, "somekey")}"
+```
+
+This allows double quote characters to be expressed properly within strings inside of interpolation expressions:
+
+```
+"${upper("\"quoted\"")}"    # => "QUOTED"
+```
+
+## Safer `terraform plan` Behavior
+
+Prior to v0.7, the `terraform plan` command had the potential to write updates to the state if changes were detected during the Refresh step (which happens by default during `plan`). Some configurations have metadata that changes with every read, so Refresh would always result in changes to the state, and therefore a write.
+
+In collaborative environments with shared remote state, this potential side effect of `plan` would cause unnecessary contention over the state, and potentially even interfere with active `apply` operations if they were happening simultaneously elsewhere.
+
+Terraform v0.7 addresses this by changing the Refresh process that is run during `terraform plan` to always be an in-memory only refresh. New state information detected during this step will not be persisted to permanent state storage.
+
+If the `-out` flag is used to produce a Plan File, the updated state information _will_ be encoded into that file, so that the resulting `terraform apply` operation can detect if any changes occurred that might invalidate the plan.
+
+For most users, this change will not affect your day-to-day usage of Terraform. For users with automation that relies on the old side effect of `plan`, you can use the `terraform refresh` command, which will still persist any changes it discovers.
+
+## Migrating to Data Sources
+
+With the addition of [Data Sources](/docs/configuration/data-sources.html), there are several resources that were acting as Data Sources that are now deprecated. Existing configurations will continue to work, but will print a deprecation warning when a data source is used as a resource.
+
+ * `atlas_artifact`
+ * `template_file`
+ * `template_cloudinit_config`
+ * `tls_cert_request`
+
+Migrating to the equivalent Data Source is as simple as changing the `resource` keyword to `data` in your declaration and prepending `data.` to attribute references elsewhere in your config.
+
+For example, given a config like:
+
+```
+resource "template_file" "example" {
+  template = "someconfig"
+}
+resource "aws_instance" "example" {
+  user_data = "${template_file.example.rendered}"
+  # ...
+}
+```
+
+A config using the equivalent Data Source would look like this:
+
+```
+data "template_file" "example" {
+  template = "someconfig"
+}
+resource "aws_instance" "example" {
+  user_data = "${data.template_file.example.rendered}"
+  # ...
+}
+```
+
+Referencing remote state outputs has also changed. The `.output` keyword is no longer required.
+
+For example, a config like this:
+
+```
+resource "terraform_remote_state" "example" {
+  # ...
+}
+
+resource "aws_instance" "example" {
+  ami = "${terraform_remote_state.example.output.ami_id}"
+  # ...
+}
+```
+
+Would now look like this:
+
+```
+data "terraform_remote_state" "example" {
+  # ...
+}
+
+resource "aws_instance" "example" {
+  ami = "${data.terraform_remote_state.example.ami_id}"
+  # ...
+}
+```
+
+<a id="listmap"></a>
+
+## Migrating to native lists and maps
+
+Terraform 0.7 now supports lists and maps as first-class constructs. Although the patterns commonly used in previous versions still work (excepting any compatibility notes), there are now patterns with cleaner syntax available.
+
+For example, a common pattern for exporting a list of values from a module was to use an output with a `join()` interpolation, like this:
+
+```
+output "private_subnets" {
+  value = "${join(",", aws_subnet.private.*.id)}"
+}
+```
+
+When using the value produced by this output in another module, a corresponding `split()` would be used to retrieve individual elements, often parameterized by `count.index`, for example:
+
+```
+subnet_id = "${element(split(",", var.private_subnets), count.index)}"
+```
+
+Using Terraform 0.7, list values can now be passed between modules directly. The above example can read like this for the output:
+
+```
+output "private_subnets" {
+  value = ["${aws_subnet.private.*.id}"]
+}
+```
+
+And then when passed to another module as a `list` type variable, we can index directly using `[]` syntax:
+
+```
+subnet_id = "${var.private_subnets[count.index]}"
+```
+
+Note that indexing syntax does not wrap around if the extent of a list is reached - for example if you are trying to distribute 10 instances across three private subnets. For this behaviour, `element` can still be used:
+
+```
+subnet_id = "${element(var.private_subnets, count.index)}"
+```
+
+## Map value overrides
+
+Previously, individual elements in a map could be overridden by using a dot notation. For example, if the following variable was declared:
+
+```
+variable "amis" {
+  type = "map"
+  default = {
+    us-east-1 = "ami-123456"
+    us-west-2 = "ami-456789"
+    eu-west-1 = "ami-789123"
+  }
+}
+```
+
+The key "us-west-2" could be overridden using `-var "amis.us-west-2=overridden_value"` (or equivalent in an environment variable or `tfvars` file). The syntax for this has now changed - instead maps from the command line will be merged with the default value, with maps from flags taking precedence. The syntax for overriding individual values is now:
+
+```
+-var 'amis = { us-west-2 = "overridden_value" }'
+```
+
+This will give the map the effective value:
+
+```
+{
+  us-east-1 = "ami-123456"
+  us-west-2 = "overridden_value"
+  eu-west-1 = "ami-789123"
+}
+```
+
+It's also possible to override the values in a variables file, either in `terraform.tfvars` or specified using the `-var-file` flag.

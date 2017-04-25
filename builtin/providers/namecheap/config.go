@@ -13,7 +13,7 @@ type Config struct {
 	use_sandbox bool
 }
 
-// Client() returns a new client for accessing namne cheap.
+// Client() returns a new client for accessing Namecheap.
 func (c *Config) Client() (*namecheap.Client, error) {
 	client, err := namecheap.NewClient(c.username, c.api_user, c.token, c.ip, c.use_sandbox)
 

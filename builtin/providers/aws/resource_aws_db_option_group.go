@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"regexp"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -19,6 +20,9 @@ func resourceAwsDbOptionGroup() *schema.Resource {
 		Read:   resourceAwsDbOptionGroupRead,
 		Update: resourceAwsDbOptionGroupUpdate,
 		Delete: resourceAwsDbOptionGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"arn": &schema.Schema{
@@ -26,10 +30,19 @@ func resourceAwsDbOptionGroup() *schema.Resource {
 				Computed: true,
 			},
 			"name": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
+				ValidateFunc:  validateDbOptionGroupName,
+			},
+			"name_prefix": &schema.Schema{
 				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
 				ForceNew:     true,
-				Required:     true,
-				ValidateFunc: validateDbOptionGroupName,
+				ValidateFunc: validateDbOptionGroupNamePrefix,
 			},
 			"engine_name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -43,8 +56,9 @@ func resourceAwsDbOptionGroup() *schema.Resource {
 			},
 			"option_group_description": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
+				Default:  "Managed by Terraform",
 			},
 
 			"option": &schema.Schema{
@@ -102,11 +116,20 @@ func resourceAwsDbOptionGroupCreate(d *schema.ResourceData, meta interface{}) er
 	rdsconn := meta.(*AWSClient).rdsconn
 	tags := tagsFromMapRDS(d.Get("tags").(map[string]interface{}))
 
+	var groupName string
+	if v, ok := d.GetOk("name"); ok {
+		groupName = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		groupName = resource.PrefixedUniqueId(v.(string))
+	} else {
+		groupName = resource.UniqueId()
+	}
+
 	createOpts := &rds.CreateOptionGroupInput{
 		EngineName:             aws.String(d.Get("engine_name").(string)),
 		MajorEngineVersion:     aws.String(d.Get("major_engine_version").(string)),
 		OptionGroupDescription: aws.String(d.Get("option_group_description").(string)),
-		OptionGroupName:        aws.String(d.Get("name").(string)),
+		OptionGroupName:        aws.String(groupName),
 		Tags:                   tags,
 	}
 
@@ -116,7 +139,7 @@ func resourceAwsDbOptionGroupCreate(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Error creating DB Option Group: %s", err)
 	}
 
-	d.SetId(d.Get("name").(string))
+	d.SetId(groupName)
 	log.Printf("[INFO] DB Option Group ID: %s", d.Id())
 
 	return resourceAwsDbOptionGroupUpdate(d, meta)
@@ -125,7 +148,7 @@ func resourceAwsDbOptionGroupCreate(d *schema.ResourceData, meta interface{}) er
 func resourceAwsDbOptionGroupRead(d *schema.ResourceData, meta interface{}) error {
 	rdsconn := meta.(*AWSClient).rdsconn
 	params := &rds.DescribeOptionGroupsInput{
-		OptionGroupName: aws.String(d.Get("name").(string)),
+		OptionGroupName: aws.String(d.Id()),
 	}
 
 	log.Printf("[DEBUG] Describe DB Option Group: %#v", params)
@@ -143,7 +166,7 @@ func resourceAwsDbOptionGroupRead(d *schema.ResourceData, meta interface{}) erro
 
 	var option *rds.OptionGroup
 	for _, ogl := range options.OptionGroupsList {
-		if *ogl.OptionGroupName == d.Get("name").(string) {
+		if *ogl.OptionGroupName == d.Id() {
 			option = ogl
 			break
 		}
@@ -153,6 +176,7 @@ func resourceAwsDbOptionGroupRead(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("Unable to find Option Group: %#v", options.OptionGroupsList)
 	}
 
+	d.Set("name", option.OptionGroupName)
 	d.Set("major_engine_version", option.MajorEngineVersion)
 	d.Set("engine_name", option.EngineName)
 	d.Set("option_group_description", option.OptionGroupDescription)
@@ -161,7 +185,7 @@ func resourceAwsDbOptionGroupRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	optionGroup := options.OptionGroupsList[0]
-	arn, err := buildRDSOptionGroupARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	arn, err := buildRDSOptionGroupARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
 	if err != nil {
 		name := "<empty>"
 		if optionGroup.OptionGroupName != nil && *optionGroup.OptionGroupName != "" {
@@ -255,7 +279,7 @@ func resourceAwsDbOptionGroupUpdate(d *schema.ResourceData, meta interface{}) er
 
 	}
 
-	if arn, err := buildRDSOptionGroupARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
+	if arn, err := buildRDSOptionGroupARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
 		if err := setTagsRDS(rdsconn, d, arn); err != nil {
 			return err
 		} else {
@@ -274,11 +298,22 @@ func resourceAwsDbOptionGroupDelete(d *schema.ResourceData, meta interface{}) er
 	}
 
 	log.Printf("[DEBUG] Delete DB Option Group: %#v", deleteOpts)
-	_, err := rdsconn.DeleteOptionGroup(deleteOpts)
-	if err != nil {
-		return fmt.Errorf("Error Deleting DB Option Group: %s", err)
+	ret := resource.Retry(5*time.Minute, func() *resource.RetryError {
+		_, err := rdsconn.DeleteOptionGroup(deleteOpts)
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				if awsErr.Code() == "InvalidOptionGroupStateFault" {
+					log.Printf("[DEBUG] AWS believes the RDS Option Group is still in use, retrying")
+					return resource.RetryableError(awsErr)
+				}
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	if ret != nil {
+		return fmt.Errorf("Error Deleting DB Option Group: %s", ret)
 	}
-
 	return nil
 }
 
@@ -316,35 +351,13 @@ func resourceAwsDbOptionHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func buildRDSOptionGroupARN(identifier, accountid, region string) (string, error) {
+func buildRDSOptionGroupARN(identifier, partition, accountid, region string) (string, error) {
+	if partition == "" {
+		return "", fmt.Errorf("Unable to construct RDS Option Group ARN because of missing AWS partition")
+	}
 	if accountid == "" {
 		return "", fmt.Errorf("Unable to construct RDS Option Group ARN because of missing AWS Account ID")
 	}
-	arn := fmt.Sprintf("arn:aws:rds:%s:%s:og:%s", region, accountid, identifier)
+	arn := fmt.Sprintf("arn:%s:rds:%s:%s:og:%s", partition, region, accountid, identifier)
 	return arn, nil
-}
-
-func validateDbOptionGroupName(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"first character of %q must be a letter", k))
-	}
-	if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"only alphanumeric characters and hyphens allowed in %q", k))
-	}
-	if regexp.MustCompile(`--`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"%q cannot contain two consecutive hyphens", k))
-	}
-	if regexp.MustCompile(`-$`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"%q cannot end with a hyphen", k))
-	}
-	if len(value) > 255 {
-		errors = append(errors, fmt.Errorf(
-			"%q cannot be greater than 255 characters", k))
-	}
-	return
 }

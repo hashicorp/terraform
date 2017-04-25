@@ -3,12 +3,13 @@ package azure
 import (
 	"bytes"
 	"fmt"
-	"github.com/Azure/go-autorest/autorest"
-	"github.com/Azure/go-autorest/autorest/date"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/go-autorest/autorest/date"
 )
 
 const (
@@ -62,8 +63,9 @@ func DoPollForAsynchronous(delay time.Duration) autorest.SendDecorator {
 					return resp, err
 				}
 
+				delay = autorest.GetRetryAfter(resp, delay)
 				resp, err = autorest.SendWithSender(s, r,
-					autorest.AfterDelay(autorest.GetRetryAfter(resp, delay)))
+					autorest.AfterDelay(delay))
 			}
 
 			return resp, err

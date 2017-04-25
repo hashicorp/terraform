@@ -1,22 +1,21 @@
 variable "image" {
-    default = "Ubuntu 14.04"
+  default = "Ubuntu 14.04"
 }
 
 variable "flavor" {
-    default = "m1.small"
+  default = "m1.small"
 }
 
 variable "ssh_key_file" {
-    default = "~/.ssh/id_rsa.terraform"
+  default = "~/.ssh/id_rsa.terraform"
 }
 
 variable "ssh_user_name" {
-    default = "ubuntu"
+  default = "ubuntu"
 }
 
-variable "external_gateway" {
-}
+variable "external_gateway" {}
 
 variable "pool" {
-    default = "public"
+  default = "public"
 }

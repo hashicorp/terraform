@@ -8,7 +8,7 @@ import (
 // Gzip represents an Gzip logging response from the Fastly API.
 type Gzip struct {
 	ServiceID string `mapstructure:"service_id"`
-	Version   string `mapstructure:"version"`
+	Version   int    `mapstructure:"version"`
 
 	Name           string `mapstructure:"name"`
 	ContentTypes   string `mapstructure:"content_types"`
@@ -32,7 +32,7 @@ type ListGzipsInput struct {
 	Service string
 
 	// Version is the specific configuration version (required).
-	Version string
+	Version int
 }
 
 // ListGzips returns the list of gzips for the configuration version.
@@ -41,11 +41,11 @@ func (c *Client) ListGzips(i *ListGzipsInput) ([]*Gzip, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/gzip", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/gzip", i.Service, i.Version)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -64,7 +64,7 @@ type CreateGzipInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	Name           string `form:"name,omitempty"`
 	ContentTypes   string `form:"content_types"`
@@ -78,11 +78,11 @@ func (c *Client) CreateGzip(i *CreateGzipInput) (*Gzip, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/gzip", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/gzip", i.Service, i.Version)
 	resp, err := c.PostForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -100,7 +100,7 @@ type GetGzipInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the Gzip to fetch.
 	Name string
@@ -112,7 +112,7 @@ func (c *Client) GetGzip(i *GetGzipInput) (*Gzip, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -120,7 +120,7 @@ func (c *Client) GetGzip(i *GetGzipInput) (*Gzip, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/gzip/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/gzip/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -138,7 +138,7 @@ type UpdateGzipInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the Gzip to update.
 	Name string
@@ -155,7 +155,7 @@ func (c *Client) UpdateGzip(i *UpdateGzipInput) (*Gzip, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -163,7 +163,7 @@ func (c *Client) UpdateGzip(i *UpdateGzipInput) (*Gzip, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/gzip/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/gzip/%s", i.Service, i.Version, i.Name)
 	resp, err := c.PutForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -181,7 +181,7 @@ type DeleteGzipInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the Gzip to delete (required).
 	Name string
@@ -193,7 +193,7 @@ func (c *Client) DeleteGzip(i *DeleteGzipInput) error {
 		return ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return ErrMissingVersion
 	}
 
@@ -201,7 +201,7 @@ func (c *Client) DeleteGzip(i *DeleteGzipInput) error {
 		return ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/gzip/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/gzip/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Delete(path, nil)
 	if err != nil {
 		return err

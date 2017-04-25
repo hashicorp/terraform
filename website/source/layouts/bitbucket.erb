@@ -1,0 +1,32 @@
+<% wrap_layout :inner do %>
+    <% content_for :sidebar do %>
+        <div class="docs-sidebar hidden-print affix-top" role="complementary">
+            <ul class="nav docs-sidenav">
+                <li<%= sidebar_current("docs-home") %>>
+                    <a href="/docs/providers/index.html">All Providers</a>
+                </li>
+
+                <li<%= sidebar_current("docs-bitbucket-index") %>>
+                    <a href="/docs/providers/bitbucket/index.html">Bitbucket Provider</a>
+                </li>
+
+                <li<%= sidebar_current("docs-bitbucket-resource") %>>
+                    <a href="#">Resources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-bitbucket-resource-default-reviewers") %>>
+                            <a href="/docs/providers/bitbucket/r/default_reviewers.html">bitbucket_default_reviewers</a>
+                        </li>
+                        <li<%= sidebar_current("docs-bitbucket-resource-hook") %>>
+                            <a href="/docs/providers/bitbucket/r/hook.html">bitbucket_hook</a>
+                        </li>
+                        <li<%= sidebar_current("docs-bitbucket-resource-repository") %>>
+                            <a href="/docs/providers/bitbucket/r/repository.html">bitbucket_repository</a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    <% end %>
+
+    <%= yield %>
+<% end %>

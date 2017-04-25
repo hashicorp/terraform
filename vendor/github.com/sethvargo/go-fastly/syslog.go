@@ -9,7 +9,7 @@ import (
 // Syslog represents a syslog response from the Fastly API.
 type Syslog struct {
 	ServiceID string `mapstructure:"service_id"`
-	Version   string `mapstructure:"version"`
+	Version   int    `mapstructure:"version"`
 
 	Name              string     `mapstructure:"name"`
 	Address           string     `mapstructure:"address"`
@@ -18,6 +18,7 @@ type Syslog struct {
 	TLSCACert         string     `mapstructure:"tls_ca_cert"`
 	Token             string     `mapstructure:"token"`
 	Format            string     `mapstructure:"format"`
+	FormatVersion     uint       `mapstructure:"format_version"`
 	ResponseCondition string     `mapstructure:"response_condition"`
 	CreatedAt         *time.Time `mapstructure:"created_at"`
 	UpdatedAt         *time.Time `mapstructure:"updated_at"`
@@ -40,7 +41,7 @@ type ListSyslogsInput struct {
 	Service string
 
 	// Version is the specific configuration version (required).
-	Version string
+	Version int
 }
 
 // ListSyslogs returns the list of syslogs for the configuration version.
@@ -49,11 +50,11 @@ func (c *Client) ListSyslogs(i *ListSyslogsInput) ([]*Syslog, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/syslog", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/syslog", i.Service, i.Version)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -72,16 +73,17 @@ type CreateSyslogInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
-	Name              string      `form:"name,omitempty"`
-	Address           string      `form:"address,omitempty"`
-	Port              uint        `form:"port,omitempty"`
-	UseTLS            Compatibool `form:"use_tls,omitempty"`
-	TLSCACert         string      `form:"tls_ca_cert,omitempty"`
-	Token             string      `form:"token,omitempty"`
-	Format            string      `form:"format,omitempty"`
-	ResponseCondition string      `form:"response_condition,omitempty"`
+	Name              string       `form:"name,omitempty"`
+	Address           string       `form:"address,omitempty"`
+	Port              uint         `form:"port,omitempty"`
+	UseTLS            *Compatibool `form:"use_tls,omitempty"`
+	TLSCACert         string       `form:"tls_ca_cert,omitempty"`
+	Token             string       `form:"token,omitempty"`
+	Format            string       `form:"format,omitempty"`
+	FormatVersion     uint         `form:"format_version,omitempty"`
+	ResponseCondition string       `form:"response_condition,omitempty"`
 }
 
 // CreateSyslog creates a new Fastly syslog.
@@ -90,11 +92,11 @@ func (c *Client) CreateSyslog(i *CreateSyslogInput) (*Syslog, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/syslog", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/syslog", i.Service, i.Version)
 	resp, err := c.PostForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -112,7 +114,7 @@ type GetSyslogInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the syslog to fetch.
 	Name string
@@ -124,7 +126,7 @@ func (c *Client) GetSyslog(i *GetSyslogInput) (*Syslog, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -132,7 +134,7 @@ func (c *Client) GetSyslog(i *GetSyslogInput) (*Syslog, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/syslog/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/syslog/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -150,19 +152,20 @@ type UpdateSyslogInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the syslog to update.
 	Name string
 
-	NewName           string      `form:"name,omitempty"`
-	Address           string      `form:"address,omitempty"`
-	Port              uint        `form:"port,omitempty"`
-	UseTLS            Compatibool `form:"use_tls,omitempty"`
-	TLSCACert         string      `form:"tls_ca_cert,omitempty"`
-	Token             string      `form:"token,omitempty"`
-	Format            string      `form:"format,omitempty"`
-	ResponseCondition string      `form:"response_condition,omitempty"`
+	NewName           string       `form:"name,omitempty"`
+	Address           string       `form:"address,omitempty"`
+	Port              uint         `form:"port,omitempty"`
+	UseTLS            *Compatibool `form:"use_tls,omitempty"`
+	TLSCACert         string       `form:"tls_ca_cert,omitempty"`
+	Token             string       `form:"token,omitempty"`
+	Format            string       `form:"format,omitempty"`
+	FormatVersion     uint         `form:"format_version,omitempty"`
+	ResponseCondition string       `form:"response_condition,omitempty"`
 }
 
 // UpdateSyslog updates a specific syslog.
@@ -171,7 +174,7 @@ func (c *Client) UpdateSyslog(i *UpdateSyslogInput) (*Syslog, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -179,7 +182,7 @@ func (c *Client) UpdateSyslog(i *UpdateSyslogInput) (*Syslog, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/syslog/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/syslog/%s", i.Service, i.Version, i.Name)
 	resp, err := c.PutForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -197,7 +200,7 @@ type DeleteSyslogInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the syslog to delete (required).
 	Name string
@@ -209,7 +212,7 @@ func (c *Client) DeleteSyslog(i *DeleteSyslogInput) error {
 		return ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return ErrMissingVersion
 	}
 
@@ -217,7 +220,7 @@ func (c *Client) DeleteSyslog(i *DeleteSyslogInput) error {
 		return ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/syslog/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/syslog/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Delete(path, nil)
 	if err != nil {
 		return err

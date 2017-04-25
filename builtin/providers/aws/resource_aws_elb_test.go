@@ -26,7 +26,7 @@ func TestAccAWSELB_basic(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -70,7 +70,7 @@ func TestAccAWSELB_fullCharacterRange(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testAccAWSELBFullRangeOfCharacters, lbName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.foo", &conf),
@@ -82,8 +82,10 @@ func TestAccAWSELB_fullCharacterRange(t *testing.T) {
 	})
 }
 
-func TestAccAWSELB_AccessLogs(t *testing.T) {
+func TestAccAWSELB_AccessLogs_enabled(t *testing.T) {
 	var conf elb.LoadBalancerDescription
+
+	rName := fmt.Sprintf("terraform-access-logs-bucket-%d", acctest.RandInt())
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
@@ -91,32 +93,101 @@ func TestAccAWSELB_AccessLogs(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBAccessLogs,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.foo", &conf),
 				),
 			},
 
-			resource.TestStep{
-				Config: testAccAWSELBAccessLogsOn,
+			{
+				Config: testAccAWSELBAccessLogsOn(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.foo", &conf),
 					resource.TestCheckResourceAttr(
 						"aws_elb.foo", "access_logs.#", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_elb.foo", "access_logs.0.bucket", "terraform-access-logs-bucket"),
+						"aws_elb.foo", "access_logs.0.bucket", rName),
 					resource.TestCheckResourceAttr(
 						"aws_elb.foo", "access_logs.0.interval", "5"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "access_logs.0.enabled", "true"),
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSELBAccessLogs,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.foo", &conf),
 					resource.TestCheckResourceAttr(
 						"aws_elb.foo", "access_logs.#", "0"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSELB_AccessLogs_disabled(t *testing.T) {
+	var conf elb.LoadBalancerDescription
+
+	rName := fmt.Sprintf("terraform-access-logs-bucket-%d", acctest.RandInt())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_elb.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSELBAccessLogs,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.foo", &conf),
+				),
+			},
+
+			{
+				Config: testAccAWSELBAccessLogsDisabled(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.foo", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "access_logs.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "access_logs.0.bucket", rName),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "access_logs.0.interval", "5"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "access_logs.0.enabled", "false"),
+				),
+			},
+
+			{
+				Config: testAccAWSELBAccessLogs,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.foo", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "access_logs.#", "0"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSELB_namePrefix(t *testing.T) {
+	var conf elb.LoadBalancerDescription
+	nameRegex := regexp.MustCompile("^test-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_elb.test",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSELB_namePrefix,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.test", &conf),
+					resource.TestMatchResourceAttr(
+						"aws_elb.test", "name", nameRegex),
 				),
 			},
 		},
@@ -133,7 +204,7 @@ func TestAccAWSELB_generatedName(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBGeneratedName,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.foo", &conf),
@@ -154,7 +225,7 @@ func TestAccAWSELB_availabilityZones(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -169,7 +240,7 @@ func TestAccAWSELB_availabilityZones(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfig_AvailabilityZonesUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -195,7 +266,7 @@ func TestAccAWSELB_tags(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -205,7 +276,7 @@ func TestAccAWSELB_tags(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfig_TagUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -236,12 +307,42 @@ func TestAccAWSELB_iam_server_cert(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccELBIAMServerCertConfig(
 					fmt.Sprintf("tf-acctest-%s", acctest.RandString(10))),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
 					testCheck,
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSELB_swap_subnets(t *testing.T) {
+	var conf elb.LoadBalancerDescription
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_elb.ourapp",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSELBConfig_subnets,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.ourapp", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.ourapp", "subnets.#", "2"),
+				),
+			},
+
+			{
+				Config: testAccAWSELBConfig_subnet_swap,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.ourapp", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.ourapp", "subnets.#", "2"),
 				),
 			},
 		},
@@ -284,7 +385,7 @@ func TestAccAWSELB_InstanceAttaching(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -292,7 +393,7 @@ func TestAccAWSELB_InstanceAttaching(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigNewInstance,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -312,7 +413,7 @@ func TestAccAWSELBUpdate_Listener(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -322,7 +423,7 @@ func TestAccAWSELBUpdate_Listener(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigListener_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -343,7 +444,7 @@ func TestAccAWSELB_HealthCheck(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigHealthCheck,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -371,14 +472,14 @@ func TestAccAWSELBUpdate_HealthCheck(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigHealthCheck,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "health_check.0.healthy_threshold", "5"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigHealthCheck_update,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -398,7 +499,7 @@ func TestAccAWSELB_Timeout(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigIdleTimeout,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -418,7 +519,7 @@ func TestAccAWSELBUpdate_Timeout(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigIdleTimeout,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -426,7 +527,7 @@ func TestAccAWSELBUpdate_Timeout(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigIdleTimeout_update,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -445,7 +546,7 @@ func TestAccAWSELB_ConnectionDraining(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigConnectionDraining,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -467,7 +568,7 @@ func TestAccAWSELBUpdate_ConnectionDraining(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigConnectionDraining,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -478,7 +579,7 @@ func TestAccAWSELBUpdate_ConnectionDraining(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigConnectionDraining_update_timeout,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -489,7 +590,7 @@ func TestAccAWSELBUpdate_ConnectionDraining(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigConnectionDraining_update_disable,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -508,7 +609,7 @@ func TestAccAWSELB_SecurityGroups(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfig,
 				Check: resource.ComposeTestCheckFunc(
 					// ELBs get a default security group
@@ -517,7 +618,7 @@ func TestAccAWSELB_SecurityGroups(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSELBConfigSecurityGroups,
 				Check: resource.ComposeTestCheckFunc(
 					// Count should still be one as we swap in a custom security group
@@ -596,6 +697,183 @@ func TestResourceAWSELB_validateElbNameCannotEndWithHyphen(t *testing.T) {
 
 	if len(errors) != 1 {
 		t.Fatalf("Expected the ELB Name to trigger a validation error")
+	}
+}
+
+func TestResourceAWSELB_validateAccessLogsInterval(t *testing.T) {
+	type testCases struct {
+		Value    int
+		ErrCount int
+	}
+
+	invalidCases := []testCases{
+		{
+			Value:    0,
+			ErrCount: 1,
+		},
+		{
+			Value:    10,
+			ErrCount: 1,
+		},
+		{
+			Value:    -1,
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateAccessLogsInterval(tc.Value, "interval")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
+	}
+
+}
+
+func TestResourceAWSELB_validateListenerProtocol(t *testing.T) {
+	type testCases struct {
+		Value    string
+		ErrCount int
+	}
+
+	invalidCases := []testCases{
+		{
+			Value:    "",
+			ErrCount: 1,
+		},
+		{
+			Value:    "incorrect",
+			ErrCount: 1,
+		},
+		{
+			Value:    "HTTP:",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateListenerProtocol(tc.Value, "protocol")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
+	}
+
+	validCases := []testCases{
+		{
+			Value:    "TCP",
+			ErrCount: 0,
+		},
+		{
+			Value:    "ssl",
+			ErrCount: 0,
+		},
+		{
+			Value:    "HTTP",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range validCases {
+		_, errors := validateListenerProtocol(tc.Value, "protocol")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
+		}
+	}
+}
+
+func TestResourceAWSELB_validateHealthCheckTarget(t *testing.T) {
+	type testCase struct {
+		Value    string
+		ErrCount int
+	}
+
+	randomRunes := func(n int) string {
+		rand.Seed(time.Now().UTC().UnixNano())
+
+		// A complete set of modern Katakana characters.
+		runes := []rune("アイウエオ" +
+			"カキクケコガギグゲゴサシスセソザジズゼゾ" +
+			"タチツテトダヂヅデドナニヌネノハヒフヘホ" +
+			"バビブベボパピプペポマミムメモヤユヨラリ" +
+			"ルレロワヰヱヲン")
+
+		s := make([]rune, n)
+		for i := range s {
+			s[i] = runes[rand.Intn(len(runes))]
+		}
+		return string(s)
+	}
+
+	validCases := []testCase{
+		{
+			Value:    "TCP:1234",
+			ErrCount: 0,
+		},
+		{
+			Value:    "http:80/test",
+			ErrCount: 0,
+		},
+		{
+			Value:    fmt.Sprintf("HTTP:8080/%s", randomRunes(5)),
+			ErrCount: 0,
+		},
+		{
+			Value:    "SSL:8080",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range validCases {
+		_, errors := validateHeathCheckTarget(tc.Value, "target")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
+		}
+	}
+
+	invalidCases := []testCase{
+		{
+			Value:    "",
+			ErrCount: 1,
+		},
+		{
+			Value:    "TCP:",
+			ErrCount: 1,
+		},
+		{
+			Value:    "TCP:1234/",
+			ErrCount: 1,
+		},
+		{
+			Value:    "SSL:8080/",
+			ErrCount: 1,
+		},
+		{
+			Value:    "HTTP:8080",
+			ErrCount: 1,
+		},
+		{
+			Value:    "incorrect-value",
+			ErrCount: 1,
+		},
+		{
+			Value:    "TCP:123456",
+			ErrCount: 1,
+		},
+		{
+			Value:    "incorrect:80/",
+			ErrCount: 1,
+		},
+		{
+			Value:    fmt.Sprintf("HTTP:8080/%s%s", randomString(512), randomRunes(512)),
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateHeathCheckTarget(tc.Value, "target")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
 	}
 }
 
@@ -788,12 +1066,14 @@ resource "aws_elb" "foo" {
   }
 }
 `
-const testAccAWSELBAccessLogsOn = `
+
+func testAccAWSELBAccessLogsOn(r string) string {
+	return fmt.Sprintf(`
 # an S3 bucket configured for Access logs
 # The 797873946194 is the AWS ID for us-west-2, so this test
 # must be ran in us-west-2
 resource "aws_s3_bucket" "acceslogs_bucket" {
-  bucket = "terraform-access-logs-bucket"
+  bucket = "%s"
   acl = "private"
   force_destroy = true
   policy = <<EOF
@@ -806,7 +1086,7 @@ resource "aws_s3_bucket" "acceslogs_bucket" {
       "Principal": {
         "AWS": "arn:aws:iam::797873946194:root"
       },
-      "Resource": "arn:aws:s3:::terraform-access-logs-bucket/*",
+      "Resource": "arn:aws:s3:::%s/*",
       "Sid": "Stmt1446575236270"
     }
   ],
@@ -829,6 +1109,68 @@ resource "aws_elb" "foo" {
 		interval = 5
 		bucket = "${aws_s3_bucket.acceslogs_bucket.bucket}"
 	}
+}
+`, r, r)
+}
+
+func testAccAWSELBAccessLogsDisabled(r string) string {
+	return fmt.Sprintf(`
+# an S3 bucket configured for Access logs
+# The 797873946194 is the AWS ID for us-west-2, so this test
+# must be ran in us-west-2
+resource "aws_s3_bucket" "acceslogs_bucket" {
+  bucket = "%s"
+  acl = "private"
+  force_destroy = true
+  policy = <<EOF
+{
+  "Id": "Policy1446577137248",
+  "Statement": [
+    {
+      "Action": "s3:PutObject",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::797873946194:root"
+      },
+      "Resource": "arn:aws:s3:::%s/*",
+      "Sid": "Stmt1446575236270"
+    }
+  ],
+  "Version": "2012-10-17"
+}
+EOF
+}
+
+resource "aws_elb" "foo" {
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
+
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+
+	access_logs {
+		interval = 5
+		bucket = "${aws_s3_bucket.acceslogs_bucket.bucket}"
+		enabled = false
+	}
+}
+`, r, r)
+}
+
+const testAccAWSELB_namePrefix = `
+resource "aws_elb" "test" {
+  name_prefix = "test-"
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
+
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
 }
 `
 
@@ -1081,68 +1423,53 @@ resource "aws_iam_server_certificate" "test_cert" {
   name = "%s"
   certificate_body = <<EOF
 -----BEGIN CERTIFICATE-----
-MIIDCDCCAfACAQEwDQYJKoZIhvcNAQELBQAwgY4xCzAJBgNVBAYTAlVTMREwDwYD
-VQQIDAhOZXcgWW9yazERMA8GA1UEBwwITmV3IFlvcmsxFjAUBgNVBAoMDUJhcmVm
-b290IExhYnMxGDAWBgNVBAMMD0phc29uIEJlcmxpbnNreTEnMCUGCSqGSIb3DQEJ
-ARYYamFzb25AYmFyZWZvb3Rjb2RlcnMuY29tMB4XDTE1MDYyMTA1MzcwNVoXDTE2
-MDYyMDA1MzcwNVowgYgxCzAJBgNVBAYTAlVTMREwDwYDVQQIDAhOZXcgWW9yazEL
-MAkGA1UEBwwCTlkxFjAUBgNVBAoMDUJhcmVmb290IExhYnMxGDAWBgNVBAMMD0ph
-c29uIEJlcmxpbnNreTEnMCUGCSqGSIb3DQEJARYYamFzb25AYmFyZWZvb3Rjb2Rl
-cnMuY29tMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQD2AVGKRIx+EFM0kkg7
-6GoJv9uy0biEDHB4phQBqnDIf8J8/gq9eVvQrR5jJC9Uz4zp5wG/oLZlGuF92/jD
-bI/yS+DOAjrh30vN79Au74jGN2Cw8fIak40iDUwjZaczK2Gkna54XIO9pqMcbQ6Q
-mLUkQXsqlJ7Q4X2kL3b9iMsXcQIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQCDGNvU
-eioQMVPNlmmxW3+Rwo0Kl+/HtUOmqUDKUDvJnelxulBr7O8w75N/Z7h7+aBJCUkt
-tz+DwATZswXtsal6TuzHHpAhpFql82jQZVE8OYkrX84XKRQpm8ZnbyZObMdXTJWk
-ArC/rGVIWsvhlbgGM8zu7a3zbeuAESZ8Bn4ZbJxnoaRK8p36/alvzAwkgzSf3oUX
-HtU4LrdunevBs6/CbKCWrxYcvNCy8EcmHitqCfQL5nxCCXpgf/Mw1vmIPTwbPSJq
-oUkh5yjGRKzhh7QbG1TlFX6zUp4vb+UJn5+g4edHrqivRSjIqYrC45ygVMOABn21
-hpMXOlZL+YXfR4Kp
------END CERTIFICATE-----
-EOF
-
-  certificate_chain = <<EOF
------BEGIN CERTIFICATE-----
-MIID8TCCAtmgAwIBAgIJAKX2xeCkfFcbMA0GCSqGSIb3DQEBCwUAMIGOMQswCQYD
-VQQGEwJVUzERMA8GA1UECAwITmV3IFlvcmsxETAPBgNVBAcMCE5ldyBZb3JrMRYw
-FAYDVQQKDA1CYXJlZm9vdCBMYWJzMRgwFgYDVQQDDA9KYXNvbiBCZXJsaW5za3kx
-JzAlBgkqhkiG9w0BCQEWGGphc29uQGJhcmVmb290Y29kZXJzLmNvbTAeFw0xNTA2
-MjEwNTM2MDZaFw0yNTA2MTgwNTM2MDZaMIGOMQswCQYDVQQGEwJVUzERMA8GA1UE
-CAwITmV3IFlvcmsxETAPBgNVBAcMCE5ldyBZb3JrMRYwFAYDVQQKDA1CYXJlZm9v
-dCBMYWJzMRgwFgYDVQQDDA9KYXNvbiBCZXJsaW5za3kxJzAlBgkqhkiG9w0BCQEW
-GGphc29uQGJhcmVmb290Y29kZXJzLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEP
-ADCCAQoCggEBAMteFbwfLz7NyQn3eDxxw22l1ZPBrzfPON0HOAq8nHat4kT4A2cI
-45kCtxKMzCVoG84tXoX/rbjGkez7lz9lEfvEuSh+I+UqinFA/sefhcE63foVMZu1
-2t6O3+utdxBvOYJwAQaiGW44x0h6fTyqDv6Gc5Ml0uoIVeMWPhT1MREoOcPDz1gb
-Ep3VT2aqFULLJedP37qbzS4D04rn1tS7pcm3wYivRyjVNEvs91NsWEvvE1WtS2Cl
-2RBt+ihXwq4UNB9UPYG75+FuRcQQvfqameyweyKT9qBmJLELMtYa/KTCYvSch4JY
-YVPAPOlhFlO4BcTto/gpBes2WEAWZtE/jnECAwEAAaNQME4wHQYDVR0OBBYEFOna
-aiYnm5583EY7FT/mXwTBuLZgMB8GA1UdIwQYMBaAFOnaaiYnm5583EY7FT/mXwTB
-uLZgMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBABp/dKQ489CCzzB1
-IX78p6RFAdda4e3lL6uVjeS3itzFIIiKvdf1/txhmsEeCEYz0El6aMnXLkpk7jAr
-kCwlAOOz2R2hlA8k8opKTYX4IQQau8DATslUFAFOvRGOim/TD/Yuch+a/VF2VQKz
-L2lUVi5Hjp9KvWe2HQYPjnJaZs/OKAmZQ4uP547dqFrTz6sWfisF1rJ60JH70cyM
-qjZQp/xYHTZIB8TCPvLgtVIGFmd/VAHVBFW2p9IBwtSxBIsEPwYQOV3XbwhhmGIv
-DWx5TpnEzH7ZM33RNbAKcdwOBxdRY+SI/ua5hYCm4QngAqY69lEuk4zXZpdDLPq1
-qxxQx0E=
+MIIDBjCCAe4CCQCGWwBmOiHQdTANBgkqhkiG9w0BAQUFADBFMQswCQYDVQQGEwJB
+VTETMBEGA1UECBMKU29tZS1TdGF0ZTEhMB8GA1UEChMYSW50ZXJuZXQgV2lkZ2l0
+cyBQdHkgTHRkMB4XDTE2MDYyMTE2MzM0MVoXDTE3MDYyMTE2MzM0MVowRTELMAkG
+A1UEBhMCQVUxEzARBgNVBAgTClNvbWUtU3RhdGUxITAfBgNVBAoTGEludGVybmV0
+IFdpZGdpdHMgUHR5IEx0ZDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEB
+AL+LFlsCJG5txZp4yuu+lQnuUrgBXRG+irQqcTXlV91Bp5hpmRIyhnGCtWxxDBUL
+xrh4WN3VV/0jDzKT976oLgOy3hj56Cdqf+JlZ1qgMN5bHB3mm3aVWnrnsLbBsfwZ
+SEbk3Kht/cE1nK2toNVW+rznS3m+eoV3Zn/DUNwGlZr42hGNs6ETn2jURY78ETqR
+mW47xvjf86eIo7vULHJaY6xyarPqkL8DZazOmvY06hUGvGwGBny7gugfXqDG+I8n
+cPBsGJGSAmHmVV8o0RCB9UjY+TvSMQRpEDoVlvyrGuglsD8to/4+7UcsuDGlRYN6
+jmIOC37mOi/jwRfWL1YUa4MCAwEAATANBgkqhkiG9w0BAQUFAAOCAQEAPDxTH0oQ
+JjKXoJgkmQxurB81RfnK/NrswJVzWbOv6ejcbhwh+/ZgJTMc15BrYcxU6vUW1V/i
+Z7APU0qJ0icECACML+a2fRI7YdLCTiPIOmY66HY8MZHAn3dGjU5TeiUflC0n0zkP
+mxKJe43kcYLNDItbfvUDo/GoxTXrC3EFVZyU0RhFzoVJdODlTHXMVFCzcbQEBrBJ
+xKdShCEc8nFMneZcGFeEU488ntZoWzzms8/QpYrKa5S0Sd7umEU2Kwu4HTkvUFg/
+CqDUFjhydXxYRsxXBBrEiLOE5BdtJR1sH/QHxIJe23C9iHI2nS1NbLziNEApLwC4
+GnSud83VUo9G9w==
 -----END CERTIFICATE-----
 EOF
 
 	private_key =  <<EOF
 -----BEGIN RSA PRIVATE KEY-----
-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
+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
 -----END RSA PRIVATE KEY-----
 EOF
 }
@@ -1167,3 +1494,127 @@ resource "aws_elb" "bar" {
 }
 `, certName)
 }
+
+const testAccAWSELBConfig_subnets = `
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_vpc" "azelb" {
+  cidr_block           = "10.1.0.0/16"
+  enable_dns_hostnames = true
+
+  tags {
+    Name = "subnet-vpc"
+  }
+}
+
+resource "aws_subnet" "public_a_one" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.1.0/24"
+  availability_zone = "us-west-2a"
+}
+
+resource "aws_subnet" "public_b_one" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.7.0/24"
+  availability_zone = "us-west-2b"
+}
+
+resource "aws_subnet" "public_a_two" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.2.0/24"
+  availability_zone = "us-west-2a"
+}
+
+resource "aws_elb" "ourapp" {
+  name = "terraform-asg-deployment-example"
+
+  subnets = [
+    "${aws_subnet.public_a_one.id}",
+    "${aws_subnet.public_b_one.id}",
+  ]
+
+  listener {
+    instance_port     = 80
+    instance_protocol = "http"
+    lb_port           = 80
+    lb_protocol       = "http"
+  }
+
+  depends_on = ["aws_internet_gateway.gw"]
+}
+
+resource "aws_internet_gateway" "gw" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  tags {
+    Name = "main"
+  }
+}
+`
+
+const testAccAWSELBConfig_subnet_swap = `
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_vpc" "azelb" {
+  cidr_block           = "10.1.0.0/16"
+  enable_dns_hostnames = true
+
+  tags {
+    Name = "subnet-vpc"
+  }
+}
+
+resource "aws_subnet" "public_a_one" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.1.0/24"
+  availability_zone = "us-west-2a"
+}
+
+resource "aws_subnet" "public_b_one" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.7.0/24"
+  availability_zone = "us-west-2b"
+}
+
+resource "aws_subnet" "public_a_two" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.2.0/24"
+  availability_zone = "us-west-2a"
+}
+
+resource "aws_elb" "ourapp" {
+  name = "terraform-asg-deployment-example"
+
+  subnets = [
+    "${aws_subnet.public_a_two.id}",
+    "${aws_subnet.public_b_one.id}",
+  ]
+
+  listener {
+    instance_port     = 80
+    instance_protocol = "http"
+    lb_port           = 80
+    lb_protocol       = "http"
+  }
+
+  depends_on = ["aws_internet_gateway.gw"]
+}
+
+resource "aws_internet_gateway" "gw" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  tags {
+    Name = "main"
+  }
+}
+`

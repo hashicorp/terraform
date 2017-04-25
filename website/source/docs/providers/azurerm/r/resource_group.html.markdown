@@ -12,11 +12,11 @@ Creates a new resource group on Azure.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "testResourceGroup1"
   location = "West US"
-  
+
   tags {
     environment = "Production"
   }
@@ -32,11 +32,20 @@ The following arguments are supported:
 
 * `location` - (Required) The location where the resource group should be created.
     For a list of all Azure locations, please consult [this link](http://azure.microsoft.com/en-us/regions/).
-    
-* `tags` - (Optional) A mapping of tags to assign to the resource. 
+
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 ## Attributes Reference
 
 The following attributes are exported:
 
 * `id` - The resource group ID.
+
+
+## Import
+
+Resource Groups can be imported using the `resource id`, e.g.
+
+```
+terraform import azurerm_resource_group.mygroup /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/myresourcegroup
+```

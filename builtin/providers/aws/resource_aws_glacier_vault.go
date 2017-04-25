@@ -1,10 +1,12 @@
 package aws
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"regexp"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -19,6 +21,10 @@ func resourceAwsGlacierVault() *schema.Resource {
 		Update: resourceAwsGlacierVaultUpdate,
 		Delete: resourceAwsGlacierVaultDelete,
 
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -28,7 +34,7 @@ func resourceAwsGlacierVault() *schema.Resource {
 					value := v.(string)
 					if !regexp.MustCompile(`^[.0-9A-Za-z-_]+$`).MatchString(value) {
 						errors = append(errors, fmt.Errorf(
-							"only alphanumeric characters, hyphens, underscores, and periods allowed in %q", k))
+							"only alphanumeric characters, hyphens, underscores, and periods are allowed in %q", k))
 					}
 					if len(value) > 255 {
 						errors = append(errors, fmt.Errorf(
@@ -49,9 +55,13 @@ func resourceAwsGlacierVault() *schema.Resource {
 			},
 
 			"access_policy": &schema.Schema{
-				Type:      schema.TypeString,
-				Optional:  true,
-				StateFunc: normalizeJson,
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateJsonString,
+				StateFunc: func(v interface{}) string {
+					json, _ := normalizeJsonString(v)
+					return json
+				},
 			},
 
 			"notification": &schema.Schema{
@@ -130,7 +140,15 @@ func resourceAwsGlacierVaultRead(d *schema.ResourceData, meta interface{}) error
 		return fmt.Errorf("Error reading Glacier Vault: %s", err.Error())
 	}
 
-	d.Set("arn", *out.VaultARN)
+	awsClient := meta.(*AWSClient)
+	d.Set("name", out.VaultName)
+	d.Set("arn", out.VaultARN)
+
+	location, err := buildGlacierVaultLocation(awsClient.accountid, d.Id())
+	if err != nil {
+		return err
+	}
+	d.Set("location", location)
 
 	tags, err := getGlacierVaultTags(glacierconn, d.Id())
 	if err != nil {
@@ -146,7 +164,11 @@ func resourceAwsGlacierVaultRead(d *schema.ResourceData, meta interface{}) error
 	if awserr, ok := err.(awserr.Error); ok && awserr.Code() == "ResourceNotFoundException" {
 		d.Set("access_policy", "")
 	} else if pol != nil {
-		d.Set("access_policy", normalizeJson(*pol.Policy.Policy))
+		policy, err := normalizeJsonString(*pol.Policy.Policy)
+		if err != nil {
+			return errwrap.Wrapf("access policy contains an invalid JSON: {{err}}", err)
+		}
+		d.Set("access_policy", policy)
 	} else {
 		return err
 	}
@@ -364,6 +386,13 @@ func glacierPointersToStringList(pointers []*string) []interface{} {
 		list[i] = *v
 	}
 	return list
+}
+
+func buildGlacierVaultLocation(accountId, vaultName string) (string, error) {
+	if accountId == "" {
+		return "", errors.New("AWS account ID unavailable - failed to construct Vault location")
+	}
+	return fmt.Sprintf("/" + accountId + "/vaults/" + vaultName), nil
 }
 
 func getGlacierVaultNotification(glacierconn *glacier.Glacier, vaultName string) ([]map[string]interface{}, error) {

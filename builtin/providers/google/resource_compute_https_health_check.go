@@ -131,7 +131,7 @@ func resourceComputeHttpsHealthCheckCreate(d *schema.ResourceData, meta interfac
 	// It probably maybe worked, so store the ID now
 	d.SetId(hchk.Name)
 
-	err = computeOperationWaitGlobal(config, op, "Creating Https Health Check")
+	err = computeOperationWaitGlobal(config, op, project, "Creating Https Health Check")
 	if err != nil {
 		return err
 	}
@@ -187,7 +187,7 @@ func resourceComputeHttpsHealthCheckUpdate(d *schema.ResourceData, meta interfac
 	// It probably maybe worked, so store the ID now
 	d.SetId(hchk.Name)
 
-	err = computeOperationWaitGlobal(config, op, "Updating Https Health Check")
+	err = computeOperationWaitGlobal(config, op, project, "Updating Https Health Check")
 	if err != nil {
 		return err
 	}
@@ -244,7 +244,7 @@ func resourceComputeHttpsHealthCheckDelete(d *schema.ResourceData, meta interfac
 		return fmt.Errorf("Error deleting HttpsHealthCheck: %s", err)
 	}
 
-	err = computeOperationWaitGlobal(config, op, "Deleting Https Health Check")
+	err = computeOperationWaitGlobal(config, op, project, "Deleting Https Health Check")
 	if err != nil {
 		return err
 	}

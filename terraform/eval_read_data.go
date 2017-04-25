@@ -30,7 +30,7 @@ func (n *EvalReadDataDiff) Eval(ctx EvalContext) (interface{}, error) {
 
 	var diff *InstanceDiff
 
-	if n.Previous != nil && *n.Previous != nil && (*n.Previous).Destroy {
+	if n.Previous != nil && *n.Previous != nil && (*n.Previous).GetDestroy() {
 		// If we're re-diffing for a diff that was already planning to
 		// destroy, then we'll just continue with that plan.
 		diff = &InstanceDiff{Destroy: true}
@@ -47,13 +47,16 @@ func (n *EvalReadDataDiff) Eval(ctx EvalContext) (interface{}, error) {
 			diff = new(InstanceDiff)
 		}
 
-		// id is always computed, because we're always "creating a new resource"
+		// if id isn't explicitly set then it's always computed, because we're
+		// always "creating a new resource".
 		diff.init()
-		diff.Attributes["id"] = &ResourceAttrDiff{
-			Old:         "",
-			NewComputed: true,
-			RequiresNew: true,
-			Type:        DiffAttrOutput,
+		if _, ok := diff.Attributes["id"]; !ok {
+			diff.SetAttribute("id", &ResourceAttrDiff{
+				Old:         "",
+				NewComputed: true,
+				RequiresNew: true,
+				Type:        DiffAttrOutput,
+			})
 		}
 	}
 
@@ -97,7 +100,7 @@ func (n *EvalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
 	// If the diff is for *destroying* this resource then we'll
 	// just drop its state and move on, since data resources don't
 	// support an actual "destroy" action.
-	if diff != nil && diff.Destroy {
+	if diff != nil && diff.GetDestroy() {
 		if n.Output != nil {
 			*n.Output = nil
 		}

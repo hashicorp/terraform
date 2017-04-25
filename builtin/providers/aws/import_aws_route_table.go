@@ -40,11 +40,18 @@ func resourceAwsRouteTableImportState(
 				continue
 			}
 
+			if route.DestinationPrefixListId != nil {
+				// Skipping because VPC endpoint routes are handled separately
+				// See aws_vpc_endpoint
+				continue
+			}
+
 			// Minimal data for route
 			d := subResource.Data(nil)
 			d.SetType("aws_route")
 			d.Set("route_table_id", id)
 			d.Set("destination_cidr_block", route.DestinationCidrBlock)
+			d.Set("destination_ipv6_cidr_block", route.DestinationIpv6CidrBlock)
 			d.SetId(routeIDHash(d, route))
 			results = append(results, d)
 		}

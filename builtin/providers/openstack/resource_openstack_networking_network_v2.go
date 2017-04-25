@@ -9,8 +9,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/networks"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 )
 
 func resourceNetworkingNetworkV2() *schema.Resource {
@@ -19,6 +19,14 @@ func resourceNetworkingNetworkV2() *schema.Resource {
 		Read:   resourceNetworkingNetworkV2Read,
 		Update: resourceNetworkingNetworkV2Update,
 		Delete: resourceNetworkingNetworkV2Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -50,20 +58,28 @@ func resourceNetworkingNetworkV2() *schema.Resource {
 				ForceNew: true,
 				Computed: true,
 			},
+			"value_specs": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
 
 func resourceNetworkingNetworkV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	createOpts := networks.CreateOpts{
-		Name:     d.Get("name").(string),
-		TenantID: d.Get("tenant_id").(string),
+	createOpts := NetworkCreateOpts{
+		networks.CreateOpts{
+			Name:     d.Get("name").(string),
+			TenantID: d.Get("tenant_id").(string),
+		},
+		MapValueSpecs(d),
 	}
 
 	asuRaw := d.Get("admin_state_up").(string)
@@ -97,7 +113,7 @@ func resourceNetworkingNetworkV2Create(d *schema.ResourceData, meta interface{})
 		Pending:    []string{"BUILD"},
 		Target:     []string{"ACTIVE"},
 		Refresh:    waitForNetworkActive(networkingClient, n.ID),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutCreate),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -111,7 +127,7 @@ func resourceNetworkingNetworkV2Create(d *schema.ResourceData, meta interface{})
 
 func resourceNetworkingNetworkV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -121,19 +137,20 @@ func resourceNetworkingNetworkV2Read(d *schema.ResourceData, meta interface{}) e
 		return CheckDeleted(d, err, "network")
 	}
 
-	log.Printf("[DEBUG] Retreived Network %s: %+v", d.Id(), n)
+	log.Printf("[DEBUG] Retrieved Network %s: %+v", d.Id(), n)
 
 	d.Set("name", n.Name)
 	d.Set("admin_state_up", strconv.FormatBool(n.AdminStateUp))
 	d.Set("shared", strconv.FormatBool(n.Shared))
 	d.Set("tenant_id", n.TenantID)
+	d.Set("region", GetRegion(d))
 
 	return nil
 }
 
 func resourceNetworkingNetworkV2Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -175,7 +192,7 @@ func resourceNetworkingNetworkV2Update(d *schema.ResourceData, meta interface{})
 
 func resourceNetworkingNetworkV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -184,7 +201,7 @@ func resourceNetworkingNetworkV2Delete(d *schema.ResourceData, meta interface{})
 		Pending:    []string{"ACTIVE"},
 		Target:     []string{"DELETED"},
 		Refresh:    waitForNetworkDelete(networkingClient, d.Id()),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -220,26 +237,25 @@ func waitForNetworkDelete(networkingClient *gophercloud.ServiceClient, networkId
 
 		n, err := networks.Get(networkingClient, networkId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return n, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Network %s", networkId)
 				return n, "DELETED", nil
 			}
+			return n, "ACTIVE", err
 		}
 
 		err = networks.Delete(networkingClient, networkId).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return n, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Network %s", networkId)
 				return n, "DELETED", nil
 			}
+			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+				if errCode.Actual == 409 {
+					return n, "ACTIVE", nil
+				}
+			}
+			return n, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack Network %s still active.\n", networkId)

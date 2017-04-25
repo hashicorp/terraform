@@ -1,11 +1,16 @@
 package resource
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"regexp"
+	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -22,8 +27,26 @@ func init() {
 	}
 }
 
+// wrap the mock provider to implement TestProvider
+type resetProvider struct {
+	*terraform.MockResourceProvider
+	mu              sync.Mutex
+	TestResetCalled bool
+	TestResetError  error
+}
+
+func (p *resetProvider) TestReset() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.TestResetCalled = true
+	return p.TestResetError
+}
+
 func TestTest(t *testing.T) {
-	mp := testProvider()
+	mp := &resetProvider{
+		MockResourceProvider: testProvider(),
+	}
+
 	mp.DiffReturn = nil
 
 	mp.ApplyFn = func(
@@ -89,6 +112,61 @@ func TestTest(t *testing.T) {
 	if !checkStep {
 		t.Fatal("didn't call check for step")
 	}
+	if !checkDestroy {
+		t.Fatal("didn't call check for destroy")
+	}
+	if !mp.TestResetCalled {
+		t.Fatal("didn't call TestReset")
+	}
+}
+
+func TestTest_plan_only(t *testing.T) {
+	mp := testProvider()
+	mp.ApplyReturn = &terraform.InstanceState{
+		ID: "foo",
+	}
+
+	checkDestroy := false
+
+	checkDestroyFn := func(*terraform.State) error {
+		checkDestroy = true
+		return nil
+	}
+
+	mt := new(mockT)
+	Test(mt, TestCase{
+		Providers: map[string]terraform.ResourceProvider{
+			"test": mp,
+		},
+		CheckDestroy: checkDestroyFn,
+		Steps: []TestStep{
+			TestStep{
+				Config:             testConfigStr,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+
+	if !mt.failed() {
+		t.Fatal("test should've failed")
+	}
+
+	expected := `Step 0 error: After applying this step, the plan was not empty:
+
+DIFF:
+
+CREATE: test_instance.foo
+  foo: "" => "bar"
+
+STATE:
+
+<no state>`
+
+	if mt.failMessage() != expected {
+		t.Fatalf("Expected message: %s\n\ngot:\n\n%s", expected, mt.failMessage())
+	}
+
 	if !checkDestroy {
 		t.Fatal("didn't call check for destroy")
 	}
@@ -349,6 +427,77 @@ func TestTest_stepError(t *testing.T) {
 
 	if !checkDestroy {
 		t.Fatal("didn't call check for destroy")
+	}
+}
+
+func TestTest_factoryError(t *testing.T) {
+	resourceFactoryError := fmt.Errorf("resource factory error")
+
+	factory := func() (terraform.ResourceProvider, error) {
+		return nil, resourceFactoryError
+	}
+
+	mt := new(mockT)
+	Test(mt, TestCase{
+		ProviderFactories: map[string]terraform.ResourceProviderFactory{
+			"test": factory,
+		},
+		Steps: []TestStep{
+			TestStep{
+				ExpectError: regexp.MustCompile("resource factory error"),
+			},
+		},
+	})
+
+	if !mt.failed() {
+		t.Fatal("test should've failed")
+	}
+}
+
+func TestTest_resetError(t *testing.T) {
+	mp := &resetProvider{
+		MockResourceProvider: testProvider(),
+		TestResetError:       fmt.Errorf("provider reset error"),
+	}
+
+	mt := new(mockT)
+	Test(mt, TestCase{
+		Providers: map[string]terraform.ResourceProvider{
+			"test": mp,
+		},
+		Steps: []TestStep{
+			TestStep{
+				ExpectError: regexp.MustCompile("provider reset error"),
+			},
+		},
+	})
+
+	if !mt.failed() {
+		t.Fatal("test should've failed")
+	}
+}
+
+func TestComposeAggregateTestCheckFunc(t *testing.T) {
+	check1 := func(s *terraform.State) error {
+		return errors.New("Error 1")
+	}
+
+	check2 := func(s *terraform.State) error {
+		return errors.New("Error 2")
+	}
+
+	f := ComposeAggregateTestCheckFunc(check1, check2)
+	err := f(nil)
+	if err == nil {
+		t.Fatalf("Expected errors")
+	}
+
+	multi := err.(*multierror.Error)
+	if !strings.Contains(multi.Errors[0].Error(), "Error 1") {
+		t.Fatalf("Expected Error 1, Got %s", multi.Errors[0])
+	}
+	if !strings.Contains(multi.Errors[1].Error(), "Error 2") {
+		t.Fatalf("Expected Error 2, Got %s", multi.Errors[1])
 	}
 }
 

@@ -39,8 +39,8 @@ type opsworksLayerType struct {
 }
 
 var (
-	opsworksTrueString  = "1"
-	opsworksFalseString = "0"
+	opsworksTrueString  = "true"
+	opsworksFalseString = "false"
 )
 
 func (lt *opsworksLayerType) SchemaResource() *schema.Resource {
@@ -250,6 +250,9 @@ func (lt *opsworksLayerType) SchemaResource() *schema.Resource {
 		Delete: func(d *schema.ResourceData, meta interface{}) error {
 			client := meta.(*AWSClient).opsworksconn
 			return lt.Delete(d, client)
+		},
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
 		},
 
 		Schema: resourceSchema,

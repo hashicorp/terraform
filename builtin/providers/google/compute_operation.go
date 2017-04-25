@@ -82,17 +82,21 @@ func (e ComputeOperationError) Error() string {
 	return buf.String()
 }
 
-func computeOperationWaitGlobal(config *Config, op *compute.Operation, activity string) error {
+func computeOperationWaitGlobal(config *Config, op *compute.Operation, project string, activity string) error {
+	return computeOperationWaitGlobalTime(config, op, project, activity, 4)
+}
+
+func computeOperationWaitGlobalTime(config *Config, op *compute.Operation, project string, activity string, timeoutMin int) error {
 	w := &ComputeOperationWaiter{
 		Service: config.clientCompute,
 		Op:      op,
-		Project: config.Project,
+		Project: project,
 		Type:    ComputeOperationWaitGlobal,
 	}
 
 	state := w.Conf()
 	state.Delay = 10 * time.Second
-	state.Timeout = 4 * time.Minute
+	state.Timeout = time.Duration(timeoutMin) * time.Minute
 	state.MinTimeout = 2 * time.Second
 	opRaw, err := state.WaitForState()
 	if err != nil {
@@ -107,11 +111,11 @@ func computeOperationWaitGlobal(config *Config, op *compute.Operation, activity 
 	return nil
 }
 
-func computeOperationWaitRegion(config *Config, op *compute.Operation, region, activity string) error {
+func computeOperationWaitRegion(config *Config, op *compute.Operation, project string, region, activity string) error {
 	w := &ComputeOperationWaiter{
 		Service: config.clientCompute,
 		Op:      op,
-		Project: config.Project,
+		Project: project,
 		Type:    ComputeOperationWaitRegion,
 		Region:  region,
 	}
@@ -133,15 +137,15 @@ func computeOperationWaitRegion(config *Config, op *compute.Operation, region, a
 	return nil
 }
 
-func computeOperationWaitZone(config *Config, op *compute.Operation, zone, activity string) error {
-	return computeOperationWaitZoneTime(config, op, zone, 4, activity)
+func computeOperationWaitZone(config *Config, op *compute.Operation, project string, zone, activity string) error {
+	return computeOperationWaitZoneTime(config, op, project, zone, 4, activity)
 }
 
-func computeOperationWaitZoneTime(config *Config, op *compute.Operation, zone string, minutes int, activity string) error {
+func computeOperationWaitZoneTime(config *Config, op *compute.Operation, project string, zone string, minutes int, activity string) error {
 	w := &ComputeOperationWaiter{
 		Service: config.clientCompute,
 		Op:      op,
-		Project: config.Project,
+		Project: project,
 		Zone:    zone,
 		Type:    ComputeOperationWaitZone,
 	}

@@ -3,14 +3,14 @@
         <div class="docs-sidebar hidden-print affix-top" role="complementary">
             <ul class="nav docs-sidenav">
                 <li<%= sidebar_current("docs-home") %>>
-                    <a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+                    <a href="/docs/providers/index.html">All Providers</a>
                 </li>
 
                 <li<%= sidebar_current("docs-azure-index") %>>
-                    <a href="/docs/providers/azure/index.html">Azure Provider</a>
+                    <a href="/docs/providers/azure/index.html">Azure Service Management Provider</a>
                 </li>
 
-                <li<%= sidebar_current(/^docs-azure-resource/) %>>
+                <li<%= sidebar_current("docs-azure-resource") %>>
                     <a href="#">Resources</a>
                     <ul class="nav nav-visible">
                         <li<%= sidebar_current("docs-azure-resource-affinity-group") %>>
@@ -78,9 +78,21 @@
                         </li>
                     </ul>
                 </li>
+
+              <li>
+                <a href="/docs/providers/azurerm/index.html">Microsoft Azure Provider &raquo;</a>
+              </li>
             </ul>
         </div>
     <% end %>
+
+    <div class="alert alert-warning" role="alert">
+      <strong>NOTE:</strong> The Azure Service Management Provider is no longer
+      being actively developed by HashiCorp employees. It continues to be
+      supported by the community. We recommend using the Azure Resource Manager
+      based <a href="/docs/providers/azurerm">Microsoft Azure Provider</a>
+      instead if possible.
+    </div>
 
     <%= yield %>
 <% end %>

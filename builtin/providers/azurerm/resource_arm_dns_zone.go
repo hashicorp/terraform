@@ -14,6 +14,9 @@ func resourceArmDnsZone() *schema.Resource {
 		Read:   resourceArmDnsZoneRead,
 		Update: resourceArmDnsZoneCreate,
 		Delete: resourceArmDnsZoneDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -23,9 +26,10 @@ func resourceArmDnsZone() *schema.Resource {
 			},
 
 			"resource_group_name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: resourceAzurermResourceGroupNameDiffSuppress,
 			},
 
 			"number_of_record_sets": &schema.Schema{
@@ -39,6 +43,15 @@ func resourceArmDnsZone() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+
+			"name_servers": &schema.Schema{
+				Type:     schema.TypeSet,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -47,11 +60,15 @@ func resourceArmDnsZoneCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient)
 	rivieraClient := client.rivieraClient
 
+	tags := d.Get("tags").(map[string]interface{})
+	expandedTags := expandTags(tags)
+
 	createRequest := rivieraClient.NewRequest()
 	createRequest.Command = &dns.CreateDNSZone{
 		Name:              d.Get("name").(string),
 		Location:          "global",
 		ResourceGroupName: d.Get("resource_group_name").(string),
+		Tags:              *expandedTags,
 	}
 
 	createResponse, err := createRequest.Execute()
@@ -86,6 +103,12 @@ func resourceArmDnsZoneRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient)
 	rivieraClient := client.rivieraClient
 
+	id, err := parseAzureResourceID(d.Id())
+	if err != nil {
+		return err
+	}
+	resGroup := id.ResourceGroup
+
 	readRequest := rivieraClient.NewRequestForURI(d.Id())
 	readRequest.Command = &dns.GetDNSZone{}
 
@@ -101,8 +124,20 @@ func resourceArmDnsZoneRead(d *schema.ResourceData, meta interface{}) error {
 
 	resp := readResponse.Parsed.(*dns.GetDNSZoneResponse)
 
+	d.Set("resource_group_name", resGroup)
 	d.Set("number_of_record_sets", resp.NumberOfRecordSets)
 	d.Set("max_number_of_record_sets", resp.MaxNumberOfRecordSets)
+	d.Set("name", resp.Name)
+
+	nameServers := make([]string, 0, len(resp.NameServers))
+	for _, ns := range resp.NameServers {
+		nameServers = append(nameServers, *ns)
+	}
+	if err := d.Set("name_servers", nameServers); err != nil {
+		return err
+	}
+
+	flattenAndSetTags(d, resp.Tags)
 
 	return nil
 }

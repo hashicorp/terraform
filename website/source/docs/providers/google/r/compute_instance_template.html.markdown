@@ -17,7 +17,7 @@ and
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_instance_template" "foobar" {
   name        = "terraform-test"
   description = "template description"
@@ -27,14 +27,17 @@ resource "google_compute_instance_template" "foobar" {
   instance_description = "description assigned to instances"
   machine_type         = "n1-standard-1"
   can_ip_forward       = false
-  automatic_restart    = true
-  on_host_maintenance  = "MIGRATE"
+
+  scheduling {
+    automatic_restart   = true
+    on_host_maintenance = "MIGRATE"
+  }
 
   // Create a new boot disk from an image
   disk {
-    source_image = "debian-7-wheezy-v20160301"
-    auto_delete = true
-    boot = true
+    source_image = "debian-cloud/debian-8"
+    auto_delete  = true
+    boot         = true
   }
 
   // Use an existing disk resource
@@ -68,33 +71,33 @@ it's recommended to specify `create_before_destroy` in a [lifecycle][2] block.
 Either omit the Instance Template `name` attribute, or specify a partial name
 with `name_prefix`.  Example:
 
-```
+```hcl
 resource "google_compute_instance_template" "instance_template" {
-    name_prefix = "instance-template-"
-    machine_type = "n1-standard-1"
-    region = "us-central1"
+  name_prefix  = "instance-template-"
+  machine_type = "n1-standard-1"
+  region       = "us-central1"
 
-    // boot disk
-    disk {
-      ...
-    }
+  // boot disk
+  disk {
+    # ...
+  }
 
-    // networking
-    network_interface {
-      ...
-    }
- 
-    lifecycle {
-        create_before_destroy = true
-    }
+  // networking
+  network_interface {
+    # ...
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "google_compute_instance_group_manager" "instance_group_manager" {
-    name = "instance-group-manager"
-    instance_template = "${google_compute_instance_template.instance_template.self_link}"
-    base_instance_name = "instance-group-manager"
-    zone = "us-central1-f"
-    target_size = "1"
+  name               = "instance-group-manager"
+  instance_template  = "${google_compute_instance_template.instance_template.self_link}"
+  base_instance_name = "instance-group-manager"
+  zone               = "us-central1-f"
+  target_size        = "1"
 }
 ```
 
@@ -133,6 +136,11 @@ The following arguments are supported:
 * `metadata` - (Optional) Metadata key/value pairs to make available from
     within instances created from this template.
 
+* `metadata_startup_script` - (Optional) An alternative to using the
+    startup-script metadata key, mostly to match the compute_instance resource.
+    This replaces the startup-script metadata key on the created instance and
+    thus the two mechanisms are not allowed to be used simultaneously.
+
 * `network_interface` - (Required) Networks to attach to instances created from
     this template. This can be specified multiple times for multiple networks.
     Structure is documented below.
@@ -150,7 +158,7 @@ The following arguments are supported:
 * `scheduling` - (Optional) The scheduling strategy to use. More details about
     this configuration option are detailed below.
 
-* `service_account` - (Optional) Service account to attach to the instance.
+* `service_account` - (Optional) Service account to attach to the instance. Structure is documented below.
 
 * `tags` - (Optional) Tags to attach to the instance.
 
@@ -168,8 +176,12 @@ The `disk` block supports:
 * `disk_name` - (Optional) Name of the disk. When not provided, this defaults
     to the name of the instance.
 
-* `source_image` - (Required if source not set) The name of the image to base
-    this disk off of.
+* `source_image` - (Required if source not set) The image from which to
+    initialize this disk. This can be one of: the image's `self_link`,
+    `projects/{project}/global/images/{image}`,
+    `projects/{project}/global/images/family/{family}`, `global/images/{image}`,
+    `global/images/family/{family}`, `family/{family}`, `{project}/{family}`,
+    `{project}/{image}`, `{family}`, or `{image}`.
 
 * `interface` - (Optional) Specifies the disk interface to use for attaching
     this disk.
@@ -192,13 +204,16 @@ The `disk` block supports:
 
 The `network_interface` block supports:
 
-* `network` - (Optional) The name of the network to attach this interface to.
+* `network` - (Optional) The name or self_link of the network to attach this interface to.
     Use `network` attribute for Legacy or Auto subnetted networks and
     `subnetwork` for custom subnetted networks.
 
 * `subnetwork` - (Optional) the name of the subnetwork to attach this interface
     to. The subnetwork must exist in the same `region` this instance will be
     created in. Either `network` or `subnetwork` must be provided.
+
+* `subnetwork_project` - (Optional) The project in which the subnetwork belongs.
+    If it is not provided, the provider project is used.
 
 * `access_config` - (Optional) Access configurations, i.e. IPs via which this
     instance can be accessed via the Internet. Omit to ensure that the instance
@@ -214,6 +229,9 @@ The `access_config` block supports:
 
 The `service_account` block supports:
 
+* `email` - (Optional) The service account e-mail address. If not given, the
+    default Google Compute Engine service account is used.
+
 * `scopes` - (Required) A list of service scopes. Both OAuth2 URLs and gcloud
     short names are supported.
 
@@ -226,7 +244,8 @@ The `scheduling` block supports:
 * `on_host_maintenance` - (Optional) Defines the maintenance behavior for this
     instance.
 
-* `preemptible` - (Optional) Allows instance to be preempted. Read more on this
+* `preemptible` - (Optional) Allows instance to be preempted. This defaults to
+    false. Read more on this
     [here](https://cloud.google.com/compute/docs/instances/preemptible).
 
 ## Attributes Reference

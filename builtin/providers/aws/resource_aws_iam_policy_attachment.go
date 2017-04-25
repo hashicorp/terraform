@@ -25,6 +25,13 @@ func resourceAwsIamPolicyAttachment() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					if v.(string) == "" {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be an empty string", k))
+					}
+					return
+				},
 			},
 			"users": &schema.Schema{
 				Type:     schema.TypeSet,
@@ -103,28 +110,29 @@ func resourceAwsIamPolicyAttachmentRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	policyEntities, err := conn.ListEntitiesForPolicy(&iam.ListEntitiesForPolicyInput{
-		PolicyArn: aws.String(arn),
-	})
+	ul := make([]string, 0)
+	rl := make([]string, 0)
+	gl := make([]string, 0)
 
+	args := iam.ListEntitiesForPolicyInput{
+		PolicyArn: aws.String(arn),
+	}
+	err = conn.ListEntitiesForPolicyPages(&args, func(page *iam.ListEntitiesForPolicyOutput, lastPage bool) bool {
+		for _, u := range page.PolicyUsers {
+			ul = append(ul, *u.UserName)
+		}
+
+		for _, r := range page.PolicyRoles {
+			rl = append(rl, *r.RoleName)
+		}
+
+		for _, g := range page.PolicyGroups {
+			gl = append(gl, *g.GroupName)
+		}
+		return true
+	})
 	if err != nil {
 		return err
-	}
-
-	ul := make([]string, 0, len(policyEntities.PolicyUsers))
-	rl := make([]string, 0, len(policyEntities.PolicyRoles))
-	gl := make([]string, 0, len(policyEntities.PolicyGroups))
-
-	for _, u := range policyEntities.PolicyUsers {
-		ul = append(ul, *u.UserName)
-	}
-
-	for _, r := range policyEntities.PolicyRoles {
-		rl = append(rl, *r.RoleName)
-	}
-
-	for _, g := range policyEntities.PolicyGroups {
-		gl = append(gl, *g.GroupName)
 	}
 
 	userErr := d.Set("users", ul)

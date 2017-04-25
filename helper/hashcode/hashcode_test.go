@@ -16,7 +16,8 @@ func TestString(t *testing.T) {
 }
 
 func TestString_positiveIndex(t *testing.T) {
-	ips := []string{"192.168.1.3", "192.168.1.5"}
+	// "2338615298" hashes to uint32(2147483648) which is math.MinInt32
+	ips := []string{"192.168.1.3", "192.168.1.5", "2338615298"}
 	for _, ip := range ips {
 		if index := String(ip); index < 0 {
 			t.Fatalf("Bad Index %#v for ip %s", index, ip)

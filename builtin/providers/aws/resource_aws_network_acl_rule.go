@@ -21,56 +21,69 @@ func resourceAwsNetworkAclRule() *schema.Resource {
 		Delete: resourceAwsNetworkAclRuleDelete,
 
 		Schema: map[string]*schema.Schema{
-			"network_acl_id": &schema.Schema{
+			"network_acl_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"rule_number": &schema.Schema{
+			"rule_number": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
-			"egress": &schema.Schema{
+			"egress": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 				Default:  false,
 			},
-			"protocol": &schema.Schema{
+			"protocol": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					if old == "all" && new == "-1" || old == "-1" && new == "all" {
+						return true
+					}
+					return false
+				},
+			},
+			"rule_action": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"rule_action": &schema.Schema{
+			"cidr_block": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 			},
-			"cidr_block": &schema.Schema{
+			"ipv6_cidr_block": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 			},
-			"from_port": &schema.Schema{
+			"from_port": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
 			},
-			"to_port": &schema.Schema{
+			"to_port": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
 			},
-			"icmp_type": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				ForceNew: true,
+			"icmp_type": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validateICMPArgumentValue,
 			},
-			"icmp_code": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				ForceNew: true,
+			"icmp_code": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validateICMPArgumentValue,
 			},
 		},
 	}
@@ -85,7 +98,7 @@ func resourceAwsNetworkAclRuleCreate(d *schema.ResourceData, meta interface{}) e
 		var ok bool
 		p, ok = protocolIntegers()[protocol]
 		if !ok {
-			return fmt.Errorf("Invalid Protocol %s for rule %#v", protocol, d.Get("rule_number").(int))
+			return fmt.Errorf("Invalid Protocol %s for rule %d", protocol, d.Get("rule_number").(int))
 		}
 	}
 	log.Printf("[INFO] Transformed Protocol %s into %d", protocol, p)
@@ -95,7 +108,6 @@ func resourceAwsNetworkAclRuleCreate(d *schema.ResourceData, meta interface{}) e
 		Egress:       aws.Bool(d.Get("egress").(bool)),
 		RuleNumber:   aws.Int64(int64(d.Get("rule_number").(int))),
 		Protocol:     aws.String(strconv.Itoa(p)),
-		CidrBlock:    aws.String(d.Get("cidr_block").(string)),
 		RuleAction:   aws.String(d.Get("rule_action").(string)),
 		PortRange: &ec2.PortRange{
 			From: aws.Int64(int64(d.Get("from_port").(int))),
@@ -103,14 +115,40 @@ func resourceAwsNetworkAclRuleCreate(d *schema.ResourceData, meta interface{}) e
 		},
 	}
 
-	// Specify additional required fields for ICMP
+	cidr, hasCidr := d.GetOk("cidr_block")
+	ipv6Cidr, hasIpv6Cidr := d.GetOk("ipv6_cidr_block")
+
+	if hasCidr == false && hasIpv6Cidr == false {
+		return fmt.Errorf("Either `cidr_block` or `ipv6_cidr_block` must be defined")
+	}
+
+	if hasCidr {
+		params.CidrBlock = aws.String(cidr.(string))
+	}
+
+	if hasIpv6Cidr {
+		params.Ipv6CidrBlock = aws.String(ipv6Cidr.(string))
+	}
+
+	// Specify additional required fields for ICMP. For the list
+	// of ICMP codes and types, see: http://www.nthelp.com/icmp.html
 	if p == 1 {
 		params.IcmpTypeCode = &ec2.IcmpTypeCode{}
-		if v, ok := d.GetOk("icmp_code"); ok {
-			params.IcmpTypeCode.Code = aws.Int64(int64(v.(int)))
-		}
 		if v, ok := d.GetOk("icmp_type"); ok {
-			params.IcmpTypeCode.Type = aws.Int64(int64(v.(int)))
+			icmpType, err := strconv.Atoi(v.(string))
+			if err != nil {
+				return fmt.Errorf("Unable to parse ICMP type %s for rule %d", v, d.Get("rule_number").(int))
+			}
+			params.IcmpTypeCode.Type = aws.Int64(int64(icmpType))
+			log.Printf("[DEBUG] Got ICMP type %d for rule %d", icmpType, d.Get("rule_number").(int))
+		}
+		if v, ok := d.GetOk("icmp_code"); ok {
+			icmpCode, err := strconv.Atoi(v.(string))
+			if err != nil {
+				return fmt.Errorf("Unable to parse ICMP code %s for rule %d", v, d.Get("rule_number").(int))
+			}
+			params.IcmpTypeCode.Code = aws.Int64(int64(icmpCode))
+			log.Printf("[DEBUG] Got ICMP code %d for rule %d", icmpCode, d.Get("rule_number").(int))
 		}
 	}
 
@@ -125,9 +163,13 @@ func resourceAwsNetworkAclRuleCreate(d *schema.ResourceData, meta interface{}) e
 	// API (see issue GH-4721). Retry the `findNetworkAclRule` function until it is
 	// visible (which in most cases is likely immediately).
 	err = resource.Retry(3*time.Minute, func() *resource.RetryError {
-		_, findErr := findNetworkAclRule(d, meta)
+		r, findErr := findNetworkAclRule(d, meta)
 		if findErr != nil {
 			return resource.RetryableError(findErr)
+		}
+		if r == nil {
+			err := fmt.Errorf("Network ACL rule (%s) not found", d.Id())
+			return resource.RetryableError(err)
 		}
 
 		return nil
@@ -144,9 +186,15 @@ func resourceAwsNetworkAclRuleRead(d *schema.ResourceData, meta interface{}) err
 	if err != nil {
 		return err
 	}
+	if resp == nil {
+		log.Printf("[DEBUG] Network ACL rule (%s) not found", d.Id())
+		d.SetId("")
+		return nil
+	}
 
 	d.Set("rule_number", resp.RuleNumber)
 	d.Set("cidr_block", resp.CidrBlock)
+	d.Set("ipv6_cidr_block", resp.Ipv6CidrBlock)
 	d.Set("egress", resp.Egress)
 	if resp.IcmpTypeCode != nil {
 		d.Set("icmp_code", resp.IcmpTypeCode.Code)
@@ -165,7 +213,7 @@ func resourceAwsNetworkAclRuleRead(d *schema.ResourceData, meta interface{}) err
 		var ok bool
 		protocol, ok := protocolStrings(protocolIntegers())[p]
 		if !ok {
-			return fmt.Errorf("Invalid Protocol %s for rule %#v", *resp.Protocol, d.Get("rule_number").(int))
+			return fmt.Errorf("Invalid Protocol %s for rule %d", *resp.Protocol, d.Get("rule_number").(int))
 		}
 		log.Printf("[INFO] Transformed Protocol %s back into %s", *resp.Protocol, protocol)
 		d.Set("protocol", protocol)
@@ -198,7 +246,7 @@ func findNetworkAclRule(d *schema.ResourceData, meta interface{}) (*ec2.NetworkA
 	filters := make([]*ec2.Filter, 0, 2)
 	ruleNumberFilter := &ec2.Filter{
 		Name:   aws.String("entry.rule-number"),
-		Values: []*string{aws.String(fmt.Sprintf("%v", d.Get("rule_number").(int)))},
+		Values: []*string{aws.String(fmt.Sprintf("%d", d.Get("rule_number").(int)))},
 	}
 	filters = append(filters, ruleNumberFilter)
 	egressFilter := &ec2.Filter{
@@ -218,7 +266,11 @@ func findNetworkAclRule(d *schema.ResourceData, meta interface{}) (*ec2.NetworkA
 		return nil, fmt.Errorf("Error Finding Network Acl Rule %d: %s", d.Get("rule_number").(int), err.Error())
 	}
 
-	if resp == nil || len(resp.NetworkAcls) != 1 || resp.NetworkAcls[0] == nil {
+	if resp == nil || len(resp.NetworkAcls) == 0 || resp.NetworkAcls[0] == nil {
+		// Missing NACL rule.
+		return nil, nil
+	}
+	if len(resp.NetworkAcls) > 1 {
 		return nil, fmt.Errorf(
 			"Expected to find one Network ACL, got: %#v",
 			resp.NetworkAcls)
@@ -244,4 +296,13 @@ func networkAclIdRuleNumberEgressHash(networkAclId string, ruleNumber int, egres
 	buf.WriteString(fmt.Sprintf("%t-", egress))
 	buf.WriteString(fmt.Sprintf("%s-", protocol))
 	return fmt.Sprintf("nacl-%d", hashcode.String(buf.String()))
+}
+
+func validateICMPArgumentValue(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	_, err := strconv.Atoi(value)
+	if len(value) == 0 || err != nil {
+		errors = append(errors, fmt.Errorf("%q must be an integer value: %q", k, value))
+	}
+	return
 }

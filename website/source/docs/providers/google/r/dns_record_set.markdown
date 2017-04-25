@@ -14,21 +14,22 @@ Manages a set of DNS records within Google Cloud DNS.
 
 This example is the common case of binding a DNS name to the ephemeral IP of a new instance:
 
-```js
+```hcl
 resource "google_compute_instance" "frontend" {
   name         = "frontend"
   machine_type = "g1-small"
   zone         = "us-central1-b"
 
   disk {
-    image = "debian-7-wheezy-v20160301"
+    image = "debian-cloud/debian-8"
   }
 
   network_interface {
-    network = "default"
-    access_config {}
+    network       = "default"
+    access_config = {}
   }
 }
+
 resource "google_dns_managed_zone" "prod" {
   name     = "prod-zone"
   dns_name = "prod.mydomain.com."

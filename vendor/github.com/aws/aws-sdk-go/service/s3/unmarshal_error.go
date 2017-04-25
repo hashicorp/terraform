@@ -23,37 +23,81 @@ func unmarshalError(r *request.Request) {
 	defer r.HTTPResponse.Body.Close()
 	defer io.Copy(ioutil.Discard, r.HTTPResponse.Body)
 
+	hostID := r.HTTPResponse.Header.Get("X-Amz-Id-2")
+
+	// Bucket exists in a different region, and request needs
+	// to be made to the correct region.
 	if r.HTTPResponse.StatusCode == http.StatusMovedPermanently {
-		r.Error = awserr.NewRequestFailure(
-			awserr.New("BucketRegionError",
-				fmt.Sprintf("incorrect region, the bucket is not in '%s' region",
-					aws.StringValue(r.Config.Region)),
-				nil),
-			r.HTTPResponse.StatusCode,
-			r.RequestID,
-		)
+		r.Error = requestFailure{
+			RequestFailure: awserr.NewRequestFailure(
+				awserr.New("BucketRegionError",
+					fmt.Sprintf("incorrect region, the bucket is not in '%s' region",
+						aws.StringValue(r.Config.Region)),
+					nil),
+				r.HTTPResponse.StatusCode,
+				r.RequestID,
+			),
+			hostID: hostID,
+		}
 		return
 	}
 
-	if r.HTTPResponse.ContentLength == 0 {
-		// No body, use status code to generate an awserr.Error
-		r.Error = awserr.NewRequestFailure(
-			awserr.New(strings.Replace(r.HTTPResponse.Status, " ", "", -1), r.HTTPResponse.Status, nil),
-			r.HTTPResponse.StatusCode,
-			r.RequestID,
-		)
-		return
-	}
+	var errCode, errMsg string
 
+	// Attempt to parse error from body if it is known
 	resp := &xmlErrorResponse{}
 	err := xml.NewDecoder(r.HTTPResponse.Body).Decode(resp)
 	if err != nil && err != io.EOF {
-		r.Error = awserr.New("SerializationError", "failed to decode S3 XML error response", nil)
+		errCode = "SerializationError"
+		errMsg = "failed to decode S3 XML error response"
 	} else {
-		r.Error = awserr.NewRequestFailure(
-			awserr.New(resp.Code, resp.Message, nil),
+		errCode = resp.Code
+		errMsg = resp.Message
+		err = nil
+	}
+
+	// Fallback to status code converted to message if still no error code
+	if len(errCode) == 0 {
+		statusText := http.StatusText(r.HTTPResponse.StatusCode)
+		errCode = strings.Replace(statusText, " ", "", -1)
+		errMsg = statusText
+	}
+
+	r.Error = requestFailure{
+		RequestFailure: awserr.NewRequestFailure(
+			awserr.New(errCode, errMsg, err),
 			r.HTTPResponse.StatusCode,
 			r.RequestID,
-		)
+		),
+		hostID: hostID,
 	}
+}
+
+// A RequestFailure provides access to the S3 Request ID and Host ID values
+// returned from API operation errors. Getting the error as a string will
+// return the formated error with the same information as awserr.RequestFailure,
+// while also adding the HostID value from the response.
+type RequestFailure interface {
+	awserr.RequestFailure
+
+	// Host ID is the S3 Host ID needed for debug, and contacting support
+	HostID() string
+}
+
+type requestFailure struct {
+	awserr.RequestFailure
+
+	hostID string
+}
+
+func (r requestFailure) Error() string {
+	extra := fmt.Sprintf("status code: %d, request id: %s, host id: %s",
+		r.StatusCode(), r.RequestID(), r.hostID)
+	return awserr.SprintError(r.Code(), r.Message(), extra, r.OrigErr())
+}
+func (r requestFailure) String() string {
+	return r.Error()
+}
+func (r requestFailure) HostID() string {
+	return r.hostID
 }

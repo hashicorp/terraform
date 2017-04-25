@@ -100,6 +100,8 @@ func TestAccCobblerSystem_removeInterface(t *testing.T) {
 					testAccCobblerCheckDistroExists(t, "cobbler_distro.foo", &distro),
 					testAccCobblerCheckProfileExists(t, "cobbler_profile.foo", &profile),
 					testAccCobblerCheckSystemExists(t, "cobbler_system.foo", &system),
+					resource.TestCheckResourceAttr(
+						"cobbler_system.foo", "interface.586365610.management", "true"),
 				),
 			},
 			resource.TestStep{
@@ -345,6 +347,7 @@ var testAccCobblerSystem_removeInterface_1 = `
 			static = true
 			ip_address = "1.2.3.5"
 			netmask = "255.255.255.0"
+			management = true
 		}
 
 	}`

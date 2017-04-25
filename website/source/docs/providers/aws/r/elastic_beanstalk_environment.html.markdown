@@ -17,16 +17,15 @@ Environments are often things such as `development`, `integration`, or
 
 ## Example Usage
 
-
-```
+```hcl
 resource "aws_elastic_beanstalk_application" "tftest" {
-  name = "tf-test-name"
+  name        = "tf-test-name"
   description = "tf-test-desc"
 }
 
 resource "aws_elastic_beanstalk_environment" "tfenvtest" {
-  name = "tf-test-name"
-  application = "${aws_elastic_beanstalk_application.tftest.name}"
+  name                = "tf-test-name"
+  application         = "${aws_elastic_beanstalk_application.tftest.name}"
   solution_stack_name = "64bit Amazon Linux 2015.03 v2.0.3 running Go 1.4"
 }
 ```
@@ -51,10 +50,16 @@ The following arguments are supported:
 off of. Example stacks can be found in the [Amazon API documentation][1]
 * `template_name` – (Optional) The name of the Elastic Beanstalk Configuration
   template to use in deployment
-* `wait_for_ready_timeout` - (Default: "10m") The maximum
+* `wait_for_ready_timeout` - (Default: `10m`) The maximum
   [duration](https://golang.org/pkg/time/#ParseDuration) that Terraform should
   wait for an Elastic Beanstalk Environment to be in a ready state before timing
   out.
+* `poll_interval` – The time between polling the AWS API to
+check if changes have been applied. Use this to adjust the rate of API calls
+for any `create` or `update` action. Minimum `10s`, maximum `180s`. Omit this to
+use the default behavior, which is an exponential backoff
+* `version_label` - (Optional) The name of the Elastic Beanstalk Application Version
+to use in deployment.
 * `tags` – (Optional) A set of tags to apply to the Environment. **Note:** at
 this time the Elastic Beanstalk API does not provide a programatic way of
 changing these tags after initial application
@@ -62,15 +67,42 @@ changing these tags after initial application
 
 ## Option Settings
 
-Some options can be stack-specific, check [AWS Docs](http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/command-options-general.html)
+Some options can be stack-specific, check [AWS Docs](https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/command-options-general.html)
 for supported options and examples.
 
 The `setting` and `all_settings` mappings support the following format:
 
-* `namespace` - (Optional) unique namespace identifying the option's
-  associated AWS resource
-* `name` - (Optional) name of the configuration option
-* `value` - (Optional) value for the configuration option
+* `namespace` - unique namespace identifying the option's associated AWS resource
+* `name` - name of the configuration option
+* `value` - value for the configuration option
+* `resource` - (Optional) resource name for [scheduled action](https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/command-options-general.html#command-options-general-autoscalingscheduledaction)
+
+### Example With Options
+
+```hcl
+resource "aws_elastic_beanstalk_application" "tftest" {
+  name        = "tf-test-name"
+  description = "tf-test-desc"
+}
+
+resource "aws_elastic_beanstalk_environment" "tfenvtest" {
+  name                = "tf-test-name"
+  application         = "${aws_elastic_beanstalk_application.tftest.name}"
+  solution_stack_name = "64bit Amazon Linux 2015.03 v2.0.3 running Go 1.4"
+
+  setting {
+    namespace = "aws:ec2:vpc"
+    name      = "VPCId"
+    value     = "vpc-xxxxxxxx"
+  }
+
+  setting {
+    namespace = "aws:ec2:vpc"
+    name      = "Subnets"
+    value     = "subnet-xxxxxxxx"
+  }
+}
+```
 
 ## Attributes Reference
 
@@ -94,4 +126,13 @@ The following attributes are exported:
 
 
 
-[1]: http://docs.aws.amazon.com/fr_fr/elasticbeanstalk/latest/dg/concepts.platforms.html
+[1]: https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/concepts.platforms.html
+
+
+## Import
+
+Elastic Beanstalk Environments can be imported using the `id`, e.g.
+
+```
+$ terraform import aws_elastic_beanstalk_environment.prodenv e-rpqsewtp2j
+```

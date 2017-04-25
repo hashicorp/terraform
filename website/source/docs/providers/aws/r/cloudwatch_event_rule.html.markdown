@@ -12,10 +12,11 @@ Provides a CloudWatch Event Rule resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_cloudwatch_event_rule" "console" {
-  name = "capture-aws-sign-in"
+  name        = "capture-aws-sign-in"
   description = "Capture each AWS Console Sign In"
+
   event_pattern = <<PATTERN
 {
   "detail-type": [
@@ -26,9 +27,9 @@ PATTERN
 }
 
 resource "aws_cloudwatch_event_target" "sns" {
-  rule = "${aws_cloudwatch_event_rule.console.name}"
+  rule      = "${aws_cloudwatch_event_rule.console.name}"
   target_id = "SendToSNS"
-  arn = "${aws_sns_topic.aws_logins.arn}"
+  arn       = "${aws_sns_topic.aws_logins.arn}"
 }
 
 resource "aws_sns_topic" "aws_logins" {
@@ -55,3 +56,12 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `arn` - The Amazon Resource Name (ARN) of the rule.
+
+
+## Import
+
+Cloudwatch Event Rules can be imported using the `name`, e.g.
+
+```
+$ terraform import aws_cloudwatch_event_rule.console capture-console-sign-in
+```

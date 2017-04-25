@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -18,72 +19,77 @@ func resourceComputeFirewall() *schema.Resource {
 		Read:   resourceComputeFirewallRead,
 		Update: resourceComputeFirewallUpdate,
 		Delete: resourceComputeFirewallDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+		SchemaVersion: 1,
+		MigrateState:  resourceComputeFirewallMigrateState,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"network": &schema.Schema{
+			"network": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"allow": &schema.Schema{
+			"allow": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"protocol": &schema.Schema{
+						"protocol": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"ports": &schema.Schema{
-							Type:     schema.TypeSet,
+						"ports": {
+							Type:     schema.TypeList,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
-							Set:      schema.HashString,
 						},
 					},
 				},
 				Set: resourceComputeFirewallAllowHash,
 			},
 
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"project": &schema.Schema{
+			"project": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 
-			"self_link": &schema.Schema{
+			"self_link": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"source_ranges": &schema.Schema{
+			"source_ranges": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
 
-			"source_tags": &schema.Schema{
+			"source_tags": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
 
-			"target_tags": &schema.Schema{
+			"target_tags": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -101,11 +107,7 @@ func resourceComputeFirewallAllowHash(v interface{}) int {
 	// We need to make sure to sort the strings below so that we always
 	// generate the same hash code no matter what is in the set.
 	if v, ok := m["ports"]; ok {
-		vs := v.(*schema.Set).List()
-		s := make([]string, len(vs))
-		for i, raw := range vs {
-			s[i] = raw.(string)
-		}
+		s := convertStringArr(v.([]interface{}))
 		sort.Strings(s)
 
 		for _, v := range s {
@@ -138,12 +140,24 @@ func resourceComputeFirewallCreate(d *schema.ResourceData, meta interface{}) err
 	// It probably maybe worked, so store the ID now
 	d.SetId(firewall.Name)
 
-	err = computeOperationWaitGlobal(config, op, "Creating Firewall")
+	err = computeOperationWaitGlobal(config, op, project, "Creating Firewall")
 	if err != nil {
 		return err
 	}
 
 	return resourceComputeFirewallRead(d, meta)
+}
+
+func flattenAllowed(allowed []*compute.FirewallAllowed) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(allowed))
+	for _, allow := range allowed {
+		allowMap := make(map[string]interface{})
+		allowMap["protocol"] = allow.IPProtocol
+		allowMap["ports"] = allow.Ports
+
+		result = append(result, allowMap)
+	}
+	return result
 }
 
 func resourceComputeFirewallRead(d *schema.ResourceData, meta interface{}) error {
@@ -168,8 +182,16 @@ func resourceComputeFirewallRead(d *schema.ResourceData, meta interface{}) error
 		return fmt.Errorf("Error reading firewall: %s", err)
 	}
 
+	networkUrl := strings.Split(firewall.Network, "/")
 	d.Set("self_link", firewall.SelfLink)
-
+	d.Set("name", firewall.Name)
+	d.Set("network", networkUrl[len(networkUrl)-1])
+	d.Set("description", firewall.Description)
+	d.Set("project", project)
+	d.Set("source_ranges", firewall.SourceRanges)
+	d.Set("source_tags", firewall.SourceTags)
+	d.Set("target_tags", firewall.TargetTags)
+	d.Set("allow", flattenAllowed(firewall.Allowed))
 	return nil
 }
 
@@ -194,7 +216,7 @@ func resourceComputeFirewallUpdate(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Error updating firewall: %s", err)
 	}
 
-	err = computeOperationWaitGlobal(config, op, "Updating Firewall")
+	err = computeOperationWaitGlobal(config, op, project, "Updating Firewall")
 	if err != nil {
 		return err
 	}
@@ -219,7 +241,7 @@ func resourceComputeFirewallDelete(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Error deleting firewall: %s", err)
 	}
 
-	err = computeOperationWaitGlobal(config, op, "Deleting Firewall")
+	err = computeOperationWaitGlobal(config, op, project, "Deleting Firewall")
 	if err != nil {
 		return err
 	}
@@ -250,10 +272,10 @@ func resourceFirewall(
 			m := v.(map[string]interface{})
 
 			var ports []string
-			if v := m["ports"].(*schema.Set); v.Len() > 0 {
-				ports = make([]string, v.Len())
-				for i, v := range v.List() {
-					ports[i] = v.(string)
+			if v := convertStringArr(m["ports"].([]interface{})); len(v) > 0 {
+				ports = make([]string, len(v))
+				for i, v := range v {
+					ports[i] = v
 				}
 			}
 

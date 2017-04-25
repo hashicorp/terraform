@@ -8,4 +8,7 @@ package form
 const (
 	implicitKey = "_"
 	omittedKey  = "-"
+
+	defaultDelimiter = '.'
+	defaultEscape    = '\\'
 )

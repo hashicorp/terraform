@@ -10,14 +10,24 @@ description: |-
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_sqs_queue" "terraform_queue" {
-  name = "terraform-example-queue"
-  delay_seconds = 90
-  max_message_size = 2048
+  name                      = "terraform-example-queue"
+  delay_seconds             = 90
+  max_message_size          = 2048
   message_retention_seconds = 86400
   receive_wait_time_seconds = 10
-  redrive_policy = "{\"deadLetterTargetArn\":\"${aws_sqs_queue.terraform_queue_deadletter.arn}\",\"maxReceiveCount\":4}"
+  redrive_policy            = "{\"deadLetterTargetArn\":\"${aws_sqs_queue.terraform_queue_deadletter.arn}\",\"maxReceiveCount\":4}"
+}
+```
+
+## FIFO queue
+
+```hcl
+resource "aws_sqs_queue" "terraform_queue" {
+  name                        = "terraform-example-queue.fifo"
+  fifo_queue                  = true
+  content_based_deduplication = true
 }
 ```
 
@@ -32,7 +42,9 @@ The following arguments are supported:
 * `delay_seconds` - (Optional) The time in seconds that the delivery of all messages in the queue will be delayed. An integer from 0 to 900 (15 minutes). The default for this attribute is 0 seconds.
 * `receive_wait_time_seconds` - (Optional) The time for which a ReceiveMessage call will wait for a message to arrive (long polling) before returning. An integer from 0 to 20 (seconds). The default for this attribute is 0, meaning that the call will return immediately.
 * `policy` - (Optional) The JSON policy for the SQS queue
-* `redrive_policy` - (Optional) The JSON policy to set up the Dead Letter Queue, see [AWS docs](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSDeadLetterQueue.html). **Note:** when specifying `maxReceiveCount`, you must specify it as an integer (`5`), and not a string (`"5"`). 
+* `redrive_policy` - (Optional) The JSON policy to set up the Dead Letter Queue, see [AWS docs](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSDeadLetterQueue.html). **Note:** when specifying `maxReceiveCount`, you must specify it as an integer (`5`), and not a string (`"5"`).
+* `fifo_queue` - (Optional) Boolean designating a FIFO queue. If not set, it defaults to `false` making it standard.
+* `content_based_deduplication` - (Optional) Enables content-based deduplication for FIFO queues. For more information, see the [related documentation](http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html#FIFO-queues-exactly-once-processing)
 
 ## Attributes Reference
 
@@ -40,3 +52,11 @@ The following attributes are exported:
 
 * `id` - The URL for the created Amazon SQS queue.
 * `arn` - The ARN of the SQS queue
+
+## Import
+
+SQS Queues can be imported using the `queue url`, e.g.
+
+```
+$ terraform import aws_sqs_queue.public_queue https://queue.amazonaws.com/80398EXAMPLE/MyQueue
+```

@@ -3,12 +3,10 @@ package aws
 import (
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/rds"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -21,16 +19,29 @@ func resourceAwsRDSClusterParameterGroup() *schema.Resource {
 		Read:   resourceAwsRDSClusterParameterGroupRead,
 		Update: resourceAwsRDSClusterParameterGroupUpdate,
 		Delete: resourceAwsRDSClusterParameterGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"arn": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"name": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
+				ValidateFunc:  validateDbParamGroupName,
+			},
+			"name_prefix": &schema.Schema{
 				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
 				ForceNew:     true,
-				Required:     true,
-				ValidateFunc: validateDbParamGroupName,
+				ValidateFunc: validateDbParamGroupNamePrefix,
 			},
 			"family": &schema.Schema{
 				Type:     schema.TypeString,
@@ -84,8 +95,17 @@ func resourceAwsRDSClusterParameterGroupCreate(d *schema.ResourceData, meta inte
 	rdsconn := meta.(*AWSClient).rdsconn
 	tags := tagsFromMapRDS(d.Get("tags").(map[string]interface{}))
 
+	var groupName string
+	if v, ok := d.GetOk("name"); ok {
+		groupName = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		groupName = resource.PrefixedUniqueId(v.(string))
+	} else {
+		groupName = resource.UniqueId()
+	}
+
 	createOpts := rds.CreateDBClusterParameterGroupInput{
-		DBClusterParameterGroupName: aws.String(d.Get("name").(string)),
+		DBClusterParameterGroupName: aws.String(groupName),
 		DBParameterGroupFamily:      aws.String(d.Get("family").(string)),
 		Description:                 aws.String(d.Get("description").(string)),
 		Tags:                        tags,
@@ -144,7 +164,7 @@ func resourceAwsRDSClusterParameterGroupRead(d *schema.ResourceData, meta interf
 	d.Set("parameter", flattenParameters(describeParametersResp.Parameters))
 
 	paramGroup := describeResp.DBClusterParameterGroups[0]
-	arn, err := buildRDSCPGARN(d, meta)
+	arn, err := buildRDSCPGARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
 	if err != nil {
 		name := "<empty>"
 		if paramGroup.DBClusterParameterGroupName != nil && *paramGroup.DBClusterParameterGroupName != "" {
@@ -209,7 +229,7 @@ func resourceAwsRDSClusterParameterGroupUpdate(d *schema.ResourceData, meta inte
 		d.SetPartial("parameter")
 	}
 
-	if arn, err := buildRDSCPGARN(d, meta); err == nil {
+	if arn, err := buildRDSCPGARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
 		if err := setTagsRDS(rdsconn, d, arn); err != nil {
 			return err
 		} else {
@@ -260,16 +280,14 @@ func resourceAwsRDSClusterParameterGroupDeleteRefreshFunc(
 	}
 }
 
-func buildRDSCPGARN(d *schema.ResourceData, meta interface{}) (string, error) {
-	iamconn := meta.(*AWSClient).iamconn
-	region := meta.(*AWSClient).region
-	// An zero value GetUserInput{} defers to the currently logged in user
-	resp, err := iamconn.GetUser(&iam.GetUserInput{})
-	if err != nil {
-		return "", err
+func buildRDSCPGARN(identifier, partition, accountid, region string) (string, error) {
+	if partition == "" {
+		return "", fmt.Errorf("Unable to construct RDS Cluster ARN because of missing AWS partition")
 	}
-	userARN := *resp.User.Arn
-	accountID := strings.Split(userARN, ":")[4]
-	arn := fmt.Sprintf("arn:aws:rds:%s:%s:cluster-pg:%s", region, accountID, d.Id())
+	if accountid == "" {
+		return "", fmt.Errorf("Unable to construct RDS Cluster ARN because of missing AWS Account ID")
+	}
+	arn := fmt.Sprintf("arn:%s:rds:%s:%s:cluster-pg:%s", partition, region, accountid, identifier)
 	return arn, nil
+
 }

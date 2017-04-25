@@ -61,6 +61,9 @@ func TestAccAWSAMICopy(t *testing.T) {
 					}
 
 					for _, bdm := range image.BlockDeviceMappings {
+						// The snapshot ID might not be set,
+						// even for a block device that is an
+						// EBS volume.
 						if bdm.Ebs != nil && bdm.Ebs.SnapshotId != nil {
 							snapshots = append(snapshots, *bdm.Ebs.SnapshotId)
 						}

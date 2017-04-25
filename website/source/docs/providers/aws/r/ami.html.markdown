@@ -14,9 +14,12 @@ The AMI resource allows the creation and management of a completely-custom
 If you just want to duplicate an existing AMI, possibly copying it to another
 region, it's better to use `aws_ami_copy` instead.
 
+If you just want to share an existing AMI with another AWS account,
+it's better to use `aws_ami_launch_permission` instead.
+
 ## Example Usage
 
-```
+```hcl
 # Create an AMI that will start a machine whose root device is backed by
 # an EBS volume populated from a snapshot. It is assumed that such a snapshot
 # already exists with the id "snap-xxxxxxxx".
@@ -78,6 +81,11 @@ Nested `ebs_block_device` blocks have the following structure:
   as the selected snapshot.
 * `volume_type` - (Optional) The type of EBS volume to create. Can be one of "standard" (the
   default), "io1" or "gp2".
+* `kms_key_id` - (Optional) The full ARN of the AWS Key Management Service (AWS KMS) CMK to use when encrypting the snapshots of
+an image during a copy operation. This parameter is only required if you want to use a non-default CMK;
+if this parameter is not specified, the default CMK for EBS is used
+
+~> **Note:** You can specify `encrypted` or `snapshot_id` but not both.
 
 Nested `ephemeral_block_device` blocks have the following structure:
 

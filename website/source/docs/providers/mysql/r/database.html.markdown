@@ -19,9 +19,9 @@ on your database resources as an extra safety measure.
 
 ## Example Usage
 
-```
+```hcl
 resource "mysql_database" "app" {
-    name = "my_awesome_app"
+  name = "my_awesome_app"
 }
 ```
 

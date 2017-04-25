@@ -24,6 +24,7 @@ type Communicator struct {
 	connInfo *connectionInfo
 	client   *winrm.Client
 	endpoint *winrm.Endpoint
+	rand     *rand.Rand
 }
 
 // New creates a new communicator implementation over WinRM.
@@ -44,6 +45,8 @@ func New(s *terraform.InstanceState) (*Communicator, error) {
 	comm := &Communicator{
 		connInfo: connInfo,
 		endpoint: endpoint,
+		// Seed our own rand source so that script paths are not deterministic
+		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 
 	return comm, nil
@@ -121,7 +124,7 @@ func (c *Communicator) Timeout() time.Duration {
 func (c *Communicator) ScriptPath() string {
 	return strings.Replace(
 		c.connInfo.ScriptPath, "%RAND%",
-		strconv.FormatInt(int64(rand.Int31()), 10), -1)
+		strconv.FormatInt(int64(c.rand.Int31()), 10), -1)
 }
 
 // Start implementation of communicator.Communicator interface

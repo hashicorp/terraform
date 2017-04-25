@@ -22,6 +22,9 @@ func resourceAwsRedshiftParameterGroup() *schema.Resource {
 		Read:   resourceAwsRedshiftParameterGroupRead,
 		Update: resourceAwsRedshiftParameterGroupUpdate,
 		Delete: resourceAwsRedshiftParameterGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{

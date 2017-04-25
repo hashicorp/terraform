@@ -21,10 +21,10 @@ already.
 
 Module configuration looks like the following:
 
-```
+```hcl
 module "consul" {
-	source = "github.com/hashicorp/consul/terraform/aws"
-	servers = 5
+  source  = "github.com/hashicorp/consul/terraform/aws"
+  servers = 5
 }
 ```
 
@@ -45,25 +45,25 @@ in the
 [module section](/docs/modules/index.html).
 
 Other configuration within the module are dependent on the module itself.
-Because module configuration maps directly to
-[variables](/docs/configuration/variables.html) within the module, they
-are always simple key and string values. Complex structures are not used
-for modules.
+Module configuration maps directly to
+[variables](/docs/configuration/variables.html) within the module, so
+parameters can have any of the data types that variables support, including
+lists and maps.
 
 ## Syntax
 
 The full syntax is:
 
-```
+```text
 module NAME {
-	source = SOURCE_URL
+  source = SOURCE_URL
 
-	CONFIG ...
+  CONFIG ...
 }
 ```
 
 where `CONFIG` is:
 
-```
+```text
 KEY = VALUE
 ```

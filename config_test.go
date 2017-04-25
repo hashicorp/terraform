@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -19,6 +20,30 @@ func TestLoadConfig(t *testing.T) {
 		Providers: map[string]string{
 			"aws": "foo",
 			"do":  "bar",
+		},
+	}
+
+	if !reflect.DeepEqual(c, expected) {
+		t.Fatalf("bad: %#v", c)
+	}
+}
+
+func TestLoadConfig_env(t *testing.T) {
+	defer os.Unsetenv("TFTEST")
+	os.Setenv("TFTEST", "hello")
+
+	c, err := LoadConfig(filepath.Join(fixtureDir, "config-env"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := &Config{
+		Providers: map[string]string{
+			"aws":    "hello",
+			"google": "bar",
+		},
+		Provisioners: map[string]string{
+			"local": "hello",
 		},
 	}
 
@@ -59,6 +84,44 @@ func TestConfig_Merge(t *testing.T) {
 			"local":  "local",
 			"remote": "remote",
 		},
+	}
+
+	actual := c1.Merge(c2)
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestConfig_Merge_disableCheckpoint(t *testing.T) {
+	c1 := &Config{
+		DisableCheckpoint: true,
+	}
+
+	c2 := &Config{}
+
+	expected := &Config{
+		Providers:         map[string]string{},
+		Provisioners:      map[string]string{},
+		DisableCheckpoint: true,
+	}
+
+	actual := c1.Merge(c2)
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestConfig_Merge_disableCheckpointSignature(t *testing.T) {
+	c1 := &Config{
+		DisableCheckpointSignature: true,
+	}
+
+	c2 := &Config{}
+
+	expected := &Config{
+		Providers:                  map[string]string{},
+		Provisioners:               map[string]string{},
+		DisableCheckpointSignature: true,
 	}
 
 	actual := c1.Merge(c2)

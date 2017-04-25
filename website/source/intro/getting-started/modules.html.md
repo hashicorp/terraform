@@ -38,26 +38,26 @@ for us.
 
 Create a configuration file with the following contents:
 
-```
+```hcl
 provider "aws" {
-	access_key = "AWS ACCESS KEY"
-	secret_key = "AWS SECRET KEY"
-	region = "AWS REGION"
+  access_key = "AWS ACCESS KEY"
+  secret_key = "AWS SECRET KEY"
+  region     = "AWS REGION"
 }
 
 module "consul" {
-	source = "github.com/hashicorp/consul/terraform/aws"
+  source = "github.com/hashicorp/consul/terraform/aws"
 
-	key_name = "AWS SSH KEY NAME"
-	key_path = "PATH TO ABOVE PRIVATE KEY"
-	region = "us-east-1"
-	servers = "3"
+  key_name = "AWS SSH KEY NAME"
+  key_path = "PATH TO ABOVE PRIVATE KEY"
+  region   = "us-east-1"
+  servers  = "3"
 }
 ```
 
 (Note that the `provider` block can be omitted in favor of environment
 variables. See the [AWS Provider docs](/docs/providers/aws/index.html)
-for details.)
+for details.  This module requires that your AWS account has a default VPC.)
 
 The `module` block tells Terraform to create and manage a module. It is
 very similar to the `resource` block. It has a logical name -- in this
@@ -78,12 +78,12 @@ This is done using the [get command](/docs/commands/get.html).
 
 ```
 $ terraform get
-...
+# ...
 ```
 
 This command will download the modules if they haven't been already.
 By default, the command will not check for updates, so it is safe (and fast)
-to run multiple times. You can use the `-u` flag to check and download
+to run multiple times. You can use the `-update` flag to check and download
 updates.
 
 ## Planning and Apply Modules
@@ -93,15 +93,16 @@ With the modules downloaded, we can now plan and apply it. If you run
 
 ```
 $ terraform plan
-...
+# ...
 + module.consul.aws_instance.server.0
-...
+# ...
 + module.consul.aws_instance.server.1
-...
+# ...
 + module.consul.aws_instance.server.2
-...
+# ...
 + module.consul.aws_security_group.consul
-...
+# ...
+
 Plan: 4 to add, 0 to change, 0 to destroy.
 ```
 
@@ -117,7 +118,7 @@ will have some cost associated with it.
 
 ```
 $ terraform apply
-...
+# ...
 Apply complete! Resources: 3 added, 0 changed, 0 destroyed.
 ```
 
@@ -140,9 +141,9 @@ To reference this, we'll just put it into our own output variable. But this
 value could be used anywhere: in another resource, to configure another
 provider, etc.
 
-```
+```hcl
 output "consul_address" {
-	value = "${module.consul.server_address}"
+  value = "${module.consul.server_address}"
 }
 ```
 
@@ -160,6 +161,4 @@ For more information on modules, the types of sources supported, how
 to write modules, and more, read the in depth
 [module documentation](/docs/modules/index.html).
 
-We've now concluded the getting started guide, however
-there are a number of [next steps](/intro/getting-started/next-steps.html)
-to get started with Terraform.
+Next, we learn how to [use Terraform remotely and the associated benefits](/intro/getting-started/remote.html).

@@ -12,19 +12,19 @@ Provides a DigitalOcean Floating IP to represent a publicly-accessible static IP
 
 ## Example Usage
 
-```
+```hcl
 resource "digitalocean_droplet" "foobar" {
-    name = "baz"
-    size = "1gb"
-    image = "centos-5-8-x32"
-    region = "sgp1"
-    ipv6 = true
-    private_networking = true
+  name               = "baz"
+  size               = "1gb"
+  image              = "centos-5-8-x32"
+  region             = "sgp1"
+  ipv6               = true
+  private_networking = true
 }
 
 resource "digitalocean_floating_ip" "foobar" {
-    droplet_id = "${digitalocean_droplet.foobar.id}"
-    region = "${digitalocean_droplet.foobar.region}"
+  droplet_id = "${digitalocean_droplet.foobar.id}"
+  region     = "${digitalocean_droplet.foobar.region}"
 }
 ```
 
@@ -42,3 +42,11 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `ip_address` - The IP Address of the resource
+
+## Import
+
+Floating IPs can be imported using the `ip`, e.g.
+
+```
+terraform import digitalocean_floating_ip.myip 192.168.0.1
+```

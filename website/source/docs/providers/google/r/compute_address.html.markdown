@@ -15,7 +15,7 @@ Creates a static IP address resource for Google Compute Engine. For more informa
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_address" "default" {
   name = "test-address"
 }
@@ -42,3 +42,4 @@ In addition to the arguments listed above, the following computed attributes are
 exported:
 
 * `self_link` - The URI of the created resource.
+* `address` - The IP of the created resource.

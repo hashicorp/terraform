@@ -8,7 +8,7 @@ import (
 // Domain represents the the domain name Fastly will serve content for.
 type Domain struct {
 	ServiceID string `mapstructure:"service_id"`
-	Version   string `mapstructure:"version"`
+	Version   int    `mapstructure:"version"`
 
 	Name    string `mapstructure:"name"`
 	Comment string `mapstructure:"comment"`
@@ -30,7 +30,7 @@ type ListDomainsInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 }
 
 // ListDomains returns the list of domains for this Service.
@@ -39,11 +39,11 @@ func (c *Client) ListDomains(i *ListDomainsInput) ([]*Domain, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/domain", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/domain", i.Service, i.Version)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ type CreateDomainInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the domain that the service will respond to (required).
 	Name string `form:"name"`
@@ -77,11 +77,11 @@ func (c *Client) CreateDomain(i *CreateDomainInput) (*Domain, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/domain", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/domain", i.Service, i.Version)
 	resp, err := c.PostForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -99,7 +99,7 @@ type GetDomainInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the domain to fetch.
 	Name string `form:"name"`
@@ -111,7 +111,7 @@ func (c *Client) GetDomain(i *GetDomainInput) (*Domain, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -119,7 +119,7 @@ func (c *Client) GetDomain(i *GetDomainInput) (*Domain, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/domain/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/domain/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -137,7 +137,7 @@ type UpdateDomainInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the domain that the service will respond to (required).
 	Name string
@@ -156,7 +156,7 @@ func (c *Client) UpdateDomain(i *UpdateDomainInput) (*Domain, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -164,7 +164,7 @@ func (c *Client) UpdateDomain(i *UpdateDomainInput) (*Domain, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/domain/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/domain/%s", i.Service, i.Version, i.Name)
 	resp, err := c.PutForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -182,7 +182,7 @@ type DeleteDomainInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the domain that the service will respond to (required).
 	Name string `form:"name"`
@@ -194,7 +194,7 @@ func (c *Client) DeleteDomain(i *DeleteDomainInput) error {
 		return ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return ErrMissingVersion
 	}
 
@@ -202,7 +202,7 @@ func (c *Client) DeleteDomain(i *DeleteDomainInput) error {
 		return ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/domain/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/domain/%s", i.Service, i.Version, i.Name)
 	_, err := c.Delete(path, nil)
 	if err != nil {
 		return err

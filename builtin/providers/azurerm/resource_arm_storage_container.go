@@ -53,7 +53,7 @@ func resourceArmStorageContainer() *schema.Resource {
 //Following the naming convention as laid out in the docs
 func validateArmStorageContainerName(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^\$root$|^[0-9a-z-]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"only lowercase alphanumeric characters and hyphens allowed in %q: %q",
 			k, value))

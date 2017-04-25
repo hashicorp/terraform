@@ -26,12 +26,7 @@ func resourceArmNetworkInterface() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -84,9 +79,11 @@ func resourceArmNetworkInterface() *schema.Resource {
 						},
 
 						"private_ip_address_allocation": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validateNetworkInterfacePrivateIpAddressAllocation,
+							Type:             schema.TypeString,
+							Required:         true,
+							ValidateFunc:     validateNetworkInterfacePrivateIpAddressAllocation,
+							StateFunc:        ignoreCaseStateFunc,
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"public_ip_address_id": {
@@ -175,6 +172,14 @@ func resourceArmNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 		properties.NetworkSecurityGroup = &network.SecurityGroup{
 			ID: &nsgId,
 		}
+
+		networkSecurityGroupName, err := parseNetworkSecurityGroupName(nsgId)
+		if err != nil {
+			return err
+		}
+
+		armMutexKV.Lock(networkSecurityGroupName)
+		defer armMutexKV.Unlock(networkSecurityGroupName)
 	}
 
 	dns, hasDns := d.GetOk("dns_servers")
@@ -210,10 +215,10 @@ func resourceArmNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 	}
 
 	iface := network.Interface{
-		Name:       &name,
-		Location:   &location,
-		Properties: &properties,
-		Tags:       expandTags(tags),
+		Name:                      &name,
+		Location:                  &location,
+		InterfacePropertiesFormat: &properties,
+		Tags: expandTags(tags),
 	}
 
 	_, err := ifaceClient.CreateOrUpdate(resGroup, name, iface, make(chan struct{}))
@@ -245,15 +250,15 @@ func resourceArmNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 	name := id.Path["networkInterfaces"]
 
 	resp, err := ifaceClient.Get(resGroup, name, "")
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
-	}
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure Network Interface %s: %s", name, err)
 	}
 
-	iface := *resp.Properties
+	iface := *resp.InterfacePropertiesFormat
 
 	if iface.MacAddress != nil {
 		if *iface.MacAddress != "" {
@@ -264,8 +269,8 @@ func resourceArmNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 	if iface.IPConfigurations != nil && len(*iface.IPConfigurations) > 0 {
 		var privateIPAddress *string
 		///TODO: Change this to a loop when https://github.com/Azure/azure-sdk-for-go/issues/259 is fixed
-		if (*iface.IPConfigurations)[0].Properties != nil {
-			privateIPAddress = (*iface.IPConfigurations)[0].Properties.PrivateIPAddress
+		if (*iface.IPConfigurations)[0].InterfaceIPConfigurationPropertiesFormat != nil {
+			privateIPAddress = (*iface.IPConfigurations)[0].InterfaceIPConfigurationPropertiesFormat.PrivateIPAddress
 		}
 
 		if *privateIPAddress != "" {
@@ -311,6 +316,17 @@ func resourceArmNetworkInterfaceDelete(d *schema.ResourceData, meta interface{})
 	resGroup := id.ResourceGroup
 	name := id.Path["networkInterfaces"]
 
+	if v, ok := d.GetOk("network_security_group_id"); ok {
+		networkSecurityGroupId := v.(string)
+		networkSecurityGroupName, err := parseNetworkSecurityGroupName(networkSecurityGroupId)
+		if err != nil {
+			return err
+		}
+
+		armMutexKV.Lock(networkSecurityGroupName)
+		defer armMutexKV.Unlock(networkSecurityGroupName)
+	}
+
 	_, err = ifaceClient.Delete(resGroup, name, make(chan struct{}))
 
 	return err
@@ -327,6 +343,18 @@ func resourceArmNetworkInterfaceIpConfigurationHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["private_ip_address_allocation"].(string)))
 	if m["public_ip_address_id"] != nil {
 		buf.WriteString(fmt.Sprintf("%s-", m["public_ip_address_id"].(string)))
+	}
+	if m["load_balancer_backend_address_pools_ids"] != nil {
+		ids := m["load_balancer_backend_address_pools_ids"].(*schema.Set).List()
+		for _, id := range ids {
+			buf.WriteString(fmt.Sprintf("%d-", schema.HashString(id.(string))))
+		}
+	}
+	if m["load_balancer_inbound_nat_rules_ids"] != nil {
+		ids := m["load_balancer_inbound_nat_rules_ids"].(*schema.Set).List()
+		for _, id := range ids {
+			buf.WriteString(fmt.Sprintf("%d-", schema.HashString(id.(string))))
+		}
 	}
 
 	return hashcode.String(buf.String())
@@ -416,8 +444,8 @@ func expandAzureRmNetworkInterfaceIpConfigurations(d *schema.ResourceData) ([]ne
 
 		name := data["name"].(string)
 		ipConfig := network.InterfaceIPConfiguration{
-			Name:       &name,
-			Properties: &properties,
+			Name: &name,
+			InterfaceIPConfigurationPropertiesFormat: &properties,
 		}
 
 		ipConfigs = append(ipConfigs, ipConfig)

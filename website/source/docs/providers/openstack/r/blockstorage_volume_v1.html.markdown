@@ -12,12 +12,12 @@ Manages a V1 volume resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_blockstorage_volume_v1" "volume_1" {
-  region = "RegionOne"
-  name = "tf-test-volume"
+  region      = "RegionOne"
+  name        = "tf-test-volume"
   description = "first test volume"
-  size = 3
+  size        = 3
 }
 ```
 
@@ -73,3 +73,11 @@ The following attributes are exported:
 * `attachment` - If a volume is attached to an instance, this attribute will
     display the Attachment ID, Instance ID, and the Device as the Instance
     sees it.
+
+## Import
+
+Volumes can be imported using the `id`, e.g.
+
+```
+$ terraform import openstack_blockstorage_volume_v1.volume_1 ea257959-eeb1-4c10-8d33-26f0409a755d
+```

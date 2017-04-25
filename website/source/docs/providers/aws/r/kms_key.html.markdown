@@ -12,10 +12,10 @@ Provides a KMS customer master key.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_kms_key" "a" {
-    description = "KMS key 1"
-    deletion_window_in_days = 10
+  description             = "KMS key 1"
+  deletion_window_in_days = 10
 }
 ```
 
@@ -32,6 +32,7 @@ The following arguments are supported:
 * `is_enabled` - (Optional) Specifies whether the key is enabled. Defaults to true.
 * `enable_key_rotation` - (Optional) Specifies whether [key rotation](http://docs.aws.amazon.com/kms/latest/developerguide/rotate-keys.html)
 	is enabled. Defaults to false.
+* `tags` - (Optional) A mapping of tags to assign to the object.
 
 ## Attributes Reference
 
@@ -39,3 +40,11 @@ The following attributes are exported:
 
 * `arn` - The Amazon Resource Name (ARN) of the key.
 * `key_id` - The globally unique identifier for the key.
+
+## Import
+
+KMS Keys can be imported using the `id`, e.g.
+
+```
+$ terraform import aws_kms_key.a arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab
+```

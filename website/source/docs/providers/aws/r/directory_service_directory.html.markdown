@@ -10,16 +10,19 @@ description: |-
 
 Provides a Simple or Managed Microsoft directory in AWS Directory Service.
 
+~> **Note:** All arguments including the password and customer username will be stored in the raw state as plain-text.
+[Read more about sensitive data in state](/docs/state/sensitive-data.html).
+
 ## Example Usage
 
-```
+```hcl
 resource "aws_directory_service_directory" "bar" {
-  name = "corp.notexample.com"
+  name     = "corp.notexample.com"
   password = "SuperSecretPassw0rd"
-  size = "Small"
+  size     = "Small"
 
   vpc_settings {
-    vpc_id = "${aws_vpc.main.id}"
+    vpc_id     = "${aws_vpc.main.id}"
     subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
   }
 }
@@ -29,14 +32,15 @@ resource "aws_vpc" "main" {
 }
 
 resource "aws_subnet" "foo" {
-  vpc_id = "${aws_vpc.main.id}"
+  vpc_id            = "${aws_vpc.main.id}"
   availability_zone = "us-west-2a"
-  cidr_block = "10.0.1.0/24"
+  cidr_block        = "10.0.1.0/24"
 }
+
 resource "aws_subnet" "bar" {
-  vpc_id = "${aws_vpc.main.id}"
+  vpc_id            = "${aws_vpc.main.id}"
   availability_zone = "us-west-2b"
-  cidr_block = "10.0.2.0/24"
+  cidr_block        = "10.0.2.0/24"
 }
 ```
 
@@ -57,14 +61,14 @@ The following arguments are supported:
 
 **vpc\_settings** supports the following:
 
-* `subnet_ids` - (Required) The identifiers of the subnets for the directory servers (min. 2 subnets in 2 different AZs).
+* `subnet_ids` - (Required) The identifiers of the subnets for the directory servers (2 subnets in 2 different AZs).
 * `vpc_id` - (Required) The identifier of the VPC that the directory is in.
 
 **connect\_settings** supports the following:
 
 * `customer_username` - (Required) The username corresponding to the password provided.
 * `customer_dns_ips` - (Required) The DNS IP addresses of the domain to connect to.
-* `subnet_ids` - (Required) The identifiers of the subnets for the directory servers (min. 2 subnets in 2 different AZs).
+* `subnet_ids` - (Required) The identifiers of the subnets for the directory servers (2 subnets in 2 different AZs).
 * `vpc_id` - (Required) The identifier of the VPC that the directory is in.
 
 ## Attributes Reference

@@ -9,24 +9,31 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Zone describes a CloudFlare zone.
+// Owner describes the resource owner.
+type Owner struct {
+	ID        string `json:"id"`
+	Email     string `json:"email"`
+	OwnerType string `json:"owner_type"`
+}
+
+// Zone describes a Cloudflare zone.
 type Zone struct {
-	ID                string   `json:"id"`
-	Name              string   `json:"name"`
-	DevMode           int      `json:"development_mode"`
-	OriginalNS        []string `json:"original_name_servers"`
-	OriginalRegistrar string   `json:"original_registrar"`
-	OriginalDNSHost   string   `json:"original_dnshost"`
-	CreatedOn         string   `json:"created_on"`
-	ModifiedOn        string   `json:"modified_on"`
-	NameServers       []string `json:"name_servers"`
-	Owner             Owner    `json:"owner"`
-	Permissions       []string `json:"permissions"`
-	Plan              ZonePlan `json:"plan"`
-	PlanPending       ZonePlan `json:"plan_pending,omitempty"`
-	Status            string   `json:"status"`
-	Paused            bool     `json:"paused"`
-	Type              string   `json:"type"`
+	ID                string    `json:"id"`
+	Name              string    `json:"name"`
+	DevMode           int       `json:"development_mode"`
+	OriginalNS        []string  `json:"original_name_servers"`
+	OriginalRegistrar string    `json:"original_registrar"`
+	OriginalDNSHost   string    `json:"original_dnshost"`
+	CreatedOn         time.Time `json:"created_on"`
+	ModifiedOn        time.Time `json:"modified_on"`
+	NameServers       []string  `json:"name_servers"`
+	Owner             Owner     `json:"owner"`
+	Permissions       []string  `json:"permissions"`
+	Plan              ZonePlan  `json:"plan"`
+	PlanPending       ZonePlan  `json:"plan_pending,omitempty"`
+	Status            string    `json:"status"`
+	Paused            bool      `json:"paused"`
+	Type              string    `json:"type"`
 	Host              struct {
 		Name    string
 		Website string
@@ -182,6 +189,18 @@ type ZoneAnalyticsOptions struct {
 	Continuous *bool
 }
 
+// PurgeCacheRequest represents the request format made to the purge endpoint.
+type PurgeCacheRequest struct {
+	Everything bool     `json:"purge_everything,omitempty"`
+	Files      []string `json:"files,omitempty"`
+	Tags       []string `json:"tags,omitempty"`
+}
+
+// PurgeCacheResponse represents the response from the purge endpoint.
+type PurgeCacheResponse struct {
+	Response
+}
+
 // newZone describes a new zone.
 type newZone struct {
 	Name      string `json:"name"`
@@ -282,7 +301,7 @@ func (api *API) ListZones(z ...string) ([]Zone, error) {
 //
 // API reference: https://api.cloudflare.com/#zone-zone-details
 func (api *API) ZoneDetails(zoneID string) (Zone, error) {
-	res, err := api.makeRequest("GET", "/zones"+zoneID, nil)
+	res, err := api.makeRequest("GET", "/zones/"+zoneID, nil)
 	if err != nil {
 		return Zone{}, errors.Wrap(err, errMakeRequestError)
 	}
@@ -303,7 +322,7 @@ type ZoneOptions struct {
 	Plan     *ZonePlan `json:"plan,omitempty"`
 }
 
-// ZoneSetPaused pauses CloudFlare service for the entire zone, sending all
+// ZoneSetPaused pauses Cloudflare service for the entire zone, sending all
 // traffic direct to the origin.
 func (api *API) ZoneSetPaused(zoneID string, paused bool) (Zone, error) {
 	zoneopts := ZoneOptions{Paused: paused}
@@ -396,7 +415,7 @@ func (api *API) PurgeCache(zoneID string, pcr PurgeCacheRequest) (PurgeCacheResp
 //
 // API reference: https://api.cloudflare.com/#zone-delete-a-zone
 func (api *API) DeleteZone(zoneID string) (ZoneID, error) {
-	res, err := api.makeRequest("DELETE", "/zones"+zoneID, nil)
+	res, err := api.makeRequest("DELETE", "/zones/"+zoneID, nil)
 	if err != nil {
 		return ZoneID{}, errors.Wrap(err, errMakeRequestError)
 	}

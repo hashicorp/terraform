@@ -35,6 +35,12 @@ func testResource() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+			"optional_computed_force_new": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
 			"computed_read_only": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -90,6 +96,13 @@ func testResource() *schema.Resource {
 			"computed_map": {
 				Type:     schema.TypeMap,
 				Computed: true,
+			},
+			"list": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 			"list_of_map": {
 				Type:     schema.TypeList,

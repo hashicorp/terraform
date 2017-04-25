@@ -7,30 +7,35 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSUserPolicyAttachment_basic(t *testing.T) {
 	var out iam.ListAttachedUserPoliciesOutput
+	rName := acctest.RandString(10)
+	policyName1 := fmt.Sprintf("test-policy-%s", acctest.RandString(10))
+	policyName2 := fmt.Sprintf("test-policy-%s", acctest.RandString(10))
+	policyName3 := fmt.Sprintf("test-policy-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSUserPolicyAttachmentDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSUserPolicyAttachConfig,
+			{
+				Config: testAccAWSUserPolicyAttachConfig(rName, policyName1),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSUserPolicyAttachmentExists("aws_iam_user_policy_attachment.test-attach", 1, &out),
-					testAccCheckAWSUserPolicyAttachmentAttributes([]string{"test-policy"}, &out),
+					testAccCheckAWSUserPolicyAttachmentAttributes([]string{policyName1}, &out),
 				),
 			},
-			resource.TestStep{
-				Config: testAccAWSUserPolicyAttachConfigUpdate,
+			{
+				Config: testAccAWSUserPolicyAttachConfigUpdate(rName, policyName1, policyName2, policyName3),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSUserPolicyAttachmentExists("aws_iam_user_policy_attachment.test-attach", 2, &out),
-					testAccCheckAWSUserPolicyAttachmentAttributes([]string{"test-policy2", "test-policy3"}, &out),
+					testAccCheckAWSUserPolicyAttachmentAttributes([]string{policyName2, policyName3}, &out),
 				),
 			},
 		},
@@ -88,13 +93,14 @@ func testAccCheckAWSUserPolicyAttachmentAttributes(policies []string, out *iam.L
 	}
 }
 
-const testAccAWSUserPolicyAttachConfig = `
+func testAccAWSUserPolicyAttachConfig(rName, policyName string) string {
+	return fmt.Sprintf(`
 resource "aws_iam_user" "user" {
-    name = "test-user"
+    name = "test-user-%s"
 }
 
 resource "aws_iam_policy" "policy" {
-    name = "test-policy"
+    name = "%s"
     description = "A test policy"
     policy = <<EOF
 {
@@ -115,16 +121,17 @@ EOF
 resource "aws_iam_user_policy_attachment" "test-attach" {
     user = "${aws_iam_user.user.name}"
     policy_arn = "${aws_iam_policy.policy.arn}"
+}`, rName, policyName)
 }
-`
 
-const testAccAWSUserPolicyAttachConfigUpdate = `
+func testAccAWSUserPolicyAttachConfigUpdate(rName, policyName1, policyName2, policyName3 string) string {
+	return fmt.Sprintf(`
 resource "aws_iam_user" "user" {
-    name = "test-user"
+    name = "test-user-%s"
 }
 
 resource "aws_iam_policy" "policy" {
-    name = "test-policy"
+    name = "%s"
     description = "A test policy"
     policy = <<EOF
 {
@@ -143,7 +150,7 @@ EOF
 }
 
 resource "aws_iam_policy" "policy2" {
-    name = "test-policy2"
+    name = "%s"
     description = "A test policy"
     policy = <<EOF
 {
@@ -162,7 +169,7 @@ EOF
 }
 
 resource "aws_iam_policy" "policy3" {
-    name = "test-policy3"
+    name = "%s"
     description = "A test policy"
     policy = <<EOF
 {
@@ -188,5 +195,5 @@ resource "aws_iam_user_policy_attachment" "test-attach" {
 resource "aws_iam_user_policy_attachment" "test-attach2" {
     user = "${aws_iam_user.user.name}"
     policy_arn = "${aws_iam_policy.policy3.arn}"
+}`, rName, policyName1, policyName2, policyName3)
 }
-`

@@ -41,3 +41,21 @@ func testClient(t *testing.T, c Client) {
 		t.Fatalf("bad: %#v", p)
 	}
 }
+
+func TestRemoteClient_noPayload(t *testing.T) {
+	s := &State{
+		Client: nilClient{},
+	}
+	if err := s.RefreshState(); err != nil {
+		t.Fatal("error refreshing empty remote state")
+	}
+}
+
+// nilClient returns nil for everything
+type nilClient struct{}
+
+func (nilClient) Get() (*Payload, error) { return nil, nil }
+
+func (c nilClient) Put([]byte) error { return nil }
+
+func (c nilClient) Delete() error { return nil }

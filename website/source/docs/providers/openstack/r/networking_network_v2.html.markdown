@@ -12,51 +12,51 @@ Manages a V2 Neutron network resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_networking_network_v2" "network_1" {
-  name = "network_1"
+  name           = "network_1"
   admin_state_up = "true"
 }
 
 resource "openstack_networking_subnet_v2" "subnet_1" {
-  name = "subnet_1"
+  name       = "subnet_1"
   network_id = "${openstack_networking_network_v2.network_1.id}"
-  cidr = "192.168.199.0/24"
+  cidr       = "192.168.199.0/24"
   ip_version = 4
 }
 
 resource "openstack_compute_secgroup_v2" "secgroup_1" {
-  name = "secgroup_1"
+  name        = "secgroup_1"
   description = "a security group"
+
   rule {
-    from_port = 22
-    to_port = 22
+    from_port   = 22
+    to_port     = 22
     ip_protocol = "tcp"
-    cidr = "0.0.0.0/0"
+    cidr        = "0.0.0.0/0"
   }
 }
 
 resource "openstack_networking_port_v2" "port_1" {
-  name = "port_1"
-  network_id = "${openstack_networking_network_v2.network_1.id}"
-  admin_state_up = "true"
-  security_groups = ["${openstack_compute_secgroup_v2.secgroup_1.id}"]
+  name               = "port_1"
+  network_id         = "${openstack_networking_network_v2.network_1.id}"
+  admin_state_up     = "true"
+  security_group_ids = ["${openstack_compute_secgroup_v2.secgroup_1.id}"]
 
   fixed_ip {
-      "subnet_id" =  "008ba151-0b8c-4a67-98b5-0d2b87666062"
-      "ip_address" =  "172.24.4.2"
+    "subnet_id"  = "${openstack_networking_subnet_v2.subnet_1.id}"
+    "ip_address" = "192.168.199.10"
   }
 }
 
 resource "openstack_compute_instance_v2" "instance_1" {
-  name = "instance_1"
+  name            = "instance_1"
   security_groups = ["${openstack_compute_secgroup_v2.secgroup_1.name}"]
 
   network {
     port = "${openstack_networking_port_v2.port_1.id}"
   }
 }
-
 ```
 
 ## Argument Reference
@@ -82,6 +82,8 @@ The following arguments are supported:
     Acceptable values are "true" and "false". Changing this value updates the
     state of the existing network.
 
+* `value_specs` - (Optional) Map of additional options.
+
 ## Attributes Reference
 
 The following attributes are exported:
@@ -91,3 +93,11 @@ The following attributes are exported:
 * `shared` - See Argument Reference above.
 * `tenant_id` - See Argument Reference above.
 * `admin_state_up` - See Argument Reference above.
+
+## Import
+
+Networks can be imported using the `id`, e.g.
+
+```
+$ terraform import openstack_networking_network_v2.network_1 d90ce693-5ccf-4136-a0ed-152ce412b6b9
+```

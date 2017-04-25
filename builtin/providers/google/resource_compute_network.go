@@ -14,6 +14,9 @@ func resourceComputeNetwork() *schema.Resource {
 		Create: resourceComputeNetworkCreate,
 		Read:   resourceComputeNetworkRead,
 		Delete: resourceComputeNetworkDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -110,7 +113,7 @@ func resourceComputeNetworkCreate(d *schema.ResourceData, meta interface{}) erro
 	// It probably maybe worked, so store the ID now
 	d.SetId(network.Name)
 
-	err = computeOperationWaitGlobal(config, op, "Creating Network")
+	err = computeOperationWaitGlobal(config, op, project, "Creating Network")
 	if err != nil {
 		return err
 	}
@@ -142,6 +145,9 @@ func resourceComputeNetworkRead(d *schema.ResourceData, meta interface{}) error 
 
 	d.Set("gateway_ipv4", network.GatewayIPv4)
 	d.Set("self_link", network.SelfLink)
+	d.Set("ipv4_range", network.IPv4Range)
+	d.Set("name", network.Name)
+	d.Set("auto_create_subnetworks", network.AutoCreateSubnetworks)
 
 	return nil
 }
@@ -161,7 +167,7 @@ func resourceComputeNetworkDelete(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("Error deleting network: %s", err)
 	}
 
-	err = computeOperationWaitGlobal(config, op, "Deleting Network")
+	err = computeOperationWaitGlobal(config, op, project, "Deleting Network")
 	if err != nil {
 		return err
 	}

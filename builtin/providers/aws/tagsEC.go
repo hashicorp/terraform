@@ -2,6 +2,7 @@ package aws
 
 import (
 	"log"
+	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elasticache"
@@ -75,10 +76,13 @@ func diffTagsEC(oldTags, newTags []*elasticache.Tag) ([]*elasticache.Tag, []*ela
 func tagsFromMapEC(m map[string]interface{}) []*elasticache.Tag {
 	result := make([]*elasticache.Tag, 0, len(m))
 	for k, v := range m {
-		result = append(result, &elasticache.Tag{
+		t := &elasticache.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v.(string)),
-		})
+		}
+		if !tagIgnoredEC(t) {
+			result = append(result, t)
+		}
 	}
 
 	return result
@@ -88,8 +92,24 @@ func tagsFromMapEC(m map[string]interface{}) []*elasticache.Tag {
 func tagsToMapEC(ts []*elasticache.Tag) map[string]string {
 	result := make(map[string]string)
 	for _, t := range ts {
-		result[*t.Key] = *t.Value
+		if !tagIgnoredEC(t) {
+			result[*t.Key] = *t.Value
+		}
 	}
 
 	return result
+}
+
+// compare a tag against a list of strings and checks if it should
+// be ignored or not
+func tagIgnoredEC(t *elasticache.Tag) bool {
+	filter := []string{"^aws:*"}
+	for _, v := range filter {
+		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
+		if r, _ := regexp.MatchString(v, *t.Key); r == true {
+			log.Printf("[DEBUG] Found AWS specific tag %s (val: %s), ignoring.\n", *t.Key, *t.Value)
+			return true
+		}
+	}
+	return false
 }

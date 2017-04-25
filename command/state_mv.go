@@ -19,10 +19,10 @@ func (c *StateMvCommand) Run(args []string) int {
 
 	// We create two metas to track the two states
 	var meta1, meta2 Meta
-	cmdFlags := c.Meta.flagSet("state show")
-	cmdFlags.StringVar(&meta1.stateOutPath, "backup", "", "backup")
+	cmdFlags := c.Meta.flagSet("state mv")
+	cmdFlags.StringVar(&meta1.backupPath, "backup", "-", "backup")
 	cmdFlags.StringVar(&meta1.statePath, "state", DefaultStateFilename, "path")
-	cmdFlags.StringVar(&meta2.stateOutPath, "backup-out", "", "backup")
+	cmdFlags.StringVar(&meta2.backupPath, "backup-out", "-", "backup")
 	cmdFlags.StringVar(&meta2.statePath, "state-out", "", "path")
 	if err := cmdFlags.Parse(args); err != nil {
 		return cli.RunResultHelp
@@ -45,6 +45,11 @@ func (c *StateMvCommand) Run(args []string) int {
 		return cli.RunResultHelp
 	}
 
+	if err := stateFrom.RefreshState(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+		return 1
+	}
+
 	stateFromReal := stateFrom.State()
 	if stateFromReal == nil {
 		c.Ui.Error(fmt.Sprintf(errStateNotFound))
@@ -59,6 +64,11 @@ func (c *StateMvCommand) Run(args []string) int {
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 			return cli.RunResultHelp
+		}
+
+		if err := stateTo.RefreshState(); err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+			return 1
 		}
 
 		stateToReal = stateTo.State()
@@ -79,13 +89,16 @@ func (c *StateMvCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Get the item to add to the state
+	add := c.addableResult(results)
+
 	// Do the actual move
 	if err := stateFromReal.Remove(args[0]); err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateMv, err))
 		return 1
 	}
 
-	if err := stateToReal.Add(args[0], args[1], results[0].Value); err != nil {
+	if err := stateToReal.Add(args[0], args[1], add); err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateMv, err))
 		return 1
 	}
@@ -119,6 +132,54 @@ func (c *StateMvCommand) Run(args []string) int {
 	return 0
 }
 
+// addableResult takes the result from a filter operation and returns what to
+// call State.Add with. The reason we do this is beacuse in the module case
+// we must add the list of all modules returned versus just the root module.
+func (c *StateMvCommand) addableResult(results []*terraform.StateFilterResult) interface{} {
+	switch v := results[0].Value.(type) {
+	case *terraform.ModuleState:
+		// If a module state then we should add the full list of modules
+		result := []*terraform.ModuleState{v}
+		if len(results) > 1 {
+			for _, r := range results[1:] {
+				if ms, ok := r.Value.(*terraform.ModuleState); ok {
+					result = append(result, ms)
+				}
+			}
+		}
+
+		return result
+
+	case *terraform.ResourceState:
+		// If a resource state with more than one result, it has a multi-count
+		// and we need to add all of them.
+		result := []*terraform.ResourceState{v}
+		if len(results) > 1 {
+			for _, r := range results[1:] {
+				rs, ok := r.Value.(*terraform.ResourceState)
+				if !ok {
+					continue
+				}
+
+				if rs.Type == v.Type {
+					result = append(result, rs)
+				}
+			}
+		}
+
+		// If we only have one item, add it directly
+		if len(result) == 1 {
+			return result[0]
+		}
+
+		return result
+
+	default:
+		// By default just add the first result
+		return v
+	}
+}
+
 func (c *StateMvCommand) Help() string {
 	helpText := `
 Usage: terraform state mv [options] ADDRESS ADDRESS
@@ -142,7 +203,8 @@ Options:
   -backup=PATH        Path where Terraform should write the backup for the original
                       state. This can't be disabled. If not set, Terraform
                       will write it to the same path as the statefile with
-                      a backup extension.
+                      a backup extension. This backup will be made in addition
+                      to the timestamped backup.
 
   -backup-out=PATH    Path where Terraform should write the backup for the destination
                       state. This can't be disabled. If not set, Terraform

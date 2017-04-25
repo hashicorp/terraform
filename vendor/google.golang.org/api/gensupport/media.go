@@ -176,25 +176,24 @@ func typeHeader(contentType string) textproto.MIMEHeader {
 // chunkSize is the size of the chunk that media should be split into.
 // If chunkSize is non-zero and the contents of media do not fit in a single
 // chunk (or there is an error reading media), then media will be returned as a
-// ResumableBuffer.  Otherwise, media will be returned as a Reader.
+// MediaBuffer.  Otherwise, media will be returned as a Reader.
 //
 // After PrepareUpload has been called, media should no longer be used: the
 // media content should be accessed via one of the return values.
-func PrepareUpload(media io.Reader, chunkSize int) (io.Reader,
-	*ResumableBuffer) {
+func PrepareUpload(media io.Reader, chunkSize int) (io.Reader, *MediaBuffer) {
 	if chunkSize == 0 { // do not chunk
 		return media, nil
 	}
 
-	rb := NewResumableBuffer(media, chunkSize)
-	rdr, _, _, err := rb.Chunk()
+	mb := NewMediaBuffer(media, chunkSize)
+	rdr, _, _, err := mb.Chunk()
 
 	if err == io.EOF { // we can upload this in a single request
 		return rdr, nil
 	}
-	// err might be a non-EOF error. If it is, the next call to rb.Chunk will
-	// return the same error. Returning a ResumableBuffer ensures that this error
+	// err might be a non-EOF error. If it is, the next call to mb.Chunk will
+	// return the same error. Returning a MediaBuffer ensures that this error
 	// will be handled at some point.
 
-	return nil, rb
+	return nil, mb
 }

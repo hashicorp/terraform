@@ -906,7 +906,7 @@ func (p *ListNetworksParams) SetType(v string) {
 	if p.p == nil {
 		p.p = make(map[string]interface{})
 	}
-	p.p["networkType"] = v
+	p.p["type"] = v
 	return
 }
 
@@ -935,7 +935,7 @@ func (s *NetworkService) NewListNetworksParams() *ListNetworksParams {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *NetworkService) GetNetworkID(keyword string, opts ...OptionFunc) (string, error) {
+func (s *NetworkService) GetNetworkID(keyword string, opts ...OptionFunc) (string, int, error) {
 	p := &ListNetworksParams{}
 	p.p = make(map[string]interface{})
 
@@ -943,38 +943,38 @@ func (s *NetworkService) GetNetworkID(keyword string, opts ...OptionFunc) (strin
 
 	for _, fn := range opts {
 		if err := fn(s.cs, p); err != nil {
-			return "", err
+			return "", -1, err
 		}
 	}
 
 	l, err := s.ListNetworks(p)
 	if err != nil {
-		return "", err
+		return "", -1, err
 	}
 
 	if l.Count == 0 {
-		return "", fmt.Errorf("No match found for %s: %+v", keyword, l)
+		return "", l.Count, fmt.Errorf("No match found for %s: %+v", keyword, l)
 	}
 
 	if l.Count == 1 {
-		return l.Networks[0].Id, nil
+		return l.Networks[0].Id, l.Count, nil
 	}
 
 	if l.Count > 1 {
 		for _, v := range l.Networks {
 			if v.Name == keyword {
-				return v.Id, nil
+				return v.Id, l.Count, nil
 			}
 		}
 	}
-	return "", fmt.Errorf("Could not find an exact match for %s: %+v", keyword, l)
+	return "", l.Count, fmt.Errorf("Could not find an exact match for %s: %+v", keyword, l)
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
 func (s *NetworkService) GetNetworkByName(name string, opts ...OptionFunc) (*Network, int, error) {
-	id, err := s.GetNetworkID(name, opts...)
+	id, count, err := s.GetNetworkID(name, opts...)
 	if err != nil {
-		return nil, -1, err
+		return nil, count, err
 	}
 
 	r, count, err := s.GetNetworkByID(id, opts...)
@@ -1788,7 +1788,7 @@ func (s *NetworkService) NewListPhysicalNetworksParams() *ListPhysicalNetworksPa
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *NetworkService) GetPhysicalNetworkID(name string, opts ...OptionFunc) (string, error) {
+func (s *NetworkService) GetPhysicalNetworkID(name string, opts ...OptionFunc) (string, int, error) {
 	p := &ListPhysicalNetworksParams{}
 	p.p = make(map[string]interface{})
 
@@ -1796,38 +1796,38 @@ func (s *NetworkService) GetPhysicalNetworkID(name string, opts ...OptionFunc) (
 
 	for _, fn := range opts {
 		if err := fn(s.cs, p); err != nil {
-			return "", err
+			return "", -1, err
 		}
 	}
 
 	l, err := s.ListPhysicalNetworks(p)
 	if err != nil {
-		return "", err
+		return "", -1, err
 	}
 
 	if l.Count == 0 {
-		return "", fmt.Errorf("No match found for %s: %+v", name, l)
+		return "", l.Count, fmt.Errorf("No match found for %s: %+v", name, l)
 	}
 
 	if l.Count == 1 {
-		return l.PhysicalNetworks[0].Id, nil
+		return l.PhysicalNetworks[0].Id, l.Count, nil
 	}
 
 	if l.Count > 1 {
 		for _, v := range l.PhysicalNetworks {
 			if v.Name == name {
-				return v.Id, nil
+				return v.Id, l.Count, nil
 			}
 		}
 	}
-	return "", fmt.Errorf("Could not find an exact match for %s: %+v", name, l)
+	return "", l.Count, fmt.Errorf("Could not find an exact match for %s: %+v", name, l)
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
 func (s *NetworkService) GetPhysicalNetworkByName(name string, opts ...OptionFunc) (*PhysicalNetwork, int, error) {
-	id, err := s.GetPhysicalNetworkID(name, opts...)
+	id, count, err := s.GetPhysicalNetworkID(name, opts...)
 	if err != nil {
-		return nil, -1, err
+		return nil, count, err
 	}
 
 	r, count, err := s.GetPhysicalNetworkByID(id, opts...)
@@ -2409,7 +2409,7 @@ func (s *NetworkService) NewListNetworkServiceProvidersParams() *ListNetworkServ
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *NetworkService) GetNetworkServiceProviderID(name string, opts ...OptionFunc) (string, error) {
+func (s *NetworkService) GetNetworkServiceProviderID(name string, opts ...OptionFunc) (string, int, error) {
 	p := &ListNetworkServiceProvidersParams{}
 	p.p = make(map[string]interface{})
 
@@ -2417,31 +2417,31 @@ func (s *NetworkService) GetNetworkServiceProviderID(name string, opts ...Option
 
 	for _, fn := range opts {
 		if err := fn(s.cs, p); err != nil {
-			return "", err
+			return "", -1, err
 		}
 	}
 
 	l, err := s.ListNetworkServiceProviders(p)
 	if err != nil {
-		return "", err
+		return "", -1, err
 	}
 
 	if l.Count == 0 {
-		return "", fmt.Errorf("No match found for %s: %+v", name, l)
+		return "", l.Count, fmt.Errorf("No match found for %s: %+v", name, l)
 	}
 
 	if l.Count == 1 {
-		return l.NetworkServiceProviders[0].Id, nil
+		return l.NetworkServiceProviders[0].Id, l.Count, nil
 	}
 
 	if l.Count > 1 {
 		for _, v := range l.NetworkServiceProviders {
 			if v.Name == name {
-				return v.Id, nil
+				return v.Id, l.Count, nil
 			}
 		}
 	}
-	return "", fmt.Errorf("Could not find an exact match for %s: %+v", name, l)
+	return "", l.Count, fmt.Errorf("Could not find an exact match for %s: %+v", name, l)
 }
 
 // Lists network serviceproviders for a given physical network.
@@ -3122,7 +3122,7 @@ func (s *NetworkService) NewListPaloAltoFirewallNetworksParams(lbdeviceid string
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *NetworkService) GetPaloAltoFirewallNetworkID(keyword string, lbdeviceid string, opts ...OptionFunc) (string, error) {
+func (s *NetworkService) GetPaloAltoFirewallNetworkID(keyword string, lbdeviceid string, opts ...OptionFunc) (string, int, error) {
 	p := &ListPaloAltoFirewallNetworksParams{}
 	p.p = make(map[string]interface{})
 
@@ -3131,31 +3131,31 @@ func (s *NetworkService) GetPaloAltoFirewallNetworkID(keyword string, lbdeviceid
 
 	for _, fn := range opts {
 		if err := fn(s.cs, p); err != nil {
-			return "", err
+			return "", -1, err
 		}
 	}
 
 	l, err := s.ListPaloAltoFirewallNetworks(p)
 	if err != nil {
-		return "", err
+		return "", -1, err
 	}
 
 	if l.Count == 0 {
-		return "", fmt.Errorf("No match found for %s: %+v", keyword, l)
+		return "", l.Count, fmt.Errorf("No match found for %s: %+v", keyword, l)
 	}
 
 	if l.Count == 1 {
-		return l.PaloAltoFirewallNetworks[0].Id, nil
+		return l.PaloAltoFirewallNetworks[0].Id, l.Count, nil
 	}
 
 	if l.Count > 1 {
 		for _, v := range l.PaloAltoFirewallNetworks {
 			if v.Name == keyword {
-				return v.Id, nil
+				return v.Id, l.Count, nil
 			}
 		}
 	}
-	return "", fmt.Errorf("Could not find an exact match for %s: %+v", keyword, l)
+	return "", l.Count, fmt.Errorf("Could not find an exact match for %s: %+v", keyword, l)
 }
 
 // lists network that are using Palo Alto firewall device
@@ -3323,7 +3323,7 @@ func (s *NetworkService) NewListNetscalerLoadBalancerNetworksParams(lbdeviceid s
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *NetworkService) GetNetscalerLoadBalancerNetworkID(keyword string, lbdeviceid string, opts ...OptionFunc) (string, error) {
+func (s *NetworkService) GetNetscalerLoadBalancerNetworkID(keyword string, lbdeviceid string, opts ...OptionFunc) (string, int, error) {
 	p := &ListNetscalerLoadBalancerNetworksParams{}
 	p.p = make(map[string]interface{})
 
@@ -3332,31 +3332,31 @@ func (s *NetworkService) GetNetscalerLoadBalancerNetworkID(keyword string, lbdev
 
 	for _, fn := range opts {
 		if err := fn(s.cs, p); err != nil {
-			return "", err
+			return "", -1, err
 		}
 	}
 
 	l, err := s.ListNetscalerLoadBalancerNetworks(p)
 	if err != nil {
-		return "", err
+		return "", -1, err
 	}
 
 	if l.Count == 0 {
-		return "", fmt.Errorf("No match found for %s: %+v", keyword, l)
+		return "", l.Count, fmt.Errorf("No match found for %s: %+v", keyword, l)
 	}
 
 	if l.Count == 1 {
-		return l.NetscalerLoadBalancerNetworks[0].Id, nil
+		return l.NetscalerLoadBalancerNetworks[0].Id, l.Count, nil
 	}
 
 	if l.Count > 1 {
 		for _, v := range l.NetscalerLoadBalancerNetworks {
 			if v.Name == keyword {
-				return v.Id, nil
+				return v.Id, l.Count, nil
 			}
 		}
 	}
-	return "", fmt.Errorf("Could not find an exact match for %s: %+v", keyword, l)
+	return "", l.Count, fmt.Errorf("Could not find an exact match for %s: %+v", keyword, l)
 }
 
 // lists network that are using a netscaler load balancer device
@@ -3524,7 +3524,7 @@ func (s *NetworkService) NewListNiciraNvpDeviceNetworksParams(nvpdeviceid string
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *NetworkService) GetNiciraNvpDeviceNetworkID(keyword string, nvpdeviceid string, opts ...OptionFunc) (string, error) {
+func (s *NetworkService) GetNiciraNvpDeviceNetworkID(keyword string, nvpdeviceid string, opts ...OptionFunc) (string, int, error) {
 	p := &ListNiciraNvpDeviceNetworksParams{}
 	p.p = make(map[string]interface{})
 
@@ -3533,31 +3533,31 @@ func (s *NetworkService) GetNiciraNvpDeviceNetworkID(keyword string, nvpdeviceid
 
 	for _, fn := range opts {
 		if err := fn(s.cs, p); err != nil {
-			return "", err
+			return "", -1, err
 		}
 	}
 
 	l, err := s.ListNiciraNvpDeviceNetworks(p)
 	if err != nil {
-		return "", err
+		return "", -1, err
 	}
 
 	if l.Count == 0 {
-		return "", fmt.Errorf("No match found for %s: %+v", keyword, l)
+		return "", l.Count, fmt.Errorf("No match found for %s: %+v", keyword, l)
 	}
 
 	if l.Count == 1 {
-		return l.NiciraNvpDeviceNetworks[0].Id, nil
+		return l.NiciraNvpDeviceNetworks[0].Id, l.Count, nil
 	}
 
 	if l.Count > 1 {
 		for _, v := range l.NiciraNvpDeviceNetworks {
 			if v.Name == keyword {
-				return v.Id, nil
+				return v.Id, l.Count, nil
 			}
 		}
 	}
-	return "", fmt.Errorf("Could not find an exact match for %s: %+v", keyword, l)
+	return "", l.Count, fmt.Errorf("Could not find an exact match for %s: %+v", keyword, l)
 }
 
 // lists network that are using a nicira nvp device

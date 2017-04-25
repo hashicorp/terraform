@@ -2,7 +2,6 @@ package atlas
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -106,21 +105,6 @@ func testAccCheckArtifactState(key, value string) resource.TestCheckFunc {
 		}
 
 		return nil
-	}
-}
-
-func TestCleanMetadata(t *testing.T) {
-	in := map[string]string{
-		"region.us-east-1": "in",
-		"what is	this?": "out",
-	}
-	exp := map[string]string{
-		"region-us-east-1": "in",
-		"what-is-this-":    "out",
-	}
-	out := cleanMetadata(in)
-	if !reflect.DeepEqual(out, exp) {
-		t.Fatalf("bad: %#v", out)
 	}
 }
 

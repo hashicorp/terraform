@@ -1,7 +1,6 @@
 package cloudstack
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -31,30 +30,14 @@ func resourceCloudStackLoadBalancerRule() *schema.Resource {
 
 			"ip_address_id": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Required: true,
 				ForceNew: true,
-			},
-
-			"ipaddress": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "Please use the `ip_address_id` field instead",
 			},
 
 			"network_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Computed: true,
 				ForceNew: true,
-			},
-
-			"network": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "Please use the `network_id` field instead",
 			},
 
 			"algorithm": &schema.Schema{
@@ -75,20 +58,18 @@ func resourceCloudStackLoadBalancerRule() *schema.Resource {
 			},
 
 			"member_ids": &schema.Schema{
-				Type:          schema.TypeList,
-				Optional:      true,
-				ForceNew:      true,
-				Elem:          &schema.Schema{Type: schema.TypeString},
-				ConflictsWith: []string{"members"},
+				Type:     schema.TypeSet,
+				Required: true,
+				ForceNew: false,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
 			},
 
-			"members": &schema.Schema{
-				Type:          schema.TypeList,
-				Optional:      true,
-				ForceNew:      true,
-				Elem:          &schema.Schema{Type: schema.TypeString},
-				Deprecated:    "Please use the `member_ids` field instead",
-				ConflictsWith: []string{"member_ids"},
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
 			},
 		},
 	}
@@ -116,35 +97,13 @@ func resourceCloudStackLoadBalancerRuleCreate(d *schema.ResourceData, meta inter
 		p.SetDescription(d.Get("name").(string))
 	}
 
-	network, ok := d.GetOk("network_id")
-	if !ok {
-		network, ok = d.GetOk("network")
-	}
-	if ok {
-		// Retrieve the network ID
-		networkid, e := retrieveID(cs, "network", network.(string))
-		if e != nil {
-			return e.Error()
-		}
-
-		// Set the networkid
-		p.SetNetworkid(networkid)
+	if networkid, ok := d.GetOk("network_id"); ok {
+		// Set the network id
+		p.SetNetworkid(networkid.(string))
 	}
 
-	ipaddress, ok := d.GetOk("ip_address_id")
-	if !ok {
-		ipaddress, ok = d.GetOk("ipaddress")
-	}
-	if !ok {
-		return errors.New("Either `ip_address_id` or [deprecated] `ipaddress` must be provided.")
-	}
-
-	// Retrieve the ipaddress ID
-	ipaddressid, e := retrieveID(cs, "ip_address", ipaddress.(string))
-	if e != nil {
-		return e.Error()
-	}
-	p.SetPublicipid(ipaddressid)
+	// Set the ipaddress id
+	p.SetPublicipid(d.Get("ip_address_id").(string))
 
 	// Create the load balancer rule
 	r, err := cs.LoadBalancer.CreateLoadBalancerRule(p)
@@ -165,16 +124,8 @@ func resourceCloudStackLoadBalancerRuleCreate(d *schema.ResourceData, meta inter
 	// Create a new parameter struct
 	ap := cs.LoadBalancer.NewAssignToLoadBalancerRuleParams(r.Id)
 
-	members, ok := d.GetOk("member_ids")
-	if !ok {
-		members, ok = d.GetOk("members")
-	}
-	if !ok {
-		return errors.New("Either `member_ids` or [deprecated] `members` must be provided.")
-	}
-
 	var mbs []string
-	for _, id := range members.([]interface{}) {
+	for _, id := range d.Get("member_ids").(*schema.Set).List() {
 		mbs = append(mbs, id.(string))
 	}
 
@@ -186,7 +137,6 @@ func resourceCloudStackLoadBalancerRuleCreate(d *schema.ResourceData, meta inter
 	}
 
 	d.SetPartial("member_ids")
-	d.SetPartial("members")
 	d.Partial(false)
 
 	return resourceCloudStackLoadBalancerRuleRead(d, meta)
@@ -196,7 +146,10 @@ func resourceCloudStackLoadBalancerRuleRead(d *schema.ResourceData, meta interfa
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Get the load balancer details
-	lb, count, err := cs.LoadBalancer.GetLoadBalancerRuleByID(d.Id())
+	lb, count, err := cs.LoadBalancer.GetLoadBalancerRuleByID(
+		d.Id(),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
 	if err != nil {
 		if count == 0 {
 			log.Printf("[DEBUG] Load balancer rule %s does no longer exist", d.Get("name").(string))
@@ -213,11 +166,23 @@ func resourceCloudStackLoadBalancerRuleRead(d *schema.ResourceData, meta interfa
 	d.Set("ip_address_id", lb.Publicipid)
 
 	// Only set network if user specified it to avoid spurious diffs
-	_, networkID := d.GetOk("network_id")
-	_, network := d.GetOk("network")
-	if networkID || network {
+	if _, ok := d.GetOk("network_id"); ok {
 		d.Set("network_id", lb.Networkid)
 	}
+
+	setValueOrID(d, "project", lb.Project, lb.Projectid)
+
+	p := cs.LoadBalancer.NewListLoadBalancerRuleInstancesParams(d.Id())
+	l, err := cs.LoadBalancer.ListLoadBalancerRuleInstances(p)
+	if err != nil {
+		return err
+	}
+
+	var mbs []string
+	for _, i := range l.LoadBalancerRuleInstances {
+		mbs = append(mbs, i.Id)
+	}
+	d.Set("member_ids", mbs)
 
 	return nil
 }
@@ -263,6 +228,41 @@ func resourceCloudStackLoadBalancerRuleUpdate(d *schema.ResourceData, meta inter
 				"Error updating load balancer rule %s", name)
 		}
 	}
+
+	if d.HasChange("member_ids") {
+		o, n := d.GetChange("member_ids")
+		ombs, nmbs := o.(*schema.Set), n.(*schema.Set)
+
+		setToStringList := func(s *schema.Set) []string {
+			l := make([]string, s.Len())
+			for i, v := range s.List() {
+				l[i] = v.(string)
+			}
+			return l
+		}
+
+		membersToAdd := setToStringList(nmbs.Difference(ombs))
+		membersToRemove := setToStringList(ombs.Difference(nmbs))
+
+		log.Printf("[DEBUG] Members to add: %v, remove: %v", membersToAdd, membersToRemove)
+
+		if len(membersToAdd) > 0 {
+			p := cs.LoadBalancer.NewAssignToLoadBalancerRuleParams(d.Id())
+			p.SetVirtualmachineids(membersToAdd)
+			if _, err := cs.LoadBalancer.AssignToLoadBalancerRule(p); err != nil {
+				return err
+			}
+		}
+
+		if len(membersToRemove) > 0 {
+			p := cs.LoadBalancer.NewRemoveFromLoadBalancerRuleParams(d.Id())
+			p.SetVirtualmachineids(membersToRemove)
+			if _, err := cs.LoadBalancer.RemoveFromLoadBalancerRule(p); err != nil {
+				return err
+			}
+		}
+	}
+
 	return resourceCloudStackLoadBalancerRuleRead(d, meta)
 }
 

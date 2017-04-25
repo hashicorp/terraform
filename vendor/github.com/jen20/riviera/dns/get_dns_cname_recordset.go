@@ -3,12 +3,12 @@ package dns
 import "github.com/jen20/riviera/azure"
 
 type GetCNAMERecordSetResponse struct {
-	ID          string             `mapstructure:"id"`
-	Name        string             `mapstructure:"name"`
-	Location    string             `mapstructure:"location"`
-	Tags        map[string]*string `mapstructure:"tags"`
-	TTL         *int               `mapstructure:"TTL"`
-	CNAMERecord CNAMERecord        `mapstructure:"CNAMERecord"`
+	ID           string             `mapstructure:"id"`
+	Name         string             `mapstructure:"name"`
+	Location     string             `mapstructure:"location"`
+	Tags         map[string]*string `mapstructure:"tags"`
+	TTL          *int               `mapstructure:"TTL"`
+	CNAMERecord  CNAMERecord        `mapstructure:"CNAMERecord"`
 }
 
 type GetCNAMERecordSet struct {

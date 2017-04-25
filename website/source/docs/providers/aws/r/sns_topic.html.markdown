@@ -12,7 +12,7 @@ Provides an SNS topic resource
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_sns_topic" "user_updates" {
   name = "user-updates-topic"
 }
@@ -34,3 +34,10 @@ The following attributes are exported:
 * `id` - The ARN of the SNS topic
 * `arn` - The ARN of the SNS topic, as a more obvious property (clone of id)
 
+## Import
+
+SNS Topics can be imported using the `topic arn`, e.g.
+
+```
+$ terraform import aws_sns_topic.user_updates arn:aws:sns:us-west-2:0123456789012:my-topic
+```

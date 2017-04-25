@@ -1,7 +1,6 @@
 package cloudstack
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -22,18 +21,9 @@ func resourceCloudStackEgressFirewall() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"network_id": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{"network"},
-			},
-
-			"network": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				Deprecated:    "Please use the `network_id` field instead",
-				ConflictsWith: []string{"network_id"},
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 
 			"managed": &schema.Schema{
@@ -49,15 +39,9 @@ func resourceCloudStackEgressFirewall() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"cidr_list": &schema.Schema{
 							Type:     schema.TypeSet,
-							Optional: true,
+							Required: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Set:      schema.HashString,
-						},
-
-						"source_cidr": &schema.Schema{
-							Type:       schema.TypeString,
-							Optional:   true,
-							Deprecated: "Please use the `cidr_list` field instead",
 						},
 
 						"protocol": &schema.Schema{
@@ -102,29 +86,13 @@ func resourceCloudStackEgressFirewall() *schema.Resource {
 }
 
 func resourceCloudStackEgressFirewallCreate(d *schema.ResourceData, meta interface{}) error {
-	cs := meta.(*cloudstack.CloudStackClient)
-
 	// Make sure all required parameters are there
 	if err := verifyEgressFirewallParams(d); err != nil {
 		return err
 	}
 
-	network, ok := d.GetOk("network_id")
-	if !ok {
-		network, ok = d.GetOk("network")
-	}
-	if !ok {
-		return errors.New("Either `network_id` or [deprecated] `network` must be provided.")
-	}
-
-	// Retrieve the network ID
-	networkid, e := retrieveID(cs, "network", network.(string))
-	if e != nil {
-		return e.Error()
-	}
-
 	// We need to set this upfront in order to be able to save a partial state
-	d.SetId(networkid)
+	d.SetId(d.Get("network_id").(string))
 
 	// Create all rules that are configured
 	if nrs := d.Get("rule").(*schema.Set); nrs.Len() > 0 {
@@ -144,11 +112,7 @@ func resourceCloudStackEgressFirewallCreate(d *schema.ResourceData, meta interfa
 	return resourceCloudStackEgressFirewallRead(d, meta)
 }
 
-func createEgressFirewallRules(
-	d *schema.ResourceData,
-	meta interface{},
-	rules *schema.Set,
-	nrs *schema.Set) error {
+func createEgressFirewallRules(d *schema.ResourceData, meta interface{}, rules *schema.Set, nrs *schema.Set) error {
 	var errs *multierror.Error
 
 	var wg sync.WaitGroup
@@ -183,10 +147,7 @@ func createEgressFirewallRules(
 
 	return errs.ErrorOrNil()
 }
-func createEgressFirewallRule(
-	d *schema.ResourceData,
-	meta interface{},
-	rule map[string]interface{}) error {
+func createEgressFirewallRule(d *schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 	uuids := rule["uuids"].(map[string]interface{})
 
@@ -199,7 +160,11 @@ func createEgressFirewallRule(
 	p := cs.Firewall.NewCreateEgressFirewallRuleParams(d.Id(), rule["protocol"].(string))
 
 	// Set the CIDR list
-	p.SetCidrlist(retrieveCidrList(rule))
+	var cidrList []string
+	for _, cidr := range rule["cidr_list"].(*schema.Set).List() {
+		cidrList = append(cidrList, cidr.(string))
+	}
+	p.SetCidrlist(cidrList)
 
 	// If the protocol is ICMP set the needed ICMP parameters
 	if rule["protocol"].(string) == "icmp" {
@@ -307,11 +272,17 @@ func resourceCloudStackEgressFirewallRead(d *schema.ResourceData, meta interface
 				// Delete the known rule so only unknown rules remain in the ruleMap
 				delete(ruleMap, id.(string))
 
+				// Create a set with all CIDR's
+				cidrs := &schema.Set{F: schema.HashString}
+				for _, cidr := range strings.Split(r.Cidrlist, ",") {
+					cidrs.Add(cidr)
+				}
+
 				// Update the values
 				rule["protocol"] = r.Protocol
 				rule["icmp_type"] = r.Icmptype
 				rule["icmp_code"] = r.Icmpcode
-				setCidrList(rule, r.Cidrlist)
+				rule["cidr_list"] = cidrs
 				rules.Add(rule)
 			}
 
@@ -339,9 +310,15 @@ func resourceCloudStackEgressFirewallRead(d *schema.ResourceData, meta interface
 						// Delete the known rule so only unknown rules remain in the ruleMap
 						delete(ruleMap, id.(string))
 
+						// Create a set with all CIDR's
+						cidrs := &schema.Set{F: schema.HashString}
+						for _, cidr := range strings.Split(r.Cidrlist, ",") {
+							cidrs.Add(cidr)
+						}
+
 						// Update the values
 						rule["protocol"] = r.Protocol
-						setCidrList(rule, r.Cidrlist)
+						rule["cidr_list"] = cidrs
 						ports.Add(port)
 					}
 
@@ -451,11 +428,7 @@ func resourceCloudStackEgressFirewallDelete(d *schema.ResourceData, meta interfa
 	return nil
 }
 
-func deleteEgressFirewallRules(
-	d *schema.ResourceData,
-	meta interface{},
-	rules *schema.Set,
-	ors *schema.Set) error {
+func deleteEgressFirewallRules(d *schema.ResourceData, meta interface{}, rules *schema.Set, ors *schema.Set) error {
 	var errs *multierror.Error
 
 	var wg sync.WaitGroup
@@ -491,16 +464,13 @@ func deleteEgressFirewallRules(
 	return errs.ErrorOrNil()
 }
 
-func deleteEgressFirewallRule(
-	d *schema.ResourceData,
-	meta interface{},
-	rule map[string]interface{}) error {
+func deleteEgressFirewallRule(d *schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 	uuids := rule["uuids"].(map[string]interface{})
 
 	for k, id := range uuids {
 		// We don't care about the count here, so just continue
-		if k == "#" {
+		if k == "%" {
 			continue
 		}
 
@@ -542,17 +512,6 @@ func verifyEgressFirewallParams(d *schema.ResourceData) error {
 }
 
 func verifyEgressFirewallRuleParams(d *schema.ResourceData, rule map[string]interface{}) error {
-	cidrList := rule["cidr_list"].(*schema.Set)
-	sourceCidr := rule["source_cidr"].(string)
-	if cidrList.Len() == 0 && sourceCidr == "" {
-		return fmt.Errorf(
-			"Parameter cidr_list is a required parameter")
-	}
-	if cidrList.Len() > 0 && sourceCidr != "" {
-		return fmt.Errorf(
-			"Parameter source_cidr is deprecated and cannot be used together with cidr_list")
-	}
-
 	protocol := rule["protocol"].(string)
 	if protocol != "tcp" && protocol != "udp" && protocol != "icmp" {
 		return fmt.Errorf(

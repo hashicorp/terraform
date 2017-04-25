@@ -3,7 +3,6 @@ package aws
 import (
 	"bytes"
 	"crypto/sha1"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"log"
@@ -103,6 +102,20 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 			},
 
 			"security_groups": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+
+			"vpc_classic_link_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"vpc_classic_link_security_groups": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
@@ -296,7 +309,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 	}
 
 	if v, ok := d.GetOk("user_data"); ok {
-		userData := base64.StdEncoding.EncodeToString([]byte(v.(string)))
+		userData := base64Encode([]byte(v.(string)))
 		createLaunchConfigurationOpts.UserData = aws.String(userData)
 	}
 
@@ -325,6 +338,16 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 
 	if v, ok := d.GetOk("security_groups"); ok {
 		createLaunchConfigurationOpts.SecurityGroups = expandStringList(
+			v.(*schema.Set).List(),
+		)
+	}
+
+	if v, ok := d.GetOk("vpc_classic_link_id"); ok {
+		createLaunchConfigurationOpts.ClassicLinkVPCId = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("vpc_classic_link_security_groups"); ok {
+		createLaunchConfigurationOpts.ClassicLinkVPCSecurityGroups = expandStringList(
 			v.(*schema.Set).List(),
 		)
 	}
@@ -450,11 +473,14 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 
 	// IAM profiles can take ~10 seconds to propagate in AWS:
 	// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
-	err = resource.Retry(30*time.Second, func() *resource.RetryError {
+	err = resource.Retry(90*time.Second, func() *resource.RetryError {
 		_, err := autoscalingconn.CreateLaunchConfiguration(&createLaunchConfigurationOpts)
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
 				if strings.Contains(awsErr.Message(), "Invalid IamInstanceProfile") {
+					return resource.RetryableError(err)
+				}
+				if strings.Contains(awsErr.Message(), "You are not authorized to perform this operation") {
 					return resource.RetryableError(err)
 				}
 			}
@@ -518,6 +544,10 @@ func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}
 	d.Set("spot_price", lc.SpotPrice)
 	d.Set("enable_monitoring", lc.InstanceMonitoring.Enabled)
 	d.Set("security_groups", lc.SecurityGroups)
+	d.Set("associate_public_ip_address", lc.AssociatePublicIpAddress)
+
+	d.Set("vpc_classic_link_id", lc.ClassicLinkVPCId)
+	d.Set("vpc_classic_link_security_groups", lc.ClassicLinkVPCSecurityGroups)
 
 	if err := readLCBlockDevices(d, lc, ec2conn); err != nil {
 		return err

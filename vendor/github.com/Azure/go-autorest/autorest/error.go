@@ -24,10 +24,13 @@ type DetailedError struct {
 	Method string
 
 	// StatusCode is the HTTP Response StatusCode (if non-zero) that led to the error.
-	StatusCode int
+	StatusCode interface{}
 
 	// Message is the error message.
 	Message string
+
+	// Service Error is the response body of failed API in bytes
+	ServiceError []byte
 }
 
 // NewError creates a new Error conforming object from the passed packageType, method, and

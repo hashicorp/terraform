@@ -14,16 +14,16 @@ Provides an Elastic IP resource.
 
 Single EIP associated with an instance:
 
-```
+```hcl
 resource "aws_eip" "lb" {
   instance = "${aws_instance.web.id}"
   vpc      = true
 }
 ```
 
-Muliple EIPs associated with a single network interface:
+Multiple EIPs associated with a single network interface:
 
-```
+```hcl
 resource "aws_network_interface" "multi-ip" {
   subnet_id   = "${aws_subnet.main.id}"
   private_ips = ["10.0.0.10", "10.0.0.11"]
@@ -44,7 +44,7 @@ resource "aws_eip" "two" {
 
 Attaching an EIP to an Instance with a pre-assigned private ip (VPC Only):
 
-```
+```hcl
 resource "aws_vpc" "default" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_hostnames = true
@@ -107,4 +107,19 @@ The following attributes are exported:
 * `instance` - Contains the ID of the attached instance.
 * `network_interface` - Contains the ID of the attached network interface.
 
-[1]: https://docs.aws.amazon.com/fr_fr/AWSEC2/latest/APIReference/API_AssociateAddress.html
+
+## Import
+
+EIPs in a VPC can be imported using their Allocation ID, e.g.
+
+```
+$ terraform import aws_eip.bar eipalloc-00a10e96
+```
+
+EIPs in EC2 Classic can be imported using their Public IP, e.g.
+
+```
+$ terraform import aws_eip.bar 52.0.0.0
+```
+
+[1]: https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_AssociateAddress.html

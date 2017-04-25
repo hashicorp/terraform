@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -50,13 +51,18 @@ func TestValidateArmStorageAccountName(t *testing.T) {
 }
 
 func TestAccAzureRMStorageAccount_basic(t *testing.T) {
+	ri := acctest.RandInt()
+	rs := acctest.RandString(4)
+	preConfig := fmt.Sprintf(testAccAzureRMStorageAccount_basic, ri, rs)
+	postConfig := fmt.Sprintf(testAccAzureRMStorageAccount_update, ri, rs)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMStorageAccountDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAzureRMStorageAccount_basic,
+				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMStorageAccountExists("azurerm_storage_account.testsa"),
 					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "account_type", "Standard_LRS"),
@@ -66,12 +72,98 @@ func TestAccAzureRMStorageAccount_basic(t *testing.T) {
 			},
 
 			resource.TestStep{
-				Config: testAccAzureRMStorageAccount_update,
+				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMStorageAccountExists("azurerm_storage_account.testsa"),
 					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "account_type", "Standard_GRS"),
 					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "tags.%", "1"),
 					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "tags.environment", "staging"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMStorageAccount_disappears(t *testing.T) {
+	ri := acctest.RandInt()
+	rs := acctest.RandString(4)
+	preConfig := fmt.Sprintf(testAccAzureRMStorageAccount_basic, ri, rs)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMStorageAccountDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMStorageAccountExists("azurerm_storage_account.testsa"),
+					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "account_type", "Standard_LRS"),
+					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "tags.%", "1"),
+					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "tags.environment", "production"),
+					testCheckAzureRMStorageAccountDisappears("azurerm_storage_account.testsa"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func TestAccAzureRMStorageAccount_blobEncryption(t *testing.T) {
+	ri := acctest.RandInt()
+	rs := acctest.RandString(4)
+	preConfig := fmt.Sprintf(testAccAzureRMStorageAccount_blobEncryption, ri, rs)
+	postConfig := fmt.Sprintf(testAccAzureRMStorageAccount_blobEncryptionDisabled, ri, rs)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMStorageAccountDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMStorageAccountExists("azurerm_storage_account.testsa"),
+					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "enable_blob_encryption", "true"),
+				),
+			},
+
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMStorageAccountExists("azurerm_storage_account.testsa"),
+					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "enable_blob_encryption", "false"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMStorageAccount_blobStorageWithUpdate(t *testing.T) {
+	ri := acctest.RandInt()
+	rs := acctest.RandString(4)
+	preConfig := fmt.Sprintf(testAccAzureRMStorageAccount_blobStorage, ri, rs)
+	postConfig := fmt.Sprintf(testAccAzureRMStorageAccount_blobStorageUpdate, ri, rs)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMStorageAccountDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMStorageAccountExists("azurerm_storage_account.testsa"),
+					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "account_kind", "BlobStorage"),
+					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "access_tier", "Hot"),
+				),
+			},
+
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMStorageAccountExists("azurerm_storage_account.testsa"),
+					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "access_tier", "Cool"),
 				),
 			},
 		},
@@ -105,6 +197,29 @@ func testCheckAzureRMStorageAccountExists(name string) resource.TestCheckFunc {
 	}
 }
 
+func testCheckAzureRMStorageAccountDisappears(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		// Ensure we have enough information in state to look up in API
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		storageAccount := rs.Primary.Attributes["name"]
+		resourceGroup := rs.Primary.Attributes["resource_group_name"]
+
+		// Ensure resource group exists in API
+		conn := testAccProvider.Meta().(*ArmClient).storageServiceClient
+
+		_, err := conn.Delete(resourceGroup, storageAccount)
+		if err != nil {
+			return fmt.Errorf("Bad: Delete on storageServiceClient: %s", err)
+		}
+
+		return nil
+	}
+}
+
 func testCheckAzureRMStorageAccountDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*ArmClient).storageServiceClient
 
@@ -122,7 +237,7 @@ func testCheckAzureRMStorageAccountDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("Storage Account still exists:\n%#v", resp.Properties)
+			return fmt.Errorf("Storage Account still exists:\n%#v", resp.AccountProperties)
 		}
 	}
 
@@ -131,12 +246,12 @@ func testCheckAzureRMStorageAccountDestroy(s *terraform.State) error {
 
 var testAccAzureRMStorageAccount_basic = `
 resource "azurerm_resource_group" "testrg" {
-    name = "testAccAzureRMStorageAccountBasic"
+    name = "testAccAzureRMSA-%d"
     location = "westus"
 }
 
 resource "azurerm_storage_account" "testsa" {
-    name = "unlikely23exst2acct1435"
+    name = "unlikely23exst2acct%s"
     resource_group_name = "${azurerm_resource_group.testrg.name}"
 
     location = "westus"
@@ -149,12 +264,12 @@ resource "azurerm_storage_account" "testsa" {
 
 var testAccAzureRMStorageAccount_update = `
 resource "azurerm_resource_group" "testrg" {
-    name = "testAccAzureRMStorageAccountBasic"
+    name = "testAccAzureRMSA-%d"
     location = "westus"
 }
 
 resource "azurerm_storage_account" "testsa" {
-    name = "unlikely23exst2acct1435"
+    name = "unlikely23exst2acct%s"
     resource_group_name = "${azurerm_resource_group.testrg.name}"
 
     location = "westus"
@@ -162,5 +277,83 @@ resource "azurerm_storage_account" "testsa" {
 
     tags {
         environment = "staging"
+    }
+}`
+
+var testAccAzureRMStorageAccount_blobEncryption = `
+resource "azurerm_resource_group" "testrg" {
+    name = "testAccAzureRMSA-%d"
+    location = "westus"
+}
+
+resource "azurerm_storage_account" "testsa" {
+    name = "unlikely23exst2acct%s"
+    resource_group_name = "${azurerm_resource_group.testrg.name}"
+
+    location = "westus"
+    account_type = "Standard_LRS"
+    enable_blob_encryption = true
+
+    tags {
+        environment = "production"
+    }
+}`
+
+var testAccAzureRMStorageAccount_blobEncryptionDisabled = `
+resource "azurerm_resource_group" "testrg" {
+    name = "testAccAzureRMSA-%d"
+    location = "westus"
+}
+
+resource "azurerm_storage_account" "testsa" {
+    name = "unlikely23exst2acct%s"
+    resource_group_name = "${azurerm_resource_group.testrg.name}"
+
+    location = "westus"
+    account_type = "Standard_LRS"
+    enable_blob_encryption = false
+
+    tags {
+        environment = "production"
+    }
+}`
+
+// BlobStorage accounts are not available in WestUS
+var testAccAzureRMStorageAccount_blobStorage = `
+resource "azurerm_resource_group" "testrg" {
+    name = "testAccAzureRMSA-%d"
+    location = "northeurope"
+}
+
+resource "azurerm_storage_account" "testsa" {
+    name = "unlikely23exst2acct%s"
+    resource_group_name = "${azurerm_resource_group.testrg.name}"
+
+    location = "northeurope"
+	account_kind = "BlobStorage"
+    account_type = "Standard_LRS"
+
+    tags {
+        environment = "production"
+    }
+}`
+
+var testAccAzureRMStorageAccount_blobStorageUpdate = `
+resource "azurerm_resource_group" "testrg" {
+    name = "testAccAzureRMSA-%d"
+    location = "northeurope"
+}
+
+resource "azurerm_storage_account" "testsa" {
+    name = "unlikely23exst2acct%s"
+    resource_group_name = "${azurerm_resource_group.testrg.name}"
+
+    location = "northeurope"
+	account_kind = "BlobStorage"
+    account_type = "Standard_LRS"
+	access_tier = "Cool"
+
+    tags {
+        environment = "production"
     }
 }`

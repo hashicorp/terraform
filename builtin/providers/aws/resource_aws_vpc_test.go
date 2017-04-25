@@ -19,13 +19,70 @@ func TestAccAWSVpc_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVpcDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccVpcConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpcExists("aws_vpc.foo", &vpc),
 					testAccCheckVpcCidr(&vpc, "10.1.0.0/16"),
 					resource.TestCheckResourceAttr(
 						"aws_vpc.foo", "cidr_block", "10.1.0.0/16"),
+					resource.TestCheckResourceAttrSet(
+						"aws_vpc.foo", "default_route_table_id"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc.foo", "enable_dns_support", "true"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSVpc_enableIpv6(t *testing.T) {
+	var vpc ec2.Vpc
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVpcDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccVpcConfigIpv6Enabled,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckVpcExists("aws_vpc.foo", &vpc),
+					testAccCheckVpcCidr(&vpc, "10.1.0.0/16"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc.foo", "cidr_block", "10.1.0.0/16"),
+					resource.TestCheckResourceAttrSet(
+						"aws_vpc.foo", "ipv6_association_id"),
+					resource.TestCheckResourceAttrSet(
+						"aws_vpc.foo", "ipv6_cidr_block"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc.foo", "assign_generated_ipv6_cidr_block", "true"),
+				),
+			},
+			{
+				Config: testAccVpcConfigIpv6Disabled,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckVpcExists("aws_vpc.foo", &vpc),
+					testAccCheckVpcCidr(&vpc, "10.1.0.0/16"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc.foo", "cidr_block", "10.1.0.0/16"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc.foo", "assign_generated_ipv6_cidr_block", "false"),
+				),
+			},
+			{
+				Config: testAccVpcConfigIpv6Enabled,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckVpcExists("aws_vpc.foo", &vpc),
+					testAccCheckVpcCidr(&vpc, "10.1.0.0/16"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc.foo", "cidr_block", "10.1.0.0/16"),
+					resource.TestCheckResourceAttrSet(
+						"aws_vpc.foo", "ipv6_association_id"),
+					resource.TestCheckResourceAttrSet(
+						"aws_vpc.foo", "ipv6_cidr_block"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc.foo", "assign_generated_ipv6_cidr_block", "true"),
 				),
 			},
 		},
@@ -40,7 +97,7 @@ func TestAccAWSVpc_dedicatedTenancy(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVpcDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccVpcDedicatedConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpcExists("aws_vpc.bar", &vpc),
@@ -60,7 +117,7 @@ func TestAccAWSVpc_tags(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVpcDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccVpcConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpcExists("aws_vpc.foo", &vpc),
@@ -71,7 +128,7 @@ func TestAccAWSVpc_tags(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccVpcConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpcExists("aws_vpc.foo", &vpc),
@@ -91,7 +148,7 @@ func TestAccAWSVpc_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVpcDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccVpcConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpcExists("aws_vpc.foo", &vpc),
@@ -100,7 +157,7 @@ func TestAccAWSVpc_update(t *testing.T) {
 						"aws_vpc.foo", "cidr_block", "10.1.0.0/16"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccVpcConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpcExists("aws_vpc.foo", &vpc),
@@ -193,7 +250,7 @@ func TestAccAWSVpc_bothDnsOptionsSet(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVpcDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccVpcConfig_BothDnsOptions,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -206,13 +263,31 @@ func TestAccAWSVpc_bothDnsOptionsSet(t *testing.T) {
 	})
 }
 
+// https://github.com/hashicorp/terraform/issues/10168
+func TestAccAWSVpc_DisabledDnsSupport(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVpcDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccVpcConfig_DisabledDnsSupport,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"aws_vpc.bar", "enable_dns_support", "false"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSVpc_classiclinkOptionSet(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVpcDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccVpcConfig_ClassiclinkOption,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -224,6 +299,19 @@ func TestAccAWSVpc_classiclinkOptionSet(t *testing.T) {
 }
 
 const testAccVpcConfig = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+`
+
+const testAccVpcConfigIpv6Enabled = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+	assign_generated_ipv6_cidr_block = true
+}
+`
+
+const testAccVpcConfigIpv6Disabled = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
 }
@@ -273,6 +361,18 @@ resource "aws_vpc" "bar" {
 
 	enable_dns_hostnames = true
 	enable_dns_support = true
+}
+`
+
+const testAccVpcConfig_DisabledDnsSupport = `
+provider "aws" {
+	region = "us-west-2"
+}
+
+resource "aws_vpc" "bar" {
+	cidr_block = "10.2.0.0/16"
+
+	enable_dns_support = false
 }
 `
 

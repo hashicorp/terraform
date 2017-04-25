@@ -1,14 +1,27 @@
 package command
 
 import (
+	"bytes"
+	"crypto/md5"
+	"encoding/base64"
+	"encoding/json"
+	"flag"
+	"fmt"
+	"io"
 	"io/ioutil"
+	"log"
+	"net/http"
+	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -25,6 +38,19 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+	if testing.Verbose() {
+		// if we're verbose, use the logging requested by TF_LOG
+		logging.SetOutput()
+	} else {
+		// otherwise silence all logs
+		log.SetOutput(ioutil.Discard)
+	}
+
+	os.Exit(m.Run())
 }
 
 func tempDir(t *testing.T) string {
@@ -82,6 +108,20 @@ func testModule(t *testing.T, name string) *module.Tree {
 	return mod
 }
 
+// testPlan returns a non-nil noop plan.
+func testPlan(t *testing.T) *terraform.Plan {
+	state := terraform.NewState()
+	state.RootModule().Outputs["foo"] = &terraform.OutputState{
+		Type:  "string",
+		Value: "foo",
+	}
+
+	return &terraform.Plan{
+		Module: testModule(t, "apply"),
+		State:  state,
+	}
+}
+
 func testPlanFile(t *testing.T, plan *terraform.Plan) string {
 	path := testTempFile(t)
 
@@ -115,7 +155,7 @@ func testReadPlan(t *testing.T, path string) *terraform.Plan {
 
 // testState returns a test State structure that we use for a lot of tests.
 func testState() *terraform.State {
-	return &terraform.State{
+	state := &terraform.State{
 		Version: 2,
 		Modules: []*terraform.ModuleState{
 			&terraform.ModuleState{
@@ -128,9 +168,25 @@ func testState() *terraform.State {
 						},
 					},
 				},
+				Outputs: map[string]*terraform.OutputState{},
 			},
 		},
 	}
+	state.Init()
+
+	// Write and read the state so that it is properly initialized. We
+	// do this since we didn't call the normal NewState constructor.
+	var buf bytes.Buffer
+	if err := terraform.WriteState(state, &buf); err != nil {
+		panic(err)
+	}
+
+	result, err := terraform.ReadState(&buf)
+	if err != nil {
+		panic(err)
+	}
+
+	return result
 }
 
 func testStateFile(t *testing.T, s *terraform.State) string {
@@ -186,9 +242,8 @@ func testStateFileRemote(t *testing.T, s *terraform.State) string {
 	return path
 }
 
-// testStateOutput tests that the state at the given path contains
-// the expected state string.
-func testStateOutput(t *testing.T, path string, expected string) {
+// testStateRead reads the state from a file
+func testStateRead(t *testing.T, path string) *terraform.State {
 	f, err := os.Open(path)
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -200,6 +255,13 @@ func testStateOutput(t *testing.T, path string, expected string) {
 		t.Fatalf("err: %s", err)
 	}
 
+	return newState
+}
+
+// testStateOutput tests that the state at the given path contains
+// the expected state string.
+func testStateOutput(t *testing.T, path string, expected string) {
+	newState := testStateRead(t, path)
 	actual := strings.TrimSpace(newState.String())
 	expected = strings.TrimSpace(expected)
 	if actual != expected {
@@ -237,6 +299,42 @@ func testTempDir(t *testing.T) string {
 	return d
 }
 
+// testRename renames the path to new and returns a function to defer to
+// revert the rename.
+func testRename(t *testing.T, base, path, new string) func() {
+	if base != "" {
+		path = filepath.Join(base, path)
+		new = filepath.Join(base, new)
+	}
+
+	if err := os.Rename(path, new); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return func() {
+		// Just re-rename and ignore the return value
+		testRename(t, "", new, path)
+	}
+}
+
+// testChdir changes the directory and returns a function to defer to
+// revert the old cwd.
+func testChdir(t *testing.T, new string) func() {
+	old, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if err := os.Chdir(new); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	return func() {
+		// Re-run the function ignoring the defer result
+		testChdir(t, old)
+	}
+}
+
 // testCwd is used to change the current working directory
 // into a test directory that should be remoted after
 func testCwd(t *testing.T) (string, string) {
@@ -266,4 +364,250 @@ func testFixCwd(t *testing.T, tmp, cwd string) {
 	if err := os.RemoveAll(tmp); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+}
+
+// testStdinPipe changes os.Stdin to be a pipe that sends the data from
+// the reader before closing the pipe.
+//
+// The returned function should be deferred to properly clean up and restore
+// the original stdin.
+func testStdinPipe(t *testing.T, src io.Reader) func() {
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Modify stdin to point to our new pipe
+	old := os.Stdin
+	os.Stdin = r
+
+	// Copy the data from the reader to the pipe
+	go func() {
+		defer w.Close()
+		io.Copy(w, src)
+	}()
+
+	return func() {
+		// Close our read end
+		r.Close()
+
+		// Reset stdin
+		os.Stdin = old
+	}
+}
+
+// Modify os.Stdout to write to the given buffer. Note that this is generally
+// not useful since the commands are configured to write to a cli.Ui, not
+// Stdout directly. Commands like `console` though use the raw stdout.
+func testStdoutCapture(t *testing.T, dst io.Writer) func() {
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Modify stdout
+	old := os.Stdout
+	os.Stdout = w
+
+	// Copy
+	doneCh := make(chan struct{})
+	go func() {
+		defer close(doneCh)
+		defer r.Close()
+		io.Copy(dst, r)
+	}()
+
+	return func() {
+		// Close the writer end of the pipe
+		w.Sync()
+		w.Close()
+
+		// Reset stdout
+		os.Stdout = old
+
+		// Wait for the data copy to complete to avoid a race reading data
+		<-doneCh
+	}
+}
+
+// testInteractiveInput configures tests so that the answers given are sent
+// in order to interactive prompts. The returned function must be called
+// in a defer to clean up.
+func testInteractiveInput(t *testing.T, answers []string) func() {
+	// Disable test mode so input is called
+	test = false
+
+	// Setup reader/writers
+	testInputResponse = answers
+	defaultInputReader = bytes.NewBufferString("")
+	defaultInputWriter = new(bytes.Buffer)
+
+	// Return the cleanup
+	return func() {
+		test = true
+		testInputResponse = nil
+	}
+}
+
+// testInputMap configures tests so that the given answers are returned
+// for calls to Input when the right question is asked. The key is the
+// question "Id" that is used.
+func testInputMap(t *testing.T, answers map[string]string) func() {
+	// Disable test mode so input is called
+	test = false
+
+	// Setup reader/writers
+	defaultInputReader = bytes.NewBufferString("")
+	defaultInputWriter = new(bytes.Buffer)
+
+	// Setup answers
+	testInputResponse = nil
+	testInputResponseMap = answers
+
+	// Return the cleanup
+	return func() {
+		test = true
+		testInputResponseMap = nil
+	}
+}
+
+// testBackendState is used to make a test HTTP server to test a configured
+// backend. This returns the complete state that can be saved. Use
+// `testStateFileRemote` to write the returned state.
+func testBackendState(t *testing.T, s *terraform.State, c int) (*terraform.State, *httptest.Server) {
+	var b64md5 string
+	buf := bytes.NewBuffer(nil)
+
+	cb := func(resp http.ResponseWriter, req *http.Request) {
+		if req.Method == "PUT" {
+			resp.WriteHeader(c)
+			return
+		}
+		if s == nil {
+			resp.WriteHeader(404)
+			return
+		}
+
+		resp.Header().Set("Content-MD5", b64md5)
+		resp.Write(buf.Bytes())
+	}
+
+	// If a state was given, make sure we calculate the proper b64md5
+	if s != nil {
+		enc := json.NewEncoder(buf)
+		if err := enc.Encode(s); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		md5 := md5.Sum(buf.Bytes())
+		b64md5 = base64.StdEncoding.EncodeToString(md5[:16])
+	}
+
+	srv := httptest.NewServer(http.HandlerFunc(cb))
+
+	state := terraform.NewState()
+	state.Backend = &terraform.BackendState{
+		Type:   "http",
+		Config: map[string]interface{}{"address": srv.URL},
+		Hash:   2529831861221416334,
+	}
+
+	return state, srv
+}
+
+// testRemoteState is used to make a test HTTP server to return a given
+// state file that can be used for testing legacy remote state.
+func testRemoteState(t *testing.T, s *terraform.State, c int) (*terraform.RemoteState, *httptest.Server) {
+	var b64md5 string
+	buf := bytes.NewBuffer(nil)
+
+	cb := func(resp http.ResponseWriter, req *http.Request) {
+		if req.Method == "PUT" {
+			resp.WriteHeader(c)
+			return
+		}
+		if s == nil {
+			resp.WriteHeader(404)
+			return
+		}
+
+		resp.Header().Set("Content-MD5", b64md5)
+		resp.Write(buf.Bytes())
+	}
+
+	srv := httptest.NewServer(http.HandlerFunc(cb))
+	remote := &terraform.RemoteState{
+		Type:   "http",
+		Config: map[string]string{"address": srv.URL},
+	}
+
+	if s != nil {
+		// Set the remote data
+		s.Remote = remote
+
+		enc := json.NewEncoder(buf)
+		if err := enc.Encode(s); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		md5 := md5.Sum(buf.Bytes())
+		b64md5 = base64.StdEncoding.EncodeToString(md5[:16])
+	}
+
+	return remote, srv
+}
+
+// testlockState calls a separate process to the lock the state file at path.
+// deferFunc should be called in the caller to properly unlock the file.
+// Since many tests change the working durectory, the sourcedir argument must be
+// supplied to locate the statelocker.go source.
+func testLockState(sourceDir, path string) (func(), error) {
+	// build and run the binary ourselves so we can quickly terminate it for cleanup
+	buildDir, err := ioutil.TempDir("", "locker")
+	if err != nil {
+		return nil, err
+	}
+	cleanFunc := func() {
+		os.RemoveAll(buildDir)
+	}
+
+	source := filepath.Join(sourceDir, "statelocker.go")
+	lockBin := filepath.Join(buildDir, "statelocker")
+
+	out, err := exec.Command("go", "build", "-o", lockBin, source).CombinedOutput()
+	if err != nil {
+		cleanFunc()
+		return nil, fmt.Errorf("%s %s", err, out)
+	}
+
+	locker := exec.Command(lockBin, path)
+	pr, pw, err := os.Pipe()
+	if err != nil {
+		cleanFunc()
+		return nil, err
+	}
+	defer pr.Close()
+	defer pw.Close()
+	locker.Stderr = pw
+	locker.Stdout = pw
+
+	if err := locker.Start(); err != nil {
+		return nil, err
+	}
+	deferFunc := func() {
+		cleanFunc()
+		locker.Process.Signal(syscall.SIGTERM)
+		locker.Wait()
+	}
+
+	// wait for the process to lock
+	buf := make([]byte, 1024)
+	n, err := pr.Read(buf)
+	if err != nil {
+		return deferFunc, fmt.Errorf("read from statelocker returned: %s", err)
+	}
+
+	output := string(buf[:n])
+	if !strings.HasPrefix(output, "LOCKID") {
+		return deferFunc, fmt.Errorf("statelocker wrote: %s", string(buf[:n]))
+	}
+	return deferFunc, nil
 }

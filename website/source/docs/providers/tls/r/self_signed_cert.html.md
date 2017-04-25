@@ -1,7 +1,7 @@
 ---
 layout: "tls"
 page_title: "TLS: tls_self_signed_cert"
-sidebar_current: "docs-tls-resourse-self-signed-cert"
+sidebar_current: "docs-tls-resource-self-signed-cert"
 description: |-
   Creates a self-signed TLS certificate in PEM format.
 ---
@@ -27,23 +27,23 @@ Load Balancer*, *Elastic Beanstalk*, *CloudFront* or *OpsWorks*.
 
 ## Example Usage
 
-```
+```hcl
 resource "tls_self_signed_cert" "example" {
-    key_algorithm = "ECDSA"
-    private_key_pem = "${file(\"private_key.pem\")}"
+  key_algorithm   = "ECDSA"
+  private_key_pem = "${file(\"private_key.pem\")}"
 
-    subject {
-        common_name = "example.com"
-        organization = "ACME Examples, Inc"
-    }
+  subject {
+    common_name  = "example.com"
+    organization = "ACME Examples, Inc"
+  }
 
-    validity_period_hours = 12
+  validity_period_hours = 12
 
-    allowed_uses = [
-        "key_encipherment",
-        "digital_signature",
-        "server_auth",
-    ]
+  allowed_uses = [
+    "key_encipherment",
+    "digital_signature",
+    "server_auth",
+  ]
 }
 ```
 
@@ -99,6 +99,7 @@ both [Key Usage](https://tools.ietf.org/html/rfc5280#section-4.2.1.3) and
 * `data_encipherment`
 * `key_agreement`
 * `cert_signing`
+* `crl_signing`
 * `encipher_only`
 * `decipher_only`
 * `any_extended`

@@ -27,6 +27,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/opts"
@@ -43,6 +44,9 @@ var (
 
 	// ErrConnectionRefused is returned when the client cannot connect to the given endpoint.
 	ErrConnectionRefused = errors.New("cannot connect to Docker endpoint")
+
+	// ErrInactivityTimeout is returned when a streamable call has been inactive for some time.
+	ErrInactivityTimeout = errors.New("inactivity time exceeded timeout")
 
 	apiVersion112, _ = NewAPIVersion("1.12")
 
@@ -436,8 +440,11 @@ type streamOptions struct {
 	in             io.Reader
 	stdout         io.Writer
 	stderr         io.Writer
-	// timeout is the inital connection timeout
+	// timeout is the initial connection timeout
 	timeout time.Duration
+	// Timeout with no data is received, it's reset every time new data
+	// arrives
+	inactivityTimeout time.Duration
 }
 
 func (c *Client) stream(method, path string, streamOptions streamOptions) error {
@@ -470,11 +477,13 @@ func (c *Client) stream(method, path string, streamOptions streamOptions) error 
 	if streamOptions.stderr == nil {
 		streamOptions.stderr = ioutil.Discard
 	}
+	cancelRequest := cancelable(c.HTTPClient, req)
 	if protocol == "unix" {
 		dial, err := c.Dialer.Dial(protocol, address)
 		if err != nil {
 			return err
 		}
+		cancelRequest = func() { dial.Close() }
 		defer dial.Close()
 		breader := bufio.NewReader(dial)
 		err = req.Write(dial)
@@ -509,33 +518,24 @@ func (c *Client) stream(method, path string, streamOptions streamOptions) error 
 	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
 		return newError(resp)
 	}
-	if streamOptions.useJSONDecoder || resp.Header.Get("Content-Type") == "application/json" {
-		// if we want to get raw json stream, just copy it back to output
-		// without decoding it
-		if streamOptions.rawJSONStream {
-			_, err = io.Copy(streamOptions.stdout, resp.Body)
-			return err
+	var canceled uint32
+	if streamOptions.inactivityTimeout > 0 {
+		ch := handleInactivityTimeout(&streamOptions, cancelRequest, &canceled)
+		defer close(ch)
+	}
+	err = handleStreamResponse(resp, &streamOptions)
+	if err != nil {
+		if atomic.LoadUint32(&canceled) != 0 {
+			return ErrInactivityTimeout
 		}
-		dec := json.NewDecoder(resp.Body)
-		for {
-			var m jsonMessage
-			if err := dec.Decode(&m); err == io.EOF {
-				break
-			} else if err != nil {
-				return err
-			}
-			if m.Stream != "" {
-				fmt.Fprint(streamOptions.stdout, m.Stream)
-			} else if m.Progress != "" {
-				fmt.Fprintf(streamOptions.stdout, "%s %s\r", m.Status, m.Progress)
-			} else if m.Error != "" {
-				return errors.New(m.Error)
-			}
-			if m.Status != "" {
-				fmt.Fprintln(streamOptions.stdout, m.Status)
-			}
-		}
-	} else {
+		return err
+	}
+	return nil
+}
+
+func handleStreamResponse(resp *http.Response, streamOptions *streamOptions) error {
+	var err error
+	if !streamOptions.useJSONDecoder && resp.Header.Get("Content-Type") != "application/json" {
 		if streamOptions.setRawTerminal {
 			_, err = io.Copy(streamOptions.stdout, resp.Body)
 		} else {
@@ -543,7 +543,72 @@ func (c *Client) stream(method, path string, streamOptions streamOptions) error 
 		}
 		return err
 	}
+	// if we want to get raw json stream, just copy it back to output
+	// without decoding it
+	if streamOptions.rawJSONStream {
+		_, err = io.Copy(streamOptions.stdout, resp.Body)
+		return err
+	}
+	dec := json.NewDecoder(resp.Body)
+	for {
+		var m jsonMessage
+		if err := dec.Decode(&m); err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
+		if m.Stream != "" {
+			fmt.Fprint(streamOptions.stdout, m.Stream)
+		} else if m.Progress != "" {
+			fmt.Fprintf(streamOptions.stdout, "%s %s\r", m.Status, m.Progress)
+		} else if m.Error != "" {
+			return errors.New(m.Error)
+		}
+		if m.Status != "" {
+			fmt.Fprintln(streamOptions.stdout, m.Status)
+		}
+	}
 	return nil
+}
+
+type proxyWriter struct {
+	io.Writer
+	calls uint64
+}
+
+func (p *proxyWriter) callCount() uint64 {
+	return atomic.LoadUint64(&p.calls)
+}
+
+func (p *proxyWriter) Write(data []byte) (int, error) {
+	atomic.AddUint64(&p.calls, 1)
+	return p.Writer.Write(data)
+}
+
+func handleInactivityTimeout(options *streamOptions, cancelRequest func(), canceled *uint32) chan<- struct{} {
+	done := make(chan struct{})
+	proxyStdout := &proxyWriter{Writer: options.stdout}
+	proxyStderr := &proxyWriter{Writer: options.stderr}
+	options.stdout = proxyStdout
+	options.stderr = proxyStderr
+	go func() {
+		var lastCallCount uint64
+		for {
+			select {
+			case <-time.After(options.inactivityTimeout):
+			case <-done:
+				return
+			}
+			curCallCount := proxyStdout.callCount() + proxyStderr.callCount()
+			if curCallCount == lastCallCount {
+				atomic.AddUint32(canceled, 1)
+				cancelRequest()
+				return
+			}
+			lastCallCount = curCallCount
+		}
+	}()
+	return done
 }
 
 type hijackOptions struct {
