@@ -43,6 +43,7 @@ several valid keys, for a full reference, check out
 
 ## Attributes Reference
 
-`ids` is set to the list of EBS snapshot IDs.
+`ids` is set to the list of EBS snapshot IDs, sorted by creation time in
+descending order.
 
 [1]: http://docs.aws.amazon.com/cli/latest/reference/ec2/describe-snapshots.html
