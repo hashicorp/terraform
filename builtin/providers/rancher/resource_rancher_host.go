@@ -60,7 +60,7 @@ func resourceRancherHost() *schema.Resource {
 
 func resourceRancherHostCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO][rancher] Creating Host: %s", d.Id())
-	client, err := meta.(*Config).EnvironmentClient(d.Get("environment_id").(string))
+	client, err := getConfig(d, meta).EnvironmentClient(d.Get("environment_id").(string))
 	if err != nil {
 		return err
 	}
@@ -87,7 +87,7 @@ func resourceRancherHostCreate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceRancherHostRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Refreshing Host: %s", d.Id())
-	client, err := meta.(*Config).EnvironmentClient(d.Get("environment_id").(string))
+	client, err := getConfig(d, meta).EnvironmentClient(d.Get("environment_id").(string))
 	if err != nil {
 		return err
 	}
@@ -115,7 +115,7 @@ func resourceRancherHostRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceRancherHostUpdate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Updating Host: %s", d.Id())
-	client, err := meta.(*Config).EnvironmentClient(d.Get("environment_id").(string))
+	client, err := getConfig(d, meta).EnvironmentClient(d.Get("environment_id").(string))
 	if err != nil {
 		return err
 	}
@@ -150,7 +150,7 @@ func resourceRancherHostUpdate(d *schema.ResourceData, meta interface{}) error {
 func resourceRancherHostDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Deleting Host: %s", d.Id())
 	id := d.Id()
-	client, err := meta.(*Config).EnvironmentClient(d.Get("environment_id").(string))
+	client, err := getConfig(d, meta).EnvironmentClient(d.Get("environment_id").(string))
 	if err != nil {
 		return err
 	}
