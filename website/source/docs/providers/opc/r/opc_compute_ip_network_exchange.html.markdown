@@ -12,7 +12,7 @@ The ``opc_compute_ip_network_exchange`` resource creates and manages an IP netwo
 
 ## Example Usage
 
-```
+```hcl
 resource "opc_compute_ip_network_exchange" "default" {
   name = "NetworkExchange1"
 }
@@ -32,6 +32,6 @@ The following arguments are supported:
 
 IP Network Exchange's can be imported using the `resource name`, e.g.
 
-```
-terraform import opc_compute_ip_network_exchange.exchange1 example
+```shell
+$ terraform import opc_compute_ip_network_exchange.exchange1 example
 ```

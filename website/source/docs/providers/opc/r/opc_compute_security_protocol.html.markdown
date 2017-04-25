@@ -12,7 +12,7 @@ The ``opc_compute_security_protocol`` resource creates and manages a security pr
 
 ## Example Usage
 
-```
+```hcl
 resource "opc_compute_security_protocol" "default" {
   name        = "security-protocol-1"
   dst_ports   = ["2045-2050"]
@@ -60,6 +60,6 @@ In addition to the above, the following values are exported:
 
 ACL's can be imported using the `resource name`, e.g.
 
-```
-terraform import opc_compute_security_protocol.default example
+```shell
+$ terraform import opc_compute_security_protocol.default example
 ```

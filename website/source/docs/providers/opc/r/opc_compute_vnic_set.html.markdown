@@ -12,7 +12,7 @@ The ``opc_compute_vnic_set`` resource creates and manages a virtual NIC set in a
 
 ## Example Usage
 
-```
+```hcl
 resource "opc_compute_vnic_set" "test_set" {
   name         = "test_vnic_set"
   description  = "My vnic set"
@@ -40,6 +40,6 @@ The following arguments are supported:
 
 VNIC Set's can be imported using the `resource name`, e.g.
 
-```
-terraform import opc_compute_vnic_set.set1 example
+```shell
+$ terraform import opc_compute_vnic_set.set1 example
 ```
