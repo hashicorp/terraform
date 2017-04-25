@@ -56,6 +56,8 @@ func resourceHerokuSpaceCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(space.ID)
 	log.Printf("[INFO] Space ID: %s", d.Id())
 
+	// The type conversion here can be dropped when the vendored version of
+	// heroku-go is updated.
 	setSpaceAttributes(d, (*heroku.Space)(space))
 	return nil
 }
@@ -68,6 +70,8 @@ func resourceHerokuSpaceRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	// The type conversion here can be dropped when the vendored version of
+	// heroku-go is updated.
 	setSpaceAttributes(d, (*heroku.Space)(space))
 	return nil
 }
@@ -87,6 +91,8 @@ func resourceHerokuSpaceUpdate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	// The type conversion here can be dropped when the vendored version of
+	// heroku-go is updated.
 	setSpaceAttributes(d, (*heroku.Space)(space))
 	return nil
 }
