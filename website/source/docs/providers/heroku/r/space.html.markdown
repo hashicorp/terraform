@@ -13,14 +13,14 @@ Provides a Heroku Space resource for running apps in isolated, highly available,
 ## Example Usage
 
 ```hcl
-# Create a new Heroku space
+// Create a new Heroku space
 resource "heroku_space" "default" {
   name = "test-space"
   organization = "my-company"
   region = "virginia"
 }
 
-# Create a new Heroku app in test-space
+// Create a new Heroku app in test-space
 resource "heroku_app" "default" {
   name = "test-app"
   space = "${heroku_space.default.name}"
