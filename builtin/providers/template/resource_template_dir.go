@@ -87,11 +87,20 @@ func resourceTemplateDirCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	// Create the destination directory and any other intermediate directories
+	// leading to it.
+	if _, err := os.Stat(destinationDir); err != nil {
+		if err := os.MkdirAll(destinationDir, 0777); err != nil {
+			return err
+		}
+	}
+
 	// Recursively crawl the input files/directories and generate the output ones.
 	err := filepath.Walk(sourceDir, func(p string, f os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
+
 		if f.IsDir() {
 			return nil
 		}
