@@ -15,6 +15,12 @@
 			"revisionTime": "2017-01-18T16:13:56Z"
 		},
 		{
+			"checksumSHA1": "aABATU51PlDHfGeSe5cc9udwSXg=",
+			"path": "github.com/1and1/oneandone-cloudserver-sdk-go",
+			"revision": "5678f03fc801525df794f953aa82f5ad7555a2ef",
+			"revisionTime": "2016-08-11T22:04:02Z"
+		},
+		{
 			"checksumSHA1": "N92Zji40JkCHAnsCNHTP4iKPz88=",
 			"comment": "v2.1.1-beta-8-gca4d906",
 			"path": "github.com/Azure/azure-sdk-for-go/arm/cdn",
@@ -2017,10 +2023,10 @@
 			"revisionTime": "2017-02-17T16:27:05Z"
 		},
 		{
-			"checksumSHA1": "GBDE1KDl/7c5hlRPYRZ7+C0WQ0g=",
+			"checksumSHA1": "ErJHGU6AVPZM9yoY/xV11TwSjQs=",
 			"path": "github.com/hashicorp/go-retryablehttp",
-			"revision": "f4ed9b0fa01a2ac614afe7c897ed2e3d8208f3e8",
-			"revisionTime": "2016-08-10T17:22:55Z"
+			"revision": "6e85be8fee1dcaa02c0eaaac2df5a8fbecf94145",
+			"revisionTime": "2016-09-30T03:51:02Z"
 		},
 		{
 			"checksumSHA1": "A1PcINvF3UiwHRKn8UcgARgvGRs=",

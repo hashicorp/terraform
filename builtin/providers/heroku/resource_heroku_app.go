@@ -31,6 +31,7 @@ type application struct {
 	App          *herokuApplication // The heroku application
 	Client       *heroku.Service    // Client to interact with the heroku API
 	Vars         map[string]string  // The vars on the application
+	Buildpacks   []string           // The application's buildpack names or URLs
 	Organization bool               // is the application organization app
 }
 
@@ -75,6 +76,11 @@ func (a *application) Update() error {
 		}
 	}
 
+	a.Buildpacks, err = retrieveBuildpacks(a.Id, a.Client)
+	if err != nil {
+		errs = append(errs, err)
+	}
+
 	a.Vars, err = retrieveConfigVars(a.Id, a.Client)
 	if err != nil {
 		errs = append(errs, err)
@@ -117,6 +123,14 @@ func resourceHerokuApp() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
+			},
+
+			"buildpacks": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 
 			"config_vars": {
@@ -225,6 +239,10 @@ func resourceHerokuAppCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	if v, ok := d.GetOk("buildpacks"); ok {
+		err = updateBuildpacks(d.Id(), client, v.([]interface{}))
+	}
+
 	return resourceHerokuAppRead(d, meta)
 }
 
@@ -308,6 +326,9 @@ func resourceHerokuAppRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	// Only track buildpacks when set in the configuration.
+	_, buildpacksConfigured := d.GetOk("buildpacks")
+
 	organizationApp := isOrganizationApp(d)
 
 	// Only set the config_vars that we have set in the configuration.
@@ -332,6 +353,9 @@ func resourceHerokuAppRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("region", app.App.Region)
 	d.Set("git_url", app.App.GitURL)
 	d.Set("web_url", app.App.WebURL)
+	if buildpacksConfigured {
+		d.Set("buildpacks", app.Buildpacks)
+	}
 	d.Set("config_vars", configVarsValue)
 	d.Set("all_config_vars", app.Vars)
 	if organizationApp {
@@ -391,6 +415,13 @@ func resourceHerokuAppUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	if d.HasChange("buildpacks") {
+		err := updateBuildpacks(d.Id(), client, d.Get("buildpacks").([]interface{}))
+		if err != nil {
+			return err
+		}
+	}
+
 	return resourceHerokuAppRead(d, meta)
 }
 
@@ -417,6 +448,21 @@ func resourceHerokuAppRetrieve(id string, organization bool, client *heroku.Serv
 	}
 
 	return &app, nil
+}
+
+func retrieveBuildpacks(id string, client *heroku.Service) ([]string, error) {
+	results, err := client.BuildpackInstallationList(context.TODO(), id, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	buildpacks := []string{}
+	for _, installation := range results {
+		buildpacks = append(buildpacks, installation.Buildpack.Name)
+	}
+
+	return buildpacks, nil
 }
 
 func retrieveConfigVars(id string, client *heroku.Service) (map[string]string, error) {
@@ -463,6 +509,27 @@ func updateConfigVars(
 	log.Printf("[INFO] Updating config vars: *%#v", vars)
 	if _, err := client.ConfigVarUpdate(context.TODO(), id, vars); err != nil {
 		return fmt.Errorf("Error updating config vars: %s", err)
+	}
+
+	return nil
+}
+
+func updateBuildpacks(id string, client *heroku.Service, v []interface{}) error {
+	opts := heroku.BuildpackInstallationUpdateOpts{
+		Updates: []struct {
+			Buildpack string `json:"buildpack" url:"buildpack,key"`
+		}{}}
+
+	for _, buildpack := range v {
+		opts.Updates = append(opts.Updates, struct {
+			Buildpack string `json:"buildpack" url:"buildpack,key"`
+		}{
+			Buildpack: buildpack.(string),
+		})
+	}
+
+	if _, err := client.BuildpackInstallationUpdate(context.TODO(), id, opts); err != nil {
+		return fmt.Errorf("Error updating buildpacks: %s", err)
 	}
 
 	return nil

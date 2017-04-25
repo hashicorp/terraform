@@ -48,6 +48,8 @@ The following attributes are exported:
 * `availability_zone`- The AZ for the subnet.
 * `cidr_block` - The CIDR block for the subnet.
 * `vpc_id` - The VPC ID.
+* `ipv6_association_id` - The association ID for the IPv6 CIDR block.
+* `ipv6_cidr_block` - The IPv6 CIDR block.
 
 ## Import
 

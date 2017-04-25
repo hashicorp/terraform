@@ -22,6 +22,10 @@ resource "heroku_app" "default" {
   config_vars {
     FOOBAR = "baz"
   }
+
+  buildpacks = [
+    "heroku/go"
+  ]
 }
 ```
 
@@ -34,6 +38,8 @@ The following arguments are supported:
 * `region` - (Required) The region that the app should be deployed in.
 * `stack` - (Optional) The application stack is what platform to run the application
    in.
+* `buildpacks` - (Optional) Buildpack names or URLs for the application.
+     Buildpacks configured externally won't be altered if this is not present.
 * `config_vars` - (Optional) Configuration variables for the application.
      The config variables in this map are not the final set of configuration
      variables, but rather variables you want present. That is, other

@@ -24,9 +24,10 @@ func resourceAwsWafRule() *schema.Resource {
 				ForceNew: true,
 			},
 			"metric_name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateWafMetricName,
 			},
 			"predicates": &schema.Schema{
 				Type:     schema.TypeSet,
