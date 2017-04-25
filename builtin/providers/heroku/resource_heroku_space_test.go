@@ -15,6 +15,7 @@ import (
 func TestAccHerokuSpace_Basic(t *testing.T) {
 	var space heroku.SpaceInfoResult
 	spaceName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
+	spaceName2 := fmt.Sprintf("tftest-%s", acctest.RandString(10))
 	org := os.Getenv("HEROKU_ORGANIZATION")
 
 	resource.Test(t, resource.TestCase{
@@ -31,6 +32,14 @@ func TestAccHerokuSpace_Basic(t *testing.T) {
 				Config: testAccCheckHerokuSpaceConfig_basic(spaceName, org),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuSpaceExists("heroku_space.foobar", &space),
+					testAccCheckHerokuSpaceAttributes(&space, spaceName),
+				),
+			},
+			{
+				Config: testAccCheckHerokuSpaceConfig_basic(spaceName2, org),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckHerokuSpaceExists("heroku_space.foobar", &space),
+					testAccCheckHerokuSpaceAttributes(&space, spaceName2),
 				),
 			},
 		},
@@ -66,11 +75,21 @@ func testAccCheckHerokuSpaceExists(n string, space *heroku.SpaceInfoResult) reso
 			return err
 		}
 
-		if foundSpace.Name != rs.Primary.ID {
+		if foundSpace.ID != rs.Primary.ID {
 			return fmt.Errorf("Space not found")
 		}
 
 		*space = *foundSpace
+
+		return nil
+	}
+}
+
+func testAccCheckHerokuSpaceAttributes(space *heroku.SpaceInfoResult, spaceName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if space.Name != spaceName {
+			return fmt.Errorf("Bad name: %s", space.Name)
+		}
 
 		return nil
 	}
