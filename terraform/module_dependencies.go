@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform/plugin/discovery"
 )
 
-// moduleTreeDependencies returns the dependencies of the tree of modules
+// ModuleTreeDependencies returns the dependencies of the tree of modules
 // described by the given configuration tree and state.
 //
 // Both configuration and state are required because there can be resources
@@ -16,7 +16,7 @@ import (
 // This function will panic if any invalid version constraint strings are
 // present in the configuration. This is guaranteed not to happen for any
 // configuration that has passed a call to Config.Validate().
-func moduleTreeDependencies(root *module.Tree, state *State) *moduledeps.Module {
+func ModuleTreeDependencies(root *module.Tree, state *State) *moduledeps.Module {
 
 	// First we walk the configuration tree to build the overall structure
 	// and capture the explicit/implicit/inherited provider dependencies.
