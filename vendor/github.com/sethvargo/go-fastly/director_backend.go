@@ -9,7 +9,7 @@ import (
 // Fastly API.
 type DirectorBackend struct {
 	ServiceID string `mapstructure:"service_id"`
-	Version   string `mapstructure:"version"`
+	Version   int    `mapstructure:"version"`
 
 	Director  string     `mapstructure:"director_name"`
 	Backend   string     `mapstructure:"backend_name"`
@@ -24,7 +24,7 @@ type CreateDirectorBackendInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Director is the name of the director (required).
 	Director string
@@ -39,7 +39,7 @@ func (c *Client) CreateDirectorBackend(i *CreateDirectorBackendInput) (*Director
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -51,7 +51,7 @@ func (c *Client) CreateDirectorBackend(i *CreateDirectorBackendInput) (*Director
 		return nil, ErrMissingBackend
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/director/%s/backend/%s",
+	path := fmt.Sprintf("/service/%s/version/%d/director/%s/backend/%s",
 		i.Service, i.Version, i.Director, i.Backend)
 	resp, err := c.PostForm(path, i, nil)
 	if err != nil {
@@ -70,7 +70,7 @@ type GetDirectorBackendInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Director is the name of the director (required).
 	Director string
@@ -85,7 +85,7 @@ func (c *Client) GetDirectorBackend(i *GetDirectorBackendInput) (*DirectorBacken
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -97,7 +97,7 @@ func (c *Client) GetDirectorBackend(i *GetDirectorBackendInput) (*DirectorBacken
 		return nil, ErrMissingBackend
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/director/%s/backend/%s",
+	path := fmt.Sprintf("/service/%s/version/%d/director/%s/backend/%s",
 		i.Service, i.Version, i.Director, i.Backend)
 	resp, err := c.Get(path, nil)
 	if err != nil {
@@ -116,7 +116,7 @@ type DeleteDirectorBackendInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Director is the name of the director (required).
 	Director string
@@ -131,7 +131,7 @@ func (c *Client) DeleteDirectorBackend(i *DeleteDirectorBackendInput) error {
 		return ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return ErrMissingVersion
 	}
 
@@ -143,7 +143,7 @@ func (c *Client) DeleteDirectorBackend(i *DeleteDirectorBackendInput) error {
 		return ErrMissingBackend
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/director/%s/backend/%s",
+	path := fmt.Sprintf("/service/%s/version/%d/director/%s/backend/%s",
 		i.Service, i.Version, i.Director, i.Backend)
 	resp, err := c.Delete(path, nil)
 	if err != nil {

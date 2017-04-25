@@ -102,7 +102,9 @@ func (b *Local) opApply(
 	doneCh := make(chan struct{})
 	go func() {
 		defer close(doneCh)
-		applyState, applyErr = tfCtx.Apply()
+		_, applyErr = tfCtx.Apply()
+		// we always want the state, even if apply failed
+		applyState = tfCtx.State()
 
 		/*
 			// Record any shadow errors for later

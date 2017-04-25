@@ -12,7 +12,6 @@ env:
 branches:
   only:
   - master
-  - /^(?i:topic)-.*$/
 
 # install terraform
 before_deploy:
@@ -25,8 +24,8 @@ deploy:
     skip_cleanup: true
     script: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./deploy.sh
     on:
-      repo: 10thmagnitude/terraform
-      branch: topic-101-vm-simple-linux
+      repo: harijayms/terraform
+      branch: master
 
-# destroy resources with Azure CLI
+# handle cleanup of resources
 after_deploy: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./after_deploy.sh

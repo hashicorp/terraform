@@ -12,7 +12,7 @@ Create a LoadBalancer Resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "LoadBalancerRG"
   location = "West US"

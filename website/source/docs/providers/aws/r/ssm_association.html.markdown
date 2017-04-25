@@ -12,7 +12,7 @@ Assosciates an SSM Document to an instance.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_security_group" "tf_test_foo" {
   name        = "tf_test_foo"
   description = "foo"

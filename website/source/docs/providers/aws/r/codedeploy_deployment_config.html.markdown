@@ -12,7 +12,7 @@ Provides a CodeDeploy deployment config for an application
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_codedeploy_deployment_config" "foo" {
   deployment_config_name = "test-deployment-config"
 

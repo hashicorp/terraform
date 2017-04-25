@@ -36,6 +36,26 @@ func TestAccAWSDHCPOptions_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSDHCPOptions_deleteOptions(t *testing.T) {
+	var d ec2.DhcpOptions
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDHCPOptionsDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDHCPOptionsConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDHCPOptionsExists("aws_vpc_dhcp_options.foo", &d),
+					testAccCheckDHCPOptionsDelete("aws_vpc_dhcp_options.foo"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func testAccCheckDHCPOptionsDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
@@ -101,6 +121,26 @@ func testAccCheckDHCPOptionsExists(n string, d *ec2.DhcpOptions) resource.TestCh
 		*d = *resp.DhcpOptions[0]
 
 		return nil
+	}
+}
+
+func testAccCheckDHCPOptionsDelete(n string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+		_, err := conn.DeleteDhcpOptions(&ec2.DeleteDhcpOptionsInput{
+			DhcpOptionsId: aws.String(rs.Primary.ID),
+		})
+
+		return err
 	}
 }
 

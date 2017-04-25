@@ -1995,6 +1995,91 @@ resource "aws_security_group_rule" "allow_test_group_3" {
 }
 `
 
+const testAccAWSSecurityGroupConfig_importIPRangeAndSecurityGroupWithSameRules = `
+resource "aws_vpc" "foo" {
+  cidr_block = "10.1.0.0/16"
+
+  tags {
+    Name = "tf_sg_import_test"
+  }
+}
+
+resource "aws_security_group" "test_group_1" {
+  name        = "test group 1"
+  vpc_id      = "${aws_vpc.foo.id}"
+}
+
+resource "aws_security_group" "test_group_2" {
+  name        = "test group 2"
+  vpc_id      = "${aws_vpc.foo.id}"
+}
+
+resource "aws_security_group_rule" "allow_security_group" {
+  type      = "ingress"
+  from_port = 0
+  to_port   = 0
+  protocol  = "tcp"
+
+  source_security_group_id = "${aws_security_group.test_group_2.id}"
+  security_group_id = "${aws_security_group.test_group_1.id}"
+}
+
+resource "aws_security_group_rule" "allow_cidr_block" {
+  type      = "ingress"
+  from_port = 0
+  to_port   = 0
+  protocol  = "tcp"
+
+  cidr_blocks = ["10.0.0.0/32"]
+  security_group_id = "${aws_security_group.test_group_1.id}"
+}
+
+resource "aws_security_group_rule" "allow_ipv6_cidr_block" {
+  type      = "ingress"
+  from_port = 0
+  to_port   = 0
+  protocol  = "tcp"
+
+  ipv6_cidr_blocks = ["::/0"]
+  security_group_id = "${aws_security_group.test_group_1.id}"
+}
+`
+
+const testAccAWSSecurityGroupConfig_importIPRangesWithSameRules = `
+resource "aws_vpc" "foo" {
+  cidr_block = "10.1.0.0/16"
+
+  tags {
+    Name = "tf_sg_import_test"
+  }
+}
+
+resource "aws_security_group" "test_group_1" {
+  name        = "test group 1"
+  vpc_id      = "${aws_vpc.foo.id}"
+}
+
+resource "aws_security_group_rule" "allow_cidr_block" {
+  type      = "ingress"
+  from_port = 0
+  to_port   = 0
+  protocol  = "tcp"
+
+  cidr_blocks = ["10.0.0.0/32"]
+  security_group_id = "${aws_security_group.test_group_1.id}"
+}
+
+resource "aws_security_group_rule" "allow_ipv6_cidr_block" {
+  type      = "ingress"
+  from_port = 0
+  to_port   = 0
+  protocol  = "tcp"
+
+  ipv6_cidr_blocks = ["::/0"]
+  security_group_id = "${aws_security_group.test_group_1.id}"
+}
+`
+
 const testAccAWSSecurityGroupConfigPrefixListEgress = `
 resource "aws_vpc" "tf_sg_prefix_list_egress_test" {
     cidr_block = "10.0.0.0/16"

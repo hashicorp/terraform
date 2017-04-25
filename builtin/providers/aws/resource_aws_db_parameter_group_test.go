@@ -715,11 +715,21 @@ const testAccDBParameterGroupConfig_namePrefix = `
 resource "aws_db_parameter_group" "test" {
 	name_prefix = "tf-test-"
 	family = "mysql5.6"
+
+	parameter {
+		name = "sync_binlog"
+		value = 0
+	}
 }
 `
 
 const testAccDBParameterGroupConfig_generatedName = `
 resource "aws_db_parameter_group" "test" {
 	family = "mysql5.6"
+
+	parameter {
+		name = "sync_binlog"
+		value = 0
+	}
 }
 `

@@ -2,9 +2,12 @@ package logentries
 
 import (
 	"fmt"
+	"log"
+	"strconv"
+	"strings"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	logentries "github.com/logentries/le_goclient"
-	"strconv"
 )
 
 func resourceLogentriesLog() *schema.Resource {
@@ -16,25 +19,25 @@ func resourceLogentriesLog() *schema.Resource {
 		Delete: resourceLogentriesLogDelete,
 
 		Schema: map[string]*schema.Schema{
-			"token": &schema.Schema{
+			"token": {
 				Type:     schema.TypeString,
 				Computed: true,
 				ForceNew: true,
 			},
-			"logset_id": &schema.Schema{
+			"logset_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"filename": &schema.Schema{
+			"filename": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"retention_period": &schema.Schema{
+			"retention_period": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "ACCOUNT_DEFAULT",
@@ -47,7 +50,7 @@ func resourceLogentriesLog() *schema.Resource {
 					return
 				},
 			},
-			"source": &schema.Schema{
+			"source": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "token",
@@ -60,7 +63,7 @@ func resourceLogentriesLog() *schema.Resource {
 					return
 				},
 			},
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Default:  "",
 				Optional: true,
@@ -100,6 +103,11 @@ func resourceLogentriesLogRead(d *schema.ResourceData, meta interface{}) error {
 		Key:       d.Id(),
 	})
 	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			log.Printf("Logentries Log Not Found - Refreshing from State")
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 

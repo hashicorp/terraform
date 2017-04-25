@@ -1,12 +1,12 @@
 ---
 layout: "alicloud"
 page_title: "Alicloud: alicloud_security_group"
-sidebar_current: "docs-alicloud-resource-security-group."
+sidebar_current: "docs-alicloud-resource-security-group"
 description: |-
   Provides a Alicloud Security Group resource.
 ---
 
-# alicloud_security_group
+# alicloud\_security\_group
 
 Provides a security group resource.
 
@@ -16,16 +16,15 @@ Provides a security group resource.
 
 Basic Usage
 
-```hcl
+```
 resource "alicloud_security_group" "group" {
   name        = "terraform-test-group"
   description = "New security group"
 }
 ```
-
 Basic usage for vpc
 
-```hcl
+```
 resource "alicloud_security_group" "group" {
   name   = "new-group"
   vpc_id = "${alicloud_vpc.vpc.id}"

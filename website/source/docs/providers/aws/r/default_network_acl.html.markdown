@@ -39,7 +39,7 @@ The following config gives the Default Network ACL the same rules that AWS
 includes, but pulls the resource under management by Terraform. This means that
 any ACL rules added or changed will be detected as drift.
 
-```
+```hcl
 resource "aws_vpc" "mainvpc" {
   cidr_block = "10.1.0.0/16"
 }
@@ -72,7 +72,7 @@ resource "aws_default_network_acl" "default" {
 The following denies all Egress traffic by omitting any `egress` rules, while
 including the default `ingress` rule to allow all traffic.
 
-```
+```hcl
 resource "aws_vpc" "mainvpc" {
   cidr_block = "10.1.0.0/16"
 }
@@ -97,7 +97,7 @@ This config denies all traffic in the Default ACL. This can be useful if you
 want a locked down default to force all resources in the VPC to assign a
 non-default ACL.
 
-```
+```hcl
 resource "aws_vpc" "mainvpc" {
   cidr_block = "10.1.0.0/16"
 }

@@ -684,7 +684,7 @@ func TestLoadFile_badVariableTypes(t *testing.T) {
 	}
 
 	errorStr := err.Error()
-	if !strings.Contains(errorStr, "'bad_type' must be of type string") {
+	if !strings.Contains(errorStr, "'bad_type' type must be one of") {
 		t.Fatalf("bad: expected error has wrong text: %s", errorStr)
 	}
 }

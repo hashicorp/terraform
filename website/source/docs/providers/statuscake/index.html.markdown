@@ -23,7 +23,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 provider "statuscake" {
   username = "testuser"
   apikey   = "12345ddfnakn"

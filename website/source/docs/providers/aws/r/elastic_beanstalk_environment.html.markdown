@@ -17,8 +17,7 @@ Environments are often things such as `development`, `integration`, or
 
 ## Example Usage
 
-
-```
+```hcl
 resource "aws_elastic_beanstalk_application" "tftest" {
   name        = "tf-test-name"
   description = "tf-test-desc"
@@ -80,7 +79,7 @@ The `setting` and `all_settings` mappings support the following format:
 
 ### Example With Options
 
-```
+```hcl
 resource "aws_elastic_beanstalk_application" "tftest" {
   name        = "tf-test-name"
   description = "tf-test-desc"

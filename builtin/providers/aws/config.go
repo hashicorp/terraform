@@ -28,6 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/aws/aws-sdk-go/service/codedeploy"
 	"github.com/aws/aws-sdk-go/service/codepipeline"
+	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
@@ -97,6 +98,7 @@ type Config struct {
 	Insecure         bool
 
 	SkipCredsValidation     bool
+	SkipGetEC2Platforms     bool
 	SkipRegionValidation    bool
 	SkipRequestingAccountId bool
 	SkipMetadataApiCheck    bool
@@ -110,6 +112,7 @@ type AWSClient struct {
 	cloudwatchconn        *cloudwatch.CloudWatch
 	cloudwatchlogsconn    *cloudwatchlogs.CloudWatchLogs
 	cloudwatcheventsconn  *cloudwatchevents.CloudWatchEvents
+	cognitoconn           *cognitoidentity.CognitoIdentity
 	configconn            *configservice.ConfigService
 	dmsconn               *databasemigrationservice.DatabaseMigrationService
 	dsconn                *directoryservice.DirectoryService
@@ -280,13 +283,15 @@ func (c *Config) Client() (interface{}, error) {
 
 	client.ec2conn = ec2.New(awsEc2Sess)
 
-	supportedPlatforms, err := GetSupportedEC2Platforms(client.ec2conn)
-	if err != nil {
-		// We intentionally fail *silently* because there's a chance
-		// user just doesn't have ec2:DescribeAccountAttributes permissions
-		log.Printf("[WARN] Unable to get supported EC2 platforms: %s", err)
-	} else {
-		client.supportedplatforms = supportedPlatforms
+	if !c.SkipGetEC2Platforms {
+		supportedPlatforms, err := GetSupportedEC2Platforms(client.ec2conn)
+		if err != nil {
+			// We intentionally fail *silently* because there's a chance
+			// user just doesn't have ec2:DescribeAccountAttributes permissions
+			log.Printf("[WARN] Unable to get supported EC2 platforms: %s", err)
+		} else {
+			client.supportedplatforms = supportedPlatforms
+		}
 	}
 
 	client.acmconn = acm.New(sess)
@@ -303,6 +308,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.codebuildconn = codebuild.New(sess)
 	client.codedeployconn = codedeploy.New(sess)
 	client.configconn = configservice.New(sess)
+	client.cognitoconn = cognitoidentity.New(sess)
 	client.dmsconn = databasemigrationservice.New(sess)
 	client.codepipelineconn = codepipeline.New(sess)
 	client.dsconn = directoryservice.New(sess)

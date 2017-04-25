@@ -8,7 +8,7 @@ import (
 // Wordpress represents a wordpress response from the Fastly API.
 type Wordpress struct {
 	ServiceID string `mapstructure:"service_id"`
-	Version   string `mapstructure:"version"`
+	Version   int    `mapstructure:"version"`
 
 	Name    string `mapstructure:"name"`
 	Path    string `mapstructure:"path"`
@@ -30,7 +30,7 @@ type ListWordpressesInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 }
 
 // ListWordpresses returns the list of wordpresses for the configuration version.
@@ -39,11 +39,11 @@ func (c *Client) ListWordpresses(i *ListWordpressesInput) ([]*Wordpress, error) 
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/wordpress", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/wordpress", i.Service, i.Version)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ type CreateWordpressInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	Name    string `form:"name,omitempty"`
 	Path    string `form:"path,omitempty"`
@@ -75,11 +75,11 @@ func (c *Client) CreateWordpress(i *CreateWordpressInput) (*Wordpress, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/wordpress", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/wordpress", i.Service, i.Version)
 	resp, err := c.PostForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -97,7 +97,7 @@ type GetWordpressInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the wordpress to fetch.
 	Name string
@@ -109,7 +109,7 @@ func (c *Client) GetWordpress(i *GetWordpressInput) (*Wordpress, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -117,7 +117,7 @@ func (c *Client) GetWordpress(i *GetWordpressInput) (*Wordpress, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/wordpress/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/wordpress/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -135,7 +135,7 @@ type UpdateWordpressInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the wordpress to update.
 	Name string
@@ -151,7 +151,7 @@ func (c *Client) UpdateWordpress(i *UpdateWordpressInput) (*Wordpress, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -159,7 +159,7 @@ func (c *Client) UpdateWordpress(i *UpdateWordpressInput) (*Wordpress, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/wordpress/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/wordpress/%s", i.Service, i.Version, i.Name)
 	resp, err := c.PutForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -177,7 +177,7 @@ type DeleteWordpressInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the wordpress to delete (required).
 	Name string
@@ -189,7 +189,7 @@ func (c *Client) DeleteWordpress(i *DeleteWordpressInput) error {
 		return ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return ErrMissingVersion
 	}
 
@@ -197,7 +197,7 @@ func (c *Client) DeleteWordpress(i *DeleteWordpressInput) error {
 		return ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/wordpress/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/wordpress/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Delete(path, nil)
 	if err != nil {
 		return err

@@ -25,7 +25,7 @@ probably be SQS queues.
 
 You can directly supply a topic and ARN by hand in the `topic_arn` property along with the queue ARN:
 
-```
+```hcl
 resource "aws_sns_topic_subscription" "user_updates_sqs_target" {
   topic_arn = "arn:aws:sns:us-west-2:432981146916:user-updates-topic"
   protocol  = "sqs"
@@ -35,7 +35,7 @@ resource "aws_sns_topic_subscription" "user_updates_sqs_target" {
 
 Alternatively you can use the ARN properties of a managed SNS topic and SQS queue:
 
-```
+```hcl
 resource "aws_sns_topic" "user_updates" {
   name = "user-updates-topic"
 }
@@ -50,9 +50,10 @@ resource "aws_sns_topic_subscription" "user_updates_sqs_target" {
   endpoint  = "${aws_sqs_queue.user_updates_queue.arn}"
 }
 ```
+
 You can subscribe SNS topics to SQS queues in different Amazon accounts and regions:
 
-```
+```hcl
 /*
 #
 # Variables
@@ -272,7 +273,6 @@ Endpoints have different format requirements according to the protocol that is c
 * SQS endpoints come in the form of the SQS queue's ARN (not the URL of the queue) e.g: `arn:aws:sqs:us-west-2:432981146916:terraform-queue-too`
 * Application endpoints are also the endpoint ARN for the mobile app and device.
 
-
 ## Attributes Reference
 
 The following attributes are exported:
@@ -282,7 +282,6 @@ The following attributes are exported:
 * `protocol` - The protocol being used
 * `endpoint` - The full endpoint to send data to (SQS ARN, HTTP(S) URL, Application ARN, SMS number, etc.)
 * `arn` - The ARN of the subscription stored as a more user-friendly property
-
 
 ## Import
 
