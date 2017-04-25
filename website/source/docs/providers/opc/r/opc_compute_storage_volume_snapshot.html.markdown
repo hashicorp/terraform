@@ -12,7 +12,7 @@ The ``opc_compute_storage_volume_snapshot`` resource creates and manages a stora
 
 ## Example Usage
 
-```
+```hcl
 resource "opc_compute_storage_volume_snapshot" "test" {
   name        = "storageVolume1"
   description = "Description for the Storage Volume"
@@ -54,6 +54,6 @@ In addition to the attributes above, the following attributes are exported:
 
 Storage Volume Snapshot's can be imported using the `resource name`, e.g.
 
-```
-terraform import opc_compute_storage_volume_snapshot.volume1 example
+```shell
+$ terraform import opc_compute_storage_volume_snapshot.volume1 example
 ```

@@ -12,7 +12,7 @@ The ``opc_compute_security_rule`` resource creates and manages a security rule i
 
 ## Example Usage
 
-```
+```hcl
 resource "opc_compute_security_rule" "default" {
   name               = "SecurityRule1"
   flow_direction     = "ingress"
@@ -57,6 +57,6 @@ In addition to the above, the following attributes are exported:
 
 Security Rule's can be imported using the `resource name`, e.g.
 
-```
-terraform import opc_compute_security_rule.rule1 example
+```shell
+$ terraform import opc_compute_security_rule.rule1 example
 ```
