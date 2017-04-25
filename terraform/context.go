@@ -178,7 +178,7 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 	var providers map[string]ResourceProviderFactory
 	if opts.ProviderResolver != nil {
 		var err error
-		deps := moduleTreeDependencies(opts.Module, state)
+		deps := ModuleTreeDependencies(opts.Module, state)
 		reqd := deps.AllPluginRequirements()
 		providers, err = resourceProviderFactories(opts.ProviderResolver, reqd)
 		if err != nil {
