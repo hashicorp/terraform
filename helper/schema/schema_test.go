@@ -2777,6 +2777,52 @@ func TestSchemaMap_Diff(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			Name: "List with computed schema and ForceNew",
+			Schema: map[string]*Schema{
+				"config": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					ForceNew: true,
+					Elem: &Schema{
+						Type: TypeString,
+					},
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"config.#": "2",
+					"config.0": "a",
+					"config.1": "b",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"config": []interface{}{"${var.a}", "${var.b}"},
+			},
+
+			ConfigVariables: map[string]ast.Variable{
+				"var.a": interfaceToVariableSwallowError(
+					config.UnknownVariableValue),
+				"var.b": interfaceToVariableSwallowError(
+					config.UnknownVariableValue),
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"config.#": &terraform.ResourceAttrDiff{
+						Old:         "2",
+						New:         "",
+						RequiresNew: true,
+						NewComputed: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
 	}
 
 	for i, tc := range cases {
@@ -3279,16 +3325,46 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 			},
 			true,
 		},
+
+		"computed-only field with validateFunc": {
+			map[string]*Schema{
+				"string": &Schema{
+					Type:     TypeString,
+					Computed: true,
+					ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+						es = append(es, fmt.Errorf("this is not fine"))
+						return
+					},
+				},
+			},
+			true,
+		},
+
+		"computed-only field with diffSuppressFunc": {
+			map[string]*Schema{
+				"string": &Schema{
+					Type:     TypeString,
+					Computed: true,
+					DiffSuppressFunc: func(k, old, new string, d *ResourceData) bool {
+						// Always suppress any diff
+						return false
+					},
+				},
+			},
+			true,
+		},
 	}
 
 	for tn, tc := range cases {
-		err := schemaMap(tc.In).InternalValidate(nil)
-		if err != nil != tc.Err {
-			if tc.Err {
-				t.Fatalf("%q: Expected error did not occur:\n\n%#v", tn, tc.In)
+		t.Run(tn, func(t *testing.T) {
+			err := schemaMap(tc.In).InternalValidate(nil)
+			if err != nil != tc.Err {
+				if tc.Err {
+					t.Fatalf("%q: Expected error did not occur:\n\n%#v", tn, tc.In)
+				}
+				t.Fatalf("%q: Unexpected error occurred: %s\n\n%#v", tn, err, tc.In)
 			}
-			t.Fatalf("%q: Unexpected error occurred:\n\n%#v", tn, tc.In)
-		}
+		})
 	}
 
 }

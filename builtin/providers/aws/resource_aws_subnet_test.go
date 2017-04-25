@@ -45,27 +45,7 @@ func TestAccAWSSubnet_basic(t *testing.T) {
 }
 
 func TestAccAWSSubnet_ipv6(t *testing.T) {
-	var v ec2.Subnet
-
-	testCheck := func(*terraform.State) error {
-		if v.Ipv6CidrBlockAssociationSet == nil {
-			return fmt.Errorf("Expected IPV6 CIDR Block Association")
-		}
-
-		if *v.AssignIpv6AddressOnCreation != true {
-			return fmt.Errorf("bad AssignIpv6AddressOnCreation: %t", *v.AssignIpv6AddressOnCreation)
-		}
-
-		return nil
-	}
-
-	testCheckUpdated := func(*terraform.State) error {
-		if *v.AssignIpv6AddressOnCreation != false {
-			return fmt.Errorf("bad AssignIpv6AddressOnCreation: %t", *v.AssignIpv6AddressOnCreation)
-		}
-
-		return nil
-	}
+	var before, after ec2.Subnet
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
@@ -77,20 +57,63 @@ func TestAccAWSSubnet_ipv6(t *testing.T) {
 				Config: testAccSubnetConfigIpv6,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckSubnetExists(
-						"aws_subnet.foo", &v),
-					testCheck,
+						"aws_subnet.foo", &before),
+					testAccCheckAwsSubnetIpv6BeforeUpdate(t, &before),
 				),
 			},
 			{
-				Config: testAccSubnetConfigIpv6Updated,
+				Config: testAccSubnetConfigIpv6UpdateAssignIpv6OnCreation,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckSubnetExists(
-						"aws_subnet.foo", &v),
-					testCheckUpdated,
+						"aws_subnet.foo", &after),
+					testAccCheckAwsSubnetIpv6AfterUpdate(t, &after),
+				),
+			},
+			{
+				Config: testAccSubnetConfigIpv6UpdateIpv6Cidr,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckSubnetExists(
+						"aws_subnet.foo", &after),
+
+					testAccCheckAwsSubnetNotRecreated(t, &before, &after),
 				),
 			},
 		},
 	})
+}
+
+func testAccCheckAwsSubnetIpv6BeforeUpdate(t *testing.T, subnet *ec2.Subnet) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if subnet.Ipv6CidrBlockAssociationSet == nil {
+			return fmt.Errorf("Expected IPV6 CIDR Block Association")
+		}
+
+		if *subnet.AssignIpv6AddressOnCreation != true {
+			return fmt.Errorf("bad AssignIpv6AddressOnCreation: %t", *subnet.AssignIpv6AddressOnCreation)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckAwsSubnetIpv6AfterUpdate(t *testing.T, subnet *ec2.Subnet) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if *subnet.AssignIpv6AddressOnCreation != false {
+			return fmt.Errorf("bad AssignIpv6AddressOnCreation: %t", *subnet.AssignIpv6AddressOnCreation)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckAwsSubnetNotRecreated(t *testing.T,
+	before, after *ec2.Subnet) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if *before.SubnetId != *after.SubnetId {
+			t.Fatalf("Expected SubnetIDs not to change, but both got before: %s and after: %s", *before.SubnetId, *after.SubnetId)
+		}
+		return nil
+	}
 }
 
 func testAccCheckSubnetDestroy(s *terraform.State) error {
@@ -187,7 +210,25 @@ resource "aws_subnet" "foo" {
 }
 `
 
-const testAccSubnetConfigIpv6Updated = `
+const testAccSubnetConfigIpv6UpdateAssignIpv6OnCreation = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.10.0.0/16"
+	assign_generated_ipv6_cidr_block = true
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.10.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+	ipv6_cidr_block = "${cidrsubnet(aws_vpc.foo.ipv6_cidr_block, 8, 1)}"
+	map_public_ip_on_launch = true
+	assign_ipv6_address_on_creation = false
+	tags {
+		Name = "tf-subnet-acc-test"
+	}
+}
+`
+
+const testAccSubnetConfigIpv6UpdateIpv6Cidr = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.10.0.0/16"
 	assign_generated_ipv6_cidr_block = true

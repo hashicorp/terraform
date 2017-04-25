@@ -54,6 +54,16 @@ func resourceAwsApiGatewayDeployment() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"invoke_url": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"execution_arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -90,8 +100,9 @@ func resourceAwsApiGatewayDeploymentRead(d *schema.ResourceData, meta interface{
 	conn := meta.(*AWSClient).apigateway
 
 	log.Printf("[DEBUG] Reading API Gateway Deployment %s", d.Id())
+	restApiId := d.Get("rest_api_id").(string)
 	out, err := conn.GetDeployment(&apigateway.GetDeploymentInput{
-		RestApiId:    aws.String(d.Get("rest_api_id").(string)),
+		RestApiId:    aws.String(restApiId),
 		DeploymentId: aws.String(d.Id()),
 	})
 	if err != nil {
@@ -103,6 +114,18 @@ func resourceAwsApiGatewayDeploymentRead(d *schema.ResourceData, meta interface{
 	}
 	log.Printf("[DEBUG] Received API Gateway Deployment: %s", out)
 	d.Set("description", out.Description)
+
+	region := meta.(*AWSClient).region
+	stageName := d.Get("stage_name").(string)
+
+	d.Set("invoke_url", buildApiGatewayInvokeURL(restApiId, region, stageName))
+
+	accountId := meta.(*AWSClient).accountid
+	arn, err := buildApiGatewayExecutionARN(restApiId, region, accountId)
+	if err != nil {
+		return err
+	}
+	d.Set("execution_arn", arn+"/"+stageName)
 
 	if err := d.Set("created_date", out.CreatedDate.Format(time.RFC3339)); err != nil {
 		log.Printf("[DEBUG] Error setting created_date: %s", err)
