@@ -1,5 +1,9 @@
 ## 0.9.5 (Unreleased)
 
+IMPROVEMENTS:
+
+* provider/dnsimple: Add support for import for dnsimple_records [GH-9130]
+
 ## 0.9.4 (26th April 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
