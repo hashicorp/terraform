@@ -926,6 +926,58 @@ func TestAccAWSInstance_changeInstanceType(t *testing.T) {
 	})
 }
 
+func TestAccAWSInstance_primaryNetworkInterface(t *testing.T) {
+	var instance ec2.Instance
+	var ini ec2.NetworkInterface
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceConfigPrimaryNetworkInterface,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &instance),
+					testAccCheckAWSENIExists("aws_network_interface.bar", &ini),
+					resource.TestCheckResourceAttr("aws_instance.foo", "network_interface.#", "1"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSInstance_addSecondaryInterface(t *testing.T) {
+	var before ec2.Instance
+	var after ec2.Instance
+	var iniPrimary ec2.NetworkInterface
+	var iniSecondary ec2.NetworkInterface
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceConfigAddSecondaryNetworkInterfaceBefore,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &before),
+					testAccCheckAWSENIExists("aws_network_interface.primary", &iniPrimary),
+					resource.TestCheckResourceAttr("aws_instance.foo", "network_interface.#", "1"),
+				),
+			},
+			{
+				Config: testAccInstanceConfigAddSecondaryNetworkInterfaceAfter,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &after),
+					testAccCheckAWSENIExists("aws_network_interface.secondary", &iniSecondary),
+					resource.TestCheckResourceAttr("aws_instance.foo", "network_interface.#", "1"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckInstanceNotRecreated(t *testing.T,
 	before, after *ec2.Instance) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -1694,5 +1746,131 @@ resource "aws_instance" "foo" {
 	ami = "ami-22b9a343"
 	instance_type = "t2.micro"
 	subnet_id = "${aws_subnet.foo.id}"
+}
+`
+
+const testAccInstanceConfigPrimaryNetworkInterface = `
+resource "aws_vpc" "foo" {
+  cidr_block = "172.16.0.0/16"
+  tags {
+    Name = "tf-instance-test"
+  }
+}
+
+resource "aws_subnet" "foo" {
+  vpc_id = "${aws_vpc.foo.id}"
+  cidr_block = "172.16.10.0/24"
+  availability_zone = "us-west-2a"
+  tags {
+    Name = "tf-instance-test"
+  }
+}
+
+resource "aws_network_interface" "bar" {
+  subnet_id = "${aws_subnet.foo.id}"
+  private_ips = ["172.16.10.100"]
+  tags {
+    Name = "primary_network_interface"
+  }
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-22b9a343"
+	instance_type = "t2.micro"
+	network_interface {
+	 network_interface_id = "${aws_network_interface.bar.id}"
+	 device_index = 0
+  }
+}
+`
+
+const testAccInstanceConfigAddSecondaryNetworkInterfaceBefore = `
+resource "aws_vpc" "foo" {
+  cidr_block = "172.16.0.0/16"
+  tags {
+    Name = "tf-instance-test"
+  }
+}
+
+resource "aws_subnet" "foo" {
+  vpc_id = "${aws_vpc.foo.id}"
+  cidr_block = "172.16.10.0/24"
+  availability_zone = "us-west-2a"
+  tags {
+    Name = "tf-instance-test"
+  }
+}
+
+resource "aws_network_interface" "primary" {
+  subnet_id = "${aws_subnet.foo.id}"
+  private_ips = ["172.16.10.100"]
+  tags {
+    Name = "primary_network_interface"
+  }
+}
+
+resource "aws_network_interface" "secondary" {
+  subnet_id = "${aws_subnet.foo.id}"
+  private_ips = ["172.16.10.101"]
+  tags {
+    Name = "secondary_network_interface"
+  }
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-22b9a343"
+	instance_type = "t2.micro"
+	network_interface {
+	 network_interface_id = "${aws_network_interface.primary.id}"
+	 device_index = 0
+  }
+}
+`
+
+const testAccInstanceConfigAddSecondaryNetworkInterfaceAfter = `
+resource "aws_vpc" "foo" {
+  cidr_block = "172.16.0.0/16"
+  tags {
+    Name = "tf-instance-test"
+  }
+}
+
+resource "aws_subnet" "foo" {
+  vpc_id = "${aws_vpc.foo.id}"
+  cidr_block = "172.16.10.0/24"
+  availability_zone = "us-west-2a"
+  tags {
+    Name = "tf-instance-test"
+  }
+}
+
+resource "aws_network_interface" "primary" {
+  subnet_id = "${aws_subnet.foo.id}"
+  private_ips = ["172.16.10.100"]
+  tags {
+    Name = "primary_network_interface"
+  }
+}
+
+// Attach previously created network interface, observe no state diff on instance resource
+resource "aws_network_interface" "secondary" {
+  subnet_id = "${aws_subnet.foo.id}"
+  private_ips = ["172.16.10.101"]
+  tags {
+    Name = "secondary_network_interface"
+  }
+  attachment {
+    instance = "${aws_instance.foo.id}"
+    device_index = 1
+  }
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-22b9a343"
+	instance_type = "t2.micro"
+	network_interface {
+	 network_interface_id = "${aws_network_interface.primary.id}"
+	 device_index = 0
+  }
 }
 `
