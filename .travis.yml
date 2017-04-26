@@ -5,13 +5,16 @@ services:
 
 language: generic
 
+# on branches: ignore multiple commits that will queue build jobs, just run latest commit
+git:
+  depth: 1
+
 # establish environment variables
 env:
-  - TEST_DIR=examples/azure-vm-simple-linux
-
+  - TEST_DIR=examples/azure-2-vms-loadbalancer-lbrules
 branches:
   only:
-  - master
+  - /^(?i:topic)-.*$/
 
 # install terraform
 before_deploy:
@@ -25,7 +28,7 @@ deploy:
     script: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./deploy.sh
     on:
       repo: 10thmagnitude/terraform
-      branch: master
+      branch: topic-201-2-vms-loadbalancer-lbrules
 
-# destroy resources with Azure CLI
+# cleanup
 after_deploy: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./after_deploy.sh
