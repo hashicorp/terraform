@@ -14,7 +14,7 @@ GitLab organization.
 
 ## Example Usage
 
-```
+```hcl
 resource "gitlab_repository" "example" {
   name        = "example"
   description = "My awesome codebase"

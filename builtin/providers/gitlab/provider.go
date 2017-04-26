@@ -11,13 +11,13 @@ func Provider() terraform.ResourceProvider {
 	// The actual provider
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"token": &schema.Schema{
+			"token": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GITLAB_TOKEN", nil),
 				Description: descriptions["token"],
 			},
-			"base_url": &schema.Schema{
+			"base_url": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("GITLAB_BASE_URL", ""),
