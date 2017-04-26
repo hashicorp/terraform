@@ -30,9 +30,9 @@ resource "oneandone_private_network" "pn" {
 
 The following arguments are supported:
 
-* `datacenter` - (Optional)[string] Location of desired 1and1 datacenter ["DE", "GB", "US", "ES" ]
-* `description` - (Optional)[string] Description for the shared storage
-* `name` - (Required)[string] The name of the private network
-* `network_address` - (Optional)[string] Network address for the private network
-* `subnet_mask` - (Optional)[string] Subnet mask for the private network
-* `server_ids`  (Optional)[Collection] List of servers that are to be associated with the private network
+* `datacenter` - (Optional) Location of desired 1and1 datacenter. Can be `DE`, `GB`, `US` or `ES`.
+* `description` - (Optional) Description for the shared storage
+* `name` - (Required) The name of the private network
+* `network_address` - (Optional) Network address for the private network
+* `subnet_mask` - (Optional) Subnet mask for the private network
+* `server_ids`  (Optional) List of servers that are to be associated with the private network

@@ -120,58 +120,58 @@ resource "oneandone_monitoring_policy" "mp" {
 
 The following arguments are supported:
 
-* `name` - (Required) [string] The name of the VPN.
-* `description` - (Optional) [string] Description for the VPN
-* `email` - (Optional) [String]  Email address to which notifications monitoring system will send
-* `agent- (Required)[Boolean] Indicates which monitoring type will be used. True: To use this monitoring type, you must install an agent on the server.  False: Monitor a server without installing an agent. Note: If you do not install an agent, you cannot retrieve information such as free hard disk space or ongoing processes.
+* `name` - (Required) The name of the VPN.
+* `description` - (Optional) Description for the VPN
+* `email` - (Optional)  Email address to which notifications monitoring system will send
+* `agent- (Required) Indicates which monitoring type will be used. True: To use this monitoring type, you must install an agent on the server.  False: Monitor a server without installing an agent. Note: If you do not install an agent, you cannot retrieve information such as free hard disk space or ongoing processes.
 
 Monitoring Policy Thresholds (`thresholds`) support the following:
 
-* `cpu - (Required)[Type] CPU thresholds
-    * `warning - (Required)[Type] Warning alert
-            * `value - (Required)[Integer] Warning to be issued when the threshold is reached. from 1 to 100
-            * `alert - (Required)[Boolean] If set true warning will be issued.
-        * `critical - (Required)[Type] Critical alert
-            * `value - (Required)[Integer] Warning to be issued when the threshold is reached. from 1 to 100
-            * `alert - (Required)[Boolean] If set true warning will be issued.
-* `ram - (Required)[Type] RAM threshold
-    * `warning - (Required)[Type] Warning alert
-        * `value - (Required)[Integer] Warning to be issued when the threshold is reached. from 1 to 100
-        * `alert - (Required)[Boolean] If set true warning will be issued.
-    * `critical - (Required)[Type] Critical alert
-        * `value - (Required)[Integer] Warning to be issued when the threshold is reached. from 1 to 100
-        * `alert - (Required)[Boolean] If set true warning will be issued.
-* `disk - (Required)[Type] Hard Disk threshold
-    * `warning - (Required)[Type] Warning alert
-        * `value - (Required)[Integer] Warning to be issued when the threshold is reached. from 1 to 100
-        * `alert - (Required)[Boolean] If set true warning will be issued.
-    * `critical - (Required)[Type] Critical alert
-        * `value - (Required)[Integer] Warning to be issued when the threshold is reached. from 1 to 100
-        * `alert - (Required)[Boolean] If set true warning will be issued.
-* `transfer - (Required)[Type] Data transfer threshold
-    * `warning - (Required)[Type] Warning alert
-        * `value - (Required)[Integer] Warning to be issued when the threshold is reached. from 1 to 100
-        * `alert - (Required)[Boolean] If set true warning will be issued.
-    * `critical - (Required)[Type] Critical alert
-        * `value - (Required)[Integer] Warning to be issued when the threshold is reached. from 1 to 100
-        * `alert - (Required)[Boolean] If set true warning will be issued.
-* `internal_ping - (Required)[type] Ping threshold
-    * `warning - (Required)[Type] Warning alert
-        * `value - (Required)[Integer] Warning to be issued when the threshold is reached. from 1 to 100
-        * `alert - (Required)[Boolean] If set true warning will be issued.
-    * `critical - (Required)[Type] Critical alert
-        * `value - (Required)[Integer] Warning to be issued when the threshold is reached. from 1 to 100
-        * `alert - (Required)[Boolean] If set true warning will be issued.
+* `cpu - (Required) CPU thresholds
+    * `warning - (Required)Warning alert
+            * `value - (Required) Warning to be issued when the threshold is reached. from 1 to 100
+            * `alert - (Required) If set true warning will be issued.
+        * `critical - (Required) Critical alert
+            * `value - (Required) Warning to be issued when the threshold is reached. from 1 to 100
+            * `alert - (Required) If set true warning will be issued.
+* `ram - (Required) RAM threshold
+    * `warning - (Required) Warning alert
+        * `value - (Required) Warning to be issued when the threshold is reached. from 1 to 100
+        * `alert - (Required) If set true warning will be issued.
+    * `critical - (Required) Critical alert
+        * `value - (Required) Warning to be issued when the threshold is reached. from 1 to 100
+        * `alert - (Required) If set true warning will be issued.
+* `disk - (Required) Hard Disk threshold
+    * `warning - (Required) Warning alert
+        * `value - (Required) Warning to be issued when the threshold is reached. from 1 to 100
+        * `alert - (Required) If set true warning will be issued.
+    * `critical - (Required) Critical alert
+        * `value - (Required) Warning to be issued when the threshold is reached. from 1 to 100
+        * `alert - (Required) If set true warning will be issued.
+* `transfer - (Required) Data transfer threshold
+    * `warning - (Required) Warning alert
+        * `value - (Required) Warning to be issued when the threshold is reached. from 1 to 100
+        * `alert - (Required) If set true warning will be issued.
+    * `critical - (Required) Critical alert
+        * `value - (Required) Warning to be issued when the threshold is reached. from 1 to 100
+        * `alert - (Required) If set true warning will be issued.
+* `internal_ping - (Required) Ping threshold
+    * `warning - (Required) Warning alert
+        * `value - (Required) Warning to be issued when the threshold is reached. from 1 to 100
+        * `alert - (Required) If set true warning will be issued.
+    * `critical - (Required) Critical alert
+        * `value - (Required) Warning to be issued when the threshold is reached. from 1 to 100
+        * `alert - (Required) If set true warning will be issued.
 
 Monitoring Policy Ports (`ports`) support the following:
 
-* `email_notification - (Required)[boolean] If set true email will be sent.
-* `port - (Required)[Integer] Port number.
-* `protocol - (Required)[String] The protocol of the port ["TCP", "UDP", "TCP/UDP", "ICMP", "IPSEC"]
-* `alert_if - (Required)[String] Condition for the alert to be issued.
+* `email_notification - (Required) If set true email will be sent.
+* `port - (Required) Port number.
+* `protocol` - (Required) The protocol of the port. Allowed values are `TCP`, `UDP`, `TCP/UDP`, `ICMP` and `IPSEC`.
+* `alert_if - (Required) Condition for the alert to be issued.
 
 Monitoring Policy Ports (`processes`) support the following:
 
-* `email_notification - (Required)[Boolean] If set true email will be sent.
-* `process - (Required)[Integer] Process name.
-* `alert_if - (Required)[String] Condition for the alert to be issued.
+* `email_notification - (Required) If set true email will be sent.
+* `process - (Required) Process name.
+* `alert_if - (Required) Condition for the alert to be issued.
