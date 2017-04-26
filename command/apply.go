@@ -201,7 +201,7 @@ func (c *ApplyCommand) Run(args []string) int {
 		ctxCancel()
 
 		// Notify the user
-		c.Ui.Output("Interrupt received. Gracefully shutting down...")
+		c.Ui.Output(outputInterrupt)
 
 		// Still get the result, since there is still one
 		select {
@@ -418,3 +418,7 @@ func outputsAsString(state *terraform.State, modPath []string, schema []*config.
 
 	return strings.TrimSpace(outputBuf.String())
 }
+
+const outputInterrupt = `Interrupt received.
+Please wait for Terraform to exit or data loss may occur.
+Gracefully shutting down...`
