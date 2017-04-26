@@ -14,6 +14,10 @@ IMPROVEMENTS:
 * provider/dnsimple: Add support for import for dnsimple_records [GH-9130]
 * provider/triton: Add support for reading provider configuration from `TRITON_*` environment variables in addition to `SDC_*`[GH-14000]
 
+BUG FIXES:
+
+ * provider/aws: Update aws_ebs_volume when attached [GH-14005]
+
 ## 0.9.4 (26th April 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
