@@ -45,8 +45,7 @@ func resourceBigQueryTable() *schema.Resource {
 				ForceNew: true,
 			},
 
-			// Description: [Optional] The field description. The maximum length is
-			// 16K characters.
+			// Description: [Optional] A user-friendly description of this table.
 			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
