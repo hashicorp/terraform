@@ -82,7 +82,7 @@ func resourceOPCIPAddressAssociationRead(d *schema.ResourceData, meta interface{
 	name := d.Id()
 
 	getInput := compute.GetIPAddressAssociationInput{
-		name,
+		Name: name,
 	}
 	result, err := client.GetIPAddressAssociation(&getInput)
 	if err != nil {
