@@ -5,18 +5,25 @@ services:
 
 language: generic
 
+# on branches: ignore multiple commits that will queue build jobs, just run latest commit
+git:
+  depth: 1
+
 # establish environment variables
 env:
-  - TEST_DIR=examples/azure-vm-simple-linux
+  - TEST_DIR=examples/azure-vm-from-user-image
 
 branches:
   only:
-  - master
+  - /^(?i:topic)-.*$/
 
 # install terraform
 before_deploy:
   - export KEY=$(cat /dev/urandom | tr -cd 'a-z' | head -c 12)
   - export PASSWORD=$KEY$(cat /dev/urandom | tr -cd 'A-Z' | head -c 2)$(cat /dev/urandom | tr -cd '0-9' | head -c 2)
+  - export EXISTING_IMAGE_URI=https://permanentstor.blob.core.windows.net/permanent-vhds/permanent-osdisk1.vhd
+  - export EXISTING_STORAGE_ACCOUNT_NAME=permanentstor
+  - export EXISTING_RESOURCE_GROUP=permanent
 
 # terraform deploy script
 deploy:
@@ -25,7 +32,7 @@ deploy:
     script: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./deploy.sh
     on:
       repo: 10thmagnitude/terraform
-      branch: master
+      branch: topic-101-vm-from-user-image
 
-# destroy resources with Azure CLI
+# cleanup
 after_deploy: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./after_deploy.sh
