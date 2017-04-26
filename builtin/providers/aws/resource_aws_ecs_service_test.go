@@ -85,20 +85,21 @@ func TestParseTaskDefinition(t *testing.T) {
 }
 
 func TestAccAWSEcsServiceWithARN(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEcsServiceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSEcsService,
+				Config: testAccAWSEcsService(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.mongo"),
 				),
 			},
 
 			{
-				Config: testAccAWSEcsServiceModified,
+				Config: testAccAWSEcsServiceModified(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.mongo"),
 				),
@@ -181,13 +182,14 @@ func TestAccAWSEcsService_withIamRole(t *testing.T) {
 }
 
 func TestAccAWSEcsService_withDeploymentValues(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEcsServiceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSEcsServiceWithDeploymentValues,
+				Config: testAccAWSEcsServiceWithDeploymentValues(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.mongo"),
 					resource.TestCheckResourceAttr(
@@ -262,20 +264,21 @@ func TestAccAWSEcsService_withAlb(t *testing.T) {
 }
 
 func TestAccAWSEcsServiceWithPlacementStrategy(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEcsServiceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSEcsService,
+				Config: testAccAWSEcsService(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.mongo"),
 					resource.TestCheckResourceAttr("aws_ecs_service.mongo", "placement_strategy.#", "0"),
 				),
 			},
 			{
-				Config: testAccAWSEcsServiceWithPlacementStrategy,
+				Config: testAccAWSEcsServiceWithPlacementStrategy(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.mongo"),
 					resource.TestCheckResourceAttr("aws_ecs_service.mongo", "placement_strategy.#", "1"),
@@ -286,13 +289,14 @@ func TestAccAWSEcsServiceWithPlacementStrategy(t *testing.T) {
 }
 
 func TestAccAWSEcsServiceWithPlacementConstraints(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEcsServiceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSEcsServiceWithPlacementConstraint,
+				Config: testAccAWSEcsServiceWithPlacementConstraint(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.mongo"),
 					resource.TestCheckResourceAttr("aws_ecs_service.mongo", "placement_constraints.#", "1"),
@@ -303,13 +307,14 @@ func TestAccAWSEcsServiceWithPlacementConstraints(t *testing.T) {
 }
 
 func TestAccAWSEcsServiceWithPlacementConstraints_emptyExpression(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEcsServiceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSEcsServiceWithPlacementConstraintEmptyExpression,
+				Config: testAccAWSEcsServiceWithPlacementConstraintEmptyExpression(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.mongo"),
 					resource.TestCheckResourceAttr("aws_ecs_service.mongo", "placement_constraints.#", "1"),
@@ -366,9 +371,10 @@ func testAccCheckAWSEcsServiceExists(name string) resource.TestCheckFunc {
 	}
 }
 
-var testAccAWSEcsService = `
+func testAccAWSEcsService(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_ecs_cluster" "default" {
-	name = "terraformecstest1"
+	name = "terraformecstest%d"
 }
 
 resource "aws_ecs_task_definition" "mongo" {
@@ -387,16 +393,18 @@ DEFINITION
 }
 
 resource "aws_ecs_service" "mongo" {
-  name = "mongodb"
+  name = "mongodb-%d"
   cluster = "${aws_ecs_cluster.default.id}"
   task_definition = "${aws_ecs_task_definition.mongo.arn}"
   desired_count = 1
 }
-`
+`, rInt, rInt)
+}
 
-var testAccAWSEcsServiceModified = `
+func testAccAWSEcsServiceModified(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_ecs_cluster" "default" {
-	name = "terraformecstest1"
+	name = "terraformecstest%d"
 }
 
 resource "aws_ecs_task_definition" "mongo" {
@@ -415,16 +423,18 @@ DEFINITION
 }
 
 resource "aws_ecs_service" "mongo" {
-  name = "mongodb"
+  name = "mongodb-%d"
   cluster = "${aws_ecs_cluster.default.id}"
   task_definition = "${aws_ecs_task_definition.mongo.arn}"
   desired_count = 2
 }
-`
+`, rInt, rInt)
+}
 
-var testAccAWSEcsServiceWithPlacementStrategy = `
+func testAccAWSEcsServiceWithPlacementStrategy(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_ecs_cluster" "default" {
-	name = "terraformecstest1"
+	name = "terraformecstest%d"
 }
 
 resource "aws_ecs_task_definition" "mongo" {
@@ -443,7 +453,7 @@ DEFINITION
 }
 
 resource "aws_ecs_service" "mongo" {
-  name = "mongodb"
+  name = "mongodb-%d"
   cluster = "${aws_ecs_cluster.default.id}"
   task_definition = "${aws_ecs_task_definition.mongo.arn}"
   desired_count = 1
@@ -452,13 +462,48 @@ resource "aws_ecs_service" "mongo" {
 	field = "memory"
   }
 }
-`
-
-var testAccAWSEcsServiceWithPlacementConstraint = `
-resource "aws_ecs_cluster" "default" {
-	name = "terraformecstest21"
+`, rInt, rInt)
 }
 
+func testAccAWSEcsServiceWithPlacementConstraint(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_ecs_cluster" "default" {
+		name = "terraformecstest%d"
+	}
+
+	resource "aws_ecs_task_definition" "mongo" {
+	  family = "mongodb"
+	  container_definitions = <<DEFINITION
+	[
+	  {
+	    "cpu": 128,
+	    "essential": true,
+	    "image": "mongo:latest",
+	    "memory": 128,
+	    "name": "mongodb"
+	  }
+	]
+	DEFINITION
+	}
+
+	resource "aws_ecs_service" "mongo" {
+	  name = "mongodb-%d"
+	  cluster = "${aws_ecs_cluster.default.id}"
+	  task_definition = "${aws_ecs_task_definition.mongo.arn}"
+	  desired_count = 1
+	  placement_constraints {
+		type = "memberOf"
+		expression = "attribute:ecs.availability-zone in [us-west-2a, us-west-2b]"
+	  }
+	}
+	`, rInt, rInt)
+}
+
+func testAccAWSEcsServiceWithPlacementConstraintEmptyExpression(rInt int) string {
+	return fmt.Sprintf(`
+resource "aws_ecs_cluster" "default" {
+	name = "terraformecstest%d"
+}
 resource "aws_ecs_task_definition" "mongo" {
   family = "mongodb"
   container_definitions = <<DEFINITION
@@ -473,39 +518,8 @@ resource "aws_ecs_task_definition" "mongo" {
 ]
 DEFINITION
 }
-
 resource "aws_ecs_service" "mongo" {
-  name = "mongodb"
-  cluster = "${aws_ecs_cluster.default.id}"
-  task_definition = "${aws_ecs_task_definition.mongo.arn}"
-  desired_count = 1
-  placement_constraints {
-	type = "memberOf"
-	expression = "attribute:ecs.availability-zone in [us-west-2a, us-west-2b]"
-  }
-}
-`
-
-var testAccAWSEcsServiceWithPlacementConstraintEmptyExpression = `
-resource "aws_ecs_cluster" "default" {
-	name = "terraformecstest212"
-}
-resource "aws_ecs_task_definition" "mongo" {
-  family = "mongodb"
-  container_definitions = <<DEFINITION
-[
-  {
-    "cpu": 128,
-    "essential": true,
-    "image": "mongo:latest",
-    "memory": 128,
-    "name": "mongodb"
-  }
-]
-DEFINITION
-}
-resource "aws_ecs_service" "mongo" {
-  name = "mongodb"
+  name = "mongodb-%d"
   cluster = "${aws_ecs_cluster.default.id}"
   task_definition = "${aws_ecs_task_definition.mongo.arn}"
   desired_count = 1
@@ -513,7 +527,8 @@ resource "aws_ecs_service" "mongo" {
 	  type = "distinctInstance"
   }
 }
-`
+`, rInt, rInt)
+}
 
 var testAccAWSEcsService_withIamRole = `
 resource "aws_ecs_cluster" "main" {
@@ -609,9 +624,10 @@ resource "aws_ecs_service" "ghost" {
 }
 `
 
-var testAccAWSEcsServiceWithDeploymentValues = `
+func testAccAWSEcsServiceWithDeploymentValues(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_ecs_cluster" "default" {
-	name = "terraformecstest1"
+	name = "terraformecstest-%d"
 }
 
 resource "aws_ecs_task_definition" "mongo" {
@@ -630,12 +646,13 @@ DEFINITION
 }
 
 resource "aws_ecs_service" "mongo" {
-  name = "mongodb"
+  name = "mongodb-%d"
   cluster = "${aws_ecs_cluster.default.id}"
   task_definition = "${aws_ecs_task_definition.mongo.arn}"
   desired_count = 1
 }
-`
+`, rInt, rInt)
+}
 
 var tpl_testAccAWSEcsService_withLbChanges = `
 resource "aws_ecs_cluster" "main" {

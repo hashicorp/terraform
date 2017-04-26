@@ -16,6 +16,9 @@ func resourceDNSimpleRecord() *schema.Resource {
 		Read:   resourceDNSimpleRecordRead,
 		Update: resourceDNSimpleRecordUpdate,
 		Delete: resourceDNSimpleRecordDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceDNSimpleRecordImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"domain": {
@@ -183,4 +186,20 @@ func resourceDNSimpleRecordDelete(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	return nil
+}
+
+func resourceDNSimpleRecordImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	parts := strings.Split(d.Id(), "_")
+
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("Error Importing dnsimple_record. Please make sure the record ID is in the form DOMAIN_RECORDID (i.e. example.com_1234")
+	}
+
+	d.SetId(parts[1])
+	d.Set("domain", parts[0])
+
+	if err := resourceDNSimpleRecordRead(d, meta); err != nil {
+		return nil, err
+	}
+	return []*schema.ResourceData{d}, nil
 }

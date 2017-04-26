@@ -69,6 +69,63 @@ func setElbV2Tags(conn *elbv2.ELBV2, d *schema.ResourceData) error {
 	return nil
 }
 
+func setVolumeTags(conn *ec2.EC2, d *schema.ResourceData) error {
+	if d.HasChange("volume_tags") {
+		oraw, nraw := d.GetChange("volume_tags")
+		o := oraw.(map[string]interface{})
+		n := nraw.(map[string]interface{})
+		create, remove := diffTags(tagsFromMap(o), tagsFromMap(n))
+
+		volumeIds, err := getAwsInstanceVolumeIds(conn, d)
+		if err != nil {
+			return err
+		}
+
+		if len(remove) > 0 {
+			err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+				log.Printf("[DEBUG] Removing volume tags: %#v from %s", remove, d.Id())
+				_, err := conn.DeleteTags(&ec2.DeleteTagsInput{
+					Resources: volumeIds,
+					Tags:      remove,
+				})
+				if err != nil {
+					ec2err, ok := err.(awserr.Error)
+					if ok && strings.Contains(ec2err.Code(), ".NotFound") {
+						return resource.RetryableError(err) // retry
+					}
+					return resource.NonRetryableError(err)
+				}
+				return nil
+			})
+			if err != nil {
+				return err
+			}
+		}
+		if len(create) > 0 {
+			err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+				log.Printf("[DEBUG] Creating vol tags: %s for %s", create, d.Id())
+				_, err := conn.CreateTags(&ec2.CreateTagsInput{
+					Resources: volumeIds,
+					Tags:      create,
+				})
+				if err != nil {
+					ec2err, ok := err.(awserr.Error)
+					if ok && strings.Contains(ec2err.Code(), ".NotFound") {
+						return resource.RetryableError(err) // retry
+					}
+					return resource.NonRetryableError(err)
+				}
+				return nil
+			})
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 // setTags is a helper to set the tags for a resource. It expects the
 // tags field to be named "tags"
 func setTags(conn *ec2.EC2, d *schema.ResourceData) error {

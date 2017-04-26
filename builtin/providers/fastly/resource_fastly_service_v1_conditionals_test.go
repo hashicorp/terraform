@@ -57,7 +57,7 @@ func testAccCheckFastlyServiceV1ConditionalAttributes(service *gofastly.ServiceD
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Conditions for (%s), version (%s): %s", service.Name, service.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Conditions for (%s), version (%v): %s", service.Name, service.ActiveVersion.Number, err)
 		}
 
 		if len(conditionList) != len(conditions) {
