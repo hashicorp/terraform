@@ -42,20 +42,20 @@ resource "oneandone_loadbalancer" "lb" {
 
 The following arguments are supported:
 
-* `name` - (Required) [String] The name of the load balancer.
-* `description` - (Optional) [String] Description for the load balancer
-* `method` - (Required) [String] Balancing procedure ["ROUND_ROBIN", "LEAST_CONNECTIONS"]
-* `datacenter` - (Optional) [String]  Location of desired 1and1 datacenter ["DE", "GB", "US", "ES" ]
-* `persistence` - (Optional) [Boolean]  True/false defines whether persistence should be turned on/off
-* `persistence_time` - (Optional) [Integer] Persistance duration in seconds
-* `health_check_test` - (Optional) [String] ["TCP", "ICMP"]
-* `health_check_test_interval` - (Optional) [String]
-* `health_check_test_path` - (Optional) [String]
-* `health_check_test_parser` - (Optional) [String]
+* `name` - (Required) The name of the load balancer.
+* `description` - (Optional) Description for the load balancer
+* `method` - (Required)  Balancing procedure Can be `ROUND_ROBIN` or `LEAST_CONNECTIONS`
+* `datacenter` - (Optional) Location of desired 1and1 datacenter. Can be `DE`, `GB`, `US` or `ES`
+* `persistence` - (Optional) True/false defines whether persistence should be turned on/off
+* `persistence_time` - (Optional) Persistance duration in seconds
+* `health_check_test` - (Optional) Can be `TCP` or`ICMP`.
+* `health_check_test_interval` - (Optional) 
+* `health_check_test_path` - (Optional) 
+* `health_check_test_parser` - (Optional) 
 
 Loadbalancer rules (`rules`) support the following
 
-* `protocol` - (Required) [String]  The protocol for the rule ["TCP", "UDP", "TCP/UDP", "ICMP", "IPSEC"]
-* `port_balancer` - (Required) [String]
-* `port_server` - (Required) [String]
-* `source_ip` - (Required) [String]
+* `protocol` - (Required)  The protocol for the rule. Allowed values are `TCP`, `UDP`, `TCP/UDP`, `ICMP` and `IPSEC`.
+* `port_balancer` - (Required) 
+* `port_server` - (Required) 
+* `source_ip` - (Required) 
