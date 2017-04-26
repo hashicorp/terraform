@@ -109,7 +109,6 @@ func resourceArmStorageContainerCreate(d *schema.ResourceData, meta interface{})
 	log.Printf("[INFO] Creating container %q in storage account %q.", name, storageAccountName)
 	reference := blobClient.GetContainerReference(name)
 
-	//_, err = blobClient.CreateContainerIfNotExists(name, accessType)
 	_, err = reference.CreateIfNotExists()
 	if err != nil {
 		return fmt.Errorf("Error creating container %q in storage account %q: %s", name, storageAccountName, err)
