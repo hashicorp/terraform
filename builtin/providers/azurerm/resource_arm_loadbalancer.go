@@ -177,13 +177,12 @@ func resourecArmLoadBalancerRead(d *schema.ResourceData, meta interface{}) error
 	d.Set("resource_group_name", id.ResourceGroup)
 
 	if loadBalancer.LoadBalancerPropertiesFormat != nil && loadBalancer.LoadBalancerPropertiesFormat.FrontendIPConfigurations != nil {
-		ipconfig := flattenLoadBalancerFrontendIpConfiguration(loadBalancer.LoadBalancerPropertiesFormat.FrontendIPConfigurations)
-		d.Set("frontend_ip_configuration", ipconfig)
+		ipconfigs := loadBalancer.LoadBalancerPropertiesFormat.FrontendIPConfigurations
+		d.Set("frontend_ip_configuration", flattenLoadBalancerFrontendIpConfiguration(ipconfigs))
 
-		for _, config := range ipconfig {
-			cfg := config.(map[string]interface{})
-			if priv_ip, ok := cfg["private_ip_address"]; ok {
-				d.Set("private_ip_address", priv_ip)
+		for _, config := range *ipconfigs {
+			if config.FrontendIPConfigurationPropertiesFormat.PrivateIPAddress != nil {
+				d.Set("private_ip_address", config.FrontendIPConfigurationPropertiesFormat.PrivateIPAddress)
 
 				// set the private IP address at most once
 				break
