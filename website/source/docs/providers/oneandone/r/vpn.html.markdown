@@ -24,7 +24,7 @@ resource "oneandone_public_ip" "ip" {
 
 The following arguments are supported:
 
-* `datacenter` - (Optional)[string] Location of desired 1and1 datacenter ["DE", "GB", "US", "ES" ]
-* `ip_type` - (Required)[string] IPV4 or IPV6
-* `reverese_dns` - [Optional](string)
+* `datacenter` - (Optional) Location of desired 1and1 datacenter. Can be `DE`, `GB`, `US` or `ES`.
+* `ip_type` - (Required) IPV4 or IPV6
+* `reverese_dns` - (Optional)
 
