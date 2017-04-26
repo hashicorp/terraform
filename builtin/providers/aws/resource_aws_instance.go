@@ -129,8 +129,11 @@ func resourceAwsInstance() *schema.Resource {
 			},
 
 			"network_interface_id": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"vpc_security_group_ids", "subnet_id", "associate_public_ip_address"},
 			},
 
 			"public_ip": {
@@ -1338,7 +1341,13 @@ func buildAwsInstanceOpts(
 		}
 	}
 
-	if hasSubnet && associatePublicIPAddress {
+	if v, ok := d.GetOk("network_interface_id"); ok {
+		ni := &ec2.InstanceNetworkInterfaceSpecification{
+			DeviceIndex:        aws.Int64(int64(0)),
+			NetworkInterfaceId: aws.String(v.(string)),
+		}
+		opts.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{ni}
+	} else if hasSubnet && associatePublicIPAddress {
 		// If we have a non-default VPC / Subnet specified, we can flag
 		// AssociatePublicIpAddress to get a Public IP assigned. By default these are not provided.
 		// You cannot specify both SubnetId and the NetworkInterface.0.* parameters though, otherwise
