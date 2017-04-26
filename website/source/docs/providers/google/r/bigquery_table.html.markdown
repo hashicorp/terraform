@@ -80,6 +80,7 @@ The `time_partitioning` block supports:
 
 * `type` - (Required) The only type supported is DAY, which will generate
     one partition per day based on data loading time.
+
 ## Attributes Reference
 
 In addition to the arguments listed above, the following computed attributes are
