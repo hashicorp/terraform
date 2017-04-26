@@ -12,7 +12,7 @@ The ``opc_compute_acl`` resource creates and manages an ACL in an OPC identity d
 
 ## Example Usage
 
-```
+```hcl
 resource "opc_compute_acl" "default" {
   name        = "ACL1"
   description = "This is a description for an acl"
@@ -40,6 +40,6 @@ In addition to the above, the following values are exported:
 
 ACL's can be imported using the `resource name`, e.g.
 
-```
-terraform import opc_compute_acl.acl1 example
+```shell
+$ terraform import opc_compute_acl.acl1 example
 ```

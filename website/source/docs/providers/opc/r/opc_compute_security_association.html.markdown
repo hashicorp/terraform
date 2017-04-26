@@ -13,7 +13,7 @@ list in an OPC identity domain.
 
 ## Example Usage
 
-```
+```hcl
 resource "opc_compute_security_association" "test_instance_sec_list_1" {
   name    = "association1"
   vcable  = "${opc_compute_instance.test_instance.vcable}"
@@ -35,6 +35,6 @@ The following arguments are supported:
 
 Security Association's can be imported using the `resource name`, e.g.
 
-```
-terraform import opc_compute_security_association.association1 example
+```shell
+$ terraform import opc_compute_security_association.association1 example
 ```

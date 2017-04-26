@@ -36,7 +36,7 @@ func resourceRaid() *schema.Resource {
 }
 
 func resourceRaidRead(d *schema.ResourceData, meta interface{}) error {
-	id, err := buildRaid(d, meta.(*cache))
+	id, err := buildRaid(d, globalCache)
 	if err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func resourceRaidRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceRaidExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	id, err := buildRaid(d, meta.(*cache))
+	id, err := buildRaid(d, globalCache)
 	if err != nil {
 		return false, err
 	}

@@ -142,17 +142,20 @@ const (
 // DefaultResolver returns an Endpoint resolver that will be able
 // to resolve endpoints for: AWS Standard, AWS China, and AWS GovCloud (US).
 //
-// Casting the return value of this func to a EnumPartitions will
-// allow you to get a list of the partitions in the order the endpoints
-// will be resolved in.
+// Use DefaultPartitions() to get the list of the default partitions.
+func DefaultResolver() Resolver {
+	return defaultPartitions
+}
+
+// DefaultPartitions returns a list of the partitions the SDK is bundled
+// with. The available partitions are: AWS Standard, AWS China, and AWS GovCloud (US).
 //
-//    resolver := endpoints.DefaultResolver()
-//    partitions := resolver.(endpoints.EnumPartitions).Partitions()
+//    partitions := endpoints.DefaultPartitions
 //    for _, p := range partitions {
 //        // ... inspect partitions
 //    }
-func DefaultResolver() Resolver {
-	return defaultPartitions
+func DefaultPartitions() []Partition {
+	return defaultPartitions.Partitions()
 }
 
 var defaultPartitions = partitions{

@@ -169,6 +169,11 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 // verify it's being called.
 type testDelegateBackend struct {
 	*Local
+
+	// return a sentinel error on these calls
+	stateErr  bool
+	statesErr bool
+	deleteErr bool
 }
 
 var errTestDelegateState = errors.New("State called")
@@ -176,22 +181,39 @@ var errTestDelegateStates = errors.New("States called")
 var errTestDelegateDeleteState = errors.New("Delete called")
 
 func (b *testDelegateBackend) State(name string) (state.State, error) {
-	return nil, errTestDelegateState
+	if b.stateErr {
+		return nil, errTestDelegateState
+	}
+	s := &state.LocalState{
+		Path:    "terraform.tfstate",
+		PathOut: "terraform.tfstate",
+	}
+	return s, nil
 }
 
 func (b *testDelegateBackend) States() ([]string, error) {
-	return nil, errTestDelegateStates
+	if b.statesErr {
+		return nil, errTestDelegateStates
+	}
+	return []string{"default"}, nil
 }
 
 func (b *testDelegateBackend) DeleteState(name string) error {
-	return errTestDelegateDeleteState
+	if b.deleteErr {
+		return errTestDelegateDeleteState
+	}
+	return nil
 }
 
 // verify that the MultiState methods are dispatched to the correct Backend.
 func TestLocal_multiStateBackend(t *testing.T) {
 	// assign a separate backend where we can read the state
 	b := &Local{
-		Backend: &testDelegateBackend{},
+		Backend: &testDelegateBackend{
+			stateErr:  true,
+			statesErr: true,
+			deleteErr: true,
+		},
 	}
 
 	if _, err := b.State("test"); err != errTestDelegateState {
@@ -205,7 +227,43 @@ func TestLocal_multiStateBackend(t *testing.T) {
 	if err := b.DeleteState("test"); err != errTestDelegateDeleteState {
 		t.Fatal("expected errTestDelegateDeleteState, got:", err)
 	}
+}
 
+// verify that a remote state backend is always wrapped in a BackupState
+func TestLocal_remoteStateBackup(t *testing.T) {
+	// assign a separate backend to mock a remote state backend
+	b := &Local{
+		Backend: &testDelegateBackend{},
+	}
+
+	s, err := b.State("default")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bs, ok := s.(*state.BackupState)
+	if !ok {
+		t.Fatal("remote state is not backed up")
+	}
+
+	if bs.Path != DefaultStateFilename+DefaultBackupExtension {
+		t.Fatal("bad backup location:", bs.Path)
+	}
+
+	// do the same with a named state, which should use the local env directories
+	s, err = b.State("test")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bs, ok = s.(*state.BackupState)
+	if !ok {
+		t.Fatal("remote state is not backed up")
+	}
+
+	if bs.Path != filepath.Join(DefaultEnvDir, "test", DefaultStateFilename+DefaultBackupExtension) {
+		t.Fatal("bad backup location:", bs.Path)
+	}
 }
 
 // change into a tmp dir and return a deferable func to change back and cleanup

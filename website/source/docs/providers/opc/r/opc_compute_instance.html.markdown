@@ -18,7 +18,7 @@ on your instance resources as an extra safety measure.
 
 ## Example Usage
 
-```
+```hcl
 resource "opc_compute_ip_network" "test" {
   name                = "internal-network"
   description         = "Terraform Provisioned Internal Network"
@@ -193,6 +193,6 @@ For example, in the Web Console an instance's fully qualified name is:
 
 The instance can be imported as such:
 
-```
-terraform import opc_compute_instance.instance1 instance_name/instance_id
+```shell
+$ terraform import opc_compute_instance.instance1 instance_name/instance_id
 ```
