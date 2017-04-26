@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/xanzy/go-gitlab"
@@ -11,6 +12,7 @@ import (
 
 func TestAccGitlabProject_basic(t *testing.T) {
 	var project gitlab.Project
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -18,12 +20,12 @@ func TestAccGitlabProject_basic(t *testing.T) {
 		CheckDestroy: testAccCheckGitlabProjectDestroy,
 		Steps: []resource.TestStep{
 			// Create a project with all the features on
-			resource.TestStep{
-				Config: testAccGitlabProjectConfig,
+			{
+				Config: testAccGitlabProjectConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGitlabProjectExists("gitlab_project.foo", &project),
 					testAccCheckGitlabProjectAttributes(&project, &testAccGitlabProjectExpectedAttributes{
-						Name:                 "foo",
+						Name:                 fmt.Sprintf("foo-%d", rInt),
 						Description:          "Terraform acceptance tests",
 						IssuesEnabled:        true,
 						MergeRequestsEnabled: true,
@@ -34,24 +36,24 @@ func TestAccGitlabProject_basic(t *testing.T) {
 				),
 			},
 			// Update the project to turn the features off
-			resource.TestStep{
-				Config: testAccGitlabProjectUpdateConfig,
+			{
+				Config: testAccGitlabProjectUpdateConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGitlabProjectExists("gitlab_project.foo", &project),
 					testAccCheckGitlabProjectAttributes(&project, &testAccGitlabProjectExpectedAttributes{
-						Name:            "foo",
+						Name:            fmt.Sprintf("foo-%d", rInt),
 						Description:     "Terraform acceptance tests!",
 						VisibilityLevel: 20,
 					}),
 				),
 			},
-			// Update the project to turn the features on again
-			resource.TestStep{
-				Config: testAccGitlabProjectConfig,
+			//Update the project to turn the features on again
+			{
+				Config: testAccGitlabProjectConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGitlabProjectExists("gitlab_project.foo", &project),
 					testAccCheckGitlabProjectAttributes(&project, &testAccGitlabProjectExpectedAttributes{
-						Name:                 "foo",
+						Name:                 fmt.Sprintf("foo-%d", rInt),
 						Description:          "Terraform acceptance tests",
 						IssuesEnabled:        true,
 						MergeRequestsEnabled: true,
@@ -157,20 +159,23 @@ func testAccCheckGitlabProjectDestroy(s *terraform.State) error {
 	return nil
 }
 
-const testAccGitlabProjectConfig = `
+func testAccGitlabProjectConfig(rInt int) string {
+	return fmt.Sprintf(`
 resource "gitlab_project" "foo" {
-  name = "foo"
+  name = "foo-%d"
   description = "Terraform acceptance tests"
 
   # So that acceptance tests can be run in a gitlab organization
   # with no billing
   visibility_level = "public"
 }
-`
+	`, rInt)
+}
 
-const testAccGitlabProjectUpdateConfig = `
+func testAccGitlabProjectUpdateConfig(rInt int) string {
+	return fmt.Sprintf(`
 resource "gitlab_project" "foo" {
-  name = "foo"
+  name = "foo-%d"
   description = "Terraform acceptance tests!"
 
   # So that acceptance tests can be run in a gitlab organization
@@ -182,4 +187,5 @@ resource "gitlab_project" "foo" {
 	wiki_enabled = false
 	snippets_enabled = false
 }
-`
+	`, rInt)
+}

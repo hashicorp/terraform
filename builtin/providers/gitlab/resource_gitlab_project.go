@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 	gitlab "github.com/xanzy/go-gitlab"
 )
 
@@ -16,54 +17,54 @@ func resourceGitlabProject() *schema.Resource {
 		Delete: resourceGitlabProjectDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"default_branch": &schema.Schema{
+			"default_branch": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"issues_enabled": &schema.Schema{
+			"issues_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
-			"merge_requests_enabled": &schema.Schema{
+			"merge_requests_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
-			"wiki_enabled": &schema.Schema{
+			"wiki_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
-			"snippets_enabled": &schema.Schema{
+			"snippets_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
-			"visibility_level": &schema.Schema{
+			"visibility_level": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateValueFunc([]string{"private", "internal", "public"}),
+				ValidateFunc: validation.StringInSlice([]string{"private", "internal", "public"}, true),
 				Default:      "private",
 			},
 
-			"ssh_url_to_repo": &schema.Schema{
+			"ssh_url_to_repo": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"http_url_to_repo": &schema.Schema{
+			"http_url_to_repo": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"web_url": &schema.Schema{
+			"web_url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -71,7 +72,7 @@ func resourceGitlabProject() *schema.Resource {
 	}
 }
 
-func resourceGitlabProjectUpdateFromAPI(d *schema.ResourceData, project *gitlab.Project) {
+func resourceGitlabProjectSetToState(d *schema.ResourceData, project *gitlab.Project) {
 	d.Set("name", project.Name)
 	d.Set("description", project.Description)
 	d.Set("default_branch", project.DefaultBranch)
@@ -89,27 +90,15 @@ func resourceGitlabProjectUpdateFromAPI(d *schema.ResourceData, project *gitlab.
 func resourceGitlabProjectCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gitlab.Client)
 	options := &gitlab.CreateProjectOptions{
-		Name: gitlab.String(d.Get("name").(string)),
+		Name:                 gitlab.String(d.Get("name").(string)),
+		IssuesEnabled:        gitlab.Bool(d.Get("issues_enabled").(bool)),
+		MergeRequestsEnabled: gitlab.Bool(d.Get("merge_requests_enabled").(bool)),
+		WikiEnabled:          gitlab.Bool(d.Get("wiki_enabled").(bool)),
+		SnippetsEnabled:      gitlab.Bool(d.Get("snippets_enabled").(bool)),
 	}
 
 	if v, ok := d.GetOk("description"); ok {
 		options.Description = gitlab.String(v.(string))
-	}
-
-	if v, ok := d.GetOk("issues_enabled"); ok {
-		options.IssuesEnabled = gitlab.Bool(v.(bool))
-	}
-
-	if v, ok := d.GetOk("merge_requests_enabled"); ok {
-		options.MergeRequestsEnabled = gitlab.Bool(v.(bool))
-	}
-
-	if v, ok := d.GetOk("wiki_enabled"); ok {
-		options.WikiEnabled = gitlab.Bool(v.(bool))
-	}
-
-	if v, ok := d.GetOk("snippets_enabled"); ok {
-		options.SnippetsEnabled = gitlab.Bool(v.(bool))
 	}
 
 	if v, ok := d.GetOk("visibility_level"); ok {
@@ -125,9 +114,7 @@ func resourceGitlabProjectCreate(d *schema.ResourceData, meta interface{}) error
 
 	d.SetId(fmt.Sprintf("%d", project.ID))
 
-	resourceGitlabProjectUpdateFromAPI(d, project)
-
-	return nil
+	return resourceGitlabProjectRead(d, meta)
 }
 
 func resourceGitlabProjectRead(d *schema.ResourceData, meta interface{}) error {
@@ -145,7 +132,7 @@ func resourceGitlabProjectRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	resourceGitlabProjectUpdateFromAPI(d, project)
+	resourceGitlabProjectSetToState(d, project)
 	return nil
 }
 
@@ -188,19 +175,17 @@ func resourceGitlabProjectUpdate(d *schema.ResourceData, meta interface{}) error
 
 	log.Printf("[DEBUG] update gitlab project %s", d.Id())
 
-	project, _, err := client.Projects.EditProject(d.Id(), options)
+	_, _, err := client.Projects.EditProject(d.Id(), options)
 	if err != nil {
 		return err
 	}
 
-	resourceGitlabProjectUpdateFromAPI(d, project)
-
-	return nil
+	return resourceGitlabProjectRead(d, meta)
 }
 
 func resourceGitlabProjectDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gitlab.Client)
-	log.Printf("[DEBUG] update gitlab project %s", d.Id())
+	log.Printf("[DEBUG] Delete gitlab project %s", d.Id())
 
 	_, err := client.Projects.DeleteProject(d.Id())
 	return err
