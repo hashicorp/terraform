@@ -582,6 +582,74 @@ func TestAccAWSLambdaFunction_runtimeValidation_java8(t *testing.T) {
 	})
 }
 
+func TestAccAWSLambdaFunction_tags(t *testing.T) {
+	var conf lambda.GetFunctionOutput
+
+	rSt := acctest.RandString(5)
+	rName := fmt.Sprintf("tf_test_%s", rSt)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLambdaFunctionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSLambdaConfigBasic(rName, rSt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_test", rName, &conf),
+					testAccCheckAwsLambdaFunctionName(&conf, rName),
+					testAccCheckAwsLambdaFunctionArnHasSuffix(&conf, ":"+rName),
+					resource.TestCheckNoResourceAttr("aws_lambda_function.lambda_function_test", "tags"),
+				),
+			},
+			{
+				Config: testAccAWSLambdaConfigTags(rName, rSt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_test", rName, &conf),
+					testAccCheckAwsLambdaFunctionName(&conf, rName),
+					testAccCheckAwsLambdaFunctionArnHasSuffix(&conf, ":"+rName),
+					resource.TestCheckResourceAttr("aws_lambda_function.lambda_function_test", "tags.%", "2"),
+					resource.TestCheckResourceAttr("aws_lambda_function.lambda_function_test", "tags.Key1", "Value One"),
+					resource.TestCheckResourceAttr("aws_lambda_function.lambda_function_test", "tags.Description", "Very interesting"),
+				),
+			},
+			{
+				Config: testAccAWSLambdaConfigTagsModified(rName, rSt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_test", rName, &conf),
+					testAccCheckAwsLambdaFunctionName(&conf, rName),
+					testAccCheckAwsLambdaFunctionArnHasSuffix(&conf, ":"+rName),
+					resource.TestCheckResourceAttr("aws_lambda_function.lambda_function_test", "tags.%", "3"),
+					resource.TestCheckResourceAttr("aws_lambda_function.lambda_function_test", "tags.Key1", "Value One Changed"),
+					resource.TestCheckResourceAttr("aws_lambda_function.lambda_function_test", "tags.Key2", "Value Two"),
+					resource.TestCheckResourceAttr("aws_lambda_function.lambda_function_test", "tags.Key3", "Value Three"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSLambdaFunction_runtimeValidation_python36(t *testing.T) {
+	var conf lambda.GetFunctionOutput
+	rSt := acctest.RandString(5)
+	rName := fmt.Sprintf("tf_test_%s", rSt)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLambdaFunctionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSLambdaConfigPython36Runtime(rName, rSt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_test", rName, &conf),
+					resource.TestCheckResourceAttr("aws_lambda_function.lambda_function_test", "runtime", lambda.RuntimePython36),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckLambdaFunctionDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).lambdaconn
 
@@ -1102,6 +1170,51 @@ resource "aws_lambda_function" "lambda_function_test" {
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
     runtime = "java8"
+}
+`, rName)
+}
+
+func testAccAWSLambdaConfigTags(rName, rSt string) string {
+	return fmt.Sprintf(baseAccAWSLambdaConfig(rSt)+`
+resource "aws_lambda_function" "lambda_function_test" {
+    filename = "test-fixtures/lambdatest.zip"
+    function_name = "%s"
+    role = "${aws_iam_role.iam_for_lambda.arn}"
+    handler = "exports.example"
+    runtime = "nodejs4.3"
+    tags {
+		Key1 = "Value One"
+		Description = "Very interesting"
+    }
+}
+`, rName)
+}
+
+func testAccAWSLambdaConfigTagsModified(rName, rSt string) string {
+	return fmt.Sprintf(baseAccAWSLambdaConfig(rSt)+`
+resource "aws_lambda_function" "lambda_function_test" {
+    filename = "test-fixtures/lambdatest.zip"
+    function_name = "%s"
+    role = "${aws_iam_role.iam_for_lambda.arn}"
+    handler = "exports.example"
+    runtime = "nodejs4.3"
+    tags {
+		Key1 = "Value One Changed"
+		Key2 = "Value Two"
+		Key3 = "Value Three"
+    }
+}
+`, rName)
+}
+
+func testAccAWSLambdaConfigPython36Runtime(rName, rSt string) string {
+	return fmt.Sprintf(baseAccAWSLambdaConfig(rSt)+`
+resource "aws_lambda_function" "lambda_function_test" {
+    filename = "test-fixtures/lambdatest.zip"
+    function_name = "%s"
+    role = "${aws_iam_role.iam_for_lambda.arn}"
+    handler = "exports.example"
+    runtime = "python3.6"
 }
 `, rName)
 }
