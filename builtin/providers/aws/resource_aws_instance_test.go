@@ -678,6 +678,25 @@ func TestAccAWSInstance_volumeTags(t *testing.T) {
 	})
 }
 
+func TestAccAWSInstance_volumeTagsComputed(t *testing.T) {
+	var v ec2.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckInstanceConfigWithAttachedVolume,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+				),
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 func TestAccAWSInstance_instanceProfileChange(t *testing.T) {
 	var v ec2.Instance
 	rName := acctest.RandString(5)
@@ -1379,6 +1398,69 @@ resource "aws_instance" "foo" {
 	tags {
 		foo = "bar"
 	}
+}
+`
+
+const testAccCheckInstanceConfigWithAttachedVolume = `
+data "aws_ami" "debian_jessie_latest" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["debian-jessie-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  filter {
+    name   = "architecture"
+    values = ["x86_64"]
+  }
+
+  filter {
+    name   = "root-device-type"
+    values = ["ebs"]
+  }
+
+  owners = ["379101102735"] # Debian
+}
+
+resource "aws_instance" "foo" {
+  ami                         = "${data.aws_ami.debian_jessie_latest.id}"
+  associate_public_ip_address = true
+  count                       = 1
+  instance_type               = "t2.medium"
+
+  root_block_device {
+    volume_size           = "10"
+    volume_type           = "standard"
+    delete_on_termination = true
+  }
+
+  tags {
+    Name    = "test-terraform"
+  }
+}
+
+resource "aws_ebs_volume" "test" {
+  depends_on        = ["aws_instance.foo"]
+  availability_zone = "${aws_instance.foo.availability_zone}"
+  type       = "gp2"
+  size              = "10"
+
+  tags {
+    Name = "test-terraform"
+  }
+}
+
+resource "aws_volume_attachment" "test" {
+  depends_on  = ["aws_ebs_volume.test"]
+  device_name = "/dev/xvdg"
+  volume_id   = "${aws_ebs_volume.test.id}"
+  instance_id = "${aws_instance.foo.id}"
 }
 `
 
