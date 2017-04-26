@@ -47,7 +47,7 @@ The following arguments are supported:
 * `method` - (Required)  Balancing procedure Can be `ROUND_ROBIN` or `LEAST_CONNECTIONS`
 * `datacenter` - (Optional) Location of desired 1and1 datacenter. Can be `DE`, `GB`, `US` or `ES`
 * `persistence` - (Optional) True/false defines whether persistence should be turned on/off
-* `persistence_time` - (Optional) Persistance duration in seconds
+* `persistence_time` - (Optional) Persistence duration in seconds
 * `health_check_test` - (Optional) Can be `TCP` or`ICMP`.
 * `health_check_test_interval` - (Optional) 
 * `health_check_test_path` - (Optional) 

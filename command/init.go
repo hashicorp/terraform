@@ -194,7 +194,7 @@ Usage: terraform init [options] [SOURCE] [PATH]
 
   This is the first command that should be run for any new or existing
   Terraform configuration per machine. This sets up all the local data
-  necessary to run Terraform that is typically not comitted to version
+  necessary to run Terraform that is typically not committed to version
   control.
 
   This command is always safe to run multiple times. Though subsequent runs
