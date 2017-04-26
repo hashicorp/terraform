@@ -149,6 +149,12 @@ func init() {
 			}, nil
 		},
 
+		"providers": func() (cli.Command, error) {
+			return &command.ProvidersCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"push": func() (cli.Command, error) {
 			return &command.PushCommand{
 				Meta: meta,
