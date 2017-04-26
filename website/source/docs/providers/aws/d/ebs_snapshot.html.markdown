@@ -12,18 +12,20 @@ Use this data source to get information about an EBS Snapshot for use when provi
 
 ## Example Usage
 
-```
+```hcl
 data "aws_ebs_snapshot" "ebs_volume" {
-    most_recent = true
-    owners = ["self"]
-    filter {
-        name = "volume-size"
-        values = ["40"]
-    }
-    filter {
-        name = "tag:Name"
-        values = ["Example"]
-    }
+  most_recent = true
+  owners      = ["self"]
+
+  filter {
+    name   = "volume-size"
+    values = ["40"]
+  }
+
+  filter {
+    name   = "tag:Name"
+    values = ["Example"]
+  }
 }
 ```
 

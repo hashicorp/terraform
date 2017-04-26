@@ -12,14 +12,14 @@ Provides a Dyn DNS record resource.
 
 ## Example Usage
 
-```
+```hcl
 # Add a record to the domain
 resource "dyn_record" "foobar" {
-    zone = "${var.dyn_zone}"
-    name = "terraform"
-    value = "192.168.0.11"
-    type = "A"
-    ttl = 3600
+  zone  = "${var.dyn_zone}"
+  name  = "terraform"
+  value = "192.168.0.11"
+  type  = "A"
+  ttl   = 3600
 }
 ```
 

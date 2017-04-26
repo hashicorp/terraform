@@ -18,25 +18,26 @@ data source to update the `pull_triggers` field.
 
 ## Example Usage
 
-```
+```hcl
 # Find the latest Ubuntu precise image.
 resource "docker_image" "ubuntu" {
-    name = "ubuntu:precise"
+  name = "ubuntu:precise"
 }
 
 # Access it somewhere else with ${docker_image.ubuntu.latest}
+
 ```
 
 ### Dynamic image
 
-```
+```hcl
 data "docker_registry_image" "ubuntu" {
-    name = "ubuntu:precise"
+  name = "ubuntu:precise"
 }
 
 resource "docker_image" "ubuntu" {
-    name = "${data.docker_registry_image.ubuntu.name}"
-    pull_triggers = ["${data.docker_registry_image.ubuntu.sha256_digest}"]
+  name          = "${data.docker_registry_image.ubuntu.name}"
+  pull_triggers = ["${data.docker_registry_image.ubuntu.sha256_digest}"]
 }
 ```
 

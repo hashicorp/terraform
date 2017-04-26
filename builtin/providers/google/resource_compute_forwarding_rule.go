@@ -76,13 +76,21 @@ func resourceComputeForwardingRule() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					if old == new+"-"+new {
+						return true
+					}
+					return false
+				},
 			},
 
 			"ports": &schema.Schema{
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
+				ForceNew: true,
 				Set:      schema.HashString,
+				MaxItems: 5,
 			},
 
 			"project": &schema.Schema{

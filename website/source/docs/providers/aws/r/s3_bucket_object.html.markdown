@@ -14,18 +14,18 @@ Provides a S3 bucket object resource.
 
 ### Uploading a file to a bucket
 
-```
+```hcl
 resource "aws_s3_bucket_object" "object" {
-	bucket = "your_bucket_name"
-	key = "new_object_key"
-	source = "path/to/file"
-	etag = "${md5(file("path/to/file"))}"
+  bucket = "your_bucket_name"
+  key    = "new_object_key"
+  source = "path/to/file"
+  etag   = "${md5(file("path/to/file"))}"
 }
 ```
 
 ### Encrypting with KMS Key
 
-```
+```hcl
 resource "aws_kms_key" "examplekms" {
   description             = "KMS key 1"
   deletion_window_in_days = 7
@@ -46,7 +46,7 @@ resource "aws_s3_bucket_object" "examplebucket_object" {
 
 ### Server Side Encryption with S3 Default Master Key
 
-```
+```hcl
 resource "aws_s3_bucket" "examplebucket" {
   bucket = "examplebuckettftest"
   acl    = "private"
@@ -81,8 +81,9 @@ This attribute is not compatible with `kms_key_id`.
 * `server_side_encryption` - (Optional) Specifies server-side encryption of the object in S3. Valid values are "`AES256`" and "`aws:kms`".
 * `kms_key_id` - (Optional) Specifies the AWS KMS Key ARN to use for object encryption.
 This value is a fully qualified **ARN** of the KMS Key. If using `aws_kms_key`,
-use the exported `arn` attribute:  
+use the exported `arn` attribute:
       `kms_key_id = "${aws_kms_key.foo.arn}"`
+* `tags` - (Optional) A mapping of tags to assign to the object.
 
 Either `source` or `content` must be provided to specify the bucket content.
 These two arguments are mutually-exclusive.

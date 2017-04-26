@@ -61,6 +61,9 @@ func ClientFromPublishSettingsDataWithConfig(data []byte, subscriptionID string,
 				}
 
 				pems, err := pkcs12.ToPEM(pfxData, "")
+				if err != nil {
+					return client, err
+				}
 
 				cert := []byte{}
 				for _, b := range pems {

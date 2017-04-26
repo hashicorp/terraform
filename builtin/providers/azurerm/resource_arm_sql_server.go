@@ -45,8 +45,9 @@ func resourceArmSqlServer() *schema.Resource {
 			},
 
 			"administrator_login_password": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:      schema.TypeString,
+				Required:  true,
+				Sensitive: true,
 			},
 
 			"fully_qualified_domain_name": &schema.Schema{

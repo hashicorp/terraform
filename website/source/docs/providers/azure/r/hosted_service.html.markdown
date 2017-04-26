@@ -12,13 +12,13 @@ Creates a new hosted service on Azure with its own .cloudapp.net domain.
 
 ## Example Usage
 
-```
+```hcl
 resource "azure_hosted_service" "terraform-service" {
-    name = "terraform-service"
-    location = "North Europe"
-    ephemeral_contents = false
-    description = "Hosted service created by Terraform."
-    label = "tf-hs-01"
+  name               = "terraform-service"
+  location           = "North Europe"
+  ephemeral_contents = false
+  description        = "Hosted service created by Terraform."
+  label              = "tf-hs-01"
 }
 ```
 

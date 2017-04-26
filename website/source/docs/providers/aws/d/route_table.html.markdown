@@ -11,7 +11,7 @@ description: |-
 `aws_route_table` provides details about a specific Route Table.
 
 This resource can prove useful when a module accepts a Subnet id as
-an input variable and needs to, for example, add a route in 
+an input variable and needs to, for example, add a route in
 the Route Table.
 
 ## Example Usage
@@ -19,7 +19,7 @@ the Route Table.
 The following example shows how one might accept a Route Table id as a variable
 and use this data source to obtain the data necessary to create a route.
 
-```
+```hcl
 variable "subnet_id" {}
 
 data "aws_route_table" "selected" {
@@ -27,8 +27,8 @@ data "aws_route_table" "selected" {
 }
 
 resource "aws_route" "route" {
-  route_table_id = "${data.aws_route_table.selected.id}"
-  destination_cidr_block = "10.0.1.0/22"
+  route_table_id            = "${data.aws_route_table.selected.id}"
+  destination_cidr_block    = "10.0.1.0/22"
   vpc_peering_connection_id = "pcx-45ff3dc1"
 }
 ```
@@ -71,6 +71,8 @@ the selected Route Table.
 Each route supports the following:
 
 * `cidr_block` - The CIDR block of the route.
+* `ipv6_cidr_block` - The IPv6 CIDR block of the route.
+* `egress_only_gateway_id` - The ID of the Egress Only Internet Gateway.
 * `gateway_id` - The Internet Gateway ID.
 * `nat_gateway_id` - The NAT Gateway ID.
 * `instance_id` - The EC2 instance ID.

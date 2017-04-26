@@ -26,9 +26,6 @@ var configReferenceResource = &schema.Resource{
 
 func resourceConfig() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceIgnitionFileCreate,
-		Update: resourceIgnitionFileCreate,
-		Delete: resourceIgnitionFileDelete,
 		Exists: resourceIgnitionFileExists,
 		Read:   resourceIgnitionFileRead,
 		Schema: map[string]*schema.Schema{
@@ -93,8 +90,8 @@ func resourceConfig() *schema.Resource {
 	}
 }
 
-func resourceIgnitionFileCreate(d *schema.ResourceData, meta interface{}) error {
-	rendered, err := renderConfig(d, meta.(*cache))
+func resourceIgnitionFileRead(d *schema.ResourceData, meta interface{}) error {
+	rendered, err := renderConfig(d, globalCache)
 	if err != nil {
 		return err
 	}
@@ -107,22 +104,13 @@ func resourceIgnitionFileCreate(d *schema.ResourceData, meta interface{}) error 
 	return nil
 }
 
-func resourceIgnitionFileDelete(d *schema.ResourceData, meta interface{}) error {
-	d.SetId("")
-	return nil
-}
-
 func resourceIgnitionFileExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	rendered, err := renderConfig(d, meta.(*cache))
+	rendered, err := renderConfig(d, globalCache)
 	if err != nil {
 		return false, err
 	}
 
 	return hash(rendered) == d.Id(), nil
-}
-
-func resourceIgnitionFileRead(d *schema.ResourceData, meta interface{}) error {
-	return nil
 }
 
 func renderConfig(d *schema.ResourceData, c *cache) (string, error) {

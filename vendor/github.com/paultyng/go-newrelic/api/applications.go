@@ -53,6 +53,7 @@ func (c *Client) queryApplications(filters applicationsFilters) ([]Application, 
 	return applications, nil
 }
 
+// ListApplications lists all the applications you have access to.
 func (c *Client) ListApplications() ([]Application, error) {
 	return c.queryApplications(applicationsFilters{})
 }

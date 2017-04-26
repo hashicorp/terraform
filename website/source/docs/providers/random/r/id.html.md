@@ -26,7 +26,7 @@ exist concurrently.
 The following example shows how to generate a unique name for an AWS EC2
 instance that changes each time a new AMI id is selected.
 
-```
+```hcl
 resource "random_id" "server" {
   keepers = {
     # Generate a new id each time we switch to a new AMI id
@@ -59,6 +59,10 @@ The following arguments are supported:
 * `keepers` - (Optional) Arbitrary map of values that, when changed, will
   trigger a new id to be generated. See
   [the main provider documentation](../index.html) for more information.
+
+* `prefix` - (Optional) Arbitrary string to prefix the output value with. This
+  string is supplied as-is, meaning it is not guaranteed to be URL-safe or
+  base64 encoded.
 
 ## Attributes Reference
 

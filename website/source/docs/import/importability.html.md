@@ -26,7 +26,7 @@ To make a resource importable, please see the
 ### AWS
 
 * aws_api_gateway_account
-* aws_api_gateway_key
+* aws_api_gateway_api_key
 * aws_autoscaling_group
 * aws_cloudfront_distribution
 * aws_cloudfront_origin_access_identity
@@ -63,7 +63,9 @@ To make a resource importable, please see the
 * aws_iam_account_password_policy
 * aws_iam_group
 * aws_iam_instance_profile
+* aws_iam_role
 * aws_iam_saml_provider
+* aws_iam_server_certificate
 * aws_iam_user
 * aws_instance
 * aws_internet_gateway
@@ -90,6 +92,7 @@ To make a resource importable, please see the
 * aws_route_table
 * aws_s3_bucket
 * aws_security_group
+* aws_ses_domain_identity
 * aws_ses_receipt_filter
 * aws_ses_receipt_rule_set
 * aws_simpledb_domain
@@ -118,6 +121,11 @@ To make a resource importable, please see the
 * azurerm_storage_account
 * azurerm_virtual_network
 
+### Circonus
+
+* circonus_check
+* circonus_contact_group
+
 ### DigitalOcean
 
 * digitalocean_domain
@@ -133,9 +141,11 @@ To make a resource importable, please see the
 
 ### Google
 
+* google_compute_address
 * google_compute_autoscaler
 * google_compute_firewall
 * google_compute_forwarding_rule
+* google_compute_global_address
 * google_compute_http_health_check
 * google_compute_instance_group_manager
 * google_compute_instance_template
@@ -164,13 +174,38 @@ To make a resource importable, please see the
 * openstack_networking_secgroup_v2
 * openstack_networking_subnet_v2
 
+### OPC (Oracle Public Cloud)
+
+* opc_compute_acl
+* opc_compute_image_list
+* opc_compute_instance
+* opc_compute_ip_address_association
+* opc_compute_ip_address_prefix_set
+* opc_compute_ip_address_reservation
+* opc_compute_ip_association
+* opc_compute_ip_network_exchange
+* opc_compute_ip_network
+* opc_compute_ip_reservation
+* opc_compute_route
+* opc_compute_sec_rule
+* opc_compute_security_application
+* opc_compute_security_association
+* opc_compute_security_ip_list
+* opc_compute_security_list
+* opc_compute_security_protocol
+* opc_compute_security_rule
+* opc_compute_ssh_key
+* opc_compute_storage_volume_snapshot
+* opc_compute_storage_volume
+
 ### PostgreSQL
 
 * postgresql_database
 
 ### Triton
 
-* triton_firewall_rule
 * triton_key
-* triton_machine
+* triton_firewall_rule
 * triton_vlan
+* triton_fabric
+* triton_machine

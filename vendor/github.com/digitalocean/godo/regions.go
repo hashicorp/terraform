@@ -29,10 +29,6 @@ type regionsRoot struct {
 	Links   *Links `json:"links"`
 }
 
-type regionRoot struct {
-	Region Region
-}
-
 func (r Region) String() string {
 	return Stringify(r)
 }

@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-	"sort"
-	"time"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -249,21 +247,9 @@ func dataSourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 	return amiDescriptionAttributes(d, image)
 }
 
-type imageSort []*ec2.Image
-
-func (a imageSort) Len() int      { return len(a) }
-func (a imageSort) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-func (a imageSort) Less(i, j int) bool {
-	itime, _ := time.Parse(time.RFC3339, *a[i].CreationDate)
-	jtime, _ := time.Parse(time.RFC3339, *a[j].CreationDate)
-	return itime.Unix() < jtime.Unix()
-}
-
 // Returns the most recent AMI out of a slice of images.
 func mostRecentAmi(images []*ec2.Image) *ec2.Image {
-	sortedImages := images
-	sort.Sort(imageSort(sortedImages))
-	return sortedImages[len(sortedImages)-1]
+	return sortImages(images)[0]
 }
 
 // populate the numerous fields that the image description returns.

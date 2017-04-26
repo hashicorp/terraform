@@ -12,10 +12,10 @@ Manages a IP Blocks on ProfitBricks
 
 ## Example Usage
 
-```
+```hcl
 resource "profitbricks_ipblock" "example" {
   location = "${profitbricks_datacenter.example.location}"
-  size = 1
+  size     = 1
 }
 ```
 
@@ -24,4 +24,3 @@ resource "profitbricks_ipblock" "example" {
 * `location` - (Required)
 * `size` - (Required)
 
-	

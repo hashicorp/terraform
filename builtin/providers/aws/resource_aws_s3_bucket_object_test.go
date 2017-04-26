@@ -1,3 +1,4 @@
+// make testacc TEST=./builtin/providers/aws/ TESTARGS='-run=TestAccAWSS3BucketObject_'
 package aws
 
 import (
@@ -532,6 +533,27 @@ func testAccCheckAWSS3BucketObjectSSE(n, expectedSSE string) resource.TestCheckF
 	}
 }
 
+func TestAccAWSS3BucketObject_tags(t *testing.T) {
+	rInt := acctest.RandInt()
+	var obj s3.GetObjectOutput
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSS3BucketObjectDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				PreConfig: func() {},
+				Config:    testAccAWSS3BucketObjectConfig_withTags(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketObjectExists("aws_s3_bucket_object.object", &obj),
+					resource.TestCheckResourceAttr("aws_s3_bucket_object.object", "tags.%", "2"),
+				),
+			},
+		},
+	})
+}
+
 func testAccAWSS3BucketObjectConfigSource(randInt int, source string) string {
 	return fmt.Sprintf(`
 resource "aws_s3_bucket" "object_bucket" {
@@ -667,4 +689,22 @@ resource "aws_s3_bucket_object" "object" {
         storage_class = "%s"
 }
 `, randInt, storage_class)
+}
+
+func testAccAWSS3BucketObjectConfig_withTags(randInt int) string {
+	return fmt.Sprintf(`
+resource "aws_s3_bucket" "object_bucket_2" {
+	bucket = "tf-object-test-bucket-%d"
+}
+
+resource "aws_s3_bucket_object" "object" {
+	bucket = "${aws_s3_bucket.object_bucket_2.bucket}"
+	key = "test-key"
+	content = "stuff"
+	tags {
+		Key1 = "Value One"
+		Description = "Very interesting"
+	}
+}
+`, randInt)
 }

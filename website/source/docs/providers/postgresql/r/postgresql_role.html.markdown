@@ -21,21 +21,24 @@ specified PostgreSQL ROLE owns objects in multiple PostgreSQL databases in the
 same PostgreSQL Cluster, one PostgreSQL provider per database must be created
 and all but the final ``postgresql_role`` must specify a `skip_drop_role`.
 
+~> **Note:** All arguments including role name and password will be stored in the raw state as plain-text.
+[Read more about sensitive data in state](/docs/state/sensitive-data.html).
+
 ## Usage
 
-```
+```hcl
 resource "postgresql_role" "my_role" {
-  name = "my_role"
-  login = true
+  name     = "my_role"
+  login    = true
   password = "mypass"
 }
 
 resource "postgresql_role" "my_replication_role" {
-  name = "replication_role"
-  replication = true
-  login = true
+  name             = "replication_role"
+  replication      = true
+  login            = true
   connection_limit = 5
-  password = "md5c98cbfeb6a347a47eb8e96cfb4c4b890"
+  password         = "md5c98cbfeb6a347a47eb8e96cfb4c4b890"
 }
 ```
 
@@ -113,7 +116,7 @@ resource "postgresql_role" "my_replication_role" {
 `postgresql_role` supports importing resources.  Supposing the following
 Terraform:
 
-```
+```hcl
 provider "postgresql" {
   alias = "admindb"
 }

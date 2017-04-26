@@ -12,7 +12,7 @@ Manages a V2 loadbalancer resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_lb_loadbalancer_v2" "lb_1" {
   vip_subnet_id = "d9415786-5f1a-428b-b35f-2f1523e146d2"
 }
@@ -50,8 +50,10 @@ The following arguments are supported:
 * `flavor` - (Optional) The UUID of a flavor. Changing this creates a new
     loadbalancer.
 
-* `provider` - (Optional) The name of the provider. Changing this creates a new
-    loadbalancer.
+* `provider` - (Deprecated) Use `loadbalancer_provider` instead.
+
+* `loadbalancer_provider` - (Optional) The name of the provider. Changing this
+  creates a new loadbalancer.
 
 * `security_group_ids` - (Optional) A list of security group IDs to apply to the
     loadbalancer. The security groups must be specified by ID and not name (as
@@ -69,6 +71,6 @@ The following attributes are exported:
 * `vip_address` - See Argument Reference above.
 * `admin_state_up` - See Argument Reference above.
 * `flavor` - See Argument Reference above.
-* `provider` - See Argument Reference above.
+* `loadbalancer_provider` - See Argument Reference above.
 * `security_group_ids` - See Argument Reference above.
 * `vip_port_id` - The Port ID of the Load Balancer IP.

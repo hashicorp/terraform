@@ -8,12 +8,14 @@ package command
 import (
 	alicloudprovider "github.com/hashicorp/terraform/builtin/providers/alicloud"
 	archiveprovider "github.com/hashicorp/terraform/builtin/providers/archive"
+	arukasprovider "github.com/hashicorp/terraform/builtin/providers/arukas"
 	atlasprovider "github.com/hashicorp/terraform/builtin/providers/atlas"
 	awsprovider "github.com/hashicorp/terraform/builtin/providers/aws"
 	azureprovider "github.com/hashicorp/terraform/builtin/providers/azure"
 	azurermprovider "github.com/hashicorp/terraform/builtin/providers/azurerm"
 	bitbucketprovider "github.com/hashicorp/terraform/builtin/providers/bitbucket"
 	chefprovider "github.com/hashicorp/terraform/builtin/providers/chef"
+	circonusprovider "github.com/hashicorp/terraform/builtin/providers/circonus"
 	clcprovider "github.com/hashicorp/terraform/builtin/providers/clc"
 	cloudflareprovider "github.com/hashicorp/terraform/builtin/providers/cloudflare"
 	cloudstackprovider "github.com/hashicorp/terraform/builtin/providers/cloudstack"
@@ -22,6 +24,7 @@ import (
 	datadogprovider "github.com/hashicorp/terraform/builtin/providers/datadog"
 	digitaloceanprovider "github.com/hashicorp/terraform/builtin/providers/digitalocean"
 	dmeprovider "github.com/hashicorp/terraform/builtin/providers/dme"
+	dnsprovider "github.com/hashicorp/terraform/builtin/providers/dns"
 	dnsimpleprovider "github.com/hashicorp/terraform/builtin/providers/dnsimple"
 	dockerprovider "github.com/hashicorp/terraform/builtin/providers/docker"
 	dynprovider "github.com/hashicorp/terraform/builtin/providers/dyn"
@@ -34,7 +37,9 @@ import (
 	icinga2provider "github.com/hashicorp/terraform/builtin/providers/icinga2"
 	ignitionprovider "github.com/hashicorp/terraform/builtin/providers/ignition"
 	influxdbprovider "github.com/hashicorp/terraform/builtin/providers/influxdb"
+	kubernetesprovider "github.com/hashicorp/terraform/builtin/providers/kubernetes"
 	libratoprovider "github.com/hashicorp/terraform/builtin/providers/librato"
+	localprovider "github.com/hashicorp/terraform/builtin/providers/local"
 	logentriesprovider "github.com/hashicorp/terraform/builtin/providers/logentries"
 	mailgunprovider "github.com/hashicorp/terraform/builtin/providers/mailgun"
 	mysqlprovider "github.com/hashicorp/terraform/builtin/providers/mysql"
@@ -42,6 +47,8 @@ import (
 	nomadprovider "github.com/hashicorp/terraform/builtin/providers/nomad"
 	ns1provider "github.com/hashicorp/terraform/builtin/providers/ns1"
 	nullprovider "github.com/hashicorp/terraform/builtin/providers/null"
+	oneandoneprovider "github.com/hashicorp/terraform/builtin/providers/oneandone"
+	opcprovider "github.com/hashicorp/terraform/builtin/providers/opc"
 	openstackprovider "github.com/hashicorp/terraform/builtin/providers/openstack"
 	opsgenieprovider "github.com/hashicorp/terraform/builtin/providers/opsgenie"
 	packetprovider "github.com/hashicorp/terraform/builtin/providers/packet"
@@ -55,6 +62,7 @@ import (
 	rundeckprovider "github.com/hashicorp/terraform/builtin/providers/rundeck"
 	scalewayprovider "github.com/hashicorp/terraform/builtin/providers/scaleway"
 	softlayerprovider "github.com/hashicorp/terraform/builtin/providers/softlayer"
+	spotinstprovider "github.com/hashicorp/terraform/builtin/providers/spotinst"
 	statuscakeprovider "github.com/hashicorp/terraform/builtin/providers/statuscake"
 	templateprovider "github.com/hashicorp/terraform/builtin/providers/template"
 	terraformprovider "github.com/hashicorp/terraform/builtin/providers/terraform"
@@ -79,12 +87,14 @@ import (
 var InternalProviders = map[string]plugin.ProviderFunc{
 	"alicloud":     alicloudprovider.Provider,
 	"archive":      archiveprovider.Provider,
+	"arukas":       arukasprovider.Provider,
 	"atlas":        atlasprovider.Provider,
 	"aws":          awsprovider.Provider,
 	"azure":        azureprovider.Provider,
 	"azurerm":      azurermprovider.Provider,
 	"bitbucket":    bitbucketprovider.Provider,
 	"chef":         chefprovider.Provider,
+	"circonus":     circonusprovider.Provider,
 	"clc":          clcprovider.Provider,
 	"cloudflare":   cloudflareprovider.Provider,
 	"cloudstack":   cloudstackprovider.Provider,
@@ -93,6 +103,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"datadog":      datadogprovider.Provider,
 	"digitalocean": digitaloceanprovider.Provider,
 	"dme":          dmeprovider.Provider,
+	"dns":          dnsprovider.Provider,
 	"dnsimple":     dnsimpleprovider.Provider,
 	"docker":       dockerprovider.Provider,
 	"dyn":          dynprovider.Provider,
@@ -105,7 +116,9 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"icinga2":      icinga2provider.Provider,
 	"ignition":     ignitionprovider.Provider,
 	"influxdb":     influxdbprovider.Provider,
+	"kubernetes":   kubernetesprovider.Provider,
 	"librato":      libratoprovider.Provider,
+	"local":        localprovider.Provider,
 	"logentries":   logentriesprovider.Provider,
 	"mailgun":      mailgunprovider.Provider,
 	"mysql":        mysqlprovider.Provider,
@@ -113,6 +126,8 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"nomad":        nomadprovider.Provider,
 	"ns1":          ns1provider.Provider,
 	"null":         nullprovider.Provider,
+	"oneandone":    oneandoneprovider.Provider,
+	"opc":          opcprovider.Provider,
 	"openstack":    openstackprovider.Provider,
 	"opsgenie":     opsgenieprovider.Provider,
 	"packet":       packetprovider.Provider,
@@ -126,6 +141,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"rundeck":      rundeckprovider.Provider,
 	"scaleway":     scalewayprovider.Provider,
 	"softlayer":    softlayerprovider.Provider,
+	"spotinst":     spotinstprovider.Provider,
 	"statuscake":   statuscakeprovider.Provider,
 	"template":     templateprovider.Provider,
 	"terraform":    terraformprovider.Provider,

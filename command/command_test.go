@@ -449,6 +449,28 @@ func testInteractiveInput(t *testing.T, answers []string) func() {
 	}
 }
 
+// testInputMap configures tests so that the given answers are returned
+// for calls to Input when the right question is asked. The key is the
+// question "Id" that is used.
+func testInputMap(t *testing.T, answers map[string]string) func() {
+	// Disable test mode so input is called
+	test = false
+
+	// Setup reader/writers
+	defaultInputReader = bytes.NewBufferString("")
+	defaultInputWriter = new(bytes.Buffer)
+
+	// Setup answers
+	testInputResponse = nil
+	testInputResponseMap = answers
+
+	// Return the cleanup
+	return func() {
+		test = true
+		testInputResponseMap = nil
+	}
+}
+
 // testBackendState is used to make a test HTTP server to test a configured
 // backend. This returns the complete state that can be saved. Use
 // `testStateFileRemote` to write the returned state.
@@ -583,7 +605,8 @@ func testLockState(sourceDir, path string) (func(), error) {
 		return deferFunc, fmt.Errorf("read from statelocker returned: %s", err)
 	}
 
-	if string(buf[:n]) != "LOCKED" {
+	output := string(buf[:n])
+	if !strings.HasPrefix(output, "LOCKID") {
 		return deferFunc, fmt.Errorf("statelocker wrote: %s", string(buf[:n]))
 	}
 	return deferFunc, nil

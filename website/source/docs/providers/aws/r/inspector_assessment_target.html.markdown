@@ -12,16 +12,16 @@ Provides a Inspector assessment target
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_inspector_resource_group" "bar" {
   tags {
-    Name  = "foo"
-    Env = "bar"
+    Name = "foo"
+    Env  = "bar"
   }
 }
 
 resource "aws_inspector_assessment_target" "foo" {
-  name = "assessment target"
+  name               = "assessment target"
   resource_group_arn = "${aws_inspector_resource_group.bar.arn}"
 }
 ```

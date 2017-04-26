@@ -6,11 +6,22 @@ package backend
 
 import (
 	"context"
+	"errors"
+	"time"
 
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+// This is the name of the default, initial state that every backend
+// must have. This state cannot be deleted.
+const DefaultStateName = "default"
+
+// Error value to return when a named state operation isn't supported.
+// This must be returned rather than a custom error so that the Terraform
+// CLI can detect it and handle it appropriately.
+var ErrNamedStatesNotSupported = errors.New("named states not supported")
 
 // Backend is the minimal interface that must be implemented to enable Terraform.
 type Backend interface {
@@ -24,7 +35,21 @@ type Backend interface {
 	// not be loaded locally: the proper APIs should be called on state.State
 	// to load the state. If the state.State is a state.Locker, it's up to the
 	// caller to call Lock and Unlock as needed.
-	State() (state.State, error)
+	//
+	// If the named state doesn't exist it will be created. The "default" state
+	// is always assumed to exist.
+	State(name string) (state.State, error)
+
+	// DeleteState removes the named state if it exists. It is an error
+	// to delete the default state.
+	//
+	// DeleteState does not prevent deleting a state that is in use. It is the
+	// responsibility of the caller to hold a Lock on the state when calling
+	// this method.
+	DeleteState(name string) error
+
+	// States returns a list of configured named states.
+	States() ([]string, error)
 }
 
 // Enhanced implements additional behavior on top of a normal backend.
@@ -107,6 +132,12 @@ type Operation struct {
 	// If LockState is true, the Operation must Lock any
 	// state.Lockers for its duration, and Unlock when complete.
 	LockState bool
+
+	// The duration to retry obtaining a State lock.
+	StateLockTimeout time.Duration
+
+	// Environment is the named state that should be loaded from the Backend.
+	Environment string
 }
 
 // RunningOperation is the result of starting an operation.

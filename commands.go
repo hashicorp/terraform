@@ -42,8 +42,9 @@ func init() {
 	// that to match.
 
 	PlumbingCommands = map[string]struct{}{
-		"state": struct{}{}, // includes all subcommands
-		"debug": struct{}{}, // includes all subcommands
+		"state":        struct{}{}, // includes all subcommands
+		"debug":        struct{}{}, // includes all subcommands
+		"force-unlock": struct{}{},
 	}
 
 	Commands = map[string]cli.CommandFactory{
@@ -69,14 +70,38 @@ func init() {
 			}, nil
 		},
 
-		"fmt": func() (cli.Command, error) {
-			return &command.FmtCommand{
+		"env": func() (cli.Command, error) {
+			return &command.EnvCommand{
 				Meta: meta,
 			}, nil
 		},
 
-		"force-unlock": func() (cli.Command, error) {
-			return &command.UnlockCommand{
+		"env list": func() (cli.Command, error) {
+			return &command.EnvListCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"env select": func() (cli.Command, error) {
+			return &command.EnvSelectCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"env new": func() (cli.Command, error) {
+			return &command.EnvNewCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"env delete": func() (cli.Command, error) {
+			return &command.EnvDeleteCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"fmt": func() (cli.Command, error) {
+			return &command.FmtCommand{
 				Meta: meta,
 			}, nil
 		},
@@ -185,10 +210,14 @@ func init() {
 			}, nil
 		},
 
-		"state": func() (cli.Command, error) {
-			return &command.StateCommand{
+		"force-unlock": func() (cli.Command, error) {
+			return &command.UnlockCommand{
 				Meta: meta,
 			}, nil
+		},
+
+		"state": func() (cli.Command, error) {
+			return &command.StateCommand{}, nil
 		},
 
 		"state list": func() (cli.Command, error) {

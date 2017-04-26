@@ -12,16 +12,17 @@ Provides a CloudWatch Event Target resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_cloudwatch_event_target" "yada" {
   target_id = "Yada"
-  rule = "${aws_cloudwatch_event_rule.console.name}"
-  arn = "${aws_kinesis_stream.test_stream.arn}"
+  rule      = "${aws_cloudwatch_event_rule.console.name}"
+  arn       = "${aws_kinesis_stream.test_stream.arn}"
 }
 
 resource "aws_cloudwatch_event_rule" "console" {
-  name = "capture-ec2-scaling-events"
+  name        = "capture-ec2-scaling-events"
   description = "Capture all EC2 scaling events"
+
   event_pattern = <<PATTERN
 {
   "source": [
@@ -38,19 +39,20 @@ PATTERN
 }
 
 resource "aws_kinesis_stream" "test_stream" {
-    name = "terraform-kinesis-test"
-    shard_count = 1
+  name        = "terraform-kinesis-test"
+  shard_count = 1
 }
 ```
 
 ## Argument Reference
 
 -> **Note:** `input` and `input_path` are mutually exclusive options.
+
 -> **Note:** In order to be able to have your AWS Lambda function or
    SNS topic invoked by a CloudWatch Events rule, you must setup the right permissions
    using [`aws_lambda_permission`](https://www.terraform.io/docs/providers/aws/r/lambda_permission.html)
    or [`aws_sns_topic.policy`](https://www.terraform.io/docs/providers/aws/r/sns_topic.html#policy).
-   More info here [here](http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/EventsResourceBasedPermissions.html).
+   More info [here](http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/EventsResourceBasedPermissions.html).
 
 The following arguments are supported:
 

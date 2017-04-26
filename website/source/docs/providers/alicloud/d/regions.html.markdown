@@ -6,17 +6,16 @@ description: |-
     Provides a list of Availability Regions which can be used by an Alicloud account.
 ---
 
-# alicloud\_regions
+# alicloud_regions
 
 The Regions data source allows access to the list of Alicloud Regions.
 
 ## Example Usage
 
-```
+```hcl
 data "alicloud_regions" "current" {
-	current = true
+  current = true
 }
-
 ```
 
 ## Argument Reference

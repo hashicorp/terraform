@@ -37,7 +37,7 @@ func resourceServiceV1() *schema.Resource {
 			// creating and activating. It's used internally, but also exported for
 			// users to see.
 			"active_version": {
-				Type:     schema.TypeString,
+				Type:     schema.TypeInt,
 				Computed: true,
 			},
 
@@ -107,9 +107,83 @@ func resourceServiceV1() *schema.Resource {
 				Description: "The default hostname for the version",
 			},
 
+			"healthcheck": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						// required fields
+						"name": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "A name to refer to this healthcheck",
+						},
+						"host": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Which host to check",
+						},
+						"path": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The path to check",
+						},
+						// optional fields
+						"check_interval": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     5000,
+							Description: "How often to run the healthcheck in milliseconds",
+						},
+						"expected_response": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     200,
+							Description: "The status code expected from the host",
+						},
+						"http_version": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "1.1",
+							Description: "Whether to use version 1.0 or 1.1 HTTP",
+						},
+						"initial": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     2,
+							Description: "When loading a config, the initial number of probes to be seen as OK",
+						},
+						"method": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "HEAD",
+							Description: "Which HTTP method to use",
+						},
+						"threshold": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     3,
+							Description: "How many healthchecks must succeed to be considered healthy",
+						},
+						"timeout": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     500,
+							Description: "Timeout in milliseconds",
+						},
+						"window": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     5,
+							Description: "The number of most recent healthcheck queries to keep for this healthcheck",
+						},
+					},
+				},
+			},
+
 			"backend": {
 				Type:     schema.TypeSet,
-				Required: true,
+				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						// required fields
@@ -154,6 +228,12 @@ func resourceServiceV1() *schema.Resource {
 							Default:     15000,
 							Description: "How long to wait for the first bytes in milliseconds",
 						},
+						"healthcheck": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "The healthcheck name that should be used for this Backend",
+						},
 						"max_conn": {
 							Type:        schema.TypeInt,
 							Optional:    true,
@@ -170,7 +250,7 @@ func resourceServiceV1() *schema.Resource {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "",
-							Description: "Condition, which if met, will select this backend during a request.",
+							Description: "Name of a condition, which if met, will select this backend during a request.",
 						},
 						"shield": {
 							Type:        schema.TypeString,
@@ -189,6 +269,19 @@ func resourceServiceV1() *schema.Resource {
 							Optional:    true,
 							Default:     "",
 							Description: "SSL certificate hostname",
+							Deprecated:  "Use ssl_cert_hostname and ssl_sni_hostname instead.",
+						},
+						"ssl_cert_hostname": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "SSL certificate hostname for cert verification",
+						},
+						"ssl_sni_hostname": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "SSL certificate hostname for SNI verification",
 						},
 						// UseSSL is something we want to support in the future, but
 						// requires SSL setup we don't yet have
@@ -228,7 +321,7 @@ func resourceServiceV1() *schema.Resource {
 						"cache_condition": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: "Condition to check if this Cache Setting applies",
+							Description: "Name of a condition to check if this Cache Setting applies",
 						},
 						"action": {
 							Type:        schema.TypeString,
@@ -275,12 +368,11 @@ func resourceServiceV1() *schema.Resource {
 							Description: "File extensions to apply automatic gzip to. Do not include '.'",
 							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
-						// These fields represent Fastly options that Terraform does not
-						// currently support
 						"cache_condition": {
 							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "Optional name of a CacheCondition to apply.",
+							Optional:    true,
+							Default:     "",
+							Description: "Name of a condition controlling when this gzip configuration applies.",
 						},
 					},
 				},
@@ -369,96 +461,23 @@ func resourceServiceV1() *schema.Resource {
 							Default:     100,
 							Description: "Lower priorities execute first. (Default: 100.)",
 						},
-						// These fields represent Fastly options that Terraform does not
-						// currently support
 						"request_condition": {
 							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "Optional name of a RequestCondition to apply.",
+							Optional:    true,
+							Default:     "",
+							Description: "Optional name of a request condition to apply.",
 						},
 						"cache_condition": {
 							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "Optional name of a CacheCondition to apply.",
+							Optional:    true,
+							Default:     "",
+							Description: "Optional name of a cache condition to apply.",
 						},
 						"response_condition": {
 							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "Optional name of a ResponseCondition to apply.",
-						},
-					},
-				},
-			},
-
-			"healthcheck": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						// required fields
-						"name": {
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "A name to refer to this healthcheck",
-						},
-						"host": {
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "Which host to check",
-						},
-						"path": {
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "The path to check",
-						},
-						// optional fields
-						"check_interval": {
-							Type:        schema.TypeInt,
 							Optional:    true,
-							Default:     5000,
-							Description: "How often to run the healthcheck in milliseconds",
-						},
-						"expected_response": {
-							Type:        schema.TypeInt,
-							Optional:    true,
-							Default:     200,
-							Description: "The status code expected from the host",
-						},
-						"http_version": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Default:     "1.1",
-							Description: "Whether to use version 1.0 or 1.1 HTTP",
-						},
-						"initial": {
-							Type:        schema.TypeInt,
-							Optional:    true,
-							Default:     2,
-							Description: "When loading a config, the initial number of probes to be seen as OK",
-						},
-						"method": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Default:     "HEAD",
-							Description: "Which HTTP method to use",
-						},
-						"threshold": {
-							Type:        schema.TypeInt,
-							Optional:    true,
-							Default:     3,
-							Description: "How many healthchecks must succeed to be considered healthy",
-						},
-						"timeout": {
-							Type:        schema.TypeInt,
-							Optional:    true,
-							Default:     500,
-							Description: "Timeout in milliseconds",
-						},
-						"window": {
-							Type:        schema.TypeInt,
-							Optional:    true,
-							Default:     5,
-							Description: "The number of most recent healthcheck queries to keep for this healthcheck",
+							Default:     "",
+							Description: "Optional name of a response condition to apply.",
 						},
 					},
 				},
@@ -526,13 +545,19 @@ func resourceServiceV1() *schema.Resource {
 							Optional:     true,
 							Default:      1,
 							Description:  "The version of the custom logging format used for the configured endpoint. Can be either 1 or 2. (Default: 1)",
-							ValidateFunc: validateS3FormatVersion,
+							ValidateFunc: validateLoggingFormatVersion,
 						},
 						"timestamp_format": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "%Y-%m-%dT%H:%M:%S.000",
 							Description: "specified timestamp formatting (default `%Y-%m-%dT%H:%M:%S.000`)",
+						},
+						"response_condition": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "Name of a condition to apply this logging.",
 						},
 					},
 				},
@@ -559,12 +584,182 @@ func resourceServiceV1() *schema.Resource {
 							Required:    true,
 							Description: "The port of the papertrail service",
 						},
-						// Optional
+						// Optional fields
 						"format": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "%h %l %u %t %r %>s",
 							Description: "Apache-style string or VCL variables to use for log formatting",
+						},
+						"response_condition": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "Name of a condition to apply this logging",
+						},
+					},
+				},
+			},
+			"sumologic": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						// Required fields
+						"name": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Unique name to refer to this logging setup",
+						},
+						"url": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The URL to POST to.",
+						},
+						// Optional fields
+						"format": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "%h %l %u %t %r %>s",
+							Description: "Apache-style string or VCL variables to use for log formatting",
+						},
+						"format_version": {
+							Type:         schema.TypeInt,
+							Optional:     true,
+							Default:      1,
+							Description:  "The version of the custom logging format used for the configured endpoint. Can be either 1 or 2. (Default: 1)",
+							ValidateFunc: validateLoggingFormatVersion,
+						},
+						"response_condition": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "Name of a condition to apply this logging.",
+						},
+						"message_type": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							Default:      "classic",
+							Description:  "How the message should be formatted.",
+							ValidateFunc: validateLoggingMessageType,
+						},
+					},
+				},
+			},
+
+			"gcslogging": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						// Required fields
+						"name": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Unique name to refer to this logging setup",
+						},
+						"email": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The email address associated with the target GCS bucket on your account.",
+						},
+						"bucket_name": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The name of the bucket in which to store the logs.",
+						},
+						"secret_key": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The secret key associated with the target gcs bucket on your account.",
+						},
+						// Optional fields
+						"path": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Path to store the files. Must end with a trailing slash",
+						},
+						"gzip_level": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     0,
+							Description: "Gzip Compression level",
+						},
+						"period": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     3600,
+							Description: "How frequently the logs should be transferred, in seconds (Default 3600)",
+						},
+						"format": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "%h %l %u %t %r %>s",
+							Description: "Apache-style string or VCL variables to use for log formatting",
+						},
+						"timestamp_format": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "%Y-%m-%dT%H:%M:%S.000",
+							Description: "specified timestamp formatting (default `%Y-%m-%dT%H:%M:%S.000`)",
+						},
+						"response_condition": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "Name of a condition to apply this logging.",
+						},
+					},
+				},
+			},
+
+			"response_object": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						// Required
+						"name": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Unique name to refer to this request object",
+						},
+						// Optional fields
+						"status": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     200,
+							Description: "The HTTP Status Code of the object",
+						},
+						"response": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "OK",
+							Description: "The HTTP Response of the object",
+						},
+						"content": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "The content to deliver for the response object",
+						},
+						"content_type": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "The MIME type of the content",
+						},
+						"request_condition": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "Name of the condition to be checked during the request phase to see if the object should be delivered",
+						},
+						"cache_condition": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "Name of the condition checked after we have retrieved an object. If the condition passes then deliver this Request Object instead.",
 						},
 					},
 				},
@@ -584,7 +779,7 @@ func resourceServiceV1() *schema.Resource {
 						"request_condition": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: "Name of a RequestCondition to apply.",
+							Description: "Name of a request condition to apply.",
 						},
 						// Optional fields
 						"max_stale_age": {
@@ -731,6 +926,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 		"healthcheck",
 		"s3logging",
 		"papertrail",
+		"response_object",
 		"condition",
 		"request_setting",
 		"cache_setting",
@@ -742,14 +938,14 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if needsChange {
-		latestVersion := d.Get("active_version").(string)
-		if latestVersion == "" {
+		latestVersion := d.Get("active_version").(int)
+		if latestVersion == 0 {
 			// If the service was just created, there is an empty Version 1 available
 			// that is unlocked and can be updated
-			latestVersion = "1"
+			latestVersion = 1
 		} else {
 			// Clone the latest version, giving us an unlocked version we can modify
-			log.Printf("[DEBUG] Creating clone of version (%s) for updates", latestVersion)
+			log.Printf("[DEBUG] Creating clone of version (%d) for updates", latestVersion)
 			newVersion, err := conn.CloneVersion(&gofastly.CloneVersionInput{
 				Service: d.Id(),
 				Version: latestVersion,
@@ -904,6 +1100,65 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 
+		// Healthchecks need to be updated BEFORE backends
+		if d.HasChange("healthcheck") {
+			oh, nh := d.GetChange("healthcheck")
+			if oh == nil {
+				oh = new(schema.Set)
+			}
+			if nh == nil {
+				nh = new(schema.Set)
+			}
+
+			ohs := oh.(*schema.Set)
+			nhs := nh.(*schema.Set)
+			removeHealthCheck := ohs.Difference(nhs).List()
+			addHealthCheck := nhs.Difference(ohs).List()
+
+			// DELETE old healthcheck configurations
+			for _, hRaw := range removeHealthCheck {
+				hf := hRaw.(map[string]interface{})
+				opts := gofastly.DeleteHealthCheckInput{
+					Service: d.Id(),
+					Version: latestVersion,
+					Name:    hf["name"].(string),
+				}
+
+				log.Printf("[DEBUG] Fastly Healthcheck removal opts: %#v", opts)
+				err := conn.DeleteHealthCheck(&opts)
+				if err != nil {
+					return err
+				}
+			}
+
+			// POST new/updated Healthcheck
+			for _, hRaw := range addHealthCheck {
+				hf := hRaw.(map[string]interface{})
+
+				opts := gofastly.CreateHealthCheckInput{
+					Service:          d.Id(),
+					Version:          latestVersion,
+					Name:             hf["name"].(string),
+					Host:             hf["host"].(string),
+					Path:             hf["path"].(string),
+					CheckInterval:    uint(hf["check_interval"].(int)),
+					ExpectedResponse: uint(hf["expected_response"].(int)),
+					HTTPVersion:      hf["http_version"].(string),
+					Initial:          uint(hf["initial"].(int)),
+					Method:           hf["method"].(string),
+					Threshold:        uint(hf["threshold"].(int)),
+					Timeout:          uint(hf["timeout"].(int)),
+					Window:           uint(hf["window"].(int)),
+				}
+
+				log.Printf("[DEBUG] Create Healthcheck Opts: %#v", opts)
+				_, err := conn.CreateHealthCheck(&opts)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
 		// find difference in backends
 		if d.HasChange("backend") {
 			ob, nb := d.GetChange("backend")
@@ -946,6 +1201,8 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 					AutoLoadbalance:     gofastly.CBool(df["auto_loadbalance"].(bool)),
 					SSLCheckCert:        gofastly.CBool(df["ssl_check_cert"].(bool)),
 					SSLHostname:         df["ssl_hostname"].(string),
+					SSLCertHostname:     df["ssl_cert_hostname"].(string),
+					SSLSNIHostname:      df["ssl_sni_hostname"].(string),
 					Shield:              df["shield"].(string),
 					Port:                uint(df["port"].(int)),
 					BetweenBytesTimeout: uint(df["between_bytes_timeout"].(int)),
@@ -955,6 +1212,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 					MaxConn:             uint(df["max_conn"].(int)),
 					Weight:              uint(df["weight"].(int)),
 					RequestCondition:    df["request_condition"].(string),
+					HealthCheck:         df["healthcheck"].(string),
 				}
 
 				log.Printf("[DEBUG] Create Backend Opts: %#v", opts)
@@ -1050,9 +1308,10 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 			for _, dRaw := range add {
 				df := dRaw.(map[string]interface{})
 				opts := gofastly.CreateGzipInput{
-					Service: d.Id(),
-					Version: latestVersion,
-					Name:    df["name"].(string),
+					Service:        d.Id(),
+					Version:        latestVersion,
+					Name:           df["name"].(string),
+					CacheCondition: df["cache_condition"].(string),
 				}
 
 				if v, ok := df["content_types"]; ok {
@@ -1077,65 +1336,6 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 
 				log.Printf("[DEBUG] Fastly Gzip Addition opts: %#v", opts)
 				_, err := conn.CreateGzip(&opts)
-				if err != nil {
-					return err
-				}
-			}
-		}
-
-		// find difference in Healthcheck
-		if d.HasChange("healthcheck") {
-			oh, nh := d.GetChange("healthcheck")
-			if oh == nil {
-				oh = new(schema.Set)
-			}
-			if nh == nil {
-				nh = new(schema.Set)
-			}
-
-			ohs := oh.(*schema.Set)
-			nhs := nh.(*schema.Set)
-			removeHealthCheck := ohs.Difference(nhs).List()
-			addHealthCheck := nhs.Difference(ohs).List()
-
-			// DELETE old healthcheck configurations
-			for _, hRaw := range removeHealthCheck {
-				hf := hRaw.(map[string]interface{})
-				opts := gofastly.DeleteHealthCheckInput{
-					Service: d.Id(),
-					Version: latestVersion,
-					Name:    hf["name"].(string),
-				}
-
-				log.Printf("[DEBUG] Fastly Healthcheck removal opts: %#v", opts)
-				err := conn.DeleteHealthCheck(&opts)
-				if err != nil {
-					return err
-				}
-			}
-
-			// POST new/updated Healthcheck
-			for _, hRaw := range addHealthCheck {
-				hf := hRaw.(map[string]interface{})
-
-				opts := gofastly.CreateHealthCheckInput{
-					Service:          d.Id(),
-					Version:          latestVersion,
-					Name:             hf["name"].(string),
-					Host:             hf["host"].(string),
-					Path:             hf["path"].(string),
-					CheckInterval:    uint(hf["check_interval"].(int)),
-					ExpectedResponse: uint(hf["expected_response"].(int)),
-					HTTPVersion:      hf["http_version"].(string),
-					Initial:          uint(hf["initial"].(int)),
-					Method:           hf["method"].(string),
-					Threshold:        uint(hf["threshold"].(int)),
-					Timeout:          uint(hf["timeout"].(int)),
-					Window:           uint(hf["window"].(int)),
-				}
-
-				log.Printf("[DEBUG] Create Healthcheck Opts: %#v", opts)
-				_, err := conn.CreateHealthCheck(&opts)
 				if err != nil {
 					return err
 				}
@@ -1186,19 +1386,20 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 				}
 
 				opts := gofastly.CreateS3Input{
-					Service:         d.Id(),
-					Version:         latestVersion,
-					Name:            sf["name"].(string),
-					BucketName:      sf["bucket_name"].(string),
-					AccessKey:       sf["s3_access_key"].(string),
-					SecretKey:       sf["s3_secret_key"].(string),
-					Period:          uint(sf["period"].(int)),
-					GzipLevel:       uint(sf["gzip_level"].(int)),
-					Domain:          sf["domain"].(string),
-					Path:            sf["path"].(string),
-					Format:          sf["format"].(string),
-					FormatVersion:   uint(sf["format_version"].(int)),
-					TimestampFormat: sf["timestamp_format"].(string),
+					Service:           d.Id(),
+					Version:           latestVersion,
+					Name:              sf["name"].(string),
+					BucketName:        sf["bucket_name"].(string),
+					AccessKey:         sf["s3_access_key"].(string),
+					SecretKey:         sf["s3_secret_key"].(string),
+					Period:            uint(sf["period"].(int)),
+					GzipLevel:         uint(sf["gzip_level"].(int)),
+					Domain:            sf["domain"].(string),
+					Path:              sf["path"].(string),
+					Format:            sf["format"].(string),
+					FormatVersion:     uint(sf["format_version"].(int)),
+					TimestampFormat:   sf["timestamp_format"].(string),
+					ResponseCondition: sf["response_condition"].(string),
 				}
 
 				log.Printf("[DEBUG] Create S3 Logging Opts: %#v", opts)
@@ -1245,16 +1446,178 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 				pf := pRaw.(map[string]interface{})
 
 				opts := gofastly.CreatePapertrailInput{
-					Service: d.Id(),
-					Version: latestVersion,
-					Name:    pf["name"].(string),
-					Address: pf["address"].(string),
-					Port:    uint(pf["port"].(int)),
-					Format:  pf["format"].(string),
+					Service:           d.Id(),
+					Version:           latestVersion,
+					Name:              pf["name"].(string),
+					Address:           pf["address"].(string),
+					Port:              uint(pf["port"].(int)),
+					Format:            pf["format"].(string),
+					ResponseCondition: pf["response_condition"].(string),
 				}
 
 				log.Printf("[DEBUG] Create Papertrail Opts: %#v", opts)
 				_, err := conn.CreatePapertrail(&opts)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		// find difference in Sumologic
+		if d.HasChange("sumologic") {
+			os, ns := d.GetChange("sumologic")
+			if os == nil {
+				os = new(schema.Set)
+			}
+			if ns == nil {
+				ns = new(schema.Set)
+			}
+
+			oss := os.(*schema.Set)
+			nss := ns.(*schema.Set)
+			removeSumologic := oss.Difference(nss).List()
+			addSumologic := nss.Difference(oss).List()
+
+			// DELETE old sumologic configurations
+			for _, pRaw := range removeSumologic {
+				sf := pRaw.(map[string]interface{})
+				opts := gofastly.DeleteSumologicInput{
+					Service: d.Id(),
+					Version: latestVersion,
+					Name:    sf["name"].(string),
+				}
+
+				log.Printf("[DEBUG] Fastly Sumologic removal opts: %#v", opts)
+				err := conn.DeleteSumologic(&opts)
+				if err != nil {
+					return err
+				}
+			}
+
+			// POST new/updated Sumologic
+			for _, pRaw := range addSumologic {
+				sf := pRaw.(map[string]interface{})
+				opts := gofastly.CreateSumologicInput{
+					Service:           d.Id(),
+					Version:           latestVersion,
+					Name:              sf["name"].(string),
+					URL:               sf["url"].(string),
+					Format:            sf["format"].(string),
+					FormatVersion:     sf["format_version"].(int),
+					ResponseCondition: sf["response_condition"].(string),
+					MessageType:       sf["message_type"].(string),
+				}
+
+				log.Printf("[DEBUG] Create Sumologic Opts: %#v", opts)
+				_, err := conn.CreateSumologic(&opts)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		// find difference in gcslogging
+		if d.HasChange("gcslogging") {
+			os, ns := d.GetChange("gcslogging")
+			if os == nil {
+				os = new(schema.Set)
+			}
+			if ns == nil {
+				ns = new(schema.Set)
+			}
+
+			oss := os.(*schema.Set)
+			nss := ns.(*schema.Set)
+			removeGcslogging := oss.Difference(nss).List()
+			addGcslogging := nss.Difference(oss).List()
+
+			// DELETE old gcslogging configurations
+			for _, pRaw := range removeGcslogging {
+				sf := pRaw.(map[string]interface{})
+				opts := gofastly.DeleteGCSInput{
+					Service: d.Id(),
+					Version: latestVersion,
+					Name:    sf["name"].(string),
+				}
+
+				log.Printf("[DEBUG] Fastly gcslogging removal opts: %#v", opts)
+				err := conn.DeleteGCS(&opts)
+				if err != nil {
+					return err
+				}
+			}
+
+			// POST new/updated gcslogging
+			for _, pRaw := range addGcslogging {
+				sf := pRaw.(map[string]interface{})
+				opts := gofastly.CreateGCSInput{
+					Service:           d.Id(),
+					Version:           latestVersion,
+					Name:              sf["name"].(string),
+					User:              sf["email"].(string),
+					Bucket:            sf["bucket_name"].(string),
+					SecretKey:         sf["secret_key"].(string),
+					Format:            sf["format"].(string),
+					ResponseCondition: sf["response_condition"].(string),
+				}
+
+				log.Printf("[DEBUG] Create GCS Opts: %#v", opts)
+				_, err := conn.CreateGCS(&opts)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		// find difference in Response Object
+		if d.HasChange("response_object") {
+			or, nr := d.GetChange("response_object")
+			if or == nil {
+				or = new(schema.Set)
+			}
+			if nr == nil {
+				nr = new(schema.Set)
+			}
+
+			ors := or.(*schema.Set)
+			nrs := nr.(*schema.Set)
+			removeResponseObject := ors.Difference(nrs).List()
+			addResponseObject := nrs.Difference(ors).List()
+
+			// DELETE old response object configurations
+			for _, rRaw := range removeResponseObject {
+				rf := rRaw.(map[string]interface{})
+				opts := gofastly.DeleteResponseObjectInput{
+					Service: d.Id(),
+					Version: latestVersion,
+					Name:    rf["name"].(string),
+				}
+
+				log.Printf("[DEBUG] Fastly Response Object removal opts: %#v", opts)
+				err := conn.DeleteResponseObject(&opts)
+				if err != nil {
+					return err
+				}
+			}
+
+			// POST new/updated Response Object
+			for _, rRaw := range addResponseObject {
+				rf := rRaw.(map[string]interface{})
+
+				opts := gofastly.CreateResponseObjectInput{
+					Service:          d.Id(),
+					Version:          latestVersion,
+					Name:             rf["name"].(string),
+					Status:           uint(rf["status"].(int)),
+					Response:         rf["response"].(string),
+					Content:          rf["content"].(string),
+					ContentType:      rf["content_type"].(string),
+					RequestCondition: rf["request_condition"].(string),
+					CacheCondition:   rf["cache_condition"].(string),
+				}
+
+				log.Printf("[DEBUG] Create Response Object Opts: %#v", opts)
+				_, err := conn.CreateResponseObject(&opts)
 				if err != nil {
 					return err
 				}
@@ -1427,7 +1790,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		// validate version
-		log.Printf("[DEBUG] Validating Fastly Service (%s), Version (%s)", d.Id(), latestVersion)
+		log.Printf("[DEBUG] Validating Fastly Service (%s), Version (%v)", d.Id(), latestVersion)
 		valid, msg, err := conn.ValidateVersion(&gofastly.ValidateVersionInput{
 			Service: d.Id(),
 			Version: latestVersion,
@@ -1441,13 +1804,13 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 			return fmt.Errorf("[ERR] Invalid configuration for Fastly Service (%s): %s", d.Id(), msg)
 		}
 
-		log.Printf("[DEBUG] Activating Fastly Service (%s), Version (%s)", d.Id(), latestVersion)
+		log.Printf("[DEBUG] Activating Fastly Service (%s), Version (%v)", d.Id(), latestVersion)
 		_, err = conn.ActivateVersion(&gofastly.ActivateVersionInput{
 			Service: d.Id(),
 			Version: latestVersion,
 		})
 		if err != nil {
-			return fmt.Errorf("[ERR] Error activating version (%s): %s", latestVersion, err)
+			return fmt.Errorf("[ERR] Error activating version (%d): %s", latestVersion, err)
 		}
 
 		// Only if the version is valid and activated do we set the active_version.
@@ -1489,7 +1852,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 	// If CreateService succeeds, but initial updates to the Service fail, we'll
 	// have an empty ActiveService version (no version is active, so we can't
 	// query for information on it)
-	if s.ActiveVersion.Number != "" {
+	if s.ActiveVersion.Number != 0 {
 		settingsOpts := gofastly.GetSettingsInput{
 			Service: d.Id(),
 			Version: s.ActiveVersion.Number,
@@ -1498,7 +1861,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 			d.Set("default_host", settings.DefaultHost)
 			d.Set("default_ttl", settings.DefaultTTL)
 		} else {
-			return fmt.Errorf("[ERR] Error looking up Version settings for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Version settings for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		// TODO: update go-fastly to support an ActiveVersion struct, which contains
@@ -1511,7 +1874,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Domains for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Domains for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		// Refresh Domains
@@ -1529,7 +1892,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Backends for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Backends for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		bl := flattenBackends(backendList)
@@ -1546,7 +1909,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Headers for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Headers for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		hl := flattenHeaders(headerList)
@@ -1563,7 +1926,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Gzips for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Gzips for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		gl := flattenGzips(gzipsList)
@@ -1580,7 +1943,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Healthcheck for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Healthcheck for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		hcl := flattenHealthchecks(healthcheckList)
@@ -1597,7 +1960,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up S3 Logging for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up S3 Logging for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		sl := flattenS3s(s3List)
@@ -1614,13 +1977,62 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Papertrail for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Papertrail for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		pl := flattenPapertrails(papertrailList)
 
 		if err := d.Set("papertrail", pl); err != nil {
 			log.Printf("[WARN] Error setting Papertrail for (%s): %s", d.Id(), err)
+		}
+
+		// refresh Sumologic Logging
+		log.Printf("[DEBUG] Refreshing Sumologic for (%s)", d.Id())
+		sumologicList, err := conn.ListSumologics(&gofastly.ListSumologicsInput{
+			Service: d.Id(),
+			Version: s.ActiveVersion.Number,
+		})
+
+		if err != nil {
+			return fmt.Errorf("[ERR] Error looking up Sumologic for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
+		}
+
+		sul := flattenSumologics(sumologicList)
+		if err := d.Set("sumologic", sul); err != nil {
+			log.Printf("[WARN] Error setting Sumologic for (%s): %s", d.Id(), err)
+		}
+
+		// refresh GCS Logging
+		log.Printf("[DEBUG] Refreshing GCS for (%s)", d.Id())
+		GCSList, err := conn.ListGCSs(&gofastly.ListGCSsInput{
+			Service: d.Id(),
+			Version: s.ActiveVersion.Number,
+		})
+
+		if err != nil {
+			return fmt.Errorf("[ERR] Error looking up GCS for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+		}
+
+		gcsl := flattenGCS(GCSList)
+		if err := d.Set("gcs", gcsl); err != nil {
+			log.Printf("[WARN] Error setting gcs for (%s): %s", d.Id(), err)
+		}
+
+		// refresh Response Objects
+		log.Printf("[DEBUG] Refreshing Response Object for (%s)", d.Id())
+		responseObjectList, err := conn.ListResponseObjects(&gofastly.ListResponseObjectsInput{
+			Service: d.Id(),
+			Version: s.ActiveVersion.Number,
+		})
+
+		if err != nil {
+			return fmt.Errorf("[ERR] Error looking up Response Object for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
+		}
+
+		rol := flattenResponseObjects(responseObjectList)
+
+		if err := d.Set("response_object", rol); err != nil {
+			log.Printf("[WARN] Error setting Response Object for (%s): %s", d.Id(), err)
 		}
 
 		// refresh Conditions
@@ -1631,7 +2043,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Conditions for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Conditions for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		cl := flattenConditions(conditionList)
@@ -1648,7 +2060,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Request Settings for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Request Settings for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		rl := flattenRequestSettings(rsList)
@@ -1664,7 +2076,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 			Version: s.ActiveVersion.Number,
 		})
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up VCLs for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up VCLs for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		vl := flattenVCLs(vclList)
@@ -1680,7 +2092,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 			Version: s.ActiveVersion.Number,
 		})
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Cache Settings for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Cache Settings for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		csl := flattenCacheSettings(cslList)
@@ -1711,7 +2123,7 @@ func resourceServiceV1Delete(d *schema.ResourceData, meta interface{}) error {
 			return err
 		}
 
-		if s.ActiveVersion.Number != "" {
+		if s.ActiveVersion.Number != 0 {
 			_, err := conn.DeactivateVersion(&gofastly.DeactivateVersionInput{
 				Service: d.Id(),
 				Version: s.ActiveVersion.Number,
@@ -1767,7 +2179,7 @@ func flattenBackends(backendList []*gofastly.Backend) []map[string]interface{} {
 		nb := map[string]interface{}{
 			"name":                  b.Name,
 			"address":               b.Address,
-			"auto_loadbalance":      gofastly.CBool(b.AutoLoadbalance),
+			"auto_loadbalance":      b.AutoLoadbalance,
 			"between_bytes_timeout": int(b.BetweenBytesTimeout),
 			"connect_timeout":       int(b.ConnectTimeout),
 			"error_threshold":       int(b.ErrorThreshold),
@@ -1775,10 +2187,13 @@ func flattenBackends(backendList []*gofastly.Backend) []map[string]interface{} {
 			"max_conn":              int(b.MaxConn),
 			"port":                  int(b.Port),
 			"shield":                b.Shield,
-			"ssl_check_cert":        gofastly.CBool(b.SSLCheckCert),
+			"ssl_check_cert":        b.SSLCheckCert,
 			"ssl_hostname":          b.SSLHostname,
+			"ssl_cert_hostname":     b.SSLCertHostname,
+			"ssl_sni_hostname":      b.SSLSNIHostname,
 			"weight":                int(b.Weight),
 			"request_condition":     b.RequestCondition,
+			"healthcheck":           b.HealthCheck,
 		}
 
 		bl = append(bl, nb)
@@ -1992,17 +2407,18 @@ func flattenS3s(s3List []*gofastly.S3) []map[string]interface{} {
 	for _, s := range s3List {
 		// Convert S3s to a map for saving to state.
 		ns := map[string]interface{}{
-			"name":             s.Name,
-			"bucket_name":      s.BucketName,
-			"s3_access_key":    s.AccessKey,
-			"s3_secret_key":    s.SecretKey,
-			"path":             s.Path,
-			"period":           s.Period,
-			"domain":           s.Domain,
-			"gzip_level":       s.GzipLevel,
-			"format":           s.Format,
-			"format_version":   s.FormatVersion,
-			"timestamp_format": s.TimestampFormat,
+			"name":               s.Name,
+			"bucket_name":        s.BucketName,
+			"s3_access_key":      s.AccessKey,
+			"s3_secret_key":      s.SecretKey,
+			"path":               s.Path,
+			"period":             s.Period,
+			"domain":             s.Domain,
+			"gzip_level":         s.GzipLevel,
+			"format":             s.Format,
+			"format_version":     s.FormatVersion,
+			"timestamp_format":   s.TimestampFormat,
+			"response_condition": s.ResponseCondition,
 		}
 
 		// prune any empty values that come from the default string value in structs
@@ -2021,12 +2437,13 @@ func flattenS3s(s3List []*gofastly.S3) []map[string]interface{} {
 func flattenPapertrails(papertrailList []*gofastly.Papertrail) []map[string]interface{} {
 	var pl []map[string]interface{}
 	for _, p := range papertrailList {
-		// Convert S3s to a map for saving to state.
+		// Convert Papertrails to a map for saving to state.
 		ns := map[string]interface{}{
-			"name":    p.Name,
-			"address": p.Address,
-			"port":    p.Port,
-			"format":  p.Format,
+			"name":               p.Name,
+			"address":            p.Address,
+			"port":               p.Port,
+			"format":             p.Format,
+			"response_condition": p.ResponseCondition,
 		}
 
 		// prune any empty values that come from the default string value in structs
@@ -2040,6 +2457,88 @@ func flattenPapertrails(papertrailList []*gofastly.Papertrail) []map[string]inte
 	}
 
 	return pl
+}
+
+func flattenSumologics(sumologicList []*gofastly.Sumologic) []map[string]interface{} {
+	var l []map[string]interface{}
+	for _, p := range sumologicList {
+		// Convert Sumologic to a map for saving to state.
+		ns := map[string]interface{}{
+			"name":               p.Name,
+			"url":                p.URL,
+			"format":             p.Format,
+			"response_condition": p.ResponseCondition,
+			"message_type":       p.MessageType,
+			"format_version":     int(p.FormatVersion),
+		}
+
+		// prune any empty values that come from the default string value in structs
+		for k, v := range ns {
+			if v == "" {
+				delete(ns, k)
+			}
+		}
+
+		l = append(l, ns)
+	}
+
+	return l
+}
+
+func flattenGCS(gcsList []*gofastly.GCS) []map[string]interface{} {
+	var GCSList []map[string]interface{}
+	for _, currentGCS := range gcsList {
+		// Convert gcs to a map for saving to state.
+		GCSMapString := map[string]interface{}{
+			"name":               currentGCS.Name,
+			"email":              currentGCS.User,
+			"bucket_name":        currentGCS.Bucket,
+			"secret_key":         currentGCS.SecretKey,
+			"path":               currentGCS.Path,
+			"period":             int(currentGCS.Period),
+			"gzip_level":         int(currentGCS.GzipLevel),
+			"response_condition": currentGCS.ResponseCondition,
+			"format":             currentGCS.Format,
+		}
+
+		// prune any empty values that come from the default string value in structs
+		for k, v := range GCSMapString {
+			if v == "" {
+				delete(GCSMapString, k)
+			}
+		}
+
+		GCSList = append(GCSList, GCSMapString)
+	}
+
+	return GCSList
+}
+
+func flattenResponseObjects(responseObjectList []*gofastly.ResponseObject) []map[string]interface{} {
+	var rol []map[string]interface{}
+	for _, ro := range responseObjectList {
+		// Convert ResponseObjects to a map for saving to state.
+		nro := map[string]interface{}{
+			"name":              ro.Name,
+			"status":            ro.Status,
+			"response":          ro.Response,
+			"content":           ro.Content,
+			"content_type":      ro.ContentType,
+			"request_condition": ro.RequestCondition,
+			"cache_condition":   ro.CacheCondition,
+		}
+
+		// prune any empty values that come from the default string value in structs
+		for k, v := range nro {
+			if v == "" {
+				delete(nro, k)
+			}
+		}
+
+		rol = append(rol, nro)
+	}
+
+	return rol
 }
 
 func flattenConditions(conditionList []*gofastly.Condition) []map[string]interface{} {

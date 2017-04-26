@@ -14,13 +14,14 @@ to create virtual networks within the docker environment.
 
 ## Example Usage
 
-```
+```hcl
 # Find the latest Ubuntu precise image.
 resource "docker_network" "private_network" {
-    name = "my_network"
+  name = "my_network"
 }
 
 # Access it somewhere else with ${docker_network.private_network.name}
+
 ```
 
 ## Argument Reference

@@ -15,19 +15,19 @@ configuration via their ID or name.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new tag
 resource "digitalocean_tag" "foobar" {
-    name = "foobar"
+  name = "foobar"
 }
 
 # Create a new droplet in nyc3 with the foobar tag
 resource "digitalocean_droplet" "web" {
-    image  = "ubuntu-16-04-x64"
-    name   = "web-1"
-    region = "nyc3"
-    size   = "512mb"
-    tags   = ["${digitalocean_tag.foobar.id}"]
+  image  = "ubuntu-16-04-x64"
+  name   = "web-1"
+  region = "nyc3"
+  size   = "512mb"
+  tags   = ["${digitalocean_tag.foobar.id}"]
 }
 ```
 
@@ -47,7 +47,7 @@ The following attributes are exported:
 
 ## Import
 
-Tags can be imported using the `name`, e.g. 
+Tags can be imported using the `name`, e.g.
 
 ```
 terraform import digitalocean_tag.mytag tagname

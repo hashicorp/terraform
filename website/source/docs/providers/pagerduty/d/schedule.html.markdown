@@ -14,7 +14,7 @@ Use this data source to get information about a specific [schedule][1] that you 
 
 ## Example Usage
 
-```
+```hcl
 data "pagerduty_schedule" "test" {
   name = "Daily Engineering Rotation"
 }
@@ -38,7 +38,7 @@ resource "pagerduty_escalation_policy" "foo" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name to use to find a schedule in the PagerDuty API.  
+* `name` - (Required) The name to use to find a schedule in the PagerDuty API.
 
 ## Attributes Reference
 * `name` - The short name of the found schedule.

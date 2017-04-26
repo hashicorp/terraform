@@ -14,42 +14,46 @@ Provides a Route53 record resource.
 
 ### Simple routing policy
 
-```
+```hcl
 resource "aws_route53_record" "www" {
-   zone_id = "${aws_route53_zone.primary.zone_id}"
-   name = "www.example.com"
-   type = "A"
-   ttl = "300"
-   records = ["${aws_eip.lb.public_ip}"]
+  zone_id = "${aws_route53_zone.primary.zone_id}"
+  name    = "www.example.com"
+  type    = "A"
+  ttl     = "300"
+  records = ["${aws_eip.lb.public_ip}"]
 }
 ```
 
 ### Weighted routing policy
 Other routing policies are configured similarly. See [AWS Route53 Developer Guide](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-policy.html) for details.
 
-```
+```hcl
 resource "aws_route53_record" "www-dev" {
   zone_id = "${aws_route53_zone.primary.zone_id}"
-  name = "www"
-  type = "CNAME"
-  ttl = "5"
+  name    = "www"
+  type    = "CNAME"
+  ttl     = "5"
+
   weighted_routing_policy {
     weight = 10
   }
+
   set_identifier = "dev"
-  records = ["dev.example.com"]
+  records        = ["dev.example.com"]
 }
 
 resource "aws_route53_record" "www-live" {
   zone_id = "${aws_route53_zone.primary.zone_id}"
-  name = "www"
-  type = "CNAME"
-  ttl = "5"
+  name    = "www"
+  type    = "CNAME"
+  ttl     = "5"
+
   weighted_routing_policy {
     weight = 90
   }
+
   set_identifier = "live"
-  records = ["live.example.com"]
+  records        = ["live.example.com"]
 }
 ```
 
@@ -60,27 +64,27 @@ to understand differences between alias and non-alias records.
 TTL for all alias records is [60 seconds](https://aws.amazon.com/route53/faqs/#dns_failover_do_i_need_to_adjust),
 you cannot change this, therefore `ttl` has to be omitted in alias records.
 
-```
+```hcl
 resource "aws_elb" "main" {
-  name = "foobar-terraform-elb"
+  name               = "foobar-terraform-elb"
   availability_zones = ["us-east-1c"]
 
   listener {
-    instance_port = 80
+    instance_port     = 80
     instance_protocol = "http"
-    lb_port = 80
-    lb_protocol = "http"
+    lb_port           = 80
+    lb_protocol       = "http"
   }
 }
 
 resource "aws_route53_record" "www" {
   zone_id = "${aws_route53_zone.primary.zone_id}"
-  name = "example.com"
-  type = "A"
+  name    = "example.com"
+  type    = "A"
 
   alias {
-    name = "${aws_elb.main.dns_name}"
-    zone_id = "${aws_elb.main.zone_id}"
+    name                   = "${aws_elb.main.dns_name}"
+    zone_id                = "${aws_elb.main.zone_id}"
     evaluate_target_health = true
   }
 }
@@ -140,5 +144,5 @@ Weighted routing policies support the following:
 Route53 Records can be imported using ID of the record, e.g.
 
 ```
-$ terraform import aws_route53_record.myrecord Z4KAPRWWNC7JR_dev.example.com_NS
+$ terraform import aws_route53_record.myrecord Z4KAPRWWNC7JR_dev.example.com_NS_dev
 ```

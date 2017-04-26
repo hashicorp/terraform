@@ -12,12 +12,14 @@ Provides a CloudFormation Stack resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_cloudformation_stack" "network" {
   name = "networking-stack"
+
   parameters {
     VPCCidr = "10.0.0.0/16"
   }
+
   template_body = <<STACK
 {
   "Parameters" : {
@@ -63,6 +65,7 @@ The following arguments are supported:
 * `policy_url` - (Optional) Location of a file containing the stack policy.
   Conflicts w/ `policy_body`.
 * `tags` - (Optional) A list of tags to associate with this stack.
+* `iam_role_arn` - (Optional) The ARN of an IAM role that AWS CloudFormation assumes to create the stack. If you don't specify a value, AWS CloudFormation uses the role that was previously associated with the stack. If no role is available, AWS CloudFormation uses a temporary session that is generated from your user credentials.
 * `timeout_in_minutes` - (Optional) The amount of time that can pass before the stack status becomes `CREATE_FAILED`.
 
 ## Attributes Reference
@@ -70,4 +73,4 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - A unique identifier of the stack.
-* `outputs` - A list of output structures.
+* `outputs` - A map of outputs from the stack.

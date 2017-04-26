@@ -3,6 +3,8 @@ package flatmap
 import (
 	"reflect"
 	"testing"
+
+	"github.com/hashicorp/hil"
 )
 
 func TestExpand(t *testing.T) {
@@ -117,17 +119,73 @@ func TestExpand(t *testing.T) {
 			Key:    "set",
 			Output: []interface{}{"a", "b", "c"},
 		},
+
+		{
+			Map: map[string]string{
+				"computed_set.#":       "1",
+				"computed_set.~1234.a": "a",
+				"computed_set.~1234.b": "b",
+				"computed_set.~1234.c": "c",
+			},
+			Key: "computed_set",
+			Output: []interface{}{
+				map[string]interface{}{"a": "a", "b": "b", "c": "c"},
+			},
+		},
+
+		{
+			Map: map[string]string{
+				"struct.#":         "1",
+				"struct.0.name":    "hello",
+				"struct.0.rules.#": hil.UnknownValue,
+			},
+			Key: "struct",
+			Output: []interface{}{
+				map[string]interface{}{
+					"name":  "hello",
+					"rules": hil.UnknownValue,
+				},
+			},
+		},
+
+		{
+			Map: map[string]string{
+				"struct.#":           "1",
+				"struct.0.name":      "hello",
+				"struct.0.set.#":     "0",
+				"struct.0.set.0.key": "value",
+			},
+			Key: "struct",
+			Output: []interface{}{
+				map[string]interface{}{
+					"name": "hello",
+					"set":  []interface{}{},
+				},
+			},
+		},
+
+		{
+			Map: map[string]string{
+				"empty_map_of_sets.%":         "0",
+				"empty_map_of_sets.set1.#":    "0",
+				"empty_map_of_sets.set1.1234": "x",
+			},
+			Key:    "empty_map_of_sets",
+			Output: map[string]interface{}{},
+		},
 	}
 
 	for _, tc := range cases {
-		actual := Expand(tc.Map, tc.Key)
-		if !reflect.DeepEqual(actual, tc.Output) {
-			t.Errorf(
-				"Key: %v\nMap:\n\n%#v\n\nOutput:\n\n%#v\n\nExpected:\n\n%#v\n",
-				tc.Key,
-				tc.Map,
-				actual,
-				tc.Output)
-		}
+		t.Run(tc.Key, func(t *testing.T) {
+			actual := Expand(tc.Map, tc.Key)
+			if !reflect.DeepEqual(actual, tc.Output) {
+				t.Errorf(
+					"Key: %v\nMap:\n\n%#v\n\nOutput:\n\n%#v\n\nExpected:\n\n%#v\n",
+					tc.Key,
+					tc.Map,
+					actual,
+					tc.Output)
+			}
+		})
 	}
 }

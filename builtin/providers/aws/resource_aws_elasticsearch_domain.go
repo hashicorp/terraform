@@ -20,21 +20,24 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 		Read:   resourceAwsElasticSearchDomainRead,
 		Update: resourceAwsElasticSearchDomainUpdate,
 		Delete: resourceAwsElasticSearchDomainDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceAwsElasticSearchDomainImport,
+		},
 
 		Schema: map[string]*schema.Schema{
-			"access_policies": &schema.Schema{
+			"access_policies": {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Computed:         true,
 				ValidateFunc:     validateJsonString,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
-			"advanced_options": &schema.Schema{
+			"advanced_options": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Computed: true,
 			},
-			"domain_name": &schema.Schema{
+			"domain_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -47,92 +50,93 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 					return
 				},
 			},
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"domain_id": &schema.Schema{
+			"domain_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"endpoint": &schema.Schema{
+			"endpoint": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"ebs_options": &schema.Schema{
+			"ebs_options": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"ebs_enabled": &schema.Schema{
+						"ebs_enabled": {
 							Type:     schema.TypeBool,
 							Required: true,
 						},
-						"iops": &schema.Schema{
+						"iops": {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
-						"volume_size": &schema.Schema{
+						"volume_size": {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
-						"volume_type": &schema.Schema{
+						"volume_type": {
 							Type:     schema.TypeString,
 							Optional: true,
+							Computed: true,
 						},
 					},
 				},
 			},
-			"cluster_config": &schema.Schema{
+			"cluster_config": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"dedicated_master_count": &schema.Schema{
+						"dedicated_master_count": {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
-						"dedicated_master_enabled": &schema.Schema{
+						"dedicated_master_enabled": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  false,
 						},
-						"dedicated_master_type": &schema.Schema{
+						"dedicated_master_type": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"instance_count": &schema.Schema{
+						"instance_count": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Default:  1,
 						},
-						"instance_type": &schema.Schema{
+						"instance_type": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "m3.medium.elasticsearch",
 						},
-						"zone_awareness_enabled": &schema.Schema{
+						"zone_awareness_enabled": {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
 					},
 				},
 			},
-			"snapshot_options": &schema.Schema{
+			"snapshot_options": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"automated_snapshot_start_hour": &schema.Schema{
+						"automated_snapshot_start_hour": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
 					},
 				},
 			},
-			"elasticsearch_version": &schema.Schema{
+			"elasticsearch_version": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "1.5",
@@ -142,6 +146,12 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 			"tags": tagsSchema(),
 		},
 	}
+}
+
+func resourceAwsElasticSearchDomainImport(
+	d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	d.Set("domain_name", d.Id())
+	return []*schema.ResourceData{d}, nil
 }
 
 func resourceAwsElasticSearchDomainCreate(d *schema.ResourceData, meta interface{}) error {
@@ -282,6 +292,7 @@ func resourceAwsElasticSearchDomainRead(d *schema.ResourceData, meta interface{}
 	if err != nil {
 		return err
 	}
+	d.SetId(*ds.ARN)
 	d.Set("domain_id", ds.DomainId)
 	d.Set("domain_name", ds.DomainName)
 	d.Set("elasticsearch_version", ds.ElasticsearchVersion)

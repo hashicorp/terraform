@@ -2,6 +2,8 @@ package command
 
 import (
 	"bufio"
+	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -14,6 +16,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-getter"
+	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/variables"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
@@ -84,14 +88,25 @@ type Meta struct {
 	//
 	// provider is to specify specific resource providers
 	//
-	// lockState is set to false to disable state locking
-	statePath    string
-	stateOutPath string
-	backupPath   string
-	parallelism  int
-	shadow       bool
-	provider     string
-	stateLock    bool
+	// stateLock is set to false to disable state locking
+	//
+	// stateLockTimeout is the optional duration to retry a state locks locks
+	// when it is already locked by another process.
+	//
+	// forceInitCopy suppresses confirmation for copying state data during
+	// init.
+	//
+	// reconfigure forces init to ignore any stored configuration.
+	statePath        string
+	stateOutPath     string
+	backupPath       string
+	parallelism      int
+	shadow           bool
+	provider         string
+	stateLock        bool
+	stateLockTimeout time.Duration
+	forceInitCopy    bool
+	reconfigure      bool
 }
 
 // initStatePaths is used to initialize the default values for
@@ -205,10 +220,15 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 		vs[k] = v
 	}
 	opts.Variables = vs
+
 	opts.Targets = m.targets
 	opts.UIInput = m.UIInput()
 	opts.Parallelism = m.parallelism
 	opts.Shadow = m.shadow
+
+	opts.Meta = &terraform.ContextMeta{
+		Env: m.Env(),
+	}
 
 	return &opts
 }
@@ -246,6 +266,10 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 
 	// Set the default Usage to empty
 	f.Usage = func() {}
+
+	// command that bypass locking will supply their own flag on this var, but
+	// set the initial meta value to true as a failsafe.
+	m.stateLock = true
 
 	return f
 }
@@ -329,6 +353,9 @@ func (m *Meta) uiHook() *UiHook {
 
 // confirm asks a yes/no confirmation.
 func (m *Meta) confirm(opts *terraform.InputOpts) (bool, error) {
+	if !m.input {
+		return false, errors.New("input disabled")
+	}
 	for {
 		v, err := m.UIInput().Input(opts)
 		if err != nil {
@@ -405,4 +432,45 @@ func (m *Meta) outputShadowError(err error, output bool) bool {
 	)))
 
 	return true
+}
+
+// Env returns the name of the currently configured environment, corresponding
+// to the desired named state.
+func (m *Meta) Env() string {
+	dataDir := m.dataDir
+	if m.dataDir == "" {
+		dataDir = DefaultDataDir
+	}
+
+	envData, err := ioutil.ReadFile(filepath.Join(dataDir, local.DefaultEnvFile))
+	current := string(bytes.TrimSpace(envData))
+	if current == "" {
+		current = backend.DefaultStateName
+	}
+
+	if err != nil && !os.IsNotExist(err) {
+		// always return the default if we can't get an environment name
+		log.Printf("[ERROR] failed to read current environment: %s", err)
+	}
+
+	return current
+}
+
+// SetEnv saves the named environment to the local filesystem.
+func (m *Meta) SetEnv(name string) error {
+	dataDir := m.dataDir
+	if m.dataDir == "" {
+		dataDir = DefaultDataDir
+	}
+
+	err := os.MkdirAll(dataDir, 0755)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(filepath.Join(dataDir, local.DefaultEnvFile), []byte(name), 0644)
+	if err != nil {
+		return err
+	}
+	return nil
 }

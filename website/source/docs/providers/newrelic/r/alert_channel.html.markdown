@@ -10,15 +10,15 @@ description: |-
 
 ## Example Usage
 
-```
+```hcl
 resource "newrelic_alert_channel" "foo" {
   name = "foo"
-	type = "email"
-	
-	configuration = {
-		recipients = "foo@example.com"
-		include_json_attachment = "1"
-	}
+  type = "email"
+
+  configuration = {
+    recipients              = "foo@example.com"
+    include_json_attachment = "1"
+  }
 }
 ```
 

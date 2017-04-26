@@ -10,8 +10,6 @@ import (
 
 func resourceFile() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceFileCreate,
-		Delete: resourceFileDelete,
 		Exists: resourceFileExists,
 		Read:   resourceFileRead,
 		Schema: map[string]*schema.Schema{
@@ -91,8 +89,8 @@ func resourceFile() *schema.Resource {
 	}
 }
 
-func resourceFileCreate(d *schema.ResourceData, meta interface{}) error {
-	id, err := buildFile(d, meta.(*cache))
+func resourceFileRead(d *schema.ResourceData, meta interface{}) error {
+	id, err := buildFile(d, globalCache)
 	if err != nil {
 		return err
 	}
@@ -101,22 +99,13 @@ func resourceFileCreate(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceFileDelete(d *schema.ResourceData, meta interface{}) error {
-	d.SetId("")
-	return nil
-}
-
 func resourceFileExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	id, err := buildFile(d, meta.(*cache))
+	id, err := buildFile(d, globalCache)
 	if err != nil {
 		return false, err
 	}
 
 	return id == d.Id(), nil
-}
-
-func resourceFileRead(d *schema.ResourceData, metacontent interface{}) error {
-	return nil
 }
 
 func buildFile(d *schema.ResourceData, c *cache) (string, error) {

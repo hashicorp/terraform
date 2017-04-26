@@ -21,13 +21,36 @@ func TestAccAWSElasticSearchDomain_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckESDomainDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccESDomainConfig(ri),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckESDomainExists("aws_elasticsearch_domain.example", &domain),
 					resource.TestCheckResourceAttr(
 						"aws_elasticsearch_domain.example", "elasticsearch_version", "1.5"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccAWSElasticSearchDomain_importBasic(t *testing.T) {
+	resourceName := "aws_elasticsearch_domain.example"
+	ri := acctest.RandInt()
+	resourceId := fmt.Sprintf("tf-test-%d", ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSRedshiftClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccESDomainConfig(ri),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateId:     resourceId,
 			},
 		},
 	})
@@ -42,7 +65,7 @@ func TestAccAWSElasticSearchDomain_v23(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckESDomainDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccESDomainConfigV23(ri),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckESDomainExists("aws_elasticsearch_domain.example", &domain),
@@ -63,7 +86,7 @@ func TestAccAWSElasticSearchDomain_complex(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckESDomainDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccESDomainConfig_complex(ri),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckESDomainExists("aws_elasticsearch_domain.example", &domain),
@@ -73,7 +96,7 @@ func TestAccAWSElasticSearchDomain_complex(t *testing.T) {
 	})
 }
 
-func TestAccAWSElasticSearch_tags(t *testing.T) {
+func TestAccAWSElasticSearchDomain_tags(t *testing.T) {
 	var domain elasticsearch.ElasticsearchDomainStatus
 	var td elasticsearch.ListTagsOutput
 	ri := acctest.RandInt()
@@ -83,14 +106,14 @@ func TestAccAWSElasticSearch_tags(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccESDomainConfig(ri),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckESDomainExists("aws_elasticsearch_domain.example", &domain),
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccESDomainConfig_TagUpdate(ri),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckESDomainExists("aws_elasticsearch_domain.example", &domain),
@@ -175,6 +198,10 @@ func testAccESDomainConfig(randInt int) string {
 	return fmt.Sprintf(`
 resource "aws_elasticsearch_domain" "example" {
   domain_name = "tf-test-%d"
+  ebs_options {
+    ebs_enabled = true
+    volume_size = 10
+  }
 }
 `, randInt)
 }
@@ -183,6 +210,10 @@ func testAccESDomainConfig_TagUpdate(randInt int) string {
 	return fmt.Sprintf(`
 resource "aws_elasticsearch_domain" "example" {
   domain_name = "tf-test-%d"
+  ebs_options {
+    ebs_enabled = true
+    volume_size = 10
+  }
 
   tags {
     foo = "bar"
@@ -208,6 +239,7 @@ resource "aws_elasticsearch_domain" "example" {
   cluster_config {
     instance_count = 2
     zone_awareness_enabled = true
+    instance_type = "r3.large.elasticsearch"
   }
 
   snapshot_options {
@@ -225,6 +257,10 @@ func testAccESDomainConfigV23(randInt int) string {
 	return fmt.Sprintf(`
 resource "aws_elasticsearch_domain" "example" {
   domain_name = "tf-test-%d"
+  ebs_options {
+    ebs_enabled = true
+    volume_size = 10
+  }
   elasticsearch_version = "2.3"
 }
 `, randInt)

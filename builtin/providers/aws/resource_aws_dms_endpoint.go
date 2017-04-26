@@ -6,7 +6,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/private/waiter"
 	dms "github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
@@ -32,7 +31,7 @@ func resourceAwsDmsEndpoint() *schema.Resource {
 			},
 			"database_name": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 			"endpoint_arn": {
 				Type:     schema.TypeString,
@@ -118,7 +117,6 @@ func resourceAwsDmsEndpointCreate(d *schema.ResourceData, meta interface{}) erro
 	conn := meta.(*AWSClient).dmsconn
 
 	request := &dms.CreateEndpointInput{
-		DatabaseName:       aws.String(d.Get("database_name").(string)),
 		EndpointIdentifier: aws.String(d.Get("endpoint_id").(string)),
 		EndpointType:       aws.String(d.Get("endpoint_type").(string)),
 		EngineName:         aws.String(d.Get("engine_name").(string)),
@@ -129,6 +127,9 @@ func resourceAwsDmsEndpointCreate(d *schema.ResourceData, meta interface{}) erro
 		Username:           aws.String(d.Get("username").(string)),
 	}
 
+	if v, ok := d.GetOk("database_name"); ok {
+		request.DatabaseName = aws.String(v.(string))
+	}
 	if v, ok := d.GetOk("certificate_arn"); ok {
 		request.CertificateArn = aws.String(v.(string))
 	}
@@ -166,6 +167,7 @@ func resourceAwsDmsEndpointRead(d *schema.ResourceData, meta interface{}) error 
 	})
 	if err != nil {
 		if dmserr, ok := err.(awserr.Error); ok && dmserr.Code() == "ResourceNotFoundFault" {
+			log.Printf("[DEBUG] DMS Replication Endpoint %q Not Found", d.Id())
 			d.SetId("")
 			return nil
 		}
@@ -281,11 +283,6 @@ func resourceAwsDmsEndpointDelete(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	waitErr := waitForEndpointDelete(conn, d.Get("endpoint_id").(string), 30, 20)
-	if waitErr != nil {
-		return waitErr
-	}
-
 	return nil
 }
 
@@ -307,37 +304,4 @@ func resourceAwsDmsEndpointSetState(d *schema.ResourceData, endpoint *dms.Endpoi
 	d.Set("username", endpoint.Username)
 
 	return nil
-}
-
-func waitForEndpointDelete(client *dms.DatabaseMigrationService, endpointId string, delay int, maxAttempts int) error {
-	input := &dms.DescribeEndpointsInput{
-		Filters: []*dms.Filter{
-			{
-				Name:   aws.String("endpoint-id"),
-				Values: []*string{aws.String(endpointId)},
-			},
-		},
-	}
-
-	config := waiter.Config{
-		Operation:   "DescribeEndpoints",
-		Delay:       delay,
-		MaxAttempts: maxAttempts,
-		Acceptors: []waiter.WaitAcceptor{
-			{
-				State:    "success",
-				Matcher:  "path",
-				Argument: "length(Endpoints[]) > `0`",
-				Expected: false,
-			},
-		},
-	}
-
-	w := waiter.Waiter{
-		Client: client,
-		Input:  input,
-		Config: config,
-	}
-
-	return w.Wait()
 }

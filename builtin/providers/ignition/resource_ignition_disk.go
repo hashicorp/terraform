@@ -7,8 +7,6 @@ import (
 
 func resourceDisk() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceDiskCreate,
-		Delete: resourceDiskDelete,
 		Exists: resourceDiskExists,
 		Read:   resourceDiskRead,
 		Schema: map[string]*schema.Schema{
@@ -60,8 +58,8 @@ func resourceDisk() *schema.Resource {
 	}
 }
 
-func resourceDiskCreate(d *schema.ResourceData, meta interface{}) error {
-	id, err := buildDisk(d, meta.(*cache))
+func resourceDiskRead(d *schema.ResourceData, meta interface{}) error {
+	id, err := buildDisk(d, globalCache)
 	if err != nil {
 		return err
 	}
@@ -70,22 +68,13 @@ func resourceDiskCreate(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceDiskDelete(d *schema.ResourceData, meta interface{}) error {
-	d.SetId("")
-	return nil
-}
-
 func resourceDiskExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	id, err := buildDisk(d, meta.(*cache))
+	id, err := buildDisk(d, globalCache)
 	if err != nil {
 		return false, err
 	}
 
 	return id == d.Id(), nil
-}
-
-func resourceDiskRead(d *schema.ResourceData, meta interface{}) error {
-	return nil
 }
 
 func buildDisk(d *schema.ResourceData, c *cache) (string, error) {

@@ -2,7 +2,6 @@ package localexec
 
 import (
 	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 	"testing"
@@ -65,8 +64,8 @@ func TestResourceProvider_stop(t *testing.T) {
 
 	select {
 	case <-doneCh:
-	case <-time.After(500 * time.Millisecond):
-		log.Fatal("should finish")
+	case <-time.After(2 * time.Second):
+		t.Fatal("should finish")
 	}
 }
 

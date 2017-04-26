@@ -147,11 +147,7 @@ func TestCloseProviderTransformer_withTargets(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(`
-provider.aws
-provider.aws (close)
-  provider.aws
-	`)
+	expected := strings.TrimSpace(``)
 	if actual != expected {
 		t.Fatalf("expected:%s\n\ngot:\n\n%s", expected, actual)
 	}

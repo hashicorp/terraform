@@ -12,8 +12,8 @@ Provides a Step Function State Machine resource
 
 ## Example Usage
 
-```
-...
+```hcl
+# ...
 
 resource "aws_sfn_state_machine" "sfn_state_machine" {
   name     = "my-state-machine"

@@ -16,18 +16,18 @@ for an API user with the appropriate permissions.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the Icinga2 provider
 provider "icinga2" {
-  api_url=https://192.168.33.5:5665/v1
-  api_user=root
-  api_password=icinga
-  insecure_skip_tls_verify=true
+  api_url                  = "https://192.168.33.5:5665/v1"
+  api_user                 = "root"
+  api_password             = "icinga"
+  insecure_skip_tls_verify = true
 }
 
 # Configure a host
-resouce "icinga2_host" "web-server"{
-  ...
+resouce "icinga2_host" "web-server" {
+  # ...
 }
 ```
 
@@ -40,11 +40,11 @@ icinga2 provider block:
 
 Usage:
 
-```
+```hcl
 provider "icinga2" {
-  api_url=https://192.168.33.5:5665/v1
-  api_user=root
-  api_password=icinga
+  api_url      = "https://192.168.33.5:5665/v1"
+  api_user     = "root"
+  api_password = "icinga"
 }
 ```
 
@@ -55,13 +55,13 @@ You can provide your credentials via `ICINGA2_API_USER` and `ICINGA2_API_PASSWOR
 environment variables, storing your Icinga2 API user and password, respectively.
 `ICINGA2_API_URL` and `ICINGA2_INSECURE_SKIP_TLS_VERIFY` are also used, if applicable:
 
-```
+```hcl
 provider "icinga" {}
 ```
 
 Usage:
 
-```
+```hcl
 $ export ICINGA2_API_URL=https://192.168.33.5:5665/v1
 $ export ICINGA2_API_USER=root
 $ export ICINGA2_API_PASSWORD=icinga

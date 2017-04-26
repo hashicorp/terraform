@@ -15,16 +15,16 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the Nomad provider
 provider "nomad" {
-    address = "nomad.mycompany.com"
-    region = "us-east-2"
+  address = "nomad.mycompany.com"
+  region  = "us-east-2"
 }
 
 # Register a job
 resource "nomad_job" "monitoring" {
-    jobspec = "${file("${path.module}/jobspec.hcl")}"
+  jobspec = "${file("${path.module}/jobspec.hcl")}"
 }
 ```
 

@@ -13,16 +13,16 @@ A [user](https://v2.developer.pagerduty.com/v2/page/api-reference#!/Users/get_us
 
 ## Example Usage
 
-```
+```hcl
 resource "pagerduty_team" "example" {
   name        = "Engineering"
   description = "All engineering"
 }
 
 resource "pagerduty_user" "example" {
-    name  = "Earline Greenholt"
-    email = "125.greenholt.earline@graham.name"
-    teams = ["${pagerduty_team.example.id}"]
+  name  = "Earline Greenholt"
+  email = "125.greenholt.earline@graham.name"
+  teams = ["${pagerduty_team.example.id}"]
 }
 ```
 

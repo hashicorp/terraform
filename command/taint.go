@@ -1,10 +1,12 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -27,6 +29,7 @@ func (c *TaintCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
+	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -66,19 +69,30 @@ func (c *TaintCommand) Run(args []string) int {
 	}
 
 	// Get the state
-	st, err := b.State()
+	env := c.Env()
+	st, err := b.State(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
 	}
+	if err := st.RefreshState(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+		return 1
+	}
 
-	if s, ok := st.(state.Locker); c.Meta.stateLock && ok {
-		if err := s.Lock("taint"); err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to lock state: %s", err))
+	if c.stateLock {
+		lockCtx, cancel := context.WithTimeout(context.Background(), c.stateLockTimeout)
+		defer cancel()
+
+		lockInfo := state.NewLockInfo()
+		lockInfo.Operation = "taint"
+		lockID, err := clistate.Lock(lockCtx, st, lockInfo, c.Ui, c.Colorize())
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
 			return 1
 		}
 
-		defer s.Unlock()
+		defer clistate.Unlock(st, lockID, c.Ui, c.Colorize())
 	}
 
 	// Get the actual state structure
@@ -178,6 +192,8 @@ Options:
                       ".backup" extension. Set to "-" to disable backup.
 
   -lock=true          Lock the state file when locking is supported.
+
+  -lock-timeout=0s    Duration to retry a state lock.
 
   -module=path        The module path where the resource lives. By
                       default this will be root. Child modules can be specified

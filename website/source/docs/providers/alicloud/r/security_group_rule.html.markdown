@@ -8,7 +8,7 @@ description: |-
 
 # alicloud\_security\_group\_rule
 
-Provides a security group rule resource. 
+Provides a security group rule resource.
 Represents a single `ingress` or `egress` group rule, which can be added to external Security Groups.
 
 ~> **NOTE:**  `nic_type` should set to `intranet` when security group type is `vpc`. In this situation it does not distinguish between intranet and internet, the rule is effective on them both.
@@ -24,14 +24,14 @@ resource "alicloud_security_group" "default" {
 }
 
 resource "alicloud_security_group_rule" "allow_all_tcp" {
-  type = "ingress"
-  ip_protocol = "tcp"
-  nic_type = "internet"
-  policy = "accept"
-  port_range = "1/65535"
-  priority = 1
-  security_group_id = "${alicloud_security_group.default.id}"ecs.InstanceAttributesType
-  cidr_ip = "0.0.0.0/0"
+  type              = "ingress"
+  ip_protocol       = "tcp"
+  nic_type          = "internet"
+  policy            = "accept"
+  port_range        = "1/65535"
+  priority          = 1
+  security_group_id = "${alicloud_security_group.default.id}"
+  cidr_ip           = "0.0.0.0/0"
 }
 ```
 

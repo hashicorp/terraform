@@ -13,9 +13,8 @@ For additional details please refer to [API documentation](https://developer.sca
 
 ## Example Usage
 
-```
-resource "scaleway_ip" "test_ip" {
-}
+```hcl
+resource "scaleway_ip" "test_ip" {}
 ```
 
 ## Argument Reference

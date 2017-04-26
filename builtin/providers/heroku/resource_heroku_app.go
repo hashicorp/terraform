@@ -1,11 +1,12 @@
 package heroku
 
 import (
+	"context"
 	"fmt"
 	"log"
 
 	"github.com/cyberdelia/heroku-go/v3"
-	"github.com/hashicorp/go-multierror"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -15,6 +16,7 @@ import (
 type herokuApplication struct {
 	Name             string
 	Region           string
+	Space            string
 	Stack            string
 	GitURL           string
 	WebURL           string
@@ -29,6 +31,7 @@ type application struct {
 	App          *herokuApplication // The heroku application
 	Client       *heroku.Service    // Client to interact with the heroku API
 	Vars         map[string]string  // The vars on the application
+	Buildpacks   []string           // The application's buildpack names or URLs
 	Organization bool               // is the application organization app
 }
 
@@ -38,7 +41,7 @@ func (a *application) Update() error {
 	var err error
 
 	if !a.Organization {
-		app, err := a.Client.AppInfo(a.Id)
+		app, err := a.Client.AppInfo(context.TODO(), a.Id)
 		if err != nil {
 			errs = append(errs, err)
 		} else {
@@ -50,7 +53,7 @@ func (a *application) Update() error {
 			a.App.WebURL = app.WebURL
 		}
 	} else {
-		app, err := a.Client.OrganizationAppInfo(a.Id)
+		app, err := a.Client.OrganizationAppInfo(context.TODO(), a.Id)
 		if err != nil {
 			errs = append(errs, err)
 		} else {
@@ -61,6 +64,9 @@ func (a *application) Update() error {
 			a.App.Stack = app.Stack.Name
 			a.App.GitURL = app.GitURL
 			a.App.WebURL = app.WebURL
+			if app.Space != nil {
+				a.App.Space = app.Space.Name
+			}
 			if app.Organization != nil {
 				a.App.OrganizationName = app.Organization.Name
 			} else {
@@ -68,6 +74,11 @@ func (a *application) Update() error {
 			}
 			a.App.Locked = app.Locked
 		}
+	}
+
+	a.Buildpacks, err = retrieveBuildpacks(a.Id, a.Client)
+	if err != nil {
+		errs = append(errs, err)
 	}
 
 	a.Vars, err = retrieveConfigVars(a.Id, a.Client)
@@ -90,25 +101,39 @@ func resourceHerokuApp() *schema.Resource {
 		Delete: resourceHerokuAppDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"region": &schema.Schema{
+			"space": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"region": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"stack": &schema.Schema{
+			"stack": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"config_vars": &schema.Schema{
+			"buildpacks": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+
+			"config_vars": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Schema{
@@ -116,43 +141,43 @@ func resourceHerokuApp() *schema.Resource {
 				},
 			},
 
-			"all_config_vars": &schema.Schema{
+			"all_config_vars": {
 				Type:     schema.TypeMap,
 				Computed: true,
 			},
 
-			"git_url": &schema.Schema{
+			"git_url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"web_url": &schema.Schema{
+			"web_url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"heroku_hostname": &schema.Schema{
+			"heroku_hostname": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"organization": &schema.Schema{
+			"organization": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"locked": &schema.Schema{
+						"locked": {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
 
-						"personal": &schema.Schema{
+						"personal": {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
@@ -199,7 +224,7 @@ func resourceHerokuAppCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[DEBUG] Creating Heroku app...")
-	a, err := client.AppCreate(opts)
+	a, err := client.AppCreate(context.TODO(), opts)
 	if err != nil {
 		return err
 	}
@@ -212,6 +237,10 @@ func resourceHerokuAppCreate(d *schema.ResourceData, meta interface{}) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if v, ok := d.GetOk("buildpacks"); ok {
+		err = updateBuildpacks(d.Id(), client, v.([]interface{}))
 	}
 
 	return resourceHerokuAppRead(d, meta)
@@ -256,6 +285,11 @@ func resourceHerokuOrgAppCreate(d *schema.ResourceData, meta interface{}) error 
 		log.Printf("[DEBUG] App region: %s", vs)
 		opts.Region = &vs
 	}
+	if v, ok := d.GetOk("space"); ok {
+		vs := v.(string)
+		log.Printf("[DEBUG] App space: %s", vs)
+		opts.Space = &vs
+	}
 	if v, ok := d.GetOk("stack"); ok {
 		vs := v.(string)
 		log.Printf("[DEBUG] App stack: %s", vs)
@@ -263,7 +297,7 @@ func resourceHerokuOrgAppCreate(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	log.Printf("[DEBUG] Creating Heroku app...")
-	a, err := client.OrganizationAppCreate(opts)
+	a, err := client.OrganizationAppCreate(context.TODO(), opts)
 	if err != nil {
 		return err
 	}
@@ -287,10 +321,13 @@ func resourceHerokuAppRead(d *schema.ResourceData, meta interface{}) error {
 	configVars := make(map[string]string)
 	care := make(map[string]struct{})
 	for _, v := range d.Get("config_vars").([]interface{}) {
-		for k, _ := range v.(map[string]interface{}) {
+		for k := range v.(map[string]interface{}) {
 			care[k] = struct{}{}
 		}
 	}
+
+	// Only track buildpacks when set in the configuration.
+	_, buildpacksConfigured := d.GetOk("buildpacks")
 
 	organizationApp := isOrganizationApp(d)
 
@@ -316,9 +353,14 @@ func resourceHerokuAppRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("region", app.App.Region)
 	d.Set("git_url", app.App.GitURL)
 	d.Set("web_url", app.App.WebURL)
+	if buildpacksConfigured {
+		d.Set("buildpacks", app.Buildpacks)
+	}
 	d.Set("config_vars", configVarsValue)
 	d.Set("all_config_vars", app.Vars)
 	if organizationApp {
+		d.Set("space", app.App.Space)
+
 		orgDetails := map[string]interface{}{
 			"name":     app.App.OrganizationName,
 			"locked":   app.App.Locked,
@@ -347,7 +389,7 @@ func resourceHerokuAppUpdate(d *schema.ResourceData, meta interface{}) error {
 			Name: &v,
 		}
 
-		renamedApp, err := client.AppUpdate(d.Id(), opts)
+		renamedApp, err := client.AppUpdate(context.TODO(), d.Id(), opts)
 		if err != nil {
 			return err
 		}
@@ -373,6 +415,13 @@ func resourceHerokuAppUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	if d.HasChange("buildpacks") {
+		err := updateBuildpacks(d.Id(), client, d.Get("buildpacks").([]interface{}))
+		if err != nil {
+			return err
+		}
+	}
+
 	return resourceHerokuAppRead(d, meta)
 }
 
@@ -380,7 +429,7 @@ func resourceHerokuAppDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
 	log.Printf("[INFO] Deleting App: %s", d.Id())
-	err := client.AppDelete(d.Id())
+	_, err := client.AppDelete(context.TODO(), d.Id())
 	if err != nil {
 		return fmt.Errorf("Error deleting App: %s", err)
 	}
@@ -401,14 +450,36 @@ func resourceHerokuAppRetrieve(id string, organization bool, client *heroku.Serv
 	return &app, nil
 }
 
-func retrieveConfigVars(id string, client *heroku.Service) (map[string]string, error) {
-	vars, err := client.ConfigVarInfo(id)
+func retrieveBuildpacks(id string, client *heroku.Service) ([]string, error) {
+	results, err := client.BuildpackInstallationList(context.TODO(), id, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return vars, nil
+	buildpacks := []string{}
+	for _, installation := range results {
+		buildpacks = append(buildpacks, installation.Buildpack.Name)
+	}
+
+	return buildpacks, nil
+}
+
+func retrieveConfigVars(id string, client *heroku.Service) (map[string]string, error) {
+	vars, err := client.ConfigVarInfoForApp(context.TODO(), id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	nonNullVars := map[string]string{}
+	for k, v := range vars {
+		if v != nil {
+			nonNullVars[k] = *v
+		}
+	}
+
+	return nonNullVars, nil
 }
 
 // Updates the config vars for from an expanded configuration.
@@ -421,7 +492,7 @@ func updateConfigVars(
 
 	for _, v := range o {
 		if v != nil {
-			for k, _ := range v.(map[string]interface{}) {
+			for k := range v.(map[string]interface{}) {
 				vars[k] = nil
 			}
 		}
@@ -436,8 +507,29 @@ func updateConfigVars(
 	}
 
 	log.Printf("[INFO] Updating config vars: *%#v", vars)
-	if _, err := client.ConfigVarUpdate(id, vars); err != nil {
+	if _, err := client.ConfigVarUpdate(context.TODO(), id, vars); err != nil {
 		return fmt.Errorf("Error updating config vars: %s", err)
+	}
+
+	return nil
+}
+
+func updateBuildpacks(id string, client *heroku.Service, v []interface{}) error {
+	opts := heroku.BuildpackInstallationUpdateOpts{
+		Updates: []struct {
+			Buildpack string `json:"buildpack" url:"buildpack,key"`
+		}{}}
+
+	for _, buildpack := range v {
+		opts.Updates = append(opts.Updates, struct {
+			Buildpack string `json:"buildpack" url:"buildpack,key"`
+		}{
+			Buildpack: buildpack.(string),
+		})
+	}
+
+	if _, err := client.BuildpackInstallationUpdate(context.TODO(), id, opts); err != nil {
+		return fmt.Errorf("Error updating buildpacks: %s", err)
 	}
 
 	return nil

@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -23,10 +24,19 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"identifier": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"identifier_prefix"},
+				ValidateFunc:  validateRdsIdentifier,
+			},
+			"identifier_prefix": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				ForceNew:     true,
-				ValidateFunc: validateRdsId,
+				ValidateFunc: validateRdsIdentifierPrefix,
 			},
 
 			"db_subnet_group_name": {
@@ -105,6 +115,27 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
 				Computed: true,
 			},
 
+			"preferred_maintenance_window": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				StateFunc: func(v interface{}) string {
+					if v != nil {
+						value := v.(string)
+						return strings.ToLower(value)
+					}
+					return ""
+				},
+				ValidateFunc: validateOnceAWeekWindowFormat,
+			},
+
+			"preferred_backup_window": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateOnceADayWindowFormat,
+			},
+
 			"monitoring_interval": {
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -140,10 +171,14 @@ func resourceAwsRDSClusterInstanceCreate(d *schema.ResourceData, meta interface{
 		createOpts.DBParameterGroupName = aws.String(attr.(string))
 	}
 
-	if v := d.Get("identifier").(string); v != "" {
-		createOpts.DBInstanceIdentifier = aws.String(v)
+	if v, ok := d.GetOk("identifier"); ok {
+		createOpts.DBInstanceIdentifier = aws.String(v.(string))
 	} else {
-		createOpts.DBInstanceIdentifier = aws.String(resource.UniqueId())
+		if v, ok := d.GetOk("identifier_prefix"); ok {
+			createOpts.DBInstanceIdentifier = aws.String(resource.PrefixedUniqueId(v.(string)))
+		} else {
+			createOpts.DBInstanceIdentifier = aws.String(resource.PrefixedUniqueId("tf-"))
+		}
 	}
 
 	if attr, ok := d.GetOk("db_subnet_group_name"); ok {
@@ -152,6 +187,14 @@ func resourceAwsRDSClusterInstanceCreate(d *schema.ResourceData, meta interface{
 
 	if attr, ok := d.GetOk("monitoring_role_arn"); ok {
 		createOpts.MonitoringRoleArn = aws.String(attr.(string))
+	}
+
+	if attr, ok := d.GetOk("preferred_backup_window"); ok {
+		createOpts.PreferredBackupWindow = aws.String(attr.(string))
+	}
+
+	if attr, ok := d.GetOk("preferred_maintenance_window"); ok {
+		createOpts.PreferredMaintenanceWindow = aws.String(attr.(string))
 	}
 
 	if attr, ok := d.GetOk("monitoring_interval"); ok {
@@ -239,6 +282,8 @@ func resourceAwsRDSClusterInstanceRead(d *schema.ResourceData, meta interface{})
 	d.Set("kms_key_id", db.KmsKeyId)
 	d.Set("auto_minor_version_upgrade", db.AutoMinorVersionUpgrade)
 	d.Set("promotion_tier", db.PromotionTier)
+	d.Set("preferred_backup_window", db.PreferredBackupWindow)
+	d.Set("preferred_maintenance_window", db.PreferredMaintenanceWindow)
 
 	if db.MonitoringInterval != nil {
 		d.Set("monitoring_interval", db.MonitoringInterval)
@@ -287,6 +332,18 @@ func resourceAwsRDSClusterInstanceUpdate(d *schema.ResourceData, meta interface{
 	if d.HasChange("monitoring_role_arn") {
 		d.SetPartial("monitoring_role_arn")
 		req.MonitoringRoleArn = aws.String(d.Get("monitoring_role_arn").(string))
+		requestUpdate = true
+	}
+
+	if d.HasChange("preferred_backup_window") {
+		d.SetPartial("preferred_backup_window")
+		req.PreferredBackupWindow = aws.String(d.Get("preferred_backup_window").(string))
+		requestUpdate = true
+	}
+
+	if d.HasChange("preferred_maintenance_window") {
+		d.SetPartial("preferred_maintenance_window")
+		req.PreferredMaintenanceWindow = aws.String(d.Get("preferred_maintenance_window").(string))
 		requestUpdate = true
 	}
 

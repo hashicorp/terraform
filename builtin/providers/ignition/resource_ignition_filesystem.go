@@ -9,8 +9,6 @@ import (
 
 func resourceFilesystem() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceFilesystemCreate,
-		Delete: resourceFilesystemDelete,
 		Exists: resourceFilesystemExists,
 		Read:   resourceFilesystemRead,
 		Schema: map[string]*schema.Schema{
@@ -36,6 +34,11 @@ func resourceFilesystem() *schema.Resource {
 							Required: true,
 							ForceNew: true,
 						},
+						"create": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: true,
+						},
 						"force": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
@@ -59,8 +62,8 @@ func resourceFilesystem() *schema.Resource {
 	}
 }
 
-func resourceFilesystemCreate(d *schema.ResourceData, meta interface{}) error {
-	id, err := buildFilesystem(d, meta.(*cache))
+func resourceFilesystemRead(d *schema.ResourceData, meta interface{}) error {
+	id, err := buildFilesystem(d, globalCache)
 	if err != nil {
 		return err
 	}
@@ -69,22 +72,13 @@ func resourceFilesystemCreate(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceFilesystemDelete(d *schema.ResourceData, meta interface{}) error {
-	d.SetId("")
-	return nil
-}
-
 func resourceFilesystemExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	id, err := buildFilesystem(d, meta.(*cache))
+	id, err := buildFilesystem(d, globalCache)
 	if err != nil {
 		return false, err
 	}
 
 	return id == d.Id(), nil
-}
-
-func resourceFilesystemRead(d *schema.ResourceData, meta interface{}) error {
-	return nil
 }
 
 func buildFilesystem(d *schema.ResourceData, c *cache) (string, error) {
@@ -95,13 +89,18 @@ func buildFilesystem(d *schema.ResourceData, c *cache) (string, error) {
 			Format: types.FilesystemFormat(d.Get("mount.0.format").(string)),
 		}
 
+		create, hasCreate := d.GetOk("mount.0.create")
 		force, hasForce := d.GetOk("mount.0.force")
 		options, hasOptions := d.GetOk("mount.0.options")
-		if hasOptions || hasForce {
+		if hasCreate || hasOptions || hasForce {
 			mount.Create = &types.FilesystemCreate{
 				Force:   force.(bool),
 				Options: castSliceInterface(options.([]interface{})),
 			}
+		}
+
+		if !create.(bool) && (hasForce || hasOptions) {
+			return "", fmt.Errorf("create should be true when force or options is used")
 		}
 	}
 

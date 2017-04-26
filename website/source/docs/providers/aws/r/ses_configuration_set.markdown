@@ -12,9 +12,9 @@ Provides an SES configuration set resource
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_ses_configuration_set" "test" {
-    name = "some-configuration-set-test"
+  name = "some-configuration-set-test"
 }
 ```
 

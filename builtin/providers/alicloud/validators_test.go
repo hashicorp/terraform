@@ -21,17 +21,17 @@ func TestValidateInstancePort(t *testing.T) {
 }
 
 func TestValidateInstanceProtocol(t *testing.T) {
-	validProtocals := []string{"http", "tcp", "https", "udp"}
-	for _, v := range validProtocals {
-		_, errors := validateInstanceProtocol(v, "instance_protocal")
+	validProtocols := []string{"http", "tcp", "https", "udp"}
+	for _, v := range validProtocols {
+		_, errors := validateInstanceProtocol(v, "instance_protocol")
 		if len(errors) != 0 {
 			t.Fatalf("%q should be a valid instance protocol: %q", v, errors)
 		}
 	}
 
-	invalidProtocals := []string{"HTTP", "abc", "ecmp", "dubbo"}
-	for _, v := range invalidProtocals {
-		_, errors := validateInstanceProtocol(v, "instance_protocal")
+	invalidProtocols := []string{"HTTP", "abc", "ecmp", "dubbo"}
+	for _, v := range invalidProtocols {
+		_, errors := validateInstanceProtocol(v, "instance_protocol")
 		if len(errors) == 0 {
 			t.Fatalf("%q should be an invalid instance protocol", v)
 		}
@@ -353,7 +353,7 @@ func TestValidateInternetMaxBandWidthOut(t *testing.T) {
 		}
 	}
 
-	invalidInternetMaxBandWidthOut := []int{-2, 0, 101, 123}
+	invalidInternetMaxBandWidthOut := []int{-2, 101, 123}
 	for _, v := range invalidInternetMaxBandWidthOut {
 		_, errors := validateInternetMaxBandWidthOut(v, "internet_max_bandwidth_out")
 		if len(errors) == 0 {
@@ -424,6 +424,79 @@ func TestValidateSlbListenerBandwidth(t *testing.T) {
 		_, errors := validateSlbListenerBandwidth(v, "slb_bandwidth")
 		if len(errors) == 0 {
 			t.Fatalf("%q should be an invalid slb listener bandwidth value", v)
+		}
+	}
+}
+
+func TestValidateAllowedStringValue(t *testing.T) {
+	exceptValues := []string{"aliyun", "alicloud", "alibaba"}
+	validValues := []string{"aliyun"}
+	for _, v := range validValues {
+		_, errors := validateAllowedStringValue(exceptValues)(v, "allowvalue")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid value in %#v: %q", v, exceptValues, errors)
+		}
+	}
+
+	invalidValues := []string{"ali", "alidata", "terraform"}
+	for _, v := range invalidValues {
+		_, errors := validateAllowedStringValue(exceptValues)(v, "allowvalue")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid value", v)
+		}
+	}
+}
+
+func TestValidateAllowedStringSplitValue(t *testing.T) {
+	exceptValues := []string{"aliyun", "alicloud", "alibaba"}
+	validValues := "aliyun,alicloud"
+	_, errors := validateAllowedSplitStringValue(exceptValues, ",")(validValues, "allowvalue")
+	if len(errors) != 0 {
+		t.Fatalf("%q should be a valid value in %#v: %q", validValues, exceptValues, errors)
+	}
+
+	invalidValues := "ali,alidata"
+	_, invalidErr := validateAllowedSplitStringValue(exceptValues, ",")(invalidValues, "allowvalue")
+	if len(invalidErr) == 0 {
+		t.Fatalf("%q should be an invalid value", invalidValues)
+	}
+}
+
+func TestValidateAllowedIntValue(t *testing.T) {
+	exceptValues := []int{1, 3, 5, 6}
+	validValues := []int{1, 3, 5, 6}
+	for _, v := range validValues {
+		_, errors := validateAllowedIntValue(exceptValues)(v, "allowvalue")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid value in %#v: %q", v, exceptValues, errors)
+		}
+	}
+
+	invalidValues := []int{0, 7, 10}
+	for _, v := range invalidValues {
+		_, errors := validateAllowedIntValue(exceptValues)(v, "allowvalue")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid value", v)
+		}
+	}
+}
+
+func TestValidateIntegerInRange(t *testing.T) {
+	validIntegers := []int{-259, 0, 1, 5, 999}
+	min := -259
+	max := 999
+	for _, v := range validIntegers {
+		_, errors := validateIntegerInRange(min, max)(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be an integer in range (%d, %d): %q", v, min, max, errors)
+		}
+	}
+
+	invalidIntegers := []int{-260, -99999, 1000, 25678}
+	for _, v := range invalidIntegers {
+		_, errors := validateIntegerInRange(min, max)(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an integer outside range (%d, %d)", v, min, max)
 		}
 	}
 }

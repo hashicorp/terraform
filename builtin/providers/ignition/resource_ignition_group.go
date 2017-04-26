@@ -7,8 +7,6 @@ import (
 
 func resourceGroup() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGroupCreate,
-		Delete: resourceGroupDelete,
 		Exists: resourceGroupExists,
 		Read:   resourceGroupRead,
 		Schema: map[string]*schema.Schema{
@@ -31,8 +29,8 @@ func resourceGroup() *schema.Resource {
 	}
 }
 
-func resourceGroupCreate(d *schema.ResourceData, meta interface{}) error {
-	id, err := buildGroup(d, meta.(*cache))
+func resourceGroupRead(d *schema.ResourceData, meta interface{}) error {
+	id, err := buildGroup(d, globalCache)
 	if err != nil {
 		return err
 	}
@@ -41,22 +39,13 @@ func resourceGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	d.SetId("")
-	return nil
-}
-
 func resourceGroupExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	id, err := buildGroup(d, meta.(*cache))
+	id, err := buildGroup(d, globalCache)
 	if err != nil {
 		return false, err
 	}
 
 	return id == d.Id(), nil
-}
-
-func resourceGroupRead(d *schema.ResourceData, meta interface{}) error {
-	return nil
 }
 
 func buildGroup(d *schema.ResourceData, c *cache) (string, error) {

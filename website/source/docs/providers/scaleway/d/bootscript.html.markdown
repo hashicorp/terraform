@@ -13,10 +13,10 @@ Use this data source to get the ID of a registered Bootscript for use with the
 
 ## Example Usage
 
-```
+```hcl
 data "scaleway_bootscript" "debug" {
   architecture = "arm"
-  name_filter = "Rescue"
+  name_filter  = "Rescue"
 }
 ```
 

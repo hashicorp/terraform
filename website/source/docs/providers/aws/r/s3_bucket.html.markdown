@@ -14,30 +14,31 @@ Provides a S3 bucket resource.
 
 ### Private Bucket w/ Tags
 
-```
+```hcl
 resource "aws_s3_bucket" "b" {
-    bucket = "my_tf_test_bucket"
-    acl = "private"
+  bucket = "my_tf_test_bucket"
+  acl    = "private"
 
-    tags {
-        Name = "My bucket"
-        Environment = "Dev"
-    }
+  tags {
+    Name        = "My bucket"
+    Environment = "Dev"
+  }
 }
 ```
 
 ### Static Website Hosting
 
-```
+```hcl
 resource "aws_s3_bucket" "b" {
-    bucket = "s3-website-test.hashicorp.com"
-    acl = "public-read"
-    policy = "${file("policy.json")}"
+  bucket = "s3-website-test.hashicorp.com"
+  acl    = "public-read"
+  policy = "${file("policy.json")}"
 
-    website {
-        index_document = "index.html"
-        error_document = "error.html"
-        routing_rules = <<EOF
+  website {
+    index_document = "index.html"
+    error_document = "error.html"
+
+    routing_rules = <<EOF
 [{
     "Condition": {
         "KeyPrefixEquals": "docs/"
@@ -47,122 +48,130 @@ resource "aws_s3_bucket" "b" {
     }
 }]
 EOF
-    }
+  }
 }
 ```
 
 ### Using CORS
 
-```
+```hcl
 resource "aws_s3_bucket" "b" {
-    bucket = "s3-website-test.hashicorp.com"
-    acl = "public-read"
+  bucket = "s3-website-test.hashicorp.com"
+  acl    = "public-read"
 
-    cors_rule {
-        allowed_headers = ["*"]
-        allowed_methods = ["PUT","POST"]
-        allowed_origins = ["https://s3-website-test.hashicorp.com"]
-        expose_headers = ["ETag"]
-        max_age_seconds = 3000
-    }
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["PUT", "POST"]
+    allowed_origins = ["https://s3-website-test.hashicorp.com"]
+    expose_headers  = ["ETag"]
+    max_age_seconds = 3000
+  }
 }
 ```
 
 ### Using versioning
 
-```
+```hcl
 resource "aws_s3_bucket" "b" {
-    bucket = "my_tf_test_bucket"
-    acl = "private"
-    versioning {
-        enabled = true
-    }
+  bucket = "my_tf_test_bucket"
+  acl    = "private"
+
+  versioning {
+    enabled = true
+  }
 }
 ```
 
 ### Enable Logging
 
-```
+```hcl
 resource "aws_s3_bucket" "log_bucket" {
-   bucket = "my_tf_log_bucket"
-   acl = "log-delivery-write"
+  bucket = "my_tf_log_bucket"
+  acl    = "log-delivery-write"
 }
+
 resource "aws_s3_bucket" "b" {
-   bucket = "my_tf_test_bucket"
-   acl = "private"
-   logging {
-	   target_bucket = "${aws_s3_bucket.log_bucket.id}"
-	   target_prefix = "log/"
-   }
+  bucket = "my_tf_test_bucket"
+  acl    = "private"
+
+  logging {
+    target_bucket = "${aws_s3_bucket.log_bucket.id}"
+    target_prefix = "log/"
+  }
 }
 ```
 
 ### Using object lifecycle
 
-```
+```hcl
 resource "aws_s3_bucket" "bucket" {
-	bucket = "my-bucket"
-	acl = "private"
+  bucket = "my-bucket"
+  acl    = "private"
 
-	lifecycle_rule {
-		id = "log"
-		prefix = "log/"
-		enabled = true
+  lifecycle_rule {
+    id      = "log"
+    prefix  = "log/"
+    enabled = true
 
-		transition {
-			days = 30
-			storage_class = "STANDARD_IA"
-		}
-		transition {
-			days = 60
-			storage_class = "GLACIER"
-		}
-		expiration {
-			days = 90
-		}
-	}
+    transition {
+      days          = 30
+      storage_class = "STANDARD_IA"
+    }
 
-	lifecycle_rule {
-		id = "tmp"
-		prefix = "tmp/"
-		enabled = true
+    transition {
+      days          = 60
+      storage_class = "GLACIER"
+    }
 
-		expiration {
-			date = "2016-01-12"
-		}
-	}
+    expiration {
+      days = 90
+    }
+  }
+
+  lifecycle_rule {
+    id      = "tmp"
+    prefix  = "tmp/"
+    enabled = true
+
+    expiration {
+      date = "2016-01-12"
+    }
+  }
 }
 
 resource "aws_s3_bucket" "versioning_bucket" {
-	bucket = "my-versioning-bucket"
-	acl = "private"
-	versioning {
-	  enabled = false
-	}
-	lifecycle_rule {
-		prefix = "config/"
-		enabled = true
+  bucket = "my-versioning-bucket"
+  acl    = "private"
 
-		noncurrent_version_transition {
-			days = 30
-			storage_class = "STANDARD_IA"
-		}
-		noncurrent_version_transition {
-			days = 60
-			storage_class = "GLACIER"
-		}
-		noncurrent_version_expiration {
-			days = 90
-		}
-	}
+  versioning {
+    enabled = true
+  }
+
+  lifecycle_rule {
+    prefix  = "config/"
+    enabled = true
+
+    noncurrent_version_transition {
+      days          = 30
+      storage_class = "STANDARD_IA"
+    }
+
+    noncurrent_version_transition {
+      days          = 60
+      storage_class = "GLACIER"
+    }
+
+    noncurrent_version_expiration {
+      days = 90
+    }
+  }
 }
 ```
 
 ### Using replication configuration
 
-```
+```hcl
 provider "aws" {
-  alias  = "west"
   region = "eu-west-1"
 }
 
@@ -172,7 +181,8 @@ provider "aws" {
 }
 
 resource "aws_iam_role" "replication" {
-  name               = "tf-iam-role-replication-12345"
+  name = "tf-iam-role-replication-12345"
+
   assume_role_policy = <<POLICY
 {
   "Version": "2012-10-17",
@@ -191,8 +201,9 @@ POLICY
 }
 
 resource "aws_iam_policy" "replication" {
-    name = "tf-iam-role-policy-replication-12345"
-    policy = <<POLICY
+  name = "tf-iam-role-policy-replication-12345"
+
+  policy = <<POLICY
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -230,53 +241,53 @@ POLICY
 }
 
 resource "aws_iam_policy_attachment" "replication" {
-    name = "tf-iam-role-attachment-replication-12345"
-    roles = ["${aws_iam_role.replication.name}"]
-    policy_arn = "${aws_iam_policy.replication.arn}"
+  name       = "tf-iam-role-attachment-replication-12345"
+  roles      = ["${aws_iam_role.replication.name}"]
+  policy_arn = "${aws_iam_policy.replication.arn}"
 }
 
 resource "aws_s3_bucket" "destination" {
-    provider = "aws.west"
-    bucket   = "tf-test-bucket-destination-12345"
-    region   = "eu-west-1"
+  bucket   = "tf-test-bucket-destination-12345"
+  region   = "eu-west-1"
 
-    versioning {
-        enabled = true
-    }
+  versioning {
+    enabled = true
+  }
 }
 
 resource "aws_s3_bucket" "bucket" {
-    provider = "aws.central"
-    bucket   = "tf-test-bucket-12345"
-    acl      = "private"
-    region   = "eu-central-1"
+  provider = "aws.central"
+  bucket   = "tf-test-bucket-12345"
+  acl      = "private"
+  region   = "eu-central-1"
 
-    versioning {
-        enabled = true
+  versioning {
+    enabled = true
+  }
+
+  replication_configuration {
+    role = "${aws_iam_role.replication.arn}"
+
+    rules {
+      id     = "foobar"
+      prefix = "foo"
+      status = "Enabled"
+
+      destination {
+        bucket        = "${aws_s3_bucket.destination.arn}"
+        storage_class = "STANDARD"
+      }
     }
-
-    replication_configuration {
-        role = "${aws_iam_role.replication.arn}"
-        rules {
-            id     = "foobar"
-            prefix = "foo"
-            status = "Enabled"
-
-            destination {
-                bucket        = "${aws_s3_bucket.destination.arn}"
-                storage_class = "STANDARD"
-            }
-        }
-    }
+  }
 }
-
 ```
 
 ## Argument Reference
 
 The following arguments are supported:
 
-* `bucket` - (Required) The name of the bucket.
+* `bucket` - (Optional, Forces new resource) The name of the bucket. If omitted, Terraform will assign a random, unique name.
+* `bucket_prefix` - (Optional, Forces new resource) Creates a unique bucket name beginning with the specified prefix. Conflicts with `name`.
 * `acl` - (Optional) The [canned ACL](https://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl) to apply. Defaults to "private".
 * `policy` - (Optional) A valid [bucket policy](https://docs.aws.amazon.com/AmazonS3/latest/dev/example-bucket-policies.html) JSON document. Note that if the policy document is not specific enough (but still valid), Terraform may view the policy as constantly changing in a `terraform plan`. In this case, please make sure you use the verbose/specific version of the policy.
 

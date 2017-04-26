@@ -15,18 +15,18 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the Bitbucket Provider
 provider "bitbucket" {
-    username = "GobBluthe"
-    password = "idoillusions" # you can also use app passwords
+  username = "GobBluthe"
+  password = "idoillusions" # you can also use app passwords
 }
 
 resource "bitbucket_repository" "illusions" {
-    owner = "theleagueofmagicians"
-    name = "illusions"
-    scm = "hg"
-    is_private = true
+  owner      = "theleagueofmagicians"
+  name       = "illusions"
+  scm        = "hg"
+  is_private = true
 }
 ```
 

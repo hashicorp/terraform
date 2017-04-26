@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 
@@ -277,7 +279,7 @@ func TestStateDeepCopy(t *testing.T) {
 						Resources: map[string]*ResourceState{
 							"test_instance.foo": &ResourceState{
 								Primary: &InstanceState{
-									Meta: map[string]string{},
+									Meta: map[string]interface{}{},
 								},
 							},
 						},
@@ -297,7 +299,7 @@ func TestStateDeepCopy(t *testing.T) {
 						Resources: map[string]*ResourceState{
 							"test_instance.foo": &ResourceState{
 								Primary: &InstanceState{
-									Meta: map[string]string{},
+									Meta: map[string]interface{}{},
 								},
 								Deposed: []*InstanceState{
 									{ID: "test"},
@@ -324,17 +326,20 @@ func TestStateDeepCopy(t *testing.T) {
 
 func TestStateEqual(t *testing.T) {
 	cases := []struct {
+		Name     string
 		Result   bool
 		One, Two *State
 	}{
 		// Nils
 		{
+			"one nil",
 			false,
 			nil,
 			&State{Version: 2},
 		},
 
 		{
+			"both nil",
 			true,
 			nil,
 			nil,
@@ -342,6 +347,7 @@ func TestStateEqual(t *testing.T) {
 
 		// Different versions
 		{
+			"different state versions",
 			false,
 			&State{Version: 5},
 			&State{Version: 2},
@@ -349,6 +355,7 @@ func TestStateEqual(t *testing.T) {
 
 		// Different modules
 		{
+			"different module states",
 			false,
 			&State{
 				Modules: []*ModuleState{
@@ -361,6 +368,7 @@ func TestStateEqual(t *testing.T) {
 		},
 
 		{
+			"same module states",
 			true,
 			&State{
 				Modules: []*ModuleState{
@@ -380,6 +388,7 @@ func TestStateEqual(t *testing.T) {
 
 		// Meta differs
 		{
+			"differing meta values with primitives",
 			false,
 			&State{
 				Modules: []*ModuleState{
@@ -388,7 +397,7 @@ func TestStateEqual(t *testing.T) {
 						Resources: map[string]*ResourceState{
 							"test_instance.foo": &ResourceState{
 								Primary: &InstanceState{
-									Meta: map[string]string{
+									Meta: map[string]interface{}{
 										"schema_version": "1",
 									},
 								},
@@ -404,8 +413,52 @@ func TestStateEqual(t *testing.T) {
 						Resources: map[string]*ResourceState{
 							"test_instance.foo": &ResourceState{
 								Primary: &InstanceState{
-									Meta: map[string]string{
+									Meta: map[string]interface{}{
 										"schema_version": "2",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+
+		// Meta with complex types
+		{
+			"same meta with complex types",
+			true,
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: rootModulePath,
+						Resources: map[string]*ResourceState{
+							"test_instance.foo": &ResourceState{
+								Primary: &InstanceState{
+									Meta: map[string]interface{}{
+										"timeouts": map[string]interface{}{
+											"create": 42,
+											"read":   "27",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: rootModulePath,
+						Resources: map[string]*ResourceState{
+							"test_instance.foo": &ResourceState{
+								Primary: &InstanceState{
+									Meta: map[string]interface{}{
+										"timeouts": map[string]interface{}{
+											"create": 42,
+											"read":   "27",
+										},
 									},
 								},
 							},
@@ -417,12 +470,14 @@ func TestStateEqual(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		if tc.One.Equal(tc.Two) != tc.Result {
-			t.Fatalf("Bad: %d\n\n%s\n\n%s", i, tc.One.String(), tc.Two.String())
-		}
-		if tc.Two.Equal(tc.One) != tc.Result {
-			t.Fatalf("Bad: %d\n\n%s\n\n%s", i, tc.One.String(), tc.Two.String())
-		}
+		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
+			if tc.One.Equal(tc.Two) != tc.Result {
+				t.Fatalf("Bad: %d\n\n%s\n\n%s", i, tc.One.String(), tc.Two.String())
+			}
+			if tc.Two.Equal(tc.One) != tc.Result {
+				t.Fatalf("Bad: %d\n\n%s\n\n%s", i, tc.One.String(), tc.Two.String())
+			}
+		})
 	}
 }
 
@@ -609,7 +664,7 @@ func TestStateIncrementSerialMaybe(t *testing.T) {
 						Resources: map[string]*ResourceState{
 							"test_instance.foo": &ResourceState{
 								Primary: &InstanceState{
-									Meta: map[string]string{},
+									Meta: map[string]interface{}{},
 								},
 							},
 						},
@@ -624,7 +679,7 @@ func TestStateIncrementSerialMaybe(t *testing.T) {
 						Resources: map[string]*ResourceState{
 							"test_instance.foo": &ResourceState{
 								Primary: &InstanceState{
-									Meta: map[string]string{
+									Meta: map[string]interface{}{
 										"schema_version": "1",
 									},
 								},
@@ -1395,49 +1450,28 @@ func TestInstanceState_MergeDiff(t *testing.T) {
 	}
 }
 
-// Make sure we don't leave empty maps or arrays in the flatmapped Attributes,
-// since those may affect the counts of a parent structure.
-func TestInstanceState_MergeDiffRemoveCounts(t *testing.T) {
-	is := InstanceState{
-		ID: "foo",
-		Attributes: map[string]string{
-			"all.#":        "3",
-			"all.1111":     "x",
-			"all.1234.#":   "1",
-			"all.1234.0":   "a",
-			"all.5678.%":   "1",
-			"all.5678.key": "val",
-
-			// nested empty lists need to be removed cleanly
-			"all.nested.#":         "0",
-			"all.nested.0.empty.#": "0",
-			"all.nested.1.empty.#": "0",
-
-			// the value has a prefix that matches another key
-			// and ntohing should happen to this.
-			"all.nested_value": "y",
-		},
-	}
+// GH-12183. This tests that a list with a computed set generates the
+// right partial state. This never failed but is put here for completion
+// of the test case for GH-12183.
+func TestInstanceState_MergeDiff_computedSet(t *testing.T) {
+	is := InstanceState{}
 
 	diff := &InstanceDiff{
 		Attributes: map[string]*ResourceAttrDiff{
-			"all.#": &ResourceAttrDiff{
-				Old: "3",
-				New: "1",
+			"config.#": &ResourceAttrDiff{
+				Old:         "0",
+				New:         "1",
+				RequiresNew: true,
 			},
-			"all.1234.0": &ResourceAttrDiff{
-				NewRemoved: true,
+
+			"config.0.name": &ResourceAttrDiff{
+				Old: "",
+				New: "hello",
 			},
-			"all.1234.#": &ResourceAttrDiff{
-				Old: "1",
-				New: "0",
-			},
-			"all.5678.key": &ResourceAttrDiff{
-				NewRemoved: true,
-			},
-			"all.5678.%": &ResourceAttrDiff{
-				Old: "1",
-				New: "0",
+
+			"config.0.rules.#": &ResourceAttrDiff{
+				Old:         "",
+				NewComputed: true,
 			},
 		},
 	}
@@ -1445,9 +1479,9 @@ func TestInstanceState_MergeDiffRemoveCounts(t *testing.T) {
 	is2 := is.MergeDiff(diff)
 
 	expected := map[string]string{
-		"all.#":            "1",
-		"all.1111":         "x",
-		"all.nested_value": "y",
+		"config.#":         "1",
+		"config.0.name":    "hello",
+		"config.0.rules.#": config.UnknownVariableValue,
 	}
 
 	if !reflect.DeepEqual(expected, is2.Attributes) {
@@ -1574,6 +1608,20 @@ func TestReadStateNewVersion(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "does not support state version") {
 		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestReadStateEmptyOrNilFile(t *testing.T) {
+	var emptyState bytes.Buffer
+	_, err := ReadState(&emptyState)
+	if err != ErrNoState {
+		t.Fatal("expected ErrNostate, got", err)
+	}
+
+	var nilFile *os.File
+	_, err = ReadState(nilFile)
+	if err != ErrNoState {
+		t.Fatal("expected ErrNostate, got", err)
 	}
 }
 
@@ -1787,5 +1835,95 @@ func TestReadState_prune(t *testing.T) {
 
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("got:\n%#v", actual)
+	}
+}
+
+func TestReadState_pruneDependencies(t *testing.T) {
+	state := &State{
+		Serial:  9,
+		Lineage: "5d1ad1a1-4027-4665-a908-dbe6adff11d8",
+		Remote: &RemoteState{
+			Type: "http",
+			Config: map[string]string{
+				"url": "http://my-cool-server.com/",
+			},
+		},
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Dependencies: []string{
+					"aws_instance.bar",
+					"aws_instance.bar",
+				},
+				Resources: map[string]*ResourceState{
+					"foo": &ResourceState{
+						Dependencies: []string{
+							"aws_instance.baz",
+							"aws_instance.baz",
+						},
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+	state.init()
+
+	buf := new(bytes.Buffer)
+	if err := WriteState(state, buf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual, err := ReadState(buf)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// make sure the duplicate Dependencies are filtered
+	modDeps := actual.Modules[0].Dependencies
+	resourceDeps := actual.Modules[0].Resources["foo"].Dependencies
+
+	if len(modDeps) > 1 || modDeps[0] != "aws_instance.bar" {
+		t.Fatalf("expected 1 module depends_on entry, got %q", modDeps)
+	}
+
+	if len(resourceDeps) > 1 || resourceDeps[0] != "aws_instance.baz" {
+		t.Fatalf("expected 1 resource depends_on entry, got  %q", resourceDeps)
+	}
+}
+
+func TestResourceNameSort(t *testing.T) {
+	names := []string{
+		"a",
+		"b",
+		"a.0",
+		"a.c",
+		"a.d",
+		"c",
+		"a.b.0",
+		"a.b.1",
+		"a.b.10",
+		"a.b.2",
+	}
+
+	sort.Sort(resourceNameSort(names))
+
+	expected := []string{
+		"a",
+		"a.0",
+		"a.b.0",
+		"a.b.1",
+		"a.b.2",
+		"a.b.10",
+		"a.c",
+		"a.d",
+		"b",
+		"c",
+	}
+
+	if !reflect.DeepEqual(names, expected) {
+		t.Fatalf("got: %q\nexpected: %q\n", names, expected)
 	}
 }

@@ -9,16 +9,16 @@ import (
 
 func TestIngnitionRaid(t *testing.T) {
 	testIgnition(t, `
-		resource "ignition_raid" "foo" {
+		data "ignition_raid" "foo" {
 			name = "foo"
 			level = "raid10"
 			devices = ["/foo"]
 			spares = 42
 		}
-		
-		resource "ignition_config" "test" {
+
+		data "ignition_config" "test" {
 			arrays = [
-				"${ignition_raid.foo.id}",
+				"${data.ignition_raid.foo.id}",
 			]
 		}
 	`, func(c *types.Config) error {

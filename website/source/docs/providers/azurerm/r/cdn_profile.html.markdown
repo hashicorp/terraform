@@ -12,22 +12,22 @@ Create a CDN Profile to create a collection of CDN Endpoints.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
-    name = "resourceGroup1"
-    location = "West US"
+  name     = "resourceGroup1"
+  location = "West US"
 }
 
 resource "azurerm_cdn_profile" "test" {
-    name = "acceptanceTestCdnProfile1"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    sku = "Standard_Verizon"
+  name                = "acceptanceTestCdnProfile1"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  sku                 = "Standard_Verizon"
 
-    tags {
-    	environment = "Production"
-    	cost_center = "MSFT"
-    }
+  tags {
+    environment = "Production"
+    cost_center = "MSFT"
+  }
 }
 ```
 
@@ -57,6 +57,6 @@ The following attributes are exported:
 
 CDN Profiles can be imported using the `resource id`, e.g.
 
-```
+```hcl
 terraform import azurerm_cdn_profile.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Cdn/profiles/myprofile1
 ```

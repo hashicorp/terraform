@@ -39,6 +39,10 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-input=true` - Ask for input for variables if not directly set.
 
+* `-lock=true` - Lock the state file when locking is supported.
+
+* `-lock-timeout=0s` - Duration to retry a state lock.
+
 * `-module-depth=n` - Specifies the depth of modules to show in the output.
   This does not affect the plan itself, only the output shown. By default,
   this is -1, which will expand all.
@@ -56,7 +60,7 @@ The command-line flags are all optional. The list of available flags are:
 * `-refresh=true` - Update the state prior to checking for differences.
 
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
-  Ignored when [remote state](/docs/state/remote/index.html) is used.
+  Ignored when [remote state](/docs/state/remote.html) is used.
 
 * `-target=resource` - A [Resource
   Address](/docs/internals/resource-addressing.html) to target. Operation will

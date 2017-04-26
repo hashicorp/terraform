@@ -12,11 +12,11 @@ Provides a NS1 DNS Zone resource. This can be used to create, modify, and delete
 
 ## Example Usage
 
-```
+```hcl
 # Create a new DNS zone
 resource "ns1_zone" "example" {
-    zone = "terraform.example.io"
-    ttl = 600
+  zone = "terraform.example.io"
+  ttl  = 600
 }
 ```
 

@@ -6,7 +6,7 @@ description: |-
   Creates a VPC.
 ---
 
-# cloudstack\_vpc
+# cloudstack_vpc
 
 Creates a VPC.
 
@@ -14,12 +14,12 @@ Creates a VPC.
 
 Basic usage:
 
-```
+```hcl
 resource "cloudstack_vpc" "default" {
-    name = "test-vpc"
-    cidr = "10.0.0.0/16"
-    vpc_offering = "Default VPC Offering"
-    zone = "zone-1"
+  name         = "test-vpc"
+  cidr         = "10.0.0.0/16"
+  vpc_offering = "Default VPC Offering"
+  zone         = "zone-1"
 }
 ```
 

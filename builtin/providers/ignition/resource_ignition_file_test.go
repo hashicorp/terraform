@@ -9,7 +9,7 @@ import (
 
 func TestIngnitionFile(t *testing.T) {
 	testIgnition(t, `
-		resource "ignition_file" "foo" {
+		data "ignition_file" "foo" {
 			filesystem = "foo"
 			path = "/foo"
 			content {
@@ -19,8 +19,8 @@ func TestIngnitionFile(t *testing.T) {
 			uid = 42
 			gid = 84
 		}
-		
-		resource "ignition_file" "qux" {
+
+		data "ignition_file" "qux" {
 			filesystem = "qux"
 			path = "/qux"
 			source {
@@ -30,10 +30,10 @@ func TestIngnitionFile(t *testing.T) {
 			}
 		}
 
-		resource "ignition_config" "test" {
+		data "ignition_config" "test" {
 			files = [
-				"${ignition_file.foo.id}",
-				"${ignition_file.qux.id}",
+				"${data.ignition_file.foo.id}",
+				"${data.ignition_file.qux.id}",
 			]
 		}
 	`, func(c *types.Config) error {

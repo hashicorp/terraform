@@ -10,7 +10,7 @@ Provides a DB event subscription resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_db_instance" "default" {
   allocated_storage    = 10
   engine               = "mysql"
@@ -28,11 +28,12 @@ resource "aws_sns_topic" "default" {
 }
 
 resource "aws_db_event_subscription" "default" {
-  name = "rds-event-sub"
+  name      = "rds-event-sub"
   sns_topic = "${aws_sns_topic.default.arn}"
-  
+
   source_type = "db-instance"
-  source_ids = [ "${aws_db_instance.default.id}" ]
+  source_ids  = ["${aws_db_instance.default.id}"]
+
   event_categories = [
     "availability",
     "deletion",
@@ -43,7 +44,7 @@ resource "aws_db_event_subscription" "default" {
     "notification",
     "read replica",
     "recovery",
-    "restoration"
+    "restoration",
   ]
 }
 ```

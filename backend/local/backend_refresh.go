@@ -3,11 +3,14 @@ package local
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
+	"strings"
 
 	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/state"
 )
 
@@ -20,25 +23,24 @@ func (b *Local) opRefresh(
 	if b.Backend == nil {
 		if _, err := os.Stat(b.StatePath); err != nil {
 			if os.IsNotExist(err) {
-				runningOp.Err = fmt.Errorf(
-					"The Terraform state file for your infrastructure does not\n"+
-						"exist. The 'refresh' command only works and only makes sense\n"+
-						"when there is existing state that Terraform is managing. Please\n"+
-						"double-check the value given below and try again. If you\n"+
-						"haven't created infrastructure with Terraform yet, use the\n"+
-						"'terraform apply' command.\n\n"+
-						"Path: %s",
-					b.StatePath)
-				return
+				err = nil
 			}
 
-			runningOp.Err = fmt.Errorf(
-				"There was an error reading the Terraform state that is needed\n"+
-					"for refreshing. The path and error are shown below.\n\n"+
-					"Path: %s\n\nError: %s",
-				b.StatePath, err)
-			return
+			if err != nil {
+				runningOp.Err = fmt.Errorf(
+					"There was an error reading the Terraform state that is needed\n"+
+						"for refreshing. The path and error are shown below.\n\n"+
+						"Path: %s\n\nError: %s",
+					b.StatePath, err)
+				return
+			}
 		}
+	}
+
+	// If we have no config module given to use, create an empty tree to
+	// avoid crashes when Terraform.Context is initialized.
+	if op.Module == nil {
+		op.Module = module.NewEmptyTree()
 	}
 
 	// Get our context
@@ -48,18 +50,33 @@ func (b *Local) opRefresh(
 		return
 	}
 
-	// context acquired the state, and therefor the lock.
-	// Unlock it when the operation is complete
-	defer func() {
-		if s, ok := opState.(state.Locker); op.LockState && ok {
-			if err := s.Unlock(); err != nil {
-				log.Printf("[ERROR]: %s", err)
-			}
+	if op.LockState {
+		lockCtx, cancel := context.WithTimeout(ctx, op.StateLockTimeout)
+		defer cancel()
+
+		lockInfo := state.NewLockInfo()
+		lockInfo.Operation = op.Type.String()
+		lockID, err := clistate.Lock(lockCtx, opState, lockInfo, b.CLI, b.Colorize())
+		if err != nil {
+			runningOp.Err = errwrap.Wrapf("Error locking state: {{err}}", err)
+			return
 		}
-	}()
+
+		defer func() {
+			if err := clistate.Unlock(opState, lockID, b.CLI, b.Colorize()); err != nil {
+				runningOp.Err = multierror.Append(runningOp.Err, err)
+			}
+		}()
+	}
 
 	// Set our state
 	runningOp.State = opState.State()
+	if runningOp.State.Empty() || !runningOp.State.HasResources() {
+		if b.CLI != nil {
+			b.CLI.Output(b.Colorize().Color(
+				strings.TrimSpace(refreshNoState) + "\n"))
+		}
+	}
 
 	// Perform operation and write the resulting state to the running op
 	newState, err := tfCtx.Refresh()
@@ -79,3 +96,11 @@ func (b *Local) opRefresh(
 		return
 	}
 }
+
+const refreshNoState = `
+[reset][bold][yellow]Empty or non-existent state file.[reset][yellow]
+
+Refresh will do nothing. Refresh does not error or return an erroneous
+exit status because many automation scripts use refresh, plan, then apply
+and may not have a state file yet for the first run.
+`

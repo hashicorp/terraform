@@ -20,6 +20,11 @@ func resourceLoadBalancerV2() *schema.Resource {
 		Update: resourceLoadBalancerV2Update,
 		Delete: resourceLoadBalancerV2Delete,
 
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(20 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
 				Type:        schema.TypeString,
@@ -76,6 +81,14 @@ func resourceLoadBalancerV2() *schema.Resource {
 			},
 
 			"provider": &schema.Schema{
+				Type:       schema.TypeString,
+				Optional:   true,
+				Computed:   true,
+				ForceNew:   true,
+				Deprecated: "Please use loadbalancer_provider",
+			},
+
+			"loadbalancer_provider": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -85,6 +98,7 @@ func resourceLoadBalancerV2() *schema.Resource {
 			"security_group_ids": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
+				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
@@ -99,6 +113,11 @@ func resourceLoadBalancerV2Create(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
+	var lbProvider string
+	if v, ok := d.GetOk("loadbalancer_provider"); ok {
+		lbProvider = v.(string)
+	}
+
 	adminStateUp := d.Get("admin_state_up").(bool)
 	createOpts := loadbalancers.CreateOpts{
 		Name:         d.Get("name").(string),
@@ -108,7 +127,7 @@ func resourceLoadBalancerV2Create(d *schema.ResourceData, meta interface{}) erro
 		VipAddress:   d.Get("vip_address").(string),
 		AdminStateUp: &adminStateUp,
 		Flavor:       d.Get("flavor").(string),
-		Provider:     d.Get("provider").(string),
+		Provider:     lbProvider,
 	}
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
@@ -124,7 +143,7 @@ func resourceLoadBalancerV2Create(d *schema.ResourceData, meta interface{}) erro
 		Pending:    []string{"PENDING_CREATE"},
 		Target:     []string{"ACTIVE"},
 		Refresh:    waitForLoadBalancerActive(networkingClient, lb.ID),
-		Timeout:    20 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutCreate),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -168,7 +187,7 @@ func resourceLoadBalancerV2Read(d *schema.ResourceData, meta interface{}) error 
 	d.Set("vip_port_id", lb.VipPortID)
 	d.Set("admin_state_up", lb.AdminStateUp)
 	d.Set("flavor", lb.Flavor)
-	d.Set("provider", lb.Provider)
+	d.Set("loadbalancer_provider", lb.Provider)
 
 	// Get any security groups on the VIP Port
 	if lb.VipPortID != "" {
@@ -231,7 +250,7 @@ func resourceLoadBalancerV2Delete(d *schema.ResourceData, meta interface{}) erro
 		Pending:    []string{"ACTIVE", "PENDING_DELETE"},
 		Target:     []string{"DELETED"},
 		Refresh:    waitForLoadBalancerDelete(networkingClient, d.Id()),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}

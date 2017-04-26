@@ -33,7 +33,7 @@ type actionsRoot struct {
 }
 
 type actionRoot struct {
-	Event Action `json:"action"`
+	Event *Action `json:"action"`
 }
 
 // Action represents a DigitalOcean Action
@@ -92,7 +92,7 @@ func (s *ActionsServiceOp) Get(id int) (*Action, *Response, error) {
 		return nil, resp, err
 	}
 
-	return &root.Event, resp, err
+	return root.Event, resp, err
 }
 
 func (a Action) String() string {

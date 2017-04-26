@@ -58,6 +58,22 @@ func resourceAwsLambdaFunction() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"dead_letter_config": {
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				MinItems: 0,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"target_arn": {
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validateArn,
+						},
+					},
+				},
+			},
 			"function_name": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -79,7 +95,6 @@ func resourceAwsLambdaFunction() *schema.Resource {
 			"runtime": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ForceNew:     true,
 				ValidateFunc: validateRuntime,
 			},
 			"timeout": {
@@ -131,6 +146,10 @@ func resourceAwsLambdaFunction() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"invoke_arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"last_modified": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -160,6 +179,8 @@ func resourceAwsLambdaFunction() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validateArn,
 			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -222,6 +243,16 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 		Publish:      aws.Bool(d.Get("publish").(bool)),
 	}
 
+	if v, ok := d.GetOk("dead_letter_config"); ok {
+		dlcMaps := v.([]interface{})
+		if len(dlcMaps) == 1 { // Schema guarantees either 0 or 1
+			dlcMap := dlcMaps[0].(map[string]interface{})
+			params.DeadLetterConfig = &lambda.DeadLetterConfig{
+				TargetArn: aws.String(dlcMap["target_arn"].(string)),
+			}
+		}
+	}
+
 	if v, ok := d.GetOk("vpc_config"); ok {
 		config, err := validateVPCConfig(v)
 		if err != nil {
@@ -266,20 +297,23 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 		params.KMSKeyArn = aws.String(v.(string))
 	}
 
+	if v, exists := d.GetOk("tags"); exists {
+		params.Tags = tagsFromMapGeneric(v.(map[string]interface{}))
+	}
+
 	// IAM profiles can take ~10 seconds to propagate in AWS:
 	// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
 	// Error creating Lambda function: InvalidParameterValueException: The role defined for the task cannot be assumed by Lambda.
 	err := resource.Retry(10*time.Minute, func() *resource.RetryError {
 		_, err := conn.CreateFunction(params)
 		if err != nil {
-			log.Printf("[ERROR] Received %q, retrying CreateFunction", err)
-			if awserr, ok := err.(awserr.Error); ok {
-				if awserr.Code() == "InvalidParameterValueException" {
-					log.Printf("[DEBUG] InvalidParameterValueException creating Lambda Function: %s", awserr)
-					return resource.RetryableError(awserr)
-				}
-			}
 			log.Printf("[DEBUG] Error creating Lambda Function: %s", err)
+
+			if isAWSErr(err, "InvalidParameterValueException", "The role defined for the function cannot be assumed by Lambda") {
+				log.Printf("[DEBUG] Received %s, retrying CreateFunction", err)
+				return resource.RetryableError(err)
+			}
+
 			return resource.NonRetryableError(err)
 		}
 		return nil
@@ -329,6 +363,7 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("runtime", function.Runtime)
 	d.Set("timeout", function.Timeout)
 	d.Set("kms_key_arn", function.KMSKeyArn)
+	d.Set("tags", tagsToMapGeneric(getFunctionOutput.Tags))
 
 	config := flattenLambdaVpcConfigResponse(function.VpcConfig)
 	log.Printf("[INFO] Setting Lambda %s VPC config %#v from API", d.Id(), config)
@@ -343,6 +378,16 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 		log.Printf("[ERR] Error setting environment for Lambda Function (%s): %s", d.Id(), err)
 	}
 
+	if function.DeadLetterConfig != nil && function.DeadLetterConfig.TargetArn != nil {
+		d.Set("dead_letter_config", []interface{}{
+			map[string]interface{}{
+				"target_arn": *function.DeadLetterConfig.TargetArn,
+			},
+		})
+	} else {
+		d.Set("dead_letter_config", []interface{}{})
+	}
+
 	// List is sorted from oldest to latest
 	// so this may get costly over time :'(
 	var lastVersion, lastQualifiedArn string
@@ -354,9 +399,9 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 			last := p.Versions[len(p.Versions)-1]
 			lastVersion = *last.Version
 			lastQualifiedArn = *last.FunctionArn
-			return true
+			return false
 		}
-		return false
+		return true
 	})
 	if err != nil {
 		return err
@@ -364,6 +409,8 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 
 	d.Set("version", lastVersion)
 	d.Set("qualified_arn", lastQualifiedArn)
+
+	d.Set("invoke_arn", buildLambdaInvokeArn(*function.FunctionArn, meta.(*AWSClient).region))
 
 	return nil
 }
@@ -381,6 +428,7 @@ func listVersionsByFunctionPages(c *lambda.Lambda, input *lambda.ListVersionsByF
 		if !shouldContinue || lastPage {
 			break
 		}
+		input.Marker = page.NextMarker
 	}
 	return nil
 }
@@ -412,6 +460,12 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 	conn := meta.(*AWSClient).lambdaconn
 
 	d.Partial(true)
+
+	arn := d.Get("arn").(string)
+	if tagErr := setTagsLambda(conn, d, arn); tagErr != nil {
+		return tagErr
+	}
+	d.SetPartial("tags")
 
 	if d.HasChange("filename") || d.HasChange("source_code_hash") || d.HasChange("s3_bucket") || d.HasChange("s3_key") || d.HasChange("s3_object_version") {
 		codeReq := &lambda.UpdateFunctionCodeInput{
@@ -483,6 +537,20 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 	}
 	if d.HasChange("kms_key_arn") {
 		configReq.KMSKeyArn = aws.String(d.Get("kms_key_arn").(string))
+		configUpdate = true
+	}
+	if d.HasChange("dead_letter_config") {
+		dlcMaps := d.Get("dead_letter_config").([]interface{})
+		if len(dlcMaps) == 1 { // Schema guarantees either 0 or 1
+			dlcMap := dlcMaps[0].(map[string]interface{})
+			configReq.DeadLetterConfig = &lambda.DeadLetterConfig{
+				TargetArn: aws.String(dlcMap["target_arn"].(string)),
+			}
+			configUpdate = true
+		}
+	}
+	if d.HasChange("runtime") {
+		configReq.Runtime = aws.String(d.Get("runtime").(string))
 		configUpdate = true
 	}
 	if d.HasChange("environment") {

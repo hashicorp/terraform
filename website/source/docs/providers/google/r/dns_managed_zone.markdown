@@ -12,7 +12,7 @@ Manages a zone within Google Cloud DNS.
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_dns_managed_zone" "prod" {
   name        = "prod-zone"
   dns_name    = "prod.mydomain.com."

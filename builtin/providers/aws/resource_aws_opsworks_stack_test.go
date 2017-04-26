@@ -25,7 +25,7 @@ func TestAccAWSOpsworksStackNoVpc(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAwsOpsworksStackDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksStackConfigNoVpcCreate(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSOpsworksStackExists(
@@ -36,10 +36,33 @@ func TestAccAWSOpsworksStackNoVpc(t *testing.T) {
 						"us-east-1a", stackName),
 				),
 			},
-			// resource.TestStep{
-			// 	Config: testAccAWSOpsworksStackConfigNoVpcUpdate(stackName),
-			// 	Check:  testAccAwsOpsworksStackCheckResourceAttrsUpdate("us-east-1c", stackName),
-			// },
+		},
+	})
+}
+
+func TestAccAWSOpsworksStackNoVpcChangeServiceRoleForceNew(t *testing.T) {
+	stackName := fmt.Sprintf("tf-opsworks-acc-%d", acctest.RandInt())
+	var before, after opsworks.Stack
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAwsOpsworksStackDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAwsOpsworksStackConfigNoVpcCreate(stackName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSOpsworksStackExists(
+						"aws_opsworks_stack.tf-acc", false, &before),
+				),
+			},
+			{
+				Config: testAccAwsOpsworksStackConfigNoVpcCreateUpdateServiceRole(stackName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSOpsworksStackExists(
+						"aws_opsworks_stack.tf-acc", false, &after),
+					testAccCheckAWSOpsworksStackRecreated(t, &before, &after),
+				),
+			},
 		},
 	})
 }
@@ -52,7 +75,7 @@ func TestAccAWSOpsworksStackVpc(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAwsOpsworksStackDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksStackConfigVpcCreate(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSOpsworksStackExists(
@@ -63,7 +86,7 @@ func TestAccAWSOpsworksStackVpc(t *testing.T) {
 						"us-west-2a", stackName),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSOpsworksStackConfigVpcUpdate(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSOpsworksStackExists(
@@ -76,6 +99,215 @@ func TestAccAWSOpsworksStackVpc(t *testing.T) {
 			},
 		},
 	})
+}
+
+// Tests the addition of regional endpoints and supporting the classic link used
+// to create Stack's prior to v0.9.0.
+// See https://github.com/hashicorp/terraform/issues/12842
+func TestAccAWSOpsWorksStack_classic_endpoints(t *testing.T) {
+	stackName := fmt.Sprintf("tf-opsworks-acc-%d", acctest.RandInt())
+	rInt := acctest.RandInt()
+	var opsstack opsworks.Stack
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAwsOpsworksStackDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAwsOpsWorksStack_classic_endpoint(stackName, rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSOpsworksStackExists(
+						"aws_opsworks_stack.main", false, &opsstack),
+				),
+			},
+			// Ensure that changing to us-west-2 region results in no plan
+			{
+				Config:   testAccAwsOpsWorksStack_regional_endpoint(stackName, rInt),
+				PlanOnly: true,
+			},
+		},
+	})
+
+}
+
+func testAccCheckAWSOpsworksStackRecreated(t *testing.T,
+	before, after *opsworks.Stack) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if *before.StackId == *after.StackId {
+			t.Fatalf("Expected change of Opsworks StackIds, but both were %v", before.StackId)
+		}
+		return nil
+	}
+}
+
+func testAccAwsOpsWorksStack_classic_endpoint(rName string, rInt int) string {
+	return fmt.Sprintf(`
+provider "aws" {
+  region = "us-east-1"
+}
+
+resource "aws_opsworks_stack" "main" {
+  name                         = "%s"
+  region = "us-west-2"
+  service_role_arn             = "${aws_iam_role.opsworks_service.arn}"
+  default_instance_profile_arn = "${aws_iam_instance_profile.opsworks_instance.arn}"
+
+  configuration_manager_version = "12"
+  default_availability_zone = "us-west-2b"
+}
+
+resource "aws_iam_role" "opsworks_service" {
+  name = "tf_opsworks_service_%d"
+
+  assume_role_policy = <<EOT
+{
+  "Version": "2008-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "opsworks.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOT
+}
+
+resource "aws_iam_role_policy" "opsworks_service" {
+  name = "tf_opsworks_service_%d"
+  role = "${aws_iam_role.opsworks_service.id}"
+
+  policy = <<EOT
+{
+  "Statement": [
+    {
+      "Action": [
+        "ec2:*",
+        "iam:PassRole",
+        "cloudwatch:GetMetricStatistics",
+        "elasticloadbalancing:*",
+        "rds:*"
+      ],
+      "Effect": "Allow",
+      "Resource": ["*"]
+    }
+  ]
+}
+EOT
+}
+
+resource "aws_iam_role" "opsworks_instance" {
+  name = "tf_opsworks_instance_%d"
+
+  assume_role_policy = <<EOT
+{
+  "Version": "2008-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOT
+}
+
+resource "aws_iam_instance_profile" "opsworks_instance" {
+  name  = "%s_profile"
+  roles = ["${aws_iam_role.opsworks_instance.name}"]
+}`, rName, rInt, rInt, rInt, rName)
+}
+
+func testAccAwsOpsWorksStack_regional_endpoint(rName string, rInt int) string {
+	return fmt.Sprintf(`
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_opsworks_stack" "main" {
+  name                         = "%s"
+  region = "us-west-2"
+  service_role_arn             = "${aws_iam_role.opsworks_service.arn}"
+  default_instance_profile_arn = "${aws_iam_instance_profile.opsworks_instance.arn}"
+
+  configuration_manager_version = "12"
+  default_availability_zone = "us-west-2b"
+}
+
+resource "aws_iam_role" "opsworks_service" {
+  name = "tf_opsworks_service_%d"
+
+  assume_role_policy = <<EOT
+{
+  "Version": "2008-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "opsworks.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOT
+}
+
+resource "aws_iam_role_policy" "opsworks_service" {
+  name = "tf_opsworks_service_%d"
+  role = "${aws_iam_role.opsworks_service.id}"
+
+  policy = <<EOT
+{
+  "Statement": [
+    {
+      "Action": [
+        "ec2:*",
+        "iam:PassRole",
+        "cloudwatch:GetMetricStatistics",
+        "elasticloadbalancing:*",
+        "rds:*"
+      ],
+      "Effect": "Allow",
+      "Resource": ["*"]
+    }
+  ]
+}
+EOT
+}
+
+resource "aws_iam_role" "opsworks_instance" {
+  name = "tf_opsworks_instance_%d"
+
+  assume_role_policy = <<EOT
+{
+  "Version": "2008-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOT
+}
+
+resource "aws_iam_instance_profile" "opsworks_instance" {
+  name  = "%s_profile"
+  roles = ["${aws_iam_role.opsworks_instance.name}"]
+}`, rName, rInt, rInt, rInt, rName)
 }
 
 ////////////////////////////
@@ -97,7 +329,7 @@ func testAccAwsOpsworksStackCheckResourceAttrsCreate(zone, stackName string) res
 		resource.TestCheckResourceAttr(
 			"aws_opsworks_stack.tf-acc",
 			"default_os",
-			"Amazon Linux 2014.09",
+			"Amazon Linux 2016.09",
 		),
 		resource.TestCheckResourceAttr(
 			"aws_opsworks_stack.tf-acc",
@@ -137,7 +369,7 @@ func testAccAwsOpsworksStackCheckResourceAttrsUpdate(zone, stackName string) res
 		resource.TestCheckResourceAttr(
 			"aws_opsworks_stack.tf-acc",
 			"default_os",
-			"Amazon Linux 2014.09",
+			"Amazon Linux 2015.09",
 		),
 		resource.TestCheckResourceAttr(
 			"aws_opsworks_stack.tf-acc",
@@ -240,7 +472,7 @@ func testAccCheckAWSOpsworksCreateStackAttributes(
 			return fmt.Errorf("Unnexpected DefaultAvailabilityZone: %s", *opsstack.DefaultAvailabilityZone)
 		}
 
-		if *opsstack.DefaultOs != "Amazon Linux 2014.09" {
+		if *opsstack.DefaultOs != "Amazon Linux 2016.09" {
 			return fmt.Errorf("Unnexpected stackName: %s", *opsstack.DefaultOs)
 		}
 
@@ -275,7 +507,7 @@ func testAccCheckAWSOpsworksUpdateStackAttributes(
 			return fmt.Errorf("Unnexpected DefaultAvailabilityZone: %s", *opsstack.DefaultAvailabilityZone)
 		}
 
-		if *opsstack.DefaultOs != "Amazon Linux 2014.09" {
+		if *opsstack.DefaultOs != "Amazon Linux 2015.09" {
 			return fmt.Errorf("Unnexpected stackName: %s", *opsstack.DefaultOs)
 		}
 
@@ -348,13 +580,16 @@ func testAccCheckAwsOpsworksStackDestroy(s *terraform.State) error {
 
 func testAccAwsOpsworksStackConfigNoVpcCreate(name string) string {
 	return fmt.Sprintf(`
+provider "aws" {
+  region = "us-east-1"
+}
 resource "aws_opsworks_stack" "tf-acc" {
   name = "%s"
   region = "us-east-1"
   service_role_arn = "${aws_iam_role.opsworks_service.arn}"
   default_instance_profile_arn = "${aws_iam_instance_profile.opsworks_instance.arn}"
   default_availability_zone = "us-east-1a"
-  default_os = "Amazon Linux 2014.09"
+  default_os = "Amazon Linux 2016.09"
   default_root_device_type = "ebs"
   custom_json = "{\"key\": \"value\"}"
   configuration_manager_version = "11.10"
@@ -427,28 +662,24 @@ resource "aws_iam_instance_profile" "opsworks_instance" {
 }`, name, name, name, name, name)
 }
 
-func testAccAWSOpsworksStackConfigNoVpcUpdate(name string) string {
+func testAccAwsOpsworksStackConfigNoVpcCreateUpdateServiceRole(name string) string {
 	return fmt.Sprintf(`
+provider "aws" {
+  region = "us-east-1"
+}
 resource "aws_opsworks_stack" "tf-acc" {
   name = "%s"
   region = "us-east-1"
-  service_role_arn = "${aws_iam_role.opsworks_service.arn}"
+  service_role_arn = "${aws_iam_role.opsworks_service_new.arn}"
   default_instance_profile_arn = "${aws_iam_instance_profile.opsworks_instance.arn}"
   default_availability_zone = "us-east-1a"
-  default_os = "Amazon Linux 2014.09"
+  default_os = "Amazon Linux 2016.09"
   default_root_device_type = "ebs"
   custom_json = "{\"key\": \"value\"}"
   configuration_manager_version = "11.10"
   use_opsworks_security_groups = false
-  use_custom_cookbooks = true
-  manage_berkshelf = true
-  custom_cookbooks_source {
-    type = "git"
-    revision = "master"
-    url = "https://github.com/aws/opsworks-example-cookbooks.git"
-    username = "example"
-    password = "example"
-  }
+}
+
 resource "aws_iam_role" "opsworks_service" {
     name = "%s_opsworks_service"
     assume_role_policy = <<EOT
@@ -462,6 +693,47 @@ resource "aws_iam_role" "opsworks_service" {
         "Service": "opsworks.amazonaws.com"
       },
       "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOT
+}
+
+resource "aws_iam_role" "opsworks_service_new" {
+    name = "%s_opsworks_service_new"
+    assume_role_policy = <<EOT
+{
+  "Version": "2008-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "opsworks.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOT
+}
+
+resource "aws_iam_role_policy" "opsworks_service_new" {
+    name = "%s_opsworks_service_new"
+    role = "${aws_iam_role.opsworks_service_new.id}"
+    policy = <<EOT
+{
+  "Statement": [
+    {
+      "Action": [
+        "ec2:*",
+        "iam:PassRole",
+        "cloudwatch:*",
+        "elasticloadbalancing:*",
+        "rds:*"
+      ],
+      "Effect": "Allow",
+      "Resource": ["*"]
     }
   ]
 }
@@ -512,8 +784,7 @@ EOT
 resource "aws_iam_instance_profile" "opsworks_instance" {
     name = "%s_opsworks_instance"
     roles = ["${aws_iam_role.opsworks_instance.name}"]
-}
-`, name, name, name, name, name)
+}`, name, name, name, name, name, name, name)
 }
 
 ////////////////////////////
@@ -537,7 +808,7 @@ resource "aws_opsworks_stack" "tf-acc" {
   default_subnet_id = "${aws_subnet.tf-acc.id}"
   service_role_arn = "${aws_iam_role.opsworks_service.arn}"
   default_instance_profile_arn = "${aws_iam_instance_profile.opsworks_instance.arn}"
-  default_os = "Amazon Linux 2014.09"
+  default_os = "Amazon Linux 2016.09"
   default_root_device_type = "ebs"
   custom_json = "{\"key\": \"value\"}"
   configuration_manager_version = "11.10"
@@ -628,7 +899,7 @@ resource "aws_opsworks_stack" "tf-acc" {
   default_subnet_id = "${aws_subnet.tf-acc.id}"
   service_role_arn = "${aws_iam_role.opsworks_service.arn}"
   default_instance_profile_arn = "${aws_iam_instance_profile.opsworks_instance.arn}"
-  default_os = "Amazon Linux 2014.09"
+  default_os = "Amazon Linux 2015.09"
   default_root_device_type = "ebs"
   custom_json = "{\"key\": \"value\"}"
   configuration_manager_version = "11.10"

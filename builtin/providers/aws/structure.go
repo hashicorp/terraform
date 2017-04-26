@@ -14,6 +14,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/cognitoidentity"
+	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -213,6 +215,12 @@ func expandIPPerms(
 			list := raw.([]interface{})
 			for _, v := range list {
 				perm.IpRanges = append(perm.IpRanges, &ec2.IpRange{CidrIp: aws.String(v.(string))})
+			}
+		}
+		if raw, ok := m["ipv6_cidr_blocks"]; ok {
+			list := raw.([]interface{})
+			for _, v := range list {
+				perm.Ipv6Ranges = append(perm.Ipv6Ranges, &ec2.Ipv6Range{CidrIpv6: aws.String(v.(string))})
 			}
 		}
 
@@ -926,6 +934,52 @@ func expandESEBSOptions(m map[string]interface{}) *elasticsearch.EBSOptions {
 	return &options
 }
 
+func expandConfigRecordingGroup(configured []interface{}) *configservice.RecordingGroup {
+	recordingGroup := configservice.RecordingGroup{}
+	group := configured[0].(map[string]interface{})
+
+	if v, ok := group["all_supported"]; ok {
+		recordingGroup.AllSupported = aws.Bool(v.(bool))
+	}
+
+	if v, ok := group["include_global_resource_types"]; ok {
+		recordingGroup.IncludeGlobalResourceTypes = aws.Bool(v.(bool))
+	}
+
+	if v, ok := group["resource_types"]; ok {
+		recordingGroup.ResourceTypes = expandStringList(v.(*schema.Set).List())
+	}
+	return &recordingGroup
+}
+
+func flattenConfigRecordingGroup(g *configservice.RecordingGroup) []map[string]interface{} {
+	m := make(map[string]interface{}, 1)
+
+	if g.AllSupported != nil {
+		m["all_supported"] = *g.AllSupported
+	}
+
+	if g.IncludeGlobalResourceTypes != nil {
+		m["include_global_resource_types"] = *g.IncludeGlobalResourceTypes
+	}
+
+	if g.ResourceTypes != nil && len(g.ResourceTypes) > 0 {
+		m["resource_types"] = schema.NewSet(schema.HashString, flattenStringList(g.ResourceTypes))
+	}
+
+	return []map[string]interface{}{m}
+}
+
+func flattenConfigSnapshotDeliveryProperties(p *configservice.ConfigSnapshotDeliveryProperties) []map[string]interface{} {
+	m := make(map[string]interface{}, 0)
+
+	if p.DeliveryFrequency != nil {
+		m["delivery_frequency"] = *p.DeliveryFrequency
+	}
+
+	return []map[string]interface{}{m}
+}
+
 func pointersMapToStringList(pointers map[string]*string) map[string]interface{} {
 	list := make(map[string]interface{}, len(pointers))
 	for i, v := range pointers {
@@ -1437,6 +1491,22 @@ func sortInterfaceSlice(in []interface{}) []interface{} {
 	return b
 }
 
+// This function sorts List A to look like a list found in the tf file.
+func sortListBasedonTFFile(in []string, d *schema.ResourceData, listName string) ([]string, error) {
+	if attributeCount, ok := d.Get(listName + ".#").(int); ok {
+		for i := 0; i < attributeCount; i++ {
+			currAttributeId := d.Get(listName + "." + strconv.Itoa(i))
+			for j := 0; j < len(in); j++ {
+				if currAttributeId == in[j] {
+					in[i], in[j] = in[j], in[i]
+				}
+			}
+		}
+		return in, nil
+	}
+	return in, fmt.Errorf("Could not find list: %s", listName)
+}
+
 func flattenApiGatewayThrottleSettings(settings *apigateway.ThrottleSettings) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, 1)
 
@@ -1630,6 +1700,116 @@ func flattenPolicyAttributes(list []*elb.PolicyAttributeDescription) []interface
 	return attributes
 }
 
+func flattenConfigRuleSource(source *configservice.Source) []interface{} {
+	var result []interface{}
+	m := make(map[string]interface{})
+	m["owner"] = *source.Owner
+	m["source_identifier"] = *source.SourceIdentifier
+	if len(source.SourceDetails) > 0 {
+		m["source_detail"] = schema.NewSet(configRuleSourceDetailsHash, flattenConfigRuleSourceDetails(source.SourceDetails))
+	}
+	result = append(result, m)
+	return result
+}
+
+func flattenConfigRuleSourceDetails(details []*configservice.SourceDetail) []interface{} {
+	var items []interface{}
+	for _, d := range details {
+		m := make(map[string]interface{})
+		if d.MessageType != nil {
+			m["message_type"] = *d.MessageType
+		}
+		if d.EventSource != nil {
+			m["event_source"] = *d.EventSource
+		}
+		if d.MaximumExecutionFrequency != nil {
+			m["maximum_execution_frequency"] = *d.MaximumExecutionFrequency
+		}
+
+		items = append(items, m)
+	}
+
+	return items
+}
+
+func expandConfigRuleSource(configured []interface{}) *configservice.Source {
+	cfg := configured[0].(map[string]interface{})
+	source := configservice.Source{
+		Owner:            aws.String(cfg["owner"].(string)),
+		SourceIdentifier: aws.String(cfg["source_identifier"].(string)),
+	}
+	if details, ok := cfg["source_detail"]; ok {
+		source.SourceDetails = expandConfigRuleSourceDetails(details.(*schema.Set))
+	}
+	return &source
+}
+
+func expandConfigRuleSourceDetails(configured *schema.Set) []*configservice.SourceDetail {
+	var results []*configservice.SourceDetail
+
+	for _, item := range configured.List() {
+		detail := item.(map[string]interface{})
+		src := configservice.SourceDetail{}
+
+		if msgType, ok := detail["message_type"].(string); ok && msgType != "" {
+			src.MessageType = aws.String(msgType)
+		}
+		if eventSource, ok := detail["event_source"].(string); ok && eventSource != "" {
+			src.EventSource = aws.String(eventSource)
+		}
+		if maxExecFreq, ok := detail["maximum_execution_frequency"].(string); ok && maxExecFreq != "" {
+			src.MaximumExecutionFrequency = aws.String(maxExecFreq)
+		}
+
+		results = append(results, &src)
+	}
+
+	return results
+}
+
+func flattenConfigRuleScope(scope *configservice.Scope) []interface{} {
+	var items []interface{}
+
+	m := make(map[string]interface{})
+	if scope.ComplianceResourceId != nil {
+		m["compliance_resource_id"] = *scope.ComplianceResourceId
+	}
+	if scope.ComplianceResourceTypes != nil {
+		m["compliance_resource_types"] = schema.NewSet(schema.HashString, flattenStringList(scope.ComplianceResourceTypes))
+	}
+	if scope.TagKey != nil {
+		m["tag_key"] = *scope.TagKey
+	}
+	if scope.TagValue != nil {
+		m["tag_value"] = *scope.TagValue
+	}
+
+	items = append(items, m)
+	return items
+}
+
+func expandConfigRuleScope(configured map[string]interface{}) *configservice.Scope {
+	scope := &configservice.Scope{}
+
+	if v, ok := configured["compliance_resource_id"].(string); ok && v != "" {
+		scope.ComplianceResourceId = aws.String(v)
+	}
+	if v, ok := configured["compliance_resource_types"]; ok {
+		l := v.(*schema.Set)
+		if l.Len() > 0 {
+			scope.ComplianceResourceTypes = expandStringList(l.List())
+		}
+	}
+	if v, ok := configured["tag_key"].(string); ok && v != "" {
+		scope.TagKey = aws.String(v)
+	}
+	if v, ok := configured["tag_value"].(string); ok && v != "" {
+		scope.TagValue = aws.String(v)
+	}
+
+	return scope
+}
+
 // Takes a value containing JSON string and passes it through
 // the JSON parser to normalize it, returns either a parsing
 // error or normalized JSON string.
@@ -1685,4 +1865,165 @@ func flattenInspectorTags(cfTags []*cloudformation.Tag) map[string]string {
 		tags[*t.Key] = *t.Value
 	}
 	return tags
+}
+
+func flattenApiGatewayUsageApiStages(s []*apigateway.ApiStage) []map[string]interface{} {
+	stages := make([]map[string]interface{}, 0)
+
+	for _, bd := range s {
+		if bd.ApiId != nil && bd.Stage != nil {
+			stage := make(map[string]interface{})
+			stage["api_id"] = *bd.ApiId
+			stage["stage"] = *bd.Stage
+
+			stages = append(stages, stage)
+		}
+	}
+
+	if len(stages) > 0 {
+		return stages
+	}
+
+	return nil
+}
+
+func flattenApiGatewayUsagePlanThrottling(s *apigateway.ThrottleSettings) []map[string]interface{} {
+	settings := make(map[string]interface{}, 0)
+
+	if s == nil {
+		return nil
+	}
+
+	if s.BurstLimit != nil {
+		settings["burst_limit"] = *s.BurstLimit
+	}
+
+	if s.RateLimit != nil {
+		settings["rate_limit"] = *s.RateLimit
+	}
+
+	return []map[string]interface{}{settings}
+}
+
+func flattenApiGatewayUsagePlanQuota(s *apigateway.QuotaSettings) []map[string]interface{} {
+	settings := make(map[string]interface{}, 0)
+
+	if s == nil {
+		return nil
+	}
+
+	if s.Limit != nil {
+		settings["limit"] = *s.Limit
+	}
+
+	if s.Offset != nil {
+		settings["offset"] = *s.Offset
+	}
+
+	if s.Period != nil {
+		settings["period"] = *s.Period
+	}
+
+	return []map[string]interface{}{settings}
+}
+
+func buildApiGatewayInvokeURL(restApiId, region, stageName string) string {
+	return fmt.Sprintf("https://%s.execute-api.%s.amazonaws.com/%s",
+		restApiId, region, stageName)
+}
+
+func buildApiGatewayExecutionARN(restApiId, region, accountId string) (string, error) {
+	if accountId == "" {
+		return "", fmt.Errorf("Unable to build execution ARN for %s as account ID is missing",
+			restApiId)
+	}
+	return fmt.Sprintf("arn:aws:execute-api:%s:%s:%s",
+		region, accountId, restApiId), nil
+}
+
+func expandCognitoSupportedLoginProviders(config map[string]interface{}) map[string]*string {
+	m := map[string]*string{}
+	for k, v := range config {
+		s := v.(string)
+		m[k] = &s
+	}
+	return m
+}
+
+func flattenCognitoSupportedLoginProviders(config map[string]*string) map[string]string {
+	m := map[string]string{}
+	for k, v := range config {
+		m[k] = *v
+	}
+	return m
+}
+
+func expandCognitoIdentityProviders(s *schema.Set) []*cognitoidentity.Provider {
+	ips := make([]*cognitoidentity.Provider, 0)
+
+	for _, v := range s.List() {
+		s := v.(map[string]interface{})
+
+		ip := &cognitoidentity.Provider{}
+
+		if sv, ok := s["client_id"].(string); ok {
+			ip.ClientId = aws.String(sv)
+		}
+
+		if sv, ok := s["provider_name"].(string); ok {
+			ip.ProviderName = aws.String(sv)
+		}
+
+		if sv, ok := s["server_side_token_check"].(bool); ok {
+			ip.ServerSideTokenCheck = aws.Bool(sv)
+		}
+
+		ips = append(ips, ip)
+	}
+
+	return ips
+}
+
+func flattenCognitoIdentityProviders(ips []*cognitoidentity.Provider) []map[string]interface{} {
+	values := make([]map[string]interface{}, 0)
+
+	for _, v := range ips {
+		ip := make(map[string]interface{})
+
+		if v == nil {
+			return nil
+		}
+
+		if v.ClientId != nil {
+			ip["client_id"] = *v.ClientId
+		}
+
+		if v.ProviderName != nil {
+			ip["provider_name"] = *v.ProviderName
+		}
+
+		if v.ServerSideTokenCheck != nil {
+			ip["server_side_token_check"] = *v.ServerSideTokenCheck
+		}
+
+		values = append(values, ip)
+	}
+
+	return values
+}
+
+func buildLambdaInvokeArn(lambdaArn, region string) string {
+	apiVersion := "2015-03-31"
+	return fmt.Sprintf("arn:aws:apigateway:%s:lambda:path/%s/functions/%s/invocations",
+		region, apiVersion, lambdaArn)
+}
+
+func sliceContainsMap(l []interface{}, m map[string]interface{}) (int, bool) {
+	for i, t := range l {
+		if reflect.DeepEqual(m, t.(map[string]interface{})) {
+			return i, true
+		}
+	}
+
+	return -1, false
 }

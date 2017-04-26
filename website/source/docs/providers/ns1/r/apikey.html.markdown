@@ -12,16 +12,17 @@ Provides a NS1 Api Key resource. This can be used to create, modify, and delete 
 
 ## Example Usage
 
-```
+```hcl
 resource "ns1_team" "example" {
   name = "Example team"
 }
 
 resource "ns1_apikey" "example" {
-  name = "Example key"
+  name  = "Example key"
   teams = ["${ns1_team.example.id}"]
+
   permissions = {
-    dns_view_zones = false
+    dns_view_zones       = false
     account_manage_users = false
   }
 }

@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/helper/hilmapstructure"
@@ -212,7 +211,14 @@ func (r *Module) Id() string {
 
 // Count returns the count of this resource.
 func (r *Resource) Count() (int, error) {
-	v, err := strconv.ParseInt(r.RawCount.Value().(string), 0, 0)
+	raw := r.RawCount.Value()
+	count, ok := r.RawCount.Value().(string)
+	if !ok {
+		return 0, fmt.Errorf(
+			"expected count to be a string or int, got %T", raw)
+	}
+
+	v, err := strconv.ParseInt(count, 0, 0)
 	if err != nil {
 		return 0, err
 	}
@@ -247,26 +253,7 @@ func (c *Config) Validate() error {
 
 	// Validate the Terraform config
 	if tf := c.Terraform; tf != nil {
-		if raw := tf.RequiredVersion; raw != "" {
-			// Check that the value has no interpolations
-			rc, err := NewRawConfig(map[string]interface{}{
-				"root": raw,
-			})
-			if err != nil {
-				errs = append(errs, fmt.Errorf(
-					"terraform.required_version: %s", err))
-			} else if len(rc.Interpolations) > 0 {
-				errs = append(errs, fmt.Errorf(
-					"terraform.required_version: cannot contain interpolations"))
-			} else {
-				// Check it is valid
-				_, err := version.NewConstraint(raw)
-				if err != nil {
-					errs = append(errs, fmt.Errorf(
-						"terraform.required_version: invalid syntax: %s", err))
-				}
-			}
-		}
+		errs = append(errs, c.Terraform.Validate()...)
 	}
 
 	vars := c.InterpolatedVariables()
@@ -298,8 +285,15 @@ func (c *Config) Validate() error {
 		}
 
 		interp := false
-		fn := func(ast.Node) (interface{}, error) {
-			interp = true
+		fn := func(n ast.Node) (interface{}, error) {
+			// LiteralNode is a literal string (outside of a ${ ... } sequence).
+			// interpolationWalker skips most of these. but in particular it
+			// visits those that have escaped sequences (like $${foo}) as a
+			// signal that *some* processing is required on this string. For
+			// our purposes here though, this is fine and not an interpolation.
+			if _, ok := n.(*ast.LiteralNode); !ok {
+				interp = true
+			}
 			return "", nil
 		}
 
@@ -514,10 +508,13 @@ func (c *Config) Validate() error {
 			// Good
 			case *ModuleVariable:
 			case *ResourceVariable:
+			case *TerraformVariable:
 			case *UserVariable:
 
 			default:
-				panic(fmt.Sprintf("Unknown type in count var in %s: %T", n, v))
+				errs = append(errs, fmt.Errorf(
+					"Internal error. Unknown type in count var in %s: %T",
+					n, v))
 			}
 		}
 
@@ -1020,7 +1017,16 @@ func (v *Variable) ValidateTypeAndDefault() error {
 	// If an explicit type is declared, ensure it is valid
 	if v.DeclaredType != "" {
 		if _, ok := typeStringMap[v.DeclaredType]; !ok {
-			return fmt.Errorf("Variable '%s' must be of type string or map - '%s' is not a valid type", v.Name, v.DeclaredType)
+			validTypes := []string{}
+			for k := range typeStringMap {
+				validTypes = append(validTypes, k)
+			}
+			return fmt.Errorf(
+				"Variable '%s' type must be one of [%s] - '%s' is not a valid type",
+				v.Name,
+				strings.Join(validTypes, ", "),
+				v.DeclaredType,
+			)
 		}
 	}
 

@@ -57,31 +57,41 @@ func TestRemoteLocks(t *testing.T, a, b Client) {
 		t.Fatal("client B not a state.Locker")
 	}
 
-	if err := lockerA.Lock("test client A"); err != nil {
+	infoA := state.NewLockInfo()
+	infoA.Operation = "test"
+	infoA.Who = "clientA"
+
+	infoB := state.NewLockInfo()
+	infoB.Operation = "test"
+	infoB.Who = "clientB"
+
+	lockIDA, err := lockerA.Lock(infoA)
+	if err != nil {
 		t.Fatal("unable to get initial lock:", err)
 	}
 
-	if err := lockerB.Lock("test client B"); err == nil {
-		lockerA.Unlock()
+	_, err = lockerB.Lock(infoB)
+	if err == nil {
+		lockerA.Unlock(lockIDA)
 		t.Fatal("client B obtained lock while held by client A")
-	} else {
-		t.Log("lock info error:", err)
 	}
 
-	if err := lockerA.Unlock(); err != nil {
+	if err := lockerA.Unlock(lockIDA); err != nil {
 		t.Fatal("error unlocking client A", err)
 	}
 
-	if err := lockerB.Lock("test client B"); err != nil {
+	lockIDB, err := lockerB.Lock(infoB)
+	if err != nil {
 		t.Fatal("unable to obtain lock from client B")
 	}
 
-	if err := lockerB.Unlock(); err != nil {
+	if lockIDB == lockIDA {
+		t.Fatalf("duplicate lock IDs: %q", lockIDB)
+	}
+
+	if err = lockerB.Unlock(lockIDB); err != nil {
 		t.Fatal("error unlocking client B:", err)
 	}
 
-	// unlock should be repeatable
-	if err := lockerA.Unlock(); err != nil {
-		t.Fatal("Unlock error from client A when state was not locked:", err)
-	}
+	// TODO: Should we enforce that Unlock requires the correct ID?
 }

@@ -7,8 +7,6 @@ import (
 
 func resourceRaid() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceRaidCreate,
-		Delete: resourceRaidDelete,
 		Exists: resourceRaidExists,
 		Read:   resourceRaidRead,
 		Schema: map[string]*schema.Schema{
@@ -37,8 +35,8 @@ func resourceRaid() *schema.Resource {
 	}
 }
 
-func resourceRaidCreate(d *schema.ResourceData, meta interface{}) error {
-	id, err := buildRaid(d, meta.(*cache))
+func resourceRaidRead(d *schema.ResourceData, meta interface{}) error {
+	id, err := buildRaid(d, globalCache)
 	if err != nil {
 		return err
 	}
@@ -47,22 +45,13 @@ func resourceRaidCreate(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceRaidDelete(d *schema.ResourceData, meta interface{}) error {
-	d.SetId("")
-	return nil
-}
-
 func resourceRaidExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	id, err := buildRaid(d, meta.(*cache))
+	id, err := buildRaid(d, globalCache)
 	if err != nil {
 		return false, err
 	}
 
 	return id == d.Id(), nil
-}
-
-func resourceRaidRead(d *schema.ResourceData, meta interface{}) error {
-	return nil
 }
 
 func buildRaid(d *schema.ResourceData, c *cache) (string, error) {

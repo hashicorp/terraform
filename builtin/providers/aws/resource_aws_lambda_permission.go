@@ -211,9 +211,10 @@ func resourceAwsLambdaPermissionRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	qualifier, err := getQualifierFromLambdaAliasOrVersionArn(statement.Resource)
-	if err == nil {
-		d.Set("qualifier", qualifier)
+	if err != nil {
+		log.Printf("[ERR] Error getting Lambda Qualifier: %s", err)
 	}
+	d.Set("qualifier", qualifier)
 
 	// Save Lambda function name in the same format
 	if strings.HasPrefix(d.Get("function_name").(string), "arn:"+meta.(*AWSClient).partition+":lambda:") {
@@ -229,7 +230,12 @@ func resourceAwsLambdaPermissionRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	d.Set("action", statement.Action)
-	d.Set("principal", statement.Principal["Service"])
+	// Check if the pricipal is a cross-account IAM role
+	if _, ok := statement.Principal["AWS"]; ok {
+		d.Set("principal", statement.Principal["AWS"])
+	} else {
+		d.Set("principal", statement.Principal["Service"])
+	}
 
 	if stringEquals, ok := statement.Condition["StringEquals"]; ok {
 		d.Set("source_account", stringEquals["AWS:SourceAccount"])

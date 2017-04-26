@@ -17,14 +17,19 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"digitalocean_image": dataSourceDigitalOceanImage(),
+		},
+
 		ResourcesMap: map[string]*schema.Resource{
-			"digitalocean_domain":      resourceDigitalOceanDomain(),
-			"digitalocean_droplet":     resourceDigitalOceanDroplet(),
-			"digitalocean_floating_ip": resourceDigitalOceanFloatingIp(),
-			"digitalocean_record":      resourceDigitalOceanRecord(),
-			"digitalocean_ssh_key":     resourceDigitalOceanSSHKey(),
-			"digitalocean_tag":         resourceDigitalOceanTag(),
-			"digitalocean_volume":      resourceDigitalOceanVolume(),
+			"digitalocean_domain":       resourceDigitalOceanDomain(),
+			"digitalocean_droplet":      resourceDigitalOceanDroplet(),
+			"digitalocean_floating_ip":  resourceDigitalOceanFloatingIp(),
+			"digitalocean_loadbalancer": resourceDigitalOceanLoadbalancer(),
+			"digitalocean_record":       resourceDigitalOceanRecord(),
+			"digitalocean_ssh_key":      resourceDigitalOceanSSHKey(),
+			"digitalocean_tag":          resourceDigitalOceanTag(),
+			"digitalocean_volume":       resourceDigitalOceanVolume(),
 		},
 
 		ConfigureFunc: providerConfigure,

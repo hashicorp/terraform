@@ -10,9 +10,12 @@ description: |-
 
 Create as an Azure Container Registry instance.
 
+~> **Note:** All arguments including the access key will be stored in the raw state as plain-text.
+[Read more about sensitive data in state](/docs/state/sensitive-data.html).
+
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "resourceGroup1"
   location = "West US"
@@ -36,7 +39,6 @@ resource "azurerm_container_registry" "test" {
     access_key = "${azurerm_storage_account.test.primary_access_key}"
   }
 }
-
 ```
 
 ## Argument Reference

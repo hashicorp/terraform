@@ -7,8 +7,6 @@ import (
 
 func resourceSystemdUnit() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceSystemdUnitCreate,
-		Delete: resourceSystemdUnitDelete,
 		Exists: resourceSystemdUnitExists,
 		Read:   resourceSystemdUnitRead,
 		Schema: map[string]*schema.Schema{
@@ -56,8 +54,8 @@ func resourceSystemdUnit() *schema.Resource {
 	}
 }
 
-func resourceSystemdUnitCreate(d *schema.ResourceData, meta interface{}) error {
-	id, err := buildSystemdUnit(d, meta.(*cache))
+func resourceSystemdUnitRead(d *schema.ResourceData, meta interface{}) error {
+	id, err := buildSystemdUnit(d, globalCache)
 	if err != nil {
 		return err
 	}
@@ -66,22 +64,13 @@ func resourceSystemdUnitCreate(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceSystemdUnitDelete(d *schema.ResourceData, meta interface{}) error {
-	d.SetId("")
-	return nil
-}
-
 func resourceSystemdUnitExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	id, err := buildSystemdUnit(d, meta.(*cache))
+	id, err := buildSystemdUnit(d, globalCache)
 	if err != nil {
 		return false, err
 	}
 
 	return id == d.Id(), nil
-}
-
-func resourceSystemdUnitRead(d *schema.ResourceData, meta interface{}) error {
-	return nil
 }
 
 func buildSystemdUnit(d *schema.ResourceData, c *cache) (string, error) {

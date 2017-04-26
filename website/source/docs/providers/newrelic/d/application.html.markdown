@@ -12,9 +12,9 @@ Use this data source to get information about a specific application in New Reli
 
 ## Example Usage
 
-```
+```hcl
 data "newrelic_application" "app" {
-	name = "my-app"
+  name = "my-app"
 }
 
 resource "newrelic_alert_policy" "foo" {

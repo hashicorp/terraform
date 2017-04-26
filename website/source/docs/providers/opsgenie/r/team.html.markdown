@@ -12,12 +12,13 @@ Manages a Team within OpsGenie.
 
 ## Example Usage
 
-```
+```hcl
 resource "opsgenie_user" "first" {
   username  = "user@domain.com"
   full_name = "Cookie Monster"
   role      = "User"
 }
+
 resource "opsgenie_user" "second" {
   username  = "eggman@dr-robotnik.com"
   full_name = "Dr Ivo Eggman Robotnik"
@@ -25,7 +26,7 @@ resource "opsgenie_user" "second" {
 }
 
 resource "opsgenie_team" "test" {
-  name = "example"
+  name        = "example"
   description = "This team deals with all the things"
 
   member {

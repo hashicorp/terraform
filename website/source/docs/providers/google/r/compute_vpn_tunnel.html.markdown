@@ -13,7 +13,7 @@ Manages a VPN Tunnel to the GCE network. For more info, read the
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_network" "network1" {
   name = "network1"
 }
@@ -66,7 +66,7 @@ resource "google_compute_vpn_tunnel" "tunnel1" {
 
   target_vpn_gateway = "${google_compute_vpn_gateway.target_gateway.self_link}"
 
-  local_traffic_selector = ["${google_compute_subnetwork.subnet1.ip_cidr_range}"]
+  local_traffic_selector  = ["${google_compute_subnetwork.subnet1.ip_cidr_range}"]
   remote_traffic_selector = ["172.16.0.0/12"]
 
   depends_on = [

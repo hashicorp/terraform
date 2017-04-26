@@ -240,7 +240,7 @@ func resourceArmRedisCacheUpdate(d *schema.ResourceData, meta interface{}) error
 		parameters.RedisConfiguration = redisConfiguration
 	}
 
-	_, err := client.Update(resGroup, name, parameters, make(chan struct{}))
+	_, err := client.Update(resGroup, name, parameters)
 	if err != nil {
 		return err
 	}
@@ -281,12 +281,15 @@ func resourceArmRedisCacheRead(d *schema.ResourceData, meta interface{}) error {
 	name := id.Path["Redis"]
 
 	resp, err := client.Get(resGroup, name)
-	if err != nil {
-		return fmt.Errorf("Error making Read request on Azure Redis Cache %s: %s", name, err)
-	}
+
+	// covers if the resource has been deleted outside of TF, but is still in the state
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		return nil
+	}
+
+	if err != nil {
+		return fmt.Errorf("Error making Read request on Azure Redis Cache %s: %s", name, err)
 	}
 
 	keysResp, err := client.ListKeys(resGroup, name)
@@ -298,7 +301,7 @@ func resourceArmRedisCacheRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("resource_group_name", resGroup)
 	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 	d.Set("ssl_port", resp.SslPort)
-	d.Set("host_name", resp.HostName)
+	d.Set("hostname", resp.HostName)
 	d.Set("port", resp.Port)
 	d.Set("enable_non_ssl_port", resp.EnableNonSslPort)
 	d.Set("capacity", resp.Sku.Capacity)
@@ -344,7 +347,7 @@ func resourceArmRedisCacheDelete(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-func redisStateRefreshFunc(client redis.Client, resourceGroupName string, sgName string) resource.StateRefreshFunc {
+func redisStateRefreshFunc(client redis.GroupClient, resourceGroupName string, sgName string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		res, err := client.Get(resourceGroupName, sgName)
 		if err != nil {

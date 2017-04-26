@@ -6,15 +6,15 @@ description: |-
   Assigns a secondary IP to a NIC.
 ---
 
-# cloudstack\_secondary\_ipaddress
+# cloudstack_secondary_ipaddress
 
 Assigns a secondary IP to a NIC.
 
 ## Example Usage
 
-```
+```hcl
 resource "cloudstack_secondary_ipaddress" "default" {
-	virtual_machine_id = "server-1"
+  virtual_machine_id = "server-1"
 }
 ```
 

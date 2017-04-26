@@ -95,17 +95,15 @@ func TestApplyGraphBuilder_depCbd(t *testing.T) {
 		Modules: []*ModuleDiff{
 			&ModuleDiff{
 				Path: []string{"root"},
-				Resources: map[string]*InstanceDiff{
-					"aws_instance.A": &InstanceDiff{
-						Destroy: true,
-						Attributes: map[string]*ResourceAttrDiff{
-							"name": &ResourceAttrDiff{
-								Old:         "",
-								New:         "foo",
-								RequiresNew: true,
-							},
+				Resources: map[string]*InstanceDiff{"aws_instance.A": &InstanceDiff{Destroy: true,
+					Attributes: map[string]*ResourceAttrDiff{
+						"name": &ResourceAttrDiff{
+							Old:         "",
+							New:         "foo",
+							RequiresNew: true,
 						},
 					},
+				},
 
 					"aws_instance.B": &InstanceDiff{
 						Attributes: map[string]*ResourceAttrDiff{
@@ -440,6 +438,54 @@ func TestApplyGraphBuilder_provisionerDestroy(t *testing.T) {
 		"null_resource.foo (destroy)")
 }
 
+func TestApplyGraphBuilder_targetModule(t *testing.T) {
+	diff := &Diff{
+		Modules: []*ModuleDiff{
+			&ModuleDiff{
+				Path: []string{"root"},
+				Resources: map[string]*InstanceDiff{
+					"null_resource.foo": &InstanceDiff{
+						Attributes: map[string]*ResourceAttrDiff{
+							"name": &ResourceAttrDiff{
+								Old: "",
+								New: "foo",
+							},
+						},
+					},
+				},
+			},
+
+			&ModuleDiff{
+				Path: []string{"root", "child2"},
+				Resources: map[string]*InstanceDiff{
+					"null_resource.foo": &InstanceDiff{
+						Attributes: map[string]*ResourceAttrDiff{
+							"name": &ResourceAttrDiff{
+								Old: "",
+								New: "foo",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	b := &ApplyGraphBuilder{
+		Module:    testModule(t, "graph-builder-apply-target-module"),
+		Diff:      diff,
+		Providers: []string{"null"},
+		Targets:   []string{"module.child2"},
+	}
+
+	g, err := b.Build(RootModulePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	testGraphNotContains(t, g, "module.child1.output.instance_id")
+}
+
 const testApplyGraphBuilderStr = `
 aws_instance.create
   provider.aws
@@ -464,6 +510,18 @@ module.child.provider.aws
   provider.aws
 module.child.provisioner.exec
 provider.aws
+provider.aws (close)
+  aws_instance.create
+  aws_instance.other
+  module.child.aws_instance.create
+  module.child.aws_instance.other
+  provider.aws
+provisioner.exec (close)
+  module.child.aws_instance.create
+root
+  meta.count-boundary (count boundary fixup)
+  provider.aws (close)
+  provisioner.exec (close)
 `
 
 const testApplyGraphBuilderDoubleCBDStr = `
@@ -487,6 +545,15 @@ meta.count-boundary (count boundary fixup)
   aws_instance.B (destroy)
   provider.aws
 provider.aws
+provider.aws (close)
+  aws_instance.A
+  aws_instance.A (destroy)
+  aws_instance.B
+  aws_instance.B (destroy)
+  provider.aws
+root
+  meta.count-boundary (count boundary fixup)
+  provider.aws (close)
 `
 
 const testApplyGraphBuilderDestroyCountStr = `
@@ -500,4 +567,11 @@ meta.count-boundary (count boundary fixup)
   aws_instance.B
   provider.aws
 provider.aws
+provider.aws (close)
+  aws_instance.A[1] (destroy)
+  aws_instance.B
+  provider.aws
+root
+  meta.count-boundary (count boundary fixup)
+  provider.aws (close)
 `

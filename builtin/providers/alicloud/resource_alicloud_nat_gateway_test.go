@@ -3,13 +3,14 @@ package alicloud
 import (
 	"fmt"
 	"github.com/denverdino/aliyungo/common"
+	"github.com/denverdino/aliyungo/ecs"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"testing"
 )
 
 func TestAccAlicloudNatGateway_basic(t *testing.T) {
-	var nat NatGatewaySetType
+	var nat ecs.NatGatewaySetType
 
 	testCheck := func(*terraform.State) error {
 		if nat.BusinessStatus != "Normal" {
@@ -47,6 +48,7 @@ func TestAccAlicloudNatGateway_basic(t *testing.T) {
 						"alicloud_nat_gateway.foo",
 						"name",
 						"test_foo"),
+					testAccCheckNatgatewayIpAddress("alicloud_nat_gateway.foo", &nat),
 				),
 			},
 		},
@@ -55,7 +57,7 @@ func TestAccAlicloudNatGateway_basic(t *testing.T) {
 }
 
 func TestAccAlicloudNatGateway_spec(t *testing.T) {
-	var nat NatGatewaySetType
+	var nat ecs.NatGatewaySetType
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -95,7 +97,32 @@ func TestAccAlicloudNatGateway_spec(t *testing.T) {
 
 }
 
-func testAccCheckNatGatewayExists(n string, nat *NatGatewaySetType) resource.TestCheckFunc {
+func testAccCheckNatgatewayIpAddress(n string, nat *ecs.NatGatewaySetType) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No NatGateway ID is set")
+		}
+
+		client := testAccProvider.Meta().(*AliyunClient)
+		natGateway, err := client.DescribeNatGateway(rs.Primary.ID)
+
+		if err != nil {
+			return err
+		}
+		if natGateway == nil {
+			return fmt.Errorf("Natgateway not found")
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckNatGatewayExists(n string, nat *ecs.NatGatewaySetType) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -151,6 +178,10 @@ func testAccCheckNatGatewayDestroy(s *terraform.State) error {
 }
 
 const testAccNatGatewayConfig = `
+data "alicloud_zones" "default" {
+	"available_resource_creation"= "VSwitch"
+}
+
 resource "alicloud_vpc" "foo" {
 	name = "tf_test_foo"
 	cidr_block = "172.16.0.0/12"
@@ -159,7 +190,7 @@ resource "alicloud_vpc" "foo" {
 resource "alicloud_vswitch" "foo" {
 	vpc_id = "${alicloud_vpc.foo.id}"
 	cidr_block = "172.16.0.0/21"
-	availability_zone = "cn-beijing-b"
+	availability_zone = "${data.alicloud_zones.default.zones.2.id}"
 }
 
 resource "alicloud_nat_gateway" "foo" {
@@ -169,11 +200,19 @@ resource "alicloud_nat_gateway" "foo" {
 	bandwidth_packages = [{
 	  ip_count = 1
 	  bandwidth = 5
-	  zone = "cn-beijing-b"
+	  zone = "${data.alicloud_zones.default.zones.2.id}"
 	}, {
 	  ip_count = 2
-	  bandwidth = 10
-	  zone = "cn-beijing-b"
+	  bandwidth = 6
+	  zone = "${data.alicloud_zones.default.zones.2.id}"
+	}, {
+	  ip_count = 3
+	  bandwidth = 7
+	  zone = "${data.alicloud_zones.default.zones.2.id}"
+	}, {
+	  ip_count = 1
+	  bandwidth = 8
+	  zone = "${data.alicloud_zones.default.zones.2.id}"
 	}]
 	depends_on = [
     	"alicloud_vswitch.foo"]
@@ -181,6 +220,10 @@ resource "alicloud_nat_gateway" "foo" {
 `
 
 const testAccNatGatewayConfigSpec = `
+data "alicloud_zones" "default" {
+	"available_resource_creation"= "VSwitch"
+}
+
 resource "alicloud_vpc" "foo" {
 	name = "tf_test_foo"
 	cidr_block = "172.16.0.0/12"
@@ -189,7 +232,7 @@ resource "alicloud_vpc" "foo" {
 resource "alicloud_vswitch" "foo" {
 	vpc_id = "${alicloud_vpc.foo.id}"
 	cidr_block = "172.16.0.0/21"
-	availability_zone = "cn-beijing-b"
+	availability_zone = "${data.alicloud_zones.default.zones.0.id}"
 }
 
 resource "alicloud_nat_gateway" "foo" {
@@ -199,11 +242,11 @@ resource "alicloud_nat_gateway" "foo" {
 	bandwidth_packages = [{
 	  ip_count = 1
 	  bandwidth = 5
-	  zone = "cn-beijing-b"
+	  zone = "${data.alicloud_zones.default.zones.0.id}"
 	}, {
 	  ip_count = 2
 	  bandwidth = 10
-	  zone = "cn-beijing-b"
+	  zone = "${data.alicloud_zones.default.zones.0.id}"
 	}]
 	depends_on = [
     	"alicloud_vswitch.foo"]
@@ -211,6 +254,10 @@ resource "alicloud_nat_gateway" "foo" {
 `
 
 const testAccNatGatewayConfigSpecUpgrade = `
+data "alicloud_zones" "default" {
+	"available_resource_creation"= "VSwitch"
+}
+
 resource "alicloud_vpc" "foo" {
 	name = "tf_test_foo"
 	cidr_block = "172.16.0.0/12"
@@ -219,7 +266,7 @@ resource "alicloud_vpc" "foo" {
 resource "alicloud_vswitch" "foo" {
 	vpc_id = "${alicloud_vpc.foo.id}"
 	cidr_block = "172.16.0.0/21"
-	availability_zone = "cn-beijing-b"
+	availability_zone = "${data.alicloud_zones.default.zones.0.id}"
 }
 
 resource "alicloud_nat_gateway" "foo" {
@@ -229,11 +276,11 @@ resource "alicloud_nat_gateway" "foo" {
 	bandwidth_packages = [{
 	  ip_count = 1
 	  bandwidth = 5
-	  zone = "cn-beijing-b"
+	  zone = "${data.alicloud_zones.default.zones.0.id}"
 	}, {
 	  ip_count = 2
 	  bandwidth = 10
-	  zone = "cn-beijing-b"
+	  zone = "${data.alicloud_zones.default.zones.0.id}"
 	}]
 	depends_on = [
     	"alicloud_vswitch.foo"]
