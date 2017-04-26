@@ -69,9 +69,9 @@ func TestAccComputeInstanceTemplate_networkIP(t *testing.T) {
 					testAccCheckComputeInstanceTemplateExists(
 						"google_compute_instance_template.foobar", &instanceTemplate),
 					testAccCheckComputeInstanceTemplateNetwork(&instanceTemplate),
-					resource.TestCheckResourceAttr(
+					testAccCheckComputeInstanceTemplateNetworkIP(
 						"google_compute_instance_template.foobar", "network_interface.0.network_ip",
-						instanceTemplate.Properties.NetworkInterfaces[0].NetworkIP),
+						&instanceTemplate),
 				),
 			},
 		},
@@ -263,6 +263,13 @@ func testAccCheckComputeInstanceTemplateNetwork(instanceTemplate *compute.Instan
 		}
 
 		return nil
+	}
+}
+
+func testAccCheckComputeInstanceTemplateNetworkIP(name, key string, instanceTemplate *compute.InstanceTemplate) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		ip := instanceTemplate.Properties.NetworkInterfaces[0].NetworkIP
+		return resource.TestCheckResourceAttr(name, key, ip)(s)
 	}
 }
 
