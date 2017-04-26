@@ -17,6 +17,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * provider/aws: Update aws_ebs_volume when attached [GH-14005]
+* provider/aws: Set aws_instance volume_tags to be Computed [GH-14007]
 
 ## 0.9.4 (26th April 2017)
 
