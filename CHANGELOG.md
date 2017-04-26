@@ -6,7 +6,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 FEATURES:
 
- * **New Provider:** `gitlab` [GH-13898]
+* **New Provider:** `gitlab` [GH-13898]
 
 IMPROVEMENTS:
 
@@ -16,7 +16,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
- * provider/aws: Update aws_ebs_volume when attached [GH-14005]
+* provider/aws: Update aws_ebs_volume when attached [GH-14005]
 
 ## 0.9.4 (26th April 2017)
 
