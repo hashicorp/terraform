@@ -96,6 +96,7 @@ BUG FIXES:
  * provider/azurerm: VM's - ignoring the case on the `create_option` field during Diff's [GH-13933]
  * provider/azurerm: fixing a bug refreshing the `azurerm_redis_cache` [GH-13899] 
  * provider/fastly: Fix issue with using 0 for `default_ttl` [GH-13648]
+ * provider/google: Fix panic in GKE provisioning with addons [GH-13954]
  * provider/fastly: Add ability to associate a healthcheck to a backend [GH-13539]
  * provider/google: Stop setting the id when project creation fails [GH-13644]
  * provider/google: Make ports in resource_compute_forwarding_rule ForceNew [GH-13833]
