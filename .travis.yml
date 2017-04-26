@@ -11,6 +11,7 @@ git:
 
 # establish environment variables
 env:
+  - TEST_DIR=examples/azure-vm-simple-linux
   - TEST_DIR=examples/azure-vm-from-user-image
 
 branches:
@@ -32,7 +33,7 @@ deploy:
     script: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./deploy.sh
     on:
       repo: 10thmagnitude/terraform
-      branch: topic-101-vm-from-user-image
+      branch: master
 
 # cleanup
 after_deploy: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./after_deploy.sh
