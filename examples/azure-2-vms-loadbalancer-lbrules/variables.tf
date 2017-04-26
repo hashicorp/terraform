@@ -1,6 +1,5 @@
 variable "resource_group" {
   description = "The name of the resource group in which to create the virtual network."
-  default     = "myresourcegroup"
 }
 
 variable "rg_prefix" {
@@ -10,7 +9,6 @@ variable "rg_prefix" {
 
 variable "hostname" {
   description = "VM name referenced also in storage-related names."
-  default     = "myvm"
 }
 
 variable "dns_name" {
@@ -19,7 +17,6 @@ variable "dns_name" {
 
 variable "lb_ip_dns_name" {
   description = "DNS for Load Balancer IP"
-  default     = "ipdnsname"
 }
 
 variable "location" {
