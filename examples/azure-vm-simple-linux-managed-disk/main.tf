@@ -52,17 +52,8 @@ resource "azurerm_storage_container" "storc" {
   container_access_type = "private"
 }
 
-resource "azurerm_managed_disk" "disk1" {
-  name                 = "${var.hostname}-osdisk1"
-  location             = "${var.location}"
-  resource_group_name  = "${azurerm_resource_group.rg.name}"
-  storage_account_type = "Standard_LRS"
-  create_option        = "Empty"
-  disk_size_gb         = "30"
-}
-
-resource "azurerm_managed_disk" "disk2" {
-  name                 = "${var.hostname}-disk2"
+resource "azurerm_managed_disk" "datadisk" {
+  name                 = "${var.hostname}-datadisk"
   location             = "${var.location}"
   resource_group_name  = "${azurerm_resource_group.rg.name}"
   storage_account_type = "Standard_LRS"
@@ -85,18 +76,19 @@ resource "azurerm_virtual_machine" "vm" {
   }
 
   storage_os_disk {
-    name          = "${var.hostname}-osdisk1"
-    vhd_uri       = "${azurerm_storage_account.stor.primary_blob_endpoint}${azurerm_storage_container.storc.name}/${var.hostname}-osdisk1.vhd"
-    caching       = "ReadWrite"
-    create_option = "FromImage"
+    name              = "${var.hostname}-osdisk"
+    managed_disk_type = "Standard_LRS"
+    caching           = "ReadWrite"
+    create_option     = "FromImage"
   }
 
   storage_data_disk {
-    name          = "${var.hostname}-disk2"
-    vhd_uri       = "${azurerm_storage_account.stor.primary_blob_endpoint}${azurerm_storage_container.storc.name}/${var.hostname}-disk2.vhd"
-    disk_size_gb  = "1023"
-    create_option = "Empty"
-    lun           = 0
+    name              = "${var.hostname}-datadisk"
+    managed_disk_id   = "${azurerm_managed_disk.datadisk.id}"
+    managed_disk_type = "Standard_LRS"
+    disk_size_gb      = "1023"
+    create_option     = "Attach"
+    lun               = 0
   }
 
   os_profile {
