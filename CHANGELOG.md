@@ -2,6 +2,7 @@
 
 IMPROVEMENTS:
 
+* provider/aws: Add support for CustomOrigin timeouts to aws_cloudfront_distribution [GH-13367]
 * provider/dnsimple: Add support for import for dnsimple_records [GH-9130]
 
 ## 0.9.4 (26th April 2017)
