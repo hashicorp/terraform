@@ -1338,7 +1338,7 @@ func buildAwsInstanceOpts(
 		}
 	}
 
-	if hasSubnet && associatePublicIPAddress {
+	if hasSubnet {
 		// If we have a non-default VPC / Subnet specified, we can flag
 		// AssociatePublicIpAddress to get a Public IP assigned. By default these are not provided.
 		// You cannot specify both SubnetId and the NetworkInterface.0.* parameters though, otherwise
