@@ -3106,6 +3106,12 @@
 			"revisionTime": "2017-02-25T17:21:24Z"
 		},
 		{
+			"checksumSHA1": "xtw+Llokq30p1Gn+Q8JBZ7NtE+I=",
+			"path": "github.com/xlab/treeprint",
+			"revision": "1d6e342255576c977e946a2384fc487a22d3fceb",
+			"revisionTime": "2016-10-29T10:40:18Z"
+		},
+		{
 			"checksumSHA1": "eXEiPlpDRaamJQ4vPX/9t333kQc=",
 			"comment": "v1.5.4-13-g75ce5fb",
 			"path": "github.com/ziutek/mymysql/mysql",
