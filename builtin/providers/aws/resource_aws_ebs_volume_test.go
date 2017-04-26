@@ -30,6 +30,31 @@ func TestAccAWSEBSVolume_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSEBSVolume_updateAttachedEbsVolume(t *testing.T) {
+	var v ec2.Volume
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_ebs_volume.test",
+		Providers:     testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAwsEbsAttachedVolumeConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVolumeExists("aws_ebs_volume.test", &v),
+					resource.TestCheckResourceAttr("aws_ebs_volume.test", "size", "10"),
+				),
+			},
+			{
+				Config: testAccAwsEbsAttachedVolumeConfigUpdateSize,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVolumeExists("aws_ebs_volume.test", &v),
+					resource.TestCheckResourceAttr("aws_ebs_volume.test", "size", "20"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSEBSVolume_updateSize(t *testing.T) {
 	var v ec2.Volume
 	resource.Test(t, resource.TestCase{
@@ -197,6 +222,124 @@ resource "aws_ebs_volume" "test" {
   tags {
     Name = "tf-acc-test-ebs-volume-test"
   }
+}
+`
+
+const testAccAwsEbsAttachedVolumeConfig = `
+data "aws_ami" "debian_jessie_latest" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["debian-jessie-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  filter {
+    name   = "architecture"
+    values = ["x86_64"]
+  }
+
+  filter {
+    name   = "root-device-type"
+    values = ["ebs"]
+  }
+
+  owners = ["379101102735"] # Debian
+}
+
+resource "aws_instance" "test" {
+  ami = "${data.aws_ami.debian_jessie_latest.id}"
+  associate_public_ip_address = true
+  count = 1
+  instance_type = "t2.medium"
+
+  root_block_device {
+    volume_size           = "10"
+    volume_type           = "standard"
+    delete_on_termination = true
+  }
+
+  tags {
+    Name    = "test-terraform"
+  }
+}
+
+resource "aws_ebs_volume" "test" {
+  depends_on = ["aws_instance.test"]
+  availability_zone = "${aws_instance.test.availability_zone}"
+  type = "gp2"
+  size = "10"
+}
+
+resource "aws_volume_attachment" "test" {
+  depends_on  = ["aws_ebs_volume.test"]
+  device_name = "/dev/xvdg"
+  volume_id   = "${aws_ebs_volume.test.id}"
+  instance_id = "${aws_instance.test.id}"
+}
+`
+
+const testAccAwsEbsAttachedVolumeConfigUpdateSize = `
+data "aws_ami" "debian_jessie_latest" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["debian-jessie-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  filter {
+    name   = "architecture"
+    values = ["x86_64"]
+  }
+
+  filter {
+    name   = "root-device-type"
+    values = ["ebs"]
+  }
+
+  owners = ["379101102735"] # Debian
+}
+
+resource "aws_instance" "test" {
+  ami = "${data.aws_ami.debian_jessie_latest.id}"
+  associate_public_ip_address = true
+  count = 1
+  instance_type = "t2.medium"
+
+  root_block_device {
+    volume_size           = "10"
+    volume_type           = "standard"
+    delete_on_termination = true
+  }
+
+  tags {
+    Name    = "test-terraform"
+  }
+}
+
+resource "aws_ebs_volume" "test" {
+  depends_on = ["aws_instance.test"]
+  availability_zone = "${aws_instance.test.availability_zone}"
+  type = "gp2"
+  size = "20"
+}
+
+resource "aws_volume_attachment" "test" {
+  depends_on  = ["aws_ebs_volume.test"]
+  device_name = "/dev/xvdg"
+  volume_id   = "${aws_ebs_volume.test.id}"
+  instance_id = "${aws_instance.test.id}"
 }
 `
 

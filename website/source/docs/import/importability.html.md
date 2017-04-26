@@ -174,6 +174,30 @@ To make a resource importable, please see the
 * openstack_networking_secgroup_v2
 * openstack_networking_subnet_v2
 
+### OPC (Oracle Public Cloud)
+
+* opc_compute_acl
+* opc_compute_image_list
+* opc_compute_instance
+* opc_compute_ip_address_association
+* opc_compute_ip_address_prefix_set
+* opc_compute_ip_address_reservation
+* opc_compute_ip_association
+* opc_compute_ip_network_exchange
+* opc_compute_ip_network
+* opc_compute_ip_reservation
+* opc_compute_route
+* opc_compute_sec_rule
+* opc_compute_security_application
+* opc_compute_security_association
+* opc_compute_security_ip_list
+* opc_compute_security_list
+* opc_compute_security_protocol
+* opc_compute_security_rule
+* opc_compute_ssh_key
+* opc_compute_storage_volume_snapshot
+* opc_compute_storage_volume
+
 ### PostgreSQL
 
 * postgresql_database

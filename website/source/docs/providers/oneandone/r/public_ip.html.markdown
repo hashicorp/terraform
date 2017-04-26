@@ -24,6 +24,6 @@ resource "oneandone_vpn" "vpn" {
 
 The following arguments are supported:
 
-* `datacenter` - (Optional)[string] Location of desired 1and1 datacenter ["DE", "GB", "US", "ES" ]
-* `description` - (Optional)[string] Description of the VPN
-* `name` -(Required)[string] The name of the VPN.
+* `datacenter` - (Optional) Location of desired 1and1 datacenter. Can be `DE`, `GB`, `US` or `ES`
+* `description` - (Optional) Description of the VPN
+* `name` -(Required) The name of the VPN.

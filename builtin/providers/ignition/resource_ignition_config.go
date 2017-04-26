@@ -91,7 +91,7 @@ func resourceConfig() *schema.Resource {
 }
 
 func resourceIgnitionFileRead(d *schema.ResourceData, meta interface{}) error {
-	rendered, err := renderConfig(d, meta.(*cache))
+	rendered, err := renderConfig(d, globalCache)
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func resourceIgnitionFileRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceIgnitionFileExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	rendered, err := renderConfig(d, meta.(*cache))
+	rendered, err := renderConfig(d, globalCache)
 	if err != nil {
 		return false, err
 	}
