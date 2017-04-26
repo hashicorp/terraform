@@ -352,7 +352,7 @@ func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
 		}
 
 		// Check if we have updated dependencies. This can happen if the
-		// dependencies were satisfied exactly prior to an Update occuring.
+		// dependencies were satisfied exactly prior to an Update occurring.
 		// In that case, we'd like to take into account new dependencies
 		// if possible.
 		info.DepsLock.Lock()
