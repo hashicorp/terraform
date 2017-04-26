@@ -25,22 +25,22 @@ func Provider() terraform.ResourceProvider {
 				Description: "Region of the target Nomad agent.",
 			},
 			"ca_file": &schema.Schema{
-				Type:	     schema.TypeString,
+				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("NOMAD_CACERT", ""),
-				Description: "A path to a PEM-encoded certificate authority used to verify the remote agent's certificate.", 
+				Description: "A path to a PEM-encoded certificate authority used to verify the remote agent's certificate.",
 			},
 			"cert_file": &schema.Schema{
-				Type:	     schema.TypeString,
+				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("NOMAD_CLIENT_CERT", ""),
-				Description: "A path to a PEM-encoded certificate provided to the remote agent; requires use of key_file.", 
+				Description: "A path to a PEM-encoded certificate provided to the remote agent; requires use of key_file.",
 			},
 			"key_file": &schema.Schema{
-				Type:	     schema.TypeString,
+				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("NOMAD_CLIENT_KEY", ""),
-				Description: "A path to a PEM-encoded private key, required if cert_file is specified.", 
+				Description: "A path to a PEM-encoded private key, required if cert_file is specified.",
 			},
 		},
 
