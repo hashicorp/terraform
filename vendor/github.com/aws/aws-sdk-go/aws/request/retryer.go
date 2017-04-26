@@ -70,7 +70,21 @@ func isCodeExpiredCreds(code string) bool {
 	return ok
 }
 
-func isSerializationErrorRetryable(err error) bool {
+var validParentCodes = map[string]struct{}{
+	ErrCodeSerialization: struct{}{},
+	ErrCodeRead:          struct{}{},
+}
+
+func isNestedErrorRetryable(parentErr awserr.Error) bool {
+	if parentErr == nil {
+		return false
+	}
+
+	if _, ok := validParentCodes[parentErr.Code()]; !ok {
+		return false
+	}
+
+	err := parentErr.OrigErr()
 	if err == nil {
 		return false
 	}
@@ -86,10 +100,8 @@ func isSerializationErrorRetryable(err error) bool {
 // Returns false if error is nil.
 func IsErrorRetryable(err error) bool {
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok && aerr.Code() != ErrCodeSerialization {
-			return isCodeRetryable(aerr.Code())
-		} else if ok {
-			return isSerializationErrorRetryable(aerr.OrigErr())
+		if aerr, ok := err.(awserr.Error); ok {
+			return isCodeRetryable(aerr.Code()) || isNestedErrorRetryable(aerr)
 		}
 	}
 	return false

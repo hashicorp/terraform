@@ -59,7 +59,7 @@ func resourceDisk() *schema.Resource {
 }
 
 func resourceDiskRead(d *schema.ResourceData, meta interface{}) error {
-	id, err := buildDisk(d, meta.(*cache))
+	id, err := buildDisk(d, globalCache)
 	if err != nil {
 		return err
 	}
@@ -69,7 +69,7 @@ func resourceDiskRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceDiskExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	id, err := buildDisk(d, meta.(*cache))
+	id, err := buildDisk(d, globalCache)
 	if err != nil {
 		return false, err
 	}

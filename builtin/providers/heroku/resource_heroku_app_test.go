@@ -109,6 +109,75 @@ func TestAccHerokuApp_NukeVars(t *testing.T) {
 	})
 }
 
+func TestAccHerokuApp_Buildpacks(t *testing.T) {
+	var app heroku.AppInfoResult
+	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckHerokuAppDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckHerokuAppConfig_go(appName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckHerokuAppExists("heroku_app.foobar", &app),
+					testAccCheckHerokuAppBuildpacks(appName, false),
+					resource.TestCheckResourceAttr("heroku_app.foobar", "buildpacks.0", "heroku/go"),
+				),
+			},
+			{
+				Config: testAccCheckHerokuAppConfig_multi(appName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckHerokuAppExists("heroku_app.foobar", &app),
+					testAccCheckHerokuAppBuildpacks(appName, true),
+					resource.TestCheckResourceAttr(
+						"heroku_app.foobar", "buildpacks.0", "https://github.com/heroku/heroku-buildpack-multi-procfile"),
+					resource.TestCheckResourceAttr("heroku_app.foobar", "buildpacks.1", "heroku/go"),
+				),
+			},
+			{
+				Config: testAccCheckHerokuAppConfig_no_vars(appName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckHerokuAppExists("heroku_app.foobar", &app),
+					testAccCheckHerokuAppNoBuildpacks(appName),
+					resource.TestCheckNoResourceAttr("heroku_app.foobar", "buildpacks.0"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccHerokuApp_ExternallySetBuildpacks(t *testing.T) {
+	var app heroku.AppInfoResult
+	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckHerokuAppDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckHerokuAppConfig_no_vars(appName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckHerokuAppExists("heroku_app.foobar", &app),
+					testAccCheckHerokuAppNoBuildpacks(appName),
+					resource.TestCheckNoResourceAttr("heroku_app.foobar", "buildpacks.0"),
+				),
+			},
+			{
+				PreConfig: testAccInstallUnconfiguredBuildpack(t, appName),
+				Config:    testAccCheckHerokuAppConfig_no_vars(appName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckHerokuAppExists("heroku_app.foobar", &app),
+					testAccCheckHerokuAppBuildpacks(appName, false),
+					resource.TestCheckNoResourceAttr("heroku_app.foobar", "buildpacks.0"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccHerokuApp_Organization(t *testing.T) {
 	var app heroku.OrganizationApp
 	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
@@ -128,7 +197,37 @@ func TestAccHerokuApp_Organization(t *testing.T) {
 				Config: testAccCheckHerokuAppConfig_organization(appName, org),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAppExistsOrg("heroku_app.foobar", &app),
-					testAccCheckHerokuAppAttributesOrg(&app, appName, org),
+					testAccCheckHerokuAppAttributesOrg(&app, appName, "", org),
+				),
+			},
+		},
+	})
+}
+
+func TestAccHerokuApp_Space(t *testing.T) {
+	var app heroku.OrganizationApp
+	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
+	org := os.Getenv("HEROKU_ORGANIZATION")
+	space := os.Getenv("HEROKU_SPACE")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			if org == "" {
+				t.Skip("HEROKU_ORGANIZATION is not set; skipping test.")
+			}
+			if space == "" {
+				t.Skip("HEROKU_SPACE is not set; skipping test.")
+			}
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckHerokuAppDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckHerokuAppConfig_space(appName, space, org),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckHerokuAppExistsOrg("heroku_app.foobar", &app),
+					testAccCheckHerokuAppAttributesOrg(&app, appName, space, org),
 				),
 			},
 		},
@@ -230,12 +329,74 @@ func testAccCheckHerokuAppAttributesNoVars(app *heroku.AppInfoResult, appName st
 	}
 }
 
-func testAccCheckHerokuAppAttributesOrg(app *heroku.OrganizationApp, appName string, org string) resource.TestCheckFunc {
+func testAccCheckHerokuAppBuildpacks(appName string, multi bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*heroku.Service)
 
-		if app.Region.Name != "us" {
+		results, err := client.BuildpackInstallationList(context.TODO(), appName, nil)
+		if err != nil {
+			return err
+		}
+
+		buildpacks := []string{}
+		for _, installation := range results {
+			buildpacks = append(buildpacks, installation.Buildpack.Name)
+		}
+
+		if multi {
+			herokuMulti := "https://github.com/heroku/heroku-buildpack-multi-procfile"
+			if len(buildpacks) != 2 || buildpacks[0] != herokuMulti || buildpacks[1] != "heroku/go" {
+				return fmt.Errorf("Bad buildpacks: %v", buildpacks)
+			}
+
+			return nil
+		}
+
+		if len(buildpacks) != 1 || buildpacks[0] != "heroku/go" {
+			return fmt.Errorf("Bad buildpacks: %v", buildpacks)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckHerokuAppNoBuildpacks(appName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		client := testAccProvider.Meta().(*heroku.Service)
+
+		results, err := client.BuildpackInstallationList(context.TODO(), appName, nil)
+		if err != nil {
+			return err
+		}
+
+		buildpacks := []string{}
+		for _, installation := range results {
+			buildpacks = append(buildpacks, installation.Buildpack.Name)
+		}
+
+		if len(buildpacks) != 0 {
+			return fmt.Errorf("Bad buildpacks: %v", buildpacks)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckHerokuAppAttributesOrg(app *heroku.OrganizationApp, appName, space, org string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		client := testAccProvider.Meta().(*heroku.Service)
+
+		if app.Region.Name != "us" && app.Region.Name != "virginia" {
 			return fmt.Errorf("Bad region: %s", app.Region.Name)
+		}
+
+		var appSpace string
+		if app.Space != nil {
+			appSpace = app.Space.Name
+		}
+
+		if appSpace != space {
+			return fmt.Errorf("Bad space: %s", appSpace)
 		}
 
 		if app.Stack.Name != "cedar-14" {
@@ -323,6 +484,25 @@ func testAccCheckHerokuAppExistsOrg(n string, app *heroku.OrganizationApp) resou
 	}
 }
 
+func testAccInstallUnconfiguredBuildpack(t *testing.T, appName string) func() {
+	return func() {
+		client := testAccProvider.Meta().(*heroku.Service)
+
+		opts := heroku.BuildpackInstallationUpdateOpts{
+			Updates: []struct {
+				Buildpack string `json:"buildpack" url:"buildpack,key"`
+			}{
+				{Buildpack: "heroku/go"},
+			},
+		}
+
+		_, err := client.BuildpackInstallationUpdate(context.TODO(), appName, opts)
+		if err != nil {
+			t.Fatalf("Error updating buildpacks: %s", err)
+		}
+	}
+}
+
 func testAccCheckHerokuAppConfig_basic(appName string) string {
 	return fmt.Sprintf(`
 resource "heroku_app" "foobar" {
@@ -332,6 +512,29 @@ resource "heroku_app" "foobar" {
   config_vars {
     FOO = "bar"
   }
+}`, appName)
+}
+
+func testAccCheckHerokuAppConfig_go(appName string) string {
+	return fmt.Sprintf(`
+resource "heroku_app" "foobar" {
+  name   = "%s"
+  region = "us"
+
+  buildpacks = ["heroku/go"]
+}`, appName)
+}
+
+func testAccCheckHerokuAppConfig_multi(appName string) string {
+	return fmt.Sprintf(`
+resource "heroku_app" "foobar" {
+  name   = "%s"
+  region = "us"
+
+  buildpacks = [
+    "https://github.com/heroku/heroku-buildpack-multi-procfile",
+    "heroku/go"
+  ]
 }`, appName)
 }
 
@@ -370,4 +573,21 @@ resource "heroku_app" "foobar" {
     FOO = "bar"
   }
 }`, appName, org)
+}
+
+func testAccCheckHerokuAppConfig_space(appName, space, org string) string {
+	return fmt.Sprintf(`
+resource "heroku_app" "foobar" {
+  name   = "%s"
+  space  = "%s"
+  region = "virginia"
+
+  organization {
+    name = "%s"
+  }
+
+  config_vars {
+    FOO = "bar"
+  }
+}`, appName, space, org)
 }
