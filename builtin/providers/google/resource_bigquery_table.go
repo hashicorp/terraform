@@ -96,7 +96,6 @@ func resourceBigQueryTable() *schema.Resource {
 			"time_partitioning": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
-				MinItems: 1,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
