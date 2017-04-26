@@ -47,7 +47,7 @@ The following arguments are supported:
 * `method` - (Required) [String] Balancing procedure ["ROUND_ROBIN", "LEAST_CONNECTIONS"]
 * `datacenter` - (Optional) [String]  Location of desired 1and1 datacenter ["DE", "GB", "US", "ES" ]
 * `persistence` - (Optional) [Boolean]  True/false defines whether persistence should be turned on/off
-* `persistence_time` - (Optional) [Integer] Persistance duration in seconds
+* `persistence_time` - (Optional) [Integer] Persistence duration in seconds
 * `health_check_test` - (Optional) [String] ["TCP", "ICMP"]
 * `health_check_test_interval` - (Optional) [String]
 * `health_check_test_path` - (Optional) [String]
