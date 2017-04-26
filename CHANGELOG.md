@@ -1,5 +1,10 @@
 ## 0.9.5 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+* provider/aws: Users of aws_cloudfront_distributions with custom_origins have been broken due to changes in the AWS API requiring     
+  `OriginReadTimeout` being set for updates. This has been fixed and will show as a change in terraform plan / apply. [GH-13367]
+
 IMPROVEMENTS:
 
 * provider/aws: Add support for CustomOrigin timeouts to aws_cloudfront_distribution [GH-13367]
