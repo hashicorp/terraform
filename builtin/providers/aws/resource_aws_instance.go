@@ -234,7 +234,7 @@ func resourceAwsInstance() *schema.Resource {
 
 			"tags": tagsSchema(),
 
-			"volume_tags": tagsSchema(),
+			"volume_tags": tagsSchemaComputed(),
 
 			"block_device": {
 				Type:     schema.TypeMap,
