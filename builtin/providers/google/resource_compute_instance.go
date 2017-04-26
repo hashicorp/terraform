@@ -96,12 +96,16 @@ func resourceComputeInstance() *schema.Resource {
 			"attached_disk": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
-				ForceNew: true, // TODO(danawillow): Remove this, support attaching/detaching
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"source": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
+						},
+
+						"boot": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
 						},
 
 						"device_name": &schema.Schema{
@@ -376,6 +380,29 @@ func getInstance(config *Config, d *schema.ResourceData) (*compute.Instance, err
 	return instance, nil
 }
 
+func attachedDisk(d map[string]interface{}) *compute.AttachedDisk {
+	disk := &compute.AttachedDisk{
+		Source:     d["source"].(string),
+		AutoDelete: false, // Don't allow autodelete; let terraform handle disk deletion
+	}
+
+	if v, ok := d["boot"]; ok {
+		disk.Boot = v.(bool)
+	}
+
+	if v, ok := d["device_name"]; ok {
+		disk.DeviceName = v.(string)
+	}
+
+	if v, ok := d["disk_encryption_key_raw"]; ok {
+		disk.DiskEncryptionKey = &compute.CustomerEncryptionKey{
+			RawKey: v.(string),
+		}
+	}
+
+	return disk
+}
+
 func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
@@ -496,25 +523,8 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	for i := 0; i < attachedDisksCount; i++ {
-		prefix := fmt.Sprintf("attached_disk.%d", i)
-		disk := compute.AttachedDisk{
-			Source:     d.Get(prefix + ".source").(string),
-			AutoDelete: false, // Don't allow autodelete; let terraform handle disk deletion
-		}
-
-		disk.Boot = i == 0 && disksCount == 0 // TODO(danawillow): This is super hacky, let's just add a boot field.
-
-		if v, ok := d.GetOk(prefix + ".device_name"); ok {
-			disk.DeviceName = v.(string)
-		}
-
-		if v, ok := d.GetOk(prefix + ".disk_encryption_key_raw"); ok {
-			disk.DiskEncryptionKey = &compute.CustomerEncryptionKey{
-				RawKey: v.(string),
-			}
-		}
-
-		disks = append(disks, &disk)
+		ad := d.Get(fmt.Sprintf("attached_disk.%d", i))
+		disks = append(disks, attachedDisk(ad.(map[string]interface{})))
 	}
 
 	networksCount := d.Get("network.#").(int)
@@ -887,6 +897,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 		} else {
 			di := map[string]interface{}{
 				"source":                  disk.Source,
+				"boot":                    disk.Boot,
 				"device_name":             disk.DeviceName,
 				"disk_encryption_key_raw": d.Get(fmt.Sprintf("attached_disk.%d.disk_encryption_key_raw", adIndex)),
 			}
@@ -923,6 +934,71 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 
 	// Enable partial mode for the resource since it is possible
 	d.Partial(true)
+
+	if d.HasChange("attached_disk") {
+		o, n := d.GetChange("attached_disk")
+		oCount, nCount := d.GetChange("attached_disk.#")
+		oSources := make(map[string]struct{}, oCount.(int))
+		nSources := make(map[string]struct{}, nCount.(int))
+
+		detach := make([]string, 0, 0)
+		attach := make([]*compute.AttachedDisk, 0, 0)
+
+		// Keep track of previous config's disk sources.
+		for _, disk := range o.([]interface{}) {
+			d := disk.(map[string]interface{})
+			source := d["source"].(string)
+			oSources[source] = struct{}{}
+		}
+
+		// Keep track of new config's disk sources.
+		// If a source is only in the new config, it should be attached.
+		for _, disk := range n.([]interface{}) {
+			d := disk.(map[string]interface{})
+			source := d["source"].(string)
+			nSources[source] = struct{}{}
+			if _, ok := oSources[source]; !ok {
+				attach = append(attach, attachedDisk(d))
+			}
+		}
+
+		// If a source is only in the old config, it should be detached.
+		for _, disk := range o.([]interface{}) {
+			d := disk.(map[string]interface{})
+			source := d["source"].(string)
+			if _, ok := nSources[source]; !ok {
+				detach = append(detach, d["device_name"].(string))
+			}
+		}
+
+		for _, disk := range attach {
+			op, err := config.clientCompute.Instances.AttachDisk(project, zone, instance.Name, disk).Do()
+			if err != nil {
+				return fmt.Errorf("Error attaching disk: %s", err)
+			}
+
+			opErr := computeOperationWaitZone(config, op, project, zone, "attaching disk")
+			if opErr != nil {
+				return opErr
+			}
+			log.Printf("[DEBUG] Successfully attached disk %s", disk.Source)
+		}
+
+		for _, disk := range detach {
+			op, err := config.clientCompute.Instances.DetachDisk(project, zone, instance.Name, disk).Do()
+			if err != nil {
+				return fmt.Errorf("Error detaching disk: %s", err)
+			}
+
+			opErr := computeOperationWaitZone(config, op, project, zone, "detaching disk")
+			if opErr != nil {
+				return opErr
+			}
+			log.Printf("[DEBUG] Successfully detached disk %s", disk)
+		}
+
+		d.SetPartial("attached_disk")
+	}
 
 	// If the Metadata has changed, then update that.
 	if d.HasChange("metadata") {
