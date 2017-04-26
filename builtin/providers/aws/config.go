@@ -48,6 +48,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/glacier"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/inspector"
+	"github.com/aws/aws-sdk-go/service/iot"
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/lambda"
@@ -161,6 +162,7 @@ type AWSClient struct {
 	sfnconn               *sfn.SFN
 	ssmconn               *ssm.SSM
 	wafconn               *waf.WAF
+	iotconn               *iot.IoT
 }
 
 func (c *AWSClient) S3() *s3.S3 {
@@ -274,6 +276,46 @@ func (c *Config) Client() (interface{}, error) {
 			client.partition = partition
 			client.accountid = accountId
 		}
+
+		client.apigateway = apigateway.New(sess)
+		client.appautoscalingconn = applicationautoscaling.New(sess)
+		client.autoscalingconn = autoscaling.New(sess)
+		client.cfconn = cloudformation.New(sess)
+		client.cloudfrontconn = cloudfront.New(sess)
+		client.cloudtrailconn = cloudtrail.New(sess)
+		client.cloudwatchconn = cloudwatch.New(sess)
+		client.cloudwatcheventsconn = cloudwatchevents.New(sess)
+		client.cloudwatchlogsconn = cloudwatchlogs.New(sess)
+		client.codecommitconn = codecommit.New(usEast1Sess)
+		client.codedeployconn = codedeploy.New(sess)
+		client.dsconn = directoryservice.New(sess)
+		client.dynamodbconn = dynamodb.New(dynamoSess)
+		client.ec2conn = ec2.New(awsEc2Sess)
+		client.ecrconn = ecr.New(sess)
+		client.ecsconn = ecs.New(sess)
+		client.efsconn = efs.New(sess)
+		client.elasticacheconn = elasticache.New(sess)
+		client.elasticbeanstalkconn = elasticbeanstalk.New(sess)
+		client.elastictranscoderconn = elastictranscoder.New(sess)
+		client.elbconn = elb.New(awsElbSess)
+		client.elbv2conn = elbv2.New(awsElbSess)
+		client.emrconn = emr.New(sess)
+		client.esconn = elasticsearch.New(sess)
+		client.firehoseconn = firehose.New(sess)
+		client.glacierconn = glacier.New(sess)
+		client.iotconn = iot.New(sess)
+		client.kinesisconn = kinesis.New(kinesisSess)
+		client.kmsconn = kms.New(sess)
+		client.lambdaconn = lambda.New(sess)
+		client.opsworksconn = opsworks.New(usEast1Sess)
+		client.r53conn = route53.New(usEast1Sess)
+		client.rdsconn = rds.New(sess)
+		client.redshiftconn = redshift.New(sess)
+		client.simpledbconn = simpledb.New(sess)
+		client.s3conn = s3.New(awsS3Sess)
+		client.sesConn = ses.New(sess)
+		client.snsconn = sns.New(sess)
+		client.sqsconn = sqs.New(sess)
 	}
 
 	authErr := c.ValidateAccountId(client.accountid)

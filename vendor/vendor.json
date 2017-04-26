@@ -997,6 +997,14 @@
 			"versionExact": "v1.8.13"
 		},
 		{
+			"checksumSHA1": "VUAg4jmuAB49FvnLjTC4qxZ5zgI=",
+			"path": "github.com/aws/aws-sdk-go/service/iot",
+			"revision": "4bbd6fa3fdede4c68e941248f974b8951c17de89",
+			"revisionTime": "2017-04-18T18:52:59Z",
+			"version": "v1.8.13",
+			"versionExact": "v1.8.13"
+		},
+		{
 			"checksumSHA1": "Yzxk0tkTh2D9JP5I8gspLQLKu0U=",
 			"path": "github.com/aws/aws-sdk-go/service/kinesis",
 			"revision": "4bbd6fa3fdede4c68e941248f974b8951c17de89",
