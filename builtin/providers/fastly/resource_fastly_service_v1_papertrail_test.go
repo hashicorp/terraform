@@ -75,7 +75,7 @@ func testAccCheckFastlyServiceV1PapertrailAttributes(service *gofastly.ServiceDe
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Papertrail for (%s), version (%s): %s", service.Name, service.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Papertrail for (%s), version (%v): %s", service.Name, service.ActiveVersion.Number, err)
 		}
 
 		if len(papertrailList) != len(papertrails) {

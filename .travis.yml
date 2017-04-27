@@ -1,3 +1,7 @@
+####################################################################################
+## NOT FOR UPSTREAM PROPOSAL; INTENDED FOR CI OF AZURE EXAMPLES IN THIS REPO ONLY ##
+####################################################################################
+
 sudo: required
 
 services:

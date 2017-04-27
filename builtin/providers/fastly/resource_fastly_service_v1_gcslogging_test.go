@@ -85,7 +85,7 @@ func testAccCheckFastlyServiceV1Attributes_gcs(service *gofastly.ServiceDetail, 
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up GCSs for (%s), version (%s): %s", service.Name, service.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up GCSs for (%s), version (%v): %s", service.Name, service.ActiveVersion.Number, err)
 		}
 
 		if len(gcsList) != 1 {
