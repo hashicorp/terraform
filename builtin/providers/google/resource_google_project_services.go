@@ -170,9 +170,9 @@ func getApiServices(pid string, config *Config) ([]string, error) {
 			return apiServices, err
 		}
 		for _, v := range svcResp.Services {
-		  if _, ok := ignore[v.ServiceName]; !ok {
-			  apiServices = append(apiServices, v.ServiceName)
-      }
+			if _, ok := ignore[v.ServiceName]; !ok {
+				apiServices = append(apiServices, v.ServiceName)
+			}
 		}
 		token = svcResp.NextPageToken
 		paginate = token != ""

@@ -204,7 +204,7 @@ func TestAccGoogleProjectServices_manyServices(t *testing.T) {
 		"storage-api.googleapis.com",
 		"storage-component.googleapis.com",
 	}
-  
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
