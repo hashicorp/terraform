@@ -7,7 +7,7 @@ language: generic
 
 # establish environment variables
 env:
-  - TEST_DIR=examples/azure-vm-simple-linux
+  - TEST_DIR=examples/azure-vm-simple-linux-managed-disk
 
 branches:
   only:
