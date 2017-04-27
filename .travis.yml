@@ -15,6 +15,7 @@ env:
 branches:
   only:
   - master
+  - /^(?i:topic)-.*$/
 
 # install terraform
 before_deploy:
@@ -29,7 +30,6 @@ deploy:
     on:
       repo: harijayms/terraform
       branch: master
-      condition: false
 
 # destroy resources with Azure CLI
 after_deploy: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./after_deploy.sh
