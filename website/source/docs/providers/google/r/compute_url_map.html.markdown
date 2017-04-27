@@ -55,7 +55,6 @@ resource "google_compute_backend_service" "login" {
   port_name   = "http"
   protocol    = "HTTP"
   timeout_sec = 10
-  region      = "us-central1"
 
   health_checks = ["${google_compute_http_health_check.default.self_link}"]
 }
@@ -65,7 +64,6 @@ resource "google_compute_backend_service" "home" {
   port_name   = "http"
   protocol    = "HTTP"
   timeout_sec = 10
-  region      = "us-central1"
 
   health_checks = ["${google_compute_http_health_check.default.self_link}"]
 }
