@@ -10,10 +10,10 @@ import (
 
 func resourceHerokuAppFeature() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAppFeatureCreate,
-		Update: resourceAppFeatureUpdate,
-		Read:   resourceAppFeatureRead,
-		Delete: resourceAppFeatureDelete,
+		Create: resourceHerokuAppFeatureCreate,
+		Update: resourceHerokuAppFeatureUpdate,
+		Read:   resourceHerokuAppFeatureRead,
+		Delete: resourceHerokuAppFeatureDelete,
 
 		Schema: map[string]*schema.Schema{
 			"app": {
@@ -37,7 +37,7 @@ func resourceHerokuAppFeature() *schema.Resource {
 	}
 }
 
-func resourceAppFeatureRead(d *schema.ResourceData, meta interface{}) error {
+func resourceHerokuAppFeatureRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
 	app, id := parseCompositeID(d.Id())
@@ -54,7 +54,7 @@ func resourceAppFeatureRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceAppFeatureCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceHerokuAppFeatureCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
 	app := d.Get("app").(string)
@@ -72,18 +72,18 @@ func resourceAppFeatureCreate(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(buildCompositeID(app, feature.ID))
 
-	return resourceAppFeatureRead(d, meta)
+	return resourceHerokuAppFeatureRead(d, meta)
 }
 
-func resourceAppFeatureUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceHerokuAppFeatureUpdate(d *schema.ResourceData, meta interface{}) error {
 	if d.HasChange("enabled") {
-		return resourceAppFeatureCreate(d, meta)
+		return resourceHerokuAppFeatureCreate(d, meta)
 	}
 
-	return resourceAppFeatureRead(d, meta)
+	return resourceHerokuAppFeatureRead(d, meta)
 }
 
-func resourceAppFeatureDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceHerokuAppFeatureDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
 	app, id := parseCompositeID(d.Id())
