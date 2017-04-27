@@ -24,6 +24,7 @@ BUG FIXES:
 * provider/aws: Fix issue getting partition for federated users [GH-13992]
 * provider/aws: aws_spot_instance_request not forcenew on volume_tags [GH-14046]
 * provider/digitalocean: Prevent diffs when using IDs of images instead of slugs [GH-13879]
+* provider/google: ignore certain project services that can't be enabled directly via the api [GH-13730]
 * providers/heroku: Configure buildpacks correctly for both Org Apps and non-org Apps [GH-13990]
 
 ## 0.9.4 (26th April 2017)
