@@ -13,7 +13,7 @@ and deleted. Instances also support [provisioning](/docs/provisioners/index.html
 
 ## Example Usage
 
-```
+```hcl
 # Create a new instance of the latest Ubuntu 14.04 on an
 # t2.micro node with an AWS Tag naming it "HelloWorld"
 provider "aws" {
@@ -80,12 +80,14 @@ instances. See [Shutdown Behavior](https://docs.aws.amazon.com/AWSEC2/latest/Use
 * `ipv6_address_count`- (Optional) A number of IPv6 addresses to associate with the primary network interface. Amazon EC2 chooses the IPv6 addresses from the range of your subnet.
 * `ipv6_addresses` - (Optional) Specify one or more IPv6 addresses from the range of the subnet to associate with the primary network interface
 * `tags` - (Optional) A mapping of tags to assign to the resource.
+* `volume_tags` - (Optional) A mapping of tags to assign to the devices created by the instance at launch time.
 * `root_block_device` - (Optional) Customize details about the root block
   device of the instance. See [Block Devices](#block-devices) below for details.
 * `ebs_block_device` - (Optional) Additional EBS block devices to attach to the
   instance.  See [Block Devices](#block-devices) below for details.
 * `ephemeral_block_device` - (Optional) Customize Ephemeral (also known as
   "Instance Store") volumes on the instance. See [Block Devices](#block-devices) below for details.
+* `network_interface` - (Optional) Customize network interfaces to be attached at instance boot time. See [Network Interfaces](#network-interfaces) below for more details.
 
 
 ## Block devices
@@ -149,6 +151,59 @@ resources cannot be automatically detected by Terraform. After making updates
 to block device configuration, resource recreation can be manually triggered by
 using the [`taint` command](/docs/commands/taint.html).
 
+## Network Interfaces
+
+Each of the `network_interface` blocks attach a network interface to an EC2 Instance during boot time. However, because
+the network interface is attached at boot-time, replacing/modifying the network interface **WILL** trigger a recreation
+of the EC2 Instance. If you should need at any point to detach/modify/re-attach a network interface to the instance, use
+the `aws_network_interface` or `aws_network_interface_attachment` resources instead.
+
+The `network_interface` configuration block _does_, however, allow users to supply their own network interface to be used
+as the default network interface on an EC2 Instance, attached at `eth0`.
+
+Each `network_interface` block supports the following:
+
+* `device_index` - (Required) The integer index of the network interface attachment. Limited by instance type.
+* `network_interface_id` - (Required) The ID of the network interface to attach.
+* `delete_on_termination` - (Optional) Whether or not to delete the network interface on instance termination. Defaults to `false`.
+
+### Example
+
+```hcl
+resource "aws_vpc" "my_vpc" {
+  cidr_block = "172.16.0.0/16"
+  tags {
+    Name = "tf-example"
+  }
+}
+
+resource "aws_subnet" "my_subnet" {
+  vpc_id = "${aws_vpc.my_vpc.id}"
+  cidr_block = "172.16.10.0/24"
+  availability_zone = "us-west-2a"
+  tags {
+    Name = "tf-example"
+  }
+}
+
+resource "aws_network_interface" "foo" {
+  subnet_id = "${aws_subnet.my_subnet.id}"
+  private_ips = ["172.16.10.100"]
+  tags {
+    Name = "primary_network_interface"
+  }
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-22b9a343" // us-west-2
+	instance_type = "t2.micro"
+	network_interface {
+	 network_interface_id = "${aws_network_interface.foo.id}"
+	 device_index = 0
+  }
+}
+```
+
 ## Attributes Reference
 
 The following attributes are exported:
@@ -161,6 +216,7 @@ The following attributes are exported:
   is only available if you've enabled DNS hostnames for your VPC
 * `public_ip` - The public IP address assigned to the instance, if applicable. **NOTE**: If you are using an [`aws_eip`](/docs/providers/aws/r/eip.html) with your instance, you should refer to the EIP's address directly and not use `public_ip`, as this field will change after the EIP is attached.
 * `network_interface_id` - The ID of the network interface that was created with the instance.
+* `primary_network_interface_id` - The ID of the instance's primary network interface.
 * `private_dns` - The private DNS name assigned to the instance. Can only be
   used inside the Amazon EC2, and only available if you've enabled DNS hostnames
   for your VPC

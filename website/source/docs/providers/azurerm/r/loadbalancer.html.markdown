@@ -12,7 +12,7 @@ Create a LoadBalancer Resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "LoadBalancerRG"
   location = "West US"
@@ -60,6 +60,7 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The LoadBalancer ID.
+* `private_ip_address` - The private IP address assigned to the load balancer, if any.
 
 ## Import
 

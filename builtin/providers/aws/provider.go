@@ -70,7 +70,7 @@ func Provider() terraform.ResourceProvider {
 			"max_retries": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Default:     11,
+				Default:     25,
 				Description: descriptions["max_retries"],
 			},
 
@@ -122,6 +122,13 @@ func Provider() terraform.ResourceProvider {
 				Description: descriptions["skip_credentials_validation"],
 			},
 
+			"skip_get_ec2_platforms": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["skip_get_ec2_platforms"],
+			},
+
 			"skip_region_validation": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -156,6 +163,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_alb":                      dataSourceAwsAlb(),
 			"aws_alb_listener":             dataSourceAwsAlbListener(),
 			"aws_ami":                      dataSourceAwsAmi(),
+			"aws_ami_ids":                  dataSourceAwsAmiIds(),
 			"aws_autoscaling_groups":       dataSourceAwsAutoscalingGroups(),
 			"aws_availability_zone":        dataSourceAwsAvailabilityZone(),
 			"aws_availability_zones":       dataSourceAwsAvailabilityZones(),
@@ -165,6 +173,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_cloudformation_stack":     dataSourceAwsCloudFormationStack(),
 			"aws_db_instance":              dataSourceAwsDbInstance(),
 			"aws_ebs_snapshot":             dataSourceAwsEbsSnapshot(),
+			"aws_ebs_snapshot_ids":         dataSourceAwsEbsSnapshotIds(),
 			"aws_ebs_volume":               dataSourceAwsEbsVolume(),
 			"aws_ecs_cluster":              dataSourceAwsEcsCluster(),
 			"aws_ecs_container_definition": dataSourceAwsEcsContainerDefinition(),
@@ -172,12 +181,14 @@ func Provider() terraform.ResourceProvider {
 			"aws_eip":                      dataSourceAwsEip(),
 			"aws_elb_hosted_zone_id":       dataSourceAwsElbHostedZoneId(),
 			"aws_elb_service_account":      dataSourceAwsElbServiceAccount(),
+			"aws_kinesis_stream":           dataSourceAwsKinesisStream(),
 			"aws_iam_account_alias":        dataSourceAwsIamAccountAlias(),
 			"aws_iam_policy_document":      dataSourceAwsIamPolicyDocument(),
 			"aws_iam_role":                 dataSourceAwsIAMRole(),
 			"aws_iam_server_certificate":   dataSourceAwsIAMServerCertificate(),
 			"aws_instance":                 dataSourceAwsInstance(),
 			"aws_ip_ranges":                dataSourceAwsIPRanges(),
+			"aws_kms_alias":                dataSourceAwsKmsAlias(),
 			"aws_kms_secret":               dataSourceAwsKmsSecret(),
 			"aws_partition":                dataSourceAwsPartition(),
 			"aws_prefix_list":              dataSourceAwsPrefixList(),
@@ -249,6 +260,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_config_configuration_recorder":            resourceAwsConfigConfigurationRecorder(),
 			"aws_config_configuration_recorder_status":     resourceAwsConfigConfigurationRecorderStatus(),
 			"aws_config_delivery_channel":                  resourceAwsConfigDeliveryChannel(),
+			"aws_cognito_identity_pool":                    resourceAwsCognitoIdentityPool(),
 			"aws_autoscaling_lifecycle_hook":               resourceAwsAutoscalingLifecycleHook(),
 			"aws_cloudwatch_metric_alarm":                  resourceAwsCloudWatchMetricAlarm(),
 			"aws_codedeploy_app":                           resourceAwsCodeDeployApp(),
@@ -356,6 +368,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_default_route_table":                      resourceAwsDefaultRouteTable(),
 			"aws_network_acl_rule":                         resourceAwsNetworkAclRule(),
 			"aws_network_interface":                        resourceAwsNetworkInterface(),
+			"aws_network_interface_attachment":             resourceAwsNetworkInterfaceAttachment(),
 			"aws_opsworks_application":                     resourceAwsOpsworksApplication(),
 			"aws_opsworks_stack":                           resourceAwsOpsworksStack(),
 			"aws_opsworks_java_app_layer":                  resourceAwsOpsworksJavaAppLayer(),
@@ -489,6 +502,9 @@ func init() {
 		"skip_credentials_validation": "Skip the credentials validation via STS API. " +
 			"Used for AWS API implementations that do not have STS available/implemented.",
 
+		"skip_get_ec2_platforms": "Skip getting the supported EC2 platforms. " +
+			"Used by users that don't have ec2:DescribeAccountAttributes permissions.",
+
 		"skip_region_validation": "Skip static validation of region name. " +
 			"Used by users of alternative AWS-like APIs or users w/ access to regions that are not public (yet).",
 
@@ -528,6 +544,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		MaxRetries:              d.Get("max_retries").(int),
 		Insecure:                d.Get("insecure").(bool),
 		SkipCredsValidation:     d.Get("skip_credentials_validation").(bool),
+		SkipGetEC2Platforms:     d.Get("skip_get_ec2_platforms").(bool),
 		SkipRegionValidation:    d.Get("skip_region_validation").(bool),
 		SkipRequestingAccountId: d.Get("skip_requesting_account_id").(bool),
 		SkipMetadataApiCheck:    d.Get("skip_metadata_api_check").(bool),

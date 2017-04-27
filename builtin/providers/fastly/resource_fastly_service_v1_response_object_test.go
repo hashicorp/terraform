@@ -17,7 +17,7 @@ func TestAccFastlyServiceV1_response_object_basic(t *testing.T) {
 	domainName1 := fmt.Sprintf("%s.notadomain.com", acctest.RandString(10))
 
 	log1 := gofastly.ResponseObject{
-		Version:          "1",
+		Version:          1,
 		Name:             "responseObjecttesting",
 		Status:           200,
 		Response:         "OK",
@@ -28,7 +28,7 @@ func TestAccFastlyServiceV1_response_object_basic(t *testing.T) {
 	}
 
 	log2 := gofastly.ResponseObject{
-		Version:          "1",
+		Version:          1,
 		Name:             "responseObjecttesting2",
 		Status:           404,
 		Response:         "Not Found",
@@ -80,7 +80,7 @@ func testAccCheckFastlyServiceV1ResponseObjectAttributes(service *gofastly.Servi
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Response Object for (%s), version (%s): %s", service.Name, service.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Response Object for (%s), version (%v): %s", service.Name, service.ActiveVersion.Number, err)
 		}
 
 		if len(responseObjectList) != len(responseObjects) {

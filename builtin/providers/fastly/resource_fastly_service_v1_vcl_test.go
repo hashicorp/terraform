@@ -61,7 +61,7 @@ func testAccCheckFastlyServiceV1VCLAttributes(service *gofastly.ServiceDetail, n
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up VCL for (%s), version (%s): %s", service.Name, service.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up VCL for (%s), version (%v): %s", service.Name, service.ActiveVersion.Number, err)
 		}
 
 		if len(vclList) != vclCount {

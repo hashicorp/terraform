@@ -645,6 +645,19 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 			}
 		}
 
+		// Computed-only field
+		if v.Computed && !v.Optional {
+			if v.ValidateFunc != nil {
+				return fmt.Errorf("%s: ValidateFunc is for validating user input, "+
+					"there's nothing to validate on computed-only field", k)
+			}
+			if v.DiffSuppressFunc != nil {
+				return fmt.Errorf("%s: DiffSuppressFunc is for suppressing differences"+
+					" between config and state representation. "+
+					"There is no config for computed-only field, nothing to compare.", k)
+			}
+		}
+
 		if v.ValidateFunc != nil {
 			switch v.Type {
 			case TypeList, TypeSet:
@@ -654,19 +667,6 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 	}
 
 	return nil
-}
-
-func (m schemaMap) markAsRemoved(k string, schema *Schema, diff *terraform.InstanceDiff) {
-	existingDiff, ok := diff.Attributes[k]
-	if ok {
-		existingDiff.NewRemoved = true
-		diff.Attributes[k] = schema.finalizeDiff(existingDiff)
-		return
-	}
-
-	diff.Attributes[k] = schema.finalizeDiff(&terraform.ResourceAttrDiff{
-		NewRemoved: true,
-	})
 }
 
 func (m schemaMap) diff(
@@ -757,6 +757,7 @@ func (m schemaMap) diffList(
 		diff.Attributes[k+".#"] = &terraform.ResourceAttrDiff{
 			Old:         oldStr,
 			NewComputed: true,
+			RequiresNew: schema.ForceNew,
 		}
 		return nil
 	}
@@ -792,7 +793,6 @@ func (m schemaMap) diffList(
 
 	switch t := schema.Elem.(type) {
 	case *Resource:
-		countDiff, cOk := diff.GetAttribute(k + ".#")
 		// This is a complex resource
 		for i := 0; i < maxLen; i++ {
 			for k2, schema := range t.Schema {
@@ -800,15 +800,6 @@ func (m schemaMap) diffList(
 				err := m.diff(subK, schema, diff, d, all)
 				if err != nil {
 					return err
-				}
-
-				// If parent list is being removed
-				// remove all subfields which were missed by the diff func
-				// We process these separately because type-specific diff functions
-				// lack the context (hierarchy of fields)
-				subKeyIsCount := strings.HasSuffix(subK, ".#")
-				if cOk && countDiff.New == "0" && !subKeyIsCount {
-					m.markAsRemoved(subK, schema, diff)
 				}
 			}
 		}
@@ -1019,7 +1010,6 @@ func (m schemaMap) diffSet(
 		for _, code := range list {
 			switch t := schema.Elem.(type) {
 			case *Resource:
-				countDiff, cOk := diff.GetAttribute(k + ".#")
 				// This is a complex resource
 				for k2, schema := range t.Schema {
 					subK := fmt.Sprintf("%s.%s.%s", k, code, k2)
@@ -1027,17 +1017,7 @@ func (m schemaMap) diffSet(
 					if err != nil {
 						return err
 					}
-
-					// If parent set is being removed
-					// remove all subfields which were missed by the diff func
-					// We process these separately because type-specific diff functions
-					// lack the context (hierarchy of fields)
-					subKeyIsCount := strings.HasSuffix(subK, ".#")
-					if cOk && countDiff.New == "0" && !subKeyIsCount {
-						m.markAsRemoved(subK, schema, diff)
-					}
 				}
-
 			case *Schema:
 				// Copy the schema so that we can set Computed/ForceNew from
 				// the parent schema (the TypeSet).

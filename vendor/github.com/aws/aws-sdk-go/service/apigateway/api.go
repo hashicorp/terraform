@@ -696,6 +696,90 @@ func (c *APIGateway) CreateModelWithContext(ctx aws.Context, input *CreateModelI
 	return out, req.Send()
 }
 
+const opCreateRequestValidator = "CreateRequestValidator"
+
+// CreateRequestValidatorRequest generates a "aws/request.Request" representing the
+// client's request for the CreateRequestValidator operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See CreateRequestValidator for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateRequestValidator method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateRequestValidatorRequest method.
+//    req, resp := client.CreateRequestValidatorRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *APIGateway) CreateRequestValidatorRequest(input *CreateRequestValidatorInput) (req *request.Request, output *UpdateRequestValidatorOutput) {
+	op := &request.Operation{
+		Name:       opCreateRequestValidator,
+		HTTPMethod: "POST",
+		HTTPPath:   "/restapis/{restapi_id}/requestvalidators",
+	}
+
+	if input == nil {
+		input = &CreateRequestValidatorInput{}
+	}
+
+	output = &UpdateRequestValidatorOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateRequestValidator API operation for Amazon API Gateway.
+//
+// Creates a ReqeustValidator of a given RestApi.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation CreateRequestValidator for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeBadRequestException "BadRequestException"
+//
+//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//
+//   * ErrCodeLimitExceededException "LimitExceededException"
+//
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//
+func (c *APIGateway) CreateRequestValidator(input *CreateRequestValidatorInput) (*UpdateRequestValidatorOutput, error) {
+	req, out := c.CreateRequestValidatorRequest(input)
+	return out, req.Send()
+}
+
+// CreateRequestValidatorWithContext is the same as CreateRequestValidator with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateRequestValidator for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *APIGateway) CreateRequestValidatorWithContext(ctx aws.Context, input *CreateRequestValidatorInput, opts ...request.Option) (*UpdateRequestValidatorOutput, error) {
+	req, out := c.CreateRequestValidatorRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opCreateResource = "CreateResource"
 
 // CreateResourceRequest generates a "aws/request.Request" representing the
@@ -2214,6 +2298,92 @@ func (c *APIGateway) DeleteModel(input *DeleteModelInput) (*DeleteModelOutput, e
 // for more information on using Contexts.
 func (c *APIGateway) DeleteModelWithContext(ctx aws.Context, input *DeleteModelInput, opts ...request.Option) (*DeleteModelOutput, error) {
 	req, out := c.DeleteModelRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteRequestValidator = "DeleteRequestValidator"
+
+// DeleteRequestValidatorRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteRequestValidator operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DeleteRequestValidator for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteRequestValidator method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteRequestValidatorRequest method.
+//    req, resp := client.DeleteRequestValidatorRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *APIGateway) DeleteRequestValidatorRequest(input *DeleteRequestValidatorInput) (req *request.Request, output *DeleteRequestValidatorOutput) {
+	op := &request.Operation{
+		Name:       opDeleteRequestValidator,
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/restapis/{restapi_id}/requestvalidators/{requestvalidator_id}",
+	}
+
+	if input == nil {
+		input = &DeleteRequestValidatorInput{}
+	}
+
+	output = &DeleteRequestValidatorOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeleteRequestValidator API operation for Amazon API Gateway.
+//
+// Deletes a RequestValidator of a given RestApi.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation DeleteRequestValidator for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//
+//   * ErrCodeBadRequestException "BadRequestException"
+//
+//   * ErrCodeConflictException "ConflictException"
+//
+func (c *APIGateway) DeleteRequestValidator(input *DeleteRequestValidatorInput) (*DeleteRequestValidatorOutput, error) {
+	req, out := c.DeleteRequestValidatorRequest(input)
+	return out, req.Send()
+}
+
+// DeleteRequestValidatorWithContext is the same as DeleteRequestValidator with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteRequestValidator for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *APIGateway) DeleteRequestValidatorWithContext(ctx aws.Context, input *DeleteRequestValidatorInput, opts ...request.Option) (*DeleteRequestValidatorOutput, error) {
+	req, out := c.DeleteRequestValidatorRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -5242,6 +5412,168 @@ func (c *APIGateway) GetModelsPagesWithContext(ctx aws.Context, input *GetModels
 		cont = fn(p.Page().(*GetModelsOutput), !p.HasNextPage())
 	}
 	return p.Err()
+}
+
+const opGetRequestValidator = "GetRequestValidator"
+
+// GetRequestValidatorRequest generates a "aws/request.Request" representing the
+// client's request for the GetRequestValidator operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetRequestValidator for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetRequestValidator method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetRequestValidatorRequest method.
+//    req, resp := client.GetRequestValidatorRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *APIGateway) GetRequestValidatorRequest(input *GetRequestValidatorInput) (req *request.Request, output *UpdateRequestValidatorOutput) {
+	op := &request.Operation{
+		Name:       opGetRequestValidator,
+		HTTPMethod: "GET",
+		HTTPPath:   "/restapis/{restapi_id}/requestvalidators/{requestvalidator_id}",
+	}
+
+	if input == nil {
+		input = &GetRequestValidatorInput{}
+	}
+
+	output = &UpdateRequestValidatorOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetRequestValidator API operation for Amazon API Gateway.
+//
+// Gets a RequestValidator of a given RestApi.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetRequestValidator for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//
+func (c *APIGateway) GetRequestValidator(input *GetRequestValidatorInput) (*UpdateRequestValidatorOutput, error) {
+	req, out := c.GetRequestValidatorRequest(input)
+	return out, req.Send()
+}
+
+// GetRequestValidatorWithContext is the same as GetRequestValidator with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetRequestValidator for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *APIGateway) GetRequestValidatorWithContext(ctx aws.Context, input *GetRequestValidatorInput, opts ...request.Option) (*UpdateRequestValidatorOutput, error) {
+	req, out := c.GetRequestValidatorRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetRequestValidators = "GetRequestValidators"
+
+// GetRequestValidatorsRequest generates a "aws/request.Request" representing the
+// client's request for the GetRequestValidators operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetRequestValidators for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetRequestValidators method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetRequestValidatorsRequest method.
+//    req, resp := client.GetRequestValidatorsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *APIGateway) GetRequestValidatorsRequest(input *GetRequestValidatorsInput) (req *request.Request, output *GetRequestValidatorsOutput) {
+	op := &request.Operation{
+		Name:       opGetRequestValidators,
+		HTTPMethod: "GET",
+		HTTPPath:   "/restapis/{restapi_id}/requestvalidators",
+	}
+
+	if input == nil {
+		input = &GetRequestValidatorsInput{}
+	}
+
+	output = &GetRequestValidatorsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetRequestValidators API operation for Amazon API Gateway.
+//
+// Gets the RequestValidators collection of a given RestApi.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetRequestValidators for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeBadRequestException "BadRequestException"
+//
+//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//
+func (c *APIGateway) GetRequestValidators(input *GetRequestValidatorsInput) (*GetRequestValidatorsOutput, error) {
+	req, out := c.GetRequestValidatorsRequest(input)
+	return out, req.Send()
+}
+
+// GetRequestValidatorsWithContext is the same as GetRequestValidators with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetRequestValidators for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *APIGateway) GetRequestValidatorsWithContext(ctx aws.Context, input *GetRequestValidatorsInput, opts ...request.Option) (*GetRequestValidatorsOutput, error) {
+	req, out := c.GetRequestValidatorsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opGetResource = "GetResource"
@@ -8679,6 +9011,88 @@ func (c *APIGateway) UpdateModelWithContext(ctx aws.Context, input *UpdateModelI
 	return out, req.Send()
 }
 
+const opUpdateRequestValidator = "UpdateRequestValidator"
+
+// UpdateRequestValidatorRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateRequestValidator operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UpdateRequestValidator for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateRequestValidator method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateRequestValidatorRequest method.
+//    req, resp := client.UpdateRequestValidatorRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *APIGateway) UpdateRequestValidatorRequest(input *UpdateRequestValidatorInput) (req *request.Request, output *UpdateRequestValidatorOutput) {
+	op := &request.Operation{
+		Name:       opUpdateRequestValidator,
+		HTTPMethod: "PATCH",
+		HTTPPath:   "/restapis/{restapi_id}/requestvalidators/{requestvalidator_id}",
+	}
+
+	if input == nil {
+		input = &UpdateRequestValidatorInput{}
+	}
+
+	output = &UpdateRequestValidatorOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateRequestValidator API operation for Amazon API Gateway.
+//
+// Updates a RequestValidator of a given RestApi.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation UpdateRequestValidator for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeUnauthorizedException "UnauthorizedException"
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//
+//   * ErrCodeBadRequestException "BadRequestException"
+//
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//
+func (c *APIGateway) UpdateRequestValidator(input *UpdateRequestValidatorInput) (*UpdateRequestValidatorOutput, error) {
+	req, out := c.UpdateRequestValidatorRequest(input)
+	return out, req.Send()
+}
+
+// UpdateRequestValidatorWithContext is the same as UpdateRequestValidator with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateRequestValidator for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *APIGateway) UpdateRequestValidatorWithContext(ctx aws.Context, input *UpdateRequestValidatorInput, opts ...request.Option) (*UpdateRequestValidatorOutput, error) {
+	req, out := c.UpdateRequestValidatorRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opUpdateResource = "UpdateResource"
 
 // UpdateResourceRequest generates a "aws/request.Request" representing the
@@ -10278,6 +10692,75 @@ func (s *CreateModelInput) SetSchema(v string) *CreateModelInput {
 	return s
 }
 
+// Creates a RequestValidator of a given RestApi.
+type CreateRequestValidatorInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the to-be-created RequestValidator.
+	Name *string `locationName:"name" type:"string"`
+
+	// [Required] The identifier of the RestApi for which the RequestValidator is
+	// created.
+	//
+	// RestApiId is a required field
+	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
+
+	// A Boolean flag to indicate whether to validate request body according to
+	// the configured model schema for the method (true) or not (false).
+	ValidateRequestBody *bool `locationName:"validateRequestBody" type:"boolean"`
+
+	// A Boolean flag to indicate whether to validate request parameters, true,
+	// or not false.
+	ValidateRequestParameters *bool `locationName:"validateRequestParameters" type:"boolean"`
+}
+
+// String returns the string representation
+func (s CreateRequestValidatorInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateRequestValidatorInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateRequestValidatorInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateRequestValidatorInput"}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetName sets the Name field's value.
+func (s *CreateRequestValidatorInput) SetName(v string) *CreateRequestValidatorInput {
+	s.Name = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *CreateRequestValidatorInput) SetRestApiId(v string) *CreateRequestValidatorInput {
+	s.RestApiId = &v
+	return s
+}
+
+// SetValidateRequestBody sets the ValidateRequestBody field's value.
+func (s *CreateRequestValidatorInput) SetValidateRequestBody(v bool) *CreateRequestValidatorInput {
+	s.ValidateRequestBody = &v
+	return s
+}
+
+// SetValidateRequestParameters sets the ValidateRequestParameters field's value.
+func (s *CreateRequestValidatorInput) SetValidateRequestParameters(v bool) *CreateRequestValidatorInput {
+	s.ValidateRequestParameters = &v
+	return s
+}
+
 // Requests Amazon API Gateway to create a Resource resource.
 type CreateResourceInput struct {
 	_ struct{} `type:"structure"`
@@ -11595,6 +12078,74 @@ func (s DeleteModelOutput) GoString() string {
 	return s.String()
 }
 
+// Deletes a specified RequestValidator of a given RestApi.
+type DeleteRequestValidatorInput struct {
+	_ struct{} `type:"structure"`
+
+	// [Required] The identifier of the RequestValidator to be deleted.
+	//
+	// RequestValidatorId is a required field
+	RequestValidatorId *string `location:"uri" locationName:"requestvalidator_id" type:"string" required:"true"`
+
+	// [Required] The identifier of the RestApi from which the given RequestValidator
+	// is deleted.
+	//
+	// RestApiId is a required field
+	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteRequestValidatorInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteRequestValidatorInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteRequestValidatorInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteRequestValidatorInput"}
+	if s.RequestValidatorId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RequestValidatorId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetRequestValidatorId sets the RequestValidatorId field's value.
+func (s *DeleteRequestValidatorInput) SetRequestValidatorId(v string) *DeleteRequestValidatorInput {
+	s.RequestValidatorId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *DeleteRequestValidatorInput) SetRestApiId(v string) *DeleteRequestValidatorInput {
+	s.RestApiId = &v
+	return s
+}
+
+type DeleteRequestValidatorOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteRequestValidatorOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteRequestValidatorOutput) GoString() string {
+	return s.String()
+}
+
 // Request to delete a Resource.
 type DeleteResourceInput struct {
 	_ struct{} `type:"structure"`
@@ -12487,7 +13038,7 @@ type GetApiKeysInput struct {
 	// The name of queried API keys.
 	NameQuery *string `location:"querystring" locationName:"name" type:"string"`
 
-	// The position of the current ApiKeys resource to get information about.
+	// The current pagination position in the paged result set.
 	Position *string `location:"querystring" locationName:"position" type:"string"`
 }
 
@@ -12632,11 +13183,10 @@ func (s *GetAuthorizerInput) SetRestApiId(v string) *GetAuthorizerInput {
 type GetAuthorizersInput struct {
 	_ struct{} `type:"structure"`
 
-	// Limit the number of Authorizer resources in the response.
+	// The maximum number of returned results per page.
 	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
 
-	// If not all Authorizer resources in the response were present, the position
-	// will specify where to start the next page of results.
+	// The current pagination position in the paged result set.
 	Position *string `location:"querystring" locationName:"position" type:"string"`
 
 	// The RestApi identifier for the Authorizers resource.
@@ -12785,13 +13335,11 @@ type GetBasePathMappingsInput struct {
 	// DomainName is a required field
 	DomainName *string `location:"uri" locationName:"domain_name" type:"string" required:"true"`
 
-	// The maximum number of BasePathMapping resources in the collection to get
-	// information about. The default limit is 25. It should be an integer between
-	// 1 - 500.
+	// The maximum number of returned results per page. The value is 25 by default
+	// and could be between 1 - 500.
 	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
 
-	// The position of the current BasePathMapping resource in the collection to
-	// get information about.
+	// The current pagination position in the paged result set.
 	Position *string `location:"querystring" locationName:"position" type:"string"`
 }
 
@@ -12914,13 +13462,11 @@ func (s *GetClientCertificateInput) SetClientCertificateId(v string) *GetClientC
 type GetClientCertificatesInput struct {
 	_ struct{} `type:"structure"`
 
-	// The maximum number of ClientCertificate resources in the collection to get
-	// information about. The default limit is 25. It should be an integer between
-	// 1 - 500.
+	// The maximum number of returned results per page. The value is 25 by default
+	// and could be between 1 - 500.
 	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
 
-	// The position of the current ClientCertificate resource in the collection
-	// to get information about.
+	// The current pagination position in the paged result set.
 	Position *string `location:"querystring" locationName:"position" type:"string"`
 }
 
@@ -12990,6 +13536,15 @@ type GetDeploymentInput struct {
 	// DeploymentId is a required field
 	DeploymentId *string `location:"uri" locationName:"deployment_id" type:"string" required:"true"`
 
+	// A query parameter to retrieve the specified embedded resources of the returned
+	// Deployment resource in the response. In a REST API call, this embed parameter
+	// value is a list of comma-separated strings, as in GET /restapis/{restapi_id}/deployments/{deployment_id}?embed=var1,var2.
+	// The SDK and other platform-dependent libraries might use a different format
+	// for the list. Currently, this request supports only retrieval of the embedded
+	// API summary this way. Hence, the parameter value must be a single-valued
+	// list containing only the "apisummary" string. For example, GET /restapis/{restapi_id}/deployments/{deployment_id}?embed=apisummary.
+	Embed []*string `location:"querystring" locationName:"embed" type:"list"`
+
 	// The identifier of the RestApi resource for the Deployment resource to get
 	// information about.
 	//
@@ -13029,6 +13584,12 @@ func (s *GetDeploymentInput) SetDeploymentId(v string) *GetDeploymentInput {
 	return s
 }
 
+// SetEmbed sets the Embed field's value.
+func (s *GetDeploymentInput) SetEmbed(v []*string) *GetDeploymentInput {
+	s.Embed = v
+	return s
+}
+
 // SetRestApiId sets the RestApiId field's value.
 func (s *GetDeploymentInput) SetRestApiId(v string) *GetDeploymentInput {
 	s.RestApiId = &v
@@ -13039,12 +13600,11 @@ func (s *GetDeploymentInput) SetRestApiId(v string) *GetDeploymentInput {
 type GetDeploymentsInput struct {
 	_ struct{} `type:"structure"`
 
-	// The maximum number of Deployment resources in the collection to get information
-	// about. The default limit is 25. It should be an integer between 1 - 500.
+	// The maximum number of returned results per page. The value is 25 by default
+	// and could be between 1 - 500.
 	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
 
-	// The position of the current Deployment resource in the collection to get
-	// information about.
+	// The current pagination position in the paged result set.
 	Position *string `location:"querystring" locationName:"position" type:"string"`
 
 	// The identifier of the RestApi resource for the collection of Deployment resources
@@ -13198,7 +13758,7 @@ func (s *GetDocumentationPartInput) SetRestApiId(v string) *GetDocumentationPart
 type GetDocumentationPartsInput struct {
 	_ struct{} `type:"structure"`
 
-	// The size of the paged results.
+	// The maximum number of returned results per page.
 	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
 
 	// The name of API entities of the to-be-retrieved documentation parts.
@@ -13207,8 +13767,7 @@ type GetDocumentationPartsInput struct {
 	// The path of API entities of the to-be-retrieved documentation parts.
 	Path *string `location:"querystring" locationName:"path" type:"string"`
 
-	// The position of the to-be-retrieved documentation part in the DocumentationParts
-	// collection.
+	// The current pagination position in the paged result set.
 	Position *string `location:"querystring" locationName:"position" type:"string"`
 
 	// [Required] The identifier of the API of the to-be-retrieved documentation
@@ -13373,11 +13932,10 @@ func (s *GetDocumentationVersionInput) SetRestApiId(v string) *GetDocumentationV
 type GetDocumentationVersionsInput struct {
 	_ struct{} `type:"structure"`
 
-	// The page size of the returned documentation versions.
+	// The maximum number of returned results per page.
 	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
 
-	// The position of the returned DocumentationVersion in the DocumentationVersions
-	// collection.
+	// The current pagination position in the paged result set.
 	Position *string `location:"querystring" locationName:"position" type:"string"`
 
 	// [Required] The identifier of an API of the to-be-retrieved documentation
@@ -13510,11 +14068,11 @@ func (s *GetDomainNameInput) SetDomainName(v string) *GetDomainNameInput {
 type GetDomainNamesInput struct {
 	_ struct{} `type:"structure"`
 
-	// The maximum number of DomainName resources in the collection to get information
-	// about. The default limit is 25. It should be an integer between 1 - 500.
+	// The maximum number of returned results per page. The value is 25 by default
+	// and could be between 1 - 500.
 	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
 
-	// The position of the current domain names to get information about.
+	// The current pagination position in the paged result set.
 	Position *string `location:"querystring" locationName:"position" type:"string"`
 }
 
@@ -14155,12 +14713,11 @@ func (s *GetModelTemplateOutput) SetValue(v string) *GetModelTemplateOutput {
 type GetModelsInput struct {
 	_ struct{} `type:"structure"`
 
-	// The maximum number of models in the collection to get information about.
-	// The default limit is 25. It should be an integer between 1 - 500.
+	// The maximum number of returned results per page. The value is 25 by default
+	// and could be between 1 - 500.
 	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
 
-	// The position of the next set of results in the Models resource to get information
-	// about.
+	// The current pagination position in the paged result set.
 	Position *string `location:"querystring" locationName:"position" type:"string"`
 
 	// The RestApi identifier.
@@ -14244,9 +14801,167 @@ func (s *GetModelsOutput) SetPosition(v string) *GetModelsOutput {
 	return s
 }
 
+// Gets a RequestValidator of a given RestApi.
+type GetRequestValidatorInput struct {
+	_ struct{} `type:"structure"`
+
+	// [Required] The identifier of the RequestValidator to be retrieved.
+	//
+	// RequestValidatorId is a required field
+	RequestValidatorId *string `location:"uri" locationName:"requestvalidator_id" type:"string" required:"true"`
+
+	// [Required] The identifier of the RestApi to which the specified RequestValidator
+	// belongs.
+	//
+	// RestApiId is a required field
+	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetRequestValidatorInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetRequestValidatorInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetRequestValidatorInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetRequestValidatorInput"}
+	if s.RequestValidatorId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RequestValidatorId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetRequestValidatorId sets the RequestValidatorId field's value.
+func (s *GetRequestValidatorInput) SetRequestValidatorId(v string) *GetRequestValidatorInput {
+	s.RequestValidatorId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *GetRequestValidatorInput) SetRestApiId(v string) *GetRequestValidatorInput {
+	s.RestApiId = &v
+	return s
+}
+
+// Gets the RequestValidators collection of a given RestApi.
+type GetRequestValidatorsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The maximum number of returned results per page.
+	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
+
+	// The current pagination position in the paged result set.
+	Position *string `location:"querystring" locationName:"position" type:"string"`
+
+	// [Required] The identifier of a RestApi to which the RequestValidators collection
+	// belongs.
+	//
+	// RestApiId is a required field
+	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetRequestValidatorsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetRequestValidatorsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetRequestValidatorsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetRequestValidatorsInput"}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetLimit sets the Limit field's value.
+func (s *GetRequestValidatorsInput) SetLimit(v int64) *GetRequestValidatorsInput {
+	s.Limit = &v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetRequestValidatorsInput) SetPosition(v string) *GetRequestValidatorsInput {
+	s.Position = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *GetRequestValidatorsInput) SetRestApiId(v string) *GetRequestValidatorsInput {
+	s.RestApiId = &v
+	return s
+}
+
+// A collection of RequestValidator resources of a given RestApi.
+//
+// In Swagger, the RequestValidators of an API is defined by the x-amazon-apigateway-request-validators
+// (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-swagger-extensions.html#api-gateway-swagger-extensions-request-validators.html)
+// extension.
+//
+// Enable Basic Request Validation in API Gateway (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-method-request-validation.html)
+type GetRequestValidatorsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The current page of RequestValidator resources in the RequestValidators collection.
+	Items []*UpdateRequestValidatorOutput `locationName:"item" type:"list"`
+
+	Position *string `locationName:"position" type:"string"`
+}
+
+// String returns the string representation
+func (s GetRequestValidatorsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetRequestValidatorsOutput) GoString() string {
+	return s.String()
+}
+
+// SetItems sets the Items field's value.
+func (s *GetRequestValidatorsOutput) SetItems(v []*UpdateRequestValidatorOutput) *GetRequestValidatorsOutput {
+	s.Items = v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetRequestValidatorsOutput) SetPosition(v string) *GetRequestValidatorsOutput {
+	s.Position = &v
+	return s
+}
+
 // Request to list information about a resource.
 type GetResourceInput struct {
 	_ struct{} `type:"structure"`
+
+	// A query parameter to retrieve the specified resources embedded in the returned
+	// Resource representation in the response. This embed parameter value is a
+	// list of comma-separated strings. Currently, the request supports only retrieval
+	// of the embedded Method resources this way. The query parameter value must
+	// be a single-valued list and contain the "methods" string. For example, GET
+	// /restapis/{restapi_id}/resources/{resource_id}?embed=methods.
+	Embed []*string `location:"querystring" locationName:"embed" type:"list"`
 
 	// The identifier for the Resource resource.
 	//
@@ -14285,6 +15000,12 @@ func (s *GetResourceInput) Validate() error {
 	return nil
 }
 
+// SetEmbed sets the Embed field's value.
+func (s *GetResourceInput) SetEmbed(v []*string) *GetResourceInput {
+	s.Embed = v
+	return s
+}
+
 // SetResourceId sets the ResourceId field's value.
 func (s *GetResourceInput) SetResourceId(v string) *GetResourceInput {
 	s.ResourceId = &v
@@ -14301,12 +15022,19 @@ func (s *GetResourceInput) SetRestApiId(v string) *GetResourceInput {
 type GetResourcesInput struct {
 	_ struct{} `type:"structure"`
 
-	// The maximum number of Resource resources in the collection to get information
-	// about. The default limit is 25. It should be an integer between 1 - 500.
+	// A query parameter used to retrieve the specified resources embedded in the
+	// returned Resources resource in the response. This embed parameter value is
+	// a list of comma-separated strings. Currently, the request supports only retrieval
+	// of the embedded Method resources this way. The query parameter value must
+	// be a single-valued list and contain the "methods" string. For example, GET
+	// /restapis/{restapi_id}/resources?embed=methods.
+	Embed []*string `location:"querystring" locationName:"embed" type:"list"`
+
+	// The maximum number of returned results per page. The value is 25 by default
+	// and could be between 1 - 500.
 	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
 
-	// The position of the next set of results in the current Resources resource
-	// to get information about.
+	// The current pagination position in the paged result set.
 	Position *string `location:"querystring" locationName:"position" type:"string"`
 
 	// The RestApi identifier for the Resource.
@@ -14336,6 +15064,12 @@ func (s *GetResourcesInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetEmbed sets the Embed field's value.
+func (s *GetResourcesInput) SetEmbed(v []*string) *GetResourcesInput {
+	s.Embed = v
+	return s
 }
 
 // SetLimit sets the Limit field's value.
@@ -14433,12 +15167,11 @@ func (s *GetRestApiInput) SetRestApiId(v string) *GetRestApiInput {
 type GetRestApisInput struct {
 	_ struct{} `type:"structure"`
 
-	// The maximum number of RestApi resources in the collection to get information
-	// about. The default limit is 25. It should be an integer between 1 - 500.
+	// The maximum number of returned results per page. The value is 25 by default
+	// and could be between 1 - 500.
 	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
 
-	// The position of the current RestApis resource in the collection to get information
-	// about.
+	// The current pagination position in the paged result set.
 	Position *string `location:"querystring" locationName:"position" type:"string"`
 }
 
@@ -14664,10 +15397,10 @@ func (s *GetSdkTypeInput) SetId(v string) *GetSdkTypeInput {
 type GetSdkTypesInput struct {
 	_ struct{} `type:"structure"`
 
-	// The maximum number of SdkType instances to be returned.
+	// The maximum number of returned results per page.
 	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
 
-	// The position of the last fetched element in the SdkTypes collection.
+	// The current pagination position in the paged result set.
 	Position *string `location:"querystring" locationName:"position" type:"string"`
 }
 
@@ -14866,10 +15599,10 @@ type GetUsageInput struct {
 	// The Id of the API key associated with the resultant usage data.
 	KeyId *string `location:"querystring" locationName:"keyId" type:"string"`
 
-	// The maximum number of results to be returned.
+	// The maximum number of returned results per page.
 	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
 
-	// Position
+	// The current pagination position in the paged result set.
 	Position *string `location:"querystring" locationName:"position" type:"string"`
 
 	// The starting date (e.g., 2016-01-01) of the usage data.
@@ -15047,15 +15780,13 @@ func (s *GetUsagePlanKeyInput) SetUsagePlanId(v string) *GetUsagePlanKeyInput {
 type GetUsagePlanKeysInput struct {
 	_ struct{} `type:"structure"`
 
-	// A query parameter specifying the maximum number usage plan keys returned
-	// by the GET request.
+	// The maximum number of returned results per page.
 	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
 
 	// A query parameter specifying the name of the to-be-returned usage plan keys.
 	NameQuery *string `location:"querystring" locationName:"name" type:"string"`
 
-	// A query parameter specifying the zero-based index specifying the position
-	// of a usage plan key.
+	// The current pagination position in the paged result set.
 	Position *string `location:"querystring" locationName:"position" type:"string"`
 
 	// The Id of the UsagePlan resource representing the usage plan containing the
@@ -15154,11 +15885,10 @@ type GetUsagePlansInput struct {
 	// The identifier of the API key associated with the usage plans.
 	KeyId *string `location:"querystring" locationName:"keyId" type:"string"`
 
-	// The number of UsagePlan resources to be returned as the result.
+	// The maximum number of returned results per page.
 	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
 
-	// The zero-based array index specifying the position of the to-be-retrieved
-	// UsagePlan resource.
+	// The current pagination position in the paged result set.
 	Position *string `location:"querystring" locationName:"position" type:"string"`
 }
 
@@ -15864,7 +16594,9 @@ type Method struct {
 	// method.
 	ApiKeyRequired *bool `locationName:"apiKeyRequired" type:"boolean"`
 
-	// The method's authorization type.
+	// The method's authorization type. Valid values are NONE for open access, AWS_IAM
+	// for using AWS IAM permissions, CUSTOM for using a custom authorizer, or COGNITO_USER_POOLS
+	// for using a Cognito user pool.
 	AuthorizationType *string `locationName:"authorizationType" type:"string"`
 
 	// The identifier of an Authorizer to use on this method. The authorizationType
@@ -15965,6 +16697,9 @@ type Method struct {
 	// parameter names defined here are available in Integration to be mapped to
 	// integration request parameters or templates.
 	RequestParameters map[string]*bool `locationName:"requestParameters" type:"map"`
+
+	// The identifier of a RequestValidator for request validation.
+	RequestValidatorId *string `locationName:"requestValidatorId" type:"string"`
 }
 
 // String returns the string representation
@@ -16028,6 +16763,12 @@ func (s *Method) SetRequestModels(v map[string]*string) *Method {
 // SetRequestParameters sets the RequestParameters field's value.
 func (s *Method) SetRequestParameters(v map[string]*bool) *Method {
 	s.RequestParameters = v
+	return s
+}
+
+// SetRequestValidatorId sets the RequestValidatorId field's value.
+func (s *Method) SetRequestValidatorId(v string) *Method {
+	s.RequestValidatorId = &v
 	return s
 }
 
@@ -16243,7 +16984,9 @@ type MethodSnapshot struct {
 	// Specifies whether the method requires a valid ApiKey.
 	ApiKeyRequired *bool `locationName:"apiKeyRequired" type:"boolean"`
 
-	// Specifies the type of authorization used for the method.
+	// The method's authorization type. Valid values are NONE for open access, AWS_IAM
+	// for using AWS IAM permissions, CUSTOM for using a custom authorizer, or COGNITO_USER_POOLS
+	// for using a Cognito user pool.
 	AuthorizationType *string `locationName:"authorizationType" type:"string"`
 }
 
@@ -16370,7 +17113,10 @@ type PatchOperation struct {
 	// op operation can have only one path associated with it.
 	Path *string `locationName:"path" type:"string"`
 
-	// The new target value of the update operation.
+	// The new target value of the update operation. When using AWS CLI to update
+	// a property of a JSON value, enclose the JSON object with a pair of single
+	// quotes in a Linux shell, e.g., '{"a": ...}'. In a Windows shell, see Using
+	// JSON for Parameters (http://docs.aws.amazon.com/cli/latest/userguide/cli-using-param.html#cli-using-param-json).
 	Value *string `locationName:"value" type:"string"`
 }
 
@@ -16751,7 +17497,9 @@ type PutMethodInput struct {
 	// Specifies whether the method required a valid ApiKey.
 	ApiKeyRequired *bool `locationName:"apiKeyRequired" type:"boolean"`
 
-	// Specifies the type of authorization used for the method.
+	// The method's authorization type. Valid values are NONE for open access, AWS_IAM
+	// for using AWS IAM permissions, CUSTOM for using a custom authorizer, or COGNITO_USER_POOLS
+	// for using a Cognito user pool.
 	//
 	// AuthorizationType is a required field
 	AuthorizationType *string `locationName:"authorizationType" type:"string" required:"true"`
@@ -16784,6 +17532,9 @@ type PutMethodInput struct {
 	// parameter names defined here are available in Integration to be mapped to
 	// integration request parameters or body-mapping templates.
 	RequestParameters map[string]*bool `locationName:"requestParameters" type:"map"`
+
+	// The identifier of a RequestValidator for validating the method request.
+	RequestValidatorId *string `locationName:"requestValidatorId" type:"string"`
 
 	// The Resource identifier for the new Method resource.
 	//
@@ -16867,6 +17618,12 @@ func (s *PutMethodInput) SetRequestModels(v map[string]*string) *PutMethodInput 
 // SetRequestParameters sets the RequestParameters field's value.
 func (s *PutMethodInput) SetRequestParameters(v map[string]*bool) *PutMethodInput {
 	s.RequestParameters = v
+	return s
+}
+
+// SetRequestValidatorId sets the RequestValidatorId field's value.
+func (s *PutMethodInput) SetRequestValidatorId(v string) *PutMethodInput {
+	s.RequestValidatorId = &v
 	return s
 }
 
@@ -17151,8 +17908,8 @@ type Resource struct {
 	// Request
 	//
 	// GET /restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET HTTP/1.1 Content-Type:
-	// application/json Host: apigateway.us-east-1.amazonaws.com X-Amz-Date: 20160608T031827Z
-	// Authorization: AWS4-HMAC-SHA256 Credential={access_key_ID}/20160608/us-east-1/apigateway/aws4_request,
+	// application/json Host: apigateway.us-east-1.amazonaws.com X-Amz-Date: 20170223T031827Z
+	// Authorization: AWS4-HMAC-SHA256 Credential={access_key_ID}/20170223/us-east-1/apigateway/aws4_request,
 	// SignedHeaders=content-type;host;x-amz-date, Signature={sig4_hash}
 	// Response
 	//
@@ -18880,6 +19637,131 @@ func (s *UpdateModelInput) SetPatchOperations(v []*PatchOperation) *UpdateModelI
 // SetRestApiId sets the RestApiId field's value.
 func (s *UpdateModelInput) SetRestApiId(v string) *UpdateModelInput {
 	s.RestApiId = &v
+	return s
+}
+
+// Updates a RequestValidator of a given RestApi.
+type UpdateRequestValidatorInput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
+	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
+
+	// [Required] The identifier of RequestValidator to be updated.
+	//
+	// RequestValidatorId is a required field
+	RequestValidatorId *string `location:"uri" locationName:"requestvalidator_id" type:"string" required:"true"`
+
+	// [Required] The identifier of the RestApi for which the given RequestValidator
+	// is updated.
+	//
+	// RestApiId is a required field
+	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s UpdateRequestValidatorInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateRequestValidatorInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateRequestValidatorInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateRequestValidatorInput"}
+	if s.RequestValidatorId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RequestValidatorId"))
+	}
+	if s.RestApiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetPatchOperations sets the PatchOperations field's value.
+func (s *UpdateRequestValidatorInput) SetPatchOperations(v []*PatchOperation) *UpdateRequestValidatorInput {
+	s.PatchOperations = v
+	return s
+}
+
+// SetRequestValidatorId sets the RequestValidatorId field's value.
+func (s *UpdateRequestValidatorInput) SetRequestValidatorId(v string) *UpdateRequestValidatorInput {
+	s.RequestValidatorId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *UpdateRequestValidatorInput) SetRestApiId(v string) *UpdateRequestValidatorInput {
+	s.RestApiId = &v
+	return s
+}
+
+// A set of validation rules for incoming Method requests.
+//
+// In Swagger, a RequestValidator of an API is defined by the x-amazon-apigateway-request-validators.requestValidator
+// (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-swagger-extensions.html#api-gateway-swagger-extensions-request-validators.requestValidator.html)
+// object. It the referenced using the x-amazon-apigateway-request-validator
+// (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-swagger-extensions.html#api-gateway-swagger-extensions-request-validator)
+// property.
+//
+// Enable Basic Request Validation in API Gateway (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-method-request-validation.html)
+type UpdateRequestValidatorOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of this RequestValidator.
+	Id *string `locationName:"id" type:"string"`
+
+	// The name of this RequestValidator
+	Name *string `locationName:"name" type:"string"`
+
+	// A Boolean flag to indicate whether to validate a request body according to
+	// the configured Model schema.
+	ValidateRequestBody *bool `locationName:"validateRequestBody" type:"boolean"`
+
+	// A Boolean flag to indicate whether to validate request parameters (true)
+	// or not (false).
+	ValidateRequestParameters *bool `locationName:"validateRequestParameters" type:"boolean"`
+}
+
+// String returns the string representation
+func (s UpdateRequestValidatorOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateRequestValidatorOutput) GoString() string {
+	return s.String()
+}
+
+// SetId sets the Id field's value.
+func (s *UpdateRequestValidatorOutput) SetId(v string) *UpdateRequestValidatorOutput {
+	s.Id = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *UpdateRequestValidatorOutput) SetName(v string) *UpdateRequestValidatorOutput {
+	s.Name = &v
+	return s
+}
+
+// SetValidateRequestBody sets the ValidateRequestBody field's value.
+func (s *UpdateRequestValidatorOutput) SetValidateRequestBody(v bool) *UpdateRequestValidatorOutput {
+	s.ValidateRequestBody = &v
+	return s
+}
+
+// SetValidateRequestParameters sets the ValidateRequestParameters field's value.
+func (s *UpdateRequestValidatorOutput) SetValidateRequestParameters(v bool) *UpdateRequestValidatorOutput {
+	s.ValidateRequestParameters = &v
 	return s
 }
 

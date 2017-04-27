@@ -12,7 +12,7 @@ Registers an on-premises server or virtual machine with Amazon EC2 so that it ca
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_iam_role" "test_role" {
   name = "test_role"
 

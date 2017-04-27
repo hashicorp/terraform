@@ -28,6 +28,7 @@ Usage
 
 ```go
 import "github.com/ajg/form"
+// or: "gopkg.in/ajg/form.v1"
 ```
 
 Given a type like the following...
@@ -125,6 +126,10 @@ While encouraged, it is not necessary to define a type (e.g. a `struct`) in orde
  - Simple values will be treated as a `string`.
  - Composite values will be treated as a `map[string]interface{}`, itself able to contain nested values (both scalar and compound) ad infinitum.
  - However, if there is a value (of any supported type) already present in a map for a given key, then it will be used when possible, rather than being replaced with a generic value as specified above; this makes it possible to handle partially typed, dynamic or schema-less values.
+
+### Zero Values
+
+By default, and without custom marshaling, zero values (also known as empty/default values) are encoded as the empty string. To disable this behavior, meaning to keep zero values in their literal form (e.g. `0` for integral types), `Encoder` offers a `KeepZeros` setter method, which will do just that when set to `true`.
 
 ### Unsupported Values
 

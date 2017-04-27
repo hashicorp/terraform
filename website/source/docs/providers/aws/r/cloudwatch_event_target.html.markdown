@@ -12,7 +12,7 @@ Provides a CloudWatch Event Target resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_cloudwatch_event_target" "yada" {
   target_id = "Yada"
   rule      = "${aws_cloudwatch_event_rule.console.name}"
@@ -47,11 +47,12 @@ resource "aws_kinesis_stream" "test_stream" {
 ## Argument Reference
 
 -> **Note:** `input` and `input_path` are mutually exclusive options.
+
 -> **Note:** In order to be able to have your AWS Lambda function or
    SNS topic invoked by a CloudWatch Events rule, you must setup the right permissions
    using [`aws_lambda_permission`](https://www.terraform.io/docs/providers/aws/r/lambda_permission.html)
    or [`aws_sns_topic.policy`](https://www.terraform.io/docs/providers/aws/r/sns_topic.html#policy).
-   More info here [here](http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/EventsResourceBasedPermissions.html).
+   More info [here](http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/EventsResourceBasedPermissions.html).
 
 The following arguments are supported:
 

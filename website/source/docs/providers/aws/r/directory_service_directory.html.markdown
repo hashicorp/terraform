@@ -15,7 +15,7 @@ Provides a Simple or Managed Microsoft directory in AWS Directory Service.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_directory_service_directory" "bar" {
   name     = "corp.notexample.com"
   password = "SuperSecretPassw0rd"

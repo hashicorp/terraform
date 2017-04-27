@@ -15,7 +15,7 @@ documentation](https://cloud.google.com/compute/docs/load-balancing/http/global-
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_global_forwarding_rule" "default" {
   name       = "test"
   target     = "${google_compute_target_http_proxy.default.self_link}"
@@ -80,7 +80,9 @@ The following arguments are supported:
 * `description` - (Optional) Textual description field.
 
 * `ip_address` - (Optional) The static IP. (if not set, an ephemeral IP is
-    used).
+    used). This should be the literal IP address to be used, not the `self_link`
+    to a `google_compute_address` resource. (If using a `google_compute_address`
+    resource, use the `address` property instead of the `self_link` property.)
 
 * `ip_protocol` - (Optional) The IP protocol to route, one of "TCP" "UDP" "AH"
     "ESP" or "SCTP". (default "TCP").

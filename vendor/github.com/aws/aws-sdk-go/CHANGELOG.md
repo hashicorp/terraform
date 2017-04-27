@@ -1,3 +1,103 @@
+Release v1.8.16 (2017-04-21)
+===
+
+### Service Client Updates
+* `service/appstream`: Updates service API, documentation, and paginators
+  * The new feature named "Default Internet Access" will enable Internet access from AppStream 2.0 instances - image builders and fleet instances. Admins will check a flag either through AWS management console for AppStream 2.0 or through API while creating an image builder or while creating/updating a fleet.
+* `service/kinesis`: Updates service API, documentation, waiters, and paginators
+  * Adds a new waiter, StreamNotExists, to Kinesis.
+
+### SDK Enhancements
+* `aws/endpoints`: Add utilities improving endpoints lookup (#1218)
+  * Adds several utilities to the endpoints packages to make looking up partitions, regions, and services easier.
+  * Fixes #994
+
+### SDK Bugs
+* `private/protocol/xml/xmlutil`: Fix unmarshaling dropping errors (#1219)
+  * The XML unmarshaler would drop any serialization or body read error that occurred on the floor effectively hiding any errors that would occur.
+  * Fixes #1205
+Release v1.8.15 (2017-04-20)
+===
+
+### Service Client Updates
+* `service/devicefarm`: Updates service API and documentation
+  * API Update for AWS Device Farm: Support for Deals and Promotions
+* `service/directconnect`: Updates service documentation
+  * Documentation updates for AWS Direct Connect.
+* `service/elbv2`: Updates service waiters
+* `service/kms`: Updates service documentation and examples
+  * Doc-only update for Key Management Service (KMS): Update docs for GrantConstraints and GenerateRandom
+* `service/route53`: Updates service documentation
+  * Release notes: SDK documentation now includes examples for ChangeResourceRecordSets for all types of resource record set, such as weighted, alias, and failover.
+* `service/route53domains`: Updates service API, documentation, and paginators
+  * Adding examples and other documentation updates.
+
+### SDK Enhancements
+* `service/s3`: Add utilities to make getting a bucket's region easier (#1207)
+  * Adds two features which make it easier to get a bucket's region, `s3.NormalizeBucketLocation` and `s3manager.GetBucketRegion`.
+
+### SDK Bugs
+* `service/s3`: Fix HeadObject's incorrect documented error codes (#1213)
+  * The HeadObject's model incorrectly states that the operation can return the NoSuchKey error code.
+  * Fixes #1208
+
+Release v1.8.14 (2017-04-19)
+===
+
+### Service Client Updates
+* `service/apigateway`: Updates service API and documentation
+  * Add support for "embed" property.
+* `service/codestar`: Adds new service
+  * AWS CodeStar is a cloud-based service for creating, managing, and working with software development projects on AWS. An AWS CodeStar project creates and integrates AWS services for your project development toolchain. AWS CodeStar also manages the permissions required for project users.
+* `service/ec2`: Updates service API and documentation
+  * Adds support for creating an Amazon FPGA Image (AFI) from a specified design checkpoint (DCP).
+* `service/iam`: Updates service API and documentation
+  * This changes introduces a new IAM role type, Service Linked Role, which works like a normal role but must be managed via services' control.
+* `service/lambda`: Updates service API and documentation
+  * Lambda integration with CloudDebugger service to enable customers to enable tracing for the Lambda functions and send trace information to the CloudDebugger service.
+* `service/lexmodelbuildingservice`: Adds new service
+* `service/polly`: Updates service API, documentation, and paginators
+  * API Update for Amazon Polly: Add support for speech marks
+* `service/rekognition`: Updates service API and documentation
+  * Given an image, the API detects explicit or suggestive adult content in the image and returns a list of corresponding labels with confidence scores, as well as a taxonomy (parent-child relation) for each label.
+
+Release v1.8.13 (2017-04-18)
+===
+
+### Service Client Updates
+* `service/lambda`: Updates service API and documentation
+  * You can use tags to group and filter your Lambda functions, making it easier to analyze them for billing allocation purposes. For more information, see Tagging Lambda Functions.  You can now write or upgrade your Lambda functions using Python version 3.6. For more information, see Programming Model for Authoring Lambda Functions in Python. Note: Features will be rolled out in the US regions on 4/19.
+
+### SDK Enhancements
+* `aws/request`: add support for appengine's custom standard library (#1190)
+  * Remove syscall error checking on appengine platforms.
+
+Release v1.8.12 (2017-04-11)
+===
+
+### Service Client Updates
+* `service/apigateway`: Updates service API and documentation
+  * API Gateway request validators
+* `service/batch`: Updates service API and documentation
+  * API Update for AWS Batch: Customer provided AMI for MANAGED Compute Environment
+* `service/gamelift`: Updates service API and documentation
+  * Allows developers to utilize an improved workflow when calling our Queues API and introduces a new feature that allows developers to specify a maximum allowable latency per Queue.
+* `service/opsworks`: Updates service API, documentation, and paginators
+  * Cloudwatch Logs agent configuration can now be attached to OpsWorks Layers using CreateLayer and UpdateLayer. OpsWorks will then automatically install and manage the CloudWatch Logs agent on the instances part of the OpsWorks Layer.
+
+### SDK Bugs
+* `aws/client`: Fix clients polluting handler list (#1197)
+  * Fixes the clients potentially polluting the passed in handler list with the client's customizations. This change ensures every client always works with a clean copy of the request handlers and it cannot pollute the handlers back upstream.
+  * Fixes #1184
+* `aws/request`: Fix waiter error match condition (#1195)
+  * Fixes the waiters's matching overwriting the request's err, effectively ignoring the error condition. This broke waiters with the FailureWaiterState matcher state.
+Release v1.8.11 (2017-04-07)
+===
+
+### Service Client Updates
+* `service/redshift`: Updates service API, documentation, and paginators
+  * This update adds the GetClusterCredentials API which is used to get temporary login credentials to the cluster. AccountWithRestoreAccess now has a new member AccountAlias, this is the identifier of the AWS support account authorized to restore the specified snapshot. This is added to support the feature where the customer can share their snapshot with the Amazon Redshift Support Account without having to manually specify the AWS Redshift Service account ID on the AWS Console/API.
+
 Release v1.8.10 (2017-04-06)
 ===
 

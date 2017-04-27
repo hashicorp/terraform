@@ -12,7 +12,7 @@ Create a template deployment of resources
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acctestrg-01"
   location = "West US"

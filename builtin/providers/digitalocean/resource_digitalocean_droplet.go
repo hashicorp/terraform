@@ -63,6 +63,16 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 				Computed: true,
 			},
 
+			"price_hourly": {
+				Type:     schema.TypeFloat,
+				Computed: true,
+			},
+
+			"price_monthly": {
+				Type:     schema.TypeFloat,
+				Computed: true,
+			},
+
 			"resize_disk": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -250,15 +260,20 @@ func resourceDigitalOceanDropletRead(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error retrieving droplet: %s", err)
 	}
 
-	if droplet.Image.Slug != "" {
-		d.Set("image", droplet.Image.Slug)
-	} else {
+	_, err = strconv.Atoi(d.Get("image").(string))
+	if err == nil || droplet.Image.Slug == "" {
+		// The image field is provided as an ID (number), or
+		// the image bash no slug. In both cases we store it as an ID.
 		d.Set("image", droplet.Image.ID)
+	} else {
+		d.Set("image", droplet.Image.Slug)
 	}
 
 	d.Set("name", droplet.Name)
 	d.Set("region", droplet.Region.Slug)
 	d.Set("size", droplet.Size.Slug)
+	d.Set("price_hourly", droplet.Size.PriceHourly)
+	d.Set("price_monthly", droplet.Size.PriceMonthly)
 	d.Set("disk", droplet.Disk)
 	d.Set("vcpus", droplet.Vcpus)
 	d.Set("status", droplet.Status)

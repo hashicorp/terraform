@@ -102,7 +102,9 @@ func (b *Local) opApply(
 	doneCh := make(chan struct{})
 	go func() {
 		defer close(doneCh)
-		applyState, applyErr = tfCtx.Apply()
+		_, applyErr = tfCtx.Apply()
+		// we always want the state, even if apply failed
+		applyState = tfCtx.State()
 
 		/*
 			// Record any shadow errors for later
@@ -119,7 +121,7 @@ func (b *Local) opApply(
 	select {
 	case <-ctx.Done():
 		if b.CLI != nil {
-			b.CLI.Output("Interrupt received. Gracefully shutting down...")
+			b.CLI.Output("stopping apply operation...")
 		}
 
 		// Stop execution

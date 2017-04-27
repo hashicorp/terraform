@@ -12,7 +12,7 @@ Provides an SES receipt rule resource
 
 ## Example Usage
 
-```
+```hcl
 # Add a header to the email and store it in S3
 resource "aws_ses_receipt_rule" "store" {
   name          = "store"

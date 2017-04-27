@@ -69,8 +69,14 @@ const (
 	// "HealthCheckAlreadyExists".
 	//
 	// The health check you're attempting to create already exists. Amazon Route
-	// 53 returns this error when a health check has already been created with the
-	// specified value for CallerReference.
+	// 53 returns this error when you submit a request that has the following values:
+	//
+	//    * The same value for CallerReference as an existing health check, and
+	//    one or more values that differ from the existing health check that has
+	//    the same caller reference.
+	//
+	//    * The same value for CallerReference as a health check that you created
+	//    and later deleted, regardless of the other settings in the request.
 	ErrCodeHealthCheckAlreadyExists = "HealthCheckAlreadyExists"
 
 	// ErrCodeHealthCheckInUse for service response error code

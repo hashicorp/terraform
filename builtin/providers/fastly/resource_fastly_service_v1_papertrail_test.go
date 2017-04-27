@@ -17,7 +17,7 @@ func TestAccFastlyServiceV1_papertrail_basic(t *testing.T) {
 	domainName1 := fmt.Sprintf("%s.notadomain.com", acctest.RandString(10))
 
 	log1 := gofastly.Papertrail{
-		Version:           "1",
+		Version:           1,
 		Name:              "papertrailtesting",
 		Address:           "test1.papertrailapp.com",
 		Port:              uint(3600),
@@ -26,7 +26,7 @@ func TestAccFastlyServiceV1_papertrail_basic(t *testing.T) {
 	}
 
 	log2 := gofastly.Papertrail{
-		Version: "1",
+		Version: 1,
 		Name:    "papertrailtesting2",
 		Address: "test2.papertrailapp.com",
 		Port:    uint(8080),
@@ -75,7 +75,7 @@ func testAccCheckFastlyServiceV1PapertrailAttributes(service *gofastly.ServiceDe
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Papertrail for (%s), version (%s): %s", service.Name, service.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Papertrail for (%s), version (%v): %s", service.Name, service.ActiveVersion.Number, err)
 		}
 
 		if len(papertrailList) != len(papertrails) {

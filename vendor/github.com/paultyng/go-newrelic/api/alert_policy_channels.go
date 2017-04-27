@@ -6,6 +6,7 @@ import (
 	"strconv"
 )
 
+// UpdateAlertPolicyChannels updates a policy by adding the specified notification channels.
 func (c *Client) UpdateAlertPolicyChannels(policyID int, channelIDs []int) error {
 	channelIDStrings := make([]string, len(channelIDs))
 
@@ -30,6 +31,7 @@ func (c *Client) UpdateAlertPolicyChannels(policyID int, channelIDs []int) error
 	return err
 }
 
+// DeleteAlertPolicyChannel deletes a notification channel from an alert policy.
 func (c *Client) DeleteAlertPolicyChannel(policyID int, channelID int) error {
 	reqURL, err := url.Parse("/alerts_policy_channels.json")
 	if err != nil {

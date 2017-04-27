@@ -1239,8 +1239,6 @@ func (c *Lambda) GetPolicyRequest(input *GetPolicyInput) (req *request.Request, 
 // the version or alias name using the Qualifier parameter. For more information
 // about versioning, see AWS Lambda Function Versioning and Aliases (http://docs.aws.amazon.com/lambda/latest/dg/versioning-aliases.html).
 //
-// For information about adding permissions, see AddPermission.
-//
 // You need permission for the lambda:GetPolicy action.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -1925,6 +1923,95 @@ func (c *Lambda) ListFunctionsPagesWithContext(ctx aws.Context, input *ListFunct
 	return p.Err()
 }
 
+const opListTags = "ListTags"
+
+// ListTagsRequest generates a "aws/request.Request" representing the
+// client's request for the ListTags operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See ListTags for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListTags method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListTagsRequest method.
+//    req, resp := client.ListTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Lambda) ListTagsRequest(input *ListTagsInput) (req *request.Request, output *ListTagsOutput) {
+	op := &request.Operation{
+		Name:       opListTags,
+		HTTPMethod: "GET",
+		HTTPPath:   "/2017-03-31/tags/{ARN}",
+	}
+
+	if input == nil {
+		input = &ListTagsInput{}
+	}
+
+	output = &ListTagsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListTags API operation for AWS Lambda.
+//
+// Returns a list of tags assigned to a function when supplied the function
+// ARN (Amazon Resource Name).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Lambda's
+// API operation ListTags for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeServiceException "ServiceException"
+//   The AWS Lambda service encountered an internal error.
+//
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   The resource (for example, a Lambda function or access policy statement)
+//   specified in the request does not exist.
+//
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   One of the parameters in the request is invalid. For example, if you provided
+//   an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
+//   API, that AWS Lambda is unable to assume you will get this exception.
+//
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//
+func (c *Lambda) ListTags(input *ListTagsInput) (*ListTagsOutput, error) {
+	req, out := c.ListTagsRequest(input)
+	return out, req.Send()
+}
+
+// ListTagsWithContext is the same as ListTags with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListTags for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Lambda) ListTagsWithContext(ctx aws.Context, input *ListTagsInput, opts ...request.Option) (*ListTagsOutput, error) {
+	req, out := c.ListTagsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opListVersionsByFunction = "ListVersionsByFunction"
 
 // ListVersionsByFunctionRequest generates a "aws/request.Request" representing the
@@ -2206,6 +2293,189 @@ func (c *Lambda) RemovePermission(input *RemovePermissionInput) (*RemovePermissi
 // for more information on using Contexts.
 func (c *Lambda) RemovePermissionWithContext(ctx aws.Context, input *RemovePermissionInput, opts ...request.Option) (*RemovePermissionOutput, error) {
 	req, out := c.RemovePermissionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opTagResource = "TagResource"
+
+// TagResourceRequest generates a "aws/request.Request" representing the
+// client's request for the TagResource operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See TagResource for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the TagResource method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the TagResourceRequest method.
+//    req, resp := client.TagResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Lambda) TagResourceRequest(input *TagResourceInput) (req *request.Request, output *TagResourceOutput) {
+	op := &request.Operation{
+		Name:       opTagResource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/2017-03-31/tags/{ARN}",
+	}
+
+	if input == nil {
+		input = &TagResourceInput{}
+	}
+
+	output = &TagResourceOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// TagResource API operation for AWS Lambda.
+//
+// Creates a list of tags (key-value pairs) on the Lambda function. Requires
+// the Lambda function ARN (Amazon Resource Name). If a key is specified without
+// a value, Lambda creates a tag with the specified key and a value of null.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Lambda's
+// API operation TagResource for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeServiceException "ServiceException"
+//   The AWS Lambda service encountered an internal error.
+//
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   The resource (for example, a Lambda function or access policy statement)
+//   specified in the request does not exist.
+//
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   One of the parameters in the request is invalid. For example, if you provided
+//   an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
+//   API, that AWS Lambda is unable to assume you will get this exception.
+//
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//
+func (c *Lambda) TagResource(input *TagResourceInput) (*TagResourceOutput, error) {
+	req, out := c.TagResourceRequest(input)
+	return out, req.Send()
+}
+
+// TagResourceWithContext is the same as TagResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See TagResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Lambda) TagResourceWithContext(ctx aws.Context, input *TagResourceInput, opts ...request.Option) (*TagResourceOutput, error) {
+	req, out := c.TagResourceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUntagResource = "UntagResource"
+
+// UntagResourceRequest generates a "aws/request.Request" representing the
+// client's request for the UntagResource operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UntagResource for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UntagResource method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UntagResourceRequest method.
+//    req, resp := client.UntagResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Lambda) UntagResourceRequest(input *UntagResourceInput) (req *request.Request, output *UntagResourceOutput) {
+	op := &request.Operation{
+		Name:       opUntagResource,
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/2017-03-31/tags/{ARN}",
+	}
+
+	if input == nil {
+		input = &UntagResourceInput{}
+	}
+
+	output = &UntagResourceOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// UntagResource API operation for AWS Lambda.
+//
+// Removes tags from a Lambda function. Requires the function ARN (Amazon Resource
+// Name).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Lambda's
+// API operation UntagResource for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeServiceException "ServiceException"
+//   The AWS Lambda service encountered an internal error.
+//
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   The resource (for example, a Lambda function or access policy statement)
+//   specified in the request does not exist.
+//
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   One of the parameters in the request is invalid. For example, if you provided
+//   an IAM role for AWS Lambda to assume in the CreateFunction or the UpdateFunctionConfiguration
+//   API, that AWS Lambda is unable to assume you will get this exception.
+//
+//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//
+func (c *Lambda) UntagResource(input *UntagResourceInput) (*UntagResourceOutput, error) {
+	req, out := c.UntagResourceRequest(input)
+	return out, req.Send()
+}
+
+// UntagResourceWithContext is the same as UntagResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UntagResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Lambda) UntagResourceWithContext(ctx aws.Context, input *UntagResourceInput, opts ...request.Option) (*UntagResourceOutput, error) {
+	req, out := c.UntagResourceRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -2627,8 +2897,8 @@ type AccountLimit struct {
 	// The default limit is 100.
 	ConcurrentExecutions *int64 `type:"integer"`
 
-	// Maximum size, in megabytes, of a code package you can upload per region.
-	// The default size is 75 GB.
+	// Maximum size, in bytes, of a code package you can upload per region. The
+	// default size is 75 GB.
 	TotalCodeSize *int64 `type:"long"`
 }
 
@@ -2722,7 +2992,7 @@ type AddPermissionInput struct {
 	// Amazon Resource Name (ARN) of the function (for example, arn:aws:lambda:us-west-2:account-id:function:ThumbNail).
 	// AWS Lambda also allows you to specify partial ARN (for example, account-id:Thumbnail).
 	// Note that the length constraint applies only to the ARN. If you specify only
-	// the function name, it is limited to 64 character in length.
+	// the function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -2756,24 +3026,23 @@ type AddPermissionInput struct {
 	// arn:aws:lambda:aws-region:acct-id:function:function-name
 	Qualifier *string `location:"querystring" locationName:"Qualifier" min:"1" type:"string"`
 
-	// This parameter is used for S3, SES, CloudWatch Logs and CloudWatch Rules
-	// only. The AWS account ID (without a hyphen) of the source owner. For example,
-	// if the SourceArn identifies a bucket, then this is the bucket owner's account
-	// ID. You can use this additional condition to ensure the bucket you specify
-	// is owned by a specific account (it is possible the bucket owner deleted the
-	// bucket and some other AWS account created the bucket). You can also use this
-	// condition to specify all sources (that is, you don't specify the SourceArn)
-	// owned by a specific account.
+	// This parameter is used for S3 and SES. The AWS account ID (without a hyphen)
+	// of the source owner. For example, if the SourceArn identifies a bucket, then
+	// this is the bucket owner's account ID. You can use this additional condition
+	// to ensure the bucket you specify is owned by a specific account (it is possible
+	// the bucket owner deleted the bucket and some other AWS account created the
+	// bucket). You can also use this condition to specify all sources (that is,
+	// you don't specify the SourceArn) owned by a specific account.
 	SourceAccount *string `type:"string"`
 
-	// This is optional; however, when granting Amazon S3 permission to invoke your
-	// function, you should specify this field with the Amazon Resource Name (ARN)
-	// as its value. This ensures that only events generated from the specified
-	// source can invoke the function.
+	// This is optional; however, when granting permission to invoke your function,
+	// you should specify this field with the Amazon Resource Name (ARN) as its
+	// value. This ensures that only events generated from the specified source
+	// can invoke the function.
 	//
-	// If you add a permission for the Amazon S3 principal without providing the
-	// source ARN, any AWS account that creates a mapping to your function ARN can
-	// send events to invoke your Lambda function from Amazon S3.
+	// If you add a permission without providing the source ARN, any AWS account
+	// that creates a mapping to your function ARN can send events to invoke your
+	// Lambda function.
 	SourceArn *string `type:"string"`
 
 	// A unique statement identifier.
@@ -2955,7 +3224,9 @@ type CreateAliasInput struct {
 	// Description of the alias.
 	Description *string `type:"string"`
 
-	// Name of the Lambda function for which you want to create an alias.
+	// Name of the Lambda function for which you want to create an alias. Note that
+	// the length constraint applies only to the ARN. If you specify only the function
+	// name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -3068,7 +3339,7 @@ type CreateEventSourceMappingInput struct {
 	// ID qualifier (for example, account-id:Thumbnail).
 	//
 	// Note that the length constraint applies only to the ARN. If you specify only
-	// the function name, it is limited to 64 character in length.
+	// the function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `min:"1" type:"string" required:"true"`
@@ -3168,7 +3439,7 @@ type CreateFunctionInput struct {
 	// Code is a required field
 	Code *FunctionCode `type:"structure" required:"true"`
 
-	// The parent object that contains the target Amazon Resource Name (ARN) of
+	// The parent object that contains the target ARN (Amazon Resource Name) of
 	// an Amazon SQS queue or Amazon SNS topic.
 	DeadLetterConfig *DeadLetterConfig `type:"structure"`
 
@@ -3182,7 +3453,8 @@ type CreateFunctionInput struct {
 	// The name you want to assign to the function you are uploading. The function
 	// names appear in the console and are returned in the ListFunctions API. Function
 	// names are used to specify functions to other AWS Lambda API operations, such
-	// as Invoke.
+	// as Invoke. Note that the length constraint applies only to the ARN. If you
+	// specify only the function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `min:"1" type:"string" required:"true"`
@@ -3221,21 +3493,29 @@ type CreateFunctionInput struct {
 
 	// The runtime environment for the Lambda function you are uploading.
 	//
-	// To use the Node.js runtime v4.3, set the value to "nodejs4.3". To use earlier
-	// runtime (v0.10.42), set the value to "nodejs".
+	// To use the Python runtime v3.6, set the value to "python3.6". To use the
+	// Python runtime v2.7, set the value to "python2.7". To use the Node.js runtime
+	// v6.10, set the value to "nodejs6.10". To use the Node.js runtime v4.3, set
+	// the value to "nodejs4.3".
 	//
 	// You can no longer create functions using the v0.10.42 runtime version as
 	// of November, 2016. Existing functions will be supported until early 2017,
-	// but we recommend you migrate them to nodejs4.3 runtime version as soon as
-	// possible.
+	// but we recommend you migrate them to either nodejs6.10 or nodejs4.3 runtime
+	// version as soon as possible.
 	//
 	// Runtime is a required field
 	Runtime *string `type:"string" required:"true" enum:"Runtime"`
+
+	// The list of tags (key-value pairs) assigned to the new function.
+	Tags map[string]*string `type:"map"`
 
 	// The function execution time at which Lambda should terminate the function.
 	// Because the execution time has cost implications, we recommend you set this
 	// value based on your expected execution time. The default is 3 seconds.
 	Timeout *int64 `min:"1" type:"integer"`
+
+	// The parent object that contains your function's tracing settings.
+	TracingConfig *TracingConfig `type:"structure"`
 
 	// If your Lambda function accesses resources in a VPC, you provide this parameter
 	// identifying the list of security group IDs and subnet IDs. These must belong
@@ -3359,9 +3639,21 @@ func (s *CreateFunctionInput) SetRuntime(v string) *CreateFunctionInput {
 	return s
 }
 
+// SetTags sets the Tags field's value.
+func (s *CreateFunctionInput) SetTags(v map[string]*string) *CreateFunctionInput {
+	s.Tags = v
+	return s
+}
+
 // SetTimeout sets the Timeout field's value.
 func (s *CreateFunctionInput) SetTimeout(v int64) *CreateFunctionInput {
 	s.Timeout = &v
+	return s
+}
+
+// SetTracingConfig sets the TracingConfig field's value.
+func (s *CreateFunctionInput) SetTracingConfig(v *TracingConfig) *CreateFunctionInput {
+	s.TracingConfig = v
 	return s
 }
 
@@ -3371,7 +3663,7 @@ func (s *CreateFunctionInput) SetVpcConfig(v *VpcConfig) *CreateFunctionInput {
 	return s
 }
 
-// The parent object that contains the target Amazon Resource Name (ARN) of
+// The parent object that contains the target ARN (Amazon Resource Name) of
 // an Amazon SQS queue or Amazon SNS topic.
 type DeadLetterConfig struct {
 	_ struct{} `type:"structure"`
@@ -3401,7 +3693,9 @@ type DeleteAliasInput struct {
 	_ struct{} `type:"structure"`
 
 	// The Lambda function name for which the alias is created. Deleting an alias
-	// does not delete the function version to which it is pointing.
+	// does not delete the function version to which it is pointing. Note that the
+	// length constraint applies only to the ARN. If you specify only the function
+	// name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -3520,7 +3814,7 @@ type DeleteFunctionInput struct {
 	// Lambda also allows you to specify only the function name with the account
 	// ID qualifier (for example, account-id:Thumbnail). Note that the length constraint
 	// applies only to the ARN. If you specify only the function name, it is limited
-	// to 64 character in length.
+	// to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -3906,7 +4200,7 @@ type FunctionConfiguration struct {
 	// The size, in bytes, of the function .zip file you uploaded.
 	CodeSize *int64 `type:"long"`
 
-	// The parent object that contains the target Amazon Resource Name (ARN) of
+	// The parent object that contains the target ARN (Amazon Resource Name) of
 	// an Amazon SQS queue or Amazon SNS topic.
 	DeadLetterConfig *DeadLetterConfig `type:"structure"`
 
@@ -3919,7 +4213,9 @@ type FunctionConfiguration struct {
 	// The Amazon Resource Name (ARN) assigned to the function.
 	FunctionArn *string `type:"string"`
 
-	// The name of the function.
+	// The name of the function. Note that the length constraint applies only to
+	// the ARN. If you specify only the function name, it is limited to 64 characters
+	// in length.
 	FunctionName *string `min:"1" type:"string"`
 
 	// The function Lambda calls to begin executing your function.
@@ -3942,15 +4238,15 @@ type FunctionConfiguration struct {
 	Role *string `type:"string"`
 
 	// The runtime environment for the Lambda function.
-	//
-	// To use the Node.js runtime v4.3, set the value to "nodejs4.3". To use earlier
-	// runtime (v0.10.42), set the value to "nodejs".
 	Runtime *string `type:"string" enum:"Runtime"`
 
 	// The function execution time at which Lambda should terminate the function.
 	// Because the execution time has cost implications, we recommend you set this
 	// value based on your expected execution time. The default is 3 seconds.
 	Timeout *int64 `min:"1" type:"integer"`
+
+	// The parent object that contains your function's tracing settings.
+	TracingConfig *TracingConfigResponse `type:"structure"`
 
 	// The version of the Lambda function.
 	Version *string `min:"1" type:"string"`
@@ -4053,6 +4349,12 @@ func (s *FunctionConfiguration) SetTimeout(v int64) *FunctionConfiguration {
 	return s
 }
 
+// SetTracingConfig sets the TracingConfig field's value.
+func (s *FunctionConfiguration) SetTracingConfig(v *TracingConfigResponse) *FunctionConfiguration {
+	s.TracingConfig = v
+	return s
+}
+
 // SetVersion sets the Version field's value.
 func (s *FunctionConfiguration) SetVersion(v string) *FunctionConfiguration {
 	s.Version = &v
@@ -4118,7 +4420,9 @@ type GetAliasInput struct {
 
 	// Function name for which the alias is created. An alias is a subresource that
 	// exists only in the context of an existing Lambda function so you must specify
-	// the function name.
+	// the function name. Note that the length constraint applies only to the ARN.
+	// If you specify only the function name, it is limited to 64 characters in
+	// length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -4221,7 +4525,7 @@ type GetFunctionConfigurationInput struct {
 	// Amazon Resource Name (ARN) of the function (for example, arn:aws:lambda:us-west-2:account-id:function:ThumbNail).
 	// AWS Lambda also allows you to specify a partial ARN (for example, account-id:Thumbnail).
 	// Note that the length constraint applies only to the ARN. If you specify only
-	// the function name, it is limited to 64 character in length.
+	// the function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -4287,7 +4591,7 @@ type GetFunctionInput struct {
 	// Amazon Resource Name (ARN) of the function (for example, arn:aws:lambda:us-west-2:account-id:function:ThumbNail).
 	// AWS Lambda also allows you to specify a partial ARN (for example, account-id:Thumbnail).
 	// Note that the length constraint applies only to the ARN. If you specify only
-	// the function name, it is limited to 64 character in length.
+	// the function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -4352,6 +4656,9 @@ type GetFunctionOutput struct {
 
 	// A complex type that describes function metadata.
 	Configuration *FunctionConfiguration `type:"structure"`
+
+	// Returns the list of tags associated with the function.
+	Tags map[string]*string `type:"map"`
 }
 
 // String returns the string representation
@@ -4376,6 +4683,12 @@ func (s *GetFunctionOutput) SetConfiguration(v *FunctionConfiguration) *GetFunct
 	return s
 }
 
+// SetTags sets the Tags field's value.
+func (s *GetFunctionOutput) SetTags(v map[string]*string) *GetFunctionOutput {
+	s.Tags = v
+	return s
+}
+
 type GetPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4388,7 +4701,7 @@ type GetPolicyInput struct {
 	// Lambda also allows you to specify only the function name with the account
 	// ID qualifier (for example, account-id:Thumbnail). Note that the length constraint
 	// applies only to the ARN. If you specify only the function name, it is limited
-	// to 64 character in length.
+	// to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -4469,7 +4782,9 @@ func (s *GetPolicyOutput) SetPolicy(v string) *GetPolicyOutput {
 type InvokeAsyncInput struct {
 	_ struct{} `deprecated:"true" type:"structure" payload:"InvokeArgs"`
 
-	// The Lambda function name.
+	// The Lambda function name. Note that the length constraint applies only to
+	// the ARN. If you specify only the function name, it is limited to 64 characters
+	// in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -4563,7 +4878,7 @@ type InvokeInput struct {
 	// Amazon Resource Name (ARN) of the function (for example, arn:aws:lambda:us-west-2:account-id:function:ThumbNail).
 	// AWS Lambda also allows you to specify a partial ARN (for example, account-id:Thumbnail).
 	// Note that the length constraint applies only to the ARN. If you specify only
-	// the function name, it is limited to 64 character in length.
+	// the function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -4731,7 +5046,9 @@ func (s *InvokeOutput) SetStatusCode(v int64) *InvokeOutput {
 type ListAliasesInput struct {
 	_ struct{} `type:"structure"`
 
-	// Lambda function name for which the alias is created.
+	// Lambda function name for which the alias is created. Note that the length
+	// constraint applies only to the ARN. If you specify only the function name,
+	// it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -4854,7 +5171,7 @@ type ListEventSourceMappingsInput struct {
 	// Lambda also allows you to specify only the function name with the account
 	// ID qualifier (for example, account-id:Thumbnail). Note that the length constraint
 	// applies only to the ARN. If you specify only the function name, it is limited
-	// to 64 character in length.
+	// to 64 characters in length.
 	FunctionName *string `location:"querystring" locationName:"FunctionName" min:"1" type:"string"`
 
 	// Optional string. An opaque pagination token returned from a previous ListEventSourceMappings
@@ -5030,6 +5347,67 @@ func (s *ListFunctionsOutput) SetNextMarker(v string) *ListFunctionsOutput {
 	return s
 }
 
+type ListTagsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN (Amazon Resource Name) of the function.
+	//
+	// Resource is a required field
+	Resource *string `location:"uri" locationName:"ARN" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ListTagsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTagsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTagsInput"}
+	if s.Resource == nil {
+		invalidParams.Add(request.NewErrParamRequired("Resource"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResource sets the Resource field's value.
+func (s *ListTagsInput) SetResource(v string) *ListTagsInput {
+	s.Resource = &v
+	return s
+}
+
+type ListTagsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The list of tags assigned to the function.
+	Tags map[string]*string `type:"map"`
+}
+
+// String returns the string representation
+func (s ListTagsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTagsOutput) GoString() string {
+	return s.String()
+}
+
+// SetTags sets the Tags field's value.
+func (s *ListTagsOutput) SetTags(v map[string]*string) *ListTagsOutput {
+	s.Tags = v
+	return s
+}
+
 type ListVersionsByFunctionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5038,7 +5416,7 @@ type ListVersionsByFunctionInput struct {
 	// function (for example, arn:aws:lambda:us-west-2:account-id:function:ThumbNail).
 	// AWS Lambda also allows you to specify a partial ARN (for example, account-id:Thumbnail).
 	// Note that the length constraint applies only to the ARN. If you specify only
-	// the function name, it is limited to 64 character in length.
+	// the function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -5149,7 +5527,7 @@ type PublishVersionInput struct {
 	// arn:aws:lambda:us-west-2:account-id:function:ThumbNail). AWS Lambda also
 	// allows you to specify a partial ARN (for example, account-id:Thumbnail).
 	// Note that the length constraint applies only to the ARN. If you specify only
-	// the function name, it is limited to 64 character in length.
+	// the function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -5208,7 +5586,7 @@ type RemovePermissionInput struct {
 	// Amazon Resource Name (ARN) of the function (for example, arn:aws:lambda:us-west-2:account-id:function:ThumbNail).
 	// AWS Lambda also allows you to specify a partial ARN (for example, account-id:Thumbnail).
 	// Note that the length constraint applies only to the ARN. If you specify only
-	// the function name, it is limited to 64 character in length.
+	// the function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -5292,13 +5670,199 @@ func (s RemovePermissionOutput) GoString() string {
 	return s.String()
 }
 
+type TagResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN (Amazon Resource Name) of the Lambda function.
+	//
+	// Resource is a required field
+	Resource *string `location:"uri" locationName:"ARN" type:"string" required:"true"`
+
+	// The list of tags (key-value pairs) you are assigning to the Lambda function.
+	//
+	// Tags is a required field
+	Tags map[string]*string `type:"map" required:"true"`
+}
+
+// String returns the string representation
+func (s TagResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TagResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TagResourceInput"}
+	if s.Resource == nil {
+		invalidParams.Add(request.NewErrParamRequired("Resource"))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResource sets the Resource field's value.
+func (s *TagResourceInput) SetResource(v string) *TagResourceInput {
+	s.Resource = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *TagResourceInput) SetTags(v map[string]*string) *TagResourceInput {
+	s.Tags = v
+	return s
+}
+
+type TagResourceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s TagResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagResourceOutput) GoString() string {
+	return s.String()
+}
+
+// The parent object that contains your function's tracing settings.
+type TracingConfig struct {
+	_ struct{} `type:"structure"`
+
+	// Can be either PassThrough or Active. If PassThrough, Lambda will only trace
+	// the request from an upstream service if it contains a tracing header with
+	// "sampled=1". If Active, Lambda will respect any tracing header it receives
+	// from an upstream service. If no tracing header is received, Lambda will call
+	// X-Ray for a tracing decision.
+	Mode *string `type:"string" enum:"TracingMode"`
+}
+
+// String returns the string representation
+func (s TracingConfig) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TracingConfig) GoString() string {
+	return s.String()
+}
+
+// SetMode sets the Mode field's value.
+func (s *TracingConfig) SetMode(v string) *TracingConfig {
+	s.Mode = &v
+	return s
+}
+
+// Parent object of the tracing information associated with your Lambda function.
+type TracingConfigResponse struct {
+	_ struct{} `type:"structure"`
+
+	// The tracing mode associated with your Lambda function.
+	Mode *string `type:"string" enum:"TracingMode"`
+}
+
+// String returns the string representation
+func (s TracingConfigResponse) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TracingConfigResponse) GoString() string {
+	return s.String()
+}
+
+// SetMode sets the Mode field's value.
+func (s *TracingConfigResponse) SetMode(v string) *TracingConfigResponse {
+	s.Mode = &v
+	return s
+}
+
+type UntagResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN (Amazon Resource Name) of the function.
+	//
+	// Resource is a required field
+	Resource *string `location:"uri" locationName:"ARN" type:"string" required:"true"`
+
+	// The list of tag keys to be deleted from the function.
+	//
+	// TagKeys is a required field
+	TagKeys []*string `location:"querystring" locationName:"tagKeys" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s UntagResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UntagResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UntagResourceInput"}
+	if s.Resource == nil {
+		invalidParams.Add(request.NewErrParamRequired("Resource"))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResource sets the Resource field's value.
+func (s *UntagResourceInput) SetResource(v string) *UntagResourceInput {
+	s.Resource = &v
+	return s
+}
+
+// SetTagKeys sets the TagKeys field's value.
+func (s *UntagResourceInput) SetTagKeys(v []*string) *UntagResourceInput {
+	s.TagKeys = v
+	return s
+}
+
+type UntagResourceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s UntagResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagResourceOutput) GoString() string {
+	return s.String()
+}
+
 type UpdateAliasInput struct {
 	_ struct{} `type:"structure"`
 
 	// You can change the description of the alias using this parameter.
 	Description *string `type:"string"`
 
-	// The function name for which the alias is created.
+	// The function name for which the alias is created. Note that the length constraint
+	// applies only to the ARN. If you specify only the function name, it is limited
+	// to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -5388,6 +5952,8 @@ type UpdateEventSourceMappingInput struct {
 	// You can specify a function name (for example, Thumbnail) or you can specify
 	// Amazon Resource Name (ARN) of the function (for example, arn:aws:lambda:us-west-2:account-id:function:ThumbNail).
 	// AWS Lambda also allows you to specify a partial ARN (for example, account-id:Thumbnail).
+	// Note that the length constraint applies only to the ARN. If you specify only
+	// the function name, it is limited to 64 characters in length.
 	//
 	// If you are using versioning, you can also provide a qualified function ARN
 	// (ARN that is qualified with function version or alias name as suffix). For
@@ -5466,7 +6032,7 @@ type UpdateFunctionCodeInput struct {
 	// Amazon Resource Name (ARN) of the function (for example, arn:aws:lambda:us-west-2:account-id:function:ThumbNail).
 	// AWS Lambda also allows you to specify a partial ARN (for example, account-id:Thumbnail).
 	// Note that the length constraint applies only to the ARN. If you specify only
-	// the function name, it is limited to 64 character in length.
+	// the function name, it is limited to 64 characters in length.
 	//
 	// FunctionName is a required field
 	FunctionName *string `location:"uri" locationName:"FunctionName" min:"1" type:"string" required:"true"`
@@ -5571,7 +6137,7 @@ func (s *UpdateFunctionCodeInput) SetZipFile(v []byte) *UpdateFunctionCodeInput 
 type UpdateFunctionConfigurationInput struct {
 	_ struct{} `type:"structure"`
 
-	// The parent object that contains the target Amazon Resource Name (ARN) of
+	// The parent object that contains the target ARN (Amazon Resource Name) of
 	// an Amazon SQS queue or Amazon SNS topic.
 	DeadLetterConfig *DeadLetterConfig `type:"structure"`
 
@@ -5616,8 +6182,11 @@ type UpdateFunctionConfigurationInput struct {
 
 	// The runtime environment for the Lambda function.
 	//
-	// To use the Node.js runtime v4.3, set the value to "nodejs4.3". To use earlier
-	// runtime (v0.10.42), set the value to "nodejs".
+	// To use the Python runtime v3.6, set the value to "python3.6". To use the
+	// Python runtime v2.7, set the value to "python2.7". To use the Node.js runtime
+	// v6.10, set the value to "nodejs6.10". To use the Node.js runtime v4.3, set
+	// the value to "nodejs4.3". To use the Python runtime v3.6, set the value to
+	// "python3.6". To use the Python runtime v2.7, set the value to "python2.7".
 	//
 	// You can no longer downgrade to the v0.10.42 runtime version. This version
 	// will no longer be supported as of early 2017.
@@ -5627,6 +6196,9 @@ type UpdateFunctionConfigurationInput struct {
 	// Because the execution time has cost implications, we recommend you set this
 	// value based on your expected execution time. The default is 3 seconds.
 	Timeout *int64 `min:"1" type:"integer"`
+
+	// The parent object that contains your function's tracing settings.
+	TracingConfig *TracingConfig `type:"structure"`
 
 	// If your Lambda function accesses resources in a VPC, you provide this parameter
 	// identifying the list of security group IDs and subnet IDs. These must belong
@@ -5724,6 +6296,12 @@ func (s *UpdateFunctionConfigurationInput) SetRuntime(v string) *UpdateFunctionC
 // SetTimeout sets the Timeout field's value.
 func (s *UpdateFunctionConfigurationInput) SetTimeout(v int64) *UpdateFunctionConfigurationInput {
 	s.Timeout = &v
+	return s
+}
+
+// SetTracingConfig sets the TracingConfig field's value.
+func (s *UpdateFunctionConfigurationInput) SetTracingConfig(v *TracingConfig) *UpdateFunctionConfigurationInput {
+	s.TracingConfig = v
 	return s
 }
 
@@ -5857,6 +6435,9 @@ const (
 	// RuntimePython27 is a Runtime enum value
 	RuntimePython27 = "python2.7"
 
+	// RuntimePython36 is a Runtime enum value
+	RuntimePython36 = "python3.6"
+
 	// RuntimeDotnetcore10 is a Runtime enum value
 	RuntimeDotnetcore10 = "dotnetcore1.0"
 
@@ -5873,4 +6454,12 @@ const (
 
 	// ThrottleReasonCallerRateLimitExceeded is a ThrottleReason enum value
 	ThrottleReasonCallerRateLimitExceeded = "CallerRateLimitExceeded"
+)
+
+const (
+	// TracingModeActive is a TracingMode enum value
+	TracingModeActive = "Active"
+
+	// TracingModePassThrough is a TracingMode enum value
+	TracingModePassThrough = "PassThrough"
 )

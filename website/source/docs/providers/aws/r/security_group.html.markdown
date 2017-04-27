@@ -21,7 +21,7 @@ a conflict of rule settings and will overwrite rules.
 
 Basic usage
 
-```
+```hcl
 resource "aws_security_group" "allow_all" {
   name        = "allow_all"
   description = "Allow all inbound traffic"

@@ -18,7 +18,7 @@ func TestAccFastlyServiceV1_s3logging_basic(t *testing.T) {
 	domainName1 := fmt.Sprintf("%s.notadomain.com", acctest.RandString(10))
 
 	log1 := gofastly.S3{
-		Version:           "1",
+		Version:           1,
 		Name:              "somebucketlog",
 		BucketName:        "fastlytestlogging",
 		Domain:            "s3-us-west-2.amazonaws.com",
@@ -33,7 +33,7 @@ func TestAccFastlyServiceV1_s3logging_basic(t *testing.T) {
 	}
 
 	log2 := gofastly.S3{
-		Version:         "1",
+		Version:         1,
 		Name:            "someotherbucketlog",
 		BucketName:      "fastlytestlogging2",
 		Domain:          "s3-us-west-2.amazonaws.com",
@@ -89,7 +89,7 @@ func TestAccFastlyServiceV1_s3logging_s3_env(t *testing.T) {
 	defer resetEnv()
 
 	log3 := gofastly.S3{
-		Version:         "1",
+		Version:         1,
 		Name:            "somebucketlog",
 		BucketName:      "fastlytestlogging",
 		Domain:          "s3-us-west-2.amazonaws.com",
@@ -128,7 +128,7 @@ func TestAccFastlyServiceV1_s3logging_formatVersion(t *testing.T) {
 	domainName1 := fmt.Sprintf("%s.notadomain.com", acctest.RandString(10))
 
 	log1 := gofastly.S3{
-		Version:         "1",
+		Version:         1,
 		Name:            "somebucketlog",
 		BucketName:      "fastlytestlogging",
 		Domain:          "s3-us-west-2.amazonaws.com",
@@ -171,7 +171,7 @@ func testAccCheckFastlyServiceV1S3LoggingAttributes(service *gofastly.ServiceDet
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up S3 Logging for (%s), version (%s): %s", service.Name, service.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up S3 Logging for (%s), version (%v): %s", service.Name, service.ActiveVersion.Number, err)
 		}
 
 		if len(s3List) != len(s3s) {

@@ -56,7 +56,7 @@ func testAccCheckFastlyServiceV1RequestSettingsAttributes(service *gofastly.Serv
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Request Setting for (%s), version (%s): %s", service.Name, service.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Request Setting for (%s), version (%v): %s", service.Name, service.ActiveVersion.Number, err)
 		}
 
 		if len(rqList) != len(rqs) {

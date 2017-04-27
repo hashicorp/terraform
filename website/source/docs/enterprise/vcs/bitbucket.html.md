@@ -1,13 +1,13 @@
 ---
 layout: "enterprise"
-page_title: "BitBucket Cloud - VCS Integrations - Terraform Enterprise"
+page_title: "Bitbucket Cloud - VCS Integrations - Terraform Enterprise"
 sidebar_current: "docs-enterprise-vcs-bitbucket-cloud"
 description: |-
-  BitBucket Cloud repositories can be integrated with Terraform Enterprise by using push command.
+  Bitbucket Cloud repositories can be integrated with Terraform Enterprise by using push command.
 ---
-# BitBucket Cloud
+# Bitbucket Cloud
 
-BitBucket Cloud can be used to import Terraform configuration, automatically
+Bitbucket Cloud can be used to import Terraform configuration, automatically
 queuing runs when changes are merged into a repository's default branch.
 Additionally, plans are run when a pull request is created or updated. Terraform
 Enterprise will update the pull request with the result of the Terraform plan
@@ -15,7 +15,7 @@ providing quick feedback on proposed changes.
 
 ## Registering an OAuth Application & Client
 
-### Creating and Updating a BitBucket Cloud OAuth Application
+### Creating and Updating a Bitbucket Cloud OAuth Application
 
 You will need to register Terraform Enterprise as an OAuth Application within your Bitbucket Cloud account. Proceed to https://bitbucket.org/account/user/your-username/oauth-consumers/new. Fill out the required information and set the Redirect URI to a placeholder (ie: http://example.com), as you will need to register the Bitbucket Client with Terraform Enterprise prior to receiving this value. Check all of the permission fields that apply to you, and click Save
 
@@ -31,7 +31,7 @@ Once you have created your client, you will be redirected back to the configurat
 
 Your OAuth Client should now be enabled for your Organization to use within Terraform Enterprise.
 
-## Using Terraform Enterprise with BitBucket Cloud
+## Using Terraform Enterprise with Bitbucket Cloud
 
 There are two ways to connect your preferred VCS Host to Terraform Enterprise.
 You can generate an OAuth token both at the user and organization level.
@@ -52,9 +52,9 @@ You are now ready to use your personal token to manage builds and configurations
 
 ## Connecting Configurations
 
-Once you have linked a BitBucket installation to your account or organization,
-you are ready to begin creating Packer Builds and Terraform Enviroments linked
-to your desired BitBucket Cloud repository.
+Once you have linked a Bitbucket installation to your account or organization,
+you are ready to begin creating Packer Builds and Terraform Environments linked
+to your desired Bitbucket Cloud repository.
 
 Terraform Enterprise environments are linked to individual GitHub repositories.
 However, a single GitHub repository can be linked to multiple environments
@@ -65,19 +65,19 @@ Environments can be linked when they're initially created using the New
 Environment process. Existing environments can be linked by setting GitHub
 details in their **Integrations**.
 
-To link a Terraform Enterprise environment to a BitBucket Cloud repository, you need
+To link a Terraform Enterprise environment to a Bitbucket Cloud repository, you need
 three pieces of information:
 
-- **BitBucket Cloud repository** - The location of the repository being imported in the
+- **Bitbucket Cloud repository** - The location of the repository being imported in the
 format _username/repository_.
 
-- **BitBucket Cloud branch** - The branch from which to ingress new versions. This
+- **Bitbucket Cloud branch** - The branch from which to ingress new versions. This
 defaults to the value GitHub provides as the default branch for this repository.
 
 - **Path to directory of Terraform files** - The repository's subdirectory that
 contains its terraform files. This defaults to the root of the repository.
 
-### Connecting a BitBucket Cloud Repository to a Terraform Environment
+### Connecting a Bitbucket Cloud Repository to a Terraform Environment
 
 Navigate to https://atlas.hashicorp.com/configurations/import and select Link to Bitbucket Cloud. A menu will appear asking you to name the environment. Then use the autocomplete field for repository and select the repository for which you'd like to create a webhook & environment. If necessary, fill out information about the VCS branch to pull from as well as the directory where the Terraform files live within the repository. Click Create and Continue.
 
@@ -85,7 +85,7 @@ Upon success, you will be redirected to the environment's runs page (https://atl
 
 The events currently supported are repository and branch push, pull request, and merge.
 
-### Connecting a BitBucket Cloud Repository to a Packer Build Configuration
+### Connecting a Bitbucket Cloud Repository to a Packer Build Configuration
 
 Navigate to https://atlas.hashicorp.com/builds/new and select the organization for which you'd like to create a build configuration. Name your build & select Connect build configuration to a Git Repository. A form will appear asking you to select your Git Host. Select Bitbucket Cloud.
 

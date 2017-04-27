@@ -37,7 +37,7 @@ func Expand(m map[string]string, key string) interface{} {
 
 	// Check if this is a prefix in the map
 	prefix := key + "."
-	for k, _ := range m {
+	for k := range m {
 		if strings.HasPrefix(k, prefix) {
 			return expandMap(m, prefix)
 		}
@@ -52,9 +52,17 @@ func expandArray(m map[string]string, prefix string) []interface{} {
 		panic(err)
 	}
 
-	// The Schema "Set" type stores its values in an array format, but using
-	// numeric hash values instead of ordinal keys. Take the set of keys
-	// regardless of value, and expand them in numeric order.
+	// If the number of elements in this array is 0, then return an
+	// empty slice as there is nothing to expand. Trying to expand it
+	// anyway could lead to crashes as any child maps, arrays or sets
+	// that no longer exist are still shown as empty with a count of 0.
+	if num == 0 {
+		return []interface{}{}
+	}
+
+	// The Schema "Set" type stores its values in an array format, but
+	// using numeric hash values instead of ordinal keys. Take the set
+	// of keys regardless of value, and expand them in numeric order.
 	// See GH-11042 for more details.
 	keySet := map[int]bool{}
 	computed := map[string]bool{}
@@ -106,8 +114,14 @@ func expandArray(m map[string]string, prefix string) []interface{} {
 }
 
 func expandMap(m map[string]string, prefix string) map[string]interface{} {
+	// Submaps may not have a '%' key, so we can't count on this value being
+	// here. If we don't have a count, just proceed as if we have have a map.
+	if count, ok := m[prefix+"%"]; ok && count == "0" {
+		return map[string]interface{}{}
+	}
+
 	result := make(map[string]interface{})
-	for k, _ := range m {
+	for k := range m {
 		if !strings.HasPrefix(k, prefix) {
 			continue
 		}
@@ -125,6 +139,7 @@ func expandMap(m map[string]string, prefix string) map[string]interface{} {
 		if key == "%" {
 			continue
 		}
+
 		result[key] = Expand(m, k[:len(prefix)+len(key)])
 	}
 

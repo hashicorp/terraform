@@ -170,9 +170,30 @@ func (b *Local) DeleteState(name string) error {
 }
 
 func (b *Local) State(name string) (state.State, error) {
+	statePath, stateOutPath, backupPath := b.StatePaths(name)
+
 	// If we have a backend handling state, defer to that.
 	if b.Backend != nil {
-		return b.Backend.State(name)
+		s, err := b.Backend.State(name)
+		if err != nil {
+			return nil, err
+		}
+
+		// make sure we always have a backup state, unless it disabled
+		if backupPath == "" {
+			return s, nil
+		}
+
+		// see if the delegated backend returned a BackupState of its own
+		if s, ok := s.(*state.BackupState); ok {
+			return s, nil
+		}
+
+		s = &state.BackupState{
+			Real: s,
+			Path: backupPath,
+		}
+		return s, nil
 	}
 
 	if s, ok := b.states[name]; ok {
@@ -182,8 +203,6 @@ func (b *Local) State(name string) (state.State, error) {
 	if err := b.createState(name); err != nil {
 		return nil, err
 	}
-
-	statePath, stateOutPath, backupPath := b.StatePaths(name)
 
 	// Otherwise, we need to load the state.
 	var s state.State = &state.LocalState{
