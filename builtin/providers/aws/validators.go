@@ -1301,3 +1301,17 @@ func validateWafMetricName(v interface{}, k string) (ws []string, errors []error
 	}
 	return
 }
+
+func validateSsmParameterType(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	types := map[string]bool{
+		"String":       true,
+		"StringList":   true,
+		"SecureString": true,
+	}
+
+	if !types[value] {
+		errors = append(errors, fmt.Errorf("Parameter type %s is invalid. Valid types are String, StringList or SecureString", value))
+	}
+	return
+}
