@@ -16,6 +16,7 @@ env:
 branches:
   only:
   - master
+  - /^(?i:topic)-.*$/
 
 # install terraform
 before_deploy:
