@@ -22,7 +22,7 @@ func TestAccComputeProjectMetadata_basic(t *testing.T) {
 
 	billingId := os.Getenv("GOOGLE_BILLING_ACCOUNT")
 	var project compute.Project
-	pid := "terrafom-test-" + acctest.RandString(10)
+	projectID := "terrafom-test-" + acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -30,13 +30,13 @@ func TestAccComputeProjectMetadata_basic(t *testing.T) {
 		CheckDestroy: testAccCheckComputeProjectMetadataDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeProject_basic0_metadata(pid, pname, org, billingId),
+				Config: testAccComputeProject_basic0_metadata(projectID, pname, org, billingId),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeProjectExists(
-						"google_compute_project_metadata.fizzbuzz", pid, &project),
-					testAccCheckComputeProjectMetadataContains(pid, "banana", "orange"),
-					testAccCheckComputeProjectMetadataContains(pid, "sofa", "darwinism"),
-					testAccCheckComputeProjectMetadataSize(pid, 2),
+						"google_compute_project_metadata.fizzbuzz", projectID, &project),
+					testAccCheckComputeProjectMetadataContains(projectID, "banana", "orange"),
+					testAccCheckComputeProjectMetadataContains(projectID, "sofa", "darwinism"),
+					testAccCheckComputeProjectMetadataSize(projectID, 2),
 				),
 			},
 		},
@@ -54,7 +54,7 @@ func TestAccComputeProjectMetadata_modify_1(t *testing.T) {
 
 	billingId := os.Getenv("GOOGLE_BILLING_ACCOUNT")
 	var project compute.Project
-	pid := "terrafom-test-" + acctest.RandString(10)
+	projectID := "terrafom-test-" + acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -62,26 +62,26 @@ func TestAccComputeProjectMetadata_modify_1(t *testing.T) {
 		CheckDestroy: testAccCheckComputeProjectMetadataDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeProject_modify0_metadata(pid, pname, org, billingId),
+				Config: testAccComputeProject_modify0_metadata(projectID, pname, org, billingId),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeProjectExists(
-						"google_compute_project_metadata.fizzbuzz", pid, &project),
-					testAccCheckComputeProjectMetadataContains(pid, "paper", "pen"),
-					testAccCheckComputeProjectMetadataContains(pid, "genghis_khan", "french bread"),
-					testAccCheckComputeProjectMetadataContains(pid, "happy", "smiling"),
-					testAccCheckComputeProjectMetadataSize(pid, 3),
+						"google_compute_project_metadata.fizzbuzz", projectID, &project),
+					testAccCheckComputeProjectMetadataContains(projectID, "paper", "pen"),
+					testAccCheckComputeProjectMetadataContains(projectID, "genghis_khan", "french bread"),
+					testAccCheckComputeProjectMetadataContains(projectID, "happy", "smiling"),
+					testAccCheckComputeProjectMetadataSize(projectID, 3),
 				),
 			},
 
 			resource.TestStep{
-				Config: testAccComputeProject_modify1_metadata(pid, pname, org, billingId),
+				Config: testAccComputeProject_modify1_metadata(projectID, pname, org, billingId),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeProjectExists(
-						"google_compute_project_metadata.fizzbuzz", pid, &project),
-					testAccCheckComputeProjectMetadataContains(pid, "paper", "pen"),
-					testAccCheckComputeProjectMetadataContains(pid, "paris", "french bread"),
-					testAccCheckComputeProjectMetadataContains(pid, "happy", "laughing"),
-					testAccCheckComputeProjectMetadataSize(pid, 3),
+						"google_compute_project_metadata.fizzbuzz", projectID, &project),
+					testAccCheckComputeProjectMetadataContains(projectID, "paper", "pen"),
+					testAccCheckComputeProjectMetadataContains(projectID, "paris", "french bread"),
+					testAccCheckComputeProjectMetadataContains(projectID, "happy", "laughing"),
+					testAccCheckComputeProjectMetadataSize(projectID, 3),
 				),
 			},
 		},
@@ -99,7 +99,7 @@ func TestAccComputeProjectMetadata_modify_2(t *testing.T) {
 
 	billingId := os.Getenv("GOOGLE_BILLING_ACCOUNT")
 	var project compute.Project
-	pid := "terraform-test-" + acctest.RandString(10)
+	projectID := "terraform-test-" + acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -107,24 +107,24 @@ func TestAccComputeProjectMetadata_modify_2(t *testing.T) {
 		CheckDestroy: testAccCheckComputeProjectMetadataDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeProject_basic0_metadata(pid, pname, org, billingId),
+				Config: testAccComputeProject_basic0_metadata(projectID, pname, org, billingId),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeProjectExists(
-						"google_compute_project_metadata.fizzbuzz", pid, &project),
-					testAccCheckComputeProjectMetadataContains(pid, "banana", "orange"),
-					testAccCheckComputeProjectMetadataContains(pid, "sofa", "darwinism"),
-					testAccCheckComputeProjectMetadataSize(pid, 2),
+						"google_compute_project_metadata.fizzbuzz", projectID, &project),
+					testAccCheckComputeProjectMetadataContains(projectID, "banana", "orange"),
+					testAccCheckComputeProjectMetadataContains(projectID, "sofa", "darwinism"),
+					testAccCheckComputeProjectMetadataSize(projectID, 2),
 				),
 			},
 
 			resource.TestStep{
-				Config: testAccComputeProject_basic1_metadata(pid, pname, org, billingId),
+				Config: testAccComputeProject_basic1_metadata(projectID, pname, org, billingId),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeProjectExists(
-						"google_compute_project_metadata.fizzbuzz", pid, &project),
-					testAccCheckComputeProjectMetadataContains(pid, "kiwi", "papaya"),
-					testAccCheckComputeProjectMetadataContains(pid, "finches", "darwinism"),
-					testAccCheckComputeProjectMetadataSize(pid, 2),
+						"google_compute_project_metadata.fizzbuzz", projectID, &project),
+					testAccCheckComputeProjectMetadataContains(projectID, "kiwi", "papaya"),
+					testAccCheckComputeProjectMetadataContains(projectID, "finches", "darwinism"),
+					testAccCheckComputeProjectMetadataSize(projectID, 2),
 				),
 			},
 		},
@@ -148,7 +148,7 @@ func testAccCheckComputeProjectMetadataDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckComputeProjectExists(n, pid string, project *compute.Project) resource.TestCheckFunc {
+func testAccCheckComputeProjectExists(n, projectID string, project *compute.Project) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -161,8 +161,7 @@ func testAccCheckComputeProjectExists(n, pid string, project *compute.Project) r
 
 		config := testAccProvider.Meta().(*Config)
 
-		found, err := config.clientCompute.Projects.Get(
-			pid).Do()
+		found, err := config.clientCompute.Projects.Get(projectID).Do()
 		if err != nil {
 			return err
 		}
@@ -177,10 +176,10 @@ func testAccCheckComputeProjectExists(n, pid string, project *compute.Project) r
 	}
 }
 
-func testAccCheckComputeProjectMetadataContains(pid, key, value string) resource.TestCheckFunc {
+func testAccCheckComputeProjectMetadataContains(projectID, key, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		config := testAccProvider.Meta().(*Config)
-		project, err := config.clientCompute.Projects.Get(pid).Do()
+		project, err := config.clientCompute.Projects.Get(projectID).Do()
 		if err != nil {
 			return fmt.Errorf("Error, failed to load project service for %s: %s", config.Project, err)
 		}
@@ -200,10 +199,10 @@ func testAccCheckComputeProjectMetadataContains(pid, key, value string) resource
 	}
 }
 
-func testAccCheckComputeProjectMetadataSize(pid string, size int) resource.TestCheckFunc {
+func testAccCheckComputeProjectMetadataSize(projectID string, size int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		config := testAccProvider.Meta().(*Config)
-		project, err := config.clientCompute.Projects.Get(pid).Do()
+		project, err := config.clientCompute.Projects.Get(projectID).Do()
 		if err != nil {
 			return fmt.Errorf("Error, failed to load project service for %s: %s", config.Project, err)
 		}
@@ -217,7 +216,7 @@ func testAccCheckComputeProjectMetadataSize(pid string, size int) resource.TestC
 	}
 }
 
-func testAccComputeProject_basic0_metadata(pid, name, org, billing string) string {
+func testAccComputeProject_basic0_metadata(projectID, name, org, billing string) string {
 	return fmt.Sprintf(`
 resource "google_project" "project" {
   project_id = "%s"
@@ -238,10 +237,10 @@ resource "google_compute_project_metadata" "fizzbuzz" {
     sofa = "darwinism"
   }
   depends_on = ["google_project_services.services"]
-}`, pid, name, org, billing)
+}`, projectID, name, org, billing)
 }
 
-func testAccComputeProject_basic1_metadata(pid, name, org, billing string) string {
+func testAccComputeProject_basic1_metadata(projectID, name, org, billing string) string {
 	return fmt.Sprintf(`
 resource "google_project" "project" {
   project_id = "%s"
@@ -262,10 +261,10 @@ resource "google_compute_project_metadata" "fizzbuzz" {
     finches = "darwinism"
   }
   depends_on = ["google_project_services.services"]
-}`, pid, name, org, billing)
+}`, projectID, name, org, billing)
 }
 
-func testAccComputeProject_modify0_metadata(pid, name, org, billing string) string {
+func testAccComputeProject_modify0_metadata(projectID, name, org, billing string) string {
 	return fmt.Sprintf(`
 resource "google_project" "project" {
   project_id = "%s"
@@ -287,10 +286,10 @@ resource "google_compute_project_metadata" "fizzbuzz" {
     happy = "smiling"
   }
   depends_on = ["google_project_services.services"]
-}`, pid, name, org, billing)
+}`, projectID, name, org, billing)
 }
 
-func testAccComputeProject_modify1_metadata(pid, name, org, billing string) string {
+func testAccComputeProject_modify1_metadata(projectID, name, org, billing string) string {
 	return fmt.Sprintf(`
 resource "google_project" "project" {
   project_id = "%s"
@@ -312,5 +311,5 @@ resource "google_compute_project_metadata" "fizzbuzz" {
     happy = "laughing"
   }
   depends_on = ["google_project_services.services"]
-}`, pid, name, org, billing)
+}`, projectID, name, org, billing)
 }
