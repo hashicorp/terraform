@@ -24,6 +24,11 @@ install:
 # See: https://github.com/golang/go/issues/12933
 - bash scripts/gogetcookie.sh
 - go get github.com/kardianos/govendor
+
+# force the builtin vet command to get built, as there seems to be an old one
+# installed in the toolchain
+- go install -a -v cmd/vet
+
 script:
 - make vet vendor-status test
 - GOOS=windows go build
