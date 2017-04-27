@@ -117,10 +117,12 @@ func originCustomHeaderConf2() map[string]interface{} {
 
 func customOriginConf() map[string]interface{} {
 	return map[string]interface{}{
-		"origin_protocol_policy": "http-only",
-		"http_port":              80,
-		"https_port":             443,
-		"origin_ssl_protocols":   customOriginSslProtocolsConf(),
+		"origin_protocol_policy":   "http-only",
+		"http_port":                80,
+		"https_port":               443,
+		"origin_ssl_protocols":     customOriginSslProtocolsConf(),
+		"origin_read_timeout":      30,
+		"origin_keepalive_timeout": 5,
 	}
 }
 
@@ -784,6 +786,12 @@ func TestCloudFrontStructure_expandCustomOriginConfig(t *testing.T) {
 	}
 	if *co.HTTPSPort != 443 {
 		t.Fatalf("Expected HTTPSPort to be 443, got %v", *co.HTTPSPort)
+	}
+	if *co.OriginReadTimeout != 30 {
+		t.Fatalf("Expected Origin Read Timeout to be 30, got %v", *co.OriginReadTimeout)
+	}
+	if *co.OriginKeepaliveTimeout != 5 {
+		t.Fatalf("Expected Origin Keepalive Timeout to be 5, got %v", *co.OriginKeepaliveTimeout)
 	}
 }
 

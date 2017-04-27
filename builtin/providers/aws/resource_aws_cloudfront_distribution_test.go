@@ -27,7 +27,7 @@ func TestAccAWSCloudFrontDistribution_S3Origin(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudFrontDistributionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFrontDistributionExistence(
@@ -95,7 +95,7 @@ func TestAccAWSCloudFrontDistribution_customOrigin(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudFrontDistributionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudFrontDistributionCustomConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFrontDistributionExistence(
@@ -118,7 +118,7 @@ func TestAccAWSCloudFrontDistribution_multiOrigin(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudFrontDistributionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudFrontDistributionMultiOriginConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFrontDistributionExistence(
@@ -141,7 +141,7 @@ func TestAccAWSCloudFrontDistribution_noOptionalItemsConfig(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudFrontDistributionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudFrontDistributionNoOptionalItemsConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFrontDistributionExistence(
@@ -165,7 +165,7 @@ func TestAccAWSCloudFrontDistribution_HTTP11Config(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudFrontDistributionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudFrontDistributionHTTP11Config,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFrontDistributionExistence(
@@ -183,7 +183,7 @@ func TestAccAWSCloudFrontDistribution_IsIPV6EnabledConfig(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudFrontDistributionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudFrontDistributionIsIPV6EnabledConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFrontDistributionExistence(
@@ -203,7 +203,7 @@ func TestAccAWSCloudFrontDistribution_noCustomErrorResponseConfig(t *testing.T) 
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudFrontDistributionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudFrontDistributionNoCustomErroResponseInfo,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFrontDistributionExistence(
@@ -477,6 +477,8 @@ resource "aws_cloudfront_distribution" "custom_distribution" {
 			https_port = 443
 			origin_protocol_policy = "http-only"
 			origin_ssl_protocols = [ "SSLv3", "TLSv1" ]
+			origin_read_timeout = 30
+			origin_keepalive_timeout = 5
 		}
 	}
 	enabled = true
@@ -542,6 +544,7 @@ resource "aws_cloudfront_distribution" "multi_origin_distribution" {
 			https_port = 443
 			origin_protocol_policy = "http-only"
 			origin_ssl_protocols = [ "SSLv3", "TLSv1" ]
+			origin_keepalive_timeout = 45
 		}
 	}
 	enabled = true

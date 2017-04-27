@@ -63,12 +63,12 @@ The following arguments are supported:
 * `action` - (Required) An Action block. Action blocks are documented below.
 * `condition` - (Required) A Condition block. Condition blocks are documented below.
 
-Action Blocks (for `default_action`) support the following:
+Action Blocks (for `action`) support the following:
 
 * `target_group_arn` - (Required) The ARN of the Target Group to which to route traffic.
 * `type` - (Required) The type of routing action. The only valid value is `forward`.
 
-Condition Blocks (for `default_condition`) support the following:
+Condition Blocks (for `condition`) support the following:
 
 * `field` - (Required) The name of the field. Must be one of `path-pattern` for path based routing or `host-header` for host based routing.
 * `values` - (Required) The path patterns to match. A maximum of 1 can be defined.

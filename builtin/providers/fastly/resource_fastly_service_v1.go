@@ -2010,7 +2010,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up GCS for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up GCS for (%s), version (%v): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
 		gcsl := flattenGCS(GCSList)

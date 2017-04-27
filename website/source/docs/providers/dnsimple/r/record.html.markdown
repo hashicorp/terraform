@@ -58,3 +58,13 @@ The following attributes are exported:
 * `priority` - The priority of the record
 * `domain_id` - The domain ID of the record
 * `hostname` - The FQDN of the record
+
+## Import
+
+DNSimple resources can be imported using their domain name and numeric ID, e.g.
+
+```
+$ terraform import dnsimple_record.resource_name example.com_1234
+```
+
+The numeric ID can be found in the URL when editing a record on the dnsimple web dashboard.
