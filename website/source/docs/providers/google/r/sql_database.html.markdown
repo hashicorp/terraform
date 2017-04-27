@@ -24,7 +24,7 @@ resource "google_sql_database_instance" "master" {
 }
 
 resource "google_sql_database" "users" {
-  name     = "image-store-bucket"
+  name     = "users"
   instance = "${google_sql_database_instance.master.name}"
 }
 ```
