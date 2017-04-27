@@ -1,3 +1,7 @@
+####################################################################################
+## NOT FOR UPSTREAM PROPOSAL; INTENDED FOR CI OF AZURE EXAMPLES IN THIS REPO ONLY ##
+####################################################################################
+
 sudo: required
 
 services:
@@ -35,6 +39,3 @@ deploy:
     on:
       repo: harijayms/terraform
       branch: master
-
-# cleanup
-after_deploy: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./after_deploy.ci.sh
