@@ -6,6 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/efs"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -50,7 +51,7 @@ func dataSourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) er
 
 	describeResp, err := efsconn.DescribeFileSystems(describeEfsOpts)
 	if err != nil {
-		return fmt.Errorf("Error retrieving EFS: {{err}}", err)
+		return errwrap.Wrapf("Error retrieving EFS: {{err}}", err)
 	}
 	if len(describeResp.FileSystems) != 1 {
 		return fmt.Errorf("Search returned %d results, please revise so only one is returned", len(describeResp.FileSystems))
