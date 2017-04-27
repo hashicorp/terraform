@@ -22,6 +22,7 @@ BUG FIXES:
 * provider/aws: Update aws_ebs_volume when attached [GH-14005]
 * provider/aws: Set aws_instance volume_tags to be Computed [GH-14007]
 * provider/aws: Fix issue getting partition for federated users [GH-13992]
+* provider/digitalocean: Prevent diffs when using IDs of images instead of slugs [GH-13879]
 * providers/heroku: Configure buildpacks correctly for both Org Apps and non-org Apps [GH-13990]
 
 ## 0.9.4 (26th April 2017)
