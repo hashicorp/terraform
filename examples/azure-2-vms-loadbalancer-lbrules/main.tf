@@ -58,34 +58,15 @@ resource "azurerm_lb_backend_address_pool" "backend_pool" {
   name                = "BackendPool1"
 }
 
-resource "azurerm_lb_nat_rule" "vm0" {
+resource "azurerm_lb_nat_rule" "tcp" {
   resource_group_name            = "${azurerm_resource_group.rg.name}"
   loadbalancer_id                = "${azurerm_lb.lb.id}"
-  name                           = "RDP-VM0"
+  name                           = "RDP-VM-${count.index}"
   protocol                       = "tcp"
-  frontend_port                  = 50001
+  frontend_port                  = "5000${count.index + 1}"
   backend_port                   = 3389
   frontend_ip_configuration_name = "LoadBalancerFrontEnd"
-}
-
-resource "azurerm_lb_nat_rule" "vm1" {
-  resource_group_name            = "${azurerm_resource_group.rg.name}"
-  loadbalancer_id                = "${azurerm_lb.lb.id}"
-  name                           = "RDP-VM1"
-  protocol                       = "tcp"
-  frontend_port                  = 50002
-  backend_port                   = 3389
-  frontend_ip_configuration_name = "LoadBalancerFrontEnd"
-}
-
-resource "azurerm_lb_probe" "lb_probe" {
-  resource_group_name = "${azurerm_resource_group.rg.name}"
-  loadbalancer_id     = "${azurerm_lb.lb.id}"
-  name                = "tcpProbe"
-  protocol            = "tcp"
-  port                = 80
-  interval_in_seconds = 5
-  number_of_probes    = 2
+  count                          = 2
 }
 
 resource "azurerm_lb_rule" "lb_rule" {
@@ -99,31 +80,43 @@ resource "azurerm_lb_rule" "lb_rule" {
   enable_floating_ip             = false
   backend_address_pool_id        = "${azurerm_lb_backend_address_pool.backend_pool.id}"
   idle_timeout_in_minutes        = 5
-  probe_id                       = "{azurerm_lb_probe.lb_probe.id}"
+  probe_id                       = "${azurerm_lb_probe.lb_probe.id}"
+  depends_on                     = ["azurerm_lb_probe.lb_probe"]
+}
+
+resource "azurerm_lb_probe" "lb_probe" {
+  resource_group_name = "${azurerm_resource_group.rg.name}"
+  loadbalancer_id     = "${azurerm_lb.lb.id}"
+  name                = "tcpProbe"
+  protocol            = "tcp"
+  port                = 80
+  interval_in_seconds = 5
+  number_of_probes    = 2
 }
 
 resource "azurerm_network_interface" "nic" {
-  name                = "${var.rg_prefix}nic"
+  name                = "nic${count.index}"
   location            = "${var.location}"
   resource_group_name = "${azurerm_resource_group.rg.name}"
+  count               = 2
 
   ip_configuration {
-    name                                    = "ipconfig1"
+    name                                    = "ipconfig${count.index}"
     subnet_id                               = "${azurerm_subnet.subnet.id}"
     private_ip_address_allocation           = "Dynamic"
-    public_ip_address_id                    = "${azurerm_public_ip.lbpip.id}"
     load_balancer_backend_address_pools_ids = ["${azurerm_lb_backend_address_pool.backend_pool.id}"]
-    load_balancer_inbound_nat_rules_ids     = ["${azurerm_lb_nat_rule.vm0.id}", "${azurerm_lb_nat_rule.vm1.id}"]
+    load_balancer_inbound_nat_rules_ids     = ["${element(azurerm_lb_nat_rule.tcp.*.id, count.index)}"]
   }
 }
 
 resource "azurerm_virtual_machine" "vm" {
-  name                  = "${var.rg_prefix}vm"
+  name                  = "vm${count.index}"
   location              = "${var.location}"
   resource_group_name   = "${azurerm_resource_group.rg.name}"
   availability_set_id   = "${azurerm_availability_set.avset.id}"
   vm_size               = "${var.vm_size}"
-  network_interface_ids = ["${azurerm_network_interface.nic.id}"]
+  network_interface_ids = ["${element(azurerm_network_interface.nic.*.id, count.index)}"]
+  count                 = 2
 
   storage_image_reference {
     publisher = "${var.image_publisher}"
@@ -133,10 +126,7 @@ resource "azurerm_virtual_machine" "vm" {
   }
 
   storage_os_disk {
-    name = "${var.hostname}-osdisk1"
-
-    # vhd_uri       = "${azurerm_storage_account.stor.primary_blob_endpoint}${azurerm_storage_container.storc.name}/${var.hostname}-osdisk1.vhd"
-    # caching       = "ReadWrite"
+    name          = "osdisk${count.index}"
     create_option = "FromImage"
   }
 
@@ -144,10 +134,5 @@ resource "azurerm_virtual_machine" "vm" {
     computer_name  = "${var.hostname}"
     admin_username = "${var.admin_username}"
     admin_password = "${var.admin_password}"
-  }
-
-  boot_diagnostics {
-    enabled     = "true"
-    storage_uri = "${azurerm_storage_account.stor.name}blob.core.windows.net"
   }
 }
