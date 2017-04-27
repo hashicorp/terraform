@@ -41,11 +41,6 @@ func TestAccDigitalOceanDroplet_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"digitalocean_droplet.foobar", "user_data", "foobar"),
 				),
-				Destroy: false,
-			},
-			{
-				Config:   testAccCheckDigitalOceanDropletConfig_basic(rInt),
-				PlanOnly: true,
 			},
 		},
 	})
