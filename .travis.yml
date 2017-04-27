@@ -33,7 +33,7 @@ deploy:
     skip_cleanup: true
     script: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./deploy.ci.sh
     on:
-      repo: harijayms/terraform
+      repo: 10thmagnitude/terraform
       branch: master
 
 # cleanup
