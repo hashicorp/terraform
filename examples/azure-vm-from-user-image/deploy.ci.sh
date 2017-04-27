@@ -14,7 +14,8 @@ docker run --rm -it \
   -c "/bin/terraform get; \
       /bin/terraform validate; \
       /bin/terraform plan -out=out.tfplan -var hostname=$KEY -var resource_group=$EXISTING_RESOURCE_GROUP -var admin_username=$KEY -var admin_password=$PASSWORD -var image_uri=$EXISTING_IMAGE_URI -var storage_account_name=$EXISTING_STORAGE_ACCOUNT_NAME; \
-      /bin/terraform apply out.tfplan"
+      /bin/terraform apply out.tfplan \
+      /bin/terraform show;"
 
 # cleanup deployed azure resources via terraform
 docker run --rm -it \
