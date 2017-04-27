@@ -14,7 +14,8 @@ docker run --rm -it \
   -c "/bin/terraform get; \
       /bin/terraform validate; \
       /bin/terraform plan -out=out.tfplan -var dns_name=$KEY -var hostname=$KEY -var resource_group=$KEY -var admin_password=$PASSWORD; \
-      /bin/terraform apply out.tfplan"
+      /bin/terraform apply out.tfplan; \
+      /bin/terraform show;"
 
 
 # cleanup deployed azure resources via terraform
