@@ -22,7 +22,6 @@ resource "azurerm_cdn_endpoint" "cdnendpt" {
   profile_name              = "${azurerm_cdn_profile.cdn.name}"
   location                  = "${var.location}"
   resource_group_name       = "${azurerm_resource_group.rg.name}"
-  is_https_allowed          = false
 
   origin {
     name       = "${var.resource_group}Origin1"
