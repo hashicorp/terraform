@@ -2,22 +2,14 @@
 
 set -o errexit -o nounset
 
-# generate a unique string for CI deployment
-export KEY=$(cat /dev/urandom | env LC_CTYPE=C tr -cd 'a-z' | head -c 12)
-export PASSWORD=$KEY$(cat /dev/urandom | env LC_CTYPE=C tr -cd 'A-Z' | head -c 2)$(cat /dev/urandom | env LC_CTYPE=C tr -cd '0-9' | head -c 2)
+if docker -v; then
 
-/bin/sh ./deploy.sh
+  # generate a unique string for CI deployment
+  export KEY=$(cat /dev/urandom | env LC_CTYPE=C tr -cd 'a-z' | head -c 12)
+  export PASSWORD=$KEY$(cat /dev/urandom | env LC_CTYPE=C tr -cd 'A-Z' | head -c 2)$(cat /dev/urandom | env LC_CTYPE=C tr -cd '0-9' | head -c 2)
 
-### capture vm image
-# docker run --rm -it \
-#   azuresdk/azure-cli-python \
-#   sh -c "az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID; \
-#          az vm deallocate --name rgvm --resource-group permanent;  \
-#          az vm generalize --name rgvm --resource-group permanent; \
-#          az image create --name customImage --source rgvm --resource-group permanent"
+  /bin/sh ./deploy.ci.sh
 
-### cleanup
-# docker run --rm -it \
-#     azuresdk/azure-cli-python \
-#     sh -c "az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID; \
-#            az group delete -y -n $KEY"
+else
+  echo "Docker is used to run terraform commands, please install before run:  https://docs.docker.com/docker-for-mac/install/"
+fi
