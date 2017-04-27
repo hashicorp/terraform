@@ -57,7 +57,7 @@ const (
 	envDoesNotExist = `
 Environment %q doesn't exist!
 
-You can create this environment with the "-new" option.`
+You can create this environment with the "new" option.`
 
 	envChanged = `[reset][green]Switched to environment %q!`
 
