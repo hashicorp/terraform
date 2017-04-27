@@ -7,6 +7,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 FEATURES:
 
 * **New Provider:** `gitlab` [GH-13898]
+* **New Resource:** `heroku_app_feature` [GH-14035]
 
 IMPROVEMENTS:
 
