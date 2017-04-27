@@ -13,6 +13,6 @@ variable "storage_account_type" {
 }
 
 variable "host_name" {
-  description = "A string that determines the hostname/IP address of the origin server. This string could be a domain name, IPv4 address or IPv6 address."
-  default     = "www.example.com"
+  description = "Storage account endpoint. This template requires that the user creates a public container in the Storage Account in order for CDN Endpoint to serve content from the Storage Account."
+  default     = "https://example.blob.core.windows.net/"
 }
