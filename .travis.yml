@@ -31,10 +31,10 @@ before_deploy:
 deploy:
   - provider: script
     skip_cleanup: true
-    script: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./deploy.sh
+    script: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./deploy.ci.sh
     on:
       repo: harijayms/terraform
       branch: master
 
 # cleanup
-after_deploy: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./after_deploy.sh
+after_deploy: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./after_deploy.ci.sh

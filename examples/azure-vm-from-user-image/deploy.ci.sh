@@ -8,10 +8,10 @@ docker run --rm -it \
   -e ARM_SUBSCRIPTION_ID \
   -e ARM_TENANT_ID \
   -v $(pwd):/data \
+  --workdir=/data \
   --entrypoint "/bin/sh" \
   hashicorp/terraform:light \
-  -c "cd /data; \
-      /bin/terraform get; \
+  -c "/bin/terraform get; \
       /bin/terraform validate; \
       /bin/terraform plan -out=out.tfplan -var hostname=$KEY -var resource_group=$EXISTING_RESOURCE_GROUP -var admin_username=$KEY -var admin_password=$PASSWORD -var image_uri=$EXISTING_IMAGE_URI -var storage_account_name=$EXISTING_STORAGE_ACCOUNT_NAME; \
       /bin/terraform apply out.tfplan"
