@@ -2,9 +2,12 @@ package digitalocean
 
 import (
 	"log"
+	"net/http"
+	"net/http/httputil"
 	"time"
 
 	"github.com/digitalocean/godo"
+	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/helper/resource"
 	"golang.org/x/oauth2"
 )
@@ -21,9 +24,29 @@ func (c *Config) Client() (*godo.Client, error) {
 
 	client := godo.NewClient(oauth2.NewClient(oauth2.NoContext, tokenSrc))
 
+	if logging.IsDebugOrHigher() {
+		client.OnRequestCompleted(logRequestAndResponse)
+	}
+
 	log.Printf("[INFO] DigitalOcean Client configured for URL: %s", client.BaseURL.String())
 
 	return client, nil
+}
+
+func logRequestAndResponse(req *http.Request, resp *http.Response) {
+	reqData, err := httputil.DumpRequest(req, true)
+	if err == nil {
+		log.Printf("[DEBUG] "+logReqMsg, string(reqData))
+	} else {
+		log.Printf("[ERROR] DigitalOcean API Request error: %#v", err)
+	}
+
+	respData, err := httputil.DumpResponse(resp, true)
+	if err == nil {
+		log.Printf("[DEBUG] "+logRespMsg, string(respData))
+	} else {
+		log.Printf("[ERROR] DigitalOcean API Response error: %#v", err)
+	}
 }
 
 // waitForAction waits for the action to finish using the resource.StateChangeConf.
@@ -61,3 +84,13 @@ func waitForAction(client *godo.Client, action *godo.Action) error {
 	}).WaitForState()
 	return err
 }
+
+const logReqMsg = `DigitalOcean API Request Details:
+---[ REQUEST ]---------------------------------------
+%s
+-----------------------------------------------------`
+
+const logRespMsg = `DigitalOcean API Response Details:
+---[ RESPONSE ]--------------------------------------
+%s
+-----------------------------------------------------`
