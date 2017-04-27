@@ -45,13 +45,6 @@ resource "azurerm_storage_account" "stor" {
   account_type        = "${var.storage_account_type}"
 }
 
-resource "azurerm_storage_container" "storc" {
-  name                  = "${var.hostname}-vhds"
-  resource_group_name   = "${azurerm_resource_group.rg.name}"
-  storage_account_name  = "${azurerm_storage_account.stor.name}"
-  container_access_type = "private"
-}
-
 resource "azurerm_managed_disk" "datadisk" {
   name                 = "${var.hostname}-datadisk"
   location             = "${var.location}"
