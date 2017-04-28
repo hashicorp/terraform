@@ -14,6 +14,9 @@ func resourceComputeRoute() *schema.Resource {
 		Create: resourceComputeRouteCreate,
 		Read:   resourceComputeRouteRead,
 		Delete: resourceComputeRouteDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"dest_range": &schema.Schema{
