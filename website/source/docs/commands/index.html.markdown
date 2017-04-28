@@ -41,6 +41,7 @@ Common commands:
     init               Initialize a new or existing Terraform configuration
     output             Read an output from a state file
     plan               Generate and show an execution plan
+    providers          Prints a tree of the providers used in the configuration
     push               Upload this Terraform module to Terraform Enterprise to run
     refresh            Update local state file against real resources
     show               Inspect Terraform state or plan
