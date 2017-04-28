@@ -313,6 +313,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_elb_attachment":                           resourceAwsElbAttachment(),
 			"aws_emr_cluster":                              resourceAwsEMRCluster(),
 			"aws_emr_instance_group":                       resourceAwsEMRInstanceGroup(),
+			"aws_emr_security_configuration":               resourceAwsEMRSecurityConfiguration(),
 			"aws_flow_log":                                 resourceAwsFlowLog(),
 			"aws_glacier_vault":                            resourceAwsGlacierVault(),
 			"aws_iam_access_key":                           resourceAwsIamAccessKey(),
