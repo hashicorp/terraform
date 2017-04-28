@@ -1,0 +1,73 @@
+package heroku
+
+import (
+	"context"
+	"fmt"
+	"log"
+
+	"github.com/cyberdelia/heroku-go/v3"
+	"github.com/hashicorp/terraform/helper/schema"
+)
+
+func resourceHerokuPipeline() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceHerokuPipelineCreate,
+		Read:   resourceHerokuPipelineRead,
+		Delete: resourceHerokuPipelineDelete,
+
+		Schema: map[string]*schema.Schema{
+			"name": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true, // TODO does it?
+			},
+		},
+	}
+}
+
+func resourceHerokuPipelineCreate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*heroku.Service)
+
+	opts := heroku.PipelineCreateOpts{}
+	opts.Name = d.Get("name").(string)
+
+	log.Printf("[DEBUG] Pipeline create configuration: %#v", opts)
+
+	p, err := client.PipelineCreate(context.TODO(), opts)
+	if err != nil {
+		return fmt.Errorf("Error creating pipeline: %s", err)
+	}
+
+	d.SetId(p.ID)
+	d.Set("name", p.Name)
+
+	log.Printf("[INFO] Pipeline ID: %s", d.Id())
+
+	return resourceHerokuPipelineRead(d, meta)
+}
+
+func resourceHerokuPipelineDelete(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*heroku.Service)
+
+	log.Printf("[INFO] Deleting pipeline: %s", d.Id())
+
+	_, err := client.PipelineDelete(context.TODO(), d.Id())
+	if err != nil {
+		return fmt.Errorf("Error deleting pipeline: %s", err)
+	}
+
+	return nil
+}
+
+func resourceHerokuPipelineRead(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*heroku.Service)
+
+	p, err := client.PipelineInfo(context.TODO(), d.Id())
+	if err != nil {
+		return fmt.Errorf("Error retrieving pipeline: %s", err)
+	}
+
+	d.Set("name", p.Name)
+
+	return nil
+}
