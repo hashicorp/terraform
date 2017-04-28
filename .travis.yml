@@ -16,7 +16,6 @@ git:
 
 # establish environment variables
 env:
-  - TEST_DIR=examples/azure-vm-simple-linux-managed-disk
   - TEST_DIR=examples/azure-vm-from-user-image
 
 branches:
