@@ -14,7 +14,7 @@ docker run --rm -it \
   -c "/bin/terraform get; \
       /bin/terraform validate; \
       /bin/terraform plan -out=out.tfplan -var unique=$KEY -var resource_group=$EXISTING_RESOURCE_GROUP; \
-      /bin/terraform apply out.tfplan \
+      /bin/terraform apply out.tfplan; \
       /bin/terraform show;"
 
 
