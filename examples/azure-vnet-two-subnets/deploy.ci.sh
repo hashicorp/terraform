@@ -24,7 +24,7 @@ docker run --rm -it \
 # check that resources exist via azure cli
 docker run --rm -it \
   azuresdk/azure-cli-python \
-  sh -c "az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID; \
+  sh -c "az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID > /dev/null; \
          az network vnet subnet show -n subnet1 -g $KEY --vnet-name '$KEY'vnet; \
          az network vnet subnet show -n subnet2 -g $KEY --vnet-name '$KEY'vnet;"
 
