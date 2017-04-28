@@ -100,7 +100,7 @@ func (client *MachinesClient) GetMachine(input *GetMachineInput) (*Machine, erro
 	if response != nil {
 		defer response.Body.Close()
 	}
-	if response.StatusCode == http.StatusNotFound {
+	if response.StatusCode == http.StatusNotFound || response.StatusCode == http.StatusGone {
 		return nil, &TritonError{
 			Code: "ResourceNotFound",
 		}
@@ -219,7 +219,8 @@ func (input *CreateMachineInput) toAPI() map[string]interface{} {
 }
 
 func (client *MachinesClient) CreateMachine(input *CreateMachineInput) (*Machine, error) {
-	respReader, err := client.executeRequest(http.MethodPost, "/my/machines", input.toAPI())
+	path := fmt.Sprintf("/%s/machines", client.accountName)
+	respReader, err := client.executeRequest(http.MethodPost, path, input.toAPI())
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -501,7 +502,8 @@ type ListNICsInput struct {
 }
 
 func (client *MachinesClient) ListNICs(input *ListNICsInput) ([]*NIC, error) {
-	respReader, err := client.executeRequest(http.MethodGet, fmt.Sprintf("/my/machines/%s/nics", input.MachineID), nil)
+	path := fmt.Sprintf("/%s/machines/%s/nics", client.accountName, input.MachineID)
+	respReader, err := client.executeRequest(http.MethodGet, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -555,6 +557,48 @@ func (client *MachinesClient) RemoveNIC(input *RemoveNICInput) error {
 	}
 	if err != nil {
 		return errwrap.Wrapf("Error executing RemoveNIC request: {{err}}", err)
+	}
+
+	return nil
+}
+
+type StopMachineInput struct {
+	MachineID string
+}
+
+func (client *MachinesClient) StopMachine(input *StopMachineInput) error {
+	path := fmt.Sprintf("/%s/machines/%s", client.accountName, input.MachineID)
+
+	params := &url.Values{}
+	params.Set("action", "stop")
+
+	respReader, err := client.executeRequestURIParams(http.MethodPost, path, nil, params)
+	if respReader != nil {
+		defer respReader.Close()
+	}
+	if err != nil {
+		return errwrap.Wrapf("Error executing StopMachine request: {{err}}", err)
+	}
+
+	return nil
+}
+
+type StartMachineInput struct {
+	MachineID string
+}
+
+func (client *MachinesClient) StartMachine(input *StartMachineInput) error {
+	path := fmt.Sprintf("/%s/machines/%s", client.accountName, input.MachineID)
+
+	params := &url.Values{}
+	params.Set("action", "start")
+
+	respReader, err := client.executeRequestURIParams(http.MethodPost, path, nil, params)
+	if respReader != nil {
+		defer respReader.Close()
+	}
+	if err != nil {
+		return errwrap.Wrapf("Error executing StartMachine request: {{err}}", err)
 	}
 
 	return nil

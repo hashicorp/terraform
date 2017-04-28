@@ -39,7 +39,8 @@ type FirewallRule struct {
 type ListFirewallRulesInput struct{}
 
 func (client *FirewallClient) ListFirewallRules(*ListFirewallRulesInput) ([]*FirewallRule, error) {
-	respReader, err := client.executeRequest(http.MethodGet, "/my/fwrules", nil)
+	path := fmt.Sprintf("/%s/fwrules", client.accountName)
+	respReader, err := client.executeRequest(http.MethodGet, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -194,7 +195,8 @@ type ListMachineFirewallRulesInput struct {
 }
 
 func (client *FirewallClient) ListMachineFirewallRules(input *ListMachineFirewallRulesInput) ([]*FirewallRule, error) {
-	respReader, err := client.executeRequest(http.MethodGet, fmt.Sprintf("/my/machines/%s/firewallrules", input.MachineID), nil)
+	path := fmt.Sprintf("/%s/machines/%s/firewallrules", client.accountName, input.MachineID)
+	respReader, err := client.executeRequest(http.MethodGet, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}
