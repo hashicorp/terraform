@@ -14,6 +14,7 @@ import (
 func TestAccHerokuPipeline_Basic(t *testing.T) {
 	var pipeline heroku.PipelineInfoResult
 	pipelineName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
+	pipelineName2 := fmt.Sprintf("%s-2", pipelineName)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -24,7 +25,15 @@ func TestAccHerokuPipeline_Basic(t *testing.T) {
 				Config: testAccCheckHerokuPipelineConfig_basic(pipelineName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuPipelineExists("heroku_pipeline.foobar", &pipeline),
-					testAccCheckHerokuPipelineAttributes(&pipeline, pipelineName),
+					resource.TestCheckResourceAttr(
+						"heroku_pipeline.foobar", "name", pipelineName),
+				),
+			},
+			{
+				Config: testAccCheckHerokuPipelineConfig_basic(pipelineName2),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"heroku_pipeline.foobar", "name", pipelineName2),
 				),
 			},
 		},
@@ -63,16 +72,6 @@ func testAccCheckHerokuPipelineExists(n string, pipeline *heroku.PipelineInfoRes
 		}
 
 		*pipeline = *foundPipeline
-
-		return nil
-	}
-}
-
-func testAccCheckHerokuPipelineAttributes(pipeline *heroku.PipelineInfoResult, pipelineName string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		if pipeline.Name != pipelineName {
-			return fmt.Errorf("Bad name: %s", pipeline.Name)
-		}
 
 		return nil
 	}

@@ -12,6 +12,7 @@ import (
 func resourceHerokuPipeline() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceHerokuPipelineCreate,
+		Update: resourceHerokuPipelineUpdate,
 		Read:   resourceHerokuPipelineRead,
 		Delete: resourceHerokuPipelineDelete,
 
@@ -19,7 +20,6 @@ func resourceHerokuPipeline() *schema.Resource {
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true, // TODO does it?
 			},
 		},
 	}
@@ -42,6 +42,24 @@ func resourceHerokuPipelineCreate(d *schema.ResourceData, meta interface{}) erro
 	d.Set("name", p.Name)
 
 	log.Printf("[INFO] Pipeline ID: %s", d.Id())
+
+	return resourceHerokuPipelineUpdate(d, meta)
+}
+
+func resourceHerokuPipelineUpdate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*heroku.Service)
+
+	if d.HasChange("name") {
+		name := d.Get("name").(string)
+		opts := heroku.PipelineUpdateOpts{
+			Name: &name,
+		}
+
+		_, err := client.PipelineUpdate(context.TODO(), d.Id(), opts)
+		if err != nil {
+			return err
+		}
+	}
 
 	return resourceHerokuPipelineRead(d, meta)
 }
