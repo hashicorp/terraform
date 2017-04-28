@@ -1,7 +1,7 @@
 ---
 layout: "heroku"
 page_title: "Heroku: heroku_app"
-sidebar_current: "docs-heroku-resource-app"
+sidebar_current: "docs-heroku-resource-app-x"
 description: |-
   Provides a Heroku App resource. This can be used to create and manage applications on Heroku.
 ---

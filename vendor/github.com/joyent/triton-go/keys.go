@@ -35,7 +35,8 @@ type ListKeysInput struct{}
 // ListKeys lists all public keys we have on record for the specified
 // account.
 func (client *KeysClient) ListKeys(*ListKeysInput) ([]*Key, error) {
-	respReader, err := client.executeRequest(http.MethodGet, "/my/keys", nil)
+	path := fmt.Sprintf("/%s/keys")
+	respReader, err := client.executeRequest(http.MethodGet, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}

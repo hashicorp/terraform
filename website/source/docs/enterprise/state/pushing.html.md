@@ -17,6 +17,8 @@ configuration.
 To use Terraform Enterprise to store remote state, you'll first need to have the
 `ATLAS_TOKEN` environment variable set and run the following command.
 
+**NOTE:** `terraform remote config` command has been deprecated in 0.9.X. Remote configuration is now managed as a [backend configuration](/docs/backends/config.html).
+
 ```shell
 $ terraform remote config \
     -backend-config="name=$USERNAME/product"
