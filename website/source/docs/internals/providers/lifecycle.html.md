@@ -15,15 +15,20 @@ Terraform runs follow a predictable lifecycle:
 3. Apply updates
 4. Set state
 
-Information is gathered from two places: the config and the state. The config
-is populated from the user's config file; the state is populated from the
-statefile. But before the state gets populated from the statefile, the
-statefile is refreshed, using information about the provider(s) to get a more
-accurate picture of the world. It then gets passed through an optional
-per-resource `StateFunc`, which allows resources to modify their representation
-in the state. Finally, the config and state get passed through an optional
-`DiffSuppressFunc`, which allows resources to decide whether a config value and
-a state value should be considered equivalent. This results in our diff.
+Terraform's information gathering consists of a few steps:
+
+1. The user's config file populates the config.
+2. Terraform refreshes the statefile by reading every resource in its
+   statefile.
+3. The statefile populates the state.
+4. An optional, per-resource
+   [`schema.StateFunc`](schema.html#customizing-state) transforms each
+   resource's representation in the state.
+5. An optional, per-resource
+   [`schema.DiffSuppressfunc`](schema.html#customizing-diffs) modifies which
+   values are considered "changed".
+
+This process produces a diff.
 
 ![Terraform Provider Lifecycle](docs/lifecycle-diagram.png)
 

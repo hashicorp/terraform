@@ -73,8 +73,7 @@ same arguments, but returns a boolean or an `error`.
 
 The `*ResourceData` struct contains the state of the Resource as it should be.
 It's an amalgamation of several different sources of data, which are explained
-further in [Using
-ResourceData](/docs/internals/providers/resource-data.html).
+further in [Using ResourceData](/docs/internals/providers/resource-data.html).
 
 The `interface{}` is the same `interface{}` returned by the Provider's
 `ConfigureFunc`. Typically, this is where you'd put the configured API client,

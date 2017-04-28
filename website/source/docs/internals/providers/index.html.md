@@ -10,11 +10,14 @@ description: |-
 
 There are two high-level sections of the Terraform codebase:
 
+![Relationship between core and
+providers](docs/core-provider-diagram-labeled.jpg)
+
 1. The core section turns state and config files into a list of resources that
    require action. 
 2. The providers handle the actual creation, updating, and destruction of those
    resources.
-   
+
 By dividing things like this, it is much easier to contribute new functionality
 or new APIs to Terraform: contributtors can essentially just trust the core
 section to do its job, and only worry about their resources.
