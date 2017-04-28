@@ -45,6 +45,16 @@ resource "azurerm_storage_account" "stor" {
   account_type        = "${var.storage_account_type}"
 }
 
+<<<<<<< HEAD
+=======
+resource "azurerm_storage_container" "storc" {
+  name                  = "${var.hostname}-vhds"
+  resource_group_name   = "${azurerm_resource_group.rg.name}"
+  storage_account_name  = "${azurerm_storage_account.stor.name}"
+  container_access_type = "private"
+}
+
+>>>>>>> ace9b0bd91019122d098ba02d53c561365c4b613
 resource "azurerm_managed_disk" "datadisk" {
   name                 = "${var.hostname}-datadisk"
   location             = "${var.location}"
@@ -90,10 +100,13 @@ resource "azurerm_virtual_machine" "vm" {
     admin_password = "${var.admin_password}"
   }
 
+<<<<<<< HEAD
   os_profile_linux_config {
     disable_password_authentication = false
   }
 
+=======
+>>>>>>> ace9b0bd91019122d098ba02d53c561365c4b613
   boot_diagnostics {
     enabled     = "true"
     storage_uri = "${azurerm_storage_account.stor.primary_blob_endpoint}"

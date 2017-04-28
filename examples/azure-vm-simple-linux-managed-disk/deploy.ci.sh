@@ -14,6 +14,7 @@ docker run --rm -it \
   -c "/bin/terraform get; \
       /bin/terraform validate; \
       /bin/terraform plan -out=out.tfplan -var dns_name=$KEY -var hostname=$KEY -var resource_group=$KEY -var admin_password=$PASSWORD; \
+<<<<<<< HEAD
       /bin/terraform apply out.tfplan; \
       /bin/terraform show;"
 
@@ -34,3 +35,6 @@ docker run --rm -it \
   --entrypoint "/bin/sh" \
   hashicorp/terraform:light \
   -c "/bin/terraform destroy -force -var dns_name=$KEY -var hostname=$KEY -var resource_group=$KEY -var admin_password=$PASSWORD;"
+=======
+      /bin/terraform apply out.tfplan"
+>>>>>>> ace9b0bd91019122d098ba02d53c561365c4b613
