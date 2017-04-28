@@ -9,8 +9,9 @@ services:
 
 language: generic
 
+# establish environment variables
 env:
-  - TEST_DIR=examples/azure-vm-simple-linux
+  - TEST_DIR=examples/azure-vm-simple-linux-managed-disk
 
 branches:
   only:
@@ -22,14 +23,11 @@ before_deploy:
   - export KEY=$(cat /dev/urandom | tr -cd 'a-z' | head -c 12)
   - export PASSWORD=$KEY$(cat /dev/urandom | tr -cd 'A-Z' | head -c 2)$(cat /dev/urandom | tr -cd '0-9' | head -c 2)
 
-# terraform deploy script
+# terraform deploy + script
 deploy:
   - provider: script
     skip_cleanup: true
-    script: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./deploy.sh
+    script: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./deploy.ci.sh
     on:
       repo: harijayms/terraform
       branch: master
-
-# destroy resources with Azure CLI
-after_deploy: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./after_deploy.sh
