@@ -13,7 +13,7 @@ func TestAccDataSourceAwsEfsFileSystem(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDataSourceAwsEfsFileSystemConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccDataSourceAwsEfsFileSystemCheck("data.aws_efs_file_system.by_creation_token"),
@@ -59,10 +59,6 @@ func testAccDataSourceAwsEfsFileSystemCheck(name string) resource.TestCheckFunc 
 }
 
 const testAccDataSourceAwsEfsFileSystemConfig = `
-provider "aws" {
-  region = "us-west-2"
-}
-
 resource "aws_efs_file_system" "test" {}
 
 data "aws_efs_file_system" "by_creation_token" {
@@ -70,6 +66,6 @@ data "aws_efs_file_system" "by_creation_token" {
 }
 
 data "aws_efs_file_system" "by_id" {
-  id = "${aws_efs_file_system.test.id}"
+  file_system_id = "${aws_efs_file_system.test.id}"
 }
 `

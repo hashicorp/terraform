@@ -19,34 +19,35 @@ func dataSourceAwsEfsFileSystem() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
+				ForceNew:     true,
 				ValidateFunc: validateMaxLength(64),
 			},
-			"id": {
+			"file_system_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
+				ForceNew: true,
 			},
 			"performance_mode": {
 				Type:     schema.TypeString,
-				Optional: true,
 				Computed: true,
 			},
-			"tags": tagsSchema(),
+			"tags": tagsSchemaComputed(),
 		},
 	}
 }
 
 func dataSourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) error {
 	efsconn := meta.(*AWSClient).efsconn
-	efsCreationToken := d.Get("creation_token").(string)
-	efsFileSystemId := d.Get("id").(string)
 
 	describeEfsOpts := &efs.DescribeFileSystemsInput{}
-	switch {
-	case efsCreationToken != "":
-		describeEfsOpts.CreationToken = aws.String(efsCreationToken)
-	case efsFileSystemId != "":
-		describeEfsOpts.FileSystemId = aws.String(efsFileSystemId)
+
+	if v, ok := d.GetOk("creation_token"); ok {
+		describeEfsOpts.CreationToken = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("file_system_id"); ok {
+		describeEfsOpts.FileSystemId = aws.String(v.(string))
 	}
 
 	describeResp, err := efsconn.DescribeFileSystems(describeEfsOpts)
@@ -106,6 +107,7 @@ func dataSourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) er
 
 	d.Set("creation_token", fs.CreationToken)
 	d.Set("performance_mode", fs.PerformanceMode)
+	d.Set("file_system_id", fs.FileSystemId)
 
 	return nil
 }
