@@ -75,15 +75,15 @@ func resourceComputeRouterInterfaceCreate(d *schema.ResourceData, meta interface
 	routerName := d.Get("router").(string)
 	ifaceName := d.Get("name").(string)
 
-	routerId := fmt.Sprintf("router/%s/%s", region, routerName)
-	mutexKV.Lock(routerId)
-	defer mutexKV.Unlock(routerId)
+	routerLock := getRouterLockName(region, routerName)
+	mutexKV.Lock(routerLock)
+	defer mutexKV.Unlock(routerLock)
 
-	routersService := compute.NewRoutersService(config.clientCompute)
+	routersService := config.clientCompute.Routers
 	router, err := routersService.Get(project, region, routerName).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing router interface because its router %s/%s is gone", region, routerName)
+			log.Printf("[WARN] Removing router interface %s because its router %s/%s is gone", ifaceName, region, routerName)
 			d.SetId("")
 
 			return nil
@@ -92,53 +92,42 @@ func resourceComputeRouterInterfaceCreate(d *schema.ResourceData, meta interface
 		return fmt.Errorf("Error Reading router %s/%s: %s", region, routerName, err)
 	}
 
-	var ifaceExists bool = false
-
-	var ifaces []*compute.RouterInterface = router.Interfaces
+	ifaces := router.Interfaces
 	for _, iface := range ifaces {
-
 		if iface.Name == ifaceName {
-			ifaceExists = true
-			break
+			d.SetId("")
+			return fmt.Errorf("Router %s has interface %s already", routerName, ifaceName)
 		}
 	}
 
-	if !ifaceExists {
+	vpnTunnel, err := getVpnTunnelLink(config, project, region, d.Get("vpn_tunnel").(string))
+	if err != nil {
+		return err
+	}
 
-		vpnTunnel, err := getVpnTunnelLink(config, project, region, d.Get("vpn_tunnel").(string))
-		if err != nil {
-			return err
-		}
+	iface := &compute.RouterInterface{Name: ifaceName,
+		LinkedVpnTunnel: vpnTunnel}
 
-		iface := &compute.RouterInterface{Name: ifaceName,
-			LinkedVpnTunnel: vpnTunnel}
+	if v, ok := d.GetOk("ip_range"); ok {
+		iface.IpRange = v.(string)
+	}
 
-		if v, ok := d.GetOk("ip_range"); ok {
-			iface.IpRange = v.(string)
-		}
+	log.Printf("[INFO] Adding interface %s", ifaceName)
+	ifaces = append(ifaces, iface)
+	patchRouter := &compute.Router{
+		Interfaces: ifaces,
+	}
 
-		log.Printf(
-			"[INFO] Adding interface %s", ifaceName)
-		ifaces = append(ifaces, iface)
-		patchRouter := &compute.Router{
-			Interfaces: ifaces,
-		}
-
-		log.Printf("[DEBUG] Updating router %s/%s with interfaces: %+v", region, routerName, ifaces)
-		op, err := routersService.Patch(project, region, router.Name, patchRouter).Do()
-		if err != nil {
-			return fmt.Errorf("Error patching router %s/%s: %s", region, routerName, err)
-		}
-
-		err = computeOperationWaitRegion(config, op, project, region, "Patching router")
-		if err != nil {
-			return fmt.Errorf("Error waiting to patch router %s/%s: %s", region, routerName, err)
-		}
-
-		d.SetId(fmt.Sprintf("%s/%s/%s", region, routerName, ifaceName))
-
-	} else {
-		log.Printf("[DEBUG] Router %s has interface %s already", routerName, ifaceName)
+	log.Printf("[DEBUG] Updating router %s/%s with interfaces: %+v", region, routerName, ifaces)
+	op, err := routersService.Patch(project, region, router.Name, patchRouter).Do()
+	if err != nil {
+		return fmt.Errorf("Error patching router %s/%s: %s", region, routerName, err)
+	}
+	d.SetId(fmt.Sprintf("%s/%s/%s", region, routerName, ifaceName))
+	err = computeOperationWaitRegion(config, op, project, region, "Patching router")
+	if err != nil {
+		d.SetId("")
+		return fmt.Errorf("Error waiting to patch router %s/%s: %s", region, routerName, err)
 	}
 
 	return resourceComputeRouterInterfaceRead(d, meta)
@@ -161,11 +150,11 @@ func resourceComputeRouterInterfaceRead(d *schema.ResourceData, meta interface{}
 	routerName := d.Get("router").(string)
 	ifaceName := d.Get("name").(string)
 
-	routersService := compute.NewRoutersService(config.clientCompute)
+	routersService := config.clientCompute.Routers
 	router, err := routersService.Get(project, region, routerName).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing router interface because its router %s/%s is gone", region, routerName)
+			log.Printf("[WARN] Removing router interface %s because its router %s/%s is gone", ifaceName, region, routerName)
 			d.SetId("")
 
 			return nil
@@ -174,13 +163,9 @@ func resourceComputeRouterInterfaceRead(d *schema.ResourceData, meta interface{}
 		return fmt.Errorf("Error Reading router %s/%s: %s", region, routerName, err)
 	}
 
-	var ifaceFound bool = false
-
-	var ifaces []*compute.RouterInterface = router.Interfaces
-	for _, iface := range ifaces {
+	for _, iface := range router.Interfaces {
 
 		if iface.Name == ifaceName {
-			ifaceFound = true
 			d.SetId(fmt.Sprintf("%s/%s/%s", region, routerName, ifaceName))
 			// if we don't have a tunnel (when importing), set it to the URI returned from the server
 			if _, ok := d.GetOk("vpn_tunnel"); !ok {
@@ -191,13 +176,12 @@ func resourceComputeRouterInterfaceRead(d *schema.ResourceData, meta interface{}
 				d.Set("vpn_tunnel", vpnTunnelName)
 			}
 			d.Set("ip_range", iface.IpRange)
+			return nil
 		}
 	}
-	if !ifaceFound {
-		log.Printf("[WARN] Removing router interface %s/%s/%s because it is gone", region, routerName, ifaceName)
-		d.SetId("")
-	}
 
+	log.Printf("[WARN] Removing router interface %s/%s/%s because it is gone", region, routerName, ifaceName)
+	d.SetId("")
 	return nil
 }
 
@@ -218,15 +202,15 @@ func resourceComputeRouterInterfaceDelete(d *schema.ResourceData, meta interface
 	routerName := d.Get("router").(string)
 	ifaceName := d.Get("name").(string)
 
-	routerId := fmt.Sprintf("router/%s/%s", region, routerName)
-	mutexKV.Lock(routerId)
-	defer mutexKV.Unlock(routerId)
+	routerLock := getRouterLockName(region, routerName)
+	mutexKV.Lock(routerLock)
+	defer mutexKV.Unlock(routerLock)
 
-	routersService := compute.NewRoutersService(config.clientCompute)
+	routersService := config.clientCompute.Routers
 	router, err := routersService.Get(project, region, routerName).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing router interface because its router %d is gone", d.Get("router").(string))
+			log.Printf("[WARN] Removing router interface %s because its router %s/%s is gone", ifaceName, region, routerName)
 
 			return nil
 		}
@@ -234,11 +218,10 @@ func resourceComputeRouterInterfaceDelete(d *schema.ResourceData, meta interface
 		return fmt.Errorf("Error Reading Router %s: %s", routerName, err)
 	}
 
-	var ifaceFound bool = false
+	var ifaceFound bool
 
-	var oldIfaces []*compute.RouterInterface = router.Interfaces
-	var newIfaces []*compute.RouterInterface = make([]*compute.RouterInterface, len(router.Interfaces))
-	for _, iface := range oldIfaces {
+	newIfaces := make([]*compute.RouterInterface, 0, len(router.Interfaces))
+	for _, iface := range router.Interfaces {
 
 		if iface.Name == ifaceName {
 			ifaceFound = true
@@ -248,29 +231,30 @@ func resourceComputeRouterInterfaceDelete(d *schema.ResourceData, meta interface
 		}
 	}
 
-	if ifaceFound {
-
-		log.Printf(
-			"[INFO] Removing interface %s", ifaceName)
-		patchRouter := &compute.Router{
-			Interfaces: newIfaces,
-		}
-
-		log.Printf("[DEBUG] Updating router %s/%s with interfaces: %+v", region, routerName, newIfaces)
-		op, err := routersService.Patch(project, region, router.Name, patchRouter).Do()
-		if err != nil {
-			return fmt.Errorf("Error patching router %s/%s: %s", region, routerName, err)
-		}
-
-		err = computeOperationWaitRegion(config, op, project, region, "Patching router")
-		if err != nil {
-			return fmt.Errorf("Error waiting to patch router %s/%s: %s", region, routerName, err)
-		}
-
-	} else {
+	if !ifaceFound {
 		log.Printf("[DEBUG] Router %s/%s had no interface %s already", region, routerName, ifaceName)
+		d.SetId("")
+		return nil
 	}
 
+	log.Printf(
+		"[INFO] Removing interface %s from router %s/%s", ifaceName, region, routerName)
+	patchRouter := &compute.Router{
+		Interfaces: newIfaces,
+	}
+
+	log.Printf("[DEBUG] Updating router %s/%s with interfaces: %+v", region, routerName, newIfaces)
+	op, err := routersService.Patch(project, region, router.Name, patchRouter).Do()
+	if err != nil {
+		return fmt.Errorf("Error patching router %s/%s: %s", region, routerName, err)
+	}
+
+	err = computeOperationWaitRegion(config, op, project, region, "Patching router")
+	if err != nil {
+		return fmt.Errorf("Error waiting to patch router %s/%s: %s", region, routerName, err)
+	}
+
+	d.SetId("")
 	return nil
 }
 

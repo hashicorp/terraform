@@ -256,3 +256,7 @@ func getNetworkNameFromSelfLink(network string) (string, error) {
 
 	return network, nil
 }
+
+func getRouterLockName(region string, router string) string {
+	return fmt.Sprintf("router/%s/%s", region, router)
+}
