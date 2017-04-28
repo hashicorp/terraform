@@ -9,6 +9,7 @@ FEATURES:
 
 * **New Provider:** `gitlab` [GH-13898]
 * **New Resource:** `heroku_app_feature` [GH-14035]
+* **New Resource:** `aws_emr_security_configuration` [GH-14080]
 
 IMPROVEMENTS:
 
