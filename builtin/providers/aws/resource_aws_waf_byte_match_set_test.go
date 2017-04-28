@@ -134,6 +134,29 @@ func TestAccAWSWafByteMatchSet_changeTuples(t *testing.T) {
 	})
 }
 
+func TestAccAWSWafByteMatchSet_noTuples(t *testing.T) {
+	var byteSet waf.ByteMatchSet
+	byteMatchSetName := fmt.Sprintf("byteMatchSet-%s", acctest.RandString(5))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSWafByteMatchSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSWafByteMatchSetConfig_noTuples(byteMatchSetName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSWafByteMatchSetExists("aws_waf_byte_match_set.byte_set", &byteSet),
+					resource.TestCheckResourceAttr(
+						"aws_waf_byte_match_set.byte_set", "name", byteMatchSetName),
+					resource.TestCheckResourceAttr(
+						"aws_waf_byte_match_set.byte_set", "byte_match_tuples.#", "0"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSWafByteMatchSet_disappears(t *testing.T) {
 	var v waf.ByteMatchSet
 	byteMatchSet := fmt.Sprintf("byteMatchSet-%s", acctest.RandString(5))
@@ -335,5 +358,12 @@ resource "aws_waf_byte_match_set" "byte_set" {
       data = "GET"
     }
   }
+}`, name)
+}
+
+func testAccAWSWafByteMatchSetConfig_noTuples(name string) string {
+	return fmt.Sprintf(`
+resource "aws_waf_byte_match_set" "byte_set" {
+  name = "%s"
 }`, name)
 }

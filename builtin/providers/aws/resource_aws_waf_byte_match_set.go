@@ -107,6 +107,7 @@ func resourceAwsWafByteMatchSetRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	d.Set("name", resp.ByteMatchSet.Name)
+	d.Set("byte_match_tuples", flattenWafByteMatchTuples(resp.ByteMatchSet.ByteMatchTuples))
 
 	return nil
 }
@@ -116,11 +117,13 @@ func resourceAwsWafByteMatchSetUpdate(d *schema.ResourceData, meta interface{}) 
 
 	log.Printf("[INFO] Updating ByteMatchSet: %s", d.Get("name").(string))
 
-	o, n := d.GetChange("byte_match_tuples")
-	oldT, newT := o.(*schema.Set).List(), n.(*schema.Set).List()
-	err := updateByteMatchSetResource(d.Id(), oldT, newT, conn)
-	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error updating ByteMatchSet: {{err}}", err)
+	if d.HasChange("byte_match_tuples") {
+		o, n := d.GetChange("byte_match_tuples")
+		oldT, newT := o.(*schema.Set).List(), n.(*schema.Set).List()
+		err := updateByteMatchSetResource(d.Id(), oldT, newT, conn)
+		if err != nil {
+			return errwrap.Wrapf("[ERROR] Error updating ByteMatchSet: {{err}}", err)
+		}
 	}
 
 	return resourceAwsWafByteMatchSetRead(d, meta)
@@ -172,6 +175,23 @@ func updateByteMatchSetResource(id string, oldT, newT []interface{}, conn *waf.W
 	return nil
 }
 
+func flattenWafByteMatchTuples(bmt []*waf.ByteMatchTuple) []interface{} {
+	out := make([]interface{}, len(bmt), len(bmt))
+	for i, t := range bmt {
+		m := make(map[string]interface{})
+
+		if t.FieldToMatch != nil {
+			m["field_to_match"] = flattenFieldToMatch(t.FieldToMatch)
+		}
+		m["positional_constraint"] = *t.PositionalConstraint
+		m["target_string"] = string(t.TargetString)
+		m["text_transformation"] = *t.TextTransformation
+
+		out[i] = m
+	}
+	return out
+}
+
 func expandFieldToMatch(d map[string]interface{}) *waf.FieldToMatch {
 	return &waf.FieldToMatch{
 		Type: aws.String(d["type"].(string)),
@@ -179,11 +199,15 @@ func expandFieldToMatch(d map[string]interface{}) *waf.FieldToMatch {
 	}
 }
 
-func flattenFieldToMatch(fm *waf.FieldToMatch) map[string]interface{} {
+func flattenFieldToMatch(fm *waf.FieldToMatch) []interface{} {
 	m := make(map[string]interface{})
-	m["data"] = *fm.Data
-	m["type"] = *fm.Type
-	return m
+	if fm.Data != nil {
+		m["data"] = *fm.Data
+	}
+	if fm.Type != nil {
+		m["type"] = *fm.Type
+	}
+	return []interface{}{m}
 }
 
 func diffWafByteMatchSetTuples(oldT, newT []interface{}) []*waf.ByteMatchSetUpdate {
