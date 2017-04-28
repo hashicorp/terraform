@@ -128,40 +128,40 @@ resource "azurerm_subnet" "test" {
   address_prefix       = "10.0.2.0/24"
 }
 
-resource "azurerm_public_ip" "demoterraformips" {
-  name                         = "demoterraformip"
+resource "azurerm_public_ip" "test" {
+  name                         = "test"
   location                     = "West US 2"
-  resource_group_name          = "${azurerm_resource_group.demoterraform.name}"
+  resource_group_name          = "${azurerm_resource_group.test.name}"
   public_ip_address_allocation = "static"
-  domain_name_label            = "${azurerm_resource_group.demoterraform.name}"
+  domain_name_label            = "${azurerm_resource_group.test.name}"
 
   tags {
-    environment = "TerraformDemo"
+    environment = "staging"
   }
 }
 
-resource "azurerm_lb" "demoterraformlb" {
-  name                = "demoterraformlb"
+resource "azurerm_lb" "test" {
+  name                = "test"
   location            = "West US 2"
-  resource_group_name = "${azurerm_resource_group.demoterraform.name}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
 
   frontend_ip_configuration {
     name                 = "PublicIPAddress"
-    public_ip_address_id = "${azurerm_public_ip.demoterraformips.id}"
+    public_ip_address_id = "${azurerm_public_ip.test.id}"
   }
 }
 
 resource "azurerm_lb_backend_address_pool" "bpepool" {
-  resource_group_name = "${azurerm_resource_group.demoterraform.name}"
-  loadbalancer_id     = "${azurerm_lb.demoterraformlb.id}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  loadbalancer_id     = "${azurerm_lb.test.id}"
   name                = "BackEndAddressPool"
 }
 
 resource "azurerm_lb_nat_pool" "lbnatpool" {
-  count = 3
-  resource_group_name = "${azurerm_resource_group.demoterraform.name}"
+  count                          = 3
+  resource_group_name            = "${azurerm_resource_group.test.name}"
   name                           = "ssh"
-  loadbalancer_id                = "${azurerm_lb.demoterraformlb.id}"
+  loadbalancer_id                = "${azurerm_lb.test.id}"
   protocol                       = "Tcp"
   frontend_port_start            = 50000
   frontend_port_end              = 50119
@@ -170,15 +170,15 @@ resource "azurerm_lb_nat_pool" "lbnatpool" {
 }
 
 resource "azurerm_virtual_machine_scale_set" "test" {
-  name                  = "acctvm"
-  location              = "West US 2"
-  resource_group_name   = "${azurerm_resource_group.test.name}"
-  upgrade_policy_mode   = "Manual"
+  name                = "mytestscaleset-1"
+  location            = "West US 2"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  upgrade_policy_mode = "Manual"
 
   sku {
     name     = "Standard_A0"
     tier     = "Standard"
-    capacity = "${var.terraform_vmss_count}"
+    capacity = 2
   }
 
   storage_profile_image_reference {
@@ -189,19 +189,25 @@ resource "azurerm_virtual_machine_scale_set" "test" {
   }
 
   storage_profile_os_disk {
+    name              = "myosdisk"
     caching           = "ReadWrite"
     create_option     = "FromImage"
     managed_disk_type = "Standard_LRS"
   }
 
   os_profile {
-    computer_name  = "hostname"
-    admin_username = "testadmin"
-    admin_password = "Password1234!"
+    computer_name_prefix = "testvm"
+    admin_username       = "myadmin"
+    admin_password       = "Passwword1234"
   }
 
   os_profile_linux_config {
-    disable_password_authentication = false
+    disable_password_authentication = true
+
+    ssh_keys {
+      path     = "/home/myadmin/.ssh/authorized_keys"
+      key_data = "${file("~/.ssh/demo_key.pub")}"
+    }
   }
 
   network_profile {
@@ -209,10 +215,10 @@ resource "azurerm_virtual_machine_scale_set" "test" {
     primary = true
 
     ip_configuration {
-      name      = "TestIPConfiguration"
-      subnet_id = "${azurerm_subnet.demoterraformsubnet.id}"
+      name                                   = "TestIPConfiguration"
+      subnet_id                              = "${azurerm_subnet.test.id}"
       load_balancer_backend_address_pool_ids = ["${azurerm_lb_backend_address_pool.bpepool.id}"]
-      load_balancer_inbound_nat_rules_ids = ["${element(azurerm_lb_nat_pool.lbnatpool.*.id, count.index)}"]
+      load_balancer_inbound_nat_rules_ids    = ["${element(azurerm_lb_nat_pool.lbnatpool.*.id, count.index)}"]
     }
   }
 
@@ -315,12 +321,10 @@ The following arguments are supported:
 * `vhd_containers` - (Optional) Specifies the vhd uri. Cannot be used when `image` or `managed_disk_type` is specified.
 * `managed_disk_type` - (Optional) Specifies the type of managed disk to create. Value you must be either `Standard_LRS` or `Premium_LRS`. Cannot be used when `vhd_containers` or `image` is specified.
 * `create_option` - (Required) Specifies how the virtual machine should be created. The only possible option is `FromImage`.
-* `caching` - (Optional) Specifies the caching requirements.
+* `caching` - (Optional) Specifies the caching requirements. Possible values include: `None` (default), `ReadOnly`, `ReadWrite`.
 * `image` - (Optional) Specifies the blob uri for user image. A virtual machine scale set creates an os disk in the same container as the user image.
                        Updating the osDisk image causes the existing disk to be deleted and a new one created with the new image. If the VM scale set is in Manual upgrade mode then the virtual machines are not updated until they have manualUpgrade applied to them.
-                       Cannot be used when `vhd_containers` or `managed_disk_type` is specified.
-                       Cannot be used when `storage_profile_image_reference` is specified.
-                       Have to specify `os_type` when defined.
+                       When setting this field `os_type` needs to be specified. Cannot be used when `vhd_containers`, `managed_disk_type` or `storage_profile_image_reference ` are specified.
 * `os_type` - (Optional) Specifies the operating system Type, valid values are windows, linux.
 
 `storage_profile_image_reference` supports the following:

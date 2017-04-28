@@ -176,7 +176,7 @@ func TestAccAzureRMVirtualMachineScaleSet_osDiskTypeConflict(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMVirtualMachineDestroy,
+		CheckDestroy: testCheckAzureRMVirtualMachineScaleSetDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config:      config,
@@ -786,7 +786,6 @@ resource "azurerm_lb_backend_address_pool" "test" {
 }
 
 resource "azurerm_lb_nat_pool" "test" {
-  count = 1
   resource_group_name = "${azurerm_resource_group.test.name}"
   name                           = "ssh"
   loadbalancer_id                = "${azurerm_lb.test.id}"
@@ -822,7 +821,7 @@ resource "azurerm_virtual_machine_scale_set" "test" {
         	name                                   = "TestIPConfiguration"
         	subnet_id                              = "${azurerm_subnet.test.id}"
 			load_balancer_backend_address_pool_ids = [ "${azurerm_lb_backend_address_pool.test.id}" ]
-		    load_balancer_inbound_nat_rules_ids = ["${element(azurerm_lb_nat_pool.test.*.id, count.index)}"]
+		    load_balancer_inbound_nat_rules_ids = ["${azurerm_lb_nat_pool.test.id}"]
       	}
   	}
 
