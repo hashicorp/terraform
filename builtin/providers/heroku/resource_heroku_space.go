@@ -2,9 +2,12 @@ package heroku
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"time"
 
 	heroku "github.com/cyberdelia/heroku-go/v3"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -56,23 +59,32 @@ func resourceHerokuSpaceCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(space.ID)
 	log.Printf("[INFO] Space ID: %s", d.Id())
 
-	// The type conversion here can be dropped when the vendored version of
-	// heroku-go is updated.
-	setSpaceAttributes(d, (*heroku.Space)(space))
-	return nil
+	// Wait for the Space to be allocated
+	log.Printf("[DEBUG] Waiting for Space (%s) to be allocated", d.Id())
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"allocating"},
+		Target:  []string{"allocated"},
+		Refresh: SpaceStateRefreshFunc(client, d.Id()),
+		Timeout: 20 * time.Minute,
+	}
+
+	if _, err := stateConf.WaitForState(); err != nil {
+		return fmt.Errorf("Error waiting for Space (%s) to become available: %s", d.Id(), err)
+	}
+
+	return resourceHerokuSpaceRead(d, meta)
 }
 
 func resourceHerokuSpaceRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
-	space, err := client.SpaceInfo(context.TODO(), d.Id())
+	spaceRaw, _, err := SpaceStateRefreshFunc(client, d.Id())()
 	if err != nil {
 		return err
 	}
+	space := spaceRaw.(*heroku.Space)
 
-	// The type conversion here can be dropped when the vendored version of
-	// heroku-go is updated.
-	setSpaceAttributes(d, (*heroku.Space)(space))
+	setSpaceAttributes(d, space)
 	return nil
 }
 
@@ -114,4 +126,19 @@ func resourceHerokuSpaceDelete(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId("")
 	return nil
+}
+
+// SpaceStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
+// a Space.
+func SpaceStateRefreshFunc(client *heroku.Service, id string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		space, err := client.SpaceInfo(context.TODO(), id)
+		if err != nil {
+			return nil, "", err
+		}
+
+		// The type conversion here can be dropped when the vendored version of
+		// heroku-go is updated.
+		return (*heroku.Space)(space), space.State, nil
+	}
 }
