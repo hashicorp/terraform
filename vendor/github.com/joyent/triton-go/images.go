@@ -49,7 +49,8 @@ type Image struct {
 type ListImagesInput struct{}
 
 func (client *ImagesClient) ListImages(*ListImagesInput) ([]*Image, error) {
-	respReader, err := client.executeRequest(http.MethodGet, "/my/images", nil)
+	path := fmt.Sprintf("/%s/images", client.accountName)
+	respReader, err := client.executeRequest(http.MethodGet, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -148,7 +149,7 @@ type CreateImageFromMachineInput struct {
 	HomePage    string            `json:"homepage,omitempty"`
 	EULA        string            `json:"eula,omitempty"`
 	ACL         []string          `json:"acl,omitempty"`
-	tags        map[string]string `json:"tags,omitempty"`
+	Tags        map[string]string `json:"tags,omitempty"`
 }
 
 func (client *ImagesClient) CreateImageFromMachine(input *CreateImageFromMachineInput) (*Image, error) {
@@ -178,7 +179,7 @@ type UpdateImageInput struct {
 	HomePage    string            `json:"homepage,omitempty"`
 	EULA        string            `json:"eula,omitempty"`
 	ACL         []string          `json:"acl,omitempty"`
-	tags        map[string]string `json:"tags,omitempty"`
+	Tags        map[string]string `json:"tags,omitempty"`
 }
 
 func (client *ImagesClient) UpdateImage(input *UpdateImageInput) (*Image, error) {
