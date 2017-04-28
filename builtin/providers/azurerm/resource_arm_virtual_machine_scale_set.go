@@ -764,6 +764,10 @@ func flattenAzureRMVirtualMachineScaleSetOsProfile(profile *compute.VirtualMachi
 func flattenAzureRmVirtualMachineScaleSetStorageProfileOSDisk(profile *compute.VirtualMachineScaleSetOSDisk) []interface{} {
 	result := make(map[string]interface{})
 
+	if profile.Name != nil {
+		result["name"] = *profile.Name
+	}
+
 	if profile.Image != nil {
 		result["name"] = *profile.Name
 		result["image"] = *profile.Image.URI
