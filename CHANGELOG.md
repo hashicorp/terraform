@@ -17,6 +17,7 @@ IMPROVEMENTS:
 * provider/dnsimple: Add support for import for dnsimple_records [GH-9130]
 * provider/nomad: Add TLS options [GH-13956]
 * provider/triton: Add support for reading provider configuration from `TRITON_*` environment variables in addition to `SDC_*`[GH-14000]
+* provider/triton: Add `cloud_config` argument to `triton_machine` resources for Linux containers [GH-12840]
 
 BUG FIXES:
 
