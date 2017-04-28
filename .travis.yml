@@ -9,13 +9,16 @@ services:
 
 language: generic
 
+# on branches: ignore multiple commits that will queue build jobs, just run latest commit
+git:
+  depth: 1
+
 # establish environment variables
 env:
-  - TEST_DIR=examples/azure-vm-simple-linux-managed-disk
+  - TEST_DIR=examples/azure-vnet-two-subnets
 
 branches:
   only:
-  - master
   - /^(?i:topic)-.*$/
 
 # install terraform
@@ -30,4 +33,4 @@ deploy:
     script: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./deploy.ci.sh
     on:
       repo: harijayms/terraform
-      branch: master
+      branch: topic-101-vnet-two-subnets
