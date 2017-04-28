@@ -98,10 +98,6 @@ func (v *TypeCheck) visit(raw ast.Node) ast.Node {
 			pos.Column, pos.Line, err)
 	}
 
-	if v.StackPeek() == ast.TypeUnknown {
-		v.err = errExitUnknown
-	}
-
 	return result
 }
 
@@ -114,6 +110,14 @@ func (tc *typeCheckArithmetic) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	exprs := make([]ast.Type, len(tc.n.Exprs))
 	for i, _ := range tc.n.Exprs {
 		exprs[len(tc.n.Exprs)-1-i] = v.StackPop()
+	}
+
+	// If any operand is unknown then our result is automatically unknown
+	for _, ty := range exprs {
+		if ty == ast.TypeUnknown {
+			v.StackPush(ast.TypeUnknown)
+			return tc.n, nil
+		}
 	}
 
 	switch tc.n.Op {
@@ -333,6 +337,11 @@ func (tc *typeCheckCall) TypeCheck(v *TypeCheck) (ast.Node, error) {
 			continue
 		}
 
+		if args[i] == ast.TypeUnknown {
+			v.StackPush(ast.TypeUnknown)
+			return tc.n, nil
+		}
+
 		if args[i] != expected {
 			cn := v.ImplicitConversion(args[i], expected, tc.n.Args[i])
 			if cn != nil {
@@ -350,6 +359,11 @@ func (tc *typeCheckCall) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	if function.Variadic && function.VariadicType != ast.TypeAny {
 		args = args[len(function.ArgTypes):]
 		for i, t := range args {
+			if t == ast.TypeUnknown {
+				v.StackPush(ast.TypeUnknown)
+				return tc.n, nil
+			}
+
 			if t != function.VariadicType {
 				realI := i + len(function.ArgTypes)
 				cn := v.ImplicitConversion(
@@ -383,6 +397,11 @@ func (tc *typeCheckConditional) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	falseType := v.StackPop()
 	trueType := v.StackPop()
 	condType := v.StackPop()
+
+	if condType == ast.TypeUnknown {
+		v.StackPush(ast.TypeUnknown)
+		return tc.n, nil
+	}
 
 	if condType != ast.TypeBool {
 		cn := v.ImplicitConversion(condType, ast.TypeBool, tc.n.CondExpr)
@@ -457,6 +476,13 @@ func (tc *typeCheckOutput) TypeCheck(v *TypeCheck) (ast.Node, error) {
 		types[len(n.Exprs)-1-i] = v.StackPop()
 	}
 
+	for _, ty := range types {
+		if ty == ast.TypeUnknown {
+			v.StackPush(ast.TypeUnknown)
+			return tc.n, nil
+		}
+	}
+
 	// If there is only one argument and it is a list, we evaluate to a list
 	if len(types) == 1 {
 		switch t := types[0]; t {
@@ -469,7 +495,14 @@ func (tc *typeCheckOutput) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	}
 
 	// Otherwise, all concat args must be strings, so validate that
+	resultType := ast.TypeString
 	for i, t := range types {
+
+		if t == ast.TypeUnknown {
+			resultType = ast.TypeUnknown
+			continue
+		}
+
 		if t != ast.TypeString {
 			cn := v.ImplicitConversion(t, ast.TypeString, n.Exprs[i])
 			if cn != nil {
@@ -482,8 +515,8 @@ func (tc *typeCheckOutput) TypeCheck(v *TypeCheck) (ast.Node, error) {
 		}
 	}
 
-	// This always results in type string
-	v.StackPush(ast.TypeString)
+	// This always results in type string, unless there are unknowns
+	v.StackPush(resultType)
 
 	return n, nil
 }
@@ -509,13 +542,6 @@ func (tc *typeCheckVariableAccess) TypeCheck(v *TypeCheck) (ast.Node, error) {
 			"unknown variable accessed: %s", tc.n.Name)
 	}
 
-	// Check if the variable contains any unknown types. If so, then
-	// mark it as unknown.
-	if ast.IsUnknown(variable) {
-		v.StackPush(ast.TypeUnknown)
-		return tc.n, nil
-	}
-
 	// Add the type to the stack
 	v.StackPush(variable.Type)
 
@@ -529,6 +555,11 @@ type typeCheckIndex struct {
 func (tc *typeCheckIndex) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	keyType := v.StackPop()
 	targetType := v.StackPop()
+
+	if keyType == ast.TypeUnknown || targetType == ast.TypeUnknown {
+		v.StackPush(ast.TypeUnknown)
+		return tc.n, nil
+	}
 
 	// Ensure we have a VariableAccess as the target
 	varAccessNode, ok := tc.n.Target.(*ast.VariableAccess)
