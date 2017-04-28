@@ -19,7 +19,7 @@ docker run --rm -it \
 
 docker run --rm -it \
   azuresdk/azure-cli-python \
-  sh -c "az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID; \
+  sh -c "az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID > /dev/null; \
          az vm show --name $KEY --resource-group permanent"
 
 # cleanup deployed azure resources via terraform
@@ -32,4 +32,14 @@ docker run --rm -it \
   --workdir=/data \
   --entrypoint "/bin/sh" \
   hashicorp/terraform:light \
-  -c "/bin/terraform destroy -force -var hostname=$KEY -var resource_group=$EXISTING_RESOURCE_GROUP -var admin_username=$KEY -var admin_password=$PASSWORD -var image_uri=$EXISTING_IMAGE_URI -var storage_account_name=$EXISTING_STORAGE_ACCOUNT_NAME -target=azurerm_virtual_machine.vm -target=azurerm_network_interface.nic -target=azurerm_virtual_network.vnet -target=azurerm_public_ip.pip;"
+  -c "/bin/terraform destroy -force \
+        -var hostname=$KEY
+        -var resource_group=$EXISTING_RESOURCE_GROUP
+        -var admin_username=$KEY
+        -var admin_password=$PASSWORD
+        -var image_uri=$EXISTING_IMAGE_URI
+        -var storage_account_name=$EXISTING_STORAGE_ACCOUNT_NAME
+        -target=azurerm_virtual_machine.vm
+        -target=azurerm_network_interface.nic
+        -target=azurerm_virtual_network.vnet
+        -target=azurerm_public_ip.pip;"
