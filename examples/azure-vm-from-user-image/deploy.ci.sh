@@ -33,13 +33,13 @@ docker run --rm -it \
   --entrypoint "/bin/sh" \
   hashicorp/terraform:light \
   -c "/bin/terraform destroy -force \
-        -var hostname=$KEY
-        -var resource_group=$EXISTING_RESOURCE_GROUP
-        -var admin_username=$KEY
-        -var admin_password=$PASSWORD
-        -var image_uri=$EXISTING_IMAGE_URI
-        -var storage_account_name=$EXISTING_STORAGE_ACCOUNT_NAME
-        -target=azurerm_virtual_machine.vm
-        -target=azurerm_network_interface.nic
-        -target=azurerm_virtual_network.vnet
+        -var hostname=$KEY \
+        -var resource_group=$EXISTING_RESOURCE_GROUP \
+        -var admin_username=$KEY \
+        -var admin_password=$PASSWORD \
+        -var image_uri=$EXISTING_IMAGE_URI \
+        -var storage_account_name=$EXISTING_STORAGE_ACCOUNT_NAME \
+        -target=azurerm_virtual_machine.vm \
+        -target=azurerm_network_interface.nic \
+        -target=azurerm_virtual_network.vnet \
         -target=azurerm_public_ip.pip;"
