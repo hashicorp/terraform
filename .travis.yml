@@ -1,7 +1,3 @@
-####################################################################################
-## NOT FOR UPSTREAM PROPOSAL; INTENDED FOR CI OF AZURE EXAMPLES IN THIS REPO ONLY ##
-####################################################################################
-
 sudo: required
 
 services:
@@ -9,25 +5,29 @@ services:
 
 language: generic
 
+# on branches: ignore multiple commits that will queue build jobs, just run latest commit
+git:
+  depth: 1
+
 # establish environment variables
 env:
-  - TEST_DIR=examples/azure-vm-simple-linux-managed-disk
+  - TEST_DIR=examples/azure-servicebus-create-topic-and-subscription
 
 branches:
   only:
-  - master
-  - /^(?i:topic)-.*$/
+    - /^(?i:topic)-.*$/
 
 # install terraform
 before_deploy:
   - export KEY=$(cat /dev/urandom | tr -cd 'a-z' | head -c 12)
   - export PASSWORD=$KEY$(cat /dev/urandom | tr -cd 'A-Z' | head -c 2)$(cat /dev/urandom | tr -cd '0-9' | head -c 2)
+  - export EXISTING_RESOURCE_GROUP=permanent
 
-# terraform deploy + script
+# terraform deploy script & cleanup
 deploy:
   - provider: script
     skip_cleanup: true
     script: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./deploy.ci.sh
     on:
       repo: harijayms/terraform
-      branch: master
+      branch: topic-201-servicebus-create-topic-and-subscription
