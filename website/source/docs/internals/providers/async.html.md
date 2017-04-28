@@ -1,12 +1,12 @@
 ---
 layout: "docs"
-page_title: "Working With Asynchronous APIs"
+page_title: "Working with Async APIs"
 sidebar_current: "docs-internals-provider-guide-async"
 description: |-
   Tips for writing resources and data sources that consume an asynchronous API.
 ---
 
-# Working with Asynchronous APIs
+# Working with Async APIs
 
 Some resources may take time to create—it may take 30 seconds to spin up an
 instance, or 20 minutes to provision a hosted database instance like RDS. The

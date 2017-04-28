@@ -1,6 +1,6 @@
 ---
 layout: "docs"
-page_title: "Creating a New Resource"
+page_title: "Creating Resources"
 sidebar_current: "docs-internals-provider-guide-new-resource"
 description: |-
   How to get started adding a new resource to an existing provider.
@@ -73,7 +73,7 @@ same arguments, but returns a boolean or an `error`.
 
 The `*ResourceData` struct contains the state of the Resource as it should be.
 It’s an amalgamation of several different sources of data, which are explained
-further in [Understanding
+further in [Using
 ResourceData](/docs/internals/providers/resource-data.html).
 
 The `interface{}` is the same `interface{}` returned by the Provider’s

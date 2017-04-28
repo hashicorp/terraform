@@ -1,6 +1,6 @@
 ---
 layout: "docs"
-page_title: "Creating a New Data Source"
+page_title: "Creating Data Sources"
 sidebar_current: "docs-internals-provider-guide-new-data-source"
 description: |-
   How to get started adding a data source to an existing provider.
@@ -74,7 +74,7 @@ arguments, and returns an `error`.
 
 The `*ResourceData` struct represents the state of the Resource as it should
 be. It’s an amalgamation of several different sources of data, which are
-explained further in [Understanding
+explained further in [Using
 ResourceData](/docs/internals/providers/resource-data.html). For Data Sources,
 the `*ResourceData` struct is used to pull the identifying information
 necessary to retrieve the information requested from the API, and as a place to

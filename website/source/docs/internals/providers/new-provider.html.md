@@ -1,6 +1,6 @@
 ---
 layout: "docs"
-page_title: "Creating a New Provider"
+page_title: "Creating Providers"
 sidebar_current: "docs-internals-provider-guide-new-provider"
 description: |-
   How to get started building a new provider.

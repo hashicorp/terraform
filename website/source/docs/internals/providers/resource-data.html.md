@@ -1,12 +1,12 @@
 ---
 layout: "docs"
-page_title: "Understanding ResourceData"
+page_title: "Using ResourceData"
 sidebar_current: "docs-internals-provider-guide-resource-data"
 description: |-
   Details about the ubiquitous ResourceData type and all its options.
 ---
 
-# Understanding `ResourceData`
+# Using `ResourceData`
 
 When working with the `Create`, `Read`, `Update`, `Destroy`, and `Exists`
 methods on your Provider, it’s almost impossible to not run into

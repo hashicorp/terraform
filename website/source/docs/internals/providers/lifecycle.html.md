@@ -1,6 +1,6 @@
 ---
 layout: "docs"
-page_title: "Understanding the Terraform Lifecycle"
+page_title: "Terraform Lifecycle"
 sidebar_current: "docs-internals-provider-guide-lifecycle"
 description: |-
   Information about the lifecycle your provider fits into.
