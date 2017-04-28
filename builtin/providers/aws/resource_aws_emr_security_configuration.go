@@ -27,7 +27,6 @@ func resourceAwsEMRSecurityConfiguration() *schema.Resource {
 				ForceNew:      true,
 				ConflictsWith: []string{"name_prefix"},
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					// https://github.com/boto/botocore/blob/9f322b1/botocore/data/autoscaling/2011-01-01/service-2.json#L1862-L1873
 					value := v.(string)
 					if len(value) > 10280 {
 						errors = append(errors, fmt.Errorf(
@@ -77,7 +76,6 @@ func resourceAwsEmrSecurityConfigurationCreate(d *schema.ResourceData, meta inte
 		} else {
 			emrSCName = resource.PrefixedUniqueId("tf-emr-sc-")
 		}
-		d.Set("name", emrSCName)
 	}
 
 	resp, err := conn.CreateSecurityConfiguration(&emr.CreateSecurityConfigurationInput{
@@ -89,9 +87,8 @@ func resourceAwsEmrSecurityConfigurationCreate(d *schema.ResourceData, meta inte
 		return err
 	}
 
-	d.Set("creation_date", resp.CreationDateTime)
 	d.SetId(*resp.Name)
-	return nil
+	return resourceAwsEmrSecurityConfigurationRead(d, meta)
 }
 
 func resourceAwsEmrSecurityConfigurationRead(d *schema.ResourceData, meta interface{}) error {
@@ -110,6 +107,7 @@ func resourceAwsEmrSecurityConfigurationRead(d *schema.ResourceData, meta interf
 	}
 
 	d.Set("creation_date", resp.CreationDateTime)
+	d.Set("name", resp.Name)
 	d.Set("configuration", resp.SecurityConfiguration)
 
 	return nil
