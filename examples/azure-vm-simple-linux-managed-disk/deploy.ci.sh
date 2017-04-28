@@ -20,7 +20,7 @@ docker run --rm -it \
 # cleanup deployed azure resources via azure-cli
 docker run --rm -it \
   azuresdk/azure-cli-python \
-  sh -c "az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID; \
+  sh -c "az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID > /dev/null; \
          az vm show -g $KEY -n rgvm"
 
 # cleanup deployed azure resources via terraform
