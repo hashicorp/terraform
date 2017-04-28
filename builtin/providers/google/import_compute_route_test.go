@@ -12,7 +12,7 @@ func TestAccComputeRoute_importBasic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckComputeNetworkDestroy,
+		CheckDestroy: testAccCheckComputeRouteDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccComputeRoute_basic,
@@ -31,7 +31,7 @@ func TestAccComputeRoute_importDefaultInternetGateway(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckComputeNetworkDestroy,
+		CheckDestroy: testAccCheckComputeRouteDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccComputeRoute_defaultInternetGateway,
