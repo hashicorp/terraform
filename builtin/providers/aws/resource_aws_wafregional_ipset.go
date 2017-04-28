@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/waf"
+	"github.com/aws/aws-sdk-go/service/wafregional"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -80,17 +81,17 @@ func resourceAwsWafRegionalIPSetRead(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
-	var IPSetDescriptors []map[string]interface{}
+	var descriptors []map[string]interface{}
 
-	for _, IPSetDescriptor := range resp.IPSet.IPSetDescriptors {
-		IPSet := map[string]interface{}{
-			"type":  *IPSetDescriptor.Type,
-			"value": *IPSetDescriptor.Value,
+	for _, descriptor := range resp.IPSet.IPSetDescriptors {
+		d := map[string]interface{}{
+			"type":  *descriptor.Type,
+			"value": *descriptor.Value,
 		}
-		IPSetDescriptors = append(IPSetDescriptors, IPSet)
+		descriptors = append(descriptors, d)
 	}
 
-	d.Set("ip_set_descriptors", IPSetDescriptors)
+	d.Set("ip_set_descriptors", descriptors)
 
 	d.Set("name", resp.IPSet.Name)
 
@@ -98,9 +99,16 @@ func resourceAwsWafRegionalIPSetRead(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceAwsWafRegionalIPSetUpdate(d *schema.ResourceData, meta interface{}) error {
-	err := updateIPSetResourceWR(d, meta, waf.ChangeActionInsert)
-	if err != nil {
-		return fmt.Errorf("Error Updating WAF IPSet: %s", err)
+	conn := meta.(*AWSClient).wafregionalconn
+
+	if d.HasChange("ip_set_descriptors") {
+		o, n := d.GetChange("ip_set_descriptors")
+		oldD, newD := o.(*schema.Set).List(), n.(*schema.Set).List()
+
+		err := updateIPSetResourceWR(d.Id(), meta, oldD, newD, conn)
+		if err != nil {
+			return fmt.Errorf("Error Updating WAF IPSet: %s", err)
+		}
 	}
 	return resourceAwsWafRegionalIPSetRead(d, meta)
 }
@@ -108,13 +116,19 @@ func resourceAwsWafRegionalIPSetUpdate(d *schema.ResourceData, meta interface{})
 func resourceAwsWafRegionalIPSetDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).wafregionalconn
 
-	err := updateIPSetResourceWR(d, meta, waf.ChangeActionDelete)
-	if err != nil {
-		return fmt.Errorf("Error Removing IPSetDescriptors: %s", err)
+	oldD := d.Get("ip_set_descriptors").(*schema.Set).List()
+
+	if len(oldD) > 0 {
+		noD := []interface{}{}
+		err := updateIPSetResourceWR(d.Id(), meta, oldD, noD, conn)
+
+		if err != nil {
+			return fmt.Errorf("Error Removing IPSetDescriptors: %s", err)
+		}
 	}
 
 	wr := newWafRegionalRetryer(conn)
-	_, err = wr.RetryWithToken(func(token *string) (interface{}, error) {
+	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		req := &waf.DeleteIPSetInput{
 			ChangeToken: token,
 			IPSetId:     aws.String(d.Id()),
@@ -129,28 +143,16 @@ func resourceAwsWafRegionalIPSetDelete(d *schema.ResourceData, meta interface{})
 	return nil
 }
 
-func updateIPSetResourceWR(d *schema.ResourceData, meta interface{}, ChangeAction string) error {
-	conn := meta.(*AWSClient).wafregionalconn
+func updateIPSetResourceWR(id string, meta interface{}, oldD, newD []interface{}, conn *wafregional.WAFRegional) error {
 
 	wr := newWafRegionalRetryer(conn)
 	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		req := &waf.UpdateIPSetInput{
 			ChangeToken: token,
-			IPSetId:     aws.String(d.Id()),
+			IPSetId:     aws.String(id),
+			Updates:     diffWafIpSetDescriptors(oldD, newD),
 		}
-
-		IPSetDescriptors := d.Get("ip_set_descriptors").(*schema.Set)
-		for _, IPSetDescriptor := range IPSetDescriptors.List() {
-			IPSet := IPSetDescriptor.(map[string]interface{})
-			IPSetUpdate := &waf.IPSetUpdate{
-				Action: aws.String(ChangeAction),
-				IPSetDescriptor: &waf.IPSetDescriptor{
-					Type:  aws.String(IPSet["type"].(string)),
-					Value: aws.String(IPSet["value"].(string)),
-				},
-			}
-			req.Updates = append(req.Updates, IPSetUpdate)
-		}
+		log.Printf("[INFO] Updating IPSet descriptors: %s", req)
 
 		return conn.UpdateIPSet(req)
 	})
