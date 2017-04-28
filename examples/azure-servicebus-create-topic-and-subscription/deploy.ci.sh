@@ -28,8 +28,7 @@ docker run --rm -it \
   --workdir=/data \
   --entrypoint "/bin/sh" \
   hashicorp/terraform:light \
-  -c "/bin/terraform destroy -force -var unique=$KEY -var resource_group=$EXISTING_RESOURCE_GROUP;"
-
+  -c "/bin/terraform destroy -force -var unique=$KEY -var resource_group=$EXISTING_RESOURCE_GROUP -target=azurerm_servicebus_namespace.test -target=azurerm_servicebus_topic.test -target=azurerm_servicebus_subscription.test;"
 
 # cleanup deployed azure resources via azure-cli
 # docker run --rm -it \
