@@ -27,14 +27,15 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"heroku_addon":       resourceHerokuAddon(),
-			"heroku_app":         resourceHerokuApp(),
-			"heroku_app_feature": resourceHerokuAppFeature(),
-			"heroku_cert":        resourceHerokuCert(),
-			"heroku_domain":      resourceHerokuDomain(),
-			"heroku_drain":       resourceHerokuDrain(),
-			"heroku_pipeline":    resourceHerokuPipeline(),
-			"heroku_space":       resourceHerokuSpace(),
+			"heroku_addon":             resourceHerokuAddon(),
+			"heroku_app":               resourceHerokuApp(),
+			"heroku_app_feature":       resourceHerokuAppFeature(),
+			"heroku_cert":              resourceHerokuCert(),
+			"heroku_domain":            resourceHerokuDomain(),
+			"heroku_drain":             resourceHerokuDrain(),
+			"heroku_pipeline":          resourceHerokuPipeline(),
+			"heroku_pipeline_coupling": resourceHerokuPipelineCoupling(),
+			"heroku_space":             resourceHerokuSpace(),
 		},
 
 		ConfigureFunc: providerConfigure,
