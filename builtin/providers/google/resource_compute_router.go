@@ -93,15 +93,15 @@ func resourceComputeRouterCreate(d *schema.ResourceData, meta interface{}) error
 
 	name := d.Get("name").(string)
 
-	routerId := fmt.Sprintf("router/%s/%s", region, name)
-	mutexKV.Lock(routerId)
-	defer mutexKV.Unlock(routerId)
+	routerLock := getRouterLockName(region, name)
+	mutexKV.Lock(routerLock)
+	defer mutexKV.Unlock(routerLock)
 
 	network, err := getNetworkLink(d, config, "network")
 	if err != nil {
 		return err
 	}
-	routersService := compute.NewRoutersService(config.clientCompute)
+	routersService := config.clientCompute.Routers
 
 	router := &compute.Router{
 		Name:    name,
@@ -127,9 +127,10 @@ func resourceComputeRouterCreate(d *schema.ResourceData, meta interface{}) error
 	if err != nil {
 		return fmt.Errorf("Error Inserting Router %s into network %s: %s", name, network, err)
 	}
-
+	d.SetId(fmt.Sprintf("%s/%s", region, name))
 	err = computeOperationWaitRegion(config, op, project, region, "Inserting Router")
 	if err != nil {
+		d.SetId("")
 		return fmt.Errorf("Error Waiting to Insert Router %s into network %s: %s", name, network, err)
 	}
 
@@ -151,12 +152,12 @@ func resourceComputeRouterRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	name := d.Get("name").(string)
-	routersService := compute.NewRoutersService(config.clientCompute)
+	routersService := config.clientCompute.Routers
 	router, err := routersService.Get(project, region, name).Do()
 
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing Router %q because it's gone", d.Get("name").(string))
+			log.Printf("[WARN] Removing router %s/%s because it is gone", region, name)
 			d.SetId("")
 
 			return nil
@@ -172,6 +173,8 @@ func resourceComputeRouterRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("network", router.Network)
 	}
 
+	d.Set("name", router.Name)
+	d.Set("description", router.Description)
 	d.Set("region", region)
 	d.Set("bgp", flattenAsn(router.Bgp.Asn))
 	d.SetId(fmt.Sprintf("%s/%s", region, name))
@@ -195,11 +198,11 @@ func resourceComputeRouterDelete(d *schema.ResourceData, meta interface{}) error
 
 	name := d.Get("name").(string)
 
-	routerId := fmt.Sprintf("router/%s/%s", region, name)
-	mutexKV.Lock(routerId)
-	defer mutexKV.Unlock(routerId)
+	routerLock := getRouterLockName(region, name)
+	mutexKV.Lock(routerLock)
+	defer mutexKV.Unlock(routerLock)
 
-	routersService := compute.NewRoutersService(config.clientCompute)
+	routersService := config.clientCompute.Routers
 
 	op, err := routersService.Delete(project, region, name).Do()
 	if err != nil {
@@ -211,6 +214,7 @@ func resourceComputeRouterDelete(d *schema.ResourceData, meta interface{}) error
 		return fmt.Errorf("Error Waiting to Delete Router %s: %s", name, err)
 	}
 
+	d.SetId("")
 	return nil
 }
 

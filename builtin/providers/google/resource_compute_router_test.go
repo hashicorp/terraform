@@ -7,18 +7,19 @@ import (
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-
-	"google.golang.org/api/compute/v1"
 )
 
 func TestAccComputeRouter_basic(t *testing.T) {
+	network := fmt.Sprintf("router-test-%s", acctest.RandString(10))
+	subnet := fmt.Sprintf("router-test-%s", acctest.RandString(10))
+	router := fmt.Sprintf("router-test-%s", acctest.RandString(10))
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeRouterDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeRouter_basic,
+				Config: testAccComputeRouterBasic(network, subnet, router),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeRouterExists(
 						"google_compute_router.foobar"),
@@ -31,13 +32,16 @@ func TestAccComputeRouter_basic(t *testing.T) {
 }
 
 func TestAccComputeRouter_noRegion(t *testing.T) {
+	network := fmt.Sprintf("router-test-%s", acctest.RandString(10))
+	subnet := fmt.Sprintf("router-test-%s", acctest.RandString(10))
+	router := fmt.Sprintf("router-test-%s", acctest.RandString(10))
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeRouterDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeRouter_noRegion,
+				Config: testAccComputeRouterNoRegion(network, subnet, router),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeRouterExists(
 						"google_compute_router.foobar"),
@@ -50,13 +54,16 @@ func TestAccComputeRouter_noRegion(t *testing.T) {
 }
 
 func TestAccComputeRouter_networkLink(t *testing.T) {
+	network := fmt.Sprintf("router-test-%s", acctest.RandString(10))
+	subnet := fmt.Sprintf("router-test-%s", acctest.RandString(10))
+	router := fmt.Sprintf("router-test-%s", acctest.RandString(10))
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeRouterDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeRouter_networkLink,
+				Config: testAccComputeRouterNetworkLink(network, subnet, router),
 				Check: testAccCheckComputeRouterExists(
 					"google_compute_router.foobar"),
 			},
@@ -66,19 +73,27 @@ func TestAccComputeRouter_networkLink(t *testing.T) {
 
 func testAccCheckComputeRouterDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
-	project := config.Project
 
-	routersService := compute.NewRoutersService(config.clientCompute)
+	routersService := config.clientCompute.Routers
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "google_compute_router" {
 			continue
 		}
 
-		region := rs.Primary.Attributes["region"]
+		project, err := getTestProject(rs.Primary, config)
+		if err != nil {
+			return err
+		}
+
+		region, err := getTestRegion(rs.Primary, config)
+		if err != nil {
+			return err
+		}
+
 		name := rs.Primary.Attributes["name"]
 
-		_, err := routersService.Get(project, region, name).Do()
+		_, err = routersService.Get(project, region, name).Do()
 
 		if err == nil {
 			return fmt.Errorf("Error, Router %s in region %s still exists",
@@ -101,12 +116,21 @@ func testAccCheckComputeRouterExists(n string) resource.TestCheckFunc {
 		}
 
 		config := testAccProvider.Meta().(*Config)
-		name := rs.Primary.Attributes["name"]
-		region := rs.Primary.Attributes["region"]
-		project := config.Project
 
-		routersService := compute.NewRoutersService(config.clientCompute)
-		_, err := routersService.Get(project, region, name).Do()
+		project, err := getTestProject(rs.Primary, config)
+		if err != nil {
+			return err
+		}
+
+		region, err := getTestRegion(rs.Primary, config)
+		if err != nil {
+			return err
+		}
+
+		name := rs.Primary.Attributes["name"]
+
+		routersService := config.clientCompute.Routers
+		_, err = routersService.Get(project, region, name).Do()
 
 		if err != nil {
 			return fmt.Errorf("Error Reading Router %s: %s", name, err)
@@ -116,61 +140,67 @@ func testAccCheckComputeRouterExists(n string) resource.TestCheckFunc {
 	}
 }
 
-var testAccComputeRouter_basic = fmt.Sprintf(`
-resource "google_compute_network" "foobar" {
-	name = "router-test-%s"
+func testAccComputeRouterBasic(network, subnet, router string) string {
+	return fmt.Sprintf(`
+		resource "google_compute_network" "foobar" {
+			name = "%s"
+		}
+		resource "google_compute_subnetwork" "foobar" {
+			name = "%s"
+			network = "${google_compute_network.foobar.self_link}"
+			ip_cidr_range = "10.0.0.0/16"
+			region = "europe-west1"
+		}
+		resource "google_compute_router" "foobar" {
+			name = "%s"
+			region = "${google_compute_subnetwork.foobar.region}"
+			network = "${google_compute_network.foobar.name}"
+			bgp {
+				asn = 64514
+			}
+		}
+	`, network, subnet, router)
 }
-resource "google_compute_subnetwork" "foobar" {
-	name = "router-test-%s"
-	network = "${google_compute_network.foobar.self_link}"
-	ip_cidr_range = "10.0.0.0/16"
-	region = "europe-west1"
-}
-resource "google_compute_router" "foobar" {
-        name = "router-test-%s"
-	region = "${google_compute_subnetwork.foobar.region}"
-	network = "${google_compute_network.foobar.name}"
-        bgp { 
-           asn = 64514
-       }
-}
-`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
 
-var testAccComputeRouter_noRegion = fmt.Sprintf(`
-resource "google_compute_network" "foobar" {
-	name = "router-test-%s"
+func testAccComputeRouterNoRegion(network, subnet, router string) string {
+	return fmt.Sprintf(`
+		resource "google_compute_network" "foobar" {
+			name = "%s"
+		}
+		resource "google_compute_subnetwork" "foobar" {
+			name = "%s"
+			network = "${google_compute_network.foobar.self_link}"
+			ip_cidr_range = "10.0.0.0/16"
+			region = "us-central1"
+		}
+		resource "google_compute_router" "foobar" {
+			name = "%s"
+			network = "${google_compute_network.foobar.name}"
+			bgp {
+				asn = 64514
+			}
+		}
+	`, network, subnet, router)
 }
-resource "google_compute_subnetwork" "foobar" {
-	name = "router-test-%s"
-	network = "${google_compute_network.foobar.self_link}"
-	ip_cidr_range = "10.0.0.0/16"
-	region = "us-central1"
-}
-resource "google_compute_router" "foobar" {
-        name = "router-test-%s"
-	network = "${google_compute_network.foobar.name}"
-        bgp {
-           asn = 64514
-       }
-}
-`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
 
-var testAccComputeRouter_networkLink = fmt.Sprintf(`
-resource "google_compute_network" "foobar" {
-	name = "router-test-%s"
+func testAccComputeRouterNetworkLink(network, subnet, router string) string {
+	return fmt.Sprintf(`
+		resource "google_compute_network" "foobar" {
+			name = "%s"
+		}
+		resource "google_compute_subnetwork" "foobar" {
+			name = "%s"
+			network = "${google_compute_network.foobar.self_link}"
+			ip_cidr_range = "10.0.0.0/16"
+			region = "us-central1"
+		}
+		resource "google_compute_router" "foobar" {
+			name = "%s"
+			region = "${google_compute_subnetwork.foobar.region}"
+			network = "${google_compute_network.foobar.self_link}"
+			bgp {
+				asn = 64514
+			}
+		}
+	`, network, subnet, router)
 }
-resource "google_compute_subnetwork" "foobar" {
-	name = "router-test-%s"
-	network = "${google_compute_network.foobar.self_link}"
-	ip_cidr_range = "10.0.0.0/16"
-	region = "us-central1"
-}
-resource "google_compute_router" "foobar" {
-        name = "router-test-%s"
-	region = "${google_compute_subnetwork.foobar.region}"
-	network = "${google_compute_network.foobar.self_link}"
-        bgp {
-           asn = 64514
-       }
-}
-`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))

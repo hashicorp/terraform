@@ -37,16 +37,27 @@ func resourceComputeRouterPeer() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"ip_address": &schema.Schema{
+			"peer_ip_address": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"asn": &schema.Schema{
+			"peer_asn": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
+			},
+
+			"advertised_route_priority": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"ip_address": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"project": &schema.Schema{
@@ -82,15 +93,15 @@ func resourceComputeRouterPeerCreate(d *schema.ResourceData, meta interface{}) e
 	routerName := d.Get("router").(string)
 	peerName := d.Get("name").(string)
 
-	routerId := fmt.Sprintf("router/%s/%s", region, routerName)
-	mutexKV.Lock(routerId)
-	defer mutexKV.Unlock(routerId)
+	routerLock := getRouterLockName(region, routerName)
+	mutexKV.Lock(routerLock)
+	defer mutexKV.Unlock(routerLock)
 
-	routersService := compute.NewRoutersService(config.clientCompute)
+	routersService := config.clientCompute.Routers
 	router, err := routersService.Get(project, region, routerName).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing router peer because its router %s/%s is gone", region, routerName)
+			log.Printf("[WARN] Removing router peer %s because its router %s/%s is gone", peerName, region, routerName)
 			d.SetId("")
 
 			return nil
@@ -99,54 +110,47 @@ func resourceComputeRouterPeerCreate(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error Reading router %s/%s: %s", region, routerName, err)
 	}
 
-	var peerExists bool = false
-
-	var peers []*compute.RouterBgpPeer = router.BgpPeers
+	peers := router.BgpPeers
 	for _, peer := range peers {
-
 		if peer.Name == peerName {
-			peerExists = true
-			break
+			d.SetId("")
+			return fmt.Errorf("Router %s has peer %s already", routerName, peerName)
 		}
 	}
 
-	if !peerExists {
+	ifaceName := d.Get("interface").(string)
 
-		ifaceName := d.Get("interface").(string)
+	peer := &compute.RouterBgpPeer{Name: peerName,
+		InterfaceName: ifaceName}
 
-		peer := &compute.RouterBgpPeer{Name: peerName,
-			InterfaceName: ifaceName}
+	if v, ok := d.GetOk("peer_ip_address"); ok {
+		peer.PeerIpAddress = v.(string)
+	}
 
-		if v, ok := d.GetOk("ip_address"); ok {
-			peer.PeerIpAddress = v.(string)
-		}
+	if v, ok := d.GetOk("peer_asn"); ok {
+		peer.PeerAsn = int64(v.(int))
+	}
 
-		if v, ok := d.GetOk("asn"); ok {
-			peer.PeerAsn = int64(v.(int))
-		}
+	if v, ok := d.GetOk("advertised_route_priority"); ok {
+		peer.AdvertisedRoutePriority = int64(v.(int))
+	}
 
-		log.Printf(
-			"[INFO] Adding peer %s", peerName)
-		peers = append(peers, peer)
-		patchRouter := &compute.Router{
-			BgpPeers: peers,
-		}
+	log.Printf("[INFO] Adding peer %s", peerName)
+	peers = append(peers, peer)
+	patchRouter := &compute.Router{
+		BgpPeers: peers,
+	}
 
-		log.Printf("[DEBUG] Updating router %s/%s with peers: %+v", region, routerName, peers)
-		op, err := routersService.Patch(project, region, router.Name, patchRouter).Do()
-		if err != nil {
-			return fmt.Errorf("Error patching router %s/%s: %s", region, routerName, err)
-		}
-
-		err = computeOperationWaitRegion(config, op, project, region, "Patching router")
-		if err != nil {
-			return fmt.Errorf("Error waiting to patch router %s/%s: %s", region, routerName, err)
-		}
-
-		d.SetId(fmt.Sprintf("%s/%s/%s", region, routerName, peerName))
-
-	} else {
-		log.Printf("[DEBUG] Router %s has peer %s already", routerName, peerName)
+	log.Printf("[DEBUG] Updating router %s/%s with peers: %+v", region, routerName, peers)
+	op, err := routersService.Patch(project, region, router.Name, patchRouter).Do()
+	if err != nil {
+		return fmt.Errorf("Error patching router %s/%s: %s", region, routerName, err)
+	}
+	d.SetId(fmt.Sprintf("%s/%s/%s", region, routerName, peerName))
+	err = computeOperationWaitRegion(config, op, project, region, "Patching router")
+	if err != nil {
+		d.SetId("")
+		return fmt.Errorf("Error waiting to patch router %s/%s: %s", region, routerName, err)
 	}
 
 	return resourceComputeRouterPeerRead(d, meta)
@@ -169,11 +173,11 @@ func resourceComputeRouterPeerRead(d *schema.ResourceData, meta interface{}) err
 	routerName := d.Get("router").(string)
 	peerName := d.Get("name").(string)
 
-	routersService := compute.NewRoutersService(config.clientCompute)
+	routersService := config.clientCompute.Routers
 	router, err := routersService.Get(project, region, routerName).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing router peer because its router %s/%s is gone", region, routerName)
+			log.Printf("[WARN] Removing router peer %s because its router %s/%s is gone", peerName, region, routerName)
 			d.SetId("")
 
 			return nil
@@ -182,24 +186,21 @@ func resourceComputeRouterPeerRead(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Error Reading router %s/%s: %s", region, routerName, err)
 	}
 
-	var peerFound bool = false
-
-	var peers []*compute.RouterBgpPeer = router.BgpPeers
-	for _, peer := range peers {
+	for _, peer := range router.BgpPeers {
 
 		if peer.Name == peerName {
-			peerFound = true
 			d.SetId(fmt.Sprintf("%s/%s/%s", region, routerName, peerName))
 			d.Set("interface", peer.InterfaceName)
-			d.Set("ip_address", peer.PeerIpAddress)
-			d.Set("asn", peer.PeerAsn)
+			d.Set("peer_ip_address", peer.PeerIpAddress)
+			d.Set("peer_asn", peer.PeerAsn)
+			d.Set("advertised_route_priority", peer.AdvertisedRoutePriority)
+			d.Set("ip_address", peer.IpAddress)
+			return nil
 		}
 	}
-	if !peerFound {
-		log.Printf("[WARN] Removing router peer %s/%s/%s because it is gone", region, routerName, peerName)
-		d.SetId("")
-	}
 
+	log.Printf("[WARN] Removing router peer %s/%s/%s because it is gone", region, routerName, peerName)
+	d.SetId("")
 	return nil
 }
 
@@ -220,15 +221,15 @@ func resourceComputeRouterPeerDelete(d *schema.ResourceData, meta interface{}) e
 	routerName := d.Get("router").(string)
 	peerName := d.Get("name").(string)
 
-	routerId := fmt.Sprintf("router/%s/%s", region, routerName)
-	mutexKV.Lock(routerId)
-	defer mutexKV.Unlock(routerId)
+	routerLock := getRouterLockName(region, routerName)
+	mutexKV.Lock(routerLock)
+	defer mutexKV.Unlock(routerLock)
 
-	routersService := compute.NewRoutersService(config.clientCompute)
+	routersService := config.clientCompute.Routers
 	router, err := routersService.Get(project, region, routerName).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing router peer because its router %d is gone", d.Get("router").(string))
+			log.Printf("[WARN] Removing router peer %s because its router %s/%s is gone", peerName, region, routerName)
 
 			return nil
 		}
@@ -236,43 +237,43 @@ func resourceComputeRouterPeerDelete(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error Reading Router %s: %s", routerName, err)
 	}
 
-	var peerFound bool = false
+	var peerFound bool
 
-	var oldIfaces []*compute.RouterBgpPeer = router.BgpPeers
-	var newIfaces []*compute.RouterBgpPeer = make([]*compute.RouterBgpPeer, len(router.BgpPeers))
-	for _, peer := range oldIfaces {
+	var newPeers []*compute.RouterBgpPeer = make([]*compute.RouterBgpPeer, 0, len(router.BgpPeers))
+	for _, peer := range router.BgpPeers {
 
 		if peer.Name == peerName {
 			peerFound = true
 			continue
 		} else {
-			newIfaces = append(newIfaces, peer)
+			newPeers = append(newPeers, peer)
 		}
 	}
 
-	if peerFound {
-
-		log.Printf(
-			"[INFO] Removing peer %s", peerName)
-		patchRouter := &compute.Router{
-			BgpPeers: newIfaces,
-		}
-
-		log.Printf("[DEBUG] Updating router %s/%s with peers: %+v", region, routerName, newIfaces)
-		op, err := routersService.Patch(project, region, router.Name, patchRouter).Do()
-		if err != nil {
-			return fmt.Errorf("Error patching router %s/%s: %s", region, routerName, err)
-		}
-
-		err = computeOperationWaitRegion(config, op, project, region, "Patching router")
-		if err != nil {
-			return fmt.Errorf("Error waiting to patch router %s/%s: %s", region, routerName, err)
-		}
-
-	} else {
+	if !peerFound {
 		log.Printf("[DEBUG] Router %s/%s had no peer %s already", region, routerName, peerName)
+		d.SetId("")
+		return nil
 	}
 
+	log.Printf(
+		"[INFO] Removing peer %s from router %s/%s", peerName, region, routerName)
+	patchRouter := &compute.Router{
+		BgpPeers: newPeers,
+	}
+
+	log.Printf("[DEBUG] Updating router %s/%s with peers: %+v", region, routerName, newPeers)
+	op, err := routersService.Patch(project, region, router.Name, patchRouter).Do()
+	if err != nil {
+		return fmt.Errorf("Error patching router %s/%s: %s", region, routerName, err)
+	}
+
+	err = computeOperationWaitRegion(config, op, project, region, "Patching router")
+	if err != nil {
+		return fmt.Errorf("Error waiting to patch router %s/%s: %s", region, routerName, err)
+	}
+
+	d.SetId("")
 	return nil
 }
 
