@@ -78,7 +78,7 @@ The following arguments are supported:
     The initial password for the Administrator user. Only used for Windows virtual machines.
 
 * `cloud_config` - (string)
-    Populate the cloud-init:user-data field. Cloud config data to pass to the instance. Traditionally user-data is used, however joyent uses that key for their own purposes. At least on ubuntu cloud-init, it expects the cloud_config to be in cloud-init:user-data instead of just user-data.
+    Cloud-init configuration for Linux brand machines, used instead of `user_data`.
 
 The nested `nic` block supports the following:
 * `network` - (string, Optional)
