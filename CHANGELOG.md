@@ -3,6 +3,7 @@
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
 * provider/aws: Users of aws_cloudfront_distributions with custom_origins have been broken due to changes in the AWS API requiring   `OriginReadTimeout` being set for updates. This has been fixed and will show as a change in terraform plan / apply. [GH-13367]
+* provider/aws: Users of China and Gov clouds, cannot use the new tagging of volumes created as part of aws_instances [GH-14055]
 
 FEATURES:
 
@@ -23,6 +24,7 @@ BUG FIXES:
 * provider/aws: Set aws_instance volume_tags to be Computed [GH-14007]
 * provider/aws: Fix issue getting partition for federated users [GH-13992]
 * provider/aws: aws_spot_instance_request not forcenew on volume_tags [GH-14046]
+* provider/aws: Exclude aws_instance volume tagging for China and Gov Clouds [GH-14055]
 * provider/digitalocean: Prevent diffs when using IDs of images instead of slugs [GH-13879]
 * provider/google: ignore certain project services that can't be enabled directly via the api [GH-13730]
 * providers/heroku: Configure buildpacks correctly for both Org Apps and non-org Apps [GH-13990]
