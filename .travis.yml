@@ -30,4 +30,4 @@ deploy:
     script: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./deploy.ci.sh
     on:
       repo: harijayms/terraform
-      branch: master
+      branch: topic-101-vm-simple-linux
