@@ -25,10 +25,7 @@ before_deploy:
 deploy:
   - provider: script
     skip_cleanup: true
-    script: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./deploy.sh
+    script: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./deploy.ci.sh
     on:
-      repo: 10thmagnitude/terraform
+      repo: harijayms/terraform
       branch: topic-201-2-vms-loadbalancer-lbrules
-
-# cleanup
-after_deploy: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./after_deploy.sh
