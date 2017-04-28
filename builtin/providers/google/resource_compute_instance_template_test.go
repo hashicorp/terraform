@@ -69,8 +69,8 @@ func TestAccComputeInstanceTemplate_networkIP(t *testing.T) {
 					testAccCheckComputeInstanceTemplateExists(
 						"google_compute_instance_template.foobar", &instanceTemplate),
 					testAccCheckComputeInstanceTemplateNetwork(&instanceTemplate),
-					resource.TestCheckResourceAttr(
-						"google_compute_instance_template.foobar", "network_interface.0.network_ip", networkIP),
+					testAccCheckComputeInstanceTemplateNetworkIP(
+						"google_compute_instance_template.foobar", networkIP, &instanceTemplate),
 				),
 			},
 		},
@@ -355,6 +355,17 @@ func testAccCheckComputeInstanceTemplateStartupScript(instanceTemplate *compute.
 			}
 		}
 		return fmt.Errorf("This should never be reached.")
+	}
+}
+
+func testAccCheckComputeInstanceTemplateNetworkIP(n, networkIP string, instanceTemplate *compute.InstanceTemplate) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		ip := instanceTemplate.Properties.NetworkInterfaces[0].NetworkIP
+		err := resource.TestCheckResourceAttr(n, "network_interface.0.network_ip", ip)(s)
+		if err != nil {
+			return err
+		}
+		return resource.TestCheckResourceAttr(n, "network_interface.0.network_ip", networkIP)(s)
 	}
 }
 
