@@ -2138,28 +2138,28 @@
 			"revisionTime": "2017-05-04T19:02:34Z"
 		},
 		{
-			"checksumSHA1": "2Nrl/YKrmowkRgCDLhA6UTFgYEY=",
+			"checksumSHA1": "zz3/f3YpHHBN78uLhnhLBW2aF8o=",
 			"path": "github.com/hashicorp/hil",
-			"revision": "5b8d13c8c5c2753e109fab25392a1dbfa2db93d2",
-			"revisionTime": "2016-12-21T19:20:42Z"
+			"revision": "747a6e1523d6808f91144df070435b16865cd333",
+			"revisionTime": "2017-05-01T20:07:50Z"
 		},
 		{
-			"checksumSHA1": "oZ2a2x9qyHqvqJdv/Du3LGeaFdA=",
+			"checksumSHA1": "0S0KeBcfqVFYBPeZkuJ4fhQ5mCA=",
 			"path": "github.com/hashicorp/hil/ast",
-			"revision": "5b8d13c8c5c2753e109fab25392a1dbfa2db93d2",
-			"revisionTime": "2016-12-21T19:20:42Z"
+			"revision": "747a6e1523d6808f91144df070435b16865cd333",
+			"revisionTime": "2017-05-01T20:07:50Z"
 		},
 		{
 			"checksumSHA1": "P5PZ3k7SmqWmxgJ8Q0gLzeNpGhE=",
 			"path": "github.com/hashicorp/hil/parser",
-			"revision": "5b8d13c8c5c2753e109fab25392a1dbfa2db93d2",
-			"revisionTime": "2016-12-21T19:20:42Z"
+			"revision": "747a6e1523d6808f91144df070435b16865cd333",
+			"revisionTime": "2017-05-01T20:07:50Z"
 		},
 		{
 			"checksumSHA1": "DC1k5kOua4oFqmo+JRt0YzfP44o=",
 			"path": "github.com/hashicorp/hil/scanner",
-			"revision": "5b8d13c8c5c2753e109fab25392a1dbfa2db93d2",
-			"revisionTime": "2016-12-21T19:20:42Z"
+			"revision": "747a6e1523d6808f91144df070435b16865cd333",
+			"revisionTime": "2017-05-01T20:07:50Z"
 		},
 		{
 			"checksumSHA1": "vt+P9D2yWDO3gdvdgCzwqunlhxU=",
