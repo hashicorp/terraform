@@ -18,6 +18,7 @@ IMPROVEMENTS:
 * provider/nomad: Add TLS options [GH-13956]
 * provider/triton: Add support for reading provider configuration from `TRITON_*` environment variables in addition to `SDC_*`[GH-14000]
 * provider/triton: Add `cloud_config` argument to `triton_machine` resources for Linux containers [GH-12840]
+* provider/triton: Add `insecure_skip_tls_verify` [GH-14077]
 
 BUG FIXES:
 
