@@ -171,6 +171,20 @@ func (c *AWSClient) DynamoDB() *dynamodb.DynamoDB {
 	return c.dynamodbconn
 }
 
+func (c *AWSClient) IsGovCloud() bool {
+	if c.region == "us-gov-west-1" {
+		return true
+	}
+	return false
+}
+
+func (c *AWSClient) IsChinaCloud() bool {
+	if c.region == "cn-north-1" {
+		return true
+	}
+	return false
+}
+
 // Client configures and returns a fully initialized AWSClient
 func (c *Config) Client() (interface{}, error) {
 	// Get the auth and region. This can fail if keys/regions were not

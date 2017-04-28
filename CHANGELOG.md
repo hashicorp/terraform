@@ -3,21 +3,32 @@
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
 * provider/aws: Users of aws_cloudfront_distributions with custom_origins have been broken due to changes in the AWS API requiring   `OriginReadTimeout` being set for updates. This has been fixed and will show as a change in terraform plan / apply. [GH-13367]
+* provider/aws: Users of China and Gov clouds, cannot use the new tagging of volumes created as part of aws_instances [GH-14055]
 
 FEATURES:
 
 * **New Provider:** `gitlab` [GH-13898]
+* **New Resource:** `heroku_app_feature` [GH-14035]
 
 IMPROVEMENTS:
 
 * provider/aws: Add support for CustomOrigin timeouts to aws_cloudfront_distribution [GH-13367]
+* provider/azurerm: Expose the Private IP Address for a Load Balancer, if available [GH-13965]
 * provider/dnsimple: Add support for import for dnsimple_records [GH-9130]
+* provider/nomad: Add TLS options [GH-13956]
 * provider/triton: Add support for reading provider configuration from `TRITON_*` environment variables in addition to `SDC_*`[GH-14000]
+* provider/triton: Add `cloud_config` argument to `triton_machine` resources for Linux containers [GH-12840]
+* provider/triton: Add `insecure_skip_tls_verify` [GH-14077]
 
 BUG FIXES:
 
 * provider/aws: Update aws_ebs_volume when attached [GH-14005]
 * provider/aws: Set aws_instance volume_tags to be Computed [GH-14007]
+* provider/aws: Fix issue getting partition for federated users [GH-13992]
+* provider/aws: aws_spot_instance_request not forcenew on volume_tags [GH-14046]
+* provider/aws: Exclude aws_instance volume tagging for China and Gov Clouds [GH-14055]
+* provider/digitalocean: Prevent diffs when using IDs of images instead of slugs [GH-13879]
+* provider/google: ignore certain project services that can't be enabled directly via the api [GH-13730]
 * providers/heroku: Configure buildpacks correctly for both Org Apps and non-org Apps [GH-13990]
 
 ## 0.9.4 (26th April 2017)
