@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -93,6 +94,91 @@ func TestAccAWSWafRule_disappears(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAccAWSWafRule_changePredicates(t *testing.T) {
+	var ipset waf.IPSet
+	var byteMatchSet waf.ByteMatchSet
+
+	var before, after waf.Rule
+	var idx int
+	ruleName := fmt.Sprintf("wafrule%s", acctest.RandString(5))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSWafRuleDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSWafRuleConfig(ruleName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSWafIPSetExists("aws_waf_ipset.ipset", &ipset),
+					testAccCheckAWSWafRuleExists("aws_waf_rule.wafrule", &before),
+					resource.TestCheckResourceAttr("aws_waf_rule.wafrule", "name", ruleName),
+					resource.TestCheckResourceAttr("aws_waf_rule.wafrule", "predicates.#", "1"),
+					computeWafRulePredicateWithIpSet(&ipset, false, "IPMatch", &idx),
+					testCheckResourceAttrWithIndexesAddr("aws_waf_rule.wafrule", "predicates.%d.negated", &idx, "false"),
+					testCheckResourceAttrWithIndexesAddr("aws_waf_rule.wafrule", "predicates.%d.type", &idx, "IPMatch"),
+				),
+			},
+			{
+				Config: testAccAWSWafRuleConfig_changePredicates(ruleName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSWafByteMatchSetExists("aws_waf_byte_match_set.set", &byteMatchSet),
+					testAccCheckAWSWafRuleExists("aws_waf_rule.wafrule", &after),
+					resource.TestCheckResourceAttr("aws_waf_rule.wafrule", "name", ruleName),
+					resource.TestCheckResourceAttr("aws_waf_rule.wafrule", "predicates.#", "1"),
+					computeWafRulePredicateWithByteMatchSet(&byteMatchSet, true, "ByteMatch", &idx),
+					testCheckResourceAttrWithIndexesAddr("aws_waf_rule.wafrule", "predicates.%d.negated", &idx, "true"),
+					testCheckResourceAttrWithIndexesAddr("aws_waf_rule.wafrule", "predicates.%d.type", &idx, "ByteMatch"),
+				),
+			},
+		},
+	})
+}
+
+// computeWafRulePredicateWithIpSet calculates index
+// which isn't static because dataId is generated as part of the test
+func computeWafRulePredicateWithIpSet(ipSet *waf.IPSet, negated bool, pType string, idx *int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		predicateResource := resourceAwsWafRule().Schema["predicates"].Elem.(*schema.Resource)
+
+		m := map[string]interface{}{
+			"data_id": *ipSet.IPSetId,
+			"negated": negated,
+			"type":    pType,
+		}
+
+		f := schema.HashResource(predicateResource)
+		*idx = f(m)
+
+		return nil
+	}
+}
+
+// computeWafRulePredicateWithByteMatchSet calculates index
+// which isn't static because dataId is generated as part of the test
+func computeWafRulePredicateWithByteMatchSet(set *waf.ByteMatchSet, negated bool, pType string, idx *int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		predicateResource := resourceAwsWafRule().Schema["predicates"].Elem.(*schema.Resource)
+
+		m := map[string]interface{}{
+			"data_id": *set.ByteMatchSetId,
+			"negated": negated,
+			"type":    pType,
+		}
+
+		f := schema.HashResource(predicateResource)
+		*idx = f(m)
+
+		return nil
+	}
+}
+
+func testCheckResourceAttrWithIndexesAddr(name, format string, idx *int, value string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		return resource.TestCheckResourceAttr(name, fmt.Sprintf(format, *idx), value)(s)
+	}
 }
 
 func testAccCheckAWSWafRuleDisappears(v *waf.Rule) resource.TestCheckFunc {
@@ -240,4 +326,39 @@ resource "aws_waf_rule" "wafrule" {
     type = "IPMatch"
   }
 }`, name, name, name)
+}
+
+func testAccAWSWafRuleConfig_changePredicates(name string) string {
+	return fmt.Sprintf(`
+resource "aws_waf_ipset" "ipset" {
+  name = "%s"
+  ip_set_descriptors {
+    type = "IPV4"
+    value = "192.0.7.0/24"
+  }
+}
+
+resource "aws_waf_byte_match_set" "set" {
+  name = "%s"
+  byte_match_tuples {
+    text_transformation   = "NONE"
+    target_string         = "badrefer1"
+    positional_constraint = "CONTAINS"
+
+    field_to_match {
+      type = "HEADER"
+      data = "referer"
+    }
+  }
+}
+
+resource "aws_waf_rule" "wafrule" {
+  name = "%s"
+  metric_name = "%s"
+  predicates {
+    data_id = "${aws_waf_byte_match_set.set.id}"
+    negated = true
+    type = "ByteMatch"
+  }
+}`, name, name, name, name)
 }
