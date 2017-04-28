@@ -26,7 +26,7 @@ To define a new provider, you need to create a new package. If you are
 contributing this to the Terraform codebase, create a directory named after
 your plugin in the `builtin/providers` directory of Terraform. If you’re
 planning on maintaining it outside of Terraform as a standalone plugin, create
-a new repository for it&emdash;we recommend
+a new repository for it-we recommend
 `github.com/{yourname}/terraform-provider-{name}`, as that will simplify things
 down the road.
 

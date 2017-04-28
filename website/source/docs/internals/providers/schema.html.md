@@ -51,7 +51,7 @@ them, you need to just tear them down and build up again from scratch.
 Sometimes properties need to be set on Resources when they’re created, and
 can’t be changed after. For example, you need to decide which region you want a
 compute instance in before you stand it up, and once you create it, you can’t
-change it&mdash;you can only tear down that instance and stand up a new one.
+change it-you can only tear down that instance and stand up a new one.
 
 To help in this common scenario, Resources properties have a `ForceNew`
 property that, when set to `true`,  indicates to Terraform that if it notices a
