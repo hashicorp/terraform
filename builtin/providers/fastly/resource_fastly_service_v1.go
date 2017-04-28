@@ -778,7 +778,8 @@ func resourceServiceV1() *schema.Resource {
 						},
 						"request_condition": {
 							Type:        schema.TypeString,
-							Required:    true,
+							Optional:    true,
+							Default:     "",
 							Description: "Name of a request condition to apply.",
 						},
 						// Optional fields
