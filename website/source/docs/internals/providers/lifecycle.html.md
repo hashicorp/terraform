@@ -8,11 +8,15 @@ description: |-
 
 # Terraform Lifecycle
 
-Terraform runs follow a predictable lifecycle: gather information, detect
-diffs, apply updates, set state.
+Terraform runs follow a predictable lifecycle:
+
+1. Gather information
+2. Detect diffs
+3. Apply updates
+4. Set state
 
 Information is gathered from two places: the config and the state. The config
-is populated from the user’s config file; the state is populated from the
+is populated from the user's config file; the state is populated from the
 statefile. But before the state gets populated from the statefile, the
 statefile is refreshed, using information about the provider(s) to get a more
 accurate picture of the world. It then gets passed through an optional
@@ -23,7 +27,7 @@ a state value should be considered equivalent. This results in our diff.
 
 ![Terraform Provider Lifecycle](docs/lifecycle-diagram.png)
 
-Once we have that diff, we know which resources need to be created, updated, or
-destroyed. The `Create`, `Update`, and `Destroy` functions for the resources
-are called as appropriate, and the `ResourceData` instance they modify is
-persisted as the state when the call returns.
+Once Terraform generates that diff, it knows which resources need to be
+created, updated, or destroyed. The `Create`, `Update`, and `Destroy` functions
+for the resources are called as appropriate, and the `ResourceData` instance
+they modify is persisted as the state when the call returns.

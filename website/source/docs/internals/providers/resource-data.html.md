@@ -9,15 +9,15 @@ description: |-
 # Using `ResourceData`
 
 When working with the `Create`, `Read`, `Update`, `Destroy`, and `Exists`
-methods on your Provider, it’s almost impossible to not run into
-`ResourceData`. It’s a type that is used all over, so it’s important to
-understand it. But `ResourceData` can also be tricky, because it’s not
+methods on your Provider, it's almost impossible to not run into
+`ResourceData`. It's a type that is used all over, so it's important to
+understand it. But `ResourceData` can also be tricky, because it's not
 abstracting a single logical concept in Terraform.
 
 ## How to Conceptualise `ResourceData`
 
 The most useful way to think of `ResourceData` is not as a placeholder for any
-one concept in Terraform—it’s not just information about the config or the
+one concept in Terraform—it's not just information about the config or the
 state, for example—but as the desired state of an object. If you think of
 Terraform as the convergence of your config file and your infrastructure,
 `ResourceData` is how you express  that understanding of what your
@@ -37,24 +37,24 @@ Those are expressed in the order of their priority. That is, the config
 overrides any values set in the state, and every time you call `Set`, it
 overrides everything else.
 
-`ResourceData` often gets confused for either the state or the config, but it’s
-important to realise that it’s a step removed from these concepts, and is used
+`ResourceData` often gets confused for either the state or the config, but it's
+important to realise that it's a step removed from these concepts, and is used
 more as an understanding of what the infrastructure _should_ be.
 
 ## Retrieving Properties
 
 To retrieve properties from `ResourceData`, use the `Get` or `GetOk` methods.
 `Get` takes a property name or address (e.g., `myprop.0.value`) and returns it
-as an `interface{}`. It’s important to note that the framework will always
+as an `interface{}`. It's important to note that the framework will always
 guarantee consistency about the underlying type of that `interface{}`. If the
-key doesn’t exist in your schema, `Get` returns `nil`. If the key exists in
+key doesn't exist in your schema, `Get` returns `nil`. If the key exists in
 your schema, but not in the config, `Get` returns the empty value for that
 type.
 
 `ResourceData` also has a `GetOk` method that functions identically to its
 `Get` method, but with an extra return parameter. The new return parameter
 returns `true` if the property is set to a non-zero value, but with caveats.
-This is where it’s important to remember that `ResourceData` is an amalgamation
+This is where it's important to remember that `ResourceData` is an amalgamation
 of input sources; providers cannot determine whether the property is set in the
 config, in the state, in the diff, or by using `ResourceData.Set`. The only
 information providers have available to them is that the property has been set
@@ -62,11 +62,11 @@ at some point, and what its value is right now.
 
 ## Detecting Changes
 
-When there’s a difference between what our infrastructure is and what we want
+When there's a difference between what our infrastructure is and what we want
 it to be, we want to be able to see what changed and what it should be. To aid
 in this, `ResourceData` provides a `HasChange` method and a `GetChange` method.
 Each takes a property key, just like `Get`. `HasChange` returns `true` if
-there’s a change to that property; the change could be from drift (someone or
+there's a change to that property; the change could be from drift (someone or
 something modifying the infrastructure outside of Terraform) or from config
 changes. The `GetChange` method returns two values; a basic understanding is
 that the first value is what the property _used to be_, and the second value is
@@ -75,7 +75,7 @@ understanding is that the first value is what is in the state (representing the
 state of the infrastructure as it exists) and the second value is what is in
 the config (representing what the user wants the infrastructure to be).
 
-You’ll notice there’s no way to tell whether the state changed or the config
+You'll notice there's no way to tell whether the state changed or the config
 changed; this is a common misconception. Terraform never diffs states or
 configs, it only ever diffs what is and what should be.
 
@@ -87,7 +87,7 @@ and was not specified, then gets set explicitly to `false`.
 `GetChange` is only really necessary when you need to know what the previous
 value of the field was; if you only need the new value, `Get` is sufficient.
 `GetChange` is commonly used in cases where the API requires you to explicitly
-remove and add items—for example, when there’s a change in tags and the API
+remove and add items—for example, when there's a change in tags and the API
 only offers `AddTag` & `RemoveTag` methods without a way to just change all
 tags at once. In that case, you need to know what the previous tag value was,
 so it can be removed.
@@ -99,12 +99,12 @@ is in your `ResourceData` object is set as state. To manipulate this, the `Set`
 method is provided. It takes the key of a property, just like `Get`, as an
 argument, and the value to set it to.
 
-It’s important that all your properties get set using the `Set` method, as
+It's important that all your properties get set using the `Set` method, as
 otherwise Terraform will be unable to perform some of its important functions,
 but will give the appearance of operating normally. For example, changes to the
 config file will be detected, but changes made outside Terraform will be
-silently ignored. This breaks Terraform’s promise of reflecting your
-infrastructure as code, so it’s important that the current state of the
+silently ignored. This breaks Terraform's promise of reflecting your
+infrastructure as code, so it's important that the current state of the
 infrastructure get persisted using the `Set` method.
 
 When using the `Set` method, you shouldn't dereference pointer values, as doing
@@ -157,8 +157,8 @@ individual items in a list or a set.
 
 ## Working With IDs
 
-Terraform uses IDs to reference resources. It’s part of the key used when
-accessing the resource, either in the provider or in interpolation. It’s also
+Terraform uses IDs to reference resources. It's part of the key used when
+accessing the resource, either in the provider or in interpolation. It's also
 what the user supplies when running [`terraform
 import`](/docs/import/index.html) to identify the resource they wish to import.
 A good ID is immutable and easy for a user to locate.
@@ -172,9 +172,9 @@ the `SetId` method, passing the string to use as an ID. Only strings may be
 used as IDs.
 
 You should always set the ID as soon as you possibly can. Even with
-asynchronous APIs, you shouldn’t wait for the API to finish creating the
-resource, just set the ID as soon as it’s provided by the API. This is
+asynchronous APIs, you shouldn't wait for the API to finish creating the
+resource, just set the ID as soon as it's provided by the API. This is
 important because Terraform needs to record the fact that the resource exists,
 even if other Terraform calls fail and cause Terraform to exit. Otherwise, the
 ID could remain empty and leave the user in a situation where the resource was
-created, but Terraform doesn’t know about it.
+created, but Terraform doesn't know about it.

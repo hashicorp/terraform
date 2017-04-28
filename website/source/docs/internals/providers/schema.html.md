@@ -8,19 +8,19 @@ description: |-
 
 # Understanding the Schema
 
-The concept of a Schema is pretty central to the way Terraform’s Providers
-work, so it’s worth exploring some of the advanced tools Providers have at
+The concept of a Schema is pretty central to the way Terraform's Providers
+work, so it's worth exploring some of the advanced tools Providers have at
 their disposal to help Terraform do the right thing. The idea of the Schema,
-itself, can be reductively explained as the “type system” of a Terraform
+itself, can be reductively explained as the "type system" of a Terraform
 Resource or Data Source, but it goes a little deeper than that. It has all the
-information you’d expect: the type of information (a string, an integer, a
+information you'd expect: the type of information (a string, an integer, a
 list, etc.) that it expects, whether that information is optional or computed,
 etc.; but it also has a bunch of special features that can be defined for each
 property.
 
 ## Working With Computed
 
-There are some fields on an Resource or Data Source that can’t be influenced by
+There are some fields on an Resource or Data Source that can't be influenced by
 the user at all, which the API provider is the source of truth for. Things like
 the timestamp a resource was created, or the ID of a resource. For these
 special properties, Terraform wants to notice when users mistakenly set them in
@@ -30,28 +30,28 @@ state but that the user should not be able to configure should have its
 `Computed` property set to true.
 
 To complicate things, there are some fields on a Resource that the user _can_
-set, but if they don’t, the API will pick a value for them. Things like the IP
+set, but if they don't, the API will pick a value for them. Things like the IP
 address assigned to a compute instance, or version of a disk image to use when
 creating a disk. For these properties, Terraform wants to know that if the
-config file doesn’t ask for anything specific, the user is happy with whatever
+config file doesn't ask for anything specific, the user is happy with whatever
 the server returns, but if there is something in the config file, Terraform
 needs to ensure the server reflects that value. To make this possible, any
 Resource property that the server gets to pick a default for but the user
 should be able to override should have _both_ its `Computed` and `Optional`
-properties set to `true`. It’s important to note that if the server does not
+properties set to `true`. It's important to note that if the server does not
 respect the value the user asks for and generates one on its own, Terraform
 will consider that a diff, and will keep trying to correct it. This often leads
-to perpetual diff bugs, so it’s important that only properties the user can
+to perpetual diff bugs, so it's important that only properties the user can
 actually _set_ have their `Optional` property set to `true`.
 
 ## Working With `ForceNew`
 
-Some Resources are completely immutable--if you want to change anything about
+Some Resources are completely immutable - if you want to change anything about
 them, you need to just tear them down and build up again from scratch.
-Sometimes properties need to be set on Resources when they’re created, and
-can’t be changed after. For example, you need to decide which region you want a
-compute instance in before you stand it up, and once you create it, you can’t
-change it-you can only tear down that instance and stand up a new one.
+Sometimes properties need to be set on Resources when they're created, and
+can't be changed after. For example, you need to decide which region you want a
+compute instance in before you stand it up, and once you create it, you can't
+change it - you can only tear down that instance and stand up a new one.
 
 To help in this common scenario, Resources properties have a `ForceNew`
 property that, when set to `true`,  indicates to Terraform that if it notices a
@@ -59,8 +59,8 @@ diff, it should just tear down the old one and stand up a new one.
 
 ## Deprecating and Removing Properties
 
-Things change sometimes, and that’s okay. Sometimes a Provider supports input
-that can’t be supported later. Sometimes a property needs to be renamed. In
+Things change sometimes, and that's okay. Sometimes a Provider supports input
+that can't be supported later. Sometimes a property needs to be renamed. In
 these situations, Terraform provides two properties that can optionally be set
 on any field for a Resource.
 
