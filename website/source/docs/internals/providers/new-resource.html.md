@@ -6,7 +6,7 @@ description: |-
   How to get started adding a new resource to an existing provider.
 ---
 
-# Creating a New Resource
+# Creating Resources
 Now that you’ve got a Provider, it’s time to add some Resources to that Provider to make it actually _do_ something. To do this, you need to write some code in the package your Provider is defined in.
 
 In the built-in plugins for Terraform that are shipped as part of the codebase, we have a file naming guideline: we use `resource_{resource_name}.go` as the template to name our files, and tend to stick to  single Resource per file. For example, AWS has `resource_aws_instance.go`, because it uses the AWS API to manage the instance resource. If you want to contribute your code back to the Terraform repo, it makes things easier if you follow this template.

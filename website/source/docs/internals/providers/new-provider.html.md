@@ -6,7 +6,7 @@ description: |-
   How to get started building a new provider.
 ---
 
-# Creating a New Provider
+# Creating Providers
 Say you’ve found a new API provider that Terraform doesn’t support, and you want to go ahead and implement it. First of all, thank you! It’s always exciting when the community helps Terraform learn new tricks, and the Terraform team appreciates all the contributions the community has made.
 
 To get started, you’re going to want to look at the [`Provider`](https://godoc.org/github.com/hashicorp/terraform/helper/schema#Provider) type. Don’t worry if it looks complex or confusing; we’re going to break it down and walk through it over the course of this guide. There are a lot of methods, but the good news is it’s not your job to call or define _any_ of them. You can safely ignore them.
