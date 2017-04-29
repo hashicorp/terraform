@@ -129,13 +129,16 @@ func resourceAwsWafRuleRead(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsWafRuleUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).wafconn
 
-	o, n := d.GetChange("predicates")
-	oldP, newP := o.(*schema.Set).List(), n.(*schema.Set).List()
+	if d.HasChange("predicates") {
+		o, n := d.GetChange("predicates")
+		oldP, newP := o.(*schema.Set).List(), n.(*schema.Set).List()
 
-	err := updateWafRuleResource(d.Id(), oldP, newP, conn)
-	if err != nil {
-		return fmt.Errorf("Error Updating WAF Rule: %s", err)
+		err := updateWafRuleResource(d.Id(), oldP, newP, conn)
+		if err != nil {
+			return fmt.Errorf("Error Updating WAF Rule: %s", err)
+		}
 	}
+
 	return resourceAwsWafRuleRead(d, meta)
 }
 

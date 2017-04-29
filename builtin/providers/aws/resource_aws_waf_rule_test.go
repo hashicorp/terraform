@@ -181,6 +181,29 @@ func testCheckResourceAttrWithIndexesAddr(name, format string, idx *int, value s
 	}
 }
 
+func TestAccAWSWafRule_noPredicates(t *testing.T) {
+	var rule waf.Rule
+	ruleName := fmt.Sprintf("wafrule%s", acctest.RandString(5))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSWafRuleDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSWafRuleConfig_noPredicates(ruleName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSWafRuleExists("aws_waf_rule.wafrule", &rule),
+					resource.TestCheckResourceAttr(
+						"aws_waf_rule.wafrule", "name", ruleName),
+					resource.TestCheckResourceAttr(
+						"aws_waf_rule.wafrule", "predicates.#", "0"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSWafRuleDisappears(v *waf.Rule) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		conn := testAccProvider.Meta().(*AWSClient).wafconn
@@ -361,4 +384,12 @@ resource "aws_waf_rule" "wafrule" {
     type = "ByteMatch"
   }
 }`, name, name, name, name)
+}
+
+func testAccAWSWafRuleConfig_noPredicates(name string) string {
+	return fmt.Sprintf(`
+resource "aws_waf_rule" "wafrule" {
+  name = "%s"
+  metric_name = "%s"
+}`, name, name)
 }
