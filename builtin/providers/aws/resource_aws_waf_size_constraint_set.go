@@ -115,12 +115,14 @@ func resourceAwsWafSizeConstraintSetRead(d *schema.ResourceData, meta interface{
 func resourceAwsWafSizeConstraintSetUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).wafconn
 
-	o, n := d.GetChange("size_constraints")
-	oldS, newS := o.(*schema.Set).List(), n.(*schema.Set).List()
+	if d.HasChange("size_constraints") {
+		o, n := d.GetChange("size_constraints")
+		oldS, newS := o.(*schema.Set).List(), n.(*schema.Set).List()
 
-	err := updateSizeConstraintSetResource(d.Id(), oldS, newS, conn)
-	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error updating SizeConstraintSet: {{err}}", err)
+		err := updateSizeConstraintSetResource(d.Id(), oldS, newS, conn)
+		if err != nil {
+			return errwrap.Wrapf("[ERROR] Error updating SizeConstraintSet: {{err}}", err)
+		}
 	}
 
 	return resourceAwsWafSizeConstraintSetRead(d, meta)
