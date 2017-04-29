@@ -6,19 +6,19 @@ import (
 	"github.com/hashicorp/terraform/config"
 )
 
-// NodeRefreshableResource represents a resource that is "applyable":
+// NodeRefreshableResourceInstance represents a resource that is "applyable":
 // it is ready to be applied and is represented by a diff.
-type NodeRefreshableResource struct {
+type NodeRefreshableResourceInstance struct {
 	*NodeAbstractResource
 }
 
 // GraphNodeDestroyer
-func (n *NodeRefreshableResource) DestroyAddr() *ResourceAddress {
+func (n *NodeRefreshableResourceInstance) DestroyAddr() *ResourceAddress {
 	return n.Addr
 }
 
 // GraphNodeEvalable
-func (n *NodeRefreshableResource) EvalTree() EvalNode {
+func (n *NodeRefreshableResourceInstance) EvalTree() EvalNode {
 	// Eval info is different depending on what kind of resource this is
 	switch mode := n.Addr.Mode; mode {
 	case config.ManagedResourceMode:
@@ -44,7 +44,7 @@ func (n *NodeRefreshableResource) EvalTree() EvalNode {
 	}
 }
 
-func (n *NodeRefreshableResource) evalTreeManagedResource() EvalNode {
+func (n *NodeRefreshableResourceInstance) evalTreeManagedResource() EvalNode {
 	addr := n.NodeAbstractResource.Addr
 
 	// stateId is the ID to put into the state
