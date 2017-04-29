@@ -25,20 +25,6 @@ func TestAccAWSSSMMaintenanceWindowTarget_basic(t *testing.T) {
 					testAccCheckAWSSSMMaintenanceWindowTargetExists("aws_ssm_maintenance_window_target.target"),
 				),
 			},
-			//{
-			//	Config: testAccAWSSSMMaintenanceWindowBasicConfigUpdated(name),
-			//	Check: resource.ComposeTestCheckFunc(
-			//		testAccCheckAWSSSMMaintenanceWindowExists("aws_ssm_maintenance_window.foo"),
-			//		resource.TestCheckResourceAttr(
-			//			"aws_ssm_maintenance_window.foo", "schedule", "cron(0 16 ? * WED *)"),
-			//		resource.TestCheckResourceAttr(
-			//			"aws_ssm_maintenance_window.foo", "duration", "10"),
-			//		resource.TestCheckResourceAttr(
-			//			"aws_ssm_maintenance_window.foo", "cutoff", "8"),
-			//		resource.TestCheckResourceAttr(
-			//			"aws_ssm_maintenance_window.foo", "name", fmt.Sprintf("updated-maintenance-window-%s", name)),
-			//	),
-			//},
 		},
 	})
 }
@@ -134,15 +120,3 @@ resource "aws_ssm_maintenance_window_target" "target" {
 }
 `, rName)
 }
-
-//func testAccAWSSSMMaintenanceWindowBasicConfigUpdated(rName string) string {
-//	return fmt.Sprintf(`
-//resource "aws_ssm_maintenance_window" "foo" {
-//  name = "updated-maintenance-window-%s"
-//  schedule = "cron(0 16 ? * WED *)"
-//  duration = 10
-//  cutoff = 8
-//}
-//
-//`, rName)
-//}
