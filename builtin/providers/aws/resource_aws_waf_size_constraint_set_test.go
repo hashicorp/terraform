@@ -161,6 +161,29 @@ func TestAccAWSWafSizeConstraintSet_changeConstraints(t *testing.T) {
 	})
 }
 
+func TestAccAWSWafSizeConstraintSet_noConstraints(t *testing.T) {
+	var ipset waf.SizeConstraintSet
+	setName := fmt.Sprintf("sizeConstraintSet-%s", acctest.RandString(5))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSWafSizeConstraintSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSWafSizeConstraintSetConfig_noConstraints(setName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSWafSizeConstraintSetExists("aws_waf_size_constraint_set.size_constraint_set", &ipset),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "name", setName),
+					resource.TestCheckResourceAttr(
+						"aws_waf_size_constraint_set.size_constraint_set", "size_constraints.#", "0"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSWafSizeConstraintSetDisappears(v *waf.SizeConstraintSet) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		conn := testAccProvider.Meta().(*AWSClient).wafconn
@@ -306,5 +329,12 @@ resource "aws_waf_size_constraint_set" "size_constraint_set" {
       type = "BODY"
     }
   }
+}`, name)
+}
+
+func testAccAWSWafSizeConstraintSetConfig_noConstraints(name string) string {
+	return fmt.Sprintf(`
+resource "aws_waf_size_constraint_set" "size_constraint_set" {
+  name = "%s"
 }`, name)
 }
