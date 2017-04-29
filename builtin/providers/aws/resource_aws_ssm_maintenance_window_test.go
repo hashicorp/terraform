@@ -113,7 +113,7 @@ func testAccCheckAWSSSMMaintenanceWindowDestroy(s *terraform.State) error {
 		return nil
 	}
 
-	return fmt.Errorf("Default error in SSM Maintenance Window Test")
+	return nil
 }
 
 func testAccAWSSSMMaintenanceWindowBasicConfig(rName string) string {
