@@ -57,7 +57,7 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 	}
 
 	concreteResource := func(a *NodeAbstractResource) dag.Vertex {
-		return &NodeRefreshableResource{
+		return &NodeRefreshableResourceInstance{
 			NodeAbstractResource: a,
 		}
 	}
