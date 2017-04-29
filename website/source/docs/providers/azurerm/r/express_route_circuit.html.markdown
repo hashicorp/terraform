@@ -49,11 +49,11 @@ The following arguments are supported:
 
 * `bandwidth_in_mbps` - (Required) The bandwidth in Mbps of the circuit being created.
 
-* `sku_tier` - (Optional) Chosen SKU Tier of ExpressRoute circuit. Choose from Premium or Standard SKU tiers. 
+* `sku_tier` - (Optional) Chosen SKU Tier of ExpressRoute circuit. Value must be either "Premium" or "Standard". 
     The default value is "Standard".
 
 * `sku_family` - (Optional) Chosen SKU family of ExpressRoute circuit. 
-    Choose from MeteredData or UnlimitedData SKU families. The default value is "MeteredData".
+    Value must be either "MeteredData" or "UnlimitedData". The default value is "MeteredData".
 
 * `allow_classic_operations` - (Optional) Allow the circuit to interact with classic (RDFE) resources.
     The default value is false.
@@ -65,9 +65,9 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The Resource ID of the ExpressRoute circuit.
-* `serviceProviderProvisioningState` - The ServiceProviderProvisioningState state of the resource. 
+* `service_provider_provisioning_state` - The ServiceProviderProvisioningState state of the resource. 
     Possible values are "NotProvisioned", "Provisioning", "Provisioned", and "Deprovisioning".
-* `serviceKey` - The string needed by the service provider to provision the ExpressRoute circuit.
+* `service_key` - The string needed by the service provider to provision the ExpressRoute circuit.
 
 ## Import
 
