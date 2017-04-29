@@ -422,6 +422,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_ssm_activation":                           resourceAwsSsmActivation(),
 			"aws_ssm_association":                          resourceAwsSsmAssociation(),
 			"aws_ssm_document":                             resourceAwsSsmDocument(),
+			"aws_ssm_maintenance_window":                   resourceAwsSsmMaintenanceWindow(),
 			"aws_spot_datafeed_subscription":               resourceAwsSpotDataFeedSubscription(),
 			"aws_spot_instance_request":                    resourceAwsSpotInstanceRequest(),
 			"aws_spot_fleet_request":                       resourceAwsSpotFleetRequest(),
