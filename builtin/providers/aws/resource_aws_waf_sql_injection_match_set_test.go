@@ -149,6 +149,29 @@ func TestAccAWSWafSqlInjectionMatchSet_changeTuples(t *testing.T) {
 	})
 }
 
+func TestAccAWSWafSqlInjectionMatchSet_noTuples(t *testing.T) {
+	var ipset waf.SqlInjectionMatchSet
+	setName := fmt.Sprintf("sqlInjectionMatchSet-%s", acctest.RandString(5))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSWafSqlInjectionMatchSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSWafSqlInjectionMatchSetConfig_noTuples(setName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSWafSqlInjectionMatchSetExists("aws_waf_sql_injection_match_set.sql_injection_match_set", &ipset),
+					resource.TestCheckResourceAttr(
+						"aws_waf_sql_injection_match_set.sql_injection_match_set", "name", setName),
+					resource.TestCheckResourceAttr(
+						"aws_waf_sql_injection_match_set.sql_injection_match_set", "sql_injection_match_tuples.#", "0"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSWafSqlInjectionMatchSetDisappears(v *waf.SqlInjectionMatchSet) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		conn := testAccProvider.Meta().(*AWSClient).wafconn
@@ -287,5 +310,12 @@ resource "aws_waf_sql_injection_match_set" "sql_injection_match_set" {
       data = "GET"
     }
   }
+}`, name)
+}
+
+func testAccAWSWafSqlInjectionMatchSetConfig_noTuples(name string) string {
+	return fmt.Sprintf(`
+resource "aws_waf_sql_injection_match_set" "sql_injection_match_set" {
+  name = "%s"
 }`, name)
 }
