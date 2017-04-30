@@ -127,6 +127,14 @@
 			"versionExact": "v8.1.0-beta"
 		},
 		{
+			"checksumSHA1": "xt50hkmkQR7XZOSWZGOaZZvsmxE=",
+			"path": "github.com/Azure/azure-sdk-for-go/arm/sql",
+			"revision": "ecf40e315d5ab0ca6d7b3b7f7fbb5c1577814813",
+			"revisionTime": "2017-03-02T00:14:02Z",
+			"version": "v8.1.0-beta",
+			"versionExact": "v8.1.0-beta"
+		},
+		{
 			"checksumSHA1": "m1KzBritgIsQ+s4tAlBGz02iIKo=",
 			"comment": "v2.1.1-beta-8-gca4d906",
 			"path": "github.com/Azure/azure-sdk-for-go/arm/storage",
