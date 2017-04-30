@@ -19,6 +19,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
 	"github.com/Azure/azure-sdk-for-go/arm/scheduler"
 	"github.com/Azure/azure-sdk-for-go/arm/servicebus"
+	"github.com/Azure/azure-sdk-for-go/arm/sql"
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
 	"github.com/Azure/azure-sdk-for-go/arm/trafficmanager"
 	mainStorage "github.com/Azure/azure-sdk-for-go/storage"
@@ -99,6 +100,11 @@ type ArmClient struct {
 	serviceBusSubscriptionsClient servicebus.SubscriptionsClient
 
 	keyVaultClient keyvault.VaultsClient
+
+	sqlDatabasesClient               sql.DatabasesClient
+	sqlElasticPoolsClient            sql.ElasticPoolsClient
+	sqlRecommendedElasticPoolsClient sql.RecommendedElasticPoolsClient
+	sqlServersClient                 sql.ServersClient
 }
 
 func withRequestLogging() autorest.SendDecorator {
@@ -457,6 +463,30 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	kvc.Authorizer = spt
 	kvc.Sender = autorest.CreateSender(withRequestLogging())
 	client.keyVaultClient = kvc
+
+	sqldc := sql.NewDatabasesClientWithBaseURI(endpoint, c.SubscriptionID)
+	setUserAgent(&sqldc.Client)
+	sqldc.Authorizer = spt
+	sqldc.Sender = autorest.CreateSender(withRequestLogging())
+	client.sqlDatabasesClient = sqldc
+
+	sqlepc := sql.NewElasticPoolsClientWithBaseURI(endpoint, c.SubscriptionID)
+	setUserAgent(&sqlepc.Client)
+	sqlepc.Authorizer = spt
+	sqlepc.Sender = autorest.CreateSender(withRequestLogging())
+	client.sqlElasticPoolsClient = sqlepc
+
+	sqlrepc := sql.NewRecommendedElasticPoolsClientWithBaseURI(endpoint, c.SubscriptionID)
+	setUserAgent(&sqlrepc.Client)
+	sqlrepc.Authorizer = spt
+	sqlrepc.Sender = autorest.CreateSender(withRequestLogging())
+	client.sqlRecommendedElasticPoolsClient = sqlrepc
+
+	sqlsc := sql.NewServersClientWithBaseURI(endpoint, c.SubscriptionID)
+	setUserAgent(&sqlsc.Client)
+	sqlsc.Authorizer = spt
+	sqlsc.Sender = autorest.CreateSender(withRequestLogging())
+	client.sqlServersClient = sqlsc
 
 	return &client, nil
 }
