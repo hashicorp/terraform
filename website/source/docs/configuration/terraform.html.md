@@ -29,11 +29,14 @@ terraform {
 
 The `terraform` block configures the behavior of Terraform itself.
 
-The currently only allowed configuration within this block is
-`required_version`. This setting specifies a set of version constraints
-that must be met to perform operations on this configuration. If the
-running Terraform version doesn't meet these constraints, an error
-is shown. See the section below dedicated to this option.
+Prior to
+[terraform-0.9.0](https://github.com/hashicorp/terraform/blob/v0.9.0/CHANGELOG.md)
+(released 2017-03-15), the only allowed configuration within the `terraform`
+block was `required_version` (documented below). Since `terraform-0.9.0`,
+`terraform` blocks may also be used to configure a specific Terraform
+[backend](/docs/backends/index.html). Use of a `backend` stanza within a
+`terraform` block is documented in
+["Backend Configuration"](/docs/backends/config.html).
 
 **No value within the `terraform` block can use interpolations.** The
 `terraform` block is loaded very early in the execution of Terraform
@@ -41,9 +44,33 @@ and interpolations are not yet available.
 
 ## Specifying a Required Terraform Version
 
-The `required_version` setting can be used to require a specific version
-of Terraform. If the running version of Terraform doesn't match the
-constraints specified, Terraform will show an error and exit.
+The `required_version` setting specifies a set of Terraform version number
+constraints that must be met in order for Terraform to perform operations on
+the current configuration. The setting can be used to require a specific
+version of Terraform. If the running Terraform version does not meet these
+constraints, an error message is printed to `stderr`, `terraform` stops
+processing, and then exits with an error status.
+
+For example, a `required_version` setting with a value of `>= 0.9.4` would
+have the following effect when attempting to process the Terraform config with
+an older `terraform` version:
+
+```sh
+    $ terraform --version
+    Terraform v0.8.7
+
+    $ terraform plan
+    The currently running version of Terraform doesn't meet the
+    version requirements explicitly specified by the configuration.
+    Please use the required version or update the configuration.
+    Note that version requirements are usually set for a reason, so
+    we recommend verifying with whoever set the version requirements
+    prior to making any manual changes.
+
+      Module: root
+      Required version: 0.9.4
+      Current version: 0.8.7
+```
 
 When [modules](/docs/configuration/modules.html) are used, all Terraform
 version requirements specified by the complete module tree must be
