@@ -346,7 +346,10 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 			}
 
 			// Wait, till table is active before imitating any TimeToLive changes
-			waitForTableToBeActive(d.Id(), meta)
+			if err := waitForTableToBeActive(d.Id(), meta); err != nil {
+				log.Printf("[DEBUG] Error waiting for table to be active: %s", err)
+				return err
+			}
 
 			log.Printf("[DEBUG] Setting DynamoDB TimeToLive on arn: %s", tableArn)
 			if timeToLiveOk {
