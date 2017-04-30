@@ -40,7 +40,7 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 		a.Config = n.Config
 
 		return &NodeDestroyableDataResource{
-			NodeAbstractResource: n.NodeAbstractResource,
+			NodeAbstractResource: a,
 		}
 	}
 
