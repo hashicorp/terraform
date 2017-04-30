@@ -26,7 +26,7 @@ func resourceAwsWafXssMatchSet() *schema.Resource {
 			},
 			"xss_match_tuples": &schema.Schema{
 				Type:     schema.TypeSet,
-				Required: true,
+				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"field_to_match": {
@@ -108,12 +108,14 @@ func resourceAwsWafXssMatchSetRead(d *schema.ResourceData, meta interface{}) err
 func resourceAwsWafXssMatchSetUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).wafconn
 
-	o, n := d.GetChange("xss_match_tuples")
-	oldT, newT := o.(*schema.Set).List(), n.(*schema.Set).List()
+	if d.HasChange("xss_match_tuples") {
+		o, n := d.GetChange("xss_match_tuples")
+		oldT, newT := o.(*schema.Set).List(), n.(*schema.Set).List()
 
-	err := updateXssMatchSetResource(d.Id(), oldT, newT, conn)
-	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error updating XssMatchSet: {{err}}", err)
+		err := updateXssMatchSetResource(d.Id(), oldT, newT, conn)
+		if err != nil {
+			return errwrap.Wrapf("[ERROR] Error updating XssMatchSet: {{err}}", err)
+		}
 	}
 
 	return resourceAwsWafXssMatchSetRead(d, meta)

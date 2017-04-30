@@ -173,6 +173,29 @@ func TestAccAWSWafXssMatchSet_changeTuples(t *testing.T) {
 	})
 }
 
+func TestAccAWSWafXssMatchSet_noTuples(t *testing.T) {
+	var ipset waf.XssMatchSet
+	setName := fmt.Sprintf("xssMatchSet-%s", acctest.RandString(5))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSWafXssMatchSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSWafXssMatchSetConfig_noTuples(setName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSWafXssMatchSetExists("aws_waf_xss_match_set.xss_match_set", &ipset),
+					resource.TestCheckResourceAttr(
+						"aws_waf_xss_match_set.xss_match_set", "name", setName),
+					resource.TestCheckResourceAttr(
+						"aws_waf_xss_match_set.xss_match_set", "xss_match_tuples.#", "0"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSWafXssMatchSetDisappears(v *waf.XssMatchSet) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		conn := testAccProvider.Meta().(*AWSClient).wafconn
@@ -332,5 +355,12 @@ resource "aws_waf_xss_match_set" "xss_match_set" {
       data = "GET"
     }
   }
+}`, name)
+}
+
+func testAccAWSWafXssMatchSetConfig_noTuples(name string) string {
+	return fmt.Sprintf(`
+resource "aws_waf_xss_match_set" "xss_match_set" {
+  name = "%s"
 }`, name)
 }
