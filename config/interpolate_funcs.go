@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
+	"crypto/sha512"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -57,6 +58,7 @@ func Funcs() map[string]ast.Function {
 		"base64decode": interpolationFuncBase64Decode(),
 		"base64encode": interpolationFuncBase64Encode(),
 		"base64sha256": interpolationFuncBase64Sha256(),
+		"base64sha512": interpolationFuncBase64Sha512(),
 		"ceil":         interpolationFuncCeil(),
 		"chomp":        interpolationFuncChomp(),
 		"cidrhost":     interpolationFuncCidrHost(),
@@ -90,6 +92,7 @@ func Funcs() map[string]ast.Function {
 		"replace":      interpolationFuncReplace(),
 		"sha1":         interpolationFuncSha1(),
 		"sha256":       interpolationFuncSha256(),
+		"sha512":       interpolationFuncSha512(),
 		"signum":       interpolationFuncSignum(),
 		"slice":        interpolationFuncSlice(),
 		"sort":         interpolationFuncSort(),
@@ -1240,6 +1243,20 @@ func interpolationFuncSha256() ast.Function {
 	}
 }
 
+func interpolationFuncSha512() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			s := args[0].(string)
+			h := sha512.New()
+			h.Write([]byte(s))
+			hash := hex.EncodeToString(h.Sum(nil))
+			return hash, nil
+		},
+	}
+}
+
 func interpolationFuncTrimSpace() ast.Function {
 	return ast.Function{
 		ArgTypes:   []ast.Type{ast.TypeString},
@@ -1258,6 +1275,21 @@ func interpolationFuncBase64Sha256() ast.Function {
 		Callback: func(args []interface{}) (interface{}, error) {
 			s := args[0].(string)
 			h := sha256.New()
+			h.Write([]byte(s))
+			shaSum := h.Sum(nil)
+			encoded := base64.StdEncoding.EncodeToString(shaSum[:])
+			return encoded, nil
+		},
+	}
+}
+
+func interpolationFuncBase64Sha512() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			s := args[0].(string)
+			h := sha512.New()
 			h.Write([]byte(s))
 			shaSum := h.Sum(nil)
 			encoded := base64.StdEncoding.EncodeToString(shaSum[:])

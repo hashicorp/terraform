@@ -151,6 +151,11 @@ The supported built-in functions are:
     **This is not equivalent** of `base64encode(sha256(string))`
     since `sha256()` returns hexadecimal representation.
 
+  * `base64sha512(string)` - Returns a base64-encoded representation of raw
+    SHA-512 sum of the given string.
+    **This is not equivalent** of `base64encode(sha512(string))`
+    since `sha512()` returns hexadecimal representation.
+
   * `ceil(float)` - Returns the least integer value greater than or equal
       to the argument.
 
@@ -313,6 +318,10 @@ The supported built-in functions are:
   * `sha256(string)` - Returns a (conventional) hexadecimal representation of the
     SHA-256 hash of the given string.
     Example: `"${sha256("${aws_vpc.default.tags.customer}-s3-bucket")}"`
+
+  * `sha512(string)` - Returns a (conventional) hexadecimal representation of the
+    SHA-512 hash of the given string.
+    Example: `"${sha512("${aws_vpc.default.tags.customer}-s3-bucket")}"`
 
   * `signum(int)` - Returns `-1` for negative numbers, `0` for `0` and `1` for positive numbers.
       This function is useful when you need to set a value for the first resource and
