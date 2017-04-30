@@ -5,7 +5,7 @@ provider "akamai" {
 
 resource "akamai_fastdns_record" "test" {
   hostname = "akamaideveloper.com"
-  name = "test"
+  name = "testing"
   type = "Cname"
   active = true
   targets = ["developer.akamai.com."]

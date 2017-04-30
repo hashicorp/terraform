@@ -3,19 +3,20 @@ package akamai
 import (
 	"errors"
 	"fmt"
-	"github.com/akamai-open/AkamaiOPEN-edgegrid-golang"
-	"github.com/hashicorp/terraform/helper/schema"
 	"log"
 	"strings"
+
+	"github.com/akamai-open/AkamaiOPEN-edgegrid-golang/edgegrid"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceFastDnsRecord() *schema.Resource {
+func resourceFastDNSRecord() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceFastDnsRecordCreate,
-		Read:   resourceFastDnsRecordRead,
-		Update: resourceFastDnsRecordCreate,
-		Delete: resourceFastDnsRecordDelete,
-		Exists: resourceFastDnsRecordExists,
+		Create: resourceFastDNSRecordCreate,
+		Read:   resourceFastDNSRecordRead,
+		Update: resourceFastDNSRecordCreate,
+		Delete: resourceFastDNSRecordDelete,
+		Exists: resourceFastDNSRecordExists,
 		Importer: &schema.ResourceImporter{
 			State: importRecord,
 		},
@@ -214,7 +215,7 @@ func resourceFastDnsRecord() *schema.Resource {
 	}
 }
 
-func resourceFastDnsRecordCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceFastDNSRecordCreate(d *schema.ResourceData, meta interface{}) error {
 	recordType := strings.ToUpper(d.Get("type").(string))
 
 	if recordType == "SOA" {
@@ -225,13 +226,13 @@ func resourceFastDnsRecordCreate(d *schema.ResourceData, meta interface{}) error
 
 	config := meta.(*Config)
 
-	zone, error := config.ConfigDnsV1Service.GetZone(d.Get("hostname").(string))
+	zone, error := config.ConfigDNSV1Service.GetZone(d.Get("hostname").(string))
 
 	if error != nil {
 		return error
 	}
 
-	records := edgegrid.DnsRecordSet{}
+	records := edgegrid.DNSRecordSet{}
 	error = unmarshalResourceData(d, &records)
 
 	if error != nil {
@@ -257,6 +258,10 @@ func resourceFastDnsRecordCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	error = zone.Save()
+	if error.(edgegrid.APIError).Status == 409 {
+		//tempZone, err := config.ConfigDNSV1Service.GetZone(d.Get("hostname").(string))
+	}
+
 	if error != nil {
 		return error
 	}
@@ -266,25 +271,25 @@ func resourceFastDnsRecordCreate(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-func resourceFastDnsRecordRead(d *schema.ResourceData, meta interface{}) error {
-	log.Println("[INFO] [Akamai FastDNS] resourceFastDnsRecordRead")
+func resourceFastDNSRecordRead(d *schema.ResourceData, meta interface{}) error {
+	log.Println("[INFO] [Akamai FastDNS] resourcePAPIRead")
 	config := meta.(*Config)
 
-	zone, err := config.ConfigDnsV1Service.GetZone(d.Get("hostname").(string))
+	zone, err := config.ConfigDNSV1Service.GetZone(d.Get("hostname").(string))
 	if err != nil {
 		return err
 	}
 
 	log.Printf("[INFO] [Akamai FastDNS] Resource Data:\n\n%#v\n\n", &d)
 
-	token, _, recordType, name := getDnsRecordId(d.Id())
+	token, _, recordType, name := getDNSRecordId(d.Id())
 
 	if zone.Token != token {
 		log.Println("[WARN] [Akamai FastDNS] Resource has been modified, aborting")
 		return errors.New("Resource has been modified, aborting")
 	}
 
-	recordSet := edgegrid.DnsRecordSet{}
+	recordSet := edgegrid.DNSRecordSet{}
 	for _, record := range zone.Zone.Records[recordType] {
 		if record.Name == name {
 			recordSet = append(recordSet, record)
@@ -303,17 +308,17 @@ func resourceFastDnsRecordRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceFastDnsRecordDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceFastDNSRecordDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	zone, err := config.ConfigDnsV1Service.GetZone(d.Get("hostname").(string))
+	zone, err := config.ConfigDNSV1Service.GetZone(d.Get("hostname").(string))
 	if err != nil {
 		return err
 	}
 
 	recordType := strings.ToUpper(d.Get("type").(string))
 
-	records := edgegrid.DnsRecordSet{}
+	records := edgegrid.DNSRecordSet{}
 	error := unmarshalResourceData(d, &records)
 
 	if error != nil {
@@ -325,7 +330,7 @@ func resourceFastDnsRecordDelete(d *schema.ResourceData, meta interface{}) error
 	} else {
 		name := d.Get("name").(string)
 
-		newRecords := edgegrid.DnsRecordSet{}
+		newRecords := edgegrid.DNSRecordSet{}
 		for _, v := range zone.Zone.Records[recordType] {
 			if v.Name != name {
 				newRecords = append(newRecords, v)
@@ -345,18 +350,18 @@ func resourceFastDnsRecordDelete(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-func resourceFastDnsRecordExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	log.Println("[INFO] [Akamai FastDNS] resourceFastDnsRecordExists")
+func resourceFastDNSRecordExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+	log.Println("[INFO] [Akamai FastDNS] resourcePAPIExists")
 
 	config := meta.(*Config)
 
-	zone, err := config.ConfigDnsV1Service.GetZone(d.Get("hostname").(string))
+	zone, err := config.ConfigDNSV1Service.GetZone(d.Get("hostname").(string))
 	if err != nil {
 		log.Println("[WARN] [Akamai FastDNS] Error checking if record exists: " + err.Error())
 		return false, err
 	}
 
-	token, _, recordType, name := getDnsRecordId(d.Id())
+	token, _, recordType, name := getDNSRecordId(d.Id())
 	name = strings.TrimSuffix(name, ".")
 
 	if zone.Token != token {
@@ -384,12 +389,12 @@ func resourceFastDnsRecordExists(d *schema.ResourceData, meta interface{}) (bool
 	return found_record, nil
 }
 
-func getDnsRecordId(id string) (token string, hostname string, recordType string, name string) {
+func getDNSRecordId(id string) (token string, hostname string, recordType string, name string) {
 	parts := strings.Split(id, "-")
 	return parts[0], parts[1], parts[2], parts[3]
 }
 
-func fixupCnames(zone *edgegrid.DnsZone, record *edgegrid.DnsRecord) {
+func fixupCnames(zone *edgegrid.DNSZone, record *edgegrid.DNSRecord) {
 	if record.RecordType == "CNAME" {
 		names := make(map[string]string, len(zone.Zone.Records["CNAME"]))
 		for _, record := range zone.Zone.Records["CNAME"] {
@@ -401,7 +406,7 @@ func fixupCnames(zone *edgegrid.DnsZone, record *edgegrid.DnsRecord) {
 				continue
 			}
 
-			newRecords := edgegrid.DnsRecordSet{}
+			newRecords := edgegrid.DNSRecordSet{}
 			for _, record := range records {
 				if _, ok := names[record.Name]; ok == false {
 					newRecords = append(newRecords, record)
@@ -418,7 +423,7 @@ func fixupCnames(zone *edgegrid.DnsZone, record *edgegrid.DnsRecord) {
 	} else if record.Name != "" {
 		name := strings.ToLower(record.Name)
 
-		newRecords := edgegrid.DnsRecordSet{}
+		newRecords := edgegrid.DNSRecordSet{}
 		for _, cname := range zone.Zone.Records["CNAME"] {
 			if strings.ToLower(cname.Name) != name {
 				newRecords = append(newRecords, cname)
@@ -436,10 +441,10 @@ func fixupCnames(zone *edgegrid.DnsZone, record *edgegrid.DnsRecord) {
 	}
 }
 
-func unmarshalResourceData(d *schema.ResourceData, records *edgegrid.DnsRecordSet) error {
+func unmarshalResourceData(d *schema.ResourceData, records *edgegrid.DNSRecordSet) error {
 	recordType := strings.ToUpper(d.Get("type").(string))
-	tester := edgegrid.DnsRecord{RecordType: recordType}
-	recordSet := edgegrid.DnsRecordSet{}
+	tester := edgegrid.DNSRecord{RecordType: recordType}
+	recordSet := edgegrid.DNSRecordSet{}
 
 	targets := 1
 	if tester.Allows("targets") {
@@ -447,7 +452,7 @@ func unmarshalResourceData(d *schema.ResourceData, records *edgegrid.DnsRecordSe
 	}
 
 	for i := 0; i < targets; i++ {
-		record := edgegrid.DnsRecord{RecordType: recordType}
+		record := edgegrid.DNSRecord{RecordType: recordType}
 
 		if val, exists := d.GetOk("targets"); exists != false && !record.Allows("targets") {
 			return errors.New("Attribute \"targets\" not allowed for record type " + record.RecordType)
@@ -460,7 +465,7 @@ func unmarshalResourceData(d *schema.ResourceData, records *edgegrid.DnsRecordSe
 		if val, exists := d.GetOk("ttl"); exists != false && !record.Allows("ttl") {
 			return errors.New("Attribute \"ttl\" not allowed for record type " + record.RecordType)
 		} else if exists != false {
-			record.Ttl = val.(int)
+			record.TTL = val.(int)
 		} else {
 			return errors.New("Attribute \"ttl\" is required for record type " + record.RecordType)
 		}
@@ -668,9 +673,9 @@ func unmarshalResourceData(d *schema.ResourceData, records *edgegrid.DnsRecordSe
 		if val, exists := d.GetOk("originalttl"); exists != false && !record.Allows("originalttl") {
 			return errors.New("Attribute \"originalttl\" not allowed for record type " + record.RecordType)
 		} else if exists != false {
-			record.OriginalTtl = val.(int)
+			record.OriginalTTL = val.(int)
 		} else {
-			record.OriginalTtl = 0
+			record.OriginalTTL = 0
 		}
 
 		if val, exists := d.GetOk("expiration"); exists != false && !record.Allows("expiration") {
@@ -809,7 +814,7 @@ func unmarshalResourceData(d *schema.ResourceData, records *edgegrid.DnsRecordSe
 	return nil
 }
 
-func marshalResourceData(d *schema.ResourceData, records *edgegrid.DnsRecordSet) error {
+func marshalResourceData(d *schema.ResourceData, records *edgegrid.DNSRecordSet) error {
 	if len(*records) == 0 {
 		return nil
 	}
@@ -824,7 +829,7 @@ func marshalResourceData(d *schema.ResourceData, records *edgegrid.DnsRecordSet)
 			d.Set("targets", set)
 		}
 
-		d.Set("ttl", record.Ttl)
+		d.Set("ttl", record.TTL)
 		d.Set("name", record.Name)
 		d.Set("active", record.Active)
 		d.Set("subtype", record.Subtype)
@@ -850,7 +855,7 @@ func marshalResourceData(d *schema.ResourceData, records *edgegrid.DnsRecordSet)
 		d.Set("mailbox", record.Mailbox)
 		d.Set("txt", record.Txt)
 		d.Set("typecovered", record.TypeCovered)
-		d.Set("originalttl", record.OriginalTtl)
+		d.Set("originalttl", record.OriginalTTL)
 		d.Set("expiration", record.Expiration)
 		d.Set("inception", record.Inception)
 		d.Set("signer", record.Signer)
@@ -875,12 +880,12 @@ func marshalResourceData(d *schema.ResourceData, records *edgegrid.DnsRecordSet)
 func importRecord(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	config := meta.(*Config)
 
-	zone, err := config.ConfigDnsV1Service.GetZone(d.Get("hostname").(string))
+	zone, err := config.ConfigDNSV1Service.GetZone(d.Get("hostname").(string))
 	if err != nil {
 		return nil, err
 	}
 
-	_, hostname, recordType, name := getDnsRecordId("_." + d.Id())
+	_, hostname, recordType, name := getDNSRecordId("_." + d.Id())
 
 	var exists bool
 	for _, record := range zone.Zone.Records[recordType] {

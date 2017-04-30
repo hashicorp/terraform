@@ -1,7 +1,7 @@
 package akamai
 
 import (
-	"github.com/akamai-open/AkamaiOPEN-edgegrid-golang"
+	"github.com/akamai-open/AkamaiOPEN-edgegrid-golang/edgegrid"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -20,7 +20,7 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"akamai_fastdns_record": resourceFastDnsRecord(),
+			"akamai_fastdns_record": resourceFastDNSRecord(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
@@ -33,12 +33,12 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	}
 
 	config := &Config{}
-	config.ConfigDnsV1Service = configDnsV1Service
+	config.ConfigDNSV1Service = configDnsV1Service
 
 	return config, nil
 }
 
-func getConfigDnsV1Service(d *schema.ResourceData) (*edgegrid.ConfigDnsV1Service, error) {
+func getConfigDNSV1Service(d *schema.ResourceData) (*edgegrid.ConfigDNSV1Service, error) {
 	edgerc := d.Get("edgerc").(string)
 	section := d.Get("fastdns_section").(string)
 
@@ -52,7 +52,7 @@ func getConfigDnsV1Service(d *schema.ResourceData) (*edgegrid.ConfigDnsV1Service
 		return nil, err
 	}
 
-	client := edgegrid.NewConfigDnsV1Service(fastDnsClient, &fastDnsConfig)
+	client := edgegrid.NewConfigDNSV1Service(fastDnsClient, &fastDnsConfig)
 
 	return client, nil
 }
