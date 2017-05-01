@@ -318,17 +318,18 @@ func resourceServiceV1() *schema.Resource {
 							Required:    true,
 							Description: "A name to refer to this Cache Setting",
 						},
-						"cache_condition": {
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "Name of a condition to check if this Cache Setting applies",
-						},
 						"action": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Description: "Action to take",
 						},
 						// optional
+						"cache_condition": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "Name of a condition to check if this Cache Setting applies",
+						},
 						"stale_ttl": {
 							Type:        schema.TypeInt,
 							Optional:    true,
@@ -776,12 +777,13 @@ func resourceServiceV1() *schema.Resource {
 							Required:    true,
 							Description: "Unique name to refer to this Request Setting",
 						},
+						// Optional fields
 						"request_condition": {
 							Type:        schema.TypeString,
-							Required:    true,
-							Description: "Name of a request condition to apply.",
+							Optional:    true,
+							Default:     "",
+							Description: "Name of a request condition to apply. If there is no condition this setting will always be applied.",
 						},
-						// Optional fields
 						"max_stale_age": {
 							Type:        schema.TypeInt,
 							Optional:    true,
