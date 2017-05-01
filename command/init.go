@@ -106,11 +106,7 @@ func (c *InitCommand) Run(args []string) int {
 	// If we're performing a get or loading the backend, then we perform
 	// some extra tasks.
 	if flagGet || flagBackend {
-		// Load the configuration in this directory so that we can know
-		// if we have anything to get or any backend to configure. We do
-		// this to improve the UX. Practically, we could call the functions
-		// below without checking this to the same effect.
-		conf, err := config.LoadDir(path)
+		conf, err := c.Config(path)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf(
 				"Error loading configuration: %s", err))
@@ -145,7 +141,7 @@ func (c *InitCommand) Run(args []string) int {
 			}
 
 			opts := &BackendOpts{
-				ConfigPath:  path,
+				Config:      conf,
 				ConfigExtra: flagConfigExtra,
 				Init:        true,
 			}

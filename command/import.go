@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -60,8 +61,15 @@ func (c *ImportCommand) Run(args []string) int {
 		}
 	}
 
+	var conf *config.Config
+	if mod != nil {
+		conf = mod.Config()
+	}
+
 	// Load the backend
-	b, err := c.Backend(&BackendOpts{ConfigPath: configPath})
+	b, err := c.Backend(&BackendOpts{
+		Config: conf,
+	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
 		return 1
