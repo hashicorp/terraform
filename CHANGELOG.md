@@ -19,6 +19,7 @@ IMPROVEMENTS:
 * provider/aws: Add support for CustomOrigin timeouts to aws_cloudfront_distribution [GH-13367]
 * provider/aws: Add support for IAMDatabaseAuthenticationEnabled [GH-14092]
 * provider/aws: aws_dynamodb_table Add support for TimeToLive [GH-14104]
+* provider/aws: Add `security_configuration` support to `aws_emr_cluster` [GH-14133]
 * provider/azurerm: Expose the Private IP Address for a Load Balancer, if available [GH-13965]
 * provider/dnsimple: Add support for import for dnsimple_records [GH-9130]
 * provider/nomad: Add TLS options [GH-13956]
