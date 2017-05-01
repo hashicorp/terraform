@@ -69,3 +69,12 @@ The following additional attributes are exported:
 
 * `svn_url` - URL that can be provided to `svn checkout` to check out
   the repository via Github's Subversion protocol emulation.
+  
+
+## Import
+
+Repositories can be imported using the `name`, e.g.
+
+```
+$ terraform import github_repository.terraform terraform
+```
