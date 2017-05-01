@@ -849,7 +849,7 @@ func (c *RDS) CopyDBSnapshotRequest(input *CopyDBSnapshotInput) (req *request.Re
 // To copy a DB snapshot from a shared manual DB snapshot, SourceDBSnapshotIdentifier
 // must be the Amazon Resource Name (ARN) of the shared DB snapshot.
 //
-// You can copy an encrypted DB snapshot from another AWS Region. In that case,
+// You can copy an encrypted DB snapshot from another AWS region. In that case,
 // the region where you call the CopyDBSnapshot action is the destination region
 // for the encrypted DB snapshot to be copied to. To copy an encrypted DB snapshot
 // from another region, you must provide the following values:
@@ -900,7 +900,7 @@ func (c *RDS) CopyDBSnapshotRequest(input *CopyDBSnapshotInput) (req *request.Re
 //    in the presigned URL.
 //
 // For more information on copying encrypted snapshots from one region to another,
-// see  Copying an Encrypted DB Snapshot to Another Region (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_CopySnapshot.html#USER_CopySnapshot.Encrypted.CrossRegion)
+// see  Copying a DB Snapshot (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_CopySnapshot.html#USER_CopyDBSnapshot)
 // in the Amazon RDS User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -1564,6 +1564,9 @@ func (c *RDS) CreateDBInstanceReadReplicaRequest(input *CreateDBInstanceReadRepl
 //
 // Creates a DB instance for a DB instance running MySQL, MariaDB, or PostgreSQL
 // that acts as a Read Replica of a source DB instance.
+//
+// Amazon Aurora does not support this action. You must call the CreateDBInstance
+// action to create a DB instance for an Aurora DB cluster.
 //
 // All Read Replica DB instances are created as Single-AZ deployments with backups
 // disabled. All other DB instance attributes (including DB security groups
@@ -2453,7 +2456,9 @@ func (c *RDS) DeleteDBClusterParameterGroupRequest(input *DeleteDBClusterParamet
 //
 // Returned Error Codes:
 //   * ErrCodeInvalidDBParameterGroupStateFault "InvalidDBParameterGroupState"
-//   The DB parameter group cannot be deleted because it is in use.
+//   The DB parameter group is in use or is in an invalid state. If you are attempting
+//   to delete the parameter group, you cannot delete it when the parameter group
+//   is in this state.
 //
 //   * ErrCodeDBParameterGroupNotFoundFault "DBParameterGroupNotFound"
 //   DBParameterGroupName does not refer to an existing DB parameter group.
@@ -2744,7 +2749,9 @@ func (c *RDS) DeleteDBParameterGroupRequest(input *DeleteDBParameterGroupInput) 
 //
 // Returned Error Codes:
 //   * ErrCodeInvalidDBParameterGroupStateFault "InvalidDBParameterGroupState"
-//   The DB parameter group cannot be deleted because it is in use.
+//   The DB parameter group is in use or is in an invalid state. If you are attempting
+//   to delete the parameter group, you cannot delete it when the parameter group
+//   is in this state.
 //
 //   * ErrCodeDBParameterGroupNotFoundFault "DBParameterGroupNotFound"
 //   DBParameterGroupName does not refer to an existing DB parameter group.
@@ -6889,7 +6896,9 @@ func (c *RDS) ModifyDBClusterParameterGroupRequest(input *ModifyDBClusterParamet
 //   DBParameterGroupName does not refer to an existing DB parameter group.
 //
 //   * ErrCodeInvalidDBParameterGroupStateFault "InvalidDBParameterGroupState"
-//   The DB parameter group cannot be deleted because it is in use.
+//   The DB parameter group is in use or is in an invalid state. If you are attempting
+//   to delete the parameter group, you cannot delete it when the parameter group
+//   is in this state.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/ModifyDBClusterParameterGroup
 func (c *RDS) ModifyDBClusterParameterGroup(input *ModifyDBClusterParameterGroupInput) (*DBClusterParameterGroupNameMessage, error) {
@@ -6967,13 +6976,14 @@ func (c *RDS) ModifyDBClusterSnapshotAttributeRequest(input *ModifyDBClusterSnap
 // snapshot. Use the value all to make the manual DB cluster snapshot public,
 // which means that it can be copied or restored by all AWS accounts. Do not
 // add the all value for any manual DB cluster snapshots that contain private
-// information that you don't want available to all AWS accounts.
+// information that you don't want available to all AWS accounts. If a manual
+// DB cluster snapshot is encrypted, it can be shared, but only by specifying
+// a list of authorized AWS account IDs for the ValuesToAdd parameter. You can't
+// use all as a value for that parameter in this case.
 //
 // To view which AWS accounts have access to copy or restore a manual DB cluster
 // snapshot, or whether a manual DB cluster snapshot public or private, use
 // the DescribeDBClusterSnapshotAttributes API action.
-//
-// If a manual DB cluster snapshot is encrypted, it cannot be shared.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -7225,7 +7235,9 @@ func (c *RDS) ModifyDBParameterGroupRequest(input *ModifyDBParameterGroupInput) 
 //   DBParameterGroupName does not refer to an existing DB parameter group.
 //
 //   * ErrCodeInvalidDBParameterGroupStateFault "InvalidDBParameterGroupState"
-//   The DB parameter group cannot be deleted because it is in use.
+//   The DB parameter group is in use or is in an invalid state. If you are attempting
+//   to delete the parameter group, you cannot delete it when the parameter group
+//   is in this state.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/ModifyDBParameterGroup
 func (c *RDS) ModifyDBParameterGroup(input *ModifyDBParameterGroupInput) (*DBParameterGroupNameMessage, error) {
@@ -7388,13 +7400,14 @@ func (c *RDS) ModifyDBSnapshotAttributeRequest(input *ModifyDBSnapshotAttributeI
 // Uses the value all to make the manual DB snapshot public, which means it
 // can be copied or restored by all AWS accounts. Do not add the all value for
 // any manual DB snapshots that contain private information that you don't want
-// available to all AWS accounts.
+// available to all AWS accounts. If the manual DB snapshot is encrypted, it
+// can be shared, but only by specifying a list of authorized AWS account IDs
+// for the ValuesToAdd parameter. You can't use all as a value for that parameter
+// in this case.
 //
 // To view which AWS accounts have access to copy or restore a manual DB snapshot,
 // or whether a manual DB snapshot public or private, use the DescribeDBSnapshotAttributes
 // API action.
-//
-// If the manual DB snapshot is encrypted, it cannot be shared.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -8407,7 +8420,9 @@ func (c *RDS) ResetDBClusterParameterGroupRequest(input *ResetDBClusterParameter
 //
 // Returned Error Codes:
 //   * ErrCodeInvalidDBParameterGroupStateFault "InvalidDBParameterGroupState"
-//   The DB parameter group cannot be deleted because it is in use.
+//   The DB parameter group is in use or is in an invalid state. If you are attempting
+//   to delete the parameter group, you cannot delete it when the parameter group
+//   is in this state.
 //
 //   * ErrCodeDBParameterGroupNotFoundFault "DBParameterGroupNotFound"
 //   DBParameterGroupName does not refer to an existing DB parameter group.
@@ -8480,7 +8495,7 @@ func (c *RDS) ResetDBParameterGroupRequest(input *ResetDBParameterGroupInput) (r
 // ResetDBParameterGroup API operation for Amazon Relational Database Service.
 //
 // Modifies the parameters of a DB parameter group to the engine/system default
-// value. To reset specific parameters submit a list of the following: ParameterName
+// value. To reset specific parameters, provide a list of the following: ParameterName
 // and ApplyMethod. To reset the entire DB parameter group, specify the DBParameterGroup
 // name and ResetAllParameters parameters. When resetting the entire group,
 // dynamic parameters are updated immediately and static parameters are set
@@ -8496,7 +8511,9 @@ func (c *RDS) ResetDBParameterGroupRequest(input *ResetDBParameterGroupInput) (r
 //
 // Returned Error Codes:
 //   * ErrCodeInvalidDBParameterGroupStateFault "InvalidDBParameterGroupState"
-//   The DB parameter group cannot be deleted because it is in use.
+//   The DB parameter group is in use or is in an invalid state. If you are attempting
+//   to delete the parameter group, you cannot delete it when the parameter group
+//   is in this state.
 //
 //   * ErrCodeDBParameterGroupNotFoundFault "DBParameterGroupNotFound"
 //   DBParameterGroupName does not refer to an existing DB parameter group.
@@ -8571,7 +8588,7 @@ func (c *RDS) RestoreDBClusterFromS3Request(input *RestoreDBClusterFromS3Input) 
 // Creates an Amazon Aurora DB cluster from data stored in an Amazon S3 bucket.
 // Amazon RDS must be authorized to access the Amazon S3 bucket and the data
 // must be created using the Percona XtraBackup utility as described in Migrating
-// Data from MySQL by Using an Amazon S3 Bucket (AmazonRDS/latest/UserGuide/Aurora.Migrate.MySQL.html#Aurora.Migrate.MySQL.S3).
+// Data from MySQL by Using an Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Aurora.Migrate.MySQL.html#Aurora.Migrate.MySQL.S3).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -8857,22 +8874,18 @@ func (c *RDS) RestoreDBClusterToPointInTimeRequest(input *RestoreDBClusterToPoin
 //   * ErrCodeDBClusterAlreadyExistsFault "DBClusterAlreadyExistsFault"
 //   User already has a DB cluster with the given identifier.
 //
+//   * ErrCodeDBClusterNotFoundFault "DBClusterNotFoundFault"
+//   DBClusterIdentifier does not refer to an existing DB cluster.
+//
 //   * ErrCodeDBClusterQuotaExceededFault "DBClusterQuotaExceededFault"
 //   User attempted to create a new DB cluster and the user has already reached
 //   the maximum allowed DB cluster quota.
 //
-//   * ErrCodeStorageQuotaExceededFault "StorageQuotaExceeded"
-//   Request would result in user exceeding the allowed amount of storage available
-//   across all DB instances.
+//   * ErrCodeDBClusterSnapshotNotFoundFault "DBClusterSnapshotNotFoundFault"
+//   DBClusterSnapshotIdentifier does not refer to an existing DB cluster snapshot.
 //
 //   * ErrCodeDBSubnetGroupNotFoundFault "DBSubnetGroupNotFoundFault"
 //   DBSubnetGroupName does not refer to an existing DB subnet group.
-//
-//   * ErrCodeDBClusterNotFoundFault "DBClusterNotFoundFault"
-//   DBClusterIdentifier does not refer to an existing DB cluster.
-//
-//   * ErrCodeDBClusterSnapshotNotFoundFault "DBClusterSnapshotNotFoundFault"
-//   DBClusterSnapshotIdentifier does not refer to an existing DB cluster snapshot.
 //
 //   * ErrCodeInsufficientDBClusterCapacityFault "InsufficientDBClusterCapacityFault"
 //   The DB cluster does not have enough capacity for the current operation.
@@ -8882,35 +8895,35 @@ func (c *RDS) RestoreDBClusterToPointInTimeRequest(input *RestoreDBClusterToPoin
 //   able to resolve this error by updating your subnet group to use different
 //   Availability Zones that have more storage available.
 //
-//   * ErrCodeInvalidDBSnapshotStateFault "InvalidDBSnapshotState"
-//   The state of the DB snapshot does not allow deletion.
-//
 //   * ErrCodeInvalidDBClusterSnapshotStateFault "InvalidDBClusterSnapshotStateFault"
 //   The supplied value is not a valid DB cluster snapshot state.
 //
-//   * ErrCodeStorageQuotaExceededFault "StorageQuotaExceeded"
-//   Request would result in user exceeding the allowed amount of storage available
-//   across all DB instances.
+//   * ErrCodeInvalidDBClusterStateFault "InvalidDBClusterStateFault"
+//   The DB cluster is not in a valid state.
 //
-//   * ErrCodeInvalidVPCNetworkStateFault "InvalidVPCNetworkStateFault"
-//   DB subnet group does not cover all Availability Zones after it is created
-//   because users' change.
+//   * ErrCodeInvalidDBSnapshotStateFault "InvalidDBSnapshotState"
+//   The state of the DB snapshot does not allow deletion.
 //
 //   * ErrCodeInvalidRestoreFault "InvalidRestoreFault"
 //   Cannot restore from vpc backup to non-vpc DB instance.
-//
-//   * ErrCodeDBSubnetGroupNotFoundFault "DBSubnetGroupNotFoundFault"
-//   DBSubnetGroupName does not refer to an existing DB subnet group.
 //
 //   * ErrCodeInvalidSubnet "InvalidSubnet"
 //   The requested subnet is invalid, or multiple subnets were requested that
 //   are not all in a common VPC.
 //
-//   * ErrCodeOptionGroupNotFoundFault "OptionGroupNotFoundFault"
-//   The specified option group could not be found.
+//   * ErrCodeInvalidVPCNetworkStateFault "InvalidVPCNetworkStateFault"
+//   DB subnet group does not cover all Availability Zones after it is created
+//   because users' change.
 //
 //   * ErrCodeKMSKeyNotAccessibleFault "KMSKeyNotAccessibleFault"
 //   Error accessing KMS key.
+//
+//   * ErrCodeOptionGroupNotFoundFault "OptionGroupNotFoundFault"
+//   The specified option group could not be found.
+//
+//   * ErrCodeStorageQuotaExceededFault "StorageQuotaExceeded"
+//   Request would result in user exceeding the allowed amount of storage available
+//   across all DB instances.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/RestoreDBClusterToPointInTime
 func (c *RDS) RestoreDBClusterToPointInTime(input *RestoreDBClusterToPointInTimeInput) (*RestoreDBClusterToPointInTimeOutput, error) {
@@ -10108,6 +10121,8 @@ func (s *CopyDBClusterParameterGroupOutput) SetDBClusterParameterGroup(v *DBClus
 type CopyDBClusterSnapshotInput struct {
 	_ struct{} `type:"structure"`
 
+	// True to copy all tags from the source DB cluster snapshot to the target DB
+	// cluster snapshot; otherwise false. The default is false.
 	CopyTags *bool `type:"boolean"`
 
 	// DestinationRegion is used for presigning the request to a given region.
@@ -10170,6 +10185,9 @@ type CopyDBClusterSnapshotInput struct {
 	// The identifier of the DB cluster snapshot to copy. This parameter is not
 	// case-sensitive.
 	//
+	// You cannot copy an encrypted, shared DB cluster snapshot from one AWS region
+	// to another.
+	//
 	// Constraints:
 	//
 	//    * Must contain from 1 to 63 alphanumeric characters or hyphens.
@@ -10177,6 +10195,15 @@ type CopyDBClusterSnapshotInput struct {
 	//    * First character must be a letter.
 	//
 	//    * Cannot end with a hyphen or contain two consecutive hyphens.
+	//
+	//    * Must specify a valid system snapshot in the "available" state.
+	//
+	//    * If the source snapshot is in the same region as the copy, specify a
+	//    valid DB snapshot identifier.
+	//
+	//    * If the source snapshot is in a different region than the copy, specify
+	//    a valid DB cluster snapshot ARN. For more information, go to  Copying
+	//    a DB Snapshot or DB Cluster Snapshot (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_CopySnapshot.html).
 	//
 	// Example: my-cluster-snapshot1
 	//
@@ -10504,7 +10531,7 @@ type CopyDBSnapshotInput struct {
 	//    snapshot to be copied. This identifier must be in the Amazon Resource
 	//    Name (ARN) format for the source region. For example, if you are copying
 	//    an encrypted DB snapshot from the us-west-2 region, then your SourceDBSnapshotIdentifier
-	//    would look like Example: arn:aws:rds:us-west-2:123456789012:snapshot:mysql-instance1-snapshot-20161115.
+	//    looks like the following example: arn:aws:rds:us-west-2:123456789012:snapshot:mysql-instance1-snapshot-20161115.
 	//
 	// To learn how to generate a Signature Version 4 signed request, see  Authenticating
 	// Requests: Using Query Parameters (AWS Signature Version 4) (http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html)
@@ -10527,7 +10554,7 @@ type CopyDBSnapshotInput struct {
 	//
 	//    * If the source snapshot is in a different region than the copy, specify
 	//    a valid DB snapshot ARN. For more information, go to  Copying a DB Snapshot
-	//    (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_CopySnapshot.html).
+	//    or DB Cluster Snapshot (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_CopySnapshot.html).
 	//
 	// Example: rds:mydb-2012-04-02-00-01
 	//
@@ -10855,6 +10882,12 @@ type CreateDBClusterInput struct {
 	// DestinationRegion is used for presigning the request to a given region.
 	DestinationRegion *string `type:"string"`
 
+	// A Boolean value that is true to enable mapping of AWS Identity and Access
+	// Management (IAM) accounts to database accounts, and otherwise false.
+	//
+	// Default: false
+	EnableIAMDatabaseAuthentication *bool `type:"boolean"`
+
 	// The name of the database engine to be used for this DB cluster.
 	//
 	// Valid Values: aurora
@@ -11069,6 +11102,12 @@ func (s *CreateDBClusterInput) SetDatabaseName(v string) *CreateDBClusterInput {
 // SetDestinationRegion sets the DestinationRegion field's value.
 func (s *CreateDBClusterInput) SetDestinationRegion(v string) *CreateDBClusterInput {
 	s.DestinationRegion = &v
+	return s
+}
+
+// SetEnableIAMDatabaseAuthentication sets the EnableIAMDatabaseAuthentication field's value.
+func (s *CreateDBClusterInput) SetEnableIAMDatabaseAuthentication(v bool) *CreateDBClusterInput {
+	s.EnableIAMDatabaseAuthentication = &v
 	return s
 }
 
@@ -11442,6 +11481,12 @@ type CreateDBInstanceInput struct {
 	//
 	// Type: Integer
 	//
+	// Amazon Aurora
+	//
+	// Not applicable. Aurora cluster volumes automatically grow as the amount of
+	// data in your database increases, though you are only charged for the space
+	// that you use in an Aurora cluster volume.
+	//
 	// MySQL
 	//
 	// Constraints: Must be an integer from 5 to 6144.
@@ -11639,6 +11684,18 @@ type CreateDBInstanceInput struct {
 	// Directory Service.
 	DomainIAMRoleName *string `type:"string"`
 
+	// True to enable mapping of AWS Identity and Access Management (IAM) accounts
+	// to database accounts; otherwise false.
+	//
+	// You can enable IAM database authentication for the following database engines
+	//
+	//    * For MySQL 5.6, minor version 5.6.34 or higher
+	//
+	//    * For MySQL 5.7, minor version 5.7.16 or higher
+	//
+	// Default: false
+	EnableIAMDatabaseAuthentication *bool `type:"boolean"`
+
 	// The name of the database engine to be used for this instance.
 	//
 	// Valid Values: mysql | mariadb | oracle-se1 | oracle-se2 | oracle-se | oracle-ee
@@ -11737,109 +11794,13 @@ type CreateDBInstanceInput struct {
 	//    ap-southeast-2, eu-west-1, sa-east-1, us-east-1, us-gov-west-1, us-west-1,
 	//    us-west-2): 5.1.73a | 5.1.73b
 	//
-	// Oracle Database Enterprise Edition (oracle-ee)
-	//
-	//    * Version 12.1 (available in all AWS regions except ap-south-1, ap-northeast-2):
-	//    12.1.0.1.v1 | 12.1.0.1.v2
-	//
-	//    * Version 12.1 (only available in AWS regions ap-northeast-1, ap-southeast-1,
-	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
-	//    us-west-2): 12.1.0.1.v3 | 12.1.0.1.v4 | 12.1.0.1.v5
-	//
-	//    * Version 12.1 (available in all AWS regions): 12.1.0.2.v1
-	//
-	//    * Version 12.1 (available in all AWS regions except us-gov-west-1): 12.1.0.2.v2
-	//    | 12.1.0.2.v3 | 12.1.0.2.v4
-	//
-	//    * Version 11.2 (only available in AWS regions ap-northeast-1, ap-southeast-1,
-	//    ap-southeast-2, eu-west-1, sa-east-1, us-east-1, us-gov-west-1, us-west-1,
-	//    us-west-2): 11.2.0.2.v3 | 11.2.0.2.v4 | 11.2.0.2.v5 | 11.2.0.2.v6 | 11.2.0.2.v7
-	//
-	//    * Version 11.2 (available in all AWS regions except ap-south-1, ap-northeast-2):
-	//    11.2.0.3.v1 | 11.2.0.3.v2 | 11.2.0.3.v3
-	//
-	//    * Version 11.2 (only available in AWS regions ap-northeast-1, ap-southeast-1,
-	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
-	//    us-west-2): 11.2.0.3.v4
-	//
-	//    * Version 11.2 (available in all AWS regions): 11.2.0.4.v1 | 11.2.0.4.v3
-	//    | 11.2.0.4.v4
-	//
-	//    * Version 11.2 (available in all AWS regions except us-gov-west-1): 11.2.0.4.v5
-	//    | 11.2.0.4.v6 | 11.2.0.4.v7 | 11.2.0.4.v8
-	//
-	// Oracle Database Standard Edition (oracle-se)
-	//
-	//    * Version 12.1 (available in all AWS regions except ap-south-1, ap-northeast-2):
-	//    12.1.0.1.v1 | 12.1.0.1.v2
-	//
-	//    * Version 12.1 (only available in AWS regions ap-northeast-1, ap-southeast-1,
-	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
-	//    us-west-2): 12.1.0.1.v3 | 12.1.0.1.v4 | 12.1.0.1.v5
-	//
-	//    * Version 11.2 (only available in AWS regions ap-northeast-1, ap-southeast-1,
-	//    ap-southeast-2, eu-west-1, sa-east-1, us-east-1, us-gov-west-1, us-west-1,
-	//    us-west-2): 11.2.0.2.v3 | 11.2.0.2.v4 | 11.2.0.2.v5 | 11.2.0.2.v6 | 11.2.0.2.v7
-	//
-	//    * Version 11.2 (available in all AWS regions except ap-south-1, ap-northeast-2):
-	//    11.2.0.3.v1 | 11.2.0.3.v2 | 11.2.0.3.v3
-	//
-	//    * Version 11.2 (only available in AWS regions ap-northeast-1, ap-southeast-1,
-	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
-	//    us-west-2): 11.2.0.3.v4
-	//
-	//    * Version 11.2 (available in all AWS regions): 11.2.0.4.v1 | 11.2.0.4.v3
-	//    | 11.2.0.4.v4
-	//
-	//    * Version 11.2 (available in all AWS regions except us-gov-west-1): 11.2.0.4.v5
-	//    | 11.2.0.4.v6 | 11.2.0.4.v7 | 11.2.0.4.v8
-	//
-	// Oracle Database Standard Edition One (oracle-se1)
-	//
-	//    * Version 12.1 (available in all AWS regions except ap-south-1, ap-northeast-2):
-	//    12.1.0.1.v1 | 12.1.0.1.v2
-	//
-	//    * Version 12.1 (only available in AWS regions ap-northeast-1, ap-southeast-1,
-	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
-	//    us-west-2): 12.1.0.1.v3 | 12.1.0.1.v4 | 12.1.0.1.v5
-	//
-	//    * Version 11.2 (only available in AWS regions ap-northeast-1, ap-southeast-1,
-	//    ap-southeast-2, eu-west-1, sa-east-1, us-east-1, us-gov-west-1, us-west-1,
-	//    us-west-2): 11.2.0.2.v3 | 11.2.0.2.v4 | 11.2.0.2.v5 | 11.2.0.2.v6 | 11.2.0.2.v7
-	//
-	//    * Version 11.2 (available in all AWS regions except ap-south-1, ap-northeast-2):
-	//    11.2.0.3.v1 | 11.2.0.3.v2 | 11.2.0.3.v3
-	//
-	//    * Version 11.2 (only available in AWS regions ap-northeast-1, ap-southeast-1,
-	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
-	//    us-west-2): 11.2.0.3.v4
-	//
-	//    * Version 11.2 (available in all AWS regions): 11.2.0.4.v1 | 11.2.0.4.v3
-	//    | 11.2.0.4.v4
-	//
-	//    * Version 11.2 (available in all AWS regions except us-gov-west-1): 11.2.0.4.v5
-	//    | 11.2.0.4.v6 | 11.2.0.4.v7 | 11.2.0.4.v8
-	//
-	// Oracle Database Standard Edition Two (oracle-se2)
-	//
-	//    * Version 12.1 (available in all AWS regions except us-gov-west-1): 12.1.0.2.v2
-	//    | 12.1.0.2.v3 | 12.1.0.2.v4
-	//
-	// PostgreSQL
-	//
-	//    * Version 9.6: 9.6.1
-	//
-	//    * Version 9.5:9.5.4 | 9.5.2
-	//
-	//    * Version 9.4: 9.4.9 | 9.4.7 | 9.4.5 | 9.4.4 | 9.4.1
-	//
-	//    * Version 9.3: 9.3.14 | 9.3.12 | 9.3.10 | 9.3.9 | 9.3.6 | 9.3.5 | 9.3.3
-	//    | 9.3.2 | 9.3.1
-	//
 	// Oracle 12c
 	//
-	// 12.1.0.2.v6 (supported for EE in all AWS regions, and SE2 in all AWS regions
-	// except us-gov-west-1)
+	//    * 12.1.0.2.v7 (supported for EE in all AWS regions, and SE2 in all AWS
+	//    regions except us-gov-west-1)
+	//
+	//    * 12.1.0.2.v6 (supported for EE in all AWS regions, and SE2 in all AWS
+	//    regions except us-gov-west-1)
 	//
 	//    * 12.1.0.2.v5 (supported for EE in all AWS regions, and SE2 in all AWS
 	//    regions except us-gov-west-1)
@@ -11856,25 +11817,9 @@ type CreateDBInstanceInput struct {
 	//    * 12.1.0.2.v1 (supported for EE in all AWS regions, and SE2 in all AWS
 	//    regions except us-gov-west-1)
 	//
-	//    * 12.1.0.1.v6 (supported for EE, SE1, and SE, in all AWS regions except
-	//    ap-south-1, ap-northeast-2)
-	//
-	//    * 12.1.0.1.v5 (supported for EE, SE1, and SE, in all AWS regions except
-	//    ap-south-1, ap-northeast-2)
-	//
-	//    * 12.1.0.1.v4 (supported for EE, SE1, and SE, in all AWS regions except
-	//    ap-south-1, ap-northeast-2)
-	//
-	//    * 12.1.0.1.v3 (supported for EE, SE1, and SE, in all AWS regions except
-	//    ap-south-1, ap-northeast-2)
-	//
-	//    * 12.1.0.1.v2 (supported for EE, SE1, and SE, in all AWS regions except
-	//    ap-south-1, ap-northeast-2)
-	//
-	//    * 12.1.0.1.v1 (supported for EE, SE1, and SE, in all AWS regions except
-	//    ap-south-1, ap-northeast-2)
-	//
 	// Oracle 11g
+	//
+	//    * 11.2.0.4.v11 (supported for EE, SE1, and SE, in all AWS regions)
 	//
 	//    * 11.2.0.4.v10 (supported for EE, SE1, and SE, in all AWS regions)
 	//
@@ -11896,43 +11841,14 @@ type CreateDBInstanceInput struct {
 	//
 	// PostgreSQL
 	//
-	//    * Version 9.5 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
-	//    ap-south-1, ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1,
-	//    us-east-1, us-west-1, us-west-2):   *  9.5.4
+	//    * Version 9.6: 9.6.1
 	//
-	//    * Version 9.5 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
-	//    ap-south-1, ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1,
-	//    us-east-1, us-east-2, us-west-1, us-west-2):   *  9.5.2
+	//    * Version 9.5:9.5.4 | 9.5.2
 	//
-	//    * Version 9.4 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
-	//    ap-south-1, ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1,
-	//    us-east-1, us-west-1, us-west-2):   *  9.4.9
+	//    * Version 9.4: 9.4.9 | 9.4.7 | 9.4.5 | 9.4.4 | 9.4.1
 	//
-	//    * Version 9.4 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
-	//    ap-south-1, ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1,
-	//    us-east-1, us-east-2, us-west-1, us-west-2):   *  9.4.7
-	//
-	//    * Version 9.4 (available in all AWS regions):   *  9.4.5
-	//
-	//    * Version 9.4 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
-	//    ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1,
-	//    us-gov-west-1, us-west-1, us-west-2):   *  9.4.4
-	//
-	//    * Version 9.4 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
-	//    ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1,
-	//    us-east-2, us-gov-west-1, us-west-1, us-west-2):   *  9.4.1
-	//
-	//    * Version 9.3 (available in these AWS regions: ap-northeast-1, ap-southeast-1,
-	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-gov-west-1,
-	//    us-west-1, us-west-2):   *  9.3.10 | 9.3.3 | 9.3.5 | 9.3.6 | 9.3.9
-	//
-	//    * Version 9.3 (available in these AWS regions: ap-northeast-1, ap-southeast-1,
-	//    ap-southeast-2, eu-west-1, sa-east-1, us-east-1, us-gov-west-1, us-west-1,
-	//    us-west-2):   *  9.3.1 | 9.3.2
-	//
-	//    * Version 9.3 (available in these AWS regions: ap-northeast-1, ap-southeast-1,
-	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
-	//    us-west-2):   *  9.3.12 | 9.3.14
+	//    * Version 9.3: 9.3.14 | 9.3.12 | 9.3.10 | 9.3.9 | 9.3.6 | 9.3.5 | 9.3.3
+	//    | 9.3.2 | 9.3.1
 	EngineVersion *string `type:"string"`
 
 	// The amount of Provisioned IOPS (input/output operations per second) to be
@@ -11965,13 +11881,20 @@ type CreateDBInstanceInput struct {
 	// The password for the master database user. Can be any printable ASCII character
 	// except "/", """, or "@".
 	//
-	// Type: String
+	// Amazon Aurora
 	//
-	// MySQL
+	// Not applicable. You specify the password for the master database user when
+	// you create your DB cluster.
+	//
+	// MariaDB
 	//
 	// Constraints: Must contain from 8 to 41 characters.
 	//
-	// MariaDB
+	// Microsoft SQL Server
+	//
+	// Constraints: Must contain from 8 to 128 characters.
+	//
+	// MySQL
 	//
 	// Constraints: Must contain from 8 to 41 characters.
 	//
@@ -11979,20 +11902,35 @@ type CreateDBInstanceInput struct {
 	//
 	// Constraints: Must contain from 8 to 30 characters.
 	//
-	// SQL Server
-	//
-	// Constraints: Must contain from 8 to 128 characters.
-	//
 	// PostgreSQL
 	//
 	// Constraints: Must contain from 8 to 128 characters.
+	MasterUserPassword *string `type:"string"`
+
+	// The name for the master database user.
 	//
 	// Amazon Aurora
 	//
-	// Constraints: Must contain from 8 to 41 characters.
-	MasterUserPassword *string `type:"string"`
-
-	// The name of master user for the client DB instance.
+	// Not applicable. You specify the name for the master database user when you
+	// create your DB cluster.
+	//
+	// MariaDB
+	//
+	// Constraints:
+	//
+	//    * Must be 1 to 16 alphanumeric characters.
+	//
+	//    * Cannot be a reserved word for the chosen database engine.
+	//
+	// Microsoft SQL Server
+	//
+	// Constraints:
+	//
+	//    * Must be 1 to 128 alphanumeric characters.
+	//
+	//    * First character must be a letter.
+	//
+	//    * Cannot be a reserved word for the chosen database engine.
 	//
 	// MySQL
 	//
@@ -12004,31 +11942,11 @@ type CreateDBInstanceInput struct {
 	//
 	//    * Cannot be a reserved word for the chosen database engine.
 	//
-	// MariaDB
-	//
-	// Constraints:
-	//
-	//    * Must be 1 to 16 alphanumeric characters.
-	//
-	//    * Cannot be a reserved word for the chosen database engine.
-	//
-	// Type: String
-	//
 	// Oracle
 	//
 	// Constraints:
 	//
 	//    * Must be 1 to 30 alphanumeric characters.
-	//
-	//    * First character must be a letter.
-	//
-	//    * Cannot be a reserved word for the chosen database engine.
-	//
-	// SQL Server
-	//
-	// Constraints:
-	//
-	//    * Must be 1 to 128 alphanumeric characters.
 	//
 	//    * First character must be a letter.
 	//
@@ -12057,8 +11975,8 @@ type CreateDBInstanceInput struct {
 
 	// The ARN for the IAM role that permits RDS to send enhanced monitoring metrics
 	// to CloudWatch Logs. For example, arn:aws:iam:123456789012:role/emaccess.
-	// For information on creating a monitoring role, go to To create an IAM role
-	// for Amazon RDS Enhanced Monitoring (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Monitoring.html#USER_Monitoring.OS.IAMRole).
+	// For information on creating a monitoring role, go to Setting Up and Enabling
+	// Enhanced Monitoring (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Monitoring.OS.html#USER_Monitoring.OS.Enabling).
 	//
 	// If MonitoringInterval is set to a value other than 0, then you must supply
 	// a MonitoringRoleArn value.
@@ -12130,8 +12048,7 @@ type CreateDBInstanceInput struct {
 	//
 	// Default: A 30-minute window selected at random from an 8-hour block of time
 	// per region. To see the time blocks available, see  Adjusting the Preferred
-	// Maintenance Window (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/AdjustingTheMaintenanceWindow.html)
-	// in the Amazon RDS User Guide.
+	// DB Instance Maintenance Window (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Maintenance.html#AdjustingTheMaintenanceWindow).
 	//
 	// Constraints:
 	//
@@ -12337,6 +12254,12 @@ func (s *CreateDBInstanceInput) SetDomain(v string) *CreateDBInstanceInput {
 // SetDomainIAMRoleName sets the DomainIAMRoleName field's value.
 func (s *CreateDBInstanceInput) SetDomainIAMRoleName(v string) *CreateDBInstanceInput {
 	s.DomainIAMRoleName = &v
+	return s
+}
+
+// SetEnableIAMDatabaseAuthentication sets the EnableIAMDatabaseAuthentication field's value.
+func (s *CreateDBInstanceInput) SetEnableIAMDatabaseAuthentication(v bool) *CreateDBInstanceInput {
+	s.EnableIAMDatabaseAuthentication = &v
 	return s
 }
 
@@ -12580,6 +12503,20 @@ type CreateDBInstanceReadReplicaInput struct {
 	// DestinationRegion is used for presigning the request to a given region.
 	DestinationRegion *string `type:"string"`
 
+	// True to enable mapping of AWS Identity and Access Management (IAM) accounts
+	// to database accounts; otherwise false.
+	//
+	// You can enable IAM database authentication for the following database engines
+	//
+	//    * For MySQL 5.6, minor version 5.6.34 or higher
+	//
+	//    * For MySQL 5.7, minor version 5.7.16 or higher
+	//
+	//    * Aurora 5.6 or higher.
+	//
+	// Default: false
+	EnableIAMDatabaseAuthentication *bool `type:"boolean"`
+
 	// The amount of Provisioned IOPS (input/output operations per second) to be
 	// initially allocated for the DB instance.
 	Iops *int64 `type:"integer"`
@@ -12797,6 +12734,12 @@ func (s *CreateDBInstanceReadReplicaInput) SetDBSubnetGroupName(v string) *Creat
 // SetDestinationRegion sets the DestinationRegion field's value.
 func (s *CreateDBInstanceReadReplicaInput) SetDestinationRegion(v string) *CreateDBInstanceReadReplicaInput {
 	s.DestinationRegion = &v
+	return s
+}
+
+// SetEnableIAMDatabaseAuthentication sets the EnableIAMDatabaseAuthentication field's value.
+func (s *CreateDBInstanceReadReplicaInput) SetEnableIAMDatabaseAuthentication(v bool) *CreateDBInstanceReadReplicaInput {
+	s.EnableIAMDatabaseAuthentication = &v
 	return s
 }
 
@@ -13659,7 +13602,10 @@ func (s *CreateOptionGroupOutput) SetOptionGroup(v *OptionGroup) *CreateOptionGr
 type DBCluster struct {
 	_ struct{} `type:"structure"`
 
-	// Specifies the allocated storage size in gigabytes (GB).
+	// For all database engines except Amazon Aurora, AllocatedStorage specifies
+	// the allocated storage size in gigabytes (GB). For Aurora, AllocatedStorage
+	// always returns 1, because Aurora DB cluster storage size is not fixed, but
+	// instead automatically adjusts as needed.
 	AllocatedStorage *int64 `type:"integer"`
 
 	// Provides a list of the AWS Identity and Access Management (IAM) roles that
@@ -13729,6 +13675,10 @@ type DBCluster struct {
 	// Specifies the ID that Amazon Route 53 assigns when you create a hosted zone.
 	HostedZoneId *string `type:"string"`
 
+	// True if mapping of AWS Identity and Access Management (IAM) accounts to database
+	// accounts is enabled; otherwise false.
+	IAMDatabaseAuthenticationEnabled *bool `type:"boolean"`
+
 	// If StorageEncrypted is true, the KMS key identifier for the encrypted DB
 	// cluster.
 	KmsKeyId *string `type:"string"`
@@ -13771,7 +13721,7 @@ type DBCluster struct {
 	// If a failover occurs, and the Aurora Replica that you are connected to is
 	// promoted to be the primary instance, your connection will be dropped. To
 	// continue sending your read workload to other Aurora Replicas in the cluster,
-	// you can then recoonect to the reader endpoint.
+	// you can then reconnect to the reader endpoint.
 	ReaderEndpoint *string `type:"string"`
 
 	// Contains the identifier of the source DB cluster if this DB cluster is a
@@ -13909,6 +13859,12 @@ func (s *DBCluster) SetEngineVersion(v string) *DBCluster {
 // SetHostedZoneId sets the HostedZoneId field's value.
 func (s *DBCluster) SetHostedZoneId(v string) *DBCluster {
 	s.HostedZoneId = &v
+	return s
+}
+
+// SetIAMDatabaseAuthenticationEnabled sets the IAMDatabaseAuthenticationEnabled field's value.
+func (s *DBCluster) SetIAMDatabaseAuthenticationEnabled(v bool) *DBCluster {
+	s.IAMDatabaseAuthenticationEnabled = &v
 	return s
 }
 
@@ -14264,6 +14220,10 @@ type DBClusterSnapshot struct {
 	// Provides the version of the database engine for this DB cluster snapshot.
 	EngineVersion *string `type:"string"`
 
+	// True if mapping of AWS Identity and Access Management (IAM) accounts to database
+	// accounts is enabled; otherwise false.
+	IAMDatabaseAuthenticationEnabled *bool `type:"boolean"`
+
 	// If StorageEncrypted is true, the KMS key identifier for the encrypted DB
 	// cluster snapshot.
 	KmsKeyId *string `type:"string"`
@@ -14353,6 +14313,12 @@ func (s *DBClusterSnapshot) SetEngine(v string) *DBClusterSnapshot {
 // SetEngineVersion sets the EngineVersion field's value.
 func (s *DBClusterSnapshot) SetEngineVersion(v string) *DBClusterSnapshot {
 	s.EngineVersion = &v
+	return s
+}
+
+// SetIAMDatabaseAuthenticationEnabled sets the IAMDatabaseAuthenticationEnabled field's value.
+func (s *DBClusterSnapshot) SetIAMDatabaseAuthenticationEnabled(v bool) *DBClusterSnapshot {
+	s.IAMDatabaseAuthenticationEnabled = &v
 	return s
 }
 
@@ -14663,7 +14629,7 @@ type DBInstance struct {
 	// when returning values from CreateDBInstanceReadReplica since Read Replicas
 	// are only supported for these engines.
 	//
-	// MySQL, MariaDB, SQL Server, PostgreSQL, Amazon Aurora
+	// MySQL, MariaDB, SQL Server, PostgreSQL
 	//
 	// Contains the name of the initial database of this instance that was provided
 	// at create time, if one was specified when the DB instance was created. This
@@ -14712,6 +14678,19 @@ type DBInstance struct {
 	// The Amazon Resource Name (ARN) of the Amazon CloudWatch Logs log stream that
 	// receives the Enhanced Monitoring metrics data for the DB instance.
 	EnhancedMonitoringResourceArn *string `type:"string"`
+
+	// True if mapping of AWS Identity and Access Management (IAM) accounts to database
+	// accounts is enabled; otherwise false.
+	//
+	// IAM database authentication can be enabled for the following database engines
+	//
+	//    * For MySQL 5.6, minor version 5.6.34 or higher
+	//
+	//    * For MySQL 5.7, minor version 5.7.16 or higher
+	//
+	//    * Aurora 5.6 or higher. To enable IAM database authentication for Aurora,
+	//    see DBCluster Type.
+	IAMDatabaseAuthenticationEnabled *bool `type:"boolean"`
 
 	// Provides the date and time the DB instance was created.
 	InstanceCreateTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
@@ -14967,6 +14946,12 @@ func (s *DBInstance) SetEngineVersion(v string) *DBInstance {
 // SetEnhancedMonitoringResourceArn sets the EnhancedMonitoringResourceArn field's value.
 func (s *DBInstance) SetEnhancedMonitoringResourceArn(v string) *DBInstance {
 	s.EnhancedMonitoringResourceArn = &v
+	return s
+}
+
+// SetIAMDatabaseAuthenticationEnabled sets the IAMDatabaseAuthenticationEnabled field's value.
+func (s *DBInstance) SetIAMDatabaseAuthenticationEnabled(v bool) *DBInstance {
+	s.IAMDatabaseAuthenticationEnabled = &v
 	return s
 }
 
@@ -15475,6 +15460,10 @@ type DBSnapshot struct {
 	// Specifies the version of the database engine.
 	EngineVersion *string `type:"string"`
 
+	// True if mapping of AWS Identity and Access Management (IAM) accounts to database
+	// accounts is enabled; otherwise false.
+	IAMDatabaseAuthenticationEnabled *bool `type:"boolean"`
+
 	// Specifies the time when the snapshot was taken, in Universal Coordinated
 	// Time (UTC).
 	InstanceCreateTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
@@ -15589,6 +15578,12 @@ func (s *DBSnapshot) SetEngine(v string) *DBSnapshot {
 // SetEngineVersion sets the EngineVersion field's value.
 func (s *DBSnapshot) SetEngineVersion(v string) *DBSnapshot {
 	s.EngineVersion = &v
+	return s
+}
+
+// SetIAMDatabaseAuthenticationEnabled sets the IAMDatabaseAuthenticationEnabled field's value.
+func (s *DBSnapshot) SetIAMDatabaseAuthenticationEnabled(v bool) *DBSnapshot {
+	s.IAMDatabaseAuthenticationEnabled = &v
 	return s
 }
 
@@ -21259,6 +21254,12 @@ type ModifyDBClusterInput struct {
 	// The name of the DB cluster parameter group to use for the DB cluster.
 	DBClusterParameterGroupName *string `type:"string"`
 
+	// A Boolean value that is true to enable mapping of AWS Identity and Access
+	// Management (IAM) accounts to database accounts, and otherwise false.
+	//
+	// Default: false
+	EnableIAMDatabaseAuthentication *bool `type:"boolean"`
+
 	// The new password for the master database user. This password can contain
 	// any printable ASCII character except "/", """, or "@".
 	//
@@ -21332,7 +21333,7 @@ type ModifyDBClusterInput struct {
 	// Constraints: Minimum 30-minute window.
 	PreferredMaintenanceWindow *string `type:"string"`
 
-	// A lst of VPC security groups that the DB cluster will belong to.
+	// A list of VPC security groups that the DB cluster will belong to.
 	VpcSecurityGroupIds []*string `locationNameList:"VpcSecurityGroupId" type:"list"`
 }
 
@@ -21380,6 +21381,12 @@ func (s *ModifyDBClusterInput) SetDBClusterIdentifier(v string) *ModifyDBCluster
 // SetDBClusterParameterGroupName sets the DBClusterParameterGroupName field's value.
 func (s *ModifyDBClusterInput) SetDBClusterParameterGroupName(v string) *ModifyDBClusterInput {
 	s.DBClusterParameterGroupName = &v
+	return s
+}
+
+// SetEnableIAMDatabaseAuthentication sets the EnableIAMDatabaseAuthentication field's value.
+func (s *ModifyDBClusterInput) SetEnableIAMDatabaseAuthentication(v bool) *ModifyDBClusterInput {
+	s.EnableIAMDatabaseAuthentication = &v
 	return s
 }
 
@@ -21904,6 +21911,18 @@ type ModifyDBInstanceInput struct {
 	// The name of the IAM role to use when making API calls to the Directory Service.
 	DomainIAMRoleName *string `type:"string"`
 
+	// True to enable mapping of AWS Identity and Access Management (IAM) accounts
+	// to database accounts; otherwise false.
+	//
+	// You can enable IAM database authentication for the following database engines
+	//
+	//    * For MySQL 5.6, minor version 5.6.34 or higher
+	//
+	//    * For MySQL 5.7, minor version 5.7.16 or higher
+	//
+	// Default: false
+	EnableIAMDatabaseAuthentication *bool `type:"boolean"`
+
 	// The version number of the database engine to upgrade to. Changing this parameter
 	// results in an outage and the change is applied during the next maintenance
 	// window unless the ApplyImmediately parameter is set to true for this request.
@@ -22227,6 +22246,12 @@ func (s *ModifyDBInstanceInput) SetDomain(v string) *ModifyDBInstanceInput {
 // SetDomainIAMRoleName sets the DomainIAMRoleName field's value.
 func (s *ModifyDBInstanceInput) SetDomainIAMRoleName(v string) *ModifyDBInstanceInput {
 	s.DomainIAMRoleName = &v
+	return s
+}
+
+// SetEnableIAMDatabaseAuthentication sets the EnableIAMDatabaseAuthentication field's value.
+func (s *ModifyDBInstanceInput) SetEnableIAMDatabaseAuthentication(v bool) *ModifyDBInstanceInput {
+	s.EnableIAMDatabaseAuthentication = &v
 	return s
 }
 
@@ -23644,6 +23669,9 @@ type OrderableDBInstanceOption struct {
 	// from 1 to 60 seconds.
 	SupportsEnhancedMonitoring *bool `type:"boolean"`
 
+	// Indicates whether this orderable DB instance supports IAM database authentication.
+	SupportsIAMDatabaseAuthentication *bool `type:"boolean"`
+
 	// Indicates whether this orderable DB instance supports provisioned IOPS.
 	SupportsIops *bool `type:"boolean"`
 
@@ -23715,6 +23743,12 @@ func (s *OrderableDBInstanceOption) SetStorageType(v string) *OrderableDBInstanc
 // SetSupportsEnhancedMonitoring sets the SupportsEnhancedMonitoring field's value.
 func (s *OrderableDBInstanceOption) SetSupportsEnhancedMonitoring(v bool) *OrderableDBInstanceOption {
 	s.SupportsEnhancedMonitoring = &v
+	return s
+}
+
+// SetSupportsIAMDatabaseAuthentication sets the SupportsIAMDatabaseAuthentication field's value.
+func (s *OrderableDBInstanceOption) SetSupportsIAMDatabaseAuthentication(v bool) *OrderableDBInstanceOption {
+	s.SupportsIAMDatabaseAuthentication = &v
 	return s
 }
 
@@ -24508,7 +24542,7 @@ func (s *RecurringCharge) SetRecurringChargeFrequency(v string) *RecurringCharge
 type RemoveRoleFromDBClusterInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the DB cluster to disassociate the IAM role rom.
+	// The name of the DB cluster to disassociate the IAM role from.
 	//
 	// DBClusterIdentifier is a required field
 	DBClusterIdentifier *string `type:"string" required:"true"`
@@ -25060,10 +25094,10 @@ type ResetDBParameterGroupInput struct {
 	// DBParameterGroupName is a required field
 	DBParameterGroupName *string `type:"string" required:"true"`
 
-	// An array of parameter names, values, and the apply method for the parameter
-	// update. At least one parameter name, value, and apply method must be supplied;
-	// subsequent arguments are optional. A maximum of 20 parameters can be modified
-	// in a single request.
+	// To reset the entire DB parameter group, specify the DBParameterGroup name
+	// and ResetAllParameters parameters. To reset specific parameters, provide
+	// a list of the following: ParameterName and ApplyMethod. A maximum of 20 parameters
+	// can be modified in a single request.
 	//
 	// MySQL
 	//
@@ -25229,6 +25263,12 @@ type RestoreDBClusterFromS3Input struct {
 
 	// The database name for the restored DB cluster.
 	DatabaseName *string `type:"string"`
+
+	// A Boolean value that is true to enable mapping of AWS Identity and Access
+	// Management (IAM) accounts to database accounts, and otherwise false.
+	//
+	// Default: false
+	EnableIAMDatabaseAuthentication *bool `type:"boolean"`
 
 	// The name of the database engine to be used for the restored DB cluster.
 	//
@@ -25457,6 +25497,12 @@ func (s *RestoreDBClusterFromS3Input) SetDatabaseName(v string) *RestoreDBCluste
 	return s
 }
 
+// SetEnableIAMDatabaseAuthentication sets the EnableIAMDatabaseAuthentication field's value.
+func (s *RestoreDBClusterFromS3Input) SetEnableIAMDatabaseAuthentication(v bool) *RestoreDBClusterFromS3Input {
+	s.EnableIAMDatabaseAuthentication = &v
+	return s
+}
+
 // SetEngine sets the Engine field's value.
 func (s *RestoreDBClusterFromS3Input) SetEngine(v string) *RestoreDBClusterFromS3Input {
 	s.Engine = &v
@@ -25632,6 +25678,12 @@ type RestoreDBClusterFromSnapshotInput struct {
 	// The database name for the restored DB cluster.
 	DatabaseName *string `type:"string"`
 
+	// A Boolean value that is true to enable mapping of AWS Identity and Access
+	// Management (IAM) accounts to database accounts, and otherwise false.
+	//
+	// Default: false
+	EnableIAMDatabaseAuthentication *bool `type:"boolean"`
+
 	// The database engine to use for the new DB cluster.
 	//
 	// Default: The same as source
@@ -25746,6 +25798,12 @@ func (s *RestoreDBClusterFromSnapshotInput) SetDatabaseName(v string) *RestoreDB
 	return s
 }
 
+// SetEnableIAMDatabaseAuthentication sets the EnableIAMDatabaseAuthentication field's value.
+func (s *RestoreDBClusterFromSnapshotInput) SetEnableIAMDatabaseAuthentication(v bool) *RestoreDBClusterFromSnapshotInput {
+	s.EnableIAMDatabaseAuthentication = &v
+	return s
+}
+
 // SetEngine sets the Engine field's value.
 func (s *RestoreDBClusterFromSnapshotInput) SetEngine(v string) *RestoreDBClusterFromSnapshotInput {
 	s.Engine = &v
@@ -25856,6 +25914,12 @@ type RestoreDBClusterToPointInTimeInput struct {
 	//
 	// Example: mySubnetgroup
 	DBSubnetGroupName *string `type:"string"`
+
+	// A Boolean value that is true to enable mapping of AWS Identity and Access
+	// Management (IAM) accounts to database accounts, and otherwise false.
+	//
+	// Default: false
+	EnableIAMDatabaseAuthentication *bool `type:"boolean"`
 
 	// The KMS key identifier to use when restoring an encrypted DB cluster from
 	// an encrypted DB cluster.
@@ -25971,6 +26035,12 @@ func (s *RestoreDBClusterToPointInTimeInput) SetDBClusterIdentifier(v string) *R
 // SetDBSubnetGroupName sets the DBSubnetGroupName field's value.
 func (s *RestoreDBClusterToPointInTimeInput) SetDBSubnetGroupName(v string) *RestoreDBClusterToPointInTimeInput {
 	s.DBSubnetGroupName = &v
+	return s
+}
+
+// SetEnableIAMDatabaseAuthentication sets the EnableIAMDatabaseAuthentication field's value.
+func (s *RestoreDBClusterToPointInTimeInput) SetEnableIAMDatabaseAuthentication(v bool) *RestoreDBClusterToPointInTimeInput {
+	s.EnableIAMDatabaseAuthentication = &v
 	return s
 }
 
@@ -26143,6 +26213,20 @@ type RestoreDBInstanceFromDBSnapshotInput struct {
 	// Specify the name of the IAM role to be used when making API calls to the
 	// Directory Service.
 	DomainIAMRoleName *string `type:"string"`
+
+	// True to enable mapping of AWS Identity and Access Management (IAM) accounts
+	// to database accounts; otherwise false.
+	//
+	// You can enable IAM database authentication for the following database engines
+	//
+	//    * For MySQL 5.6, minor version 5.6.34 or higher
+	//
+	//    * For MySQL 5.7, minor version 5.7.16 or higher
+	//
+	//    * Aurora 5.6 or higher.
+	//
+	// Default: false
+	EnableIAMDatabaseAuthentication *bool `type:"boolean"`
 
 	// The database engine to use for the new instance.
 	//
@@ -26320,6 +26404,12 @@ func (s *RestoreDBInstanceFromDBSnapshotInput) SetDomainIAMRoleName(v string) *R
 	return s
 }
 
+// SetEnableIAMDatabaseAuthentication sets the EnableIAMDatabaseAuthentication field's value.
+func (s *RestoreDBInstanceFromDBSnapshotInput) SetEnableIAMDatabaseAuthentication(v bool) *RestoreDBInstanceFromDBSnapshotInput {
+	s.EnableIAMDatabaseAuthentication = &v
+	return s
+}
+
 // SetEngine sets the Engine field's value.
 func (s *RestoreDBInstanceFromDBSnapshotInput) SetEngine(v string) *RestoreDBInstanceFromDBSnapshotInput {
 	s.Engine = &v
@@ -26470,6 +26560,20 @@ type RestoreDBInstanceToPointInTimeInput struct {
 	// Specify the name of the IAM role to be used when making API calls to the
 	// Directory Service.
 	DomainIAMRoleName *string `type:"string"`
+
+	// True to enable mapping of AWS Identity and Access Management (IAM) accounts
+	// to database accounts; otherwise false.
+	//
+	// You can enable IAM database authentication for the following database engines
+	//
+	//    * For MySQL 5.6, minor version 5.6.34 or higher
+	//
+	//    * For MySQL 5.7, minor version 5.7.16 or higher
+	//
+	//    * Aurora 5.6 or higher.
+	//
+	// Default: false
+	EnableIAMDatabaseAuthentication *bool `type:"boolean"`
 
 	// The database engine to use for the new instance.
 	//
@@ -26676,6 +26780,12 @@ func (s *RestoreDBInstanceToPointInTimeInput) SetDomain(v string) *RestoreDBInst
 // SetDomainIAMRoleName sets the DomainIAMRoleName field's value.
 func (s *RestoreDBInstanceToPointInTimeInput) SetDomainIAMRoleName(v string) *RestoreDBInstanceToPointInTimeInput {
 	s.DomainIAMRoleName = &v
+	return s
+}
+
+// SetEnableIAMDatabaseAuthentication sets the EnableIAMDatabaseAuthentication field's value.
+func (s *RestoreDBInstanceToPointInTimeInput) SetEnableIAMDatabaseAuthentication(v bool) *RestoreDBInstanceToPointInTimeInput {
+	s.EnableIAMDatabaseAuthentication = &v
 	return s
 }
 

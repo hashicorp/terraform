@@ -214,6 +214,7 @@
       img {
         box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.25);
         margin: 0 0 20px 0;
+        max-width: 100%;
       }
 
       h2 {
@@ -227,14 +228,18 @@
       }
 
       div.latest-item {
-        border-bottom: 1px solid rgba(255, 255, 255, 0.5);
-        margin-bottom: 20px;
-        padding-bottom: 20px;
+        + .latest-item {
+          border-top: 1px solid rgba(white, .5);
+          margin-top: 20px;
+          padding-top: 20px;
+        }
 
-        &:last-child {
-          border: none;
-          margin-bottom: 0;
-          padding-bottom: 0;
+        @media (max-width: $screen-sm-max) {
+          &:last-child {
+            border-bottom: 1px solid rgba(white, .5);
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+          }
         }
 
         p {

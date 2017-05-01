@@ -90,6 +90,11 @@ func resourceAwsInstance() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					// Suppress diff if network_interface is set
+					_, ok := d.GetOk("network_interface")
+					return ok
+				},
 			},
 
 			"user_data": {
@@ -432,32 +437,35 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		runOpts.Ipv6Addresses = ipv6Addresses
 	}
 
-	tagsSpec := make([]*ec2.TagSpecification, 0)
+	restricted := meta.(*AWSClient).IsGovCloud() || meta.(*AWSClient).IsChinaCloud()
+	if !restricted {
+		tagsSpec := make([]*ec2.TagSpecification, 0)
 
-	if v, ok := d.GetOk("tags"); ok {
-		tags := tagsFromMap(v.(map[string]interface{}))
+		if v, ok := d.GetOk("tags"); ok {
+			tags := tagsFromMap(v.(map[string]interface{}))
 
-		spec := &ec2.TagSpecification{
-			ResourceType: aws.String("instance"),
-			Tags:         tags,
+			spec := &ec2.TagSpecification{
+				ResourceType: aws.String("instance"),
+				Tags:         tags,
+			}
+
+			tagsSpec = append(tagsSpec, spec)
 		}
 
-		tagsSpec = append(tagsSpec, spec)
-	}
+		if v, ok := d.GetOk("volume_tags"); ok {
+			tags := tagsFromMap(v.(map[string]interface{}))
 
-	if v, ok := d.GetOk("volume_tags"); ok {
-		tags := tagsFromMap(v.(map[string]interface{}))
+			spec := &ec2.TagSpecification{
+				ResourceType: aws.String("volume"),
+				Tags:         tags,
+			}
 
-		spec := &ec2.TagSpecification{
-			ResourceType: aws.String("volume"),
-			Tags:         tags,
+			tagsSpec = append(tagsSpec, spec)
 		}
 
-		tagsSpec = append(tagsSpec, spec)
-	}
-
-	if len(tagsSpec) > 0 {
-		runOpts.TagSpecifications = tagsSpec
+		if len(tagsSpec) > 0 {
+			runOpts.TagSpecifications = tagsSpec
+		}
 	}
 
 	// Create the instance
@@ -639,6 +647,7 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("primary_network_interface_id", primaryNetworkInterface.NetworkInterfaceId)
 		d.Set("associate_public_ip_address", primaryNetworkInterface.Association != nil)
 		d.Set("ipv6_address_count", len(primaryNetworkInterface.Ipv6Addresses))
+		d.Set("source_dest_check", *primaryNetworkInterface.SourceDestCheck)
 
 		for _, address := range primaryNetworkInterface.Ipv6Addresses {
 			ipv6Addresses = append(ipv6Addresses, *address.Ipv6Address)
@@ -713,19 +722,24 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	d.Partial(true)
 
-	if d.HasChange("tags") && !d.IsNewResource() {
-		if err := setTags(conn, d); err != nil {
-			return err
-		} else {
-			d.SetPartial("tags")
+	restricted := meta.(*AWSClient).IsGovCloud() || meta.(*AWSClient).IsChinaCloud()
+
+	if d.HasChange("tags") {
+		if !d.IsNewResource() || !restricted {
+			if err := setTags(conn, d); err != nil {
+				return err
+			} else {
+				d.SetPartial("tags")
+			}
 		}
 	}
-
-	if d.HasChange("volume_tags") && !d.IsNewResource() {
-		if err := setVolumeTags(conn, d); err != nil {
-			return err
-		} else {
-			d.SetPartial("volume_tags")
+	if d.HasChange("volume_tags") {
+		if !d.IsNewResource() || !restricted {
+			if err := setVolumeTags(conn, d); err != nil {
+				return err
+			} else {
+				d.SetPartial("volume_tags")
+			}
 		}
 	}
 

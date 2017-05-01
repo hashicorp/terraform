@@ -35,36 +35,22 @@ operation.
 
 ### Using Terraform Locally
 
-Another way to resolve remote state conflicts is to merge and conflicted copies
-locally by inspecting the raw state available in the path
-`.terraform/terraform.tfstate`.
+Another way to resolve remote state conflicts is by manual intervention of the
+state file.
 
-When making state changes, it's important to make backup copies in order to
-avoid losing any data.
+Use the [`state pull`](/docs/commands/state/pull.html) subcommand to pull the
+remote state into a local state file.
 
-Any state that is pushed with a serial that is lower than the known serial when
-the MD5 of the state does not match will be rejected.
-
-The serial is embedded in the state file:
-
-```json
-{
-  "version": 1,
-  "serial": 555,
-  "remote": {
-    "type": "atlas",
-    "config": {
-      "name": "my-username/production"
-    }
-  }
-}
+```shell
+$ terraform state pull > example.tfstate
 ```
 
 Once a conflict has been resolved locally by editing the state file, the serial
-can be incremented past the current version and pushed:
+can be incremented past the current version and pushed with the
+[`state push`](/docs/commands/state/push.html) subcommand:
 
 ```shell
-$ terraform remote push
+$ terraform state push example.tfstate
 ```
 
 This will upload the manually resolved state and set it as the head version.
