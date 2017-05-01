@@ -7,14 +7,14 @@ import (
 	"github.com/satori/uuid"
 )
 
-var validPipelineStageNames = []string{
-	"review",
-	"development",
-	"staging",
-	"production",
-}
-
 func validatePipelineStageName(v interface{}, k string) (ws []string, errors []error) {
+	validPipelineStageNames := []string{
+		"review",
+		"development",
+		"staging",
+		"production",
+	}
+
 	for _, s := range validPipelineStageNames {
 		if v == s {
 			return
