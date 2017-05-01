@@ -92,6 +92,23 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 					return hashcode.String(buf.String())
 				},
 			},
+			"ttl": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"attribute_name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"enabled": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+					},
+				},
+			},
 			"local_secondary_index": {
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -296,6 +313,7 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 		log.Printf("[DEBUG] Adding StreamSpecifications to the table")
 	}
 
+	_, timeToLiveOk := d.GetOk("ttl")
 	_, tagsOk := d.GetOk("tags")
 
 	attemptCount := 1
@@ -326,12 +344,28 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 			if err := d.Set("arn", tableArn); err != nil {
 				return err
 			}
+
+			// Wait, till table is active before imitating any TimeToLive changes
+			if err := waitForTableToBeActive(d.Id(), meta); err != nil {
+				log.Printf("[DEBUG] Error waiting for table to be active: %s", err)
+				return err
+			}
+
+			log.Printf("[DEBUG] Setting DynamoDB TimeToLive on arn: %s", tableArn)
+			if timeToLiveOk {
+				if err := updateTimeToLive(d, meta); err != nil {
+					log.Printf("[DEBUG] Error updating table TimeToLive: %s", err)
+					return err
+				}
+			}
+
 			if tagsOk {
 				log.Printf("[DEBUG] Setting DynamoDB Tags on arn: %s", tableArn)
 				if err := createTableTags(d, meta); err != nil {
 					return err
 				}
 			}
+
 			return resourceAwsDynamoDbTableRead(d, meta)
 		}
 	}
@@ -587,12 +621,59 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 
 	}
 
+	if d.HasChange("ttl") {
+		if err := updateTimeToLive(d, meta); err != nil {
+			log.Printf("[DEBUG] Error updating table TimeToLive: %s", err)
+			return err
+		}
+	}
+
 	// Update tags
 	if err := setTagsDynamoDb(dynamodbconn, d); err != nil {
 		return err
 	}
 
 	return resourceAwsDynamoDbTableRead(d, meta)
+}
+
+func updateTimeToLive(d *schema.ResourceData, meta interface{}) error {
+	dynamodbconn := meta.(*AWSClient).dynamodbconn
+
+	if ttl, ok := d.GetOk("ttl"); ok {
+
+		timeToLiveSet := ttl.(*schema.Set)
+
+		spec := &dynamodb.TimeToLiveSpecification{}
+
+		timeToLive := timeToLiveSet.List()[0].(map[string]interface{})
+		spec.AttributeName = aws.String(timeToLive["attribute_name"].(string))
+		spec.Enabled = aws.Bool(timeToLive["enabled"].(bool))
+
+		req := &dynamodb.UpdateTimeToLiveInput{
+			TableName:               aws.String(d.Id()),
+			TimeToLiveSpecification: spec,
+		}
+
+		_, err := dynamodbconn.UpdateTimeToLive(req)
+
+		if err != nil {
+			// If ttl was not set within the .tf file before and has now been added we still run this command to update
+			// But there has been no change so lets continue
+			if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "ValidationException" && awsErr.Message() == "TimeToLive is already disabled" {
+				return nil
+			}
+			log.Printf("[DEBUG] Error updating TimeToLive on table: %s", err)
+			return err
+		}
+
+		log.Printf("[DEBUG] Updated TimeToLive on table")
+
+		if err := waitForTimeToLiveUpdateToBeCompleted(d.Id(), timeToLive["enabled"].(bool), meta); err != nil {
+			return errwrap.Wrapf("Error waiting for Dynamo DB TimeToLive to be updated: {{err}}", err)
+		}
+	}
+
+	return nil
 }
 
 func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) error {
@@ -710,6 +791,23 @@ func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	d.Set("arn", table.TableArn)
+
+	timeToLiveReq := &dynamodb.DescribeTimeToLiveInput{
+		TableName: aws.String(d.Id()),
+	}
+	timeToLiveOutput, err := dynamodbconn.DescribeTimeToLive(timeToLiveReq)
+	if err != nil {
+		return err
+	}
+	timeToLive := []interface{}{}
+	attribute := map[string]*string{
+		"name": timeToLiveOutput.TimeToLiveDescription.AttributeName,
+		"type": timeToLiveOutput.TimeToLiveDescription.TimeToLiveStatus,
+	}
+	timeToLive = append(timeToLive, attribute)
+	d.Set("timeToLive", timeToLive)
+
+	log.Printf("[DEBUG] Loaded TimeToLive data for DynamoDB table '%s'", d.Id())
 
 	tags, err := readTableTags(d, meta)
 	if err != nil {
@@ -905,6 +1003,39 @@ func waitForTableToBeActive(tableName string, meta interface{}) error {
 			time.Sleep(5 * time.Second)
 		}
 	}
+
+	return nil
+
+}
+
+func waitForTimeToLiveUpdateToBeCompleted(tableName string, enabled bool, meta interface{}) error {
+	dynamodbconn := meta.(*AWSClient).dynamodbconn
+	req := &dynamodb.DescribeTimeToLiveInput{
+		TableName: aws.String(tableName),
+	}
+
+	stateMatched := false
+	for stateMatched == false {
+		result, err := dynamodbconn.DescribeTimeToLive(req)
+
+		if err != nil {
+			return err
+		}
+
+		if enabled {
+			stateMatched = *result.TimeToLiveDescription.TimeToLiveStatus == dynamodb.TimeToLiveStatusEnabled
+		} else {
+			stateMatched = *result.TimeToLiveDescription.TimeToLiveStatus == dynamodb.TimeToLiveStatusDisabled
+		}
+
+		// Wait for a few seconds, this may take a long time...
+		if !stateMatched {
+			log.Printf("[DEBUG] Sleeping for 5 seconds before checking TimeToLive state again")
+			time.Sleep(5 * time.Second)
+		}
+	}
+
+	log.Printf("[DEBUG] TimeToLive update complete")
 
 	return nil
 
