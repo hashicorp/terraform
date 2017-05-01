@@ -29,7 +29,6 @@ func TestAccHerokuPipelineCoupling_Basic(t *testing.T) {
 					testAccCheckHerokuPipelineCouplingExists("heroku_pipeline_coupling.default", &coupling),
 					testAccCheckHerokuPipelineCouplingAttributes(
 						&coupling,
-						"heroku_app.default",
 						"heroku_pipeline.default",
 						stageName,
 					),
@@ -87,7 +86,7 @@ func testAccCheckHerokuPipelineCouplingExists(n string, pipeline *heroku.Pipelin
 	}
 }
 
-func testAccCheckHerokuPipelineCouplingAttributes(coupling *heroku.PipelineCouplingInfoResult, _, pipelineResource, stageName string) resource.TestCheckFunc {
+func testAccCheckHerokuPipelineCouplingAttributes(coupling *heroku.PipelineCouplingInfoResult, pipelineResource, stageName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		pipeline, ok := s.RootModule().Resources[pipelineResource]
 		if !ok {
