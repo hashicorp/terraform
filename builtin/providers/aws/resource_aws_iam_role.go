@@ -213,12 +213,18 @@ func resourceAwsIamRoleDelete(d *schema.ResourceData, meta interface{}) error {
 	// Loop and remove this Role from any Profiles
 	if len(resp.InstanceProfiles) > 0 {
 		for _, i := range resp.InstanceProfiles {
-			_, err := iamconn.RemoveRoleFromInstanceProfile(&iam.RemoveRoleFromInstanceProfileInput{
+			// Test if profile was already deleted by terraform
+			_, err := iamconn.GetInstanceProfile(&iam.GetInstanceProfileInput{
 				InstanceProfileName: i.InstanceProfileName,
-				RoleName:            aws.String(d.Id()),
 			})
 			if err != nil {
-				return fmt.Errorf("Error deleting IAM Role %s: %s", d.Id(), err)
+				_, err := iamconn.RemoveRoleFromInstanceProfile(&iam.RemoveRoleFromInstanceProfileInput{
+					InstanceProfileName: i.InstanceProfileName,
+					RoleName:            aws.String(d.Id()),
+				})
+				if err != nil {
+					return fmt.Errorf("Error deleting IAM Role %s: %s", d.Id(), err)
+				}
 			}
 		}
 	}
