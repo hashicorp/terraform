@@ -157,7 +157,9 @@ func resourceAwsDbParameterGroupRead(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
-	d.Set("parameter", flattenParameters(describeParametersResp.Parameters))
+	if describeParametersResp.Parameters != nil {
+		d.Set("parameter", flattenParameters(describeParametersResp.Parameters))
+	}
 
 	paramGroup := describeResp.DBParameterGroups[0]
 	arn, err := buildRDSPGARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
