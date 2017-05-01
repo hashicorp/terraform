@@ -1,6 +1,8 @@
 package rancher
 
 import (
+	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/rancher/go-rancher/v2"
@@ -55,4 +57,26 @@ func populateProjectTemplateIDs(config *Config) error {
 		}
 	}
 	return nil
+}
+
+func addHostLabels(command string, labels map[string]interface{}) string {
+	result := []string{}
+	hostLabels := url.Values{}
+
+	if len(labels) == 0 {
+		return command
+	}
+
+	tokenizedCommand := strings.Split(command, " ")
+	if len(tokenizedCommand) > 0 {
+		result = append(result, tokenizedCommand[:3]...)
+		for k, v := range labels {
+			hostLabels.Add(k, v.(string))
+		}
+		strHostLabels := hostLabels.Encode()
+		result = append(result, "-e", fmt.Sprintf("CATTLE_HOST_LABELS='%s'", strHostLabels))
+		result = append(result, tokenizedCommand[3:]...)
+	}
+
+	return strings.Join(result, " ")
 }
