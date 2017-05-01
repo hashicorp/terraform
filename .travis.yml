@@ -12,6 +12,7 @@ git:
 # establish environment variables
 env:
   - TEST_DIR=examples/azure-2-vms-loadbalancer-lbrules
+
 branches:
   only:
   - /^(?i:topic)-.*$/

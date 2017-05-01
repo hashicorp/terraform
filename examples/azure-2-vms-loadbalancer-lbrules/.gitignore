@@ -1,4 +1,0 @@
-.gitignore
-terraform.tfstate*
-terraform.tfvars
-provider.tf
