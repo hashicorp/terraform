@@ -1204,7 +1204,7 @@ resource "aws_iam_role_policy_attachment" "emr-autoscaling-role" {
 }
 
 resource "aws_emr_security_configuration" "foo" {
-  configuration = <<EOF
+	configuration = <<EOF
 {
   "EncryptionConfiguration": {
     "AtRestEncryptionConfiguration": {
@@ -1213,7 +1213,7 @@ resource "aws_emr_security_configuration" "foo" {
       },
       "LocalDiskEncryptionConfiguration": {
         "EncryptionKeyProviderType": "AwsKms",
-        "AwsKmsKey": "arn:aws:kms:us-west-2:187416307283:alias/cts_emr_key"
+        "AwsKmsKey": "${aws_kms_key.foo.arn}"
       }
     },
     "EnableInTransitEncryption": false,
@@ -1222,7 +1222,29 @@ resource "aws_emr_security_configuration" "foo" {
 }
 EOF
 }
-`, r, r, r, r, r, r, r, r, r, r)
+
+resource "aws_kms_key" "foo" {
+    description = "Terraform acc test %d"
+    deletion_window_in_days = 7
+    policy = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Id": "kms-tf-1",
+  "Statement": [
+    {
+      "Sid": "Enable IAM User Permissions",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "*"
+      },
+      "Action": "kms:*",
+      "Resource": "*"
+    }
+  ]
+}
+POLICY
+}
+`, r, r, r, r, r, r, r, r, r, r, r)
 }
 
 func testAccAWSEmrClusterConfigTerminationPolicyUpdated(r int) string {
