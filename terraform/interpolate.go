@@ -594,10 +594,6 @@ func (i *Interpolater) computeResourceMultiVariable(
 		}
 
 		if singleAttr, ok := r.Primary.Attributes[v.Field]; ok {
-			if singleAttr == config.UnknownVariableValue {
-				return &unknownVariable, nil
-			}
-
 			values = append(values, singleAttr)
 			continue
 		}
@@ -611,10 +607,6 @@ func (i *Interpolater) computeResourceMultiVariable(
 		multiAttr, err := i.interpolateComplexTypeAttribute(v.Field, r.Primary.Attributes)
 		if err != nil {
 			return nil, err
-		}
-
-		if multiAttr == unknownVariable {
-			return &unknownVariable, nil
 		}
 
 		values = append(values, multiAttr)
