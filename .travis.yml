@@ -11,11 +11,10 @@ language: generic
 
 # establish environment variables
 env:
-  - TEST_DIR=examples/azure-vm-simple-linux-managed-disk
+  - TEST_DIR=examples/azure-traffic-manager-vm
 
 branches:
   only:
-  - master
   - /^(?i:topic)-.*$/
 
 # install terraform
@@ -30,4 +29,4 @@ deploy:
     script: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./deploy.ci.sh
     on:
       repo: harijayms/terraform
-      branch: master
+      branch: topic-201-traffic-manager-vm
