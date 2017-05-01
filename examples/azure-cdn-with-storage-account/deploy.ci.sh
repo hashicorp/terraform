@@ -13,8 +13,10 @@ docker run --rm -it \
   hashicorp/terraform:light \
   -c "/bin/terraform get; \
       /bin/terraform validate; \
-      /bin/terraform plan -out=out.tfplan -var resource_group=$KEY -var host_name=$VM_HOST_NAME; \
+      /bin/terraform plan -out=out.tfplan -var resource_group=$KEY -var host_name=$KEY; \
       /bin/terraform apply out.tfplan"
+
+#TODO: how do we validate?
 
 # cleanup deployed azure resources via terraform
 docker run --rm -it \
@@ -26,4 +28,4 @@ docker run --rm -it \
   --workdir=/data \
   --entrypoint "/bin/sh" \
   hashicorp/terraform:light \
-  -c "/bin/terraform destroy -force -var resource_group=$KEY -var host_name=$VM_HOST_NAME;"
+  -c "/bin/terraform destroy -force -var resource_group=$KEY -var host_name=$KEY;"

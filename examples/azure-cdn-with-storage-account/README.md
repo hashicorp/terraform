@@ -1,6 +1,6 @@
 # Create a CDN Profile, a CDN Endpoint with a Storage Account as origin
 
-This Terraform template was based on [this](https://github.com/Azure/azure-quickstart-templates/tree/master/201-cdn-with-storage-account) Azure Quickstart Template. Changes to the ARM template may have occurred since the creation of this example may not be reflected here.
+This Terraform template was based on [this](https://github.com/Azure/azure-quickstart-templates/tree/master/201-cdn-with-storage-account) Azure Quickstart Template. Changes to the ARM template that may have occurred since the creation of this example may not be reflected here.
 
 <a href="http://armviz.io/#/?load=https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2Fazure-quickstart-templates%2Fmaster%2F201-cdn-with-storage-account%2Fazuredeploy.json" target="_blank">
     <img src="http://armviz.io/visualizebutton.png"/>
