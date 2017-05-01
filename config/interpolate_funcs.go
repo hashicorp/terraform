@@ -1056,17 +1056,31 @@ func interpolationFuncElement() ast.Function {
 // keys of map types within a Terraform configuration.
 func interpolationFuncKeys(vs map[string]ast.Variable) ast.Function {
 	return ast.Function{
-		ArgTypes:   []ast.Type{ast.TypeMap},
-		ReturnType: ast.TypeList,
+		ArgTypes:     []ast.Type{ast.TypeMap},
+		ReturnType:   ast.TypeList,
+		Variadic:     true,
+		VariadicType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
+			sortValue := "true"
+			if len(args) > 1 {
+				sortValue = args[1].(string)
+			} else if len(args) > 2 {
+				return "", fmt.Errorf("keys() takes no more than two arguments")
+			}
+			if sortValue != "true" && sortValue != "false" {
+				return "", fmt.Errorf("keys() \"sort\" parameter, if provided, must be \"true\" or \"false\"")
+			}
 			mapVar := args[0].(map[string]ast.Variable)
+
 			keys := make([]string, 0)
 
 			for k, _ := range mapVar {
 				keys = append(keys, k)
 			}
 
-			sort.Strings(keys)
+			if sortValue == "true" {
+				sort.Strings(keys)
+			}
 
 			// Keys are guaranteed to be strings
 			return stringSliceToVariableValue(keys), nil
@@ -1075,12 +1089,23 @@ func interpolationFuncKeys(vs map[string]ast.Variable) ast.Function {
 }
 
 // interpolationFuncValues implements the "values" function that yields a list of
-// keys of map types within a Terraform configuration.
+// values of map types within a Terraform configuration.
 func interpolationFuncValues(vs map[string]ast.Variable) ast.Function {
 	return ast.Function{
-		ArgTypes:   []ast.Type{ast.TypeMap},
-		ReturnType: ast.TypeList,
+		ArgTypes:     []ast.Type{ast.TypeMap},
+		ReturnType:   ast.TypeList,
+		Variadic:     true,
+		VariadicType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
+			sortValue := "true"
+			if len(args) > 1 {
+				sortValue = args[1].(string)
+			} else if len(args) > 2 {
+				return "", fmt.Errorf("values() takes no more than two arguments")
+			}
+			if sortValue != "true" && sortValue != "false" {
+				return "", fmt.Errorf("values() \"sort\" parameter, if provided, must be \"true\" or \"false\"")
+			}
 			mapVar := args[0].(map[string]ast.Variable)
 			keys := make([]string, 0)
 
@@ -1088,7 +1113,9 @@ func interpolationFuncValues(vs map[string]ast.Variable) ast.Function {
 				keys = append(keys, k)
 			}
 
-			sort.Strings(keys)
+			if sortValue == "true" {
+				sort.Strings(keys)
+			}
 
 			values := make([]string, len(keys))
 			for index, key := range keys {
