@@ -4,6 +4,7 @@ resource "azurerm_resource_group" "rg" {
 }
 
 resource "azurerm_servicebus_namespace" "test" {
+  depends_on          = ["azurerm_resource_group.rg"]
   name                = "${var.unique}ServiceBus"
   location            = "${var.location}"
   resource_group_name = "${var.resource_group}"

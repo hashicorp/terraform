@@ -13,7 +13,7 @@ docker run --rm -it \
   hashicorp/terraform:light \
   -c "/bin/terraform get; \
       /bin/terraform validate; \
-      /bin/terraform plan -out=out.tfplan -var unique=$KEY -var resource_group=$EXISTING_RESOURCE_GROUP; \
+      /bin/terraform plan -out=out.tfplan -var unique=$KEY -var resource_group=$KEY; \
       /bin/terraform apply out.tfplan; \
       /bin/terraform show;"
 
@@ -28,4 +28,4 @@ docker run --rm -it \
   --workdir=/data \
   --entrypoint "/bin/sh" \
   hashicorp/terraform:light \
-  -c "/bin/terraform destroy -force -var unique=$KEY -var resource_group=$EXISTING_RESOURCE_GROUP -target=azurerm_servicebus_namespace.test -target=azurerm_servicebus_topic.test -target=azurerm_servicebus_subscription.test;"
+  -c "/bin/terraform destroy -force -var unique=$KEY -var resource_group=$KEY;"
