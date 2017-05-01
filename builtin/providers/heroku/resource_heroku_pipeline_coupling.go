@@ -40,10 +40,11 @@ func resourceHerokuPipelineCoupling() *schema.Resource {
 func resourceHerokuPipelineCouplingCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
-	opts := heroku.PipelineCouplingCreateOpts{}
-	opts.App = d.Get("app").(string)
-	opts.Pipeline = d.Get("pipeline").(string)
-	opts.Stage = d.Get("stage").(string)
+	opts := heroku.PipelineCouplingCreateOpts{
+		App:      d.Get("app").(string),
+		Pipeline: d.Get("pipeline").(string),
+		Stage:    d.Get("stage").(string),
+	}
 
 	log.Printf("[DEBUG] PipelineCoupling create configuration: %#v", opts)
 
