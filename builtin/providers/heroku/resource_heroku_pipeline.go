@@ -28,8 +28,9 @@ func resourceHerokuPipeline() *schema.Resource {
 func resourceHerokuPipelineCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
-	opts := heroku.PipelineCreateOpts{}
-	opts.Name = d.Get("name").(string)
+	opts := heroku.PipelineCreateOpts{
+		Name: d.Get("name").(string),
+	}
 
 	log.Printf("[DEBUG] Pipeline create configuration: %#v", opts)
 
