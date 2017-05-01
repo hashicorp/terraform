@@ -329,6 +329,14 @@ func EnvironmentStateRefreshFunc(client *rancherClient.RancherClient, environmen
 			return nil, "", err
 		}
 
+		// Env not returned, or State not set...
+		if env == nil || env.State == "" {
+			// This makes it so user level API keys can be used instead of just admin
+			env = &rancherClient.Project{
+				State: "removed",
+			}
+		}
+
 		return env, env.State, nil
 	}
 }
