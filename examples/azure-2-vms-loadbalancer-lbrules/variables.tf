@@ -40,12 +40,12 @@ variable "subnet_prefix" {
 }
 
 variable "storage_account_type" {
-  description = "Specifies the name of the storage account. Changing this forces a new resource to be created. This must be unique across the entire Azure service, not just within the resource group."
+  description = "Defines the type of storage account to be created. Valid options are Standard_LRS, Standard_ZRS, Standard_GRS, Standard_RAGRS, Premium_LRS. Changing this is sometimes valid - see the Azure documentation for more information on which types of accounts can be converted into other types."
   default     = "Standard_LRS"
 }
 
 variable "vm_size" {
-  description = "Specifies the name of the virtual machine resource. Changing this forces a new resource to be created."
+  description = "Specifies the size of the virtual machine."
   default     = "Standard_D1"
 }
 
