@@ -158,6 +158,10 @@ func resourceArmSqlDatabaseCreate(d *schema.ResourceData, meta interface{}) erro
 		command.RequestedServiceObjectiveID = azure.String(v.(string))
 	}
 
+	if v, ok := d.GetOk("elastic_pool_name"); ok {
+		command.ElasticPoolName = azure.String(v.(string))
+	}
+
 	if v, ok := d.GetOk("requested_service_objective_name"); ok {
 		command.RequestedServiceObjectiveName = azure.String(v.(string))
 	}
@@ -216,6 +220,7 @@ func resourceArmSqlDatabaseRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("name", resp.Name)
 	d.Set("creation_date", resp.CreationDate)
 	d.Set("default_secondary_location", resp.DefaultSecondaryLocation)
+	d.Set("elastic_pool_name", resp.ElasticPoolName)
 
 	flattenAndSetTags(d, resp.Tags)
 
