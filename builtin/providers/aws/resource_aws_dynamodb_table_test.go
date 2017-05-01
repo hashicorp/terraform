@@ -164,11 +164,11 @@ func testAccCheckDynamoDbTableTimeToLiveWasUpdated(n string) resource.TestCheckF
 		log.Printf("[DEBUG] Checking on table %s", rs.Primary.ID)
 
 		if *ttlDescription.TimeToLiveStatus != dynamodb.TimeToLiveStatusEnabled {
-			return fmt.Errorf("TimeToLiveStatus %s, not ENABLED!", ttlDescription.TimeToLiveStatus)
+			return fmt.Errorf("TimeToLiveStatus %s, not ENABLED!", *ttlDescription.TimeToLiveStatus)
 		}
 
 		if *ttlDescription.AttributeName != "TestTTL" {
-			return fmt.Errorf("AttributeName was %s, not TestTTL!", ttlDescription.AttributeName)
+			return fmt.Errorf("AttributeName was %s, not TestTTL!", *ttlDescription.AttributeName)
 		}
 
 		return nil
