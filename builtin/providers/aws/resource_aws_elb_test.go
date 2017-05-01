@@ -1530,6 +1530,13 @@ resource "aws_subnet" "public_a_two" {
   availability_zone = "us-west-2a"
 }
 
+resource "aws_subnet" "public_b_two" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.8.0/24"
+  availability_zone = "us-west-2b"
+}
+
 resource "aws_elb" "ourapp" {
   name = "terraform-asg-deployment-example"
 
@@ -1592,12 +1599,19 @@ resource "aws_subnet" "public_a_two" {
   availability_zone = "us-west-2a"
 }
 
+resource "aws_subnet" "public_b_two" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.8.0/24"
+  availability_zone = "us-west-2b"
+}
+
 resource "aws_elb" "ourapp" {
   name = "terraform-asg-deployment-example"
 
   subnets = [
     "${aws_subnet.public_a_two.id}",
-    "${aws_subnet.public_b_one.id}",
+    "${aws_subnet.public_b_two.id}",
   ]
 
   listener {
