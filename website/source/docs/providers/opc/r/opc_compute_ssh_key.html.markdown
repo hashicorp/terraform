@@ -12,7 +12,7 @@ The ``opc_compute_ssh_key`` resource creates and manages an SSH key in an OPC id
 
 ## Example Usage
 
-```
+```hcl
 resource "opc_compute_ssh_key" "%s" {
   name    = "test-key"
   key     = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCqw6JwbjIk..."
@@ -35,6 +35,6 @@ without removing it entirely from your Terraform resource definition. Defaults t
 
 SSH Key's can be imported using the `resource name`, e.g.
 
-```
-terraform import opc_compute_ssh_key.key1 example
+```shell
+$ terraform import opc_compute_ssh_key.key1 example
 ```

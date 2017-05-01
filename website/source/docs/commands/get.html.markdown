@@ -9,7 +9,7 @@ description: |-
 # Command: get
 
 The `terraform get` command is used to download and update
-[modules](/docs/modules/index.html).
+[modules](/docs/modules/index.html) mentioned in the root module.
 
 ## Usage
 
@@ -28,3 +28,4 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-update` - If specified, modules that are already downloaded will be
    checked for updates and the updates will be downloaded if present.
+* `dir` - Sets the path of the [root module](/docs/modules/index.html#definitions).

@@ -216,6 +216,11 @@ func resourceAwsRDSCluster() *schema.Resource {
 				Optional: true,
 			},
 
+			"iam_database_authentication_enabled": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -428,6 +433,10 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 			createOpts.KmsKeyId = aws.String(attr.(string))
 		}
 
+		if attr, ok := d.GetOk("iam_database_authentication_enabled"); ok {
+			createOpts.EnableIAMDatabaseAuthentication = aws.Bool(attr.(bool))
+		}
+
 		log.Printf("[DEBUG] RDS Cluster create options: %s", createOpts)
 		resp, err := conn.CreateDBCluster(createOpts)
 		if err != nil {
@@ -520,6 +529,7 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("kms_key_id", dbc.KmsKeyId)
 	d.Set("reader_endpoint", dbc.ReaderEndpoint)
 	d.Set("replication_source_identifier", dbc.ReplicationSourceIdentifier)
+	d.Set("iam_database_authentication_enabled", dbc.IAMDatabaseAuthenticationEnabled)
 
 	var vpcg []string
 	for _, g := range dbc.VpcSecurityGroups {
@@ -591,6 +601,11 @@ func resourceAwsRDSClusterUpdate(d *schema.ResourceData, meta interface{}) error
 	if d.HasChange("db_cluster_parameter_group_name") {
 		d.SetPartial("db_cluster_parameter_group_name")
 		req.DBClusterParameterGroupName = aws.String(d.Get("db_cluster_parameter_group_name").(string))
+		requestUpdate = true
+	}
+
+	if d.HasChange("iam_database_authentication_enabled") {
+		req.EnableIAMDatabaseAuthentication = aws.Bool(d.Get("iam_database_authentication_enabled").(bool))
 		requestUpdate = true
 	}
 

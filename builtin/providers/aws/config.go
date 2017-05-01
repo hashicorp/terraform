@@ -28,6 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/aws/aws-sdk-go/service/codedeploy"
 	"github.com/aws/aws-sdk-go/service/codepipeline"
+	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
@@ -112,6 +113,7 @@ type AWSClient struct {
 	cloudwatchconn        *cloudwatch.CloudWatch
 	cloudwatchlogsconn    *cloudwatchlogs.CloudWatchLogs
 	cloudwatcheventsconn  *cloudwatchevents.CloudWatchEvents
+	cognitoconn           *cognitoidentity.CognitoIdentity
 	configconn            *configservice.ConfigService
 	dmsconn               *databasemigrationservice.DatabaseMigrationService
 	dsconn                *directoryservice.DirectoryService
@@ -169,6 +171,20 @@ func (c *AWSClient) S3() *s3.S3 {
 
 func (c *AWSClient) DynamoDB() *dynamodb.DynamoDB {
 	return c.dynamodbconn
+}
+
+func (c *AWSClient) IsGovCloud() bool {
+	if c.region == "us-gov-west-1" {
+		return true
+	}
+	return false
+}
+
+func (c *AWSClient) IsChinaCloud() bool {
+	if c.region == "cn-north-1" {
+		return true
+	}
+	return false
 }
 
 // Client configures and returns a fully initialized AWSClient
@@ -308,6 +324,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.codebuildconn = codebuild.New(sess)
 	client.codedeployconn = codedeploy.New(sess)
 	client.configconn = configservice.New(sess)
+	client.cognitoconn = cognitoidentity.New(sess)
 	client.dmsconn = databasemigrationservice.New(sess)
 	client.codepipelineconn = codepipeline.New(sess)
 	client.dsconn = directoryservice.New(sess)

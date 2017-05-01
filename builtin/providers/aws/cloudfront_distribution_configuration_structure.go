@@ -773,21 +773,31 @@ func originCustomHeaderHash(v interface{}) int {
 }
 
 func expandCustomOriginConfig(m map[string]interface{}) *cloudfront.CustomOriginConfig {
-	return &cloudfront.CustomOriginConfig{
-		OriginProtocolPolicy: aws.String(m["origin_protocol_policy"].(string)),
-		HTTPPort:             aws.Int64(int64(m["http_port"].(int))),
-		HTTPSPort:            aws.Int64(int64(m["https_port"].(int))),
-		OriginSslProtocols:   expandCustomOriginConfigSSL(m["origin_ssl_protocols"].([]interface{})),
+
+	customOrigin := &cloudfront.CustomOriginConfig{
+		OriginProtocolPolicy:   aws.String(m["origin_protocol_policy"].(string)),
+		HTTPPort:               aws.Int64(int64(m["http_port"].(int))),
+		HTTPSPort:              aws.Int64(int64(m["https_port"].(int))),
+		OriginSslProtocols:     expandCustomOriginConfigSSL(m["origin_ssl_protocols"].([]interface{})),
+		OriginReadTimeout:      aws.Int64(int64(m["origin_read_timeout"].(int))),
+		OriginKeepaliveTimeout: aws.Int64(int64(m["origin_keepalive_timeout"].(int))),
 	}
+
+	return customOrigin
 }
 
 func flattenCustomOriginConfig(cor *cloudfront.CustomOriginConfig) map[string]interface{} {
-	return map[string]interface{}{
-		"origin_protocol_policy": *cor.OriginProtocolPolicy,
-		"http_port":              int(*cor.HTTPPort),
-		"https_port":             int(*cor.HTTPSPort),
-		"origin_ssl_protocols":   flattenCustomOriginConfigSSL(cor.OriginSslProtocols),
+
+	customOrigin := map[string]interface{}{
+		"origin_protocol_policy":   *cor.OriginProtocolPolicy,
+		"http_port":                int(*cor.HTTPPort),
+		"https_port":               int(*cor.HTTPSPort),
+		"origin_ssl_protocols":     flattenCustomOriginConfigSSL(cor.OriginSslProtocols),
+		"origin_read_timeout":      int(*cor.OriginReadTimeout),
+		"origin_keepalive_timeout": int(*cor.OriginKeepaliveTimeout),
 	}
+
+	return customOrigin
 }
 
 // Assemble the hash for the aws_cloudfront_distribution custom_origin_config
@@ -801,6 +811,9 @@ func customOriginConfigHash(v interface{}) int {
 	for _, v := range sortInterfaceSlice(m["origin_ssl_protocols"].([]interface{})) {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
+	buf.WriteString(fmt.Sprintf("%d-", m["origin_keepalive_timeout"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["origin_read_timeout"].(int)))
+
 	return hashcode.String(buf.String())
 }
 

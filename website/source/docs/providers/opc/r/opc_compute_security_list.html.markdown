@@ -6,13 +6,13 @@ description: |-
   Creates and manages a security list in an OPC identity domain.
 ---
 
-# opc\_compute\_ip\_reservation
+# opc\_compute\_security\_list
 
 The ``opc_compute_security_list`` resource creates and manages a security list in an OPC identity domain.
 
 ## Example Usage
 
-```
+```hcl
 resource "opc_compute_security_list" "sec_list1" {
   name                 = "sec-list-1"
   policy               = "permit"
@@ -36,6 +36,6 @@ The following arguments are supported:
 
 Security List's can be imported using the `resource name`, e.g.
 
-```
-terraform import opc_compute_security_list.list1 example
+```shell
+$ terraform import opc_compute_security_list.list1 example
 ```

@@ -31,6 +31,14 @@ func resourceGoogleProjectServices() *schema.Resource {
 	}
 }
 
+// These services can only be enabled as a side-effect of enabling other services,
+// so don't bother storing them in the config or using them for diffing.
+var ignore = map[string]struct{}{
+	"containeranalysis.googleapis.com": struct{}{},
+	"dataproc-control.googleapis.com":  struct{}{},
+	"source.googleapis.com":            struct{}{},
+}
+
 func resourceGoogleProjectServicesCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	pid := d.Get("project").(string)
@@ -160,7 +168,9 @@ func getApiServices(pid string, config *Config) ([]string, error) {
 		return apiServices, err
 	}
 	for _, v := range svcResp.Services {
-		apiServices = append(apiServices, v.ServiceName)
+		if _, ok := ignore[v.ServiceName]; !ok {
+			apiServices = append(apiServices, v.ServiceName)
+		}
 	}
 	return apiServices, nil
 }

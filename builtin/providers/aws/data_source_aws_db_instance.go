@@ -188,6 +188,11 @@ func dataSourceAwsDbInstance() *schema.Resource {
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+
+			"replicate_source_db": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -271,6 +276,7 @@ func dataSourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error
 	d.Set("storage_encrypted", dbInstance.StorageEncrypted)
 	d.Set("storage_type", dbInstance.StorageType)
 	d.Set("timezone", dbInstance.Timezone)
+	d.Set("replicate_source_db", dbInstance.ReadReplicaSourceDBInstanceIdentifier)
 
 	var vpcSecurityGroups []string
 	for _, v := range dbInstance.VpcSecurityGroups {

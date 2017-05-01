@@ -62,6 +62,9 @@
                         <li<%= sidebar_current("docs-aws-datasource-ecs-task-definition") %>>
                             <a href="/docs/providers/aws/d/ecs_task_definition.html">aws_ecs_task_definition</a>
                         </li>
+                        <li<%= sidebar_current("docs-aws-datasource-efs-file-system") %>>
+                            <a href="/docs/providers/aws/d/efs_file_system.html">aws_efs_file_system</a>
+                        </li>
                         <li<%= sidebar_current("docs-aws-datasource-elb-hosted-zone-id") %>>
                             <a href="/docs/providers/aws/d/elb_hosted_zone_id.html">aws_elb_hosted_zone_id</a>
                         </li>
@@ -203,19 +206,18 @@
                     </ul>
                 </li>
 
-              <li<%= sidebar_current("docs-aws-resource-appautoscaling") %>>
-                <a href="#">App Autoscaling Resources</a>
-                <ul class="nav nav-visible">
+                <li<%= sidebar_current("docs-aws-resource-appautoscaling") %>>
+                    <a href="#">App Autoscaling Resources</a>
+                    <ul class="nav nav-visible">
+                      <li<%= sidebar_current("docs-aws-resource-appautoscaling-policy") %>>
+                        <a href="/docs/providers/aws/r/appautoscaling_policy.html">aws_appautoscaling_policy</a>
+                      </li>
 
-                  <li<%= sidebar_current("docs-aws-resource-appautoscaling-policy") %>>
-                    <a href="/docs/providers/aws/r/appautoscaling_policy.html">aws_appautoscaling_policy</a>
-                  </li>
-
-                  <li<%= sidebar_current("docs-aws-resource-appautoscaling-target") %>>
-                    <a href="/docs/providers/aws/r/appautoscaling_target.html">aws_appautoscaling_target</a>
-                  </li>
-                </ul>
-              </li>
+                      <li<%= sidebar_current("docs-aws-resource-appautoscaling-target") %>>
+                        <a href="/docs/providers/aws/r/appautoscaling_target.html">aws_appautoscaling_target</a>
+                      </li>
+                    </ul>
+                </li>
 
                 <li<%= sidebar_current("docs-aws-resource-cloudformation") %>>
                     <a href="#">CloudFormation Resources</a>
@@ -343,6 +345,15 @@
                             <a href="/docs/providers/aws/r/codepipeline.html">aws_codepipeline</a>
                         </li>
 
+                    </ul>
+                </li>
+
+                <li<%= sidebar_current("docs-aws-resource-cognito") %>>
+                    <a href="#">Cognito Resources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-aws-resource-cognito-identity-pool") %>>
+                            <a href="/docs/providers/aws/r/cognito_identity_pool.html">aws_cognito_identity_pool</a>
+                        </li>
                     </ul>
                 </li>
 
@@ -674,6 +685,10 @@
 
                         <li<%= sidebar_current("docs-aws-resource-emr-instance-group") %>>
                             <a href="/docs/providers/aws/r/emr_instance_group.html">aws_emr_instance_group</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-emr-security-configuration") %>>
+                            <a href="/docs/providers/aws/r/emr_security_configuration.html">aws_emr_security_configuration</a>
                         </li>
                     </ul>
                 </li>

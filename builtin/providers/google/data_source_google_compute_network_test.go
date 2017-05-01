@@ -2,18 +2,21 @@ package google
 
 import (
 	"fmt"
+	"testing"
+
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"testing"
 )
 
 func TestAccDataSourceGoogleNetwork(t *testing.T) {
+	networkName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: TestAccDataSourceGoogleNetworkConfig,
+				Config: testAccDataSourceGoogleNetworkConfig(networkName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDataSourceGoogleNetworkCheck("data.google_compute_network.my_network", "google_compute_network.foobar"),
 				),
@@ -57,12 +60,14 @@ func testAccDataSourceGoogleNetworkCheck(data_source_name string, resource_name 
 	}
 }
 
-var TestAccDataSourceGoogleNetworkConfig = `
+func testAccDataSourceGoogleNetworkConfig(name string) string {
+	return fmt.Sprintf(`
 resource "google_compute_network" "foobar" {
-	name = "network-test"
+	name = "%s"
 	description = "my-description"
 }
 
 data "google_compute_network" "my_network" {
 	name = "${google_compute_network.foobar.name}"
-}`
+}`, name)
+}
