@@ -43,8 +43,17 @@ func (c *EnvDeleteCommand) Run(args []string) int {
 		return 1
 	}
 
+	cfg, err := c.Config(configPath)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
+		return 1
+	}
+
 	// Load the backend
-	b, err := c.Backend(&BackendOpts{ConfigPath: configPath})
+	b, err := c.Backend(&BackendOpts{
+		Config: cfg,
+	})
+
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
 		return 1
