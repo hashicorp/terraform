@@ -335,6 +335,19 @@ func resourceAwsDbInstance() *schema.Resource {
 				ForceNew: true,
 			},
 
+			// Add support for domain-joined RDS instances
+			"domain": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
+			"domain-iam-role-name": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -404,6 +417,14 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 			opts.OptionGroupName = aws.String(attr.(string))
 		}
 
+		if attr, ok := d.GetOk("domain"); ok {
+			opts.Domain = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("domain-iam-role-name"); ok {
+			opts.DomainIAMRoleName = aws.String(attr.(string))
+		}
+
 		log.Printf("[DEBUG] DB Instance Replica create configuration: %#v", opts)
 		_, err := conn.CreateDBInstanceReadReplica(&opts)
 		if err != nil {
@@ -470,6 +491,14 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 
 		if attr, ok := d.GetOk("storage_type"); ok {
 			opts.StorageType = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("domain"); ok {
+			opts.Domain = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("domain-iam-role-name"); ok {
+			opts.DomainIAMRoleName = aws.String(attr.(string))
 		}
 
 		log.Printf("[DEBUG] DB Instance restore from snapshot configuration: %s", opts)
@@ -634,6 +663,14 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 			opts.KmsKeyId = aws.String(attr.(string))
 		}
 
+		if attr, ok := d.GetOk("domain"); ok {
+			opts.Domain = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("domain-iam-role-name"); ok {
+			opts.DomainIAMRoleName = aws.String(attr.(string))
+		}
+
 		log.Printf("[DEBUG] DB Instance create configuration: %#v", opts)
 		var err error
 		err = resource.Retry(5*time.Minute, func() *resource.RetryError {
@@ -746,6 +783,11 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 
 	if v.MonitoringRoleArn != nil {
 		d.Set("monitoring_role_arn", v.MonitoringRoleArn)
+	}
+
+	if v.DomainMemberships != nil {
+		d.Set("domain", v.DomainMemberships[0].Domain)
+		d.Set("domain-iam-role-name", v.DomainMemberships[0].IAMRoleName)
 	}
 
 	// list tags for resource
@@ -991,6 +1033,18 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 	if d.HasChange("db_subnet_group_name") && !d.IsNewResource() {
 		d.SetPartial("db_subnet_group_name")
 		req.DBSubnetGroupName = aws.String(d.Get("db_subnet_group_name").(string))
+		requestUpdate = true
+	}
+
+	if d.HasChange("domain") && !d.IsNewResource() {
+		d.SetPartial("domain")
+		req.Domain = aws.String(d.Get("domain").(string))
+		requestUpdate = true
+	}
+
+	if d.HasChange("domain-iam-role-name") && !d.IsNewResource() {
+		d.SetPartial("domain-iam-role-name")
+		req.DomainIAMRoleName = aws.String(d.Get("domain-iam-role-name").(string))
 		requestUpdate = true
 	}
 
