@@ -3,11 +3,21 @@ package aws
 import (
 	"testing"
 
+	"fmt"
+
 	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSPlacementGroup_importBasic(t *testing.T) {
-	resourceName := "aws_placement_group.pg"
+	checkFn := func(s []*terraform.InstanceState) error {
+		// Expect 1: placement group
+		if len(s) != 1 {
+			return fmt.Errorf("bad states: %#v", s)
+		}
+
+		return nil
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -19,9 +29,9 @@ func TestAccAWSPlacementGroup_importBasic(t *testing.T) {
 			},
 
 			resource.TestStep{
-				ResourceName:      resourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:     "aws_placement_group.pg",
+				ImportState:      true,
+				ImportStateCheck: checkFn,
 			},
 		},
 	})
