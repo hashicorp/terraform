@@ -212,6 +212,7 @@ func resourceComputeInstance() *schema.Resource {
 						"access_config": &schema.Schema{
 							Type:     schema.TypeList,
 							Optional: true,
+							Computed: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"nat_ip": &schema.Schema{
