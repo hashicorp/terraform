@@ -32,6 +32,7 @@ BUG FIXES:
 * provider/aws: Exclude aws_instance volume tagging for China and Gov Clouds [GH-14055]
 * provider/aws: Fix source_dest_check with network_interface [GH-14079]
 * provider/digitalocean: Prevent diffs when using IDs of images instead of slugs [GH-13879]
+* provider/fastly Changes setting conditionals to optional [GH-14103]
 * provider/google: ignore certain project services that can't be enabled directly via the api [GH-13730]
 * providers/heroku: Configure buildpacks correctly for both Org Apps and non-org Apps [GH-13990]
 
