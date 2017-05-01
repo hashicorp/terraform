@@ -62,6 +62,12 @@ func dataSourceAwsVpc() *schema.Resource {
 			},
 
 			"tags": tagsSchemaComputed(),
+
+			"filter_reserved_tags": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 		},
 	}
 }
@@ -93,9 +99,16 @@ func dataSourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 			"state":           d.Get("state").(string),
 		},
 	)
-	req.Filters = append(req.Filters, buildEC2TagFilterList(
-		tagsFromMap(d.Get("tags").(map[string]interface{})),
-	)...)
+
+	if d.Get("filter_reserved_tags").(bool) {
+		req.Filters = append(req.Filters, buildEC2TagFilterList(
+			tagsFromMap(d.Get("tags").(map[string]interface{})),
+		)...)
+	} else {
+		req.Filters = append(req.Filters, buildEC2TagFilterList(
+			tagsFromMapUnfiltered(d.Get("tags").(map[string]interface{})),
+		)...)
+	}
 	req.Filters = append(req.Filters, buildEC2CustomFilterList(
 		d.Get("filter").(*schema.Set),
 	)...)
@@ -125,7 +138,12 @@ func dataSourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("instance_tenancy", vpc.InstanceTenancy)
 	d.Set("default", vpc.IsDefault)
 	d.Set("state", vpc.State)
-	d.Set("tags", tagsToMap(vpc.Tags))
+
+	if d.Get("filter_reserved_tags").(bool) {
+		d.Set("tags", tagsToMap(vpc.Tags))
+	} else {
+		d.Set("tags", tagsToMapUnfiltered(vpc.Tags))
+	}
 
 	if vpc.Ipv6CidrBlockAssociationSet != nil {
 		d.Set("ipv6_association_id", vpc.Ipv6CidrBlockAssociationSet[0].AssociationId)

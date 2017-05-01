@@ -20,6 +20,7 @@ func TestAccDataSourceAwsSecurityGroup(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccDataSourceAwsSecurityGroupCheck("data.aws_security_group.by_id"),
 					testAccDataSourceAwsSecurityGroupCheck("data.aws_security_group.by_tag"),
+					testAccDataSourceAwsSecurityGroupCheckReservedTag("data.aws_security_group.by_reserved_tag"),
 					testAccDataSourceAwsSecurityGroupCheck("data.aws_security_group.by_filter"),
 					testAccDataSourceAwsSecurityGroupCheck("data.aws_security_group.by_name"),
 					testAccDataSourceAwsSecurityGroupCheckDefault("data.aws_security_group.default_by_name"),
@@ -70,6 +71,32 @@ func testAccDataSourceAwsSecurityGroupCheck(name string) resource.TestCheckFunc 
 	}
 }
 
+func testAccDataSourceAwsSecurityGroupCheckReservedTag(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("root module has no resource called %s", name)
+		}
+
+		cf, ok := s.RootModule().Resources["aws_cloudformation_stack.cf-test"]
+		if !ok {
+			return fmt.Errorf("can't find aws_cloudformation_stack.cf-test in state")
+		}
+
+		attr := rs.Primary.Attributes
+
+		if attr["id"] != cf.Primary.Attributes["outputs.TerraformAccSecurityGroupDataSourceCFId"] {
+			return fmt.Errorf(
+				"id is %s; want %s",
+				attr["id"],
+				cf.Primary.Attributes["outputs.TerraformAccSecurityGroupDataSourceCFId"],
+			)
+		}
+
+		return nil
+	}
+}
+
 func testAccDataSourceAwsSecurityGroupCheckDefault(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
@@ -96,6 +123,32 @@ func testAccDataSourceAwsSecurityGroupCheckDefault(name string) resource.TestChe
 }
 
 func testAccDataSourceAwsSecurityGroupConfig(rInt int) string {
+	var testAccDataSourceAwsSecurityGroupConfig_cloudformation = fmt.Sprintf(`
+resource "aws_cloudformation_stack" "cf-test" {
+name = "TerraformAccCloudformationSecurityGroupDataSource%d"
+parameters {
+	VpcId = "${aws_vpc.test.id}"
+}
+template_body = <<STACK
+Parameters:
+  VpcId:
+    Type: String
+Resources:
+  TerraformAccSecurityGroupDataSourceCF:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: terraform-testacc-cf-sg-data-source
+      VpcId:
+        Ref: VpcId
+Outputs:
+  TerraformAccSecurityGroupDataSourceCFId:
+    Description: The ID of the test security group.
+    Value: !GetAtt TerraformAccSecurityGroupDataSourceCF.GroupId
+  TerraformAccSecurityGroupDataSourceCFName:
+    Value: TerraformAccSecurityGroupDataSourceCF
+STACK
+}`, rInt)
+
 	return fmt.Sprintf(`
 	provider "aws" {
 		region = "eu-west-1"
@@ -117,6 +170,8 @@ func testAccDataSourceAwsSecurityGroupConfig(rInt int) string {
 		}
 	}
 
+	%v
+
 	data "aws_security_group" "by_id" {
 		id = "${aws_security_group.test.id}"
 	}
@@ -136,10 +191,17 @@ func testAccDataSourceAwsSecurityGroupConfig(rInt int) string {
 		}
 	}
 
+	data "aws_security_group" "by_reserved_tag" {
+		vpc_id = "${aws_vpc.test.id}"
+		tags {
+			"aws:cloudformation:logical-id" = "${aws_cloudformation_stack.cf-test.outputs["TerraformAccSecurityGroupDataSourceCFName"]}"
+		}
+	}
+
 	data "aws_security_group" "by_filter" {
 		filter {
 			name = "group-name"
 			values = ["${aws_security_group.test.name}"]
 		}
-	}`, rInt, rInt)
+	}`, rInt, rInt, testAccDataSourceAwsSecurityGroupConfig_cloudformation)
 }

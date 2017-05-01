@@ -27,6 +27,8 @@ func TestAccDataSourceAwsRoute53Zone(t *testing.T) {
 						publicResourceName, "data.aws_route53_zone.by_zone_id", publicDomain),
 					testAccDataSourceAwsRoute53ZoneCheck(
 						publicResourceName, "data.aws_route53_zone.by_name", publicDomain),
+					testAccDataSourceAwsRoute53ZoneCheckReservedTags(
+						"data.aws_route53_zone.by_reserved_tag"),
 					testAccDataSourceAwsRoute53ZoneCheck(
 						privateResourceName, "data.aws_route53_zone.by_vpc", privateDomain),
 					testAccDataSourceAwsRoute53ZoneCheck(
@@ -63,6 +65,37 @@ func testAccDataSourceAwsRoute53ZoneCheck(rsName, dsName, zName string) resource
 
 		if attr["name"] != zName {
 			return fmt.Errorf("Route53 Zone name is %q; want %q", attr["name"], zName)
+		}
+
+		return nil
+	}
+}
+
+func testAccDataSourceAwsRoute53ZoneCheckReservedTags(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("root module has no resource called %s", name)
+		}
+
+		hostedZoneCf, ok := s.RootModule().Resources["aws_cloudformation_stack.r53_cf"]
+		if !ok {
+			return fmt.Errorf("can't find aws_cloudformation_stack.r53_cf in state")
+		}
+		attr := rs.Primary.Attributes
+		if attr["id"] != hostedZoneCf.Primary.Attributes["outputs.ZoneId"] {
+			return fmt.Errorf(
+				"id is %s; want %s",
+				attr["id"],
+				hostedZoneCf.Primary.Attributes["outputs.ZoneId"],
+			)
+		}
+
+		if attr["name"] != "terraformtestacchzcf.com." {
+			return fmt.Errorf(
+				"Route53 Zone name is %s; want terraformtestacchzcf.com.",
+				attr["name"],
+			)
 		}
 
 		return nil
@@ -110,5 +143,31 @@ func testAccDataSourceAwsRoute53ZoneConfig(rInt int) string {
 
 	data "aws_route53_zone" "by_name" {
 		name = "${data.aws_route53_zone.by_zone_id.name}"
-	}`, rInt, rInt, rInt, rInt)
+	}
+
+resource "aws_cloudformation_stack" "r53_cf" {
+  name = "terraform-testacc-r53-cf-data-source"
+  template_body = <<STACK
+Resources:
+  TerraformTestAccRoute53CfDataSource:
+    Type: AWS::Route53::HostedZone
+    Properties:
+      Name: "terraformtestacchzcf.com"
+Outputs:
+  ZoneName:
+    Value: terraform-testacc-route53-cf-data-source
+  CloudFormationLogical:
+    Value: TerraformTestAccRoute53CfDataSource
+  ZoneId:
+    Value:
+      Ref: TerraformTestAccRoute53CfDataSource
+STACK
+}
+
+data "aws_route53_zone" "by_reserved_tag" {
+	zone_id = "${aws_cloudformation_stack.r53_cf.outputs["ZoneId"]}"
+  tags {
+    "aws:cloudformation:logical-id" = "${aws_cloudformation_stack.r53_cf.outputs["CloudFormationLogical"]}"
+  }
+}`, rInt, rInt, rInt, rInt)
 }

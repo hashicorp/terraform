@@ -35,6 +35,25 @@ func TestAccDataSourceAwsVpnGateway_unattached(t *testing.T) {
 	})
 }
 
+func TestAccDataSourceAwsVpnGateway_unattached_ReservedTag(t *testing.T) {
+	rInt := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDataSourceAwsVpnGatewayUnattachedConfig_ReservedTag(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrPair(
+						"data.aws_vpn_gateway.test_by_reserved_tags", "tags.Name",
+						"aws_cloudformation_stack.vpn-gateway", "outputs.VpnGatewayName"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccDataSourceAwsVpnGateway_attached(t *testing.T) {
 	rInt := acctest.RandInt()
 
@@ -56,6 +75,37 @@ func TestAccDataSourceAwsVpnGateway_attached(t *testing.T) {
 			},
 		},
 	})
+}
+
+func testAccDataSourceAwsVpnGatewayUnattachedConfig_ReservedTag(rInt int) string {
+	return fmt.Sprintf(`
+provider "aws" {
+  region = "us-west-2"
+}
+resource "aws_cloudformation_stack" "vpn-gateway" {
+  name = "TerraformAccCloudformationVpnGatewayDataSource%d"
+  template_body = <<STACK
+Resources:
+  TerraformAccCloudformationVpnGatewayCf:
+    Type: "AWS::EC2::VPNGateway"
+    Properties:
+      Type: ipsec.1
+      Tags:
+        - Key: Name
+          Value: terraform-testacc-vpn-gateway-data-source-unattached-cf
+Outputs:
+  VpnGatewayName:
+    Value: terraform-testacc-vpn-gateway-data-source-unattached-cf
+  CloudFormationLogical:
+    Value: TerraformAccCloudformationVpnGatewayCf
+STACK
+}
+data "aws_vpn_gateway" "test_by_reserved_tags" {
+	tags {
+		"aws:cloudformation:logical-id" = "${aws_cloudformation_stack.vpn-gateway.outputs["CloudFormationLogical"]}"
+	}
+}
+`, rInt)
 }
 
 func testAccDataSourceAwsVpnGatewayUnattachedConfig(rInt int) string {

@@ -18,6 +18,7 @@ func TestAccDataSourceAwsRouteTable_basic(t *testing.T) {
 				Config: testAccDataSourceAwsRouteTableGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccDataSourceAwsRouteTableCheck("data.aws_route_table.by_tag"),
+					testAccDataSourceAwsRouteTableCheckReservedTag("data.aws_route_table.by_reserved_tag"),
 					testAccDataSourceAwsRouteTableCheck("data.aws_route_table.by_filter"),
 					testAccDataSourceAwsRouteTableCheck("data.aws_route_table.by_subnet"),
 					testAccDataSourceAwsRouteTableCheck("data.aws_route_table.by_id"),
@@ -41,6 +42,32 @@ func TestAccDataSourceAwsRouteTable_main(t *testing.T) {
 			},
 		},
 	})
+}
+
+func testAccDataSourceAwsRouteTableCheckReservedTag(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("root module has no resource called %s", name)
+		}
+
+		cf, ok := s.RootModule().Resources["aws_cloudformation_stack.route_table_cf"]
+		if !ok {
+			return fmt.Errorf("can't find aws_cloudformation_stack.route_table_cf in state")
+		}
+
+		attr := rs.Primary.Attributes
+
+		if attr["id"] != cf.Primary.Attributes["outputs.RouteTableId"] {
+			return fmt.Errorf(
+				"id is %s; want %s",
+				attr["id"],
+				cf.Primary.Attributes["outputs.RouteTableId"],
+			)
+		}
+
+		return nil
+	}
 }
 
 func testAccDataSourceAwsRouteTableCheck(name string) resource.TestCheckFunc {
@@ -150,6 +177,14 @@ resource "aws_subnet" "test" {
   }
 }
 
+resource "aws_subnet" "test-cf" {
+  cidr_block = "172.16.1.0/24"
+  vpc_id     = "${aws_vpc.test.id}"
+  tags {
+    Name = "terraform-testacc-cf-data-source"
+  }
+}
+
 resource "aws_route_table" "test" {
   vpc_id = "${aws_vpc.test.id}"
   tags {
@@ -177,6 +212,12 @@ data "aws_route_table" "by_tag" {
   depends_on = ["aws_route_table_association.a"]
 }
 
+data "aws_route_table" "by_reserved_tag" {
+  tags {
+    "aws:cloudformation:logical-id" = "${aws_cloudformation_stack.route_table_cf.outputs["CloudFormationLogical"]}"
+  }
+}
+
 data "aws_route_table" "by_subnet" {
   subnet_id = "${aws_subnet.test.id}"
   depends_on = ["aws_route_table_association.a"]
@@ -185,6 +226,45 @@ data "aws_route_table" "by_subnet" {
 data "aws_route_table" "by_id" {
   route_table_id = "${aws_route_table.test.id}"
   depends_on = ["aws_route_table_association.a"]
+}
+
+resource "aws_cloudformation_stack" "route_table_cf" {
+  name = "terraform-testacc-routetable-cf-data-source"
+  parameters {
+    SubnetId = "${aws_subnet.test-cf.id}"
+    VpcId    = "${aws_vpc.test.id}"
+  }
+  template_body = <<STACK
+Parameters:
+  SubnetId:
+    Type: String
+  VpcId:
+    Type: String
+Resources:
+  TerraformTestAccRouteTableCfDataSource:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId:
+        Ref: VpcId
+      Tags:
+      - Key: Name
+        Value: terraform-testacc-routetable-cf-data-source
+  TerraformTestAccRouteTableAssociationCfDataSource:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: SubnetId
+      RouteTableId:
+        Ref: TerraformTestAccRouteTableCfDataSource
+Outputs:
+  RouteTableName:
+    Value: terraform-testacc-routetable-cf-data-source
+  CloudFormationLogical:
+    Value: TerraformTestAccRouteTableCfDataSource
+  RouteTableId:
+    Value:
+      Ref: TerraformTestAccRouteTableCfDataSource
+STACK
 }
 `
 

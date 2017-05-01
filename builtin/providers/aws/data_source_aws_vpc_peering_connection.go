@@ -66,6 +66,11 @@ func dataSourceAwsVpcPeeringConnection() *schema.Resource {
 			},
 			"filter": ec2CustomFiltersSchema(),
 			"tags":   tagsSchemaComputed(),
+			"filter_reserved_tags": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 		},
 	}
 }
@@ -92,9 +97,16 @@ func dataSourceAwsVpcPeeringConnectionRead(d *schema.ResourceData, meta interfac
 			"accepter-vpc-info.cidr-block":  d.Get("peer_cidr_block").(string),
 		},
 	)
-	req.Filters = append(req.Filters, buildEC2TagFilterList(
-		tagsFromMap(d.Get("tags").(map[string]interface{})),
-	)...)
+
+	if d.Get("filter_reserved_tags").(bool) {
+		req.Filters = append(req.Filters, buildEC2TagFilterList(
+			tagsFromMap(d.Get("tags").(map[string]interface{})),
+		)...)
+	} else {
+		req.Filters = append(req.Filters, buildEC2TagFilterList(
+			tagsFromMapUnfiltered(d.Get("tags").(map[string]interface{})),
+		)...)
+	}
 	req.Filters = append(req.Filters, buildEC2CustomFilterList(
 		d.Get("filter").(*schema.Set),
 	)...)
@@ -125,7 +137,12 @@ func dataSourceAwsVpcPeeringConnectionRead(d *schema.ResourceData, meta interfac
 	d.Set("peer_vpc_id", pcx.AccepterVpcInfo.VpcId)
 	d.Set("peer_owner_id", pcx.AccepterVpcInfo.OwnerId)
 	d.Set("peer_cidr_block", pcx.AccepterVpcInfo.CidrBlock)
-	d.Set("tags", tagsToMap(pcx.Tags))
+
+	if d.Get("filter_reserved_tags").(bool) {
+		d.Set("tags", tagsToMap(pcx.Tags))
+	} else {
+		d.Set("tags", tagsToMapUnfiltered(pcx.Tags))
+	}
 
 	if pcx.AccepterVpcInfo.PeeringOptions != nil {
 		if err := d.Set("accepter", flattenPeeringOptions(pcx.AccepterVpcInfo.PeeringOptions)[0]); err != nil {

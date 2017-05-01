@@ -52,6 +52,12 @@ func dataSourceAwsSubnet() *schema.Resource {
 				Computed: true,
 			},
 
+			"filter_reserved_tags": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
 			"tags": tagsSchemaComputed(),
 
 			"vpc_id": {
@@ -113,9 +119,17 @@ func dataSourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	req.Filters = buildEC2AttributeFilterList(filters)
-	req.Filters = append(req.Filters, buildEC2TagFilterList(
-		tagsFromMap(d.Get("tags").(map[string]interface{})),
-	)...)
+
+	if d.Get("filter_reserved_tags").(bool) {
+		req.Filters = append(req.Filters, buildEC2TagFilterList(
+			tagsFromMap(d.Get("tags").(map[string]interface{})),
+		)...)
+	} else {
+		req.Filters = append(req.Filters, buildEC2TagFilterList(
+			tagsFromMapUnfiltered(d.Get("tags").(map[string]interface{})),
+		)...)
+	}
+
 	req.Filters = append(req.Filters, buildEC2CustomFilterList(
 		d.Get("filter").(*schema.Set),
 	)...)
@@ -145,7 +159,13 @@ func dataSourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("cidr_block", subnet.CidrBlock)
 	d.Set("default_for_az", subnet.DefaultForAz)
 	d.Set("state", subnet.State)
-	d.Set("tags", tagsToMap(subnet.Tags))
+
+	if d.Get("filter_reserved_tags").(bool) {
+		d.Set("tags", tagsToMap(subnet.Tags))
+	} else {
+		d.Set("tags", tagsToMapUnfiltered(subnet.Tags))
+	}
+
 	d.Set("assign_ipv6_address_on_creation", subnet.AssignIpv6AddressOnCreation)
 	d.Set("map_public_ip_on_launch", subnet.MapPublicIpOnLaunch)
 
