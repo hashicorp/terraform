@@ -263,7 +263,7 @@ The `request_setting` block allow you to customize Fastly's request handling, by
 defining behavior that should change based on a predefined `condition`:
 
 * `name` - (Required) The domain for this request setting.
-* `request_condition` - (Required) Name of already defined `condition` to
+* `request_condition` - (Optional) Name of already defined `condition` to
 determine if this request setting should be applied.
 * `max_stale_age` - (Optional) How old an object is allowed to be to serve
 `stale-if-error` or `stale-while-revalidate`, in seconds. Default `60`.
