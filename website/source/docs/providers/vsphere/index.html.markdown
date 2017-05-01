@@ -59,6 +59,10 @@ resource "vsphere_virtual_machine" "web" {
   folder = "${vsphere_folder.frontend.path}"
   vcpu   = 2
   memory = 4096
+  domain = "${var.vsphere_domain}"
+  datacenter = "${var.vsphere_datacenter}"
+  cluster = "${var.vsphere_cluster}"
+  resource_pool = "${var.vsphere_cluster}/Resources/${var.vsphere_resource_pool}"
 
   network_interface {
     label = "VM Network"
