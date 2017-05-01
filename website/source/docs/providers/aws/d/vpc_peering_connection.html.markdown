@@ -38,26 +38,30 @@ resource "aws_route" "r" {
 The arguments of this data source act as filters for querying the available VPC peering connection.
 The given filters must match exactly one VPC peering connection whose data will be exported as attributes.
 
-* `id` - (Optional) The ID of the specific VPC Peering Connection to retrieve.
-
-* `status` - (Optional) The status of the specific VPC Peering Connection to retrieve.
-
-* `vpc_id` - (Optional) The ID of the requester VPC of the specific VPC Peering Connection to retrieve.
-
-* `owner_id` - (Optional) The AWS account ID of the owner of the requester VPC of the specific VPC Peering Connection to retrieve.
-
 * `cidr_block` - (Optional) The CIDR block of the requester VPC of the specific VPC Peering Connection to retrieve.
-
-* `peer_vpc_id` - (Optional) The ID of the accepter VPC of the specific VPC Peering Connection to retrieve.
-
-* `peer_owner_id` - (Optional) The AWS account ID of the owner of the accepter VPC of the specific VPC Peering Connection to retrieve.
-
-* `peer_cidr_block` - (Optional) The CIDR block of the accepter VPC of the specific VPC Peering Connection to retrieve.
 
 * `filter` - (Optional) Custom filter block as described below.
 
+* `filter_reserved_tags` - (Optional) A boolean flag that controls whether the
+  data source will ignore AWS reserved tags, i.e. tags that match `^aws:*`.
+  Defaults to `false`.
+
+* `id` - (Optional) The ID of the specific VPC Peering Connection to retrieve.
+
+* `owner_id` - (Optional) The AWS account ID of the owner of the requester VPC of the specific VPC Peering Connection to retrieve.
+
+* `peer_cidr_block` - (Optional) The CIDR block of the accepter VPC of the specific VPC Peering Connection to retrieve.
+
+* `peer_owner_id` - (Optional) The AWS account ID of the owner of the accepter VPC of the specific VPC Peering Connection to retrieve.
+
+* `peer_vpc_id` - (Optional) The ID of the accepter VPC of the specific VPC Peering Connection to retrieve.
+
+* `status` - (Optional) The status of the specific VPC Peering Connection to retrieve.
+
 * `tags` - (Optional) A mapping of tags, each pair of which must exactly match
   a pair on the desired VPC Peering Connection.
+
+* `vpc_id` - (Optional) The ID of the requester VPC of the specific VPC Peering Connection to retrieve.
 
 More complex filters can be expressed using one or more `filter` sub-blocks,
 which take the following arguments:

@@ -50,14 +50,18 @@ subnet whose data will be exported as attributes.
 
 * `cidr_block` - (Optional) The cidr block of the desired subnet.
 
-* `ipv6_cidr_block` - (Optional) The Ipv6 cidr block of the desired subnet
-
 * `default_for_az` - (Optional) Boolean constraint for whether the desired
   subnet must be the default subnet for its associated availability zone.
 
 * `filter` - (Optional) Custom filter block as described below.
 
+* `filter_reserved_tags` - (Optional) A boolean flag that controls whether the
+  data source will ignore AWS reserved tags, i.e. tags that match `^aws:*`.
+  Defaults to `false`.
+
 * `id` - (Optional) The id of the specific subnet to retrieve.
+
+* `ipv6_cidr_block` - (Optional) The Ipv6 cidr block of the desired subnet
 
 * `state` - (Optional) The state that the desired subnet must have.
 
