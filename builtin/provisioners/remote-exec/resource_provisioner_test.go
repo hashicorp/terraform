@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"strings"
+
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -68,6 +70,23 @@ func TestResourceProvider_generateScript(t *testing.T) {
 
 	if out[0] != expectedScriptOut {
 		t.Fatalf("bad: %v", out)
+	}
+}
+
+func TestResourceProvider_generateScriptEmptyInline(t *testing.T) {
+	p := Provisioner().(*schema.Provisioner)
+	conf := map[string]interface{}{
+		"inline": []interface{}{""},
+	}
+
+	_, err := generateScripts(schema.TestResourceDataRaw(
+		t, p.Schema, conf))
+	if err == nil {
+		t.Fatal("expected error, got none")
+	}
+
+	if !strings.Contains(err.Error(), "Error parsing") {
+		t.Fatalf("expected parsing error, got: %s", err)
 	}
 }
 
@@ -159,6 +178,24 @@ func TestResourceProvider_CollectScripts_scripts(t *testing.T) {
 		if out.String() != expectedScriptOut {
 			t.Fatalf("bad: %v", out.String())
 		}
+	}
+}
+
+func TestResourceProvider_CollectScripts_scriptsEmpty(t *testing.T) {
+	p := Provisioner().(*schema.Provisioner)
+	conf := map[string]interface{}{
+		"scripts": []interface{}{""},
+	}
+
+	_, err := collectScripts(schema.TestResourceDataRaw(
+		t, p.Schema, conf))
+
+	if err == nil {
+		t.Fatal("expected error")
+	}
+
+	if !strings.Contains(err.Error(), "Error parsing") {
+		t.Fatalf("Expected parsing error, got: %s", err)
 	}
 }
 
