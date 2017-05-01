@@ -277,8 +277,7 @@ resource "azurerm_managed_image" "testdestination" {
     name = "acctestdest-%d"
     location = "West Central US"
     resource_group_name = "${azurerm_resource_group.test.name}"
-	source_virtual_machine_id = "/subscriptions/d5079cf1-c06b-4aaa-8b93-e0e761b5590b/resourceGroups/terraformdev/providers/Microsoft.Compute/virtualMachines/terraformdevtest"
-    
+source_virtual_machine_id = "/subscriptions/{subscription_id}/resourceGroups/{resource_group}/providers/Microsoft.Compute/virtualMachines/{vm_name}"    
 	tags {
         environment = "acctest"
         cost-center = "ops"
