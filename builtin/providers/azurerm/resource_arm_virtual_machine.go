@@ -95,6 +95,13 @@ func resourceArmVirtualMachine() *schema.Resource {
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"image_id": {
+							Type:          schema.TypeString,
+							Optional:      true,
+							ForceNew:      true,
+							ConflictsWith: []string{"storage_image_reference.publisher"},
+						},
+
 						"publisher": {
 							Type:     schema.TypeString,
 							Required: true,
@@ -832,9 +839,13 @@ func resourceArmVirtualMachinePlanHash(v interface{}) int {
 func resourceArmVirtualMachineStorageImageReferenceHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["publisher"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["offer"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["sku"].(string)))
+	if m["publisher"] != nil {
+		buf.WriteString(fmt.Sprintf("%s-", m["publisher"].(string)))
+		buf.WriteString(fmt.Sprintf("%s-", m["offer"].(string)))
+		buf.WriteString(fmt.Sprintf("%s-", m["sku"].(string)))
+	} else if m["image_id"] != nil {
+		buf.WriteString(fmt.Sprintf("%s-", m["image_id"].(string)))
+	}
 
 	return hashcode.String(buf.String())
 }
@@ -888,12 +899,16 @@ func flattenAzureRmVirtualMachinePlan(plan *compute.Plan) []interface{} {
 
 func flattenAzureRmVirtualMachineImageReference(image *compute.ImageReference) []interface{} {
 	result := make(map[string]interface{})
-	result["offer"] = *image.Offer
-	result["publisher"] = *image.Publisher
-	result["sku"] = *image.Sku
+	if result["publisher"] != nil {
+		result["offer"] = *image.Offer
+		result["publisher"] = *image.Publisher
+		result["sku"] = *image.Sku
 
-	if image.Version != nil {
-		result["version"] = *image.Version
+		if image.Version != nil {
+			result["version"] = *image.Version
+		}
+	} else if result["image_id"] != nil {
+		result["publisher"] = *image.ID
 	}
 
 	return []interface{}{result}
@@ -1370,18 +1385,35 @@ func expandAzureRmVirtualMachineImageReference(d *schema.ResourceData) (*compute
 	storageImageRefs := d.Get("storage_image_reference").(*schema.Set).List()
 
 	storageImageRef := storageImageRefs[0].(map[string]interface{})
+	imageReference := compute.ImageReference{}
+	imageID := ""
+	publisher := ""
 
-	publisher := storageImageRef["publisher"].(string)
-	offer := storageImageRef["offer"].(string)
-	sku := storageImageRef["sku"].(string)
-	version := storageImageRef["version"].(string)
+	if storageImageRef["image_id"] != "" {
+		imageID = storageImageRef["image_id"].(string)
+		imageReference = compute.ImageReference{
+			ID: &imageID,
+		}
+	} else {
+		publisher = storageImageRef["publisher"].(string)
+		offer := storageImageRef["offer"].(string)
+		sku := storageImageRef["sku"].(string)
+		version := storageImageRef["version"].(string)
 
-	return &compute.ImageReference{
-		Publisher: &publisher,
-		Offer:     &offer,
-		Sku:       &sku,
-		Version:   &version,
-	}, nil
+		imageReference = compute.ImageReference{
+			Publisher: &publisher,
+			Offer:     &offer,
+			Sku:       &sku,
+			Version:   &version,
+		}
+	}
+
+	//BEGIN: code to be removed after GH-13016 is merged
+	if imageID != "" && publisher != "" {
+		return nil, fmt.Errorf("[ERROR] Conflict between `image_id` and `publisher` (only one or the other can be used)")
+	}
+	//END: code to be removed after GH-13016 is merged
+	return &imageReference, nil
 }
 
 func expandAzureRmVirtualMachineNetworkProfile(d *schema.ResourceData) compute.NetworkProfile {
