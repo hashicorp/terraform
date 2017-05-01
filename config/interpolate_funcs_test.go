@@ -2194,6 +2194,44 @@ func TestInterpolateFuncTimestamp(t *testing.T) {
 	}
 }
 
+func TestInterpolateFuncRandomHex(t *testing.T) {
+	for i := 1; i <= 32; i++ {
+		ast, err := hil.Parse(fmt.Sprintf("${randomhex(%d)}", i))
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		out, _, err := hil.Eval(ast, langEvalConfig(nil))
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if len(out.(string)) != i {
+			t.Fatalf("Did not get string of length %d: %s", i, out.(string))
+		}
+	}
+
+	results := make(map[string]bool)
+
+	for i := 0; i < 100; i++ {
+		ast, err := hil.Parse("${randomhex(7)}")
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		out, _, err := hil.Eval(ast, langEvalConfig(nil))
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if results[out.(string)] {
+			t.Fatalf("Got unexpected duplicate string: %s", out)
+		}
+
+		results[out.(string)] = true
+	}
+}
+
 type testFunctionConfig struct {
 	Cases []testFunctionCase
 	Vars  map[string]ast.Variable

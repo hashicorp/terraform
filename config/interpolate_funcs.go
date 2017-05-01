@@ -2,6 +2,7 @@ package config
 
 import (
 	"crypto/md5"
+	"crypto/rand"
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/base64"
@@ -87,6 +88,7 @@ func Funcs() map[string]ast.Function {
 		"min":          interpolationFuncMin(),
 		"pathexpand":   interpolationFuncPathExpand(),
 		"uuid":         interpolationFuncUUID(),
+		"randomhex":    interpolationFuncRandomHex(),
 		"replace":      interpolationFuncReplace(),
 		"sha1":         interpolationFuncSha1(),
 		"sha256":       interpolationFuncSha256(),
@@ -1262,6 +1264,25 @@ func interpolationFuncBase64Sha256() ast.Function {
 			shaSum := h.Sum(nil)
 			encoded := base64.StdEncoding.EncodeToString(shaSum[:])
 			return encoded, nil
+		},
+	}
+}
+
+func interpolationFuncRandomHex() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeInt},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			n := args[0].(int)
+			b := make([]byte, n)
+
+			_, err := rand.Read(b)
+			if err != nil {
+				return "", fmt.Errorf("failed to read random bytes: %v", err)
+			}
+
+			f := fmt.Sprintf("%%0%dx", n)
+			return fmt.Sprintf(f, b)[0:n], nil
 		},
 	}
 }
