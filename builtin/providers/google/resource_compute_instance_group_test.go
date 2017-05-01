@@ -274,7 +274,7 @@ func testAccComputeInstanceGroup_basic(instance, network string) string {
 		description = "Terraform test instance group empty"
 		name = "%s-empty"
 		zone = "us-central1-c"
-			named_port {
+		named_port {
 			name = "http"
 			port = "8080"
 		}
@@ -289,7 +289,7 @@ func testAccComputeInstanceGroup_basic(instance, network string) string {
 		name = "%s-empty-with-network"
 		network = "%s"
 		zone = "us-central1-c"
-			named_port {
+		named_port {
 			name = "http"
 			port = "8080"
 		}
