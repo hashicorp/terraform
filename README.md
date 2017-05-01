@@ -108,6 +108,26 @@ To update a dependency:
 
 2. Review the changes in git and commit them.
 
+####Building and running Terraform in Docker
+
+You can build a runnable Docker container from the current source directory. 
+
+    $ docker build -t terraform . 
+
+This container is based on Ubuntu 14.04. 
+
+Once the container is built, you can mount your local terraform directory and run
+terraform against it. 
+
+    $ docker run --rm -w /data -v <directory with .tf files>:/data terraform:latest apply /data/ 
+
+This command will:
+
+- Delete the container on completion `--rm`
+- Change the container's working directory to `/data`
+- Mount your host directory into `/data` on the container 
+- Run `terraform apply`     
+
 ### Acceptance Tests
 
 Terraform has a comprehensive [acceptance
