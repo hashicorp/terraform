@@ -77,7 +77,7 @@ func testAccCheckHerokuPipelineCouplingExists(n string, pipeline *heroku.Pipelin
 		}
 
 		if foundPipelineCoupling.ID != rs.Primary.ID {
-			return fmt.Errorf("PipelineCoupling not found")
+			return fmt.Errorf("PipelineCoupling not found: %s != %s", foundPipelineCoupling.ID, rs.Primary.ID)
 		}
 
 		*pipeline = *foundPipelineCoupling
