@@ -33,3 +33,10 @@ the resource.
 While this may seem tedious, it still gives Terraform users an avenue for
 importing existing resources. A future version of Terraform will fully generate
 configuration significantly simplifying this process.
+
+##Alternative Option
+
+Alternatively, you can use a third party tool such as terraforming.
+
+See http://terraforming.dtan4.net/
+
