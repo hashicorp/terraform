@@ -10,6 +10,8 @@ FEATURES:
 * **New Provider:** `gitlab` [GH-13898]
 * **New Resource:** `heroku_app_feature` [GH-14035]
 * **New Resource:** `aws_emr_security_configuration` [GH-14080]
+* **New Resource:** `heroku_pipeline` [GH-14078]
+* **New Resource:** `heroku_pipeline_coupling` [GH-14078]
 * **New Data Source:** `aws_efs_file_system` [GH-14041]
 
 IMPROVEMENTS:
