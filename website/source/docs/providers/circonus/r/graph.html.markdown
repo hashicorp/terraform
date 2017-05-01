@@ -170,7 +170,7 @@ resource "circonus_graph" "icmp-graph" {
 It is possible to import a `circonus_graph` resource with the following command:
 
 ```
-$ terraform import circonus_graph.usage ID
+$ terraform import circonus_graph.icmp-graph ID
 ```
 
 Where `ID` is the `_cid` or Circonus ID of the graph
