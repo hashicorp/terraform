@@ -219,6 +219,25 @@ func tagsFromMap(m map[string]interface{}) []*ec2.Tag {
 	return result
 }
 
+// tagsFromMapUnfiltered returns the tags for the given map of data. Allows
+// AWS internally reserved tags (e.g. tags that begin with aws:). Should be
+// called from data sources only.
+func tagsFromMapUnfiltered(m map[string]interface{}) []*ec2.Tag {
+	result := make([]*ec2.Tag, 0, len(m))
+	log.Printf("[DEBUG] Generating list of tags from map, reserved tag filtering " +
+		"has been disabled.\n")
+	for k, v := range m {
+		log.Printf("[DEBUG] Adding tag %v with value %v to the list.\n", k, v.(string))
+		t := &ec2.Tag{
+			Key:   aws.String(k),
+			Value: aws.String(v.(string)),
+		}
+		result = append(result, t)
+	}
+
+	return result
+}
+
 // tagsToMap turns the list of tags into a map.
 func tagsToMap(ts []*ec2.Tag) map[string]string {
 	result := make(map[string]string)
@@ -226,6 +245,21 @@ func tagsToMap(ts []*ec2.Tag) map[string]string {
 		if !tagIgnored(t) {
 			result[*t.Key] = *t.Value
 		}
+	}
+
+	return result
+}
+
+// tagsToMapUnfiltered turns the list of tags into a map. Allows AWS internally
+// reserved tags (e.g. tags that begin with aws:). Should be called from data
+// sources only.
+func tagsToMapUnfiltered(ts []*ec2.Tag) map[string]string {
+	result := make(map[string]string)
+	log.Printf("[DEBUG] Generating map of tags, reserved tag filtering has been " +
+		"disabled.\n")
+	for _, t := range ts {
+		log.Printf("[DEBUG] Adding tag %v with value %v to the map.\n", *t.Key, *t.Value)
+		result[*t.Key] = *t.Value
 	}
 
 	return result

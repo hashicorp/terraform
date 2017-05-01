@@ -62,6 +62,62 @@ func TestDiffTags(t *testing.T) {
 	}
 }
 
+// Test the ability to opt-out of internal AWS tag filtering when using a data
+// source.
+func TestAllowInternalTags(t *testing.T) {
+	var ignoredTags []*ec2.Tag
+	var ignoredTagsMap map[string]interface{}
+
+	const (
+		tagKey   string = "aws:cloudformation:logical-id"
+		tagValue string = "foo"
+	)
+
+	ignoredTags = append(ignoredTags,
+		&ec2.Tag{
+			Key:   aws.String(tagKey),
+			Value: aws.String(tagValue),
+		})
+
+	ignoredTagsMap = make(map[string]interface{})
+	ignoredTagsMap[tagKey] = tagValue
+
+	// Make two calls, one that should allow internal AWS tags and one that should not.
+	failFromMap := tagsFromMap(ignoredTagsMap)
+	successFromMap := tagsFromMapUnfiltered(ignoredTagsMap)
+	if len(failFromMap) != 0 {
+		t.Fatalf("Test[tagsFromMap]: Tag %v with value %v was not ignored and should have been.", tagKey, tagValue)
+	}
+
+	if len(successFromMap) != 0 {
+		for _, tag := range successFromMap {
+			if (*tag.Key != tagKey) || (*tag.Value != tagValue) {
+				t.Fatalf("Test[tagsFromMap]: Tag %v with value %v does not match the expected tag %v with value %v.", *tag.Key, *tag.Value, tagKey, tagValue)
+			}
+		}
+	} else {
+		t.Fatalf("Test[tagsFromMap]: Tag %v with value %v was ignored and should not have been.", tagKey, tagValue)
+	}
+
+	// Make two calls, one that should allow internal AWS tags and one that should not.
+	failToMap := tagsToMap(ignoredTags)
+	successToMap := tagsToMapUnfiltered(ignoredTags)
+
+	if len(successToMap) != 0 {
+		for tag, value := range successToMap {
+			if (tag != tagKey) || (value != tagValue) {
+				t.Fatalf("Test[tagsToMap]: Tag %v with value %v does not match the expected tag %v with value %v.", tag, value, tagKey, tagValue)
+			}
+		}
+	} else {
+		t.Fatalf("Test[tagsToMap]: Tag %v with value %v was ignored and should not have been.", tagKey, tagValue)
+	}
+
+	if len(failToMap) != 0 {
+		t.Fatalf("Test[tagsToMap]: Tag %v with value %v was not ignored and should have been.", tagKey, tagValue)
+	}
+}
+
 func TestIgnoringTags(t *testing.T) {
 	var ignoredTags []*ec2.Tag
 	ignoredTags = append(ignoredTags, &ec2.Tag{
