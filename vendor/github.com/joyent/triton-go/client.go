@@ -2,6 +2,7 @@ package triton
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -45,16 +46,7 @@ func NewClient(endpoint string, accountName string, signers ...authentication.Si
 	}
 
 	httpClient := &http.Client{
-		Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
-			Dial: (&net.Dialer{
-				Timeout:   30 * time.Second,
-				KeepAlive: 30 * time.Second,
-			}).Dial,
-			TLSHandshakeTimeout: 10 * time.Second,
-			DisableKeepAlives:   true,
-			MaxIdleConnsPerHost: -1,
-		},
+		Transport:     httpTransport(false),
 		CheckRedirect: doNotFollowRedirects,
 	}
 
@@ -73,6 +65,34 @@ func NewClient(endpoint string, accountName string, signers ...authentication.Si
 		apiURL:      *apiURL,
 		accountName: accountName,
 	}, nil
+}
+
+// InsecureSkipTLSVerify turns off TLS verification for the client connection. This
+// allows connection to an endpoint with a certificate which was signed by a non-
+// trusted CA, such as self-signed certificates. This can be useful when connecting
+// to temporary Triton installations such as Triton Cloud-On-A-Laptop.
+func (c *Client) InsecureSkipTLSVerify() {
+	if c.client == nil {
+		return
+	}
+
+	c.client.HTTPClient.Transport = httpTransport(true)
+}
+
+func httpTransport(insecureSkipTLSVerify bool) *http.Transport {
+	return &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		Dial: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).Dial,
+		TLSHandshakeTimeout: 10 * time.Second,
+		DisableKeepAlives:   true,
+		MaxIdleConnsPerHost: -1,
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: insecureSkipTLSVerify,
+		},
+	}
 }
 
 func doNotFollowRedirects(*http.Request, []*http.Request) error {

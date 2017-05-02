@@ -1037,12 +1037,12 @@
 			"versionExact": "v1.8.16"
 		},
 		{
-			"checksumSHA1": "5Br7nJBgOm6y67Z95CGZtOaxlFY=",
+			"checksumSHA1": "z39/EZX3f3n0r2uML2XC33krUag=",
 			"path": "github.com/aws/aws-sdk-go/service/rds",
-			"revision": "f6ea558f30e0a983d529b32c741e4caed17c7df0",
-			"revisionTime": "2017-04-21T18:17:16Z",
-			"version": "v1.8.16",
-			"versionExact": "v1.8.16"
+			"revision": "8cab5437f896c3048506422a6fb9f5a7f2df9944",
+			"revisionTime": "2017-04-26T18:58:25Z",
+			"version": "v1.8.17",
+			"versionExact": "v1.8.17"
 		},
 		{
 			"checksumSHA1": "TIYqqHM4J5j5tWZR+FLpRpQzz7A=",
@@ -2341,16 +2341,16 @@
 			"revisionTime": "2016-06-16T18:50:15Z"
 		},
 		{
-			"checksumSHA1": "2HimxaJVVp2QDVQ0570L71Zd5s4=",
+			"checksumSHA1": "XsjyaC6eTHUy/n0iuR46TZcgAK8=",
 			"path": "github.com/joyent/triton-go",
-			"revision": "5db9e2b6a4c1f7ffd2a7e7aa625f42dba956608c",
-			"revisionTime": "2017-04-12T23:23:58Z"
+			"revision": "c73729fd38522591909a371c8180ca7090a59ab9",
+			"revisionTime": "2017-04-28T18:47:44Z"
 		},
 		{
 			"checksumSHA1": "QzUqkCSn/ZHyIK346xb9V6EBw9U=",
 			"path": "github.com/joyent/triton-go/authentication",
-			"revision": "66b31a94af28a65e902423879a2820ea34b773fb",
-			"revisionTime": "2017-03-31T18:12:29Z"
+			"revision": "c73729fd38522591909a371c8180ca7090a59ab9",
+			"revisionTime": "2017-04-28T18:47:44Z"
 		},
 		{
 			"checksumSHA1": "YhQcOsGx8r2S/jkJ0Qt4cZ5BLCU=",

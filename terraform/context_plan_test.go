@@ -3154,3 +3154,146 @@ func TestContext2Plan_ignoreChangesWithFlatmaps(t *testing.T) {
 		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
 	}
 }
+
+// TestContext2Plan_resourceNestedCount ensures resource sets that depend on
+// the count of another resource set (ie: count of a data source that depends
+// on another data source's instance count - data.x.foo.*.id) get properly
+// normalized to the indexes they should be. This case comes up when there is
+// an existing state (after an initial apply).
+func TestContext2Plan_resourceNestedCount(t *testing.T) {
+	m := testModule(t, "nested-resource-count-plan")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	p.RefreshFn = func(i *InstanceInfo, is *InstanceState) (*InstanceState, error) {
+		return is, nil
+	}
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo0",
+							Attributes: map[string]string{
+								"id": "foo0",
+							},
+						},
+					},
+					"aws_instance.foo.1": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo1",
+							Attributes: map[string]string{
+								"id": "foo1",
+							},
+						},
+					},
+					"aws_instance.bar.0": &ResourceState{
+						Type:         "aws_instance",
+						Dependencies: []string{"aws_instance.foo.*"},
+						Primary: &InstanceState{
+							ID: "bar0",
+							Attributes: map[string]string{
+								"id": "bar0",
+							},
+						},
+					},
+					"aws_instance.bar.1": &ResourceState{
+						Type:         "aws_instance",
+						Dependencies: []string{"aws_instance.foo.*"},
+						Primary: &InstanceState{
+							ID: "bar1",
+							Attributes: map[string]string{
+								"id": "bar1",
+							},
+						},
+					},
+					"aws_instance.baz.0": &ResourceState{
+						Type:         "aws_instance",
+						Dependencies: []string{"aws_instance.bar.*"},
+						Primary: &InstanceState{
+							ID: "baz0",
+							Attributes: map[string]string{
+								"id": "baz0",
+							},
+						},
+					},
+					"aws_instance.baz.1": &ResourceState{
+						Type:         "aws_instance",
+						Dependencies: []string{"aws_instance.bar.*"},
+						Primary: &InstanceState{
+							ID: "baz1",
+							Attributes: map[string]string{
+								"id": "baz1",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	w, e := ctx.Validate()
+	if len(w) > 0 {
+		t.Fatalf("warnings generated on validate: %#v", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("errors generated on validate: %#v", e)
+	}
+
+	_, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("refresh err: %s", err)
+	}
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("plan err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(`
+DIFF:
+
+
+
+STATE:
+
+aws_instance.bar.0:
+  ID = bar0
+
+  Dependencies:
+    aws_instance.foo.*
+aws_instance.bar.1:
+  ID = bar1
+
+  Dependencies:
+    aws_instance.foo.*
+aws_instance.baz.0:
+  ID = baz0
+
+  Dependencies:
+    aws_instance.bar.*
+aws_instance.baz.1:
+  ID = baz1
+
+  Dependencies:
+    aws_instance.bar.*
+aws_instance.foo.0:
+  ID = foo0
+aws_instance.foo.1:
+  ID = foo1
+`)
+	if actual != expected {
+		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
+	}
+}

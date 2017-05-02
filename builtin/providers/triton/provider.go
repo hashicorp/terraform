@@ -42,6 +42,12 @@ func Provider() terraform.ResourceProvider {
 				Required:    true,
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"TRITON_KEY_ID", "SDC_KEY_ID"}, ""),
 			},
+
+			"insecure_skip_tls_verify": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TRITON_SKIP_TLS_VERIFY", ""),
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -56,10 +62,11 @@ func Provider() terraform.ResourceProvider {
 }
 
 type Config struct {
-	Account     string
-	KeyMaterial string
-	KeyID       string
-	URL         string
+	Account               string
+	KeyMaterial           string
+	KeyID                 string
+	URL                   string
+	InsecureSkipTLSVerify bool
 }
 
 func (c Config) validate() error {
@@ -98,6 +105,10 @@ func (c Config) getTritonClient() (*triton.Client, error) {
 		return nil, errwrap.Wrapf("Error Creating Triton Client: {{err}}", err)
 	}
 
+	if c.InsecureSkipTLSVerify {
+		client.InsecureSkipTLSVerify()
+	}
+
 	return client, nil
 }
 
@@ -106,6 +117,8 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		Account: d.Get("account").(string),
 		URL:     d.Get("url").(string),
 		KeyID:   d.Get("key_id").(string),
+
+		InsecureSkipTLSVerify: d.Get("insecure_skip_tls_verify").(bool),
 	}
 
 	if keyMaterial, ok := d.GetOk("key_material"); ok {
