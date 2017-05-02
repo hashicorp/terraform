@@ -147,7 +147,9 @@ func TestAccGoogleProjectServices_ignoreUnenablableServices(t *testing.T) {
 		"resourceviews.googleapis.com",
 		"compute-component.googleapis.com",
 		"container.googleapis.com",
+		"containerregistry.googleapis.com",
 		"storage-api.googleapis.com",
+		"pubsub.googleapis.com",
 	}
 
 	resource.Test(t, resource.TestCase{
