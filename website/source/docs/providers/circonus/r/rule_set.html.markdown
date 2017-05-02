@@ -368,7 +368,7 @@ resource "circonus_rule_set" "icmp-latency-alert" {
 It is possible to import a `circonus_rule_set` resource with the following command:
 
 ```
-$ terraform import circonus_rule_set.usage ID
+$ terraform import circonus_rule_set.icmp-latency-alert ID
 ```
 
 Where `ID` is the `_cid` or Circonus ID of the Rule Set
