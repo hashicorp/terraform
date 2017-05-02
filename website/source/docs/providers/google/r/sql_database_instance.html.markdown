@@ -15,6 +15,11 @@ default 'root'@'%' user with no password. This user will be deleted by Terraform
 instance creation. You should use a `google_sql_user` to define a customer user with
 a restricted host and strong password.
 
+~> **NOTE on Postgres support:** Configuring Postgres instances is reported to work well with this
+Terraform resource however the corresponding Google-API is currently still in BETA which means it
+can change in backwards-incompatible ways at any point in time which might also affect the way this
+Terraform resource works when configuring Postgres instances.
+
 
 ## Example Usage
 
@@ -48,6 +53,7 @@ The following arguments are supported:
     instances, or `MYSQL_5_5` or `MYSQL_5_6` for first-generation instances.
     See Google's [Second Generation Capabilities](https://cloud.google.com/sql/docs/1st-2nd-gen-differences)
     for more information.
+    Note that Google's Postgres support is currently still in BETA.
 
 * `name` - (Optional, Computed) The name of the instance. If the name is left
     blank, Terraform will randomly generate one when the instance is first
@@ -78,6 +84,7 @@ The required `settings` block supports:
     `db-custom-2-13312`.
     Only certain combinations of CPU and memory are allowed, see Google's [Custom Machine Type
     Documentation](https://cloud.google.com/compute/docs/instances/creating-instance-with-custom-machine-type#create).
+    Note that Google's Postgres support is currently still in BETA.
 
 * `activation_policy` - (Optional) This specifies when the instance should be
     active. Can be either `ALWAYS`, `NEVER` or `ON_DEMAND`.
