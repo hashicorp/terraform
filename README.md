@@ -34,6 +34,7 @@ If you wish to work on Terraform itself or any of its built-in providers, you'll
 For local dev first make sure Go is properly installed, including setting up a [GOPATH](http://golang.org/doc/code.html#GOPATH). You will also need to add `$GOPATH/bin` to your `$PATH`.
 
 Next, using [Git](https://git-scm.com/), clone this repository into `$GOPATH/src/github.com/hashicorp/terraform`. All the necessary dependencies are either vendored or automatically installed, so you just need to type `make`. This will compile the code and then run the tests. If this exits with exit status 0, then everything is working!
+>Note: if you have AWS credentials sourced in your environment or $HOME/.aws/credentials tests will fail.
 
 ```sh
 $ cd "$GOPATH/src/github.com/hashicorp/terraform"
