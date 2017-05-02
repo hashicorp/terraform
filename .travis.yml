@@ -1,33 +1,42 @@
-####################################################################################
-## NOT FOR UPSTREAM PROPOSAL; INTENDED FOR CI OF AZURE EXAMPLES IN THIS REPO ONLY ##
-####################################################################################
+dist: trusty
+sudo: false
+language: go
+go:
+- 1.8.x
 
-sudo: required
-
-services:
-  - docker
-
-language: generic
-
-# establish environment variables
+# add TF_CONSUL_TEST=1 to run consul tests
+# they were causing timouts in travis
 env:
-  - TEST_DIR=examples/azure-vm-simple-linux-managed-disk
+  - CONSUL_VERSION=0.7.5 GOMAXPROCS=4
 
+# Fetch consul for the backend and provider tests
+before_install:
+  - curl -sLo consul.zip https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip
+  - unzip consul.zip
+  - mkdir ~/bin
+  - mv consul ~/bin
+  - export PATH="~/bin:$PATH"
+
+install:
+# This script is used by the Travis build to install a cookie for
+# go.googlesource.com so rate limits are higher when using `go get` to fetch
+# packages that live there.
+# See: https://github.com/golang/go/issues/12933
+- bash scripts/gogetcookie.sh
+- go get github.com/kardianos/govendor
+script:
+- make vendor-status test vet
+- GOOS=windows go build
 branches:
   only:
   - master
-  - /^(?i:topic)-.*$/
-
-# install terraform
-before_deploy:
-  - export KEY=$(cat /dev/urandom | tr -cd 'a-z' | head -c 12)
-  - export PASSWORD=$KEY$(cat /dev/urandom | tr -cd 'A-Z' | head -c 2)$(cat /dev/urandom | tr -cd '0-9' | head -c 2)
-
-# terraform deploy + script
-deploy:
-  - provider: script
-    skip_cleanup: true
-    script: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./deploy.ci.sh
-    on:
-      repo: harijayms/terraform
-      branch: topic-101-vm-simple-linux
+notifications:
+  irc:
+    channels:
+    - irc.freenode.org#terraform-tool
+    skip_join: true
+    use_notice: true
+matrix:
+  fast_finish: true
+  allow_failures:
+  - go: tip
