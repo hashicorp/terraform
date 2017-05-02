@@ -77,6 +77,7 @@ type memoryAllocation struct {
 }
 
 type virtualMachine struct {
+	annotation            string
 	name                  string
 	folder                string
 	datacenter            string
@@ -125,6 +126,10 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 		MigrateState:  resourceVSphereVirtualMachineMigrateState,
 
 		Schema: map[string]*schema.Schema{
+			"annotation": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -486,6 +491,12 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	// make config spec
 	configSpec := types.VirtualMachineConfigSpec{}
 
+	if d.HasChange("annotation") {
+		configSpec.Annotation = d.Get("annotation").(string)
+		hasChanges = true
+		rebootRequired = false
+	}
+
 	if d.HasChange("vcpu") {
 		configSpec.NumCPUs = int32(d.Get("vcpu").(int))
 		hasChanges = true
@@ -664,6 +675,10 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		memoryAllocation: memoryAllocation{
 			reservation: int64(d.Get("memory_reservation").(int)),
 		},
+	}
+
+	if v, ok := d.GetOk("annotation"); ok {
+		vm.annotation = v.(string)
 	}
 
 	if v, ok := d.GetOk("folder"); ok {
@@ -1759,6 +1774,10 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	}
 	if vm.template == "" {
 		configSpec.GuestId = "otherLinux64Guest"
+	}
+
+	if vm.annotation != "" {
+		configSpec.Annotation = vm.annotation
 	}
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
 
