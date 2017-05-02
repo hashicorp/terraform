@@ -2317,3 +2317,35 @@ func TestInterpolateFuncSubstr(t *testing.T) {
 		},
 	})
 }
+
+func TestInterpolateFuncGetenv(t *testing.T) {
+	os.Setenv("TF_INTERP_FUNC_GETENV_TEST", "foobar")
+	testFunction(t, testFunctionConfig{
+		Vars: map[string]ast.Variable{
+			"var.getenv_test":         interfaceToVariableSwallowError("TF_INTERP_FUNC_GETENV_TEST"),
+			"var.getenv_test_missing": interfaceToVariableSwallowError("TF_INTERP_FUNC_GETENV_TEST_MISSING"),
+		},
+		Cases: []testFunctionCase{
+			{
+				`${getenv("TF_INTERP_FUNC_GETENV_TEST")}`,
+				"foobar",
+				false,
+			},
+			{
+				`${getenv("TF_INTERP_FUNC_GETENV_TEST_MISSING")}`,
+				"",
+				false,
+			},
+			{
+				`${getenv(var.getenv_test)}`,
+				"foobar",
+				false,
+			},
+			{
+				`${getenv(var.getenv_test_missing)}`,
+				"",
+				false,
+			},
+		},
+	})
+}

@@ -99,3 +99,11 @@ tests, but by setting this variable you can force these tests to be skipped.
 export TF_SKIP_REMOTE_TESTS=1
 make test
 ```
+
+## The `getenv` Interpolation Function
+
+The [`getenv`](/docs/configuration/interpolation.html#getenv-key-) interpolation
+function can be used to get the value of any environment variable available to
+the Terraform process. Note that this function is subject to the same rules as
+any other interpolation function and as such will not work within `variable`
+blocks - use `TF_VAR_` variables to assign values instead.
