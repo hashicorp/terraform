@@ -17,6 +17,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* core: `sha512` and `base64sha512` interpolation functions, similar to their `sha256` equivalents. [GH-14100]
 * provider/aws: Add support for CustomOrigin timeouts to aws_cloudfront_distribution [GH-13367]
 * provider/aws: Add support for IAMDatabaseAuthenticationEnabled [GH-14092]
 * provider/aws: aws_dynamodb_table Add support for TimeToLive [GH-14104]
