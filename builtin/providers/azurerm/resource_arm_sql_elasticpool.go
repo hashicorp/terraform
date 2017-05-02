@@ -137,20 +137,23 @@ func resourceArmSqlElasticPoolRead(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Error making Read request on Sql Elastic Pool %s: %s", name, err)
 	}
 
-	elasticPool := *resp.ElasticPoolProperties
-
 	d.Set("name", resp.Name)
 	d.Set("resource_group_name", resGroup)
 	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 	d.Set("server_name", serverName)
-	d.Set("edition", string(elasticPool.Edition))
-	d.Set("dtu", int(*elasticPool.Dtu))
-	d.Set("db_dtu_min", int(*elasticPool.DatabaseDtuMin))
-	d.Set("db_dtu_max", int(*elasticPool.DatabaseDtuMax))
-	d.Set("pool_size", int(*elasticPool.StorageMB))
 
-	if elasticPool.CreationDate != nil {
-		d.Set("creation_date", elasticPool.CreationDate.Format(time.RFC3339))
+	elasticPool := resp.ElasticPoolProperties
+
+	if elasticPool != nil {
+		d.Set("edition", string(elasticPool.Edition))
+		d.Set("dtu", int(*elasticPool.Dtu))
+		d.Set("db_dtu_min", int(*elasticPool.DatabaseDtuMin))
+		d.Set("db_dtu_max", int(*elasticPool.DatabaseDtuMax))
+		d.Set("pool_size", int(*elasticPool.StorageMB))
+
+		if elasticPool.CreationDate != nil {
+			d.Set("creation_date", elasticPool.CreationDate.Format(time.RFC3339))
+		}
 	}
 
 	flattenAndSetTags(d, resp.Tags)
