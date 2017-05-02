@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -110,6 +111,7 @@ func (t *Tree) Modules() []*Module {
 			result = append(result, &Module{
 				Name:   m.Name,
 				Source: m.Source,
+				Count:  count,
 			})
 		}
 	}
@@ -150,56 +152,71 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 
 	// Go through all the modules and get the directory for them.
 	for _, m := range modules {
-		if _, ok := children[m.Name]; ok {
-			return fmt.Errorf(
-				"module %s: duplicated. module names must be unique", m.Name)
+		for i := 0; i < m.Count; i++ {
+			var name string
+			if m.Count > 1 {
+				name = m.Name + "-" + strconv.Itoa(i)
+				moduleConfig := t.config.GetModule(m.Name)
+				if moduleConfig != nil {
+					newModuleConfig := moduleConfig.Copy()
+					newModuleConfig.Name = name
+					// At this point we also need to update the configuration
+					t.config.Modules = append(t.config.Modules, newModuleConfig)
+				}
+			} else {
+				name = m.Name
+			}
+			if _, ok := children[name]; ok {
+				return fmt.Errorf(
+					"module %s: duplicated. module names must be unique", name)
+			}
+
+			// Determine the path to this child
+			path := make([]string, len(t.path), len(t.path)+1)
+			copy(path, t.path)
+			path = append(path, name)
+
+			// Split out the subdir if we have one
+			source, subDir := getter.SourceDirSubdir(m.Source)
+
+			source, err := getter.Detect(source, t.config.Dir, getter.Detectors)
+			if err != nil {
+				return fmt.Errorf("module %s: %s", name, err)
+			}
+
+			// Check if the detector introduced something new.
+			source, subDir2 := getter.SourceDirSubdir(source)
+			if subDir2 != "" {
+				subDir = filepath.Join(subDir2, subDir)
+			}
+
+			// Get the directory where this module is so we can load it
+			key := strings.Join(path, ".")
+			key = fmt.Sprintf("root.%s-%s", key, m.Source)
+			dir, ok, err := getStorage(s, key, source, mode)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				return fmt.Errorf(
+					"module %s: not found, may need to be downloaded using 'terraform get'", name)
+			}
+
+			// If we have a subdirectory, then merge that in
+			if subDir != "" {
+				dir = filepath.Join(dir, subDir)
+			}
+
+			// Load the configurations.Dir(source)
+			children[name], err = NewTreeModule(name, dir)
+			if err != nil {
+				return fmt.Errorf(
+					"module %s: %s", m.Name, err)
+			}
+
+			// Set the path of this child
+			children[name].path = path
 		}
-
-		// Determine the path to this child
-		path := make([]string, len(t.path), len(t.path)+1)
-		copy(path, t.path)
-		path = append(path, m.Name)
-
-		// Split out the subdir if we have one
-		source, subDir := getter.SourceDirSubdir(m.Source)
-
-		source, err := getter.Detect(source, t.config.Dir, getter.Detectors)
-		if err != nil {
-			return fmt.Errorf("module %s: %s", m.Name, err)
-		}
-
-		// Check if the detector introduced something new.
-		source, subDir2 := getter.SourceDirSubdir(source)
-		if subDir2 != "" {
-			subDir = filepath.Join(subDir2, subDir)
-		}
-
-		// Get the directory where this module is so we can load it
-		key := strings.Join(path, ".")
-		key = fmt.Sprintf("root.%s-%s", key, m.Source)
-		dir, ok, err := getStorage(s, key, source, mode)
-		if err != nil {
-			return err
-		}
-		if !ok {
-			return fmt.Errorf(
-				"module %s: not found, may need to be downloaded using 'terraform get'", m.Name)
-		}
-
-		// If we have a subdirectory, then merge that in
-		if subDir != "" {
-			dir = filepath.Join(dir, subDir)
-		}
-
-		// Load the configurations.Dir(source)
-		children[m.Name], err = NewTreeModule(m.Name, dir)
-		if err != nil {
-			return fmt.Errorf(
-				"module %s: %s", m.Name, err)
-		}
-
-		// Set the path of this child
-		children[m.Name].path = path
 	}
 
 	// Go through all the children and load them.
@@ -308,9 +325,13 @@ func (t *Tree) Validate() error {
 	// Go over all the modules and verify that any parameters are valid
 	// variables into the module in question.
 	for _, m := range t.config.Modules {
-		if count, _ := m.Count(); count < 1 {
+		count, _ := m.Count()
+		if count != 1 {
+			// Continue if count = 0 or if the module is a parent module
 			continue
 		}
+
+		name = m.Name
 		tree, ok := children[m.Name]
 		if !ok {
 			// This should never happen because Load watches us

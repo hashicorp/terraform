@@ -947,6 +947,16 @@ func (c *Config) validateDependsOn(
 	return errs
 }
 
+// Retrieve a module based on its name
+func (c *Config) GetModule(name string) *Module {
+	for _, m := range c.Modules {
+		if m.Name == name {
+			return m
+		}
+	}
+	return nil
+}
+
 func (m *Module) mergerName() string {
 	return m.Id()
 }
@@ -963,6 +973,17 @@ func (m *Module) mergerMerge(other merger) merger {
 	}
 
 	return &result
+}
+
+func (r *Module) Copy() *Module {
+	m := &Module{
+		Name:      r.Name,
+		Source:    r.Source,
+		RawCount:  r.RawCount,
+		RawConfig: r.RawConfig,
+	}
+
+	return m
 }
 
 func (o *Output) mergerName() string {

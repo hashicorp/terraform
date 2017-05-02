@@ -436,6 +436,25 @@ func TestTreeValidate_unknownModule(t *testing.T) {
 	}
 }
 
+func TestTreeCount(t *testing.T) {
+	storage := testStorage(t)
+	tree := NewTree("", testConfig(t, "count"))
+	if err := tree.Load(storage, GetModeGet); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	t.Logf("Name %s\n", tree.Name())
+
+	for _, m := range tree.Modules() {
+		t.Logf("> mod %s, count %d\n", m.Name, m.Count)
+	}
+
+	for _, child := range tree.Children() {
+		t.Logf(">> child %s path %v\n", child.name, child.path)
+	}
+
+}
+
 const treeLoadStr = `
 root
   foo (path: foo)
