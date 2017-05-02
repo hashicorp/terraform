@@ -90,6 +90,11 @@ func resourceAwsInstance() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					// Suppress diff if network_interface is set
+					_, ok := d.GetOk("network_interface")
+					return ok
+				},
 			},
 
 			"user_data": {
@@ -642,6 +647,7 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("primary_network_interface_id", primaryNetworkInterface.NetworkInterfaceId)
 		d.Set("associate_public_ip_address", primaryNetworkInterface.Association != nil)
 		d.Set("ipv6_address_count", len(primaryNetworkInterface.Ipv6Addresses))
+		d.Set("source_dest_check", *primaryNetworkInterface.SourceDestCheck)
 
 		for _, address := range primaryNetworkInterface.Ipv6Addresses {
 			ipv6Addresses = append(ipv6Addresses, *address.Ipv6Address)

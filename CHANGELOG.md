@@ -9,14 +9,24 @@ FEATURES:
 
 * **New Provider:** `gitlab` [GH-13898]
 * **New Resource:** `heroku_app_feature` [GH-14035]
+* **New Resource:** `aws_emr_security_configuration` [GH-14080]
+* **New Resource:** `heroku_pipeline` [GH-14078]
+* **New Resource:** `heroku_pipeline_coupling` [GH-14078]
+* **New Data Source:** `aws_efs_file_system` [GH-14041]
 
 IMPROVEMENTS:
 
 * provider/aws: Add support for CustomOrigin timeouts to aws_cloudfront_distribution [GH-13367]
+* provider/aws: Add support for IAMDatabaseAuthenticationEnabled [GH-14092]
+* provider/aws: aws_dynamodb_table Add support for TimeToLive [GH-14104]
+* provider/aws: Add `security_configuration` support to `aws_emr_cluster` [GH-14133]
 * provider/azurerm: Expose the Private IP Address for a Load Balancer, if available [GH-13965]
 * provider/dnsimple: Add support for import for dnsimple_records [GH-9130]
+* provider/google: Add support for networkIP in compute instance templates [GH-13515]
 * provider/nomad: Add TLS options [GH-13956]
 * provider/triton: Add support for reading provider configuration from `TRITON_*` environment variables in addition to `SDC_*`[GH-14000]
+* provider/triton: Add `cloud_config` argument to `triton_machine` resources for Linux containers [GH-12840]
+* provider/triton: Add `insecure_skip_tls_verify` [GH-14077]
 
 BUG FIXES:
 
@@ -25,8 +35,11 @@ BUG FIXES:
 * provider/aws: Fix issue getting partition for federated users [GH-13992]
 * provider/aws: aws_spot_instance_request not forcenew on volume_tags [GH-14046]
 * provider/aws: Exclude aws_instance volume tagging for China and Gov Clouds [GH-14055]
+* provider/aws: Fix source_dest_check with network_interface [GH-14079]
 * provider/digitalocean: Prevent diffs when using IDs of images instead of slugs [GH-13879]
-* provider/google: ignore certain project services that can't be enabled directly via the api [GH-13730]
+* provider/fastly: Changes setting conditionals to optional [GH-14103]
+* provider/google: Ignore certain project services that can't be enabled directly via the api [GH-13730]
+* provider/google: Ability to add more than 25 project services [GH-13758]
 * providers/heroku: Configure buildpacks correctly for both Org Apps and non-org Apps [GH-13990]
 
 ## 0.9.4 (26th April 2017)
