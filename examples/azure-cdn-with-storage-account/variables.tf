@@ -8,10 +8,11 @@ variable "location" {
 }
 
 variable "storage_account_type" {
-  description = "Specifies the name of the storage account. Changing this forces a new resource to be created. This must be unique across the entire Azure service, not just within the resource group."
+  description = "Specifies the type of the storage account"
   default     = "Standard_LRS"
 }
 
 variable "host_name" {
-  description = "Storage account endpoint. This template requires that the user creates a public container in the Storage Account in order for CDN Endpoint to serve content from the Storage Account."
+  description = "A string that determines the hostname/IP address of the origin server. This string could be a domain name, IPv4 address or IPv6 address."
+  default     = "www.hostnameoforiginserver.com"
 }

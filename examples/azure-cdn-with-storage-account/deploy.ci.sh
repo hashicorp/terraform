@@ -13,7 +13,7 @@ docker run --rm -it \
   hashicorp/terraform:light \
   -c "/bin/terraform get; \
       /bin/terraform validate; \
-      /bin/terraform plan -out=out.tfplan -var resource_group=$KEY -var host_name=$KEY; \
+      /bin/terraform plan -out=out.tfplan -var resource_group=$KEY; \
       /bin/terraform apply out.tfplan"
 
 #TODO: how do we validate?
@@ -28,4 +28,4 @@ docker run --rm -it \
   --workdir=/data \
   --entrypoint "/bin/sh" \
   hashicorp/terraform:light \
-  -c "/bin/terraform destroy -force -var resource_group=$KEY -var host_name=$KEY;"
+  -c "/bin/terraform destroy -force -var resource_group=$KEY;"
