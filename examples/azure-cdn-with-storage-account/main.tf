@@ -25,7 +25,7 @@ resource "azurerm_cdn_endpoint" "cdnendpt" {
 
   origin {
     name       = "${var.resource_group}Origin1"
-    host_name  = "${var.host_name}"
+    host_name  = "www.${var.host_name}.com"
     http_port  = 80
     https_port = 443
   }
