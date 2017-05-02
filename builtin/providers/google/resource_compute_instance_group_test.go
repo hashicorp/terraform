@@ -14,12 +14,13 @@ import (
 func TestAccComputeInstanceGroup_basic(t *testing.T) {
 	var instanceGroup compute.InstanceGroup
 	var instanceName = fmt.Sprintf("instancegroup-test-%s", acctest.RandString(10))
+	var networkName = "default"
 	projs := []string{
 		"GOOGLE_PROJECT",
 		"GCLOUD_PROJECT",
 		"CLOUDSDK_CORE_PROJECT",
 	}
-	var network = fmt.Sprintf("https://www.googleapis.com/compute/v1/projects/%s/global/networks/default", multiEnvSearch(projs))
+	var networkUrl = fmt.Sprintf("https://www.googleapis.com/compute/v1/projects/%s/global/networks/%s", multiEnvSearch(projs), networkName)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -27,16 +28,18 @@ func TestAccComputeInstanceGroup_basic(t *testing.T) {
 		CheckDestroy: testAccComputeInstanceGroup_destroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeInstanceGroup_basic(instanceName, network),
+				Config: testAccComputeInstanceGroup_basic(instanceName, networkName, networkUrl),
 				Check: resource.ComposeTestCheckFunc(
 					testAccComputeInstanceGroup_exists(
 						"google_compute_instance_group.basic", &instanceGroup),
+					testAccComputeInstanceGroup_hasCorrectNetwork(
+						"google_compute_instance_group.basic", networkUrl, &instanceGroup),
 					testAccComputeInstanceGroup_exists(
 						"google_compute_instance_group.empty", &instanceGroup),
 					testAccComputeInstanceGroup_exists(
 						"google_compute_instance_group.empty-with-network", &instanceGroup),
 					testAccComputeInstanceGroup_hasCorrectNetwork(
-						"google_compute_instance_group.empty-with-network", network, &instanceGroup),
+						"google_compute_instance_group.empty-with-network", networkUrl, &instanceGroup),
 				),
 			},
 		},
@@ -238,7 +241,7 @@ func testAccComputeInstanceGroup_hasCorrectNetwork(n string, network string, ins
 	}
 }
 
-func testAccComputeInstanceGroup_basic(instance, network string) string {
+func testAccComputeInstanceGroup_basic(instance string, networkName string, networkUrl string) string {
 	return fmt.Sprintf(`
 	resource "google_compute_instance" "ig_instance" {
 		name = "%s"
@@ -251,7 +254,7 @@ func testAccComputeInstanceGroup_basic(instance, network string) string {
 		}
 
 		network_interface {
-			network = "default"
+			network = "%s"
 		}
 	}
 
@@ -297,7 +300,7 @@ func testAccComputeInstanceGroup_basic(instance, network string) string {
 			name = "https"
 			port = "8443"
 		}
-	}`, instance, instance, instance, instance, network)
+	}`, instance, networkName, instance, instance, instance, networkUrl)
 }
 
 func testAccComputeInstanceGroup_update(instance string) string {
