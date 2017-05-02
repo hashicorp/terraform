@@ -30,6 +30,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* core: `module` blocks without names are now caught in validation, along with various other block types [GH-14162]
 * provider/aws: Update aws_ebs_volume when attached [GH-14005]
 * provider/aws: Set aws_instance volume_tags to be Computed [GH-14007]
 * provider/aws: Fix issue getting partition for federated users [GH-13992]
