@@ -1,11 +1,13 @@
-output "hostname" {
-  value = "${var.hostname}"
+output "dns_name" {
+  value = "${var.dns_name}"
 }
 
-output "vm_fqdn" {
-  value = "${azurerm_public_ip.pip.fqdn}"
-}
+# output "vm_fqdn" {
+#   value = ["${element(azurerm_public_ip.pip.*.fqdn, count.index)}"]
+# }
 
-output "sshCommand" {
-  value = "ssh ${var.admin_username}@${azurerm_public_ip.pip.fqdn}"
-}
+
+# output "sshCommand" {
+#   value = "ssh ["${element(azurerm_public_ip.pip.*.fqdn, count.index)}"]@${var.username}"
+# }
+

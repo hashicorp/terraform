@@ -7,7 +7,7 @@ variable "location" {
   default     = "southcentralus"
 }
 
-variable "unique_dns_name" {
+variable "dns_name" {
   description = "Relative DNS name for the traffic manager profile, resulting FQDN will be <uniqueDnsName>.trafficmanager.net, must be globally unique."
 }
 
@@ -20,6 +20,7 @@ variable "num_vms" {
   description = "The number of virtual machines you will provision. This variable is also used for NICs and PIPs in this Terraform script."
   default     = "3"
 }
+
 variable "address_space" {
   description = "The address space that is used by the virtual network. You can supply more than one address space. Changing this forces a new resource to be created."
   default     = "10.0.0.0/16"
@@ -33,31 +34,6 @@ variable "subnet_name" {
 variable "subnet_prefix" {
   description = "The address prefix to use for the subnet"
   default     = "10.0.0.0/24"
-}
-
-variable "public_ip_name" {
-  description = "The name of the public ip address"
-  default     = "pip"
-}
-
-variable "public_ip_type" {
-  description = "Specifies whether the public ip address is dynamic or static"
-  default     = "dynamic"
-}
-
-variable "nic_name" {
-  description = "The name of the nic"
-  default     = "nic"
-}
-
-variable "storage_account_type" {
-  description = "Defines the type of storage account to be created. Valid options are Standard_LRS, Standard_ZRS, Standard_GRS, Standard_RAGRS, Premium_LRS. Changing this is sometimes valid - see the Azure documentation for more information on which types of accounts can be converted into other types."
-  default     = "Standard_LRS"
-}
-
-variable "vm_name" {
-  description = "The name of the virtual machine"
-  default     = "MyUbuntuVm"
 }
 
 variable "vm_size" {
@@ -87,6 +63,7 @@ variable "image_version" {
 
 variable "admin_username" {
   description = "Username for virtual machines"
+  default     = "vmadmin"
 }
 
 variable "admin_password" {
