@@ -3315,10 +3315,10 @@
 			"revisionTime": "2016-11-27T23:54:21Z"
 		},
 		{
-			"checksumSHA1": "a3xBCGUHttHW7+VrTk8bqxU6pOY=",
+			"checksumSHA1": "tD5kobeqw1b4V20UQsM2zTTDRHY=",
 			"path": "google.golang.org/api/compute/v1",
-			"revision": "8840436417f044055c16fc7e4018f08484f52839",
-			"revisionTime": "2017-01-13T00:03:17Z"
+			"revision": "fbbaff1827317122a8a0e1b24de25df8417ce87b",
+			"revisionTime": "2017-04-21T05:17:54Z"
 		},
 		{
 			"checksumSHA1": "lAMqZyc46cU5WaRuw4mVHFXpvps=",
