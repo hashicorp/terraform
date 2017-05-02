@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -171,12 +172,7 @@ func resourceArmTemplateDeploymentRead(d *schema.ResourceData, meta interface{})
 			var outputValueString string
 			switch strings.ToLower(outputType.(string)) {
 			case "bool":
-				// Use explicit "0"/"1" strings for boolean
-				if outputValue.(bool) {
-					outputValueString = "1"
-				} else {
-					outputValueString = "0"
-				}
+				outputValueString = strconv.FormatBool(outputValue.(bool))
 
 			case "string":
 				outputValueString = outputValue.(string)
