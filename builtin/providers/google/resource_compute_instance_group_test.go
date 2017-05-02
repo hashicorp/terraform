@@ -35,7 +35,7 @@ func TestAccComputeInstanceGroup_basic(t *testing.T) {
 						"google_compute_instance_group.empty", &instanceGroup),
 					testAccComputeInstanceGroup_exists(
 						"google_compute_instance_group.empty-with-network", &instanceGroup),
-					testAccComputeInstanceGroup_network(
+					testAccComputeInstanceGroup_hasCorrectNetwork(
 						"google_compute_instance_group.empty-with-network", network, &instanceGroup),
 				),
 			},
@@ -211,7 +211,7 @@ func testAccComputeInstanceGroup_named_ports(n string, np map[string]int64, inst
 	}
 }
 
-func testAccComputeInstanceGroup_network(n string, network string, instanceGroup *compute.InstanceGroup) resource.TestCheckFunc {
+func testAccComputeInstanceGroup_hasCorrectNetwork(n string, network string, instanceGroup *compute.InstanceGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
