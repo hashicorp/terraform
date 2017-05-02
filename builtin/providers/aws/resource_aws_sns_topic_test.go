@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -80,6 +81,36 @@ func TestAccAWSSNSTopic_withDeliveryPolicy(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSNSTopicExists("aws_sns_topic.test_topic"),
 					testAccCheckAWSNSTopicHasDeliveryPolicy("aws_sns_topic.test_topic", expectedPolicy),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSSNSTopic_deliveryStatus(t *testing.T) {
+	arnRegex := regexp.MustCompile("^arn:aws:iam::[0-9]{12}:role/sns-delivery-status-role$")
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_sns_topic.sns_delivery_status",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSSNSTopicDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSNSTopicConfig_deliveryStatus,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSNSTopicExists("aws_sns_topic.sns_delivery_status"),
+					resource.TestMatchResourceAttr("aws_sns_topic.sns_delivery_status", "application_success_feedback_role_arn", arnRegex),
+					resource.TestCheckResourceAttr("aws_sns_topic.sns_delivery_status", "application_success_feedback_sample_rate", "100"),
+					resource.TestMatchResourceAttr("aws_sns_topic.sns_delivery_status", "application_failure_feedback_role_arn", arnRegex),
+					resource.TestMatchResourceAttr("aws_sns_topic.sns_delivery_status", "lambda_success_feedback_role_arn", arnRegex),
+					resource.TestCheckResourceAttr("aws_sns_topic.sns_delivery_status", "lambda_success_feedback_sample_rate", "90"),
+					resource.TestMatchResourceAttr("aws_sns_topic.sns_delivery_status", "lambda_failure_feedback_role_arn", arnRegex),
+					resource.TestMatchResourceAttr("aws_sns_topic.sns_delivery_status", "http_success_feedback_role_arn", arnRegex),
+					resource.TestCheckResourceAttr("aws_sns_topic.sns_delivery_status", "http_success_feedback_sample_rate", "80"),
+					resource.TestMatchResourceAttr("aws_sns_topic.sns_delivery_status", "http_failure_feedback_role_arn", arnRegex),
+					resource.TestMatchResourceAttr("aws_sns_topic.sns_delivery_status", "sqs_success_feedback_role_arn", arnRegex),
+					resource.TestCheckResourceAttr("aws_sns_topic.sns_delivery_status", "sqs_success_feedback_sample_rate", "70"),
+					resource.TestMatchResourceAttr("aws_sns_topic.sns_delivery_status", "sqs_failure_feedback_role_arn", arnRegex),
 				),
 			},
 		},
@@ -322,6 +353,71 @@ resource "aws_sns_topic" "test_topic" {
     },
     "disableSubscriptionOverrides": false
   }
+}
+EOF
+}
+`
+
+const testAccAWSSNSTopicConfig_deliveryStatus = `
+resource "aws_sns_topic" "sns_delivery_status" {
+  depends_on                               = ["aws_iam_role_policy.sns_delivery_status"]
+  name                                     = "sns-delivery-status-topic"
+  application_success_feedback_role_arn    = "${aws_iam_role.sns_delivery_status.arn}"
+  application_success_feedback_sample_rate = 100
+  application_failure_feedback_role_arn    = "${aws_iam_role.sns_delivery_status.arn}"
+  lambda_success_feedback_role_arn         = "${aws_iam_role.sns_delivery_status.arn}"
+  lambda_success_feedback_sample_rate      = 90
+  lambda_failure_feedback_role_arn         = "${aws_iam_role.sns_delivery_status.arn}"
+  http_success_feedback_role_arn           = "${aws_iam_role.sns_delivery_status.arn}"
+  http_success_feedback_sample_rate        = 80
+  http_failure_feedback_role_arn           = "${aws_iam_role.sns_delivery_status.arn}"
+  sqs_success_feedback_role_arn            = "${aws_iam_role.sns_delivery_status.arn}"
+  sqs_success_feedback_sample_rate         = 70
+  sqs_failure_feedback_role_arn            = "${aws_iam_role.sns_delivery_status.arn}"
+}
+
+resource "aws_iam_role" "sns_delivery_status" {
+  name = "sns-delivery-status-role"
+  path = "/"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "sns.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy" "sns_delivery_status" {
+  name = "sns-delivery-status-role-policy"
+  role = "${aws_iam_role.sns_delivery_status.id}"
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "logs:PutMetricFilter",
+        "logs:PutRetentionPolicy"
+      ],
+      "Resource": [
+        "*"
+      ]
+    }
+  ]
 }
 EOF
 }

@@ -16,10 +16,22 @@ import (
 
 // Mutable attributes
 var SNSAttributeMap = map[string]string{
-	"arn":             "TopicArn",
-	"display_name":    "DisplayName",
-	"policy":          "Policy",
-	"delivery_policy": "DeliveryPolicy",
+	"arn":                                      "TopicArn",
+	"display_name":                             "DisplayName",
+	"policy":                                   "Policy",
+	"delivery_policy":                          "DeliveryPolicy",
+	"application_success_feedback_role_arn":    "ApplicationSuccessFeedbackRoleArn",
+	"application_success_feedback_sample_rate": "ApplicationSuccessFeedbackSampleRate",
+	"application_failure_feedback_role_arn":    "ApplicationFailureFeedbackRoleArn",
+	"http_success_feedback_role_arn":           "HTTPSuccessFeedbackRoleArn",
+	"http_success_feedback_sample_rate":        "HTTPSuccessFeedbackSampleRate",
+	"http_failure_feedback_role_arn":           "HTTPFailureFeedbackRoleArn",
+	"lambda_success_feedback_role_arn":         "LambdaSuccessFeedbackRoleArn",
+	"lambda_success_feedback_sample_rate":      "LambdaSuccessFeedbackSampleRate",
+	"lambda_failure_feedback_role_arn":         "LambdaFailureFeedbackRoleArn",
+	"sqs_success_feedback_role_arn":            "SQSSuccessFeedbackRoleArn",
+	"sqs_success_feedback_sample_rate":         "SQSSuccessFeedbackSampleRate",
+	"sqs_failure_feedback_role_arn":            "SQSFailureFeedbackRoleArn",
 }
 
 func resourceAwsSnsTopic() *schema.Resource {
@@ -64,6 +76,62 @@ func resourceAwsSnsTopic() *schema.Resource {
 					json, _ := normalizeJsonString(v)
 					return json
 				},
+			},
+			"application_success_feedback_role_arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"application_success_feedback_sample_rate": &schema.Schema{
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validateIntegerInRange(0, 100),
+				Default:      100,
+			},
+			"application_failure_feedback_role_arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"http_success_feedback_role_arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"http_success_feedback_sample_rate": &schema.Schema{
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validateIntegerInRange(0, 100),
+				Default:      100,
+			},
+			"http_failure_feedback_role_arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"lambda_success_feedback_role_arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"lambda_success_feedback_sample_rate": &schema.Schema{
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validateIntegerInRange(0, 100),
+				Default:      100,
+			},
+			"lambda_failure_feedback_role_arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"sqs_success_feedback_role_arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"sqs_success_feedback_sample_rate": &schema.Schema{
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ValidateFunc: validateIntegerInRange(0, 100),
+				Default:      100,
+			},
+			"sqs_failure_feedback_role_arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 			"arn": &schema.Schema{
 				Type:     schema.TypeString,
@@ -111,7 +179,7 @@ func resourceAwsSnsTopicUpdate(d *schema.ResourceData, meta interface{}) error {
 					req := sns.SetTopicAttributesInput{
 						TopicArn:       aws.String(d.Id()),
 						AttributeName:  aws.String(attrKey),
-						AttributeValue: aws.String(n.(string)),
+						AttributeValue: aws.String(fmt.Sprintf("%v", n)),
 					}
 
 					// Retry the update in the event of an eventually consistent style of
@@ -145,7 +213,9 @@ func resourceAwsSNSUpdateRefreshFunc(
 			log.Printf("[WARN] Erroring updating topic attributes: %s", err)
 			if awsErr, ok := err.(awserr.Error); ok {
 				// if the error contains the PrincipalNotFound message, we can retry
-				if strings.Contains(awsErr.Message(), "PrincipalNotFound") {
+				// setting ...FeedbackRoleArn can also fail if IAM not yet ready
+				if strings.Contains(awsErr.Message(), "PrincipalNotFound") ||
+					strings.Contains(awsErr.Message(), "FeedbackRoleArn") {
 					log.Printf("[DEBUG] Retrying AWS SNS Topic Update: %s", params)
 					return nil, "retrying", nil
 				}
