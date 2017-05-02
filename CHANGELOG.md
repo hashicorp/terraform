@@ -41,6 +41,7 @@ BUG FIXES:
 * provider/google: Ignore certain project services that can't be enabled directly via the api [GH-13730]
 * provider/google: Ability to add more than 25 project services [GH-13758]
 * providers/heroku: Configure buildpacks correctly for both Org Apps and non-org Apps [GH-13990]
+* provisioner/remote-exec: Fix panic from remote_exec provisioner [GH-14134]
 
 ## 0.9.4 (26th April 2017)
 
