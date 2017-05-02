@@ -61,9 +61,9 @@ attribute set, you can access individual attributes with a zero-based
 index, such as `${aws_instance.web.0.id}`. You can also use the splat
 syntax to get a list of all the attributes: `${aws_instance.web.*.id}`.
 
-#### Outputs from a data source
+#### Attributes of a data source
 
-The syntax is `data.TYPE.NAME.ATTRIBUTE`. For example. `${data.aws_ami.ubuntu.id}` will interpolate the `id` output from the `aws_ami` [data source](/docs/configuration/data-sources.html) named `ubuntu`. If the data source has a `count`
+The syntax is `data.TYPE.NAME.ATTRIBUTE`. For example. `${data.aws_ami.ubuntu.id}` will interpolate the `id` attribute from the `aws_ami` [data source](/docs/configuration/data-sources.html) named `ubuntu`. If the data source has a `count`
 attribute set, you can access individual attributes with a zero-based
 index, such as `${data.aws_subnet.example.0.cidr_block}`. You can also use the splat
 syntax to get a list of all the attributes: `${data.aws_subnet.example.*.cidr_block}`.
