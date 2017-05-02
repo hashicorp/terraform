@@ -67,7 +67,7 @@ func TestAccAzureRMSqlDatabase_basic(t *testing.T) {
 
 func TestAccAzureRMSqlDatabase_elasticPool(t *testing.T) {
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMSqlDatabase_elasticPool, ri, ri, ri)
+	config := fmt.Sprintf(testAccAzureRMSqlDatabase_elasticPool, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -78,7 +78,7 @@ func TestAccAzureRMSqlDatabase_elasticPool(t *testing.T) {
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMSqlDatabaseExists("azurerm_sql_database.test"),
-					resource.TestCheckResourceAttr("azurerm_sql_database.test", "elastic_pool_name", "test_ep"),
+					resource.TestCheckResourceAttr("azurerm_sql_database.test", "elastic_pool_name", fmt.Sprintf("acctestep%d", ri)),
 				),
 			},
 		},
@@ -188,6 +188,7 @@ resource "azurerm_resource_group" "test" {
     name = "acctestRG_%d"
     location = "West US"
 }
+
 resource "azurerm_sql_server" "test" {
     name = "acctestsqlserver%d"
     resource_group_name = "${azurerm_resource_group.test.name}"
@@ -197,15 +198,25 @@ resource "azurerm_sql_server" "test" {
     administrator_login_password = "thisIsDog11"
 }
 
+resource "azurerm_sql_elasticpool" "test" {
+    name = "acctestep%d"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    location = "West US"
+    server_name = "${azurerm_sql_server.test.name}"
+    edition = "Basic"
+    dtu = 50
+    pool_size = 5000
+}
+
 resource "azurerm_sql_database" "test" {
     name = "acctestdb%d"
     resource_group_name = "${azurerm_resource_group.test.name}"
     server_name = "${azurerm_sql_server.test.name}"
     location = "West US"
-    edition = "Standard"
+    edition = "${azurerm_sql_elasticpool.test.edition}"
     collation = "SQL_Latin1_General_CP1_CI_AS"
     max_size_bytes = "1073741824"
-    elastic_pool_name = "test_ep"
+    elastic_pool_name = "${azurerm_sql_elasticpool.test.name}"
     requested_service_objective_name = "ElasticPool"
 }
 `
