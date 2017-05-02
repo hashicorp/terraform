@@ -15,12 +15,10 @@ git:
 
 # establish environment variables
 env:
-  - TEST_DIR=examples/azure-vm-simple-linux-managed-disk
-  - TEST_DIR=examples/azure-vnet-two-subnets
+  - TEST_DIR=examples/azure-vm-specialized-vhd-existing-vnet
 
 branches:
   only:
-  - master
   - /^(?i:topic)-.*$/
 
 # install terraform
@@ -35,4 +33,4 @@ deploy:
     script: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./deploy.ci.sh
     on:
       repo: harijayms/terraform
-      branch: master
+      branch: topic-201-vm-specialized-vhd-existing-vnet
