@@ -147,7 +147,7 @@ multiple times)
 * `paths` - (Required) The list of paths to match against. See the
     documentation for formatting these [here](https://cloud.google.com/compute/docs/reference/latest/urlMaps#pathMatchers.pathRules.paths)
 
-* `default_service` - (Required) The URL for the backend service or backend bucket to use if any
+* `service` - (Required) The URL for the backend service or backend bucket to use if any
     of the given paths match. See the documentation for formatting the service/bucket
     URL [here](https://cloud.google.com/compute/docs/reference/latest/urlMaps#pathMatcher.defaultService)
 
