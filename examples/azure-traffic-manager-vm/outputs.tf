@@ -1,11 +1,3 @@
-output "hostname" {
-  value = "${var.hostname}"
-}
-
-output "vm_fqdn" {
-  value = "${azurerm_public_ip.pip.fqdn}"
-}
-
-output "sshCommand" {
-  value = "ssh ${var.admin_username}@${azurerm_public_ip.pip.fqdn}"
+output "dns_name" {
+  value = "${var.dns_name}"
 }
