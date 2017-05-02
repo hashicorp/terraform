@@ -772,6 +772,44 @@ func TestAccVSphereVirtualMachine_createWithExistingVmdk(t *testing.T) {
 	})
 }
 
+const testAccCheckVSphereVirtualMachineConfig_createWithAnnotation = `
+resource "vsphere_virtual_machine" "with_annotation" {
+    name = "terraform-test-with-annotation"
+    annotation = "%s"
+`
+
+func TestAccVSphereVirtualMachine_createWithAnnotation(t *testing.T) {
+	var vm virtualMachine
+	annotation := "key:tf_test_createWithAnnotation"
+
+	data := setupTemplateFuncDHCPData()
+	vmName := "vsphere_virtual_machine.with_annotation"
+	test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
+		TestFuncData{vm: vm, label: data.label, vmName: vmName, vmResource: "terraform-test-with-folder"}.testCheckFuncBasic()
+
+	config := fmt.Sprintf(testAccCheckVSphereVirtualMachineConfig_createWithAnnotation,
+		annotation,
+	) + data.parseDHCPTemplateConfig()
+
+	log.Printf("[DEBUG] template= %s", testAccCheckVSphereVirtualMachineConfig_createWithAnnotation)
+	log.Printf("[DEBUG] template config= %s", config)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label,
+					resource.TestCheckResourceAttr(vmName, "annotation", annotation),
+				),
+			},
+		},
+	})
+}
+
 const testAccCheckVSphereVirtualMachineConfig_updateMemory = `
 resource "vsphere_virtual_machine" "bar" {
     name = "terraform-test"
