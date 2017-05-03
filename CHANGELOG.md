@@ -11,6 +11,7 @@ FEATURES:
 * **New Resource:** `aws_emr_security_configuration` [GH-14080]
 * **New Resource:** `azurerm_sql_elasticpool` [GH-14099]
 * **New Resource:** `google_compute_backend_bucket` [GH-14015]
+* **New Resource:** `google_compute_snapshot` [GH-12482]
 * **New Resource:** `heroku_app_feature` [GH-14035]
 * **New Resource:** `heroku_pipeline` [GH-14078]
 * **New Resource:** `heroku_pipeline_coupling` [GH-14078]
