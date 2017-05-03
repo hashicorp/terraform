@@ -23,6 +23,7 @@ IMPROVEMENTS:
 * provider/aws: Add support for IAMDatabaseAuthenticationEnabled [GH-14092]
 * provider/aws: aws_dynamodb_table Add support for TimeToLive [GH-14104]
 * provider/aws: Add `security_configuration` support to `aws_emr_cluster` [GH-14133]
+* provider/azurerm: `azurerm_template_deployment` now supports String/Int/Boolean outputs [GH-13670]
 * provider/azurerm: Expose the Private IP Address for a Load Balancer, if available [GH-13965]
 * provider/dnsimple: Add support for import for dnsimple_records [GH-9130]
 * provider/google: Add support for networkIP in compute instance templates [GH-13515]
