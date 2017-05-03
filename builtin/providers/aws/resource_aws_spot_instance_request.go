@@ -25,7 +25,7 @@ func resourceAwsSpotInstanceRequest() *schema.Resource {
 
 			// Everything on a spot instance is ForceNew except tags
 			for k, v := range s {
-				if k == "tags" {
+				if k == "tags" || k == "volume_tags" {
 					continue
 				}
 				v.ForceNew = true

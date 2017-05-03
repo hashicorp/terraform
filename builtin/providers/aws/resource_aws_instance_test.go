@@ -678,6 +678,25 @@ func TestAccAWSInstance_volumeTags(t *testing.T) {
 	})
 }
 
+func TestAccAWSInstance_volumeTagsComputed(t *testing.T) {
+	var v ec2.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckInstanceConfigWithAttachedVolume,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+				),
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 func TestAccAWSInstance_instanceProfileChange(t *testing.T) {
 	var v ec2.Instance
 	rName := acctest.RandString(5)
@@ -941,6 +960,27 @@ func TestAccAWSInstance_primaryNetworkInterface(t *testing.T) {
 					testAccCheckInstanceExists("aws_instance.foo", &instance),
 					testAccCheckAWSENIExists("aws_network_interface.bar", &ini),
 					resource.TestCheckResourceAttr("aws_instance.foo", "network_interface.#", "1"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSInstance_primaryNetworkInterfaceSourceDestCheck(t *testing.T) {
+	var instance ec2.Instance
+	var ini ec2.NetworkInterface
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceConfigPrimaryNetworkInterfaceSourceDestCheck,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &instance),
+					testAccCheckAWSENIExists("aws_network_interface.bar", &ini),
+					resource.TestCheckResourceAttr("aws_instance.foo", "source_dest_check", "false"),
 				),
 			},
 		},
@@ -1382,6 +1422,69 @@ resource "aws_instance" "foo" {
 }
 `
 
+const testAccCheckInstanceConfigWithAttachedVolume = `
+data "aws_ami" "debian_jessie_latest" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["debian-jessie-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  filter {
+    name   = "architecture"
+    values = ["x86_64"]
+  }
+
+  filter {
+    name   = "root-device-type"
+    values = ["ebs"]
+  }
+
+  owners = ["379101102735"] # Debian
+}
+
+resource "aws_instance" "foo" {
+  ami                         = "${data.aws_ami.debian_jessie_latest.id}"
+  associate_public_ip_address = true
+  count                       = 1
+  instance_type               = "t2.medium"
+
+  root_block_device {
+    volume_size           = "10"
+    volume_type           = "standard"
+    delete_on_termination = true
+  }
+
+  tags {
+    Name    = "test-terraform"
+  }
+}
+
+resource "aws_ebs_volume" "test" {
+  depends_on        = ["aws_instance.foo"]
+  availability_zone = "${aws_instance.foo.availability_zone}"
+  type       = "gp2"
+  size              = "10"
+
+  tags {
+    Name = "test-terraform"
+  }
+}
+
+resource "aws_volume_attachment" "test" {
+  depends_on  = ["aws_ebs_volume.test"]
+  device_name = "/dev/xvdg"
+  volume_id   = "${aws_ebs_volume.test.id}"
+  instance_id = "${aws_instance.foo.id}"
+}
+`
+
 const testAccCheckInstanceConfigNoVolumeTags = `
 resource "aws_instance" "foo" {
 	ami = "ami-55a7ea65"
@@ -1769,6 +1872,42 @@ resource "aws_subnet" "foo" {
 resource "aws_network_interface" "bar" {
   subnet_id = "${aws_subnet.foo.id}"
   private_ips = ["172.16.10.100"]
+  tags {
+    Name = "primary_network_interface"
+  }
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-22b9a343"
+	instance_type = "t2.micro"
+	network_interface {
+	 network_interface_id = "${aws_network_interface.bar.id}"
+	 device_index = 0
+  }
+}
+`
+
+const testAccInstanceConfigPrimaryNetworkInterfaceSourceDestCheck = `
+resource "aws_vpc" "foo" {
+  cidr_block = "172.16.0.0/16"
+  tags {
+    Name = "tf-instance-test"
+  }
+}
+
+resource "aws_subnet" "foo" {
+  vpc_id = "${aws_vpc.foo.id}"
+  cidr_block = "172.16.10.0/24"
+  availability_zone = "us-west-2a"
+  tags {
+    Name = "tf-instance-test"
+  }
+}
+
+resource "aws_network_interface" "bar" {
+  subnet_id = "${aws_subnet.foo.id}"
+  private_ips = ["172.16.10.100"]
+  source_dest_check = false
   tags {
     Name = "primary_network_interface"
   }

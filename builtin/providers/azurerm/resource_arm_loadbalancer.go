@@ -92,6 +92,11 @@ func resourceArmLoadBalancer() *schema.Resource {
 				},
 			},
 
+			"private_ip_address": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -172,7 +177,17 @@ func resourecArmLoadBalancerRead(d *schema.ResourceData, meta interface{}) error
 	d.Set("resource_group_name", id.ResourceGroup)
 
 	if loadBalancer.LoadBalancerPropertiesFormat != nil && loadBalancer.LoadBalancerPropertiesFormat.FrontendIPConfigurations != nil {
-		d.Set("frontend_ip_configuration", flattenLoadBalancerFrontendIpConfiguration(loadBalancer.LoadBalancerPropertiesFormat.FrontendIPConfigurations))
+		ipconfigs := loadBalancer.LoadBalancerPropertiesFormat.FrontendIPConfigurations
+		d.Set("frontend_ip_configuration", flattenLoadBalancerFrontendIpConfiguration(ipconfigs))
+
+		for _, config := range *ipconfigs {
+			if config.FrontendIPConfigurationPropertiesFormat.PrivateIPAddress != nil {
+				d.Set("private_ip_address", config.FrontendIPConfigurationPropertiesFormat.PrivateIPAddress)
+
+				// set the private IP address at most once
+				break
+			}
+		}
 	}
 
 	flattenAndSetTags(d, loadBalancer.Tags)
