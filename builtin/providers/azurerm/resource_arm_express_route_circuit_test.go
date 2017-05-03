@@ -100,7 +100,7 @@ func testAccAzureRMExpressRouteCircuit_basic(rInt int) string {
 			peering_location = "Silicon Valley"
 			bandwidth_in_mbps = 50
 			sku_tier = "Standard"
-			sky_family = "MeteredData"
+			sku_family = "MeteredData"
 			allow_classic_operations = false
 
 			tags {

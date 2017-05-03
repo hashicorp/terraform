@@ -78,6 +78,8 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_eventhub_consumer_group":     resourceArmEventHubConsumerGroup(),
 			"azurerm_eventhub_namespace":          resourceArmEventHubNamespace(),
 
+			"azurerm_express_route_circuit": resourceArmExpressRouteCircuit(),
+
 			"azurerm_lb":                      resourceArmLoadBalancer(),
 			"azurerm_lb_backend_address_pool": resourceArmLoadBalancerBackendAddressPool(),
 			"azurerm_lb_nat_rule":             resourceArmLoadBalancerNatRule(),
