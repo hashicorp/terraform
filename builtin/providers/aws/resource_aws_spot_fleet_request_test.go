@@ -1365,7 +1365,7 @@ resource "aws_spot_fleet_request" "foo" {
         instance_type = "m1.small"
         ami = "ami-d06a90b0"
         key_name = "${aws_key_pair.debugging.key_name}"
-	placement_tenancy = "dedicated"
+        placement_tenancy = "dedicated"
     }
     depends_on = ["aws_iam_policy_attachment.test-attach"]
 }
