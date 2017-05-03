@@ -57,6 +57,29 @@ func resourceGithubBranchProtection() *schema.Resource {
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"dismissal_restrictions": {
+							Type:     schema.TypeList,
+							Optional: true,
+							DefaultFunc: func() (interface{}, error) {
+								return []string{}, nil
+							},
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"users": {
+										Type:     schema.TypeList,
+										Optional: true,
+										Elem:     &schema.Schema{Type: schema.TypeString},
+									},
+									"teams": {
+										Type:     schema.TypeList,
+										Optional: true,
+										Elem:     &schema.Schema{Type: schema.TypeString},
+									},
+								},
+							},
+						},
+						"dismiss_stale_reviews": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  false,
@@ -142,8 +165,31 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 
 	rprr := githubProtection.RequiredPullRequestReviews
 	if rprr != nil {
+		var userLogins []string
+		var teamSlugs []string
+		dr := rprr.DismissalRestrictions
+		if dr != nil {
+			for _, u := range dr.Users {
+				if u.Login != nil {
+					userLogins = append(userLogins, *u.Login)
+				}
+			}
+			for _, t := range dr.Teams {
+				if t.Slug != nil {
+					teamSlugs = append(teamSlugs, *t.Slug)
+				}
+			}
+		}
+
 		d.Set("required_pull_request_reviews", []interface{}{
 			map[string]interface{}{
+				"dismiss_stale_reviews": rprr.DismissStaleReviews,
+				"dismissal_restrictions": []interface{}{
+					map[string]interface{}{
+						"users": userLogins,
+						"teams": teamSlugs,
+					},
+				},
 			},
 		})
 	} else {
@@ -244,6 +290,37 @@ func buildProtectionRequest(d *schema.ResourceData) (*github.ProtectionRequest, 
 		for _, v := range vL {
 			m := v.(map[string]interface{})
 
+			rprr := new(github.RequiredPullRequestReviewsRequest)
+			rprr.DismissStaleReviews = m["dismiss_stale_reviews"].(bool)
+
+			if v, ok := m["dismissal_restrictions"]; ok {
+				vL := v.([]interface{})
+				if len(vL) > 1 {
+					return nil, errors.New("cannot specify restrictions more than one time")
+				}
+
+				for _, v := range vL {
+					m := v.(map[string]interface{})
+
+					restrictions := new(github.RestrictionsRequest)
+
+					restrictions.Users = []string{}
+					if users, ok := m["users"].([]interface{}); ok {
+						for _, u := range users {
+							restrictions.Users = append(restrictions.Users, u.(string))
+						}
+					}
+
+					restrictions.Teams = []string{}
+					if teams, ok := m["teams"].([]interface{}); ok {
+						for _, t := range teams {
+							restrictions.Teams = append(restrictions.Teams, t.(string))
+						}
+					}
+
+					rprr.DismissalRestrictionsRequest = restrictions
+				}
+			}
 
 			protectionRequest.RequiredPullRequestReviews = rprr
 		}
@@ -258,7 +335,7 @@ func buildProtectionRequest(d *schema.ResourceData) (*github.ProtectionRequest, 
 		for _, v := range vL {
 			m := v.(map[string]interface{})
 
-			restrictions := new(github.BranchRestrictionsRequest)
+			restrictions := new(github.RestrictionsRequest)
 
 			restrictions.Users = []string{}
 			if users, ok := m["users"].([]interface{}); ok {

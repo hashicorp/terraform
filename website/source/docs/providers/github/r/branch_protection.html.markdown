@@ -29,6 +29,7 @@ resource "github_branch_protection" "foo_master" {
   }
 
   required_pull_request_reviews {
+    dismiss_stale_reviews = true
   }
 
   restrictions {
@@ -59,6 +60,17 @@ The following arguments are supported:
 
 `required_pull_request_reviews` supports the following arguments:
 
+* `dismissal_restrictions`: (Optional) Specify which users and teams can dismiss pull request reviews. See [Dismissal Restrictions](#dismissal-restrictions) below for details.
+* `dismiss_stale_reviews`: (Optional) Dismiss approved reviews automatically when a new commit is pushed. Defaults to `false`.
+
+#### Dismissal Restrictions
+
+`dismissal_restrictions` supports the following arguments:
+
+* `users`: (Optional) The list of user logins which can dismiss pull request reviews.
+* `teams`: (Optional) The list of team slugs which can dismiss pull request reviews.
+
+`restrictions` is only available for organization-owned repositories.
 
 ### Restrictions
 
