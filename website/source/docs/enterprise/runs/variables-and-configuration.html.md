@@ -12,7 +12,17 @@ There are several ways to configure Terraform runs:
 
 1. Terraform variables
 2. Environment variables
-3. Personal environment variables
+3. Personal Environment and Personal Organization variables
+
+You can add, edit, and delete all Terraform, Environment, and Personal
+Environment variables from the "Variables" page on your environment:
+
+![Terraform Enterprise environment variable configuration](docs/tfe-variables.png)
+
+Personal Organization variables can be managed in your Account Settings under
+"Organization Variables":
+
+![Terraform Enterprise personal organization variables](docs/tfe-organization-variables.png)
 
 ## Variable types 
 
@@ -23,9 +33,9 @@ parameterization of Terraform configurations and are important for sharing and
 removal of sensitive secrets from version control.
 
 Variables are sent with the `terraform push` command. Any variables in your local
-`.tfvars` files are securely uploaded. Once variables are uploaded, Terraform will prefer the stored variables over any changes you
-make locally. Please refer to the
-[Terraform push documentation](https://www.terraform.io/docs/commands/push.html)
+`.tfvars` files are securely uploaded. Once variables are uploaded, Terraform
+will prefer the stored variables over any changes you make locally. Please refer
+to the [Terraform push documentation](https://www.terraform.io/docs/commands/push.html)
 for more information.
 
 You can also add, edit, and delete variables. To update Terraform variables,
@@ -82,37 +92,39 @@ resource was created outside of GitHub (like using `terraform push`).
 
 ### Personal Variables
 
-Personal variables can be created at the Environment level. All Personal
-Environment variables are private and scoped to the user that created them. Just
-like Environment variables, they are injected into the virtual environment
-during the `plan` and `apply` phases.
+Personal variables can be created at the Environment or Organization level. All
+Personal variables are private and scoped to the user that created them. Just
+like shared Environment variables, they are injected into the virtual 
+environment during the `plan` and `apply` phases.
 
-Personal Environment variables can be used to override Environment variables on
-a per-user basis. You can add, edit, and delete environment variables from the
-"variables" page on your environment.
+Both Personal Environment and Personal Organization variables can be used to
+override Environment variables on a per-user basis. 
 
 ## Variable Hierarchy 
 
-For Environment and Personal Environment variables, it is possible to create the
-same variable in multiple places. Variables are applied in the following order:
+It is possible to create the same variable in multiple places for more granular
+control. Variables are applied in the following order:
 
 1. Environment
-2. Personal Environment
+2. Personal Organization
+3. Personal Environment
 
 Here's an example: 
 
-* For the `SlothCorp/petting_zoo` environment, a user creates
+* For the `SlothCorp/petting_zoo` environment, User 1 creates
 an Environment variable called `SECRET_GATE_ACCESS_KEY` and sets the value to
 `"orange-turtleneck"`
-* Another user adds a Personal Environment variable for 
-`SECRET_GATE_ACCESS_KEY` and sets the value to `"pink-turtleneck"`
-* When the `plan` or `apply` executes, the `SECRET_GATE_ACCESS_KEY` will use
-`"pink-turtleneck"`
+* User 2 adds a Personal Environment variable for 
+`SECRET_GATE_ACCESS_KEY` and sets the value to `"pink-overalls"`
+* When User 2 submits a `plan` or `apply`, the `SECRET_GATE_ACCESS_KEY`
+will use `"pink-overalls"`
+* When User 1, or any other user, submits a `plan` or `apply`, the
+`SECRET_GATE_ACCESS_KEY` will use `"orange-turtleneck"`
 
 ## Managing Secret Multi-Line Files
 
 Terraform Enterprise has the ability to store multi-line files as variables. The
-recommended way to manage your secret/sensitive multi-line files (private key,
+recommended way to manage your secret or sensitive multi-line files (private key,
 SSL cert, SSL private key, CA, etc.) is to add them as
 [Terraform Variables](#terraform-variables) or
 [Environment Variables](#environment-variables).
