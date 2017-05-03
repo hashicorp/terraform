@@ -95,7 +95,7 @@ func testCtxConfigWithShell(p terraform.ResourceProvider, pr terraform.ResourceP
 }
 
 func testModule(t *testing.T, name string) *module.Tree {
-	mod, err := module.NewTreeModule("", filepath.Join(fixtureDir, name))
+	mod, err := module.NewTreeModule("", filepath.Join(fixtureDir, name), 1)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

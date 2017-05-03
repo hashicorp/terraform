@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -27,11 +26,15 @@ type Tree struct {
 	children map[string]*Tree
 	path     []string
 	lock     sync.RWMutex
+	count    int
 }
 
 // NewTree returns a new Tree for the given config structure.
-func NewTree(name string, c *config.Config) *Tree {
-	return &Tree{config: c, name: name}
+func NewTree(name string, c *config.Config, count int) *Tree {
+	if count == 0 {
+		count = 1
+	}
+	return &Tree{config: c, name: name, count: count}
 }
 
 // NewEmptyTree returns a new tree that is empty (contains no configuration).
@@ -51,18 +54,22 @@ func NewEmptyTree() *Tree {
 // NewTreeModule is like NewTree except it parses the configuration in
 // the directory and gives it a specific name. Use a blank name "" to specify
 // the root module.
-func NewTreeModule(name, dir string) (*Tree, error) {
+func NewTreeModule(name, dir string, count int) (*Tree, error) {
 	c, err := config.LoadDir(dir)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewTree(name, c), nil
+	return NewTree(name, c, count), nil
 }
 
 // Config returns the configuration for this module.
 func (t *Tree) Config() *config.Config {
 	return t.config
+}
+
+func (t *Tree) Count() int {
+	return t.count
 }
 
 // Child returns the child with the given path (by name).
@@ -152,71 +159,56 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 
 	// Go through all the modules and get the directory for them.
 	for _, m := range modules {
-		for i := 0; i < m.Count; i++ {
-			var name string
-			if m.Count > 1 {
-				name = m.Name + "-" + strconv.Itoa(i)
-				moduleConfig := t.config.GetModule(m.Name)
-				if moduleConfig != nil {
-					newModuleConfig := moduleConfig.Copy()
-					newModuleConfig.Name = name
-					// At this point we also need to update the configuration
-					t.config.Modules = append(t.config.Modules, newModuleConfig)
-				}
-			} else {
-				name = m.Name
-			}
-			if _, ok := children[name]; ok {
-				return fmt.Errorf(
-					"module %s: duplicated. module names must be unique", name)
-			}
-
-			// Determine the path to this child
-			path := make([]string, len(t.path), len(t.path)+1)
-			copy(path, t.path)
-			path = append(path, name)
-
-			// Split out the subdir if we have one
-			source, subDir := getter.SourceDirSubdir(m.Source)
-
-			source, err := getter.Detect(source, t.config.Dir, getter.Detectors)
-			if err != nil {
-				return fmt.Errorf("module %s: %s", name, err)
-			}
-
-			// Check if the detector introduced something new.
-			source, subDir2 := getter.SourceDirSubdir(source)
-			if subDir2 != "" {
-				subDir = filepath.Join(subDir2, subDir)
-			}
-
-			// Get the directory where this module is so we can load it
-			key := strings.Join(path, ".")
-			key = fmt.Sprintf("root.%s-%s", key, m.Source)
-			dir, ok, err := getStorage(s, key, source, mode)
-			if err != nil {
-				return err
-			}
-			if !ok {
-				return fmt.Errorf(
-					"module %s: not found, may need to be downloaded using 'terraform get'", name)
-			}
-
-			// If we have a subdirectory, then merge that in
-			if subDir != "" {
-				dir = filepath.Join(dir, subDir)
-			}
-
-			// Load the configurations.Dir(source)
-			children[name], err = NewTreeModule(name, dir)
-			if err != nil {
-				return fmt.Errorf(
-					"module %s: %s", m.Name, err)
-			}
-
-			// Set the path of this child
-			children[name].path = path
+		if _, ok := children[m.Name]; ok {
+			return fmt.Errorf(
+				"module %s: duplicated. module m.Names must be unique", m.Name)
 		}
+
+		// Determine the path to this child
+		path := make([]string, len(t.path), len(t.path)+1)
+		copy(path, t.path)
+		path = append(path, m.Name)
+
+		// Split out the subdir if we have one
+		source, subDir := getter.SourceDirSubdir(m.Source)
+
+		source, err := getter.Detect(source, t.config.Dir, getter.Detectors)
+		if err != nil {
+			return fmt.Errorf("module %s: %s", m.Name, err)
+		}
+
+		// Check if the detector introduced something new.
+		source, subDir2 := getter.SourceDirSubdir(source)
+		if subDir2 != "" {
+			subDir = filepath.Join(subDir2, subDir)
+		}
+
+		// Get the directory where this module is so we can load it
+		key := strings.Join(path, ".")
+		key = fmt.Sprintf("root.%s-%s", key, m.Source)
+		dir, ok, err := getStorage(s, key, source, mode)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return fmt.Errorf(
+				"module %s: not found, may need to be downloaded using 'terraform get'", m.Name)
+		}
+
+		// If we have a subdirectory, then merge that in
+		if subDir != "" {
+			dir = filepath.Join(dir, subDir)
+		}
+
+		// Load the configurations.Dir(source)
+		children[m.Name], err = NewTreeModule(m.Name, dir, m.Count)
+		if err != nil {
+			return fmt.Errorf(
+				"module %s: %s", m.Name, err)
+		}
+
+		// Set the path of this child
+		children[m.Name].path = path
 	}
 
 	// Go through all the children and load them.
@@ -331,7 +323,7 @@ func (t *Tree) Validate() error {
 			continue
 		}
 
-		name = m.Name
+		//name = m.Name
 		tree, ok := children[m.Name]
 		if !ok {
 			// This should never happen because Load watches us

@@ -521,7 +521,7 @@ func testModule(
 	}
 
 	// Parse the configuration
-	mod, err := module.NewTreeModule("", cfgPath)
+	mod, err := module.NewTreeModule("", cfgPath, 1)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"Error loading configuration: %s", err)

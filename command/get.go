@@ -74,7 +74,7 @@ func (c *GetCommand) Synopsis() string {
 }
 
 func getModules(m *Meta, path string, mode module.GetMode) error {
-	mod, err := module.NewTreeModule("", path)
+	mod, err := module.NewTreeModule("", path, 1)
 	if err != nil {
 		return fmt.Errorf("Error loading configuration: %s", err)
 	}
