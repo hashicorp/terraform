@@ -316,7 +316,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 
 			"os_profile": {
 				Type:     schema.TypeSet,
-				Required: true,
+				Optional: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -553,11 +553,13 @@ func resourceArmVirtualMachineCreate(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
-	osProfile, err := expandAzureRmVirtualMachineOsProfile(d)
-	if err != nil {
-		return err
+	if _, ok := d.GetOk("os_profile"); ok {
+		osProfile, err := expandAzureRmVirtualMachineOsProfile(d)
+		if err != nil {
+			return err
+		}
+		properties.OsProfile = osProfile
 	}
-	properties.OsProfile = osProfile
 
 	if v, ok := d.GetOk("availability_set_id"); ok {
 		availabilitySet := v.(string)
