@@ -1,5 +1,5 @@
 variable "existing_vnet_resource_group" {
-  description = "Name of the existing VNET resource group in which the existing vnet resides"
+  description = "Name of the existing resource group in which the existing vnet resides"
 }
 
 variable "location" {
@@ -7,8 +7,8 @@ variable "location" {
   default     = "southcentralus"
 }
 
-variable "dns_name" {
-  description = "Unique DNS Name for the Public IP used to access the Virtual Machine. Will be used to make up the FQDN. Must be globally unique."
+variable "hostname" {
+  description = "This variable is used in this template to create the domain name label as well as the virtual machine name. Must be unique."
 }
 
 variable "os_type" {
@@ -42,7 +42,7 @@ variable "subnet_prefix" {
 
 variable "storage_account_type" {
   description = "Defines the type of storage account to be created. Valid options are Standard_LRS, Standard_ZRS, Standard_GRS, Standard_RAGRS, Premium_LRS. Changing this is sometimes valid - see the Azure documentation for more information on which types of accounts can be converted into other types."
-  default     = "Standard_LRS"
+  default     = "Standard_GRS"
 }
 
 variable "vm_size" {
@@ -78,5 +78,3 @@ variable "admin_username" {
 variable "admin_password" {
   description = "administrator password (recommended to disable password auth)"
 }
-    # "vnetID": "[resourceId(parameters('existingVirtualNetworkResourceGroup'), 'Microsoft.Network/virtualNetworks', parameters('existingVirtualNetworkName'))]",
-    # "subnetRef": "[concat(variables('vnetID'),'/subnets/', parameters('subnetName'))]"
