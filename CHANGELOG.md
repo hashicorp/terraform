@@ -48,6 +48,7 @@ BUG FIXES:
 * provider/fastly: Changes setting conditionals to optional [GH-14103]
 * provider/google: Ignore certain project services that can't be enabled directly via the api [GH-13730]
 * provider/google: Ability to add more than 25 project services [GH-13758]
+* provider/google: Fix compute instance panic with bad disk config [GH-14169]
 * providers/heroku: Configure buildpacks correctly for both Org Apps and non-org Apps [GH-13990]
 * provider/postgres grant role when creating database [GH-11452]
 * provisioner/remote-exec: Fix panic from remote_exec provisioner [GH-14134]
