@@ -4,8 +4,8 @@ package discovery
 // kind) that are required to exist and have versions within the given
 // corresponding sets.
 //
-// PluginRequirements is a map from plugin name to VersionSet.
-type PluginRequirements map[string]VersionSet
+// PluginRequirements is a map from plugin name to Constraints.
+type PluginRequirements map[string]Constraints
 
 // Merge takes the contents of the receiver and the other given requirements
 // object and merges them together into a single requirements structure
