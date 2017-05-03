@@ -34,8 +34,9 @@ resource "azurerm_virtual_machine" "vm" {
   network_interface_ids = ["${azurerm_network_interface.nic.id}"]
 
   storage_os_disk {
-    name          = "${var.hostname}-osdisk1"
-    vhd_uri       = "${var.os_disk_vhd_uri}"  # "https://${var.storage_account_name}.blob.core.windows.net/vhds/${var.hostname}osdisk.vhd"
+    name          = "${var.hostname}osdisk1"
+    image_uri     = "${var.os_disk_vhd_uri}"
+    # vhd_uri       = "${var.os_disk_vhd_uri}"  # "https://${var.storage_account_name}.blob.core.windows.net/vhds/${var.hostname}osdisk.vhd"
     os_type       = "${var.os_type}"
     caching       = "ReadWrite"
     create_option = "Attach"

@@ -18,7 +18,6 @@ variable "os_type" {
 
 variable "os_disk_vhd_uri" {
   description = "Uri of the existing VHD in ARM standard or premium storage"
-  default     = "https://permanentstor.blob.core.windows.net/permanent-vhds/permanent-osdisk1.vhd"
 }
 
 variable "existing_virtual_network_name" {
@@ -28,6 +27,10 @@ variable "existing_virtual_network_name" {
 
 variable "subnet_name" {
   description = "Name of the subnet in the virtual network you want to use"
+}
+
+variable "subnet_id" {
+  description = "***put desc here***"
 }
 
 variable "address_space" {
