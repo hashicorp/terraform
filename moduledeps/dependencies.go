@@ -13,8 +13,8 @@ type Providers map[ProviderInstance]ProviderDependency
 // instance, including both the set of allowed versions and the reason for
 // the dependency.
 type ProviderDependency struct {
-	Versions discovery.VersionSet
-	Reason   ProviderDependencyReason
+	Constraints discovery.Constraints
+	Reason      ProviderDependencyReason
 }
 
 // ProviderDependencyReason is an enumeration of reasons why a dependency might be

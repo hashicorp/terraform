@@ -192,13 +192,13 @@ func TestModulePluginRequirements(t *testing.T) {
 		Name: "root",
 		Providers: Providers{
 			"foo": ProviderDependency{
-				Versions: discovery.ConstraintStr(">=1.0.0").MustParse(),
+				Constraints: discovery.ConstraintStr(">=1.0.0").MustParse(),
 			},
 			"foo.bar": ProviderDependency{
-				Versions: discovery.ConstraintStr(">=2.0.0").MustParse(),
+				Constraints: discovery.ConstraintStr(">=2.0.0").MustParse(),
 			},
 			"baz": ProviderDependency{
-				Versions: discovery.ConstraintStr(">=3.0.0").MustParse(),
+				Constraints: discovery.ConstraintStr(">=3.0.0").MustParse(),
 			},
 		},
 	}
