@@ -40,7 +40,9 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 	return factories, errs
 }
 
-func (m *Meta) providerResolver() terraform.ResourceProviderResolver {
+// providerPluginSet returns the set of valid providers that were discovered in
+// the defined search paths.
+func (m *Meta) providerPluginSet() discovery.PluginMetaSet {
 	var dirs []string
 
 	// When searching the following directories, earlier entries get precedence
@@ -54,9 +56,28 @@ func (m *Meta) providerResolver() terraform.ResourceProviderResolver {
 	plugins := discovery.FindPlugins("provider", dirs)
 	plugins, _ = plugins.ValidateVersions()
 
+	return plugins
+}
+
+func (m *Meta) providerResolver() terraform.ResourceProviderResolver {
 	return &multiVersionProviderResolver{
-		Available: plugins,
+		Available: m.providerPluginSet(),
 	}
+}
+
+// filter the requirements returning only the providers that we can't resolve
+func (m *Meta) missingProviders(reqd discovery.PluginRequirements) discovery.PluginRequirements {
+	missing := make(discovery.PluginRequirements)
+
+	candidates := m.providerPluginSet().ConstrainVersions(reqd)
+
+	for name, versionSet := range reqd {
+		if metas := candidates[name]; metas == nil {
+			missing[name] = versionSet
+		}
+	}
+
+	return missing
 }
 
 func (m *Meta) provisionerFactories() map[string]terraform.ResourceProvisionerFactory {
