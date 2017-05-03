@@ -7,6 +7,14 @@ variable "location" {
   default     = "southcentralus"
 }
 
+variable "existing_storage_account" {
+  description = "<insert>"
+}
+
+variable "existing_vhds" {
+  description = "<insert>"
+}
+
 variable "hostname" {
   description = "This variable is used in this template to create the domain name label as well as the virtual machine name. Must be unique."
 }
