@@ -105,7 +105,7 @@ func resourceProfitBricksVolumeCreate(d *schema.ResourceData, meta interface{}) 
 		} else {
 			img := profitbricks.GetImage(image_name)
 			if img.StatusCode > 299 {
-				return fmt.Errorf("Error fetching image:", img.Response)
+				return fmt.Errorf("Error fetching image: %s", img.Response)
 			}
 			if img.Properties.Public == true {
 				if imagePassword == "" && len(ssh_keypath) == 0 {
