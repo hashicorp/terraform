@@ -37,15 +37,17 @@ func resourceArmExpressRouteCircuit() *schema.Resource {
 			"location": locationSchema(),
 
 			"service_provider_name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"peering_location": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"bandwidth_in_mbps": {
@@ -61,6 +63,7 @@ func resourceArmExpressRouteCircuit() *schema.Resource {
 					string(network.ExpressRouteCircuitSkuTierStandard),
 					string(network.ExpressRouteCircuitSkuTierPremium),
 				}, true),
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"sku_family": {
@@ -71,6 +74,7 @@ func resourceArmExpressRouteCircuit() *schema.Resource {
 					string(network.MeteredData),
 					string(network.UnlimitedData),
 				}, true),
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"allow_classic_operations": {
