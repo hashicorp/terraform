@@ -24,7 +24,7 @@ func resourceAwsWafRegionalIPSet() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"ip_set_descriptors": &schema.Schema{
+			"ip_set_descriptor": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
@@ -91,7 +91,7 @@ func resourceAwsWafRegionalIPSetRead(d *schema.ResourceData, meta interface{}) e
 		descriptors = append(descriptors, d)
 	}
 
-	d.Set("ip_set_descriptors", descriptors)
+	d.Set("ip_set_descriptor", descriptors)
 
 	d.Set("name", resp.IPSet.Name)
 
@@ -101,8 +101,8 @@ func resourceAwsWafRegionalIPSetRead(d *schema.ResourceData, meta interface{}) e
 func resourceAwsWafRegionalIPSetUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).wafregionalconn
 
-	if d.HasChange("ip_set_descriptors") {
-		o, n := d.GetChange("ip_set_descriptors")
+	if d.HasChange("ip_set_descriptor") {
+		o, n := d.GetChange("ip_set_descriptor")
 		oldD, newD := o.(*schema.Set).List(), n.(*schema.Set).List()
 
 		err := updateIPSetResourceWR(d.Id(), meta, oldD, newD, conn)
@@ -116,7 +116,7 @@ func resourceAwsWafRegionalIPSetUpdate(d *schema.ResourceData, meta interface{})
 func resourceAwsWafRegionalIPSetDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).wafregionalconn
 
-	oldD := d.Get("ip_set_descriptors").(*schema.Set).List()
+	oldD := d.Get("ip_set_descriptor").(*schema.Set).List()
 
 	if len(oldD) > 0 {
 		noD := []interface{}{}
@@ -152,7 +152,7 @@ func updateIPSetResourceWR(id string, meta interface{}, oldD, newD []interface{}
 			IPSetId:     aws.String(id),
 			Updates:     diffWafIpSetDescriptors(oldD, newD),
 		}
-		log.Printf("[INFO] Updating IPSet descriptors: %s", req)
+		log.Printf("[INFO] Updating IPSet descriptor: %s", req)
 
 		return conn.UpdateIPSet(req)
 	})
