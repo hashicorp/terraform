@@ -32,6 +32,6 @@ func (v Version) String() string {
 	return v.raw.String()
 }
 
-func (v Version) newerThan(other Version) bool {
+func (v Version) NewerThan(other Version) bool {
 	return v.raw.GreaterThan(other.raw)
 }
