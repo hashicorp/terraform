@@ -254,34 +254,38 @@ func resourceProfitBricksServerCreate(d *schema.ResourceData, meta interface{}) 
 			var sshkey_path []interface{}
 			var image, licenceType, availabilityZone string
 
-			if !IsValidUUID(rawMap["image_name"].(string)) {
-				if rawMap["image_name"] != nil {
-					image = getImageId(d.Get("datacenter_id").(string), rawMap["image_name"].(string), rawMap["disk_type"].(string))
-					if image == "" {
-						dc := profitbricks.GetDatacenter(d.Get("datacenter_id").(string))
-						return fmt.Errorf("Image '%s' doesn't exist. in location %s", rawMap["image_name"], dc.Properties.Location)
-
-					}
-				}
-			} else {
-				image = rawMap["image_name"].(string)
-			}
-
-			if rawMap["licence_type"] != nil {
-				licenceType = rawMap["licence_type"].(string)
-			}
-
 			if rawMap["image_password"] != nil {
 				imagePassword = rawMap["image_password"].(string)
 			}
 			if rawMap["ssh_key_path"] != nil {
 				sshkey_path = rawMap["ssh_key_path"].([]interface{})
 			}
-			if rawMap["image_name"] != nil {
+
+			image_name := rawMap["image_name"].(string)
+			if !IsValidUUID(image_name) {
 				if imagePassword == "" && len(sshkey_path) == 0 {
-					return fmt.Errorf("Either 'image_password' or 'ssh_key_path' must be provided.")
+					return fmt.Errorf("Either 'image_password' or 'sshkey' must be provided.")
+				}
+				image = getImageId(d.Get("datacenter_id").(string), image_name, rawMap["disk_type"].(string))
+			} else {
+				img := profitbricks.GetImage(image_name)
+				if img.StatusCode > 299 {
+					return fmt.Errorf("Error fetching image:", img.Response)
+				}
+				if img.Properties.Public == true {
+					if imagePassword == "" && len(sshkey_path) == 0 {
+						return fmt.Errorf("Either 'image_password' or 'sshkey' must be provided.")
+					}
+					image = image_name
+				} else {
+					image = image_name
 				}
 			}
+
+			if rawMap["licence_type"] != nil {
+				licenceType = rawMap["licence_type"].(string)
+			}
+
 			var publicKeys []string
 			if len(sshkey_path) != 0 {
 				for _, path := range sshkey_path {

@@ -77,12 +77,6 @@ func resourceProfitBricksVolumeCreate(d *schema.ResourceData, meta interface{}) 
 	ssh_keypath = d.Get("ssh_key_path").([]interface{})
 	image_name := d.Get("image_name").(string)
 
-	if image_name != "" {
-		if imagePassword == "" && len(ssh_keypath) == 0 {
-			return fmt.Errorf("Either 'image_password' or 'sshkey' must be provided.")
-		}
-	}
-
 	licenceType := d.Get("licence_type").(string)
 
 	if image_name == "" && licenceType == "" {
@@ -102,10 +96,26 @@ func resourceProfitBricksVolumeCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	var image string
-	if !IsValidUUID(image_name) {
-		image = getImageId(d.Get("datacenter_id").(string), image_name, d.Get("disk_type").(string))
-	} else {
-		image = image_name
+	if image_name != "" {
+		if !IsValidUUID(image_name) {
+			if imagePassword == "" && len(ssh_keypath) == 0 {
+				return fmt.Errorf("Either 'image_password' or 'sshkey' must be provided.")
+			}
+			image = getImageId(d.Get("datacenter_id").(string), image_name, d.Get("disk_type").(string))
+		} else {
+			img := profitbricks.GetImage(image_name)
+			if img.StatusCode > 299 {
+				return fmt.Errorf("Error fetching image:", img.Response)
+			}
+			if img.Properties.Public == true {
+				if imagePassword == "" && len(ssh_keypath) == 0 {
+					return fmt.Errorf("Either 'image_password' or 'sshkey' must be provided.")
+				}
+				image = image_name
+			} else {
+				image = image_name
+			}
+		}
 	}
 
 	volume := profitbricks.Volume{
