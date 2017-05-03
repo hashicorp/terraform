@@ -3,7 +3,6 @@ package azurerm
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/hashicorp/errwrap"
@@ -38,39 +37,4 @@ func retrieveErcByResourceId(resourceId string, meta interface{}) (*network.Expr
 	}
 
 	return &resp, resGroup, true, nil
-}
-
-func validateSkuTier(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	allowedValues := []string{
-		string(network.ExpressRouteCircuitSkuTierStandard),
-		string(network.ExpressRouteCircuitSkuTierPremium),
-	}
-
-	if !isStringValueAllowed(value, allowedValues) {
-		errors = append(errors, fmt.Errorf(`Allowed sku_tier value(s) are %+v, provided value is "%s"`, allowedValues, value))
-	}
-	return
-}
-
-func validateSkuFamily(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	allowedValues := []string{
-		string(network.MeteredData),
-		string(network.UnlimitedData),
-	}
-
-	if !isStringValueAllowed(value, allowedValues) {
-		errors = append(errors, fmt.Errorf(`Allowed sku_family value(s) are %+v, provided value is "%s"`, allowedValues, value))
-	}
-	return
-}
-
-func isStringValueAllowed(v string, allowedValues []string) bool {
-	for _, allowed := range allowedValues {
-		if strings.ToLower(v) == strings.ToLower(allowed) {
-			return true
-		}
-	}
-	return false
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceArmExpressRouteCircuit() *schema.Resource {
@@ -53,17 +54,23 @@ func resourceArmExpressRouteCircuit() *schema.Resource {
 			},
 
 			"sku_tier": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      string(network.ExpressRouteCircuitSkuTierStandard),
-				ValidateFunc: validateSkuTier,
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  string(network.ExpressRouteCircuitSkuTierStandard),
+				ValidateFunc: validation.StringInSlice([]string{
+					string(network.ExpressRouteCircuitSkuTierStandard),
+					string(network.ExpressRouteCircuitSkuTierPremium),
+				}, true),
 			},
 
 			"sku_family": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      string(network.MeteredData),
-				ValidateFunc: validateSkuFamily,
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  string(network.MeteredData),
+				ValidateFunc: validation.StringInSlice([]string{
+					string(network.MeteredData),
+					string(network.UnlimitedData),
+				}, true),
 			},
 
 			"allow_classic_operations": {
