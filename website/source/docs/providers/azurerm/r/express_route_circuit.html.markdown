@@ -47,13 +47,15 @@ The following arguments are supported:
 
 * `peering_location` - (Required) The name of the peering location and not the ARM resource location.
 
-* `bandwidth_in_mbps` - (Required) The bandwidth in Mbps of the circuit being created.
+* `bandwidth_in_mbps` - (Required) The bandwidth in Mbps of the circuit being created. Once you increase your bandwidth, 
+    you will not be able to decrease it to its previous value.
 
 * `sku_tier` - (Optional) Chosen SKU Tier of ExpressRoute circuit. Value must be either "Premium" or "Standard". 
     The default value is "Standard".
 
-* `sku_family` - (Optional) Chosen SKU family of ExpressRoute circuit. 
-    Value must be either "MeteredData" or "UnlimitedData". The default value is "MeteredData".
+* `sku_family` - (Optional) Chosen SKU family (billing model) of ExpressRoute circuit. 
+    Value must be either "MeteredData" or "UnlimitedData". The default value is "MeteredData". 
+    Once you set the billing model to "UnlimitedData", you will not be able to switch to "MeteredData".
 
 * `allow_classic_operations` - (Optional) Allow the circuit to interact with classic (RDFE) resources.
     The default value is false.
