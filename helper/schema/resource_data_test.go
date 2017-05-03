@@ -1304,6 +1304,63 @@ func TestResourceDataGetOkAllowZero(t *testing.T) {
 			Value: 0,
 			Ok:    true,
 		},
+
+		{
+			Schema: map[string]*Schema{
+				"from_port": &Schema{
+					Type:     TypeInt,
+					Optional: true,
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"from_port": "80",
+				},
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"from_port": &terraform.ResourceAttrDiff{
+						Old:        "80",
+						New:        "0",
+						NewRemoved: true,
+					},
+				},
+			},
+
+			Key:   "from_port",
+			Value: 0,
+			Ok:    false,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"from_port": &Schema{
+					Type:     TypeInt,
+					Optional: true,
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"from_port": "80",
+				},
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"from_port": &terraform.ResourceAttrDiff{
+						Old: "80",
+						New: "0",
+					},
+				},
+			},
+
+			Key:   "from_port",
+			Value: 0,
+			Ok:    true,
+		},
 	}
 
 	for i, tc := range cases {
