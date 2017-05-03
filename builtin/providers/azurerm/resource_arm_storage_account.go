@@ -78,6 +78,7 @@ func resourceArmStorageAccount() *schema.Resource {
 			"enable_blob_encryption": {
 				Type:     schema.TypeBool,
 				Optional: true,
+				Computed: true,
 			},
 
 			"primary_location": {
@@ -347,6 +348,8 @@ func resourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	accessKeys := *keys.Keys
+
+	d.Set("name", resp.Name)
 	d.Set("resource_group_name", resGroup)
 	d.Set("primary_access_key", accessKeys[0].Value)
 	d.Set("secondary_access_key", accessKeys[1].Value)
@@ -385,13 +388,15 @@ func resourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) err
 		}
 	}
 
+	blobEncryptionEnabled := false
 	if resp.AccountProperties.Encryption != nil {
-		if resp.AccountProperties.Encryption.Services.Blob != nil {
-			d.Set("enable_blob_encryption", resp.AccountProperties.Encryption.Services.Blob.Enabled)
+		if resp.AccountProperties.Encryption.Services != nil {
+			if resp.AccountProperties.Encryption.Services.Blob != nil {
+				blobEncryptionEnabled = *resp.AccountProperties.Encryption.Services.Blob.Enabled
+			}
 		}
 	}
-
-	d.Set("name", resp.Name)
+	d.Set("enable_blob_encryption", blobEncryptionEnabled)
 
 	flattenAndSetTags(d, resp.Tags)
 

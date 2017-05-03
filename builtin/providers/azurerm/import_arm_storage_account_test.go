@@ -21,11 +21,58 @@ func TestAccAzureRMStorageAccount_importBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMStorageAccountDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
 
-			resource.TestStep{
+func TestAccAzureRMStorageAccount_importBlobEncryption(t *testing.T) {
+	resourceName := "azurerm_storage_account.testsa"
+
+	ri := acctest.RandInt()
+	rs := acctest.RandString(4)
+	config := fmt.Sprintf(testAccAzureRMStorageAccount_blobEncryption, ri, rs)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMStorageAccountDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccAzureRMStorageAccount_importBlobEncryptionDisabled(t *testing.T) {
+	resourceName := "azurerm_storage_account.testsa"
+
+	ri := acctest.RandInt()
+	rs := acctest.RandString(4)
+	config := fmt.Sprintf(testAccAzureRMStorageAccount_blobEncryptionDisabled, ri, rs)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMStorageAccountDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+			},
+			{
 				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
