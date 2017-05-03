@@ -23,6 +23,7 @@ var (
 		"user_script":          "user-script",
 		"user_data":            "user-data",
 		"administrator_pw":     "administrator-pw",
+		"cloud_config":         "cloud-init:user-data",
 	}
 )
 
@@ -178,6 +179,12 @@ func resourceMachine() *schema.Resource {
 			},
 			"user_script": {
 				Description: "User script to run on boot (every boot on SmartMachines)",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+			},
+			"cloud_config": {
+				Description: "copied to machine on boot",
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,

@@ -60,6 +60,7 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The LoadBalancer ID.
+* `private_ip_address` - The private IP address assigned to the load balancer, if any.
 
 ## Import
 
