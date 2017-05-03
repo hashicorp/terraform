@@ -114,9 +114,9 @@ func (m *Module) PluginRequirements() discovery.PluginRequirements {
 		// by using Intersection to merge the version sets.
 		pty := inst.Type()
 		if existing, exists := ret[pty]; exists {
-			ret[pty] = existing.Intersection(dep.Versions)
+			ret[pty] = existing.Intersection(dep.Constraints)
 		} else {
-			ret[pty] = dep.Versions
+			ret[pty] = dep.Constraints
 		}
 	}
 	return ret
@@ -163,7 +163,7 @@ func (m *Module) Equal(other *Module) bool {
 	}
 
 	// Can't use reflect.DeepEqual on this provider structure because
-	// the nested VersionSet objects contain function pointers that
+	// the nested Constraints objects contain function pointers that
 	// never compare as equal. So we'll need to walk it the long way.
 	for inst, dep := range m.Providers {
 		if _, exists := other.Providers[inst]; !exists {
@@ -174,10 +174,10 @@ func (m *Module) Equal(other *Module) bool {
 			return false
 		}
 
-		// VersionSets are not too easy to compare robustly, so
+		// Constraints are not too easy to compare robustly, so
 		// we'll just use their string representations as a proxy
 		// for now.
-		if dep.Versions.String() != other.Providers[inst].Versions.String() {
+		if dep.Constraints.String() != other.Providers[inst].Constraints.String() {
 			return false
 		}
 	}
