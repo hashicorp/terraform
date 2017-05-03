@@ -55,9 +55,15 @@ func resourceAwsSnsTopic() *schema.Resource {
 				},
 			},
 			"delivery_policy": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: false,
+				Type:             schema.TypeString,
+				Optional:         true,
+				ForceNew:         false,
+				ValidateFunc:     validateJsonString,
+				DiffSuppressFunc: suppressEquivalentJsonDiffs,
+				StateFunc: func(v interface{}) string {
+					json, _ := normalizeJsonString(v)
+					return json
+				},
 			},
 			"arn": &schema.Schema{
 				Type:     schema.TypeString,

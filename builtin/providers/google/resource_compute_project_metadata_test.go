@@ -2,8 +2,10 @@ package google
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/api/compute/v1"
@@ -11,7 +13,16 @@ import (
 
 // Add two key value pairs
 func TestAccComputeProjectMetadata_basic(t *testing.T) {
+	skipIfEnvNotSet(t,
+		[]string{
+			"GOOGLE_ORG",
+			"GOOGLE_BILLING_ACCOUNT",
+		}...,
+	)
+
+	billingId := os.Getenv("GOOGLE_BILLING_ACCOUNT")
 	var project compute.Project
+	projectID := "terrafom-test-" + acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -19,13 +30,13 @@ func TestAccComputeProjectMetadata_basic(t *testing.T) {
 		CheckDestroy: testAccCheckComputeProjectMetadataDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeProject_basic0_metadata,
+				Config: testAccComputeProject_basic0_metadata(projectID, pname, org, billingId),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeProjectExists(
-						"google_compute_project_metadata.fizzbuzz", &project),
-					testAccCheckComputeProjectMetadataContains(&project, "banana", "orange"),
-					testAccCheckComputeProjectMetadataContains(&project, "sofa", "darwinism"),
-					testAccCheckComputeProjectMetadataSize(&project, 2),
+						"google_compute_project_metadata.fizzbuzz", projectID, &project),
+					testAccCheckComputeProjectMetadataContains(projectID, "banana", "orange"),
+					testAccCheckComputeProjectMetadataContains(projectID, "sofa", "darwinism"),
+					testAccCheckComputeProjectMetadataSize(projectID, 2),
 				),
 			},
 		},
@@ -34,7 +45,16 @@ func TestAccComputeProjectMetadata_basic(t *testing.T) {
 
 // Add three key value pairs, then replace one and modify a second
 func TestAccComputeProjectMetadata_modify_1(t *testing.T) {
+	skipIfEnvNotSet(t,
+		[]string{
+			"GOOGLE_ORG",
+			"GOOGLE_BILLING_ACCOUNT",
+		}...,
+	)
+
+	billingId := os.Getenv("GOOGLE_BILLING_ACCOUNT")
 	var project compute.Project
+	projectID := "terrafom-test-" + acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -42,26 +62,26 @@ func TestAccComputeProjectMetadata_modify_1(t *testing.T) {
 		CheckDestroy: testAccCheckComputeProjectMetadataDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeProject_modify0_metadata,
+				Config: testAccComputeProject_modify0_metadata(projectID, pname, org, billingId),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeProjectExists(
-						"google_compute_project_metadata.fizzbuzz", &project),
-					testAccCheckComputeProjectMetadataContains(&project, "paper", "pen"),
-					testAccCheckComputeProjectMetadataContains(&project, "genghis_khan", "french bread"),
-					testAccCheckComputeProjectMetadataContains(&project, "happy", "smiling"),
-					testAccCheckComputeProjectMetadataSize(&project, 3),
+						"google_compute_project_metadata.fizzbuzz", projectID, &project),
+					testAccCheckComputeProjectMetadataContains(projectID, "paper", "pen"),
+					testAccCheckComputeProjectMetadataContains(projectID, "genghis_khan", "french bread"),
+					testAccCheckComputeProjectMetadataContains(projectID, "happy", "smiling"),
+					testAccCheckComputeProjectMetadataSize(projectID, 3),
 				),
 			},
 
 			resource.TestStep{
-				Config: testAccComputeProject_modify1_metadata,
+				Config: testAccComputeProject_modify1_metadata(projectID, pname, org, billingId),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeProjectExists(
-						"google_compute_project_metadata.fizzbuzz", &project),
-					testAccCheckComputeProjectMetadataContains(&project, "paper", "pen"),
-					testAccCheckComputeProjectMetadataContains(&project, "paris", "french bread"),
-					testAccCheckComputeProjectMetadataContains(&project, "happy", "laughing"),
-					testAccCheckComputeProjectMetadataSize(&project, 3),
+						"google_compute_project_metadata.fizzbuzz", projectID, &project),
+					testAccCheckComputeProjectMetadataContains(projectID, "paper", "pen"),
+					testAccCheckComputeProjectMetadataContains(projectID, "paris", "french bread"),
+					testAccCheckComputeProjectMetadataContains(projectID, "happy", "laughing"),
+					testAccCheckComputeProjectMetadataSize(projectID, 3),
 				),
 			},
 		},
@@ -70,7 +90,16 @@ func TestAccComputeProjectMetadata_modify_1(t *testing.T) {
 
 // Add two key value pairs, and replace both
 func TestAccComputeProjectMetadata_modify_2(t *testing.T) {
+	skipIfEnvNotSet(t,
+		[]string{
+			"GOOGLE_ORG",
+			"GOOGLE_BILLING_ACCOUNT",
+		}...,
+	)
+
+	billingId := os.Getenv("GOOGLE_BILLING_ACCOUNT")
 	var project compute.Project
+	projectID := "terraform-test-" + acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -78,24 +107,24 @@ func TestAccComputeProjectMetadata_modify_2(t *testing.T) {
 		CheckDestroy: testAccCheckComputeProjectMetadataDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeProject_basic0_metadata,
+				Config: testAccComputeProject_basic0_metadata(projectID, pname, org, billingId),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeProjectExists(
-						"google_compute_project_metadata.fizzbuzz", &project),
-					testAccCheckComputeProjectMetadataContains(&project, "banana", "orange"),
-					testAccCheckComputeProjectMetadataContains(&project, "sofa", "darwinism"),
-					testAccCheckComputeProjectMetadataSize(&project, 2),
+						"google_compute_project_metadata.fizzbuzz", projectID, &project),
+					testAccCheckComputeProjectMetadataContains(projectID, "banana", "orange"),
+					testAccCheckComputeProjectMetadataContains(projectID, "sofa", "darwinism"),
+					testAccCheckComputeProjectMetadataSize(projectID, 2),
 				),
 			},
 
 			resource.TestStep{
-				Config: testAccComputeProject_basic1_metadata,
+				Config: testAccComputeProject_basic1_metadata(projectID, pname, org, billingId),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeProjectExists(
-						"google_compute_project_metadata.fizzbuzz", &project),
-					testAccCheckComputeProjectMetadataContains(&project, "kiwi", "papaya"),
-					testAccCheckComputeProjectMetadataContains(&project, "finches", "darwinism"),
-					testAccCheckComputeProjectMetadataSize(&project, 2),
+						"google_compute_project_metadata.fizzbuzz", projectID, &project),
+					testAccCheckComputeProjectMetadataContains(projectID, "kiwi", "papaya"),
+					testAccCheckComputeProjectMetadataContains(projectID, "finches", "darwinism"),
+					testAccCheckComputeProjectMetadataSize(projectID, 2),
 				),
 			},
 		},
@@ -105,15 +134,21 @@ func TestAccComputeProjectMetadata_modify_2(t *testing.T) {
 func testAccCheckComputeProjectMetadataDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
-	project, err := config.clientCompute.Projects.Get(config.Project).Do()
-	if err == nil && len(project.CommonInstanceMetadata.Items) > 0 {
-		return fmt.Errorf("Error, metadata items still exist")
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "google_compute_project_metadata" {
+			continue
+		}
+
+		project, err := config.clientCompute.Projects.Get(rs.Primary.ID).Do()
+		if err == nil && len(project.CommonInstanceMetadata.Items) > 0 {
+			return fmt.Errorf("Error, metadata items still exist in %s", rs.Primary.ID)
+		}
 	}
 
 	return nil
 }
 
-func testAccCheckComputeProjectExists(n string, project *compute.Project) resource.TestCheckFunc {
+func testAccCheckComputeProjectExists(n, projectID string, project *compute.Project) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -126,8 +161,7 @@ func testAccCheckComputeProjectExists(n string, project *compute.Project) resour
 
 		config := testAccProvider.Meta().(*Config)
 
-		found, err := config.clientCompute.Projects.Get(
-			config.Project).Do()
+		found, err := config.clientCompute.Projects.Get(projectID).Do()
 		if err != nil {
 			return err
 		}
@@ -142,10 +176,10 @@ func testAccCheckComputeProjectExists(n string, project *compute.Project) resour
 	}
 }
 
-func testAccCheckComputeProjectMetadataContains(project *compute.Project, key string, value string) resource.TestCheckFunc {
+func testAccCheckComputeProjectMetadataContains(projectID, key, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		config := testAccProvider.Meta().(*Config)
-		project, err := config.clientCompute.Projects.Get(config.Project).Do()
+		project, err := config.clientCompute.Projects.Get(projectID).Do()
 		if err != nil {
 			return fmt.Errorf("Error, failed to load project service for %s: %s", config.Project, err)
 		}
@@ -161,14 +195,14 @@ func testAccCheckComputeProjectMetadataContains(project *compute.Project, key st
 			}
 		}
 
-		return fmt.Errorf("Error, key %s not present", key)
+		return fmt.Errorf("Error, key %s not present in %s", key, project.SelfLink)
 	}
 }
 
-func testAccCheckComputeProjectMetadataSize(project *compute.Project, size int) resource.TestCheckFunc {
+func testAccCheckComputeProjectMetadataSize(projectID string, size int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		config := testAccProvider.Meta().(*Config)
-		project, err := config.clientCompute.Projects.Get(config.Project).Do()
+		project, err := config.clientCompute.Projects.Get(projectID).Do()
 		if err != nil {
 			return fmt.Errorf("Error, failed to load project service for %s: %s", config.Project, err)
 		}
@@ -182,36 +216,100 @@ func testAccCheckComputeProjectMetadataSize(project *compute.Project, size int) 
 	}
 }
 
-const testAccComputeProject_basic0_metadata = `
-resource "google_compute_project_metadata" "fizzbuzz" {
-	metadata {
-		banana = "orange"
-		sofa = "darwinism"
-	}
-}`
+func testAccComputeProject_basic0_metadata(projectID, name, org, billing string) string {
+	return fmt.Sprintf(`
+resource "google_project" "project" {
+  project_id = "%s"
+  name = "%s"
+  org_id = "%s"
+  billing_account = "%s"
+}
 
-const testAccComputeProject_basic1_metadata = `
-resource "google_compute_project_metadata" "fizzbuzz" {
-	metadata {
-		kiwi = "papaya"
-		finches = "darwinism"
-	}
-}`
+resource "google_project_services" "services" {
+  project = "${google_project.project.project_id}"
+  services = ["compute-component.googleapis.com"]
+}
 
-const testAccComputeProject_modify0_metadata = `
 resource "google_compute_project_metadata" "fizzbuzz" {
-	metadata {
-		paper = "pen"
-		genghis_khan = "french bread"
-		happy = "smiling"
-	}
-}`
+  project = "${google_project.project.project_id}"
+  metadata {
+    banana = "orange"
+    sofa = "darwinism"
+  }
+  depends_on = ["google_project_services.services"]
+}`, projectID, name, org, billing)
+}
 
-const testAccComputeProject_modify1_metadata = `
+func testAccComputeProject_basic1_metadata(projectID, name, org, billing string) string {
+	return fmt.Sprintf(`
+resource "google_project" "project" {
+  project_id = "%s"
+  name = "%s"
+  org_id = "%s"
+  billing_account = "%s"
+}
+
+resource "google_project_services" "services" {
+  project = "${google_project.project.project_id}"
+  services = ["compute-component.googleapis.com"]
+}
+
 resource "google_compute_project_metadata" "fizzbuzz" {
-	metadata {
-		paper = "pen"
-		paris = "french bread"
-		happy = "laughing"
-	}
-}`
+  project = "${google_project.project.project_id}"
+  metadata {
+    kiwi = "papaya"
+    finches = "darwinism"
+  }
+  depends_on = ["google_project_services.services"]
+}`, projectID, name, org, billing)
+}
+
+func testAccComputeProject_modify0_metadata(projectID, name, org, billing string) string {
+	return fmt.Sprintf(`
+resource "google_project" "project" {
+  project_id = "%s"
+  name = "%s"
+  org_id = "%s"
+  billing_account = "%s"
+}
+
+resource "google_project_services" "services" {
+  project = "${google_project.project.project_id}"
+  services = ["compute-component.googleapis.com"]
+}
+
+resource "google_compute_project_metadata" "fizzbuzz" {
+  project = "${google_project.project.project_id}"
+  metadata {
+    paper = "pen"
+    genghis_khan = "french bread"
+    happy = "smiling"
+  }
+  depends_on = ["google_project_services.services"]
+}`, projectID, name, org, billing)
+}
+
+func testAccComputeProject_modify1_metadata(projectID, name, org, billing string) string {
+	return fmt.Sprintf(`
+resource "google_project" "project" {
+  project_id = "%s"
+  name = "%s"
+  org_id = "%s"
+  billing_account = "%s"
+}
+
+resource "google_project_services" "services" {
+  project = "${google_project.project.project_id}"
+  services = ["compute-component.googleapis.com"]
+}
+
+resource "google_compute_project_metadata" "fizzbuzz" {
+  project = "${google_project.project.project_id}"
+  metadata {
+    paper = "pen"
+    paris = "french bread"
+    happy = "laughing"
+  }
+  depends_on = ["google_project_services.services"]
+}`, projectID, name, org, billing)
+}
