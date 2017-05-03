@@ -17,7 +17,7 @@ func TestAccDataSourceImage_basic(t *testing.T) {
 				Config: testAccDataSourceProfitBricksImage_basic,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.profitbricks_image.img", "location", "us/las"),
-					resource.TestCheckResourceAttr("data.profitbricks_image.img", "name", "Ubuntu-16.04-LTS-server-2017-02-01"),
+					resource.TestCheckResourceAttr("data.profitbricks_image.img", "name", "Ubuntu-16.04-LTS-server-2017-05-01"),
 					resource.TestCheckResourceAttr("data.profitbricks_image.img", "type", "HDD"),
 				),
 			},

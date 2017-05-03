@@ -41,7 +41,7 @@ resource "azurerm_public_ip" "pip" {
   name                         = "${var.rg_prefix}-ip"
   location                     = "${var.location}"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
-  public_ip_address_allocation = "dynamic"
+  public_ip_address_allocation = "Dynamic"
   domain_name_label            = "${var.dns_name}"
 }
 
@@ -102,7 +102,7 @@ resource "azurerm_virtual_machine" "vm" {
   }
 
   boot_diagnostics {
-    enabled     = "true"
+    enabled     = true
     storage_uri = "${azurerm_storage_account.stor.primary_blob_endpoint}"
   }
 }

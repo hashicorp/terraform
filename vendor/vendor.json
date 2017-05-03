@@ -127,6 +127,14 @@
 			"versionExact": "v8.1.0-beta"
 		},
 		{
+			"checksumSHA1": "xt50hkmkQR7XZOSWZGOaZZvsmxE=",
+			"path": "github.com/Azure/azure-sdk-for-go/arm/sql",
+			"revision": "ecf40e315d5ab0ca6d7b3b7f7fbb5c1577814813",
+			"revisionTime": "2017-03-02T00:14:02Z",
+			"version": "v8.1.0-beta",
+			"versionExact": "v8.1.0-beta"
+		},
+		{
 			"checksumSHA1": "m1KzBritgIsQ+s4tAlBGz02iIKo=",
 			"comment": "v2.1.1-beta-8-gca4d906",
 			"path": "github.com/Azure/azure-sdk-for-go/arm/storage",
@@ -1037,12 +1045,12 @@
 			"versionExact": "v1.8.16"
 		},
 		{
-			"checksumSHA1": "5Br7nJBgOm6y67Z95CGZtOaxlFY=",
+			"checksumSHA1": "z39/EZX3f3n0r2uML2XC33krUag=",
 			"path": "github.com/aws/aws-sdk-go/service/rds",
-			"revision": "f6ea558f30e0a983d529b32c741e4caed17c7df0",
-			"revisionTime": "2017-04-21T18:17:16Z",
-			"version": "v1.8.16",
-			"versionExact": "v1.8.16"
+			"revision": "8cab5437f896c3048506422a6fb9f5a7f2df9944",
+			"revisionTime": "2017-04-26T18:58:25Z",
+			"version": "v1.8.17",
+			"versionExact": "v1.8.17"
 		},
 		{
 			"checksumSHA1": "TIYqqHM4J5j5tWZR+FLpRpQzz7A=",
@@ -2341,16 +2349,16 @@
 			"revisionTime": "2016-06-16T18:50:15Z"
 		},
 		{
-			"checksumSHA1": "2HimxaJVVp2QDVQ0570L71Zd5s4=",
+			"checksumSHA1": "XsjyaC6eTHUy/n0iuR46TZcgAK8=",
 			"path": "github.com/joyent/triton-go",
-			"revision": "5db9e2b6a4c1f7ffd2a7e7aa625f42dba956608c",
-			"revisionTime": "2017-04-12T23:23:58Z"
+			"revision": "c73729fd38522591909a371c8180ca7090a59ab9",
+			"revisionTime": "2017-04-28T18:47:44Z"
 		},
 		{
 			"checksumSHA1": "QzUqkCSn/ZHyIK346xb9V6EBw9U=",
 			"path": "github.com/joyent/triton-go/authentication",
-			"revision": "66b31a94af28a65e902423879a2820ea34b773fb",
-			"revisionTime": "2017-03-31T18:12:29Z"
+			"revision": "c73729fd38522591909a371c8180ca7090a59ab9",
+			"revisionTime": "2017-04-28T18:47:44Z"
 		},
 		{
 			"checksumSHA1": "YhQcOsGx8r2S/jkJ0Qt4cZ5BLCU=",
@@ -2796,10 +2804,10 @@
 			"revisionTime": "2016-10-29T09:36:37Z"
 		},
 		{
-			"checksumSHA1": "WPDz/Ed0OwaP7F/HvzZQ8OwT3fM=",
+			"checksumSHA1": "72v9EDEuAVJBbzmZ/TT1etVzZTU=",
 			"path": "github.com/profitbricks/profitbricks-sdk-go",
-			"revision": "b279e1adcaf1c9cae4d6520c1bdbbf4674e7806e",
-			"revisionTime": "2017-01-11T22:35:15Z"
+			"revision": "6198377adc75ed630c2a0a4b3f42d131baf7f316",
+			"revisionTime": "2017-05-03T18:59:30Z"
 		},
 		{
 			"checksumSHA1": "hcyoctYs0NjsvAXXVRc4mVt+FBg=",
@@ -3315,10 +3323,10 @@
 			"revisionTime": "2016-11-27T23:54:21Z"
 		},
 		{
-			"checksumSHA1": "a3xBCGUHttHW7+VrTk8bqxU6pOY=",
+			"checksumSHA1": "tD5kobeqw1b4V20UQsM2zTTDRHY=",
 			"path": "google.golang.org/api/compute/v1",
-			"revision": "8840436417f044055c16fc7e4018f08484f52839",
-			"revisionTime": "2017-01-13T00:03:17Z"
+			"revision": "fbbaff1827317122a8a0e1b24de25df8417ce87b",
+			"revisionTime": "2017-04-21T05:17:54Z"
 		},
 		{
 			"checksumSHA1": "lAMqZyc46cU5WaRuw4mVHFXpvps=",
