@@ -14,6 +14,7 @@ FEATURES:
 * **New Resource:** `heroku_app_feature` [GH-14035]
 * **New Resource:** `heroku_pipeline` [GH-14078]
 * **New Resource:** `heroku_pipeline_coupling` [GH-14078]
+* **New Resource:** `vault_auth_backend` [GH-10988]
 * **New Data Source:** `aws_efs_file_system` [GH-14041]
 
 IMPROVEMENTS:
