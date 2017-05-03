@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -155,20 +156,40 @@ func resourceArmTemplateDeploymentRead(d *schema.ResourceData, meta interface{})
 	if resp.Properties.Outputs != nil && len(*resp.Properties.Outputs) > 0 {
 		outputs = make(map[string]string)
 		for key, output := range *resp.Properties.Outputs {
+			log.Printf("[DEBUG] Processing deployment output %s", key)
 			outputMap := output.(map[string]interface{})
 			outputValue, ok := outputMap["value"]
 			if !ok {
-				// No value
+				log.Printf("[DEBUG] No value - skipping")
+				continue
+			}
+			outputType, ok := outputMap["type"]
+			if !ok {
+				log.Printf("[DEBUG] No type - skipping")
 				continue
 			}
 
-			outputs[key] = outputValue.(string)
+			var outputValueString string
+			switch strings.ToLower(outputType.(string)) {
+			case "bool":
+				outputValueString = strconv.FormatBool(outputValue.(bool))
+
+			case "string":
+				outputValueString = outputValue.(string)
+
+			case "int":
+				outputValueString = fmt.Sprint(outputValue)
+
+			default:
+				log.Printf("[WARN] Ignoring output %s: Outputs of type %s are not currently supported in azurerm_template_deployment.",
+					key, outputType)
+				continue
+			}
+			outputs[key] = outputValueString
 		}
 	}
 
-	d.Set("outputs", outputs)
-
-	return nil
+	return d.Set("outputs", outputs)
 }
 
 func resourceArmTemplateDeploymentDelete(d *schema.ResourceData, meta interface{}) error {
