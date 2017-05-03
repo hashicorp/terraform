@@ -36,11 +36,6 @@ func resourceGithubBranchProtection() *schema.Resource {
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"include_admins": {
-							Type:     schema.TypeBool,
-							Optional: true,
-							Default:  false,
-						},
 						"strict": {
 							Type:     schema.TypeBool,
 							Optional: true,
@@ -62,13 +57,16 @@ func resourceGithubBranchProtection() *schema.Resource {
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"include_admins": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  false,
 						},
 					},
 				},
+			},
+			"enforce_admins": {
+				Type:     schema.TypeBool,
+				Required: true,
 			},
 			"restrictions": {
 				Type:     schema.TypeList,
@@ -129,13 +127,13 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 	d.Set("repository", r)
 	d.Set("branch", b)
 
+	d.Set("enforce_admins", githubProtection.EnforceAdmins.Enabled)
 	rsc := githubProtection.RequiredStatusChecks
 	if rsc != nil {
 		d.Set("required_status_checks", []interface{}{
 			map[string]interface{}{
-				"include_admins": rsc.IncludeAdmins,
-				"strict":         rsc.Strict,
-				"contexts":       rsc.Contexts,
+				"strict":   rsc.Strict,
+				"contexts": rsc.Contexts,
 			},
 		})
 	} else {
@@ -146,7 +144,6 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 	if rprr != nil {
 		d.Set("required_pull_request_reviews", []interface{}{
 			map[string]interface{}{
-				"include_admins": rprr.IncludeAdmins,
 			},
 		})
 	} else {
@@ -210,6 +207,11 @@ func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta interface
 func buildProtectionRequest(d *schema.ResourceData) (*github.ProtectionRequest, error) {
 	protectionRequest := new(github.ProtectionRequest)
 
+	if v, ok := d.GetOk("enforce_admins"); ok {
+		vL := v.(bool)
+		protectionRequest.EnforceAdmins = vL
+	}
+
 	if v, ok := d.GetOk("required_status_checks"); ok {
 		vL := v.([]interface{})
 		if len(vL) > 1 {
@@ -220,7 +222,6 @@ func buildProtectionRequest(d *schema.ResourceData) (*github.ProtectionRequest, 
 			m := v.(map[string]interface{})
 
 			rsc := new(github.RequiredStatusChecks)
-			rsc.IncludeAdmins = m["include_admins"].(bool)
 			rsc.Strict = m["strict"].(bool)
 
 			rsc.Contexts = []string{}
@@ -243,8 +244,6 @@ func buildProtectionRequest(d *schema.ResourceData) (*github.ProtectionRequest, 
 		for _, v := range vL {
 			m := v.(map[string]interface{})
 
-			rprr := new(github.RequiredPullRequestReviews)
-			rprr.IncludeAdmins = m["include_admins"].(bool)
 
 			protectionRequest.RequiredPullRequestReviews = rprr
 		}

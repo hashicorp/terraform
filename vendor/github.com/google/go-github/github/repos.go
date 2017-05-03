@@ -512,6 +512,13 @@ type Protection struct {
 	RequiredStatusChecks       *RequiredStatusChecks       `json:"required_status_checks"`
 	RequiredPullRequestReviews *RequiredPullRequestReviews `json:"required_pull_request_reviews"`
 	Restrictions               *BranchRestrictions         `json:"restrictions"`
+	// Enforce required status checks for repository administrators. (Required.)
+	EnforceAdmins *EnforceAdmin `json:"enforce_admins"`
+}
+
+// EnforceAdmins represents the statues of the enforcement of the protections for admin users.
+type EnforceAdmin struct {
+	Enabled bool `json:"enabled"`
 }
 
 // ProtectionRequest represents a request to create/edit a branch's protection.
@@ -519,12 +526,12 @@ type ProtectionRequest struct {
 	RequiredStatusChecks       *RequiredStatusChecks       `json:"required_status_checks"`
 	RequiredPullRequestReviews *RequiredPullRequestReviews `json:"required_pull_request_reviews"`
 	Restrictions               *BranchRestrictionsRequest  `json:"restrictions"`
+	// Enforce required status checks for repository administrators. (Required.)
+	EnforceAdmins bool `json:"enforce_admins"`
 }
 
 // RequiredStatusChecks represents the protection status of a individual branch.
 type RequiredStatusChecks struct {
-	// Enforce required status checks for repository administrators. (Required.)
-	IncludeAdmins bool `json:"include_admins"`
 	// Require branches to be up to date before merging. (Required.)
 	Strict bool `json:"strict"`
 	// The list of status checks to require in order to merge into this
@@ -534,8 +541,6 @@ type RequiredStatusChecks struct {
 
 // RequiredPullRequestReviews represents the protection configuration for pull requests.
 type RequiredPullRequestReviews struct {
-	// Enforce pull request reviews for repository administrators. (Required.)
-	IncludeAdmins bool `json:"include_admins"`
 }
 
 // BranchRestrictions represents the restriction that only certain users or
