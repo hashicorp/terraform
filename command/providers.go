@@ -94,7 +94,7 @@ func providersCommandPopulateTreeNode(node treeprint.Tree, deps *moduledeps.Modu
 
 	for _, name := range names {
 		dep := deps.Providers[moduledeps.ProviderInstance(name)]
-		versionsStr := dep.Versions.String()
+		versionsStr := dep.Constraints.String()
 		if versionsStr != "" {
 			versionsStr = " " + versionsStr
 		}
