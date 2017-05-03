@@ -3,16 +3,57 @@
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
 * provider/aws: Users of aws_cloudfront_distributions with custom_origins have been broken due to changes in the AWS API requiring   `OriginReadTimeout` being set for updates. This has been fixed and will show as a change in terraform plan / apply. [GH-13367]
+* provider/aws: Users of China and Gov clouds, cannot use the new tagging of volumes created as part of aws_instances [GH-14055]
 
 FEATURES:
 
- * **New Provider:** `gitlab` [GH-13898]
+* **New Provider:** `gitlab` [GH-13898]
+* **New Resource:** `aws_emr_security_configuration` [GH-14080]
+* **New Resource:** `azurerm_sql_elasticpool` [GH-14099]
+* **New Resource:** `google_compute_backend_bucket` [GH-14015]
+* **New Resource:** `google_compute_snapshot` [GH-12482]
+* **New Resource:** `heroku_app_feature` [GH-14035]
+* **New Resource:** `heroku_pipeline` [GH-14078]
+* **New Resource:** `heroku_pipeline_coupling` [GH-14078]
+* **New Resource:** `vault_auth_backend` [GH-10988]
+* **New Data Source:** `aws_efs_file_system` [GH-14041]
 
 IMPROVEMENTS:
 
+* core: `sha512` and `base64sha512` interpolation functions, similar to their `sha256` equivalents. [GH-14100]
 * provider/aws: Add support for CustomOrigin timeouts to aws_cloudfront_distribution [GH-13367]
+* provider/aws: Add support for IAMDatabaseAuthenticationEnabled [GH-14092]
+* provider/aws: aws_dynamodb_table Add support for TimeToLive [GH-14104]
+* provider/aws: Add `security_configuration` support to `aws_emr_cluster` [GH-14133]
+* provider/aws: Add support for the tenancy placement option in `aws_spot_fleet_request` [GH-14163]
+* provider/azurerm: `azurerm_template_deployment` now supports String/Int/Boolean outputs [GH-13670]
+* provider/azurerm: Expose the Private IP Address for a Load Balancer, if available [GH-13965]
 * provider/dnsimple: Add support for import for dnsimple_records [GH-9130]
+* provider/google: Add support for networkIP in compute instance templates [GH-13515]
+* provider/google: google_dns_managed_zone is now importable [GH-13824]
+* provider/nomad: Add TLS options [GH-13956]
 * provider/triton: Add support for reading provider configuration from `TRITON_*` environment variables in addition to `SDC_*`[GH-14000]
+* provider/triton: Add `cloud_config` argument to `triton_machine` resources for Linux containers [GH-12840]
+* provider/triton: Add `insecure_skip_tls_verify` [GH-14077]
+
+BUG FIXES:
+
+* core: `module` blocks without names are now caught in validation, along with various other block types [GH-14162]
+* provider/aws: Update aws_ebs_volume when attached [GH-14005]
+* provider/aws: Set aws_instance volume_tags to be Computed [GH-14007]
+* provider/aws: Fix issue getting partition for federated users [GH-13992]
+* provider/aws: aws_spot_instance_request not forcenew on volume_tags [GH-14046]
+* provider/aws: Exclude aws_instance volume tagging for China and Gov Clouds [GH-14055]
+* provider/aws: Fix source_dest_check with network_interface [GH-14079]
+* provider/aws: Fixes the bug where SNS delivery policy get always recreated [GH-14064]
+* provider/digitalocean: Prevent diffs when using IDs of images instead of slugs [GH-13879]
+* provider/fastly: Changes setting conditionals to optional [GH-14103]
+* provider/google: Ignore certain project services that can't be enabled directly via the api [GH-13730]
+* provider/google: Ability to add more than 25 project services [GH-13758]
+* provider/google: Fix compute instance panic with bad disk config [GH-14169]
+* providers/heroku: Configure buildpacks correctly for both Org Apps and non-org Apps [GH-13990]
+* provider/postgres grant role when creating database [GH-11452]
+* provisioner/remote-exec: Fix panic from remote_exec provisioner [GH-14134]
 
 ## 0.9.4 (26th April 2017)
 

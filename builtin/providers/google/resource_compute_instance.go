@@ -429,6 +429,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 			}
 		}
 
+		hasSource := false
 		// Load up the disk for this disk if specified
 		if v, ok := d.GetOk(prefix + ".disk"); ok {
 			diskName := v.(string)
@@ -441,6 +442,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 			}
 
 			disk.Source = diskData.SelfLink
+			hasSource = true
 		} else {
 			// Create a new disk
 			disk.InitializeParams = &compute.AttachedDiskInitializeParams{}
@@ -453,7 +455,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		}
 
 		// Load up the image for this disk if specified
-		if v, ok := d.GetOk(prefix + ".image"); ok {
+		if v, ok := d.GetOk(prefix + ".image"); ok && !hasSource {
 			imageName := v.(string)
 
 			imageUrl, err := resolveImage(config, imageName)
@@ -464,9 +466,11 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 			}
 
 			disk.InitializeParams.SourceImage = imageUrl
+		} else if ok && hasSource {
+			return fmt.Errorf("Cannot specify disk image when referencing an existing disk")
 		}
 
-		if v, ok := d.GetOk(prefix + ".type"); ok {
+		if v, ok := d.GetOk(prefix + ".type"); ok && !hasSource {
 			diskTypeName := v.(string)
 			diskType, err := readDiskType(config, zone, diskTypeName)
 			if err != nil {
@@ -476,11 +480,15 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 			}
 
 			disk.InitializeParams.DiskType = diskType.SelfLink
+		} else if ok && hasSource {
+			return fmt.Errorf("Cannot specify disk type when referencing an existing disk")
 		}
 
-		if v, ok := d.GetOk(prefix + ".size"); ok {
+		if v, ok := d.GetOk(prefix + ".size"); ok && !hasSource {
 			diskSizeGb := v.(int)
 			disk.InitializeParams.DiskSizeGb = int64(diskSizeGb)
+		} else if ok && hasSource {
+			return fmt.Errorf("Cannot specify disk size when referencing an existing disk")
 		}
 
 		if v, ok := d.GetOk(prefix + ".device_name"); ok {

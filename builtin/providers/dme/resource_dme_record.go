@@ -33,6 +33,9 @@ func resourceDMERecord() *schema.Resource {
 			"value": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				StateFunc: func(value interface{}) string {
+					return strings.ToLower(value.(string))
+				},
 			},
 			"ttl": &schema.Schema{
 				Type:     schema.TypeInt,
