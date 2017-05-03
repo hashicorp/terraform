@@ -6,6 +6,6 @@ output "vm_fqdn" {
   value = "${azurerm_public_ip.pip.fqdn}"
 }
 
-output "ssh_command" {
+output "sshCommand" {
   value = "ssh ${var.admin_username}@${azurerm_public_ip.pip.fqdn}"
 }

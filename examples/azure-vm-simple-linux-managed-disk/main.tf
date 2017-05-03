@@ -1,10 +1,3 @@
-# provider "azurerm" {
-#   subscription_id = "REPLACE-WITH-YOUR-SUBSCRIPTION-ID"
-#   client_id       = "REPLACE-WITH-YOUR-CLIENT-ID"
-#   client_secret   = "REPLACE-WITH-YOUR-CLIENT-SECRET"
-#   tenant_id       = "REPLACE-WITH-YOUR-TENANT-ID"
-# }
-
 resource "azurerm_resource_group" "rg" {
   name     = "${var.resource_group}"
   location = "${var.location}"
@@ -41,7 +34,7 @@ resource "azurerm_public_ip" "pip" {
   name                         = "${var.rg_prefix}-ip"
   location                     = "${var.location}"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
-  public_ip_address_allocation = "Dynamic"
+  public_ip_address_allocation = "dynamic"
   domain_name_label            = "${var.dns_name}"
 }
 
@@ -102,7 +95,7 @@ resource "azurerm_virtual_machine" "vm" {
   }
 
   boot_diagnostics {
-    enabled     = true
+    enabled     = "true"
     storage_uri = "${azurerm_storage_account.stor.primary_blob_endpoint}"
   }
 }
