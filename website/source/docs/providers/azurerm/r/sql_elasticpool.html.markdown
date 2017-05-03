@@ -72,4 +72,4 @@ The following attributes are exported:
 
 * `id` - The SQL Elastic Pool ID.
 
-* `creation_data` - The creation date of the SQL Elastic Pool.
+* `creation_date` - The creation date of the SQL Elastic Pool.
