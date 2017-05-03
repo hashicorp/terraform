@@ -40,12 +40,12 @@ func TestModuleTreeDependencies(t *testing.T) {
 				Name: "root",
 				Providers: moduledeps.Providers{
 					"foo": moduledeps.ProviderDependency{
-						Versions: discovery.ConstraintStr(">=1.0.0").MustParse(),
-						Reason:   moduledeps.ProviderDependencyExplicit,
+						Constraints: discovery.ConstraintStr(">=1.0.0").MustParse(),
+						Reason:      moduledeps.ProviderDependencyExplicit,
 					},
 					"foo.bar": moduledeps.ProviderDependency{
-						Versions: discovery.ConstraintStr(">=2.0.0").MustParse(),
-						Reason:   moduledeps.ProviderDependencyExplicit,
+						Constraints: discovery.ConstraintStr(">=2.0.0").MustParse(),
+						Reason:      moduledeps.ProviderDependencyExplicit,
 					},
 				},
 				Children: nil,
@@ -58,8 +58,8 @@ func TestModuleTreeDependencies(t *testing.T) {
 				Name: "root",
 				Providers: moduledeps.Providers{
 					"foo": moduledeps.ProviderDependency{
-						Versions: discovery.AllVersions,
-						Reason:   moduledeps.ProviderDependencyExplicit,
+						Constraints: discovery.AllVersions,
+						Reason:      moduledeps.ProviderDependencyExplicit,
 					},
 				},
 				Children: nil,
@@ -72,12 +72,12 @@ func TestModuleTreeDependencies(t *testing.T) {
 				Name: "root",
 				Providers: moduledeps.Providers{
 					"foo": moduledeps.ProviderDependency{
-						Versions: discovery.AllVersions,
-						Reason:   moduledeps.ProviderDependencyImplicit,
+						Constraints: discovery.AllVersions,
+						Reason:      moduledeps.ProviderDependencyImplicit,
 					},
 					"foo.baz": moduledeps.ProviderDependency{
-						Versions: discovery.AllVersions,
-						Reason:   moduledeps.ProviderDependencyImplicit,
+						Constraints: discovery.AllVersions,
+						Reason:      moduledeps.ProviderDependencyImplicit,
 					},
 				},
 				Children: nil,
@@ -90,8 +90,8 @@ func TestModuleTreeDependencies(t *testing.T) {
 				Name: "root",
 				Providers: moduledeps.Providers{
 					"foo": moduledeps.ProviderDependency{
-						Versions: discovery.ConstraintStr(">=1.0.0").MustParse(),
-						Reason:   moduledeps.ProviderDependencyExplicit,
+						Constraints: discovery.ConstraintStr(">=1.0.0").MustParse(),
+						Reason:      moduledeps.ProviderDependencyExplicit,
 					},
 				},
 				Children: nil,
@@ -104,12 +104,12 @@ func TestModuleTreeDependencies(t *testing.T) {
 				Name: "root",
 				Providers: moduledeps.Providers{
 					"foo": moduledeps.ProviderDependency{
-						Versions: discovery.AllVersions,
-						Reason:   moduledeps.ProviderDependencyExplicit,
+						Constraints: discovery.AllVersions,
+						Reason:      moduledeps.ProviderDependencyExplicit,
 					},
 					"bar": moduledeps.ProviderDependency{
-						Versions: discovery.AllVersions,
-						Reason:   moduledeps.ProviderDependencyExplicit,
+						Constraints: discovery.AllVersions,
+						Reason:      moduledeps.ProviderDependencyExplicit,
 					},
 				},
 				Children: []*moduledeps.Module{
@@ -117,12 +117,12 @@ func TestModuleTreeDependencies(t *testing.T) {
 						Name: "child",
 						Providers: moduledeps.Providers{
 							"foo": moduledeps.ProviderDependency{
-								Versions: discovery.AllVersions,
-								Reason:   moduledeps.ProviderDependencyInherited,
+								Constraints: discovery.AllVersions,
+								Reason:      moduledeps.ProviderDependencyInherited,
 							},
 							"baz": moduledeps.ProviderDependency{
-								Versions: discovery.AllVersions,
-								Reason:   moduledeps.ProviderDependencyImplicit,
+								Constraints: discovery.AllVersions,
+								Reason:      moduledeps.ProviderDependencyImplicit,
 							},
 						},
 						Children: []*moduledeps.Module{
@@ -130,12 +130,12 @@ func TestModuleTreeDependencies(t *testing.T) {
 								Name: "grandchild",
 								Providers: moduledeps.Providers{
 									"foo": moduledeps.ProviderDependency{
-										Versions: discovery.AllVersions,
-										Reason:   moduledeps.ProviderDependencyExplicit,
+										Constraints: discovery.AllVersions,
+										Reason:      moduledeps.ProviderDependencyExplicit,
 									},
 									"bar": moduledeps.ProviderDependency{
-										Versions: discovery.AllVersions,
-										Reason:   moduledeps.ProviderDependencyInherited,
+										Constraints: discovery.AllVersions,
+										Reason:      moduledeps.ProviderDependencyInherited,
 									},
 								},
 							},
@@ -163,8 +163,8 @@ func TestModuleTreeDependencies(t *testing.T) {
 				Name: "root",
 				Providers: moduledeps.Providers{
 					"foo": moduledeps.ProviderDependency{
-						Versions: discovery.AllVersions,
-						Reason:   moduledeps.ProviderDependencyFromState,
+						Constraints: discovery.AllVersions,
+						Reason:      moduledeps.ProviderDependencyFromState,
 					},
 				},
 				Children: nil,
@@ -209,16 +209,16 @@ func TestModuleTreeDependencies(t *testing.T) {
 				Name: "root",
 				Providers: moduledeps.Providers{
 					"foo": moduledeps.ProviderDependency{
-						Versions: discovery.ConstraintStr(">=1.0.0").MustParse(),
-						Reason:   moduledeps.ProviderDependencyExplicit,
+						Constraints: discovery.ConstraintStr(">=1.0.0").MustParse(),
+						Reason:      moduledeps.ProviderDependencyExplicit,
 					},
 					"foo.bar": moduledeps.ProviderDependency{
-						Versions: discovery.ConstraintStr(">=2.0.0").MustParse(),
-						Reason:   moduledeps.ProviderDependencyExplicit,
+						Constraints: discovery.ConstraintStr(">=2.0.0").MustParse(),
+						Reason:      moduledeps.ProviderDependencyExplicit,
 					},
 					"baz": moduledeps.ProviderDependency{
-						Versions: discovery.AllVersions,
-						Reason:   moduledeps.ProviderDependencyFromState,
+						Constraints: discovery.AllVersions,
+						Reason:      moduledeps.ProviderDependencyFromState,
 					},
 				},
 				Children: []*moduledeps.Module{
@@ -229,8 +229,8 @@ func TestModuleTreeDependencies(t *testing.T) {
 								Name: "grandchild",
 								Providers: moduledeps.Providers{
 									"banana": moduledeps.ProviderDependency{
-										Versions: discovery.AllVersions,
-										Reason:   moduledeps.ProviderDependencyFromState,
+										Constraints: discovery.AllVersions,
+										Reason:      moduledeps.ProviderDependencyFromState,
 									},
 								},
 							},
