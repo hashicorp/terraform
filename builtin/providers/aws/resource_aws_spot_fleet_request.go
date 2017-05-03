@@ -206,6 +206,11 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 							Computed: true,
 							ForceNew: true,
 						},
+						"placement_tenancy": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
 						"spot_price": {
 							Type:     schema.TypeString,
 							Optional: true,
@@ -304,10 +309,15 @@ func buildSpotFleetLaunchSpecification(d map[string]interface{}, meta interface{
 		SpotPrice:    aws.String(d["spot_price"].(string)),
 	}
 
+	placement := new(ec2.SpotPlacement)
 	if v, ok := d["availability_zone"]; ok {
-		opts.Placement = &ec2.SpotPlacement{
-			AvailabilityZone: aws.String(v.(string)),
-		}
+		placement.AvailabilityZone = aws.String(v.(string))
+		opts.Placement = placement
+	}
+
+	if v, ok := d["placement_tenancy"]; ok {
+		placement.Tenancy = aws.String(v.(string))
+		opts.Placement = placement
 	}
 
 	if v, ok := d["ebs_optimized"]; ok {
