@@ -8,10 +8,15 @@ description: |-
 
 # Terraform Variables and Configuration
 
-There are two ways to configure Terraform runs – with Terraform variables or
-environment variables.
+There are several ways to configure Terraform runs:
 
-## Terraform Variables
+1. Terraform variables
+2. Environment variables
+3. Personal environment variables
+
+## Variable types 
+
+### Terraform Variables
 
 Terraform variables are first-class configuration in Terraform. They define the
 parameterization of Terraform configurations and are important for sharing and
@@ -32,7 +37,7 @@ For detailed information about Terraform variables, please read the
 [Terraform variables](https://terraform.io/docs/configuration/variables.html)
 section of the Terraform documentation.
 
-## Environment Variables
+### Environment Variables
 
 Environment variables are injected into the virtual environment that Terraform
 executes in during the `plan` and `apply` phases.
@@ -75,9 +80,42 @@ For any of the `GITHUB_` attributes, the value of the environment variable will
 be the empty string (`""`) if the resource is not connected to GitHub or if the
 resource was created outside of GitHub (like using `terraform push`).
 
+### Personal Variables
+
+Personal variables can be created at the Environment level. All Personal
+Environment variables are private and scoped to the user that created them. Just
+like Environment variables, they are injected into the virtual environment
+during the `plan` and `apply` phases.
+
+Personal Environment variables can be used to override Environment variables on
+a per-user basis. You can add, edit, and delete environment variables from the
+"variables" page on your environment.
+
+## Variable Hierarchy 
+
+For Environment and Personal Environment variables, it is possible to create the
+same variable in multiple places. Variables are applied in the following order:
+
+1. Environment
+2. Personal Environment
+
+Here's an example: 
+
+* For the `SlothCorp/petting_zoo` environment, a user creates
+an Environment variable called `SECRET_GATE_ACCESS_KEY` and sets the value to
+`"orange-turtleneck"`
+* Another user adds a Personal Environment variable for 
+`SECRET_GATE_ACCESS_KEY` and sets the value to `"pink-turtleneck"`
+* When the `plan` or `apply` executes, the `SECRET_GATE_ACCESS_KEY` will use
+`"pink-turtleneck"`
+
 ## Managing Secret Multi-Line Files
 
-Terraform Enterprise has the ability to store multi-line files as variables. The recommended way to manage your secret/sensitive multi-line files (private key, SSL cert, SSL private key, CA, etc.) is to add them as [Terraform Variables](#terraform-variables) or [Environment Variables](#environment-variables).
+Terraform Enterprise has the ability to store multi-line files as variables. The
+recommended way to manage your secret/sensitive multi-line files (private key,
+SSL cert, SSL private key, CA, etc.) is to add them as
+[Terraform Variables](#terraform-variables) or
+[Environment Variables](#environment-variables).
 
 Just like secret strings, it is recommended that you never check in these
 multi-line secret files to version control by following the below steps.
