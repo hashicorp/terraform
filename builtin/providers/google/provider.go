@@ -252,7 +252,7 @@ func getNetworkNameFromSelfLink(network string) (string, error) {
 	return network, nil
 }
 
-func readError(err error, d *schema.ResourceData, resource string) error {
+func handleNotFoundError(err error, d *schema.ResourceData, resource string) error {
 	if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 		log.Printf("[WARN] Removing %s because it's gone", resource)
 		// The resource doesn't exist anymore

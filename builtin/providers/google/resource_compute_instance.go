@@ -360,7 +360,7 @@ func getInstance(config *Config, d *schema.ResourceData) (*compute.Instance, err
 	instance, err := config.clientCompute.Instances.Get(
 		project, d.Get("zone").(string), d.Id()).Do()
 	if err != nil {
-		return nil, readError(err, d, fmt.Sprintf("Instance %s", d.Get("name").(string)))
+		return nil, handleNotFoundError(err, d, fmt.Sprintf("Instance %s", d.Get("name").(string)))
 	}
 
 	return instance, nil
