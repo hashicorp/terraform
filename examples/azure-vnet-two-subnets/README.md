@@ -1,11 +1,9 @@
-# Very simple deployment of a Linux VM
+# Virtual Network with Two Subnets
 
-This template allows you to deploy a simple Linux VM using a few different options for the Ubuntu version, using the latest patched version. This will deploy an A0 size VM in the resource group location and return the FQDN of the VM.
-
-This template takes a minimum amount of parameters and deploys a Linux VM, using the latest patched version.
+This template allows you to create a Virtual Network with two subnets.
 
 ## main.tf
-The `main.tf` file contains the actual resources that will be deployed. It also contains the Azure Resource Group definition and any defined variables.
+The `main.tf` file contains the actual resources that will be deployed. It also contains the Azure Resource Group definition and any defined variables. 
 
 ## outputs.tf
 This data is outputted when `terraform apply` is called, and can be queried using the `terraform output` command.
