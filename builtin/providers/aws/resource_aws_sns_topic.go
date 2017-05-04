@@ -127,7 +127,7 @@ func resourceAwsSnsTopicUpdate(d *schema.ResourceData, meta interface{}) error {
 					}
 					_, err := stateConf.WaitForState()
 					if err != nil {
-						// If the Principal still cannot be found then it may have been an acutal invalid Principal that was passed in.
+						// If the Principal still cannot be found then it may have been an actual invalid Principal that was passed in.
 						if strings.Contains(fmt.Sprintf("%s", err), "retrying") {
 							return fmt.Errorf("InvalidParameter: Invalid parameter: Policy Error: PrincipalNotFound")
 						}
