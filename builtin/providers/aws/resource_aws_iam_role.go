@@ -82,7 +82,7 @@ func resourceAwsIamRole() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
@@ -117,8 +117,11 @@ func resourceAwsIamRoleCreate(d *schema.ResourceData, meta interface{}) error {
 	request := &iam.CreateRoleInput{
 		Path:                     aws.String(d.Get("path").(string)),
 		RoleName:                 aws.String(name),
-		Description:              aws.String(d.Get("description").(string)),
 		AssumeRolePolicyDocument: aws.String(d.Get("assume_role_policy").(string)),
+	}
+
+	if v, ok := d.GetOk("description"); ok {
+		request.Description = aws.String(v.(string))
 	}
 
 	var createResp *iam.CreateRoleOutput
