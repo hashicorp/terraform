@@ -33,6 +33,7 @@ IMPROVEMENTS:
 * provider/dnsimple: Add support for import for dnsimple_records [GH-9130]
 * provider/google: Add support for networkIP in compute instance templates [GH-13515]
 * provider/google: google_dns_managed_zone is now importable [GH-13824]
+* provider/google: Add support for `compute_route` [GH-14065]
 * provider/nomad: Add TLS options [GH-13956]
 * provider/triton: Add support for reading provider configuration from `TRITON_*` environment variables in addition to `SDC_*`[GH-14000]
 * provider/triton: Add `cloud_config` argument to `triton_machine` resources for Linux containers [GH-12840]
