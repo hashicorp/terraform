@@ -17,7 +17,7 @@ func (r PluginRequirements) Merge(other PluginRequirements) PluginRequirements {
 	}
 	for n, vs := range other {
 		if existing, exists := ret[n]; exists {
-			ret[n] = existing.Intersection(vs)
+			ret[n] = existing.Append(vs)
 		} else {
 			ret[n] = vs
 		}

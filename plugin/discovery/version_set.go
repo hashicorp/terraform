@@ -43,15 +43,15 @@ func init() {
 	}
 }
 
-// Has returns true if the given version is in the receiving set.
-func (s Constraints) Has(v Version) bool {
+// Allows returns true if the given version is in the receiving set.
+func (s Constraints) Allows(v Version) bool {
 	return s.raw.Check(v.raw)
 }
 
-// Intersection combines the receiving set with the given other set to produce
+// Append combines the receiving set with the given other set to produce
 // a set that is the intersection of both sets, which is to say that resulting
 // constraints contain only the versions that are members of both.
-func (s Constraints) Intersection(other Constraints) Constraints {
+func (s Constraints) Append(other Constraints) Constraints {
 	raw := make(version.Constraints, 0, len(s.raw)+len(other.raw))
 
 	// Since "raw" is a list of constraints that remove versions from the set,

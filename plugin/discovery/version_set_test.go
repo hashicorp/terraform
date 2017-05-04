@@ -56,7 +56,7 @@ func TestVersionSet(t *testing.T) {
 				t.Fatalf("unwanted error parsing version string %q: %s", test.VersionStr, err)
 			}
 
-			if got, want := accepted.Has(version), test.ShouldHave; got != want {
+			if got, want := accepted.Allows(version), test.ShouldHave; got != want {
 				t.Errorf("Has returned %#v; want %#v", got, want)
 			}
 		})
