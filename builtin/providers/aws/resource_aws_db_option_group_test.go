@@ -2,8 +2,11 @@ package aws
 
 import (
 	"fmt"
+	"log"
 	"regexp"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -12,6 +15,71 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+func init() {
+	// add sweepers for each region
+	var fs []*resource.Sweeper
+	for _, r := range []string{"us-east-1", "us-west-2"} {
+		fs = append(fs, &resource.Sweeper{
+			Config: &Config{
+				Region: r,
+			},
+			F: testSweepDbOptionGroups,
+		})
+	}
+
+	resource.AddTestSweepers("aws_db_option_group", fs)
+}
+
+func testSweepDbOptionGroups(c interface{}) error {
+	client, err := c.(*Config).Client()
+	conn := client.(*AWSClient).rdsconn
+
+	log.Printf("Destroying the DB Options Groups in (%s)\n\n", client.(*AWSClient).region)
+
+	opts := rds.DescribeOptionGroupsInput{}
+	resp, err := conn.DescribeOptionGroups(&opts)
+	if err != nil {
+		return fmt.Errorf("Error describing DB Option Groups in Sweeper: %s", err)
+	}
+
+	for _, og := range resp.OptionGroupsList {
+		var testOptGroup bool
+		for _, testName := range []string{"option-group-test-terraform-", "tf-test"} {
+			if strings.HasPrefix(*og.OptionGroupName, testName) {
+				testOptGroup = true
+			}
+		}
+
+		if !testOptGroup {
+			continue
+		}
+
+		deleteOpts := &rds.DeleteOptionGroupInput{
+			OptionGroupName: og.OptionGroupName,
+		}
+
+		log.Printf("[DEBUG] Delete DB Option Group: %s", *og.OptionGroupName)
+		ret := resource.Retry(1*time.Minute, func() *resource.RetryError {
+			_, err := conn.DeleteOptionGroup(deleteOpts)
+			if err != nil {
+				if awsErr, ok := err.(awserr.Error); ok {
+					if awsErr.Code() == "InvalidOptionGroupStateFault" {
+						log.Printf("[DEBUG] AWS believes the RDS Option Group is still in use, retrying")
+						return resource.RetryableError(awsErr)
+					}
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		if ret != nil {
+			return fmt.Errorf("Error Deleting DB Option Group (%s) in Sweeper: %s", ret)
+		}
+	}
+
+	return nil
+}
 
 func TestAccAWSDBOptionGroup_basic(t *testing.T) {
 	var v rds.OptionGroup

@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -19,6 +20,68 @@ import (
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+// FlagSweep is a flag available when running tests on the command line. This
+// flag bypasses the normal Test path and instead runs functions designed to
+// clean up any leaked resources a testing environment could have created. It is
+// a best effort attempt, and relies on Provider authors to implement "Sweeper"
+// methods for resources. Adding Sweeper methods with AddTestSweepers will
+// construct a list of sweeper funcs to be called here. We iterate through the
+// tests, and exit on any errors. At time of writing, sweepers are ran
+// sequentially.
+//
+// WARNING:
+// Sweepers are designed to be destructive. You should not use the -sweep flag
+// in any environment that is not strictly a test environment. Resources will be
+// destroyed.
+
+var FlagSweep bool
+var SweeperFuncs map[string][]*Sweeper
+
+type SweeperFunc func(i interface{}) error
+
+type Sweeper struct {
+	// Configuration for initializing the client connection for each Provider.
+	// Ex google/config.go Config Struct
+	// Ex aws/config.go Config Struct
+	Config interface{}
+
+	// Sweeper function that when invoked sweeps the Provider of specific
+	// resources
+	F SweeperFunc
+}
+
+func init() {
+	flag.BoolVar(&FlagSweep, "sweep", false, "")
+	SweeperFuncs = make(map[string][]*Sweeper)
+}
+
+func AddTestSweepers(name string, sf []*Sweeper) {
+	if _, ok := SweeperFuncs[name]; ok {
+		log.Printf("Error adding (%s) to SweeperFuncs: function already exists in map", name)
+		os.Exit(1)
+	}
+
+	SweeperFuncs[name] = sf
+}
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+	if FlagSweep {
+		for n, s := range SweeperFuncs {
+			log.Printf("[DEBUG] Running (%s) Sweeper...\n", n)
+			for _, f := range s {
+				if err := f.F(f.Config); err != nil {
+					log.Printf("Error in (%s) Sweeper: %s", n, err)
+					os.Exit(1)
+				}
+			}
+		}
+		os.Exit(0)
+	}
+
+	os.Exit(m.Run())
+}
 
 const TestEnvVar = "TF_ACC"
 
