@@ -24,6 +24,7 @@ FEATURES:
 IMPROVEMENTS:
 
 * core: `sha512` and `base64sha512` interpolation functions, similar to their `sha256` equivalents. [GH-14100]
+* core: It's now possible to use the index operator `[ ]` to select a known value out of a partially-known list, such as using "splat syntax" and increasing the `count`. [GH-14135]
 * provider/aws: Add support for CustomOrigin timeouts to aws_cloudfront_distribution [GH-13367]
 * provider/aws: Add support for IAMDatabaseAuthenticationEnabled [GH-14092]
 * provider/aws: aws_dynamodb_table Add support for TimeToLive [GH-14104]
