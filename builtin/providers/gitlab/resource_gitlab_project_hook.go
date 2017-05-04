@@ -38,30 +38,37 @@ func resourceGitlabProjectHook() *schema.Resource {
 			"issues_events": {
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  false,
 			},
 			"merge_requests_events": {
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  false,
 			},
 			"tag_push_events": {
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  false,
 			},
 			"note_events": {
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  false,
 			},
 			"build_events": {
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  false,
 			},
 			"pipeline_events": {
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  false,
 			},
 			"wiki_page_events": {
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  false,
 			},
 			"enable_ssl_verification": {
 				Type:     schema.TypeBool,
