@@ -90,7 +90,7 @@ func newestVersion(available []Version, required Constraints) (Version, error) {
 	found := false
 
 	for _, v := range available {
-		if required.Has(v) {
+		if required.Allows(v) {
 			if !found {
 				latest = v
 				found = true
