@@ -288,7 +288,11 @@ func testResourceJob_updateCheck(s *terraform.State) error {
 		// Verify foo doesn't exist
 		job, _, err := client.Jobs().Info("foo", nil)
 		if err != nil {
-			return fmt.Errorf("error reading %q job: %s", "foo", err)
+			// Job could have already been purged from nomad server
+			if !strings.Contains(err.Error(), "(job not found)") {
+				return fmt.Errorf("error reading %q job: %s", "foo", err)
+			}
+			return nil
 		}
 		if job.Status != "dead" {
 			return fmt.Errorf("%q job is not dead. Status: %q", "foo", job.Status)
