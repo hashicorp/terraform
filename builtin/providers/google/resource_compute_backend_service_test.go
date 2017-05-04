@@ -125,7 +125,7 @@ func testAccCheckComputeBackendServiceDestroy(s *terraform.State) error {
 		_, err := config.clientCompute.BackendServices.Get(
 			config.Project, rs.Primary.ID).Do()
 		if err == nil {
-			return fmt.Errorf("Backend service still exists")
+			return fmt.Errorf("Backend service %s still exists", rs.Primary.ID)
 		}
 	}
 
@@ -152,7 +152,7 @@ func testAccCheckComputeBackendServiceExists(n string, svc *compute.BackendServi
 		}
 
 		if found.Name != rs.Primary.ID {
-			return fmt.Errorf("Backend service not found")
+			return fmt.Errorf("Backend service %s not found", rs.Primary.ID)
 		}
 
 		*svc = *found

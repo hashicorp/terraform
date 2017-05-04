@@ -61,6 +61,13 @@ attribute set, you can access individual attributes with a zero-based
 index, such as `${aws_instance.web.0.id}`. You can also use the splat
 syntax to get a list of all the attributes: `${aws_instance.web.*.id}`.
 
+#### Attributes of a data source
+
+The syntax is `data.TYPE.NAME.ATTRIBUTE`. For example. `${data.aws_ami.ubuntu.id}` will interpolate the `id` attribute from the `aws_ami` [data source](/docs/configuration/data-sources.html) named `ubuntu`. If the data source has a `count`
+attribute set, you can access individual attributes with a zero-based
+index, such as `${data.aws_subnet.example.0.cidr_block}`. You can also use the splat
+syntax to get a list of all the attributes: `${data.aws_subnet.example.*.cidr_block}`.
+
 #### Outputs from a module
 
 The syntax is `MODULE.NAME.OUTPUT`. For example `${module.foo.bar}` will
@@ -150,6 +157,11 @@ The supported built-in functions are:
     SHA-256 sum of the given string.
     **This is not equivalent** of `base64encode(sha256(string))`
     since `sha256()` returns hexadecimal representation.
+
+  * `base64sha512(string)` - Returns a base64-encoded representation of raw
+    SHA-512 sum of the given string.
+    **This is not equivalent** of `base64encode(sha512(string))`
+    since `sha512()` returns hexadecimal representation.
 
   * `ceil(float)` - Returns the least integer value greater than or equal
       to the argument.
@@ -313,6 +325,10 @@ The supported built-in functions are:
   * `sha256(string)` - Returns a (conventional) hexadecimal representation of the
     SHA-256 hash of the given string.
     Example: `"${sha256("${aws_vpc.default.tags.customer}-s3-bucket")}"`
+
+  * `sha512(string)` - Returns a (conventional) hexadecimal representation of the
+    SHA-512 hash of the given string.
+    Example: `"${sha512("${aws_vpc.default.tags.customer}-s3-bucket")}"`
 
   * `signum(int)` - Returns `-1` for negative numbers, `0` for `0` and `1` for positive numbers.
       This function is useful when you need to set a value for the first resource and

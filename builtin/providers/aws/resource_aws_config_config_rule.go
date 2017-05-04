@@ -110,6 +110,7 @@ func resourceAwsConfigConfigRule() *schema.Resource {
 									"event_source": {
 										Type:     schema.TypeString,
 										Optional: true,
+										Default:  "aws.config",
 									},
 									"maximum_execution_frequency": {
 										Type:         schema.TypeString,

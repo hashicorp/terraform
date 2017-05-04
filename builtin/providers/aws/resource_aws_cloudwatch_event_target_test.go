@@ -18,7 +18,7 @@ func TestAccAWSCloudWatchEventTarget_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudWatchEventTargetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudWatchEventTargetConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchEventTargetExists("aws_cloudwatch_event_target.moobar", &target),
@@ -28,7 +28,7 @@ func TestAccAWSCloudWatchEventTarget_basic(t *testing.T) {
 						regexp.MustCompile(":tf-acc-moon$")),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudWatchEventTargetConfigModified,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchEventTargetExists("aws_cloudwatch_event_target.moobar", &target),
@@ -50,7 +50,7 @@ func TestAccAWSCloudWatchEventTarget_missingTargetId(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudWatchEventTargetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudWatchEventTargetConfigMissingTargetId,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchEventTargetExists("aws_cloudwatch_event_target.moobar", &target),
@@ -71,7 +71,7 @@ func TestAccAWSCloudWatchEventTarget_full(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudWatchEventTargetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudWatchEventTargetConfig_full,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchEventTargetExists("aws_cloudwatch_event_target.foobar", &target),
@@ -81,6 +81,24 @@ func TestAccAWSCloudWatchEventTarget_full(t *testing.T) {
 						regexp.MustCompile("^arn:aws:kinesis:.*:stream/terraform-kinesis-test$")),
 					resource.TestCheckResourceAttr("aws_cloudwatch_event_target.foobar", "input", "{ \"source\": [\"aws.cloudtrail\"] }\n"),
 					resource.TestCheckResourceAttr("aws_cloudwatch_event_target.foobar", "input_path", ""),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSCloudWatchEventTarget_ssmDocument(t *testing.T) {
+	var target events.Target
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCloudWatchEventTargetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSCloudWatchEventTargetConfigSsmDocument,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudWatchEventTargetExists("aws_cloudwatch_event_target.test", &target),
 				),
 			},
 		},
@@ -124,17 +142,6 @@ func testAccCheckAWSCloudWatchEventTargetDestroy(s *terraform.State) error {
 	}
 
 	return nil
-}
-
-func testAccCheckTargetIdExists(targetId string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		_, ok := s.RootModule().Resources[targetId]
-		if !ok {
-			return fmt.Errorf("Not found: %s", targetId)
-		}
-
-		return nil
-	}
 }
 
 var testAccAWSCloudWatchEventTargetConfig = `
@@ -247,5 +254,97 @@ INPUT
 resource "aws_kinesis_stream" "test_stream" {
     name = "terraform-kinesis-test"
     shard_count = 1
+}
+`
+
+var testAccAWSCloudWatchEventTargetConfigSsmDocument = `
+resource "aws_ssm_document" "foo" {
+  name = "test_document-100"
+  document_type = "Command"
+
+  content = <<DOC
+    {
+      "schemaVersion": "1.2",
+      "description": "Check ip configuration of a Linux instance.",
+      "parameters": {
+
+      },
+      "runtimeConfig": {
+        "aws:runShellScript": {
+          "properties": [
+            {
+              "id": "0.aws:runShellScript",
+              "runCommand": ["ifconfig"]
+            }
+          ]
+        }
+      }
+    }
+DOC
+}
+
+resource "aws_cloudwatch_event_rule" "console" {
+  name        = "another_test"
+  description = "another_test"
+
+  event_pattern = <<PATTERN
+{
+  "source": [
+    "aws.autoscaling"
+  ]
+}
+PATTERN
+}
+
+resource "aws_cloudwatch_event_target" "test" {
+
+  arn = "${aws_ssm_document.foo.arn}"
+  rule = "${aws_cloudwatch_event_rule.console.id}"
+  role_arn = "${aws_iam_role.test_role.arn}"
+
+  run_command_targets {
+    key = "tag:Name"
+    values = ["acceptance_test"]
+  }
+}
+
+resource "aws_iam_role" "test_role" {
+  name = "test_role"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "events.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy" "test_policy" {
+  name = "test_policy"
+  role = "${aws_iam_role.test_role.id}"
+
+  policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": "ssm:*",
+            "Effect": "Allow",
+            "Resource": [
+                "*"
+            ]
+        }
+    ]
+}
+EOF
 }
 `

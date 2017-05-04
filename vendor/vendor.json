@@ -127,6 +127,14 @@
 			"versionExact": "v8.1.0-beta"
 		},
 		{
+			"checksumSHA1": "xt50hkmkQR7XZOSWZGOaZZvsmxE=",
+			"path": "github.com/Azure/azure-sdk-for-go/arm/sql",
+			"revision": "ecf40e315d5ab0ca6d7b3b7f7fbb5c1577814813",
+			"revisionTime": "2017-03-02T00:14:02Z",
+			"version": "v8.1.0-beta",
+			"versionExact": "v8.1.0-beta"
+		},
+		{
 			"checksumSHA1": "m1KzBritgIsQ+s4tAlBGz02iIKo=",
 			"comment": "v2.1.1-beta-8-gca4d906",
 			"path": "github.com/Azure/azure-sdk-for-go/arm/storage",
@@ -2796,10 +2804,10 @@
 			"revisionTime": "2016-10-29T09:36:37Z"
 		},
 		{
-			"checksumSHA1": "WPDz/Ed0OwaP7F/HvzZQ8OwT3fM=",
+			"checksumSHA1": "72v9EDEuAVJBbzmZ/TT1etVzZTU=",
 			"path": "github.com/profitbricks/profitbricks-sdk-go",
-			"revision": "b279e1adcaf1c9cae4d6520c1bdbbf4674e7806e",
-			"revisionTime": "2017-01-11T22:35:15Z"
+			"revision": "6198377adc75ed630c2a0a4b3f42d131baf7f316",
+			"revisionTime": "2017-05-03T18:59:30Z"
 		},
 		{
 			"checksumSHA1": "hcyoctYs0NjsvAXXVRc4mVt+FBg=",
@@ -3315,10 +3323,10 @@
 			"revisionTime": "2016-11-27T23:54:21Z"
 		},
 		{
-			"checksumSHA1": "a3xBCGUHttHW7+VrTk8bqxU6pOY=",
+			"checksumSHA1": "tD5kobeqw1b4V20UQsM2zTTDRHY=",
 			"path": "google.golang.org/api/compute/v1",
-			"revision": "8840436417f044055c16fc7e4018f08484f52839",
-			"revisionTime": "2017-01-13T00:03:17Z"
+			"revision": "fbbaff1827317122a8a0e1b24de25df8417ce87b",
+			"revisionTime": "2017-04-21T05:17:54Z"
 		},
 		{
 			"checksumSHA1": "lAMqZyc46cU5WaRuw4mVHFXpvps=",
