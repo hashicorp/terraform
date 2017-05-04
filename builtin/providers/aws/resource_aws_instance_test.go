@@ -966,6 +966,27 @@ func TestAccAWSInstance_primaryNetworkInterface(t *testing.T) {
 	})
 }
 
+func TestAccAWSInstance_primaryNetworkInterfaceSourceDestCheck(t *testing.T) {
+	var instance ec2.Instance
+	var ini ec2.NetworkInterface
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceConfigPrimaryNetworkInterfaceSourceDestCheck,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &instance),
+					testAccCheckAWSENIExists("aws_network_interface.bar", &ini),
+					resource.TestCheckResourceAttr("aws_instance.foo", "source_dest_check", "false"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSInstance_addSecondaryInterface(t *testing.T) {
 	var before ec2.Instance
 	var after ec2.Instance
@@ -1851,6 +1872,42 @@ resource "aws_subnet" "foo" {
 resource "aws_network_interface" "bar" {
   subnet_id = "${aws_subnet.foo.id}"
   private_ips = ["172.16.10.100"]
+  tags {
+    Name = "primary_network_interface"
+  }
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-22b9a343"
+	instance_type = "t2.micro"
+	network_interface {
+	 network_interface_id = "${aws_network_interface.bar.id}"
+	 device_index = 0
+  }
+}
+`
+
+const testAccInstanceConfigPrimaryNetworkInterfaceSourceDestCheck = `
+resource "aws_vpc" "foo" {
+  cidr_block = "172.16.0.0/16"
+  tags {
+    Name = "tf-instance-test"
+  }
+}
+
+resource "aws_subnet" "foo" {
+  vpc_id = "${aws_vpc.foo.id}"
+  cidr_block = "172.16.10.0/24"
+  availability_zone = "us-west-2a"
+  tags {
+    Name = "tf-instance-test"
+  }
+}
+
+resource "aws_network_interface" "bar" {
+  subnet_id = "${aws_subnet.foo.id}"
+  private_ips = ["172.16.10.100"]
+  source_dest_check = false
   tags {
     Name = "primary_network_interface"
   }
