@@ -36,6 +36,41 @@ func TestVersionListing(t *testing.T) {
 	}
 }
 
+func TestNewestVersion(t *testing.T) {
+	var available []Version
+	for _, v := range []string{"1.2.3", "1.2.1", "1.2.4"} {
+		version, err := VersionStr(v).Parse()
+		if err != nil {
+			t.Fatal(err)
+		}
+		available = append(available, version)
+	}
+
+	reqd, err := ConstraintStr(">1.2.1").Parse()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	found, err := newestVersion(available, reqd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if found.String() != "1.2.4" {
+		t.Fatalf("expected newest version 1.2.4, got: %s", found)
+	}
+
+	reqd, err = ConstraintStr("> 1.2.4").Parse()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	found, err = newestVersion(available, reqd)
+	if err == nil {
+		t.Fatalf("expceted error, got version %s", found)
+	}
+}
+
 const versionList = `<!DOCTYPE html>
 <html>
 <body>
