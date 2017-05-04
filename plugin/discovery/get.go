@@ -69,8 +69,8 @@ func GetProvider(dst, provider string, req Constraints) error {
 		return err
 	}
 
-	version := newestVersion(versions, req)
-	if version == nil {
+	version, err := newestVersion(versions, req)
+	if err != nil {
 		return fmt.Errorf("no version of %q available that fulfills constraints %s", provider, req)
 	}
 
@@ -80,29 +80,37 @@ func GetProvider(dst, provider string, req Constraints) error {
 	return getter.Get(dst, url)
 }
 
+var errVersionNotFound = errors.New("version not found")
+
 // take the list of available versions for a plugin, and the required
 // Constraints, and return the latest available version that satisfies the
 // constraints.
-func newestVersion(available []*Version, required Constraints) *Version {
-	var latest *Version
+func newestVersion(available []Version, required Constraints) (Version, error) {
+	var latest Version
+	found := false
+
 	for _, v := range available {
-		if required.Has(*v) {
-			if latest == nil {
+		if required.Has(v) {
+			if !found {
 				latest = v
+				found = true
 				continue
 			}
 
-			if v.NewerThan(*latest) {
+			if v.NewerThan(latest) {
 				latest = v
 			}
 		}
 	}
 
-	return latest
+	if !found {
+		return latest, errVersionNotFound
+	}
+	return latest, nil
 }
 
 // list the version available for the named plugin
-func listProviderVersions(name string) ([]*Version, error) {
+func listProviderVersions(name string) ([]Version, error) {
 	versions, err := listPluginVersions(providersURL.versionsURL(name))
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch versions for provider %q: %s", name, err)
@@ -110,7 +118,7 @@ func listProviderVersions(name string) ([]*Version, error) {
 	return versions, nil
 }
 
-func listProvisionerVersions(name string) ([]*Version, error) {
+func listProvisionerVersions(name string) ([]Version, error) {
 	versions, err := listPluginVersions(provisionersURL.versionsURL(name))
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch versions for provisioner %q: %s", name, err)
@@ -123,7 +131,7 @@ func listProvisionerVersions(name string) ([]*Version, error) {
 // TODO: This doesn't yet take into account plugin protocol version.
 //       That may have to be checked via an http header via a separate request
 //       to each plugin file.
-func listPluginVersions(url string) ([]*Version, error) {
+func listPluginVersions(url string) ([]Version, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -159,7 +167,7 @@ func listPluginVersions(url string) ([]*Version, error) {
 	}
 	f(body)
 
-	var versions []*Version
+	var versions []Version
 
 	for _, name := range names {
 		parts := strings.SplitN(name, "_", 2)
@@ -171,7 +179,7 @@ func listPluginVersions(url string) ([]*Version, error) {
 				continue
 			}
 
-			versions = append(versions, &v)
+			versions = append(versions, v)
 		}
 	}
 
