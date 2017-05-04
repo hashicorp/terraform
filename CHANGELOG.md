@@ -53,6 +53,7 @@ BUG FIXES:
 * provider/aws: Exclude aws_instance volume tagging for China and Gov Clouds [GH-14055]
 * provider/aws: Fix source_dest_check with network_interface [GH-14079]
 * provider/aws: Fixes the bug where SNS delivery policy get always recreated [GH-14064]
+* provider/aws: Prevent Crash when importing aws_route53_record [GH-14218]
 * provider/digitalocean: Prevent diffs when using IDs of images instead of slugs [GH-13879]
 * provider/fastly: Changes setting conditionals to optional [GH-14103]
 * provider/google: Ignore certain project services that can't be enabled directly via the api [GH-13730]
