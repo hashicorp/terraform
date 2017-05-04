@@ -62,6 +62,7 @@ BUG FIXES:
 * provider/google: Ability to add more than 25 project services [GH-13758]
 * provider/google: Fix compute instance panic with bad disk config [GH-14169]
 * provider/google: Handle `google_storage_bucket_object` not being found [GH-14203]
+* provider/google: Handle `google_compute_instance_group_manager` not being found [GH-14190]
 * providers/heroku: Configure buildpacks correctly for both Org Apps and non-org Apps [GH-13990]
 * provider/postgres grant role when creating database [GH-11452]
 * provisioner/remote-exec: Fix panic from remote_exec provisioner [GH-14134]
