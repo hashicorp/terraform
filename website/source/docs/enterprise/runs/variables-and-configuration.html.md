@@ -90,12 +90,14 @@ For any of the `GITHUB_` attributes, the value of the environment variable will
 be the empty string (`""`) if the resource is not connected to GitHub or if the
 resource was created outside of GitHub (like using `terraform push`).
 
-### Personal Variables
+### Personal Environment and Personal Organization Variables
 
-Personal variables can be created at the Environment or Organization level. All
-Personal variables are private and scoped to the user that created them. Just
-like shared Environment variables, they are injected into the virtual 
-environment during the `plan` and `apply` phases.
+Personal variables can be created at the Environment or Organization level and
+are private and scoped to the user that created them. Personal Environment
+variables are scoped to just the environment they are attached to, while Personal
+Organization variables are applied across any environment a user triggers a
+Terraform run in. Just like shared Environment variables, they are injected into
+the virtual environment during the `plan` and `apply` phases.
 
 Both Personal Environment and Personal Organization variables can be used to
 override Environment variables on a per-user basis. 
@@ -103,7 +105,8 @@ override Environment variables on a per-user basis.
 ## Variable Hierarchy 
 
 It is possible to create the same variable in multiple places for more granular
-control. Variables are applied in the following order:
+control. Variables are applied in the following order from least to most
+precedence:
 
 1. Environment
 2. Personal Organization
