@@ -15,29 +15,15 @@ import (
 
 func TestAccHerokuCert_Basic(t *testing.T) {
 	var endpoint heroku.SSLEndpointInfoResult
-	wd, _ := os.Getwd()
-	certificateChainFile := wd + "/test-fixtures/terraform.cert"
-	certificateChainBytes, _ := ioutil.ReadFile(certificateChainFile)
-	certificateChain := string(certificateChainBytes)
 	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
-	testAccCheckHerokuCertConfig_basic := `
-    resource "heroku_app" "foobar" {
-        name = "` + appName + `"
-        region = "eu"
-    }
 
-    resource "heroku_addon" "ssl" {
-        app = "${heroku_app.foobar.name}"
-        plan = "ssl:endpoint"
-    }
+	wd, _ := os.Getwd()
+	certFile := wd + "/test-fixtures/terraform.cert"
+	keyFile := wd + "/test-fixtures/terraform.key"
+	keyFile2 := wd + "/test-fixtures/terraform2.key"
 
-    resource "heroku_cert" "ssl_certificate" {
-        app = "${heroku_app.foobar.name}"
-        depends_on = ["heroku_addon.ssl"]
-        certificate_chain="${file("` + certificateChainFile + `")}"
-        private_key="${file("` + wd + `/test-fixtures/terraform.key")}"
-    }
-    `
+	certificateChainBytes, _ := ioutil.ReadFile(certFile)
+	certificateChain := string(certificateChainBytes)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -45,7 +31,17 @@ func TestAccHerokuCert_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckHerokuCertDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckHerokuCertConfig_basic,
+				Config: testAccCheckHerokuCertConfig(appName, certFile, keyFile),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckHerokuCertExists("heroku_cert.ssl_certificate", &endpoint),
+					testAccCheckHerokuCertificateChain(&endpoint, certificateChain),
+					resource.TestCheckResourceAttr(
+						"heroku_cert.ssl_certificate",
+						"cname", fmt.Sprintf("%s.herokuapp.com", appName)),
+				),
+			},
+			{
+				Config: testAccCheckHerokuCertConfig(appName, certFile, keyFile2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuCertExists("heroku_cert.ssl_certificate", &endpoint),
 					testAccCheckHerokuCertificateChain(&endpoint, certificateChain),
@@ -56,6 +52,26 @@ func TestAccHerokuCert_Basic(t *testing.T) {
 			},
 		},
 	})
+}
+
+func testAccCheckHerokuCertConfig(appName, certFile, keyFile string) string {
+	return fmt.Sprintf(`
+resource "heroku_app" "foobar" {
+  name = "%s"
+  region = "us"
+}
+
+resource "heroku_addon" "ssl" {
+  app = "${heroku_app.foobar.name}"
+  plan = "ssl:endpoint"
+}
+
+resource "heroku_cert" "ssl_certificate" {
+  app = "${heroku_app.foobar.name}"
+  depends_on = ["heroku_addon.ssl"]
+  certificate_chain="${file("%s")}"
+  private_key="${file("%s")}"
+}`, appName, certFile, keyFile)
 }
 
 func testAccCheckHerokuCertDestroy(s *terraform.State) error {
