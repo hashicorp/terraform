@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/apigateway"
+	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -1244,7 +1245,7 @@ func validateCognitoProviderDeveloperName(v interface{}, k string) (ws []string,
 func validateCognitoSupportedLoginProviders(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	if len(value) < 1 {
-		errors = append(errors, fmt.Errorf("%q cannot be less than 1 character", k))
+		errors = append(errors, fmt.Errorf("%q cannot be less than 1 caracter", k))
 	}
 
 	if len(value) > 128 {
@@ -1261,7 +1262,7 @@ func validateCognitoSupportedLoginProviders(v interface{}, k string) (ws []strin
 func validateCognitoIdentityProvidersClientId(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	if len(value) < 1 {
-		errors = append(errors, fmt.Errorf("%q cannot be less than 1 character", k))
+		errors = append(errors, fmt.Errorf("%q cannot be less than 1 caracter", k))
 	}
 
 	if len(value) > 128 {
@@ -1278,7 +1279,7 @@ func validateCognitoIdentityProvidersClientId(v interface{}, k string) (ws []str
 func validateCognitoIdentityProvidersProviderName(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	if len(value) < 1 {
-		errors = append(errors, fmt.Errorf("%q cannot be less than 1 character", k))
+		errors = append(errors, fmt.Errorf("%q cannot be less than 1 caracter", k))
 	}
 
 	if len(value) > 128 {
@@ -1299,5 +1300,120 @@ func validateWafMetricName(v interface{}, k string) (ws []string, errors []error
 			"Only alphanumeric characters allowed in %q: %q",
 			k, value))
 	}
+	return
+}
+
+func validateCognitoRoleMappingsAmbiguousRoleResolutionAgainstType(v map[string]interface{}) (errors []error) {
+	t := v["type"].(string)
+	isRequired := t == cognitoidentity.RoleMappingTypeToken || t == cognitoidentity.RoleMappingTypeRules
+
+	if value, ok := v["ambiguous_role_resolution"]; (!ok || value == "") && isRequired {
+		errors = append(errors, fmt.Errorf("Ambiguous Role Resolution must be defined when \"type\" equals \"Token\" or \"Rules\""))
+	}
+
+	return
+}
+
+func validateCognitoRoleMappingsRulesConfiguration(v map[string]interface{}) (errors []error) {
+	t := v["type"].(string)
+	value, ok := v["rules_configuration"]
+	valLength := value.(*schema.Set).Len()
+
+	if (!ok || valLength == 0) && t == cognitoidentity.RoleMappingTypeRules {
+		errors = append(errors, fmt.Errorf("rules_configuration is required for Rules"))
+	}
+
+	if (ok || valLength > 0) && t == cognitoidentity.RoleMappingTypeToken {
+		errors = append(errors, fmt.Errorf("rules_configuration must not be set for Token based role mapping"))
+	}
+
+	return
+}
+
+func validateCognitoRoleMappingsAmbiguousRoleResolution(v interface{}, k string) (ws []string, errors []error) {
+	validValues := []string{
+		cognitoidentity.AmbiguousRoleResolutionTypeAuthenticatedRole,
+		cognitoidentity.AmbiguousRoleResolutionTypeDeny,
+	}
+	value := v.(string)
+	for _, s := range validValues {
+		if value == s {
+			return
+		}
+	}
+	errors = append(errors, fmt.Errorf(
+		"%q contains an invalid value %q. Valid values are %q.",
+		k, value, validValues))
+	return
+}
+
+func validateCognitoRoleMappingsRulesClaim(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	if !regexp.MustCompile("^[\\p{L}\\p{M}\\p{S}\\p{N}\\p{P}]+$").MatchString(value) {
+		errors = append(errors, fmt.Errorf("%q must contain only alphanumeric caracters, dots, underscores, colons, slashes and hyphens", k))
+	}
+
+	return
+}
+
+func validateCognitoRoleMappingsRulesMatchType(v interface{}, k string) (ws []string, errors []error) {
+	validValues := []string{
+		cognitoidentity.MappingRuleMatchTypeEquals,
+		cognitoidentity.MappingRuleMatchTypeContains,
+		cognitoidentity.MappingRuleMatchTypeStartsWith,
+		cognitoidentity.MappingRuleMatchTypeNotEqual,
+	}
+	value := v.(string)
+	for _, s := range validValues {
+		if value == s {
+			return
+		}
+	}
+	errors = append(errors, fmt.Errorf(
+		"%q contains an invalid value %q. Valid values are %q.",
+		k, value, validValues))
+	return
+}
+
+func validateCognitoRoleMappingsRulesValue(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) < 1 {
+		errors = append(errors, fmt.Errorf("%q cannot be less than 1 caracter", k))
+	}
+
+	if len(value) > 128 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 1 caracters", k))
+	}
+
+	return
+}
+
+func validateCognitoRoleMappingsType(v interface{}, k string) (ws []string, errors []error) {
+	validValues := []string{
+		cognitoidentity.RoleMappingTypeToken,
+		cognitoidentity.RoleMappingTypeRules,
+	}
+	value := v.(string)
+	for _, s := range validValues {
+		if value == s {
+			return
+		}
+	}
+	errors = append(errors, fmt.Errorf(
+		"%q contains an invalid value %q. Valid values are %q.",
+		k, value, validValues))
+	return
+}
+
+// Validates that either authenticated or unauthenticated is defined
+func validateCognitoRoles(v map[string]interface{}, k string) (errors []error) {
+	_, hasAuthenticated := v["authenticated"].(string)
+	_, hasUnauthenticated := v["authenticated"].(string)
+
+	if !hasAuthenticated && !hasUnauthenticated {
+		errors = append(errors, fmt.Errorf("%q: Either \"authenticated\" or \"unauthenticated\" must be defined", k))
+	}
+
 	return
 }
