@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"errors"
+	"net/http"
 
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -117,8 +118,12 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 
 	githubProtection, _, err := client.Repositories.GetBranchProtection(context.TODO(), meta.(*Organization).name, r, b)
 	if err != nil {
-		d.SetId("")
-		return nil
+		if err, ok := err.(*github.ErrorResponse); ok && err.Response.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
+
+		return err
 	}
 
 	d.Set("repository", r)

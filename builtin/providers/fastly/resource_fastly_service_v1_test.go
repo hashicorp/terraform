@@ -305,7 +305,7 @@ func testAccCheckFastlyServiceV1Attributes(service *gofastly.ServiceDetail, name
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Domains for (%s), version (%s): %s", service.Name, service.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Domains for (%s), version (%v): %s", service.Name, service.ActiveVersion.Number, err)
 		}
 
 		expected := len(domains)
@@ -339,7 +339,7 @@ func testAccCheckFastlyServiceV1Attributes_backends(service *gofastly.ServiceDet
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Backends for (%s), version (%s): %s", service.Name, service.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Backends for (%s), version (%v): %s", service.Name, service.ActiveVersion.Number, err)
 		}
 
 		expected := len(backendList)

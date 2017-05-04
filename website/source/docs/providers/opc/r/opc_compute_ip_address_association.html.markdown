@@ -12,7 +12,7 @@ The ``opc_compute_ip_address_association`` resource creates and manages an IP ad
 
 ## Example Usage
 
-```
+```hcl
 resource "opc_compute_ip_address_association" "default" {
   name                   = "PrefixSet1"
   ip_address_reservation = "${opc_compute_ip_address_reservation.default.name}"
@@ -43,6 +43,6 @@ In addition to the above, the following variables are exported:
 
 IP Address Associations can be imported using the `resource name`, e.g.
 
-```
-terraform import opc_compute_ip_address_association.default example
+```shell
+$ terraform import opc_compute_ip_address_association.default example
 ```

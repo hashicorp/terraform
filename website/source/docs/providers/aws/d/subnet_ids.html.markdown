@@ -23,7 +23,7 @@ data "aws_subnet_ids" "example" {
 
 data "aws_subnet" "example" {
   count = "${length(data.aws_subnet_ids.example.ids)}"
-  id = "${aws_subnet_ids.example.ids[count.index]}"
+  id = "${data.aws_subnet_ids.example.ids[count.index]}"
 }
 
 output "subnet_cidr_blocks" {
@@ -31,9 +31,32 @@ output "subnet_cidr_blocks" {
 }
 ```
 
+The following example retrieves a list of all subnets in a VPC with a custom
+tag of `Tier` set to a value of "Private" so that the `aws_instance` resource
+can loop through the subnets, putting instances across availability zones.
+
+```hcl
+data "aws_subnet_ids" "private" {
+  vpc_id = "${var.vpc_id}"
+  tags {
+    Tier = "Private"
+  }
+}
+
+resource "aws_instance" "app" {
+  count         = "3"
+  ami           = "${var.ami}"
+  instance_type = "t2.micro"
+  subnet_id     = "${element(data.aws_subnet_ids.private.ids, count.index)}"
+}
+```
+
 ## Argument Reference
 
 * `vpc_id` - (Required) The VPC ID that you want to filter from.
+
+* `tags` - (Optional) A mapping of tags, each pair of which must exactly match
+  a pair on the desired subnets.
 
 ## Attributes Reference
 

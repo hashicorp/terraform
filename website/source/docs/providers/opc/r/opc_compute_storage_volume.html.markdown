@@ -14,7 +14,7 @@ The ``opc_compute_storage_volume`` resource creates and manages a storage volume
 
 ## Example Usage
 
-```
+```hcl
 resource "opc_compute_storage_volume" "test" {
   name        = "storageVolume1"
   description = "Description for the Storage Volume"
@@ -24,7 +24,7 @@ resource "opc_compute_storage_volume" "test" {
 ```
 
 ## Example Usage (Bootable Volume)
-```
+```hcl
 resource "opc_compute_image_list" "test" {
   name        = "imageList1"
   description = "Description for the Image List"
@@ -77,6 +77,6 @@ The following attributes are exported:
 
 Storage Volume's can be imported using the `resource name`, e.g.
 
-```
-terraform import opc_compute_storage_volume.volume1 example
+```shell
+$ terraform import opc_compute_storage_volume.volume1 example
 ```

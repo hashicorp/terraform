@@ -121,7 +121,7 @@ func (b *Local) opApply(
 	select {
 	case <-ctx.Done():
 		if b.CLI != nil {
-			b.CLI.Output("Interrupt received. Gracefully shutting down...")
+			b.CLI.Output("stopping apply operation...")
 		}
 
 		// Stop execution

@@ -814,11 +814,14 @@ func flattenStepAdjustments(adjustments []*autoscaling.StepAdjustment) []map[str
 	return result
 }
 
-func flattenResourceRecords(recs []*route53.ResourceRecord) []string {
+func flattenResourceRecords(recs []*route53.ResourceRecord, typeStr string) []string {
 	strs := make([]string, 0, len(recs))
 	for _, r := range recs {
 		if r.Value != nil {
-			s := strings.Replace(*r.Value, "\"", "", 2)
+			s := *r.Value
+			if typeStr == "TXT" || typeStr == "SPF" {
+				s = strings.Replace(s, "\"", "", 2)
+			}
 			strs = append(strs, s)
 		}
 	}
@@ -829,13 +832,11 @@ func expandResourceRecords(recs []interface{}, typeStr string) []*route53.Resour
 	records := make([]*route53.ResourceRecord, 0, len(recs))
 	for _, r := range recs {
 		s := r.(string)
-		switch typeStr {
-		case "TXT", "SPF":
-			str := fmt.Sprintf("\"%s\"", s)
-			records = append(records, &route53.ResourceRecord{Value: aws.String(str)})
-		default:
-			records = append(records, &route53.ResourceRecord{Value: aws.String(s)})
+		if typeStr == "TXT" || typeStr == "SPF" {
+			// `flattenResourceRecords` removes quotes.  Add them back.
+			s = fmt.Sprintf("\"%s\"", s)
 		}
+		records = append(records, &route53.ResourceRecord{Value: aws.String(s)})
 	}
 	return records
 }
@@ -1927,6 +1928,20 @@ func flattenApiGatewayUsagePlanQuota(s *apigateway.QuotaSettings) []map[string]i
 	return []map[string]interface{}{settings}
 }
 
+func buildApiGatewayInvokeURL(restApiId, region, stageName string) string {
+	return fmt.Sprintf("https://%s.execute-api.%s.amazonaws.com/%s",
+		restApiId, region, stageName)
+}
+
+func buildApiGatewayExecutionARN(restApiId, region, accountId string) (string, error) {
+	if accountId == "" {
+		return "", fmt.Errorf("Unable to build execution ARN for %s as account ID is missing",
+			restApiId)
+	}
+	return fmt.Sprintf("arn:aws:execute-api:%s:%s:%s",
+		region, accountId, restApiId), nil
+}
+
 func expandCognitoSupportedLoginProviders(config map[string]interface{}) map[string]*string {
 	m := map[string]*string{}
 	for k, v := range config {
@@ -1996,4 +2011,20 @@ func flattenCognitoIdentityProviders(ips []*cognitoidentity.Provider) []map[stri
 	}
 
 	return values
+}
+
+func buildLambdaInvokeArn(lambdaArn, region string) string {
+	apiVersion := "2015-03-31"
+	return fmt.Sprintf("arn:aws:apigateway:%s:lambda:path/%s/functions/%s/invocations",
+		region, apiVersion, lambdaArn)
+}
+
+func sliceContainsMap(l []interface{}, m map[string]interface{}) (int, bool) {
+	for i, t := range l {
+		if reflect.DeepEqual(m, t.(map[string]interface{})) {
+			return i, true
+		}
+	}
+
+	return -1, false
 }

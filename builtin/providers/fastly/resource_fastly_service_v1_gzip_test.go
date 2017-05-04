@@ -169,7 +169,7 @@ func testAccCheckFastlyServiceV1GzipsAttributes(service *gofastly.ServiceDetail,
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Gzips for (%s), version (%s): %s", service.Name, service.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Gzips for (%s), version (%v): %s", service.Name, service.ActiveVersion.Number, err)
 		}
 
 		if len(gzipsList) != len(gzips) {

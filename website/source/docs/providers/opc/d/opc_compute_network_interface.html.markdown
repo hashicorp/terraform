@@ -12,7 +12,7 @@ Use this data source to access the configuration of an instance's network interf
 
 ## Example Usage
 
-```
+```hcl
 data "opc_compute_network_interface" "foo" {
   instance_id   = "${opc_compute_instance.my_instance.id}"
   instance_name = "${opc_compute_instance.my_instance.name}"

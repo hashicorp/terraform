@@ -48,7 +48,7 @@ func resourceAwsAlb() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: validateElbName,
+				ValidateFunc: validateElbNamePrefix,
 			},
 
 			"internal": {

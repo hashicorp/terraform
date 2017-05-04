@@ -12,7 +12,7 @@ The ``opc_compute_image_list`` resource creates and manages an Image List in an 
 
 ## Example Usage
 
-```
+```hcl
 resource "opc_compute_image_list" "test" {
   name        = "imagelist1"
   description = "This is a description of the Image List"
@@ -34,6 +34,6 @@ The following arguments are supported:
 
 Image List's can be imported using the `resource name`, e.g.
 
-```
-terraform import opc_compute_image_list.imagelist1 example
+```shell
+$ terraform import opc_compute_image_list.imagelist1 example
 ```

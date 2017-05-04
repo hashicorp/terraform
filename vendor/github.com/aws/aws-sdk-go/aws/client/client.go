@@ -5,6 +5,7 @@ import (
 	"net/http/httputil"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/client/metadata"
 	"github.com/aws/aws-sdk-go/aws/request"
 )
@@ -105,6 +106,7 @@ func logRequest(r *request.Request) {
 	dumpedBody, err := httputil.DumpRequestOut(r.HTTPRequest, logBody)
 	if err != nil {
 		r.Config.Logger.Log(fmt.Sprintf(logReqErrMsg, r.ClientInfo.ServiceName, r.Operation.Name, err))
+		r.Error = awserr.New(request.ErrCodeRead, "an error occurred during request body reading", err)
 		return
 	}
 
@@ -135,6 +137,7 @@ func logResponse(r *request.Request) {
 		dumpedBody, err := httputil.DumpResponse(r.HTTPResponse, logBody)
 		if err != nil {
 			r.Config.Logger.Log(fmt.Sprintf(logRespErrMsg, r.ClientInfo.ServiceName, r.Operation.Name, err))
+			r.Error = awserr.New(request.ErrCodeRead, "an error occurred during response body reading", err)
 			return
 		}
 

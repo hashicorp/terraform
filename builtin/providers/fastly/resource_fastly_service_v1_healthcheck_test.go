@@ -88,7 +88,7 @@ func testAccCheckFastlyServiceV1HealthCheckAttributes(service *gofastly.ServiceD
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Healthcheck for (%s), version (%s): %s", service.Name, service.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Healthcheck for (%s), version (%v): %s", service.Name, service.ActiveVersion.Number, err)
 		}
 
 		if len(healthcheckList) != len(healthchecks) {

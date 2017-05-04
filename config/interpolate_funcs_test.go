@@ -2070,6 +2070,18 @@ func TestInterpolateFuncSha256(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncSha512(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${sha512("test")}`,
+				"ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncTitle(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -2123,6 +2135,23 @@ func TestInterpolateFuncBase64Sha256(t *testing.T) {
 			{ // This will differ because we're base64-encoding hex represantiation, not raw bytes
 				`${base64encode(sha256("test"))}`,
 				"OWY4NmQwODE4ODRjN2Q2NTlhMmZlYWEwYzU1YWQwMTVhM2JmNGYxYjJiMGI4MjJjZDE1ZDZjMTViMGYwMGEwOA==",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncBase64Sha512(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${base64sha512("test")}`,
+				"7iaw3Ur350mqGo7jwQrpkj9hiYB3Lkc/iBml1JQODbJ6wYX4oOHV+E+IvIh/1nsUNzLDBMxfqa2Ob1f1ACio/w==",
+				false,
+			},
+			{ // This will differ because we're base64-encoding hex represantiation, not raw bytes
+				`${base64encode(sha512("test"))}`,
+				"ZWUyNmIwZGQ0YWY3ZTc0OWFhMWE4ZWUzYzEwYWU5OTIzZjYxODk4MDc3MmU0NzNmODgxOWE1ZDQ5NDBlMGRiMjdhYzE4NWY4YTBlMWQ1Zjg0Zjg4YmM4ODdmZDY3YjE0MzczMmMzMDRjYzVmYTlhZDhlNmY1N2Y1MDAyOGE4ZmY=",
 				false,
 			},
 		},

@@ -1544,7 +1544,7 @@ func (c *KMS) GenerateDataKeyRequest(input *GenerateDataKeyInput) (req *request.
 // data key from memory.
 //
 // To return only an encrypted copy of the data key, use GenerateDataKeyWithoutPlaintext.
-// To return an arbitrary unpredictable byte string, use GenerateRandom.
+// To return a random byte string that is cryptographically secure, use GenerateRandom.
 //
 // If you use the optional EncryptionContext field, you must store at least
 // enough information to be able to reconstruct the full encryption context
@@ -1786,7 +1786,11 @@ func (c *KMS) GenerateRandomRequest(input *GenerateRandomInput) (req *request.Re
 
 // GenerateRandom API operation for AWS Key Management Service.
 //
-// Generates an unpredictable byte string.
+// Returns a random byte string that is cryptographically secure.
+//
+// For more information about entropy and random number generation, see the
+// AWS Key Management Service Cryptographic Details (https://d0.awsstatic.com/whitepapers/KMS-Cryptographic-Details.pdf)
+// whitepaper.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -4316,11 +4320,9 @@ func (s CreateAliasOutput) GoString() string {
 type CreateGrantInput struct {
 	_ struct{} `type:"structure"`
 
-	// The conditions under which the operations permitted by the grant are allowed.
-	//
-	// You can use this value to allow the operations permitted by the grant only
-	// when a specified encryption context is present. For more information, see
-	// Encryption Context (http://docs.aws.amazon.com/kms/latest/developerguide/encryption-context.html)
+	// A structure that you can use to allow certain operations in the grant only
+	// when the desired encryption context is present. For more information about
+	// encryption context, see Encryption Context (http://docs.aws.amazon.com/kms/latest/developerguide/encryption-context.html)
 	// in the AWS Key Management Service Developer Guide.
 	Constraints *GrantConstraints `type:"structure"`
 
@@ -5700,7 +5702,7 @@ func (s *GenerateRandomInput) SetNumberOfBytes(v int64) *GenerateRandomInput {
 type GenerateRandomOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The unpredictable byte string.
+	// The random byte string.
 	//
 	// Plaintext is automatically base64 encoded/decoded by the SDK.
 	Plaintext []byte `min:"1" type:"blob"`
@@ -6023,29 +6025,34 @@ func (s *GetParametersForImportOutput) SetPublicKey(v []byte) *GetParametersForI
 	return s
 }
 
-// A structure for specifying the conditions under which the operations permitted
-// by the grant are allowed.
-//
-// You can use this structure to allow the operations permitted by the grant
-// only when a specified encryption context is present. For more information
-// about encryption context, see Encryption Context (http://docs.aws.amazon.com/kms/latest/developerguide/encryption-context.html)
+// A structure that you can use to allow certain operations in the grant only
+// when the desired encryption context is present. For more information about
+// encryption context, see Encryption Context (http://docs.aws.amazon.com/kms/latest/developerguide/encryption-context.html)
 // in the AWS Key Management Service Developer Guide.
+//
+// Grant constraints apply only to operations that accept encryption context
+// as input. For example, the DescribeKey operation does not accept encryption
+// context as input. A grant that allows the DescribeKey operation does so regardless
+// of the grant constraints. In constrast, the Encrypt operation accepts encryption
+// context as input. A grant that allows the Encrypt operation does so only
+// when the encryption context of the Encrypt operation satisfies the grant
+// constraints.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/GrantConstraints
 type GrantConstraints struct {
 	_ struct{} `type:"structure"`
 
-	// Contains a list of key-value pairs that must be present in the encryption
-	// context of a subsequent operation permitted by the grant. When a subsequent
-	// operation permitted by the grant includes an encryption context that matches
-	// this list, the grant allows the operation. Otherwise, the operation is not
-	// allowed.
+	// A list of key-value pairs that must be present in the encryption context
+	// of certain subsequent operations that the grant allows. When certain subsequent
+	// operations allowed by the grant include encryption context that matches this
+	// list, the grant allows the operation. Otherwise, the grant does not allow
+	// the operation.
 	EncryptionContextEquals map[string]*string `type:"map"`
 
-	// Contains a list of key-value pairs, a subset of which must be present in
-	// the encryption context of a subsequent operation permitted by the grant.
-	// When a subsequent operation permitted by the grant includes an encryption
-	// context that matches this list or is a subset of this list, the grant allows
-	// the operation. Otherwise, the operation is not allowed.
+	// A list of key-value pairs, all of which must be present in the encryption
+	// context of certain subsequent operations that the grant allows. When certain
+	// subsequent operations allowed by the grant include encryption context that
+	// matches this list or is a superset of this list, the grant allows the operation.
+	// Otherwise, the grant does not allow the operation.
 	EncryptionContextSubset map[string]*string `type:"map"`
 }
 
@@ -6076,7 +6083,8 @@ func (s *GrantConstraints) SetEncryptionContextSubset(v map[string]*string) *Gra
 type GrantListEntry struct {
 	_ struct{} `type:"structure"`
 
-	// The conditions under which the grant's operations are allowed.
+	// A list of key-value pairs that must be present in the encryption context
+	// of certain subsequent operations that the grant allows.
 	Constraints *GrantConstraints `type:"structure"`
 
 	// The date and time when the grant was created.

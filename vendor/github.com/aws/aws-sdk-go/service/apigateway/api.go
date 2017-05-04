@@ -13536,6 +13536,15 @@ type GetDeploymentInput struct {
 	// DeploymentId is a required field
 	DeploymentId *string `location:"uri" locationName:"deployment_id" type:"string" required:"true"`
 
+	// A query parameter to retrieve the specified embedded resources of the returned
+	// Deployment resource in the response. In a REST API call, this embed parameter
+	// value is a list of comma-separated strings, as in GET /restapis/{restapi_id}/deployments/{deployment_id}?embed=var1,var2.
+	// The SDK and other platform-dependent libraries might use a different format
+	// for the list. Currently, this request supports only retrieval of the embedded
+	// API summary this way. Hence, the parameter value must be a single-valued
+	// list containing only the "apisummary" string. For example, GET /restapis/{restapi_id}/deployments/{deployment_id}?embed=apisummary.
+	Embed []*string `location:"querystring" locationName:"embed" type:"list"`
+
 	// The identifier of the RestApi resource for the Deployment resource to get
 	// information about.
 	//
@@ -13572,6 +13581,12 @@ func (s *GetDeploymentInput) Validate() error {
 // SetDeploymentId sets the DeploymentId field's value.
 func (s *GetDeploymentInput) SetDeploymentId(v string) *GetDeploymentInput {
 	s.DeploymentId = &v
+	return s
+}
+
+// SetEmbed sets the Embed field's value.
+func (s *GetDeploymentInput) SetEmbed(v []*string) *GetDeploymentInput {
+	s.Embed = v
 	return s
 }
 
@@ -14940,6 +14955,14 @@ func (s *GetRequestValidatorsOutput) SetPosition(v string) *GetRequestValidators
 type GetResourceInput struct {
 	_ struct{} `type:"structure"`
 
+	// A query parameter to retrieve the specified resources embedded in the returned
+	// Resource representation in the response. This embed parameter value is a
+	// list of comma-separated strings. Currently, the request supports only retrieval
+	// of the embedded Method resources this way. The query parameter value must
+	// be a single-valued list and contain the "methods" string. For example, GET
+	// /restapis/{restapi_id}/resources/{resource_id}?embed=methods.
+	Embed []*string `location:"querystring" locationName:"embed" type:"list"`
+
 	// The identifier for the Resource resource.
 	//
 	// ResourceId is a required field
@@ -14977,6 +15000,12 @@ func (s *GetResourceInput) Validate() error {
 	return nil
 }
 
+// SetEmbed sets the Embed field's value.
+func (s *GetResourceInput) SetEmbed(v []*string) *GetResourceInput {
+	s.Embed = v
+	return s
+}
+
 // SetResourceId sets the ResourceId field's value.
 func (s *GetResourceInput) SetResourceId(v string) *GetResourceInput {
 	s.ResourceId = &v
@@ -14992,6 +15021,14 @@ func (s *GetResourceInput) SetRestApiId(v string) *GetResourceInput {
 // Request to list information about a collection of resources.
 type GetResourcesInput struct {
 	_ struct{} `type:"structure"`
+
+	// A query parameter used to retrieve the specified resources embedded in the
+	// returned Resources resource in the response. This embed parameter value is
+	// a list of comma-separated strings. Currently, the request supports only retrieval
+	// of the embedded Method resources this way. The query parameter value must
+	// be a single-valued list and contain the "methods" string. For example, GET
+	// /restapis/{restapi_id}/resources?embed=methods.
+	Embed []*string `location:"querystring" locationName:"embed" type:"list"`
 
 	// The maximum number of returned results per page. The value is 25 by default
 	// and could be between 1 - 500.
@@ -15027,6 +15064,12 @@ func (s *GetResourcesInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetEmbed sets the Embed field's value.
+func (s *GetResourcesInput) SetEmbed(v []*string) *GetResourcesInput {
+	s.Embed = v
+	return s
 }
 
 // SetLimit sets the Limit field's value.

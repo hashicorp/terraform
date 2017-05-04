@@ -645,6 +645,19 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 			}
 		}
 
+		// Computed-only field
+		if v.Computed && !v.Optional {
+			if v.ValidateFunc != nil {
+				return fmt.Errorf("%s: ValidateFunc is for validating user input, "+
+					"there's nothing to validate on computed-only field", k)
+			}
+			if v.DiffSuppressFunc != nil {
+				return fmt.Errorf("%s: DiffSuppressFunc is for suppressing differences"+
+					" between config and state representation. "+
+					"There is no config for computed-only field, nothing to compare.", k)
+			}
+		}
+
 		if v.ValidateFunc != nil {
 			switch v.Type {
 			case TypeList, TypeSet:

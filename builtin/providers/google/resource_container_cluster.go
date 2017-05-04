@@ -408,14 +408,14 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 		addonsConfig := v.([]interface{})[0].(map[string]interface{})
 		cluster.AddonsConfig = &container.AddonsConfig{}
 
-		if v, ok := addonsConfig["http_load_balancing"]; ok {
+		if v, ok := addonsConfig["http_load_balancing"]; ok && len(v.([]interface{})) > 0 {
 			addon := v.([]interface{})[0].(map[string]interface{})
 			cluster.AddonsConfig.HttpLoadBalancing = &container.HttpLoadBalancing{
 				Disabled: addon["disabled"].(bool),
 			}
 		}
 
-		if v, ok := addonsConfig["horizontal_pod_autoscaling"]; ok {
+		if v, ok := addonsConfig["horizontal_pod_autoscaling"]; ok && len(v.([]interface{})) > 0 {
 			addon := v.([]interface{})[0].(map[string]interface{})
 			cluster.AddonsConfig.HorizontalPodAutoscaling = &container.HorizontalPodAutoscaling{
 				Disabled: addon["disabled"].(bool),

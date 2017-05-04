@@ -1200,7 +1200,7 @@ func (m *Meta) backend_C_r_S_unchanged(
 	s := sMgr.State()
 
 	// it's possible for a backend to be unchanged, and the config itself to
-	// have changed by moving a paramter from the config to `-backend-config`
+	// have changed by moving a parameter from the config to `-backend-config`
 	// In this case we only need to update the Hash.
 	if c != nil && s.Backend.Hash != c.Hash {
 		s.Backend.Hash = c.Hash

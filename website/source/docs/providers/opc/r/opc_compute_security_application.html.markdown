@@ -12,7 +12,7 @@ The ``opc_compute_security_application`` resource creates and manages a security
 
 ## Example Usage (TCP)
 
-```
+```hcl
 resource "opc_compute_security_application" "tomcat" {
   name     = "tomcat"
   protocol = "tcp"
@@ -22,7 +22,7 @@ resource "opc_compute_security_application" "tomcat" {
 
 ## Example Usage (ICMP)
 
-```
+```hcl
 resource "opc_compute_security_application" "tomcat" {
   name     = "tomcat"
   protocol = "icmp"
@@ -52,6 +52,6 @@ The following arguments are supported:
 
 Security Application's can be imported using the `resource name`, e.g.
 
-```
-terraform import opc_compute_security_application.application1 example
+```shell
+$ terraform import opc_compute_security_application.application1 example
 ```

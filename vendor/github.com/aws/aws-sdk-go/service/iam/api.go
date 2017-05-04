@@ -160,7 +160,8 @@ func (c *IAM) AddRoleToInstanceProfileRequest(input *AddRoleToInstanceProfileInp
 
 // AddRoleToInstanceProfile API operation for AWS Identity and Access Management.
 //
-// Adds the specified IAM role to the specified instance profile.
+// Adds the specified IAM role to the specified instance profile. An instance
+// profile can contain only one role, and this limit cannot be increased.
 //
 // The caller of this API must be granted the PassRole permission on the IAM
 // role by a permission policy.
@@ -188,6 +189,12 @@ func (c *IAM) AddRoleToInstanceProfileRequest(input *AddRoleToInstanceProfileInp
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ErrCodeUnmodifiableEntityException "UnmodifiableEntity"
+//   The request was rejected because only the service that depends on the service-linked
+//   role can modify or delete the role on your behalf. The error message includes
+//   the name of the service that depends on this service-linked role. You must
+//   request the change through that service.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -455,13 +462,13 @@ func (c *IAM) AttachRolePolicyRequest(input *AttachRolePolicyInput) (req *reques
 
 // AttachRolePolicy API operation for AWS Identity and Access Management.
 //
-// Attaches the specified managed policy to the specified IAM role.
+// Attaches the specified managed policy to the specified IAM role. When you
+// attach a managed policy to a role, the managed policy becomes part of the
+// role's permission (access) policy.
 //
-// When you attach a managed policy to a role, the managed policy becomes part
-// of the role's permission (access) policy. You cannot use a managed policy
-// as the role's trust policy. The role's trust policy is created at the same
-// time as the role, using CreateRole. You can update a role's trust policy
-// using UpdateAssumeRolePolicy.
+// You cannot use a managed policy as the role's trust policy. The role's trust
+// policy is created at the same time as the role, using CreateRole. You can
+// update a role's trust policy using UpdateAssumeRolePolicy.
 //
 // Use this API to attach a managed policy to a role. To embed an inline policy
 // in a role, use PutRolePolicy. For more information about policies, see Managed
@@ -487,6 +494,12 @@ func (c *IAM) AttachRolePolicyRequest(input *AttachRolePolicyInput) (req *reques
 //   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
+//
+//   * ErrCodeUnmodifiableEntityException "UnmodifiableEntity"
+//   The request was rejected because only the service that depends on the service-linked
+//   role can modify or delete the role on your behalf. The error message includes
+//   the name of the service that depends on this service-linked role. You must
+//   request the change through that service.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -1601,6 +1614,10 @@ func (c *IAM) CreateRoleRequest(input *CreateRoleInput) (req *request.Request, o
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
+//   * ErrCodeInvalidInputException "InvalidInput"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
 //   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
 //   exists.
@@ -1744,6 +1761,112 @@ func (c *IAM) CreateSAMLProvider(input *CreateSAMLProviderInput) (*CreateSAMLPro
 // for more information on using Contexts.
 func (c *IAM) CreateSAMLProviderWithContext(ctx aws.Context, input *CreateSAMLProviderInput, opts ...request.Option) (*CreateSAMLProviderOutput, error) {
 	req, out := c.CreateSAMLProviderRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opCreateServiceLinkedRole = "CreateServiceLinkedRole"
+
+// CreateServiceLinkedRoleRequest generates a "aws/request.Request" representing the
+// client's request for the CreateServiceLinkedRole operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See CreateServiceLinkedRole for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateServiceLinkedRole method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateServiceLinkedRoleRequest method.
+//    req, resp := client.CreateServiceLinkedRoleRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateServiceLinkedRole
+func (c *IAM) CreateServiceLinkedRoleRequest(input *CreateServiceLinkedRoleInput) (req *request.Request, output *CreateServiceLinkedRoleOutput) {
+	op := &request.Operation{
+		Name:       opCreateServiceLinkedRole,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreateServiceLinkedRoleInput{}
+	}
+
+	output = &CreateServiceLinkedRoleOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateServiceLinkedRole API operation for AWS Identity and Access Management.
+//
+// Creates an IAM role that is linked to a specific AWS service. The service
+// controls the attached policies and when the role can be deleted. This helps
+// ensure that the service is not broken by an unexpectedly changed or deleted
+// role, which could put your AWS resources into an unknown state. Allowing
+// the service to control the role helps improve service stability and proper
+// cleanup when a service and its role are no longer needed.
+//
+// The name of the role is autogenerated by combining the string that you specify
+// for the AWSServiceName parameter with the string that you specify for the
+// CustomSuffix parameter. The resulting name must be unique in your account
+// or the request fails.
+//
+// To attach a policy to this service-linked role, you must make the request
+// using the AWS service that depends on this role.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation CreateServiceLinkedRole for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidInputException "InvalidInput"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ErrCodeLimitExceededException "LimitExceeded"
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateServiceLinkedRole
+func (c *IAM) CreateServiceLinkedRole(input *CreateServiceLinkedRoleInput) (*CreateServiceLinkedRoleOutput, error) {
+	req, out := c.CreateServiceLinkedRoleRequest(input)
+	return out, req.Send()
+}
+
+// CreateServiceLinkedRoleWithContext is the same as CreateServiceLinkedRole with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateServiceLinkedRole for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) CreateServiceLinkedRoleWithContext(ctx aws.Context, input *CreateServiceLinkedRoleInput, opts ...request.Option) (*CreateServiceLinkedRoleOutput, error) {
+	req, out := c.CreateServiceLinkedRoleRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -3231,6 +3354,12 @@ func (c *IAM) DeleteRoleRequest(input *DeleteRoleInput) (req *request.Request, o
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
+//   * ErrCodeUnmodifiableEntityException "UnmodifiableEntity"
+//   The request was rejected because only the service that depends on the service-linked
+//   role can modify or delete the role on your behalf. The error message includes
+//   the name of the service that depends on this service-linked role. You must
+//   request the change through that service.
+//
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
@@ -3327,6 +3456,12 @@ func (c *IAM) DeleteRolePolicyRequest(input *DeleteRolePolicyInput) (req *reques
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ErrCodeUnmodifiableEntityException "UnmodifiableEntity"
+//   The request was rejected because only the service that depends on the service-linked
+//   role can modify or delete the role on your behalf. The error message includes
+//   the name of the service that depends on this service-linked role. You must
+//   request the change through that service.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -4298,6 +4433,12 @@ func (c *IAM) DetachRolePolicyRequest(input *DetachRolePolicyInput) (req *reques
 //   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
+//
+//   * ErrCodeUnmodifiableEntityException "UnmodifiableEntity"
+//   The request was rejected because only the service that depends on the service-linked
+//   role can modify or delete the role on your behalf. The error message includes
+//   the name of the service that depends on this service-linked role. You must
+//   request the change through that service.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -10383,6 +10524,12 @@ func (c *IAM) PutRolePolicyRequest(input *PutRolePolicyInput) (req *request.Requ
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
+//   * ErrCodeUnmodifiableEntityException "UnmodifiableEntity"
+//   The request was rejected because only the service that depends on the service-linked
+//   role can modify or delete the role on your behalf. The error message includes
+//   the name of the service that depends on this service-linked role. You must
+//   request the change through that service.
+//
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
@@ -10667,8 +10814,8 @@ func (c *IAM) RemoveRoleFromInstanceProfileRequest(input *RemoveRoleFromInstance
 //
 // Make sure you do not have any Amazon EC2 instances running with the role
 // you are about to remove from the instance profile. Removing a role from an
-// instance profile that is associated with a running instance break any applications
-// running on the instance.
+// instance profile that is associated with a running instance might break any
+// applications running on the instance.
 //
 // For more information about IAM roles, go to Working with Roles (http://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
 // For more information about instance profiles, go to About Instance Profiles
@@ -10689,6 +10836,12 @@ func (c *IAM) RemoveRoleFromInstanceProfileRequest(input *RemoveRoleFromInstance
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ErrCodeUnmodifiableEntityException "UnmodifiableEntity"
+//   The request was rejected because only the service that depends on the service-linked
+//   role can modify or delete the role on your behalf. The error message includes
+//   the name of the service that depends on this service-linked role. You must
+//   request the change through that service.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -11700,6 +11853,12 @@ func (c *IAM) UpdateAssumeRolePolicyRequest(input *UpdateAssumeRolePolicyInput) 
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
+//   * ErrCodeUnmodifiableEntityException "UnmodifiableEntity"
+//   The request was rejected because only the service that depends on the service-linked
+//   role can modify or delete the role on your behalf. The error message includes
+//   the name of the service that depends on this service-linked role. You must
+//   request the change through that service.
+//
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
@@ -12036,6 +12195,97 @@ func (c *IAM) UpdateOpenIDConnectProviderThumbprint(input *UpdateOpenIDConnectPr
 // for more information on using Contexts.
 func (c *IAM) UpdateOpenIDConnectProviderThumbprintWithContext(ctx aws.Context, input *UpdateOpenIDConnectProviderThumbprintInput, opts ...request.Option) (*UpdateOpenIDConnectProviderThumbprintOutput, error) {
 	req, out := c.UpdateOpenIDConnectProviderThumbprintRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUpdateRoleDescription = "UpdateRoleDescription"
+
+// UpdateRoleDescriptionRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateRoleDescription operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UpdateRoleDescription for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateRoleDescription method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateRoleDescriptionRequest method.
+//    req, resp := client.UpdateRoleDescriptionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateRoleDescription
+func (c *IAM) UpdateRoleDescriptionRequest(input *UpdateRoleDescriptionInput) (req *request.Request, output *UpdateRoleDescriptionOutput) {
+	op := &request.Operation{
+		Name:       opUpdateRoleDescription,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UpdateRoleDescriptionInput{}
+	}
+
+	output = &UpdateRoleDescriptionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateRoleDescription API operation for AWS Identity and Access Management.
+//
+// Modifies the description of a role.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation UpdateRoleDescription for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ErrCodeUnmodifiableEntityException "UnmodifiableEntity"
+//   The request was rejected because only the service that depends on the service-linked
+//   role can modify or delete the role on your behalf. The error message includes
+//   the name of the service that depends on this service-linked role. You must
+//   request the change through that service.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateRoleDescription
+func (c *IAM) UpdateRoleDescription(input *UpdateRoleDescriptionInput) (*UpdateRoleDescriptionOutput, error) {
+	req, out := c.UpdateRoleDescriptionRequest(input)
+	return out, req.Send()
+}
+
+// UpdateRoleDescriptionWithContext is the same as UpdateRoleDescription with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateRoleDescription for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) UpdateRoleDescriptionWithContext(ctx aws.Context, input *UpdateRoleDescriptionInput, opts ...request.Option) (*UpdateRoleDescriptionOutput, error) {
+	req, out := c.UpdateRoleDescriptionRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -13082,7 +13332,7 @@ type AccessKeyLastUsed struct {
 	LastUsedDate *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
 
 	// The AWS region where this access key was most recently used. This field is
-	// null when:
+	// displays "N/A" when:
 	//
 	//    * The user does not have an access key.
 	//
@@ -13098,7 +13348,7 @@ type AccessKeyLastUsed struct {
 	Region *string `type:"string" required:"true"`
 
 	// The name of the AWS service with which this access key was most recently
-	// used. This field is null when:
+	// used. This field displays "N/A" when:
 	//
 	//    * The user does not have an access key.
 	//
@@ -13288,7 +13538,7 @@ type AddRoleToInstanceProfileInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
@@ -13534,7 +13784,7 @@ type AttachRolePolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
@@ -14701,6 +14951,9 @@ type CreateRoleInput struct {
 	// AssumeRolePolicyDocument is a required field
 	AssumeRolePolicyDocument *string `min:"1" type:"string" required:"true"`
 
+	// A customer-provided description of the role.
+	Description *string `type:"string"`
+
 	// The path to the role. For more information about paths, see IAM Identifiers
 	// (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
@@ -14719,7 +14972,8 @@ type CreateRoleInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-.
+	// with no spaces. You can also include any of the following characters: _+=,.@-
+	//
 	// Role names are not distinguished by case. For example, you cannot create
 	// roles named both "PRODROLE" and "prodrole".
 	//
@@ -14765,6 +15019,12 @@ func (s *CreateRoleInput) Validate() error {
 // SetAssumeRolePolicyDocument sets the AssumeRolePolicyDocument field's value.
 func (s *CreateRoleInput) SetAssumeRolePolicyDocument(v string) *CreateRoleInput {
 	s.AssumeRolePolicyDocument = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *CreateRoleInput) SetDescription(v string) *CreateRoleInput {
+	s.Description = &v
 	return s
 }
 
@@ -14899,6 +15159,98 @@ func (s CreateSAMLProviderOutput) GoString() string {
 // SetSAMLProviderArn sets the SAMLProviderArn field's value.
 func (s *CreateSAMLProviderOutput) SetSAMLProviderArn(v string) *CreateSAMLProviderOutput {
 	s.SAMLProviderArn = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateServiceLinkedRoleRequest
+type CreateServiceLinkedRoleInput struct {
+	_ struct{} `type:"structure"`
+
+	// The AWS service to which this role is attached. You use a string similar
+	// to a URL but without the http:// in front. For example: elasticbeanstalk.amazonaws.com
+	//
+	// AWSServiceName is a required field
+	AWSServiceName *string `min:"1" type:"string" required:"true"`
+
+	// A string that you provide, which is combined with the service name to form
+	// the complete role name. If you make multiple requests for the same service,
+	// then you must supply a different CustomSuffix for each request. Otherwise
+	// the request fails with a duplicate role name error. For example, you could
+	// add -1 or -debug to the suffix.
+	CustomSuffix *string `min:"1" type:"string"`
+
+	// The description of the role.
+	Description *string `type:"string"`
+}
+
+// String returns the string representation
+func (s CreateServiceLinkedRoleInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateServiceLinkedRoleInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateServiceLinkedRoleInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateServiceLinkedRoleInput"}
+	if s.AWSServiceName == nil {
+		invalidParams.Add(request.NewErrParamRequired("AWSServiceName"))
+	}
+	if s.AWSServiceName != nil && len(*s.AWSServiceName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AWSServiceName", 1))
+	}
+	if s.CustomSuffix != nil && len(*s.CustomSuffix) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CustomSuffix", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAWSServiceName sets the AWSServiceName field's value.
+func (s *CreateServiceLinkedRoleInput) SetAWSServiceName(v string) *CreateServiceLinkedRoleInput {
+	s.AWSServiceName = &v
+	return s
+}
+
+// SetCustomSuffix sets the CustomSuffix field's value.
+func (s *CreateServiceLinkedRoleInput) SetCustomSuffix(v string) *CreateServiceLinkedRoleInput {
+	s.CustomSuffix = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *CreateServiceLinkedRoleInput) SetDescription(v string) *CreateServiceLinkedRoleInput {
+	s.Description = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateServiceLinkedRoleResponse
+type CreateServiceLinkedRoleOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A Role object that contains details about the newly created role.
+	Role *Role `type:"structure"`
+}
+
+// String returns the string representation
+func (s CreateServiceLinkedRoleOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateServiceLinkedRoleOutput) GoString() string {
+	return s.String()
+}
+
+// SetRole sets the Role field's value.
+func (s *CreateServiceLinkedRoleOutput) SetRole(v *Role) *CreateServiceLinkedRoleOutput {
+	s.Role = v
 	return s
 }
 
@@ -15197,7 +15549,7 @@ type DeactivateMFADeviceInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =/:,.@-
+	// with no spaces. You can also include any of the following characters: =,.@:/-
 	//
 	// SerialNumber is a required field
 	SerialNumber *string `min:"9" type:"string" required:"true"`
@@ -15920,7 +16272,7 @@ type DeleteRoleInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
@@ -15991,7 +16343,7 @@ type DeleteRolePolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
@@ -16566,7 +16918,7 @@ type DeleteVirtualMFADeviceInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =/:,.@-
+	// with no spaces. You can also include any of the following characters: =,.@:/-
 	//
 	// SerialNumber is a required field
 	SerialNumber *string `min:"9" type:"string" required:"true"`
@@ -16718,7 +17070,7 @@ type DetachRolePolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
@@ -16873,12 +17225,26 @@ type EnableMFADeviceInput struct {
 	//
 	// The format for this parameter is a string of 6 digits.
 	//
+	// Submit your request immediately after generating the authentication codes.
+	// If you generate the codes and then wait too long to submit the request, the
+	// MFA device successfully associates with the user but the MFA device becomes
+	// out of sync. This happens because time-based one-time passwords (TOTP) expire
+	// after a short period of time. If this happens, you can resync the device
+	// (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa_sync.html).
+	//
 	// AuthenticationCode1 is a required field
 	AuthenticationCode1 *string `min:"6" type:"string" required:"true"`
 
 	// A subsequent authentication code emitted by the device.
 	//
 	// The format for this parameter is a string of 6 digits.
+	//
+	// Submit your request immediately after generating the authentication codes.
+	// If you generate the codes and then wait too long to submit the request, the
+	// MFA device successfully associates with the user but the MFA device becomes
+	// out of sync. This happens because time-based one-time passwords (TOTP) expire
+	// after a short period of time. If this happens, you can resync the device
+	// (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa_sync.html).
 	//
 	// AuthenticationCode2 is a required field
 	AuthenticationCode2 *string `min:"6" type:"string" required:"true"`
@@ -16888,7 +17254,7 @@ type EnableMFADeviceInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =/:,.@-
+	// with no spaces. You can also include any of the following characters: =,.@:/-
 	//
 	// SerialNumber is a required field
 	SerialNumber *string `min:"9" type:"string" required:"true"`
@@ -17401,7 +17767,7 @@ func (s GetAccountPasswordPolicyInput) GoString() string {
 type GetAccountPasswordPolicyOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Contains information about the account password policy.
+	// A structure that contains details about the account's password policy.
 	//
 	// PasswordPolicy is a required field
 	PasswordPolicy *PasswordPolicy `type:"structure" required:"true"`
@@ -18348,7 +18714,7 @@ type GetRoleInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
@@ -18430,7 +18796,7 @@ type GetRolePolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
@@ -19682,7 +20048,7 @@ type ListAttachedRolePoliciesInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
@@ -20540,7 +20906,7 @@ type ListInstanceProfilesForRoleInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
@@ -21257,7 +21623,7 @@ type ListRolePoliciesInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
@@ -23343,7 +23709,7 @@ type PutRolePolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
@@ -23624,7 +23990,7 @@ type RemoveRoleFromInstanceProfileInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
@@ -24067,22 +24433,15 @@ func (s ResyncMFADeviceOutput) GoString() string {
 	return s.String()
 }
 
-// Contains information about an IAM role.
-//
-// This data type is used as a response element in the following actions:
-//
-//    * CreateRole
-//
-//    * GetRole
-//
-//    * ListRoles
+// Contains information about an IAM role. This structure is returned as a response
+// element in several APIs that interact with roles.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/Role
 type Role struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) specifying the role. For more information
 	// about ARNs and how to use them in policies, see IAM Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
-	// in the Using IAM guide.
+	// in the IAM User Guide guide.
 	//
 	// Arn is a required field
 	Arn *string `min:"20" type:"string" required:"true"`
@@ -24095,6 +24454,9 @@ type Role struct {
 	//
 	// CreateDate is a required field
 	CreateDate *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
+
+	// A description of the role that you provide.
+	Description *string `type:"string"`
 
 	// The path to the role. For more information about paths, see IAM Identifiers
 	// (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
@@ -24141,6 +24503,12 @@ func (s *Role) SetAssumeRolePolicyDocument(v string) *Role {
 // SetCreateDate sets the CreateDate field's value.
 func (s *Role) SetCreateDate(v time.Time) *Role {
 	s.CreateDate = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *Role) SetDescription(v string) *Role {
+	s.Description = &v
 	return s
 }
 
@@ -25856,7 +26224,7 @@ type UpdateAssumeRolePolicyInput struct {
 	//
 	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: _+=,.@-
 	//
 	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
@@ -26185,6 +26553,86 @@ func (s UpdateOpenIDConnectProviderThumbprintOutput) String() string {
 // GoString returns the string representation
 func (s UpdateOpenIDConnectProviderThumbprintOutput) GoString() string {
 	return s.String()
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateRoleDescriptionRequest
+type UpdateRoleDescriptionInput struct {
+	_ struct{} `type:"structure"`
+
+	// The new description that you want to apply to the specified role.
+	//
+	// Description is a required field
+	Description *string `type:"string" required:"true"`
+
+	// The name of the role that you want to modify.
+	//
+	// RoleName is a required field
+	RoleName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s UpdateRoleDescriptionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateRoleDescriptionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateRoleDescriptionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateRoleDescriptionInput"}
+	if s.Description == nil {
+		invalidParams.Add(request.NewErrParamRequired("Description"))
+	}
+	if s.RoleName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RoleName"))
+	}
+	if s.RoleName != nil && len(*s.RoleName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDescription sets the Description field's value.
+func (s *UpdateRoleDescriptionInput) SetDescription(v string) *UpdateRoleDescriptionInput {
+	s.Description = &v
+	return s
+}
+
+// SetRoleName sets the RoleName field's value.
+func (s *UpdateRoleDescriptionInput) SetRoleName(v string) *UpdateRoleDescriptionInput {
+	s.RoleName = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateRoleDescriptionResponse
+type UpdateRoleDescriptionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A structure that contains details about the modified role.
+	Role *Role `type:"structure"`
+}
+
+// String returns the string representation
+func (s UpdateRoleDescriptionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateRoleDescriptionOutput) GoString() string {
+	return s.String()
+}
+
+// SetRole sets the Role field's value.
+func (s *UpdateRoleDescriptionOutput) SetRole(v *Role) *UpdateRoleDescriptionOutput {
+	s.Role = v
+	return s
 }
 
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UpdateSAMLProviderRequest
@@ -27352,7 +27800,7 @@ type VirtualMFADevice struct {
 	// SerialNumber is a required field
 	SerialNumber *string `min:"9" type:"string" required:"true"`
 
-	// The user to whom the MFA device is assigned.
+	// The IAM user associated with this virtual MFA device.
 	User *User `type:"structure"`
 }
 

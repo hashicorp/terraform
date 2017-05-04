@@ -12,7 +12,7 @@ The ``opc_compute_ip_reservation`` resource creates and manages an IP reservatio
 
 ## Example Usage
 
-```
+```hcl
 resource "opc_compute_ip_reservation" "reservation1" {
   parent_pool = "/oracle/public/ippool"
   permanent   = true
@@ -38,6 +38,6 @@ deleted and recreated (if false).
 
 IP Reservations can be imported using the `resource name`, e.g.
 
-```
-terraform import opc_compute_ip_reservations.reservation1 example
+```shell
+$ terraform import opc_compute_ip_reservations.reservation1 example
 ```

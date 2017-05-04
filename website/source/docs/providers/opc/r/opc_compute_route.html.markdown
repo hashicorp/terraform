@@ -12,7 +12,7 @@ The ``opc_compute_route`` resource creates and manages a route for an IP Network
 
 ## Example Usage
 
-```
+```hcl
 resource "opc_compute_route" "foo" {
   name              = "my-route"
   description       = "my IP Network route"
@@ -55,6 +55,6 @@ The following attributes are exported:
 
 Route's can be imported using the `resource name`, e.g.
 
-```
-terraform import opc_compute_route.route1 example
+```shell
+$ terraform import opc_compute_route.route1 example
 ```

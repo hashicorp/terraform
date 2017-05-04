@@ -3035,14 +3035,14 @@ type AddPermissionInput struct {
 	// you don't specify the SourceArn) owned by a specific account.
 	SourceAccount *string `type:"string"`
 
-	// This is optional; however, when granting a source permission to invoke your
-	// function, you should specify this field with the Amazon Resource Name (ARN)
-	// as its value. This ensures that only events generated from the specified
-	// source can invoke the function.
+	// This is optional; however, when granting permission to invoke your function,
+	// you should specify this field with the Amazon Resource Name (ARN) as its
+	// value. This ensures that only events generated from the specified source
+	// can invoke the function.
 	//
-	// If you add a permission for the source without providing the source ARN,
-	// any AWS account that creates a mapping to your function ARN can send events
-	// to invoke your Lambda function from that source.
+	// If you add a permission without providing the source ARN, any AWS account
+	// that creates a mapping to your function ARN can send events to invoke your
+	// Lambda function.
 	SourceArn *string `type:"string"`
 
 	// A unique statement identifier.
@@ -3439,7 +3439,7 @@ type CreateFunctionInput struct {
 	// Code is a required field
 	Code *FunctionCode `type:"structure" required:"true"`
 
-	// The parent object that contains the target Amazon Resource Name (ARN) of
+	// The parent object that contains the target ARN (Amazon Resource Name) of
 	// an Amazon SQS queue or Amazon SNS topic.
 	DeadLetterConfig *DeadLetterConfig `type:"structure"`
 
@@ -3513,6 +3513,9 @@ type CreateFunctionInput struct {
 	// Because the execution time has cost implications, we recommend you set this
 	// value based on your expected execution time. The default is 3 seconds.
 	Timeout *int64 `min:"1" type:"integer"`
+
+	// The parent object that contains your function's tracing settings.
+	TracingConfig *TracingConfig `type:"structure"`
 
 	// If your Lambda function accesses resources in a VPC, you provide this parameter
 	// identifying the list of security group IDs and subnet IDs. These must belong
@@ -3648,13 +3651,19 @@ func (s *CreateFunctionInput) SetTimeout(v int64) *CreateFunctionInput {
 	return s
 }
 
+// SetTracingConfig sets the TracingConfig field's value.
+func (s *CreateFunctionInput) SetTracingConfig(v *TracingConfig) *CreateFunctionInput {
+	s.TracingConfig = v
+	return s
+}
+
 // SetVpcConfig sets the VpcConfig field's value.
 func (s *CreateFunctionInput) SetVpcConfig(v *VpcConfig) *CreateFunctionInput {
 	s.VpcConfig = v
 	return s
 }
 
-// The parent object that contains the target Amazon Resource Name (ARN) of
+// The parent object that contains the target ARN (Amazon Resource Name) of
 // an Amazon SQS queue or Amazon SNS topic.
 type DeadLetterConfig struct {
 	_ struct{} `type:"structure"`
@@ -4191,7 +4200,7 @@ type FunctionConfiguration struct {
 	// The size, in bytes, of the function .zip file you uploaded.
 	CodeSize *int64 `type:"long"`
 
-	// The parent object that contains the target Amazon Resource Name (ARN) of
+	// The parent object that contains the target ARN (Amazon Resource Name) of
 	// an Amazon SQS queue or Amazon SNS topic.
 	DeadLetterConfig *DeadLetterConfig `type:"structure"`
 
@@ -4235,6 +4244,9 @@ type FunctionConfiguration struct {
 	// Because the execution time has cost implications, we recommend you set this
 	// value based on your expected execution time. The default is 3 seconds.
 	Timeout *int64 `min:"1" type:"integer"`
+
+	// The parent object that contains your function's tracing settings.
+	TracingConfig *TracingConfigResponse `type:"structure"`
 
 	// The version of the Lambda function.
 	Version *string `min:"1" type:"string"`
@@ -4334,6 +4346,12 @@ func (s *FunctionConfiguration) SetRuntime(v string) *FunctionConfiguration {
 // SetTimeout sets the Timeout field's value.
 func (s *FunctionConfiguration) SetTimeout(v int64) *FunctionConfiguration {
 	s.Timeout = &v
+	return s
+}
+
+// SetTracingConfig sets the TracingConfig field's value.
+func (s *FunctionConfiguration) SetTracingConfig(v *TracingConfigResponse) *FunctionConfiguration {
+	s.TracingConfig = v
 	return s
 }
 
@@ -5718,6 +5736,58 @@ func (s TagResourceOutput) GoString() string {
 	return s.String()
 }
 
+// The parent object that contains your function's tracing settings.
+type TracingConfig struct {
+	_ struct{} `type:"structure"`
+
+	// Can be either PassThrough or Active. If PassThrough, Lambda will only trace
+	// the request from an upstream service if it contains a tracing header with
+	// "sampled=1". If Active, Lambda will respect any tracing header it receives
+	// from an upstream service. If no tracing header is received, Lambda will call
+	// X-Ray for a tracing decision.
+	Mode *string `type:"string" enum:"TracingMode"`
+}
+
+// String returns the string representation
+func (s TracingConfig) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TracingConfig) GoString() string {
+	return s.String()
+}
+
+// SetMode sets the Mode field's value.
+func (s *TracingConfig) SetMode(v string) *TracingConfig {
+	s.Mode = &v
+	return s
+}
+
+// Parent object of the tracing information associated with your Lambda function.
+type TracingConfigResponse struct {
+	_ struct{} `type:"structure"`
+
+	// The tracing mode associated with your Lambda function.
+	Mode *string `type:"string" enum:"TracingMode"`
+}
+
+// String returns the string representation
+func (s TracingConfigResponse) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TracingConfigResponse) GoString() string {
+	return s.String()
+}
+
+// SetMode sets the Mode field's value.
+func (s *TracingConfigResponse) SetMode(v string) *TracingConfigResponse {
+	s.Mode = &v
+	return s
+}
+
 type UntagResourceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6067,7 +6137,7 @@ func (s *UpdateFunctionCodeInput) SetZipFile(v []byte) *UpdateFunctionCodeInput 
 type UpdateFunctionConfigurationInput struct {
 	_ struct{} `type:"structure"`
 
-	// The parent object that contains the target Amazon Resource Name (ARN) of
+	// The parent object that contains the target ARN (Amazon Resource Name) of
 	// an Amazon SQS queue or Amazon SNS topic.
 	DeadLetterConfig *DeadLetterConfig `type:"structure"`
 
@@ -6126,6 +6196,9 @@ type UpdateFunctionConfigurationInput struct {
 	// Because the execution time has cost implications, we recommend you set this
 	// value based on your expected execution time. The default is 3 seconds.
 	Timeout *int64 `min:"1" type:"integer"`
+
+	// The parent object that contains your function's tracing settings.
+	TracingConfig *TracingConfig `type:"structure"`
 
 	// If your Lambda function accesses resources in a VPC, you provide this parameter
 	// identifying the list of security group IDs and subnet IDs. These must belong
@@ -6223,6 +6296,12 @@ func (s *UpdateFunctionConfigurationInput) SetRuntime(v string) *UpdateFunctionC
 // SetTimeout sets the Timeout field's value.
 func (s *UpdateFunctionConfigurationInput) SetTimeout(v int64) *UpdateFunctionConfigurationInput {
 	s.Timeout = &v
+	return s
+}
+
+// SetTracingConfig sets the TracingConfig field's value.
+func (s *UpdateFunctionConfigurationInput) SetTracingConfig(v *TracingConfig) *UpdateFunctionConfigurationInput {
+	s.TracingConfig = v
 	return s
 }
 
@@ -6375,4 +6454,12 @@ const (
 
 	// ThrottleReasonCallerRateLimitExceeded is a ThrottleReason enum value
 	ThrottleReasonCallerRateLimitExceeded = "CallerRateLimitExceeded"
+)
+
+const (
+	// TracingModeActive is a TracingMode enum value
+	TracingModeActive = "Active"
+
+	// TracingModePassThrough is a TracingMode enum value
+	TracingModePassThrough = "PassThrough"
 )

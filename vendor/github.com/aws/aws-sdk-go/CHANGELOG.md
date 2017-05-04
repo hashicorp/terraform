@@ -1,3 +1,66 @@
+Release v1.8.16 (2017-04-21)
+===
+
+### Service Client Updates
+* `service/appstream`: Updates service API, documentation, and paginators
+  * The new feature named "Default Internet Access" will enable Internet access from AppStream 2.0 instances - image builders and fleet instances. Admins will check a flag either through AWS management console for AppStream 2.0 or through API while creating an image builder or while creating/updating a fleet.
+* `service/kinesis`: Updates service API, documentation, waiters, and paginators
+  * Adds a new waiter, StreamNotExists, to Kinesis.
+
+### SDK Enhancements
+* `aws/endpoints`: Add utilities improving endpoints lookup (#1218)
+  * Adds several utilities to the endpoints packages to make looking up partitions, regions, and services easier.
+  * Fixes #994
+
+### SDK Bugs
+* `private/protocol/xml/xmlutil`: Fix unmarshaling dropping errors (#1219)
+  * The XML unmarshaler would drop any serialization or body read error that occurred on the floor effectively hiding any errors that would occur.
+  * Fixes #1205
+Release v1.8.15 (2017-04-20)
+===
+
+### Service Client Updates
+* `service/devicefarm`: Updates service API and documentation
+  * API Update for AWS Device Farm: Support for Deals and Promotions
+* `service/directconnect`: Updates service documentation
+  * Documentation updates for AWS Direct Connect.
+* `service/elbv2`: Updates service waiters
+* `service/kms`: Updates service documentation and examples
+  * Doc-only update for Key Management Service (KMS): Update docs for GrantConstraints and GenerateRandom
+* `service/route53`: Updates service documentation
+  * Release notes: SDK documentation now includes examples for ChangeResourceRecordSets for all types of resource record set, such as weighted, alias, and failover.
+* `service/route53domains`: Updates service API, documentation, and paginators
+  * Adding examples and other documentation updates.
+
+### SDK Enhancements
+* `service/s3`: Add utilities to make getting a bucket's region easier (#1207)
+  * Adds two features which make it easier to get a bucket's region, `s3.NormalizeBucketLocation` and `s3manager.GetBucketRegion`.
+
+### SDK Bugs
+* `service/s3`: Fix HeadObject's incorrect documented error codes (#1213)
+  * The HeadObject's model incorrectly states that the operation can return the NoSuchKey error code.
+  * Fixes #1208
+
+Release v1.8.14 (2017-04-19)
+===
+
+### Service Client Updates
+* `service/apigateway`: Updates service API and documentation
+  * Add support for "embed" property.
+* `service/codestar`: Adds new service
+  * AWS CodeStar is a cloud-based service for creating, managing, and working with software development projects on AWS. An AWS CodeStar project creates and integrates AWS services for your project development toolchain. AWS CodeStar also manages the permissions required for project users.
+* `service/ec2`: Updates service API and documentation
+  * Adds support for creating an Amazon FPGA Image (AFI) from a specified design checkpoint (DCP).
+* `service/iam`: Updates service API and documentation
+  * This changes introduces a new IAM role type, Service Linked Role, which works like a normal role but must be managed via services' control.
+* `service/lambda`: Updates service API and documentation
+  * Lambda integration with CloudDebugger service to enable customers to enable tracing for the Lambda functions and send trace information to the CloudDebugger service.
+* `service/lexmodelbuildingservice`: Adds new service
+* `service/polly`: Updates service API, documentation, and paginators
+  * API Update for Amazon Polly: Add support for speech marks
+* `service/rekognition`: Updates service API and documentation
+  * Given an image, the API detects explicit or suggestive adult content in the image and returns a list of corresponding labels with confidence scores, as well as a taxonomy (parent-child relation) for each label.
+
 Release v1.8.13 (2017-04-18)
 ===
 

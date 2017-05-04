@@ -12,7 +12,7 @@ The ``opc_compute_ip_address_reservation`` resource creates and manages an IP ad
 
 ## Example Usage
 
-```
+```hcl
 resource "opc_compute_ip_address_reservation" "default" {
   name            = "IPAddressReservation1"
   ip_address_pool = "public-ippool"
@@ -36,3 +36,11 @@ In addition to the above, the following attributes are exported:
 * `ip_address` - Reserved NAT IPv4 address from the IP address pool.
 
 * `uri` - The Uniform Resource Identifier of the ip address reservation
+
+## Import
+
+IP Address Reservations can be imported using the `resource name`, e.g.
+
+```shell
+$ terraform import opc_compute_ip_address_reservation.default example
+```

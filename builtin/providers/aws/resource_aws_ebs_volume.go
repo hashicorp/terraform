@@ -179,7 +179,7 @@ func resourceAWSEbsVolumeUpdate(d *schema.ResourceData, meta interface{}) error 
 
 		stateConf := &resource.StateChangeConf{
 			Pending:    []string{"creating", "modifying"},
-			Target:     []string{"available"},
+			Target:     []string{"available", "in-use"},
 			Refresh:    volumeStateRefreshFunc(conn, *result.VolumeModification.VolumeId),
 			Timeout:    5 * time.Minute,
 			Delay:      10 * time.Second,

@@ -2178,3 +2178,34 @@ func TestValidateCognitoIdentityProvidersProviderName(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateWafMetricName(t *testing.T) {
+	validNames := []string{
+		"testrule",
+		"testRule",
+		"testRule123",
+	}
+	for _, v := range validNames {
+		_, errors := validateWafMetricName(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid WAF metric name: %q", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"!",
+		"/",
+		" ",
+		":",
+		";",
+		"white space",
+		"/slash-at-the-beginning",
+		"slash-at-the-end/",
+	}
+	for _, v := range invalidNames {
+		_, errors := validateWafMetricName(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid WAF metric name", v)
+		}
+	}
+}
