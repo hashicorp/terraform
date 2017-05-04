@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/googleapi"
 )
 
 func stringScopeHashcode(v interface{}) int {
@@ -361,16 +360,7 @@ func getInstance(config *Config, d *schema.ResourceData) (*compute.Instance, err
 	instance, err := config.clientCompute.Instances.Get(
 		project, d.Get("zone").(string), d.Id()).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing Instance %q because it's gone", d.Get("name").(string))
-			// The resource doesn't exist anymore
-			id := d.Id()
-			d.SetId("")
-
-			return nil, fmt.Errorf("Resource %s no longer exists", id)
-		}
-
-		return nil, fmt.Errorf("Error reading instance: %s", err)
+		return nil, handleNotFoundError(err, d, fmt.Sprintf("Instance %s", d.Get("name").(string)))
 	}
 
 	return instance, nil
@@ -713,13 +703,8 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	id := d.Id()
 	instance, err := getInstance(config, d)
-	if err != nil {
-		if strings.Contains(err.Error(), "no longer exists") {
-			log.Printf("[WARN] Google Compute Instance (%s) not found", id)
-			return nil
-		}
+	if err != nil || instance == nil {
 		return err
 	}
 
