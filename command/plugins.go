@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
 
 	plugin "github.com/hashicorp/go-plugin"
 	tfplugin "github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/kardianos/osext"
 )
 
 // multiVersionProviderResolver is an implementation of
@@ -40,20 +43,43 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 	return factories, errs
 }
 
-// providerPluginSet returns the set of valid providers that were discovered in
-// the defined search paths.
-func (m *Meta) providerPluginSet() discovery.PluginMetaSet {
-	var dirs []string
+// the default location for automatically installed plugins
+func (m *Meta) pluginDir() string {
+	return filepath.Join(m.DataDir(), "plugins", fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH))
+}
+
+// pluginDirs return a list of directories to search for plugins.
+//
+// Earlier entries in this slice get priority over later when multiple copies
+// of the same plugin version are found, but newer versions always override
+// older versions where both satisfy the provider version constraints.
+func (m *Meta) pluginDirs() []string {
 
 	// When searching the following directories, earlier entries get precedence
 	// if the same plugin version is found twice, but newer versions will
 	// always get preference below regardless of where they are coming from.
 	// TODO: Add auto-install dir, default vendor dir and optional override
 	// vendor dir(s).
-	dirs = append(dirs, ".")
-	dirs = append(dirs, m.GlobalPluginDirs...)
+	dirs := []string{"."}
 
-	plugins := discovery.FindPlugins("provider", dirs)
+	// Look in the same directory as the Terraform executable.
+	// If found, this replaces what we found in the config path.
+	exePath, err := osext.Executable()
+	if err != nil {
+		log.Printf("[ERROR] Error discovering exe directory: %s", err)
+	} else {
+		dirs = append(dirs, filepath.Dir(exePath))
+	}
+
+	dirs = append(dirs, m.pluginDir())
+	dirs = append(dirs, m.GlobalPluginDirs...)
+	return dirs
+}
+
+// providerPluginSet returns the set of valid providers that were discovered in
+// the defined search paths.
+func (m *Meta) providerPluginSet() discovery.PluginMetaSet {
+	plugins := discovery.FindPlugins("provider", m.pluginDirs())
 	plugins, _ = plugins.ValidateVersions()
 
 	return plugins
@@ -81,19 +107,7 @@ func (m *Meta) missingProviders(reqd discovery.PluginRequirements) discovery.Plu
 }
 
 func (m *Meta) provisionerFactories() map[string]terraform.ResourceProvisionerFactory {
-	var dirs []string
-
-	// When searching the following directories, earlier entries get precedence
-	// if the same plugin version is found twice, but newer versions will
-	// always get preference below regardless of where they are coming from.
-	//
-	// NOTE: Currently we don't use versioning for provisioners, so the
-	// version handling here is just the minimum required to be able to use
-	// the plugin discovery package. All provisioner plugins should always
-	// be versionless, which we treat as version 0.0.0 here.
-	dirs = append(dirs, ".")
-	dirs = append(dirs, m.GlobalPluginDirs...)
-
+	dirs := m.pluginDirs()
 	plugins := discovery.FindPlugins("provisioner", dirs)
 	plugins, _ = plugins.ValidateVersions()
 
