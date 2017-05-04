@@ -114,7 +114,7 @@ func (m *Module) PluginRequirements() discovery.PluginRequirements {
 		// by using Intersection to merge the version sets.
 		pty := inst.Type()
 		if existing, exists := ret[pty]; exists {
-			ret[pty] = existing.Intersection(dep.Constraints)
+			ret[pty] = existing.Append(dep.Constraints)
 		} else {
 			ret[pty] = dep.Constraints
 		}
