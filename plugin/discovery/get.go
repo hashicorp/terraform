@@ -21,32 +21,42 @@ const releasesURL = "https://releases.hashicorp.com/"
 // The URL for releases follows the pattern:
 //    https://releases.hashicorp.com/terraform-providers/terraform-provider-name/ +
 //        terraform-provider-name_<x.y.z>/terraform-provider-name_<x.y.z>_<os>_<arch>.<ext>
-//
-// The name prefix common to all plugins of this type.
-// This is either `terraform-provider` or `terraform-provisioner`.
-type pluginBaseName string
+type pluginURL struct {
+	// the base url to search for releases
+	releases string
+	// The name prefix common to all plugins of this type.
+	// This is either `terraform-provider` or `terraform-provisioner`.
+	baseName string
+}
 
-// base returns the top level directory for all plugins of this type
-func (p pluginBaseName) base() string {
+// releasesURL returns the top level directory for all plugins of this type
+func (p pluginURL) releasesURL() string {
 	// the top level directory is the plural form of the plugin type
-	return releasesURL + string(p) + "s"
+	return p.releases + p.baseName + "s"
 }
 
-// versions returns the url to the directory to list available versions for this plugin
-func (p pluginBaseName) versions(name string) string {
-	return fmt.Sprintf("%s/%s-%s", p.base(), p, name)
+// versionsURL returns the url to the directory to list available versionsURL for this plugin
+func (p pluginURL) versionsURL(name string) string {
+	return fmt.Sprintf("%s/%s-%s", p.releasesURL(), p.baseName, name)
 }
 
-// file returns the full path to a plugin based on the plugin name,
+// fileURL returns the full path to a plugin based on the plugin name,
 // version, GOOS and GOARCH.
-func (p pluginBaseName) file(name, version string) string {
-	releasesDir := fmt.Sprintf("%s-%s_%s/", p, name, version)
-	fileName := fmt.Sprintf("%s-%s_%s_%s_%s.zip", p, name, version, runtime.GOOS, runtime.GOARCH)
-	return fmt.Sprintf("%s/%s/%s", p.versions(name), releasesDir, fileName)
+func (p pluginURL) fileURL(name, version string) string {
+	releasesDir := fmt.Sprintf("%s-%s_%s/", p.baseName, name, version)
+	fileName := fmt.Sprintf("%s-%s_%s_%s_%s.zip", p.baseName, name, version, runtime.GOOS, runtime.GOARCH)
+	return fmt.Sprintf("%s/%s/%s", p.versionsURL(name), releasesDir, fileName)
 }
 
-var providersURL = pluginBaseName("terraform-provider")
-var provisionersURL = pluginBaseName("terraform-provisioners")
+var providersURL = pluginURL{
+	releases: releasesURL,
+	baseName: "terraform-provider",
+}
+
+var provisionersURL = pluginURL{
+	releases: releasesURL,
+	baseName: "terraform-provisioners",
+}
 
 // GetProvider fetches a provider plugin based on the version constraints, and
 // copies it to the dst directory.
@@ -64,7 +74,7 @@ func GetProvider(dst, provider string, req Constraints) error {
 		return fmt.Errorf("no version of %q available that fulfills constraints %s", provider, req)
 	}
 
-	url := providersURL.file(provider, version.String())
+	url := providersURL.fileURL(provider, version.String())
 
 	log.Printf("[DEBUG] getting provider %q version %q at %s", provider, version, url)
 	return getter.Get(dst, url)
@@ -93,7 +103,7 @@ func newestVersion(available []*Version, required Constraints) *Version {
 
 // list the version available for the named plugin
 func listProviderVersions(name string) ([]*Version, error) {
-	versions, err := listPluginVersions(providersURL.versions(name))
+	versions, err := listPluginVersions(providersURL.versionsURL(name))
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch versions for provider %q: %s", name, err)
 	}
@@ -101,7 +111,7 @@ func listProviderVersions(name string) ([]*Version, error) {
 }
 
 func listProvisionerVersions(name string) ([]*Version, error) {
-	versions, err := listPluginVersions(provisionersURL.versions(name))
+	versions, err := listPluginVersions(provisionersURL.versionsURL(name))
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch versions for provisioner %q: %s", name, err)
 	}
@@ -140,7 +150,6 @@ func listPluginVersions(url string) ([]*Version, error) {
 			c := n.FirstChild
 			if c != nil && c.Type == html.TextNode && strings.HasPrefix(c.Data, "terraform-") {
 				names = append(names, c.Data)
-				fmt.Println(c.Data)
 				return
 			}
 		}
