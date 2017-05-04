@@ -101,7 +101,6 @@ The following arguments are supported:
     specified within the template, and Terraform will not be aware of this.
 * `template_body` - (Optional) Specifies the JSON definition for the template.
 * `parameters` - (Optional) Specifies the name and value pairs that define the deployment parameters for the template.
-* `outputs` - (Computed) A map generated from the `"outputs"` section of the template. Only string outputs are supported, values can be accessed using `.outputs["name"]`
 
 ## Attributes Reference
 
@@ -109,9 +108,8 @@ The following attributes are exported:
 
 * `id` - The Template Deployment ID.
 
-* `outputs` - A map of supported scalar output types returned from the deployment (currently, Azure Template Deployment outputs of type String, Int and Bool are supported, and are converted to strings - others will be ignored).
+* `outputs` - A map of supported scalar output types returned from the deployment (currently, Azure Template Deployment outputs of type String, Int and Bool are supported, and are converted to strings - others will be ignored) and can be accessed using `.outputs["name"]`.
 
 ## Note
 
 Terraform does not know about the individual resources created by Azure using a deployment template and therefore cannot delete these resources during a destroy. Destroying a template deployment removes the associated deployment operations, but will not delete the Azure resources created by the deployment. In order to delete these resources, the containing resource group must also be destroyed. [More information](https://docs.microsoft.com/en-us/rest/api/resources/deployments#Deployments_Delete).
-
