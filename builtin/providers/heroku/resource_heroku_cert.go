@@ -89,14 +89,14 @@ func resourceHerokuCertUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	app := d.Get("app").(string)
 
-	if d.HasChange("certificate_chain") {
+	if d.HasChange("certificate_chain") || d.HasChange("private_key") {
 		preprocess := true
 		rollback := false
 		ad, err := client.SSLEndpointUpdate(
 			context.TODO(), app, d.Id(), heroku.SSLEndpointUpdateOpts{
-				CertificateChain: d.Get("certificate_chain").(*string),
+				CertificateChain: heroku.String(d.Get("certificate_chain").(string)),
 				Preprocess:       &preprocess,
-				PrivateKey:       d.Get("private_key").(*string),
+				PrivateKey:       heroku.String(d.Get("private_key").(string)),
 				Rollback:         &rollback})
 		if err != nil {
 			return err
