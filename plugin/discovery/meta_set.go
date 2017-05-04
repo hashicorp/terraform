@@ -139,7 +139,7 @@ func (s PluginMetaSet) ConstrainVersions(reqd PluginRequirements) map[string]Plu
 		if err != nil {
 			panic(err)
 		}
-		if allowedVersions.Has(version) {
+		if allowedVersions.Allows(version) {
 			ret[p.Name].Add(p)
 		}
 	}
