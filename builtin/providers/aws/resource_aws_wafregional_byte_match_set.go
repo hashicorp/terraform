@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/waf"
+	"github.com/aws/aws-sdk-go/service/wafregional"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -141,13 +142,15 @@ func resourceAwsWafRegionalByteMatchSetRead(d *schema.ResourceData, meta interfa
 }
 
 func resourceAwsWafRegionalByteMatchSetUpdate(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).wafregionalconn
+	region := meta.(*AWSClient).region
 	log.Printf("[INFO] Updating ByteMatchSet: %s", d.Get("name").(string))
 
 	if d.HasChange("byte_match_tuple") {
 		o, n := d.GetChange("byte_match_tuple")
 		oldT, newT := o.(*schema.Set).List(), n.(*schema.Set).List()
 
-		err := updateByteMatchSetResourceWR(d, meta, oldT, newT)
+		err := updateByteMatchSetResourceWR(d, oldT, newT, conn, region)
 		if err != nil {
 			return errwrap.Wrapf("[ERROR] Error updating ByteMatchSet: {{err}}", err)
 		}
@@ -166,7 +169,7 @@ func resourceAwsWafRegionalByteMatchSetDelete(d *schema.ResourceData, meta inter
 	if len(oldT) > 0 {
 		var newT []interface{}
 
-		err := updateByteMatchSetResourceWR(d, meta, oldT, newT)
+		err := updateByteMatchSetResourceWR(d, oldT, newT, conn, region)
 		if err != nil {
 			return errwrap.Wrapf("[ERROR] Error deleting ByteMatchSet: {{err}}", err)
 		}
@@ -187,10 +190,7 @@ func resourceAwsWafRegionalByteMatchSetDelete(d *schema.ResourceData, meta inter
 	return nil
 }
 
-func updateByteMatchSetResourceWR(d *schema.ResourceData, meta interface{}, oldT, newT []interface{}) error {
-	conn := meta.(*AWSClient).wafregionalconn
-	region := meta.(*AWSClient).region
-
+func updateByteMatchSetResourceWR(d *schema.ResourceData, oldT, newT []interface{}, conn *wafregional.WAFRegional, region string) error {
 	wr := newWafRegionalRetryer(conn, region)
 	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		req := &waf.UpdateByteMatchSetInput{
