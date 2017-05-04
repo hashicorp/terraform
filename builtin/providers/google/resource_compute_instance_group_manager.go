@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeInstanceGroupManager() *schema.Resource {
@@ -222,7 +223,11 @@ func resourceComputeInstanceGroupManagerRead(d *schema.ResourceData, meta interf
 		manager, e = config.clientCompute.InstanceGroupManagers.Get(project, zone.(string), d.Id()).Do()
 
 		if e != nil {
-			return e
+			if gerr, ok := e.(*googleapi.Error); ok && gerr.Code == 404 {
+				manager = nil
+			} else {
+				return e
+			}
 		}
 	} else {
 		// If the resource was imported, the only info we have is the ID. Try to find the resource
@@ -231,10 +236,14 @@ func resourceComputeInstanceGroupManagerRead(d *schema.ResourceData, meta interf
 		resource, e = getZonalResourceFromRegion(getInstanceGroupManager, region, config.clientCompute, project)
 
 		if e != nil {
-			return e
+			if gerr, ok := e.(*googleapi.Error); ok && gerr.Code == 404 {
+				manager = nil
+			} else {
+				return e
+			}
+		} else {
+			manager = resource.(*compute.InstanceGroupManager)
 		}
-
-		manager = resource.(*compute.InstanceGroupManager)
 	}
 
 	if manager == nil {
