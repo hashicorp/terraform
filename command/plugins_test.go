@@ -39,7 +39,7 @@ func (m mockGetProvider) GetProvider(dst, provider string, req discovery.Constra
 			panic(err)
 		}
 
-		if req.Has(version) {
+		if req.Allows(version) {
 			// provider filename
 			name := m.FileName(provider, v)
 			path := filepath.Join(dst, name)
