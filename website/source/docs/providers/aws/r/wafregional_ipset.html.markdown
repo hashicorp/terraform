@@ -15,7 +15,7 @@ Provides a WAF Regional IPSet Resource for use with Application Load Balancer.
 ```
 resource "aws_wafregional_ipset" "ipset" {
   name = "tfIPSet"
-  ip_set_descriptors {
+  ip_set_descriptor {
     type = "IPV4"
     value = "192.0.7.0/24"
   }
@@ -27,9 +27,9 @@ resource "aws_wafregional_ipset" "ipset" {
 The following arguments are supported:
 
 * `name` - (Required) The name or description of the IPSet.
-* `ip_set_descriptors` - (Required) The IP address type and IP address range (in CIDR notation) from which web requests originate.
+* `ip_set_descriptor` - (Required) The IP address type and IP address range (in CIDR notation) from which web requests originate.
 
-IPSetDescriptors(ip_set_descriptors) support following:
+IPSetDescriptor(ip_set_descriptor) support following:
 
 * `type` - (Required) The string like IPV4 or IPV6.
 * `value` - (Required) The CIDR notation.
