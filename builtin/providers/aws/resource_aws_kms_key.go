@@ -320,19 +320,33 @@ func updateKmsKeyStatus(conn *kms.KMS, id string, shouldBeEnabled bool) error {
 }
 
 func updateKmsKeyRotationStatus(conn *kms.KMS, d *schema.ResourceData) error {
-	var err error
 	shouldEnableRotation := d.Get("enable_key_rotation").(bool)
-	if shouldEnableRotation {
-		log.Printf("[DEBUG] Enabling key rotation for KMS key %q", d.Id())
-		_, err = conn.EnableKeyRotation(&kms.EnableKeyRotationInput{
-			KeyId: aws.String(d.Id()),
-		})
-	} else {
-		log.Printf("[DEBUG] Disabling key rotation for KMS key %q", d.Id())
-		_, err = conn.DisableKeyRotation(&kms.DisableKeyRotationInput{
-			KeyId: aws.String(d.Id()),
-		})
-	}
+
+	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+		var err error
+		if shouldEnableRotation {
+			log.Printf("[DEBUG] Enabling key rotation for KMS key %q", d.Id())
+			_, err = conn.EnableKeyRotation(&kms.EnableKeyRotationInput{
+				KeyId: aws.String(d.Id()),
+			})
+		} else {
+			log.Printf("[DEBUG] Disabling key rotation for KMS key %q", d.Id())
+			_, err = conn.DisableKeyRotation(&kms.DisableKeyRotationInput{
+				KeyId: aws.String(d.Id()),
+			})
+		}
+
+		if err != nil {
+			awsErr, ok := err.(awserr.Error)
+			if ok && awsErr.Code() == "DisabledException" {
+				return resource.RetryableError(err)
+			}
+
+			return resource.NonRetryableError(err)
+		}
+
+		return nil
+	})
 
 	if err != nil {
 		return fmt.Errorf("Failed to set key rotation for %q to %t: %q",

@@ -197,6 +197,12 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 							Computed: true,
 						},
 
+						"network_ip": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+
 						"subnetwork": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
@@ -462,7 +468,9 @@ func buildNetworks(d *schema.ResourceData, meta interface{}) ([]*compute.Network
 		var iface compute.NetworkInterface
 		iface.Network = networkLink
 		iface.Subnetwork = subnetworkLink
-
+		if v, ok := d.GetOk(prefix + ".network_ip"); ok {
+			iface.NetworkIP = v.(string)
+		}
 		accessConfigsCount := d.Get(prefix + ".access_config.#").(int)
 		iface.AccessConfigs = make([]*compute.AccessConfig, accessConfigsCount)
 		for j := 0; j < accessConfigsCount; j++ {
@@ -647,6 +655,9 @@ func flattenNetworkInterfaces(networkInterfaces []*compute.NetworkInterface) ([]
 		if networkInterface.Network != "" {
 			networkUrl := strings.Split(networkInterface.Network, "/")
 			networkInterfaceMap["network"] = networkUrl[len(networkUrl)-1]
+		}
+		if networkInterface.NetworkIP != "" {
+			networkInterfaceMap["network_ip"] = networkInterface.NetworkIP
 		}
 		if networkInterface.Subnetwork != "" {
 			subnetworkUrl := strings.Split(networkInterface.Subnetwork, "/")
