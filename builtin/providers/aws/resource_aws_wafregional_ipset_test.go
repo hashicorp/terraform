@@ -264,8 +264,9 @@ func TestDiffWafRegionalIpSetDescriptors(t *testing.T) {
 func testAccCheckAWSWafRegionalIPSetDisappears(v *waf.IPSet) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		conn := testAccProvider.Meta().(*AWSClient).wafregionalconn
+		region := testAccProvider.Meta().(*AWSClient).region
 
-		wr := newWafRegionalRetryer(conn)
+		wr := newWafRegionalRetryer(conn, region)
 		_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 			req := &waf.UpdateIPSetInput{
 				ChangeToken: token,

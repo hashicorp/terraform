@@ -249,8 +249,9 @@ func TestAccAWSWafRegionalByteMatchSet_disappears(t *testing.T) {
 func testAccCheckAWSWafRegionalByteMatchSetDisappears(v *waf.ByteMatchSet) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		conn := testAccProvider.Meta().(*AWSClient).wafregionalconn
+		region := testAccProvider.Meta().(*AWSClient).region
 
-		wr := newWafRegionalRetryer(conn)
+		wr := newWafRegionalRetryer(conn, region)
 		_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 			req := &waf.UpdateByteMatchSetInput{
 				ChangeToken:    token,

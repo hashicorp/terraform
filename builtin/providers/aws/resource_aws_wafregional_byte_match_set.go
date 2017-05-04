@@ -66,10 +66,11 @@ func resourceAwsWafRegionalByteMatchSet() *schema.Resource {
 
 func resourceAwsWafRegionalByteMatchSetCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).wafregionalconn
+	region := meta.(*AWSClient).region
 
 	log.Printf("[INFO] Creating ByteMatchSet: %s", d.Get("name").(string))
 
-	wr := newWafRegionalRetryer(conn)
+	wr := newWafRegionalRetryer(conn, region)
 	out, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		params := &waf.CreateByteMatchSetInput{
 			ChangeToken: token,
@@ -156,6 +157,7 @@ func resourceAwsWafRegionalByteMatchSetUpdate(d *schema.ResourceData, meta inter
 
 func resourceAwsWafRegionalByteMatchSetDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).wafregionalconn
+	region := meta.(*AWSClient).region
 
 	log.Printf("[INFO] Deleting ByteMatchSet: %s", d.Get("name").(string))
 
@@ -170,7 +172,7 @@ func resourceAwsWafRegionalByteMatchSetDelete(d *schema.ResourceData, meta inter
 		}
 	}
 
-	wr := newWafRegionalRetryer(conn)
+	wr := newWafRegionalRetryer(conn, region)
 	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		req := &waf.DeleteByteMatchSetInput{
 			ChangeToken:    token,
@@ -187,8 +189,9 @@ func resourceAwsWafRegionalByteMatchSetDelete(d *schema.ResourceData, meta inter
 
 func updateByteMatchSetResourceWR(d *schema.ResourceData, meta interface{}, oldT, newT []interface{}) error {
 	conn := meta.(*AWSClient).wafregionalconn
+	region := meta.(*AWSClient).region
 
-	wr := newWafRegionalRetryer(conn)
+	wr := newWafRegionalRetryer(conn, region)
 	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		req := &waf.UpdateByteMatchSetInput{
 			ChangeToken:    token,
