@@ -82,6 +82,11 @@ func resourceAwsIamRole() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"description": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"assume_role_policy": {
 				Type:             schema.TypeString,
 				Required:         true,
@@ -112,6 +117,7 @@ func resourceAwsIamRoleCreate(d *schema.ResourceData, meta interface{}) error {
 	request := &iam.CreateRoleInput{
 		Path:                     aws.String(d.Get("path").(string)),
 		RoleName:                 aws.String(name),
+		Description:              aws.String(d.Get("description").(string)),
 		AssumeRolePolicyDocument: aws.String(d.Get("assume_role_policy").(string)),
 	}
 
@@ -168,6 +174,20 @@ func resourceAwsIamRoleUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	if d.HasChange("description") {
+		roleDescriptionInput := &iam.UpdateRoleDescriptionInput{
+			RoleName:    aws.String(d.Id()),
+			Description: aws.String(d.Get("description").(string)),
+		}
+		_, err := iamconn.UpdateRoleDescription(roleDescriptionInput)
+		if err != nil {
+			if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
+				d.SetId("")
+				return nil
+			}
+			return fmt.Errorf("Error Updating IAM Role (%s) Description: %s", d.Id(), err)
+		}
+	}
 	return nil
 }
 
@@ -187,6 +207,13 @@ func resourceAwsIamRoleReadResult(d *schema.ResourceData, role *iam.Role) error 
 	}
 	if err := d.Set("create_date", role.CreateDate.Format(time.RFC3339)); err != nil {
 		return err
+	}
+
+	if role.Description != nil {
+		// the description isn't present in the response to CreateRole.
+		if err := d.Set("description", role.Description); err != nil {
+			return err
+		}
 	}
 
 	assumRolePolicy, err := url.QueryUnescape(*role.AssumeRolePolicyDocument)
