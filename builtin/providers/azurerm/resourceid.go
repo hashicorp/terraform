@@ -53,6 +53,11 @@ func parseAzureResourceID(id string) (*ResourceID, error) {
 		key := components[current]
 		value := components[current+1]
 
+		// Check key/value for empty strings.
+		if key == "" || value == "" {
+			return nil, fmt.Errorf("Key/Value cannot be empty strings. Key: '%s', Value: '%s'", key, value)
+		}
+
 		// Catch the subscriptionID before it can be overwritten by another "subscriptions"
 		// value in the ID which is the case for the Service Bus subscription resource
 		if key == "subscriptions" && subscriptionID == "" {
@@ -94,4 +99,22 @@ func parseAzureResourceID(id string) (*ResourceID, error) {
 	}
 
 	return idObj, nil
+}
+
+func parseNetworkSecurityGroupName(networkSecurityGroupId string) (string, error) {
+	id, err := parseAzureResourceID(networkSecurityGroupId)
+	if err != nil {
+		return "", fmt.Errorf("[ERROR] Unable to Parse Network Security Group ID '%s': %+v", networkSecurityGroupId, err)
+	}
+
+	return id.Path["networkSecurityGroups"], nil
+}
+
+func parseRouteTableName(routeTableId string) (string, error) {
+	id, err := parseAzureResourceID(routeTableId)
+	if err != nil {
+		return "", fmt.Errorf("[ERROR] Unable to parse Route Table ID '%s': %+v", routeTableId, err)
+	}
+
+	return id.Path["routeTables"], nil
 }

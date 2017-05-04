@@ -12,7 +12,7 @@ Manages a NICs on ProfitBricks
 
 ## Example Usage
 
-```
+```hcl
 resource "profitbricks_nic" "example" {
   datacenter_id = "${profitbricks_datacenter.example.id}"
   server_id     = "${profitbricks_server.example.id}"

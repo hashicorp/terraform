@@ -14,7 +14,7 @@ resources.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_alb_target_group" "test" {
   name     = "tf-example-alb-tg"
   port     = 80

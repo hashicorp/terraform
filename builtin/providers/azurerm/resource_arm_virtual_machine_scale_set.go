@@ -19,6 +19,9 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 		Read:   resourceArmVirtualMachineScaleSetRead,
 		Update: resourceArmVirtualMachineScaleSetCreate,
 		Delete: resourceArmVirtualMachineScaleSetDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -96,6 +99,7 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 						"custom_data": {
 							Type:      schema.TypeString,
 							Optional:  true,
+							ForceNew:  true,
 							StateFunc: userDataStateFunc,
 						},
 					},
@@ -497,8 +501,9 @@ func resourceArmVirtualMachineScaleSetRead(d *schema.ResourceData, meta interfac
 		return fmt.Errorf("Error making Read request on Azure Virtual Machine Scale Set %s: %s", name, err)
 	}
 
-	d.Set("location", resp.Location)
 	d.Set("name", resp.Name)
+	d.Set("resource_group_name", resGroup)
+	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 
 	if err := d.Set("sku", flattenAzureRmVirtualMachineScaleSetSku(resp.Sku)); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting Virtual Machine Scale Set Sku error: %#v", err)
@@ -509,7 +514,12 @@ func resourceArmVirtualMachineScaleSetRead(d *schema.ResourceData, meta interfac
 	d.Set("upgrade_policy_mode", properties.UpgradePolicy.Mode)
 	d.Set("overprovision", properties.Overprovision)
 
-	if err := d.Set("os_profile", flattenAzureRMVirtualMachineScaleSetOsProfile(properties.VirtualMachineProfile.OsProfile)); err != nil {
+	osProfile, err := flattenAzureRMVirtualMachineScaleSetOsProfile(properties.VirtualMachineProfile.OsProfile)
+	if err != nil {
+		return fmt.Errorf("[DEBUG] Error flattening Virtual Machine Scale Set OS Profile. Error: %#v", err)
+	}
+
+	if err := d.Set("os_profile", osProfile); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting Virtual Machine Scale Set OS Profile error: %#v", err)
 	}
 
@@ -578,7 +588,7 @@ func flattenAzureRmVirtualMachineScaleSetOsProfileLinuxConfig(config *compute.Li
 	result["disable_password_authentication"] = *config.DisablePasswordAuthentication
 
 	if config.SSH != nil && len(*config.SSH.PublicKeys) > 0 {
-		ssh_keys := make([]map[string]interface{}, len(*config.SSH.PublicKeys))
+		ssh_keys := make([]map[string]interface{}, 0, len(*config.SSH.PublicKeys))
 		for _, i := range *config.SSH.PublicKeys {
 			key := make(map[string]interface{})
 			key["path"] = *i.Path
@@ -710,7 +720,7 @@ func flattenAzureRmVirtualMachineScaleSetNetworkProfile(profile *compute.Virtual
 	return result
 }
 
-func flattenAzureRMVirtualMachineScaleSetOsProfile(profile *compute.VirtualMachineScaleSetOSProfile) []interface{} {
+func flattenAzureRMVirtualMachineScaleSetOsProfile(profile *compute.VirtualMachineScaleSetOSProfile) ([]interface{}, error) {
 	result := make(map[string]interface{})
 
 	result["computer_name_prefix"] = *profile.ComputerNamePrefix
@@ -720,7 +730,7 @@ func flattenAzureRMVirtualMachineScaleSetOsProfile(profile *compute.VirtualMachi
 		result["custom_data"] = *profile.CustomData
 	}
 
-	return []interface{}{result}
+	return []interface{}{result}, nil
 }
 
 func flattenAzureRmVirtualMachineScaleSetStorageProfileOSDisk(profile *compute.VirtualMachineScaleSetOSDisk) []interface{} {
@@ -849,7 +859,11 @@ func resourceArmVirtualMachineScaleSetsOsProfileHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["computer_name_prefix"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["admin_username"].(string)))
 	if m["custom_data"] != nil {
-		buf.WriteString(fmt.Sprintf("%s-", m["custom_data"].(string)))
+		customData := m["custom_data"].(string)
+		if !isBase64Encoded(customData) {
+			customData = base64Encode(customData)
+		}
+		buf.WriteString(fmt.Sprintf("%s-", customData))
 	}
 	return hashcode.String(buf.String())
 }
@@ -1076,12 +1090,12 @@ func expandAzureRmVirtualMachineScaleSetOsProfileLinuxConfig(d *schema.ResourceD
 	linuxConfig := osProfilesLinuxConfig[0].(map[string]interface{})
 	disablePasswordAuth := linuxConfig["disable_password_authentication"].(bool)
 
-	config := &compute.LinuxConfiguration{
-		DisablePasswordAuthentication: &disablePasswordAuth,
-	}
 	linuxKeys := linuxConfig["ssh_keys"].([]interface{})
 	sshPublicKeys := make([]compute.SSHPublicKey, 0, len(linuxKeys))
 	for _, key := range linuxKeys {
+		if key == nil {
+			continue
+		}
 		sshKey := key.(map[string]interface{})
 		path := sshKey["path"].(string)
 		keyData := sshKey["key_data"].(string)
@@ -1094,8 +1108,11 @@ func expandAzureRmVirtualMachineScaleSetOsProfileLinuxConfig(d *schema.ResourceD
 		sshPublicKeys = append(sshPublicKeys, sshPublicKey)
 	}
 
-	config.SSH = &compute.SSHConfiguration{
-		PublicKeys: &sshPublicKeys,
+	config := &compute.LinuxConfiguration{
+		DisablePasswordAuthentication: &disablePasswordAuth,
+		SSH: &compute.SSHConfiguration{
+			PublicKeys: &sshPublicKeys,
+		},
 	}
 
 	return config, nil

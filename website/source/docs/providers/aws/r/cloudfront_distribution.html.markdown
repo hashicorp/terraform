@@ -24,7 +24,7 @@ want to wait, you need to use the `retain_on_delete` flag.
 
 The following example below creates a CloudFront distribution with an S3 origin.
 
-```
+```hcl
 resource "aws_s3_bucket" "b" {
   bucket = "mybucket"
   acl    = "private"
@@ -316,6 +316,10 @@ argument is not required.
     CloudFront to use when communicating with your origin over HTTPS. A list of
     one or more of `SSLv3`, `TLSv1`, `TLSv1.1`, and `TLSv1.2`.
 
+  * `origin_keepalive_timeout` - (Optional) The Custom KeepAlive timeout, in seconds. Value must be between `1` and `60`.
+
+  * `origin_read_timeout` - (Optional) The Custom Read timeout, in seconds. Value must be between `4` and `60`.
+
 ##### S3 Origin Config Arguments
 
 * `origin_access_identity` (Optional) - The [CloudFront origin access
@@ -367,6 +371,8 @@ The arguments of `geo_restriction` are:
 The following attributes are exported:
 
   * `id` - The identifier for the distribution. For example: `EDFDVBD632BHDS5`.
+
+  * `arn` - The ARN (Amazon Resource Name) for the distribution. For example: arn:aws:cloudfront::123456789012:distribution/EDFDVBD632BHDS5, where 123456789012 is your AWS account ID.
 
   * `caller_reference` - Internal value used by CloudFront to allow future
     updates to the distribution configuration.

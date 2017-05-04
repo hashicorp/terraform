@@ -12,7 +12,7 @@ Provides a CloudFormation Stack resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_cloudformation_stack" "network" {
   name = "networking-stack"
 
@@ -73,4 +73,4 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - A unique identifier of the stack.
-* `outputs` - A list of output structures.
+* `outputs` - A map of outputs from the stack.

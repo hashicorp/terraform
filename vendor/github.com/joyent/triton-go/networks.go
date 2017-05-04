@@ -36,7 +36,8 @@ type Network struct {
 type ListNetworksInput struct{}
 
 func (client *NetworksClient) ListNetworks(*ListNetworksInput) ([]*Network, error) {
-	respReader, err := client.executeRequest(http.MethodGet, "/my/networks", nil)
+	path := fmt.Sprintf("/%s/networks", client.accountName)
+	respReader, err := client.executeRequest(http.MethodGet, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}

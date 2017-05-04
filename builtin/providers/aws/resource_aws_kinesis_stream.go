@@ -95,10 +95,10 @@ func resourceAwsKinesisStreamCreate(d *schema.ResourceData, meta interface{}) er
 			sn, err)
 	}
 
-	s := streamRaw.(kinesisStreamState)
+	s := streamRaw.(*kinesisStreamState)
 	d.SetId(s.arn)
 	d.Set("arn", s.arn)
-	d.Set("shard_count", s.shardCount)
+	d.Set("shard_count", len(s.openShards))
 
 	return resourceAwsKinesisStreamUpdate(d, meta)
 }
@@ -141,7 +141,7 @@ func resourceAwsKinesisStreamRead(d *schema.ResourceData, meta interface{}) erro
 
 	}
 	d.Set("arn", state.arn)
-	d.Set("shard_count", state.shardCount)
+	d.Set("shard_count", len(state.openShards))
 	d.Set("retention_period", state.retentionPeriod)
 
 	if len(state.shardLevelMetrics) > 0 {
@@ -290,23 +290,27 @@ func updateKinesisShardLevelMetrics(conn *kinesis.Kinesis, d *schema.ResourceDat
 
 type kinesisStreamState struct {
 	arn               string
+	creationTimestamp int64
 	status            string
-	shardCount        int
 	retentionPeriod   int64
+	openShards        []string
+	closedShards      []string
 	shardLevelMetrics []string
 }
 
-func readKinesisStreamState(conn *kinesis.Kinesis, sn string) (kinesisStreamState, error) {
+func readKinesisStreamState(conn *kinesis.Kinesis, sn string) (*kinesisStreamState, error) {
 	describeOpts := &kinesis.DescribeStreamInput{
 		StreamName: aws.String(sn),
 	}
 
-	var state kinesisStreamState
+	state := &kinesisStreamState{}
 	err := conn.DescribeStreamPages(describeOpts, func(page *kinesis.DescribeStreamOutput, last bool) (shouldContinue bool) {
 		state.arn = aws.StringValue(page.StreamDescription.StreamARN)
+		state.creationTimestamp = aws.TimeValue(page.StreamDescription.StreamCreationTimestamp).Unix()
 		state.status = aws.StringValue(page.StreamDescription.StreamStatus)
-		state.shardCount += len(openShards(page.StreamDescription.Shards))
 		state.retentionPeriod = aws.Int64Value(page.StreamDescription.RetentionPeriodHours)
+		state.openShards = append(state.openShards, flattenShards(openShards(page.StreamDescription.Shards))...)
+		state.closedShards = append(state.closedShards, flattenShards(closedShards(page.StreamDescription.Shards))...)
 		state.shardLevelMetrics = flattenKinesisShardLevelMetrics(page.StreamDescription.EnhancedMonitoring)
 		return !last
 	})
@@ -349,14 +353,31 @@ func waitForKinesisToBeActive(conn *kinesis.Kinesis, sn string) error {
 	return nil
 }
 
-// See http://docs.aws.amazon.com/kinesis/latest/dev/kinesis-using-sdk-java-resharding-merge.html
 func openShards(shards []*kinesis.Shard) []*kinesis.Shard {
-	var open []*kinesis.Shard
+	return filterShards(shards, true)
+}
+
+func closedShards(shards []*kinesis.Shard) []*kinesis.Shard {
+	return filterShards(shards, false)
+}
+
+// See http://docs.aws.amazon.com/kinesis/latest/dev/kinesis-using-sdk-java-resharding-merge.html
+func filterShards(shards []*kinesis.Shard, open bool) []*kinesis.Shard {
+	res := make([]*kinesis.Shard, 0, len(shards))
 	for _, s := range shards {
-		if s.SequenceNumberRange.EndingSequenceNumber == nil {
-			open = append(open, s)
+		if open && s.SequenceNumberRange.EndingSequenceNumber == nil {
+			res = append(res, s)
+		} else if !open && s.SequenceNumberRange.EndingSequenceNumber != nil {
+			res = append(res, s)
 		}
 	}
+	return res
+}
 
-	return open
+func flattenShards(shards []*kinesis.Shard) []string {
+	res := make([]string, len(shards))
+	for i, s := range shards {
+		res[i] = aws.StringValue(s.ShardId)
+	}
+	return res
 }

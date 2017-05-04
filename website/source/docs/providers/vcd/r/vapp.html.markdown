@@ -13,7 +13,7 @@ modify, and delete vApps.
 
 ## Example Usage
 
-```
+```hcl
 resource "vcd_network" "net" {
   # ...
 }

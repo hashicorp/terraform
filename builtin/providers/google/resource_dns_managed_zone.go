@@ -14,7 +14,9 @@ func resourceDnsManagedZone() *schema.Resource {
 		Create: resourceDnsManagedZoneCreate,
 		Read:   resourceDnsManagedZoneRead,
 		Delete: resourceDnsManagedZoneDelete,
-
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 		Schema: map[string]*schema.Schema{
 			"dns_name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -109,6 +111,9 @@ func resourceDnsManagedZoneRead(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	d.Set("name_servers", zone.NameServers)
+	d.Set("name", zone.Name)
+	d.Set("dns_name", zone.DnsName)
+	d.Set("description", zone.Description)
 
 	return nil
 }

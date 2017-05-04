@@ -14,7 +14,7 @@ Provides a VPC DHCP Options resource.
 
 Basic usage:
 
-```
+```hcl
 resource "aws_vpc_dhcp_options" "dns_resolver" {
   domain_name_servers = ["8.8.8.8", "8.8.4.4"]
 }
@@ -22,7 +22,7 @@ resource "aws_vpc_dhcp_options" "dns_resolver" {
 
 Full usage:
 
-```
+```hcl
 resource "aws_vpc_dhcp_options" "foo" {
   domain_name          = "service.consul"
   domain_name_servers  = ["127.0.0.1", "10.0.0.2"]

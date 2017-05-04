@@ -83,7 +83,7 @@ func testAccCheckFastlyServiceV1Attributes_sumologic(service *gofastly.ServiceDe
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Sumologics for (%s), version (%s): %s", service.Name, service.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Sumologics for (%s), version (%v): %s", service.Name, service.ActiveVersion.Number, err)
 		}
 
 		if len(sumologicList) != 1 {

@@ -12,7 +12,7 @@ Provides an Application Load Balancer Listener Rule resource.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new load balancer
 resource "aws_alb" "front_end" {
   # ...
@@ -36,6 +36,22 @@ resource "aws_alb_listener_rule" "static" {
     values = ["/static/*"]
   }
 }
+
+resource "aws_alb_listener_rule" "host_based_routing" {
+  listener_arn = "${aws_alb_listener.front_end.arn}"
+  priority     = 99
+
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_alb_target_group.static.arn}"
+  }
+
+  condition {
+    field  = "host-header"
+    values = ["my-service.*.terraform.io"]
+  }
+}
+
 ```
 
 ## Argument Reference
@@ -47,14 +63,14 @@ The following arguments are supported:
 * `action` - (Required) An Action block. Action blocks are documented below.
 * `condition` - (Required) A Condition block. Condition blocks are documented below.
 
-Action Blocks (for `default_action`) support the following:
+Action Blocks (for `action`) support the following:
 
 * `target_group_arn` - (Required) The ARN of the Target Group to which to route traffic.
 * `type` - (Required) The type of routing action. The only valid value is `forward`.
 
-Condition Blocks (for `default_condition`) support the following:
+Condition Blocks (for `condition`) support the following:
 
-* `field` - (Required) The name of the field. The only valid value is `path-pattern`.
+* `field` - (Required) The name of the field. Must be one of `path-pattern` for path based routing or `host-header` for host based routing.
 * `values` - (Required) The path patterns to match. A maximum of 1 can be defined.
 
 ## Attributes Reference

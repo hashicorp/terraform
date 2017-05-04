@@ -12,7 +12,7 @@ Provides a static route between a VPN connection and a customer gateway.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_vpc" "vpc" {
   cidr_block = "10.0.0.0/16"
 }

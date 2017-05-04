@@ -4471,6 +4471,10 @@ func (c *Redshift) DescribeReservedNodeOfferingsRequest(input *DescribeReservedN
 //   * ErrCodeUnsupportedOperationFault "UnsupportedOperation"
 //   The requested operation isn't supported.
 //
+//   * ErrCodeDependentServiceUnavailableFault "DependentServiceUnavailableFault"
+//   Your request cannot be completed because a dependent internal service is
+//   temporarily unavailable. Wait 30 to 60 seconds and try again.
+//
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DescribeReservedNodeOfferings
 func (c *Redshift) DescribeReservedNodeOfferings(input *DescribeReservedNodeOfferingsInput) (*DescribeReservedNodeOfferingsOutput, error) {
 	req, out := c.DescribeReservedNodeOfferingsRequest(input)
@@ -4606,6 +4610,10 @@ func (c *Redshift) DescribeReservedNodesRequest(input *DescribeReservedNodesInpu
 // Returned Error Codes:
 //   * ErrCodeReservedNodeNotFoundFault "ReservedNodeNotFound"
 //   The specified reserved compute node not found.
+//
+//   * ErrCodeDependentServiceUnavailableFault "DependentServiceUnavailableFault"
+//   Your request cannot be completed because a dependent internal service is
+//   temporarily unavailable. Wait 30 to 60 seconds and try again.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DescribeReservedNodes
 func (c *Redshift) DescribeReservedNodes(input *DescribeReservedNodesInput) (*DescribeReservedNodesOutput, error) {
@@ -5431,6 +5439,111 @@ func (c *Redshift) EnableSnapshotCopyWithContext(ctx aws.Context, input *EnableS
 	return out, req.Send()
 }
 
+const opGetClusterCredentials = "GetClusterCredentials"
+
+// GetClusterCredentialsRequest generates a "aws/request.Request" representing the
+// client's request for the GetClusterCredentials operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetClusterCredentials for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetClusterCredentials method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetClusterCredentialsRequest method.
+//    req, resp := client.GetClusterCredentialsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/GetClusterCredentials
+func (c *Redshift) GetClusterCredentialsRequest(input *GetClusterCredentialsInput) (req *request.Request, output *GetClusterCredentialsOutput) {
+	op := &request.Operation{
+		Name:       opGetClusterCredentials,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetClusterCredentialsInput{}
+	}
+
+	output = &GetClusterCredentialsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetClusterCredentials API operation for Amazon Redshift.
+//
+// Returns a database user name and temporary password with temporary authorization
+// to log in to an Amazon Redshift database. The action returns the database
+// user name prefixed with IAM: if AutoCreate is False or IAMA: if AutoCreate
+// is True. You can optionally specify one or more database user groups that
+// the user will join at log in. By default, the temporary credentials expire
+// in 900 seconds. You can optionally specify a duration between 900 seconds
+// (15 minutes) and 3600 seconds (60 minutes). For more information, see Generating
+// IAM Database User Credentials in the Amazon Redshift Cluster Management Guide.
+//
+// The IAM user or role that executes GetClusterCredentials must have an IAM
+// policy attached that allows the redshift:GetClusterCredentials action with
+// access to the dbuser resource on the cluster. The user name specified for
+// dbuser in the IAM policy and the user name specified for the DbUser parameter
+// must match.
+//
+// If the DbGroups parameter is specified, the IAM policy must allow the redshift:JoinGroup
+// action with access to the listed dbgroups.
+//
+// In addition, if the AutoCreate parameter is set to True, then the policy
+// must include the redshift:CreateClusterUser privilege.
+//
+// If the DbName parameter is specified, the IAM policy must allow access to
+// the resource dbname for the specified database name.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Redshift's
+// API operation GetClusterCredentials for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeClusterNotFoundFault "ClusterNotFound"
+//   The ClusterIdentifier parameter does not refer to an existing cluster.
+//
+//   * ErrCodeUnsupportedOperationFault "UnsupportedOperation"
+//   The requested operation isn't supported.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/GetClusterCredentials
+func (c *Redshift) GetClusterCredentials(input *GetClusterCredentialsInput) (*GetClusterCredentialsOutput, error) {
+	req, out := c.GetClusterCredentialsRequest(input)
+	return out, req.Send()
+}
+
+// GetClusterCredentialsWithContext is the same as GetClusterCredentials with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetClusterCredentials for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Redshift) GetClusterCredentialsWithContext(ctx aws.Context, input *GetClusterCredentialsInput, opts ...request.Option) (*GetClusterCredentialsOutput, error) {
+	req, out := c.GetClusterCredentialsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opModifyCluster = "ModifyCluster"
 
 // ModifyClusterRequest generates a "aws/request.Request" representing the
@@ -5510,6 +5623,9 @@ func (c *Redshift) ModifyClusterRequest(input *ModifyClusterInput) (req *request
 //   information about increasing your quota, go to Limits in Amazon Redshift
 //   (http://docs.aws.amazon.com/redshift/latest/mgmt/amazon-redshift-limits.html)
 //   in the Amazon Redshift Cluster Management Guide.
+//
+//   * ErrCodeNumberOfNodesPerClusterLimitExceededFault "NumberOfNodesPerClusterLimitExceeded"
+//   The operation would exceed the number of nodes allowed for a cluster.
 //
 //   * ErrCodeClusterSecurityGroupNotFoundFault "ClusterSecurityGroupNotFound"
 //   The cluster security group name does not refer to an existing cluster security
@@ -6881,6 +6997,10 @@ func (c *Redshift) RotateEncryptionKeyWithContext(ctx aws.Context, input *Rotate
 type AccountWithRestoreAccess struct {
 	_ struct{} `type:"structure"`
 
+	// The identifier of an AWS support account authorized to restore a snapshot.
+	// For AWS support, the identifier is amazon-redshift-support.
+	AccountAlias *string `type:"string"`
+
 	// The identifier of an AWS customer account authorized to restore a snapshot.
 	AccountId *string `type:"string"`
 }
@@ -6893,6 +7013,12 @@ func (s AccountWithRestoreAccess) String() string {
 // GoString returns the string representation
 func (s AccountWithRestoreAccess) GoString() string {
 	return s.String()
+}
+
+// SetAccountAlias sets the AccountAlias field's value.
+func (s *AccountWithRestoreAccess) SetAccountAlias(v string) *AccountWithRestoreAccess {
+	s.AccountAlias = &v
+	return s
 }
 
 // SetAccountId sets the AccountId field's value.
@@ -7001,6 +7127,8 @@ type AuthorizeSnapshotAccessInput struct {
 
 	// The identifier of the AWS customer account authorized to restore the specified
 	// snapshot.
+	//
+	// To share a snapshot with AWS support, specify amazon-redshift-support.
 	//
 	// AccountWithRestoreAccess is a required field
 	AccountWithRestoreAccess *string `type:"string" required:"true"`
@@ -13481,6 +13609,185 @@ func (s *EventSubscription) SetSubscriptionCreationTime(v time.Time) *EventSubsc
 // SetTags sets the Tags field's value.
 func (s *EventSubscription) SetTags(v []*Tag) *EventSubscription {
 	s.Tags = v
+	return s
+}
+
+// The request parameters to get cluster credentials.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/GetClusterCredentialsMessage
+type GetClusterCredentialsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Create a database user with the name specified for DbUser if one does not
+	// exist.
+	AutoCreate *bool `type:"boolean"`
+
+	// The unique identifier of the cluster that contains the database for which
+	// your are requesting credentials. This parameter is case sensitive.
+	//
+	// ClusterIdentifier is a required field
+	ClusterIdentifier *string `type:"string" required:"true"`
+
+	// A list of the names of existing database groups that DbUser will join for
+	// the current session. If not specified, the new user is added only to PUBLIC.
+	DbGroups []*string `locationNameList:"DbGroup" type:"list"`
+
+	// The name of a database that DbUser is authorized to log on to. If DbName
+	// is not specified, DbUser can log in to any existing database.
+	//
+	// Constraints:
+	//
+	//    * Must be 1 to 64 alphanumeric characters or hyphens
+	//
+	//    * Must contain only lowercase letters.
+	//
+	//    * Cannot be a reserved word. A list of reserved words can be found in
+	//    Reserved Words (http://docs.aws.amazon.com/redshift/latest/dg/r_pg_keywords.html)
+	//    in the Amazon Redshift Database Developer Guide.
+	DbName *string `type:"string"`
+
+	// The name of a database user. If a user name matching DbUser exists in the
+	// database, the temporary user credentials have the same permissions as the
+	// existing user. If DbUser doesn't exist in the database and Autocreate is
+	// True, a new user is created using the value for DbUser with PUBLIC permissions.
+	// If a database user matching the value for DbUser doesn't exist and Autocreate
+	// is False, then the command succeeds but the connection attempt will fail
+	// because the user doesn't exist in the database.
+	//
+	// For more information, see CREATE USER (http://docs.aws.amazon.com/http:/docs.aws.amazon.com/redshift/latest/dg/r_CREATE_USER.html)
+	// in the Amazon Redshift Database Developer Guide.
+	//
+	// Constraints:
+	//
+	//    * Must be 1 to 128 alphanumeric characters or hyphens
+	//
+	//    * Must contain only lowercase letters.
+	//
+	//    * First character must be a letter.
+	//
+	//    * Must not contain a colon ( : ) or slash ( / ).
+	//
+	//    * Cannot be a reserved word. A list of reserved words can be found in
+	//    Reserved Words (http://docs.aws.amazon.com/redshift/latest/dg/r_pg_keywords.html)
+	//    in the Amazon Redshift Database Developer Guide.
+	//
+	// DbUser is a required field
+	DbUser *string `type:"string" required:"true"`
+
+	// The number of seconds until the returned temporary password expires.
+	//
+	// Constraint: minimum 900, maximum 3600.
+	//
+	// Default: 900
+	DurationSeconds *int64 `type:"integer"`
+}
+
+// String returns the string representation
+func (s GetClusterCredentialsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetClusterCredentialsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetClusterCredentialsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetClusterCredentialsInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+	if s.DbUser == nil {
+		invalidParams.Add(request.NewErrParamRequired("DbUser"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAutoCreate sets the AutoCreate field's value.
+func (s *GetClusterCredentialsInput) SetAutoCreate(v bool) *GetClusterCredentialsInput {
+	s.AutoCreate = &v
+	return s
+}
+
+// SetClusterIdentifier sets the ClusterIdentifier field's value.
+func (s *GetClusterCredentialsInput) SetClusterIdentifier(v string) *GetClusterCredentialsInput {
+	s.ClusterIdentifier = &v
+	return s
+}
+
+// SetDbGroups sets the DbGroups field's value.
+func (s *GetClusterCredentialsInput) SetDbGroups(v []*string) *GetClusterCredentialsInput {
+	s.DbGroups = v
+	return s
+}
+
+// SetDbName sets the DbName field's value.
+func (s *GetClusterCredentialsInput) SetDbName(v string) *GetClusterCredentialsInput {
+	s.DbName = &v
+	return s
+}
+
+// SetDbUser sets the DbUser field's value.
+func (s *GetClusterCredentialsInput) SetDbUser(v string) *GetClusterCredentialsInput {
+	s.DbUser = &v
+	return s
+}
+
+// SetDurationSeconds sets the DurationSeconds field's value.
+func (s *GetClusterCredentialsInput) SetDurationSeconds(v int64) *GetClusterCredentialsInput {
+	s.DurationSeconds = &v
+	return s
+}
+
+// Temporary credentials with authorization to log in to an Amazon Redshift
+// database.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/ClusterCredentials
+type GetClusterCredentialsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A temporary password that authorizes the user name returned by DbUser to
+	// log on to the database DbName.
+	DbPassword *string `type:"string"`
+
+	// A database user name that is authorized to log on to the database DbName
+	// using the password DbPassword. If the DbGroups parameter is specifed, DbUser
+	// is added to the listed groups for the current session. The user name is prefixed
+	// with IAM: for an existing user name or IAMA: if the user was auto-created.
+	DbUser *string `type:"string"`
+
+	// The date and time DbPassword expires.
+	Expiration *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+}
+
+// String returns the string representation
+func (s GetClusterCredentialsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetClusterCredentialsOutput) GoString() string {
+	return s.String()
+}
+
+// SetDbPassword sets the DbPassword field's value.
+func (s *GetClusterCredentialsOutput) SetDbPassword(v string) *GetClusterCredentialsOutput {
+	s.DbPassword = &v
+	return s
+}
+
+// SetDbUser sets the DbUser field's value.
+func (s *GetClusterCredentialsOutput) SetDbUser(v string) *GetClusterCredentialsOutput {
+	s.DbUser = &v
+	return s
+}
+
+// SetExpiration sets the Expiration field's value.
+func (s *GetClusterCredentialsOutput) SetExpiration(v time.Time) *GetClusterCredentialsOutput {
+	s.Expiration = &v
 	return s
 }
 

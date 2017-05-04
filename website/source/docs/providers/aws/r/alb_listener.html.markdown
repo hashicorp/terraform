@@ -12,7 +12,7 @@ Provides an Application Load Balancer Listener resource.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new load balancer
 resource "aws_alb" "front_end" {
   # ...

@@ -12,7 +12,7 @@ A Backend Service defines a group of virtual machines that will serve traffic fo
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_backend_service" "foobar" {
   name        = "blablah"
   description = "Hello World 1234"

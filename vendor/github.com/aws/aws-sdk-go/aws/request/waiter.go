@@ -178,14 +178,8 @@ func (w Waiter) WaitWithContext(ctx aws.Context) error {
 
 		// See if any of the acceptors match the request's response, or error
 		for _, a := range w.Acceptors {
-			var matched bool
-			matched, err = a.match(w.Name, w.Logger, req, err)
-			if err != nil {
-				// Error occurred during current waiter call
-				return err
-			} else if matched {
-				// Match was found can stop here and return
-				return nil
+			if matched, matchErr := a.match(w.Name, w.Logger, req, err); matched {
+				return matchErr
 			}
 		}
 
@@ -274,7 +268,7 @@ func (a *WaiterAcceptor) match(name string, l aws.Logger, req *Request, err erro
 		return true, nil
 	case FailureWaiterState:
 		// Waiter failure state triggered
-		return false, awserr.New("ResourceNotReady",
+		return true, awserr.New(WaiterResourceNotReadyErrorCode,
 			"failed waiting for successful resource state", err)
 	case RetryWaiterState:
 		// clear the error and retry the operation

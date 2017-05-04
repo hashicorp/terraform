@@ -2,6 +2,7 @@ package triton
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,7 +11,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/errwrap"
@@ -22,7 +22,7 @@ import (
 type Client struct {
 	client      *retryablehttp.Client
 	authorizer  []authentication.Signer
-	endpoint    string
+	apiURL      url.URL
 	accountName string
 }
 
@@ -36,17 +36,17 @@ func NewClient(endpoint string, accountName string, signers ...authentication.Si
 	defaultRetryWaitMax := 5 * time.Minute
 	defaultRetryMax := 32
 
+	apiURL, err := url.Parse(endpoint)
+	if err != nil {
+		return nil, errwrap.Wrapf("invalid endpoint: {{err}}", err)
+	}
+
+	if accountName == "" {
+		return nil, fmt.Errorf("account name can not be empty")
+	}
+
 	httpClient := &http.Client{
-		Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
-			Dial: (&net.Dialer{
-				Timeout:   30 * time.Second,
-				KeepAlive: 30 * time.Second,
-			}).Dial,
-			TLSHandshakeTimeout: 10 * time.Second,
-			DisableKeepAlives:   true,
-			MaxIdleConnsPerHost: -1,
-		},
+		Transport:     httpTransport(false),
 		CheckRedirect: doNotFollowRedirects,
 	}
 
@@ -62,17 +62,41 @@ func NewClient(endpoint string, accountName string, signers ...authentication.Si
 	return &Client{
 		client:      retryableClient,
 		authorizer:  signers,
-		endpoint:    strings.TrimSuffix(endpoint, "/"),
+		apiURL:      *apiURL,
 		accountName: accountName,
 	}, nil
 }
 
-func doNotFollowRedirects(*http.Request, []*http.Request) error {
-	return http.ErrUseLastResponse
+// InsecureSkipTLSVerify turns off TLS verification for the client connection. This
+// allows connection to an endpoint with a certificate which was signed by a non-
+// trusted CA, such as self-signed certificates. This can be useful when connecting
+// to temporary Triton installations such as Triton Cloud-On-A-Laptop.
+func (c *Client) InsecureSkipTLSVerify() {
+	if c.client == nil {
+		return
+	}
+
+	c.client.HTTPClient.Transport = httpTransport(true)
 }
 
-func (c *Client) formatURL(path string) string {
-	return fmt.Sprintf("%s%s", c.endpoint, path)
+func httpTransport(insecureSkipTLSVerify bool) *http.Transport {
+	return &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		Dial: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).Dial,
+		TLSHandshakeTimeout: 10 * time.Second,
+		DisableKeepAlives:   true,
+		MaxIdleConnsPerHost: -1,
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: insecureSkipTLSVerify,
+		},
+	}
+}
+
+func doNotFollowRedirects(*http.Request, []*http.Request) error {
+	return http.ErrUseLastResponse
 }
 
 func (c *Client) executeRequestURIParams(method, path string, body interface{}, query *url.Values) (io.ReadCloser, error) {
@@ -85,7 +109,13 @@ func (c *Client) executeRequestURIParams(method, path string, body interface{}, 
 		requestBody = bytes.NewReader(marshaled)
 	}
 
-	req, err := retryablehttp.NewRequest(method, c.formatURL(path), requestBody)
+	endpoint := c.apiURL
+	endpoint.Path = path
+	if query != nil {
+		endpoint.RawQuery = query.Encode()
+	}
+
+	req, err := retryablehttp.NewRequest(method, endpoint.String(), requestBody)
 	if err != nil {
 		return nil, errwrap.Wrapf("Error constructing HTTP request: {{err}}", err)
 	}
@@ -104,10 +134,6 @@ func (c *Client) executeRequestURIParams(method, path string, body interface{}, 
 
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
-	}
-
-	if query != nil {
-		req.URL.RawQuery = query.Encode()
 	}
 
 	resp, err := c.client.Do(req)
@@ -149,7 +175,10 @@ func (c *Client) executeRequestRaw(method, path string, body interface{}) (*http
 		requestBody = bytes.NewReader(marshaled)
 	}
 
-	req, err := retryablehttp.NewRequest(method, c.formatURL(path), requestBody)
+	endpoint := c.apiURL
+	endpoint.Path = path
+
+	req, err := retryablehttp.NewRequest(method, endpoint.String(), requestBody)
 	if err != nil {
 		return nil, errwrap.Wrapf("Error constructing HTTP request: {{err}}", err)
 	}

@@ -29,14 +29,7 @@ func resourceAwsKmsAlias() *schema.Resource {
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"name_prefix"},
-				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
-					value := v.(string)
-					if !regexp.MustCompile(`^(alias\/)[a-zA-Z0-9:/_-]+$`).MatchString(value) {
-						es = append(es, fmt.Errorf(
-							"%q must begin with 'alias/' and be comprised of only [a-zA-Z0-9:/_-]", k))
-					}
-					return
-				},
+				ValidateFunc:  validateAwsKmsName,
 			},
 			"name_prefix": &schema.Schema{
 				Type:     schema.TypeString,

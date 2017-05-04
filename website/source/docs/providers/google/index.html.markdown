@@ -16,7 +16,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```js
+```hcl
 // Configure the Google Cloud provider
 provider "google" {
   credentials = "${file("account.json")}"
@@ -45,6 +45,10 @@ The following keys can be used to configure the provider.
     * `GOOGLE_CREDENTIALS`
     * `GOOGLE_CLOUD_KEYFILE_JSON`
     * `GCLOUD_KEYFILE_JSON`
+
+    The [`GOOGLE_APPLICATION_CREDENTIALS`](https://developers.google.com/identity/protocols/application-default-credentials#howtheywork)
+    environment variable can also contain the path of a file to obtain credentials
+    from.
 
 * `project` - (Required) The ID of the project to apply any resources to.  This
   can be specified using any of the following environment variables (listed in

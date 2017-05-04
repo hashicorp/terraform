@@ -14,6 +14,9 @@ func resourceComputeNetwork() *schema.Resource {
 		Create: resourceComputeNetworkCreate,
 		Read:   resourceComputeNetworkRead,
 		Delete: resourceComputeNetworkDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -142,6 +145,9 @@ func resourceComputeNetworkRead(d *schema.ResourceData, meta interface{}) error 
 
 	d.Set("gateway_ipv4", network.GatewayIPv4)
 	d.Set("self_link", network.SelfLink)
+	d.Set("ipv4_range", network.IPv4Range)
+	d.Set("name", network.Name)
+	d.Set("auto_create_subnetworks", network.AutoCreateSubnetworks)
 
 	return nil
 }

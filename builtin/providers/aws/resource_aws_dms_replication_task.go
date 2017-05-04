@@ -226,7 +226,7 @@ func resourceAwsDmsReplicationTaskUpdate(d *schema.ResourceData, meta interface{
 
 		stateConf := &resource.StateChangeConf{
 			Pending:    []string{"modifying"},
-			Target:     []string{"ready"},
+			Target:     []string{"ready", "stopped", "failed"},
 			Refresh:    resourceAwsDmsReplicationTaskStateRefreshFunc(d, meta),
 			Timeout:    d.Timeout(schema.TimeoutCreate),
 			MinTimeout: 10 * time.Second,

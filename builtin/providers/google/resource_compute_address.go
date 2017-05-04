@@ -14,7 +14,9 @@ func resourceComputeAddress() *schema.Resource {
 		Create: resourceComputeAddressCreate,
 		Read:   resourceComputeAddressRead,
 		Delete: resourceComputeAddressDelete,
-
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -108,6 +110,7 @@ func resourceComputeAddressRead(d *schema.ResourceData, meta interface{}) error 
 
 	d.Set("address", addr.Address)
 	d.Set("self_link", addr.SelfLink)
+	d.Set("name", addr.Name)
 
 	return nil
 }

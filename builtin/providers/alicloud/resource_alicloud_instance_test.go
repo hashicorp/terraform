@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"testing"
 
+	"log"
+
 	"github.com/denverdino/aliyungo/common"
 	"github.com/denverdino/aliyungo/ecs"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-	"log"
 )
 
 func TestAccAlicloudInstance_basic(t *testing.T) {
@@ -456,6 +457,17 @@ func TestAccAlicloudInstance_associatePublicIP(t *testing.T) {
 		}
 	}
 
+	testCheckPublicIP := func() resource.TestCheckFunc {
+		return func(*terraform.State) error {
+			publicIP := instance.PublicIpAddress.IpAddress[0]
+			if publicIP == "" {
+				return fmt.Errorf("can't get public IP")
+			}
+
+			return nil
+		}
+	}
+
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -469,6 +481,7 @@ func TestAccAlicloudInstance_associatePublicIP(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("alicloud_instance.foo", &instance),
 					testCheckPrivateIP(),
+					testCheckPublicIP(),
 				),
 			},
 		},

@@ -19,7 +19,7 @@ most likely expect.
 
 To view a list of the available commands at any time, just run terraform with no arguments:
 
-```
+```text
 $ terraform
 Usage: terraform [--version] [--help] <command> [args]
 
@@ -58,7 +58,7 @@ All other commands:
 To get help for any specific command, pass the -h flag to the relevant subcommand. For example,
 to see help about the graph subcommand:
 
-```
+```text
 $ terraform graph -h
 Usage: terraform graph [options] PATH
 

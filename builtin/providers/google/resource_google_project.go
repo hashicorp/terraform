@@ -105,6 +105,8 @@ func resourceGoogleProjectCreate(d *schema.ResourceData, meta interface{}) error
 	// Wait for the operation to complete
 	waitErr := resourceManagerOperationWait(config, op, "project to create")
 	if waitErr != nil {
+		// The resource wasn't actually created
+		d.SetId("")
 		return waitErr
 	}
 

@@ -16,7 +16,7 @@ scripts.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new block volume
 resource "packet_volume" "volume1" {
   description   = "terraform-volume-1"

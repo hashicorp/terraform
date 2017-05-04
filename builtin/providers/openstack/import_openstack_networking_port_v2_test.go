@@ -22,6 +22,9 @@ func TestAccNetworkingV2Port_importBasic(t *testing.T) {
 				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"fixed_ip",
+				},
 			},
 		},
 	})

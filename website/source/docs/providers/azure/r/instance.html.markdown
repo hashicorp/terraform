@@ -13,7 +13,7 @@ machine in the deployment based on the specified configuration.
 
 ## Example Usage
 
-```
+```hcl
 resource "azure_hosted_service" "terraform-service" {
   name               = "terraform-service"
   location           = "North Europe"

@@ -48,15 +48,20 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"google_iam_policy":    dataSourceGoogleIamPolicy(),
-			"google_compute_zones": dataSourceGoogleComputeZones(),
+			"google_compute_network":    dataSourceGoogleComputeNetwork(),
+			"google_compute_subnetwork": dataSourceGoogleComputeSubnetwork(),
+			"google_compute_zones":      dataSourceGoogleComputeZones(),
+			"google_iam_policy":         dataSourceGoogleIamPolicy(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
+			"google_bigquery_dataset":               resourceBigQueryDataset(),
 			"google_compute_autoscaler":             resourceComputeAutoscaler(),
 			"google_compute_address":                resourceComputeAddress(),
+			"google_compute_backend_bucket":         resourceComputeBackendBucket(),
 			"google_compute_backend_service":        resourceComputeBackendService(),
 			"google_compute_disk":                   resourceComputeDisk(),
+			"google_compute_snapshot":               resourceComputeSnapshot(),
 			"google_compute_firewall":               resourceComputeFirewall(),
 			"google_compute_forwarding_rule":        resourceComputeForwardingRule(),
 			"google_compute_global_address":         resourceComputeGlobalAddress(),

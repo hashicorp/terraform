@@ -12,7 +12,7 @@ Provides a CloudWatch Event Rule resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_cloudwatch_event_rule" "console" {
   name        = "capture-aws-sign-in"
   description = "Capture each AWS Console Sign In"

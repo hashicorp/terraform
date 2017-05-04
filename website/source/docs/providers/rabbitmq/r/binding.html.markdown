@@ -13,7 +13,7 @@ between a queue an exchange.
 
 ## Example Usage
 
-```
+```hcl
 resource "rabbitmq_vhost" "test" {
   name = "test"
 }
@@ -88,5 +88,5 @@ Bindings can be imported using the `id` which is composed of
   `vhost/source/destination/destination_type/properties_key`. E.g.
 
 ```
-terraform import rabbitmq_binding.test test/test/test/queue/%23
+$ terraform import rabbitmq_binding.test test/test/test/queue/%23
 ```

@@ -1,18 +1,18 @@
 ---
 layout: "alicloud"
 page_title: "Alicloud: alicloud_eip"
-sidebar_current: "docs-alicloud-resource-eip."
+sidebar_current: "docs-alicloud-resource-eip"
 description: |-
   Provides a ECS EIP resource.
 ---
 
-# alicloud_eip
+# alicloud\_eip
 
 Provides a ECS EIP resource.
 
 ## Example Usage
 
-```hcl
+```
 # Create a new EIP.
 resource "alicloud_eip" "example" {
   bandwidth            = "10"

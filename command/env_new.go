@@ -122,6 +122,11 @@ func (c *EnvNewCommand) Run(args []string) int {
 		c.Ui.Error(err.Error())
 		return 1
 	}
+	err = sMgr.PersistState()
+	if err != nil {
+		c.Ui.Error(err.Error())
+		return 1
+	}
 
 	return 0
 }

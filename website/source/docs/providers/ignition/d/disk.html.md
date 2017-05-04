@@ -12,7 +12,7 @@ Describes the desired state of a system’s disk.
 
 ## Example Usage
 
-```
+```hcl
 data "ignition_disk" "foo" {
 	device = "/dev/sda"
 	partition {

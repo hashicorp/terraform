@@ -12,7 +12,7 @@ Create a virtual machine.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acctestrg"
   location = "West US"
@@ -101,7 +101,7 @@ resource "azurerm_virtual_machine" "test" {
 
 ## Example Usage with additional Empty DataDisk
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acctestrg"
   location = "West US"
@@ -176,7 +176,7 @@ resource "azurerm_virtual_machine" "test" {
     name          = "datadisk0"
     vhd_uri       = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/datadisk0.vhd"
     disk_size_gb  = "1023"
-    create_option = "empty"
+    create_option = "Empty"
     lun           = 0
   }
 
@@ -198,7 +198,7 @@ resource "azurerm_virtual_machine" "test" {
 
 ## Example Usage with Managed Disks
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acctestrg"
   location = "West US 2"
@@ -345,7 +345,7 @@ For more information on the different example configurations, please check out t
 * `vhd_uri` - (Optional) Specifies the vhd uri. Changing this forces a new resource to be created. Cannot be used with managed disks.
 * `managed_disk_type` - (Optional) Specifies the type of managed disk to create. Value you must be either `Standard_LRS` or `Premium_LRS`. Cannot be used when `vhd_uri` is specified.
 * `managed_disk_id` - (Optional) Specifies an existing managed disk to use by id. Can only be used when `create_option` is `Attach`. Cannot be used when `vhd_uri` is specified.
-* `create_option` - (Required) Specifies how the virtual machine should be created. Possible values are `attach` and `FromImage`.
+* `create_option` - (Required) Specifies how the virtual machine should be created. Possible values are `Attach` and `FromImage`.
 * `caching` - (Optional) Specifies the caching requirements.
 * `image_uri` - (Optional) Specifies the image_uri in the form publisherName:offer:skus:version. `image_uri` can also specify the [VHD uri](https://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-cli-deploy-templates/#create-a-custom-vm-image) of a custom VM image to clone. When cloning a custom disk image the `os_type` documented below becomes required.
 * `os_type` - (Optional) Specifies the operating system Type, valid values are windows, linux.
@@ -357,7 +357,7 @@ For more information on the different example configurations, please check out t
 * `vhd_uri` - (Optional) Specifies the uri of the location in storage where the vhd for the virtual machine should be placed. Cannot be used with managed disks.
 * `managed_disk_type` - (Optional) Specifies the type of managed disk to create. Value you must be either `Standard_LRS` or `Premium_LRS`. Cannot be used when `vhd_uri` is specified.
 * `managed_disk_id` - (Optional) Specifies an existing managed disk to use by id. Can only be used when `create_option` is `Attach`. Cannot be used when `vhd_uri` is specified.
-* `create_option` - (Required) Specifies how the data disk should be created.
+* `create_option` - (Required) Specifies how the data disk should be created. Possible values are `Attach`, `FromImage` and `Empty`.
 * `disk_size_gb` - (Required) Specifies the size of the data disk in gigabytes.
 * `caching` - (Optional) Specifies the caching requirements.
 * `lun` - (Required) Specifies the logical unit number of the data disk.
@@ -410,7 +410,7 @@ For more information on the different example configurations, please check out t
 
 * `certificate_url` - (Required) Specifies the URI of the key vault secrets in the format of `https://<vaultEndpoint>/secrets/<secretName>/<secretVersion>`. Stored secret is the Base64 encoding of a JSON Object that which is encoded in UTF-8 of which the contents need to be
 
-```
+```json
 { 
   "data":"<Base64-encoded-certificate>", 
   "dataType":"pfx",

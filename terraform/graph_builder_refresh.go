@@ -115,6 +115,9 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 		// Target
 		&TargetsTransformer{Targets: b.Targets},
 
+		// Close opened plugin connections
+		&CloseProviderTransformer{},
+
 		// Single root
 		&RootTransformer{},
 	}

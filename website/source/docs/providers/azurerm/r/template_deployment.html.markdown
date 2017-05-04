@@ -12,7 +12,7 @@ Create a template deployment of resources
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acctestrg-01"
   location = "West US"
@@ -80,7 +80,7 @@ resource "azurerm_template_deployment" "test" {
 }
 DEPLOY
 
-  deployment_mode = "Complete"
+  deployment_mode = "Incremental"
 }
 
 output "storageAccountName" {
@@ -108,3 +108,10 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The Template Deployment ID.
+
+* `outputs` - A map of supported scalar output types returned from the deployment (currently, Azure Template Deployment outputs of type String, Int and Bool are supported, and are converted to strings - others will be ignored).
+
+## Note
+
+Terraform does not know about the individual resources created by Azure using a deployment template and therefore cannot delete these resources during a destroy. Destroying a template deployment removes the associated deployment operations, but will not delete the Azure resources created by the deployment. In order to delete these resources, the containing resource group must also be destroyed. [More information](https://docs.microsoft.com/en-us/rest/api/resources/deployments#Deployments_Delete).
+
