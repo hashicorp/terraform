@@ -534,6 +534,90 @@ func TestInit_inputFalse(t *testing.T) {
 	}
 }
 
+func TestInit_getProvider(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-get-providers"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	getter := &mockGetProvider{
+		Providers: map[string][]string{
+			// looking for an exact version
+			"exact": []string{"1.2.3"},
+			// config requires >= 2.3.3
+			"greater_than": []string{"2.3.4", "2.3.3", "2.3.0"},
+			// config specifies
+			"between": []string{"3.4.5", "2.3.4", "1.2.3"},
+		},
+	}
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+		getProvider: getter.GetProvider,
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	// check that we got the providers for our config
+	exactPath := filepath.Join(c.pluginDir(), getter.FileName("exact", "1.2.3"))
+	if _, err := os.Stat(exactPath); os.IsNotExist(err) {
+		t.Fatal("provider 'exact' not downloaded")
+	}
+	greaterThanPath := filepath.Join(c.pluginDir(), getter.FileName("greater_than", "2.3.4"))
+	if _, err := os.Stat(greaterThanPath); os.IsNotExist(err) {
+		t.Fatal("provider 'greater_than' not downloaded")
+	}
+	betweenPath := filepath.Join(c.pluginDir(), getter.FileName("between", "2.3.4"))
+	if _, err := os.Stat(betweenPath); os.IsNotExist(err) {
+		t.Fatal("provider 'between' not downloaded")
+	}
+}
+
+func TestInit_getProviderMissing(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-get-providers"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	getter := &mockGetProvider{
+		Providers: map[string][]string{
+			// looking for exact version 1.2.3
+			"exact": []string{"1.2.4"},
+			// config requires >= 2.3.3
+			"greater_than": []string{"2.3.4", "2.3.3", "2.3.0"},
+			// config specifies
+			"between": []string{"3.4.5", "2.3.4", "1.2.3"},
+		},
+	}
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+		getProvider: getter.GetProvider,
+	}
+
+	args := []string{}
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("expceted error, got output: \n%s", ui.OutputWriter.String())
+	}
+
+	if !strings.Contains(ui.ErrorWriter.String(), "no suitable version for provider") {
+		t.Fatalf("unexpected error output: %s", ui.ErrorWriter)
+	}
+}
+
 /*
 func TestInit_remoteState(t *testing.T) {
 	tmp, cwd := testCwd(t)
