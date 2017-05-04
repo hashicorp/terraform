@@ -19,6 +19,12 @@ import (
 // module and clones it to the working directory.
 type InitCommand struct {
 	Meta
+
+	// getProvider fetches providers that aren't found locally, and unpacks
+	// them into the dst directory.
+	// This uses discovery.GetProvider by default, but it provided here as a
+	// way to mock fetching providers for tests.
+	getProvider func(dst, provider string, req discovery.Constraints) error
 }
 
 func (c *InitCommand) Run(args []string) int {
@@ -39,6 +45,11 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
+	}
+
+	// set getProvider if we don't have a test version already
+	if c.getProvider == nil {
+		c.getProvider = discovery.GetProvider
 	}
 
 	// Validate the arg count
@@ -210,7 +221,7 @@ func (c *InitCommand) getProviders(path string, state *terraform.State) error {
 
 	dst := c.pluginDir()
 	for provider, reqd := range missing {
-		err := discovery.GetProvider(dst, provider, reqd)
+		err := c.getProvider(dst, provider, reqd)
 		// TODO: return all errors
 		if err != nil {
 			return err
