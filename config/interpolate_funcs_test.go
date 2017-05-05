@@ -370,6 +370,34 @@ func TestInterpolateFuncCeil(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncLog(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${log(1, 10)}`,
+				"0",
+				false,
+			},
+			{
+				`${log(10, 10)}`,
+				"1",
+				false,
+			},
+
+			{
+				`${log(0, 10)}`,
+				"-Inf",
+				false,
+			},
+			{
+				`${log(10, 0)}`,
+				"-0",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncChomp(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
