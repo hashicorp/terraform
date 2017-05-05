@@ -22,11 +22,11 @@ name in that case. For example, Docker has
 easier to contribute code back to the Terraform codebase.
 
 Just like resources, data sources are functions that take no arguments and
-return a `*schema.Resource`. While functions can be named anything,
-the Terraform codebase uses the camelCase version of the file name as the
-function name. For example, `data_source_aws_eip.go` would contain
-`dataSourceAwsEip`. Providers have a lot of functions in them, and these naming
-conventions help keep things organised and easy to find.
+return a `*schema.Resource`. While functions can be named anything, the
+Terraform codebase uses the camelCase version of the file name as the function
+name. For example, `data_source_aws_eip.go` would contain `dataSourceAwsEip`.
+Providers have a lot of functions in them, and these naming conventions help
+keep things organised and easy to find.
 
 ## Registering the Data Source with the Provider
 
@@ -38,30 +38,32 @@ state and configuration files, and it should (by convention) match the
 requirement, but if any other resource in the provider uses the same key,
 Terraform will likely break. This convention helps to avoid that situation.
 
-## Defining the Data Source Properties
+## Defining the Data Source Fields
 
-Each data source has a set of properties called the "schema" that is stored in
-the state. Think of it as the type definition for the data source. For example,
-an AWS elastic IP data source has a `public_ip` property, to allow
-configurations to access the IP, Docker's registry image data source has a
-`sha256_digest` property to access the checksum of the image, and so on.
+Each data source has a set of fields called the "schema" that is stored in the
+state. Think of it as the type definition for the data source. For example, an
+AWS elastic IP data source has a `public_ip` field, to allow configurations to
+access the IP, Docker's registry image data source has a `sha256_digest` field
+to access the checksum of the image, and so on.
 
-The `Schema` property of the `*schema.Resource` defines these properties. It
-takes a map with the property name as the key and `*schema.Schema` structs as
-the values. The `*Schema` structs define some type information (what kind of
-data to expect, etc.) along with some [advanced
+The `Schema` property of the `*schema.Resource` defines these fields. It takes
+a map with the field name as the key and `*schema.Schema` structs as the
+values. The `*Schema` structs define some type information (what kind of data
+to expect, etc.) along with some [advanced
 behaviour](/docs/internals/providers/schema.html) for resources that helps
 Terraform do the right thing without each resource and data source needing a
 bunch of custom code.
 
-~> **Note:** "id" is a reserved property name. Do not use "id" as a property
-name.
+~> **Note:** "id" is a reserved field name. Do not use "id" as a field name.
 
 ## Calling the API
 
-Data sources define their behavior through a [`schema.ReadFunc`](https://godoc.org/github.com/hashicorp/terraform/helper/schema#ReadFunc) that will be called whenever Terraform needs to retrieve
-values from the data source. Though the data source is implemented as a `*schema.Resource`,
-the `Create`, `Update`, and `Delete` properties are all ignored, and should not be set.
+Data sources define their behavior through a
+[`schema.ReadFunc`](https://godoc.org/github.com/hashicorp/terraform/helper/schema#ReadFunc)
+that will be called whenever Terraform needs to retrieve values from the data
+source. Though the data source is implemented as a `*schema.Resource`, the
+`Create`, `Update`, and `Delete` properties are all ignored, and should not be
+set.
 
 The `Read` property should be set to a
 [`schema.ReadFunc`](https://godoc.org/github.com/hashicorp/terraform/helper/schema#ReadFunc),

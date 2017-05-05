@@ -224,7 +224,7 @@ resource should be marked [`ForceNew`](schema.html#working-with-forcenew).
 
 If the API supports partial updates of resources (for example, using `PATCH`
 requests) the `schema.UpdateFunc` should use the passed
-`*schema.ResourceData`'s `HasChange` method to detect which properties need to
+`*schema.ResourceData`'s `HasChange` method to detect which fields need to
 be updated, and `GetChange` to build the requests to make the necessary API
 calls. If the API only allows resources to be replaced, not patched, use the
 `*schema.ResourceData`'s `Get` and `GetOk` methods to build the requests as if
