@@ -23,6 +23,7 @@ FEATURES:
 * **New Resource:** `heroku_pipeline_coupling` [GH-14078]
 * **New Resource:** `vault_auth_backend` [GH-10988]
 * **New Data Source:** `aws_efs_file_system` [GH-14041]
+* **New Interpolation Function:** `log` [GH-12872]
 
 IMPROVEMENTS:
 
