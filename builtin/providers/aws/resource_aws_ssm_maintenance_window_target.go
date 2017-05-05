@@ -57,42 +57,6 @@ func resourceAwsSsmMaintenanceWindowTarget() *schema.Resource {
 	}
 }
 
-func expandAwsSsmMaintenanceWindowTargets(d *schema.ResourceData) []*ssm.Target {
-	var targets []*ssm.Target
-
-	targetConfig := d.Get("targets").([]interface{})
-
-	for _, tConfig := range targetConfig {
-		config := tConfig.(map[string]interface{})
-
-		target := &ssm.Target{
-			Key:    aws.String(config["key"].(string)),
-			Values: expandStringList(config["values"].([]interface{})),
-		}
-
-		targets = append(targets, target)
-	}
-
-	return targets
-}
-
-func flattenAwsSsmMaintenanceWindowTargets(targets []*ssm.Target) []map[string]interface{} {
-	if len(targets) == 0 {
-		return nil
-	}
-
-	result := make([]map[string]interface{}, 0, len(targets))
-	target := targets[0]
-
-	t := make(map[string]interface{})
-	t["key"] = *target.Key
-	t["values"] = flattenStringList(target.Values)
-
-	result = append(result, t)
-
-	return result
-}
-
 func resourceAwsSsmMaintenanceWindowTargetCreate(d *schema.ResourceData, meta interface{}) error {
 	ssmconn := meta.(*AWSClient).ssmconn
 
@@ -101,7 +65,7 @@ func resourceAwsSsmMaintenanceWindowTargetCreate(d *schema.ResourceData, meta in
 	params := &ssm.RegisterTargetWithMaintenanceWindowInput{
 		WindowId:     aws.String(d.Get("window_id").(string)),
 		ResourceType: aws.String(d.Get("resource_type").(string)),
-		Targets:      expandAwsSsmMaintenanceWindowTargets(d),
+		Targets:      expandAwsSsmTargets(d),
 	}
 
 	if v, ok := d.GetOk("owner_information"); ok {
@@ -145,7 +109,7 @@ func resourceAwsSsmMaintenanceWindowTargetRead(d *schema.ResourceData, meta inte
 			d.Set("window_id", t.WindowId)
 			d.Set("resource_type", t.ResourceType)
 
-			if err := d.Set("targets", flattenAwsSsmMaintenanceWindowTargets(t.Targets)); err != nil {
+			if err := d.Set("targets", flattenAwsSsmTargets(t.Targets)); err != nil {
 				return fmt.Errorf("[DEBUG] Error setting targets error: %#v", err)
 			}
 		}

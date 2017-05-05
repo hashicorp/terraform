@@ -28,6 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/route53"
+	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/hashicorp/terraform/helper/schema"
 	"gopkg.in/yaml.v2"
 )
@@ -2084,4 +2085,40 @@ func sliceContainsMap(l []interface{}, m map[string]interface{}) (int, bool) {
 	}
 
 	return -1, false
+}
+
+func expandAwsSsmTargets(d *schema.ResourceData) []*ssm.Target {
+	var targets []*ssm.Target
+
+	targetConfig := d.Get("targets").([]interface{})
+
+	for _, tConfig := range targetConfig {
+		config := tConfig.(map[string]interface{})
+
+		target := &ssm.Target{
+			Key:    aws.String(config["key"].(string)),
+			Values: expandStringList(config["values"].([]interface{})),
+		}
+
+		targets = append(targets, target)
+	}
+
+	return targets
+}
+
+func flattenAwsSsmTargets(targets []*ssm.Target) []map[string]interface{} {
+	if len(targets) == 0 {
+		return nil
+	}
+
+	result := make([]map[string]interface{}, 0, len(targets))
+	target := targets[0]
+
+	t := make(map[string]interface{})
+	t["key"] = *target.Key
+	t["values"] = flattenStringList(target.Values)
+
+	result = append(result, t)
+
+	return result
 }
