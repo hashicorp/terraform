@@ -67,6 +67,25 @@ func TestAccAWSSNSTopic_withIAMRole(t *testing.T) {
 	})
 }
 
+func TestAccAWSSNSTopic_withDeliveryPolicy(t *testing.T) {
+	expectedPolicy := `{"http":{"defaultHealthyRetryPolicy": {"minDelayTarget": 20,"maxDelayTarget": 20,"numMaxDelayRetries": 0,"numRetries": 3,"numNoDelayRetries": 0,"numMinDelayRetries": 0,"backoffFunction": "linear"},"disableSubscriptionOverrides": false}}`
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_sns_topic.test_topic",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSSNSTopicDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSNSTopicConfig_withDeliveryPolicy,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSNSTopicExists("aws_sns_topic.test_topic"),
+					testAccCheckAWSNSTopicHasDeliveryPolicy("aws_sns_topic.test_topic", expectedPolicy),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSNSTopicHasPolicy(n string, expectedPolicyText string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -110,6 +129,46 @@ func testAccCheckAWSNSTopicHasPolicy(n string, expectedPolicyText string) resour
 		}
 		if !equivalent {
 			return fmt.Errorf("Non-equivalent policy error:\n\nexpected: %s\n\n     got: %s\n",
+				expectedPolicyText, actualPolicyText)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckAWSNSTopicHasDeliveryPolicy(n string, expectedPolicyText string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No Queue URL specified!")
+		}
+
+		conn := testAccProvider.Meta().(*AWSClient).snsconn
+
+		params := &sns.GetTopicAttributesInput{
+			TopicArn: aws.String(rs.Primary.ID),
+		}
+		resp, err := conn.GetTopicAttributes(params)
+		if err != nil {
+			return err
+		}
+
+		var actualPolicyText string
+		for k, v := range resp.Attributes {
+			if k == "DeliveryPolicy" {
+				actualPolicyText = *v
+				break
+			}
+		}
+
+		equivalent := suppressEquivalentJsonDiffs("", actualPolicyText, expectedPolicyText, nil)
+
+		if !equivalent {
+			return fmt.Errorf("Non-equivalent delivery policy error:\n\nexpected: %s\n\n     got: %s\n",
 				expectedPolicyText, actualPolicyText)
 		}
 
@@ -240,6 +299,29 @@ resource "aws_sns_topic" "test_topic" {
   ],
   "Version": "2012-10-17",
   "Id": "Policy1445931846145"
+}
+EOF
+}
+`
+
+// Test for https://github.com/hashicorp/terraform/issues/14024
+const testAccAWSSNSTopicConfig_withDeliveryPolicy = `
+resource "aws_sns_topic" "test_topic" {
+  name = "test_delivery_policy"
+  delivery_policy = <<EOF
+{
+  "http": {
+    "defaultHealthyRetryPolicy": {
+      "minDelayTarget": 20,
+      "maxDelayTarget": 20,
+      "numRetries": 3,
+      "numMaxDelayRetries": 0,
+      "numNoDelayRetries": 0,
+      "numMinDelayRetries": 0,
+      "backoffFunction": "linear"
+    },
+    "disableSubscriptionOverrides": false
+  }
 }
 EOF
 }

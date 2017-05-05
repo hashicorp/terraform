@@ -151,6 +151,14 @@ func resourceStorageBucketObjectDelete(d *schema.ResourceData, meta interface{})
 	err := DeleteCall.Do()
 
 	if err != nil {
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+			log.Printf("[WARN] Removing Bucket Object %q because it's gone", name)
+			// The resource doesn't exist anymore
+			d.SetId("")
+
+			return nil
+		}
+
 		return fmt.Errorf("Error deleting contents of object %s: %s", name, err)
 	}
 
