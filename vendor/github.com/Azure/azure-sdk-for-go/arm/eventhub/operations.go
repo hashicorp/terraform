@@ -40,17 +40,19 @@ func NewOperationsClientWithBaseURI(baseURI string, subscriptionID string) Opera
 	return OperationsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// List lists all of the available event hub REST API operations.
+// List lists all of the available Event Hub REST API operations.
 func (client OperationsClient) List() (result OperationListResult, err error) {
 	req, err := client.ListPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.OperationsClient", "List", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "eventhub.OperationsClient", "List", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "eventhub.OperationsClient", "List", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "eventhub.OperationsClient", "List", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListResponder(resp)

@@ -48,13 +48,15 @@ func NewFirewallRulesClientWithBaseURI(baseURI string, subscriptionID string) Fi
 func (client FirewallRulesClient) List(resourceGroupName string, cacheName string) (result FirewallRuleListResult, err error) {
 	req, err := client.ListPreparer(resourceGroupName, cacheName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "redis.FirewallRulesClient", "List", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "redis.FirewallRulesClient", "List", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "redis.FirewallRulesClient", "List", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "redis.FirewallRulesClient", "List", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListResponder(resp)

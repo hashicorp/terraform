@@ -53,7 +53,9 @@ func NewEndpointsClientWithBaseURI(baseURI string, subscriptionID string) Endpoi
 // subscription. profileName is name of the CDN profile which is unique within
 // the resource group. endpointName is name of the endpoint under the profile
 // which is unique globally. endpoint is endpoint properties
-func (client EndpointsClient) Create(resourceGroupName string, profileName string, endpointName string, endpoint Endpoint, cancel <-chan struct{}) (result autorest.Response, err error) {
+func (client EndpointsClient) Create(resourceGroupName string, profileName string, endpointName string, endpoint Endpoint, cancel <-chan struct{}) (<-chan Endpoint, <-chan error) {
+	resultChan := make(chan Endpoint, 1)
+	errChan := make(chan error, 1)
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -62,26 +64,40 @@ func (client EndpointsClient) Create(resourceGroupName string, profileName strin
 		{TargetValue: endpoint,
 			Constraints: []validation.Constraint{{Target: "endpoint.EndpointProperties", Name: validation.Null, Rule: false,
 				Chain: []validation.Constraint{{Target: "endpoint.EndpointProperties.Origins", Name: validation.Null, Rule: true, Chain: nil}}}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "Create")
+		errChan <- validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "Create")
+		close(errChan)
+		close(resultChan)
+		return resultChan, errChan
 	}
 
-	req, err := client.CreatePreparer(resourceGroupName, profileName, endpointName, endpoint, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Create", nil, "Failure preparing request")
-	}
+	go func() {
+		var err error
+		var result Endpoint
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.CreatePreparer(resourceGroupName, profileName, endpointName, endpoint, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Create", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.CreateSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Create", resp, "Failure sending request")
-	}
+		resp, err := client.CreateSender(req)
+		if err != nil {
+			result.Response = autorest.Response{Response: resp}
+			err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Create", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Create", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.CreateResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Create", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // CreatePreparer prepares the Create request.
@@ -118,13 +134,14 @@ func (client EndpointsClient) CreateSender(req *http.Request) (*http.Response, e
 
 // CreateResponder handles the response to the Create request. The method always
 // closes the http.Response Body.
-func (client EndpointsClient) CreateResponder(resp *http.Response) (result autorest.Response, err error) {
+func (client EndpointsClient) CreateResponder(resp *http.Response) (result Endpoint, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusAccepted),
+		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
-	result.Response = resp
+	result.Response = autorest.Response{Response: resp}
 	return
 }
 
@@ -138,32 +155,48 @@ func (client EndpointsClient) CreateResponder(resp *http.Response) (result autor
 // subscription. profileName is name of the CDN profile which is unique within
 // the resource group. endpointName is name of the endpoint under the profile
 // which is unique globally.
-func (client EndpointsClient) Delete(resourceGroupName string, profileName string, endpointName string, cancel <-chan struct{}) (result autorest.Response, err error) {
+func (client EndpointsClient) Delete(resourceGroupName string, profileName string, endpointName string, cancel <-chan struct{}) (<-chan autorest.Response, <-chan error) {
+	resultChan := make(chan autorest.Response, 1)
+	errChan := make(chan error, 1)
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "Delete")
+		errChan <- validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "Delete")
+		close(errChan)
+		close(resultChan)
+		return resultChan, errChan
 	}
 
-	req, err := client.DeletePreparer(resourceGroupName, profileName, endpointName, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Delete", nil, "Failure preparing request")
-	}
+	go func() {
+		var err error
+		var result autorest.Response
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.DeletePreparer(resourceGroupName, profileName, endpointName, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Delete", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.DeleteSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Delete", resp, "Failure sending request")
-	}
+		resp, err := client.DeleteSender(req)
+		if err != nil {
+			result.Response = resp
+			err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Delete", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Delete", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.DeleteResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Delete", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // DeletePreparer prepares the Delete request.
@@ -226,13 +259,15 @@ func (client EndpointsClient) Get(resourceGroupName string, profileName string, 
 
 	req, err := client.GetPreparer(resourceGroupName, profileName, endpointName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Get", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Get", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.GetSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Get", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Get", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.GetResponder(resp)
@@ -300,13 +335,15 @@ func (client EndpointsClient) ListByProfile(resourceGroupName string, profileNam
 
 	req, err := client.ListByProfilePreparer(resourceGroupName, profileName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "ListByProfile", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "ListByProfile", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListByProfileSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "ListByProfile", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "ListByProfile", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListByProfileResponder(resp)
@@ -399,13 +436,15 @@ func (client EndpointsClient) ListResourceUsage(resourceGroupName string, profil
 
 	req, err := client.ListResourceUsagePreparer(resourceGroupName, profileName, endpointName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "ListResourceUsage", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "ListResourceUsage", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListResourceUsageSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "ListResourceUsage", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "ListResourceUsage", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListResourceUsageResponder(resp)
@@ -492,7 +531,9 @@ func (client EndpointsClient) ListResourceUsageNextResults(lastResults ResourceU
 // which is unique globally. contentFilePaths is the path to the content to be
 // loaded. Path should be a full URL, e.g. ‘/pictires/city.png' which loads a
 // single file
-func (client EndpointsClient) LoadContent(resourceGroupName string, profileName string, endpointName string, contentFilePaths LoadParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
+func (client EndpointsClient) LoadContent(resourceGroupName string, profileName string, endpointName string, contentFilePaths LoadParameters, cancel <-chan struct{}) (<-chan autorest.Response, <-chan error) {
+	resultChan := make(chan autorest.Response, 1)
+	errChan := make(chan error, 1)
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -500,26 +541,40 @@ func (client EndpointsClient) LoadContent(resourceGroupName string, profileName 
 				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
 		{TargetValue: contentFilePaths,
 			Constraints: []validation.Constraint{{Target: "contentFilePaths.ContentPaths", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "LoadContent")
+		errChan <- validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "LoadContent")
+		close(errChan)
+		close(resultChan)
+		return resultChan, errChan
 	}
 
-	req, err := client.LoadContentPreparer(resourceGroupName, profileName, endpointName, contentFilePaths, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "LoadContent", nil, "Failure preparing request")
-	}
+	go func() {
+		var err error
+		var result autorest.Response
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.LoadContentPreparer(resourceGroupName, profileName, endpointName, contentFilePaths, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "LoadContent", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.LoadContentSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "LoadContent", resp, "Failure sending request")
-	}
+		resp, err := client.LoadContentSender(req)
+		if err != nil {
+			result.Response = resp
+			err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "LoadContent", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.LoadContentResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "LoadContent", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.LoadContentResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "LoadContent", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // LoadContentPreparer prepares the LoadContent request.
@@ -578,7 +633,9 @@ func (client EndpointsClient) LoadContentResponder(resp *http.Response) (result 
 // purged. Path can be a full URL, e.g. '/pictures/city.png' which removes a
 // single file, or a directory with a wildcard, e.g. '/pictures/*' which
 // removes all folders and files in the directory.
-func (client EndpointsClient) PurgeContent(resourceGroupName string, profileName string, endpointName string, contentFilePaths PurgeParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
+func (client EndpointsClient) PurgeContent(resourceGroupName string, profileName string, endpointName string, contentFilePaths PurgeParameters, cancel <-chan struct{}) (<-chan autorest.Response, <-chan error) {
+	resultChan := make(chan autorest.Response, 1)
+	errChan := make(chan error, 1)
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -586,26 +643,40 @@ func (client EndpointsClient) PurgeContent(resourceGroupName string, profileName
 				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
 		{TargetValue: contentFilePaths,
 			Constraints: []validation.Constraint{{Target: "contentFilePaths.ContentPaths", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "PurgeContent")
+		errChan <- validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "PurgeContent")
+		close(errChan)
+		close(resultChan)
+		return resultChan, errChan
 	}
 
-	req, err := client.PurgeContentPreparer(resourceGroupName, profileName, endpointName, contentFilePaths, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "PurgeContent", nil, "Failure preparing request")
-	}
+	go func() {
+		var err error
+		var result autorest.Response
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.PurgeContentPreparer(resourceGroupName, profileName, endpointName, contentFilePaths, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "PurgeContent", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.PurgeContentSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "PurgeContent", resp, "Failure sending request")
-	}
+		resp, err := client.PurgeContentSender(req)
+		if err != nil {
+			result.Response = resp
+			err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "PurgeContent", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.PurgeContentResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "PurgeContent", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.PurgeContentResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "PurgeContent", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // PurgeContentPreparer prepares the PurgeContent request.
@@ -661,32 +732,48 @@ func (client EndpointsClient) PurgeContentResponder(resp *http.Response) (result
 // subscription. profileName is name of the CDN profile which is unique within
 // the resource group. endpointName is name of the endpoint under the profile
 // which is unique globally.
-func (client EndpointsClient) Start(resourceGroupName string, profileName string, endpointName string, cancel <-chan struct{}) (result autorest.Response, err error) {
+func (client EndpointsClient) Start(resourceGroupName string, profileName string, endpointName string, cancel <-chan struct{}) (<-chan Endpoint, <-chan error) {
+	resultChan := make(chan Endpoint, 1)
+	errChan := make(chan error, 1)
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "Start")
+		errChan <- validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "Start")
+		close(errChan)
+		close(resultChan)
+		return resultChan, errChan
 	}
 
-	req, err := client.StartPreparer(resourceGroupName, profileName, endpointName, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Start", nil, "Failure preparing request")
-	}
+	go func() {
+		var err error
+		var result Endpoint
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.StartPreparer(resourceGroupName, profileName, endpointName, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Start", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.StartSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Start", resp, "Failure sending request")
-	}
+		resp, err := client.StartSender(req)
+		if err != nil {
+			result.Response = autorest.Response{Response: resp}
+			err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Start", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.StartResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Start", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.StartResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Start", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // StartPreparer prepares the Start request.
@@ -721,13 +808,14 @@ func (client EndpointsClient) StartSender(req *http.Request) (*http.Response, er
 
 // StartResponder handles the response to the Start request. The method always
 // closes the http.Response Body.
-func (client EndpointsClient) StartResponder(resp *http.Response) (result autorest.Response, err error) {
+func (client EndpointsClient) StartResponder(resp *http.Response) (result Endpoint, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted),
+		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
-	result.Response = resp
+	result.Response = autorest.Response{Response: resp}
 	return
 }
 
@@ -740,32 +828,48 @@ func (client EndpointsClient) StartResponder(resp *http.Response) (result autore
 // subscription. profileName is name of the CDN profile which is unique within
 // the resource group. endpointName is name of the endpoint under the profile
 // which is unique globally.
-func (client EndpointsClient) Stop(resourceGroupName string, profileName string, endpointName string, cancel <-chan struct{}) (result autorest.Response, err error) {
+func (client EndpointsClient) Stop(resourceGroupName string, profileName string, endpointName string, cancel <-chan struct{}) (<-chan Endpoint, <-chan error) {
+	resultChan := make(chan Endpoint, 1)
+	errChan := make(chan error, 1)
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "Stop")
+		errChan <- validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "Stop")
+		close(errChan)
+		close(resultChan)
+		return resultChan, errChan
 	}
 
-	req, err := client.StopPreparer(resourceGroupName, profileName, endpointName, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Stop", nil, "Failure preparing request")
-	}
+	go func() {
+		var err error
+		var result Endpoint
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.StopPreparer(resourceGroupName, profileName, endpointName, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Stop", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.StopSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Stop", resp, "Failure sending request")
-	}
+		resp, err := client.StopSender(req)
+		if err != nil {
+			result.Response = autorest.Response{Response: resp}
+			err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Stop", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.StopResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Stop", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.StopResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Stop", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // StopPreparer prepares the Stop request.
@@ -800,13 +904,14 @@ func (client EndpointsClient) StopSender(req *http.Request) (*http.Response, err
 
 // StopResponder handles the response to the Stop request. The method always
 // closes the http.Response Body.
-func (client EndpointsClient) StopResponder(resp *http.Response) (result autorest.Response, err error) {
+func (client EndpointsClient) StopResponder(resp *http.Response) (result Endpoint, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted),
+		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
-	result.Response = resp
+	result.Response = autorest.Response{Response: resp}
 	return
 }
 
@@ -823,32 +928,48 @@ func (client EndpointsClient) StopResponder(resp *http.Response) (result autores
 // the resource group. endpointName is name of the endpoint under the profile
 // which is unique globally. endpointUpdateProperties is endpoint update
 // properties
-func (client EndpointsClient) Update(resourceGroupName string, profileName string, endpointName string, endpointUpdateProperties EndpointUpdateParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
+func (client EndpointsClient) Update(resourceGroupName string, profileName string, endpointName string, endpointUpdateProperties EndpointUpdateParameters, cancel <-chan struct{}) (<-chan Endpoint, <-chan error) {
+	resultChan := make(chan Endpoint, 1)
+	errChan := make(chan error, 1)
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "Update")
+		errChan <- validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "Update")
+		close(errChan)
+		close(resultChan)
+		return resultChan, errChan
 	}
 
-	req, err := client.UpdatePreparer(resourceGroupName, profileName, endpointName, endpointUpdateProperties, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Update", nil, "Failure preparing request")
-	}
+	go func() {
+		var err error
+		var result Endpoint
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.UpdatePreparer(resourceGroupName, profileName, endpointName, endpointUpdateProperties, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Update", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.UpdateSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Update", resp, "Failure sending request")
-	}
+		resp, err := client.UpdateSender(req)
+		if err != nil {
+			result.Response = autorest.Response{Response: resp}
+			err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Update", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.UpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Update", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.UpdateResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Update", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // UpdatePreparer prepares the Update request.
@@ -885,13 +1006,14 @@ func (client EndpointsClient) UpdateSender(req *http.Request) (*http.Response, e
 
 // UpdateResponder handles the response to the Update request. The method always
 // closes the http.Response Body.
-func (client EndpointsClient) UpdateResponder(resp *http.Response) (result autorest.Response, err error) {
+func (client EndpointsClient) UpdateResponder(resp *http.Response) (result Endpoint, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted),
+		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
-	result.Response = resp
+	result.Response = autorest.Response{Response: resp}
 	return
 }
 
@@ -916,13 +1038,15 @@ func (client EndpointsClient) ValidateCustomDomain(resourceGroupName string, pro
 
 	req, err := client.ValidateCustomDomainPreparer(resourceGroupName, profileName, endpointName, customDomainProperties)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "ValidateCustomDomain", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "ValidateCustomDomain", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ValidateCustomDomainSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "ValidateCustomDomain", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "cdn.EndpointsClient", "ValidateCustomDomain", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ValidateCustomDomainResponder(resp)

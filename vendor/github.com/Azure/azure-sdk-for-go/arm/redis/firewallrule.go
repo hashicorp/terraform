@@ -58,13 +58,15 @@ func (client FirewallRuleClient) CreateOrUpdate(resourceGroupName string, cacheN
 
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, cacheName, ruleName, parameters)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "redis.FirewallRuleClient", "CreateOrUpdate", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "redis.FirewallRuleClient", "CreateOrUpdate", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.CreateOrUpdateSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "redis.FirewallRuleClient", "CreateOrUpdate", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "redis.FirewallRuleClient", "CreateOrUpdate", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.CreateOrUpdateResponder(resp)
@@ -125,13 +127,15 @@ func (client FirewallRuleClient) CreateOrUpdateResponder(resp *http.Response) (r
 func (client FirewallRuleClient) Delete(resourceGroupName string, cacheName string, ruleName string) (result autorest.Response, err error) {
 	req, err := client.DeletePreparer(resourceGroupName, cacheName, ruleName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "redis.FirewallRuleClient", "Delete", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "redis.FirewallRuleClient", "Delete", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.DeleteSender(req)
 	if err != nil {
 		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "redis.FirewallRuleClient", "Delete", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "redis.FirewallRuleClient", "Delete", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.DeleteResponder(resp)
@@ -189,13 +193,15 @@ func (client FirewallRuleClient) DeleteResponder(resp *http.Response) (result au
 func (client FirewallRuleClient) Get(resourceGroupName string, cacheName string, ruleName string) (result FirewallRule, err error) {
 	req, err := client.GetPreparer(resourceGroupName, cacheName, ruleName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "redis.FirewallRuleClient", "Get", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "redis.FirewallRuleClient", "Get", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.GetSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "redis.FirewallRuleClient", "Get", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "redis.FirewallRuleClient", "Get", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.GetResponder(resp)

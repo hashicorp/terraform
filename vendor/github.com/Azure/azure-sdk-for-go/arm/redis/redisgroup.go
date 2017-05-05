@@ -48,33 +48,49 @@ func NewGroupClientWithBaseURI(baseURI string, subscriptionID string) GroupClien
 // resourceGroupName is the name of the resource group. name is the name of the
 // Redis cache. parameters is parameters supplied to the Create Redis
 // operation.
-func (client GroupClient) Create(resourceGroupName string, name string, parameters CreateParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
+func (client GroupClient) Create(resourceGroupName string, name string, parameters CreateParameters, cancel <-chan struct{}) (<-chan ResourceType, <-chan error) {
+	resultChan := make(chan ResourceType, 1)
+	errChan := make(chan error, 1)
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.CreateProperties", Name: validation.Null, Rule: true,
 				Chain: []validation.Constraint{{Target: "parameters.CreateProperties.Sku", Name: validation.Null, Rule: true,
 					Chain: []validation.Constraint{{Target: "parameters.CreateProperties.Sku.Capacity", Name: validation.Null, Rule: true, Chain: nil}}},
 				}}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "redis.GroupClient", "Create")
+		errChan <- validation.NewErrorWithValidationError(err, "redis.GroupClient", "Create")
+		close(errChan)
+		close(resultChan)
+		return resultChan, errChan
 	}
 
-	req, err := client.CreatePreparer(resourceGroupName, name, parameters, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "redis.GroupClient", "Create", nil, "Failure preparing request")
-	}
+	go func() {
+		var err error
+		var result ResourceType
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.CreatePreparer(resourceGroupName, name, parameters, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "redis.GroupClient", "Create", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.CreateSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "redis.GroupClient", "Create", resp, "Failure sending request")
-	}
+		resp, err := client.CreateSender(req)
+		if err != nil {
+			result.Response = autorest.Response{Response: resp}
+			err = autorest.NewErrorWithError(err, "redis.GroupClient", "Create", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.GroupClient", "Create", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.CreateResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "redis.GroupClient", "Create", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // CreatePreparer prepares the Create request.
@@ -110,13 +126,14 @@ func (client GroupClient) CreateSender(req *http.Request) (*http.Response, error
 
 // CreateResponder handles the response to the Create request. The method always
 // closes the http.Response Body.
-func (client GroupClient) CreateResponder(resp *http.Response) (result autorest.Response, err error) {
+func (client GroupClient) CreateResponder(resp *http.Response) (result ResourceType, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusCreated, http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
-	result.Response = resp
+	result.Response = autorest.Response{Response: resp}
 	return
 }
 
@@ -126,24 +143,37 @@ func (client GroupClient) CreateResponder(resp *http.Response) (result autorest.
 //
 // resourceGroupName is the name of the resource group. name is the name of the
 // Redis cache.
-func (client GroupClient) Delete(resourceGroupName string, name string, cancel <-chan struct{}) (result autorest.Response, err error) {
-	req, err := client.DeletePreparer(resourceGroupName, name, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "redis.GroupClient", "Delete", nil, "Failure preparing request")
-	}
+func (client GroupClient) Delete(resourceGroupName string, name string, cancel <-chan struct{}) (<-chan autorest.Response, <-chan error) {
+	resultChan := make(chan autorest.Response, 1)
+	errChan := make(chan error, 1)
+	go func() {
+		var err error
+		var result autorest.Response
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.DeletePreparer(resourceGroupName, name, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "redis.GroupClient", "Delete", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.DeleteSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "redis.GroupClient", "Delete", resp, "Failure sending request")
-	}
+		resp, err := client.DeleteSender(req)
+		if err != nil {
+			result.Response = resp
+			err = autorest.NewErrorWithError(err, "redis.GroupClient", "Delete", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.GroupClient", "Delete", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.DeleteResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "redis.GroupClient", "Delete", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // DeletePreparer prepares the Delete request.
@@ -194,31 +224,47 @@ func (client GroupClient) DeleteResponder(resp *http.Response) (result autorest.
 //
 // resourceGroupName is the name of the resource group. name is the name of the
 // Redis cache. parameters is parameters for Redis export operation.
-func (client GroupClient) ExportData(resourceGroupName string, name string, parameters ExportRDBParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
+func (client GroupClient) ExportData(resourceGroupName string, name string, parameters ExportRDBParameters, cancel <-chan struct{}) (<-chan autorest.Response, <-chan error) {
+	resultChan := make(chan autorest.Response, 1)
+	errChan := make(chan error, 1)
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.Prefix", Name: validation.Null, Rule: true, Chain: nil},
 				{Target: "parameters.Container", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "redis.GroupClient", "ExportData")
+		errChan <- validation.NewErrorWithValidationError(err, "redis.GroupClient", "ExportData")
+		close(errChan)
+		close(resultChan)
+		return resultChan, errChan
 	}
 
-	req, err := client.ExportDataPreparer(resourceGroupName, name, parameters, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "redis.GroupClient", "ExportData", nil, "Failure preparing request")
-	}
+	go func() {
+		var err error
+		var result autorest.Response
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.ExportDataPreparer(resourceGroupName, name, parameters, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "redis.GroupClient", "ExportData", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.ExportDataSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "redis.GroupClient", "ExportData", resp, "Failure sending request")
-	}
+		resp, err := client.ExportDataSender(req)
+		if err != nil {
+			result.Response = resp
+			err = autorest.NewErrorWithError(err, "redis.GroupClient", "ExportData", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.ExportDataResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.GroupClient", "ExportData", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.ExportDataResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "redis.GroupClient", "ExportData", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // ExportDataPreparer prepares the ExportData request.
@@ -272,13 +318,15 @@ func (client GroupClient) ExportDataResponder(resp *http.Response) (result autor
 func (client GroupClient) ForceReboot(resourceGroupName string, name string, parameters RebootParameters) (result ForceRebootResponse, err error) {
 	req, err := client.ForceRebootPreparer(resourceGroupName, name, parameters)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "redis.GroupClient", "ForceReboot", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "redis.GroupClient", "ForceReboot", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ForceRebootSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "redis.GroupClient", "ForceReboot", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "redis.GroupClient", "ForceReboot", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ForceRebootResponder(resp)
@@ -338,13 +386,15 @@ func (client GroupClient) ForceRebootResponder(resp *http.Response) (result Forc
 func (client GroupClient) Get(resourceGroupName string, name string) (result ResourceType, err error) {
 	req, err := client.GetPreparer(resourceGroupName, name)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "redis.GroupClient", "Get", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "redis.GroupClient", "Get", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.GetSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "redis.GroupClient", "Get", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "redis.GroupClient", "Get", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.GetResponder(resp)
@@ -402,30 +452,46 @@ func (client GroupClient) GetResponder(resp *http.Response) (result ResourceType
 //
 // resourceGroupName is the name of the resource group. name is the name of the
 // Redis cache. parameters is parameters for Redis import operation.
-func (client GroupClient) ImportData(resourceGroupName string, name string, parameters ImportRDBParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
+func (client GroupClient) ImportData(resourceGroupName string, name string, parameters ImportRDBParameters, cancel <-chan struct{}) (<-chan autorest.Response, <-chan error) {
+	resultChan := make(chan autorest.Response, 1)
+	errChan := make(chan error, 1)
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.Files", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "redis.GroupClient", "ImportData")
+		errChan <- validation.NewErrorWithValidationError(err, "redis.GroupClient", "ImportData")
+		close(errChan)
+		close(resultChan)
+		return resultChan, errChan
 	}
 
-	req, err := client.ImportDataPreparer(resourceGroupName, name, parameters, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "redis.GroupClient", "ImportData", nil, "Failure preparing request")
-	}
+	go func() {
+		var err error
+		var result autorest.Response
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.ImportDataPreparer(resourceGroupName, name, parameters, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "redis.GroupClient", "ImportData", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.ImportDataSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "redis.GroupClient", "ImportData", resp, "Failure sending request")
-	}
+		resp, err := client.ImportDataSender(req)
+		if err != nil {
+			result.Response = resp
+			err = autorest.NewErrorWithError(err, "redis.GroupClient", "ImportData", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.ImportDataResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.GroupClient", "ImportData", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.ImportDataResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "redis.GroupClient", "ImportData", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // ImportDataPreparer prepares the ImportData request.
@@ -475,13 +541,15 @@ func (client GroupClient) ImportDataResponder(resp *http.Response) (result autor
 func (client GroupClient) List() (result ListResult, err error) {
 	req, err := client.ListPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "redis.GroupClient", "List", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "redis.GroupClient", "List", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "redis.GroupClient", "List", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "redis.GroupClient", "List", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListResponder(resp)
@@ -560,13 +628,15 @@ func (client GroupClient) ListNextResults(lastResults ListResult) (result ListRe
 func (client GroupClient) ListByResourceGroup(resourceGroupName string) (result ListResult, err error) {
 	req, err := client.ListByResourceGroupPreparer(resourceGroupName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "redis.GroupClient", "ListByResourceGroup", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "redis.GroupClient", "ListByResourceGroup", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListByResourceGroupSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "redis.GroupClient", "ListByResourceGroup", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "redis.GroupClient", "ListByResourceGroup", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListByResourceGroupResponder(resp)
@@ -648,13 +718,15 @@ func (client GroupClient) ListByResourceGroupNextResults(lastResults ListResult)
 func (client GroupClient) ListKeys(resourceGroupName string, name string) (result AccessKeys, err error) {
 	req, err := client.ListKeysPreparer(resourceGroupName, name)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "redis.GroupClient", "ListKeys", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "redis.GroupClient", "ListKeys", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListKeysSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "redis.GroupClient", "ListKeys", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "redis.GroupClient", "ListKeys", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListKeysResponder(resp)
@@ -713,13 +785,15 @@ func (client GroupClient) ListKeysResponder(resp *http.Response) (result AccessK
 func (client GroupClient) RegenerateKey(resourceGroupName string, name string, parameters RegenerateKeyParameters) (result AccessKeys, err error) {
 	req, err := client.RegenerateKeyPreparer(resourceGroupName, name, parameters)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "redis.GroupClient", "RegenerateKey", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "redis.GroupClient", "RegenerateKey", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.RegenerateKeySender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "redis.GroupClient", "RegenerateKey", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "redis.GroupClient", "RegenerateKey", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.RegenerateKeyResponder(resp)
@@ -780,13 +854,15 @@ func (client GroupClient) RegenerateKeyResponder(resp *http.Response) (result Ac
 func (client GroupClient) Update(resourceGroupName string, name string, parameters UpdateParameters) (result ResourceType, err error) {
 	req, err := client.UpdatePreparer(resourceGroupName, name, parameters)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "redis.GroupClient", "Update", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "redis.GroupClient", "Update", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.UpdateSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "redis.GroupClient", "Update", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "redis.GroupClient", "Update", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.UpdateResponder(resp)

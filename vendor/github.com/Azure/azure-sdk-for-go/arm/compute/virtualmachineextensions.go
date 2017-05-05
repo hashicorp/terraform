@@ -46,38 +46,51 @@ func NewVirtualMachineExtensionsClientWithBaseURI(baseURI string, subscriptionID
 // channel argument. The channel will be used to cancel polling and any
 // outstanding HTTP requests.
 //
-// resourceGroupName is the name of the resource group. vmName is the name of
+// resourceGroupName is the name of the resource group. VMName is the name of
 // the virtual machine where the extension should be create or updated.
-// vmExtensionName is the name of the virtual machine extension.
+// VMExtensionName is the name of the virtual machine extension.
 // extensionParameters is parameters supplied to the Create Virtual Machine
 // Extension operation.
-func (client VirtualMachineExtensionsClient) CreateOrUpdate(resourceGroupName string, vmName string, vmExtensionName string, extensionParameters VirtualMachineExtension, cancel <-chan struct{}) (result autorest.Response, err error) {
-	req, err := client.CreateOrUpdatePreparer(resourceGroupName, vmName, vmExtensionName, extensionParameters, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsClient", "CreateOrUpdate", nil, "Failure preparing request")
-	}
+func (client VirtualMachineExtensionsClient) CreateOrUpdate(resourceGroupName string, VMName string, VMExtensionName string, extensionParameters VirtualMachineExtension, cancel <-chan struct{}) (<-chan VirtualMachineExtension, <-chan error) {
+	resultChan := make(chan VirtualMachineExtension, 1)
+	errChan := make(chan error, 1)
+	go func() {
+		var err error
+		var result VirtualMachineExtension
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.CreateOrUpdatePreparer(resourceGroupName, VMName, VMExtensionName, extensionParameters, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsClient", "CreateOrUpdate", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.CreateOrUpdateSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsClient", "CreateOrUpdate", resp, "Failure sending request")
-	}
+		resp, err := client.CreateOrUpdateSender(req)
+		if err != nil {
+			result.Response = autorest.Response{Response: resp}
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsClient", "CreateOrUpdate", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsClient", "CreateOrUpdate", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.CreateOrUpdateResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsClient", "CreateOrUpdate", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // CreateOrUpdatePreparer prepares the CreateOrUpdate request.
-func (client VirtualMachineExtensionsClient) CreateOrUpdatePreparer(resourceGroupName string, vmName string, vmExtensionName string, extensionParameters VirtualMachineExtension, cancel <-chan struct{}) (*http.Request, error) {
+func (client VirtualMachineExtensionsClient) CreateOrUpdatePreparer(resourceGroupName string, VMName string, VMExtensionName string, extensionParameters VirtualMachineExtension, cancel <-chan struct{}) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
-		"vmExtensionName":   autorest.Encode("path", vmExtensionName),
-		"vmName":            autorest.Encode("path", vmName),
+		"vmExtensionName":   autorest.Encode("path", VMExtensionName),
+		"vmName":            autorest.Encode("path", VMName),
 	}
 
 	const APIVersion = "2016-04-30-preview"
@@ -105,13 +118,14 @@ func (client VirtualMachineExtensionsClient) CreateOrUpdateSender(req *http.Requ
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
 // closes the http.Response Body.
-func (client VirtualMachineExtensionsClient) CreateOrUpdateResponder(resp *http.Response) (result autorest.Response, err error) {
+func (client VirtualMachineExtensionsClient) CreateOrUpdateResponder(resp *http.Response) (result VirtualMachineExtension, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated),
+		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
-	result.Response = resp
+	result.Response = autorest.Response{Response: resp}
 	return
 }
 
@@ -120,36 +134,49 @@ func (client VirtualMachineExtensionsClient) CreateOrUpdateResponder(resp *http.
 // The channel will be used to cancel polling and any outstanding HTTP
 // requests.
 //
-// resourceGroupName is the name of the resource group. vmName is the name of
-// the virtual machine where the extension should be deleted. vmExtensionName
+// resourceGroupName is the name of the resource group. VMName is the name of
+// the virtual machine where the extension should be deleted. VMExtensionName
 // is the name of the virtual machine extension.
-func (client VirtualMachineExtensionsClient) Delete(resourceGroupName string, vmName string, vmExtensionName string, cancel <-chan struct{}) (result autorest.Response, err error) {
-	req, err := client.DeletePreparer(resourceGroupName, vmName, vmExtensionName, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsClient", "Delete", nil, "Failure preparing request")
-	}
+func (client VirtualMachineExtensionsClient) Delete(resourceGroupName string, VMName string, VMExtensionName string, cancel <-chan struct{}) (<-chan OperationStatusResponse, <-chan error) {
+	resultChan := make(chan OperationStatusResponse, 1)
+	errChan := make(chan error, 1)
+	go func() {
+		var err error
+		var result OperationStatusResponse
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.DeletePreparer(resourceGroupName, VMName, VMExtensionName, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsClient", "Delete", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.DeleteSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsClient", "Delete", resp, "Failure sending request")
-	}
+		resp, err := client.DeleteSender(req)
+		if err != nil {
+			result.Response = autorest.Response{Response: resp}
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsClient", "Delete", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsClient", "Delete", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.DeleteResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsClient", "Delete", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // DeletePreparer prepares the Delete request.
-func (client VirtualMachineExtensionsClient) DeletePreparer(resourceGroupName string, vmName string, vmExtensionName string, cancel <-chan struct{}) (*http.Request, error) {
+func (client VirtualMachineExtensionsClient) DeletePreparer(resourceGroupName string, VMName string, VMExtensionName string, cancel <-chan struct{}) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
-		"vmExtensionName":   autorest.Encode("path", vmExtensionName),
-		"vmName":            autorest.Encode("path", vmName),
+		"vmExtensionName":   autorest.Encode("path", VMExtensionName),
+		"vmName":            autorest.Encode("path", VMName),
 	}
 
 	const APIVersion = "2016-04-30-preview"
@@ -175,32 +202,35 @@ func (client VirtualMachineExtensionsClient) DeleteSender(req *http.Request) (*h
 
 // DeleteResponder handles the response to the Delete request. The method always
 // closes the http.Response Body.
-func (client VirtualMachineExtensionsClient) DeleteResponder(resp *http.Response) (result autorest.Response, err error) {
+func (client VirtualMachineExtensionsClient) DeleteResponder(resp *http.Response) (result OperationStatusResponse, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent),
+		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
-	result.Response = resp
+	result.Response = autorest.Response{Response: resp}
 	return
 }
 
 // Get the operation to get the extension.
 //
-// resourceGroupName is the name of the resource group. vmName is the name of
-// the virtual machine containing the extension. vmExtensionName is the name of
+// resourceGroupName is the name of the resource group. VMName is the name of
+// the virtual machine containing the extension. VMExtensionName is the name of
 // the virtual machine extension. expand is the expand expression to apply on
 // the operation.
-func (client VirtualMachineExtensionsClient) Get(resourceGroupName string, vmName string, vmExtensionName string, expand string) (result VirtualMachineExtension, err error) {
-	req, err := client.GetPreparer(resourceGroupName, vmName, vmExtensionName, expand)
+func (client VirtualMachineExtensionsClient) Get(resourceGroupName string, VMName string, VMExtensionName string, expand string) (result VirtualMachineExtension, err error) {
+	req, err := client.GetPreparer(resourceGroupName, VMName, VMExtensionName, expand)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsClient", "Get", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsClient", "Get", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.GetSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsClient", "Get", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsClient", "Get", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.GetResponder(resp)
@@ -212,12 +242,12 @@ func (client VirtualMachineExtensionsClient) Get(resourceGroupName string, vmNam
 }
 
 // GetPreparer prepares the Get request.
-func (client VirtualMachineExtensionsClient) GetPreparer(resourceGroupName string, vmName string, vmExtensionName string, expand string) (*http.Request, error) {
+func (client VirtualMachineExtensionsClient) GetPreparer(resourceGroupName string, VMName string, VMExtensionName string, expand string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
-		"vmExtensionName":   autorest.Encode("path", vmExtensionName),
-		"vmName":            autorest.Encode("path", vmName),
+		"vmExtensionName":   autorest.Encode("path", VMExtensionName),
+		"vmName":            autorest.Encode("path", VMName),
 	}
 
 	const APIVersion = "2016-04-30-preview"

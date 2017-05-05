@@ -255,8 +255,8 @@ type NamespaceResource struct {
 	autorest.Response    `json:"-"`
 	ID                   *string             `json:"id,omitempty"`
 	Name                 *string             `json:"name,omitempty"`
-	Type                 *string             `json:"type,omitempty"`
 	Location             *string             `json:"location,omitempty"`
+	Type                 *string             `json:"type,omitempty"`
 	Tags                 *map[string]*string `json:"tags,omitempty"`
 	Sku                  *Sku                `json:"sku,omitempty"`
 	*NamespaceProperties `json:"properties,omitempty"`
@@ -361,6 +361,7 @@ type QueueResource struct {
 	autorest.Response `json:"-"`
 	ID                *string `json:"id,omitempty"`
 	Name              *string `json:"name,omitempty"`
+	Location          *string `json:"location,omitempty"`
 	Type              *string `json:"type,omitempty"`
 	*QueueProperties  `json:"properties,omitempty"`
 }
@@ -373,9 +374,10 @@ type RegenerateKeysParameters struct {
 
 // Resource is the Resource definition for other than namespace.
 type Resource struct {
-	ID   *string `json:"id,omitempty"`
-	Name *string `json:"name,omitempty"`
-	Type *string `json:"type,omitempty"`
+	ID       *string `json:"id,omitempty"`
+	Name     *string `json:"name,omitempty"`
+	Location *string `json:"location,omitempty"`
+	Type     *string `json:"type,omitempty"`
 }
 
 // ResourceListKeys is namespace/ServiceBus Connection String
@@ -428,6 +430,7 @@ type SharedAccessAuthorizationRuleResource struct {
 	autorest.Response                        `json:"-"`
 	ID                                       *string `json:"id,omitempty"`
 	Name                                     *string `json:"name,omitempty"`
+	Location                                 *string `json:"location,omitempty"`
 	Type                                     *string `json:"type,omitempty"`
 	*SharedAccessAuthorizationRuleProperties `json:"properties,omitempty"`
 }
@@ -491,6 +494,7 @@ type SubscriptionResource struct {
 	autorest.Response       `json:"-"`
 	ID                      *string `json:"id,omitempty"`
 	Name                    *string `json:"name,omitempty"`
+	Location                *string `json:"location,omitempty"`
 	Type                    *string `json:"type,omitempty"`
 	*SubscriptionProperties `json:"properties,omitempty"`
 }
@@ -552,6 +556,7 @@ type TopicResource struct {
 	autorest.Response `json:"-"`
 	ID                *string `json:"id,omitempty"`
 	Name              *string `json:"name,omitempty"`
+	Location          *string `json:"location,omitempty"`
 	Type              *string `json:"type,omitempty"`
 	*TopicProperties  `json:"properties,omitempty"`
 }
@@ -560,7 +565,7 @@ type TopicResource struct {
 type TrackedResource struct {
 	ID       *string             `json:"id,omitempty"`
 	Name     *string             `json:"name,omitempty"`
-	Type     *string             `json:"type,omitempty"`
 	Location *string             `json:"location,omitempty"`
+	Type     *string             `json:"type,omitempty"`
 	Tags     *map[string]*string `json:"tags,omitempty"`
 }

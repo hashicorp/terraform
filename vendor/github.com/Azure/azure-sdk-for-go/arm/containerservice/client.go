@@ -1,5 +1,5 @@
 // Package containerservice implements the Azure ARM Containerservice service
-// API version 2016-09-30.
+// API version 2017-01-31.
 //
 // The Container Service Client.
 package containerservice

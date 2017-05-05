@@ -42,13 +42,12 @@ func NewEventHubsClientWithBaseURI(baseURI string, subscriptionID string) EventH
 }
 
 // CreateOrUpdate creates or updates a new Event Hub as a nested resource
-// within a namespace.
+// within a Namespace.
 //
-// resourceGroupName is name of the Resource group within the Azure
-// subscription. namespaceName is the namespace name eventHubName is the
-// eventhub name parameters is parameters supplied to create an Event Hub
-// resource.
-func (client EventHubsClient) CreateOrUpdate(resourceGroupName string, namespaceName string, eventHubName string, parameters EventHub) (result EventHub, err error) {
+// resourceGroupName is name of the resource group within the azure
+// subscription. namespaceName is the Namespace name eventHubName is the Event
+// Hub name parameters is parameters supplied to create an Event Hub resource.
+func (client EventHubsClient) CreateOrUpdate(resourceGroupName string, namespaceName string, eventHubName string, parameters CreateOrUpdateParameters) (result ResourceType, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -58,19 +57,23 @@ func (client EventHubsClient) CreateOrUpdate(resourceGroupName string, namespace
 				{Target: "namespaceName", Name: validation.MinLength, Rule: 6, Chain: nil}}},
 		{TargetValue: eventHubName,
 			Constraints: []validation.Constraint{{Target: "eventHubName", Name: validation.MaxLength, Rule: 50, Chain: nil},
-				{Target: "eventHubName", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
+				{Target: "eventHubName", Name: validation.MinLength, Rule: 1, Chain: nil}}},
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Location", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "eventhub.EventHubsClient", "CreateOrUpdate")
 	}
 
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, namespaceName, eventHubName, parameters)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "CreateOrUpdate", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "CreateOrUpdate", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.CreateOrUpdateSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "CreateOrUpdate", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "CreateOrUpdate", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.CreateOrUpdateResponder(resp)
@@ -82,7 +85,7 @@ func (client EventHubsClient) CreateOrUpdate(resourceGroupName string, namespace
 }
 
 // CreateOrUpdatePreparer prepares the CreateOrUpdate request.
-func (client EventHubsClient) CreateOrUpdatePreparer(resourceGroupName string, namespaceName string, eventHubName string, parameters EventHub) (*http.Request, error) {
+func (client EventHubsClient) CreateOrUpdatePreparer(resourceGroupName string, namespaceName string, eventHubName string, parameters CreateOrUpdateParameters) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"eventHubName":      autorest.Encode("path", eventHubName),
 		"namespaceName":     autorest.Encode("path", namespaceName),
@@ -113,7 +116,7 @@ func (client EventHubsClient) CreateOrUpdateSender(req *http.Request) (*http.Res
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
 // closes the http.Response Body.
-func (client EventHubsClient) CreateOrUpdateResponder(resp *http.Response) (result EventHub, err error) {
+func (client EventHubsClient) CreateOrUpdateResponder(resp *http.Response) (result ResourceType, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -124,14 +127,14 @@ func (client EventHubsClient) CreateOrUpdateResponder(resp *http.Response) (resu
 	return
 }
 
-// CreateOrUpdateAuthorizationRule creates or updates an authorization rule for
+// CreateOrUpdateAuthorizationRule creates or updates an AuthorizationRule for
 // the specified Event Hub.
 //
-// resourceGroupName is name of the Resource group within the Azure
-// subscription. namespaceName is the namespace name eventHubName is the
-// eventhub name authorizationRuleName is the authorizationrule name.
-// parameters is the shared access authorization rule.
-func (client EventHubsClient) CreateOrUpdateAuthorizationRule(resourceGroupName string, namespaceName string, eventHubName string, authorizationRuleName string, parameters SharedAccessAuthorizationRule) (result SharedAccessAuthorizationRule, err error) {
+// resourceGroupName is name of the resource group within the azure
+// subscription. namespaceName is the Namespace name eventHubName is the Event
+// Hub name authorizationRuleName is the authorization rule name. parameters is
+// the shared access AuthorizationRule.
+func (client EventHubsClient) CreateOrUpdateAuthorizationRule(resourceGroupName string, namespaceName string, eventHubName string, authorizationRuleName string, parameters SharedAccessAuthorizationRuleCreateOrUpdateParameters) (result SharedAccessAuthorizationRuleResource, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -153,13 +156,15 @@ func (client EventHubsClient) CreateOrUpdateAuthorizationRule(resourceGroupName 
 
 	req, err := client.CreateOrUpdateAuthorizationRulePreparer(resourceGroupName, namespaceName, eventHubName, authorizationRuleName, parameters)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "CreateOrUpdateAuthorizationRule", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "CreateOrUpdateAuthorizationRule", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.CreateOrUpdateAuthorizationRuleSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "CreateOrUpdateAuthorizationRule", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "CreateOrUpdateAuthorizationRule", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.CreateOrUpdateAuthorizationRuleResponder(resp)
@@ -171,7 +176,7 @@ func (client EventHubsClient) CreateOrUpdateAuthorizationRule(resourceGroupName 
 }
 
 // CreateOrUpdateAuthorizationRulePreparer prepares the CreateOrUpdateAuthorizationRule request.
-func (client EventHubsClient) CreateOrUpdateAuthorizationRulePreparer(resourceGroupName string, namespaceName string, eventHubName string, authorizationRuleName string, parameters SharedAccessAuthorizationRule) (*http.Request, error) {
+func (client EventHubsClient) CreateOrUpdateAuthorizationRulePreparer(resourceGroupName string, namespaceName string, eventHubName string, authorizationRuleName string, parameters SharedAccessAuthorizationRuleCreateOrUpdateParameters) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"authorizationRuleName": autorest.Encode("path", authorizationRuleName),
 		"eventHubName":          autorest.Encode("path", eventHubName),
@@ -203,7 +208,7 @@ func (client EventHubsClient) CreateOrUpdateAuthorizationRuleSender(req *http.Re
 
 // CreateOrUpdateAuthorizationRuleResponder handles the response to the CreateOrUpdateAuthorizationRule request. The method always
 // closes the http.Response Body.
-func (client EventHubsClient) CreateOrUpdateAuthorizationRuleResponder(resp *http.Response) (result SharedAccessAuthorizationRule, err error) {
+func (client EventHubsClient) CreateOrUpdateAuthorizationRuleResponder(resp *http.Response) (result SharedAccessAuthorizationRuleResource, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -214,11 +219,11 @@ func (client EventHubsClient) CreateOrUpdateAuthorizationRuleResponder(resp *htt
 	return
 }
 
-// Delete deletes an Event Hub from the specified namespace and resource group.
+// Delete deletes an Event Hub from the specified Namespace and resource group.
 //
-// resourceGroupName is name of the Resource group within the Azure
-// subscription. namespaceName is the namespace name eventHubName is the
-// eventhub name
+// resourceGroupName is name of the resource group within the azure
+// subscription. namespaceName is the Namespace name eventHubName is the Event
+// Hub name
 func (client EventHubsClient) Delete(resourceGroupName string, namespaceName string, eventHubName string) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -235,13 +240,15 @@ func (client EventHubsClient) Delete(resourceGroupName string, namespaceName str
 
 	req, err := client.DeletePreparer(resourceGroupName, namespaceName, eventHubName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "Delete", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "Delete", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.DeleteSender(req)
 	if err != nil {
 		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "Delete", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "Delete", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.DeleteResponder(resp)
@@ -292,11 +299,11 @@ func (client EventHubsClient) DeleteResponder(resp *http.Response) (result autor
 	return
 }
 
-// DeleteAuthorizationRule deletes an Event Hubs authorization rule.
+// DeleteAuthorizationRule deletes an Event Hub AuthorizationRule.
 //
-// resourceGroupName is name of the Resource group within the Azure
-// subscription. namespaceName is the namespace name eventHubName is the
-// eventhub name authorizationRuleName is the authorizationrule name.
+// resourceGroupName is name of the resource group within the azure
+// subscription. namespaceName is the Namespace name eventHubName is the Event
+// Hub name authorizationRuleName is the authorization rule name.
 func (client EventHubsClient) DeleteAuthorizationRule(resourceGroupName string, namespaceName string, eventHubName string, authorizationRuleName string) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -316,13 +323,15 @@ func (client EventHubsClient) DeleteAuthorizationRule(resourceGroupName string, 
 
 	req, err := client.DeleteAuthorizationRulePreparer(resourceGroupName, namespaceName, eventHubName, authorizationRuleName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "DeleteAuthorizationRule", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "DeleteAuthorizationRule", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.DeleteAuthorizationRuleSender(req)
 	if err != nil {
 		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "DeleteAuthorizationRule", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "DeleteAuthorizationRule", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.DeleteAuthorizationRuleResponder(resp)
@@ -376,10 +385,10 @@ func (client EventHubsClient) DeleteAuthorizationRuleResponder(resp *http.Respon
 
 // Get gets an Event Hubs description for the specified Event Hub.
 //
-// resourceGroupName is name of the Resource group within the Azure
-// subscription. namespaceName is the namespace name eventHubName is the
-// eventhub name
-func (client EventHubsClient) Get(resourceGroupName string, namespaceName string, eventHubName string) (result EventHub, err error) {
+// resourceGroupName is name of the resource group within the azure
+// subscription. namespaceName is the Namespace name eventHubName is the Event
+// Hub name
+func (client EventHubsClient) Get(resourceGroupName string, namespaceName string, eventHubName string) (result ResourceType, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -395,13 +404,15 @@ func (client EventHubsClient) Get(resourceGroupName string, namespaceName string
 
 	req, err := client.GetPreparer(resourceGroupName, namespaceName, eventHubName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "Get", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "Get", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.GetSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "Get", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "Get", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.GetResponder(resp)
@@ -442,7 +453,7 @@ func (client EventHubsClient) GetSender(req *http.Request) (*http.Response, erro
 
 // GetResponder handles the response to the Get request. The method always
 // closes the http.Response Body.
-func (client EventHubsClient) GetResponder(resp *http.Response) (result EventHub, err error) {
+func (client EventHubsClient) GetResponder(resp *http.Response) (result ResourceType, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -453,13 +464,13 @@ func (client EventHubsClient) GetResponder(resp *http.Response) (result EventHub
 	return
 }
 
-// GetAuthorizationRule gets an authorization rule for an Event Hub by rule
+// GetAuthorizationRule gets an AuthorizationRule for an Event Hub by rule
 // name.
 //
-// resourceGroupName is name of the Resource group within the Azure
-// subscription. namespaceName is the namespace name eventHubName is the
-// eventhub name authorizationRuleName is the authorizationrule name.
-func (client EventHubsClient) GetAuthorizationRule(resourceGroupName string, namespaceName string, eventHubName string, authorizationRuleName string) (result SharedAccessAuthorizationRule, err error) {
+// resourceGroupName is name of the resource group within the azure
+// subscription. namespaceName is the Namespace name eventHubName is the Event
+// Hub name authorizationRuleName is the authorization rule name.
+func (client EventHubsClient) GetAuthorizationRule(resourceGroupName string, namespaceName string, eventHubName string, authorizationRuleName string) (result SharedAccessAuthorizationRuleResource, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -478,13 +489,15 @@ func (client EventHubsClient) GetAuthorizationRule(resourceGroupName string, nam
 
 	req, err := client.GetAuthorizationRulePreparer(resourceGroupName, namespaceName, eventHubName, authorizationRuleName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "GetAuthorizationRule", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "GetAuthorizationRule", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.GetAuthorizationRuleSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "GetAuthorizationRule", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "GetAuthorizationRule", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.GetAuthorizationRuleResponder(resp)
@@ -526,7 +539,7 @@ func (client EventHubsClient) GetAuthorizationRuleSender(req *http.Request) (*ht
 
 // GetAuthorizationRuleResponder handles the response to the GetAuthorizationRule request. The method always
 // closes the http.Response Body.
-func (client EventHubsClient) GetAuthorizationRuleResponder(resp *http.Response) (result SharedAccessAuthorizationRule, err error) {
+func (client EventHubsClient) GetAuthorizationRuleResponder(resp *http.Response) (result SharedAccessAuthorizationRuleResource, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -537,11 +550,111 @@ func (client EventHubsClient) GetAuthorizationRuleResponder(resp *http.Response)
 	return
 }
 
+// ListAll gets all the Event Hubs in a Namespace.
+//
+// resourceGroupName is name of the resource group within the azure
+// subscription. namespaceName is the Namespace name
+func (client EventHubsClient) ListAll(resourceGroupName string, namespaceName string) (result ListResult, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil}}},
+		{TargetValue: namespaceName,
+			Constraints: []validation.Constraint{{Target: "namespaceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
+				{Target: "namespaceName", Name: validation.MinLength, Rule: 6, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "eventhub.EventHubsClient", "ListAll")
+	}
+
+	req, err := client.ListAllPreparer(resourceGroupName, namespaceName)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "ListAll", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.ListAllSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "ListAll", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.ListAllResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "ListAll", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// ListAllPreparer prepares the ListAll request.
+func (client EventHubsClient) ListAllPreparer(resourceGroupName string, namespaceName string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"namespaceName":     autorest.Encode("path", namespaceName),
+		"resourceGroupName": autorest.Encode("path", resourceGroupName),
+		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
+	}
+
+	const APIVersion = "2015-08-01"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.EventHub/namespaces/{namespaceName}/eventhubs", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare(&http.Request{})
+}
+
+// ListAllSender sends the ListAll request. The method will close the
+// http.Response Body if it receives an error.
+func (client EventHubsClient) ListAllSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client, req)
+}
+
+// ListAllResponder handles the response to the ListAll request. The method always
+// closes the http.Response Body.
+func (client EventHubsClient) ListAllResponder(resp *http.Response) (result ListResult, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// ListAllNextResults retrieves the next set of results, if any.
+func (client EventHubsClient) ListAllNextResults(lastResults ListResult) (result ListResult, err error) {
+	req, err := lastResults.ListResultPreparer()
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "ListAll", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
+	}
+
+	resp, err := client.ListAllSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "ListAll", resp, "Failure sending next results request")
+	}
+
+	result, err = client.ListAllResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "ListAll", resp, "Failure responding to next results request")
+	}
+
+	return
+}
+
 // ListAuthorizationRules gets the authorization rules for an Event Hub.
 //
-// resourceGroupName is name of the Resource group within the Azure
-// subscription. namespaceName is the namespace name eventHubName is the
-// eventhub name
+// resourceGroupName is name of the resource group within the azure
+// subscription. namespaceName is the Namespace name eventHubName is the Event
+// Hub name
 func (client EventHubsClient) ListAuthorizationRules(resourceGroupName string, namespaceName string, eventHubName string) (result SharedAccessAuthorizationRuleListResult, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -558,13 +671,15 @@ func (client EventHubsClient) ListAuthorizationRules(resourceGroupName string, n
 
 	req, err := client.ListAuthorizationRulesPreparer(resourceGroupName, namespaceName, eventHubName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "ListAuthorizationRules", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "ListAuthorizationRules", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListAuthorizationRulesSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "ListAuthorizationRules", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "ListAuthorizationRules", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListAuthorizationRulesResponder(resp)
@@ -640,109 +755,11 @@ func (client EventHubsClient) ListAuthorizationRulesNextResults(lastResults Shar
 	return
 }
 
-// ListByNamespace gets all the Event Hubs in a namespace.
-//
-// resourceGroupName is name of the Resource group within the Azure
-// subscription. namespaceName is the namespace name
-func (client EventHubsClient) ListByNamespace(resourceGroupName string, namespaceName string) (result ListResult, err error) {
-	if err := validation.Validate([]validation.Validation{
-		{TargetValue: resourceGroupName,
-			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
-				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil}}},
-		{TargetValue: namespaceName,
-			Constraints: []validation.Constraint{{Target: "namespaceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
-				{Target: "namespaceName", Name: validation.MinLength, Rule: 6, Chain: nil}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "eventhub.EventHubsClient", "ListByNamespace")
-	}
-
-	req, err := client.ListByNamespacePreparer(resourceGroupName, namespaceName)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "ListByNamespace", nil, "Failure preparing request")
-	}
-
-	resp, err := client.ListByNamespaceSender(req)
-	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "ListByNamespace", resp, "Failure sending request")
-	}
-
-	result, err = client.ListByNamespaceResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "ListByNamespace", resp, "Failure responding to request")
-	}
-
-	return
-}
-
-// ListByNamespacePreparer prepares the ListByNamespace request.
-func (client EventHubsClient) ListByNamespacePreparer(resourceGroupName string, namespaceName string) (*http.Request, error) {
-	pathParameters := map[string]interface{}{
-		"namespaceName":     autorest.Encode("path", namespaceName),
-		"resourceGroupName": autorest.Encode("path", resourceGroupName),
-		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
-	}
-
-	const APIVersion = "2015-08-01"
-	queryParameters := map[string]interface{}{
-		"api-version": APIVersion,
-	}
-
-	preparer := autorest.CreatePreparer(
-		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.EventHub/namespaces/{namespaceName}/eventhubs", pathParameters),
-		autorest.WithQueryParameters(queryParameters))
-	return preparer.Prepare(&http.Request{})
-}
-
-// ListByNamespaceSender sends the ListByNamespace request. The method will close the
-// http.Response Body if it receives an error.
-func (client EventHubsClient) ListByNamespaceSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req)
-}
-
-// ListByNamespaceResponder handles the response to the ListByNamespace request. The method always
-// closes the http.Response Body.
-func (client EventHubsClient) ListByNamespaceResponder(resp *http.Response) (result ListResult, err error) {
-	err = autorest.Respond(
-		resp,
-		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
-		autorest.ByUnmarshallingJSON(&result),
-		autorest.ByClosing())
-	result.Response = autorest.Response{Response: resp}
-	return
-}
-
-// ListByNamespaceNextResults retrieves the next set of results, if any.
-func (client EventHubsClient) ListByNamespaceNextResults(lastResults ListResult) (result ListResult, err error) {
-	req, err := lastResults.ListResultPreparer()
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "ListByNamespace", nil, "Failure preparing next results request")
-	}
-	if req == nil {
-		return
-	}
-
-	resp, err := client.ListByNamespaceSender(req)
-	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "ListByNamespace", resp, "Failure sending next results request")
-	}
-
-	result, err = client.ListByNamespaceResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "ListByNamespace", resp, "Failure responding to next results request")
-	}
-
-	return
-}
-
 // ListKeys gets the ACS and SAS connection strings for the Event Hub.
 //
-// resourceGroupName is name of the Resource group within the Azure
-// subscription. namespaceName is the namespace name eventHubName is the
-// eventhub name authorizationRuleName is the authorizationrule name.
+// resourceGroupName is name of the resource group within the azure
+// subscription. namespaceName is the Namespace name eventHubName is the Event
+// Hub name authorizationRuleName is the authorization rule name.
 func (client EventHubsClient) ListKeys(resourceGroupName string, namespaceName string, eventHubName string, authorizationRuleName string) (result ResourceListKeys, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -762,13 +779,15 @@ func (client EventHubsClient) ListKeys(resourceGroupName string, namespaceName s
 
 	req, err := client.ListKeysPreparer(resourceGroupName, namespaceName, eventHubName, authorizationRuleName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "ListKeys", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "ListKeys", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListKeysSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "ListKeys", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "ListKeys", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListKeysResponder(resp)
@@ -824,10 +843,11 @@ func (client EventHubsClient) ListKeysResponder(resp *http.Response) (result Res
 // RegenerateKeys regenerates the ACS and SAS connection strings for the Event
 // Hub.
 //
-// resourceGroupName is name of the Resource group within the Azure
-// subscription. namespaceName is the namespace name eventHubName is the
-// eventhub name authorizationRuleName is the authorizationrule name.
-// parameters is parameters supplied to regenerate the authorization rule.
+// resourceGroupName is name of the resource group within the azure
+// subscription. namespaceName is the Namespace name eventHubName is the Event
+// Hub name authorizationRuleName is the authorization rule name. parameters is
+// parameters supplied to regenerate the AuthorizationRule Keys
+// (PrimaryKey/SecondaryKey).
 func (client EventHubsClient) RegenerateKeys(resourceGroupName string, namespaceName string, eventHubName string, authorizationRuleName string, parameters RegenerateKeysParameters) (result ResourceListKeys, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -847,13 +867,15 @@ func (client EventHubsClient) RegenerateKeys(resourceGroupName string, namespace
 
 	req, err := client.RegenerateKeysPreparer(resourceGroupName, namespaceName, eventHubName, authorizationRuleName, parameters)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "RegenerateKeys", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "RegenerateKeys", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.RegenerateKeysSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "RegenerateKeys", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "eventhub.EventHubsClient", "RegenerateKeys", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.RegenerateKeysResponder(resp)

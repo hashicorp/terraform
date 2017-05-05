@@ -61,6 +61,51 @@ const (
 	Unknown EntityStatus = "Unknown"
 )
 
+// NamespaceState enumerates the values for namespace state.
+type NamespaceState string
+
+const (
+	// NamespaceStateActivating specifies the namespace state activating state
+	// for namespace state.
+	NamespaceStateActivating NamespaceState = "Activating"
+	// NamespaceStateActive specifies the namespace state active state for
+	// namespace state.
+	NamespaceStateActive NamespaceState = "Active"
+	// NamespaceStateCreated specifies the namespace state created state for
+	// namespace state.
+	NamespaceStateCreated NamespaceState = "Created"
+	// NamespaceStateCreating specifies the namespace state creating state for
+	// namespace state.
+	NamespaceStateCreating NamespaceState = "Creating"
+	// NamespaceStateDisabled specifies the namespace state disabled state for
+	// namespace state.
+	NamespaceStateDisabled NamespaceState = "Disabled"
+	// NamespaceStateDisabling specifies the namespace state disabling state
+	// for namespace state.
+	NamespaceStateDisabling NamespaceState = "Disabling"
+	// NamespaceStateEnabling specifies the namespace state enabling state for
+	// namespace state.
+	NamespaceStateEnabling NamespaceState = "Enabling"
+	// NamespaceStateFailed specifies the namespace state failed state for
+	// namespace state.
+	NamespaceStateFailed NamespaceState = "Failed"
+	// NamespaceStateRemoved specifies the namespace state removed state for
+	// namespace state.
+	NamespaceStateRemoved NamespaceState = "Removed"
+	// NamespaceStateRemoving specifies the namespace state removing state for
+	// namespace state.
+	NamespaceStateRemoving NamespaceState = "Removing"
+	// NamespaceStateSoftDeleted specifies the namespace state soft deleted
+	// state for namespace state.
+	NamespaceStateSoftDeleted NamespaceState = "SoftDeleted"
+	// NamespaceStateSoftDeleting specifies the namespace state soft deleting
+	// state for namespace state.
+	NamespaceStateSoftDeleting NamespaceState = "SoftDeleting"
+	// NamespaceStateUnknown specifies the namespace state unknown state for
+	// namespace state.
+	NamespaceStateUnknown NamespaceState = "Unknown"
+)
+
 // Policykey enumerates the values for policykey.
 type Policykey string
 
@@ -114,14 +159,14 @@ const (
 	TooManyNamespaceInCurrentSubscription UnavailableReason = "TooManyNamespaceInCurrentSubscription"
 )
 
-// CheckNameAvailability is description of a Check Name availability request
-// properties.
-type CheckNameAvailability struct {
+// CheckNameAvailabilityParameter is parameter supplied to check Namespace name
+// availability operation
+type CheckNameAvailabilityParameter struct {
 	Name *string `json:"name,omitempty"`
 }
 
-// CheckNameAvailabilityResult is description of a Check Name availability
-// request properties.
+// CheckNameAvailabilityResult is the Result of the CheckNameAvailability
+// operation
 type CheckNameAvailabilityResult struct {
 	autorest.Response `json:"-"`
 	NameAvailable     *bool             `json:"nameAvailable,omitempty"`
@@ -129,21 +174,20 @@ type CheckNameAvailabilityResult struct {
 	Message           *string           `json:"message,omitempty"`
 }
 
-// ConsumerGroup is description of the consumer group resource.
-type ConsumerGroup struct {
-	autorest.Response        `json:"-"`
-	ID                       *string `json:"id,omitempty"`
-	Name                     *string `json:"name,omitempty"`
+// ConsumerGroupCreateOrUpdateParameters is parameters supplied to the Create
+// Or Update Consumer Group operation.
+type ConsumerGroupCreateOrUpdateParameters struct {
+	Location                 *string `json:"location,omitempty"`
 	Type                     *string `json:"type,omitempty"`
+	Name                     *string `json:"name,omitempty"`
 	*ConsumerGroupProperties `json:"properties,omitempty"`
 }
 
-// ConsumerGroupListResult is the response to the List Consumer Group
-// operation.
+// ConsumerGroupListResult is the result to the List Consumer Group operation.
 type ConsumerGroupListResult struct {
 	autorest.Response `json:"-"`
-	Value             *[]ConsumerGroup `json:"value,omitempty"`
-	NextLink          *string          `json:"nextLink,omitempty"`
+	Value             *[]ConsumerGroupResource `json:"value,omitempty"`
+	NextLink          *string                  `json:"nextLink,omitempty"`
 }
 
 // ConsumerGroupListResultPreparer prepares a request to retrieve the next set of results. It returns
@@ -158,7 +202,8 @@ func (client ConsumerGroupListResult) ConsumerGroupListResultPreparer() (*http.R
 		autorest.WithBaseURL(to.String(client.NextLink)))
 }
 
-// ConsumerGroupProperties is description of a Consumer Group properties.
+// ConsumerGroupProperties is properties supplied to the Create Or Update
+// Consumer Group operation.
 type ConsumerGroupProperties struct {
 	CreatedAt    *date.Time `json:"createdAt,omitempty"`
 	EventHubPath *string    `json:"eventHubPath,omitempty"`
@@ -166,27 +211,29 @@ type ConsumerGroupProperties struct {
 	UserMetadata *string    `json:"userMetadata,omitempty"`
 }
 
-// ErrorResponse is error reponse indicates EventHub service is not able to
-// process the incoming request. The reason is provided in the error message.
-type ErrorResponse struct {
-	Code    *string `json:"code,omitempty"`
-	Message *string `json:"message,omitempty"`
+// ConsumerGroupResource is single item in List or Get Consumer group operation
+type ConsumerGroupResource struct {
+	autorest.Response        `json:"-"`
+	ID                       *string `json:"id,omitempty"`
+	Name                     *string `json:"name,omitempty"`
+	Type                     *string `json:"type,omitempty"`
+	*ConsumerGroupProperties `json:"properties,omitempty"`
 }
 
-// EventHub is description of the Event Hub resource.
-type EventHub struct {
-	autorest.Response `json:"-"`
-	ID                *string `json:"id,omitempty"`
-	Name              *string `json:"name,omitempty"`
-	Type              *string `json:"type,omitempty"`
-	*Properties       `json:"properties,omitempty"`
+// CreateOrUpdateParameters is parameters supplied to the Create Or Update
+// Event Hub operation.
+type CreateOrUpdateParameters struct {
+	Location    *string `json:"location,omitempty"`
+	Type        *string `json:"type,omitempty"`
+	Name        *string `json:"name,omitempty"`
+	*Properties `json:"properties,omitempty"`
 }
 
-// ListResult is the response of the List Event Hubs operation.
+// ListResult is the result of the List EventHubs operation.
 type ListResult struct {
 	autorest.Response `json:"-"`
-	Value             *[]EventHub `json:"value,omitempty"`
-	NextLink          *string     `json:"nextLink,omitempty"`
+	Value             *[]ResourceType `json:"value,omitempty"`
+	NextLink          *string         `json:"nextLink,omitempty"`
 }
 
 // ListResultPreparer prepares a request to retrieve the next set of results. It returns
@@ -201,23 +248,20 @@ func (client ListResult) ListResultPreparer() (*http.Request, error) {
 		autorest.WithBaseURL(to.String(client.NextLink)))
 }
 
-// Namespace is description of a namespace resource.
-type Namespace struct {
-	autorest.Response    `json:"-"`
-	ID                   *string             `json:"id,omitempty"`
-	Name                 *string             `json:"name,omitempty"`
-	Type                 *string             `json:"type,omitempty"`
+// NamespaceCreateOrUpdateParameters is parameters supplied to the Create Or
+// Update Namespace operation.
+type NamespaceCreateOrUpdateParameters struct {
 	Location             *string             `json:"location,omitempty"`
-	Tags                 *map[string]*string `json:"tags,omitempty"`
 	Sku                  *Sku                `json:"sku,omitempty"`
+	Tags                 *map[string]*string `json:"tags,omitempty"`
 	*NamespaceProperties `json:"properties,omitempty"`
 }
 
 // NamespaceListResult is the response of the List Namespace operation.
 type NamespaceListResult struct {
 	autorest.Response `json:"-"`
-	Value             *[]Namespace `json:"value,omitempty"`
-	NextLink          *string      `json:"nextLink,omitempty"`
+	Value             *[]NamespaceResource `json:"value,omitempty"`
+	NextLink          *string              `json:"nextLink,omitempty"`
 }
 
 // NamespaceListResultPreparer prepares a request to retrieve the next set of results. It returns
@@ -232,22 +276,38 @@ func (client NamespaceListResult) NamespaceListResultPreparer() (*http.Request, 
 		autorest.WithBaseURL(to.String(client.NextLink)))
 }
 
-// NamespaceProperties is properties of the namespace.
+// NamespaceProperties is properties of the Namespace supplied for create or
+// update Namespace operation
 type NamespaceProperties struct {
-	ProvisioningState  *string    `json:"provisioningState,omitempty"`
-	CreatedAt          *date.Time `json:"createdAt,omitempty"`
-	UpdatedAt          *date.Time `json:"updatedAt,omitempty"`
-	ServiceBusEndpoint *string    `json:"serviceBusEndpoint,omitempty"`
+	Status             NamespaceState `json:"status,omitempty"`
+	ProvisioningState  *string        `json:"provisioningState,omitempty"`
+	CreatedAt          *date.Time     `json:"createdAt,omitempty"`
+	UpdatedAt          *date.Time     `json:"updatedAt,omitempty"`
+	ServiceBusEndpoint *string        `json:"serviceBusEndpoint,omitempty"`
+	MetricID           *string        `json:"metricId,omitempty"`
+	Enabled            *bool          `json:"enabled,omitempty"`
 }
 
-// NamespaceUpdateParameter is parameters supplied to the Patch Namespace
-// operation.
+// NamespaceResource is single Namespace item in List or Get Operation
+type NamespaceResource struct {
+	autorest.Response    `json:"-"`
+	ID                   *string             `json:"id,omitempty"`
+	Name                 *string             `json:"name,omitempty"`
+	Type                 *string             `json:"type,omitempty"`
+	Location             *string             `json:"location,omitempty"`
+	Tags                 *map[string]*string `json:"tags,omitempty"`
+	Sku                  *Sku                `json:"sku,omitempty"`
+	*NamespaceProperties `json:"properties,omitempty"`
+}
+
+// NamespaceUpdateParameter is parameters supplied to the Patch/update
+// Namespace operation.
 type NamespaceUpdateParameter struct {
 	Tags *map[string]*string `json:"tags,omitempty"`
 	Sku  *Sku                `json:"sku,omitempty"`
 }
 
-// Operation is a EventHub REST API operation
+// Operation is a Event Hub REST API operation
 type Operation struct {
 	Name    *string           `json:"name,omitempty"`
 	Display *OperationDisplay `json:"display,omitempty"`
@@ -260,8 +320,9 @@ type OperationDisplay struct {
 	Operation *string `json:"operation,omitempty"`
 }
 
-// OperationListResult is result of the request to list EventHub operations. It
-// contains a list of operations and a URL link to get the next set of results.
+// OperationListResult is result of the request to list Event Hub operations.
+// It contains a list of operations and a URL link to get the next set of
+// results.
 type OperationListResult struct {
 	autorest.Response `json:"-"`
 	Value             *[]Operation `json:"value,omitempty"`
@@ -280,7 +341,8 @@ func (client OperationListResult) OperationListResultPreparer() (*http.Request, 
 		autorest.WithBaseURL(to.String(client.NextLink)))
 }
 
-// Properties is description of a EventHub Properties.
+// Properties is properties supplied to the Create Or Update Event Hub
+// operation.
 type Properties struct {
 	CreatedAt              *date.Time   `json:"createdAt,omitempty"`
 	MessageRetentionInDays *int64       `json:"messageRetentionInDays,omitempty"`
@@ -291,7 +353,7 @@ type Properties struct {
 }
 
 // RegenerateKeysParameters is parameters supplied to the Regenerate
-// Authorization Rule operation.
+// Authorization Rule keys operation.
 type RegenerateKeysParameters struct {
 	Policykey Policykey `json:"policykey,omitempty"`
 }
@@ -313,13 +375,20 @@ type ResourceListKeys struct {
 	KeyName                   *string `json:"keyName,omitempty"`
 }
 
-// SharedAccessAuthorizationRule is description of a namespace authorization
-// rule.
-type SharedAccessAuthorizationRule struct {
-	autorest.Response                        `json:"-"`
-	ID                                       *string `json:"id,omitempty"`
+// ResourceType is single item in List or Get Event Hub operation
+type ResourceType struct {
+	autorest.Response `json:"-"`
+	ID                *string `json:"id,omitempty"`
+	Name              *string `json:"name,omitempty"`
+	Type              *string `json:"type,omitempty"`
+	*Properties       `json:"properties,omitempty"`
+}
+
+// SharedAccessAuthorizationRuleCreateOrUpdateParameters is parameters supplied
+// to the Create Or Update Authorization Rules operation.
+type SharedAccessAuthorizationRuleCreateOrUpdateParameters struct {
+	Location                                 *string `json:"location,omitempty"`
 	Name                                     *string `json:"name,omitempty"`
-	Type                                     *string `json:"type,omitempty"`
 	*SharedAccessAuthorizationRuleProperties `json:"properties,omitempty"`
 }
 
@@ -327,8 +396,8 @@ type SharedAccessAuthorizationRule struct {
 // Namespace operation.
 type SharedAccessAuthorizationRuleListResult struct {
 	autorest.Response `json:"-"`
-	Value             *[]SharedAccessAuthorizationRule `json:"value,omitempty"`
-	NextLink          *string                          `json:"nextLink,omitempty"`
+	Value             *[]SharedAccessAuthorizationRuleResource `json:"value,omitempty"`
+	NextLink          *string                                  `json:"nextLink,omitempty"`
 }
 
 // SharedAccessAuthorizationRuleListResultPreparer prepares a request to retrieve the next set of results. It returns
@@ -343,13 +412,23 @@ func (client SharedAccessAuthorizationRuleListResult) SharedAccessAuthorizationR
 		autorest.WithBaseURL(to.String(client.NextLink)))
 }
 
-// SharedAccessAuthorizationRuleProperties is sharedAccessAuthorizationRule
-// properties.
+// SharedAccessAuthorizationRuleProperties is properties supplied to create or
+// update SharedAccessAuthorizationRule
 type SharedAccessAuthorizationRuleProperties struct {
 	Rights *[]AccessRights `json:"rights,omitempty"`
 }
 
-// Sku is sKU of the namespace.
+// SharedAccessAuthorizationRuleResource is single item in a List or Get
+// AuthorizationRule operation
+type SharedAccessAuthorizationRuleResource struct {
+	autorest.Response                        `json:"-"`
+	ID                                       *string `json:"id,omitempty"`
+	Name                                     *string `json:"name,omitempty"`
+	Type                                     *string `json:"type,omitempty"`
+	*SharedAccessAuthorizationRuleProperties `json:"properties,omitempty"`
+}
+
+// Sku is sKU parameters supplied to the create Namespace operation
 type Sku struct {
 	Name     SkuName `json:"name,omitempty"`
 	Tier     SkuTier `json:"tier,omitempty"`

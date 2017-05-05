@@ -55,7 +55,9 @@ func NewCustomDomainsClientWithBaseURI(baseURI string, subscriptionID string) Cu
 // which is unique globally. customDomainName is name of the custom domain
 // within an endpoint. customDomainProperties is properties required to create
 // a new custom domain.
-func (client CustomDomainsClient) Create(resourceGroupName string, profileName string, endpointName string, customDomainName string, customDomainProperties CustomDomainParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
+func (client CustomDomainsClient) Create(resourceGroupName string, profileName string, endpointName string, customDomainName string, customDomainProperties CustomDomainParameters, cancel <-chan struct{}) (<-chan CustomDomain, <-chan error) {
+	resultChan := make(chan CustomDomain, 1)
+	errChan := make(chan error, 1)
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -64,26 +66,40 @@ func (client CustomDomainsClient) Create(resourceGroupName string, profileName s
 		{TargetValue: customDomainProperties,
 			Constraints: []validation.Constraint{{Target: "customDomainProperties.CustomDomainPropertiesParameters", Name: validation.Null, Rule: false,
 				Chain: []validation.Constraint{{Target: "customDomainProperties.CustomDomainPropertiesParameters.HostName", Name: validation.Null, Rule: true, Chain: nil}}}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "cdn.CustomDomainsClient", "Create")
+		errChan <- validation.NewErrorWithValidationError(err, "cdn.CustomDomainsClient", "Create")
+		close(errChan)
+		close(resultChan)
+		return resultChan, errChan
 	}
 
-	req, err := client.CreatePreparer(resourceGroupName, profileName, endpointName, customDomainName, customDomainProperties, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "Create", nil, "Failure preparing request")
-	}
+	go func() {
+		var err error
+		var result CustomDomain
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.CreatePreparer(resourceGroupName, profileName, endpointName, customDomainName, customDomainProperties, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "Create", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.CreateSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "Create", resp, "Failure sending request")
-	}
+		resp, err := client.CreateSender(req)
+		if err != nil {
+			result.Response = autorest.Response{Response: resp}
+			err = autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "Create", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "Create", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.CreateResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "Create", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // CreatePreparer prepares the Create request.
@@ -121,13 +137,14 @@ func (client CustomDomainsClient) CreateSender(req *http.Request) (*http.Respons
 
 // CreateResponder handles the response to the Create request. The method always
 // closes the http.Response Body.
-func (client CustomDomainsClient) CreateResponder(resp *http.Response) (result autorest.Response, err error) {
+func (client CustomDomainsClient) CreateResponder(resp *http.Response) (result CustomDomain, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusAccepted),
+		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
-	result.Response = resp
+	result.Response = autorest.Response{Response: resp}
 	return
 }
 
@@ -141,32 +158,48 @@ func (client CustomDomainsClient) CreateResponder(resp *http.Response) (result a
 // the resource group. endpointName is name of the endpoint under the profile
 // which is unique globally. customDomainName is name of the custom domain
 // within an endpoint.
-func (client CustomDomainsClient) Delete(resourceGroupName string, profileName string, endpointName string, customDomainName string, cancel <-chan struct{}) (result autorest.Response, err error) {
+func (client CustomDomainsClient) Delete(resourceGroupName string, profileName string, endpointName string, customDomainName string, cancel <-chan struct{}) (<-chan CustomDomain, <-chan error) {
+	resultChan := make(chan CustomDomain, 1)
+	errChan := make(chan error, 1)
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "cdn.CustomDomainsClient", "Delete")
+		errChan <- validation.NewErrorWithValidationError(err, "cdn.CustomDomainsClient", "Delete")
+		close(errChan)
+		close(resultChan)
+		return resultChan, errChan
 	}
 
-	req, err := client.DeletePreparer(resourceGroupName, profileName, endpointName, customDomainName, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "Delete", nil, "Failure preparing request")
-	}
+	go func() {
+		var err error
+		var result CustomDomain
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.DeletePreparer(resourceGroupName, profileName, endpointName, customDomainName, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "Delete", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.DeleteSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "Delete", resp, "Failure sending request")
-	}
+		resp, err := client.DeleteSender(req)
+		if err != nil {
+			result.Response = autorest.Response{Response: resp}
+			err = autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "Delete", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "Delete", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.DeleteResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "Delete", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // DeletePreparer prepares the Delete request.
@@ -202,13 +235,14 @@ func (client CustomDomainsClient) DeleteSender(req *http.Request) (*http.Respons
 
 // DeleteResponder handles the response to the Delete request. The method always
 // closes the http.Response Body.
-func (client CustomDomainsClient) DeleteResponder(resp *http.Response) (result autorest.Response, err error) {
+func (client CustomDomainsClient) DeleteResponder(resp *http.Response) (result CustomDomain, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent),
+		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
-	result.Response = resp
+	result.Response = autorest.Response{Response: resp}
 	return
 }
 
@@ -230,13 +264,15 @@ func (client CustomDomainsClient) DisableCustomHTTPS(resourceGroupName string, p
 
 	req, err := client.DisableCustomHTTPSPreparer(resourceGroupName, profileName, endpointName, customDomainName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "DisableCustomHTTPS", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "DisableCustomHTTPS", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.DisableCustomHTTPSSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "DisableCustomHTTPS", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "DisableCustomHTTPS", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.DisableCustomHTTPSResponder(resp)
@@ -307,13 +343,15 @@ func (client CustomDomainsClient) EnableCustomHTTPS(resourceGroupName string, pr
 
 	req, err := client.EnableCustomHTTPSPreparer(resourceGroupName, profileName, endpointName, customDomainName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "EnableCustomHTTPS", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "EnableCustomHTTPS", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.EnableCustomHTTPSSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "EnableCustomHTTPS", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "EnableCustomHTTPS", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.EnableCustomHTTPSResponder(resp)
@@ -384,13 +422,15 @@ func (client CustomDomainsClient) Get(resourceGroupName string, profileName stri
 
 	req, err := client.GetPreparer(resourceGroupName, profileName, endpointName, customDomainName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "Get", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "Get", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.GetSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "Get", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "Get", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.GetResponder(resp)
@@ -460,13 +500,15 @@ func (client CustomDomainsClient) ListByEndpoint(resourceGroupName string, profi
 
 	req, err := client.ListByEndpointPreparer(resourceGroupName, profileName, endpointName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "ListByEndpoint", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "ListByEndpoint", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListByEndpointSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "ListByEndpoint", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "ListByEndpoint", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListByEndpointResponder(resp)

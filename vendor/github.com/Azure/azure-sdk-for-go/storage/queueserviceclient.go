@@ -9,12 +9,20 @@ type QueueServiceClient struct {
 
 // GetServiceProperties gets the properties of your storage account's queue service.
 // See: https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/get-queue-service-properties
-func (c *QueueServiceClient) GetServiceProperties() (*ServiceProperties, error) {
-	return c.client.getServiceProperties(queueServiceName, c.auth)
+func (q *QueueServiceClient) GetServiceProperties() (*ServiceProperties, error) {
+	return q.client.getServiceProperties(queueServiceName, q.auth)
 }
 
 // SetServiceProperties sets the properties of your storage account's queue service.
 // See: https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/set-queue-service-properties
-func (c *QueueServiceClient) SetServiceProperties(props ServiceProperties) error {
-	return c.client.setServiceProperties(props, queueServiceName, c.auth)
+func (q *QueueServiceClient) SetServiceProperties(props ServiceProperties) error {
+	return q.client.setServiceProperties(props, queueServiceName, q.auth)
+}
+
+// GetQueueReference returns a Container object for the specified queue name.
+func (q *QueueServiceClient) GetQueueReference(name string) *Queue {
+	return &Queue{
+		qsc:  q,
+		Name: name,
+	}
 }

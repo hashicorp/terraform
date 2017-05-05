@@ -52,7 +52,9 @@ func NewContainerServicesClientWithBaseURI(baseURI string, subscriptionID string
 // the name of the container service in the specified subscription and resource
 // group. parameters is parameters supplied to the Create or Update a Container
 // Service operation.
-func (client ContainerServicesClient) CreateOrUpdate(resourceGroupName string, containerServiceName string, parameters ContainerService, cancel <-chan struct{}) (result autorest.Response, err error) {
+func (client ContainerServicesClient) CreateOrUpdate(resourceGroupName string, containerServiceName string, parameters ContainerService, cancel <-chan struct{}) (<-chan ContainerService, <-chan error) {
+	resultChan := make(chan ContainerService, 1)
+	errChan := make(chan error, 1)
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
@@ -82,26 +84,40 @@ func (client ContainerServicesClient) CreateOrUpdate(resourceGroupName string, c
 							Chain: []validation.Constraint{{Target: "parameters.Properties.DiagnosticsProfile.VMDiagnostics.Enabled", Name: validation.Null, Rule: true, Chain: nil}}},
 						}},
 				}}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "containerservice.ContainerServicesClient", "CreateOrUpdate")
+		errChan <- validation.NewErrorWithValidationError(err, "containerservice.ContainerServicesClient", "CreateOrUpdate")
+		close(errChan)
+		close(resultChan)
+		return resultChan, errChan
 	}
 
-	req, err := client.CreateOrUpdatePreparer(resourceGroupName, containerServiceName, parameters, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "containerservice.ContainerServicesClient", "CreateOrUpdate", nil, "Failure preparing request")
-	}
+	go func() {
+		var err error
+		var result ContainerService
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.CreateOrUpdatePreparer(resourceGroupName, containerServiceName, parameters, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "containerservice.ContainerServicesClient", "CreateOrUpdate", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.CreateOrUpdateSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "containerservice.ContainerServicesClient", "CreateOrUpdate", resp, "Failure sending request")
-	}
+		resp, err := client.CreateOrUpdateSender(req)
+		if err != nil {
+			result.Response = autorest.Response{Response: resp}
+			err = autorest.NewErrorWithError(err, "containerservice.ContainerServicesClient", "CreateOrUpdate", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "containerservice.ContainerServicesClient", "CreateOrUpdate", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.CreateOrUpdateResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "containerservice.ContainerServicesClient", "CreateOrUpdate", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // CreateOrUpdatePreparer prepares the CreateOrUpdate request.
@@ -112,7 +128,7 @@ func (client ContainerServicesClient) CreateOrUpdatePreparer(resourceGroupName s
 		"subscriptionId":       autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2016-09-30"
+	const APIVersion = "2017-01-31"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -137,13 +153,14 @@ func (client ContainerServicesClient) CreateOrUpdateSender(req *http.Request) (*
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
 // closes the http.Response Body.
-func (client ContainerServicesClient) CreateOrUpdateResponder(resp *http.Response) (result autorest.Response, err error) {
+func (client ContainerServicesClient) CreateOrUpdateResponder(resp *http.Response) (result ContainerService, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusAccepted),
+		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
-	result.Response = resp
+	result.Response = autorest.Response{Response: resp}
 	return
 }
 
@@ -159,24 +176,37 @@ func (client ContainerServicesClient) CreateOrUpdateResponder(resp *http.Respons
 // resourceGroupName is the name of the resource group. containerServiceName is
 // the name of the container service in the specified subscription and resource
 // group.
-func (client ContainerServicesClient) Delete(resourceGroupName string, containerServiceName string, cancel <-chan struct{}) (result autorest.Response, err error) {
-	req, err := client.DeletePreparer(resourceGroupName, containerServiceName, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "containerservice.ContainerServicesClient", "Delete", nil, "Failure preparing request")
-	}
+func (client ContainerServicesClient) Delete(resourceGroupName string, containerServiceName string, cancel <-chan struct{}) (<-chan autorest.Response, <-chan error) {
+	resultChan := make(chan autorest.Response, 1)
+	errChan := make(chan error, 1)
+	go func() {
+		var err error
+		var result autorest.Response
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.DeletePreparer(resourceGroupName, containerServiceName, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "containerservice.ContainerServicesClient", "Delete", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.DeleteSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "containerservice.ContainerServicesClient", "Delete", resp, "Failure sending request")
-	}
+		resp, err := client.DeleteSender(req)
+		if err != nil {
+			result.Response = resp
+			err = autorest.NewErrorWithError(err, "containerservice.ContainerServicesClient", "Delete", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "containerservice.ContainerServicesClient", "Delete", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.DeleteResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "containerservice.ContainerServicesClient", "Delete", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // DeletePreparer prepares the Delete request.
@@ -187,7 +217,7 @@ func (client ContainerServicesClient) DeletePreparer(resourceGroupName string, c
 		"subscriptionId":       autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2016-09-30"
+	const APIVersion = "2017-01-31"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -231,13 +261,15 @@ func (client ContainerServicesClient) DeleteResponder(resp *http.Response) (resu
 func (client ContainerServicesClient) Get(resourceGroupName string, containerServiceName string) (result ContainerService, err error) {
 	req, err := client.GetPreparer(resourceGroupName, containerServiceName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "containerservice.ContainerServicesClient", "Get", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "containerservice.ContainerServicesClient", "Get", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.GetSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "containerservice.ContainerServicesClient", "Get", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "containerservice.ContainerServicesClient", "Get", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.GetResponder(resp)
@@ -256,7 +288,7 @@ func (client ContainerServicesClient) GetPreparer(resourceGroupName string, cont
 		"subscriptionId":       autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2016-09-30"
+	const APIVersion = "2017-01-31"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -294,13 +326,15 @@ func (client ContainerServicesClient) GetResponder(resp *http.Response) (result 
 func (client ContainerServicesClient) List() (result ListResult, err error) {
 	req, err := client.ListPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "containerservice.ContainerServicesClient", "List", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "containerservice.ContainerServicesClient", "List", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "containerservice.ContainerServicesClient", "List", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "containerservice.ContainerServicesClient", "List", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListResponder(resp)
@@ -317,7 +351,7 @@ func (client ContainerServicesClient) ListPreparer() (*http.Request, error) {
 		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2016-09-30"
+	const APIVersion = "2017-01-31"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -382,13 +416,15 @@ func (client ContainerServicesClient) ListNextResults(lastResults ListResult) (r
 func (client ContainerServicesClient) ListByResourceGroup(resourceGroupName string) (result ListResult, err error) {
 	req, err := client.ListByResourceGroupPreparer(resourceGroupName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "containerservice.ContainerServicesClient", "ListByResourceGroup", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "containerservice.ContainerServicesClient", "ListByResourceGroup", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListByResourceGroupSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "containerservice.ContainerServicesClient", "ListByResourceGroup", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "containerservice.ContainerServicesClient", "ListByResourceGroup", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListByResourceGroupResponder(resp)
@@ -406,7 +442,7 @@ func (client ContainerServicesClient) ListByResourceGroupPreparer(resourceGroupN
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
-	const APIVersion = "2016-09-30"
+	const APIVersion = "2017-01-31"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}

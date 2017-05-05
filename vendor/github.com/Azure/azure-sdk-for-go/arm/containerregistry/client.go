@@ -1,5 +1,5 @@
 // Package containerregistry implements the Azure ARM Containerregistry service
-// API version 2016-06-27-preview.
+// API version 2017-03-01.
 //
 //
 package containerregistry

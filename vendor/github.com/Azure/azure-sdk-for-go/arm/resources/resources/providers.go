@@ -49,13 +49,15 @@ func NewProvidersClientWithBaseURI(baseURI string, subscriptionID string) Provid
 func (client ProvidersClient) Get(resourceProviderNamespace string, expand string) (result Provider, err error) {
 	req, err := client.GetPreparer(resourceProviderNamespace, expand)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "resources.ProvidersClient", "Get", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "resources.ProvidersClient", "Get", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.GetSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "resources.ProvidersClient", "Get", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "resources.ProvidersClient", "Get", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.GetResponder(resp)
@@ -118,13 +120,15 @@ func (client ProvidersClient) GetResponder(resp *http.Response) (result Provider
 func (client ProvidersClient) List(top *int32, expand string) (result ProviderListResult, err error) {
 	req, err := client.ListPreparer(top, expand)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "resources.ProvidersClient", "List", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "resources.ProvidersClient", "List", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "resources.ProvidersClient", "List", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "resources.ProvidersClient", "List", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListResponder(resp)
@@ -210,13 +214,15 @@ func (client ProvidersClient) ListNextResults(lastResults ProviderListResult) (r
 func (client ProvidersClient) Register(resourceProviderNamespace string) (result Provider, err error) {
 	req, err := client.RegisterPreparer(resourceProviderNamespace)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "resources.ProvidersClient", "Register", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "resources.ProvidersClient", "Register", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.RegisterSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "resources.ProvidersClient", "Register", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "resources.ProvidersClient", "Register", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.RegisterResponder(resp)
@@ -273,13 +279,15 @@ func (client ProvidersClient) RegisterResponder(resp *http.Response) (result Pro
 func (client ProvidersClient) Unregister(resourceProviderNamespace string) (result Provider, err error) {
 	req, err := client.UnregisterPreparer(resourceProviderNamespace)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "resources.ProvidersClient", "Unregister", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "resources.ProvidersClient", "Unregister", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.UnregisterSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "resources.ProvidersClient", "Unregister", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "resources.ProvidersClient", "Unregister", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.UnregisterResponder(resp)

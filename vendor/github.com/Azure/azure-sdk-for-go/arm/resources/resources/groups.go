@@ -56,13 +56,15 @@ func (client GroupsClient) CheckExistence(resourceGroupName string) (result auto
 
 	req, err := client.CheckExistencePreparer(resourceGroupName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "CheckExistence", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "resources.GroupsClient", "CheckExistence", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.CheckExistenceSender(req)
 	if err != nil {
 		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "CheckExistence", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "resources.GroupsClient", "CheckExistence", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.CheckExistenceResponder(resp)
@@ -128,13 +130,15 @@ func (client GroupsClient) CreateOrUpdate(resourceGroupName string, parameters G
 
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, parameters)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "CreateOrUpdate", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "resources.GroupsClient", "CreateOrUpdate", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.CreateOrUpdateSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "CreateOrUpdate", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "resources.GroupsClient", "CreateOrUpdate", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.CreateOrUpdateResponder(resp)
@@ -194,32 +198,48 @@ func (client GroupsClient) CreateOrUpdateResponder(resp *http.Response) (result 
 //
 // resourceGroupName is the name of the resource group to delete. The name is
 // case insensitive.
-func (client GroupsClient) Delete(resourceGroupName string, cancel <-chan struct{}) (result autorest.Response, err error) {
+func (client GroupsClient) Delete(resourceGroupName string, cancel <-chan struct{}) (<-chan autorest.Response, <-chan error) {
+	resultChan := make(chan autorest.Response, 1)
+	errChan := make(chan error, 1)
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "resources.GroupsClient", "Delete")
+		errChan <- validation.NewErrorWithValidationError(err, "resources.GroupsClient", "Delete")
+		close(errChan)
+		close(resultChan)
+		return resultChan, errChan
 	}
 
-	req, err := client.DeletePreparer(resourceGroupName, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "Delete", nil, "Failure preparing request")
-	}
+	go func() {
+		var err error
+		var result autorest.Response
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.DeletePreparer(resourceGroupName, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "resources.GroupsClient", "Delete", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.DeleteSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "Delete", resp, "Failure sending request")
-	}
+		resp, err := client.DeleteSender(req)
+		if err != nil {
+			result.Response = resp
+			err = autorest.NewErrorWithError(err, "resources.GroupsClient", "Delete", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "resources.GroupsClient", "Delete", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.DeleteResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "resources.GroupsClient", "Delete", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // DeletePreparer prepares the Delete request.
@@ -277,13 +297,15 @@ func (client GroupsClient) ExportTemplate(resourceGroupName string, parameters E
 
 	req, err := client.ExportTemplatePreparer(resourceGroupName, parameters)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "ExportTemplate", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "resources.GroupsClient", "ExportTemplate", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ExportTemplateSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "ExportTemplate", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "resources.GroupsClient", "ExportTemplate", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ExportTemplateResponder(resp)
@@ -350,13 +372,15 @@ func (client GroupsClient) Get(resourceGroupName string) (result Group, err erro
 
 	req, err := client.GetPreparer(resourceGroupName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "Get", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "resources.GroupsClient", "Get", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.GetSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "Get", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "resources.GroupsClient", "Get", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.GetResponder(resp)
@@ -413,13 +437,15 @@ func (client GroupsClient) GetResponder(resp *http.Response) (result Group, err 
 func (client GroupsClient) List(filter string, top *int32) (result GroupListResult, err error) {
 	req, err := client.ListPreparer(filter, top)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "List", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "resources.GroupsClient", "List", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "List", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "resources.GroupsClient", "List", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListResponder(resp)
@@ -515,13 +541,15 @@ func (client GroupsClient) ListResources(resourceGroupName string, filter string
 
 	req, err := client.ListResourcesPreparer(resourceGroupName, filter, expand, top)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "ListResources", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "resources.GroupsClient", "ListResources", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListResourcesSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "ListResources", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "resources.GroupsClient", "ListResources", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListResourcesResponder(resp)
@@ -622,13 +650,15 @@ func (client GroupsClient) Patch(resourceGroupName string, parameters Group) (re
 
 	req, err := client.PatchPreparer(resourceGroupName, parameters)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "Patch", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "resources.GroupsClient", "Patch", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.PatchSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "Patch", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "resources.GroupsClient", "Patch", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.PatchResponder(resp)

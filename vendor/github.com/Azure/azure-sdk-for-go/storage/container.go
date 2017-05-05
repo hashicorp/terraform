@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -16,6 +17,7 @@ type Container struct {
 	bsc        *BlobStorageClient
 	Name       string              `xml:"Name"`
 	Properties ContainerProperties `xml:"Properties"`
+	Metadata   map[string]string
 }
 
 func (c *Container) buildPath() string {
@@ -69,6 +71,14 @@ type BlobListResponse struct {
 	Delimiter string `xml:"Delimiter"`
 }
 
+// IncludeBlobDataset has options to include in a list blobs operation
+type IncludeBlobDataset struct {
+	Snapshots        bool
+	Metadata         bool
+	UncommittedBlobs bool
+	Copy             bool
+}
+
 // ListBlobsParameters defines the set of customizable
 // parameters to make a List Blobs call.
 //
@@ -77,9 +87,10 @@ type ListBlobsParameters struct {
 	Prefix     string
 	Delimiter  string
 	Marker     string
-	Include    string
+	Include    *IncludeBlobDataset
 	MaxResults uint
 	Timeout    uint
+	RequestID  string
 }
 
 func (p ListBlobsParameters) getParameters() url.Values {
@@ -94,17 +105,30 @@ func (p ListBlobsParameters) getParameters() url.Values {
 	if p.Marker != "" {
 		out.Set("marker", p.Marker)
 	}
-	if p.Include != "" {
-		out.Set("include", p.Include)
+	if p.Include != nil {
+		include := []string{}
+		include = addString(include, p.Include.Snapshots, "snapshots")
+		include = addString(include, p.Include.Metadata, "metadata")
+		include = addString(include, p.Include.UncommittedBlobs, "uncommittedblobs")
+		include = addString(include, p.Include.Copy, "copy")
+		fullInclude := strings.Join(include, ",")
+		out.Set("include", fullInclude)
 	}
 	if p.MaxResults != 0 {
-		out.Set("maxresults", fmt.Sprintf("%v", p.MaxResults))
+		out.Set("maxresults", strconv.FormatUint(uint64(p.MaxResults), 10))
 	}
 	if p.Timeout != 0 {
-		out.Set("timeout", fmt.Sprintf("%v", p.Timeout))
+		out.Set("timeout", strconv.FormatUint(uint64(p.Timeout), 10))
 	}
 
 	return out
+}
+
+func addString(datasets []string, include bool, text string) []string {
+	if include {
+		datasets = append(datasets, text)
+	}
+	return datasets
 }
 
 // ContainerAccessType defines the access level to the container from a public
@@ -142,23 +166,38 @@ const (
 	ContainerAccessHeader string = "x-ms-blob-public-access"
 )
 
+// GetBlobReference returns a Blob object for the specified blob name.
+func (c *Container) GetBlobReference(name string) Blob {
+	return Blob{
+		Container: c,
+		Name:      name,
+	}
+}
+
+// CreateContainerOptions includes the options for a create container operation
+type CreateContainerOptions struct {
+	Timeout   uint
+	Access    ContainerAccessType `header:"x-ms-blob-public-access"`
+	RequestID string              `header:"x-ms-client-request-id"`
+}
+
 // Create creates a blob container within the storage account
 // with given name and access level. Returns error if container already exists.
 //
-// See https://msdn.microsoft.com/en-us/library/azure/dd179468.aspx
-func (c *Container) Create() error {
-	resp, err := c.create()
+// See https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/Create-Container
+func (c *Container) Create(options *CreateContainerOptions) error {
+	resp, err := c.create(options)
 	if err != nil {
 		return err
 	}
-	defer readAndCloseBody(resp.body)
+	readAndCloseBody(resp.body)
 	return checkRespCode(resp.statusCode, []int{http.StatusCreated})
 }
 
 // CreateIfNotExists creates a blob container if it does not exist. Returns
 // true if container is newly created or false if container already exists.
-func (c *Container) CreateIfNotExists() (bool, error) {
-	resp, err := c.create()
+func (c *Container) CreateIfNotExists(options *CreateContainerOptions) (bool, error) {
+	resp, err := c.create(options)
 	if resp != nil {
 		defer readAndCloseBody(resp.body)
 		if resp.statusCode == http.StatusCreated || resp.statusCode == http.StatusConflict {
@@ -168,9 +207,17 @@ func (c *Container) CreateIfNotExists() (bool, error) {
 	return false, err
 }
 
-func (c *Container) create() (*storageResponse, error) {
-	uri := c.bsc.client.getEndpoint(blobServiceName, c.buildPath(), url.Values{"restype": {"container"}})
+func (c *Container) create(options *CreateContainerOptions) (*storageResponse, error) {
+	query := url.Values{"restype": {"container"}}
 	headers := c.bsc.client.getStandardHeaders()
+	headers = c.bsc.client.addMetadataToHeaders(headers, c.Metadata)
+
+	if options != nil {
+		query = addTimeout(query, options.Timeout)
+		headers = mergeHeaders(headers, headersFromStruct(*options))
+	}
+	uri := c.bsc.client.getEndpoint(blobServiceName, c.buildPath(), query)
+
 	return c.bsc.client.exec(http.MethodPut, uri, headers, nil, c.bsc.auth)
 }
 
@@ -190,29 +237,35 @@ func (c *Container) Exists() (bool, error) {
 	return false, err
 }
 
-// SetPermissions sets up container permissions as per https://msdn.microsoft.com/en-us/library/azure/dd179391.aspx
-func (c *Container) SetPermissions(permissions ContainerPermissions, timeout int, leaseID string) error {
+// SetContainerPermissionOptions includes options for a set container permissions operation
+type SetContainerPermissionOptions struct {
+	Timeout           uint
+	LeaseID           string     `header:"x-ms-lease-id"`
+	IfModifiedSince   *time.Time `header:"If-Modified-Since"`
+	IfUnmodifiedSince *time.Time `header:"If-Unmodified-Since"`
+	RequestID         string     `header:"x-ms-client-request-id"`
+}
+
+// SetPermissions sets up container permissions
+// See https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/Set-Container-ACL
+func (c *Container) SetPermissions(permissions ContainerPermissions, options *SetContainerPermissionOptions) error {
+	body, length, err := generateContainerACLpayload(permissions.AccessPolicies)
+	if err != nil {
+		return err
+	}
 	params := url.Values{
 		"restype": {"container"},
 		"comp":    {"acl"},
 	}
-
-	if timeout > 0 {
-		params.Add("timeout", strconv.Itoa(timeout))
-	}
-
-	uri := c.bsc.client.getEndpoint(blobServiceName, c.buildPath(), params)
 	headers := c.bsc.client.getStandardHeaders()
-	if permissions.AccessType != "" {
-		headers[ContainerAccessHeader] = string(permissions.AccessType)
-	}
-
-	if leaseID != "" {
-		headers[headerLeaseID] = leaseID
-	}
-
-	body, length, err := generateContainerACLpayload(permissions.AccessPolicies)
+	headers = addToHeaders(headers, ContainerAccessHeader, string(permissions.AccessType))
 	headers["Content-Length"] = strconv.Itoa(length)
+
+	if options != nil {
+		params = addTimeout(params, options.Timeout)
+		headers = mergeHeaders(headers, headersFromStruct(*options))
+	}
+	uri := c.bsc.client.getEndpoint(blobServiceName, c.buildPath(), params)
 
 	resp, err := c.bsc.client.exec(http.MethodPut, uri, headers, body, c.bsc.auth)
 	if err != nil {
@@ -227,25 +280,28 @@ func (c *Container) SetPermissions(permissions ContainerPermissions, timeout int
 	return nil
 }
 
+// GetContainerPermissionOptions includes options for a get container permissions operation
+type GetContainerPermissionOptions struct {
+	Timeout   uint
+	LeaseID   string `header:"x-ms-lease-id"`
+	RequestID string `header:"x-ms-client-request-id"`
+}
+
 // GetPermissions gets the container permissions as per https://msdn.microsoft.com/en-us/library/azure/dd179469.aspx
 // If timeout is 0 then it will not be passed to Azure
 // leaseID will only be passed to Azure if populated
-func (c *Container) GetPermissions(timeout int, leaseID string) (*ContainerPermissions, error) {
+func (c *Container) GetPermissions(options *GetContainerPermissionOptions) (*ContainerPermissions, error) {
 	params := url.Values{
 		"restype": {"container"},
 		"comp":    {"acl"},
 	}
-
-	if timeout > 0 {
-		params.Add("timeout", strconv.Itoa(timeout))
-	}
-
-	uri := c.bsc.client.getEndpoint(blobServiceName, c.buildPath(), params)
 	headers := c.bsc.client.getStandardHeaders()
 
-	if leaseID != "" {
-		headers[headerLeaseID] = leaseID
+	if options != nil {
+		params = addTimeout(params, options.Timeout)
+		headers = mergeHeaders(headers, headersFromStruct(*options))
 	}
+	uri := c.bsc.client.getEndpoint(blobServiceName, c.buildPath(), params)
 
 	resp, err := c.bsc.client.exec(http.MethodGet, uri, headers, nil, c.bsc.auth)
 	if err != nil {
@@ -284,16 +340,25 @@ func buildAccessPolicy(ap AccessPolicy, headers *http.Header) *ContainerPermissi
 	return &permissions
 }
 
+// DeleteContainerOptions includes options for a delete container operation
+type DeleteContainerOptions struct {
+	Timeout           uint
+	LeaseID           string     `header:"x-ms-lease-id"`
+	IfModifiedSince   *time.Time `header:"If-Modified-Since"`
+	IfUnmodifiedSince *time.Time `header:"If-Unmodified-Since"`
+	RequestID         string     `header:"x-ms-client-request-id"`
+}
+
 // Delete deletes the container with given name on the storage
 // account. If the container does not exist returns error.
 //
-// See https://msdn.microsoft.com/en-us/library/azure/dd179408.aspx
-func (c *Container) Delete() error {
-	resp, err := c.delete()
+// See https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/delete-container
+func (c *Container) Delete(options *DeleteContainerOptions) error {
+	resp, err := c.delete(options)
 	if err != nil {
 		return err
 	}
-	defer readAndCloseBody(resp.body)
+	readAndCloseBody(resp.body)
 	return checkRespCode(resp.statusCode, []int{http.StatusAccepted})
 }
 
@@ -302,9 +367,9 @@ func (c *Container) Delete() error {
 // false if the container did not exist at the time of the Delete Container
 // operation.
 //
-// See https://msdn.microsoft.com/en-us/library/azure/dd179408.aspx
-func (c *Container) DeleteIfExists() (bool, error) {
-	resp, err := c.delete()
+// See https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/delete-container
+func (c *Container) DeleteIfExists(options *DeleteContainerOptions) (bool, error) {
+	resp, err := c.delete(options)
 	if resp != nil {
 		defer readAndCloseBody(resp.body)
 		if resp.statusCode == http.StatusAccepted || resp.statusCode == http.StatusNotFound {
@@ -314,23 +379,32 @@ func (c *Container) DeleteIfExists() (bool, error) {
 	return false, err
 }
 
-func (c *Container) delete() (*storageResponse, error) {
-	uri := c.bsc.client.getEndpoint(blobServiceName, c.buildPath(), url.Values{"restype": {"container"}})
+func (c *Container) delete(options *DeleteContainerOptions) (*storageResponse, error) {
+	query := url.Values{"restype": {"container"}}
 	headers := c.bsc.client.getStandardHeaders()
+
+	if options != nil {
+		query = addTimeout(query, options.Timeout)
+		headers = mergeHeaders(headers, headersFromStruct(*options))
+	}
+	uri := c.bsc.client.getEndpoint(blobServiceName, c.buildPath(), query)
+
 	return c.bsc.client.exec(http.MethodDelete, uri, headers, nil, c.bsc.auth)
 }
 
 // ListBlobs returns an object that contains list of blobs in the container,
 // pagination token and other information in the response of List Blobs call.
 //
-// See https://msdn.microsoft.com/en-us/library/azure/dd135734.aspx
+// See https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/List-Blobs
 func (c *Container) ListBlobs(params ListBlobsParameters) (BlobListResponse, error) {
 	q := mergeParams(params.getParameters(), url.Values{
 		"restype": {"container"},
 		"comp":    {"list"}},
 	)
 	uri := c.bsc.client.getEndpoint(blobServiceName, c.buildPath(), q)
+
 	headers := c.bsc.client.getStandardHeaders()
+	headers = addToHeaders(headers, "x-ms-client-request-id", params.RequestID)
 
 	var out BlobListResponse
 	resp, err := c.bsc.client.exec(http.MethodGet, uri, headers, nil, c.bsc.auth)

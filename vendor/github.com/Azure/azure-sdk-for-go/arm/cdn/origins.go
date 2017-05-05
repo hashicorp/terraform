@@ -60,13 +60,15 @@ func (client OriginsClient) Get(resourceGroupName string, profileName string, en
 
 	req, err := client.GetPreparer(resourceGroupName, profileName, endpointName, originName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.OriginsClient", "Get", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "cdn.OriginsClient", "Get", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.GetSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "cdn.OriginsClient", "Get", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "cdn.OriginsClient", "Get", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.GetResponder(resp)
@@ -136,13 +138,15 @@ func (client OriginsClient) ListByEndpoint(resourceGroupName string, profileName
 
 	req, err := client.ListByEndpointPreparer(resourceGroupName, profileName, endpointName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.OriginsClient", "ListByEndpoint", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "cdn.OriginsClient", "ListByEndpoint", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListByEndpointSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "cdn.OriginsClient", "ListByEndpoint", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "cdn.OriginsClient", "ListByEndpoint", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListByEndpointResponder(resp)
@@ -228,32 +232,48 @@ func (client OriginsClient) ListByEndpointNextResults(lastResults OriginListResu
 // the resource group. endpointName is name of the endpoint under the profile
 // which is unique globally. originName is name of the origin which is unique
 // within the endpoint. originUpdateProperties is origin properties
-func (client OriginsClient) Update(resourceGroupName string, profileName string, endpointName string, originName string, originUpdateProperties OriginUpdateParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
+func (client OriginsClient) Update(resourceGroupName string, profileName string, endpointName string, originName string, originUpdateProperties OriginUpdateParameters, cancel <-chan struct{}) (<-chan Origin, <-chan error) {
+	resultChan := make(chan Origin, 1)
+	errChan := make(chan error, 1)
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "cdn.OriginsClient", "Update")
+		errChan <- validation.NewErrorWithValidationError(err, "cdn.OriginsClient", "Update")
+		close(errChan)
+		close(resultChan)
+		return resultChan, errChan
 	}
 
-	req, err := client.UpdatePreparer(resourceGroupName, profileName, endpointName, originName, originUpdateProperties, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.OriginsClient", "Update", nil, "Failure preparing request")
-	}
+	go func() {
+		var err error
+		var result Origin
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.UpdatePreparer(resourceGroupName, profileName, endpointName, originName, originUpdateProperties, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "cdn.OriginsClient", "Update", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.UpdateSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "cdn.OriginsClient", "Update", resp, "Failure sending request")
-	}
+		resp, err := client.UpdateSender(req)
+		if err != nil {
+			result.Response = autorest.Response{Response: resp}
+			err = autorest.NewErrorWithError(err, "cdn.OriginsClient", "Update", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.UpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.OriginsClient", "Update", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.UpdateResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "cdn.OriginsClient", "Update", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // UpdatePreparer prepares the Update request.
@@ -291,12 +311,13 @@ func (client OriginsClient) UpdateSender(req *http.Request) (*http.Response, err
 
 // UpdateResponder handles the response to the Update request. The method always
 // closes the http.Response Body.
-func (client OriginsClient) UpdateResponder(resp *http.Response) (result autorest.Response, err error) {
+func (client OriginsClient) UpdateResponder(resp *http.Response) (result Origin, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted),
+		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
-	result.Response = resp
+	result.Response = autorest.Response{Response: resp}
 	return
 }

@@ -70,13 +70,15 @@ func (client ManagementClient) CheckNameAvailability(checkNameAvailabilityInput 
 
 	req, err := client.CheckNameAvailabilityPreparer(checkNameAvailabilityInput)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.ManagementClient", "CheckNameAvailability", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "cdn.ManagementClient", "CheckNameAvailability", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.CheckNameAvailabilitySender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "cdn.ManagementClient", "CheckNameAvailability", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "cdn.ManagementClient", "CheckNameAvailability", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.CheckNameAvailabilityResponder(resp)
@@ -127,13 +129,15 @@ func (client ManagementClient) CheckNameAvailabilityResponder(resp *http.Respons
 func (client ManagementClient) ListOperations() (result OperationListResult, err error) {
 	req, err := client.ListOperationsPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.ManagementClient", "ListOperations", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "cdn.ManagementClient", "ListOperations", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListOperationsSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "cdn.ManagementClient", "ListOperations", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "cdn.ManagementClient", "ListOperations", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListOperationsResponder(resp)
@@ -207,13 +211,15 @@ func (client ManagementClient) ListOperationsNextResults(lastResults OperationLi
 func (client ManagementClient) ListResourceUsage() (result ResourceUsageListResult, err error) {
 	req, err := client.ListResourceUsagePreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.ManagementClient", "ListResourceUsage", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "cdn.ManagementClient", "ListResourceUsage", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListResourceUsageSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "cdn.ManagementClient", "ListResourceUsage", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "cdn.ManagementClient", "ListResourceUsage", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListResourceUsageResponder(resp)

@@ -63,13 +63,15 @@ func (client TopicsClient) CreateOrUpdate(resourceGroupName string, namespaceNam
 
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, namespaceName, topicName, parameters)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "CreateOrUpdate", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "CreateOrUpdate", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.CreateOrUpdateSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "CreateOrUpdate", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "CreateOrUpdate", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.CreateOrUpdateResponder(resp)
@@ -152,13 +154,15 @@ func (client TopicsClient) CreateOrUpdateAuthorizationRule(resourceGroupName str
 
 	req, err := client.CreateOrUpdateAuthorizationRulePreparer(resourceGroupName, namespaceName, topicName, authorizationRuleName, parameters)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "CreateOrUpdateAuthorizationRule", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "CreateOrUpdateAuthorizationRule", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.CreateOrUpdateAuthorizationRuleSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "CreateOrUpdateAuthorizationRule", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "CreateOrUpdateAuthorizationRule", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.CreateOrUpdateAuthorizationRuleResponder(resp)
@@ -234,13 +238,15 @@ func (client TopicsClient) Delete(resourceGroupName string, namespaceName string
 
 	req, err := client.DeletePreparer(resourceGroupName, namespaceName, topicName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "Delete", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "Delete", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.DeleteSender(req)
 	if err != nil {
 		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "Delete", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "Delete", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.DeleteResponder(resp)
@@ -315,13 +321,15 @@ func (client TopicsClient) DeleteAuthorizationRule(resourceGroupName string, nam
 
 	req, err := client.DeleteAuthorizationRulePreparer(resourceGroupName, namespaceName, topicName, authorizationRuleName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "DeleteAuthorizationRule", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "DeleteAuthorizationRule", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.DeleteAuthorizationRuleSender(req)
 	if err != nil {
 		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "DeleteAuthorizationRule", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "DeleteAuthorizationRule", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.DeleteAuthorizationRuleResponder(resp)
@@ -394,13 +402,15 @@ func (client TopicsClient) Get(resourceGroupName string, namespaceName string, t
 
 	req, err := client.GetPreparer(resourceGroupName, namespaceName, topicName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "Get", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "Get", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.GetSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "Get", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "Get", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.GetResponder(resp)
@@ -476,13 +486,15 @@ func (client TopicsClient) GetAuthorizationRule(resourceGroupName string, namesp
 
 	req, err := client.GetAuthorizationRulePreparer(resourceGroupName, namespaceName, topicName, authorizationRuleName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "GetAuthorizationRule", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "GetAuthorizationRule", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.GetAuthorizationRuleSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "GetAuthorizationRule", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "GetAuthorizationRule", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.GetAuthorizationRuleResponder(resp)
@@ -552,13 +564,15 @@ func (client TopicsClient) ListAll(resourceGroupName string, namespaceName strin
 
 	req, err := client.ListAllPreparer(resourceGroupName, namespaceName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "ListAll", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "ListAll", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListAllSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "ListAll", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "ListAll", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListAllResponder(resp)
@@ -654,13 +668,15 @@ func (client TopicsClient) ListAuthorizationRules(resourceGroupName string, name
 
 	req, err := client.ListAuthorizationRulesPreparer(resourceGroupName, namespaceName, topicName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "ListAuthorizationRules", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "ListAuthorizationRules", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListAuthorizationRulesSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "ListAuthorizationRules", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "ListAuthorizationRules", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListAuthorizationRulesResponder(resp)
@@ -760,13 +776,15 @@ func (client TopicsClient) ListKeys(resourceGroupName string, namespaceName stri
 
 	req, err := client.ListKeysPreparer(resourceGroupName, namespaceName, topicName, authorizationRuleName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "ListKeys", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "ListKeys", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListKeysSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "ListKeys", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "ListKeys", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListKeysResponder(resp)
@@ -845,13 +863,15 @@ func (client TopicsClient) RegenerateKeys(resourceGroupName string, namespaceNam
 
 	req, err := client.RegenerateKeysPreparer(resourceGroupName, namespaceName, topicName, authorizationRuleName, parameters)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "RegenerateKeys", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "RegenerateKeys", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.RegenerateKeysSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "servicebus.TopicsClient", "RegenerateKeys", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "servicebus.TopicsClient", "RegenerateKeys", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.RegenerateKeysResponder(resp)

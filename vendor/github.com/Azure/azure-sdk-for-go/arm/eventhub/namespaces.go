@@ -41,37 +41,39 @@ func NewNamespacesClientWithBaseURI(baseURI string, subscriptionID string) Names
 	return NamespacesClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// CheckNameAvailabilityMethod check the give namespace name availability.
+// CheckNameAvailability check the give Namespace name availability.
 //
-// parameters is parameters to check availability of the given namespace name
-func (client NamespacesClient) CheckNameAvailabilityMethod(parameters CheckNameAvailability) (result CheckNameAvailabilityResult, err error) {
+// parameters is parameters to check availability of the given Namespace name
+func (client NamespacesClient) CheckNameAvailability(parameters CheckNameAvailabilityParameter) (result CheckNameAvailabilityResult, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.Name", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "eventhub.NamespacesClient", "CheckNameAvailabilityMethod")
+		return result, validation.NewErrorWithValidationError(err, "eventhub.NamespacesClient", "CheckNameAvailability")
 	}
 
-	req, err := client.CheckNameAvailabilityMethodPreparer(parameters)
+	req, err := client.CheckNameAvailabilityPreparer(parameters)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "CheckNameAvailabilityMethod", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "CheckNameAvailability", nil, "Failure preparing request")
+		return
 	}
 
-	resp, err := client.CheckNameAvailabilityMethodSender(req)
+	resp, err := client.CheckNameAvailabilitySender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "CheckNameAvailabilityMethod", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "CheckNameAvailability", resp, "Failure sending request")
+		return
 	}
 
-	result, err = client.CheckNameAvailabilityMethodResponder(resp)
+	result, err = client.CheckNameAvailabilityResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "CheckNameAvailabilityMethod", resp, "Failure responding to request")
+		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "CheckNameAvailability", resp, "Failure responding to request")
 	}
 
 	return
 }
 
-// CheckNameAvailabilityMethodPreparer prepares the CheckNameAvailabilityMethod request.
-func (client NamespacesClient) CheckNameAvailabilityMethodPreparer(parameters CheckNameAvailability) (*http.Request, error) {
+// CheckNameAvailabilityPreparer prepares the CheckNameAvailability request.
+func (client NamespacesClient) CheckNameAvailabilityPreparer(parameters CheckNameAvailabilityParameter) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
 	}
@@ -91,15 +93,15 @@ func (client NamespacesClient) CheckNameAvailabilityMethodPreparer(parameters Ch
 	return preparer.Prepare(&http.Request{})
 }
 
-// CheckNameAvailabilityMethodSender sends the CheckNameAvailabilityMethod request. The method will close the
+// CheckNameAvailabilitySender sends the CheckNameAvailability request. The method will close the
 // http.Response Body if it receives an error.
-func (client NamespacesClient) CheckNameAvailabilityMethodSender(req *http.Request) (*http.Response, error) {
+func (client NamespacesClient) CheckNameAvailabilitySender(req *http.Request) (*http.Response, error) {
 	return autorest.SendWithSender(client, req)
 }
 
-// CheckNameAvailabilityMethodResponder handles the response to the CheckNameAvailabilityMethod request. The method always
+// CheckNameAvailabilityResponder handles the response to the CheckNameAvailability request. The method always
 // closes the http.Response Body.
-func (client NamespacesClient) CheckNameAvailabilityMethodResponder(resp *http.Response) (result CheckNameAvailabilityResult, err error) {
+func (client NamespacesClient) CheckNameAvailabilityResponder(resp *http.Response) (result CheckNameAvailabilityResult, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -116,41 +118,59 @@ func (client NamespacesClient) CheckNameAvailabilityMethodResponder(resp *http.R
 // cancel channel argument. The channel will be used to cancel polling and any
 // outstanding HTTP requests.
 //
-// resourceGroupName is name of the Resource group within the Azure
-// subscription. namespaceName is the namespace name parameters is parameters
+// resourceGroupName is name of the resource group within the azure
+// subscription. namespaceName is the Namespace name parameters is parameters
 // for creating a namespace resource.
-func (client NamespacesClient) CreateOrUpdate(resourceGroupName string, namespaceName string, parameters Namespace, cancel <-chan struct{}) (result autorest.Response, err error) {
+func (client NamespacesClient) CreateOrUpdate(resourceGroupName string, namespaceName string, parameters NamespaceCreateOrUpdateParameters, cancel <-chan struct{}) (<-chan NamespaceResource, <-chan error) {
+	resultChan := make(chan NamespaceResource, 1)
+	errChan := make(chan error, 1)
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil}}},
 		{TargetValue: namespaceName,
 			Constraints: []validation.Constraint{{Target: "namespaceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
-				{Target: "namespaceName", Name: validation.MinLength, Rule: 6, Chain: nil}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "eventhub.NamespacesClient", "CreateOrUpdate")
+				{Target: "namespaceName", Name: validation.MinLength, Rule: 6, Chain: nil}}},
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Location", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
+		errChan <- validation.NewErrorWithValidationError(err, "eventhub.NamespacesClient", "CreateOrUpdate")
+		close(errChan)
+		close(resultChan)
+		return resultChan, errChan
 	}
 
-	req, err := client.CreateOrUpdatePreparer(resourceGroupName, namespaceName, parameters, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "CreateOrUpdate", nil, "Failure preparing request")
-	}
+	go func() {
+		var err error
+		var result NamespaceResource
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.CreateOrUpdatePreparer(resourceGroupName, namespaceName, parameters, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "CreateOrUpdate", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.CreateOrUpdateSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "CreateOrUpdate", resp, "Failure sending request")
-	}
+		resp, err := client.CreateOrUpdateSender(req)
+		if err != nil {
+			result.Response = autorest.Response{Response: resp}
+			err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "CreateOrUpdate", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "CreateOrUpdate", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.CreateOrUpdateResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "CreateOrUpdate", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // CreateOrUpdatePreparer prepares the CreateOrUpdate request.
-func (client NamespacesClient) CreateOrUpdatePreparer(resourceGroupName string, namespaceName string, parameters Namespace, cancel <-chan struct{}) (*http.Request, error) {
+func (client NamespacesClient) CreateOrUpdatePreparer(resourceGroupName string, namespaceName string, parameters NamespaceCreateOrUpdateParameters, cancel <-chan struct{}) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"namespaceName":     autorest.Encode("path", namespaceName),
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
@@ -182,24 +202,25 @@ func (client NamespacesClient) CreateOrUpdateSender(req *http.Request) (*http.Re
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
 // closes the http.Response Body.
-func (client NamespacesClient) CreateOrUpdateResponder(resp *http.Response) (result autorest.Response, err error) {
+func (client NamespacesClient) CreateOrUpdateResponder(resp *http.Response) (result NamespaceResource, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusCreated, http.StatusOK, http.StatusAccepted),
+		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
-	result.Response = resp
+	result.Response = autorest.Response{Response: resp}
 	return
 }
 
-// CreateOrUpdateAuthorizationRule creates or updates an authorization rule for
-// a namespace.
+// CreateOrUpdateAuthorizationRule creates or updates an AuthorizationRule for
+// a Namespace.
 //
-// resourceGroupName is name of the Resource group within the Azure
-// subscription. namespaceName is the namespace name authorizationRuleName is
-// the authorizationrule name. parameters is the shared access authorization
-// rule.
-func (client NamespacesClient) CreateOrUpdateAuthorizationRule(resourceGroupName string, namespaceName string, authorizationRuleName string, parameters SharedAccessAuthorizationRule) (result SharedAccessAuthorizationRule, err error) {
+// resourceGroupName is name of the resource group within the azure
+// subscription. namespaceName is the Namespace name authorizationRuleName is
+// the authorization rule name. parameters is the shared access
+// AuthorizationRule.
+func (client NamespacesClient) CreateOrUpdateAuthorizationRule(resourceGroupName string, namespaceName string, authorizationRuleName string, parameters SharedAccessAuthorizationRuleCreateOrUpdateParameters) (result SharedAccessAuthorizationRuleResource, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -218,13 +239,15 @@ func (client NamespacesClient) CreateOrUpdateAuthorizationRule(resourceGroupName
 
 	req, err := client.CreateOrUpdateAuthorizationRulePreparer(resourceGroupName, namespaceName, authorizationRuleName, parameters)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "CreateOrUpdateAuthorizationRule", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "CreateOrUpdateAuthorizationRule", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.CreateOrUpdateAuthorizationRuleSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "CreateOrUpdateAuthorizationRule", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "CreateOrUpdateAuthorizationRule", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.CreateOrUpdateAuthorizationRuleResponder(resp)
@@ -236,7 +259,7 @@ func (client NamespacesClient) CreateOrUpdateAuthorizationRule(resourceGroupName
 }
 
 // CreateOrUpdateAuthorizationRulePreparer prepares the CreateOrUpdateAuthorizationRule request.
-func (client NamespacesClient) CreateOrUpdateAuthorizationRulePreparer(resourceGroupName string, namespaceName string, authorizationRuleName string, parameters SharedAccessAuthorizationRule) (*http.Request, error) {
+func (client NamespacesClient) CreateOrUpdateAuthorizationRulePreparer(resourceGroupName string, namespaceName string, authorizationRuleName string, parameters SharedAccessAuthorizationRuleCreateOrUpdateParameters) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"authorizationRuleName": autorest.Encode("path", authorizationRuleName),
 		"namespaceName":         autorest.Encode("path", namespaceName),
@@ -267,7 +290,7 @@ func (client NamespacesClient) CreateOrUpdateAuthorizationRuleSender(req *http.R
 
 // CreateOrUpdateAuthorizationRuleResponder handles the response to the CreateOrUpdateAuthorizationRule request. The method always
 // closes the http.Response Body.
-func (client NamespacesClient) CreateOrUpdateAuthorizationRuleResponder(resp *http.Response) (result SharedAccessAuthorizationRule, err error) {
+func (client NamespacesClient) CreateOrUpdateAuthorizationRuleResponder(resp *http.Response) (result SharedAccessAuthorizationRuleResource, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -284,9 +307,11 @@ func (client NamespacesClient) CreateOrUpdateAuthorizationRuleResponder(resp *ht
 // The channel will be used to cancel polling and any outstanding HTTP
 // requests.
 //
-// resourceGroupName is name of the Resource group within the Azure
-// subscription. namespaceName is the namespace name
-func (client NamespacesClient) Delete(resourceGroupName string, namespaceName string, cancel <-chan struct{}) (result autorest.Response, err error) {
+// resourceGroupName is name of the resource group within the azure
+// subscription. namespaceName is the Namespace name
+func (client NamespacesClient) Delete(resourceGroupName string, namespaceName string, cancel <-chan struct{}) (<-chan autorest.Response, <-chan error) {
+	resultChan := make(chan autorest.Response, 1)
+	errChan := make(chan error, 1)
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -294,26 +319,40 @@ func (client NamespacesClient) Delete(resourceGroupName string, namespaceName st
 		{TargetValue: namespaceName,
 			Constraints: []validation.Constraint{{Target: "namespaceName", Name: validation.MaxLength, Rule: 50, Chain: nil},
 				{Target: "namespaceName", Name: validation.MinLength, Rule: 6, Chain: nil}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "eventhub.NamespacesClient", "Delete")
+		errChan <- validation.NewErrorWithValidationError(err, "eventhub.NamespacesClient", "Delete")
+		close(errChan)
+		close(resultChan)
+		return resultChan, errChan
 	}
 
-	req, err := client.DeletePreparer(resourceGroupName, namespaceName, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "Delete", nil, "Failure preparing request")
-	}
+	go func() {
+		var err error
+		var result autorest.Response
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.DeletePreparer(resourceGroupName, namespaceName, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "Delete", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.DeleteSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "Delete", resp, "Failure sending request")
-	}
+		resp, err := client.DeleteSender(req)
+		if err != nil {
+			result.Response = resp
+			err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "Delete", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "Delete", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.DeleteResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "Delete", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // DeletePreparer prepares the Delete request.
@@ -357,11 +396,11 @@ func (client NamespacesClient) DeleteResponder(resp *http.Response) (result auto
 	return
 }
 
-// DeleteAuthorizationRule deletes an authorization rule for a namespace.
+// DeleteAuthorizationRule deletes an AuthorizationRule for a Namespace.
 //
-// resourceGroupName is name of the Resource group within the Azure
-// subscription. namespaceName is the namespace name authorizationRuleName is
-// the authorizationrule name.
+// resourceGroupName is name of the resource group within the azure
+// subscription. namespaceName is the Namespace name authorizationRuleName is
+// the authorization rule name.
 func (client NamespacesClient) DeleteAuthorizationRule(resourceGroupName string, namespaceName string, authorizationRuleName string) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -378,13 +417,15 @@ func (client NamespacesClient) DeleteAuthorizationRule(resourceGroupName string,
 
 	req, err := client.DeleteAuthorizationRulePreparer(resourceGroupName, namespaceName, authorizationRuleName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "DeleteAuthorizationRule", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "DeleteAuthorizationRule", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.DeleteAuthorizationRuleSender(req)
 	if err != nil {
 		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "DeleteAuthorizationRule", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "DeleteAuthorizationRule", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.DeleteAuthorizationRuleResponder(resp)
@@ -437,9 +478,9 @@ func (client NamespacesClient) DeleteAuthorizationRuleResponder(resp *http.Respo
 
 // Get gets the description of the specified namespace.
 //
-// resourceGroupName is name of the Resource group within the Azure
-// subscription. namespaceName is the namespace name
-func (client NamespacesClient) Get(resourceGroupName string, namespaceName string) (result Namespace, err error) {
+// resourceGroupName is name of the resource group within the azure
+// subscription. namespaceName is the Namespace name
+func (client NamespacesClient) Get(resourceGroupName string, namespaceName string) (result NamespaceResource, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -452,13 +493,15 @@ func (client NamespacesClient) Get(resourceGroupName string, namespaceName strin
 
 	req, err := client.GetPreparer(resourceGroupName, namespaceName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "Get", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "Get", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.GetSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "Get", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "Get", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.GetResponder(resp)
@@ -498,24 +541,23 @@ func (client NamespacesClient) GetSender(req *http.Request) (*http.Response, err
 
 // GetResponder handles the response to the Get request. The method always
 // closes the http.Response Body.
-func (client NamespacesClient) GetResponder(resp *http.Response) (result Namespace, err error) {
+func (client NamespacesClient) GetResponder(resp *http.Response) (result NamespaceResource, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
 	result.Response = autorest.Response{Response: resp}
 	return
 }
 
-// GetAuthorizationRule gets an authorization rule for a namespace by rule
-// name.
+// GetAuthorizationRule gets an AuthorizationRule for a Namespace by rule name.
 //
-// resourceGroupName is name of the Resource group within the Azure
-// subscription. namespaceName is the namespace name authorizationRuleName is
-// the authorizationrule name.
-func (client NamespacesClient) GetAuthorizationRule(resourceGroupName string, namespaceName string, authorizationRuleName string) (result SharedAccessAuthorizationRule, err error) {
+// resourceGroupName is name of the resource group within the azure
+// subscription. namespaceName is the Namespace name authorizationRuleName is
+// the authorization rule name.
+func (client NamespacesClient) GetAuthorizationRule(resourceGroupName string, namespaceName string, authorizationRuleName string) (result SharedAccessAuthorizationRuleResource, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -531,13 +573,15 @@ func (client NamespacesClient) GetAuthorizationRule(resourceGroupName string, na
 
 	req, err := client.GetAuthorizationRulePreparer(resourceGroupName, namespaceName, authorizationRuleName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "GetAuthorizationRule", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "GetAuthorizationRule", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.GetAuthorizationRuleSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "GetAuthorizationRule", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "GetAuthorizationRule", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.GetAuthorizationRuleResponder(resp)
@@ -578,7 +622,7 @@ func (client NamespacesClient) GetAuthorizationRuleSender(req *http.Request) (*h
 
 // GetAuthorizationRuleResponder handles the response to the GetAuthorizationRule request. The method always
 // closes the http.Response Body.
-func (client NamespacesClient) GetAuthorizationRuleResponder(resp *http.Response) (result SharedAccessAuthorizationRule, err error) {
+func (client NamespacesClient) GetAuthorizationRuleResponder(resp *http.Response) (result SharedAccessAuthorizationRuleResource, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -589,94 +633,10 @@ func (client NamespacesClient) GetAuthorizationRuleResponder(resp *http.Response
 	return
 }
 
-// List lists all the available namespaces within a subscription, irrespective
-// of the resource groups.
-func (client NamespacesClient) List() (result NamespaceListResult, err error) {
-	req, err := client.ListPreparer()
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "List", nil, "Failure preparing request")
-	}
-
-	resp, err := client.ListSender(req)
-	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "List", resp, "Failure sending request")
-	}
-
-	result, err = client.ListResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "List", resp, "Failure responding to request")
-	}
-
-	return
-}
-
-// ListPreparer prepares the List request.
-func (client NamespacesClient) ListPreparer() (*http.Request, error) {
-	pathParameters := map[string]interface{}{
-		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
-	}
-
-	const APIVersion = "2015-08-01"
-	queryParameters := map[string]interface{}{
-		"api-version": APIVersion,
-	}
-
-	preparer := autorest.CreatePreparer(
-		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPathParameters("/subscriptions/{subscriptionId}/providers/Microsoft.EventHub/namespaces", pathParameters),
-		autorest.WithQueryParameters(queryParameters))
-	return preparer.Prepare(&http.Request{})
-}
-
-// ListSender sends the List request. The method will close the
-// http.Response Body if it receives an error.
-func (client NamespacesClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req)
-}
-
-// ListResponder handles the response to the List request. The method always
-// closes the http.Response Body.
-func (client NamespacesClient) ListResponder(resp *http.Response) (result NamespaceListResult, err error) {
-	err = autorest.Respond(
-		resp,
-		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
-		autorest.ByUnmarshallingJSON(&result),
-		autorest.ByClosing())
-	result.Response = autorest.Response{Response: resp}
-	return
-}
-
-// ListNextResults retrieves the next set of results, if any.
-func (client NamespacesClient) ListNextResults(lastResults NamespaceListResult) (result NamespaceListResult, err error) {
-	req, err := lastResults.NamespaceListResultPreparer()
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "List", nil, "Failure preparing next results request")
-	}
-	if req == nil {
-		return
-	}
-
-	resp, err := client.ListSender(req)
-	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "List", resp, "Failure sending next results request")
-	}
-
-	result, err = client.ListResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "List", resp, "Failure responding to next results request")
-	}
-
-	return
-}
-
-// ListAuthorizationRules gets a list of authorization rules for a namespace.
+// ListAuthorizationRules gets a list of authorization rules for a Namespace.
 //
-// resourceGroupName is name of the Resource group within the Azure
-// subscription. namespaceName is the namespace name
+// resourceGroupName is name of the resource group within the azure
+// subscription. namespaceName is the Namespace name
 func (client NamespacesClient) ListAuthorizationRules(resourceGroupName string, namespaceName string) (result SharedAccessAuthorizationRuleListResult, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -690,13 +650,15 @@ func (client NamespacesClient) ListAuthorizationRules(resourceGroupName string, 
 
 	req, err := client.ListAuthorizationRulesPreparer(resourceGroupName, namespaceName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "ListAuthorizationRules", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "ListAuthorizationRules", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListAuthorizationRulesSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "ListAuthorizationRules", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "ListAuthorizationRules", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListAuthorizationRulesResponder(resp)
@@ -771,9 +733,9 @@ func (client NamespacesClient) ListAuthorizationRulesNextResults(lastResults Sha
 	return
 }
 
-// ListByResourceGroup lists the available namespaces within a resource group.
+// ListByResourceGroup lists the available Namespaces within a resource group.
 //
-// resourceGroupName is name of the Resource group within the Azure
+// resourceGroupName is name of the resource group within the azure
 // subscription.
 func (client NamespacesClient) ListByResourceGroup(resourceGroupName string) (result NamespaceListResult, err error) {
 	if err := validation.Validate([]validation.Validation{
@@ -785,13 +747,15 @@ func (client NamespacesClient) ListByResourceGroup(resourceGroupName string) (re
 
 	req, err := client.ListByResourceGroupPreparer(resourceGroupName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "ListByResourceGroup", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "ListByResourceGroup", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListByResourceGroupSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "ListByResourceGroup", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "ListByResourceGroup", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListByResourceGroupResponder(resp)
@@ -865,12 +829,98 @@ func (client NamespacesClient) ListByResourceGroupNextResults(lastResults Namesp
 	return
 }
 
+// ListBySubscription lists all the available Namespaces within a subscription,
+// irrespective of the resource groups.
+func (client NamespacesClient) ListBySubscription() (result NamespaceListResult, err error) {
+	req, err := client.ListBySubscriptionPreparer()
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "ListBySubscription", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.ListBySubscriptionSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "ListBySubscription", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.ListBySubscriptionResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "ListBySubscription", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// ListBySubscriptionPreparer prepares the ListBySubscription request.
+func (client NamespacesClient) ListBySubscriptionPreparer() (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
+	}
+
+	const APIVersion = "2015-08-01"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/providers/Microsoft.EventHub/namespaces", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare(&http.Request{})
+}
+
+// ListBySubscriptionSender sends the ListBySubscription request. The method will close the
+// http.Response Body if it receives an error.
+func (client NamespacesClient) ListBySubscriptionSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client, req)
+}
+
+// ListBySubscriptionResponder handles the response to the ListBySubscription request. The method always
+// closes the http.Response Body.
+func (client NamespacesClient) ListBySubscriptionResponder(resp *http.Response) (result NamespaceListResult, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// ListBySubscriptionNextResults retrieves the next set of results, if any.
+func (client NamespacesClient) ListBySubscriptionNextResults(lastResults NamespaceListResult) (result NamespaceListResult, err error) {
+	req, err := lastResults.NamespaceListResultPreparer()
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "ListBySubscription", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
+	}
+
+	resp, err := client.ListBySubscriptionSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "ListBySubscription", resp, "Failure sending next results request")
+	}
+
+	result, err = client.ListBySubscriptionResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "ListBySubscription", resp, "Failure responding to next results request")
+	}
+
+	return
+}
+
 // ListKeys gets the primary and secondary connection strings for the
-// namespace.
+// Namespace.
 //
-// resourceGroupName is name of the Resource group within the Azure
-// subscription. namespaceName is the namespace name authorizationRuleName is
-// the authorizationrule name.
+// resourceGroupName is name of the resource group within the azure
+// subscription. namespaceName is the Namespace name authorizationRuleName is
+// the authorization rule name.
 func (client NamespacesClient) ListKeys(resourceGroupName string, namespaceName string, authorizationRuleName string) (result ResourceListKeys, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -887,13 +937,15 @@ func (client NamespacesClient) ListKeys(resourceGroupName string, namespaceName 
 
 	req, err := client.ListKeysPreparer(resourceGroupName, namespaceName, authorizationRuleName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "ListKeys", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "ListKeys", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListKeysSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "ListKeys", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "ListKeys", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListKeysResponder(resp)
@@ -946,11 +998,11 @@ func (client NamespacesClient) ListKeysResponder(resp *http.Response) (result Re
 }
 
 // RegenerateKeys regenerates the primary or secondary connection strings for
-// the specified namespace.
+// the specified Namespace.
 //
-// resourceGroupName is name of the Resource group within the Azure
-// subscription. namespaceName is the namespace name authorizationRuleName is
-// the authorizationrule name. parameters is parameters required to regenerate
+// resourceGroupName is name of the resource group within the azure
+// subscription. namespaceName is the Namespace name authorizationRuleName is
+// the authorization rule name. parameters is parameters required to regenerate
 // the connection string.
 func (client NamespacesClient) RegenerateKeys(resourceGroupName string, namespaceName string, authorizationRuleName string, parameters RegenerateKeysParameters) (result ResourceListKeys, err error) {
 	if err := validation.Validate([]validation.Validation{
@@ -968,13 +1020,15 @@ func (client NamespacesClient) RegenerateKeys(resourceGroupName string, namespac
 
 	req, err := client.RegenerateKeysPreparer(resourceGroupName, namespaceName, authorizationRuleName, parameters)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "RegenerateKeys", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "RegenerateKeys", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.RegenerateKeysSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "RegenerateKeys", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "RegenerateKeys", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.RegenerateKeysResponder(resp)
@@ -1031,10 +1085,10 @@ func (client NamespacesClient) RegenerateKeysResponder(resp *http.Response) (res
 // Update creates or updates a namespace. Once created, this namespace's
 // resource manifest is immutable. This operation is idempotent.
 //
-// resourceGroupName is name of the Resource group within the Azure
-// subscription. namespaceName is the namespace name parameters is parameters
+// resourceGroupName is name of the resource group within the azure
+// subscription. namespaceName is the Namespace name parameters is parameters
 // for updating a namespace resource.
-func (client NamespacesClient) Update(resourceGroupName string, namespaceName string, parameters NamespaceUpdateParameter) (result Namespace, err error) {
+func (client NamespacesClient) Update(resourceGroupName string, namespaceName string, parameters NamespaceUpdateParameter) (result NamespaceResource, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -1047,13 +1101,15 @@ func (client NamespacesClient) Update(resourceGroupName string, namespaceName st
 
 	req, err := client.UpdatePreparer(resourceGroupName, namespaceName, parameters)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "Update", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "Update", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.UpdateSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "Update", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "eventhub.NamespacesClient", "Update", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.UpdateResponder(resp)
@@ -1095,7 +1151,7 @@ func (client NamespacesClient) UpdateSender(req *http.Request) (*http.Response, 
 
 // UpdateResponder handles the response to the Update request. The method always
 // closes the http.Response Body.
-func (client NamespacesClient) UpdateResponder(resp *http.Response) (result Namespace, err error) {
+func (client NamespacesClient) UpdateResponder(resp *http.Response) (result NamespaceResource, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
