@@ -43,6 +43,7 @@ IMPROVEMENTS:
 * provider/azurerm: `azurerm_template_deployment` now supports String/Int/Boolean outputs [GH-13670]
 * provider/azurerm: Expose the Private IP Address for a Load Balancer, if available [GH-13965]
 * provider/dnsimple: Add support for import for dnsimple_records [GH-9130]
+* provider/dyn: Add verbose Dyn provider logs [GH-14076]
 * provider/google: Add support for networkIP in compute instance templates [GH-13515]
 * provider/google: google_dns_managed_zone is now importable [GH-13824]
 * provider/google: Add support for `compute_route` [GH-14065]
