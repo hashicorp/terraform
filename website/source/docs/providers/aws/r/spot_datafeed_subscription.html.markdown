@@ -1,7 +1,7 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_spot_datafeed_subscription"
-sidebar_current: "docs-aws-resource-spot-datafleet-subscription"
+sidebar_current: "docs-aws-resource-spot-datafeed-subscription"
 description: |-
   Provides a Spot Datafeed Subscription resource.
 ---
