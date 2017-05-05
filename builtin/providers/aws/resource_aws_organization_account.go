@@ -24,19 +24,19 @@ func resourceAwsOrganizationAccount() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"joined_method": &schema.Schema{
+			"joined_method": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"joined_timestamp": &schema.Schema{
+			"joined_timestamp": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -114,10 +114,11 @@ func resourceAwsOrganizationAccountCreate(d *schema.ResourceData, meta interface
 	log.Printf("[DEBUG] Waiting for account request (%s) to succeed", requestId)
 
 	stateConf := &resource.StateChangeConf{
-		Pending: []string{"IN_PROGRESS"},
-		Target:  []string{"SUCCEEDED"},
-		Refresh: resourceAwsOrganizationAccountStateRefreshFunc(conn, requestId),
-		Timeout: 5 * time.Minute,
+		Pending:      []string{"IN_PROGRESS"},
+		Target:       []string{"SUCCEEDED"},
+		Refresh:      resourceAwsOrganizationAccountStateRefreshFunc(conn, requestId),
+		PollInterval: 10 * time.Second,
+		Timeout:      5 * time.Minute,
 	}
 	stateResp, stateErr := stateConf.WaitForState()
 	if stateErr != nil {
