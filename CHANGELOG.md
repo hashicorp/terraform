@@ -140,7 +140,7 @@ IMPROVEMENTS:
  * provider/heroku: Set App buildpacks from config ([#13910](https://github.com/hashicorp/terraform/issues/13910))
  * provider/heroku: Create Heroku app in a private space ([#13862](https://github.com/hashicorp/terraform/issues/13862))
  * provider/vault: `vault_generic_secret` resource can now optionally detect drift if it has appropriate access ([#11776](https://github.com/hashicorp/terraform/issues/11776))
- 
+
 BUG FIXES:
 
  * core: Prevent resource.Retry from adding untracked resources after the timeout: ([#13778](https://github.com/hashicorp/terraform/issues/13778))
@@ -170,7 +170,7 @@ BUG FIXES:
  * provider/azurerm: Locking route table on subnet create/delete ([#13791](https://github.com/hashicorp/terraform/issues/13791))
  * provider/azurerm: VM's - fixes a bug where ssh_keys could contain a null entry ([#13755](https://github.com/hashicorp/terraform/issues/13755))
  * provider/azurerm: VM's - ignoring the case on the `create_option` field during Diff's ([#13933](https://github.com/hashicorp/terraform/issues/13933))
- * provider/azurerm: fixing a bug refreshing the `azurerm_redis_cache` [[#13899](https://github.com/hashicorp/terraform/issues/13899)] 
+ * provider/azurerm: fixing a bug refreshing the `azurerm_redis_cache` [[#13899](https://github.com/hashicorp/terraform/issues/13899)]
  * provider/fastly: Fix issue with using 0 for `default_ttl` ([#13648](https://github.com/hashicorp/terraform/issues/13648))
  * provider/google: Fix panic in GKE provisioning with addons ([#13954](https://github.com/hashicorp/terraform/issues/13954))
  * provider/fastly: Add ability to associate a healthcheck to a backend ([#13539](https://github.com/hashicorp/terraform/issues/13539))
@@ -188,7 +188,7 @@ BUG FIXES:
 ## 0.9.3 (April 12, 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
- * provider/aws: Fix a critical bug in `aws_emr_cluster` in order to preserve the ordering 
+ * provider/aws: Fix a critical bug in `aws_emr_cluster` in order to preserve the ordering
    of any arguments in `bootstrap_action`. Terraform will now enforce the ordering  
    from the configuration. As a result, `aws_emr_cluster` resources may need to be
    recreated, as there is no API to update them in-place ([#13580](https://github.com/hashicorp/terraform/issues/13580))
@@ -208,7 +208,7 @@ FEATURES:
  * **New Data Source:** `aws_iam_role` ([#13213](https://github.com/hashicorp/terraform/issues/13213))
 
 IMPROVEMENTS:
- 
+
  * core: add `-lock-timeout` option, which will block and retry locks for the given duration ([#13262](https://github.com/hashicorp/terraform/issues/13262))
  * core: new `chomp` interpolation function which returns the given string with any trailing newline characters removed ([#13419](https://github.com/hashicorp/terraform/issues/13419))
  * backend/remote-state: Add support for assume role extensions to s3 backend ([#13236](https://github.com/hashicorp/terraform/issues/13236))
@@ -249,8 +249,8 @@ IMPROVEMENTS:
  * provider/statuscake: Add support for StatusCake TriggerRate field ([#13340](https://github.com/hashicorp/terraform/issues/13340))
  * provider/triton: Move to joyent/triton-go ([#13225](https://github.com/hashicorp/terraform/issues/13225))
  * provisioner/chef: Make sure we add new Chef-Vault clients as clients ([#13525](https://github.com/hashicorp/terraform/issues/13525))
- 
-BUG FIXES: 
+
+BUG FIXES:
 
  * core: Escaped interpolation-like sequences (like `$${foo}`) now permitted in variable defaults ([#13137](https://github.com/hashicorp/terraform/issues/13137))
  * core: Fix strange issues with computed values in provider configuration that were worked around with `-input=false` ([#11264](https://github.com/hashicorp/terraform/issues/11264)], [[#13264](https://github.com/hashicorp/terraform/issues/13264))
@@ -350,8 +350,8 @@ IMPROVEMENTS:
  * provider/pagerduty: Validate credentials ([#12854](https://github.com/hashicorp/terraform/issues/12854))
  * provider/openstack: Adding all_metadata attribute ([#13061](https://github.com/hashicorp/terraform/issues/13061))
  * provider/profitbricks: Handling missing resources ([#13053](https://github.com/hashicorp/terraform/issues/13053))
- 
-BUG FIXES: 
+
+BUG FIXES:
 
  * core: Remove legacy remote state configuration on state migration. This fixes errors when saving plans. ([#12888](https://github.com/hashicorp/terraform/issues/12888))
  * provider/arukas: Default timeout for launching container increased to 15mins (was 10mins) ([#12849](https://github.com/hashicorp/terraform/issues/12849))
@@ -417,7 +417,7 @@ BUG FIXES:
  * provider/aws: Stop setting weight property on route53_record read ([#12756](https://github.com/hashicorp/terraform/issues/12756))
  * provider/google: Fix the Google provider asking for account_file input on every run ([#12729](https://github.com/hashicorp/terraform/issues/12729))
  * provider/profitbricks: Prevent panic on profitbricks volume ([#12819](https://github.com/hashicorp/terraform/issues/12819))
- 
+
 
 ## 0.9.0 (March 15, 2017)
 
@@ -565,7 +565,7 @@ BUG FIXES:
  * provider/google: Correct the incorrect instance group manager URL returned from GKE ([#4336](https://github.com/hashicorp/terraform/issues/4336))
  * provider/google: Fix a plan/apply cycle in IAM policies ([#12387](https://github.com/hashicorp/terraform/issues/12387))
  * provider/google: Fix a plan/apply cycle in forwarding rules when only a single port is specified ([#12662](https://github.com/hashicorp/terraform/issues/12662))
- 
+
 ## 0.9.0-beta2 (March 2, 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
