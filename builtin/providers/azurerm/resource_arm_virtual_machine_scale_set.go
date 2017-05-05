@@ -769,12 +769,10 @@ func flattenAzureRmVirtualMachineScaleSetStorageProfileOSDisk(profile *compute.V
 	}
 
 	if profile.Image != nil {
-		result["name"] = *profile.Name
 		result["image"] = *profile.Image.URI
 	}
 
 	if profile.VhdContainers != nil {
-		result["name"] = *profile.Name
 		containers := make([]interface{}, 0, len(*profile.VhdContainers))
 		for _, container := range *profile.VhdContainers {
 			containers = append(containers, container)

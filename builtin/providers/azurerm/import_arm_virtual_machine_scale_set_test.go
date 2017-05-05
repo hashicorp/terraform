@@ -35,7 +35,7 @@ func TestAccAzureRMVirtualMachineScaleSet_importBasic_managedDisk(t *testing.T) 
 	resourceName := "azurerm_virtual_machine_scale_set.test"
 
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMVirtualMachineScaleSet_basic, ri, ri, ri, ri, ri, ri, ri, ri)
+	config := fmt.Sprintf(testAccAzureRMVirtualMachineScaleSet_basicLinux_managedDisk, ri, ri, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
