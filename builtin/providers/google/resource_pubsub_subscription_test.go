@@ -16,11 +16,12 @@ func TestAccPubsubSubscriptionCreate(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPubsubSubscriptionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccPubsubSubscription,
 				Check: resource.ComposeTestCheckFunc(
 					testAccPubsubSubscriptionExists(
 						"google_pubsub_subscription.foobar_sub"),
+					resource.TestCheckResourceAttrSet("google_pubsub_subscription.foobar_sub", "path"),
 				),
 			},
 		},
