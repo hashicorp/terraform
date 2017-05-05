@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/cyberdelia/heroku-go/v3"
@@ -78,23 +80,23 @@ func TestAccHerokuCert_US(t *testing.T) {
 		CheckDestroy: testAccCheckHerokuCertDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckHerokuCertUSConfig(appName, certFile, keyFile),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckHerokuCertExists("heroku_cert.ssl_certificate", &endpoint),
-					testAccCheckHerokuCertificateChain(&endpoint, certificateChain),
-					resource.TestCheckResourceAttr(
-						"heroku_cert.ssl_certificate",
-						"cname", fmt.Sprintf("%s.herokussl.com", appName)),
-				),
-			},
-			{
 				Config: testAccCheckHerokuCertUSConfig(appName, certFile2, keyFile2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuCertExists("heroku_cert.ssl_certificate", &endpoint),
 					testAccCheckHerokuCertificateChain(&endpoint, certificateChain2),
-					resource.TestCheckResourceAttr(
+					resource.TestMatchResourceAttr(
 						"heroku_cert.ssl_certificate",
-						"cname", fmt.Sprintf("%s.herokussl.com", appName)),
+						"cname", regexp.MustCompile(`herokussl`)),
+				),
+			},
+			{
+				Config: testAccCheckHerokuCertUSConfig(appName, certFile, keyFile),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckHerokuCertExists("heroku_cert.ssl_certificate", &endpoint),
+					testAccCheckHerokuCertificateChain(&endpoint, certificateChain),
+					resource.TestMatchResourceAttr(
+						"heroku_cert.ssl_certificate",
+						"cname", regexp.MustCompile(`herokussl`)),
 				),
 			},
 		},
@@ -102,7 +104,7 @@ func TestAccHerokuCert_US(t *testing.T) {
 }
 
 func testAccCheckHerokuCertEUConfig(appName, certFile, keyFile string) string {
-	return fmt.Sprintf(`
+	return strings.TrimSpace(fmt.Sprintf(`
 resource "heroku_app" "foobar" {
   name = "%s"
   region = "eu"
@@ -118,11 +120,11 @@ resource "heroku_cert" "ssl_certificate" {
   depends_on = ["heroku_addon.ssl"]
   certificate_chain="${file("%s")}"
   private_key="${file("%s")}"
-}`, appName, certFile, keyFile)
+}`, appName, certFile, keyFile))
 }
 
 func testAccCheckHerokuCertUSConfig(appName, certFile, keyFile string) string {
-	return fmt.Sprintf(`
+	return strings.TrimSpace(fmt.Sprintf(`
 resource "heroku_app" "foobar" {
   name = "%s"
   region = "us"
@@ -138,7 +140,7 @@ resource "heroku_cert" "ssl_certificate" {
   depends_on = ["heroku_addon.ssl"]
   certificate_chain="${file("%s")}"
   private_key="${file("%s")}"
-}`, appName, certFile, keyFile)
+}`, appName, certFile, keyFile))
 }
 
 func testAccCheckHerokuCertDestroy(s *terraform.State) error {
