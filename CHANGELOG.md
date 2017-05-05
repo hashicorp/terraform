@@ -38,6 +38,7 @@ IMPROVEMENTS:
 * provider/aws: Add support description to aws_iam_role [GH-14208]
 * provider/aws: Add support for SSM Documents to aws_cloudwatch_event_target [GH-14067]
 * provider/aws: add additional custom service endpoint options for CloudFormation, KMS, RDS, SNS & SQS [GH-14097]
+* provider/aws: Add ARN to security group data source [GH-14245]
 * provider/azurerm: `azurerm_template_deployment` now supports String/Int/Boolean outputs [GH-13670]
 * provider/azurerm: Expose the Private IP Address for a Load Balancer, if available [GH-13965]
 * provider/dnsimple: Add support for import for dnsimple_records [GH-9130]
