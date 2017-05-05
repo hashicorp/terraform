@@ -24,6 +24,7 @@ FEATURES:
 IMPROVEMENTS:
 
 * core: `sha512` and `base64sha512` interpolation functions, similar to their `sha256` equivalents. [GH-14100]
+* core: It's now possible to use the index operator `[ ]` to select a known value out of a partially-known list, such as using "splat syntax" and increasing the `count`. [GH-14135]
 * provider/aws: Add support for CustomOrigin timeouts to aws_cloudfront_distribution [GH-13367]
 * provider/aws: Add support for IAMDatabaseAuthenticationEnabled [GH-14092]
 * provider/aws: aws_dynamodb_table Add support for TimeToLive [GH-14104]
@@ -46,6 +47,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * core: `module` blocks without names are now caught in validation, along with various other block types [GH-14162]
+* core: no longer will errors and normal log output get garbled together on Windows [GH-14194]
 * provider/aws: Update aws_ebs_volume when attached [GH-14005]
 * provider/aws: Set aws_instance volume_tags to be Computed [GH-14007]
 * provider/aws: Fix issue getting partition for federated users [GH-13992]
@@ -53,12 +55,14 @@ BUG FIXES:
 * provider/aws: Exclude aws_instance volume tagging for China and Gov Clouds [GH-14055]
 * provider/aws: Fix source_dest_check with network_interface [GH-14079]
 * provider/aws: Fixes the bug where SNS delivery policy get always recreated [GH-14064]
+* provider/aws: Prevent Crash when importing aws_route53_record [GH-14218]
 * provider/digitalocean: Prevent diffs when using IDs of images instead of slugs [GH-13879]
 * provider/fastly: Changes setting conditionals to optional [GH-14103]
 * provider/google: Ignore certain project services that can't be enabled directly via the api [GH-13730]
 * provider/google: Ability to add more than 25 project services [GH-13758]
 * provider/google: Fix compute instance panic with bad disk config [GH-14169]
 * provider/google: Handle `google_storage_bucket_object` not being found [GH-14203]
+* provider/google: Handle `google_compute_instance_group_manager` not being found [GH-14190]
 * providers/heroku: Configure buildpacks correctly for both Org Apps and non-org Apps [GH-13990]
 * provider/postgres grant role when creating database [GH-11452]
 * provisioner/remote-exec: Fix panic from remote_exec provisioner [GH-14134]
