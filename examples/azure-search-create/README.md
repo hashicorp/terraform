@@ -22,5 +22,3 @@ If you are committing this template to source control, please insure that you ad
 
 ## variables.tf
 The `variables.tf` file contains all of the input parameters that the user can specify when deploying this Terraform template.
-
-<img src='/Users/annie/code/terraform/terraform-hari/terraform/examples/azure-search-create/graph.png'/>
