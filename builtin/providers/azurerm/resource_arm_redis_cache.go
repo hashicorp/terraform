@@ -170,7 +170,8 @@ func resourceArmRedisCacheCreate(d *schema.ResourceData, meta interface{}) error
 		parameters.ShardCount = &shardCount
 	}
 
-	_, err := client.Create(resGroup, name, parameters, make(chan struct{}))
+	_, error := client.Create(resGroup, name, parameters, make(chan struct{}))
+	err := <-error
 	if err != nil {
 		return err
 	}
@@ -333,7 +334,9 @@ func resourceArmRedisCacheDelete(d *schema.ResourceData, meta interface{}) error
 	resGroup := id.ResourceGroup
 	name := id.Path["Redis"]
 
-	resp, err := redisClient.Delete(resGroup, name, make(chan struct{}))
+	deleteResp, error := redisClient.Delete(resGroup, name, make(chan struct{}))
+	resp := <- deleteResp
+	err = <-error
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("Error issuing Azure ARM delete request of Redis Cache Instance '%s': %s", name, err)

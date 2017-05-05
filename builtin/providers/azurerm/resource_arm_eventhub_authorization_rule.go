@@ -95,7 +95,6 @@ func resourceArmEventHubAuthorizationRuleCreateUpdate(d *schema.ResourceData, me
 	name := d.Get("name").(string)
 	namespaceName := d.Get("namespace_name").(string)
 	eventHubName := d.Get("eventhub_name").(string)
-	location := d.Get("location").(string)
 	resGroup := d.Get("resource_group_name").(string)
 
 	rights, err := expandEventHubAuthorizationRuleAccessRights(d)
@@ -103,7 +102,7 @@ func resourceArmEventHubAuthorizationRuleCreateUpdate(d *schema.ResourceData, me
 		return err
 	}
 
-	parameters := eventhub.SharedAccessAuthorizationRule{
+	parameters := eventhub.SharedAccessAuthorizationRuleCreateOrUpdateParameters{
 		Name:     &name,
 		SharedAccessAuthorizationRuleProperties: &eventhub.SharedAccessAuthorizationRuleProperties{
 			Rights: rights,
@@ -219,7 +218,7 @@ func expandEventHubAuthorizationRuleAccessRights(d *schema.ResourceData) (*[]eve
 	return &rights, nil
 }
 
-func flattenEventHubAuthorizationRuleAccessRights(d *schema.ResourceData, resp eventhub.SharedAccessAuthorizationRule) {
+func flattenEventHubAuthorizationRuleAccessRights(d *schema.ResourceData, resp eventhub.SharedAccessAuthorizationRuleResource) {
 
 	var canListen = false
 	var canSend = false

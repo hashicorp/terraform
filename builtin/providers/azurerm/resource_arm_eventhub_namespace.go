@@ -90,7 +90,7 @@ func resourceArmEventHubNamespaceCreate(d *schema.ResourceData, meta interface{}
 	capacity := int32(d.Get("capacity").(int))
 	tags := d.Get("tags").(map[string]interface{})
 
-	parameters := eventhub.Namespace{
+	parameters := eventhub.NamespaceCreateOrUpdateParameters{
 		Location: &location,
 		Sku: &eventhub.Sku{
 			Name:     eventhub.SkuName(sku),
@@ -100,7 +100,8 @@ func resourceArmEventHubNamespaceCreate(d *schema.ResourceData, meta interface{}
 		Tags: expandTags(tags),
 	}
 
-	_, err := namespaceClient.CreateOrUpdate(resGroup, name, parameters, make(chan struct{}))
+	_, error := namespaceClient.CreateOrUpdate(resGroup, name, parameters, make(chan struct{}))
+	err := <-error
 	if err != nil {
 		return err
 	}
@@ -169,10 +170,16 @@ func resourceArmEventHubNamespaceDelete(d *schema.ResourceData, meta interface{}
 	resGroup := id.ResourceGroup
 	name := id.Path["namespaces"]
 
-	resp, err := namespaceClient.Delete(resGroup, name, make(chan struct{}))
+	delResp, error := namespaceClient.Delete(resGroup, name, make(chan struct{}))
+	resp := <-delResp
+	err = <-error
 
 	if resp.StatusCode != http.StatusNotFound {
 		return fmt.Errorf("Error issuing Azure ARM delete request of EventHub Namespace '%s': %+v", name, err)
+	}
+
+	if err != nil {
+		return err
 	}
 
 	return nil

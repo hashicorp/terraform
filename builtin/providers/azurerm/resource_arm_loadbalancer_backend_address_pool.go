@@ -92,7 +92,8 @@ func resourceArmLoadBalancerBackendAddressPoolCreate(d *schema.ResourceData, met
 		return errwrap.Wrapf("Error Getting LoadBalancer Name and Group: {{err}}", err)
 	}
 
-	_, err = lbClient.CreateOrUpdate(resGroup, loadBalancerName, *loadBalancer, make(chan struct{}))
+	_, error := lbClient.CreateOrUpdate(resGroup, loadBalancerName, *loadBalancer, make(chan struct{}))
+	err = <-error
 	if err != nil {
 		return errwrap.Wrapf("Error Creating/Updating LoadBalancer {{err}}", err)
 	}
@@ -210,7 +211,8 @@ func resourceArmLoadBalancerBackendAddressPoolDelete(d *schema.ResourceData, met
 		return errwrap.Wrapf("Error Getting LoadBalancer Name and Group: {{err}}", err)
 	}
 
-	_, err = lbClient.CreateOrUpdate(resGroup, loadBalancerName, *loadBalancer, make(chan struct{}))
+	_, error := lbClient.CreateOrUpdate(resGroup, loadBalancerName, *loadBalancer, make(chan struct{}))
+	err = <-error
 	if err != nil {
 		return errwrap.Wrapf("Error Creating/Updating LoadBalancer {{err}}", err)
 	}

@@ -144,7 +144,8 @@ func resourceArmNetworkSecurityRuleCreate(d *schema.ResourceData, meta interface
 		SecurityRulePropertiesFormat: &properties,
 	}
 
-	_, err := secClient.CreateOrUpdate(resGroup, nsgName, name, sgr, make(chan struct{}))
+	_, error := secClient.CreateOrUpdate(resGroup, nsgName, name, sgr, make(chan struct{}))
+	err := <-error
 	if err != nil {
 		return err
 	}
@@ -213,7 +214,8 @@ func resourceArmNetworkSecurityRuleDelete(d *schema.ResourceData, meta interface
 	armMutexKV.Lock(nsgName)
 	defer armMutexKV.Unlock(nsgName)
 
-	_, err = secRuleClient.Delete(resGroup, nsgName, sgRuleName, make(chan struct{}))
+	_, error := secRuleClient.Delete(resGroup, nsgName, sgRuleName, make(chan struct{}))
+	err = <-error
 
 	return err
 }

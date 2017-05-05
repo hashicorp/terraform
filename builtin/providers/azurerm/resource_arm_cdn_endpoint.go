@@ -190,7 +190,8 @@ func resourceArmCdnEndpointCreate(d *schema.ResourceData, meta interface{}) erro
 		Tags:               expandTags(tags),
 	}
 
-	_, err := cdnEndpointsClient.Create(resGroup, profileName, name, cdnEndpoint, make(chan struct{}))
+	_, error := cdnEndpointsClient.Create(resGroup, profileName, name, cdnEndpoint, make(<-chan struct{}))
+	err := <-error
 	if err != nil {
 		return err
 	}
@@ -305,7 +306,7 @@ func resourceArmCdnEndpointUpdate(d *schema.ResourceData, meta interface{}) erro
 		EndpointPropertiesUpdateParameters: &properties,
 	}
 
-	_, err := cdnEndpointsClient.Update(resGroup, profileName, name, updateProps, make(chan struct{}))
+	_, err := cdnEndpointsClient.Update(resGroup, profileName, name, updateProps, make(<-chan struct{}))
 	if err != nil {
 		return fmt.Errorf("Error issuing Azure ARM update request to update CDN Endpoint %q: %s", name, err)
 	}
@@ -327,15 +328,17 @@ func resourceArmCdnEndpointDelete(d *schema.ResourceData, meta interface{}) erro
 	}
 	name := id.Path["endpoints"]
 
-	accResp, err := client.Delete(resGroup, profileName, name, make(chan struct{}))
-	if err != nil {
-		if accResp.StatusCode == http.StatusNotFound {
+	accResp, error := client.Delete(resGroup, profileName, name, make(<-chan struct{}))
+	resp := <-accResp
+	err = <- error
+	if error != nil {
+		if resp.StatusCode == http.StatusNotFound {
 			return nil
 		}
-		return fmt.Errorf("Error issuing AzureRM delete request for CDN Endpoint %q: %s", name, err)
+		return fmt.Errorf("Error issuing AzureRM delete request for CDN Endpoint %q: %s", name, error)
 	}
 
-	return err
+	return nil
 }
 
 func validateCdnEndpointQuerystringCachingBehaviour(v interface{}, k string) (ws []string, errors []error) {

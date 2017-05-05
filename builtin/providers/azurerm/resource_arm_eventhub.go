@@ -74,7 +74,7 @@ func resourceArmEventHubCreate(d *schema.ResourceData, meta interface{}) error {
 	partitionCount := int64(d.Get("partition_count").(int))
 	messageRetention := int64(d.Get("message_retention").(int))
 
-	parameters := eventhub.EventHub{
+	parameters := eventhub.CreateOrUpdateParameters{
 		Properties: &eventhub.Properties{
 			PartitionCount:         &partitionCount,
 			MessageRetentionInDays: &messageRetention,
