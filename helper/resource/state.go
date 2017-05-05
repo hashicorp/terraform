@@ -107,11 +107,6 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 				Error:  err,
 			}
 
-			if err != nil {
-				resCh <- result
-				return
-			}
-
 			// If we're waiting for the absence of a thing, then return
 			if res == nil && len(conf.Target) == 0 {
 				targetOccurence++

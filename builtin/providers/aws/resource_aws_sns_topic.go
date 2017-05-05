@@ -127,10 +127,6 @@ func resourceAwsSnsTopicUpdate(d *schema.ResourceData, meta interface{}) error {
 					}
 					_, err := stateConf.WaitForState()
 					if err != nil {
-						// If the Principal still cannot be found then it may have been an acutal invalid Principal that was passed in.
-						if strings.Contains(fmt.Sprintf("%s", err), "retrying") {
-							return fmt.Errorf("InvalidParameter: Invalid parameter: Policy Error: PrincipalNotFound")
-						}
 						return err
 					}
 				}
@@ -151,7 +147,7 @@ func resourceAwsSNSUpdateRefreshFunc(
 				// if the error contains the PrincipalNotFound message, we can retry
 				if strings.Contains(awsErr.Message(), "PrincipalNotFound") {
 					log.Printf("[DEBUG] Retrying AWS SNS Topic Update: %s", params)
-					return nil, "retrying", nil
+					return nil, "retrying", err
 				}
 			}
 			return nil, "failed", err
