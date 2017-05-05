@@ -15,6 +15,10 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+// We break apart testing for EU and US because at present, Heroku deals with
+// each a bit differently and the setup/teardown of separate tests seems to
+// help them to perform more consistently.
+// https://devcenter.heroku.com/articles/ssl-endpoint#add-certificate-and-intermediaries
 func TestAccHerokuCert_EU(t *testing.T) {
 	var endpoint heroku.SSLEndpointInfoResult
 	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
