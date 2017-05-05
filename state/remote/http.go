@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 )
 
 func httpFactory(conf map[string]string) (Client, error) {
@@ -27,6 +28,19 @@ func httpFactory(conf map[string]string) (Client, error) {
 	}
 
 	client := &http.Client{}
+	auth, ok := conf["http_auth"]
+	if ok {
+		var username, password string
+		if strings.Contains(auth, ":") {
+			split := strings.SplitN(auth, ":", 2)
+			username = split[0]
+			password = split[1]
+		} else {
+			username = auth
+		}
+
+		client.SetBasicAuth(username, password)
+	}
 	if skipRaw, ok := conf["skip_cert_verification"]; ok {
 		skip, err := strconv.ParseBool(skipRaw)
 		if err != nil {
