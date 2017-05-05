@@ -8,82 +8,134 @@ description: |-
 
 # Creating Providers
 
-Say you've found a new API provider that Terraform doesn't support, and you
-want to go ahead and implement it. First of all, thank you! It's always
-exciting when the community helps Terraform learn new tricks, and the Terraform
-team appreciates all the contributions the community has made.
-
-To get started, you're going to want to look at the
-[`Provider`](https://godoc.org/github.com/hashicorp/terraform/helper/schema#Provider)
-type. Don't worry if it looks complex or confusing; this guide will break it
-down and walk through it over the course of this guide. There are a lot of
-methods, but the good news is it's not your job to call or define _any_ of
-them. You can safely ignore them.
+The
+[`schema.Provider`](https://godoc.org/github.com/hashicorp/terraform/helper/schema#Provider)
+type is the backbone of Terraform providers. Though it has many methods,
+providers almost never call those methods, so they can be safely ignored.
 
 ## Creating the Package
 
-To define a new provider, you need to create a new package. If you are
-contributing this to the Terraform codebase, create a directory named after
-your plugin in the `builtin/providers` directory of Terraform. If you're
-planning on maintaining it outside of Terraform as a standalone plugin, create
-a new repository for it - we recommend
-`github.com/{yourname}/terraform-provider-{name}`, as that will simplify things
-down the road.
+Providers exist within their own packages. Inside the Terraform codebase, the
+`builtin/providers` directory holds these packages, and the packages are named
+for the provider they contain. Providers that do not ship with Terraform live
+within a repository. The repository, by convention, should be named
+`github.com/<YOUR_USERNAME>/terraform-provider-<NAME>`, though this is not a
+hard requirement.
 
-In your new package, create a `provider.go` file. In that file, you're going to
-create a `Provider` function that takes no arguments and returns a
-`terraform.ResourceProvider`:
+The new package, wherever it lives, holds a `provider.go` file containing a
+`Provider` function. The `Provider` function takes no arguments and returns a
+[`terraform.ResourceProvider`](https://godoc.org/github.com/hashicorp/terraform/terraform#ResourceProvider):
 
 ```go
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
-		// your provider definition here
+		// provider definition here
 	}
 }
 ```
 
-The `*schema.Provider` you're returning fills the `terraform.ResourceProvider`
-interface; you don't have to use it, you could use your own custom
-implementation of the interface, but that's tricky and hard to get right, so we
-highly recommend you use the built-in `*schema.Provider`.
+The
+[`*schema.Provider`](https://godoc.org/github.com/hashicorp/terraform/helper/schema#Provider)
+type fills the
+[`terraform.ResourceProvider`](https://godoc.org/github.com/hashicorp/terraform/terraform#ResourceProvider)
+interface. It's not required that providers use this implementation, but it's
+highly recommended.
 
-For the moment, just set the properties of the returned `*schema.Provider` to
-empty maps (leave `ConfigureFunc` as nil). We'll take care of the properties
-later; let's get that `ConfigureFunc` defined.
+## Configuring the Provider
 
-## Configuring Your Provider
+### User-Supplied Information
 
 Most API providers take some form of configuration: an API endpoint to use,
-credentials to use, and so on. To accomplish this, we're going to set up the
-`ConfigureFunc` property on your Provider. If an API client needs to be
-instantiated before it's used in your Resources, this is the place to do it.
+credentials to use, or other user-provided information. Terraform providers can
+accept this information using the `Schema` property of the `*schema.Provider`
+that defines the provider.
 
-The premise is pretty simple: you're going to define a function that takes a
-`ResourceData` struct (more on that
-[later](/docs/internals/providers/resource-data.html)) and returns an
-`interface{}` or an `error`. If you don't return an error, the interface you
-return will be stored and passed to all your resources as a meta parameter. If
-you do return an error, that will bubble up to the Terraform CLI and abort
-whatever command is being run. **Note:** please return errors instead of using
-`panic` or `os.Exit`.
+The key of the `Schema` property is the field name being described. For
+example, for the following provider configuration:
 
-## Registering Your Provider
+```hcl
+provider "foo" {
+  username = "terraform"
+}
+```
 
-Because Terraform uses a plugin architecture, we need to register our new
-plugin with Terraform before Terraform knows how to use it. (Fun fact: even the
-providers built into the codebase need to be registered!)
+The key of the `Schema` property should be `username`.
 
-If you're contributing your provider to the Terraform codebase, you need to
-create a new folder in the `builtin/bins` directory in the Terraform codebase
-named `provider-{name}`. Inside, you'll put your `main.go` file. If you're
-maintaining your own plugin, you can put the `main.go` file in the root of the
-repo containing the code for your provider, or really anywhere you want, as
-long as it's in package main.
+The field of the `Schema` property is a
+[`*schema.Schema`](https://godoc.org/github.com/hashicorp/terraform/helper/schema#Schema)
+representing the value expected. The above example could be represented like
+this:
 
-Inside that `main.go` file, you're going to define a `main` function that
-serves your plugin. This is pretty straightforward, so check out any of the
-[built-in
-plugins](https://github.com/hashicorp/terraform/tree/master/builtin/bins) for
-an example to follow. The only thing you should need to customise is the import
-path to the package containing your `Provider` function and the `ProviderFunc`
-property to point to that `Provider` function.
+```go
+provider := &schema.Provider{
+	Schema: map[string]*Schema{
+		"username": {
+			Type: schema.TypeString,
+			Required: true,
+		},
+	},
+}
+```
+
+[Understanding the Schema](schema.html) has more information on the
+`*schema.Schema` type.
+
+### Instantiating Clients
+
+Most API providers will also require some sort of instantiated client to
+interact with them. It is generally desirable to instantiate these clients
+once, both to avoid expensive setup costs and to share things like network
+connections across the entire lifecycle.
+
+Terraform providers have a `ConfigureFunc` property that can be set to a
+[`schema.ConfigureFunc`](https://godoc.org/github.com/hashicorp/terraform/helper/schema#ConfigureFunc).
+This function accepts a [`*schema.ResourceData`](resource-data.html) and
+returns an `interface{}` or an `error`. The function is called at the beginning
+of the Terraform lifecycle. If it returns an error, Terraform will surface
+that error to the user and exit. Otherwise, the returned `interface{}` will be
+provided to the Create, Read, Update, Destroy, and Exists functions in the
+provider.
+
+The passed `*schema.ResourceData` contains the user-supplied values for the
+`Schema` property of the `*schema.Provider`.
+
+~> **Note:** Return errors from `ConfigureFunc` instead of using `panic` or
+`os.Exit`.
+
+## Registering a Provider
+
+Terraform uses a [plugin architecture](/docs/plugins), meaning providers must
+be registered before they are usable. Even providers that ship with Terraform
+must be registered.
+
+Providers that live within the Terraform codebase have a folder in the
+`builtin/bins` directory named `provider-<NAME>`. Providers that live within
+their own repositories can put their registration code anywhere, but convention
+is to put the code in the root of the repository. The only requirement is that
+the package containing the code is named `main`.
+
+Registration for a provider happens in the `main` function, which is
+responsible for serving the plugin. Any of the [built-in
+plugins](https://github.com/hashicorp/terraform/tree/master/builtin/bins) in
+Terraform can provide an example to follow. The function must import the
+package the function that returns a `*schema.Provider` is in, and call
+[`plugin.Serve`](https://godoc.org/github.com/hashicorp/terraform/plugin#Serve).
+The
+[`*plugin.ServeOpts`](https://godoc.org/github.com/hashicorp/terraform/plugin#ServeOpts)
+passed to `plugin.Serve` should have the `ProviderFunc` property set to the
+function that returns a `*schema.Provider`:
+
+```go
+package main
+
+import (
+	"github.com/hashicorp/terraform/builtin/providers/archive"
+	"github.com/hashicorp/terraform/plugin"
+)
+
+func main() {
+	plugin.Serve(&plugin.ServeOpts{
+		ProviderFunc: archive.Provider,
+	})
+}
+```
