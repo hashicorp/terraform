@@ -8,7 +8,7 @@ description: |-
 
 # Terraform Lifecycle
 
-Terraform runs follow a predictable lifecycle:
+Terraform runs - invocations of `terraform plan` or `terraform apply` - follow a predictable lifecycle:
 
 1. Gather information
 2. Detect diffs
