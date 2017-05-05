@@ -339,14 +339,14 @@ func resourceAwsS3Bucket() *schema.Resource {
 							Required: true,
 						},
 						"rules": {
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
 							Required: true,
-							Set:      rulesHash,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"id": {
 										Type:         schema.TypeString,
 										Optional:     true,
+										Computed:     true,
 										ValidateFunc: validateS3BucketReplicationRuleId,
 									},
 									"destination": {
@@ -1440,7 +1440,7 @@ func resourceAwsS3BucketReplicationConfigurationUpdate(s3conn *s3.S3, d *schema.
 		rc.Role = aws.String(val.(string))
 	}
 
-	rcRules := c["rules"].(*schema.Set).List()
+	rcRules := c["rules"].([]interface{})
 	rules := []*s3.ReplicationRule{}
 	for _, v := range rcRules {
 		rr := v.(map[string]interface{})
@@ -1449,8 +1449,10 @@ func resourceAwsS3BucketReplicationConfigurationUpdate(s3conn *s3.S3, d *schema.
 			Status: aws.String(rr["status"].(string)),
 		}
 
-		if rrid, ok := rr["id"]; ok {
-			rcRule.ID = aws.String(rrid.(string))
+		if val, ok := rr["id"].(string); ok && val != "" {
+			rcRule.ID = aws.String(val)
+		} else {
+			rcRule.ID = aws.String(resource.PrefixedUniqueId("tf-s3-replication-"))
 		}
 
 		ruleDestination := &s3.Destination{}
@@ -1664,7 +1666,7 @@ func flattenAwsS3BucketReplicationConfiguration(r *s3.ReplicationConfiguration) 
 		}
 		rules = append(rules, t)
 	}
-	m["rules"] = schema.NewSet(rulesHash, rules)
+	m["rules"] = rules
 
 	replication_configuration = append(replication_configuration, m)
 
@@ -1819,22 +1821,6 @@ func transitionHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%d-", v.(int)))
 	}
 	if v, ok := m["storage_class"]; ok {
-		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
-	}
-	return hashcode.String(buf.String())
-}
-
-func rulesHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-
-	if v, ok := m["id"]; ok {
-		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
-	}
-	if v, ok := m["prefix"]; ok {
-		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
-	}
-	if v, ok := m["status"]; ok {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 	return hashcode.String(buf.String())
