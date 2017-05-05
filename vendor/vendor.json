@@ -289,11 +289,11 @@
 			"revisionTime": "2016-06-22T17:32:16Z"
 		},
 		{
-			"checksumSHA1": "U2+FgaMOPEFg/yHLD5RbiXI1cq4=",
+			"checksumSHA1": "+sxS3YEvxf1VxlRskIdXFRWq9rY=",
 			"comment": "v7.0.5",
 			"path": "github.com/Azure/go-autorest/autorest",
-			"revision": "a2fdd780c9a50455cecd249b00bdc3eb73a78e31",
-			"revisionTime": "2017-04-06T20:28:05Z",
+			"revision": "ec5f4903f77ed9927ac95b19ab8e44ada64c1356",
+			"revisionTime": "2017-02-15T19:58:14Z",
 			"version": "v7.3.1",
 			"versionExact": "v7.3.1"
 		},
@@ -301,8 +301,8 @@
 			"checksumSHA1": "ghrnc4vZv6q8zzeakZnrS8CGFhE=",
 			"comment": "v7.0.5",
 			"path": "github.com/Azure/go-autorest/autorest/azure",
-			"revision": "a2fdd780c9a50455cecd249b00bdc3eb73a78e31",
-			"revisionTime": "2017-04-06T20:28:05Z",
+			"revision": "ec5f4903f77ed9927ac95b19ab8e44ada64c1356",
+			"revisionTime": "2017-02-15T19:58:14Z",
 			"version": "v7.3.1",
 			"versionExact": "v7.3.1"
 		},
@@ -310,8 +310,8 @@
 			"checksumSHA1": "q9Qz8PAxK5FTOZwgYKe5Lj38u4c=",
 			"comment": "v7.0.5",
 			"path": "github.com/Azure/go-autorest/autorest/date",
-			"revision": "a2fdd780c9a50455cecd249b00bdc3eb73a78e31",
-			"revisionTime": "2017-04-06T20:28:05Z",
+			"revision": "ec5f4903f77ed9927ac95b19ab8e44ada64c1356",
+			"revisionTime": "2017-02-15T19:58:14Z",
 			"version": "v7.3.1",
 			"versionExact": "v7.3.1"
 		},
@@ -319,16 +319,16 @@
 			"checksumSHA1": "Ev8qCsbFjDlMlX0N2tYAhYQFpUc=",
 			"comment": "v7.0.5",
 			"path": "github.com/Azure/go-autorest/autorest/to",
-			"revision": "a2fdd780c9a50455cecd249b00bdc3eb73a78e31",
-			"revisionTime": "2017-04-06T20:28:05Z",
+			"revision": "ec5f4903f77ed9927ac95b19ab8e44ada64c1356",
+			"revisionTime": "2017-02-15T19:58:14Z",
 			"version": "v7.3.1",
 			"versionExact": "v7.3.1"
 		},
 		{
 			"checksumSHA1": "oBixceM+55gdk47iff8DSEIh3po=",
 			"path": "github.com/Azure/go-autorest/autorest/validation",
-			"revision": "a2fdd780c9a50455cecd249b00bdc3eb73a78e31",
-			"revisionTime": "2017-04-06T20:28:05Z",
+			"revision": "ec5f4903f77ed9927ac95b19ab8e44ada64c1356",
+			"revisionTime": "2017-02-15T19:58:14Z",
 			"version": "v7.3.1",
 			"versionExact": "v7.3.1"
 		},
