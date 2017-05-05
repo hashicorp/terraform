@@ -1,7 +1,7 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_iam_role"
-sidebar_current: docs-aws-datasource-iam-role
+sidebar_current: "docs-aws-datasource-iam-role"
 description: |-
   Get information on a Amazon IAM role
 ---

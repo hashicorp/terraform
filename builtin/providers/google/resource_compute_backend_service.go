@@ -200,11 +200,15 @@ func resourceComputeBackendServiceCreate(d *schema.ResourceData, meta interface{
 
 	log.Printf("[DEBUG] Waiting for new backend service, operation: %#v", op)
 
+	// Store the ID now
 	d.SetId(service.Name)
 
-	err = computeOperationWaitGlobal(config, op, project, "Creating Backend Service")
-	if err != nil {
-		return err
+	// Wait for the operation to complete
+	waitErr := computeOperationWaitGlobal(config, op, project, "Creating Backend Service")
+	if waitErr != nil {
+		// The resource didn't actually create
+		d.SetId("")
+		return waitErr
 	}
 
 	return resourceComputeBackendServiceRead(d, meta)
