@@ -154,7 +154,7 @@ func validateStreamViewType(v interface{}, k string) (ws []string, errors []erro
 	}
 
 	if !viewTypes[value] {
-		errors = append(errors, fmt.Errorf("%q be a valid DynamoDB StreamViewType", k))
+		errors = append(errors, fmt.Errorf("%q must be a valid DynamoDB StreamViewType", k))
 	}
 	return
 }
