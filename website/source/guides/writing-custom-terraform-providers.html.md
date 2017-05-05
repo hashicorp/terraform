@@ -545,8 +545,22 @@ exists (maybe it was destroyed out of band). Just like the destroy callback, the
 `Read` function should gracefully handle this case.
 
 ```go
-// Tells Terraform the resource no longer exists
-d.SetId("")
+func resourceServerRead(d *schema.ResourceData, m interface{}) error {
+  client := meta.(*MyClient)
+
+  // Attempt to read from an upstream API
+  obj, ok := client.Get(d.Id())
+
+  // If the resource does not exist, inform Terraform. We want to immediately
+  // return here to prevent further processing.
+  if !ok {
+    d.SetId("")
+    return nil
+  }
+
+  d.Set("address", obj.Address)
+  return nil
+}
 ```
 
 ## Next Steps
