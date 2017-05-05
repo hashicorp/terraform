@@ -2346,3 +2346,15 @@ func TestInterpolateFuncSubstr(t *testing.T) {
 		},
 	})
 }
+
+func TestInterpolateFuncTagsMap(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${tags_map(list(map("key", "foo", "value", "bar")))}`,
+				map[string]interface{}{"foo": "bar"},
+				false,
+			},
+		},
+	})
+}
