@@ -223,15 +223,6 @@ The supported built-in functions are:
       module, you generally want to make the path relative to the module base,
       like this: `file("${path.module}/file")`.
 
-  * `matchkeys(values, keys, searchset)` - For two lists `values` and `keys` of
-      equal length, returns all elements from `values` where the corresponding
-      element from `keys` exists in the `searchset` list.  E.g.
-      `matchkeys(aws_instance.example.*.id,
-      aws_instance.example.*.availability_zone, list("us-west-2a"))` will return a
-      list of the instance IDs of the `aws_instance.example` instances in
-      `"us-west-2a"`. No match will result in empty list. Items of `keys` are
-      processed sequentially, so the order of returned `values` is preserved.
-
   * `floor(float)` - Returns the greatest integer value less than or equal to
       the argument.
 
@@ -296,6 +287,15 @@ The supported built-in functions are:
     Duplicate keys are not allowed. Examples:
     * `map("hello", "world")`
     * `map("us-east", list("a", "b", "c"), "us-west", list("b", "c", "d"))`
+
+  * `matchkeys(values, keys, searchset)` - For two lists `values` and `keys` of
+      equal length, returns all elements from `values` where the corresponding
+      element from `keys` exists in the `searchset` list.  E.g.
+      `matchkeys(aws_instance.example.*.id,
+      aws_instance.example.*.availability_zone, list("us-west-2a"))` will return a
+      list of the instance IDs of the `aws_instance.example` instances in
+      `"us-west-2a"`. No match will result in empty list. Items of `keys` are
+      processed sequentially, so the order of returned `values` is preserved.
 
   * `max(float1, float2, ...)` - Returns the largest of the floats.
 
