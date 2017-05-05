@@ -3,6 +3,7 @@
 package parser
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -36,6 +37,11 @@ func newParser(src []byte) *Parser {
 
 // Parse returns the fully parsed source and returns the abstract syntax tree.
 func Parse(src []byte) (*ast.File, error) {
+	// normalize all line endings
+	// since the scanner and output only work with "\n" line endings, we may
+	// end up with dangling "\r" characters in the parsed data.
+	src = bytes.Replace(src, []byte("\r\n"), []byte("\n"), -1)
+
 	p := newParser(src)
 	return p.Parse()
 }

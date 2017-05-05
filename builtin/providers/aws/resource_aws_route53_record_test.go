@@ -406,6 +406,24 @@ func TestAccAWSRoute53Record_empty(t *testing.T) {
 	})
 }
 
+// Regression test for https://github.com/hashicorp/terraform/issues/8423
+func TestAccAWSRoute53Record_longTXTrecord(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route53_record.long_txt",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRoute53RecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53RecordConfigLongTxtRecord,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.long_txt"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckRoute53RecordDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).r53conn
 	for _, rs := range s.RootModule().Resources {
@@ -1159,5 +1177,21 @@ resource "aws_route53_record" "empty" {
 	type = "A"
 	ttl = "30"
 	records = ["127.0.0.1"]
+}
+`
+
+const testAccRoute53RecordConfigLongTxtRecord = `
+resource "aws_route53_zone" "main" {
+	name = "notexample.com"
+}
+
+resource "aws_route53_record" "long_txt" {
+    zone_id = "${aws_route53_zone.main.zone_id}"
+    name = "google.notexample.com"
+    type = "TXT"
+    ttl = "30"
+    records = [
+        "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAiajKNMp\" \"/A12roF4p3MBm9QxQu6GDsBlWUWFx8EaS8TCo3Qe8Cj0kTag1JMjzCC1s6oM0a43JhO6mp6z/"
+    ]
 }
 `

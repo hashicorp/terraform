@@ -3,6 +3,7 @@ package google
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/mutexkv"
@@ -261,4 +262,16 @@ func getNetworkNameFromSelfLink(network string) (string, error) {
 
 func getRouterLockName(region string, router string) string {
 	return fmt.Sprintf("router/%s/%s", region, router)
+}
+
+func handleNotFoundError(err error, d *schema.ResourceData, resource string) error {
+	if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+		log.Printf("[WARN] Removing %s because it's gone", resource)
+		// The resource doesn't exist anymore
+		d.SetId("")
+
+		return nil
+	}
+
+	return fmt.Errorf("Error reading %s: %s", resource, err)
 }
