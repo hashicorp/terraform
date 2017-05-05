@@ -59,27 +59,20 @@ name.
 
 ## Calling the API
 
-The data source obtains its values by using the provider's API client (possibly
-[configured](/docs/internals/providers/new-provider.html#configuring-your-provider)
-by the provider's `ConfigureFunc`) to retrieve some resources. Though the data
-source, as a `*schema.Resource` type, has `Create`, `Read`, `Update`, `Delete`,
-and `Exists` properties, Terraform only uses the function defined in the `Read`
-property. The function takes a `*schema.ResourceData` struct and an
-`interface{}` as arguments, and returns an `error`. 
+Data sources define their behavior through a [`schema.ReadFunc`](https://godoc.org/github.com/hashicorp/terraform/helper/schema#ReadFunc) that will be called whenever Terraform needs to retrieve
+values from the data source. Though the data source is implemented as a `*schema.Resource`,
+the `Create`, `Update`, and `Delete` properties are all ignored, and should not be set.
 
-The `*schema.ResourceData` struct represents the state of the resource as it
-should be. It's an amalgamation of several different sources of data, which are
-explained further in [Using
-ResourceData](/docs/internals/providers/resource-data.html). Data sources use
-the `*schema.ResourceData` struct to pull the identifying information necessary
-to retrieve the information requested from the API, and as a place to store the
-information the API returns.
-
-The `interface{}` is the same `interface{}` returned by the
-`*schema.Provider`'s `ConfigureFunc`. It generally contains a configured API
-client or similar form of access for the provider.
-
-The `Read` function uses the passed `*ResourceData` to retrieve the ID
-(or other identifying information necessary for the API call) of the data
-source to be read. It should then retrieve the data source from the API, and
-set the fields in `*schema.ResourceData` to match the response.
+The `Read` property should be set to a
+[`schema.ReadFunc`](https://godoc.org/github.com/hashicorp/terraform/helper/schema#ReadFunc),
+which receives a [`*schema.ResourceData`](resource-data.html) and the
+`interface{}` returned from the provider's
+[`ConfigureFunc`](new-provider.html#instantiating-clients). The function should
+read the information it needs to retrieve the resource from the
+[`*schema.ResourceData`](resource-data.html) and make whatever API calls it
+needs to retrieve the resource described. If the resource is successfully
+retrieved, the function should [update the
+`*schema.ResourceData`](resource-data.html#setting-state) with the state as
+reported by the API and return `nil`. If an error is encountered, the function
+should return an `error` describing the problem, which will be surfaced to the
+user.
