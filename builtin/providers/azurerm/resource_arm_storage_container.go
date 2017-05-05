@@ -109,7 +109,8 @@ func resourceArmStorageContainerCreate(d *schema.ResourceData, meta interface{})
 	log.Printf("[INFO] Creating container %q in storage account %q.", name, storageAccountName)
 	reference := blobClient.GetContainerReference(name)
 
-	_, err = reference.CreateIfNotExists()
+	createOptions := &storage.CreateContainerOptions{}
+	_, err = reference.CreateIfNotExists(createOptions)
 	if err != nil {
 		return fmt.Errorf("Error creating container %q in storage account %q: %s", name, storageAccountName, err)
 	}
@@ -117,8 +118,8 @@ func resourceArmStorageContainerCreate(d *schema.ResourceData, meta interface{})
 	permissions := storage.ContainerPermissions{
 		AccessType: accessType,
 	}
-	// TODO: sensible timeout/leaseID
-	err = reference.SetPermissions(permissions, 0, "")
+	permissionOptions := &storage.SetContainerPermissionOptions{}
+	err = reference.SetPermissions(permissions, permissionOptions)
 	if err != nil {
 		return fmt.Errorf("Error setting permissions for container %s in storage account %s: %+v", name, storageAccountName, err)
 	}
@@ -231,7 +232,8 @@ func resourceArmStorageContainerDelete(d *schema.ResourceData, meta interface{})
 
 	log.Printf("[INFO] Deleting storage container %q in account %q", name, storageAccountName)
 	reference := blobClient.GetContainerReference(name)
-	if _, err := reference.DeleteIfExists(); err != nil {
+	deleteOptions := &storage.DeleteContainerOptions{}
+	if _, err := reference.DeleteIfExists(deleteOptions); err != nil {
 		return fmt.Errorf("Error deleting storage container %q from storage account %q: %s", name, storageAccountName, err)
 	}
 

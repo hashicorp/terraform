@@ -155,13 +155,23 @@ func resourceArmStorageBlobCreate(d *schema.ResourceData, meta interface{}) erro
 
 	log.Printf("[INFO] Creating blob %q in storage account %q", name, storageAccountName)
 	if sourceUri != "" {
-		if err := blobClient.CopyBlob(cont, name, sourceUri); err != nil {
+		// TODO(tom): populate
+		options := &storage.CopyOptions{}
+		container := blobClient.GetContainerReference(cont)
+		blob := container.GetBlobReference(name)
+		err := blob.Copy(sourceUri, options)
+		if err != nil {
 			return fmt.Errorf("Error creating storage blob on Azure: %s", err)
 		}
 	} else {
 		switch strings.ToLower(blobType) {
 		case "block":
-			if err := blobClient.CreateBlockBlob(cont, name); err != nil {
+			// TODO(tom): populate
+			options := &storage.PutBlobOptions{}
+			container := blobClient.GetContainerReference(cont)
+			blob := container.GetBlobReference(name)
+			err := blob.CreateBlockBlob(options)
+			if err != nil {
 				return fmt.Errorf("Error creating storage blob on Azure: %s", err)
 			}
 
@@ -182,8 +192,15 @@ func resourceArmStorageBlobCreate(d *schema.ResourceData, meta interface{}) erro
 					return fmt.Errorf("Error creating storage blob on Azure: %s", err)
 				}
 			} else {
-				size := int64(d.Get("size").(int))
-				if err := blobClient.PutPageBlob(cont, name, size, map[string]string{}); err != nil {
+				// TODO(tom): how/where is this used?!
+				//size := int64(d.Get("size").(int))
+				options := &storage.PutBlobOptions{
+				}
+
+				container := blobClient.GetContainerReference(cont)
+				blob := container.GetBlobReference(name)
+				err := blob.PutPageBlob(options)
+				if err != nil {
 					return fmt.Errorf("Error creating storage blob on Azure: %s", err)
 				}
 			}
@@ -213,7 +230,12 @@ func resourceArmStorageBlobPageUploadFromSource(container, name, source string, 
 		return fmt.Errorf("Error splitting source file %q into pages: %s", source, err)
 	}
 
-	if err := client.PutPageBlob(container, name, blobSize, map[string]string{}); err != nil {
+	// TODO(tom): populate
+	options := &storage.PutBlobOptions{}
+	containerRef := client.GetContainerReference(container)
+	blob := containerRef.GetBlobReference(name)
+	err = blob.PutPageBlob(options)
+	if err != nil {
 		return fmt.Errorf("Error creating storage blob on Azure: %s", err)
 	}
 
@@ -523,7 +545,9 @@ func resourceArmStorageBlobRead(d *schema.ResourceData, meta interface{}) error 
 	name := d.Get("name").(string)
 	storageContainerName := d.Get("storage_container_name").(string)
 
-	url := blobClient.GetBlobURL(storageContainerName, name)
+	container := blobClient.GetContainerReference(storageContainerName)
+	blob := container.GetBlobReference(name)
+	url := blob.GetURL()
 	if url == "" {
 		log.Printf("[INFO] URL for %q is empty", name)
 	}
@@ -552,7 +576,9 @@ func resourceArmStorageBlobExists(d *schema.ResourceData, meta interface{}) (boo
 	storageContainerName := d.Get("storage_container_name").(string)
 
 	log.Printf("[INFO] Checking for existence of storage blob %q.", name)
-	exists, err := blobClient.BlobExists(storageContainerName, name)
+	container := blobClient.GetContainerReference(storageContainerName)
+	blob := container.GetBlobReference(name)
+	exists, err := blob.Exists()
 	if err != nil {
 		return false, fmt.Errorf("error testing existence of storage blob %q: %s", name, err)
 	}
@@ -584,7 +610,12 @@ func resourceArmStorageBlobDelete(d *schema.ResourceData, meta interface{}) erro
 	storageContainerName := d.Get("storage_container_name").(string)
 
 	log.Printf("[INFO] Deleting storage blob %q", name)
-	if _, err = blobClient.DeleteBlobIfExists(storageContainerName, name, map[string]string{}); err != nil {
+	// TODO(tom): populate
+	options := &storage.DeleteBlobOptions{}
+	container := blobClient.GetContainerReference(storageContainerName)
+	blob := container.GetBlobReference(name)
+	_, err = blob.DeleteIfExists(options)
+	if err != nil {
 		return fmt.Errorf("Error deleting storage blob %q: %s", name, err)
 	}
 
