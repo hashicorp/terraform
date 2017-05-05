@@ -100,6 +100,10 @@ func resourceHerokuApp() *schema.Resource {
 		Update: resourceHerokuAppUpdate,
 		Delete: resourceHerokuAppDelete,
 
+		Importer: &schema.ResourceImporter{
+			State: resourceHerokuAppImport,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
@@ -191,6 +195,24 @@ func resourceHerokuApp() *schema.Resource {
 func isOrganizationApp(d *schema.ResourceData) bool {
 	v := d.Get("organization").([]interface{})
 	return len(v) > 0 && v[0] != nil
+}
+
+func resourceHerokuAppImport(d *schema.ResourceData, m interface{}) ([]*schema.ResourceData, error) {
+	client := m.(*heroku.Service)
+
+	app, err := client.AppInfo(context.TODO(), d.Id())
+	if err != nil {
+		return nil, err
+	}
+
+	// Flag organization apps by setting the organization name
+	if app.Organization != nil {
+		d.Set("organization", []map[string]interface{}{
+			{"name": app.Organization.Name},
+		})
+	}
+
+	return []*schema.ResourceData{d}, nil
 }
 
 func switchHerokuAppCreate(d *schema.ResourceData, meta interface{}) error {
