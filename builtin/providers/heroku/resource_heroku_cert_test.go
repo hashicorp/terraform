@@ -19,11 +19,14 @@ func TestAccHerokuCert_Basic(t *testing.T) {
 
 	wd, _ := os.Getwd()
 	certFile := wd + "/test-fixtures/terraform.cert"
+	certFile2 := wd + "/test-fixtures/terraform2.cert"
 	keyFile := wd + "/test-fixtures/terraform.key"
 	keyFile2 := wd + "/test-fixtures/terraform2.key"
 
 	certificateChainBytes, _ := ioutil.ReadFile(certFile)
 	certificateChain := string(certificateChainBytes)
+	certificateChain2Bytes, _ := ioutil.ReadFile(certFile2)
+	certificateChain2 := string(certificateChain2Bytes)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -41,10 +44,10 @@ func TestAccHerokuCert_Basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccCheckHerokuCertConfig(appName, certFile, keyFile2),
+				Config: testAccCheckHerokuCertConfig(appName, certFile2, keyFile2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuCertExists("heroku_cert.ssl_certificate", &endpoint),
-					testAccCheckHerokuCertificateChain(&endpoint, certificateChain),
+					testAccCheckHerokuCertificateChain(&endpoint, certificateChain2),
 					resource.TestCheckResourceAttr(
 						"heroku_cert.ssl_certificate",
 						"cname", fmt.Sprintf("%s.herokuapp.com", appName)),
@@ -58,7 +61,7 @@ func testAccCheckHerokuCertConfig(appName, certFile, keyFile string) string {
 	return fmt.Sprintf(`
 resource "heroku_app" "foobar" {
   name = "%s"
-  region = "us"
+  region = "eu"
 }
 
 resource "heroku_addon" "ssl" {
