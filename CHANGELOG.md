@@ -4,6 +4,9 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 * provider/aws: Users of aws_cloudfront_distributions with custom_origins have been broken due to changes in the AWS API requiring   `OriginReadTimeout` being set for updates. This has been fixed and will show as a change in terraform plan / apply. [GH-13367]
 * provider/aws: Users of China and Gov clouds, cannot use the new tagging of volumes created as part of aws_instances [GH-14055]
+* provider/aws: More consistent (un)quoting of long TXT/SPF `aws_route53_record`s.
+   Previously we were trimming first 2 quotes and now we're (correctly) trimming first and last one.
+   Depending on the use of quotes in your TXT/SPF records this may result in extra diff in plan/apply [GH-14170]
 
 FEATURES:
 
@@ -56,6 +59,7 @@ BUG FIXES:
 * provider/aws: Fix source_dest_check with network_interface [GH-14079]
 * provider/aws: Fixes the bug where SNS delivery policy get always recreated [GH-14064]
 * provider/aws: Prevent Crash when importing aws_route53_record [GH-14218]
+* provider/aws: More consistent (un)quoting of long TXT/SPF `aws_route53_record`s [GH-14170]
 * provider/digitalocean: Prevent diffs when using IDs of images instead of slugs [GH-13879]
 * provider/fastly: Changes setting conditionals to optional [GH-14103]
 * provider/google: Ignore certain project services that can't be enabled directly via the api [GH-13730]
