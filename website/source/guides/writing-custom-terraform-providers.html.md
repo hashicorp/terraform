@@ -30,7 +30,7 @@ as:
 
 ## Local Setup
 
-Terraform supports a plugin model, and all providers and actually plugins.
+Terraform supports a plugin model, and all providers are actually plugins.
 Plugins are distributed as Go binaries. Although technically possible to write a
 plugin in another language, almost all Terraform plugins are written in
 [Go](https://golang.org). For more information on installing and configuring Go,
@@ -123,7 +123,14 @@ Please execute the program that consumes these plugins, which will
 load any plugins automatically
 ```
 
-This is the basic project structure and scaffolding for a Terraform plugin.
+This is the basic project structure and scaffolding for a Terraform plugin. To
+recap, the file structure is:
+
+```text
+.
+├── main.go
+└── provider.go
+```
 
 ## Defining Resources
 
@@ -162,8 +169,8 @@ func resourceServer() *schema.Resource {
 
 ```
 
-This uses the [`schema.Resource`
-type](https://godoc.org/github.com/hashicorp/terraform/helper/schema#Resource).
+This uses the
+[`schema.Resource` type](https://godoc.org/github.com/hashicorp/terraform/helper/schema#Resource).
 This structure defines the data schema and CRUD operations for the resource.
 Defining these properties are the only required thing to create a resource.
 
@@ -171,11 +178,11 @@ The schema above defines one element, `"address"`, which is a required string.
 Terraform's schema automatically enforces validation and type casting.
 
 Next there are four "fields" defined - `Create`, `Read`, `Update`, and `Delete`.
-These four functions are required for a resource to be functional. There are
-other functions, but these are the only required ones. Terraform itself handles
-which function to call and with what data. Based on the schema and current state
-of the resource, Terraform can determine whether it needs to create a new
-resource, update an existing one, or destroy.
+The `Create`, `Read`, and `Delete` functions are required for a resource to be
+functional. There are other functions, but these are the only required ones.
+Terraform itself handles which function to call and with what data. Based on the
+schema and current state of the resource, Terraform can determine whether it
+needs to create a new resource, update an existing one, or destroy.
 
 Each of the four struct fields point to a function. While it is technically
 possible to inline all functions in the resource schema, best practice dictates
@@ -223,6 +230,16 @@ $ ./terraform-provider-example
 This binary is a plugin. These are not meant to be executed directly.
 Please execute the program that consumes these plugins, which will
 load any plugins automatically
+```
+
+The layout now looks like this:
+
+```text
+.
+├── main.go
+├── provider.go
+├── resource_server.go
+└── terraform-provider-example
 ```
 
 ## Invoking the Provider
@@ -484,6 +501,8 @@ the resource was deleted successfully.
 
 ```go
 func resourceServerDelete(d *schema.ResourceData, m interface{}) error {
+  // d.SetId("") is automatically called assuming delete returns no errors, but
+  // it is added here for explicitness.
 	d.SetId("")
 	return nil
 }
@@ -495,7 +514,7 @@ destroyed, this should not return an error. This allows Terraform users to
 manually delete resources without breaking Terraform.
 
 ```shell
-$ go build -o terraform-plugin-example
+$ go build -o terraform-provider-example
 ```
 
 Run `terraform destroy` to destroy the resource.
