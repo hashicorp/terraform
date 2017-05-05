@@ -25,6 +25,6 @@ section to do its job, and only worry about their resources.
 One way to think of the separation is that the core tells the providers what to
 do, and the providers make that change against the APIs.
 
-To hook into this behaviour, Terraform has a provider framework. This guide
+To hook into this behavior, Terraform has a provider framework. This guide
 aims to document that framework, and help guide thinking and understanding
 around it.
