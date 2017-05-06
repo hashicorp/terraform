@@ -98,14 +98,10 @@ func resourceHerokuCertUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	if d.HasChange("certificate_chain") || d.HasChange("private_key") {
 		log.Printf("[DEBUG] SSL Certificate update configuration: %#v, %#v", app, opts)
-		ad, err := client.SSLEndpointUpdate(context.TODO(), app, d.Id(), opts)
+		_, err := client.SSLEndpointUpdate(context.TODO(), app, d.Id(), opts)
 		if err != nil {
 			return fmt.Errorf("Error updating SSL endpoint: %s", err)
 		}
-
-		// Store the new ID
-		d.SetId(ad.ID)
-		log.Printf("[INFO] Updated SSL Certificate ID: %s", d.Id())
 	}
 
 	return resourceHerokuCertRead(d, meta)
