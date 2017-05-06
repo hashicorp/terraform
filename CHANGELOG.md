@@ -75,6 +75,7 @@ BUG FIXES:
 * provider/google: Handle `google_storage_bucket_object` not being found [GH-14203]
 * provider/google: Handle `google_compute_instance_group_manager` not being found [GH-14190]
 * providers/heroku: Configure buildpacks correctly for both Org Apps and non-org Apps [GH-13990]
+* provider/openstack: Handle disassociating deleted FloatingIP's from a server [GH-14210]
 * provider/postgres grant role when creating database [GH-11452]
 * provisioner/remote-exec: Fix panic from remote_exec provisioner [GH-14134]
 
