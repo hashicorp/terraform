@@ -3,7 +3,10 @@ package azurerm
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"testing"
+
+	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -86,7 +89,7 @@ func testCheckAzureRMExpressRouteCircuitDestroy(s *terraform.State) error {
 }
 
 func testAccAzureRMExpressRouteCircuit_basic(rInt int) string {
-	return fmt.Sprintf(`
+	return strings.Replace(`
 		resource "azurerm_resource_group" "test" {
 			name = "acctestrg-%d"
 			location = "West US"
@@ -107,5 +110,5 @@ func testAccAzureRMExpressRouteCircuit_basic(rInt int) string {
 				Environment = "production"
 				Purpose = "AcceptanceTests"
 			}
-		}`, rInt, rInt)
+		}`, "%d", strconv.Itoa(rInt), -1)
 }

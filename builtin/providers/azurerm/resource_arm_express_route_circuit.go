@@ -155,12 +155,12 @@ func resourceArmExpressRouteCircuitCreate(d *schema.ResourceData, meta interface
 }
 
 func resourceArmExpressRouteCircuitRead(d *schema.ResourceData, meta interface{}) error {
-	erc, resGroup, exists, err := retrieveErcByResourceId(d.Id(), meta)
+	erc, resGroup, err := retrieveErcByResourceId(d.Id(), meta)
 	if err != nil {
 		return err
 	}
 
-	if !exists {
+	if erc == nil {
 		d.SetId("")
 		log.Printf("[INFO] Express Route Circuit %q not found. Removing from state", d.Get("name").(string))
 		return nil

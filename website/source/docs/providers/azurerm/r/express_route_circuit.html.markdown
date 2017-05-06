@@ -13,6 +13,11 @@ Creates an ExpressRoute circuit.
 ## Example Usage
 
 ```hcl
+resource "azurerm_resource_group" "test" {
+  name     = "exprtTest"
+  location = "West US"
+}
+
 resource "azurerm_express_route_circuit" "test" {
   name                     = "expressRoute1"
   resource_group_name      = "${azurerm_resource_group.test.name}"
