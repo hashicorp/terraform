@@ -2,12 +2,13 @@ package azurerm
 
 import (
 	"fmt"
-	"github.com/Azure/azure-sdk-for-go/arm/disk"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/Azure/azure-sdk-for-go/arm/disk"
+	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceArmManagedDisk() *schema.Resource {
@@ -83,6 +84,8 @@ func resourceArmManagedDisk() *schema.Resource {
 				ValidateFunc: validateDiskSizeGB,
 			},
 
+			"encryption_settings": encryptionSettingsSchema(),
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -127,6 +130,13 @@ func resourceArmManagedDiskCreate(d *schema.ResourceData, meta interface{}) erro
 		diskSize := int32(v.(int))
 		createDisk.Properties.DiskSizeGB = &diskSize
 	}
+
+	if v := d.Get("encryption_settings").([]interface{}); len(v) > 0 {
+		encryptionSettings := v[0].(map[string]interface{})
+		es := expandManagedDiskEncryptionSettings(encryptionSettings)
+		createDisk.Properties.EncryptionSettings = es
+	}
+
 	createOption := d.Get("create_option").(string)
 
 	creationData := &disk.CreationData{
@@ -227,6 +237,9 @@ func flattenAzureRmManagedDiskProperties(d *schema.ResourceData, properties *dis
 	}
 	if properties.OsType != "" {
 		d.Set("os_type", string(properties.OsType))
+	}
+	if es := properties.EncryptionSettings; es != nil {
+		d.Set("encryption_settings", flattenManagedDiskEncryptionSettings(es))
 	}
 }
 

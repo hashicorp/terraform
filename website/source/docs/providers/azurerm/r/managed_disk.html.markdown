@@ -90,7 +90,22 @@ The following arguments are supported:
     operation targets a source that contains an operating system. Valid values are `Linux` or `Windows`
 * `disk_size_gb` - (Required) Specifies the size of the managed disk to create in gigabytes.
     If `create_option` is `Copy`, then the value must be equal to or greater than the source's size.
+* `encryption_settings` - (Optional) Species the encryption settings for the disk as documented below. See [Azure Disk Encryption for Windows and Linux IaaS vms](https://docs.microsoft.com/en-us/azure/security/azure-security-disk-encryption) for more information.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
+
+`encryption_settings` supports the following:
+
+* `enabled` - (Required) Specifies if the encryption is enabled. If false, disk_encryption_key and key_encryption_key must not be specified.
+* `disk_encryption_key` - (Optional) Specifies the location of the disk encryption key using `secret_url` and `source_vault_id` subproperties. Must be specified if enabled is true.
+* `key_encryption_key` - (Optional) Specifies the location of the key encryption key using `key_url` and `source_vault_id` subproperties.
+
+~> **Note:** An example `disk_encryption_key` could look like:
+```hcl
+disk_encryption_key {
+  secret_url = "https://{keyvaultname}.vault.azure.net/secrets/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  source_vault_id = "/subscriptions/{subscription id}/resourceGroups/{resource group}/providers/Microsoft.KeyVault/vaults/{vault name}"
+}
+```
 
 For more information on managed disks, such as sizing options and pricing, please check out the
 [azure documentation](https://docs.microsoft.com/en-us/azure/storage/storage-managed-disks-overview).

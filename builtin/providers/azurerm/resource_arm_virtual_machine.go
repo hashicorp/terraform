@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
@@ -16,6 +17,7 @@ import (
 )
 
 func resourceArmVirtualMachine() *schema.Resource {
+
 	return &schema.Resource{
 		Create: resourceArmVirtualMachineCreate,
 		Read:   resourceArmVirtualMachineRead,
@@ -187,6 +189,8 @@ func resourceArmVirtualMachine() *schema.Resource {
 							Optional:     true,
 							ValidateFunc: validateDiskSizeGB,
 						},
+
+						"encryption_settings": encryptionSettingsSchema(),
 					},
 				},
 				Set: resourceArmVirtualMachineStorageOsDiskHash,
@@ -647,7 +651,6 @@ func resourceArmVirtualMachineRead(d *schema.ResourceData, meta interface{}) err
 	if err := d.Set("storage_os_disk", schema.NewSet(resourceArmVirtualMachineStorageOsDiskHash, flattenAzureRmVirtualMachineOsDisk(resp.VirtualMachineProperties.StorageProfile.OsDisk))); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Disk error: %#v", err)
 	}
-
 	if resp.VirtualMachineProperties.StorageProfile.DataDisks != nil {
 		if err := d.Set("storage_data_disk", flattenAzureRmVirtualMachineDataDisk(resp.VirtualMachineProperties.StorageProfile.DataDisks)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage Data Disks error: %#v", err)
@@ -853,6 +856,10 @@ func resourceArmVirtualMachineStorageOsDiskHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
 	if m["vhd_uri"] != nil {
 		buf.WriteString(fmt.Sprintf("%s-", m["vhd_uri"].(string)))
+	}
+	if encryptionSettings := m["encryption_settings"]; encryptionSettings != nil {
+		var encryptionHash = schema.HashSchema(encryptionSettingsSchema())(encryptionSettings)
+		buf.WriteString(strconv.FormatInt(int64(encryptionHash), 10))
 	}
 	return hashcode.String(buf.String())
 }
@@ -1067,6 +1074,10 @@ func flattenAzureRmVirtualMachineOsDisk(disk *compute.OSDisk) []interface{} {
 	result["caching"] = disk.Caching
 	if disk.DiskSizeGB != nil {
 		result["disk_size_gb"] = *disk.DiskSizeGB
+	}
+
+	if es := disk.EncryptionSettings; es != nil {
+		result["encryption_settings"] = []interface{}{flattenVmDiskEncryptionSettings(es)}
 	}
 
 	return []interface{}{result}
@@ -1328,7 +1339,7 @@ func expandAzureRmVirtualMachineDataDisk(d *schema.ResourceData) ([]compute.Data
 		}
 		//END: code to be removed after GH-13016 is merged
 		if managedDiskID == "" && strings.EqualFold(string(data_disk.CreateOption), string(compute.Attach)) {
-			return nil, fmt.Errorf("[ERROR] Must specify which disk to attach")
+			return nil, fmt.Errorf("[ERROR] If create_option is 'Attach', must specify the managed disk id to attach to")
 		}
 
 		if v := config["caching"].(string); v != "" {
@@ -1453,7 +1464,7 @@ func expandAzureRmVirtualMachineOsDisk(d *schema.ResourceData) (*compute.OSDisk,
 	}
 	//END: code to be removed after GH-13016 is merged
 	if managedDiskID == "" && strings.EqualFold(string(osDisk.CreateOption), string(compute.Attach)) {
-		return nil, fmt.Errorf("[ERROR] Must specify which disk to attach")
+		return nil, fmt.Errorf("[ERROR] If create_option is 'Attach', must specify the managed disk id to attach to")
 	}
 
 	if v := config["image_uri"].(string); v != "" {
@@ -1479,6 +1490,12 @@ func expandAzureRmVirtualMachineOsDisk(d *schema.ResourceData) (*compute.OSDisk,
 	if v := config["disk_size_gb"].(int); v != 0 {
 		diskSize := int32(v)
 		osDisk.DiskSizeGB = &diskSize
+	}
+
+	if v := config["encryption_settings"].([]interface{}); len(v) > 0 {
+		encryptionSettings := v[0].(map[string]interface{})
+		es := expandVmDiskEncryptionSettings(encryptionSettings)
+		osDisk.EncryptionSettings = es
 	}
 
 	return osDisk, nil
