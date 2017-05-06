@@ -72,7 +72,11 @@ func resourceComputeTargetHttpsProxyCreate(d *schema.ResourceData, meta interfac
 	sslCertificates := make([]string, len(_sslCertificates))
 
 	for i, v := range _sslCertificates {
-		sslCertificates[i] = v.(string)
+		r, err := parseUrl(v.(string))
+		if err != nil {
+			return err
+		}
+		sslCertificates[i] = r.url
 	}
 
 	proxy := &compute.TargetHttpsProxy{
@@ -142,18 +146,30 @@ func resourceComputeTargetHttpsProxyUpdate(d *schema.ResourceData, meta interfac
 		_newMap := make(map[string]bool)
 
 		for _, v := range _oldCerts {
-			_oldMap[v.(string)] = true
+			r, err := parseUrl(v.(string))
+			if err != nil {
+				return err
+			}
+			_oldMap[r.url] = true
 		}
 
 		for _, v := range _newCerts {
-			_newMap[v.(string)] = true
+			r, err := parseUrl(v.(string))
+			if err != nil {
+				return err
+			}
+			_newMap[r.url] = true
 		}
 
 		sslCertificates := make([]string, 0)
 		// Only modify certificates in one of our old or new states
 		for _, v := range current {
-			_, okOld := _oldMap[v]
-			_, okNew := _newMap[v]
+			r, err := parseUrl(v)
+			if err != nil {
+				return err
+			}
+			_, okOld := _oldMap[r.url]
+			_, okNew := _newMap[r.url]
 
 			// we deleted the certificate
 			if okOld && !okNew {
@@ -217,24 +233,31 @@ func resourceComputeTargetHttpsProxyRead(d *schema.ResourceData, meta interface{
 		return fmt.Errorf("Error reading TargetHttpsProxy: %s", err)
 	}
 
-	_certs := d.Get("ssl_certificates").([]interface{})
-	current := proxy.SslCertificates
+	userSpecifiedCerts := d.Get("ssl_certificates").([]interface{})
+	actualCerts := proxy.SslCertificates
+	certMap := make(map[string]bool)
+	certs := make([]interface{}, 0)
 
-	_certMap := make(map[string]bool)
-	_newCerts := make([]interface{}, 0)
-
-	for _, v := range _certs {
-		_certMap[v.(string)] = true
+	for _, v := range actualCerts {
+		r, err := parseUrl(v)
+		if err != nil {
+			return err
+		}
+		certMap[r.url] = true
 	}
 
 	// Store intersection of server certificates and user defined certificates
-	for _, v := range current {
-		if _, ok := _certMap[v]; ok {
-			_newCerts = append(_newCerts, v)
+	for _, v := range userSpecifiedCerts {
+		r, err := parseUrl(v.(string))
+		if err != nil {
+			return err
+		}
+		if _, ok := certMap[r.url]; ok {
+			certs = append(certs, v.(string))
 		}
 	}
 
-	d.Set("ssl_certificates", _newCerts)
+	d.Set("ssl_certificates", certs)
 	d.Set("self_link", proxy.SelfLink)
 	d.Set("id", strconv.FormatUint(proxy.Id, 10))
 
