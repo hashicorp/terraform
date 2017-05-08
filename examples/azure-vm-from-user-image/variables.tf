@@ -51,5 +51,5 @@ variable "admin_username" {
 }
 
 variable "admin_password" {
-  description = "administrator password (recommended to disable password auth)"
+  description = "The Password for the account specified in the 'admin_username' field. We recommend disabling Password Authentication in a Production environment."
 }
