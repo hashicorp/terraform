@@ -30,5 +30,5 @@ deploy:
     script: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./deploy.ci.sh
     on:
       repo: harijayms/terraform
-      branch: topic-101-search-create
+      branch: topic-101-azure-search-create
       # branch: master
