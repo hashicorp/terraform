@@ -1307,19 +1307,207 @@ func TestResourceDataHasChange(t *testing.T) {
 
 			Change: false,
 		},
+
+		// Nested Sets
+		{
+			Schema: map[string]*Schema{
+				"name": &Schema{
+					Type:     TypeString,
+					Optional: true,
+				},
+				"option": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Computed: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"option_name": {
+								Type:     TypeString,
+								Required: true,
+							},
+							"option_settings": {
+								Type:     TypeSet,
+								Optional: true,
+								Elem: &Resource{
+									Schema: map[string]*Schema{
+										"name": {
+											Type:     TypeString,
+											Required: true,
+										},
+										"value": {
+											Type:     TypeString,
+											Required: true,
+										},
+									},
+								},
+							},
+							"port": {
+								Type:     TypeInt,
+								Optional: true,
+							},
+							"db_security_group_memberships": {
+								Type:     TypeSet,
+								Optional: true,
+								Elem:     &Schema{Type: TypeString},
+								Set:      HashString,
+							},
+							"vpc_security_group_memberships": {
+								Type:     TypeSet,
+								Optional: true,
+								Elem:     &Schema{Type: TypeString},
+								Set:      HashString,
+							},
+						},
+					},
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"name":     "test",
+					"option.#": "1",
+					"option.1671633434.db_security_group_memberships.#":  "0",
+					"option.1671633434.option_name":                      "STATSPACK",
+					"option.1671633434.option_settings.#":                "0",
+					"option.1671633434.port":                             "0",
+					"option.1671633434.vpc_security_group_memberships.#": "0",
+				},
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"name": &terraform.ResourceAttrDiff{
+						Old: "test",
+						New: "test-updated",
+					},
+				},
+			},
+
+			Key: "option",
+
+			Change: false,
+		},
+
+		// List in Set
+		{
+			Schema: map[string]*Schema{
+				"name": &Schema{
+					Type:     TypeString,
+					Optional: true,
+				},
+				"option": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Computed: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"option_name": {
+								Type:     TypeString,
+								Required: true,
+							},
+							"option_settings": {
+								Type:     TypeList,
+								Optional: true,
+								Elem: &Resource{
+									Schema: map[string]*Schema{
+										"name": {
+											Type:     TypeString,
+											Required: true,
+										},
+										"value": {
+											Type:     TypeString,
+											Required: true,
+										},
+									},
+								},
+							},
+							"port": {
+								Type:     TypeInt,
+								Optional: true,
+							},
+						},
+					},
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"name":     "test",
+					"option.#": "1",
+					fmt.Sprintf("option.%d.option_name", calculateOptionNameHashIndex()):       "STATSPACK",
+					fmt.Sprintf("option.%d.option_settings.#", calculateOptionNameHashIndex()): "0",
+					fmt.Sprintf("option.%d.port", calculateOptionNameHashIndex()):              "0",
+				},
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"name": &terraform.ResourceAttrDiff{
+						Old: "test",
+						New: "test-updated",
+					},
+				},
+			},
+
+			Key: "option",
+
+			Change: false,
+		},
 	}
 
 	for i, tc := range cases {
-		d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff)
+			if err != nil {
+				t.Fatalf("err: %s", err)
+			}
 
-		actual := d.HasChange(tc.Key)
-		if actual != tc.Change {
-			t.Fatalf("Bad: %d %#v", i, actual)
-		}
+			actual := d.HasChange(tc.Key)
+			if actual != tc.Change {
+				t.Fatalf("Bad: %d %#v", i, actual)
+			}
+		})
 	}
+}
+
+func calculateOptionNameHashIndex() int {
+	elem := &Resource{
+		Schema: map[string]*Schema{
+			"option_name": {
+				Type:     TypeString,
+				Required: true,
+			},
+			"option_settings": {
+				Type:     TypeList,
+				Optional: true,
+				Elem: &Resource{
+					Schema: map[string]*Schema{
+						"name": {
+							Type:     TypeString,
+							Required: true,
+						},
+						"value": {
+							Type:     TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
+			"port": {
+				Type:     TypeInt,
+				Optional: true,
+			},
+		},
+	}
+
+	f := HashResource(elem)
+
+	x := f(map[string]interface{}{
+		"option_name":       "STATSPACK",
+		"option_settings.#": []interface{}{},
+		"port":              0})
+
+	return x
 }
 
 func TestResourceDataSet(t *testing.T) {
