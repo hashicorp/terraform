@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	events "github.com/aws/aws-sdk-go/service/cloudwatchevents"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -65,6 +66,7 @@ func TestAccAWSCloudWatchEventTarget_missingTargetId(t *testing.T) {
 
 func TestAccAWSCloudWatchEventTarget_full(t *testing.T) {
 	var target events.Target
+	rName := acctest.RandomWithPrefix("tf_ssm_Document")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -72,13 +74,13 @@ func TestAccAWSCloudWatchEventTarget_full(t *testing.T) {
 		CheckDestroy: testAccCheckAWSCloudWatchEventTargetDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSCloudWatchEventTargetConfig_full,
+				Config: testAccAWSCloudWatchEventTargetConfig_full(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchEventTargetExists("aws_cloudwatch_event_target.foobar", &target),
 					resource.TestCheckResourceAttr("aws_cloudwatch_event_target.foobar", "rule", "tf-acc-cw-event-rule-full"),
 					resource.TestCheckResourceAttr("aws_cloudwatch_event_target.foobar", "target_id", "tf-acc-cw-target-full"),
 					resource.TestMatchResourceAttr("aws_cloudwatch_event_target.foobar", "arn",
-						regexp.MustCompile("^arn:aws:kinesis:.*:stream/terraform-kinesis-test$")),
+						regexp.MustCompile("^arn:aws:kinesis:.*:stream/tf_ssm_Document")),
 					resource.TestCheckResourceAttr("aws_cloudwatch_event_target.foobar", "input", "{ \"source\": [\"aws.cloudtrail\"] }\n"),
 					resource.TestCheckResourceAttr("aws_cloudwatch_event_target.foobar", "input_path", ""),
 				),
@@ -89,6 +91,7 @@ func TestAccAWSCloudWatchEventTarget_full(t *testing.T) {
 
 func TestAccAWSCloudWatchEventTarget_ssmDocument(t *testing.T) {
 	var target events.Target
+	rName := acctest.RandomWithPrefix("tf_ssm_Document")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -96,7 +99,7 @@ func TestAccAWSCloudWatchEventTarget_ssmDocument(t *testing.T) {
 		CheckDestroy: testAccCheckAWSCloudWatchEventTargetDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSCloudWatchEventTargetConfigSsmDocument,
+				Config: testAccAWSCloudWatchEventTargetConfigSsmDocument(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchEventTargetExists("aws_cloudwatch_event_target.test", &target),
 				),
@@ -194,7 +197,8 @@ resource "aws_sns_topic" "sun" {
 }
 `
 
-var testAccAWSCloudWatchEventTargetConfig_full = `
+func testAccAWSCloudWatchEventTargetConfig_full(rName string) string {
+	return fmt.Sprintf(`
 resource "aws_cloudwatch_event_rule" "foo" {
     name = "tf-acc-cw-event-rule-full"
     schedule_expression = "rate(1 hour)"
@@ -202,7 +206,7 @@ resource "aws_cloudwatch_event_rule" "foo" {
 }
 
 resource "aws_iam_role" "role" {
-	name = "test_role"
+	name = "%s"
 	assume_role_policy = <<POLICY
 {
   "Version": "2012-10-17",
@@ -221,7 +225,7 @@ POLICY
 }
 
 resource "aws_iam_role_policy" "test_policy" {
-    name = "test_policy"
+    name = "%s_policy"
     role = "${aws_iam_role.role.id}"
     policy = <<EOF
 {
@@ -252,14 +256,15 @@ INPUT
 }
 
 resource "aws_kinesis_stream" "test_stream" {
-    name = "terraform-kinesis-test"
+    name = "%s_kinesis_test"
     shard_count = 1
+}`, rName, rName, rName)
 }
-`
 
-var testAccAWSCloudWatchEventTargetConfigSsmDocument = `
+func testAccAWSCloudWatchEventTargetConfigSsmDocument(rName string) string {
+	return fmt.Sprintf(`
 resource "aws_ssm_document" "foo" {
-  name = "test_document-100"
+  name = "%s"
   document_type = "Command"
 
   content = <<DOC
@@ -284,7 +289,7 @@ DOC
 }
 
 resource "aws_cloudwatch_event_rule" "console" {
-  name        = "another_test"
+  name        = "%s"
   description = "another_test"
 
   event_pattern = <<PATTERN
@@ -309,7 +314,7 @@ resource "aws_cloudwatch_event_target" "test" {
 }
 
 resource "aws_iam_role" "test_role" {
-  name = "test_role"
+  name = "%s"
 
   assume_role_policy = <<EOF
 {
@@ -329,7 +334,7 @@ EOF
 }
 
 resource "aws_iam_role_policy" "test_policy" {
-  name = "test_policy"
+  name = "%s"
   role = "${aws_iam_role.test_role.id}"
 
   policy = <<EOF
@@ -346,5 +351,5 @@ resource "aws_iam_role_policy" "test_policy" {
     ]
 }
 EOF
+}`, rName, rName, rName, rName)
 }
-`
