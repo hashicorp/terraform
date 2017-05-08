@@ -19,19 +19,24 @@ func resourceAwsSsmAssociation() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"instance_id": {
 				Type:     schema.TypeString,
+				Optional: true,
 				ForceNew: true,
-				Required: true,
 			},
 			"name": {
 				Type:     schema.TypeString,
-				ForceNew: true,
 				Required: true,
+				ForceNew: true,
 			},
 			"parameters": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
+			},
+			"schedule_expression": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 		},
 	}
@@ -43,8 +48,15 @@ func resourceAwsSsmAssociationCreate(d *schema.ResourceData, meta interface{}) e
 	log.Printf("[DEBUG] SSM association create: %s", d.Id())
 
 	assosciationInput := &ssm.CreateAssociationInput{
-		Name:       aws.String(d.Get("name").(string)),
-		InstanceId: aws.String(d.Get("instance_id").(string)),
+		Name: aws.String(d.Get("name").(string)),
+	}
+
+	if v, ok := d.GetOk("instance_id"); ok {
+		assosciationInput.InstanceId = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("schedule_expression"); ok {
+		assosciationInput.ScheduleExpression = aws.String(v.(string))
 	}
 
 	if v, ok := d.GetOk("parameters"); ok {
@@ -70,9 +82,13 @@ func resourceAwsSsmAssociationRead(d *schema.ResourceData, meta interface{}) err
 
 	log.Printf("[DEBUG] Reading SSM Assosciation: %s", d.Id())
 
-	params := &ssm.DescribeAssociationInput{
-		Name:       aws.String(d.Get("name").(string)),
-		InstanceId: aws.String(d.Get("instance_id").(string)),
+	params := &ssm.DescribeAssociationInput{}
+
+	if d.Get("instance_id") != nil {
+		params.Name = aws.String(d.Get("name").(string))
+		params.InstanceId = aws.String(d.Get("instance_id").(string))
+	} else {
+		//TODO:
 	}
 
 	resp, err := ssmconn.DescribeAssociation(params)
@@ -85,9 +101,10 @@ func resourceAwsSsmAssociationRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	association := resp.AssociationDescription
-	d.Set("instance_id", association.InstanceId)
 	d.Set("name", association.Name)
+	d.Set("instance_id", association.InstanceId)
 	d.Set("parameters", association.Parameters)
+	d.Set("schedule_expression", association.ScheduleExpression)
 
 	return nil
 }
@@ -97,9 +114,12 @@ func resourceAwsSsmAssociationDelete(d *schema.ResourceData, meta interface{}) e
 
 	log.Printf("[DEBUG] Deleting SSM Assosciation: %s", d.Id())
 
-	params := &ssm.DeleteAssociationInput{
-		Name:       aws.String(d.Get("name").(string)),
-		InstanceId: aws.String(d.Get("instance_id").(string)),
+	params := &ssm.DeleteAssociationInput{}
+	if d.Get("instance_id") != nil {
+		params.Name = aws.String(d.Get("name").(string))
+		params.InstanceId = aws.String(d.Get("instance_id").(string))
+	} else {
+		//TODO:
 	}
 
 	_, err := ssmconn.DeleteAssociation(params)

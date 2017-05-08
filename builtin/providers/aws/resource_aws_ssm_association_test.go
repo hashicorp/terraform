@@ -104,6 +104,7 @@ resource "aws_instance" "foo" {
   security_groups = ["${aws_security_group.tf_test_foo.name}"]
 }
 
+
 resource "aws_ssm_document" "foo_document" {
   name    = "test_document_association-%s",
 	document_type = "Command"
