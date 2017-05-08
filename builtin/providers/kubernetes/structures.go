@@ -163,11 +163,21 @@ func flattenResourceList(l api.ResourceList) map[string]string {
 
 func expandMapToResourceList(m map[string]interface{}) (api.ResourceList, error) {
 	out := make(map[api.ResourceName]resource.Quantity)
-	for stringKey, v := range m {
+	for stringKey, origValue := range m {
 		key := api.ResourceName(stringKey)
-		value, err := resource.ParseQuantity(v.(string))
-		if err != nil {
-			return out, err
+		var value resource.Quantity
+
+		if v, ok := origValue.(int); ok {
+			q := resource.NewQuantity(int64(v), resource.DecimalExponent)
+			value = *q
+		} else if v, ok := origValue.(string); ok {
+			var err error
+			value, err = resource.ParseQuantity(v)
+			if err != nil {
+				return out, err
+			}
+		} else {
+			return out, fmt.Errorf("Unexpected value type: %#v", origValue)
 		}
 
 		out[key] = value
@@ -191,10 +201,81 @@ func expandPersistentVolumeAccessModes(s []interface{}) []api.PersistentVolumeAc
 	return out
 }
 
+func flattenResourceQuotaSpec(in api.ResourceQuotaSpec) []interface{} {
+	out := make([]interface{}, 1)
+
+	m := make(map[string]interface{}, 0)
+	m["hard"] = flattenResourceList(in.Hard)
+	m["scopes"] = flattenResourceQuotaScopes(in.Scopes)
+
+	out[0] = m
+	return out
+}
+
+func expandResourceQuotaSpec(s []interface{}) (api.ResourceQuotaSpec, error) {
+	out := api.ResourceQuotaSpec{}
+	if len(s) < 1 {
+		return out, nil
+	}
+	m := s[0].(map[string]interface{})
+
+	if v, ok := m["hard"]; ok {
+		list, err := expandMapToResourceList(v.(map[string]interface{}))
+		if err != nil {
+			return out, err
+		}
+		out.Hard = list
+	}
+
+	if v, ok := m["scopes"]; ok {
+		out.Scopes = expandResourceQuotaScopes(v.(*schema.Set).List())
+	}
+
+	return out, nil
+}
+
+func flattenResourceQuotaScopes(in []api.ResourceQuotaScope) *schema.Set {
+	out := make([]string, len(in), len(in))
+	for i, scope := range in {
+		out[i] = string(scope)
+	}
+	return newStringSet(schema.HashString, out)
+}
+
+func expandResourceQuotaScopes(s []interface{}) []api.ResourceQuotaScope {
+	out := make([]api.ResourceQuotaScope, len(s), len(s))
+	for i, scope := range s {
+		out[i] = api.ResourceQuotaScope(scope.(string))
+	}
+	return out
+}
+
 func newStringSet(f schema.SchemaSetFunc, in []string) *schema.Set {
 	var out = make([]interface{}, len(in), len(in))
 	for i, v := range in {
 		out[i] = v
 	}
 	return schema.NewSet(f, out)
+}
+
+func resourceListEquals(x, y api.ResourceList) bool {
+	for k, v := range x {
+		yValue, ok := y[k]
+		if !ok {
+			return false
+		}
+		if v.Cmp(yValue) != 0 {
+			return false
+		}
+	}
+	for k, v := range y {
+		xValue, ok := x[k]
+		if !ok {
+			return false
+		}
+		if v.Cmp(xValue) != 0 {
+			return false
+		}
+	}
+	return true
 }
