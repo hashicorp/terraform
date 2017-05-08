@@ -869,6 +869,12 @@
 			"versionExact": "v1.8.16"
 		},
 		{
+			"checksumSHA1": "JsCuHtHM4ql9lVjpCJ869L7irZk=",
+			"path": "github.com/aws/aws-sdk-go/service/devicefarm",
+			"revision": "a5b389b7b05c59adf7ac44f50d0d8be6e0c85710",
+			"revisionTime": "2017-05-04T23:50:54Z"
+		},
+		{
 			"checksumSHA1": "2Su2xzCbUPbCdVkyWuXcmxAI2Rs=",
 			"path": "github.com/aws/aws-sdk-go/service/directoryservice",
 			"revision": "f6ea558f30e0a983d529b32c741e4caed17c7df0",
