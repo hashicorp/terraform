@@ -194,8 +194,7 @@ func resourceArmStorageBlobCreate(d *schema.ResourceData, meta interface{}) erro
 			} else {
 				// TODO(tom): how/where is this used?!
 				//size := int64(d.Get("size").(int))
-				options := &storage.PutBlobOptions{
-				}
+				options := &storage.PutBlobOptions{}
 
 				container := blobClient.GetContainerReference(cont)
 				blob := container.GetBlobReference(name)
@@ -369,7 +368,7 @@ func resourceArmStorageBlobPageUploadWorker(ctx resourceArmStorageBlobPageUpload
 			blob := container.GetBlobReference(ctx.name)
 			blobRange := storage.BlobRange{
 				Start: uint64(start),
-				End: uint64(end),
+				End:   uint64(end),
 			}
 			options := &storage.PutPageOptions{}
 			reader := bytes.NewReader(chunk)

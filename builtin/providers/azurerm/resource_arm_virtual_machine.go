@@ -9,11 +9,11 @@ import (
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
+	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
 	riviera "github.com/jen20/riviera/azure"
-	"github.com/Azure/azure-sdk-for-go/storage"
 )
 
 func resourceArmVirtualMachine() *schema.Resource {
@@ -820,7 +820,7 @@ func resourceArmVirtualMachineDeleteManagedDisk(managedDiskID string, meta inter
 	name := id.Path["disks"]
 
 	_, error := diskClient.Delete(resGroup, name, make(chan struct{}))
-	err = <- error
+	err = <-error
 	if err != nil {
 		return fmt.Errorf("Error deleting Managed Disk (%s %s) %s", name, resGroup, err)
 	}

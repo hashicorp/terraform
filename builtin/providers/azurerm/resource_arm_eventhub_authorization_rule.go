@@ -103,7 +103,7 @@ func resourceArmEventHubAuthorizationRuleCreateUpdate(d *schema.ResourceData, me
 	}
 
 	parameters := eventhub.SharedAccessAuthorizationRuleCreateOrUpdateParameters{
-		Name:     &name,
+		Name: &name,
 		SharedAccessAuthorizationRuleProperties: &eventhub.SharedAccessAuthorizationRuleProperties{
 			Rights: rights,
 		},

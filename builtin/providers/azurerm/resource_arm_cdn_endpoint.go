@@ -330,7 +330,7 @@ func resourceArmCdnEndpointDelete(d *schema.ResourceData, meta interface{}) erro
 
 	accResp, error := client.Delete(resGroup, profileName, name, make(<-chan struct{}))
 	resp := <-accResp
-	err = <- error
+	err = <-error
 	if error != nil {
 		if resp.StatusCode == http.StatusNotFound {
 			return nil

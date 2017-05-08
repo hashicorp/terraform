@@ -67,7 +67,7 @@ func resourceArmEventHubConsumerGroupCreateUpdate(d *schema.ResourceData, meta i
 	userMetaData := d.Get("user_metadata").(string)
 
 	parameters := eventhub.ConsumerGroupCreateOrUpdateParameters{
-		Name:     &name,
+		Name: &name,
 		ConsumerGroupProperties: &eventhub.ConsumerGroupProperties{
 			UserMetadata: &userMetaData,
 		},

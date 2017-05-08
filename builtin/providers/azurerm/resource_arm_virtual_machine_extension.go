@@ -123,7 +123,7 @@ func resourceArmVirtualMachineExtensionsCreate(d *schema.ResourceData, meta inte
 	}
 
 	_, error := client.CreateOrUpdate(resGroup, vmName, name, extension, make(chan struct{}))
-	err := <- error
+	err := <-error
 	if err != nil {
 		return err
 	}

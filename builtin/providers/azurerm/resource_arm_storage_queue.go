@@ -5,8 +5,8 @@ import (
 	"log"
 	"regexp"
 
-	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/Azure/azure-sdk-for-go/storage"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func resourceArmStorageQueue() *schema.Resource {

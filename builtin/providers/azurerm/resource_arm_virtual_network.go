@@ -113,7 +113,7 @@ func resourceArmVirtualNetworkCreate(d *schema.ResourceData, meta interface{}) e
 	defer azureRMUnlockMultiple(&networkSecurityGroupNames)
 
 	_, error := vnetClient.CreateOrUpdate(resGroup, name, vnet, make(chan struct{}))
-	err := <- error
+	err := <-error
 	if err != nil {
 		return err
 	}

@@ -335,7 +335,7 @@ func resourceArmRedisCacheDelete(d *schema.ResourceData, meta interface{}) error
 	name := id.Path["Redis"]
 
 	deleteResp, error := redisClient.Delete(resGroup, name, make(chan struct{}))
-	resp := <- deleteResp
+	resp := <-deleteResp
 	err = <-error
 
 	if resp.StatusCode != http.StatusOK {

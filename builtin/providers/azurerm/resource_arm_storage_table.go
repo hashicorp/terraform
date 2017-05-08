@@ -67,7 +67,7 @@ func resourceArmStorageTableCreate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	name := d.Get("name").(string)
-	table :=tableClient.GetTableReference(name)
+	table := tableClient.GetTableReference(name)
 
 	log.Printf("[INFO] Creating table %q in storage account %q.", name, storageAccountName)
 

@@ -225,7 +225,7 @@ func resourceArmContainerServiceCreate(d *schema.ResourceData, meta interface{})
 	}
 
 	_, error := containerServiceClient.CreateOrUpdate(resGroup, name, parameters, make(chan struct{}))
-	err := <- error
+	err := <-error
 	if err != nil {
 		return err
 	}
@@ -317,8 +317,8 @@ func resourceArmContainerServiceDelete(d *schema.ResourceData, meta interface{})
 	name := id.Path["containerServices"]
 
 	delResp, error := containerServiceClient.Delete(resGroup, name, make(chan struct{}))
-	resp := <- delResp
-	err = <- error
+	resp := <-delResp
+	err = <-error
 	if err != nil {
 		return err
 	}

@@ -69,7 +69,7 @@ func resourceArmCdnProfileCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	_, error := cdnProfilesClient.Create(resGroup, name, cdnProfile, make(chan struct{}))
-	err := <- error
+	err := <-error
 	if err != nil {
 		return err
 	}
@@ -153,7 +153,7 @@ func resourceArmCdnProfileDelete(d *schema.ResourceData, meta interface{}) error
 	name := id.Path["profiles"]
 
 	_, error := cdnProfilesClient.Delete(resGroup, name, make(chan struct{}))
-	err = <- error
+	err = <-error
 	// TODO: check the status code
 
 	return err

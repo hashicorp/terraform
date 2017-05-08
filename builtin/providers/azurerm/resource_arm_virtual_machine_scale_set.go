@@ -667,7 +667,7 @@ func resourceArmVirtualMachineScaleSetDelete(d *schema.ResourceData, meta interf
 	name := id.Path["virtualMachineScaleSets"]
 
 	_, error := vmScaleSetClient.Delete(resGroup, name, make(chan struct{}))
-	err = <- error
+	err = <-error
 
 	return err
 }

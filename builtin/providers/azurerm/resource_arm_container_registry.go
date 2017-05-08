@@ -115,7 +115,7 @@ func resourceArmContainerRegistryCreate(d *schema.ResourceData, meta interface{}
 	}
 
 	_, error := client.Create(resourceGroup, name, parameters, make(<-chan struct{}))
-	err := <- error
+	err := <-error
 	if err != nil {
 		return err
 	}
