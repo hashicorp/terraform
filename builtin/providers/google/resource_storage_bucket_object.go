@@ -59,6 +59,7 @@ func resourceStorageBucketObject() *schema.Resource {
 			"content_type": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 				Computed: true,
 			},
 
@@ -96,6 +97,7 @@ func resourceStorageBucketObject() *schema.Resource {
 			"storage_class": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 				Computed: true,
 			},
 		},

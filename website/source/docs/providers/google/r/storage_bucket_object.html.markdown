@@ -8,7 +8,7 @@ description: |-
 
 # google\_storage\_bucket\_object
 
-Creates a new object inside an exisiting bucket in Google cloud storage service (GCS). Currently, it does not support creating custom ACLs. For more information see [the official documentation](https://cloud.google.com/storage/docs/overview) and [API](https://cloud.google.com/storage/docs/json_api).
+Creates a new object inside an existing bucket in Google cloud storage service (GCS). Currently, it does not support creating custom ACLs. For more information see [the official documentation](https://cloud.google.com/storage/docs/overview) and [API](https://cloud.google.com/storage/docs/json_api).
 
 
 ## Example Usage
@@ -50,7 +50,7 @@ One of the following is required:
 
 * `content_language` - (Optional) [Content-Language](https://tools.ietf.org/html/rfc7231#section-3.1.3.2) of the object data.
 
-* `content_type` - (Optional) [Content-Type]() of the object data. Defaults to "application/octet-stream" or "text/plain; charset=utf-8".
+* `content_type` - (Optional) [Content-Type](https://tools.ietf.org/html/rfc7231#section-3.1.1.5) of the object data. Defaults to "application/octet-stream" or "text/plain; charset=utf-8".
 
 * `predefined_acl` - (Optional, Deprecated) The [canned GCS ACL](https://cloud.google.com/storage/docs/access-control#predefined-acl) apply. Please switch
 to `google_storage_object_acl.predefined_acl`.
