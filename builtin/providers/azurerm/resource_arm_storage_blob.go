@@ -365,7 +365,15 @@ func resourceArmStorageBlobPageUploadWorker(ctx resourceArmStorageBlobPageUpload
 		}
 
 		for x := 0; x < ctx.attempts; x++ {
-			err = ctx.client.PutPage(ctx.container, ctx.name, start, end, storage.PageWriteTypeUpdate, chunk, map[string]string{})
+			container := ctx.client.GetContainerReference(ctx.container)
+			blob := container.GetBlobReference(ctx.name)
+			blobRange := storage.BlobRange{
+				Start: uint64(start),
+				End: uint64(end),
+			}
+			options := &storage.PutPageOptions{}
+			reader := bytes.NewReader(chunk)
+			err = blob.WriteRange(blobRange, reader, options)
 			if err == nil {
 				break
 			}
@@ -428,7 +436,10 @@ func resourceArmStorageBlobBlockUploadFromSource(container, name, source string,
 		return fmt.Errorf("Error while uploading source file %q: %s", source, <-errors)
 	}
 
-	err = client.PutBlockList(container, name, blockList)
+	containerReference := client.GetContainerReference(container)
+	blobReference := containerReference.GetBlobReference(name)
+	options := &storage.PutBlockListOptions{}
+	err = blobReference.PutBlockList(blockList, options)
 	if err != nil {
 		return fmt.Errorf("Error updating block list for source file %q: %s", source, err)
 	}
@@ -501,7 +512,10 @@ func resourceArmStorageBlobBlockUploadWorker(ctx resourceArmStorageBlobBlockUplo
 		}
 
 		for i := 0; i < ctx.attempts; i++ {
-			err = ctx.client.PutBlock(ctx.container, ctx.name, block.id, buffer)
+			container := ctx.client.GetContainerReference(ctx.container)
+			blob := container.GetBlobReference(ctx.name)
+			options := &storage.PutBlockOptions{}
+			err = blob.PutBlock(block.id, buffer, options)
 			if err == nil {
 				break
 			}
