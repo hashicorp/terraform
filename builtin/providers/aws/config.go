@@ -28,6 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/aws/aws-sdk-go/service/codedeploy"
 	"github.com/aws/aws-sdk-go/service/codepipeline"
+	"github.com/aws/aws-sdk-go/service/codestar"
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
@@ -164,6 +165,7 @@ type AWSClient struct {
 	glacierconn           *glacier.Glacier
 	codebuildconn         *codebuild.CodeBuild
 	codedeployconn        *codedeploy.CodeDeploy
+	codestarconn          *codestar.CodeStar
 	codecommitconn        *codecommit.CodeCommit
 	codepipelineconn      *codepipeline.CodePipeline
 	sfnconn               *sfn.SFN
@@ -337,6 +339,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.codecommitconn = codecommit.New(sess)
 	client.codebuildconn = codebuild.New(sess)
 	client.codedeployconn = codedeploy.New(sess)
+	client.codestarconn = codestar.New(sess)
 	client.configconn = configservice.New(sess)
 	client.cognitoconn = cognitoidentity.New(sess)
 	client.dmsconn = databasemigrationservice.New(sess)
