@@ -187,8 +187,8 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	// Create
-	_, createErr := storageClient.Create(
-		resourceGroupName, storageAccountName, opts, make(chan struct{}))
+	_, createError := storageClient.Create(resourceGroupName, storageAccountName, opts, make(chan struct{}))
+	createErr := <-createError
 
 	// The only way to get the ID back apparently is to read the resource again
 	read, err := storageClient.GetProperties(resourceGroupName, storageAccountName)
