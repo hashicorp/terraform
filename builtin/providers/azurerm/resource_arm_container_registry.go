@@ -170,7 +170,10 @@ func resourceArmContainerRegistryRead(d *schema.ResourceData, meta interface{}) 
 		}
 
 		d.Set("admin_username", credsResp.Username)
-		d.Set("admin_password", credsResp.Passwords[0].Value)
+		for _, v := range *credsResp.Passwords {
+			d.Set("admin_password", v.Value)
+			break
+		}
 	} else {
 		d.Set("admin_username", "")
 		d.Set("admin_password", "")
