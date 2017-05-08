@@ -111,13 +111,9 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 	c.client = nil
 
 	if o != nil {
+		ssh_string := "Host: %s User: %s Password: %t  Private key: %t SSH Agent: %t"
 		o.Output(fmt.Sprintf(
-			"Connecting to remote host via SSH...\n"+
-				"  Host: %s\n"+
-				"  User: %s\n"+
-				"  Password: %t\n"+
-				"  Private key: %t\n"+
-				"  SSH Agent: %t",
+			"Connecting to remote host via SSH... "+ssh_string,
 			c.connInfo.Host, c.connInfo.User,
 			c.connInfo.Password != "",
 			c.connInfo.PrivateKey != "",
@@ -126,12 +122,7 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 
 		if c.connInfo.BastionHost != "" {
 			o.Output(fmt.Sprintf(
-				"Using configured bastion host...\n"+
-					"  Host: %s\n"+
-					"  User: %s\n"+
-					"  Password: %t\n"+
-					"  Private key: %t\n"+
-					"  SSH Agent: %t",
+				"Using configured bastion host... "+ssh_string,
 				c.connInfo.BastionHost, c.connInfo.BastionUser,
 				c.connInfo.BastionPassword != "",
 				c.connInfo.BastionPrivateKey != "",
