@@ -50,6 +50,7 @@ IMPROVEMENTS:
 * provider/google: google_dns_managed_zone is now importable [GH-13824]
 * provider/google: Add support for `compute_route` [GH-14065]
 * provider/google: Add `path` to `google_pubsub_subscription` [GH-14238]
+* provider/google: Improve Service Account by offering to recreate if missing [GH-14282]
 * provider/heroku: import heroku_app resource [GH-14248]
 * provider/nomad: Add TLS options [GH-13956]
 * provider/triton: Add support for reading provider configuration from `TRITON_*` environment variables in addition to `SDC_*`[GH-14000]
