@@ -845,6 +845,12 @@
 			"versionExact": "v1.8.16"
 		},
 		{
+			"checksumSHA1": "oB9NhjQyt9SALtvfaZMGhJ+OF8s=",
+			"path": "github.com/aws/aws-sdk-go/service/codestar",
+			"revision": "c309465d44f2bad3c2296724735b4628db116ba8",
+			"revisionTime": "2017-05-08T16:50:43Z"
+		},
+		{
 			"checksumSHA1": "L8F5aJdwCvoNwrP6prtHSdklijM=",
 			"path": "github.com/aws/aws-sdk-go/service/cognitoidentity",
 			"revision": "f6ea558f30e0a983d529b32c741e4caed17c7df0",
