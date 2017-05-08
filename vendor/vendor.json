@@ -1821,10 +1821,10 @@
 			"revisionTime": "2017-03-10T01:59:53Z"
 		},
 		{
-			"checksumSHA1": "CsS/kI3VeLcSHzMKviFVDwqwgvk=",
+			"checksumSHA1": "E/5q7DTCoOD15K1KGFXSwFCGDE4=",
 			"path": "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/rules",
-			"revision": "0f64da0e36de86a0ca1a8f2fc1b0570a0d3f7504",
-			"revisionTime": "2017-03-10T01:59:53Z"
+			"revision": "ce1e02c3ccfdb7fab257340dc4d603ec3035fa11",
+			"revisionTime": "2017-05-08T02:10:49Z"
 		},
 		{
 			"checksumSHA1": "zKOhFTL5BDZPMC58ZzZkryjskno=",
