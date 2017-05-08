@@ -32,6 +32,37 @@ func resourceStorageBucketObject() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"cache_control": &schema.Schema{
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+			},
+
+			"content_disposition": &schema.Schema{
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+			},
+
+			"content_encoding": &schema.Schema{
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+			},
+
+			"content_language": &schema.Schema{
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+			},
+
+			"content_type": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
+			},
+
 			"content": &schema.Schema{
 				Type:          schema.TypeString,
 				Optional:      true,
@@ -62,6 +93,13 @@ func resourceStorageBucketObject() *schema.Resource {
 				ForceNew:      true,
 				ConflictsWith: []string{"content"},
 			},
+
+			"storage_class": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -91,6 +129,30 @@ func resourceStorageBucketObjectCreate(d *schema.ResourceData, meta interface{})
 
 	objectsService := storage.NewObjectsService(config.clientStorage)
 	object := &storage.Object{Bucket: bucket}
+
+	if v, ok := d.GetOk("cache_control"); ok {
+		object.CacheControl = v.(string)
+	}
+
+	if v, ok := d.GetOk("content_disposition"); ok {
+		object.ContentDisposition = v.(string)
+	}
+
+	if v, ok := d.GetOk("content_encoding"); ok {
+		object.ContentEncoding = v.(string)
+	}
+
+	if v, ok := d.GetOk("content_language"); ok {
+		object.ContentLanguage = v.(string)
+	}
+
+	if v, ok := d.GetOk("content_type"); ok {
+		object.ContentType = v.(string)
+	}
+
+	if v, ok := d.GetOk("storage_class"); ok {
+		object.StorageClass = v.(string)
+	}
 
 	insertCall := objectsService.Insert(bucket, object)
 	insertCall.Name(name)
@@ -133,6 +195,12 @@ func resourceStorageBucketObjectRead(d *schema.ResourceData, meta interface{}) e
 
 	d.Set("md5hash", res.Md5Hash)
 	d.Set("crc32c", res.Crc32c)
+	d.Set("cache_control", res.CacheControl)
+	d.Set("content_disposition", res.ContentDisposition)
+	d.Set("content_encoding", res.ContentEncoding)
+	d.Set("content_language", res.ContentLanguage)
+	d.Set("content_type", res.ContentType)
+	d.Set("storage_class", res.StorageClass)
 
 	d.SetId(objectGetId(res))
 
