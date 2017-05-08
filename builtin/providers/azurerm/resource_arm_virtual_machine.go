@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
 	riviera "github.com/jen20/riviera/azure"
+	"github.com/Azure/azure-sdk-for-go/storage"
 )
 
 func resourceArmVirtualMachine() *schema.Resource {
@@ -584,7 +585,8 @@ func resourceArmVirtualMachineCreate(d *schema.ResourceData, meta interface{}) e
 		vm.Plan = plan
 	}
 
-	_, vmErr := vmClient.CreateOrUpdate(resGroup, name, vm, make(chan struct{}))
+	_, vmError := vmClient.CreateOrUpdate(resGroup, name, vm, make(chan struct{}))
+	vmErr := <-vmError
 	if vmErr != nil {
 		return vmErr
 	}
@@ -712,7 +714,10 @@ func resourceArmVirtualMachineDelete(d *schema.ResourceData, meta interface{}) e
 	resGroup := id.ResourceGroup
 	name := id.Path["virtualMachines"]
 
-	if _, err = vmClient.Delete(resGroup, name, make(chan struct{})); err != nil {
+	_, error := vmClient.Delete(resGroup, name, make(chan struct{}))
+	err = <-error
+
+	if err != nil {
 		return err
 	}
 
@@ -793,7 +798,10 @@ func resourceArmVirtualMachineDeleteVhd(uri string, meta interface{}) error {
 	}
 
 	log.Printf("[INFO] Deleting VHD blob %s", blobName)
-	_, err = blobClient.DeleteBlobIfExists(containerName, blobName, nil)
+	container := blobClient.GetContainerReference(containerName)
+	blob := container.GetBlobReference(blobName)
+	options := &storage.DeleteBlobOptions{}
+	err = blob.Delete(options)
 	if err != nil {
 		return fmt.Errorf("Error deleting VHD blob: %s", err)
 	}
@@ -811,7 +819,8 @@ func resourceArmVirtualMachineDeleteManagedDisk(managedDiskID string, meta inter
 	resGroup := id.ResourceGroup
 	name := id.Path["disks"]
 
-	_, err = diskClient.Delete(resGroup, name, make(chan struct{}))
+	_, error := diskClient.Delete(resGroup, name, make(chan struct{}))
+	err = <- error
 	if err != nil {
 		return fmt.Errorf("Error deleting Managed Disk (%s %s) %s", name, resGroup, err)
 	}
