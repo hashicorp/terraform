@@ -68,6 +68,7 @@ BUG FIXES:
 * provider/aws: Prevent Crash when importing aws_route53_record [GH-14218]
 * provider/aws: More consistent (un)quoting of long TXT/SPF `aws_route53_record`s [GH-14170]
 * provider/aws: Retry deletion of AWSConfig Rule on ResourceInUseException [GH-14269]
+* provider/aws: Refresh ssm document from state on 404 [GH-14279]
 * provider/digitalocean: Prevent diffs when using IDs of images instead of slugs [GH-13879]
 * provider/fastly: Changes setting conditionals to optional [GH-14103]
 * provider/google: Ignore certain project services that can't be enabled directly via the api [GH-13730]
