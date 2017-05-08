@@ -177,8 +177,12 @@ func resourceAwsSsmDocumentRead(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	resp, err := ssmconn.DescribeDocument(docInput)
-
 	if err != nil {
+		if ssmErr, ok := err.(awserr.Error); ok && ssmErr.Code() == "InvalidDocument" {
+			log.Printf("[WARN] SSM Document not found so removing from state")
+			d.SetId("")
+			return nil
+		}
 		return errwrap.Wrapf("[ERROR] Error describing SSM document: {{err}}", err)
 	}
 
