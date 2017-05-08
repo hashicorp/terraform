@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/cenkalti/backoff"
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -246,7 +247,6 @@ func copyOutput(
 }
 
 // retryFunc is used to retry a function for a given duration
-// TODO: this should probably backoff too
 func retryFunc(ctx context.Context, timeout time.Duration, f func() error) error {
 	// Build a new context with the timeout
 	ctx, done := context.WithTimeout(ctx, timeout)
@@ -272,7 +272,7 @@ func retryFunc(ctx context.Context, timeout time.Duration, f func() error) error
 			}
 
 			// Try the function call
-			err := f()
+			err := backoff.Retry(f, backoff.NewExponentialBackOff())
 			errVal.Store(&errWrap{err})
 
 			if err == nil {
