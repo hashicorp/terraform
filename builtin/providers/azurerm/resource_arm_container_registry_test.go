@@ -117,7 +117,7 @@ func testCheckAzureRMContainerRegistryDestroy(s *terraform.State) error {
 		name := rs.Primary.Attributes["name"]
 		resourceGroup := rs.Primary.Attributes["resource_group_name"]
 
-		resp, err := conn.GetProperties(resourceGroup, name)
+		resp, err := conn.Get(resourceGroup, name)
 
 		if err != nil {
 			return nil
@@ -147,7 +147,7 @@ func testCheckAzureRMContainerRegistryExists(name string) resource.TestCheckFunc
 
 		conn := testAccProvider.Meta().(*ArmClient).containerRegistryClient
 
-		resp, err := conn.GetProperties(resourceGroup, name)
+		resp, err := conn.Get(resourceGroup, name)
 		if err != nil {
 			return fmt.Errorf("Bad: Get on containerRegistryClient: %s", err)
 		}

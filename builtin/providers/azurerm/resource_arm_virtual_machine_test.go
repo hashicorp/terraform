@@ -737,7 +737,9 @@ func testCheckAzureRMVirtualMachineVHDExistence(name string, shouldExist bool) r
 				return fmt.Errorf("Error creating Blob storage client: %s", err)
 			}
 
-			exists, err := storageClient.BlobExists(containerName, name)
+			container := storageClient.GetContainerReference(containerName)
+			blob := container.GetBlobReference(name)
+			exists, err := blob.Exists()
 			if err != nil {
 				return fmt.Errorf("Error checking if Disk VHD Blob exists: %s", err)
 			}
