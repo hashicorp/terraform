@@ -24,6 +24,7 @@ FEATURES:
 * **New Resource:** `kubernetes_resource_quota` [GH-13914]
 * **New Resource:** `vault_auth_backend` [GH-10988]
 * **New Data Source:** `aws_efs_file_system` [GH-14041]
+* **New Data Source:** `http`, for retrieving text data from generic HTTP servers [GH-14270]
 * **New Interpolation Function:** `log` [GH-12872]
 
 IMPROVEMENTS:
