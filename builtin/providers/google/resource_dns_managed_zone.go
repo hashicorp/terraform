@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/dns/v1"
-	"google.golang.org/api/googleapi"
 )
 
 func resourceDnsManagedZone() *schema.Resource {
@@ -99,15 +98,7 @@ func resourceDnsManagedZoneRead(d *schema.ResourceData, meta interface{}) error 
 	zone, err := config.clientDns.ManagedZones.Get(
 		project, d.Id()).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing DNS Managed Zone %q because it's gone", d.Get("name").(string))
-			// The resource doesn't exist anymore
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error reading DNS ManagedZone: %#v", err)
+		return handleNotFoundError(err, d, fmt.Sprintf("DNS Managed Zone %q", d.Get("name").(string)))
 	}
 
 	d.Set("name_servers", zone.NameServers)

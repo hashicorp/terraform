@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeBackendBucket() *schema.Resource {
@@ -118,15 +117,7 @@ func resourceComputeBackendBucketRead(d *schema.ResourceData, meta interface{}) 
 	bucket, err := config.clientCompute.BackendBuckets.Get(
 		project, d.Id()).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			// The resource doesn't exist anymore
-			log.Printf("[WARN] Removing Backend Bucket %q because it's gone", d.Get("name").(string))
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error reading bucket: %s", err)
+		return handleNotFoundError(err, d, fmt.Sprintf("Backend Bucket %q", d.Get("name").(string)))
 	}
 
 	d.Set("bucket_name", bucket.BucketName)

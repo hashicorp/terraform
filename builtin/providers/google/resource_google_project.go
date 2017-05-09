@@ -136,10 +136,7 @@ func resourceGoogleProjectRead(d *schema.ResourceData, meta interface{}) error {
 	// Read the project
 	p, err := config.clientResourceManager.Projects.Get(pid).Do()
 	if err != nil {
-		if v, ok := err.(*googleapi.Error); ok && v.Code == http.StatusNotFound {
-			return fmt.Errorf("Project %q does not exist.", pid)
-		}
-		return fmt.Errorf("Error checking project %q: %s", pid, err)
+		return handleNotFoundError(err, d, fmt.Sprintf("Project %q", pid))
 	}
 
 	d.Set("project_id", pid)

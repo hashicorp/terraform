@@ -183,14 +183,7 @@ func resourceComputeInstanceGroupRead(d *schema.ResourceData, meta interface{}) 
 	instanceGroup, err := config.clientCompute.InstanceGroups.Get(
 		project, d.Get("zone").(string), d.Id()).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			// The resource doesn't exist anymore
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error reading InstanceGroup: %s", err)
+		return handleNotFoundError(err, d, fmt.Sprintf("Instance Group %q", d.Get("name").(string)))
 	}
 
 	// retreive instance group members

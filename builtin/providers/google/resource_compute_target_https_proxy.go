@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeTargetHttpsProxy() *schema.Resource {
@@ -206,15 +205,7 @@ func resourceComputeTargetHttpsProxyRead(d *schema.ResourceData, meta interface{
 	proxy, err := config.clientCompute.TargetHttpsProxies.Get(
 		project, d.Id()).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing Target HTTPS Proxy %q because it's gone", d.Get("name").(string))
-			// The resource doesn't exist anymore
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error reading TargetHttpsProxy: %s", err)
+		return handleNotFoundError(err, d, fmt.Sprintf("Target HTTPS proxy %q", d.Get("name").(string)))
 	}
 
 	_certs := d.Get("ssl_certificates").([]interface{})

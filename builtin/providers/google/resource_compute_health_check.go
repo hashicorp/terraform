@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeHealthCheck() *schema.Resource {
@@ -442,15 +441,7 @@ func resourceComputeHealthCheckRead(d *schema.ResourceData, meta interface{}) er
 	hchk, err := config.clientCompute.HealthChecks.Get(
 		project, d.Id()).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			// The resource doesn't exist anymore
-			log.Printf("[WARN] Removing Health Check %q because it's gone", d.Get("name").(string))
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error reading HealthCheck: %s", err)
+		return handleNotFoundError(err, d, fmt.Sprintf("Health Check %q", d.Get("name").(string)))
 	}
 
 	d.Set("check_interval_sec", hchk.CheckIntervalSec)
