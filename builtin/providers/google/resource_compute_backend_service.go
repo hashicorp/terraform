@@ -121,7 +121,7 @@ func resourceComputeBackendService() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
-				Removed:  "region has been removed as it was never used",
+				Removed:  "region has been removed as it was never used. For internal load balancing, use google_compute_region_backend_service",
 			},
 
 			"self_link": &schema.Schema{
