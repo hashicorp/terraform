@@ -7,15 +7,14 @@ This Terraform template was based on [this](https://github.com/Azure/azure-quick
 - Name of the existing VNET and subnet to which the new virtual machine will connect
 - Name of the Resource Group in which the VNET resides
 
-```
-NOTE
+
+### NOTE
 
 This template will create an additional Standard_GRS storage account for enabling boot diagnostics each time you execute this template. To avoid running into storage account limits, it is best to delete the storage account when the VM is deleted.
-```
 
 This template creates a VM from a specialized VHD and lets you connect it to an existing VNET that can reside in a different Resource Group from which the virtual machine resides.
 
-Please note: This deployment template does not create or attach an existing Network Security Group to the virtual machine. 
+_Please note: This deployment template does not create or attach an existing Network Security Group to the virtual machine._
 
 ## main.tf
 The `main.tf` file contains the actual resources that will be deployed. It also contains the Azure Resource Group definition and any defined variables. 
