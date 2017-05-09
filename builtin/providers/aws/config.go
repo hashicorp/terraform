@@ -67,7 +67,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/waf"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -169,6 +168,7 @@ type AWSClient struct {
 	sfnconn               *sfn.SFN
 	ssmconn               *ssm.SSM
 	wafconn               *waf.WAF
+	acmconn               *acm.CertificateManager
 }
 
 func (c *AWSClient) S3() *s3.S3 {
@@ -372,6 +372,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.sqsconn = sqs.New(awsSqsSess)
 	client.ssmconn = ssm.New(sess)
 	client.wafconn = waf.New(sess)
+	client.acmconn = acm.New(sess)
 
 	return &client, nil
 }
