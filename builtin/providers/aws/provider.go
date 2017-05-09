@@ -418,6 +418,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_default_security_group":                   resourceAwsDefaultSecurityGroup(),
 			"aws_security_group":                           resourceAwsSecurityGroup(),
 			"aws_security_group_rule":                      resourceAwsSecurityGroupRule(),
+			"aws_security_group_rules":                     resourceAwsSecurityGroupRules(),
 			"aws_simpledb_domain":                          resourceAwsSimpleDBDomain(),
 			"aws_ssm_activation":                           resourceAwsSsmActivation(),
 			"aws_ssm_association":                          resourceAwsSsmAssociation(),
