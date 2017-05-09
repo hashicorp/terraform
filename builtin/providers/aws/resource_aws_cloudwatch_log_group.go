@@ -109,7 +109,7 @@ func resourceAwsCloudWatchLogGroupRead(d *schema.ResourceData, meta interface{})
 		d.Set("retention_in_days", lg.RetentionInDays)
 	}
 
-	if meta.(*AWSClient).IsChinaCloud() || meta.(*AWSClient).IsGovCloud() {
+	if !meta.(*AWSClient).IsChinaCloud() && !meta.(*AWSClient).IsGovCloud() {
 		tags, err := flattenCloudWatchTags(d, conn)
 		if err != nil {
 			return err
