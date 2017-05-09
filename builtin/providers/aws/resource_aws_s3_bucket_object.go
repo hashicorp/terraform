@@ -216,6 +216,8 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) error {
 	s3conn := meta.(*AWSClient).s3conn
 
+	restricted := meta.(*AWSClient).IsGovCloud() || meta.(*AWSClient).IsChinaCloud()
+
 	bucket := d.Get("bucket").(string)
 	key := d.Get("key").(string)
 
@@ -275,9 +277,14 @@ func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) err
 			Key:    aws.String(key),
 		})
 	if err != nil {
-		return fmt.Errorf("Failed to get object tags (bucket: %s, key: %s): %s", bucket, key, err)
+		// Treat the inability to get object tags in a restricted regions as a
+		// soft error.
+		if !restricted {
+			return err
+		}
+	} else {
+		d.Set("tags", tagsToMapS3(tagResp.TagSet))
 	}
-	d.Set("tags", tagsToMapS3(tagResp.TagSet))
 
 	return nil
 }
