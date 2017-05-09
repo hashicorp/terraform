@@ -73,7 +73,7 @@ instances. See [Shutdown Behavior](https://docs.aws.amazon.com/AWSEC2/latest/Use
 * `private_ip` - (Optional) Private IP address to associate with the
      instance in a VPC.
 * `source_dest_check` - (Optional) Controls if traffic is routed to the instance when
-  the destination address does not match the instance. Used for NAT or VPNs. Defaults true.
+  the destination address does not match the instance. Used for NAT or VPNs. Defaults false.
 * `user_data` - (Optional) The user data to provide when launching the instance.
 * `iam_instance_profile` - (Optional) The IAM Instance Profile to
   launch the instance with. Specified as the name of the Instance Profile.
