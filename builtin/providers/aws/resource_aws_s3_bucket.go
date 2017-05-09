@@ -1722,7 +1722,8 @@ func normalizeJson(jsonString interface{}) string {
 	var j interface{}
 	err := json.Unmarshal([]byte(jsonString.(string)), &j)
 	if err != nil {
-		return fmt.Sprintf("Error parsing JSON: %s", err)
+		log.Printf("[DEBUG] Error parsing S3 JSON policy: %s", err)
+		return jsonString.(string)
 	}
 	b, _ := json.Marshal(j)
 	return string(b[:])
