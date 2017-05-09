@@ -99,7 +99,7 @@ func dataSourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("name", sg.GroupName)
 	d.Set("description", sg.Description)
 	d.Set("vpc_id", sg.VpcId)
-  
+
 	if d.Get("filter_reserved_tags").(bool) {
 		d.Set("tags", tagsToMap(sg.Tags))
 	} else {
