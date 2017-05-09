@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeRegionBackendService() *schema.Resource {
@@ -189,15 +188,7 @@ func resourceComputeRegionBackendServiceRead(d *schema.ResourceData, meta interf
 	service, err := config.clientCompute.RegionBackendServices.Get(
 		project, region, d.Id()).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			// The resource doesn't exist anymore
-			log.Printf("[WARN] Removing Backend Service %q because it's gone", d.Get("name").(string))
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error reading service: %s", err)
+		return handleNotFoundError(err, d, fmt.Sprintf("Region Backend Service %q", d.Get("name").(string)))
 	}
 
 	d.Set("description", service.Description)
