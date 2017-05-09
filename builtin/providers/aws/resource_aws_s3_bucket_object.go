@@ -280,7 +280,7 @@ func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) err
 		// Treat the inability to get object tags in a restricted regions as a
 		// soft error.
 		if !restricted {
-			return err
+			return fmt.Errorf("Failed to get object tags (bucket: %s, key: %s): %s", bucket, key, err)
 		}
 	} else {
 		d.Set("tags", tagsToMapS3(tagResp.TagSet))
