@@ -11,14 +11,14 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSIAMAccountAlias_basic(t *testing.T) {
+func TestAccAWSIAMAccountAlias(t *testing.T) {
 	testCases := map[string]map[string]func(t *testing.T){
 		"Basic": {
 			"basic": testAccAWSIAMAccountAlias_basic_with_datasource,
 		},
-		// "Import": {
-		// 	"import": testAccAWSIAMAccountAlias_importBasic,
-		// },
+		"Import": {
+			"import": testAccAWSIAMAccountAlias_importBasic,
+		},
 	}
 
 	for group, m := range testCases {
