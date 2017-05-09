@@ -30,7 +30,10 @@ func (c *FileClient) Get() (*Payload, error) {
 	f, err := os.Open(c.Path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, nil
+			f, err = os.Create(c.Path)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		return nil, err
