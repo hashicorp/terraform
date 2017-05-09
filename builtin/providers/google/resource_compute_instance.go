@@ -431,6 +431,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 					diskName, err)
 			}
 
+			disk.DeviceName = diskName
 			disk.Source = diskData.SelfLink
 			hasSource = true
 		} else {
