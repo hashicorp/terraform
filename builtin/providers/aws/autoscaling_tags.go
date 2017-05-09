@@ -190,7 +190,7 @@ func setToMapByKey(s *schema.Set, key string) map[string]interface{} {
 // compare a tag against a list of strings and checks if it should
 // be ignored or not
 func tagIgnoredAutoscaling(t *autoscaling.Tag) bool {
-	filter := []string{"^aws:*"}
+	filter := []string{"^aws:"}
 	for _, v := range filter {
 		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
 		if r, _ := regexp.MatchString(v, *t.Key); r == true {
