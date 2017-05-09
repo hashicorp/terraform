@@ -47,6 +47,7 @@ IMPROVEMENTS:
 * provider/aws: Add `arn` attribute to `aws_ses_domain_identity` resource [GH-14306]
 * provider/azurerm: `azurerm_template_deployment` now supports String/Int/Boolean outputs [GH-13670]
 * provider/azurerm: Expose the Private IP Address for a Load Balancer, if available [GH-13965]
+* provider/dns: Fix data dns txt record set [GH-14271]
 * provider/dnsimple: Add support for import for dnsimple_records [GH-9130]
 * provider/dyn: Add verbose Dyn provider logs [GH-14076]
 * provider/google: Add support for networkIP in compute instance templates [GH-13515]
