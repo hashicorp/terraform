@@ -144,7 +144,7 @@ func resourceAwsSsmMaintenanceWindowTaskCreate(d *schema.ResourceData, meta inte
 		TaskType:       aws.String(d.Get("task_type").(string)),
 		ServiceRoleArn: aws.String(d.Get("service_role_arn").(string)),
 		TaskArn:        aws.String(d.Get("task_arn").(string)),
-		Targets:        expandAwsSsmMaintenanceWindowTargets(d),
+		Targets:        expandAwsSsmTargets(d),
 	}
 
 	if v, ok := d.GetOk("priority"); ok {
@@ -196,7 +196,7 @@ func resourceAwsSsmMaintenanceWindowTaskRead(d *schema.ResourceData, meta interf
 				}
 			}
 
-			if err := d.Set("targets", flattenAwsSsmMaintenanceWindowTargets(t.Targets)); err != nil {
+			if err := d.Set("targets", flattenAwsSsmTargets(t.Targets)); err != nil {
 				return fmt.Errorf("[DEBUG] Error setting targets error: %#v", err)
 			}
 		}
