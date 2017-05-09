@@ -460,7 +460,9 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 	if _, ok := d.GetOk("zone_id"); !ok {
 		parts := strings.Split(d.Id(), "_")
 
-		if len(parts) == 1 {
+		//we check that we have parsed the id into the correct number of segments
+		//we need at least 3 segments!
+		if len(parts) == 1 || len(parts) < 3 {
 			return fmt.Errorf("Error Importing aws_route_53 record. Please make sure the record ID is in the form ZONEID_RECORDNAME_TYPE (i.e. Z4KAPRWWNC7JR_dev_A")
 		}
 
@@ -484,7 +486,7 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 		}
 	}
 
-	err = d.Set("records", flattenResourceRecords(record.ResourceRecords))
+	err = d.Set("records", flattenResourceRecords(record.ResourceRecords, *record.Type))
 	if err != nil {
 		return fmt.Errorf("[DEBUG] Error setting records for: %s, error: %#v", d.Id(), err)
 	}

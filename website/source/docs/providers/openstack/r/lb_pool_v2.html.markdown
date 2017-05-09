@@ -1,12 +1,12 @@
 ---
 layout: "openstack"
 page_title: "OpenStack: openstack_lb_pool_v2"
-sidebar_current: "docs-openstack-resource-lbaas-pool-v2"
+sidebar_current: "docs-openstack-resource-lb-pool-v2"
 description: |-
   Manages a V2 pool resource within OpenStack.
 ---
 
-# openstack\_lbaas\_pool\_v2
+# openstack\_lb\_pool\_v2
 
 Manages a V2 pool resource within OpenStack.
 

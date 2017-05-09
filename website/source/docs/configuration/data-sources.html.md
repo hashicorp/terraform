@@ -74,6 +74,10 @@ resource "aws_instance" "web" {
 }
 ```
 
+### Meta-parameters
+
+As data sources are essentially a read only subset of resources they also support the same [meta-parameters](https://www.terraform.io/docs/configuration/resources.html#meta-parameters) of resources except for the [`lifecycle` configuration block](https://www.terraform.io/docs/configuration/resources.html#lifecycle).
+
 ## Multiple Provider Instances
 
 Similarly to [resources](/docs/configuration/resources.html), the

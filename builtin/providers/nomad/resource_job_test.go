@@ -207,15 +207,17 @@ func testResourceJob_checkExists(s *terraform.State) error {
 func testResourceJob_checkDestroy(jobID string) r.TestCheckFunc {
 	return func(*terraform.State) error {
 		client := testProvider.Meta().(*api.Client)
-		_, _, err := client.Jobs().Info(jobID, nil)
-		if err != nil && strings.Contains(err.Error(), "404") {
+		job, _, err := client.Jobs().Info(jobID, nil)
+		// This should likely never happen, due to how nomad caches jobs
+		if err != nil && strings.Contains(err.Error(), "404") || job == nil {
 			return nil
 		}
-		if err == nil {
-			err = errors.New("not destroyed")
+
+		if job.Status != "dead" {
+			return fmt.Errorf("Job %q has not been stopped. Status: %s", jobID, job.Status)
 		}
 
-		return err
+		return nil
 	}
 }
 
@@ -284,9 +286,16 @@ func testResourceJob_updateCheck(s *terraform.State) error {
 
 	{
 		// Verify foo doesn't exist
-		_, _, err := client.Jobs().Info("foo", nil)
-		if err == nil {
-			return errors.New("reading foo success")
+		job, _, err := client.Jobs().Info("foo", nil)
+		if err != nil {
+			// Job could have already been purged from nomad server
+			if !strings.Contains(err.Error(), "(job not found)") {
+				return fmt.Errorf("error reading %q job: %s", "foo", err)
+			}
+			return nil
+		}
+		if job.Status != "dead" {
+			return fmt.Errorf("%q job is not dead. Status: %q", "foo", job.Status)
 		}
 	}
 
