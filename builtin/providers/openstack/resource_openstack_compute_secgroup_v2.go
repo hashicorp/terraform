@@ -57,12 +57,12 @@ func resourceComputeSecGroupV2() *schema.Resource {
 						},
 						"from_port": &schema.Schema{
 							Type:     schema.TypeInt,
-							Required: true,
+							Optional: true,
 							ForceNew: false,
 						},
 						"to_port": &schema.Schema{
 							Type:     schema.TypeInt,
-							Required: true,
+							Optional: true,
 							ForceNew: false,
 						},
 						"ip_protocol": &schema.Schema{
