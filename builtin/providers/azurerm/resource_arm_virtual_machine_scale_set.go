@@ -1092,13 +1092,13 @@ func expandAzureRMVirtualMachineScaleSetsStorageProfileOsDisk(d *schema.Resource
 	managedDiskType := osDiskConfig["managed_disk_type"].(string)
 
 	osDisk := &compute.VirtualMachineScaleSetOSDisk{
+		Name:         &name,
 		Caching:      compute.CachingTypes(caching),
 		OsType:       compute.OperatingSystemTypes(osType),
 		CreateOption: compute.DiskCreateOptionTypes(createOption),
 	}
 
 	if image != "" {
-		osDisk.Name = &name
 		osDisk.Image = &compute.VirtualHardDisk{
 			URI: &image,
 		}
@@ -1110,15 +1110,19 @@ func expandAzureRMVirtualMachineScaleSetsStorageProfileOsDisk(d *schema.Resource
 			str := v.(string)
 			vhdContainers = append(vhdContainers, str)
 		}
-		osDisk.Name = &name
 		osDisk.VhdContainers = &vhdContainers
 	}
 
 	managedDisk := &compute.VirtualMachineScaleSetManagedDiskParameters{}
 
 	if managedDiskType != "" {
-		managedDisk.StorageAccountType = compute.StorageAccountTypes(managedDiskType)
-		osDisk.ManagedDisk = managedDisk
+		if name == "" {
+			osDisk.Name = nil
+			managedDisk.StorageAccountType = compute.StorageAccountTypes(managedDiskType)
+			osDisk.ManagedDisk = managedDisk
+		} else {
+			return nil, fmt.Errorf("[ERROR] Conflict between `name` and `managed_disk_type` (please set name to blank)")
+		}
 	}
 
 	//BEGIN: code to be removed after GH-13016 is merged
