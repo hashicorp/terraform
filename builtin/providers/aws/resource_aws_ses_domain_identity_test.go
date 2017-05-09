@@ -23,7 +23,7 @@ func TestAccAwsSESDomainIdentity_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAwsSESDomainIdentityDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testAccAwsSESDomainIdentityConfig, domain),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAwsSESDomainIdentityExists("aws_ses_domain_identity.test"),
