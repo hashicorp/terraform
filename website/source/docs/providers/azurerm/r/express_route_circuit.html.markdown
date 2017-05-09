@@ -25,8 +25,10 @@ resource "azurerm_express_route_circuit" "test" {
   service_provider_name    = "Equinix"
   peering_location         = "Silicon Valley"
   bandwidth_in_mbps        = 50
-  sku_tier                 = "Standard"
-  sku_family               = "MeteredData"
+  sku {
+    tier   = "Standard"
+    family = "MeteredData"
+  }
   allow_classic_operations = false
 
   tags {
@@ -55,24 +57,26 @@ The following arguments are supported:
 * `bandwidth_in_mbps` - (Required) The bandwidth in Mbps of the circuit being created. Once you increase your bandwidth, 
     you will not be able to decrease it to its previous value.
 
-* `sku_tier` - (Optional) Chosen SKU Tier of ExpressRoute circuit. Value must be either "Premium" or "Standard". 
-    The default value is "Standard".
-
-* `sku_family` - (Optional) Chosen SKU family (billing model) of ExpressRoute circuit. 
-    Value must be either "MeteredData" or "UnlimitedData". The default value is "MeteredData". 
-    Once you set the billing model to "UnlimitedData", you will not be able to switch to "MeteredData".
+* `sku` - (Required) Chosen SKU of ExpressRoute circuit as documented below.
 
 * `allow_classic_operations` - (Optional) Allow the circuit to interact with classic (RDFE) resources.
     The default value is false.
 
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
+`sku` supports the following:
+
+* `tier` - (Required) The service tier. Value must be either "Premium" or "Standard".
+
+* `family` - (Required) The billing mode. Value must be either "MeteredData" or "UnlimitedData". 
+   Once you set the billing model to "UnlimitedData", you will not be able to switch to "MeteredData".
+
 ## Attributes Reference
 
 The following attributes are exported:
 
 * `id` - The Resource ID of the ExpressRoute circuit.
-* `service_provider_provisioning_state` - The ServiceProviderProvisioningState state of the resource. 
+* `service_provider_provisioning_state` - The ExpressRoute circuit provisioning state from your chosen service provider. 
     Possible values are "NotProvisioned", "Provisioning", "Provisioned", and "Deprovisioning".
 * `service_key` - The string needed by the service provider to provision the ExpressRoute circuit.
 
