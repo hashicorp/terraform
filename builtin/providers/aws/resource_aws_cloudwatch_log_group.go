@@ -109,7 +109,7 @@ func resourceAwsCloudWatchLogGroupRead(d *schema.ResourceData, meta interface{})
 		d.Set("retention_in_days", lg.RetentionInDays)
 	}
 
-	if meta.(*AWSClient).partition != "aws-us-gov" {
+	if meta.(*AWSClient).IsChinaCloud() || meta.(*AWSClient).IsGovCloud() {
 		tags, err := flattenCloudWatchTags(d, conn)
 		if err != nil {
 			return err
@@ -172,7 +172,9 @@ func resourceAwsCloudWatchLogGroupUpdate(d *schema.ResourceData, meta interface{
 		}
 	}
 
-	if meta.(*AWSClient).partition != "aws-us-gov" && d.HasChange("tags") {
+	restricted := meta.(*AWSClient).IsChinaCloud() || meta.(*AWSClient).IsGovCloud()
+
+	if !restricted && d.HasChange("tags") {
 		oraw, nraw := d.GetChange("tags")
 		o := oraw.(map[string]interface{})
 		n := nraw.(map[string]interface{})
