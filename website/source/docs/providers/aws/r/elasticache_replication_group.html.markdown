@@ -88,12 +88,12 @@ before being deleted. If the value of SnapshotRetentionLimit is set to zero (0),
 Please note that setting a `snapshot_retention_limit` is not supported on cache.t1.micro or cache.t2.* cache nodes
 * `apply_immediately` - (Optional) Specifies whether any modifications are applied immediately, or during the next maintenance window. Default is `false`.
 * `tags` - (Optional) A mapping of tags to assign to the resource
-* `cluster_mode` - (Optional) Create a native redis cluster. `automatic_failover_enabled` must be set to true. Cluster Mode documented below.
+* `cluster_mode` - (Optional) Create a native redis cluster. `automatic_failover_enabled` must be set to true. Cluster Mode documented below. Only 1 `cluster_mode` block is allowed.
 
 Cluster Mode (`cluster_mode`) supports the following:
 
 * `replicas_per_node_group` - (Required) Specify the number of replica nodes in each node group. Valid values are 0 to 5. Changing this number will force a new resource.
-* `num_node_groups - (Required) Specify the number of node groups (shards) for this Redis replication group. Changing this number will force a new resource.
+* `num_node_groups` - (Required) Specify the number of node groups (shards) for this Redis replication group. Changing this number will force a new resource.
 
 ## Attributes Reference
 
