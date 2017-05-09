@@ -19,12 +19,16 @@ func resourceAwsSesDomainIdentity() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
 			"domain": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-
 			"verification_token": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -77,6 +81,7 @@ func resourceAwsSesDomainIdentityRead(d *schema.ResourceData, meta interface{}) 
 		return nil
 	}
 
+	d.Set("arn", fmt.Sprintf("arn:%s:ses:%s:%s:identity/%s", meta.(*AWSClient).partition, meta.(*AWSClient).region, meta.(*AWSClient).accountid, d.Id()))
 	d.Set("verification_token", verificationAttrs.VerificationToken)
 	return nil
 }
