@@ -1,3 +1,7 @@
+variable "resource_group" {
+  description = "Name of the resource group in which to deploy your new Virtual Machine"
+}
+
 variable "existing_vnet_resource_group" {
   description = "Name of the existing resource group in which the existing vnet resides"
 }
@@ -5,14 +9,6 @@ variable "existing_vnet_resource_group" {
 variable "location" {
   description = "The location/region where the virtual network resides."
   default     = "southcentralus"
-}
-
-variable "existing_storage_account" {
-  description = "<insert>"
-}
-
-variable "existing_vhds" {
-  description = "<insert>"
 }
 
 variable "hostname" {
@@ -30,15 +26,14 @@ variable "os_disk_vhd_uri" {
 
 variable "existing_virtual_network_name" {
   description = "The name for the existing virtual network"
-  default     = "vnet"
 }
 
-variable "subnet_name" {
-  description = "Name of the subnet in the virtual network you want to use"
+variable "existing_subnet_name" {
+  description = "The name for the existing subnet in the existing virtual network"
 }
 
-variable "subnet_id" {
-  description = "***put desc here***"
+variable "existing_subnet_id" {
+  description = "The id for the existing subnet in the existing virtual network"
 }
 
 variable "address_space" {
@@ -58,7 +53,7 @@ variable "storage_account_type" {
 
 variable "vm_size" {
   description = "Specifies the size of the virtual machine."
-  default     = "Standard_A0"
+  default     = "Standard_DS1_v2"
 }
 
 variable "image_publisher" {
