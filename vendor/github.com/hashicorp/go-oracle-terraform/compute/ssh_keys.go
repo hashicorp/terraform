@@ -47,8 +47,20 @@ type CreateSSHKeyInput struct {
 // CreateSSHKey creates a new SSH key with the given name, key and enabled flag.
 func (c *SSHKeysClient) CreateSSHKey(createInput *CreateSSHKeyInput) (*SSHKey, error) {
 	var keyInfo SSHKey
+	// We have to update after create to get the full ssh key into opc
+	updateSSHKeyInput := UpdateSSHKeyInput{
+		Name:    createInput.Name,
+		Key:     createInput.Key,
+		Enabled: createInput.Enabled,
+	}
+
 	createInput.Name = c.getQualifiedName(createInput.Name)
 	if err := c.createResource(&createInput, &keyInfo); err != nil {
+		return nil, err
+	}
+
+	_, err := c.UpdateSSHKey(&updateSSHKeyInput)
+	if err != nil {
 		return nil, err
 	}
 
