@@ -3,7 +3,6 @@ package aws
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -54,8 +53,14 @@ func testAccAWSIAMAccountAlias_basic_with_datasource(t *testing.T) {
 			{
 				Config: testAccAWSIAMAccountAliasConfig_with_datasource(rstring),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAwsIamAccountAlias("data.aws_iam_account_alias.current"),
+					testAccCheckAWSIAMAccountAliasExists("aws_iam_account_alias.test", &account_alias),
+					testAccCheckAWSIAMAccountAliasDataExists("data.aws_iam_account_alias.current", &account_alias),
 				),
+				// We expect a non-empty plan due to the way data sources and depends_on
+				// work, or don't work. See https://github.com/hashicorp/terraform/issues/11139#issuecomment-275121893
+				// We accept this limitation and feel this test is OK because of the
+				// explicity check above
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
@@ -86,6 +91,21 @@ func testAccCheckAWSIAMAccountAliasDestroy(s *terraform.State) error {
 
 }
 
+func testAccCheckAWSIAMAccountAliasDataExists(n string, a *string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.Attributes["account_alias"] != *a {
+			return fmt.Errorf("Data Source account_alias didn't match, expected (%s), got (%s)", *a, rs.Primary.Attributes["account_alias"])
+		}
+
+		return nil
+	}
+}
+
 func testAccCheckAWSIAMAccountAliasExists(n string, a *string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -107,8 +127,6 @@ func testAccCheckAWSIAMAccountAliasExists(n string, a *string) resource.TestChec
 		}
 
 		*a = aws.StringValue(resp.AccountAliases[0])
-
-		time.Sleep(10 * time.Second)
 
 		return nil
 	}
@@ -135,7 +153,9 @@ resource "aws_iam_account_alias" "test" {
   account_alias = "terraform-%s-alias"
 }
 
-data "aws_iam_account_alias" "current" {}`, rstring)
+data "aws_iam_account_alias" "current" {
+  depends_on = ["aws_iam_account_alias.test"]
+}`, rstring)
 }
 
 func testAccAWSIAMAccountAliasConfig(rstring string) string {
