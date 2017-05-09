@@ -165,8 +165,15 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 		params.SnapshotName = aws.String(v.(string))
 	}
 
-	if a, ok := d.GetOk("cluster_mode"); ok {
-		clusterModeAttributes := a.(*schema.Set).List()
+	clusterMode, clusterModeOk := d.GetOk("cluster_mode")
+	cacheClusters, cacheClustersOk := d.GetOk("number_cache_clusters")
+
+	if !clusterModeOk && !cacheClustersOk || clusterModeOk && cacheClustersOk {
+		return fmt.Errorf("Either `number_cache_clusters` or `cluster_mode` must be set")
+	}
+
+	if clusterModeOk {
+		clusterModeAttributes := clusterMode.(*schema.Set).List()
 		attributes := clusterModeAttributes[0].(map[string]interface{})
 
 		if v, ok := attributes["num_node_groups"]; ok {
@@ -176,10 +183,10 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 		if v, ok := attributes["replicas_per_node_group"]; ok {
 			params.ReplicasPerNodeGroup = aws.Int64(int64(v.(int)))
 		}
-	} else if v, ok := d.GetOk("number_cache_clusters"); ok {
-		params.NumCacheClusters = aws.Int64(int64(v.(int)))
-	} else {
-		return fmt.Errorf("number_cache_clusters must be set if not using cluster_mode")
+	}
+
+	if cacheClustersOk {
+		params.NumCacheClusters = aws.Int64(int64(cacheClusters.(int)))
 	}
 
 	resp, err := conn.CreateReplicationGroup(params)

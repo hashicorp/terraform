@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -240,14 +241,16 @@ func TestAccAWSElasticacheReplicationGroup_redisClusterInVpc2(t *testing.T) {
 
 func TestAccAWSElasticacheReplicationGroup_nativeRedisCluster(t *testing.T) {
 	var rg elasticache.ReplicationGroup
+	rInt := acctest.RandInt()
+	rName := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSElasticacheReplicationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSElasticacheReplicationGroupNativeRedisClusterConfig,
+			{
+				Config: testAccAWSElasticacheReplicationGroupNativeRedisClusterConfig(rInt, rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSElasticacheReplicationGroupExists("aws_elasticache_replication_group.bar", &rg),
 					resource.TestCheckResourceAttr(
@@ -263,6 +266,23 @@ func TestAccAWSElasticacheReplicationGroup_nativeRedisCluster(t *testing.T) {
 					resource.TestCheckResourceAttrSet(
 						"aws_elasticache_replication_group.bar", "configuration_endpoint_address"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccAWSElasticacheReplicationGroup_clusteringAndCacheNodesCausesError(t *testing.T) {
+	rInt := acctest.RandInt()
+	rName := acctest.RandString(10)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSElasticacheReplicationDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccAWSElasticacheReplicationGroupNativeRedisClusterErrorConfig(rInt, rName),
+				ExpectError: regexp.MustCompile("Either `number_cache_clusters` or `cluster_mode` must be set"),
 			},
 		},
 	})
@@ -754,11 +774,8 @@ resource "aws_elasticache_replication_group" "bar" {
 }
 `, acctest.RandInt(), acctest.RandInt(), acctest.RandInt(), acctest.RandInt(), acctest.RandString(10))
 
-var testAccAWSElasticacheReplicationGroupNativeRedisClusterConfig = fmt.Sprintf(`
-provider "aws" {
-    region = "us-west-2"
-}
-
+func testAccAWSElasticacheReplicationGroupNativeRedisClusterErrorConfig(rInt int, rName string) string {
+	return fmt.Sprintf(`
 resource "aws_vpc" "foo" {
     cidr_block = "192.168.0.0/16"
     tags {
@@ -818,5 +835,70 @@ resource "aws_elasticache_replication_group" "bar" {
       replicas_per_node_group = 1
       num_node_groups = 2
     }
+    number_cache_clusters = 3
+}`, rInt, rInt, rInt, rInt, rName)
 }
-`, acctest.RandInt(), acctest.RandInt(), acctest.RandInt(), acctest.RandInt(), acctest.RandString(10))
+
+func testAccAWSElasticacheReplicationGroupNativeRedisClusterConfig(rInt int, rName string) string {
+	return fmt.Sprintf(`
+resource "aws_vpc" "foo" {
+    cidr_block = "192.168.0.0/16"
+    tags {
+        Name = "tf-test"
+    }
+}
+
+resource "aws_subnet" "foo" {
+    vpc_id = "${aws_vpc.foo.id}"
+    cidr_block = "192.168.0.0/20"
+    availability_zone = "us-west-2a"
+    tags {
+        Name = "tf-test-%03d"
+    }
+}
+
+resource "aws_subnet" "bar" {
+    vpc_id = "${aws_vpc.foo.id}"
+    cidr_block = "192.168.16.0/20"
+    availability_zone = "us-west-2b"
+    tags {
+        Name = "tf-test-%03d"
+    }
+}
+
+resource "aws_elasticache_subnet_group" "bar" {
+    name = "tf-test-cache-subnet-%03d"
+    description = "tf-test-cache-subnet-group-descr"
+    subnet_ids = [
+        "${aws_subnet.foo.id}",
+        "${aws_subnet.bar.id}"
+    ]
+}
+
+resource "aws_security_group" "bar" {
+    name = "tf-test-security-group-%03d"
+    description = "tf-test-security-group-descr"
+    vpc_id = "${aws_vpc.foo.id}"
+    ingress {
+        from_port = -1
+        to_port = -1
+        protocol = "icmp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+}
+
+resource "aws_elasticache_replication_group" "bar" {
+    replication_group_id = "tf-%s"
+    replication_group_description = "test description"
+    node_type = "cache.t2.micro"
+    port = 6379
+    subnet_group_name = "${aws_elasticache_subnet_group.bar.name}"
+    security_group_ids = ["${aws_security_group.bar.id}"]
+    parameter_group_name = "default.redis3.2.cluster.on"
+    automatic_failover_enabled = true
+    cluster_mode {
+      replicas_per_node_group = 1
+      num_node_groups = 2
+    }
+}`, rInt, rInt, rInt, rInt, rName)
+}
