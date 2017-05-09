@@ -69,6 +69,7 @@ BUG FIXES:
 
 * core: `module` blocks without names are now caught in validation, along with various other block types [GH-14162]
 * core: no longer will errors and normal log output get garbled together on Windows [GH-14194]
+* core: Avoid crash on empty TypeSet blocks [GH-14305]
 * provider/aws: Update aws_ebs_volume when attached [GH-14005]
 * provider/aws: Set aws_instance volume_tags to be Computed [GH-14007]
 * provider/aws: Fix issue getting partition for federated users [GH-13992]
