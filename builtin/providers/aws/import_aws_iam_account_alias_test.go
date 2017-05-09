@@ -18,7 +18,7 @@ func testAccAWSIAMAccountAlias_importBasic(t *testing.T) {
 		CheckDestroy: testAccCheckAWSIAMAccountAliasDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSIAMAccountAliasConfig_alias_only(rstring),
+				Config: testAccAWSIAMAccountAliasConfig(rstring),
 			},
 
 			resource.TestStep{

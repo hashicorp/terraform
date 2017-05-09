@@ -46,13 +46,13 @@ func testAccAWSIAMAccountAlias_basic_with_datasource(t *testing.T) {
 		CheckDestroy: testAccCheckAWSIAMAccountAliasDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSIAMAccountAliasConfig_alias_only(rstring),
+				Config: testAccAWSIAMAccountAliasConfig(rstring),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSIAMAccountAliasExists("aws_iam_account_alias.test", &account_alias),
 				),
 			},
 			{
-				Config: testAccAWSIAMAccountAliasConfig(rstring),
+				Config: testAccAWSIAMAccountAliasConfig_with_datasource(rstring),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAwsIamAccountAlias("data.aws_iam_account_alias.current"),
 				),
@@ -129,7 +129,7 @@ func testAccCheckAwsIamAccountAlias(n string) resource.TestCheckFunc {
 	}
 }
 
-func testAccAWSIAMAccountAliasConfig(rstring string) string {
+func testAccAWSIAMAccountAliasConfig_with_datasource(rstring string) string {
 	return fmt.Sprintf(`
 resource "aws_iam_account_alias" "test" {
   account_alias = "terraform-%s-alias"
@@ -138,7 +138,7 @@ resource "aws_iam_account_alias" "test" {
 data "aws_iam_account_alias" "current" {}`, rstring)
 }
 
-func testAccAWSIAMAccountAliasConfig_alias_only(rstring string) string {
+func testAccAWSIAMAccountAliasConfig(rstring string) string {
 	return fmt.Sprintf(`
 resource "aws_iam_account_alias" "test" {
   account_alias = "terraform-%s-alias"
