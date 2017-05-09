@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccAWSIAMAccountAlias_importBasic(t *testing.T) {
+func testAccAWSIAMAccountAlias_importBasic(t *testing.T) {
 	resourceName := "aws_iam_account_alias.test"
 
 	rstring := acctest.RandString(5)
@@ -18,7 +18,7 @@ func TestAccAWSIAMAccountAlias_importBasic(t *testing.T) {
 		CheckDestroy: testAccCheckAWSIAMAccountAliasDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSIAMAccountAliasConfig(rstring),
+				Config: testAccAWSIAMAccountAliasConfig_alias_only(rstring),
 			},
 
 			resource.TestStep{
