@@ -55,26 +55,35 @@ func resourceArmExpressRouteCircuit() *schema.Resource {
 				Required: true,
 			},
 
-			"sku_tier": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  string(network.ExpressRouteCircuitSkuTierStandard),
-				ValidateFunc: validation.StringInSlice([]string{
-					string(network.ExpressRouteCircuitSkuTierStandard),
-					string(network.ExpressRouteCircuitSkuTierPremium),
-				}, true),
-				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
-			},
+			"sku": {
+				Type:     schema.TypeSet,
+				Required: true,
+				MinItems: 1,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"tier": {
+							Type:     schema.TypeString,
+							Required: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								string(network.ExpressRouteCircuitSkuTierStandard),
+								string(network.ExpressRouteCircuitSkuTierPremium),
+							}, true),
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
+						},
 
-			"sku_family": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  string(network.MeteredData),
-				ValidateFunc: validation.StringInSlice([]string{
-					string(network.MeteredData),
-					string(network.UnlimitedData),
-				}, true),
-				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
+						"family": {
+							Type:     schema.TypeString,
+							Required: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								string(network.MeteredData),
+								string(network.UnlimitedData),
+							}, true),
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
+						},
+					},
+				},
+				Set: resourceArmExpressRouteCircuitSkuHash,
 			},
 
 			"allow_classic_operations": {
@@ -110,9 +119,7 @@ func resourceArmExpressRouteCircuitCreate(d *schema.ResourceData, meta interface
 	serviceProviderName := d.Get("service_provider_name").(string)
 	peeringLocation := d.Get("peering_location").(string)
 	bandwidthInMbps := int32(d.Get("bandwidth_in_mbps").(int))
-	skuTier := d.Get("sku_tier").(string)
-	skuFamily := d.Get("sku_family").(string)
-	skuName := fmt.Sprintf("%s_%s", skuTier, skuFamily)
+	sku := expandExpressRouteCircuitSku(d.Get("sku").(*schema.Set))
 	allowRdfeOps := d.Get("allow_classic_operations").(bool)
 	tags := d.Get("tags").(map[string]interface{})
 	expandedTags := expandTags(tags)
@@ -120,11 +127,7 @@ func resourceArmExpressRouteCircuitCreate(d *schema.ResourceData, meta interface
 	erc := network.ExpressRouteCircuit{
 		Name:     &name,
 		Location: &location,
-		Sku: &network.ExpressRouteCircuitSku{
-			Name:   &skuName,
-			Tier:   network.ExpressRouteCircuitSkuTier(skuTier),
-			Family: network.ExpressRouteCircuitSkuFamily(skuFamily),
-		},
+		Sku:      sku,
 		ExpressRouteCircuitPropertiesFormat: &network.ExpressRouteCircuitPropertiesFormat{
 			AllowClassicOperations: &allowRdfeOps,
 			ServiceProviderProperties: &network.ExpressRouteCircuitServiceProviderProperties{
@@ -177,8 +180,7 @@ func resourceArmExpressRouteCircuitRead(d *schema.ResourceData, meta interface{}
 	}
 
 	if erc.Sku != nil {
-		d.Set("sku_tier", string(erc.Sku.Tier))
-		d.Set("sku_family", string(erc.Sku.Family))
+		d.Set("sku", schema.NewSet(resourceArmExpressRouteCircuitSkuHash, flattenExpressRouteCircuitSku(erc.Sku)))
 	}
 
 	d.Set("service_provider_provisioning_state", string(erc.ServiceProviderProvisioningState))

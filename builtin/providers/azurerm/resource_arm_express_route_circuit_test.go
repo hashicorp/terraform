@@ -102,8 +102,10 @@ func testAccAzureRMExpressRouteCircuit_basic(rInt int) string {
 			service_provider_name = "Equinix"
 			peering_location = "Silicon Valley"
 			bandwidth_in_mbps = 50
-			sku_tier = "Standard"
-			sku_family = "MeteredData"
+			sku {
+			    tier = "Standard"
+			    family = "MeteredData"
+		    }
 			allow_classic_operations = false
 
 			tags {
