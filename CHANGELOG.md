@@ -44,6 +44,7 @@ IMPROVEMENTS:
 * provider/aws: Add ARN to security group data source [GH-14245]
 * provider/aws: Improve the wording of DynamoDB Validation error message [GH-14256]
 * provider/aws: Add support for importing Kinesis Streams [GH-14278]
+* provider/aws: Add `arn` attribute to `aws_ses_domain_identity` resource [GH-14306]
 * provider/azurerm: `azurerm_template_deployment` now supports String/Int/Boolean outputs [GH-13670]
 * provider/azurerm: Expose the Private IP Address for a Load Balancer, if available [GH-13965]
 * provider/dnsimple: Add support for import for dnsimple_records [GH-9130]
