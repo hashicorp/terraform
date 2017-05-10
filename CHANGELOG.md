@@ -78,6 +78,7 @@ BUG FIXES:
 * provider/aws: Exclude aws_instance volume tagging for China and Gov Clouds [GH-14055]
 * provider/aws: Fix source_dest_check with network_interface [GH-14079]
 * provider/aws: Fixes the bug where SNS delivery policy get always recreated [GH-14064]
+* provider/aws: Increase timeouts for Route Table retries [GH-14345]
 * provider/aws: Prevent Crash when importing aws_route53_record [GH-14218]
 * provider/aws: More consistent (un)quoting of long TXT/SPF `aws_route53_record`s [GH-14170]
 * provider/aws: Retry deletion of AWSConfig Rule on ResourceInUseException [GH-14269]
