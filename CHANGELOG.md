@@ -49,6 +49,7 @@ IMPROVEMENTS:
 * provider/aws: Add `arn` attribute to `aws_ses_domain_identity` resource [GH-14306]
 * provider/aws: Add support for targets to aws_ssm_association [GH-14246]
 * provider/aws: native redis clustering support for elasticache [GH-14317]
+* provider/aws: Support updating `aws_waf_rule` predicates [GH-14089]
 * provider/azurerm: `azurerm_template_deployment` now supports String/Int/Boolean outputs [GH-13670]
 * provider/azurerm: Expose the Private IP Address for a Load Balancer, if available [GH-13965]
 * provider/dns: Fix data dns txt record set [GH-14271]
