@@ -30,3 +30,5 @@ If a `terraform.tfvars` file is present in the current directory, Terraform auto
 
 ## variables.tf
 The `variables.tf` file contains all of the input parameters that the user can specify when deploying this Terraform template.
+
+![graph](/examples/azure-vm-specialized-vhd-existing-vnet/graph.png)
