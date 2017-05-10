@@ -16,8 +16,6 @@ docker run --rm -it \
       /bin/terraform plan -out=out.tfplan -var resource_group=$KEY; \
       /bin/terraform apply out.tfplan"
 
-#TODO: how do we validate?
-
 # cleanup deployed azure resources via terraform
 docker run --rm -it \
   -e ARM_CLIENT_ID \

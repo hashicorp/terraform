@@ -49,7 +49,7 @@ func TestAccAWSDBOptionGroup_namePrefix(t *testing.T) {
 					testAccCheckAWSDBOptionGroupExists("aws_db_option_group.test", &v),
 					testAccCheckAWSDBOptionGroupAttributes(&v),
 					resource.TestMatchResourceAttr(
-						"aws_db_option_group.test", "name", regexp.MustCompile("^tf-test-")),
+						"aws_db_option_group.test", "name", regexp.MustCompile("^tf-TEST-")),
 				),
 			},
 		},
@@ -112,7 +112,7 @@ func TestAccAWSDBOptionGroup_basicDestroyWithInstance(t *testing.T) {
 
 func TestAccAWSDBOptionGroup_OptionSettings(t *testing.T) {
 	var v rds.OptionGroup
-	rName := fmt.Sprintf("option-group-test-terraform-%s", acctest.RandString(5))
+	rName := fmt.Sprintf("option-group-TEST-terraform-%s", acctest.RandString(5))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -149,7 +149,7 @@ func TestAccAWSDBOptionGroup_OptionSettings(t *testing.T) {
 
 func TestAccAWSDBOptionGroup_sqlServerOptionsUpdate(t *testing.T) {
 	var v rds.OptionGroup
-	rName := fmt.Sprintf("option-group-test-terraform-%s", acctest.RandString(5))
+	rName := fmt.Sprintf("option-group-TEST-terraform-%s", acctest.RandString(5))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -181,7 +181,7 @@ func TestAccAWSDBOptionGroup_sqlServerOptionsUpdate(t *testing.T) {
 
 func TestAccAWSDBOptionGroup_multipleOptions(t *testing.T) {
 	var v rds.OptionGroup
-	rName := fmt.Sprintf("option-group-test-terraform-%s", acctest.RandString(5))
+	rName := fmt.Sprintf("option-group-TEST-terraform-%s", acctest.RandString(5))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -434,7 +434,7 @@ resource "aws_db_option_group" "test" {
 func testAccAWSDBOptionGroup_defaultDescription(n int) string {
 	return fmt.Sprintf(`
 resource "aws_db_option_group" "test" {
-  name = "tf-test-%d"
+  name = "tf-TEST-%d"
   engine_name = "mysql"
   major_engine_version = "5.6"
 }

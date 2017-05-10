@@ -1871,6 +1871,107 @@ func TestContext2Plan_countIncreaseFromOneCorrupted(t *testing.T) {
 	}
 }
 
+// A common pattern in TF configs is to have a set of resources with the same
+// count and to use count.index to create correspondences between them:
+//
+//    foo_id = "${foo.bar.*.id[count.index]}"
+//
+// This test is for the situation where some instances already exist and the
+// count is increased. In that case, we should see only the create diffs
+// for the new instances and not any update diffs for the existing ones.
+func TestContext2Plan_countIncreaseWithSplatReference(t *testing.T) {
+	m := testModule(t, "plan-count-splat-reference")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"name": "foo 0",
+							},
+						},
+					},
+					"aws_instance.foo.1": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"name": "foo 1",
+							},
+						},
+					},
+					"aws_instance.bar.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo_name": "foo 0",
+							},
+						},
+					},
+					"aws_instance.bar.1": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo_name": "foo 1",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(`
+DIFF:
+
+CREATE: aws_instance.bar.2
+  foo_name: "" => "foo 2"
+  type:     "" => "aws_instance"
+CREATE: aws_instance.foo.2
+  name: "" => "foo 2"
+  type: "" => "aws_instance"
+
+STATE:
+
+aws_instance.bar.0:
+  ID = bar
+  foo_name = foo 0
+aws_instance.bar.1:
+  ID = bar
+  foo_name = foo 1
+aws_instance.foo.0:
+  ID = bar
+  name = foo 0
+aws_instance.foo.1:
+  ID = bar
+  name = foo 1
+`)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestContext2Plan_destroy(t *testing.T) {
 	m := testModule(t, "plan-destroy")
 	p := testProvider("aws")
