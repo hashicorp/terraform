@@ -21,7 +21,7 @@ func TestAccPagerDutyUser_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyUserDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyUserConfig(username, email),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyUserExists("pagerduty_user.foo"),
@@ -39,7 +39,7 @@ func TestAccPagerDutyUser_Basic(t *testing.T) {
 						"pagerduty_user.foo", "description", "foo"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyUserConfigUpdated(usernameUpdated, emailUpdated),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyUserExists("pagerduty_user.foo"),
@@ -72,7 +72,7 @@ func TestAccPagerDutyUserWithTeams_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyUserDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyUserWithTeamsConfig(team1, username, email),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyUserExists("pagerduty_user.foo"),
@@ -84,7 +84,7 @@ func TestAccPagerDutyUserWithTeams_Basic(t *testing.T) {
 						"pagerduty_user.foo", "teams.#", "1"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyUserWithTeamsConfigUpdated(team1, team2, username, email),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyUserExists("pagerduty_user.foo"),
@@ -96,7 +96,7 @@ func TestAccPagerDutyUserWithTeams_Basic(t *testing.T) {
 						"pagerduty_user.foo", "teams.#", "2"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyUserWithNoTeamsConfig(team1, team2, username, email),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyUserExists("pagerduty_user.foo"),

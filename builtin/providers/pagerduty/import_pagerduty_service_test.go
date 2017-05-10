@@ -19,11 +19,11 @@ func TestAccPagerDutyService_import(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyServiceConfig(username, email, escalationPolicy, service),
 			},
 
-			resource.TestStep{
+			{
 				ResourceName:      "pagerduty_service.foo",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -43,11 +43,11 @@ func TestAccPagerDutyServiceWithIncidentUrgency_import(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyServiceWithIncidentUrgencyRulesConfig(username, email, escalationPolicy, service),
 			},
 
-			resource.TestStep{
+			{
 				ResourceName:      "pagerduty_service.foo",
 				ImportState:       true,
 				ImportStateVerify: true,

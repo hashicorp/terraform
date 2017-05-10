@@ -19,7 +19,7 @@ func TestAccPagerDutyAddon_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyAddonDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyAddonConfig(addon),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyAddonExists("pagerduty_addon.foo"),
@@ -29,7 +29,7 @@ func TestAccPagerDutyAddon_Basic(t *testing.T) {
 						"pagerduty_addon.foo", "src", "https://intranet.foo.com/status"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyAddonConfigUpdated(addonUpdated),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyAddonExists("pagerduty_addon.foo"),

@@ -18,11 +18,11 @@ func TestAccPagerDutySchedule_import(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyUserDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyScheduleConfig(username, email, schedule),
 			},
 
-			resource.TestStep{
+			{
 				ResourceName:      "pagerduty_schedule.foo",
 				ImportState:       true,
 				ImportStateVerify: true,

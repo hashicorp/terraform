@@ -16,11 +16,11 @@ func TestAccPagerDutyTeam_import(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyTeamDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyTeamConfig(team),
 			},
 
-			resource.TestStep{
+			{
 				ResourceName:      "pagerduty_team.foo",
 				ImportState:       true,
 				ImportStateVerify: true,

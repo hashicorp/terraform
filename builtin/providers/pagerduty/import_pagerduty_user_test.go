@@ -17,11 +17,11 @@ func TestAccPagerDutyUser_import(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyUserDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyUserConfig(username, email),
 			},
 
-			resource.TestStep{
+			{
 				ResourceName:      "pagerduty_user.foo",
 				ImportState:       true,
 				ImportStateVerify: true,

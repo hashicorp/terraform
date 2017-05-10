@@ -17,7 +17,7 @@ func TestAccDataSourcePagerDutyUser_Basic(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDataSourcePagerDutyUserConfig(username, email),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDataSourcePagerDutyUser("pagerduty_user.test", "data.pagerduty_user.by_email"),

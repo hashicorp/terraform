@@ -21,7 +21,7 @@ func TestAccPagerDutyEscalationPolicy_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyEscalationPolicyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyEscalationPolicyConfig(username, email, escalationPolicy),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyEscalationPolicyExists("pagerduty_escalation_policy.foo"),
@@ -38,7 +38,7 @@ func TestAccPagerDutyEscalationPolicy_Basic(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyEscalationPolicyConfigUpdated(username, email, escalationPolicyUpdated),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyEscalationPolicyExists("pagerduty_escalation_policy.foo"),
@@ -72,7 +72,7 @@ func TestAccPagerDutyEscalationPolicyWithTeams_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyEscalationPolicyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyEscalationPolicyWithTeamsConfig(username, email, team, escalationPolicy),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyEscalationPolicyExists("pagerduty_escalation_policy.foo"),
@@ -90,7 +90,7 @@ func TestAccPagerDutyEscalationPolicyWithTeams_Basic(t *testing.T) {
 						"pagerduty_escalation_policy.foo", "teams.#", "1"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyEscalationPolicyWithTeamsConfigUpdated(username, email, team, escalationPolicyUpdated),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyEscalationPolicyExists("pagerduty_escalation_policy.foo"),

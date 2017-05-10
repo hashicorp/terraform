@@ -21,7 +21,7 @@ func TestAccPagerDutySchedule_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyScheduleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyScheduleConfig(username, email, schedule),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyScheduleExists("pagerduty_schedule.foo"),
@@ -37,7 +37,7 @@ func TestAccPagerDutySchedule_Basic(t *testing.T) {
 						"pagerduty_schedule.foo", "layer.0.name", "foo"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyScheduleConfigUpdated(username, email, scheduleUpdated),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyScheduleExists("pagerduty_schedule.foo"),
@@ -68,7 +68,7 @@ func TestAccPagerDutySchedule_BasicWeek(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyScheduleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyScheduleConfigWeek(username, email, schedule),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyScheduleExists("pagerduty_schedule.foo"),
@@ -86,7 +86,7 @@ func TestAccPagerDutySchedule_BasicWeek(t *testing.T) {
 						"pagerduty_schedule.foo", "layer.0.restriction.0.start_day_of_week", "1"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyScheduleConfigWeekUpdated(username, email, scheduleUpdated),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyScheduleExists("pagerduty_schedule.foo"),
@@ -118,7 +118,7 @@ func TestAccPagerDutySchedule_Multi(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyScheduleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyScheduleConfigMulti(username, email, schedule),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyScheduleExists("pagerduty_schedule.foo"),

@@ -20,11 +20,11 @@ func TestAccPagerDutyServiceIntegration_import(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyServiceIntegrationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyServiceIntegrationConfig(username, email, escalationPolicy, service, serviceIntegration),
 			},
 
-			resource.TestStep{
+			{
 				ResourceName:      "pagerduty_service_integration.foo",
 				ImportState:       true,
 				ImportStateVerify: true,

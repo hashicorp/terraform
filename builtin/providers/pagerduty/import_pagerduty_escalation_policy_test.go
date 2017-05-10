@@ -18,11 +18,11 @@ func TestAccPagerDutyEscalationPolicy_import(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyEscalationPolicyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyEscalationPolicyConfig(username, email, escalationPolicy),
 			},
 
-			resource.TestStep{
+			{
 				ResourceName:      "pagerduty_escalation_policy.foo",
 				ImportState:       true,
 				ImportStateVerify: true,
