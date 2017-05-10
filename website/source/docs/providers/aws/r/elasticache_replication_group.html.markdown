@@ -31,7 +31,7 @@ resource "aws_elasticache_replication_group" "bar" {
 
 ```hcl
 resource "aws_elasticache_replication_group" "baz" {
-  replication_group_id          = "tf-replication-group-1"
+  replication_group_id          = "tf-redis-cluster"
   replication_group_description = "test description"
   node_type                     = "cache.m1.small"
   port                          = 6379
