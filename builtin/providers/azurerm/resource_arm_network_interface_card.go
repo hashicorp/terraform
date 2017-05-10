@@ -428,7 +428,7 @@ func expandAzureRmNetworkInterfaceIpConfigurations(d *schema.ResourceData) ([]ne
 
 		subnetId, err := parseAzureResourceID(subnet_id)
 		if err != nil {
-			return nil, nil, err
+			return []network.InterfaceIPConfiguration{}, nil, err
 		}
 		subnetName := subnetId.Path["subnets"]
 		virtualNetworkName := subnetId.Path["virtualNetworks"]
