@@ -38,8 +38,8 @@ resource "aws_db_option_group" "bar" {
 
 The following arguments are supported:
 
-* `name` - (Optional, Forces new resource) The name of the option group. If omitted, Terraform will assign a random, unique name. This is converted to lowercase, as is stored in AWS.
-* `name_prefix` - (Optional, Forces new resource) Creates a unique name beginning with the specified prefix. Conflicts with `name`. This is converted to lowercase, as is stored in AWS.
+* `name` - (Optional, Forces new resource) The name of the option group. If omitted, Terraform will assign a random, unique name. Must be lowercase, to match as it is stored in AWS.
+* `name_prefix` - (Optional, Forces new resource) Creates a unique name beginning with the specified prefix. Conflicts with `name`. Must be lowercase, to match as it is stored in AWS.
 * `option_group_description` - (Optional) The description of the option group. Defaults to "Managed by Terraform".
 * `engine_name` - (Required) Specifies the name of the engine that this option group should be associated with.
 * `major_engine_version` - (Required) Specifies the major version of the engine that this option group should be associated with.
