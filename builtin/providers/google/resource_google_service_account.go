@@ -6,7 +6,6 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iam/v1"
 )
 
@@ -116,15 +115,7 @@ func resourceGoogleServiceAccountRead(d *schema.ResourceData, meta interface{}) 
 	// Confirm the service account exists
 	sa, err := config.clientIAM.Projects.ServiceAccounts.Get(d.Id()).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing reference to service account %q because it no longer exists", d.Id())
-			saName := d.Id()
-			// The resource doesn't exist anymore
-			d.SetId("")
-
-			return fmt.Errorf("Error getting service account with name %q: %s", saName, err)
-		}
-		return fmt.Errorf("Error reading service account %q: %q", d.Id(), err)
+		return handleNotFoundError(err, d, fmt.Sprintf("Service Account %q", d.Id()))
 	}
 
 	d.Set("email", sa.Email)

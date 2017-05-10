@@ -34,6 +34,7 @@ func dataSourceDnsTxtRecordSet() *schema.Resource {
 
 func dataSourceDnsTxtRecordSetRead(d *schema.ResourceData, meta interface{}) error {
 	host := d.Get("host").(string)
+
 	records, err := net.LookupTXT(host)
 	if err != nil {
 		return fmt.Errorf("error looking up TXT records for %q: %s", host, err)
@@ -45,5 +46,7 @@ func dataSourceDnsTxtRecordSetRead(d *schema.ResourceData, meta interface{}) err
 		d.Set("record", "")
 	}
 	d.Set("records", records)
+	d.SetId(host)
+
 	return nil
 }

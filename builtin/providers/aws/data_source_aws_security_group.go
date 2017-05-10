@@ -14,23 +14,29 @@ func dataSourceAwsSecurityGroup() *schema.Resource {
 		Read: dataSourceAwsSecurityGroupRead,
 
 		Schema: map[string]*schema.Schema{
-			"vpc_id": &schema.Schema{
+			"vpc_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 			"filter": ec2CustomFiltersSchema(),
 
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
+
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"tags": tagsSchemaComputed(),
 		},
 	}
@@ -81,6 +87,8 @@ func dataSourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("description", sg.Description)
 	d.Set("vpc_id", sg.VpcId)
 	d.Set("tags", tagsToMap(sg.Tags))
+	d.Set("arn", fmt.Sprintf("arn:%s:ec2:%s:%s/security-group/%s",
+		meta.(*AWSClient).partition, meta.(*AWSClient).region, *sg.OwnerId, *sg.GroupId))
 
 	return nil
 }

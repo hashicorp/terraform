@@ -27,6 +27,10 @@ func resourceAwsSsmDocument() *schema.Resource {
 		Delete: resourceAwsSsmDocumentDelete,
 
 		Schema: map[string]*schema.Schema{
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -173,8 +177,12 @@ func resourceAwsSsmDocumentRead(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	resp, err := ssmconn.DescribeDocument(docInput)
-
 	if err != nil {
+		if ssmErr, ok := err.(awserr.Error); ok && ssmErr.Code() == "InvalidDocument" {
+			log.Printf("[WARN] SSM Document not found so removing from state")
+			d.SetId("")
+			return nil
+		}
 		return errwrap.Wrapf("[ERROR] Error describing SSM document: {{err}}", err)
 	}
 
@@ -195,6 +203,9 @@ func resourceAwsSsmDocumentRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("name", doc.Name)
 	d.Set("owner", doc.Owner)
 	d.Set("platform_types", flattenStringList(doc.PlatformTypes))
+	if err := d.Set("arn", flattenAwsSsmDocumentArn(meta, doc.Name)); err != nil {
+		return fmt.Errorf("[DEBUG] Error setting arn error: %#v", err)
+	}
 
 	d.Set("status", doc.Status)
 
@@ -236,6 +247,12 @@ func resourceAwsSsmDocumentRead(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	return nil
+}
+
+func flattenAwsSsmDocumentArn(meta interface{}, docName *string) string {
+	region := meta.(*AWSClient).region
+
+	return fmt.Sprintf("arn:aws:ssm:%s::document/%s", region, *docName)
 }
 
 func resourceAwsSsmDocumentUpdate(d *schema.ResourceData, meta interface{}) error {

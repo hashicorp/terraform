@@ -217,6 +217,7 @@ func resourceAwsInstance() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 
 			"ipv6_addresses": {
@@ -227,7 +228,6 @@ func resourceAwsInstance() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				ConflictsWith: []string{"ipv6_address_count"},
 			},
 
 			"tenancy": {
@@ -420,13 +420,20 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		UserData:                          instanceOpts.UserData64,
 	}
 
-	if v, ok := d.GetOk("ipv6_address_count"); ok {
-		runOpts.Ipv6AddressCount = aws.Int64(int64(v.(int)))
+	ipv6Count, ipv6CountOk := d.GetOk("ipv6_address_count")
+	ipv6Address, ipv6AddressOk := d.GetOk("ipv6_addresses")
+
+	if ipv6AddressOk && ipv6CountOk {
+		return fmt.Errorf("Only 1 of `ipv6_address_count` or `ipv6_addresses` can be specified")
 	}
 
-	if v, ok := d.GetOk("ipv6_addresses"); ok {
-		ipv6Addresses := make([]*ec2.InstanceIpv6Address, len(v.([]interface{})))
-		for _, address := range v.([]interface{}) {
+	if ipv6CountOk {
+		runOpts.Ipv6AddressCount = aws.Int64(int64(ipv6Count.(int)))
+	}
+
+	if ipv6AddressOk {
+		ipv6Addresses := make([]*ec2.InstanceIpv6Address, len(ipv6Address.([]interface{})))
+		for _, address := range ipv6Address.([]interface{}) {
 			ipv6Address := &ec2.InstanceIpv6Address{
 				Ipv6Address: aws.String(address.(string)),
 			}
