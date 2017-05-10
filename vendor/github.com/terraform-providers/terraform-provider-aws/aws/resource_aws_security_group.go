@@ -213,6 +213,7 @@ func resourceAwsSecurityGroup() *schema.Resource {
 func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 	cache := meta.(*AWSClient).Cache()
+	clearSecurityGroupCache(cache)
 
 	securityGroupOpts := &ec2.CreateSecurityGroupInput{}
 
@@ -375,6 +376,7 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 	cache := meta.(*AWSClient).Cache()
+	clearSecurityGroupCache(cache)
 
 	sgRaw, _, err := SGStateRefreshFunc(conn, cache, d.Id())()
 	if err != nil {
@@ -411,6 +413,8 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 
 func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
+	cache := meta.(*AWSClient).Cache()
+	clearSecurityGroupCache(cache)
 
 	log.Printf("[DEBUG] Security Group destroy: %v", d.Id())
 
@@ -704,6 +708,13 @@ func resourceAwsSecurityGroupUpdateRules(
 		}
 	}
 	return nil
+}
+
+func clearSecurityGroupCache(cache *Cache) {
+	mtKey := "security_groups_cache"
+	awsMutexKV.Lock(mtKey)
+	defer awsMutexKV.Unlock(mtKey)
+	cache.SecurityGroups = nil
 }
 
 func updateSecurityGroupCache(conn *ec2.EC2, cache *Cache) error {

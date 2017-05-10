@@ -109,6 +109,7 @@ func resourceAwsSecurityGroupRule() *schema.Resource {
 func resourceAwsSecurityGroupRuleCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 	cache := meta.(*AWSClient).Cache()
+	clearSecurityGroupCache(cache)
 	sg_id := d.Get("security_group_id").(string)
 
 	awsMutexKV.Lock(sg_id)
@@ -283,6 +284,7 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 func resourceAwsSecurityGroupRuleDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 	cache := meta.(*AWSClient).Cache()
+	clearSecurityGroupCache(cache)
 	sg_id := d.Get("security_group_id").(string)
 
 	awsMutexKV.Lock(sg_id)
