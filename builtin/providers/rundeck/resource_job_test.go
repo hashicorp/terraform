@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/apparentlymart/go-rundeck-api/rundeck"
-
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -25,6 +24,9 @@ func TestAccJob_basic(t *testing.T) {
 					func(s *terraform.State) error {
 						if expected := "basic-job"; job.Name != expected {
 							return fmt.Errorf("wrong name; expected %v, got %v", expected, job.Name)
+						}
+						if expected := "Prints Hello World"; job.CommandSequence.Commands[0].Description != expected {
+							return fmt.Errorf("failed to set command description; expected %v, got %v", expected, job.CommandSequence.Commands[0].Description)
 						}
 						return nil
 					},
@@ -98,6 +100,7 @@ resource "rundeck_job" "test" {
     default_value = "bar"
   }
   command {
+    description = "Prints Hello World"
     shell_command = "echo Hello World"
   }
 }
