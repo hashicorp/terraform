@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/helper/structure"
 	"github.com/hashicorp/terraform/helper/validation"
 	"google.golang.org/api/bigquery/v2"
-	"google.golang.org/api/googleapi"
 )
 
 func resourceBigQueryTable() *schema.Resource {
@@ -271,9 +270,8 @@ func resourceBigQueryTableCreate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceBigQueryTableParseID(id string) (string, string, string) {
-	// projectID, datasetID, tableID
 	parts := strings.FieldsFunc(id, func(r rune) bool { return r == ':' || r == '.' })
-	return parts[0], parts[1], parts[2]
+	return parts[0], parts[1], parts[2] // projectID, datasetID, tableID
 }
 
 func resourceBigQueryTableRead(d *schema.ResourceData, meta interface{}) error {
@@ -285,15 +283,7 @@ func resourceBigQueryTableRead(d *schema.ResourceData, meta interface{}) error {
 
 	res, err := config.clientBigQuery.Tables.Get(projectID, datasetID, tableID).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing BigQuery table %q because it's gone", tableID)
-			// The resource doesn't exist anymore
-			d.SetId("")
-
-			return nil
-		}
-
-		return err
+		return handleNotFoundError(err, d, fmt.Sprintf("BigQuery table %q", tableID))
 	}
 
 	d.Set("description", res.Description)
