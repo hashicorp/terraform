@@ -3,12 +3,12 @@ layout: "google"
 page_title: "Google: google_container_engine_versions"
 sidebar_current: "docs-google-datasource-container-versions"
 description: |-
-  Provides lists of available Google Container versions for masters and nodes.
+  Provides lists of available Google Container Engine versions for masters and nodes.
 ---
 
-# google\_container\_versions
+# google\_container\_engine\_versions
 
-Provides access to available Google Container versions in a zone for a given project.
+Provides access to available Google Container Engine versions in a zone for a given project.
 
 ```hcl
 data "google_container_engine_versions" "central1b" {
