@@ -13,7 +13,6 @@ if docker -v; then
   export EXISTING_SUBNET_NAME=vqeeopeictwmsubnet
   export EXISTING_SUBNET_ID=/subscriptions/d523ee9a-becd-48d7-a28d-44af5b6c1e30/resourceGroups/permanent/providers/Microsoft.Network/virtualNetworks/vqeeopeictwmvnet/subnets/vqeeopeictwmsubnet
 
-
   /bin/sh ./deploy.ci.sh
 
 else
