@@ -6,7 +6,6 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/joyent/triton-go"
@@ -109,13 +108,9 @@ func resourceMachine() *schema.Resource {
 			},
 			"nic": {
 				Description: "Network interface",
-				Type:        schema.TypeSet,
+				Type:        schema.TypeList,
 				Computed:    true,
 				Optional:    true,
-				Set: func(v interface{}) int {
-					m := v.(map[string]interface{})
-					return hashcode.String(m["network"].(string))
-				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ip": {
@@ -225,10 +220,11 @@ func resourceMachineCreate(d *schema.ResourceData, meta interface{}) error {
 	for _, network := range d.Get("networks").([]interface{}) {
 		networks = append(networks, network.(string))
 	}
-	nics := d.Get("nic").(*schema.Set)
-	for _, nicI := range nics.List() {
-		nic := nicI.(map[string]interface{})
-		networks = append(networks, nic["network"].(string))
+	if nicsRaw, found := d.GetOk("nic"); found {
+		for _, nicI := range nicsRaw.([]interface{}) {
+			nic := nicI.(map[string]interface{})
+			networks = append(networks, nic["network"].(string))
+		}
 	}
 
 	metadata := map[string]string{}
@@ -516,41 +512,6 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		d.SetPartial("firewall_enabled")
-	}
-
-	if d.HasChange("nic") {
-		o, n := d.GetChange("nic")
-		if o == nil {
-			o = new(schema.Set)
-		}
-		if n == nil {
-			n = new(schema.Set)
-		}
-
-		oldNICs := o.(*schema.Set)
-		newNICs := n.(*schema.Set)
-
-		for _, nicI := range newNICs.Difference(oldNICs).List() {
-			nic := nicI.(map[string]interface{})
-			if _, err := client.Machines().AddNIC(context.Background(), &triton.AddNICInput{
-				MachineID: d.Id(),
-				Network:   nic["network"].(string),
-			}); err != nil {
-				return err
-			}
-		}
-
-		for _, nicI := range oldNICs.Difference(newNICs).List() {
-			nic := nicI.(map[string]interface{})
-			if err := client.Machines().RemoveNIC(context.Background(), &triton.RemoveNICInput{
-				MachineID: d.Id(),
-				MAC:       nic["mac"].(string),
-			}); err != nil {
-				return err
-			}
-		}
-
-		d.SetPartial("nic")
 	}
 
 	metadata := map[string]string{}
