@@ -27,7 +27,7 @@ docker run --rm -it \
       /bin/terraform apply out.tfplan; \
       /bin/terraform show;"
 
-cleanup deployed azure resources via azure-cli
+# cleanup deployed azure resources via azure-cli
 docker run --rm -it \
   azuresdk/azure-cli-python \
   sh -c "az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID > /dev/null; \
