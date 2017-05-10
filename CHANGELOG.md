@@ -85,6 +85,7 @@ BUG FIXES:
 * provider/aws: Refresh ssm document from state on 404 [GH-14279]
 * provider/aws: Allow zero-value ELB and ALB names [GH-14304]
 * provider/aws: Update the ignoring of AWS specific tags [GH-14321]
+* provider/aws: Adding IPv6 address to instance causes perpetual diff [GH-14355]
 * provider/digitalocean: Prevent diffs when using IDs of images instead of slugs [GH-13879]
 * provider/fastly: Changes setting conditionals to optional [GH-14103]
 * provider/google: Ignore certain project services that can't be enabled directly via the api [GH-13730]
