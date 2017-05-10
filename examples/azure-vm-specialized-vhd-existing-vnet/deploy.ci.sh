@@ -13,7 +13,7 @@ docker run --rm -it \
   hashicorp/terraform:light \
   -c "/bin/terraform get; \
       /bin/terraform validate; \
-      /bin/terraform plan -out=out.tfplan -var os_disk_vhd_uri=$VHD_URI -var hostname=$KEY -var resource_group=$KEY -var existing_vnet_resource_group=$EXISTING_RESOURCE_GROUP -var admin_password=$PASSWORD; \
+      /bin/terraform plan -out=out.tfplan -var os_disk_vhd_uri=$EXISTING_IMAGE_URI -var hostname=$KEY -var resource_group=$KEY -var existing_vnet_resource_group=$EXISTING_RESOURCE_GROUP -var admin_password=$PASSWORD; \
       /bin/terraform apply out.tfplan; \
       /bin/terraform show;"
 
@@ -33,4 +33,4 @@ docker run --rm -it \
 #   --workdir=/data \
 #   --entrypoint "/bin/sh" \
 #   hashicorp/terraform:light \
-#   -c "/bin/terraform destroy -force -var os_disk_vhd_uri=$VHD_URI -var hostname=$KEY -var resource_group=$KEY -var existing_vnet_resource_group=$EXISTING_RESOURCE_GROUP -var admin_password=$PASSWORD;"
+#   -c "/bin/terraform destroy -force -var os_disk_vhd_uri=$EXISTING_IMAGE_URI -var hostname=$KEY -var resource_group=$KEY -var existing_vnet_resource_group=$EXISTING_RESOURCE_GROUP -var admin_password=$PASSWORD;"

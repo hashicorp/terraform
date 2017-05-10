@@ -16,7 +16,7 @@ resource "azurerm_network_interface" "nic" {
 
   ip_configuration {
     name                          = "ipconfig"
-    subnet_id                     = "${var.existing_subnet_id}" # How do I get the subnet_id of the existing subnet? 
+    subnet_id                     = "${var.existing_subnet_id}"
     private_ip_address_allocation = "Dynamic"
     public_ip_address_id          = "${azurerm_public_ip.pip.id}"
   }
