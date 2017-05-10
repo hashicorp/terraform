@@ -22,14 +22,6 @@ resource "azurerm_network_interface" "nic" {
   }
 }
 
-
-# terraform import azurerm_virtual_network.testNetwork /subscriptions/${var.subscription_id}/resourceGroups/${var.existing_vnet_resource_group}/providers/Microsoft.Network/virtualNetworks/${var.existing_virtual_network_name}
-
-# terraform import azurerm_virtual_network.testNetwork /subscriptions/d523ee9a-becd-48d7-a28d-44af5b6c1e30/resourceGroups/permanent/providers/Microsoft.Network/virtualNetworks/vqeeopeictwmvnet
-
-# terraform import azurerm_subnet.testSubnet /subscriptions/d523ee9a-becd-48d7-a28d-44af5b6c1e30/resourceGroups/permanent/providers/Microsoft.Network/virtualNetworks/vqeeopeictwmvnet/subnets/vqeeopeictwmsubnet
-
-
 resource "azurerm_public_ip" "pip" {
   name                         = "PublicIp"
   location                     = "${var.location}"
