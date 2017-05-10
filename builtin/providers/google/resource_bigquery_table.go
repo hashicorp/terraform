@@ -2,6 +2,7 @@ package google
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
 
@@ -263,7 +264,7 @@ func resourceBigQueryTableCreate(d *schema.ResourceData, meta interface{}) error
 
 	log.Printf("[INFO] BigQuery table %s has been created", res.Id)
 
-	d.SetId(res.Id)
+	d.SetId(fmt.Sprintf("%s:%s.%s", res.TableReference.ProjectId, res.TableReference.DatasetId, res.TableReference.TableId))
 
 	return resourceBigQueryTableRead(d, meta)
 }
