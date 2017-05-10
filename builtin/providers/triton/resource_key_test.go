@@ -1,6 +1,7 @@
 package triton
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -78,7 +79,7 @@ func testCheckTritonKeyExists(name string) resource.TestCheckFunc {
 		}
 		conn := testAccProvider.Meta().(*triton.Client)
 
-		key, err := conn.Keys().GetKey(&triton.GetKeyInput{
+		key, err := conn.Keys().GetKey(context.Background(), &triton.GetKeyInput{
 			KeyName: rs.Primary.ID,
 		})
 		if err != nil {
@@ -102,7 +103,7 @@ func testCheckTritonKeyDestroy(s *terraform.State) error {
 				continue
 			}
 
-			key, err := conn.Keys().GetKey(&triton.GetKeyInput{
+			key, err := conn.Keys().GetKey(context.Background(), &triton.GetKeyInput{
 				KeyName: rs.Primary.ID,
 			})
 			if err != nil {
