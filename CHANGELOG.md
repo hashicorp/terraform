@@ -59,6 +59,7 @@ IMPROVEMENTS:
 * provider/google: Add support for `compute_route` [GH-14065]
 * provider/google: Add `path` to `google_pubsub_subscription` [GH-14238]
 * provider/google: Improve Service Account by offering to recreate if missing [GH-14282]
+* provider/google: Log HTTP requests and responses in DEBUG mode [GH-14281]
 * provider/google: Add additional properties for google resource storage bucket object [GH-14259]
 * provider/google: Handle all 404 checks in read functions via the new function [GH-14335]
 * provider/heroku: import heroku_app resource [GH-14248]
