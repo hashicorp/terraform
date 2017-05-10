@@ -6,8 +6,10 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/cyberdelia/heroku-go/v3"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -89,6 +91,20 @@ func resourceHerokuAddonCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(a.ID)
 	log.Printf("[INFO] Addon ID: %s", d.Id())
 
+	// Wait for the Addon to be provisioned
+	log.Printf("[DEBUG] Waiting for Addon (%s) to be provisioned", d.Id())
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"provisioning"},
+		Target:  []string{"provisioned"},
+		Refresh: AddOnStateRefreshFunc(client, app, d.Id()),
+		Timeout: 20 * time.Minute,
+	}
+
+	if _, err := stateConf.WaitForState(); err != nil {
+		return fmt.Errorf("Error waiting for Addon (%s) to be provisioned: %s", d.Id(), err)
+	}
+	log.Printf("[INFO] Addon provisioned: %s", d.Id())
+
 	return resourceHerokuAddonRead(d, meta)
 }
 
@@ -166,4 +182,19 @@ func resourceHerokuAddonRetrieve(app string, id string, client *heroku.Service) 
 	}
 
 	return addon, nil
+}
+
+// AddOnStateRefreshFunc returns a resource.StateRefreshFunc that is used to
+// watch an AddOn.
+func AddOnStateRefreshFunc(client *heroku.Service, appID, addOnID string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		addon, err := client.AddOnInfo(context.TODO(), appID, addOnID)
+		if err != nil {
+			return nil, "", err
+		}
+
+		// The type conversion here can be dropped when the vendored version of
+		// heroku-go is updated.
+		return (*heroku.AddOn)(addon), addon.State, nil
+	}
 }
