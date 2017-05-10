@@ -1,4 +1,4 @@
-# Very simple deployment of a Linux VM
+# Very simple deployment of a Linux VM  [![Build Status](https://travis-ci.org/harijayms/terraform.svg?branch=topic-101-vm-simple-linux)](https://travis-ci.org/harijayms/terraform)
 
 <a href="http://armviz.io/#/?load=https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2Fazure-quickstart-templates%2Fmaster%2F101-vm-simple-linux%2Fazuredeploy.json" target="_blank">
     <img src="http://armviz.io/visualizebutton.png"/>
