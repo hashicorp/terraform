@@ -10,22 +10,22 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccGoogleContainerVersions_basic(t *testing.T) {
+func TestAccGoogleContainerEngineVersions_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckGoogleContainerVersionsConfig,
+				Config: testAccCheckGoogleContainerEngineVersionsConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGoogleContainerVersionsMeta("data.google_container_engine_versions.versions"),
+					testAccCheckGoogleContainerEngineVersionsMeta("data.google_container_engine_versions.versions"),
 				),
 			},
 		},
 	})
 }
 
-func testAccCheckGoogleContainerVersionsMeta(n string) resource.TestCheckFunc {
+func testAccCheckGoogleContainerEngineVersionsMeta(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -90,7 +90,7 @@ func testAccCheckGoogleContainerVersionsMeta(n string) resource.TestCheckFunc {
 	}
 }
 
-var testAccCheckGoogleContainerVersionsConfig = `
+var testAccCheckGoogleContainerEngineVersionsConfig = `
 data "google_container_engine_versions" "versions" {
   zone = "us-central1-b"
 }
