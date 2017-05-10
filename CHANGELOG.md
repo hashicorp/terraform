@@ -17,6 +17,7 @@ FEATURES:
 * **New Resource:** `aws_ssm_maintenance_window_target` [GH-14087]
 * **New Resource:** `aws_ssm_maintenance_window_task` [GH-14087]
 * **New Resource:** `azurerm_sql_elasticpool` [GH-14099]
+* **New Resource:** `google_bigquery_table` [GH-13743]
 * **New Resource:** `google_compute_backend_bucket` [GH-14015]
 * **New Resource:** `google_compute_snapshot` [GH-12482]
 * **New Resource:** `heroku_app_feature` [GH-14035]
