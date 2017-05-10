@@ -103,3 +103,11 @@ exported:
 * `self_link` - The URI of the created resource.
 
 * `type` - Describes the table type.
+
+## Import
+
+Tables can be imported using ID of the table (`projectID`:`datasetID`.`tableID`), e.g.
+
+```
+$ terraform import bigquery_table.default testproject:testdataset.testtable
+```
