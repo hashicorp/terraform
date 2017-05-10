@@ -111,3 +111,20 @@ func TestSetUnion(t *testing.T) {
 func testSetInt(v interface{}) int {
 	return v.(int)
 }
+
+func TestHashResource_nil(t *testing.T) {
+	resource := &Resource{
+		Schema: map[string]*Schema{
+			"name": {
+				Type:     TypeString,
+				Optional: true,
+			},
+		},
+	}
+	f := HashResource(resource)
+
+	idx := f(nil)
+	if idx != 0 {
+		t.Fatalf("Expected 0 when hashing nil, given: %d", idx)
+	}
+}

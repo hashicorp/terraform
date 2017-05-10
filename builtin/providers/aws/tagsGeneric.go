@@ -57,7 +57,7 @@ func tagsToMapGeneric(ts map[string]*string) map[string]string {
 // compare a tag against a list of strings and checks if it should
 // be ignored or not
 func tagIgnoredGeneric(k string) bool {
-	filter := []string{"^aws:*"}
+	filter := []string{"^aws:"}
 	for _, v := range filter {
 		log.Printf("[DEBUG] Matching %v with %v\n", v, k)
 		if r, _ := regexp.MatchString(v, k); r == true {
