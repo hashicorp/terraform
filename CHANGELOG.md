@@ -28,6 +28,7 @@ FEATURES:
 * **New Resource:** `vault_auth_backend` [GH-10988]
 * **New Data Source:** `aws_efs_file_system` [GH-14041]
 * **New Data Source:** `http`, for retrieving text data from generic HTTP servers [GH-14270]
+* **New Data Source:** `google_container_engine_versions`, for retrieving valid versions for clusters [GH-14280]
 * **New Interpolation Function:** `log`, for computing logarithms [GH-12872]
 
 IMPROVEMENTS:
@@ -39,7 +40,7 @@ IMPROVEMENTS:
 * provider/aws: aws_dynamodb_table Add support for TimeToLive [GH-14104]
 * provider/aws: Add `security_configuration` support to `aws_emr_cluster` [GH-14133]
 * provider/aws: Add support for the tenancy placement option in `aws_spot_fleet_request` [GH-14163]
-* provider/aws: aws_db_option_group normalizes name to lowercase [GH-14192]
+* provider/aws: `aws_db_option_group` normalizes name to lowercase [GH-14192, GH-14366]
 * provider/aws: Add support description to aws_iam_role [GH-14208]
 * provider/aws: Add support for SSM Documents to aws_cloudwatch_event_target [GH-14067]
 * provider/aws: add additional custom service endpoint options for CloudFormation, KMS, RDS, SNS & SQS [GH-14097]
@@ -49,6 +50,7 @@ IMPROVEMENTS:
 * provider/aws: Add `arn` attribute to `aws_ses_domain_identity` resource [GH-14306]
 * provider/aws: Add support for targets to aws_ssm_association [GH-14246]
 * provider/aws: native redis clustering support for elasticache [GH-14317]
+* provider/aws: Support updating `aws_waf_rule` predicates [GH-14089]
 * provider/azurerm: `azurerm_template_deployment` now supports String/Int/Boolean outputs [GH-13670]
 * provider/azurerm: Expose the Private IP Address for a Load Balancer, if available [GH-13965]
 * provider/dns: Fix data dns txt record set [GH-14271]
@@ -59,6 +61,7 @@ IMPROVEMENTS:
 * provider/google: Add support for `compute_route` [GH-14065]
 * provider/google: Add `path` to `google_pubsub_subscription` [GH-14238]
 * provider/google: Improve Service Account by offering to recreate if missing [GH-14282]
+* provider/google: Log HTTP requests and responses in DEBUG mode [GH-14281]
 * provider/google: Add additional properties for google resource storage bucket object [GH-14259]
 * provider/google: Handle all 404 checks in read functions via the new function [GH-14335]
 * provider/heroku: import heroku_app resource [GH-14248]
@@ -96,6 +99,7 @@ BUG FIXES:
 * provider/google: Handle `google_compute_instance_group_manager` not being found [GH-14190]
 * provider/google: better visibility for compute_region_backend_service [GH-14301]
 * provider/heroku: Configure buildpacks correctly for both Org Apps and non-org Apps [GH-13990]
+* provider/heroku: Fix `heroku_cert` update of ssl cert [GH-14240]
 * provider/openstack: Handle disassociating deleted FloatingIP's from a server [GH-14210]
 * provider/postgres grant role when creating database [GH-11452]
 * provisioner/remote-exec: Fix panic from remote_exec provisioner [GH-14134]
@@ -796,7 +800,7 @@ Bug FIXES:
  * core: module sources ended in archive extensions without a "." won't be treated as archives ([#11438](https://github.com/hashicorp/terraform/issues/11438))
  * core: destroy ordering of resources within modules is correct ([#11765](https://github.com/hashicorp/terraform/issues/11765))
  * core: Fix crash if count interpolates into a non-int ([#11864](https://github.com/hashicorp/terraform/issues/11864))
- * core: Targeting a module will properly exclude untargeted module outputs ([#11291](https://github.com/hashicorp/terraform/issues/11291))
+ * core: Targeting a module will properly exclude untargeted module outputs ([#11921](https://github.com/hashicorp/terraform/issues/11921))
  * state/remote/s3: Fix Bug with Assume Role for Federated IAM Account ([#10067](https://github.com/hashicorp/terraform/issues/10067))
  * provider/aws: Fix security_group_rule resource timeout errors ([#11809](https://github.com/hashicorp/terraform/issues/11809))
  * provider/aws: Fix diff suppress function for aws_db_instance ([#11909](https://github.com/hashicorp/terraform/issues/11909))

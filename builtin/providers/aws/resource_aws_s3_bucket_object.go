@@ -127,6 +127,8 @@ func resourceAwsS3BucketObject() *schema.Resource {
 func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) error {
 	s3conn := meta.(*AWSClient).s3conn
 
+	restricted := meta.(*AWSClient).IsGovCloud() || meta.(*AWSClient).IsChinaCloud()
+
 	var body io.ReadSeeker
 
 	if v, ok := d.GetOk("source"); ok {
@@ -192,6 +194,10 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if v, ok := d.GetOk("tags"); ok {
+		if restricted {
+			return fmt.Errorf("This region does not allow for tags on S3 objects")
+		}
+
 		// The tag-set must be encoded as URL Query parameters.
 		values := url.Values{}
 		for k, v := range v.(map[string]interface{}) {
@@ -215,6 +221,8 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 
 func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) error {
 	s3conn := meta.(*AWSClient).s3conn
+
+	restricted := meta.(*AWSClient).IsGovCloud() || meta.(*AWSClient).IsChinaCloud()
 
 	bucket := d.Get("bucket").(string)
 	key := d.Get("key").(string)
@@ -269,15 +277,17 @@ func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) err
 		d.Set("storage_class", resp.StorageClass)
 	}
 
-	tagResp, err := s3conn.GetObjectTagging(
-		&s3.GetObjectTaggingInput{
-			Bucket: aws.String(bucket),
-			Key:    aws.String(key),
-		})
-	if err != nil {
-		return fmt.Errorf("Failed to get object tags (bucket: %s, key: %s): %s", bucket, key, err)
+	if !restricted {
+		tagResp, err := s3conn.GetObjectTagging(
+			&s3.GetObjectTaggingInput{
+				Bucket: aws.String(bucket),
+				Key:    aws.String(key),
+			})
+		if err != nil {
+			return fmt.Errorf("Failed to get object tags (bucket: %s, key: %s): %s", bucket, key, err)
+		}
+		d.Set("tags", tagsToMapS3(tagResp.TagSet))
 	}
-	d.Set("tags", tagsToMapS3(tagResp.TagSet))
 
 	return nil
 }
