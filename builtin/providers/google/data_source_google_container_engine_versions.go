@@ -7,9 +7,9 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func dataSourceGoogleContainerVersions() *schema.Resource {
+func dataSourceGoogleContainerEngineVersions() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGoogleContainerVersionsRead,
+		Read: dataSourceGoogleContainerEngineVersionsRead,
 		Schema: map[string]*schema.Schema{
 			"project": {
 				Type:     schema.TypeString,
@@ -41,7 +41,7 @@ func dataSourceGoogleContainerVersions() *schema.Resource {
 	}
 }
 
-func dataSourceGoogleContainerVersionsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGoogleContainerEngineVersionsRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	project, err := getProject(d, config)

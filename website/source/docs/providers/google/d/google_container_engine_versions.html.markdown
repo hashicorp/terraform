@@ -1,6 +1,6 @@
 ---
 layout: "google"
-page_title: "Google: google_container_versions"
+page_title: "Google: google_container_engine_versions"
 sidebar_current: "docs-google-datasource-container-versions"
 description: |-
   Provides lists of available Google Container versions for masters and nodes.
@@ -11,14 +11,14 @@ description: |-
 Provides access to available Google Container versions in a zone for a given project.
 
 ```hcl
-data "google_container_versions" "central1b" {
+data "google_container_engine_versions" "central1b" {
   zone = "us-central1-b"
 }
 
 resource "google_container_cluster" "foo" {
   name               = "terraform-test-cluster"
   zone               = "us-central1-b"
-  node_version       = "${data.google_container_versions.central1b.latest_node_version}"
+  node_version       = "${data.google_container_engine_versions.central1b.latest_node_version}"
   initial_node_count = 1
 
   master_auth {
