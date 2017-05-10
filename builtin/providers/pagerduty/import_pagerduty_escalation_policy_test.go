@@ -1,13 +1,17 @@
 package pagerduty
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
 func TestAccPagerDutyEscalationPolicy_import(t *testing.T) {
-	resourceName := "pagerduty_escalation_policy.foo"
+	username := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	email := fmt.Sprintf("%s@foo.com", username)
+	escalationPolicy := fmt.Sprintf("tf-%s", acctest.RandString(5))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -15,11 +19,11 @@ func TestAccPagerDutyEscalationPolicy_import(t *testing.T) {
 		CheckDestroy: testAccCheckPagerDutyEscalationPolicyDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckPagerDutyEscalationPolicyConfig,
+				Config: testAccCheckPagerDutyEscalationPolicyConfig(username, email, escalationPolicy),
 			},
 
 			resource.TestStep{
-				ResourceName:      resourceName,
+				ResourceName:      "pagerduty_escalation_policy.foo",
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
