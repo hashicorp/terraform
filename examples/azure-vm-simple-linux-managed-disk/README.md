@@ -1,4 +1,4 @@
-# Very simple deployment of a Linux VM  [![Build Status](https://travis-ci.org/harijayms/terraform.svg?branch=topic-101-vm-simple-linux)](https://travis-ci.org/harijayms/terraform)
+# Very simple deployment of a Linux VM
 
 This template allows you to deploy a simple Linux VM using a few different options for the Ubuntu version, using the latest patched version. This will deploy an A0 size VM in the resource group location and return the FQDN of the VM.
 
