@@ -7,6 +7,7 @@ docker run --rm -it \
   -e ARM_CLIENT_SECRET \
   -e ARM_SUBSCRIPTION_ID \
   -e ARM_TENANT_ID \
+  -e EXISTING_SUBNET_ID \
   -v $(pwd):/data \
   --workdir=/data \
   --entrypoint "/bin/sh" \
