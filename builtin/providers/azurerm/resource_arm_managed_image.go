@@ -1,13 +1,11 @@
 package azurerm
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
 )
@@ -40,7 +38,7 @@ func resourceArmManagedImage() *schema.Resource {
 			"source_virtual_machine_id": {
 				Type:          schema.TypeString,
 				Optional:      true,
-				ConflictsWith: []string{"os_disk.os_disk_ostype"},
+				ConflictsWith: []string{"os_disk.os_type"},
 			},
 
 			"os_disk": {
@@ -51,7 +49,7 @@ func resourceArmManagedImage() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 
-						"os_disk_ostype": {
+						"os_type": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ValidateFunc: validation.StringInSlice([]string{
@@ -60,7 +58,7 @@ func resourceArmManagedImage() *schema.Resource {
 							}, true),
 						},
 
-						"os_disk_osstate": {
+						"os_state": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ValidateFunc: validation.StringInSlice([]string{
@@ -69,20 +67,20 @@ func resourceArmManagedImage() *schema.Resource {
 							}, true),
 						},
 
-						"os_disk_managed_disk_id": {
+						"managed_disk_id": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
 
-						"os_disk_blob_uri": {
+						"blob_uri": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 							ForceNew: true,
 						},
 
-						"os_disk_caching": {
+						"caching": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ValidateFunc: validation.StringInSlice([]string{
@@ -92,14 +90,13 @@ func resourceArmManagedImage() *schema.Resource {
 							}, true),
 						},
 
-						"os_disk_size_gb": {
+						"size_gb": {
 							Type:         schema.TypeInt,
 							Optional:     true,
 							ValidateFunc: validateDiskSizeGB,
 						},
 					},
 				},
-				Set: resourceArmManagedImageOsDiskHash,
 			},
 
 			"data_disk": {
@@ -108,25 +105,25 @@ func resourceArmManagedImage() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 
-						"data_disk_lun": &schema.Schema{
+						"lun": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
 
-						"data_disk_managed_disk_id": {
+						"managed_disk_id": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
 
-						"data_disk_blob_uri": {
+						"blob_uri": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 							ForceNew: true,
 						},
 
-						"data_disk_caching": {
+						"caching": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ValidateFunc: validation.StringInSlice([]string{
@@ -136,7 +133,7 @@ func resourceArmManagedImage() *schema.Resource {
 							}, true),
 						},
 
-						"data_disk_size_gb": {
+						"size_gb": {
 							Type:         schema.TypeInt,
 							Optional:     true,
 							ValidateFunc: validateDiskSizeGB,
@@ -250,7 +247,7 @@ func resourceArmManagedImageRead(d *schema.ResourceData, meta interface{}) error
 	}
 
 	if resp.StorageProfile != nil {
-		if err := d.Set("os_disk", schema.NewSet(resourceArmManagedImageOsDiskHash, flattenAzureRmStorageProfileOsDisk(d, resp.StorageProfile))); err != nil {
+		if err := d.Set("os_disk", flattenAzureRmStorageProfileOsDisk(d, resp.StorageProfile)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Managed Images OS Disk error: %#v", err)
 		}
 
@@ -283,17 +280,6 @@ func resourceArmManagedImageDelete(d *schema.ResourceData, meta interface{}) err
 	return nil
 }
 
-func resourceArmManagedImageOsDiskHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-
-	if m["os_disk_size_gb"] != nil {
-		log.Printf("[INFO] hashing OS Disk Image Ref %d", m["os_disk_size_gb"].(int))
-		buf.WriteString(fmt.Sprintf("%d-", m["os_disk_size_gb"].(int)))
-	}
-	return hashcode.String(buf.String())
-}
-
 func flattenAzureRmSourceVMProperties(d *schema.ResourceData, properties *compute.SubResource) {
 	if properties.ID != nil {
 		d.Set("source_virtual_machine_id", *properties.ID)
@@ -304,13 +290,13 @@ func flattenAzureRmStorageProfileOsDisk(d *schema.ResourceData, storageProfile *
 	result := make(map[string]interface{})
 	if storageProfile.OsDisk != nil {
 		osDisk := *storageProfile.OsDisk
-		result["os_disk_ostype"] = osDisk.OsType
-		result["os_disk_osstate"] = osDisk.OsState
+		result["os_type"] = osDisk.OsType
+		result["os_state"] = osDisk.OsState
 		if osDisk.ManagedDisk != nil {
-			result["os_disk_managed_disk_id"] = *osDisk.ManagedDisk.ID
+			result["managed_disk_id"] = *osDisk.ManagedDisk.ID
 		}
-		result["os_disk_blob_uri"] = *osDisk.BlobURI
-		result["os_disk_caching"] = osDisk.Caching
+		result["blob_uri"] = *osDisk.BlobURI
+		result["caching"] = osDisk.Caching
 	}
 
 	return []interface{}{result}
@@ -324,10 +310,10 @@ func flattenAzureRmStorageProfileDataDisks(d *schema.ResourceData, storageProfil
 		if disk.ManagedDisk != nil {
 			l["managed_disk_id"] = *disk.ManagedDisk.ID
 		}
-		l["data_disk_blob_uri"] = disk.BlobURI
-		l["data_disk_caching"] = string(disk.Caching)
+		l["blob_uri"] = disk.BlobURI
+		l["caching"] = string(disk.Caching)
 		if disk.DiskSizeGB != nil {
-			l["data_disk_size_gb"] = *disk.DiskSizeGB
+			l["size_gb"] = *disk.DiskSizeGB
 		}
 		l["lun"] = *disk.Lun
 
@@ -344,32 +330,32 @@ func expandAzureRmImageOsDisk(d *schema.ResourceData) (*compute.ImageOSDisk, err
 	if len(disks) > 0 {
 		config := disks[0].(map[string]interface{})
 
-		if v := config["os_disk_ostype"].(string); v != "" {
+		if v := config["os_type"].(string); v != "" {
 			osType := compute.OperatingSystemTypes(v)
 			osDisk.OsType = osType
 		}
 
-		if v := config["os_disk_osstate"].(string); v != "" {
+		if v := config["os_state"].(string); v != "" {
 			osState := compute.OperatingSystemStateTypes(v)
 			osDisk.OsState = osState
 		}
 
 		managedDisk := &compute.SubResource{}
-		managedDiskID := config["os_disk_managed_disk_id"].(string)
+		managedDiskID := config["managed_disk_id"].(string)
 		if managedDiskID != "" {
 			managedDisk.ID = &managedDiskID
 			osDisk.ManagedDisk = managedDisk
 		}
 
-		blobURI := config["os_disk_blob_uri"].(string)
+		blobURI := config["blob_uri"].(string)
 		osDisk.BlobURI = &blobURI
-		if v := config["os_disk_caching"].(string); v != "" {
+		if v := config["caching"].(string); v != "" {
 			caching := compute.CachingTypes(v)
 			osDisk.Caching = caching
 		}
 
 		diskSize := int32(0)
-		if size := config["os_disk_size_gb"]; size != 0 {
+		if size := config["size_gb"]; size != 0 {
 			diskSize = int32(size.(int))
 			osDisk.DiskSizeGB = &diskSize
 		}
@@ -386,13 +372,13 @@ func expandAzureRmImageDataDisks(d *schema.ResourceData) ([]compute.ImageDataDis
 	for _, diskConfig := range disks {
 		config := diskConfig.(map[string]interface{})
 
-		managedDiskID := d.Get("data_disk_managed_disk_id").(string)
-		blobURI := d.Get("data_disk_blob_uri").(string)
+		managedDiskID := d.Get("managed_disk_id").(string)
+		blobURI := d.Get("blob_uri").(string)
 
 		lun := int32(config["lun"].(int))
 
 		diskSize := int32(0)
-		if size := d.Get("data_disk_size_gb"); size != 0 {
+		if size := d.Get("size_gb"); size != 0 {
 			diskSize = int32(size.(int))
 		}
 
@@ -402,7 +388,7 @@ func expandAzureRmImageDataDisks(d *schema.ResourceData) ([]compute.ImageDataDis
 			DiskSizeGB: &diskSize,
 		}
 
-		if v := d.Get("data_disk_caching").(string); v != "" {
+		if v := d.Get("caching").(string); v != "" {
 			caching := compute.CachingTypes(v)
 			dataDisk.Caching = caching
 		}

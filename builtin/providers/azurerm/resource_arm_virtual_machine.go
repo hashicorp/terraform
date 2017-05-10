@@ -99,7 +99,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 							Type:          schema.TypeString,
 							Optional:      true,
 							ForceNew:      true,
-							ConflictsWith: []string{"storage_image_reference.publisher"},
+							ConflictsWith: []string{"storage_image_reference.publisher", "storage_image_reference.offer", "storage_image_reference.sku"},
 						},
 
 						"publisher": {
@@ -841,9 +841,14 @@ func resourceArmVirtualMachineStorageImageReferenceHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	if m["publisher"] != nil {
 		buf.WriteString(fmt.Sprintf("%s-", m["publisher"].(string)))
+	}
+	if m["offer"] != nil {
 		buf.WriteString(fmt.Sprintf("%s-", m["offer"].(string)))
+	}
+	if m["sku"] != nil {
 		buf.WriteString(fmt.Sprintf("%s-", m["sku"].(string)))
-	} else if m["image_id"] != nil {
+	}
+	if m["image_id"] != nil {
 		buf.WriteString(fmt.Sprintf("%s-", m["image_id"].(string)))
 	}
 

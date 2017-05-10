@@ -172,10 +172,10 @@ resource "azurerm_managed_image" "test" {
     location = "West Central US"
     resource_group_name = "${azurerm_resource_group.test.name}"
 	os_disk {
-		os_disk_ostype = "Linux"
-		os_disk_osstate = "Generalized"
-		os_disk_blob_uri = "https://terraformdev.blob.core.windows.net/packerimages/ubuntu_plain.vhd"
- 	    os_disk_size_gb = 30
+		os_type = "Linux"
+		os_state = "Generalized"
+		blob_uri = "https://terraformdev.blob.core.windows.net/packerimages/ubuntu_plain.vhd"
+ 	    size_gb = 30
 	}
 
     tags {
@@ -221,10 +221,10 @@ resource "azurerm_managed_image" "test" {
     location = "West Central US"
     resource_group_name = "${azurerm_resource_group.test.name}"
 	os_disk {
-		os_disk_ostype = "Linux"
-		os_disk_osstate = "Generalized"
-		os_disk_blob_uri = "https://terraformdev.blob.core.windows.net/packerimages/ubuntu_plain.vhd"
- 	    os_disk_size_gb = 30
+		os_type = "Linux"
+		os_state = "Generalized"
+		blob_uri = "https://terraformdev.blob.core.windows.net/packerimages/ubuntu_plain.vhd"
+ 	    size_gb = 30
 	}
 
     tags {
