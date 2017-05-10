@@ -9,6 +9,10 @@ if docker -v; then
   export PASSWORD=$KEY$(cat /dev/urandom | env LC_CTYPE=C tr -cd 'A-Z' | head -c 2)$(cat /dev/urandom | env LC_CTYPE=C tr -cd '0-9' | head -c 2)
   export EXISTING_RESOURCE_GROUP=permanent
   export EXISTING_IMAGE_URI=https://permanentstor.blob.core.windows.net/permanent-vhds/permanent-osdisk1.vhd
+  export EXISTING_VIRTUAL_NETWORK_NAME=vqeeopeictwmvnet
+  export EXISTING_SUBNET_NAME=vqeeopeictwmsubnet
+  export EXISTING_SUBNET_ID=/subscriptions/d523ee9a-becd-48d7-a28d-44af5b6c1e30/resourceGroups/permanent/providers/Microsoft.Network/virtualNetworks/vqeeopeictwmvnet/subnets/vqeeopeictwmsubnet
+
 
   /bin/sh ./deploy.ci.sh
 
