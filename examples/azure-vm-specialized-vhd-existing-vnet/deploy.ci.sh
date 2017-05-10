@@ -14,7 +14,7 @@ docker run --rm -it \
   hashicorp/terraform:light \
   -c "/bin/terraform get; \
       /bin/terraform validate; \
-      /bin/terraform plan -out=out.tfplan -var os_disk_vhd_uri=$EXISTING_IMAGE_URI -var hostname=$KEY -var resource_group=$KEY -var existing_vnet_resource_group=$EXISTING_RESOURCE_GROUP -var admin_password=$PASSWORD -var existing_subnet_id=$EXISTING_SUBNET_ID -var existing_subnet_name=$EXISTING_SUBNET_NAME -var existing_virtual_network_name=$EXISTING_VIRTUAL_NETWORK_NAME; \
+      /bin/terraform plan -out=out.tfplan -var os_disk_vhd_uri=$EXISTING_IMAGE_URI -var hostname=$KEY -var resource_group=$KEY -var existing_vnet_resource_group=$EXISTING_RESOURCE_GROUP -var admin_password=$PASSWORD -var existing_subnet_id=$EXISTING_SUBNET_ID -var existing_subnet_name=$EXISTING_SUBNET_NAME -var existing_virtual_network_name=$EXISTING_VIRTUAL_NETWORK_NAME -var existing_storage_acct=$EXISTING_STORAGE_ACCOUNT_NAME; \
       /bin/terraform apply out.tfplan; \
       /bin/terraform show;"
 
