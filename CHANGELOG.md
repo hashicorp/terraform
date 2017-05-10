@@ -28,6 +28,7 @@ FEATURES:
 * **New Resource:** `vault_auth_backend` [GH-10988]
 * **New Data Source:** `aws_efs_file_system` [GH-14041]
 * **New Data Source:** `http`, for retrieving text data from generic HTTP servers [GH-14270]
+* **New Data Source:** `google_container_engine_versions`, for retrieving valid versions for clusters [GH-14280]
 * **New Interpolation Function:** `log`, for computing logarithms [GH-12872]
 
 IMPROVEMENTS:
