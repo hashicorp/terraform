@@ -59,6 +59,7 @@ func resourceBigQueryTable() *schema.Resource {
 			"expiration_time": {
 				Type:     schema.TypeInt,
 				Optional: true,
+				Computed: true,
 			},
 
 			// FriendlyName: [Optional] A descriptive name for this table.
