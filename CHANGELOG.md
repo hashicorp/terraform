@@ -39,7 +39,7 @@ IMPROVEMENTS:
 * provider/aws: aws_dynamodb_table Add support for TimeToLive [GH-14104]
 * provider/aws: Add `security_configuration` support to `aws_emr_cluster` [GH-14133]
 * provider/aws: Add support for the tenancy placement option in `aws_spot_fleet_request` [GH-14163]
-* provider/aws: aws_db_option_group normalizes name to lowercase [GH-14192]
+* provider/aws: `aws_db_option_group` normalizes name to lowercase [GH-14192, GH-14366]
 * provider/aws: Add support description to aws_iam_role [GH-14208]
 * provider/aws: Add support for SSM Documents to aws_cloudwatch_event_target [GH-14067]
 * provider/aws: add additional custom service endpoint options for CloudFormation, KMS, RDS, SNS & SQS [GH-14097]
