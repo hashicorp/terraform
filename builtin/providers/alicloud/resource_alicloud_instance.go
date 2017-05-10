@@ -114,7 +114,6 @@ func resourceAliyunInstance() *schema.Resource {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Computed:     true,
-				ForceNew:     true,
 				ValidateFunc: validateIntegerInRange(40, 500),
 			},
 
@@ -192,17 +191,15 @@ func resourceAliyunInstanceCreate(d *schema.ResourceData, meta interface{}) erro
 	d.SetId(instanceID)
 
 	d.Set("password", d.Get("password"))
-	//d.Set("system_disk_category", d.Get("system_disk_category"))
-	//d.Set("system_disk_size", d.Get("system_disk_size"))
-
-	if err := allocateIpAndBandWidthRelative(d, meta); err != nil {
-		return fmt.Errorf("allocateIpAndBandWidthRelative err: %#v", err)
-	}
 
 	// after instance created, its status is pending,
 	// so we need to wait it become to stopped and then start it
 	if err := conn.WaitForInstance(d.Id(), ecs.Stopped, defaultTimeout); err != nil {
 		log.Printf("[DEBUG] WaitForInstance %s got error: %#v", ecs.Stopped, err)
+	}
+
+	if err := allocateIpAndBandWidthRelative(d, meta); err != nil {
+		return fmt.Errorf("allocateIpAndBandWidthRelative err: %#v", err)
 	}
 
 	if err := conn.StartInstance(d.Id()); err != nil {
@@ -365,12 +362,68 @@ func resourceAliyunInstanceUpdate(d *schema.ResourceData, meta interface{}) erro
 		d.SetPartial("tags")
 	}
 
+	imageUpdate := false
+	if d.HasChange("image_id") && !d.IsNewResource() {
+		log.Printf("[DEBUG] Replace instance system disk via changing image_id")
+		replaceSystemArgs := &ecs.ReplaceSystemDiskArgs{
+			InstanceId: d.Id(),
+			ImageId:    d.Get("image_id").(string),
+			SystemDisk: ecs.SystemDiskType{
+				Size: d.Get("system_disk_size").(int),
+			},
+		}
+
+		if v, ok := d.GetOk("status"); ok && v.(string) != "" {
+			if ecs.InstanceStatus(d.Get("status").(string)) == ecs.Running {
+				log.Printf("[DEBUG] StopInstance before change system disk")
+				if err := conn.StopInstance(d.Id(), true); err != nil {
+					return fmt.Errorf("Force Stop Instance got an error: %#v", err)
+				}
+				if err := conn.WaitForInstance(d.Id(), ecs.Stopped, 60); err != nil {
+					return fmt.Errorf("WaitForInstance got error: %#v", err)
+				}
+			}
+		}
+
+		_, err := conn.ReplaceSystemDisk(replaceSystemArgs)
+		if err != nil {
+			return fmt.Errorf("Replace system disk got an error: %#v", err)
+		}
+
+		// Ensure instance's image has been replaced successfully.
+		timeout := ecs.InstanceDefaultTimeout
+		for {
+			instance, errDesc := conn.DescribeInstanceAttribute(d.Id())
+			if errDesc != nil {
+				return fmt.Errorf("Describe instance got an error: %#v", errDesc)
+			}
+
+			if instance.ImageId == d.Get("image_id") {
+				break
+			}
+			time.Sleep(ecs.DefaultWaitForInterval * time.Second)
+
+			timeout = timeout - ecs.DefaultWaitForInterval
+			if timeout <= 0 {
+				return common.GetClientErrorFromString("Timeout")
+			}
+		}
+
+		imageUpdate = true
+		d.SetPartial("system_disk_size")
+		d.SetPartial("image_id")
+	}
+	// Provider doesn't support change 'system_disk_size'separately.
+	if d.HasChange("system_disk_size") && !d.HasChange("image_id") {
+		return fmt.Errorf("Update resource failed. 'system_disk_size' isn't allowed to change separately. You can update it via renewing instance or replacing system disk.")
+	}
+
 	attributeUpdate := false
 	args := &ecs.ModifyInstanceAttributeArgs{
 		InstanceId: d.Id(),
 	}
 
-	if d.HasChange("instance_name") {
+	if d.HasChange("instance_name") && !d.IsNewResource() {
 		log.Printf("[DEBUG] ModifyInstanceAttribute instance_name")
 		d.SetPartial("instance_name")
 		args.InstanceName = d.Get("instance_name").(string)
@@ -378,7 +431,7 @@ func resourceAliyunInstanceUpdate(d *schema.ResourceData, meta interface{}) erro
 		attributeUpdate = true
 	}
 
-	if d.HasChange("description") {
+	if d.HasChange("description") && !d.IsNewResource() {
 		log.Printf("[DEBUG] ModifyInstanceAttribute description")
 		d.SetPartial("description")
 		args.Description = d.Get("description").(string)
@@ -386,7 +439,7 @@ func resourceAliyunInstanceUpdate(d *schema.ResourceData, meta interface{}) erro
 		attributeUpdate = true
 	}
 
-	if d.HasChange("host_name") {
+	if d.HasChange("host_name") && !d.IsNewResource() {
 		log.Printf("[DEBUG] ModifyInstanceAttribute host_name")
 		d.SetPartial("host_name")
 		args.HostName = d.Get("host_name").(string)
@@ -395,7 +448,7 @@ func resourceAliyunInstanceUpdate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	passwordUpdate := false
-	if d.HasChange("password") {
+	if d.HasChange("password") && !d.IsNewResource() {
 		log.Printf("[DEBUG] ModifyInstanceAttribute password")
 		d.SetPartial("password")
 		args.Password = d.Get("password").(string)
@@ -410,19 +463,30 @@ func resourceAliyunInstanceUpdate(d *schema.ResourceData, meta interface{}) erro
 		}
 	}
 
-	if passwordUpdate {
-		if v, ok := d.GetOk("status"); ok && v.(string) != "" {
-			if ecs.InstanceStatus(d.Get("status").(string)) == ecs.Running {
-				log.Printf("[DEBUG] RebootInstance after change password")
-				if err := conn.RebootInstance(d.Id(), false); err != nil {
-					return fmt.Errorf("RebootInstance got error: %#v", err)
-				}
-
-				if err := conn.WaitForInstance(d.Id(), ecs.Running, defaultTimeout); err != nil {
-					return fmt.Errorf("WaitForInstance got error: %#v", err)
-				}
+	if imageUpdate || passwordUpdate {
+		instance, errDesc := conn.DescribeInstanceAttribute(d.Id())
+		if errDesc != nil {
+			return fmt.Errorf("Describe instance got an error: %#v", errDesc)
+		}
+		if instance.Status != ecs.Running && instance.Status != ecs.Stopped {
+			return fmt.Errorf("ECS instance's status doesn't support to start or reboot operation after replace image_id or update password. The current instance's status is %#v", instance.Status)
+		} else if instance.Status == ecs.Running {
+			log.Printf("[DEBUG] Reboot instance after change image or password")
+			if err := conn.RebootInstance(d.Id(), false); err != nil {
+				return fmt.Errorf("RebootInstance got error: %#v", err)
+			}
+		} else {
+			log.Printf("[DEBUG] Start instance after change image or password")
+			if err := conn.StartInstance(d.Id()); err != nil {
+				return fmt.Errorf("StartInstance got error: %#v", err)
 			}
 		}
+
+		// Start instance sometimes costs more than 6 minutes when os type is centos.
+		if err := conn.WaitForInstance(d.Id(), ecs.Running, 400); err != nil {
+			return fmt.Errorf("WaitForInstance got error: %#v", err)
+		}
+
 	}
 
 	if d.HasChange("security_groups") {
@@ -490,6 +554,7 @@ func allocateIpAndBandWidthRelative(d *schema.ResourceData, meta interface{}) er
 		if d.Get("internet_max_bandwidth_out") == 0 {
 			return fmt.Errorf("Error: if allocate_public_ip is true than the internet_max_bandwidth_out cannot equal zero.")
 		}
+
 		_, err := conn.AllocatePublicIpAddress(d.Id())
 		if err != nil {
 			return fmt.Errorf("[DEBUG] AllocatePublicIpAddress for instance got error: %#v", err)
