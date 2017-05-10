@@ -1,13 +1,15 @@
 package pagerduty
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
 func TestAccPagerDutyTeam_import(t *testing.T) {
-	resourceName := "pagerduty_team.foo"
+	team := fmt.Sprintf("tf-%s", acctest.RandString(5))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -15,11 +17,11 @@ func TestAccPagerDutyTeam_import(t *testing.T) {
 		CheckDestroy: testAccCheckPagerDutyTeamDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckPagerDutyTeamConfig,
+				Config: testAccCheckPagerDutyTeamConfig(team),
 			},
 
 			resource.TestStep{
-				ResourceName:      resourceName,
+				ResourceName:      "pagerduty_team.foo",
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
