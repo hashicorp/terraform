@@ -13,6 +13,8 @@ The `main.tf` file contains the actual resources that will be deployed. It also 
 This data is outputted when `terraform apply` is called, and can be queried using the `terraform output` command.
 
 ## provider.tf
+You may leave the provider block in the `main.tf`, as it is in this template, or you can create a file called `provider.tf` and add it to your `.gitignore` file.
+
 Azure requires that an application is added to Azure Active Directory to generate the `client_id`, `client_secret`, and `tenant_id` needed by Terraform (`subscription_id` can be recovered from your Azure account details). Please go [here](https://www.terraform.io/docs/providers/azurerm/) for full instructions on how to create this to populate your `provider.tf` file.
 
 ## terraform.tfvars
