@@ -110,7 +110,7 @@ func resourceComputeFloatingIPAssociateV2Delete(d *schema.ResourceData, meta int
 
 	err = floatingips.DisassociateInstance(computeClient, instanceId, disassociateOpts).ExtractErr()
 	if err != nil {
-		return fmt.Errorf("Error disassociating floating IP: %s", err)
+		return CheckDeleted(d, err, "floating ip association")
 	}
 
 	return nil

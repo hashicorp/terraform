@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"strings"
+
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -64,6 +66,10 @@ func testAccDataSourceAwsSecurityGroupCheck(name string) resource.TestCheckFunc 
 
 		if attr["tags.Name"] != "tf-acctest" {
 			return fmt.Errorf("bad Name tag %s", attr["tags.Name"])
+		}
+
+		if !strings.Contains(attr["arn"], attr["id"]) {
+			return fmt.Errorf("bad ARN %s", attr["arn"])
 		}
 
 		return nil
