@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccAWSIAMAccountAlias_importBasic(t *testing.T) {
+func testAccAWSIAMAccountAlias_importBasic(t *testing.T) {
 	resourceName := "aws_iam_account_alias.test"
 
 	rstring := acctest.RandString(5)

@@ -314,6 +314,18 @@ func TestLoadFileBasic_modules(t *testing.T) {
 	}
 }
 
+func TestLoadFile_unnamedModule(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "module-unnamed.tf"))
+	if err == nil {
+		t.Fatalf("bad: expected error")
+	}
+
+	errorStr := err.Error()
+	if !strings.Contains(errorStr, `"module" must be followed`) {
+		t.Fatalf("bad: expected error has wrong text: %s", errorStr)
+	}
+}
+
 func TestLoadFile_outputDependsOn(t *testing.T) {
 	c, err := LoadFile(filepath.Join(fixtureDir, "output-depends-on.tf"))
 	if err != nil {
@@ -696,7 +708,7 @@ func TestLoadFile_variableNoName(t *testing.T) {
 	}
 
 	errorStr := err.Error()
-	if !strings.Contains(errorStr, "'variable' must be followed") {
+	if !strings.Contains(errorStr, `"variable" must be followed`) {
 		t.Fatalf("bad: expected error has wrong text: %s", errorStr)
 	}
 }
@@ -740,7 +752,7 @@ func TestLoadFile_unnamedOutput(t *testing.T) {
 	}
 
 	errorStr := err.Error()
-	if !strings.Contains(errorStr, "'output' must be followed") {
+	if !strings.Contains(errorStr, `"output" must be followed`) {
 		t.Fatalf("bad: expected error has wrong text: %s", errorStr)
 	}
 }

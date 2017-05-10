@@ -26,6 +26,9 @@
                         <li<%= sidebar_current("docs-aws-datasource-ami") %>>
                             <a href="/docs/providers/aws/d/ami.html">aws_ami</a>
                         </li>
+                        <li<%= sidebar_current("docs-aws-datasource-ami-ids") %>>
+                            <a href="/docs/providers/aws/d/ami_ids.html">aws_ami_ids</a>
+                        </li>
                         <li<%= sidebar_current("docs-aws-datasource-autoscaling-groups") %>>
                             <a href="/docs/providers/aws/d/autoscaling_groups.html">aws_autoscaling_groups</a>
                         </li>
@@ -34,6 +37,9 @@
                         </li>
                         <li<%= sidebar_current("docs-aws-datasource-availability-zones") %>>
                             <a href="/docs/providers/aws/d/availability_zones.html">aws_availability_zones</a>
+                        </li>
+                        <li<%= sidebar_current("docs-aws-datasource-billing-service-account") %>>
+                            <a href="/docs/providers/aws/d/billing_service_account.html">aws_billing_service_account</a>
                         </li>
                         <li<%= sidebar_current("docs-aws-datasource-caller-identity") %>>
                           <a href="/docs/providers/aws/d/caller_identity.html">aws_caller_identity</a>
@@ -50,6 +56,9 @@
                         <li<%= sidebar_current("docs-aws-datasource-ebs-snapshot") %>>
                           <a href="/docs/providers/aws/d/ebs_snapshot.html">aws_ebs_snapshot</a>
                         </li>
+                        <li<%= sidebar_current("docs-aws-datasource-ebs-snapshot-ids") %>>
+                          <a href="/docs/providers/aws/d/ebs_snapshot_ids.html">aws_ebs_snapshot_ids</a>
+                        </li>
                         <li<%= sidebar_current("docs-aws-datasource-ebs-volume") %>>
                           <a href="/docs/providers/aws/d/ebs_volume.html">aws_ebs_volume</a>
                         </li>
@@ -62,6 +71,12 @@
                         <li<%= sidebar_current("docs-aws-datasource-ecs-task-definition") %>>
                             <a href="/docs/providers/aws/d/ecs_task_definition.html">aws_ecs_task_definition</a>
                         </li>
+                        <li<%= sidebar_current("docs-aws-datasource-efs-file-system") %>>
+                            <a href="/docs/providers/aws/d/efs_file_system.html">aws_efs_file_system</a>
+                        </li>
+                        <li<%= sidebar_current("docs-aws-datasource-eip") %>>
+                            <a href="/docs/providers/aws/d/eip.html">aws_eip</a>
+                        </li>
                         <li<%= sidebar_current("docs-aws-datasource-elb-hosted-zone-id") %>>
                             <a href="/docs/providers/aws/d/elb_hosted_zone_id.html">aws_elb_hosted_zone_id</a>
                         </li>
@@ -69,7 +84,7 @@
                             <a href="/docs/providers/aws/d/elb_service_account.html">aws_elb_service_account</a>
                         </li>
                         <li<%= sidebar_current("docs-aws-datasource-kinesis-stream") %>>
-                            <a href="/docs/providers/aws/d/kinesis_stream.html">kinesis_stream</a>
+                            <a href="/docs/providers/aws/d/kinesis_stream.html">aws_kinesis_stream</a>
                         </li>
                         <li<%= sidebar_current("docs-aws-datasource-iam-account-alias") %>>
                             <a href="/docs/providers/aws/d/iam_account_alias.html">aws_iam_account_alias</a>
@@ -88,6 +103,9 @@
                         </li>
                         <li<%= sidebar_current("docs-aws-datasource-ip_ranges") %>>
                             <a href="/docs/providers/aws/d/ip_ranges.html">aws_ip_ranges</a>
+                        </li>
+                        <li<%= sidebar_current("docs-aws-datasource-kms-alias") %>>
+                            <a href="/docs/providers/aws/d/kms_alias.html">aws_kms_alias</a>
                         </li>
                         <li<%= sidebar_current("docs-aws-datasource-kms-secret") %>>
                             <a href="/docs/providers/aws/d/kms_secret.html">aws_kms_secret</a>
@@ -683,6 +701,10 @@
                         <li<%= sidebar_current("docs-aws-resource-emr-instance-group") %>>
                             <a href="/docs/providers/aws/r/emr_instance_group.html">aws_emr_instance_group</a>
                         </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-emr-security-configuration") %>>
+                            <a href="/docs/providers/aws/r/emr_security_configuration.html">aws_emr_security_configuration</a>
+                        </li>
                     </ul>
                 </li>
 
@@ -1060,32 +1082,32 @@
                 <a href="#">WAF Resources</a>
                 <ul class="nav nav-visible">
 
-                  <li<%= sidebar_current("docs-aws-resource-waf-webacl") %>>
-                    <a href="/docs/providers/aws/r/waf_web_acl.html">aws_waf_web_acl</a>
-                  </li>
-
                   <li<%= sidebar_current("docs-aws-resource-waf-bytematchset") %>>
                     <a href="/docs/providers/aws/r/waf_byte_match_set.html">aws_waf_byte_match_set</a>
-                  </li>
-
-                  <li<%= sidebar_current("docs-aws-resource-waf-size-constraint-set") %>>
-                    <a href="/docs/providers/aws/r/waf_size_constraint_set.html">aws_waf_size_constraint_set</a>
-                  </li>
-
-                  <li<%= sidebar_current("docs-aws-resource-waf-rule") %>>
-                    <a href="/docs/providers/aws/r/waf_rule.html">aws_waf_rule</a>
                   </li>
 
                   <li<%= sidebar_current("docs-aws-resource-waf-ipset") %>>
                     <a href="/docs/providers/aws/r/waf_ipset.html">aws_waf_ipset</a>
                   </li>
 
-                  <li<%= sidebar_current("docs-aws-resource-waf-xss-match-set") %>>
-                    <a href="/docs/providers/aws/r/waf_xss_match_set.html">aws_waf_xss_match_set</a>
+                  <li<%= sidebar_current("docs-aws-resource-waf-rule") %>>
+                    <a href="/docs/providers/aws/r/waf_rule.html">aws_waf_rule</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-aws-resource-waf-size-constraint-set") %>>
+                    <a href="/docs/providers/aws/r/waf_size_constraint_set.html">aws_waf_size_constraint_set</a>
                   </li>
 
                   <li<%= sidebar_current("docs-aws-resource-waf-sql-injection-match-set") %>>
                     <a href="/docs/providers/aws/r/waf_sql_injection_match_set.html">aws_waf_sql_injection_match_set</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-aws-resource-waf-webacl") %>>
+                    <a href="/docs/providers/aws/r/waf_web_acl.html">aws_waf_web_acl</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-aws-resource-waf-xss-match-set") %>>
+                    <a href="/docs/providers/aws/r/waf_xss_match_set.html">aws_waf_xss_match_set</a>
                   </li>
 
                 </ul>
@@ -1242,6 +1264,18 @@
                             <a href="/docs/providers/aws/r/ssm_document.html">aws_ssm_document</a>
                         </li>
 
+                        <li<%= sidebar_current("docs-aws-resource-ssm-maintenance-window") %>>
+                            <a href="/docs/providers/aws/r/ssm_maintenance_window.html">aws_ssm_maintenance_window</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-ssm-maintenance-window-target") %>>
+                            <a href="/docs/providers/aws/r/ssm_maintenance_window_target.html">aws_ssm_maintenance_window_target</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-ssm-maintenance-window-task") %>>
+                            <a href="/docs/providers/aws/r/ssm_maintenance_window_task.html">aws_ssm_maintenance_window_task</a>
+                        </li>
+
                     </ul>
                 </li>
 
@@ -1312,7 +1346,9 @@
                         <li<%= sidebar_current("docs-aws-resource-network-interface") %>>
                             <a href="/docs/providers/aws/r/network_interface.html">aws_network_interface</a>
                         </li>
-
+                        <li<%= sidebar_current("docs-aws-resource-network-interface-attachment") %>>
+                            <a href="/docs/providers/aws/r/network_interface_attachment.html">aws_network_interface_attachment</a>
+                        </li>
                         <li<%= sidebar_current("docs-aws-resource-route|") %>>
                           <a href="/docs/providers/aws/r/route.html">aws_route</a>
                         </li>

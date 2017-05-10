@@ -27,7 +27,8 @@ type FabricVLAN struct {
 type ListFabricVLANsInput struct{}
 
 func (client *FabricsClient) ListFabricVLANs(*ListFabricVLANsInput) ([]*FabricVLAN, error) {
-	respReader, err := client.executeRequest(http.MethodGet, "/my/fabrics/default/vlans", nil)
+	path := fmt.Sprintf("/%s/fabrics/default/vlans", client.accountName)
+	respReader, err := client.executeRequest(http.MethodGet, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}

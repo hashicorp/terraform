@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -36,6 +37,10 @@ func resourceAwsDbOptionGroup() *schema.Resource {
 				ForceNew:      true,
 				ConflictsWith: []string{"name_prefix"},
 				ValidateFunc:  validateDbOptionGroupName,
+				StateFunc: func(v interface{}) string {
+					value := v.(string)
+					return strings.ToLower(value)
+				},
 			},
 			"name_prefix": &schema.Schema{
 				Type:         schema.TypeString,
@@ -43,6 +48,10 @@ func resourceAwsDbOptionGroup() *schema.Resource {
 				Computed:     true,
 				ForceNew:     true,
 				ValidateFunc: validateDbOptionGroupNamePrefix,
+				StateFunc: func(v interface{}) string {
+					value := v.(string)
+					return strings.ToLower(value)
+				},
 			},
 			"engine_name": &schema.Schema{
 				Type:     schema.TypeString,

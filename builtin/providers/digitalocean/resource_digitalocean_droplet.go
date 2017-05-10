@@ -260,10 +260,13 @@ func resourceDigitalOceanDropletRead(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error retrieving droplet: %s", err)
 	}
 
-	if droplet.Image.Slug != "" {
-		d.Set("image", droplet.Image.Slug)
-	} else {
+	_, err = strconv.Atoi(d.Get("image").(string))
+	if err == nil || droplet.Image.Slug == "" {
+		// The image field is provided as an ID (number), or
+		// the image bash no slug. In both cases we store it as an ID.
 		d.Set("image", droplet.Image.ID)
+	} else {
+		d.Set("image", droplet.Image.Slug)
 	}
 
 	d.Set("name", droplet.Name)

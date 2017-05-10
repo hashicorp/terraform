@@ -33,6 +33,22 @@ resource "kubernetes_secret" "example" {
 }
 ```
 
+## Example Usage (Docker config)
+
+```hcl
+resource "kubernetes_secret" "example" {
+  metadata {
+    name = "docker-cfg"
+  }
+
+  data {
+    ".dockercfg" = "${file("${path.module}/.docker/config.json")}"
+  }
+
+  type = "kubernetes.io/dockercfg"
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:

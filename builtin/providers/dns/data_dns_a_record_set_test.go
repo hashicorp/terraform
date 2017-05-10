@@ -12,6 +12,7 @@ func TestAccDataDnsARecordSet_Basic(t *testing.T) {
 		DataSourceBlock string
 		DataSourceName  string
 		Expected        []string
+		Host            string
 	}{
 		{
 			`
@@ -23,6 +24,7 @@ func TestAccDataDnsARecordSet_Basic(t *testing.T) {
 			[]string{
 				"127.0.0.1",
 			},
+			"127.0.0.1.nip.io",
 		},
 		{
 			`
@@ -34,23 +36,30 @@ func TestAccDataDnsARecordSet_Basic(t *testing.T) {
 			[]string{
 				"129.6.15.30",
 			},
+			"time-c.nist.gov",
 		},
 	}
 
-	var steps []resource.TestStep
-
 	for _, test := range tests {
-		ts := resource.TestStep{
-			Config: test.DataSourceBlock,
-			Check: resource.ComposeTestCheckFunc(
-				testCheckAttrStringArray(fmt.Sprintf("data.dns_a_record_set.%s", test.DataSourceName), "addrs", test.Expected),
-			),
-		}
-		steps = append(steps, ts)
+		recordName := fmt.Sprintf("data.dns_a_record_set.%s", test.DataSourceName)
+
+		resource.UnitTest(t, resource.TestCase{
+			Providers: testAccProviders,
+			Steps: []resource.TestStep{
+				resource.TestStep{
+					Config: test.DataSourceBlock,
+					Check: resource.ComposeTestCheckFunc(
+						testCheckAttrStringArray(recordName, "addrs", test.Expected),
+					),
+				},
+				resource.TestStep{
+					Config: test.DataSourceBlock,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(recordName, "id", test.Host),
+					),
+				},
+			},
+		})
 	}
 
-	resource.Test(t, resource.TestCase{
-		Providers: testAccProviders,
-		Steps:     steps,
-	})
 }
