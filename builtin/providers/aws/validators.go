@@ -1141,9 +1141,9 @@ func validateDbOptionGroupName(v interface{}, k string) (ws []string, errors []e
 		errors = append(errors, fmt.Errorf(
 			"first character of %q must be a letter", k))
 	}
-	if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"only alphanumeric characters and hyphens allowed in %q", k))
+			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
 	}
 	if regexp.MustCompile(`--`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
@@ -1166,7 +1166,7 @@ func validateDbOptionGroupNamePrefix(v interface{}, k string) (ws []string, erro
 		errors = append(errors, fmt.Errorf(
 			"first character of %q must be a letter", k))
 	}
-	if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"only alphanumeric characters and hyphens allowed in %q", k))
 	}
