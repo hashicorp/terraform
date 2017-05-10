@@ -11,6 +11,7 @@ git:
 
 # establish environment variables
 env:
+  - TEST_DIR=examples/azure-servicebus-create-topic-and-subscription
   - TEST_DIR=examples/azure-search-create
   - TEST_DIR=examples/azure-vnet-to-vnet-peering
   - TEST_DIR=examples/azure-traffic-manager-vm
