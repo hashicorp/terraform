@@ -623,7 +623,7 @@ func resourceMachineDelete(d *schema.ResourceData, meta interface{}) error {
 			})
 			if err != nil {
 				if triton.IsResourceNotFound(err) {
-					return nil, "deleted", nil
+					return getResp, "deleted", nil
 				}
 				return nil, "", err
 			}
