@@ -992,6 +992,14 @@ func InstanceStateRefreshFunc(conn *ec2.EC2, instanceID string) resource.StateRe
 		}
 
 		i := resp.Reservations[0].Instances[0]
+
+		if i.State != nil && *i.State.Name == "terminated" {
+			if i.StateReason != nil {
+				return nil, "", errors.New(*i.StateReason.Message)
+			}
+
+			return nil, "", fmt.Errorf("Instance state is 'terminated'. Please check AWS Console for more information")
+		}
 		return i, *i.State.Name, nil
 	}
 }
