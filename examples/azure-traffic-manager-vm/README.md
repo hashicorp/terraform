@@ -1,12 +1,13 @@
-# Very simple deployment of a Linux VM  [![Build Status](https://travis-ci.org/harijayms/terraform.svg?branch=topic-101-vm-simple-linux)](https://travis-ci.org/harijayms/terraform)
+# Azure Traffic Manager with virtual machines
 
-<a href="http://armviz.io/#/?load=https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2Fazure-quickstart-templates%2Fmaster%2F101-vm-simple-linux%2Fazuredeploy.json" target="_blank">
-    <img src="http://armviz.io/visualizebutton.png"/>
-</a>
+This Terraform template was based on [this](https://github.com/Azure/azure-quickstart-templates/tree/master/201-traffic-manager-vm) Azure Quickstart Template. Changes to the ARM template that may have occurred since the creation of this example may not be reflected here.
 
-This template allows you to deploy a simple Linux VM using a few different options for the Ubuntu version, using the latest patched version. This will deploy a A1 size VM in the resource group location and return the FQDN of the VM.
+This template shows how to create an Azure Traffic Manager profile to load-balance across a couple of Azure virtual machines. Each endpoint has an equal weight but different weights can be specified to distribute load non-uniformly.
 
-This template takes a minimum amount of parameters and deploys a Linux VM, using the latest patched version.
+See also:
+
+- <a href="https://azure.microsoft.com/en-us/documentation/articles/traffic-manager-routing-methods/">Traffic Manager routing methods</a> for details of the different routing methods available.
+- <a href="https://msdn.microsoft.com/en-us/library/azure/mt163581.aspx">Create or update a Traffic Manager profile</a> for details of the JSON elements relating to a Traffic Manager profile.
 
 ## main.tf
 The `main.tf` file contains the actual resources that will be deployed. It also contains the Azure Resource Group definition and any defined variables.
@@ -19,6 +20,8 @@ Azure requires that an application is added to Azure Active Directory to generat
 
 ## terraform.tfvars
 If a `terraform.tfvars` file is present in the current directory, Terraform automatically loads it to populate variables. We don't recommend saving usernames and password to version control, but you can create a local secret variables file and use `-var-file` to load it.
+
+If you are committing this template to source control, please insure that you add this file to your `.gitignore` file.
 
 ## variables.tf
 The `variables.tf` file contains all of the input parameters that the user can specify when deploying this Terraform template.
