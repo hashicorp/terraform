@@ -23,8 +23,6 @@ docker run --rm -it \
   sh -c "az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID > /dev/null; \
          az resource list --name $KEY"
 
-# az resource show --id /subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/$KEY/providers/Microsoft.Web/sites/MyWebapp
-
 # cleanup deployed azure resources via terraform
 docker run --rm -it \
   -e ARM_CLIENT_ID \
