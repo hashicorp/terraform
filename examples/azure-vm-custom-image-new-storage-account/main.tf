@@ -10,30 +10,30 @@ resource "azurerm_resource_group" "rg" {
   location = "${var.location}"
 }
 
+resource "azurerm_public_ip" "pip" {
+  name                         = "PublicIp"
+  location                     = "${var.location}"
+  resource_group_name          = "${azurerm_resource_group.rg.name}"
+  public_ip_address_allocation = "Dynamic"
+  domain_name_label            = "${var.hostname}"
+}
+
 resource "azurerm_network_interface" "nic" {
   name                = "nic"
   location            = "${var.location}"
-  resource_group_name = "${var.existing_vnet_resource_group}"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
 
   ip_configuration {
     name                          = "ipconfig"
-    subnet_id                     = "${var.subnet_id}" # "${azurerm_subnet.subnet.id}"
+    subnet_id                     = "${var.existing_subnet_id}"
     private_ip_address_allocation = "Dynamic"
     public_ip_address_id          = "${azurerm_public_ip.pip.id}"
   }
 }
 
-resource "azurerm_public_ip" "pip" {
-  name                         = "PublicIp"
-  location                     = "${var.location}"
-  resource_group_name          = "${var.existing_vnet_resource_group}"
-  public_ip_address_allocation = "Dynamic"
-  domain_name_label            = "${var.hostname}"
-}
-
 resource "azurerm_storage_account" "stor" {
-  name                = "bootdiagstor"
-  resource_group_name = "${var.existing_vnet_resource_group}"
+  name                = "${var.hostname}"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
   location            = "${var.location}"
   account_type        = "${var.storage_account_type}"
 }
@@ -41,16 +41,17 @@ resource "azurerm_storage_account" "stor" {
 resource "azurerm_virtual_machine" "vm" {
   name                  = "${var.hostname}"
   location              = "${var.location}"
-  resource_group_name   = "${var.existing_vnet_resource_group}"
+  resource_group_name   = "${azurerm_resource_group.rg.name}"
   vm_size               = "${var.vm_size}"
   network_interface_ids = ["${azurerm_network_interface.nic.id}"]
 
   storage_os_disk {
     name          = "${var.hostname}osdisk1"
-    vhd_uri       = "${var.os_disk_vhd_uri}"  # "https://${var.storage_account_name}.blob.core.windows.net/vhds/${var.hostname}osdisk.vhd"
+    image_uri     = "${var.os_disk_vhd_uri}"
+    vhd_uri       = "https://${var.existing_storage_acct}.blob.core.windows.net/${var.existing_vnet_resource_group}-vhds/${var.hostname}osdisk.vhd"
     os_type       = "${var.os_type}"
     caching       = "ReadWrite"
-    create_option = "Attach"
+    create_option = "FromImage"
   }
 
   os_profile {
