@@ -18,7 +18,7 @@ func TestAccGoogleContainerVersions_basic(t *testing.T) {
 			{
 				Config: testAccCheckGoogleContainerVersionsConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGoogleContainerVersionsMeta("data.google_container_versions.versions"),
+					testAccCheckGoogleContainerVersionsMeta("data.google_container_engine_versions.versions"),
 				),
 			},
 		},
@@ -91,7 +91,7 @@ func testAccCheckGoogleContainerVersionsMeta(n string) resource.TestCheckFunc {
 }
 
 var testAccCheckGoogleContainerVersionsConfig = `
-data "google_container_versions" "versions" {
+data "google_container_engine_versions" "versions" {
   zone = "us-central1-b"
 }
 `
