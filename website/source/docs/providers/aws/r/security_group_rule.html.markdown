@@ -3,7 +3,7 @@ layout: "aws"
 page_title: "AWS: aws_security_group_rule"
 sidebar_current: "docs-aws-resource-security-group-rule"
 description: |-
-  Provides an security group rule resource.
+  Provides a security group rule resource.
 ---
 
 # aws\_security\_group\_rule
@@ -11,12 +11,23 @@ description: |-
 Provides a security group rule resource. Represents a single `ingress` or
 `egress` group rule, which can be added to external Security Groups.
 
-~> **NOTE on Security Groups and Security Group Rules:** Terraform currently
-provides both a standalone Security Group Rule resource (a single `ingress` or
-`egress` rule), and a [Security Group resource](security_group.html) with `ingress` and `egress` rules
-defined in-line. At this time you cannot use a Security Group with in-line rules
-in conjunction with any Security Group Rule resources. Doing so will cause
-a conflict of rule settings and will overwrite rules.
+~> **NOTE on Security Groups and Security Group Rules:** Terraform currently provides
+a standalone [Security Group Rules resource](security_group_rules.html)
+(all `ingress` and `egress` rules for a group),
+this standalone Security Group Rule resource
+(individual `ingress` or `egress` rules), and the ability to define
+`ingress` and `egress` rules in-line with
+a [Security Group resource](security_group.html).
+At this time, you cannot combine any of these methods to define rules for the same group.
+Doing so will cause a conflict of rule settings and will overwrite rules.
+
+~> **NOTE on Limitations of Security Group Rule Resources:** In AWS, security group
+rules do not have a unique identity. Terraform tracks the rule according to its
+exact state. As long as the rule is not changed outside of Terraform, the rule will
+be managed by Terraform as you would expect. However, if it is changed or if other
+rules are added outside of Terraform, then Terraform will not touch those rules. If
+this limitation is problematic, you may want to consider using a
+[Security Group Rules resource](security_group_rules.html) instead.
 
 ## Example Usage
 
