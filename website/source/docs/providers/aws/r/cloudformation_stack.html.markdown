@@ -53,7 +53,7 @@ The following arguments are supported:
 * `template_body` - (Optional) Structure containing the template body (max size: 51,200 bytes).
 * `template_url` - (Optional) Location of a file containing the template body (max size: 460,800 bytes).
 * `capabilities` - (Optional) A list of capabilities.
-  Currently, the only valid value is `CAPABILITY_IAM`
+  Valid values: `CAPABILITY_IAM` or `CAPABILITY_NAMED_IAM`
 * `disable_rollback` - (Optional) Set to true to disable rollback of the stack if stack creation failed.
   Conflicts with `on_failure`.
 * `notification_arns` - (Optional) A list of SNS topic ARNs to publish stack related events.

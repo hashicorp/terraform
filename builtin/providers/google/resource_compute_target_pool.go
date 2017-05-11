@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeTargetPool() *schema.Resource {
@@ -391,15 +390,7 @@ func resourceComputeTargetPoolRead(d *schema.ResourceData, meta interface{}) err
 	tpool, err := config.clientCompute.TargetPools.Get(
 		project, region, d.Id()).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing Target Pool %q because it's gone", d.Get("name").(string))
-			// The resource doesn't exist anymore
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error reading TargetPool: %s", err)
+		return handleNotFoundError(err, d, fmt.Sprintf("Target Pool %q", d.Get("name").(string)))
 	}
 
 	regionUrl := strings.Split(tpool.Region, "/")

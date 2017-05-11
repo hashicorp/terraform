@@ -100,6 +100,7 @@ func (s *DomainService) CreateDomain(p *CreateDomainParams) (*CreateDomainRespon
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -216,6 +217,7 @@ func (s *DomainService) UpdateDomain(p *UpdateDomainParams) (*UpdateDomainRespon
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -337,6 +339,7 @@ func (s *DomainService) DeleteDomain(p *DeleteDomainParams) (*DeleteDomainRespon
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -541,6 +544,7 @@ func (s *DomainService) ListDomains(p *ListDomainsParams) (*ListDomainsResponse,
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -792,6 +796,7 @@ func (s *DomainService) ListDomainChildren(p *ListDomainChildrenParams) (*ListDo
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -939,6 +944,7 @@ func (s *DomainService) LinkDomainToLdap(p *LinkDomainToLdapParams) (*LinkDomain
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 

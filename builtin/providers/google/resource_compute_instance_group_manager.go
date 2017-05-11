@@ -222,7 +222,7 @@ func resourceComputeInstanceGroupManagerRead(d *schema.ResourceData, meta interf
 		manager, e = config.clientCompute.InstanceGroupManagers.Get(project, zone.(string), d.Id()).Do()
 
 		if e != nil {
-			return e
+			return handleNotFoundError(e, d, fmt.Sprintf("Instance Group Manager %q", d.Get("name").(string)))
 		}
 	} else {
 		// If the resource was imported, the only info we have is the ID. Try to find the resource

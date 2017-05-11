@@ -68,4 +68,4 @@ The optional `push_config` block supports:
 
 ## Attributes Reference
 
-Only the arguments listed above are exposed as attributes.
+* `path` - Path of the subscription in the format `projects/{project}/subscriptions/{sub}`

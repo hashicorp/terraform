@@ -11,13 +11,12 @@ import (
 	"github.com/aws/aws-sdk-go/private/protocol/restxml"
 )
 
-// This is the Amazon CloudFront API Reference. This guide is for developers
-// who need detailed information about the CloudFront API actions, data types,
-// and errors. For detailed information about CloudFront features and their
-// associated API calls, see the Amazon CloudFront Developer Guide.
-// The service client's operations are safe to be used concurrently.
-// It is not safe to mutate any of the client's properties though.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudfront-2017-03-25
+// CloudFront provides the API operation methods for making requests to
+// Amazon CloudFront. See this package's package overview docs
+// for details on the service.
+//
+// CloudFront methods are safe to use concurrently. It is not safe to
+// modify mutate any of the struct's properties though.
 type CloudFront struct {
 	*client.Client
 }

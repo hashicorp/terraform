@@ -156,6 +156,7 @@ func (s *GuestOSService) ListOsTypes(p *ListOsTypesParams) (*ListOsTypesResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -342,6 +343,7 @@ func (s *GuestOSService) ListOsCategories(p *ListOsCategoriesParams) (*ListOsCat
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -441,6 +443,7 @@ func (s *GuestOSService) AddGuestOs(p *AddGuestOsParams) (*AddGuestOsResponse, e
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -527,6 +530,7 @@ func (s *GuestOSService) UpdateGuestOs(p *UpdateGuestOsParams) (*UpdateGuestOsRe
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -596,6 +600,7 @@ func (s *GuestOSService) RemoveGuestOs(p *RemoveGuestOsParams) (*RemoveGuestOsRe
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -748,6 +753,7 @@ func (s *GuestOSService) ListGuestOsMapping(p *ListGuestOsMappingParams) (*ListG
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -875,6 +881,7 @@ func (s *GuestOSService) AddGuestOsMapping(p *AddGuestOsMappingParams) (*AddGues
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -964,6 +971,7 @@ func (s *GuestOSService) UpdateGuestOsMapping(p *UpdateGuestOsMappingParams) (*U
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1036,6 +1044,7 @@ func (s *GuestOSService) RemoveGuestOsMapping(p *RemoveGuestOsMappingParams) (*R
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 

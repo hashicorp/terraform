@@ -359,8 +359,81 @@ func TestInterpolater_resourceVariableMulti(t *testing.T) {
 	}
 
 	testInterpolate(t, i, scope, "aws_instance.web.*.foo", ast.Variable{
-		Value: config.UnknownVariableValue,
-		Type:  ast.TypeUnknown,
+		Type: ast.TypeList,
+		Value: []ast.Variable{
+			{
+				Type:  ast.TypeUnknown,
+				Value: config.UnknownVariableValue,
+			},
+		},
+	})
+}
+
+func TestInterpolater_resourceVariableMultiPartialUnknown(t *testing.T) {
+	lock := new(sync.RWMutex)
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo": "1",
+							},
+						},
+					},
+					"aws_instance.web.1": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo": config.UnknownVariableValue,
+							},
+						},
+					},
+					"aws_instance.web.2": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo": "2",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	i := &Interpolater{
+		Module:    testModule(t, "interpolate-resource-variable-multi"),
+		State:     state,
+		StateLock: lock,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	testInterpolate(t, i, scope, "aws_instance.web.*.foo", ast.Variable{
+		Type: ast.TypeList,
+		Value: []ast.Variable{
+			{
+				Type:  ast.TypeString,
+				Value: "1",
+			},
+			{
+				Type:  ast.TypeUnknown,
+				Value: config.UnknownVariableValue,
+			},
+			{
+				Type:  ast.TypeString,
+				Value: "2",
+			},
+		},
 	})
 }
 
@@ -408,8 +481,13 @@ func TestInterpolater_resourceVariableMultiList(t *testing.T) {
 	}
 
 	testInterpolate(t, i, scope, "aws_instance.web.*.ip", ast.Variable{
-		Value: config.UnknownVariableValue,
-		Type:  ast.TypeUnknown,
+		Type: ast.TypeList,
+		Value: []ast.Variable{
+			{
+				Type:  ast.TypeUnknown,
+				Value: config.UnknownVariableValue,
+			},
+		},
 	})
 }
 

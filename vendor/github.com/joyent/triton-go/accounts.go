@@ -1,11 +1,11 @@
 package triton
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
-
-	"fmt"
 
 	"github.com/hashicorp/errwrap"
 )
@@ -40,9 +40,9 @@ type Account struct {
 
 type GetAccountInput struct{}
 
-func (client *AccountsClient) GetAccount(input *GetAccountInput) (*Account, error) {
+func (client *AccountsClient) GetAccount(ctx context.Context, input *GetAccountInput) (*Account, error) {
 	path := fmt.Sprintf("/%s", client.accountName)
-	respReader, err := client.executeRequest(http.MethodGet, path, nil)
+	respReader, err := client.executeRequest(ctx, http.MethodGet, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -75,8 +75,9 @@ type UpdateAccountInput struct {
 
 // UpdateAccount updates your account details with the given parameters.
 // TODO(jen20) Work out a safe way to test this
-func (client *AccountsClient) UpdateAccount(input *UpdateAccountInput) (*Account, error) {
-	respReader, err := client.executeRequest(http.MethodPost, fmt.Sprintf("/%s", client.accountName), input)
+func (client *AccountsClient) UpdateAccount(ctx context.Context, input *UpdateAccountInput) (*Account, error) {
+	path := fmt.Sprintf("/%s", client.accountName)
+	respReader, err := client.executeRequest(ctx, http.MethodPost, path, input)
 	if respReader != nil {
 		defer respReader.Close()
 	}

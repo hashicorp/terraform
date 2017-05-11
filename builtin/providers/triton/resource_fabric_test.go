@@ -1,6 +1,7 @@
 package triton
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"testing"
@@ -48,7 +49,7 @@ func testCheckTritonFabricExists(name string) resource.TestCheckFunc {
 			return err
 		}
 
-		exists, err := resourceExists(conn.Fabrics().GetFabricNetwork(&triton.GetFabricNetworkInput{
+		exists, err := resourceExists(conn.Fabrics().GetFabricNetwork(context.Background(), &triton.GetFabricNetworkInput{
 			FabricVLANID: vlanID,
 			NetworkID:    rs.Primary.ID,
 		}))
@@ -77,7 +78,7 @@ func testCheckTritonFabricDestroy(s *terraform.State) error {
 			return err
 		}
 
-		exists, err := resourceExists(conn.Fabrics().GetFabricNetwork(&triton.GetFabricNetworkInput{
+		exists, err := resourceExists(conn.Fabrics().GetFabricNetwork(context.Background(), &triton.GetFabricNetworkInput{
 			FabricVLANID: vlanID,
 			NetworkID:    rs.Primary.ID,
 		}))
