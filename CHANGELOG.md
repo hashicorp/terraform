@@ -5,6 +5,7 @@ BUG FIXES:
 * provider/aws: Increase EIP update timeout [GH-14381]
 * provider/aws: Increase timeout for creating security group [GH-14380]
 * provider/aws: Using the new time schema helper for RDS Instance lifecycle mgmt [GH-14369]
+* provider/aws: Using the timeout schema helper to make alb timeout cofigurable [GH-14375]
 * provider/cloudstack: `cloudstack_firewall` panicked when used with older (< v4.6) CloudStack versions [GH-14044]
 
 ## 0.9.5 (May 11, 2017)
