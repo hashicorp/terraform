@@ -38,9 +38,9 @@ type ListContainersParameters struct {
 }
 
 // GetContainerReference returns a Container object for the specified container name.
-func (b BlobStorageClient) GetContainerReference(name string) Container {
-	return Container{
-		bsc:  &b,
+func (b *BlobStorageClient) GetContainerReference(name string) *Container {
+	return &Container{
+		bsc:  b,
 		Name: name,
 	}
 }

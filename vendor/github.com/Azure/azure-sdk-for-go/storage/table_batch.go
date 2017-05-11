@@ -54,8 +54,8 @@ var defaultChangesetHeaders = map[string]string{
 }
 
 // NewBatch return new TableBatch for populating.
-func (t *Table) NewBatch() TableBatch {
-	return TableBatch{
+func (t *Table) NewBatch() *TableBatch {
+	return &TableBatch{
 		Table: t,
 	}
 }

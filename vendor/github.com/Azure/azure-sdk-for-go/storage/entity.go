@@ -45,8 +45,8 @@ type Entity struct {
 
 // GetEntityReference returns an Entity object with the specified
 // partition key and row key.
-func (t *Table) GetEntityReference(partitionKey, rowKey string) Entity {
-	return Entity{
+func (t *Table) GetEntityReference(partitionKey, rowKey string) *Entity {
+	return &Entity{
 		PartitionKey: partitionKey,
 		RowKey:       rowKey,
 		Table:        t,

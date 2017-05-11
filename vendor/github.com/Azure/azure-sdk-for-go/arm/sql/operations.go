@@ -1,4 +1,4 @@
-package containerregistry
+package sql
 
 // Copyright (c) Microsoft and contributors.  All rights reserved.
 //
@@ -24,8 +24,10 @@ import (
 	"net/http"
 )
 
-// OperationsClient is the client for the Operations methods of the
-// Containerregistry service.
+// OperationsClient is the the Azure SQL Database management API provides a
+// RESTful set of web services that interact with Azure SQL Database services
+// to manage your databases. The API enables you to create, retrieve, update,
+// and delete databases.
 type OperationsClient struct {
 	ManagementClient
 }
@@ -41,25 +43,24 @@ func NewOperationsClientWithBaseURI(baseURI string, subscriptionID string) Opera
 	return OperationsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// List lists all of the available Azure Container Registry REST API
-// operations.
+// List lists all of the available SQL Rest API operations.
 func (client OperationsClient) List() (result OperationListResult, err error) {
 	req, err := client.ListPreparer()
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "containerregistry.OperationsClient", "List", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "sql.OperationsClient", "List", nil, "Failure preparing request")
 		return
 	}
 
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		err = autorest.NewErrorWithError(err, "containerregistry.OperationsClient", "List", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "sql.OperationsClient", "List", resp, "Failure sending request")
 		return
 	}
 
 	result, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "containerregistry.OperationsClient", "List", resp, "Failure responding to request")
+		err = autorest.NewErrorWithError(err, "sql.OperationsClient", "List", resp, "Failure responding to request")
 	}
 
 	return
@@ -67,7 +68,7 @@ func (client OperationsClient) List() (result OperationListResult, err error) {
 
 // ListPreparer prepares the List request.
 func (client OperationsClient) ListPreparer() (*http.Request, error) {
-	const APIVersion = "2017-03-01"
+	const APIVersion = "2014-04-01"
 	queryParameters := map[string]interface{}{
 		"api-version": APIVersion,
 	}
@@ -75,7 +76,7 @@ func (client OperationsClient) ListPreparer() (*http.Request, error) {
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
 		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPath("/providers/Microsoft.ContainerRegistry/operations"),
+		autorest.WithPath("/providers/Microsoft.Sql/operations"),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare(&http.Request{})
 }
@@ -96,29 +97,5 @@ func (client OperationsClient) ListResponder(resp *http.Response) (result Operat
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
 	result.Response = autorest.Response{Response: resp}
-	return
-}
-
-// ListNextResults retrieves the next set of results, if any.
-func (client OperationsClient) ListNextResults(lastResults OperationListResult) (result OperationListResult, err error) {
-	req, err := lastResults.OperationListResultPreparer()
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "containerregistry.OperationsClient", "List", nil, "Failure preparing next results request")
-	}
-	if req == nil {
-		return
-	}
-
-	resp, err := client.ListSender(req)
-	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "containerregistry.OperationsClient", "List", resp, "Failure sending next results request")
-	}
-
-	result, err = client.ListResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "containerregistry.OperationsClient", "List", resp, "Failure responding to next results request")
-	}
-
 	return
 }

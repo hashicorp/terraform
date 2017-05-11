@@ -46,8 +46,8 @@ type Table struct {
 // EntityQueryResult contains the response from
 // ExecuteQuery and ExecuteQueryNextResults functions.
 type EntityQueryResult struct {
-	OdataMetadata string   `json:"odata.metadata"`
-	Entities      []Entity `json:"value"`
+	OdataMetadata string    `json:"odata.metadata"`
+	Entities      []*Entity `json:"value"`
 	QueryNextLink
 	table *Table
 }

@@ -216,6 +216,7 @@ type ConsumerGroupResource struct {
 	autorest.Response        `json:"-"`
 	ID                       *string `json:"id,omitempty"`
 	Name                     *string `json:"name,omitempty"`
+	Location                 *string `json:"location,omitempty"`
 	Type                     *string `json:"type,omitempty"`
 	*ConsumerGroupProperties `json:"properties,omitempty"`
 }
@@ -293,8 +294,8 @@ type NamespaceResource struct {
 	autorest.Response    `json:"-"`
 	ID                   *string             `json:"id,omitempty"`
 	Name                 *string             `json:"name,omitempty"`
-	Type                 *string             `json:"type,omitempty"`
 	Location             *string             `json:"location,omitempty"`
+	Type                 *string             `json:"type,omitempty"`
 	Tags                 *map[string]*string `json:"tags,omitempty"`
 	Sku                  *Sku                `json:"sku,omitempty"`
 	*NamespaceProperties `json:"properties,omitempty"`
@@ -360,9 +361,10 @@ type RegenerateKeysParameters struct {
 
 // Resource is the Resource definition
 type Resource struct {
-	ID   *string `json:"id,omitempty"`
-	Name *string `json:"name,omitempty"`
-	Type *string `json:"type,omitempty"`
+	ID       *string `json:"id,omitempty"`
+	Name     *string `json:"name,omitempty"`
+	Location *string `json:"location,omitempty"`
+	Type     *string `json:"type,omitempty"`
 }
 
 // ResourceListKeys is namespace/EventHub Connection String
@@ -380,6 +382,7 @@ type ResourceType struct {
 	autorest.Response `json:"-"`
 	ID                *string `json:"id,omitempty"`
 	Name              *string `json:"name,omitempty"`
+	Location          *string `json:"location,omitempty"`
 	Type              *string `json:"type,omitempty"`
 	*Properties       `json:"properties,omitempty"`
 }
@@ -424,6 +427,7 @@ type SharedAccessAuthorizationRuleResource struct {
 	autorest.Response                        `json:"-"`
 	ID                                       *string `json:"id,omitempty"`
 	Name                                     *string `json:"name,omitempty"`
+	Location                                 *string `json:"location,omitempty"`
 	Type                                     *string `json:"type,omitempty"`
 	*SharedAccessAuthorizationRuleProperties `json:"properties,omitempty"`
 }
@@ -439,7 +443,7 @@ type Sku struct {
 type TrackedResource struct {
 	ID       *string             `json:"id,omitempty"`
 	Name     *string             `json:"name,omitempty"`
-	Type     *string             `json:"type,omitempty"`
 	Location *string             `json:"location,omitempty"`
+	Type     *string             `json:"type,omitempty"`
 	Tags     *map[string]*string `json:"tags,omitempty"`
 }

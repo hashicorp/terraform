@@ -167,8 +167,8 @@ const (
 )
 
 // GetBlobReference returns a Blob object for the specified blob name.
-func (c *Container) GetBlobReference(name string) Blob {
-	return Blob{
+func (c *Container) GetBlobReference(name string) *Blob {
+	return &Blob{
 		Container: c,
 		Name:      name,
 	}

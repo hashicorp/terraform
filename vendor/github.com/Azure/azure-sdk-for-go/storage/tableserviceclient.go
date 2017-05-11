@@ -55,8 +55,8 @@ func (t *TableServiceClient) SetServiceProperties(props ServiceProperties) error
 }
 
 // GetTableReference returns a Table object for the specified table name.
-func (t *TableServiceClient) GetTableReference(name string) Table {
-	return Table{
+func (t *TableServiceClient) GetTableReference(name string) *Table {
+	return &Table{
 		tsc:  t,
 		Name: name,
 	}

@@ -118,9 +118,9 @@ func getURLInitValues(comp compType, res resourceType) url.Values {
 }
 
 // GetShareReference returns a Share object for the specified share name.
-func (f FileServiceClient) GetShareReference(name string) Share {
-	return Share{
-		fsc:  &f,
+func (f *FileServiceClient) GetShareReference(name string) *Share {
+	return &Share{
+		fsc:  f,
 		Name: name,
 		Properties: ShareProperties{
 			Quota: -1,
