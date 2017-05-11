@@ -331,11 +331,11 @@ func resourceArmCdnEndpointDelete(d *schema.ResourceData, meta interface{}) erro
 	accResp, error := client.Delete(resGroup, profileName, name, make(<-chan struct{}))
 	resp := <-accResp
 	err = <-error
-	if error != nil {
+	if err != nil {
 		if resp.StatusCode == http.StatusNotFound {
 			return nil
 		}
-		return fmt.Errorf("Error issuing AzureRM delete request for CDN Endpoint %q: %s", name, error)
+		return fmt.Errorf("Error issuing AzureRM delete request for CDN Endpoint %q: %s", name, err)
 	}
 
 	return nil
