@@ -99,6 +99,7 @@ func (s *ISOService) AttachIso(p *AttachIsoParams) (*AttachIsoResponse, error) {
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -342,6 +343,7 @@ func (s *ISOService) DetachIso(p *DetachIsoParams) (*DetachIsoResponse, error) {
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -849,6 +851,7 @@ func (s *ISOService) ListIsos(p *ListIsosParams) (*ListIsosResponse, error) {
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1112,6 +1115,7 @@ func (s *ISOService) RegisterIso(p *RegisterIsoParams) (*RegisterIsoResponse, er
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1340,6 +1344,7 @@ func (s *ISOService) UpdateIso(p *UpdateIsoParams) (*UpdateIsoResponse, error) {
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1462,6 +1467,7 @@ func (s *ISOService) DeleteIso(p *DeleteIsoParams) (*DeleteIsoResponse, error) {
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1557,6 +1563,7 @@ func (s *ISOService) CopyIso(p *CopyIsoParams) (*CopyIsoResponse, error) {
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1725,6 +1732,7 @@ func (s *ISOService) UpdateIsoPermissions(p *UpdateIsoPermissionsParams) (*Updat
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1809,6 +1817,7 @@ func (s *ISOService) ListIsoPermissions(p *ListIsoPermissionsParams) (*ListIsoPe
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1922,6 +1931,7 @@ func (s *ISOService) ExtractIso(p *ExtractIsoParams) (*ExtractIsoResponse, error
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 

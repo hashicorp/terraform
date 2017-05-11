@@ -144,6 +144,7 @@ func (s *NiciraNVPService) AddNiciraNvpDevice(p *AddNiciraNvpDeviceParams) (*Add
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -216,6 +217,7 @@ func (s *NiciraNVPService) DeleteNiciraNvpDevice(p *DeleteNiciraNvpDeviceParams)
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -313,6 +315,7 @@ func (s *NiciraNVPService) ListNiciraNvpDevices(p *ListNiciraNvpDevicesParams) (
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
