@@ -45,7 +45,7 @@ func resourceArmEventHubAuthorizationRule() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": deprecatedLocationSchema(),
+			"location": locationSchema(),
 
 			"listen": {
 				Type:     schema.TypeBool,
@@ -93,6 +93,7 @@ func resourceArmEventHubAuthorizationRuleCreateUpdate(d *schema.ResourceData, me
 	log.Printf("[INFO] preparing arguments for AzureRM EventHub Authorization Rule creation.")
 
 	name := d.Get("name").(string)
+	location := d.Get("location").(string)
 	namespaceName := d.Get("namespace_name").(string)
 	eventHubName := d.Get("eventhub_name").(string)
 	resGroup := d.Get("resource_group_name").(string)
@@ -103,7 +104,8 @@ func resourceArmEventHubAuthorizationRuleCreateUpdate(d *schema.ResourceData, me
 	}
 
 	parameters := eventhub.SharedAccessAuthorizationRuleCreateOrUpdateParameters{
-		Name: &name,
+		Name:     &name,
+		Location: &location,
 		SharedAccessAuthorizationRuleProperties: &eventhub.SharedAccessAuthorizationRuleProperties{
 			Rights: rights,
 		},
@@ -155,6 +157,7 @@ func resourceArmEventHubAuthorizationRuleRead(d *schema.ResourceData, meta inter
 	}
 
 	d.Set("name", name)
+	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 	d.Set("eventhub_name", eventHubName)
 	d.Set("namespace_name", namespaceName)
 	d.Set("resource_group_name", resGroup)
