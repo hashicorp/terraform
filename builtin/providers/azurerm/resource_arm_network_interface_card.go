@@ -67,6 +67,12 @@ func resourceArmNetworkInterface() *schema.Resource {
 							Required: true,
 						},
 
+						"primary": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
+
 						"subnet_id": {
 							Type:     schema.TypeString,
 							Required: true,
@@ -400,6 +406,10 @@ func expandAzureRmNetworkInterfaceIpConfigurations(d *schema.ResourceData) ([]ne
 				ID: &subnet_id,
 			},
 			PrivateIPAllocationMethod: allocationMethod,
+		}
+
+		if v, ok := data["primary"].(bool); ok {
+			properties.Primary = &v
 		}
 
 		if v := data["private_ip_address"].(string); v != "" {
