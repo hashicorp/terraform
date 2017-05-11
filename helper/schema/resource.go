@@ -135,11 +135,15 @@ func (r *Resource) Apply(
 		return s, err
 	}
 
-	// Instance Diff shoould have the timeout info, need to copy it over to the
+	// Instance Diff should have the timeout info, need to copy it over to the
 	// ResourceData meta
 	rt := ResourceTimeout{}
 	if _, ok := d.Meta[TimeoutKey]; ok {
 		if err := rt.DiffDecode(d); err != nil {
+			log.Printf("[ERR] Error decoding ResourceTimeout: %s", err)
+		}
+	} else if _, ok := s.Meta[TimeoutKey]; ok {
+		if err := rt.StateDecode(s); err != nil {
 			log.Printf("[ERR] Error decoding ResourceTimeout: %s", err)
 		}
 	} else {

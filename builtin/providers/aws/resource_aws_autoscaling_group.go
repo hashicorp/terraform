@@ -27,6 +27,10 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		Timeouts: &schema.ResourceTimeout{
+			Delete: schema.DefaultTimeout(5 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:          schema.TypeString,
@@ -705,7 +709,7 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	return resource.Retry(5*time.Minute, func() *resource.RetryError {
+	return resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		if g, _ = getAwsAutoscalingGroup(d.Id(), conn); g != nil {
 			return resource.RetryableError(
 				fmt.Errorf("Auto Scaling Group still exists"))

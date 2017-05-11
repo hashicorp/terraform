@@ -57,6 +57,10 @@ EOF
     value               = "ipsum"
     propagate_at_launch = false
   }
+
+  timeouts {
+      delete = "5m"
+  }
 }
 ```
 
@@ -161,6 +165,14 @@ autoscaling group has been created, and depending on your
 been launched, creating unintended behavior. If you need hooks to run on all
 instances, add them with `initial_lifecycle_hook` here, but take
 care to not duplicate these hooks in `aws_autoscaling_lifecycle_hook`.
+
+<a id="timeouts"></a>
+## Timeouts
+
+`autoscaling_group` provides the following
+[Timeouts](/docs/configuration/resources.html#timeouts) configuration options:
+
+- `delete` - (Default `5 minutes`) Used for destroying ASG.
 
 ## Waiting for Capacity
 
