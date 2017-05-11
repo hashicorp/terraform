@@ -37,4 +37,10 @@ const (
 	//
 	// Quota for the resource has already been reached.
 	ErrCodeLimitExceededException = "LimitExceededException"
+
+	// ErrCodeTokenAlreadyExistsException for service response error code
+	// "TokenAlreadyExistsException".
+	//
+	// A client request token already exists.
+	ErrCodeTokenAlreadyExistsException = "TokenAlreadyExistsException"
 )

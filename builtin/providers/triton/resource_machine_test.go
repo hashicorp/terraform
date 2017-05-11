@@ -1,6 +1,7 @@
 package triton
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"regexp"
@@ -129,7 +130,7 @@ func testCheckTritonMachineExists(name string) resource.TestCheckFunc {
 		}
 		conn := testAccProvider.Meta().(*triton.Client)
 
-		machine, err := conn.Machines().GetMachine(&triton.GetMachineInput{
+		machine, err := conn.Machines().GetMachine(context.Background(), &triton.GetMachineInput{
 			ID: rs.Primary.ID,
 		})
 		if err != nil {
@@ -158,7 +159,7 @@ func testCheckTritonMachineHasFabric(name, fabricName string) resource.TestCheck
 		}
 		conn := testAccProvider.Meta().(*triton.Client)
 
-		nics, err := conn.Machines().ListNICs(&triton.ListNICsInput{
+		nics, err := conn.Machines().ListNICs(context.Background(), &triton.ListNICsInput{
 			MachineID: machine.Primary.ID,
 		})
 		if err != nil {
@@ -183,7 +184,7 @@ func testCheckTritonMachineDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := conn.Machines().GetMachine(&triton.GetMachineInput{
+		resp, err := conn.Machines().GetMachine(context.Background(), &triton.GetMachineInput{
 			ID: rs.Primary.ID,
 		})
 		if err != nil {

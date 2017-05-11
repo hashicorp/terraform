@@ -31,6 +31,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
+	"github.com/aws/aws-sdk-go/service/devicefarm"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -90,13 +91,22 @@ type Config struct {
 	AllowedAccountIds   []interface{}
 	ForbiddenAccountIds []interface{}
 
-	DynamoDBEndpoint string
-	KinesisEndpoint  string
-	Ec2Endpoint      string
-	IamEndpoint      string
-	ElbEndpoint      string
-	S3Endpoint       string
-	Insecure         bool
+	CloudFormationEndpoint   string
+	CloudWatchEndpoint       string
+	CloudWatchEventsEndpoint string
+	CloudWatchLogsEndpoint   string
+	DynamoDBEndpoint         string
+	DeviceFarmEndpoint       string
+	Ec2Endpoint              string
+	ElbEndpoint              string
+	IamEndpoint              string
+	KinesisEndpoint          string
+	KmsEndpoint              string
+	RdsEndpoint              string
+	S3Endpoint               string
+	SnsEndpoint              string
+	SqsEndpoint              string
+	Insecure                 bool
 
 	SkipCredsValidation     bool
 	SkipGetEC2Platforms     bool
@@ -115,6 +125,7 @@ type AWSClient struct {
 	cloudwatcheventsconn  *cloudwatchevents.CloudWatchEvents
 	cognitoconn           *cognitoidentity.CognitoIdentity
 	configconn            *configservice.ConfigService
+	devicefarmconn        *devicefarm.DeviceFarm
 	dmsconn               *databasemigrationservice.DatabaseMigrationService
 	dsconn                *directoryservice.DirectoryService
 	dynamodbconn          *dynamodb.DynamoDB
@@ -266,12 +277,24 @@ func (c *Config) Client() (interface{}, error) {
 	usEast1Sess := sess.Copy(&aws.Config{Region: aws.String("us-east-1")})
 
 	// Some services have user-configurable endpoints
+	awsCfSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.CloudFormationEndpoint)})
+	awsCwSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.CloudWatchEndpoint)})
+	awsCweSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.CloudWatchEventsEndpoint)})
+	awsCwlSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.CloudWatchLogsEndpoint)})
+	awsDynamoSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.DynamoDBEndpoint)})
 	awsEc2Sess := sess.Copy(&aws.Config{Endpoint: aws.String(c.Ec2Endpoint)})
 	awsElbSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.ElbEndpoint)})
 	awsIamSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.IamEndpoint)})
+	awsKinesisSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.KinesisEndpoint)})
+	awsKmsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.KmsEndpoint)})
+	awsRdsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.RdsEndpoint)})
 	awsS3Sess := sess.Copy(&aws.Config{Endpoint: aws.String(c.S3Endpoint)})
-	dynamoSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.DynamoDBEndpoint)})
-	kinesisSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.KinesisEndpoint)})
+	awsSnsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.SnsEndpoint)})
+	awsSqsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.SqsEndpoint)})
+	awsDeviceFarmSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.DeviceFarmEndpoint)})
+
+	log.Println("[INFO] Initializing DeviceFarm SDK connection")
+	client.devicefarmconn = devicefarm.New(awsDeviceFarmSess)
 
 	// These two services need to be set up early so we can check on AccountID
 	client.iamconn = iam.New(awsIamSess)
@@ -314,12 +337,12 @@ func (c *Config) Client() (interface{}, error) {
 	client.apigateway = apigateway.New(sess)
 	client.appautoscalingconn = applicationautoscaling.New(sess)
 	client.autoscalingconn = autoscaling.New(sess)
-	client.cfconn = cloudformation.New(sess)
+	client.cfconn = cloudformation.New(awsCfSess)
 	client.cloudfrontconn = cloudfront.New(sess)
 	client.cloudtrailconn = cloudtrail.New(sess)
-	client.cloudwatchconn = cloudwatch.New(sess)
-	client.cloudwatcheventsconn = cloudwatchevents.New(sess)
-	client.cloudwatchlogsconn = cloudwatchlogs.New(sess)
+	client.cloudwatchconn = cloudwatch.New(awsCwSess)
+	client.cloudwatcheventsconn = cloudwatchevents.New(awsCweSess)
+	client.cloudwatchlogsconn = cloudwatchlogs.New(awsCwlSess)
 	client.codecommitconn = codecommit.New(sess)
 	client.codebuildconn = codebuild.New(sess)
 	client.codedeployconn = codedeploy.New(sess)
@@ -328,7 +351,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.dmsconn = databasemigrationservice.New(sess)
 	client.codepipelineconn = codepipeline.New(sess)
 	client.dsconn = directoryservice.New(sess)
-	client.dynamodbconn = dynamodb.New(dynamoSess)
+	client.dynamodbconn = dynamodb.New(awsDynamoSess)
 	client.ecrconn = ecr.New(sess)
 	client.ecsconn = ecs.New(sess)
 	client.efsconn = efs.New(sess)
@@ -342,20 +365,20 @@ func (c *Config) Client() (interface{}, error) {
 	client.firehoseconn = firehose.New(sess)
 	client.inspectorconn = inspector.New(sess)
 	client.glacierconn = glacier.New(sess)
-	client.kinesisconn = kinesis.New(kinesisSess)
-	client.kmsconn = kms.New(sess)
+	client.kinesisconn = kinesis.New(awsKinesisSess)
+	client.kmsconn = kms.New(awsKmsSess)
 	client.lambdaconn = lambda.New(sess)
 	client.lightsailconn = lightsail.New(usEast1Sess)
 	client.opsworksconn = opsworks.New(sess)
 	client.r53conn = route53.New(usEast1Sess)
-	client.rdsconn = rds.New(sess)
+	client.rdsconn = rds.New(awsRdsSess)
 	client.redshiftconn = redshift.New(sess)
 	client.simpledbconn = simpledb.New(sess)
 	client.s3conn = s3.New(awsS3Sess)
 	client.sesConn = ses.New(sess)
 	client.sfnconn = sfn.New(sess)
-	client.snsconn = sns.New(sess)
-	client.sqsconn = sqs.New(sess)
+	client.snsconn = sns.New(awsSnsSess)
+	client.sqsconn = sqs.New(awsSqsSess)
 	client.ssmconn = ssm.New(sess)
 	client.wafconn = waf.New(sess)
 

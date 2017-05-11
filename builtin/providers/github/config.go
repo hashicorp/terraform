@@ -4,6 +4,7 @@ import (
 	"net/url"
 
 	"github.com/google/go-github/github"
+	"github.com/hashicorp/terraform/helper/logging"
 	"golang.org/x/oauth2"
 )
 
@@ -27,6 +28,8 @@ func (c *Config) Client() (interface{}, error) {
 	)
 	tc := oauth2.NewClient(oauth2.NoContext, ts)
 
+	tc.Transport = logging.NewTransport("Github", tc.Transport)
+
 	org.client = github.NewClient(tc)
 	if c.BaseURL != "" {
 		u, err := url.Parse(c.BaseURL)
@@ -35,5 +38,6 @@ func (c *Config) Client() (interface{}, error) {
 		}
 		org.client.BaseURL = u
 	}
+
 	return &org, nil
 }

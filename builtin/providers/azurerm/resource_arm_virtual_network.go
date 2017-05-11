@@ -109,8 +109,8 @@ func resourceArmVirtualNetworkCreate(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
-	azureRMVirtualNetworkLockNetworkSecurityGroups(&networkSecurityGroupNames)
-	defer azureRMVirtualNetworkUnlockNetworkSecurityGroups(&networkSecurityGroupNames)
+	azureRMLockMultiple(&networkSecurityGroupNames)
+	defer azureRMUnlockMultiple(&networkSecurityGroupNames)
 
 	_, err := vnetClient.CreateOrUpdate(resGroup, name, vnet, make(chan struct{}))
 	if err != nil {
@@ -202,8 +202,8 @@ func resourceArmVirtualNetworkDelete(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("[ERROR] Error parsing Network Security Group ID's: %+v", err)
 	}
 
-	azureRMVirtualNetworkLockNetworkSecurityGroups(&nsgNames)
-	defer azureRMVirtualNetworkUnlockNetworkSecurityGroups(&nsgNames)
+	azureRMLockMultiple(&nsgNames)
+	defer azureRMUnlockMultiple(&nsgNames)
 
 	_, err = vnetClient.Delete(resGroup, name, make(chan struct{}))
 
@@ -293,15 +293,4 @@ func expandAzureRmVirtualNetworkVirtualNetworkSecurityGroupNames(d *schema.Resou
 	}
 
 	return nsgNames, nil
-}
-
-func azureRMVirtualNetworkUnlockNetworkSecurityGroups(networkSecurityGroupNames *[]string) {
-	for _, networkSecurityGroupName := range *networkSecurityGroupNames {
-		armMutexKV.Unlock(networkSecurityGroupName)
-	}
-}
-func azureRMVirtualNetworkLockNetworkSecurityGroups(networkSecurityGroupNames *[]string) {
-	for _, networkSecurityGroupName := range *networkSecurityGroupNames {
-		armMutexKV.Lock(networkSecurityGroupName)
-	}
 }

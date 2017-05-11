@@ -174,15 +174,7 @@ func resourceComputeDiskRead(d *schema.ResourceData, meta interface{}) error {
 	disk, err := config.clientCompute.Disks.Get(
 		project, d.Get("zone").(string), d.Id()).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing Disk %q because it's gone", d.Get("name").(string))
-			// The resource doesn't exist anymore
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error reading disk: %s", err)
+		return handleNotFoundError(err, d, fmt.Sprintf("Disk %q", d.Get("name").(string)))
 	}
 
 	d.Set("self_link", disk.SelfLink)

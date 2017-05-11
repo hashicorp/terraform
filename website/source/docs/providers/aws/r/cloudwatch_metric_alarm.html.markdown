@@ -22,7 +22,7 @@ resource "aws_cloudwatch_metric_alarm" "foobar" {
   period                    = "120"
   statistic                 = "Average"
   threshold                 = "80"
-  alarm_description         = "This metric monitor ec2 cpu utilization"
+  alarm_description         = "This metric monitors ec2 cpu utilization"
   insufficient_data_actions = []
 }
 ```
@@ -52,7 +52,7 @@ resource "aws_cloudwatch_metric_alarm" "bat" {
     AutoScalingGroupName = "${aws_autoscaling_group.bar.name}"
   }
 
-  alarm_description = "This metric monitor ec2 cpu utilization"
+  alarm_description = "This metric monitors ec2 cpu utilization"
   alarm_actions     = ["${aws_autoscaling_policy.bat.arn}"]
 }
 ```
