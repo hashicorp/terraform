@@ -2204,10 +2204,6 @@
 			"revisionTime": "2017-05-10T18:47:02Z"
 		},
 		{
-			"path": "github.com/hashicorp/terraform-provider/opc/opc",
-			"revision": ""
-		},
-		{
 			"checksumSHA1": "2fkVZIzvxIGBLhSiVnkTgGiqpQ4=",
 			"path": "github.com/hashicorp/vault/api",
 			"revision": "9a60bf2a50e4dd1ba4b929a3ccf8072435cbdd0a",
