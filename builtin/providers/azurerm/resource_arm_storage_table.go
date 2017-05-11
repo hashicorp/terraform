@@ -73,7 +73,7 @@ func resourceArmStorageTableCreate(d *schema.ResourceData, meta interface{}) err
 
 	timeout := uint(60)
 	options := &storage.TableOptions{}
-	err = table.Create(timeout, storage.EmptyPayload, options)
+	err = table.Create(timeout, storage.NoMetadata, options)
 	if err != nil {
 		return fmt.Errorf("Error creating table %q in storage account %q: %s", name, storageAccountName, err)
 	}
@@ -100,7 +100,7 @@ func resourceArmStorageTableRead(d *schema.ResourceData, meta interface{}) error
 	}
 
 	name := d.Get("name").(string)
-	metaDataLevel := storage.EmptyPayload
+	metaDataLevel := storage.MinimalMetadata
 	options := &storage.QueryTablesOptions{}
 	tables, err := tableClient.QueryTables(metaDataLevel, options)
 	if err != nil {
