@@ -7,6 +7,7 @@ FEATURES:
 IMPROVEMENTS:
 
 * provider/rundeck: adds `description` to `command` schema in `rundeck_job` resource [GH-14352]
+* provider/datadog: Add last aggregator to datadog_timeboard resource [GH-14391]
 
 BUG FIXES:
 
