@@ -142,9 +142,11 @@ func (r *Resource) Apply(
 		if err := rt.DiffDecode(d); err != nil {
 			log.Printf("[ERR] Error decoding ResourceTimeout: %s", err)
 		}
-	} else if _, ok := s.Meta[TimeoutKey]; ok {
-		if err := rt.StateDecode(s); err != nil {
-			log.Printf("[ERR] Error decoding ResourceTimeout: %s", err)
+	} else if s != nil {
+		if _, ok := s.Meta[TimeoutKey]; ok {
+			if err := rt.StateDecode(s); err != nil {
+				log.Printf("[ERR] Error decoding ResourceTimeout: %s", err)
+			}
 		}
 	} else {
 		log.Printf("[DEBUG] No meta timeoutkey found in Apply()")
