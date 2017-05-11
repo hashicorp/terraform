@@ -1,5 +1,9 @@
 ## 0.9.6 (Unreleased)
 
+IMPROVEMENTS:
+
+* provider/rundeck: adds `description` to `command` schema in `rundeck_job` resource [GH-14352]
+
 BUG FIXES:
 
 * provider/aws: Increase EIP update timeout [GH-14381]
