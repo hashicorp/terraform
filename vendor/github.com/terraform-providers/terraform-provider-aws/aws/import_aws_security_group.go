@@ -15,7 +15,7 @@ func resourceAwsSecurityGroupImportState(
 	d *schema.ResourceData,
 	meta interface{}) ([]*schema.ResourceData, error) {
 	conn := meta.(*AWSClient).ec2conn
-	cache := meta.(*AWSClient).Cache()
+	cache := meta.(*AWSClient).SecurityGroupsCache()
 
 	// First query the security group
 	sgRaw, _, err := SGStateRefreshFunc(conn, cache, d.Id())()

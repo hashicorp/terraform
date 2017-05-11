@@ -108,7 +108,7 @@ func resourceAwsSecurityGroupRule() *schema.Resource {
 
 func resourceAwsSecurityGroupRuleCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
-	cache := meta.(*AWSClient).Cache()
+	cache := meta.(*AWSClient).SecurityGroupsCache()
 	clearSecurityGroupCache(cache)
 	sg_id := d.Get("security_group_id").(string)
 
@@ -227,7 +227,7 @@ information and instructions for recovery. Error message: %s`, sg_id, awsErr.Mes
 
 func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
-	cache := meta.(*AWSClient).Cache()
+	cache := meta.(*AWSClient).SecurityGroupsCache()
 	sg_id := d.Get("security_group_id").(string)
 	sg, err := findResourceSecurityGroup(conn, cache, sg_id)
 	if _, notFound := err.(securityGroupNotFound); notFound {
@@ -283,7 +283,7 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 
 func resourceAwsSecurityGroupRuleDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
-	cache := meta.(*AWSClient).Cache()
+	cache := meta.(*AWSClient).SecurityGroupsCache()
 	clearSecurityGroupCache(cache)
 	sg_id := d.Get("security_group_id").(string)
 
@@ -339,18 +339,11 @@ func resourceAwsSecurityGroupRuleDelete(d *schema.ResourceData, meta interface{}
 	return nil
 }
 
-func findResourceSecurityGroup(conn *ec2.EC2, cache *Cache, id string) (*ec2.SecurityGroup, error) {
-	var group *ec2.SecurityGroup
-	err := updateSecurityGroupCache(conn, cache)
+func findResourceSecurityGroup(conn *ec2.EC2, cache *SecurityGroupsCache, id string) (*ec2.SecurityGroup, error) {
+	group, err := RefreshSG(conn, cache, id)
 
 	if err != nil {
 		return nil, err
-	}
-
-	for _, sg := range cache.SecurityGroups.SecurityGroups {
-		if id == *sg.GroupId {
-			group = sg
-		}
 	}
 
 	if group == nil {
