@@ -31,6 +31,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
+	"github.com/aws/aws-sdk-go/service/devicefarm"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -94,6 +95,7 @@ type Config struct {
 	CloudWatchEventsEndpoint string
 	CloudWatchLogsEndpoint   string
 	DynamoDBEndpoint         string
+	DeviceFarmEndpoint       string
 	Ec2Endpoint              string
 	ElbEndpoint              string
 	IamEndpoint              string
@@ -122,6 +124,7 @@ type AWSClient struct {
 	cloudwatcheventsconn  *cloudwatchevents.CloudWatchEvents
 	cognitoconn           *cognitoidentity.CognitoIdentity
 	configconn            *configservice.ConfigService
+	devicefarmconn        *devicefarm.DeviceFarm
 	dmsconn               *databasemigrationservice.DatabaseMigrationService
 	dsconn                *directoryservice.DirectoryService
 	dynamodbconn          *dynamodb.DynamoDB
@@ -286,6 +289,10 @@ func (c *Config) Client() (interface{}, error) {
 	awsS3Sess := sess.Copy(&aws.Config{Endpoint: aws.String(c.S3Endpoint)})
 	awsSnsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.SnsEndpoint)})
 	awsSqsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.SqsEndpoint)})
+	awsDeviceFarmSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.DeviceFarmEndpoint)})
+
+	log.Println("[INFO] Initializing DeviceFarm SDK connection")
+	client.devicefarmconn = devicefarm.New(awsDeviceFarmSess)
 
 	// These two services need to be set up early so we can check on AccountID
 	client.iamconn = iam.New(awsIamSess)
