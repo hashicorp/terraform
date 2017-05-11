@@ -134,7 +134,8 @@ func resourceArmCdnProfileUpdate(d *schema.ResourceData, meta interface{}) error
 		Tags: expandTags(newTags),
 	}
 
-	_, err := cdnProfilesClient.Update(resGroup, name, props, make(chan struct{}))
+	_, error := cdnProfilesClient.Update(resGroup, name, props, make(chan struct{}))
+	err := <-error
 	if err != nil {
 		return fmt.Errorf("Error issuing Azure ARM update request to update CDN Profile %q: %s", name, err)
 	}
