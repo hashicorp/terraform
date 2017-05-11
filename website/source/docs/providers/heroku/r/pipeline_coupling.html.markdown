@@ -13,7 +13,7 @@ Provides a [Heroku Pipeline Coupling](https://devcenter.heroku.com/articles/pipe
 resource.
 
 A pipeline is a group of Heroku apps that share the same codebase. Once a
-pipeline is created using [`heroku_pipeline`](./pipeline), and apps are added
+pipeline is created using [`heroku_pipeline`](./pipeline.html), and apps are added
 to different stages using `heroku_pipeline_coupling`, you can promote app slugs
 to the downstream stages.
 
