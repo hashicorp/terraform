@@ -1,3 +1,53 @@
+Release v1.8.21 (2017-05-09)
+===
+
+### Service Client Updates
+* `service/codestar`: Updates service documentation
+  * Updated documentation for AWS CodeStar.
+* `service/workspaces`: Updates service API, documentation, and paginators
+  * Doc-only Update for WorkSpaces
+
+Release v1.8.20 (2017-05-04)
+===
+
+### Service Client Updates
+* `service/ecs`: Updates service API, documentation, and paginators
+  * Exposes container instance registration time in ECS:DescribeContainerInstances.
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/marketplaceentitlementservice`: Adds new service
+* `service/lambda`: Updates service API and documentation
+  * Support for UpdateFunctionCode DryRun option
+
+Release v1.8.19 (2017-04-28)
+===
+
+### Service Client Updates
+* `service/cloudformation`: Updates service waiters and paginators
+  * Adding back the removed waiters and paginators.
+
+Release v1.8.18 (2017-04-28)
+===
+
+### Service Client Updates
+* `service/cloudformation`: Updates service API, documentation, waiters, paginators, and examples
+  * API update for CloudFormation: New optional parameter ClientRequestToken which can be used as an idempotency token to safely retry certain operations as well as tagging StackEvents.
+* `service/rds`: Updates service API, documentation, and examples
+  * The DescribeDBClusterSnapshots API now returns a SourceDBClusterSnapshotArn field which identifies the source DB cluster snapshot of a copied snapshot.
+* `service/rekognition`: Updates service API
+  * Fix for missing file type check
+* `service/snowball`: Updates service API, documentation, and paginators
+  * The Snowball API has a new exception that can be thrown for list operation requests.
+* `service/sqs`: Updates service API, documentation, and paginators
+  * Adding server-side encryption (SSE) support to SQS by integrating with AWS KMS; adding new queue attributes to SQS CreateQueue, SetQueueAttributes and GetQueueAttributes APIs to support SSE.
+
+Release v1.8.17 (2017-04-26)
+===
+
+### Service Client Updates
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/rds`: Updates service API and documentation
+  * With Amazon Relational Database Service (Amazon RDS) running MySQL or Amazon Aurora, you can now authenticate to your DB instance using IAM database authentication.
+
 Release v1.8.16 (2017-04-21)
 ===
 

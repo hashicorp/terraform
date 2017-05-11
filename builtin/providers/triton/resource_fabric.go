@@ -1,6 +1,7 @@
 package triton
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -109,7 +110,7 @@ func resourceFabricCreate(d *schema.ResourceData, meta interface{}) error {
 		routes[cidr] = ip
 	}
 
-	fabric, err := client.Fabrics().CreateFabricNetwork(&triton.CreateFabricNetworkInput{
+	fabric, err := client.Fabrics().CreateFabricNetwork(context.Background(), &triton.CreateFabricNetworkInput{
 		FabricVLANID:     d.Get("vlan_id").(int),
 		Name:             d.Get("name").(string),
 		Description:      d.Get("description").(string),
@@ -134,7 +135,7 @@ func resourceFabricCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceFabricExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(*triton.Client)
 
-	return resourceExists(client.Fabrics().GetFabricNetwork(&triton.GetFabricNetworkInput{
+	return resourceExists(client.Fabrics().GetFabricNetwork(context.Background(), &triton.GetFabricNetworkInput{
 		FabricVLANID: d.Get("vlan_id").(int),
 		NetworkID:    d.Id(),
 	}))
@@ -143,7 +144,7 @@ func resourceFabricExists(d *schema.ResourceData, meta interface{}) (bool, error
 func resourceFabricRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*triton.Client)
 
-	fabric, err := client.Fabrics().GetFabricNetwork(&triton.GetFabricNetworkInput{
+	fabric, err := client.Fabrics().GetFabricNetwork(context.Background(), &triton.GetFabricNetworkInput{
 		FabricVLANID: d.Get("vlan_id").(int),
 		NetworkID:    d.Id(),
 	})
@@ -171,7 +172,7 @@ func resourceFabricRead(d *schema.ResourceData, meta interface{}) error {
 func resourceFabricDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*triton.Client)
 
-	return client.Fabrics().DeleteFabricNetwork(&triton.DeleteFabricNetworkInput{
+	return client.Fabrics().DeleteFabricNetwork(context.Background(), &triton.DeleteFabricNetworkInput{
 		FabricVLANID: d.Get("vlan_id").(int),
 		NetworkID:    d.Id(),
 	})

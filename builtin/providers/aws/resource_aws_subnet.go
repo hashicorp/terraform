@@ -234,7 +234,7 @@ func resourceAwsSubnetUpdate(d *schema.ResourceData, meta interface{}) error {
 			Pending: []string{"disassociating", "associated"},
 			Target:  []string{"disassociated"},
 			Refresh: SubnetIpv6CidrStateRefreshFunc(conn, d.Id(), d.Get("ipv6_cidr_block_association_id").(string)),
-			Timeout: 1 * time.Minute,
+			Timeout: 3 * time.Minute,
 		}
 		if _, err := stateConf.WaitForState(); err != nil {
 			return fmt.Errorf(
@@ -263,7 +263,7 @@ func resourceAwsSubnetUpdate(d *schema.ResourceData, meta interface{}) error {
 			Pending: []string{"associating", "disassociated"},
 			Target:  []string{"associated"},
 			Refresh: SubnetIpv6CidrStateRefreshFunc(conn, d.Id(), *resp.Ipv6CidrBlockAssociation.AssociationId),
-			Timeout: 1 * time.Minute,
+			Timeout: 3 * time.Minute,
 		}
 		if _, err := stateConf.WaitForState(); err != nil {
 			return fmt.Errorf(
