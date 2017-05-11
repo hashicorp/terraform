@@ -344,6 +344,10 @@ func (c *Config) Client() (interface{}, error) {
 		}
 	}
 
+	if c.BatchSecurityGroups {
+		client.securitygroupscache = &SecurityGroupsCache{}
+	}
+
 	client.acmconn = acm.New(sess)
 	client.apigateway = apigateway.New(sess)
 	client.appautoscalingconn = applicationautoscaling.New(sess)
