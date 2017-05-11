@@ -144,6 +144,7 @@ func (s *VPNService) CreateRemoteAccessVpn(p *CreateRemoteAccessVpnParams) (*Cre
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -221,6 +222,7 @@ func (s *VPNService) DeleteRemoteAccessVpn(p *DeleteRemoteAccessVpnParams) (*Del
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -431,6 +433,7 @@ func (s *VPNService) ListRemoteAccessVpns(p *ListRemoteAccessVpnsParams) (*ListR
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -540,6 +543,7 @@ func (s *VPNService) UpdateRemoteAccessVpn(p *UpdateRemoteAccessVpnParams) (*Upd
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -667,6 +671,7 @@ func (s *VPNService) AddVpnUser(p *AddVpnUserParams) (*AddVpnUserResponse, error
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -773,6 +778,7 @@ func (s *VPNService) RemoveVpnUser(p *RemoveVpnUserParams) (*RemoveVpnUserRespon
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -960,6 +966,7 @@ func (s *VPNService) ListVpnUsers(p *ListVpnUsersParams) (*ListVpnUsersResponse,
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1182,6 +1189,7 @@ func (s *VPNService) CreateVpnCustomerGateway(p *CreateVpnCustomerGatewayParams)
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1282,6 +1290,7 @@ func (s *VPNService) CreateVpnGateway(p *CreateVpnGatewayParams) (*CreateVpnGate
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1398,6 +1407,7 @@ func (s *VPNService) CreateVpnConnection(p *CreateVpnConnectionParams) (*CreateV
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1486,6 +1496,7 @@ func (s *VPNService) DeleteVpnCustomerGateway(p *DeleteVpnCustomerGatewayParams)
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1553,6 +1564,7 @@ func (s *VPNService) DeleteVpnGateway(p *DeleteVpnGatewayParams) (*DeleteVpnGate
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1620,6 +1632,7 @@ func (s *VPNService) DeleteVpnConnection(p *DeleteVpnConnectionParams) (*DeleteV
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1833,6 +1846,7 @@ func (s *VPNService) UpdateVpnCustomerGateway(p *UpdateVpnCustomerGatewayParams)
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1943,6 +1957,7 @@ func (s *VPNService) ResetVpnConnection(p *ResetVpnConnectionParams) (*ResetVpnC
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -2190,6 +2205,7 @@ func (s *VPNService) ListVpnCustomerGateways(p *ListVpnCustomerGatewaysParams) (
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -2409,6 +2425,7 @@ func (s *VPNService) ListVpnGateways(p *ListVpnGatewaysParams) (*ListVpnGateways
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -2620,6 +2637,7 @@ func (s *VPNService) ListVpnConnections(p *ListVpnConnectionsParams) (*ListVpnCo
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -2740,6 +2758,7 @@ func (s *VPNService) UpdateVpnConnection(p *UpdateVpnConnectionParams) (*UpdateV
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -2856,6 +2875,7 @@ func (s *VPNService) UpdateVpnGateway(p *UpdateVpnGatewayParams) (*UpdateVpnGate
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
