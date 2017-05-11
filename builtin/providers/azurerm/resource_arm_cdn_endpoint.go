@@ -306,7 +306,8 @@ func resourceArmCdnEndpointUpdate(d *schema.ResourceData, meta interface{}) erro
 		EndpointPropertiesUpdateParameters: &properties,
 	}
 
-	_, err := cdnEndpointsClient.Update(resGroup, profileName, name, updateProps, make(<-chan struct{}))
+	_, error := cdnEndpointsClient.Update(resGroup, profileName, name, updateProps, make(<-chan struct{}))
+	err := <-error
 	if err != nil {
 		return fmt.Errorf("Error issuing Azure ARM update request to update CDN Endpoint %q: %s", name, err)
 	}
