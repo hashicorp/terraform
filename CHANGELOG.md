@@ -12,6 +12,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* core: When using `-target`, any outputs that include attributes of the targeted resources are now updated [GH-14186]
 * provider/aws: Increase EIP update timeout [GH-14381]
 * provider/aws: Increase timeout for creating security group [GH-14380]
 * provider/aws: Increase timeout for (dis)associating IPv6 addr to subnet [GH-14401]
