@@ -15,9 +15,11 @@ func (d *GitHubDetector) Detect(src, _ string) (string, bool, error) {
 		return "", false, nil
 	}
 
-	if strings.HasPrefix(src, "github.com/") {
+	parts := strings.Split(strings.Split(src, "/")[0], ".")
+
+	if parts[0] == "github" && parts[len(parts)-1] == "com" {
 		return d.detectHTTP(src)
-	} else if strings.HasPrefix(src, "git@github.com:") {
+	} else if strings.HasPrefix(src, "git@") {
 		return d.detectSSH(src)
 	}
 
@@ -51,6 +53,7 @@ func (d *GitHubDetector) detectHTTP(src string) (string, bool, error) {
 func (d *GitHubDetector) detectSSH(src string) (string, bool, error) {
 	idx := strings.Index(src, ":")
 	qidx := strings.Index(src, "?")
+	hidx := strings.Index(src, "@")
 	if qidx == -1 {
 		qidx = len(src)
 	}
@@ -58,7 +61,7 @@ func (d *GitHubDetector) detectSSH(src string) (string, bool, error) {
 	var u url.URL
 	u.Scheme = "ssh"
 	u.User = url.User("git")
-	u.Host = "github.com"
+	u.Host = src[hidx+1 : idx]
 	u.Path = src[idx+1 : qidx]
 	if qidx < len(src) {
 		q, err := url.ParseQuery(src[qidx+1:])
