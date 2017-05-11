@@ -175,6 +175,7 @@ func (s *UsageService) AddTrafficType(p *AddTrafficTypeParams) (*AddTrafficTypeR
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -248,6 +249,7 @@ func (s *UsageService) DeleteTrafficType(p *DeleteTrafficTypeParams) (*DeleteTra
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -372,6 +374,7 @@ func (s *UsageService) ListTrafficTypes(p *ListTrafficTypesParams) (*ListTraffic
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -508,6 +511,7 @@ func (s *UsageService) UpdateTrafficType(p *UpdateTrafficTypeParams) (*UpdateTra
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -600,6 +604,7 @@ func (s *UsageService) ListTrafficTypeImplementors(p *ListTrafficTypeImplementor
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -679,6 +684,7 @@ func (s *UsageService) GenerateUsageRecords(p *GenerateUsageRecordsParams) (*Gen
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -844,6 +850,7 @@ func (s *UsageService) ListUsageRecords(p *ListUsageRecordsParams) (*ListUsageRe
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -914,6 +921,7 @@ func (s *UsageService) ListUsageTypes(p *ListUsageTypesParams) (*ListUsageTypesR
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -971,6 +979,7 @@ func (s *UsageService) RemoveRawUsageRecords(p *RemoveRawUsageRecordsParams) (*R
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1056,6 +1065,7 @@ func (s *UsageService) AddTrafficMonitor(p *AddTrafficMonitorParams) (*AddTraffi
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1110,6 +1120,7 @@ func (s *UsageService) DeleteTrafficMonitor(p *DeleteTrafficMonitorParams) (*Del
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1196,6 +1207,7 @@ func (s *UsageService) ListTrafficMonitors(p *ListTrafficMonitorsParams) (*ListT
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
