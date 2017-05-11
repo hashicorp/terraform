@@ -172,7 +172,7 @@ care to not duplicate these hooks in `aws_autoscaling_lifecycle_hook`.
 `autoscaling_group` provides the following
 [Timeouts](/docs/configuration/resources.html#timeouts) configuration options:
 
-- `delete` - (Default `5 minutes`) Used for destroying ASG.
+- `delete` - (Default `10 minutes`) Used for destroying ASG.  The same timeout setting also applies to the wait time to drain connection.
 
 ## Waiting for Capacity
 
