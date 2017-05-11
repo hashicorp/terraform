@@ -174,12 +174,12 @@ func resourceArmEventHubNamespaceDelete(d *schema.ResourceData, meta interface{}
 	resp := <-delResp
 	err = <-error
 
-	if resp.StatusCode != http.StatusNotFound {
-		return fmt.Errorf("Error issuing Azure ARM delete request of EventHub Namespace '%s': %+v", name, err)
+	if resp.StatusCode == http.StatusNotFound {
+		return nil
 	}
 
 	if err != nil {
-		return err
+		return fmt.Errorf("Error issuing Azure ARM delete request of EventHub Namespace '%s': %+v", name, err)
 	}
 
 	return nil
