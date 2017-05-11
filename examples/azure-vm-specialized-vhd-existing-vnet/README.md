@@ -1,4 +1,5 @@
-# Create a specialized virtual machine in an existing virtual network
+# Create a specialized virtual machine in an existing virtual network [![Build Status](https://travis-ci.org/harijayms/terraform.svg?branch=topic-201-vm-specialized-vhd-existing-vnet)](https://travis-ci.org/harijayms/terraform)
+
 This Terraform template was based on [this](https://github.com/Azure/azure-quickstart-templates/tree/master/201-vm-specialized-vhd-existing-vnet) Azure Quickstart Template. Changes to the ARM template that may have occurred since the creation of this example may not be reflected in this Terraform template.
 
 ## Prerequisites

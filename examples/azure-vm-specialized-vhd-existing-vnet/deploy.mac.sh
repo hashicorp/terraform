@@ -12,7 +12,6 @@ if docker -v; then
   export EXISTING_STORAGE_ACCOUNT_NAME=permanentstor
   export EXISTING_VIRTUAL_NETWORK_NAME=vqeeopeictwmvnet
   export EXISTING_SUBNET_NAME=vqeeopeictwmsubnet
-  export EXISTING_SUBNET_ID
 
   /bin/sh ./deploy.ci.sh
 
