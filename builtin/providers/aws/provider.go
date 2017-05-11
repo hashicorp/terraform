@@ -278,6 +278,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_db_parameter_group":                       resourceAwsDbParameterGroup(),
 			"aws_db_security_group":                        resourceAwsDbSecurityGroup(),
 			"aws_db_subnet_group":                          resourceAwsDbSubnetGroup(),
+			"aws_devicefarm_project":                       resourceAwsDevicefarmProject(),
 			"aws_directory_service_directory":              resourceAwsDirectoryServiceDirectory(),
 			"aws_dms_certificate":                          resourceAwsDmsCertificate(),
 			"aws_dms_endpoint":                             resourceAwsDmsEndpoint(),
@@ -495,6 +496,8 @@ func init() {
 
 		"cloudwatchlogs_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
 
+		"devicefarm_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
+
 		"dynamodb_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n" +
 			"It's typically used to connect to dynamodb-local.",
 
@@ -597,6 +600,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		config.CloudWatchEndpoint = endpoints["cloudwatch"].(string)
 		config.CloudWatchEventsEndpoint = endpoints["cloudwatchevents"].(string)
 		config.CloudWatchLogsEndpoint = endpoints["cloudwatchlogs"].(string)
+		config.DeviceFarmEndpoint = endpoints["devicefarm"].(string)
 		config.DynamoDBEndpoint = endpoints["dynamodb"].(string)
 		config.Ec2Endpoint = endpoints["ec2"].(string)
 		config.ElbEndpoint = endpoints["elb"].(string)
@@ -699,6 +703,12 @@ func endpointsSchema() *schema.Schema {
 					Default:     "",
 					Description: descriptions["cloudformation_endpoint"],
 				},
+				"devicefarm": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "",
+					Description: descriptions["devicefarm_endpoint"],
+				},
 				"dynamodb": {
 					Type:        schema.TypeString,
 					Optional:    true,
@@ -774,6 +784,7 @@ func endpointsToHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["cloudwatchevents"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["cloudwatchlogs"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["cloudformation"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["devicefarm"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["dynamodb"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["iam"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["ec2"].(string)))
