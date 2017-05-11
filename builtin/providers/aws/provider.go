@@ -171,6 +171,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_caller_identity":          dataSourceAwsCallerIdentity(),
 			"aws_canonical_user_id":        dataSourceAwsCanonicalUserId(),
 			"aws_cloudformation_stack":     dataSourceAwsCloudFormationStack(),
+			"aws_cloudformation_exports":   dataSourceAwsCloudFormationExports(),
 			"aws_db_instance":              dataSourceAwsDbInstance(),
 			"aws_db_snapshot":              dataSourceAwsDbSnapshot(),
 			"aws_ebs_snapshot":             dataSourceAwsEbsSnapshot(),
