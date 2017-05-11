@@ -2,10 +2,15 @@ output "hostname" {
   value = "${var.hostname}"
 }
 
-output "vm_fqdn" {
-  value = "${azurerm_public_ip.pip.fqdn}"
+output "ip_address" {
+  value = "${azurerm_public_ip.transferpip.ip_address}"
 }
 
-output "ssh_command" {
-  value = "ssh ${var.admin_username}@${azurerm_public_ip.pip.fqdn}"
+output "fqdn" {
+  value = "${azurerm_public_ip.transferpip.ip_address}"
 }
+
+output "id" {
+  value = "${azurerm_public_ip.transferpip.id}"
+}
+

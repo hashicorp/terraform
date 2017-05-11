@@ -24,25 +24,44 @@ resource "azurerm_subnet" "subnet" {
   address_prefix       = "${var.subnet_prefix}"
 }
 
-resource "azurerm_public_ip" "pip" {
-  name                         = "PublicIp${count.index}"
+resource "azurerm_public_ip" "transferpip" {
+  name                         = "transferpip"
+  location                     = "${azurerm_resource_group.rg.location}"
+  resource_group_name          = "${azurerm_resource_group.rg.name}"
+  public_ip_address_allocation = "Static"
+}
+
+resource "azurerm_network_interface" "transfernic" {
+  name                = "transfernic"
+  location            = "${azurerm_resource_group.rg.location}"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
+
+  ip_configuration {
+    name                          = "${azurerm_public_ip.transferpip.name}"
+    subnet_id                     = "${azurerm_subnet.subnet.id}"
+    private_ip_address_allocation = "Static"
+    public_ip_address_id          = "${azurerm_public_ip.transferpip.id}"
+    private_ip_address            = "10.0.0.5"
+  }
+}
+
+resource "azurerm_public_ip" "mypip" {
+  name                         = "mypip"
   location                     = "${azurerm_resource_group.rg.location}"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
   public_ip_address_allocation = "Dynamic"
-  count                        = "${var.vm_count}"
 }
 
-resource "azurerm_network_interface" "nic" {
-  name                = "nic${count.index}"
+resource "azurerm_network_interface" "mynic" {
+  name                = "mynic"
   location            = "${azurerm_resource_group.rg.location}"
   resource_group_name = "${azurerm_resource_group.rg.name}"
-  count               = "${var.vm_count}"
 
   ip_configuration {
-    name                          = "${element(azurerm_public_ip.pip.*.name, count.index)}"
+    name                          = "${azurerm_public_ip.mypip.name}"
     subnet_id                     = "${azurerm_subnet.subnet.id}"
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = "${element(azurerm_public_ip.pip.*.id, count.index)}"
+    public_ip_address_id          = "${azurerm_public_ip.mypip.id}"
   }
 }
 
@@ -69,12 +88,12 @@ resource "azurerm_virtual_machine" "transfer" {
   location              = "${azurerm_resource_group.rg.location}"
   resource_group_name   = "${azurerm_resource_group.rg.name}"
   vm_size               = "${var.vm_size}"
-  network_interface_ids = ["${element(azurerm_network_interface.nic.*.id, count.index)}"]
+  network_interface_ids = ["${azurerm_network_interface.transfernic.id}"]
 
   storage_os_disk {
     name          = "${var.hostname}-osdisk"
     image_uri     = "${var.source_img_uri}"
-    vhd_uri       = "https://${var.existing_storage_acct}.blob.core.windows.net/${var.existing_resource_group}-vhds/${var.hostname}3osdisk.vhd"
+    vhd_uri       = "https://${var.existing_storage_acct}.blob.core.windows.net/${var.existing_resource_group}-vhds/${var.hostname}osdisk.vhd"
     os_type       = "${var.os_type}"
     caching       = "ReadWrite"
     create_option = "FromImage"
@@ -99,7 +118,7 @@ resource "azurerm_virtual_machine" "transfer" {
       type     = "winrm"
       user     = "${var.admin_username}"
       password = "${var.admin_password}"
-      host     = "${azurerm_public_ip.pip.ip_address}"
+      host     = "${azurerm_public_ip.transferpip.ip_address}"
     }
   }
   
@@ -112,13 +131,36 @@ resource "azurerm_virtual_machine" "transfer" {
       type     = "winrm"
       user     = "${var.admin_username}"
       password = "${var.admin_password}"
-      host     = "${azurerm_public_ip.pip.ip_address}"
+      host     = "${azurerm_public_ip.transferpip.ip_address}"
     }
   }
 
 }
 
-# ***************************************************************************************************************
-# FROM ARM TEMPLATE:
-# "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File ','ImageTransfer.ps1 -SourceImage ',parameters('sourceImageURI'),' -SourceSAKey ', listKeys(resourceId(parameters('sourceStorageAccountResourceGroup'),'Microsoft.Storage/storageAccounts', variables('sourceStorageAccountName')), '2015-06-15').key1, ' -DestinationURI https://', variables('StorageAccountName'), '.blob.core.windows.net/vhds', ' -DestinationSAKey ', listKeys(concat('Microsoft.Storage/storageAccounts/', variables('StorageAccountName')), '2015-06-15').key1)]"
-# ***************************************************************************************************************
+# resource "azurerm_virtual_machine" "new" {
+#   name                  = "${var.vm_vm_name}"
+#   location              = "${azurerm_resource_group.rg.location}"
+#   resource_group_name   = "${azurerm_resource_group.rg.name}"
+#   vm_size               = "${var.vm_size}"
+#   network_interface_ids = ["${element(azurerm_network_interface.nic.*.id, count.index)}"]
+
+#   storage_os_disk {
+#     name          = "${var.hostname}-osdisk"
+#     image_uri     = "${var.source_img_uri}"
+#     vhd_uri       = "https://${var.existing_storage_acct}.blob.core.windows.net/${var.existing_resource_group}-vhds/${var.hostname}5osdisk.vhd"
+#     os_type       = "${var.os_type}"
+#     caching       = "ReadWrite"
+#     create_option = "FromImage"
+#   }
+
+#   os_profile {
+#     computer_name  = "${var.hostname}"
+#     admin_username = "${var.admin_username}"
+#     admin_password = "${var.admin_password}"
+#   }
+
+#   boot_diagnostics {
+#     enabled     = true
+#     storage_uri = "${azurerm_storage_account.stor.primary_blob_endpoint}"
+#   }
+# }
