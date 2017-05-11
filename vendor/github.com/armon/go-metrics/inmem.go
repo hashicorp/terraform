@@ -25,7 +25,7 @@ type InmemSink struct {
 	// intervals is a slice of the retained intervals
 	intervals    []*IntervalMetrics
 	intervalLock sync.RWMutex
-
+	
 	rateDenom float64
 }
 
@@ -68,7 +68,7 @@ func NewIntervalMetrics(intv time.Time) *IntervalMetrics {
 // about a sample
 type AggregateSample struct {
 	Count       int       // The count of emitted pairs
-	Rate        float64   // The count of emitted pairs per time unit (usually 1 second)
+	Rate	        float64   // The count of emitted pairs per time unit (usually 1 second)
 	Sum         float64   // The sum of values
 	SumSq       float64   // The sum of squared values
 	Min         float64   // Minimum value
@@ -105,7 +105,7 @@ func (a *AggregateSample) Ingest(v float64, rateDenom float64) {
 	if v > a.Max || a.Count == 1 {
 		a.Max = v
 	}
-	a.Rate = float64(a.Count) / rateDenom
+	a.Rate = float64(a.Count)/rateDenom
 	a.LastUpdated = time.Now()
 }
 
@@ -128,7 +128,7 @@ func NewInmemSink(interval, retain time.Duration) *InmemSink {
 		interval:     interval,
 		retain:       retain,
 		maxIntervals: int(retain / interval),
-		rateDenom:    float64(interval.Nanoseconds()) / float64(rateTimeUnit.Nanoseconds()),
+		rateDenom: float64(interval.Nanoseconds()) / float64(rateTimeUnit.Nanoseconds()),
 	}
 	i.intervals = make([]*IntervalMetrics, 0, i.maxIntervals)
 	return i

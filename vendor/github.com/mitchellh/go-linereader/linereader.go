@@ -1,8 +1,8 @@
 package linereader
 
 import (
-	"bufio"
 	"io"
+	"bufio"
 	"sync/atomic"
 	"time"
 )

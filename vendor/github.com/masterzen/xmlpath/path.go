@@ -372,7 +372,7 @@ func MustCompile(path string) *Path {
 
 // Compile returns the compiled path.
 func Compile(path string) (*Path, error) {
-	c := pathCompiler{path, 0, []Namespace{}}
+	c := pathCompiler{path, 0, []Namespace{} }
 	if path == "" {
 		return nil, c.errorf("empty path")
 	}
@@ -397,9 +397,9 @@ func CompileWithNamespace(path string, ns []Namespace) (*Path, error) {
 }
 
 type pathCompiler struct {
-	path string
-	i    int
-	ns   []Namespace
+	path  string
+	i     int
+	ns	  []Namespace
 }
 
 func (c *pathCompiler) errorf(format string, args ...interface{}) error {
@@ -575,14 +575,14 @@ func (c *pathCompiler) parseLiteral() (string, error) {
 		if !c.skipByteFind('"') {
 			return "", fmt.Errorf(`missing '"'`)
 		}
-		return c.path[mark : c.i-1], nil
+		return c.path[mark:c.i-1], nil
 	}
 	if c.skipByte('\'') {
 		mark := c.i
 		if !c.skipByteFind('\'') {
 			return "", fmt.Errorf(`missing "'"`)
 		}
-		return c.path[mark : c.i-1], nil
+		return c.path[mark:c.i-1], nil
 	}
 	return "", errNoLiteral
 }
@@ -611,7 +611,7 @@ func (c *pathCompiler) skipByte(b byte) bool {
 func (c *pathCompiler) skipByteFind(b byte) bool {
 	for i := c.i; i < len(c.path); i++ {
 		if c.path[i] == b {
-			c.i = i + 1
+			c.i = i+1
 			return true
 		}
 	}

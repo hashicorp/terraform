@@ -1,9 +1,10 @@
+
 package packet
 
 import (
+	"math/big"
 	"crypto/ecdsa"
 	"errors"
-	"math/big"
 )
 
 type ecdhPrivateKey struct {

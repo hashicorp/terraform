@@ -6,14 +6,14 @@ import (
 )
 
 type Document struct {
-	root        *Element
+	root *Element
 	PrettyPrint bool
 	Indentation string
-	DocType     bool
+	DocType bool
 }
 
 func CreateDocument() *Document {
-	return &Document{PrettyPrint: false, Indentation: "  ", DocType: true}
+	return &Document{ PrettyPrint: false, Indentation: "  ", DocType: true }
 }
 
 func (doc *Document) SetRoot(node *Element) {
@@ -26,10 +26,10 @@ func (doc *Document) String() string {
 	if doc.DocType {
 		fmt.Fprintln(&b, `<?xml version="1.0" encoding="utf-8" ?>`)
 	}
-
+	
 	if doc.root != nil {
 		doc.root.Bytes(&b, doc.PrettyPrint, doc.Indentation, 0)
 	}
-
+	
 	return string(b.Bytes())
 }

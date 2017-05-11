@@ -187,7 +187,7 @@ func (client *ProviderClient) Request(method, url string, options RequestOpts) (
 
 	// Set connection parameter to close the connection immediately when we've got the response
 	req.Close = true
-
+	
 	// Issue the request.
 	resp, err := client.HTTPClient.Do(req)
 	if err != nil {

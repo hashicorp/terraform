@@ -8,12 +8,12 @@ import (
 // SystemInfo represents a set of miscellaneous system information properties about the
 // Rundeck server.
 type SystemInfo struct {
-	XMLName    xml.Name        `xml:"system"`
-	ServerTime SystemTimestamp `xml:"timestamp"`
-	Rundeck    About           `xml:"rundeck"`
-	OS         SystemOS        `xml:"os"`
-	JVM        SystemJVM       `xml:"jvm"`
-	Stats      SystemStats     `xml:"stats"`
+	XMLName       xml.Name        `xml:"system"`
+	ServerTime    SystemTimestamp `xml:"timestamp"`
+	Rundeck       About           `xml:"rundeck"`
+	OS            SystemOS        `xml:"os"`
+	JVM           SystemJVM       `xml:"jvm"`
+	Stats         SystemStats     `xml:"stats"`
 }
 
 // About describes the Rundeck server itself.

@@ -2,19 +2,19 @@ package rundeck
 
 // KeyMeta is the metadata associated with a resource in the Rundeck key store.
 type KeyMeta struct {
-	XMLName                string `xml:"resource"`
-	Name                   string `xml:"name,attr,omitempty"`
-	Path                   string `xml:"path,attr,omitempty"`
-	ResourceType           string `xml:"type,attr,omitempty"`
-	URL                    string `xml:"url,attr,omitempty"`
-	ContentType            string `xml:"resource-meta>Rundeck-content-type"`
-	ContentSize            string `xml:"resource-meta>Rundeck-content-size"`
-	ContentMask            string `xml:"resource-meta>Rundeck-content-mask"`
-	KeyType                string `xml:"resource-meta>Rundeck-key-type"`
+	XMLName string `xml:"resource"`
+	Name string `xml:"name,attr,omitempty"`
+	Path string `xml:"path,attr,omitempty"`
+	ResourceType string `xml:"type,attr,omitempty"`
+	URL string `xml:"url,attr,omitempty"`
+	ContentType string `xml:"resource-meta>Rundeck-content-type"`
+	ContentSize string `xml:"resource-meta>Rundeck-content-size"`
+	ContentMask string `xml:"resource-meta>Rundeck-content-mask"`
+	KeyType string `xml:"resource-meta>Rundeck-key-type"`
 	LastModifiedByUserName string `xml:"resource-meta>Rundeck-auth-modified-username"`
-	CreatedByUserName      string `xml:"resource-meta>Rundeck-auth-created-username"`
-	CreatedTimestamp       string `xml:"resource-meta>Rundeck-content-creation-time"`
-	LastModifiedTimestamp  string `xml:"resource-meta>Rundeck-content-modify-time"`
+	CreatedByUserName string `xml:"resource-meta>Rundeck-auth-created-username"`
+	CreatedTimestamp string `xml:"resource-meta>Rundeck-content-creation-time"`
+	LastModifiedTimestamp string `xml:"resource-meta>Rundeck-content-modify-time"`
 }
 
 type keyMetaListContents struct {
@@ -63,7 +63,7 @@ func (c *Client) ReplacePrivateKey(path string, content string) error {
 
 func (c *Client) createOrReplacePublicKey(method string, path string, contentType string, content string) error {
 	req := &request{
-		Method:    method,
+		Method: method,
 		PathParts: []string{"storage", "keys", path},
 		Headers: map[string]string{
 			"Content-Type": contentType,

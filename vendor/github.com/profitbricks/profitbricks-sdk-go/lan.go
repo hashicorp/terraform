@@ -19,8 +19,8 @@ type Lan struct {
 }
 
 type LanProperties struct {
-	Name   string      `json:"name,omitempty"`
-	Public interface{} `json:"public,omitempty"`
+	Name   string `json:"name,omitempty"`
+	Public interface{}   `json:"public,omitempty"`
 }
 
 type LanEntities struct {

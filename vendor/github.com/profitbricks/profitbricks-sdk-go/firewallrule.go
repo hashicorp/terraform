@@ -18,15 +18,15 @@ type FirewallRule struct {
 }
 
 type FirewallruleProperties struct {
-	Name           string      `json:"name,omitempty"`
-	Protocol       string      `json:"protocol,omitempty"`
-	SourceMac      string      `json:"sourceMac,omitempty"`
-	SourceIp       string      `json:"sourceIp,omitempty"`
-	TargetIp       string      `json:"targetIp,omitempty"`
-	IcmpCode       interface{} `json:"icmpCode,omitempty"`
-	IcmpType       interface{} `json:"icmpType,omitempty"`
-	PortRangeStart interface{} `json:"portRangeStart,omitempty"`
-	PortRangeEnd   interface{} `json:"portRangeEnd,omitempty"`
+	Name           string `json:"name,omitempty"`
+	Protocol       string `json:"protocol,omitempty"`
+	SourceMac      string `json:"sourceMac,omitempty"`
+	SourceIp       string `json:"sourceIp,omitempty"`
+	TargetIp       string `json:"targetIp,omitempty"`
+	IcmpCode       interface{}    `json:"icmpCode,omitempty"`
+	IcmpType       interface{}    `json:"icmpType,omitempty"`
+	PortRangeStart interface{}    `json:"portRangeStart,omitempty"`
+	PortRangeEnd   interface{}    `json:"portRangeEnd,omitempty"`
 }
 
 type FirewallRules struct {

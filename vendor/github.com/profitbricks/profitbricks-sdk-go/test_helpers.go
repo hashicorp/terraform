@@ -2,9 +2,9 @@ package profitbricks
 
 import (
 	"fmt"
-	"os"
-	"strings"
 	"time"
+	"strings"
+	"os"
 )
 
 func mkdcid(name string) string {

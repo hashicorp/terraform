@@ -16,7 +16,7 @@ import (
 	"regexp"
 )
 
-// The UUID reserved variants.
+// The UUID reserved variants. 
 const (
 	ReservedNCS       byte = 0x80
 	ReservedRFC4122   byte = 0x40

@@ -131,6 +131,7 @@ func (b *xmlBuilder) buildStruct(value reflect.Value, current *XMLNode, tag refl
 			continue
 		}
 
+
 		mTag := field.Tag
 		if mTag.Get("location") != "" { // skip non-body members
 			continue

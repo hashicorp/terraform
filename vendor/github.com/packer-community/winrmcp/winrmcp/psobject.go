@@ -6,10 +6,12 @@ type pslist struct {
 
 type psobject struct {
 	Properties []psproperty `xml:"Property"`
-	Value      string       `xml:",innerxml"`
+	Value string `xml:",innerxml"`
 }
 
 type psproperty struct {
 	Name  string `xml:"Name,attr"`
 	Value string `xml:",innerxml"`
 }
+
+
