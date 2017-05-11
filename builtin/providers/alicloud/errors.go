@@ -36,6 +36,9 @@ const (
 	// ess
 	InvalidScalingGroupIdNotFound               = "InvalidScalingGroupId.NotFound"
 	IncorrectScalingConfigurationLifecycleState = "IncorrectScalingConfigurationLifecycleState"
+
+	// oss
+	OssBucketNotFound = "NoSuchBucket"
 )
 
 func GetNotFoundErrorFromString(str string) error {
