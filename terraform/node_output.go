@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/dag"
 )
 
 // NodeApplyableOutput represents an output that is "applyable":
@@ -32,6 +33,14 @@ func (n *NodeApplyableOutput) Path() []string {
 func (n *NodeApplyableOutput) RemoveIfNotTargeted() bool {
 	// We need to add this so that this node will be removed if
 	// it isn't targeted or a dependency of a target.
+	return true
+}
+
+// GraphNodeTargetDownstream
+func (n *NodeApplyableOutput) TargetDownstream(targetedDeps, untargetedDeps *dag.Set) bool {
+	// If any of the direct dependencies of an output are targeted then
+	// the output must always be targeted as well, so its value will always
+	// be up-to-date at the completion of an apply walk.
 	return true
 }
 
