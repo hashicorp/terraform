@@ -16,7 +16,7 @@ thing.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new load balancer
 resource "aws_alb" "test" {
   name            = "test-alb-tf"

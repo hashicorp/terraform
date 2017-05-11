@@ -281,6 +281,11 @@ func resourceAliyunSlbRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	if loadBalancer == nil {
+		d.SetId("")
+		return nil
+	}
+
 	d.Set("name", loadBalancer.LoadBalancerName)
 
 	if loadBalancer.AddressType == slb.InternetAddressType {

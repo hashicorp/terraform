@@ -14,8 +14,7 @@ The `triton_vlan` resource represents an Triton VLAN. A VLAN provides a low leve
 
 ### Create a VLAN
 
-
-```
+```hcl
 resource "triton_vlan" "dmz" {
   vlan_id     = 100
   name        = "dmz"

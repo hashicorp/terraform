@@ -11,7 +11,8 @@ description: |-
 Provides a CloudWatch Metric Alarm resource.
 
 ## Example Usage
-```
+
+```hcl
 resource "aws_cloudwatch_metric_alarm" "foobar" {
   alarm_name                = "terraform-test-foobar5"
   comparison_operator       = "GreaterThanOrEqualToThreshold"
@@ -21,13 +22,14 @@ resource "aws_cloudwatch_metric_alarm" "foobar" {
   period                    = "120"
   statistic                 = "Average"
   threshold                 = "80"
-  alarm_description         = "This metric monitor ec2 cpu utilization"
+  alarm_description         = "This metric monitors ec2 cpu utilization"
   insufficient_data_actions = []
 }
 ```
 
 ## Example in Conjunction with Scaling Policies
-```
+
+```hcl
 resource "aws_autoscaling_policy" "bat" {
   name                   = "foobar3-terraform-test"
   scaling_adjustment     = 4
@@ -50,7 +52,7 @@ resource "aws_cloudwatch_metric_alarm" "bat" {
     AutoScalingGroupName = "${aws_autoscaling_group.bar.name}"
   }
 
-  alarm_description = "This metric monitor ec2 cpu utilization"
+  alarm_description = "This metric monitors ec2 cpu utilization"
   alarm_actions     = ["${aws_autoscaling_policy.bat.arn}"]
 }
 ```
@@ -97,7 +99,6 @@ The following values are supported: `ignore`, and `evaluate`.
 The following attributes are exported:
 
 * `id` - The ID of the health check
-
 
 ## Import
 

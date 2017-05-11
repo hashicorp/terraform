@@ -13,7 +13,7 @@ modify, and delete internal networks for vApps to connect.
 
 ## Example Usage
 
-```
+```hcl
 resource "vcd_network" "net" {
   name         = "my-net"
   edge_gateway = "Edge Gateway Name"

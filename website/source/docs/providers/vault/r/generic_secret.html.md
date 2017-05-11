@@ -51,6 +51,10 @@ see which endpoints support the `PUT` and `DELETE` methods.
 * `data_json` - (Required) String containing a JSON-encoded object that
 will be written as the secret data at the given path.
 
+* `allow_read` - (Optional) True/false. Set this to true if your vault
+authentication is able to read the data, this allows the resource to be
+compared and updated. Defaults to false.
+
 ## Required Vault Capabilities
 
 Use of this resource requires the `create` or `update` capability
@@ -59,10 +63,11 @@ along with the `delete` capbility if the resource is removed from
 configuration.
 
 This resource does not *read* the secret data back from Terraform
-on refresh. This avoids the need for `read` access on the given
+on refresh by default. This avoids the need for `read` access on the given
 path, but it means that Terraform is not able to detect and repair
 "drift" on this resource should the data be updated or deleted outside
-of Terraform.
+of Terraform. This limitation can be negated by setting `allow_read` to
+true
 
 ## Attributes Reference
 

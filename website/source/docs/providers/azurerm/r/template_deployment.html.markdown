@@ -12,7 +12,7 @@ Create a template deployment of resources
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acctestrg-01"
   location = "West US"
@@ -70,11 +70,21 @@ resource "azurerm_template_deployment" "test" {
         }
       }
     }
-  ]
+  ],
+  "outputs": {
+    "storageAccountName": {
+      "type": "string",
+      "value": "[variables('storageAccountName')]"
+    }
+  }
 }
 DEPLOY
 
   deployment_mode = "Incremental"
+}
+
+output "storageAccountName" {
+  value = "${azurerm_template_deployment.test.outputs["storageAccountName"]}"
 }
 ```
 
@@ -92,12 +102,13 @@ The following arguments are supported:
 * `template_body` - (Optional) Specifies the JSON definition for the template.
 * `parameters` - (Optional) Specifies the name and value pairs that define the deployment parameters for the template.
 
-
 ## Attributes Reference
 
 The following attributes are exported:
 
 * `id` - The Template Deployment ID.
+
+* `outputs` - A map of supported scalar output types returned from the deployment (currently, Azure Template Deployment outputs of type String, Int and Bool are supported, and are converted to strings - others will be ignored) and can be accessed using `.outputs["name"]`.
 
 ## Note
 

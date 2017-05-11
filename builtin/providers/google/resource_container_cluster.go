@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/container/v1"
-	"google.golang.org/api/googleapi"
 )
 
 var (
@@ -408,14 +407,14 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 		addonsConfig := v.([]interface{})[0].(map[string]interface{})
 		cluster.AddonsConfig = &container.AddonsConfig{}
 
-		if v, ok := addonsConfig["http_load_balancing"]; ok {
+		if v, ok := addonsConfig["http_load_balancing"]; ok && len(v.([]interface{})) > 0 {
 			addon := v.([]interface{})[0].(map[string]interface{})
 			cluster.AddonsConfig.HttpLoadBalancing = &container.HttpLoadBalancing{
 				Disabled: addon["disabled"].(bool),
 			}
 		}
 
-		if v, ok := addonsConfig["horizontal_pod_autoscaling"]; ok {
+		if v, ok := addonsConfig["horizontal_pod_autoscaling"]; ok && len(v.([]interface{})) > 0 {
 			addon := v.([]interface{})[0].(map[string]interface{})
 			cluster.AddonsConfig.HorizontalPodAutoscaling = &container.HorizontalPodAutoscaling{
 				Disabled: addon["disabled"].(bool),
@@ -535,15 +534,7 @@ func resourceContainerClusterRead(d *schema.ResourceData, meta interface{}) erro
 	cluster, err := config.clientContainer.Projects.Zones.Clusters.Get(
 		project, zoneName, d.Get("name").(string)).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing Container Cluster %q because it's gone", d.Get("name").(string))
-			// The resource doesn't exist anymore
-			d.SetId("")
-
-			return nil
-		}
-
-		return err
+		return handleNotFoundError(err, d, fmt.Sprintf("Container Cluster %q", d.Get("name").(string)))
 	}
 
 	d.Set("name", cluster.Name)

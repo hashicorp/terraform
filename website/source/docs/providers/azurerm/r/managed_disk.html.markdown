@@ -12,7 +12,7 @@ Create a managed disk.
 
 ## Example Usage with Create Empty
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name = "acctestrg"
   location = "West US 2"
@@ -34,7 +34,7 @@ resource "azurerm_managed_disk" "test" {
 
 ## Example Usage with Create Copy
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name = "acctestrg"
   location = "West US 2"

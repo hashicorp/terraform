@@ -140,7 +140,7 @@ func resourceAwsIamRolePolicyDelete(d *schema.ResourceData, meta interface{}) er
 func resourceAwsIamRolePolicyParseId(id string) (roleName, policyName string, err error) {
 	parts := strings.SplitN(id, ":", 2)
 	if len(parts) != 2 {
-		err = fmt.Errorf("role_policy id must be of the for <role name>:<policy name>")
+		err = fmt.Errorf("role_policy id must be of the form <role name>:<policy name>")
 		return
 	}
 

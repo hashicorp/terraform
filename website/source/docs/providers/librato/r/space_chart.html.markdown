@@ -13,7 +13,7 @@ create and manage charts in Librato Spaces.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new Librato space
 resource "librato_space" "my_space" {
   name = "My New Space"

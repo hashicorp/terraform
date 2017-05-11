@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -522,6 +523,21 @@ func TestAccAWSInstance_ipv6_supportAddressCount(t *testing.T) {
 	})
 }
 
+func TestAccAWSInstance_ipv6AddressCountAndSingleAddressCausesError(t *testing.T) {
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccInstanceConfigIpv6ErrorConfig,
+				ExpectError: regexp.MustCompile("Only 1 of `ipv6_address_count` or `ipv6_addresses` can be specified"),
+			},
+		},
+	})
+}
+
 func TestAccAWSInstance_multipleRegions(t *testing.T) {
 	var v ec2.Instance
 
@@ -616,7 +632,6 @@ func TestAccAWSInstance_tags(t *testing.T) {
 					testAccCheckTags(&v.Tags, "#", ""),
 				),
 			},
-
 			{
 				Config: testAccCheckInstanceConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
@@ -624,6 +639,75 @@ func TestAccAWSInstance_tags(t *testing.T) {
 					testAccCheckTags(&v.Tags, "foo", ""),
 					testAccCheckTags(&v.Tags, "bar", "baz"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccAWSInstance_volumeTags(t *testing.T) {
+	var v ec2.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckInstanceConfigNoVolumeTags,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					resource.TestCheckNoResourceAttr(
+						"aws_instance.foo", "volume_tags"),
+				),
+			},
+			{
+				Config: testAccCheckInstanceConfigWithVolumeTags,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "volume_tags.%", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "volume_tags.Name", "acceptance-test-volume-tag"),
+				),
+			},
+			{
+				Config: testAccCheckInstanceConfigWithVolumeTagsUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "volume_tags.%", "2"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "volume_tags.Name", "acceptance-test-volume-tag"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "volume_tags.Environment", "dev"),
+				),
+			},
+			{
+				Config: testAccCheckInstanceConfigNoVolumeTags,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					resource.TestCheckNoResourceAttr(
+						"aws_instance.foo", "volume_tags"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSInstance_volumeTagsComputed(t *testing.T) {
+	var v ec2.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckInstanceConfigWithAttachedVolume,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+				),
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})
@@ -871,6 +955,107 @@ func TestAccAWSInstance_changeInstanceType(t *testing.T) {
 					testAccCheckInstanceExists("aws_instance.foo", &after),
 					testAccCheckInstanceNotRecreated(
 						t, &before, &after),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSInstance_primaryNetworkInterface(t *testing.T) {
+	var instance ec2.Instance
+	var ini ec2.NetworkInterface
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceConfigPrimaryNetworkInterface,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &instance),
+					testAccCheckAWSENIExists("aws_network_interface.bar", &ini),
+					resource.TestCheckResourceAttr("aws_instance.foo", "network_interface.#", "1"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSInstance_primaryNetworkInterfaceSourceDestCheck(t *testing.T) {
+	var instance ec2.Instance
+	var ini ec2.NetworkInterface
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceConfigPrimaryNetworkInterfaceSourceDestCheck,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &instance),
+					testAccCheckAWSENIExists("aws_network_interface.bar", &ini),
+					resource.TestCheckResourceAttr("aws_instance.foo", "source_dest_check", "false"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSInstance_addSecondaryInterface(t *testing.T) {
+	var before ec2.Instance
+	var after ec2.Instance
+	var iniPrimary ec2.NetworkInterface
+	var iniSecondary ec2.NetworkInterface
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceConfigAddSecondaryNetworkInterfaceBefore,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &before),
+					testAccCheckAWSENIExists("aws_network_interface.primary", &iniPrimary),
+					resource.TestCheckResourceAttr("aws_instance.foo", "network_interface.#", "1"),
+				),
+			},
+			{
+				Config: testAccInstanceConfigAddSecondaryNetworkInterfaceAfter,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &after),
+					testAccCheckAWSENIExists("aws_network_interface.secondary", &iniSecondary),
+					resource.TestCheckResourceAttr("aws_instance.foo", "network_interface.#", "1"),
+				),
+			},
+		},
+	})
+}
+
+// https://github.com/hashicorp/terraform/issues/3205
+func TestAccAWSInstance_addSecurityGroupNetworkInterface(t *testing.T) {
+	var before ec2.Instance
+	var after ec2.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceConfigAddSecurityGroupBefore,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &before),
+					resource.TestCheckResourceAttr("aws_instance.foo", "vpc_security_group_ids.#", "1"),
+				),
+			},
+			{
+				Config: testAccInstanceConfigAddSecurityGroupAfter,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &after),
+					resource.TestCheckResourceAttr("aws_instance.foo", "vpc_security_group_ids.#", "2"),
 				),
 			},
 		},
@@ -1214,6 +1399,37 @@ resource "aws_instance" "foo" {
 }
 `
 
+const testAccInstanceConfigIpv6ErrorConfig = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+	assign_generated_ipv6_cidr_block = true
+	tags {
+		Name = "tf-ipv6-instance-acc-test"
+	}
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+	ipv6_cidr_block = "${cidrsubnet(aws_vpc.foo.ipv6_cidr_block, 8, 1)}"
+	tags {
+		Name = "tf-ipv6-instance-acc-test"
+	}
+}
+
+resource "aws_instance" "foo" {
+	# us-west-2
+	ami = "ami-c5eabbf5"
+	instance_type = "t2.micro"
+	subnet_id = "${aws_subnet.foo.id}"
+	ipv6_addresses = ["2600:1f14:bb2:e501::10"]
+	ipv6_address_count = 1
+	tags {
+		Name = "tf-ipv6-instance-acc-test"
+	}
+}
+`
+
 const testAccInstanceConfigIpv6Support = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
@@ -1277,6 +1493,180 @@ resource "aws_instance" "foo" {
 	instance_type = "m1.small"
 	tags {
 		foo = "bar"
+	}
+}
+`
+
+const testAccCheckInstanceConfigWithAttachedVolume = `
+data "aws_ami" "debian_jessie_latest" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["debian-jessie-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  filter {
+    name   = "architecture"
+    values = ["x86_64"]
+  }
+
+  filter {
+    name   = "root-device-type"
+    values = ["ebs"]
+  }
+
+  owners = ["379101102735"] # Debian
+}
+
+resource "aws_instance" "foo" {
+  ami                         = "${data.aws_ami.debian_jessie_latest.id}"
+  associate_public_ip_address = true
+  count                       = 1
+  instance_type               = "t2.medium"
+
+  root_block_device {
+    volume_size           = "10"
+    volume_type           = "standard"
+    delete_on_termination = true
+  }
+
+  tags {
+    Name    = "test-terraform"
+  }
+}
+
+resource "aws_ebs_volume" "test" {
+  depends_on        = ["aws_instance.foo"]
+  availability_zone = "${aws_instance.foo.availability_zone}"
+  type       = "gp2"
+  size              = "10"
+
+  tags {
+    Name = "test-terraform"
+  }
+}
+
+resource "aws_volume_attachment" "test" {
+  depends_on  = ["aws_ebs_volume.test"]
+  device_name = "/dev/xvdg"
+  volume_id   = "${aws_ebs_volume.test.id}"
+  instance_id = "${aws_instance.foo.id}"
+}
+`
+
+const testAccCheckInstanceConfigNoVolumeTags = `
+resource "aws_instance" "foo" {
+	ami = "ami-55a7ea65"
+
+	instance_type = "m3.medium"
+
+	root_block_device {
+		volume_type = "gp2"
+		volume_size = 11
+	}
+	ebs_block_device {
+		device_name = "/dev/sdb"
+		volume_size = 9
+	}
+	ebs_block_device {
+		device_name = "/dev/sdc"
+		volume_size = 10
+		volume_type = "io1"
+		iops = 100
+	}
+
+	ebs_block_device {
+		device_name = "/dev/sdd"
+		volume_size = 12
+		encrypted = true
+	}
+
+	ephemeral_block_device {
+		device_name = "/dev/sde"
+		virtual_name = "ephemeral0"
+	}
+}
+`
+
+const testAccCheckInstanceConfigWithVolumeTags = `
+resource "aws_instance" "foo" {
+	ami = "ami-55a7ea65"
+
+	instance_type = "m3.medium"
+
+	root_block_device {
+		volume_type = "gp2"
+		volume_size = 11
+	}
+	ebs_block_device {
+		device_name = "/dev/sdb"
+		volume_size = 9
+	}
+	ebs_block_device {
+		device_name = "/dev/sdc"
+		volume_size = 10
+		volume_type = "io1"
+		iops = 100
+	}
+
+	ebs_block_device {
+		device_name = "/dev/sdd"
+		volume_size = 12
+		encrypted = true
+	}
+
+	ephemeral_block_device {
+		device_name = "/dev/sde"
+		virtual_name = "ephemeral0"
+	}
+
+	volume_tags {
+		Name = "acceptance-test-volume-tag"
+	}
+}
+`
+
+const testAccCheckInstanceConfigWithVolumeTagsUpdate = `
+resource "aws_instance" "foo" {
+	ami = "ami-55a7ea65"
+
+	instance_type = "m3.medium"
+
+	root_block_device {
+		volume_type = "gp2"
+		volume_size = 11
+	}
+	ebs_block_device {
+		device_name = "/dev/sdb"
+		volume_size = 9
+	}
+	ebs_block_device {
+		device_name = "/dev/sdc"
+		volume_size = 10
+		volume_type = "io1"
+		iops = 100
+	}
+
+	ebs_block_device {
+		device_name = "/dev/sdd"
+		volume_size = 12
+		encrypted = true
+	}
+
+	ephemeral_block_device {
+		device_name = "/dev/sde"
+		virtual_name = "ephemeral0"
+	}
+
+	volume_tags {
+		Name = "acceptance-test-volume-tag"
+		Environment = "dev"
 	}
 }
 `
@@ -1534,5 +1924,298 @@ resource "aws_instance" "foo" {
 	ami = "ami-22b9a343"
 	instance_type = "t2.micro"
 	subnet_id = "${aws_subnet.foo.id}"
+}
+`
+
+const testAccInstanceConfigPrimaryNetworkInterface = `
+resource "aws_vpc" "foo" {
+  cidr_block = "172.16.0.0/16"
+  tags {
+    Name = "tf-instance-test"
+  }
+}
+
+resource "aws_subnet" "foo" {
+  vpc_id = "${aws_vpc.foo.id}"
+  cidr_block = "172.16.10.0/24"
+  availability_zone = "us-west-2a"
+  tags {
+    Name = "tf-instance-test"
+  }
+}
+
+resource "aws_network_interface" "bar" {
+  subnet_id = "${aws_subnet.foo.id}"
+  private_ips = ["172.16.10.100"]
+  tags {
+    Name = "primary_network_interface"
+  }
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-22b9a343"
+	instance_type = "t2.micro"
+	network_interface {
+	 network_interface_id = "${aws_network_interface.bar.id}"
+	 device_index = 0
+  }
+}
+`
+
+const testAccInstanceConfigPrimaryNetworkInterfaceSourceDestCheck = `
+resource "aws_vpc" "foo" {
+  cidr_block = "172.16.0.0/16"
+  tags {
+    Name = "tf-instance-test"
+  }
+}
+
+resource "aws_subnet" "foo" {
+  vpc_id = "${aws_vpc.foo.id}"
+  cidr_block = "172.16.10.0/24"
+  availability_zone = "us-west-2a"
+  tags {
+    Name = "tf-instance-test"
+  }
+}
+
+resource "aws_network_interface" "bar" {
+  subnet_id = "${aws_subnet.foo.id}"
+  private_ips = ["172.16.10.100"]
+  source_dest_check = false
+  tags {
+    Name = "primary_network_interface"
+  }
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-22b9a343"
+	instance_type = "t2.micro"
+	network_interface {
+	 network_interface_id = "${aws_network_interface.bar.id}"
+	 device_index = 0
+  }
+}
+`
+
+const testAccInstanceConfigAddSecondaryNetworkInterfaceBefore = `
+resource "aws_vpc" "foo" {
+  cidr_block = "172.16.0.0/16"
+  tags {
+    Name = "tf-instance-test"
+  }
+}
+
+resource "aws_subnet" "foo" {
+  vpc_id = "${aws_vpc.foo.id}"
+  cidr_block = "172.16.10.0/24"
+  availability_zone = "us-west-2a"
+  tags {
+    Name = "tf-instance-test"
+  }
+}
+
+resource "aws_network_interface" "primary" {
+  subnet_id = "${aws_subnet.foo.id}"
+  private_ips = ["172.16.10.100"]
+  tags {
+    Name = "primary_network_interface"
+  }
+}
+
+resource "aws_network_interface" "secondary" {
+  subnet_id = "${aws_subnet.foo.id}"
+  private_ips = ["172.16.10.101"]
+  tags {
+    Name = "secondary_network_interface"
+  }
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-22b9a343"
+	instance_type = "t2.micro"
+	network_interface {
+	 network_interface_id = "${aws_network_interface.primary.id}"
+	 device_index = 0
+  }
+}
+`
+
+const testAccInstanceConfigAddSecondaryNetworkInterfaceAfter = `
+resource "aws_vpc" "foo" {
+  cidr_block = "172.16.0.0/16"
+  tags {
+    Name = "tf-instance-test"
+  }
+}
+
+resource "aws_subnet" "foo" {
+  vpc_id = "${aws_vpc.foo.id}"
+  cidr_block = "172.16.10.0/24"
+  availability_zone = "us-west-2a"
+  tags {
+    Name = "tf-instance-test"
+  }
+}
+
+resource "aws_network_interface" "primary" {
+  subnet_id = "${aws_subnet.foo.id}"
+  private_ips = ["172.16.10.100"]
+  tags {
+    Name = "primary_network_interface"
+  }
+}
+
+// Attach previously created network interface, observe no state diff on instance resource
+resource "aws_network_interface" "secondary" {
+  subnet_id = "${aws_subnet.foo.id}"
+  private_ips = ["172.16.10.101"]
+  tags {
+    Name = "secondary_network_interface"
+  }
+  attachment {
+    instance = "${aws_instance.foo.id}"
+    device_index = 1
+  }
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-22b9a343"
+	instance_type = "t2.micro"
+	network_interface {
+	 network_interface_id = "${aws_network_interface.primary.id}"
+	 device_index = 0
+  }
+}
+`
+
+const testAccInstanceConfigAddSecurityGroupBefore = `
+resource "aws_vpc" "foo" {
+    cidr_block = "172.16.0.0/16"
+        tags {
+            Name = "tf-eni-test"
+        }
+}
+
+resource "aws_subnet" "foo" {
+    vpc_id = "${aws_vpc.foo.id}"
+    cidr_block = "172.16.10.0/24"
+    availability_zone = "us-west-2a"
+        tags {
+            Name = "tf-foo-instance-add-sg-test"
+        }
+}
+
+resource "aws_subnet" "bar" {
+    vpc_id = "${aws_vpc.foo.id}"
+    cidr_block = "172.16.11.0/24"
+    availability_zone = "us-west-2a"
+        tags {
+            Name = "tf-bar-instance-add-sg-test"
+        }
+}
+
+resource "aws_security_group" "foo" {
+  vpc_id = "${aws_vpc.foo.id}"
+  description = "foo"
+  name = "foo"
+}
+
+resource "aws_security_group" "bar" {
+  vpc_id = "${aws_vpc.foo.id}"
+  description = "bar"
+  name = "bar"
+}
+
+resource "aws_instance" "foo" {
+    ami = "ami-c5eabbf5"
+    instance_type = "t2.micro"
+    subnet_id = "${aws_subnet.bar.id}"
+    associate_public_ip_address = false
+    vpc_security_group_ids = [
+      "${aws_security_group.foo.id}"
+    ]
+    tags {
+        Name = "foo-instance-sg-add-test"
+    }
+}
+
+resource "aws_network_interface" "bar" {
+    subnet_id = "${aws_subnet.foo.id}"
+    private_ips = ["172.16.10.100"]
+    security_groups = ["${aws_security_group.foo.id}"]
+    attachment {
+        instance = "${aws_instance.foo.id}"
+        device_index = 1
+    }
+    tags {
+        Name = "bar_interface"
+    }
+}
+`
+
+const testAccInstanceConfigAddSecurityGroupAfter = `
+resource "aws_vpc" "foo" {
+    cidr_block = "172.16.0.0/16"
+        tags {
+            Name = "tf-eni-test"
+        }
+}
+
+resource "aws_subnet" "foo" {
+    vpc_id = "${aws_vpc.foo.id}"
+    cidr_block = "172.16.10.0/24"
+    availability_zone = "us-west-2a"
+        tags {
+            Name = "tf-foo-instance-add-sg-test"
+        }
+}
+
+resource "aws_subnet" "bar" {
+    vpc_id = "${aws_vpc.foo.id}"
+    cidr_block = "172.16.11.0/24"
+    availability_zone = "us-west-2a"
+        tags {
+            Name = "tf-bar-instance-add-sg-test"
+        }
+}
+
+resource "aws_security_group" "foo" {
+  vpc_id = "${aws_vpc.foo.id}"
+  description = "foo"
+  name = "foo"
+}
+
+resource "aws_security_group" "bar" {
+  vpc_id = "${aws_vpc.foo.id}"
+  description = "bar"
+  name = "bar"
+}
+
+resource "aws_instance" "foo" {
+    ami = "ami-c5eabbf5"
+    instance_type = "t2.micro"
+    subnet_id = "${aws_subnet.bar.id}"
+    associate_public_ip_address = false
+    vpc_security_group_ids = [
+      "${aws_security_group.foo.id}",
+      "${aws_security_group.bar.id}"
+    ]
+    tags {
+        Name = "foo-instance-sg-add-test"
+    }
+}
+
+resource "aws_network_interface" "bar" {
+    subnet_id = "${aws_subnet.foo.id}"
+    private_ips = ["172.16.10.100"]
+    security_groups = ["${aws_security_group.foo.id}"]
+    attachment {
+        instance = "${aws_instance.foo.id}"
+        device_index = 1
+    }
+    tags {
+        Name = "bar_interface"
+    }
 }
 `

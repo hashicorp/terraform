@@ -14,7 +14,7 @@ Manages a V2 VM instance resource within OpenStack.
 
 ### Basic Instance
 
-```
+```hcl
 resource "openstack_compute_instance_v2" "basic" {
   name            = "basic"
   image_id        = "ad091b52-742f-469e-8f3c-fd81cadf0743"
@@ -34,7 +34,7 @@ resource "openstack_compute_instance_v2" "basic" {
 
 ### Instance With Attached Volume
 
-```
+```hcl
 resource "openstack_blockstorage_volume_v2" "myvol" {
   name = "myvol"
   size = 1
@@ -60,7 +60,7 @@ resource "openstack_compute_volume_attach_v2" "attached" {
 
 ### Boot From Volume
 
-```
+```hcl
 resource "openstack_compute_instance_v2" "boot-from-volume" {
   name            = "boot-from-volume"
   flavor_id       = "3"
@@ -84,7 +84,7 @@ resource "openstack_compute_instance_v2" "boot-from-volume" {
 
 ### Boot From an Existing Volume
 
-```
+```hcl
 resource "openstack_blockstorage_volume_v1" "myvol" {
   name     = "myvol"
   size     = 5
@@ -113,7 +113,7 @@ resource "openstack_compute_instance_v2" "boot-from-volume" {
 
 ### Boot Instance, Create Volume, and Attach Volume as a Block Device
 
-```
+```hcl
 resource "openstack_compute_instance_v2" "instance_1" {
   name            = "instance_1"
   image_id        = "<image-id>"
@@ -141,7 +141,7 @@ resource "openstack_compute_instance_v2" "instance_1" {
 
 ### Boot Instance and Attach Existing Volume as a Block Device
 
-```
+```hcl
 resource "openstack_blockstorage_volume_v2" "volume_1" {
   name = "volume_1"
   size = 1
@@ -174,7 +174,7 @@ resource "openstack_compute_instance_v2" "instance_1" {
 
 ### Instance With Multiple Networks
 
-```
+```hcl
 resource "openstack_networking_floatingip_v2" "myip" {
   pool = "my_pool"
 }
@@ -204,7 +204,7 @@ resource "openstack_compute_floatingip_associate_v2" "myip" {
 
 ### Instance With Personality
 
-```
+```hcl
 resource "openstack_compute_instance_v2" "personality" {
   name            = "personality"
   image_id        = "ad091b52-742f-469e-8f3c-fd81cadf0743"
@@ -225,7 +225,7 @@ resource "openstack_compute_instance_v2" "personality" {
 
 ### Instance with Multiple Ephemeral Disks
 
-```
+```hcl
 resource "openstack_compute_instance_v2" "multi-eph" {
   name            = "multi_eph"
   image_id        = "ad091b52-742f-469e-8f3c-fd81cadf0743"
@@ -532,7 +532,7 @@ single IP address the user would want returned to the Instance's state
 information. Therefore, in order for a Provisioner to connect to an Instance
 via it's network Port, customize the `connection` information:
 
-```
+```hcl
 resource "openstack_networking_port_v2" "port_1" {
   name           = "port_1"
   admin_state_up = "true"

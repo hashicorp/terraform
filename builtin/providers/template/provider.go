@@ -20,6 +20,7 @@ func Provider() terraform.ResourceProvider {
 				"template_cloudinit_config",
 				dataSourceCloudinitConfig(),
 			),
+			"template_dir": resourceDir(),
 		},
 	}
 }

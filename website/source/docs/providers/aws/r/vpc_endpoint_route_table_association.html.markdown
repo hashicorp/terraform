@@ -20,7 +20,7 @@ Table Association resource. Doing so will cause a conflict of associations and w
 
 Basic usage:
 
-```
+```hcl
 resource "aws_vpc_endpoint_route_table_association" "private_s3" {
   vpc_endpoint_id = "${aws_vpc_endpoint.s3.id}"
   route_table_id  = "${aws_route_table.private.id}"

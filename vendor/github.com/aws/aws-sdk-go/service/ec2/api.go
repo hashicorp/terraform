@@ -137,8 +137,8 @@ func (c *EC2) AcceptVpcPeeringConnectionRequest(input *AcceptVpcPeeringConnectio
 //
 // Accept a VPC peering connection request. To accept a request, the VPC peering
 // connection must be in the pending-acceptance state, and you must be the owner
-// of the peer VPC. Use the DescribeVpcPeeringConnections request to view your
-// outstanding VPC peering connection requests.
+// of the peer VPC. Use DescribeVpcPeeringConnections to view your outstanding
+// VPC peering connection requests.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -546,12 +546,17 @@ func (c *EC2) AssociateAddressRequest(input *AssociateAddressInput) (req *reques
 //
 // [EC2-Classic, VPC in an EC2-VPC-only account] If the Elastic IP address is
 // already associated with a different instance, it is disassociated from that
-// instance and associated with the specified instance.
+// instance and associated with the specified instance. If you associate an
+// Elastic IP address with an instance that has an existing Elastic IP address,
+// the existing address is disassociated from the instance, but remains allocated
+// to your account.
 //
 // [VPC in an EC2-Classic account] If you don't specify a private IP address,
 // the Elastic IP address is associated with the primary IP address. If the
 // Elastic IP address is already associated with a different instance or a network
-// interface, you get an error unless you allow reassociation.
+// interface, you get an error unless you allow reassociation. You cannot associate
+// an Elastic IP address with an instance or network interface that has an existing
+// Elastic IP address.
 //
 // This is an idempotent operation. If you perform the operation more than once,
 // Amazon EC2 doesn't return an error, and you may be charged for each time
@@ -2645,16 +2650,16 @@ func (c *EC2) CreateDhcpOptionsRequest(input *CreateDhcpOptionsInput) (req *requ
 //    to receive a custom DNS hostname as specified in domain-name, you must
 //    set domain-name-servers to a custom DNS server.
 //
-//    * domain-name - If you're using AmazonProvidedDNS in "us-east-1", specify
-//    "ec2.internal". If you're using AmazonProvidedDNS in another region, specify
-//    "region.compute.internal" (for example, "ap-northeast-1.compute.internal").
-//    Otherwise, specify a domain name (for example, "MyCompany.com"). This
-//    value is used to complete unqualified DNS hostnames. Important: Some Linux
-//    operating systems accept multiple domain names separated by spaces. However,
-//    Windows and other Linux operating systems treat the value as a single
-//    domain, which results in unexpected behavior. If your DHCP options set
-//    is associated with a VPC that has instances with multiple operating systems,
-//    specify only one domain name.
+//    * domain-name - If you're using AmazonProvidedDNS in us-east-1, specify
+//    ec2.internal. If you're using AmazonProvidedDNS in another region, specify
+//    region.compute.internal (for example, ap-northeast-1.compute.internal).
+//    Otherwise, specify a domain name (for example, MyCompany.com). This value
+//    is used to complete unqualified DNS hostnames. Important: Some Linux operating
+//    systems accept multiple domain names separated by spaces. However, Windows
+//    and other Linux operating systems treat the value as a single domain,
+//    which results in unexpected behavior. If your DHCP options set is associated
+//    with a VPC that has instances with multiple operating systems, specify
+//    only one domain name.
 //
 //    * ntp-servers - The IP addresses of up to four Network Time Protocol (NTP)
 //    servers.
@@ -2858,6 +2863,88 @@ func (c *EC2) CreateFlowLogs(input *CreateFlowLogsInput) (*CreateFlowLogsOutput,
 // for more information on using Contexts.
 func (c *EC2) CreateFlowLogsWithContext(ctx aws.Context, input *CreateFlowLogsInput, opts ...request.Option) (*CreateFlowLogsOutput, error) {
 	req, out := c.CreateFlowLogsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opCreateFpgaImage = "CreateFpgaImage"
+
+// CreateFpgaImageRequest generates a "aws/request.Request" representing the
+// client's request for the CreateFpgaImage operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See CreateFpgaImage for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateFpgaImage method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateFpgaImageRequest method.
+//    req, resp := client.CreateFpgaImageRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateFpgaImage
+func (c *EC2) CreateFpgaImageRequest(input *CreateFpgaImageInput) (req *request.Request, output *CreateFpgaImageOutput) {
+	op := &request.Operation{
+		Name:       opCreateFpgaImage,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreateFpgaImageInput{}
+	}
+
+	output = &CreateFpgaImageOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateFpgaImage API operation for Amazon Elastic Compute Cloud.
+//
+// Creates an Amazon FPGA Image (AFI) from the specified design checkpoint (DCP).
+//
+// The create operation is asynchronous. To verify that the AFI is ready for
+// use, check the output logs.
+//
+// An AFI contains the FPGA bitstream that is ready to download to an FPGA.
+// You can securely deploy an AFI on one or more FPGA-accelerated instances.
+// For more information, see the AWS FPGA Hardware Development Kit (https://github.com/aws/aws-fpga/).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateFpgaImage for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateFpgaImage
+func (c *EC2) CreateFpgaImage(input *CreateFpgaImageInput) (*CreateFpgaImageOutput, error) {
+	req, out := c.CreateFpgaImageRequest(input)
+	return out, req.Send()
+}
+
+// CreateFpgaImageWithContext is the same as CreateFpgaImage with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateFpgaImage for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *EC2) CreateFpgaImageWithContext(ctx aws.Context, input *CreateFpgaImageInput, opts ...request.Option) (*CreateFpgaImageOutput, error) {
+	req, out := c.CreateFpgaImageRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -4216,7 +4303,7 @@ func (c *EC2) CreateSubnetRequest(input *CreateSubnetInput) (req *request.Reques
 // If you've associated an IPv6 CIDR block with your VPC, you can create a subnet
 // with an IPv6 CIDR block that uses a /64 prefix length.
 //
-// AWS reserves both the first four and the last IP address in each subnet's
+// AWS reserves both the first four and the last IPv4 address in each subnet's
 // CIDR block. They're not available for use.
 //
 // If you add more than one subnet to a VPC, they're set up in a star topology
@@ -4665,8 +4752,8 @@ func (c *EC2) CreateVpcPeeringConnectionRequest(input *CreateVpcPeeringConnectio
 // peering connection. The VPC peering connection request expires after 7 days,
 // after which it cannot be accepted or rejected.
 //
-// A CreateVpcPeeringConnection request between VPCs with overlapping CIDR blocks
-// results in the VPC peering connection having a status of failed.
+// If you try to create a VPC peering connection between VPCs that have overlapping
+// CIDR blocks, the VPC peering connection status goes to failed.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -12549,8 +12636,8 @@ func (c *EC2) DescribeVpcClassicLinkDnsSupportRequest(input *DescribeVpcClassicL
 // the DNS hostname of a linked EC2-Classic instance resolves to its private
 // IP address when addressed from an instance in the VPC to which it's linked.
 // Similarly, the DNS hostname of an instance in a VPC resolves to its private
-// IP address when addressed from a linked EC2-Classic instance. For more information
-// about ClassicLink, see ClassicLink (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/vpc-classiclink.html)
+// IP address when addressed from a linked EC2-Classic instance. For more information,
+// see ClassicLink (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/vpc-classiclink.html)
 // in the Amazon Elastic Compute Cloud User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -13166,7 +13253,7 @@ func (c *EC2) DetachInternetGatewayRequest(input *DetachInternetGatewayInput) (r
 //
 // Detaches an Internet gateway from a VPC, disabling connectivity between the
 // Internet and the VPC. The VPC must not contain any running instances with
-// Elastic IP addresses.
+// Elastic IP addresses or public IPv4 addresses.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -23689,6 +23776,128 @@ func (s *CreateFlowLogsOutput) SetUnsuccessful(v []*UnsuccessfulItem) *CreateFlo
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateFpgaImageRequest
+type CreateFpgaImageInput struct {
+	_ struct{} `type:"structure"`
+
+	// Unique, case-sensitive identifier that you provide to ensure the idempotency
+	// of the request. For more information, see Ensuring Idempotency (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Run_Instance_Idempotency.html).
+	ClientToken *string `type:"string"`
+
+	// A description for the AFI.
+	Description *string `type:"string"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// The location of the encrypted design checkpoint in Amazon S3. The input must
+	// be a tarball.
+	//
+	// InputStorageLocation is a required field
+	InputStorageLocation *StorageLocation `type:"structure" required:"true"`
+
+	// The location in Amazon S3 for the output logs.
+	LogsStorageLocation *StorageLocation `type:"structure"`
+
+	// A name for the AFI.
+	Name *string `type:"string"`
+}
+
+// String returns the string representation
+func (s CreateFpgaImageInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateFpgaImageInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateFpgaImageInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateFpgaImageInput"}
+	if s.InputStorageLocation == nil {
+		invalidParams.Add(request.NewErrParamRequired("InputStorageLocation"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientToken sets the ClientToken field's value.
+func (s *CreateFpgaImageInput) SetClientToken(v string) *CreateFpgaImageInput {
+	s.ClientToken = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *CreateFpgaImageInput) SetDescription(v string) *CreateFpgaImageInput {
+	s.Description = &v
+	return s
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *CreateFpgaImageInput) SetDryRun(v bool) *CreateFpgaImageInput {
+	s.DryRun = &v
+	return s
+}
+
+// SetInputStorageLocation sets the InputStorageLocation field's value.
+func (s *CreateFpgaImageInput) SetInputStorageLocation(v *StorageLocation) *CreateFpgaImageInput {
+	s.InputStorageLocation = v
+	return s
+}
+
+// SetLogsStorageLocation sets the LogsStorageLocation field's value.
+func (s *CreateFpgaImageInput) SetLogsStorageLocation(v *StorageLocation) *CreateFpgaImageInput {
+	s.LogsStorageLocation = v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CreateFpgaImageInput) SetName(v string) *CreateFpgaImageInput {
+	s.Name = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateFpgaImageResult
+type CreateFpgaImageOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The global FPGA image identifier (AGFI ID).
+	FpgaImageGlobalId *string `locationName:"fpgaImageGlobalId" type:"string"`
+
+	// The FPGA image identifier (AFI ID).
+	FpgaImageId *string `locationName:"fpgaImageId" type:"string"`
+}
+
+// String returns the string representation
+func (s CreateFpgaImageOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateFpgaImageOutput) GoString() string {
+	return s.String()
+}
+
+// SetFpgaImageGlobalId sets the FpgaImageGlobalId field's value.
+func (s *CreateFpgaImageOutput) SetFpgaImageGlobalId(v string) *CreateFpgaImageOutput {
+	s.FpgaImageGlobalId = &v
+	return s
+}
+
+// SetFpgaImageId sets the FpgaImageId field's value.
+func (s *CreateFpgaImageOutput) SetFpgaImageId(v string) *CreateFpgaImageOutput {
+	s.FpgaImageId = &v
+	return s
+}
+
 // Contains the parameters for CreateImage.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateImageRequest
 type CreateImageInput struct {
@@ -30587,18 +30796,6 @@ type DescribeInstancesInput struct {
 	//
 	//    * architecture - The instance architecture (i386 | x86_64).
 	//
-	//    * association.public-ip - The address of the Elastic IP address (IPv4)
-	//    bound to the network interface.
-	//
-	//    * association.ip-owner-id - The owner of the Elastic IP address (IPv4)
-	//    associated with the network interface.
-	//
-	//    * association.allocation-id - The allocation ID returned when you allocated
-	//    the Elastic IP address (IPv4) for your network interface.
-	//
-	//    * association.association-id - The association ID returned when the network
-	//    interface was associated with an IPv4 address.
-	//
 	//    * availability-zone - The Availability Zone of the instance.
 	//
 	//    * block-device-mapping.attach-time - The attach time for an EBS volume
@@ -30683,6 +30880,18 @@ type DescribeInstancesInput struct {
 	//
 	//    * network-interface.addresses.association.ip-owner-id - The owner ID of
 	//    the private IPv4 address associated with the network interface.
+	//
+	//    * network-interface.association.public-ip - The address of the Elastic
+	//    IP address (IPv4) bound to the network interface.
+	//
+	//    * network-interface.association.ip-owner-id - The owner of the Elastic
+	//    IP address (IPv4) associated with the network interface.
+	//
+	//    * network-interface.association.allocation-id - The allocation ID returned
+	//    when you allocated the Elastic IP address (IPv4) for your network interface.
+	//
+	//    * network-interface.association.association-id - The association ID returned
+	//    when the network interface was associated with an IPv4 address.
 	//
 	//    * network-interface.attachment.attachment-id - The ID of the interface
 	//    attachment.
@@ -31425,7 +31634,7 @@ func (s *DescribeNetworkAclsOutput) SetNetworkAcls(v []*NetworkAcl) *DescribeNet
 type DescribeNetworkInterfaceAttributeInput struct {
 	_ struct{} `type:"structure"`
 
-	// The attribute of the network interface.
+	// The attribute of the network interface. This parameter is required.
 	Attribute *string `locationName:"attribute" type:"string" enum:"NetworkInterfaceAttribute"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -32355,6 +32564,9 @@ type DescribeReservedInstancesOfferingsInput struct {
 	// with a tenancy of dedicated is applied to instances that run in a VPC on
 	// single-tenant hardware (i.e., Dedicated Instances).
 	//
+	// Important: The host value cannot be used with this parameter. Use the default
+	// or dedicated values only.
+	//
 	// Default: default
 	InstanceTenancy *string `locationName:"instanceTenancy" type:"string" enum:"Tenancy"`
 
@@ -32586,7 +32798,8 @@ type DescribeRouteTablesInput struct {
 	//    * association.subnet-id - The ID of the subnet involved in the association.
 	//
 	//    * association.main - Indicates whether the route table is the main route
-	//    table for the VPC (true | false).
+	//    table for the VPC (true | false). Route tables that do not have an association
+	//    ID are not returned in the response.
 	//
 	//    * route-table-id - The ID of the route table.
 	//
@@ -34582,7 +34795,7 @@ func (s *DescribeTagsOutput) SetTags(v []*TagDescription) *DescribeTagsOutput {
 type DescribeVolumeAttributeInput struct {
 	_ struct{} `type:"structure"`
 
-	// The instance attribute.
+	// The attribute of the volume. This parameter is required.
 	Attribute *string `type:"string" enum:"VolumeAttributeName"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -53950,6 +54163,40 @@ func (s Storage) GoString() string {
 // SetS3 sets the S3 field's value.
 func (s *Storage) SetS3(v *S3Storage) *Storage {
 	s.S3 = v
+	return s
+}
+
+// Describes a storage location in Amazon S3.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/StorageLocation
+type StorageLocation struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the S3 bucket.
+	Bucket *string `type:"string"`
+
+	// The key.
+	Key *string `type:"string"`
+}
+
+// String returns the string representation
+func (s StorageLocation) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StorageLocation) GoString() string {
+	return s.String()
+}
+
+// SetBucket sets the Bucket field's value.
+func (s *StorageLocation) SetBucket(v string) *StorageLocation {
+	s.Bucket = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *StorageLocation) SetKey(v string) *StorageLocation {
+	s.Key = &v
 	return s
 }
 

@@ -12,10 +12,14 @@ func dataSourceAwsSubnetIDs() *schema.Resource {
 	return &schema.Resource{
 		Read: dataSourceAwsSubnetIDsRead,
 		Schema: map[string]*schema.Schema{
+
+			"tags": tagsSchemaComputed(),
+
 			"vpc_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 			},
+
 			"ids": &schema.Schema{
 				Type:     schema.TypeSet,
 				Computed: true,
@@ -36,6 +40,10 @@ func dataSourceAwsSubnetIDsRead(d *schema.ResourceData, meta interface{}) error 
 			"vpc-id": d.Get("vpc_id").(string),
 		},
 	)
+
+	req.Filters = append(req.Filters, buildEC2TagFilterList(
+		tagsFromMap(d.Get("tags").(map[string]interface{})),
+	)...)
 
 	log.Printf("[DEBUG] DescribeSubnets %s\n", req)
 	resp, err := conn.DescribeSubnets(req)

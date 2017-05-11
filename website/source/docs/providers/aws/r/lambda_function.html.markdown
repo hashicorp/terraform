@@ -14,7 +14,7 @@ For information about Lambda and how to use it, see [What is AWS Lambda?][1]
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_iam_role" "iam_for_lambda" {
   name = "iam_for_lambda"
 
@@ -83,6 +83,7 @@ large files efficiently.
 * `environment` - (Optional) The Lambda environment's configuration settings. Fields documented below.
 * `kms_key_arn` - (Optional) The ARN for the KMS encryption key.
 * `source_code_hash` - (Optional) Used to trigger updates. Must be set to a base64-encoded SHA256 hash of the package file specified with either `filename` or `s3_key`. The usual way to set this is `${base64sha256(file("file.zip"))}`, where "file.zip" is the local filename of the lambda function source archive.
+* `tags` - (Optional) A mapping of tags to assign to the object.
 
 **dead\_letter\_config** is a child block with a single argument:
 
@@ -107,6 +108,7 @@ For **environment** the following attributes are supported:
 * `arn` - The Amazon Resource Name (ARN) identifying your Lambda Function.
 * `qualified_arn` - The Amazon Resource Name (ARN) identifying your Lambda Function Version
   (if versioning is enabled via `publish = true`).
+* `invoke_arn` - The ARN to be used for invoking Lambda Function from API Gateway - to be used in [`aws_api_gateway_integration`](/docs/providers/aws/r/api_gateway_integration.html)'s `uri`
 * `version` - Latest published version of your Lambda Function.
 * `last_modified` - The date this resource was last modified.
 * `kms_key_arn` - (Optional) The ARN for the KMS encryption key.

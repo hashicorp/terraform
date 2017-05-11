@@ -97,6 +97,27 @@ type Provider interface {
 	IsExpired() bool
 }
 
+// An ErrorProvider is a stub credentials provider that always returns an error
+// this is used by the SDK when construction a known provider is not possible
+// due to an error.
+type ErrorProvider struct {
+	// The error to be returned from Retrieve
+	Err error
+
+	// The provider name to set on the Retrieved returned Value
+	ProviderName string
+}
+
+// Retrieve will always return the error that the ErrorProvider was created with.
+func (p ErrorProvider) Retrieve() (Value, error) {
+	return Value{ProviderName: p.ProviderName}, p.Err
+}
+
+// IsExpired will always return not expired.
+func (p ErrorProvider) IsExpired() bool {
+	return false
+}
+
 // A Expiry provides shared expiration logic to be used by credentials
 // providers to implement expiry functionality.
 //

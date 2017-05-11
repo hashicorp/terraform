@@ -154,21 +154,24 @@ func validateStreamViewType(v interface{}, k string) (ws []string, errors []erro
 	}
 
 	if !viewTypes[value] {
-		errors = append(errors, fmt.Errorf("%q be a valid DynamoDB StreamViewType", k))
+		errors = append(errors, fmt.Errorf("%q must be a valid DynamoDB StreamViewType", k))
 	}
 	return
 }
 
 func validateElbName(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"only alphanumeric characters and hyphens allowed in %q: %q",
-			k, value))
+	if len(value) == 0 {
+		return // short-circuit
 	}
 	if len(value) > 32 {
 		errors = append(errors, fmt.Errorf(
 			"%q cannot be longer than 32 characters: %q", k, value))
+	}
+	if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only alphanumeric characters and hyphens allowed in %q: %q",
+			k, value))
 	}
 	if regexp.MustCompile(`^-`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
@@ -353,7 +356,7 @@ func validateArn(v interface{}, k string) (ws []string, errors []error) {
 	}
 
 	// http://docs.aws.amazon.com/lambda/latest/dg/API_AddPermission.html
-	pattern := `^arn:[\w-]+:([a-zA-Z0-9\-])+:([a-z]{2}-[a-z]+-\d{1})?:(\d{12})?:(.*)$`
+	pattern := `^arn:[\w-]+:([a-zA-Z0-9\-])+:([a-z]{2}-(gov-)?[a-z]+-\d{1})?:(\d{12})?:(.*)$`
 	if !regexp.MustCompile(pattern).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"%q doesn't look like a valid ARN (%q): %q",
@@ -469,6 +472,26 @@ func validateLogGroupName(v interface{}, k string) (ws []string, errors []error)
 	if len(value) > 512 {
 		errors = append(errors, fmt.Errorf(
 			"%q cannot be longer than 512 characters: %q", k, value))
+	}
+
+	// http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLogGroup.html
+	pattern := `^[\.\-_/#A-Za-z0-9]+$`
+	if !regexp.MustCompile(pattern).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q isn't a valid log group name (alphanumeric characters, underscores,"+
+				" hyphens, slashes, hash signs and dots are allowed): %q",
+			k, value))
+	}
+
+	return
+}
+
+func validateLogGroupNamePrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	if len(value) > 483 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 483 characters: %q", k, value))
 	}
 
 	// http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLogGroup.html
@@ -1118,9 +1141,9 @@ func validateDbOptionGroupName(v interface{}, k string) (ws []string, errors []e
 		errors = append(errors, fmt.Errorf(
 			"first character of %q must be a letter", k))
 	}
-	if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"only alphanumeric characters and hyphens allowed in %q", k))
+			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
 	}
 	if regexp.MustCompile(`--`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
@@ -1143,7 +1166,7 @@ func validateDbOptionGroupNamePrefix(v interface{}, k string) (ws []string, erro
 		errors = append(errors, fmt.Errorf(
 			"first character of %q must be a letter", k))
 	}
-	if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"only alphanumeric characters and hyphens allowed in %q", k))
 	}
@@ -1186,6 +1209,113 @@ func validateOpenIdURL(v interface{}, k string) (ws []string, errors []error) {
 	}
 	if len(u.Query()) > 0 {
 		errors = append(errors, fmt.Errorf("%q cannot contain query parameters per the OIDC standard", k))
+	}
+	return
+}
+
+func validateAwsKmsName(v interface{}, k string) (ws []string, es []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^(alias\/)[a-zA-Z0-9:/_-]+$`).MatchString(value) {
+		es = append(es, fmt.Errorf(
+			"%q must begin with 'alias/' and be comprised of only [a-zA-Z0-9:/_-]", k))
+	}
+	return
+}
+
+func validateCognitoIdentityPoolName(v interface{}, k string) (ws []string, errors []error) {
+	val := v.(string)
+	if !regexp.MustCompile("^[\\w _]+$").MatchString(val) {
+		errors = append(errors, fmt.Errorf("%q must contain only alphanumeric caracters and spaces", k))
+	}
+
+	return
+}
+
+func validateCognitoProviderDeveloperName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) > 100 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 100 caracters", k))
+	}
+
+	if !regexp.MustCompile("^[\\w._-]+$").MatchString(value) {
+		errors = append(errors, fmt.Errorf("%q must contain only alphanumeric caracters, dots, underscores and hyphens", k))
+	}
+
+	return
+}
+
+func validateCognitoSupportedLoginProviders(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) < 1 {
+		errors = append(errors, fmt.Errorf("%q cannot be less than 1 character", k))
+	}
+
+	if len(value) > 128 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 128 caracters", k))
+	}
+
+	if !regexp.MustCompile("^[\\w.;_/-]+$").MatchString(value) {
+		errors = append(errors, fmt.Errorf("%q must contain only alphanumeric caracters, dots, semicolons, underscores, slashes and hyphens", k))
+	}
+
+	return
+}
+
+func validateCognitoIdentityProvidersClientId(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) < 1 {
+		errors = append(errors, fmt.Errorf("%q cannot be less than 1 character", k))
+	}
+
+	if len(value) > 128 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 128 caracters", k))
+	}
+
+	if !regexp.MustCompile("^[\\w_]+$").MatchString(value) {
+		errors = append(errors, fmt.Errorf("%q must contain only alphanumeric caracters and underscores", k))
+	}
+
+	return
+}
+
+func validateCognitoIdentityProvidersProviderName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) < 1 {
+		errors = append(errors, fmt.Errorf("%q cannot be less than 1 character", k))
+	}
+
+	if len(value) > 128 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 128 caracters", k))
+	}
+
+	if !regexp.MustCompile("^[\\w._:/-]+$").MatchString(value) {
+		errors = append(errors, fmt.Errorf("%q must contain only alphanumeric caracters, dots, underscores, colons, slashes and hyphens", k))
+	}
+
+	return
+}
+
+func validateWafMetricName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9A-Za-z]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"Only alphanumeric characters allowed in %q: %q",
+			k, value))
+	}
+	return
+}
+
+func validateIamRoleDescription(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	if len(value) > 1000 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 1000 caracters", k))
+	}
+
+	if !regexp.MustCompile(`[\p{L}\p{M}\p{Z}\p{S}\p{N}\p{P}]*`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"Only alphanumeric & accented characters allowed in %q: %q (Must satisfy regular expression pattern: [\\p{L}\\p{M}\\p{Z}\\p{S}\\p{N}\\p{P}]*)",
+			k, value))
 	}
 	return
 }

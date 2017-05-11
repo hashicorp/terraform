@@ -12,7 +12,7 @@ Provides a NS1 Record resource. This can be used to create, modify, and delete r
 
 ## Example Usage
 
-```
+```hcl
 resource "ns1_zone" "tld" {
   zone = "terraform.example"
 }
@@ -51,16 +51,38 @@ The following arguments are supported:
 * `ttl` - (Optional) The records' time to live.
 * `link` - (Optional) The target record to link to. This means this record is a 'linked' record, and it inherits all properties from its target.
 * `use_client_subnet` - (Optional) Whether to use EDNS client subnet data when available(in filter chain).
-* `answers` - (Optional) The list of the RDATA fields for the records' specified type. Answers are documented below.
-* `filters` - (Optional) The list of NS1 filters for the record(order matters). Filters are documented below.
+* `answers` - (Optional) One or more NS1 answers for the records' specified type. Answers are documented below.
+* `filters` - (Optional) One or more NS1 filters for the record(order matters). Filters are documented below.
 
 Answers (`answers`) support the following:
 
-* `answer` - (Required) List of RDATA fields.
-* `region` - (Required) The region this answer belongs to.
+* `answer` - (Required) Space delimited string of RDATA fields dependent on the record type.
+
+    A:
+
+        answer = "1.2.3.4"
+
+    CNAME:
+
+        answer = "www.example.com"
+
+    MX:
+
+        answer = "5 mail.example.com"
+
+    SRV:
+
+        answer = "10 0 2380 node-1.example.com"
+
+    SPF:
+
+        answer = "v=DKIM1; k=rsa; p=XXXXXXXX"
+
+   
+* `region` - (Optional) The region(or group) name that this answer belongs to.
 
 Filters (`filters`) support the following:
 
 * `filter` - (Required) The type of filter.
-* `disabled` - (Required) Determines whether the filter is applied in the filter chain.
-* `config` - (Required) The filters' configuration. Simple key/value pairs determined by the filter type.
+* `disabled` - (Optional) Determines whether the filter is applied in the filter chain.
+* `config` - (Optional) The filters' configuration. Simple key/value pairs determined by the filter type.

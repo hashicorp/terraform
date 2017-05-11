@@ -16,7 +16,7 @@ ElastiCache cluster **inside** of a VPC. If you are on EC2 Classic, see the
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_vpc" "foo" {
   cidr_block = "10.0.0.0/16"
 

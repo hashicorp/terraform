@@ -219,7 +219,7 @@ func resourceAwsEipUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		log.Printf("[DEBUG] EIP associate configuration: %s (domain: %s)", assocOpts, domain)
 
-		err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+		err := resource.Retry(5*time.Minute, func() *resource.RetryError {
 			_, err := ec2conn.AssociateAddress(assocOpts)
 			if err != nil {
 				if awsErr, ok := err.(awserr.Error); ok {

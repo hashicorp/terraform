@@ -1,42 +1,62 @@
-TEST?=./...
-NAME?=$(shell basename "${CURDIR}")
-EXTERNAL_TOOLS=\
-	github.com/mitchellh/gox
+# Metadata about this makefile and position
+MKFILE_PATH := $(lastword $(MAKEFILE_LIST))
+CURRENT_DIR := $(dir $(realpath $(MKFILE_PATH)))
+CURRENT_DIR := $(CURRENT_DIR:/=)
 
-default: test
+# Get the project metadata
+GOVERSION := 1.8
+PROJECT := github.com/sethvargo/go-fastly
+OWNER := $(dir $(PROJECT))
+OWNER := $(notdir $(OWNER:/=))
+NAME := $(notdir $(PROJECT))
+EXTERNAL_TOOLS =
 
-# test runs the test suite and vets the code.
-test: generate
-	@echo "==> Running tests..."
-	@go list $(TEST) \
-		| grep -v "github.com/sethvargo/${NAME}/vendor" \
-		| xargs -n1 go test -timeout=60s -parallel=10 ${TESTARGS}
+# List of tests to run
+TEST ?= ./...
 
-# testrace runs the race checker
-testrace: generate
-	@echo "==> Running tests (race)..."
-	@go list $(TEST) \
-		| grep -v "github.com/sethvargo/${NAME}/vendor" \
-		| xargs -n1 go test -timeout=60s -race ${TESTARGS}
+# List all our actual files, excluding vendor
+GOFILES = $(shell go list $(TEST) | grep -v /vendor/)
 
-# updatedeps installs all the dependencies needed to run and build.
-updatedeps:
-	@sh -c "'${CURDIR}/scripts/deps.sh' '${NAME}'"
+# Tags specific for building
+GOTAGS ?=
 
-# generate runs `go generate` to build the dynamically generated source files.
-generate:
-	@echo "==> Generating..."
-	@find . -type f -name '.DS_Store' -delete
-	@go list ./... \
-		| grep -v "github.com/hashicorp/${NAME}/vendor" \
-		| xargs -n1 go generate
+# Number of procs to use
+GOMAXPROCS ?= 4
 
-# bootstrap installs the necessary go tools for development/build.
+# bootstrap installs the necessary go tools for development or build
 bootstrap:
-	@echo "==> Bootstrapping..."
+	@echo "==> Bootstrapping ${PROJECT}..."
 	@for t in ${EXTERNAL_TOOLS}; do \
-		echo "--> Installing "$$t"..." ; \
+		echo "--> Installing $$t" ; \
 		go get -u "$$t"; \
 	done
 
-.PHONY: default test testrace updatedeps generate bootstrap
+# deps gets all the dependencies for this repository and vendors them.
+deps:
+	@echo "==> Updating dependencies..."
+	@docker run \
+		--interactive \
+		--tty \
+		--rm \
+		--dns=8.8.8.8 \
+		--env="GOMAXPROCS=${GOMAXPROCS}" \
+		--workdir="/go/src/${PROJECT}" \
+		--volume="${CURRENT_DIR}:/go/src/${PROJECT}" \
+		"golang:${GOVERSION}" /usr/bin/env sh -c "scripts/deps.sh"
+
+# generate runs the code generator
+generate:
+	@echo "==> Generating ${PROJECT}..."
+	@go generate ${GOFILES}
+
+# test runs the test suite
+test:
+	@echo "==> Testing ${PROJECT}..."
+	@go test -timeout=60s -parallel=20 -tags="${GOTAGS}" ${GOFILES} ${TESTARGS}
+
+# test-race runs the race checker
+test-race:
+	@echo "==> Testing ${PROJECT} (race)..."
+	@go test -timeout=60s -race -tags="${GOTAGS}" ${GOFILES} ${TESTARGS}
+
+.PHONY: bootstrap deps generate test test-race

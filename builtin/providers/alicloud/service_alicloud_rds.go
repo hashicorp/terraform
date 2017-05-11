@@ -6,7 +6,20 @@ import (
 	"strings"
 )
 
-// when getInstance is empty, then throw InstanceNotfound error
+//
+//       _______________                      _______________                       _______________
+//       |              | ______param______\  |              |  _____request_____\  |              |
+//       |   Business   |                     |    Service   |                      |    SDK/API   |
+//       |              | __________________  |              |  __________________  |              |
+//       |______________| \    (obj, err)     |______________|  \ (status, cont)    |______________|
+//                           |                                    |
+//                           |A. {instance, nil}                  |a. {200, content}
+//                           |B. {nil, error}                     |b. {200, nil}
+//                      					  |c. {4xx, nil}
+//
+// The API return 200 for resource not found.
+// When getInstance is empty, then throw InstanceNotfound error.
+// That the business layer only need to check error.
 func (client *AliyunClient) DescribeDBInstanceById(id string) (instance *rds.DBInstanceAttribute, err error) {
 	arrtArgs := rds.DescribeDBInstancesArgs{
 		DBInstanceId: id,
@@ -19,7 +32,7 @@ func (client *AliyunClient) DescribeDBInstanceById(id string) (instance *rds.DBI
 	attr := resp.Items.DBInstanceAttribute
 
 	if len(attr) <= 0 {
-		return nil, common.GetClientErrorFromString(InstanceNotfound)
+		return nil, GetNotFoundErrorFromString("DB instance not found")
 	}
 
 	return &attr[0], nil
@@ -164,13 +177,10 @@ func (client *AliyunClient) GetSecurityIps(instanceId string) ([]string, error) 
 	if err != nil {
 		return nil, err
 	}
-	ips := ""
-	for i, ip := range arr {
-		if i == 0 {
-			ips += ip.SecurityIPList
-		} else {
-			ips += COMMA_SEPARATED + ip.SecurityIPList
-		}
+	var ips, separator string
+	for _, ip := range arr {
+		ips += separator + ip.SecurityIPList
+		separator = COMMA_SEPARATED
 	}
 	return strings.Split(ips, COMMA_SEPARATED), nil
 }

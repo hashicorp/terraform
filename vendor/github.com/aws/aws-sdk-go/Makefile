@@ -64,6 +64,9 @@ integration: get-deps-tests integ-custom smoke-tests performance
 integ-custom:
 	go test -tags "integration" ./awstesting/integration/customizations/...
 
+cleanup-integ:
+	go run -tags "integration" ./awstesting/cmd/bucket_cleanup/main.go "aws-sdk-go-integration"
+
 smoke-tests: get-deps-tests
 	gucumber -go-tags "integration" ./awstesting/integration/smoke
 

@@ -352,6 +352,13 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, error) {
 		s = terraform.NewState()
 	}
 
+	// if we want to force reconfiguration of the backend, we set the backend
+	// state to nil on this copy. This will direct us through the correct
+	// configuration path in the switch statement below.
+	if m.reconfigure {
+		s.Backend = nil
+	}
+
 	// Upon return, we want to set the state we're using in-memory so that
 	// we can access it for commands.
 	m.backendState = nil
@@ -1193,7 +1200,7 @@ func (m *Meta) backend_C_r_S_unchanged(
 	s := sMgr.State()
 
 	// it's possible for a backend to be unchanged, and the config itself to
-	// have changed by moving a paramter from the config to `-backend-config`
+	// have changed by moving a parameter from the config to `-backend-config`
 	// In this case we only need to update the Hash.
 	if c != nil && s.Backend.Hash != c.Hash {
 		s.Backend.Hash = c.Hash

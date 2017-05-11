@@ -12,7 +12,7 @@ Manages a Load Balancers on ProfitBricks
 
 ## Example Usage
 
-```
+```hcl
 resource "profitbricks_loadbalancer" "example" {
   datacenter_id = "${profitbricks_datacenter.example.id}"
   nic_id        = "${profitbricks_nic.example.id}"

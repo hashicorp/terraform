@@ -97,6 +97,21 @@ func resourceArmVirtualNetworkCreate(d *schema.ResourceData, meta interface{}) e
 		Tags: expandTags(tags),
 	}
 
+	networkSecurityGroupNames := make([]string, 0)
+	for _, subnet := range *vnet.VirtualNetworkPropertiesFormat.Subnets {
+		if subnet.NetworkSecurityGroup != nil {
+			nsgName, err := parseNetworkSecurityGroupName(*subnet.NetworkSecurityGroup.ID)
+			if err != nil {
+				return err
+			}
+
+			networkSecurityGroupNames = append(networkSecurityGroupNames, nsgName)
+		}
+	}
+
+	azureRMLockMultiple(&networkSecurityGroupNames)
+	defer azureRMUnlockMultiple(&networkSecurityGroupNames)
+
 	_, err := vnetClient.CreateOrUpdate(resGroup, name, vnet, make(chan struct{}))
 	if err != nil {
 		return err
@@ -182,6 +197,14 @@ func resourceArmVirtualNetworkDelete(d *schema.ResourceData, meta interface{}) e
 	resGroup := id.ResourceGroup
 	name := id.Path["virtualNetworks"]
 
+	nsgNames, err := expandAzureRmVirtualNetworkVirtualNetworkSecurityGroupNames(d)
+	if err != nil {
+		return fmt.Errorf("[ERROR] Error parsing Network Security Group ID's: %+v", err)
+	}
+
+	azureRMLockMultiple(&nsgNames)
+	defer azureRMUnlockMultiple(&nsgNames)
+
 	_, err = vnetClient.Delete(resGroup, name, make(chan struct{}))
 
 	return err
@@ -244,4 +267,30 @@ func resourceAzureSubnetHash(v interface{}) int {
 		subnet = subnet + securityGroup.(string)
 	}
 	return hashcode.String(subnet)
+}
+
+func expandAzureRmVirtualNetworkVirtualNetworkSecurityGroupNames(d *schema.ResourceData) ([]string, error) {
+	nsgNames := make([]string, 0)
+
+	if v, ok := d.GetOk("subnet"); ok {
+		subnets := v.(*schema.Set).List()
+		for _, subnet := range subnets {
+			subnet, ok := subnet.(map[string]interface{})
+			if !ok {
+				return nil, fmt.Errorf("[ERROR] Subnet should be a Hash - was '%+v'", subnet)
+			}
+
+			networkSecurityGroupId := subnet["security_group"].(string)
+			if networkSecurityGroupId != "" {
+				nsgName, err := parseNetworkSecurityGroupName(networkSecurityGroupId)
+				if err != nil {
+					return nil, err
+				}
+
+				nsgNames = append(nsgNames, nsgName)
+			}
+		}
+	}
+
+	return nsgNames, nil
 }

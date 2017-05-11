@@ -13,7 +13,7 @@ optionally be configured with a security group to be associated with the subnet.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_virtual_network" "test" {
   name                = "virtualNetwork1"
   resource_group_name = "${azurerm_resource_group.test.name}"

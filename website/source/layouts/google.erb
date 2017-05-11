@@ -10,11 +10,31 @@
     <a href="/docs/providers/google/index.html">Google Provider</a>
     </li>
 
+    <li<%= sidebar_current("docs-google-bigquery") %>>
+    <a href="#">Google BigQuery Resources</a>
+    <ul class="nav nav-visible">
+      <li<%= sidebar_current("docs-google-bigquery-dataset") %>>
+      <a href="/docs/providers/google/r/bigquery_dataset.html">google_bigquery_dataset</a>
+      <li<%= sidebar_current("docs-google-bigquery-table") %>>
+      <a href="/docs/providers/google/r/bigquery_table.html">google_bigquery_table</a>
+      </li>
+    </ul>
+    </li>
+
     <li<%= sidebar_current("docs-google-datasource") %>>
     <a href="#">Google Cloud Platform Data Sources</a>
     <ul class="nav nav-visible">
+      <li<%= sidebar_current("docs-google-datasource-compute-network") %>>
+        <a href="/docs/providers/google/d/datasource_compute_network.html">google_compute_network</a>
+      </li>
+      <li<%= sidebar_current("docs-google-datasource-compute-subnetwork") %>>
+        <a href="/docs/providers/google/d/datasource_compute_subnetwork.html">google_compute_subnetwork</a>
+      </li>
       <li<%= sidebar_current("docs-google-datasource-compute-zones") %>>
       <a href="/docs/providers/google/d/google_compute_zones.html">google_compute_zones</a>
+      </li>
+      <li<%= sidebar_current("docs-google-datasource-container-versions") %>>
+      <a href="/docs/providers/google/d/google_container_engine_versions.html">google_container_engine_versions</a>
       </li>
       <li<%= sidebar_current("docs-google-datasource-iam-policy") %>>
       <a href="/docs/providers/google/d/google_iam_policy.html">google_iam_policy</a>
@@ -49,6 +69,10 @@
 
       <li<%= sidebar_current("docs-google-compute-autoscaler") %>>
       <a href="/docs/providers/google/r/compute_autoscaler.html">google_compute_autoscaler</a>
+      </li>
+
+      <li<%= sidebar_current("docs-google-compute-backend-bucket") %>>
+      <a href="/docs/providers/google/r/compute_backend_bucket.html">google_compute_backend_bucket</a>
       </li>
 
       <li<%= sidebar_current("docs-google-compute-backend-service") %>>
@@ -123,6 +147,10 @@
       <a href="/docs/providers/google/r/compute_route.html">google_compute_route</a>
       </li>
 
+      <li<%= sidebar_current("docs-google-compute-snapshot") %>>
+			<a href="/docs/providers/google/r/compute_snapshot.html">google_compute_snapshot</a>
+			</li>
+
       <li<%= sidebar_current("docs-google-compute-ssl-certificate") %>>
       <a href="/docs/providers/google/r/compute_ssl_certificate.html">google_compute_ssl_certificate</a>
       </li>
@@ -163,7 +191,7 @@
       <li<%= sidebar_current("docs-google-container-cluster") %>>
       <a href="/docs/providers/google/r/container_cluster.html">google_container_cluster</a>
       </li>
-      
+
       <li<%= sidebar_current("docs-google-container-node-pool") %>>
       <a href="/docs/providers/google/r/container_node_pool.html">google_container_node_pool</a>
       </li>

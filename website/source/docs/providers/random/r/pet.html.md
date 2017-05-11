@@ -58,3 +58,9 @@ The following arguments are supported:
 * `prefix` - (Optional) A string to prefix the name with.
 
 * `separator` - (Optional) The character to separate words in the pet name.
+
+## Attribute Reference
+
+The following attributes are supported:
+
+* `id` - (string) The random pet name

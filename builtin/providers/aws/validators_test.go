@@ -207,6 +207,7 @@ func TestValidateArn(t *testing.T) {
 		"arn:aws:lambda:eu-west-1:319201112229:function:myCustomFunction",                  // Lambda function
 		"arn:aws:lambda:eu-west-1:319201112229:function:myCustomFunction:Qualifier",        // Lambda func qualifier
 		"arn:aws-us-gov:s3:::corp_bucket/object.png",                                       // GovCloud ARN
+		"arn:aws-us-gov:kms:us-gov-west-1:123456789012:key/some-uuid-abc123",               // GovCloud KMS ARN
 	}
 	for _, v := range validNames {
 		_, errors := validateArn(v, "arn")
@@ -410,7 +411,7 @@ func TestValidateLogGroupName(t *testing.T) {
 	for _, v := range validNames {
 		_, errors := validateLogGroupName(v, "name")
 		if len(errors) != 0 {
-			t.Fatalf("%q should be a valid Log Metric Filter Transformation Name: %q", v, errors)
+			t.Fatalf("%q should be a valid Log Group name: %q", v, errors)
 		}
 	}
 
@@ -427,7 +428,42 @@ func TestValidateLogGroupName(t *testing.T) {
 	for _, v := range invalidNames {
 		_, errors := validateLogGroupName(v, "name")
 		if len(errors) == 0 {
-			t.Fatalf("%q should be an invalid Log Metric Filter Transformation Name", v)
+			t.Fatalf("%q should be an invalid Log Group name", v)
+		}
+	}
+}
+
+func TestValidateLogGroupNamePrefix(t *testing.T) {
+	validNames := []string{
+		"ValidLogGroupName",
+		"ValidLogGroup.Name",
+		"valid/Log-group",
+		"1234",
+		"YadaValid#0123",
+		"Also_valid-name",
+		strings.Repeat("W", 483),
+	}
+	for _, v := range validNames {
+		_, errors := validateLogGroupNamePrefix(v, "name_prefix")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Log Group name prefix: %q", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"Here is a name with: colon",
+		"and here is another * invalid name",
+		"also $ invalid",
+		"This . is also %% invalid@!)+(",
+		"*",
+		"",
+		// length > 483
+		strings.Repeat("W", 484),
+	}
+	for _, v := range invalidNames {
+		_, errors := validateLogGroupNamePrefix(v, "name_prefix")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid Log Group name prefix", v)
 		}
 	}
 }
@@ -1942,6 +1978,257 @@ func TestValidateOpenIdURL(t *testing.T) {
 
 		if len(errors) != tc.ErrCount {
 			t.Fatalf("Expected %d of OpenID URL validation errors, got %d", tc.ErrCount, len(errors))
+		}
+	}
+}
+
+func TestValidateAwsKmsName(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "alias/aws/s3",
+			ErrCount: 0,
+		},
+		{
+			Value:    "alias/hashicorp",
+			ErrCount: 0,
+		},
+		{
+			Value:    "hashicorp",
+			ErrCount: 1,
+		},
+		{
+			Value:    "hashicorp/terraform",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateAwsKmsName(tc.Value, "name")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("AWS KMS Alias Name validation failed: %v", errors)
+		}
+	}
+}
+
+func TestValidateCognitoIdentityPoolName(t *testing.T) {
+	validValues := []string{
+		"123",
+		"1 2 3",
+		"foo",
+		"foo bar",
+		"foo_bar",
+		"1foo 2bar 3",
+	}
+
+	for _, s := range validValues {
+		_, errors := validateCognitoIdentityPoolName(s, "identity_pool_name")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid Cognito Identity Pool Name: %v", s, errors)
+		}
+	}
+
+	invalidValues := []string{
+		"1-2-3",
+		"foo!",
+		"foo-bar",
+		"foo-bar",
+		"foo1-bar2",
+	}
+
+	for _, s := range invalidValues {
+		_, errors := validateCognitoIdentityPoolName(s, "identity_pool_name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid Cognito Identity Pool Name: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateCognitoProviderDeveloperName(t *testing.T) {
+	validValues := []string{
+		"1",
+		"foo",
+		"1.2",
+		"foo1-bar2-baz3",
+		"foo_bar",
+	}
+
+	for _, s := range validValues {
+		_, errors := validateCognitoProviderDeveloperName(s, "developer_provider_name")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid Cognito Provider Developer Name: %v", s, errors)
+		}
+	}
+
+	invalidValues := []string{
+		"foo!",
+		"foo:bar",
+		"foo/bar",
+		"foo;bar",
+	}
+
+	for _, s := range invalidValues {
+		_, errors := validateCognitoProviderDeveloperName(s, "developer_provider_name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid Cognito Provider Developer Name: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateCognitoSupportedLoginProviders(t *testing.T) {
+	validValues := []string{
+		"foo",
+		"7346241598935552",
+		"123456789012.apps.googleusercontent.com",
+		"foo_bar",
+		"foo;bar",
+		"foo/bar",
+		"foo-bar",
+		"xvz1evFS4wEEPTGEFPHBog;kAcSOqF21Fu85e7zjz7ZN2U4ZRhfV3WpwPAoE3Z7kBw",
+		strings.Repeat("W", 128),
+	}
+
+	for _, s := range validValues {
+		_, errors := validateCognitoSupportedLoginProviders(s, "supported_login_providers")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid Cognito Supported Login Providers: %v", s, errors)
+		}
+	}
+
+	invalidValues := []string{
+		"",
+		strings.Repeat("W", 129), // > 128
+		"foo:bar_baz",
+		"foobar,foobaz",
+		"foobar=foobaz",
+	}
+
+	for _, s := range invalidValues {
+		_, errors := validateCognitoSupportedLoginProviders(s, "supported_login_providers")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid Cognito Supported Login Providers: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateCognitoIdentityProvidersClientId(t *testing.T) {
+	validValues := []string{
+		"7lhlkkfbfb4q5kpp90urffao",
+		"12345678",
+		"foo_123",
+		strings.Repeat("W", 128),
+	}
+
+	for _, s := range validValues {
+		_, errors := validateCognitoIdentityProvidersClientId(s, "client_id")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid Cognito Identity Provider Client ID: %v", s, errors)
+		}
+	}
+
+	invalidValues := []string{
+		"",
+		strings.Repeat("W", 129), // > 128
+		"foo-bar",
+		"foo:bar",
+		"foo;bar",
+	}
+
+	for _, s := range invalidValues {
+		_, errors := validateCognitoIdentityProvidersClientId(s, "client_id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid Cognito Identity Provider Client ID: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateCognitoIdentityProvidersProviderName(t *testing.T) {
+	validValues := []string{
+		"foo",
+		"7346241598935552",
+		"foo_bar",
+		"foo:bar",
+		"foo/bar",
+		"foo-bar",
+		"cognito-idp.us-east-1.amazonaws.com/us-east-1_Zr231apJu",
+		strings.Repeat("W", 128),
+	}
+
+	for _, s := range validValues {
+		_, errors := validateCognitoIdentityProvidersProviderName(s, "provider_name")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid Cognito Identity Provider Name: %v", s, errors)
+		}
+	}
+
+	invalidValues := []string{
+		"",
+		strings.Repeat("W", 129), // > 128
+		"foo;bar_baz",
+		"foobar,foobaz",
+		"foobar=foobaz",
+	}
+
+	for _, s := range invalidValues {
+		_, errors := validateCognitoIdentityProvidersProviderName(s, "provider_name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid Cognito Identity Provider Name: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateWafMetricName(t *testing.T) {
+	validNames := []string{
+		"testrule",
+		"testRule",
+		"testRule123",
+	}
+	for _, v := range validNames {
+		_, errors := validateWafMetricName(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid WAF metric name: %q", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"!",
+		"/",
+		" ",
+		":",
+		";",
+		"white space",
+		"/slash-at-the-beginning",
+		"slash-at-the-end/",
+	}
+	for _, v := range invalidNames {
+		_, errors := validateWafMetricName(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid WAF metric name", v)
+		}
+	}
+}
+
+func TestValidateIamRoleDescription(t *testing.T) {
+	validNames := []string{
+		"This 1s a D3scr!pti0n with weird content: @ #^ù£ê®æ ø]ŒîÏî~ÈÙ£÷=,ë",
+		strings.Repeat("W", 1000),
+	}
+	for _, v := range validNames {
+		_, errors := validateIamRoleDescription(v, "description")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid IAM Role Description: %q", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		strings.Repeat("W", 1001), // > 1000
+	}
+	for _, v := range invalidNames {
+		_, errors := validateIamRoleDescription(v, "description")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid IAM Role Description", v)
 		}
 	}
 }
