@@ -21,7 +21,7 @@ initial files, loading any remote state, downloading modules, etc.
 
 This is the first command that should be run for any new or existing
 Terraform configuration per machine. This sets up all the local data
-necessary to run Terraform that is typically not comitted to version
+necessary to run Terraform that is typically not committed to version
 control.
 
 This command is always safe to run multiple times. Though subsequent runs
@@ -49,6 +49,9 @@ The command-line flags are all optional. The list of available flags are:
   for the backend. This can be specified multiple times. Flags specified
   later in the line override those specified earlier if they conflict.
 
+* `-force-copy` -  Suppress prompts about copying state data. This is equivalent
+  to providing a "yes" to all confirmation prompts.
+
 * `-get=true` - Download any modules for this configuration.
 
 * `-input=true` - Ask for input interactively if necessary. If this is false
@@ -60,8 +63,7 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-no-color` - If specified, output won't contain any color.
 
-* `-force-copy` -  Suppress prompts about copying state data. This is equivalent
-  to providing a "yes" to all confirmation prompts.
+* `-reconfigure` - Reconfigure the backend, ignoring any saved configuration.
 
 ## Backend Config
 

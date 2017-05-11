@@ -24,7 +24,7 @@ the `openstack_compute_volume_attach_v2` resource for that.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_blockstorage_volume_v2" "volume_1" {
   name = "volume_1"
   size = 1

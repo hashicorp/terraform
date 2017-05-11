@@ -50,7 +50,7 @@ Navigate to https://atlas.hashicorp.com/settings/connections and click on “Con
 ## Connecting Configurations
 
 Once you have linked a GitLab installation to your account or organization,
-you are ready to begin creating Packer Builds and Terraform Enviroments linked
+you are ready to begin creating Packer Builds and Terraform Environments linked
 to your desired GitLab repository.
 
 Terraform Enterprise environments are linked to individual GitLab  repositories.

@@ -13,10 +13,11 @@ func TestAccDataSourceAwsSubnet(t *testing.T) {
 	rInt := acctest.RandIntRange(0, 256)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVpcDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDataSourceAwsSubnetConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDataSourceAwsSubnetCheck("data.aws_subnet.by_id", rInt),
@@ -24,6 +25,48 @@ func TestAccDataSourceAwsSubnet(t *testing.T) {
 					testAccDataSourceAwsSubnetCheck("data.aws_subnet.by_tag", rInt),
 					testAccDataSourceAwsSubnetCheck("data.aws_subnet.by_vpc", rInt),
 					testAccDataSourceAwsSubnetCheck("data.aws_subnet.by_filter", rInt),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDataSourceAwsSubnetIpv6ByIpv6Filter(t *testing.T) {
+	rInt := acctest.RandIntRange(0, 256)
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceAwsSubnetConfigIpv6(rInt),
+			},
+			{
+				Config: testAccDataSourceAwsSubnetConfigIpv6WithDataSourceFilter(rInt),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(
+						"data.aws_subnet.by_ipv6_cidr", "ipv6_cidr_block_association_id"),
+					resource.TestCheckResourceAttrSet(
+						"data.aws_subnet.by_ipv6_cidr", "ipv6_cidr_block"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDataSourceAwsSubnetIpv6ByIpv6CidrBlock(t *testing.T) {
+	rInt := acctest.RandIntRange(0, 256)
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataSourceAwsSubnetConfigIpv6(rInt),
+			},
+			{
+				Config: testAccDataSourceAwsSubnetConfigIpv6WithDataSourceIpv6CidrBlock(rInt),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(
+						"data.aws_subnet.by_ipv6_cidr", "ipv6_cidr_block_association_id"),
 				),
 			},
 		},
@@ -102,6 +145,7 @@ func testAccDataSourceAwsSubnetConfig(rInt int) string {
 		  }
 		}
 
+
 		data "aws_subnet" "by_id" {
 		  id = "${aws_subnet.test.id}"
 		}
@@ -127,4 +171,87 @@ func testAccDataSourceAwsSubnetConfig(rInt int) string {
 		  }
 		}
 		`, rInt, rInt, rInt)
+}
+
+func testAccDataSourceAwsSubnetConfigIpv6(rInt int) string {
+	return fmt.Sprintf(`
+resource "aws_vpc" "test" {
+  cidr_block = "172.%d.0.0/16"
+  assign_generated_ipv6_cidr_block = true
+
+  tags {
+    Name = "terraform-testacc-subnet-data-source-ipv6"
+  }
+}
+
+resource "aws_subnet" "test" {
+  vpc_id            = "${aws_vpc.test.id}"
+  cidr_block        = "172.%d.123.0/24"
+  availability_zone = "us-west-2a"
+  ipv6_cidr_block = "${cidrsubnet(aws_vpc.test.ipv6_cidr_block, 8, 1)}"
+
+  tags {
+    Name = "terraform-testacc-subnet-data-sourceipv6-%d"
+  }
+}
+`, rInt, rInt, rInt)
+}
+
+func testAccDataSourceAwsSubnetConfigIpv6WithDataSourceFilter(rInt int) string {
+	return fmt.Sprintf(`
+resource "aws_vpc" "test" {
+  cidr_block = "172.%d.0.0/16"
+  assign_generated_ipv6_cidr_block = true
+
+  tags {
+    Name = "terraform-testacc-subnet-data-source-ipv6"
+  }
+}
+
+resource "aws_subnet" "test" {
+  vpc_id            = "${aws_vpc.test.id}"
+  cidr_block        = "172.%d.123.0/24"
+  availability_zone = "us-west-2a"
+  ipv6_cidr_block = "${cidrsubnet(aws_vpc.test.ipv6_cidr_block, 8, 1)}"
+
+  tags {
+    Name = "terraform-testacc-subnet-data-sourceipv6-%d"
+  }
+}
+
+data "aws_subnet" "by_ipv6_cidr" {
+  filter {
+    name = "ipv6-cidr-block-association.ipv6-cidr-block"
+    values = ["${aws_subnet.test.ipv6_cidr_block}"]
+  }
+}
+`, rInt, rInt, rInt)
+}
+
+func testAccDataSourceAwsSubnetConfigIpv6WithDataSourceIpv6CidrBlock(rInt int) string {
+	return fmt.Sprintf(`
+resource "aws_vpc" "test" {
+  cidr_block = "172.%d.0.0/16"
+  assign_generated_ipv6_cidr_block = true
+
+  tags {
+    Name = "terraform-testacc-subnet-data-source-ipv6"
+  }
+}
+
+resource "aws_subnet" "test" {
+  vpc_id            = "${aws_vpc.test.id}"
+  cidr_block        = "172.%d.123.0/24"
+  availability_zone = "us-west-2a"
+  ipv6_cidr_block = "${cidrsubnet(aws_vpc.test.ipv6_cidr_block, 8, 1)}"
+
+  tags {
+    Name = "terraform-testacc-subnet-data-sourceipv6-%d"
+  }
+}
+
+data "aws_subnet" "by_ipv6_cidr" {
+  ipv6_cidr_block = "${aws_subnet.test.ipv6_cidr_block}"
+}
+`, rInt, rInt, rInt)
 }

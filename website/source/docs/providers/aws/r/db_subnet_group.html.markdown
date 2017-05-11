@@ -12,7 +12,7 @@ Provides an RDS DB subnet group resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_db_subnet_group" "default" {
   name       = "main"
   subnet_ids = ["${aws_subnet.frontend.id}", "${aws_subnet.backend.id}"]

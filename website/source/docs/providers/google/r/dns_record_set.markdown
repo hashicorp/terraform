@@ -14,7 +14,7 @@ Manages a set of DNS records within Google Cloud DNS.
 
 This example is the common case of binding a DNS name to the ephemeral IP of a new instance:
 
-```js
+```hcl
 resource "google_compute_instance" "frontend" {
   name         = "frontend"
   machine_type = "g1-small"

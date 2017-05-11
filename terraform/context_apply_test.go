@@ -4430,6 +4430,7 @@ func TestContext2Apply_provisionerDestroyFailContinue(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
+	var l sync.Mutex
 	var calls []string
 	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
 		val, ok := c.Config["foo"]
@@ -4437,6 +4438,8 @@ func TestContext2Apply_provisionerDestroyFailContinue(t *testing.T) {
 			t.Fatalf("bad value for foo: %v %#v", val, c)
 		}
 
+		l.Lock()
+		defer l.Unlock()
 		calls = append(calls, val.(string))
 		return fmt.Errorf("provisioner error")
 	}
@@ -4501,6 +4504,7 @@ func TestContext2Apply_provisionerDestroyFailContinueFail(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
+	var l sync.Mutex
 	var calls []string
 	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
 		val, ok := c.Config["foo"]
@@ -4508,6 +4512,8 @@ func TestContext2Apply_provisionerDestroyFailContinueFail(t *testing.T) {
 			t.Fatalf("bad value for foo: %v %#v", val, c)
 		}
 
+		l.Lock()
+		defer l.Unlock()
 		calls = append(calls, val.(string))
 		return fmt.Errorf("provisioner error")
 	}

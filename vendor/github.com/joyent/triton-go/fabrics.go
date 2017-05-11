@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"context"
 	"github.com/hashicorp/errwrap"
 )
 
@@ -26,8 +27,9 @@ type FabricVLAN struct {
 
 type ListFabricVLANsInput struct{}
 
-func (client *FabricsClient) ListFabricVLANs(*ListFabricVLANsInput) ([]*FabricVLAN, error) {
-	respReader, err := client.executeRequest(http.MethodGet, "/my/fabrics/default/vlans", nil)
+func (client *FabricsClient) ListFabricVLANs(ctx context.Context, _ *ListFabricVLANsInput) ([]*FabricVLAN, error) {
+	path := fmt.Sprintf("/%s/fabrics/default/vlans", client.accountName)
+	respReader, err := client.executeRequest(ctx, http.MethodGet, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -50,9 +52,9 @@ type CreateFabricVLANInput struct {
 	Description string `json:"description"`
 }
 
-func (client *FabricsClient) CreateFabricVLAN(input *CreateFabricVLANInput) (*FabricVLAN, error) {
+func (client *FabricsClient) CreateFabricVLAN(ctx context.Context, input *CreateFabricVLANInput) (*FabricVLAN, error) {
 	path := fmt.Sprintf("/%s/fabrics/default/vlans", client.accountName)
-	respReader, err := client.executeRequest(http.MethodPost, path, input)
+	respReader, err := client.executeRequest(ctx, http.MethodPost, path, input)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -75,9 +77,9 @@ type UpdateFabricVLANInput struct {
 	Description string `json:"description"`
 }
 
-func (client *FabricsClient) UpdateFabricVLAN(input *UpdateFabricVLANInput) (*FabricVLAN, error) {
+func (client *FabricsClient) UpdateFabricVLAN(ctx context.Context, input *UpdateFabricVLANInput) (*FabricVLAN, error) {
 	path := fmt.Sprintf("/%s/fabrics/default/vlans/%d", client.accountName, input.ID)
-	respReader, err := client.executeRequest(http.MethodPut, path, input)
+	respReader, err := client.executeRequest(ctx, http.MethodPut, path, input)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -98,9 +100,9 @@ type GetFabricVLANInput struct {
 	ID int `json:"-"`
 }
 
-func (client *FabricsClient) GetFabricVLAN(input *GetFabricVLANInput) (*FabricVLAN, error) {
+func (client *FabricsClient) GetFabricVLAN(ctx context.Context, input *GetFabricVLANInput) (*FabricVLAN, error) {
 	path := fmt.Sprintf("/%s/fabrics/default/vlans/%d", client.accountName, input.ID)
-	respReader, err := client.executeRequest(http.MethodGet, path, nil)
+	respReader, err := client.executeRequest(ctx, http.MethodGet, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -121,9 +123,9 @@ type DeleteFabricVLANInput struct {
 	ID int `json:"-"`
 }
 
-func (client *FabricsClient) DeleteFabricVLAN(input *DeleteFabricVLANInput) error {
+func (client *FabricsClient) DeleteFabricVLAN(ctx context.Context, input *DeleteFabricVLANInput) error {
 	path := fmt.Sprintf("/%s/fabrics/default/vlans/%d", client.accountName, input.ID)
-	respReader, err := client.executeRequest(http.MethodDelete, path, nil)
+	respReader, err := client.executeRequest(ctx, http.MethodDelete, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -138,9 +140,9 @@ type ListFabricNetworksInput struct {
 	FabricVLANID int `json:"-"`
 }
 
-func (client *FabricsClient) ListFabricNetworks(input *ListFabricNetworksInput) ([]*Network, error) {
+func (client *FabricsClient) ListFabricNetworks(ctx context.Context, input *ListFabricNetworksInput) ([]*Network, error) {
 	path := fmt.Sprintf("/%s/fabrics/default/vlans/%d/networks", client.accountName, input.FabricVLANID)
-	respReader, err := client.executeRequest(http.MethodGet, path, nil)
+	respReader, err := client.executeRequest(ctx, http.MethodGet, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -170,9 +172,9 @@ type CreateFabricNetworkInput struct {
 	InternetNAT      bool              `json:"internet_nat"`
 }
 
-func (client *FabricsClient) CreateFabricNetwork(input *CreateFabricNetworkInput) (*Network, error) {
+func (client *FabricsClient) CreateFabricNetwork(ctx context.Context, input *CreateFabricNetworkInput) (*Network, error) {
 	path := fmt.Sprintf("/%s/fabrics/default/vlans/%d/networks", client.accountName, input.FabricVLANID)
-	respReader, err := client.executeRequest(http.MethodPost, path, input)
+	respReader, err := client.executeRequest(ctx, http.MethodPost, path, input)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -194,9 +196,9 @@ type GetFabricNetworkInput struct {
 	NetworkID    string `json:"-"`
 }
 
-func (client *FabricsClient) GetFabricNetwork(input *GetFabricNetworkInput) (*Network, error) {
+func (client *FabricsClient) GetFabricNetwork(ctx context.Context, input *GetFabricNetworkInput) (*Network, error) {
 	path := fmt.Sprintf("/%s/fabrics/default/vlans/%d/networks/%s", client.accountName, input.FabricVLANID, input.NetworkID)
-	respReader, err := client.executeRequest(http.MethodGet, path, nil)
+	respReader, err := client.executeRequest(ctx, http.MethodGet, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -218,9 +220,9 @@ type DeleteFabricNetworkInput struct {
 	NetworkID    string `json:"-"`
 }
 
-func (client *FabricsClient) DeleteFabricNetwork(input *DeleteFabricNetworkInput) error {
+func (client *FabricsClient) DeleteFabricNetwork(ctx context.Context, input *DeleteFabricNetworkInput) error {
 	path := fmt.Sprintf("/%s/fabrics/default/vlans/%d/networks/%s", client.accountName, input.FabricVLANID, input.NetworkID)
-	respReader, err := client.executeRequest(http.MethodDelete, path, nil)
+	respReader, err := client.executeRequest(ctx, http.MethodDelete, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}

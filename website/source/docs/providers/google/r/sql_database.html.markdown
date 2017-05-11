@@ -14,7 +14,7 @@ Creates a new Google SQL Database on a Google SQL Database Instance. For more in
 
 Example creating a SQL Database.
 
-```js
+```hcl
 resource "google_sql_database_instance" "master" {
   name = "master-instance"
 

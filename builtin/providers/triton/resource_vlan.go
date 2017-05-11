@@ -1,6 +1,7 @@
 package triton
 
 import (
+	"context"
 	"errors"
 	"strconv"
 
@@ -51,7 +52,7 @@ func resourceVLAN() *schema.Resource {
 func resourceVLANCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*triton.Client)
 
-	vlan, err := client.Fabrics().CreateFabricVLAN(&triton.CreateFabricVLANInput{
+	vlan, err := client.Fabrics().CreateFabricVLAN(context.Background(), &triton.CreateFabricVLANInput{
 		ID:          d.Get("vlan_id").(int),
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
@@ -72,7 +73,7 @@ func resourceVLANExists(d *schema.ResourceData, meta interface{}) (bool, error) 
 		return false, err
 	}
 
-	return resourceExists(client.Fabrics().GetFabricVLAN(&triton.GetFabricVLANInput{
+	return resourceExists(client.Fabrics().GetFabricVLAN(context.Background(), &triton.GetFabricVLANInput{
 		ID: id,
 	}))
 }
@@ -85,7 +86,7 @@ func resourceVLANRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	vlan, err := client.Fabrics().GetFabricVLAN(&triton.GetFabricVLANInput{
+	vlan, err := client.Fabrics().GetFabricVLAN(context.Background(), &triton.GetFabricVLANInput{
 		ID: id,
 	})
 	if err != nil {
@@ -102,7 +103,7 @@ func resourceVLANRead(d *schema.ResourceData, meta interface{}) error {
 func resourceVLANUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*triton.Client)
 
-	vlan, err := client.Fabrics().UpdateFabricVLAN(&triton.UpdateFabricVLANInput{
+	vlan, err := client.Fabrics().UpdateFabricVLAN(context.Background(), &triton.UpdateFabricVLANInput{
 		ID:          d.Get("vlan_id").(int),
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
@@ -123,7 +124,7 @@ func resourceVLANDelete(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	return client.Fabrics().DeleteFabricVLAN(&triton.DeleteFabricVLANInput{
+	return client.Fabrics().DeleteFabricVLAN(context.Background(), &triton.DeleteFabricVLANInput{
 		ID: id,
 	})
 }

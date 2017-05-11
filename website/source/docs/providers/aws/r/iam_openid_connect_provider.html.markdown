@@ -12,7 +12,7 @@ Provides an IAM OpenID Connect provider.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_iam_openid_connect_provider" "default" {
     url = "https://accounts.google.com"
     client_id_list = [

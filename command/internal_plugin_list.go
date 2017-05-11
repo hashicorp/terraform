@@ -31,14 +31,17 @@ import (
 	externalprovider "github.com/hashicorp/terraform/builtin/providers/external"
 	fastlyprovider "github.com/hashicorp/terraform/builtin/providers/fastly"
 	githubprovider "github.com/hashicorp/terraform/builtin/providers/github"
+	gitlabprovider "github.com/hashicorp/terraform/builtin/providers/gitlab"
 	googleprovider "github.com/hashicorp/terraform/builtin/providers/google"
 	grafanaprovider "github.com/hashicorp/terraform/builtin/providers/grafana"
 	herokuprovider "github.com/hashicorp/terraform/builtin/providers/heroku"
+	httpprovider "github.com/hashicorp/terraform/builtin/providers/http"
 	icinga2provider "github.com/hashicorp/terraform/builtin/providers/icinga2"
 	ignitionprovider "github.com/hashicorp/terraform/builtin/providers/ignition"
 	influxdbprovider "github.com/hashicorp/terraform/builtin/providers/influxdb"
 	kubernetesprovider "github.com/hashicorp/terraform/builtin/providers/kubernetes"
 	libratoprovider "github.com/hashicorp/terraform/builtin/providers/librato"
+	localprovider "github.com/hashicorp/terraform/builtin/providers/local"
 	logentriesprovider "github.com/hashicorp/terraform/builtin/providers/logentries"
 	mailgunprovider "github.com/hashicorp/terraform/builtin/providers/mailgun"
 	mysqlprovider "github.com/hashicorp/terraform/builtin/providers/mysql"
@@ -46,6 +49,8 @@ import (
 	nomadprovider "github.com/hashicorp/terraform/builtin/providers/nomad"
 	ns1provider "github.com/hashicorp/terraform/builtin/providers/ns1"
 	nullprovider "github.com/hashicorp/terraform/builtin/providers/null"
+	oneandoneprovider "github.com/hashicorp/terraform/builtin/providers/oneandone"
+	opcprovider "github.com/hashicorp/terraform/builtin/providers/opc"
 	openstackprovider "github.com/hashicorp/terraform/builtin/providers/openstack"
 	opsgenieprovider "github.com/hashicorp/terraform/builtin/providers/opsgenie"
 	packetprovider "github.com/hashicorp/terraform/builtin/providers/packet"
@@ -107,14 +112,17 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"external":     externalprovider.Provider,
 	"fastly":       fastlyprovider.Provider,
 	"github":       githubprovider.Provider,
+	"gitlab":       gitlabprovider.Provider,
 	"google":       googleprovider.Provider,
 	"grafana":      grafanaprovider.Provider,
 	"heroku":       herokuprovider.Provider,
+	"http":         httpprovider.Provider,
 	"icinga2":      icinga2provider.Provider,
 	"ignition":     ignitionprovider.Provider,
 	"influxdb":     influxdbprovider.Provider,
 	"kubernetes":   kubernetesprovider.Provider,
 	"librato":      libratoprovider.Provider,
+	"local":        localprovider.Provider,
 	"logentries":   logentriesprovider.Provider,
 	"mailgun":      mailgunprovider.Provider,
 	"mysql":        mysqlprovider.Provider,
@@ -122,6 +130,8 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"nomad":        nomadprovider.Provider,
 	"ns1":          ns1provider.Provider,
 	"null":         nullprovider.Provider,
+	"oneandone":    oneandoneprovider.Provider,
+	"opc":          opcprovider.Provider,
 	"openstack":    openstackprovider.Provider,
 	"opsgenie":     opsgenieprovider.Provider,
 	"packet":       packetprovider.Provider,

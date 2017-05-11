@@ -277,18 +277,18 @@ resource "aws_ses_receipt_rule" "actions" {
     add_header_action {
 			header_name = "Added-By"
 			header_value = "Terraform"
-			position = 1
+			position = 2
     }
 
     add_header_action {
 			header_name = "Another-Header"
 			header_value = "First"
-			position = 0
+			position = 1
     }
 
     stop_action {
 			scope = "RuleSet"
-			position = 2
+			position = 3
     }
 }
 `, srrsRandomInt)

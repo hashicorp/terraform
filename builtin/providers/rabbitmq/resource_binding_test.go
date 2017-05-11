@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccBinding(t *testing.T) {
+func TestAccBinding_basic(t *testing.T) {
 	var bindingInfo rabbithole.BindingInfo
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -20,6 +20,23 @@ func TestAccBinding(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccBindingConfig_basic,
+				Check: testAccBindingCheck(
+					"rabbitmq_binding.test", &bindingInfo,
+				),
+			},
+		},
+	})
+}
+
+func TestAccBinding_propertiesKey(t *testing.T) {
+	var bindingInfo rabbithole.BindingInfo
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccBindingCheckDestroy(bindingInfo),
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccBindingConfig_propertiesKey,
 				Check: testAccBindingCheck(
 					"rabbitmq_binding.test", &bindingInfo,
 				),
@@ -119,3 +136,47 @@ resource "rabbitmq_binding" "test" {
     routing_key = "#"
     properties_key = "%23"
 }`
+
+const testAccBindingConfig_propertiesKey = `
+resource "rabbitmq_vhost" "test" {
+    name = "test"
+}
+
+resource "rabbitmq_permissions" "guest" {
+    user = "guest"
+    vhost = "${rabbitmq_vhost.test.name}"
+    permissions {
+        configure = ".*"
+        write = ".*"
+        read = ".*"
+    }
+}
+
+resource "rabbitmq_exchange" "test" {
+    name = "Test"
+    vhost = "${rabbitmq_permissions.guest.vhost}"
+    settings {
+        type = "topic"
+        durable = true
+        auto_delete = false
+    }
+}
+
+resource "rabbitmq_queue" "test" {
+    name = "Test.Queue"
+    vhost = "${rabbitmq_permissions.guest.vhost}"
+    settings {
+        durable = true
+        auto_delete = false
+    }
+}
+
+resource "rabbitmq_binding" "test" {
+    source = "${rabbitmq_exchange.test.name}"
+    vhost = "${rabbitmq_vhost.test.name}"
+    destination = "${rabbitmq_queue.test.name}"
+    destination_type = "queue"
+    routing_key = "ANYTHING.#"
+    properties_key = "ANYTHING.%23"
+}
+`

@@ -12,7 +12,7 @@ Manages a V2 router resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_networking_router_v2" "router_1" {
   name             = "my_router"
   external_gateway = "f67f0d72-0ddf-11e4-9d95-e1f29f417e2f"

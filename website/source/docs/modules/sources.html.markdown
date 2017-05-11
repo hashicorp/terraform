@@ -17,7 +17,7 @@ Terraform supports the following sources:
 
   * GitHub
 
-  * BitBucket
+  * Bitbucket
 
   * Generic Git, Mercurial repositories
 
@@ -85,9 +85,9 @@ module "private-infra" {
 
 **Note:** Terraform does not yet support interpolations in the `source` field, so the machine username and password will have to be embedded directly into the `source` string. You can track [GH-1439](https://github.com/hashicorp/terraform/issues/1439) to learn when this limitation is addressed.
 
-## BitBucket
+## Bitbucket
 
-Terraform will automatically recognize BitBucket URLs and turn them into a link to the specific Git or Mercurial repository, for example:
+Terraform will automatically recognize Bitbucket URLs and turn them into a link to the specific Git or Mercurial repository, for example:
 
 ```hcl
 module "consul" {
@@ -105,7 +105,7 @@ module "consul" {
 
 **Note:** The double-slash, `//`, is important. It is what tells Terraform that this is the separator for a subdirectory, and not part of the repository itself.
 
-BitBucket URLs will require that Git or Mercurial is installed on your system, depending on the type of repository.
+Bitbucket URLs will require that Git or Mercurial is installed on your system, depending on the type of repository.
 
 ## Generic Git Repository
 

@@ -14,8 +14,7 @@ The `triton_fabric` resource represents an fabric for a Triton account. The fabr
 
 ### Create a fabric
 
-
-```
+```hcl
 resource "triton_fabric" "dmz" {
   vlan_id            = 100
   name               = "dmz"
@@ -31,7 +30,6 @@ resource "triton_fabric" "dmz" {
 ## Argument Reference
 
 The following arguments are supported:
-
 
 * `name` - (String, Required, Change forces new resource)
     Network name.
@@ -63,9 +61,6 @@ The following arguments are supported:
 * `vlan_id` - (Int, Required, Change forces new resource)
     VLAN id the network is on. Number between 0-4095 indicating VLAN ID.
 
-
-
-
 ## Attribute Reference
 
 The following attributes are exported:
@@ -82,7 +77,3 @@ The following attributes are exported:
 * `routes` - (Map) - Map of CIDR block to Gateway IP address.
 * `internet_nat` - (Bool) - If a NAT zone is provisioned at Gateway IP address.
 * `vlan_id` - (Int) - VLAN id the network is on. Number between 0-4095 indicating VLAN ID.
-
-
-
-

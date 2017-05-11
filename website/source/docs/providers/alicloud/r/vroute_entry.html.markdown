@@ -14,7 +14,7 @@ Provides a route entry resource.
 
 Basic Usage
 
-```hcl
+```
 resource "alicloud_vpc" "vpc" {
   name       = "tf_test_foo"
   cidr_block = "172.16.0.0/12"
@@ -29,7 +29,7 @@ resource "alicloud_route_entry" "default" {
 }
 
 resource "alicloud_instance" "snat" {
-  # ...
+  // ...
 }
 ```
 ## Argument Reference

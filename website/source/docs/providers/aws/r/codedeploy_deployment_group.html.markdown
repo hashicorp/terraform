@@ -12,7 +12,7 @@ Provides a CodeDeploy deployment group for an application
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_codedeploy_app" "foo_app" {
   name = "foo_app"
 }

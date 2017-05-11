@@ -15,7 +15,7 @@ The ``rabbitmq_user`` resource creates and manages a user.
 
 ## Example Usage
 
-```
+```hcl
 resource "rabbitmq_user" "test" {
   name     = "mctest"
   password = "foobar"
@@ -32,7 +32,7 @@ The following arguments are supported:
 * `password` - (Required) The password of the user. The value of this argument
   is plain-text so make sure to secure where this is defined.
 
-* `tags` - (Required) Which permission model to apply to the user. Valid
+* `tags` - (Optional) Which permission model to apply to the user. Valid
   options are: management, policymaker, monitoring, and administrator.
 
 ## Attributes Reference

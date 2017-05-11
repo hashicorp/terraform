@@ -12,7 +12,7 @@ Create a virtual machine.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acctestrg"
   location = "West US"
@@ -101,7 +101,7 @@ resource "azurerm_virtual_machine" "test" {
 
 ## Example Usage with additional Empty DataDisk
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acctestrg"
   location = "West US"
@@ -198,7 +198,7 @@ resource "azurerm_virtual_machine" "test" {
 
 ## Example Usage with Managed Disks
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acctestrg"
   location = "West US 2"
@@ -349,7 +349,7 @@ For more information on the different example configurations, please check out t
 * `caching` - (Optional) Specifies the caching requirements.
 * `image_uri` - (Optional) Specifies the image_uri in the form publisherName:offer:skus:version. `image_uri` can also specify the [VHD uri](https://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-cli-deploy-templates/#create-a-custom-vm-image) of a custom VM image to clone. When cloning a custom disk image the `os_type` documented below becomes required.
 * `os_type` - (Optional) Specifies the operating system Type, valid values are windows, linux.
-* `disk_size_gb` - (Optional) Specifies the size of the data disk in gigabytes.
+* `disk_size_gb` - (Optional) Specifies the size of the os disk in gigabytes.
 
 `storage_data_disk` supports the following:
 
@@ -410,7 +410,7 @@ For more information on the different example configurations, please check out t
 
 * `certificate_url` - (Required) Specifies the URI of the key vault secrets in the format of `https://<vaultEndpoint>/secrets/<secretName>/<secretVersion>`. Stored secret is the Base64 encoding of a JSON Object that which is encoded in UTF-8 of which the contents need to be
 
-```
+```json
 { 
   "data":"<Base64-encoded-certificate>", 
   "dataType":"pfx",

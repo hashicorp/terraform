@@ -14,7 +14,7 @@ Create a LoadBalancer Backend Address Pool.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "LoadBalancerRG"
   location = "West US"

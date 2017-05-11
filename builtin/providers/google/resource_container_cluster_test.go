@@ -400,10 +400,14 @@ resource "google_container_cluster" "with_additional_zones" {
 }`, acctest.RandString(10))
 
 var testAccContainerCluster_withVersion = fmt.Sprintf(`
+data "google_container_engine_versions" "central1a" {
+	zone = "us-central1-a"
+}
+
 resource "google_container_cluster" "with_version" {
 	name = "cluster-test-%s"
 	zone = "us-central1-a"
-	node_version = "1.5.2"
+	node_version = "${data.google_container_engine_versions.central1a.latest_node_version}"
 	initial_node_count = 1
 
 	master_auth {

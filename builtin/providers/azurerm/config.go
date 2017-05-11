@@ -19,6 +19,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
 	"github.com/Azure/azure-sdk-for-go/arm/scheduler"
 	"github.com/Azure/azure-sdk-for-go/arm/servicebus"
+	"github.com/Azure/azure-sdk-for-go/arm/sql"
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
 	"github.com/Azure/azure-sdk-for-go/arm/trafficmanager"
 	"github.com/Azure/azure-sdk-for-go/arm/web"
@@ -101,7 +102,11 @@ type ArmClient struct {
 
 	keyVaultClient keyvault.VaultsClient
 
+<<<<<<< HEAD
 	appsClient web.AppsClient
+=======
+	sqlElasticPoolsClient sql.ElasticPoolsClient
+>>>>>>> upstream/master
 }
 
 func withRequestLogging() autorest.SendDecorator {
@@ -461,11 +466,19 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	kvc.Sender = autorest.CreateSender(withRequestLogging())
 	client.keyVaultClient = kvc
 
+<<<<<<< HEAD
 	ac := web.NewAppsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&ac.Client)
 	ac.Authorizer = spt
 	ac.Sender = autorest.CreateSender(withRequestLogging())
 	client.appsClient = ac
+=======
+	sqlepc := sql.NewElasticPoolsClientWithBaseURI(endpoint, c.SubscriptionID)
+	setUserAgent(&sqlepc.Client)
+	sqlepc.Authorizer = spt
+	sqlepc.Sender = autorest.CreateSender(withRequestLogging())
+	client.sqlElasticPoolsClient = sqlepc
+>>>>>>> upstream/master
 
 	return &client, nil
 }

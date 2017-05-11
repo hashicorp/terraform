@@ -14,7 +14,7 @@ Provides a CodePipeline.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_s3_bucket" "foo" {
   bucket = "test-bucket"
   acl    = "private"

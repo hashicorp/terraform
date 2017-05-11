@@ -12,7 +12,7 @@ Manages a V2 Server Group resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_compute_servergroup_v2" "test-sg" {
   name     = "my-sg"
   policies = ["anti-affinity"]

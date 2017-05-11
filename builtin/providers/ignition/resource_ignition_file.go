@@ -90,7 +90,7 @@ func resourceFile() *schema.Resource {
 }
 
 func resourceFileRead(d *schema.ResourceData, meta interface{}) error {
-	id, err := buildFile(d, meta.(*cache))
+	id, err := buildFile(d, globalCache)
 	if err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func resourceFileRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceFileExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	id, err := buildFile(d, meta.(*cache))
+	id, err := buildFile(d, globalCache)
 	if err != nil {
 		return false, err
 	}

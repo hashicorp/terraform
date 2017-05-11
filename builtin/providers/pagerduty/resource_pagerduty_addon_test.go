@@ -5,32 +5,36 @@ import (
 	"testing"
 
 	"github.com/PagerDuty/go-pagerduty"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccPagerDutyAddon_Basic(t *testing.T) {
+	addon := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	addonUpdated := fmt.Sprintf("tf-%s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyAddonDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckPagerDutyAddonConfig,
+			{
+				Config: testAccCheckPagerDutyAddonConfig(addon),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyAddonExists("pagerduty_addon.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_addon.foo", "name", "Foo status page"),
+						"pagerduty_addon.foo", "name", addon),
 					resource.TestCheckResourceAttr(
 						"pagerduty_addon.foo", "src", "https://intranet.foo.com/status"),
 				),
 			},
-			resource.TestStep{
-				Config: testAccCheckPagerDutyAddonConfigUpdated,
+			{
+				Config: testAccCheckPagerDutyAddonConfigUpdated(addonUpdated),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyAddonExists("pagerduty_addon.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_addon.foo", "name", "Bar status page"),
+						"pagerduty_addon.foo", "name", addonUpdated),
 					resource.TestCheckResourceAttr(
 						"pagerduty_addon.foo", "src", "https://intranet.bar.com/status"),
 				),
@@ -80,16 +84,20 @@ func testAccCheckPagerDutyAddonExists(n string) resource.TestCheckFunc {
 	}
 }
 
-const testAccCheckPagerDutyAddonConfig = `
+func testAccCheckPagerDutyAddonConfig(addon string) string {
+	return fmt.Sprintf(`
 resource "pagerduty_addon" "foo" {
-  name = "Foo status page"
+  name = "%s"
   src  = "https://intranet.foo.com/status"
 }
-`
+`, addon)
+}
 
-const testAccCheckPagerDutyAddonConfigUpdated = `
+func testAccCheckPagerDutyAddonConfigUpdated(addon string) string {
+	return fmt.Sprintf(`
 resource "pagerduty_addon" "foo" {
-  name = "Bar status page"
+  name = "%s"
   src  = "https://intranet.bar.com/status"
 }
-`
+`, addon)
+}

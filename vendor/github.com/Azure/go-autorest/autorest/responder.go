@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -87,6 +88,24 @@ func ByCopying(b *bytes.Buffer) RespondDecorator {
 	}
 }
 
+// ByDiscardingBody returns a RespondDecorator that first invokes the passed Responder after which
+// it copies the remaining bytes (if any) in the response body to ioutil.Discard. Since the passed
+// Responder is invoked prior to discarding the response body, the decorator may occur anywhere
+// within the set.
+func ByDiscardingBody() RespondDecorator {
+	return func(r Responder) Responder {
+		return ResponderFunc(func(resp *http.Response) error {
+			err := r.Respond(resp)
+			if err == nil && resp != nil && resp.Body != nil {
+				if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
+					return fmt.Errorf("Error discarding the response body: %v", err)
+				}
+			}
+			return err
+		})
+	}
+}
+
 // ByClosing returns a RespondDecorator that first invokes the passed Responder after which it
 // closes the response body. Since the passed Responder is invoked prior to closing the response
 // body, the decorator may occur anywhere within the set.
@@ -128,6 +147,8 @@ func ByUnmarshallingJSON(v interface{}) RespondDecorator {
 			err := r.Respond(resp)
 			if err == nil {
 				b, errInner := ioutil.ReadAll(resp.Body)
+				// Some responses might include a BOM, remove for successful unmarshalling
+				b = bytes.TrimPrefix(b, []byte("\xef\xbb\xbf"))
 				if errInner != nil {
 					err = fmt.Errorf("Error occurred reading http.Response#Body - Error = '%v'", errInner)
 				} else if len(strings.Trim(string(b), " ")) > 0 {
@@ -165,17 +186,24 @@ func ByUnmarshallingXML(v interface{}) RespondDecorator {
 }
 
 // WithErrorUnlessStatusCode returns a RespondDecorator that emits an error unless the response
-// StatusCode is among the set passed. Since these are artificial errors, the response body
-// may still require closing.
+// StatusCode is among the set passed. On error, response body is fully read into a buffer and
+// presented in the returned error, as well as in the response body.
 func WithErrorUnlessStatusCode(codes ...int) RespondDecorator {
 	return func(r Responder) Responder {
 		return ResponderFunc(func(resp *http.Response) error {
 			err := r.Respond(resp)
 			if err == nil && !ResponseHasStatusCode(resp, codes...) {
-				err = NewErrorWithResponse("autorest", "WithErrorUnlessStatusCode", resp, "%v %v failed with %s",
+				derr := NewErrorWithResponse("autorest", "WithErrorUnlessStatusCode", resp, "%v %v failed with %s",
 					resp.Request.Method,
 					resp.Request.URL,
 					resp.Status)
+				if resp.Body != nil {
+					defer resp.Body.Close()
+					b, _ := ioutil.ReadAll(resp.Body)
+					derr.ServiceError = b
+					resp.Body = ioutil.NopCloser(bytes.NewReader(b))
+				}
+				err = derr
 			}
 			return err
 		})

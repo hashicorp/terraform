@@ -22,7 +22,7 @@ provider at this time only supports IPv4 addresses on virtual machines.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the VMware vSphere Provider
 provider "vsphere" {
   user           = "${var.vsphere_user}"

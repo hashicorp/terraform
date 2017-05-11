@@ -48,7 +48,7 @@ AWS provider block:
 
 Usage:
 
-```
+```hcl
 provider "aws" {
   region     = "us-west-2"
   access_key = "anaccesskey"
@@ -180,6 +180,10 @@ The following arguments are supported in the `provider` block:
   validation via the STS API. Useful for AWS API implementations that do
   not have STS available or implemented.
 
+* `skip_get_ec2_platforms` - (Optional) Skip getting the supported EC2
+  platforms. Used by users that don't have ec2:DescribeAccountAttributes
+  permissions.
+
 * `skip_region_validation` - (Optional) Skip validation of provided region name.
   Useful for AWS-like implementations that use their own region names
   or to bypass the validation for regions that aren't publicly available yet.
@@ -230,6 +234,22 @@ in excess of those allowed by the access policy of the role that is being assume
 
 Nested `endpoints` block supports the following:
 
+* `cloudwatch` - (Optional) Use this to override the default endpoint
+  URL constructed from the `region`. It's typically used to connect to
+  custom CloudWatch endpoints.
+
+* `cloudwatchevents` - (Optional) Use this to override the default endpoint
+  URL constructed from the `region`. It's typically used to connect to
+  custom CloudWatchEvents endpoints.
+
+* `cloudwatchlogs` - (Optional) Use this to override the default endpoint
+  URL constructed from the `region`. It's typically used to connect to
+  custom CloudWatchLogs endpoints.
+
+* `cloudformation` - (Optional) Use this to override the default endpoint
+  URL constructed from the `region`. It's typically used to connect to
+  custom CloudFormation endpoints.
+
 * `dynamodb` - (Optional) Use this to override the default endpoint
   URL constructed from the `region`. It's typically used to connect to
   `dynamodb-local`.
@@ -237,6 +257,10 @@ Nested `endpoints` block supports the following:
 * `kinesis` - (Optional) Use this to override the default endpoint
   URL constructed from the `region`. It's typically used to connect to
   `kinesalite`.
+
+* `kms` - (Optional) Use this to override the default endpoint
+  URL constructed from the `region`. It's typically used to connect to
+  custom KMS endpoints.
 
 * `iam` - (Optional) Use this to override the default endpoint
   URL constructed from the `region`. It's typically used to connect to
@@ -250,9 +274,21 @@ Nested `endpoints` block supports the following:
   URL constructed from the `region`. It's typically used to connect to
   custom ELB endpoints.
 
+* `rds` - (Optional) Use this to override the default endpoint
+  URL constructed from the `region`. It's typically used to connect to
+  custom RDS endpoints.
+
 * `s3` - (Optional) Use this to override the default endpoint
   URL constructed from the `region`. It's typically used to connect to
   custom S3 endpoints.
+
+* `sns` - (Optional) Use this to override the default endpoint
+  URL constructed from the `region`. It's typically used to connect to
+  custom SNS endpoints.
+
+* `sqs` - (Optional) Use this to override the default endpoint
+  URL constructed from the `region`. It's typically used to connect to
+  custom SQS endpoints.
 
 ## Getting the Account ID
 

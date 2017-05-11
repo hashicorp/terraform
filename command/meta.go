@@ -95,6 +95,8 @@ type Meta struct {
 	//
 	// forceInitCopy suppresses confirmation for copying state data during
 	// init.
+	//
+	// reconfigure forces init to ignore any stored configuration.
 	statePath        string
 	stateOutPath     string
 	backupPath       string
@@ -104,6 +106,7 @@ type Meta struct {
 	stateLock        bool
 	stateLockTimeout time.Duration
 	forceInitCopy    bool
+	reconfigure      bool
 }
 
 // initStatePaths is used to initialize the default values for

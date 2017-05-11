@@ -5,7 +5,7 @@ provider "google" {
   region       = "${var.region1}"
 }
 
-# Create the two networks we want to join. They must have seperate, internal
+# Create the two networks we want to join. They must have separate, internal
 # ranges.
 resource "google_compute_network" "network1" {
   name       = "network1"

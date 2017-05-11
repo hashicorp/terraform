@@ -12,6 +12,18 @@ func TestParseAzureResourceID(t *testing.T) {
 		expectError        bool
 	}{
 		{
+			// Missing "resourceGroups".
+			"/subscriptions/00000000-0000-0000-0000-000000000000//myResourceGroup/",
+			nil,
+			true,
+		},
+		{
+			// Empty resource group ID.
+			"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups//",
+			nil,
+			true,
+		},
+		{
 			"random",
 			nil,
 			true,

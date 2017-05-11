@@ -12,7 +12,7 @@ Manages a V2 router interface resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_networking_network_v2" "network_1" {
   name           = "tf_test_network"
   admin_state_up = "true"

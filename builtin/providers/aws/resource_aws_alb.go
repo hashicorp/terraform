@@ -24,6 +24,12 @@ func resourceAwsAlb() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Update: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"arn": {
 				Type:     schema.TypeString,
@@ -48,7 +54,7 @@ func resourceAwsAlb() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: validateElbName,
+				ValidateFunc: validateElbNamePrefix,
 			},
 
 			"internal": {
@@ -203,8 +209,9 @@ func resourceAwsAlbCreate(d *schema.ResourceData, meta interface{}) error {
 
 			return describeResp, *dLb.State.Code, nil
 		},
-		Timeout:    10 * time.Minute,
-		MinTimeout: 3 * time.Second,
+		Timeout:    d.Timeout(schema.TimeoutCreate),
+		MinTimeout: 10 * time.Second,
+		Delay:      30 * time.Second, // Wait 30 secs before starting
 	}
 	_, err = stateConf.WaitForState()
 	if err != nil {
@@ -369,8 +376,9 @@ func resourceAwsAlbUpdate(d *schema.ResourceData, meta interface{}) error {
 
 			return describeResp, *dLb.State.Code, nil
 		},
-		Timeout:    10 * time.Minute,
-		MinTimeout: 3 * time.Second,
+		Timeout:    d.Timeout(schema.TimeoutUpdate),
+		MinTimeout: 10 * time.Second,
+		Delay:      30 * time.Second, // Wait 30 secs before starting
 	}
 	_, err := stateConf.WaitForState()
 	if err != nil {

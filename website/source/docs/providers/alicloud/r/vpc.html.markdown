@@ -16,13 +16,12 @@ Provides a VPC resource.
 
 Basic Usage
 
-```hcl
+```
 resource "alicloud_vpc" "vpc" {
   name       = "tf_test_foo"
   cidr_block = "172.16.0.0/12"
 }
 ```
-
 ## Argument Reference
 
 The following arguments are supported:

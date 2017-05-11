@@ -13,7 +13,7 @@ subscription.
 
 ## Example Usage
 
-```
+```hcl
 resource "azure_security_group" "web" {
   name     = "webservers"
   location = "West US"
