@@ -44,9 +44,10 @@ func resourceArmContainerRegistry() *schema.Resource {
 			"location": locationSchema(),
 
 			"sku": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 				ValidateFunc: validation.StringInSlice([]string{
 					string(containerregistry.Basic),
 				}, true),
@@ -180,6 +181,10 @@ func resourceArmContainerRegistryRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 	d.Set("admin_enabled", resp.AdminUserEnabled)
 	d.Set("login_server", resp.LoginServer)
+
+	if resp.Sku != nil {
+		d.Set("sku", string(resp.Sku.Tier))
+	}
 
 	if resp.StorageAccount != nil {
 		flattenArmContainerRegistryStorageAccount(d, resp.StorageAccount)
