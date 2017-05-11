@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -522,6 +523,21 @@ func TestAccAWSInstance_ipv6_supportAddressCount(t *testing.T) {
 	})
 }
 
+func TestAccAWSInstance_ipv6AddressCountAndSingleAddressCausesError(t *testing.T) {
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccInstanceConfigIpv6ErrorConfig,
+				ExpectError: regexp.MustCompile("Only 1 of `ipv6_address_count` or `ipv6_addresses` can be specified"),
+			},
+		},
+	})
+}
+
 func TestAccAWSInstance_multipleRegions(t *testing.T) {
 	var v ec2.Instance
 
@@ -1018,6 +1034,34 @@ func TestAccAWSInstance_addSecondaryInterface(t *testing.T) {
 	})
 }
 
+// https://github.com/hashicorp/terraform/issues/3205
+func TestAccAWSInstance_addSecurityGroupNetworkInterface(t *testing.T) {
+	var before ec2.Instance
+	var after ec2.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceConfigAddSecurityGroupBefore,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &before),
+					resource.TestCheckResourceAttr("aws_instance.foo", "vpc_security_group_ids.#", "1"),
+				),
+			},
+			{
+				Config: testAccInstanceConfigAddSecurityGroupAfter,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &after),
+					resource.TestCheckResourceAttr("aws_instance.foo", "vpc_security_group_ids.#", "2"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckInstanceNotRecreated(t *testing.T,
 	before, after *ec2.Instance) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -1352,6 +1396,37 @@ resource "aws_instance" "foo" {
 	tenancy = "dedicated"
 	# pre-encoded base64 data
 	user_data = "3dc39dda39be1205215e776bad998da361a5955d"
+}
+`
+
+const testAccInstanceConfigIpv6ErrorConfig = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+	assign_generated_ipv6_cidr_block = true
+	tags {
+		Name = "tf-ipv6-instance-acc-test"
+	}
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+	ipv6_cidr_block = "${cidrsubnet(aws_vpc.foo.ipv6_cidr_block, 8, 1)}"
+	tags {
+		Name = "tf-ipv6-instance-acc-test"
+	}
+}
+
+resource "aws_instance" "foo" {
+	# us-west-2
+	ami = "ami-c5eabbf5"
+	instance_type = "t2.micro"
+	subnet_id = "${aws_subnet.foo.id}"
+	ipv6_addresses = ["2600:1f14:bb2:e501::10"]
+	ipv6_address_count = 1
+	tags {
+		Name = "tf-ipv6-instance-acc-test"
+	}
 }
 `
 
@@ -2011,5 +2086,136 @@ resource "aws_instance" "foo" {
 	 network_interface_id = "${aws_network_interface.primary.id}"
 	 device_index = 0
   }
+}
+`
+
+const testAccInstanceConfigAddSecurityGroupBefore = `
+resource "aws_vpc" "foo" {
+    cidr_block = "172.16.0.0/16"
+        tags {
+            Name = "tf-eni-test"
+        }
+}
+
+resource "aws_subnet" "foo" {
+    vpc_id = "${aws_vpc.foo.id}"
+    cidr_block = "172.16.10.0/24"
+    availability_zone = "us-west-2a"
+        tags {
+            Name = "tf-foo-instance-add-sg-test"
+        }
+}
+
+resource "aws_subnet" "bar" {
+    vpc_id = "${aws_vpc.foo.id}"
+    cidr_block = "172.16.11.0/24"
+    availability_zone = "us-west-2a"
+        tags {
+            Name = "tf-bar-instance-add-sg-test"
+        }
+}
+
+resource "aws_security_group" "foo" {
+  vpc_id = "${aws_vpc.foo.id}"
+  description = "foo"
+  name = "foo"
+}
+
+resource "aws_security_group" "bar" {
+  vpc_id = "${aws_vpc.foo.id}"
+  description = "bar"
+  name = "bar"
+}
+
+resource "aws_instance" "foo" {
+    ami = "ami-c5eabbf5"
+    instance_type = "t2.micro"
+    subnet_id = "${aws_subnet.bar.id}"
+    associate_public_ip_address = false
+    vpc_security_group_ids = [
+      "${aws_security_group.foo.id}"
+    ]
+    tags {
+        Name = "foo-instance-sg-add-test"
+    }
+}
+
+resource "aws_network_interface" "bar" {
+    subnet_id = "${aws_subnet.foo.id}"
+    private_ips = ["172.16.10.100"]
+    security_groups = ["${aws_security_group.foo.id}"]
+    attachment {
+        instance = "${aws_instance.foo.id}"
+        device_index = 1
+    }
+    tags {
+        Name = "bar_interface"
+    }
+}
+`
+
+const testAccInstanceConfigAddSecurityGroupAfter = `
+resource "aws_vpc" "foo" {
+    cidr_block = "172.16.0.0/16"
+        tags {
+            Name = "tf-eni-test"
+        }
+}
+
+resource "aws_subnet" "foo" {
+    vpc_id = "${aws_vpc.foo.id}"
+    cidr_block = "172.16.10.0/24"
+    availability_zone = "us-west-2a"
+        tags {
+            Name = "tf-foo-instance-add-sg-test"
+        }
+}
+
+resource "aws_subnet" "bar" {
+    vpc_id = "${aws_vpc.foo.id}"
+    cidr_block = "172.16.11.0/24"
+    availability_zone = "us-west-2a"
+        tags {
+            Name = "tf-bar-instance-add-sg-test"
+        }
+}
+
+resource "aws_security_group" "foo" {
+  vpc_id = "${aws_vpc.foo.id}"
+  description = "foo"
+  name = "foo"
+}
+
+resource "aws_security_group" "bar" {
+  vpc_id = "${aws_vpc.foo.id}"
+  description = "bar"
+  name = "bar"
+}
+
+resource "aws_instance" "foo" {
+    ami = "ami-c5eabbf5"
+    instance_type = "t2.micro"
+    subnet_id = "${aws_subnet.bar.id}"
+    associate_public_ip_address = false
+    vpc_security_group_ids = [
+      "${aws_security_group.foo.id}",
+      "${aws_security_group.bar.id}"
+    ]
+    tags {
+        Name = "foo-instance-sg-add-test"
+    }
+}
+
+resource "aws_network_interface" "bar" {
+    subnet_id = "${aws_subnet.foo.id}"
+    private_ips = ["172.16.10.100"]
+    security_groups = ["${aws_security_group.foo.id}"]
+    attachment {
+        instance = "${aws_instance.foo.id}"
+        device_index = 1
+    }
+    tags {
+        Name = "bar_interface"
+    }
 }
 `

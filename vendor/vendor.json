@@ -2025,22 +2025,22 @@
 			"revision": "d30f09973e19c1dfcd120b2d9c4f168e68d6b5d5"
 		},
 		{
-			"checksumSHA1": "fOs3GlAj3fAMTlz+6OyllpZV6ow=",
+			"checksumSHA1": "gyD43l5lH8orGQl7TiqLHRNFtFU=",
 			"path": "github.com/hashicorp/go-oracle-terraform/compute",
-			"revision": "c96a23ea6900a1bbf65698abbd1b9a0010576cb5",
-			"revisionTime": "2017-04-20T21:25:45Z"
+			"revision": "cf979675cc5074d460720f7b97626687bcb1e203",
+			"revisionTime": "2017-05-09T16:19:50Z"
 		},
 		{
 			"checksumSHA1": "DzK7lYwHt5Isq5Zf73cnQqBO2LI=",
 			"path": "github.com/hashicorp/go-oracle-terraform/helper",
-			"revision": "c96a23ea6900a1bbf65698abbd1b9a0010576cb5",
-			"revisionTime": "2017-04-20T21:25:45Z"
+			"revision": "cf979675cc5074d460720f7b97626687bcb1e203",
+			"revisionTime": "2017-05-09T16:19:50Z"
 		},
 		{
 			"checksumSHA1": "AyNRs19Es9pDw2VMxVKWuLx3Afg=",
 			"path": "github.com/hashicorp/go-oracle-terraform/opc",
-			"revision": "c96a23ea6900a1bbf65698abbd1b9a0010576cb5",
-			"revisionTime": "2017-04-20T21:25:45Z"
+			"revision": "cf979675cc5074d460720f7b97626687bcb1e203",
+			"revisionTime": "2017-05-09T16:19:50Z"
 		},
 		{
 			"checksumSHA1": "b0nQutPMJHeUmz4SjpreotAo6Yk=",
@@ -2367,10 +2367,10 @@
 			"revisionTime": "2016-06-16T18:50:15Z"
 		},
 		{
-			"checksumSHA1": "XsjyaC6eTHUy/n0iuR46TZcgAK8=",
+			"checksumSHA1": "o8jaSD36Zq42PMnmUaiB+vq+QNA=",
 			"path": "github.com/joyent/triton-go",
-			"revision": "c73729fd38522591909a371c8180ca7090a59ab9",
-			"revisionTime": "2017-04-28T18:47:44Z"
+			"revision": "97ccd9f6c0c0652cf87997bcb01955e0329cd37e",
+			"revisionTime": "2017-05-09T20:29:43Z"
 		},
 		{
 			"checksumSHA1": "QzUqkCSn/ZHyIK346xb9V6EBw9U=",
@@ -3095,11 +3095,11 @@
 			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
 		},
 		{
-			"checksumSHA1": "tWnkfXhmDWitjF0TMHY7gy3Kt0k=",
+			"checksumSHA1": "YmVWv8lTvJ16glHkHyl+BkL83O4=",
 			"comment": "v2.1.3",
 			"path": "github.com/xanzy/go-cloudstack/cloudstack",
-			"revision": "deca6e17c056012b540aa2d2eae3ea1e63203b85",
-			"revisionTime": "2016-10-26T18:16:49Z"
+			"revision": "fc8ab599c1a9b707303676d54b7bb64221916c88",
+			"revisionTime": "2017-05-11T07:54:48Z"
 		},
 		{
 			"checksumSHA1": "1mR4/KWIQEL8rzyDlCR4CRrTqGQ=",

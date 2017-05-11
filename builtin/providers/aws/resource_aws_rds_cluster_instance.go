@@ -22,6 +22,12 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(90 * time.Minute),
+			Update: schema.DefaultTimeout(90 * time.Minute),
+			Delete: schema.DefaultTimeout(90 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"identifier": {
 				Type:          schema.TypeString,
@@ -214,9 +220,9 @@ func resourceAwsRDSClusterInstanceCreate(d *schema.ResourceData, meta interface{
 		Pending:    []string{"creating", "backing-up", "modifying"},
 		Target:     []string{"available"},
 		Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
-		Timeout:    40 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutCreate),
 		MinTimeout: 10 * time.Second,
-		Delay:      10 * time.Second,
+		Delay:      30 * time.Second,
 	}
 
 	// Wait, catching any errors
@@ -378,9 +384,9 @@ func resourceAwsRDSClusterInstanceUpdate(d *schema.ResourceData, meta interface{
 			Pending:    []string{"creating", "backing-up", "modifying"},
 			Target:     []string{"available"},
 			Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
-			Timeout:    40 * time.Minute,
+			Timeout:    d.Timeout(schema.TimeoutUpdate),
 			MinTimeout: 10 * time.Second,
-			Delay:      10 * time.Second,
+			Delay:      30 * time.Second, // Wait 30 secs before starting
 		}
 
 		// Wait, catching any errors
@@ -418,8 +424,9 @@ func resourceAwsRDSClusterInstanceDelete(d *schema.ResourceData, meta interface{
 		Pending:    []string{"modifying", "deleting"},
 		Target:     []string{},
 		Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
-		Timeout:    40 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		MinTimeout: 10 * time.Second,
+		Delay:      30 * time.Second, // Wait 30 secs before starting
 	}
 
 	if _, err := stateConf.WaitForState(); err != nil {

@@ -87,6 +87,7 @@ func (s *RouterService) StartRouter(p *StartRouterParams) (*StartRouterResponse,
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -225,6 +226,7 @@ func (s *RouterService) RebootRouter(p *RebootRouterParams) (*RebootRouterRespon
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -375,6 +377,7 @@ func (s *RouterService) StopRouter(p *StopRouterParams) (*StopRouterResponse, er
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -513,6 +516,7 @@ func (s *RouterService) DestroyRouter(p *DestroyRouterParams) (*DestroyRouterRes
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -643,6 +647,7 @@ func (s *RouterService) ChangeServiceForRouter(p *ChangeServiceForRouterParams) 
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1045,6 +1050,7 @@ func (s *RouterService) ListRouters(p *ListRoutersParams) (*ListRoutersResponse,
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1257,6 +1263,7 @@ func (s *RouterService) ListVirtualRouterElements(p *ListVirtualRouterElementsPa
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1352,6 +1359,7 @@ func (s *RouterService) ConfigureVirtualRouterElement(p *ConfigureVirtualRouterE
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1441,6 +1449,7 @@ func (s *RouterService) CreateVirtualRouterElement(p *CreateVirtualRouterElement
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 

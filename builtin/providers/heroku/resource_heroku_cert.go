@@ -88,22 +88,20 @@ func resourceHerokuCertUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
 	app := d.Get("app").(string)
+	preprocess := true
+	rollback := false
+	opts := heroku.SSLEndpointUpdateOpts{
+		CertificateChain: heroku.String(d.Get("certificate_chain").(string)),
+		Preprocess:       &preprocess,
+		PrivateKey:       heroku.String(d.Get("private_key").(string)),
+		Rollback:         &rollback}
 
-	if d.HasChange("certificate_chain") {
-		preprocess := true
-		rollback := false
-		ad, err := client.SSLEndpointUpdate(
-			context.TODO(), app, d.Id(), heroku.SSLEndpointUpdateOpts{
-				CertificateChain: d.Get("certificate_chain").(*string),
-				Preprocess:       &preprocess,
-				PrivateKey:       d.Get("private_key").(*string),
-				Rollback:         &rollback})
+	if d.HasChange("certificate_chain") || d.HasChange("private_key") {
+		log.Printf("[DEBUG] SSL Certificate update configuration: %#v, %#v", app, opts)
+		_, err := client.SSLEndpointUpdate(context.TODO(), app, d.Id(), opts)
 		if err != nil {
-			return err
+			return fmt.Errorf("Error updating SSL endpoint: %s", err)
 		}
-
-		// Store the new ID
-		d.SetId(ad.ID)
 	}
 
 	return resourceHerokuCertRead(d, meta)
