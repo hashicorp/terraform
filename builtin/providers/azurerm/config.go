@@ -103,7 +103,7 @@ type ArmClient struct {
 	keyVaultClient keyvault.VaultsClient
 
 	appServicePlansClient web.AppServicePlansClient
-  
+
 	sqlElasticPoolsClient sql.ElasticPoolsClient
 }
 
@@ -464,7 +464,7 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	kvc.Sender = autorest.CreateSender(withRequestLogging())
 	client.keyVaultClient = kvc
 
-  aspc := web.NewAppServicePlansClientWithBaseURI(endpoint, c.SubscriptionID)
+	aspc := web.NewAppServicePlansClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&aspc.Client)
 	aspc.Authorizer = spt
 	aspc.Sender = autorest.CreateSender(withRequestLogging())
