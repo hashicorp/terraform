@@ -71,6 +71,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.vm.provider "docker" do |v, override|
     override.vm.box = "tknerr/baseimage-ubuntu-#{UBUNTUVERSION}"
+    override.ssh.host = '127.0.0.1'
+    override.ssh.port = '2222'
+    override.ssh.username = 'vagrant'
+    override.vm.network :forwarded_port, guest: 22, host: 2222, host_ip: "127.0.0.1", id: "ssh", disabled: true
+    v.force_host_vm = false
   end
 
   ["vmware_fusion", "vmware_workstation"].each do |p|
