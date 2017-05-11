@@ -104,6 +104,7 @@ BUG FIXES:
 * provider/heroku: Fix `heroku_cert` update of ssl cert [GH-14240]
 * provider/openstack: Handle disassociating deleted FloatingIP's from a server [GH-14210]
 * provider/postgres grant role when creating database [GH-11452]
+* provider/triton: Make triton machine deletes synchronous. [GH-14368]
 * provisioner/remote-exec: Fix panic from remote_exec provisioner [GH-14134]
 
 ## 0.9.4 (26th April 2017)
