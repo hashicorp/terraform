@@ -10,13 +10,16 @@ import (
 )
 
 func TestAccDataSourcePagerDutySchedule_Basic(t *testing.T) {
-	rName := acctest.RandString(5)
+	username := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	email := fmt.Sprintf("%s@foo.com", username)
+	schedule := fmt.Sprintf("tf-%s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccDataSourcePagerDutyScheduleConfig(rName),
+			{
+				Config: testAccDataSourcePagerDutyScheduleConfig(username, email, schedule),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDataSourcePagerDutySchedule("pagerduty_schedule.test", "data.pagerduty_schedule.by_name"),
 				),
@@ -50,15 +53,15 @@ func testAccDataSourcePagerDutySchedule(src, n string) resource.TestCheckFunc {
 	}
 }
 
-func testAccDataSourcePagerDutyScheduleConfig(rName string) string {
+func testAccDataSourcePagerDutyScheduleConfig(username, email, schedule string) string {
 	return fmt.Sprintf(`
 resource "pagerduty_user" "test" {
-  name  = "TF User %[1]s"
-  email = "tf.%[1]s@example.com"
+  name  = "%s"
+  email = "%s"
 }
 
 resource "pagerduty_schedule" "test" {
-  name = "TF Schedule %[1]s"
+  name = "%s"
 
   time_zone = "America/New_York"
 
@@ -81,5 +84,5 @@ resource "pagerduty_schedule" "test" {
 data "pagerduty_schedule" "by_name" {
   name = "${pagerduty_schedule.test.name}"
 }
-`, rName)
+`, username, email, schedule)
 }
