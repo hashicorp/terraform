@@ -45,7 +45,7 @@ func resourceArmAppServicePlanCreateUpdate(d *schema.ResourceData, meta interfac
 	client := meta.(*ArmClient)
 	AppServicePlanClient := client.appServicePlansClient
 
-	log.Printf("[INFO] preparing arguments for Azure ARM Server Farm creation.")
+	log.Printf("[INFO] preparing arguments for Azure App Service Plan creation.")
 
 	resGroup := d.Get("resource_group_name").(string)
 	name := d.Get("name").(string)
@@ -78,7 +78,7 @@ func resourceArmAppServicePlanCreateUpdate(d *schema.ResourceData, meta interfac
 		return err
 	}
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read Server farm %s (resource group %s) ID", name, resGroup)
+		return fmt.Errorf("Cannot read Azure App Service Plan %s (resource group %s) ID", name, resGroup)
 	}
 
 	d.SetId(*read.ID)
@@ -105,7 +105,7 @@ func resourceArmAppServicePlanRead(d *schema.ResourceData, meta interface{}) err
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error making Read request on Azure Server Farm %s: %s", name, err)
+		return fmt.Errorf("Error making Read request on Azure App Service Plan %s: %s", name, err)
 	}
 
 	d.Set("name", name)
