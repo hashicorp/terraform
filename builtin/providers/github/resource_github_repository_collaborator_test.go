@@ -47,7 +47,7 @@ func TestAccGithubRepositoryCollaborator_importBasic(t *testing.T) {
 }
 
 func testAccCheckGithubRepositoryCollaboratorDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
+	conn := testAccProvider.Meta().(*Organization).Client()
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_repository_collaborator" {
@@ -83,7 +83,7 @@ func testAccCheckGithubRepositoryCollaboratorExists(n string) resource.TestCheck
 			return fmt.Errorf("No membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
+		conn := testAccProvider.Meta().(*Organization).Client()
 		o := testAccProvider.Meta().(*Organization).name
 		r, u := parseTwoPartID(rs.Primary.ID)
 
@@ -119,7 +119,7 @@ func testAccCheckGithubRepositoryCollaboratorPermission(n string) resource.TestC
 			return fmt.Errorf("No membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
+		conn := testAccProvider.Meta().(*Organization).Client()
 		o := testAccProvider.Meta().(*Organization).name
 		r, u := parseTwoPartID(rs.Primary.ID)
 

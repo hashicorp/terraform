@@ -78,6 +78,10 @@ func resourceGithubRepository() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"last_modified": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -107,7 +111,7 @@ func resourceGithubRepositoryObject(d *schema.ResourceData) *github.Repository {
 }
 
 func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 
 	repoReq := resourceGithubRepositoryObject(d)
 	log.Printf("[DEBUG] create github repository %s/%s", meta.(*Organization).name, *repoReq.Name)
@@ -121,11 +125,16 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	repoName := d.Id()
 
 	log.Printf("[DEBUG] read github repository %s/%s", meta.(*Organization).name, repoName)
+	client.Transport.LastModified = d.Get("last_modified").(string)
 	repo, resp, err := client.Repositories.Get(context.TODO(), meta.(*Organization).name, repoName)
+	if resp.StatusCode == 304 {
+		// no changes
+		return nil
+	}
 	if err != nil {
 		if resp.StatusCode == 404 {
 			log.Printf(
@@ -151,11 +160,12 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("svn_url", repo.SVNURL)
 	d.Set("git_clone_url", repo.GitURL)
 	d.Set("http_clone_url", repo.CloneURL)
+	d.Set("last_modified", resp.Header.Get("Last-Modified"))
 	return nil
 }
 
 func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	repoReq := resourceGithubRepositoryObject(d)
 	repoName := d.Id()
 	log.Printf("[DEBUG] update github repository %s/%s", meta.(*Organization).name, repoName)
@@ -169,7 +179,7 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	repoName := d.Id()
 	log.Printf("[DEBUG] delete github repository %s/%s", meta.(*Organization).name, repoName)
 	_, err := client.Repositories.Delete(context.TODO(), meta.(*Organization).name, repoName)

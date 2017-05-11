@@ -33,12 +33,16 @@ func resourceGithubTeam() *schema.Resource {
 				Default:      "secret",
 				ValidateFunc: validateValueFunc([]string{"secret", "closed"}),
 			},
+			"etag": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
 
 func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	n := d.Get("name").(string)
 	desc := d.Get("description").(string)
 	p := d.Get("privacy").(string)
@@ -55,9 +59,9 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 
-	team, err := getGithubTeam(d, client)
+	team, err, etag := getGithubTeam(d, client)
 	if err != nil {
 		d.SetId("")
 		return nil
@@ -65,12 +69,14 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("description", team.Description)
 	d.Set("name", team.Name)
 	d.Set("privacy", team.Privacy)
+	d.Set("etag", etag)
 	return nil
 }
 
 func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
-	team, err := getGithubTeam(d, client)
+	client := meta.(*Organization).Client()
+
+	team, err, _ := getGithubTeam(d, client)
 
 	if err != nil {
 		d.SetId("")
@@ -93,14 +99,28 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	id := toGithubID(d.Id())
 	_, err := client.Organizations.DeleteTeam(context.TODO(), id)
 	return err
 }
 
-func getGithubTeam(d *schema.ResourceData, github *github.Client) (*github.Team, error) {
+func getGithubTeam(d *schema.ResourceData, client *Client) (*github.Team, error, string) {
 	id := toGithubID(d.Id())
-	team, _, err := github.Organizations.GetTeam(context.TODO(), id)
-	return team, err
+	client.Transport.etag = d.Get("etag").(string)
+	team, rsp, err := client.Organizations.GetTeam(context.TODO(), id)
+	if rsp.StatusCode == 304 {
+		// return team from cache
+		name := d.Get("name").(string)
+		description := d.Get("description").(string)
+		privacy := d.Get("privacy").(string)
+		team = &github.Team{
+			ID:          &id,
+			Name:        &name,
+			Description: &description,
+			Privacy:     &privacy,
+		}
+		err = nil
+	}
+	return team, err, rsp.Header.Get("ETag")
 }

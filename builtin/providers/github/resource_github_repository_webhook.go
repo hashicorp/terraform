@@ -45,6 +45,10 @@ func resourceGithubRepositoryWebhook() *schema.Resource {
 				Optional: true,
 				Default:  true,
 			},
+			"etag": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -71,7 +75,7 @@ func resourceGithubRepositoryWebhookObject(d *schema.ResourceData) *github.Hook 
 }
 
 func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	hk := resourceGithubRepositoryWebhookObject(d)
 
 	hook, _, err := client.Repositories.CreateHook(context.TODO(), meta.(*Organization).name, d.Get("repository").(string), hk)
@@ -84,10 +88,15 @@ func resourceGithubRepositoryWebhookCreate(d *schema.ResourceData, meta interfac
 }
 
 func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	hookID, _ := strconv.Atoi(d.Id())
 
+	client.Transport.etag = d.Get("etag").(string)
 	hook, resp, err := client.Repositories.GetHook(context.TODO(), meta.(*Organization).name, d.Get("repository").(string), hookID)
+	if resp.StatusCode == 304 {
+		// no changes
+		return nil
+	}
 	if err != nil {
 		if resp.StatusCode == 404 {
 			d.SetId("")
@@ -100,12 +109,13 @@ func resourceGithubRepositoryWebhookRead(d *schema.ResourceData, meta interface{
 	d.Set("active", hook.Active)
 	d.Set("events", hook.Events)
 	d.Set("configuration", hook.Config)
+	d.Set("etag", resp.Header.Get("ETag"))
 
 	return nil
 }
 
 func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	hk := resourceGithubRepositoryWebhookObject(d)
 	hookID, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -121,7 +131,7 @@ func resourceGithubRepositoryWebhookUpdate(d *schema.ResourceData, meta interfac
 }
 
 func resourceGithubRepositoryWebhookDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	hookID, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return err

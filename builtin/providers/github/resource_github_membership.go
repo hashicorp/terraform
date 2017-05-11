@@ -30,12 +30,16 @@ func resourceGithubMembership() *schema.Resource {
 				ValidateFunc: validateValueFunc([]string{"member", "admin"}),
 				Default:      "member",
 			},
+			"etag": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
 
 func resourceGithubMembershipCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	n := d.Get("username").(string)
 	r := d.Get("role").(string)
 
@@ -51,10 +55,15 @@ func resourceGithubMembershipCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	_, n := parseTwoPartID(d.Id())
 
-	membership, _, err := client.Organizations.GetOrgMembership(context.TODO(), n, meta.(*Organization).name)
+	client.Transport.etag = d.Get("etag").(string)
+	membership, resp, err := client.Organizations.GetOrgMembership(context.TODO(), n, meta.(*Organization).name)
+	if resp.StatusCode == 304 {
+		// no changes
+		return nil
+	}
 	if err != nil {
 		d.SetId("")
 		return nil
@@ -62,11 +71,12 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 
 	d.Set("username", membership.User.Login)
 	d.Set("role", membership.Role)
+	d.Set("etag", resp.Header.Get("ETag"))
 	return nil
 }
 
 func resourceGithubMembershipUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	n := d.Get("username").(string)
 	r := d.Get("role").(string)
 
@@ -82,7 +92,7 @@ func resourceGithubMembershipUpdate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	n := d.Get("username").(string)
 
 	_, err := client.Organizations.RemoveOrgMembership(context.TODO(), n, meta.(*Organization).name)

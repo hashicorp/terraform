@@ -89,12 +89,16 @@ func resourceGithubBranchProtection() *schema.Resource {
 					},
 				},
 			},
+			"etag": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
 
 func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	r := d.Get("repository").(string)
 	b := d.Get("branch").(string)
 
@@ -113,10 +117,15 @@ func resourceGithubBranchProtectionCreate(d *schema.ResourceData, meta interface
 }
 
 func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	r, b := parseTwoPartID(d.Id())
 
-	githubProtection, _, err := client.Repositories.GetBranchProtection(context.TODO(), meta.(*Organization).name, r, b)
+	client.Transport.etag = d.Get("etag").(string)
+	githubProtection, resp, err := client.Repositories.GetBranchProtection(context.TODO(), meta.(*Organization).name, r, b)
+	if resp.StatusCode == 304 {
+		// no changes
+		return nil
+	}
 	if err != nil {
 		if err, ok := err.(*github.ErrorResponse); ok && err.Response.StatusCode == http.StatusNotFound {
 			d.SetId("")
@@ -128,6 +137,7 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 
 	d.Set("repository", r)
 	d.Set("branch", b)
+	d.Set("etag", resp.Header.Get("ETag"))
 
 	rsc := githubProtection.RequiredStatusChecks
 	if rsc != nil {
@@ -182,7 +192,7 @@ func resourceGithubBranchProtectionRead(d *schema.ResourceData, meta interface{}
 }
 
 func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	r, b := parseTwoPartID(d.Id())
 
 	protectionRequest, err := buildProtectionRequest(d)
@@ -200,7 +210,7 @@ func resourceGithubBranchProtectionUpdate(d *schema.ResourceData, meta interface
 }
 
 func resourceGithubBranchProtectionDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	r, b := parseTwoPartID(d.Id())
 
 	_, err := client.Repositories.RemoveBranchProtection(context.TODO(), meta.(*Organization).name, r, b)

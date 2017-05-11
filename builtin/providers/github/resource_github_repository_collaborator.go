@@ -40,7 +40,7 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 }
 
 func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	u := d.Get("username").(string)
 	r := d.Get("repository").(string)
 	p := d.Get("permission").(string)
@@ -58,7 +58,7 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 }
 
 func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	r, u := parseTwoPartID(d.Id())
 
 	// First, check if the user has been invited but has not yet accepted
@@ -111,7 +111,7 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 }
 
 func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	u := d.Get("username").(string)
 	r := d.Get("repository").(string)
 
@@ -128,10 +128,10 @@ func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta int
 	return err
 }
 
-func findRepoInvitation(client *github.Client, owner string, repo string, collaborator string) (*github.RepositoryInvitation, error) {
+func findRepoInvitation(client *Client, owner string, repo string, collaborator string) (*github.RepositoryInvitation, error) {
 	opt := &github.ListOptions{PerPage: maxPerPage}
 	for {
-		invitations, resp, err := client.Repositories.ListInvitations(context.TODO(), owner, repo, opt)
+		invitations, resp, err := client.Client.Repositories.ListInvitations(context.TODO(), owner, repo, opt)
 		if err != nil {
 			return nil, err
 		}
