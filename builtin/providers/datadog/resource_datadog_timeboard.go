@@ -704,11 +704,11 @@ func resourceDatadogTimeboardExists(d *schema.ResourceData, meta interface{}) (b
 func validateAggregatorMethod(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	validMethods := map[string]struct{}{
-		"avg": {},
-		"max":     {},
-		"min":     {},
-		"sum":     {},
-		"last":    {},
+		"avg":  {},
+		"max":  {},
+		"min":  {},
+		"sum":  {},
+		"last": {},
 	}
 	if _, ok := validMethods[value]; !ok {
 		errors = append(errors, fmt.Errorf(
