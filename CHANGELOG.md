@@ -1,8 +1,14 @@
 ## 0.9.6 (Unreleased)
 
+FEATURES:
+
+* **New Resource:** `aws_devicefarm_project` [GH-14288]
+
 IMPROVEMENTS:
 
 * provider/rundeck: adds `description` to `command` schema in `rundeck_job` resource [GH-14352]
+* provider/datadog: Add last aggregator to datadog_timeboard resource [GH-14391]
+* provider/google: Add a `url` attribute to `google_storage_bucket` [GH-14393]
 
 BUG FIXES:
 
