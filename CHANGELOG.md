@@ -1,5 +1,8 @@
 ## 0.9.6 (Unreleased)
 
+BUG FIXES:
+
+* provider/cloudstack: `cloudstack_firewall` gave a panic when used with older (< v4.6) CloudStack versions (GH-14044)
 
 ## 0.9.5 (May 11, 2017)
 
