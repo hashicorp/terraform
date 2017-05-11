@@ -771,7 +771,8 @@ func testCheckAzureRMVirtualMachineDisappears(name string) resource.TestCheckFun
 
 		conn := testAccProvider.Meta().(*ArmClient).vmClient
 
-		_, err := conn.Delete(resourceGroup, vmName, make(chan struct{}))
+		_, error := conn.Delete(resourceGroup, vmName, make(chan struct{}))
+		err := <-error
 		if err != nil {
 			return fmt.Errorf("Bad: Delete on vmClient: %s", err)
 		}
