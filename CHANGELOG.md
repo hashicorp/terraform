@@ -14,6 +14,7 @@ BUG FIXES:
 
 * provider/aws: Increase EIP update timeout [GH-14381]
 * provider/aws: Increase timeout for creating security group [GH-14380]
+* provider/aws: Increase timeout for (dis)associating IPv6 addr to subnet [GH-14401]
 * provider/aws: Using the new time schema helper for RDS Instance lifecycle mgmt [GH-14369]
 * provider/aws: Using the timeout schema helper to make alb timeout cofigurable [GH-14375]
 * provider/github: Log HTTP requests and responses in DEBUG mode [GH-14363]
