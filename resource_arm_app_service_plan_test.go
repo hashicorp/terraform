@@ -3,10 +3,11 @@ package azurerm
 import (
 	"fmt"
 	"log"
-	"net/http"
+	"testing"
 
-	"github.com/Azure/azure-sdk-for-go/arm/web"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/acctest"
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAzureRMAppServicePlan_standard(t *testing.T) {
