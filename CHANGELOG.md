@@ -1,5 +1,9 @@
 ## 0.9.6 (Unreleased)
 
+FEATURES:
+
+* **New Resource:** `aws_devicefarm_project` [GH-14288]
+
 IMPROVEMENTS:
 
 * provider/rundeck: adds `description` to `command` schema in `rundeck_job` resource [GH-14352]
