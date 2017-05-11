@@ -2,14 +2,14 @@ package heartbeat
 
 // AddHeartbeatResponse holds the result data of the AddHeartbeatRequest.
 type AddHeartbeatResponse struct {
-	Name     string `json:"name"`
+	Name   string `json:"name"`
 	Status string `json:"status"`
 	Code   int    `json:"code"`
 }
 
 // UpdateHeartbeatResponse holds the result data of the UpdateHeartbeatRequest.
 type UpdateHeartbeatResponse struct {
-	Name     string `json:"name"`
+	Name   string `json:"name"`
 	Status string `json:"status"`
 	Code   int    `json:"code"`
 }

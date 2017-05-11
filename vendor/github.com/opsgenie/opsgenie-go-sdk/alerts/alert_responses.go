@@ -10,7 +10,7 @@ type CreateAlertResponse struct {
 
 // CountAlertResponse holds the result data of the CountAlertRequest
 type CountAlertResponse struct {
-	Count   int    `json:"count"`
+	Count int `json:"count"`
 }
 
 // CloseAlertResponse holds the result data of the CloseAlertRequest
@@ -191,14 +191,14 @@ type AddDetailsAlertResponse struct {
 
 // RemoveDetailsAlertResponse holds the result data of the RemoveDetailsAlertRequest
 type RemoveDetailsAlertResponse struct {
-	Status	string `json:"status"`
-	Code 	int    `json:"code"`
+	Status string `json:"status"`
+	Code   int    `json:"code"`
 }
 
 // EscalateToNextAlertResponse holds the result data of the EscalateToNextAlertRequest
 type EscalateToNextAlertResponse struct {
-	Status	string	`json:"status"`
-	Code	int	`json:"code"`
+	Status string `json:"status"`
+	Code   int    `json:"code"`
 }
 
 //IntegrationType returns extracted "integrationType" data from the retrieved alert' SystemData property.

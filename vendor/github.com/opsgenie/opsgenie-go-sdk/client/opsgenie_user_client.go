@@ -3,12 +3,12 @@ package client
 import (
 	"errors"
 
-	"github.com/opsgenie/opsgenie-go-sdk/user"
 	"github.com/opsgenie/opsgenie-go-sdk/logging"
+	"github.com/opsgenie/opsgenie-go-sdk/user"
 )
 
 const (
-	userURL          = "/v1/json/user"
+	userURL = "/v1/json/user"
 )
 
 // OpsGenieUserClient is the data type to make User API requests.

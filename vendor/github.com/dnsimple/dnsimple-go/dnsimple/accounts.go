@@ -1,7 +1,6 @@
 package dnsimple
 
-import (
-)
+import ()
 
 type AccountsService struct {
 	client *Client

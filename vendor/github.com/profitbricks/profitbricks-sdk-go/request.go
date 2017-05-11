@@ -31,32 +31,32 @@ type Requests struct {
 	Id         string       `json:"id,omitempty"`
 	Type_      string       `json:"type,omitempty"`
 	Href       string       `json:"href,omitempty"`
-	Items      []Request     `json:"items,omitempty"`
+	Items      []Request    `json:"items,omitempty"`
 	Response   string       `json:"Response,omitempty"`
 	Headers    *http.Header `json:"headers,omitempty"`
 	StatusCode int          `json:"headers,omitempty"`
 }
 
 type Request struct {
-	ID         string `json:"id"`
-	Type       string `json:"type"`
-	Href       string `json:"href"`
-	Metadata   struct {
-			   CreatedDate   time.Time `json:"createdDate"`
-			   CreatedBy     string `json:"createdBy"`
-			   Etag          string `json:"etag"`
-			   RequestStatus struct {
-						 ID   string `json:"id"`
-						 Type string `json:"type"`
-						 Href string `json:"href"`
-					 } `json:"requestStatus"`
-		   } `json:"metadata"`
+	ID       string `json:"id"`
+	Type     string `json:"type"`
+	Href     string `json:"href"`
+	Metadata struct {
+		CreatedDate   time.Time `json:"createdDate"`
+		CreatedBy     string    `json:"createdBy"`
+		Etag          string    `json:"etag"`
+		RequestStatus struct {
+			ID   string `json:"id"`
+			Type string `json:"type"`
+			Href string `json:"href"`
+		} `json:"requestStatus"`
+	} `json:"metadata"`
 	Properties struct {
-			   Method  string `json:"method"`
-			   Headers interface{} `json:"headers"`
-			   Body    interface{} `json:"body"`
-			   URL     string `json:"url"`
-		   } `json:"properties"`
+		Method  string      `json:"method"`
+		Headers interface{} `json:"headers"`
+		Body    interface{} `json:"body"`
+		URL     string      `json:"url"`
+	} `json:"properties"`
 	Response   string       `json:"Response,omitempty"`
 	Headers    *http.Header `json:"headers,omitempty"`
 	StatusCode int          `json:"headers,omitempty"`
@@ -70,7 +70,7 @@ func ListRequests() Requests {
 }
 
 func GetRequest(req_id string) Request {
-	url := mk_url("/requests/" + req_id) + `?depth=` + Depth
+	url := mk_url("/requests/"+req_id) + `?depth=` + Depth
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Add("Content-Type", FullHeader)
 	return toRequest(do(req))
@@ -109,4 +109,3 @@ func toRequest(resp Resp) Request {
 	server.StatusCode = resp.StatusCode
 	return server
 }
-

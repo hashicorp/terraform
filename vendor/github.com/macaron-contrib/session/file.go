@@ -100,7 +100,7 @@ func (s *FileStore) Flush() error {
 
 // FileProvider represents a file session provider implementation.
 type FileProvider struct {
-	lock sync.RWMutex
+	lock        sync.RWMutex
 	maxlifetime int64
 	rootPath    string
 }
@@ -173,7 +173,7 @@ func (p *FileProvider) Destory(sid string) error {
 func (p *FileProvider) regenerate(oldsid, sid string) (err error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	
+
 	filename := p.filepath(sid)
 	if com.IsExist(filename) {
 		return fmt.Errorf("new sid '%s' already exists", sid)

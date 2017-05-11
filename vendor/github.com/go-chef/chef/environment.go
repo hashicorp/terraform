@@ -96,7 +96,7 @@ func (e *EnvironmentService) Put(environment *Environment) (data *Environment, e
 //
 // Chef API docs: http://docs.getchef.com/api_chef_server.html#id19
 func (e *EnvironmentService) ListCookbooks(name string, numVersions string) (data EnvironmentCookbookResult, err error) {
-  path := versionParams(fmt.Sprintf("environments/%s/cookbooks", name), numVersions)
+	path := versionParams(fmt.Sprintf("environments/%s/cookbooks", name), numVersions)
 	err = e.client.magicRequestDecoder("GET", path, nil, &data)
 	return
 }

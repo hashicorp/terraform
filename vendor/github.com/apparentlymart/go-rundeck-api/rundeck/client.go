@@ -12,9 +12,9 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"net/url"
-	"mime/multipart"
 	"strings"
 )
 
@@ -39,10 +39,10 @@ type Client struct {
 }
 
 type request struct {
-	Method string
+	Method    string
 	PathParts []string
 	QueryArgs map[string]string
-	Headers map[string]string
+	Headers   map[string]string
 	BodyBytes []byte
 }
 
@@ -119,7 +119,7 @@ func (c *Client) xmlRequest(method string, pathParts []string, query map[string]
 	}
 
 	req := &request{
-		Method: method,
+		Method:    method,
 		PathParts: pathParts,
 		QueryArgs: query,
 		BodyBytes: reqBodyBytes,
@@ -156,7 +156,7 @@ func (c *Client) get(pathParts []string, query map[string]string, result interfa
 
 func (c *Client) rawGet(pathParts []string, query map[string]string, accept string) (string, error) {
 	req := &request{
-		Method: "GET",
+		Method:    "GET",
 		PathParts: pathParts,
 		QueryArgs: query,
 		Headers: map[string]string{

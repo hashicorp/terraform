@@ -1,9 +1,9 @@
 package dom
 
 import (
+	"bytes"
 	"encoding/xml"
 	"fmt"
-	"bytes"
 )
 
 type Attr struct {
@@ -12,20 +12,20 @@ type Attr struct {
 }
 
 type Element struct {
-	name xml.Name
-	children []*Element
-	parent *Element
-	content string
+	name       xml.Name
+	children   []*Element
+	parent     *Element
+	content    string
 	attributes []*Attr
 	namespaces []*Namespace
-	document *Document
+	document   *Document
 }
 
 func CreateElement(n string) *Element {
-	element := &Element { name: xml.Name { Local: n } }
+	element := &Element{name: xml.Name{Local: n}}
 	element.children = make([]*Element, 0, 5)
 	element.attributes = make([]*Attr, 0, 10)
-	element.namespaces  = make([]*Namespace, 0, 10)
+	element.namespaces = make([]*Namespace, 0, 10)
 	return element
 }
 
@@ -59,7 +59,7 @@ func (node *Element) RemoveChild(child *Element) *Element {
 
 func (node *Element) SetAttr(name string, value string) *Element {
 	// namespaces?
-	attr := &Attr{ Name: xml.Name { Local: name }, Value: value }
+	attr := &Attr{Name: xml.Name{Local: name}, Value: value}
 	node.attributes = append(node.attributes, attr)
 	return node
 }
@@ -67,18 +67,18 @@ func (node *Element) SetAttr(name string, value string) *Element {
 func (node *Element) SetParent(parent *Element) *Element {
 	node.parent = parent
 	return node
-} 
+}
 
 func (node *Element) SetContent(content string) *Element {
 	node.content = content
 	return node
-} 
+}
 
 // Add a namespace declaration to this node
 func (node *Element) DeclareNamespace(ns Namespace) *Element {
 	// check if we already have it
 	prefix := node.namespacePrefix(ns.Uri)
-	if  prefix == ns.Prefix {
+	if prefix == ns.Prefix {
 		return node
 	}
 	// add it
@@ -94,7 +94,7 @@ func (node *Element) SetNamespace(prefix string, uri string) {
 	resolved := node.namespacePrefix(uri)
 	if resolved == "" {
 		// we couldn't find the namespace, let's declare it at this node
-		node.namespaces = append(node.namespaces, &Namespace { Prefix: prefix, Uri: uri })
+		node.namespaces = append(node.namespaces, &Namespace{Prefix: prefix, Uri: uri})
 	}
 	node.name.Space = uri
 }
@@ -102,19 +102,19 @@ func (node *Element) SetNamespace(prefix string, uri string) {
 func (node *Element) Bytes(out *bytes.Buffer, indent bool, indentType string, level int) {
 	empty := len(node.children) == 0 && node.content == ""
 	content := node.content != ""
-//	children := len(node.children) > 0
-//	ns := len(node.namespaces) > 0
-//	attrs := len(node.attributes) > 0
-	
+	//	children := len(node.children) > 0
+	//	ns := len(node.namespaces) > 0
+	//	attrs := len(node.attributes) > 0
+
 	indentStr := ""
 	nextLine := ""
 	if indent {
 		nextLine = "\n"
 		for i := 0; i < level; i++ {
-	    	indentStr += indentType
+			indentStr += indentType
 		}
 	}
-	
+
 	if node.name.Local != "" {
 		if len(node.name.Space) > 0 {
 			// first find if ns has been declared, otherwise
@@ -124,7 +124,7 @@ func (node *Element) Bytes(out *bytes.Buffer, indent bool, indentType string, le
 			fmt.Fprintf(out, "%s<%s", indentStr, node.name.Local)
 		}
 	}
-	
+
 	// declared namespaces
 	for _, v := range node.namespaces {
 		prefix := node.namespacePrefix(v.Uri)
@@ -140,7 +140,7 @@ func (node *Element) Bytes(out *bytes.Buffer, indent bool, indentType string, le
 			fmt.Fprintf(out, ` %s="%s"`, v.Name.Local, v.Value)
 		}
 	}
-	
+
 	// close tag
 	if empty {
 		fmt.Fprintf(out, "/>%s", nextLine)
@@ -148,20 +148,20 @@ func (node *Element) Bytes(out *bytes.Buffer, indent bool, indentType string, le
 		if content {
 			out.WriteRune('>')
 		} else {
-			fmt.Fprintf(out, ">%s", nextLine)			
+			fmt.Fprintf(out, ">%s", nextLine)
 		}
 	}
-	
+
 	if len(node.children) > 0 {
 		for _, child := range node.children {
-			child.Bytes(out, indent, indentType, level + 1)
+			child.Bytes(out, indent, indentType, level+1)
 		}
 	} else if node.content != "" {
 		//val := []byte(node.content)
 		//xml.EscapeText(out, val)
 		out.WriteString(node.content)
 	}
-	
+
 	if !empty && len(node.name.Local) > 0 {
 		var indentation string
 		if content {
@@ -191,7 +191,6 @@ func (node *Element) namespacePrefix(uri string) string {
 	}
 	return node.parent.namespacePrefix(uri)
 }
-
 
 func (node *Element) String() string {
 	var b bytes.Buffer

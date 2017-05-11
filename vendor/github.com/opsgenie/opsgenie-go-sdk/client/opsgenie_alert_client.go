@@ -39,12 +39,12 @@ const (
 	executeActionAlertURL   = "/v1/json/alert/executeAction"
 	attachFileAlertURL      = "/v1/json/alert/attach"
 	countAlertURL           = "/v1/json/alert/count"
-	unacknowledgeAlertURL    = "/v1/json/alert/unacknowledge"
-	snoozeAlertURL 		= "/v1/json/alert/snooze"
-	removeTagsAlertURL	= "/v1/json/alert/tags"
-	addDetailsAlertURL	= "/v1/json/alert/details"
-	removeDetailsAlertURL	= "/v1/json/alert/details"
-	escalateToNextAlertURL	= "/v1/json/alert/escalateToNext"
+	unacknowledgeAlertURL   = "/v1/json/alert/unacknowledge"
+	snoozeAlertURL          = "/v1/json/alert/snooze"
+	removeTagsAlertURL      = "/v1/json/alert/tags"
+	addDetailsAlertURL      = "/v1/json/alert/details"
+	removeDetailsAlertURL   = "/v1/json/alert/details"
+	escalateToNextAlertURL  = "/v1/json/alert/escalateToNext"
 )
 
 // OpsGenieAlertClient is the data type to make Alert API requests.
@@ -96,7 +96,6 @@ func (cli *OpsGenieAlertClient) Count(req alerts.CountAlertRequest) (*alerts.Cou
 	}
 	return &countAlertResp, nil
 }
-
 
 // Close method closes an alert at OpsGenie.
 func (cli *OpsGenieAlertClient) Close(req alerts.CloseAlertRequest) (*alerts.CloseAlertResponse, error) {

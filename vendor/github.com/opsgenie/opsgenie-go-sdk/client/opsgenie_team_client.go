@@ -3,13 +3,13 @@ package client
 import (
 	"errors"
 
-	"github.com/opsgenie/opsgenie-go-sdk/team"
 	"github.com/opsgenie/opsgenie-go-sdk/logging"
+	"github.com/opsgenie/opsgenie-go-sdk/team"
 )
 
 const (
-	teamURL          = "/v1/json/team"
-	teamLogsURL        = "/v1/json/team/log"
+	teamURL     = "/v1/json/team"
+	teamLogsURL = "/v1/json/team/log"
 )
 
 // OpsGenieTeamClient is the data type to make Team API requests.
@@ -105,7 +105,7 @@ func (cli *OpsGenieTeamClient) Get(req team.GetTeamRequest) (*team.GetTeamRespon
 // List method retrieves teams from OpsGenie.
 func (cli *OpsGenieTeamClient) List(req team.ListTeamsRequest) (*team.ListTeamsResponse, error) {
 	req.APIKey = cli.apiKey
-	resp, err := cli.sendRequest(cli.buildGetRequest(teamURL,req))
+	resp, err := cli.sendRequest(cli.buildGetRequest(teamURL, req))
 	if resp == nil {
 		return nil, errors.New(err.Error())
 	}

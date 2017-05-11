@@ -1,8 +1,8 @@
 package authentication
 
 import (
-	"regexp"
 	"fmt"
+	"regexp"
 )
 
 type httpAuthSignature interface {

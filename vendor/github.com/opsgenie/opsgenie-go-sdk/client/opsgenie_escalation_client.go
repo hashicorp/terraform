@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	escalationURL          = "/v1/json/escalation"
+	escalationURL = "/v1/json/escalation"
 )
 
 // OpsGenieEscalationClient is the data type to make Escalation API requests.

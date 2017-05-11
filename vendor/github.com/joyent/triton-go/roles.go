@@ -1,10 +1,10 @@
 package triton
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/hashicorp/errwrap"
 	"net/http"
-	"encoding/json"
 )
 
 type RolesClient struct {
@@ -45,7 +45,7 @@ func (client *RolesClient) ListRoles(*ListRolesInput) ([]*Role, error) {
 	return result, nil
 }
 
-type GetRoleInput struct{
+type GetRoleInput struct {
 	RoleID string
 }
 

@@ -11,12 +11,12 @@ type marshalTest struct {
 	ExpectedXML string
 }
 
-type unmarshalTestFunc func (result interface {}) error
+type unmarshalTestFunc func(result interface{}) error
 
 type unmarshalTest struct {
-	Name string
-	Input string
-	Output interface {}
+	Name     string
+	Input    string
+	Output   interface{}
 	TestFunc unmarshalTestFunc
 }
 

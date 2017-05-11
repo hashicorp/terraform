@@ -5,8 +5,8 @@ import (
 )
 
 type errorResponse struct {
-	Type    string      `json:"type"`
-	Message string      `json:"message"`
+	Type    string `json:"type"`
+	Message string `json:"message"`
 }
 
 type apiError struct {

@@ -38,7 +38,7 @@ func emailForwardPath(accountID string, domainIdentifier string, forwardID int) 
 //
 // See https://developer.dnsimple.com/v2/domains/email-forwards/#list
 func (s *DomainsService) ListEmailForwards(accountID string, domainIdentifier string, options *ListOptions) (*EmailForwardsResponse, error) {
-	path := versioned(emailForwardPath(accountID, domainIdentifier , 0))
+	path := versioned(emailForwardPath(accountID, domainIdentifier, 0))
 	forwardsResponse := &EmailForwardsResponse{}
 
 	path, err := addURLQueryOptions(path, options)

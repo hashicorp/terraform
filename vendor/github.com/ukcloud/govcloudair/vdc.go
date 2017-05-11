@@ -67,7 +67,7 @@ func (v *Vdc) Refresh() error {
 	}
 
 	v.Vdc = unmarshalledVdc
-	
+
 	// The request was successful
 	return nil
 }
