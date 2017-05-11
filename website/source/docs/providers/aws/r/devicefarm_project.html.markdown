@@ -6,7 +6,7 @@ description: |-
   Provides a Devicefarm project
 ---
 
-# aws\_devicefarm\_project
+# aws_devicefarm_project
 
 Provides a resource to manage AWS Device Farm Projects. 
 Please keep in mind that this feature is only supported on the "us-west-2" region.
@@ -19,18 +19,19 @@ For more information about Device Farm Projects, see the AWS Documentation on
 
 
 ```hcl
-resource "aws_devicefarm_project" "awesome_devices"
+resource "aws_devicefarm_project" "awesome_devices" {
+    name = "my-device-farm"
+}
 ```
 
 ## Argument Reference
 
-There are currently no other arguments besides the name supported.
+* `name` - (Required) The name of the project
 
 ## Attributes Reference
 
 The following attributes are exported:
 
-* `name` - The name of the project
-* `arn` - The Amazon Resource Name of this project (computed)
+* `arn` - The Amazon Resource Name of this project
 
 [aws-get-project]: http://docs.aws.amazon.com/devicefarm/latest/APIReference/API_GetProject.html

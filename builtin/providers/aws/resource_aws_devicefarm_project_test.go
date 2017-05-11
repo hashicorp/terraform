@@ -7,54 +7,38 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/devicefarm"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSDeviceFarmProject_basic(t *testing.T) {
-	var v devicefarm.Project
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckDeviceFarmProjectDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccDeviceFarmProjectConfig,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckDeviceFarmProjectExists(
-						"aws_devicefarm_project.foo", &v),
-				),
-			},
-		},
-	})
-}
-
-func TestAccAWSDeviceFarmProject_update(t *testing.T) {
 	var afterCreate, afterUpdate devicefarm.Project
+	beforeInt := acctest.RandInt()
+	afterInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDeviceFarmProjectDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccDeviceFarmProjectConfig,
+			{
+				Config: testAccDeviceFarmProjectConfig(beforeInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDeviceFarmProjectExists(
 						"aws_devicefarm_project.foo", &afterCreate),
 					resource.TestCheckResourceAttr(
-						"aws_devicefarm_project.foo", "name", "tf-testproject-01"),
+						"aws_devicefarm_project.foo", "name", fmt.Sprintf("tf-testproject-%d", beforeInt)),
 				),
 			},
 
-			resource.TestStep{
-				Config: testAccDeviceFarmProjectConfigUpdate,
+			{
+				Config: testAccDeviceFarmProjectConfig(afterInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDeviceFarmProjectExists(
 						"aws_devicefarm_project.foo", &afterUpdate),
 					resource.TestCheckResourceAttr(
-						"aws_devicefarm_project.foo", "name", "tf-testproject-02"),
+						"aws_devicefarm_project.foo", "name", fmt.Sprintf("tf-testproject-%d", afterInt)),
 					testAccCheckDeviceFarmProjectNotRecreated(
 						t, &afterCreate, &afterUpdate),
 				),
@@ -119,35 +103,17 @@ func testAccCheckDeviceFarmProjectDestroy(s *terraform.State) error {
 			return nil
 		}
 
-		// Verify the error is what we want
-		dferr, ok := err.(awserr.Error)
-		if !ok {
-			return err
-		}
-		if dferr.Code() != "DeviceFarmProjectNotFoundFault" {
-			return err
+		if dferr, ok := err.(awserr.Error); ok && dferr.Code() == "DeviceFarmProjectNotFoundFault" {
+			return nil
 		}
 	}
 
 	return nil
 }
 
-const testAccDeviceFarmProjectConfig = `
-provider "aws" {
-	region = "us-west-2"
-}
-
+func testAccDeviceFarmProjectConfig(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_devicefarm_project" "foo" {
-	name = "tf-testproject-01"
+	name = "tf-testproject-%d"
+}`, rInt)
 }
-`
-
-const testAccDeviceFarmProjectConfigUpdate = `
-provider "aws" {
-	region = "us-west-2"
-}
-
-resource "aws_devicefarm_project" "foo" {
-	name = "tf-testproject-02"
-}
-`
