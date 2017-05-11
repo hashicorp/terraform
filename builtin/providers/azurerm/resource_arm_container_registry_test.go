@@ -177,6 +177,7 @@ resource "azurerm_container_registry" "test" {
   name                = "testacccr%d"
   resource_group_name = "${azurerm_resource_group.test.name}"
   location            = "${azurerm_resource_group.test.location}"
+  sku                 = "Basic"
 
   storage_account {
     name       = "${azurerm_storage_account.test.name}"
@@ -203,6 +204,7 @@ resource "azurerm_container_registry" "test" {
   resource_group_name = "${azurerm_resource_group.test.name}"
   location            = "${azurerm_resource_group.test.location}"
   admin_enabled       = false
+  sku                 = "Basic"
 
   storage_account {
     name       = "${azurerm_storage_account.test.name}"

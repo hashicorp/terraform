@@ -11,6 +11,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/containerregistry"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/jen20/riviera/azure"
 )
 
@@ -18,11 +19,13 @@ func resourceArmContainerRegistry() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceArmContainerRegistryCreate,
 		Read:   resourceArmContainerRegistryRead,
-		Update: resourceArmContainerRegistryCreate, // TODO: separate Update method
+		Update: resourceArmContainerRegistryUpdate,
 		Delete: resourceArmContainerRegistryDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
+		MigrateState:  resourceAzureRMContainerRegistryMigrateState,
+		SchemaVersion: 1,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -39,6 +42,15 @@ func resourceArmContainerRegistry() *schema.Resource {
 			},
 
 			"location": locationSchema(),
+
+			"sku": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					string(containerregistry.Basic),
+				}, true),
+			},
 
 			"admin_enabled": {
 				Type:     schema.TypeBool,
@@ -93,12 +105,17 @@ func resourceArmContainerRegistryCreate(d *schema.ResourceData, meta interface{}
 	resourceGroup := d.Get("resource_group_name").(string)
 	name := d.Get("name").(string)
 	location := d.Get("location").(string)
+	sku := d.Get("sku").(string)
 
 	adminUserEnabled := d.Get("admin_enabled").(bool)
 	tags := d.Get("tags").(map[string]interface{})
 
 	parameters := containerregistry.RegistryCreateParameters{
 		Location: &location,
+		Sku: &containerregistry.Sku{
+			Name: &sku,
+			Tier: containerregistry.SkuTier(sku),
+		},
 		RegistryPropertiesCreateParameters: &containerregistry.RegistryPropertiesCreateParameters{
 			AdminUserEnabled: &adminUserEnabled,
 		},
@@ -132,6 +149,11 @@ func resourceArmContainerRegistryCreate(d *schema.ResourceData, meta interface{}
 	d.SetId(*read.ID)
 
 	return resourceArmContainerRegistryRead(d, meta)
+}
+
+func resourceArmContainerRegistryUpdate(d *schema.ResourceData, meta interface{}) error {
+	// TODO: implement me
+	return nil
 }
 
 func resourceArmContainerRegistryRead(d *schema.ResourceData, meta interface{}) error {
@@ -219,6 +241,11 @@ func resourceAzureRMContainerRegistryStorageAccountHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	name := m["name"].(*string)
 	return hashcode.String(*name)
+}
+
+func resourceAzureRMContainerRegistryExpandSku(d *schema.ResourceData) (string, string) {
+	// TODO: parse this out, d.Get("sku") is a list
+	return "Basic", "Basic"
 }
 
 func validateAzureRMContainerRegistryName(v interface{}, k string) (ws []string, errors []error) {
