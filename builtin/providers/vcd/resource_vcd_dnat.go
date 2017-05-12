@@ -34,7 +34,7 @@ func resourceVcdDNAT() *schema.Resource {
 
 			"translated_port": &schema.Schema{
 				Type:     schema.TypeInt,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 			},
 
@@ -55,7 +55,10 @@ func resourceVcdDNATCreate(d *schema.ResourceData, meta interface{}) error {
 	vcdClient.Mutex.Lock()
 	defer vcdClient.Mutex.Unlock()
 	portString := getPortString(d.Get("port").(int))
-	intportString := getPortString(d.Get("translated_port").(int))
+	trlateportString := portString // default
+	if d.Get("translated_port").(int) > 0 {
+		trlateportString = getPortString(d.Get("translated_port").(int))
+	}
 
 	edgeGateway, err := vcdClient.OrgVdc.FindEdgeGateway(d.Get("edge_gateway").(string))
 
@@ -73,8 +76,7 @@ func resourceVcdDNATCreate(d *schema.ResourceData, meta interface{}) error {
 			d.Get("external_ip").(string),
 			portString,
 			d.Get("internal_ip").(string),
-			//portString)
-			intportString)
+			trlateportString)
 		if err != nil {
 			return resource.RetryableError(
 				fmt.Errorf("Error setting DNAT rules: %#v", err))
@@ -87,7 +89,7 @@ func resourceVcdDNATCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error completing tasks: %#v", err)
 	}
 
-	d.SetId(d.Get("external_ip").(string) + ":" + portString + " > " + d.Get("internal_ip").(string) + ":" + intportString)
+	d.SetId(d.Get("external_ip").(string) + ":" + portString + " > " + d.Get("internal_ip").(string) + ":" + trlateportString)
 	return nil
 }
 
