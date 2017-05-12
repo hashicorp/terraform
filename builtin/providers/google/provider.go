@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform/helper/mutexkv"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/api/compute/v1"
@@ -266,3 +267,6 @@ func handleNotFoundError(err error, d *schema.ResourceData, resource string) err
 
 	return fmt.Errorf("Error reading %s: %s", resource, err)
 }
+
+// This is a global MutexKV for use within this plugin.
+var googleMutexKV = mutexkv.NewMutexKV()
