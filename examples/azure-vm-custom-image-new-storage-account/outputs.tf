@@ -13,4 +13,3 @@ output "fqdn" {
 output "id" {
   value = "${azurerm_public_ip.transferpip.id}"
 }
-

@@ -10,6 +10,36 @@ resource "azurerm_resource_group" "rg" {
   location = "${var.location}"
 }
 
+resource "azurerm_network_security_group" "nsg" {
+  name                = "nsg"
+  location            = "${azurerm_resource_group.rg.location}"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
+
+  security_rule {
+    name                       = "5985"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "5985"
+    destination_port_range     = "*"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "RDP"
+    priority                   = 110
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "3389"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+}
+
 resource "azurerm_virtual_network" "vnet" {
   name                = "${var.hostname}vnet"
   location            = "${azurerm_resource_group.rg.location}"
@@ -32,9 +62,10 @@ resource "azurerm_public_ip" "transferpip" {
 }
 
 resource "azurerm_network_interface" "transfernic" {
-  name                = "transfernic"
-  location            = "${azurerm_resource_group.rg.location}"
-  resource_group_name = "${azurerm_resource_group.rg.name}"
+  name                      = "transfernic"
+  location                  = "${azurerm_resource_group.rg.location}"
+  resource_group_name       = "${azurerm_resource_group.rg.name}"
+  network_security_group_id = "${azurerm_network_security_group.nsg.id}"
 
   ip_configuration {
     name                          = "${azurerm_public_ip.transferpip.name}"
@@ -109,58 +140,65 @@ resource "azurerm_virtual_machine" "transfer" {
     enabled     = true
     storage_uri = "${azurerm_storage_account.stor.primary_blob_endpoint}"
   }
-
-  provisioner "file" {
-    source = "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/201-vm-custom-image-new-storage-account/ImageTransfer.ps1"
-    destination = "C:/tmp/ImageTransfer.ps1"
-       
-    connection {
-      type     = "winrm"
-      user     = "${var.admin_username}"
-      password = "${var.admin_password}"
-      host     = "${azurerm_public_ip.transferpip.ip_address}"
-    }
-  }
-  
-  provisioner "remote-exec" {
-    inline = [
-      "powershell -ExecutionPolicy Unrestricted -File ImageTransfer.ps1 -SourceImage ${var.source_img_uri} -SourceSAKey ${azurerm_storage_account.existing.primary_access_key} -DestinationURI https://${azurerm_storage_account.stor.name}.blob.core.windows.net/vhds -DestinationSAKey ${azurerm_storage_account.stor.primary_access_key}"
-    ]
-   
-    connection {
-      type     = "winrm"
-      user     = "${var.admin_username}"
-      password = "${var.admin_password}"
-      host     = "${azurerm_public_ip.transferpip.ip_address}"
-    }
-  }
-
 }
 
-# resource "azurerm_virtual_machine" "new" {
-#   name                  = "${var.vm_vm_name}"
-#   location              = "${azurerm_resource_group.rg.location}"
-#   resource_group_name   = "${azurerm_resource_group.rg.name}"
-#   vm_size               = "${var.vm_size}"
-#   network_interface_ids = ["${element(azurerm_network_interface.nic.*.id, count.index)}"]
+resource "azurerm_virtual_machine_extension" "script" {
+  name                 = "CustomScriptExtension"
+  location             = "${azurerm_resource_group.rg.location}"
+  resource_group_name  = "${azurerm_resource_group.rg.name}"
+  virtual_machine_name = "${azurerm_virtual_machine.transfer.name}"
+  publisher            = "Microsoft.Compute"
+  type                 = "CustomScriptExtension"
+  type_handler_version = "1.4"
 
-#   storage_os_disk {
-#     name          = "${var.hostname}-osdisk"
-#     image_uri     = "${var.source_img_uri}"
-#     vhd_uri       = "https://${var.existing_storage_acct}.blob.core.windows.net/${var.existing_resource_group}-vhds/${var.hostname}5osdisk.vhd"
-#     os_type       = "${var.os_type}"
-#     caching       = "ReadWrite"
-#     create_option = "FromImage"
-#   }
+  settings = <<SETTINGS
+    {
+        "commandToExecute": "powershell -ExecutionPolicy Unrestricted -Command \"Invoke-WebRequest -Uri https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/201-vm-custom-image-new-storage-account/ImageTransfer.ps1 -OutFile C:/ImageTransfer.ps1\" "
+    }
+SETTINGS
+}
 
-#   os_profile {
-#     computer_name  = "${var.hostname}"
-#     admin_username = "${var.admin_username}"
-#     admin_password = "${var.admin_password}"
-#   }
+resource "azurerm_virtual_machine_extension" "execute" {
+  name                 = "CustomScriptExtension"
+  location             = "${azurerm_resource_group.rg.location}"
+  resource_group_name  = "${azurerm_resource_group.rg.name}"
+  virtual_machine_name = "${azurerm_virtual_machine.transfer.name}"
+  publisher            = "Microsoft.Compute"
+  type                 = "CustomScriptExtension"
+  type_handler_version = "1.4"
+  depends_on           = ["azurerm_virtual_machine_extension.script"]
 
-#   boot_diagnostics {
-#     enabled     = true
-#     storage_uri = "${azurerm_storage_account.stor.primary_blob_endpoint}"
-#   }
-# }
+  settings = <<SETTINGS
+    {
+        "commandToExecute": "powershell -ExecutionPolicy Unrestricted -File C:\\ImageTransfer.ps1 -SourceImage ${var.source_img_uri} -SourceSAKey ${azurerm_storage_account.existing.primary_access_key} -DestinationURI https://${azurerm_storage_account.stor.name}.blob.core.windows.net/vhds -DestinationSAKey ${azurerm_storage_account.stor.primary_access_key}\" "
+    }
+SETTINGS
+}
+
+resource "azurerm_virtual_machine" "myvm" {
+  name                  = "${var.new_vm_name}"
+  location              = "${azurerm_resource_group.rg.location}"
+  resource_group_name   = "${azurerm_resource_group.rg.name}"
+  vm_size               = "${var.vm_size}"
+  network_interface_ids = ["${azurerm_network_interface.mynic.id}"]
+
+  storage_os_disk {
+    name          = "${var.hostname}myosdisk"
+    image_uri     = "http://${azurerm_storage_account.stor.name}.blob.core.windows.net/vhds/${var.custom_image_name}.vhd"
+    vhd_uri       = "https://${azurerm_storage_account.stor.name}.blob.core.windows.net/${azurerm_resource_group.rg.name}-vhds/${var.hostname}osdisk.vhd"
+    os_type       = "${var.os_type}"
+    caching       = "ReadWrite"
+    create_option = "FromImage"
+  }
+
+  os_profile {
+    computer_name  = "${var.hostname}"
+    admin_username = "${var.admin_username}"
+    admin_password = "${var.admin_password}"
+  }
+
+  boot_diagnostics {
+    enabled     = true
+    storage_uri = "${azurerm_storage_account.stor.primary_blob_endpoint}"
+  }
+}
