@@ -51,7 +51,7 @@ func resourceHerokuDomainCreate(d *schema.ResourceData, meta interface{}) error 
 
 	d.SetId(do.ID)
 	d.Set("hostname", do.Hostname)
-	d.Set("cname", fmt.Sprintf("%s.herokuapp.com", app))
+	d.Set("cname", do.CName)
 
 	log.Printf("[INFO] Domain ID: %s", d.Id())
 	return nil
@@ -81,7 +81,7 @@ func resourceHerokuDomainRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("hostname", do.Hostname)
-	d.Set("cname", fmt.Sprintf("%s.herokuapp.com", app))
+	d.Set("cname", do.CName)
 
 	return nil
 }
