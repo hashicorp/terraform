@@ -272,9 +272,6 @@ func resourceMachineCreate(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	if err != nil {
-		return err
-	}
 
 	// refresh state after it provisions
 	return resourceMachineRead(d, meta)
