@@ -16,9 +16,9 @@ import (
 
 func resourceArmExpressRouteCircuit() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmExpressRouteCircuitCreate,
+		Create: resourceArmExpressRouteCircuitCreateOrUpdate,
 		Read:   resourceArmExpressRouteCircuitRead,
-		Update: resourceArmExpressRouteCircuitCreate,
+		Update: resourceArmExpressRouteCircuitCreateOrUpdate,
 		Delete: resourceArmExpressRouteCircuitDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
@@ -110,7 +110,7 @@ func resourceArmExpressRouteCircuit() *schema.Resource {
 	}
 }
 
-func resourceArmExpressRouteCircuitCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmExpressRouteCircuitCreateOrUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient)
 	ercClient := client.expressRouteCircuitClient
 
@@ -122,7 +122,7 @@ func resourceArmExpressRouteCircuitCreate(d *schema.ResourceData, meta interface
 	serviceProviderName := d.Get("service_provider_name").(string)
 	peeringLocation := d.Get("peering_location").(string)
 	bandwidthInMbps := int32(d.Get("bandwidth_in_mbps").(int))
-	sku := expandExpressRouteCircuitSku(d.Get("sku").(*schema.Set))
+	sku := expandExpressRouteCircuitSku(d)
 	allowRdfeOps := d.Get("allow_classic_operations").(bool)
 	tags := d.Get("tags").(map[string]interface{})
 	expandedTags := expandTags(tags)
@@ -207,7 +207,8 @@ func resourceArmExpressRouteCircuitDelete(d *schema.ResourceData, meta interface
 	return err
 }
 
-func expandExpressRouteCircuitSku(skuSettings *schema.Set) *network.ExpressRouteCircuitSku {
+func expandExpressRouteCircuitSku(d *schema.ResourceData) *network.ExpressRouteCircuitSku {
+	skuSettings := d.Get("sku").(*schema.Set)
 	v := skuSettings.List()[0].(map[string]interface{}) // [0] is guarded by MinItems in schema.
 	tier := v["tier"].(string)
 	family := v["family"].(string)
