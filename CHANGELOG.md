@@ -16,6 +16,7 @@ BUG FIXES:
 
 * core: When using `-target`, any outputs that include attributes of the targeted resources are now updated [GH-14186]
 * core: Fixed 0.9.5 regression with the conditional operator `.. ? .. : ..` failing to type check with unknown/computed values [GH-14454]
+* core: Fixed 0.9 regression causing issues during refresh when adding new data resource instances using `count` [GH-14098]
 * provider/aws: Increase EIP update timeout [GH-14381]
 * provider/aws: Increase timeout for creating security group [GH-14380]
 * provider/aws: Increase timeout for (dis)associating IPv6 addr to subnet [GH-14401]
