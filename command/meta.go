@@ -434,9 +434,28 @@ func (m *Meta) outputShadowError(err error, output bool) bool {
 	return true
 }
 
+// EnvironmentNameEnvVar is the name of the environment variable (ie, the POSIX
+// feature) that can be used to set the name of the Terraform environment
+// (overriding the environment chosen by `terraform env select`).  Note that
+// this environment variable is ignored by `terraform env new` and `terraform
+// env delete`.
+const EnvironmentNameEnvVar = "TF_ENVIRONMENT"
+
 // Env returns the name of the currently configured environment, corresponding
 // to the desired named state.
 func (m *Meta) Env() string {
+	current, _ := m.EnvOverridden()
+	return current
+}
+
+// EnvOverridden returns the name of the currently configured environment,
+// corresponding to the desired named state, as well as a bool saying whether
+// this was set via the TF_ENVIRONMENT environment variable.
+func (m *Meta) EnvOverridden() (string, bool) {
+	if envVar := os.Getenv(EnvironmentNameEnvVar); envVar != "" {
+		return envVar, true
+	}
+
 	dataDir := m.dataDir
 	if m.dataDir == "" {
 		dataDir = DefaultDataDir
@@ -453,7 +472,7 @@ func (m *Meta) Env() string {
 		log.Printf("[ERROR] failed to read current environment: %s", err)
 	}
 
-	return current
+	return current, false
 }
 
 // SetEnv saves the named environment to the local filesystem.

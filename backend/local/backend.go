@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 	"sync"
 
 	"github.com/hashicorp/terraform/backend"
@@ -390,23 +389,4 @@ func (b *Local) stateEnvDir() string {
 	}
 
 	return DefaultEnvDir
-}
-
-// currentStateName returns the name of the current named state as set in the
-// configuration files.
-// If there are no configured environments, currentStateName returns "default"
-func (b *Local) currentStateName() (string, error) {
-	contents, err := ioutil.ReadFile(filepath.Join(DefaultDataDir, DefaultEnvFile))
-	if os.IsNotExist(err) {
-		return backend.DefaultStateName, nil
-	}
-	if err != nil {
-		return "", err
-	}
-
-	if fromFile := strings.TrimSpace(string(contents)); fromFile != "" {
-		return fromFile, nil
-	}
-
-	return backend.DefaultStateName, nil
 }
