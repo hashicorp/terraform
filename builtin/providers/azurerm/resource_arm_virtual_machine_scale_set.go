@@ -266,6 +266,14 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 										Elem:     &schema.Schema{Type: schema.TypeString},
 										Set:      schema.HashString,
 									},
+
+									"load_balancer_inbound_nat_rules_ids": {
+										Type:     schema.TypeSet,
+										Optional: true,
+										Computed: true,
+										Elem:     &schema.Schema{Type: schema.TypeString},
+										Set:      schema.HashString,
+									},
 								},
 							},
 						},
@@ -297,9 +305,21 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 							Set:      schema.HashString,
 						},
 
+						"managed_disk_type": {
+							Type:          schema.TypeString,
+							Optional:      true,
+							Computed:      true,
+							ConflictsWith: []string{"storage_profile_os_disk.vhd_containers"},
+							ValidateFunc: validation.StringInSlice([]string{
+								string(compute.PremiumLRS),
+								string(compute.StandardLRS),
+							}, true),
+						},
+
 						"caching": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
+							Computed: true,
 						},
 
 						"os_type": {
@@ -708,6 +728,14 @@ func flattenAzureRmVirtualMachineScaleSetNetworkProfile(profile *compute.Virtual
 					config["load_balancer_backend_address_pool_ids"] = schema.NewSet(schema.HashString, addressPools)
 				}
 
+				if properties.LoadBalancerInboundNatPools != nil {
+					inboundNatPools := make([]interface{}, 0, len(*properties.LoadBalancerInboundNatPools))
+					for _, rule := range *properties.LoadBalancerInboundNatPools {
+						inboundNatPools = append(inboundNatPools, *rule.ID)
+					}
+					config["load_balancer_inbound_nat_rules_ids"] = schema.NewSet(schema.HashString, inboundNatPools)
+				}
+
 				ipConfigs = append(ipConfigs, config)
 			}
 
@@ -735,7 +763,11 @@ func flattenAzureRMVirtualMachineScaleSetOsProfile(profile *compute.VirtualMachi
 
 func flattenAzureRmVirtualMachineScaleSetStorageProfileOSDisk(profile *compute.VirtualMachineScaleSetOSDisk) []interface{} {
 	result := make(map[string]interface{})
-	result["name"] = *profile.Name
+
+	if profile.Name != nil {
+		result["name"] = *profile.Name
+	}
+
 	if profile.Image != nil {
 		result["image"] = *profile.Image.URI
 	}
@@ -746,6 +778,10 @@ func flattenAzureRmVirtualMachineScaleSetStorageProfileOSDisk(profile *compute.V
 			containers = append(containers, container)
 		}
 		result["vhd_containers"] = schema.NewSet(schema.HashString, containers)
+	}
+
+	if profile.ManagedDisk != nil {
+		result["managed_disk_type"] = string(profile.ManagedDisk.StorageAccountType)
 	}
 
 	result["caching"] = profile.Caching
@@ -838,8 +874,8 @@ func resourceArmVirtualMachineScaleSetStorageProfileOsDiskHash(v interface{}) in
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
 
-	if m["image"] != nil {
-		buf.WriteString(fmt.Sprintf("%s-", m["image"].(string)))
+	if m["vhd_containers"] != nil {
+		buf.WriteString(fmt.Sprintf("%s-", m["vhd_containers"].(*schema.Set).List()))
 	}
 
 	return hashcode.String(buf.String())
@@ -961,6 +997,18 @@ func expandAzureRmVirtualMachineScaleSetNetworkProfile(d *schema.ResourceData) *
 				ipConfiguration.LoadBalancerBackendAddressPools = &resources
 			}
 
+			if v := ipconfig["load_balancer_inbound_nat_rules_ids"]; v != nil {
+				rules := v.(*schema.Set).List()
+				rulesResources := make([]compute.SubResource, 0, len(rules))
+				for _, m := range rules {
+					id := m.(string)
+					rulesResources = append(rulesResources, compute.SubResource{
+						ID: &id,
+					})
+				}
+				ipConfiguration.LoadBalancerInboundNatPools = &rulesResources
+			}
+
 			ipConfigurations = append(ipConfigurations, ipConfiguration)
 		}
 
@@ -1037,9 +1085,11 @@ func expandAzureRMVirtualMachineScaleSetsStorageProfileOsDisk(d *schema.Resource
 	osDiskConfig := osDiskConfigs[0].(map[string]interface{})
 	name := osDiskConfig["name"].(string)
 	image := osDiskConfig["image"].(string)
+	vhd_containers := osDiskConfig["vhd_containers"].(*schema.Set).List()
 	caching := osDiskConfig["caching"].(string)
 	osType := osDiskConfig["os_type"].(string)
 	createOption := osDiskConfig["create_option"].(string)
+	managedDiskType := osDiskConfig["managed_disk_type"].(string)
 
 	osDisk := &compute.VirtualMachineScaleSetOSDisk{
 		Name:         &name,
@@ -1052,18 +1102,40 @@ func expandAzureRMVirtualMachineScaleSetsStorageProfileOsDisk(d *schema.Resource
 		osDisk.Image = &compute.VirtualHardDisk{
 			URI: &image,
 		}
-	} else {
+	}
+
+	if len(vhd_containers) > 0 {
 		var vhdContainers []string
-		containers := osDiskConfig["vhd_containers"].(*schema.Set).List()
-		for _, v := range containers {
+		for _, v := range vhd_containers {
 			str := v.(string)
 			vhdContainers = append(vhdContainers, str)
 		}
 		osDisk.VhdContainers = &vhdContainers
 	}
 
-	return osDisk, nil
+	managedDisk := &compute.VirtualMachineScaleSetManagedDiskParameters{}
 
+	if managedDiskType != "" {
+		if name == "" {
+			osDisk.Name = nil
+			managedDisk.StorageAccountType = compute.StorageAccountTypes(managedDiskType)
+			osDisk.ManagedDisk = managedDisk
+		} else {
+			return nil, fmt.Errorf("[ERROR] Conflict between `name` and `managed_disk_type` (please set name to blank)")
+		}
+	}
+
+	//BEGIN: code to be removed after GH-13016 is merged
+	if image != "" && managedDiskType != "" {
+		return nil, fmt.Errorf("[ERROR] Conflict between `image` and `managed_disk_type` (only one or the other can be used)")
+	}
+
+	if len(vhd_containers) > 0 && managedDiskType != "" {
+		return nil, fmt.Errorf("[ERROR] Conflict between `vhd_containers` and `managed_disk_type` (only one or the other can be used)")
+	}
+	//END: code to be removed after GH-13016 is merged
+
+	return osDisk, nil
 }
 
 func expandAzureRmVirtualMachineScaleSetStorageProfileImageReference(d *schema.ResourceData) (*compute.ImageReference, error) {
@@ -1137,22 +1209,22 @@ func expandAzureRmVirtualMachineScaleSetOsProfileWindowsConfig(d *schema.Resourc
 	if v := osProfileConfig["winrm"]; v != nil {
 		winRm := v.(*schema.Set).List()
 		if len(winRm) > 0 {
-			winRmListners := make([]compute.WinRMListener, 0, len(winRm))
+			winRmListeners := make([]compute.WinRMListener, 0, len(winRm))
 			for _, winRmConfig := range winRm {
 				config := winRmConfig.(map[string]interface{})
 
 				protocol := config["protocol"].(string)
-				winRmListner := compute.WinRMListener{
+				winRmListener := compute.WinRMListener{
 					Protocol: compute.ProtocolTypes(protocol),
 				}
 				if v := config["certificate_url"].(string); v != "" {
-					winRmListner.CertificateURL = &v
+					winRmListener.CertificateURL = &v
 				}
 
-				winRmListners = append(winRmListners, winRmListner)
+				winRmListeners = append(winRmListeners, winRmListener)
 			}
 			config.WinRM = &compute.WinRMConfiguration{
-				Listeners: &winRmListners,
+				Listeners: &winRmListeners,
 			}
 		}
 	}

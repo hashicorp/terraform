@@ -106,6 +106,128 @@ resource "azurerm_virtual_machine_scale_set" "test" {
 }
 ```
 
+## Example Usage with Managed Disks
+
+```
+resource "azurerm_resource_group" "test" {
+  name     = "acctestrg"
+  location = "West US 2"
+}
+
+resource "azurerm_virtual_network" "test" {
+  name                = "acctvn"
+  address_space       = ["10.0.0.0/16"]
+  location            = "West US 2"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_subnet" "test" {
+  name                 = "acctsub"
+  resource_group_name  = "${azurerm_resource_group.test.name}"
+  virtual_network_name = "${azurerm_virtual_network.test.name}"
+  address_prefix       = "10.0.2.0/24"
+}
+
+resource "azurerm_public_ip" "test" {
+  name                         = "test"
+  location                     = "West US 2"
+  resource_group_name          = "${azurerm_resource_group.test.name}"
+  public_ip_address_allocation = "static"
+  domain_name_label            = "${azurerm_resource_group.test.name}"
+
+  tags {
+    environment = "staging"
+  }
+}
+
+resource "azurerm_lb" "test" {
+  name                = "test"
+  location            = "West US 2"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+
+  frontend_ip_configuration {
+    name                 = "PublicIPAddress"
+    public_ip_address_id = "${azurerm_public_ip.test.id}"
+  }
+}
+
+resource "azurerm_lb_backend_address_pool" "bpepool" {
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  loadbalancer_id     = "${azurerm_lb.test.id}"
+  name                = "BackEndAddressPool"
+}
+
+resource "azurerm_lb_nat_pool" "lbnatpool" {
+  count                          = 3
+  resource_group_name            = "${azurerm_resource_group.test.name}"
+  name                           = "ssh"
+  loadbalancer_id                = "${azurerm_lb.test.id}"
+  protocol                       = "Tcp"
+  frontend_port_start            = 50000
+  frontend_port_end              = 50119
+  backend_port                   = 22
+  frontend_ip_configuration_name = "PublicIPAddress"
+}
+
+resource "azurerm_virtual_machine_scale_set" "test" {
+  name                = "mytestscaleset-1"
+  location            = "West US 2"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  upgrade_policy_mode = "Manual"
+
+  sku {
+    name     = "Standard_A0"
+    tier     = "Standard"
+    capacity = 2
+  }
+
+  storage_profile_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "14.04.2-LTS"
+    version   = "latest"
+  }
+
+  storage_profile_os_disk {
+    name              = "myosdisk"
+    caching           = "ReadWrite"
+    create_option     = "FromImage"
+    managed_disk_type = "Standard_LRS"
+  }
+
+  os_profile {
+    computer_name_prefix = "testvm"
+    admin_username       = "myadmin"
+    admin_password       = "Passwword1234"
+  }
+
+  os_profile_linux_config {
+    disable_password_authentication = true
+
+    ssh_keys {
+      path     = "/home/myadmin/.ssh/authorized_keys"
+      key_data = "${file("~/.ssh/demo_key.pub")}"
+    }
+  }
+
+  network_profile {
+    name    = "terraformnetworkprofile"
+    primary = true
+
+    ip_configuration {
+      name                                   = "TestIPConfiguration"
+      subnet_id                              = "${azurerm_subnet.test.id}"
+      load_balancer_backend_address_pool_ids = ["${azurerm_lb_backend_address_pool.bpepool.id}"]
+      load_balancer_inbound_nat_rules_ids    = ["${element(azurerm_lb_nat_pool.lbnatpool.*.id, count.index)}"]
+    }
+  }
+
+  tags {
+    environment = "staging"
+  }
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -191,16 +313,18 @@ The following arguments are supported:
 * `name` - (Required) Specifies name of the IP configuration.
 * `subnet_id` - (Required) Specifies the identifier of the subnet.
 * `load_balancer_backend_address_pool_ids` - (Optional) Specifies an array of references to backend address pools of load balancers. A scale set can reference backend address pools of one public and one internal load balancer. Multiple scale sets cannot use the same load balancer.
+* `load_balancer_inbound_nat_rules_ids` - (Optional) Specifies an array of references to inbound NAT rules for load balancers.
 
 `storage_profile_os_disk` supports the following:
 
 * `name` - (Required) Specifies the disk name.
-* `vhd_containers` - (Optional) Specifies the vhd uri. This property is ignored if using a custom image.
+* `vhd_containers` - (Optional) Specifies the vhd uri. Cannot be used when `image` or `managed_disk_type` is specified.
+* `managed_disk_type` - (Optional) Specifies the type of managed disk to create. Value you must be either `Standard_LRS` or `Premium_LRS`. Cannot be used when `vhd_containers` or `image` is specified.
 * `create_option` - (Required) Specifies how the virtual machine should be created. The only possible option is `FromImage`.
-* `caching` - (Required) Specifies the caching requirements.
+* `caching` - (Optional) Specifies the caching requirements. Possible values include: `None` (default), `ReadOnly`, `ReadWrite`.
 * `image` - (Optional) Specifies the blob uri for user image. A virtual machine scale set creates an os disk in the same container as the user image.
                        Updating the osDisk image causes the existing disk to be deleted and a new one created with the new image. If the VM scale set is in Manual upgrade mode then the virtual machines are not updated until they have manualUpgrade applied to them.
-                       If this property is set then vhd_containers is ignored.
+                       When setting this field `os_type` needs to be specified. Cannot be used when `vhd_containers`, `managed_disk_type` or `storage_profile_image_reference ` are specified.
 * `os_type` - (Optional) Specifies the operating system Type, valid values are windows, linux.
 
 `storage_profile_image_reference` supports the following:
