@@ -34,6 +34,11 @@ func (c *EnvSelectCommand) Run(args []string) int {
 	conf, err := c.Config(configPath)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
+	}
+
+	current, isOverridden := c.EnvOverridden()
+	if isOverridden {
+		c.Ui.Error(envIsOverriddenSelectError)
 		return 1
 	}
 
@@ -59,7 +64,7 @@ func (c *EnvSelectCommand) Run(args []string) int {
 		return 1
 	}
 
-	if name == c.Env() {
+	if name == current {
 		// already using this env
 		return 0
 	}

@@ -48,7 +48,7 @@ func (c *EnvListCommand) Run(args []string) int {
 		return 1
 	}
 
-	env := c.Env()
+	env, isOverridden := c.EnvOverridden()
 
 	var out bytes.Buffer
 	for _, s := range states {
@@ -61,6 +61,11 @@ func (c *EnvListCommand) Run(args []string) int {
 	}
 
 	c.Ui.Output(out.String())
+
+	if isOverridden {
+		c.Ui.Output(envIsOverriddenNote)
+	}
+
 	return 0
 }
 
