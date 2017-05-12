@@ -25,6 +25,7 @@ BUG FIXES:
 * provider/github: Log HTTP requests and responses in DEBUG mode [GH-14363]
 * provider/cloudstack: `cloudstack_firewall` panicked when used with older (< v4.6) CloudStack versions [GH-14044]
 * provider/heroku: Fix issue with setting correct CName in heroku_domain [GH-14443]
+* provider/vault: Prevent panic when no secret found [GH-14435]
 
 ## 0.9.5 (May 11, 2017)
 
