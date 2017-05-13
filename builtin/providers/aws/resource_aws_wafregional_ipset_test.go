@@ -122,7 +122,7 @@ func TestAccAWSWafRegionalIPSet_changeDescriptors(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccAWSWafRegionalIPSetConfig(ipsetName),
+				Config: testAccAWSWafRegionalIPSetConfigChangeIPSetDescriptors(ipsetName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckAWSWafRegionalIPSetExists("aws_wafregional_ipset.ipset", &after),
 					resource.TestCheckResourceAttr(
