@@ -58,3 +58,17 @@ The following arguments are supported:
 ## Attributes Reference
 
 Only the arguments listed above are exposed as attributes.
+
+## Import Format
+
+Importing an SQL user is formatted as:
+
+```bash
+terraform import google_sql_user.$RESOURCENAME $INSTANCENAME.$SQLUSERNAME
+```
+
+For example, the sample at the top of this page could be imported with:
+
+```bash
+terraform import google_sql_user.users master-instance.me
+```
