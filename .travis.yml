@@ -15,7 +15,7 @@ env:
 
 branches:
   only:
-    # - master
+    - master
     - /^(?i:topic)-.*$/
 
 # install terraform

@@ -7,7 +7,6 @@ docker run --rm -it \
   -e ARM_CLIENT_SECRET \
   -e ARM_SUBSCRIPTION_ID \
   -e ARM_TENANT_ID \
-  -e EXISTING_SUBNET_ID \
   -v $(pwd):/data \
   --workdir=/data \
   --entrypoint "/bin/sh" \
@@ -30,7 +29,7 @@ docker run --rm -it \
   azuresdk/azure-cli-python \
   sh -c "az login --service-principal -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET --tenant $ARM_TENANT_ID > /dev/null; \
          az vm show -g $KEY -n myvm; \
-         az storage account show -g $KEY -n $KEY"
+         az storage account show -g $KEY -n $KEY;"
 
 # cleanup deployed azure resources via terraform
 docker run --rm -it \
