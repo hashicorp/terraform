@@ -3,6 +3,8 @@
 FEATURES:
 
 * **New Resource:** `aws_devicefarm_project` [GH-14288]
+* **New Resource:** `aws_wafregion_ipset` [GH-13705]
+* **New Resource:** `aws_wafregion_byte_match_set` [GH-13705]
 
 IMPROVEMENTS:
 
