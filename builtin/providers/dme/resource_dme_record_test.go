@@ -171,7 +171,38 @@ func TestAccDMERecordTXT(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"dme_record.test", "type", "TXT"),
 					resource.TestCheckResourceAttr(
-						"dme_record.test", "value", "\"foo\""),
+						"dme_record.test", "value", "foo"),
+					resource.TestCheckResourceAttr(
+						"dme_record.test", "ttl", "2000"),
+					resource.TestCheckResourceAttr(
+						"dme_record.test", "gtdLocation", "DEFAULT"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDMERecordTXT_quoted(t *testing.T) {
+	var record dnsmadeeasy.Record
+	domainid := os.Getenv("DME_DOMAINID")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDMERecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(testDMERecordConfigTXT_quoted, domainid),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDMERecordExists("dme_record.test", &record),
+					resource.TestCheckResourceAttr(
+						"dme_record.test", "domainid", domainid),
+					resource.TestCheckResourceAttr(
+						"dme_record.test", "name", "testtxt_quoted"),
+					resource.TestCheckResourceAttr(
+						"dme_record.test", "type", "TXT"),
+					resource.TestCheckResourceAttr(
+						"dme_record.test", "value", "foo"),
 					resource.TestCheckResourceAttr(
 						"dme_record.test", "ttl", "2000"),
 					resource.TestCheckResourceAttr(
@@ -202,7 +233,7 @@ func TestAccDMERecordSPF(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"dme_record.test", "type", "SPF"),
 					resource.TestCheckResourceAttr(
-						"dme_record.test", "value", "\"foo\""),
+						"dme_record.test", "value", "foo"),
 					resource.TestCheckResourceAttr(
 						"dme_record.test", "ttl", "2000"),
 					resource.TestCheckResourceAttr(
@@ -453,6 +484,16 @@ resource "dme_record" "test" {
   name = "testtxt"
   type = "TXT"
   value = "foo"
+  ttl = 2000
+  gtdLocation = "DEFAULT"
+}`
+
+const testDMERecordConfigTXT_quoted = `
+resource "dme_record" "test" {
+  domainid = "%s"
+  name = "testtxt_quoted"
+  type = "TXT"
+  value = "\"foo\""
   ttl = 2000
   gtdLocation = "DEFAULT"
 }`

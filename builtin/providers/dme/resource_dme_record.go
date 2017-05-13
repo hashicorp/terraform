@@ -34,7 +34,7 @@ func resourceDMERecord() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				StateFunc: func(value interface{}) string {
-					return strings.ToLower(value.(string))
+					return strings.ToLower(strings.Trim(value.(string), `"`))
 				},
 			},
 			"ttl": &schema.Schema{
@@ -124,6 +124,7 @@ func resourceDMERecordRead(d *schema.ResourceData, meta interface{}) error {
 
 		return fmt.Errorf("Couldn't find record: %s", err)
 	}
+	log.Printf("[INFO] Returned record: %#v", *rec)
 
 	return setAll(d, rec)
 }
@@ -222,7 +223,7 @@ func setAll(d *schema.ResourceData, rec *dnsmadeeasy.Record) error {
 	d.Set("type", rec.Type)
 	d.Set("name", rec.Name)
 	d.Set("ttl", rec.TTL)
-	d.Set("value", rec.Value)
+	d.Set("value", strings.Trim(rec.Value, `"`))
 	// only set gtdLocation if it is given as this is optional.
 	if rec.GtdLocation != "" {
 		d.Set("gtdLocation", rec.GtdLocation)
