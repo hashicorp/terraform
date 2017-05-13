@@ -110,9 +110,16 @@ func resourceAwsWafRegionalByteMatchSetRead(d *schema.ResourceData, meta interfa
 		return err
 	}
 
-	var tuples []interface{}
+	d.Set("byte_match_tuple", flattenWafByteMatchTuplesWR(resp.ByteMatchSet.ByteMatchTuples))
+	d.Set("name", resp.ByteMatchSet.Name)
 
-	for _, tuple := range resp.ByteMatchSet.ByteMatchTuples {
+	return nil
+}
+
+func flattenWafByteMatchTuplesWR(in []*waf.ByteMatchTuple) []interface{} {
+	tuples := make([]interface{}, len(in), len(in))
+
+	for i, tuple := range in {
 		field_to_match := tuple.FieldToMatch
 		m := map[string]interface{}{
 			"type": *field_to_match.Type,
@@ -133,12 +140,10 @@ func resourceAwsWafRegionalByteMatchSetRead(d *schema.ResourceData, meta interfa
 			"target_string":         tuple.TargetString,
 			"text_transformation":   *tuple.TextTransformation,
 		}
-		tuples = append(tuples, tuple)
+		tuples[i] = tuple
 	}
-	d.Set("byte_match_tuple", tuples)
-	d.Set("name", resp.ByteMatchSet.Name)
 
-	return nil
+	return tuples
 }
 
 func resourceAwsWafRegionalByteMatchSetUpdate(d *schema.ResourceData, meta interface{}) error {

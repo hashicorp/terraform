@@ -82,21 +82,24 @@ func resourceAwsWafRegionalIPSetRead(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
-	var descriptors []map[string]interface{}
+	d.Set("ip_set_descriptor", flattenWafIpSetDescriptorWR(resp.IPSet.IPSetDescriptors))
+	d.Set("name", resp.IPSet.Name)
 
-	for _, descriptor := range resp.IPSet.IPSetDescriptors {
+	return nil
+}
+
+func flattenWafIpSetDescriptorWR(in []*waf.IPSetDescriptor) []interface{} {
+	descriptors := make([]interface{}, len(in), len(in))
+
+	for i, descriptor := range in {
 		d := map[string]interface{}{
 			"type":  *descriptor.Type,
 			"value": *descriptor.Value,
 		}
-		descriptors = append(descriptors, d)
+		descriptors[i] = d
 	}
 
-	d.Set("ip_set_descriptor", descriptors)
-
-	d.Set("name", resp.IPSet.Name)
-
-	return nil
+	return descriptors
 }
 
 func resourceAwsWafRegionalIPSetUpdate(d *schema.ResourceData, meta interface{}) error {
