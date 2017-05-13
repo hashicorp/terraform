@@ -64,6 +64,8 @@ func (e *Event) ParsePayload() (payload interface{}, err error) {
 		payload = &MilestoneEvent{}
 	case "OrganizationEvent":
 		payload = &OrganizationEvent{}
+	case "OrgBlockEvent":
+		payload = &OrgBlockEvent{}
 	case "PageBuildEvent":
 		payload = &PageBuildEvent{}
 	case "PingEvent":

@@ -65,8 +65,12 @@ func (r PullRequestReviewDismissalRequest) String() string {
 // Read more about it here - https://github.com/google/go-github/issues/540
 //
 // GitHub API docs: https://developer.github.com/v3/pulls/reviews/#list-reviews-on-a-pull-request
-func (s *PullRequestsService) ListReviews(ctx context.Context, owner, repo string, number int) ([]*PullRequestReview, *Response, error) {
+func (s *PullRequestsService) ListReviews(ctx context.Context, owner, repo string, number int, opt *ListOptions) ([]*PullRequestReview, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/pulls/%d/reviews", owner, repo, number)
+	u, err := addOptions(u, opt)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	req, err := s.client.NewRequest("GET", u, nil)
 	if err != nil {
@@ -145,9 +149,13 @@ func (s *PullRequestsService) DeletePendingReview(ctx context.Context, owner, re
 // returned error format and remove this comment once it's fixed.
 // Read more about it here - https://github.com/google/go-github/issues/540
 //
-// GitHub API docs: https://developer.github.com/v3/pulls/reviews/#get-a-single-reviews-comments
-func (s *PullRequestsService) ListReviewComments(ctx context.Context, owner, repo string, number, reviewID int) ([]*PullRequestComment, *Response, error) {
+// GitHub API docs: https://developer.github.com/v3/pulls/reviews/#get-comments-for-a-single-review
+func (s *PullRequestsService) ListReviewComments(ctx context.Context, owner, repo string, number, reviewID int, opt *ListOptions) ([]*PullRequestComment, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/pulls/%d/reviews/%d/comments", owner, repo, number, reviewID)
+	u, err := addOptions(u, opt)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	req, err := s.client.NewRequest("GET", u, nil)
 	if err != nil {
