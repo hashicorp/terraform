@@ -22,6 +22,7 @@ variable "existing_storage_acct" {
 
 variable "existing_storage_acct_type" {
   description = "The type of the storage account in which your existing VHD and image reside"
+  default     = "Premium_LRS"
 }
 
 variable "existing_resource_group" {
@@ -41,10 +42,6 @@ variable "subnet_prefix" {
 variable "storage_account_type" {
   description = "Defines the type of storage account to be created. Valid options are Standard_LRS, Standard_ZRS, Standard_GRS, Standard_RAGRS, Premium_LRS. Changing this is sometimes valid - see the Azure documentation for more information on which types of accounts can be converted into other types."
   default     = "Standard_LRS"
-}
-
-variable "vm_count" {
-  description = "The total amount of virtual machines to deploy"
 }
 
 variable "vm_size" {
@@ -83,10 +80,12 @@ variable "admin_password" {
 
 variable "transfer_vm_name" {
   description = "Name of the Windows VM that will perform the copy of the VHD from a source storage account to the new storage account created in the new deployment, this is known as transfer vm. Must be 3-15 characters."
+  default     = "transfervm"
 }
 
 variable "new_vm_name" {
   description = "Name of the new VM deployed from the custom image. Must be 3-15 characters."
+  default     = "myvm"
 }
 
 variable "custom_image_name" {

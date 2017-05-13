@@ -10,36 +10,6 @@ resource "azurerm_resource_group" "rg" {
   location = "${var.location}"
 }
 
-resource "azurerm_network_security_group" "nsg" {
-  name                = "nsg"
-  location            = "${azurerm_resource_group.rg.location}"
-  resource_group_name = "${azurerm_resource_group.rg.name}"
-
-  security_rule {
-    name                       = "5985"
-    priority                   = 100
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "5985"
-    destination_port_range     = "*"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
-
-  security_rule {
-    name                       = "RDP"
-    priority                   = 110
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "3389"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
-}
-
 resource "azurerm_virtual_network" "vnet" {
   name                = "${var.hostname}vnet"
   location            = "${azurerm_resource_group.rg.location}"
@@ -65,7 +35,6 @@ resource "azurerm_network_interface" "transfernic" {
   name                      = "transfernic"
   location                  = "${azurerm_resource_group.rg.location}"
   resource_group_name       = "${azurerm_resource_group.rg.name}"
-  network_security_group_id = "${azurerm_network_security_group.nsg.id}"
 
   ip_configuration {
     name                          = "${azurerm_public_ip.transferpip.name}"
@@ -108,7 +77,7 @@ resource "azurerm_storage_account" "existing" {
 }
 
 resource "azurerm_storage_account" "stor" {
-  name                = "${var.hostname}stor"
+  name                = "${var.hostname}"
   resource_group_name = "${azurerm_resource_group.rg.name}"
   location            = "${azurerm_resource_group.rg.location}"
   account_type        = "${var.storage_account_type}"
