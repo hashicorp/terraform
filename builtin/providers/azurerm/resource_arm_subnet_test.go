@@ -32,7 +32,11 @@ func TestAccAzureRMSubnet_basic(t *testing.T) {
 	})
 }
 
+<<<<<<< HEAD
 func TestAccAzureRMSubnet_routeTableUpdate(t *testing.T) {
+=======
+func TestAccAzureRMSubnet_routeTable(t *testing.T) {
+>>>>>>> 772fac7a1... Changes to vNet and subnet files to allow subnet updates without losing routing table references
 
 	ri := acctest.RandInt()
 	initConfig := fmt.Sprintf(testAccAzureRMSubnet_routeTable, ri, ri, ri)
@@ -46,14 +50,43 @@ func TestAccAzureRMSubnet_routeTableUpdate(t *testing.T) {
 			resource.TestStep{
 				Config: initConfig,
 				Check: resource.ComposeTestCheckFunc(
+<<<<<<< HEAD
 					testCheckAzureRMSubnetExists("azurerm_subnet.test"),
+=======
+					testCheckAzureRMSubnetExists("azurerm_subnet.rtTable2"),
+>>>>>>> 772fac7a1... Changes to vNet and subnet files to allow subnet updates without losing routing table references
 				),
 			},
 
 			resource.TestStep{
 				Config: updatedConfig,
 				Check: resource.ComposeTestCheckFunc(
+<<<<<<< HEAD
 					testCheckAzureRMSubnetRouteTableExists("azurerm_subnet.test", "test-RT"),
+=======
+					testCheckAzureRMSubnetRouteTableExists("azurerm_subnet.rtTable2", "rtTable2-RT"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMSubnet_routeTable_subnetInline(t *testing.T) {
+
+	ri := acctest.RandInt()
+	//initConfig := fmt.Sprintf(testAccAzureRMSubnet_routeTable_subnetInline, ri, ri, ri)
+	updatedConfig := fmt.Sprintf(testAccAzureRMSubnet_updatedRouteTable, ri, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMSubnetDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: updatedConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMSubnetRouteTableExists("azurerm_subnet.rtTable2", "rtTable2-RT"),
+>>>>>>> 772fac7a1... Changes to vNet and subnet files to allow subnet updates without losing routing table references
 				),
 			},
 		},
@@ -259,11 +292,16 @@ resource "azurerm_route" "test" {
 `
 
 var testAccAzureRMSubnet_routeTable = `
+<<<<<<< HEAD
 resource "azurerm_resource_group" "test" {
+=======
+resource "azurerm_resource_group" "rtTable2" {
+>>>>>>> 772fac7a1... Changes to vNet and subnet files to allow subnet updates without losing routing table references
     name = "acctestRG-%d"
     location = "West US"
 }
 
+<<<<<<< HEAD
 resource "azurerm_virtual_network" "test" {
     name = "acctestvirtnet%d"
     address_space = ["10.0.0.0/16"]
@@ -283,12 +321,75 @@ resource "azurerm_route_table" "test" {
   name                = "test-RT"
   location            = "West US"
   resource_group_name = "${azurerm_resource_group.test.name}"
+=======
+resource "azurerm_virtual_network" "rtTable2" {
+    name = "acctestvirtnet%d"
+    address_space = ["10.0.0.0/16"]
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.rtTable2.name}"
+}
+
+resource "azurerm_subnet" "rtTable2" {
+    name = "acctestsubnet%d"
+    resource_group_name = "${azurerm_resource_group.rtTable2.name}"
+    virtual_network_name = "${azurerm_virtual_network.rtTable2.name}"
+    address_prefix = "10.0.2.0/24"
+	route_table_id       = "${azurerm_route_table.rtTable2.id}"
+}
+
+resource "azurerm_route_table" "rtTable2" {
+  name                = "rtTable2-RT"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.rtTable2.name}"
+>>>>>>> 772fac7a1... Changes to vNet and subnet files to allow subnet updates without losing routing table references
 }
 
 resource "azurerm_route" "route_a" {
   name                = "TestRouteA"
+<<<<<<< HEAD
   resource_group_name = "${azurerm_resource_group.test.name}"
   route_table_name    = "${azurerm_route_table.test.name}"
+=======
+  resource_group_name = "${azurerm_resource_group.rtTable2.name}"
+  route_table_name    = "${azurerm_route_table.rtTable2.name}"
+
+  address_prefix         = "10.100.0.0/14"
+  next_hop_type          = "VirtualAppliance"
+  next_hop_in_ip_address = "10.10.1.1"
+}`
+
+var testAccAzureRMSubnet_routeTable_subnetInline = `
+resource "azurerm_resource_group" "rtTable2" {
+    name = "acctestRG-%d"
+    location = "West US"
+}
+
+resource "azurerm_virtual_network" "rtTable2" {
+    name = "acctestvirtnet%d"
+    address_space = ["10.0.0.0/16"]
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.rtTable2.name}"
+ 	subnet {
+    	name           = "rtTable2"
+    	address_prefix = "10.0.3.0/24"
+		route_table    = "${azurerm_route_table.rtTable2.id}"
+  	}
+	tags {
+		environment = "Testing"
+	}
+}
+
+resource "azurerm_route_table" "rtTable2" {
+  name                = "rtTable2-RT"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.rtTable2.name}"
+}
+
+resource "azurerm_route" "route_a" {
+  name                = "TestRouteA"
+  resource_group_name = "${azurerm_resource_group.rtTable2.name}"
+  route_table_name    = "${azurerm_route_table.rtTable2.name}"
+>>>>>>> 772fac7a1... Changes to vNet and subnet files to allow subnet updates without losing routing table references
 
   address_prefix         = "10.100.0.0/14"
   next_hop_type          = "VirtualAppliance"
@@ -296,7 +397,11 @@ resource "azurerm_route" "route_a" {
 }`
 
 var testAccAzureRMSubnet_updatedRouteTable = `
+<<<<<<< HEAD
 resource "azurerm_resource_group" "test" {
+=======
+resource "azurerm_resource_group" "rtTable2" {
+>>>>>>> 772fac7a1... Changes to vNet and subnet files to allow subnet updates without losing routing table references
     name = "acctestRG-%d"
     location = "West US"
 	tags {
@@ -304,10 +409,17 @@ resource "azurerm_resource_group" "test" {
 	}
 }
 
+<<<<<<< HEAD
 resource "azurerm_network_security_group" "test_secgroup" {
     name = "acceptanceTestSecurityGroup1"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
+=======
+resource "azurerm_network_security_group" "rtTable2_secgroup" {
+    name = "acceptanceTestSecurityGroup1"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.rtTable2.name}"
+>>>>>>> 772fac7a1... Changes to vNet and subnet files to allow subnet updates without losing routing table references
 
     security_rule {
         name = "test123"
@@ -326,16 +438,25 @@ resource "azurerm_network_security_group" "test_secgroup" {
     }
 }
 
+<<<<<<< HEAD
 resource "azurerm_virtual_network" "test" {
     name = "acctestvirtnet%d"
     address_space = ["10.0.0.0/16"]
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
+=======
+resource "azurerm_virtual_network" "rtTable2" {
+    name = "acctestvirtnet%d"
+    address_space = ["10.0.0.0/16"]
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.rtTable2.name}"
+>>>>>>> 772fac7a1... Changes to vNet and subnet files to allow subnet updates without losing routing table references
 	tags {
 		environment = "Testing"
 	}
 }
 
+<<<<<<< HEAD
 resource "azurerm_subnet" "test" {
     name = "acctestsubnet%d"
     resource_group_name = "${azurerm_resource_group.test.name}"
@@ -348,6 +469,20 @@ resource "azurerm_route_table" "test" {
   name                = "test-RT"
   location            = "West US"
   resource_group_name = "${azurerm_resource_group.test.name}"
+=======
+resource "azurerm_subnet" "rtTable2" {
+    name = "acctestsubnet%d"
+    resource_group_name = "${azurerm_resource_group.rtTable2.name}"
+    virtual_network_name = "${azurerm_virtual_network.rtTable2.name}"
+    address_prefix = "10.0.2.0/24"
+	route_table_id       = "${azurerm_route_table.rtTable2.id}"
+}
+
+resource "azurerm_route_table" "rtTable2" {
+  name                = "rtTable2-RT"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.rtTable2.name}"
+>>>>>>> 772fac7a1... Changes to vNet and subnet files to allow subnet updates without losing routing table references
   tags {
     environment = "Testing"
   }
@@ -355,8 +490,13 @@ resource "azurerm_route_table" "test" {
 
 resource "azurerm_route" "route_a" {
   name                = "TestRouteA"
+<<<<<<< HEAD
   resource_group_name = "${azurerm_resource_group.test.name}"
   route_table_name    = "${azurerm_route_table.test.name}"
+=======
+  resource_group_name = "${azurerm_resource_group.rtTable2.name}"
+  route_table_name    = "${azurerm_route_table.rtTable2.name}"
+>>>>>>> 772fac7a1... Changes to vNet and subnet files to allow subnet updates without losing routing table references
 
   address_prefix         = "10.100.0.0/14"
   next_hop_type          = "VirtualAppliance"
