@@ -1,8 +1,10 @@
 package google
 
 import (
+	"errors"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -15,6 +17,9 @@ func resourceSqlUser() *schema.Resource {
 		Read:   resourceSqlUserRead,
 		Update: resourceSqlUserUpdate,
 		Delete: resourceSqlUserDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"host": &schema.Schema{
@@ -36,8 +41,9 @@ func resourceSqlUser() *schema.Resource {
 			},
 
 			"password": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:      schema.TypeString,
+				Required:  true,
+				Sensitive: true,
 			},
 
 			"project": &schema.Schema{
@@ -77,6 +83,8 @@ func resourceSqlUserCreate(d *schema.ResourceData, meta interface{}) error {
 			"user %s into instance %s: %s", name, instance, err)
 	}
 
+	d.SetId(fmt.Sprintf("%s.%s", instance, name))
+
 	err = sqladminOperationWait(config, op, "Insert User")
 
 	if err != nil {
@@ -95,8 +103,17 @@ func resourceSqlUserRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	name := d.Get("name").(string)
-	instance := d.Get("instance").(string)
+	instanceAndName := strings.SplitN(d.Id(), ".", 2)
+	if len(instanceAndName) != 2 {
+		return errors.New(
+			fmt.Sprintf(
+				"Wrong number of arguments when specifying imported id. Expected: 2.  Saw: %d. Expected Input: $INSTANCENAME.$SQLUSERNAME Input: %s",
+				len(instanceAndName),
+				d.Id()))
+	}
+
+	instance := instanceAndName[0]
+	name := instanceAndName[1]
 
 	users, err := config.clientSqlAdmin.Users.List(project, instance).Do()
 
@@ -104,23 +121,26 @@ func resourceSqlUserRead(d *schema.ResourceData, meta interface{}) error {
 		return handleNotFoundError(err, d, fmt.Sprintf("SQL User %q in instance %q", name, instance))
 	}
 
-	found := false
-	for _, user := range users.Items {
-		if user.Name == name {
-			found = true
+	var user *sqladmin.User
+	for _, currentUser := range users.Items {
+		if currentUser.Name == name {
+			user = currentUser
 			break
 		}
 	}
 
-	if !found {
+	if user == nil {
 		log.Printf("[WARN] Removing SQL User %q because it's gone", d.Get("name").(string))
 		d.SetId("")
 
 		return nil
 	}
 
-	d.SetId(name)
+	d.SetId(fmt.Sprintf("%s.%s", instance, name))
 
+	d.Set("host", user.Host)
+	d.Set("instance", user.Instance)
+	d.Set("name", user.Name)
 	return nil
 }
 
