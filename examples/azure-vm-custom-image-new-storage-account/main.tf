@@ -153,7 +153,7 @@ resource "azurerm_virtual_machine" "myvm" {
 
   storage_os_disk {
     name          = "${var.hostname}myosdisk"
-    image_uri     = "http://${azurerm_storage_account.stor.name}.blob.core.windows.net/vhds/${var.custom_image_name}.vhd"
+    image_uri     = "https://${azurerm_storage_account.stor.name}.blob.core.windows.net/vhds/${var.custom_image_name}.vhd"
     vhd_uri       = "https://${azurerm_storage_account.stor.name}.blob.core.windows.net/${azurerm_resource_group.rg.name}-vhds/${var.hostname}osdisk.vhd"
     os_type       = "${var.os_type}"
     caching       = "ReadWrite"
