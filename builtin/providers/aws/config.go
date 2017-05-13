@@ -66,6 +66,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/waf"
+	"github.com/aws/aws-sdk-go/service/wafregional"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-cleanhttp"
@@ -172,6 +173,7 @@ type AWSClient struct {
 	sfnconn               *sfn.SFN
 	ssmconn               *ssm.SSM
 	wafconn               *waf.WAF
+	wafregionalconn       *wafregional.WAFRegional
 }
 
 func (c *AWSClient) S3() *s3.S3 {
@@ -379,6 +381,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.sqsconn = sqs.New(awsSqsSess)
 	client.ssmconn = ssm.New(sess)
 	client.wafconn = waf.New(sess)
+	client.wafregionalconn = wafregional.New(sess)
 
 	return &client, nil
 }
