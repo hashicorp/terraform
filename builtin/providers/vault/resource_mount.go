@@ -18,7 +18,7 @@ func mountResource() *schema.Resource {
 			"path": {
 				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
+				ForceNew:    false,
 				Description: "Where the secret backend will be mounted",
 			},
 
@@ -70,7 +70,7 @@ func mountWrite(d *schema.ResourceData, meta interface{}) error {
 
 	path := d.Get("path").(string)
 
-	log.Printf("[DEBUG] Writing mount %s to Vault", path)
+	log.Printf("[DEBUG] Creating mount %s in Vault", path)
 
 	if err := client.Sys().Mount(path, info); err != nil {
 		return fmt.Errorf("error writing to Vault: %s", err)
@@ -90,6 +90,20 @@ func mountUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	path := d.Id()
+
+	if d.HasChange("path") {
+		newPath := d.Get("path").(string)
+
+		log.Printf("[DEBUG] Remount %s to %s in Vault", path, newPath)
+
+		err := client.Sys().Remount(d.Id(), newPath)
+		if err != nil {
+			return fmt.Errorf("error remounting in Vault: %s", err)
+		}
+
+		d.SetId(newPath)
+		path = newPath
+	}
 
 	log.Printf("[DEBUG] Updating mount %s in Vault", path)
 

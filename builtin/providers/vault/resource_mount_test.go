@@ -86,7 +86,7 @@ func testResourceMount_initialCheck(s *terraform.State) error {
 var testResourceMount_updateConfig = `
 
 resource "vault_mount" "test" {
-	path = "example"
+	path = "remountingExample"
 	type = "generic"
 	description = "Example mount for testing"
 	default_lease_ttl_seconds = 7200
@@ -105,7 +105,7 @@ func testResourceMount_updateCheck(s *terraform.State) error {
 		return fmt.Errorf("id doesn't match path")
 	}
 
-	if path != "example" {
+	if path != "remountingExample" {
 		return fmt.Errorf("unexpected path value")
 	}
 
