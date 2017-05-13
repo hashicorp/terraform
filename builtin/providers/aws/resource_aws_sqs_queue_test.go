@@ -349,6 +349,24 @@ func testAccCheckAWSSQSExistsWithOverrides(n string) resource.TestCheckFunc {
 	}
 }
 
+func TestAccAWSSQSQueue_Encryption(t *testing.T) {
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSQSQueueDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSSQSConfigWithEncryption(acctest.RandString(10)),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSQSExists("aws_sqs_queue.queue"),
+					resource.TestCheckResourceAttr("aws_sqs_queue.queue", "kms_master_key_id", "alias/aws/sqs"),
+				),
+			},
+		},
+	})
+}
+
 func testAccAWSSQSConfigWithDefaults(r string) string {
 	return fmt.Sprintf(`
 resource "aws_sqs_queue" "queue" {
@@ -485,6 +503,16 @@ func testAccExpectContentBasedDeduplicationError(queue string) string {
 resource "aws_sqs_queue" "queue" {
   name                        = "%s"
   content_based_deduplication = true
+}
+`, queue)
+}
+
+func testAccAWSSQSConfigWithEncryption(queue string) string {
+	return fmt.Sprintf(`
+resource "aws_sqs_queue" "queue" {
+  name                              = "%s"
+  kms_master_key_id                 = "alias/aws/sqs"
+	kms_data_key_reuse_period_seconds = 300
 }
 `, queue)
 }
