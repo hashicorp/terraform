@@ -10,7 +10,7 @@ description: |-
 
 Create a virtual machine.
 
-## Example Usage
+## Example Usage (Unmanaged Disks)
 
 ```hcl
 resource "azurerm_resource_group" "test" {
@@ -99,7 +99,7 @@ resource "azurerm_virtual_machine" "test" {
 }
 ```
 
-## Example Usage with additional Empty DataDisk
+## Example Usage With Additional Empty Data Disk (Unmanaged Disks)
 
 ```hcl
 resource "azurerm_resource_group" "test" {
@@ -196,7 +196,7 @@ resource "azurerm_virtual_machine" "test" {
 }
 ```
 
-## Example Usage with Managed Disks
+## Example Usage (Managed Disks)
 
 ```hcl
 resource "azurerm_resource_group" "test" {
@@ -445,6 +445,6 @@ The following attributes are exported:
 
 Virtual Machines can be imported using the `resource id`, e.g.
 
-```
+```hcl
 terraform import azurerm_virtual_machine.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/microsoft.compute/virtualMachines/machine1
 ```
