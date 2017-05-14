@@ -85,7 +85,7 @@ func TestAccNetworkingV2SecGroupRule_timeout(t *testing.T) {
 	})
 }
 
-func TestAccNetworkingV2SecGroupRule_vrrp(t *testing.T) {
+func TestAccNetworkingV2SecGroupRule_protocols(t *testing.T) {
 	var secgroup_1 groups.SecGroup
 	var secgroup_rule_ah rules.SecGroupRule
 	var secgroup_rule_dccp rules.SecGroupRule
@@ -112,7 +112,7 @@ func TestAccNetworkingV2SecGroupRule_vrrp(t *testing.T) {
 		CheckDestroy: testAccCheckNetworkingV2SecGroupRuleDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccNetworkingV2SecGroupRule_vrrp,
+				Config: testAccNetworkingV2SecGroupRule_protocols,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkingV2SecGroupExists(
 						"openstack_networking_secgroup_v2.secgroup_1", &secgroup_1),
@@ -336,7 +336,7 @@ resource "openstack_networking_secgroup_rule_v2" "secgroup_rule_2" {
 }
 `
 
-const testAccNetworkingV2SecGroupRule_vrrp = `
+const testAccNetworkingV2SecGroupRule_protocols = `
 resource "openstack_networking_secgroup_v2" "secgroup_1" {
   name = "secgroup_1"
   description = "terraform security group rule acceptance test"
