@@ -79,6 +79,12 @@ func resourceComputeFloatingIPAssociateV2Create(d *schema.ResourceData, meta int
 }
 
 func resourceComputeFloatingIPAssociateV2Read(d *schema.ResourceData, meta interface{}) error {
+	config := meta.(*Config)
+	computeClient, err := config.computeV2Client(GetRegion(d))
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
+	}
+
 	// Obtain relevant info from parsing the ID
 	floatingIP, instanceId, fixedIP, err := parseComputeFloatingIPAssociateId(d.Id())
 	if err != nil {
@@ -89,6 +95,17 @@ func resourceComputeFloatingIPAssociateV2Read(d *schema.ResourceData, meta inter
 	d.Set("instance_id", instanceId)
 	d.Set("fixed_ip", fixedIP)
 	d.Set("region", GetRegion(d))
+
+	// check whether floatingIP or associated instance deleted
+	fip, err := floatingips.Get(computeClient, floatingIP).Extract()
+	if err != nil {
+		if CheckDeleted(d, err, "floating ip") == nil {
+			return nil
+		}
+	}
+	if fip.InstanceID == "" {
+		d.SetId("")
+	}
 
 	return nil
 }
