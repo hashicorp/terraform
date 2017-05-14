@@ -48,5 +48,5 @@ docker run --rm -it \
         -var existing_resource_group=$EXISTING_RESOURCE_GROUP \
         -var admin_password=$PASSWORD \
         -var existing_storage_acct=$EXISTING_STORAGE_ACCOUNT_NAME \
-        -var custom_image_name=$CUSTOM_IMAGE_NAME; \
-        -target=azurerm_resource_group.rg"
+        -var custom_image_name=$CUSTOM_IMAGE_NAME \
+        -target=azurerm_resource_group.rg;"

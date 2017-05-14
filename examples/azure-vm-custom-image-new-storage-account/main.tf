@@ -32,9 +32,9 @@ resource "azurerm_public_ip" "transferpip" {
 }
 
 resource "azurerm_network_interface" "transfernic" {
-  name                      = "transfernic"
-  location                  = "${azurerm_resource_group.rg.location}"
-  resource_group_name       = "${azurerm_resource_group.rg.name}"
+  name                = "transfernic"
+  location            = "${azurerm_resource_group.rg.location}"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
 
   ip_configuration {
     name                          = "${azurerm_public_ip.transferpip.name}"
@@ -104,11 +104,6 @@ resource "azurerm_virtual_machine" "transfer" {
     admin_username = "${var.admin_username}"
     admin_password = "${var.admin_password}"
   }
-
-  boot_diagnostics {
-    enabled     = true
-    storage_uri = "${azurerm_storage_account.stor.primary_blob_endpoint}"
-  }
 }
 
 resource "azurerm_virtual_machine_extension" "script" {
@@ -119,6 +114,7 @@ resource "azurerm_virtual_machine_extension" "script" {
   publisher            = "Microsoft.Compute"
   type                 = "CustomScriptExtension"
   type_handler_version = "1.4"
+  depends_on           = ["azurerm_virtual_machine.transfer"]
 
   settings = <<SETTINGS
     {
@@ -150,11 +146,12 @@ resource "azurerm_virtual_machine" "myvm" {
   resource_group_name   = "${azurerm_resource_group.rg.name}"
   vm_size               = "${var.vm_size}"
   network_interface_ids = ["${azurerm_network_interface.mynic.id}"]
+  depends_on            = ["azurerm_virtual_machine_extension.execute"]
 
   storage_os_disk {
-    name          = "${var.hostname}myosdisk"
+    name          = "${var.hostname}osdisk"
     image_uri     = "https://${azurerm_storage_account.stor.name}.blob.core.windows.net/vhds/${var.custom_image_name}.vhd"
-    vhd_uri       = "https://${azurerm_storage_account.stor.name}.blob.core.windows.net/${azurerm_resource_group.rg.name}-vhds/${var.hostname}osdisk.vhd"
+    vhd_uri       = "https://${var.hostname}.blob.core.windows.net/${var.hostname}-vhds/${var.hostname}osdisk.vhd"
     os_type       = "${var.os_type}"
     caching       = "ReadWrite"
     create_option = "FromImage"
@@ -164,10 +161,5 @@ resource "azurerm_virtual_machine" "myvm" {
     computer_name  = "${var.hostname}"
     admin_username = "${var.admin_username}"
     admin_password = "${var.admin_password}"
-  }
-
-  boot_diagnostics {
-    enabled     = true
-    storage_uri = "${azurerm_storage_account.stor.primary_blob_endpoint}"
   }
 }
