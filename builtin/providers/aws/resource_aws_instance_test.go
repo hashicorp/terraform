@@ -860,6 +860,8 @@ func TestAccAWSInstance_keyPairCheck(t *testing.T) {
 		}
 	}
 
+	keyPairName := fmt.Sprintf("tf-acc-test-%s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:        func() { testAccPreCheck(t) },
 		IDRefreshName:   "aws_instance.foo",
@@ -868,10 +870,10 @@ func TestAccAWSInstance_keyPairCheck(t *testing.T) {
 		CheckDestroy:    testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccInstanceConfigKeyPair,
+				Config: testAccInstanceConfigKeyPair(keyPairName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
-					testCheckKeyPair("tmp-key"),
+					testCheckKeyPair(keyPairName),
 				),
 			},
 		},
@@ -1028,6 +1030,34 @@ func TestAccAWSInstance_addSecondaryInterface(t *testing.T) {
 					testAccCheckInstanceExists("aws_instance.foo", &after),
 					testAccCheckAWSENIExists("aws_network_interface.secondary", &iniSecondary),
 					resource.TestCheckResourceAttr("aws_instance.foo", "network_interface.#", "1"),
+				),
+			},
+		},
+	})
+}
+
+// https://github.com/hashicorp/terraform/issues/3205
+func TestAccAWSInstance_addSecurityGroupNetworkInterface(t *testing.T) {
+	var before ec2.Instance
+	var after ec2.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceConfigAddSecurityGroupBefore,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &before),
+					resource.TestCheckResourceAttr("aws_instance.foo", "vpc_security_group_ids.#", "1"),
+				),
+			},
+			{
+				Config: testAccInstanceConfigAddSecurityGroupAfter,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &after),
+					resource.TestCheckResourceAttr("aws_instance.foo", "vpc_security_group_ids.#", "2"),
 				),
 			},
 		},
@@ -1824,13 +1854,14 @@ resource "aws_eip" "foo_eip" {
 }
 `
 
-const testAccInstanceConfigKeyPair = `
+func testAccInstanceConfigKeyPair(keyPairName string) string {
+	return fmt.Sprintf(`
 provider "aws" {
 	region = "us-east-1"
 }
 
 resource "aws_key_pair" "debugging" {
-	key_name = "tmp-key"
+	key_name = "%s"
 	public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD3F6tyPEFEzV0LX3X8BsXdMsQz1x2cEikKDEY0aIj41qgxMCP/iteneqXSIFZBp5vizPvaoIR3Um9xK7PGoW8giupGn+EPuxIA4cDM4vzOqOkiMPhz5XK0whEjkVzTo4+S0puvDZuwIsdiW9mxhJc7tgBNL0cYlWSYVkz4G/fslNfRPW5mYAM49f4fhtxPb5ok4Q2Lg9dPKVHO/Bgeu5woMc7RY0p1ej6D4CKFE6lymSDJpW0YHX/wqE9+cfEauh7xZcG0q9t2ta6F6fmX0agvpFyZo8aFbXeUBr7osSCJNgvavWbM/06niWrOvYX2xwWdhXmXSrbX8ZbabVohBK41 phodgson@thoughtworks.com"
 }
 
@@ -1842,7 +1873,8 @@ resource "aws_instance" "foo" {
 		Name = "testAccInstanceConfigKeyPair_TestAMI"
 	}
 }
-`
+`, keyPairName)
+}
 
 const testAccInstanceConfigRootBlockDeviceMismatch = `
 resource "aws_vpc" "foo" {
@@ -2058,5 +2090,136 @@ resource "aws_instance" "foo" {
 	 network_interface_id = "${aws_network_interface.primary.id}"
 	 device_index = 0
   }
+}
+`
+
+const testAccInstanceConfigAddSecurityGroupBefore = `
+resource "aws_vpc" "foo" {
+    cidr_block = "172.16.0.0/16"
+        tags {
+            Name = "tf-eni-test"
+        }
+}
+
+resource "aws_subnet" "foo" {
+    vpc_id = "${aws_vpc.foo.id}"
+    cidr_block = "172.16.10.0/24"
+    availability_zone = "us-west-2a"
+        tags {
+            Name = "tf-foo-instance-add-sg-test"
+        }
+}
+
+resource "aws_subnet" "bar" {
+    vpc_id = "${aws_vpc.foo.id}"
+    cidr_block = "172.16.11.0/24"
+    availability_zone = "us-west-2a"
+        tags {
+            Name = "tf-bar-instance-add-sg-test"
+        }
+}
+
+resource "aws_security_group" "foo" {
+  vpc_id = "${aws_vpc.foo.id}"
+  description = "foo"
+  name = "foo"
+}
+
+resource "aws_security_group" "bar" {
+  vpc_id = "${aws_vpc.foo.id}"
+  description = "bar"
+  name = "bar"
+}
+
+resource "aws_instance" "foo" {
+    ami = "ami-c5eabbf5"
+    instance_type = "t2.micro"
+    subnet_id = "${aws_subnet.bar.id}"
+    associate_public_ip_address = false
+    vpc_security_group_ids = [
+      "${aws_security_group.foo.id}"
+    ]
+    tags {
+        Name = "foo-instance-sg-add-test"
+    }
+}
+
+resource "aws_network_interface" "bar" {
+    subnet_id = "${aws_subnet.foo.id}"
+    private_ips = ["172.16.10.100"]
+    security_groups = ["${aws_security_group.foo.id}"]
+    attachment {
+        instance = "${aws_instance.foo.id}"
+        device_index = 1
+    }
+    tags {
+        Name = "bar_interface"
+    }
+}
+`
+
+const testAccInstanceConfigAddSecurityGroupAfter = `
+resource "aws_vpc" "foo" {
+    cidr_block = "172.16.0.0/16"
+        tags {
+            Name = "tf-eni-test"
+        }
+}
+
+resource "aws_subnet" "foo" {
+    vpc_id = "${aws_vpc.foo.id}"
+    cidr_block = "172.16.10.0/24"
+    availability_zone = "us-west-2a"
+        tags {
+            Name = "tf-foo-instance-add-sg-test"
+        }
+}
+
+resource "aws_subnet" "bar" {
+    vpc_id = "${aws_vpc.foo.id}"
+    cidr_block = "172.16.11.0/24"
+    availability_zone = "us-west-2a"
+        tags {
+            Name = "tf-bar-instance-add-sg-test"
+        }
+}
+
+resource "aws_security_group" "foo" {
+  vpc_id = "${aws_vpc.foo.id}"
+  description = "foo"
+  name = "foo"
+}
+
+resource "aws_security_group" "bar" {
+  vpc_id = "${aws_vpc.foo.id}"
+  description = "bar"
+  name = "bar"
+}
+
+resource "aws_instance" "foo" {
+    ami = "ami-c5eabbf5"
+    instance_type = "t2.micro"
+    subnet_id = "${aws_subnet.bar.id}"
+    associate_public_ip_address = false
+    vpc_security_group_ids = [
+      "${aws_security_group.foo.id}",
+      "${aws_security_group.bar.id}"
+    ]
+    tags {
+        Name = "foo-instance-sg-add-test"
+    }
+}
+
+resource "aws_network_interface" "bar" {
+    subnet_id = "${aws_subnet.foo.id}"
+    private_ips = ["172.16.10.100"]
+    security_groups = ["${aws_security_group.foo.id}"]
+    attachment {
+        instance = "${aws_instance.foo.id}"
+        device_index = 1
+    }
+    tags {
+        Name = "bar_interface"
+    }
 }
 `

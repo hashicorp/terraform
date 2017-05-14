@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cyberdelia/heroku-go/v3"
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -19,6 +20,14 @@ import (
 // each a bit differently and the setup/teardown of separate tests seems to
 // help them to perform more consistently.
 // https://devcenter.heroku.com/articles/ssl-endpoint#add-certificate-and-intermediaries
+//
+// We also have a time.Sleep() set for the update step (step 2 of 2) in each
+// region's tests. This is somewhat kludgy, but the Heroku API SSL Endpoint
+// handles parts of the create and update requests asynchronously, and if you
+// add a cert+key then immediately update it, and then delete it (end of test),
+// there are scenarios where the operations get out of order. For now, sleeping
+// on update seems to allow the test to run smoothly; in real life, this test
+// case is definitely an extreme edge case.
 func TestAccHerokuCert_EU(t *testing.T) {
 	var endpoint heroku.SSLEndpointInfoResult
 	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
@@ -50,7 +59,8 @@ func TestAccHerokuCert_EU(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccCheckHerokuCertEUConfig(appName, certFile2, keyFile2),
+				PreConfig: sleep(t, 15),
+				Config:    testAccCheckHerokuCertEUConfig(appName, certFile2, keyFile2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuCertExists("heroku_cert.ssl_certificate", &endpoint),
 					testAccCheckHerokuCertificateChain(&endpoint, certificateChain2),
@@ -94,7 +104,8 @@ func TestAccHerokuCert_US(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccCheckHerokuCertUSConfig(appName, certFile, keyFile),
+				PreConfig: sleep(t, 15),
+				Config:    testAccCheckHerokuCertUSConfig(appName, certFile, keyFile),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuCertExists("heroku_cert.ssl_certificate", &endpoint),
 					testAccCheckHerokuCertificateChain(&endpoint, certificateChain),
@@ -145,6 +156,12 @@ resource "heroku_cert" "ssl_certificate" {
   certificate_chain="${file("%s")}"
   private_key="${file("%s")}"
 }`, appName, certFile, keyFile))
+}
+
+func sleep(t *testing.T, amount time.Duration) func() {
+	return func() {
+		time.Sleep(amount * time.Second)
+	}
 }
 
 func testAccCheckHerokuCertDestroy(s *terraform.State) error {

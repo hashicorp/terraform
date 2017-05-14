@@ -422,6 +422,15 @@
                     </ul>
                 </li>
 
+                <li<%= sidebar_current("docs-aws-resource-devicefarm") %>>
+                    <a href="#">Device Farm Resources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-aws-resource-devicefarm-project") %>>
+                            <a href="/docs/providers/aws/r/devicefarm_project.html">aws_devicefarm_project</a>
+                        </li>
+                    </ul>
+                </li>
+
                 <li<%= sidebar_current("docs-aws-resource-directory-service") %>>
                     <a href="#">Directory Service Resources</a>
                     <ul class="nav nav-visible">
@@ -1108,6 +1117,21 @@
 
                   <li<%= sidebar_current("docs-aws-resource-waf-xss-match-set") %>>
                     <a href="/docs/providers/aws/r/waf_xss_match_set.html">aws_waf_xss_match_set</a>
+                  </li>
+
+                </ul>
+              </li>
+
+              <li<%= sidebar_current(/^docs-aws-resource-wafregional/) %>>
+                <a href="#">WAF Regional Resources</a>
+                <ul class="nav nav-visible">
+
+                  <li<%= sidebar_current("docs-aws-resource-wafregional-bytematchset") %>>
+                    <a href="/docs/providers/aws/r/wafregional_byte_match_set.html">aws_wafregional_byte_match_set</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-aws-resource-wafregional-ipset") %>>
+                    <a href="/docs/providers/aws/r/wafregional_ipset.html">aws_wafregional_ipset</a>
                   </li>
 
                 </ul>

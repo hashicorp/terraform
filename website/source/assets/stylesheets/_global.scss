@@ -34,7 +34,7 @@ h1 {
   visibility: visible;
 }
 
-@media (max-width: $screen-md) {
+@media (min-width: $screen-sm) and (max-width: $screen-md) {
   .container {
     padding: 0;
     max-width: $screen-md;

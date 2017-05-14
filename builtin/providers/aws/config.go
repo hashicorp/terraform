@@ -31,6 +31,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
+	"github.com/aws/aws-sdk-go/service/devicefarm"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -65,6 +66,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/waf"
+	"github.com/aws/aws-sdk-go/service/wafregional"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-cleanhttp"
@@ -94,6 +96,7 @@ type Config struct {
 	CloudWatchEventsEndpoint string
 	CloudWatchLogsEndpoint   string
 	DynamoDBEndpoint         string
+	DeviceFarmEndpoint       string
 	Ec2Endpoint              string
 	ElbEndpoint              string
 	IamEndpoint              string
@@ -122,6 +125,7 @@ type AWSClient struct {
 	cloudwatcheventsconn  *cloudwatchevents.CloudWatchEvents
 	cognitoconn           *cognitoidentity.CognitoIdentity
 	configconn            *configservice.ConfigService
+	devicefarmconn        *devicefarm.DeviceFarm
 	dmsconn               *databasemigrationservice.DatabaseMigrationService
 	dsconn                *directoryservice.DirectoryService
 	dynamodbconn          *dynamodb.DynamoDB
@@ -169,6 +173,7 @@ type AWSClient struct {
 	sfnconn               *sfn.SFN
 	ssmconn               *ssm.SSM
 	wafconn               *waf.WAF
+	wafregionalconn       *wafregional.WAFRegional
 }
 
 func (c *AWSClient) S3() *s3.S3 {
@@ -286,6 +291,10 @@ func (c *Config) Client() (interface{}, error) {
 	awsS3Sess := sess.Copy(&aws.Config{Endpoint: aws.String(c.S3Endpoint)})
 	awsSnsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.SnsEndpoint)})
 	awsSqsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.SqsEndpoint)})
+	awsDeviceFarmSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.DeviceFarmEndpoint)})
+
+	log.Println("[INFO] Initializing DeviceFarm SDK connection")
+	client.devicefarmconn = devicefarm.New(awsDeviceFarmSess)
 
 	// These two services need to be set up early so we can check on AccountID
 	client.iamconn = iam.New(awsIamSess)
@@ -372,6 +381,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.sqsconn = sqs.New(awsSqsSess)
 	client.ssmconn = ssm.New(sess)
 	client.wafconn = waf.New(sess)
+	client.wafregionalconn = wafregional.New(sess)
 
 	return &client, nil
 }

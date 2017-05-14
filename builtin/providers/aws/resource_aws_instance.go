@@ -843,11 +843,37 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 				groups = append(groups, aws.String(v.(string)))
 			}
 		}
-		_, err := conn.ModifyInstanceAttribute(&ec2.ModifyInstanceAttributeInput{
-			InstanceId: aws.String(d.Id()),
-			Groups:     groups,
+		// If a user has multiple network interface attachments on the target EC2 instance, simply modifying the
+		// instance attributes via a `ModifyInstanceAttributes()` request would fail with the following error message:
+		// "There are multiple interfaces attached to instance 'i-XX'. Please specify an interface ID for the operation instead."
+		// Thus, we need to actually modify the primary network interface for the new security groups, as the primary
+		// network interface is where we modify/create security group assignments during Create.
+		log.Printf("[INFO] Modifying `vpc_security_group_ids` on Instance %q", d.Id())
+		instances, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
+			InstanceIds: []*string{aws.String(d.Id())},
 		})
 		if err != nil {
+			return err
+		}
+		instance := instances.Reservations[0].Instances[0]
+		var primaryInterface ec2.InstanceNetworkInterface
+		for _, ni := range instance.NetworkInterfaces {
+			if *ni.Attachment.DeviceIndex == 0 {
+				primaryInterface = *ni
+			}
+		}
+
+		if primaryInterface.NetworkInterfaceId == nil {
+			log.Print("[Error] Attempted to set vpc_security_group_ids on an instance without a primary network interface")
+			return fmt.Errorf(
+				"Failed to update vpc_security_group_ids on %q, which does not contain a primary network interface",
+				d.Id())
+		}
+
+		if _, err := conn.ModifyNetworkInterfaceAttribute(&ec2.ModifyNetworkInterfaceAttributeInput{
+			NetworkInterfaceId: primaryInterface.NetworkInterfaceId,
+			Groups:             groups,
+		}); err != nil {
 			return err
 		}
 	}
