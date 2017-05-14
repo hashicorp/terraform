@@ -93,7 +93,7 @@ func testAccAzureRMExpressRouteCircuit_basic(rInt int) string {
 		}
 
 		resource "azurerm_express_route_circuit" "test" {
-			name = "arm-test-erc-%[1]d"
+			name = "acctest-erc-%[1]d"
 			location = "West US"
 			resource_group_name = "${azurerm_resource_group.test.name}"
 			service_provider_name = "Equinix"
