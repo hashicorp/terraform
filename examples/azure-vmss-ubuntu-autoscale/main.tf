@@ -29,22 +29,6 @@ resource "azurerm_subnet" "subnet" {
   virtual_network_name = "${azurerm_virtual_network.vnet.name}"
 }
 
-resource "azurerm_public_ip" "pip" {
-  name                         = "PublicIp1"
-  location                     = "${azurerm_resource_group.rg.location}"
-  resource_group_name          = "${azurerm_resource_group.rg.name}"
-  public_ip_address_allocation = "Dynamic"
-  domain_name_label            = "${var.vmss_name}"
-}
-
-resource "azurerm_public_ip" "lbpip" {
-  name                         = "PublicIpLB"
-  location                     = "${azurerm_resource_group.rg.location}"
-  resource_group_name          = "${azurerm_resource_group.rg.name}"
-  public_ip_address_allocation = "Dynamic"
-  domain_name_label            = "${var.vmss_name}lb"
-}
-
 resource "azurerm_network_interface" "nic" {
   name                = "${var.hostname}nic"
   location            = "${azurerm_resource_group.rg.location}"
@@ -54,7 +38,7 @@ resource "azurerm_network_interface" "nic" {
     name                          = "${var.hostname}ipconfig"
     subnet_id                     = "${azurerm_subnet.subnet.id}"
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = "${azurerm_public_ip.pip.id}"
+    subnet_id                     = "${azurerm_subnet.subnet.id}"
   }
 }
 
@@ -64,8 +48,8 @@ resource "azurerm_lb" "lb" {
   resource_group_name = "${azurerm_resource_group.rg.name}"
 
   frontend_ip_configuration {
-    name                 = "LBFrontEnd"
-    public_ip_address_id = "${azurerm_public_ip.lbpip.id}"
+    name      = "LBFrontEnd"
+    subnet_id = "${azurerm_subnet.subnet.id}"
   }
 }
 
