@@ -236,6 +236,42 @@ func resourceNetworkingSecGroupRuleV2DetermineProtocol(v string) rules.RuleProto
 		protocol = rules.ProtocolUDP
 	case "icmp":
 		protocol = rules.ProtocolICMP
+	case "ah":
+		protocol = rules.ProtocolAH
+	case "dccp":
+		protocol = rules.ProtocolDCCP
+	case "egp":
+		protocol = rules.ProtocolEGP
+	case "esp":
+		protocol = rules.ProtocolESP
+	case "gre":
+		protocol = rules.ProtocolGRE
+	case "igmp":
+		protocol = rules.ProtocolIGMP
+	case "ipv6-encap":
+		protocol = rules.ProtocolIPv6Encap
+	case "ipv6-frag":
+		protocol = rules.ProtocolIPv6Frag
+	case "ipv6-icmp":
+		protocol = rules.ProtocolIPv6ICMP
+	case "ipv6-nonxt":
+		protocol = rules.ProtocolIPv6NoNxt
+	case "ipv6-opts":
+		protocol = rules.ProtocolIPv6Opts
+	case "ipv6-route":
+		protocol = rules.ProtocolIPv6Route
+	case "ospf":
+		protocol = rules.ProtocolOSPF
+	case "pgm":
+		protocol = rules.ProtocolPGM
+	case "rsvp":
+		protocol = rules.ProtocolRSVP
+	case "sctp":
+		protocol = rules.ProtocolSCTP
+	case "udplite":
+		protocol = rules.ProtocolUDPLite
+	case "vrrp":
+		protocol = rules.ProtocolVRRP
 	}
 
 	return protocol
