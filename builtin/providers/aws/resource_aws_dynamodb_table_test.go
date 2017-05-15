@@ -15,6 +15,7 @@ import (
 
 func TestAccAWSDynamoDbTable_basic(t *testing.T) {
 	var conf dynamodb.DescribeTableOutput
+	rInt := acctest.RandInt()
 
 	rName := acctest.RandomWithPrefix("TerraformTestTable-")
 
