@@ -21,6 +21,10 @@ func resourceGitlabProject() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"namespace_id": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
 			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -56,6 +60,10 @@ func resourceGitlabProject() *schema.Resource {
 				Default:      "private",
 			},
 
+			"id": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
 			"ssh_url_to_repo": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -82,6 +90,7 @@ func resourceGitlabProjectSetToState(d *schema.ResourceData, project *gitlab.Pro
 	d.Set("snippets_enabled", project.SnippetsEnabled)
 	d.Set("visibility_level", visibilityLevelToString(project.VisibilityLevel))
 
+	d.Set("id", project.ID)
 	d.Set("ssh_url_to_repo", project.SSHURLToRepo)
 	d.Set("http_url_to_repo", project.HTTPURLToRepo)
 	d.Set("web_url", project.WebURL)
@@ -91,6 +100,7 @@ func resourceGitlabProjectCreate(d *schema.ResourceData, meta interface{}) error
 	client := meta.(*gitlab.Client)
 	options := &gitlab.CreateProjectOptions{
 		Name:                 gitlab.String(d.Get("name").(string)),
+		NamespaceID:          gitlab.Int(d.Get("namespace_id").(int)),
 		IssuesEnabled:        gitlab.Bool(d.Get("issues_enabled").(bool)),
 		MergeRequestsEnabled: gitlab.Bool(d.Get("merge_requests_enabled").(bool)),
 		WikiEnabled:          gitlab.Bool(d.Get("wiki_enabled").(bool)),
