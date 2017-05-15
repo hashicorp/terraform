@@ -107,11 +107,6 @@ resource "azurerm_virtual_machine_scale_set" "scaleset" {
 
   os_profile_linux_config {
     disable_password_authentication = false
-
-    ssh_keys {
-      path     = "/home/myadmin/.ssh/authorized_keys"
-      key_data = "${file("~/.ssh/demo_key.pub")}"
-    }
   }
 
   network_profile {
@@ -119,10 +114,9 @@ resource "azurerm_virtual_machine_scale_set" "scaleset" {
     primary = true
 
     ip_configuration {
-      name      = "IPConfiguration"
-      subnet_id = "${azurerm_subnet.subnet1.id}"
+      name                                   = "IPConfiguration"
+      subnet_id                              = "${azurerm_subnet.subnet1.id}"
       load_balancer_backend_address_pool_ids = ["${azurerm_lb_backend_address_pool.backlb.id}"]
-      # This resource doesn't exist yet
       load_balancer_inbound_nat_pool_ids     = ["${azurerm_lb_nat_pool.np.id}"]
     }
   }
@@ -131,7 +125,7 @@ resource "azurerm_virtual_machine_scale_set" "scaleset" {
     name           = "osDiskProfile"
     caching        = "ReadWrite"
     create_option  = "FromImage"
-    vhd_containers = ["${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}"]
+    vhd_containers = ["${azurerm_storage_account.stor.primary_blob_endpoint}${azurerm_storage_container.stor.name}"]
   }
 
   storage_profile_image_reference {
@@ -142,61 +136,61 @@ resource "azurerm_virtual_machine_scale_set" "scaleset" {
   }
 }
 
+# "type": "Microsoft.Insights/autoscaleSettings",
+# "apiVersion": "[variables('insightsApiVersion')]",
+# "name": "autoscalewad",
+# "location": "[resourceGroup().location]",
+# "dependsOn": [
+#   "[concat('Microsoft.Compute/virtualMachineScaleSets/', variables('namingInfix'))]"
+# ],
+# "properties": {
+#   "name": "autoscalewad",
+#   "targetResourceUri": "[concat('/subscriptions/',subscription().subscriptionId, '/resourceGroups/',  resourceGroup().name, '/providers/Microsoft.Compute/virtualMachineScaleSets/', variables('namingInfix'))]",
+#   "enabled": true,
+#   "profiles": [
+#     {
+#       "name": "Profile1",
+#       "capacity": {
+#         "minimum": "1",
+#         "maximum": "10",
+#         "default": "1"
+#       },
+#       "rules": [
+#         {
+#           "metricTrigger": {
+#             "metricName": "Percentage CPU",
+#             "metricNamespace": "",
+#             "metricResourceUri": "[concat('/subscriptions/',subscription().subscriptionId, '/resourceGroups/',  resourceGroup().name, '/providers/Microsoft.Compute/virtualMachineScaleSets/', variables('namingInfix'))]",
+#             "timeGrain": "PT1M",
+#             "statistic": "Average",
+#             "timeWindow": "PT5M",
+#             "timeAggregation": "Average",
+#             "operator": "GreaterThan",
+#             "threshold": 60.0
+#           },
+#           "scaleAction": {
+#             "direction": "Increase",
+#             "type": "ChangeCount",
+#             "value": "1",
+#             "cooldown": "PT1M"
+#           }
+#         },
+#         {
+#           "metricTrigger": {
+#             "metricName": "Percentage CPU",
+#             "metricNamespace": "",
+#             "metricResourceUri": "[concat('/subscriptions/',subscription().subscriptionId, '/resourceGroups/',  resourceGroup().name, '/providers/Microsoft.Compute/virtualMachineScaleSets/', variables('namingInfix'))]",
+#             "timeGrain": "PT1M",
+#             "statistic": "Average",
+#             "timeWindow": "PT5M",
+#             "timeAggregation": "Average",
+#             "operator": "LessThan",
+#             "threshold": 30.0
+#           },
+#           "scaleAction": {
+#             "direction": "Decrease",
+#             "type": "ChangeCount",
+#             "value": "1",
+#             "cooldown": "PT5M"
+#           }
 
-      # "type": "Microsoft.Insights/autoscaleSettings",
-      # "apiVersion": "[variables('insightsApiVersion')]",
-      # "name": "autoscalewad",
-      # "location": "[resourceGroup().location]",
-      # "dependsOn": [
-      #   "[concat('Microsoft.Compute/virtualMachineScaleSets/', variables('namingInfix'))]"
-      # ],
-      # "properties": {
-      #   "name": "autoscalewad",
-      #   "targetResourceUri": "[concat('/subscriptions/',subscription().subscriptionId, '/resourceGroups/',  resourceGroup().name, '/providers/Microsoft.Compute/virtualMachineScaleSets/', variables('namingInfix'))]",
-      #   "enabled": true,
-      #   "profiles": [
-      #     {
-      #       "name": "Profile1",
-      #       "capacity": {
-      #         "minimum": "1",
-      #         "maximum": "10",
-      #         "default": "1"
-      #       },
-      #       "rules": [
-      #         {
-      #           "metricTrigger": {
-      #             "metricName": "Percentage CPU",
-      #             "metricNamespace": "",
-      #             "metricResourceUri": "[concat('/subscriptions/',subscription().subscriptionId, '/resourceGroups/',  resourceGroup().name, '/providers/Microsoft.Compute/virtualMachineScaleSets/', variables('namingInfix'))]",
-      #             "timeGrain": "PT1M",
-      #             "statistic": "Average",
-      #             "timeWindow": "PT5M",
-      #             "timeAggregation": "Average",
-      #             "operator": "GreaterThan",
-      #             "threshold": 60.0
-      #           },
-      #           "scaleAction": {
-      #             "direction": "Increase",
-      #             "type": "ChangeCount",
-      #             "value": "1",
-      #             "cooldown": "PT1M"
-      #           }
-      #         },
-      #         {
-      #           "metricTrigger": {
-      #             "metricName": "Percentage CPU",
-      #             "metricNamespace": "",
-      #             "metricResourceUri": "[concat('/subscriptions/',subscription().subscriptionId, '/resourceGroups/',  resourceGroup().name, '/providers/Microsoft.Compute/virtualMachineScaleSets/', variables('namingInfix'))]",
-      #             "timeGrain": "PT1M",
-      #             "statistic": "Average",
-      #             "timeWindow": "PT5M",
-      #             "timeAggregation": "Average",
-      #             "operator": "LessThan",
-      #             "threshold": 30.0
-      #           },
-      #           "scaleAction": {
-      #             "direction": "Decrease",
-      #             "type": "ChangeCount",
-      #             "value": "1",
-      #             "cooldown": "PT5M"
-      #           }
