@@ -95,11 +95,14 @@ func resourceGitlabProjectCreate(d *schema.ResourceData, meta interface{}) error
 	client := meta.(*gitlab.Client)
 	options := &gitlab.CreateProjectOptions{
 		Name:                 gitlab.String(d.Get("name").(string)),
-		NamespaceID:          gitlab.Int(d.Get("namespace_id").(int)),
 		IssuesEnabled:        gitlab.Bool(d.Get("issues_enabled").(bool)),
 		MergeRequestsEnabled: gitlab.Bool(d.Get("merge_requests_enabled").(bool)),
 		WikiEnabled:          gitlab.Bool(d.Get("wiki_enabled").(bool)),
 		SnippetsEnabled:      gitlab.Bool(d.Get("snippets_enabled").(bool)),
+	}
+
+	if v, ok := d.GetOk("namespace_id"); ok {
+		options.NamespaceID = gitlab.Int(v.(int))
 	}
 
 	if v, ok := d.GetOk("description"); ok {
