@@ -78,6 +78,7 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
+				ForceNew: true,
 			},
 
 			"os_profile": {
@@ -1131,17 +1132,17 @@ func expandAzureRMVirtualMachineScaleSetsStorageProfileOsDisk(d *schema.Resource
 			managedDisk.StorageAccountType = compute.StorageAccountTypes(managedDiskType)
 			osDisk.ManagedDisk = managedDisk
 		} else {
-			return nil, fmt.Errorf("[ERROR] Conflict between `name` and `managed_disk_type` (please set name to blank)")
+			return nil, fmt.Errorf("[ERROR] Conflict between `name` and `managed_disk_type` on `storage_profile_os_disk` (please set name to blank)")
 		}
 	}
 
 	//BEGIN: code to be removed after GH-13016 is merged
 	if image != "" && managedDiskType != "" {
-		return nil, fmt.Errorf("[ERROR] Conflict between `image` and `managed_disk_type` (only one or the other can be used)")
+		return nil, fmt.Errorf("[ERROR] Conflict between `image` and `managed_disk_type` on `storage_profile_os_disk` (only one or the other can be used)")
 	}
 
 	if len(vhd_containers) > 0 && managedDiskType != "" {
-		return nil, fmt.Errorf("[ERROR] Conflict between `vhd_containers` and `managed_disk_type` (only one or the other can be used)")
+		return nil, fmt.Errorf("[ERROR] Conflict between `vhd_containers` and `managed_disk_type` on `storage_profile_os_disk` (only one or the other can be used)")
 	}
 	//END: code to be removed after GH-13016 is merged
 
