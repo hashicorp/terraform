@@ -100,6 +100,7 @@ func (s *VMGroupService) CreateInstanceGroup(p *CreateInstanceGroupParams) (*Cre
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -157,6 +158,7 @@ func (s *VMGroupService) DeleteInstanceGroup(p *DeleteInstanceGroupParams) (*Del
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -219,6 +221,7 @@ func (s *VMGroupService) UpdateInstanceGroup(p *UpdateInstanceGroupParams) (*Upd
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -461,6 +464,7 @@ func (s *VMGroupService) ListInstanceGroups(p *ListInstanceGroupsParams) (*ListI
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 

@@ -130,15 +130,7 @@ func resourceComputeSnapshotRead(d *schema.ResourceData, meta interface{}) error
 	snapshot, err := config.clientCompute.Snapshots.Get(
 		project, d.Id()).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing Snapshot %q because it's gone", d.Get("name").(string))
-			// The resource doesn't exist anymore
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error reading snapshot: %s", err)
+		return handleNotFoundError(err, d, fmt.Sprintf("Snapshot %q", d.Get("name").(string)))
 	}
 
 	d.Set("self_link", snapshot.SelfLink)

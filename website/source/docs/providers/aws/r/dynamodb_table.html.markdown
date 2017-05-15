@@ -77,7 +77,9 @@ The following arguments are supported:
   * `type` - One of: S, N, or B for (S)tring, (N)umber or (B)inary data
 * `stream_enabled` - (Optional) Indicates whether Streams are to be enabled (true) or disabled (false).
 * `stream_view_type` - (Optional) When an item in the table is modified, StreamViewType determines what information is written to the table's stream. Valid values are KEYS_ONLY, NEW_IMAGE, OLD_IMAGE, NEW_AND_OLD_IMAGES.
-* `ttl` - (Optional) Indicates whether time to live is enabled (true) or disabled (false) and the `attribute_name` to be used.
+* `ttl` - (Optional) Defines ttl, has two properties, and can only be specified once:
+  * `enabled` - (Required) Indicates whether ttl is enabled (true) or disabled (false).
+  * `attribute_name` - (Required) The name of the table attribute to store the TTL timestamp in. 
 * `local_secondary_index` - (Optional, Forces new resource) Describe an LSI on the table;
   these can only be allocated *at creation* so you cannot change this
 definition after you have created the resource.

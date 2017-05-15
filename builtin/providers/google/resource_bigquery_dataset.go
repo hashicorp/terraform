@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
 	"google.golang.org/api/bigquery/v2"
-	"google.golang.org/api/googleapi"
 )
 
 func resourceBigQueryDataset() *schema.Resource {
@@ -225,15 +224,7 @@ func resourceBigQueryDatasetRead(d *schema.ResourceData, meta interface{}) error
 
 	res, err := config.clientBigQuery.Datasets.Get(projectID, datasetID).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing BigQuery dataset %q because it's gone", datasetID)
-			// The resource doesn't exist anymore
-			d.SetId("")
-
-			return nil
-		}
-
-		return err
+		return handleNotFoundError(err, d, fmt.Sprintf("BigQuery dataset %q", datasetID))
 	}
 
 	d.Set("etag", res.Etag)

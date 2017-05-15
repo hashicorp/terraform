@@ -130,7 +130,7 @@ func resourcePubsubSubscriptionRead(d *schema.ResourceData, meta interface{}) er
 	call := config.clientPubsub.Projects.Subscriptions.Get(name)
 	_, err := call.Do()
 	if err != nil {
-		return err
+		return handleNotFoundError(err, d, fmt.Sprintf("Pubsub Subscription %q", name))
 	}
 
 	return nil

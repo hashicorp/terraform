@@ -27,6 +27,29 @@ func TestAccDockerContainer_basic(t *testing.T) {
 	})
 }
 
+func TestAccDockerContainerPath_validation(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{Value: "/var/log", ErrCount: 0},
+		{Value: "/tmp", ErrCount: 0},
+		{Value: "C:\\Windows\\System32", ErrCount: 0},
+		{Value: "C:\\Program Files\\MSBuild", ErrCount: 0},
+		{Value: "test", ErrCount: 1},
+		{Value: "C:Test", ErrCount: 1},
+		{Value: "", ErrCount: 1},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateDockerContainerPath(tc.Value, "docker_container")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected the Docker Container Path to trigger a validation error")
+		}
+	}
+}
+
 func TestAccDockerContainer_volume(t *testing.T) {
 	var c dc.Container
 

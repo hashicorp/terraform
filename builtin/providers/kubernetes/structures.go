@@ -279,3 +279,97 @@ func resourceListEquals(x, y api.ResourceList) bool {
 	}
 	return true
 }
+
+func expandLimitRangeSpec(s []interface{}, isNew bool) (api.LimitRangeSpec, error) {
+	out := api.LimitRangeSpec{}
+	if len(s) < 1 || s[0] == nil {
+		return out, nil
+	}
+	m := s[0].(map[string]interface{})
+
+	if limits, ok := m["limit"].([]interface{}); ok {
+		newLimits := make([]api.LimitRangeItem, len(limits), len(limits))
+
+		for i, l := range limits {
+			lrItem := api.LimitRangeItem{}
+			limit := l.(map[string]interface{})
+
+			if v, ok := limit["type"]; ok {
+				lrItem.Type = api.LimitType(v.(string))
+			}
+
+			// defaultRequest is forbidden for Pod limits, even though it's set & returned by API
+			// this is how we avoid sending it back
+			if v, ok := limit["default_request"]; ok {
+				drm := v.(map[string]interface{})
+				if lrItem.Type == api.LimitTypePod && len(drm) > 0 {
+					if isNew {
+						return out, fmt.Errorf("limit.%d.default_request cannot be set for Pod limit", i)
+					}
+				} else {
+					el, err := expandMapToResourceList(drm)
+					if err != nil {
+						return out, err
+					}
+					lrItem.DefaultRequest = el
+				}
+			}
+
+			if v, ok := limit["default"]; ok {
+				el, err := expandMapToResourceList(v.(map[string]interface{}))
+				if err != nil {
+					return out, err
+				}
+				lrItem.Default = el
+			}
+			if v, ok := limit["max"]; ok {
+				el, err := expandMapToResourceList(v.(map[string]interface{}))
+				if err != nil {
+					return out, err
+				}
+				lrItem.Max = el
+			}
+			if v, ok := limit["max_limit_request_ratio"]; ok {
+				el, err := expandMapToResourceList(v.(map[string]interface{}))
+				if err != nil {
+					return out, err
+				}
+				lrItem.MaxLimitRequestRatio = el
+			}
+			if v, ok := limit["min"]; ok {
+				el, err := expandMapToResourceList(v.(map[string]interface{}))
+				if err != nil {
+					return out, err
+				}
+				lrItem.Min = el
+			}
+
+			newLimits[i] = lrItem
+		}
+
+		out.Limits = newLimits
+	}
+
+	return out, nil
+}
+
+func flattenLimitRangeSpec(in api.LimitRangeSpec) []interface{} {
+	out := make([]interface{}, 1)
+	limits := make([]interface{}, len(in.Limits), len(in.Limits))
+
+	for i, l := range in.Limits {
+		m := make(map[string]interface{}, 0)
+		m["default"] = flattenResourceList(l.Default)
+		m["default_request"] = flattenResourceList(l.DefaultRequest)
+		m["max"] = flattenResourceList(l.Max)
+		m["max_limit_request_ratio"] = flattenResourceList(l.MaxLimitRequestRatio)
+		m["min"] = flattenResourceList(l.Min)
+		m["type"] = string(l.Type)
+
+		limits[i] = m
+	}
+	out[0] = map[string]interface{}{
+		"limit": limits,
+	}
+	return out
+}

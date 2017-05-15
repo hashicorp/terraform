@@ -69,7 +69,7 @@ var NormalizeBucketLocationHandler = request.NamedHandler{
 //         &s3.GetBucketLocationInput{
 //             Bucket: aws.String(bucket),
 //         },
-//         WithNormalizeBucketLocation,
+//         s3.WithNormalizeBucketLocation,
 //     )
 func WithNormalizeBucketLocation(r *request.Request) {
 	r.Handlers.Unmarshal.PushBackNamed(NormalizeBucketLocationHandler)

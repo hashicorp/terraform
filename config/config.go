@@ -545,7 +545,7 @@ func (c *Config) Validate() error {
 
 		// Verify provisioners
 		for _, p := range r.Provisioners {
-			// This validation checks that there are now splat variables
+			// This validation checks that there are no splat variables
 			// referencing ourself. This currently is not allowed.
 
 			for _, v := range p.ConnInfo.Variables {
