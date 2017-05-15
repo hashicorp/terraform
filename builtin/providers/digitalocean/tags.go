@@ -1,6 +1,7 @@
 package digitalocean
 
 import (
+	"context"
 	"log"
 
 	"github.com/digitalocean/godo"
@@ -15,7 +16,7 @@ func setTags(conn *godo.Client, d *schema.ResourceData) error {
 
 	log.Printf("[DEBUG] Removing tags: %#v from %s", remove, d.Id())
 	for _, tag := range remove {
-		_, err := conn.Tags.UntagResources(tag, &godo.UntagResourcesRequest{
+		_, err := conn.Tags.UntagResources(context.Background(), tag, &godo.UntagResourcesRequest{
 			Resources: []godo.Resource{
 				{
 					ID:   d.Id(),
@@ -30,7 +31,7 @@ func setTags(conn *godo.Client, d *schema.ResourceData) error {
 
 	log.Printf("[DEBUG] Creating tags: %s for %s", create, d.Id())
 	for _, tag := range create {
-		_, err := conn.Tags.TagResources(tag, &godo.TagResourcesRequest{
+		_, err := conn.Tags.TagResources(context.Background(), tag, &godo.TagResourcesRequest{
 			Resources: []godo.Resource{
 				{
 					ID:   d.Id(),

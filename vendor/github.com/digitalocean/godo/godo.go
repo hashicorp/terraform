@@ -14,10 +14,12 @@ import (
 
 	"github.com/google/go-querystring/query"
 	headerLink "github.com/tent/http-link-go"
+
+	"github.com/digitalocean/godo/context"
 )
 
 const (
-	libraryVersion = "0.1.0"
+	libraryVersion = "1.0.0"
 	defaultBaseURL = "https://api.digitalocean.com/"
 	userAgent      = "godo/" + libraryVersion
 	mediaType      = "application/json"
@@ -60,6 +62,7 @@ type Client struct {
 	StorageActions    StorageActionsService
 	Tags              TagsService
 	LoadBalancers     LoadBalancersService
+	Certificates      CertificatesService
 
 	// Optional function called after every successful request made to the DO APIs
 	onRequestCompleted RequestCompletionCallback
@@ -169,6 +172,7 @@ func NewClient(httpClient *http.Client) *Client {
 	c.StorageActions = &StorageActionsServiceOp{client: c}
 	c.Tags = &TagsServiceOp{client: c}
 	c.LoadBalancers = &LoadBalancersServiceOp{client: c}
+	c.Certificates = &CertificatesServiceOp{client: c}
 
 	return c
 }
@@ -212,7 +216,7 @@ func SetUserAgent(ua string) ClientOpt {
 // NewRequest creates an API request. A relative URL can be provided in urlStr, which will be resolved to the
 // BaseURL of the Client. Relative URLS should always be specified without a preceding slash. If specified, the
 // value pointed to by body is JSON encoded and included in as the request body.
-func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Request, error) {
+func (c *Client) NewRequest(ctx context.Context, method, urlStr string, body interface{}) (*http.Request, error) {
 	rel, err := url.Parse(urlStr)
 	if err != nil {
 		return nil, err
@@ -289,8 +293,8 @@ func (r *Response) populateRate() {
 // Do sends an API request and returns the API response. The API response is JSON decoded and stored in the value
 // pointed to by v, or returned as an error if an API error has occurred. If v implements the io.Writer interface,
 // the raw response will be written to v, without attempting to decode it.
-func (c *Client) Do(req *http.Request, v interface{}) (*Response, error) {
-	resp, err := c.client.Do(req)
+func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*Response, error) {
+	resp, err := context.DoRequestWithClient(ctx, c.client, req)
 	if err != nil {
 		return nil, err
 	}

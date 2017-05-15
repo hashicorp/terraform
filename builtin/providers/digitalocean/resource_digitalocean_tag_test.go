@@ -1,6 +1,7 @@
 package digitalocean
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -39,7 +40,7 @@ func testAccCheckDigitalOceanTagDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the key
-		_, _, err := client.Tags.Get(rs.Primary.ID)
+		_, _, err := client.Tags.Get(context.Background(), rs.Primary.ID)
 
 		if err == nil {
 			return fmt.Errorf("Tag still exists")
@@ -75,7 +76,7 @@ func testAccCheckDigitalOceanTagExists(n string, tag *godo.Tag) resource.TestChe
 		client := testAccProvider.Meta().(*godo.Client)
 
 		// Try to find the tag
-		foundTag, _, err := client.Tags.Get(rs.Primary.ID)
+		foundTag, _, err := client.Tags.Get(context.Background(), rs.Primary.ID)
 
 		if err != nil {
 			return err
