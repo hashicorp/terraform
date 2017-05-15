@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	events "github.com/aws/aws-sdk-go/service/cloudwatchevents"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsCloudWatchEventTarget() *schema.Resource {
@@ -21,14 +22,14 @@ func resourceAwsCloudWatchEventTarget() *schema.Resource {
 		Delete: resourceAwsCloudWatchEventTargetDelete,
 
 		Schema: map[string]*schema.Schema{
-			"rule": &schema.Schema{
+			"rule": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateCloudWatchEventRuleName,
 			},
 
-			"target_id": &schema.Schema{
+			"target_id": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
@@ -36,12 +37,12 @@ func resourceAwsCloudWatchEventTarget() *schema.Resource {
 				ValidateFunc: validateCloudWatchEventTargetId,
 			},
 
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"input": &schema.Schema{
+			"input": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"input_path"},
@@ -49,10 +50,35 @@ func resourceAwsCloudWatchEventTarget() *schema.Resource {
 				// but for built-in targets input may not be JSON
 			},
 
-			"input_path": &schema.Schema{
+			"input_path": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"input"},
+			},
+
+			"role_arn": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"run_command_targets": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 5,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": {
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validation.StringLenBetween(1, 128),
+						},
+						"values": {
+							Type:     schema.TypeList,
+							Required: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
 			},
 		},
 	}
@@ -72,6 +98,7 @@ func resourceAwsCloudWatchEventTargetCreate(d *schema.ResourceData, meta interfa
 	}
 
 	input := buildPutTargetInputStruct(d)
+
 	log.Printf("[DEBUG] Creating CloudWatch Event Target: %s", input)
 	out, err := conn.PutTargets(input)
 	if err != nil {
@@ -128,6 +155,13 @@ func resourceAwsCloudWatchEventTargetRead(d *schema.ResourceData, meta interface
 	d.Set("target_id", t.Id)
 	d.Set("input", t.Input)
 	d.Set("input_path", t.InputPath)
+	d.Set("role_arn", t.RoleArn)
+
+	if t.RunCommandParameters != nil {
+		if err := d.Set("run_command_targets", flattenAwsCloudWatchEventTargetRunParameters(t.RunCommandParameters)); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting run_command_targets error: %#v", err)
+		}
+	}
 
 	return nil
 }
@@ -162,6 +196,7 @@ func resourceAwsCloudWatchEventTargetUpdate(d *schema.ResourceData, meta interfa
 	conn := meta.(*AWSClient).cloudwatcheventsconn
 
 	input := buildPutTargetInputStruct(d)
+
 	log.Printf("[DEBUG] Updating CloudWatch Event Target: %s", input)
 	_, err := conn.PutTargets(input)
 	if err != nil {
@@ -203,10 +238,54 @@ func buildPutTargetInputStruct(d *schema.ResourceData) *events.PutTargetsInput {
 		e.InputPath = aws.String(v.(string))
 	}
 
+	if v, ok := d.GetOk("role_arn"); ok {
+		e.RoleArn = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("run_command_targets"); ok {
+		e.RunCommandParameters = expandAwsCloudWatchEventTargetRunParameters(v.([]interface{}))
+	}
+
 	input := events.PutTargetsInput{
 		Rule:    aws.String(d.Get("rule").(string)),
 		Targets: []*events.Target{e},
 	}
 
 	return &input
+}
+
+func expandAwsCloudWatchEventTargetRunParameters(config []interface{}) *events.RunCommandParameters {
+
+	commands := make([]*events.RunCommandTarget, 0)
+
+	for _, c := range config {
+		param := c.(map[string]interface{})
+		command := &events.RunCommandTarget{
+			Key:    aws.String(param["key"].(string)),
+			Values: expandStringList(param["values"].([]interface{})),
+		}
+
+		commands = append(commands, command)
+	}
+
+	command := &events.RunCommandParameters{
+		RunCommandTargets: commands,
+	}
+
+	return command
+}
+
+func flattenAwsCloudWatchEventTargetRunParameters(runCommand *events.RunCommandParameters) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0)
+
+	for _, x := range runCommand.RunCommandTargets {
+		config := make(map[string]interface{})
+
+		config["key"] = *x.Key
+		config["values"] = flattenStringList(x.Values)
+
+		result = append(result, config)
+	}
+
+	return result
 }

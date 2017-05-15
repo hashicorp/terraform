@@ -255,6 +255,7 @@ func (s *DiskOfferingService) CreateDiskOffering(p *CreateDiskOfferingParams) (*
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -371,6 +372,7 @@ func (s *DiskOfferingService) UpdateDiskOffering(p *UpdateDiskOfferingParams) (*
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -441,6 +443,7 @@ func (s *DiskOfferingService) DeleteDiskOffering(p *DeleteDiskOfferingParams) (*
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -655,6 +658,7 @@ func (s *DiskOfferingService) ListDiskOfferings(p *ListDiskOfferingsParams) (*Li
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 

@@ -1,6 +1,7 @@
 package triton
 
 import (
+	"context"
 	"errors"
 	"strings"
 
@@ -49,7 +50,7 @@ func resourceKeyCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	_, err := client.Keys().CreateKey(&triton.CreateKeyInput{
+	_, err := client.Keys().CreateKey(context.Background(), &triton.CreateKeyInput{
 		Name: d.Get("name").(string),
 		Key:  d.Get("key").(string),
 	})
@@ -65,7 +66,7 @@ func resourceKeyCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceKeyExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(*triton.Client)
 
-	_, err := client.Keys().GetKey(&triton.GetKeyInput{
+	_, err := client.Keys().GetKey(context.Background(), &triton.GetKeyInput{
 		KeyName: d.Id(),
 	})
 	if err != nil {
@@ -78,7 +79,7 @@ func resourceKeyExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 func resourceKeyRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*triton.Client)
 
-	key, err := client.Keys().GetKey(&triton.GetKeyInput{
+	key, err := client.Keys().GetKey(context.Background(), &triton.GetKeyInput{
 		KeyName: d.Id(),
 	})
 	if err != nil {
@@ -94,7 +95,7 @@ func resourceKeyRead(d *schema.ResourceData, meta interface{}) error {
 func resourceKeyDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*triton.Client)
 
-	return client.Keys().DeleteKey(&triton.DeleteKeyInput{
+	return client.Keys().DeleteKey(context.Background(), &triton.DeleteKeyInput{
 		KeyName: d.Id(),
 	})
 }

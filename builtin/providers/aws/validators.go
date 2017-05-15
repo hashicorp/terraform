@@ -154,21 +154,24 @@ func validateStreamViewType(v interface{}, k string) (ws []string, errors []erro
 	}
 
 	if !viewTypes[value] {
-		errors = append(errors, fmt.Errorf("%q be a valid DynamoDB StreamViewType", k))
+		errors = append(errors, fmt.Errorf("%q must be a valid DynamoDB StreamViewType", k))
 	}
 	return
 }
 
 func validateElbName(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"only alphanumeric characters and hyphens allowed in %q: %q",
-			k, value))
+	if len(value) == 0 {
+		return // short-circuit
 	}
 	if len(value) > 32 {
 		errors = append(errors, fmt.Errorf(
 			"%q cannot be longer than 32 characters: %q", k, value))
+	}
+	if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only alphanumeric characters and hyphens allowed in %q: %q",
+			k, value))
 	}
 	if regexp.MustCompile(`^-`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
@@ -1138,9 +1141,9 @@ func validateDbOptionGroupName(v interface{}, k string) (ws []string, errors []e
 		errors = append(errors, fmt.Errorf(
 			"first character of %q must be a letter", k))
 	}
-	if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"only alphanumeric characters and hyphens allowed in %q", k))
+			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
 	}
 	if regexp.MustCompile(`--`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
@@ -1163,7 +1166,7 @@ func validateDbOptionGroupNamePrefix(v interface{}, k string) (ws []string, erro
 		errors = append(errors, fmt.Errorf(
 			"first character of %q must be a letter", k))
 	}
-	if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"only alphanumeric characters and hyphens allowed in %q", k))
 	}
@@ -1297,6 +1300,21 @@ func validateWafMetricName(v interface{}, k string) (ws []string, errors []error
 	if !regexp.MustCompile(`^[0-9A-Za-z]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"Only alphanumeric characters allowed in %q: %q",
+			k, value))
+	}
+	return
+}
+
+func validateIamRoleDescription(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	if len(value) > 1000 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 1000 caracters", k))
+	}
+
+	if !regexp.MustCompile(`[\p{L}\p{M}\p{Z}\p{S}\p{N}\p{P}]*`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"Only alphanumeric & accented characters allowed in %q: %q (Must satisfy regular expression pattern: [\\p{L}\\p{M}\\p{Z}\\p{S}\\p{N}\\p{P}]*)",
 			k, value))
 	}
 	return

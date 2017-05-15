@@ -62,6 +62,8 @@ resource "aws_s3_bucket_object" "examplebucket_object" {
 
 ## Argument Reference
 
+-> **Note:** If you specify `content_encoding` you are responsible for encoding the body appropriately (i.e. `source` and `content` both expect already encoded/compressed bytes)
+
 The following arguments are supported:
 
 * `bucket` - (Required) The name of the bucket to put the file in.

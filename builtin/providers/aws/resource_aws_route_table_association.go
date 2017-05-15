@@ -49,7 +49,7 @@ func resourceAwsRouteTableAssociationCreate(d *schema.ResourceData, meta interfa
 
 	var resp *ec2.AssociateRouteTableOutput
 	var err error
-	err = resource.Retry(2*time.Minute, func() *resource.RetryError {
+	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
 		resp, err = conn.AssociateRouteTable(&associationOpts)
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {

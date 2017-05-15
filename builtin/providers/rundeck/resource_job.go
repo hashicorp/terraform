@@ -183,6 +183,10 @@ func resourceRundeckJob() *schema.Resource {
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"description": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 						"shell_command": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
@@ -364,6 +368,7 @@ func jobFromResourceData(d *schema.ResourceData) (*rundeck.JobDetail, error) {
 	for _, commandI := range commandConfigs {
 		commandMap := commandI.(map[string]interface{})
 		command := rundeck.JobCommand{
+			Description:    commandMap["description"].(string),
 			ShellCommand:   commandMap["shell_command"].(string),
 			Script:         commandMap["inline_script"].(string),
 			ScriptFile:     commandMap["script_file"].(string),
@@ -552,6 +557,7 @@ func jobToResourceData(job *rundeck.JobDetail, d *schema.ResourceData) error {
 		d.Set("command_ordering_strategy", job.CommandSequence.OrderingStrategy)
 		for _, command := range job.CommandSequence.Commands {
 			commandConfigI := map[string]interface{}{
+				"description":      command.Description,
 				"shell_command":    command.ShellCommand,
 				"inline_script":    command.Script,
 				"script_file":      command.ScriptFile,

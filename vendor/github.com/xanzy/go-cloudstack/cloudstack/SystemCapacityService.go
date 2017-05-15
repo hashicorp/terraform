@@ -156,6 +156,7 @@ func (s *SystemCapacityService) ListCapacity(p *ListCapacityParams) (*ListCapaci
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 

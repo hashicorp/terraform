@@ -116,6 +116,16 @@ load-balanced across replicas
 [3]: /docs/providers/aws/r/rds_cluster_instance.html
 [4]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Maintenance.html
 
+## Timeouts
+
+`aws_rds_cluster` provides the following
+[Timeouts](/docs/configuration/resources.html#timeouts) configuration options:
+
+- `create` - (Default `120 minutes`) Used for Cluster creation
+- `update` - (Default `120 minutes`) Used for Cluster modifications
+- `delete` - (Default `120 minutes`) Used for destroying cluster. This includes
+any cleanup task during the destroying process.
+
 ## Import
 
 RDS Clusters can be imported using the `cluster_identifier`, e.g.

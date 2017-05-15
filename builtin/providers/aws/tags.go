@@ -137,7 +137,7 @@ func setTags(conn *ec2.EC2, d *schema.ResourceData) error {
 
 		// Set tags
 		if len(remove) > 0 {
-			err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+			err := resource.Retry(5*time.Minute, func() *resource.RetryError {
 				log.Printf("[DEBUG] Removing tags: %#v from %s", remove, d.Id())
 				_, err := conn.DeleteTags(&ec2.DeleteTagsInput{
 					Resources: []*string{aws.String(d.Id())},
@@ -157,7 +157,7 @@ func setTags(conn *ec2.EC2, d *schema.ResourceData) error {
 			}
 		}
 		if len(create) > 0 {
-			err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+			err := resource.Retry(5*time.Minute, func() *resource.RetryError {
 				log.Printf("[DEBUG] Creating tags: %s for %s", create, d.Id())
 				_, err := conn.CreateTags(&ec2.CreateTagsInput{
 					Resources: []*string{aws.String(d.Id())},
@@ -282,7 +282,7 @@ func tagsFromMapELBv2(m map[string]interface{}) []*elbv2.Tag {
 // tagIgnored compares a tag against a list of strings and checks if it should
 // be ignored or not
 func tagIgnored(t *ec2.Tag) bool {
-	filter := []string{"^aws:*"}
+	filter := []string{"^aws:"}
 	for _, v := range filter {
 		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
 		if r, _ := regexp.MatchString(v, *t.Key); r == true {
@@ -295,7 +295,7 @@ func tagIgnored(t *ec2.Tag) bool {
 
 // and for ELBv2 as well
 func tagIgnoredELBv2(t *elbv2.Tag) bool {
-	filter := []string{"^aws:*"}
+	filter := []string{"^aws:"}
 	for _, v := range filter {
 		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
 		if r, _ := regexp.MatchString(v, *t.Key); r == true {
