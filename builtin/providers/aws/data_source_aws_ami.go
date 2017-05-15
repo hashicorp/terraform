@@ -179,7 +179,7 @@ func dataSourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 	nameRegex, nameRegexOk := d.GetOk("name_regex")
 	owners, ownersOk := d.GetOk("owners")
 
-	if executableUsersOk == false && filtersOk == false && nameRegexOk == false && ownersOk == false {
+	if !executableUsersOk && !filtersOk && !nameRegexOk && !ownersOk {
 		return fmt.Errorf("One of executable_users, filters, name_regex, or owners must be assigned")
 	}
 
