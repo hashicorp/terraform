@@ -12,14 +12,24 @@ import (
 var testAccPublicCloudPrivateNetworkConfig = fmt.Sprintf(`
 resource "ovh_vrack_publiccloud_attachment" "attach" {
   vrack_id = "%s"
-	project_id = "%s"
+  project_id = "%s"
+}
+
+data "ovh_publiccloud_regions" "regions" {
+  project_id = "${ovh_vrack_publiccloud_attachment.attach.project_id}"
+}
+
+data "ovh_publiccloud_region" "region_attr" {
+  count = 2
+  project_id = "${data.ovh_publiccloud_regions.regions.project_id}"
+  name = "${element(data.ovh_publiccloud_regions.regions.names, count.index)}"
 }
 
 resource "ovh_publiccloud_private_network" "network" {
-	project_id  = "${ovh_vrack_publiccloud_attachment.attach.project_id}"
+  project_id  = "${ovh_vrack_publiccloud_attachment.attach.project_id}"
   vlan_id = 0
   name = "terraform_testacc_private_net"
-  regions     = ["GRA1", "BHS1"]
+  regions     = ["${data.ovh_publiccloud_regions.regions.names}"]
 }
 `, os.Getenv("OVH_VRACK"), os.Getenv("OVH_PUBLIC_CLOUD"))
 
