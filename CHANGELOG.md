@@ -35,6 +35,7 @@ BUG FIXES:
 * provider/aws: Refresh from state when CodePipeline Not Found [GH-14431]
 * provider/aws: Override spot_instance_requests volume_tags schema [GH-14481]
 * provider/aws: Allow Internet Gateway IPv6 routes [GH-14484]
+* provider/aws: ForceNew aws_launch_config when root_block_device changes [GH-14507]
 * provider/cloudstack: `cloudstack_firewall` panicked when used with older (< v4.6) CloudStack versions [GH-14044]
 * provider/datadog: Allowed method on aggregator is `avg` ! `average` [GH-14414]
 * provider/github: Log HTTP requests and responses in DEBUG mode [GH-14363]
