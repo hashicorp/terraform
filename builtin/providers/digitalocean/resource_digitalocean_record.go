@@ -1,6 +1,7 @@
 package digitalocean
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
@@ -101,7 +102,7 @@ func resourceDigitalOceanRecordCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	log.Printf("[DEBUG] record create configuration: %#v", newRecord)
-	rec, _, err := client.Domains.CreateRecord(d.Get("domain").(string), &newRecord)
+	rec, _, err := client.Domains.CreateRecord(context.Background(), d.Get("domain").(string), &newRecord)
 	if err != nil {
 		return fmt.Errorf("Failed to create record: %s", err)
 	}
@@ -120,7 +121,7 @@ func resourceDigitalOceanRecordRead(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("invalid record ID: %v", err)
 	}
 
-	rec, resp, err := client.Domains.Record(domain, id)
+	rec, resp, err := client.Domains.Record(context.Background(), domain, id)
 	if err != nil {
 		// If the record is somehow already destroyed, mark as
 		// successfully gone
@@ -168,7 +169,7 @@ func resourceDigitalOceanRecordUpdate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	log.Printf("[DEBUG] record update configuration: %#v", editRecord)
-	_, _, err = client.Domains.EditRecord(domain, id, &editRecord)
+	_, _, err = client.Domains.EditRecord(context.Background(), domain, id, &editRecord)
 	if err != nil {
 		return fmt.Errorf("Failed to update record: %s", err)
 	}
@@ -187,7 +188,7 @@ func resourceDigitalOceanRecordDelete(d *schema.ResourceData, meta interface{}) 
 
 	log.Printf("[INFO] Deleting record: %s, %d", domain, id)
 
-	resp, delErr := client.Domains.DeleteRecord(domain, id)
+	resp, delErr := client.Domains.DeleteRecord(context.Background(), domain, id)
 	if delErr != nil {
 		// If the record is somehow already destroyed, mark as
 		// successfully gone

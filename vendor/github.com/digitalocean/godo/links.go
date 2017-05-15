@@ -3,6 +3,8 @@ package godo
 import (
 	"net/url"
 	"strconv"
+
+	"github.com/digitalocean/godo/context"
 )
 
 // Links manages links that are returned along with a List
@@ -77,6 +79,6 @@ func pageForURL(urlText string) (int, error) {
 }
 
 // Get a link action by id.
-func (la *LinkAction) Get(client *Client) (*Action, *Response, error) {
-	return client.Actions.Get(la.ID)
+func (la *LinkAction) Get(ctx context.Context, client *Client) (*Action, *Response, error) {
+	return client.Actions.Get(ctx, la.ID)
 }

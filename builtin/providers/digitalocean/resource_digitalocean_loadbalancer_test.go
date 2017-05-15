@@ -1,6 +1,7 @@
 package digitalocean
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -170,7 +171,7 @@ func testAccCheckDigitalOceanLoadbalancerDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, _, err := client.LoadBalancers.Get(rs.Primary.ID)
+		_, _, err := client.LoadBalancers.Get(context.Background(), rs.Primary.ID)
 
 		if err != nil && !strings.Contains(err.Error(), "404") {
 			return fmt.Errorf(
@@ -195,7 +196,7 @@ func testAccCheckDigitalOceanLoadbalancerExists(n string, loadbalancer *godo.Loa
 
 		client := testAccProvider.Meta().(*godo.Client)
 
-		lb, _, err := client.LoadBalancers.Get(rs.Primary.ID)
+		lb, _, err := client.LoadBalancers.Get(context.Background(), rs.Primary.ID)
 
 		if err != nil {
 			return err

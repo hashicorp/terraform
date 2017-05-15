@@ -1,6 +1,7 @@
 package digitalocean
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"testing"
@@ -235,7 +236,7 @@ func testAccCheckDigitalOceanRecordDestroy(s *terraform.State) error {
 			return err
 		}
 
-		_, _, err = client.Domains.Record(domain, id)
+		_, _, err = client.Domains.Record(context.Background(), domain, id)
 
 		if err == nil {
 			return fmt.Errorf("Record still exists")
@@ -287,7 +288,7 @@ func testAccCheckDigitalOceanRecordExists(n string, record *godo.DomainRecord) r
 			return err
 		}
 
-		foundRecord, _, err := client.Domains.Record(domain, id)
+		foundRecord, _, err := client.Domains.Record(context.Background(), domain, id)
 
 		if err != nil {
 			return err

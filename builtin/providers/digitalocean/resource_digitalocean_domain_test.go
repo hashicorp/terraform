@@ -1,6 +1,7 @@
 package digitalocean
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -43,7 +44,7 @@ func testAccCheckDigitalOceanDomainDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the domain
-		_, _, err := client.Domains.Get(rs.Primary.ID)
+		_, _, err := client.Domains.Get(context.Background(), rs.Primary.ID)
 
 		if err == nil {
 			return fmt.Errorf("Domain still exists")
@@ -78,7 +79,7 @@ func testAccCheckDigitalOceanDomainExists(n string, domain *godo.Domain) resourc
 
 		client := testAccProvider.Meta().(*godo.Client)
 
-		foundDomain, _, err := client.Domains.Get(rs.Primary.ID)
+		foundDomain, _, err := client.Domains.Get(context.Background(), rs.Primary.ID)
 
 		if err != nil {
 			return err
