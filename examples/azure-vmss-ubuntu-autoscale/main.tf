@@ -115,6 +115,7 @@ resource "azurerm_virtual_machine_scale_set" "scaleset" {
       name                                   = "IPConfiguration"
       subnet_id                              = "${azurerm_subnet.subnet.id}"
       load_balancer_backend_address_pool_ids = ["${azurerm_lb_backend_address_pool.backlb.id}"]
+
       # Does not exist - may not be necessary
       # load_balancer_inbound_nat_pool_ids     = ["${azurerm_lb_nat_pool.np.id}"]
     }
@@ -136,6 +137,7 @@ resource "azurerm_virtual_machine_scale_set" "scaleset" {
 }
 
 # TODO:  script autoscaling
+
 
 # "type": "Microsoft.Insights/autoscaleSettings",
 # "apiVersion": "[variables('insightsApiVersion')]",
