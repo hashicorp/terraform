@@ -7,7 +7,7 @@ This template enables encryption on a running linux vm using AAD client secret. 
 ## Prerequisites:
 Azure Disk Encryption securely stores the encryption secrets in a specified Azure Key Vault.
 
-The [AzureDiskEncryptionPreRequisiteSetup.ps1](https://github.com/Azure/azure-powershell/blob/dev/src/ResourceManager/Compute/Commands.Compute/Extension/AzureDiskEncryption/Scripts/AzureDiskEncryptionPreRequisiteSetup.ps1) script can be used to create the Key Vault and assign appropriate access policies.
+Create the Key Vault and assign appropriate access policies.
 
 Use the below PS cmdlet for getting the "keyVaultSecretUrl" and "keyVaultResourceId"
 
@@ -29,6 +29,8 @@ The `main.tf` file contains the actual resources that will be deployed. It also 
 This data is outputted when `terraform apply` is called, and can be queried using the `terraform output` command.
 
 ## provider.tf
+You may leave the provider block in the `main.tf`, as it is in this template, or you can create a file called `provider.tf` and add it to your `.gitignore` file.
+
 Azure requires that an application is added to Azure Active Directory to generate the `client_id`, `client_secret`, and `tenant_id` needed by Terraform (`subscription_id` can be recovered from your Azure account details). Please go [here](https://www.terraform.io/docs/providers/azurerm/) for full instructions on how to create this to populate your `provider.tf` file.
 
 ## terraform.tfvars

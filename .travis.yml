@@ -11,14 +11,11 @@ git:
 
 # establish environment variables
 env:
-  - TEST_DIR=examples/azure-vm-from-user-image
-  - TEST_DIR=examples/azure-cdn-with-storage-account
-  - TEST_DIR=examples/azure-vm-simple-linux-managed-disk
-  - TEST_DIR=examples/azure-vnet-two-subnets
+  - TEST_DIR=examples/azure-encrypt-running-linux-vm
 
 branches:
   only:
-    - master
+    # - master
     - /^(?i:topic)-.*$/
 
 # install terraform
@@ -36,4 +33,4 @@ deploy:
     script: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./deploy.ci.sh
     on:
       repo: harijayms/terraform
-      branch: master
+      branch: topic-201-encrypt-running-linux-vm
