@@ -60,10 +60,6 @@ func resourceGitlabProject() *schema.Resource {
 				Default:      "private",
 			},
 
-			"id": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
 			"ssh_url_to_repo": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -90,7 +86,6 @@ func resourceGitlabProjectSetToState(d *schema.ResourceData, project *gitlab.Pro
 	d.Set("snippets_enabled", project.SnippetsEnabled)
 	d.Set("visibility_level", visibilityLevelToString(project.VisibilityLevel))
 
-	d.Set("id", project.ID)
 	d.Set("ssh_url_to_repo", project.SSHURLToRepo)
 	d.Set("http_url_to_repo", project.HTTPURLToRepo)
 	d.Set("web_url", project.WebURL)
