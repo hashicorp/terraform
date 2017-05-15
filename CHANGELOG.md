@@ -16,6 +16,7 @@ IMPROVEMENTS:
 * provider/datadog: Added new evaluation_delay parameter [GH-14433]
 * provider/docker: Allow Windows Docker containers to map volumes [GH-13584]
 * provider/google: Add a `url` attribute to `google_storage_bucket` [GH-14393]
+* provider/google: Make google resource storage bucket importable [GH-14455]
 * providers/heroku: Add import ability for `heroku_pipeline` resource [GH-14486]
 * provider/openstack: Add support for all protocols in Security Group Rules [GH-14307]
 * provider/rundeck: adds `description` to `command` schema in `rundeck_job` resource [GH-14352]
