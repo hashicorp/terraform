@@ -104,6 +104,17 @@ this instance is a read replica
 [5]: /docs/configuration/resources.html#count
 [6]: https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstance.html
 
+## Timeouts
+
+`aws_rds_cluster_instance` provides the following
+[Timeouts](/docs/configuration/resources.html#timeouts) configuration options:
+
+- `create` - (Default `90 minutes`) Used for Creating Instances, Replicas, and
+restoring from Snapshots
+- `update` - (Default `90 minutes`) Used for Database modifications
+- `delete` - (Default `90 minutes`) Used for destroying databases. This includes
+the time required to take snapshots
+
 ## Import
 
 RDS Cluster Instances can be imported using the `identifier`, e.g.

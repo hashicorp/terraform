@@ -129,10 +129,10 @@ type EnumPartitions interface {
 // as the second parameter.
 //
 // This example shows how  to get the regions for DynamoDB in the AWS partition.
-//    rs := RegionsForService(endpoints.DefaultPartitions(), endpoints.AwsPartitionID, endpoints.DynamoDBServiceID)
+//    rs, exists := endpoints.RegionsForService(endpoints.DefaultPartitions(), endpoints.AwsPartitionID, endpoints.DynamodbServiceID)
 //
 // This is equivalent to using the partition directly.
-//    rs := endpoints.AwsPartition().Services()[endpoints.DynamoDBServiceID].Regions()
+//    rs := endpoints.AwsPartition().Services()[endpoints.DynamodbServiceID].Regions()
 func RegionsForService(ps []Partition, partitionID, serviceID string) (map[string]Region, bool) {
 	for _, p := range ps {
 		if p.ID() != partitionID {

@@ -8,8 +8,6 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-const testRepo string = "test-repo"
-
 var testUser string = os.Getenv("GITHUB_TEST_USER")
 var testCollaborator string = os.Getenv("GITHUB_TEST_COLLABORATOR")
 

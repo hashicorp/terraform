@@ -58,6 +58,11 @@ func resourceStorageBucket() *schema.Resource {
 				Computed: true,
 			},
 
+			"url": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"storage_class": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -151,6 +156,7 @@ func resourceStorageBucketCreate(d *schema.ResourceData, meta interface{}) error
 
 	// Assign the bucket ID as the resource ID
 	d.Set("self_link", res.SelfLink)
+	d.Set("url", fmt.Sprintf("gs://%s", bucket))
 	d.SetId(res.Id)
 
 	return nil

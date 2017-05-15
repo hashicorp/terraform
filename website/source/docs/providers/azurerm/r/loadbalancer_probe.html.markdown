@@ -41,7 +41,7 @@ resource "azurerm_lb" "test" {
 resource "azurerm_lb_probe" "test" {
   resource_group_name = "${azurerm_resource_group.test.name}"
   loadbalancer_id     = "${azurerm_lb.test.id}"
-  name                = "SSH Running Probe"
+  name                = "ssh-running-probe"
   port                = 22
 }
 ```

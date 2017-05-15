@@ -7187,6 +7187,30 @@ func TestContext2Apply_targetedModuleUnrelatedOutputs(t *testing.T) {
 			"aws": testProviderFuncFixed(p),
 		},
 		Targets: []string{"module.child2"},
+		State: &State{
+			Modules: []*ModuleState{
+				{
+					Path:      []string{"root"},
+					Outputs:   map[string]*OutputState{},
+					Resources: map[string]*ResourceState{},
+				},
+				{
+					Path: []string{"root", "child1"},
+					Outputs: map[string]*OutputState{
+						"instance_id": {
+							Type:  "string",
+							Value: "foo-bar-baz",
+						},
+					},
+					Resources: map[string]*ResourceState{},
+				},
+				{
+					Path:      []string{"root", "child2"},
+					Outputs:   map[string]*OutputState{},
+					Resources: map[string]*ResourceState{},
+				},
+			},
+		},
 	})
 
 	if _, err := ctx.Plan(); err != nil {
@@ -7198,12 +7222,28 @@ func TestContext2Apply_targetedModuleUnrelatedOutputs(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	// module.child1's instance_id output should be retained from state
+	// module.child2's instance_id is updated because its dependency is updated
+	// child2_id is updated because if its transitive dependency via module.child2
 	checkStateString(t, state, `
 <no state>
+Outputs:
+
+child2_id = foo
+
+module.child1:
+  <no state>
+  Outputs:
+
+  instance_id = foo-bar-baz
 module.child2:
   aws_instance.foo:
     ID = foo
-	`)
+
+  Outputs:
+
+  instance_id = foo
+`)
 }
 
 func TestContext2Apply_targetedModuleResource(t *testing.T) {

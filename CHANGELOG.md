@@ -1,17 +1,42 @@
 ## 0.9.6 (Unreleased)
 
+FEATURES:
+
+* **New Resource:** `aws_devicefarm_project` [GH-14288]
+* **New Resource:** `aws_wafregion_ipset` [GH-13705]
+* **New Resource:** `aws_wafregion_byte_match_set` [GH-13705]
+* **New Resource:** `azurerm_express_route_circuit` [GH-14265]
+
 IMPROVEMENTS:
 
+* provider/aws: Show state reason when EC2 instance fails to launch [GH-14479]
+* provider/aws: Show last scaling activity when ASG creation/update fails [GH-14480]
+* provider/azurerm: Virtual Machine Scale Sets with managed disk support [GH-13717]
+* provider/datadog: Add last aggregator to datadog_timeboard resource [GH-14391]
+* provider/datadog: Added new evaluation_delay parameter [GH-14433]
+* provider/docker: Allow Windows Docker containers to map volumes [GH-13584]
+* provider/google: Add a `url` attribute to `google_storage_bucket` [GH-14393]
+* provider/openstack: Add support for all protocols in Security Group Rules [GH-14307]
 * provider/rundeck: adds `description` to `command` schema in `rundeck_job` resource [GH-14352]
 
 BUG FIXES:
 
+* core: When using `-target`, any outputs that include attributes of the targeted resources are now updated [GH-14186]
+* core: Fixed 0.9.5 regression with the conditional operator `.. ? .. : ..` failing to type check with unknown/computed values [GH-14454]
+* core: Fixed 0.9 regression causing issues during refresh when adding new data resource instances using `count` [GH-14098]
 * provider/aws: Increase EIP update timeout [GH-14381]
 * provider/aws: Increase timeout for creating security group [GH-14380]
+* provider/aws: Increase timeout for (dis)associating IPv6 addr to subnet [GH-14401]
 * provider/aws: Using the new time schema helper for RDS Instance lifecycle mgmt [GH-14369]
 * provider/aws: Using the timeout schema helper to make alb timeout cofigurable [GH-14375]
-* provider/github: Log HTTP requests and responses in DEBUG mode [GH-14363]
+* provider/aws: Refresh from state when CodePipeline Not Found [GH-14431]
+* provider/aws: Override spot_instance_requests volume_tags schema [GH-14481]
+* provider/aws: Allow Internet Gateway IPv6 routes [GH-14484]
 * provider/cloudstack: `cloudstack_firewall` panicked when used with older (< v4.6) CloudStack versions [GH-14044]
+* provider/datadog: Allowed method on aggregator is `avg` ! `average` [GH-14414]
+* provider/github: Log HTTP requests and responses in DEBUG mode [GH-14363]
+* provider/heroku: Fix issue with setting correct CName in heroku_domain [GH-14443]
+* provider/vault: Prevent panic when no secret found [GH-14435]
 
 ## 0.9.5 (May 11, 2017)
 

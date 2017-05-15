@@ -2,10 +2,12 @@ package aws
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/codepipeline"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -441,6 +443,12 @@ func resourceAwsCodePipelineRead(d *schema.ResourceData, meta interface{}) error
 	})
 
 	if err != nil {
+		pipelineerr, ok := err.(awserr.Error)
+		if ok && pipelineerr.Code() == "PipelineNotFoundException" {
+			log.Printf("[INFO] Codepipeline %q not found", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("[ERROR] Error retreiving Pipeline: %q", err)
 	}
 	pipeline := resp.Pipeline
