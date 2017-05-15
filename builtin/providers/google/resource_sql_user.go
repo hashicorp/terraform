@@ -136,8 +136,6 @@ func resourceSqlUserRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
-	d.SetId(fmt.Sprintf("%s.%s", instance, name))
-
 	d.Set("host", user.Host)
 	d.Set("instance", user.Instance)
 	d.Set("name", user.Name)
