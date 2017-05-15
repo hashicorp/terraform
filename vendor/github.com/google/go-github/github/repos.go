@@ -511,20 +511,27 @@ type Branch struct {
 type Protection struct {
 	RequiredStatusChecks       *RequiredStatusChecks       `json:"required_status_checks"`
 	RequiredPullRequestReviews *RequiredPullRequestReviews `json:"required_pull_request_reviews"`
-	Restrictions               *BranchRestrictions         `json:"restrictions"`
+	Restrictions               *Restrictions               `json:"restrictions"`
+	// Enforce required status checks for repository administrators. (Required.)
+	EnforceAdmins *EnforceAdmin `json:"enforce_admins"`
+}
+
+// EnforceAdmins represents the statues of the enforcement of the protections for admin users.
+type EnforceAdmin struct {
+	Enabled bool `json:"enabled"`
 }
 
 // ProtectionRequest represents a request to create/edit a branch's protection.
 type ProtectionRequest struct {
-	RequiredStatusChecks       *RequiredStatusChecks       `json:"required_status_checks"`
-	RequiredPullRequestReviews *RequiredPullRequestReviews `json:"required_pull_request_reviews"`
-	Restrictions               *BranchRestrictionsRequest  `json:"restrictions"`
+	RequiredStatusChecks       *RequiredStatusChecks              `json:"required_status_checks"`
+	RequiredPullRequestReviews *RequiredPullRequestReviewsRequest `json:"required_pull_request_reviews"`
+	Restrictions               *RestrictionsRequest               `json:"restrictions"`
+	// Enforce required status checks for repository administrators. (Required.)
+	EnforceAdmins bool `json:"enforce_admins"`
 }
 
 // RequiredStatusChecks represents the protection status of a individual branch.
 type RequiredStatusChecks struct {
-	// Enforce required status checks for repository administrators. (Required.)
-	IncludeAdmins bool `json:"include_admins"`
 	// Require branches to be up to date before merging. (Required.)
 	Strict bool `json:"strict"`
 	// The list of status checks to require in order to merge into this
@@ -534,24 +541,32 @@ type RequiredStatusChecks struct {
 
 // RequiredPullRequestReviews represents the protection configuration for pull requests.
 type RequiredPullRequestReviews struct {
-	// Enforce pull request reviews for repository administrators. (Required.)
-	IncludeAdmins bool `json:"include_admins"`
+	DismissalRestrictions *Restrictions `json:"dismissal_restrictions,omitempty"`
+	DismissStaleReviews   bool          `json:"dismiss_stale_reviews,omitempty"`
 }
 
-// BranchRestrictions represents the restriction that only certain users or
+// RequiredPullRequestReviewsRequest represents the protection configuration for pull requests.
+// It is separate from RequiredPullRequestReviews above because the request structure is
+// different from the response structure.
+type RequiredPullRequestReviewsRequest struct {
+	DismissalRestrictionsRequest *RestrictionsRequest `json:"dismissal_restrictions,omitempty"`
+	DismissStaleReviews          bool                 `json:"dismiss_stale_reviews,omitempty"`
+}
+
+// Restrictions represents the restriction that only certain users or
 // teams may push to a branch.
-type BranchRestrictions struct {
+type Restrictions struct {
 	// The list of user logins with push access.
 	Users []*User `json:"users"`
 	// The list of team slugs with push access.
 	Teams []*Team `json:"teams"`
 }
 
-// BranchRestrictionsRequest represents the request to create/edit the
+// RestrictionsRequest represents the request to create/edit the
 // restriction that only certain users or teams may push to a branch. It is
-// separate from BranchRestrictions above because the request structure is
+// separate from Restrictions above because the request structure is
 // different from the response structure.
-type BranchRestrictionsRequest struct {
+type RestrictionsRequest struct {
 	// The list of user logins with push access. (Required; use []string{} instead of nil for empty list.)
 	Users []string `json:"users"`
 	// The list of team slugs with push access. (Required; use []string{} instead of nil for empty list.)

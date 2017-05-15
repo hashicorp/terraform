@@ -23,15 +23,14 @@ func TestAccGithubBranchProtection_basic(t *testing.T) {
 				Config: testAccGithubBranchProtectionConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubProtectedBranchExists("github_branch_protection.master", &protection),
-					testAccCheckGithubBranchProtectionRequiredStatusChecks(&protection, true, true, []string{"github/foo"}),
+					testAccCheckGithubBranchProtectionRequiredStatusChecks(&protection, true, []string{"github/foo"}),
 					testAccCheckGithubBranchProtectionRestrictions(&protection, []string{testUser}, []string{}),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "repository", testRepo),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "branch", "master"),
-					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.0.include_admins", "true"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "enforce_admins", "true"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.0.strict", "true"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.0.contexts.#", "1"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.0.contexts.0", "github/foo"),
-					resource.TestCheckResourceAttr("github_branch_protection.master", "required_pull_request_reviews.0.include_admins", "true"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "restrictions.0.users.#", "1"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "restrictions.0.users.0", testUser),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "restrictions.0.teams.#", "0"),
@@ -41,11 +40,11 @@ func TestAccGithubBranchProtection_basic(t *testing.T) {
 				Config: testAccGithubBranchProtectionUpdateConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubProtectedBranchExists("github_branch_protection.master", &protection),
-					testAccCheckGithubBranchProtectionRequiredStatusChecks(&protection, false, false, []string{"github/bar"}),
+					testAccCheckGithubBranchProtectionRequiredStatusChecks(&protection, false, []string{"github/bar"}),
 					testAccCheckGithubBranchProtectionNoRestrictionsExist(&protection),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "repository", testRepo),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "branch", "master"),
-					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.0.include_admins", "false"),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "enforce_admins", "false"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.0.strict", "false"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.0.contexts.#", "1"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.0.contexts.0", "github/bar"),
@@ -100,16 +99,13 @@ func testAccCheckGithubProtectedBranchExists(n string, protection *github.Protec
 	}
 }
 
-func testAccCheckGithubBranchProtectionRequiredStatusChecks(protection *github.Protection, expectedIncludeAdmins bool, expectedStrict bool, expectedContexts []string) resource.TestCheckFunc {
+func testAccCheckGithubBranchProtectionRequiredStatusChecks(protection *github.Protection, expectedStrict bool, expectedContexts []string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rsc := protection.RequiredStatusChecks
 		if rsc == nil {
 			return fmt.Errorf("Expected RequiredStatusChecks to be present, but was nil")
 		}
 
-		if rsc.IncludeAdmins != expectedIncludeAdmins {
-			return fmt.Errorf("Expected RequiredStatusChecks.IncludeAdmins to be %v, got %v", expectedIncludeAdmins, rsc.IncludeAdmins)
-		}
 		if rsc.Strict != expectedStrict {
 			return fmt.Errorf("Expected RequiredStatusChecks.Strict to be %v, got %v", expectedStrict, rsc.Strict)
 		}
@@ -187,17 +183,17 @@ func testAccGithubBranchProtectionDestroy(s *terraform.State) error {
 
 var testAccGithubBranchProtectionConfig string = fmt.Sprintf(`
 resource "github_branch_protection" "master" {
-  repository = "%s"
-  branch     = "master"
+  repository     = "%s"
+  branch         = "master"
+	enforce_admins = true
 
   required_status_checks = {
-    include_admins = true
-    strict         = true
-    contexts       = ["github/foo"]
+    strict   = true
+    contexts = ["github/foo"]
   }
 
   required_pull_request_reviews {
-    include_admins = true
+    dismiss_stale_reviews = false
   }
 
   restrictions {
@@ -208,13 +204,13 @@ resource "github_branch_protection" "master" {
 
 var testAccGithubBranchProtectionUpdateConfig string = fmt.Sprintf(`
 resource "github_branch_protection" "master" {
-  repository = "%s"
-  branch     = "master"
+  repository     = "%s"
+  branch         = "master"
+	enforce_admins = false
 
   required_status_checks = {
-    include_admins = false
-    strict         = false
-    contexts       = ["github/bar"]
+    strict   = false
+    contexts = ["github/bar"]
   }
 }
 `, testRepo)
