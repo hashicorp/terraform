@@ -35,6 +35,10 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"ovh_publiccloud_regions": dataSourcePublicCloudRegions(),
+		},
+
 		ResourcesMap: map[string]*schema.Resource{
 			"ovh_publiccloud_private_network":        resourcePublicCloudPrivateNetwork(),
 			"ovh_publiccloud_private_network_subnet": resourcePublicCloudPrivateNetworkSubnet(),

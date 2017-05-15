@@ -132,3 +132,23 @@ type VRackAttachTaskResponse struct {
 	LastUpdate   time.Time `json:"lastUpdate"`
 	TodoDate     time.Time `json:"TodoDate"`
 }
+
+type PublicCloudRegionResponse struct {
+	ContinentCode      string                             `json:"continentCode"`
+	DatacenterLocation string                             `json:"datacenterLocation"`
+	Name               string                             `json:"name"`
+	Services           []PublicCloudServiceStatusResponse `json:"services"`
+}
+
+func (r *PublicCloudRegionResponse) String() string {
+	return fmt.Sprintf("Region: %s, Services: %s", r.Name, r.Services)
+}
+
+type PublicCloudServiceStatusResponse struct {
+	Status string `json:"status"`
+	Name   string `json:"name"`
+}
+
+func (s *PublicCloudServiceStatusResponse) String() string {
+	return fmt.Sprintf("%s: %s", s.Name, s.Status)
+}
