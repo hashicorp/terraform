@@ -12,9 +12,8 @@ variable "storage_account_type" {
   default     = "Standard_LRS"
 }
 
-variable "host_name" {
+variable "hostname" {
   description = "A string that determines the hostname/IP address of the origin server. This string could be a domain name, IPv4 address or IPv6 address."
-  default     = "www.hostnameoforiginserver.com"
 }
 
 variable "vm_sku" {

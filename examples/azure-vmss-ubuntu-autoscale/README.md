@@ -4,6 +4,8 @@ This Terraform template was based on [this](https://github.com/Azure/azure-quick
 
 This template deploys a desired count Linux VM Scale Set integrated with Azure autoscale. Once the VMSS is deployed, the user can deploy an application inside each of the VMs (either by directly logging into the VMs or via a [`remote-exec` provisioner](https://www.terraform.io/docs/provisioners/remote-exec.html)).
 
+_There is a (feature request)[https://github.com/hashicorp/terraform/issues/12889] for Auto Scale Settings, but currently Terraform does not have a resource for this._
+
 The Autoscale rules are configured as follows:
 - sample for CPU (\\Processor\\PercentProcessorTime) in each VM every 1 Minute
 - if the Percent Processor Time is greater than 50% for 5 Minutes, then the scale out action (add more VM instances one at a time) is triggered

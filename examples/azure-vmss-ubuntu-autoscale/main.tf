@@ -12,38 +12,46 @@ resource "azurerm_resource_group" "rg" {
 
 resource "azurerm_virtual_network" "vnet" {
   name                = "${var.resource_group}vnet"
-  location            = "${var.location}"
+  location            = "${azurerm_resource_group.rg.location}"
   address_space       = ["10.0.0.0/16"]
   resource_group_name = "${azurerm_resource_group.rg.name}"
 
   subnet {
-    name           = "subnet1"
+    name           = "subnet"
     address_prefix = "10.0.0.0/24"
   }
 }
 
-resource "azurerm_subnet" "subnet1" {
-  name                = "subnet1"
-  location            = "${var.location}"
-  address_prefix      = "10.0.0.0/24"
-  resource_group_name = "${azurerm_resource_group.rg.name}"
+resource "azurerm_subnet" "subnet" {
+  name                 = "subnet"
+  address_prefix       = "10.0.0.0/24"
+  resource_group_name  = "${azurerm_resource_group.rg.name}"
+  virtual_network_name = "${azurerm_virtual_network.vnet.name}"
 }
 
 resource "azurerm_public_ip" "pip" {
   name                         = "PublicIp1"
-  location                     = "${var.location}"
+  location                     = "${azurerm_resource_group.rg.location}"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
   public_ip_address_allocation = "Dynamic"
   domain_name_label            = "${var.vmss_name}"
 }
 
+resource "azurerm_public_ip" "lbpip" {
+  name                         = "PublicIpLB"
+  location                     = "${azurerm_resource_group.rg.location}"
+  resource_group_name          = "${azurerm_resource_group.rg.name}"
+  public_ip_address_allocation = "Dynamic"
+  domain_name_label            = "${var.vmss_name}lb"
+}
+
 resource "azurerm_network_interface" "nic" {
-  name                = "${var.rg_prefix}nic"
-  location            = "${var.location}"
+  name                = "${var.hostname}nic"
+  location            = "${azurerm_resource_group.rg.location}"
   resource_group_name = "${azurerm_resource_group.rg.name}"
 
   ip_configuration {
-    name                          = "${var.rg_prefix}ipconfig"
+    name                          = "${var.hostname}ipconfig"
     subnet_id                     = "${azurerm_subnet.subnet.id}"
     private_ip_address_allocation = "Dynamic"
     public_ip_address_id          = "${azurerm_public_ip.pip.id}"
@@ -52,13 +60,12 @@ resource "azurerm_network_interface" "nic" {
 
 resource "azurerm_lb" "lb" {
   name                = "LoadBalancer"
-  location            = "${var.location}"
+  location            = "${azurerm_resource_group.rg.location}"
   resource_group_name = "${azurerm_resource_group.rg.name}"
 
   frontend_ip_configuration {
     name                 = "LBFrontEnd"
-    public_ip_address_id = "${azurerm_public_ip.pip.id}"
-    subnet_id            = "${azurerm_subnet.subnet.id}"
+    public_ip_address_id = "${azurerm_public_ip.lbpip.id}"
   }
 }
 
@@ -81,14 +88,21 @@ resource "azurerm_lb_nat_pool" "np" {
 
 resource "azurerm_storage_account" "stor" {
   name                = "${var.resource_group}stor"
-  location            = "${var.location}"
+  location            = "${azurerm_resource_group.rg.location}"
   resource_group_name = "${azurerm_resource_group.rg.name}"
   account_type        = "${var.storage_account_type}"
 }
 
+resource "azurerm_storage_container" "vhds" {
+  name                  = "vhds"
+  resource_group_name   = "${azurerm_resource_group.rg.name}"
+  storage_account_name  = "${azurerm_storage_account.stor.name}"
+  container_access_type = "blob"
+}
+
 resource "azurerm_virtual_machine_scale_set" "scaleset" {
   name                = "autoscalewad"
-  location            = "${var.location}"
+  location            = "${azurerm_resource_group.rg.location}"
   resource_group_name = "${azurerm_resource_group.rg.name}"
   upgrade_policy_mode = "Manual"
   overprovision       = true
@@ -115,9 +129,10 @@ resource "azurerm_virtual_machine_scale_set" "scaleset" {
 
     ip_configuration {
       name                                   = "IPConfiguration"
-      subnet_id                              = "${azurerm_subnet.subnet1.id}"
+      subnet_id                              = "${azurerm_subnet.subnet.id}"
       load_balancer_backend_address_pool_ids = ["${azurerm_lb_backend_address_pool.backlb.id}"]
-      load_balancer_inbound_nat_pool_ids     = ["${azurerm_lb_nat_pool.np.id}"]
+      # Does not exist - may not be necessary
+      # load_balancer_inbound_nat_pool_ids     = ["${azurerm_lb_nat_pool.np.id}"]
     }
   }
 
@@ -125,7 +140,7 @@ resource "azurerm_virtual_machine_scale_set" "scaleset" {
     name           = "osDiskProfile"
     caching        = "ReadWrite"
     create_option  = "FromImage"
-    vhd_containers = ["${azurerm_storage_account.stor.primary_blob_endpoint}${azurerm_storage_container.stor.name}"]
+    vhd_containers = ["${azurerm_storage_account.stor.primary_blob_endpoint}${azurerm_storage_container.vhds.name}"]
   }
 
   storage_profile_image_reference {
@@ -136,6 +151,7 @@ resource "azurerm_virtual_machine_scale_set" "scaleset" {
   }
 }
 
+# TODO:  script autoscaling
 # "type": "Microsoft.Insights/autoscaleSettings",
 # "apiVersion": "[variables('insightsApiVersion')]",
 # "name": "autoscalewad",

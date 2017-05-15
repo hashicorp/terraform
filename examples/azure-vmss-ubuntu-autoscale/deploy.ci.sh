@@ -13,7 +13,7 @@ docker run --rm -it \
   -c "cd /data; \
       /bin/terraform get; \
       /bin/terraform validate; \
-      /bin/terraform plan -out=out.tfplan -var dns_name=$KEY -var hostname=$KEY -var lb_ip_dns_name=$KEY -var resource_group=$KEY -var admin_password=$PASSWORD; \
+      /bin/terraform plan -out=out.tfplan -var admin_username=$KEY -var hostname=$KEY -var vmss_name=$KEY -var resource_group=$KEY -var admin_password=$PASSWORD; \
       /bin/terraform apply out.tfplan"
 
 # cleanup deployed azure resources via azure-cli
@@ -32,4 +32,4 @@ docker run --rm -it \
   --workdir=/data \
   --entrypoint "/bin/sh" \
   hashicorp/terraform:light \
-  -c "/bin/terraform destroy -force -var dns_name=$KEY -var hostname=$KEY -var lb_ip_dns_name=$KEY -var resource_group=$KEY -var admin_password=$PASSWORD;"
+  -c "/bin/terraform plan -out=out.tfplan -var admin_username=$KEY -var hostname=$KEY -var vmss_name=$KEY -var resource_group=$KEY -var admin_password=$PASSWORD;"
