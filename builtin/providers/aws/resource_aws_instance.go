@@ -1018,8 +1018,27 @@ func InstanceStateRefreshFunc(conn *ec2.EC2, instanceID string) resource.StateRe
 		}
 
 		i := resp.Reservations[0].Instances[0]
-		return i, *i.State.Name, nil
+		state := *i.State.Name
+
+		if state == "terminated" {
+			return i, state, fmt.Errorf("Failed to launch instance. Reason: %s",
+				stringifyStateReason(i.StateReason))
+
+		}
+
+		return i, state, nil
 	}
+}
+
+func stringifyStateReason(sr *ec2.StateReason) string {
+	if sr.Message != nil {
+		return *sr.Message
+	}
+	if sr.Code != nil {
+		return *sr.Code
+	}
+
+	return sr.String()
 }
 
 func readBlockDevices(d *schema.ResourceData, instance *ec2.Instance, conn *ec2.EC2) error {
