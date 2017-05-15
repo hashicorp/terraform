@@ -195,6 +195,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_prefix_list":              dataSourceAwsPrefixList(),
 			"aws_redshift_service_account": dataSourceAwsRedshiftServiceAccount(),
 			"aws_region":                   dataSourceAwsRegion(),
+			"aws_regions":                  dataSourceAwsRegions(),
 			"aws_route_table":              dataSourceAwsRouteTable(),
 			"aws_route53_zone":             dataSourceAwsRoute53Zone(),
 			"aws_s3_bucket_object":         dataSourceAwsS3BucketObject(),
