@@ -1,5 +1,9 @@
 ## 0.9.6 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+* provider/google: Users of `google_compute_health_check` who were not setting a value for the `host` property of `http_health_check` or `https_health_check` previously had a faulty default value. This has been fixed and will show as a change in terraform plan/apply. [GH-14441]
+
 FEATURES:
 
 * **New Resource:** `aws_devicefarm_project` [GH-14288]
@@ -39,6 +43,7 @@ BUG FIXES:
 * provider/cloudstack: `cloudstack_firewall` panicked when used with older (< v4.6) CloudStack versions [GH-14044]
 * provider/datadog: Allowed method on aggregator is `avg` ! `average` [GH-14414]
 * provider/github: Log HTTP requests and responses in DEBUG mode [GH-14363]
+* provider/google: Fix health check http/https defaults [GH-14441]
 * provider/heroku: Fix issue with setting correct CName in heroku_domain [GH-14443]
 * provider/vault: Prevent panic when no secret found [GH-14435]
 
