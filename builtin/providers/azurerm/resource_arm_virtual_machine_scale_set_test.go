@@ -211,12 +211,15 @@ func TestAccAzureRMVirtualMachineScaleSet_osDiskTypeConflict(t *testing.T) {
 	})
 }
 
-func testGetAzureRMVirtualMachineScaleSet(s *terraform.State, name string) (result *compute.VirtualMachineScaleSet, err error) {
+func testGetAzureRMVirtualMachineScaleSet(s *terraform.State, resourceName string) (result *compute.VirtualMachineScaleSet, err error) {
 	// Ensure we have enough information in state to look up in API
-	rs, ok := s.RootModule().Resources[name]
+	rs, ok := s.RootModule().Resources[resourceName]
 	if !ok {
-		return nil, fmt.Errorf("Not found: %s", name)
+		return nil, fmt.Errorf("Not found: %s", resourceName)
 	}
+
+	// Name of the actual scale set
+	name := rs.Primary.Attributes["name"]
 
 	resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
 	if !hasResourceGroup {
