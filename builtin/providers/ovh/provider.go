@@ -36,6 +36,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
+			"ovh_publiccloud_region":  dataSourcePublicCloudRegion(),
 			"ovh_publiccloud_regions": dataSourcePublicCloudRegions(),
 		},
 
