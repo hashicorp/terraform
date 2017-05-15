@@ -110,7 +110,7 @@ func Provider() terraform.ResourceProvider {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "",
-				Description: descriptions["kinesis_analytiics_endpoint"],
+				Description: descriptions["kinesis_analytics_endpoint"],
 				Removed:     "Use `kinesisanalytics` inside `endpoints` block instead",
 			},
 

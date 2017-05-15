@@ -33,30 +33,6 @@ func TestAccAWSKinesisAnalytics_basic(t *testing.T) {
 	})
 }
 
-func TestAccAWSKinesisAnalytics_importBasic(t *testing.T) {
-	rInt := acctest.RandInt()
-	resourceName := "aws_kinesis_analytics.test_application"
-	applicationName := fmt.Sprintf("terraform-kinesis_analytics-test-%d", rInt)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckKinesisAnalyticsDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccKinesisAnalyticsConfig(rInt),
-			},
-
-			{
-				ResourceName:      resourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateId:     applicationName,
-			},
-		},
-	})
-}
-
 func testAccCheckKinesisAnalyticsExists(n string, desc *kinesisanalytics.ApplicationDetail) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -72,6 +48,7 @@ func testAccCheckKinesisAnalyticsExists(n string, desc *kinesisanalytics.Applica
 		describeOpts := &kinesisanalytics.DescribeApplicationInput{
 			ApplicationName: aws.String(rs.Primary.Attributes["name"]),
 		}
+
 		resp, err := conn.DescribeApplication(describeOpts)
 		if err != nil {
 			return err
@@ -85,21 +62,28 @@ func testAccCheckKinesisAnalyticsExists(n string, desc *kinesisanalytics.Applica
 
 func testAccCheckAWSKinesisAnalyticsAttributes(desc *kinesisanalytics.ApplicationDetail) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if !strings.HasPrefix(*desc.ApplicationName, "terraform-kinesisanalytics-test") {
+		if !strings.HasPrefix(*desc.ApplicationName, "terraform-kinesis-analytics-test") {
 			return fmt.Errorf("Bad Application name: %s", *desc.ApplicationName)
 		}
+
 		for _, rs := range s.RootModule().Resources {
 			if rs.Type != "aws_kinesis_analytics" {
 				continue
 			}
 			if *desc.ApplicationARN != rs.Primary.Attributes["arn"] {
-				return fmt.Errorf("Bad Application ARN\n\t expected: %s\n\tgot: %s\n", rs.Primary.Attributes["arn"], *desc.ApplicationARN)
+				return fmt.Errorf("Bad Application ARN\n\t expected: %s\n\tgot: %s\n",
+					rs.Primary.Attributes["arn"],
+					*desc.ApplicationARN)
 			}
 			if *desc.ApplicationDescription != rs.Primary.Attributes["application_description"] {
-				return fmt.Errorf("Bad Application Description\n\t expected: %s\n\tgot: %s\n", rs.Primary.Attributes["application_description"], *desc.ApplicationDescription)
+				return fmt.Errorf("Bad Application Description\n\t expected: %s\n\tgot: %s\n",
+					rs.Primary.Attributes["application_description"],
+					*desc.ApplicationDescription)
 			}
 			if *desc.ApplicationCode != rs.Primary.Attributes["application_code"] {
-				return fmt.Errorf("Bad Application Code\n\t expected: %s\n\tgot: %s\n", rs.Primary.Attributes["application_code"], *desc.ApplicationCode)
+				return fmt.Errorf("Bad Application Code\n\t expected: %s\n\tgot: %s\n",
+					rs.Primary.Attributes["application_code"],
+					desc.ApplicationCode)
 			}
 		}
 		return nil
@@ -132,8 +116,8 @@ func testAccCheckKinesisAnalyticsDestroy(s *terraform.State) error {
 func testAccKinesisAnalyticsConfig(rInt int) string {
 	return fmt.Sprintf(`
 resource "aws_kinesis_analytics" "test_application" {
-	name = "terraform-kinesis_analytics-test-%d"
+	name = "terraform-kinesis-analytics-test-%d"
 	application_description = "test description"
-	application_code = "SELECT 1"
+	application_code = "SELECT 1\n"
 }`, rInt)
 }
