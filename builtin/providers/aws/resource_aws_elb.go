@@ -727,23 +727,21 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		added := expandStringList(ns.Difference(os).List())
 		subnetconn := meta.(*AWSClient).ec2conn
 
+		azs := map[string]string{}
+		subnets, err := subnetconn.DescribeSubnets(&ec2.DescribeSubnetsInput{
+			SubnetIds: append(removed, added...),
+		})
+		if err != nil {
+			return err
+		}
+		for _, subnet := range subnets.Subnets {
+			azs[*subnet.SubnetId] = *subnet.AvailabilityZone
+		}
 		// This section sorts the removed/added subnets based on availability zones
 		dup_az_count := 0
 		for i, r_subnet_id := range removed {
-			r_subnet, err := subnetconn.DescribeSubnets(&ec2.DescribeSubnetsInput{
-				SubnetIds: []*string{r_subnet_id},
-			})
-			if err != nil {
-				return err
-			}
 			for j, a_subnet_id := range added {
-				a_subnet, err := subnetconn.DescribeSubnets(&ec2.DescribeSubnetsInput{
-					SubnetIds: []*string{a_subnet_id},
-				})
-				if err != nil {
-					return err
-				}
-				if *r_subnet.Subnets[0].AvailabilityZone == *a_subnet.Subnets[0].AvailabilityZone {
+				if azs[*r_subnet_id] == azs[*a_subnet_id] {
 					removed[dup_az_count], removed[i] = removed[i], removed[dup_az_count]
 					added[j], added[dup_az_count] = added[dup_az_count], added[j]
 					dup_az_count += 1
@@ -754,15 +752,13 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		// Subnets with the same availability zones need to be removed
 		// and then added one at a time to avoid api errors
 		for i := 0; i < dup_az_count; i++ {
-			curr_removed_subnet := make([]*string, 0, 1)
-			curr_removed_subnet = append(curr_removed_subnet, removed[i])
+			curr_removed_subnet := []*string{removed[i]}
 			err := removeSubnets(d.Id(), curr_removed_subnet, meta)
 			if err != nil {
 				return err
 			}
 
-			curr_added_subnet := make([]*string, 0, 1)
-			curr_added_subnet = append(curr_added_subnet, added[i])
+			curr_added_subnet := []*string{added[i]}
 			err = addSubnets(d.Id(), curr_added_subnet, meta)
 			if err != nil {
 				return err
