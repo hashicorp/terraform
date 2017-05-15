@@ -14,6 +14,7 @@ IMPROVEMENTS:
 * provider/azurerm: Virtual Machine Scale Sets with managed disk support [GH-13717]
 * provider/datadog: Add last aggregator to datadog_timeboard resource [GH-14391]
 * provider/datadog: Added new evaluation_delay parameter [GH-14433]
+* provider/docker: Allow Windows Docker containers to map volumes [GH-13584]
 * provider/google: Add a `url` attribute to `google_storage_bucket` [GH-14393]
 * provider/openstack: Add support for all protocols in Security Group Rules [GH-14307]
 * provider/rundeck: adds `description` to `command` schema in `rundeck_job` resource [GH-14352]
