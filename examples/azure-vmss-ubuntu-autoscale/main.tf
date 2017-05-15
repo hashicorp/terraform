@@ -152,6 +152,7 @@ resource "azurerm_virtual_machine_scale_set" "scaleset" {
 }
 
 # TODO:  script autoscaling
+
 # "type": "Microsoft.Insights/autoscaleSettings",
 # "apiVersion": "[variables('insightsApiVersion')]",
 # "name": "autoscalewad",
