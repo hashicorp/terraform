@@ -9,6 +9,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* provider/aws: Show last scaling activity when ASG creation/update fails [GH-14480]
 * provider/azurerm: Virtual Machine Scale Sets with managed disk support [GH-13717]
 * provider/datadog: Add last aggregator to datadog_timeboard resource [GH-14391]
 * provider/datadog: Added new evaluation_delay parameter [GH-14433]
