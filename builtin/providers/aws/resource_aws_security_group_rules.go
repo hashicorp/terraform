@@ -223,7 +223,7 @@ func resourceAwsSecurityGroupRulesUpdate(d *schema.ResourceData, meta interface{
 func resourceAwsSecurityGroupRulesDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	id := d.Id()
+	id := d.Get("security_group_id").(string)
 
 	awsMutexKV.Lock(id)
 	defer awsMutexKV.Unlock(id)
