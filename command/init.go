@@ -239,7 +239,7 @@ Options:
 
   -no-color            If specified, output won't contain any color.
 
-  -reconfigure          Reconfigure the backend, ignoring any saved configuration.
+  -reconfigure         Reconfigure the backend, ignoring any saved configuration.
 `
 	return strings.TrimSpace(helpText)
 }
