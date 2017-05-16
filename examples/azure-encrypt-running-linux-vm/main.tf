@@ -10,15 +10,76 @@ resource "azurerm_resource_group" "rg" {
   location = "${var.location}"
 }
 
+resource "azurerm_key_vault" "vault" {
+  name                = "${var.hostname}vault"
+  location            = "${azurerm_resource_group.rg.location}"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
+
+  sku {
+    name = "${var.vault_sku}"
+  }
+
+  tenant_id = "${var.keyvault_tenant_id}"
+
+  access_policy {
+    tenant_id = "${var.keyvault_tenant_id}"
+    object_id = "${var.keyvault_object_id}"
+
+    key_permissions    = ["${var.keys_permissions}"]
+    secret_permissions = ["${var.secrets_permissions}"]
+  }
+
+  enabled_for_deployment          = "${var.encryption_operation}"
+  enabled_for_disk_encryption     = true
+  enabled_for_template_deployment = true
+}
+
+resource "azurerm_virtual_network" "vnet" {
+  name                = "${var.hostname}vnet"
+  location            = "${var.location}"
+  address_space       = ["${var.address_space}"]
+  resource_group_name = "${azurerm_resource_group.rg.name}"
+}
+
+resource "azurerm_subnet" "subnet" {
+  name                 = "${var.hostname}subnet"
+  virtual_network_name = "${azurerm_virtual_network.vnet.name}"
+  resource_group_name  = "${azurerm_resource_group.rg.name}"
+  address_prefix       = "${var.subnet_prefix}"
+}
+
+resource "azurerm_network_interface" "nic" {
+  name                = "nic"
+  location            = "${var.location}"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
+
+  ip_configuration {
+    name                          = "ipconfig"
+    subnet_id                     = "${azurerm_subnet.subnet.id}"
+    private_ip_address_allocation = "Dynamic"
+  }
+}
+
+resource "azurerm_storage_account" "stor" {
+  name                = "${var.hostname}stor"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
+  location            = "${azurerm_resource_group.rg.location}"
+  account_type        = "Standard_LRS"
+}
+
+resource "azurerm_storage_container" "stor" {
+  name                  = "${var.hostname}vhds"
+  resource_group_name   = "${azurerm_resource_group.rg.name}"
+  storage_account_name  = "${azurerm_storage_account.stor.name}"
+  container_access_type = "private"
+}
 
 resource "azurerm_virtual_machine" "vm" {
-  name                  = "vm${count.index}"
+  name                  = "${var.hostname}"
   location              = "${var.location}"
   resource_group_name   = "${azurerm_resource_group.rg.name}"
-  availability_set_id   = "${azurerm_availability_set.avset.id}"
   vm_size               = "${var.vm_size}"
-  network_interface_ids = ["${element(azurerm_network_interface.nic.*.id, count.index)}"]
-  count                 = 2
+  network_interface_ids = ["${azurerm_network_interface.nic.id}"]
 
   storage_image_reference {
     publisher = "${var.image_publisher}"
@@ -28,8 +89,15 @@ resource "azurerm_virtual_machine" "vm" {
   }
 
   storage_os_disk {
-    name          = "osdisk${count.index}"
+    name          = "${var.hostname}osdisk"
     create_option = "FromImage"
+  }
+
+  storage_data_disk {
+    name          = "${var.hostname}datadisk"
+    create_option = "Empty"
+    disk_size_gb  = 1
+    lun           = 0
   }
 
   os_profile {
@@ -37,52 +105,12 @@ resource "azurerm_virtual_machine" "vm" {
     admin_username = "${var.admin_username}"
     admin_password = "${var.admin_password}"
   }
-}
 
-resource "azurerm_key_vault" "key_vault" {
-  name                = "${var.keyvault_name}"
-  location            = "${azurerm_resource_group.quickstart.location}"
-  resource_group_name = "${azurerm_resource_group.quickstart.name}"
-
-  sku {
-    name = "${lookup(var.sku_name_map, var.sku_name)}"
+  os_profile_linux_config {
+    disable_password_authentication = false
   }
 
-  tenant_id = "${var.keyvault_tenant_id}"
-
-  access_policy {
-    tenant_id = "${var.keyvault_tenant_id}"
-    object_id = "${var.keyvault_object_id}"
-
-    key_permissions    = "${var.keys_permissions}"
-    secret_permissions = "${var.secrets_permissions}"
-  }
-
-  enabled_for_deployment          = "${lookup(var.boolean_map, var.enable_vault_for_deployment)}"
-  enabled_for_disk_encryption     = "${lookup(var.boolean_map, var.enable_vault_for_disk_encryption)}"
-  enabled_for_template_deployment = "${lookup(var.boolean_map, var.enabled_for_template_deployment)}"
-}
-
-output "vault_uri" {
-  value = ["${azurerm_key_vault.quickstart.vault_uri}"]
-}
-
-resource "azurerm_virtual_machine_extension" "ext" {
-  name                 = "${var.vm_name}ext"
-  location             = "${var.location}"
-  resource_group_name  = "${azurerm_resource_group.rg.name}"
-  virtual_machine_name = "${azurerm_virtual_machine.vm.name}"
-  publisher            = "Microsoft.OSTCExtensions"
-  type                 = "CustomScriptForLinux"
-  type_handler_version = "1.2"
-
-  settings = <<SETTINGS
-    {
-        "commandToExecute": "hostname"
-    }
-SETTINGS
-
-  tags {
-    environment = "Production"
+  provisioner "local-exec" {
+    command = "az vm encryption enable --aad-client-id ${var.aad_client_id} --disk-encryption-keyvault ${azurerm_key_vault.vault.name} -n ${azurerm_virtual_machine.vm.name} -g ${azurerm_resource_group.rg.name} --aad-client-secret ${var.aad_client_secret} --volume-type ${var.volume_type}"
   }
 }
