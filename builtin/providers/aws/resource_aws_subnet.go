@@ -41,6 +41,7 @@ func resourceAwsSubnet() *schema.Resource {
 			"ipv6_cidr_block": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 
 			"availability_zone": {
