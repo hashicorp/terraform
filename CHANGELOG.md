@@ -18,6 +18,7 @@ IMPROVEMENTS:
 
 * provider/aws: Show state reason when EC2 instance fails to launch [GH-14479]
 * provider/aws: Show last scaling activity when ASG creation/update fails [GH-14480]
+* provider/aws: Add `tags` (list of maps) for `aws_autoscaling_group` [GH-13574]
 * provider/azurerm: Virtual Machine Scale Sets with managed disk support [GH-13717]
 * provider/azurerm: Virtual Machine Scale Sets with single placement option support [GH-14510]
 * provider/datadog: Add last aggregator to datadog_timeboard resource [GH-14391]
