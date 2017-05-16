@@ -76,7 +76,7 @@ resource "google_compute_instance_group" "video-resources" {
   name = "tf-video-resources"
   zone = "${var.region_zone}"
 
-  instances = ["${google_compute_instance.www-video.self_link}",]
+  instances = ["${google_compute_instance.www-video.self_link}"]
 
   named_port {
     name = "http"

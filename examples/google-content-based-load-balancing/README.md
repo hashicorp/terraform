@@ -39,6 +39,4 @@ terraform apply \
 	-var="region_zone=us-central1-f" \
 	-var="project_name=my-project-id-123" \
 	-var="credentials_file_path=~/.gcloud/Terraform.json" \
-	-var="public_key_path=~/.ssh/gcloud_id_rsa.pub" \
-	-var="private_key_path=~/.ssh/gcloud_id_rsa"
 ```
