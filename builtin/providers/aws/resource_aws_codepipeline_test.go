@@ -43,6 +43,22 @@ func TestAccAWSCodePipeline_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("aws_codepipeline.bar", "artifact_store.0.encryption_key.0.type", "KMS"),
 				),
 			},
+		},
+	})
+}
+
+func TestAccAWSCodePipeline_deployWithServiceRole(t *testing.T) {
+	if os.Getenv("GITHUB_TOKEN") == "" {
+		t.Skip("Environment variable GITHUB_TOKEN is not set")
+	}
+
+	name := acctest.RandString(10)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCodePipelineDestroy,
+		Steps: []resource.TestStep{
 			{
 				Config: testAccAWSCodePipelineConfig_deployWithServiceRole(name),
 				Check: resource.ComposeTestCheckFunc(
