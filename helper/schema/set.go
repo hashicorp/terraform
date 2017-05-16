@@ -150,7 +150,21 @@ func (s *Set) Equal(raw interface{}) bool {
 		return false
 	}
 
-	return reflect.DeepEqual(s.m, other.m)
+	left, right := flattenSet(s.m), flattenSet(other.m)
+
+	return reflect.DeepEqual(left, right)
+}
+
+func flattenSet(m map[string]interface{}) map[string]interface{} {
+	for k, v := range m {
+		if set, ok := v.(*Set); ok {
+			m[k] = flattenSet(set.m)
+		}
+		if im, ok := v.(map[string]interface{}); ok {
+			m[k] = flattenSet(im)
+		}
+	}
+	return m
 }
 
 func (s *Set) GoString() string {
