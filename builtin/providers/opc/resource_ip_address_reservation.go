@@ -92,6 +92,7 @@ func resourceOPCIPAddressReservationRead(d *schema.ResourceData, meta interface{
 	d.Set("name", result.Name)
 	d.Set("description", result.Description)
 	d.Set("ip_address_pool", result.IPAddressPool)
+	d.Set("ip_address", result.IPAddress)
 	d.Set("uri", result.Uri)
 
 	if err := setStringList(d, "tags", result.Tags); err != nil {
