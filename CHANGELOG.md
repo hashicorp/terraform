@@ -47,6 +47,7 @@ BUG FIXES:
 * provider/aws: Pass IAM Roles to codepipeline actions [GH-14263]
 * provider/cloudstack: `cloudstack_firewall` panicked when used with older (< v4.6) CloudStack versions [GH-14044]
 * provider/datadog: Allowed method on aggregator is `avg` ! `average` [GH-14414]
+* provider/digitalocean: Fix parsing of digitalocean dns records [GH-14215]
 * provider/github: Log HTTP requests and responses in DEBUG mode [GH-14363]
 * provider/google: Fix health check http/https defaults [GH-14441]
 * provider/heroku: Fix issue with setting correct CName in heroku_domain [GH-14443]
