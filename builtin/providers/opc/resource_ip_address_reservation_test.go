@@ -24,6 +24,7 @@ func TestAccOPCIPAddressReservation_Basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccOPCCheckIPAddressReservationExists,
 					resource.TestCheckResourceAttr(resName, "name", fmt.Sprintf("testing-ip-address-reservation-%d", rInt)),
+					resource.TestCheckResourceAttrSet(resName, "ip_address"),
 				),
 			},
 		},
