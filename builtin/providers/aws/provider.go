@@ -443,6 +443,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_subnet":                                   resourceAwsSubnet(),
 			"aws_volume_attachment":                        resourceAwsVolumeAttachment(),
 			"aws_vpc_dhcp_options_association":             resourceAwsVpcDhcpOptionsAssociation(),
+			"aws_default_vpc_dhcp_options":                 resourceAwsDefaultVpcDhcpOptions(),
 			"aws_vpc_dhcp_options":                         resourceAwsVpcDhcpOptions(),
 			"aws_vpc_peering_connection":                   resourceAwsVpcPeeringConnection(),
 			"aws_vpc_peering_connection_accepter":          resourceAwsVpcPeeringConnectionAccepter(),
