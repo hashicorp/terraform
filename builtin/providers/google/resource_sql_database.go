@@ -57,7 +57,7 @@ func resourceSqlDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 		Instance: instance_name,
 	}
 
-	googleMutexKV.Lock(instance_name)
+	googleMutexKV.Lock(instanceMutexKey(project, instance_name))
 	op, err := config.clientSqlAdmin.Databases.Insert(project, instance_name,
 		db).Do()
 
@@ -68,7 +68,7 @@ func resourceSqlDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	err = sqladminOperationWait(config, op, "Insert Database")
-	googleMutexKV.Unlock(instance_name)
+	googleMutexKV.Unlock(instanceMutexKey(project, instance_name))
 
 	if err != nil {
 		return fmt.Errorf("Error, failure waiting for insertion of %s "+
@@ -113,7 +113,7 @@ func resourceSqlDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
 	database_name := d.Get("name").(string)
 	instance_name := d.Get("instance").(string)
 
-	googleMutexKV.Lock(instance_name)
+	googleMutexKV.Lock(instanceMutexKey(project, instance_name))
 	op, err := config.clientSqlAdmin.Databases.Delete(project, instance_name,
 		database_name).Do()
 
@@ -124,7 +124,7 @@ func resourceSqlDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	err = sqladminOperationWait(config, op, "Delete Database")
-	googleMutexKV.Unlock(instance_name)
+	googleMutexKV.Unlock(instanceMutexKey(project, instance_name))
 
 	if err != nil {
 		return fmt.Errorf("Error, failure waiting for deletion of %s "+

@@ -1192,3 +1192,7 @@ func validateNumericRange(v interface{}, k string, min int, max int) (ws []strin
 	}
 	return
 }
+
+func instanceMutexKey(project, instance_name string) string {
+	return fmt.Sprintf("google-sql-database-instance-%s-%s", project, instance_name)
+}
