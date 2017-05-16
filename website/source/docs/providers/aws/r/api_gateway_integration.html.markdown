@@ -3,16 +3,16 @@ layout: "aws"
 page_title: "AWS: aws_api_gateway_integration"
 sidebar_current: "docs-aws-resource-api-gateway-integration"
 description: |-
-  Provides an HTTP Method Integration for an API Gateway Resource.
+  Provides an HTTP Method Integration for an API Gateway Integration.
 ---
 
 # aws\_api\_gateway\_integration
 
-Provides an HTTP Method Integration for an API Gateway Resource.
+Provides an HTTP Method Integration for an API Gateway Integration.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_api_gateway_rest_api" "MyDemoAPI" {
   name        = "MyDemoAPI"
   description = "This is my API for demonstration purposes"
@@ -37,6 +37,10 @@ resource "aws_api_gateway_integration" "MyDemoIntegration" {
   http_method = "${aws_api_gateway_method.MyDemoMethod.http_method}"
   type        = "MOCK"
 
+  request_parameters = {
+    "integration.request.header.X-Authorization" = "'static'"
+  }
+
   # Transforms the incoming XML request to JSON
   request_templates {
     "application/xml" = <<EOF
@@ -50,7 +54,7 @@ EOF
 
 ## Lambda integration
 
-```
+```hcl
 # Variables
 variable "myregion" {}
 variable "accountId" {}

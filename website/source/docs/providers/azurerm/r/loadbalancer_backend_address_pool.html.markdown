@@ -14,7 +14,7 @@ Create a LoadBalancer Backend Address Pool.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "LoadBalancerRG"
   location = "West US"
@@ -51,7 +51,6 @@ The following arguments are supported:
 
 * `name` - (Required) Specifies the name of the Backend Address Pool.
 * `resource_group_name` - (Required) The name of the resource group in which to create the resource.
-* `location` - (Required) Specifies the supported Azure location where the resource exists.
 * `loadbalancer_id` - (Required) The ID of the LoadBalancer in which to create the Backend Address Pool.
 
 ## Attributes Reference

@@ -146,6 +146,10 @@ func resourceAwsLambdaFunction() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"invoke_arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"last_modified": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -175,6 +179,8 @@ func resourceAwsLambdaFunction() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validateArn,
 			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -291,20 +297,23 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 		params.KMSKeyArn = aws.String(v.(string))
 	}
 
+	if v, exists := d.GetOk("tags"); exists {
+		params.Tags = tagsFromMapGeneric(v.(map[string]interface{}))
+	}
+
 	// IAM profiles can take ~10 seconds to propagate in AWS:
 	// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
 	// Error creating Lambda function: InvalidParameterValueException: The role defined for the task cannot be assumed by Lambda.
 	err := resource.Retry(10*time.Minute, func() *resource.RetryError {
 		_, err := conn.CreateFunction(params)
 		if err != nil {
-			log.Printf("[ERROR] Received %q, retrying CreateFunction", err)
-			if awserr, ok := err.(awserr.Error); ok {
-				if awserr.Code() == "InvalidParameterValueException" {
-					log.Printf("[DEBUG] InvalidParameterValueException creating Lambda Function: %s", awserr)
-					return resource.RetryableError(awserr)
-				}
-			}
 			log.Printf("[DEBUG] Error creating Lambda Function: %s", err)
+
+			if isAWSErr(err, "InvalidParameterValueException", "The role defined for the function cannot be assumed by Lambda") {
+				log.Printf("[DEBUG] Received %s, retrying CreateFunction", err)
+				return resource.RetryableError(err)
+			}
+
 			return resource.NonRetryableError(err)
 		}
 		return nil
@@ -354,6 +363,7 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("runtime", function.Runtime)
 	d.Set("timeout", function.Timeout)
 	d.Set("kms_key_arn", function.KMSKeyArn)
+	d.Set("tags", tagsToMapGeneric(getFunctionOutput.Tags))
 
 	config := flattenLambdaVpcConfigResponse(function.VpcConfig)
 	log.Printf("[INFO] Setting Lambda %s VPC config %#v from API", d.Id(), config)
@@ -399,6 +409,8 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 
 	d.Set("version", lastVersion)
 	d.Set("qualified_arn", lastQualifiedArn)
+
+	d.Set("invoke_arn", buildLambdaInvokeArn(*function.FunctionArn, meta.(*AWSClient).region))
 
 	return nil
 }
@@ -448,6 +460,12 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 	conn := meta.(*AWSClient).lambdaconn
 
 	d.Partial(true)
+
+	arn := d.Get("arn").(string)
+	if tagErr := setTagsLambda(conn, d, arn); tagErr != nil {
+		return tagErr
+	}
+	d.SetPartial("tags")
 
 	if d.HasChange("filename") || d.HasChange("source_code_hash") || d.HasChange("s3_bucket") || d.HasChange("s3_key") || d.HasChange("s3_object_version") {
 		codeReq := &lambda.UpdateFunctionCodeInput{

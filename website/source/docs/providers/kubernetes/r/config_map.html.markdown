@@ -13,14 +13,15 @@ Config Map can be used to store fine-grained information like individual propert
 
 ## Example Usage
 
-```
+```hcl
 resource "kubernetes_config_map" "example" {
   metadata {
-  	name = "my-config"
+    name = "my-config"
   }
+
   data {
-  	api_host = "myhost:443"
-  	db_host = "dbhost:5432"
+    api_host = "myhost:443"
+    db_host  = "dbhost:5432"
   }
 }
 ```

@@ -108,6 +108,44 @@ func TestAccAWSOpsworksInstance(t *testing.T) {
 	})
 }
 
+func TestAccAWSOpsworksInstance_UpdateHostNameForceNew(t *testing.T) {
+	stackName := fmt.Sprintf("tf-%d", acctest.RandInt())
+
+	var before, after opsworks.Instance
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAwsOpsworksInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAwsOpsworksInstanceConfigCreate(stackName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSOpsworksInstanceExists("aws_opsworks_instance.tf-acc", &before),
+					resource.TestCheckResourceAttr("aws_opsworks_instance.tf-acc", "hostname", "tf-acc1"),
+				),
+			},
+			{
+				Config: testAccAwsOpsworksInstanceConfigUpdateHostName(stackName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSOpsworksInstanceExists("aws_opsworks_instance.tf-acc", &after),
+					resource.TestCheckResourceAttr("aws_opsworks_instance.tf-acc", "hostname", "tf-acc2"),
+					testAccCheckAwsOpsworksInstanceRecreated(t, &before, &after),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckAwsOpsworksInstanceRecreated(t *testing.T,
+	before, after *opsworks.Instance) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if *before.InstanceId == *after.InstanceId {
+			t.Fatalf("Expected change of OpsWorks Instance IDs, but both were %s", *before.InstanceId)
+		}
+		return nil
+	}
+}
+
 func testAccCheckAWSOpsworksInstanceExists(
 	n string, opsinst *opsworks.Instance) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -195,6 +233,59 @@ func testAccCheckAwsOpsworksInstanceDestroy(s *terraform.State) error {
 	}
 
 	return fmt.Errorf("Fall through error on OpsWorks instance test")
+}
+
+func testAccAwsOpsworksInstanceConfigUpdateHostName(name string) string {
+	return fmt.Sprintf(`
+resource "aws_security_group" "tf-ops-acc-web" {
+  name = "%s-web"
+  ingress {
+    from_port = 80
+    to_port = 80
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "tf-ops-acc-php" {
+  name = "%s-php"
+  ingress {
+    from_port = 8080
+    to_port = 8080
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_opsworks_static_web_layer" "tf-acc" {
+  stack_id = "${aws_opsworks_stack.tf-acc.id}"
+
+  custom_security_group_ids = [
+    "${aws_security_group.tf-ops-acc-web.id}",
+  ]
+}
+
+resource "aws_opsworks_php_app_layer" "tf-acc" {
+  stack_id = "${aws_opsworks_stack.tf-acc.id}"
+
+  custom_security_group_ids = [
+    "${aws_security_group.tf-ops-acc-php.id}",
+  ]
+}
+
+resource "aws_opsworks_instance" "tf-acc" {
+  stack_id = "${aws_opsworks_stack.tf-acc.id}"
+  layer_ids = [
+    "${aws_opsworks_static_web_layer.tf-acc.id}",
+  ]
+  instance_type = "t2.micro"
+  state = "stopped"
+  hostname = "tf-acc2"
+}
+
+%s
+
+`, name, name, testAccAwsOpsworksStackConfigVpcCreate(name))
 }
 
 func testAccAwsOpsworksInstanceConfigCreate(name string) string {

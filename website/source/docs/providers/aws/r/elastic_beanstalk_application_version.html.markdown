@@ -27,7 +27,7 @@ Elastic Beanstalk Application. For example &lt;revision&gt;-&lt;environment&gt;.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_s3_bucket" "default" {
   bucket = "tftest.applicationversion.bucket"
 }

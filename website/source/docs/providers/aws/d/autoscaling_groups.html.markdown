@@ -13,7 +13,7 @@ ASGs within a specific region. This will allow you to pass a list of AutoScaling
 
 ## Example Usage
 
-```
+```hcl
 data "aws_autoscaling_groups" "groups" {}
 
 resource "aws_autoscaling_notification" "slack_notifications" {

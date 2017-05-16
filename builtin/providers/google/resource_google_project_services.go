@@ -31,6 +31,14 @@ func resourceGoogleProjectServices() *schema.Resource {
 	}
 }
 
+// These services can only be enabled as a side-effect of enabling other services,
+// so don't bother storing them in the config or using them for diffing.
+var ignore = map[string]struct{}{
+	"containeranalysis.googleapis.com": struct{}{},
+	"dataproc-control.googleapis.com":  struct{}{},
+	"source.googleapis.com":            struct{}{},
+}
+
 func resourceGoogleProjectServicesCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	pid := d.Get("project").(string)
@@ -155,12 +163,19 @@ func getConfigServices(d *schema.ResourceData) (services []string) {
 func getApiServices(pid string, config *Config) ([]string, error) {
 	apiServices := make([]string, 0)
 	// Get services from the API
-	svcResp, err := config.clientServiceMan.Services.List().ConsumerId("project:" + pid).Do()
-	if err != nil {
-		return apiServices, err
-	}
-	for _, v := range svcResp.Services {
-		apiServices = append(apiServices, v.ServiceName)
+	token := ""
+	for paginate := true; paginate; {
+		svcResp, err := config.clientServiceMan.Services.List().ConsumerId("project:" + pid).PageToken(token).Do()
+		if err != nil {
+			return apiServices, err
+		}
+		for _, v := range svcResp.Services {
+			if _, ok := ignore[v.ServiceName]; !ok {
+				apiServices = append(apiServices, v.ServiceName)
+			}
+		}
+		token = svcResp.NextPageToken
+		paginate = token != ""
 	}
 	return apiServices, nil
 }

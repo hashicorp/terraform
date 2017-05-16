@@ -30,7 +30,7 @@ func resourceGroup() *schema.Resource {
 }
 
 func resourceGroupRead(d *schema.ResourceData, meta interface{}) error {
-	id, err := buildGroup(d, meta.(*cache))
+	id, err := buildGroup(d, globalCache)
 	if err != nil {
 		return err
 	}
@@ -40,7 +40,7 @@ func resourceGroupRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceGroupExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	id, err := buildGroup(d, meta.(*cache))
+	id, err := buildGroup(d, globalCache)
 	if err != nil {
 		return false, err
 	}

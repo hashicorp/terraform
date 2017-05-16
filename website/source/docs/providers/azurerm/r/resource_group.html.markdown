@@ -12,7 +12,7 @@ Creates a new resource group on Azure.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "testResourceGroup1"
   location = "West US"

@@ -18,7 +18,7 @@ func validateInstancePort(v interface{}, k string) (ws []string, errors []error)
 	value := v.(int)
 	if value < 1 || value > 65535 {
 		errors = append(errors, fmt.Errorf(
-			"%q must be a valid instance port between 1 and 65535",
+			"%q must be a valid port between 1 and 65535",
 			k))
 		return
 	}
@@ -26,8 +26,8 @@ func validateInstancePort(v interface{}, k string) (ws []string, errors []error)
 }
 
 func validateInstanceProtocol(v interface{}, k string) (ws []string, errors []error) {
-	protocal := v.(string)
-	if !isProtocalValid(protocal) {
+	protocol := v.(string)
+	if !isProtocolValid(protocol) {
 		errors = append(errors, fmt.Errorf(
 			"%q is an invalid value. Valid values are either http, https, tcp or udp",
 			k))
@@ -282,9 +282,9 @@ func validateInternetChargeType(v interface{}, k string) (ws []string, errors []
 
 func validateInternetMaxBandWidthOut(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(int)
-	if value < 1 || value > 100 {
+	if value < 0 || value > 100 {
 		errors = append(errors, fmt.Errorf(
-			"%q must be a valid internet bandwidth out between 1 and 1000",
+			"%q must be a valid internet bandwidth out between 0 and 100",
 			k))
 		return
 	}
@@ -562,6 +562,17 @@ func validateRegion(v interface{}, k string) (ws []string, errors []error) {
 			"%q must contain a valid Region ID , expected %#v, got %q",
 			k, valid, value))
 
+	}
+	return
+}
+
+func validateForwardPort(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if value != "any" {
+		valueConv, err := strconv.Atoi(value)
+		if err != nil || valueConv < 1 || valueConv > 65535 {
+			errors = append(errors, fmt.Errorf("%q must be a valid port between 1 and 65535 or any ", k))
+		}
 	}
 	return
 }

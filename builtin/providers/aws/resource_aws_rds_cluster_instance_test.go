@@ -30,6 +30,8 @@ func TestAccAWSRDSClusterInstance_basic(t *testing.T) {
 					testAccCheckAWSClusterInstanceExists("aws_rds_cluster_instance.cluster_instances", &v),
 					testAccCheckAWSDBClusterInstanceAttributes(&v),
 					resource.TestCheckResourceAttr("aws_rds_cluster_instance.cluster_instances", "auto_minor_version_upgrade", "true"),
+					resource.TestCheckResourceAttrSet("aws_rds_cluster_instance.cluster_instances", "preferred_maintenance_window"),
+					resource.TestCheckResourceAttrSet("aws_rds_cluster_instance.cluster_instances", "preferred_backup_window"),
 				),
 			},
 			{
@@ -38,6 +40,48 @@ func TestAccAWSRDSClusterInstance_basic(t *testing.T) {
 					testAccCheckAWSClusterInstanceExists("aws_rds_cluster_instance.cluster_instances", &v),
 					testAccCheckAWSDBClusterInstanceAttributes(&v),
 					resource.TestCheckResourceAttr("aws_rds_cluster_instance.cluster_instances", "auto_minor_version_upgrade", "false"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRDSClusterInstance_namePrefix(t *testing.T) {
+	var v rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSClusterInstanceConfig_namePrefix(acctest.RandInt()),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSClusterInstanceExists("aws_rds_cluster_instance.test", &v),
+					testAccCheckAWSDBClusterInstanceAttributes(&v),
+					resource.TestMatchResourceAttr(
+						"aws_rds_cluster_instance.test", "identifier", regexp.MustCompile("^tf-cluster-instance-")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRDSClusterInstance_generatedName(t *testing.T) {
+	var v rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSClusterInstanceConfig_generatedName(acctest.RandInt()),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSClusterInstanceExists("aws_rds_cluster_instance.test", &v),
+					testAccCheckAWSDBClusterInstanceAttributes(&v),
+					resource.TestMatchResourceAttr(
+						"aws_rds_cluster_instance.test", "identifier", regexp.MustCompile("^tf-")),
 				),
 			},
 		},
@@ -252,6 +296,83 @@ resource "aws_db_parameter_group" "bar" {
   }
 }
 `, n, n, n)
+}
+
+func testAccAWSClusterInstanceConfig_namePrefix(n int) string {
+	return fmt.Sprintf(`
+resource "aws_rds_cluster_instance" "test" {
+  identifier_prefix = "tf-cluster-instance-"
+  cluster_identifier = "${aws_rds_cluster.test.id}"
+  instance_class = "db.r3.large"
+}
+
+resource "aws_rds_cluster" "test" {
+  cluster_identifier = "tf-aurora-cluster-%d"
+  master_username = "root"
+  master_password = "password"
+  db_subnet_group_name = "${aws_db_subnet_group.test.name}"
+  skip_final_snapshot = true
+}
+
+resource "aws_vpc" "test" {
+  cidr_block = "10.0.0.0/16"
+}
+
+resource "aws_subnet" "a" {
+  vpc_id = "${aws_vpc.test.id}"
+  cidr_block = "10.0.0.0/24"
+  availability_zone = "us-west-2a"
+}
+
+resource "aws_subnet" "b" {
+  vpc_id = "${aws_vpc.test.id}"
+  cidr_block = "10.0.1.0/24"
+  availability_zone = "us-west-2b"
+}
+
+resource "aws_db_subnet_group" "test" {
+  name = "tf-test-%d"
+  subnet_ids = ["${aws_subnet.a.id}", "${aws_subnet.b.id}"]
+}
+`, n, n)
+}
+
+func testAccAWSClusterInstanceConfig_generatedName(n int) string {
+	return fmt.Sprintf(`
+resource "aws_rds_cluster_instance" "test" {
+  cluster_identifier = "${aws_rds_cluster.test.id}"
+  instance_class = "db.r3.large"
+}
+
+resource "aws_rds_cluster" "test" {
+  cluster_identifier = "tf-aurora-cluster-%d"
+  master_username = "root"
+  master_password = "password"
+  db_subnet_group_name = "${aws_db_subnet_group.test.name}"
+  skip_final_snapshot = true
+}
+
+resource "aws_vpc" "test" {
+  cidr_block = "10.0.0.0/16"
+}
+
+resource "aws_subnet" "a" {
+  vpc_id = "${aws_vpc.test.id}"
+  cidr_block = "10.0.0.0/24"
+  availability_zone = "us-west-2a"
+}
+
+resource "aws_subnet" "b" {
+  vpc_id = "${aws_vpc.test.id}"
+  cidr_block = "10.0.1.0/24"
+  availability_zone = "us-west-2b"
+}
+
+resource "aws_db_subnet_group" "test" {
+  name = "tf-test-%d"
+  subnet_ids = ["${aws_subnet.a.id}", "${aws_subnet.b.id}"]
+}
+`, n, n)
 }
 
 func testAccAWSClusterInstanceConfigKmsKey(n int) string {

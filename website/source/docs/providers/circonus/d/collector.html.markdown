@@ -29,7 +29,7 @@ either pulls or has metrics pushed into it and funneled back through Circonus.
 The following example shows how the resource might be used to obtain
 the name of the Circonus Collector configured on the provider.
 
-```
+```hcl
 data "circonus_collector" "ashburn" {
   id = "/broker/1"
 }

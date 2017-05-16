@@ -16,7 +16,7 @@ Note: Lightsail is currently only supported in `us-east-1` region.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new GitLab Lightsail Instance
 resource "aws_lightsail_instance" "gitlab_test" {
   name              = "custom gitlab"

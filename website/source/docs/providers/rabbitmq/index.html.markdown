@@ -18,7 +18,7 @@ Use the navigation to the left to read about the available resources.
 
 The following is a minimal example:
 
-```
+```hcl
 # Configure the RabbitMQ provider
 provider "rabbitmq" {
   endpoint = "http://127.0.0.1"

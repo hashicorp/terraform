@@ -303,7 +303,7 @@ resource "aws_cloudwatch_metric_alarm" "foobar" {
     period = "120"
     statistic = "Average"
     threshold = "80"
-    alarm_description = "This metric monitor ec2 cpu utilization"
+    alarm_description = "This metric monitors ec2 cpu utilization"
 }
 
 resource "aws_route53_health_check" "foo" {

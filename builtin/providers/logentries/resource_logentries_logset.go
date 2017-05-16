@@ -1,8 +1,11 @@
 package logentries
 
 import (
+	"log"
+	"strings"
+
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/logentries/le_goclient"
+	logentries "github.com/logentries/le_goclient"
 )
 
 func resourceLogentriesLogSet() *schema.Resource {
@@ -49,6 +52,11 @@ func resourceLogentriesLogSetRead(d *schema.ResourceData, meta interface{}) erro
 		Key: d.Id(),
 	})
 	if err != nil {
+		if strings.Contains(err.Error(), "No such log set") {
+			log.Printf("Logentries LogSet Not Found - Refreshing from State")
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 

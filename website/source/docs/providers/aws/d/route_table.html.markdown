@@ -19,7 +19,7 @@ the Route Table.
 The following example shows how one might accept a Route Table id as a variable
 and use this data source to obtain the data necessary to create a route.
 
-```
+```hcl
 variable "subnet_id" {}
 
 data "aws_route_table" "selected" {

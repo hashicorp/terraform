@@ -285,8 +285,15 @@ func (c *Config) Validate() error {
 		}
 
 		interp := false
-		fn := func(ast.Node) (interface{}, error) {
-			interp = true
+		fn := func(n ast.Node) (interface{}, error) {
+			// LiteralNode is a literal string (outside of a ${ ... } sequence).
+			// interpolationWalker skips most of these. but in particular it
+			// visits those that have escaped sequences (like $${foo}) as a
+			// signal that *some* processing is required on this string. For
+			// our purposes here though, this is fine and not an interpolation.
+			if _, ok := n.(*ast.LiteralNode); !ok {
+				interp = true
+			}
 			return "", nil
 		}
 
@@ -538,7 +545,7 @@ func (c *Config) Validate() error {
 
 		// Verify provisioners
 		for _, p := range r.Provisioners {
-			// This validation checks that there are now splat variables
+			// This validation checks that there are no splat variables
 			// referencing ourself. This currently is not allowed.
 
 			for _, v := range p.ConnInfo.Variables {
@@ -1010,7 +1017,16 @@ func (v *Variable) ValidateTypeAndDefault() error {
 	// If an explicit type is declared, ensure it is valid
 	if v.DeclaredType != "" {
 		if _, ok := typeStringMap[v.DeclaredType]; !ok {
-			return fmt.Errorf("Variable '%s' must be of type string or map - '%s' is not a valid type", v.Name, v.DeclaredType)
+			validTypes := []string{}
+			for k := range typeStringMap {
+				validTypes = append(validTypes, k)
+			}
+			return fmt.Errorf(
+				"Variable '%s' type must be one of [%s] - '%s' is not a valid type",
+				v.Name,
+				strings.Join(validTypes, ", "),
+				v.DeclaredType,
+			)
 		}
 	}
 

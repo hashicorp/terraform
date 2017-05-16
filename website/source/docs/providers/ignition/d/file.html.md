@@ -14,8 +14,7 @@ Describes a file to be written in a particular filesystem.
 
 File with inline content:
 
-
-```
+```hcl
 data "ignition_file" "hello" {
 	filesystem = "foo"
 	path = "/hello.txt"
@@ -27,7 +26,7 @@ data "ignition_file" "hello" {
 
 File with remote content:
 
-```
+```hcl
 data "ignition_file" "hello" {
 	filesystem = "qux"
 	path = "/hello.txt"

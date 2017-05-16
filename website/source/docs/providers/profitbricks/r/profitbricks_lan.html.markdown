@@ -12,7 +12,7 @@ Manages a LANs on ProfitBricks
 
 ## Example Usage
 
-```
+```hcl
 resource "profitbricks_lan" "example" {
   datacenter_id = "${profitbricks_datacenter.example.id}"
   public        = true

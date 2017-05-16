@@ -5,34 +5,42 @@ import (
 	"testing"
 
 	"github.com/PagerDuty/go-pagerduty"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccPagerDutyServiceIntegration_Basic(t *testing.T) {
+	username := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	email := fmt.Sprintf("%s@foo.com", username)
+	escalationPolicy := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	service := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	serviceIntegration := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	serviceIntegrationUpdated := fmt.Sprintf("tf-%s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyServiceIntegrationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckPagerDutyServiceIntegrationConfig,
+			{
+				Config: testAccCheckPagerDutyServiceIntegrationConfig(username, email, escalationPolicy, service, serviceIntegration),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyServiceIntegrationExists("pagerduty_service_integration.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_service_integration.foo", "name", "foo"),
+						"pagerduty_service_integration.foo", "name", serviceIntegration),
 					resource.TestCheckResourceAttr(
 						"pagerduty_service_integration.foo", "type", "generic_events_api_inbound_integration"),
 					resource.TestCheckResourceAttr(
 						"pagerduty_service_integration.foo", "vendor", "PAM4FGS"),
 				),
 			},
-			resource.TestStep{
-				Config: testAccCheckPagerDutyServiceIntegrationConfigUpdated,
+			{
+				Config: testAccCheckPagerDutyServiceIntegrationConfigUpdated(username, email, escalationPolicy, service, serviceIntegrationUpdated),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyServiceIntegrationExists("pagerduty_service_integration.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_service_integration.foo", "name", "bar"),
+						"pagerduty_service_integration.foo", "name", serviceIntegrationUpdated),
 					resource.TestCheckResourceAttr(
 						"pagerduty_service_integration.foo", "type", "generic_events_api_inbound_integration"),
 					resource.TestCheckResourceAttr(
@@ -44,27 +52,34 @@ func TestAccPagerDutyServiceIntegration_Basic(t *testing.T) {
 }
 
 func TestAccPagerDutyServiceIntegrationGeneric_Basic(t *testing.T) {
+	username := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	email := fmt.Sprintf("%s@foo.com", username)
+	escalationPolicy := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	service := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	serviceIntegration := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	serviceIntegrationUpdated := fmt.Sprintf("tf-%s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyServiceIntegrationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckPagerDutyServiceIntegrationGenericConfig,
+			{
+				Config: testAccCheckPagerDutyServiceIntegrationGenericConfig(username, email, escalationPolicy, service, serviceIntegration),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyServiceIntegrationExists("pagerduty_service_integration.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_service_integration.foo", "name", "foo"),
+						"pagerduty_service_integration.foo", "name", serviceIntegration),
 					resource.TestCheckResourceAttr(
 						"pagerduty_service_integration.foo", "type", "generic_events_api_inbound_integration"),
 				),
 			},
-			resource.TestStep{
-				Config: testAccCheckPagerDutyServiceIntegrationGenericConfigUpdated,
+			{
+				Config: testAccCheckPagerDutyServiceIntegrationGenericConfigUpdated(username, email, escalationPolicy, service, serviceIntegrationUpdated),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyServiceIntegrationExists("pagerduty_service_integration.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_service_integration.foo", "name", "bar"),
+						"pagerduty_service_integration.foo", "name", serviceIntegrationUpdated),
 					resource.TestCheckResourceAttr(
 						"pagerduty_service_integration.foo", "type", "generic_events_api_inbound_integration"),
 				),
@@ -120,14 +135,15 @@ func testAccCheckPagerDutyServiceIntegrationExists(n string) resource.TestCheckF
 	}
 }
 
-const testAccCheckPagerDutyServiceIntegrationConfig = `
+func testAccCheckPagerDutyServiceIntegrationConfig(username, email, escalationPolicy, service, serviceIntegration string) string {
+	return fmt.Sprintf(`
 resource "pagerduty_user" "foo" {
-  name        = "foo"
-  email       = "foo@bar.com"
+  name        = "%s"
+  email       = "%s"
 }
 
 resource "pagerduty_escalation_policy" "foo" {
-  name        = "foo"
+  name        = "%s"
   description = "foo"
   num_loops   = 1
 
@@ -142,7 +158,7 @@ resource "pagerduty_escalation_policy" "foo" {
 }
 
 resource "pagerduty_service" "foo" {
-  name                    = "foo"
+  name                    = "%s"
   description             = "foo"
   auto_resolve_timeout    = 1800
   acknowledgement_timeout = 1800
@@ -159,16 +175,18 @@ data "pagerduty_vendor" "datadog" {
 }
 
 resource "pagerduty_service_integration" "foo" {
-  name    = "foo"
+  name    = "%s"
   service = "${pagerduty_service.foo.id}"
   vendor  = "${data.pagerduty_vendor.datadog.id}"
 }
-`
+`, username, email, escalationPolicy, service, serviceIntegration)
+}
 
-const testAccCheckPagerDutyServiceIntegrationConfigUpdated = `
+func testAccCheckPagerDutyServiceIntegrationConfigUpdated(username, email, escalationPolicy, service, serviceIntegration string) string {
+	return fmt.Sprintf(`
 resource "pagerduty_user" "foo" {
-  name        = "foo"
-  email       = "foo@bar.com"
+  name        = "%s"
+  email       = "%s"
   color       = "green"
   role        = "user"
   job_title   = "foo"
@@ -176,7 +194,7 @@ resource "pagerduty_user" "foo" {
 }
 
 resource "pagerduty_escalation_policy" "foo" {
-  name        = "bar"
+  name        = "%s"
   description = "bar"
   num_loops   = 2
 
@@ -191,7 +209,7 @@ resource "pagerduty_escalation_policy" "foo" {
 }
 
 resource "pagerduty_service" "foo" {
-  name                    = "bar"
+  name                    = "%s"
   description             = "bar"
   auto_resolve_timeout    = 3600
   acknowledgement_timeout = 3600
@@ -208,20 +226,22 @@ data "pagerduty_vendor" "datadog" {
 }
 
 resource "pagerduty_service_integration" "foo" {
-  name    = "bar"
+  name    = "%s"
   service = "${pagerduty_service.foo.id}"
   vendor  = "${data.pagerduty_vendor.datadog.id}"
 }
-`
+`, username, email, escalationPolicy, service, serviceIntegration)
+}
 
-const testAccCheckPagerDutyServiceIntegrationGenericConfig = `
+func testAccCheckPagerDutyServiceIntegrationGenericConfig(username, email, escalationPolicy, service, serviceIntegration string) string {
+	return fmt.Sprintf(`
 resource "pagerduty_user" "foo" {
-  name        = "foo"
-  email       = "foo@bar.com"
+  name        = "%s"
+  email       = "%s"
 }
 
 resource "pagerduty_escalation_policy" "foo" {
-  name        = "foo"
+  name        = "%s"
   description = "foo"
   num_loops   = 1
 
@@ -236,7 +256,7 @@ resource "pagerduty_escalation_policy" "foo" {
 }
 
 resource "pagerduty_service" "foo" {
-  name                    = "foo"
+  name                    = "%s"
   description             = "foo"
   auto_resolve_timeout    = 1800
   acknowledgement_timeout = 1800
@@ -249,16 +269,18 @@ resource "pagerduty_service" "foo" {
 }
 
 resource "pagerduty_service_integration" "foo" {
-  name    = "foo"
+  name    = "%s"
   service = "${pagerduty_service.foo.id}"
   type    = "generic_events_api_inbound_integration"
 }
-`
+`, username, email, escalationPolicy, service, serviceIntegration)
+}
 
-const testAccCheckPagerDutyServiceIntegrationGenericConfigUpdated = `
+func testAccCheckPagerDutyServiceIntegrationGenericConfigUpdated(username, email, escalationPolicy, service, serviceIntegration string) string {
+	return fmt.Sprintf(`
 resource "pagerduty_user" "foo" {
-  name        = "foo"
-  email       = "foo@bar.com"
+  name        = "%s"
+  email       = "%s"
   color       = "green"
   role        = "user"
   job_title   = "foo"
@@ -266,7 +288,7 @@ resource "pagerduty_user" "foo" {
 }
 
 resource "pagerduty_escalation_policy" "foo" {
-  name        = "bar"
+  name        = "%s"
   description = "bar"
   num_loops   = 2
 
@@ -281,7 +303,7 @@ resource "pagerduty_escalation_policy" "foo" {
 }
 
 resource "pagerduty_service" "foo" {
-  name                    = "bar"
+  name                    = "%s"
   description             = "bar"
   auto_resolve_timeout    = 3600
   acknowledgement_timeout = 3600
@@ -294,8 +316,9 @@ resource "pagerduty_service" "foo" {
 }
 
 resource "pagerduty_service_integration" "foo" {
-  name    = "bar"
+  name    = "%s"
   service = "${pagerduty_service.foo.id}"
   type    = "generic_events_api_inbound_integration"
 }
-`
+`, username, email, escalationPolicy, service, serviceIntegration)
+}

@@ -156,6 +156,7 @@ func (s *BaremetalService) AddBaremetalPxeKickStartServer(p *AddBaremetalPxeKick
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -344,6 +345,7 @@ func (s *BaremetalService) AddBaremetalPxePingServer(p *AddBaremetalPxePingServe
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -465,6 +467,7 @@ func (s *BaremetalService) AddBaremetalDhcp(p *AddBaremetalDhcpParams) (*AddBare
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -578,6 +581,7 @@ func (s *BaremetalService) ListBaremetalDhcp(p *ListBaremetalDhcpParams) (*ListB
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -684,6 +688,7 @@ func (s *BaremetalService) ListBaremetalPxeServers(p *ListBaremetalPxeServersPar
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -762,6 +767,7 @@ func (s *BaremetalService) AddBaremetalRct(p *AddBaremetalRctParams) (*AddBareme
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -829,6 +835,7 @@ func (s *BaremetalService) DeleteBaremetalRct(p *DeleteBaremetalRctParams) (*Del
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -904,6 +911,7 @@ func (s *BaremetalService) ListBaremetalRct(p *ListBaremetalRctParams) (*ListBar
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 

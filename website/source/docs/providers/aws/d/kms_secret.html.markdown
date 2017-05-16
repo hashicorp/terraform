@@ -36,7 +36,7 @@ AQECAHgaPa0J8WadplGCqqVAr4HNvDaFSQ+NaiwIBhmm6qDSFwAAAGIwYAYJKoZIhvcNAQcGoFMwUQIB
 
 Now, take that output and add it to your resource definitions.
 
-```
+```hcl
 data "aws_kms_secret" "db" {
   secret {
     name    = "master_password"

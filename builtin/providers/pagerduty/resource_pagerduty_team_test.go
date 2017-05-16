@@ -5,32 +5,36 @@ import (
 	"testing"
 
 	"github.com/PagerDuty/go-pagerduty"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccPagerDutyTeam_Basic(t *testing.T) {
+	team := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	teamUpdated := fmt.Sprintf("tf-%s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyTeamDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckPagerDutyTeamConfig,
+			{
+				Config: testAccCheckPagerDutyTeamConfig(team),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyTeamExists("pagerduty_team.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_team.foo", "name", "foo"),
+						"pagerduty_team.foo", "name", team),
 					resource.TestCheckResourceAttr(
 						"pagerduty_team.foo", "description", "foo"),
 				),
 			},
-			resource.TestStep{
-				Config: testAccCheckPagerDutyTeamConfigUpdated,
+			{
+				Config: testAccCheckPagerDutyTeamConfigUpdated(teamUpdated),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyTeamExists("pagerduty_team.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_team.foo", "name", "bar"),
+						"pagerduty_team.foo", "name", teamUpdated),
 					resource.TestCheckResourceAttr(
 						"pagerduty_team.foo", "description", "bar"),
 				),
@@ -68,16 +72,18 @@ func testAccCheckPagerDutyTeamExists(n string) resource.TestCheckFunc {
 	}
 }
 
-const testAccCheckPagerDutyTeamConfig = `
+func testAccCheckPagerDutyTeamConfig(team string) string {
+	return fmt.Sprintf(`
 resource "pagerduty_team" "foo" {
-  name        = "foo"
+  name        = "%s"
   description = "foo"
+}`, team)
 }
-`
 
-const testAccCheckPagerDutyTeamConfigUpdated = `
+func testAccCheckPagerDutyTeamConfigUpdated(team string) string {
+	return fmt.Sprintf(`
 resource "pagerduty_team" "foo" {
-  name        = "bar"
+  name        = "%s"
   description = "bar"
+}`, team)
 }
-`

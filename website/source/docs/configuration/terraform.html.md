@@ -19,9 +19,9 @@ already.
 
 Terraform configuration looks like the following:
 
-```
+```hcl
 terraform {
-    required_version = "> 0.7.0"
+  required_version = "> 0.7.0"
 }
 ```
 
@@ -55,12 +55,15 @@ The value of this configuration is a comma-separated list of constraints.
 A constraint is an operator followed by a version, such as `> 0.7.0`.
 Constraints support the following operations:
 
-  * `=` (or no operator): exact version equality
-  * `!=`: version not equal
-  * `>`, `>=`, `<`, `<=`: version comparison, where "greater than" is
-    a larger version number.
-  * `~>`: pessimistic constraint operator. Example: for `~> 0.9`, this means
-    `>= 0.9, < 1.0`. Example: for `~> 0.8.4`, this means `>= 0.8.4, < 0.9`
+- `=` (or no operator): exact version equality
+
+- `!=`: version not equal
+
+- `>`, `>=`, `<`, `<=`: version comparison, where "greater than" is a larger
+  version number
+
+- `~>`: pessimistic constraint operator. Example: for `~> 0.9`, this means
+  `>= 0.9, < 1.0`. Example: for `~> 0.8.4`, this means `>= 0.8.4, < 0.9`
 
 For modules, a minimum version is recommended, such as `> 0.8.0`. This
 minimum version ensures that a module operates as expected, but gives
@@ -70,8 +73,8 @@ the consumer flexibility to use newer versions.
 
 The full syntax is:
 
-```
+```text
 terraform {
-    required_version = VALUE
+  required_version = VALUE
 }
 ```

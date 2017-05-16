@@ -678,9 +678,11 @@ func testAccCheckComputeV2InstanceDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, err := servers.Get(computeClient, rs.Primary.ID).Extract()
+		server, err := servers.Get(computeClient, rs.Primary.ID).Extract()
 		if err == nil {
-			return fmt.Errorf("Instance still exists")
+			if server.Status != "SOFT_DELETED" {
+				return fmt.Errorf("Instance still exists")
+			}
 		}
 	}
 

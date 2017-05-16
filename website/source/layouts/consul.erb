@@ -1,38 +1,38 @@
 <% wrap_layout :inner do %>
-	<% content_for :sidebar do %>
-		<div class="docs-sidebar hidden-print affix-top" role="complementary">
-			<ul class="nav docs-sidenav">
-				<li<%= sidebar_current("docs-home") %>>
-				<a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+        <a href="/docs/providers/index.html">All Providers</a>
                 </li>
 
-				<li<%= sidebar_current("docs-consul-index") %>>
-				<a href="/docs/providers/consul/index.html">Consul Provider</a>
+        <li<%= sidebar_current("docs-consul-index") %>>
+        <a href="/docs/providers/consul/index.html">Consul Provider</a>
                 </li>
 
-				<li<%= sidebar_current(/^docs-consul-data-source/) %>>
-				<a href="#">Data Sources</a>
+        <li<%= sidebar_current("docs-consul-data-source") %>>
+        <a href="#">Data Sources</a>
                 <ul class="nav nav-visible">
                   <li<%= sidebar_current("docs-consul-data-source-agent-self") %>>
-		    <a href="/docs/providers/consul/d/agent_self.html">consul_agent_self</a>
-		  </li>
+        <a href="/docs/providers/consul/d/agent_self.html">consul_agent_self</a>
+      </li>
                   <li<%= sidebar_current("docs-consul-data-source-catalog-nodes") %>>
-		    <a href="/docs/providers/consul/d/nodes.html">consul_catalog_nodes</a>
-		  </li>
+        <a href="/docs/providers/consul/d/nodes.html">consul_catalog_nodes</a>
+      </li>
                   <li<%= sidebar_current("docs-consul-data-source-catalog-service") %>>
-		    <a href="/docs/providers/consul/d/service.html">consul_catalog_service</a>
-		  </li>
+        <a href="/docs/providers/consul/d/service.html">consul_catalog_service</a>
+      </li>
                   <li<%= sidebar_current("docs-consul-data-source-catalog-services") %>>
-		    <a href="/docs/providers/consul/d/services.html">consul_catalog_services</a>
-		  </li>
+        <a href="/docs/providers/consul/d/services.html">consul_catalog_services</a>
+      </li>
                   <li<%= sidebar_current("docs-consul-data-source-keys") %>>
-		    <a href="/docs/providers/consul/d/keys.html">consul_keys</a>
-		  </li>
-		</ul>
-				</li>
+        <a href="/docs/providers/consul/d/keys.html">consul_keys</a>
+      </li>
+    </ul>
+        </li>
 
-				<li<%= sidebar_current(/^docs-consul-resource/) %>>
-				<a href="#">Resources</a>
+        <li<%= sidebar_current("docs-consul-resource") %>>
+        <a href="#">Resources</a>
                 <ul class="nav nav-visible">
                   <li<%= sidebar_current("docs-consul-resource-agent-service") %>>
                     <a href="/docs/providers/consul/r/agent_service.html">consul_agent_service</a>
@@ -41,26 +41,26 @@
                     <a href="/docs/providers/consul/r/catalog_entry.html">consul_catalog_entry</a>
                   </li>
                     <li<%= sidebar_current("docs-consul-resource-keys") %>>
-					<a href="/docs/providers/consul/r/keys.html">consul_keys</a>
-					</li>
+          <a href="/docs/providers/consul/r/keys.html">consul_keys</a>
+          </li>
                     <li<%= sidebar_current("docs-consul-resource-key-prefix") %>>
-					<a href="/docs/providers/consul/r/key_prefix.html">consul_key_prefix</a>
-					</li>
+          <a href="/docs/providers/consul/r/key_prefix.html">consul_key_prefix</a>
+          </li>
                   <li<%= sidebar_current("docs-consul-resource-node") %>>
                     <a href="/docs/providers/consul/r/node.html">consul_node</a>
                   </li>
-									<li<%= sidebar_current("docs-consul-resource-prepared-query") %>>
-				<a href="/docs/providers/consul/r/prepared_query.html">consul_prepared_query</a>
-				</li>
+                  <li<%= sidebar_current("docs-consul-resource-prepared-query") %>>
+        <a href="/docs/providers/consul/r/prepared_query.html">consul_prepared_query</a>
+        </li>
                   <li<%= sidebar_current("docs-consul-resource-service") %>>
                     <a href="/docs/providers/consul/r/service.html">consul_service</a>
                   </li>
 
-				</ul>
-				</li>
-			</ul>
-		</div>
-	<% end %>
+        </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
 
-	<%= yield %>
-	<% end %>
+  <%= yield %>
+  <% end %>

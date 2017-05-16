@@ -160,6 +160,7 @@ func (s *UserService) CreateUser(p *CreateUserParams) (*CreateUserResponse, erro
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -226,6 +227,7 @@ func (s *UserService) DeleteUser(p *DeleteUserParams) (*DeleteUserResponse, erro
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -365,6 +367,7 @@ func (s *UserService) UpdateUser(p *UpdateUserParams) (*UpdateUserResponse, erro
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -578,6 +581,7 @@ func (s *UserService) ListUsers(p *ListUsersParams) (*ListUsersResponse, error) 
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -649,6 +653,7 @@ func (s *UserService) LockUser(p *LockUserParams) (*LockUserResponse, error) {
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -735,6 +740,7 @@ func (s *UserService) DisableUser(p *DisableUserParams) (*DisableUserResponse, e
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -802,6 +808,7 @@ func (s *UserService) EnableUser(p *EnableUserParams) (*EnableUserResponse, erro
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -868,6 +875,7 @@ func (s *UserService) GetUser(p *GetUserParams) (*GetUserResponse, error) {
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -934,6 +942,7 @@ func (s *UserService) GetVirtualMachineUserData(p *GetVirtualMachineUserDataPara
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -985,6 +994,7 @@ func (s *UserService) RegisterUserKeys(p *RegisterUserKeysParams) (*RegisterUser
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1070,6 +1080,7 @@ func (s *UserService) ListLdapUsers(p *ListLdapUsersParams) (*ListLdapUsersRespo
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1226,6 +1237,7 @@ func (s *UserService) ImportLdapUsers(p *ImportLdapUsersParams) (*ImportLdapUser
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 

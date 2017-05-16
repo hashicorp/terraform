@@ -19,45 +19,36 @@ func resourceScalewayServer() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"image": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-			"type": &schema.Schema{
+			"image": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"bootscript": &schema.Schema{
+			"type": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+			"bootscript": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"tags": &schema.Schema{
+			"tags": {
 				Type: schema.TypeList,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 				Optional: true,
 			},
-			"enable_ipv6": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-			},
-			"dynamic_ip_required": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
-			"security_group": &schema.Schema{
+			"security_group": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"volume": &schema.Schema{
+			"volume": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
@@ -68,36 +59,46 @@ func resourceScalewayServer() *schema.Resource {
 							Required:     true,
 							ValidateFunc: validateVolumeSize,
 						},
-						"type": &schema.Schema{
+						"type": {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validateVolumeType,
 						},
-						"volume_id": &schema.Schema{
+						"volume_id": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
 					},
 				},
 			},
-			"private_ip": &schema.Schema{
+			"enable_ipv6": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"dynamic_ip_required": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"private_ip": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"public_ip": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"public_ipv6": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"state": &schema.Schema{
+			"public_ip": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"state_detail": &schema.Schema{
+			"public_ipv6": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"state": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+			"state_detail": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -168,6 +169,22 @@ func resourceScalewayServerCreate(d *schema.ResourceData, m interface{}) error {
 		}
 
 		err = waitForServerState(scaleway, id, "running")
+
+		if v, ok := d.GetOk("public_ip"); ok {
+			if ips, err := scaleway.GetIPS(); err != nil {
+				return err
+			} else {
+				for _, ip := range ips.IPS {
+					if ip.Address == v.(string) {
+						log.Printf("[DEBUG] Attaching IP %q to server %q\n", ip.ID, d.Id())
+						if err := scaleway.AttachIP(ip.ID, d.Id()); err != nil {
+							return err
+						}
+						break
+					}
+				}
+			}
+		}
 	}
 
 	if err != nil {
@@ -255,6 +272,34 @@ func resourceScalewayServerUpdate(d *schema.ResourceData, m interface{}) error {
 
 	if err := scaleway.PatchServer(d.Id(), req); err != nil {
 		return fmt.Errorf("Failed patching scaleway server: %q", err)
+	}
+
+	if d.HasChange("public_ip") {
+		ips, err := scaleway.GetIPS()
+		if err != nil {
+			return err
+		}
+		if v, ok := d.GetOk("public_ip"); ok {
+			for _, ip := range ips.IPS {
+				if ip.Address == v.(string) {
+					log.Printf("[DEBUG] Attaching IP %q to server %q\n", ip.ID, d.Id())
+					if err := scaleway.AttachIP(ip.ID, d.Id()); err != nil {
+						return err
+					}
+					break
+				}
+			}
+		} else {
+			for _, ip := range ips.IPS {
+				if ip.Server != nil && ip.Server.Identifier == d.Id() {
+					log.Printf("[DEBUG] Detaching IP %q to server %q\n", ip.ID, d.Id())
+					if err := scaleway.DetachIP(ip.ID); err != nil {
+						return err
+					}
+					break
+				}
+			}
+		}
 	}
 
 	return resourceScalewayServerRead(d, m)

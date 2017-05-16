@@ -12,7 +12,7 @@ Provides a resource to create a new launch configuration, used for autoscaling g
 
 ## Example Usage
 
-```
+```hcl
 data "aws_ami" "ubuntu" {
   most_recent = true
 
@@ -46,7 +46,7 @@ it's recommended to specify `create_before_destroy` in a [lifecycle][2] block.
 Either omit the Launch Configuration `name` attribute, or specify a partial name
 with `name_prefix`.  Example:
 
-```
+```hcl
 data "aws_ami" "ubuntu" {
   most_recent = true
 
@@ -76,6 +76,8 @@ resource "aws_launch_configuration" "as_conf" {
 resource "aws_autoscaling_group" "bar" {
   name                 = "terraform-asg-example"
   launch_configuration = "${aws_launch_configuration.as_conf.name}"
+  min_size             = 1
+  max_size             = 2
 
   lifecycle {
     create_before_destroy = true
@@ -96,7 +98,7 @@ reserve your instances at this price.  See the [AWS Spot Instance
 documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-spot-instances.html)
 for more information or how to launch [Spot Instances][3] with Terraform.
 
-```
+```hcl
 data "aws_ami" "ubuntu" {
   most_recent = true
 

@@ -88,7 +88,7 @@ state is treated as the record of truth.
 
 ## Syncing
 
-The primary motivation people have to remove state files is in an attempt
+The primary motivation people have for using remote state files is in an attempt
 to improve using Terraform with teams. State files can easily result in
 conflicts when two people modify infrastructure at the same time.
 

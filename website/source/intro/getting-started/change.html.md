@@ -26,7 +26,7 @@ can see how the infrastructure evolved over time.
 Let's modify the `ami` of our instance. Edit the `aws_instance.example`
 resource in your configuration and change it to the following:
 
-```
+```hcl
 resource "aws_instance" "example" {
   ami           = "ami-b374d5a5"
   instance_type = "t2.micro"
@@ -46,7 +46,7 @@ Let's see what Terraform will do with the change we made.
 
 ```
 $ terraform plan
-...
+# ...
 
 -/+ aws_instance.example
     ami:                      "ami-2757f631" => "ami-b374d5a5" (forces new resource)
@@ -110,7 +110,7 @@ aws_instance.example: Creation complete
 
 Apply complete! Resources: 1 added, 0 changed, 1 destroyed.
 
-...
+# ...
 ```
 
 As the plan predicted, Terraform started by destroying our old

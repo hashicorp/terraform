@@ -24,6 +24,21 @@ func RandInt() int {
 	return rand.New(rand.NewSource(time.Now().UnixNano())).Int()
 }
 
+// RandomWithPrefix is used to generate a unique name with a prefix, for
+// randomizing names in acceptance tests
+func RandomWithPrefix(name string) string {
+	reseed()
+	return fmt.Sprintf("%s-%d", name, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+}
+
+func RandIntRange(min int, max int) int {
+	reseed()
+	source := rand.New(rand.NewSource(time.Now().UnixNano()))
+	rangeMax := max - min
+
+	return int(source.Int31n(int32(rangeMax)))
+}
+
 // RandString generates a random alphanumeric string of the length specified
 func RandString(strlen int) string {
 	return RandStringFromCharSet(strlen, CharSetAlphaNum)

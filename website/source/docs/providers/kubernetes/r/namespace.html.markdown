@@ -13,16 +13,18 @@ Read more about namespaces at https://kubernetes.io/docs/user-guide/namespaces/
 
 ## Example Usage
 
-```
+```hcl
 resource "kubernetes_namespace" "example" {
   metadata {
     annotations {
       name = "example-annotation"
     }
+
     labels {
       mylabel = "label-value"
     }
-    name = "TerraformExampleNamespace"
+
+    name = "terraform-example-namespace"
   }
 }
 
@@ -57,5 +59,5 @@ The following arguments are supported:
 Namespaces can be imported using their name, e.g.
 
 ```
-$ terraform import kubernetes_namespace.n TerraformExampleNamespace
+$ terraform import kubernetes_namespace.n terraform-example-namespace
 ```

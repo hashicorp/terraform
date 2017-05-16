@@ -6,7 +6,7 @@ description: |-
   Manages a job registered in Nomad.
 ---
 
-# nomad\_job
+# nomad_job
 
 Manages a job registered in Nomad.
 
@@ -21,7 +21,7 @@ type of job, but can be used to manage any job within Nomad.
 
 Registering a job from a jobspec file:
 
-```
+```hcl
 resource "nomad_job" "app" {
   jobspec = "${file("${path.module}/job.hcl")}"
 }
@@ -33,31 +33,31 @@ be paired with something such as the
 [template_file](https://www.terraform.io/docs/providers/template/d/file.html)
 resource to render parameterized jobspecs.
 
-```
+```hcl
 resource "nomad_job" "app" {
   jobspec = <<EOT
 job "foo" {
-    datacenters = ["dc1"]
-    type = "service"
-    group "foo" {
-        task "foo" {
-            driver = "raw_exec"
-            config {
-                command = "/bin/sleep"
-                args = ["1"]
-            }
+  datacenters = ["dc1"]
+  type = "service"
+  group "foo" {
+    task "foo" {
+      driver = "raw_exec"
+      config {
+        command = "/bin/sleep"
+        args = ["1"]
+      }
 
-            resources {
-                cpu = 20
-                memory = 10
-            }
+      resources {
+        cpu = 20
+        memory = 10
+      }
 
-            logs {
-                max_files = 3
-                max_file_size = 10
-            }
-        }
+      logs {
+        max_files = 3
+        max_file_size = 10
+      }
     }
+  }
 }
 EOT
 }

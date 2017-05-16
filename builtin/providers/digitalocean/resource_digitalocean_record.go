@@ -132,16 +132,11 @@ func resourceDigitalOceanRecordRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	// Update response data for records with domain value
 	if t := rec.Type; t == "CNAME" || t == "MX" || t == "NS" || t == "SRV" {
-		// Append dot to response if resource value is absolute
-		if value := d.Get("value").(string); strings.HasSuffix(value, ".") {
-			rec.Data += "."
-			// If resource value ends with current domain, make response data absolute
-			if strings.HasSuffix(value, domain+".") {
-				rec.Data += domain + "."
-			}
+		if rec.Data == "@" {
+			rec.Data = domain
 		}
+		rec.Data += "."
 	}
 
 	d.Set("name", rec.Name)

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/service/ses"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -42,7 +43,7 @@ func testAccCheckSESConfigurationSetDestroy(s *terraform.State) error {
 
 		found := false
 		for _, element := range response.ConfigurationSets {
-			if *element.Name == "some-configuration-set" {
+			if *element.Name == fmt.Sprintf("some-configuration-set-%d", escRandomInteger) {
 				found = true
 			}
 		}
@@ -77,7 +78,7 @@ func testAccCheckAwsSESConfigurationSetExists(n string) resource.TestCheckFunc {
 
 		found := false
 		for _, element := range response.ConfigurationSets {
-			if *element.Name == "some-configuration-set" {
+			if *element.Name == fmt.Sprintf("some-configuration-set-%d", escRandomInteger) {
 				found = true
 			}
 		}
@@ -90,8 +91,9 @@ func testAccCheckAwsSESConfigurationSetExists(n string) resource.TestCheckFunc {
 	}
 }
 
-const testAccAWSSESConfigurationSetConfig = `
+var escRandomInteger = acctest.RandInt()
+var testAccAWSSESConfigurationSetConfig = fmt.Sprintf(`
 resource "aws_ses_configuration_set" "test" {
-    name = "some-configuration-set"
+    name = "some-configuration-set-%d"
 }
-`
+`, escRandomInteger)

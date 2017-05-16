@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/circonus-labs/circonus-gometrics/api"
-	"github.com/circonus-labs/circonus-gometrics/api/config"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -85,9 +84,8 @@ func resourceMetricCluster() *schema.Resource {
 
 			// Out parameters
 			metricClusterIDAttr: &schema.Schema{
-				Computed:     true,
-				Type:         schema.TypeString,
-				ValidateFunc: validateRegexp(metricClusterIDAttr, config.MetricClusterCIDRegex),
+				Computed: true,
+				Type:     schema.TypeString,
 			},
 		}),
 	}

@@ -17,9 +17,8 @@ be able to do this.
 
 Using `terraform import` is simple. An example is shown below:
 
-```
+```shell
 $ terraform import aws_instance.bar i-abcd1234
-...
 ```
 
 The above command imports an AWS instance with the given ID to the

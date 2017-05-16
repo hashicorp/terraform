@@ -13,7 +13,7 @@ Compute (Nova) v2 API.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_blockstorage_volume_v2" "volume_1" {
   name = "volume_1"
   size = 1
