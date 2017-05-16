@@ -6,7 +6,6 @@ import (
 
 	"log"
 
-	"github.com/denverdino/aliyungo/common"
 	"github.com/denverdino/aliyungo/ecs"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -582,8 +581,7 @@ func testAccCheckInstanceExistsWithProviders(n string, i *ecs.InstanceAttributes
 			}
 
 			// Verify the error is what we want
-			e, _ := err.(*common.Error)
-			if e.ErrorResponse.Message == InstanceNotfound {
+			if NotFoundError(err) {
 				continue
 			}
 			if err != nil {
@@ -631,8 +629,7 @@ func testAccCheckInstanceDestroyWithProvider(s *terraform.State, provider *schem
 		}
 
 		// Verify the error is what we want
-		e, _ := err.(*common.Error)
-		if e.ErrorResponse.Message == InstanceNotfound {
+		if NotFoundError(err) {
 			continue
 		}
 
@@ -940,7 +937,7 @@ resource "alicloud_instance" "foo" {
 	# cn-beijing
 	image_id = "ubuntu_140405_32_40G_cloudinit_20161115.vhd"
 
-	instance_type = "ecs.s2.large"
+	instance_type = "ecs.n2.small"
 	internet_charge_type = "PayByBandwidth"
 	security_groups = ["${alicloud_security_group.tf_test_foo.*.id}"]
 	instance_name = "test_foo"

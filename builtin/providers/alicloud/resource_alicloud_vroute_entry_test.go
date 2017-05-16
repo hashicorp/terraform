@@ -110,12 +110,8 @@ func testAccCheckRouteEntryDestroy(s *terraform.State) error {
 		if re != nil {
 			return fmt.Errorf("Error Route Entry still exist")
 		}
-
 		// Verify the error is what we want
-		if err != nil {
-			if notFoundError(err) {
-				return nil
-			}
+		if err != nil && !NotFoundError(err) {
 			return err
 		}
 	}

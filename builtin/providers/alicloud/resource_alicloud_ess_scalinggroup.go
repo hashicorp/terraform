@@ -88,7 +88,7 @@ func resourceAliyunEssScalingGroupRead(d *schema.ResourceData, meta interface{})
 
 	scaling, err := client.DescribeScalingGroupById(d.Id())
 	if err != nil {
-		if e, ok := err.(*common.Error); ok && e.Code == InstanceNotfound {
+		if NotFoundError(err) {
 			d.SetId("")
 			return nil
 		}
@@ -156,7 +156,7 @@ func resourceAliyunEssScalingGroupDelete(d *schema.ResourceData, meta interface{
 
 		_, err = client.DescribeScalingGroupById(d.Id())
 		if err != nil {
-			if notFoundError(err) {
+			if NotFoundError(err) {
 				return nil
 			}
 			return resource.NonRetryableError(err)

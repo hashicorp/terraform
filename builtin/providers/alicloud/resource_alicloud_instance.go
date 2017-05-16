@@ -194,8 +194,8 @@ func resourceAliyunInstanceCreate(d *schema.ResourceData, meta interface{}) erro
 
 	// after instance created, its status is pending,
 	// so we need to wait it become to stopped and then start it
-	if err := conn.WaitForInstance(d.Id(), ecs.Stopped, defaultTimeout); err != nil {
-		log.Printf("[DEBUG] WaitForInstance %s got error: %#v", ecs.Stopped, err)
+	if err := conn.WaitForInstanceAsyn(d.Id(), ecs.Stopped, defaultTimeout); err != nil {
+		return fmt.Errorf("WaitForInstance %s got error: %#v", ecs.Stopped, err)
 	}
 
 	if err := allocateIpAndBandWidthRelative(d, meta); err != nil {
@@ -206,8 +206,8 @@ func resourceAliyunInstanceCreate(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("Start instance got error: %#v", err)
 	}
 
-	if err := conn.WaitForInstance(d.Id(), ecs.Running, defaultTimeout); err != nil {
-		log.Printf("[DEBUG] WaitForInstance %s got error: %#v", ecs.Running, err)
+	if err := conn.WaitForInstanceAsyn(d.Id(), ecs.Running, defaultTimeout); err != nil {
+		return fmt.Errorf("WaitForInstance %s got error: %#v", ecs.Running, err)
 	}
 
 	return resourceAliyunInstanceUpdate(d, meta)
@@ -250,7 +250,7 @@ func resourceAliyunRunInstance(d *schema.ResourceData, meta interface{}) error {
 
 	// after instance created, its status change from pending, starting to running
 	if err := conn.WaitForInstanceAsyn(d.Id(), ecs.Running, defaultTimeout); err != nil {
-		log.Printf("[DEBUG] WaitForInstance %s got error: %#v", ecs.Running, err)
+		return fmt.Errorf("WaitForInstance %s got error: %#v", ecs.Running, err)
 	}
 
 	if err := allocateIpAndBandWidthRelative(d, meta); err != nil {
@@ -258,7 +258,7 @@ func resourceAliyunRunInstance(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if err := conn.WaitForInstanceAsyn(d.Id(), ecs.Running, defaultTimeout); err != nil {
-		log.Printf("[DEBUG] WaitForInstance %s got error: %#v", ecs.Running, err)
+		return fmt.Errorf("WaitForInstance %s got error: %#v", ecs.Running, err)
 	}
 
 	return resourceAliyunInstanceUpdate(d, meta)
@@ -271,7 +271,7 @@ func resourceAliyunInstanceRead(d *schema.ResourceData, meta interface{}) error 
 	instance, err := client.QueryInstancesById(d.Id())
 
 	if err != nil {
-		if notFoundError(err) {
+		if NotFoundError(err) {
 			d.SetId("")
 			return nil
 		}
@@ -281,7 +281,7 @@ func resourceAliyunInstanceRead(d *schema.ResourceData, meta interface{}) error 
 	disk, diskErr := client.QueryInstanceSystemDisk(d.Id())
 
 	if diskErr != nil {
-		if notFoundError(diskErr) {
+		if NotFoundError(diskErr) {
 			d.SetId("")
 			return nil
 		}
@@ -349,7 +349,6 @@ func resourceAliyunInstanceRead(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceAliyunInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
-
 	client := meta.(*AliyunClient)
 	conn := client.ecsconn
 
@@ -524,7 +523,7 @@ func resourceAliyunInstanceDelete(d *schema.ResourceData, meta interface{}) erro
 	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 		instance, err := client.QueryInstancesById(d.Id())
 		if err != nil {
-			if notFoundError(err) {
+			if NotFoundError(err) {
 				return nil
 			}
 		}

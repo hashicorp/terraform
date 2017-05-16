@@ -158,18 +158,16 @@ func testAccCheckNatGatewayDestroy(s *terraform.State) error {
 
 		// Try to find the Nat gateway
 		instance, err := client.DescribeNatGateway(rs.Primary.ID)
-
 		if instance != nil {
 			return fmt.Errorf("Nat gateway still exist")
 		}
 
-		if err != nil {
-			// Verify the error is what we want
-			e, _ := err.(*common.Error)
-
-			if !notFoundError(e) {
-				return err
+		if err != nil && !NotFoundError(err) {
+			if e, ok := err.(*common.Error); ok && (e.Code == AliyunGoClientFailure || e.StatusCode == -1) {
+				return nil
 			}
+			// Verify the error is what we want
+			return err
 		}
 
 	}

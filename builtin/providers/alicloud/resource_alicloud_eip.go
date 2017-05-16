@@ -74,7 +74,7 @@ func resourceAliyunEipRead(d *schema.ResourceData, meta interface{}) error {
 
 	eip, err := client.DescribeEipAddress(d.Id())
 	if err != nil {
-		if notFoundError(err) {
+		if NotFoundError(err) {
 			d.SetId("")
 			return nil
 		}

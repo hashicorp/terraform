@@ -472,6 +472,42 @@ func (client *Client) WaitForListener(loadBalancerId string, port int, listenerT
 	return response.Status, nil
 }
 
+// WaitForListener waits for listener to given status
+func (client *Client) WaitForListenerAsyn(loadBalancerId string, port int, listenerType ListenerType, status ListenerStatus, timeout int) error {
+	if timeout <= 0 {
+		timeout = DefaultTimeout
+	}
+
+	args := &CommonLoadBalancerListenerArgs{
+		LoadBalancerId: loadBalancerId,
+		ListenerPort:   port,
+	}
+
+	method := fmt.Sprintf("DescribeLoadBalancer%sListenerAttribute", listenerType)
+	response := &DescribeLoadBalancerListenerAttributeResponse{}
+
+	for {
+		err := client.Invoke(method, args, response)
+		e, _ := err.(*common.Error)
+		if e != nil {
+			if e.StatusCode == 404 || e.Code == "InvalidLoadBalancerId.NotFound" {
+				continue
+			}
+			return err
+		} else if response != nil && response.Status == status {
+			//TODO
+			break
+		}
+		timeout = timeout - DefaultWaitForInterval
+		if timeout <= 0 {
+			return common.GetClientErrorFromString("Timeout")
+		}
+		time.Sleep(DefaultWaitForInterval * time.Second)
+
+	}
+	return nil
+}
+
 type DescribeListenerAccessControlAttributeResponse struct {
 	common.Response
 	AccessControlStatus AccessControlStatus
