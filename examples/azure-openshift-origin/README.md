@@ -20,9 +20,9 @@ If you have a Red Hat subscription and would like to deploy an OpenShift Contain
 
 ### Generate SSH Keys
 
-You'll need to generate a pair of SSH keys in order to provision this template. Ensure that you do not include a passcode with the private key. <br/>
+You'll need to generate an SSH key pair in order to provision this template. Ensure that you do not include a passcode with the private key. <br/>
 If you are using a Windows computer, you can download `puttygen.exe`.  You will need to export to OpenSSH (from Conversions menu) to get a valid Private Key for use in the Template.<br/>
-From a Linux or Mac, you can just use the `ssh-keygen` command.
+From a Linux or Mac, you can just use the `ssh-keygen` command. Once you are finished deploying the cluster, you can always generate a new key pair that uses a passphrase and replaces the original one used during initial deployment.
 
 ### Create Key Vault to store SSH Private Key
 
