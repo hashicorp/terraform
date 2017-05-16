@@ -105,11 +105,10 @@ func resourceSqlUserRead(d *schema.ResourceData, meta interface{}) error {
 
 	instanceAndName := strings.SplitN(d.Id(), ".", 2)
 	if len(instanceAndName) != 2 {
-		return errors.New(
-			fmt.Sprintf(
+		return fmt.Errorf(
 				"Wrong number of arguments when specifying imported id. Expected: 2.  Saw: %d. Expected Input: $INSTANCENAME.$SQLUSERNAME Input: %s",
 				len(instanceAndName),
-				d.Id()))
+				d.Id())
 	}
 
 	instance := instanceAndName[0]
