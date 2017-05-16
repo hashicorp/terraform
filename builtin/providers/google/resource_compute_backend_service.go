@@ -139,6 +139,21 @@ func resourceComputeBackendService() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+
+			"connection_draining": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"draining_timeout_sec": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							Default:  0,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -183,6 +198,10 @@ func resourceComputeBackendServiceCreate(d *schema.ResourceData, meta interface{
 
 	if v, ok := d.GetOk("enable_cdn"); ok {
 		service.EnableCDN = v.(bool)
+	}
+
+	if v, ok := d.GetOk("connection_draining"); ok {
+		service.ConnectionDraining = expandConnectionDraining(v.(*schema.Set).List())
 	}
 
 	project, err := getProject(d, config)
@@ -237,6 +256,20 @@ func resourceComputeBackendServiceRead(d *schema.ResourceData, meta interface{})
 	d.Set("self_link", service.SelfLink)
 
 	d.Set("backend", flattenBackends(service.Backends))
+
+	_, schemaHasConnectionDrainingBlock := d.GetOk("connection_draining")
+	d.Set("connection_draining", flattenConnectionDraining(service.ConnectionDraining))
+
+	// connection_draining block exists and is empty or timeout is set to 0 and we are not importing
+	if _, ok := d.GetOk("connection_draining"); !ok && schemaHasConnectionDrainingBlock {
+		// add a dummy block so that we do not see possible changes indefinitely
+		connection_draining_block_set := make([]map[string]interface{}, 0, 1)
+		connection_draining_block := make(map[string]interface{})
+		connection_draining_block["draining_timeout_sec"] = 0
+		connection_draining_block_set = append(connection_draining_block_set, connection_draining_block)
+		d.Set("connection_draining", connection_draining_block_set)
+	}
+
 	d.Set("health_checks", service.HealthChecks)
 
 	return nil
@@ -277,6 +310,15 @@ func resourceComputeBackendServiceUpdate(d *schema.ResourceData, meta interface{
 	}
 	if v, ok := d.GetOk("timeout_sec"); ok {
 		service.TimeoutSec = int64(v.(int))
+	}
+
+	if v, ok := d.GetOk("connection_draining"); ok {
+		service.ConnectionDraining = expandConnectionDraining(v.(*schema.Set).List())
+	} else if d.HasChange("connection_draining") {
+		// the draining_timeout_sec value has been modified manually but there is no entry in the .tf file
+		service.ConnectionDraining = &compute.ConnectionDraining{
+			DrainingTimeoutSec: 0,
+		}
 	}
 
 	if d.HasChange("session_affinity") {
@@ -380,6 +422,28 @@ func flattenBackends(backends []*compute.Backend) []map[string]interface{} {
 		result = append(result, data)
 	}
 
+	return result
+}
+
+func expandConnectionDraining(n []interface{}) *compute.ConnectionDraining {
+	connectionDraining := compute.ConnectionDraining{}
+	d := n[0].(map[string]interface{})
+	if v, ok := d["draining_timeout_sec"]; ok {
+		connectionDraining.DrainingTimeoutSec = int64(v.(int))
+	}
+
+	return &connectionDraining
+}
+
+func flattenConnectionDraining(connectionDraining *compute.ConnectionDraining) []map[string]interface{} {
+	if connectionDraining.DrainingTimeoutSec == 0 {
+		return make([]map[string]interface{}, 0, 0)
+	}
+
+	result := make([]map[string]interface{}, 0, 1)
+	data := make(map[string]interface{})
+	data["draining_timeout_sec"] = connectionDraining.DrainingTimeoutSec
+	result = append(result, data)
 	return result
 }
 
