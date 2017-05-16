@@ -1,13 +1,11 @@
 package google
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
-
 	"google.golang.org/api/sqladmin/v1beta4"
 )
 
@@ -20,6 +18,9 @@ func resourceSqlUser() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
+
+		SchemaVersion: 1,
+		MigrateState:  resourceSqlUserMigrateState,
 
 		Schema: map[string]*schema.Schema{
 			"host": &schema.Schema{
@@ -106,9 +107,9 @@ func resourceSqlUserRead(d *schema.ResourceData, meta interface{}) error {
 	instanceAndName := strings.SplitN(d.Id(), ".", 2)
 	if len(instanceAndName) != 2 {
 		return fmt.Errorf(
-				"Wrong number of arguments when specifying imported id. Expected: 2.  Saw: %d. Expected Input: $INSTANCENAME.$SQLUSERNAME Input: %s",
-				len(instanceAndName),
-				d.Id())
+			"Wrong number of arguments when specifying imported id. Expected: 2.  Saw: %d. Expected Input: $INSTANCENAME.$SQLUSERNAME Input: %s",
+			len(instanceAndName),
+			d.Id())
 	}
 
 	instance := instanceAndName[0]
