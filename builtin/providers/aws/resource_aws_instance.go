@@ -523,7 +523,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"pending"},
 		Target:     []string{"running"},
-		Refresh:    InstanceStateRefreshFunc(conn, *instance.InstanceId),
+		Refresh:    InstanceStateRefreshFunc(conn, *instance.InstanceId, "terminated"),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
@@ -887,7 +887,7 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 		stateConf := &resource.StateChangeConf{
 			Pending:    []string{"pending", "running", "shutting-down", "stopped", "stopping"},
 			Target:     []string{"stopped"},
-			Refresh:    InstanceStateRefreshFunc(conn, d.Id()),
+			Refresh:    InstanceStateRefreshFunc(conn, d.Id(), ""),
 			Timeout:    10 * time.Minute,
 			Delay:      10 * time.Second,
 			MinTimeout: 3 * time.Second,
@@ -918,7 +918,7 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 		stateConf = &resource.StateChangeConf{
 			Pending:    []string{"pending", "stopped"},
 			Target:     []string{"running"},
-			Refresh:    InstanceStateRefreshFunc(conn, d.Id()),
+			Refresh:    InstanceStateRefreshFunc(conn, d.Id(), "terminated"),
 			Timeout:    10 * time.Minute,
 			Delay:      10 * time.Second,
 			MinTimeout: 3 * time.Second,
@@ -996,7 +996,7 @@ func resourceAwsInstanceDelete(d *schema.ResourceData, meta interface{}) error {
 
 // InstanceStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
 // an EC2 instance.
-func InstanceStateRefreshFunc(conn *ec2.EC2, instanceID string) resource.StateRefreshFunc {
+func InstanceStateRefreshFunc(conn *ec2.EC2, instanceID, failState string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
 			InstanceIds: []*string{aws.String(instanceID)},
@@ -1018,8 +1018,27 @@ func InstanceStateRefreshFunc(conn *ec2.EC2, instanceID string) resource.StateRe
 		}
 
 		i := resp.Reservations[0].Instances[0]
-		return i, *i.State.Name, nil
+		state := *i.State.Name
+
+		if state == failState {
+			return i, state, fmt.Errorf("Failed to reach target state. Reason: %s",
+				stringifyStateReason(i.StateReason))
+
+		}
+
+		return i, state, nil
 	}
+}
+
+func stringifyStateReason(sr *ec2.StateReason) string {
+	if sr.Message != nil {
+		return *sr.Message
+	}
+	if sr.Code != nil {
+		return *sr.Code
+	}
+
+	return sr.String()
 }
 
 func readBlockDevices(d *schema.ResourceData, instance *ec2.Instance, conn *ec2.EC2) error {
@@ -1568,7 +1587,7 @@ func awsTerminateInstance(conn *ec2.EC2, id string) error {
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"pending", "running", "shutting-down", "stopped", "stopping"},
 		Target:     []string{"terminated"},
-		Refresh:    InstanceStateRefreshFunc(conn, id),
+		Refresh:    InstanceStateRefreshFunc(conn, id, ""),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,

@@ -1,18 +1,30 @@
 ## 0.9.6 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+* provider/google: Users of `google_compute_health_check` who were not setting a value for the `host` property of `http_health_check` or `https_health_check` previously had a faulty default value. This has been fixed and will show as a change in terraform plan/apply. [GH-14441]
+
 FEATURES:
 
+* **New Resource:** `aws_default_subnet` [GH-14476]
 * **New Resource:** `aws_devicefarm_project` [GH-14288]
 * **New Resource:** `aws_wafregion_ipset` [GH-13705]
 * **New Resource:** `aws_wafregion_byte_match_set` [GH-13705]
 * **New Resource:** `azurerm_express_route_circuit` [GH-14265]
+* **New Data Source:** `aws_db_snapshot` [GH-10291]
 
 IMPROVEMENTS:
 
+* provider/aws: Show state reason when EC2 instance fails to launch [GH-14479]
+* provider/aws: Show last scaling activity when ASG creation/update fails [GH-14480]
 * provider/azurerm: Virtual Machine Scale Sets with managed disk support [GH-13717]
 * provider/datadog: Add last aggregator to datadog_timeboard resource [GH-14391]
 * provider/datadog: Added new evaluation_delay parameter [GH-14433]
+* provider/docker: Allow Windows Docker containers to map volumes [GH-13584]
 * provider/google: Add a `url` attribute to `google_storage_bucket` [GH-14393]
+* provider/google: Make google resource storage bucket importable [GH-14455]
+* providers/heroku: Add import ability for `heroku_pipeline` resource [GH-14486]
+* provider/openstack: Add support for all protocols in Security Group Rules [GH-14307]
 * provider/rundeck: adds `description` to `command` schema in `rundeck_job` resource [GH-14352]
 
 BUG FIXES:
@@ -26,10 +38,15 @@ BUG FIXES:
 * provider/aws: Using the new time schema helper for RDS Instance lifecycle mgmt [GH-14369]
 * provider/aws: Using the timeout schema helper to make alb timeout cofigurable [GH-14375]
 * provider/aws: Refresh from state when CodePipeline Not Found [GH-14431]
+* provider/aws: Override spot_instance_requests volume_tags schema [GH-14481]
+* provider/aws: Allow Internet Gateway IPv6 routes [GH-14484]
+* provider/aws: ForceNew aws_launch_config when root_block_device changes [GH-14507]
+* provider/cloudstack: `cloudstack_firewall` panicked when used with older (< v4.6) CloudStack versions [GH-14044]
 * provider/datadog: Allowed method on aggregator is `avg` ! `average` [GH-14414]
 * provider/github: Log HTTP requests and responses in DEBUG mode [GH-14363]
-* provider/cloudstack: `cloudstack_firewall` panicked when used with older (< v4.6) CloudStack versions [GH-14044]
+* provider/google: Fix health check http/https defaults [GH-14441]
 * provider/heroku: Fix issue with setting correct CName in heroku_domain [GH-14443]
+* provider/openstack: Handle Deleted Resources in Floating IP Association [GH-14533]
 * provider/vault: Prevent panic when no secret found [GH-14435]
 
 ## 0.9.5 (May 11, 2017)
