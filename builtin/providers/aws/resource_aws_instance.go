@@ -217,6 +217,7 @@ func resourceAwsInstance() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 
 			"ipv6_addresses": {
@@ -227,7 +228,6 @@ func resourceAwsInstance() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				ConflictsWith: []string{"ipv6_address_count"},
 			},
 
 			"tenancy": {
@@ -420,13 +420,20 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		UserData:                          instanceOpts.UserData64,
 	}
 
-	if v, ok := d.GetOk("ipv6_address_count"); ok {
-		runOpts.Ipv6AddressCount = aws.Int64(int64(v.(int)))
+	ipv6Count, ipv6CountOk := d.GetOk("ipv6_address_count")
+	ipv6Address, ipv6AddressOk := d.GetOk("ipv6_addresses")
+
+	if ipv6AddressOk && ipv6CountOk {
+		return fmt.Errorf("Only 1 of `ipv6_address_count` or `ipv6_addresses` can be specified")
 	}
 
-	if v, ok := d.GetOk("ipv6_addresses"); ok {
-		ipv6Addresses := make([]*ec2.InstanceIpv6Address, len(v.([]interface{})))
-		for _, address := range v.([]interface{}) {
+	if ipv6CountOk {
+		runOpts.Ipv6AddressCount = aws.Int64(int64(ipv6Count.(int)))
+	}
+
+	if ipv6AddressOk {
+		ipv6Addresses := make([]*ec2.InstanceIpv6Address, len(ipv6Address.([]interface{})))
+		for _, address := range ipv6Address.([]interface{}) {
 			ipv6Address := &ec2.InstanceIpv6Address{
 				Ipv6Address: aws.String(address.(string)),
 			}
@@ -516,7 +523,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"pending"},
 		Target:     []string{"running"},
-		Refresh:    InstanceStateRefreshFunc(conn, *instance.InstanceId),
+		Refresh:    InstanceStateRefreshFunc(conn, *instance.InstanceId, "terminated"),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
@@ -836,11 +843,37 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 				groups = append(groups, aws.String(v.(string)))
 			}
 		}
-		_, err := conn.ModifyInstanceAttribute(&ec2.ModifyInstanceAttributeInput{
-			InstanceId: aws.String(d.Id()),
-			Groups:     groups,
+		// If a user has multiple network interface attachments on the target EC2 instance, simply modifying the
+		// instance attributes via a `ModifyInstanceAttributes()` request would fail with the following error message:
+		// "There are multiple interfaces attached to instance 'i-XX'. Please specify an interface ID for the operation instead."
+		// Thus, we need to actually modify the primary network interface for the new security groups, as the primary
+		// network interface is where we modify/create security group assignments during Create.
+		log.Printf("[INFO] Modifying `vpc_security_group_ids` on Instance %q", d.Id())
+		instances, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
+			InstanceIds: []*string{aws.String(d.Id())},
 		})
 		if err != nil {
+			return err
+		}
+		instance := instances.Reservations[0].Instances[0]
+		var primaryInterface ec2.InstanceNetworkInterface
+		for _, ni := range instance.NetworkInterfaces {
+			if *ni.Attachment.DeviceIndex == 0 {
+				primaryInterface = *ni
+			}
+		}
+
+		if primaryInterface.NetworkInterfaceId == nil {
+			log.Print("[Error] Attempted to set vpc_security_group_ids on an instance without a primary network interface")
+			return fmt.Errorf(
+				"Failed to update vpc_security_group_ids on %q, which does not contain a primary network interface",
+				d.Id())
+		}
+
+		if _, err := conn.ModifyNetworkInterfaceAttribute(&ec2.ModifyNetworkInterfaceAttributeInput{
+			NetworkInterfaceId: primaryInterface.NetworkInterfaceId,
+			Groups:             groups,
+		}); err != nil {
 			return err
 		}
 	}
@@ -854,7 +887,7 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 		stateConf := &resource.StateChangeConf{
 			Pending:    []string{"pending", "running", "shutting-down", "stopped", "stopping"},
 			Target:     []string{"stopped"},
-			Refresh:    InstanceStateRefreshFunc(conn, d.Id()),
+			Refresh:    InstanceStateRefreshFunc(conn, d.Id(), ""),
 			Timeout:    10 * time.Minute,
 			Delay:      10 * time.Second,
 			MinTimeout: 3 * time.Second,
@@ -885,7 +918,7 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 		stateConf = &resource.StateChangeConf{
 			Pending:    []string{"pending", "stopped"},
 			Target:     []string{"running"},
-			Refresh:    InstanceStateRefreshFunc(conn, d.Id()),
+			Refresh:    InstanceStateRefreshFunc(conn, d.Id(), "terminated"),
 			Timeout:    10 * time.Minute,
 			Delay:      10 * time.Second,
 			MinTimeout: 3 * time.Second,
@@ -963,7 +996,7 @@ func resourceAwsInstanceDelete(d *schema.ResourceData, meta interface{}) error {
 
 // InstanceStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
 // an EC2 instance.
-func InstanceStateRefreshFunc(conn *ec2.EC2, instanceID string) resource.StateRefreshFunc {
+func InstanceStateRefreshFunc(conn *ec2.EC2, instanceID, failState string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
 			InstanceIds: []*string{aws.String(instanceID)},
@@ -985,8 +1018,27 @@ func InstanceStateRefreshFunc(conn *ec2.EC2, instanceID string) resource.StateRe
 		}
 
 		i := resp.Reservations[0].Instances[0]
-		return i, *i.State.Name, nil
+		state := *i.State.Name
+
+		if state == failState {
+			return i, state, fmt.Errorf("Failed to reach target state. Reason: %s",
+				stringifyStateReason(i.StateReason))
+
+		}
+
+		return i, state, nil
 	}
+}
+
+func stringifyStateReason(sr *ec2.StateReason) string {
+	if sr.Message != nil {
+		return *sr.Message
+	}
+	if sr.Code != nil {
+		return *sr.Code
+	}
+
+	return sr.String()
 }
 
 func readBlockDevices(d *schema.ResourceData, instance *ec2.Instance, conn *ec2.EC2) error {
@@ -1535,7 +1587,7 @@ func awsTerminateInstance(conn *ec2.EC2, id string) error {
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"pending", "running", "shutting-down", "stopped", "stopping"},
 		Target:     []string{"terminated"},
-		Refresh:    InstanceStateRefreshFunc(conn, id),
+		Refresh:    InstanceStateRefreshFunc(conn, id, ""),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,

@@ -2,13 +2,11 @@ package google
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeInstanceTemplate() *schema.Resource {
@@ -721,14 +719,7 @@ func resourceComputeInstanceTemplateRead(d *schema.ResourceData, meta interface{
 	instanceTemplate, err := config.clientCompute.InstanceTemplates.Get(
 		project, d.Id()).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing Instance Template %q because it's gone", d.Get("name").(string))
-			// The resource doesn't exist anymore
-			d.SetId("")
-			return nil
-		}
-
-		return fmt.Errorf("Error reading instance template: %s", err)
+		return handleNotFoundError(err, d, fmt.Sprintf("Instance Template %q", d.Get("name").(string)))
 	}
 
 	// Set the metadata fingerprint if there is one.

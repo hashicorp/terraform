@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/go-github/github"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -14,18 +15,21 @@ import (
 func TestAccGithubBranchProtection_basic(t *testing.T) {
 	var protection github.Protection
 
+	rString := acctest.RandString(5)
+	repoName := fmt.Sprintf("tf-acc-test-branch-prot-%s", rString)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGithubBranchProtectionDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubBranchProtectionConfig,
+				Config: testAccGithubBranchProtectionConfig(repoName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubProtectedBranchExists("github_branch_protection.master", &protection),
+					testAccCheckGithubProtectedBranchExists("github_branch_protection.master", repoName+":master", &protection),
 					testAccCheckGithubBranchProtectionRequiredStatusChecks(&protection, true, true, []string{"github/foo"}),
 					testAccCheckGithubBranchProtectionRestrictions(&protection, []string{testUser}, []string{}),
-					resource.TestCheckResourceAttr("github_branch_protection.master", "repository", testRepo),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "repository", repoName),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "branch", "master"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.0.include_admins", "true"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.0.strict", "true"),
@@ -38,12 +42,12 @@ func TestAccGithubBranchProtection_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccGithubBranchProtectionUpdateConfig,
+				Config: testAccGithubBranchProtectionUpdateConfig(repoName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGithubProtectedBranchExists("github_branch_protection.master", &protection),
+					testAccCheckGithubProtectedBranchExists("github_branch_protection.master", repoName+":master", &protection),
 					testAccCheckGithubBranchProtectionRequiredStatusChecks(&protection, false, false, []string{"github/bar"}),
 					testAccCheckGithubBranchProtectionNoRestrictionsExist(&protection),
-					resource.TestCheckResourceAttr("github_branch_protection.master", "repository", testRepo),
+					resource.TestCheckResourceAttr("github_branch_protection.master", "repository", repoName),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "branch", "master"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.0.include_admins", "false"),
 					resource.TestCheckResourceAttr("github_branch_protection.master", "required_status_checks.0.strict", "false"),
@@ -58,13 +62,15 @@ func TestAccGithubBranchProtection_basic(t *testing.T) {
 }
 
 func TestAccGithubBranchProtection_importBasic(t *testing.T) {
+	rString := acctest.RandString(5)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGithubBranchProtectionDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubBranchProtectionConfig,
+				Config: testAccGithubBranchProtectionConfig(rString),
 			},
 			{
 				ResourceName:      "github_branch_protection.master",
@@ -75,15 +81,15 @@ func TestAccGithubBranchProtection_importBasic(t *testing.T) {
 	})
 }
 
-func testAccCheckGithubProtectedBranchExists(n string, protection *github.Protection) resource.TestCheckFunc {
+func testAccCheckGithubProtectedBranchExists(n, id string, protection *github.Protection) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not Found: %s", n)
 		}
 
-		if rs.Primary.ID != "test-repo:master" {
-			return fmt.Errorf("Expected ID to be %v, got %v", "test-repo:master", rs.Primary.ID)
+		if rs.Primary.ID != id {
+			return fmt.Errorf("Expected ID to be %v, got %v", id, rs.Primary.ID)
 		}
 
 		conn := testAccProvider.Meta().(*Organization).client
@@ -185,9 +191,16 @@ func testAccGithubBranchProtectionDestroy(s *terraform.State) error {
 	return nil
 }
 
-var testAccGithubBranchProtectionConfig string = fmt.Sprintf(`
+func testAccGithubBranchProtectionConfig(repoName string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "test" {
+  name        = "%s"
+  description = "Terraform Acceptance Test %s"
+  auto_init   = true
+}
+
 resource "github_branch_protection" "master" {
-  repository = "%s"
+  repository = "${github_repository.test.name}"
   branch     = "master"
 
   required_status_checks = {
@@ -204,11 +217,19 @@ resource "github_branch_protection" "master" {
     users = ["%s"]
   }
 }
-`, testRepo, testUser)
+`, repoName, repoName, testUser)
+}
 
-var testAccGithubBranchProtectionUpdateConfig string = fmt.Sprintf(`
+func testAccGithubBranchProtectionUpdateConfig(repoName string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "test" {
+  name        = "%s"
+  description = "Terraform Acceptance Test %s"
+  auto_init   = true
+}
+
 resource "github_branch_protection" "master" {
-  repository = "%s"
+  repository = "${github_repository.test.name}"
   branch     = "master"
 
   required_status_checks = {
@@ -217,4 +238,5 @@ resource "github_branch_protection" "master" {
     contexts       = ["github/bar"]
   }
 }
-`, testRepo)
+`, repoName, repoName)
+}

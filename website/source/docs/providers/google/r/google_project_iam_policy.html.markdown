@@ -69,5 +69,5 @@ exported:
 
 * `etag` - (Computed) The etag of the project's IAM policy.
 
-* `restore_policy` - (Computed) The IAM policy that will be resotred when a
+* `restore_policy` - (Computed) The IAM policy that will be restored when a
     non-authoritative policy resource is deleted.

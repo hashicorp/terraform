@@ -29,6 +29,10 @@ func TestProviderImpl(t *testing.T) {
 }
 
 func testAccPreCheck(t *testing.T) {
+	if v := os.Getenv("PAGERDUTY_PARALLEL"); v != "" {
+		t.Parallel()
+	}
+
 	if v := os.Getenv("PAGERDUTY_TOKEN"); v == "" {
 		t.Fatal("PAGERDUTY_TOKEN must be set for acceptance tests")
 	}

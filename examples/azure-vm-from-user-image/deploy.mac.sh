@@ -15,4 +15,8 @@ if docker -v; then
 
 else
   echo "Docker is used to run terraform commands, please install before run:  https://docs.docker.com/docker-for-mac/install/"
+<<<<<<< HEAD
 fi
+=======
+fi
+>>>>>>> 30c3e72dd49c00a35829f84e0e22c7b87e49eced

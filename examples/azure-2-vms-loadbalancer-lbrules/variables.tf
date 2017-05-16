@@ -76,5 +76,4 @@ variable "admin_username" {
 
 variable "admin_password" {
   description = "administrator password (recommended to disable password auth)"
-  default     = "T3rr@f0rmP@ssword"
 }

@@ -1,13 +1,13 @@
 package triton
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
-
-	"net/url"
 
 	"github.com/hashicorp/errwrap"
 )
@@ -62,7 +62,7 @@ type Machine struct {
 }
 
 // _Machine is a private facade over Machine that handles the necessary API
-// overrides from vmapi's machine endpoint(s).
+// overrides from VMAPI's machine endpoint(s).
 type _Machine struct {
 	Machine
 	Tags map[string]interface{} `json:"tags"`
@@ -90,19 +90,20 @@ func (gmi *GetMachineInput) Validate() error {
 	return nil
 }
 
-func (client *MachinesClient) GetMachine(input *GetMachineInput) (*Machine, error) {
+func (client *MachinesClient) GetMachine(ctx context.Context, input *GetMachineInput) (*Machine, error) {
 	if err := input.Validate(); err != nil {
 		return nil, errwrap.Wrapf("unable to get machine: {{err}}", err)
 	}
 
 	path := fmt.Sprintf("/%s/machines/%s", client.accountName, input.ID)
-	response, err := client.executeRequestRaw(http.MethodGet, path, nil)
+	response, err := client.executeRequestRaw(ctx, http.MethodGet, path, nil)
 	if response != nil {
 		defer response.Body.Close()
 	}
 	if response.StatusCode == http.StatusNotFound || response.StatusCode == http.StatusGone {
 		return nil, &TritonError{
-			Code: "ResourceNotFound",
+			StatusCode: response.StatusCode,
+			Code:       "ResourceNotFound",
 		}
 	}
 	if err != nil {
@@ -124,26 +125,29 @@ func (client *MachinesClient) GetMachine(input *GetMachineInput) (*Machine, erro
 	return native, nil
 }
 
-func (client *MachinesClient) GetMachines() ([]*Machine, error) {
+type ListMachinesInput struct{}
+
+func (client *MachinesClient) ListMachines(ctx context.Context, _ *ListMachinesInput) ([]*Machine, error) {
 	path := fmt.Sprintf("/%s/machines", client.accountName)
-	response, err := client.executeRequestRaw(http.MethodGet, path, nil)
+	response, err := client.executeRequestRaw(ctx, http.MethodGet, path, nil)
 	if response != nil {
 		defer response.Body.Close()
 	}
 	if response.StatusCode == http.StatusNotFound {
 		return nil, &TritonError{
-			Code: "ResourceNotFound",
+			StatusCode: response.StatusCode,
+			Code:       "ResourceNotFound",
 		}
 	}
 	if err != nil {
-		return nil, errwrap.Wrapf("Error executing GetMachines request: {{err}}",
+		return nil, errwrap.Wrapf("Error executing ListMachines request: {{err}}",
 			client.decodeError(response.StatusCode, response.Body))
 	}
 
 	var results []*_Machine
 	decoder := json.NewDecoder(response.Body)
 	if err = decoder.Decode(&results); err != nil {
-		return nil, errwrap.Wrapf("Error decoding GetMachines response: {{err}}", err)
+		return nil, errwrap.Wrapf("Error decoding ListMachines response: {{err}}", err)
 	}
 
 	machines := make([]*Machine, 0, len(results))
@@ -218,9 +222,9 @@ func (input *CreateMachineInput) toAPI() map[string]interface{} {
 	return result
 }
 
-func (client *MachinesClient) CreateMachine(input *CreateMachineInput) (*Machine, error) {
+func (client *MachinesClient) CreateMachine(ctx context.Context, input *CreateMachineInput) (*Machine, error) {
 	path := fmt.Sprintf("/%s/machines", client.accountName)
-	respReader, err := client.executeRequest(http.MethodPost, path, input.toAPI())
+	respReader, err := client.executeRequest(ctx, http.MethodPost, path, input.toAPI())
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -241,13 +245,13 @@ type DeleteMachineInput struct {
 	ID string
 }
 
-func (client *MachinesClient) DeleteMachine(input *DeleteMachineInput) error {
+func (client *MachinesClient) DeleteMachine(ctx context.Context, input *DeleteMachineInput) error {
 	path := fmt.Sprintf("/%s/machines/%s", client.accountName, input.ID)
-	response, err := client.executeRequestRaw(http.MethodDelete, path, nil)
+	response, err := client.executeRequestRaw(ctx, http.MethodDelete, path, nil)
 	if response.Body != nil {
 		defer response.Body.Close()
 	}
-	if response.StatusCode == http.StatusNotFound {
+	if response.StatusCode == http.StatusNotFound || response.StatusCode == http.StatusGone {
 		return nil
 	}
 	if err != nil {
@@ -262,9 +266,9 @@ type DeleteMachineTagsInput struct {
 	ID string
 }
 
-func (client *MachinesClient) DeleteMachineTags(input *DeleteMachineTagsInput) error {
+func (client *MachinesClient) DeleteMachineTags(ctx context.Context, input *DeleteMachineTagsInput) error {
 	path := fmt.Sprintf("/%s/machines/%s/tags", client.accountName, input.ID)
-	response, err := client.executeRequestRaw(http.MethodDelete, path, nil)
+	response, err := client.executeRequestRaw(ctx, http.MethodDelete, path, nil)
 	if response.Body != nil {
 		defer response.Body.Close()
 	}
@@ -284,9 +288,9 @@ type DeleteMachineTagInput struct {
 	Key string
 }
 
-func (client *MachinesClient) DeleteMachineTag(input *DeleteMachineTagInput) error {
+func (client *MachinesClient) DeleteMachineTag(ctx context.Context, input *DeleteMachineTagInput) error {
 	path := fmt.Sprintf("/%s/machines/%s/tags/%s", client.accountName, input.ID, input.Key)
-	response, err := client.executeRequestRaw(http.MethodDelete, path, nil)
+	response, err := client.executeRequestRaw(ctx, http.MethodDelete, path, nil)
 	if response.Body != nil {
 		defer response.Body.Close()
 	}
@@ -306,14 +310,14 @@ type RenameMachineInput struct {
 	Name string
 }
 
-func (client *MachinesClient) RenameMachine(input *RenameMachineInput) error {
+func (client *MachinesClient) RenameMachine(ctx context.Context, input *RenameMachineInput) error {
 	path := fmt.Sprintf("/%s/machines/%s", client.accountName, input.ID)
 
 	params := &url.Values{}
 	params.Set("action", "rename")
 	params.Set("name", input.Name)
 
-	respReader, err := client.executeRequestURIParams(http.MethodPost, path, nil, params)
+	respReader, err := client.executeRequestURIParams(ctx, http.MethodPost, path, nil, params)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -329,9 +333,9 @@ type ReplaceMachineTagsInput struct {
 	Tags map[string]string
 }
 
-func (client *MachinesClient) ReplaceMachineTags(input *ReplaceMachineTagsInput) error {
+func (client *MachinesClient) ReplaceMachineTags(ctx context.Context, input *ReplaceMachineTagsInput) error {
 	path := fmt.Sprintf("/%s/machines/%s/tags", client.accountName, input.ID)
-	respReader, err := client.executeRequest(http.MethodPut, path, input.Tags)
+	respReader, err := client.executeRequest(ctx, http.MethodPut, path, input.Tags)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -347,9 +351,9 @@ type AddMachineTagsInput struct {
 	Tags map[string]string
 }
 
-func (client *MachinesClient) AddMachineTags(input *AddMachineTagsInput) error {
+func (client *MachinesClient) AddMachineTags(ctx context.Context, input *AddMachineTagsInput) error {
 	path := fmt.Sprintf("/%s/machines/%s/tags", client.accountName, input.ID)
-	respReader, err := client.executeRequest(http.MethodPost, path, input.Tags)
+	respReader, err := client.executeRequest(ctx, http.MethodPost, path, input.Tags)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -365,9 +369,9 @@ type GetMachineTagInput struct {
 	Key string
 }
 
-func (client *MachinesClient) GetMachineTag(input *GetMachineTagInput) (string, error) {
+func (client *MachinesClient) GetMachineTag(ctx context.Context, input *GetMachineTagInput) (string, error) {
 	path := fmt.Sprintf("/%s/machines/%s/tags/%s", client.accountName, input.ID, input.Key)
-	respReader, err := client.executeRequest(http.MethodGet, path, nil)
+	respReader, err := client.executeRequest(ctx, http.MethodGet, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -388,9 +392,9 @@ type ListMachineTagsInput struct {
 	ID string
 }
 
-func (client *MachinesClient) ListMachineTags(input *ListMachineTagsInput) (map[string]string, error) {
+func (client *MachinesClient) ListMachineTags(ctx context.Context, input *ListMachineTagsInput) (map[string]string, error) {
 	path := fmt.Sprintf("/%s/machines/%s/tags", client.accountName, input.ID)
-	respReader, err := client.executeRequest(http.MethodGet, path, nil)
+	respReader, err := client.executeRequest(ctx, http.MethodGet, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -413,9 +417,9 @@ type UpdateMachineMetadataInput struct {
 	Metadata map[string]string
 }
 
-func (client *MachinesClient) UpdateMachineMetadata(input *UpdateMachineMetadataInput) (map[string]string, error) {
+func (client *MachinesClient) UpdateMachineMetadata(ctx context.Context, input *UpdateMachineMetadataInput) (map[string]string, error) {
 	path := fmt.Sprintf("/%s/machines/%s/tags", client.accountName, input.ID)
-	respReader, err := client.executeRequest(http.MethodPost, path, input.Metadata)
+	respReader, err := client.executeRequest(ctx, http.MethodPost, path, input.Metadata)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -437,14 +441,14 @@ type ResizeMachineInput struct {
 	Package string
 }
 
-func (client *MachinesClient) ResizeMachine(input *ResizeMachineInput) error {
+func (client *MachinesClient) ResizeMachine(ctx context.Context, input *ResizeMachineInput) error {
 	path := fmt.Sprintf("/%s/machines/%s", client.accountName, input.ID)
 
 	params := &url.Values{}
 	params.Set("action", "resize")
 	params.Set("package", input.Package)
 
-	respReader, err := client.executeRequestURIParams(http.MethodPost, path, nil, params)
+	respReader, err := client.executeRequestURIParams(ctx, http.MethodPost, path, nil, params)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -459,13 +463,13 @@ type EnableMachineFirewallInput struct {
 	ID string
 }
 
-func (client *MachinesClient) EnableMachineFirewall(input *EnableMachineFirewallInput) error {
+func (client *MachinesClient) EnableMachineFirewall(ctx context.Context, input *EnableMachineFirewallInput) error {
 	path := fmt.Sprintf("/%s/machines/%s", client.accountName, input.ID)
 
 	params := &url.Values{}
 	params.Set("action", "enable_firewall")
 
-	respReader, err := client.executeRequestURIParams(http.MethodPost, path, nil, params)
+	respReader, err := client.executeRequestURIParams(ctx, http.MethodPost, path, nil, params)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -480,13 +484,13 @@ type DisableMachineFirewallInput struct {
 	ID string
 }
 
-func (client *MachinesClient) DisableMachineFirewall(input *DisableMachineFirewallInput) error {
+func (client *MachinesClient) DisableMachineFirewall(ctx context.Context, input *DisableMachineFirewallInput) error {
 	path := fmt.Sprintf("/%s/machines/%s", client.accountName, input.ID)
 
 	params := &url.Values{}
 	params.Set("action", "disable_firewall")
 
-	respReader, err := client.executeRequestURIParams(http.MethodPost, path, nil, params)
+	respReader, err := client.executeRequestURIParams(ctx, http.MethodPost, path, nil, params)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -501,9 +505,9 @@ type ListNICsInput struct {
 	MachineID string
 }
 
-func (client *MachinesClient) ListNICs(input *ListNICsInput) ([]*NIC, error) {
+func (client *MachinesClient) ListNICs(ctx context.Context, input *ListNICsInput) ([]*NIC, error) {
 	path := fmt.Sprintf("/%s/machines/%s/nics", client.accountName, input.MachineID)
-	respReader, err := client.executeRequest(http.MethodGet, path, nil)
+	respReader, err := client.executeRequest(ctx, http.MethodGet, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -525,9 +529,9 @@ type AddNICInput struct {
 	Network   string `json:"network"`
 }
 
-func (client *MachinesClient) AddNIC(input *AddNICInput) (*NIC, error) {
+func (client *MachinesClient) AddNIC(ctx context.Context, input *AddNICInput) (*NIC, error) {
 	path := fmt.Sprintf("/%s/machines/%s/nics", client.accountName, input.MachineID)
-	respReader, err := client.executeRequest(http.MethodPost, path, input)
+	respReader, err := client.executeRequest(ctx, http.MethodPost, path, input)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -549,9 +553,9 @@ type RemoveNICInput struct {
 	MAC       string
 }
 
-func (client *MachinesClient) RemoveNIC(input *RemoveNICInput) error {
+func (client *MachinesClient) RemoveNIC(ctx context.Context, input *RemoveNICInput) error {
 	path := fmt.Sprintf("/%s/machines/%s/nics/%s", client.accountName, input.MachineID, input.MAC)
-	respReader, err := client.executeRequest(http.MethodDelete, path, nil)
+	respReader, err := client.executeRequest(ctx, http.MethodDelete, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -566,13 +570,13 @@ type StopMachineInput struct {
 	MachineID string
 }
 
-func (client *MachinesClient) StopMachine(input *StopMachineInput) error {
+func (client *MachinesClient) StopMachine(ctx context.Context, input *StopMachineInput) error {
 	path := fmt.Sprintf("/%s/machines/%s", client.accountName, input.MachineID)
 
 	params := &url.Values{}
 	params.Set("action", "stop")
 
-	respReader, err := client.executeRequestURIParams(http.MethodPost, path, nil, params)
+	respReader, err := client.executeRequestURIParams(ctx, http.MethodPost, path, nil, params)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -587,13 +591,13 @@ type StartMachineInput struct {
 	MachineID string
 }
 
-func (client *MachinesClient) StartMachine(input *StartMachineInput) error {
+func (client *MachinesClient) StartMachine(ctx context.Context, input *StartMachineInput) error {
 	path := fmt.Sprintf("/%s/machines/%s", client.accountName, input.MachineID)
 
 	params := &url.Values{}
 	params.Set("action", "start")
 
-	respReader, err := client.executeRequestURIParams(http.MethodPost, path, nil, params)
+	respReader, err := client.executeRequestURIParams(ctx, http.MethodPost, path, nil, params)
 	if respReader != nil {
 		defer respReader.Close()
 	}

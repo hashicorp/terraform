@@ -116,6 +116,7 @@ func (s *ImageStoreService) AddImageStore(p *AddImageStoreParams) (*AddImageStor
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -293,6 +294,7 @@ func (s *ImageStoreService) AddImageStoreS3(p *AddImageStoreS3Params) (*AddImage
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -512,6 +514,7 @@ func (s *ImageStoreService) ListImageStores(p *ListImageStoresParams) (*ListImag
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -575,6 +578,7 @@ func (s *ImageStoreService) DeleteImageStore(p *DeleteImageStoreParams) (*Delete
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -675,6 +679,7 @@ func (s *ImageStoreService) CreateSecondaryStagingStore(p *CreateSecondaryStagin
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -894,6 +899,7 @@ func (s *ImageStoreService) ListSecondaryStagingStores(p *ListSecondaryStagingSt
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -957,6 +963,7 @@ func (s *ImageStoreService) DeleteSecondaryStagingStore(p *DeleteSecondaryStagin
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1046,6 +1053,7 @@ func (s *ImageStoreService) UpdateCloudToUseObjectStore(p *UpdateCloudToUseObjec
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
