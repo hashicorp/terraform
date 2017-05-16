@@ -11,7 +11,7 @@ type Config struct {
 	Retries  int
 }
 
-// Client() returns a new client for accessing digital ocean.
+// Client() returns a new client for accessing ProfitBricks.
 func (c *Config) Client() (*Config, error) {
 	profitbricks.SetAuth(c.Username, c.Password)
 	profitbricks.SetDepth("5")

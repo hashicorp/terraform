@@ -113,8 +113,15 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// have to connect again later for providers and so on.
 		&ReferenceTransformer{},
 
+		// Add the node to fix the state count boundaries
+		&CountBoundaryTransformer{},
+
 		// Target
 		&TargetsTransformer{Targets: b.Targets},
+
+		// Close opened plugin connections
+		&CloseProviderTransformer{},
+		&CloseProvisionerTransformer{},
 
 		// Single root
 		&RootTransformer{},

@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccOpenStackBlockStorageV2Volume_importBasic(t *testing.T) {
+func TestAccBlockStorageV2Volume_importBasic(t *testing.T) {
 	resourceName := "openstack_blockstorage_volume_v2.volume_1"
 
 	resource.Test(t, resource.TestCase{

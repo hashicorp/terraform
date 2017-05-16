@@ -11,7 +11,7 @@ import (
 
 func TestAccProfitBricksDataCenter_Basic(t *testing.T) {
 	var datacenter profitbricks.Datacenter
-	lanName := "datacenter-test"
+	dc_name := "datacenter-test"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -21,11 +21,11 @@ func TestAccProfitBricksDataCenter_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckDProfitBricksDatacenterDestroyCheck,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccCheckProfitBricksDatacenterConfig_basic, lanName),
+				Config: fmt.Sprintf(testAccCheckProfitBricksDatacenterConfig_basic, dc_name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckProfitBricksDatacenterExists("profitbricks_datacenter.foobar", &datacenter),
-					testAccCheckProfitBricksDatacenterAttributes("profitbricks_datacenter.foobar", lanName),
-					resource.TestCheckResourceAttr("profitbricks_datacenter.foobar", "name", lanName),
+					testAccCheckProfitBricksDatacenterAttributes("profitbricks_datacenter.foobar", dc_name),
+					resource.TestCheckResourceAttr("profitbricks_datacenter.foobar", "name", dc_name),
 				),
 			},
 			resource.TestStep{

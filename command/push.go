@@ -71,24 +71,6 @@ func (c *PushCommand) Run(args []string) int {
 		return 1
 	}
 
-	/*
-		// Verify the state is remote, we can't push without a remote state
-		s, err := c.State()
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to read state: %s", err))
-			return 1
-		}
-		if !s.State().IsRemote() {
-			c.Ui.Error(
-				"Remote state is not enabled. For Atlas to run Terraform\n" +
-					"for you, remote state must be used and configured. Remote\n" +
-					"state via any backend is accepted, not just Atlas. To\n" +
-					"configure remote state, use the `terraform remote config`\n" +
-					"command.")
-			return 1
-		}
-	*/
-
 	// Check if the path is a plan
 	plan, err := c.Plan(configPath)
 	if err != nil {
@@ -122,6 +104,17 @@ func (c *PushCommand) Run(args []string) int {
 	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+		return 1
+	}
+
+	// We require a non-local backend
+	if c.IsLocalBackend(b) {
+		c.Ui.Error(
+			"A remote backend is not enabled. For Atlas to run Terraform\n" +
+				"for you, remote state must be used and configured. Remote \n" +
+				"state via any backend is accepted, not just Atlas. To configure\n" +
+				"a backend, please see the documentation at the URL below:\n\n" +
+				"https://www.terraform.io/docs/state/remote.html")
 		return 1
 	}
 

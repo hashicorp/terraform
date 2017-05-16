@@ -15,7 +15,7 @@ fingerprint.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new SSH key
 resource "digitalocean_ssh_key" "default" {
   name       = "Terraform Example"

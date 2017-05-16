@@ -28,14 +28,7 @@ func userResource() *schema.Resource {
 		"notify": &schema.Schema{
 			Type:     schema.TypeMap,
 			Optional: true,
-			Elem: &schema.Resource{
-				Schema: map[string]*schema.Schema{
-					"billing": &schema.Schema{
-						Type:     schema.TypeBool,
-						Required: true,
-					},
-				},
-			},
+			Elem:     schema.TypeBool,
 		},
 		"teams": &schema.Schema{
 			Type:     schema.TypeList,

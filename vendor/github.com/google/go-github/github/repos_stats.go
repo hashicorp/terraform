@@ -6,6 +6,7 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"time"
 )
@@ -39,26 +40,26 @@ func (w WeeklyStats) String() string {
 // deletions and commit counts.
 //
 // If this is the first time these statistics are requested for the given
-// repository, this method will return a non-nil error and a status code of
-// 202. This is because this is the status that github returns to signify that
+// repository, this method will return an *AcceptedError and a status code of
+// 202. This is because this is the status that GitHub returns to signify that
 // it is now computing the requested statistics. A follow up request, after a
 // delay of a second or so, should result in a successful request.
 //
-// GitHub API Docs: https://developer.github.com/v3/repos/statistics/#contributors
-func (s *RepositoriesService) ListContributorsStats(owner, repo string) ([]ContributorStats, *Response, error) {
+// GitHub API docs: https://developer.github.com/v3/repos/statistics/#contributors
+func (s *RepositoriesService) ListContributorsStats(ctx context.Context, owner, repo string) ([]*ContributorStats, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/stats/contributors", owner, repo)
 	req, err := s.client.NewRequest("GET", u, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	var contributorStats []ContributorStats
-	resp, err := s.client.Do(req, &contributorStats)
+	var contributorStats []*ContributorStats
+	resp, err := s.client.Do(ctx, req, &contributorStats)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return contributorStats, resp, err
+	return contributorStats, resp, nil
 }
 
 // WeeklyCommitActivity represents the weekly commit activity for a repository.
@@ -78,34 +79,40 @@ func (w WeeklyCommitActivity) String() string {
 // starting on Sunday.
 //
 // If this is the first time these statistics are requested for the given
-// repository, this method will return a non-nil error and a status code of
-// 202. This is because this is the status that github returns to signify that
+// repository, this method will return an *AcceptedError and a status code of
+// 202. This is because this is the status that GitHub returns to signify that
 // it is now computing the requested statistics. A follow up request, after a
 // delay of a second or so, should result in a successful request.
 //
-// GitHub API Docs: https://developer.github.com/v3/repos/statistics/#commit-activity
-func (s *RepositoriesService) ListCommitActivity(owner, repo string) ([]WeeklyCommitActivity, *Response, error) {
+// GitHub API docs: https://developer.github.com/v3/repos/statistics/#commit-activity
+func (s *RepositoriesService) ListCommitActivity(ctx context.Context, owner, repo string) ([]*WeeklyCommitActivity, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/stats/commit_activity", owner, repo)
 	req, err := s.client.NewRequest("GET", u, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	var weeklyCommitActivity []WeeklyCommitActivity
-	resp, err := s.client.Do(req, &weeklyCommitActivity)
+	var weeklyCommitActivity []*WeeklyCommitActivity
+	resp, err := s.client.Do(ctx, req, &weeklyCommitActivity)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return weeklyCommitActivity, resp, err
+	return weeklyCommitActivity, resp, nil
 }
 
 // ListCodeFrequency returns a weekly aggregate of the number of additions and
-// deletions pushed to a repository.  Returned WeeklyStats will contain
+// deletions pushed to a repository. Returned WeeklyStats will contain
 // additions and deletions, but not total commits.
 //
-// GitHub API Docs: https://developer.github.com/v3/repos/statistics/#code-frequency
-func (s *RepositoriesService) ListCodeFrequency(owner, repo string) ([]WeeklyStats, *Response, error) {
+// If this is the first time these statistics are requested for the given
+// repository, this method will return an *AcceptedError and a status code of
+// 202. This is because this is the status that GitHub returns to signify that
+// it is now computing the requested statistics. A follow up request, after a
+// delay of a second or so, should result in a successful request.
+//
+// GitHub API docs: https://developer.github.com/v3/repos/statistics/#code-frequency
+func (s *RepositoriesService) ListCodeFrequency(ctx context.Context, owner, repo string) ([]*WeeklyStats, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/stats/code_frequency", owner, repo)
 	req, err := s.client.NewRequest("GET", u, nil)
 	if err != nil {
@@ -113,15 +120,15 @@ func (s *RepositoriesService) ListCodeFrequency(owner, repo string) ([]WeeklySta
 	}
 
 	var weeks [][]int
-	resp, err := s.client.Do(req, &weeks)
+	resp, err := s.client.Do(ctx, req, &weeks)
 
 	// convert int slices into WeeklyStats
-	var stats []WeeklyStats
+	var stats []*WeeklyStats
 	for _, week := range weeks {
 		if len(week) != 3 {
 			continue
 		}
-		stat := WeeklyStats{
+		stat := &WeeklyStats{
 			Week:      &Timestamp{time.Unix(int64(week[0]), 0)},
 			Additions: Int(week[1]),
 			Deletions: Int(week[2]),
@@ -152,14 +159,13 @@ func (r RepositoryParticipation) String() string {
 // The array order is oldest week (index 0) to most recent week.
 //
 // If this is the first time these statistics are requested for the given
-// repository, this method will return a non-nil error and a status code
-// of 202. This is because this is the status that github returns to
-// signify that it is now computing the requested statistics. A follow
-// up request, after a delay of a second or so, should result in a
-// successful request.
+// repository, this method will return an *AcceptedError and a status code of
+// 202. This is because this is the status that GitHub returns to signify that
+// it is now computing the requested statistics. A follow up request, after a
+// delay of a second or so, should result in a successful request.
 //
-// GitHub API Docs: https://developer.github.com/v3/repos/statistics/#participation
-func (s *RepositoriesService) ListParticipation(owner, repo string) (*RepositoryParticipation, *Response, error) {
+// GitHub API docs: https://developer.github.com/v3/repos/statistics/#participation
+func (s *RepositoriesService) ListParticipation(ctx context.Context, owner, repo string) (*RepositoryParticipation, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/stats/participation", owner, repo)
 	req, err := s.client.NewRequest("GET", u, nil)
 	if err != nil {
@@ -167,12 +173,12 @@ func (s *RepositoriesService) ListParticipation(owner, repo string) (*Repository
 	}
 
 	participation := new(RepositoryParticipation)
-	resp, err := s.client.Do(req, participation)
+	resp, err := s.client.Do(ctx, req, participation)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return participation, resp, err
+	return participation, resp, nil
 }
 
 // PunchCard represents the number of commits made during a given hour of a
@@ -185,8 +191,14 @@ type PunchCard struct {
 
 // ListPunchCard returns the number of commits per hour in each day.
 //
-// GitHub API Docs: https://developer.github.com/v3/repos/statistics/#punch-card
-func (s *RepositoriesService) ListPunchCard(owner, repo string) ([]PunchCard, *Response, error) {
+// If this is the first time these statistics are requested for the given
+// repository, this method will return an *AcceptedError and a status code of
+// 202. This is because this is the status that GitHub returns to signify that
+// it is now computing the requested statistics. A follow up request, after a
+// delay of a second or so, should result in a successful request.
+//
+// GitHub API docs: https://developer.github.com/v3/repos/statistics/#punch-card
+func (s *RepositoriesService) ListPunchCard(ctx context.Context, owner, repo string) ([]*PunchCard, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/stats/punch_card", owner, repo)
 	req, err := s.client.NewRequest("GET", u, nil)
 	if err != nil {
@@ -194,15 +206,15 @@ func (s *RepositoriesService) ListPunchCard(owner, repo string) ([]PunchCard, *R
 	}
 
 	var results [][]int
-	resp, err := s.client.Do(req, &results)
+	resp, err := s.client.Do(ctx, req, &results)
 
 	// convert int slices into Punchcards
-	var cards []PunchCard
+	var cards []*PunchCard
 	for _, result := range results {
 		if len(result) != 3 {
 			continue
 		}
-		card := PunchCard{
+		card := &PunchCard{
 			Day:     Int(result[0]),
 			Hour:    Int(result[1]),
 			Commits: Int(result[2]),

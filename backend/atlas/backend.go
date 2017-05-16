@@ -110,8 +110,8 @@ func (b *Backend) init() {
 			"address": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     defaultAtlasServer,
 				Description: schemaDescriptions["address"],
+				DefaultFunc: schema.EnvDefaultFunc("ATLAS_ADDRESS", defaultAtlasServer),
 			},
 		},
 

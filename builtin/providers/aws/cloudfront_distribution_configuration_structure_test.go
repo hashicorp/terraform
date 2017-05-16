@@ -117,10 +117,12 @@ func originCustomHeaderConf2() map[string]interface{} {
 
 func customOriginConf() map[string]interface{} {
 	return map[string]interface{}{
-		"origin_protocol_policy": "http-only",
-		"http_port":              80,
-		"https_port":             443,
-		"origin_ssl_protocols":   customOriginSslProtocolsConf(),
+		"origin_protocol_policy":   "http-only",
+		"http_port":                80,
+		"https_port":               443,
+		"origin_ssl_protocols":     customOriginSslProtocolsConf(),
+		"origin_read_timeout":      30,
+		"origin_keepalive_timeout": 5,
 	}
 }
 
@@ -364,14 +366,8 @@ func TestCloudFrontStructure_flattenCacheBehavior(t *testing.T) {
 		t.Fatalf("Expected out[target_origin_id] to be myS3Origin, got %v", out["target_origin_id"])
 	}
 
-	// the flattened lambda function associations are a slice of maps,
-	// where as the default cache behavior LFAs are a set. Here we double check
-	// that and conver the slice to a set, and use Set's Equal() method to check
-	// equality
-	var outSet *schema.Set
-	if outSlice, ok := out["lambda_function_association"].([]interface{}); ok {
-		outSet = schema.NewSet(lambdaFunctionAssociationHash, outSlice)
-	} else {
+	var outSet, ok = out["lambda_function_association"].(*schema.Set)
+	if !ok {
 		t.Fatalf("out['lambda_function_association'] is not a slice as expected: %#v", out["lambda_function_association"])
 	}
 
@@ -496,7 +492,7 @@ func TestCloudFrontStructure_flattenlambdaFunctionAssociations(t *testing.T) {
 	lfa := expandLambdaFunctionAssociations(in.List())
 	out := flattenLambdaFunctionAssociations(lfa)
 
-	if reflect.DeepEqual(in.List(), out) != true {
+	if reflect.DeepEqual(in.List(), out.List()) != true {
 		t.Fatalf("Expected out to be %v, got %v", in, out)
 	}
 }
@@ -790,6 +786,12 @@ func TestCloudFrontStructure_expandCustomOriginConfig(t *testing.T) {
 	}
 	if *co.HTTPSPort != 443 {
 		t.Fatalf("Expected HTTPSPort to be 443, got %v", *co.HTTPSPort)
+	}
+	if *co.OriginReadTimeout != 30 {
+		t.Fatalf("Expected Origin Read Timeout to be 30, got %v", *co.OriginReadTimeout)
+	}
+	if *co.OriginKeepaliveTimeout != 5 {
+		t.Fatalf("Expected Origin Keepalive Timeout to be 5, got %v", *co.OriginKeepaliveTimeout)
 	}
 }
 

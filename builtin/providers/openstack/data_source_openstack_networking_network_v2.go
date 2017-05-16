@@ -17,6 +17,10 @@ func dataSourceNetworkingNetworkV2() *schema.Resource {
 		Read: dataSourceNetworkingNetworkV2Read,
 
 		Schema: map[string]*schema.Schema{
+			"network_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -56,6 +60,7 @@ func dataSourceNetworkingNetworkV2Read(d *schema.ResourceData, meta interface{})
 	networkingClient, err := config.networkingV2Client(GetRegion(d))
 
 	listOpts := networks.ListOpts{
+		ID:       d.Get("network_id").(string),
 		Name:     d.Get("name").(string),
 		TenantID: d.Get("tenant_id").(string),
 		Status:   "ACTIVE",

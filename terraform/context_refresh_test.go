@@ -60,6 +60,32 @@ func TestContext2Refresh(t *testing.T) {
 	}
 }
 
+func TestContext2Refresh_dataComputedModuleVar(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "refresh-data-module-var")
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	p.RefreshFn = nil
+	p.RefreshReturn = &InstanceState{
+		ID: "foo",
+	}
+
+	s, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, s, `
+<no state>
+module.child:
+  <no state>`)
+}
+
 func TestContext2Refresh_targeted(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-targeted")

@@ -12,7 +12,7 @@ Provides an IAM policy attached to a user.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_iam_user_policy" "lb_ro" {
   name = "test"
   user = "${aws_iam_user.lb.name}"
@@ -49,7 +49,8 @@ The following arguments are supported:
 
 * `policy` - (Required) The policy document. This is a JSON formatted string.
 	The heredoc syntax or `file` function is helpful here.
-* `name` - (Required) Name of the policy.
+* `name` - (Optional) The name of the policy. If omitted, Terraform will assign a random, unique name.
+* `name_prefix` - (Optional, Forces new resource) Creates a unique name beginning with the specified prefix. Conflicts with `name`.
 * `user` - (Required) IAM user to which to attach this policy.
 
 ## Attributes Reference

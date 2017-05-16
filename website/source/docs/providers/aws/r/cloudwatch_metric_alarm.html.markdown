@@ -11,7 +11,8 @@ description: |-
 Provides a CloudWatch Metric Alarm resource.
 
 ## Example Usage
-```
+
+```hcl
 resource "aws_cloudwatch_metric_alarm" "foobar" {
   alarm_name                = "terraform-test-foobar5"
   comparison_operator       = "GreaterThanOrEqualToThreshold"
@@ -21,13 +22,14 @@ resource "aws_cloudwatch_metric_alarm" "foobar" {
   period                    = "120"
   statistic                 = "Average"
   threshold                 = "80"
-  alarm_description         = "This metric monitor ec2 cpu utilization"
+  alarm_description         = "This metric monitors ec2 cpu utilization"
   insufficient_data_actions = []
 }
 ```
 
 ## Example in Conjunction with Scaling Policies
-```
+
+```hcl
 resource "aws_autoscaling_policy" "bat" {
   name                   = "foobar3-terraform-test"
   scaling_adjustment     = 4
@@ -50,7 +52,7 @@ resource "aws_cloudwatch_metric_alarm" "bat" {
     AutoScalingGroupName = "${aws_autoscaling_group.bar.name}"
   }
 
-  alarm_description = "This metric monitor ec2 cpu utilization"
+  alarm_description = "This metric monitors ec2 cpu utilization"
   alarm_actions     = ["${aws_autoscaling_policy.bat.arn}"]
 }
 ```
@@ -84,13 +86,19 @@ The following arguments are supported:
 * `ok_actions` - (Optional) The list of actions to execute when this alarm transitions into an OK state from any other state. Each action is specified as an Amazon Resource Number (ARN).
 * `unit` - (Optional) The unit for the alarm's associated metric.
 * `extended_statistic` - (Optional) The percentile statistic for the metric associated with the alarm. Specify a value between p0.0 and p100.
+* `treat_missing_data` - (Optional) Sets how this alarm is to handle missing data points. The following values are supported: `missing`, `ignore`, `breaching` and `notBreaching`. Defaults to `missing`.
+* `evaluate_low_sample_count_percentiles` - (Optional) Used only for alarms
+based on percentiles. If you specify `ignore`, the alarm state will not
+change during periods with too few data points to be statistically significant.
+If you specify `evaluate` or omit this parameter, the alarm will always be
+evaluated and possibly change state no matter how many data points are available.
+The following values are supported: `ignore`, and `evaluate`.
 
 ## Attributes Reference
 
 The following attributes are exported:
 
 * `id` - The ID of the health check
-
 
 ## Import
 

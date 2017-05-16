@@ -28,6 +28,12 @@ func resourceCloudStackIPAddress() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"zone_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -61,6 +67,11 @@ func resourceCloudStackIPAddressCreate(d *schema.ResourceData, meta interface{})
 	if vpcid, ok := d.GetOk("vpc_id"); ok {
 		// Set the vpcid
 		p.SetVpcid(vpcid.(string))
+	}
+
+	if zoneid, ok := d.GetOk("zone_id"); ok {
+		// Set the vpcid
+		p.SetZoneid(zoneid.(string))
 	}
 
 	// If there is a project supplied, we retrieve and set the project id
@@ -107,6 +118,10 @@ func resourceCloudStackIPAddressRead(d *schema.ResourceData, meta interface{}) e
 
 	if _, ok := d.GetOk("vpc_id"); ok {
 		d.Set("vpc_id", ip.Vpcid)
+	}
+
+	if _, ok := d.GetOk("zone_id"); ok {
+		d.Set("zone_id", ip.Zoneid)
 	}
 
 	setValueOrID(d, "project", ip.Project, ip.Projectid)

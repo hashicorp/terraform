@@ -12,7 +12,7 @@ Creates a new SQL database service on an Azure database server.
 
 ## Example Usage
 
-```
+```hcl
 resource "azure_sql_database_service" "sql-server" {
   name                 = "terraform-testing-db-renamed"
   database_server_name = "flibberflabber"

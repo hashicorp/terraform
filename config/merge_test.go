@@ -434,6 +434,31 @@ func TestMerge(t *testing.T) {
 			},
 			false,
 		},
+
+		// terraform blocks are merged, not overwritten
+		{
+			&Config{
+				Terraform: &Terraform{
+					RequiredVersion: "A",
+				},
+			},
+			&Config{
+				Terraform: &Terraform{
+					Backend: &Backend{
+						Type: "test",
+					},
+				},
+			},
+			&Config{
+				Terraform: &Terraform{
+					RequiredVersion: "A",
+					Backend: &Backend{
+						Type: "test",
+					},
+				},
+			},
+			false,
+		},
 	}
 
 	for i, tc := range cases {

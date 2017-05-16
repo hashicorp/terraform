@@ -20,24 +20,28 @@ func TestDiffAutoscalingTags(t *testing.T) {
 		{
 			Old: map[string]interface{}{
 				"Name": map[string]interface{}{
+					"key":                 "Name",
 					"value":               "bar",
 					"propagate_at_launch": true,
 				},
 			},
 			New: map[string]interface{}{
 				"DifferentTag": map[string]interface{}{
+					"key":                 "DifferentTag",
 					"value":               "baz",
 					"propagate_at_launch": true,
 				},
 			},
 			Create: map[string]interface{}{
 				"DifferentTag": map[string]interface{}{
+					"key":                 "DifferentTag",
 					"value":               "baz",
 					"propagate_at_launch": true,
 				},
 			},
 			Remove: map[string]interface{}{
 				"Name": map[string]interface{}{
+					"key":                 "Name",
 					"value":               "bar",
 					"propagate_at_launch": true,
 				},
@@ -48,24 +52,28 @@ func TestDiffAutoscalingTags(t *testing.T) {
 		{
 			Old: map[string]interface{}{
 				"Name": map[string]interface{}{
+					"key":                 "Name",
 					"value":               "bar",
 					"propagate_at_launch": true,
 				},
 			},
 			New: map[string]interface{}{
 				"Name": map[string]interface{}{
+					"key":                 "Name",
 					"value":               "baz",
 					"propagate_at_launch": false,
 				},
 			},
 			Create: map[string]interface{}{
 				"Name": map[string]interface{}{
+					"key":                 "Name",
 					"value":               "baz",
 					"propagate_at_launch": false,
 				},
 			},
 			Remove: map[string]interface{}{
 				"Name": map[string]interface{}{
+					"key":                 "Name",
 					"value":               "bar",
 					"propagate_at_launch": true,
 				},
@@ -76,10 +84,20 @@ func TestDiffAutoscalingTags(t *testing.T) {
 	var resourceID = "sample"
 
 	for i, tc := range cases {
-		awsTagsOld := autoscalingTagsFromMap(tc.Old, resourceID)
-		awsTagsNew := autoscalingTagsFromMap(tc.New, resourceID)
+		awsTagsOld, err := autoscalingTagsFromMap(tc.Old, resourceID)
+		if err != nil {
+			t.Fatalf("%d: unexpected error convertig old tags: %v", i, err)
+		}
 
-		c, r := diffAutoscalingTags(awsTagsOld, awsTagsNew, resourceID)
+		awsTagsNew, err := autoscalingTagsFromMap(tc.New, resourceID)
+		if err != nil {
+			t.Fatalf("%d: unexpected error convertig new tags: %v", i, err)
+		}
+
+		c, r, err := diffAutoscalingTags(awsTagsOld, awsTagsNew, resourceID)
+		if err != nil {
+			t.Fatalf("%d: unexpected error diff'ing tags: %v", i, err)
+		}
 
 		cm := autoscalingTagsToMap(c)
 		rm := autoscalingTagsToMap(r)

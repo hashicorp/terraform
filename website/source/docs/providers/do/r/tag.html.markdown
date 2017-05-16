@@ -15,7 +15,7 @@ configuration via their ID or name.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new tag
 resource "digitalocean_tag" "foobar" {
   name = "foobar"

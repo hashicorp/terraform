@@ -44,6 +44,50 @@ func TestAccAWSIAMRolePolicy_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSIAMRolePolicy_namePrefix(t *testing.T) {
+	role := acctest.RandString(10)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_iam_role_policy.test",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckIAMRolePolicyDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccIAMRolePolicyConfig_namePrefix(role),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckIAMRolePolicy(
+						"aws_iam_role.test",
+						"aws_iam_role_policy.test",
+					),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSIAMRolePolicy_generatedName(t *testing.T) {
+	role := acctest.RandString(10)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_iam_role_policy.test",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckIAMRolePolicyDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccIAMRolePolicyConfig_generatedName(role),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckIAMRolePolicy(
+						"aws_iam_role.test",
+						"aws_iam_role_policy.test",
+					),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckIAMRolePolicyDestroy(s *terraform.State) error {
 	iamconn := testAccProvider.Meta().(*AWSClient).iamconn
 
@@ -152,6 +196,83 @@ resource "aws_iam_role_policy" "foo" {
 EOF
 }
 `, role, policy1)
+}
+
+func testAccIAMRolePolicyConfig_namePrefix(role string) string {
+	return fmt.Sprintf(`
+resource "aws_iam_role" "test" {
+    name = "tf_test_role_%s"
+    path = "/"
+    assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy" "test" {
+    name_prefix = "tf_test_policy_"
+    role = "${aws_iam_role.test.name}"
+    policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": {
+    "Effect": "Allow",
+    "Action": "*",
+    "Resource": "*"
+  }
+}
+EOF
+}
+`, role)
+}
+
+func testAccIAMRolePolicyConfig_generatedName(role string) string {
+	return fmt.Sprintf(`
+resource "aws_iam_role" "test" {
+    name = "tf_test_role_%s"
+    path = "/"
+    assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy" "test" {
+    role = "${aws_iam_role.test.name}"
+    policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": {
+    "Effect": "Allow",
+    "Action": "*",
+    "Resource": "*"
+  }
+}
+EOF
+}
+`, role)
 }
 
 func testAccIAMRolePolicyConfigUpdate(role, policy1, policy2 string) string {

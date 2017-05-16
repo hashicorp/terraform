@@ -1,6 +1,8 @@
 package github
 
 import (
+	"context"
+
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -16,17 +18,17 @@ func resourceGithubTeamRepository() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"team_id": &schema.Schema{
+			"team_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"repository": &schema.Schema{
+			"repository": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"permission": &schema.Schema{
+			"permission": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "pull",
@@ -42,7 +44,7 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}
 	r := d.Get("repository").(string)
 	p := d.Get("permission").(string)
 
-	_, err := client.Organizations.AddTeamRepo(toGithubID(t), meta.(*Organization).name, r,
+	_, err := client.Organizations.AddTeamRepo(context.TODO(), toGithubID(t), meta.(*Organization).name, r,
 		&github.OrganizationAddTeamRepoOptions{Permission: p})
 
 	if err != nil {
@@ -58,7 +60,7 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 	client := meta.(*Organization).client
 	t, r := parseTwoPartID(d.Id())
 
-	repo, _, repoErr := client.Organizations.IsTeamRepo(toGithubID(t), meta.(*Organization).name, r)
+	repo, _, repoErr := client.Organizations.IsTeamRepo(context.TODO(), toGithubID(t), meta.(*Organization).name, r)
 
 	if repoErr != nil {
 		d.SetId("")
@@ -88,7 +90,7 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}
 	p := d.Get("permission").(string)
 
 	// the go-github library's AddTeamRepo method uses the add/update endpoint from Github API
-	_, err := client.Organizations.AddTeamRepo(toGithubID(t), meta.(*Organization).name, r,
+	_, err := client.Organizations.AddTeamRepo(context.TODO(), toGithubID(t), meta.(*Organization).name, r,
 		&github.OrganizationAddTeamRepoOptions{Permission: p})
 
 	if err != nil {
@@ -104,7 +106,7 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta interface{}
 	t := d.Get("team_id").(string)
 	r := d.Get("repository").(string)
 
-	_, err := client.Organizations.RemoveTeamRepo(toGithubID(t), meta.(*Organization).name, r)
+	_, err := client.Organizations.RemoveTeamRepo(context.TODO(), toGithubID(t), meta.(*Organization).name, r)
 
 	return err
 }

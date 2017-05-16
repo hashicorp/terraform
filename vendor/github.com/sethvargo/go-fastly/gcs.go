@@ -8,7 +8,7 @@ import (
 // GCS represents an GCS logging response from the Fastly API.
 type GCS struct {
 	ServiceID string `mapstructure:"service_id"`
-	Version   string `mapstructure:"version"`
+	Version   int    `mapstructure:"version"`
 
 	Name              string `mapstructure:"name"`
 	Bucket            string `mapstructure:"bucket_name"`
@@ -38,7 +38,7 @@ type ListGCSsInput struct {
 	Service string
 
 	// Version is the specific configuration version (required).
-	Version string
+	Version int
 }
 
 // ListGCSs returns the list of gcses for the configuration version.
@@ -47,11 +47,11 @@ func (c *Client) ListGCSs(i *ListGCSsInput) ([]*GCS, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/gcs", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/gcs", i.Service, i.Version)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -70,7 +70,7 @@ type CreateGCSInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	Name              string `form:"name,omitempty"`
 	Bucket            string `form:"bucket_name,omitempty"`
@@ -90,11 +90,11 @@ func (c *Client) CreateGCS(i *CreateGCSInput) (*GCS, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/gcs", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/gcs", i.Service, i.Version)
 	resp, err := c.PostForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -112,7 +112,7 @@ type GetGCSInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the GCS to fetch.
 	Name string
@@ -124,7 +124,7 @@ func (c *Client) GetGCS(i *GetGCSInput) (*GCS, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -132,7 +132,7 @@ func (c *Client) GetGCS(i *GetGCSInput) (*GCS, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/gcs/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/gcs/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -150,7 +150,7 @@ type UpdateGCSInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the GCS to update.
 	Name string
@@ -173,7 +173,7 @@ func (c *Client) UpdateGCS(i *UpdateGCSInput) (*GCS, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -181,7 +181,7 @@ func (c *Client) UpdateGCS(i *UpdateGCSInput) (*GCS, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/gcs/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/gcs/%s", i.Service, i.Version, i.Name)
 	resp, err := c.PutForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -199,7 +199,7 @@ type DeleteGCSInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the GCS to delete (required).
 	Name string
@@ -211,7 +211,7 @@ func (c *Client) DeleteGCS(i *DeleteGCSInput) error {
 		return ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return ErrMissingVersion
 	}
 
@@ -219,7 +219,7 @@ func (c *Client) DeleteGCS(i *DeleteGCSInput) error {
 		return ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/gcs/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/gcs/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Delete(path, nil)
 	if err != nil {
 		return err

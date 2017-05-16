@@ -25,6 +25,7 @@ const (
 // for interpolations such as `aws_instance.foo.bar`.
 type Interpolater struct {
 	Operation          walkOperation
+	Meta               *ContextMeta
 	Module             *module.Tree
 	State              *State
 	StateLock          *sync.RWMutex
@@ -87,6 +88,8 @@ func (i *Interpolater) Values(
 			err = i.valueSelfVar(scope, n, v, result)
 		case *config.SimpleVariable:
 			err = i.valueSimpleVar(scope, n, v, result)
+		case *config.TerraformVariable:
+			err = i.valueTerraformVar(scope, n, v, result)
 		case *config.UserVariable:
 			err = i.valueUserVar(scope, n, v, result)
 		default:
@@ -259,7 +262,7 @@ func (i *Interpolater) valueResourceVar(
 		// If it truly is missing, we'll catch it on a later walk.
 		// This applies only to graph nodes that interpolate during the
 		// config walk, e.g. providers.
-		if i.Operation == walkInput {
+		if i.Operation == walkInput || i.Operation == walkRefresh {
 			result[n] = unknownVariable()
 			return nil
 		}
@@ -303,10 +306,29 @@ func (i *Interpolater) valueSimpleVar(
 	// relied on this for their template_file data sources. We should
 	// remove this at some point but there isn't any rush.
 	return fmt.Errorf(
-		"invalid variable syntax: %q. If this is part of inline `template` parameter\n"+
+		"invalid variable syntax: %q. Did you mean 'var.%s'? If this is part of inline `template` parameter\n"+
 			"then you must escape the interpolation with two dollar signs. For\n"+
 			"example: ${a} becomes $${a}.",
-		n)
+		n, n)
+}
+
+func (i *Interpolater) valueTerraformVar(
+	scope *InterpolationScope,
+	n string,
+	v *config.TerraformVariable,
+	result map[string]ast.Variable) error {
+	if v.Field != "env" {
+		return fmt.Errorf(
+			"%s: only supported key for 'terraform.X' interpolations is 'env'", n)
+	}
+
+	if i.Meta == nil {
+		return fmt.Errorf(
+			"%s: internal error: nil Meta. Please report a bug.", n)
+	}
+
+	result[n] = ast.Variable{Type: ast.TypeString, Value: i.Meta.Env}
+	return nil
 }
 
 func (i *Interpolater) valueUserVar(
@@ -518,6 +540,13 @@ func (i *Interpolater) computeResourceMultiVariable(
 
 	unknownVariable := unknownVariable()
 
+	// If we're only looking for input, we don't need to expand a
+	// multi-variable. This prevents us from encountering things that should be
+	// known but aren't because the state has yet to be refreshed.
+	if i.Operation == walkInput {
+		return &unknownVariable, nil
+	}
+
 	// Get the information about this resource variable, and verify
 	// that it exists and such.
 	module, cr, err := i.resourceVariableInfo(scope, v)
@@ -565,10 +594,6 @@ func (i *Interpolater) computeResourceMultiVariable(
 		}
 
 		if singleAttr, ok := r.Primary.Attributes[v.Field]; ok {
-			if singleAttr == config.UnknownVariableValue {
-				return &unknownVariable, nil
-			}
-
 			values = append(values, singleAttr)
 			continue
 		}
@@ -582,10 +607,6 @@ func (i *Interpolater) computeResourceMultiVariable(
 		multiAttr, err := i.interpolateComplexTypeAttribute(v.Field, r.Primary.Attributes)
 		if err != nil {
 			return nil, err
-		}
-
-		if multiAttr == unknownVariable {
-			return &unknownVariable, nil
 		}
 
 		values = append(values, multiAttr)

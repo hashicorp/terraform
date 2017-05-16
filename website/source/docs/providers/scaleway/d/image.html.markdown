@@ -13,7 +13,7 @@ Use this data source to get the ID of a registered Image for use with the
 
 ## Example Usage
 
-```
+```hcl
 data "scaleway_image" "ubuntu" {
   architecture = "arm"
   name         = "Ubuntu Precise"

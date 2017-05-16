@@ -16,7 +16,7 @@ information specific to the listener in question.
 
 ## Example Usage
 
-```
+```hcl
 variable "listener_arn" {
   type = "string"
 }

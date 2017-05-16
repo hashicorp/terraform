@@ -85,6 +85,11 @@ func resourceDatadogMonitor() *schema.Resource {
 				Computed: true,
 				Optional: true,
 			},
+			"evaluation_delay": {
+				Type:     schema.TypeInt,
+				Computed: true,
+				Optional: true,
+			},
 			"no_data_timeframe": {
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -110,15 +115,10 @@ func resourceDatadogMonitor() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			// TODO should actually be map[string]int
 			"silenced": {
 				Type:     schema.TypeMap,
 				Optional: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-					Elem: &schema.Schema{
-						Type: schema.TypeInt},
-				},
+				Elem:     schema.TypeInt,
 			},
 			"include_tags": {
 				Type:     schema.TypeBool,
@@ -158,7 +158,7 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 		s := make(map[string]int)
 		// TODO: this is not very defensive, test if we can fail on non int input
 		for k, v := range attr.(map[string]interface{}) {
-			s[k], _ = strconv.Atoi(v.(string))
+			s[k] = v.(int)
 		}
 		o.Silenced = s
 	}
@@ -166,6 +166,9 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 		o.SetNotifyNoData(attr.(bool))
 	}
 	if attr, ok := d.GetOk("new_host_delay"); ok {
+		o.SetNewHostDelay(attr.(int))
+	}
+	if attr, ok := d.GetOk("evaluation_delay"); ok {
 		o.SetNewHostDelay(attr.(int))
 	}
 	if attr, ok := d.GetOk("no_data_timeframe"); ok {
@@ -279,6 +282,7 @@ func resourceDatadogMonitorRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("thresholds", thresholds)
 
 	d.Set("new_host_delay", m.Options.GetNewHostDelay())
+	d.Set("evaluation_delay", m.Options.GetNewHostDelay())
 	d.Set("notify_no_data", m.Options.GetNotifyNoData())
 	d.Set("no_data_timeframe", m.Options.NoDataTimeframe)
 	d.Set("renotify_interval", m.Options.GetRenotifyInterval())
@@ -345,6 +349,9 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 	if attr, ok := d.GetOk("new_host_delay"); ok {
 		o.SetNewHostDelay(attr.(int))
 	}
+	if attr, ok := d.GetOk("evaluation_delay"); ok {
+		o.SetNewHostDelay(attr.(int))
+	}
 	if attr, ok := d.GetOk("no_data_timeframe"); ok {
 		o.NoDataTimeframe = datadog.NoDataTimeframe(attr.(int))
 	}
@@ -364,7 +371,7 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 		// TODO: this is not very defensive, test if we can fail non int input
 		s := make(map[string]int)
 		for k, v := range attr.(map[string]interface{}) {
-			s[k], _ = strconv.Atoi(v.(string))
+			s[k] = v.(int)
 		}
 		o.Silenced = s
 	}

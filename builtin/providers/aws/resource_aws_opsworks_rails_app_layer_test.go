@@ -22,7 +22,7 @@ func TestAccAWSOpsworksRailsAppLayer(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAwsOpsworksRailsAppLayerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksRailsAppLayerConfigVpcCreate(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -33,7 +33,7 @@ func TestAccAWSOpsworksRailsAppLayer(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksRailsAppLayerNoManageBundlerConfigVpcCreate(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(

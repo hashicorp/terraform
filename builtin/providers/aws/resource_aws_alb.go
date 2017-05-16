@@ -24,6 +24,12 @@ func resourceAwsAlb() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Update: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"arn": {
 				Type:     schema.TypeString,
@@ -48,7 +54,7 @@ func resourceAwsAlb() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: validateElbName,
+				ValidateFunc: validateElbNamePrefix,
 			},
 
 			"internal": {
@@ -69,7 +75,6 @@ func resourceAwsAlb() *schema.Resource {
 			"subnets": {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				ForceNew: true,
 				Required: true,
 				Set:      schema.HashString,
 			},
@@ -107,6 +112,12 @@ func resourceAwsAlb() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  60,
+			},
+
+			"ip_address_type": {
+				Type:     schema.TypeString,
+				Computed: true,
+				Optional: true,
 			},
 
 			"vpc_id": {
@@ -159,6 +170,10 @@ func resourceAwsAlbCreate(d *schema.ResourceData, meta interface{}) error {
 		elbOpts.Subnets = expandStringList(v.(*schema.Set).List())
 	}
 
+	if v, ok := d.GetOk("ip_address_type"); ok {
+		elbOpts.IpAddressType = aws.String(v.(string))
+	}
+
 	log.Printf("[DEBUG] ALB create configuration: %#v", elbOpts)
 
 	resp, err := elbconn.CreateLoadBalancer(elbOpts)
@@ -175,7 +190,7 @@ func resourceAwsAlbCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] ALB ID: %s", d.Id())
 
 	stateConf := &resource.StateChangeConf{
-		Pending: []string{"active", "provisioning", "failed"},
+		Pending: []string{"provisioning", "failed"},
 		Target:  []string{"active"},
 		Refresh: func() (interface{}, string, error) {
 			describeResp, err := elbconn.DescribeLoadBalancers(&elbv2.DescribeLoadBalancersInput{
@@ -194,8 +209,9 @@ func resourceAwsAlbCreate(d *schema.ResourceData, meta interface{}) error {
 
 			return describeResp, *dLb.State.Code, nil
 		},
-		Timeout:    5 * time.Minute,
-		MinTimeout: 3 * time.Second,
+		Timeout:    d.Timeout(schema.TimeoutCreate),
+		MinTimeout: 10 * time.Second,
+		Delay:      30 * time.Second, // Wait 30 secs before starting
 	}
 	_, err = stateConf.WaitForState()
 	if err != nil {
@@ -312,6 +328,63 @@ func resourceAwsAlbUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	}
 
+	if d.HasChange("subnets") {
+		subnets := expandStringList(d.Get("subnets").(*schema.Set).List())
+
+		params := &elbv2.SetSubnetsInput{
+			LoadBalancerArn: aws.String(d.Id()),
+			Subnets:         subnets,
+		}
+
+		_, err := elbconn.SetSubnets(params)
+		if err != nil {
+			return fmt.Errorf("Failure Setting ALB Subnets: %s", err)
+		}
+	}
+
+	if d.HasChange("ip_address_type") {
+
+		params := &elbv2.SetIpAddressTypeInput{
+			LoadBalancerArn: aws.String(d.Id()),
+			IpAddressType:   aws.String(d.Get("ip_address_type").(string)),
+		}
+
+		_, err := elbconn.SetIpAddressType(params)
+		if err != nil {
+			return fmt.Errorf("Failure Setting ALB IP Address Type: %s", err)
+		}
+
+	}
+
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"active", "provisioning", "failed"},
+		Target:  []string{"active"},
+		Refresh: func() (interface{}, string, error) {
+			describeResp, err := elbconn.DescribeLoadBalancers(&elbv2.DescribeLoadBalancersInput{
+				LoadBalancerArns: []*string{aws.String(d.Id())},
+			})
+			if err != nil {
+				return nil, "", err
+			}
+
+			if len(describeResp.LoadBalancers) != 1 {
+				return nil, "", fmt.Errorf("No load balancers returned for %s", d.Id())
+			}
+			dLb := describeResp.LoadBalancers[0]
+
+			log.Printf("[INFO] ALB state: %s", *dLb.State.Code)
+
+			return describeResp, *dLb.State.Code, nil
+		},
+		Timeout:    d.Timeout(schema.TimeoutUpdate),
+		MinTimeout: 10 * time.Second,
+		Delay:      30 * time.Second, // Wait 30 secs before starting
+	}
+	_, err := stateConf.WaitForState()
+	if err != nil {
+		return err
+	}
+
 	return resourceAwsAlbRead(d, meta)
 }
 
@@ -368,6 +441,7 @@ func flattenAwsAlbResource(d *schema.ResourceData, meta interface{}, alb *elbv2.
 	d.Set("vpc_id", alb.VpcId)
 	d.Set("zone_id", alb.CanonicalHostedZoneId)
 	d.Set("dns_name", alb.DNSName)
+	d.Set("ip_address_type", alb.IpAddressType)
 
 	respTags, err := elbconn.DescribeTags(&elbv2.DescribeTagsInput{
 		ResourceArns: []*string{alb.LoadBalancerArn},

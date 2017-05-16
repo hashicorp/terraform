@@ -1,6 +1,6 @@
 ---
 layout: "aws"
-page_title: "AWS: aws_sns_topic
+page_title: "AWS: aws_sns_topic"
 sidebar_current: "docs-aws-datasource-sns-topic"
 description: |-
   Get information on a Amazon Simple Notification Service (SNS) Topic
@@ -14,7 +14,7 @@ without having to hard code the ARNs as input.
 
 ## Example Usage
 
-```
+```hcl
 data "aws_sns_topic" "example" {
   name = "an_example_topic"
 }

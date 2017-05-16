@@ -12,7 +12,7 @@ Provides a NS1 Notify List resource. This can be used to create, modify, and del
 
 ## Example Usage
 
-```
+```hcl
 resource "ns1_notifylist" "nl" {
   name = "my notify list"
   notifications = {

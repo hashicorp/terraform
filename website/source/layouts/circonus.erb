@@ -1,0 +1,60 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+          <a href="/docs/providers/index.html">All Providers</a>
+        </li>
+
+        <li<%= sidebar_current("docs-circonus-index") %>>
+          <a href="/docs/providers/circonus/index.html">Circonus Provider</a>
+        </li>
+
+        <li<%= sidebar_current("docs-circonus-datasource") %>>
+          <a href="#">Data Sources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-circonus-datasource-account") %>>
+              <a href="/docs/providers/circonus/d/account.html">circonus_account</a>
+            </li>
+
+            <li<%= sidebar_current("docs-circonus-datasource-collector") %>>
+              <a href="/docs/providers/circonus/d/collector.html">circonus_collector</a>
+            </li>
+          </ul>
+        </li>
+
+        <li<%= sidebar_current("docs-circonus-resource") %>>
+          <a href="#">Resources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-circonus-resource-circonus_check") %>>
+              <a href="/docs/providers/circonus/r/check.html">circonus_check</a>
+            </li>
+
+            <li<%= sidebar_current("docs-circonus-resource-circonus_contact_group") %>>
+              <a href="/docs/providers/circonus/r/contact_group.html">circonus_contact_group</a>
+            </li>
+
+            <li<%= sidebar_current("docs-circonus-resource-circonus_graph") %>>
+              <a href="/docs/providers/circonus/r/graph.html">circonus_graph</a>
+            </li>
+
+            <li<%= sidebar_current("docs-circonus-resource-circonus_metric") %>>
+              <a href="/docs/providers/circonus/r/metric.html">circonus_metric</a>
+            </li>
+
+            <li<%= sidebar_current("docs-circonus-resource-circonus_metric_cluster") %>>
+              <a href="/docs/providers/circonus/r/metric_cluster.html">circonus_metric_cluster</a>
+            </li>
+
+            <li<%= sidebar_current("docs-circonus-resource-circonus_rule_set") %>>
+              <a href="/docs/providers/circonus/r/rule_set.html">circonus_rule_set</a>
+            </li>
+          </ul>
+        </li>
+
+      </ul>
+    </div>
+  <% end %>
+
+  <%= yield %>
+  <% end %>

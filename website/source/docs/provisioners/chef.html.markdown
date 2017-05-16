@@ -8,38 +8,39 @@ description: |-
 
 # Chef Provisioner
 
-The `chef` provisioner installs, configures and runs the Chef Client on a remote resource. The `chef` provisioner supports both `ssh`
-and `winrm` type [connections](/docs/provisioners/connection.html).
+The `chef` provisioner installs, configures and runs the Chef Client on a remote
+resource. The `chef` provisioner supports both `ssh` and `winrm` type
+[connections](/docs/provisioners/connection.html).
 
 ## Requirements
 
 The `chef` provisioner has some prerequisites for specific connection types:
 
-* For `ssh` type connections, `cURL` must be available on the remote host.
-* For `winrm` connections, `PowerShell 2.0` must be available on the remote host.
+- For `ssh` type connections, `cURL` must be available on the remote host.
+- For `winrm` connections, `PowerShell 2.0` must be available on the remote host.
 
 Without these prerequisites, your provisioning execution will fail.
 
 ## Example usage
 
-```
-# Start a initial chef run on a resource
+```hcl
 resource "aws_instance" "web" {
   # ...
+
   provisioner "chef" {
     attributes_json = <<-EOF
-        {
-            "key": "value",
-            "app": {
-                "cluster1": {
-                    "nodes": [
-                        "webserver1",
-                        "webserver2"
-                    ]
-                }
-            }
+      {
+        "key": "value",
+        "app": {
+          "cluster1": {
+            "nodes": [
+              "webserver1",
+              "webserver2"
+            ]
+          }
         }
-        EOF
+      }
+    EOF
 
     environment     = "_default"
     run_list        = ["cookbook::recipe"]

@@ -579,7 +579,7 @@ func (p *Provisioner) configureVaultsFunc(
 
 		for vault, items := range p.vaults {
 			for _, item := range items {
-				updateCmd := fmt.Sprintf("%s vault update %s %s -A %s -M client %s",
+				updateCmd := fmt.Sprintf("%s vault update %s %s -C %s -M client %s",
 					knifeCmd,
 					vault,
 					item,

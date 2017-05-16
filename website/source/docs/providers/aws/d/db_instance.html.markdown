@@ -12,7 +12,7 @@ Use this data source to get information about an RDS instance
 
 ## Example Usage
 
-```
+```hcl
 data "aws_db_instance" "database" {
   db_instance_identifier = "my-test-database"
 }
@@ -28,6 +28,7 @@ The following arguments are supported:
 
 The following attributes are exported:
 
+* `address` - The address of the RDS instance.
 * `allocated_storage` - Specifies the allocated storage size specified in gigabytes.
 * `auto_minor_version_upgrade` - Indicates that minor version patches are applied automatically.
 * `availability_zone` - Specifies the name of the Availability Zone the DB instance is located in.
@@ -40,8 +41,10 @@ The following attributes are exported:
 * `db_security_groups` - Provides List of DB security groups associated to this DB instance.
 * `db_subnet_group` - Specifies the name of the subnet group associated with the DB instance.
 * `db_instance_port` - Specifies the port that the DB instance listens on.
+* `endpoint` - The connection endpoint.
 * `engine` - Provides the name of the database engine to be used for this DB instance.
 * `engine_version` - Indicates the database engine version.
+* `hosted_zone_id` - The canonical hosted zone ID of the DB instance (to be used in a Route 53 Alias record).
 * `iops` - Specifies the Provisioned IOPS (I/O operations per second) value.
 * `kms_key_id` - If StorageEncrypted is true, the KMS key identifier for the encrypted DB instance.
 * `license_model` - License model information for this DB instance.
@@ -50,6 +53,7 @@ The following attributes are exported:
 * `monitoring_role_arn` - The ARN for the IAM role that permits RDS to send Enhanced Monitoring metrics to CloudWatch Logs.
 * `multi_az` - Specifies if the DB instance is a Multi-AZ deployment.
 * `option_group_memberships` - Provides the list of option group memberships for this DB instance.
+* `port` - The database port.
 * `preferred_backup_window` - Specifies the daily time range during which automated backups are created.
 * `preferred_maintenance_window` -  Specifies the weekly time range during which system maintenance can occur in UTC.
 * `publicly_accessible` - Specifies the accessibility options for the DB instance.
@@ -57,3 +61,4 @@ The following attributes are exported:
 * `storage_type` - Specifies the storage type associated with DB instance.
 * `timezone` - The time zone of the DB instance.
 * `vpc_security_groups` - Provides a list of VPC security group elements that the DB instance belongs to.
+* `replicate_source_db` - The identifier of the source DB that this is a replica of.

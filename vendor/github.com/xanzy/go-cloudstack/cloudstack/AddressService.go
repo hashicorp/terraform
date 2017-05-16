@@ -177,6 +177,7 @@ func (s *AddressService) AssociateIpAddress(p *AssociateIpAddressParams) (*Assoc
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -283,6 +284,7 @@ func (s *AddressService) DisassociateIpAddress(p *DisassociateIpAddressParams) (
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -624,6 +626,7 @@ func (s *AddressService) ListPublicIpAddresses(p *ListPublicIpAddressesParams) (
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -762,6 +765,7 @@ func (s *AddressService) UpdateIpAddress(p *UpdateIpAddressParams) (*UpdateIpAdd
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 

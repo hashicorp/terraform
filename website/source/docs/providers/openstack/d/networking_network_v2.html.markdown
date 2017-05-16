@@ -12,7 +12,7 @@ Use this data source to get the ID of an available OpenStack network.
 
 ## Example Usage
 
-```
+```hcl
 data "openstack_networking_network_v2" "network" {
   name = "tf_test_network"
 }
@@ -23,6 +23,8 @@ data "openstack_networking_network_v2" "network" {
 * `region` - (Required) The region in which to obtain the V2 Neutron client.
   A Neutron client is needed to retrieve networks ids. If omitted, the
   `OS_REGION_NAME` environment variable is used.
+
+* `network_id` - (Optional) The ID of the network.
 
 * `name` - (Optional) The name of the network.
 

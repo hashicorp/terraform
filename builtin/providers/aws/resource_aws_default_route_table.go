@@ -17,56 +17,66 @@ func resourceAwsDefaultRouteTable() *schema.Resource {
 		Delete: resourceAwsDefaultRouteTableDelete,
 
 		Schema: map[string]*schema.Schema{
-			"default_route_table_id": &schema.Schema{
+			"default_route_table_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"vpc_id": &schema.Schema{
+			"vpc_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"propagating_vgws": &schema.Schema{
+			"propagating_vgws": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
 
-			"route": &schema.Schema{
+			"route": {
 				Type:     schema.TypeSet,
 				Computed: true,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"cidr_block": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-						},
-
-						"gateway_id": &schema.Schema{
+						"cidr_block": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"instance_id": &schema.Schema{
+						"ipv6_cidr_block": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"nat_gateway_id": &schema.Schema{
+						"egress_only_gateway_id": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"vpc_peering_connection_id": &schema.Schema{
+						"gateway_id": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"network_interface_id": &schema.Schema{
+						"instance_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"nat_gateway_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"vpc_peering_connection_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"network_interface_id": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -193,16 +203,33 @@ func revokeAllRouteTableRules(defaultRouteTableId string, meta interface{}) erro
 			// See aws_vpc_endpoint
 			continue
 		}
-		log.Printf(
-			"[INFO] Deleting route from %s: %s",
-			defaultRouteTableId, *r.DestinationCidrBlock)
-		_, err := conn.DeleteRoute(&ec2.DeleteRouteInput{
-			RouteTableId:         aws.String(defaultRouteTableId),
-			DestinationCidrBlock: r.DestinationCidrBlock,
-		})
-		if err != nil {
-			return err
+
+		if r.DestinationCidrBlock != nil {
+			log.Printf(
+				"[INFO] Deleting route from %s: %s",
+				defaultRouteTableId, *r.DestinationCidrBlock)
+			_, err := conn.DeleteRoute(&ec2.DeleteRouteInput{
+				RouteTableId:         aws.String(defaultRouteTableId),
+				DestinationCidrBlock: r.DestinationCidrBlock,
+			})
+			if err != nil {
+				return err
+			}
 		}
+
+		if r.DestinationIpv6CidrBlock != nil {
+			log.Printf(
+				"[INFO] Deleting route from %s: %s",
+				defaultRouteTableId, *r.DestinationIpv6CidrBlock)
+			_, err := conn.DeleteRoute(&ec2.DeleteRouteInput{
+				RouteTableId:             aws.String(defaultRouteTableId),
+				DestinationIpv6CidrBlock: r.DestinationIpv6CidrBlock,
+			})
+			if err != nil {
+				return err
+			}
+		}
+
 	}
 
 	return nil

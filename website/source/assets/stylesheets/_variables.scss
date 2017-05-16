@@ -1,51 +1,63 @@
-//
-// Variables
-// --------------------------------------------------
+// Colors
+$white: #FFFFFF;
+$black: #000000;
+$gray-darker: #555555;
 
-
-// Global values
-// --------------------------------------------------
-
-$jumbotron-height:  		    804px;
-$header-height:  		   	    90px;
-$jumbotron-color:  			    #fff;
-$btn-border-radius:   		  4px;
-$el-border-radius:   		    6px;
-$negative-hero-margin: 		  -80px;
-// colors
-// -------------------------
-
-$white: 					      #fff;
-$black:                 #000;
-$light-black: 					#242424;
-$orange:                #e78c5b;
-$blue:                  #5b7fe7;
-$green:                 #5be764;
-$gray-darker: 				  #555;
-$gray: 						      #777;
-$gray-light:   				  #939393;
-$gray-lighter:   			  #979797;
-$red: 						      #dd4e58;
-$red-dark:            	#c5454e;
-$purple:   					    #822ff7;
-$light-purple:				  #f7f3f9;
-$btn-color:  				    #4592C5;
-
-
-// Scaffolding
-// -------------------------
-$body-bg:               	#fff;
-$text-color:            	$gray;
-
-// Links
-// -------------------------
-$link-color:            	$red-dark;
-$link-hover-color:      	darken($link-color, 15%);
+$consul-pink: #D62783;
+$consul-pink-dark: #961D59;
+$packer-blue: #1DAEFF;
+$packer-blue-dark: #1D94DD;
+$terraform-purple: #5C4EE5;
+$terraform-purple-dark: #4040B2;
+$vagrant-blue: #1563FF;
+$vagrant-blue-dark: #104EB2;
+$vault-black: #000000;
+$vault-blue: #00ABE0;
+$vault-gray: #919FA8;
 
 // Typography
-// -------------------------
-$font-family-open-sans: 'Open Sans', "Helvetica Neue", Helvetica, Arial, sans-serif;
-$font-family-klavika: 'klavika-web', 'klavika', 'Open Sans', Helvetica, Arial, sans-serif;
+$font-family-klavika:   'klavika-web', Helvetica, sans-serif;
+$font-family-open-sans: 'Open Sans', sans-serif;
+$font-family-monospace: 'Fira Mono', monospace;
+$font-size:             15px;
+$font-weight-reg:       400;
+$font-weight-bold:      600;
 
-$text-shadow: 				1px 1px 1px #000;
-$shadow: 					    $text-shadow;
+// Body
+$body-font-color: $gray-darker;
+$body-link-color: $terraform-purple;
+
+// Home
+$home-header-background-color: transparent;
+$home-header-link-color: $gray-darker;
+$home-header-link-color-hover: $black;
+
+// Sidebar
+$sidebar-background-color: $white;
+$sidebar-font-size: $font-size - 2;
+$sidebar-link-color: $body-font-color;
+$sidebar-link-color-hover: $black;
+$sidebar-link-color-active: $body-link-color;
+$sidebar-font-family: $font-family-open-sans;
+$sidebar-font-weight: $font-weight-reg;
+
+// Header
+$header-background-color: $terraform-purple;
+$header-font-size: $font-size - 2;
+$header-height: 92px;
+$header-link-color: rgba($white, 0.85);
+$header-link-color-hover: $white;
+
+// Footer
+$footer-font-size: $font-size - 2;
+$footer-link-color: $body-font-color;
+$footer-link-color-hover: $black;
+
+// Button
+$button-background: $white;
+$button-font-color: $terraform-purple;
+$button-font-family: $font-family-klavika;
+$button-font-size: $font-size;
+$button-font-weight: $font-weight-bold;
+$button-primary-background: $terraform-purple;
+$button-primary-font-color: $white;

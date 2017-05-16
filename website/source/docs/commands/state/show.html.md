@@ -30,7 +30,7 @@ in [resource addressing format](/docs/commands/state/addressing.html).
 The command-line flags are all optional. The list of available flags are:
 
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
-  Ignored when [remote state](/docs/state/remote/index.html) is used.
+  Ignored when [remote state](/docs/state/remote.html) is used.
 
 ## Example: Show a Resource
 

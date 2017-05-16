@@ -144,6 +144,24 @@ func TestAccComputeV2SecGroup_lowerCaseCIDR(t *testing.T) {
 	})
 }
 
+func TestAccComputeV2SecGroup_timeout(t *testing.T) {
+	var secgroup secgroups.SecurityGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2SecGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2SecGroup_timeout,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2SecGroupExists("openstack_compute_secgroup_v2.sg_1", &secgroup),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckComputeV2SecGroupDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	computeClient, err := config.computeV2Client(OS_REGION_NAME)
@@ -370,6 +388,23 @@ resource "openstack_compute_secgroup_v2" "sg_1" {
     to_port = 0
     ip_protocol = "icmp"
     cidr = "2001:558:FC00::/39"
+  }
+}
+`
+
+const testAccComputeV2SecGroup_timeout = `
+resource "openstack_compute_secgroup_v2" "sg_1" {
+  name = "sg_1"
+  description = "first test security group"
+  rule {
+    from_port = 0
+    to_port = 0
+    ip_protocol = "icmp"
+    cidr = "0.0.0.0/0"
+  }
+
+  timeouts {
+    delete = "5m"
   }
 }
 `

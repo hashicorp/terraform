@@ -20,6 +20,11 @@ func dataSourceAwsDbInstance() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"address": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"allocated_storage": {
 				Type:     schema.TypeInt,
 				Computed: true,
@@ -82,12 +87,22 @@ func dataSourceAwsDbInstance() *schema.Resource {
 				Computed: true,
 			},
 
+			"endpoint": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"engine": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
 			"engine_version": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"hosted_zone_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -133,6 +148,11 @@ func dataSourceAwsDbInstance() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
+			"port": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+
 			"preferred_backup_window": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -167,6 +187,11 @@ func dataSourceAwsDbInstance() *schema.Resource {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+
+			"replicate_source_db": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -232,6 +257,10 @@ func dataSourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error
 	d.Set("master_username", dbInstance.MasterUsername)
 	d.Set("monitoring_interval", dbInstance.MonitoringInterval)
 	d.Set("monitoring_role_arn", dbInstance.MonitoringRoleArn)
+	d.Set("address", dbInstance.Endpoint.Address)
+	d.Set("port", dbInstance.Endpoint.Port)
+	d.Set("hosted_zone_id", dbInstance.Endpoint.HostedZoneId)
+	d.Set("endpoint", fmt.Sprintf("%s:%d", *dbInstance.Endpoint.Address, *dbInstance.Endpoint.Port))
 
 	var optionGroups []string
 	for _, v := range dbInstance.OptionGroupMemberships {
@@ -247,6 +276,7 @@ func dataSourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error
 	d.Set("storage_encrypted", dbInstance.StorageEncrypted)
 	d.Set("storage_type", dbInstance.StorageType)
 	d.Set("timezone", dbInstance.Timezone)
+	d.Set("replicate_source_db", dbInstance.ReadReplicaSourceDBInstanceIdentifier)
 
 	var vpcSecurityGroups []string
 	for _, v := range dbInstance.VpcSecurityGroups {

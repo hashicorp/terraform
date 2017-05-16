@@ -11,9 +11,12 @@ description: |-
 Allows creation and management of an IAM policy for an existing Google Cloud
 Platform project.
 
+~> **Be careful!** You can accidentally lock yourself out of your project
+   using this resource. Proceed with caution.
+
 ## Example Usage
 
-```js
+```hcl
 resource "google_project_iam_policy" "project" {
   project     = "your-project-id"
   policy_data = "${data.google_iam_policy.admin.policy_data}"
@@ -66,5 +69,5 @@ exported:
 
 * `etag` - (Computed) The etag of the project's IAM policy.
 
-* `restore_policy` - (Computed) The IAM policy that will be resotred when a
+* `restore_policy` - (Computed) The IAM policy that will be restored when a
     non-authoritative policy resource is deleted.

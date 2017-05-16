@@ -62,7 +62,7 @@ func tagsToMapInspector(ts []*inspector.ResourceGroupTag) map[string]string {
 // compare a tag against a list of strings and checks if it should
 // be ignored or not
 func tagIgnoredInspector(t *inspector.ResourceGroupTag) bool {
-	filter := []string{"^aws:*"}
+	filter := []string{"^aws:"}
 	for _, v := range filter {
 		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
 		if r, _ := regexp.MatchString(v, *t.Key); r == true {

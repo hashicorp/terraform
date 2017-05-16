@@ -8,14 +8,14 @@ description: |-
 
 # google\_storage\_bucket\_object
 
-Creates a new object inside an exisiting bucket in Google cloud storage service (GCS). Currently, it does not support creating custom ACLs. For more information see [the official documentation](https://cloud.google.com/storage/docs/overview) and [API](https://cloud.google.com/storage/docs/json_api).
+Creates a new object inside an existing bucket in Google cloud storage service (GCS). Currently, it does not support creating custom ACLs. For more information see [the official documentation](https://cloud.google.com/storage/docs/overview) and [API](https://cloud.google.com/storage/docs/json_api).
 
 
 ## Example Usage
 
 Example creating a public object in an existing `image-store` bucket.
 
-```js
+```hcl
 resource "google_storage_bucket_object" "picture" {
   name   = "butterfly01"
   source = "/images/nature/garden-tiger-moth.jpg"
@@ -31,17 +31,33 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the object.
 
-- - -
+One of the following is required:
 
 * `content` - (Optional) Data as `string` to be uploaded. Must be defined if
     `source` is not.
 
+* `source` - (Optional) A path to the data you want to upload. Must be defined
+    if `content` is not.
+
+- - -
+
+* `cache_control` - (Optional) [Cache-Control](https://tools.ietf.org/html/rfc7234#section-5.2)
+    directive to specify caching behavior of object data. If omitted and object is accessible to all anonymous users, the default will be public, max-age=3600
+
+* `content_disposition` - (Optional) [Content-Disposition](https://tools.ietf.org/html/rfc6266) of the object data.
+
+* `content_encoding` - (Optional) [Content-Encoding](https://tools.ietf.org/html/rfc7231#section-3.1.2.2) of the object data.
+
+* `content_language` - (Optional) [Content-Language](https://tools.ietf.org/html/rfc7231#section-3.1.3.2) of the object data.
+
+* `content_type` - (Optional) [Content-Type](https://tools.ietf.org/html/rfc7231#section-3.1.1.5) of the object data. Defaults to "application/octet-stream" or "text/plain; charset=utf-8".
+
 * `predefined_acl` - (Optional, Deprecated) The [canned GCS ACL](https://cloud.google.com/storage/docs/access-control#predefined-acl) apply. Please switch
 to `google_storage_object_acl.predefined_acl`.
 
-
-* `source` - (Optional) A path to the data you want to upload. Must be defined
-    if `content` is not.
+* `storage_class` - (Optional) The [StorageClass](https://cloud.google.com/storage/docs/storage-classes) of the new bucket object.
+    Supported values include: `MULTI_REGIONAL`, `REGIONAL`, `NEARLINE`, `COLDLINE`. If not provided, this defaults to the bucket's default
+    storage class or to a [standard](https://cloud.google.com/storage/docs/storage-classes#standard) class.
 
 ## Attributes Reference
 

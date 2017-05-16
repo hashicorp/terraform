@@ -6,6 +6,7 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"time"
 )
@@ -13,10 +14,8 @@ import (
 // OrganizationsService provides access to the organization related functions
 // in the GitHub API.
 //
-// GitHub API docs: http://developer.github.com/v3/orgs/
-type OrganizationsService struct {
-	client *Client
-}
+// GitHub API docs: https://developer.github.com/v3/orgs/
+type OrganizationsService service
 
 // Organization represents a GitHub organization account.
 type Organization struct {
@@ -29,6 +28,7 @@ type Organization struct {
 	Blog              *string    `json:"blog,omitempty"`
 	Location          *string    `json:"location,omitempty"`
 	Email             *string    `json:"email,omitempty"`
+	Description       *string    `json:"description,omitempty"`
 	PublicRepos       *int       `json:"public_repos,omitempty"`
 	PublicGists       *int       `json:"public_gists,omitempty"`
 	Followers         *int       `json:"followers,omitempty"`
@@ -47,6 +47,8 @@ type Organization struct {
 	// API URLs
 	URL              *string `json:"url,omitempty"`
 	EventsURL        *string `json:"events_url,omitempty"`
+	HooksURL         *string `json:"hooks_url,omitempty"`
+	IssuesURL        *string `json:"issues_url,omitempty"`
 	MembersURL       *string `json:"members_url,omitempty"`
 	PublicMembersURL *string `json:"public_members_url,omitempty"`
 	ReposURL         *string `json:"repos_url,omitempty"`
@@ -56,7 +58,7 @@ func (o Organization) String() string {
 	return Stringify(o)
 }
 
-// Plan represents the payment plan for an account.  See plans at https://github.com/plans.
+// Plan represents the payment plan for an account. See plans at https://github.com/plans.
 type Plan struct {
 	Name          *string `json:"name,omitempty"`
 	Space         *int    `json:"space,omitempty"`
@@ -68,11 +70,46 @@ func (p Plan) String() string {
 	return Stringify(p)
 }
 
-// List the organizations for a user.  Passing the empty string will list
+// OrganizationsListOptions specifies the optional parameters to the
+// OrganizationsService.ListAll method.
+type OrganizationsListOptions struct {
+	// Since filters Organizations by ID.
+	Since int `url:"since,omitempty"`
+
+	ListOptions
+}
+
+// ListAll lists all organizations, in the order that they were created on GitHub.
+//
+// Note: Pagination is powered exclusively by the since parameter. To continue
+// listing the next set of organizations, use the ID of the last-returned organization
+// as the opts.Since parameter for the next call.
+//
+// GitHub API docs: https://developer.github.com/v3/orgs/#list-all-organizations
+func (s *OrganizationsService) ListAll(ctx context.Context, opt *OrganizationsListOptions) ([]*Organization, *Response, error) {
+	u, err := addOptions("organizations", opt)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	req, err := s.client.NewRequest("GET", u, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	orgs := []*Organization{}
+	resp, err := s.client.Do(ctx, req, &orgs)
+	if err != nil {
+		return nil, resp, err
+	}
+	return orgs, resp, nil
+}
+
+// List the organizations for a user. Passing the empty string will list
 // organizations for the authenticated user.
 //
-// GitHub API docs: http://developer.github.com/v3/orgs/#list-user-organizations
-func (s *OrganizationsService) List(user string, opt *ListOptions) ([]Organization, *Response, error) {
+// GitHub API docs: https://developer.github.com/v3/orgs/#list-user-organizations
+func (s *OrganizationsService) List(ctx context.Context, user string, opt *ListOptions) ([]*Organization, *Response, error) {
 	var u string
 	if user != "" {
 		u = fmt.Sprintf("users/%v/orgs", user)
@@ -89,19 +126,19 @@ func (s *OrganizationsService) List(user string, opt *ListOptions) ([]Organizati
 		return nil, nil, err
 	}
 
-	orgs := new([]Organization)
-	resp, err := s.client.Do(req, orgs)
+	var orgs []*Organization
+	resp, err := s.client.Do(ctx, req, &orgs)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return *orgs, resp, err
+	return orgs, resp, nil
 }
 
 // Get fetches an organization by name.
 //
-// GitHub API docs: http://developer.github.com/v3/orgs/#get-an-organization
-func (s *OrganizationsService) Get(org string) (*Organization, *Response, error) {
+// GitHub API docs: https://developer.github.com/v3/orgs/#get-an-organization
+func (s *OrganizationsService) Get(ctx context.Context, org string) (*Organization, *Response, error) {
 	u := fmt.Sprintf("orgs/%v", org)
 	req, err := s.client.NewRequest("GET", u, nil)
 	if err != nil {
@@ -109,18 +146,18 @@ func (s *OrganizationsService) Get(org string) (*Organization, *Response, error)
 	}
 
 	organization := new(Organization)
-	resp, err := s.client.Do(req, organization)
+	resp, err := s.client.Do(ctx, req, organization)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return organization, resp, err
+	return organization, resp, nil
 }
 
 // Edit an organization.
 //
-// GitHub API docs: http://developer.github.com/v3/orgs/#edit-an-organization
-func (s *OrganizationsService) Edit(name string, org *Organization) (*Organization, *Response, error) {
+// GitHub API docs: https://developer.github.com/v3/orgs/#edit-an-organization
+func (s *OrganizationsService) Edit(ctx context.Context, name string, org *Organization) (*Organization, *Response, error) {
 	u := fmt.Sprintf("orgs/%v", name)
 	req, err := s.client.NewRequest("PATCH", u, org)
 	if err != nil {
@@ -128,10 +165,10 @@ func (s *OrganizationsService) Edit(name string, org *Organization) (*Organizati
 	}
 
 	o := new(Organization)
-	resp, err := s.client.Do(req, o)
+	resp, err := s.client.Do(ctx, req, o)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return o, resp, err
+	return o, resp, nil
 }

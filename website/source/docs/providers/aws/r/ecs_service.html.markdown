@@ -16,7 +16,7 @@ See [ECS Services section in AWS developer guide](https://docs.aws.amazon.com/Am
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_ecs_service" "mongo" {
   name            = "mongodb"
   cluster         = "${aws_ecs_cluster.foo.id}"
@@ -27,7 +27,7 @@ resource "aws_ecs_service" "mongo" {
 
   placement_strategy {
     type  = "binpack"
-    field = "CPU"
+    field = "cpu"
   }
 
   load_balancer {

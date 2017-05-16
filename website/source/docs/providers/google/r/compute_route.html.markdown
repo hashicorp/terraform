@@ -12,7 +12,7 @@ Manages a network route within GCE.
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_network" "foobar" {
   name       = "test"
   ipv4_range = "10.0.0.0/16"

@@ -14,7 +14,7 @@ the [account limits](http://docs.aws.amazon.com/kms/latest/developerguide/limits
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_kms_key" "a" {}
 
 resource "aws_kms_alias" "a" {

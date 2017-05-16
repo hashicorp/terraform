@@ -6,7 +6,6 @@ import (
 	"github.com/denverdino/aliyungo/common"
 	"github.com/denverdino/aliyungo/ecs"
 	"github.com/hashicorp/terraform/helper/resource"
-
 	"github.com/hashicorp/terraform/helper/schema"
 	"time"
 )
@@ -73,6 +72,11 @@ func resourceAliyunSecurityGroupRead(d *schema.ResourceData, meta interface{}) e
 			return nil
 		}
 		return fmt.Errorf("Error DescribeSecurityGroupAttribute: %#v", err)
+	}
+
+	if sg == nil {
+		d.SetId("")
+		return nil
 	}
 
 	d.Set("name", sg.SecurityGroupName)
@@ -145,6 +149,7 @@ func resourceAliyunSecurityGroupDelete(d *schema.ResourceData, meta interface{})
 
 		return resource.RetryableError(fmt.Errorf("Security group in use - trying again while it is deleted."))
 	})
+
 }
 
 func buildAliyunSecurityGroupArgs(d *schema.ResourceData, meta interface{}) (*ecs.CreateSecurityGroupArgs, error) {

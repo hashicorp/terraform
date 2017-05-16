@@ -10,7 +10,7 @@ Provides a Redshift Cluster parameter group resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_redshift_parameter_group" "bar" {
   name   = "parameter-group-test-terraform"
   family = "redshift-1.0"

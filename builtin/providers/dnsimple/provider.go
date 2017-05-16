@@ -14,7 +14,7 @@ func Provider() terraform.ResourceProvider {
 			"email": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("DNSIMPLE_EMAIL", nil),
+				DefaultFunc: schema.EnvDefaultFunc("DNSIMPLE_EMAIL", ""),
 				Description: "The DNSimple account email address.",
 			},
 

@@ -13,7 +13,7 @@ and delete source NATs to allow vApps to send external traffic.
 
 ## Example Usage
 
-```
+```hcl
 resource "vcd_snat" "outbound" {
   edge_gateway = "Edge Gateway Name"
   external_ip  = "78.101.10.20"

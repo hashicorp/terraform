@@ -1740,6 +1740,7 @@ func TestContext2Apply_cancel(t *testing.T) {
 				if ctx.sh.Stopped() {
 					break
 				}
+				time.Sleep(10 * time.Millisecond)
 			}
 		}
 
@@ -4429,6 +4430,7 @@ func TestContext2Apply_provisionerDestroyFailContinue(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
+	var l sync.Mutex
 	var calls []string
 	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
 		val, ok := c.Config["foo"]
@@ -4436,6 +4438,8 @@ func TestContext2Apply_provisionerDestroyFailContinue(t *testing.T) {
 			t.Fatalf("bad value for foo: %v %#v", val, c)
 		}
 
+		l.Lock()
+		defer l.Unlock()
 		calls = append(calls, val.(string))
 		return fmt.Errorf("provisioner error")
 	}
@@ -4500,6 +4504,7 @@ func TestContext2Apply_provisionerDestroyFailContinueFail(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
+	var l sync.Mutex
 	var calls []string
 	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
 		val, ok := c.Config["foo"]
@@ -4507,6 +4512,8 @@ func TestContext2Apply_provisionerDestroyFailContinueFail(t *testing.T) {
 			t.Fatalf("bad value for foo: %v %#v", val, c)
 		}
 
+		l.Lock()
+		defer l.Unlock()
 		calls = append(calls, val.(string))
 		return fmt.Errorf("provisioner error")
 	}
@@ -7180,6 +7187,30 @@ func TestContext2Apply_targetedModuleUnrelatedOutputs(t *testing.T) {
 			"aws": testProviderFuncFixed(p),
 		},
 		Targets: []string{"module.child2"},
+		State: &State{
+			Modules: []*ModuleState{
+				{
+					Path:      []string{"root"},
+					Outputs:   map[string]*OutputState{},
+					Resources: map[string]*ResourceState{},
+				},
+				{
+					Path: []string{"root", "child1"},
+					Outputs: map[string]*OutputState{
+						"instance_id": {
+							Type:  "string",
+							Value: "foo-bar-baz",
+						},
+					},
+					Resources: map[string]*ResourceState{},
+				},
+				{
+					Path:      []string{"root", "child2"},
+					Outputs:   map[string]*OutputState{},
+					Resources: map[string]*ResourceState{},
+				},
+			},
+		},
 	})
 
 	if _, err := ctx.Plan(); err != nil {
@@ -7191,12 +7222,28 @@ func TestContext2Apply_targetedModuleUnrelatedOutputs(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	// module.child1's instance_id output should be retained from state
+	// module.child2's instance_id is updated because its dependency is updated
+	// child2_id is updated because if its transitive dependency via module.child2
 	checkStateString(t, state, `
 <no state>
+Outputs:
+
+child2_id = foo
+
+module.child1:
+  <no state>
+  Outputs:
+
+  instance_id = foo-bar-baz
 module.child2:
   aws_instance.foo:
     ID = foo
-	`)
+
+  Outputs:
+
+  instance_id = foo
+`)
 }
 
 func TestContext2Apply_targetedModuleResource(t *testing.T) {
@@ -8067,5 +8114,64 @@ func TestContext2Apply_dataDependsOn(t *testing.T) {
 	expected := "APPLIED"
 	if actual != expected {
 		t.Fatalf("bad:\n%s", strings.TrimSpace(state.String()))
+	}
+}
+
+func TestContext2Apply_terraformEnv(t *testing.T) {
+	m := testModule(t, "apply-terraform-env")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Meta:   &ContextMeta{Env: "foo"},
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := state.RootModule().Outputs["output"]
+	expected := "foo"
+	if actual == nil || actual.Value != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+// verify that multiple config references only create a single depends_on entry
+func TestContext2Apply_multiRef(t *testing.T) {
+	m := testModule(t, "apply-multi-ref")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	deps := state.Modules[0].Resources["aws_instance.other"].Dependencies
+	if len(deps) > 1 || deps[0] != "aws_instance.create" {
+		t.Fatalf("expected 1 depends_on entry for aws_instance.create, got %q", deps)
 	}
 }

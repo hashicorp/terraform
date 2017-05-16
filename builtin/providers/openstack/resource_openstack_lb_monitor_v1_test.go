@@ -34,6 +34,24 @@ func TestAccLBV1Monitor_basic(t *testing.T) {
 	})
 }
 
+func TestAccLBV1Monitor_timeout(t *testing.T) {
+	var monitor monitors.Monitor
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLBV1MonitorDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccLBV1Monitor_timeout,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckLBV1MonitorExists("openstack_lb_monitor_v1.monitor_1", &monitor),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckLBV1MonitorDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
@@ -89,7 +107,6 @@ func testAccCheckLBV1MonitorExists(n string, monitor *monitors.Monitor) resource
 
 const testAccLBV1Monitor_basic = `
 resource "openstack_lb_monitor_v1" "monitor_1" {
-  region = "%s"
   type = "PING"
   delay = 30
   timeout = 5
@@ -100,11 +117,25 @@ resource "openstack_lb_monitor_v1" "monitor_1" {
 
 const testAccLBV1Monitor_update = `
 resource "openstack_lb_monitor_v1" "monitor_1" {
-  region = "%s"
   type = "PING"
   delay = 20
   timeout = 5
   max_retries = 3
   admin_state_up = "true"
+}
+`
+
+const testAccLBV1Monitor_timeout = `
+resource "openstack_lb_monitor_v1" "monitor_1" {
+  type = "PING"
+  delay = 30
+  timeout = 5
+  max_retries = 3
+  admin_state_up = "true"
+
+  timeouts {
+    create = "5m"
+    delete = "5m"
+  }
 }
 `

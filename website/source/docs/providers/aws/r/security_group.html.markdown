@@ -21,7 +21,7 @@ a conflict of rule settings and will overwrite rules.
 
 Basic usage
 
-```
+```hcl
 resource "aws_security_group" "allow_all" {
   name        = "allow_all"
   description = "Allow all inbound traffic"
@@ -45,7 +45,7 @@ resource "aws_security_group" "allow_all" {
 
 Basic usage with tags:
 
-```
+```hcl
 resource "aws_security_group" "allow_all" {
   name        = "allow_all"
   description = "Allow all inbound traffic"
@@ -85,6 +85,7 @@ assign a random, unique name
 The `ingress` block supports:
 
 * `cidr_blocks` - (Optional) List of CIDR blocks.
+* `ipv6_cidr_blocks` - (Optional) List of IPv6 CIDR blocks.
 * `from_port` - (Required) The start port (or ICMP type number if protocol is "icmp")
 * `protocol` - (Required) The protocol. If you select a protocol of
 "-1" (semantically equivalent to `"all"`, which is not a valid value here), you must specify a "from_port" and "to_port" equal to 0. If not icmp, tcp, udp, or "-1" use the [protocol number](https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml)
@@ -97,6 +98,7 @@ The `ingress` block supports:
 The `egress` block supports:
 
 * `cidr_blocks` - (Optional) List of CIDR blocks.
+* `ipv6_cidr_blocks` - (Optional) List of IPv6 CIDR blocks.
 * `prefix_list_ids` - (Optional) List of prefix list IDs (for allowing access to VPC endpoints)
 * `from_port` - (Required) The start port (or ICMP type number if protocol is "icmp")
 * `protocol` - (Required) The protocol. If you select a protocol of
@@ -114,12 +116,14 @@ specifically re-create it if you desire that rule. We feel this leads to fewer
 surprises in terms of controlling your egress rules. If you desire this rule to
 be in place, you can use this `egress` block:
 
+```hcl
     egress {
       from_port = 0
       to_port = 0
       protocol = "-1"
       cidr_blocks = ["0.0.0.0/0"]
     }
+```
 
 ## Usage with prefix list IDs
 
@@ -127,7 +131,7 @@ Prefix list IDs are managed by AWS internally. Prefix list IDs
 are associated with a prefix list name, or service name, that is linked to a specific region.
 Prefix list IDs are exported on VPC Endpoints, so you can use this format:
 
-```
+```hcl
     # ...
       egress {
         from_port = 0

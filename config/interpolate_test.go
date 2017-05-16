@@ -63,6 +63,14 @@ func TestNewInterpolatedVariable(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"terraform.env",
+			&TerraformVariable{
+				Field: "env",
+				key:   "terraform.env",
+			},
+			false,
+		},
 	}
 
 	for i, tc := range cases {

@@ -14,7 +14,7 @@ Use this data source to get information about a specific [schedule][1] that you 
 
 ## Example Usage
 
-```
+```hcl
 data "pagerduty_schedule" "test" {
   name = "Daily Engineering Rotation"
 }

@@ -14,7 +14,7 @@ func TestAccDataSourceAwsRouteTable_basic(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDataSourceAwsRouteTableGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccDataSourceAwsRouteTableCheck("data.aws_route_table.by_tag"),
@@ -33,7 +33,7 @@ func TestAccDataSourceAwsRouteTable_main(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDataSourceAwsRouteTableMainRoute,
 				Check: resource.ComposeTestCheckFunc(
 					testAccDataSourceAwsRouteTableCheckMain("data.aws_route_table.by_filter"),

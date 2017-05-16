@@ -14,7 +14,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the PagerDuty provider
 provider "pagerduty" {
   token = "${var.pagerduty_token}"
@@ -39,3 +39,4 @@ resource "pagerduty_user" "earline" {
 The following arguments are supported:
 
 * `token` - (Required) The v2 authorization token. See [API Documentation](https://v2.developer.pagerduty.com/docs/authentication) for more information.
+* `skip_credentials_validation` - (Optional) Skip validation of the token against the PagerDuty API.

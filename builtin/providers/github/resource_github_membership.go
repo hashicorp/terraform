@@ -1,6 +1,8 @@
 package github
 
 import (
+	"context"
+
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -17,12 +19,12 @@ func resourceGithubMembership() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"username": &schema.Schema{
+			"username": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"role": &schema.Schema{
+			"role": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validateValueFunc([]string{"member", "admin"}),
@@ -37,7 +39,7 @@ func resourceGithubMembershipCreate(d *schema.ResourceData, meta interface{}) er
 	n := d.Get("username").(string)
 	r := d.Get("role").(string)
 
-	membership, _, err := client.Organizations.EditOrgMembership(n, meta.(*Organization).name,
+	membership, _, err := client.Organizations.EditOrgMembership(context.TODO(), n, meta.(*Organization).name,
 		&github.Membership{Role: &r})
 	if err != nil {
 		return err
@@ -52,7 +54,7 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 	client := meta.(*Organization).client
 	_, n := parseTwoPartID(d.Id())
 
-	membership, _, err := client.Organizations.GetOrgMembership(n, meta.(*Organization).name)
+	membership, _, err := client.Organizations.GetOrgMembership(context.TODO(), n, meta.(*Organization).name)
 	if err != nil {
 		d.SetId("")
 		return nil
@@ -68,7 +70,7 @@ func resourceGithubMembershipUpdate(d *schema.ResourceData, meta interface{}) er
 	n := d.Get("username").(string)
 	r := d.Get("role").(string)
 
-	membership, _, err := client.Organizations.EditOrgMembership(n, meta.(*Organization).name, &github.Membership{
+	membership, _, err := client.Organizations.EditOrgMembership(context.TODO(), n, meta.(*Organization).name, &github.Membership{
 		Role: &r,
 	})
 	if err != nil {
@@ -83,7 +85,7 @@ func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) er
 	client := meta.(*Organization).client
 	n := d.Get("username").(string)
 
-	_, err := client.Organizations.RemoveOrgMembership(n, meta.(*Organization).name)
+	_, err := client.Organizations.RemoveOrgMembership(context.TODO(), n, meta.(*Organization).name)
 
 	return err
 }

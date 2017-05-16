@@ -20,7 +20,7 @@ func TestAccAWSOpsworksPermission(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAwsOpsworksPermissionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksPermissionCreate(sName, "true", "true", "iam_only"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSOpsworksPermissionExists(
@@ -37,7 +37,7 @@ func TestAccAWSOpsworksPermission(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksPermissionCreate(sName, "true", "false", "iam_only"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSOpsworksPermissionExists(
@@ -54,7 +54,7 @@ func TestAccAWSOpsworksPermission(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksPermissionCreate(sName, "false", "false", "deny"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSOpsworksPermissionExists(
@@ -71,7 +71,7 @@ func TestAccAWSOpsworksPermission(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksPermissionCreate(sName, "false", "false", "show"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSOpsworksPermissionExists(

@@ -31,7 +31,7 @@ The following arguments are supported:
 
 ## Attributes Reference
 
-No further attributes are exported.
+* `id` - The ID of the environment (ie `1a11`) that can be used in other Terraform resources such as Rancher Stack definitions.
 
 ## Import
 

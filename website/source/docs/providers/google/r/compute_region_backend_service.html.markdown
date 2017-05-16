@@ -56,7 +56,6 @@ resource "google_compute_health_check" "default" {
   name               = "test"
   check_interval_sec = 1
   timeout_sec        = 1
-  type               = "TCP"
 
   tcp_health_check {
     port = "80"

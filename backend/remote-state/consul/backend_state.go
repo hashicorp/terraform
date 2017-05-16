@@ -56,7 +56,7 @@ func (b *Backend) States() ([]string, error) {
 }
 
 func (b *Backend) DeleteState(name string) error {
-	if name == backend.DefaultStateName {
+	if name == backend.DefaultStateName || name == "" {
 		return fmt.Errorf("can't delete default state")
 	}
 
@@ -85,12 +85,21 @@ func (b *Backend) State(name string) (state.State, error) {
 	// Determine the path of the data
 	path := b.path(name)
 
+	// Determine whether to gzip or not
+	gzip := b.configData.Get("gzip").(bool)
+
 	// Build the state client
-	stateMgr := &remote.State{
+	var stateMgr state.State = &remote.State{
 		Client: &RemoteClient{
 			Client: client,
 			Path:   path,
+			GZip:   gzip,
 		},
+	}
+
+	// If we're not locking, disable it
+	if !b.lock {
+		stateMgr = &state.LockDisabled{Inner: stateMgr}
 	}
 
 	// Grab a lock, we use this to write an empty state if one doesn't

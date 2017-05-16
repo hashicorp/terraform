@@ -160,6 +160,7 @@ resource "aws_instance" "foo" {
 	availability_zone = "us-west-2a"
 	instance_type = "t1.micro"
 	subnet_id = "${aws_subnet.sub.id}"
+	private_ip = "192.168.0.${count.index+10}"
 }
 resource "aws_eip" "bar" {
 	count = 3
@@ -181,7 +182,7 @@ resource "aws_eip_association" "to_eni" {
 }
 resource "aws_network_interface" "baz" {
 	subnet_id = "${aws_subnet.sub.id}"
-	private_ips = ["192.168.0.10"]
+	private_ips = ["192.168.0.50"]
   depends_on = ["aws_instance.foo"]
 	attachment {
 		instance = "${aws_instance.foo.0.id}"

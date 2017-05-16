@@ -572,6 +572,13 @@ func TestConfigValidate_varDefaultInterpolate(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_varDefaultInterpolateEscaped(t *testing.T) {
+	c := testConfig(t, "validate-var-default-interpolate-escaped")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("should be valid, but got err: %s", err)
+	}
+}
+
 func TestConfigValidate_varDup(t *testing.T) {
 	c := testConfig(t, "validate-var-dup")
 	if err := c.Validate(); err == nil {

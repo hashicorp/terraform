@@ -1,21 +1,21 @@
 <% wrap_layout :inner do %>
-	<% content_for :sidebar do %>
-		<div class="docs-sidebar hidden-print affix-top" role="complementary">
-			<ul class="nav docs-sidenav">
-				<li<%= sidebar_current("docs-home") %>>
-				<a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+        <a href="/docs/providers/index.html">All Providers</a>
                 </li>
 
-				<li<%= sidebar_current("docs-profitbricks-index") %>>
-				<a href="/docs/providers/profitbricks/index.html">ProfitBricks Provider</a>
+        <li<%= sidebar_current("docs-profitbricks-index") %>>
+        <a href="/docs/providers/profitbricks/index.html">ProfitBricks Provider</a>
                 </li>
 
-				<li<%= sidebar_current(/^docs-profitbricks-resource/) %>>
-				<a href="#">Resources</a>
+        <li<%= sidebar_current("docs-profitbricks-resource") %>>
+        <a href="#">Resources</a>
                 <ul class="nav nav-visible">
                     <li<%= sidebar_current("docs-profitbricks-resource-datacenter") %>>
-					<a href="/docs/providers/profitbricks/r/profitbricks_datacenter.html">profitbricks_datacenter</a>
-					</li>
+          <a href="/docs/providers/profitbricks/r/profitbricks_datacenter.html">profitbricks_datacenter</a>
+          </li>
                     <li<%= sidebar_current("docs-profitbricks-resource-firewall") %>>
                     <a href="/docs/providers/profitbricks/r/profitbricks_firewall.html">profitbricks_firewall</a>
                     </li>
@@ -37,11 +37,11 @@
                     <li<%= sidebar_current("docs-profitbricks-resource-volume") %>>
                     <a href="/docs/providers/profitbricks/r/profitbricks_volume.html">profitbricks_volume</a>
                     </li>
-				</ul>
-				</li>
-			</ul>
-		</div>
-	<% end %>
+        </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
 
-	<%= yield %>
-	<% end %>
+  <%= yield %>
+  <% end %>

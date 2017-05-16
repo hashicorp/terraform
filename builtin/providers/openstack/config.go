@@ -113,8 +113,8 @@ func (c *Config) loadAndValidate() error {
 	transport := &http.Transport{Proxy: http.ProxyFromEnvironment, TLSClientConfig: config}
 	client.HTTPClient = http.Client{
 		Transport: &LogRoundTripper{
-			rt:      transport,
-			osDebug: osDebug,
+			Rt:      transport,
+			OsDebug: osDebug,
 		},
 	}
 

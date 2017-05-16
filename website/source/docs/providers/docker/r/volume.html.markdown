@@ -14,7 +14,7 @@ to prepare volumes that can be shared across containers.
 
 ## Example Usage
 
-```
+```hcl
 # Creates a docker volume "shared_volume".
 resource "docker_volume" "shared_volume" {
   name = "shared_volume"

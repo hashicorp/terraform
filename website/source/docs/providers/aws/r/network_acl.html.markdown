@@ -13,7 +13,7 @@ to your security groups in order to add an additional layer of security to your 
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_network_acl" "main" {
   vpc_id = "${aws_vpc.main.id}"
 
@@ -63,6 +63,7 @@ Both `egress` and `ingress` support the following keys:
 protocol, you must specify a from and to port of 0.
 * `cidr_block` - (Optional) The CIDR block to match. This must be a
 valid network mask.
+* `ipv6_cidr_block` - (Optional) The IPv6 CIDR block.
 * `icmp_type` - (Optional) The ICMP type to be used. Default 0.
 * `icmp_code` - (Optional) The ICMP type code to be used. Default 0.
 

@@ -205,44 +205,16 @@ func testAccCheckGoogleProjectHasMoreBindingsThan(pid string, count int) resourc
 	}
 }
 
-func testAccGoogleProjectImportExisting(pid string) string {
-	return fmt.Sprintf(`
-resource "google_project" "acceptance" {
-    project_id = "%s"
-
-}
-`, pid)
-}
-
-func testAccGoogleProjectImportExistingWithIam(pid string) string {
-	return fmt.Sprintf(`
-resource "google_project" "acceptance" {
-    project_id = "%v"
-    policy_data = "${data.google_iam_policy.admin.policy_data}"
-}
-data "google_iam_policy" "admin" {
-  binding {
-    role = "roles/storage.objectViewer"
-    members = [
-      "user:evanbrown@google.com",
-    ]
-  }
-  binding {
-    role = "roles/compute.instanceAdmin"
-    members = [
-      "user:evanbrown@google.com",
-      "user:evandbrown@gmail.com",
-    ]
-  }
-}`, pid)
-}
-
 func testAccGoogleProject_toMerge(pid, name, org string) string {
 	return fmt.Sprintf(`
 resource "google_project" "acceptance" {
     project_id = "%s"
     name = "%s"
     org_id = "%s"
+}
+
+resource "google_project_iam_policy" "acceptance" {
+    project = "${google_project.acceptance.project_id}"
     policy_data = "${data.google_iam_policy.acceptance.policy_data}"
 }
 
