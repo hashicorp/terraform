@@ -45,6 +45,7 @@ BUG FIXES:
 * provider/github: Log HTTP requests and responses in DEBUG mode [GH-14363]
 * provider/google: Fix health check http/https defaults [GH-14441]
 * provider/heroku: Fix issue with setting correct CName in heroku_domain [GH-14443]
+* provider/openstack: Handle Deleted Resources in Floating IP Association [GH-14533]
 * provider/vault: Prevent panic when no secret found [GH-14435]
 
 ## 0.9.5 (May 11, 2017)
