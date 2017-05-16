@@ -221,31 +221,34 @@ Usage: terraform init [options] [SOURCE] [PATH]
 
 Options:
 
-  -backend=true        Configure the backend for this environment.
+  -backend=true         Configure the backend for this environment.
 
-  -backend-config=path This can be either a path to an HCL file with key/value
-                       assignments (same format as terraform.tfvars) or a
-                       'key=value' format. This is merged with what is in the
-                       configuration file. This can be specified multiple
-                       times. The backend type must be in the configuration
-                       itself.
+  -backend-config=path  This can be either a path to an HCL file with key/value
+                        assignments (same format as terraform.tfvars) or a
+                        'key=value' format. This is merged with what is in the
+                        configuration file. This can be specified multiple
+                        times. The backend type must be in the configuration
+                        itself.
 
-  -force-copy          Suppress prompts about copying state data. This is
-                       equivalent to providing a "yes" to all confirmation
-                       prompts.
+  -force-copy           Suppress prompts about copying state data. This is
+                        equivalent to providing a "yes" to all confirmation
+                        prompts.
 
-  -get=true            Download any modules for this configuration.
+  -get=true             Download any modules for this configuration.
 
-  -input=true          Ask for input if necessary. If false, will error if
-                       input was required.
+  -input=true           Ask for input if necessary. If false, will error if
+                        input was required.
 
-  -lock=true           Lock the state file when locking is supported.
+  -lock=true            Lock the state file when locking is supported.
 
-  -lock-timeout=0s     Duration to retry a state lock.
+  -lock-timeout=0s      Duration to retry a state lock.
 
-  -no-color            If specified, output won't contain any color.
+  -no-color             If specified, output won't contain any color.
 
   -reconfigure          Reconfigure the backend, ignoring any saved configuration.
+
+  -update-modules=false If true, modules already downloaded will be checked
+                        for updates and updated if necessary.
 `
 	return strings.TrimSpace(helpText)
 }
