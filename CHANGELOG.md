@@ -51,6 +51,7 @@ BUG FIXES:
 * provider/aws: Pass IAM Roles to codepipeline actions [GH-14263]
 * provider/aws: Create rule(s) for prefix-list-only AWS security group permissions on 'terraform import' [GH-14528]
 * provider/aws: Set aws_subnet ipv6_cidr_block to computed [GH-14542]
+* provider/aws: Change of aws_subnet ipv6 causing update failure [GH-14545]
 * provider/cloudstack: `cloudstack_firewall` panicked when used with older (< v4.6) CloudStack versions [GH-14044]
 * provider/datadog: Allowed method on aggregator is `avg` ! `average` [GH-14414]
 * provider/digitalocean: Fix parsing of digitalocean dns records [GH-14215]
