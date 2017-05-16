@@ -74,6 +74,13 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 				Optional: true,
 			},
 
+			"single_placement_group": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+				ForceNew: true,
+			},
+
 			"os_profile": {
 				Type:     schema.TypeSet,
 				Required: true,
@@ -463,6 +470,8 @@ func resourceArmVirtualMachineScaleSetCreate(d *schema.ResourceData, meta interf
 
 	updatePolicy := d.Get("upgrade_policy_mode").(string)
 	overprovision := d.Get("overprovision").(bool)
+	singlePlacementGroup := d.Get("single_placement_group").(bool)
+
 	scaleSetProps := compute.VirtualMachineScaleSetProperties{
 		UpgradePolicy: &compute.UpgradePolicy{
 			Mode: compute.UpgradeMode(updatePolicy),
@@ -473,7 +482,8 @@ func resourceArmVirtualMachineScaleSetCreate(d *schema.ResourceData, meta interf
 			OsProfile:        osProfile,
 			ExtensionProfile: extensions,
 		},
-		Overprovision: &overprovision,
+		Overprovision:        &overprovision,
+		SinglePlacementGroup: &singlePlacementGroup,
 	}
 
 	scaleSetParams := compute.VirtualMachineScaleSet{
@@ -533,6 +543,7 @@ func resourceArmVirtualMachineScaleSetRead(d *schema.ResourceData, meta interfac
 
 	d.Set("upgrade_policy_mode", properties.UpgradePolicy.Mode)
 	d.Set("overprovision", properties.Overprovision)
+	d.Set("single_placement_group", properties.SinglePlacementGroup)
 
 	osProfile, err := flattenAzureRMVirtualMachineScaleSetOsProfile(properties.VirtualMachineProfile.OsProfile)
 	if err != nil {
@@ -1121,17 +1132,17 @@ func expandAzureRMVirtualMachineScaleSetsStorageProfileOsDisk(d *schema.Resource
 			managedDisk.StorageAccountType = compute.StorageAccountTypes(managedDiskType)
 			osDisk.ManagedDisk = managedDisk
 		} else {
-			return nil, fmt.Errorf("[ERROR] Conflict between `name` and `managed_disk_type` (please set name to blank)")
+			return nil, fmt.Errorf("[ERROR] Conflict between `name` and `managed_disk_type` on `storage_profile_os_disk` (please set name to blank)")
 		}
 	}
 
 	//BEGIN: code to be removed after GH-13016 is merged
 	if image != "" && managedDiskType != "" {
-		return nil, fmt.Errorf("[ERROR] Conflict between `image` and `managed_disk_type` (only one or the other can be used)")
+		return nil, fmt.Errorf("[ERROR] Conflict between `image` and `managed_disk_type` on `storage_profile_os_disk` (only one or the other can be used)")
 	}
 
 	if len(vhd_containers) > 0 && managedDiskType != "" {
-		return nil, fmt.Errorf("[ERROR] Conflict between `vhd_containers` and `managed_disk_type` (only one or the other can be used)")
+		return nil, fmt.Errorf("[ERROR] Conflict between `vhd_containers` and `managed_disk_type` on `storage_profile_os_disk` (only one or the other can be used)")
 	}
 	//END: code to be removed after GH-13016 is merged
 

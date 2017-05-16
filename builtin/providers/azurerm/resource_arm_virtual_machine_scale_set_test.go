@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -23,6 +24,28 @@ func TestAccAzureRMVirtualMachineScaleSet_basic(t *testing.T) {
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualMachineScaleSetExists("azurerm_virtual_machine_scale_set.test"),
+
+					// single placement group should default to true
+					testCheckAzureRMVirtualMachineScaleSetSinglePlacementGroup("azurerm_virtual_machine_scale_set.test", true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMVirtualMachineScaleSet_singlePlacementGroupFalse(t *testing.T) {
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMVirtualMachineScaleSet_singlePlacementGroupFalse, ri)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMVirtualMachineScaleSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMVirtualMachineScaleSetExists("azurerm_virtual_machine_scale_set.test"),
+					testCheckAzureRMVirtualMachineScaleSetSinglePlacementGroup("azurerm_virtual_machine_scale_set.test", false),
 				),
 			},
 		},
@@ -188,32 +211,39 @@ func TestAccAzureRMVirtualMachineScaleSet_osDiskTypeConflict(t *testing.T) {
 	})
 }
 
+func testGetAzureRMVirtualMachineScaleSet(s *terraform.State, resourceName string) (result *compute.VirtualMachineScaleSet, err error) {
+	// Ensure we have enough information in state to look up in API
+	rs, ok := s.RootModule().Resources[resourceName]
+	if !ok {
+		return nil, fmt.Errorf("Not found: %s", resourceName)
+	}
+
+	// Name of the actual scale set
+	name := rs.Primary.Attributes["name"]
+
+	resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
+	if !hasResourceGroup {
+		return nil, fmt.Errorf("Bad: no resource group found in state for virtual machine: scale set %s", name)
+	}
+
+	conn := testAccProvider.Meta().(*ArmClient).vmScaleSetClient
+
+	vmss, err := conn.Get(resourceGroup, name)
+	if err != nil {
+		return nil, fmt.Errorf("Bad: Get on vmScaleSetClient: %s", err)
+	}
+
+	if vmss.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("Bad: VirtualMachineScaleSet %q (resource group: %q) does not exist", name, resourceGroup)
+	}
+
+	return &vmss, err
+}
+
 func testCheckAzureRMVirtualMachineScaleSetExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		// Ensure we have enough information in state to look up in API
-		rs, ok := s.RootModule().Resources[name]
-		if !ok {
-			return fmt.Errorf("Not found: %s", name)
-		}
-
-		name := rs.Primary.Attributes["name"]
-		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
-		if !hasResourceGroup {
-			return fmt.Errorf("Bad: no resource group found in state for virtual machine: scale set %s", name)
-		}
-
-		conn := testAccProvider.Meta().(*ArmClient).vmScaleSetClient
-
-		resp, err := conn.Get(resourceGroup, name)
-		if err != nil {
-			return fmt.Errorf("Bad: Get on vmScaleSetClient: %s", err)
-		}
-
-		if resp.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("Bad: VirtualMachineScaleSet %q (resource group: %q) does not exist", name, resourceGroup)
-		}
-
-		return nil
+		_, err := testGetAzureRMVirtualMachineScaleSet(s, name)
+		return err
 	}
 }
 
@@ -269,26 +299,9 @@ func testCheckAzureRMVirtualMachineScaleSetDestroy(s *terraform.State) error {
 
 func testCheckAzureRMVirtualMachineScaleSetHasLoadbalancer(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		// Ensure we have enough information in state to look up in API
-		rs, ok := s.RootModule().Resources[name]
-		if !ok {
-			return fmt.Errorf("Not found: %s", name)
-		}
-
-		name := rs.Primary.Attributes["name"]
-		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
-		if !hasResourceGroup {
-			return fmt.Errorf("Bad: no resource group found in state for virtual machine: scale set %s", name)
-		}
-
-		conn := testAccProvider.Meta().(*ArmClient).vmScaleSetClient
-		resp, err := conn.Get(resourceGroup, name)
+		resp, err := testGetAzureRMVirtualMachineScaleSet(s, name)
 		if err != nil {
-			return fmt.Errorf("Bad: Get on vmScaleSetClient: %s", err)
-		}
-
-		if resp.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("Bad: VirtualMachineScaleSet %q (resource group: %q) does not exist", name, resourceGroup)
+			return err
 		}
 
 		n := resp.VirtualMachineProfile.NetworkProfile.NetworkInterfaceConfigurations
@@ -312,26 +325,9 @@ func testCheckAzureRMVirtualMachineScaleSetHasLoadbalancer(name string) resource
 
 func testCheckAzureRMVirtualMachineScaleSetOverprovision(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		// Ensure we have enough information in state to look up in API
-		rs, ok := s.RootModule().Resources[name]
-		if !ok {
-			return fmt.Errorf("Not found: %s", name)
-		}
-
-		name := rs.Primary.Attributes["name"]
-		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
-		if !hasResourceGroup {
-			return fmt.Errorf("Bad: no resource group found in state for virtual machine: scale set %s", name)
-		}
-
-		conn := testAccProvider.Meta().(*ArmClient).vmScaleSetClient
-		resp, err := conn.Get(resourceGroup, name)
+		resp, err := testGetAzureRMVirtualMachineScaleSet(s, name)
 		if err != nil {
-			return fmt.Errorf("Bad: Get on vmScaleSetClient: %s", err)
-		}
-
-		if resp.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("Bad: VirtualMachineScaleSet %q (resource group: %q) does not exist", name, resourceGroup)
+			return err
 		}
 
 		if *resp.Overprovision {
@@ -342,28 +338,26 @@ func testCheckAzureRMVirtualMachineScaleSetOverprovision(name string) resource.T
 	}
 }
 
+func testCheckAzureRMVirtualMachineScaleSetSinglePlacementGroup(name string, expectedSinglePlacementGroup bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		resp, err := testGetAzureRMVirtualMachineScaleSet(s, name)
+		if err != nil {
+			return err
+		}
+
+		if *resp.SinglePlacementGroup != expectedSinglePlacementGroup {
+			return fmt.Errorf("Bad: Overprovision should have been %t for scale set %v", expectedSinglePlacementGroup, name)
+		}
+
+		return nil
+	}
+}
+
 func testCheckAzureRMVirtualMachineScaleSetExtension(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		// Ensure we have enough information in state to look up in API
-		rs, ok := s.RootModule().Resources[name]
-		if !ok {
-			return fmt.Errorf("Not found: %s", name)
-		}
-
-		name := rs.Primary.Attributes["name"]
-		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
-		if !hasResourceGroup {
-			return fmt.Errorf("Bad: no resource group found in state for virtual machine: scale set %s", name)
-		}
-
-		conn := testAccProvider.Meta().(*ArmClient).vmScaleSetClient
-		resp, err := conn.Get(resourceGroup, name)
+		resp, err := testGetAzureRMVirtualMachineScaleSet(s, name)
 		if err != nil {
-			return fmt.Errorf("Bad: Get on vmScaleSetClient: %s", err)
-		}
-
-		if resp.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("Bad: VirtualMachineScaleSet %q (resource group: %q) does not exist", name, resourceGroup)
+			return err
 		}
 
 		n := resp.VirtualMachineProfile.ExtensionProfile.Extensions
@@ -457,6 +451,100 @@ resource "azurerm_virtual_machine_scale_set" "test" {
     caching       = "ReadWrite"
     create_option = "FromImage"
     vhd_containers = ["${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}"]
+  }
+
+  storage_profile_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "16.04-LTS"
+    version   = "latest"
+  }
+}
+`
+
+var testAccAzureRMVirtualMachineScaleSet_singlePlacementGroupFalse = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%[1]d"
+    location = "West US 2"
+}
+
+resource "azurerm_virtual_network" "test" {
+    name = "acctvn-%[1]d"
+    address_space = ["10.0.0.0/16"]
+    location = "West US 2"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_subnet" "test" {
+    name = "acctsub-%[1]d"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    virtual_network_name = "${azurerm_virtual_network.test.name}"
+    address_prefix = "10.0.2.0/24"
+}
+
+resource "azurerm_network_interface" "test" {
+    name = "acctni-%[1]d"
+    location = "West US 2"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+
+    ip_configuration {
+    	name = "testconfiguration1"
+    	subnet_id = "${azurerm_subnet.test.id}"
+    	private_ip_address_allocation = "dynamic"
+    }
+}
+
+resource "azurerm_storage_account" "test" {
+    name = "accsa%[1]d"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    location = "West US 2"
+    account_type = "Standard_LRS"
+
+    tags {
+        environment = "staging"
+    }
+}
+
+resource "azurerm_storage_container" "test" {
+    name = "vhds"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    storage_account_name = "${azurerm_storage_account.test.name}"
+    container_access_type = "private"
+}
+
+resource "azurerm_virtual_machine_scale_set" "test" {
+  name = "acctvmss-%[1]d"
+  location = "West US 2"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  upgrade_policy_mode = "Manual"
+  single_placement_group = false
+
+  sku {
+    name = "Standard_D1_v2"
+    tier = "Standard"
+    capacity = 2
+  }
+
+  os_profile {
+    computer_name_prefix = "testvm-%[1]d"
+    admin_username = "myadmin"
+    admin_password = "Passwword1234"
+  }
+
+  network_profile {
+      name = "TestNetworkProfile-%[1]d"
+      primary = true
+      ip_configuration {
+        name = "TestIPConfiguration"
+        subnet_id = "${azurerm_subnet.test.id}"
+      }
+  }
+
+  storage_profile_os_disk {
+    name = ""
+    caching       = "ReadWrite"
+    create_option = "FromImage"
+    managed_disk_type = "Standard_LRS"
   }
 
   storage_profile_image_reference {

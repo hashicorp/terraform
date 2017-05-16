@@ -240,6 +240,7 @@ The following arguments are supported:
 * `sku` - (Required) A sku block as documented below.
 * `upgrade_policy_mode` - (Required) Specifies the mode of an upgrade to virtual machines in the scale set. Possible values, `Manual` or `Automatic`.
 * `overprovision` - (Optional) Specifies whether the virtual machine scale set should be overprovisioned.
+* `single_placement_group` - (Optional) Specifies whether the scale set is limited to a single placement group with a maximum size of 100 virtual machines. If set to false, managed disks must be used. Default is true. See [documentation](http://docs.microsoft.com/en-us/azure/virtual-machine-scale-sets/virtual-machine-scale-sets-placement-groups) for more information.
 * `os_profile` - (Required) A Virtual Machine OS Profile block as documented below.
 * `os_profile_secrets` - (Optional) A collection of Secret blocks as documented below.
 * `os_profile_windows_config` - (Required, when a windows machine) A Windows config block as documented below.
