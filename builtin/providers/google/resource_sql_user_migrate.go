@@ -33,7 +33,6 @@ func migrateSqlUserStateV0toV1(is *terraform.InstanceState) (*terraform.Instance
 	name := is.Attributes["name"]
 	instance := is.Attributes["instance"]
 	is.ID = fmt.Sprintf("%s.%s", instance, name)
-	is.Attributes["id"] = is.ID
 
 	log.Printf("[DEBUG] Attributes after migration: %#v", is.Attributes)
 	return is, nil
