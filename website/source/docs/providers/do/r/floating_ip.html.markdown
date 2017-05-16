@@ -12,7 +12,7 @@ Provides a DigitalOcean Floating IP to represent a publicly-accessible static IP
 
 ## Example Usage
 
-```
+```hcl
 resource "digitalocean_droplet" "foobar" {
   name               = "baz"
   size               = "1gb"

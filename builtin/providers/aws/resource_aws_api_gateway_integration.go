@@ -11,87 +11,94 @@ import (
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"strings"
 )
 
 func resourceAwsApiGatewayIntegration() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsApiGatewayIntegrationCreate,
 		Read:   resourceAwsApiGatewayIntegrationRead,
-		Update: resourceAwsApiGatewayIntegrationCreate,
+		Update: resourceAwsApiGatewayIntegrationUpdate,
 		Delete: resourceAwsApiGatewayIntegrationDelete,
 
 		Schema: map[string]*schema.Schema{
-			"rest_api_id": &schema.Schema{
+			"rest_api_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"resource_id": &schema.Schema{
+			"resource_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"http_method": &schema.Schema{
+			"http_method": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateHTTPMethod,
 			},
 
-			"type": &schema.Schema{
+			"type": {
 				Type:         schema.TypeString,
 				Required:     true,
+				ForceNew:     true,
 				ValidateFunc: validateApiGatewayIntegrationType,
 			},
 
-			"uri": &schema.Schema{
+			"uri": {
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 
-			"credentials": &schema.Schema{
+			"credentials": {
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 
-			"integration_http_method": &schema.Schema{
+			"integration_http_method": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				ForceNew:     true,
 				ValidateFunc: validateHTTPMethod,
 			},
 
-			"request_templates": &schema.Schema{
+			"request_templates": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Elem:     schema.TypeString,
 			},
 
-			"request_parameters": &schema.Schema{
+			"request_parameters": {
 				Type:          schema.TypeMap,
 				Elem:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"request_parameters_in_json"},
 			},
 
-			"request_parameters_in_json": &schema.Schema{
+			"request_parameters_in_json": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"request_parameters"},
 				Deprecated:    "Use field request_parameters instead",
 			},
 
-			"content_handling": &schema.Schema{
+			"content_handling": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				ForceNew:     true,
 				ValidateFunc: validateApiGatewayIntegrationContentHandling,
 			},
 
-			"passthrough_behavior": &schema.Schema{
+			"passthrough_behavior": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
+				ForceNew:     true,
 				ValidateFunc: validateApiGatewayIntegrationPassthroughBehavior,
 			},
 		},
@@ -101,6 +108,7 @@ func resourceAwsApiGatewayIntegration() *schema.Resource {
 func resourceAwsApiGatewayIntegrationCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).apigateway
 
+	log.Print("[DEBUG] Creating API Gateway Integration")
 	var integrationHttpMethod *string
 	if v, ok := d.GetOk("integration_http_method"); ok {
 		integrationHttpMethod = aws.String(v.(string))
@@ -163,13 +171,13 @@ func resourceAwsApiGatewayIntegrationCreate(d *schema.ResourceData, meta interfa
 
 	d.SetId(fmt.Sprintf("agi-%s-%s-%s", d.Get("rest_api_id").(string), d.Get("resource_id").(string), d.Get("http_method").(string)))
 
-	return nil
+	return resourceAwsApiGatewayIntegrationRead(d, meta)
 }
 
 func resourceAwsApiGatewayIntegrationRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).apigateway
 
-	log.Printf("[DEBUG] Reading API Gateway Integration %s", d.Id())
+	log.Printf("[DEBUG] Reading API Gateway Integration: %s", d.Id())
 	integration, err := conn.GetIntegration(&apigateway.GetIntegrationInput{
 		HttpMethod: aws.String(d.Get("http_method").(string)),
 		ResourceId: aws.String(d.Get("resource_id").(string)),
@@ -191,15 +199,125 @@ func resourceAwsApiGatewayIntegrationRead(d *schema.ResourceData, meta interface
 	}
 
 	d.Set("request_templates", aws.StringValueMap(integration.RequestTemplates))
-	d.Set("credentials", integration.Credentials)
 	d.Set("type", integration.Type)
-	d.Set("uri", integration.Uri)
 	d.Set("request_parameters", aws.StringValueMap(integration.RequestParameters))
 	d.Set("request_parameters_in_json", aws.StringValueMap(integration.RequestParameters))
 	d.Set("passthrough_behavior", integration.PassthroughBehavior)
-	d.Set("content_handling", integration.ContentHandling)
+
+	if integration.Uri != nil {
+		d.Set("uri", integration.Uri)
+	}
+
+	if integration.Credentials != nil {
+		d.Set("credentials", integration.Credentials)
+	}
+
+	if integration.ContentHandling != nil {
+		d.Set("content_handling", integration.ContentHandling)
+	}
 
 	return nil
+}
+
+func resourceAwsApiGatewayIntegrationUpdate(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).apigateway
+
+	log.Printf("[DEBUG] Updating API Gateway Integration: %s", d.Id())
+	operations := make([]*apigateway.PatchOperation, 0)
+
+	// https://docs.aws.amazon.com/apigateway/api-reference/link-relation/integration-update/#remarks
+	// According to the above documentation, only a few parts are addable / removable.
+	if d.HasChange("request_templates") {
+		o, n := d.GetChange("request_templates")
+		prefix := "requestTemplates"
+
+		os := o.(map[string]interface{})
+		ns := n.(map[string]interface{})
+
+		// Handle Removal
+		for k := range os {
+			if _, ok := ns[k]; !ok {
+				operations = append(operations, &apigateway.PatchOperation{
+					Op:   aws.String("remove"),
+					Path: aws.String(fmt.Sprintf("/%s/%s", prefix, strings.Replace(k, "/", "~1", -1))),
+				})
+			}
+		}
+
+		for k, v := range ns {
+			// Handle replaces
+			if _, ok := os[k]; ok {
+				operations = append(operations, &apigateway.PatchOperation{
+					Op:    aws.String("replace"),
+					Path:  aws.String(fmt.Sprintf("/%s/%s", prefix, strings.Replace(k, "/", "~1", -1))),
+					Value: aws.String(v.(string)),
+				})
+			}
+
+			// Handle additions
+			if _, ok := os[k]; !ok {
+				operations = append(operations, &apigateway.PatchOperation{
+					Op:    aws.String("add"),
+					Path:  aws.String(fmt.Sprintf("/%s/%s", prefix, strings.Replace(k, "/", "~1", -1))),
+					Value: aws.String(v.(string)),
+				})
+			}
+		}
+	}
+
+	if d.HasChange("request_parameters") {
+		o, n := d.GetChange("request_parameters")
+		prefix := "requestParameters"
+
+		os := o.(map[string]interface{})
+		ns := n.(map[string]interface{})
+
+		// Handle Removal
+		for k := range os {
+			if _, ok := ns[k]; !ok {
+				operations = append(operations, &apigateway.PatchOperation{
+					Op:   aws.String("remove"),
+					Path: aws.String(fmt.Sprintf("/%s/%s", prefix, strings.Replace(k, "/", "~1", -1))),
+				})
+			}
+		}
+
+		for k, v := range ns {
+			// Handle replaces
+			if _, ok := os[k]; ok {
+				operations = append(operations, &apigateway.PatchOperation{
+					Op:    aws.String("replace"),
+					Path:  aws.String(fmt.Sprintf("/%s/%s", prefix, strings.Replace(k, "/", "~1", -1))),
+					Value: aws.String(v.(string)),
+				})
+			}
+
+			// Handle additions
+			if _, ok := os[k]; !ok {
+				operations = append(operations, &apigateway.PatchOperation{
+					Op:    aws.String("add"),
+					Path:  aws.String(fmt.Sprintf("/%s/%s", prefix, strings.Replace(k, "/", "~1", -1))),
+					Value: aws.String(v.(string)),
+				})
+			}
+		}
+	}
+
+	params := &apigateway.UpdateIntegrationInput{
+		HttpMethod:      aws.String(d.Get("http_method").(string)),
+		ResourceId:      aws.String(d.Get("resource_id").(string)),
+		RestApiId:       aws.String(d.Get("rest_api_id").(string)),
+		PatchOperations: operations,
+	}
+
+	_, err := conn.UpdateIntegration(params)
+	if err != nil {
+		return fmt.Errorf("Error updating API Gateway Integration: %s", err)
+	}
+
+	d.SetId(fmt.Sprintf("agi-%s-%s-%s", d.Get("rest_api_id").(string), d.Get("resource_id").(string), d.Get("http_method").(string)))
+
+	return resourceAwsApiGatewayIntegrationRead(d, meta)
 }
 
 func resourceAwsApiGatewayIntegrationDelete(d *schema.ResourceData, meta interface{}) error {

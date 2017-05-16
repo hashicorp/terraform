@@ -66,6 +66,7 @@ func (s *HypervisorService) ListHypervisors(p *ListHypervisorsParams) (*ListHype
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -144,6 +145,7 @@ func (s *HypervisorService) UpdateHypervisorCapabilities(p *UpdateHypervisorCapa
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -279,6 +281,7 @@ func (s *HypervisorService) ListHypervisorCapabilities(p *ListHypervisorCapabili
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 

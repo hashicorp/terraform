@@ -8,7 +8,7 @@ import (
 // Condition represents a condition response from the Fastly API.
 type Condition struct {
 	ServiceID string `mapstructure:"service_id"`
-	Version   string `mapstructure:"version"`
+	Version   int    `mapstructure:"version"`
 
 	Name      string `mapstructure:"name"`
 	Statement string `mapstructure:"statement"`
@@ -32,7 +32,7 @@ type ListConditionsInput struct {
 	Service string
 
 	// Version is the specific configuration version (required).
-	Version string
+	Version int
 }
 
 // ListConditions returns the list of conditions for the configuration version.
@@ -41,11 +41,11 @@ func (c *Client) ListConditions(i *ListConditionsInput) ([]*Condition, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/condition", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/condition", i.Service, i.Version)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -64,7 +64,7 @@ type CreateConditionInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	Name      string `form:"name,omitempty"`
 	Statement string `form:"statement,omitempty"`
@@ -78,11 +78,11 @@ func (c *Client) CreateCondition(i *CreateConditionInput) (*Condition, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/condition", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/condition", i.Service, i.Version)
 	resp, err := c.PostForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -100,7 +100,7 @@ type GetConditionInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the condition to fetch.
 	Name string
@@ -112,7 +112,7 @@ func (c *Client) GetCondition(i *GetConditionInput) (*Condition, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -120,7 +120,7 @@ func (c *Client) GetCondition(i *GetConditionInput) (*Condition, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/condition/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/condition/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -138,7 +138,7 @@ type UpdateConditionInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the condition to update.
 	Name string
@@ -154,7 +154,7 @@ func (c *Client) UpdateCondition(i *UpdateConditionInput) (*Condition, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -162,7 +162,7 @@ func (c *Client) UpdateCondition(i *UpdateConditionInput) (*Condition, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/condition/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/condition/%s", i.Service, i.Version, i.Name)
 	resp, err := c.PutForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -180,7 +180,7 @@ type DeleteConditionInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the condition to delete (required).
 	Name string
@@ -192,7 +192,7 @@ func (c *Client) DeleteCondition(i *DeleteConditionInput) error {
 		return ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return ErrMissingVersion
 	}
 
@@ -200,7 +200,7 @@ func (c *Client) DeleteCondition(i *DeleteConditionInput) error {
 		return ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/condition/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/condition/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Delete(path, nil)
 	if err != nil {
 		return err

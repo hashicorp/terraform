@@ -9,13 +9,15 @@ import (
 // Sumologic represents a sumologic response from the Fastly API.
 type Sumologic struct {
 	ServiceID string `mapstructure:"service_id"`
-	Version   string `mapstructure:"version"`
+	Version   int    `mapstructure:"version"`
 
 	Name              string     `mapstructure:"name"`
 	Address           string     `mapstructure:"address"`
 	URL               string     `mapstructure:"url"`
 	Format            string     `mapstructure:"format"`
 	ResponseCondition string     `mapstructure:"response_condition"`
+	MessageType       string     `mapstructure:"message_type"`
+	FormatVersion     int        `mapstructure:"format_version"`
 	CreatedAt         *time.Time `mapstructure:"created_at"`
 	UpdatedAt         *time.Time `mapstructure:"updated_at"`
 	DeletedAt         *time.Time `mapstructure:"deleted_at"`
@@ -37,7 +39,7 @@ type ListSumologicsInput struct {
 	Service string
 
 	// Version is the specific configuration version (required).
-	Version string
+	Version int
 }
 
 // ListSumologics returns the list of sumologics for the configuration version.
@@ -46,11 +48,11 @@ func (c *Client) ListSumologics(i *ListSumologicsInput) ([]*Sumologic, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/sumologic", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/sumologic", i.Service, i.Version)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -69,13 +71,15 @@ type CreateSumologicInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	Name              string `form:"name,omitempty"`
 	Address           string `form:"address,omitempty"`
 	URL               string `form:"url,omitempty"`
 	Format            string `form:"format,omitempty"`
 	ResponseCondition string `form:"response_condition,omitempty"`
+	MessageType       string `form:"message_type,omitempty"`
+	FormatVersion     int    `form:"format_version,omitempty"`
 }
 
 // CreateSumologic creates a new Fastly sumologic.
@@ -84,11 +88,11 @@ func (c *Client) CreateSumologic(i *CreateSumologicInput) (*Sumologic, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/sumologic", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/sumologic", i.Service, i.Version)
 	resp, err := c.PostForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -106,7 +110,7 @@ type GetSumologicInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the sumologic to fetch.
 	Name string
@@ -118,7 +122,7 @@ func (c *Client) GetSumologic(i *GetSumologicInput) (*Sumologic, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -126,7 +130,7 @@ func (c *Client) GetSumologic(i *GetSumologicInput) (*Sumologic, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/sumologic/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/sumologic/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -144,7 +148,7 @@ type UpdateSumologicInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the sumologic to update.
 	Name string
@@ -154,6 +158,8 @@ type UpdateSumologicInput struct {
 	URL               string `form:"url,omitempty"`
 	Format            string `form:"format,omitempty"`
 	ResponseCondition string `form:"response_condition,omitempty"`
+	MessageType       string `form:"message_type,omitempty"`
+	FormatVersion     int    `form:"format_version,omitempty"`
 }
 
 // UpdateSumologic updates a specific sumologic.
@@ -162,7 +168,7 @@ func (c *Client) UpdateSumologic(i *UpdateSumologicInput) (*Sumologic, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -170,7 +176,7 @@ func (c *Client) UpdateSumologic(i *UpdateSumologicInput) (*Sumologic, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/sumologic/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/sumologic/%s", i.Service, i.Version, i.Name)
 	resp, err := c.PutForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -188,7 +194,7 @@ type DeleteSumologicInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the sumologic to delete (required).
 	Name string
@@ -200,7 +206,7 @@ func (c *Client) DeleteSumologic(i *DeleteSumologicInput) error {
 		return ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return ErrMissingVersion
 	}
 
@@ -208,7 +214,7 @@ func (c *Client) DeleteSumologic(i *DeleteSumologicInput) error {
 		return ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/sumologic/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/sumologic/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Delete(path, nil)
 	if err != nil {
 		return err

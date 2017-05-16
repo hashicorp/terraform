@@ -13,7 +13,7 @@ A [user](https://v2.developer.pagerduty.com/v2/page/api-reference#!/Users/get_us
 
 ## Example Usage
 
-```
+```hcl
 resource "pagerduty_team" "example" {
   name        = "Engineering"
   description = "All engineering"

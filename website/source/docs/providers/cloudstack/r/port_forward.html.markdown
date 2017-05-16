@@ -6,13 +6,13 @@ description: |-
   Creates port forwards.
 ---
 
-# cloudstack\_port\_forward
+# cloudstack_port_forward
 
 Creates port forwards.
 
 ## Example Usage
 
-```
+```hcl
 resource "cloudstack_port_forward" "default" {
   ip_address_id = "30b21801-d4b3-4174-852b-0c0f30bdbbfb"
 

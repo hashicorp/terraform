@@ -12,7 +12,7 @@ Provides an RDS DB subnet group resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_db_subnet_group" "default" {
   name       = "main"
   subnet_ids = ["${aws_subnet.frontend.id}", "${aws_subnet.backend.id}"]
@@ -27,7 +27,8 @@ resource "aws_db_subnet_group" "default" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the DB subnet group.
+* `name` - (Optional, Forces new resource) The name of the DB subnet group. If omitted, Terraform will assign a random, unique name.
+* `name_prefix` - (Optional, Forces new resource) Creates a unique name beginning with the specified prefix. Conflicts with `name`.
 * `description` - (Optional) The description of the DB subnet group. Defaults to "Managed by Terraform".
 * `subnet_ids` - (Required) A list of VPC subnet IDs.
 * `tags` - (Optional) A mapping of tags to assign to the resource.

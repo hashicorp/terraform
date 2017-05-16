@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -24,10 +25,18 @@ func resourceAwsCloudWatchLogGroup() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
+				ValidateFunc:  validateLogGroupName,
+			},
+			"name_prefix": {
 				Type:         schema.TypeString,
-				Required:     true,
+				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: validateLogGroupName,
+				ValidateFunc: validateLogGroupNamePrefix,
 			},
 
 			"retention_in_days": {
@@ -49,10 +58,19 @@ func resourceAwsCloudWatchLogGroup() *schema.Resource {
 func resourceAwsCloudWatchLogGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).cloudwatchlogsconn
 
-	log.Printf("[DEBUG] Creating CloudWatch Log Group: %s", d.Get("name").(string))
+	var logGroupName string
+	if v, ok := d.GetOk("name"); ok {
+		logGroupName = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		logGroupName = resource.PrefixedUniqueId(v.(string))
+	} else {
+		logGroupName = resource.UniqueId()
+	}
+
+	log.Printf("[DEBUG] Creating CloudWatch Log Group: %s", logGroupName)
 
 	_, err := conn.CreateLogGroup(&cloudwatchlogs.CreateLogGroupInput{
-		LogGroupName: aws.String(d.Get("name").(string)),
+		LogGroupName: aws.String(logGroupName),
 	})
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "ResourceAlreadyExistsException" {
@@ -61,7 +79,7 @@ func resourceAwsCloudWatchLogGroupCreate(d *schema.ResourceData, meta interface{
 		return fmt.Errorf("Creating CloudWatch Log Group failed: %s '%s'", err, d.Get("name"))
 	}
 
-	d.SetId(d.Get("name").(string))
+	d.SetId(logGroupName)
 
 	log.Println("[INFO] CloudWatch Log Group created")
 
@@ -91,11 +109,13 @@ func resourceAwsCloudWatchLogGroupRead(d *schema.ResourceData, meta interface{})
 		d.Set("retention_in_days", lg.RetentionInDays)
 	}
 
-	tags, err := flattenCloudWatchTags(d, conn)
-	if err != nil {
-		return err
+	if !meta.(*AWSClient).IsChinaCloud() && !meta.(*AWSClient).IsGovCloud() {
+		tags, err := flattenCloudWatchTags(d, conn)
+		if err != nil {
+			return err
+		}
+		d.Set("tags", tags)
 	}
-	d.Set("tags", tags)
 
 	return nil
 }
@@ -152,7 +172,9 @@ func resourceAwsCloudWatchLogGroupUpdate(d *schema.ResourceData, meta interface{
 		}
 	}
 
-	if d.HasChange("tags") {
+	restricted := meta.(*AWSClient).IsChinaCloud() || meta.(*AWSClient).IsGovCloud()
+
+	if !restricted && d.HasChange("tags") {
 		oraw, nraw := d.GetChange("tags")
 		o := oraw.(map[string]interface{})
 		n := nraw.(map[string]interface{})

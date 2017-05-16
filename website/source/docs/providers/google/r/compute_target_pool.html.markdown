@@ -17,7 +17,7 @@ and [API](https://cloud.google.com/compute/docs/reference/latest/targetPools).
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_target_pool" "default" {
   name = "test"
 

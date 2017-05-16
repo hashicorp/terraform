@@ -12,7 +12,7 @@ Create an Azure Storage Account.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "testrg" {
   name     = "resourceGroupName"
   location = "westus"

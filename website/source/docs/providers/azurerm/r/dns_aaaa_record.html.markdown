@@ -12,7 +12,7 @@ Enables you to manage DNS AAAA Records within Azure DNS.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acceptanceTestResourceGroup1"
   location = "West US"
@@ -31,6 +31,7 @@ resource "azurerm_dns_aaaa_record" "test" {
   records             = ["2607:f8b0:4009:1803::1005"]
 }
 ```
+
 ## Argument Reference
 
 The following arguments are supported:

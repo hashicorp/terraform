@@ -26,7 +26,7 @@ exist concurrently.
 The following example shows how to generate a unique name for an AWS EC2
 instance that changes each time a new AMI id is selected.
 
-```
+```hcl
 resource "random_id" "server" {
   keepers = {
     # Generate a new id each time we switch to a new AMI id

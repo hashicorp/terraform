@@ -12,7 +12,7 @@ Provides a CloudWatch Logs destination resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_cloudwatch_log_destination" "test_destination" {
   name       = "test_destination"
   role_arn   = "${aws_iam_role.iam_for_cloudwatch.arn}"

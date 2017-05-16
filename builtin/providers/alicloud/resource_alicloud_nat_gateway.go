@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -44,6 +45,16 @@ func resourceAliyunNatGateway() *schema.Resource {
 				Computed: true,
 			},
 
+			"snat_table_ids": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"forward_table_ids": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"bandwidth_packages": &schema.Schema{
 				Type: schema.TypeList,
 				Elem: &schema.Resource{
@@ -59,6 +70,10 @@ func resourceAliyunNatGateway() *schema.Resource {
 						"zone": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+						},
+						"public_ip_addresses": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
 						},
 					},
 				},
@@ -133,8 +148,16 @@ func resourceAliyunNatGatewayRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("name", natGateway.Name)
 	d.Set("spec", natGateway.Spec)
 	d.Set("bandwidth_package_ids", strings.Join(natGateway.BandwidthPackageIds.BandwidthPackageId, ","))
+	d.Set("snat_table_ids", strings.Join(natGateway.SnatTableIds.SnatTableId, ","))
+	d.Set("forward_table_ids", strings.Join(natGateway.ForwardTableIds.ForwardTableId, ","))
 	d.Set("description", natGateway.Description)
 	d.Set("vpc_id", natGateway.VpcId)
+	bindWidthPackages, err := flattenBandWidthPackages(natGateway.BandwidthPackageIds.BandwidthPackageId, meta, d)
+	if err != nil {
+		log.Printf("[ERROR] bindWidthPackages flattenBandWidthPackages failed. natgateway id is %#v", d.Id())
+	} else {
+		d.Set("bandwidth_packages", bindWidthPackages)
+	}
 
 	return nil
 }
@@ -254,7 +277,7 @@ func resourceAliyunNatGatewayDelete(d *schema.ResourceData, meta interface{}) er
 		}
 
 		args := &ecs.DeleteNatGatewayArgs{
-			RegionId:     client.Region,
+			RegionId:     getRegion(d, meta),
 			NatGatewayId: d.Id(),
 		}
 
@@ -267,7 +290,7 @@ func resourceAliyunNatGatewayDelete(d *schema.ResourceData, meta interface{}) er
 		}
 
 		describeArgs := &ecs.DescribeNatGatewaysArgs{
-			RegionId:     client.Region,
+			RegionId:     getRegion(d, meta),
 			NatGatewayId: d.Id(),
 		}
 		gw, _, gwErr := conn.DescribeNatGateways(describeArgs)
@@ -281,4 +304,70 @@ func resourceAliyunNatGatewayDelete(d *schema.ResourceData, meta interface{}) er
 
 		return resource.RetryableError(fmt.Errorf("NatGateway in use - trying again while it is deleted."))
 	})
+}
+
+func flattenBandWidthPackages(bandWidthPackageIds []string, meta interface{}, d *schema.ResourceData) ([]map[string]interface{}, error) {
+
+	packageLen := len(bandWidthPackageIds)
+	result := make([]map[string]interface{}, 0, packageLen)
+
+	for i := packageLen - 1; i >= 0; i-- {
+		packageId := bandWidthPackageIds[i]
+		packages, err := getPackages(packageId, meta, d)
+		if err != nil {
+			log.Printf("[ERROR] NatGateways getPackages failed. packageId is %#v", packageId)
+			return result, err
+		}
+		ipAddress := flattenPackPublicIp(packages.PublicIpAddresses.PublicIpAddresse)
+		ipCont, ipContErr := strconv.Atoi(packages.IpCount)
+		bandWidth, bandWidthErr := strconv.Atoi(packages.Bandwidth)
+		if ipContErr != nil {
+			log.Printf("[ERROR] NatGateways getPackages failed: ipCont convert error. packageId is %#v", packageId)
+			return result, ipContErr
+		}
+		if bandWidthErr != nil {
+			log.Printf("[ERROR] NatGateways getPackages failed: bandWidthErr convert error. packageId is %#v", packageId)
+			return result, bandWidthErr
+		}
+		l := map[string]interface{}{
+			"ip_count":            ipCont,
+			"bandwidth":           bandWidth,
+			"zone":                packages.ZoneId,
+			"public_ip_addresses": ipAddress,
+		}
+		result = append(result, l)
+	}
+	return result, nil
+}
+
+func getPackages(packageId string, meta interface{}, d *schema.ResourceData) (*ecs.DescribeBandwidthPackageType, error) {
+	client := meta.(*AliyunClient)
+	conn := client.vpcconn
+	packages, err := conn.DescribeBandwidthPackages(&ecs.DescribeBandwidthPackagesArgs{
+		RegionId:           getRegion(d, meta),
+		BandwidthPackageId: packageId,
+	})
+
+	if err != nil {
+		log.Printf("[ERROR] Describe bandwidth package is failed, BandwidthPackageId Id: %s", packageId)
+		return nil, err
+	}
+
+	if len(packages) == 0 {
+		return nil, common.GetClientErrorFromString(InstanceNotfound)
+	}
+
+	return &packages[0], nil
+
+}
+
+func flattenPackPublicIp(publicIpAddressList []ecs.PublicIpAddresseType) string {
+	var result []string
+
+	for _, publicIpAddresses := range publicIpAddressList {
+		ipAddress := publicIpAddresses.IpAddress
+		result = append(result, ipAddress)
+	}
+
+	return strings.Join(result, ",")
 }

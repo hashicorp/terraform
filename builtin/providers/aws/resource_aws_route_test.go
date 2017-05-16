@@ -86,6 +86,26 @@ func TestAccAWSRoute_ipv6Support(t *testing.T) {
 	})
 }
 
+func TestAccAWSRoute_ipv6ToInternetGateway(t *testing.T) {
+	var route ec2.Route
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSRouteDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSRouteConfigIpv6InternetGateway,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRouteExists("aws_route.igw", &route),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSRoute_changeCidr(t *testing.T) {
 	var route ec2.Route
 	var routeTable ec2.RouteTable
@@ -286,6 +306,32 @@ resource "aws_route" "bar" {
 	destination_cidr_block = "10.3.0.0/16"
 	gateway_id = "${aws_internet_gateway.foo.id}"
 }
+`)
+
+var testAccAWSRouteConfigIpv6InternetGateway = fmt.Sprintf(`
+resource "aws_vpc" "foo" {
+  cidr_block = "10.1.0.0/16"
+  assign_generated_ipv6_cidr_block = true
+}
+
+resource "aws_egress_only_internet_gateway" "foo" {
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_internet_gateway" "foo" {
+  vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_route_table" "external" {
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_route" "igw" {
+  route_table_id = "${aws_route_table.external.id}"
+  destination_ipv6_cidr_block = "::/0"
+  gateway_id = "${aws_internet_gateway.foo.id}"
+}
+
 `)
 
 var testAccAWSRouteConfigIpv6 = fmt.Sprintf(`

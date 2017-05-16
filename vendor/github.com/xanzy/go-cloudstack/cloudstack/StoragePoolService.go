@@ -100,6 +100,7 @@ func (s *StoragePoolService) ListStorageProviders(p *ListStorageProvidersParams)
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -176,6 +177,7 @@ func (s *StoragePoolService) EnableStorageMaintenance(p *EnableStorageMaintenanc
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -269,6 +271,7 @@ func (s *StoragePoolService) CancelStorageMaintenance(p *CancelStorageMaintenanc
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 

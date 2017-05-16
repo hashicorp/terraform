@@ -15,7 +15,7 @@ Creates a new bucket in Google cloud storage service(GCS). Currently, it will no
 
 Example creating a private bucket in standard storage, in the EU region.
 
-```js
+```hcl
 resource "google_storage_bucket" "image-store" {
   name     = "image-store-bucket"
   location = "EU"
@@ -66,3 +66,5 @@ In addition to the arguments listed above, the following computed attributes are
 exported:
 
 * `self_link` - The URI of the created resource.
+
+* `url` - The base URL of the bucket, in the format `gs://<bucket-name>`.

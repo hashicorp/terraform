@@ -70,10 +70,10 @@ func TestUiHookPreApply_periodicTimer(t *testing.T) {
 	close(uiState.DoneCh)
 	<-uiState.done
 
-	expectedOutput := `data.aws_availability_zones.available: Destroying... (ID: 2017-03-0...0000 UTC)
-data.aws_availability_zones.available: Still destroying... (ID: 2017-03-0...0000 UTC, 1s elapsed)
-data.aws_availability_zones.available: Still destroying... (ID: 2017-03-0...0000 UTC, 2s elapsed)
-data.aws_availability_zones.available: Still destroying... (ID: 2017-03-0...0000 UTC, 3s elapsed)
+	expectedOutput := `data.aws_availability_zones.available: Destroying... (ID: 2017-03-05 10:56:59.298784526 +0000 UTC)
+data.aws_availability_zones.available: Still destroying... (ID: 2017-03-05 10:56:59.298784526 +0000 UTC, 1s elapsed)
+data.aws_availability_zones.available: Still destroying... (ID: 2017-03-05 10:56:59.298784526 +0000 UTC, 2s elapsed)
+data.aws_availability_zones.available: Still destroying... (ID: 2017-03-05 10:56:59.298784526 +0000 UTC, 3s elapsed)
 `
 	output := ui.OutputWriter.String()
 	if output != expectedOutput {
@@ -138,7 +138,7 @@ func TestUiHookPreApply_destroy(t *testing.T) {
 		t.Fatalf("Expected hook to continue, given: %#v", action)
 	}
 
-	expectedOutput := "data.aws_availability_zones.available: Destroying... (ID: 2017-03-0...0000 UTC)\n"
+	expectedOutput := "data.aws_availability_zones.available: Destroying... (ID: 2017-03-05 10:56:59.298784526 +0000 UTC)\n"
 	output := ui.OutputWriter.String()
 	if output != expectedOutput {
 		t.Fatalf("Output didn't match.\nExpected: %q\nGiven: %q", expectedOutput, output)

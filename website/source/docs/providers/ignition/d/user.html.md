@@ -12,7 +12,7 @@ Describes the desired user additions to the passwd database.
 
 ## Example Usage
 
-```
+```hcl
 data "ignition_user" "foo" {
 	name = "foo"
 	home_dir = "/home/foo/"

@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/michaelklishin/rabbit-hole"
@@ -10,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccUser(t *testing.T) {
+func TestAccUser_basic(t *testing.T) {
 	var user string
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -27,6 +28,63 @@ func TestAccUser(t *testing.T) {
 				Config: testAccUserConfig_update,
 				Check: testAccUserCheck(
 					"rabbitmq_user.test", &user,
+				),
+			},
+		},
+	})
+}
+
+func TestAccUser_emptyTag(t *testing.T) {
+	var user string
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccUserCheckDestroy(user),
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccUserConfig_emptyTag_1,
+				Check: resource.ComposeTestCheckFunc(
+					testAccUserCheck("rabbitmq_user.test", &user),
+					testAccUserCheckTagCount(&user, 0),
+				),
+			},
+			resource.TestStep{
+				Config: testAccUserConfig_emptyTag_2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccUserCheck("rabbitmq_user.test", &user),
+					testAccUserCheckTagCount(&user, 1),
+				),
+			},
+			resource.TestStep{
+				Config: testAccUserConfig_emptyTag_1,
+				Check: resource.ComposeTestCheckFunc(
+					testAccUserCheck("rabbitmq_user.test", &user),
+					testAccUserCheckTagCount(&user, 0),
+				),
+			},
+		},
+	})
+}
+
+func TestAccUser_noTags(t *testing.T) {
+	var user string
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccUserCheckDestroy(user),
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccUserConfig_noTags_1,
+				Check: resource.ComposeTestCheckFunc(
+					testAccUserCheck("rabbitmq_user.test", &user),
+					testAccUserCheckTagCount(&user, 0),
+				),
+			},
+			resource.TestStep{
+				Config: testAccUserConfig_noTags_2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccUserCheck("rabbitmq_user.test", &user),
+					testAccUserCheckTagCount(&user, 1),
 				),
 			},
 		},
@@ -61,6 +119,29 @@ func testAccUserCheck(rn string, name *string) resource.TestCheckFunc {
 	}
 }
 
+func testAccUserCheckTagCount(name *string, tagCount int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rmqc := testAccProvider.Meta().(*rabbithole.Client)
+		user, err := rmqc.GetUser(*name)
+		if err != nil {
+			return fmt.Errorf("Error retrieving user: %s", err)
+		}
+
+		var tagList []string
+		for _, v := range strings.Split(user.Tags, ",") {
+			if v != "" {
+				tagList = append(tagList, v)
+			}
+		}
+
+		if len(tagList) != tagCount {
+			return fmt.Errorf("Expected %d tags, user has %d", tagCount, len(tagList))
+		}
+
+		return nil
+	}
+}
+
 func testAccUserCheckDestroy(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rmqc := testAccProvider.Meta().(*rabbithole.Client)
@@ -91,4 +172,31 @@ resource "rabbitmq_user" "test" {
     name = "mctest"
     password = "foobarry"
     tags = ["management"]
+}`
+
+const testAccUserConfig_emptyTag_1 = `
+resource "rabbitmq_user" "test" {
+    name = "mctest"
+    password = "foobar"
+    tags = [""]
+}`
+
+const testAccUserConfig_emptyTag_2 = `
+resource "rabbitmq_user" "test" {
+    name = "mctest"
+    password = "foobar"
+    tags = ["administrator"]
+}`
+
+const testAccUserConfig_noTags_1 = `
+resource "rabbitmq_user" "test" {
+    name = "mctest"
+    password = "foobar"
+}`
+
+const testAccUserConfig_noTags_2 = `
+resource "rabbitmq_user" "test" {
+    name = "mctest"
+    password = "foobar"
+    tags = ["administrator"]
 }`

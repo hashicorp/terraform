@@ -12,7 +12,7 @@ Manages a User within OpsGenie.
 
 ## Example Usage
 
-```
+```hcl
 resource "opsgenie_user" "test" {
   username  = "user@domain.com"
   full_name = "Cookie Monster"

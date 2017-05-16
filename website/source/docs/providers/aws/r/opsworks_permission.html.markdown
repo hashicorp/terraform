@@ -12,7 +12,7 @@ Provides an OpsWorks permission resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_opsworks_permission" "my_stack_permission" {
   allow_ssh  = true
   allow_sudo = true

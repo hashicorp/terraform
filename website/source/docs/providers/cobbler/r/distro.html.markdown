@@ -6,13 +6,13 @@ description: |-
   Manages a distribution within Cobbler.
 ---
 
-# cobbler\_distro
+# cobbler_distro
 
 Manages a distribution within Cobbler.
 
 ## Example Usage
 
-```
+```hcl
 resource "cobbler_distro" "ubuntu-1404-x86_64" {
   name       = "foo"
   breed      = "ubuntu"

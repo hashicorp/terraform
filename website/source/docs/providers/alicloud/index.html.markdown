@@ -16,7 +16,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the Alicloud Provider
 provider "alicloud" {
   access_key = "${var.access_key}"
@@ -64,7 +64,7 @@ alicloud provider block:
 
 Usage:
 
-```
+```hcl
 provider "alicloud" {
   access_key = "${var.access_key}"
   secret_key = "${var.secret_key}"
@@ -79,13 +79,13 @@ You can provide your credentials via `ALICLOUD_ACCESS_KEY` and `ALICLOUD_SECRET_
 environment variables, representing your Alicloud Access Key and Secret Key, respectively.
 `ALICLOUD_REGION` is also used, if applicable:
 
-```
+```hcl
 provider "alicloud" {}
 ```
 
 Usage:
 
-```
+```shell
 $ export ALICLOUD_ACCESS_KEY="anaccesskey"
 $ export ALICLOUD_SECRET_KEY="asecretkey"
 $ export ALICLOUD_REGION="cn-beijing"
@@ -110,4 +110,3 @@ The following arguments are supported:
 ## Testing
 
 Credentials must be provided via the `ALICLOUD_ACCESS_KEY`, and `ALICLOUD_SECRET_KEY` environment variables in order to run acceptance tests.
-

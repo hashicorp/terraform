@@ -13,7 +13,7 @@ The ``circonus_metric_cluster`` resource creates and manages a
 
 ## Usage
 
-```
+```hcl
 resource "circonus_metric_cluster" "nomad-job-memory-rss" {
   name = "My Job's Resident Memory"
   description = <<-EOF
@@ -59,7 +59,7 @@ EOF
 `circonus_metric_cluster` supports importing resources.  Supposing the following
 Terraform:
 
-```
+```hcl
 provider "circonus" {
   alias = "b8fec159-f9e5-4fe6-ad2c-dc1ec6751586"
 }

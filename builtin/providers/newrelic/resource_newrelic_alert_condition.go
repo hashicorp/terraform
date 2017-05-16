@@ -106,6 +106,10 @@ func resourceNewRelicAlertCondition() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"condition_scope": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"term": {
 				Type: schema.TypeList,
 				Elem: &schema.Resource{
@@ -186,6 +190,7 @@ func buildAlertConditionStruct(d *schema.ResourceData) *newrelic.AlertCondition 
 		Metric:   d.Get("metric").(string),
 		Terms:    terms,
 		PolicyID: d.Get("policy_id").(int),
+		Scope:    d.Get("condition_scope").(string),
 	}
 
 	if attr, ok := d.GetOk("runbook_url"); ok {
@@ -226,6 +231,7 @@ func readAlertConditionStruct(condition *newrelic.AlertCondition, d *schema.Reso
 	d.Set("type", condition.Type)
 	d.Set("metric", condition.Metric)
 	d.Set("runbook_url", condition.RunbookURL)
+	d.Set("condition_scope", condition.Scope)
 	d.Set("user_defined_metric", condition.UserDefined.Metric)
 	d.Set("user_defined_value_function", condition.UserDefined.ValueFunction)
 	if err := d.Set("entities", entities); err != nil {

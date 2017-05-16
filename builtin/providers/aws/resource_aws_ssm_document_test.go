@@ -29,6 +29,39 @@ func TestAccAWSSSMDocument_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSSSMDocument_update(t *testing.T) {
+	name := acctest.RandString(10)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSSMDocumentDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSSMDocument20Config(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSSMDocumentExists("aws_ssm_document.foo"),
+					resource.TestCheckResourceAttr(
+						"aws_ssm_document.foo", "schema_version", "2.0"),
+					resource.TestCheckResourceAttr(
+						"aws_ssm_document.foo", "latest_version", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_ssm_document.foo", "default_version", "1"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSSSMDocument20UpdatedConfig(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSSMDocumentExists("aws_ssm_document.foo"),
+					resource.TestCheckResourceAttr(
+						"aws_ssm_document.foo", "latest_version", "2"),
+					resource.TestCheckResourceAttr(
+						"aws_ssm_document.foo", "default_version", "2"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSSSMDocument_permission(t *testing.T) {
 	name := acctest.RandString(10)
 	resource.Test(t, resource.TestCase{
@@ -183,6 +216,66 @@ resource "aws_ssm_document" "foo" {
 DOC
 }
 
+`, rName)
+}
+
+func testAccAWSSSMDocument20Config(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_ssm_document" "foo" {
+  name = "test_document-%s"
+         document_type = "Command"
+
+  content = <<DOC
+    {
+       "schemaVersion": "2.0",
+       "description": "Sample version 2.0 document v2",
+       "parameters": {
+
+       },
+       "mainSteps": [
+          {
+             "action": "aws:runPowerShellScript",
+             "name": "runPowerShellScript",
+             "inputs": {
+                "runCommand": [
+                   "Get-Process"
+                ]
+             }
+          }
+       ]
+    }
+DOC
+}
+`, rName)
+}
+
+func testAccAWSSSMDocument20UpdatedConfig(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_ssm_document" "foo" {
+  name = "test_document-%s"
+         document_type = "Command"
+
+  content = <<DOC
+    {
+       "schemaVersion": "2.0",
+       "description": "Sample version 2.0 document v2",
+       "parameters": {
+
+       },
+       "mainSteps": [
+          {
+             "action": "aws:runPowerShellScript",
+             "name": "runPowerShellScript",
+             "inputs": {
+                "runCommand": [
+                   "Get-Process -Verbose"
+                ]
+             }
+          }
+       ]
+    }
+DOC
+}
 `, rName)
 }
 

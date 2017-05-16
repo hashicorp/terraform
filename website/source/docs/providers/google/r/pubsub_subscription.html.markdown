@@ -6,7 +6,7 @@ description: |-
   Creates a subscription in Google's pubsub  queueing system
 ---
 
-# google\_pubsub\_subscripion
+# google\_pubsub\_subscription
 
 Creates a subscription in Google's pubsub queueing system. For more information see
 [the official documentation](https://cloud.google.com/pubsub/docs) and
@@ -15,7 +15,7 @@ Creates a subscription in Google's pubsub queueing system. For more information 
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_pubsub_subscription" "default" {
   name  = "default-subscription"
   topic = "default-topic"
@@ -68,4 +68,4 @@ The optional `push_config` block supports:
 
 ## Attributes Reference
 
-Only the arguments listed above are exposed as attributes.
+* `path` - Path of the subscription in the format `projects/{project}/subscriptions/{sub}`

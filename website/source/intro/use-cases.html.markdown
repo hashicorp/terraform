@@ -13,7 +13,7 @@ This page lists some concrete use cases for Terraform, but the possible use case
 much broader than what we cover. Due to its extensible nature, providers and provisioners
 can be added to further extend Terraform's ability to manipulate resources.
 
-#### Heroku App Setup
+## Heroku App Setup
 
 Heroku is a popular PaaS for hosting web apps. Developers create an app, and then
 attach add-ons, such as a database, or email provider. One of the best features is
@@ -26,7 +26,7 @@ DNSimple to set a CNAME, or setting up Cloudflare as a CDN for the
 app. Best of all, Terraform can do all of this in under 30 seconds without
 using a web interface.
 
-#### Multi-Tier Applications
+## Multi-Tier Applications
 
 A very common pattern is the N-tier architecture. The most common 2-tier architecture is
 a pool of web servers that use a database tier. Additional tiers get added for API servers,
@@ -41,7 +41,7 @@ scaled easily using Terraform by modifying a single `count` configuration value.
 the creation and provisioning of a resource is codified and automated, elastically scaling
 with load becomes trivial.
 
-#### Self-Service Clusters
+## Self-Service Clusters
 
 At a certain organizational size, it becomes very challenging for a centralized
 operations team to manage a large and growing infrastructure. Instead it becomes
@@ -53,7 +53,7 @@ in a configuration. Terraform configurations can be shared within an organizatio
 enabling customer teams to use the configuration as a black box and use Terraform as
 a tool to manage their services.
 
-#### Software Demos
+## Software Demos
 
 Modern software is increasingly networked and distributed. Although tools like
 [Vagrant](https://www.vagrantup.com/) exist to build virtualized environments
@@ -65,7 +65,7 @@ bootstrap a demo on cloud providers like AWS. This allows end users to easily de
 the software on their own infrastructure, and even enables tweaking parameters like
 cluster size to more rigorously test tools at any scale.
 
-#### Disposable Environments
+## Disposable Environments
 
 It is common practice to have both a production and staging or QA environment.
 These environments are smaller clones of their production counterpart, but are
@@ -79,7 +79,7 @@ environments to test in, and then be easily disposed of. Terraform can help tame
 the difficulty of maintaining parallel environments, and makes it practical
 to elastically create and destroy them.
 
-#### Software Defined Networking
+## Software Defined Networking
 
 Software Defined Networking (SDN) is becoming increasingly prevalent in the
 datacenter, as it provides more control to operators and developers and
@@ -93,7 +93,7 @@ versioned and changes to be automated. As an example, [AWS VPC](https://aws.amaz
 is one of the most commonly used SDN implementations, and [can be configured by
 Terraform](/docs/providers/aws/r/vpc.html).
 
-#### Resource Schedulers
+## Resource Schedulers
 
 In large-scale infrastructures, static assignment of applications to machines
 becomes increasingly challenging. To solve that problem, there are a number
@@ -106,7 +106,7 @@ can be treated as a provider, enabling Terraform to request resources from them.
 This allows Terraform to be used in layers: to setup the physical infrastructure
 running the schedulers as well as provisioning onto the scheduled grid.
 
-#### Multi-Cloud Deployment
+## Multi-Cloud Deployment
 
 It's often attractive to spread infrastructure across multiple clouds to increase
 fault-tolerance. By using only a single region or cloud provider, fault tolerance
@@ -118,4 +118,3 @@ for infrastructure management are cloud-specific. Terraform is cloud-agnostic
 and allows a single configuration to be used to manage multiple providers, and
 to even handle cross-cloud dependencies. This simplifies management and orchestration,
 helping operators build large-scale multi-cloud infrastructures.
-

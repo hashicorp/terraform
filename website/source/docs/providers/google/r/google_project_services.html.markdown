@@ -14,7 +14,7 @@ in the config will be removed.
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_project_services" "project" {
   project = "your-project-id"
   services   = ["iam.googleapis.com", "cloudresourcemanager.googleapis.com"]

@@ -8,11 +8,11 @@ description: |-
 
 # aws\_inspector\_resource\_group
 
-Provides a Inspector assessment template
+Provides a Inspector resource group
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_inspector_resource_group" "bar" {
   tags {
     Name = "foo"

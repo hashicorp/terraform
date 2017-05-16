@@ -37,6 +37,7 @@ The current list of HashiCorp Providers is as follows:
  * `aws`
  * `azurerm`
  * `google`
+ * `opc`
 
 Our testing standards are the same for both HashiCorp and Community providers,
 and HashiCorp runs full acceptance test suites for every provider nightly to
@@ -201,6 +202,9 @@ Implementing a new resource is a good way to learn more about how Terraform
 interacts with upstream APIs. There are plenty of examples to draw from in the
 existing resources, but you still get to implement something completely new.
 
+ - [ ] __Minimal LOC__: It can be inefficient for both the reviewer
+   and author to go through long feedback cycles on a big PR with many
+   resources. We therefore encourage you to only submit **1 resource at a time**.
  - [ ] __Acceptance tests__: New resources should include acceptance tests
    covering their behavior. See [Writing Acceptance
    Tests](#writing-acceptance-tests) below for a detailed guide on how to
@@ -223,6 +227,11 @@ Implementing a new provider gives Terraform the ability to manage resources in
 a whole new API. It's a larger undertaking, but brings major new functionality
 into Terraform.
 
+ - [ ] __Minimal initial LOC__: Some providers may be big and it can be
+   inefficient for both reviewer & author to go through long feedback cycles
+   on a big PR with many resources. We encourage you to only submit
+   the necessary minimum in a single PR, ideally **just the first resource**
+   of the provider.
  - [ ] __Acceptance tests__: Each provider should include an acceptance test
    suite with tests for each resource should include acceptance tests covering
    its behavior. See [Writing Acceptance Tests](#writing-acceptance-tests) below

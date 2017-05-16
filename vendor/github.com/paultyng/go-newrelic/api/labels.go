@@ -31,6 +31,7 @@ func (c *Client) queryLabels() ([]Label, error) {
 	return labels, nil
 }
 
+// GetLabel gets the label for the specified key.
 func (c *Client) GetLabel(key string) (*Label, error) {
 	labels, err := c.queryLabels()
 	if err != nil {

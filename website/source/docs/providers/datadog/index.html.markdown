@@ -16,7 +16,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the Datadog provider
 provider "datadog" {
   api_key = "${var.datadog_api_key}"
@@ -40,4 +40,3 @@ The following arguments are supported:
 
 * `api_key` - (Required) Datadog API key. This can also be set via the `DATADOG_API_KEY` environment variable.
 * `app_key` - (Required) Datadog APP key. This can also be set via the `DATADOG_APP_KEY` environment variable.
-
