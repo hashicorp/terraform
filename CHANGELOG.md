@@ -17,6 +17,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+* core/provider-split: Split out the Oracle OPC provider to new structure [GH-14362]
 * provider/aws: Show state reason when EC2 instance fails to launch [GH-14479]
 * provider/aws: Show last scaling activity when ASG creation/update fails [GH-14480]
 * provider/aws: Add `tags` (list of maps) for `aws_autoscaling_group` [GH-13574]
