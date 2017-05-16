@@ -3,14 +3,7 @@
 This provides a template for running an HTTP load balancer that distributes traffic to different instances based on the
 path in the request URL. It is based on the tutorial at [https://cloud.google.com/compute/docs/load-balancing/http/content-based-example](https://cloud.google.com/compute/docs/load-balancing/http/content-based-example).
 
-You will need to generate SSH keys as follows:
-
-```sh
-$ ssh-keygen -f ~/.ssh/gcloud_id_rsa
-# press <Enter> when asked (twice) for a pass-phrase
-```
-
-Then [download your credentials from Google Cloud Console](https://www.terraform.io/docs/providers/google/#credentials); suggested path for downloaded file is `~/.gcloud/Terraform.json`.
+To start, [download your credentials from Google Cloud Console](https://www.terraform.io/docs/providers/google/#credentials); suggested path for downloaded file is `~/.gcloud/Terraform.json`.
 
 Optionally update `variables.tf` to specify a default value for the `project_name` variable, and check other variables.
 
