@@ -13,7 +13,7 @@ import (
 
 func TestAccAzureRMManagedImage_standaloneImage(t *testing.T) {
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMManagedImage_standaloneImage, ri, ri)
+	config := fmt.Sprintf(testAccAzureRMManagedImage_standaloneImage, ri)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -22,7 +22,7 @@ func TestAccAzureRMManagedImage_standaloneImage(t *testing.T) {
 			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMManagedImageExists("azurerm_managed_image.test", true),
+					testCheckAzureRMManagedImageExists("azurerm_image.test", true),
 				),
 			},
 		},
@@ -31,7 +31,7 @@ func TestAccAzureRMManagedImage_standaloneImage(t *testing.T) {
 
 func TestAccAzureRMManagedImage_customImageVMFromVHD(t *testing.T) {
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMManagedImage_customImage_fromVHD, ri, ri, ri, ri)
+	config := fmt.Sprintf(testAccAzureRMManagedImage_customImage_fromVHD, ri)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -40,7 +40,7 @@ func TestAccAzureRMManagedImage_customImageVMFromVHD(t *testing.T) {
 			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMManagedImageExists("azurerm_managed_image.test", true),
+					testCheckAzureRMManagedImageExists("azurerm_image.test", true),
 				),
 			},
 		},
@@ -49,7 +49,7 @@ func TestAccAzureRMManagedImage_customImageVMFromVHD(t *testing.T) {
 
 func TestAccAzureRMManagedImage_customImageVMFromVM(t *testing.T) {
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMManagedImage_customImage_fromVM, ri, ri, ri, ri, ri)
+	config := fmt.Sprintf(testAccAzureRMManagedImage_customImage_fromVM, ri)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -163,12 +163,12 @@ func testCheckAzureRMManagedImageDestroy(s *terraform.State) error {
 
 var testAccAzureRMManagedImage_standaloneImage = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestRG-%d"
+    name = "acctestRG-%[1]d"
     location = "West Central US"
 }
 
-resource "azurerm_managed_image" "test" {
-    name = "accteste-%d"
+resource "azurerm_image" "test" {
+    name = "accteste-%[1]d"
     location = "West Central US"
     resource_group_name = "${azurerm_resource_group.test.name}"
 	os_disk {
@@ -176,6 +176,7 @@ resource "azurerm_managed_image" "test" {
 		os_state = "Generalized"
 		blob_uri = "https://terraformdev.blob.core.windows.net/packerimages/ubuntu_plain.vhd"
  	    size_gb = 30
+		caching = "None"
 	}
 
     tags {
@@ -186,26 +187,26 @@ resource "azurerm_managed_image" "test" {
 
 var testAccAzureRMManagedImage_customImage_fromVHD = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestRG-%d"
+    name = "acctestRG-%[1]d"
     location = "West Central US"
 }
 
 resource "azurerm_virtual_network" "test" {
-    name = "acctvn-%d"
+    name = "acctvn-%[1]d"
     address_space = ["10.0.0.0/16"]
     location = "West Central US"
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
 resource "azurerm_subnet" "test" {
-    name = "acctsub-%d"
+    name = "acctsub-%[1]d"
     resource_group_name = "${azurerm_resource_group.test.name}"
     virtual_network_name = "${azurerm_virtual_network.test.name}"
     address_prefix = "10.0.2.0/24"
 }
 
 resource "azurerm_network_interface" "test" {
-    name = "acctni-%d"
+    name = "acctni-%[1]d"
     location = "West Central US"
     resource_group_name = "${azurerm_resource_group.test.name}"
 
@@ -216,7 +217,7 @@ resource "azurerm_network_interface" "test" {
     }
 }
 
-resource "azurerm_managed_image" "test" {
+resource "azurerm_image" "test" {
     name = "accteste"
     location = "West Central US"
     resource_group_name = "${azurerm_resource_group.test.name}"
@@ -225,6 +226,7 @@ resource "azurerm_managed_image" "test" {
 		os_state = "Generalized"
 		blob_uri = "https://terraformdev.blob.core.windows.net/packerimages/ubuntu_plain.vhd"
  	    size_gb = 30
+		caching = "None"		 
 	}
 
     tags {
@@ -241,7 +243,7 @@ resource "azurerm_virtual_machine" "test" {
     vm_size = "Standard_D1_v2"
 
     storage_image_reference {
-		image_id = "${azurerm_managed_image.test.id}"
+		image_id = "${azurerm_image.test.id}"
     }
 
     storage_os_disk {
@@ -269,12 +271,12 @@ resource "azurerm_virtual_machine" "test" {
 
 var testAccAzureRMManagedImage_customImage_fromVM = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestRG-%d"
+    name = "acctestRG-%[1]d"
     location = "West Central US"
 }
 
-resource "azurerm_managed_image" "testdestination" {
-    name = "acctestdest-%d"
+resource "azurerm_image" "testdestination" {
+    name = "acctestdest-%[1]d"
     location = "West Central US"
     resource_group_name = "${azurerm_resource_group.test.name}"
 source_virtual_machine_id = "/subscriptions/{subscription_id}/resourceGroups/{resource_group}/providers/Microsoft.Compute/virtualMachines/{vm_name}"    
@@ -285,21 +287,21 @@ source_virtual_machine_id = "/subscriptions/{subscription_id}/resourceGroups/{re
 }
 
 resource "azurerm_virtual_network" "test" {
-    name = "acctvn-%d"
+    name = "acctvn-%[1]d"
     address_space = ["10.0.0.0/16"]
     location = "West Central US"
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
 resource "azurerm_subnet" "test" {
-    name = "acctsub-%d"
+    name = "acctsub-%[1]d"
     resource_group_name = "${azurerm_resource_group.test.name}"
     virtual_network_name = "${azurerm_virtual_network.test.name}"
     address_prefix = "10.0.2.0/24"
 }
 
 resource "azurerm_network_interface" "testdestination" {
-    name = "acctnicdest-%d"
+    name = "acctnicdest-%[1]d"
     location = "West Central US"
     resource_group_name = "${azurerm_resource_group.test.name}"
 
@@ -318,7 +320,7 @@ resource "azurerm_virtual_machine" "testdestination" {
     vm_size = "Standard_D1_v2"
 
     storage_image_reference {
-		image_id = "${azurerm_managed_image.testdestination.id}"
+		image_id = "${azurerm_image.testdestination.id}"
     }
 
     storage_os_disk {

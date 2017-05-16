@@ -1,6 +1,6 @@
 ---
 layout: "azurerm"
-page_title: "Azure Resource Manager: azurerm_managed_image"
+page_title: "Azure Resource Manager: azurerm_image"
 sidebar_current: "docs-azurerm-resource-managed-image"
 description: |-
   Create a custom virtual machine image that can be used to create virtual machines.
@@ -18,7 +18,7 @@ resource "azurerm_resource_group" "test" {
   location = "West US"
 }
 
-resource "azurerm_managed_image" "test" {
+resource "azurerm_image" "test" {
   name = "acctest"
   location = "West US"
   resource_group_name = "${azurerm_resource_group.test.name}"
@@ -40,7 +40,7 @@ resource "azurerm_resource_group" "test" {
   location = "West US"
 }
 
-resource "azurerm_managed_image" "test" {
+resource "azurerm_image" "test" {
   name = "acctest"
   location = "West US"
   resource_group_name = "${azurerm_resource_group.test.name}"
@@ -95,5 +95,5 @@ The following attributes are exported:
 Managed Image can be imported using the `resource id`, e.g.
 
 ```
-terraform import azurerm_managed_image.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/microsoft.compute/images/managedimage1
+terraform import azurerm_image.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/microsoft.compute/images/managedimage1
 ```

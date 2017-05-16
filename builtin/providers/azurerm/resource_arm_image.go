@@ -65,6 +65,7 @@ func resourceArmManagedImage() *schema.Resource {
 								string(compute.Generalized),
 								string(compute.Specialized),
 							}, true),
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"managed_disk_id": {
@@ -76,7 +77,6 @@ func resourceArmManagedImage() *schema.Resource {
 						"blob_uri": {
 							Type:     schema.TypeString,
 							Optional: true,
-							Computed: true,
 							ForceNew: true,
 						},
 
@@ -88,12 +88,12 @@ func resourceArmManagedImage() *schema.Resource {
 								string(compute.ReadOnly),
 								string(compute.ReadWrite),
 							}, true),
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"size_gb": {
-							Type:         schema.TypeInt,
-							Optional:     true,
-							ValidateFunc: validateDiskSizeGB,
+							Type:     schema.TypeInt,
+							Optional: true,
 						},
 					},
 				},
@@ -119,8 +119,6 @@ func resourceArmManagedImage() *schema.Resource {
 						"blob_uri": {
 							Type:     schema.TypeString,
 							Optional: true,
-							Computed: true,
-							ForceNew: true,
 						},
 
 						"caching": {
@@ -134,9 +132,8 @@ func resourceArmManagedImage() *schema.Resource {
 						},
 
 						"size_gb": {
-							Type:         schema.TypeInt,
-							Optional:     true,
-							ValidateFunc: validateDiskSizeGB,
+							Type:     schema.TypeInt,
+							Optional: true,
 						},
 					},
 				},
@@ -297,6 +294,7 @@ func flattenAzureRmStorageProfileOsDisk(d *schema.ResourceData, storageProfile *
 		}
 		result["blob_uri"] = *osDisk.BlobURI
 		result["caching"] = osDisk.Caching
+		result["size_gb"] = *osDisk.DiskSizeGB
 	}
 
 	return []interface{}{result}

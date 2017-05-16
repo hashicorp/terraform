@@ -121,6 +121,7 @@ To make a resource importable, please see the
 * azurerm_sql_firewall_rule
 * azurerm_storage_account
 * azurerm_virtual_network
+* azurerm_image
 
 ### Circonus
 
