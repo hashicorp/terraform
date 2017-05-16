@@ -64,7 +64,7 @@ resource "google_compute_instance_group" "www-resources" {
   name = "tf-www-resources"
   zone = "${var.region_zone}"
 
-  instances = ["${google_compute_instance.www.self_link}",]
+  instances = ["${google_compute_instance.www.self_link}"]
 
   named_port {
     name = "http"
