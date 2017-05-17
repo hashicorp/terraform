@@ -398,9 +398,17 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 	}
 
 	log.Printf("[DEBUG] Updating CloudFormation stack: %s", input)
-	stack, err := conn.UpdateStack(input)
+	_, err := conn.UpdateStack(input)
 	if err != nil {
-		return err
+		awsErr, ok := err.(awserr.Error)
+		// ValidationError: No updates are to be performed.
+		if !ok ||
+			awsErr.Code() != "ValidationError" ||
+			awsErr.Message() != "No updates are to be performed." {
+			return err
+		}
+
+		log.Printf("[DEBUG] Current CloudFormation stack has no updates")
 	}
 
 	lastUpdatedTime, err := getLastCfEventTimestamp(d.Id(), conn)
@@ -416,6 +424,7 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 		}
 	}
 	var lastStatus string
+	var stackId string
 	wait := resource.StateChangeConf{
 		Pending: []string{
 			"UPDATE_COMPLETE_CLEANUP_IN_PROGRESS",
@@ -424,6 +433,7 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 			"UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS",
 		},
 		Target: []string{
+			"CREATE_COMPLETE", // If no stack update was performed
 			"UPDATE_COMPLETE",
 			"UPDATE_ROLLBACK_COMPLETE",
 			"UPDATE_ROLLBACK_FAILED",
@@ -439,6 +449,8 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 				return nil, "", err
 			}
 
+			stackId = aws.StringValue(resp.Stacks[0].StackId)
+
 			status := *resp.Stacks[0].StackStatus
 			lastStatus = status
 			log.Printf("[DEBUG] Current CloudFormation stack status: %q", status)
@@ -453,7 +465,7 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 	}
 
 	if lastStatus == "UPDATE_ROLLBACK_COMPLETE" || lastStatus == "UPDATE_ROLLBACK_FAILED" {
-		reasons, err := getCloudFormationRollbackReasons(*stack.StackId, lastUpdatedTime, conn)
+		reasons, err := getCloudFormationRollbackReasons(stackId, lastUpdatedTime, conn)
 		if err != nil {
 			return fmt.Errorf("Failed getting details about rollback: %q", err.Error())
 		}
@@ -461,7 +473,7 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 		return fmt.Errorf("%s: %q", lastStatus, reasons)
 	}
 
-	log.Printf("[DEBUG] CloudFormation stack %q has been updated", *stack.StackId)
+	log.Printf("[DEBUG] CloudFormation stack %q has been updated", stackId)
 
 	return resourceAwsCloudFormationStackRead(d, meta)
 }
