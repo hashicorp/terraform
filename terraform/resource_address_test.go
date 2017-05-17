@@ -685,3 +685,61 @@ func TestResourceAddressHasResourceSpec(t *testing.T) {
 		})
 	}
 }
+
+func TestResourceAddressWholeModuleAddress(t *testing.T) {
+	cases := []struct {
+		Input string
+		Want  string
+	}{
+		{
+			"module.foo",
+			"module.foo",
+		},
+		{
+			"module.foo.module.bar",
+			"module.foo.module.bar",
+		},
+		{
+			"null_resource.baz",
+			"",
+		},
+		{
+			"null_resource.baz[0]",
+			"",
+		},
+		{
+			"data.null_data_source.baz",
+			"",
+		},
+		{
+			"data.null_data_source.baz[0]",
+			"",
+		},
+		{
+			"module.foo.null_resource.baz",
+			"module.foo",
+		},
+		{
+			"module.foo.data.null_data_source.baz",
+			"module.foo",
+		},
+		{
+			"module.foo.module.bar.null_resource.baz",
+			"module.foo.module.bar",
+		},
+	}
+
+	for _, test := range cases {
+		t.Run(test.Input, func(t *testing.T) {
+			addr, err := ParseResourceAddress(test.Input)
+			if err != nil {
+				t.Fatalf("error parsing address: %s", err)
+			}
+			gotAddr := addr.WholeModuleAddress()
+			got := gotAddr.String()
+			if got != test.Want {
+				t.Fatalf("%q: wrong result %#v; want %#v", test.Input, got, test.Want)
+			}
+		})
+	}
+}
