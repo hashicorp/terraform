@@ -12,6 +12,11 @@ func testResource() *schema.Resource {
 		Read:   testResourceRead,
 		Update: testResourceUpdate,
 		Delete: testResourceDelete,
+
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"required": {
 				Type:     schema.TypeString,
