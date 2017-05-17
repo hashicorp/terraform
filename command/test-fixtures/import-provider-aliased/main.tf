@@ -3,3 +3,6 @@ provider "test" {
 
     alias = "alias"
 }
+
+resource "test_instance" "foo" {
+}
