@@ -24,7 +24,7 @@ func TestAccDnsCnameRecordSet_Basic(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		r.UnitTest(t, r.TestCase{
+		r.Test(t, r.TestCase{
 			Providers: testAccProviders,
 			Steps: []r.TestStep{
 				r.TestStep{
