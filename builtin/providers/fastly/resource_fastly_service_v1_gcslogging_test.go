@@ -1,6 +1,7 @@
 package fastly
 
 import (
+	"os"
 	"fmt"
 	"reflect"
 	"testing"
@@ -9,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	gofastly "github.com/sethvargo/go-fastly"
-	"os"
 )
 
 func TestResourceFastlyFlattenGCS(t *testing.T) {
