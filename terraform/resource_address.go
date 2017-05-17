@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/module"
 )
 
 // ResourceAddress is a way of identifying an individual resource (or,
@@ -106,6 +107,32 @@ func (r *ResourceAddress) WholeModuleAddress() *ResourceAddress {
 		Index:           -1,
 		InstanceTypeSet: false,
 	}
+}
+
+// MatchesConfig returns true if the receiver matches the given
+// configuration resource within the given configuration module.
+//
+// Since resource configuration blocks represent all of the instances of
+// a multi-instance resource, the index of the address (if any) is not
+// considered.
+func (r *ResourceAddress) MatchesConfig(mod *module.Tree, rc *config.Resource) bool {
+	if r.HasResourceSpec() {
+		if r.Mode != rc.Mode || r.Type != rc.Type || r.Name != rc.Name {
+			return false
+		}
+	}
+
+	addrPath := r.Path
+	cfgPath := mod.Path()
+
+	// normalize
+	if len(addrPath) == 0 {
+		addrPath = nil
+	}
+	if len(cfgPath) == 0 {
+		cfgPath = nil
+	}
+	return reflect.DeepEqual(addrPath, cfgPath)
 }
 
 // stateId returns the ID that this resource should be entered with
