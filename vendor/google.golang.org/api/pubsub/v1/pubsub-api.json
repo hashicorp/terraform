@@ -1,11 +1,11 @@
 {
  "kind": "discovery#restDescription",
- "etag": "\"jQLIOHBVnDZie4rQHGH1WJF-INE/liyzgLngirW3xU7Tt2Pd1AnSK1c\"",
+ "etag": "\"C5oy1hgQsABtYOYIOXWcR3BgYqU/HIsdIvCDXEirzqtPtZbE0wV3MKA\"",
  "discoveryVersion": "v1",
  "id": "pubsub:v1",
  "name": "pubsub",
  "version": "v1",
- "revision": "20160317",
+ "revision": "20161003",
  "title": "Google Cloud Pub/Sub API",
  "description": "Provides reliable, many-to-many, asynchronous messaging between applications.",
  "ownerDomain": "google.com",
@@ -173,7 +173,7 @@
    "properties": {
     "permissions": {
      "type": "array",
-     "description": "The set of permissions to check for the `resource`. Permissions with wildcards (such as '*' or 'storage.*') are not allowed. For more information see IAM Overview.",
+     "description": "The set of permissions to check for the `resource`. Permissions with wildcards (such as '*' or 'storage.*') are not allowed. For more information see [IAM Overview](https://cloud.google.com/iam/docs/overview#permissions).",
      "items": {
       "type": "string"
      }
@@ -226,7 +226,7 @@
    "properties": {
     "data": {
      "type": "string",
-     "description": "The message payload. For JSON requests, the value of this field must be base64-encoded.",
+     "description": "The message payload. For JSON requests, the value of this field must be [base64-encoded](https://tools.ietf.org/html/rfc4648).",
      "format": "byte"
     },
     "attributes": {
@@ -320,7 +320,7 @@
     },
     "ackDeadlineSeconds": {
      "type": "integer",
-     "description": "This value is the maximum time after a subscriber receives a message before the subscriber should acknowledge the message. After message delivery but before the ack deadline expires and before the message is acknowledged, it is an outstanding message and will not be delivered again during that time (on a best-effort basis). For pull subscriptions, this value is used as the initial value for the ack deadline. To override this value for a given message, call `ModifyAckDeadline` with the corresponding `ack_id` if using pull. For push delivery, this value is also used to set the request timeout for the call to the push endpoint. If the subscriber never acknowledges the message, the Pub/Sub system will eventually redeliver the message. If this parameter is not set, the default value of 10 seconds is used.",
+     "description": "This value is the maximum time after a subscriber receives a message before the subscriber should acknowledge the message. After message delivery but before the ack deadline expires and before the message is acknowledged, it is an outstanding message and will not be delivered again during that time (on a best-effort basis). For pull subscriptions, this value is used as the initial value for the ack deadline. To override this value for a given message, call `ModifyAckDeadline` with the corresponding `ack_id` if using pull. The maximum custom deadline you can specify is 600 seconds (10 minutes). For push delivery, this value is also used to set the request timeout for the call to the push endpoint. If the subscriber never acknowledges the message, the Pub/Sub system will eventually redeliver the message. If this parameter is 0, a default value of 10 seconds is used.",
      "format": "int32"
     }
    }
@@ -464,7 +464,7 @@
        "parameters": {
         "resource": {
          "type": "string",
-         "description": "REQUIRED: The resource for which the policy is being specified. `resource` is usually specified as a path, such as `projects/*project*/zones/*zone*/disks/*disk*`. The format for the path specified in this value is resource specific and is specified in the `setIamPolicy` documentation.",
+         "description": "REQUIRED: The resource for which the policy is being specified. `resource` is usually specified as a path. For example, a Project resource is specified as `projects/{project}`.",
          "required": true,
          "pattern": "^projects/[^/]*/topics/[^/]*$",
          "location": "path"
@@ -488,11 +488,11 @@
        "id": "pubsub.projects.topics.getIamPolicy",
        "path": "v1/{+resource}:getIamPolicy",
        "httpMethod": "GET",
-       "description": "Gets the access control policy for a `resource`. Returns an empty policy if the resource exists and does not have a policy set.",
+       "description": "Gets the access control policy for a resource. Returns an empty policy if the resource exists and does not have a policy set.",
        "parameters": {
         "resource": {
          "type": "string",
-         "description": "REQUIRED: The resource for which the policy is being requested. `resource` is usually specified as a path, such as `projects/*project*/zones/*zone*/disks/*disk*`. The format for the path specified in this value is resource specific and is specified in the `getIamPolicy` documentation.",
+         "description": "REQUIRED: The resource for which the policy is being requested. `resource` is usually specified as a path. For example, a Project resource is specified as `projects/{project}`.",
          "required": true,
          "pattern": "^projects/[^/]*/topics/[^/]*$",
          "location": "path"
@@ -517,7 +517,7 @@
        "parameters": {
         "resource": {
          "type": "string",
-         "description": "REQUIRED: The resource for which the policy detail is being requested. `resource` is usually specified as a path, such as `projects/*project*/zones/*zone*/disks/*disk*`. The format for the path specified in this value is resource specific and is specified in the `testIamPermissions` documentation.",
+         "description": "REQUIRED: The resource for which the policy detail is being requested. `resource` is usually specified as a path. For example, a Project resource is specified as `projects/{project}`.",
          "required": true,
          "pattern": "^projects/[^/]*/topics/[^/]*$",
          "location": "path"
@@ -733,7 +733,7 @@
        "parameters": {
         "resource": {
          "type": "string",
-         "description": "REQUIRED: The resource for which the policy is being specified. `resource` is usually specified as a path, such as `projects/*project*/zones/*zone*/disks/*disk*`. The format for the path specified in this value is resource specific and is specified in the `setIamPolicy` documentation.",
+         "description": "REQUIRED: The resource for which the policy is being specified. `resource` is usually specified as a path. For example, a Project resource is specified as `projects/{project}`.",
          "required": true,
          "pattern": "^projects/[^/]*/subscriptions/[^/]*$",
          "location": "path"
@@ -757,11 +757,11 @@
        "id": "pubsub.projects.subscriptions.getIamPolicy",
        "path": "v1/{+resource}:getIamPolicy",
        "httpMethod": "GET",
-       "description": "Gets the access control policy for a `resource`. Returns an empty policy if the resource exists and does not have a policy set.",
+       "description": "Gets the access control policy for a resource. Returns an empty policy if the resource exists and does not have a policy set.",
        "parameters": {
         "resource": {
          "type": "string",
-         "description": "REQUIRED: The resource for which the policy is being requested. `resource` is usually specified as a path, such as `projects/*project*/zones/*zone*/disks/*disk*`. The format for the path specified in this value is resource specific and is specified in the `getIamPolicy` documentation.",
+         "description": "REQUIRED: The resource for which the policy is being requested. `resource` is usually specified as a path. For example, a Project resource is specified as `projects/{project}`.",
          "required": true,
          "pattern": "^projects/[^/]*/subscriptions/[^/]*$",
          "location": "path"
@@ -786,7 +786,7 @@
        "parameters": {
         "resource": {
          "type": "string",
-         "description": "REQUIRED: The resource for which the policy detail is being requested. `resource` is usually specified as a path, such as `projects/*project*/zones/*zone*/disks/*disk*`. The format for the path specified in this value is resource specific and is specified in the `testIamPermissions` documentation.",
+         "description": "REQUIRED: The resource for which the policy detail is being requested. `resource` is usually specified as a path. For example, a Project resource is specified as `projects/{project}`.",
          "required": true,
          "pattern": "^projects/[^/]*/subscriptions/[^/]*$",
          "location": "path"
@@ -810,7 +810,7 @@
        "id": "pubsub.projects.subscriptions.create",
        "path": "v1/{+name}",
        "httpMethod": "PUT",
-       "description": "Creates a subscription to a given topic. If the subscription already exists, returns `ALREADY_EXISTS`. If the corresponding topic doesn't exist, returns `NOT_FOUND`. If the name is not provided in the request, the server will assign a random name for this subscription on the same project as the topic.",
+       "description": "Creates a subscription to a given topic. If the subscription already exists, returns `ALREADY_EXISTS`. If the corresponding topic doesn't exist, returns `NOT_FOUND`. If the name is not provided in the request, the server will assign a random name for this subscription on the same project as the topic. Note that for REST API requests, you must specify a name.",
        "parameters": {
         "name": {
          "type": "string",
@@ -899,7 +899,7 @@
        "id": "pubsub.projects.subscriptions.delete",
        "path": "v1/{+subscription}",
        "httpMethod": "DELETE",
-       "description": "Deletes an existing subscription. All pending messages in the subscription are immediately dropped. Calls to `Pull` after deletion will return `NOT_FOUND`. After a subscription is deleted, a new one may be created with the same name, but the new one has no association with the old subscription, or its topic unless the same topic is specified.",
+       "description": "Deletes an existing subscription. All messages retained in the subscription are immediately dropped. Calls to `Pull` after deletion will return `NOT_FOUND`. After a subscription is deleted, a new one may be created with the same name, but the new one has no association with the old subscription or its topic unless the same topic is specified.",
        "parameters": {
         "subscription": {
          "type": "string",
@@ -924,7 +924,7 @@
        "id": "pubsub.projects.subscriptions.modifyAckDeadline",
        "path": "v1/{+subscription}:modifyAckDeadline",
        "httpMethod": "POST",
-       "description": "Modifies the ack deadline for a specific message. This method is useful to indicate that more time is needed to process a message by the subscriber, or to make the message available for redelivery if the processing was interrupted.",
+       "description": "Modifies the ack deadline for a specific message. This method is useful to indicate that more time is needed to process a message by the subscriber, or to make the message available for redelivery if the processing was interrupted. Note that this does not modify the subscription-level `ackDeadlineSeconds` used for subsequent messages.",
        "parameters": {
         "subscription": {
          "type": "string",
@@ -1026,6 +1026,91 @@
        },
        "response": {
         "$ref": "Empty"
+       },
+       "scopes": [
+        "https://www.googleapis.com/auth/cloud-platform",
+        "https://www.googleapis.com/auth/pubsub"
+       ]
+      }
+     }
+    },
+    "snapshots": {
+     "methods": {
+      "setIamPolicy": {
+       "id": "pubsub.projects.snapshots.setIamPolicy",
+       "path": "v1/{+resource}:setIamPolicy",
+       "httpMethod": "POST",
+       "description": "Sets the access control policy on the specified resource. Replaces any existing policy.",
+       "parameters": {
+        "resource": {
+         "type": "string",
+         "description": "REQUIRED: The resource for which the policy is being specified. `resource` is usually specified as a path. For example, a Project resource is specified as `projects/{project}`.",
+         "required": true,
+         "pattern": "^projects/[^/]*/snapshots/[^/]*$",
+         "location": "path"
+        }
+       },
+       "parameterOrder": [
+        "resource"
+       ],
+       "request": {
+        "$ref": "SetIamPolicyRequest"
+       },
+       "response": {
+        "$ref": "Policy"
+       },
+       "scopes": [
+        "https://www.googleapis.com/auth/cloud-platform",
+        "https://www.googleapis.com/auth/pubsub"
+       ]
+      },
+      "getIamPolicy": {
+       "id": "pubsub.projects.snapshots.getIamPolicy",
+       "path": "v1/{+resource}:getIamPolicy",
+       "httpMethod": "GET",
+       "description": "Gets the access control policy for a resource. Returns an empty policy if the resource exists and does not have a policy set.",
+       "parameters": {
+        "resource": {
+         "type": "string",
+         "description": "REQUIRED: The resource for which the policy is being requested. `resource` is usually specified as a path. For example, a Project resource is specified as `projects/{project}`.",
+         "required": true,
+         "pattern": "^projects/[^/]*/snapshots/[^/]*$",
+         "location": "path"
+        }
+       },
+       "parameterOrder": [
+        "resource"
+       ],
+       "response": {
+        "$ref": "Policy"
+       },
+       "scopes": [
+        "https://www.googleapis.com/auth/cloud-platform",
+        "https://www.googleapis.com/auth/pubsub"
+       ]
+      },
+      "testIamPermissions": {
+       "id": "pubsub.projects.snapshots.testIamPermissions",
+       "path": "v1/{+resource}:testIamPermissions",
+       "httpMethod": "POST",
+       "description": "Returns permissions that a caller has on the specified resource.",
+       "parameters": {
+        "resource": {
+         "type": "string",
+         "description": "REQUIRED: The resource for which the policy detail is being requested. `resource` is usually specified as a path. For example, a Project resource is specified as `projects/{project}`.",
+         "required": true,
+         "pattern": "^projects/[^/]*/snapshots/[^/]*$",
+         "location": "path"
+        }
+       },
+       "parameterOrder": [
+        "resource"
+       ],
+       "request": {
+        "$ref": "TestIamPermissionsRequest"
+       },
+       "response": {
+        "$ref": "TestIamPermissionsResponse"
        },
        "scopes": [
         "https://www.googleapis.com/auth/cloud-platform",

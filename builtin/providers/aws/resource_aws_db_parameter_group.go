@@ -32,10 +32,19 @@ func resourceAwsDbParameterGroup() *schema.Resource {
 				Computed: true,
 			},
 			"name": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
+				ValidateFunc:  validateDbParamGroupName,
+			},
+			"name_prefix": &schema.Schema{
 				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
 				ForceNew:     true,
-				Required:     true,
-				ValidateFunc: validateDbParamGroupName,
+				ValidateFunc: validateDbParamGroupNamePrefix,
 			},
 			"family": &schema.Schema{
 				Type:     schema.TypeString,
@@ -81,8 +90,18 @@ func resourceAwsDbParameterGroupCreate(d *schema.ResourceData, meta interface{})
 	rdsconn := meta.(*AWSClient).rdsconn
 	tags := tagsFromMapRDS(d.Get("tags").(map[string]interface{}))
 
+	var groupName string
+	if v, ok := d.GetOk("name"); ok {
+		groupName = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		groupName = resource.PrefixedUniqueId(v.(string))
+	} else {
+		groupName = resource.UniqueId()
+	}
+	d.Set("name", groupName)
+
 	createOpts := rds.CreateDBParameterGroupInput{
-		DBParameterGroupName:   aws.String(d.Get("name").(string)),
+		DBParameterGroupName:   aws.String(groupName),
 		DBParameterGroupFamily: aws.String(d.Get("family").(string)),
 		Description:            aws.String(d.Get("description").(string)),
 		Tags:                   tags,
@@ -141,7 +160,7 @@ func resourceAwsDbParameterGroupRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("parameter", flattenParameters(describeParametersResp.Parameters))
 
 	paramGroup := describeResp.DBParameterGroups[0]
-	arn, err := buildRDSPGARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	arn, err := buildRDSPGARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
 	if err != nil {
 		name := "<empty>"
 		if paramGroup.DBParameterGroupName != nil && *paramGroup.DBParameterGroupName != "" {
@@ -217,7 +236,7 @@ func resourceAwsDbParameterGroupUpdate(d *schema.ResourceData, meta interface{})
 		}
 	}
 
-	if arn, err := buildRDSPGARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
+	if arn, err := buildRDSPGARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
 		if err := setTagsRDS(rdsconn, d, arn); err != nil {
 			return err
 		} else {
@@ -278,11 +297,14 @@ func resourceAwsDbParameterHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func buildRDSPGARN(identifier, accountid, region string) (string, error) {
+func buildRDSPGARN(identifier, partition, accountid, region string) (string, error) {
+	if partition == "" {
+		return "", fmt.Errorf("Unable to construct RDS ARN because of missing AWS partition")
+	}
 	if accountid == "" {
 		return "", fmt.Errorf("Unable to construct RDS ARN because of missing AWS Account ID")
 	}
-	arn := fmt.Sprintf("arn:aws:rds:%s:%s:pg:%s", region, accountid, identifier)
+	arn := fmt.Sprintf("arn:%s:rds:%s:%s:pg:%s", partition, region, accountid, identifier)
 	return arn, nil
 
 }

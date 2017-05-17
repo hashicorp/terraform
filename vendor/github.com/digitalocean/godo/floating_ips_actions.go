@@ -64,7 +64,7 @@ func (s *FloatingIPActionsServiceOp) doAction(ip string, request *ActionRequest)
 		return nil, resp, err
 	}
 
-	return &root.Event, resp, err
+	return root.Event, resp, err
 }
 
 func (s *FloatingIPActionsServiceOp) get(path string) (*Action, *Response, error) {
@@ -79,7 +79,7 @@ func (s *FloatingIPActionsServiceOp) get(path string) (*Action, *Response, error
 		return nil, resp, err
 	}
 
-	return &root.Event, resp, err
+	return root.Event, resp, err
 }
 
 func (s *FloatingIPActionsServiceOp) list(path string) ([]Action, *Response, error) {

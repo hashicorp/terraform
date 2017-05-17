@@ -11,10 +11,11 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/jen20/awspolicyequivalence"
+	"regexp"
 )
 
 func TestAccAWSSQSQueue_basic(t *testing.T) {
-	queueName := fmt.Sprintf("sqs-queue-%s", acctest.RandString(5))
+	queueName := fmt.Sprintf("sqs-queue-%s", acctest.RandString(10))
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -43,8 +44,8 @@ func TestAccAWSSQSQueue_basic(t *testing.T) {
 }
 
 func TestAccAWSSQSQueue_policy(t *testing.T) {
-	queueName := fmt.Sprintf("sqs-queue-%s", acctest.RandString(5))
-	topicName := fmt.Sprintf("sns-topic-%s", acctest.RandString(5))
+	queueName := fmt.Sprintf("sqs-queue-%s", acctest.RandString(10))
+	topicName := fmt.Sprintf("sns-topic-%s", acctest.RandString(10))
 
 	expectedPolicyText := fmt.Sprintf(
 		`{"Version": "2012-10-17","Id": "sqspolicy","Statement":[{"Sid": "Stmt1451501026839","Effect": "Allow","Principal":"*","Action":"sqs:SendMessage","Resource":"arn:aws:sqs:us-west-2:470663696735:%s","Condition":{"ArnEquals":{"aws:SourceArn":"arn:aws:sns:us-west-2:470663696735:%s"}}}]}`,
@@ -72,7 +73,7 @@ func TestAccAWSSQSQueue_redrivePolicy(t *testing.T) {
 		CheckDestroy: testAccCheckAWSSQSQueueDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSSQSConfigWithRedrive(acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)),
+				Config: testAccAWSSQSConfigWithRedrive(acctest.RandString(10)),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSQSExistsWithDefaults("aws_sqs_queue.my_dead_letter_queue"),
 				),
@@ -83,8 +84,8 @@ func TestAccAWSSQSQueue_redrivePolicy(t *testing.T) {
 
 // Tests formatting and compacting of Policy, Redrive json
 func TestAccAWSSQSQueue_Policybasic(t *testing.T) {
-	queueName := fmt.Sprintf("sqs-queue-%s", acctest.RandString(5))
-	topicName := fmt.Sprintf("sns-topic-%s", acctest.RandString(5))
+	queueName := fmt.Sprintf("sqs-queue-%s", acctest.RandString(10))
+	topicName := fmt.Sprintf("sns-topic-%s", acctest.RandString(10))
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -95,6 +96,70 @@ func TestAccAWSSQSQueue_Policybasic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSQSExistsWithOverrides("aws_sqs_queue.test-email-events"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccAWSSQSQueue_FIFO(t *testing.T) {
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSQSQueueDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSSQSConfigWithFIFO(acctest.RandString(10)),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSQSExists("aws_sqs_queue.queue"),
+					resource.TestCheckResourceAttr("aws_sqs_queue.queue", "fifo_queue", "true"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSSQSQueue_FIFOExpectNameError(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSQSQueueDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccAWSSQSConfigWithFIFOExpectError(acctest.RandString(10)),
+				ExpectError: regexp.MustCompile(`Error validating the FIFO queue name`),
+			},
+		},
+	})
+}
+
+func TestAccAWSSQSQueue_FIFOWithContentBasedDeduplication(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSQSQueueDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSSQSConfigWithFIFOContentBasedDeduplication(acctest.RandString(10)),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSQSExists("aws_sqs_queue.queue"),
+					resource.TestCheckResourceAttr("aws_sqs_queue.queue", "fifo_queue", "true"),
+					resource.TestCheckResourceAttr("aws_sqs_queue.queue", "content_based_deduplication", "true"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSSQSQueue_ExpectContentBasedDeduplicationError(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSQSQueueDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccExpectContentBasedDeduplicationError(acctest.RandString(10)),
+				ExpectError: regexp.MustCompile(`Content based deduplication can only be set with FIFO queues`),
 			},
 		},
 	})
@@ -163,6 +228,21 @@ func testAccCheckAWSQSHasPolicy(n string, expectedPolicyText string) resource.Te
 		if !equivalent {
 			return fmt.Errorf("Non-equivalent policy error:\n\nexpected: %s\n\n     got: %s\n",
 				expectedPolicyText, actualPolicyText)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckAWSSQSExists(n string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No Queue URL specified!")
 		}
 
 		return nil
@@ -277,6 +357,15 @@ resource "aws_sqs_queue" "queue" {
 `, r)
 }
 
+func testAccAWSSQSFifoConfigWithDefaults(r string) string {
+	return fmt.Sprintf(`
+resource "aws_sqs_queue" "queue" {
+    name = "%s.fifo"
+    fifo_queue = true
+}
+`, r)
+}
+
 func testAccAWSSQSConfigWithOverrides(r string) string {
 	return fmt.Sprintf(`
 resource "aws_sqs_queue" "queue" {
@@ -361,4 +450,41 @@ resource "aws_sns_topic_subscription" "test_queue_target" {
   endpoint  = "${aws_sqs_queue.test-email-events.arn}"
 }
 `, topic, queue)
+}
+
+func testAccAWSSQSConfigWithFIFO(queue string) string {
+	return fmt.Sprintf(`
+resource "aws_sqs_queue" "queue" {
+  name       = "%s.fifo"
+  fifo_queue = true
+}
+`, queue)
+}
+
+func testAccAWSSQSConfigWithFIFOContentBasedDeduplication(queue string) string {
+	return fmt.Sprintf(`
+resource "aws_sqs_queue" "queue" {
+  name                        = "%s.fifo"
+  fifo_queue                  = true
+  content_based_deduplication = true
+}
+`, queue)
+}
+
+func testAccAWSSQSConfigWithFIFOExpectError(queue string) string {
+	return fmt.Sprintf(`
+resource "aws_sqs_queue" "queue" {
+  name       = "%s"
+  fifo_queue = true
+}
+`, queue)
+}
+
+func testAccExpectContentBasedDeduplicationError(queue string) string {
+	return fmt.Sprintf(`
+resource "aws_sqs_queue" "queue" {
+  name                        = "%s"
+  content_based_deduplication = true
+}
+`, queue)
 }

@@ -21,7 +21,7 @@ func TestAccAWSBeanstalkConfigurationTemplate_basic(t *testing.T) {
 		CheckDestroy: testAccCheckBeanstalkConfigurationTemplateDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccBeanstalkConfigurationTemplateConfig,
+				Config: testAccBeanstalkConfigurationTemplateConfig(acctest.RandString(5)),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckBeanstalkConfigurationTemplateExists("aws_elastic_beanstalk_configuration_template.tf_template", &config),
 				),
@@ -142,18 +142,19 @@ func testAccCheckBeanstalkConfigurationTemplateExists(n string, config *elasticb
 	}
 }
 
-const testAccBeanstalkConfigurationTemplateConfig = `
+func testAccBeanstalkConfigurationTemplateConfig(r string) string {
+	return fmt.Sprintf(`
 resource "aws_elastic_beanstalk_application" "tftest" {
-  name = "tf-test-name"
-  description = "tf-test-desc"
+  name = "tf-test-%s"
+  description = "tf-test-desc-%s"
 }
 
 resource "aws_elastic_beanstalk_configuration_template" "tf_template" {
   name = "tf-test-template-config"
   application = "${aws_elastic_beanstalk_application.tftest.name}"
   solution_stack_name = "64bit Amazon Linux running Python"
+}`, r, r)
 }
-`
 
 func testAccBeanstalkConfigurationTemplateConfig_VPC(name string) string {
 	return fmt.Sprintf(`

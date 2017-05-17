@@ -2,16 +2,19 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSLambdaAlias_basic(t *testing.T) {
 	var conf lambda.AliasConfiguration
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -19,10 +22,11 @@ func TestAccAWSLambdaAlias_basic(t *testing.T) {
 		CheckDestroy: testAccCheckAwsLambdaAliasDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAwsLambdaAliasConfig,
+				Config: testAccAwsLambdaAliasConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAwsLambdaAliasExists("aws_lambda_alias.lambda_alias_test", &conf),
 					testAccCheckAwsLambdaAttributes(&conf),
+					resource.TestMatchResourceAttr("aws_lambda_alias.lambda_alias_test", "arn", regexp.MustCompile(`^arn:aws:lambda:[a-z]+-[a-z]+-[0-9]+:\d{12}:function:example_lambda_name_create:testalias$`)),
 				),
 			},
 		},
@@ -93,9 +97,10 @@ func testAccCheckAwsLambdaAttributes(mapping *lambda.AliasConfiguration) resourc
 	}
 }
 
-const testAccAwsLambdaAliasConfig = `
+func testAccAwsLambdaAliasConfig(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_iam_role" "iam_for_lambda" {
-  name = "iam_for_lambda"
+  name = "iam_for_lambda_%d"
 
   assume_role_policy = <<EOF
 {
@@ -115,7 +120,7 @@ EOF
 }
 
 resource "aws_iam_policy" "policy_for_role" {
-  name        = "policy_for_role"
+  name        = "policy_for_role_%d"
   path        = "/"
   description = "IAM policy for for Lamda alias testing"
 
@@ -136,7 +141,7 @@ EOF
 }
 
 resource "aws_iam_policy_attachment" "policy_attachment_for_role" {
-  name       = "policy_attachment_for_role"
+  name       = "policy_attachment_for_role_%d"
   roles      = ["${aws_iam_role.iam_for_lambda.name}"]
   policy_arn = "${aws_iam_policy.policy_for_role.arn}"
 }
@@ -146,6 +151,7 @@ resource "aws_lambda_function" "lambda_function_test_create" {
   function_name = "example_lambda_name_create"
   role          = "${aws_iam_role.iam_for_lambda.arn}"
   handler       = "exports.example"
+  runtime       = "nodejs4.3"
 }
 
 resource "aws_lambda_alias" "lambda_alias_test" {
@@ -153,5 +159,5 @@ resource "aws_lambda_alias" "lambda_alias_test" {
   description      = "a sample description"
   function_name    = "${aws_lambda_function.lambda_function_test_create.arn}"
   function_version = "$LATEST"
+}`, rInt, rInt, rInt)
 }
-`

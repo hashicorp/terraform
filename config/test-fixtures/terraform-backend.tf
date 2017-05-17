@@ -1,0 +1,5 @@
+terraform {
+  backend "s3" {
+    foo = "bar"
+  }
+}

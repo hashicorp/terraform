@@ -2,6 +2,7 @@ package rundeck
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -80,6 +81,7 @@ func resourceRundeckJob() *schema.Resource {
 			"preserve_options_order": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				Computed: true,
 			},
 
 			"command_ordering_strategy": &schema.Schema{
@@ -95,6 +97,11 @@ func resourceRundeckJob() *schema.Resource {
 
 			"node_filter_exclude_precedence": &schema.Schema{
 				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
+			"schedule": &schema.Schema{
+				Type:     schema.TypeString,
 				Optional: true,
 			},
 
@@ -176,6 +183,10 @@ func resourceRundeckJob() *schema.Resource {
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"description": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 						"shell_command": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
@@ -357,6 +368,7 @@ func jobFromResourceData(d *schema.ResourceData) (*rundeck.JobDetail, error) {
 	for _, commandI := range commandConfigs {
 		commandMap := commandI.(map[string]interface{})
 		command := rundeck.JobCommand{
+			Description:    commandMap["description"].(string),
 			ShellCommand:   commandMap["shell_command"].(string),
 			Script:         commandMap["inline_script"].(string),
 			ScriptFile:     commandMap["script_file"].(string),
@@ -454,6 +466,30 @@ func jobFromResourceData(d *schema.ResourceData) (*rundeck.JobDetail, error) {
 		}
 	}
 
+	if d.Get("schedule").(string) != "" {
+		schedule := strings.Split(d.Get("schedule").(string), " ")
+		if len(schedule) != 7 {
+			return nil, fmt.Errorf("Rundeck schedule must be formated like a cron expression, as defined here: http://www.quartz-scheduler.org/documentation/quartz-2.2.x/tutorials/tutorial-lesson-06.html")
+		}
+		job.Schedule = &rundeck.JobSchedule{
+			Time: rundeck.JobScheduleTime{
+				Seconds: schedule[0],
+				Minute:  schedule[1],
+				Hour:    schedule[2],
+			},
+			Month: rundeck.JobScheduleMonth{
+				Day:   schedule[3],
+				Month: schedule[4],
+			},
+			WeekDay: &rundeck.JobScheduleWeekDay{
+				Day: schedule[5],
+			},
+			Year: rundeck.JobScheduleYear{
+				Year: schedule[6],
+			},
+		}
+	}
+
 	return job, nil
 }
 
@@ -521,6 +557,7 @@ func jobToResourceData(job *rundeck.JobDetail, d *schema.ResourceData) error {
 		d.Set("command_ordering_strategy", job.CommandSequence.OrderingStrategy)
 		for _, command := range job.CommandSequence.Commands {
 			commandConfigI := map[string]interface{}{
+				"description":      command.Description,
 				"shell_command":    command.ShellCommand,
 				"inline_script":    command.Script,
 				"script_file":      command.ScriptFile,
@@ -560,6 +597,23 @@ func jobToResourceData(job *rundeck.JobDetail, d *schema.ResourceData) error {
 		}
 	}
 	d.Set("command", commandConfigsI)
+
+	if job.Schedule != nil {
+		schedule := []string{}
+		schedule = append(schedule, job.Schedule.Time.Seconds)
+		schedule = append(schedule, job.Schedule.Time.Minute)
+		schedule = append(schedule, job.Schedule.Time.Hour)
+		schedule = append(schedule, job.Schedule.Month.Day)
+		schedule = append(schedule, job.Schedule.Month.Month)
+		if job.Schedule.WeekDay != nil {
+			schedule = append(schedule, job.Schedule.WeekDay.Day)
+		} else {
+			schedule = append(schedule, "*")
+		}
+		schedule = append(schedule, job.Schedule.Year.Year)
+
+		d.Set("schedule", strings.Join(schedule, " "))
+	}
 
 	return nil
 }

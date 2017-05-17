@@ -138,6 +138,33 @@ func resourceDockerContainer() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"capabilities": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"add": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
+							ForceNew: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
+						},
+
+						"drop": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
+							ForceNew: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
+						},
+					},
+				},
+				Set: resourceDockerCapabilitiesHash,
+			},
+
 			"volumes": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -157,17 +184,10 @@ func resourceDockerContainer() *schema.Resource {
 						},
 
 						"host_path": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-							ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
-								value := v.(string)
-								if !regexp.MustCompile(`^/`).MatchString(value) {
-									es = append(es, fmt.Errorf(
-										"%q must be an absolute path", k))
-								}
-								return
-							},
+							Type:         schema.TypeString,
+							Optional:     true,
+							ForceNew:     true,
+							ValidateFunc: validateDockerContainerPath,
 						},
 
 						"volume_name": &schema.Schema{
@@ -229,13 +249,13 @@ func resourceDockerContainer() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"ip": &schema.Schema{
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 							ForceNew: true,
 						},
 
 						"host": &schema.Schema{
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 							ForceNew: true,
 						},
 					},
@@ -369,8 +389,46 @@ func resourceDockerContainer() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
+
+			"upload": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"content": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							// This is intentional. The container is mutated once, and never updated later.
+							// New configuration forces a new deployment, even with the same binaries.
+							ForceNew: true,
+						},
+						"file": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+					},
+				},
+				Set: resourceDockerUploadHash,
+			},
 		},
 	}
+}
+
+func resourceDockerCapabilitiesHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	if v, ok := m["add"]; ok {
+		buf.WriteString(fmt.Sprintf("%v-", v))
+	}
+
+	if v, ok := m["remove"]; ok {
+		buf.WriteString(fmt.Sprintf("%v-", v))
+	}
+
+	return hashcode.String(buf.String())
 }
 
 func resourceDockerPortsHash(v interface{}) int {
@@ -434,4 +492,29 @@ func resourceDockerVolumesHash(v interface{}) int {
 	}
 
 	return hashcode.String(buf.String())
+}
+
+func resourceDockerUploadHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	if v, ok := m["content"]; ok {
+		buf.WriteString(fmt.Sprintf("%v-", v.(string)))
+	}
+
+	if v, ok := m["file"]; ok {
+		buf.WriteString(fmt.Sprintf("%v-", v.(string)))
+	}
+
+	return hashcode.String(buf.String())
+}
+
+func validateDockerContainerPath(v interface{}, k string) (ws []string, errors []error) {
+
+	value := v.(string)
+	if !regexp.MustCompile(`^[a-zA-Z]:\\|^/`).MatchString(value) {
+		errors = append(errors, fmt.Errorf("%q must be an absolute path", k))
+	}
+
+	return
 }

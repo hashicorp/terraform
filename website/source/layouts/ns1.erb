@@ -1,0 +1,50 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+          <a href="/docs/providers/index.html">All Providers</a>
+        </li>
+
+        <li<%= sidebar_current("docs-ns1-index") %>>
+          <a href="/docs/providers/ns1/index.html">NS1 Provider</a>
+        </li>
+
+        <li<%= sidebar_current("docs-ns1-resource") %>>
+          <a href="#">Resources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-ns1-resource-zone") %>>
+              <a href="/docs/providers/ns1/r/zone.html">ns1_zone</a>
+            </li>
+            <li<%= sidebar_current("docs-ns1-resource-record") %>>
+              <a href="/docs/providers/ns1/r/record.html">ns1_record</a>
+            </li>
+            <li<%= sidebar_current("docs-ns1-resource-monitoringjob") %>>
+              <a href="/docs/providers/ns1/r/monitoringjob.html">ns1_monitoringjob</a>
+            </li>
+            <li<%= sidebar_current("docs-ns1-resource-notifylist") %>>
+              <a href="/docs/providers/ns1/r/notifylist.html">ns1_notifylist</a>
+            </li>
+            <li<%= sidebar_current("docs-ns1-resource-datasource") %>>
+              <a href="/docs/providers/ns1/r/datasource.html">ns1_datasource</a>
+            </li>
+            <li<%= sidebar_current("docs-ns1-resource-datafeed") %>>
+              <a href="/docs/providers/ns1/r/datafeed.html">ns1_datafeed</a>
+            </li>
+            <li<%= sidebar_current("docs-ns1-resource-apikey") %>>
+              <a href="/docs/providers/ns1/r/apikey.html">ns1_apikey</a>
+            </li>
+            <li<%= sidebar_current("docs-ns1-resource-team") %>>
+              <a href="/docs/providers/ns1/r/team.html">ns1_team</a>
+            </li>
+            <li<%= sidebar_current("docs-ns1-resource-user") %>>
+              <a href="/docs/providers/ns1/r/user.html">ns1_user</a>
+            </li>
+                </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= yield %>
+<% end %>

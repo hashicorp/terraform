@@ -1,8 +1,10 @@
 package command
 
 import (
+	"flag"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/hashicorp/terraform/config"
 )
@@ -14,13 +16,15 @@ type ValidateCommand struct {
 
 const defaultPath = "."
 
-func (c *ValidateCommand) Help() string {
-	return ""
-}
-
 func (c *ValidateCommand) Run(args []string) int {
 	args = c.Meta.process(args, false)
 	var dirPath string
+
+	cmdFlags := flag.NewFlagSet("validate", flag.ContinueOnError)
+	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
+	if err := cmdFlags.Parse(args); err != nil {
+		return 1
+	}
 
 	if len(args) == 1 {
 		dirPath = args[0]
@@ -40,6 +44,25 @@ func (c *ValidateCommand) Run(args []string) int {
 
 func (c *ValidateCommand) Synopsis() string {
 	return "Validates the Terraform files"
+}
+
+func (c *ValidateCommand) Help() string {
+	helpText := `
+Usage: terraform validate [options] [path]
+
+  Reads the Terraform files in the given path (directory) and
+  validates their syntax and basic semantics.
+
+  This is not a full validation that is normally done with
+  a plan or apply operation, but can be used to verify the basic
+  syntax and usage of Terraform configurations is correct.
+
+Options:
+
+  -no-color           If specified, output won't contain any color.
+
+`
+	return strings.TrimSpace(helpText)
 }
 
 func (c *ValidateCommand) validate(dir string) int {

@@ -20,6 +20,7 @@ type MockHook struct {
 	PostApplyError       error
 	PostApplyReturn      HookAction
 	PostApplyReturnError error
+	PostApplyFn          func(*InstanceInfo, *InstanceState, error) (HookAction, error)
 
 	PreDiffCalled bool
 	PreDiffInfo   *InstanceInfo
@@ -54,6 +55,7 @@ type MockHook struct {
 	PostProvisionCalled        bool
 	PostProvisionInfo          *InstanceInfo
 	PostProvisionProvisionerId string
+	PostProvisionErrorArg      error
 	PostProvisionReturn        HookAction
 	PostProvisionError         error
 
@@ -111,6 +113,11 @@ func (h *MockHook) PostApply(n *InstanceInfo, s *InstanceState, e error) (HookAc
 	h.PostApplyInfo = n
 	h.PostApplyState = s
 	h.PostApplyError = e
+
+	if h.PostApplyFn != nil {
+		return h.PostApplyFn(n, s, e)
+	}
+
 	return h.PostApplyReturn, h.PostApplyReturnError
 }
 
@@ -164,13 +171,14 @@ func (h *MockHook) PreProvision(n *InstanceInfo, provId string) (HookAction, err
 	return h.PreProvisionReturn, h.PreProvisionError
 }
 
-func (h *MockHook) PostProvision(n *InstanceInfo, provId string) (HookAction, error) {
+func (h *MockHook) PostProvision(n *InstanceInfo, provId string, err error) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	h.PostProvisionCalled = true
 	h.PostProvisionInfo = n
 	h.PostProvisionProvisionerId = provId
+	h.PostProvisionErrorArg = err
 	return h.PostProvisionReturn, h.PostProvisionError
 }
 

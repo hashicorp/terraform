@@ -519,11 +519,7 @@ func resourceCloudStackNetworkACLRuleDelete(d *schema.ResourceData, meta interfa
 	return nil
 }
 
-func deleteNetworkACLRules(
-	d *schema.ResourceData,
-	meta interface{},
-	rules *schema.Set,
-	ors *schema.Set) error {
+func deleteNetworkACLRules(d *schema.ResourceData, meta interface{}, rules *schema.Set, ors *schema.Set) error {
 	var errs *multierror.Error
 
 	var wg sync.WaitGroup
@@ -559,10 +555,7 @@ func deleteNetworkACLRules(
 	return errs.ErrorOrNil()
 }
 
-func deleteNetworkACLRule(
-	d *schema.ResourceData,
-	meta interface{},
-	rule map[string]interface{}) error {
+func deleteNetworkACLRule(d *schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 	uuids := rule["uuids"].(map[string]interface{})
 

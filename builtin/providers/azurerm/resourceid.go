@@ -45,22 +45,34 @@ func parseAzureResourceID(id string) (*ResourceID, error) {
 		return nil, fmt.Errorf("The number of path segments is not divisible by 2 in %q", path)
 	}
 
+	var subscriptionID string
+
 	// Put the constituent key-value pairs into a map
 	componentMap := make(map[string]string, len(components)/2)
 	for current := 0; current < len(components); current += 2 {
 		key := components[current]
 		value := components[current+1]
 
-		componentMap[key] = value
+		// Check key/value for empty strings.
+		if key == "" || value == "" {
+			return nil, fmt.Errorf("Key/Value cannot be empty strings. Key: '%s', Value: '%s'", key, value)
+		}
+
+		// Catch the subscriptionID before it can be overwritten by another "subscriptions"
+		// value in the ID which is the case for the Service Bus subscription resource
+		if key == "subscriptions" && subscriptionID == "" {
+			subscriptionID = value
+		} else {
+			componentMap[key] = value
+		}
 	}
 
 	// Build up a ResourceID from the map
 	idObj := &ResourceID{}
 	idObj.Path = componentMap
 
-	if subscription, ok := componentMap["subscriptions"]; ok {
-		idObj.SubscriptionID = subscription
-		delete(componentMap, "subscriptions")
+	if subscriptionID != "" {
+		idObj.SubscriptionID = subscriptionID
 	} else {
 		return nil, fmt.Errorf("No subscription ID found in: %q", path)
 	}
@@ -87,4 +99,22 @@ func parseAzureResourceID(id string) (*ResourceID, error) {
 	}
 
 	return idObj, nil
+}
+
+func parseNetworkSecurityGroupName(networkSecurityGroupId string) (string, error) {
+	id, err := parseAzureResourceID(networkSecurityGroupId)
+	if err != nil {
+		return "", fmt.Errorf("[ERROR] Unable to Parse Network Security Group ID '%s': %+v", networkSecurityGroupId, err)
+	}
+
+	return id.Path["networkSecurityGroups"], nil
+}
+
+func parseRouteTableName(routeTableId string) (string, error) {
+	id, err := parseAzureResourceID(routeTableId)
+	if err != nil {
+		return "", fmt.Errorf("[ERROR] Unable to parse Route Table ID '%s': %+v", routeTableId, err)
+	}
+
+	return id.Path["routeTables"], nil
 }

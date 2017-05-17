@@ -23,18 +23,55 @@ func TestAccAWSAPIGatewayResource_basic(t *testing.T) {
 				Config: testAccAWSAPIGatewayResourceConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAPIGatewayResourceExists("aws_api_gateway_resource.test", &conf),
-					testAccCheckAWSAPIGatewayResourceAttributes(&conf),
+					testAccCheckAWSAPIGatewayResourceAttributes(&conf, "/test"),
 					resource.TestCheckResourceAttr(
 						"aws_api_gateway_resource.test", "path_part", "test"),
+					resource.TestCheckResourceAttr(
+						"aws_api_gateway_resource.test", "path", "/test"),
 				),
 			},
 		},
 	})
 }
 
-func testAccCheckAWSAPIGatewayResourceAttributes(conf *apigateway.Resource) resource.TestCheckFunc {
+func TestAccAWSAPIGatewayResource_update(t *testing.T) {
+	var conf apigateway.Resource
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSAPIGatewayResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSAPIGatewayResourceConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAPIGatewayResourceExists("aws_api_gateway_resource.test", &conf),
+					testAccCheckAWSAPIGatewayResourceAttributes(&conf, "/test"),
+					resource.TestCheckResourceAttr(
+						"aws_api_gateway_resource.test", "path_part", "test"),
+					resource.TestCheckResourceAttr(
+						"aws_api_gateway_resource.test", "path", "/test"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSAPIGatewayResourceConfig_updatePathPart,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAPIGatewayResourceExists("aws_api_gateway_resource.test", &conf),
+					testAccCheckAWSAPIGatewayResourceAttributes(&conf, "/test_changed"),
+					resource.TestCheckResourceAttr(
+						"aws_api_gateway_resource.test", "path_part", "test_changed"),
+					resource.TestCheckResourceAttr(
+						"aws_api_gateway_resource.test", "path", "/test_changed"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckAWSAPIGatewayResourceAttributes(conf *apigateway.Resource, path string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if *conf.Path != "/test" {
+		if *conf.Path != path {
 			return fmt.Errorf("Wrong Path: %q", conf.Path)
 		}
 
@@ -117,5 +154,17 @@ resource "aws_api_gateway_resource" "test" {
   rest_api_id = "${aws_api_gateway_rest_api.test.id}"
   parent_id = "${aws_api_gateway_rest_api.test.root_resource_id}"
   path_part = "test"
+}
+`
+
+const testAccAWSAPIGatewayResourceConfig_updatePathPart = `
+resource "aws_api_gateway_rest_api" "test" {
+  name = "test"
+}
+
+resource "aws_api_gateway_resource" "test" {
+  rest_api_id = "${aws_api_gateway_rest_api.test.id}"
+  parent_id = "${aws_api_gateway_rest_api.test.root_resource_id}"
+  path_part = "test_changed"
 }
 `

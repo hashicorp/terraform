@@ -12,9 +12,9 @@ Provides a VMware vSphere virtual machine folder resource. This can be used to c
 
 ## Example Usage
 
-```
+```hcl
 resource "vsphere_folder" "web" {
-  path   = "terraform_web_folder"
+  path = "terraform_web_folder"
 }
 ```
 

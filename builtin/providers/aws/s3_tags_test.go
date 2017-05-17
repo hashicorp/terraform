@@ -1,13 +1,11 @@
 package aws
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestDiffTagsS3(t *testing.T) {
@@ -61,25 +59,19 @@ func TestDiffTagsS3(t *testing.T) {
 	}
 }
 
-// testAccCheckTags can be used to check the tags on a resource.
-func testAccCheckTagsS3(
-	ts *[]*s3.Tag, key string, value string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		m := tagsToMapS3(*ts)
-		v, ok := m[key]
-		if value != "" && !ok {
-			return fmt.Errorf("Missing tag: %s", key)
-		} else if value == "" && ok {
-			return fmt.Errorf("Extra tag: %s", key)
+func TestIgnoringTagsS3(t *testing.T) {
+	var ignoredTags []*s3.Tag
+	ignoredTags = append(ignoredTags, &s3.Tag{
+		Key:   aws.String("aws:cloudformation:logical-id"),
+		Value: aws.String("foo"),
+	})
+	ignoredTags = append(ignoredTags, &s3.Tag{
+		Key:   aws.String("aws:foo:bar"),
+		Value: aws.String("baz"),
+	})
+	for _, tag := range ignoredTags {
+		if !tagIgnoredS3(tag) {
+			t.Fatalf("Tag %v with value %v not ignored, but should be!", *tag.Key, *tag.Value)
 		}
-		if value == "" {
-			return nil
-		}
-
-		if v != value {
-			return fmt.Errorf("%s: bad value: %s", key, v)
-		}
-
-		return nil
 	}
 }

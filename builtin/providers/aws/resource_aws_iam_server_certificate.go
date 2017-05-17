@@ -20,37 +20,41 @@ func resourceAwsIAMServerCertificate() *schema.Resource {
 		Create: resourceAwsIAMServerCertificateCreate,
 		Read:   resourceAwsIAMServerCertificateRead,
 		Delete: resourceAwsIAMServerCertificateDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceAwsIAMServerCertificateImport,
+		},
 
 		Schema: map[string]*schema.Schema{
-			"certificate_body": &schema.Schema{
+			"certificate_body": {
 				Type:      schema.TypeString,
 				Required:  true,
 				ForceNew:  true,
 				StateFunc: normalizeCert,
 			},
 
-			"certificate_chain": &schema.Schema{
+			"certificate_chain": {
 				Type:      schema.TypeString,
 				Optional:  true,
 				ForceNew:  true,
 				StateFunc: normalizeCert,
 			},
 
-			"path": &schema.Schema{
+			"path": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "/",
 				ForceNew: true,
 			},
 
-			"private_key": &schema.Schema{
+			"private_key": {
 				Type:      schema.TypeString,
 				Required:  true,
 				ForceNew:  true,
 				StateFunc: normalizeCert,
+				Sensitive: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
@@ -66,7 +70,7 @@ func resourceAwsIAMServerCertificate() *schema.Resource {
 				},
 			},
 
-			"name_prefix": &schema.Schema{
+			"name_prefix": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -80,7 +84,7 @@ func resourceAwsIAMServerCertificate() *schema.Resource {
 				},
 			},
 
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -148,6 +152,8 @@ func resourceAwsIAMServerCertificateRead(d *schema.ResourceData, meta interface{
 		return fmt.Errorf("[WARN] Error reading IAM Server Certificate: %s", err)
 	}
 
+	d.SetId(*resp.ServerCertificate.ServerCertificateMetadata.ServerCertificateId)
+
 	// these values should always be present, and have a default if not set in
 	// configuration, and so safe to reference with nil checks
 	d.Set("certificate_body", normalizeCert(resp.ServerCertificate.CertificateBody))
@@ -194,6 +200,13 @@ func resourceAwsIAMServerCertificateDelete(d *schema.ResourceData, meta interfac
 
 	d.SetId("")
 	return nil
+}
+
+func resourceAwsIAMServerCertificateImport(
+	d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	d.Set("name", d.Id())
+	// private_key can't be fetched from any API call
+	return []*schema.ResourceData{d}, nil
 }
 
 func normalizeCert(cert interface{}) string {

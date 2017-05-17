@@ -12,29 +12,31 @@ Manages a v1 firewall policy resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_fw_rule_v1" "rule_1" {
-  name = "my-rule-1"
-  description = "drop TELNET traffic"
-  action = "deny"
-  protocol = "tcp"
+  name             = "my-rule-1"
+  description      = "drop TELNET traffic"
+  action           = "deny"
+  protocol         = "tcp"
   destination_port = "23"
-  enabled = "true"
+  enabled          = "true"
 }
 
 resource "openstack_fw_rule_v1" "rule_2" {
-  name = "my-rule-2"
-  description = "drop NTP traffic"
-  action = "deny"
-  protocol = "udp"
+  name             = "my-rule-2"
+  description      = "drop NTP traffic"
+  action           = "deny"
+  protocol         = "udp"
   destination_port = "123"
-  enabled = "false"
+  enabled          = "false"
 }
 
 resource "openstack_fw_policy_v1" "policy_1" {
   name = "my-policy"
+
   rules = ["${openstack_fw_rule_v1.rule_1.id}",
-           "${openstack_fw_rule_v1.rule_2.id}"]
+    "${openstack_fw_rule_v1.rule_2.id}",
+  ]
 }
 ```
 
@@ -64,9 +66,12 @@ The following arguments are supported:
     firewall policy.
 
 * `shared` - (Optional) Sharing status of the firewall policy (must be "true"
-    or "false" if provided - defaults to "false"). If this is "true" the policy
-    is visible to, and can be used in, firewalls in other tenants. Changing this
-    updates the `shared` status of an existing firewall policy.
+    or "false" if provided). If this is "true" the policy is visible to, and
+    can be used in, firewalls in other tenants. Changing this updates the
+    `shared` status of an existing firewall policy. Only administrative users
+    can specify if the policy should be shared.
+
+* `value_specs` - (Optional) Map of additional options.
 
 ## Attributes Reference
 

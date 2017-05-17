@@ -15,16 +15,16 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the PowerDNS provider
 provider "powerdns" {
-    api_key = "${var.pdns_api_key}"
-    server_url = "${var.pdns_server_url}"
+  api_key    = "${var.pdns_api_key}"
+  server_url = "${var.pdns_server_url}"
 }
 
 # Create a record
 resource "powerdns_record" "www" {
-    ...
+  # ...
 }
 ```
 

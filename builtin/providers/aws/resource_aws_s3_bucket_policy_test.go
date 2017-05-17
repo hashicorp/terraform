@@ -16,7 +16,7 @@ func TestAccAWSS3BucketPolicy_basic(t *testing.T) {
 	name := fmt.Sprintf("tf-test-bucket-%d", acctest.RandInt())
 
 	expectedPolicyText := fmt.Sprintf(
-		`{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":"*"},"Action":"s3:*","Resource":["arn:aws:s3:::%s","arn:aws:s3:::%s/*"]}]}`,
+		`{"Version":"2012-10-17","Statement":[{"Sid": "", "Effect":"Allow","Principal":"*","Action":"s3:*","Resource":["arn:aws:s3:::%s/*","arn:aws:s3:::%s"]}]}`,
 		name, name)
 
 	resource.Test(t, resource.TestCase{
@@ -39,11 +39,11 @@ func TestAccAWSS3BucketPolicy_policyUpdate(t *testing.T) {
 	name := fmt.Sprintf("tf-test-bucket-%d", acctest.RandInt())
 
 	expectedPolicyText1 := fmt.Sprintf(
-		`{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":"*"},"Action":"s3:*","Resource":["arn:aws:s3:::%s","arn:aws:s3:::%s/*"]}]}`,
+		`{"Version":"2012-10-17","Statement":[{"Sid": "", "Effect":"Allow","Principal":"*","Action":"s3:*","Resource":["arn:aws:s3:::%s/*","arn:aws:s3:::%s"]}]}`,
 		name, name)
 
 	expectedPolicyText2 := fmt.Sprintf(
-		`{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":"*"},"Action":["s3:DeleteBucket", "s3:ListBucket", "s3:ListBucketVersions"], "Resource":["arn:aws:s3:::%s","arn:aws:s3:::%s/*"]}]}`,
+		`{"Version":"2012-10-17","Statement":[{"Sid": "", "Effect":"Allow","Principal":"*","Action":["s3:DeleteBucket", "s3:ListBucket", "s3:ListBucketVersions"], "Resource":["arn:aws:s3:::%s/*","arn:aws:s3:::%s"]}]}`,
 		name, name)
 
 	resource.Test(t, resource.TestCase{

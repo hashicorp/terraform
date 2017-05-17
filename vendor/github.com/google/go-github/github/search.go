@@ -6,6 +6,7 @@
 package github
 
 import (
+	"context"
 	"fmt"
 
 	qs "github.com/google/go-querystring/query"
@@ -14,15 +15,14 @@ import (
 // SearchService provides access to the search related functions
 // in the GitHub API.
 //
-// GitHub API docs: http://developer.github.com/v3/search/
-type SearchService struct {
-	client *Client
-}
+// GitHub API docs: https://developer.github.com/v3/search/
+type SearchService service
 
 // SearchOptions specifies optional parameters to the SearchService methods.
 type SearchOptions struct {
-	// How to sort the search results.  Possible values are:
+	// How to sort the search results. Possible values are:
 	//   - for repositories: stars, fork, updated
+	//   - for commits: author-date, committer-date
 	//   - for code: indexed
 	//   - for issues: comments, created, updated
 	//   - for users: followers, repositories, joined
@@ -42,46 +42,80 @@ type SearchOptions struct {
 
 // RepositoriesSearchResult represents the result of a repositories search.
 type RepositoriesSearchResult struct {
-	Total        *int         `json:"total_count,omitempty"`
-	Repositories []Repository `json:"items,omitempty"`
+	Total             *int         `json:"total_count,omitempty"`
+	IncompleteResults *bool        `json:"incomplete_results,omitempty"`
+	Repositories      []Repository `json:"items,omitempty"`
 }
 
 // Repositories searches repositories via various criteria.
 //
-// GitHub API docs: http://developer.github.com/v3/search/#search-repositories
-func (s *SearchService) Repositories(query string, opt *SearchOptions) (*RepositoriesSearchResult, *Response, error) {
+// GitHub API docs: https://developer.github.com/v3/search/#search-repositories
+func (s *SearchService) Repositories(ctx context.Context, query string, opt *SearchOptions) (*RepositoriesSearchResult, *Response, error) {
 	result := new(RepositoriesSearchResult)
-	resp, err := s.search("repositories", query, opt, result)
+	resp, err := s.search(ctx, "repositories", query, opt, result)
+	return result, resp, err
+}
+
+// CommitsSearchResult represents the result of a commits search.
+type CommitsSearchResult struct {
+	Total             *int            `json:"total_count,omitempty"`
+	IncompleteResults *bool           `json:"incomplete_results,omitempty"`
+	Commits           []*CommitResult `json:"items,omitempty"`
+}
+
+// CommitResult represents a commit object as returned in commit search endpoint response.
+type CommitResult struct {
+	Hash           *string     `json:"hash,omitempty"`
+	Message        *string     `json:"message,omitempty"`
+	AuthorID       *int        `json:"author_id,omitempty"`
+	AuthorName     *string     `json:"author_name,omitempty"`
+	AuthorEmail    *string     `json:"author_email,omitempty"`
+	AuthorDate     *Timestamp  `json:"author_date,omitempty"`
+	CommitterID    *int        `json:"committer_id,omitempty"`
+	CommitterName  *string     `json:"committer_name,omitempty"`
+	CommitterEmail *string     `json:"committer_email,omitempty"`
+	CommitterDate  *Timestamp  `json:"committer_date,omitempty"`
+	Repository     *Repository `json:"repository,omitempty"`
+}
+
+// Commits searches commits via various criteria.
+//
+// GitHub API docs: https://developer.github.com/v3/search/#search-commits
+func (s *SearchService) Commits(ctx context.Context, query string, opt *SearchOptions) (*CommitsSearchResult, *Response, error) {
+	result := new(CommitsSearchResult)
+	resp, err := s.search(ctx, "commits", query, opt, result)
 	return result, resp, err
 }
 
 // IssuesSearchResult represents the result of an issues search.
 type IssuesSearchResult struct {
-	Total  *int    `json:"total_count,omitempty"`
-	Issues []Issue `json:"items,omitempty"`
+	Total             *int    `json:"total_count,omitempty"`
+	IncompleteResults *bool   `json:"incomplete_results,omitempty"`
+	Issues            []Issue `json:"items,omitempty"`
 }
 
 // Issues searches issues via various criteria.
 //
-// GitHub API docs: http://developer.github.com/v3/search/#search-issues
-func (s *SearchService) Issues(query string, opt *SearchOptions) (*IssuesSearchResult, *Response, error) {
+// GitHub API docs: https://developer.github.com/v3/search/#search-issues
+func (s *SearchService) Issues(ctx context.Context, query string, opt *SearchOptions) (*IssuesSearchResult, *Response, error) {
 	result := new(IssuesSearchResult)
-	resp, err := s.search("issues", query, opt, result)
+	resp, err := s.search(ctx, "issues", query, opt, result)
 	return result, resp, err
 }
 
-// UsersSearchResult represents the result of an issues search.
+// UsersSearchResult represents the result of a users search.
 type UsersSearchResult struct {
-	Total *int   `json:"total_count,omitempty"`
-	Users []User `json:"items,omitempty"`
+	Total             *int   `json:"total_count,omitempty"`
+	IncompleteResults *bool  `json:"incomplete_results,omitempty"`
+	Users             []User `json:"items,omitempty"`
 }
 
 // Users searches users via various criteria.
 //
-// GitHub API docs: http://developer.github.com/v3/search/#search-users
-func (s *SearchService) Users(query string, opt *SearchOptions) (*UsersSearchResult, *Response, error) {
+// GitHub API docs: https://developer.github.com/v3/search/#search-users
+func (s *SearchService) Users(ctx context.Context, query string, opt *SearchOptions) (*UsersSearchResult, *Response, error) {
 	result := new(UsersSearchResult)
-	resp, err := s.search("users", query, opt, result)
+	resp, err := s.search(ctx, "users", query, opt, result)
 	return result, resp, err
 }
 
@@ -104,10 +138,11 @@ func (tm TextMatch) String() string {
 	return Stringify(tm)
 }
 
-// CodeSearchResult represents the result of an code search.
+// CodeSearchResult represents the result of a code search.
 type CodeSearchResult struct {
-	Total       *int         `json:"total_count,omitempty"`
-	CodeResults []CodeResult `json:"items,omitempty"`
+	Total             *int         `json:"total_count,omitempty"`
+	IncompleteResults *bool        `json:"incomplete_results,omitempty"`
+	CodeResults       []CodeResult `json:"items,omitempty"`
 }
 
 // CodeResult represents a single search result.
@@ -126,21 +161,21 @@ func (c CodeResult) String() string {
 
 // Code searches code via various criteria.
 //
-// GitHub API docs: http://developer.github.com/v3/search/#search-code
-func (s *SearchService) Code(query string, opt *SearchOptions) (*CodeSearchResult, *Response, error) {
+// GitHub API docs: https://developer.github.com/v3/search/#search-code
+func (s *SearchService) Code(ctx context.Context, query string, opt *SearchOptions) (*CodeSearchResult, *Response, error) {
 	result := new(CodeSearchResult)
-	resp, err := s.search("code", query, opt, result)
+	resp, err := s.search(ctx, "code", query, opt, result)
 	return result, resp, err
 }
 
 // Helper function that executes search queries against different
-// GitHub search types (repositories, code, issues, users)
-func (s *SearchService) search(searchType string, query string, opt *SearchOptions, result interface{}) (*Response, error) {
+// GitHub search types (repositories, commits, code, issues, users)
+func (s *SearchService) search(ctx context.Context, searchType string, query string, opt *SearchOptions, result interface{}) (*Response, error) {
 	params, err := qs.Values(opt)
 	if err != nil {
 		return nil, err
 	}
-	params.Add("q", query)
+	params.Set("q", query)
 	u := fmt.Sprintf("search/%s?%s", searchType, params.Encode())
 
 	req, err := s.client.NewRequest("GET", u, nil)
@@ -148,11 +183,16 @@ func (s *SearchService) search(searchType string, query string, opt *SearchOptio
 		return nil, err
 	}
 
-	if opt.TextMatch {
+	switch {
+	case searchType == "commits":
+		// Accept header for search commits preview endpoint
+		// TODO: remove custom Accept header when this API fully launches.
+		req.Header.Set("Accept", mediaTypeCommitSearchPreview)
+	case opt != nil && opt.TextMatch:
 		// Accept header defaults to "application/vnd.github.v3+json"
 		// We change it here to fetch back text-match metadata
 		req.Header.Set("Accept", "application/vnd.github.v3.text-match+json")
 	}
 
-	return s.client.Do(req, result)
+	return s.client.Do(ctx, req, result)
 }

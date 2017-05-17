@@ -31,6 +31,12 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 		Default:  false,
 	}
 
+	resourceSchema["auto_minor_version_upgrade"] = &schema.Schema{
+		Type:     schema.TypeBool,
+		Optional: true,
+		Default:  true,
+	}
+
 	resourceSchema["replication_group_description"] = &schema.Schema{
 		Type:     schema.TypeString,
 		Required: true,
@@ -38,13 +44,39 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 
 	resourceSchema["number_cache_clusters"] = &schema.Schema{
 		Type:     schema.TypeInt,
-		Required: true,
+		Computed: true,
+		Optional: true,
 		ForceNew: true,
 	}
 
 	resourceSchema["primary_endpoint_address"] = &schema.Schema{
 		Type:     schema.TypeString,
 		Computed: true,
+	}
+
+	resourceSchema["configuration_endpoint_address"] = &schema.Schema{
+		Type:     schema.TypeString,
+		Computed: true,
+	}
+
+	resourceSchema["cluster_mode"] = &schema.Schema{
+		Type:     schema.TypeSet,
+		Optional: true,
+		MaxItems: 1,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"replicas_per_node_group": {
+					Type:     schema.TypeInt,
+					Required: true,
+					ForceNew: true,
+				},
+				"num_node_groups": {
+					Type:     schema.TypeInt,
+					Required: true,
+					ForceNew: true,
+				},
+			},
+		},
 	}
 
 	resourceSchema["engine"].Required = false
@@ -57,6 +89,9 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 		Read:   resourceAwsElasticacheReplicationGroupRead,
 		Update: resourceAwsElasticacheReplicationGroupUpdate,
 		Delete: resourceAwsElasticacheReplicationGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: resourceSchema,
 	}
@@ -70,10 +105,10 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 		ReplicationGroupId:          aws.String(d.Get("replication_group_id").(string)),
 		ReplicationGroupDescription: aws.String(d.Get("replication_group_description").(string)),
 		AutomaticFailoverEnabled:    aws.Bool(d.Get("automatic_failover_enabled").(bool)),
+		AutoMinorVersionUpgrade:     aws.Bool(d.Get("auto_minor_version_upgrade").(bool)),
 		CacheNodeType:               aws.String(d.Get("node_type").(string)),
 		Engine:                      aws.String(d.Get("engine").(string)),
 		Port:                        aws.Int64(int64(d.Get("port").(int))),
-		NumCacheClusters:            aws.Int64(int64(d.Get("number_cache_clusters").(int))),
 		Tags:                        tags,
 	}
 
@@ -130,6 +165,30 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 		params.SnapshotName = aws.String(v.(string))
 	}
 
+	clusterMode, clusterModeOk := d.GetOk("cluster_mode")
+	cacheClusters, cacheClustersOk := d.GetOk("number_cache_clusters")
+
+	if !clusterModeOk && !cacheClustersOk || clusterModeOk && cacheClustersOk {
+		return fmt.Errorf("Either `number_cache_clusters` or `cluster_mode` must be set")
+	}
+
+	if clusterModeOk {
+		clusterModeAttributes := clusterMode.(*schema.Set).List()
+		attributes := clusterModeAttributes[0].(map[string]interface{})
+
+		if v, ok := attributes["num_node_groups"]; ok {
+			params.NumNodeGroups = aws.Int64(int64(v.(int)))
+		}
+
+		if v, ok := attributes["replicas_per_node_group"]; ok {
+			params.ReplicasPerNodeGroup = aws.Int64(int64(v.(int)))
+		}
+	}
+
+	if cacheClustersOk {
+		params.NumCacheClusters = aws.Int64(int64(cacheClusters.(int)))
+	}
+
 	resp, err := conn.CreateReplicationGroup(params)
 	if err != nil {
 		return fmt.Errorf("Error creating Elasticache Replication Group: %s", err)
@@ -137,7 +196,7 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 
 	d.SetId(*resp.ReplicationGroup.ReplicationGroupId)
 
-	pending := []string{"creating", "modifying", "restoring"}
+	pending := []string{"creating", "modifying", "restoring", "snapshotting"}
 	stateConf := &resource.StateChangeConf{
 		Pending:    pending,
 		Target:     []string{"available"},
@@ -192,7 +251,17 @@ func resourceAwsElasticacheReplicationGroupRead(d *schema.ResourceData, meta int
 		return nil
 	}
 
-	d.Set("automatic_failover_enabled", rgp.AutomaticFailover)
+	if rgp.AutomaticFailover != nil {
+		switch strings.ToLower(*rgp.AutomaticFailover) {
+		case "disabled", "disabling":
+			d.Set("automatic_failover_enabled", false)
+		case "enabled", "enabling":
+			d.Set("automatic_failover_enabled", true)
+		default:
+			log.Printf("Unknown AutomaticFailover state %s", *rgp.AutomaticFailover)
+		}
+	}
+
 	d.Set("replication_group_description", rgp.Description)
 	d.Set("number_cache_clusters", len(rgp.MemberClusters))
 	d.Set("replication_group_id", rgp.ReplicationGroupId)
@@ -217,15 +286,26 @@ func resourceAwsElasticacheReplicationGroupRead(d *schema.ResourceData, meta int
 		d.Set("engine", c.Engine)
 		d.Set("engine_version", c.EngineVersion)
 		d.Set("subnet_group_name", c.CacheSubnetGroupName)
-		d.Set("security_group_names", c.CacheSecurityGroups)
-		d.Set("security_group_ids", c.SecurityGroups)
-		d.Set("parameter_group_name", c.CacheParameterGroup)
+		d.Set("security_group_names", flattenElastiCacheSecurityGroupNames(c.CacheSecurityGroups))
+		d.Set("security_group_ids", flattenElastiCacheSecurityGroupIds(c.SecurityGroups))
+
+		if c.CacheParameterGroup != nil {
+			d.Set("parameter_group_name", c.CacheParameterGroup.CacheParameterGroupName)
+		}
+
 		d.Set("maintenance_window", c.PreferredMaintenanceWindow)
-		d.Set("snapshot_window", c.SnapshotWindow)
-		d.Set("snapshot_retention_limit", c.SnapshotRetentionLimit)
+		d.Set("snapshot_window", rgp.SnapshotWindow)
+		d.Set("snapshot_retention_limit", rgp.SnapshotRetentionLimit)
 
-		d.Set("primary_endpoint_address", rgp.NodeGroups[0].PrimaryEndpoint.Address)
+		if rgp.ConfigurationEndpoint != nil {
+			d.Set("port", rgp.ConfigurationEndpoint.Port)
+			d.Set("configuration_endpoint_address", rgp.ConfigurationEndpoint.Address)
+		} else {
+			d.Set("port", rgp.NodeGroups[0].PrimaryEndpoint.Port)
+			d.Set("primary_endpoint_address", rgp.NodeGroups[0].PrimaryEndpoint.Address)
+		}
 
+		d.Set("auto_minor_version_upgrade", c.AutoMinorVersionUpgrade)
 	}
 
 	return nil
@@ -250,6 +330,11 @@ func resourceAwsElasticacheReplicationGroupUpdate(d *schema.ResourceData, meta i
 		requestUpdate = true
 	}
 
+	if d.HasChange("auto_minor_version_upgrade") {
+		params.AutoMinorVersionUpgrade = aws.Bool(d.Get("auto_minor_version_upgrade").(bool))
+		requestUpdate = true
+	}
+
 	if d.HasChange("security_group_ids") {
 		if attr := d.Get("security_group_ids").(*schema.Set); attr.Len() > 0 {
 			params.SecurityGroupIds = expandStringList(attr.List())
@@ -264,8 +349,8 @@ func resourceAwsElasticacheReplicationGroupUpdate(d *schema.ResourceData, meta i
 		}
 	}
 
-	if d.HasChange("preferred_maintenance_window") {
-		params.PreferredMaintenanceWindow = aws.String(d.Get("preferred_maintenance_window").(string))
+	if d.HasChange("maintenance_window") {
+		params.PreferredMaintenanceWindow = aws.String(d.Get("maintenance_window").(string))
 		requestUpdate = true
 	}
 
@@ -275,7 +360,7 @@ func resourceAwsElasticacheReplicationGroupUpdate(d *schema.ResourceData, meta i
 	}
 
 	if d.HasChange("parameter_group_name") {
-		params.CacheParameterGroupName = aws.String(d.Get("cache_parameter_group_name").(string))
+		params.CacheParameterGroupName = aws.String(d.Get("parameter_group_name").(string))
 		requestUpdate = true
 	}
 
@@ -415,9 +500,9 @@ func validateAwsElastiCacheReplicationGroupEngine(v interface{}, k string) (ws [
 
 func validateAwsElastiCacheReplicationGroupId(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if (len(value) < 1) || (len(value) > 16) {
+	if (len(value) < 1) || (len(value) > 20) {
 		errors = append(errors, fmt.Errorf(
-			"%q must contain from 1 to 16 alphanumeric characters or hyphens", k))
+			"%q must contain from 1 to 20 alphanumeric characters or hyphens", k))
 	}
 	if !regexp.MustCompile(`^[0-9a-zA-Z-]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(

@@ -17,38 +17,38 @@ import (
 func resourceAwsElastiCacheCommonSchema() map[string]*schema.Schema {
 
 	return map[string]*schema.Schema{
-		"availability_zones": &schema.Schema{
+		"availability_zones": {
 			Type:     schema.TypeSet,
 			Optional: true,
 			ForceNew: true,
 			Elem:     &schema.Schema{Type: schema.TypeString},
 			Set:      schema.HashString,
 		},
-		"node_type": &schema.Schema{
+		"node_type": {
 			Type:     schema.TypeString,
 			Required: true,
 		},
-		"engine": &schema.Schema{
+		"engine": {
 			Type:     schema.TypeString,
 			Required: true,
 		},
-		"engine_version": &schema.Schema{
+		"engine_version": {
 			Type:     schema.TypeString,
 			Optional: true,
 			Computed: true,
 		},
-		"parameter_group_name": &schema.Schema{
+		"parameter_group_name": {
 			Type:     schema.TypeString,
 			Optional: true,
 			Computed: true,
 		},
-		"subnet_group_name": &schema.Schema{
+		"subnet_group_name": {
 			Type:     schema.TypeString,
 			Optional: true,
 			Computed: true,
 			ForceNew: true,
 		},
-		"security_group_names": &schema.Schema{
+		"security_group_names": {
 			Type:     schema.TypeSet,
 			Optional: true,
 			Computed: true,
@@ -56,7 +56,7 @@ func resourceAwsElastiCacheCommonSchema() map[string]*schema.Schema {
 			Elem:     &schema.Schema{Type: schema.TypeString},
 			Set:      schema.HashString,
 		},
-		"security_group_ids": &schema.Schema{
+		"security_group_ids": {
 			Type:     schema.TypeSet,
 			Optional: true,
 			Computed: true,
@@ -69,25 +69,26 @@ func resourceAwsElastiCacheCommonSchema() map[string]*schema.Schema {
 		//
 		// See also:
 		// https://github.com/aws/aws-sdk-go/blob/4862a174f7fc92fb523fc39e68f00b87d91d2c3d/service/elasticache/api.go#L2079
-		"snapshot_arns": &schema.Schema{
+		"snapshot_arns": {
 			Type:     schema.TypeSet,
 			Optional: true,
 			ForceNew: true,
 			Elem:     &schema.Schema{Type: schema.TypeString},
 			Set:      schema.HashString,
 		},
-		"snapshot_window": &schema.Schema{
-			Type:     schema.TypeString,
-			Optional: true,
-			Computed: true,
+		"snapshot_window": {
+			Type:         schema.TypeString,
+			Optional:     true,
+			Computed:     true,
+			ValidateFunc: validateOnceADayWindowFormat,
 		},
-		"snapshot_name": &schema.Schema{
+		"snapshot_name": {
 			Type:     schema.TypeString,
 			Optional: true,
 			ForceNew: true,
 		},
 
-		"maintenance_window": &schema.Schema{
+		"maintenance_window": {
 			Type:     schema.TypeString,
 			Optional: true,
 			Computed: true,
@@ -96,18 +97,19 @@ func resourceAwsElastiCacheCommonSchema() map[string]*schema.Schema {
 				// to lowercase
 				return strings.ToLower(val.(string))
 			},
+			ValidateFunc: validateOnceAWeekWindowFormat,
 		},
-		"port": &schema.Schema{
+		"port": {
 			Type:     schema.TypeInt,
 			Required: true,
 			ForceNew: true,
 		},
-		"notification_topic_arn": &schema.Schema{
+		"notification_topic_arn": {
 			Type:     schema.TypeString,
 			Optional: true,
 		},
 
-		"snapshot_retention_limit": &schema.Schema{
+		"snapshot_retention_limit": {
 			Type:     schema.TypeInt,
 			Optional: true,
 			ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
@@ -120,7 +122,7 @@ func resourceAwsElastiCacheCommonSchema() map[string]*schema.Schema {
 			},
 		},
 
-		"apply_immediately": &schema.Schema{
+		"apply_immediately": {
 			Type:     schema.TypeBool,
 			Optional: true,
 			Computed: true,
@@ -170,6 +172,11 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 		Computed: true,
 	}
 
+	resourceSchema["cluster_address"] = &schema.Schema{
+		Type:     schema.TypeString,
+		Computed: true,
+	}
+
 	resourceSchema["replication_group_id"] = &schema.Schema{
 		Type:     schema.TypeString,
 		Computed: true,
@@ -180,19 +187,19 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 		Computed: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
-				"id": &schema.Schema{
+				"id": {
 					Type:     schema.TypeString,
 					Computed: true,
 				},
-				"address": &schema.Schema{
+				"address": {
 					Type:     schema.TypeString,
 					Computed: true,
 				},
-				"port": &schema.Schema{
+				"port": {
 					Type:     schema.TypeInt,
 					Computed: true,
 				},
-				"availability_zone": &schema.Schema{
+				"availability_zone": {
 					Type:     schema.TypeString,
 					Computed: true,
 				},
@@ -205,6 +212,9 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 		Read:   resourceAwsElasticacheClusterRead,
 		Update: resourceAwsElasticacheClusterUpdate,
 		Delete: resourceAwsElasticacheClusterDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: resourceSchema,
 	}
@@ -301,7 +311,7 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 	// name contained uppercase characters.
 	d.SetId(strings.ToLower(*resp.CacheCluster.CacheClusterId))
 
-	pending := []string{"creating", "modifying", "restoring"}
+	pending := []string{"creating", "modifying", "restoring", "snapshotting"}
 	stateConf := &resource.StateChangeConf{
 		Pending:    pending,
 		Target:     []string{"available"},
@@ -348,6 +358,7 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 		if c.ConfigurationEndpoint != nil {
 			d.Set("port", c.ConfigurationEndpoint.Port)
 			d.Set("configuration_endpoint", aws.String(fmt.Sprintf("%s:%d", *c.ConfigurationEndpoint.Address, *c.ConfigurationEndpoint.Port)))
+			d.Set("cluster_address", aws.String(fmt.Sprintf("%s", *c.ConfigurationEndpoint.Address)))
 		}
 
 		if c.ReplicationGroupId != nil {
@@ -355,9 +366,11 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 		}
 
 		d.Set("subnet_group_name", c.CacheSubnetGroupName)
-		d.Set("security_group_names", c.CacheSecurityGroups)
-		d.Set("security_group_ids", c.SecurityGroups)
-		d.Set("parameter_group_name", c.CacheParameterGroup)
+		d.Set("security_group_names", flattenElastiCacheSecurityGroupNames(c.CacheSecurityGroups))
+		d.Set("security_group_ids", flattenElastiCacheSecurityGroupIds(c.SecurityGroups))
+		if c.CacheParameterGroup != nil {
+			d.Set("parameter_group_name", c.CacheParameterGroup.CacheParameterGroupName)
+		}
 		d.Set("maintenance_window", c.PreferredMaintenanceWindow)
 		d.Set("snapshot_window", c.SnapshotWindow)
 		d.Set("snapshot_retention_limit", c.SnapshotRetentionLimit)
@@ -373,7 +386,7 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 		}
 		// list tags for resource
 		// set tags
-		arn, err := buildECARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+		arn, err := buildECARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
 		if err != nil {
 			log.Printf("[DEBUG] Error building ARN for ElastiCache Cluster, not setting Tags for cluster %s", *c.CacheClusterId)
 		} else {
@@ -398,7 +411,7 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 
 func resourceAwsElasticacheClusterUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticacheconn
-	arn, err := buildECARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	arn, err := buildECARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
 	if err != nil {
 		log.Printf("[DEBUG] Error building ARN for ElastiCache Cluster, not updating Tags for cluster %s", d.Id())
 	} else {
@@ -559,7 +572,7 @@ func resourceAwsElasticacheClusterDelete(d *schema.ResourceData, meta interface{
 
 	log.Printf("[DEBUG] Waiting for deletion: %v", d.Id())
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"creating", "available", "deleting", "incompatible-parameters", "incompatible-network", "restore-failed"},
+		Pending:    []string{"creating", "available", "deleting", "incompatible-parameters", "incompatible-network", "restore-failed", "snapshotting"},
 		Target:     []string{},
 		Refresh:    cacheClusterStateRefreshFunc(conn, d.Id(), "", []string{}),
 		Timeout:    40 * time.Minute,
@@ -650,11 +663,14 @@ func cacheClusterStateRefreshFunc(conn *elasticache.ElastiCache, clusterID, give
 	}
 }
 
-func buildECARN(identifier, accountid, region string) (string, error) {
+func buildECARN(identifier, partition, accountid, region string) (string, error) {
+	if partition == "" {
+		return "", fmt.Errorf("Unable to construct ElastiCache ARN because of missing AWS partition")
+	}
 	if accountid == "" {
 		return "", fmt.Errorf("Unable to construct ElastiCache ARN because of missing AWS Account ID")
 	}
-	arn := fmt.Sprintf("arn:aws:elasticache:%s:%s:cluster:%s", region, accountid, identifier)
+	arn := fmt.Sprintf("arn:%s:elasticache:%s:%s:cluster:%s", partition, region, accountid, identifier)
 	return arn, nil
 
 }

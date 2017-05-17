@@ -17,13 +17,13 @@ func TestAccAWSIAMSamlProvider_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckIAMSamlProviderDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccIAMSamlProviderConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckIAMSamlProvider("aws_iam_saml_provider.salesforce"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccIAMSamlProviderConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckIAMSamlProvider("aws_iam_saml_provider.salesforce"),

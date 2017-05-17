@@ -48,11 +48,47 @@ func (s *Set) Include(v interface{}) bool {
 // Intersection computes the set intersection with other.
 func (s *Set) Intersection(other *Set) *Set {
 	result := new(Set)
+	if s == nil {
+		return result
+	}
 	if other != nil {
 		for _, v := range s.m {
 			if other.Include(v) {
 				result.Add(v)
 			}
+		}
+	}
+
+	return result
+}
+
+// Difference returns a set with the elements that s has but
+// other doesn't.
+func (s *Set) Difference(other *Set) *Set {
+	result := new(Set)
+	if s != nil {
+		for k, v := range s.m {
+			var ok bool
+			if other != nil {
+				_, ok = other.m[k]
+			}
+			if !ok {
+				result.Add(v)
+			}
+		}
+	}
+
+	return result
+}
+
+// Filter returns a set that contains the elements from the receiver
+// where the given callback returns true.
+func (s *Set) Filter(cb func(interface{}) bool) *Set {
+	result := new(Set)
+
+	for _, v := range s.m {
+		if cb(v) {
+			result.Add(v)
 		}
 	}
 

@@ -26,6 +26,40 @@ func TestAccComputeSslCertificate_basic(t *testing.T) {
 	})
 }
 
+func TestAccComputeSslCertificate_no_name(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeSslCertificateDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeSslCertificate_no_name,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeSslCertificateExists(
+						"google_compute_ssl_certificate.foobar"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeSslCertificate_name_prefix(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeSslCertificateDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeSslCertificate_name_prefix,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeSslCertificateExists(
+						"google_compute_ssl_certificate.foobar"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckComputeSslCertificateDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
@@ -75,6 +109,23 @@ var testAccComputeSslCertificate_basic = fmt.Sprintf(`
 resource "google_compute_ssl_certificate" "foobar" {
 	name = "sslcert-test-%s"
 	description = "very descriptive"
+	private_key = "${file("test-fixtures/ssl_cert/test.key")}"
+	certificate = "${file("test-fixtures/ssl_cert/test.crt")}"
+}
+`, acctest.RandString(10))
+
+var testAccComputeSslCertificate_no_name = fmt.Sprintf(`
+resource "google_compute_ssl_certificate" "foobar" {
+	description = "really descriptive"
+	private_key = "${file("test-fixtures/ssl_cert/test.key")}"
+	certificate = "${file("test-fixtures/ssl_cert/test.crt")}"
+}
+`)
+
+var testAccComputeSslCertificate_name_prefix = fmt.Sprintf(`
+resource "google_compute_ssl_certificate" "foobar" {
+	name_prefix = "sslcert-test-%s-"
+	description = "extremely descriptive"
 	private_key = "${file("test-fixtures/ssl_cert/test.key")}"
 	certificate = "${file("test-fixtures/ssl_cert/test.crt")}"
 }

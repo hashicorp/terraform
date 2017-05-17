@@ -295,6 +295,7 @@ resource "aws_lambda_function" "authorizer" {
   function_name = "tf_acc_api_gateway_authorizer"
   role = "${aws_iam_role.iam_for_lambda.arn}"
   handler = "exports.example"
+	runtime = "nodejs4.3"
 }
 `
 

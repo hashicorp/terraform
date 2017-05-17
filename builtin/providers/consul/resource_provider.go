@@ -35,6 +35,12 @@ func Provider() terraform.ResourceProvider {
 				}, "http"),
 			},
 
+			"http_auth": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CONSUL_HTTP_AUTH", ""),
+			},
+
 			"ca_file": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -64,7 +70,11 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"consul_keys": dataSourceConsulKeys(),
+			"consul_agent_self":       dataSourceConsulAgentSelf(),
+			"consul_catalog_nodes":    dataSourceConsulCatalogNodes(),
+			"consul_catalog_service":  dataSourceConsulCatalogService(),
+			"consul_catalog_services": dataSourceConsulCatalogServices(),
+			"consul_keys":             dataSourceConsulKeys(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{

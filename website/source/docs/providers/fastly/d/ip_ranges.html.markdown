@@ -6,27 +6,24 @@ description: |-
   Get information on Fastly IP ranges.
 ---
 
-# fastly\_ip_ranges
+# fastly_ip_ranges
 
 Use this data source to get the [IP ranges][1] of Fastly edge nodes.
 
 ## Example Usage
 
-```
-data "fastly_ip_ranges" "fastly" {
-}
+```hcl
+data "fastly_ip_ranges" "fastly" {}
 
 resource "aws_security_group" "from_fastly" {
-
   name = "from_fastly"
 
   ingress {
-    from_port = "443"
-    to_port = "443"
-    protocol = "tcp"
-    cidr_blocks = [ "${data.fastly_ip_ranges.fastly.cidr_blocks}" ]
+    from_port   = "443"
+    to_port     = "443"
+    protocol    = "tcp"
+    cidr_blocks = ["${data.fastly_ip_ranges.fastly.cidr_blocks}"]
   }
-
 }
 ```
 

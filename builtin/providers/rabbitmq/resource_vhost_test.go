@@ -65,7 +65,7 @@ func testAccVhostCheckDestroy(name string) resource.TestCheckFunc {
 
 		for _, vhost := range vhosts {
 			if vhost.Name == name {
-				return fmt.Errorf("vhost still exists: %s", vhost)
+				return fmt.Errorf("vhost still exists: %v", vhost)
 			}
 		}
 

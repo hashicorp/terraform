@@ -10,11 +10,17 @@ description: |-
 
 Creates a new Google SQL Database Instance. For more information, see the [official documentation](https://cloud.google.com/sql/), or the [JSON API](https://cloud.google.com/sql/docs/admin-api/v1beta4/instances).
 
+~> **NOTE on `google_sql_database_instance`:** - Second-generation instances include a
+default 'root'@'%' user with no password. This user will be deleted by Terraform on
+instance creation. You should use a `google_sql_user` to define a customer user with
+a restricted host and strong password.
+
+
 ## Example Usage
 
 Example creating a SQL Database.
 
-```js
+```hcl
 resource "google_sql_database_instance" "master" {
   name = "master-instance"
 
@@ -37,13 +43,16 @@ The following arguments are supported:
 
 - - -
 
-* `database_version` - (Optional, Default: `MYSQL_5_5`) The MySQL version to
-    use. Can be either `MYSQL_5_5` or `MYSQL_5_6`.
+* `database_version` - (Optional, Default: `MYSQL_5_6`) The MySQL version to
+    use. Can be either `MYSQL_5_6` or `MYSQL_5_7` for second-generation
+    instances, or `MYSQL_5_5` or `MYSQL_5_6` for first-generation instances.
+    See Google's [Second Generation Capabilities](https://cloud.google.com/sql/docs/1st-2nd-gen-differences)
+    for more information.
 
 * `name` - (Optional, Computed) The name of the instance. If the name is left
     blank, Terraform will randomly generate one when the instance is first
     created. This is done because after a name is used, it cannot be reused for
-    up to [two months](https://cloud.google.com/sql/docs/delete-instance).
+    up to [one week](https://cloud.google.com/sql/docs/delete-instance).
 
 * `master_instance_name` - (Optional) The name of the instance that will act as
     the master in the replication setup. Note, this requires the master to have
@@ -57,8 +66,8 @@ The following arguments are supported:
 
 The required `settings` block supports:
 
-* `tier` - (Required) The machine tier to use. See
-    [pricing](https://cloud.google.com/sql/pricing) for more details and
+* `tier` - (Required) The machine tier (First Generation) or type (Second Generation) to use. See
+    [tiers](https://cloud.google.com/sql/docs/admin-api/v1beta4/tiers) for more details and
     supported versions.
 
 * `activation_policy` - (Optional) This specifies when the instance should be
@@ -70,7 +79,13 @@ The required `settings` block supports:
 * `crash_safe_replication` - (Optional) Specific to read instances, indicates
     when crash-safe replication flags are enabled.
 
-* `pricing_plan` - (Optional) Pricing plan for this instance, can be one of
+* `disk_autoresize` - (Optional, Second Generation, Default: `false`) Configuration to increase storage size automatically.
+
+* `disk_size` - (Optional, Second Generation, Default: `10`) The size of data disk, in GB. Size of a running instance cannot be reduced but can be increased.
+
+* `disk_type` - (Optional, Second Generation, Default: `PD_SSD`) The type of data disk: PD_SSD or PD_HDD.
+
+* `pricing_plan` - (Optional, First Generation) Pricing plan for this instance, can be one of
     `PER_USE` or `PACKAGE`.
 
 * `replication_type` - (Optional) Replication type for this instance, can be one
@@ -119,6 +134,17 @@ The optional `settings.location_preference` subblock supports:
 * `zone` - (Optional) The preferred compute engine
     [zone](https://cloud.google.com/compute/docs/zones?hl=en).
 
+The optional `settings.maintenance_window` subblock for Second Generation
+instances declares a one-hour [maintenance window](https://cloud.google.com/sql/docs/instance-settings?hl=en#maintenance-window-2ndgen)
+when an Instance can automatically restart to apply updates. It supports:
+
+* `day` - (Optional) Day of week (`1-7`), starting on Monday
+
+* `hour` - (Optional) Hour of day (`0-23`), ignored if `day` not set
+
+* `update_track` - (Optional) Receive updates earlier (`canary`) or later 
+(`stable`)
+
 The optional `replica_configuration` block must have `master_instance_name` set
 to work, cannot be updated, and supports:
 
@@ -154,9 +180,9 @@ to work, cannot be updated, and supports:
 In addition to the arguments listed above, the following computed attributes are
 exported:
 
-* `ip_address.ip_address` - The IPv4 address assigned.
+* `ip_address.0.ip_address` - The IPv4 address assigned.
 
-* `ip_address.time_to_retire` - The time this IP address will be retired, in RFC
+* `ip_address.0.time_to_retire` - The time this IP address will be retired, in RFC
     3339 format.
 
 * `self_link` - The URI of the created resource.

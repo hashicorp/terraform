@@ -16,7 +16,7 @@ documentation](https://cloud.google.com/compute/docs/load-balancing/http/target-
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_target_https_proxy" "default" {
   name             = "test-proxy"
   description      = "a description"
@@ -47,7 +47,7 @@ resource "google_compute_url_map" "default" {
     default_service = "${google_compute_backend_service.default.self_link}"
 
     path_rule {
-      paths = ["/*"]
+      paths   = ["/*"]
       service = "${google_compute_backend_service.default.self_link}"
     }
   }

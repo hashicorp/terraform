@@ -8,7 +8,7 @@ import (
 // ActionRequest reprents DigitalOcean Action Request
 type ActionRequest map[string]interface{}
 
-// DropletActionsService is an interface for interfacing with the droplet actions
+// DropletActionsService is an interface for interfacing with the Droplet actions
 // endpoints of the DigitalOcean API
 // See: https://developers.digitalocean.com/documentation/v2#droplet-actions
 type DropletActionsService interface {
@@ -43,7 +43,7 @@ type DropletActionsService interface {
 	GetByURI(string) (*Action, *Response, error)
 }
 
-// DropletActionsServiceOp handles communication with the droplet action related
+// DropletActionsServiceOp handles communication with the Droplet action related
 // methods of the DigitalOcean API.
 type DropletActionsServiceOp struct {
 	client *Client
@@ -57,7 +57,7 @@ func (s *DropletActionsServiceOp) Shutdown(id int) (*Action, *Response, error) {
 	return s.doAction(id, request)
 }
 
-// Shutdown Droplets by Tag
+// ShutdownByTag shuts down Droplets matched by a Tag.
 func (s *DropletActionsServiceOp) ShutdownByTag(tag string) (*Action, *Response, error) {
 	request := &ActionRequest{"type": "shutdown"}
 	return s.doActionByTag(tag, request)
@@ -69,7 +69,7 @@ func (s *DropletActionsServiceOp) PowerOff(id int) (*Action, *Response, error) {
 	return s.doAction(id, request)
 }
 
-// PowerOff a Droplet by Tag
+// PowerOffByTag powers off Droplets matched by a Tag.
 func (s *DropletActionsServiceOp) PowerOffByTag(tag string) (*Action, *Response, error) {
 	request := &ActionRequest{"type": "power_off"}
 	return s.doActionByTag(tag, request)
@@ -81,7 +81,7 @@ func (s *DropletActionsServiceOp) PowerOn(id int) (*Action, *Response, error) {
 	return s.doAction(id, request)
 }
 
-// PowerOn a Droplet by Tag
+// PowerOnByTag powers on Droplets matched by a Tag.
 func (s *DropletActionsServiceOp) PowerOnByTag(tag string) (*Action, *Response, error) {
 	request := &ActionRequest{"type": "power_on"}
 	return s.doActionByTag(tag, request)
@@ -93,7 +93,7 @@ func (s *DropletActionsServiceOp) PowerCycle(id int) (*Action, *Response, error)
 	return s.doAction(id, request)
 }
 
-// PowerCycle a Droplet by Tag
+// PowerCycleByTag power cycles Droplets matched by a Tag.
 func (s *DropletActionsServiceOp) PowerCycleByTag(tag string) (*Action, *Response, error) {
 	request := &ActionRequest{"type": "power_cycle"}
 	return s.doActionByTag(tag, request)
@@ -146,7 +146,7 @@ func (s *DropletActionsServiceOp) Snapshot(id int, name string) (*Action, *Respo
 	return s.doAction(id, request)
 }
 
-// Snapshot a Droplet by Tag
+// SnapshotByTag snapshots Droplets matched by a Tag.
 func (s *DropletActionsServiceOp) SnapshotByTag(tag string, name string) (*Action, *Response, error) {
 	requestType := "snapshot"
 	request := &ActionRequest{
@@ -156,79 +156,79 @@ func (s *DropletActionsServiceOp) SnapshotByTag(tag string, name string) (*Actio
 	return s.doActionByTag(tag, request)
 }
 
-// EnableBackups enables backups for a droplet.
+// EnableBackups enables backups for a Droplet.
 func (s *DropletActionsServiceOp) EnableBackups(id int) (*Action, *Response, error) {
 	request := &ActionRequest{"type": "enable_backups"}
 	return s.doAction(id, request)
 }
 
-// EnableBackups enables backups for a droplet by Tag
+// EnableBackupsByTag enables backups for Droplets matched by a Tag.
 func (s *DropletActionsServiceOp) EnableBackupsByTag(tag string) (*Action, *Response, error) {
 	request := &ActionRequest{"type": "enable_backups"}
 	return s.doActionByTag(tag, request)
 }
 
-// DisableBackups disables backups for a droplet.
+// DisableBackups disables backups for a Droplet.
 func (s *DropletActionsServiceOp) DisableBackups(id int) (*Action, *Response, error) {
 	request := &ActionRequest{"type": "disable_backups"}
 	return s.doAction(id, request)
 }
 
-// DisableBackups disables backups for a droplet by tag
+// DisableBackupsByTag disables backups for Droplet matched by a Tag.
 func (s *DropletActionsServiceOp) DisableBackupsByTag(tag string) (*Action, *Response, error) {
 	request := &ActionRequest{"type": "disable_backups"}
 	return s.doActionByTag(tag, request)
 }
 
-// PasswordReset resets the password for a droplet.
+// PasswordReset resets the password for a Droplet.
 func (s *DropletActionsServiceOp) PasswordReset(id int) (*Action, *Response, error) {
 	request := &ActionRequest{"type": "password_reset"}
 	return s.doAction(id, request)
 }
 
-// RebuildByImageID rebuilds a droplet droplet from an image with a given id.
+// RebuildByImageID rebuilds a Droplet from an image with a given id.
 func (s *DropletActionsServiceOp) RebuildByImageID(id, imageID int) (*Action, *Response, error) {
 	request := &ActionRequest{"type": "rebuild", "image": imageID}
 	return s.doAction(id, request)
 }
 
-// RebuildByImageSlug rebuilds a droplet from an image with a given slug.
+// RebuildByImageSlug rebuilds a Droplet from an Image matched by a given Slug.
 func (s *DropletActionsServiceOp) RebuildByImageSlug(id int, slug string) (*Action, *Response, error) {
 	request := &ActionRequest{"type": "rebuild", "image": slug}
 	return s.doAction(id, request)
 }
 
-// ChangeKernel changes the kernel for a droplet.
+// ChangeKernel changes the kernel for a Droplet.
 func (s *DropletActionsServiceOp) ChangeKernel(id, kernelID int) (*Action, *Response, error) {
 	request := &ActionRequest{"type": "change_kernel", "kernel": kernelID}
 	return s.doAction(id, request)
 }
 
-// EnableIPv6 enables IPv6 for a droplet.
+// EnableIPv6 enables IPv6 for a Droplet.
 func (s *DropletActionsServiceOp) EnableIPv6(id int) (*Action, *Response, error) {
 	request := &ActionRequest{"type": "enable_ipv6"}
 	return s.doAction(id, request)
 }
 
-// EnableIPv6 enables IPv6 for a droplet by Tag
+// EnableIPv6ByTag enables IPv6 for Droplets matched by a Tag.
 func (s *DropletActionsServiceOp) EnableIPv6ByTag(tag string) (*Action, *Response, error) {
 	request := &ActionRequest{"type": "enable_ipv6"}
 	return s.doActionByTag(tag, request)
 }
 
-// EnablePrivateNetworking enables private networking for a droplet.
+// EnablePrivateNetworking enables private networking for a Droplet.
 func (s *DropletActionsServiceOp) EnablePrivateNetworking(id int) (*Action, *Response, error) {
 	request := &ActionRequest{"type": "enable_private_networking"}
 	return s.doAction(id, request)
 }
 
-// EnablePrivateNetworking enables private networking for a droplet by Tag
+// EnablePrivateNetworkingByTag enables private networking for Droplets matched by a Tag.
 func (s *DropletActionsServiceOp) EnablePrivateNetworkingByTag(tag string) (*Action, *Response, error) {
 	request := &ActionRequest{"type": "enable_private_networking"}
 	return s.doActionByTag(tag, request)
 }
 
-// Upgrade a droplet.
+// Upgrade a Droplet.
 func (s *DropletActionsServiceOp) Upgrade(id int) (*Action, *Response, error) {
 	request := &ActionRequest{"type": "upgrade"}
 	return s.doAction(id, request)
@@ -256,7 +256,7 @@ func (s *DropletActionsServiceOp) doAction(id int, request *ActionRequest) (*Act
 		return nil, resp, err
 	}
 
-	return &root.Event, resp, err
+	return root.Event, resp, err
 }
 
 func (s *DropletActionsServiceOp) doActionByTag(tag string, request *ActionRequest) (*Action, *Response, error) {
@@ -281,10 +281,10 @@ func (s *DropletActionsServiceOp) doActionByTag(tag string, request *ActionReque
 		return nil, resp, err
 	}
 
-	return &root.Event, resp, err
+	return root.Event, resp, err
 }
 
-// Get an action for a particular droplet by id.
+// Get an action for a particular Droplet by id.
 func (s *DropletActionsServiceOp) Get(dropletID, actionID int) (*Action, *Response, error) {
 	if dropletID < 1 {
 		return nil, nil, NewArgError("dropletID", "cannot be less than 1")
@@ -298,7 +298,7 @@ func (s *DropletActionsServiceOp) Get(dropletID, actionID int) (*Action, *Respon
 	return s.get(path)
 }
 
-// GetByURI gets an action for a particular droplet by id.
+// GetByURI gets an action for a particular Droplet by id.
 func (s *DropletActionsServiceOp) GetByURI(rawurl string) (*Action, *Response, error) {
 	u, err := url.Parse(rawurl)
 	if err != nil {
@@ -321,7 +321,7 @@ func (s *DropletActionsServiceOp) get(path string) (*Action, *Response, error) {
 		return nil, resp, err
 	}
 
-	return &root.Event, resp, err
+	return root.Event, resp, err
 
 }
 

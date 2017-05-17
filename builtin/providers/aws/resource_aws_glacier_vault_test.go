@@ -9,18 +9,20 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/glacier"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSGlacierVault_basic(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGlacierVaultDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccGlacierVault_basic,
+				Config: testAccGlacierVault_basic(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGlacierVaultExists("aws_glacier_vault.test"),
 				),
@@ -30,13 +32,14 @@ func TestAccAWSGlacierVault_basic(t *testing.T) {
 }
 
 func TestAccAWSGlacierVault_full(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGlacierVaultDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccGlacierVault_full,
+				Config: testAccGlacierVault_full(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGlacierVaultExists("aws_glacier_vault.full"),
 				),
@@ -46,19 +49,20 @@ func TestAccAWSGlacierVault_full(t *testing.T) {
 }
 
 func TestAccAWSGlacierVault_RemoveNotifications(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGlacierVaultDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccGlacierVault_full,
+				Config: testAccGlacierVault_full(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGlacierVaultExists("aws_glacier_vault.full"),
 				),
 			},
 			resource.TestStep{
-				Config: testAccGlacierVault_withoutNotification,
+				Config: testAccGlacierVault_withoutNotification(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGlacierVaultExists("aws_glacier_vault.full"),
 					testAccCheckVaultNotificationsMissing("aws_glacier_vault.full"),
@@ -205,19 +209,22 @@ func testAccCheckGlacierVaultDestroy(s *terraform.State) error {
 	return nil
 }
 
-const testAccGlacierVault_basic = `
+func testAccGlacierVault_basic(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_glacier_vault" "test" {
-  name = "my_test_vault"
+  name = "my_test_vault_%d"
 }
-`
+`, rInt)
+}
 
-const testAccGlacierVault_full = `
+func testAccGlacierVault_full(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_sns_topic" "aws_sns_topic" {
-  name = "glacier-sns-topic"
+  name = "glacier-sns-topic-%d"
 }
 
 resource "aws_glacier_vault" "full" {
-  name = "my_test_vault"
+  name = "my_test_vault_%d"
   notification {
   	sns_topic = "${aws_sns_topic.aws_sns_topic.arn}"
   	events = ["ArchiveRetrievalCompleted","InventoryRetrievalCompleted"]
@@ -226,17 +233,20 @@ resource "aws_glacier_vault" "full" {
     Test="Test1"
   }
 }
-`
+`, rInt, rInt)
+}
 
-const testAccGlacierVault_withoutNotification = `
+func testAccGlacierVault_withoutNotification(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_sns_topic" "aws_sns_topic" {
-  name = "glacier-sns-topic"
+  name = "glacier-sns-topic-%d"
 }
 
 resource "aws_glacier_vault" "full" {
-  name = "my_test_vault"
+  name = "my_test_vault_%d"
   tags {
     Test="Test1"
   }
 }
-`
+`, rInt, rInt)
+}

@@ -21,6 +21,7 @@ func TestAccConsulService_basic(t *testing.T) {
 					testAccCheckConsulServiceExists(),
 					testAccCheckConsulServiceValue("consul_service.app", "address", "www.google.com"),
 					testAccCheckConsulServiceValue("consul_service.app", "id", "google"),
+					testAccCheckConsulServiceValue("consul_service.app", "service_id", "google"),
 					testAccCheckConsulServiceValue("consul_service.app", "name", "google"),
 					testAccCheckConsulServiceValue("consul_service.app", "port", "80"),
 					testAccCheckConsulServiceValue("consul_service.app", "tags.#", "2"),
@@ -83,6 +84,7 @@ func testAccCheckConsulServiceValue(n, attr, val string) resource.TestCheckFunc 
 const testAccConsulServiceConfig = `
 resource "consul_service" "app" {
 	address = "www.google.com"
+	service_id = "google"
 	name = "google"
 	port = 80
 	tags = ["tag0", "tag1"]

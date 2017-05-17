@@ -5,6 +5,7 @@ import (
 	"log"
 	"regexp"
 	"strconv"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elbv2"
@@ -21,6 +22,12 @@ func resourceAwsAlb() *schema.Resource {
 		Delete: resourceAwsAlbDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
+		},
+
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Update: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -47,7 +54,7 @@ func resourceAwsAlb() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: validateElbName,
+				ValidateFunc: validateElbNamePrefix,
 			},
 
 			"internal": {
@@ -61,7 +68,6 @@ func resourceAwsAlb() *schema.Resource {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Computed: true,
-				ForceNew: true,
 				Optional: true,
 				Set:      schema.HashString,
 			},
@@ -69,7 +75,6 @@ func resourceAwsAlb() *schema.Resource {
 			"subnets": {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				ForceNew: true,
 				Required: true,
 				Set:      schema.HashString,
 			},
@@ -88,6 +93,11 @@ func resourceAwsAlb() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+						"enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
 					},
 				},
 			},
@@ -102,6 +112,12 @@ func resourceAwsAlb() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  60,
+			},
+
+			"ip_address_type": {
+				Type:     schema.TypeString,
+				Computed: true,
+				Optional: true,
 			},
 
 			"vpc_id": {
@@ -154,6 +170,10 @@ func resourceAwsAlbCreate(d *schema.ResourceData, meta interface{}) error {
 		elbOpts.Subnets = expandStringList(v.(*schema.Set).List())
 	}
 
+	if v, ok := d.GetOk("ip_address_type"); ok {
+		elbOpts.IpAddressType = aws.String(v.(string))
+	}
+
 	log.Printf("[DEBUG] ALB create configuration: %#v", elbOpts)
 
 	resp, err := elbconn.CreateLoadBalancer(elbOpts)
@@ -165,8 +185,38 @@ func resourceAwsAlbCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("No load balancers returned following creation of %s", d.Get("name").(string))
 	}
 
-	d.SetId(*resp.LoadBalancers[0].LoadBalancerArn)
+	lb := resp.LoadBalancers[0]
+	d.SetId(*lb.LoadBalancerArn)
 	log.Printf("[INFO] ALB ID: %s", d.Id())
+
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"provisioning", "failed"},
+		Target:  []string{"active"},
+		Refresh: func() (interface{}, string, error) {
+			describeResp, err := elbconn.DescribeLoadBalancers(&elbv2.DescribeLoadBalancersInput{
+				LoadBalancerArns: []*string{lb.LoadBalancerArn},
+			})
+			if err != nil {
+				return nil, "", err
+			}
+
+			if len(describeResp.LoadBalancers) != 1 {
+				return nil, "", fmt.Errorf("No load balancers returned for %s", *lb.LoadBalancerArn)
+			}
+			dLb := describeResp.LoadBalancers[0]
+
+			log.Printf("[INFO] ALB state: %s", *dLb.State.Code)
+
+			return describeResp, *dLb.State.Code, nil
+		},
+		Timeout:    d.Timeout(schema.TimeoutCreate),
+		MinTimeout: 10 * time.Second,
+		Delay:      30 * time.Second, // Wait 30 secs before starting
+	}
+	_, err = stateConf.WaitForState()
+	if err != nil {
+		return err
+	}
 
 	return resourceAwsAlbUpdate(d, meta)
 }
@@ -194,67 +244,7 @@ func resourceAwsAlbRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Unable to find ALB: %#v", describeResp.LoadBalancers)
 	}
 
-	alb := describeResp.LoadBalancers[0]
-
-	d.Set("arn", alb.LoadBalancerArn)
-	d.Set("arn_suffix", albSuffixFromARN(alb.LoadBalancerArn))
-	d.Set("name", alb.LoadBalancerName)
-	d.Set("internal", (alb.Scheme != nil && *alb.Scheme == "internal"))
-	d.Set("security_groups", flattenStringList(alb.SecurityGroups))
-	d.Set("subnets", flattenSubnetsFromAvailabilityZones(alb.AvailabilityZones))
-	d.Set("vpc_id", alb.VpcId)
-	d.Set("zone_id", alb.CanonicalHostedZoneId)
-	d.Set("dns_name", alb.DNSName)
-
-	respTags, err := elbconn.DescribeTags(&elbv2.DescribeTagsInput{
-		ResourceArns: []*string{alb.LoadBalancerArn},
-	})
-	if err != nil {
-		return errwrap.Wrapf("Error retrieving ALB Tags: {{err}}", err)
-	}
-
-	var et []*elbv2.Tag
-	if len(respTags.TagDescriptions) > 0 {
-		et = respTags.TagDescriptions[0].Tags
-	}
-	d.Set("tags", tagsToMapELBv2(et))
-
-	attributesResp, err := elbconn.DescribeLoadBalancerAttributes(&elbv2.DescribeLoadBalancerAttributesInput{
-		LoadBalancerArn: aws.String(d.Id()),
-	})
-	if err != nil {
-		return errwrap.Wrapf("Error retrieving ALB Attributes: {{err}}", err)
-	}
-
-	accessLogMap := map[string]interface{}{}
-	for _, attr := range attributesResp.Attributes {
-		switch *attr.Key {
-		case "access_logs.s3.bucket":
-			accessLogMap["bucket"] = *attr.Value
-		case "access_logs.s3.prefix":
-			accessLogMap["prefix"] = *attr.Value
-		case "idle_timeout.timeout_seconds":
-			timeout, err := strconv.Atoi(*attr.Value)
-			if err != nil {
-				return errwrap.Wrapf("Error parsing ALB timeout: {{err}}", err)
-			}
-			log.Printf("[DEBUG] Setting ALB Timeout Seconds: %d", timeout)
-			d.Set("idle_timeout", timeout)
-		case "deletion_protection.enabled":
-			protectionEnabled := (*attr.Value) == "true"
-			log.Printf("[DEBUG] Setting ALB Deletion Protection Enabled: %t", protectionEnabled)
-			d.Set("enable_deletion_protection", protectionEnabled)
-		}
-	}
-
-	log.Printf("[DEBUG] Setting ALB Access Logs: %#v", accessLogMap)
-	if accessLogMap["bucket"] != "" || accessLogMap["prefix"] != "" {
-		d.Set("access_logs", []interface{}{accessLogMap})
-	} else {
-		d.Set("access_logs", []interface{}{})
-	}
-
-	return nil
+	return flattenAwsAlbResource(d, meta, describeResp.LoadBalancers[0])
 }
 
 func resourceAwsAlbUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -276,7 +266,7 @@ func resourceAwsAlbUpdate(d *schema.ResourceData, meta interface{}) error {
 			attributes = append(attributes,
 				&elbv2.LoadBalancerAttribute{
 					Key:   aws.String("access_logs.s3.enabled"),
-					Value: aws.String("true"),
+					Value: aws.String(strconv.FormatBool(log["enabled"].(bool))),
 				},
 				&elbv2.LoadBalancerAttribute{
 					Key:   aws.String("access_logs.s3.bucket"),
@@ -324,6 +314,77 @@ func resourceAwsAlbUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	if d.HasChange("security_groups") {
+		sgs := expandStringList(d.Get("security_groups").(*schema.Set).List())
+
+		params := &elbv2.SetSecurityGroupsInput{
+			LoadBalancerArn: aws.String(d.Id()),
+			SecurityGroups:  sgs,
+		}
+		_, err := elbconn.SetSecurityGroups(params)
+		if err != nil {
+			return fmt.Errorf("Failure Setting ALB Security Groups: %s", err)
+		}
+
+	}
+
+	if d.HasChange("subnets") {
+		subnets := expandStringList(d.Get("subnets").(*schema.Set).List())
+
+		params := &elbv2.SetSubnetsInput{
+			LoadBalancerArn: aws.String(d.Id()),
+			Subnets:         subnets,
+		}
+
+		_, err := elbconn.SetSubnets(params)
+		if err != nil {
+			return fmt.Errorf("Failure Setting ALB Subnets: %s", err)
+		}
+	}
+
+	if d.HasChange("ip_address_type") {
+
+		params := &elbv2.SetIpAddressTypeInput{
+			LoadBalancerArn: aws.String(d.Id()),
+			IpAddressType:   aws.String(d.Get("ip_address_type").(string)),
+		}
+
+		_, err := elbconn.SetIpAddressType(params)
+		if err != nil {
+			return fmt.Errorf("Failure Setting ALB IP Address Type: %s", err)
+		}
+
+	}
+
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"active", "provisioning", "failed"},
+		Target:  []string{"active"},
+		Refresh: func() (interface{}, string, error) {
+			describeResp, err := elbconn.DescribeLoadBalancers(&elbv2.DescribeLoadBalancersInput{
+				LoadBalancerArns: []*string{aws.String(d.Id())},
+			})
+			if err != nil {
+				return nil, "", err
+			}
+
+			if len(describeResp.LoadBalancers) != 1 {
+				return nil, "", fmt.Errorf("No load balancers returned for %s", d.Id())
+			}
+			dLb := describeResp.LoadBalancers[0]
+
+			log.Printf("[INFO] ALB state: %s", *dLb.State.Code)
+
+			return describeResp, *dLb.State.Code, nil
+		},
+		Timeout:    d.Timeout(schema.TimeoutUpdate),
+		MinTimeout: 10 * time.Second,
+		Delay:      30 * time.Second, // Wait 30 secs before starting
+	}
+	_, err := stateConf.WaitForState()
+	if err != nil {
+		return err
+	}
+
 	return resourceAwsAlbRead(d, meta)
 }
 
@@ -365,4 +426,72 @@ func albSuffixFromARN(arn *string) string {
 	}
 
 	return ""
+}
+
+// flattenAwsAlbResource takes a *elbv2.LoadBalancer and populates all respective resource fields.
+func flattenAwsAlbResource(d *schema.ResourceData, meta interface{}, alb *elbv2.LoadBalancer) error {
+	elbconn := meta.(*AWSClient).elbv2conn
+
+	d.Set("arn", alb.LoadBalancerArn)
+	d.Set("arn_suffix", albSuffixFromARN(alb.LoadBalancerArn))
+	d.Set("name", alb.LoadBalancerName)
+	d.Set("internal", (alb.Scheme != nil && *alb.Scheme == "internal"))
+	d.Set("security_groups", flattenStringList(alb.SecurityGroups))
+	d.Set("subnets", flattenSubnetsFromAvailabilityZones(alb.AvailabilityZones))
+	d.Set("vpc_id", alb.VpcId)
+	d.Set("zone_id", alb.CanonicalHostedZoneId)
+	d.Set("dns_name", alb.DNSName)
+	d.Set("ip_address_type", alb.IpAddressType)
+
+	respTags, err := elbconn.DescribeTags(&elbv2.DescribeTagsInput{
+		ResourceArns: []*string{alb.LoadBalancerArn},
+	})
+	if err != nil {
+		return errwrap.Wrapf("Error retrieving ALB Tags: {{err}}", err)
+	}
+
+	var et []*elbv2.Tag
+	if len(respTags.TagDescriptions) > 0 {
+		et = respTags.TagDescriptions[0].Tags
+	}
+	d.Set("tags", tagsToMapELBv2(et))
+
+	attributesResp, err := elbconn.DescribeLoadBalancerAttributes(&elbv2.DescribeLoadBalancerAttributesInput{
+		LoadBalancerArn: aws.String(d.Id()),
+	})
+	if err != nil {
+		return errwrap.Wrapf("Error retrieving ALB Attributes: {{err}}", err)
+	}
+
+	accessLogMap := map[string]interface{}{}
+	for _, attr := range attributesResp.Attributes {
+		switch *attr.Key {
+		case "access_logs.s3.enabled":
+			accessLogMap["enabled"] = *attr.Value
+		case "access_logs.s3.bucket":
+			accessLogMap["bucket"] = *attr.Value
+		case "access_logs.s3.prefix":
+			accessLogMap["prefix"] = *attr.Value
+		case "idle_timeout.timeout_seconds":
+			timeout, err := strconv.Atoi(*attr.Value)
+			if err != nil {
+				return errwrap.Wrapf("Error parsing ALB timeout: {{err}}", err)
+			}
+			log.Printf("[DEBUG] Setting ALB Timeout Seconds: %d", timeout)
+			d.Set("idle_timeout", timeout)
+		case "deletion_protection.enabled":
+			protectionEnabled := (*attr.Value) == "true"
+			log.Printf("[DEBUG] Setting ALB Deletion Protection Enabled: %t", protectionEnabled)
+			d.Set("enable_deletion_protection", protectionEnabled)
+		}
+	}
+
+	log.Printf("[DEBUG] Setting ALB Access Logs: %#v", accessLogMap)
+	if accessLogMap["bucket"] != "" || accessLogMap["prefix"] != "" {
+		d.Set("access_logs", []interface{}{accessLogMap})
+	} else {
+		d.Set("access_logs", []interface{}{})
+	}
+
+	return nil
 }

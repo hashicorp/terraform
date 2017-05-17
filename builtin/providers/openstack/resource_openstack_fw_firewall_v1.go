@@ -5,10 +5,10 @@ import (
 	"log"
 	"time"
 
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/firewalls"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/fwaas/firewalls"
 )
 
 func resourceFWFirewallV1() *schema.Resource {
@@ -19,6 +19,12 @@ func resourceFWFirewallV1() *schema.Resource {
 		Delete: resourceFWFirewallV1Delete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
+		},
+
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Update: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -43,13 +49,18 @@ func resourceFWFirewallV1() *schema.Resource {
 			"admin_state_up": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				Computed: true,
+				Default:  true,
 			},
 			"tenant_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
+			},
+			"value_specs": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: true,
 			},
 		},
 	}
@@ -58,19 +69,22 @@ func resourceFWFirewallV1() *schema.Resource {
 func resourceFWFirewallV1Create(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
 	adminStateUp := d.Get("admin_state_up").(bool)
 
-	firewallConfiguration := firewalls.CreateOpts{
-		Name:         d.Get("name").(string),
-		Description:  d.Get("description").(string),
-		PolicyID:     d.Get("policy_id").(string),
-		AdminStateUp: &adminStateUp,
-		TenantID:     d.Get("tenant_id").(string),
+	firewallConfiguration := FirewallCreateOpts{
+		firewalls.CreateOpts{
+			Name:         d.Get("name").(string),
+			Description:  d.Get("description").(string),
+			PolicyID:     d.Get("policy_id").(string),
+			AdminStateUp: &adminStateUp,
+			TenantID:     d.Get("tenant_id").(string),
+		},
+		MapValueSpecs(d),
 	}
 
 	log.Printf("[DEBUG] Create firewall: %#v", firewallConfiguration)
@@ -86,7 +100,7 @@ func resourceFWFirewallV1Create(d *schema.ResourceData, meta interface{}) error 
 		Pending:    []string{"PENDING_CREATE"},
 		Target:     []string{"ACTIVE"},
 		Refresh:    waitForFirewallActive(networkingClient, firewall.ID),
-		Timeout:    30 * time.Second,
+		Timeout:    d.Timeout(schema.TimeoutCreate),
 		Delay:      0,
 		MinTimeout: 2 * time.Second,
 	}
@@ -102,7 +116,7 @@ func resourceFWFirewallV1Read(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Retrieve information about firewall: %s", d.Id())
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -119,6 +133,7 @@ func resourceFWFirewallV1Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("policy_id", firewall.PolicyID)
 	d.Set("admin_state_up", firewall.AdminStateUp)
 	d.Set("tenant_id", firewall.TenantID)
+	d.Set("region", GetRegion(d))
 
 	return nil
 }
@@ -126,7 +141,7 @@ func resourceFWFirewallV1Read(d *schema.ResourceData, meta interface{}) error {
 func resourceFWFirewallV1Update(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -156,7 +171,7 @@ func resourceFWFirewallV1Update(d *schema.ResourceData, meta interface{}) error 
 		Pending:    []string{"PENDING_CREATE", "PENDING_UPDATE"},
 		Target:     []string{"ACTIVE"},
 		Refresh:    waitForFirewallActive(networkingClient, d.Id()),
-		Timeout:    30 * time.Second,
+		Timeout:    d.Timeout(schema.TimeoutUpdate),
 		Delay:      0,
 		MinTimeout: 2 * time.Second,
 	}
@@ -175,16 +190,17 @@ func resourceFWFirewallV1Delete(d *schema.ResourceData, meta interface{}) error 
 	log.Printf("[DEBUG] Destroy firewall: %s", d.Id())
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
+	// Ensure the firewall was fully created/updated before being deleted.
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"PENDING_CREATE", "PENDING_UPDATE"},
 		Target:     []string{"ACTIVE"},
 		Refresh:    waitForFirewallActive(networkingClient, d.Id()),
-		Timeout:    30 * time.Second,
+		Timeout:    d.Timeout(schema.TimeoutUpdate),
 		Delay:      0,
 		MinTimeout: 2 * time.Second,
 	}
@@ -201,7 +217,7 @@ func resourceFWFirewallV1Delete(d *schema.ResourceData, meta interface{}) error 
 		Pending:    []string{"DELETING"},
 		Target:     []string{"DELETED"},
 		Refresh:    waitForFirewallDeletion(networkingClient, d.Id()),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      0,
 		MinTimeout: 2 * time.Second,
 	}
@@ -231,14 +247,11 @@ func waitForFirewallDeletion(networkingClient *gophercloud.ServiceClient, id str
 		log.Printf("[DEBUG] Get firewall %s => %#v", id, fw)
 
 		if err != nil {
-			httpStatus := err.(*gophercloud.UnexpectedResponseCodeError)
-			log.Printf("[DEBUG] Get firewall %s status is %d", id, httpStatus.Actual)
-
-			if httpStatus.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Firewall %s is actually deleted", id)
 				return "", "DELETED", nil
 			}
-			return nil, "", fmt.Errorf("Unexpected status code %d", httpStatus.Actual)
+			return nil, "", fmt.Errorf("Unexpected error: %s", err)
 		}
 
 		log.Printf("[DEBUG] Firewall %s deletion is pending", id)

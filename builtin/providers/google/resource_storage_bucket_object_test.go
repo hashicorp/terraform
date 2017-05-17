@@ -64,7 +64,113 @@ func TestAccGoogleStorageObject_content(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testGoogleStorageBucketsObjectContent(bucketName),
-				Check:  testAccCheckGoogleStorageObject(bucketName, objectName, data_md5),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGoogleStorageObject(bucketName, objectName, data_md5),
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket_object.object", "content_type", "text/plain; charset=utf-8"),
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket_object.object", "storage_class", "STANDARD"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccGoogleStorageObject_withContentCharacteristics(t *testing.T) {
+	bucketName := testBucketName()
+	data := []byte(content)
+	h := md5.New()
+	h.Write(data)
+	data_md5 := base64.StdEncoding.EncodeToString(h.Sum(nil))
+	ioutil.WriteFile(tf.Name(), data, 0644)
+
+	disposition, encoding, language, content_type := "inline", "compress", "en", "binary/octet-stream"
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			if err != nil {
+				panic(err)
+			}
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGoogleStorageObjectDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testGoogleStorageBucketsObject_optionalContentFields(
+					bucketName, disposition, encoding, language, content_type),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGoogleStorageObject(bucketName, objectName, data_md5),
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket_object.object", "content_disposition", disposition),
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket_object.object", "content_encoding", encoding),
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket_object.object", "content_language", language),
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket_object.object", "content_type", content_type),
+				),
+			},
+		},
+	})
+}
+
+func TestAccGoogleStorageObject_cacheControl(t *testing.T) {
+	bucketName := testBucketName()
+	data := []byte(content)
+	h := md5.New()
+	h.Write(data)
+	data_md5 := base64.StdEncoding.EncodeToString(h.Sum(nil))
+	ioutil.WriteFile(tf.Name(), data, 0644)
+
+	cacheControl := "private"
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			if err != nil {
+				panic(err)
+			}
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGoogleStorageObjectDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testGoogleStorageBucketsObject_cacheControl(bucketName, cacheControl),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGoogleStorageObject(bucketName, objectName, data_md5),
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket_object.object", "cache_control", cacheControl),
+				),
+			},
+		},
+	})
+}
+
+func TestAccGoogleStorageObject_storageClass(t *testing.T) {
+	bucketName := testBucketName()
+	data := []byte(content)
+	h := md5.New()
+	h.Write(data)
+	data_md5 := base64.StdEncoding.EncodeToString(h.Sum(nil))
+	ioutil.WriteFile(tf.Name(), data, 0644)
+
+	storageClass := "MULTI_REGIONAL"
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			if err != nil {
+				panic(err)
+			}
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGoogleStorageObjectDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testGoogleStorageBucketsObject_storageClass(bucketName, storageClass),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGoogleStorageObject(bucketName, objectName, data_md5),
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket_object.object", "storage_class", storageClass),
+				),
 			},
 		},
 	})
@@ -129,6 +235,7 @@ resource "google_storage_bucket_object" "object" {
 }
 `, bucketName, objectName, content)
 }
+
 func testGoogleStorageBucketsObjectBasic(bucketName string) string {
 	return fmt.Sprintf(`
 resource "google_storage_bucket" "bucket" {
@@ -142,4 +249,53 @@ resource "google_storage_bucket_object" "object" {
 	predefined_acl = "projectPrivate"
 }
 `, bucketName, objectName, tf.Name())
+}
+
+func testGoogleStorageBucketsObject_optionalContentFields(
+	bucketName, disposition, encoding, language, content_type string) string {
+	return fmt.Sprintf(`
+resource "google_storage_bucket" "bucket" {
+	name = "%s"
+}
+
+resource "google_storage_bucket_object" "object" {
+	name = "%s"
+	bucket = "${google_storage_bucket.bucket.name}"
+	content = "%s"
+	content_disposition = "%s"
+	content_encoding = "%s"
+	content_language = "%s"
+	content_type = "%s"
+}
+`, bucketName, objectName, content, disposition, encoding, language, content_type)
+}
+
+func testGoogleStorageBucketsObject_cacheControl(bucketName, cacheControl string) string {
+	return fmt.Sprintf(`
+resource "google_storage_bucket" "bucket" {
+	name = "%s"
+}
+
+resource "google_storage_bucket_object" "object" {
+	name = "%s"
+	bucket = "${google_storage_bucket.bucket.name}"
+	source = "%s"
+	cache_control = "%s"
+}
+`, bucketName, objectName, tf.Name(), cacheControl)
+}
+
+func testGoogleStorageBucketsObject_storageClass(bucketName string, storageClass string) string {
+	return fmt.Sprintf(`
+resource "google_storage_bucket" "bucket" {
+	name = "%s"
+}
+
+resource "google_storage_bucket_object" "object" {
+	name = "%s"
+	bucket = "${google_storage_bucket.bucket.name}"
+	content = "%s"
+	storage_class = "%s"
+}
+`, bucketName, objectName, content, storageClass)
 }

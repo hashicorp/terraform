@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/hmrc/vmware-govcd"
+	govcd "github.com/ukcloud/govcloudair"
 )
 
 func TestAccVcdVApp_PowerOff(t *testing.T) {

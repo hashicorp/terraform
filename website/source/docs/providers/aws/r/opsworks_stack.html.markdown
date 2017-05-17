@@ -12,13 +12,14 @@ Provides an OpsWorks stack resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_opsworks_stack" "main" {
-    name = "awesome-stack"
-    region = "us-west-1"
-    service_role_arn = "${aws_iam_role.opsworks.arn}"
-    default_instance_profile_arn = "${aws_iam_instance_profile.opsworks.arn}"
-    custom_json = <<EOT
+  name                         = "awesome-stack"
+  region                       = "us-west-1"
+  service_role_arn             = "${aws_iam_role.opsworks.arn}"
+  default_instance_profile_arn = "${aws_iam_instance_profile.opsworks.arn}"
+
+  custom_json = <<EOT
 {
  "foobar": {
     "version": "1.0.0"
@@ -76,3 +77,11 @@ The `custom_cookbooks_source` block supports the following arguments:
 The following attributes are exported:
 
 * `id` - The id of the stack.
+
+## Import
+
+OpsWorks stacks can be imported using the `id`, e.g.
+
+```
+$ terraform import aws_opsworks_stack.bar 00000000-0000-0000-0000-000000000000
+```

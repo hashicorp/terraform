@@ -20,60 +20,61 @@ func resourceAwsCloudTrail() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"enable_logging": &schema.Schema{
+			"enable_logging": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
-			"s3_bucket_name": &schema.Schema{
+			"s3_bucket_name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"s3_key_prefix": &schema.Schema{
+			"s3_key_prefix": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"cloud_watch_logs_role_arn": &schema.Schema{
+			"cloud_watch_logs_role_arn": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"cloud_watch_logs_group_arn": &schema.Schema{
+			"cloud_watch_logs_group_arn": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"include_global_service_events": &schema.Schema{
+			"include_global_service_events": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
-			"is_multi_region_trail": &schema.Schema{
+			"is_multi_region_trail": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"sns_topic_name": &schema.Schema{
+			"sns_topic_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"enable_log_file_validation": &schema.Schema{
+			"enable_log_file_validation": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"kms_key_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+			"kms_key_id": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateArn,
 			},
-			"home_region": &schema.Schema{
+			"home_region": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

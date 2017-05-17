@@ -15,9 +15,10 @@ tarball. For more information see [the official documentation](https://cloud.goo
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_image" "bootable-image" {
-  name       = "my-custom-image"
+  name = "my-custom-image"
+
   raw_disk {
     source = "https://storage.googleapis.com/my-bucket/my-disk-image-tarball.tar.gz"
   }
@@ -33,21 +34,28 @@ resource "google_compute_instance" "vm" {
   }
 
   network_interface {
-	network = "default"
+    network = "default"
   }
 }
 ```
 
 ## Argument Reference
 
-The following arguments are supported:
+The following arguments are supported: (Note that one of either source_disk or
+  raw_disk is required)
 
 * `name` - (Required) A unique name for the resource, required by GCE.
     Changing this forces a new resource to be created.
 
-* `raw_disk` - (Required) The raw disk that will be used as the source of
-    the image. Changing this forces a new resource to be created.
-    Structure is documented below.
+* `source_disk` - The URL of a disk that will be used as the source of the
+    image. Changing this forces a new resource to be created.
+
+* `raw_disk` - The raw disk that will be used as the source of the image.
+    Changing this forces a new resource to be created. Structure is documented
+    below.
+
+* `create_timeout` - Configurable timeout in minutes for creating images. Default is 4 minutes.
+    Changing this forces a new resource to be created.
 
 The `raw_disk` block supports:
 

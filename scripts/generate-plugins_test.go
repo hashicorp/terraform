@@ -7,29 +7,29 @@ func TestMakeProvisionerMap(t *testing.T) {
 		{
 			Package:    "file",
 			PluginName: "file",
-			TypeName:   "ResourceProvisioner",
+			TypeName:   "Provisioner",
 			Path:       "builtin/provisioners/file",
-			ImportName: "fileresourceprovisioner",
+			ImportName: "fileprovisioner",
 		},
 		{
 			Package:    "localexec",
 			PluginName: "local-exec",
-			TypeName:   "ResourceProvisioner",
+			TypeName:   "Provisioner",
 			Path:       "builtin/provisioners/local-exec",
-			ImportName: "localexecresourceprovisioner",
+			ImportName: "localexecprovisioner",
 		},
 		{
 			Package:    "remoteexec",
 			PluginName: "remote-exec",
-			TypeName:   "ResourceProvisioner",
+			TypeName:   "Provisioner",
 			Path:       "builtin/provisioners/remote-exec",
-			ImportName: "remoteexecresourceprovisioner",
+			ImportName: "remoteexecprovisioner",
 		},
 	})
 
-	expected := `	"file": func() terraform.ResourceProvisioner { return new(fileresourceprovisioner.ResourceProvisioner) },
-	"local-exec": func() terraform.ResourceProvisioner { return new(localexecresourceprovisioner.ResourceProvisioner) },
-	"remote-exec": func() terraform.ResourceProvisioner { return new(remoteexecresourceprovisioner.ResourceProvisioner) },
+	expected := `	"file":   fileprovisioner.Provisioner,
+	"local-exec":   localexecprovisioner.Provisioner,
+	"remote-exec":   remoteexecprovisioner.Provisioner,
 `
 
 	if p != expected {
@@ -86,12 +86,9 @@ func TestDiscoverTypesProviders(t *testing.T) {
 }
 
 func TestDiscoverTypesProvisioners(t *testing.T) {
-	plugins, err := discoverTypesInPath("../builtin/provisioners", "ResourceProvisioner", "")
+	plugins, err := discoverTypesInPath("../builtin/provisioners", "terraform.ResourceProvisioner", "Provisioner")
 	if err != nil {
 		t.Fatalf(err.Error())
-	}
-	if !contains(plugins, "chef") {
-		t.Errorf("Expected to find chef provisioner")
 	}
 	if !contains(plugins, "remote-exec") {
 		t.Errorf("Expected to find remote-exec provisioner")

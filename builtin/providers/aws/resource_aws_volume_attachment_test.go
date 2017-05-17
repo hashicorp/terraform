@@ -19,8 +19,34 @@ func TestAccAWSVolumeAttachment_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVolumeAttachmentDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccVolumeAttachmentConfig,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"aws_volume_attachment.ebs_att", "device_name", "/dev/sdh"),
+					testAccCheckInstanceExists(
+						"aws_instance.web", &i),
+					testAccCheckVolumeExists(
+						"aws_ebs_volume.example", &v),
+					testAccCheckVolumeAttachmentExists(
+						"aws_volume_attachment.ebs_att", &i, &v),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSVolumeAttachment_skipDestroy(t *testing.T) {
+	var i ec2.Instance
+	var v ec2.Volume
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVolumeAttachmentDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccVolumeAttachmentConfigSkipDestroy,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"aws_volume_attachment.ebs_att", "device_name", "/dev/sdh"),
@@ -89,5 +115,46 @@ resource "aws_volume_attachment" "ebs_att" {
   device_name = "/dev/sdh"
 	volume_id = "${aws_ebs_volume.example.id}"
 	instance_id = "${aws_instance.web.id}"
+}
+`
+
+const testAccVolumeAttachmentConfigSkipDestroy = `
+resource "aws_instance" "web" {
+	ami = "ami-21f78e11"
+  	availability_zone = "us-west-2a"
+	instance_type = "t1.micro"
+	tags {
+		Name = "HelloWorld"
+	}
+}
+
+resource "aws_ebs_volume" "example" {
+  	availability_zone = "us-west-2a"
+	size = 1
+	tags {
+		Name = "TestVolume"
+	}
+}
+
+data "aws_ebs_volume" "ebs_volume" {
+    filter {
+	name = "size"
+	values = ["${aws_ebs_volume.example.size}"]
+    }
+    filter {
+	name = "availability-zone"
+	values = ["${aws_ebs_volume.example.availability_zone}"]
+    }
+    filter {
+	name = "tag:Name"
+	values = ["TestVolume"]
+    }
+}
+
+resource "aws_volume_attachment" "ebs_att" {
+  	device_name = "/dev/sdh"
+	volume_id = "${data.aws_ebs_volume.ebs_volume.id}"
+	instance_id = "${aws_instance.web.id}"
+	skip_destroy = true
 }
 `

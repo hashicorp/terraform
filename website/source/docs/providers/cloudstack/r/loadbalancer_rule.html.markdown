@@ -6,21 +6,21 @@ description: |-
   Creates a load balancer rule.
 ---
 
-# cloudstack\_loadbalancer\_rule
+# cloudstack_loadbalancer_rule
 
 Creates a loadbalancer rule.
 
 ## Example Usage
 
-```
+```hcl
 resource "cloudstack_loadbalancer_rule" "default" {
-  name = "loadbalancer-rule-1"
-  description = "Loadbalancer rule 1"
+  name          = "loadbalancer-rule-1"
+  description   = "Loadbalancer rule 1"
   ip_address_id = "30b21801-d4b3-4174-852b-0c0f30bdbbfb"
-  algorithm = "roundrobin"
-  private_port = 80
-  public_port = 80
-  member_ids = ["f8141e2f-4e7e-4c63-9362-986c908b7ea7"]
+  algorithm     = "roundrobin"
+  private_port  = 80
+  public_port   = 80
+  member_ids    = ["f8141e2f-4e7e-4c63-9362-986c908b7ea7"]
 }
 ```
 
@@ -44,7 +44,7 @@ The following arguments are supported:
 * `algorithm` - (Required) Load balancer rule algorithm (source, roundrobin,
     leastconn). Changing this forces a new resource to be created.
 
-* `private_port` - (Required) The private port of the private IP address 
+* `private_port` - (Required) The private port of the private IP address
     (virtual machine) where the network traffic will be load balanced to.
     Changing this forces a new resource to be created.
 

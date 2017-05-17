@@ -5,6 +5,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -18,9 +19,12 @@ func dataSourceAwsCloudFormationStack() *schema.Resource {
 				Required: true,
 			},
 			"template_body": {
-				Type:      schema.TypeString,
-				Computed:  true,
-				StateFunc: normalizeJson,
+				Type:     schema.TypeString,
+				Computed: true,
+				StateFunc: func(v interface{}) string {
+					template, _ := normalizeCloudFormationTemplate(v)
+					return template
+				},
 			},
 			"capabilities": {
 				Type:     schema.TypeSet,
@@ -54,6 +58,10 @@ func dataSourceAwsCloudFormationStack() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
+			"iam_role_arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"tags": {
 				Type:     schema.TypeMap,
 				Computed: true,
@@ -82,6 +90,7 @@ func dataSourceAwsCloudFormationStackRead(d *schema.ResourceData, meta interface
 	d.Set("description", stack.Description)
 	d.Set("disable_rollback", stack.DisableRollback)
 	d.Set("timeout_in_minutes", stack.TimeoutInMinutes)
+	d.Set("iam_role_arn", stack.RoleARN)
 
 	if len(stack.NotificationARNs) > 0 {
 		d.Set("notification_arns", schema.NewSet(schema.HashString, flattenStringList(stack.NotificationARNs)))
@@ -103,7 +112,11 @@ func dataSourceAwsCloudFormationStackRead(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	d.Set("template_body", normalizeJson(*tOut.TemplateBody))
+	template, err := normalizeCloudFormationTemplate(*tOut.TemplateBody)
+	if err != nil {
+		return errwrap.Wrapf("template body contains an invalid JSON or YAML: {{err}}", err)
+	}
+	d.Set("template_body", template)
 
 	return nil
 }

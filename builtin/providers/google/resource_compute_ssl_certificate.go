@@ -2,12 +2,11 @@ package google
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeSslCertificate() *schema.Resource {
@@ -24,9 +23,36 @@ func resourceComputeSslCertificate() *schema.Resource {
 			},
 
 			"name": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					// https://cloud.google.com/compute/docs/reference/latest/sslCertificates#resource
+					value := v.(string)
+					if len(value) > 63 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 63 characters", k))
+					}
+					return
+				},
+			},
+
+			"name_prefix": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					// https://cloud.google.com/compute/docs/reference/latest/sslCertificates#resource
+					// uuid is 26 characters, limit the prefix to 37.
+					value := v.(string)
+					if len(value) > 37 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 37 characters, name is limited to 63", k))
+					}
+					return
+				},
 			},
 
 			"private_key": &schema.Schema{
@@ -68,9 +94,18 @@ func resourceComputeSslCertificateCreate(d *schema.ResourceData, meta interface{
 		return err
 	}
 
+	var certName string
+	if v, ok := d.GetOk("name"); ok {
+		certName = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		certName = resource.PrefixedUniqueId(v.(string))
+	} else {
+		certName = resource.UniqueId()
+	}
+
 	// Build the certificate parameter
 	cert := &compute.SslCertificate{
-		Name:        d.Get("name").(string),
+		Name:        certName,
 		Certificate: d.Get("certificate").(string),
 		PrivateKey:  d.Get("private_key").(string),
 	}
@@ -107,15 +142,7 @@ func resourceComputeSslCertificateRead(d *schema.ResourceData, meta interface{})
 	cert, err := config.clientCompute.SslCertificates.Get(
 		project, d.Id()).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing SSL Certificate %q because it's gone", d.Get("name").(string))
-			// The resource doesn't exist anymore
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error reading ssl certificate: %s", err)
+		return handleNotFoundError(err, d, fmt.Sprintf("SSL Certificate %q", d.Get("name").(string)))
 	}
 
 	d.Set("self_link", cert.SelfLink)

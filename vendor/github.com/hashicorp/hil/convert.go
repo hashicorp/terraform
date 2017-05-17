@@ -8,6 +8,11 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+// UnknownValue is a sentinel value that can be used to denote
+// that a value of a variable (or map element, list element, etc.)
+// is unknown. This will always have the type ast.TypeUnknown.
+const UnknownValue = "74D93920-ED26-11E3-AC10-0800200C9A66"
+
 var hilMapstructureDecodeHookSlice []interface{}
 var hilMapstructureDecodeHookStringSlice []string
 var hilMapstructureDecodeHookMap map[string]interface{}
@@ -48,6 +53,12 @@ func InterfaceToVariable(input interface{}) (ast.Variable, error) {
 
 	var stringVal string
 	if err := hilMapstructureWeakDecode(input, &stringVal); err == nil {
+		// Special case the unknown value to turn into "unknown"
+		if stringVal == UnknownValue {
+			return ast.Variable{Value: UnknownValue, Type: ast.TypeUnknown}, nil
+		}
+
+		// Otherwise return the string value
 		return ast.Variable{
 			Type:  ast.TypeString,
 			Value: stringVal,

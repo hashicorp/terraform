@@ -12,18 +12,11 @@ import (
 
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
-		DataSourcesMap: map[string]*schema.Resource{
-			"tls_cert_request": dataSourceCertRequest(),
-		},
 		ResourcesMap: map[string]*schema.Resource{
 			"tls_private_key":         resourcePrivateKey(),
 			"tls_locally_signed_cert": resourceLocallySignedCert(),
 			"tls_self_signed_cert":    resourceSelfSignedCert(),
-
-			"tls_cert_request": schema.DataSourceResourceShim(
-				"tls_cert_request",
-				dataSourceCertRequest(),
-			),
+			"tls_cert_request":        resourceCertRequest(),
 		},
 	}
 }
