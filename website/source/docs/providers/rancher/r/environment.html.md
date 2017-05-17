@@ -18,6 +18,18 @@ resource "rancher_environment" "default" {
   name = "staging"
   description = "The staging environment"
   orchestration = "cattle"
+
+  member {
+    external_id = "650430"
+    external_id_type = "github_user"
+    role = "owner"
+  }
+
+  member {
+    external_id = "1234"
+    external_id_type = "github_team"
+    role = "member"
+  }
 }
 ```
 
@@ -28,6 +40,7 @@ The following arguments are supported:
 * `name` - (Required) The name of the environment.
 * `description` - (Optional) An environment description.
 * `orchestration` - (Optional) Must be one of **cattle**, **swarm**, **mesos** or **kubernetes**. Defaults to **cattle**.
+* `member` - (Optional) Members to add to the environment. Each member has `external_id`, `external_id_type` and `role` values.
 
 ## Attributes Reference
 
