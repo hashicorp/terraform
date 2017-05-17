@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/terraform"
@@ -313,6 +314,96 @@ func TestImport_customProvider(t *testing.T) {
 	}
 
 	testStateOutput(t, statePath, testImportCustomProviderStr)
+}
+
+func TestImport_dataResource(t *testing.T) {
+	defer testChdir(t, testFixturePath("import-missing-resource-config"))()
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ImportCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"data.test_data_source.foo",
+		"bar",
+	}
+	code := c.Run(args)
+	if code != 1 {
+		t.Fatalf("import succeeded; expected failure")
+	}
+
+	msg := ui.ErrorWriter.String()
+	if want := `resource address must refer to a managed resource`; !strings.Contains(msg, want) {
+		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
+	}
+}
+
+func TestImport_invalidResourceAddr(t *testing.T) {
+	defer testChdir(t, testFixturePath("import-missing-resource-config"))()
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ImportCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"bananas",
+		"bar",
+	}
+	code := c.Run(args)
+	if code != 1 {
+		t.Fatalf("import succeeded; expected failure")
+	}
+
+	msg := ui.ErrorWriter.String()
+	if want := `invalid resource address "bananas"`; !strings.Contains(msg, want) {
+		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
+	}
+}
+
+func TestImport_targetIsModule(t *testing.T) {
+	defer testChdir(t, testFixturePath("import-missing-resource-config"))()
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ImportCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"module.foo",
+		"bar",
+	}
+	code := c.Run(args)
+	if code != 1 {
+		t.Fatalf("import succeeded; expected failure")
+	}
+
+	msg := ui.ErrorWriter.String()
+	if want := `resource address must include a full resource spec`; !strings.Contains(msg, want) {
+		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
+	}
 }
 
 const testImportStr = `
