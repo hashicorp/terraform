@@ -394,6 +394,9 @@ resource "aws_rds_cluster" "test" {
 
 resource "aws_vpc" "test" {
   cidr_block = "10.0.0.0/16"
+	tags {
+		Name = "testAccAWSClusterConfig_namePrefix"
+	}
 }
 
 resource "aws_subnet" "a" {
@@ -426,6 +429,9 @@ resource "aws_rds_cluster" "test" {
 
 resource "aws_vpc" "test" {
   cidr_block = "10.0.0.0/16"
+	tags {
+		Name = "testAccAWSClusterConfig_generatedName"
+	}
 }
 
 resource "aws_subnet" "a" {

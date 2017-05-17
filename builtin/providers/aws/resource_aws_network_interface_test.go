@@ -291,6 +291,9 @@ func testAccCheckAWSENIMakeExternalAttachment(n string, conf *ec2.NetworkInterfa
 const testAccAWSENIConfig = `
 resource "aws_vpc" "foo" {
     cidr_block = "172.16.0.0/16"
+		tags {
+			Name = "testAccAWSENIConfig"
+		}
 }
 
 resource "aws_subnet" "foo" {
@@ -326,6 +329,9 @@ resource "aws_network_interface" "bar" {
 const testAccAWSENIConfigUpdatedDescription = `
 resource "aws_vpc" "foo" {
     cidr_block = "172.16.0.0/16"
+		tags {
+			Name = "testAccAWSENIConfigUpdatedDescription"
+		}
 }
 
 resource "aws_subnet" "foo" {
@@ -361,6 +367,9 @@ resource "aws_network_interface" "bar" {
 const testAccAWSENIConfigWithSourceDestCheck = `
 resource "aws_vpc" "foo" {
     cidr_block = "172.16.0.0/16"
+		tags {
+			Name = "testAccAWSENIConfigWithSourceDestCheck"
+		}
 }
 
 resource "aws_subnet" "foo" {
@@ -379,6 +388,9 @@ resource "aws_network_interface" "bar" {
 const testAccAWSENIConfigWithNoPrivateIPs = `
 resource "aws_vpc" "foo" {
     cidr_block = "172.16.0.0/16"
+		tags {
+			Name = "testAccAWSENIConfigWithNoPrivateIPs"
+		}
 }
 
 resource "aws_subnet" "foo" {
