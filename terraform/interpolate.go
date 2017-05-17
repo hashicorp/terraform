@@ -731,6 +731,19 @@ func (i *Interpolater) resourceCountMax(
 		return count, nil
 	}
 
+	// If we have no module state in the apply walk, that suggests we've hit
+	// a rather awkward edge-case: the resource this variable refers to
+	// has count = 0 and is the only resource processed so far on this walk,
+	// and so we've ended up not creating any resource states yet. We don't
+	// create a module state until the first resource is written into it,
+	// so the module state doesn't exist when we get here.
+	//
+	// In this case we act as we would if we had been passed a module
+	// with an empty resource state map.
+	if ms == nil {
+		return 0, nil
+	}
+
 	// We need to determine the list of resource keys to get values from.
 	// This needs to be sorted so the order is deterministic. We used to
 	// use "cr.Count()" but that doesn't work if the count is interpolated

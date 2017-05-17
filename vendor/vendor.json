@@ -1827,10 +1827,10 @@
 			"revisionTime": "2017-03-10T01:59:53Z"
 		},
 		{
-			"checksumSHA1": "CsS/kI3VeLcSHzMKviFVDwqwgvk=",
+			"checksumSHA1": "E/5q7DTCoOD15K1KGFXSwFCGDE4=",
 			"path": "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/rules",
-			"revision": "0f64da0e36de86a0ca1a8f2fc1b0570a0d3f7504",
-			"revisionTime": "2017-03-10T01:59:53Z"
+			"revision": "ce1e02c3ccfdb7fab257340dc4d603ec3035fa11",
+			"revisionTime": "2017-05-08T02:10:49Z"
 		},
 		{
 			"checksumSHA1": "zKOhFTL5BDZPMC58ZzZkryjskno=",
@@ -2196,6 +2196,12 @@
 			"path": "github.com/hashicorp/serf/serf",
 			"revision": "19f2c401e122352c047a84d6584dd51e2fb8fcc4",
 			"revisionTime": "2017-03-08T19:39:51Z"
+		},
+		{
+			"checksumSHA1": "hLWb02UbO5qsAjY/ybjHn/hpTII=",
+			"path": "github.com/hashicorp/terraform-provider-opc/opc",
+			"revision": "6460e4eec5cffcc804fe9911860df0c13c5d945f",
+			"revisionTime": "2017-05-10T18:47:02Z"
 		},
 		{
 			"checksumSHA1": "2fkVZIzvxIGBLhSiVnkTgGiqpQ4=",
@@ -2775,6 +2781,12 @@
 			"revisionTime": "2017-01-24T12:11:56Z"
 		},
 		{
+			"checksumSHA1": "9vQ5+o0oO/0deG+uokvvdpeSv0Y=",
+			"path": "github.com/ovh/go-ovh/ovh",
+			"revision": "d2207178e10e4527e8f222fd8707982df8c3af17",
+			"revisionTime": "2017-01-02T12:05:21Z"
+		},
+		{
 			"checksumSHA1": "d1VHczIGt2bhYR0BNkTedIS/9uk=",
 			"path": "github.com/packer-community/winrmcp/winrmcp",
 			"revision": "3d184cea22ee1c41ec1697e0d830ff0c78f7ea97"
@@ -2974,16 +2986,16 @@
 			"revisionTime": "2016-09-28T01:52:44Z"
 		},
 		{
-			"checksumSHA1": "y4ihcZrjJdyQDnsKLelo9/1MjqE=",
+			"checksumSHA1": "cm+mGoVXAuESxVeudG1FSIN0lv4=",
 			"path": "github.com/ukcloud/govcloudair",
-			"revision": "9076b4221ebf430944c716c798e904e00cbaa89d",
-			"revisionTime": "2017-01-31T00:00:54Z"
+			"revision": "3c7799ae4b9cd5896a77990514578681c837c7bb",
+			"revisionTime": "2017-04-12T09:42:31Z"
 		},
 		{
-			"checksumSHA1": "CridJfrpcrjMdXnf7PbqA/+7wuY=",
+			"checksumSHA1": "8FHandxT6XIwsawRe0eNupivqho=",
 			"path": "github.com/ukcloud/govcloudair/types/v56",
-			"revision": "9076b4221ebf430944c716c798e904e00cbaa89d",
-			"revisionTime": "2017-01-31T00:00:54Z"
+			"revision": "3c7799ae4b9cd5896a77990514578681c837c7bb",
+			"revisionTime": "2017-04-12T09:42:31Z"
 		},
 		{
 			"checksumSHA1": "CdE9OUEGLn2pAv1UMuM5rSlaUpM=",

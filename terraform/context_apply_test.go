@@ -3447,6 +3447,36 @@ func TestContext2Apply_multiVarCountDec(t *testing.T) {
 	}
 }
 
+// Test that we can resolve a multi-var (splat) for the first resource
+// created in a non-root module, which happens when the module state doesn't
+// exist yet.
+// https://github.com/hashicorp/terraform/issues/14438
+func TestContext2Apply_multiVarMissingState(t *testing.T) {
+	m := testModule(t, "apply-multi-var-missing-state")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	// First, apply with a count of 3
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"test": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("plan failed: %s", err)
+	}
+
+	// Before the relevant bug was fixed, Terraform would panic during apply.
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("apply failed: %s", err)
+	}
+
+	// If we get here with no errors or panics then our test was successful.
+}
+
 func TestContext2Apply_nilDiff(t *testing.T) {
 	m := testModule(t, "apply-good")
 	p := testProvider("aws")
