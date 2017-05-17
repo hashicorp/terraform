@@ -8,6 +8,7 @@ FEATURES:
 
 * **New Provider:** `OVH` [GH-12669]
 * **New Resource:** `aws_default_subnet` [GH-14476]
+* **New Resource:** `aws_default_vpc` [GH-11710]
 * **New Resource:** `aws_default_vpc_dhcp_options` [GH-14475]
 * **New Resource:** `aws_devicefarm_project` [GH-14288]
 * **New Resource:** `aws_wafregion_ipset` [GH-13705]
