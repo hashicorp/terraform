@@ -114,12 +114,14 @@ func resourceRancherEnvironmentCreate(d *schema.ResourceData, meta interface{}) 
 	if err != nil {
 		return err
 	}
-	members := d.Get("members").([]interface{})
-	_, err = envClient.Project.ActionSetmembers(&newEnv, &rancherClient.SetProjectMembersInput{
-		Members: members,
-	})
-	if err != nil {
-		return err
+	if v, ok := d.GetOk("members"); ok {
+		members := v.([]interface{})
+		_, err = envClient.Project.ActionSetmembers(&newEnv, &rancherClient.SetProjectMembersInput{
+			Members: members,
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	return resourceRancherEnvironmentRead(d, meta)
