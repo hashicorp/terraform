@@ -96,13 +96,14 @@ variable "aad_client_secret" {
   description = "Client Secret of AAD app which has permissions to KeyVault"
 }
 
-# variable "disk_format_query" {
-#   description = "The query string used to identify the disks to format and encrypt. This parameter only works when you set the EncryptionOperation as EnableEncryptionFormat. For example, passing [{\"dev_path\":\"/dev/md0\",\"name\":\"encryptedraid\",\"file_system\":\"ext4\"}] will format /dev/md0, encrypt it and mount it at /mnt/dataraid. This parameter should only be used for RAID devices. The specified device must not have any existing filesystem on it."
-# }
+variable "disk_format_query" {
+  description = "The query string used to identify the disks to format and encrypt. This parameter only works when you set the EncryptionOperation as EnableEncryptionFormat. For example, passing [{\"dev_path\":\"/dev/md0\",\"name\":\"encryptedraid\",\"file_system\":\"ext4\"}] will format /dev/md0, encrypt it and mount it at /mnt/dataraid. This parameter should only be used for RAID devices. The specified device must not have any existing filesystem on it."
+  default = ""
+}
 
 variable "encryption_operation" {
   description = "EnableEncryption would encrypt the disks in place and EnableEncryptionFormat would format the disks directly"
-  default     = true
+  default     = "EnableEncryption"
 }
 
 variable "volume_type" {
@@ -110,20 +111,23 @@ variable "volume_type" {
   default     = "Data"
 }
 
-# variable "key_encryption_key_url" {
-#   description = "URL of the KeyEncryptionKey used to encrypt the volume encryption key"
-#   default     = ""
-# }
+variable "key_encryption_key_url" {
+  description = "URL of the KeyEncryptionKey used to encrypt the volume encryption key"
+}
+
+variable "vault_name" {
+  description = "name of the vault"
+}
 
 # variable "passphrase" {
 #   description = "The passphrase for the disks"
 # }
 
 
-# variable "sequenceVersion" {
-#   description = "sequence version of the bitlocker operation. Increment this everytime an operation is performed on the same VM"
-#   default     = 1
-# }
+variable "sequenceVersion" {
+  description = "sequence version of the bitlocker operation. Increment this everytime an operation is performed on the same VM"
+  default     = 1
+}
 
 
 # variable "useKek" {
