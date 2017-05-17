@@ -14,10 +14,10 @@ Stores the state as an artifact in [Manta](https://www.joyent.com/manta).
 
 ## Example Configuration
 
-```
+```hcl
 terraform {
   backend "manta" {
-    path = "random/path"
+    path       = "random/path"
     objectName = "terraform.tfstate"
   }
 }
@@ -28,13 +28,13 @@ Note that for the access credentials we recommend using a
 
 ## Example Referencing
 
-```
+```hcl
 data "terraform_remote_state" "foo" {
-	backend = "manta"
-	config {
-		path = "random/path"
-		objectName = "terraform.tfstate"
-	}
+  backend = "manta"
+  config {
+    path       = "random/path"
+    objectName = "terraform.tfstate"
+  }
 }
 ```
 

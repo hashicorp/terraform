@@ -13,7 +13,7 @@ Creates a Lambda permission to allow external sources invoking the Lambda functi
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_lambda_permission" "allow_cloudwatch" {
   statement_id   = "AllowExecutionFromCloudWatch"
   action         = "lambda:InvokeFunction"
@@ -62,7 +62,7 @@ EOF
 
 ## Usage with SNS
 
-```
+```hcl
 resource "aws_lambda_permission" "with_sns" {
   statement_id  = "AllowExecutionFromSNS"
   action        = "lambda:InvokeFunction"

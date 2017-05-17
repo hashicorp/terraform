@@ -6,8 +6,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccOpenStackNetworkingFloatingIPV2_importBasic(t *testing.T) {
-	resourceName := "openstack_networking_floatingip_v2.foo"
+func TestAccNetworkingV2FloatingIP_importBasic(t *testing.T) {
+	resourceName := "openstack_networking_floatingip_v2.fip_1"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },

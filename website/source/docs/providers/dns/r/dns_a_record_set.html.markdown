@@ -6,19 +6,23 @@ description: |-
   Creates a A type DNS record set.
 ---
 
-# dns\_a\_record\_set
+# dns_a_record_set
 
 Creates a A type DNS record set.
 
 ## Example Usage
 
-```
-  resource "dns_a_record_set" "www" {
-    zone = "example.com."
-    name = "www"
-    addresses = ["192.168.0.1", "192.168.0.2", "192.168.0.3"]
-    ttl = 300
-  }
+```hcl
+resource "dns_a_record_set" "www" {
+  zone = "example.com."
+  name = "www"
+  addresses = [
+    "192.168.0.1",
+    "192.168.0.2",
+    "192.168.0.3",
+  ]
+  ttl = 300
+}
 ```
 
 ## Argument Reference
@@ -38,4 +42,3 @@ The following attributes are exported:
 * `name` - See Argument Reference above.
 * `addresses` - See Argument Reference above.
 * `ttl` - See Argument Reference above.
-

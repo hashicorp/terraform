@@ -6,13 +6,13 @@ description: |-
   Assosciates an SSM Document to an instance.
 ---
 
-# aws\_ssm\_association
+# aws_ssm_association
 
 Assosciates an SSM Document to an instance.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_security_group" "tf_test_foo" {
   name        = "tf_test_foo"
   description = "foo"
@@ -68,8 +68,9 @@ resource "aws_ssm_association" "foo" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the SSM document to apply.
-* `instance_id` - (Required) The instance id to apply an SSM document to.
+* `instance_id` - (Optional) The instance id to apply an SSM document to.
 * `parameters` - (Optional) Additional parameters to pass to the SSM document.
+* `targets` - (Optional) The targets (either instances or tags). Instances are specified using Key=instanceids,Values=instanceid1,instanceid2. Tags are specified using Key=tag name,Values=tag value. Only 1 target is currently supported by AWS.
 
 ## Attributes Reference
 

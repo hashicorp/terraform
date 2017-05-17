@@ -64,20 +64,24 @@ func DefaultClient() *Client {
 	return client
 }
 
-// NewClient creates a new API client with the given key. Because Fastly allows
-// some requests without an API key, this function will not error if the API
-// token is not supplied. Attempts to make a request that requires an API key
-// will return a 403 response.
+// NewClient creates a new API client with the given key and the default API
+// endpoint. Because Fastly allows some requests without an API key, this
+// function will not error if the API token is not supplied. Attempts to make a
+// request that requires an API key will return a 403 response.
 func NewClient(key string) (*Client, error) {
-	client := &Client{apiKey: key}
+	return NewClientForEndpoint(key, DefaultEndpoint)
+}
+
+// NewClientForEndpoint creates a new API client with the given key and API
+// endpoint. Because Fastly allows some requests without an API key, this
+// function will not error if the API token is not supplied. Attempts to make a
+// request that requires an API key will return a 403 response.
+func NewClientForEndpoint(key string, endpoint string) (*Client, error) {
+	client := &Client{apiKey: key, Address: endpoint}
 	return client.init()
 }
 
 func (c *Client) init() (*Client, error) {
-	if len(c.Address) == 0 {
-		c.Address = DefaultEndpoint
-	}
-
 	u, err := url.Parse(c.Address)
 	if err != nil {
 		return nil, err
@@ -155,7 +159,7 @@ func (c *Client) RequestForm(verb, p string, i interface{}, ro *RequestOptions) 
 	ro.Headers["Content-Type"] = "application/x-www-form-urlencoded"
 
 	buf := new(bytes.Buffer)
-	if err := form.NewEncoder(buf).DelimitWith('|').Encode(i); err != nil {
+	if err := form.NewEncoder(buf).KeepZeros(true).DelimitWith('|').Encode(i); err != nil {
 		return nil, err
 	}
 	body := buf.String()

@@ -23,7 +23,7 @@ For more information on Amazon Aurora, see [Aurora on Amazon RDS][2] in the Amaz
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_rds_cluster_instance" "cluster_instances" {
   count              = 2
   identifier         = "aurora-cluster-demo-${count.index}"
@@ -75,6 +75,7 @@ what IAM permissions are needed to allow Enhanced Monitoring for RDS Instances.
   Eg: "04:00-09:00"
 * `preferred_maintenance_window` - (Optional) The window to perform maintenance in.
   Syntax: "ddd:hh24:mi-ddd:hh24:mi". Eg: "Mon:00:00-Mon:03:00".
+* `auto_minor_version_upgrade` - (Optional) Indicates that minor engine upgrades will be applied automatically to the DB instance during the maintenance window. Default `true`.
 * `tags` - (Optional) A mapping of tags to assign to the instance.
 
 ## Attributes Reference
@@ -102,6 +103,17 @@ this instance is a read replica
 [4]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Aurora.Managing.html
 [5]: /docs/configuration/resources.html#count
 [6]: https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstance.html
+
+## Timeouts
+
+`aws_rds_cluster_instance` provides the following
+[Timeouts](/docs/configuration/resources.html#timeouts) configuration options:
+
+- `create` - (Default `90 minutes`) Used for Creating Instances, Replicas, and
+restoring from Snapshots
+- `update` - (Default `90 minutes`) Used for Database modifications
+- `delete` - (Default `90 minutes`) Used for destroying databases. This includes
+the time required to take snapshots
 
 ## Import
 

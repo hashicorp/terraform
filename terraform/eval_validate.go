@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/mitchellh/mapstructure"
 )
 
 // EvalValidateError is the error structure returned if there were
@@ -85,12 +86,31 @@ func (n *EvalValidateProvider) Eval(ctx EvalContext) (interface{}, error) {
 type EvalValidateProvisioner struct {
 	Provisioner *ResourceProvisioner
 	Config      **ResourceConfig
+	ConnConfig  **ResourceConfig
 }
 
 func (n *EvalValidateProvisioner) Eval(ctx EvalContext) (interface{}, error) {
 	provisioner := *n.Provisioner
 	config := *n.Config
-	warns, errs := provisioner.Validate(config)
+	var warns []string
+	var errs []error
+
+	{
+		// Validate the provisioner's own config first
+		w, e := provisioner.Validate(config)
+		warns = append(warns, w...)
+		errs = append(errs, e...)
+	}
+
+	{
+		// Now validate the connection config, which might either be from
+		// the provisioner block itself or inherited from the resource's
+		// shared connection info.
+		w, e := n.validateConnConfig(*n.ConnConfig)
+		warns = append(warns, w...)
+		errs = append(errs, e...)
+	}
+
 	if len(warns) == 0 && len(errs) == 0 {
 		return nil, nil
 	}
@@ -99,6 +119,64 @@ func (n *EvalValidateProvisioner) Eval(ctx EvalContext) (interface{}, error) {
 		Warnings: warns,
 		Errors:   errs,
 	}
+}
+
+func (n *EvalValidateProvisioner) validateConnConfig(connConfig *ResourceConfig) (warns []string, errs []error) {
+	// We can't comprehensively validate the connection config since its
+	// final structure is decided by the communicator and we can't instantiate
+	// that until we have a complete instance state. However, we *can* catch
+	// configuration keys that are not valid for *any* communicator, catching
+	// typos early rather than waiting until we actually try to run one of
+	// the resource's provisioners.
+
+	type connConfigSuperset struct {
+		// All attribute types are interface{} here because at this point we
+		// may still have unresolved interpolation expressions, which will
+		// appear as strings regardless of the final goal type.
+
+		Type       interface{} `mapstructure:"type"`
+		User       interface{} `mapstructure:"user"`
+		Password   interface{} `mapstructure:"password"`
+		Host       interface{} `mapstructure:"host"`
+		Port       interface{} `mapstructure:"port"`
+		Timeout    interface{} `mapstructure:"timeout"`
+		ScriptPath interface{} `mapstructure:"script_path"`
+
+		// For type=ssh only (enforced in ssh communicator)
+		PrivateKey        interface{} `mapstructure:"private_key"`
+		Agent             interface{} `mapstructure:"agent"`
+		BastionHost       interface{} `mapstructure:"bastion_host"`
+		BastionPort       interface{} `mapstructure:"bastion_port"`
+		BastionUser       interface{} `mapstructure:"bastion_user"`
+		BastionPassword   interface{} `mapstructure:"bastion_password"`
+		BastionPrivateKey interface{} `mapstructure:"bastion_private_key"`
+
+		// For type=winrm only (enforced in winrm communicator)
+		HTTPS    interface{} `mapstructure:"https"`
+		Insecure interface{} `mapstructure:"insecure"`
+		CACert   interface{} `mapstructure:"cacert"`
+	}
+
+	var metadata mapstructure.Metadata
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		Metadata: &metadata,
+		Result:   &connConfigSuperset{}, // result is disregarded; we only care about unused keys
+	})
+	if err != nil {
+		// should never happen
+		errs = append(errs, err)
+		return
+	}
+
+	if err := decoder.Decode(connConfig.Config); err != nil {
+		errs = append(errs, err)
+		return
+	}
+
+	for _, attrName := range metadata.Unused {
+		errs = append(errs, fmt.Errorf("unknown 'connection' argument %q", attrName))
+	}
+	return
 }
 
 // EvalValidateResource is an EvalNode implementation that validates

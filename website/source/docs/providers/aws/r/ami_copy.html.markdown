@@ -22,7 +22,7 @@ block until the new AMI is available for use on new instances.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_ami_copy" "example" {
   name              = "terraform-example"
   description       = "A copy of ami-xxxxxxxx"

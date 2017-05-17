@@ -1,7 +1,7 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_subnet"
-sidebar_current: "docs-aws-datasource-subnet"
+sidebar_current: "docs-aws-datasource-subnet-x"
 description: |-
     Provides details about a specific VPC subnet
 ---
@@ -20,7 +20,7 @@ The following example shows how one might accept a subnet id as a variable
 and use this data source to obtain the data necessary to create a security
 group that allows connections from hosts in that subnet.
 
-```
+```hcl
 variable "subnet_id" {}
 
 data "aws_subnet" "selected" {
@@ -49,6 +49,8 @@ subnet whose data will be exported as attributes.
   subnet must reside.
 
 * `cidr_block` - (Optional) The cidr block of the desired subnet.
+
+* `ipv6_cidr_block` - (Optional) The Ipv6 cidr block of the desired subnet
 
 * `default_for_az` - (Optional) Boolean constraint for whether the desired
   subnet must be the default subnet for its associated availability zone.

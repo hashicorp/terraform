@@ -122,6 +122,12 @@ func resourcePostgreSQLDatabaseCreate(d *schema.ResourceData, meta interface{}) 
 	b := bytes.NewBufferString("CREATE DATABASE ")
 	fmt.Fprint(b, pq.QuoteIdentifier(dbName))
 
+	//needed in order to set the owner of the db if the connection user is not a superuser
+	err = grantRoleMembership(conn, d.Get(dbOwnerAttr).(string), c.username)
+	if err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Error granting role membership on  database %s: {{err}}", dbName), err)
+	}
+
 	// Handle each option individually and stream results into the query
 	// buffer.
 
@@ -462,5 +468,20 @@ func doSetDBIsTemplate(conn *sql.DB, dbName string, isTemplate bool) error {
 		return errwrap.Wrapf("Error updating database IS_TEMPLATE: {{err}}", err)
 	}
 
+	return nil
+}
+
+func grantRoleMembership(conn *sql.DB, dbOwner string, connUsername string) error {
+	if dbOwner != "" && dbOwner != connUsername {
+		query := fmt.Sprintf("GRANT %s TO %s", pq.QuoteIdentifier(dbOwner), pq.QuoteIdentifier(connUsername))
+		_, err := conn.Query(query)
+		if err != nil {
+			// is already member or role
+			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+				return nil
+			}
+			return errwrap.Wrapf("Error granting membership: {{err}}", err)
+		}
+	}
 	return nil
 }

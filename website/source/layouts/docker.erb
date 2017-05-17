@@ -1,47 +1,47 @@
 <% wrap_layout :inner do %>
-	<% content_for :sidebar do %>
-		<div class="docs-sidebar hidden-print affix-top" role="complementary">
-			<ul class="nav docs-sidenav">
-				<li<%= sidebar_current("docs-home") %>>
-				<a href="/docs/providers/index.html">&laquo; Documentation Home</a>
-				</li>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+        <a href="/docs/providers/index.html">All Providers</a>
+        </li>
 
-				<li<%= sidebar_current("docs-docker-index") %>>
-					<a href="/docs/providers/docker/index.html">Docker Provider</a>
-				</li>
+        <li<%= sidebar_current("docs-docker-index") %>>
+          <a href="/docs/providers/docker/index.html">Docker Provider</a>
+        </li>
 
-				<li<%= sidebar_current(/^docs-docker-datasource/) %>>
-					<a href="#">Data Sources</a>
-					<ul class="nav nav-visible">
-						<li<%= sidebar_current("docs-docker-datasource-registry-image") %>>
-							<a href="/docs/providers/docker/d/registry_image.html">docker_registry_image</a>
-						</li>
-					</ul>
-				</li>
+        <li<%= sidebar_current("docs-docker-datasource") %>>
+          <a href="#">Data Sources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-docker-datasource-registry-image") %>>
+              <a href="/docs/providers/docker/d/registry_image.html">docker_registry_image</a>
+            </li>
+          </ul>
+        </li>
 
-				<li<%= sidebar_current(/^docs-docker-resource/) %>>
-					<a href="#">Resources</a>
-					<ul class="nav nav-visible">
-						<li<%= sidebar_current("docs-docker-resource-container") %>>
-							<a href="/docs/providers/docker/r/container.html">docker_container</a>
-						</li>
+        <li<%= sidebar_current("docs-docker-resource") %>>
+          <a href="#">Resources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-docker-resource-container") %>>
+              <a href="/docs/providers/docker/r/container.html">docker_container</a>
+            </li>
 
-						<li<%= sidebar_current("docs-docker-resource-image") %>>
-							<a href="/docs/providers/docker/r/image.html">docker_image</a>
-						</li>
+            <li<%= sidebar_current("docs-docker-resource-image") %>>
+              <a href="/docs/providers/docker/r/image.html">docker_image</a>
+            </li>
 
-						<li<%= sidebar_current("docs-docker-resource-network") %>>
-							<a href="/docs/providers/docker/r/network.html">docker_network</a>
+            <li<%= sidebar_current("docs-docker-resource-network") %>>
+              <a href="/docs/providers/docker/r/network.html">docker_network</a>
                         </li>
 
-						<li<%= sidebar_current("docs-docker-resource-volume") %>>
- 							<a href="/docs/providers/docker/r/volume.html">docker_volume</a>
+            <li<%= sidebar_current("docs-docker-resource-volume") %>>
+               <a href="/docs/providers/docker/r/volume.html">docker_volume</a>
                         </li>
-					</ul>
-				</li>
-			</ul>
-		</div>
-	<% end %>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
 
-	<%= yield %>
+  <%= yield %>
 <% end %>

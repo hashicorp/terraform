@@ -14,8 +14,7 @@ The `triton_machine` resource represents a virtual machine or infrastructure con
 
 ### Run a SmartOS base-64 machine.
 
-
-```
+```hcl
 resource "triton_machine" "test-smartos" {
   name    = "test-smartos"
   package = "g3-standard-0.25-smartos"
@@ -29,7 +28,7 @@ resource "triton_machine" "test-smartos" {
 
 ### Run an Ubuntu 14.04 LTS machine.
 
-```
+```hcl
 resource "triton_machine" "test-ubuntu" {
   name                 = "test-ubuntu"
   package              = "g4-general-4G"
@@ -43,8 +42,6 @@ resource "triton_machine" "test-ubuntu" {
   } ## tags
 } ## resource
 ```
-
-
 
 ## Argument Reference
 
@@ -79,6 +76,9 @@ The following arguments are supported:
 
 * `administrator_pw` - (string)
     The initial password for the Administrator user. Only used for Windows virtual machines.
+
+* `cloud_config` - (string)
+    Cloud-init configuration for Linux brand machines, used instead of `user_data`.
 
 The nested `nic` block supports the following:
 * `network` - (string, Optional)

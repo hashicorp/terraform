@@ -2,27 +2,27 @@ package triton
 
 import (
 	"bytes"
+	"context"
+	"crypto/tls"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/joyent/triton-go/authentication"
 )
 
+const nilContext = "nil context"
+
 // Client represents a connection to the Triton API.
 type Client struct {
-	client      *retryablehttp.Client
+	client      *http.Client
 	authorizer  []authentication.Signer
-	endpoint    string
+	apiURL      url.URL
 	accountName string
 }
 
@@ -32,50 +32,61 @@ type Client struct {
 // At least one signer must be provided - example signers include
 // authentication.PrivateKeySigner and authentication.SSHAgentSigner.
 func NewClient(endpoint string, accountName string, signers ...authentication.Signer) (*Client, error) {
-	defaultRetryWaitMin := 1 * time.Second
-	defaultRetryWaitMax := 5 * time.Minute
-	defaultRetryMax := 32
+	apiURL, err := url.Parse(endpoint)
+	if err != nil {
+		return nil, errwrap.Wrapf("invalid endpoint: {{err}}", err)
+	}
+
+	if accountName == "" {
+		return nil, errors.New("account name can not be empty")
+	}
 
 	httpClient := &http.Client{
-		Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
-			Dial: (&net.Dialer{
-				Timeout:   30 * time.Second,
-				KeepAlive: 30 * time.Second,
-			}).Dial,
-			TLSHandshakeTimeout: 10 * time.Second,
-			DisableKeepAlives:   true,
-			MaxIdleConnsPerHost: -1,
-		},
+		Transport:     httpTransport(false),
 		CheckRedirect: doNotFollowRedirects,
 	}
 
-	retryableClient := &retryablehttp.Client{
-		HTTPClient:   httpClient,
-		Logger:       log.New(os.Stderr, "", log.LstdFlags),
-		RetryWaitMin: defaultRetryWaitMin,
-		RetryWaitMax: defaultRetryWaitMax,
-		RetryMax:     defaultRetryMax,
-		CheckRetry:   retryablehttp.DefaultRetryPolicy,
-	}
-
 	return &Client{
-		client:      retryableClient,
+		client:      httpClient,
 		authorizer:  signers,
-		endpoint:    strings.TrimSuffix(endpoint, "/"),
+		apiURL:      *apiURL,
 		accountName: accountName,
 	}, nil
+}
+
+// InsecureSkipTLSVerify turns off TLS verification for the client connection. This
+// allows connection to an endpoint with a certificate which was signed by a non-
+// trusted CA, such as self-signed certificates. This can be useful when connecting
+// to temporary Triton installations such as Triton Cloud-On-A-Laptop.
+func (c *Client) InsecureSkipTLSVerify() {
+	if c.client == nil {
+		return
+	}
+
+	c.client.Transport = httpTransport(true)
+}
+
+func httpTransport(insecureSkipTLSVerify bool) *http.Transport {
+	return &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		Dial: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).Dial,
+		TLSHandshakeTimeout: 10 * time.Second,
+		DisableKeepAlives:   true,
+		MaxIdleConnsPerHost: -1,
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: insecureSkipTLSVerify,
+		},
+	}
 }
 
 func doNotFollowRedirects(*http.Request, []*http.Request) error {
 	return http.ErrUseLastResponse
 }
 
-func (c *Client) formatURL(path string) string {
-	return fmt.Sprintf("%s%s", c.endpoint, path)
-}
-
-func (c *Client) executeRequestURIParams(method, path string, body interface{}, query *url.Values) (io.ReadCloser, error) {
+func (c *Client) executeRequestURIParams(ctx context.Context, method, path string, body interface{}, query *url.Values) (io.ReadCloser, error) {
 	var requestBody io.ReadSeeker
 	if body != nil {
 		marshaled, err := json.MarshalIndent(body, "", "    ")
@@ -85,7 +96,13 @@ func (c *Client) executeRequestURIParams(method, path string, body interface{}, 
 		requestBody = bytes.NewReader(marshaled)
 	}
 
-	req, err := retryablehttp.NewRequest(method, c.formatURL(path), requestBody)
+	endpoint := c.apiURL
+	endpoint.Path = path
+	if query != nil {
+		endpoint.RawQuery = query.Encode()
+	}
+
+	req, err := http.NewRequest(method, endpoint.String(), requestBody)
 	if err != nil {
 		return nil, errwrap.Wrapf("Error constructing HTTP request: {{err}}", err)
 	}
@@ -106,11 +123,7 @@ func (c *Client) executeRequestURIParams(method, path string, body interface{}, 
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	if query != nil {
-		req.URL.RawQuery = query.Encode()
-	}
-
-	resp, err := c.client.Do(req)
+	resp, err := c.client.Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, errwrap.Wrapf("Error executing HTTP request: {{err}}", err)
 	}
@@ -123,23 +136,23 @@ func (c *Client) executeRequestURIParams(method, path string, body interface{}, 
 }
 
 func (c *Client) decodeError(statusCode int, body io.Reader) error {
-	tritonError := &TritonError{
+	err := &TritonError{
 		StatusCode: statusCode,
 	}
 
 	errorDecoder := json.NewDecoder(body)
-	if err := errorDecoder.Decode(tritonError); err != nil {
+	if err := errorDecoder.Decode(err); err != nil {
 		return errwrap.Wrapf("Error decoding error response: {{err}}", err)
 	}
 
-	return tritonError
+	return err
 }
 
-func (c *Client) executeRequest(method, path string, body interface{}) (io.ReadCloser, error) {
-	return c.executeRequestURIParams(method, path, body, nil)
+func (c *Client) executeRequest(ctx context.Context, method, path string, body interface{}) (io.ReadCloser, error) {
+	return c.executeRequestURIParams(ctx, method, path, body, nil)
 }
 
-func (c *Client) executeRequestRaw(method, path string, body interface{}) (*http.Response, error) {
+func (c *Client) executeRequestRaw(ctx context.Context, method, path string, body interface{}) (*http.Response, error) {
 	var requestBody io.ReadSeeker
 	if body != nil {
 		marshaled, err := json.MarshalIndent(body, "", "    ")
@@ -149,7 +162,10 @@ func (c *Client) executeRequestRaw(method, path string, body interface{}) (*http
 		requestBody = bytes.NewReader(marshaled)
 	}
 
-	req, err := retryablehttp.NewRequest(method, c.formatURL(path), requestBody)
+	endpoint := c.apiURL
+	endpoint.Path = path
+
+	req, err := http.NewRequest(method, endpoint.String(), requestBody)
 	if err != nil {
 		return nil, errwrap.Wrapf("Error constructing HTTP request: {{err}}", err)
 	}
@@ -170,7 +186,7 @@ func (c *Client) executeRequestRaw(method, path string, body interface{}) (*http
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	resp, err := c.client.Do(req)
+	resp, err := c.client.Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, errwrap.Wrapf("Error executing HTTP request: {{err}}", err)
 	}

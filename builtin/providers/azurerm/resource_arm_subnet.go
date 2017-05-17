@@ -77,6 +77,9 @@ func resourceArmSubnetCreate(d *schema.ResourceData, meta interface{}) error {
 	resGroup := d.Get("resource_group_name").(string)
 	addressPrefix := d.Get("address_prefix").(string)
 
+	armMutexKV.Lock(name)
+	defer armMutexKV.Unlock(name)
+
 	armMutexKV.Lock(vnetName)
 	defer armMutexKV.Unlock(vnetName)
 
@@ -89,6 +92,14 @@ func resourceArmSubnetCreate(d *schema.ResourceData, meta interface{}) error {
 		properties.NetworkSecurityGroup = &network.SecurityGroup{
 			ID: &nsgId,
 		}
+
+		networkSecurityGroupName, err := parseNetworkSecurityGroupName(nsgId)
+		if err != nil {
+			return err
+		}
+
+		armMutexKV.Lock(networkSecurityGroupName)
+		defer armMutexKV.Unlock(networkSecurityGroupName)
 	}
 
 	if v, ok := d.GetOk("route_table_id"); ok {
@@ -96,6 +107,14 @@ func resourceArmSubnetCreate(d *schema.ResourceData, meta interface{}) error {
 		properties.RouteTable = &network.RouteTable{
 			ID: &rtId,
 		}
+
+		routeTableName, err := parseRouteTableName(rtId)
+		if err != nil {
+			return err
+		}
+
+		armMutexKV.Lock(routeTableName)
+		defer armMutexKV.Unlock(routeTableName)
 	}
 
 	subnet := network.Subnet{
@@ -182,8 +201,33 @@ func resourceArmSubnetDelete(d *schema.ResourceData, meta interface{}) error {
 	name := id.Path["subnets"]
 	vnetName := id.Path["virtualNetworks"]
 
+	if v, ok := d.GetOk("network_security_group_id"); ok {
+		networkSecurityGroupId := v.(string)
+		networkSecurityGroupName, err := parseNetworkSecurityGroupName(networkSecurityGroupId)
+		if err != nil {
+			return err
+		}
+
+		armMutexKV.Lock(networkSecurityGroupName)
+		defer armMutexKV.Unlock(networkSecurityGroupName)
+	}
+
+	if v, ok := d.GetOk("route_table_id"); ok {
+		rtId := v.(string)
+		routeTableName, err := parseRouteTableName(rtId)
+		if err != nil {
+			return err
+		}
+
+		armMutexKV.Lock(routeTableName)
+		defer armMutexKV.Unlock(routeTableName)
+	}
+
 	armMutexKV.Lock(vnetName)
 	defer armMutexKV.Unlock(vnetName)
+
+	armMutexKV.Lock(name)
+	defer armMutexKV.Unlock(name)
 
 	_, err = subnetClient.Delete(resGroup, vnetName, name, make(chan struct{}))
 

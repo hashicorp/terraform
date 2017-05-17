@@ -1,6 +1,7 @@
 package triton
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"testing"
@@ -76,7 +77,7 @@ func testCheckTritonVLANExists(name string) resource.TestCheckFunc {
 			return err
 		}
 
-		resp, err := conn.Fabrics().GetFabricVLAN(&triton.GetFabricVLANInput{
+		resp, err := conn.Fabrics().GetFabricVLAN(context.Background(), &triton.GetFabricVLANInput{
 			ID: id,
 		})
 		if err != nil && triton.IsResourceNotFound(err) {
@@ -106,7 +107,7 @@ func testCheckTritonVLANDestroy(s *terraform.State) error {
 			return err
 		}
 
-		resp, err := conn.Fabrics().GetFabricVLAN(&triton.GetFabricVLANInput{
+		resp, err := conn.Fabrics().GetFabricVLAN(context.Background(), &triton.GetFabricVLANInput{
 			ID: id,
 		})
 		if triton.IsResourceNotFound(err) {

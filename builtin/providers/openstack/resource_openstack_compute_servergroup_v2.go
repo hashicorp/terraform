@@ -41,6 +41,11 @@ func resourceComputeServerGroupV2() *schema.Resource {
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+			"value_specs": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -52,10 +57,14 @@ func resourceComputeServerGroupV2Create(d *schema.ResourceData, meta interface{}
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
 
-	createOpts := &servergroups.CreateOpts{
-		Name:     d.Get("name").(string),
-		Policies: resourceServerGroupPoliciesV2(d),
+	createOpts := ServerGroupCreateOpts{
+		servergroups.CreateOpts{
+			Name:     d.Get("name").(string),
+			Policies: resourceServerGroupPoliciesV2(d),
+		},
+		MapValueSpecs(d),
 	}
+
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
 	newSG, err := servergroups.Create(computeClient, createOpts).Extract()
 	if err != nil {

@@ -12,7 +12,7 @@ Enables you to manage DNS CNAME Records within Azure DNS.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acceptanceTestResourceGroup1"
   location = "West US"
@@ -31,6 +31,7 @@ resource "azurerm_dns_cname_record" "test" {
   record              = "contoso.com"
 }
 ```
+
 ## Argument Reference
 
 The following arguments are supported:

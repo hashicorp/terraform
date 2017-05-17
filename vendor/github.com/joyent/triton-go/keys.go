@@ -1,6 +1,7 @@
 package triton
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -34,8 +35,9 @@ type ListKeysInput struct{}
 
 // ListKeys lists all public keys we have on record for the specified
 // account.
-func (client *KeysClient) ListKeys(*ListKeysInput) ([]*Key, error) {
-	respReader, err := client.executeRequest(http.MethodGet, "/my/keys", nil)
+func (client *KeysClient) ListKeys(ctx context.Context, _ *ListKeysInput) ([]*Key, error) {
+	path := fmt.Sprintf("/%s/keys", client.accountName)
+	respReader, err := client.executeRequest(ctx, http.MethodGet, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -56,9 +58,9 @@ type GetKeyInput struct {
 	KeyName string
 }
 
-func (client *KeysClient) GetKey(input *GetKeyInput) (*Key, error) {
+func (client *KeysClient) GetKey(ctx context.Context, input *GetKeyInput) (*Key, error) {
 	path := fmt.Sprintf("/%s/keys/%s", client.accountName, input.KeyName)
-	respReader, err := client.executeRequest(http.MethodGet, path, nil)
+	respReader, err := client.executeRequest(ctx, http.MethodGet, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -79,9 +81,9 @@ type DeleteKeyInput struct {
 	KeyName string
 }
 
-func (client *KeysClient) DeleteKey(input *DeleteKeyInput) error {
+func (client *KeysClient) DeleteKey(ctx context.Context, input *DeleteKeyInput) error {
 	path := fmt.Sprintf("/%s/keys/%s", client.accountName, input.KeyName)
-	respReader, err := client.executeRequest(http.MethodDelete, path, nil)
+	respReader, err := client.executeRequest(ctx, http.MethodDelete, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -103,8 +105,9 @@ type CreateKeyInput struct {
 }
 
 // CreateKey uploads a new OpenSSH key to Triton for use in HTTP signing and SSH.
-func (client *KeysClient) CreateKey(input *CreateKeyInput) (*Key, error) {
-	respReader, err := client.executeRequest(http.MethodPost, fmt.Sprintf("/%s/keys", client.accountName), input)
+func (client *KeysClient) CreateKey(ctx context.Context, input *CreateKeyInput) (*Key, error) {
+	path := fmt.Sprintf("/%s/keys", client.accountName)
+	respReader, err := client.executeRequest(ctx, http.MethodPost, path, input)
 	if respReader != nil {
 		defer respReader.Close()
 	}

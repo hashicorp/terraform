@@ -21,7 +21,7 @@ exist concurrently.
 The following example shows how to generate a unique pet name for an AWS EC2
 instance that changes each time a new AMI id is selected.
 
-```
+```hcl
 resource "random_pet" "server" {
   keepers = {
     # Generate a new pet name each time we switch to a new AMI id
@@ -58,3 +58,9 @@ The following arguments are supported:
 * `prefix` - (Optional) A string to prefix the name with.
 
 * `separator` - (Optional) The character to separate words in the pet name.
+
+## Attribute Reference
+
+The following attributes are supported:
+
+* `id` - (string) The random pet name

@@ -18,7 +18,7 @@ The resource will by default create a secret which is available to any pod in th
 
 ## Example Usage
 
-```
+```hcl
 resource "kubernetes_secret" "example" {
   metadata {
     name = "basic-auth"
@@ -30,6 +30,22 @@ resource "kubernetes_secret" "example" {
   }
 
   type = "kubernetes.io/basic-auth"
+}
+```
+
+## Example Usage (Docker config)
+
+```hcl
+resource "kubernetes_secret" "example" {
+  metadata {
+    name = "docker-cfg"
+  }
+
+  data {
+    ".dockercfg" = "${file("${path.module}/.docker/config.json")}"
+  }
+
+  type = "kubernetes.io/dockercfg"
 }
 ```
 

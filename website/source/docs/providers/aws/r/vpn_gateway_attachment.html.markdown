@@ -17,7 +17,7 @@ to an existing VPC by setting the [`vpc_id`](vpn_gateway.html#vpc_id) attribute 
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_vpc" "network" {
   cidr_block = "10.0.0.0/16"
 }

@@ -3,14 +3,14 @@
     <div class="docs-sidebar hidden-print affix-top" role="complementary">
       <ul class="nav docs-sidenav">
         <li<%= sidebar_current("docs-home") %>>
-          <a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+          <a href="/docs/providers/index.html">All Providers</a>
         </li>
 
         <li<%= sidebar_current("docs-circonus-index") %>>
           <a href="/docs/providers/circonus/index.html">Circonus Provider</a>
         </li>
 
-        <li<%= sidebar_current(/^docs-circonus-datasource/) %>>
+        <li<%= sidebar_current("docs-circonus-datasource") %>>
           <a href="#">Data Sources</a>
           <ul class="nav nav-visible">
             <li<%= sidebar_current("docs-circonus-datasource-account") %>>
@@ -23,7 +23,7 @@
           </ul>
         </li>
 
-        <li<%= sidebar_current(/^docs-circonus-resource/) %>>
+        <li<%= sidebar_current("docs-circonus-resource") %>>
           <a href="#">Resources</a>
           <ul class="nav nav-visible">
             <li<%= sidebar_current("docs-circonus-resource-circonus_check") %>>

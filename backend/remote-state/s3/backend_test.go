@@ -3,6 +3,7 @@ package s3
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 
@@ -10,6 +11,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 // verify that we are doing ACC tests or the S3 tests specifically
@@ -29,16 +32,12 @@ func TestBackend_impl(t *testing.T) {
 }
 
 func TestBackendConfig(t *testing.T) {
-	// This test just instantiates the client. Shouldn't make any actual
-	// requests nor incur any costs.
-
+	testACC(t)
 	config := map[string]interface{}{
 		"region":     "us-west-1",
 		"bucket":     "tf-test",
 		"key":        "state",
 		"encrypt":    true,
-		"access_key": "ACCESS_KEY",
-		"secret_key": "SECRET_KEY",
 		"lock_table": "dynamoTable",
 	}
 
@@ -58,11 +57,11 @@ func TestBackendConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error when requesting credentials")
 	}
-	if credentials.AccessKeyID != "ACCESS_KEY" {
-		t.Fatalf("Incorrect Access Key Id was populated")
+	if credentials.AccessKeyID == "" {
+		t.Fatalf("No Access Key Id was populated")
 	}
-	if credentials.SecretAccessKey != "SECRET_KEY" {
-		t.Fatalf("Incorrect Secret Access Key was populated")
+	if credentials.SecretAccessKey == "" {
+		t.Fatalf("No Secret Access Key was populated")
 	}
 }
 
@@ -88,7 +87,7 @@ func TestBackendLocked(t *testing.T) {
 	testACC(t)
 
 	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
-	keyName := "testState"
+	keyName := "test/state"
 
 	b1 := backend.TestBackendConfig(t, New(), map[string]interface{}{
 		"bucket":     bucketName,
@@ -110,6 +109,133 @@ func TestBackendLocked(t *testing.T) {
 	defer deleteDynamoDBTable(t, b1.dynClient, bucketName)
 
 	backend.TestBackend(t, b1, b2)
+}
+
+// add some extra junk in S3 to try and confuse the env listing.
+func TestBackendExtraPaths(t *testing.T) {
+	testACC(t)
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "test/state/tfstate"
+
+	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
+		"bucket":  bucketName,
+		"key":     keyName,
+		"encrypt": true,
+	}).(*Backend)
+
+	createS3Bucket(t, b.s3Client, bucketName)
+	defer deleteS3Bucket(t, b.s3Client, bucketName)
+
+	// put multiple states in old env paths.
+	s1 := terraform.NewState()
+	s2 := terraform.NewState()
+
+	// RemoteClient to Put things in various paths
+	client := &RemoteClient{
+		s3Client:             b.s3Client,
+		dynClient:            b.dynClient,
+		bucketName:           b.bucketName,
+		path:                 b.path("s1"),
+		serverSideEncryption: b.serverSideEncryption,
+		acl:                  b.acl,
+		kmsKeyID:             b.kmsKeyID,
+		lockTable:            b.lockTable,
+	}
+
+	stateMgr := &remote.State{Client: client}
+	stateMgr.WriteState(s1)
+	if err := stateMgr.PersistState(); err != nil {
+		t.Fatal(err)
+	}
+
+	client.path = b.path("s2")
+	stateMgr.WriteState(s2)
+	if err := stateMgr.PersistState(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := checkStateList(b, []string{"default", "s1", "s2"}); err != nil {
+		t.Fatal(err)
+	}
+
+	// put a state in an env directory name
+	client.path = keyEnvPrefix + "/error"
+	stateMgr.WriteState(terraform.NewState())
+	if err := stateMgr.PersistState(); err != nil {
+		t.Fatal(err)
+	}
+	if err := checkStateList(b, []string{"default", "s1", "s2"}); err != nil {
+		t.Fatal(err)
+	}
+
+	// add state with the wrong key for an existing env
+	client.path = keyEnvPrefix + "/s2/notTestState"
+	stateMgr.WriteState(terraform.NewState())
+	if err := stateMgr.PersistState(); err != nil {
+		t.Fatal(err)
+	}
+	if err := checkStateList(b, []string{"default", "s1", "s2"}); err != nil {
+		t.Fatal(err)
+	}
+
+	// remove the state with extra subkey
+	if err := b.DeleteState("s2"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := checkStateList(b, []string{"default", "s1"}); err != nil {
+		t.Fatal(err)
+	}
+
+	// fetch that state again, which should produce a new lineage
+	s2Mgr, err := b.State("s2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s2Mgr.RefreshState(); err != nil {
+		t.Fatal(err)
+	}
+
+	if s2Mgr.State().Lineage == s2.Lineage {
+		t.Fatal("state s2 was not deleted")
+	}
+	s2 = s2Mgr.State()
+
+	// add a state with a key that matches an existing environment dir name
+	client.path = keyEnvPrefix + "/s2/"
+	stateMgr.WriteState(terraform.NewState())
+	if err := stateMgr.PersistState(); err != nil {
+		t.Fatal(err)
+	}
+
+	// make sure s2 is OK
+	s2Mgr, err = b.State("s2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s2Mgr.RefreshState(); err != nil {
+		t.Fatal(err)
+	}
+
+	if s2Mgr.State().Lineage != s2.Lineage {
+		t.Fatal("we got the wrong state for s2")
+	}
+
+	if err := checkStateList(b, []string{"default", "s1", "s2"}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func checkStateList(b backend.Backend, expected []string) error {
+	states, err := b.States()
+	if err != nil {
+		return err
+	}
+
+	if !reflect.DeepEqual(states, expected) {
+		return fmt.Errorf("incorrect states listed: %q", states)
+	}
+	return nil
 }
 
 func createS3Bucket(t *testing.T, s3Client *s3.S3, bucketName string) {

@@ -12,7 +12,7 @@ Manages a V1 load balancer vip resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_lb_vip_v1" "vip_1" {
   name      = "tf_test_lb_vip"
   subnet_id = "12345"

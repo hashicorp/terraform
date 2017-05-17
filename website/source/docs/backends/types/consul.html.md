@@ -16,7 +16,7 @@ This backend supports [state locking](/docs/state/locking.html).
 
 ## Example Configuration
 
-```
+```hcl
 terraform {
   backend "consul" {
     address = "demo.consul.io"
@@ -30,12 +30,12 @@ Note that for the access credentials we recommend using a
 
 ## Example Referencing
 
-```
+```hcl
 data "terraform_remote_state" "foo" {
-	backend = "consul"
-	config {
-		path = "full/path"
-	}
+  backend = "consul"
+  config {
+    path = "full/path"
+  }
 }
 ```
 

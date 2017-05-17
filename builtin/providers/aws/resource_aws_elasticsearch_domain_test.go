@@ -228,10 +228,6 @@ func testAccESDomainConfig_complex(randInt int) string {
 resource "aws_elasticsearch_domain" "example" {
   domain_name = "tf-test-%d"
 
-  cluster_config {
-    instance_type = "r3.large.elasticsearch"
-  }
-
   advanced_options {
     "indices.fielddata.cache.size" = 80
   }
@@ -243,6 +239,7 @@ resource "aws_elasticsearch_domain" "example" {
   cluster_config {
     instance_count = 2
     zone_awareness_enabled = true
+    instance_type = "r3.large.elasticsearch"
   }
 
   snapshot_options {

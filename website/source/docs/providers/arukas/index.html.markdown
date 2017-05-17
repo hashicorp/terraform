@@ -55,7 +55,7 @@ so that Terraform can connect. If you don't want to put
 credentials in your configuration file, you can leave them
 out:
 
-```
+```hcl
 provider "arukas" {}
 ```
 

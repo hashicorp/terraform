@@ -919,7 +919,7 @@ func resourceComputeInstanceV2Delete(d *schema.ResourceData, meta interface{}) e
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"ACTIVE", "SHUTOFF"},
-		Target:     []string{"DELETED"},
+		Target:     []string{"DELETED", "SOFT_DELETED"},
 		Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
 		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      10 * time.Second,

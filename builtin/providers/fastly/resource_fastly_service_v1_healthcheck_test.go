@@ -17,7 +17,7 @@ func TestAccFastlyServiceV1_healthcheck_basic(t *testing.T) {
 	domainName := fmt.Sprintf("%s.notadomain.com", acctest.RandString(10))
 
 	log1 := gofastly.HealthCheck{
-		Version:          "1",
+		Version:          1,
 		Name:             "example-healthcheck1",
 		Host:             "example1.com",
 		Path:             "/test1.txt",
@@ -32,7 +32,7 @@ func TestAccFastlyServiceV1_healthcheck_basic(t *testing.T) {
 	}
 
 	log2 := gofastly.HealthCheck{
-		Version:          "1",
+		Version:          1,
 		Name:             "example-healthcheck2",
 		Host:             "example2.com",
 		Path:             "/test2.txt",
@@ -88,7 +88,7 @@ func testAccCheckFastlyServiceV1HealthCheckAttributes(service *gofastly.ServiceD
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Healthcheck for (%s), version (%s): %s", service.Name, service.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Healthcheck for (%s), version (%v): %s", service.Name, service.ActiveVersion.Number, err)
 		}
 
 		if len(healthcheckList) != len(healthchecks) {

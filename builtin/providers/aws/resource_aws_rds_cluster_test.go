@@ -225,6 +225,26 @@ func TestAccAWSRDSCluster_backupsUpdate(t *testing.T) {
 	})
 }
 
+func TestAccAWSRDSCluster_iamAuth(t *testing.T) {
+	var v rds.DBCluster
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSClusterConfig_iamAuth(acctest.RandInt()),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
+					resource.TestCheckResourceAttr(
+						"aws_rds_cluster.default", "iam_database_authentication_enabled", "true"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSClusterDestroy(s *terraform.State) error {
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_rds_cluster" {
@@ -267,7 +287,7 @@ func testAccCheckAWSClusterSnapshot(rInt int) resource.TestCheckFunc {
 			}
 
 			// Try and delete the snapshot before we check for the cluster not found
-			snapshot_identifier := fmt.Sprintf("foobarbaz-test-terraform-final-snapshot-%d", rInt)
+			snapshot_identifier := fmt.Sprintf("tf-acctest-rdscluster-snapshot-%d", rInt)
 
 			awsClient := testAccProvider.Meta().(*AWSClient)
 			conn := awsClient.rdsconn
@@ -436,7 +456,6 @@ resource "aws_rds_cluster" "default" {
   master_username = "foo"
   master_password = "mustbeeightcharaters"
   db_cluster_parameter_group_name = "default.aurora5.6"
-  skip_final_snapshot = true
   final_snapshot_identifier = "tf-acctest-rdscluster-snapshot-%d"
   tags {
     Environment = "production"
@@ -548,6 +567,19 @@ resource "aws_rds_cluster" "default" {
   preferred_backup_window = "03:00-09:00"
   preferred_maintenance_window = "wed:01:00-wed:01:30"
   apply_immediately = true
+  skip_final_snapshot = true
+}`, n)
+}
+
+func testAccAWSClusterConfig_iamAuth(n int) string {
+	return fmt.Sprintf(`
+resource "aws_rds_cluster" "default" {
+  cluster_identifier = "tf-aurora-cluster-%d"
+  availability_zones = ["us-west-2a","us-west-2b","us-west-2c"]
+  database_name = "mydb"
+  master_username = "foo"
+  master_password = "mustbeeightcharaters"
+  iam_database_authentication_enabled = true
   skip_final_snapshot = true
 }`, n)
 }

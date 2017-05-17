@@ -13,7 +13,7 @@ in a given region for the purpose of using in an AWS Route53 Alias.
 
 ## Example Usage
 
-```
+```hcl
 data "aws_elb_hosted_zone_id" "main" {}
 
 resource "aws_route53_record" "www" {

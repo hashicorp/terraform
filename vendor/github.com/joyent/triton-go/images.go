@@ -1,6 +1,7 @@
 package triton
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -48,8 +49,9 @@ type Image struct {
 
 type ListImagesInput struct{}
 
-func (client *ImagesClient) ListImages(*ListImagesInput) ([]*Image, error) {
-	respReader, err := client.executeRequest(http.MethodGet, "/my/images", nil)
+func (client *ImagesClient) ListImages(ctx context.Context, _ *ListImagesInput) ([]*Image, error) {
+	path := fmt.Sprintf("/%s/images", client.accountName)
+	respReader, err := client.executeRequest(ctx, http.MethodGet, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -70,9 +72,9 @@ type GetImageInput struct {
 	ImageID string
 }
 
-func (client *ImagesClient) GetImage(input *GetImageInput) (*Image, error) {
+func (client *ImagesClient) GetImage(ctx context.Context, input *GetImageInput) (*Image, error) {
 	path := fmt.Sprintf("/%s/images/%s", client.accountName, input.ImageID)
-	respReader, err := client.executeRequest(http.MethodGet, path, nil)
+	respReader, err := client.executeRequest(ctx, http.MethodGet, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -93,9 +95,9 @@ type DeleteImageInput struct {
 	ImageID string
 }
 
-func (client *ImagesClient) DeleteImage(input *DeleteImageInput) error {
+func (client *ImagesClient) DeleteImage(ctx context.Context, input *DeleteImageInput) error {
 	path := fmt.Sprintf("/%s/images/%s", client.accountName, input.ImageID)
-	respReader, err := client.executeRequest(http.MethodDelete, path, nil)
+	respReader, err := client.executeRequest(ctx, http.MethodDelete, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -117,13 +119,13 @@ type MantaLocation struct {
 	ManifestPath string `json:"manifest_path"`
 }
 
-func (client *ImagesClient) ExportImage(input *ExportImageInput) (*MantaLocation, error) {
+func (client *ImagesClient) ExportImage(ctx context.Context, input *ExportImageInput) (*MantaLocation, error) {
 	path := fmt.Sprintf("/%s/images/%s", client.accountName, input.ImageID)
 	query := &url.Values{}
 	query.Set("action", "export")
 	query.Set("manta_path", input.MantaPath)
 
-	respReader, err := client.executeRequestURIParams(http.MethodGet, path, nil, query)
+	respReader, err := client.executeRequestURIParams(ctx, http.MethodGet, path, nil, query)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -148,12 +150,12 @@ type CreateImageFromMachineInput struct {
 	HomePage    string            `json:"homepage,omitempty"`
 	EULA        string            `json:"eula,omitempty"`
 	ACL         []string          `json:"acl,omitempty"`
-	tags        map[string]string `json:"tags,omitempty"`
+	Tags        map[string]string `json:"tags,omitempty"`
 }
 
-func (client *ImagesClient) CreateImageFromMachine(input *CreateImageFromMachineInput) (*Image, error) {
+func (client *ImagesClient) CreateImageFromMachine(ctx context.Context, input *CreateImageFromMachineInput) (*Image, error) {
 	path := fmt.Sprintf("/%s/images", client.accountName)
-	respReader, err := client.executeRequest(http.MethodPost, path, input)
+	respReader, err := client.executeRequest(ctx, http.MethodPost, path, input)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -178,15 +180,15 @@ type UpdateImageInput struct {
 	HomePage    string            `json:"homepage,omitempty"`
 	EULA        string            `json:"eula,omitempty"`
 	ACL         []string          `json:"acl,omitempty"`
-	tags        map[string]string `json:"tags,omitempty"`
+	Tags        map[string]string `json:"tags,omitempty"`
 }
 
-func (client *ImagesClient) UpdateImage(input *UpdateImageInput) (*Image, error) {
+func (client *ImagesClient) UpdateImage(ctx context.Context, input *UpdateImageInput) (*Image, error) {
 	path := fmt.Sprintf("/%s/images/%s", client.accountName, input.ImageID)
 	query := &url.Values{}
 	query.Set("action", "update")
 
-	respReader, err := client.executeRequestURIParams(http.MethodPost, path, input, query)
+	respReader, err := client.executeRequestURIParams(ctx, http.MethodPost, path, input, query)
 	if respReader != nil {
 		defer respReader.Close()
 	}

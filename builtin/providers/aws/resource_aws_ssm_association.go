@@ -17,21 +17,45 @@ func resourceAwsSsmAssociation() *schema.Resource {
 		Delete: resourceAwsSsmAssociationDelete,
 
 		Schema: map[string]*schema.Schema{
+			"association_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"instance_id": {
 				Type:     schema.TypeString,
 				ForceNew: true,
-				Required: true,
+				Optional: true,
 			},
 			"name": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
-			"parameters": &schema.Schema{
+			"parameters": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
+			},
+			"targets": {
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"values": {
+							Type:     schema.TypeList,
+							Required: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
 			},
 		},
 	}
@@ -43,12 +67,19 @@ func resourceAwsSsmAssociationCreate(d *schema.ResourceData, meta interface{}) e
 	log.Printf("[DEBUG] SSM association create: %s", d.Id())
 
 	assosciationInput := &ssm.CreateAssociationInput{
-		Name:       aws.String(d.Get("name").(string)),
-		InstanceId: aws.String(d.Get("instance_id").(string)),
+		Name: aws.String(d.Get("name").(string)),
+	}
+
+	if v, ok := d.GetOk("instance_id"); ok {
+		assosciationInput.InstanceId = aws.String(v.(string))
 	}
 
 	if v, ok := d.GetOk("parameters"); ok {
 		assosciationInput.Parameters = expandSSMDocumentParameters(v.(map[string]interface{}))
+	}
+
+	if _, ok := d.GetOk("targets"); ok {
+		assosciationInput.Targets = expandAwsSsmTargets(d)
 	}
 
 	resp, err := ssmconn.CreateAssociation(assosciationInput)
@@ -61,6 +92,7 @@ func resourceAwsSsmAssociationCreate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	d.SetId(*resp.AssociationDescription.Name)
+	d.Set("association_id", resp.AssociationDescription.AssociationId)
 
 	return resourceAwsSsmAssociationRead(d, meta)
 }
@@ -68,11 +100,10 @@ func resourceAwsSsmAssociationCreate(d *schema.ResourceData, meta interface{}) e
 func resourceAwsSsmAssociationRead(d *schema.ResourceData, meta interface{}) error {
 	ssmconn := meta.(*AWSClient).ssmconn
 
-	log.Printf("[DEBUG] Reading SSM Assosciation: %s", d.Id())
+	log.Printf("[DEBUG] Reading SSM Association: %s", d.Id())
 
 	params := &ssm.DescribeAssociationInput{
-		Name:       aws.String(d.Get("name").(string)),
-		InstanceId: aws.String(d.Get("instance_id").(string)),
+		AssociationId: aws.String(d.Get("association_id").(string)),
 	}
 
 	resp, err := ssmconn.DescribeAssociation(params)
@@ -88,6 +119,11 @@ func resourceAwsSsmAssociationRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("instance_id", association.InstanceId)
 	d.Set("name", association.Name)
 	d.Set("parameters", association.Parameters)
+	d.Set("association_id", association.AssociationId)
+
+	if err := d.Set("targets", flattenAwsSsmTargets(association.Targets)); err != nil {
+		return fmt.Errorf("[DEBUG] Error setting targets error: %#v", err)
+	}
 
 	return nil
 }
@@ -98,8 +134,7 @@ func resourceAwsSsmAssociationDelete(d *schema.ResourceData, meta interface{}) e
 	log.Printf("[DEBUG] Deleting SSM Assosciation: %s", d.Id())
 
 	params := &ssm.DeleteAssociationInput{
-		Name:       aws.String(d.Get("name").(string)),
-		InstanceId: aws.String(d.Get("instance_id").(string)),
+		AssociationId: aws.String(d.Get("association_id").(string)),
 	}
 
 	_, err := ssmconn.DeleteAssociation(params)

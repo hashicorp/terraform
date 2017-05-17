@@ -14,7 +14,7 @@ Allocates a static IP address.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_lightsail_static_ip" "test" {
   name = "example"
 }

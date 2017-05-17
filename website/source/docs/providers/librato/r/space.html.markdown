@@ -13,7 +13,7 @@ create and manage spaces on Librato.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new Librato space
 resource "librato_space" "default" {
   name = "My New Space"

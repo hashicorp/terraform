@@ -2779,360 +2779,49 @@ func TestSchemaMap_Diff(t *testing.T) {
 		},
 
 		{
-			Name: "Removal of TypeList should cause nested Bool fields w/ Default to be removed too",
+			Name: "List with computed schema and ForceNew",
 			Schema: map[string]*Schema{
-				"deployment_group_name": &Schema{
-					Type:     TypeString,
-					Required: true,
+				"config": &Schema{
+					Type:     TypeList,
+					Optional: true,
 					ForceNew: true,
-				},
-
-				"alarm_configuration": &Schema{
-					Type:     TypeList,
-					Optional: true,
-					MaxItems: 1,
-					Elem: &Resource{
-						Schema: map[string]*Schema{
-							"alarms": &Schema{
-								Type:     TypeSet,
-								Optional: true,
-								Set:      HashString,
-								Elem:     &Schema{Type: TypeString},
-							},
-
-							"enabled": &Schema{
-								Type:     TypeBool,
-								Optional: true,
-							},
-
-							"ignore_poll_alarm_failure": &Schema{
-								Type:     TypeBool,
-								Optional: true,
-								Default:  false,
-							},
-						},
+					Elem: &Schema{
+						Type: TypeString,
 					},
 				},
 			},
 
 			State: &terraform.InstanceState{
 				Attributes: map[string]string{
-					"alarm_configuration.#":                           "1",
-					"alarm_configuration.0.alarms.#":                  "1",
-					"alarm_configuration.0.alarms.2356372769":         "foo",
-					"alarm_configuration.0.enabled":                   "true",
-					"alarm_configuration.0.ignore_poll_alarm_failure": "false",
-					"deployment_group_name":                           "foo-group-32345345345",
+					"config.#": "2",
+					"config.0": "a",
+					"config.1": "b",
 				},
 			},
 
 			Config: map[string]interface{}{
-				"deployment_group_name": "foo-group-32345345345",
+				"config": []interface{}{"${var.a}", "${var.b}"},
+			},
+
+			ConfigVariables: map[string]ast.Variable{
+				"var.a": interfaceToVariableSwallowError(
+					config.UnknownVariableValue),
+				"var.b": interfaceToVariableSwallowError(
+					config.UnknownVariableValue),
 			},
 
 			Diff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"alarm_configuration.#": &terraform.ResourceAttrDiff{
-						Old:        "1",
-						New:        "0",
-						NewRemoved: false,
-					},
-					"alarm_configuration.0.alarms": &terraform.ResourceAttrDiff{
-						Old:        "",
-						New:        "",
-						NewRemoved: true,
-					},
-					"alarm_configuration.0.alarms.#": &terraform.ResourceAttrDiff{
-						Old:        "1",
-						New:        "0",
-						NewRemoved: false,
-					},
-					"alarm_configuration.0.alarms.2356372769": &terraform.ResourceAttrDiff{
-						Old:        "foo",
-						New:        "",
-						NewRemoved: true,
-					},
-					"alarm_configuration.0.enabled": &terraform.ResourceAttrDiff{
-						Old:        "true",
-						New:        "false",
-						NewRemoved: true,
-					},
-					"alarm_configuration.0.ignore_poll_alarm_failure": &terraform.ResourceAttrDiff{
-						Old:        "",
-						New:        "",
-						NewRemoved: true,
-					},
-				},
-			},
-		},
-
-		{
-			Name: "Removal of TypeList should cause all empty nested String fields to be removed too",
-			Schema: map[string]*Schema{
-				"bucket": {
-					Type:     TypeString,
-					Required: true,
-					ForceNew: true,
-				},
-
-				"acl": {
-					Type:     TypeString,
-					Default:  "private",
-					Optional: true,
-				},
-
-				"website": {
-					Type:     TypeList,
-					Optional: true,
-					Elem: &Resource{
-						Schema: map[string]*Schema{
-							"index_document": {
-								Type:     TypeString,
-								Optional: true,
-							},
-
-							"error_document": {
-								Type:     TypeString,
-								Optional: true,
-							},
-
-							"redirect_all_requests_to": {
-								Type:     TypeString,
-								Optional: true,
-							},
-
-							"routing_rules": {
-								Type:     TypeString,
-								Optional: true,
-							},
-						},
+					"config.#": &terraform.ResourceAttrDiff{
+						Old:         "2",
+						New:         "",
+						RequiresNew: true,
+						NewComputed: true,
 					},
 				},
 			},
 
-			State: &terraform.InstanceState{
-				Attributes: map[string]string{
-					"acl":                                "public-read",
-					"bucket":                             "tf-test-bucket-5011072831090096749",
-					"website.#":                          "1",
-					"website.0.error_document":           "error.html",
-					"website.0.index_document":           "index.html",
-					"website.0.redirect_all_requests_to": "",
-				},
-			},
-
-			Config: map[string]interface{}{
-				"acl":    "public-read",
-				"bucket": "tf-test-bucket-5011072831090096749",
-			},
-
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"website.#": &terraform.ResourceAttrDiff{
-						Old:        "1",
-						New:        "0",
-						NewRemoved: false,
-					},
-					"website.0.index_document": &terraform.ResourceAttrDiff{
-						Old:        "index.html",
-						New:        "",
-						NewRemoved: true,
-					},
-					"website.0.error_document": &terraform.ResourceAttrDiff{
-						Old:        "error.html",
-						New:        "",
-						NewRemoved: true,
-					},
-					"website.0.redirect_all_requests_to": &terraform.ResourceAttrDiff{
-						Old:        "",
-						New:        "",
-						NewRemoved: true,
-					},
-					"website.0.routing_rules": &terraform.ResourceAttrDiff{
-						Old:        "",
-						New:        "",
-						NewRemoved: true,
-					},
-				},
-			},
-		},
-
-		{
-			Name: "Removal of TypeList should cause nested Int fields w/ Default to be removed too",
-			Schema: map[string]*Schema{
-				"availability_zones": &Schema{
-					Type:     TypeSet,
-					Elem:     &Schema{Type: TypeString},
-					Optional: true,
-					Computed: true,
-					Set:      HashString,
-				},
-
-				"access_logs": &Schema{
-					Type:     TypeList,
-					Optional: true,
-					MaxItems: 1,
-					Elem: &Resource{
-						Schema: map[string]*Schema{
-							"interval": &Schema{
-								Type:     TypeInt,
-								Optional: true,
-								Default:  60,
-							},
-							"bucket": &Schema{
-								Type:     TypeString,
-								Required: true,
-							},
-							"bucket_prefix": &Schema{
-								Type:     TypeString,
-								Optional: true,
-							},
-							"enabled": &Schema{
-								Type:     TypeBool,
-								Optional: true,
-								Default:  true,
-							},
-						},
-					},
-				},
-			},
-
-			State: &terraform.InstanceState{
-				Attributes: map[string]string{
-					"access_logs.#":                 "1",
-					"access_logs.0.bucket":          "terraform-access-logs-bucket-5906065226840117876",
-					"access_logs.0.bucket_prefix":   "",
-					"access_logs.0.enabled":         "true",
-					"access_logs.0.interval":        "5",
-					"availability_zones.#":          "3",
-					"availability_zones.2050015877": "us-west-2c",
-					"availability_zones.221770259":  "us-west-2b",
-					"availability_zones.2487133097": "us-west-2a",
-				},
-			},
-
-			Config: map[string]interface{}{
-				"availability_zones": []interface{}{"us-west-2a", "us-west-2b", "us-west-2c"},
-			},
-
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"access_logs.#": &terraform.ResourceAttrDiff{
-						Old:        "1",
-						New:        "0",
-						NewRemoved: false,
-					},
-					"access_logs.0.bucket": &terraform.ResourceAttrDiff{
-						Old:        "terraform-access-logs-bucket-5906065226840117876",
-						New:        "",
-						NewRemoved: true,
-					},
-					"access_logs.0.bucket_prefix": &terraform.ResourceAttrDiff{
-						Old:        "",
-						New:        "",
-						NewRemoved: true,
-					},
-					"access_logs.0.enabled": &terraform.ResourceAttrDiff{
-						Old:        "",
-						New:        "",
-						NewRemoved: true,
-					},
-					"access_logs.0.interval": &terraform.ResourceAttrDiff{
-						Old:        "5",
-						New:        "60",
-						NewRemoved: true,
-					},
-				},
-			},
-		},
-
-		{
-			Name: "Removal of TypeSet should cause computed fields to be removed",
-			Schema: map[string]*Schema{
-				"type_set": &Schema{
-					Type:     TypeSet,
-					Optional: true,
-					Elem: &Resource{
-						Schema: map[string]*Schema{
-							"name": &Schema{
-								Type:     TypeString,
-								Optional: true,
-							},
-							"required": &Schema{
-								Type:     TypeString,
-								Required: true,
-							},
-							"value": &Schema{
-								Type:     TypeInt,
-								Optional: true,
-							},
-							"required_value": &Schema{
-								Type:     TypeInt,
-								Required: true,
-							},
-							"computed_value": &Schema{
-								Type:     TypeString,
-								Optional: true,
-								Computed: true,
-							},
-						},
-					},
-					Set: func(i interface{}) int {
-						if i != nil {
-							return 12345
-						}
-						return 0
-					},
-				},
-			},
-
-			State: &terraform.InstanceState{
-				Attributes: map[string]string{
-					"type_set.#":                    "1",
-					"type_set.12345.name":           "Name",
-					"type_set.12345.required":       "Required",
-					"type_set.12345.value":          "0",
-					"type_set.12345.required_value": "5",
-					"type_set.12345.computed_value": "COMPUTED",
-				},
-			},
-
-			Config: map[string]interface{}{
-				"type_set": []interface{}{},
-			},
-
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"type_set.#": &terraform.ResourceAttrDiff{
-						Old:        "1",
-						New:        "0",
-						NewRemoved: false,
-					},
-					"type_set.12345.name": &terraform.ResourceAttrDiff{
-						Old:        "Name",
-						New:        "",
-						NewRemoved: true,
-					},
-					"type_set.12345.required": &terraform.ResourceAttrDiff{
-						Old:        "Required",
-						New:        "",
-						NewRemoved: true,
-					},
-					"type_set.12345.value": &terraform.ResourceAttrDiff{
-						Old:        "0",
-						New:        "0",
-						NewRemoved: true,
-					},
-					"type_set.12345.required_value": &terraform.ResourceAttrDiff{
-						Old:        "5",
-						New:        "0",
-						NewRemoved: true,
-					},
-					"type_set.12345.computed_value": &terraform.ResourceAttrDiff{
-						NewRemoved: true,
-					},
-				},
-			},
+			Err: false,
 		},
 	}
 
@@ -3636,16 +3325,46 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 			},
 			true,
 		},
+
+		"computed-only field with validateFunc": {
+			map[string]*Schema{
+				"string": &Schema{
+					Type:     TypeString,
+					Computed: true,
+					ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+						es = append(es, fmt.Errorf("this is not fine"))
+						return
+					},
+				},
+			},
+			true,
+		},
+
+		"computed-only field with diffSuppressFunc": {
+			map[string]*Schema{
+				"string": &Schema{
+					Type:     TypeString,
+					Computed: true,
+					DiffSuppressFunc: func(k, old, new string, d *ResourceData) bool {
+						// Always suppress any diff
+						return false
+					},
+				},
+			},
+			true,
+		},
 	}
 
 	for tn, tc := range cases {
-		err := schemaMap(tc.In).InternalValidate(nil)
-		if err != nil != tc.Err {
-			if tc.Err {
-				t.Fatalf("%q: Expected error did not occur:\n\n%#v", tn, tc.In)
+		t.Run(tn, func(t *testing.T) {
+			err := schemaMap(tc.In).InternalValidate(nil)
+			if err != nil != tc.Err {
+				if tc.Err {
+					t.Fatalf("%q: Expected error did not occur:\n\n%#v", tn, tc.In)
+				}
+				t.Fatalf("%q: Unexpected error occurred: %s\n\n%#v", tn, err, tc.In)
 			}
-			t.Fatalf("%q: Unexpected error occurred:\n\n%#v", tn, tc.In)
-		}
+		})
 	}
 
 }

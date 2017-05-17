@@ -1,6 +1,7 @@
 package triton
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -26,8 +27,9 @@ type Service struct {
 
 type ListServicesInput struct{}
 
-func (client *ServicesClient) ListServices(*ListServicesInput) ([]*Service, error) {
-	respReader, err := client.executeRequest(http.MethodGet, fmt.Sprintf("/%s/services", client.accountName), nil)
+func (client *ServicesClient) ListServices(ctx context.Context, _ *ListServicesInput) ([]*Service, error) {
+	path := fmt.Sprintf("/%s/services", client.accountName)
+	respReader, err := client.executeRequest(ctx, http.MethodGet, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}

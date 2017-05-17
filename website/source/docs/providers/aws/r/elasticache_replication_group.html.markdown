@@ -12,7 +12,9 @@ Provides an ElastiCache Replication Group resource.
 
 ## Example Usage
 
-```
+### Redis Master with One Replica
+
+```hcl
 resource "aws_elasticache_replication_group" "bar" {
   replication_group_id          = "tf-rep-group-1"
   replication_group_description = "test description"
@@ -25,13 +27,29 @@ resource "aws_elasticache_replication_group" "bar" {
 }
 ```
 
+### Native Redis Cluser 2 Masters 2 Replicas
+
+```hcl
+resource "aws_elasticache_replication_group" "baz" {
+  replication_group_id          = "tf-redis-cluster"
+  replication_group_description = "test description"
+  node_type                     = "cache.m1.small"
+  port                          = 6379
+  parameter_group_name          = "default.redis3.2.cluster.on"
+  automatic_failover_enabled    = true
+  cluster_mode {
+    replicas_per_node_group     = 1
+    num_node_groups             = 2
+  }
+}
+```
+
 ~> **Note:** We currently do not support passing a `primary_cluster_id` in order to create the Replication Group.
 
 ~> **Note:** Automatic Failover is unavailable for Redis versions earlier than 2.8.6,
 and unavailable on T1 and T2 node types. See the [Amazon Replication with
 Redis](http://docs.aws.amazon.com/en_en/AmazonElastiCache/latest/UserGuide/Replication.html) guide
 for full details on using Replication Groups.
-
 
 ## Argument Reference
 
@@ -70,6 +88,12 @@ before being deleted. If the value of SnapshotRetentionLimit is set to zero (0),
 Please note that setting a `snapshot_retention_limit` is not supported on cache.t1.micro or cache.t2.* cache nodes
 * `apply_immediately` - (Optional) Specifies whether any modifications are applied immediately, or during the next maintenance window. Default is `false`.
 * `tags` - (Optional) A mapping of tags to assign to the resource
+* `cluster_mode` - (Optional) Create a native redis cluster. `automatic_failover_enabled` must be set to true. Cluster Mode documented below. Only 1 `cluster_mode` block is allowed.
+
+Cluster Mode (`cluster_mode`) supports the following:
+
+* `replicas_per_node_group` - (Required) Specify the number of replica nodes in each node group. Valid values are 0 to 5. Changing this number will force a new resource.
+* `num_node_groups` - (Required) Specify the number of node groups (shards) for this Redis replication group. Changing this number will force a new resource.
 
 ## Attributes Reference
 

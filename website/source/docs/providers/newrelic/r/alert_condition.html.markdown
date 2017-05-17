@@ -10,7 +10,7 @@ description: |-
 
 ## Example Usage
 
-```
+```hcl
 data "newrelic_application" "app" {
   name = "my-app"
 }
@@ -48,6 +48,7 @@ The following arguments are supported:
   * `entities` - (Required) The instance IDS associated with this condition.
   * `metric` - (Required) The metric field accepts parameters based on the `type` set.
   * `runbook_url` - (Optional) Runbook URL to display in notifications.
+  * `condition_scope` - (Optional) `instance` or `application`.  This is required if you are using the JVM plugin in New Relic.
   * `term` - (Required) A list of terms for this condition. See [Terms](#terms) below for details.
   * `user_defined_metric` - (Optional) A custom metric to be evaluated.
   * `user_defined_value_function` - (Optional) One of: `average`, `min`, `max`, `total`, or `sample_size`.

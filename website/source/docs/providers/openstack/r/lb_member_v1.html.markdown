@@ -12,7 +12,7 @@ Manages a V1 load balancer member resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_lb_member_v1" "member_1" {
   pool_id = "d9415786-5f1a-428b-b35f-2f1523e146d2"
   address = "192.168.0.10"

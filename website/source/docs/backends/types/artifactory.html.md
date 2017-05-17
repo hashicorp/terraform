@@ -21,7 +21,7 @@ It will likely end in `/artifactory`.
 
 ## Example Configuration
 
-```
+```hcl
 terraform {
   backend "artifactory" {
     username = "SheldonCooper"
@@ -35,16 +35,16 @@ terraform {
 
 ## Example Referencing
 
-```
+```hcl
 data "terraform_remote_state" "foo" {
-	backend = "artifactory"
-	config {
-		username = "SheldonCooper"
-		password = "AmyFarrahFowler"
-		url = "https://custom.artifactoryonline.com/artifactory"
-		repo = "foo"
-		subpath = "terraform-bar"
-	}
+  backend = "artifactory"
+  config {
+    username = "SheldonCooper"
+    password = "AmyFarrahFowler"
+    url      = "https://custom.artifactoryonline.com/artifactory"
+    repo     = "foo"
+    subpath  = "terraform-bar"
+  }
 }
 ```
 

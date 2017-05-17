@@ -25,7 +25,7 @@ to see what resources Terraform will destroy.
 
 ```
 $ terraform plan -destroy
-...
+# ...
 
 - aws_instance.example
 ```
@@ -45,7 +45,7 @@ aws_instance.example: Destroying...
 
 Apply complete! Resources: 0 added, 0 changed, 1 destroyed.
 
-...
+# ...
 ```
 
 The `terraform destroy` command should ask you to verify that you

@@ -14,7 +14,7 @@ resources in the linked virtual network.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "peeredvnets-rg"
   location = "West US"

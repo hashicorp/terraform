@@ -121,16 +121,15 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 	default:
 		if c.lockCh != nil {
 			// we have an active lock already
-			return "", nil
+			return "", fmt.Errorf("state %q already locked", c.Path)
 		}
 	}
 
 	if c.consulLock == nil {
 		opts := &consulapi.LockOptions{
 			Key: c.Path + lockSuffix,
-			// We currently don't procide any options to block terraform and
-			// retry lock acquisition, but we can wait briefly in case the
-			// lock is about to be freed.
+			// only wait briefly, so terraform has the choice to fail fast or
+			// retry as needed.
 			LockWaitTime: time.Second,
 			LockTryOnce:  true,
 		}
@@ -190,6 +189,10 @@ func (c *RemoteClient) Unlock(id string) error {
 
 	err := c.consulLock.Unlock()
 	c.lockCh = nil
+
+	// This is only cleanup, and will fail if the lock was immediately taken by
+	// another client, so we don't report an error to the user here.
+	c.consulLock.Destroy()
 
 	kv := c.Client.KV()
 	_, delErr := kv.Delete(c.Path+lockInfoSuffix, nil)

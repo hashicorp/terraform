@@ -6,19 +6,19 @@ description: |-
   Creates a PTR type DNS record.
 ---
 
-# dns\_ptr\_record
+# dns_ptr_record
 
 Creates a PTR type DNS record.
 
 ## Example Usage
 
-```
-  resource "dns_ptr_record" "dns-sd" {
-    zone = "example.com."
-    name = "r._dns-sd"
-    ptr = "example.com."
-    ttl = 300
-  }
+```hcl
+resource "dns_ptr_record" "dns-sd" {
+  zone = "example.com."
+  name = "r._dns-sd"
+  ptr  = "example.com."
+  ttl  = 300
+}
 ```
 
 ## Argument Reference
@@ -38,4 +38,3 @@ The following attributes are exported:
 * `name` - See Argument Reference above.
 * `ptr` - See Argument Reference above.
 * `ttl` - See Argument Reference above.
-

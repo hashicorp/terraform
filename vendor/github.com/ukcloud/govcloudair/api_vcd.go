@@ -141,7 +141,7 @@ func (c *VCDClient) vcdauthorize(user, pass, org string) error {
 func (c *VCDClient) RetrieveOrg(vcdname string) (Org, error) {
 
 	req := c.Client.NewRequest(map[string]string{}, "GET", c.OrgHREF, nil)
-	req.Header.Add("Accept", "vnd.vmware.vcloud.org+xml;version=5.5")
+	req.Header.Add("Accept", "application/*+xml;version=5.5")
 
 	// TODO: wrap into checkresp to parse error
 	resp, err := checkResp(c.Client.Http.Do(req))
