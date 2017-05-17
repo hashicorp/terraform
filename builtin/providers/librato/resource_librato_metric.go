@@ -1,6 +1,7 @@
 package librato
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"reflect"
@@ -166,6 +167,7 @@ func resourceLibratoMetricCreate(d *schema.ResourceData, meta interface{}) error
 
 	_, err := client.Metrics.Edit(metric)
 	if err != nil {
+		log.Printf("[INFO] ERROR creating Metric: %s", err)
 		return fmt.Errorf("Error creating Librato service: %s", err)
 	}
 
@@ -259,7 +261,8 @@ func resourceLibratoMetricRead(d *schema.ResourceData, meta interface{}) error {
 		}
 		return fmt.Errorf("Error reading Librato Metric %s: %s", id, err)
 	}
-	log.Printf("[INFO] Received Librato Metric: %+v", *metric)
+
+	log.Printf("[INFO] Read Librato Metric: %s", structToString(metric))
 
 	return resourceLibratoMetricReadResult(d, metric)
 }
@@ -400,7 +403,7 @@ func resourceLibratoMetricDelete(d *schema.ResourceData, meta interface{}) error
 			if errResp, ok := err.(*librato.ErrorResponse); ok && errResp.Response.StatusCode == 404 {
 				return nil
 			}
-			log.Printf("[DEBUG] unknown error attempting to Get metric: %s", err)
+			log.Printf("[INFO] non-retryable error attempting to Get metric: %s", err)
 			return resource.NonRetryableError(err)
 		}
 		return resource.RetryableError(fmt.Errorf("metric still exists"))
@@ -408,4 +411,9 @@ func resourceLibratoMetricDelete(d *schema.ResourceData, meta interface{}) error
 
 	d.SetId("")
 	return nil
+}
+
+func structToString(i interface{}) string {
+	s, _ := json.Marshal(i)
+	return string(s)
 }
