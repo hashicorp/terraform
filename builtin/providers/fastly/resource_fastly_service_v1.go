@@ -662,6 +662,7 @@ func resourceServiceV1() *schema.Resource {
 						"email": {
 							Type:        schema.TypeString,
 							Required:    true,
+							DefaultFunc: schema.EnvDefaultFunc("FASTLY_GCS_EMAIL", ""),
 							Description: "The email address associated with the target GCS bucket on your account.",
 						},
 						"bucket_name": {
@@ -672,6 +673,7 @@ func resourceServiceV1() *schema.Resource {
 						"secret_key": {
 							Type:        schema.TypeString,
 							Required:    true,
+							DefaultFunc: schema.EnvDefaultFunc("FASTLY_GCS_SECRET_KEY", ""),
 							Description: "The secret key associated with the target gcs bucket on your account.",
 						},
 						// Optional fields
