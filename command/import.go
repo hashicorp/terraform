@@ -50,6 +50,23 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Validate the provided resource address for syntax
+	addr, err := terraform.ParseResourceAddress(args[0])
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf(importCommandInvalidAddressFmt, err))
+		return 1
+	}
+	if !addr.HasResourceSpec() {
+		// module.foo target isn't allowed for import
+		c.Ui.Error(importCommandMissingResourceSpecMsg)
+		return 1
+	}
+	if addr.Mode != config.ManagedResourceMode {
+		// can't import to a data resource address
+		c.Ui.Error(importCommandResourceModeMsg)
+		return 1
+	}
+
 	// Load the module
 	var mod *module.Tree
 	if configPath != "" {
@@ -204,3 +221,20 @@ Options:
 func (c *ImportCommand) Synopsis() string {
 	return "Import existing infrastructure into Terraform"
 }
+
+const importCommandInvalidAddressFmt = `Error: %s
+
+For information on valid syntax, see:
+https://www.terraform.io/docs/internals/resource-addressing.html
+`
+
+const importCommandMissingResourceSpecMsg = `Error: resource address must include a full resource spec
+
+For information on valid syntax, see:
+https://www.terraform.io/docs/internals/resource-addressing.html
+`
+
+const importCommandResourceModeMsg = `Error: resource address must refer to a managed resource.
+
+Data resources cannot be imported.
+`
