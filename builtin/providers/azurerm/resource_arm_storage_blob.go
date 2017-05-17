@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync"
 
+	"time"
+
 	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -58,16 +60,52 @@ func resourceArmStorageBlob() *schema.Resource {
 				ValidateFunc: validateArmStorageBlobSize,
 			},
 			"source": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{"source_uri"},
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				ConflictsWith: []string{
+					"source_uri",
+					"source_resource_group_name",
+					"source_storage_account_name",
+					"source_storage_container_name",
+					"source_blob_name",
+				},
 			},
 			"source_uri": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				ConflictsWith: []string{
+					"source",
+					"source_resource_group_name",
+					"source_storage_account_name",
+					"source_storage_container_name",
+					"source_blob_name",
+				},
+			},
+			"source_resource_group_name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
-				ConflictsWith: []string{"source"},
+				ConflictsWith: []string{"source", "source_uri"},
+			},
+			"source_storage_account_name": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"source", "source_uri"},
+			},
+			"source_storage_container_name": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"source", "source_uri"},
+			},
+			"source_blob_name": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"source", "source_uri"},
 			},
 			"url": {
 				Type:     schema.TypeString,
@@ -152,8 +190,27 @@ func resourceArmStorageBlobCreate(d *schema.ResourceData, meta interface{}) erro
 	blobType := d.Get("type").(string)
 	cont := d.Get("storage_container_name").(string)
 	sourceUri := d.Get("source_uri").(string)
+	sourceResourceGroup := d.Get("source_resource_group_name").(string)
+	sourceAccount := d.Get("source_storage_account_name").(string)
+	sourceContainer := d.Get("source_storage_container_name").(string)
+	sourceBlob := d.Get("source_blob_name").(string)
 
 	log.Printf("[INFO] Creating blob %q in storage account %q", name, storageAccountName)
+	if sourceBlob != "" {
+		sourceBlobClient, exists, err := armClient.getBlobStorageClientForStorageAccount(sourceResourceGroup, sourceAccount)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return fmt.Errorf("Source storage account %q not found", sourceAccount)
+		}
+
+		sourceUri, err = sourceBlobClient.GetBlobSASURI(sourceContainer, sourceBlob, time.Now().Add(60*time.Minute), "r")
+		if err != nil {
+			return err
+		}
+	}
+
 	if sourceUri != "" {
 		if err := blobClient.CopyBlob(cont, name, sourceUri); err != nil {
 			return fmt.Errorf("Error creating storage blob on Azure: %s", err)

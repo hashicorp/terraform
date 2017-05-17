@@ -72,6 +72,14 @@ The following arguments are supported:
 
 * `attempts` - (Optional) The number of attempts to make per page or block when uploading. Defaults to `1`.
 
+* `source_resource_group_name` - (Optional) The resource group name of the source blob if the source blob is not publically accessible. Cannot be defined if `source` or `source_uri` is specified.
+
+* `source_storage_account_name` - (Optional) The storage account name of the source blob if the source blob is not publically accessible. Cannot be defined if `source` or `source_uri` is specified.
+
+* `source_storage_container_name` - (Optional) The storage container name of the source blob if the source blob is not publically accessible. Cannot be defined if `source` or `source_uri` is specified.
+
+* `source_blob_name` - (Optional) The name of the source blob if the source blob is not publically accessible. Cannot be defined if `source` or `source_uri` is specified.
+
 ## Attributes Reference
 
 The following attributes are exported in addition to the arguments listed above:
