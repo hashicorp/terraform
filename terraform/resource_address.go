@@ -89,6 +89,15 @@ func (r *ResourceAddress) String() string {
 	return strings.Join(result, ".")
 }
 
+// HasResourceSpec returns true if the address has a resource spec, as
+// defined in the documentation:
+//    https://www.terraform.io/docs/internals/resource-addressing.html
+// In particular, this returns false if the address contains only
+// a module path, thus addressing the entire module.
+func (r *ResourceAddress) HasResourceSpec() bool {
+	return r.Type != "" && r.Name != ""
+}
+
 // stateId returns the ID that this resource should be entered with
 // in the state. This is also used for diffs. In the future, we'd like to
 // move away from this string field so I don't export this.
