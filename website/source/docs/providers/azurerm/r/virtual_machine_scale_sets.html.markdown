@@ -235,12 +235,13 @@ The following arguments are supported:
 * `name` - (Required) Specifies the name of the virtual machine scale set resource. Changing this forces a
     new resource to be created.
 * `resource_group_name` - (Required) The name of the resource group in which to
-    create the virtual machine scale set.
+    create the virtual machine scale set. Changing this forces a new resource to be created.
 * `location` - (Required) Specifies the supported Azure location where the resource exists. Changing this forces a new resource to be created.
 * `sku` - (Required) A sku block as documented below.
 * `upgrade_policy_mode` - (Required) Specifies the mode of an upgrade to virtual machines in the scale set. Possible values, `Manual` or `Automatic`.
 * `overprovision` - (Optional) Specifies whether the virtual machine scale set should be overprovisioned.
-* `single_placement_group` - (Optional) Specifies whether the scale set is limited to a single placement group with a maximum size of 100 virtual machines. If set to false, managed disks must be used. Default is true. See [documentation](http://docs.microsoft.com/en-us/azure/virtual-machine-scale-sets/virtual-machine-scale-sets-placement-groups) for more information.
+* `single_placement_group` - (Optional) Specifies whether the scale set is limited to a single placement group with a maximum size of 100 virtual machines. If set to false, managed disks must be used. Default is true. Changing this forces a
+    new resource to be created. See [documentation](http://docs.microsoft.com/en-us/azure/virtual-machine-scale-sets/virtual-machine-scale-sets-placement-groups) for more information.
 * `os_profile` - (Required) A Virtual Machine OS Profile block as documented below.
 * `os_profile_secrets` - (Optional) A collection of Secret blocks as documented below.
 * `os_profile_windows_config` - (Required, when a windows machine) A Windows config block as documented below.
@@ -297,7 +298,7 @@ The following arguments are supported:
 
 `os_profile_linux_config` supports the following:
 
-* `disable_password_authentication` - (Required) Specifies whether password authentication should be disabled.
+* `disable_password_authentication` - (Required) Specifies whether password authentication should be disabled. Changing this forces a new resource to be created.
 * `ssh_keys` - (Optional) Specifies a collection of `path` and `key_data` to be placed on the virtual machine.
 
 ~> _**Note:** Please note that the only allowed `path` is `/home/<username>/.ssh/authorized_keys` due to a limitation of Azure_
