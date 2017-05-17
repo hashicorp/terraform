@@ -904,16 +904,20 @@ func flattenAzureRmVirtualMachinePlan(plan *compute.Plan) []interface{} {
 
 func flattenAzureRmVirtualMachineImageReference(image *compute.ImageReference) []interface{} {
 	result := make(map[string]interface{})
-	if result["publisher"] != nil {
-		result["offer"] = *image.Offer
+	if image.Publisher != nil {
 		result["publisher"] = *image.Publisher
+	}
+	if image.Offer != nil {
+		result["offer"] = *image.Offer
+	}
+	if image.Sku != nil {
 		result["sku"] = *image.Sku
-
-		if image.Version != nil {
-			result["version"] = *image.Version
-		}
-	} else if result["image_id"] != nil {
-		result["publisher"] = *image.ID
+	}
+	if image.Version != nil {
+		result["version"] = *image.Version
+	}
+	if image.ID != nil {
+		result["image_id"] = *image.ID
 	}
 
 	return []interface{}{result}
