@@ -98,6 +98,16 @@ func (r *ResourceAddress) HasResourceSpec() bool {
 	return r.Type != "" && r.Name != ""
 }
 
+// WholeModuleAddress returns the resource address that refers to all
+// resources in the same module as the receiver address.
+func (r *ResourceAddress) WholeModuleAddress() *ResourceAddress {
+	return &ResourceAddress{
+		Path:            r.Path,
+		Index:           -1,
+		InstanceTypeSet: false,
+	}
+}
+
 // stateId returns the ID that this resource should be entered with
 // in the state. This is also used for diffs. In the future, we'd like to
 // move away from this string field so I don't export this.
