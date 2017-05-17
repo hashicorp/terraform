@@ -209,6 +209,9 @@ func testAccDBSubnetGroupConfig(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccDBSubnetGroupConfig"
+	}
 }
 
 resource "aws_subnet" "foo" {
@@ -242,6 +245,9 @@ func testAccDBSubnetGroupConfig_updatedDescription(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccDBSubnetGroupConfig_updatedDescription"
+	}
 }
 
 resource "aws_subnet" "foo" {
@@ -275,6 +281,9 @@ resource "aws_db_subnet_group" "foo" {
 const testAccDBSubnetGroupConfig_namePrefix = `
 resource "aws_vpc" "test" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccDBSubnetGroupConfig_namePrefix"
+	}
 }
 
 resource "aws_subnet" "a" {
@@ -297,6 +306,9 @@ resource "aws_db_subnet_group" "test" {
 const testAccDBSubnetGroupConfig_generatedName = `
 resource "aws_vpc" "test" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccDBSubnetGroupConfig_generatedName"
+	}
 }
 
 resource "aws_subnet" "a" {
@@ -318,6 +330,9 @@ resource "aws_db_subnet_group" "test" {
 const testAccDBSubnetGroupConfig_withUnderscoresAndPeriodsAndSpaces = `
 resource "aws_vpc" "main" {
     cidr_block = "192.168.0.0/16"
+		tags {
+			Name = "testAccDBSubnetGroupConfig_withUnderscoresAndPeriodsAndSpaces"
+		}
 }
 
 resource "aws_subnet" "frontend" {

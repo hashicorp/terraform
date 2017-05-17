@@ -448,6 +448,9 @@ const testAccAWSLaunchConfigurationConfig_withVpcClassicLink = `
 resource "aws_vpc" "foo" {
    cidr_block = "10.0.0.0/16"
    enable_classiclink = true
+	tags {
+		Name = "testAccAWSLaunchConfigurationConfig_withVpcClassicLink"
+	}
 }
 
 resource "aws_security_group" "foo" {
