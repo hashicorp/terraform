@@ -12,27 +12,27 @@ Provides an Application Load Balancer Listener resource.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new load balancer
 resource "aws_alb" "front_end" {
-  # Other parameters...
+  # ...
 }
 
 resource "aws_alb_target_group" "front_end" {
-  # Other parameters...
+  # ...
 }
 
 resource "aws_alb_listener" "front_end" {
-   load_balancer_arn = "${aws_alb.front_end.arn}"
-   port = "443"
-   protocol = "HTTPS"
-   ssl_policy = "ELBSecurityPolicy-2015-05"
-   certificate_arn = "arn:aws:iam::187416307283:server-certificate/test_cert_rab3wuqwgja25ct3n4jdj2tzu4"
-   
-   default_action {
-     target_group_arn = "${aws_alb_target_group.front_end.arn}"
-     type = "forward"
-   }
+  load_balancer_arn = "${aws_alb.front_end.arn}"
+  port              = "443"
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-2015-05"
+  certificate_arn   = "arn:aws:iam::187416307283:server-certificate/test_cert_rab3wuqwgja25ct3n4jdj2tzu4"
+
+  default_action {
+    target_group_arn = "${aws_alb_target_group.front_end.arn}"
+    type             = "forward"
+  }
 }
 ```
 
@@ -43,7 +43,7 @@ The following arguments are supported:
 * `load_balancer_arn` - (Required, Forces New Resource) The ARN of the load balancer.
 * `port` - (Required) The port on which the load balancer is listening.
 * `protocol` - (Optional) The protocol for connections from clients to the load balancer. Valid values are `HTTP` and `HTTPS`. Defaults to `HTTP`.
-* `ssl_policy` - (Optional) The name of the SSL Policy for the listener. Required if `protocol` is `HTTPS`. The only valid value is currently `ELBSecurityPolicy-2015-05`.
+* `ssl_policy` - (Optional) The name of the SSL Policy for the listener. Required if `protocol` is `HTTPS`.
 * `certificate_arn` - (Optional) The ARN of the SSL server certificate. Exactly one certificate is required if the protocol is HTTPS.
 * `default_action` - (Required) An Action block. Action blocks are documented below.
 

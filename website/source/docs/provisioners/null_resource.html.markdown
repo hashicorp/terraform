@@ -22,11 +22,11 @@ graph.
 
 ## Example usage
 
-```
-# Bootstrap a cluster after all its instances are up
+```hcl
 resource "aws_instance" "cluster" {
   count = 3
-  // ...
+
+  # ...
 }
 
 resource "null_resource" "cluster" {
@@ -44,7 +44,7 @@ resource "null_resource" "cluster" {
   provisioner "remote-exec" {
     # Bootstrap script called with private_ip of each node in the clutser
     inline = [
-      "bootstrap-cluster.sh ${join(" ", aws_instance.cluster.*.private_ip)}"
+      "bootstrap-cluster.sh ${join(" ", aws_instance.cluster.*.private_ip)}",
     ]
   }
 }
@@ -57,4 +57,3 @@ In addition to all the resource configuration available, `null_resource` support
  * `triggers` - A mapping of values which should trigger a rerun of this set of
    provisioners. Values are meant to be interpolated references to variables or
    attributes of other resources.
-

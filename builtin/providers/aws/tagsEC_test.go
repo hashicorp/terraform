@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -57,6 +58,23 @@ func TestDiffelasticacheTags(t *testing.T) {
 		}
 		if !reflect.DeepEqual(rm, tc.Remove) {
 			t.Fatalf("%d: bad remove: %#v", i, rm)
+		}
+	}
+}
+
+func TestIgnoringTagsEC(t *testing.T) {
+	var ignoredTags []*elasticache.Tag
+	ignoredTags = append(ignoredTags, &elasticache.Tag{
+		Key:   aws.String("aws:cloudformation:logical-id"),
+		Value: aws.String("foo"),
+	})
+	ignoredTags = append(ignoredTags, &elasticache.Tag{
+		Key:   aws.String("aws:foo:bar"),
+		Value: aws.String("baz"),
+	})
+	for _, tag := range ignoredTags {
+		if !tagIgnoredEC(tag) {
+			t.Fatalf("Tag %v with value %v not ignored, but should be!", *tag.Key, *tag.Value)
 		}
 	}
 }

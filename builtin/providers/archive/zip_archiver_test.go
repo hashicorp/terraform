@@ -44,6 +44,23 @@ func TestZipArchiver_Dir(t *testing.T) {
 	})
 }
 
+func TestZipArchiver_Multiple(t *testing.T) {
+	zipfilepath := "archive-content.zip"
+	content := map[string][]byte{
+		"file1.txt": []byte("This is file 1"),
+		"file2.txt": []byte("This is file 2"),
+		"file3.txt": []byte("This is file 3"),
+	}
+
+	archiver := NewZipArchiver(zipfilepath)
+	if err := archiver.ArchiveMultiple(content); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	ensureContents(t, zipfilepath, content)
+
+}
+
 func ensureContents(t *testing.T, zipfilepath string, wants map[string][]byte) {
 	r, err := zip.OpenReader(zipfilepath)
 	if err != nil {

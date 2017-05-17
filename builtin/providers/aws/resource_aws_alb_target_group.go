@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -30,26 +32,44 @@ func resourceAwsAlbTargetGroup() *schema.Resource {
 				Computed: true,
 			},
 
-			"name": {
+			"arn_suffix": {
 				Type:     schema.TypeString,
-				Required: true,
+				Computed: true,
+			},
+
+			"name": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
+				ValidateFunc:  validateAwsAlbTargetGroupName,
+			},
+			"name_prefix": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validateAwsAlbTargetGroupNamePrefix,
 			},
 
 			"port": {
 				Type:         schema.TypeInt,
 				Required:     true,
+				ForceNew:     true,
 				ValidateFunc: validateAwsAlbTargetGroupPort,
 			},
 
 			"protocol": {
 				Type:         schema.TypeString,
 				Required:     true,
+				ForceNew:     true,
 				ValidateFunc: validateAwsAlbTargetGroupProtocol,
 			},
 
 			"vpc_id": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"deregistration_delay": {
@@ -62,9 +82,15 @@ func resourceAwsAlbTargetGroup() *schema.Resource {
 			"stickiness": {
 				Type:     schema.TypeList,
 				Optional: true,
+				Computed: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
 						"type": {
 							Type:         schema.TypeString,
 							Required:     true,
@@ -155,8 +181,17 @@ func resourceAwsAlbTargetGroup() *schema.Resource {
 func resourceAwsAlbTargetGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
+	var groupName string
+	if v, ok := d.GetOk("name"); ok {
+		groupName = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		groupName = resource.PrefixedUniqueId(v.(string))
+	} else {
+		groupName = resource.PrefixedUniqueId("tf-")
+	}
+
 	params := &elbv2.CreateTargetGroupInput{
-		Name:     aws.String(d.Get("name").(string)),
+		Name:     aws.String(groupName),
 		Port:     aws.Int64(int64(d.Get("port").(int))),
 		Protocol: aws.String(d.Get("protocol").(string)),
 		VpcId:    aws.String(d.Get("vpc_id").(string)),
@@ -214,6 +249,7 @@ func resourceAwsAlbTargetGroupRead(d *schema.ResourceData, meta interface{}) err
 	targetGroup := resp.TargetGroups[0]
 
 	d.Set("arn", targetGroup.TargetGroupArn)
+	d.Set("arn_suffix", albTargetGroupSuffixFromARN(targetGroup.TargetGroupArn))
 	d.Set("name", targetGroup.TargetGroupName)
 	d.Set("port", targetGroup.Port)
 	d.Set("protocol", targetGroup.Protocol)
@@ -240,10 +276,20 @@ func resourceAwsAlbTargetGroupRead(d *schema.ResourceData, meta interface{}) err
 	stickinessMap := map[string]interface{}{}
 	for _, attr := range attrResp.Attributes {
 		switch *attr.Key {
+		case "stickiness.enabled":
+			enabled, err := strconv.ParseBool(*attr.Value)
+			if err != nil {
+				return fmt.Errorf("Error converting stickiness.enabled to bool: %s", *attr.Value)
+			}
+			stickinessMap["enabled"] = enabled
 		case "stickiness.type":
 			stickinessMap["type"] = *attr.Value
 		case "stickiness.lb_cookie.duration_seconds":
-			stickinessMap["cookie_duration"] = *attr.Value
+			duration, err := strconv.Atoi(*attr.Value)
+			if err != nil {
+				return fmt.Errorf("Error converting stickiness.lb_cookie.duration_seconds to int: %s", *attr.Value)
+			}
+			stickinessMap["cookie_duration"] = duration
 		case "deregistration_delay.timeout_seconds":
 			timeout, err := strconv.Atoi(*attr.Value)
 			if err != nil {
@@ -252,7 +298,24 @@ func resourceAwsAlbTargetGroupRead(d *schema.ResourceData, meta interface{}) err
 			d.Set("deregistration_delay", timeout)
 		}
 	}
-	d.Set("stickiness", []interface{}{stickinessMap})
+
+	if err := d.Set("stickiness", []interface{}{stickinessMap}); err != nil {
+		return err
+	}
+
+	tagsResp, err := elbconn.DescribeTags(&elbv2.DescribeTagsInput{
+		ResourceArns: []*string{aws.String(d.Id())},
+	})
+	if err != nil {
+		return errwrap.Wrapf("Error retrieving Target Group Tags: {{err}}", err)
+	}
+	for _, t := range tagsResp.TagDescriptions {
+		if *t.ResourceArn == d.Id() {
+			if err := d.Set("tags", tagsToMapELBv2(t.Tags)); err != nil {
+				return err
+			}
+		}
+	}
 
 	return nil
 }
@@ -313,7 +376,7 @@ func resourceAwsAlbTargetGroupUpdate(d *schema.ResourceData, meta interface{}) e
 			attrs = append(attrs,
 				&elbv2.TargetGroupAttribute{
 					Key:   aws.String("stickiness.enabled"),
-					Value: aws.String("true"),
+					Value: aws.String(strconv.FormatBool(stickiness["enabled"].(bool))),
 				},
 				&elbv2.TargetGroupAttribute{
 					Key:   aws.String("stickiness.type"),
@@ -458,4 +521,18 @@ func validateAwsAlbTargetGroupStickinessCookieDuration(v interface{}, k string) 
 		errors = append(errors, fmt.Errorf("%q must be a between 1 second and 1 week (1-604800 seconds))", k))
 	}
 	return
+}
+
+func albTargetGroupSuffixFromARN(arn *string) string {
+	if arn == nil {
+		return ""
+	}
+
+	if arnComponents := regexp.MustCompile(`arn:.*:targetgroup/(.*)`).FindAllStringSubmatch(*arn, -1); len(arnComponents) == 1 {
+		if len(arnComponents[0]) == 2 {
+			return fmt.Sprintf("targetgroup/%s", arnComponents[0][1])
+		}
+	}
+
+	return ""
 }

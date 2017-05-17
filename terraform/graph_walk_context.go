@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"sync"
@@ -15,8 +16,9 @@ type ContextGraphWalker struct {
 	NullGraphWalker
 
 	// Configurable values
-	Context   *Context
-	Operation walkOperation
+	Context     *Context
+	Operation   walkOperation
+	StopContext context.Context
 
 	// Outputs, do not set these. Do not read these while the graph
 	// is being walked.
@@ -65,15 +67,15 @@ func (w *ContextGraphWalker) EnterPath(path []string) EvalContext {
 	w.interpolaterVarLock.Unlock()
 
 	ctx := &BuiltinEvalContext{
+		StopContext:         w.StopContext,
 		PathValue:           path,
 		Hooks:               w.Context.hooks,
 		InputValue:          w.Context.uiInput,
-		Providers:           w.Context.providers,
+		Components:          w.Context.components,
 		ProviderCache:       w.providerCache,
 		ProviderConfigCache: w.providerConfigCache,
 		ProviderInputConfig: w.Context.providerInputConfig,
 		ProviderLock:        &w.providerLock,
-		Provisioners:        w.Context.provisioners,
 		ProvisionerCache:    w.provisionerCache,
 		ProvisionerLock:     &w.provisionerLock,
 		DiffValue:           w.Context.diff,
@@ -82,6 +84,7 @@ func (w *ContextGraphWalker) EnterPath(path []string) EvalContext {
 		StateLock:           &w.Context.stateLock,
 		Interpolater: &Interpolater{
 			Operation:          w.Operation,
+			Meta:               w.Context.meta,
 			Module:             w.Context.module,
 			State:              w.Context.state,
 			StateLock:          &w.Context.stateLock,

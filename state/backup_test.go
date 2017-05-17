@@ -6,6 +6,10 @@ import (
 	"testing"
 )
 
+func TestBackupState_locker(t *testing.T) {
+	var _ Locker = new(BackupState)
+}
+
 func TestBackupState(t *testing.T) {
 	f, err := ioutil.TempFile("", "tf")
 	if err != nil {

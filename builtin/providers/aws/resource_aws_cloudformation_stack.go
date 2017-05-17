@@ -6,12 +6,12 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func resourceAwsCloudFormationStack() *schema.Resource {
@@ -22,71 +22,83 @@ func resourceAwsCloudFormationStack() *schema.Resource {
 		Delete: resourceAwsCloudFormationStackDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"template_body": &schema.Schema{
-				Type:      schema.TypeString,
-				Optional:  true,
-				Computed:  true,
-				StateFunc: normalizeJson,
+			"template_body": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateCloudFormationTemplate,
+				StateFunc: func(v interface{}) string {
+					template, _ := normalizeCloudFormationTemplate(v)
+					return template
+				},
 			},
-			"template_url": &schema.Schema{
+			"template_url": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"capabilities": &schema.Schema{
+			"capabilities": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"disable_rollback": &schema.Schema{
+			"disable_rollback": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 			},
-			"notification_arns": &schema.Schema{
+			"notification_arns": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"on_failure": &schema.Schema{
+			"on_failure": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"parameters": &schema.Schema{
+			"parameters": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Computed: true,
 			},
-			"outputs": &schema.Schema{
+			"outputs": {
 				Type:     schema.TypeMap,
 				Computed: true,
 			},
-			"policy_body": &schema.Schema{
-				Type:      schema.TypeString,
-				Optional:  true,
-				Computed:  true,
-				StateFunc: normalizeJson,
+			"policy_body": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateJsonString,
+				StateFunc: func(v interface{}) string {
+					json, _ := normalizeJsonString(v)
+					return json
+				},
 			},
-			"policy_url": &schema.Schema{
+			"policy_url": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"timeout_in_minutes": &schema.Schema{
+			"timeout_in_minutes": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
 			},
-			"tags": &schema.Schema{
+			"tags": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,
+			},
+			"iam_role_arn": {
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 		},
 	}
@@ -100,7 +112,11 @@ func resourceAwsCloudFormationStackCreate(d *schema.ResourceData, meta interface
 		StackName: aws.String(d.Get("name").(string)),
 	}
 	if v, ok := d.GetOk("template_body"); ok {
-		input.TemplateBody = aws.String(normalizeJson(v.(string)))
+		template, err := normalizeCloudFormationTemplate(v)
+		if err != nil {
+			return errwrap.Wrapf("template body contains an invalid JSON or YAML: {{err}}", err)
+		}
+		input.TemplateBody = aws.String(template)
 	}
 	if v, ok := d.GetOk("template_url"); ok {
 		input.TemplateURL = aws.String(v.(string))
@@ -121,7 +137,11 @@ func resourceAwsCloudFormationStackCreate(d *schema.ResourceData, meta interface
 		input.Parameters = expandCloudFormationParameters(v.(map[string]interface{}))
 	}
 	if v, ok := d.GetOk("policy_body"); ok {
-		input.StackPolicyBody = aws.String(normalizeJson(v.(string)))
+		policy, err := normalizeJsonString(v)
+		if err != nil {
+			return errwrap.Wrapf("policy body contains an invalid JSON: {{err}}", err)
+		}
+		input.StackPolicyBody = aws.String(policy)
 	}
 	if v, ok := d.GetOk("policy_url"); ok {
 		input.StackPolicyURL = aws.String(v.(string))
@@ -136,6 +156,9 @@ func resourceAwsCloudFormationStackCreate(d *schema.ResourceData, meta interface
 			retryTimeout = m + 5
 			log.Printf("[DEBUG] CloudFormation timeout: %d", retryTimeout)
 		}
+	}
+	if v, ok := d.GetOk("iam_role_arn"); ok {
+		input.RoleARN = aws.String(v.(string))
 	}
 
 	log.Printf("[DEBUG] Creating CloudFormation Stack: %s", input)
@@ -270,13 +293,18 @@ func resourceAwsCloudFormationStackRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	d.Set("template_body", normalizeJson(*out.TemplateBody))
+	template, err := normalizeCloudFormationTemplate(*out.TemplateBody)
+	if err != nil {
+		return errwrap.Wrapf("template body contains an invalid JSON or YAML: {{err}}", err)
+	}
+	d.Set("template_body", template)
 
 	stack := stacks[0]
 	log.Printf("[DEBUG] Received CloudFormation stack: %s", stack)
 
 	d.Set("name", stack.StackName)
 	d.Set("arn", stack.StackId)
+	d.Set("iam_role_arn", stack.RoleARN)
 
 	if stack.TimeoutInMinutes != nil {
 		d.Set("timeout_in_minutes", int(*stack.TimeoutInMinutes))
@@ -333,7 +361,11 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 		input.TemplateURL = aws.String(v.(string))
 	}
 	if v, ok := d.GetOk("template_body"); ok && input.TemplateURL == nil {
-		input.TemplateBody = aws.String(normalizeJson(v.(string)))
+		template, err := normalizeCloudFormationTemplate(v)
+		if err != nil {
+			return errwrap.Wrapf("template body contains an invalid JSON or YAML: {{err}}", err)
+		}
+		input.TemplateBody = aws.String(template)
 	}
 
 	// Capabilities must be present whether they are changed or not
@@ -351,16 +383,32 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 	}
 
 	if d.HasChange("policy_body") {
-		input.StackPolicyBody = aws.String(normalizeJson(d.Get("policy_body").(string)))
+		policy, err := normalizeJsonString(d.Get("policy_body"))
+		if err != nil {
+			return errwrap.Wrapf("policy body contains an invalid JSON: {{err}}", err)
+		}
+		input.StackPolicyBody = aws.String(policy)
 	}
 	if d.HasChange("policy_url") {
 		input.StackPolicyURL = aws.String(d.Get("policy_url").(string))
 	}
 
+	if d.HasChange("iam_role_arn") {
+		input.RoleARN = aws.String(d.Get("iam_role_arn").(string))
+	}
+
 	log.Printf("[DEBUG] Updating CloudFormation stack: %s", input)
-	stack, err := conn.UpdateStack(input)
+	_, err := conn.UpdateStack(input)
 	if err != nil {
-		return err
+		awsErr, ok := err.(awserr.Error)
+		// ValidationError: No updates are to be performed.
+		if !ok ||
+			awsErr.Code() != "ValidationError" ||
+			awsErr.Message() != "No updates are to be performed." {
+			return err
+		}
+
+		log.Printf("[DEBUG] Current CloudFormation stack has no updates")
 	}
 
 	lastUpdatedTime, err := getLastCfEventTimestamp(d.Id(), conn)
@@ -376,6 +424,7 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 		}
 	}
 	var lastStatus string
+	var stackId string
 	wait := resource.StateChangeConf{
 		Pending: []string{
 			"UPDATE_COMPLETE_CLEANUP_IN_PROGRESS",
@@ -384,6 +433,7 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 			"UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS",
 		},
 		Target: []string{
+			"CREATE_COMPLETE", // If no stack update was performed
 			"UPDATE_COMPLETE",
 			"UPDATE_ROLLBACK_COMPLETE",
 			"UPDATE_ROLLBACK_FAILED",
@@ -399,6 +449,8 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 				return nil, "", err
 			}
 
+			stackId = aws.StringValue(resp.Stacks[0].StackId)
+
 			status := *resp.Stacks[0].StackStatus
 			lastStatus = status
 			log.Printf("[DEBUG] Current CloudFormation stack status: %q", status)
@@ -413,7 +465,7 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 	}
 
 	if lastStatus == "UPDATE_ROLLBACK_COMPLETE" || lastStatus == "UPDATE_ROLLBACK_FAILED" {
-		reasons, err := getCloudFormationRollbackReasons(*stack.StackId, lastUpdatedTime, conn)
+		reasons, err := getCloudFormationRollbackReasons(stackId, lastUpdatedTime, conn)
 		if err != nil {
 			return fmt.Errorf("Failed getting details about rollback: %q", err.Error())
 		}
@@ -421,7 +473,7 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 		return fmt.Errorf("%s: %q", lastStatus, reasons)
 	}
 
-	log.Printf("[DEBUG] CloudFormation stack %q has been updated", *stack.StackId)
+	log.Printf("[DEBUG] CloudFormation stack %q has been updated", stackId)
 
 	return resourceAwsCloudFormationStackRead(d, meta)
 }

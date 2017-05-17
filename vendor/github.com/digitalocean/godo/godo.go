@@ -55,9 +55,11 @@ type Client struct {
 	Sizes             SizesService
 	FloatingIPs       FloatingIPsService
 	FloatingIPActions FloatingIPActionsService
+	Snapshots         SnapshotsService
 	Storage           StorageService
 	StorageActions    StorageActionsService
 	Tags              TagsService
+	LoadBalancers     LoadBalancersService
 
 	// Optional function called after every successful request made to the DO APIs
 	onRequestCompleted RequestCompletionCallback
@@ -155,16 +157,18 @@ func NewClient(httpClient *http.Client) *Client {
 	c.Domains = &DomainsServiceOp{client: c}
 	c.Droplets = &DropletsServiceOp{client: c}
 	c.DropletActions = &DropletActionsServiceOp{client: c}
+	c.FloatingIPs = &FloatingIPsServiceOp{client: c}
+	c.FloatingIPActions = &FloatingIPActionsServiceOp{client: c}
 	c.Images = &ImagesServiceOp{client: c}
 	c.ImageActions = &ImageActionsServiceOp{client: c}
 	c.Keys = &KeysServiceOp{client: c}
 	c.Regions = &RegionsServiceOp{client: c}
+	c.Snapshots = &SnapshotsServiceOp{client: c}
 	c.Sizes = &SizesServiceOp{client: c}
-	c.FloatingIPs = &FloatingIPsServiceOp{client: c}
-	c.FloatingIPActions = &FloatingIPActionsServiceOp{client: c}
 	c.Storage = &StorageServiceOp{client: c}
 	c.StorageActions = &StorageActionsServiceOp{client: c}
 	c.Tags = &TagsServiceOp{client: c}
+	c.LoadBalancers = &LoadBalancersServiceOp{client: c}
 
 	return c
 }
@@ -218,7 +222,7 @@ func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Requ
 
 	buf := new(bytes.Buffer)
 	if body != nil {
-		err := json.NewEncoder(buf).Encode(body)
+		err = json.NewEncoder(buf).Encode(body)
 		if err != nil {
 			return nil, err
 		}
@@ -310,12 +314,12 @@ func (c *Client) Do(req *http.Request, v interface{}) (*Response, error) {
 
 	if v != nil {
 		if w, ok := v.(io.Writer); ok {
-			_, err := io.Copy(w, resp.Body)
+			_, err = io.Copy(w, resp.Body)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			err := json.NewDecoder(resp.Body).Decode(v)
+			err = json.NewDecoder(resp.Body).Decode(v)
 			if err != nil {
 				return nil, err
 			}

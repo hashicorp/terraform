@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	types "github.com/hmrc/vmware-govcd/types/v56"
+	types "github.com/ukcloud/govcloudair/types/v56"
 )
 
 func resourceVcdNetwork() *schema.Resource {

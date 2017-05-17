@@ -1,6 +1,7 @@
 package heroku
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -11,7 +12,7 @@ import (
 )
 
 func TestAccHerokuDomain_Basic(t *testing.T) {
-	var domain heroku.Domain
+	var domain heroku.DomainInfoResult
 	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
@@ -19,7 +20,7 @@ func TestAccHerokuDomain_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckHerokuDomainDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckHerokuDomainConfig_basic(appName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuDomainExists("heroku_domain.foobar", &domain),
@@ -29,8 +30,7 @@ func TestAccHerokuDomain_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"heroku_domain.foobar", "app", appName),
 					resource.TestCheckResourceAttr(
-						"heroku_domain.foobar", "cname",
-						fmt.Sprintf("%s.herokuapp.com", appName)),
+						"heroku_domain.foobar", "cname", "terraform.example.com.herokudns.com"),
 				),
 			},
 		},
@@ -45,7 +45,7 @@ func testAccCheckHerokuDomainDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, err := client.DomainInfo(rs.Primary.Attributes["app"], rs.Primary.ID)
+		_, err := client.DomainInfo(context.TODO(), rs.Primary.Attributes["app"], rs.Primary.ID)
 
 		if err == nil {
 			return fmt.Errorf("Domain still exists")
@@ -55,7 +55,7 @@ func testAccCheckHerokuDomainDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckHerokuDomainAttributes(Domain *heroku.Domain) resource.TestCheckFunc {
+func testAccCheckHerokuDomainAttributes(Domain *heroku.DomainInfoResult) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		if Domain.Hostname != "terraform.example.com" {
@@ -66,7 +66,7 @@ func testAccCheckHerokuDomainAttributes(Domain *heroku.Domain) resource.TestChec
 	}
 }
 
-func testAccCheckHerokuDomainExists(n string, Domain *heroku.Domain) resource.TestCheckFunc {
+func testAccCheckHerokuDomainExists(n string, Domain *heroku.DomainInfoResult) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -80,7 +80,7 @@ func testAccCheckHerokuDomainExists(n string, Domain *heroku.Domain) resource.Te
 
 		client := testAccProvider.Meta().(*heroku.Service)
 
-		foundDomain, err := client.DomainInfo(rs.Primary.Attributes["app"], rs.Primary.ID)
+		foundDomain, err := client.DomainInfo(context.TODO(), rs.Primary.Attributes["app"], rs.Primary.ID)
 
 		if err != nil {
 			return err

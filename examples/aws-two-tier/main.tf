@@ -82,7 +82,6 @@ resource "aws_security_group" "default" {
   }
 }
 
-
 resource "aws_elb" "web" {
   name = "terraform-example-elb"
 
@@ -96,7 +95,6 @@ resource "aws_elb" "web" {
     lb_port           = 80
     lb_protocol       = "http"
   }
-
 }
 
 resource "aws_key_pair" "auth" {
@@ -138,7 +136,7 @@ resource "aws_instance" "web" {
     inline = [
       "sudo apt-get -y update",
       "sudo apt-get -y install nginx",
-      "sudo service nginx start"
+      "sudo service nginx start",
     ]
   }
 }

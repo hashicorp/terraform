@@ -94,7 +94,7 @@ func (e *encodeState) encodeMap(m map[string]interface{}) error {
 	for i, k := range sortedKeys(m) {
 		v := m[k]
 
-		e.WriteString(k + " = ")
+		e.WriteString(fmt.Sprintf("%q = ", k))
 		err := e.encode(v)
 		if err != nil {
 			return err

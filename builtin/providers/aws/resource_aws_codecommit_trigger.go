@@ -143,7 +143,7 @@ func expandAwsCodeCommitTriggers(configured []interface{}) []*codecommit.Reposit
 			Name:           aws.String(data["name"].(string)),
 		}
 
-		branches := make([]*string, len(data["events"].([]interface{})))
+		branches := make([]*string, len(data["branches"].([]interface{})))
 		for i, vv := range data["branches"].([]interface{}) {
 			str := vv.(string)
 			branches[i] = aws.String(str)

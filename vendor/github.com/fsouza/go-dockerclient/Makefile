@@ -28,7 +28,7 @@ lint:
 	exit $${status:-0}
 
 vet:
-	$(foreach pkg,$(PKGS),go vet $(pkg);)
+	go vet $(PKGS)
 
 fmt:
 	gofmt -s -w $(PKGS)
@@ -41,7 +41,7 @@ fmtcheck:
 pretest: lint vet fmtcheck
 
 gotest:
-	$(foreach pkg,$(PKGS),go test $(pkg) || exit;)
+	go test $(GO_TEST_FLAGS) $(PKGS)
 
 test: pretest gotest
 
@@ -54,4 +54,4 @@ cov:
 	gocov test | gocov report
 
 clean:
-	$(foreach pkg,$(PKGS),go clean $(pkg) || exit;)
+	go clean $(PKGS)

@@ -1,0 +1,122 @@
+<% wrap_layout :inner do %>
+    <% content_for :sidebar do %>
+        <div class="docs-sidebar hidden-print affix-top" role="complementary">
+            <ul class="nav docs-sidenav">
+                <li<%= sidebar_current("docs-home") %>>
+                    <a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+                </li>
+
+                <li<%= sidebar_current("docs-alicloud-index") %>>
+                    <a href="/docs/providers/alicloud/index.html">Alicloud Provider</a>
+                </li>
+
+                 <li<%= sidebar_current("docs-alicloud-datasource") %>>
+                    <a href="#">Data Sources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-alicloud-datasource-instance-types") %>>
+                            <a href="/docs/providers/alicloud/d/instance_types.html">alicloud_instance_types</a>
+                        </li>
+                        <li<%= sidebar_current("docs-alicloud-datasource-images") %>>
+                            <a href="/docs/providers/alicloud/d/images.html">alicloud_images</a>
+                        </li>
+                        <li<%= sidebar_current("docs-alicloud-datasource-zones") %>>
+                            <a href="/docs/providers/alicloud/d/zones.html">alicloud_zones</a>
+                        </li>
+                    </ul>
+                </li>
+
+                <li<%= sidebar_current("docs-alicloud-resource-ecs") %>>
+                    <a href="#">ECS Resources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-alicloud-resource-disk") %>>
+                            <a href="/docs/providers/alicloud/r/disk.html">alicloud_disk</a>
+                        </li>
+                        <li<%= sidebar_current("docs-alicloud-resource-disk-attachment") %>>
+                            <a href="/docs/providers/alicloud/r/disk_attachment.html">alicloud_disk_attachment</a>
+                        </li>
+                        <li<%= sidebar_current("docs-alicloud-resource-instance") %>>
+                            <a href="/docs/providers/alicloud/r/instance.html">alicloud_instance</a>
+                        </li>
+                        <li<%= sidebar_current("docs-alicloud-resource-eip") %>>
+                            <a href="/docs/providers/alicloud/r/eip.html">alicloud_eip</a>
+                        </li>
+                        <li<%= sidebar_current("docs-alicloud-resource-eip-association") %>>
+                            <a href="/docs/providers/alicloud/r/eip_association.html">alicloud_eip_association</a>
+                        </li>
+                    </ul>
+                </li>
+
+                <li<%= sidebar_current("docs-alicloud-resource-slb") %>>
+                    <a href="#">SLB Resources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-alicloud-resource-slb") %>>
+                            <a href="/docs/providers/alicloud/r/slb.html">alicloud_slb</a>
+                        </li>
+                        <li<%= sidebar_current("docs-alicloud-resource-slb-attachment") %>>
+                            <a href="/docs/providers/alicloud/r/slb_attachment.html">alicloud_slb_attachment</a>
+                        </li>
+                    </ul>
+                </li>
+
+                <li<%= sidebar_current("docs-alicloud-resource-vpc") %>>
+                    <a href="#">VPC Resources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-alicloud-resource-vpc") %>>
+                            <a href="/docs/providers/alicloud/r/vpc.html">alicloud_vpc</a>
+                        </li>
+                        <li<%= sidebar_current("docs-alicloud-resource-vswitch") %>>
+                            <a href="/docs/providers/alicloud/r/vswitch.html">alicloud_vswitch</a>
+                        </li>
+                        <li<%= sidebar_current("docs-alicloud-resource-route-entry") %>>
+                            <a href="/docs/providers/alicloud/r/vroute_entry.html">alicloud_route_entry</a>
+                        </li>
+                        <li<%= sidebar_current("docs-alicloud-resource-security-group") %>>
+                            <a href="/docs/providers/alicloud/r/security_group.html">alicloud_security_group</a>
+                        </li>
+                        <li<%= sidebar_current("docs-alicloud-resource-security-group-rule") %>>
+                                                    <a href="/docs/providers/alicloud/r/security_group_rule.html">alicloud_security_group_rule</a>
+                                                </li>
+                        <li<%= sidebar_current("docs-alicloud-resource-nat-gateway") %>>
+                            <a href="/docs/providers/alicloud/r/nat_gateway.html">alicloud_nat_gateway</a>
+                        </li>
+                    </ul>
+                </li>
+
+                <li<%= sidebar_current("docs-alicloud-resource-rds") %>>
+                    <a href="#">RDS Resources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-alicloud-resource-rds") %>>
+                            <a href="/docs/providers/alicloud/r/db_instance.html">alicloud_rds</a>
+                        </li>
+
+                    </ul>
+                </li>
+
+                <li<%= sidebar_current("docs-alicloud-resource-ess") %>>
+                    <a href="#">ESS Resources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-alicloud-resource-ess") %>>
+                            <a href="/docs/providers/alicloud/r/ess_scaling_group.html">alicloud_ess_scaling_group</a>
+                        </li>
+                        <li<%= sidebar_current("docs-alicloud-resource-ess") %>>
+                            <a href="/docs/providers/alicloud/r/ess_scaling_configuration.html">alicloud_ess_scaling_configuration</a>
+                        </li>
+                        <li<%= sidebar_current("docs-alicloud-resource-ess") %>>
+                            <a href="/docs/providers/alicloud/r/ess_scaling_rule.html">alicloud_ess_scaling_rule</a>
+                        </li>
+                        <li<%= sidebar_current("docs-alicloud-resource-ess") %>>
+                            <a href="/docs/providers/alicloud/r/ess_schedule.html">alicloud_ess_schedule</a>
+                        </li>
+
+                    </ul>
+                </li>
+
+
+
+
+            </ul>
+        </div>
+    <% end %>
+
+    <%= yield %>
+<% end %>

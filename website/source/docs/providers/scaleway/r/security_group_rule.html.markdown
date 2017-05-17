@@ -6,29 +6,28 @@ description: |-
   Manages Scaleway security group rules.
 ---
 
-# scaleway\security_group_rule
+# scaleway\_security\_group\_rule
 
 Provides security group rules. This allows security group rules to be created, updated and deleted.
 For additional details please refer to [API documentation](https://developer.scaleway.com/#security-groups-manage-rules).
 
 ## Example Usage
 
-```
+```hcl
 resource "scaleway_security_group" "test" {
-  name = "test"
+  name        = "test"
   description = "test"
 }
 
 resource "scaleway_security_group_rule" "smtp_drop_1" {
   security_group = "${scaleway_security_group.test.id}"
 
-  action = "accept"
+  action    = "accept"
   direction = "inbound"
-  ip_range = "0.0.0.0/0"
-  protocol = "TCP"
-  port = 25
+  ip_range  = "0.0.0.0/0"
+  protocol  = "TCP"
+  port      = 25
 }
-
 ```
 
 ## Argument Reference

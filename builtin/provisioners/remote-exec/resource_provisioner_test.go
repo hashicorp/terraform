@@ -2,22 +2,25 @@ package remoteexec
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"io"
+	"net"
 	"testing"
+	"time"
+
+	"strings"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
-
-func TestResourceProvisioner_impl(t *testing.T) {
-	var _ terraform.ResourceProvisioner = new(ResourceProvisioner)
-}
 
 func TestResourceProvider_Validate_good(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
 		"inline": "echo foo",
 	})
-	p := new(ResourceProvisioner)
+	p := Provisioner()
 	warn, errs := p.Validate(c)
 	if len(warn) > 0 {
 		t.Fatalf("Warnings: %v", warn)
@@ -31,7 +34,7 @@ func TestResourceProvider_Validate_bad(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
 		"invalid": "nope",
 	})
-	p := new(ResourceProvisioner)
+	p := Provisioner()
 	warn, errs := p.Validate(c)
 	if len(warn) > 0 {
 		t.Fatalf("Warnings: %v", warn)
@@ -47,35 +50,58 @@ exit 0
 `
 
 func TestResourceProvider_generateScript(t *testing.T) {
-	p := new(ResourceProvisioner)
-	conf := testConfig(t, map[string]interface{}{
+	p := Provisioner().(*schema.Provisioner)
+	conf := map[string]interface{}{
 		"inline": []interface{}{
 			"cd /tmp",
 			"wget http://foobar",
 			"exit 0",
 		},
-	})
-	out, err := p.generateScript(conf)
+	}
+	out, err := generateScripts(schema.TestResourceDataRaw(
+		t, p.Schema, conf))
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if out != expectedScriptOut {
+	if len(out) != 1 {
+		t.Fatal("expected 1 out")
+	}
+
+	if out[0] != expectedScriptOut {
 		t.Fatalf("bad: %v", out)
 	}
 }
 
+func TestResourceProvider_generateScriptEmptyInline(t *testing.T) {
+	p := Provisioner().(*schema.Provisioner)
+	conf := map[string]interface{}{
+		"inline": []interface{}{""},
+	}
+
+	_, err := generateScripts(schema.TestResourceDataRaw(
+		t, p.Schema, conf))
+	if err == nil {
+		t.Fatal("expected error, got none")
+	}
+
+	if !strings.Contains(err.Error(), "Error parsing") {
+		t.Fatalf("expected parsing error, got: %s", err)
+	}
+}
+
 func TestResourceProvider_CollectScripts_inline(t *testing.T) {
-	p := new(ResourceProvisioner)
-	conf := testConfig(t, map[string]interface{}{
+	p := Provisioner().(*schema.Provisioner)
+	conf := map[string]interface{}{
 		"inline": []interface{}{
 			"cd /tmp",
 			"wget http://foobar",
 			"exit 0",
 		},
-	})
+	}
 
-	scripts, err := p.collectScripts(conf)
+	scripts, err := collectScripts(schema.TestResourceDataRaw(
+		t, p.Schema, conf))
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -96,12 +122,13 @@ func TestResourceProvider_CollectScripts_inline(t *testing.T) {
 }
 
 func TestResourceProvider_CollectScripts_script(t *testing.T) {
-	p := new(ResourceProvisioner)
-	conf := testConfig(t, map[string]interface{}{
+	p := Provisioner().(*schema.Provisioner)
+	conf := map[string]interface{}{
 		"script": "test-fixtures/script1.sh",
-	})
+	}
 
-	scripts, err := p.collectScripts(conf)
+	scripts, err := collectScripts(schema.TestResourceDataRaw(
+		t, p.Schema, conf))
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -122,16 +149,17 @@ func TestResourceProvider_CollectScripts_script(t *testing.T) {
 }
 
 func TestResourceProvider_CollectScripts_scripts(t *testing.T) {
-	p := new(ResourceProvisioner)
-	conf := testConfig(t, map[string]interface{}{
+	p := Provisioner().(*schema.Provisioner)
+	conf := map[string]interface{}{
 		"scripts": []interface{}{
 			"test-fixtures/script1.sh",
 			"test-fixtures/script1.sh",
 			"test-fixtures/script1.sh",
 		},
-	})
+	}
 
-	scripts, err := p.collectScripts(conf)
+	scripts, err := collectScripts(schema.TestResourceDataRaw(
+		t, p.Schema, conf))
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -150,6 +178,49 @@ func TestResourceProvider_CollectScripts_scripts(t *testing.T) {
 		if out.String() != expectedScriptOut {
 			t.Fatalf("bad: %v", out.String())
 		}
+	}
+}
+
+func TestResourceProvider_CollectScripts_scriptsEmpty(t *testing.T) {
+	p := Provisioner().(*schema.Provisioner)
+	conf := map[string]interface{}{
+		"scripts": []interface{}{""},
+	}
+
+	_, err := collectScripts(schema.TestResourceDataRaw(
+		t, p.Schema, conf))
+
+	if err == nil {
+		t.Fatal("expected error")
+	}
+
+	if !strings.Contains(err.Error(), "Error parsing") {
+		t.Fatalf("Expected parsing error, got: %s", err)
+	}
+}
+
+func TestRetryFunc(t *testing.T) {
+	// succeed on the third try
+	errs := []error{io.EOF, &net.OpError{Err: errors.New("ERROR")}, nil}
+	count := 0
+
+	err := retryFunc(context.Background(), time.Second, func() error {
+		if count >= len(errs) {
+			return errors.New("failed to stop after nil error")
+		}
+
+		err := errs[count]
+		count++
+
+		return err
+	})
+
+	if count != 3 {
+		t.Fatal("retry func should have been called 3 times")
+	}
+
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 

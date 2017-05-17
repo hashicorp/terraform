@@ -1,36 +1,19 @@
 package github
 
 import (
+	"context"
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/google/go-github/github"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccGithubTeamMembership_basic(t *testing.T) {
 	var membership github.Membership
-
-	testUser := os.Getenv("GITHUB_TEST_USER")
-	testAccGithubTeamMembershipConfig := fmt.Sprintf(`
-		resource "github_membership" "test_org_membership" {
-			username = "%s"
-			role = "member"
-		}
-
-		resource "github_team" "test_team" {
-			name = "foo"
-			description = "Terraform acc test group"
-		}
-
-		resource "github_team_membership" "test_team_membership" {
-			team_id = "${github_team.test_team.id}"
-			username = "%s"
-			role = "member"
-		}
-	`, testUser, testUser)
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
 	testAccGithubTeamMembershipUpdateConfig := fmt.Sprintf(`
 		resource "github_membership" "test_org_membership" {
@@ -39,7 +22,7 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 		}
 
 		resource "github_team" "test_team" {
-			name = "foo"
+			name = "tf-acc-test-team-membership-%s"
 			description = "Terraform acc test group"
 		}
 
@@ -48,26 +31,46 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 			username = "%s"
 			role = "maintainer"
 		}
-	`, testUser, testUser)
+	`, testUser, randString, testUser)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubTeamMembershipDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccGithubTeamMembershipConfig,
+			{
+				Config: testAccGithubTeamMembershipConfig(randString, testUser),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamMembershipExists("github_team_membership.test_team_membership", &membership),
 					testAccCheckGithubTeamMembershipRoleState("github_team_membership.test_team_membership", "member", &membership),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccGithubTeamMembershipUpdateConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamMembershipExists("github_team_membership.test_team_membership", &membership),
 					testAccCheckGithubTeamMembershipRoleState("github_team_membership.test_team_membership", "maintainer", &membership),
 				),
+			},
+		},
+	})
+}
+
+func TestAccGithubTeamMembership_importBasic(t *testing.T) {
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubTeamMembershipDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubTeamMembershipConfig(randString, testUser),
+			},
+			{
+				ResourceName:      "github_team_membership.test_team_membership",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -82,7 +85,7 @@ func testAccCheckGithubTeamMembershipDestroy(s *terraform.State) error {
 		}
 
 		t, u := parseTwoPartID(rs.Primary.ID)
-		membership, resp, err := conn.Organizations.GetTeamMembership(toGithubID(t), u)
+		membership, resp, err := conn.Organizations.GetTeamMembership(context.TODO(), toGithubID(t), u)
 		if err == nil {
 			if membership != nil {
 				return fmt.Errorf("Team membership still exists")
@@ -110,7 +113,7 @@ func testAccCheckGithubTeamMembershipExists(n string, membership *github.Members
 		conn := testAccProvider.Meta().(*Organization).client
 		t, u := parseTwoPartID(rs.Primary.ID)
 
-		teamMembership, _, err := conn.Organizations.GetTeamMembership(toGithubID(t), u)
+		teamMembership, _, err := conn.Organizations.GetTeamMembership(context.TODO(), toGithubID(t), u)
 
 		if err != nil {
 			return err
@@ -134,7 +137,7 @@ func testAccCheckGithubTeamMembershipRoleState(n, expected string, membership *g
 		conn := testAccProvider.Meta().(*Organization).client
 		t, u := parseTwoPartID(rs.Primary.ID)
 
-		teamMembership, _, err := conn.Organizations.GetTeamMembership(toGithubID(t), u)
+		teamMembership, _, err := conn.Organizations.GetTeamMembership(context.TODO(), toGithubID(t), u)
 		if err != nil {
 			return err
 		}
@@ -151,4 +154,24 @@ func testAccCheckGithubTeamMembershipRoleState(n, expected string, membership *g
 		}
 		return nil
 	}
+}
+
+func testAccGithubTeamMembershipConfig(randString, username string) string {
+	return fmt.Sprintf(`
+  resource "github_membership" "test_org_membership" {
+    username = "%s"
+    role = "member"
+  }
+
+  resource "github_team" "test_team" {
+    name = "tf-acc-test-team-membership-%s"
+    description = "Terraform acc test group"
+  }
+
+  resource "github_team_membership" "test_team_membership" {
+    team_id = "${github_team.test_team.id}"
+    username = "%s"
+    role = "member"
+  }
+`, username, randString, username)
 }

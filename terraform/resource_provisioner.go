@@ -21,6 +21,26 @@ type ResourceProvisioner interface {
 	// is provided since provisioners only run after a resource has been
 	// newly created.
 	Apply(UIOutput, *InstanceState, *ResourceConfig) error
+
+	// Stop is called when the provisioner should halt any in-flight actions.
+	//
+	// This can be used to make a nicer Ctrl-C experience for Terraform.
+	// Even if this isn't implemented to do anything (just returns nil),
+	// Terraform will still cleanly stop after the currently executing
+	// graph node is complete. However, this API can be used to make more
+	// efficient halts.
+	//
+	// Stop doesn't have to and shouldn't block waiting for in-flight actions
+	// to complete. It should take any action it wants and return immediately
+	// acknowledging it has received the stop request. Terraform core will
+	// automatically not make any further API calls to the provider soon
+	// after Stop is called (technically exactly once the currently executing
+	// graph nodes are complete).
+	//
+	// The error returned, if non-nil, is assumed to mean that signaling the
+	// stop somehow failed and that the user should expect potentially waiting
+	// a longer period of time.
+	Stop() error
 }
 
 // ResourceProvisionerCloser is an interface that provisioners that can close

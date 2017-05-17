@@ -1,0 +1,47 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+        <a href="/docs/providers/index.html">All Providers</a>
+                </li>
+
+        <li<%= sidebar_current("docs-profitbricks-index") %>>
+        <a href="/docs/providers/profitbricks/index.html">ProfitBricks Provider</a>
+                </li>
+
+        <li<%= sidebar_current("docs-profitbricks-resource") %>>
+        <a href="#">Resources</a>
+                <ul class="nav nav-visible">
+                    <li<%= sidebar_current("docs-profitbricks-resource-datacenter") %>>
+          <a href="/docs/providers/profitbricks/r/profitbricks_datacenter.html">profitbricks_datacenter</a>
+          </li>
+                    <li<%= sidebar_current("docs-profitbricks-resource-firewall") %>>
+                    <a href="/docs/providers/profitbricks/r/profitbricks_firewall.html">profitbricks_firewall</a>
+                    </li>
+                    <li<%= sidebar_current("docs-profitbricks-resource-ipblock") %>>
+                    <a href="/docs/providers/profitbricks/r/profitbricks_ipblock.html">profitbricks_ipblock</a>
+                    </li>
+                    <li<%= sidebar_current("docs-profitbricks-resource-lan") %>>
+                    <a href="/docs/providers/profitbricks/r/profitbricks_lan.html">profitbricks_lan</a>
+                    </li>
+                    <li<%= sidebar_current("docs-profitbricks-resource-loadbalancer") %>>
+                    <a href="/docs/providers/profitbricks/r/profitbricks_loadbalancer.html">profitbricks_loadbalancer</a>
+                    </li>
+                    <li<%= sidebar_current("docs-profitbricks-resource-nic") %>>
+                    <a href="/docs/providers/profitbricks/r/profitbricks_nic.html">profitbricks_nic</a>
+                    </li>
+                    <li<%= sidebar_current("docs-profitbricks-resource-server") %>>
+                    <a href="/docs/providers/profitbricks/r/profitbricks_server.html">profitbricks_server</a>
+                    </li>
+                    <li<%= sidebar_current("docs-profitbricks-resource-volume") %>>
+                    <a href="/docs/providers/profitbricks/r/profitbricks_volume.html">profitbricks_volume</a>
+                    </li>
+        </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= yield %>
+  <% end %>

@@ -20,7 +20,7 @@ func TestAccAWSDefaultRouteTable_basic(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckDefaultRouteTableDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDefaultRouteTableConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(
@@ -40,7 +40,7 @@ func TestAccAWSDefaultRouteTable_swap(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckDefaultRouteTableDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDefaultRouteTable_change,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(
@@ -53,13 +53,33 @@ func TestAccAWSDefaultRouteTable_swap(t *testing.T) {
 			// behavior that may happen, in which case a follow up plan will show (in
 			// this case) a diff as the table now needs to be updated to match the
 			// config
-			resource.TestStep{
+			{
 				Config: testAccDefaultRouteTable_change_mod,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(
 						"aws_default_route_table.foo", &v),
 				),
 				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func TestAccAWSDefaultRouteTable_vpc_endpoint(t *testing.T) {
+	var v ec2.RouteTable
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_default_route_table.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckDefaultRouteTableDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDefaultRouteTable_vpc_endpoint,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRouteTableExists(
+						"aws_default_route_table.foo", &v),
+				),
 			},
 		},
 	})
@@ -236,5 +256,48 @@ resource "aws_route_table" "r" {
 resource "aws_main_route_table_association" "a" {
   vpc_id         = "${aws_vpc.foo.id}"
   route_table_id = "${aws_route_table.r.id}"
+}
+`
+
+const testAccDefaultRouteTable_vpc_endpoint = `
+provider "aws" {
+    region = "us-west-2"
+}
+
+resource "aws_vpc" "test" {
+    cidr_block = "10.0.0.0/16"
+
+    tags {
+        Name = "test"
+    }
+}
+
+resource "aws_internet_gateway" "igw" {
+    vpc_id = "${aws_vpc.test.id}"
+
+    tags {
+        Name = "test"
+    }
+}
+
+resource "aws_vpc_endpoint" "s3" {
+    vpc_id = "${aws_vpc.test.id}"
+    service_name = "com.amazonaws.us-west-2.s3"
+    route_table_ids = [
+        "${aws_vpc.test.default_route_table_id}"
+    ]
+}
+
+resource "aws_default_route_table" "foo" {
+    default_route_table_id = "${aws_vpc.test.default_route_table_id}"
+
+    tags {
+        Name = "test"
+    }
+
+    route {
+        cidr_block = "0.0.0.0/0"
+        gateway_id = "${aws_internet_gateway.igw.id}"
+    }
 }
 `

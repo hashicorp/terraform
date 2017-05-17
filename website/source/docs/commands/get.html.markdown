@@ -9,14 +9,16 @@ description: |-
 # Command: get
 
 The `terraform get` command is used to download and update
-[modules](/docs/modules/index.html).
+[modules](/docs/modules/index.html) mentioned in the root module.
 
 ## Usage
 
 Usage: `terraform get [options] [dir]`
 
 The modules are downloaded into a local `.terraform` folder. This
-folder should not be committed to version control.
+folder should not be committed to version control. The `.terraform`
+folder is created relative to your current working directory
+regardless of the `dir` argument given to this command.
 
 If a module is already downloaded and the `-update` flag is _not_ set,
 Terraform will do nothing. As a result, it is safe (and fast) to run this
@@ -26,3 +28,4 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-update` - If specified, modules that are already downloaded will be
    checked for updates and the updates will be downloaded if present.
+* `dir` - Sets the path of the [root module](/docs/modules/index.html#definitions).

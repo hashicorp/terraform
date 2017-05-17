@@ -209,7 +209,7 @@ type RailgunDiagnosis struct {
 	ConnectionClose bool   `json:"connection_close"`
 	Cloudflare      string `json:"cloudflare"`
 	CFRay           string `json:"cf-ray"`
-	// NOTE: CloudFlare's online API documentation does not yet have definitions
+	// NOTE: Cloudflare's online API documentation does not yet have definitions
 	// for the following fields. See: https://api.cloudflare.com/#railgun-connections-for-a-zone-test-railgun-connection/
 	CFWANError    string `json:"cf-wan-error"`
 	CFCacheStatus string `json:"cf-cache-status"`
@@ -238,7 +238,7 @@ func (api *API) ZoneRailguns(zoneID string) ([]ZoneRailgun, error) {
 	return r.Result, nil
 }
 
-// Railgun returns the configuration for a given Railgun.
+// ZoneRailgunDetails returns the configuration for a given Railgun.
 // API reference:
 // 	https://api.cloudflare.com/#railguns-for-a-zone-get-railgun-details
 // 	GET /zones/:zone_identifier/railguns/:identifier
@@ -255,7 +255,7 @@ func (api *API) ZoneRailgunDetails(zoneID, railgunID string) (ZoneRailgun, error
 	return r.Result, nil
 }
 
-// TestRailgunResponse tests a Railgun connection for a given zone.
+// TestRailgunConnection tests a Railgun connection for a given zone.
 // API reference:
 //  https://api.cloudflare.com/#railgun-connections-for-a-zone-test-railgun-connection
 //  GET /zones/:zone_identifier/railguns/:identifier/diagnose
@@ -294,7 +294,7 @@ func (api *API) connectZoneRailgun(zoneID, railgunID string, connect bool) (Zone
 	return r.Result, nil
 }
 
-// ZoneRailgun connects a Railgun for a given zone.
+// ConnectZoneRailgun connects a Railgun for a given zone.
 // API reference:
 // 	https://api.cloudflare.com/#railguns-for-a-zone-connect-or-disconnect-a-railgun
 // 	PATCH /zones/:zone_identifier/railguns/:identifier
@@ -302,7 +302,7 @@ func (api *API) ConnectZoneRailgun(zoneID, railgunID string) (ZoneRailgun, error
 	return api.connectZoneRailgun(zoneID, railgunID, true)
 }
 
-// ZoneRailgun disconnects a Railgun for a given zone.
+// DisconnectZoneRailgun disconnects a Railgun for a given zone.
 // API reference:
 //  https://api.cloudflare.com/#railguns-for-a-zone-connect-or-disconnect-a-railgun
 //  PATCH /zones/:zone_identifier/railguns/:identifier

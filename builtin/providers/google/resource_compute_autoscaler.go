@@ -333,7 +333,7 @@ func resourceComputeAutoscalerUpdate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	op, err := config.clientCompute.Autoscalers.Patch(
-		project, zone, d.Id(), scaler).Do()
+		project, zone, scaler).Do()
 	if err != nil {
 		return fmt.Errorf("Error updating Autoscaler: %s", err)
 	}

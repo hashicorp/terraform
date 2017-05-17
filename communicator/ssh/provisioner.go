@@ -32,7 +32,7 @@ const (
 )
 
 // connectionInfo is decoded from the ConnInfo of the resource. These are the
-// only keys we look at. If a KeyFile is given, that is used instead
+// only keys we look at. If a PrivateKey is given, that is used instead
 // of a password.
 type connectionInfo struct {
 	User       string
@@ -50,10 +50,6 @@ type connectionInfo struct {
 	BastionPrivateKey string `mapstructure:"bastion_private_key"`
 	BastionHost       string `mapstructure:"bastion_host"`
 	BastionPort       int    `mapstructure:"bastion_port"`
-
-	// Deprecated
-	KeyFile        string `mapstructure:"key_file"`
-	BastionKeyFile string `mapstructure:"bastion_key_file"`
 }
 
 // parseConnectionInfo is used to convert the ConnInfo of the InstanceState into
@@ -99,15 +95,6 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 		connInfo.TimeoutVal = safeDuration(connInfo.Timeout, DefaultTimeout)
 	} else {
 		connInfo.TimeoutVal = DefaultTimeout
-	}
-
-	// Load deprecated fields; we can handle either path or contents in
-	// underlying implementation.
-	if connInfo.PrivateKey == "" && connInfo.KeyFile != "" {
-		connInfo.PrivateKey = connInfo.KeyFile
-	}
-	if connInfo.BastionPrivateKey == "" && connInfo.BastionKeyFile != "" {
-		connInfo.BastionPrivateKey = connInfo.BastionKeyFile
 	}
 
 	// Default all bastion config attrs to their non-bastion counterparts

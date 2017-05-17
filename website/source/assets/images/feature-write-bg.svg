@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 804 744" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <path id="a" d="M592.05 232v-61.45h-444.3v328.1h444.3V456H578V232h14.05z"/>
+    <mask id="b" width="444.3" height="328.1" x="0" y="0" fill="#fff">
+      <use xlink:href="#a"/>
+    </mask>
+  </defs>
+  <g fill="none" fill-rule="evenodd" transform="translate(1 1)">
+    <path stroke="#000" stroke-opacity=".15" stroke-width="2" d="M250.1 448.1V386l47.6-23.9 47.5 23.9v62.1l-47.5 23.8zm148.7 23.8l-47.6-23.8V386l47.6-23.9 47.6 23.9v62.1zm259.9-362l-47.6-23.8V24L658.7.1 706.2 24v62.1zm-411 452l-47.6-23.8V476l47.6-23.9 47.5 23.9v62.1zm201 0l-47.6-23.8V476l47.6-23.9 47.5 23.9v62.1zm-298.6 66.2V566l14.4-7.3 33.2-16.6 47.5 23.9v62.1l-47.5 23.8zm147.6 23.8l-47.6-23.8V566l47.6-23.9 47.5 23.9v62.1zm-150 90l-47.6-23.8V656l47.6-23.9 47.5 23.9v62.1zm-100.1 0L0 718.1V656l47.6-23.9L95.1 656v62.1zm99.1-179l-47.6-23.8V477l47.6-23.9 47.5 23.9v62.1zm101 179l-47.6-23.8V656l47.6-23.9 47.5 23.9v62.1z"/>
+    <use fill-rule="nonzero" stroke="#000" stroke-width="4" mask="url(#b)" xlink:href="#a"/>
+    <path stroke="#000" stroke-width="2" d="M149.5 199h440.8"/>
+    <path fill="#FFF" d="M149.7 200h440.4v296.7H149.7z"/>
+    <circle cx="168.6" cy="186.1" r="5.6" fill="#FFF" fill-rule="nonzero" stroke="#2A2733" stroke-width="1.5"/>
+    <circle cx="186.7" cy="186.1" r="5.6" fill="#FFF" fill-rule="nonzero" stroke="#2A2733" stroke-width="1.5"/>
+    <circle cx="204.8" cy="186.1" r="5.6" fill="#FFF" fill-rule="nonzero" stroke="#2A2733" stroke-width="1.5"/>
+    <path fill="#5C4EE5" fill-rule="nonzero" d="M180.8 249.8h179.8v5.8H180.8zm204.6 0h232.3v5.8H385.4zm-204.6 31.6h77.7v5.8h-77.7zm91.1 0h191.5v5.8H271.9zm209.6 0h214.1v5.8H481.5zm-300.7 30.1h163.6v5.8H180.8zm182.1 0h61.2v5.8h-61.2zm77.6 0H803v5.8H440.5zm-259.7 30.1h183.1v5.8H180.8zm200.7 0h295.7v5.8H381.5zm-200.7 30.1h91.3v5.8h-91.3zm117.2 0h154.8v5.8H298zm177.6 0H729v5.8H475.6zm-294.8 30.1h141.7v5.8H180.8zm158.5 0h171.4v5.8H339.3zm192.1 0h108.8v5.8H531.4zm-350.6 31.6h91.3v5.8h-91.3zm117.5 0h102.5v5.8H298.3zm123 0h233.4v5.8H421.3z"/>
+  </g>
+</svg>

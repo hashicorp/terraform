@@ -296,6 +296,7 @@ func (s *FirewallService) ListPortForwardingRules(p *ListPortForwardingRulesPara
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -506,11 +507,6 @@ func (s *FirewallService) CreatePortForwardingRule(p *CreatePortForwardingRulePa
 		return nil, err
 	}
 
-	resp, err = convertFirewallServiceResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
 	var r CreatePortForwardingRuleResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -540,6 +536,7 @@ func (s *FirewallService) CreatePortForwardingRule(p *CreatePortForwardingRulePa
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -614,11 +611,6 @@ func (s *FirewallService) DeletePortForwardingRule(p *DeletePortForwardingRulePa
 		return nil, err
 	}
 
-	resp, err = convertFirewallServiceResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
 	var r DeletePortForwardingRuleResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -643,6 +635,7 @@ func (s *FirewallService) DeletePortForwardingRule(p *DeletePortForwardingRulePa
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -748,11 +741,6 @@ func (s *FirewallService) UpdatePortForwardingRule(p *UpdatePortForwardingRulePa
 		return nil, err
 	}
 
-	resp, err = convertFirewallServiceResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
 	var r UpdatePortForwardingRuleResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -782,6 +770,7 @@ func (s *FirewallService) UpdatePortForwardingRule(p *UpdatePortForwardingRulePa
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -951,11 +940,6 @@ func (s *FirewallService) CreateFirewallRule(p *CreateFirewallRuleParams) (*Crea
 		return nil, err
 	}
 
-	resp, err = convertFirewallServiceResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
 	var r CreateFirewallRuleResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -985,6 +969,7 @@ func (s *FirewallService) CreateFirewallRule(p *CreateFirewallRuleParams) (*Crea
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1055,11 +1040,6 @@ func (s *FirewallService) DeleteFirewallRule(p *DeleteFirewallRuleParams) (*Dele
 		return nil, err
 	}
 
-	resp, err = convertFirewallServiceResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
 	var r DeleteFirewallRuleResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -1084,6 +1064,7 @@ func (s *FirewallService) DeleteFirewallRule(p *DeleteFirewallRuleParams) (*Dele
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1315,6 +1296,7 @@ func (s *FirewallService) ListFirewallRules(p *ListFirewallRulesParams) (*ListFi
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1412,11 +1394,6 @@ func (s *FirewallService) UpdateFirewallRule(p *UpdateFirewallRuleParams) (*Upda
 		return nil, err
 	}
 
-	resp, err = convertFirewallServiceResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
 	var r UpdateFirewallRuleResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -1446,6 +1423,7 @@ func (s *FirewallService) UpdateFirewallRule(p *UpdateFirewallRuleParams) (*Upda
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1611,11 +1589,6 @@ func (s *FirewallService) CreateEgressFirewallRule(p *CreateEgressFirewallRulePa
 		return nil, err
 	}
 
-	resp, err = convertFirewallServiceResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
 	var r CreateEgressFirewallRuleResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -1645,6 +1618,7 @@ func (s *FirewallService) CreateEgressFirewallRule(p *CreateEgressFirewallRulePa
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1715,11 +1689,6 @@ func (s *FirewallService) DeleteEgressFirewallRule(p *DeleteEgressFirewallRulePa
 		return nil, err
 	}
 
-	resp, err = convertFirewallServiceResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
 	var r DeleteEgressFirewallRuleResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -1744,6 +1713,7 @@ func (s *FirewallService) DeleteEgressFirewallRule(p *DeleteEgressFirewallRulePa
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1975,6 +1945,7 @@ func (s *FirewallService) ListEgressFirewallRules(p *ListEgressFirewallRulesPara
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -2072,11 +2043,6 @@ func (s *FirewallService) UpdateEgressFirewallRule(p *UpdateEgressFirewallRulePa
 		return nil, err
 	}
 
-	resp, err = convertFirewallServiceResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
 	var r UpdateEgressFirewallRuleResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -2106,6 +2072,7 @@ func (s *FirewallService) UpdateEgressFirewallRule(p *UpdateEgressFirewallRulePa
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -2224,11 +2191,6 @@ func (s *FirewallService) AddPaloAltoFirewall(p *AddPaloAltoFirewallParams) (*Ad
 		return nil, err
 	}
 
-	resp, err = convertFirewallServiceResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
 	var r AddPaloAltoFirewallResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -2258,6 +2220,7 @@ func (s *FirewallService) AddPaloAltoFirewall(p *AddPaloAltoFirewallParams) (*Ad
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -2320,11 +2283,6 @@ func (s *FirewallService) DeletePaloAltoFirewall(p *DeletePaloAltoFirewallParams
 		return nil, err
 	}
 
-	resp, err = convertFirewallServiceResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
 	var r DeletePaloAltoFirewallResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -2349,6 +2307,7 @@ func (s *FirewallService) DeletePaloAltoFirewall(p *DeletePaloAltoFirewallParams
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -2409,11 +2368,6 @@ func (s *FirewallService) ConfigurePaloAltoFirewall(p *ConfigurePaloAltoFirewall
 		return nil, err
 	}
 
-	resp, err = convertFirewallServiceResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
 	var r ConfigurePaloAltoFirewallResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -2443,6 +2397,7 @@ func (s *FirewallService) ConfigurePaloAltoFirewall(p *ConfigurePaloAltoFirewall
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -2559,6 +2514,7 @@ func (s *FirewallService) ListPaloAltoFirewalls(p *ListPaloAltoFirewallsParams) 
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 

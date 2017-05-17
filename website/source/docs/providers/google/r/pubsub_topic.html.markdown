@@ -10,12 +10,12 @@ description: |-
 
 Creates a topic in Google's pubsub queueing system. For more information see
 [the official documentation](https://cloud.google.com/pubsub/docs) and
-[API](https://cloud.google.com/pubsub/reference/rest/v1/projects.topics).
+[API](https://cloud.google.com/pubsub/docs/reference/rest/v1/projects.topics).
 
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_pubsub_topic" "default" {
   name = "default-topic"
 }

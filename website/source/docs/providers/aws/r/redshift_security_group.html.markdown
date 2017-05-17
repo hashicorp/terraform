@@ -12,13 +12,13 @@ Creates a new Amazon Redshift security group. You use security groups to control
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_redshift_security_group" "default" {
-    name = "redshift_sg"
+  name = "redshift-sg"
 
-    ingress {
-        cidr = "10.0.0.0/24"
-    }
+  ingress {
+    cidr = "10.0.0.0/24"
+  }
 }
 ```
 
@@ -45,7 +45,7 @@ The following attributes are exported:
 
 ## Import
 
-Redshift security groups can be imported using the `name`, e.g. 
+Redshift security groups can be imported using the `name`, e.g.
 
 ```
 $ terraform import aws_redshift_security_group.testgroup1 redshift_test_group

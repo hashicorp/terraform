@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/floatingips"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/floatingip"
 )
 
 func resourceComputeFloatingIPV2() *schema.Resource {
@@ -53,16 +53,16 @@ func resourceComputeFloatingIPV2() *schema.Resource {
 
 func resourceComputeFloatingIPV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := config.computeV2Client(d.Get("region").(string))
+	computeClient, err := config.computeV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
 
-	createOpts := &floatingip.CreateOpts{
+	createOpts := &floatingips.CreateOpts{
 		Pool: d.Get("pool").(string),
 	}
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
-	newFip, err := floatingip.Create(computeClient, createOpts).Extract()
+	newFip, err := floatingips.Create(computeClient, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating Floating IP: %s", err)
 	}
@@ -74,12 +74,12 @@ func resourceComputeFloatingIPV2Create(d *schema.ResourceData, meta interface{})
 
 func resourceComputeFloatingIPV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := config.computeV2Client(d.Get("region").(string))
+	computeClient, err := config.computeV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
 
-	fip, err := floatingip.Get(computeClient, d.Id()).Extract()
+	fip, err := floatingips.Get(computeClient, d.Id()).Extract()
 	if err != nil {
 		return CheckDeleted(d, err, "floating ip")
 	}
@@ -90,19 +90,20 @@ func resourceComputeFloatingIPV2Read(d *schema.ResourceData, meta interface{}) e
 	d.Set("instance_id", fip.InstanceID)
 	d.Set("address", fip.IP)
 	d.Set("fixed_ip", fip.FixedIP)
+	d.Set("region", GetRegion(d))
 
 	return nil
 }
 
 func resourceComputeFloatingIPV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := config.computeV2Client(d.Get("region").(string))
+	computeClient, err := config.computeV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
 
 	log.Printf("[DEBUG] Deleting Floating IP %s", d.Id())
-	if err := floatingip.Delete(computeClient, d.Id()).ExtractErr(); err != nil {
+	if err := floatingips.Delete(computeClient, d.Id()).ExtractErr(); err != nil {
 		return fmt.Errorf("Error deleting Floating IP: %s", err)
 	}
 

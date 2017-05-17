@@ -2,13 +2,20 @@ package resource
 
 import (
 	"crypto/rand"
-	"encoding/base32"
 	"fmt"
-	"strings"
-	"time"
+	"math/big"
+	"sync"
 )
 
 const UniqueIdPrefix = `terraform-`
+
+// idCounter is a randomly seeded monotonic counter for generating ordered
+// unique ids.  It uses a big.Int so we can easily increment a long numeric
+// string.  The max possible hex value here with 12 random bytes is
+// "01000000000000000000000000", so there's no chance of rollover during
+// operation.
+var idMutex sync.Mutex
+var idCounter = big.NewInt(0).SetBytes(randomBytes(12))
 
 // Helper for a resource to generate a unique identifier w/ default prefix
 func UniqueId() string {
@@ -17,33 +24,12 @@ func UniqueId() string {
 
 // Helper for a resource to generate a unique identifier w/ given prefix
 //
-// After the prefix, the ID consists of a timestamp and 12 random base32
-// characters.  The timestamp means that multiple IDs created with the same
-// prefix will sort in the order of their creation.
+// After the prefix, the ID consists of an incrementing 26 digit value (to match
+// previous timestamp output).
 func PrefixedUniqueId(prefix string) string {
-	// Be precise to the level nanoseconds, but remove the dot before the
-	// nanosecond. We assume that the randomCharacters call takes at least a
-	// nanosecond, so that multiple calls to this function from the same goroutine
-	// will have distinct ordered timestamps.
-	timestamp := strings.Replace(
-		time.Now().UTC().Format("20060102150405.000000000"),
-		".",
-		"", 1)
-	// This uses 3 characters, so that the length of the unique ID is the same as
-	// it was before we added the timestamp prefix, which happened to be 23
-	// characters.
-	return fmt.Sprintf("%s%s%s", prefix, timestamp, randomCharacters(3))
-}
-
-func randomCharacters(n int) string {
-	// Base32 has 5 bits of information per character.
-	b := randomBytes(n * 8 / 5)
-	chars := strings.ToLower(
-		strings.Replace(
-			base32.StdEncoding.EncodeToString(b),
-			"=", "", -1))
-	// Trim extra characters.
-	return chars[:n]
+	idMutex.Lock()
+	defer idMutex.Unlock()
+	return fmt.Sprintf("%s%026x", prefix, idCounter.Add(idCounter, big.NewInt(1)))
 }
 
 func randomBytes(n int) []byte {

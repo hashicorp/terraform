@@ -143,6 +143,7 @@ func (s *SnapshotService) CreateSnapshot(p *CreateSnapshotParams) (*CreateSnapsh
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -467,6 +468,7 @@ func (s *SnapshotService) ListSnapshots(p *ListSnapshotsParams) (*ListSnapshotsR
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -565,6 +567,7 @@ func (s *SnapshotService) DeleteSnapshot(p *DeleteSnapshotParams) (*DeleteSnapsh
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -678,6 +681,7 @@ func (s *SnapshotService) CreateSnapshotPolicy(p *CreateSnapshotPolicyParams) (*
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -776,6 +780,7 @@ func (s *SnapshotService) UpdateSnapshotPolicy(p *UpdateSnapshotPolicyParams) (*
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -844,6 +849,7 @@ func (s *SnapshotService) DeleteSnapshotPolicies(p *DeleteSnapshotPoliciesParams
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -985,6 +991,7 @@ func (s *SnapshotService) ListSnapshotPolicies(p *ListSnapshotPoliciesParams) (*
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1066,6 +1073,7 @@ func (s *SnapshotService) RevertSnapshot(p *RevertSnapshotParams) (*RevertSnapsh
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1321,6 +1329,7 @@ func (s *SnapshotService) ListVMSnapshot(p *ListVMSnapshotParams) (*ListVMSnapsh
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1458,6 +1467,7 @@ func (s *SnapshotService) CreateVMSnapshot(p *CreateVMSnapshotParams) (*CreateVM
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1540,6 +1550,7 @@ func (s *SnapshotService) DeleteVMSnapshot(p *DeleteVMSnapshotParams) (*DeleteVM
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1612,6 +1623,7 @@ func (s *SnapshotService) RevertToVMSnapshot(p *RevertToVMSnapshotParams) (*Reve
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 

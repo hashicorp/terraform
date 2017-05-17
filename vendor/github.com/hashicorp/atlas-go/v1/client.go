@@ -34,6 +34,11 @@ const (
 	// load trusted certs from a directory
 	atlasCAPathEnvVar = "ATLAS_CAPATH"
 
+	// atlasTLSNoVerifyEnvVar disables TLS verification, similar to curl -k
+	// This defaults to false (verify) and will change to true (skip
+	// verification) with any non-empty value
+	atlasTLSNoVerifyEnvVar = "ATLAS_TLS_NOVERIFY"
+
 	// atlasTokenHeader is the header key used for authenticating with Atlas
 	atlasTokenHeader = "X-Atlas-Token"
 )
@@ -130,6 +135,9 @@ func NewClient(urlString string) (*Client, error) {
 func (c *Client) init() error {
 	c.HTTPClient = cleanhttp.DefaultClient()
 	tlsConfig := &tls.Config{}
+	if os.Getenv(atlasTLSNoVerifyEnvVar) != "" {
+		tlsConfig.InsecureSkipVerify = true
+	}
 	err := rootcerts.ConfigureTLS(tlsConfig, &rootcerts.Config{
 		CAFile: os.Getenv(atlasCAFileEnvVar),
 		CAPath: os.Getenv(atlasCAPathEnvVar),

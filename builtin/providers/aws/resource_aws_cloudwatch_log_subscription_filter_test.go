@@ -21,7 +21,7 @@ func TestAccAWSCloudwatchLogSubscriptionFilter_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudwatchLogSubscriptionFilterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudwatchLogSubscriptionFilterConfig(rstring),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAwsCloudwatchLogSubscriptionFilterExists("aws_cloudwatch_log_subscription_filter.test_lambdafunction_logfilter", &conf, rstring),
@@ -102,8 +102,8 @@ func testAccCheckAWSCloudwatchLogSubscriptionFilterAttributes(function *lambda.G
 func testAccAWSCloudwatchLogSubscriptionFilterConfig(rstring string) string {
 	return fmt.Sprintf(`
 resource "aws_cloudwatch_log_subscription_filter" "test_lambdafunction_logfilter" {
-  name            = "test_lambdafunction_logfilter"
-  log_group_name  = "example_lambda_name"
+  name            = "test_lambdafunction_logfilter_%s"
+  log_group_name  = "${aws_cloudwatch_log_group.logs.name}"
   filter_pattern  = "logtype test"
   destination_arn = "${aws_lambda_function.test_lambdafunction.arn}"
 }
@@ -112,11 +112,12 @@ resource "aws_lambda_function" "test_lambdafunction" {
   filename      = "test-fixtures/lambdatest.zip"
   function_name = "example_lambda_name_%s"
   role          = "${aws_iam_role.iam_for_lambda.arn}"
+  runtime       = "nodejs4.3"
   handler       = "exports.handler"
 }
 
 resource "aws_cloudwatch_log_group" "logs" {
-  name              = "example_lambda_name"
+  name              = "example_lambda_name_%s"
   retention_in_days = 1
 }
 
@@ -148,7 +149,7 @@ EOF
 }
 
 resource "aws_iam_role_policy" "test_lambdafunction_iam_policy" {
-  name = "test_lambdafunction_iam_policy"
+  name = "test_lambdafunction_iam_policy_%s"
   role = "${aws_iam_role.iam_for_lambda.id}"
 
   policy = <<EOF
@@ -159,7 +160,7 @@ resource "aws_iam_role_policy" "test_lambdafunction_iam_policy" {
       "Sid": "Stmt1441111030000",
       "Effect": "Allow",
       "Action": [
-        "dynamodb:*"
+        "lambda:*"
       ],
       "Resource": [
         "*"
@@ -169,5 +170,5 @@ resource "aws_iam_role_policy" "test_lambdafunction_iam_policy" {
 }
 EOF
 }
-`, rstring, rstring)
+`, rstring, rstring, rstring, rstring, rstring)
 }

@@ -98,6 +98,19 @@ func (n *EvalWriteOutput) Eval(ctx EvalContext) (interface{}, error) {
 			Sensitive: n.Sensitive,
 			Value:     valueTyped,
 		}
+	case []map[string]interface{}:
+		// an HCL map is multi-valued, so if this was read out of a config the
+		// map may still be in a slice.
+		if len(valueTyped) == 1 {
+			mod.Outputs[n.Name] = &OutputState{
+				Type:      "map",
+				Sensitive: n.Sensitive,
+				Value:     valueTyped[0],
+			}
+			break
+		}
+		return nil, fmt.Errorf("output %s type (%T) with %d values not valid for type map",
+			n.Name, valueTyped, len(valueTyped))
 	default:
 		return nil, fmt.Errorf("output %s is not a valid type (%T)\n", n.Name, valueTyped)
 	}

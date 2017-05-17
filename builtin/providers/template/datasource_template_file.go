@@ -25,7 +25,6 @@ func dataSourceFile() *schema.Resource {
 				Optional:      true,
 				Description:   "Contents of the template",
 				ConflictsWith: []string{"filename"},
-				ValidateFunc:  validateTemplateAttribute,
 			},
 			"filename": &schema.Schema{
 				Type:        schema.TypeString,
@@ -82,13 +81,14 @@ func renderFile(d *schema.ResourceData) (string, error) {
 	filename := d.Get("filename").(string)
 	vars := d.Get("vars").(map[string]interface{})
 
+	contents := template
 	if template == "" && filename != "" {
-		template = filename
-	}
+		data, _, err := pathorcontents.Read(filename)
+		if err != nil {
+			return "", err
+		}
 
-	contents, _, err := pathorcontents.Read(template)
-	if err != nil {
-		return "", err
+		contents = data
 	}
 
 	rendered, err := execute(contents, vars)
@@ -143,20 +143,6 @@ func execute(s string, vars map[string]interface{}) (string, error) {
 func hash(s string) string {
 	sha := sha256.Sum256([]byte(s))
 	return hex.EncodeToString(sha[:])
-}
-
-func validateTemplateAttribute(v interface{}, key string) (ws []string, es []error) {
-	_, wasPath, err := pathorcontents.Read(v.(string))
-	if err != nil {
-		es = append(es, err)
-		return
-	}
-
-	if wasPath {
-		ws = append(ws, fmt.Sprintf("%s: looks like you specified a path instead of file contents. Use `file()` to load this path. Specifying a path directly is deprecated and will be removed in a future version.", key))
-	}
-
-	return
 }
 
 func validateVarsAttribute(v interface{}, key string) (ws []string, es []error) {

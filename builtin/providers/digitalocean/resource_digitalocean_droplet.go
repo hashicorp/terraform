@@ -23,18 +23,18 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"image": &schema.Schema{
+			"image": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -44,7 +44,7 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 				},
 			},
 
-			"size": &schema.Schema{
+			"size": {
 				Type:     schema.TypeString,
 				Required: true,
 				StateFunc: func(val interface{}) string {
@@ -53,27 +53,53 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 				},
 			},
 
-			"status": &schema.Schema{
+			"disk": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+
+			"vcpus": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+
+			"price_hourly": {
+				Type:     schema.TypeFloat,
+				Computed: true,
+			},
+
+			"price_monthly": {
+				Type:     schema.TypeFloat,
+				Computed: true,
+			},
+
+			"resize_disk": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
+
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"locked": &schema.Schema{
+			"locked": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"backups": &schema.Schema{
+			"backups": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
 
-			"ipv6": &schema.Schema{
+			"ipv6": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
 
-			"ipv6_address": &schema.Schema{
+			"ipv6_address": {
 				Type:     schema.TypeString,
 				Computed: true,
 				StateFunc: func(val interface{}) string {
@@ -81,45 +107,45 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 				},
 			},
 
-			"ipv6_address_private": &schema.Schema{
+			"ipv6_address_private": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"private_networking": &schema.Schema{
+			"private_networking": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
 
-			"ipv4_address": &schema.Schema{
+			"ipv4_address": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"ipv4_address_private": &schema.Schema{
+			"ipv4_address_private": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"ssh_keys": &schema.Schema{
+			"ssh_keys": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"tags": &schema.Schema{
+			"tags": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"user_data": &schema.Schema{
+			"user_data": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"volume_ids": &schema.Schema{
+			"volume_ids": {
 				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
@@ -234,15 +260,22 @@ func resourceDigitalOceanDropletRead(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error retrieving droplet: %s", err)
 	}
 
-	if droplet.Image.Slug != "" {
-		d.Set("image", droplet.Image.Slug)
-	} else {
+	_, err = strconv.Atoi(d.Get("image").(string))
+	if err == nil || droplet.Image.Slug == "" {
+		// The image field is provided as an ID (number), or
+		// the image bash no slug. In both cases we store it as an ID.
 		d.Set("image", droplet.Image.ID)
+	} else {
+		d.Set("image", droplet.Image.Slug)
 	}
 
 	d.Set("name", droplet.Name)
 	d.Set("region", droplet.Region.Slug)
 	d.Set("size", droplet.Size.Slug)
+	d.Set("price_hourly", droplet.Size.PriceHourly)
+	d.Set("price_monthly", droplet.Size.PriceMonthly)
+	d.Set("disk", droplet.Disk)
+	d.Set("vcpus", droplet.Vcpus)
 	d.Set("status", droplet.Status)
 	d.Set("locked", strconv.FormatBool(droplet.Locked))
 
@@ -304,8 +337,9 @@ func resourceDigitalOceanDropletUpdate(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("invalid droplet id: %v", err)
 	}
 
-	if d.HasChange("size") {
-		oldSize, newSize := d.GetChange("size")
+	resize_disk := d.Get("resize_disk").(bool)
+	if d.HasChange("size") || d.HasChange("resize_disk") && resize_disk {
+		newSize := d.Get("size")
 
 		_, _, err = client.DropletActions.PowerOff(id)
 		if err != nil && !strings.Contains(err.Error(), "Droplet is already powered off") {
@@ -321,7 +355,7 @@ func resourceDigitalOceanDropletUpdate(d *schema.ResourceData, meta interface{})
 		}
 
 		// Resize the droplet
-		_, _, err = client.DropletActions.Resize(id, newSize.(string), true)
+		action, _, err := client.DropletActions.Resize(id, newSize.(string), resize_disk)
 		if err != nil {
 			newErr := powerOnAndWait(d, meta)
 			if newErr != nil {
@@ -332,11 +366,8 @@ func resourceDigitalOceanDropletUpdate(d *schema.ResourceData, meta interface{})
 				"Error resizing droplet (%s): %s", d.Id(), err)
 		}
 
-		// Wait for the size to change
-		_, err = WaitForDropletAttribute(
-			d, newSize.(string), []string{"", oldSize.(string)}, "size", meta)
-
-		if err != nil {
+		// Wait for the resize action to complete.
+		if err := waitForAction(client, action); err != nil {
 			newErr := powerOnAndWait(d, meta)
 			if newErr != nil {
 				return fmt.Errorf(

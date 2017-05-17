@@ -6,15 +6,15 @@ description: |-
   Manages a Profile within Cobbler.
 ---
 
-# cobbler\_profile
+# cobbler_profile
 
 Manages a Profile within Cobbler.
 
 ## Example Usage
 
-```
+```hcl
 resource "cobbler_profile" "my_profile" {
-  name = "/var/lib/cobbler/snippets/my_snippet"
+  name   = "/var/lib/cobbler/snippets/my_snippet"
   distro = "ubuntu-1404-x86_64"
 }
 ```

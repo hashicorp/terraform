@@ -14,6 +14,61 @@ func TestResourceProvisioner_impl(t *testing.T) {
 	var _ terraform.ResourceProvisioner = new(ResourceProvisioner)
 }
 
+func TestResourceProvisioner_stop(t *testing.T) {
+	// Create a mock provider
+	p := new(terraform.MockResourceProvisioner)
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProvisionerFunc: testProvisionerFixed(p),
+	}))
+	defer client.Close()
+
+	// Request the provider
+	raw, err := client.Dispense(ProvisionerPluginName)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	provider := raw.(terraform.ResourceProvisioner)
+
+	// Stop
+	e := provider.Stop()
+	if !p.StopCalled {
+		t.Fatal("stop should be called")
+	}
+	if e != nil {
+		t.Fatalf("bad: %#v", e)
+	}
+}
+
+func TestResourceProvisioner_stopErrors(t *testing.T) {
+	p := new(terraform.MockResourceProvisioner)
+	p.StopReturnError = errors.New("foo")
+
+	// Create a mock provider
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProvisionerFunc: testProvisionerFixed(p),
+	}))
+	defer client.Close()
+
+	// Request the provider
+	raw, err := client.Dispense(ProvisionerPluginName)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	provider := raw.(terraform.ResourceProvisioner)
+
+	// Stop
+	e := provider.Stop()
+	if !p.StopCalled {
+		t.Fatal("stop should be called")
+	}
+	if e == nil {
+		t.Fatal("should have error")
+	}
+	if e.Error() != "foo" {
+		t.Fatalf("bad: %s", e)
+	}
+}
+
 func TestResourceProvisioner_apply(t *testing.T) {
 	// Create a mock provider
 	p := new(terraform.MockResourceProvisioner)

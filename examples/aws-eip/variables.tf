@@ -1,6 +1,6 @@
 variable "aws_region" {
   description = "The AWS region to create things in."
-  default = "us-east-1"
+  default     = "us-east-1"
 }
 
 # ubuntu-trusty-14.04 (x64)
@@ -14,4 +14,3 @@ variable "aws_amis" {
 variable "key_name" {
   description = "Name of the SSH keypair to use in AWS."
 }
-

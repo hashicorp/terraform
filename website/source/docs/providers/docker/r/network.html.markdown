@@ -14,13 +14,14 @@ to create virtual networks within the docker environment.
 
 ## Example Usage
 
-```
+```hcl
 # Find the latest Ubuntu precise image.
 resource "docker_network" "private_network" {
-    name = "my_network"
+  name = "my_network"
 }
 
 # Access it somewhere else with ${docker_network.private_network.name}
+
 ```
 
 ## Argument Reference
@@ -34,6 +35,8 @@ The following arguments are supported:
   `bridge` driver.
 * `options` - (Optional, map of strings) Network specific options to be used by
   the drivers.
+* `internal` - (Optional, boolean) Restrict external access to the network.
+  Defaults to `false`.
 * `ipam_driver` - (Optional, string) Driver used by the custom IP scheme of the
   network.
 * `ipam_config` - (Optional, block) See [IPAM config](#ipam_config) below for

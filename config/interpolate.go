@@ -84,6 +84,13 @@ type SimpleVariable struct {
 	Key string
 }
 
+// TerraformVariable is a "terraform."-prefixed variable used to access
+// metadata about the Terraform run.
+type TerraformVariable struct {
+	Field string
+	key   string
+}
+
 // A UserVariable is a variable that is referencing a user variable
 // that is inputted from outside the configuration. This looks like
 // "${var.foo}"
@@ -101,6 +108,8 @@ func NewInterpolatedVariable(v string) (InterpolatedVariable, error) {
 		return NewPathVariable(v)
 	} else if strings.HasPrefix(v, "self.") {
 		return NewSelfVariable(v)
+	} else if strings.HasPrefix(v, "terraform.") {
+		return NewTerraformVariable(v)
 	} else if strings.HasPrefix(v, "var.") {
 		return NewUserVariable(v)
 	} else if strings.HasPrefix(v, "module.") {
@@ -147,6 +156,10 @@ func NewModuleVariable(key string) (*ModuleVariable, error) {
 
 func (v *ModuleVariable) FullKey() string {
 	return v.key
+}
+
+func (v *ModuleVariable) GoString() string {
+	return fmt.Sprintf("*%#v", *v)
 }
 
 func NewPathVariable(key string) (*PathVariable, error) {
@@ -271,6 +284,22 @@ func (v *SimpleVariable) FullKey() string {
 }
 
 func (v *SimpleVariable) GoString() string {
+	return fmt.Sprintf("*%#v", *v)
+}
+
+func NewTerraformVariable(key string) (*TerraformVariable, error) {
+	field := key[len("terraform."):]
+	return &TerraformVariable{
+		Field: field,
+		key:   key,
+	}, nil
+}
+
+func (v *TerraformVariable) FullKey() string {
+	return v.key
+}
+
+func (v *TerraformVariable) GoString() string {
 	return fmt.Sprintf("*%#v", *v)
 }
 

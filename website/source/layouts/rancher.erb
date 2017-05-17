@@ -1,0 +1,44 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+          <a href="/docs/providers/index.html">All Providers</a>
+        </li>
+
+        <li<%= sidebar_current("docs-rancher-index") %>>
+          <a href="/docs/providers/rancher/index.html">Rancher Provider</a>
+        </li>
+
+        <li<%= sidebar_current("docs-rancher-resource") %>>
+          <a href="#">Resources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-rancher-resource-certificate") %>>
+              <a href="/docs/providers/rancher/r/certificate.html">rancher_certificate</a>
+            </li>
+            <li<%= sidebar_current("docs-rancher-resource-environment") %>>
+              <a href="/docs/providers/rancher/r/environment.html">rancher_environment</a>
+            </li>
+            <li<%= sidebar_current("docs-rancher-resource-host") %>>
+              <a href="/docs/providers/rancher/r/host.html">rancher_host</a>
+            </li>
+            <li<%= sidebar_current("docs-rancher-resource-registration-token") %>>
+              <a href="/docs/providers/rancher/r/registration_token.html">rancher_registration_token</a>
+            </li>
+            <li<%= sidebar_current("docs-rancher-resource-registry-credential") %>>
+              <a href="/docs/providers/rancher/r/registry_credential.html">rancher_registry_credential</a>
+            </li>
+            <li<%= sidebar_current("docs-rancher-resource-registry") %>>
+              <a href="/docs/providers/rancher/r/registry.html">rancher_registry</a>
+            </li>
+            <li<%= sidebar_current("docs-rancher-resource-stack") %>>
+              <a href="/docs/providers/rancher/r/stack.html">rancher_stack</a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= yield %>
+<% end %>

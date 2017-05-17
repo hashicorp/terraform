@@ -3,10 +3,13 @@ package terraform
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/mitchellh/copystructure"
+	"github.com/mitchellh/reflectwalk"
 )
 
 // ResourceProvisionerConfig is used to pair a provisioner
@@ -61,10 +64,20 @@ type InstanceInfo struct {
 
 	// Type is the resource type of this instance
 	Type string
+
+	// uniqueExtra is an internal field that can be populated to supply
+	// extra metadata that is used to identify a unique instance in
+	// the graph walk. This will be appended to HumanID when uniqueId
+	// is called.
+	uniqueExtra string
 }
 
 // HumanId is a unique Id that is human-friendly and useful for UI elements.
 func (i *InstanceInfo) HumanId() string {
+	if i == nil {
+		return "<nil>"
+	}
+
 	if len(i.ModulePath) <= 1 {
 		return i.Id
 	}
@@ -73,6 +86,15 @@ func (i *InstanceInfo) HumanId() string {
 		"module.%s.%s",
 		strings.Join(i.ModulePath[1:], "."),
 		i.Id)
+}
+
+func (i *InstanceInfo) uniqueId() string {
+	prefix := i.HumanId()
+	if v := i.uniqueExtra; v != "" {
+		prefix += " " + v
+	}
+
+	return prefix
 }
 
 // ResourceConfig holds the configuration given for a resource. This is
@@ -91,6 +113,59 @@ func NewResourceConfig(c *config.RawConfig) *ResourceConfig {
 	result := &ResourceConfig{raw: c}
 	result.interpolateForce()
 	return result
+}
+
+// DeepCopy performs a deep copy of the configuration. This makes it safe
+// to modify any of the structures that are part of the resource config without
+// affecting the original configuration.
+func (c *ResourceConfig) DeepCopy() *ResourceConfig {
+	// DeepCopying a nil should return a nil to avoid panics
+	if c == nil {
+		return nil
+	}
+
+	// Copy, this will copy all the exported attributes
+	copy, err := copystructure.Config{Lock: true}.Copy(c)
+	if err != nil {
+		panic(err)
+	}
+
+	// Force the type
+	result := copy.(*ResourceConfig)
+
+	// For the raw configuration, we can just use its own copy method
+	result.raw = c.raw.Copy()
+
+	return result
+}
+
+// Equal checks the equality of two resource configs.
+func (c *ResourceConfig) Equal(c2 *ResourceConfig) bool {
+	// If either are nil, then they're only equal if they're both nil
+	if c == nil || c2 == nil {
+		return c == c2
+	}
+
+	// Sort the computed keys so they're deterministic
+	sort.Strings(c.ComputedKeys)
+	sort.Strings(c2.ComputedKeys)
+
+	// Two resource configs if their exported properties are equal.
+	// We don't compare "raw" because it is never used again after
+	// initialization and for all intents and purposes they are equal
+	// if the exported properties are equal.
+	check := [][2]interface{}{
+		{c.ComputedKeys, c2.ComputedKeys},
+		{c.Raw, c2.Raw},
+		{c.Config, c2.Config},
+	}
+	for _, pair := range check {
+		if !reflect.DeepEqual(pair[0], pair[1]) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // CheckSet checks that the given list of configuration keys is
@@ -112,16 +187,17 @@ func (c *ResourceConfig) CheckSet(keys []string) []error {
 // Get looks up a configuration value by key and returns the value.
 //
 // The second return value is true if the get was successful. Get will
-// not succeed if the value is being computed.
+// return the raw value if the key is computed, so you should pair this
+// with IsComputed.
 func (c *ResourceConfig) Get(k string) (interface{}, bool) {
-	// First try to get it from c.Config since that has interpolated values
-	result, ok := c.get(k, c.Config)
-	if ok {
-		return result, ok
+	// We aim to get a value from the configuration. If it is computed,
+	// then we return the pure raw value.
+	source := c.Config
+	if c.IsComputed(k) {
+		source = c.Raw
 	}
 
-	// Otherwise, just get it from the raw config
-	return c.get(k, c.Raw)
+	return c.get(k, source)
 }
 
 // GetRaw looks up a configuration value by key and returns the value,
@@ -135,9 +211,25 @@ func (c *ResourceConfig) GetRaw(k string) (interface{}, bool) {
 
 // IsComputed returns whether the given key is computed or not.
 func (c *ResourceConfig) IsComputed(k string) bool {
-	_, ok := c.get(k, c.Config)
-	_, okRaw := c.get(k, c.Raw)
-	return !ok && okRaw
+	// The next thing we do is check the config if we get a computed
+	// value out of it.
+	v, ok := c.get(k, c.Config)
+	if !ok {
+		return false
+	}
+
+	// If value is nil, then it isn't computed
+	if v == nil {
+		return false
+	}
+
+	// Test if the value contains an unknown value
+	var w unknownCheckWalker
+	if err := reflectwalk.Walk(v, &w); err != nil {
+		panic(err)
+	}
+
+	return w.Unknown
 }
 
 // IsSet checks if the key in the configuration is set. A key is set if
@@ -151,10 +243,8 @@ func (c *ResourceConfig) IsSet(k string) bool {
 		return false
 	}
 
-	for _, ck := range c.ComputedKeys {
-		if ck == k {
-			return true
-		}
+	if c.IsComputed(k) {
+		return true
 	}
 
 	if _, ok := c.Get(k); ok {
@@ -190,15 +280,26 @@ func (c *ResourceConfig) get(
 					if !v.IsValid() {
 						return nil, false
 					}
+
 					return v.Interface(), true
 				}
 
 				return nil, false
 			}
+
 			current = v.Interface()
 		case reflect.Slice:
 			previous = current
+
 			if part == "#" {
+				// If any value in a list is computed, this whole thing
+				// is computed and we can't read any part of it.
+				for i := 0; i < cv.Len(); i++ {
+					if v := cv.Index(i).Interface(); v == unknownValue() {
+						return v, true
+					}
+				}
+
 				current = cv.Len()
 			} else {
 				i, err := strconv.ParseInt(part, 0, 0)
@@ -215,8 +316,10 @@ func (c *ResourceConfig) get(
 			// prefix so were split as path components above.
 			actualKey := strings.Join(parts[i-1:], ".")
 			if prevMap, ok := previous.(map[string]interface{}); ok {
-				return prevMap[actualKey], true
+				v, ok := prevMap[actualKey]
+				return v, ok
 			}
+
 			return nil, false
 		default:
 			panic(fmt.Sprintf("Unknown kind: %s", cv.Kind()))
@@ -241,4 +344,17 @@ func (c *ResourceConfig) interpolateForce() {
 	c.ComputedKeys = c.raw.UnknownKeys()
 	c.Raw = c.raw.RawMap()
 	c.Config = c.raw.Config()
+}
+
+// unknownCheckWalker
+type unknownCheckWalker struct {
+	Unknown bool
+}
+
+func (w *unknownCheckWalker) Primitive(v reflect.Value) error {
+	if v.Interface() == unknownValue() {
+		w.Unknown = true
+	}
+
+	return nil
 }

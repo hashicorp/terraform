@@ -1,5 +1,7 @@
 ### Extensions to the "os" package.
 
+[![GoDoc](https://godoc.org/github.com/kardianos/osext?status.svg)](https://godoc.org/github.com/kardianos/osext)
+
 ## Find the current Executable and ExecutableFolder.
 
 There is sometimes utility in finding the current executable file

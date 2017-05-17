@@ -3,13 +3,11 @@ package google
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"net"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeVpnTunnel() *schema.Resource {
@@ -65,6 +63,15 @@ func resourceComputeVpnTunnel() *schema.Resource {
 			},
 
 			"local_traffic_selector": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+
+			"remote_traffic_selector": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
@@ -124,15 +131,24 @@ func resourceComputeVpnTunnelCreate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
+	var remoteTrafficSelectors []string
+	if v := d.Get("remote_traffic_selector").(*schema.Set); v.Len() > 0 {
+		remoteTrafficSelectors = make([]string, v.Len())
+		for i, v := range v.List() {
+			remoteTrafficSelectors[i] = v.(string)
+		}
+	}
+
 	vpnTunnelsService := compute.NewVpnTunnelsService(config.clientCompute)
 
 	vpnTunnel := &compute.VpnTunnel{
-		Name:                 name,
-		PeerIp:               peerIp,
-		SharedSecret:         sharedSecret,
-		TargetVpnGateway:     targetVpnGateway,
-		IkeVersion:           int64(ikeVersion),
-		LocalTrafficSelector: localTrafficSelectors,
+		Name:                  name,
+		PeerIp:                peerIp,
+		SharedSecret:          sharedSecret,
+		TargetVpnGateway:      targetVpnGateway,
+		IkeVersion:            int64(ikeVersion),
+		LocalTrafficSelector:  localTrafficSelectors,
+		RemoteTrafficSelector: remoteTrafficSelectors,
 	}
 
 	if v, ok := d.GetOk("description"); ok {
@@ -171,16 +187,20 @@ func resourceComputeVpnTunnelRead(d *schema.ResourceData, meta interface{}) erro
 
 	vpnTunnel, err := vpnTunnelsService.Get(project, region, name).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing VPN Tunnel %q because it's gone", d.Get("name").(string))
-			// The resource doesn't exist anymore
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error Reading VPN Tunnel %s: %s", name, err)
+		return handleNotFoundError(err, d, fmt.Sprintf("VPN Tunnel %q", d.Get("name").(string)))
 	}
+
+	localTrafficSelectors := []string{}
+	for _, lts := range vpnTunnel.LocalTrafficSelector {
+		localTrafficSelectors = append(localTrafficSelectors, lts)
+	}
+	d.Set("local_traffic_selector", localTrafficSelectors)
+
+	remoteTrafficSelectors := []string{}
+	for _, rts := range vpnTunnel.RemoteTrafficSelector {
+		remoteTrafficSelectors = append(remoteTrafficSelectors, rts)
+	}
+	d.Set("remote_traffic_selector", remoteTrafficSelectors)
 
 	d.Set("detailed_status", vpnTunnel.DetailedStatus)
 	d.Set("self_link", vpnTunnel.SelfLink)

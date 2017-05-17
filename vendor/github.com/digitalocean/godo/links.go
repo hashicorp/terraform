@@ -58,11 +58,7 @@ func (l *Links) IsLastPage() bool {
 }
 
 func (p *Pages) isLast() bool {
-	if p.Last == "" {
-		return true
-	}
-
-	return false
+	return p.Last == ""
 }
 
 func pageForURL(urlText string) (int, error) {

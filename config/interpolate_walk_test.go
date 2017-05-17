@@ -169,8 +169,14 @@ func TestInterpolationWalker_replace(t *testing.T) {
 					"bing",
 				},
 			},
-			Output: map[string]interface{}{},
-			Value:  []interface{}{UnknownVariableValue, "baz"},
+			Output: map[string]interface{}{
+				"foo": []interface{}{
+					UnknownVariableValue,
+					"baz",
+					"bing",
+				},
+			},
+			Value: []interface{}{UnknownVariableValue, "baz"},
 		},
 	}
 
@@ -179,13 +185,15 @@ func TestInterpolationWalker_replace(t *testing.T) {
 			return tc.Value, nil
 		}
 
-		w := &interpolationWalker{F: fn, Replace: true}
-		if err := reflectwalk.Walk(tc.Input, w); err != nil {
-			t.Fatalf("err: %s", err)
-		}
+		t.Run(fmt.Sprintf("walk-%d", i), func(t *testing.T) {
+			w := &interpolationWalker{F: fn, Replace: true}
+			if err := reflectwalk.Walk(tc.Input, w); err != nil {
+				t.Fatalf("err: %s", err)
+			}
 
-		if !reflect.DeepEqual(tc.Input, tc.Output) {
-			t.Fatalf("%d: bad:\n\nexpected:%#v\ngot:%#v", i, tc.Output, tc.Input)
-		}
+			if !reflect.DeepEqual(tc.Input, tc.Output) {
+				t.Fatalf("%d: bad:\n\nexpected:%#v\ngot:%#v", i, tc.Output, tc.Input)
+			}
+		})
 	}
 }

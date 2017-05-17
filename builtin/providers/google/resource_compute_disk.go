@@ -28,6 +28,18 @@ func resourceComputeDisk() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"disk_encryption_key_raw": &schema.Schema{
+				Type:      schema.TypeString,
+				Optional:  true,
+				ForceNew:  true,
+				Sensitive: true,
+			},
+
+			"disk_encryption_key_sha256": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"image": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -100,6 +112,7 @@ func resourceComputeDiskCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		disk.SourceImage = imageUrl
+		log.Printf("[DEBUG] Image name resolved to: %s", imageUrl)
 	}
 
 	if v, ok := d.GetOk("type"); ok {
@@ -129,6 +142,11 @@ func resourceComputeDiskCreate(d *schema.ResourceData, meta interface{}) error {
 		disk.SourceSnapshot = snapshotData.SelfLink
 	}
 
+	if v, ok := d.GetOk("disk_encryption_key_raw"); ok {
+		disk.DiskEncryptionKey = &compute.CustomerEncryptionKey{}
+		disk.DiskEncryptionKey.RawKey = v.(string)
+	}
+
 	op, err := config.clientCompute.Disks.Insert(
 		project, d.Get("zone").(string), disk).Do()
 	if err != nil {
@@ -156,18 +174,13 @@ func resourceComputeDiskRead(d *schema.ResourceData, meta interface{}) error {
 	disk, err := config.clientCompute.Disks.Get(
 		project, d.Get("zone").(string), d.Id()).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing Disk %q because it's gone", d.Get("name").(string))
-			// The resource doesn't exist anymore
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error reading disk: %s", err)
+		return handleNotFoundError(err, d, fmt.Sprintf("Disk %q", d.Get("name").(string)))
 	}
 
 	d.Set("self_link", disk.SelfLink)
+	if disk.DiskEncryptionKey != nil && disk.DiskEncryptionKey.Sha256 != "" {
+		d.Set("disk_encryption_key_sha256", disk.DiskEncryptionKey.Sha256)
+	}
 
 	return nil
 }
@@ -194,7 +207,7 @@ func resourceComputeDiskDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	zone := d.Get("zone").(string)
-	err = computeOperationWaitZone(config, op, project, zone, "Creating Disk")
+	err = computeOperationWaitZone(config, op, project, zone, "Deleting Disk")
 	if err != nil {
 		return err
 	}

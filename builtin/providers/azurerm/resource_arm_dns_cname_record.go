@@ -14,6 +14,9 @@ func resourceArmDnsCNameRecord() *schema.Resource {
 		Read:   resourceArmDnsCNameRecordRead,
 		Update: resourceArmDnsCNameRecordCreate,
 		Delete: resourceArmDnsCNameRecordDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -111,6 +114,11 @@ func resourceArmDnsCNameRecordRead(d *schema.ResourceData, meta interface{}) err
 	client := meta.(*ArmClient)
 	rivieraClient := client.rivieraClient
 
+	id, err := parseAzureResourceID(d.Id())
+	if err != nil {
+		return err
+	}
+
 	readRequest := rivieraClient.NewRequestForURI(d.Id())
 	readRequest.Command = &dns.GetCNAMERecordSet{}
 
@@ -126,6 +134,9 @@ func resourceArmDnsCNameRecordRead(d *schema.ResourceData, meta interface{}) err
 
 	resp := readResponse.Parsed.(*dns.GetCNAMERecordSetResponse)
 
+	d.Set("name", resp.Name)
+	d.Set("resource_group_name", id.ResourceGroup)
+	d.Set("zone_name", id.Path["dnszones"])
 	d.Set("ttl", resp.TTL)
 	d.Set("record", resp.CNAMERecord.CNAME)
 

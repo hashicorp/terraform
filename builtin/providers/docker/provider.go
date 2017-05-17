@@ -17,6 +17,25 @@ func Provider() terraform.ResourceProvider {
 				Description: "The Docker daemon address",
 			},
 
+			"ca_material": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("DOCKER_CA_MATERIAL", ""),
+				Description: "PEM-encoded content of Docker host CA certificate",
+			},
+			"cert_material": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("DOCKER_CERT_MATERIAL", ""),
+				Description: "PEM-encoded content of Docker client certificate",
+			},
+			"key_material": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("DOCKER_KEY_MATERIAL", ""),
+				Description: "PEM-encoded content of Docker client private key",
+			},
+
 			"cert_path": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -43,6 +62,9 @@ func Provider() terraform.ResourceProvider {
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
 		Host:     d.Get("host").(string),
+		Ca:       d.Get("ca_material").(string),
+		Cert:     d.Get("cert_material").(string),
+		Key:      d.Get("key_material").(string),
 		CertPath: d.Get("cert_path").(string),
 	}
 

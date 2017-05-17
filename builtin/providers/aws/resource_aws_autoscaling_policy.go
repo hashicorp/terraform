@@ -54,6 +54,7 @@ func resourceAwsAutoscalingPolicy() *schema.Resource {
 			"metric_aggregation_type": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 			"min_adjustment_magnitude": &schema.Schema{
 				Type:     schema.TypeInt,
@@ -218,7 +219,8 @@ func getAwsAutoscalingPutScalingPolicyInput(d *schema.ResourceData) (autoscaling
 		params.PolicyType = aws.String(v.(string))
 	}
 
-	if v, ok := d.GetOk("scaling_adjustment"); ok {
+	//if policy_type=="SimpleScaling" then scaling_adjustment is required and 0 is allowed
+	if v, ok := d.GetOk("scaling_adjustment"); ok || *params.PolicyType == "SimpleScaling" {
 		params.ScalingAdjustment = aws.Int64(int64(v.(int)))
 	}
 

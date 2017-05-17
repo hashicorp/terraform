@@ -14,59 +14,91 @@ func resourceScalewayServer() *schema.Resource {
 		Read:   resourceScalewayServerRead,
 		Update: resourceScalewayServerUpdate,
 		Delete: resourceScalewayServerDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"image": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-			"type": &schema.Schema{
+			"image": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"bootscript": &schema.Schema{
+			"type": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+			"bootscript": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"tags": &schema.Schema{
+			"tags": {
 				Type: schema.TypeList,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 				Optional: true,
 			},
-			"enable_ipv6": &schema.Schema{
+			"security_group": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"volume": {
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"size_in_gb": {
+							Type:         schema.TypeInt,
+							Required:     true,
+							ValidateFunc: validateVolumeSize,
+						},
+						"type": {
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validateVolumeType,
+						},
+						"volume_id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
+			"enable_ipv6": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"dynamic_ip_required": &schema.Schema{
+			"dynamic_ip_required": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"security_group": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"private_ip": &schema.Schema{
+			"private_ip": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"public_ip": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"state": &schema.Schema{
+			"public_ip": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"state_detail": &schema.Schema{
+			"public_ipv6": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"state": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+			"state_detail": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -76,6 +108,9 @@ func resourceScalewayServer() *schema.Resource {
 
 func resourceScalewayServerCreate(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
+
+	mu.Lock()
+	defer mu.Unlock()
 
 	image := d.Get("image").(string)
 	var server = api.ScalewayServerDefinition{
@@ -91,6 +126,28 @@ func resourceScalewayServerCreate(d *schema.ResourceData, m interface{}) error {
 
 	if bootscript, ok := d.GetOk("bootscript"); ok {
 		server.Bootscript = String(bootscript.(string))
+	}
+
+	if vs, ok := d.GetOk("volume"); ok {
+		server.Volumes = make(map[string]string)
+
+		volumes := vs.([]interface{})
+		for i, v := range volumes {
+			volume := v.(map[string]interface{})
+
+			volumeID, err := scaleway.PostVolume(api.ScalewayVolumeDefinition{
+				Size: uint64(volume["size_in_gb"].(int)) * gb,
+				Type: volume["type"].(string),
+				Name: fmt.Sprintf("%s-%d", server.Name, volume["size_in_gb"].(int)),
+			})
+			if err != nil {
+				return err
+			}
+			volume["volume_id"] = volumeID
+			volumes[i] = volume
+			server.Volumes[fmt.Sprintf("%d", i+1)] = volumeID
+		}
+		d.Set("volume", volumes)
 	}
 
 	if raw, ok := d.GetOk("tags"); ok {
@@ -112,6 +169,22 @@ func resourceScalewayServerCreate(d *schema.ResourceData, m interface{}) error {
 		}
 
 		err = waitForServerState(scaleway, id, "running")
+
+		if v, ok := d.GetOk("public_ip"); ok {
+			if ips, err := scaleway.GetIPS(); err != nil {
+				return err
+			} else {
+				for _, ip := range ips.IPS {
+					if ip.Address == v.(string) {
+						log.Printf("[DEBUG] Attaching IP %q to server %q\n", ip.ID, d.Id())
+						if err := scaleway.AttachIP(ip.ID, d.Id()); err != nil {
+							return err
+						}
+						break
+					}
+				}
+			}
+		}
 	}
 
 	if err != nil {
@@ -138,8 +211,16 @@ func resourceScalewayServerRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
+	d.Set("name", server.Name)
+	d.Set("image", server.Image.Identifier)
+	d.Set("type", server.CommercialType)
+	d.Set("enable_ipv6", server.EnableIPV6)
 	d.Set("private_ip", server.PrivateIP)
 	d.Set("public_ip", server.PublicAddress.IP)
+
+	if server.EnableIPV6 {
+		d.Set("public_ipv6", server.IPV6.Address)
+	}
 
 	d.Set("state", server.State)
 	d.Set("state_detail", server.StateDetail)
@@ -156,8 +237,10 @@ func resourceScalewayServerRead(d *schema.ResourceData, m interface{}) error {
 func resourceScalewayServerUpdate(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
 
-	var req api.ScalewayServerPatchDefinition
+	mu.Lock()
+	defer mu.Unlock()
 
+	var req api.ScalewayServerPatchDefinition
 	if d.HasChange("name") {
 		name := d.Get("name").(string)
 		req.Name = &name
@@ -191,28 +274,57 @@ func resourceScalewayServerUpdate(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("Failed patching scaleway server: %q", err)
 	}
 
+	if d.HasChange("public_ip") {
+		ips, err := scaleway.GetIPS()
+		if err != nil {
+			return err
+		}
+		if v, ok := d.GetOk("public_ip"); ok {
+			for _, ip := range ips.IPS {
+				if ip.Address == v.(string) {
+					log.Printf("[DEBUG] Attaching IP %q to server %q\n", ip.ID, d.Id())
+					if err := scaleway.AttachIP(ip.ID, d.Id()); err != nil {
+						return err
+					}
+					break
+				}
+			}
+		} else {
+			for _, ip := range ips.IPS {
+				if ip.Server != nil && ip.Server.Identifier == d.Id() {
+					log.Printf("[DEBUG] Detaching IP %q to server %q\n", ip.ID, d.Id())
+					if err := scaleway.DetachIP(ip.ID); err != nil {
+						return err
+					}
+					break
+				}
+			}
+		}
+	}
+
 	return resourceScalewayServerRead(d, m)
 }
 
 func resourceScalewayServerDelete(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
 
-	def, err := scaleway.GetServer(d.Id())
-	if err != nil {
-		if serr, ok := err.(api.ScalewayAPIError); ok {
-			if serr.StatusCode == 404 {
-				d.SetId("")
-				return nil
-			}
-		}
-		return err
-	}
+	mu.Lock()
+	defer mu.Unlock()
 
-	err = deleteServerSafe(scaleway, def.Identifier)
+	s, err := scaleway.GetServer(d.Id())
 	if err != nil {
 		return err
 	}
 
-	d.SetId("")
-	return nil
+	if s.State == "stopped" {
+		return deleteStoppedServer(scaleway, s)
+	}
+
+	err = deleteRunningServer(scaleway, s)
+
+	if err == nil {
+		d.SetId("")
+	}
+
+	return err
 }

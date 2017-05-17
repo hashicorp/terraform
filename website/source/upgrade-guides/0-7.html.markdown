@@ -134,6 +134,34 @@ resource "aws_instance" "example" {
 }
 ```
 
+Referencing remote state outputs has also changed. The `.output` keyword is no longer required.
+
+For example, a config like this:
+
+```
+resource "terraform_remote_state" "example" {
+  # ...
+}
+
+resource "aws_instance" "example" {
+  ami = "${terraform_remote_state.example.output.ami_id}"
+  # ...
+}
+```
+
+Would now look like this:
+
+```
+data "terraform_remote_state" "example" {
+  # ...
+}
+
+resource "aws_instance" "example" {
+  ami = "${data.terraform_remote_state.example.ami_id}"
+  # ...
+}
+```
+
 <a id="listmap"></a>
 
 ## Migrating to native lists and maps
@@ -205,4 +233,4 @@ This will give the map the effective value:
 }
 ```
 
-It's also possible to override the values in a variables file, either in `terraform.tfvars` or specified using the `-var-file` flag. 
+It's also possible to override the values in a variables file, either in `terraform.tfvars` or specified using the `-var-file` flag.

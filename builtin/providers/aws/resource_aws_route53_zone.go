@@ -300,7 +300,7 @@ func deleteAllRecordsInHostedZoneId(hostedZoneId, hostedZoneName string, conn *r
 		changes := make([]*route53.Change, 0)
 		// 100 items per page returned by default
 		for _, set := range sets {
-			if *set.Name == hostedZoneName+"." && (*set.Type == "NS" || *set.Type == "SOA") {
+			if strings.TrimSuffix(*set.Name, ".") == strings.TrimSuffix(hostedZoneName, ".") && (*set.Type == "NS" || *set.Type == "SOA") {
 				// Zone NS & SOA records cannot be deleted
 				continue
 			}
@@ -324,7 +324,11 @@ func deleteAllRecordsInHostedZoneId(hostedZoneId, hostedZoneName string, conn *r
 		resp, lastDeleteErr = deleteRoute53RecordSet(conn, req)
 		if out, ok := resp.(*route53.ChangeResourceRecordSetsOutput); ok {
 			log.Printf("[DEBUG] Waiting for change batch to become INSYNC: %#v", out)
-			lastErrorFromWaiter = waitForRoute53RecordSetToSync(conn, cleanChangeID(*out.ChangeInfo.Id))
+			if out.ChangeInfo != nil && out.ChangeInfo.Id != nil {
+				lastErrorFromWaiter = waitForRoute53RecordSetToSync(conn, cleanChangeID(*out.ChangeInfo.Id))
+			} else {
+				log.Printf("[DEBUG] Change info was empty")
+			}
 		} else {
 			log.Printf("[DEBUG] Unable to wait for change batch because of an error: %s", lastDeleteErr)
 		}

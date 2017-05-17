@@ -3,6 +3,7 @@ package remote
 import (
 	"bytes"
 
+	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -59,4 +60,20 @@ func (s *State) PersistState() error {
 	}
 
 	return s.Client.Put(buf.Bytes())
+}
+
+// Lock calls the Client's Lock method if it's implemented.
+func (s *State) Lock(info *state.LockInfo) (string, error) {
+	if c, ok := s.Client.(ClientLocker); ok {
+		return c.Lock(info)
+	}
+	return "", nil
+}
+
+// Unlock calls the Client's Unlock method if it's implemented.
+func (s *State) Unlock(id string) error {
+	if c, ok := s.Client.(ClientLocker); ok {
+		return c.Unlock(id)
+	}
+	return nil
 }

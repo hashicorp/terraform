@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/url"
 	"os"
 	"sort"
 	"strings"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
@@ -25,94 +27,107 @@ func resourceAwsS3BucketObject() *schema.Resource {
 		Delete: resourceAwsS3BucketObjectDelete,
 
 		Schema: map[string]*schema.Schema{
-			"bucket": &schema.Schema{
+			"bucket": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"acl": &schema.Schema{
+			"acl": {
 				Type:         schema.TypeString,
 				Default:      "private",
 				Optional:     true,
 				ValidateFunc: validateS3BucketObjectAclType,
 			},
 
-			"cache_control": &schema.Schema{
+			"cache_control": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"content_disposition": &schema.Schema{
+			"content_disposition": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"content_encoding": &schema.Schema{
+			"content_encoding": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"content_language": &schema.Schema{
+			"content_language": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"content_type": &schema.Schema{
+			"content_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"key": &schema.Schema{
+			"key": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"source": &schema.Schema{
+			"source": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"content"},
 			},
 
-			"content": &schema.Schema{
+			"content": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"source"},
 			},
 
-			"storage_class": &schema.Schema{
+			"storage_class": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
 				ValidateFunc: validateS3BucketObjectStorageClassType,
 			},
 
-			"kms_key_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+			"server_side_encryption": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateS3BucketObjectServerSideEncryption,
+				Computed:     true,
 			},
 
-			"etag": &schema.Schema{
+			"kms_key_id": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateArn,
+			},
+
+			"etag": {
 				Type: schema.TypeString,
 				// This will conflict with SSE-C and SSE-KMS encryption and multi-part upload
 				// if/when it's actually implemented. The Etag then won't match raw-file MD5.
 				// See http://docs.aws.amazon.com/AmazonS3/latest/API/RESTCommonResponseHeaders.html
-				Optional: true,
-				Computed: true,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"kms_key_id", "server_side_encryption"},
 			},
 
-			"version_id": &schema.Schema{
+			"version_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
 
 func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) error {
 	s3conn := meta.(*AWSClient).s3conn
+
+	restricted := meta.(*AWSClient).IsGovCloud() || meta.(*AWSClient).IsChinaCloud()
 
 	var body io.ReadSeeker
 
@@ -133,12 +148,6 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 		body = bytes.NewReader([]byte(content))
 	} else {
 		return fmt.Errorf("Must specify \"source\" or \"content\" field")
-	}
-
-	if _, ok := d.GetOk("kms_key_id"); ok {
-		if _, ok := d.GetOk("etag"); ok {
-			return fmt.Errorf("Unable to specify 'kms_key_id' and 'etag' together because 'etag' wouldn't equal the MD5 digest of the raw object data")
-		}
 	}
 
 	bucket := d.Get("bucket").(string)
@@ -175,9 +184,26 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 		putInput.ContentDisposition = aws.String(v.(string))
 	}
 
+	if v, ok := d.GetOk("server_side_encryption"); ok {
+		putInput.ServerSideEncryption = aws.String(v.(string))
+	}
+
 	if v, ok := d.GetOk("kms_key_id"); ok {
 		putInput.SSEKMSKeyId = aws.String(v.(string))
-		putInput.ServerSideEncryption = aws.String("aws:kms")
+		putInput.ServerSideEncryption = aws.String(s3.ServerSideEncryptionAwsKms)
+	}
+
+	if v, ok := d.GetOk("tags"); ok {
+		if restricted {
+			return fmt.Errorf("This region does not allow for tags on S3 objects")
+		}
+
+		// The tag-set must be encoded as URL Query parameters.
+		values := url.Values{}
+		for k, v := range v.(map[string]interface{}) {
+			values.Add(k, v.(string))
+		}
+		putInput.Tagging = aws.String(values.Encode())
 	}
 
 	resp, err := s3conn.PutObject(putInput)
@@ -196,15 +222,15 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) error {
 	s3conn := meta.(*AWSClient).s3conn
 
+	restricted := meta.(*AWSClient).IsGovCloud() || meta.(*AWSClient).IsChinaCloud()
+
 	bucket := d.Get("bucket").(string)
 	key := d.Get("key").(string)
-	etag := d.Get("etag").(string)
 
 	resp, err := s3conn.HeadObject(
 		&s3.HeadObjectInput{
-			Bucket:  aws.String(bucket),
-			Key:     aws.String(key),
-			IfMatch: aws.String(etag),
+			Bucket: aws.String(bucket),
+			Key:    aws.String(key),
 		})
 
 	if err != nil {
@@ -224,13 +250,43 @@ func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("content_language", resp.ContentLanguage)
 	d.Set("content_type", resp.ContentType)
 	d.Set("version_id", resp.VersionId)
-	d.Set("kms_key_id", resp.SSEKMSKeyId)
+	d.Set("server_side_encryption", resp.ServerSideEncryption)
+
+	// Only set non-default KMS key ID (one that doesn't match default)
+	if resp.SSEKMSKeyId != nil {
+		// retrieve S3 KMS Default Master Key
+		kmsconn := meta.(*AWSClient).kmsconn
+		kmsresp, err := kmsconn.DescribeKey(&kms.DescribeKeyInput{
+			KeyId: aws.String("alias/aws/s3"),
+		})
+		if err != nil {
+			return fmt.Errorf("Failed to describe default S3 KMS key (alias/aws/s3): %s", err)
+		}
+
+		if *resp.SSEKMSKeyId != *kmsresp.KeyMetadata.Arn {
+			log.Printf("[DEBUG] S3 object is encrypted using a non-default KMS Key ID: %s", *resp.SSEKMSKeyId)
+			d.Set("kms_key_id", resp.SSEKMSKeyId)
+		}
+	}
+	d.Set("etag", strings.Trim(*resp.ETag, `"`))
 
 	// The "STANDARD" (which is also the default) storage
 	// class when set would not be included in the results.
 	d.Set("storage_class", s3.StorageClassStandard)
 	if resp.StorageClass != nil {
 		d.Set("storage_class", resp.StorageClass)
+	}
+
+	if !restricted {
+		tagResp, err := s3conn.GetObjectTagging(
+			&s3.GetObjectTaggingInput{
+				Bucket: aws.String(bucket),
+				Key:    aws.String(key),
+			})
+		if err != nil {
+			return fmt.Errorf("Failed to get object tags (bucket: %s, key: %s): %s", bucket, key, err)
+		}
+		d.Set("tags", tagsToMapS3(tagResp.TagSet))
 	}
 
 	return nil
@@ -273,7 +329,7 @@ func resourceAwsS3BucketObjectDelete(d *schema.ResourceData, meta interface{}) e
 		}
 		_, err := s3conn.DeleteObject(&input)
 		if err != nil {
-			return fmt.Errorf("Error deleting S3 bucket object: %s", err)
+			return fmt.Errorf("Error deleting S3 bucket object: %s  Bucket: %q Object: %q", err, bucket, key)
 		}
 	}
 
@@ -330,6 +386,22 @@ func validateS3BucketObjectStorageClassType(v interface{}, k string) (ws []strin
 			"%q contains an invalid Storage Class type %q. Valid types are either %q, %q, or %q",
 			k, value, s3.StorageClassStandard, s3.StorageClassReducedRedundancy,
 			s3.StorageClassStandardIa))
+	}
+	return
+}
+
+func validateS3BucketObjectServerSideEncryption(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	serverSideEncryption := map[string]bool{
+		s3.ServerSideEncryptionAes256: true,
+		s3.ServerSideEncryptionAwsKms: true,
+	}
+
+	if _, ok := serverSideEncryption[value]; !ok {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid Server Side Encryption value %q. Valid values are %q and %q",
+			k, value, s3.ServerSideEncryptionAes256, s3.ServerSideEncryptionAwsKms))
 	}
 	return
 }

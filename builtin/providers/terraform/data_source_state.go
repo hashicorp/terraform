@@ -1,11 +1,15 @@
 package terraform
 
 import (
+	"fmt"
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform/backend"
+	backendinit "github.com/hashicorp/terraform/backend/init"
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 func dataSourceRemoteState() *schema.Resource {
@@ -33,6 +37,12 @@ func dataSourceRemoteState() *schema.Resource {
 				Optional: true,
 			},
 
+			"environment": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  backend.DefaultStateName,
+			},
+
 			"__has_dynamic_attributes": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -43,9 +53,11 @@ func dataSourceRemoteState() *schema.Resource {
 
 func dataSourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
 	backend := d.Get("backend").(string)
-	config := make(map[string]string)
-	for k, v := range d.Get("config").(map[string]interface{}) {
-		config[k] = v.(string)
+
+	// Get the configuration in a type we want.
+	rawConfig, err := config.NewRawConfig(d.Get("config").(map[string]interface{}))
+	if err != nil {
+		return fmt.Errorf("error initializing backend: %s", err)
 	}
 
 	// Don't break people using the old _local syntax - but note warning above
@@ -55,15 +67,24 @@ func dataSourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Create the client to access our remote state
-	log.Printf("[DEBUG] Initializing remote state client: %s", backend)
-	client, err := remote.NewClient(backend, config)
-	if err != nil {
-		return err
+	log.Printf("[DEBUG] Initializing remote state backend: %s", backend)
+	f := backendinit.Backend(backend)
+	if f == nil {
+		return fmt.Errorf("Unknown backend type: %s", backend)
+	}
+	b := f()
+
+	// Configure the backend
+	if err := b.Configure(terraform.NewResourceConfig(rawConfig)); err != nil {
+		return fmt.Errorf("error initializing backend: %s", err)
 	}
 
-	// Create the remote state itself and refresh it in order to load the state
-	log.Printf("[DEBUG] Loading remote state...")
-	state := &remote.State{Client: client}
+	// Get the state
+	env := d.Get("environment").(string)
+	state, err := b.State(env)
+	if err != nil {
+		return fmt.Errorf("error loading the remote state: %s", err)
+	}
 	if err := state.RefreshState(); err != nil {
 		return err
 	}

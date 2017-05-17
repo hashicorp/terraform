@@ -15,14 +15,14 @@ Creates a new bucket in Google cloud storage service(GCS). Currently, it will no
 
 Example creating a private bucket in standard storage, in the EU region.
 
-```js
+```hcl
 resource "google_storage_bucket" "image-store" {
   name     = "image-store-bucket"
   location = "EU"
 
   website {
     main_page_suffix = "index.html"
-    not_found_page = "404.html"
+    not_found_page   = "404.html"
   }
 }
 ```
@@ -48,6 +48,8 @@ to `google_storage_bucket_acl.predefined_acl`.
 * `project` - (Optional) The project in which the resource belongs. If it
     is not provided, the provider project is used.
 
+* `storage_class` - (Optional) The [Storage Class](https://cloud.google.com/storage/docs/storage-classes) of the new bucket. Supported values include: `MULTI_REGIONAL`, `REGIONAL`, `NEARLINE`, `COLDLINE`.
+
 * `website` - (Optional) Configuration if the bucket acts as a website.
 
 The optional `website` block supports:
@@ -64,3 +66,5 @@ In addition to the arguments listed above, the following computed attributes are
 exported:
 
 * `self_link` - The URI of the created resource.
+
+* `url` - The base URL of the bucket, in the format `gs://<bucket-name>`.

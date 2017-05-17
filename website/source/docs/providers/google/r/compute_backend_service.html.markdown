@@ -10,9 +10,11 @@ description: |-
 
 A Backend Service defines a group of virtual machines that will serve traffic for load balancing.
 
+For internal load balancing, use a [google_compute_region_backend_service](/docs/providers/google/r/compute_region_backend_service.html).
+
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_backend_service" "foobar" {
   name        = "blablah"
   description = "Hello World 1234"
@@ -86,12 +88,12 @@ The following arguments are supported:
 * `protocol` - (Optional) The protocol for incoming requests. Defaults to
     `HTTP`.
 
-* `region` - (Optional) The Region in which the created address should reside.
-    If it is not provided, the provider region is used.
+* `session_affinity` - (Optional) How to distribute load. Options are `NONE` (no
+    affinity), `CLIENT_IP` (hash of the source/dest addresses / ports), and
+    `GENERATED_COOKIE` (distribute load using a generated session cookie).
 
 * `timeout_sec` - (Optional) The number of secs to wait for a backend to respond
     to a request before considering the request failed. Defaults to `30`.
-
 
 **Backend** supports the following attributes:
 

@@ -27,22 +27,23 @@ func resourceAwsEfsFileSystem() *schema.Resource {
 			"creation_token": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				ForceNew:     true,
 				ValidateFunc: validateMaxLength(64),
 			},
 
 			"reference_name": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				Deprecated:    "Please use attribute `creation_token' instead. This attribute might be removed in future releases.",
-				ConflictsWith: []string{"creation_token"},
-				ValidateFunc:  validateReferenceName,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Deprecated:   "Please use attribute `creation_token' instead. This attribute might be removed in future releases.",
+				ValidateFunc: validateReferenceName,
 			},
 
 			"performance_mode": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				ForceNew:     true,
 				ValidateFunc: validatePerformanceModeType,
 			},
@@ -148,18 +149,53 @@ func resourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("EFS file system %q could not be found.", d.Id())
 	}
 
-	tagsResp, err := conn.DescribeTags(&efs.DescribeTagsInput{
-		FileSystemId: aws.String(d.Id()),
-	})
-	if err != nil {
-		return fmt.Errorf("Error retrieving EC2 tags for EFS file system (%q): %s",
-			d.Id(), err.Error())
+	tags := make([]*efs.Tag, 0)
+	var marker string
+	for {
+		params := &efs.DescribeTagsInput{
+			FileSystemId: aws.String(d.Id()),
+		}
+		if marker != "" {
+			params.Marker = aws.String(marker)
+		}
+
+		tagsResp, err := conn.DescribeTags(params)
+		if err != nil {
+			return fmt.Errorf("Error retrieving EC2 tags for EFS file system (%q): %s",
+				d.Id(), err.Error())
+		}
+
+		for _, tag := range tagsResp.Tags {
+			tags = append(tags, tag)
+		}
+
+		if tagsResp.NextMarker != nil {
+			marker = *tagsResp.NextMarker
+		} else {
+			break
+		}
 	}
 
-	err = d.Set("tags", tagsToMapEFS(tagsResp.Tags))
+	err = d.Set("tags", tagsToMapEFS(tags))
 	if err != nil {
 		return err
 	}
+
+	var fs *efs.FileSystemDescription
+	for _, f := range resp.FileSystems {
+		if d.Id() == *f.FileSystemId {
+			fs = f
+			break
+		}
+	}
+	if fs == nil {
+		log.Printf("[WARN] EFS (%s) not found, removing from state", d.Id())
+		d.SetId("")
+		return nil
+	}
+
+	d.Set("creation_token", fs.CreationToken)
+	d.Set("performance_mode", fs.PerformanceMode)
 
 	return nil
 }

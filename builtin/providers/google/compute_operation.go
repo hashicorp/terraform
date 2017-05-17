@@ -83,6 +83,10 @@ func (e ComputeOperationError) Error() string {
 }
 
 func computeOperationWaitGlobal(config *Config, op *compute.Operation, project string, activity string) error {
+	return computeOperationWaitGlobalTime(config, op, project, activity, 4)
+}
+
+func computeOperationWaitGlobalTime(config *Config, op *compute.Operation, project string, activity string, timeoutMin int) error {
 	w := &ComputeOperationWaiter{
 		Service: config.clientCompute,
 		Op:      op,
@@ -92,7 +96,7 @@ func computeOperationWaitGlobal(config *Config, op *compute.Operation, project s
 
 	state := w.Conf()
 	state.Delay = 10 * time.Second
-	state.Timeout = 4 * time.Minute
+	state.Timeout = time.Duration(timeoutMin) * time.Minute
 	state.MinTimeout = 2 * time.Second
 	opRaw, err := state.WaitForState()
 	if err != nil {

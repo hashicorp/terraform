@@ -42,6 +42,17 @@ type APIPort struct {
 	IP          string `json:"IP,omitempty" yaml:"IP,omitempty"`
 }
 
+// APIMount represents a mount point for a container.
+type APIMount struct {
+	Name        string `json:"Name,omitempty" yaml:"Name,omitempty"`
+	Source      string `json:"Source,omitempty" yaml:"Source,omitempty"`
+	Destination string `json:"Destination,omitempty" yaml:"Destination,omitempty"`
+	Driver      string `json:"Driver,omitempty" yaml:"Driver,omitempty"`
+	Mode        string `json:"Mode,omitempty" yaml:"Mode,omitempty"`
+	RW          bool   `json:"RW,omitempty" yaml:"RW,omitempty"`
+	Propogation string `json:"Propogation,omitempty" yaml:"Propogation,omitempty"`
+}
+
 // APIContainers represents each container in the list returned by
 // ListContainers.
 type APIContainers struct {
@@ -49,6 +60,7 @@ type APIContainers struct {
 	Image      string            `json:"Image,omitempty" yaml:"Image,omitempty"`
 	Command    string            `json:"Command,omitempty" yaml:"Command,omitempty"`
 	Created    int64             `json:"Created,omitempty" yaml:"Created,omitempty"`
+	State      string            `json:"State,omitempty" yaml:"State,omitempty"`
 	Status     string            `json:"Status,omitempty" yaml:"Status,omitempty"`
 	Ports      []APIPort         `json:"Ports,omitempty" yaml:"Ports,omitempty"`
 	SizeRw     int64             `json:"SizeRw,omitempty" yaml:"SizeRw,omitempty"`
@@ -56,6 +68,7 @@ type APIContainers struct {
 	Names      []string          `json:"Names,omitempty" yaml:"Names,omitempty"`
 	Labels     map[string]string `json:"Labels,omitempty" yaml:"Labels,omitempty"`
 	Networks   NetworkList       `json:"NetworkSettings,omitempty" yaml:"NetworkSettings,omitempty"`
+	Mounts     []APIMount        `json:"Mounts,omitempty" yaml:"Mounts,omitempty"`
 }
 
 // NetworkList encapsulates a map of networks, as returned by the Docker API in
@@ -262,6 +275,7 @@ type Config struct {
 	MemorySwap        int64               `json:"MemorySwap,omitempty" yaml:"MemorySwap,omitempty"`
 	MemoryReservation int64               `json:"MemoryReservation,omitempty" yaml:"MemoryReservation,omitempty"`
 	KernelMemory      int64               `json:"KernelMemory,omitempty" yaml:"KernelMemory,omitempty"`
+	PidsLimit         int64               `json:"PidsLimit,omitempty" yaml:"PidsLimit,omitempty"`
 	CPUShares         int64               `json:"CpuShares,omitempty" yaml:"CpuShares,omitempty"`
 	CPUSet            string              `json:"Cpuset,omitempty" yaml:"Cpuset,omitempty"`
 	AttachStdin       bool                `json:"AttachStdin,omitempty" yaml:"AttachStdin,omitempty"`
@@ -328,6 +342,12 @@ type SwarmNode struct {
 	Labels map[string]string `json:"Labels,omitempty" yaml:"Labels,omitempty"`
 }
 
+// GraphDriver contains information about the GraphDriver used by the container
+type GraphDriver struct {
+	Name string            `json:"Name,omitempty" yaml:"Name,omitempty"`
+	Data map[string]string `json:"Data,omitempty" yaml:"Data,omitempty"`
+}
+
 // Container is the type encompasing everything about a container - its config,
 // hostconfig, etc.
 type Container struct {
@@ -355,10 +375,11 @@ type Container struct {
 	Driver         string  `json:"Driver,omitempty" yaml:"Driver,omitempty"`
 	Mounts         []Mount `json:"Mounts,omitempty" yaml:"Mounts,omitempty"`
 
-	Volumes    map[string]string `json:"Volumes,omitempty" yaml:"Volumes,omitempty"`
-	VolumesRW  map[string]bool   `json:"VolumesRW,omitempty" yaml:"VolumesRW,omitempty"`
-	HostConfig *HostConfig       `json:"HostConfig,omitempty" yaml:"HostConfig,omitempty"`
-	ExecIDs    []string          `json:"ExecIDs,omitempty" yaml:"ExecIDs,omitempty"`
+	Volumes     map[string]string `json:"Volumes,omitempty" yaml:"Volumes,omitempty"`
+	VolumesRW   map[string]bool   `json:"VolumesRW,omitempty" yaml:"VolumesRW,omitempty"`
+	HostConfig  *HostConfig       `json:"HostConfig,omitempty" yaml:"HostConfig,omitempty"`
+	ExecIDs     []string          `json:"ExecIDs,omitempty" yaml:"ExecIDs,omitempty"`
+	GraphDriver *GraphDriver      `json:"GraphDriver,omitempty" yaml:"GraphDriver,omitempty"`
 
 	RestartCount int `json:"RestartCount,omitempty" yaml:"RestartCount,omitempty"`
 
@@ -369,16 +390,17 @@ type Container struct {
 //
 // See https://goo.gl/Y6fXUy for more details.
 type UpdateContainerOptions struct {
-	BlkioWeight       int    `json:"BlkioWeight"`
-	CPUShares         int    `json:"CpuShares"`
-	CPUPeriod         int    `json:"CpuPeriod"`
-	CPUQuota          int    `json:"CpuQuota"`
-	CpusetCpus        string `json:"CpusetCpus"`
-	CpusetMems        string `json:"CpusetMems"`
-	Memory            int    `json:"Memory"`
-	MemorySwap        int    `json:"MemorySwap"`
-	MemoryReservation int    `json:"MemoryReservation"`
-	KernelMemory      int    `json:"KernelMemory"`
+	BlkioWeight       int           `json:"BlkioWeight"`
+	CPUShares         int           `json:"CpuShares"`
+	CPUPeriod         int           `json:"CpuPeriod"`
+	CPUQuota          int           `json:"CpuQuota"`
+	CpusetCpus        string        `json:"CpusetCpus"`
+	CpusetMems        string        `json:"CpusetMems"`
+	Memory            int           `json:"Memory"`
+	MemorySwap        int           `json:"MemorySwap"`
+	MemoryReservation int           `json:"MemoryReservation"`
+	KernelMemory      int           `json:"KernelMemory"`
+	RestartPolicy     RestartPolicy `json:"RestartPolicy,omitempty"`
 }
 
 // UpdateContainer updates the container at ID with the options
@@ -590,6 +612,7 @@ type HostConfig struct {
 	DNSSearch            []string               `json:"DnsSearch,omitempty" yaml:"DnsSearch,omitempty"`
 	ExtraHosts           []string               `json:"ExtraHosts,omitempty" yaml:"ExtraHosts,omitempty"`
 	VolumesFrom          []string               `json:"VolumesFrom,omitempty" yaml:"VolumesFrom,omitempty"`
+	UsernsMode           string                 `json:"UsernsMode,omitempty" yaml:"UsernsMode,omitempty"`
 	NetworkMode          string                 `json:"NetworkMode,omitempty" yaml:"NetworkMode,omitempty"`
 	IpcMode              string                 `json:"IpcMode,omitempty" yaml:"IpcMode,omitempty"`
 	PidMode              string                 `json:"PidMode,omitempty" yaml:"PidMode,omitempty"`
@@ -619,6 +642,7 @@ type HostConfig struct {
 	Ulimits              []ULimit               `json:"Ulimits,omitempty" yaml:"Ulimits,omitempty"`
 	VolumeDriver         string                 `json:"VolumeDriver,omitempty" yaml:"VolumeDriver,omitempty"`
 	OomScoreAdj          int                    `json:"OomScoreAdj,omitempty" yaml:"OomScoreAdj,omitempty"`
+	ShmSize              int64                  `json:"ShmSize,omitempty" yaml:"ShmSize,omitempty"`
 }
 
 // StartContainer starts a container, returning an error in case of failure.
@@ -746,7 +770,10 @@ func (c *Client) TopContainer(id string, psArgs string) (TopResult, error) {
 //
 // See https://goo.gl/GNmLHb for more details.
 type Stats struct {
-	Read        time.Time               `json:"read,omitempty" yaml:"read,omitempty"`
+	Read      time.Time `json:"read,omitempty" yaml:"read,omitempty"`
+	PidsStats struct {
+		Current uint64 `json:"current,omitempty" yaml:"current,omitempty"`
+	} `json:"pids_stats,omitempty" yaml:"pids_stats,omitempty"`
 	Network     NetworkStats            `json:"network,omitempty" yaml:"network,omitempty"`
 	Networks    map[string]NetworkStats `json:"networks,omitempty" yaml:"networks,omitempty"`
 	MemoryStats struct {
@@ -849,6 +876,9 @@ type StatsOptions struct {
 	Done <-chan bool
 	// Initial connection timeout
 	Timeout time.Duration
+	// Timeout with no data is received, it's reset every time new data
+	// arrives
+	InactivityTimeout time.Duration `qs:"-"`
 }
 
 // Stats sends container statistics for the given container to the given channel.
@@ -883,10 +913,11 @@ func (c *Client) Stats(opts StatsOptions) (retErr error) {
 
 	go func() {
 		err := c.stream("GET", fmt.Sprintf("/containers/%s/stats?stream=%v", opts.ID, opts.Stream), streamOptions{
-			rawJSONStream:  true,
-			useJSONDecoder: true,
-			stdout:         writeCloser,
-			timeout:        opts.Timeout,
+			rawJSONStream:     true,
+			useJSONDecoder:    true,
+			stdout:            writeCloser,
+			timeout:           opts.Timeout,
+			inactivityTimeout: opts.InactivityTimeout,
 		})
 		if err != nil {
 			dockerError, ok := err.(*Error)
@@ -1016,8 +1047,9 @@ func (c *Client) UploadToContainer(id string, opts UploadToContainerOptions) err
 //
 // See https://goo.gl/KnZJDX for more details.
 type DownloadFromContainerOptions struct {
-	OutputStream io.Writer `json:"-" qs:"-"`
-	Path         string    `qs:"path"`
+	OutputStream      io.Writer     `json:"-" qs:"-"`
+	Path              string        `qs:"path"`
+	InactivityTimeout time.Duration `qs:"-"`
 }
 
 // DownloadFromContainer downloads a tar archive of files or folders in a container.
@@ -1027,8 +1059,9 @@ func (c *Client) DownloadFromContainer(id string, opts DownloadFromContainerOpti
 	url := fmt.Sprintf("/containers/%s/archive?", id) + queryString(opts)
 
 	return c.stream("GET", url, streamOptions{
-		setRawTerminal: true,
-		stdout:         opts.OutputStream,
+		setRawTerminal:    true,
+		stdout:            opts.OutputStream,
+		inactivityTimeout: opts.InactivityTimeout,
 	})
 }
 
@@ -1183,15 +1216,16 @@ func (c *Client) AttachToContainerNonBlocking(opts AttachToContainerOptions) (Cl
 //
 // See https://goo.gl/yl8PGm for more details.
 type LogsOptions struct {
-	Container    string    `qs:"-"`
-	OutputStream io.Writer `qs:"-"`
-	ErrorStream  io.Writer `qs:"-"`
-	Follow       bool
-	Stdout       bool
-	Stderr       bool
-	Since        int64
-	Timestamps   bool
-	Tail         string
+	Container         string        `qs:"-"`
+	OutputStream      io.Writer     `qs:"-"`
+	ErrorStream       io.Writer     `qs:"-"`
+	InactivityTimeout time.Duration `qs:"-"`
+	Follow            bool
+	Stdout            bool
+	Stderr            bool
+	Since             int64
+	Timestamps        bool
+	Tail              string
 
 	// Use raw terminal? Usually true when the container contains a TTY.
 	RawTerminal bool `qs:"-"`
@@ -1209,9 +1243,10 @@ func (c *Client) Logs(opts LogsOptions) error {
 	}
 	path := "/containers/" + opts.Container + "/logs?" + queryString(opts)
 	return c.stream("GET", path, streamOptions{
-		setRawTerminal: opts.RawTerminal,
-		stdout:         opts.OutputStream,
-		stderr:         opts.ErrorStream,
+		setRawTerminal:    opts.RawTerminal,
+		stdout:            opts.OutputStream,
+		stderr:            opts.ErrorStream,
+		inactivityTimeout: opts.InactivityTimeout,
 	})
 }
 
@@ -1235,8 +1270,9 @@ func (c *Client) ResizeContainerTTY(id string, height, width int) error {
 //
 // See https://goo.gl/dOkTyk for more details.
 type ExportContainerOptions struct {
-	ID           string
-	OutputStream io.Writer
+	ID                string
+	OutputStream      io.Writer
+	InactivityTimeout time.Duration `qs:"-"`
 }
 
 // ExportContainer export the contents of container id as tar archive
@@ -1249,8 +1285,9 @@ func (c *Client) ExportContainer(opts ExportContainerOptions) error {
 	}
 	url := fmt.Sprintf("/containers/%s/export", opts.ID)
 	return c.stream("GET", url, streamOptions{
-		setRawTerminal: true,
-		stdout:         opts.OutputStream,
+		setRawTerminal:    true,
+		stdout:            opts.OutputStream,
+		inactivityTimeout: opts.InactivityTimeout,
 	})
 }
 

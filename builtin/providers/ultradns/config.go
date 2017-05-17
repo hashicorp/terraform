@@ -22,7 +22,7 @@ func (c *Config) Client() (*udnssdk.Client, error) {
 		return nil, fmt.Errorf("Error setting up client: %s", err)
 	}
 
-	log.Printf("[INFO] UltraDNS Client configured for user: %s", client.Username)
+	log.Printf("[INFO] UltraDNS Client configured for user: %s", c.Username)
 
 	return client, nil
 }
