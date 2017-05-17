@@ -69,7 +69,7 @@ The following arguments are supported:
   instances in the DB cluster can be created in
 * `backup_retention_period` - (Optional) The days to retain backups for. Default
 1
-* `preferred_backup_window` - (Optional) The daily time range during which automated backups are created if automated backups are enabled using the BackupRetentionPeriod parameter.
+* `preferred_backup_window` - (Optional) The daily time range during which automated backups are created if automated backups are enabled using the BackupRetentionPeriod parameter.Time in UTC
 Default: A 30-minute window selected at random from an 8-hour block of time per region. e.g. 04:00-09:00
 * `preferred_maintenance_window` - (Optional) The weekly time range during which system maintenance can occur, in (UTC) e.g. wed:04:00-wed:04:30
 * `port` - (Optional) The port on which the DB accepts connections
