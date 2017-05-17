@@ -231,7 +231,10 @@ func ParseResourceAddress(s string) (*ResourceAddress, error) {
 
 	// not allowed to say "data." without a type following
 	if mode == config.DataResourceMode && matches["type"] == "" {
-		return nil, fmt.Errorf("must target specific data instance")
+		return nil, fmt.Errorf(
+			"invalid resource address %q: must target specific data instance",
+			s,
+		)
 	}
 
 	return &ResourceAddress{
@@ -335,7 +338,7 @@ func tokenizeResourceAddress(s string) (map[string]string, error) {
 	groupNames := re.SubexpNames()
 	rawMatches := re.FindAllStringSubmatch(s, -1)
 	if len(rawMatches) != 1 {
-		return nil, fmt.Errorf("Problem parsing address: %q", s)
+		return nil, fmt.Errorf("invalid resource address %q", s)
 	}
 
 	matches := make(map[string]string)
