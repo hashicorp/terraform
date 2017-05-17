@@ -90,6 +90,7 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 						},
 						"disk_autoresize": &schema.Schema{
 							Type:     schema.TypeBool,
+							Default:  false,
 							Optional: true,
 						},
 						"disk_size": &schema.Schema{
@@ -320,7 +321,8 @@ func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{})
 
 	_settings := _settingsList[0].(map[string]interface{})
 	settings := &sqladmin.Settings{
-		Tier: _settings["tier"].(string),
+		Tier:            _settings["tier"].(string),
+		ForceSendFields: []string{"StorageAutoResize"},
 	}
 
 	if v, ok := _settings["activation_policy"]; ok {
@@ -363,9 +365,7 @@ func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{})
 		settings.CrashSafeReplicationEnabled = v.(bool)
 	}
 
-	if v, ok := _settings["disk_autoresize"]; ok && v.(bool) {
-		settings.StorageAutoResize = v.(bool)
-	}
+	settings.StorageAutoResize = _settings["disk_autoresize"].(bool)
 
 	if v, ok := _settings["disk_size"]; ok && v.(int) > 0 {
 		settings.DataDiskSizeGb = int64(v.(int))
@@ -662,11 +662,7 @@ func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) e
 		_settings["crash_safe_replication"] = settings.CrashSafeReplicationEnabled
 	}
 
-	if v, ok := _settings["disk_autoresize"]; ok && v != nil {
-		if v.(bool) {
-			_settings["disk_autoresize"] = settings.StorageAutoResize
-		}
-	}
+	_settings["disk_autoresize"] = settings.StorageAutoResize
 
 	if v, ok := _settings["disk_size"]; ok && v != nil {
 		if v.(int) > 0 && settings.DataDiskSizeGb < int64(v.(int)) {
@@ -920,6 +916,7 @@ func resourceSqlDatabaseInstanceUpdate(d *schema.ResourceData, meta interface{})
 		settings := &sqladmin.Settings{
 			Tier:            _settings["tier"].(string),
 			SettingsVersion: instance.Settings.SettingsVersion,
+			ForceSendFields: []string{"StorageAutoResize"},
 		}
 
 		if v, ok := _settings["activation_policy"]; ok {
@@ -962,9 +959,7 @@ func resourceSqlDatabaseInstanceUpdate(d *schema.ResourceData, meta interface{})
 			settings.CrashSafeReplicationEnabled = v.(bool)
 		}
 
-		if v, ok := _settings["disk_autoresize"]; ok && v.(bool) {
-			settings.StorageAutoResize = v.(bool)
-		}
+		settings.StorageAutoResize = _settings["disk_autoresize"].(bool)
 
 		if v, ok := _settings["disk_size"]; ok {
 			if v.(int) > 0 && int64(v.(int)) > instance.Settings.DataDiskSizeGb {
