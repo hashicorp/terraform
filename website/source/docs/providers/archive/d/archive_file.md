@@ -45,26 +45,26 @@ The following arguments are supported:
 
 NOTE: One of `source`, `source_content_filename` (with `source_content`), `source_file`, or `source_dir` must be specified.
 
-* `type` - (required) The type of archive to generate.
+* `type` - (Required) The type of archive to generate.
   NOTE: `zip` is supported.
 
-* `output_path` - (required) The output of the archive file.
+* `output_path` - (Required) The output of the archive file.
 
-* `source_content` - (optional) Add only this content to the archive with `source_content_filename` as the filename.
+* `source_content` - (Optional) Add only this content to the archive with `source_content_filename` as the filename.
 
-* `source_content_filename` - (optional) Set this as the filename when using `source_content`.
+* `source_content_filename` - (Optional) Set this as the filename when using `source_content`.
 
-* `source_file` - (optional) Package this file into the archive.
+* `source_file` - (Optional) Package this file into the archive.
 
-* `source_dir` - (optional) Package entire contents of this directory into the archive.
+* `source_dir` - (Optional) Package entire contents of this directory into the archive.
 
-* `source` - (optional) Specifies attributes of a single source file to include into the archive.
+* `source` - (Optional) Specifies attributes of a single source file to include into the archive.
 
 The `source` block supports the following:
 
-* `content` - (required) Add this content to the archive with `filename` as the filename.
+* `content` - (Required) Add this content to the archive with `filename` as the filename.
 
-* `filename` - (required) Set this as the filename when declaring a `source`.
+* `filename` - (Required) Set this as the filename when declaring a `source`.
 
 ## Attributes Reference
 
