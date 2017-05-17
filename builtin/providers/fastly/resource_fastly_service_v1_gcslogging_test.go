@@ -1,8 +1,8 @@
 package fastly
 
 import (
-	"os"
 	"fmt"
+	"os"
 	"reflect"
 	"testing"
 
