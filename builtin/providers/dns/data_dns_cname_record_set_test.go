@@ -3,7 +3,7 @@ package dns
 import (
 	"testing"
 
-	r "github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/resource"
 )
 
 func TestAccDnsCnameRecordSet_Basic(t *testing.T) {
@@ -24,19 +24,19 @@ func TestAccDnsCnameRecordSet_Basic(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		r.Test(t, r.TestCase{
+		resource.Test(t, resource.TestCase{
 			Providers: testAccProviders,
-			Steps: []r.TestStep{
-				r.TestStep{
+			Steps: []resource.TestStep{
+				resource.TestStep{
 					Config: test.DataSourceBlock,
-					Check: r.ComposeTestCheckFunc(
-						r.TestCheckResourceAttr("data.dns_cname_record_set.foo", "cname", test.Expected),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("data.dns_cname_record_set.foo", "cname", test.Expected),
 					),
 				},
-				r.TestStep{
+				resource.TestStep{
 					Config: test.DataSourceBlock,
-					Check: r.ComposeTestCheckFunc(
-						r.TestCheckResourceAttr("data.dns_cname_record_set.foo", "id", test.Host),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("data.dns_cname_record_set.foo", "id", test.Host),
 					),
 				},
 			},
