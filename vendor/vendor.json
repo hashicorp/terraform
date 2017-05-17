@@ -621,12 +621,10 @@
 			"versionExact": "v1.8.21"
 		},
 		{
-			"checksumSHA1": "4y3OXdVeAE/Upux6FZp/0T0gAz4=",
+			"checksumSHA1": "dsVwPNbrXbXMAXZY9ZkXG7vR+Oc=",
 			"path": "github.com/aws/aws-sdk-go/aws/request",
-			"revision": "49c7a5e645b5eca5aabd1fd6a676dbddaf7b2a1a",
-			"revisionTime": "2017-05-09T17:42:03Z",
-			"version": "v1.8.21",
-			"versionExact": "v1.8.21"
+			"revision": "fed27f4bd16c8c63d01003b978e5bc85fe727519",
+			"revisionTime": "2017-05-16T23:28:54Z"
 		},
 		{
 			"checksumSHA1": "sxShwDYt1duG922FOwU0/hbu/uc=",

@@ -321,15 +321,20 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 		output, err := dynamodbconn.CreateTable(req)
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
-				if awsErr.Code() == "ThrottlingException" {
+				switch code := awsErr.Code(); code {
+				case "ThrottlingException":
 					log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back create request", attemptCount, DYNAMODB_MAX_THROTTLE_RETRIES)
 					time.Sleep(DYNAMODB_THROTTLE_SLEEP)
 					attemptCount += 1
-				} else if awsErr.Code() == "LimitExceededException" {
+				case "LimitExceededException":
+					// If we're at resource capacity, error out without retry
+					if strings.Contains(awsErr.Message(), "Subscriber limit exceeded:") {
+						return fmt.Errorf("AWS Error creating DynamoDB table: %s", err)
+					}
 					log.Printf("[DEBUG] Limit on concurrent table creations hit, sleeping for a bit")
 					time.Sleep(DYNAMODB_LIMIT_EXCEEDED_SLEEP)
 					attemptCount += 1
-				} else {
+				default:
 					// Some other non-retryable exception occurred
 					return fmt.Errorf("AWS Error creating DynamoDB table: %s", err)
 				}
