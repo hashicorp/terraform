@@ -9,7 +9,7 @@ import (
 
 func validateName(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if !regexp.MustCompile(`^[0-9A-Za-z_-]$`).MatchString(value) {
+	if !regexp.MustCompile(`^[\dA-Za-z_-]{1,}$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf("Only alphanumeric characters, `_` or `-` are allowed in %q: %q", k, value))
 	}
 	return
