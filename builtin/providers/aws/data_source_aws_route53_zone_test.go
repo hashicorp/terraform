@@ -77,6 +77,9 @@ func testAccDataSourceAwsRoute53ZoneConfig(rInt int) string {
 
 	resource "aws_vpc" "test" {
 		cidr_block = "172.16.0.0/16"
+		tags {
+			Name = "testAccDataSourceAwsRoute53ZoneConfig"
+		}
 	}
 
 	resource "aws_route53_zone" "test_private" {

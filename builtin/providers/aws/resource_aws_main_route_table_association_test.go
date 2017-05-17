@@ -104,6 +104,9 @@ func testAccCheckMainRouteTableAssociation(
 const testAccMainRouteTableAssociationConfig = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccMainRouteTableAssociationConfig"
+	}
 }
 
 resource "aws_subnet" "foo" {
@@ -132,6 +135,9 @@ resource "aws_main_route_table_association" "foo" {
 const testAccMainRouteTableAssociationConfigUpdate = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccMainRouteTableAssociationConfigUpdate"
+	}
 }
 
 resource "aws_subnet" "foo" {
