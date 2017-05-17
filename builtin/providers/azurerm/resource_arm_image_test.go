@@ -224,7 +224,7 @@ resource "azurerm_image" "test" {
 	os_disk {
 		os_type = "Linux"
 		os_state = "Generalized"
-		blob_uri = "https://terraformdev.blob.core.windows.net/packerimages/ubuntu_plain.vhd"
+		blob_uri = "{blob_uri}/yourdisk.vhd"
  	    size_gb = 30
 		caching = "None"		 
 	}
