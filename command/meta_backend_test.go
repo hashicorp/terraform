@@ -426,6 +426,57 @@ func TestMetaBackend_configureNewWithState(t *testing.T) {
 	}
 }
 
+// Newly configured backend with matching local and remote state doesn't prompt
+// for copy.
+func TestMetaBackend_configureNewWithoutCopy(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("backend-new-migrate"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	if err := copy.CopyFile(DefaultStateFilename, "local-state.tfstate"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Setup the meta
+	m := testMetaBackend(t, nil)
+	m.input = false
+
+	// init the backend
+	_, err := m.Backend(&BackendOpts{Init: true})
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	// Verify the state is where we expect
+	f, err := os.Open("local-state.tfstate")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	actual, err := terraform.ReadState(f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if actual.Lineage != "backend-new-migrate" {
+		t.Fatalf("incorrect state lineage: %q", actual.Lineage)
+	}
+
+	// Verify the default paths don't exist
+	if !isEmptyState(DefaultStateFilename) {
+		data, _ := ioutil.ReadFile(DefaultStateFilename)
+
+		t.Fatal("state should not exist, but contains:\n", string(data))
+	}
+
+	// Verify a backup does exist
+	if isEmptyState(DefaultStateFilename + DefaultBackupExtension) {
+		t.Fatal("backup state is empty or missing")
+	}
+}
+
 // Newly configured backend with prior local state and no remote state,
 // but opting to not migrate.
 func TestMetaBackend_configureNewWithStateNoMigrate(t *testing.T) {
@@ -929,6 +980,59 @@ func TestMetaBackend_configuredChange(t *testing.T) {
 	// Verify no local backup
 	if _, err := os.Stat(DefaultStateFilename + DefaultBackupExtension); err == nil {
 		t.Fatal("file should not exist")
+	}
+}
+
+// Reconfiguring with an already configured backend.
+// This should ignore the existing backend config, and configure the new
+// backend is if this is the first time.
+func TestMetaBackend_reconfigureChange(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("backend-change-single-to-single"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// Register the single-state backend
+	backendinit.Set("local-single", backendlocal.TestNewLocalSingle)
+	defer backendinit.Set("local-single", nil)
+
+	// Setup the meta
+	m := testMetaBackend(t, nil)
+
+	// this should not ask for input
+	m.input = false
+
+	// cli flag -reconfigure
+	m.reconfigure = true
+
+	// Get the backend
+	b, err := m.Backend(&BackendOpts{Init: true})
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	// Check the state
+	s, err := b.State(backend.DefaultStateName)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	if err := s.RefreshState(); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	newState := s.State()
+	if newState != nil || !newState.Empty() {
+		t.Fatal("state should be nil/empty after forced reconfiguration")
+	}
+
+	// verify that the old state is still there
+	s = (&state.LocalState{Path: "local-state.tfstate"})
+	if err := s.RefreshState(); err != nil {
+		t.Fatal(err)
+	}
+	oldState := s.State()
+	if oldState == nil || oldState.Empty() {
+		t.Fatal("original state should be untouched")
 	}
 }
 

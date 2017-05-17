@@ -12,7 +12,7 @@ Provides a DMS (Data Migration Service) replication subnet group resource. DMS r
 
 ## Example Usage
 
-```
+```hcl
 # Create a new replication subnet group
 resource "aws_dms_replication_subnet_group" "test" {
   replication_subnet_group_description = "Test replication subnet group"

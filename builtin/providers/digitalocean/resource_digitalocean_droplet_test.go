@@ -31,6 +31,10 @@ func TestAccDigitalOceanDroplet_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"digitalocean_droplet.foobar", "size", "512mb"),
 					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "price_hourly", "0.00744"),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "price_monthly", "5"),
+					resource.TestCheckResourceAttr(
 						"digitalocean_droplet.foobar", "image", "centos-7-x64"),
 					resource.TestCheckResourceAttr(
 						"digitalocean_droplet.foobar", "region", "nyc3"),
@@ -42,6 +46,26 @@ func TestAccDigitalOceanDroplet_Basic(t *testing.T) {
 	})
 }
 
+func TestAccDigitalOceanDroplet_WithID(t *testing.T) {
+	var droplet godo.Droplet
+	rInt := acctest.RandInt()
+	// TODO: not hardcode this as it will change over time
+	centosID := 22995941
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckDigitalOceanDropletConfig_withID(centosID, rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
+				),
+			},
+		},
+	})
+}
 func TestAccDigitalOceanDroplet_withSSH(t *testing.T) {
 	var droplet godo.Droplet
 	rInt := acctest.RandInt()
@@ -333,6 +357,14 @@ func testAccCheckDigitalOceanDropletAttributes(droplet *godo.Droplet) resource.T
 			return fmt.Errorf("Bad size_slug: %s", droplet.Size.Slug)
 		}
 
+		if droplet.Size.PriceHourly != 0.00744 {
+			return fmt.Errorf("Bad price_hourly: %v", droplet.Size.PriceHourly)
+		}
+
+		if droplet.Size.PriceMonthly != 5.0 {
+			return fmt.Errorf("Bad price_monthly: %v", droplet.Size.PriceMonthly)
+		}
+
 		if droplet.Region.Slug != "nyc3" {
 			return fmt.Errorf("Bad region_slug: %s", droplet.Region.Slug)
 		}
@@ -485,6 +517,17 @@ resource "digitalocean_droplet" "foobar" {
   region    = "nyc3"
   user_data = "foobar"
 }`, rInt)
+}
+
+func testAccCheckDigitalOceanDropletConfig_withID(imageID, rInt int) string {
+	return fmt.Sprintf(`
+resource "digitalocean_droplet" "foobar" {
+  name      = "foo-%d"
+  size      = "512mb"
+  image     = "%d"
+  region    = "nyc3"
+  user_data = "foobar"
+}`, rInt, imageID)
 }
 
 func testAccCheckDigitalOceanDropletConfig_withSSH(rInt int) string {

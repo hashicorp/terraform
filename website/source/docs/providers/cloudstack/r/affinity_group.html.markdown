@@ -6,13 +6,13 @@ description: |-
   Creates an affinity group.
 ---
 
-# cloudstack\_affinity\_group
+# cloudstack_affinity_group
 
 Creates an affinity group.
 
 ## Example Usage
 
-```
+```hcl
 resource "cloudstack_affinity_group" "default" {
   name = "test-affinity-group"
   type = "host anti-affinity"

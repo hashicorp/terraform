@@ -12,7 +12,7 @@ Provides a Route53 Hosted Zone resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_route53_zone" "primary" {
   name = "example.com"
 }
@@ -22,7 +22,7 @@ For use in subdomains, note that you need to create a
 `aws_route53_record` of type `NS` as well as the subdomain
 zone.
 
-```
+```hcl
 resource "aws_route53_zone" "main" {
   name = "example.com"
 }

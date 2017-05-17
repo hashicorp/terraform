@@ -15,7 +15,8 @@ For more details, see the [Amazon Kinesis Firehose Documentation][1].
 ## Example Usage
 
 ### S3 Destination
-```
+
+```hcl
 resource "aws_s3_bucket" "bucket" {
   bucket = "tf-test-bucket"
   acl    = "private"
@@ -54,7 +55,7 @@ resource "aws_kinesis_firehose_delivery_stream" "test_stream" {
 
 ### Redshift Destination
 
-```
+```hcl
 resource "aws_redshift_cluster" "test_cluster" {
   cluster_identifier = "tf-redshift-cluster-%d"
   database_name      = "test"
@@ -90,7 +91,7 @@ resource "aws_kinesis_firehose_delivery_stream" "test_stream" {
 
 ### Elasticsearch Destination
 
-```
+```hcl
 resource "aws_elasticsearch_domain" "test_cluster" {
   domain_name = "firehose-es-test"
 }
@@ -174,8 +175,6 @@ The `cloudwatch_logging_options` object supports the following:
 * `enabled` - (Optional) Enables or disables the logging. Defaults to `false`.
 * `log_group_name` - (Optional) The CloudWatch group name for logging. This value is required if `enabled` is true.
 * `log_stream_name` - (Optional) The CloudWatch log stream name for logging. This value is required if `enabled` is true.
-
-
 
 ## Attributes Reference
 

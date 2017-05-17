@@ -26,7 +26,7 @@ and all but the final ``postgresql_role`` must specify a `skip_drop_role`.
 
 ## Usage
 
-```
+```hcl
 resource "postgresql_role" "my_role" {
   name     = "my_role"
   login    = true
@@ -116,7 +116,7 @@ resource "postgresql_role" "my_replication_role" {
 `postgresql_role` supports importing resources.  Supposing the following
 Terraform:
 
-```
+```hcl
 provider "postgresql" {
   alias = "admindb"
 }

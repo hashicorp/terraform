@@ -14,7 +14,7 @@ This is a data source which can be used to construct a JSON representation of
 an IAM policy document, for use with resources which expect policy documents,
 such as the `aws_iam_policy` resource.
 
-```
+```hcl
 data "aws_iam_policy_document" "example" {
   statement {
     sid = "1"
@@ -149,7 +149,7 @@ The following attribute is exported:
 
 Showing how you can use this as an assume role policy as well as showing how you can specify multiple principal blocks with different types.
 
-```
+```hcl
 data "aws_iam_policy_document" "event_stream_bucket_role_assume_role_policy" {
   statement {
     actions = ["sts:AssumeRole"]

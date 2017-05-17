@@ -24,6 +24,13 @@ func RandInt() int {
 	return rand.New(rand.NewSource(time.Now().UnixNano())).Int()
 }
 
+// RandomWithPrefix is used to generate a unique name with a prefix, for
+// randomizing names in acceptance tests
+func RandomWithPrefix(name string) string {
+	reseed()
+	return fmt.Sprintf("%s-%d", name, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+}
+
 func RandIntRange(min int, max int) int {
 	reseed()
 	source := rand.New(rand.NewSource(time.Now().UnixNano()))

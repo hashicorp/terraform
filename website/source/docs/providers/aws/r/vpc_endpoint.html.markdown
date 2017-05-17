@@ -21,7 +21,7 @@ and will overwrite the association.
 
 Basic usage:
 
-```
+```hcl
 resource "aws_vpc_endpoint" "private-s3" {
   vpc_id       = "${aws_vpc.main.id}"
   service_name = "com.amazonaws.us-west-2.s3"
@@ -44,7 +44,6 @@ The following attributes are exported:
 * `id` - The ID of the VPC endpoint.
 * `prefix_list_id` - The prefix list ID of the exposed service.
 * `cidr_blocks` - The list of CIDR blocks for the exposed service.
-
 
 ## Import
 

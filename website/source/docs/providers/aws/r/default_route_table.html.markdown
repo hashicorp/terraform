@@ -1,7 +1,7 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_default_route_table"
-sidebar_current: "docs-aws-resource-default-route-table|"
+sidebar_current: "docs-aws-resource-default-route-table"
 description: |-
   Provides a resource to manage a Default VPC Routing Table.
 ---
@@ -42,7 +42,7 @@ a conflict of rule settings and will overwrite routes.
 
 ## Example usage with tags:
 
-```
+```hcl
 resource "aws_default_route_table" "r" {
   default_route_table_id = "${aws_vpc.foo.default_route_table_id}"
 

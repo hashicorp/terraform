@@ -317,6 +317,7 @@ resource "aws_db_instance" "bar" {
 	maintenance_window = "Fri:09:00-Fri:09:30"
 
 	backup_retention_period = 0
+	skip_final_snapshot = true
 
 	option_group_name = "${aws_db_option_group.bar.name}"
 }

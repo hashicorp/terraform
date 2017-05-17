@@ -40,16 +40,9 @@ func dataSourceAwsCallerIdentityRead(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error getting Caller Identity: %v", err)
 	}
 
-	log.Printf("[DEBUG] Reading Caller Identity.")
+	log.Printf("[DEBUG] Received Caller Identity: %s", res)
+
 	d.SetId(time.Now().UTC().String())
-
-	if *res.Account == "" {
-		log.Println("[DEBUG] No Account ID available, failing")
-		return fmt.Errorf("No AWS Account ID is available to the provider. Please ensure that\n" +
-			"skip_requesting_account_id is not set on the AWS provider.")
-	}
-
-	log.Printf("[DEBUG] Setting AWS Account ID to %s.", *res.Account)
 	d.Set("account_id", res.Account)
 	d.Set("arn", res.Arn)
 	d.Set("user_id", res.UserId)

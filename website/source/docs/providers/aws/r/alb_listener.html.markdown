@@ -12,14 +12,14 @@ Provides an Application Load Balancer Listener resource.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new load balancer
 resource "aws_alb" "front_end" {
-  # Other parameters...
+  # ...
 }
 
 resource "aws_alb_target_group" "front_end" {
-  # Other parameters...
+  # ...
 }
 
 resource "aws_alb_listener" "front_end" {

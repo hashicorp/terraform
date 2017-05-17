@@ -18,7 +18,7 @@ a conflict of rule settings and will overwrite rules.
 
 ## Example usage:
 
-```
+```hcl
 resource "aws_route" "r" {
   route_table_id            = "rtb-4fbb3ac4"
   destination_cidr_block    = "10.0.1.0/22"
@@ -29,7 +29,7 @@ resource "aws_route" "r" {
 
 ##Example IPv6 Usage:
 
-```
+```hcl
 resource "aws_vpc" "vpc" {
   cidr_block = "10.1.0.0/16"
   assign_generated_ipv6_cidr_block = true

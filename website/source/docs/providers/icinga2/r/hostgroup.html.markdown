@@ -13,7 +13,7 @@ and deleted.
 
 ## Example Usage
 
-```
+```hcl
 # Configure a new hostgroup to be monitored by an Icinga2 Server
 provider "icinga2" {
   api_url = "https://192.168.33.5:5665/v1"

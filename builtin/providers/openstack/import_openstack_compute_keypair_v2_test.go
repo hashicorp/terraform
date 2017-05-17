@@ -6,8 +6,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccOpenStackComputeV2Keypair_importBasic(t *testing.T) {
-	resourceName := "openstack_compute_keypair_v2.foo"
+func TestAccComputeV2Keypair_importBasic(t *testing.T) {
+	resourceName := "openstack_compute_keypair_v2.kp_1"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },

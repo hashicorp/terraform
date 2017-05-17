@@ -2,15 +2,9 @@ package s3
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
-	cleanhttp "github.com/hashicorp/go-cleanhttp"
-	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -175,48 +169,27 @@ func (b *Backend) configure(ctx context.Context) error {
 	b.kmsKeyID = data.Get("kms_key_id").(string)
 	b.lockTable = data.Get("lock_table").(string)
 
-	var errs []error
-	creds, err := terraformAWS.GetCredentials(&terraformAWS.Config{
+	cfg := &terraformAWS.Config{
 		AccessKey:             data.Get("access_key").(string),
-		SecretKey:             data.Get("secret_key").(string),
-		Token:                 data.Get("token").(string),
-		Profile:               data.Get("profile").(string),
-		CredsFilename:         data.Get("shared_credentials_file").(string),
 		AssumeRoleARN:         data.Get("role_arn").(string),
-		AssumeRoleSessionName: data.Get("session_name").(string),
 		AssumeRoleExternalID:  data.Get("external_id").(string),
 		AssumeRolePolicy:      data.Get("assume_role_policy").(string),
-	})
+		AssumeRoleSessionName: data.Get("session_name").(string),
+		CredsFilename:         data.Get("shared_credentials_file").(string),
+		Profile:               data.Get("profile").(string),
+		Region:                data.Get("region").(string),
+		S3Endpoint:            data.Get("endpoint").(string),
+		SecretKey:             data.Get("secret_key").(string),
+		Token:                 data.Get("token").(string),
+	}
+
+	client, err := cfg.Client()
 	if err != nil {
 		return err
 	}
 
-	// Call Get to check for credential provider. If nothing found, we'll get an
-	// error, and we can present it nicely to the user
-	_, err = creds.Get()
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NoCredentialProviders" {
-			errs = append(errs, fmt.Errorf(`No valid credential sources found for AWS S3 remote.
-Please see https://www.terraform.io/docs/state/remote/s3.html for more information on
-providing credentials for the AWS S3 remote`))
-		} else {
-			errs = append(errs, fmt.Errorf("Error loading credentials for AWS S3 remote: %s", err))
-		}
-		return &multierror.Error{Errors: errs}
-	}
-
-	endpoint := data.Get("endpoint").(string)
-	region := data.Get("region").(string)
-
-	awsConfig := &aws.Config{
-		Credentials: creds,
-		Endpoint:    aws.String(endpoint),
-		Region:      aws.String(region),
-		HTTPClient:  cleanhttp.DefaultClient(),
-	}
-	sess := session.New(awsConfig)
-	b.s3Client = s3.New(sess)
-	b.dynClient = dynamodb.New(sess)
+	b.s3Client = client.(*terraformAWS.AWSClient).S3()
+	b.dynClient = client.(*terraformAWS.AWSClient).DynamoDB()
 
 	return nil
 }

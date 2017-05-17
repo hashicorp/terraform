@@ -32,6 +32,7 @@ func (client *AliyunClient) DescribeNatGateway(natGatewayId string) (*ecs.NatGat
 	}
 
 	natGateways, _, err := client.vpcconn.DescribeNatGateways(args)
+	//fmt.Println("natGateways %#v", natGateways)
 	if err != nil {
 		return nil, err
 	}
@@ -62,6 +63,78 @@ func (client *AliyunClient) DescribeVpc(vpcId string) (*ecs.VpcSetType, error) {
 	}
 
 	return &vpcs[0], nil
+}
+
+func (client *AliyunClient) DescribeSnatEntry(snatTableId string, snatEntryId string) (ecs.SnatEntrySetType, error) {
+
+	var resultSnat ecs.SnatEntrySetType
+
+	args := &ecs.DescribeSnatTableEntriesArgs{
+		RegionId:    client.Region,
+		SnatTableId: snatTableId,
+	}
+
+	snatEntries, _, err := client.vpcconn.DescribeSnatTableEntries(args)
+
+	//this special deal cause the DescribeSnatEntry can't find the records would be throw "cant find the snatTable error"
+	//so judge the snatEntries length priority
+	if len(snatEntries) == 0 {
+		return resultSnat, common.GetClientErrorFromString(InstanceNotfound)
+	}
+
+	if err != nil {
+		return resultSnat, err
+	}
+
+	findSnat := false
+
+	for _, snat := range snatEntries {
+		if snat.SnatEntryId == snatEntryId {
+			resultSnat = snat
+			findSnat = true
+		}
+	}
+	if !findSnat {
+		return resultSnat, common.GetClientErrorFromString(NotFindSnatEntryBySnatId)
+	}
+
+	return resultSnat, nil
+}
+
+func (client *AliyunClient) DescribeForwardEntry(forwardTableId string, forwardEntryId string) (ecs.ForwardTableEntrySetType, error) {
+
+	var resultFoward ecs.ForwardTableEntrySetType
+
+	args := &ecs.DescribeForwardTableEntriesArgs{
+		RegionId:       client.Region,
+		ForwardTableId: forwardTableId,
+	}
+
+	forwardEntries, _, err := client.vpcconn.DescribeForwardTableEntries(args)
+
+	//this special deal cause the DescribeSnatEntry can't find the records would be throw "cant find the snatTable error"
+	//so judge the snatEntries length priority
+	if len(forwardEntries) == 0 {
+		return resultFoward, common.GetClientErrorFromString(InstanceNotfound)
+	}
+
+	findForward := false
+
+	for _, forward := range forwardEntries {
+		if forward.ForwardEntryId == forwardEntryId {
+			resultFoward = forward
+			findForward = true
+		}
+	}
+	if !findForward {
+		return resultFoward, common.GetClientErrorFromString(NotFindForwardEntryByForwardId)
+	}
+
+	if err != nil {
+		return resultFoward, err
+	}
+
+	return resultFoward, nil
 }
 
 // describe vswitch by param filters
@@ -130,7 +203,7 @@ func (client *AliyunClient) QueryRouteEntry(routeTableId, cidrBlock, nextHopType
 			return &e, nil
 		}
 	}
-	return nil, nil
+	return nil, GetNotFoundErrorFromString("Vpc router entry not found")
 }
 
 func (client *AliyunClient) GetVpcIdByVSwitchId(vswitchId string) (vpcId string, err error) {

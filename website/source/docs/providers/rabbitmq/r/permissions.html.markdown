@@ -13,7 +13,7 @@ permissions.
 
 ## Example Usage
 
-```
+```hcl
 resource "rabbitmq_vhost" "test" {
   name = "test"
 }

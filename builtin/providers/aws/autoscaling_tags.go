@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"strconv"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
@@ -12,8 +13,8 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-// tagsSchema returns the schema to use for tags.
-func autoscalingTagsSchema() *schema.Schema {
+// autoscalingTagSchema returns the schema to use for the tag element.
+func autoscalingTagSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeSet,
 		Optional: true,
@@ -35,11 +36,11 @@ func autoscalingTagsSchema() *schema.Schema {
 				},
 			},
 		},
-		Set: autoscalingTagsToHash,
+		Set: autoscalingTagToHash,
 	}
 }
 
-func autoscalingTagsToHash(v interface{}) int {
+func autoscalingTagToHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["key"].(string)))
@@ -52,35 +53,74 @@ func autoscalingTagsToHash(v interface{}) int {
 // setTags is a helper to set the tags for a resource. It expects the
 // tags field to be named "tag"
 func setAutoscalingTags(conn *autoscaling.AutoScaling, d *schema.ResourceData) error {
-	if d.HasChange("tag") {
+	resourceID := d.Get("name").(string)
+	var createTags, removeTags []*autoscaling.Tag
+
+	if d.HasChange("tag") || d.HasChange("tags") {
 		oraw, nraw := d.GetChange("tag")
 		o := setToMapByKey(oraw.(*schema.Set), "key")
 		n := setToMapByKey(nraw.(*schema.Set), "key")
 
-		resourceID := d.Get("name").(string)
-		c, r := diffAutoscalingTags(
-			autoscalingTagsFromMap(o, resourceID),
-			autoscalingTagsFromMap(n, resourceID),
-			resourceID)
-		create := autoscaling.CreateOrUpdateTagsInput{
-			Tags: c,
-		}
-		remove := autoscaling.DeleteTagsInput{
-			Tags: r,
+		old, err := autoscalingTagsFromMap(o, resourceID)
+		if err != nil {
+			return err
 		}
 
-		// Set tags
-		if len(r) > 0 {
-			log.Printf("[DEBUG] Removing autoscaling tags: %#v", r)
-			if _, err := conn.DeleteTags(&remove); err != nil {
-				return err
-			}
+		new, err := autoscalingTagsFromMap(n, resourceID)
+		if err != nil {
+			return err
 		}
-		if len(c) > 0 {
-			log.Printf("[DEBUG] Creating autoscaling tags: %#v", c)
-			if _, err := conn.CreateOrUpdateTags(&create); err != nil {
-				return err
-			}
+
+		c, r, err := diffAutoscalingTags(old, new, resourceID)
+		if err != nil {
+			return err
+		}
+
+		createTags = append(createTags, c...)
+		removeTags = append(removeTags, r...)
+
+		oraw, nraw = d.GetChange("tags")
+		old, err = autoscalingTagsFromList(oraw.([]interface{}), resourceID)
+		if err != nil {
+			return err
+		}
+
+		new, err = autoscalingTagsFromList(nraw.([]interface{}), resourceID)
+		if err != nil {
+			return err
+		}
+
+		c, r, err = diffAutoscalingTags(old, new, resourceID)
+		if err != nil {
+			return err
+		}
+
+		createTags = append(createTags, c...)
+		removeTags = append(removeTags, r...)
+	}
+
+	// Set tags
+	if len(removeTags) > 0 {
+		log.Printf("[DEBUG] Removing autoscaling tags: %#v", removeTags)
+
+		remove := autoscaling.DeleteTagsInput{
+			Tags: removeTags,
+		}
+
+		if _, err := conn.DeleteTags(&remove); err != nil {
+			return err
+		}
+	}
+
+	if len(createTags) > 0 {
+		log.Printf("[DEBUG] Creating autoscaling tags: %#v", createTags)
+
+		create := autoscaling.CreateOrUpdateTagsInput{
+			Tags: createTags,
+		}
+
+		if _, err := conn.CreateOrUpdateTags(&create); err != nil {
+			return err
 		}
 	}
 
@@ -90,11 +130,12 @@ func setAutoscalingTags(conn *autoscaling.AutoScaling, d *schema.ResourceData) e
 // diffTags takes our tags locally and the ones remotely and returns
 // the set of tags that must be created, and the set of tags that must
 // be destroyed.
-func diffAutoscalingTags(oldTags, newTags []*autoscaling.Tag, resourceID string) ([]*autoscaling.Tag, []*autoscaling.Tag) {
+func diffAutoscalingTags(oldTags, newTags []*autoscaling.Tag, resourceID string) ([]*autoscaling.Tag, []*autoscaling.Tag, error) {
 	// First, we're creating everything we have
 	create := make(map[string]interface{})
 	for _, t := range newTags {
 		tag := map[string]interface{}{
+			"key":                 *t.Key,
 			"value":               *t.Value,
 			"propagate_at_launch": *t.PropagateAtLaunch,
 		}
@@ -112,27 +153,99 @@ func diffAutoscalingTags(oldTags, newTags []*autoscaling.Tag, resourceID string)
 		}
 	}
 
-	return autoscalingTagsFromMap(create, resourceID), remove
+	createTags, err := autoscalingTagsFromMap(create, resourceID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return createTags, remove, nil
+}
+
+func autoscalingTagsFromList(vs []interface{}, resourceID string) ([]*autoscaling.Tag, error) {
+	result := make([]*autoscaling.Tag, 0, len(vs))
+	for _, tag := range vs {
+		attr, ok := tag.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		t, err := autoscalingTagFromMap(attr, resourceID)
+		if err != nil {
+			return nil, err
+		}
+
+		if t != nil {
+			result = append(result, t)
+		}
+	}
+	return result, nil
 }
 
 // tagsFromMap returns the tags for the given map of data.
-func autoscalingTagsFromMap(m map[string]interface{}, resourceID string) []*autoscaling.Tag {
+func autoscalingTagsFromMap(m map[string]interface{}, resourceID string) ([]*autoscaling.Tag, error) {
 	result := make([]*autoscaling.Tag, 0, len(m))
-	for k, v := range m {
-		attr := v.(map[string]interface{})
-		t := &autoscaling.Tag{
-			Key:               aws.String(k),
-			Value:             aws.String(attr["value"].(string)),
-			PropagateAtLaunch: aws.Bool(attr["propagate_at_launch"].(bool)),
-			ResourceId:        aws.String(resourceID),
-			ResourceType:      aws.String("auto-scaling-group"),
+	for _, v := range m {
+		attr, ok := v.(map[string]interface{})
+		if !ok {
+			continue
 		}
-		if !tagIgnoredAutoscaling(t) {
+
+		t, err := autoscalingTagFromMap(attr, resourceID)
+		if err != nil {
+			return nil, err
+		}
+
+		if t != nil {
 			result = append(result, t)
 		}
 	}
 
-	return result
+	return result, nil
+}
+
+func autoscalingTagFromMap(attr map[string]interface{}, resourceID string) (*autoscaling.Tag, error) {
+	if _, ok := attr["key"]; !ok {
+		return nil, fmt.Errorf("%s: invalid tag attributes: key missing", resourceID)
+	}
+
+	if _, ok := attr["value"]; !ok {
+		return nil, fmt.Errorf("%s: invalid tag attributes: value missing", resourceID)
+	}
+
+	if _, ok := attr["propagate_at_launch"]; !ok {
+		return nil, fmt.Errorf("%s: invalid tag attributes: propagate_at_launch missing", resourceID)
+	}
+
+	var propagateAtLaunch bool
+	var err error
+
+	if v, ok := attr["propagate_at_launch"].(bool); ok {
+		propagateAtLaunch = v
+	}
+
+	if v, ok := attr["propagate_at_launch"].(string); ok {
+		if propagateAtLaunch, err = strconv.ParseBool(v); err != nil {
+			return nil, fmt.Errorf(
+				"%s: invalid tag attribute: invalid value for propagate_at_launch: %s",
+				resourceID,
+				v,
+			)
+		}
+	}
+
+	t := &autoscaling.Tag{
+		Key:               aws.String(attr["key"].(string)),
+		Value:             aws.String(attr["value"].(string)),
+		PropagateAtLaunch: aws.Bool(propagateAtLaunch),
+		ResourceId:        aws.String(resourceID),
+		ResourceType:      aws.String("auto-scaling-group"),
+	}
+
+	if tagIgnoredAutoscaling(t) {
+		return nil, nil
+	}
+
+	return t, nil
 }
 
 // autoscalingTagsToMap turns the list of tags into a map.
@@ -140,6 +253,7 @@ func autoscalingTagsToMap(ts []*autoscaling.Tag) map[string]interface{} {
 	tags := make(map[string]interface{})
 	for _, t := range ts {
 		tag := map[string]interface{}{
+			"key":                 *t.Key,
 			"value":               *t.Value,
 			"propagate_at_launch": *t.PropagateAtLaunch,
 		}
@@ -154,6 +268,7 @@ func autoscalingTagDescriptionsToMap(ts *[]*autoscaling.TagDescription) map[stri
 	tags := make(map[string]map[string]interface{})
 	for _, t := range *ts {
 		tag := map[string]interface{}{
+			"key":                 *t.Key,
 			"value":               *t.Value,
 			"propagate_at_launch": *t.PropagateAtLaunch,
 		}
@@ -190,7 +305,7 @@ func setToMapByKey(s *schema.Set, key string) map[string]interface{} {
 // compare a tag against a list of strings and checks if it should
 // be ignored or not
 func tagIgnoredAutoscaling(t *autoscaling.Tag) bool {
-	filter := []string{"^aws:*"}
+	filter := []string{"^aws:"}
 	for _, v := range filter {
 		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
 		if r, _ := regexp.MatchString(v, *t.Key); r == true {

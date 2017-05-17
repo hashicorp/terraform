@@ -11,7 +11,7 @@ Provides a Route53 health check.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_route53_health_check" "child1" {
   fqdn              = "foobar.terraform.com"
   port              = 80
@@ -38,7 +38,7 @@ resource "aws_route53_health_check" "foo" {
 
 ## CloudWatch Alarm Example
 
-```
+```hcl
 resource "aws_cloudwatch_metric_alarm" "foobar" {
   alarm_name          = "terraform-test-foobar5"
   comparison_operator = "GreaterThanOrEqualToThreshold"
@@ -48,7 +48,7 @@ resource "aws_cloudwatch_metric_alarm" "foobar" {
   period              = "120"
   statistic           = "Average"
   threshold           = "80"
-  alarm_description   = "This metric monitor ec2 cpu utilization"
+  alarm_description   = "This metric monitors ec2 cpu utilization"
 }
 
 resource "aws_route53_health_check" "foo" {

@@ -100,6 +100,7 @@ func (s *OvsElementService) ConfigureOvsElement(p *ConfigureOvsElementParams) (*
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -248,6 +249,7 @@ func (s *OvsElementService) ListOvsElements(p *ListOvsElementsParams) (*ListOvsE
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 

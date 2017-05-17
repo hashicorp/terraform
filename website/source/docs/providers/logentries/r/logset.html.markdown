@@ -12,7 +12,7 @@ Provides a Logentries logset resource. A logset is a collection of `logentries_l
 
 ## Example Usage
 
-```
+```hcl
 # Create a log set
 resource "logentries_logset" "host_logs" {
   name     = "${var.server}-logs"

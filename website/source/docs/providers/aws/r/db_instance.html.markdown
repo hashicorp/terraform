@@ -30,7 +30,7 @@ for more information.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_db_instance" "default" {
   allocated_storage    = 10
   storage_type         = "gp2"
@@ -112,6 +112,7 @@ what IAM permissions are needed to allow Enhanced Monitoring for RDS Instances.
 * `kms_key_id` - (Optional) The ARN for the KMS encryption key.
 * `character_set_name` - (Optional) The character set name to use for DB encoding in Oracle instances. This can't be changed.
 [Oracle Character Sets Supported in Amazon RDS](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.OracleCharacterSets.html)
+* `iam_database_authentication_enabled` - (Optional) Specifies whether or mappings of AWS Identity and Access Management (IAM) accounts to database accounts is enabled.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 * `timezone` - (Optional) Time zone of the DB instance. `timezone` is currently only supported by Microsoft SQL Server.
 The `timezone` can only be set on creation. See [MSSQL User Guide](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_SQLServer.html#SQLServer.Concepts.General.TimeZone) for more information

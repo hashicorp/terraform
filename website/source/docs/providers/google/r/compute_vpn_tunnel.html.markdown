@@ -13,7 +13,7 @@ Manages a VPN Tunnel to the GCE network. For more info, read the
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_network" "network1" {
   name = "network1"
 }

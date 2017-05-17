@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -18,6 +19,7 @@ func resourceAwsKmsKey() *schema.Resource {
 		Read:   resourceAwsKmsKeyRead,
 		Update: resourceAwsKmsKeyUpdate,
 		Delete: resourceAwsKmsKeyDelete,
+		Exists: resourceAwsKmsKeyExists,
 
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
@@ -318,19 +320,33 @@ func updateKmsKeyStatus(conn *kms.KMS, id string, shouldBeEnabled bool) error {
 }
 
 func updateKmsKeyRotationStatus(conn *kms.KMS, d *schema.ResourceData) error {
-	var err error
 	shouldEnableRotation := d.Get("enable_key_rotation").(bool)
-	if shouldEnableRotation {
-		log.Printf("[DEBUG] Enabling key rotation for KMS key %q", d.Id())
-		_, err = conn.EnableKeyRotation(&kms.EnableKeyRotationInput{
-			KeyId: aws.String(d.Id()),
-		})
-	} else {
-		log.Printf("[DEBUG] Disabling key rotation for KMS key %q", d.Id())
-		_, err = conn.DisableKeyRotation(&kms.DisableKeyRotationInput{
-			KeyId: aws.String(d.Id()),
-		})
-	}
+
+	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+		var err error
+		if shouldEnableRotation {
+			log.Printf("[DEBUG] Enabling key rotation for KMS key %q", d.Id())
+			_, err = conn.EnableKeyRotation(&kms.EnableKeyRotationInput{
+				KeyId: aws.String(d.Id()),
+			})
+		} else {
+			log.Printf("[DEBUG] Disabling key rotation for KMS key %q", d.Id())
+			_, err = conn.DisableKeyRotation(&kms.DisableKeyRotationInput{
+				KeyId: aws.String(d.Id()),
+			})
+		}
+
+		if err != nil {
+			awsErr, ok := err.(awserr.Error)
+			if ok && awsErr.Code() == "DisabledException" {
+				return resource.RetryableError(err)
+			}
+
+			return resource.NonRetryableError(err)
+		}
+
+		return nil
+	})
 
 	if err != nil {
 		return fmt.Errorf("Failed to set key rotation for %q to %t: %q",
@@ -366,6 +382,30 @@ func updateKmsKeyRotationStatus(conn *kms.KMS, d *schema.ResourceData) error {
 	}
 
 	return nil
+}
+
+func resourceAwsKmsKeyExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+	conn := meta.(*AWSClient).kmsconn
+
+	req := &kms.DescribeKeyInput{
+		KeyId: aws.String(d.Id()),
+	}
+	resp, err := conn.DescribeKey(req)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "NotFoundException" {
+				return false, nil
+			}
+		}
+		return false, err
+	}
+	metadata := resp.KeyMetadata
+
+	if *metadata.KeyState == "PendingDeletion" {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func resourceAwsKmsKeyDelete(d *schema.ResourceData, meta interface{}) error {

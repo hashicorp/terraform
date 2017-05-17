@@ -13,7 +13,7 @@ For additional details please refer to [API documentation](http://sldn.softlayer
 
 ## Example Usage
 
-```
+```hcl
 resource "softlayer_ssh_key" "test_ssh_key" {
   name       = "test_ssh_key_name"
   notes      = "test_ssh_key_notes"

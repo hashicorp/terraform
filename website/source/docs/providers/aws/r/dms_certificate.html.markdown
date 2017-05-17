@@ -15,7 +15,7 @@ Provides a DMS (Data Migration Service) certificate resource. DMS certificates c
 
 ## Example Usage
 
-```
+```hcl
 # Create a new certificate
 resource "aws_dms_certificate" "test" {
   certificate_id  = "test-dms-certificate-tf"

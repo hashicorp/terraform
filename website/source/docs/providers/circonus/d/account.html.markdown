@@ -20,7 +20,7 @@ about a specific Circonus Account.
 The following example shows how the resource might be used to obtain the metrics
 usage and limit of a given Circonus Account.
 
-```
+```hcl
 data "circonus_account" "current" {
   current = true
 }
@@ -79,4 +79,3 @@ The following attributes are exported:
 * `users` - A list of users who have access to this account.  Each element in
   the list has both an `id` and a `role`.  The `id` is a Circonus ID referencing
   the user.
-

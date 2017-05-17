@@ -4,6 +4,7 @@ package command
 // exported and private.
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -16,13 +17,13 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/terraform/backend"
-	backendinit "github.com/hashicorp/terraform/backend/init"
-	clistate "github.com/hashicorp/terraform/command/state"
+	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
 
+	backendinit "github.com/hashicorp/terraform/backend/init"
 	backendlocal "github.com/hashicorp/terraform/backend/local"
 )
 
@@ -166,10 +167,12 @@ func (m *Meta) IsLocalBackend(b backend.Backend) bool {
 // be called.
 func (m *Meta) Operation() *backend.Operation {
 	return &backend.Operation{
-		PlanOutBackend: m.backendState,
-		Targets:        m.targets,
-		UIIn:           m.UIInput(),
-		Environment:    m.Env(),
+		PlanOutBackend:   m.backendState,
+		Targets:          m.targets,
+		UIIn:             m.UIInput(),
+		Environment:      m.Env(),
+		LockState:        m.stateLock,
+		StateLockTimeout: m.stateLockTimeout,
 	}
 }
 
@@ -347,6 +350,13 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, error) {
 	if s == nil {
 		log.Printf("[DEBUG] command: no data state file found for backend config")
 		s = terraform.NewState()
+	}
+
+	// if we want to force reconfiguration of the backend, we set the backend
+	// state to nil on this copy. This will direct us through the correct
+	// configuration path in the switch statement below.
+	if m.reconfigure {
+		s.Backend = nil
 	}
 
 	// Upon return, we want to set the state we're using in-memory so that
@@ -609,15 +619,20 @@ func (m *Meta) backendFromPlan(opts *BackendOpts) (backend.Backend, error) {
 		return nil, fmt.Errorf("Error reading state: %s", err)
 	}
 
-	// Lock the state if we can
-	lockInfo := state.NewLockInfo()
-	lockInfo.Operation = "backend from plan"
+	if m.stateLock {
+		lockCtx, cancel := context.WithTimeout(context.Background(), m.stateLockTimeout)
+		defer cancel()
 
-	lockID, err := clistate.Lock(realMgr, lockInfo, m.Ui, m.Colorize())
-	if err != nil {
-		return nil, fmt.Errorf("Error locking state: %s", err)
+		// Lock the state if we can
+		lockInfo := state.NewLockInfo()
+		lockInfo.Operation = "backend from plan"
+
+		lockID, err := clistate.Lock(lockCtx, realMgr, lockInfo, m.Ui, m.Colorize())
+		if err != nil {
+			return nil, fmt.Errorf("Error locking state: %s", err)
+		}
+		defer clistate.Unlock(realMgr, lockID, m.Ui, m.Colorize())
 	}
-	defer clistate.Unlock(realMgr, lockID, m.Ui, m.Colorize())
 
 	if err := realMgr.RefreshState(); err != nil {
 		return nil, fmt.Errorf("Error reading state: %s", err)
@@ -1040,15 +1055,20 @@ func (m *Meta) backend_C_r_s(
 		}
 	}
 
-	// Lock the state if we can
-	lockInfo := state.NewLockInfo()
-	lockInfo.Operation = "backend from config"
+	if m.stateLock {
+		lockCtx, cancel := context.WithTimeout(context.Background(), m.stateLockTimeout)
+		defer cancel()
 
-	lockID, err := clistate.Lock(sMgr, lockInfo, m.Ui, m.Colorize())
-	if err != nil {
-		return nil, fmt.Errorf("Error locking state: %s", err)
+		// Lock the state if we can
+		lockInfo := state.NewLockInfo()
+		lockInfo.Operation = "backend from config"
+
+		lockID, err := clistate.Lock(lockCtx, sMgr, lockInfo, m.Ui, m.Colorize())
+		if err != nil {
+			return nil, fmt.Errorf("Error locking state: %s", err)
+		}
+		defer clistate.Unlock(sMgr, lockID, m.Ui, m.Colorize())
 	}
-	defer clistate.Unlock(sMgr, lockID, m.Ui, m.Colorize())
 
 	// Store the metadata in our saved state location
 	s := sMgr.State()
@@ -1132,15 +1152,20 @@ func (m *Meta) backend_C_r_S_changed(
 		}
 	}
 
-	// Lock the state if we can
-	lockInfo := state.NewLockInfo()
-	lockInfo.Operation = "backend from config"
+	if m.stateLock {
+		lockCtx, cancel := context.WithTimeout(context.Background(), m.stateLockTimeout)
+		defer cancel()
 
-	lockID, err := clistate.Lock(sMgr, lockInfo, m.Ui, m.Colorize())
-	if err != nil {
-		return nil, fmt.Errorf("Error locking state: %s", err)
+		// Lock the state if we can
+		lockInfo := state.NewLockInfo()
+		lockInfo.Operation = "backend from config"
+
+		lockID, err := clistate.Lock(lockCtx, sMgr, lockInfo, m.Ui, m.Colorize())
+		if err != nil {
+			return nil, fmt.Errorf("Error locking state: %s", err)
+		}
+		defer clistate.Unlock(sMgr, lockID, m.Ui, m.Colorize())
 	}
-	defer clistate.Unlock(sMgr, lockID, m.Ui, m.Colorize())
 
 	// Update the backend state
 	s = sMgr.State()
@@ -1175,7 +1200,7 @@ func (m *Meta) backend_C_r_S_unchanged(
 	s := sMgr.State()
 
 	// it's possible for a backend to be unchanged, and the config itself to
-	// have changed by moving a paramter from the config to `-backend-config`
+	// have changed by moving a parameter from the config to `-backend-config`
 	// In this case we only need to update the Hash.
 	if c != nil && s.Backend.Hash != c.Hash {
 		s.Backend.Hash = c.Hash
@@ -1288,15 +1313,20 @@ func (m *Meta) backend_C_R_S_unchanged(
 		}
 	}
 
-	// Lock the state if we can
-	lockInfo := state.NewLockInfo()
-	lockInfo.Operation = "backend from config"
+	if m.stateLock {
+		lockCtx, cancel := context.WithTimeout(context.Background(), m.stateLockTimeout)
+		defer cancel()
 
-	lockID, err := clistate.Lock(sMgr, lockInfo, m.Ui, m.Colorize())
-	if err != nil {
-		return nil, fmt.Errorf("Error locking state: %s", err)
+		// Lock the state if we can
+		lockInfo := state.NewLockInfo()
+		lockInfo.Operation = "backend from config"
+
+		lockID, err := clistate.Lock(lockCtx, sMgr, lockInfo, m.Ui, m.Colorize())
+		if err != nil {
+			return nil, fmt.Errorf("Error locking state: %s", err)
+		}
+		defer clistate.Unlock(sMgr, lockID, m.Ui, m.Colorize())
 	}
-	defer clistate.Unlock(sMgr, lockID, m.Ui, m.Colorize())
 
 	// Unset the remote state
 	s = sMgr.State()

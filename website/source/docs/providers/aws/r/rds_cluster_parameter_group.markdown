@@ -10,7 +10,7 @@ Provides an RDS DB cluster parameter group resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_rds_cluster_parameter_group" "default" {
   name        = "rds-cluster-pg"
   family      = "aurora5.6"
