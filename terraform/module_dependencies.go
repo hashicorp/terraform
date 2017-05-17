@@ -62,8 +62,8 @@ func moduleTreeConfigDependencies(root *module.Tree, inheritProviders map[string
 				versionSet = discovery.ConstraintStr(pCfg.Version).MustParse()
 			}
 			providers[inst] = moduledeps.ProviderDependency{
-				Versions: versionSet,
-				Reason:   moduledeps.ProviderDependencyExplicit,
+				Constraints: versionSet,
+				Reason:      moduledeps.ProviderDependencyExplicit,
 			}
 		}
 
@@ -84,8 +84,8 @@ func moduleTreeConfigDependencies(root *module.Tree, inheritProviders map[string
 			}
 
 			providers[inst] = moduledeps.ProviderDependency{
-				Versions: discovery.AllVersions,
-				Reason:   reason,
+				Constraints: discovery.AllVersions,
+				Reason:      reason,
 			}
 		}
 
@@ -146,8 +146,8 @@ func moduleTreeMergeStateDependencies(root *moduledeps.Module, state *State) {
 					module.Providers = make(moduledeps.Providers)
 				}
 				module.Providers[inst] = moduledeps.ProviderDependency{
-					Versions: discovery.AllVersions,
-					Reason:   moduledeps.ProviderDependencyFromState,
+					Constraints: discovery.AllVersions,
+					Reason:      moduledeps.ProviderDependencyFromState,
 				}
 			}
 		}

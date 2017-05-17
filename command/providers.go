@@ -52,7 +52,9 @@ func (c *ProvidersCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	b, err := c.Backend(&BackendOpts{ConfigPath: configPath})
+	b, err := c.Backend(&BackendOpts{
+		Config: root.Config(),
+	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
 		return 1
@@ -92,7 +94,7 @@ func providersCommandPopulateTreeNode(node treeprint.Tree, deps *moduledeps.Modu
 
 	for _, name := range names {
 		dep := deps.Providers[moduledeps.ProviderInstance(name)]
-		versionsStr := dep.Versions.String()
+		versionsStr := dep.Constraints.String()
 		if versionsStr != "" {
 			versionsStr = " " + versionsStr
 		}

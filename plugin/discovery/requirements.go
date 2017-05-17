@@ -4,8 +4,8 @@ package discovery
 // kind) that are required to exist and have versions within the given
 // corresponding sets.
 //
-// PluginRequirements is a map from plugin name to VersionSet.
-type PluginRequirements map[string]VersionSet
+// PluginRequirements is a map from plugin name to Constraints.
+type PluginRequirements map[string]Constraints
 
 // Merge takes the contents of the receiver and the other given requirements
 // object and merges them together into a single requirements structure
@@ -17,7 +17,7 @@ func (r PluginRequirements) Merge(other PluginRequirements) PluginRequirements {
 	}
 	for n, vs := range other {
 		if existing, exists := ret[n]; exists {
-			ret[n] = existing.Intersection(vs)
+			ret[n] = existing.Append(vs)
 		} else {
 			ret[n] = vs
 		}

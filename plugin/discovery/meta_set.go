@@ -100,7 +100,7 @@ func (s PluginMetaSet) Newest() PluginMeta {
 			panic(err)
 		}
 
-		if first == true || version.newerThan(winnerVersion) {
+		if first == true || version.NewerThan(winnerVersion) {
 			winner = p
 			winnerVersion = version
 			first = false
@@ -139,7 +139,7 @@ func (s PluginMetaSet) ConstrainVersions(reqd PluginRequirements) map[string]Plu
 		if err != nil {
 			panic(err)
 		}
-		if allowedVersions.Has(version) {
+		if allowedVersions.Allows(version) {
 			ret[p.Name].Add(p)
 		}
 	}
