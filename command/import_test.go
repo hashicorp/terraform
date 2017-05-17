@@ -316,6 +316,66 @@ func TestImport_customProvider(t *testing.T) {
 	testStateOutput(t, statePath, testImportCustomProviderStr)
 }
 
+func TestImport_missingResourceConfig(t *testing.T) {
+	defer testChdir(t, testFixturePath("import-missing-resource-config"))()
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ImportCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.foo",
+		"bar",
+	}
+	code := c.Run(args)
+	if code != 1 {
+		t.Fatalf("import succeeded; expected failure")
+	}
+
+	msg := ui.ErrorWriter.String()
+	if want := `resource address "test_instance.foo" does not exist`; !strings.Contains(msg, want) {
+		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
+	}
+}
+
+func TestImport_missingModuleConfig(t *testing.T) {
+	defer testChdir(t, testFixturePath("import-missing-resource-config"))()
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ImportCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"module.baz.test_instance.foo",
+		"bar",
+	}
+	code := c.Run(args)
+	if code != 1 {
+		t.Fatalf("import succeeded; expected failure")
+	}
+
+	msg := ui.ErrorWriter.String()
+	if want := `module.baz does not exist in the configuration`; !strings.Contains(msg, want) {
+		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
+	}
+}
+
 func TestImport_dataResource(t *testing.T) {
 	defer testChdir(t, testFixturePath("import-missing-resource-config"))()
 
