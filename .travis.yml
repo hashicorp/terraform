@@ -11,10 +11,15 @@ git:
 
 # establish environment variables
 env:
-  - TEST_DIR=examples/azure-vm-from-user-image
-  - TEST_DIR=examples/azure-cdn-with-storage-account
-  - TEST_DIR=examples/azure-vm-simple-linux-managed-disk
-  - TEST_DIR=examples/azure-vnet-two-subnets
+  - TEST_DIR=examples/azure-sql-database-transparent-encryption-create
+  # - TEST_DIR=examples/azure-servicebus-create-topic-and-subscription
+  # - TEST_DIR=examples/azure-search-create
+  # - TEST_DIR=examples/azure-vnet-to-vnet-peering
+  # - TEST_DIR=examples/azure-traffic-manager-vm
+  # - TEST_DIR=examples/azure-vm-from-user-image
+  # - TEST_DIR=examples/azure-cdn-with-storage-account
+  # - TEST_DIR=examples/azure-vm-simple-linux-managed-disk
+  # - TEST_DIR=examples/azure-vnet-two-subnets
 
 branches:
   only:
@@ -36,4 +41,4 @@ deploy:
     script: cd $TRAVIS_BUILD_DIR/$TEST_DIR && ./deploy.ci.sh
     on:
       repo: harijayms/terraform
-      branch: master
+      branch: topic-201-sql-database
