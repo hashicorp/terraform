@@ -307,7 +307,7 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 	}
 }
 
-// Suppress diff with any disk.autoresize value on 1st Generation Instances
+// Suppress diff with any disk_autoresize value on 1st Generation Instances
 func suppressFirstGen(k, old, new string, d *schema.ResourceData) bool {
 	settingsList := d.Get("settings").([]interface{})
 
@@ -315,10 +315,10 @@ func suppressFirstGen(k, old, new string, d *schema.ResourceData) bool {
 	tier := settings["tier"].(string)
 	matched, err := regexp.MatchString("db*", tier)
 	if err != nil {
-		log.Printf("[ERR] error with regex in diff supression for data.autoresize: %s", err)
+		log.Printf("[ERR] error with regex in diff supression for disk_autoresize: %s", err)
 	}
 	if !matched {
-		log.Printf("[DEBUG] suppressing diff on disk.autoresize due to 1st gen instance type")
+		log.Printf("[DEBUG] suppressing diff on disk_autoresize due to 1st gen instance type")
 		return true
 	}
 	return false
