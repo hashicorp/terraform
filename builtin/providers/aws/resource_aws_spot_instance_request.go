@@ -31,6 +31,11 @@ func resourceAwsSpotInstanceRequest() *schema.Resource {
 				v.ForceNew = true
 			}
 
+			s["volume_tags"] = &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+			}
+
 			s["spot_price"] = &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,

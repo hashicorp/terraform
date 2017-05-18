@@ -12,7 +12,7 @@ Provides a load balancer cookie stickiness policy, which allows an ELB to contro
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_elb" "lb" {
   name               = "test-lb"
   availability_zones = ["us-east-1a"]

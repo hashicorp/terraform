@@ -23,9 +23,9 @@ configuration management tools, etc.
 To define a provisioner, modify the resource block defining the
 "example" EC2 instance to look like the following:
 
-```
+```hcl
 resource "aws_instance" "example" {
-  ami           = "ami-13be557e"
+  ami           = "ami-b374d5a5"
   instance_type = "t2.micro"
 
   provisioner "local-exec" {
@@ -61,7 +61,7 @@ then run `apply`:
 ```
 $ terraform apply
 aws_instance.example: Creating...
-  ami:           "" => "ami-13be557e"
+  ami:           "" => "ami-b374d5a5"
   instance_type: "" => "t2.micro"
 aws_eip.ip: Creating...
   instance: "" => "i-213f350a"

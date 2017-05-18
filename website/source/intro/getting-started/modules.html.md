@@ -38,20 +38,20 @@ for us.
 
 Create a configuration file with the following contents:
 
-```
+```hcl
 provider "aws" {
-	access_key = "AWS ACCESS KEY"
-	secret_key = "AWS SECRET KEY"
-	region = "AWS REGION"
+  access_key = "AWS ACCESS KEY"
+  secret_key = "AWS SECRET KEY"
+  region     = "AWS REGION"
 }
 
 module "consul" {
-	source = "github.com/hashicorp/consul/terraform/aws"
+  source = "github.com/hashicorp/consul/terraform/aws"
 
-	key_name = "AWS SSH KEY NAME"
-	key_path = "PATH TO ABOVE PRIVATE KEY"
-	region = "us-east-1"
-	servers = "3"
+  key_name = "AWS SSH KEY NAME"
+  key_path = "PATH TO ABOVE PRIVATE KEY"
+  region   = "us-east-1"
+  servers  = "3"
 }
 ```
 
@@ -78,7 +78,7 @@ This is done using the [get command](/docs/commands/get.html).
 
 ```
 $ terraform get
-...
+# ...
 ```
 
 This command will download the modules if they haven't been already.
@@ -93,15 +93,16 @@ With the modules downloaded, we can now plan and apply it. If you run
 
 ```
 $ terraform plan
-...
+# ...
 + module.consul.aws_instance.server.0
-...
+# ...
 + module.consul.aws_instance.server.1
-...
+# ...
 + module.consul.aws_instance.server.2
-...
+# ...
 + module.consul.aws_security_group.consul
-...
+# ...
+
 Plan: 4 to add, 0 to change, 0 to destroy.
 ```
 
@@ -117,7 +118,7 @@ will have some cost associated with it.
 
 ```
 $ terraform apply
-...
+# ...
 Apply complete! Resources: 3 added, 0 changed, 0 destroyed.
 ```
 
@@ -140,9 +141,9 @@ To reference this, we'll just put it into our own output variable. But this
 value could be used anywhere: in another resource, to configure another
 provider, etc.
 
-```
+```hcl
 output "consul_address" {
-	value = "${module.consul.server_address}"
+  value = "${module.consul.server_address}"
 }
 ```
 

@@ -14,7 +14,7 @@ complicated since it is a frequent source of merge conflicts. Remote state
 helps alleviate these issues.
 
 With remote state, Terraform stores the state in a remote store. Terraform
-supports storing state in [Atlas](https://atlas.hashicorp.com),
+supports storing state in [Terraform Enterprise](https://www.hashicorp.com/products/terraform/),
 [Consul](https://www.consul.io), S3, and more.
 
 Remote state is a feature of [backends](/docs/backends). Configuring and
@@ -44,11 +44,11 @@ For example usage see the
 
 ## Locking and Teamwork
 
-Terraform will automatic lock state depending on the
+Terraform will automatically lock state depending on the
 [backend](/docs/backends) used. Please see the full page dedicated
 to [state locking](/docs/state/locking.html).
 
-[Atlas by HashiCorp](https://atlas.hashicorp.com) is a commercial offering
+[Terraform Enterprise by HashiCorp](https://www.hashicorp.com/products/terraform/) is a commercial offering
 that in addition to locking supports remote operations that allow you to
 safely queue Terraform operations in a central location. This enables
 teams to safely modify infrastructure concurrently.

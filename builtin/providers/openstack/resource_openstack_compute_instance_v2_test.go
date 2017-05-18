@@ -30,6 +30,8 @@ func TestAccComputeV2Instance_basic(t *testing.T) {
 					testAccCheckComputeV2InstanceExists("openstack_compute_instance_v2.instance_1", &instance),
 					testAccCheckComputeV2InstanceMetadata(&instance, "foo", "bar"),
 					resource.TestCheckResourceAttr(
+						"openstack_compute_instance_v2.instance_1", "all_metadata.foo", "bar"),
+					resource.TestCheckResourceAttr(
 						"openstack_compute_instance_v2.instance_1", "availability_zone", "nova"),
 				),
 			},
@@ -607,6 +609,10 @@ func TestAccComputeV2Instance_metadataRemove(t *testing.T) {
 					testAccCheckComputeV2InstanceExists("openstack_compute_instance_v2.instance_1", &instance),
 					testAccCheckComputeV2InstanceMetadata(&instance, "foo", "bar"),
 					testAccCheckComputeV2InstanceMetadata(&instance, "abc", "def"),
+					resource.TestCheckResourceAttr(
+						"openstack_compute_instance_v2.instance_1", "all_metadata.foo", "bar"),
+					resource.TestCheckResourceAttr(
+						"openstack_compute_instance_v2.instance_1", "all_metadata.abc", "def"),
 				),
 			},
 			resource.TestStep{
@@ -616,6 +622,10 @@ func TestAccComputeV2Instance_metadataRemove(t *testing.T) {
 					testAccCheckComputeV2InstanceMetadata(&instance, "foo", "bar"),
 					testAccCheckComputeV2InstanceMetadata(&instance, "ghi", "jkl"),
 					testAccCheckComputeV2InstanceNoMetadataKey(&instance, "abc"),
+					resource.TestCheckResourceAttr(
+						"openstack_compute_instance_v2.instance_1", "all_metadata.foo", "bar"),
+					resource.TestCheckResourceAttr(
+						"openstack_compute_instance_v2.instance_1", "all_metadata.ghi", "jkl"),
 				),
 			},
 		},
@@ -668,9 +678,11 @@ func testAccCheckComputeV2InstanceDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, err := servers.Get(computeClient, rs.Primary.ID).Extract()
+		server, err := servers.Get(computeClient, rs.Primary.ID).Extract()
 		if err == nil {
-			return fmt.Errorf("Instance still exists")
+			if server.Status != "SOFT_DELETED" {
+				return fmt.Errorf("Instance still exists")
+			}
 		}
 	}
 

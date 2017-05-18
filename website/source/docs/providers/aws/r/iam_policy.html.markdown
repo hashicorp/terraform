@@ -10,7 +10,7 @@ description: |-
 
 Provides an IAM policy.
 
-```
+```hcl
 resource "aws_iam_policy" "policy" {
   name        = "test_policy"
   path        = "/"

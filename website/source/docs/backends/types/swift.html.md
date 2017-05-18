@@ -14,7 +14,7 @@ Stores the state as an artifact in [Swift](http://docs.openstack.org/developer/s
 
 ## Example Configuration
 
-```
+```hcl
 terraform {
   backend "swift" {
     path = "terraform-state"
@@ -27,7 +27,7 @@ Note that for the access credentials we recommend using a
 
 ## Example Referencing
 
-```
+```hcl
 data "terraform_remote_state" "foo" {
   backend = "swift"
   config {

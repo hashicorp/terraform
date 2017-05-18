@@ -16,9 +16,9 @@ func TestAccBitbucketRepository_basic(t *testing.T) {
 	testAccBitbucketRepositoryConfig := fmt.Sprintf(`
 		resource "bitbucket_repository" "test_repo" {
 			owner = "%s"
-			name = "%s"
+			name = "test-repo-for-repository-test"
 		}
-	`, testUser, testRepo)
+	`, testUser)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -42,11 +42,7 @@ func testAccCheckBitbucketRepositoryDestroy(s *terraform.State) error {
 		return fmt.Errorf("Not found %s", "bitbucket_repository.test_repo")
 	}
 
-	response, err := client.Get(fmt.Sprintf("2.0/repositories/%s/%s", rs.Primary.Attributes["owner"], rs.Primary.Attributes["name"]))
-
-	if err != nil {
-		return err
-	}
+	response, _ := client.Get(fmt.Sprintf("2.0/repositories/%s/%s", rs.Primary.Attributes["owner"], rs.Primary.Attributes["name"]))
 
 	if response.StatusCode != 404 {
 		return fmt.Errorf("Repository still exists")

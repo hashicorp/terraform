@@ -109,6 +109,10 @@ func resourceProfitBricksNicCreate(d *schema.ResourceData, meta interface{}) err
 func resourceProfitBricksNicRead(d *schema.ResourceData, meta interface{}) error {
 	nic := profitbricks.GetNic(d.Get("datacenter_id").(string), d.Get("server_id").(string), d.Id())
 	if nic.StatusCode > 299 {
+		if nic.StatusCode == 404 {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error occured while fetching a nic ID %s %s", d.Id(), nic.Response)
 	}
 	log.Printf("[INFO] LAN ON NIC: %d", nic.Properties.Lan)

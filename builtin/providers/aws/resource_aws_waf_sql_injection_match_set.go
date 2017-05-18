@@ -61,25 +61,19 @@ func resourceAwsWafSqlInjectionMatchSetCreate(d *schema.ResourceData, meta inter
 
 	log.Printf("[INFO] Creating SqlInjectionMatchSet: %s", d.Get("name").(string))
 
-	// ChangeToken
-	var ct *waf.GetChangeTokenInput
+	wr := newWafRetryer(conn, "global")
+	out, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
+		params := &waf.CreateSqlInjectionMatchSetInput{
+			ChangeToken: token,
+			Name:        aws.String(d.Get("name").(string)),
+		}
 
-	res, err := conn.GetChangeToken(ct)
-	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error getting change token: {{err}}", err)
-	}
-
-	params := &waf.CreateSqlInjectionMatchSetInput{
-		ChangeToken: res.ChangeToken,
-		Name:        aws.String(d.Get("name").(string)),
-	}
-
-	resp, err := conn.CreateSqlInjectionMatchSet(params)
-
+		return conn.CreateSqlInjectionMatchSet(params)
+	})
 	if err != nil {
 		return errwrap.Wrapf("[ERROR] Error creating SqlInjectionMatchSet: {{err}}", err)
 	}
-
+	resp := out.(*waf.CreateSqlInjectionMatchSetOutput)
 	d.SetId(*resp.SqlInjectionMatchSet.SqlInjectionMatchSetId)
 
 	return resourceAwsWafSqlInjectionMatchSetUpdate(d, meta)
@@ -126,17 +120,15 @@ func resourceAwsWafSqlInjectionMatchSetDelete(d *schema.ResourceData, meta inter
 		return errwrap.Wrapf("[ERROR] Error deleting SqlInjectionMatchSet: {{err}}", err)
 	}
 
-	var ct *waf.GetChangeTokenInput
+	wr := newWafRetryer(conn, "global")
+	_, err = wr.RetryWithToken(func(token *string) (interface{}, error) {
+		req := &waf.DeleteSqlInjectionMatchSetInput{
+			ChangeToken:            token,
+			SqlInjectionMatchSetId: aws.String(d.Id()),
+		}
 
-	resp, err := conn.GetChangeToken(ct)
-
-	req := &waf.DeleteSqlInjectionMatchSetInput{
-		ChangeToken:            resp.ChangeToken,
-		SqlInjectionMatchSetId: aws.String(d.Id()),
-	}
-
-	_, err = conn.DeleteSqlInjectionMatchSet(req)
-
+		return conn.DeleteSqlInjectionMatchSet(req)
+	})
 	if err != nil {
 		return errwrap.Wrapf("[ERROR] Error deleting SqlInjectionMatchSet: {{err}}", err)
 	}
@@ -147,32 +139,28 @@ func resourceAwsWafSqlInjectionMatchSetDelete(d *schema.ResourceData, meta inter
 func updateSqlInjectionMatchSetResource(d *schema.ResourceData, meta interface{}, ChangeAction string) error {
 	conn := meta.(*AWSClient).wafconn
 
-	var ct *waf.GetChangeTokenInput
-
-	resp, err := conn.GetChangeToken(ct)
-	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error getting change token: {{err}}", err)
-	}
-
-	req := &waf.UpdateSqlInjectionMatchSetInput{
-		ChangeToken:            resp.ChangeToken,
-		SqlInjectionMatchSetId: aws.String(d.Id()),
-	}
-
-	sqlInjectionMatchTuples := d.Get("sql_injection_match_tuples").(*schema.Set)
-	for _, sqlInjectionMatchTuple := range sqlInjectionMatchTuples.List() {
-		simt := sqlInjectionMatchTuple.(map[string]interface{})
-		sizeConstraintUpdate := &waf.SqlInjectionMatchSetUpdate{
-			Action: aws.String(ChangeAction),
-			SqlInjectionMatchTuple: &waf.SqlInjectionMatchTuple{
-				FieldToMatch:       expandFieldToMatch(simt["field_to_match"].(*schema.Set).List()[0].(map[string]interface{})),
-				TextTransformation: aws.String(simt["text_transformation"].(string)),
-			},
+	wr := newWafRetryer(conn, "global")
+	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
+		req := &waf.UpdateSqlInjectionMatchSetInput{
+			ChangeToken:            token,
+			SqlInjectionMatchSetId: aws.String(d.Id()),
 		}
-		req.Updates = append(req.Updates, sizeConstraintUpdate)
-	}
 
-	_, err = conn.UpdateSqlInjectionMatchSet(req)
+		sqlInjectionMatchTuples := d.Get("sql_injection_match_tuples").(*schema.Set)
+		for _, sqlInjectionMatchTuple := range sqlInjectionMatchTuples.List() {
+			simt := sqlInjectionMatchTuple.(map[string]interface{})
+			sizeConstraintUpdate := &waf.SqlInjectionMatchSetUpdate{
+				Action: aws.String(ChangeAction),
+				SqlInjectionMatchTuple: &waf.SqlInjectionMatchTuple{
+					FieldToMatch:       expandFieldToMatch(simt["field_to_match"].(*schema.Set).List()[0].(map[string]interface{})),
+					TextTransformation: aws.String(simt["text_transformation"].(string)),
+				},
+			}
+			req.Updates = append(req.Updates, sizeConstraintUpdate)
+		}
+
+		return conn.UpdateSqlInjectionMatchSet(req)
+	})
 	if err != nil {
 		return errwrap.Wrapf("[ERROR] Error updating SqlInjectionMatchSet: {{err}}", err)
 	}

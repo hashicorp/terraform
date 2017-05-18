@@ -39,6 +39,10 @@ func (c *EnvSelectCommand) Run(args []string) int {
 	}
 
 	name := args[0]
+	if !validEnvName(name) {
+		c.Ui.Error(fmt.Sprintf(envInvalidName, name))
+		return 1
+	}
 
 	states, err := b.States()
 	if err != nil {

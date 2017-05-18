@@ -294,6 +294,11 @@ func resourceAwsVpnConnectionRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	vpnConnection := resp.VpnConnections[0]
+	if vpnConnection == nil || *vpnConnection.State == "deleted" {
+		// Seems we have lost our VPN Connection
+		d.SetId("")
+		return nil
+	}
 
 	// Set attributes under the user's control.
 	d.Set("vpn_gateway_id", vpnConnection.VpnGatewayId)

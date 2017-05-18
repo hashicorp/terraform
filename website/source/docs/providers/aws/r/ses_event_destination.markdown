@@ -12,7 +12,7 @@ Provides an SES event destination
 
 ## Example Usage
 
-```
+```hcl
 # Add a firehose event destination to a configuration set
 resource "aws_ses_event_destination" "kinesis" {
   name                   = "event-destination-kinesis"

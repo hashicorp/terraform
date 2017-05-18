@@ -12,7 +12,7 @@ Provides a NS1 User resource. Creating a user sends an invitation email to the u
 
 ## Example Usage
 
-```
+```hcl
 resource "ns1_team" "example" {
   name = "Example team"
 

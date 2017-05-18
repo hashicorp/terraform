@@ -9,7 +9,7 @@ import (
 // ************
 //
 // The following notes assume that you are familiar with the YAML specification
-// (http://yaml.org/spec/cvs/current.html).  We mostly follow it, although in
+// (http://yaml.org/spec/1.2/spec.html).  We mostly follow it, although in
 // some cases we are less restrictive that it requires.
 //
 // The process of transforming a YAML stream into a sequence of events is

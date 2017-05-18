@@ -15,7 +15,7 @@ For information about function aliases, see [CreateAlias][2] in the API docs.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_lambda_alias" "test_alias" {
   name             = "testalias"
   description      = "a sample description"

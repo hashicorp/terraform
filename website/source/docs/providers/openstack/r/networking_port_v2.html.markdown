@@ -12,7 +12,7 @@ Manages a V2 port resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_networking_network_v2" "network_1" {
   name           = "network_1"
   admin_state_up = "true"
@@ -95,7 +95,9 @@ The following attributes are exported:
 * `device_owner` - See Argument Reference above.
 * `security_group_ids` - See Argument Reference above.
 * `device_id` - See Argument Reference above.
-* `fixed_ip/ip_address` - See Argument Reference above.
+* `fixed_ip` - See Argument Reference above.
+* `all fixed_ips` - The collection of Fixed IP addresses on the port in the
+  order returned by the Network v2 API.
 
 ## Import
 

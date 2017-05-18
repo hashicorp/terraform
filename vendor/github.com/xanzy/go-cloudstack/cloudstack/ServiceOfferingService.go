@@ -368,6 +368,7 @@ func (s *ServiceOfferingService) CreateServiceOffering(p *CreateServiceOfferingP
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -448,6 +449,7 @@ func (s *ServiceOfferingService) DeleteServiceOffering(p *DeleteServiceOfferingP
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -533,6 +535,7 @@ func (s *ServiceOfferingService) UpdateServiceOffering(p *UpdateServiceOfferingP
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -810,6 +813,7 @@ func (s *ServiceOfferingService) ListServiceOfferings(p *ListServiceOfferingsPar
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 

@@ -78,7 +78,14 @@ func resourceAliyunEipRead(d *schema.ResourceData, meta interface{}) error {
 			d.SetId("")
 			return nil
 		}
-		return err
+		return fmt.Errorf("Error Describe Eip Attribute: %#v", err)
+	}
+
+	if eip.InstanceId != "" {
+		d.Set("instance", eip.InstanceId)
+	} else {
+		d.Set("instance", "")
+		return nil
 	}
 
 	bandwidth, _ := strconv.Atoi(eip.Bandwidth)
@@ -86,12 +93,6 @@ func resourceAliyunEipRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("internet_charge_type", eip.InternetChargeType)
 	d.Set("ip_address", eip.IpAddress)
 	d.Set("status", eip.Status)
-
-	if eip.InstanceId != "" {
-		d.Set("instance", eip.InstanceId)
-	} else {
-		d.Set("instance", "")
-	}
 
 	return nil
 }

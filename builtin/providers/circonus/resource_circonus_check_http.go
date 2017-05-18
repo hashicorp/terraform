@@ -372,6 +372,10 @@ func checkConfigToAPIHTTP(c *circonusCheck, l interfaceList) error {
 			if len(c.Target) == 0 {
 				c.Target = hostInfo[0]
 			}
+
+			if len(hostInfo) > 1 && c.Config[config.Port] == "" {
+				c.Config[config.Port] = hostInfo[1]
+			}
 		}
 
 		if v, found := httpConfig[checkHTTPVersionAttr]; found {

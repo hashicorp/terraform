@@ -12,7 +12,7 @@ Create an Azure Storage File Share.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acctestrg-%d"
   location = "westus"

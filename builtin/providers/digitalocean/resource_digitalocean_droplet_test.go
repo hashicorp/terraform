@@ -31,6 +31,10 @@ func TestAccDigitalOceanDroplet_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"digitalocean_droplet.foobar", "size", "512mb"),
 					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "price_hourly", "0.00744"),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "price_monthly", "5"),
+					resource.TestCheckResourceAttr(
 						"digitalocean_droplet.foobar", "image", "centos-7-x64"),
 					resource.TestCheckResourceAttr(
 						"digitalocean_droplet.foobar", "region", "nyc3"),
@@ -42,6 +46,26 @@ func TestAccDigitalOceanDroplet_Basic(t *testing.T) {
 	})
 }
 
+func TestAccDigitalOceanDroplet_WithID(t *testing.T) {
+	var droplet godo.Droplet
+	rInt := acctest.RandInt()
+	// TODO: not hardcode this as it will change over time
+	centosID := 22995941
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckDigitalOceanDropletConfig_withID(centosID, rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
+				),
+			},
+		},
+	})
+}
 func TestAccDigitalOceanDroplet_withSSH(t *testing.T) {
 	var droplet godo.Droplet
 	rInt := acctest.RandInt()
@@ -138,6 +162,56 @@ func TestAccDigitalOceanDroplet_ResizeWithOutDisk(t *testing.T) {
 						"digitalocean_droplet.foobar", "size", "1gb"),
 					resource.TestCheckResourceAttr(
 						"digitalocean_droplet.foobar", "disk", "20"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDigitalOceanDroplet_ResizeOnlyDisk(t *testing.T) {
+	var droplet godo.Droplet
+	rInt := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckDigitalOceanDropletConfig_basic(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
+					testAccCheckDigitalOceanDropletAttributes(&droplet),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "name", fmt.Sprintf("foo-%d", rInt)),
+				),
+			},
+
+			{
+				Config: testAccCheckDigitalOceanDropletConfig_resize_without_disk(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
+					testAccCheckDigitalOceanDropletResizeWithOutDisk(&droplet),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "name", fmt.Sprintf("foo-%d", rInt)),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "size", "1gb"),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "disk", "20"),
+				),
+			},
+
+			{
+				Config: testAccCheckDigitalOceanDropletConfig_resize_only_disk(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
+					testAccCheckDigitalOceanDropletResizeOnlyDisk(&droplet),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "name", fmt.Sprintf("foo-%d", rInt)),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "size", "1gb"),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "disk", "30"),
 				),
 			},
 		},
@@ -283,6 +357,14 @@ func testAccCheckDigitalOceanDropletAttributes(droplet *godo.Droplet) resource.T
 			return fmt.Errorf("Bad size_slug: %s", droplet.Size.Slug)
 		}
 
+		if droplet.Size.PriceHourly != 0.00744 {
+			return fmt.Errorf("Bad price_hourly: %v", droplet.Size.PriceHourly)
+		}
+
+		if droplet.Size.PriceMonthly != 5.0 {
+			return fmt.Errorf("Bad price_monthly: %v", droplet.Size.PriceMonthly)
+		}
+
 		if droplet.Region.Slug != "nyc3" {
 			return fmt.Errorf("Bad region_slug: %s", droplet.Region.Slug)
 		}
@@ -314,6 +396,21 @@ func testAccCheckDigitalOceanDropletResizeWithOutDisk(droplet *godo.Droplet) res
 		}
 
 		if droplet.Disk != 20 {
+			return fmt.Errorf("Bad disk: %d", droplet.Disk)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckDigitalOceanDropletResizeOnlyDisk(droplet *godo.Droplet) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		if droplet.Size.Slug != "1gb" {
+			return fmt.Errorf("Bad size_slug: %s", droplet.SizeSlug)
+		}
+
+		if droplet.Disk != 30 {
 			return fmt.Errorf("Bad disk: %d", droplet.Disk)
 		}
 
@@ -422,6 +519,17 @@ resource "digitalocean_droplet" "foobar" {
 }`, rInt)
 }
 
+func testAccCheckDigitalOceanDropletConfig_withID(imageID, rInt int) string {
+	return fmt.Sprintf(`
+resource "digitalocean_droplet" "foobar" {
+  name      = "foo-%d"
+  size      = "512mb"
+  image     = "%d"
+  region    = "nyc3"
+  user_data = "foobar"
+}`, rInt, imageID)
+}
+
 func testAccCheckDigitalOceanDropletConfig_withSSH(rInt int) string {
 	return fmt.Sprintf(`
 resource "digitalocean_ssh_key" "foobar" {
@@ -492,6 +600,19 @@ resource "digitalocean_droplet" "foobar" {
 `, rInt)
 }
 
+func testAccCheckDigitalOceanDropletConfig_resize_only_disk(rInt int) string {
+	return fmt.Sprintf(`
+resource "digitalocean_droplet" "foobar" {
+  name     = "foo-%d"
+  size     = "1gb"
+  image    = "centos-7-x64"
+  region   = "nyc3"
+  user_data = "foobar"
+  resize_disk = true
+}
+`, rInt)
+}
+
 // IPV6 only in singapore
 func testAccCheckDigitalOceanDropletConfig_PrivateNetworkingIpv6(rInt int) string {
 	return fmt.Sprintf(`
@@ -505,3 +626,5 @@ resource "digitalocean_droplet" "foobar" {
 }
 `, rInt)
 }
+
+var testAccValidPublicKey = `ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCKVmnMOlHKcZK8tpt3MP1lqOLAcqcJzhsvJcjscgVERRN7/9484SOBJ3HSKxxNG5JN8owAjy5f9yYwcUg+JaUVuytn5Pv3aeYROHGGg+5G346xaq3DAwX6Y5ykr2fvjObgncQBnuU5KHWCECO/4h8uWuwh/kfniXPVjFToc+gnkqA+3RKpAecZhFXwfalQ9mMuYGFxn+fwn8cYEApsJbsEmb0iJwPiZ5hjFC8wREuiTlhPHDgkBLOiycd20op2nXzDbHfCHInquEe/gYxEitALONxm0swBOwJZwlTDOB7C6y2dzlrtxr1L59m7pCkWI4EtTRLvleehBoj3u7jB4usR`

@@ -12,7 +12,7 @@ Provides a DMS (Data Migration Service) replication instance resource. DMS repli
 
 ## Example Usage
 
-```
+```hcl
 # Create a new replication instance
 resource "aws_dms_replication_instance" "test" {
   allocated_storage            = 20

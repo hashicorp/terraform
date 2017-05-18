@@ -16,7 +16,7 @@ documentation](https://cloud.google.com/compute/docs/load-balancing/http/target-
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_target_https_proxy" "default" {
   name             = "test-proxy"
   description      = "a description"

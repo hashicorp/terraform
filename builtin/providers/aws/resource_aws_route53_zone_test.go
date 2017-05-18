@@ -89,7 +89,7 @@ func TestAccAWSRoute53Zone_basic(t *testing.T) {
 }
 
 func TestAccAWSRoute53Zone_forceDestroy(t *testing.T) {
-	var zone route53.GetHostedZoneOutput
+	var zone, zoneWithDot route53.GetHostedZoneOutput
 
 	// record the initialized providers so that we can use them to
 	// check for the instances in each region
@@ -115,6 +115,11 @@ func TestAccAWSRoute53Zone_forceDestroy(t *testing.T) {
 					// Add >100 records to verify pagination works ok
 					testAccCreateRandomRoute53RecordsInZoneIdWithProviders(&providers, &zone, 100),
 					testAccCreateRandomRoute53RecordsInZoneIdWithProviders(&providers, &zone, 5),
+
+					testAccCheckRoute53ZoneExistsWithProviders("aws_route53_zone.with_trailing_dot", &zoneWithDot, &providers),
+					// Add >100 records to verify pagination works ok
+					testAccCreateRandomRoute53RecordsInZoneIdWithProviders(&providers, &zoneWithDot, 100),
+					testAccCreateRandomRoute53RecordsInZoneIdWithProviders(&providers, &zoneWithDot, 5),
 				),
 			},
 		},
@@ -415,6 +420,11 @@ resource "aws_route53_zone" "main" {
 const testAccRoute53ZoneConfig_forceDestroy = `
 resource "aws_route53_zone" "destroyable" {
 	name = "terraform.io"
+	force_destroy = true
+}
+
+resource "aws_route53_zone" "with_trailing_dot" {
+	name = "hashicorptest.io."
 	force_destroy = true
 }
 `

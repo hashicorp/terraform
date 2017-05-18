@@ -12,7 +12,7 @@ Provides an Elastic File System (EFS) resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_efs_file_system" "foo" {
   creation_token = "my-product"
 

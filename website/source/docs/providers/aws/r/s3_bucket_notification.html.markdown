@@ -14,7 +14,7 @@ Provides a S3 bucket notification resource.
 
 ### Add notification configuration to SNS Topic
 
-```
+```hcl
 resource "aws_sns_topic" "topic" {
   name = "s3-event-notification-topic"
 
@@ -51,7 +51,7 @@ resource "aws_s3_bucket_notification" "bucket_notification" {
 
 ### Add notification configuration to SQS Queue
 
-```
+```hcl
 resource "aws_sqs_queue" "queue" {
   name = "s3-event-notification-queue"
 
@@ -90,7 +90,7 @@ resource "aws_s3_bucket_notification" "bucket_notification" {
 
 ### Add notification configuration to Lambda Function
 
-```
+```hcl
 resource "aws_iam_role" "iam_for_lambda" {
   name = "iam_for_lambda"
 
@@ -143,7 +143,7 @@ resource "aws_s3_bucket_notification" "bucket_notification" {
 
 ### Trigger multiple Lambda functions
 
-```
+```hcl
 resource "aws_iam_role" "iam_for_lambda" {
   name = "iam_for_lambda"
 
@@ -218,7 +218,7 @@ resource "aws_s3_bucket_notification" "bucket_notification" {
 
 ### Add multiple notification configurations to SQS Queue
 
-```
+```hcl
 resource "aws_sqs_queue" "queue" {
   name = "s3-event-notification-queue"
 
@@ -265,7 +265,7 @@ resource "aws_s3_bucket_notification" "bucket_notification" {
 
 For Terraform's [JSON syntax](https://www.terraform.io/docs/configuration/syntax.html), use an array instead of defining the `queue` key twice.
 
-```
+```json
 {
 	"bucket": "${aws_s3_bucket.bucket.id}",
 	"queue": [

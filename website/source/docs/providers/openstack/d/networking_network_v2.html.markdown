@@ -12,7 +12,7 @@ Use this data source to get the ID of an available OpenStack network.
 
 ## Example Usage
 
-```
+```hcl
 data "openstack_networking_network_v2" "network" {
   name = "tf_test_network"
 }

@@ -46,25 +46,25 @@ type Provisioner struct {
 	stopOnce      sync.Once
 }
 
-// These constants are the keys that can be used to access data in
-// the context parameters for Provisioners.
-const (
-	connDataInvalid int = iota
+// Keys that can be used to access data in the context parameters for
+// Provisioners.
+var (
+	connDataInvalid = contextKey("data invalid")
 
 	// This returns a *ResourceData for the connection information.
 	// Guaranteed to never be nil.
-	ProvConnDataKey
+	ProvConnDataKey = contextKey("provider conn data")
 
 	// This returns a *ResourceData for the config information.
 	// Guaranteed to never be nil.
-	ProvConfigDataKey
+	ProvConfigDataKey = contextKey("provider config data")
 
 	// This returns a terraform.UIOutput. Guaranteed to never be nil.
-	ProvOutputKey
+	ProvOutputKey = contextKey("provider output")
 
 	// This returns the raw InstanceState passed to Apply. Guaranteed to
 	// be set, but may be nil.
-	ProvRawStateKey
+	ProvRawStateKey = contextKey("provider raw state")
 )
 
 // InternalValidate should be called to validate the structure

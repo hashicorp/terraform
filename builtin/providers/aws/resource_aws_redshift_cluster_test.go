@@ -703,6 +703,7 @@ func testAccAWSRedshiftClusterConfig_loggingDisabled(rInt int) string {
 		automated_snapshot_retention_period = 0
 		allow_version_upgrade = false
 		enable_logging = false
+		skip_final_snapshot = true
 	}`, rInt)
 }
 
@@ -792,6 +793,9 @@ func testAccAWSRedshiftClusterConfig_notPubliclyAccessible(rInt int) string {
 	return fmt.Sprintf(`
 	resource "aws_vpc" "foo" {
 		cidr_block = "10.1.0.0/16"
+		tags {
+			Name = "testAccAWSRedshiftClusterConfig_notPubliclyAccessible"
+		}
 	}
 	resource "aws_internet_gateway" "foo" {
 		vpc_id = "${aws_vpc.foo.id}"
@@ -847,6 +851,9 @@ func testAccAWSRedshiftClusterConfig_updatePubliclyAccessible(rInt int) string {
 	return fmt.Sprintf(`
 	resource "aws_vpc" "foo" {
 		cidr_block = "10.1.0.0/16"
+		tags {
+			Name = "testAccAWSRedshiftClusterConfig_updatePubliclyAccessible"
+		}
 	}
 	resource "aws_internet_gateway" "foo" {
 		vpc_id = "${aws_vpc.foo.id}"

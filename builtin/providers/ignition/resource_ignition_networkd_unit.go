@@ -25,7 +25,7 @@ func resourceNetworkdUnit() *schema.Resource {
 }
 
 func resourceNetworkdUnitRead(d *schema.ResourceData, meta interface{}) error {
-	id, err := buildNetworkdUnit(d, meta.(*cache))
+	id, err := buildNetworkdUnit(d, globalCache)
 	if err != nil {
 		return err
 	}
@@ -40,7 +40,7 @@ func resourceNetworkdUnitDelete(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceNetworkdUnitExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	id, err := buildNetworkdUnit(d, meta.(*cache))
+	id, err := buildNetworkdUnit(d, globalCache)
 	if err != nil {
 		return false, err
 	}

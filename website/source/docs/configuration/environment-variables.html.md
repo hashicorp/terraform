@@ -12,13 +12,13 @@ description: |-
 
 If set to any value, enables detailed logs to appear on stderr which is useful for debugging. For example:
 
-```
+```shell
 export TF_LOG=TRACE
 ```
 
 To disable, either unset it or set it to empty. When unset, logging will default to stderr. For example:
 
-```
+```shell
 export TF_LOG=
 ```
 
@@ -28,7 +28,7 @@ For more on debugging Terraform, check out the section on [Debugging](/docs/inte
 
 This specifies where the log should persist its output to. Note that even when `TF_LOG_PATH` is set, `TF_LOG` must be set in order for any logging to be enabled. For example, to always write the log to the directory you're currently running terraform from:
 
-```
+```shell
 export TF_LOG_PATH=./terraform.log
 ```
 
@@ -38,7 +38,7 @@ For more on debugging Terraform, check out the section on [Debugging](/docs/inte
 
 If set to "false" or "0", causes terraform commands to behave as if the `-input=false` flag was specified. This is used when you want to disable prompts for variables that haven't had their values specified. For example:
 
-```
+```shell
 export TF_INPUT=0
 ```
 
@@ -46,7 +46,7 @@ export TF_INPUT=0
 
 When given a value, causes terraform commands to behave as if the `-module-depth=VALUE` flag was specified. By setting this to 0, for example, you enable commands such as [plan](/docs/commands/plan.html) and [graph](/docs/commands/graph.html) to display more compressed information.
 
-```
+```shell
 export TF_MODULE_DEPTH=0
 ```
 
@@ -56,7 +56,7 @@ For more information regarding modules, check out the section on [Using Modules]
 
 Environment variables can be used to set variables. The environment variables must be in the format `TF_VAR_name` and this will be checked last for a value. For example:
 
-```
+```shell
 export TF_VAR_region=us-west-1
 export TF_VAR_ami=ami-049d8641
 export TF_VAR_alist='[1,2,3]'
@@ -95,7 +95,7 @@ requiring remote network connectivity. The unit tests make an attempt to
 automatically detect when connectivity is unavailable and skip the relevant
 tests, but by setting this variable you can force these tests to be skipped.
 
-```
+```shell
 export TF_SKIP_REMOTE_TESTS=1
 make test
 ```

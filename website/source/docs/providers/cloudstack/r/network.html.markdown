@@ -6,7 +6,7 @@ description: |-
   Creates a network.
 ---
 
-# cloudstack\_network
+# cloudstack_network
 
 Creates a network.
 
@@ -14,7 +14,7 @@ Creates a network.
 
 Basic usage:
 
-```
+```hcl
 resource "cloudstack_network" "default" {
   name             = "test-network"
   cidr             = "10.0.0.0/16"

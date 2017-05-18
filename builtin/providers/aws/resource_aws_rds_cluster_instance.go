@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -21,12 +22,27 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(90 * time.Minute),
+			Update: schema.DefaultTimeout(90 * time.Minute),
+			Delete: schema.DefaultTimeout(90 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"identifier": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"identifier_prefix"},
+				ValidateFunc:  validateRdsIdentifier,
+			},
+			"identifier_prefix": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				ForceNew:     true,
-				ValidateFunc: validateRdsId,
+				ValidateFunc: validateRdsIdentifierPrefix,
 			},
 
 			"db_subnet_group_name": {
@@ -105,6 +121,27 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
 				Computed: true,
 			},
 
+			"preferred_maintenance_window": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				StateFunc: func(v interface{}) string {
+					if v != nil {
+						value := v.(string)
+						return strings.ToLower(value)
+					}
+					return ""
+				},
+				ValidateFunc: validateOnceAWeekWindowFormat,
+			},
+
+			"preferred_backup_window": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateOnceADayWindowFormat,
+			},
+
 			"monitoring_interval": {
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -140,10 +177,14 @@ func resourceAwsRDSClusterInstanceCreate(d *schema.ResourceData, meta interface{
 		createOpts.DBParameterGroupName = aws.String(attr.(string))
 	}
 
-	if v := d.Get("identifier").(string); v != "" {
-		createOpts.DBInstanceIdentifier = aws.String(v)
+	if v, ok := d.GetOk("identifier"); ok {
+		createOpts.DBInstanceIdentifier = aws.String(v.(string))
 	} else {
-		createOpts.DBInstanceIdentifier = aws.String(resource.UniqueId())
+		if v, ok := d.GetOk("identifier_prefix"); ok {
+			createOpts.DBInstanceIdentifier = aws.String(resource.PrefixedUniqueId(v.(string)))
+		} else {
+			createOpts.DBInstanceIdentifier = aws.String(resource.PrefixedUniqueId("tf-"))
+		}
 	}
 
 	if attr, ok := d.GetOk("db_subnet_group_name"); ok {
@@ -152,6 +193,14 @@ func resourceAwsRDSClusterInstanceCreate(d *schema.ResourceData, meta interface{
 
 	if attr, ok := d.GetOk("monitoring_role_arn"); ok {
 		createOpts.MonitoringRoleArn = aws.String(attr.(string))
+	}
+
+	if attr, ok := d.GetOk("preferred_backup_window"); ok {
+		createOpts.PreferredBackupWindow = aws.String(attr.(string))
+	}
+
+	if attr, ok := d.GetOk("preferred_maintenance_window"); ok {
+		createOpts.PreferredMaintenanceWindow = aws.String(attr.(string))
 	}
 
 	if attr, ok := d.GetOk("monitoring_interval"); ok {
@@ -171,9 +220,9 @@ func resourceAwsRDSClusterInstanceCreate(d *schema.ResourceData, meta interface{
 		Pending:    []string{"creating", "backing-up", "modifying"},
 		Target:     []string{"available"},
 		Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
-		Timeout:    40 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutCreate),
 		MinTimeout: 10 * time.Second,
-		Delay:      10 * time.Second,
+		Delay:      30 * time.Second,
 	}
 
 	// Wait, catching any errors
@@ -239,6 +288,8 @@ func resourceAwsRDSClusterInstanceRead(d *schema.ResourceData, meta interface{})
 	d.Set("kms_key_id", db.KmsKeyId)
 	d.Set("auto_minor_version_upgrade", db.AutoMinorVersionUpgrade)
 	d.Set("promotion_tier", db.PromotionTier)
+	d.Set("preferred_backup_window", db.PreferredBackupWindow)
+	d.Set("preferred_maintenance_window", db.PreferredMaintenanceWindow)
 
 	if db.MonitoringInterval != nil {
 		d.Set("monitoring_interval", db.MonitoringInterval)
@@ -290,6 +341,18 @@ func resourceAwsRDSClusterInstanceUpdate(d *schema.ResourceData, meta interface{
 		requestUpdate = true
 	}
 
+	if d.HasChange("preferred_backup_window") {
+		d.SetPartial("preferred_backup_window")
+		req.PreferredBackupWindow = aws.String(d.Get("preferred_backup_window").(string))
+		requestUpdate = true
+	}
+
+	if d.HasChange("preferred_maintenance_window") {
+		d.SetPartial("preferred_maintenance_window")
+		req.PreferredMaintenanceWindow = aws.String(d.Get("preferred_maintenance_window").(string))
+		requestUpdate = true
+	}
+
 	if d.HasChange("monitoring_interval") {
 		d.SetPartial("monitoring_interval")
 		req.MonitoringInterval = aws.Int64(int64(d.Get("monitoring_interval").(int)))
@@ -321,9 +384,9 @@ func resourceAwsRDSClusterInstanceUpdate(d *schema.ResourceData, meta interface{
 			Pending:    []string{"creating", "backing-up", "modifying"},
 			Target:     []string{"available"},
 			Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
-			Timeout:    40 * time.Minute,
+			Timeout:    d.Timeout(schema.TimeoutUpdate),
 			MinTimeout: 10 * time.Second,
-			Delay:      10 * time.Second,
+			Delay:      30 * time.Second, // Wait 30 secs before starting
 		}
 
 		// Wait, catching any errors
@@ -361,8 +424,9 @@ func resourceAwsRDSClusterInstanceDelete(d *schema.ResourceData, meta interface{
 		Pending:    []string{"modifying", "deleting"},
 		Target:     []string{},
 		Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
-		Timeout:    40 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		MinTimeout: 10 * time.Second,
+		Delay:      30 * time.Second, // Wait 30 secs before starting
 	}
 
 	if _, err := stateConf.WaitForState(); err != nil {

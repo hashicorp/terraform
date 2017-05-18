@@ -33,6 +33,17 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 		}
 	}
 
+	// We also need a destroyable resource for orphans that are a result of a
+	// scaled-in count.
+	concreteResourceDestroyable := func(a *NodeAbstractResource) dag.Vertex {
+		// Add the config since we don't do that via transforms
+		a.Config = n.Config
+
+		return &NodeDestroyableDataResource{
+			NodeAbstractResource: a,
+		}
+	}
+
 	// Start creating the steps
 	steps := []GraphTransformer{
 		// Expand the count.
@@ -40,6 +51,15 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 			Concrete: concreteResource,
 			Count:    count,
 			Addr:     n.ResourceAddr(),
+		},
+
+		// Add the count orphans. As these are orphaned refresh nodes, we add them
+		// directly as NodeDestroyableDataResource.
+		&OrphanResourceCountTransformer{
+			Concrete: concreteResourceDestroyable,
+			Count:    count,
+			Addr:     n.ResourceAddr(),
+			State:    state,
 		},
 
 		// Attach the state

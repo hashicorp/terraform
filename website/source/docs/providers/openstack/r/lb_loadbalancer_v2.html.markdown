@@ -12,7 +12,7 @@ Manages a V2 loadbalancer resource within OpenStack.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_lb_loadbalancer_v2" "lb_1" {
   vip_subnet_id = "d9415786-5f1a-428b-b35f-2f1523e146d2"
 }

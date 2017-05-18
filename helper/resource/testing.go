@@ -174,6 +174,13 @@ type TestStep struct {
 	// determined by inspecting the state for ResourceName's ID.
 	ImportStateId string
 
+	// ImportStateIdPrefix is the prefix added in front of ImportStateId.
+	// This can be useful in complex import cases, where more than one
+	// attribute needs to be passed on as the Import ID. Mainly in cases
+	// where the ID is not known, and a known prefix needs to be added to
+	// the unset ImportStateId field.
+	ImportStateIdPrefix string
+
 	// ImportStateCheck checks the results of ImportState. It should be
 	// used to verify that the resulting value of ImportState has the
 	// proper resources, IDs, and attributes.
@@ -347,26 +354,23 @@ func Test(t TestT, c TestCase) {
 // Any errors are stored so that they can be returned by the factory in
 // terraform to match non-test behavior.
 func testProviderFactories(c TestCase) (map[string]terraform.ResourceProviderFactory, error) {
-	ctxProviders := make(map[string]terraform.ResourceProviderFactory)
-
+	ctxProviders := c.ProviderFactories // make(map[string]terraform.ResourceProviderFactory)
+	if ctxProviders == nil {
+		ctxProviders = make(map[string]terraform.ResourceProviderFactory)
+	}
 	// add any fixed providers
 	for k, p := range c.Providers {
 		ctxProviders[k] = terraform.ResourceProviderFactoryFixed(p)
-	}
-
-	// call any factory functions and store the result.
-	for k, pf := range c.ProviderFactories {
-		p, err := pf()
-		ctxProviders[k] = func() (terraform.ResourceProvider, error) {
-			return p, err
-		}
 	}
 
 	// reset the providers if needed
 	for k, pf := range ctxProviders {
 		// we can ignore any errors here, if we don't have a provider to reset
 		// the error will be handled later
-		p, _ := pf()
+		p, err := pf()
+		if err != nil {
+			return nil, err
+		}
 		if p, ok := p.(TestProvider); ok {
 			err := p.TestReset()
 			if err != nil {

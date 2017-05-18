@@ -86,14 +86,14 @@ func TestAccStorageStorageClass(t *testing.T) {
 				),
 			},
 			{
-				Config: testGoogleStorageBucketsReaderStorageClass(bucketName, "REGIONAL", "us-central1"),
+				Config: testGoogleStorageBucketsReaderStorageClass(bucketName, "REGIONAL", "US-CENTRAL1"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStorageBucketExists(
 						"google_storage_bucket.bucket", bucketName),
 					resource.TestCheckResourceAttr(
 						"google_storage_bucket.bucket", "storage_class", "REGIONAL"),
 					resource.TestCheckResourceAttr(
-						"google_storage_bucket.bucket", "location", "us-central1"),
+						"google_storage_bucket.bucket", "location", "US-CENTRAL1"),
 				),
 			},
 		},
@@ -131,6 +131,27 @@ func TestAccStorageBucketUpdate(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"google_storage_bucket.bucket", "force_destroy", "true"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccStorageBucketImport(t *testing.T) {
+	bucketName := fmt.Sprintf("tf-test-acl-bucket-%d", acctest.RandInt())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGoogleStorageDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testGoogleStorageBucketsReaderDefaults(bucketName),
+			},
+			resource.TestStep{
+				ResourceName:            "google_storage_bucket.bucket",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"force_destroy"},
 			},
 		},
 	})

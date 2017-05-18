@@ -10,7 +10,7 @@ description: |-
 
 ## Example Usage
 
-```
+```hcl
 resource "newrelic_alert_policy" "foo" {
   name = "foo"
 }

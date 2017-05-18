@@ -13,7 +13,7 @@ while referencing ARN of the queue within the policy.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_sqs_queue" "q" {
   name = "examplequeue"
 }

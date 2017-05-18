@@ -20,7 +20,7 @@ a restricted host and strong password.
 
 Example creating a SQL Database.
 
-```js
+```hcl
 resource "google_sql_database_instance" "master" {
   name = "master-instance"
 

@@ -3,7 +3,7 @@ layout: "google"
 page_title: "Google: google_compute_forwarding_rule"
 sidebar_current: "docs-google-compute-forwarding-rule"
 description: |-
-  Manages a Target Pool within GCE.
+  Manages a Forwarding Rule within GCE.
 ---
 
 # google\_compute\_forwarding\_rule
@@ -54,8 +54,9 @@ The following arguments are supported:
 * `port_range` - (Optional) A range e.g. "1024-2048" or a single port "1024"
     (defaults to all ports!). Only used for external load balancing.
 
-* `ports` - (Optional) A list of ports to use for internal load balancing
-    (defaults to all ports).
+* `ports` - (Optional) A list of ports (maximum of 5) to use for internal load
+    balancing. Packets addressed to these ports will be forwarded to the backends
+    configured with this forwarding rule. Required for internal load balancing.
 
 * `project` - (Optional) The project in which the resource belongs. If it
     is not provided, the provider project is used.

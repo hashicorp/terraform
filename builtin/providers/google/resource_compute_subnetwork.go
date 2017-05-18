@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeSubnetwork() *schema.Resource {
@@ -146,15 +145,7 @@ func resourceComputeSubnetworkRead(d *schema.ResourceData, meta interface{}) err
 	subnetwork, err := config.clientCompute.Subnetworks.Get(
 		project, region, name).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing Subnetwork %q because it's gone", name)
-			// The resource doesn't exist anymore
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error reading subnetwork: %s", err)
+		return handleNotFoundError(err, d, fmt.Sprintf("Subnetwork %q", name))
 	}
 
 	d.Set("gateway_address", subnetwork.GatewayAddress)

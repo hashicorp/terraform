@@ -14,7 +14,7 @@ Manages a Volumes on ProfitBricks
 
 A primary volume will be created with the server. If there is a need for additional volume, this resource handles it.
 
-```
+```hcl
 resource "profitbricks_volume" "example" {
   datacenter_id = "${profitbricks_datacenter.example.id}"
   server_id     = "${profitbricks_server.example.id}"

@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	AWSAMIRetryTimeout       = 10 * time.Minute
-	AWSAMIDeleteRetryTimeout = 20 * time.Minute
+	AWSAMIRetryTimeout       = 40 * time.Minute
+	AWSAMIDeleteRetryTimeout = 90 * time.Minute
 	AWSAMIRetryDelay         = 5 * time.Second
 	AWSAMIRetryMinTimeout    = 3 * time.Second
 )

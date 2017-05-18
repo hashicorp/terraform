@@ -1,6 +1,7 @@
 package s3
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 const (
@@ -29,29 +31,34 @@ func (b *Backend) States() ([]string, error) {
 		return nil, err
 	}
 
-	var envs []string
+	envs := []string{backend.DefaultStateName}
 	for _, obj := range resp.Contents {
-		env := keyEnv(*obj.Key)
+		env := b.keyEnv(*obj.Key)
 		if env != "" {
 			envs = append(envs, env)
 		}
 	}
 
-	sort.Strings(envs)
-	envs = append([]string{backend.DefaultStateName}, envs...)
+	sort.Strings(envs[1:])
 	return envs, nil
 }
 
 // extract the env name from the S3 key
-func keyEnv(key string) string {
-	parts := strings.Split(key, "/")
+func (b *Backend) keyEnv(key string) string {
+	// we have 3 parts, the prefix, the env name, and the key name
+	parts := strings.SplitN(key, "/", 3)
 	if len(parts) < 3 {
 		// no env here
 		return ""
 	}
 
+	// shouldn't happen since we listed by prefix
 	if parts[0] != keyEnvPrefix {
-		// not our key, so ignore
+		return ""
+	}
+
+	// not our key, so don't include it in our listing
+	if parts[2] != b.keyName {
 		return ""
 	}
 
@@ -77,6 +84,10 @@ func (b *Backend) DeleteState(name string) error {
 }
 
 func (b *Backend) State(name string) (state.State, error) {
+	if name == "" {
+		return nil, errors.New("missing state name")
+	}
+
 	client := &RemoteClient{
 		s3Client:             b.s3Client,
 		dynClient:            b.dynClient,
@@ -88,15 +99,53 @@ func (b *Backend) State(name string) (state.State, error) {
 		lockTable:            b.lockTable,
 	}
 
-	// if this isn't the default state name, we need to create the object so
-	// it's listed by States.
+	stateMgr := &remote.State{Client: client}
+
+	//if this isn't the default state name, we need to create the object so
+	//it's listed by States.
 	if name != backend.DefaultStateName {
-		if err := client.Put([]byte{}); err != nil {
+		// take a lock on this state while we write it
+		lockInfo := state.NewLockInfo()
+		lockInfo.Operation = "init"
+		lockId, err := client.Lock(lockInfo)
+		if err != nil {
+			return nil, fmt.Errorf("failed to lock s3 state: %s", err)
+		}
+
+		// Local helper function so we can call it multiple places
+		lockUnlock := func(parent error) error {
+			if err := stateMgr.Unlock(lockId); err != nil {
+				return fmt.Errorf(strings.TrimSpace(errStateUnlock), lockId, err)
+			}
+			return parent
+		}
+
+		// Grab the value
+		if err := stateMgr.RefreshState(); err != nil {
+			err = lockUnlock(err)
 			return nil, err
 		}
+
+		// If we have no state, we have to create an empty state
+		if v := stateMgr.State(); v == nil {
+			if err := stateMgr.WriteState(terraform.NewState()); err != nil {
+				err = lockUnlock(err)
+				return nil, err
+			}
+			if err := stateMgr.PersistState(); err != nil {
+				err = lockUnlock(err)
+				return nil, err
+			}
+		}
+
+		// Unlock, the state should now be initialized
+		if err := lockUnlock(nil); err != nil {
+			return nil, err
+		}
+
 	}
 
-	return &remote.State{Client: client}, nil
+	return stateMgr, nil
 }
 
 func (b *Backend) client() *RemoteClient {
@@ -110,3 +159,11 @@ func (b *Backend) path(name string) string {
 
 	return strings.Join([]string{keyEnvPrefix, name, b.keyName}, "/")
 }
+
+const errStateUnlock = `
+Error unlocking S3 state. Lock ID: %s
+
+Error: %s
+
+You may have to force-unlock this state in order to use it again.
+`

@@ -3447,6 +3447,36 @@ func TestContext2Apply_multiVarCountDec(t *testing.T) {
 	}
 }
 
+// Test that we can resolve a multi-var (splat) for the first resource
+// created in a non-root module, which happens when the module state doesn't
+// exist yet.
+// https://github.com/hashicorp/terraform/issues/14438
+func TestContext2Apply_multiVarMissingState(t *testing.T) {
+	m := testModule(t, "apply-multi-var-missing-state")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	// First, apply with a count of 3
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"test": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("plan failed: %s", err)
+	}
+
+	// Before the relevant bug was fixed, Terraform would panic during apply.
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("apply failed: %s", err)
+	}
+
+	// If we get here with no errors or panics then our test was successful.
+}
+
 func TestContext2Apply_nilDiff(t *testing.T) {
 	m := testModule(t, "apply-good")
 	p := testProvider("aws")
@@ -4430,6 +4460,7 @@ func TestContext2Apply_provisionerDestroyFailContinue(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
+	var l sync.Mutex
 	var calls []string
 	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
 		val, ok := c.Config["foo"]
@@ -4437,6 +4468,8 @@ func TestContext2Apply_provisionerDestroyFailContinue(t *testing.T) {
 			t.Fatalf("bad value for foo: %v %#v", val, c)
 		}
 
+		l.Lock()
+		defer l.Unlock()
 		calls = append(calls, val.(string))
 		return fmt.Errorf("provisioner error")
 	}
@@ -4501,6 +4534,7 @@ func TestContext2Apply_provisionerDestroyFailContinueFail(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
+	var l sync.Mutex
 	var calls []string
 	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
 		val, ok := c.Config["foo"]
@@ -4508,6 +4542,8 @@ func TestContext2Apply_provisionerDestroyFailContinueFail(t *testing.T) {
 			t.Fatalf("bad value for foo: %v %#v", val, c)
 		}
 
+		l.Lock()
+		defer l.Unlock()
 		calls = append(calls, val.(string))
 		return fmt.Errorf("provisioner error")
 	}
@@ -7181,6 +7217,30 @@ func TestContext2Apply_targetedModuleUnrelatedOutputs(t *testing.T) {
 			"aws": testProviderFuncFixed(p),
 		},
 		Targets: []string{"module.child2"},
+		State: &State{
+			Modules: []*ModuleState{
+				{
+					Path:      []string{"root"},
+					Outputs:   map[string]*OutputState{},
+					Resources: map[string]*ResourceState{},
+				},
+				{
+					Path: []string{"root", "child1"},
+					Outputs: map[string]*OutputState{
+						"instance_id": {
+							Type:  "string",
+							Value: "foo-bar-baz",
+						},
+					},
+					Resources: map[string]*ResourceState{},
+				},
+				{
+					Path:      []string{"root", "child2"},
+					Outputs:   map[string]*OutputState{},
+					Resources: map[string]*ResourceState{},
+				},
+			},
+		},
 	})
 
 	if _, err := ctx.Plan(); err != nil {
@@ -7192,12 +7252,28 @@ func TestContext2Apply_targetedModuleUnrelatedOutputs(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	// module.child1's instance_id output should be retained from state
+	// module.child2's instance_id is updated because its dependency is updated
+	// child2_id is updated because if its transitive dependency via module.child2
 	checkStateString(t, state, `
 <no state>
+Outputs:
+
+child2_id = foo
+
+module.child1:
+  <no state>
+  Outputs:
+
+  instance_id = foo-bar-baz
 module.child2:
   aws_instance.foo:
     ID = foo
-	`)
+
+  Outputs:
+
+  instance_id = foo
+`)
 }
 
 func TestContext2Apply_targetedModuleResource(t *testing.T) {
@@ -8098,5 +8174,34 @@ func TestContext2Apply_terraformEnv(t *testing.T) {
 	expected := "foo"
 	if actual == nil || actual.Value != expected {
 		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+// verify that multiple config references only create a single depends_on entry
+func TestContext2Apply_multiRef(t *testing.T) {
+	m := testModule(t, "apply-multi-ref")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	deps := state.Modules[0].Resources["aws_instance.other"].Dependencies
+	if len(deps) > 1 || deps[0] != "aws_instance.create" {
+		t.Fatalf("expected 1 depends_on entry for aws_instance.create, got %q", deps)
 	}
 }

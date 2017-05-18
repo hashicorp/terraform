@@ -6,7 +6,7 @@ description: |-
   Provides the configuration information of the local Consul agent.
 ---
 
-# consul\_agent_\_self
+# consul_agent__self
 
 The `consul_agent_self` data source returns
 [configuration and status data](https://www.consul.io/docs/agent/http/agent.html#agent_self)
@@ -14,9 +14,12 @@ from the agent specified in the `provider`.
 
 ## Example Usage
 
-```
+```hcl
 data "consul_agent_self" "read-dc1-agent" {
-  # query_options {  #    # Optional parameter: implicitly uses the current datacenter of the agent  #    datacenter = "dc1"  # }
+  query_options {
+    # Optional parameter: implicitly uses the current datacenter of the agent
+    datacenter = "dc1"
+  }
 }
 
 # Set the description to a whitespace delimited list of the services
