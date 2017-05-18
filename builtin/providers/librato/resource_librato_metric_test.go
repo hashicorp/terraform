@@ -14,7 +14,7 @@ import (
 func TestAccLibratoCounterMetric(t *testing.T) {
 	var metric librato.Metric
 	name := fmt.Sprintf("tftest-metric-%s", acctest.RandString(10))
-	counter := "counter"
+	typ := "counter"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -22,22 +22,22 @@ func TestAccLibratoCounterMetric(t *testing.T) {
 		CheckDestroy: testAccCheckLibratoMetricDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: counterMetricConfig(name, counter, fmt.Sprintf("A test %s metric", counter)),
+				Config: counterMetricConfig(name, typ, fmt.Sprintf("A test %s metric", typ)),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoMetricExists("librato_metric.foobar", &metric),
 					testAccCheckLibratoMetricName(&metric, name),
-					testAccCheckLibratoMetricType(&metric, []string{"gauge", "counter", "composite"}),
+					testAccCheckLibratoMetricType(&metric, typ),
 					resource.TestCheckResourceAttr(
 						"librato_metric.foobar", "name", name),
 				),
 			},
 			{
 				PreConfig: sleep(t, 15),
-				Config:    counterMetricConfig(name, counter, fmt.Sprintf("An updated test %s metric", counter)),
+				Config:    counterMetricConfig(name, typ, fmt.Sprintf("An updated test %s metric", typ)),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoMetricExists("librato_metric.foobar", &metric),
 					testAccCheckLibratoMetricName(&metric, name),
-					testAccCheckLibratoMetricType(&metric, []string{"gauge", "counter", "composite"}),
+					testAccCheckLibratoMetricType(&metric, typ),
 					resource.TestCheckResourceAttr(
 						"librato_metric.foobar", "name", name),
 				),
@@ -49,7 +49,7 @@ func TestAccLibratoCounterMetric(t *testing.T) {
 func TestAccLibratoGaugeMetric(t *testing.T) {
 	var metric librato.Metric
 	name := fmt.Sprintf("tftest-metric-%s", acctest.RandString(10))
-	gauge := "gauge"
+	typ := "gauge"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -57,22 +57,22 @@ func TestAccLibratoGaugeMetric(t *testing.T) {
 		CheckDestroy: testAccCheckLibratoMetricDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: gaugeMetricConfig(name, gauge, fmt.Sprintf("A test %s metric", gauge)),
+				Config: gaugeMetricConfig(name, typ, fmt.Sprintf("A test %s metric", typ)),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoMetricExists("librato_metric.foobar", &metric),
 					testAccCheckLibratoMetricName(&metric, name),
-					testAccCheckLibratoMetricType(&metric, []string{"gauge", "counter", "composite"}),
+					testAccCheckLibratoMetricType(&metric, typ),
 					resource.TestCheckResourceAttr(
 						"librato_metric.foobar", "name", name),
 				),
 			},
 			{
 				PreConfig: sleep(t, 15),
-				Config:    gaugeMetricConfig(name, gauge, fmt.Sprintf("An updated test %s metric", gauge)),
+				Config:    gaugeMetricConfig(name, typ, fmt.Sprintf("An updated test %s metric", typ)),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoMetricExists("librato_metric.foobar", &metric),
 					testAccCheckLibratoMetricName(&metric, name),
-					testAccCheckLibratoMetricType(&metric, []string{"gauge", "counter", "composite"}),
+					testAccCheckLibratoMetricType(&metric, typ),
 					resource.TestCheckResourceAttr(
 						"librato_metric.foobar", "name", name),
 				),
@@ -84,7 +84,7 @@ func TestAccLibratoGaugeMetric(t *testing.T) {
 func TestAccLibratoCompositeMetric(t *testing.T) {
 	var metric librato.Metric
 	name := fmt.Sprintf("tftest-metric-%s", acctest.RandString(10))
-	composite := "composite"
+	typ := "composite"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -92,22 +92,22 @@ func TestAccLibratoCompositeMetric(t *testing.T) {
 		CheckDestroy: testAccCheckLibratoMetricDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: compositeMetricConfig(name, composite, fmt.Sprintf("A test %s metric", composite)),
+				Config: compositeMetricConfig(name, typ, fmt.Sprintf("A test %s metric", typ)),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoMetricExists("librato_metric.foobar", &metric),
 					testAccCheckLibratoMetricName(&metric, name),
-					testAccCheckLibratoMetricType(&metric, []string{"gauge", "counter", "composite"}),
+					testAccCheckLibratoMetricType(&metric, typ),
 					resource.TestCheckResourceAttr(
 						"librato_metric.foobar", "name", name),
 				),
 			},
 			{
 				PreConfig: sleep(t, 15),
-				Config:    compositeMetricConfig(name, composite, fmt.Sprintf("An updated test %s metric", composite)),
+				Config:    compositeMetricConfig(name, typ, fmt.Sprintf("An updated test %s metric", typ)),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoMetricExists("librato_metric.foobar", &metric),
 					testAccCheckLibratoMetricName(&metric, name),
-					testAccCheckLibratoMetricType(&metric, []string{"gauge", "counter", "composite"}),
+					testAccCheckLibratoMetricType(&metric, typ),
 					resource.TestCheckResourceAttr(
 						"librato_metric.foobar", "name", name),
 				),
@@ -144,14 +144,9 @@ func testAccCheckLibratoMetricName(metric *librato.Metric, name string) resource
 	}
 }
 
-func testAccCheckLibratoMetricType(metric *librato.Metric, validTypes []string) resource.TestCheckFunc {
+func testAccCheckLibratoMetricType(metric *librato.Metric, wantType string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		m := make(map[string]bool)
-		for _, v := range validTypes {
-			m[v] = true
-		}
-
-		if !m[*metric.Type] {
+		if metric.Type == nil || *metric.Type != wantType {
 			return fmt.Errorf("Bad metric type: %s", *metric.Type)
 		}
 
@@ -196,8 +191,7 @@ func counterMetricConfig(name, typ, desc string) string {
         type = "%s"
         description = "%s"
         attributes {
-          display_stacked = true,
-          created_by_ua = "go-librato/0.1"
+          display_stacked = true
         }
     }`, name, typ, desc))
 }
@@ -209,8 +203,7 @@ func gaugeMetricConfig(name, typ, desc string) string {
         type = "%s"
         description = "%s"
         attributes {
-          display_stacked = true,
-          created_by_ua = "go-librato/0.1"
+          display_stacked = true
         }
     }`, name, typ, desc))
 }
@@ -223,8 +216,7 @@ func compositeMetricConfig(name, typ, desc string) string {
         description = "%s"
         composite = "s(\"librato.cpu.percent.user\", {\"environment\" : \"prod\", \"service\": \"api\"})"
         attributes {
-          display_stacked = true,
-          created_by_ua = "go-librato/0.1"
+          display_stacked = true
         }
     }`, name, typ, desc))
 }

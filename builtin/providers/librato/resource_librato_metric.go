@@ -18,8 +18,6 @@ const (
 	metricTypeComposite = "composite"
 )
 
-var metricTypes = []string{metricTypeGauge, metricTypeCounter, metricTypeComposite}
-
 func resourceLibratoMetric() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceLibratoMetricCreate,
@@ -84,7 +82,7 @@ func resourceLibratoMetric() *schema.Resource {
 						},
 						"created_by_ua": &schema.Schema{
 							Type:     schema.TypeString,
-							Optional: true,
+							Computed: true,
 						},
 						"gap_detection": &schema.Schema{
 							Type:     schema.TypeBool,
@@ -102,8 +100,6 @@ func resourceLibratoMetric() *schema.Resource {
 }
 
 func resourceLibratoMetricCreate(d *schema.ResourceData, meta interface{}) error {
-	log.Println("[INFO] Creating Librato metric")
-
 	client := meta.(*librato.Client)
 
 	metric := new(librato.Metric)
@@ -192,8 +188,6 @@ func resourceLibratoMetricCreate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceLibratoMetricRead(d *schema.ResourceData, meta interface{}) error {
-	log.Println("[INFO] Reading Librato metric")
-
 	client := meta.(*librato.Client)
 
 	id := d.Id()
@@ -214,8 +208,6 @@ func resourceLibratoMetricRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceLibratoMetricUpdate(d *schema.ResourceData, meta interface{}) error {
-	log.Println("[INFO] Updating Librato metric")
-
 	client := meta.(*librato.Client)
 
 	metricID := d.Id()
@@ -338,8 +330,6 @@ func resourceLibratoMetricUpdate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceLibratoMetricDelete(d *schema.ResourceData, meta interface{}) error {
-	log.Println("[INFO] Deleting Librato metric")
-
 	client := meta.(*librato.Client)
 
 	id := d.Id()
