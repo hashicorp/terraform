@@ -24,6 +24,8 @@ docker run --rm -it \
         -var admin_password=$PASSWORD \
         -var passphrase=$PASSWORD \
         -var key_vault_name=$KEY_VAULT_NAME \
+        -var aad_client_id=$AAD_CLIENT_ID \
+        -var aad_client_secret=$AAD_CLIENT_SECRET \
         -var key_encryption_key_url=$KEY_ENCRYPTION_KEY_URL \
         -var key_vault_resource_id=$KEY_VAULT_RESOURCE_ID; \
       /bin/terraform apply out.tfplan"
@@ -52,5 +54,7 @@ docker run --rm -it \
     -var admin_password=$PASSWORD \
     -var passphrase=$PASSWORD \
     -var key_vault_name=$KEY_VAULT_NAME \
+    -var aad_client_id=$AAD_CLIENT_ID \
+    -var aad_client_secret=$AAD_CLIENT_SECRET \
     -var key_encryption_key_url=$KEY_ENCRYPTION_KEY_URL \
     -var key_vault_resource_id=$KEY_VAULT_RESOURCE_ID;"
