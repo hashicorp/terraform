@@ -3,6 +3,7 @@ package openstack
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/servergroups"
+	"github.com/gophercloud/gophercloud/openstack/dns/v2/zones"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/firewalls"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/rules"
@@ -287,4 +289,25 @@ func (opts SubnetCreateOpts) ToSubnetCreateMap() (map[string]interface{}, error)
 	}
 
 	return b, nil
+}
+
+// ZoneCreateOpts represents the attributes used when creating a new DNS zone.
+type ZoneCreateOpts struct {
+	zones.CreateOpts
+	ValueSpecs map[string]string `json:"value_specs,omitempty"`
+}
+
+// ToZoneCreateMap casts a CreateOpts struct to a map.
+// It overrides zones.ToZoneCreateMap to add the ValueSpecs field.
+func (opts ZoneCreateOpts) ToZoneCreateMap() (map[string]interface{}, error) {
+	b, err := BuildRequest(opts, "")
+	if err != nil {
+		return nil, err
+	}
+
+	if m, ok := b[""].(map[string]interface{}); ok {
+		return m, nil
+	}
+
+	return nil, fmt.Errorf("Expected map but got %T", b[""])
 }
