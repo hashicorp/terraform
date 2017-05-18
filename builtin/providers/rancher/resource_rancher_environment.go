@@ -1,13 +1,11 @@
 package rancher
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
@@ -63,7 +61,6 @@ func resourceRancherEnvironment() *schema.Resource {
 						},
 					},
 				},
-				Set: memberHash,
 			},
 		},
 	}
@@ -286,14 +283,6 @@ func makeProjectMembers(in []interface{}) (out []interface{}) {
 		out = append(out, mm)
 	}
 	return
-}
-
-func memberHash(member interface{}) int {
-	var buf bytes.Buffer
-	m := member.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["external_id_type"]))
-	buf.WriteString(fmt.Sprintf("%s-", m["external_id"]))
-	return hashcode.String(buf.String())
 }
 
 // EnvironmentStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
