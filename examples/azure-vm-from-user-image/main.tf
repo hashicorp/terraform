@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 # provider "azurerm" {
 #   subscription_id = "REPLACE-WITH-YOUR-SUBSCRIPTION-ID"
 #   client_id       = "REPLACE-WITH-YOUR-CLIENT-ID"
@@ -7,7 +5,6 @@
 #   tenant_id       = "REPLACE-WITH-YOUR-TENANT-ID"
 # }
 
->>>>>>> 0b2d02fc41b3ada007131e546797318ff049ef99
 resource "azurerm_resource_group" "rg" {
   name     = "${var.resource_group}"
   location = "${var.location}"
