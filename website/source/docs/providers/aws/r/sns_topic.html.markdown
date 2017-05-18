@@ -18,6 +18,10 @@ resource "aws_sns_topic" "user_updates" {
 }
 ```
 
+## Message Delivery Status Arguments
+
+The `<endpoint>_success_feedback_role_arn` and `<endpoint>_failure_feedback_role_arn` arguments are used to give Amazon SNS write access to use CloudWatch Logs on your behalf. The `<endpoint>_success_feedback_sample_rate` argument is for specifying the sample rate percentage (0-100) of successfully delivered messages. After you configure the  `<endpoint>_failure_feedback_role_arn` argument, then all failed message deliveries generate CloudWatch Logs.
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -26,6 +30,18 @@ The following arguments are supported:
 * `display_name` - (Optional) The display name for the SNS topic
 * `policy` - (Optional) The fully-formed AWS policy as JSON
 * `delivery_policy` - (Optional) The SNS delivery policy
+* `application_success_feedback_role_arn` - (Optional) The IAM role permitted to receive success feedback for this topic
+* `application_success_feedback_sample_rate` - (Optional) Percentage of success to sample
+* `application_failure_feedback_role_arn` - (Optional) IAM role for failure feedback
+* `http_success_feedback_role_arn` - (Optional) The IAM role permitted to receive success feedback for this topic
+* `http_success_feedback_sample_rate` - (Optional) Percentage of success to sample
+* `http_failure_feedback_role_arn` - (Optional) IAM role for failure feedback
+* `lambda_success_feedback_role_arn` - (Optional) The IAM role permitted to receive success feedback for this topic
+* `lambda_success_feedback_sample_rate` - (Optional) Percentage of success to sample
+* `lambda_failure_feedback_role_arn` - (Optional) IAM role for failure feedback
+* `sqs_success_feedback_role_arn` - (Optional) The IAM role permitted to receive success feedback for this topic
+* `sqs_success_feedback_sample_rate` - (Optional) Percentage of success to sample
+* `sqs_failure_feedback_role_arn` - (Optional) IAM role for failure feedback
 
 ## Attributes Reference
 
