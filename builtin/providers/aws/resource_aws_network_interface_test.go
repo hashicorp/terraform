@@ -275,7 +275,7 @@ func testAccCheckAWSENIMakeExternalAttachment(n string, conf *ec2.NetworkInterfa
 			return fmt.Errorf("Not found: %s", n)
 		}
 		attach_request := &ec2.AttachNetworkInterfaceInput{
-			DeviceIndex:        aws.Int64(2),
+			DeviceIndex:        aws.Int64(1),
 			InstanceId:         aws.String(rs.Primary.ID),
 			NetworkInterfaceId: conf.NetworkInterfaceId,
 		}
