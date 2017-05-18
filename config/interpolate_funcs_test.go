@@ -310,6 +310,69 @@ func TestInterpolateFuncMin(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncPow(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${pow(1, 0)}`,
+				"1",
+				false,
+			},
+			{
+				`${pow(1, 1)}`,
+				"1",
+				false,
+			},
+
+			{
+				`${pow(2, 0)}`,
+				"1",
+				false,
+			},
+			{
+				`${pow(2, 1)}`,
+				"2",
+				false,
+			},
+			{
+				`${pow(3, 2)}`,
+				"9",
+				false,
+			},
+			{
+				`${pow(-3, 2)}`,
+				"9",
+				false,
+			},
+			{
+				`${pow(2, -2)}`,
+				"0.25",
+				false,
+			},
+			{
+				`${pow(0, 2)}`,
+				"0",
+				false,
+			},
+			{
+				`${pow("invalid-input", 2)}`,
+				nil,
+				true,
+			},
+			{
+				`${pow(2, "invalid-input")}`,
+				nil,
+				true,
+			},
+			{
+				`${pow(2)}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncFloor(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
