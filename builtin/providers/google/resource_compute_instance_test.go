@@ -303,6 +303,27 @@ func TestAccComputeInstance_local_ssd(t *testing.T) {
 	})
 }
 
+func TestAccComputeInstance_local_ssd_nvme(t *testing.T) {
+	var instance compute.Instance
+	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_local_ssd_nvme(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.local-ssd-nvme", &instance),
+					testAccCheckComputeInstanceDisk(&instance, instanceName, true, true),
+				),
+			},
+		},
+	})
+}
+
 func TestAccComputeInstance_update_deprecated_network(t *testing.T) {
 	var instance compute.Instance
 	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
@@ -1218,6 +1239,30 @@ func testAccComputeInstance_local_ssd(instance string) string {
 		disk {
 			type = "local-ssd"
 			scratch = true
+		}
+
+		network_interface {
+			network = "default"
+		}
+
+	}`, instance)
+}
+
+func testAccComputeInstance_local_ssd_nvme(instance string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_instance" "local-ssd-nvme" {
+		name = "%s"
+		machine_type = "n1-standard-1"
+		zone = "us-central1-a"
+
+		disk {
+			image = "debian-8-jessie-v20160803"
+		}
+
+		disk {
+			type = "local-ssd"
+			scratch = true
+			nvme = true
 		}
 
 		network_interface {
