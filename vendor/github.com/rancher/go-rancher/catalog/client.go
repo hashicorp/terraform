@@ -23,9 +23,13 @@ type RancherBaseClient interface {
 	Delete(*Resource) error
 	Reload(*Resource, interface{}) error
 	Action(string, string, *Resource, interface{}, interface{}) error
+	GetOpts() *ClientOpts
+	GetSchemas() *Schemas
+	GetTypes() map[string]Schema
 
 	doGet(string, *ListOpts, interface{}) error
 	doList(string, *ListOpts, interface{}) error
+	doNext(string, interface{}) error
 	doModify(string, string, interface{}, interface{}) error
 	doCreate(string, interface{}, interface{}) error
 	doUpdate(string, *Resource, interface{}, interface{}) error

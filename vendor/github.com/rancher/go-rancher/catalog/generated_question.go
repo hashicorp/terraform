@@ -38,7 +38,8 @@ type Question struct {
 
 type QuestionCollection struct {
 	Collection
-	Data []Question `json:"data,omitempty"`
+	Data   []Question `json:"data,omitempty"`
+	client *QuestionClient
 }
 
 type QuestionClient struct {
@@ -74,7 +75,18 @@ func (c *QuestionClient) Update(existing *Question, updates interface{}) (*Quest
 func (c *QuestionClient) List(opts *ListOpts) (*QuestionCollection, error) {
 	resp := &QuestionCollection{}
 	err := c.rancherClient.doList(QUESTION_TYPE, opts, resp)
+	resp.client = c
 	return resp, err
+}
+
+func (cc *QuestionCollection) Next() (*QuestionCollection, error) {
+	if cc != nil && cc.Pagination != nil && cc.Pagination.Next != "" {
+		resp := &QuestionCollection{}
+		err := cc.client.rancherClient.doNext(cc.Pagination.Next, resp)
+		resp.client = cc.client
+		return resp, err
+	}
+	return nil, nil
 }
 
 func (c *QuestionClient) ById(id string) (*Question, error) {

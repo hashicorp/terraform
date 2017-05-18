@@ -11,28 +11,25 @@ type Catalog struct {
 
 	Branch string `json:"branch,omitempty" yaml:"branch,omitempty"`
 
-	CatalogRoot string `json:"catalogRoot,omitempty" yaml:"catalog_root,omitempty"`
+	Commit string `json:"commit,omitempty" yaml:"commit,omitempty"`
 
-	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	EnvironmentId string `json:"environmentId,omitempty" yaml:"environment_id,omitempty"`
 
-	LastUpdated string `json:"lastUpdated,omitempty" yaml:"last_updated,omitempty"`
+	Kind string `json:"kind,omitempty" yaml:"kind,omitempty"`
 
 	Links map[string]interface{} `json:"links,omitempty" yaml:"links,omitempty"`
 
-	Message string `json:"message,omitempty" yaml:"message,omitempty"`
-
-	Metadata map[string]interface{} `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-
-	State string `json:"state,omitempty" yaml:"state,omitempty"`
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
 
 	Type string `json:"type,omitempty" yaml:"type,omitempty"`
 
-	Uri string `json:"uri,omitempty" yaml:"uri,omitempty"`
+	Url string `json:"url,omitempty" yaml:"url,omitempty"`
 }
 
 type CatalogCollection struct {
 	Collection
-	Data []Catalog `json:"data,omitempty"`
+	Data   []Catalog `json:"data,omitempty"`
+	client *CatalogClient
 }
 
 type CatalogClient struct {
@@ -68,7 +65,18 @@ func (c *CatalogClient) Update(existing *Catalog, updates interface{}) (*Catalog
 func (c *CatalogClient) List(opts *ListOpts) (*CatalogCollection, error) {
 	resp := &CatalogCollection{}
 	err := c.rancherClient.doList(CATALOG_TYPE, opts, resp)
+	resp.client = c
 	return resp, err
+}
+
+func (cc *CatalogCollection) Next() (*CatalogCollection, error) {
+	if cc != nil && cc.Pagination != nil && cc.Pagination.Next != "" {
+		resp := &CatalogCollection{}
+		err := cc.client.rancherClient.doNext(cc.Pagination.Next, resp)
+		resp.client = cc.client
+		return resp, err
+	}
+	return nil, nil
 }
 
 func (c *CatalogClient) ById(id string) (*Catalog, error) {

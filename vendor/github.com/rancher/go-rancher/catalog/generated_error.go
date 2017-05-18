@@ -20,7 +20,8 @@ type Error struct {
 
 type ErrorCollection struct {
 	Collection
-	Data []Error `json:"data,omitempty"`
+	Data   []Error `json:"data,omitempty"`
+	client *ErrorClient
 }
 
 type ErrorClient struct {
@@ -56,7 +57,18 @@ func (c *ErrorClient) Update(existing *Error, updates interface{}) (*Error, erro
 func (c *ErrorClient) List(opts *ListOpts) (*ErrorCollection, error) {
 	resp := &ErrorCollection{}
 	err := c.rancherClient.doList(ERROR_TYPE, opts, resp)
+	resp.client = c
 	return resp, err
+}
+
+func (cc *ErrorCollection) Next() (*ErrorCollection, error) {
+	if cc != nil && cc.Pagination != nil && cc.Pagination.Next != "" {
+		resp := &ErrorCollection{}
+		err := cc.client.rancherClient.doNext(cc.Pagination.Next, resp)
+		resp.client = cc.client
+		return resp, err
+	}
+	return nil, nil
 }
 
 func (c *ErrorClient) ById(id string) (*Error, error) {

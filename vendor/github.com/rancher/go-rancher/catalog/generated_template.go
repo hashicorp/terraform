@@ -9,17 +9,23 @@ type Template struct {
 
 	Actions map[string]interface{} `json:"actions,omitempty" yaml:"actions,omitempty"`
 
-	Bindings map[string]interface{} `json:"bindings,omitempty" yaml:"bindings,omitempty"`
-
 	CatalogId string `json:"catalogId,omitempty" yaml:"catalog_id,omitempty"`
 
+	Categories []string `json:"categories,omitempty" yaml:"categories,omitempty"`
+
 	Category string `json:"category,omitempty" yaml:"category,omitempty"`
+
+	DefaultTemplateVersionId string `json:"defaultTemplateVersionId,omitempty" yaml:"default_template_version_id,omitempty"`
 
 	DefaultVersion string `json:"defaultVersion,omitempty" yaml:"default_version,omitempty"`
 
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 
-	Files map[string]interface{} `json:"files,omitempty" yaml:"files,omitempty"`
+	EnvironmentId string `json:"environmentId,omitempty" yaml:"environment_id,omitempty"`
+
+	FolderName string `json:"folderName,omitempty" yaml:"folder_name,omitempty"`
+
+	IconFilename string `json:"iconFilename,omitempty" yaml:"icon_filename,omitempty"`
 
 	IsSystem string `json:"isSystem,omitempty" yaml:"is_system,omitempty"`
 
@@ -31,28 +37,25 @@ type Template struct {
 
 	Maintainer string `json:"maintainer,omitempty" yaml:"maintainer,omitempty"`
 
-	MinimumRancherVersion string `json:"minimumRancherVersion,omitempty" yaml:"minimum_rancher_version,omitempty"`
-
 	Name string `json:"name,omitempty" yaml:"name,omitempty"`
 
 	Path string `json:"path,omitempty" yaml:"path,omitempty"`
 
 	TemplateBase string `json:"templateBase,omitempty" yaml:"template_base,omitempty"`
 
-	TemplateVersionRancherVersion map[string]interface{} `json:"templateVersionRancherVersion,omitempty" yaml:"template_version_rancher_version,omitempty"`
-
 	Type string `json:"type,omitempty" yaml:"type,omitempty"`
 
 	UpgradeFrom string `json:"upgradeFrom,omitempty" yaml:"upgrade_from,omitempty"`
 
-	UpgradeVersionLinks map[string]interface{} `json:"upgradeVersionLinks,omitempty" yaml:"upgrade_version_links,omitempty"`
-
 	VersionLinks map[string]interface{} `json:"versionLinks,omitempty" yaml:"version_links,omitempty"`
+
+	Versions []string `json:"versions,omitempty" yaml:"versions,omitempty"`
 }
 
 type TemplateCollection struct {
 	Collection
-	Data []Template `json:"data,omitempty"`
+	Data   []Template `json:"data,omitempty"`
+	client *TemplateClient
 }
 
 type TemplateClient struct {
@@ -88,7 +91,18 @@ func (c *TemplateClient) Update(existing *Template, updates interface{}) (*Templ
 func (c *TemplateClient) List(opts *ListOpts) (*TemplateCollection, error) {
 	resp := &TemplateCollection{}
 	err := c.rancherClient.doList(TEMPLATE_TYPE, opts, resp)
+	resp.client = c
 	return resp, err
+}
+
+func (cc *TemplateCollection) Next() (*TemplateCollection, error) {
+	if cc != nil && cc.Pagination != nil && cc.Pagination.Next != "" {
+		resp := &TemplateCollection{}
+		err := cc.client.rancherClient.doNext(cc.Pagination.Next, resp)
+		resp.client = cc.client
+		return resp, err
+	}
+	return nil, nil
 }
 
 func (c *TemplateClient) ById(id string) (*Template, error) {

@@ -4,10 +4,10 @@ type RancherClient struct {
 	RancherBaseClient
 
 	ApiVersion      ApiVersionOperations
-	Question        QuestionOperations
-	Template        TemplateOperations
-	TemplateVersion TemplateVersionOperations
 	Catalog         CatalogOperations
+	Template        TemplateOperations
+	Question        QuestionOperations
+	TemplateVersion TemplateVersionOperations
 	Error           ErrorOperations
 }
 
@@ -17,10 +17,10 @@ func constructClient(rancherBaseClient *RancherBaseClientImpl) *RancherClient {
 	}
 
 	client.ApiVersion = newApiVersionClient(client)
-	client.Question = newQuestionClient(client)
-	client.Template = newTemplateClient(client)
-	client.TemplateVersion = newTemplateVersionClient(client)
 	client.Catalog = newCatalogClient(client)
+	client.Template = newTemplateClient(client)
+	client.Question = newQuestionClient(client)
+	client.TemplateVersion = newTemplateVersionClient(client)
 	client.Error = newErrorClient(client)
 
 	return client

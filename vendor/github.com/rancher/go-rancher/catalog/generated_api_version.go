@@ -16,7 +16,8 @@ type ApiVersion struct {
 
 type ApiVersionCollection struct {
 	Collection
-	Data []ApiVersion `json:"data,omitempty"`
+	Data   []ApiVersion `json:"data,omitempty"`
+	client *ApiVersionClient
 }
 
 type ApiVersionClient struct {
@@ -52,7 +53,18 @@ func (c *ApiVersionClient) Update(existing *ApiVersion, updates interface{}) (*A
 func (c *ApiVersionClient) List(opts *ListOpts) (*ApiVersionCollection, error) {
 	resp := &ApiVersionCollection{}
 	err := c.rancherClient.doList(API_VERSION_TYPE, opts, resp)
+	resp.client = c
 	return resp, err
+}
+
+func (cc *ApiVersionCollection) Next() (*ApiVersionCollection, error) {
+	if cc != nil && cc.Pagination != nil && cc.Pagination.Next != "" {
+		resp := &ApiVersionCollection{}
+		err := cc.client.rancherClient.doNext(cc.Pagination.Next, resp)
+		resp.client = cc.client
+		return resp, err
+	}
+	return nil, nil
 }
 
 func (c *ApiVersionClient) ById(id string) (*ApiVersion, error) {
