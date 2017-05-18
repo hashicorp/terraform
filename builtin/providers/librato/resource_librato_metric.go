@@ -102,6 +102,8 @@ func resourceLibratoMetric() *schema.Resource {
 }
 
 func resourceLibratoMetricCreate(d *schema.ResourceData, meta interface{}) error {
+	log.Println("[INFO] Creating Librato metric")
+
 	client := meta.(*librato.Client)
 
 	metric := new(librato.Metric)
@@ -120,11 +122,15 @@ func resourceLibratoMetricCreate(d *schema.ResourceData, meta interface{}) error
 	if a, ok := d.GetOk("period"); ok {
 		metric.Period = librato.Uint(a.(uint))
 	}
+	if a, ok := d.GetOk("composite"); ok {
+		metric.Composite = librato.String(a.(string))
+	}
 
 	if a, ok := d.GetOk("attributes"); ok {
+
 		attributeData := a.([]interface{})
 		if len(attributeData) > 1 {
-			return fmt.Errorf("Only one set of attributes per alert is supported")
+			return fmt.Errorf("Only one set of attributes per metric is supported")
 		}
 
 		if len(attributeData) == 1 && attributeData[0] == nil {
@@ -168,7 +174,7 @@ func resourceLibratoMetricCreate(d *schema.ResourceData, meta interface{}) error
 	_, err := client.Metrics.Edit(metric)
 	if err != nil {
 		log.Printf("[INFO] ERROR creating Metric: %s", err)
-		return fmt.Errorf("Error creating Librato service: %s", err)
+		return fmt.Errorf("Error creating Librato metric: %s", err)
 	}
 
 	resource.Retry(1*time.Minute, func() *resource.RetryError {
@@ -182,72 +188,12 @@ func resourceLibratoMetricCreate(d *schema.ResourceData, meta interface{}) error
 		return nil
 	})
 
-	return resourceLibratoMetricReadResult(d, metric)
-}
-
-func resourceLibratoMetricReadResult(d *schema.ResourceData, metric *librato.Metric) error {
-	d.SetId(*metric.Name)
-	d.Set("id", *metric.Name)
-	d.Set("name", *metric.Name)
-	d.Set("type", *metric.Type)
-
-	if metric.Description != nil {
-		d.Set("description", *metric.Description)
-	}
-
-	if metric.DisplayName != nil {
-		d.Set("display_name", *metric.DisplayName)
-	}
-
-	if metric.Period != nil {
-		d.Set("period", *metric.Period)
-	}
-
-	if metric.Composite != nil {
-		d.Set("composite", *metric.Composite)
-	}
-
-	attributes := resourceLibratoMetricAttributesGather(d, metric.Attributes)
-	d.Set("attributes", attributes)
-
-	return nil
-}
-
-// Flattens an attributes hash into something that flatmap.Flatten() can handle
-func resourceLibratoMetricAttributesGather(d *schema.ResourceData, attributes *librato.MetricAttributes) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0, 1)
-
-	if attributes != nil {
-		retAttributes := make(map[string]interface{})
-		if attributes.Color != nil {
-			retAttributes["color"] = *attributes.Color
-		}
-		if attributes.DisplayMax != nil {
-			retAttributes["display_max"] = attributes.DisplayMax
-		}
-		if attributes.DisplayMin != nil {
-			retAttributes["display_min"] = attributes.DisplayMin
-		}
-		if attributes.DisplayUnitsLong != "" {
-			retAttributes["display_units_long"] = attributes.DisplayUnitsLong
-		}
-		if attributes.DisplayUnitsShort != "" {
-			retAttributes["display_units_short"] = attributes.DisplayUnitsShort
-		}
-		if attributes.CreatedByUA != "" {
-			retAttributes["created_by_ua"] = attributes.CreatedByUA
-		}
-		retAttributes["display_stacked"] = attributes.DisplayStacked || false
-		retAttributes["gap_detection"] = attributes.GapDetection || false
-		retAttributes["aggregate"] = attributes.Aggregate || false
-
-		result = append(result, retAttributes)
-	}
-
-	return result
+	return metricReadResult(d, metric)
 }
 
 func resourceLibratoMetricRead(d *schema.ResourceData, meta interface{}) error {
+	log.Println("[INFO] Reading Librato metric")
+
 	client := meta.(*librato.Client)
 
 	id := d.Id()
@@ -264,10 +210,12 @@ func resourceLibratoMetricRead(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[INFO] Read Librato Metric: %s", structToString(metric))
 
-	return resourceLibratoMetricReadResult(d, metric)
+	return metricReadResult(d, metric)
 }
 
 func resourceLibratoMetricUpdate(d *schema.ResourceData, meta interface{}) error {
+	log.Println("[INFO] Updating Librato metric")
+
 	client := meta.(*librato.Client)
 
 	metricID := d.Id()
@@ -309,7 +257,7 @@ func resourceLibratoMetricUpdate(d *schema.ResourceData, meta interface{}) error
 	if d.HasChange("attributes") {
 		attributeData := d.Get("attributes").([]interface{})
 		if len(attributeData) > 1 {
-			return fmt.Errorf("Only one set of attributes per alert is supported")
+			return fmt.Errorf("Only one set of attributes per metric is supported")
 		}
 
 		if len(attributeData) == 1 && attributeData[0] == nil {
@@ -351,7 +299,9 @@ func resourceLibratoMetricUpdate(d *schema.ResourceData, meta interface{}) error
 		fullMetric.Attributes = attributes
 	}
 
-	log.Printf("[INFO] Updating Librato metric: %v", metric)
+	log.Printf("[INFO] Updating Librato metric: %v", structToString(metric))
+	log.Printf("[INFO] Librato fullMetric: %v", structToString(fullMetric))
+
 	_, err = client.Metrics.Edit(metric)
 	if err != nil {
 		return fmt.Errorf("Error updating Librato metric: %s", err)
@@ -367,19 +317,20 @@ func resourceLibratoMetricUpdate(d *schema.ResourceData, meta interface{}) error
 		MinTimeout:                2 * time.Second,
 		ContinuousTargetOccurence: 5,
 		Refresh: func() (interface{}, string, error) {
-			log.Printf("[DEBUG] Checking if Librato Metric %s was updated yet", metricID)
+			log.Printf("[INFO] Checking if Librato Metric %s was updated yet", metricID)
 			changedMetric, _, getErr := client.Metrics.Get(metricID)
 			if getErr != nil {
 				return changedMetric, "", getErr
 			}
 			isEqual := reflect.DeepEqual(*fullMetric, *changedMetric)
-			log.Printf("[DEBUG] Updated Librato Metric %s match: %t", metricID, isEqual)
+			log.Printf("[INFO] Updated Librato Metric %s match: %t", metricID, isEqual)
 			return changedMetric, fmt.Sprintf("%t", isEqual), nil
 		},
 	}
 
 	_, err = wait.WaitForState()
 	if err != nil {
+		log.Printf("[INFO] ERROR - Failed updating Librato Metric %s: %s", metricID, err)
 		return fmt.Errorf("Failed updating Librato Metric %s: %s", metricID, err)
 	}
 
@@ -387,6 +338,8 @@ func resourceLibratoMetricUpdate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceLibratoMetricDelete(d *schema.ResourceData, meta interface{}) error {
+	log.Println("[INFO] Deleting Librato metric")
+
 	client := meta.(*librato.Client)
 
 	id := d.Id()
@@ -397,20 +350,90 @@ func resourceLibratoMetricDelete(d *schema.ResourceData, meta interface{}) error
 		return fmt.Errorf("Error deleting Metric: %s", err)
 	}
 
+	log.Printf("[INFO] Verifying Metric %s deleted", id)
 	resource.Retry(1*time.Minute, func() *resource.RetryError {
+
+		log.Printf("[INFO] GETing Metric %s", id)
 		_, _, err := client.Metrics.Get(id)
 		if err != nil {
 			if errResp, ok := err.(*librato.ErrorResponse); ok && errResp.Response.StatusCode == 404 {
+				log.Printf("[INFO] GET returned a 404 for Metric %s\n", id)
 				return nil
 			}
 			log.Printf("[INFO] non-retryable error attempting to Get metric: %s", err)
 			return resource.NonRetryableError(err)
 		}
+
+		log.Printf("[INFO] retryable error attempting to Get metric: %s", id)
 		return resource.RetryableError(fmt.Errorf("metric still exists"))
 	})
 
+	log.Println("[INFO] I think Metric is deleted")
+
 	d.SetId("")
 	return nil
+}
+
+func metricReadResult(d *schema.ResourceData, metric *librato.Metric) error {
+	d.SetId(*metric.Name)
+	d.Set("id", *metric.Name)
+	d.Set("name", *metric.Name)
+	d.Set("type", *metric.Type)
+
+	if metric.Description != nil {
+		d.Set("description", *metric.Description)
+	}
+
+	if metric.DisplayName != nil {
+		d.Set("display_name", *metric.DisplayName)
+	}
+
+	if metric.Period != nil {
+		d.Set("period", *metric.Period)
+	}
+
+	if metric.Composite != nil {
+		d.Set("composite", *metric.Composite)
+	}
+
+	attributes := metricAttributesGather(d, metric.Attributes)
+	d.Set("attributes", attributes)
+
+	return nil
+}
+
+// Flattens an attributes hash into something that flatmap.Flatten() can handle
+func metricAttributesGather(d *schema.ResourceData, attributes *librato.MetricAttributes) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, 1)
+
+	if attributes != nil {
+		retAttributes := make(map[string]interface{})
+		if attributes.Color != nil {
+			retAttributes["color"] = *attributes.Color
+		}
+		if attributes.DisplayMax != nil {
+			retAttributes["display_max"] = attributes.DisplayMax
+		}
+		if attributes.DisplayMin != nil {
+			retAttributes["display_min"] = attributes.DisplayMin
+		}
+		if attributes.DisplayUnitsLong != "" {
+			retAttributes["display_units_long"] = attributes.DisplayUnitsLong
+		}
+		if attributes.DisplayUnitsShort != "" {
+			retAttributes["display_units_short"] = attributes.DisplayUnitsShort
+		}
+		if attributes.CreatedByUA != "" {
+			retAttributes["created_by_ua"] = attributes.CreatedByUA
+		}
+		retAttributes["display_stacked"] = attributes.DisplayStacked || false
+		retAttributes["gap_detection"] = attributes.GapDetection || false
+		retAttributes["aggregate"] = attributes.Aggregate || false
+
+		result = append(result, retAttributes)
+	}
+
+	return result
 }
 
 func structToString(i interface{}) string {

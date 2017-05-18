@@ -1,7 +1,6 @@
 package librato
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"reflect"
@@ -37,47 +36,10 @@ func resourceLibratoService() *schema.Resource {
 			"settings": &schema.Schema{
 				Type:      schema.TypeString,
 				Required:  true,
-				StateFunc: normalizeJson,
+				StateFunc: normalizeJSON,
 			},
 		},
 	}
-}
-
-// Takes JSON in a string. Decodes JSON into
-// settings hash
-func resourceLibratoServicesExpandSettings(rawSettings string) (map[string]string, error) {
-	var settings map[string]string
-
-	settings = make(map[string]string)
-	err := json.Unmarshal([]byte(rawSettings), &settings)
-	if err != nil {
-		return nil, fmt.Errorf("Error decoding JSON: %s", err)
-	}
-
-	return settings, err
-}
-
-// Encodes a settings hash into a JSON string
-func resourceLibratoServicesFlatten(settings map[string]string) (string, error) {
-	byteArray, err := json.Marshal(settings)
-	if err != nil {
-		return "", fmt.Errorf("Error encoding to JSON: %s", err)
-	}
-
-	return string(byteArray), nil
-}
-
-func normalizeJson(jsonString interface{}) string {
-	if jsonString == nil || jsonString == "" {
-		return ""
-	}
-	var j interface{}
-	err := json.Unmarshal([]byte(jsonString.(string)), &j)
-	if err != nil {
-		return fmt.Sprintf("Error parsing JSON: %s", err)
-	}
-	b, _ := json.Marshal(j)
-	return string(b[:])
 }
 
 func resourceLibratoServiceCreate(d *schema.ResourceData, meta interface{}) error {
@@ -91,7 +53,7 @@ func resourceLibratoServiceCreate(d *schema.ResourceData, meta interface{}) erro
 		service.Title = librato.String(v.(string))
 	}
 	if v, ok := d.GetOk("settings"); ok {
-		res, err := resourceLibratoServicesExpandSettings(normalizeJson(v.(string)))
+		res, err := attributesExpand(normalizeJSON(v.(string)))
 		if err != nil {
 			return fmt.Errorf("Error expanding Librato service settings: %s", err)
 		}
@@ -144,7 +106,7 @@ func resourceLibratoServiceReadResult(d *schema.ResourceData, service *librato.S
 	d.Set("id", *service.ID)
 	d.Set("type", *service.Type)
 	d.Set("title", *service.Title)
-	settings, _ := resourceLibratoServicesFlatten(service.Settings)
+	settings, _ := attributesFlatten(service.Settings)
 	d.Set("settings", settings)
 
 	return nil
@@ -174,9 +136,9 @@ func resourceLibratoServiceUpdate(d *schema.ResourceData, meta interface{}) erro
 		fullService.Title = service.Title
 	}
 	if d.HasChange("settings") {
-		res, err := resourceLibratoServicesExpandSettings(normalizeJson(d.Get("settings").(string)))
-		if err != nil {
-			return fmt.Errorf("Error expanding Librato service settings: %s", err)
+		res, getErr := attributesExpand(normalizeJSON(d.Get("settings").(string)))
+		if getErr != nil {
+			return fmt.Errorf("Error expanding Librato service settings: %s", getErr)
 		}
 		service.Settings = res
 		fullService.Settings = res
@@ -198,9 +160,9 @@ func resourceLibratoServiceUpdate(d *schema.ResourceData, meta interface{}) erro
 		ContinuousTargetOccurence: 5,
 		Refresh: func() (interface{}, string, error) {
 			log.Printf("[DEBUG] Checking if Librato Service %d was updated yet", serviceID)
-			changedService, _, err := client.Services.Get(uint(serviceID))
-			if err != nil {
-				return changedService, "", err
+			changedService, _, scErr := client.Services.Get(uint(serviceID))
+			if scErr != nil {
+				return changedService, "", scErr
 			}
 			isEqual := reflect.DeepEqual(*fullService, *changedService)
 			log.Printf("[DEBUG] Updated Librato Service %d match: %t", serviceID, isEqual)
