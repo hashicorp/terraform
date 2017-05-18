@@ -14,6 +14,8 @@ import (
 )
 
 func TestAccAWSSNSTopic_basic(t *testing.T) {
+	rName := acctest.RandString(10)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
 		IDRefreshName: "aws_sns_topic.test_topic",
@@ -21,7 +23,7 @@ func TestAccAWSSNSTopic_basic(t *testing.T) {
 		CheckDestroy:  testAccCheckAWSSNSTopicDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSSNSTopicConfig,
+				Config: testAccAWSSNSTopicConfig(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSNSTopicExists("aws_sns_topic.test_topic"),
 				),
@@ -51,6 +53,7 @@ func TestAccAWSSNSTopic_policy(t *testing.T) {
 }
 
 func TestAccAWSSNSTopic_withIAMRole(t *testing.T) {
+	rName := acctest.RandString(10)
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
 		IDRefreshName: "aws_sns_topic.test_topic",
@@ -58,7 +61,7 @@ func TestAccAWSSNSTopic_withIAMRole(t *testing.T) {
 		CheckDestroy:  testAccCheckAWSSNSTopicDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSSNSTopicConfig_withIAMRole,
+				Config: testAccAWSSNSTopicConfig_withIAMRole(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSNSTopicExists("aws_sns_topic.test_topic"),
 				),
@@ -68,6 +71,7 @@ func TestAccAWSSNSTopic_withIAMRole(t *testing.T) {
 }
 
 func TestAccAWSSNSTopic_withDeliveryPolicy(t *testing.T) {
+	rName := acctest.RandString(10)
 	expectedPolicy := `{"http":{"defaultHealthyRetryPolicy": {"minDelayTarget": 20,"maxDelayTarget": 20,"numMaxDelayRetries": 0,"numRetries": 3,"numNoDelayRetries": 0,"numMinDelayRetries": 0,"backoffFunction": "linear"},"disableSubscriptionOverrides": false}}`
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
@@ -76,7 +80,7 @@ func TestAccAWSSNSTopic_withDeliveryPolicy(t *testing.T) {
 		CheckDestroy:  testAccCheckAWSSNSTopicDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSSNSTopicConfig_withDeliveryPolicy,
+				Config: testAccAWSSNSTopicConfig_withDeliveryPolicy(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSNSTopicExists("aws_sns_topic.test_topic"),
 					testAccCheckAWSNSTopicHasDeliveryPolicy("aws_sns_topic.test_topic", expectedPolicy),
@@ -229,11 +233,13 @@ func testAccCheckAWSSNSTopicExists(n string) resource.TestCheckFunc {
 	}
 }
 
-const testAccAWSSNSTopicConfig = `
+func testAccAWSSNSTopicConfig(r string) string {
+	return fmt.Sprintf(`
 resource "aws_sns_topic" "test_topic" {
-    name = "terraform-test-topic"
+    name = "terraform-test-topic-%s"
 }
-`
+`, r)
+}
 
 func testAccAWSSNSTopicWithPolicy(r string) string {
 	return fmt.Sprintf(`
@@ -261,9 +267,10 @@ EOF
 }
 
 // Test for https://github.com/hashicorp/terraform/issues/3660
-const testAccAWSSNSTopicConfig_withIAMRole = `
+func testAccAWSSNSTopicConfig_withIAMRole(r string) string {
+	return fmt.Sprintf(`
 resource "aws_iam_role" "example" {
-  name = "terraform_bug"
+  name = "tf_acc_test_%s"
   path = "/test/"
   assume_role_policy = <<EOF
 {
@@ -283,7 +290,7 @@ EOF
 }
 
 resource "aws_sns_topic" "test_topic" {
-  name = "example"
+  name = "tf-acc-test-with-iam-role-%s"
   policy = <<EOF
 {
   "Statement": [
@@ -302,12 +309,14 @@ resource "aws_sns_topic" "test_topic" {
 }
 EOF
 }
-`
+`, r, r)
+}
 
 // Test for https://github.com/hashicorp/terraform/issues/14024
-const testAccAWSSNSTopicConfig_withDeliveryPolicy = `
+func testAccAWSSNSTopicConfig_withDeliveryPolicy(r string) string {
+	return fmt.Sprintf(`
 resource "aws_sns_topic" "test_topic" {
-  name = "test_delivery_policy"
+  name = "tf_acc_test_delivery_policy_%s"
   delivery_policy = <<EOF
 {
   "http": {
@@ -325,4 +334,5 @@ resource "aws_sns_topic" "test_topic" {
 }
 EOF
 }
-`
+`, r)
+}

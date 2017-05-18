@@ -19,6 +19,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
 	"github.com/Azure/azure-sdk-for-go/arm/scheduler"
 	"github.com/Azure/azure-sdk-for-go/arm/servicebus"
+	"github.com/Azure/azure-sdk-for-go/arm/sql"
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
 	"github.com/Azure/azure-sdk-for-go/arm/trafficmanager"
 	mainStorage "github.com/Azure/azure-sdk-for-go/storage"
@@ -52,6 +53,7 @@ type ArmClient struct {
 
 	appGatewayClient             network.ApplicationGatewaysClient
 	ifaceClient                  network.InterfacesClient
+	expressRouteCircuitClient    network.ExpressRouteCircuitsClient
 	loadBalancerClient           network.LoadBalancersClient
 	localNetConnClient           network.LocalNetworkGatewaysClient
 	publicIPClient               network.PublicIPAddressesClient
@@ -99,6 +101,8 @@ type ArmClient struct {
 	serviceBusSubscriptionsClient servicebus.SubscriptionsClient
 
 	keyVaultClient keyvault.VaultsClient
+
+	sqlElasticPoolsClient sql.ElasticPoolsClient
 }
 
 func withRequestLogging() autorest.SendDecorator {
@@ -277,6 +281,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	ifc.Authorizer = spt
 	ifc.Sender = autorest.CreateSender(withRequestLogging())
 	client.ifaceClient = ifc
+
+	erc := network.NewExpressRouteCircuitsClientWithBaseURI(endpoint, c.SubscriptionID)
+	setUserAgent(&erc.Client)
+	erc.Authorizer = spt
+	erc.Sender = autorest.CreateSender(withRequestLogging())
+	client.expressRouteCircuitClient = erc
 
 	lbc := network.NewLoadBalancersClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&lbc.Client)
@@ -457,6 +467,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	kvc.Authorizer = spt
 	kvc.Sender = autorest.CreateSender(withRequestLogging())
 	client.keyVaultClient = kvc
+
+	sqlepc := sql.NewElasticPoolsClientWithBaseURI(endpoint, c.SubscriptionID)
+	setUserAgent(&sqlepc.Client)
+	sqlepc.Authorizer = spt
+	sqlepc.Sender = autorest.CreateSender(withRequestLogging())
+	client.sqlElasticPoolsClient = sqlepc
 
 	return &client, nil
 }

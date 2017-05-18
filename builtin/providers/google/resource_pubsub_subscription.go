@@ -38,6 +38,11 @@ func resourcePubsubSubscription() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"path": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"push_config": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
@@ -113,6 +118,7 @@ func resourcePubsubSubscriptionCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	d.SetId(res.Name)
+	d.Set("path", name)
 
 	return nil
 }
@@ -124,7 +130,7 @@ func resourcePubsubSubscriptionRead(d *schema.ResourceData, meta interface{}) er
 	call := config.clientPubsub.Projects.Subscriptions.Get(name)
 	_, err := call.Do()
 	if err != nil {
-		return err
+		return handleNotFoundError(err, d, fmt.Sprintf("Pubsub Subscription %q", name))
 	}
 
 	return nil

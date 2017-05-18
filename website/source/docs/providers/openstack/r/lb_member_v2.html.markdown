@@ -1,12 +1,12 @@
 ---
 layout: "openstack"
 page_title: "OpenStack: openstack_lb_member_v2"
-sidebar_current: "docs-openstack-resource-lbaas-member-v2"
+sidebar_current: "docs-openstack-resource-lb-member-v2"
 description: |-
   Manages a V2 member resource within OpenStack.
 ---
 
-# openstack\_lbaas\_member\_v2
+# openstack\_lb\_member\_v2
 
 Manages a V2 member resource within OpenStack.
 

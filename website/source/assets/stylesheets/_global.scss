@@ -33,3 +33,11 @@ h1 {
 .wf-active, .wf-inactive {
   visibility: visible;
 }
+
+@media (min-width: $screen-sm) and (max-width: $screen-md) {
+  .container {
+    padding: 0;
+    max-width: $screen-md;
+    min-width: $screen-sm;
+  }
+}

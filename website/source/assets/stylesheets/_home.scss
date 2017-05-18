@@ -211,10 +211,17 @@
     }
 
     &#news {
-      img {
+      img, iframe {
         box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.25);
         margin: 0 0 20px 0;
         max-width: 100%;
+      }
+
+      iframe {
+        @media (min-width: $screen-sm) and (max-width: $screen-md) {
+          width: 100vw;
+          height: 56.25vw;
+        }
       }
 
       h2 {

@@ -1,8 +1,4 @@
-# Virtual Network with two Subnets
-
-<a href="http://armviz.io/#/?load=https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2Fazure-quickstart-templates%2Fmaster%2F101-vnet-two-subnets%2Fazuredeploy.json" target="_blank">
-    <img src="http://armviz.io/visualizebutton.png"/>
-</a>
+# Virtual Network with Two Subnets
 
 This template allows you to create a Virtual Network with two subnets.
 
@@ -20,3 +16,5 @@ If a `terraform.tfvars` file is present in the current directory, Terraform auto
 
 ## variables.tf
 The `variables.tf` file contains all of the input parameters that the user can specify when deploying this Terraform template.
+
+![graph](/examples/azure-vnet-two-subnets/graph.png)

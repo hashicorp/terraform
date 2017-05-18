@@ -1,10 +1,6 @@
 # [Create a Virtual Machine from a User Image](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/cli-deploy-templates#create-a-custom-vm-image)
 
-This Terraform template was based on [this](https://github.com/Azure/azure-quickstart-templates/tree/master/101-vm-from-user-image) Azure Quickstart Template. Changes to the ARM template that may have occured since the creation of this example may not be reflected here.
-
-<a href="http://armviz.io/#/?load=https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2Fazure-quickstart-templates%2Fmaster%2F101-vm-from-user-image%2Fazuredeploy.json" target="_blank">
-    <img src="http://armviz.io/visualizebutton.png"/>
-</a>
+This Terraform template was based on [this](https://github.com/Azure/azure-quickstart-templates/tree/master/101-vm-from-user-image) Azure Quickstart Template. Changes to the ARM template that may have occurred since the creation of this example may not be reflected here.
 
 > Prerequisite - The generalized image VHD should exist, as well as a Storage Account for boot diagnostics
 
@@ -26,3 +22,5 @@ If you are committing this template to source control, please insure that you ad
 
 ## variables.tf
 The `variables.tf` file contains all of the input parameters that the user can specify when deploying this Terraform template.
+
+![graph](/examples/azure-vm-from-user-image/graph.png)

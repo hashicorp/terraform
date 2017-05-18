@@ -261,6 +261,7 @@ func (s *PoolService) ListStoragePools(p *ListStoragePoolsParams) (*ListStorageP
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -480,6 +481,7 @@ func (s *PoolService) CreateStoragePool(p *CreateStoragePoolParams) (*CreateStor
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -600,6 +602,7 @@ func (s *PoolService) UpdateStoragePool(p *UpdateStoragePoolParams) (*UpdateStor
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -684,6 +687,7 @@ func (s *PoolService) DeleteStoragePool(p *DeleteStoragePoolParams) (*DeleteStor
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -770,6 +774,7 @@ func (s *PoolService) FindStoragePoolsForMigration(p *FindStoragePoolsForMigrati
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 

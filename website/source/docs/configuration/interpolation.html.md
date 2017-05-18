@@ -158,6 +158,11 @@ The supported built-in functions are:
     **This is not equivalent** of `base64encode(sha256(string))`
     since `sha256()` returns hexadecimal representation.
 
+  * `base64sha512(string)` - Returns a base64-encoded representation of raw
+    SHA-512 sum of the given string.
+    **This is not equivalent** of `base64encode(sha512(string))`
+    since `sha512()` returns hexadecimal representation.
+
   * `ceil(float)` - Returns the least integer value greater than or equal
       to the argument.
 
@@ -218,15 +223,6 @@ The supported built-in functions are:
       module, you generally want to make the path relative to the module base,
       like this: `file("${path.module}/file")`.
 
-  * `matchkeys(values, keys, searchset)` - For two lists `values` and `keys` of
-      equal length, returns all elements from `values` where the corresponding
-      element from `keys` exists in the `searchset` list.  E.g.
-      `matchkeys(aws_instance.example.*.id,
-      aws_instance.example.*.availability_zone, list("us-west-2a"))` will return a
-      list of the instance IDs of the `aws_instance.example` instances in
-      `"us-west-2a"`. No match will result in empty list. Items of `keys` are
-      processed sequentially, so the order of returned `values` is preserved.
-
   * `floor(float)` - Returns the greatest integer value less than or equal to
       the argument.
 
@@ -273,6 +269,8 @@ The supported built-in functions are:
       * `${list("a", "b", "c")}` returns a list of `"a", "b", "c"`.
       * `${list()}` returns an empty list.
 
+  * `log(x, base)` - Returns the logarithm of `x`.
+
   * `lookup(map, key, [default])` - Performs a dynamic lookup into a map
       variable. The `map` parameter should be another variable, such
       as `var.amis`. If `key` does not exist in `map`, the interpolation will
@@ -290,6 +288,15 @@ The supported built-in functions are:
     * `map("hello", "world")`
     * `map("us-east", list("a", "b", "c"), "us-west", list("b", "c", "d"))`
 
+  * `matchkeys(values, keys, searchset)` - For two lists `values` and `keys` of
+      equal length, returns all elements from `values` where the corresponding
+      element from `keys` exists in the `searchset` list.  E.g.
+      `matchkeys(aws_instance.example.*.id,
+      aws_instance.example.*.availability_zone, list("us-west-2a"))` will return a
+      list of the instance IDs of the `aws_instance.example` instances in
+      `"us-west-2a"`. No match will result in empty list. Items of `keys` are
+      processed sequentially, so the order of returned `values` is preserved.
+
   * `max(float1, float2, ...)` - Returns the largest of the floats.
 
   * `merge(map1, map2, ...)` - Returns the union of 2 or more maps. The maps
@@ -304,6 +311,12 @@ The supported built-in functions are:
 
   * `pathexpand(string)` - Returns a filepath string with `~` expanded to the home directory. Note:
     This will create a plan diff between two different hosts, unless the filepaths are the same.
+
+  * `pow(x, y)` - Returns the base `x` of exponential `y`.
+
+    Example:
+    * `${pow(3,2)}` = 9
+    * `${pow(4,0)}` = 1
 
   * `replace(string, search, replace)` - Does a search and replace on the
       given string. All instances of `search` are replaced with the value
@@ -320,6 +333,10 @@ The supported built-in functions are:
   * `sha256(string)` - Returns a (conventional) hexadecimal representation of the
     SHA-256 hash of the given string.
     Example: `"${sha256("${aws_vpc.default.tags.customer}-s3-bucket")}"`
+
+  * `sha512(string)` - Returns a (conventional) hexadecimal representation of the
+    SHA-512 hash of the given string.
+    Example: `"${sha512("${aws_vpc.default.tags.customer}-s3-bucket")}"`
 
   * `signum(int)` - Returns `-1` for negative numbers, `0` for `0` and `1` for positive numbers.
       This function is useful when you need to set a value for the first resource and

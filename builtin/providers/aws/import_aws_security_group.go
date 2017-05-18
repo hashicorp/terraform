@@ -118,6 +118,22 @@ func resourceAwsSecurityGroupImportStatePerm(sg *ec2.SecurityGroup, ruleType str
 			result = append(result, r)
 		}
 	}
+
+	if len(result) == 0 && len(perm.PrefixListIds) > 0 {
+		p := &ec2.IpPermission{
+			FromPort:      perm.FromPort,
+			IpProtocol:    perm.IpProtocol,
+			PrefixListIds: perm.PrefixListIds,
+			ToPort:        perm.ToPort,
+		}
+
+		r, err := resourceAwsSecurityGroupImportStatePermPair(sg, ruleType, p)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, r)
+	}
+
 	return result, nil
 }
 

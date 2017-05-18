@@ -67,7 +67,7 @@ func (v *Vdc) Refresh() error {
 	}
 
 	v.Vdc = unmarshalledVdc
-	
+
 	// The request was successful
 	return nil
 }
@@ -103,6 +103,30 @@ func (v *Vdc) FindVDCNetwork(network string) (OrgVDCNetwork, error) {
 	}
 
 	return OrgVDCNetwork{}, fmt.Errorf("can't find VDC Network: %s", network)
+}
+
+func (v *Vdc) FindStorageProfile(storage_profile string) (types.Reference, error) {
+
+	for _, an := range v.Vdc.VdcStorageProfiles {
+		for _, n := range an.VdcStorageProfile {
+			if n.Name == storage_profile {
+				return *n, nil
+			}
+		}
+		return types.Reference{}, fmt.Errorf("can't find VDC Storage_profile: %s", storage_profile)
+	}
+	return types.Reference{}, fmt.Errorf("can't find any VDC Storage_profiles")
+}
+
+func (v *Vdc) GetDefaultStorageProfile(storage_profiles *types.QueryResultRecordsType) (types.Reference, error) {
+
+	for _, n := range storage_profiles.OrgVdcStorageProfileRecord {
+		if n.IsDefaultStorageProfile {
+			storage_profile_reference := types.Reference{HREF: n.HREF, Name: n.Name}
+			return storage_profile_reference, nil
+		}
+	}
+	return types.Reference{}, fmt.Errorf("can't find Default VDC Storage_profile")
 }
 
 // Doesn't work with vCloud API 5.5, only vCloud Air
@@ -217,7 +241,7 @@ func (v *Vdc) FindVAppByName(vapp string) (VApp, error) {
 				newvapp := NewVApp(v.c)
 
 				if err = decodeBody(resp, newvapp.VApp); err != nil {
-					return VApp{}, fmt.Errorf("error decoding vApp response: %s", err)
+					return VApp{}, fmt.Errorf("error decoding vApp response: %s", err.Error())
 				}
 
 				return *newvapp, nil
@@ -226,6 +250,48 @@ func (v *Vdc) FindVAppByName(vapp string) (VApp, error) {
 		}
 	}
 	return VApp{}, fmt.Errorf("can't find vApp: %s", vapp)
+}
+
+func (v *Vdc) FindVMByName(vapp VApp, vm string) (VM, error) {
+
+	err := v.Refresh()
+	if err != nil {
+		return VM{}, fmt.Errorf("error refreshing vdc: %s", err)
+	}
+
+	for _, child := range vapp.VApp.Children.VM {
+
+		if child.Name == vm {
+
+			u, err := url.ParseRequestURI(child.HREF)
+
+			if err != nil {
+				return VM{}, fmt.Errorf("error decoding vdc response: %s", err)
+			}
+
+			// Querying the VApp
+			req := v.c.NewRequest(map[string]string{}, "GET", *u, nil)
+
+			resp, err := checkResp(v.c.Http.Do(req))
+			if err != nil {
+				return VM{}, fmt.Errorf("error retrieving vm: %s", err)
+			}
+
+			newvm := NewVM(v.c)
+
+			//body, err := ioutil.ReadAll(resp.Body)
+			//fmt.Println(string(body))
+
+			if err = decodeBody(resp, newvm.VM); err != nil {
+				return VM{}, fmt.Errorf("error decoding vm response: %s", err.Error())
+			}
+
+			return *newvm, nil
+
+		}
+
+	}
+	return VM{}, fmt.Errorf("can't find vm: %s", vm)
 }
 
 func (v *Vdc) FindVAppByID(vappid string) (VApp, error) {
@@ -239,13 +305,13 @@ func (v *Vdc) FindVAppByID(vappid string) (VApp, error) {
 	}
 
 	urnslice := strings.SplitAfter(vappid, ":")
-	urnid := urnslice[len(urnslice)-1]
+	urnid := urnslice[len(urnslice) - 1]
 
 	for _, resents := range v.Vdc.ResourceEntities {
 		for _, resent := range resents.ResourceEntity {
 
 			hrefslice := strings.SplitAfter(resent.HREF, "/")
-			hrefslice = strings.SplitAfter(hrefslice[len(hrefslice)-1], "-")
+			hrefslice = strings.SplitAfter(hrefslice[len(hrefslice) - 1], "-")
 			res := strings.Join(hrefslice[1:], "")
 
 			if res == urnid && resent.Type == "application/vnd.vmware.vcloud.vApp+xml" {

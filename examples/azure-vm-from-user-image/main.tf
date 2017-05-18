@@ -1,3 +1,13 @@
+<<<<<<< HEAD
+=======
+# provider "azurerm" {
+#   subscription_id = "REPLACE-WITH-YOUR-SUBSCRIPTION-ID"
+#   client_id       = "REPLACE-WITH-YOUR-CLIENT-ID"
+#   client_secret   = "REPLACE-WITH-YOUR-CLIENT-SECRET"
+#   tenant_id       = "REPLACE-WITH-YOUR-TENANT-ID"
+# }
+
+>>>>>>> 0b2d02fc41b3ada007131e546797318ff049ef99
 resource "azurerm_resource_group" "rg" {
   name     = "${var.resource_group}"
   location = "${var.location}"
@@ -34,7 +44,7 @@ resource "azurerm_public_ip" "pip" {
   name                         = "${var.hostname}-ip"
   location                     = "${var.location}"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
-  public_ip_address_allocation = "dynamic"
+  public_ip_address_allocation = "Dynamic"
   domain_name_label            = "${var.hostname}"
 }
 
