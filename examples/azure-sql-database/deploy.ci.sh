@@ -13,7 +13,7 @@ docker run --rm -it \
   hashicorp/terraform:light \
   -c "/bin/terraform get; \
       /bin/terraform validate; \
-      /bin/terraform plan -out=out.tfplan -var resource_group=$KEY -var sql_admin=$KEY -var sql_password=$PASSWORD; \
+      /bin/terraform plan -out=out.tfplan -var resource_group=$KEY -var sql_admin=$KEY -var sql_password=a!@abcd9753w0w@h@12; \
       /bin/terraform apply out.tfplan; \
       /bin/terraform show;"
 
@@ -34,4 +34,4 @@ docker run --rm -it \
   --workdir=/data \
   --entrypoint "/bin/sh" \
   hashicorp/terraform:light \
-  -c "/bin/terraform destroy -force -var resource_group=$KEY -var sql_admin=$KEY -var sql_password=$PASSWORD;"
+  -c "/bin/terraform destroy -force -var resource_group=$KEY -var sql_admin=$KEY -var sql_password=a!@abcd9753w0w@h@12;"
