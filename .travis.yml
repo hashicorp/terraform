@@ -25,6 +25,7 @@ before_deploy:
   - export EXISTING_IMAGE_URI=https://permanentstor.blob.core.windows.net/permanent-vhds/permanent-osdisk1.vhd
   - export EXISTING_STORAGE_ACCOUNT_NAME=permanentstor
   - export EXISTING_RESOURCE_GROUP=permanent
+  - export KEY_VAULT_NAME=permanentkeyvault
 
 # terraform deploy + script
 deploy:
