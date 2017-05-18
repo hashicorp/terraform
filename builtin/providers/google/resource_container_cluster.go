@@ -25,7 +25,7 @@ func resourceContainerCluster() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"master_auth": &schema.Schema{
 				Type:     schema.TypeList,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -342,19 +342,21 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 	zoneName := d.Get("zone").(string)
 	clusterName := d.Get("name").(string)
 
-	masterAuths := d.Get("master_auth").([]interface{})
-	if len(masterAuths) > 1 {
-		return fmt.Errorf("Cannot specify more than one master_auth.")
-	}
-	masterAuth := masterAuths[0].(map[string]interface{})
-
 	cluster := &container.Cluster{
-		MasterAuth: &container.MasterAuth{
-			Password: masterAuth["password"].(string),
-			Username: masterAuth["username"].(string),
-		},
 		Name:             clusterName,
 		InitialNodeCount: int64(d.Get("initial_node_count").(int)),
+	}
+
+	if v, ok := d.GetOk("master_auth"); ok {
+		masterAuths := v.([]interface{})
+		if len(masterAuths) > 1 {
+			return fmt.Errorf("Cannot specify more than one master_auth.")
+		}
+		masterAuth := masterAuths[0].(map[string]interface{})
+		cluster.MasterAuth = &container.MasterAuth{
+			Password: masterAuth["password"].(string),
+			Username: masterAuth["username"].(string),
+		}
 	}
 
 	if v, ok := d.GetOk("node_version"); ok {
