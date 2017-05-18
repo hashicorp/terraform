@@ -107,7 +107,7 @@ func resourceRancherEnvironmentCreate(d *schema.ResourceData, meta interface{}) 
 	log.Printf("[INFO] Environment ID: %s", d.Id())
 
 	// Add members
-	if v, ok := d.GetOk("members"); ok {
+	if v, ok := d.GetOk("member"); ok {
 		envClient, err := meta.(*Config).EnvironmentClient(d.Id())
 		if err != nil {
 			return err
