@@ -19,13 +19,6 @@ resource "azurerm_sql_database" "db" {
   create_mode                      = "Default"
   requested_service_objective_name = "Basic"
   server_name                      = "${azurerm_sql_server.server.name}"
-
-  # Terraform does not currently support this resource.
-  # transparent_data_encryption {
-  #   name = "current"
-  #   type = "transparentDataEncryption"
-  #   status = "Enabled"
-  # }
 }
 
 resource "azurerm_sql_server" "server" {
