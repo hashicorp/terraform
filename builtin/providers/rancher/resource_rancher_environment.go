@@ -107,11 +107,11 @@ func resourceRancherEnvironmentCreate(d *schema.ResourceData, meta interface{}) 
 	log.Printf("[INFO] Environment ID: %s", d.Id())
 
 	// Add members
-	envClient, err := meta.(*Config).EnvironmentClient(d.Id())
-	if err != nil {
-		return err
-	}
 	if v, ok := d.GetOk("members"); ok {
+		envClient, err := meta.(*Config).EnvironmentClient(d.Id())
+		if err != nil {
+			return err
+		}
 		members := v.([]interface{})
 		_, err = envClient.Project.ActionSetmembers(&newEnv, &rancherClient.SetProjectMembersInput{
 			Members: members,
