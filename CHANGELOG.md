@@ -2,6 +2,7 @@
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
+* provider/aws: Users of `aws_cloudfront_distribution` `default_cache_behavior` will notice that cookies is now a required value - even if that value is none [GH-12628]
 * provider/google: Users of `google_compute_health_check` who were not setting a value for the `host` property of `http_health_check` or `https_health_check` previously had a faulty default value. This has been fixed and will show as a change in terraform plan/apply. [GH-14441]
 
 FEATURES:
@@ -60,6 +61,7 @@ BUG FIXES:
 * provider/aws: Change of aws_subnet ipv6 causing update failure [GH-14545]
 * provider/aws: Nothing to update in cloudformation should not result in errors [GH-14463]
 * provider/aws: Handling data migration in RDS snapshot restoring [GH-14622]
+* provider/aws: Mark cookies in `default_cache_behaviour` of cloudfront_distribution as required [GH-12628]
 * provider/cloudstack: `cloudstack_firewall` panicked when used with older (< v4.6) CloudStack versions [GH-14044]
 * provider/datadog: Allowed method on aggregator is `avg` ! `average` [GH-14414]
 * provider/digitalocean: Fix parsing of digitalocean dns records [GH-14215]
