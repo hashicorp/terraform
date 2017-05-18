@@ -220,7 +220,6 @@ resource "azurerm_template_deployment" "linux_vm" {
   }
 }
 DEPLOY
-
 }
 
 output "BitLockerKey" {

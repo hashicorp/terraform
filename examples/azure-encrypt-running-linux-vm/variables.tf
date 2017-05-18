@@ -70,7 +70,7 @@ variable "aad_client_secret" {
 
 variable "disk_format_query" {
   description = "The query string used to identify the disks to format and encrypt. This parameter only works when you set the EncryptionOperation as EnableEncryptionFormat. For example, passing [{\"dev_path\":\"/dev/md0\",\"name\":\"encryptedraid\",\"file_system\":\"ext4\"}] will format /dev/md0, encrypt it and mount it at /mnt/dataraid. This parameter should only be used for RAID devices. The specified device must not have any existing filesystem on it."
-  default = ""
+  default     = ""
 }
 
 variable "encryption_operation" {
@@ -103,6 +103,7 @@ variable "extension_name" {
   description = "the name of the vm extension"
   default     = "AzureDiskEncryptionForLinux"
 }
+
 variable "sequence_version" {
   description = "sequence version of the bitlocker operation. Increment this everytime an operation is performed on the same VM"
   default     = 1
@@ -110,15 +111,15 @@ variable "sequence_version" {
 
 variable "use_kek" {
   description = "Select kek if the secret should be encrypted with a key encryption key. Allowed values: kek, nokek"
-  default = "kek"
+  default     = "kek"
 }
 
 variable "artifacts_location" {
   description = "The base URI where artifacts required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated."
-  default = "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master"
+  default     = "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master"
 }
 
 variable "artifacts_location_sas_token" {
   description = "The sasToken required to access _artifactsLocation.  When the template is deployed using the accompanying scripts, a sasToken will be automatically generated."
-  default = ""
+  default     = ""
 }

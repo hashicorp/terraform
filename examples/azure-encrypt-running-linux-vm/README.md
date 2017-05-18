@@ -9,7 +9,7 @@ Azure Disk Encryption securely stores the encryption secrets in a specified Azur
 
 Create the Key Vault and assign appropriate access policies.
 
-Use the below PS cmdlet for getting the "keyVaultSecretUrl" and "keyVaultResourceId"
+Use the below PS cmdlet for getting the `key_vault_secret_url` and `key_vault_resource_id`.
 
 ```
     Get-AzureRmKeyVault -VaultName $KeyVaultName -ResourceGroupName $rgname
