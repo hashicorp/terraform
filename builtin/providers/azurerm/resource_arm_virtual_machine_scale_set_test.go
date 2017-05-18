@@ -1407,8 +1407,10 @@ resource "azurerm_virtual_machine_scale_set" "test" {
 		lun 		   = 0
     	caching        = "ReadWrite"
     	create_option  = "Empty"
-		disk_size_gb   = 10	
+		disk_size_gb   = 10
+	    managed_disk_type = "Standard_LRS"	
   	}
+
   	storage_profile_image_reference {
     	publisher = "Canonical"
     	offer     = "UbuntuServer"

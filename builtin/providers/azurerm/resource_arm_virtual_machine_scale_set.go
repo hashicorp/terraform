@@ -348,11 +348,6 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": {
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-
 						"lun": {
 							Type:     schema.TypeInt,
 							Required: true,
@@ -867,11 +862,6 @@ func flattenAzureRmVirtualMachineScaleSetStorageProfileDataDisk(disks *[]compute
 	result := make([]interface{}, len(*disks))
 	for i, disk := range *disks {
 		l := make(map[string]interface{})
-		//Name is optional with Managed Disks
-		if disk.Name != nil {
-			l["name"] = *disk.Name
-		}
-
 		if disk.ManagedDisk != nil {
 			l["managed_disk_type"] = string(disk.ManagedDisk.StorageAccountType)
 		}
@@ -1241,13 +1231,11 @@ func expandAzureRMVirtualMachineScaleSetsStorageProfileDataDisk(d *schema.Resour
 	for _, diskConfig := range disks {
 		config := diskConfig.(map[string]interface{})
 
-		name := config["name"].(string)
 		createOption := config["create_option"].(string)
 		managedDiskType := config["managed_disk_type"].(string)
 		lun := int32(config["lun"].(int))
 
 		dataDisk := compute.VirtualMachineScaleSetDataDisk{
-			Name:         &name,
 			Lun:          &lun,
 			CreateOption: compute.DiskCreateOptionTypes(createOption),
 		}
@@ -1262,9 +1250,6 @@ func expandAzureRMVirtualMachineScaleSetsStorageProfileDataDisk(d *schema.Resour
 
 		//assume that data disks in VMSS can only be Managed Disks
 		dataDisk.ManagedDisk = managedDiskVMSS
-		//Name is not allowed with Managed Disks when used with VMSS (API Error)
-		dataDisk.Name = nil
-
 		if v := config["caching"].(string); v != "" {
 			dataDisk.Caching = compute.CachingTypes(v)
 		}
