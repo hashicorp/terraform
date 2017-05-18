@@ -314,6 +314,8 @@ The supported built-in functions are:
 
   * `pow(x, y)` - Returns the base `x` of exponential `y`.
 
+      *NOTE* : This function accepts float values.
+
     Example:
     * `${pow(3,2)}` = 9
     * `${pow(4,0)}` = 1
