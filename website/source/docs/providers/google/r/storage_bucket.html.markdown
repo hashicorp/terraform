@@ -66,3 +66,5 @@ In addition to the arguments listed above, the following computed attributes are
 exported:
 
 * `self_link` - The URI of the created resource.
+
+* `url` - The base URL of the bucket, in the format `gs://<bucket-name>`.

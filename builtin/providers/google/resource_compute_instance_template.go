@@ -2,13 +2,11 @@ package google
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeInstanceTemplate() *schema.Resource {
@@ -195,6 +193,12 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 							Optional: true,
 							ForceNew: true,
 							Computed: true,
+						},
+
+						"network_ip": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
 						},
 
 						"subnetwork": &schema.Schema{
@@ -462,7 +466,9 @@ func buildNetworks(d *schema.ResourceData, meta interface{}) ([]*compute.Network
 		var iface compute.NetworkInterface
 		iface.Network = networkLink
 		iface.Subnetwork = subnetworkLink
-
+		if v, ok := d.GetOk(prefix + ".network_ip"); ok {
+			iface.NetworkIP = v.(string)
+		}
 		accessConfigsCount := d.Get(prefix + ".access_config.#").(int)
 		iface.AccessConfigs = make([]*compute.AccessConfig, accessConfigsCount)
 		for j := 0; j < accessConfigsCount; j++ {
@@ -648,6 +654,9 @@ func flattenNetworkInterfaces(networkInterfaces []*compute.NetworkInterface) ([]
 			networkUrl := strings.Split(networkInterface.Network, "/")
 			networkInterfaceMap["network"] = networkUrl[len(networkUrl)-1]
 		}
+		if networkInterface.NetworkIP != "" {
+			networkInterfaceMap["network_ip"] = networkInterface.NetworkIP
+		}
 		if networkInterface.Subnetwork != "" {
 			subnetworkUrl := strings.Split(networkInterface.Subnetwork, "/")
 			networkInterfaceMap["subnetwork"] = subnetworkUrl[len(subnetworkUrl)-1]
@@ -710,14 +719,7 @@ func resourceComputeInstanceTemplateRead(d *schema.ResourceData, meta interface{
 	instanceTemplate, err := config.clientCompute.InstanceTemplates.Get(
 		project, d.Id()).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing Instance Template %q because it's gone", d.Get("name").(string))
-			// The resource doesn't exist anymore
-			d.SetId("")
-			return nil
-		}
-
-		return fmt.Errorf("Error reading instance template: %s", err)
+		return handleNotFoundError(err, d, fmt.Sprintf("Instance Template %q", d.Get("name").(string)))
 	}
 
 	// Set the metadata fingerprint if there is one.

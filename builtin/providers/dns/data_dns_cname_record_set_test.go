@@ -3,13 +3,14 @@ package dns
 import (
 	"testing"
 
-	r "github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/resource"
 )
 
 func TestAccDnsCnameRecordSet_Basic(t *testing.T) {
 	tests := []struct {
 		DataSourceBlock string
 		Expected        string
+		Host            string
 	}{
 		{
 			`
@@ -18,17 +19,24 @@ func TestAccDnsCnameRecordSet_Basic(t *testing.T) {
 			}
 			`,
 			"dualstack.s.shared.global.fastly.net.",
+			"www.hashicorp.com",
 		},
 	}
 
 	for _, test := range tests {
-		r.UnitTest(t, r.TestCase{
+		resource.Test(t, resource.TestCase{
 			Providers: testAccProviders,
-			Steps: []r.TestStep{
-				r.TestStep{
+			Steps: []resource.TestStep{
+				resource.TestStep{
 					Config: test.DataSourceBlock,
-					Check: r.ComposeTestCheckFunc(
-						r.TestCheckResourceAttr("data.dns_cname_record_set.foo", "cname", test.Expected),
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("data.dns_cname_record_set.foo", "cname", test.Expected),
+					),
+				},
+				resource.TestStep{
+					Config: test.DataSourceBlock,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("data.dns_cname_record_set.foo", "id", test.Host),
 					),
 				},
 			},

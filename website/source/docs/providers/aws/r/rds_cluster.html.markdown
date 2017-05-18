@@ -69,7 +69,7 @@ The following arguments are supported:
   instances in the DB cluster can be created in
 * `backup_retention_period` - (Optional) The days to retain backups for. Default
 1
-* `preferred_backup_window` - (Optional) The daily time range during which automated backups are created if automated backups are enabled using the BackupRetentionPeriod parameter.
+* `preferred_backup_window` - (Optional) The daily time range during which automated backups are created if automated backups are enabled using the BackupRetentionPeriod parameter.Time in UTC
 Default: A 30-minute window selected at random from an 8-hour block of time per region. e.g. 04:00-09:00
 * `preferred_maintenance_window` - (Optional) The weekly time range during which system maintenance can occur, in (UTC) e.g. wed:04:00-wed:04:30
 * `port` - (Optional) The port on which the DB accepts connections
@@ -83,6 +83,7 @@ Default: A 30-minute window selected at random from an 8-hour block of time per 
 * `db_subnet_group_name` - (Optional) A DB subnet group to associate with this DB instance. **NOTE:** This must match the `db_subnet_group_name` specified on every [`aws_rds_cluster_instance`](/docs/providers/aws/r/rds_cluster_instance.html) in the cluster.
 * `db_cluster_parameter_group_name` - (Optional) A cluster parameter group to associate with the cluster.
 * `kms_key_id` - (Optional) The ARN for the KMS encryption key. When specifying `kms_key_id`, `storage_encrypted` needs to be set to true.
+* `iam_database_authentication_enabled` - (Optional) Specifies whether or mappings of AWS Identity and Access Management (IAM) accounts to database accounts is enabled.
 
 ## Attributes Reference
 
@@ -114,6 +115,16 @@ load-balanced across replicas
 [2]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Aurora.html
 [3]: /docs/providers/aws/r/rds_cluster_instance.html
 [4]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Maintenance.html
+
+## Timeouts
+
+`aws_rds_cluster` provides the following
+[Timeouts](/docs/configuration/resources.html#timeouts) configuration options:
+
+- `create` - (Default `120 minutes`) Used for Cluster creation
+- `update` - (Default `120 minutes`) Used for Cluster modifications
+- `delete` - (Default `120 minutes`) Used for destroying cluster. This includes
+any cleanup task during the destroying process.
 
 ## Import
 

@@ -13,10 +13,29 @@ Generates an archive from content, a file, or directory of files.
 ## Example Usage
 
 ```hcl
+# Archive a single file.
+
 data "archive_file" "init" {
   type        = "zip"
   source_file = "${path.module}/init.tpl"
   output_path = "${path.module}/files/init.zip"
+}
+
+# Archive multiple files.
+
+data "archive_file" "dotfiles" {
+  type        = "zip"
+  output_path = "${path.module}/files/dotfiles.zip"
+
+  source {
+    content  = "${data.template_file.vimrc.rendered}"
+    filename = ".vimrc"
+  }
+
+  source {
+    content  = "${data.template_file.ssh_config.rendered}"
+    filename = ".ssh/config"
+  }
 }
 ```
 
@@ -24,20 +43,28 @@ data "archive_file" "init" {
 
 The following arguments are supported:
 
-NOTE: One of `source_content_filename` (with `source_content`), `source_file`, or `source_dir` must be specified.
+NOTE: One of `source`, `source_content_filename` (with `source_content`), `source_file`, or `source_dir` must be specified.
 
-* `type` - (required) The type of archive to generate.
+* `type` - (Required) The type of archive to generate.
   NOTE: `zip` is supported.
 
-* `output_path` - (required) The output of the archive file.
+* `output_path` - (Required) The output of the archive file.
 
-* `source_content` - (optional) Add only this content to the archive with `source_content_filename` as the filename.
+* `source_content` - (Optional) Add only this content to the archive with `source_content_filename` as the filename.
 
-* `source_content_filename` - (optional) Set this as the filename when using `source_content`.
+* `source_content_filename` - (Optional) Set this as the filename when using `source_content`.
 
-* `source_file` - (optional) Package this file into the archive.
+* `source_file` - (Optional) Package this file into the archive.
 
-* `source_dir` - (optional) Package entire contents of this directory into the archive.
+* `source_dir` - (Optional) Package entire contents of this directory into the archive.
+
+* `source` - (Optional) Specifies attributes of a single source file to include into the archive.
+
+The `source` block supports the following:
+
+* `content` - (Required) Add this content to the archive with `filename` as the filename.
+
+* `filename` - (Required) Set this as the filename when declaring a `source`.
 
 ## Attributes Reference
 

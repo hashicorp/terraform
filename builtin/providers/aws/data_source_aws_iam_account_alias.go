@@ -34,6 +34,7 @@ func dataSourceAwsIamAccountAliasRead(d *schema.ResourceData, meta interface{}) 
 	if err != nil {
 		return err
 	}
+
 	// 'AccountAliases': [] if there is no alias.
 	if resp == nil || len(resp.AccountAliases) == 0 {
 		return fmt.Errorf("no IAM account alias found")

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -139,7 +140,7 @@ func resourceAwsDbOptionGroupCreate(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Error creating DB Option Group: %s", err)
 	}
 
-	d.SetId(groupName)
+	d.SetId(strings.ToLower(groupName))
 	log.Printf("[INFO] DB Option Group ID: %s", d.Id())
 
 	return resourceAwsDbOptionGroupUpdate(d, meta)
