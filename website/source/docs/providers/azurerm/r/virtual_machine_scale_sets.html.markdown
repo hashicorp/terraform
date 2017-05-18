@@ -195,6 +195,13 @@ resource "azurerm_virtual_machine_scale_set" "test" {
     managed_disk_type = "Standard_LRS"
   }
 
+  storage_profile_data_disk {
+	  lun 		   = 0
+    caching        = "ReadWrite"
+    create_option  = "Empty"
+    disk_size_gb   = 10	
+  }
+
   os_profile {
     computer_name_prefix = "testvm"
     admin_username       = "myadmin"
@@ -248,6 +255,7 @@ The following arguments are supported:
 * `os_profile_linux_config` - (Required, when a linux machine) A Linux config block as documented below.
 * `network_profile` - (Required) A collection of network profile block as documented below.
 * `storage_profile_os_disk` - (Required) A storage profile os disk block as documented below
+* `storage_profile_data_disk` - (Optional) A storage profile data disk block as documented below
 * `storage_profile_image_reference` - (Optional) A storage profile image reference block as documented below.
 * `extension` - (Optional) Can be specified multiple times to add extension profiles to the scale set. Each `extension` block supports the fields documented below.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
@@ -328,6 +336,15 @@ The following arguments are supported:
                        Updating the osDisk image causes the existing disk to be deleted and a new one created with the new image. If the VM scale set is in Manual upgrade mode then the virtual machines are not updated until they have manualUpgrade applied to them.
                        When setting this field `os_type` needs to be specified. Cannot be used when `vhd_containers`, `managed_disk_type` or `storage_profile_image_reference ` are specified.
 * `os_type` - (Optional) Specifies the operating system Type, valid values are windows, linux.
+
+`storage_profile_data_disk` supports the following:
+
+* `lun` - (Required) Specifies the Logical Unit Number of the disk in each virtual machine in the scale set.
+`Premium_LRS`.
+* `create_option` - (Optional) Specifies how the data disk should be created. The only possible options are `FromImage` and `Empty`.
+* `caching` - (Optional) Specifies the caching requirements. Possible values include: `None` (default), `ReadOnly`, `ReadWrite`.
+* `disk_size_gb` - (Optional) Specifies the size of the disk in GB. This element is required when creating an empty disk.
+* `managed_disk_type` - (Optional) Specifies the type of managed disk to create. Value must be either `Standard_LRS` or 
 
 `storage_profile_image_reference` supports the following:
 
