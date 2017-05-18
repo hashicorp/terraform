@@ -36,6 +36,7 @@ IMPROVEMENTS:
 * provider/fastly: Mark the `s3_access_key`, `s3_secret_key`, & `secret_key` fields as sensitive [GH-14634]
 * provider/google: Add a `url` attribute to `google_storage_bucket` [GH-14393]
 * provider/google: Make google resource storage bucket importable [GH-14455]
+* provider/google: Add support for privateIpGoogleAccess on subnetworks [GH-14234]
 * provider/heroku: Add import support for `heroku_pipeline` resource [GH-14486]
 * provider/heroku: Add import support for `heroku_pipeline_coupling` resource [GH-14495]
 * provider/openstack: Add support for all protocols in Security Group Rules [GH-14307]
