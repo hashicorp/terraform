@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
-	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -115,12 +114,16 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		APIURL:    apiURL,
 		AccessKey: accessKey,
 		SecretKey: secretKey,
-		V2Client:  strings.Contains(apiURL, "v2"),
 	}
 
-	_, err := config.GlobalClient()
+	client, err := config.GlobalClient()
+	if err != nil {
+		return &Config{}, err
+	}
+	// Let Rancher Client normalizes the URL making it reliable as a base.
+	config.APIURL = client.GetOpts().Url
 
-	return config, err
+	return config, nil
 }
 
 func loadConfig(path string) (CLIConfig, error) {

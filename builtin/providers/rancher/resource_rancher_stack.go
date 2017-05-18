@@ -1,8 +1,10 @@
 package rancher
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"reflect"
 	"strings"
 	"time"
@@ -11,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/rancher/go-rancher/catalog"
 	rancherClient "github.com/rancher/go-rancher/v2"
 )
 
@@ -211,7 +214,7 @@ func resourceRancherStackUpdate(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	var newStack rancherClient.Stack
-	if err = client.Update("environment", &stack.Resource, data, &newStack); err != nil {
+	if err = client.Update(stack.Type, &stack.Resource, data, &newStack); err != nil {
 		return err
 	}
 
@@ -401,17 +404,18 @@ func makeStackData(d *schema.ResourceData, meta interface{}) (data map[string]in
 		if err != nil {
 			return data, err
 		}
-		template, err := catalogClient.Template.ById(catalogID)
+
+		templateVersion, err := getCatalogTemplateVersion(catalogClient, catalogID)
 		if err != nil {
-			return data, fmt.Errorf("Failed to get catalog template: %s", err)
+			return data, err
 		}
 
-		if template == nil {
-			return data, fmt.Errorf("Unknown catalog template %s", catalogID)
+		if templateVersion.Id != catalogID {
+			return data, fmt.Errorf("Did not find template %s", catalogID)
 		}
 
-		dockerCompose = template.Files["docker-compose.yml"].(string)
-		rancherCompose = template.Files["rancher-compose.yml"].(string)
+		dockerCompose = templateVersion.Files["docker-compose.yml"].(string)
+		rancherCompose = templateVersion.Files["rancher-compose.yml"].(string)
 	}
 
 	if c, ok := d.GetOk("docker_compose"); ok {
@@ -420,9 +424,11 @@ func makeStackData(d *schema.ResourceData, meta interface{}) (data map[string]in
 	if c, ok := d.GetOk("rancher_compose"); ok {
 		rancherCompose = c.(string)
 	}
+
 	environment = environmentFromMap(d.Get("environment").(map[string]interface{}))
 
 	startOnCreate := d.Get("start_on_create")
+	system := systemScope(d.Get("scope").(string))
 
 	data = map[string]interface{}{
 		"name":           &name,
@@ -432,6 +438,7 @@ func makeStackData(d *schema.ResourceData, meta interface{}) (data map[string]in
 		"environment":    &environment,
 		"externalId":     &externalID,
 		"startOnCreate":  &startOnCreate,
+		"system":         &system,
 	}
 
 	return data, nil
@@ -451,4 +458,48 @@ func suppressComposeDiff(k, old, new string, d *schema.ResourceData) bool {
 	}
 
 	return reflect.DeepEqual(cOld, cNew)
+}
+
+func getCatalogTemplateVersion(c *catalog.RancherClient, catalogID string) (*catalog.TemplateVersion, error) {
+	templateVersion := &catalog.TemplateVersion{}
+
+	namesAndFolder := strings.SplitN(catalogID, ":", 3)
+	if len(namesAndFolder) != 3 {
+		return templateVersion, fmt.Errorf("catalog_id: %s not in 'catalog:name:N' format", catalogID)
+	}
+
+	template, err := c.Template.ById(namesAndFolder[0] + ":" + namesAndFolder[1])
+	if err != nil {
+		return templateVersion, fmt.Errorf("Failed to get catalog template: %s at url %s", err, c.GetOpts().Url)
+	}
+
+	if template == nil {
+		return templateVersion, fmt.Errorf("Unknown catalog template %s", catalogID)
+	}
+
+	for _, versionLink := range template.VersionLinks {
+		if strings.HasSuffix(versionLink.(string), catalogID) {
+			client := &http.Client{}
+			req, err := http.NewRequest("GET", fmt.Sprint(versionLink), nil)
+			req.SetBasicAuth(c.GetOpts().AccessKey, c.GetOpts().SecretKey)
+			resp, err := client.Do(req)
+			if err != nil {
+				return templateVersion, err
+			}
+			defer resp.Body.Close()
+
+			if resp.StatusCode != 200 {
+				return templateVersion, fmt.Errorf("Bad Response %d lookup up %s", resp.StatusCode, versionLink)
+			}
+
+			err = json.NewDecoder(resp.Body).Decode(templateVersion)
+			return templateVersion, err
+		}
+	}
+
+	return templateVersion, nil
+}
+
+func systemScope(scope string) bool {
+	return scope == "system"
 }

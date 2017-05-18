@@ -3,8 +3,8 @@ package rancher
 import (
 	"log"
 
+	"github.com/rancher/go-rancher/catalog"
 	rancherClient "github.com/rancher/go-rancher/v2"
-	"github.com/raphink/go-rancher/catalog"
 )
 
 // Config is the configuration parameters for a Rancher API
@@ -12,7 +12,6 @@ type Config struct {
 	APIURL    string
 	AccessKey string
 	SecretKey string
-	V2Client  bool
 }
 
 // GlobalClient creates a Rancher client scoped to the global API
@@ -34,19 +33,24 @@ func (c *Config) GlobalClient() (*rancherClient.RancherClient, error) {
 // EnvironmentClient creates a Rancher client scoped to an Environment's API
 func (c *Config) EnvironmentClient(env string) (*rancherClient.RancherClient, error) {
 
-	url := c.APIURL + "/projects/" + env + "/schemas"
-	client, err := rancherClient.NewRancherClient(&rancherClient.ClientOpts{
-		Url:       url,
-		AccessKey: c.AccessKey,
-		SecretKey: c.SecretKey,
-	})
+	globalClient, err := c.GlobalClient()
 	if err != nil {
 		return nil, err
 	}
 
-	log.Printf("[INFO] Rancher Client configured for url: %s", url)
+	project, err := globalClient.Project.ById(env)
+	if err != nil {
+		return nil, err
+	}
+	projectURL := project.Links["self"]
 
-	return client, nil
+	log.Printf("[INFO] Rancher Client configured for url: %s/schemas", projectURL)
+
+	return rancherClient.NewRancherClient(&rancherClient.ClientOpts{
+		Url:       projectURL + "/schemas",
+		AccessKey: c.AccessKey,
+		SecretKey: c.SecretKey,
+	})
 }
 
 // RegistryClient creates a Rancher client scoped to a Registry's API
@@ -65,18 +69,9 @@ func (c *Config) RegistryClient(id string) (*rancherClient.RancherClient, error)
 
 // CatalogClient creates a Rancher client scoped to a Catalog's API
 func (c *Config) CatalogClient() (*catalog.RancherClient, error) {
-
-	url := c.APIURL + "-catalog/schemas"
-	client, err := catalog.NewRancherClient(&catalog.ClientOpts{
-		Url:       url,
+	return catalog.NewRancherClient(&catalog.ClientOpts{
+		Url:       c.APIURL,
 		AccessKey: c.AccessKey,
 		SecretKey: c.SecretKey,
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	log.Printf("[INFO] Rancher Catalog Client configured for url: %s", url)
-
-	return client, nil
 }

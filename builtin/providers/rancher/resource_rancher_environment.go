@@ -135,7 +135,7 @@ func resourceRancherEnvironmentCreate(d *schema.ResourceData, meta interface{}) 
 		if err != nil {
 			return err
 		}
-		members := v.([]interface{})
+		members := makeProjectMembers(v.([]interface{}))
 		_, err = envClient.Project.ActionSetmembers(&newEnv, &rancherClient.SetProjectMembersInput{
 			Members: members,
 		})
@@ -306,7 +306,7 @@ func normalizeMembers(in []rancherClient.ProjectMember) (out []interface{}) {
 	return
 }
 
-func makeProjectMembers(in []interface{}) (out []interface{}) {
+func makeProjectMembers(in []interface{}) (out []rancherClient.ProjectMember) {
 	for _, m := range in {
 		mMap := m.(map[string]interface{})
 		mm := rancherClient.ProjectMember{
