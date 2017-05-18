@@ -12,7 +12,7 @@ The ``opc_compute_sec_rule`` resource creates and manages a sec rule in an OPC i
 
 ## Example Usage
 
-```
+```hcl
 resource "opc_compute_sec_rule" "test_rule" {
   name             = "test"
   source_list      = "seclist:${opc_compute_security_list.sec-list1.name}"
@@ -52,6 +52,6 @@ In addition to the above, the following values are exported:
 
 Sec Rule's can be imported using the `resource name`, e.g.
 
-```
-terraform import opc_compute_sec_rule.rule1 example
+```shell
+$ terraform import opc_compute_sec_rule.rule1 example
 ```

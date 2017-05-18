@@ -103,7 +103,7 @@ func tagsToMapKMS(ts []*kms.Tag) map[string]string {
 // compare a tag against a list of strings and checks if it should
 // be ignored or not
 func tagIgnoredKMS(t *kms.Tag) bool {
-	filter := []string{"^aws:*"}
+	filter := []string{"^aws:"}
 	for _, v := range filter {
 		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.TagKey)
 		if r, _ := regexp.MatchString(v, *t.TagKey); r == true {

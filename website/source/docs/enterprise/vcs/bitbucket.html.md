@@ -53,7 +53,7 @@ You are now ready to use your personal token to manage builds and configurations
 ## Connecting Configurations
 
 Once you have linked a Bitbucket installation to your account or organization,
-you are ready to begin creating Packer Builds and Terraform Enviroments linked
+you are ready to begin creating Packer Builds and Terraform Environments linked
 to your desired Bitbucket Cloud repository.
 
 Terraform Enterprise environments are linked to individual GitHub repositories.

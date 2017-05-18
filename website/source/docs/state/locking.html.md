@@ -19,7 +19,7 @@ with the `-lock` flag but it is not recommended.
 
 If acquiring the lock is taking longer than expected, Terraform will output
 a status message. If Terraform doesn't output a message, state locking is
-still occuring if your backend supports it.
+still occurring if your backend supports it.
 
 Not all [backends](/docs/backends) support locking. Please view the list
 of [backend types](/docs/backends/types) for details on whether a backend

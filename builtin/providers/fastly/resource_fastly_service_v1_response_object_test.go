@@ -80,7 +80,7 @@ func testAccCheckFastlyServiceV1ResponseObjectAttributes(service *gofastly.Servi
 		})
 
 		if err != nil {
-			return fmt.Errorf("[ERR] Error looking up Response Object for (%s), version (%s): %s", service.Name, service.ActiveVersion.Number, err)
+			return fmt.Errorf("[ERR] Error looking up Response Object for (%s), version (%v): %s", service.Name, service.ActiveVersion.Number, err)
 		}
 
 		if len(responseObjectList) != len(responseObjects) {

@@ -177,8 +177,9 @@ func resourceArmVirtualMachine() *schema.Resource {
 						},
 
 						"create_option": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:             schema.TypeString,
+							Required:         true,
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"disk_size_gb": {
@@ -232,8 +233,9 @@ func resourceArmVirtualMachine() *schema.Resource {
 						},
 
 						"create_option": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:             schema.TypeString,
+							Required:         true,
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"caching": {

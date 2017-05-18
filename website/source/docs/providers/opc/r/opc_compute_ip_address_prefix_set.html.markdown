@@ -12,7 +12,7 @@ The ``opc_compute_ip_address_prefix_set`` resource creates and manages an IP add
 
 ## Example Usage
 
-```
+```hcl
 resource "opc_compute_ip_address_prefix_set" "default" {
   name     = "PrefixSet1"
   prefixes = ["192.168.0.0/16", "172.120.0.0/24"]
@@ -40,6 +40,6 @@ In addition to the above, the following variables are exported:
 
 IP Address Prefix Set can be imported using the `resource name`, e.g.
 
-```
-terraform import opc_compute_ip_address_prefix_set.default example
+```shell
+$ terraform import opc_compute_ip_address_prefix_set.default example
 ```

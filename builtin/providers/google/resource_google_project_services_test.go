@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"os"
 	"reflect"
 	"sort"
 	"testing"
@@ -123,6 +124,103 @@ func TestAccGoogleProjectServices_authoritative2(t *testing.T) {
 	})
 }
 
+// Test that services that can't be enabled on their own (such as dataproc-control.googleapis.com)
+// don't end up causing diffs when they are enabled as a side-effect of a different service's
+// enablement.
+func TestAccGoogleProjectServices_ignoreUnenablableServices(t *testing.T) {
+	skipIfEnvNotSet(t,
+		[]string{
+			"GOOGLE_ORG",
+			"GOOGLE_BILLING_ACCOUNT",
+		}...,
+	)
+
+	billingId := os.Getenv("GOOGLE_BILLING_ACCOUNT")
+	pid := "terraform-" + acctest.RandString(10)
+	services := []string{
+		"dataproc.googleapis.com",
+		// The following services are enabled as a side-effect of dataproc's enablement
+		"storage-component.googleapis.com",
+		"deploymentmanager.googleapis.com",
+		"replicapool.googleapis.com",
+		"replicapoolupdater.googleapis.com",
+		"resourceviews.googleapis.com",
+		"compute-component.googleapis.com",
+		"container.googleapis.com",
+		"containerregistry.googleapis.com",
+		"storage-api.googleapis.com",
+		"pubsub.googleapis.com",
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccGoogleProjectAssociateServicesBasic_withBilling(services, pid, pname, org, billingId),
+				Check: resource.ComposeTestCheckFunc(
+					testProjectServicesMatch(services, pid),
+				),
+			},
+		},
+	})
+}
+
+func TestAccGoogleProjectServices_manyServices(t *testing.T) {
+	skipIfEnvNotSet(t,
+		[]string{
+			"GOOGLE_ORG",
+			"GOOGLE_BILLING_ACCOUNT",
+		}...,
+	)
+
+	billingId := os.Getenv("GOOGLE_BILLING_ACCOUNT")
+	pid := "terraform-" + acctest.RandString(10)
+	services := []string{
+		"bigquery-json.googleapis.com",
+		"cloudbuild.googleapis.com",
+		"cloudfunctions.googleapis.com",
+		"cloudresourcemanager.googleapis.com",
+		"cloudtrace.googleapis.com",
+		"compute-component.googleapis.com",
+		"container.googleapis.com",
+		"containerregistry.googleapis.com",
+		"dataflow.googleapis.com",
+		"dataproc.googleapis.com",
+		"deploymentmanager.googleapis.com",
+		"dns.googleapis.com",
+		"endpoints.googleapis.com",
+		"iam.googleapis.com",
+		"logging.googleapis.com",
+		"ml.googleapis.com",
+		"monitoring.googleapis.com",
+		"pubsub.googleapis.com",
+		"replicapool.googleapis.com",
+		"replicapoolupdater.googleapis.com",
+		"resourceviews.googleapis.com",
+		"runtimeconfig.googleapis.com",
+		"servicecontrol.googleapis.com",
+		"servicemanagement.googleapis.com",
+		"sourcerepo.googleapis.com",
+		"spanner.googleapis.com",
+		"storage-api.googleapis.com",
+		"storage-component.googleapis.com",
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccGoogleProjectAssociateServicesBasic_withBilling(services, pid, pname, org, billingId),
+				Check: resource.ComposeTestCheckFunc(
+					testProjectServicesMatch(services, pid),
+				),
+			},
+		},
+	})
+}
+
 func testAccGoogleProjectAssociateServicesBasic(services []string, pid, name, org string) string {
 	return fmt.Sprintf(`
 resource "google_project" "acceptance" {
@@ -135,6 +233,21 @@ resource "google_project_services" "acceptance" {
   services = [%s]
 }
 `, pid, name, org, testStringsToString(services))
+}
+
+func testAccGoogleProjectAssociateServicesBasic_withBilling(services []string, pid, name, org, billing string) string {
+	return fmt.Sprintf(`
+resource "google_project" "acceptance" {
+  project_id = "%s"
+  name = "%s"
+  org_id = "%s"
+  billing_account = "%s"
+}
+resource "google_project_services" "acceptance" {
+  project = "${google_project.acceptance.project_id}"
+  services = [%s]
+}
+`, pid, name, org, billing, testStringsToString(services))
 }
 
 func testProjectServicesMatch(services []string, pid string) resource.TestCheckFunc {

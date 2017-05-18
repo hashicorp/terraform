@@ -766,6 +766,9 @@ resource "aws_alb_target_group" "test" {
 
 resource "aws_vpc" "test" {
   cidr_block = "10.0.0.0/16"
+	tags {
+		Name = "testAccAWSALBTargetGroupConfig_namePrefix"
+	}
 }
 `
 
@@ -778,5 +781,8 @@ resource "aws_alb_target_group" "test" {
 
 resource "aws_vpc" "test" {
   cidr_block = "10.0.0.0/16"
+	tags {
+		Name = "testAccAWSALBTargetGroupConfig_generatedName"
+	}
 }
 `

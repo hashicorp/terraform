@@ -1,0 +1,22 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%#= sidebar_current("docs-home") %>>
+          <a href="/docs/providers/index.html">All Providers</a>
+        </li>
+
+        <li<%= sidebar_current("docs-http-index") %>>
+          <a href="/docs/providers/http/index.html">HTTP Provider</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-http-data-source") %>>
+              <a href="/docs/providers/http/data_source.html">Data Source</a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= yield %>
+<% end %>

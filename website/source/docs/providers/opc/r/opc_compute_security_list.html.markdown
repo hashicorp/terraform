@@ -12,7 +12,7 @@ The ``opc_compute_security_list`` resource creates and manages a security list i
 
 ## Example Usage
 
-```
+```hcl
 resource "opc_compute_security_list" "sec_list1" {
   name                 = "sec-list-1"
   policy               = "permit"
@@ -36,6 +36,6 @@ The following arguments are supported:
 
 Security List's can be imported using the `resource name`, e.g.
 
-```
-terraform import opc_compute_security_list.list1 example
+```shell
+$ terraform import opc_compute_security_list.list1 example
 ```

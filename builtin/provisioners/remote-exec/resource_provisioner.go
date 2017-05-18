@@ -22,7 +22,7 @@ import (
 func Provisioner() terraform.ResourceProvisioner {
 	return &schema.Provisioner{
 		Schema: map[string]*schema.Schema{
-			"inline": &schema.Schema{
+			"inline": {
 				Type:          schema.TypeList,
 				Elem:          &schema.Schema{Type: schema.TypeString},
 				PromoteSingle: true,
@@ -30,13 +30,13 @@ func Provisioner() terraform.ResourceProvisioner {
 				ConflictsWith: []string{"script", "scripts"},
 			},
 
-			"script": &schema.Schema{
+			"script": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"inline", "scripts"},
 			},
 
-			"scripts": &schema.Schema{
+			"scripts": {
 				Type:          schema.TypeList,
 				Elem:          &schema.Schema{Type: schema.TypeString},
 				Optional:      true,
@@ -81,7 +81,11 @@ func applyFn(ctx context.Context) error {
 func generateScripts(d *schema.ResourceData) ([]string, error) {
 	var lines []string
 	for _, l := range d.Get("inline").([]interface{}) {
-		lines = append(lines, l.(string))
+		line, ok := l.(string)
+		if !ok {
+			return nil, fmt.Errorf("Error parsing %v as a string", l)
+		}
+		lines = append(lines, line)
 	}
 	lines = append(lines, "")
 
@@ -109,12 +113,20 @@ func collectScripts(d *schema.ResourceData) ([]io.ReadCloser, error) {
 	// Collect scripts
 	var scripts []string
 	if script, ok := d.GetOk("script"); ok {
-		scripts = append(scripts, script.(string))
+		scr, ok := script.(string)
+		if !ok {
+			return nil, fmt.Errorf("Error parsing script %v as string", script)
+		}
+		scripts = append(scripts, scr)
 	}
 
 	if scriptList, ok := d.GetOk("scripts"); ok {
 		for _, script := range scriptList.([]interface{}) {
-			scripts = append(scripts, script.(string))
+			scr, ok := script.(string)
+			if !ok {
+				return nil, fmt.Errorf("Error parsing script %v as string", script)
+			}
+			scripts = append(scripts, scr)
 		}
 	}
 

@@ -1,7 +1,7 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_default_route_table"
-sidebar_current: "docs-aws-resource-default-route-table|"
+sidebar_current: "docs-aws-resource-default-route-table"
 description: |-
   Provides a resource to manage a Default VPC Routing Table.
 ---

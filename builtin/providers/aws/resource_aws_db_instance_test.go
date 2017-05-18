@@ -170,6 +170,27 @@ func TestAccAWSDBInstance_optionGroup(t *testing.T) {
 	})
 }
 
+func TestAccAWSDBInstance_iamAuth(t *testing.T) {
+	var v rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckAWSDBIAMAuth(acctest.RandInt()),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
+					testAccCheckAWSDBInstanceAttributes(&v),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "iam_database_authentication_enabled", "true"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSDBInstanceReplica(t *testing.T) {
 	var s, r rds.DBInstance
 
@@ -773,6 +794,24 @@ resource "aws_db_instance" "bar" {
 }`, rName, acctest.RandInt())
 }
 
+func testAccCheckAWSDBIAMAuth(n int) string {
+	return fmt.Sprintf(`
+resource "aws_db_instance" "bar" {
+	identifier = "foobarbaz-test-terraform-%d"
+	allocated_storage = 10
+	engine = "mysql"
+	engine_version = "5.6.34"
+	instance_class = "db.t2.micro"
+	name = "baz"
+	password = "barbarbarbar"
+	username = "foo"
+	backup_retention_period = 0
+	skip_final_snapshot = true
+	parameter_group_name = "default.mysql5.6"
+	iam_database_authentication_enabled = true
+}`, n)
+}
+
 func testAccReplicaInstanceConfig(val int) string {
 	return fmt.Sprintf(`
 	resource "aws_db_instance" "bar" {
@@ -983,6 +1022,9 @@ func testAccAWSDBInstanceConfigWithSubnetGroup(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name="testAccAWSDBInstanceConfigWithSubnetGroup"
+	}
 }
 
 resource "aws_subnet" "foo" {
@@ -1034,10 +1076,16 @@ func testAccAWSDBInstanceConfigWithSubnetGroupUpdated(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name="testAccAWSDBInstanceConfigWithSubnetGroupUpdated"
+	}
 }
 
 resource "aws_vpc" "bar" {
 	cidr_block = "10.10.0.0/16"
+	tags {
+		Name="testAccAWSDBInstanceConfigWithSubnetGroupUpdated_other"
+	}
 }
 
 resource "aws_subnet" "foo" {

@@ -125,6 +125,8 @@ The following arguments are supported:
 
 `command` blocks must have any one of the following combinations of arguments as contents:
 
+* `description`: (Optional) gives a description to the command block.
+
 * `shell_command` gives a single shell command to execute on the nodes.
 
 * `inline_script` gives a whole shell script, inline in the configuration, to execute on the nodes.

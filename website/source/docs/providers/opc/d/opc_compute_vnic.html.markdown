@@ -12,7 +12,7 @@ Use this data source to access the configuration of a Virtual NIC.
 
 ## Example Usage
 
-```
+```hcl
 data "opc_compute_vnic" "current" {
   name = "my_vnic_name"
 }

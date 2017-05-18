@@ -5,22 +5,29 @@ import (
 	"testing"
 
 	"github.com/PagerDuty/go-pagerduty"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccPagerDutyService_Basic(t *testing.T) {
+	username := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	email := fmt.Sprintf("%s@foo.com", username)
+	escalationPolicy := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	service := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	serviceUpdated := fmt.Sprintf("tf-%s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckPagerDutyServiceConfig,
+			{
+				Config: testAccCheckPagerDutyServiceConfig(username, email, escalationPolicy, service),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyServiceExists("pagerduty_service.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_service.foo", "name", "foo"),
+						"pagerduty_service.foo", "name", service),
 					resource.TestCheckResourceAttr(
 						"pagerduty_service.foo", "description", "foo"),
 					resource.TestCheckResourceAttr(
@@ -35,12 +42,12 @@ func TestAccPagerDutyService_Basic(t *testing.T) {
 						"pagerduty_service.foo", "incident_urgency_rule.0.type", "constant"),
 				),
 			},
-			resource.TestStep{
-				Config: testAccCheckPagerDutyServiceConfigUpdated,
+			{
+				Config: testAccCheckPagerDutyServiceConfigUpdated(username, email, escalationPolicy, serviceUpdated),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyServiceExists("pagerduty_service.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_service.foo", "name", "bar"),
+						"pagerduty_service.foo", "name", serviceUpdated),
 					resource.TestCheckResourceAttr(
 						"pagerduty_service.foo", "description", "bar"),
 					resource.TestCheckResourceAttr(
@@ -60,17 +67,23 @@ func TestAccPagerDutyService_Basic(t *testing.T) {
 }
 
 func TestAccPagerDutyService_BasicWithIncidentUrgencyRules(t *testing.T) {
+	username := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	email := fmt.Sprintf("%s@foo.com", username)
+	escalationPolicy := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	service := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	serviceUpdated := fmt.Sprintf("tf-%s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckPagerDutyServiceWithIncidentUrgencyRulesConfig,
+			{
+				Config: testAccCheckPagerDutyServiceWithIncidentUrgencyRulesConfig(username, email, escalationPolicy, service),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyServiceExists("pagerduty_service.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_service.foo", "name", "foo"),
+						"pagerduty_service.foo", "name", service),
 					resource.TestCheckResourceAttr(
 						"pagerduty_service.foo", "description", "foo"),
 					resource.TestCheckResourceAttr(
@@ -127,12 +140,12 @@ func TestAccPagerDutyService_BasicWithIncidentUrgencyRules(t *testing.T) {
 						"pagerduty_service.foo", "support_hours.0.type", "fixed_time_per_day"),
 				),
 			},
-			resource.TestStep{
-				Config: testAccCheckPagerDutyServiceWithIncidentUrgencyRulesConfigUpdated,
+			{
+				Config: testAccCheckPagerDutyServiceWithIncidentUrgencyRulesConfigUpdated(username, email, escalationPolicy, serviceUpdated),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyServiceExists("pagerduty_service.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_service.foo", "name", "bar"),
+						"pagerduty_service.foo", "name", serviceUpdated),
 					resource.TestCheckResourceAttr(
 						"pagerduty_service.foo", "description", "bar bar bar"),
 					resource.TestCheckResourceAttr(
@@ -194,17 +207,23 @@ func TestAccPagerDutyService_BasicWithIncidentUrgencyRules(t *testing.T) {
 }
 
 func TestAccPagerDutyService_FromBasicToCustomIncidentUrgencyRules(t *testing.T) {
+	username := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	email := fmt.Sprintf("%s@foo.com", username)
+	escalationPolicy := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	service := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	serviceUpdated := fmt.Sprintf("tf-%s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckPagerDutyServiceConfig,
+			{
+				Config: testAccCheckPagerDutyServiceConfig(username, email, escalationPolicy, service),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyServiceExists("pagerduty_service.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_service.foo", "name", "foo"),
+						"pagerduty_service.foo", "name", service),
 					resource.TestCheckResourceAttr(
 						"pagerduty_service.foo", "description", "foo"),
 					resource.TestCheckResourceAttr(
@@ -219,12 +238,12 @@ func TestAccPagerDutyService_FromBasicToCustomIncidentUrgencyRules(t *testing.T)
 						"pagerduty_service.foo", "incident_urgency_rule.0.type", "constant"),
 				),
 			},
-			resource.TestStep{
-				Config: testAccCheckPagerDutyServiceWithIncidentUrgencyRulesConfigUpdated,
+			{
+				Config: testAccCheckPagerDutyServiceWithIncidentUrgencyRulesConfigUpdated(username, email, escalationPolicy, serviceUpdated),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyServiceExists("pagerduty_service.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_service.foo", "name", "bar"),
+						"pagerduty_service.foo", "name", serviceUpdated),
 					resource.TestCheckResourceAttr(
 						"pagerduty_service.foo", "description", "bar bar bar"),
 					resource.TestCheckResourceAttr(
@@ -328,10 +347,11 @@ func testAccCheckPagerDutyServiceExists(n string) resource.TestCheckFunc {
 	}
 }
 
-const testAccCheckPagerDutyServiceConfig = `
+func testAccCheckPagerDutyServiceConfig(username, email, escalationPolicy, service string) string {
+	return fmt.Sprintf(`
 resource "pagerduty_user" "foo" {
-	name        = "foo"
-	email       = "foo@example.com"
+	name        = "%s"
+	email       = "%s"
 	color       = "green"
 	role        = "user"
 	job_title   = "foo"
@@ -339,7 +359,7 @@ resource "pagerduty_user" "foo" {
 }
 
 resource "pagerduty_escalation_policy" "foo" {
-	name        = "bar"
+	name        = "%s"
 	description = "bar"
 	num_loops   = 2
 	rule {
@@ -352,7 +372,7 @@ resource "pagerduty_escalation_policy" "foo" {
 }
 
 resource "pagerduty_service" "foo" {
-	name                    = "foo"
+	name                    = "%s"
 	description             = "foo"
 	auto_resolve_timeout    = 1800
 	acknowledgement_timeout = 1800
@@ -362,12 +382,14 @@ resource "pagerduty_service" "foo" {
 		urgency = "high"
 	}
 }
-`
+`, username, email, escalationPolicy, service)
+}
 
-const testAccCheckPagerDutyServiceConfigUpdated = `
+func testAccCheckPagerDutyServiceConfigUpdated(username, email, escalationPolicy, service string) string {
+	return fmt.Sprintf(`
 resource "pagerduty_user" "foo" {
-	name        = "foo"
-	email       = "foo@example.com"
+	name        = "%s"
+	email       = "%s"
 	color       = "green"
 	role        = "user"
 	job_title   = "foo"
@@ -375,7 +397,7 @@ resource "pagerduty_user" "foo" {
 }
 
 resource "pagerduty_escalation_policy" "foo" {
-	name        = "bar"
+	name        = "%s"
 	description = "bar"
 	num_loops   = 2
 
@@ -389,7 +411,7 @@ resource "pagerduty_escalation_policy" "foo" {
 }
 
 resource "pagerduty_service" "foo" {
-	name                    = "bar"
+	name                    = "%s"
 	description             = "bar"
 	auto_resolve_timeout    = 3600
 	acknowledgement_timeout = 3600
@@ -400,12 +422,14 @@ resource "pagerduty_service" "foo" {
 		urgency = "high"
 	}
 }
-`
+`, username, email, escalationPolicy, service)
+}
 
-const testAccCheckPagerDutyServiceWithIncidentUrgencyRulesConfig = `
+func testAccCheckPagerDutyServiceWithIncidentUrgencyRulesConfig(username, email, escalationPolicy, service string) string {
+	return fmt.Sprintf(`
 resource "pagerduty_user" "foo" {
-	name        = "foo"
-	email       = "foo@example.com"
+	name        = "%s"
+	email       = "%s"
 	color       = "green"
 	role        = "user"
 	job_title   = "foo"
@@ -413,7 +437,7 @@ resource "pagerduty_user" "foo" {
 }
 
 resource "pagerduty_escalation_policy" "foo" {
-	name        = "bar"
+	name        = "%s"
 	description = "bar"
 	num_loops   = 2
 
@@ -427,7 +451,7 @@ resource "pagerduty_escalation_policy" "foo" {
 }
 
 resource "pagerduty_service" "foo" {
-	name                    = "foo"
+	name                    = "%s"
 	description             = "foo"
 	auto_resolve_timeout    = 1800
 	acknowledgement_timeout = 1800
@@ -463,12 +487,14 @@ resource "pagerduty_service" "foo" {
 		}
 	}
 }
-`
+`, username, email, escalationPolicy, service)
+}
 
-const testAccCheckPagerDutyServiceWithIncidentUrgencyRulesConfigUpdated = `
+func testAccCheckPagerDutyServiceWithIncidentUrgencyRulesConfigUpdated(username, email, escalationPolicy, service string) string {
+	return fmt.Sprintf(`
 	resource "pagerduty_user" "foo" {
-	name        = "foo"
-	email       = "foo@example.com"
+	name        = "%s"
+	email       = "%s"
 	color       = "green"
 	role        = "user"
 	job_title   = "foo"
@@ -476,7 +502,7 @@ const testAccCheckPagerDutyServiceWithIncidentUrgencyRulesConfigUpdated = `
 }
 
 resource "pagerduty_escalation_policy" "foo" {
-	name        = "bar"
+	name        = "%s"
 	description = "bar"
 	num_loops   = 2
 
@@ -490,12 +516,12 @@ resource "pagerduty_escalation_policy" "foo" {
 }
 
 resource "pagerduty_service" "foo" {
-	name                    = "bar"
+	name                    = "%s"
 	description             = "bar bar bar"
 	auto_resolve_timeout    = 3600
 	acknowledgement_timeout = 3600
 	escalation_policy       = "${pagerduty_escalation_policy.foo.id}"
-	
+
 	incident_urgency_rule {
 		type = "use_support_hours"
 		during_support_hours {
@@ -525,4 +551,5 @@ resource "pagerduty_service" "foo" {
 		}
 	}
 }
-`
+`, username, email, escalationPolicy, service)
+}

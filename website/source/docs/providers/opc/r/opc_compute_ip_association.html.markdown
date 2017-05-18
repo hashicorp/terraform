@@ -13,7 +13,7 @@ an OPC identity domain, for the Shared Network.
 
 ## Example Usage
 
-```
+```hcl
 resource "opc_compute_ip_association" "instance1_reservation1" {
   vcable     = "${opc_compute_instance.test_instance.vcable}"
   parentpool = "ipreservation:${opc_compute_ip_reservation.reservation1.name}"
@@ -41,6 +41,6 @@ The following attributes are exported:
 
 IP Associations can be imported using the `resource name`, e.g.
 
-```
-terraform import opc_compute_ip_association.association1 example
+```shell
+$ terraform import opc_compute_ip_association.association1 example
 ```

@@ -53,6 +53,7 @@ The following arguments are supported:
 * `instance_class` - (Required) The instance class to use. For details on CPU
 and memory, see [Scaling Aurora DB Instances][4]. Aurora currently
   supports the below instance classes.
+  - db.t2.small
   - db.t2.medium
   - db.r3.large
   - db.r3.xlarge
@@ -103,6 +104,17 @@ this instance is a read replica
 [4]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Aurora.Managing.html
 [5]: /docs/configuration/resources.html#count
 [6]: https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstance.html
+
+## Timeouts
+
+`aws_rds_cluster_instance` provides the following
+[Timeouts](/docs/configuration/resources.html#timeouts) configuration options:
+
+- `create` - (Default `90 minutes`) Used for Creating Instances, Replicas, and
+restoring from Snapshots
+- `update` - (Default `90 minutes`) Used for Database modifications
+- `delete` - (Default `90 minutes`) Used for destroying databases. This includes
+the time required to take snapshots
 
 ## Import
 

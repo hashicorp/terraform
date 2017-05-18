@@ -146,6 +146,10 @@ func resourceAwsLambdaFunction() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"invoke_arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"last_modified": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -405,6 +409,8 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 
 	d.Set("version", lastVersion)
 	d.Set("qualified_arn", lastQualifiedArn)
+
+	d.Set("invoke_arn", buildLambdaInvokeArn(*function.FunctionArn, meta.(*AWSClient).region))
 
 	return nil
 }

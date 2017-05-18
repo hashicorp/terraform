@@ -42,19 +42,19 @@ resource "oneandone_server" "server" {
 
 The following arguments are supported:
 
-* `cores_per_processor` -(Required)[integer] Number of cores per processor
-* `datacenter` - (Optional)[string] Location of desired 1and1 datacenter ["DE", "GB", "US", "ES" ]
-* `description` - (Optional)[string] Description of the server
-* `firewall_policy_id` - (Optional)[string] ID of firewall policy
-* `hdds` - (Required)[collection] List of HDDs. One HDD must be main.
-* `*disk_size` -(Required)[integer] The size of HDD
-* `*is_main` - (Optional)[boolean] Indicates if HDD is to be used as main hard disk of the server
-* `image` -(Required)[string] The name of a desired image to be provisioned with the server
-* `ip` - (Optional)[string] IP address for the server
-* `loadbalancer_id` - (Optional)[string] ID of the load balancer
-* `monitoring_policy_id` - (Optional)[string] ID of monitoring policy
-* `name` -(Required)[string] The name of the server.
-* `password` - (Optional)[string] Desired password.
-* `ram` -(Required)[float] Size of ram.
-* `ssh_key_path` - (Optional)[string] Path to private ssh key
-* `vcores` -(Required)[integer] Number of virtual cores.
+* `cores_per_processor` -(Required) Number of cores per processor
+* `datacenter` - (Optional) Location of desired 1and1 datacenter. Can be `DE`, `GB`, `US` or `ES`
+* `description` - (Optional) Description of the server
+* `firewall_policy_id` - (Optional) ID of firewall policy
+* `hdds` - (Required) List of HDDs. One HDD must be main.
+* `*disk_size` -(Required) The size of HDD
+* `*is_main` - (Optional) Indicates if HDD is to be used as main hard disk of the server
+* `image` -(Required) The name of a desired image to be provisioned with the server
+* `ip` - (Optional) IP address for the server
+* `loadbalancer_id` - (Optional) ID of the load balancer
+* `monitoring_policy_id` - (Optional) ID of monitoring policy
+* `name` -(Required) The name of the server.
+* `password` - (Optional) Desired password.
+* `ram` -(Required) Size of ram.
+* `ssh_key_path` - (Optional) Path to private ssh key
+* `vcores` -(Required) Number of virtual cores.

@@ -12,7 +12,7 @@ The ``opc_compute_ip_network`` resource creates and manages an IP Network.
 
 ## Example Usage
 
-```
+```hcl
 resource "opc_compute_ip_network" "foo" {
   name                = "my-ip-network"
   description         = "my IP Network"
@@ -52,3 +52,11 @@ The following attributes are exported:
 * `public_napt_enabled` - Whether public internet access using NAPT for VNICs without any public IP Reservation or not.
 
 * `uri` - Uniform Resource Identifier for the IP Network
+
+## Import
+
+IP Networks can be imported using the `resource name`, e.g.
+
+```shell
+$ terraform import opc_compute_ip_network.default example
+```

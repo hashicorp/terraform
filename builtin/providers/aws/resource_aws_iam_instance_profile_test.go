@@ -81,7 +81,7 @@ func TestAccAWSIAMInstanceProfile_missingRoleThrowsError(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccAwsIamInstanceProfileConfigMissingRole(rName),
-				ExpectError: regexp.MustCompile("Either `roles` or `role` must be specified when creating an IAM Instance Profile"),
+				ExpectError: regexp.MustCompile(regexp.QuoteMeta("Either `role` or `roles` (deprecated) must be specified when creating an IAM Instance Profile")),
 			},
 		},
 	})

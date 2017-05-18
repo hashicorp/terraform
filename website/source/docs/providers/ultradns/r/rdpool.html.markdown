@@ -33,8 +33,8 @@ The following arguments are supported:
 
 * `zone` - (Required) The domain to add the record to
 * `name` - (Required) The name of the record
-* `order` - (Required) Ordering rule, one of FIXED, RANDOM or ROUND_ROBIN
 * `rdata` - (Required) list ip addresses.
+* `order` - (Optional) Ordering rule, one of FIXED, RANDOM or ROUND_ROBIN. Default: 'ROUND_ROBIN'.
 * `description` - (Optional) Description of the Resource Distribution pool. Valid values are strings less than 256 characters.
 * `ttl` - (Optional) The TTL of the pool in seconds. Default: `3600`.
 

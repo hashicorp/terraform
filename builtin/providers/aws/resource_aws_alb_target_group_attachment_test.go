@@ -179,6 +179,9 @@ resource "aws_subnet" "subnet" {
 
 resource "aws_vpc" "test" {
   cidr_block = "10.0.0.0/16"
+	tags {
+		Name = "testAccAWSALBTargetGroupAttachmentConfigWithoutPort"
+	}
 }`, targetGroupName)
 }
 
@@ -229,5 +232,8 @@ resource "aws_subnet" "subnet" {
 
 resource "aws_vpc" "test" {
   cidr_block = "10.0.0.0/16"
+	tags {
+		Name = "testAccAWSALBTargetGroupAttachmentConfig_basic"
+	}
 }`, targetGroupName)
 }

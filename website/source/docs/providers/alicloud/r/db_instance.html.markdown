@@ -16,7 +16,6 @@ databases.
 
 ```
 resource "alicloud_db_instance" "default" {
-	commodity_code = "rds"
 	engine = "MySQL"
 	engine_version = "5.6"
 	db_instance_class = "rds.mysql.t1.small"

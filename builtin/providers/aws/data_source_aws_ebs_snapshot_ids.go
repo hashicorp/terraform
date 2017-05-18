@@ -28,10 +28,9 @@ func dataSourceAwsEbsSnapshotIds() *schema.Resource {
 			},
 			"tags": dataSourceTagsSchema(),
 			"ids": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      schema.HashString,
 			},
 		},
 	}
@@ -67,7 +66,7 @@ func dataSourceAwsEbsSnapshotIdsRead(d *schema.ResourceData, meta interface{}) e
 
 	snapshotIds := make([]string, 0)
 
-	for _, snapshot := range resp.Snapshots {
+	for _, snapshot := range sortSnapshots(resp.Snapshots) {
 		snapshotIds = append(snapshotIds, *snapshot.SnapshotId)
 	}
 

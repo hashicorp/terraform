@@ -63,7 +63,7 @@ func resourceFilesystem() *schema.Resource {
 }
 
 func resourceFilesystemRead(d *schema.ResourceData, meta interface{}) error {
-	id, err := buildFilesystem(d, meta.(*cache))
+	id, err := buildFilesystem(d, globalCache)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func resourceFilesystemRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceFilesystemExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	id, err := buildFilesystem(d, meta.(*cache))
+	id, err := buildFilesystem(d, globalCache)
 	if err != nil {
 		return false, err
 	}
