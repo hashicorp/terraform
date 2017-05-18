@@ -41,4 +41,4 @@ If you are committing this template to source control, please insure that you ad
 ## variables.tf
 The `variables.tf` file contains all of the input parameters that the user can specify when deploying this Terraform template.
 
-![graph](/examples/azure-search-create/graph.png)
+![graph](/examples/azure-encrypt-running-linux-vm/graph.png)
