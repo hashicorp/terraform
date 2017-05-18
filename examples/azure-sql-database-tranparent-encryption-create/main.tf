@@ -19,6 +19,13 @@ resource "azurerm_sql_database" "db" {
   create_mode                      = "Default"
   requested_service_objective_name = "Basic"
   server_name                      = "${azurerm_sql_server.server.name}"
+
+  # Terraform does not currently support this resource.
+  # transparent_data_encryption {
+  #   name = "current"
+  #   type = "transparentDataEncryption"
+  #   status = "Enabled"
+  # }
 }
 
 resource "azurerm_sql_server" "server" {
@@ -37,10 +44,3 @@ resource "azurerm_sql_firewall_rule" "fw" {
   start_ip_address    = "0.0.0.0"
   end_ip_address      = "0.0.0.0"
 }
-
-# "comments": "Transparent Data Encryption",
-# "name": "current",
-# "type": "transparentDataEncryption",
-# "apiVersion": "2014-04-01-preview",
-# "properties": {
-#   "status": "[parameters('transparentDataEncryption')]"

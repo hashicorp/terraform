@@ -1,5 +1,7 @@
 # Provision a SQL Database with Transparent Data Encryption
 
+*Terraform does not currently have a resource for Transparent Data Encryption. When [this feature request](https://github.com/hashicorp/terraform/issues/14595) is fulfilled, this example will be able to be used.*
+
 This sample creates a SQL Database at the "Basic" service level.  The template can support other tiers of service, details for each service can be found here:
 
 [SQL Database Pricing](https://azure.microsoft.com/en-us/pricing/details/sql-database/)
