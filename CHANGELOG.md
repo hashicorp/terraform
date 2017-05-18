@@ -36,6 +36,7 @@ IMPROVEMENTS:
 * provider/heroku: Add import support for `heroku_pipeline` resource [GH-14486]
 * providers/heroku: Add import support for `heroku_pipeline_coupling` resource [GH-14495]
 * provider/openstack: Add support for all protocols in Security Group Rules [GH-14307]
+* provider/rancher: Add member support to `rancher_environment` [GH-14563]
 * provider/rundeck: adds `description` to `command` schema in `rundeck_job` resource [GH-14352]
 * provider/scaleway: allow public_ip to be set on server resource [GH-14515]
 
