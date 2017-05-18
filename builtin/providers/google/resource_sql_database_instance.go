@@ -2,6 +2,8 @@ package google
 
 import (
 	"fmt"
+	"log"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -28,6 +30,7 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 			"settings": &schema.Schema{
 				Type:     schema.TypeList,
 				Required: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"version": &schema.Schema{
@@ -89,9 +92,10 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 							},
 						},
 						"disk_autoresize": &schema.Schema{
-							Type:     schema.TypeBool,
-							Default:  false,
-							Optional: true,
+							Type:             schema.TypeBool,
+							Default:          true,
+							Optional:         true,
+							DiffSuppressFunc: suppressFirstGen,
 						},
 						"disk_size": &schema.Schema{
 							Type:     schema.TypeInt,
@@ -303,6 +307,23 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 	}
 }
 
+// Suppress diff with any disk.autoresize value on 1st Generation Instances
+func suppressFirstGen(k, old, new string, d *schema.ResourceData) bool {
+	settingsList := d.Get("settings").([]interface{})
+
+	settings := settingsList[0].(map[string]interface{})
+	tier := settings["tier"].(string)
+	matched, err := regexp.MatchString("db*", tier)
+	if err != nil {
+		log.Printf("[ERR] error with regex in diff supression for data.autoresize: %s", err)
+	}
+	if !matched {
+		log.Printf("[DEBUG] suppressing diff on disk.autoresize due to 1st gen instance type")
+		return true
+	}
+	return false
+}
+
 func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
@@ -315,9 +336,6 @@ func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{})
 	databaseVersion := d.Get("database_version").(string)
 
 	_settingsList := d.Get("settings").([]interface{})
-	if len(_settingsList) > 1 {
-		return fmt.Errorf("At most one settings block is allowed")
-	}
 
 	_settings := _settingsList[0].(map[string]interface{})
 	settings := &sqladmin.Settings{
@@ -908,9 +926,6 @@ func resourceSqlDatabaseInstanceUpdate(d *schema.ResourceData, meta interface{})
 		_oList := _oListCast.([]interface{})
 		_o := _oList[0].(map[string]interface{})
 		_settingsList := _settingsListCast.([]interface{})
-		if len(_settingsList) > 1 {
-			return fmt.Errorf("At most one settings block is allowed")
-		}
 
 		_settings := _settingsList[0].(map[string]interface{})
 		settings := &sqladmin.Settings{
