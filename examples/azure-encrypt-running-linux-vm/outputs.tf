@@ -1,8 +1,16 @@
-# output "vault_uri" {
-#   value = ["${azurerm_key_vault.vault.vault_uri}"]
-# }
-#  "outputs": {
-#     "BitLockerKey": {
-#       "type": "string",
-#       "value": "[reference(resourceId('Microsoft.Compute/virtualMachines/extensions',  parameters('vmName'), variables('extensionName'))).instanceView.statuses[0].message]"
+output "hostname" {
+  value = "${var.hostname}"
+}
 
+output "vm_fqdn" {
+  value = "${azurerm_public_ip.pip.fqdn}"
+}
+
+output "ssh_command" {
+  value = "${concat("ssh ", var.admin_username, "@", azurerm_public_ip.pip.fqdn)}"
+}
+
+output "BitLockerKey" {
+  value     = "${azurerm_template_deployment.linux_vm.outputs["BitLockerKey"]}"
+  sensitive = true
+}
