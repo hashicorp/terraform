@@ -65,39 +65,55 @@ func encryptionSettingsSchema() *schema.Schema {
 }
 
 func flattenVmDiskEncryptionSettings(encryptionSettings *compute.DiskEncryptionSettings) map[string]interface{} {
-	return map[string]interface{}{
+	value := map[string]interface{}{
 		"enabled": *encryptionSettings.Enabled,
-		"disk_encryption_key": []interface{}{
+	}
+
+	if encryptionSettings.DiskEncryptionKey != nil {
+		value["disk_encryption_key"] = []interface{}{
 			map[string]interface{}{
 				"secret_url":      *encryptionSettings.DiskEncryptionKey.SecretURL,
 				"source_vault_id": *encryptionSettings.DiskEncryptionKey.SourceVault.ID,
 			},
-		},
-		"key_encryption_key": []interface{}{
+		}
+	}
+
+	if encryptionSettings.KeyEncryptionKey != nil {
+		value["key_encryption_key"] = []interface{}{
 			map[string]interface{}{
 				"key_url":         *encryptionSettings.KeyEncryptionKey.KeyURL,
 				"source_vault_id": *encryptionSettings.KeyEncryptionKey.SourceVault.ID,
 			},
-		},
+		}
 	}
+
+	return value
 }
 
 func flattenManagedDiskEncryptionSettings(encryptionSettings *disk.EncryptionSettings) map[string]interface{} {
-	return map[string]interface{}{
+	value := map[string]interface{}{
 		"enabled": *encryptionSettings.Enabled,
-		"disk_encryption_key": []interface{}{
+	}
+
+	if encryptionSettings.DiskEncryptionKey != nil {
+		value["disk_encryption_key"] = []interface{}{
 			map[string]interface{}{
 				"secret_url":      *encryptionSettings.DiskEncryptionKey.SecretURL,
 				"source_vault_id": *encryptionSettings.DiskEncryptionKey.SourceVault.ID,
 			},
-		},
-		"key_encryption_key": []interface{}{
+		}
+	}
+
+	if encryptionSettings.KeyEncryptionKey != nil {
+		value["key_encryption_key"] = []interface{}{
 			map[string]interface{}{
 				"key_url":         *encryptionSettings.KeyEncryptionKey.KeyURL,
 				"source_vault_id": *encryptionSettings.KeyEncryptionKey.SourceVault.ID,
 			},
-		},
+		}
 	}
+
+	return value
 }
 
 func expandVmDiskEncryptionSettings(settings map[string]interface{}) *compute.DiskEncryptionSettings {
