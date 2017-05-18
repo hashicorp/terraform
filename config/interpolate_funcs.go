@@ -89,6 +89,7 @@ func Funcs() map[string]ast.Function {
 		"merge":        interpolationFuncMerge(),
 		"min":          interpolationFuncMin(),
 		"pathexpand":   interpolationFuncPathExpand(),
+		"pow":          interpolationFuncPow(),
 		"uuid":         interpolationFuncUUID(),
 		"replace":      interpolationFuncReplace(),
 		"sha1":         interpolationFuncSha1(),
@@ -390,6 +391,17 @@ func interpolationFuncConcat() ast.Function {
 			}
 
 			return outputList, nil
+		},
+	}
+}
+
+// interpolationFuncPow returns base x exponential of y.
+func interpolationFuncPow() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeFloat, ast.TypeFloat},
+		ReturnType: ast.TypeFloat,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return math.Pow(args[0].(float64), args[1].(float64)), nil
 		},
 	}
 }
