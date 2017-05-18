@@ -26,6 +26,7 @@ IMPROVEMENTS:
 * provider/aws: Add `tags` (list of maps) for `aws_autoscaling_group` [GH-13574]
 * provider/azurerm: Virtual Machine Scale Sets with managed disk support [GH-13717]
 * provider/azurerm: Virtual Machine Scale Sets with single placement option support [GH-14510]
+* provider/azurerm: Adding support for VMSS Data Disks using Managed Disk feature [GH-14608]
 * provider/datadog: Add last aggregator to datadog_timeboard resource [GH-14391]
 * provider/datadog: Added new evaluation_delay parameter [GH-14433]
 * provider/docker: Allow Windows Docker containers to map volumes [GH-13584]
