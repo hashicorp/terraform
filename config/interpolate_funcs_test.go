@@ -354,6 +354,21 @@ func TestInterpolateFuncPow(t *testing.T) {
 				"0",
 				false,
 			},
+			{
+				`${pow("invalid-input", 2)}`,
+				nil,
+				true,
+			},
+			{
+				`${pow(2, "invalid-input")}`,
+				nil,
+				true,
+			},
+			{
+				`${pow(2)}`,
+				nil,
+				true,
+			},
 		},
 	})
 }
