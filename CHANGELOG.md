@@ -63,6 +63,7 @@ BUG FIXES:
 * provider/aws: Nothing to update in cloudformation should not result in errors [GH-14463]
 * provider/aws: Handling data migration in RDS snapshot restoring [GH-14622]
 * provider/aws: Mark cookies in `default_cache_behaviour` of cloudfront_distribution as required [GH-12628]
+* provider/aws: Fall back to old tagging mechanism for AWS gov and aws China [GH-14627]
 * provider/cloudstack: `cloudstack_firewall` panicked when used with older (< v4.6) CloudStack versions [GH-14044]
 * provider/datadog: Allowed method on aggregator is `avg` ! `average` [GH-14414]
 * provider/digitalocean: Fix parsing of digitalocean dns records [GH-14215]
