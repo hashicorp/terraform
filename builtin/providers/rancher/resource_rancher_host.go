@@ -7,12 +7,12 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	rancher "github.com/rancher/go-rancher/client"
+	rancher "github.com/rancher/go-rancher/v2"
 )
 
 // ro_labels are used internally by Rancher
 // They are not documented and should not be set in Terraform
-var ro_labels = []string{
+var roLabels = []string{
 	"io.rancher.host.agent_image",
 	"io.rancher.host.docker_version",
 	"io.rancher.host.kvm",
@@ -105,7 +105,7 @@ func resourceRancherHostRead(d *schema.ResourceData, meta interface{}) error {
 
 	labels := host.Labels
 	// Remove read-only labels
-	for _, lbl := range ro_labels {
+	for _, lbl := range roLabels {
 		delete(labels, lbl)
 	}
 	d.Set("labels", host.Labels)
@@ -129,7 +129,7 @@ func resourceRancherHostUpdate(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	for _, lbl := range ro_labels {
+	for _, lbl := range roLabels {
 		labels[lbl] = host.Labels[lbl]
 	}
 

@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	rancherClient "github.com/rancher/go-rancher/client"
+	rancherClient "github.com/rancher/go-rancher/v2"
 )
 
 func resourceRancherRegistrationToken() *schema.Resource {
@@ -15,6 +15,7 @@ func resourceRancherRegistrationToken() *schema.Resource {
 		Create: resourceRancherRegistrationTokenCreate,
 		Read:   resourceRancherRegistrationTokenRead,
 		Delete: resourceRancherRegistrationTokenDelete,
+		Update: resourceRancherRegistrationTokenUpdate,
 		Importer: &schema.ResourceImporter{
 			State: resourceRancherRegistrationTokenImport,
 		},
@@ -54,6 +55,10 @@ func resourceRancherRegistrationToken() *schema.Resource {
 			"image": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+			"host_labels": {
+				Type:     schema.TypeMap,
+				Optional: true,
 			},
 		},
 	}
@@ -105,7 +110,6 @@ func resourceRancherRegistrationTokenRead(d *schema.ResourceData, meta interface
 	if err != nil {
 		return err
 	}
-	// client := meta.(*Config)
 
 	regT, err := client.RegistrationToken.ById(d.Id())
 	if err != nil {
@@ -124,6 +128,7 @@ func resourceRancherRegistrationTokenRead(d *schema.ResourceData, meta interface
 		return nil
 	}
 
+	regCommand := addHostLabels(regT.Command, d.Get("host_labels").(map[string]interface{}))
 	log.Printf("[INFO] RegistrationToken Name: %s", regT.Name)
 
 	d.Set("description", regT.Description)
@@ -131,7 +136,7 @@ func resourceRancherRegistrationTokenRead(d *schema.ResourceData, meta interface
 	d.Set("token", regT.Token)
 	d.Set("registration_url", regT.RegistrationUrl)
 	d.Set("environment_id", regT.AccountId)
-	d.Set("command", regT.Command)
+	d.Set("command", regCommand)
 	d.Set("image", regT.Image)
 
 	return nil
@@ -202,6 +207,16 @@ func resourceRancherRegistrationTokenDelete(d *schema.ResourceData, meta interfa
 
 	d.SetId("")
 	return nil
+}
+
+func resourceRancherRegistrationTokenUpdate(d *schema.ResourceData, meta interface{}) error {
+	//if d.HasChange("host_labels") {
+	//newCommand := addHostLabels(
+	//d.Get("command").(string),
+	//d.Get("host_labels").(map[string]interface{}))
+	//d.Set("command", newCommand)
+	//}
+	return resourceRancherRegistrationTokenRead(d, meta)
 }
 
 func resourceRancherRegistrationTokenImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
