@@ -25,8 +25,8 @@ docker run --rm -it \
         -var passphrase=$PASSWORD \
         -var key_vault_name=$KEY_VAULT_NAME \
         -var key_encryption_key_url=$KEY_ENCRYPTION_KEY_URL \
-        -var key_vault_resource_id=$KEY_VAULT_RESOURCE_ID > /dev/null; \
-      /bin/terraform apply out.tfplan > /dev/null"
+        -var key_vault_resource_id=$KEY_VAULT_RESOURCE_ID; \
+      /bin/terraform apply out.tfplan"
 
 # cleanup deployed azure resources via azure-cli
 docker run --rm -it \
