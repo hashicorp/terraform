@@ -69,7 +69,7 @@ func TestAccAzureRMContainerRegistryName_validation(t *testing.T) {
 func TestAccAzureRMContainerRegistry_basic(t *testing.T) {
 	ri := acctest.RandInt()
 	rs := acctest.RandString(4)
-	config := fmt.Sprintf(testAccAzureRMContainerRegistry_basic, ri, rs, ri)
+	config := testAccAzureRMContainerRegistry_basic(ri, rs)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -89,7 +89,7 @@ func TestAccAzureRMContainerRegistry_basic(t *testing.T) {
 func TestAccAzureRMContainerRegistry_complete(t *testing.T) {
 	ri := acctest.RandInt()
 	rs := acctest.RandString(4)
-	config := fmt.Sprintf(testAccAzureRMContainerRegistry_complete, ri, rs, ri)
+	config := testAccAzureRMContainerRegistry_complete(ri, rs)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -98,6 +98,33 @@ func TestAccAzureRMContainerRegistry_complete(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMContainerRegistryExists("azurerm_container_registry.test"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMContainerRegistry_update(t *testing.T) {
+	ri := acctest.RandInt()
+	rs := acctest.RandString(4)
+	config := testAccAzureRMContainerRegistry_complete(ri, rs)
+	updatedConfig := testAccAzureRMContainerRegistry_completeUpdated(ri, rs)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMContainerRegistryDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMContainerRegistryExists("azurerm_container_registry.test"),
+				),
+			},
+			{
+				Config: updatedConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMContainerRegistryExists("azurerm_container_registry.test"),
 				),
@@ -160,7 +187,8 @@ func testCheckAzureRMContainerRegistryExists(name string) resource.TestCheckFunc
 	}
 }
 
-var testAccAzureRMContainerRegistry_basic = `
+func testAccAzureRMContainerRegistry_basic(rInt int, rStr string) string {
+	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
   name     = "testAccRg-%d"
   location = "West US"
@@ -184,9 +212,11 @@ resource "azurerm_container_registry" "test" {
     access_key = "${azurerm_storage_account.test.primary_access_key}"
   }
 }
-`
+`, rInt, rStr, rInt)
+}
 
-var testAccAzureRMContainerRegistry_complete = `
+func testAccAzureRMContainerRegistry_complete(rInt int, rStr string) string {
+	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
   name     = "testAccRg-%d"
   location = "West US"
@@ -215,4 +245,38 @@ resource "azurerm_container_registry" "test" {
     environment = "production"
   }
 }
-`
+`, rInt, rStr, rInt)
+}
+
+func testAccAzureRMContainerRegistry_completeUpdated(rInt int, rStr string) string {
+	return fmt.Sprintf(`
+resource "azurerm_resource_group" "test" {
+  name     = "testAccRg-%d"
+  location = "West US"
+}
+
+resource "azurerm_storage_account" "test" {
+  name                = "testaccsa%s"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  location            = "${azurerm_resource_group.test.location}"
+  account_type        = "Standard_LRS"
+}
+
+resource "azurerm_container_registry" "test" {
+  name                = "testacccr%d"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  location            = "${azurerm_resource_group.test.location}"
+  admin_enabled       = true
+  sku                 = "Basic"
+
+  storage_account {
+    name       = "${azurerm_storage_account.test.name}"
+    access_key = "${azurerm_storage_account.test.primary_access_key}"
+  }
+
+  tags {
+    environment = "production"
+  }
+}
+`, rInt, rStr, rInt)
+}

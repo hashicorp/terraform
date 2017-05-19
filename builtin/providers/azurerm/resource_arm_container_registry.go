@@ -153,8 +153,48 @@ func resourceArmContainerRegistryCreate(d *schema.ResourceData, meta interface{}
 }
 
 func resourceArmContainerRegistryUpdate(d *schema.ResourceData, meta interface{}) error {
-	// TODO: implement me
-	return nil
+	client := meta.(*ArmClient).containerRegistryClient
+	log.Printf("[INFO] preparing arguments for AzureRM Container Registry update.")
+
+	resourceGroup := d.Get("resource_group_name").(string)
+	name := d.Get("name").(string)
+
+	accounts := d.Get("storage_account").(*schema.Set).List()
+	account := accounts[0].(map[string]interface{})
+	storageAccountName := account["name"].(string)
+	storageAccountAccessKey := account["access_key"].(string)
+
+	adminUserEnabled := d.Get("admin_enabled").(bool)
+	tags := d.Get("tags").(map[string]interface{})
+
+	parameters := containerregistry.RegistryUpdateParameters{
+		RegistryPropertiesUpdateParameters: &containerregistry.RegistryPropertiesUpdateParameters{
+			AdminUserEnabled: &adminUserEnabled,
+			StorageAccount: &containerregistry.StorageAccountParameters{
+				Name:      azure.String(storageAccountName),
+				AccessKey: azure.String(storageAccountAccessKey),
+			},
+		},
+		Tags: expandTags(tags),
+	}
+
+	_, err := client.Update(resourceGroup, name, parameters)
+	if err != nil {
+		return err
+	}
+
+	read, err := client.Get(resourceGroup, name)
+	if err != nil {
+		return err
+	}
+
+	if read.ID == nil {
+		return fmt.Errorf("Cannot read Container Registry %s (resource group %s) ID", name, resourceGroup)
+	}
+
+	d.SetId(*read.ID)
+
+	return resourceArmContainerRegistryRead(d, meta)
 }
 
 func resourceArmContainerRegistryRead(d *schema.ResourceData, meta interface{}) error {
@@ -246,11 +286,6 @@ func resourceAzureRMContainerRegistryStorageAccountHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	name := m["name"].(*string)
 	return hashcode.String(*name)
-}
-
-func resourceAzureRMContainerRegistryExpandSku(d *schema.ResourceData) (string, string) {
-	// TODO: parse this out, d.Get("sku") is a list
-	return "Basic", "Basic"
 }
 
 func validateAzureRMContainerRegistryName(v interface{}, k string) (ws []string, errors []error) {
