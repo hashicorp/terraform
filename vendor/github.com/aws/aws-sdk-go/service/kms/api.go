@@ -4336,9 +4336,9 @@ type CreateGrantInput struct {
 	//
 	// To specify the principal, use the Amazon Resource Name (ARN) (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// of an AWS principal. Valid AWS principals include AWS accounts (root), IAM
-	// users, federated users, and assumed role users. For examples of the ARN syntax
-	// to use for specifying a principal, see AWS Identity and Access Management
-	// (IAM) (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arn-syntax-iam)
+	// users, IAM roles, federated users, and assumed role users. For examples of
+	// the ARN syntax to use for specifying a principal, see AWS Identity and Access
+	// Management (IAM) (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arn-syntax-iam)
 	// in the Example ARNs section of the AWS General Reference.
 	//
 	// GranteePrincipal is a required field

@@ -172,7 +172,7 @@ func resourceAwsIAMServerCertificateRead(d *schema.ResourceData, meta interface{
 func resourceAwsIAMServerCertificateDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
 	log.Printf("[INFO] Deleting IAM Server Certificate: %s", d.Id())
-	err := resource.Retry(3*time.Minute, func() *resource.RetryError {
+	err := resource.Retry(10*time.Minute, func() *resource.RetryError {
 		_, err := conn.DeleteServerCertificate(&iam.DeleteServerCertificateInput{
 			ServerCertificateName: aws.String(d.Get("name").(string)),
 		})

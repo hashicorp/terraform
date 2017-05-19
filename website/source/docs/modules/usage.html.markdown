@@ -18,7 +18,7 @@ module "consul" {
 
 You can view the full documentation for configuring modules in the [Module Configuration](/docs/configuration/modules.html) section.
 
-As you can see, configuring modules is very similar to defining resources, with the exception that we only specify a name rather than a name and a type. This name can be used elsewhere in the configuration to reference the module and its variables.
+In modules we only specify a name rather than a name and a type (as in resources). This name can be used elsewhere in the configuration to reference the module and its variables.
 
 The existence of the above configuration will tell Terraform to create the resources in the `consul` module which can be found on GitHub at the given URL. Just like a resource, the module configuration can be deleted to remove the module.
 
