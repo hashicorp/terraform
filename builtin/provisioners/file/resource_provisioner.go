@@ -36,7 +36,7 @@ func Provisioner() terraform.ResourceProvisioner {
 		},
 
 		ApplyFunc:    applyFn,
-		ValidateFunc: Validate,
+		ValidateFunc: validateFn,
 	}
 }
 
@@ -78,8 +78,7 @@ func applyFn(ctx context.Context) error {
 	}
 }
 
-// Validate checks if the required arguments are configured
-func Validate(d *schema.ResourceData) (ws []string, es []error) {
+func validateFn(d *schema.ResourceData) (ws []string, es []error) {
 	numSrc := 0
 	if _, ok := d.GetOk("source"); ok == true {
 		numSrc++
