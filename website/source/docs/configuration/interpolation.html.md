@@ -312,7 +312,7 @@ The supported built-in functions are:
   * `pathexpand(string)` - Returns a filepath string with `~` expanded to the home directory. Note:
     This will create a plan diff between two different hosts, unless the filepaths are the same.
 
-  * `pow(x, y)`  - Returns the base `x` of exponential `y` as a float.
+  * `pow(x, y)` - Returns the base `x` of exponential `y` as a float.
 
     Example:
     * `${pow(3,2)}` = 9
