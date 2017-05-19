@@ -223,20 +223,20 @@ resource "azurerm_public_ip" "infra_lb_pip" {
   domain_name_label            = "${var.infra_lb_publicip_dns_label}infrapip"
 }
 
-# resource "azurerm_availability_set" "master" {
-#   name                = "masteravailabilityset"
-#   resource_group_name = "${azurerm_resource_group.rg.name}"
-#   location            = "${azurerm_resource_group.rg.location}"
-# }
+resource "azurerm_availability_set" "master" {
+  name                = "masteravailabilityset"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
+  location            = "${azurerm_resource_group.rg.location}"
+}
 
-# resource "azurerm_availability_set" "infra" {
-#   name                = "infraavailabilityset"
-#   resource_group_name = "${azurerm_resource_group.rg.name}"
-#   location            = "${azurerm_resource_group.rg.location}"
-# }
+resource "azurerm_availability_set" "infra" {
+  name                = "infraavailabilityset"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
+  location            = "${azurerm_resource_group.rg.location}"
+}
 
-# resource "azurerm_availability_set" "node" {
-#   name                = "nodeavailabilityset"
-#   resource_group_name = "${azurerm_resource_group.rg.name}"
-#   location            = "${azurerm_resource_group.rg.location}"
-# }
+resource "azurerm_availability_set" "node" {
+  name                = "nodeavailabilityset"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
+  location            = "${azurerm_resource_group.rg.location}"
+}
