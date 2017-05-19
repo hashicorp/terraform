@@ -269,12 +269,11 @@ func (c *Config) Client() (interface{}, error) {
 		sess.Handlers.UnmarshalError.PushFrontNamed(debugAuthFailure)
 	}
 
-	// Some services exist only in us-east-1, e.g. because they manage
-	// resources that can span across multiple regions, or because
-	// signature format v4 requires region to be us-east-1 for global
-	// endpoints:
-	// http://docs.aws.amazon.com/general/latest/gr/sigv4_changes.html
-	usEast1Sess := sess.Copy(&aws.Config{Region: aws.String("us-east-1")})
+	// This restriction should only be used for Route53 sessions.
+	// Other resources that have restrictions should allow the API to fail, rather
+	// than Terraform abstracting the region for the user. This can lead to breaking
+	// changes if that resource is ever opened up to more regions.
+	r53Sess := sess.Copy(&aws.Config{Region: aws.String("us-east-1")})
 
 	// Some services have user-configurable endpoints
 	awsCfSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.CloudFormationEndpoint)})
@@ -370,7 +369,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.lambdaconn = lambda.New(sess)
 	client.lightsailconn = lightsail.New(sess)
 	client.opsworksconn = opsworks.New(sess)
-	client.r53conn = route53.New(usEast1Sess)
+	client.r53conn = route53.New(r53Sess)
 	client.rdsconn = rds.New(awsRdsSess)
 	client.redshiftconn = redshift.New(sess)
 	client.simpledbconn = simpledb.New(sess)
