@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -11,7 +13,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/kinesisanalytics"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"strconv"
 )
 
 func shim(*schema.ResourceData, interface{}) error {
@@ -26,6 +27,14 @@ func resourceAwsKinesisAnalytics() *schema.Resource {
 		Update: shim,
 		Delete: resourceAwskinesisAnalyticsDelete,
 
+		/*
+			todo:
+			application_desc, application_code, inputs, outputs
+			all need to be trigger an Update instead of ForceNew
+			be sure to add docs about the json record type making some optional fields into required
+			pure method func discoverService(string arn) (string, error)
+				is the arn pointing to a kinesis stream or kinesis firehose
+		*/
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
@@ -43,6 +52,100 @@ func resourceAwsKinesisAnalytics() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+			},
+
+			"inputs": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": { // NamePrefix
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"arn": { // KinesisStreamsInput.ResourceARN
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"role_arn": { // KinesisStreamsInput.RoleARN
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"record_format_type": { //RecordFormat.RecordFormatType ( JSON || CSV)
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"record_format_encoding": { //RecordFormat.RecordFormatType ( JSON || CSV)
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"record_row_path": { // MappingParameters.JSONMappingParameters.RecordRowPath
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"record_row_delimiter": { //MappingParameters.CSVMappingParameters.RecordRowDelimiter
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"record_column_delimiter": { //MappingParameters.CSVMappingParameters.RecordColumnDelimiter
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"columns": { //InputSchema.RecordColumns
+							Type:     schema.TypeSet,
+							Required: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"name": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"sql_type": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"mapping": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+
+			"outputs": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": { // Name
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"record_format_type": { // DestinationSchema.RecordFormatType ( JSON || CSV)
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"arn": { // KinesisStreamsOutput.ResourceARN || KinesisFirehoseOutput.ResourceARN
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"role_arn": { // KinesisStreamsOutput.RoleARN || KinesisFirehoseOutput.RoleARN
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
 			},
 
 			"arn": {
@@ -65,6 +168,127 @@ func resourceAwsKinesisAnalytics() *schema.Resource {
 	}
 }
 
+func discoverStreamType(arn string) (string, error) {
+
+	streamType := ""
+
+	if strings.Contains(arn, "aws:firehose") {
+		streamType = "firehose"
+	} else if strings.Contains(arn, "aws:kinesis") {
+		streamType = "kinesis"
+	}
+
+	if streamType == "" {
+		return "", fmt.Errorf("Error when attempting to determine stream type from AWS ARN. The arn (%s), does not appear to be kinesis nor firehose", arn)
+	}
+
+	return streamType, nil
+}
+
+func createOutputList(outputs []interface{}) ([]*kinesisanalytics.Output, error) {
+
+	var outputStreams []*kinesisanalytics.Output
+
+	for _, elem := range outputs {
+
+		output := elem.(map[string]interface{})
+
+		streamType, err := discoverStreamType(output["arn"].(string))
+
+		if err != nil {
+			return nil, err
+		}
+
+		if streamType == "kinesis" {
+			outputStreams = append(outputStreams, &kinesisanalytics.Output{
+
+				Name: aws.String(output["name"].(string)),
+
+				DestinationSchema: &kinesisanalytics.DestinationSchema{
+					RecordFormatType: aws.String(output["record_format_type"].(string)),
+				},
+
+				KinesisStreamsOutput: &kinesisanalytics.KinesisStreamsOutput{
+					ResourceARN: aws.String(output["arn"].(string)),
+					RoleARN:     aws.String(output["role_arn"].(string)),
+				},
+			})
+		}
+		if streamType == "firehose" {
+			outputStreams = append(outputStreams, &kinesisanalytics.Output{
+
+				Name: aws.String(output["name"].(string)),
+
+				DestinationSchema: &kinesisanalytics.DestinationSchema{
+					RecordFormatType: aws.String(output["record_format_type"].(string)),
+				},
+
+				KinesisFirehoseOutput: &kinesisanalytics.KinesisFirehoseOutput{
+					ResourceARN: aws.String(output["arn"].(string)),
+					RoleARN:     aws.String(output["role_arn"].(string)),
+				},
+			})
+		}
+	}
+
+	return outputStreams, nil
+}
+
+func createInputList(inputs []interface{}) ([]*kinesisanalytics.Input, error) {
+
+	var inputStreams []*kinesisanalytics.Input
+
+	for _, elem := range inputs {
+
+		input := elem.(map[string]interface{})
+
+		var columns []*kinesisanalytics.RecordColumn
+
+		cols := input["columns"].([]map[string]interface{})
+
+		for _, col := range cols {
+			columns = append(columns, &kinesisanalytics.RecordColumn{
+				Name:    aws.String(col["name"].(string)),
+				SqlType: aws.String(col["sql_type"].(string)),
+				Mapping: aws.String(col["mapping"].(string)),
+			})
+		}
+
+		inputStreams = append(inputStreams, &kinesisanalytics.Input{
+
+			NamePrefix: aws.String(input["name"].(string)),
+
+			InputSchema: &kinesisanalytics.SourceSchema{
+
+				RecordEncoding: aws.String(input["record_format_encoding"].(string)),
+
+				RecordFormat: &kinesisanalytics.RecordFormat{
+					MappingParameters: &kinesisanalytics.MappingParameters{
+						CSVMappingParameters: &kinesisanalytics.CSVMappingParameters{
+							RecordColumnDelimiter: aws.String(input["record_column_delimiter"].(string)),
+							RecordRowDelimiter:    aws.String(input["record_row_delimiter"].(string)),
+						},
+
+						JSONMappingParameters: &kinesisanalytics.JSONMappingParameters{
+							RecordRowPath: aws.String(input["record_row_path"].(string)),
+						},
+					},
+					RecordFormatType: aws.String(input["record_format_type"].(string)),
+				},
+
+				RecordColumns: columns,
+			},
+
+			KinesisStreamsInput: &kinesisanalytics.KinesisStreamsInput{
+				ResourceARN: aws.String(input["arn"].(string)),
+				RoleARN:     aws.String(input["role_arn"].(string)),
+			},
+		})
+	}
+
+	return inputStreams, nil
+}
+
 func resourceAwsKinesisAnalyticsCreate(d *schema.ResourceData, meta interface{}) error {
 
 	conn := meta.(*AWSClient).kinesisanalyticsconn
@@ -72,14 +296,38 @@ func resourceAwsKinesisAnalyticsCreate(d *schema.ResourceData, meta interface{})
 	name := d.Get("name").(string)
 	appDesc := d.Get("application_description").(string)
 	appCode := d.Get("application_code").(string)
+	inputs := d.Get("inputs").(*schema.Set).List()
+	outputs := d.Get("outputs").(*schema.Set).List()
+
+	inputStreams, err := createInputList(inputs)
+
+	if err != nil {
+		return err
+	}
+
+	outputStreams, err := createOutputList(outputs)
+
+	if err != nil {
+		return err
+	}
+
+	//fmt.Printf("KA.INPUTS:  %T\n\n", inputs)
+	//fmt.Printf("KA.INPUTS:  %+v\n\n", inputs)
+	//
+	//element := inputs[0].(map[string]interface{})
+	//fmt.Printf("element:  %T\n\n", element)
+	//fmt.Printf("property access:  %+v\n\n", element["name"].(string))
 
 	createOpts := &kinesisanalytics.CreateApplicationInput{
 		ApplicationName:        aws.String(name),
 		ApplicationDescription: aws.String(appDesc),
 		ApplicationCode:        aws.String(appCode),
+		Inputs:                 inputStreams,
+		Outputs:                outputStreams,
 	}
 
-	_, err := conn.CreateApplication(createOpts)
+	_, err = conn.CreateApplication(createOpts)
+
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			return fmt.Errorf("[WARN] Error creating Kinesis Analytics Application: \"%s\", code: \"%s\"", awsErr.Message(), awsErr.Code())
@@ -109,6 +357,8 @@ func resourceAwsKinesisAnalyticsCreate(d *schema.ResourceData, meta interface{})
 	d.Set("create_timestamp", strconv.FormatInt(s.createTimestamp, 10))
 	d.Set("application_description", s.description)
 	d.Set("application_code", s.code)
+	d.Set("inputs", s.inputs)
+	d.Set("outputs", s.outputs)
 
 	return nil
 }
@@ -159,6 +409,8 @@ type KinesisAnalyticsState struct {
 	arn             string
 	createTimestamp int64
 	status          string
+	inputs          []map[string]interface{}
+	outputs         []map[string]interface{}
 }
 
 func readKinesisAnalyticsState(conn *kinesisanalytics.KinesisAnalytics, name string) (*KinesisAnalyticsState, error) {
@@ -169,21 +421,50 @@ func readKinesisAnalyticsState(conn *kinesisanalytics.KinesisAnalytics, name str
 
 	state := &KinesisAnalyticsState{}
 
-	output, err := conn.DescribeApplication(describeOpts)
+	res, err := conn.DescribeApplication(describeOpts)
 
 	if err != nil {
 		return nil, err
 	}
 
-	state.description = aws.StringValue(output.ApplicationDetail.ApplicationDescription)
+	state.description = aws.StringValue(res.ApplicationDetail.ApplicationDescription)
 
-	state.code = aws.StringValue(output.ApplicationDetail.ApplicationCode)
+	state.code = aws.StringValue(res.ApplicationDetail.ApplicationCode)
 
-	state.arn = aws.StringValue(output.ApplicationDetail.ApplicationARN)
+	state.arn = aws.StringValue(res.ApplicationDetail.ApplicationARN)
 
-	state.createTimestamp = aws.Time(*output.ApplicationDetail.CreateTimestamp).Unix()
+	state.createTimestamp = aws.Time(*res.ApplicationDetail.CreateTimestamp).Unix()
 
-	state.status = aws.StringValue(output.ApplicationDetail.ApplicationStatus)
+	state.status = aws.StringValue(res.ApplicationDetail.ApplicationStatus)
+
+	for _, input := range res.ApplicationDetail.InputDescriptions {
+
+		i := map[string]interface{}{
+			"name": aws.StringValue(input.NamePrefix),
+		}
+
+		//TODO: finish up the rest of these properties
+
+		state.inputs = append(state.inputs, i)
+	}
+
+	for _, output := range res.ApplicationDetail.OutputDescriptions {
+
+		o := map[string]interface{}{
+			"name":               aws.StringValue(output.Name),
+			"record_format_type": aws.StringValue(output.DestinationSchema.RecordFormatType),
+		}
+
+		if output.KinesisFirehoseOutputDescription != nil {
+			o["arn"] = aws.StringValue(output.KinesisFirehoseOutputDescription.ResourceARN)
+			o["role_arn"] = aws.StringValue(output.KinesisFirehoseOutputDescription.RoleARN)
+		} else if output.KinesisStreamsOutputDescription != nil {
+			o["arn"] = aws.StringValue(output.KinesisStreamsOutputDescription.ResourceARN)
+			o["role_arn"] = aws.StringValue(output.KinesisStreamsOutputDescription.RoleARN)
+		}
+
+		state.outputs = append(state.outputs, o)
+	}
 
 	return state, nil
 }
