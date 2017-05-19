@@ -2,6 +2,7 @@
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
+* provider/aws: Allow lightsail resources to work in other regions. Previously Terraform would automatically configure lightsail resources to run solely in `us-east-1`. This means that if a provider was initialized with a different region than `us-east-1`, users will need to create a provider alias to maintain their lightsail resources in us-east-1 [GH-14685].
 * provider/aws: Users of `aws_cloudfront_distribution` `default_cache_behavior` will notice that cookies is now a required value - even if that value is none [GH-12628]
 * provider/google: Users of `google_compute_health_check` who were not setting a value for the `host` property of `http_health_check` or `https_health_check` previously had a faulty default value. This has been fixed and will show as a change in terraform plan/apply. [GH-14441]
 
@@ -28,6 +29,7 @@ IMPROVEMENTS:
 * provider/aws: Add `tags` (list of maps) for `aws_autoscaling_group` [GH-13574]
 * provider/aws: Support filtering in ASG data source [GH-14501]
 * provider/aws: Add ability to 'terraform import' aws_kms_alias resources [GH-14679]
+* provider/aws: Allow lightsail resources to work in other regions [GH-14685]
 * provider/azurerm: Virtual Machine Scale Sets with managed disk support [GH-13717]
 * provider/azurerm: Virtual Machine Scale Sets with single placement option support [GH-14510]
 * provider/azurerm: Adding support for VMSS Data Disks using Managed Disk feature [GH-14608]
