@@ -188,6 +188,25 @@ func TestAccStorageForceDestroy(t *testing.T) {
 	})
 }
 
+func TestAccStorage_cors(t *testing.T) {
+	bucketName := fmt.Sprintf("tf-test-acl-bucket-%d", acctest.RandInt())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGoogleStorageDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testGoogleStorageBucketsCors(bucketName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudStorageBucketExists(
+						"google_storage_bucket.bucket", bucketName),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckCloudStorageBucketExists(n string, bucketName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -301,4 +320,18 @@ resource "google_storage_bucket" "bucket" {
 	storage_class = "%s"%s
 }
 `, bucketName, storageClass, locationBlock)
+}
+
+func testGoogleStorageBucketsCors(bucketName string) string {
+	return fmt.Sprintf(`
+resource "google_storage_bucket" "bucket" {
+	name = "%s"
+	  cors {
+	    origin = ["abc", "def"]
+	    method = ["a1a"]
+	    response_header = ["123", "456", "789"]
+	    max_age_seconds = 10
+	  }
+}
+`, bucketName)
 }
