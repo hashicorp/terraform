@@ -164,3 +164,69 @@ resource "azurerm_virtual_network" "vnet" {
     security_group = "${azurerm_network_security_group.node_nsg.id}"
   }
 }
+
+resource "azurerm_storage_account" "master_storage_account" {
+  name                = "master${azurerm_resource_group.rg.id}msa"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
+  location            = "${azurerm_resource_group.rg.location}"
+  account_type        = "${var.storage_account_type_map["${var.master_vm_vize}"]}"
+
+  tags {
+    display_name = "MasterStorageAccount"
+  }
+}
+
+resource "azurerm_storage_account" "infra_storage_account" {
+  name                = "infra${azurerm_resource_group.rg.id}infra"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
+  location            = "${azurerm_resource_group.rg.location}"
+  account_type        = "${var.storage_account_type_map["${var.infra_vm_vize}"]}"
+
+  tags {
+    display_name = "InfraStorageAccount"
+  }
+}
+
+resource "azurerm_storage_account" "nodeos_storage_account" {
+  name                = "nodeos${azurerm_resource_group.rg.id}nodeossa"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
+  location            = "${azurerm_resource_group.rg.location}"
+  account_type        = "${var.storage_account_type_map["${var.node_vm_vize}"]}"
+
+  tags {
+    display_name = "NodeStorageAccount"
+  }
+}
+
+resource "azurerm_storage_account" "nodedata_storage_account" {
+  name                = "nodedata${azurerm_resource_group.rg.id}nodedatasa"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
+  location            = "${azurerm_resource_group.rg.location}"
+  account_type        = "${var.storage_account_type_map["${var.node_vm_vize}"]}"
+
+  tags {
+    display_name = "NodeStorageAccount"
+  }
+}
+
+resource "azurerm_storage_account" "registry_storage_account" {
+  name                = "${azurerm_resource_group.rg.id}registry"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
+  location            = "${azurerm_resource_group.rg.location}"
+  account_type        = "Standard_LRS"
+
+  tags {
+    display_name = "RegistryStorageAccount"
+  }
+}
+
+resource "azurerm_storage_account" "persistent_volume1_storage_account" {
+  name                = "${azurerm_resource_group.rg.id}persistentvolume1"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
+  location            = "${azurerm_resource_group.rg.location}"
+  account_type        = "Standard_LRS"
+
+  tags {
+    display_name = "PersistentVolume1StorageAccount"
+  }
+}
