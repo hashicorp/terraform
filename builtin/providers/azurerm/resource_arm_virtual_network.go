@@ -269,8 +269,7 @@ func getVirtualNetworkProperties(d *schema.ResourceData, meta interface{}) (*net
 		}
 	}
 
-	// finally; return the struct:
-	return &network.VirtualNetworkPropertiesFormat{
+	properties := &network.VirtualNetworkPropertiesFormat{
 		AddressSpace: &network.AddressSpace{
 			AddressPrefixes: &prefixes,
 		},
@@ -278,16 +277,18 @@ func getVirtualNetworkProperties(d *schema.ResourceData, meta interface{}) (*net
 			DNSServers: &dnses,
 		},
 		Subnets: &subnets,
-	}, nil
+	}
+	// finally; return the struct:
+	return properties, nil
 }
 
 func resourceAzureSubnetHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["address_prefix"].(string)))
-	if m["security_group"] != nil {
-		buf.WriteString(fmt.Sprintf("%s-", m["security_group"].(string)))
+	buf.WriteString(fmt.Sprintf("%s", m["name"].(string)))
+	buf.WriteString(fmt.Sprintf("%s", m["address_prefix"].(string)))
+	if v, ok := m["security_group"]; ok {
+		buf.WriteString(v.(string))
 	}
 	return hashcode.String(buf.String())
 }

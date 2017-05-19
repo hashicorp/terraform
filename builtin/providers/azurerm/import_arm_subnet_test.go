@@ -1,7 +1,6 @@
 package azurerm
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -12,7 +11,7 @@ func TestAccAzureRMSubnet_importBasic(t *testing.T) {
 	resourceName := "azurerm_subnet.test"
 
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMSubnet_basic, ri, ri, ri, ri, ri)
+	config := testAccAzureRMSubnet_basic(ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -36,7 +35,7 @@ func TestAccAzureRMSubnet_importWithRouteTable(t *testing.T) {
 	resourceName := "azurerm_subnet.test"
 
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMSubnet_routeTable, ri, ri, ri)
+	config := testAccAzureRMSubnet_routeTable(ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
