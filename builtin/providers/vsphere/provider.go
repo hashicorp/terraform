@@ -90,7 +90,6 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		return nil, fmt.Errorf(
 			"One of vsphere_server or [deprecated] vcenter_server must be provided.")
 	}
-	fmt.Errorf("Connecting to Vcenter server")
 	config := Config{
 		User:          d.Get("user").(string),
 		Password:      d.Get("password").(string),
