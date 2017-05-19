@@ -18,7 +18,7 @@ docker run --rm -it \
   -c "/bin/terraform get; \
       /bin/terraform validate; \
       /bin/terraform plan -out=out.tfplan \
-        -var resource_group=$KEY \
+        -var resource_group_name=$KEY \
         -var hostname=$KEY \
         -var openshift_cluster_prefix=$KEY \
         -var key_vault_secret=$KEY_VAULT_SECRET \
@@ -53,7 +53,7 @@ docker run --rm -it \
   --entrypoint "/bin/sh" \
   hashicorp/terraform:light \
   -c "/bin/terraform destroy -force \
-        -var resource_group=$KEY \
+        -var resource_group_name=$KEY \
         -var hostname=$KEY \
         -var openshift_cluster_prefix=$KEY \
         -var key_vault_secret=$KEY_VAULT_SECRET \
