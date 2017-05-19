@@ -20,15 +20,15 @@ func resourceVSphereRevertSnapshot() *schema.Resource {
 				ForceNew: true,
 			},
 			"vm_name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_VM_NAME", nil),
 			},
 			"folder": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_VM_FOLDER", nil),
 			},
 			"snapshot_name": {
