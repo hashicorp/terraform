@@ -21,6 +21,8 @@ docker run --rm -it \
         -var resource_group_name=$KEY \
         -var hostname=$KEY \
         -var openshift_cluster_prefix=$KEY \
+        -var openshift_master_public_ip_dns_label=$KEY \
+        -var infra_lb_publicip_dns_label=$KEY \
         -var key_vault_secret=$KEY_VAULT_SECRET \
         -var admin_username=$KEY \
         -var openshift_password=$PASSWORD \
@@ -56,6 +58,8 @@ docker run --rm -it \
         -var resource_group_name=$KEY \
         -var hostname=$KEY \
         -var openshift_cluster_prefix=$KEY \
+        -var openshift_master_public_ip_dns_label=$KEY \
+        -var infra_lb_publicip_dns_label=$KEY \
         -var key_vault_secret=$KEY_VAULT_SECRET \
         -var admin_username=$KEY \
         -var openshift_password=$PASSWORD \
