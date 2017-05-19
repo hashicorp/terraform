@@ -23,12 +23,10 @@ resource "azurerm_image" "test" {
   location = "West US"
   resource_group_name = "${azurerm_resource_group.test.name}"
 
-	os_disk {
-    os_type = "Linux"
-    os_state = "Generalized"
-	  blob_uri = "{blob_uri}"
-    size_gb = 30
-	}
+  os_disk_os_type = "Linux"
+  os_disk_os_state = "Generalized"
+  os_disk_blob_uri = "{blob_uri}"
+  os_disk_size_gb = 30
 }
 ```
 
@@ -61,20 +59,15 @@ The following arguments are supported:
 * `source_virtual_machine_id` - (Required when creating managed image from existing VM) 
     ID of an existing VM from which the managed image
     will be created. VM must be generalized prior to creating managed image.
-* `os_disk` - (Required when creating image from .vhd) The properties of the OS image that 
-    will be created, documented below.
+* `os_disk_os_type` - (Required) Specifies the type of operating system contained in the the virtual machine image. Possible values are: Windows or Linux.
+* `os_disk_os_state` - (Required) Specifies the state of the operating system contained in the blob. Currently, the only value is Generalized.
+* `os_disk_managed_disk_id` - (Optional) Specifies the ID of the managed disk resource that you want to use to create the image.
+* `os_disk_blob_uri` - (Optional) Specifies the URI in Azure storage of the blob that you want to use to create the image.
+* `os_disk_caching` - (Optional) Specifies the caching mode as 'readonly', 'readwrite', or 'none'. The default is none.
+* `os_disk_size_gb` - (Optional) Specifies the size of the image to be created. The target size can't be smaller than the source size.
 * `data_disk` - (Optional) The properties of the data images that 
     will be created, documented below. There can be multiple data_disks.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
-
-`os_disk` supports the following:
-
-* `os_type` - (Required) Specifies the type of operating system contained in the the virtual machine image. Possible values are: Windows or Linux.
-* `os_state` - (Required) Specifies the state of the operating system contained in the blob. Currently, the only value is Generalized.
-* `managed_disk_id` - (Optional) Specifies the ID of the managed disk resource that you want to use to create the image.
-* `blob_uri` - (Optional) Specifies the URI in Azure storage of the blob that you want to use to create the image.
-* `caching` - (Optional) Specifies the caching mode as 'readonly', 'readwrite', or 'none'. The default is none.
-* `size_gb` - (Optional) Specifies the size of the image to be created. The target size can't be smaller than the source size.
 
 `data_disk` supports the following:
 

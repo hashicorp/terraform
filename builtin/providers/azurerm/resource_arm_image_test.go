@@ -11,49 +11,49 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAzureRMManagedImage_standaloneImage(t *testing.T) {
+func TestAccAzureRMImage_standaloneImage(t *testing.T) {
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMManagedImage_standaloneImage, ri)
+	config := fmt.Sprintf(testAccAzureRMImage_standaloneImage, ri)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMManagedImageDestroy,
+		CheckDestroy: testCheckAzureRMImageDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMManagedImageExists("azurerm_image.test", true),
+					testCheckAzureRMImageExists("azurerm_image.test", true),
 				),
 			},
 		},
 	})
 }
 
-func TestAccAzureRMManagedImage_customImageVMFromVHD(t *testing.T) {
+func TestAccAzureRMImage_customImageVMFromVHD(t *testing.T) {
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMManagedImage_customImage_fromVHD, ri)
+	config := fmt.Sprintf(testAccAzureRMImage_customImage_fromVHD, ri)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMManagedImageDestroy,
+		CheckDestroy: testCheckAzureRMImageDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMManagedImageExists("azurerm_image.test", true),
+					testCheckAzureRMImageExists("azurerm_image.test", true),
 				),
 			},
 		},
 	})
 }
 
-func TestAccAzureRMManagedImage_customImageVMFromVM(t *testing.T) {
+func TestAccAzureRMImage_customImageVMFromVM(t *testing.T) {
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMManagedImage_customImage_fromVM, ri)
+	config := fmt.Sprintf(testAccAzureRMImage_customImage_fromVM, ri)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMManagedImageDestroy,
+		CheckDestroy: testCheckAzureRMImageDestroy,
 		Steps: []resource.TestStep{
 			{
 				//need to create a vm and then reference it in the image creation
@@ -68,7 +68,7 @@ func TestAccAzureRMManagedImage_customImageVMFromVM(t *testing.T) {
 	})
 }
 
-func testCheckAzureRMManagedImageExists(name string, shouldExist bool) resource.TestCheckFunc {
+func testCheckAzureRMImageExists(name string, shouldExist bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		log.Printf("[INFO] testing MANAGED IMAGE EXISTS - BEGIN.")
@@ -92,10 +92,10 @@ func testCheckAzureRMManagedImageExists(name string, shouldExist bool) resource.
 		}
 
 		if resp.StatusCode == http.StatusNotFound && shouldExist {
-			return fmt.Errorf("Bad: ManagedImage %q (resource group %q) does not exist", dName, resourceGroup)
+			return fmt.Errorf("Bad: Image %q (resource group %q) does not exist", dName, resourceGroup)
 		}
 		if resp.StatusCode != http.StatusNotFound && !shouldExist {
-			return fmt.Errorf("Bad: ManagedImage %q (resource group %q) still exists", dName, resourceGroup)
+			return fmt.Errorf("Bad: Image %q (resource group %q) still exists", dName, resourceGroup)
 		}
 
 		return nil
@@ -136,7 +136,7 @@ func testCheckAzureVMExists(sourceVM string, shouldExist bool) resource.TestChec
 	}
 }
 
-func testCheckAzureRMManagedImageDestroy(s *terraform.State) error {
+func testCheckAzureRMImageDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*ArmClient).diskClient
 
 	for _, rs := range s.RootModule().Resources {
@@ -161,7 +161,7 @@ func testCheckAzureRMManagedImageDestroy(s *terraform.State) error {
 	return nil
 }
 
-var testAccAzureRMManagedImage_standaloneImage = `
+var testAccAzureRMImage_standaloneImage = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%[1]d"
     location = "West Central US"
@@ -171,13 +171,11 @@ resource "azurerm_image" "test" {
     name = "accteste-%[1]d"
     location = "West Central US"
     resource_group_name = "${azurerm_resource_group.test.name}"
-	os_disk {
-		os_type = "Linux"
-		os_state = "Generalized"
-		blob_uri = "https://terraformdev.blob.core.windows.net/packerimages/ubuntu_plain.vhd"
- 	    size_gb = 30
-		caching = "None"
-	}
+	os_disk_os_type = "Linux"
+	os_disk_os_state = "Generalized"
+	os_disk_blob_uri = "https://terraformdev.blob.core.windows.net/packerimages/ubuntu_plain.vhd"
+	os_disk_size_gb = 30
+	os_disk_caching = "None"
 
     tags {
         environment = "acctest"
@@ -185,7 +183,7 @@ resource "azurerm_image" "test" {
     }
 }`
 
-var testAccAzureRMManagedImage_customImage_fromVHD = `
+var testAccAzureRMImage_customImage_fromVHD = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%[1]d"
     location = "West Central US"
@@ -221,13 +219,11 @@ resource "azurerm_image" "test" {
     name = "accteste"
     location = "West Central US"
     resource_group_name = "${azurerm_resource_group.test.name}"
-	os_disk {
-		os_type = "Linux"
-		os_state = "Generalized"
-		blob_uri = "{blob_uri}/yourdisk.vhd"
- 	    size_gb = 30
-		caching = "None"		 
-	}
+	os_disk_os_type = "Linux"
+	os_disk_os_state = "Generalized"
+	os_disk_blob_uri = "https://terraformdev.blob.core.windows.net/packerimages/ubuntu_plain.vhd"
+	os_disk_size_gb = 30
+	os_disk_caching = "None"		 
 
     tags {
         environment = "acctest"
@@ -269,7 +265,7 @@ resource "azurerm_virtual_machine" "test" {
 }
 `
 
-var testAccAzureRMManagedImage_customImage_fromVM = `
+var testAccAzureRMImage_customImage_fromVM = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%[1]d"
     location = "West Central US"
