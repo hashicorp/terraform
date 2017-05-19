@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"path/filepath"
 
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/backend"
@@ -145,6 +146,12 @@ func (m *Meta) DataDir() string {
 	}
 
 	return dataDir
+}
+
+// DataDirAbs returns the DataDir as an absolute path
+func (m *Meta) DataDirAbs() string {
+	dataDirAbs, _ := filepath.Abs(m.DataDir())
+	return dataDirAbs
 }
 
 const (
