@@ -32,9 +32,10 @@ func resourceComputeRouterInterface() *schema.Resource {
 				ForceNew: true,
 			},
 			"vpn_tunnel": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: linkDiffSuppress,
 			},
 
 			"ip_range": &schema.Schema{
@@ -45,6 +46,7 @@ func resourceComputeRouterInterface() *schema.Resource {
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
@@ -167,15 +169,10 @@ func resourceComputeRouterInterfaceRead(d *schema.ResourceData, meta interface{}
 
 		if iface.Name == ifaceName {
 			d.SetId(fmt.Sprintf("%s/%s/%s", region, routerName, ifaceName))
-			// if we don't have a tunnel (when importing), set it to the URI returned from the server
-			if _, ok := d.GetOk("vpn_tunnel"); !ok {
-				vpnTunnelName, err := getVpnTunnelName(iface.LinkedVpnTunnel)
-				if err != nil {
-					return err
-				}
-				d.Set("vpn_tunnel", vpnTunnelName)
-			}
+			d.Set("vpn_tunnel", iface.LinkedVpnTunnel)
 			d.Set("ip_range", iface.IpRange)
+			d.Set("region", region)
+			d.Set("project", project)
 			return nil
 		}
 	}
@@ -261,7 +258,7 @@ func resourceComputeRouterInterfaceDelete(d *schema.ResourceData, meta interface
 func resourceComputeRouterInterfaceImportState(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	parts := strings.Split(d.Id(), "/")
 	if len(parts) != 3 {
-		return nil, fmt.Errorf("Invalid router specifier. Expecting {region}/{router}")
+		return nil, fmt.Errorf("Invalid router interface specifier. Expecting {region}/{router}/{interface}")
 	}
 
 	d.Set("region", parts[0])

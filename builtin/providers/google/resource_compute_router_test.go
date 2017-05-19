@@ -10,21 +10,19 @@ import (
 )
 
 func TestAccComputeRouter_basic(t *testing.T) {
-	network := fmt.Sprintf("router-test-%s", acctest.RandString(10))
-	subnet := fmt.Sprintf("router-test-%s", acctest.RandString(10))
-	router := fmt.Sprintf("router-test-%s", acctest.RandString(10))
+	resourceRegion := "europe-west1"
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeRouterDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeRouterBasic(network, subnet, router),
+				Config: testAccComputeRouterBasic(resourceRegion),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeRouterExists(
 						"google_compute_router.foobar"),
 					resource.TestCheckResourceAttr(
-						"google_compute_router.foobar", "region", "europe-west1"),
+						"google_compute_router.foobar", "region", resourceRegion),
 				),
 			},
 		},
@@ -32,21 +30,19 @@ func TestAccComputeRouter_basic(t *testing.T) {
 }
 
 func TestAccComputeRouter_noRegion(t *testing.T) {
-	network := fmt.Sprintf("router-test-%s", acctest.RandString(10))
-	subnet := fmt.Sprintf("router-test-%s", acctest.RandString(10))
-	router := fmt.Sprintf("router-test-%s", acctest.RandString(10))
+	providerRegion := "us-central1"
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeRouterDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeRouterNoRegion(network, subnet, router),
+				Config: testAccComputeRouterNoRegion(providerRegion),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeRouterExists(
 						"google_compute_router.foobar"),
 					resource.TestCheckResourceAttr(
-						"google_compute_router.foobar", "region", "us-central1"),
+						"google_compute_router.foobar", "region", providerRegion),
 				),
 			},
 		},
@@ -54,16 +50,13 @@ func TestAccComputeRouter_noRegion(t *testing.T) {
 }
 
 func TestAccComputeRouter_networkLink(t *testing.T) {
-	network := fmt.Sprintf("router-test-%s", acctest.RandString(10))
-	subnet := fmt.Sprintf("router-test-%s", acctest.RandString(10))
-	router := fmt.Sprintf("router-test-%s", acctest.RandString(10))
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeRouterDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeRouterNetworkLink(network, subnet, router),
+				Config: testAccComputeRouterNetworkLink(),
 				Check: testAccCheckComputeRouterExists(
 					"google_compute_router.foobar"),
 			},
@@ -140,67 +133,70 @@ func testAccCheckComputeRouterExists(n string) resource.TestCheckFunc {
 	}
 }
 
-func testAccComputeRouterBasic(network, subnet, router string) string {
+func testAccComputeRouterBasic(resourceRegion string) string {
+	testId := acctest.RandString(10)
 	return fmt.Sprintf(`
 		resource "google_compute_network" "foobar" {
-			name = "%s"
+			name = "router-test-%s"
 		}
 		resource "google_compute_subnetwork" "foobar" {
-			name = "%s"
+			name = "router-test-%s"
+			network = "${google_compute_network.foobar.self_link}"
+			ip_cidr_range = "10.0.0.0/16"
+			region = "%s"
+		}
+		resource "google_compute_router" "foobar" {
+			name = "router-test-%s"
+			region = "${google_compute_subnetwork.foobar.region}"
+			network = "${google_compute_network.foobar.name}"
+			bgp {
+				asn = 64514
+			}
+		}
+	`, testId, testId, resourceRegion, testId)
+}
+
+func testAccComputeRouterNoRegion(providerRegion string) string {
+	testId := acctest.RandString(10)
+	return fmt.Sprintf(`
+		resource "google_compute_network" "foobar" {
+			name = "router-test-%s"
+		}
+		resource "google_compute_subnetwork" "foobar" {
+			name = "router-test-%s"
+			network = "${google_compute_network.foobar.self_link}"
+			ip_cidr_range = "10.0.0.0/16"
+			region = "%s"
+		}
+		resource "google_compute_router" "foobar" {
+			name = "router-test-%s"
+			network = "${google_compute_network.foobar.name}"
+			bgp {
+				asn = 64514
+			}
+		}
+	`, testId, testId, providerRegion, testId)
+}
+
+func testAccComputeRouterNetworkLink() string {
+	testId := acctest.RandString(10)
+	return fmt.Sprintf(`
+		resource "google_compute_network" "foobar" {
+			name = "router-test-%s"
+		}
+		resource "google_compute_subnetwork" "foobar" {
+			name = "router-test-%s"
 			network = "${google_compute_network.foobar.self_link}"
 			ip_cidr_range = "10.0.0.0/16"
 			region = "europe-west1"
 		}
 		resource "google_compute_router" "foobar" {
-			name = "%s"
-			region = "${google_compute_subnetwork.foobar.region}"
-			network = "${google_compute_network.foobar.name}"
-			bgp {
-				asn = 64514
-			}
-		}
-	`, network, subnet, router)
-}
-
-func testAccComputeRouterNoRegion(network, subnet, router string) string {
-	return fmt.Sprintf(`
-		resource "google_compute_network" "foobar" {
-			name = "%s"
-		}
-		resource "google_compute_subnetwork" "foobar" {
-			name = "%s"
-			network = "${google_compute_network.foobar.self_link}"
-			ip_cidr_range = "10.0.0.0/16"
-			region = "us-central1"
-		}
-		resource "google_compute_router" "foobar" {
-			name = "%s"
-			network = "${google_compute_network.foobar.name}"
-			bgp {
-				asn = 64514
-			}
-		}
-	`, network, subnet, router)
-}
-
-func testAccComputeRouterNetworkLink(network, subnet, router string) string {
-	return fmt.Sprintf(`
-		resource "google_compute_network" "foobar" {
-			name = "%s"
-		}
-		resource "google_compute_subnetwork" "foobar" {
-			name = "%s"
-			network = "${google_compute_network.foobar.self_link}"
-			ip_cidr_range = "10.0.0.0/16"
-			region = "us-central1"
-		}
-		resource "google_compute_router" "foobar" {
-			name = "%s"
+			name = "router-test-%s"
 			region = "${google_compute_subnetwork.foobar.region}"
 			network = "${google_compute_network.foobar.self_link}"
 			bgp {
 				asn = 64514
 			}
 		}
-	`, network, subnet, router)
+	`, testId, testId, testId)
 }

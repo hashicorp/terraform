@@ -63,6 +63,7 @@ func resourceComputeRouterPeer() *schema.Resource {
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
@@ -195,6 +196,8 @@ func resourceComputeRouterPeerRead(d *schema.ResourceData, meta interface{}) err
 			d.Set("peer_asn", peer.PeerAsn)
 			d.Set("advertised_route_priority", peer.AdvertisedRoutePriority)
 			d.Set("ip_address", peer.IpAddress)
+			d.Set("region", region)
+			d.Set("project", project)
 			return nil
 		}
 	}
@@ -237,20 +240,16 @@ func resourceComputeRouterPeerDelete(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error Reading Router %s: %s", routerName, err)
 	}
 
-	var peerFound bool
-
 	var newPeers []*compute.RouterBgpPeer = make([]*compute.RouterBgpPeer, 0, len(router.BgpPeers))
 	for _, peer := range router.BgpPeers {
-
 		if peer.Name == peerName {
-			peerFound = true
 			continue
 		} else {
 			newPeers = append(newPeers, peer)
 		}
 	}
 
-	if !peerFound {
+	if len(newPeers) == len(router.BgpPeers) {
 		log.Printf("[DEBUG] Router %s/%s had no peer %s already", region, routerName, peerName)
 		d.SetId("")
 		return nil
@@ -280,7 +279,7 @@ func resourceComputeRouterPeerDelete(d *schema.ResourceData, meta interface{}) e
 func resourceComputeRouterPeerImportState(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	parts := strings.Split(d.Id(), "/")
 	if len(parts) != 3 {
-		return nil, fmt.Errorf("Invalid router specifier. Expecting {region}/{router}")
+		return nil, fmt.Errorf("Invalid router peer specifier. Expecting {region}/{router}/{peer}")
 	}
 
 	d.Set("region", parts[0])
