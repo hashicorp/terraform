@@ -10,26 +10,137 @@ resource "azurerm_resource_group" "rg" {
   location = "${var.resource_group_location}"
 }
 
-resource "azurerm_key_vault" "quickstart" {
-  name                = "${var.keyvault_name}"
-  location            = "${azurerm_resource_group.quickstart.location}"
-  resource_group_name = "${azurerm_resource_group.quickstart.name}"
+resource "azurerm_network_security_group" "master_nsg" {
+  name                = "${var.openshift_cluster_prefix}-master-nsg"
+  location            = "${azurerm_resource_group.rg.location}"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
 
-  sku {
-    name = "standard"
+  security_rule {
+    name                       = "allow_SSH_in_all"
+    description                = "Allow SSH in from all locations"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
   }
 
-  tenant_id = "${var.keyvault_tenant_id}"
-
-  access_policy {
-    tenant_id = "${var.keyvault_tenant_id}"
-    object_id = "${var.keyvault_object_id}"
-
-    key_permissions    = "${var.keys_permissions}"
-    secret_permissions = "${var.secrets_permissions}"
+  security_rule {
+    name                       = "allow_HTTPS_all"
+    description                = "Allow HTTPS connections from all locations"
+    priority                   = 200
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
   }
 
-  enabled_for_deployment          = false
-  enabled_for_disk_encryption     = false
-  enabled_for_template_deployment = true
+  security_rule {
+    name                       = "allow_OpenShift_console_in_all"
+    description                = "Allow OpenShift Console connections from all locations"
+    priority                   = 300
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "8443"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+}
+
+resource "azurerm_network_security_group" "infra_nsg" {
+  name                = "${var.openshift_cluster_prefix}-infra-nsg"
+  location            = "${azurerm_resource_group.rg.location}"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
+
+  security_rule {
+    name                       = "allow_SSH_in_all"
+    description                = "Allow SSH in from all locations"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "allow_HTTPS_all"
+    description                = "Allow HTTPS connections from all locations"
+    priority                   = 200
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "allow_HTTP_in_all"
+    description                = "Allow HTTP connections from all locations"
+    priority                   = 300
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "80"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+}
+
+resource "azurerm_network_security_group" "node_nsg" {
+  name                = "${var.openshift_cluster_prefix}-node-nsg"
+  location            = "${azurerm_resource_group.rg.location}"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
+
+  security_rule {
+    name                       = "allow_SSH_in_all"
+    description                = "Allow SSH in from all locations"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "allow_HTTPS_all"
+    description                = "Allow HTTPS connections from all locations"
+    priority                   = 200
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "allow_HTTP_in_all"
+    description                = "Allow HTTP connections from all locations"
+    priority                   = 300
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "80"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
 }
