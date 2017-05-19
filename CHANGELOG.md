@@ -52,6 +52,7 @@ BUG FIXES:
 * core: Fixed crasher when populating a "splat variable" from an empty (nil) module state. [GH-14526]
 * core: fix bad Sprintf in backend migration message [GH-14601]
 * provider/aws: Allow updating constraints in WAF SizeConstraintSet + no constraints [GH-14661]
+* provider/aws: Allow updating tuples in WAF SQLInjectionMatchSet + no tuples [GH-14667]
 * provider/aws: Increase EIP update timeout [GH-14381]
 * provider/aws: Increase timeout for creating security group [GH-14380]
 * provider/aws: Increase timeout for (dis)associating IPv6 addr to/from subnet [GH-14401]
