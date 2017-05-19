@@ -485,6 +485,9 @@ resource "aws_eip" "bar" {
 const testAccAWSEIPNetworkInterfaceConfig = `
 resource "aws_vpc" "bar" {
 	cidr_block = "10.0.0.0/24"
+	tags {
+		Name = "testAccAWSEIPNetworkInterfaceConfig"
+	}
 }
 resource "aws_internet_gateway" "bar" {
 	vpc_id = "${aws_vpc.bar.id}"
@@ -508,6 +511,9 @@ resource "aws_eip" "bar" {
 const testAccAWSEIPMultiNetworkInterfaceConfig = `
 resource "aws_vpc" "bar" {
   cidr_block = "10.0.0.0/24"
+	tags {
+		Name = "testAccAWSEIPMultiNetworkInterfaceConfig"
+	}
 }
 
 resource "aws_internet_gateway" "bar" {

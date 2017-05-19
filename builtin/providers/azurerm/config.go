@@ -53,6 +53,7 @@ type ArmClient struct {
 
 	appGatewayClient             network.ApplicationGatewaysClient
 	ifaceClient                  network.InterfacesClient
+	expressRouteCircuitClient    network.ExpressRouteCircuitsClient
 	loadBalancerClient           network.LoadBalancersClient
 	localNetConnClient           network.LocalNetworkGatewaysClient
 	publicIPClient               network.PublicIPAddressesClient
@@ -280,6 +281,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	ifc.Authorizer = spt
 	ifc.Sender = autorest.CreateSender(withRequestLogging())
 	client.ifaceClient = ifc
+
+	erc := network.NewExpressRouteCircuitsClientWithBaseURI(endpoint, c.SubscriptionID)
+	setUserAgent(&erc.Client)
+	erc.Authorizer = spt
+	erc.Sender = autorest.CreateSender(withRequestLogging())
+	client.expressRouteCircuitClient = erc
 
 	lbc := network.NewLoadBalancersClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&lbc.Client)

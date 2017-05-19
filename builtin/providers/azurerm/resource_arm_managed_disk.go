@@ -2,12 +2,13 @@ package azurerm
 
 import (
 	"fmt"
-	"github.com/Azure/azure-sdk-for-go/arm/disk"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/Azure/azure-sdk-for-go/arm/disk"
+	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceArmManagedDisk() *schema.Resource {
@@ -90,9 +91,9 @@ func resourceArmManagedDisk() *schema.Resource {
 
 func validateDiskSizeGB(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(int)
-	if value < 1 || value > 1023 {
+	if value < 1 || value > 4095 {
 		errors = append(errors, fmt.Errorf(
-			"The `disk_size_gb` can only be between 1 and 1023"))
+			"The `disk_size_gb` can only be between 1 and 4095"))
 	}
 	return
 }

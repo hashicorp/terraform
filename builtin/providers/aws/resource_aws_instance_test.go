@@ -1324,6 +1324,9 @@ resource "aws_instance" "foo" {
 const testAccInstanceConfigSourceDestEnable = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccInstanceConfigSourceDestEnable"
+	}
 }
 
 resource "aws_subnet" "foo" {
@@ -1342,6 +1345,9 @@ resource "aws_instance" "foo" {
 const testAccInstanceConfigSourceDestDisable = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccInstanceConfigSourceDestDisable"
+	}
 }
 
 resource "aws_subnet" "foo" {
@@ -1362,6 +1368,9 @@ func testAccInstanceConfigDisableAPITermination(val bool) string {
 	return fmt.Sprintf(`
 	resource "aws_vpc" "foo" {
 		cidr_block = "10.1.0.0/16"
+		tags {
+			Name = "testAccInstanceConfigDisableAPITermination"
+		}
 	}
 
 	resource "aws_subnet" "foo" {
@@ -1382,6 +1391,9 @@ func testAccInstanceConfigDisableAPITermination(val bool) string {
 const testAccInstanceConfigVPC = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccInstanceConfigVPC"
+	}
 }
 
 resource "aws_subnet" "foo" {
@@ -1729,6 +1741,9 @@ resource "aws_instance" "foo" {
 const testAccInstanceConfigPrivateIP = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccInstanceConfigPrivateIP"
+	}
 }
 
 resource "aws_subnet" "foo" {
@@ -1747,6 +1762,9 @@ resource "aws_instance" "foo" {
 const testAccInstanceConfigAssociatePublicIPAndPrivateIP = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccInstanceConfigAssociatePublicIPAndPrivateIP"
+	}
 }
 
 resource "aws_subnet" "foo" {
@@ -1879,6 +1897,9 @@ resource "aws_instance" "foo" {
 const testAccInstanceConfigRootBlockDeviceMismatch = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccInstanceConfigRootBlockDeviceMismatch"
+	}
 }
 
 resource "aws_subnet" "foo" {
@@ -1900,6 +1921,9 @@ resource "aws_instance" "foo" {
 const testAccInstanceConfigForceNewAndTagsDrift = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccInstanceConfigForceNewAndTagsDrift"
+	}
 }
 
 resource "aws_subnet" "foo" {
@@ -1917,6 +1941,9 @@ resource "aws_instance" "foo" {
 const testAccInstanceConfigForceNewAndTagsDrift_Update = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccInstanceConfigForceNewAndTagsDrift_Update"
+	}
 }
 
 resource "aws_subnet" "foo" {

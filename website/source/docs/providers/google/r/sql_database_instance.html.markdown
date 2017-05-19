@@ -79,7 +79,7 @@ The required `settings` block supports:
 * `crash_safe_replication` - (Optional) Specific to read instances, indicates
     when crash-safe replication flags are enabled.
 
-* `disk_autoresize` - (Optional, Second Generation, Default: `false`) Configuration to increase storage size automatically.
+* `disk_autoresize` - (Optional, Second Generation, Default: `true`) Configuration to increase storage size automatically.
 
 * `disk_size` - (Optional, Second Generation, Default: `10`) The size of data disk, in GB. Size of a running instance cannot be reduced but can be increased.
 

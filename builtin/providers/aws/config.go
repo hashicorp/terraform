@@ -67,6 +67,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/waf"
+	"github.com/aws/aws-sdk-go/service/wafregional"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-cleanhttp"
@@ -175,6 +176,7 @@ type AWSClient struct {
 	sfnconn               *sfn.SFN
 	ssmconn               *ssm.SSM
 	wafconn               *waf.WAF
+	wafregionalconn       *wafregional.WAFRegional
 }
 
 func (c *AWSClient) S3() *s3.S3 {
@@ -270,12 +272,11 @@ func (c *Config) Client() (interface{}, error) {
 		sess.Handlers.UnmarshalError.PushFrontNamed(debugAuthFailure)
 	}
 
-	// Some services exist only in us-east-1, e.g. because they manage
-	// resources that can span across multiple regions, or because
-	// signature format v4 requires region to be us-east-1 for global
-	// endpoints:
-	// http://docs.aws.amazon.com/general/latest/gr/sigv4_changes.html
-	usEast1Sess := sess.Copy(&aws.Config{Region: aws.String("us-east-1")})
+	// This restriction should only be used for Route53 sessions.
+	// Other resources that have restrictions should allow the API to fail, rather
+	// than Terraform abstracting the region for the user. This can lead to breaking
+	// changes if that resource is ever opened up to more regions.
+	r53Sess := sess.Copy(&aws.Config{Region: aws.String("us-east-1")})
 
 	// Some services have user-configurable endpoints
 	awsCfSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.CloudFormationEndpoint)})
@@ -371,9 +372,9 @@ func (c *Config) Client() (interface{}, error) {
 	client.kinesisanalyticsconn = kinesisanalytics.New(awsKinesisAnalyticsSess)
 	client.kmsconn = kms.New(awsKmsSess)
 	client.lambdaconn = lambda.New(sess)
-	client.lightsailconn = lightsail.New(usEast1Sess)
+	client.lightsailconn = lightsail.New(sess)
 	client.opsworksconn = opsworks.New(sess)
-	client.r53conn = route53.New(usEast1Sess)
+	client.r53conn = route53.New(r53Sess)
 	client.rdsconn = rds.New(awsRdsSess)
 	client.redshiftconn = redshift.New(sess)
 	client.simpledbconn = simpledb.New(sess)
@@ -384,6 +385,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.sqsconn = sqs.New(awsSqsSess)
 	client.ssmconn = ssm.New(sess)
 	client.wafconn = waf.New(sess)
+	client.wafregionalconn = wafregional.New(sess)
 
 	return &client, nil
 }

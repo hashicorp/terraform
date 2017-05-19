@@ -60,6 +60,38 @@ func TestAccRancherEnvironment_disappears(t *testing.T) {
 	})
 }
 
+func TestAccRancherEnvironment_members(t *testing.T) {
+	var environment rancherClient.Project
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRancherEnvironmentDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRancherEnvironmentMembersConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRancherEnvironmentExists("rancher_environment.foo", &environment),
+					resource.TestCheckResourceAttr("rancher_environment.foo", "name", "foo"),
+					resource.TestCheckResourceAttr("rancher_environment.foo", "description", "Terraform acc test group"),
+					resource.TestCheckResourceAttr("rancher_environment.foo", "orchestration", "cattle"),
+					resource.TestCheckResourceAttr("rancher_environment.foo", "member.#", "2"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccRancherEnvironmentMembersUpdateConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRancherEnvironmentExists("rancher_environment.foo", &environment),
+					resource.TestCheckResourceAttr("rancher_environment.foo", "name", "foo2"),
+					resource.TestCheckResourceAttr("rancher_environment.foo", "description", "Terraform acc test group - updated"),
+					resource.TestCheckResourceAttr("rancher_environment.foo", "orchestration", "swarm"),
+					resource.TestCheckResourceAttr("rancher_environment.foo", "member.#", "1"),
+				),
+			},
+		},
+	})
+}
+
 func testAccRancherEnvironmentDisappears(env *rancherClient.Project) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client, err := testAccProvider.Meta().(*Config).GlobalClient()
@@ -157,5 +189,39 @@ resource "rancher_environment" "foo" {
 	name = "foo2"
 	description = "Terraform acc test group - updated"
 	orchestration = "swarm"
+}
+`
+
+const testAccRancherEnvironmentMembersConfig = `
+resource "rancher_environment" "foo" {
+	name = "foo"
+	description = "Terraform acc test group"
+	orchestration = "cattle"
+
+	member {
+		external_id = "1234"
+		external_id_type = "github_user"
+		role = "owner"
+	}
+
+	member {
+		external_id = "8765"
+		external_id_type = "github_team"
+		role = "member"
+	}
+}
+`
+
+const testAccRancherEnvironmentMembersUpdateConfig = `
+resource "rancher_environment" "foo" {
+	name = "foo"
+	description = "Terraform acc test group"
+	orchestration = "cattle"
+
+	member {
+		external_id = "1235"
+		external_id_type = "github_user"
+		role = "owner"
+	}
 }
 `
