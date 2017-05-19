@@ -58,13 +58,15 @@ func (client DatabaseAccountsClient) CheckNameExists(accountName string) (result
 
 	req, err := client.CheckNameExistsPreparer(accountName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "CheckNameExists", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "CheckNameExists", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.CheckNameExistsSender(req)
 	if err != nil {
 		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "CheckNameExists", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "CheckNameExists", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.CheckNameExistsResponder(resp)
@@ -81,8 +83,9 @@ func (client DatabaseAccountsClient) CheckNameExistsPreparer(accountName string)
 		"accountName": autorest.Encode("path", accountName),
 	}
 
+	const APIVersion = "2015-04-08"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -119,7 +122,9 @@ func (client DatabaseAccountsClient) CheckNameExistsResponder(resp *http.Respons
 // resourceGroupName is name of an Azure resource group. accountName is
 // documentDB database account name. createUpdateParameters is the parameters
 // to provide for the current database account.
-func (client DatabaseAccountsClient) CreateOrUpdate(resourceGroupName string, accountName string, createUpdateParameters DatabaseAccountCreateUpdateParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
+func (client DatabaseAccountsClient) CreateOrUpdate(resourceGroupName string, accountName string, createUpdateParameters DatabaseAccountCreateUpdateParameters, cancel <-chan struct{}) (<-chan DatabaseAccount, <-chan error) {
+	resultChan := make(chan DatabaseAccount, 1)
+	errChan := make(chan error, 1)
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -143,26 +148,40 @@ func (client DatabaseAccountsClient) CreateOrUpdate(resourceGroupName string, ac
 					{Target: "createUpdateParameters.DatabaseAccountCreateUpdateProperties.Locations", Name: validation.Null, Rule: true, Chain: nil},
 					{Target: "createUpdateParameters.DatabaseAccountCreateUpdateProperties.DatabaseAccountOfferType", Name: validation.Null, Rule: true, Chain: nil},
 				}}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "documentdb.DatabaseAccountsClient", "CreateOrUpdate")
+		errChan <- validation.NewErrorWithValidationError(err, "documentdb.DatabaseAccountsClient", "CreateOrUpdate")
+		close(errChan)
+		close(resultChan)
+		return resultChan, errChan
 	}
 
-	req, err := client.CreateOrUpdatePreparer(resourceGroupName, accountName, createUpdateParameters, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "CreateOrUpdate", nil, "Failure preparing request")
-	}
+	go func() {
+		var err error
+		var result DatabaseAccount
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.CreateOrUpdatePreparer(resourceGroupName, accountName, createUpdateParameters, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "CreateOrUpdate", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.CreateOrUpdateSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "CreateOrUpdate", resp, "Failure sending request")
-	}
+		resp, err := client.CreateOrUpdateSender(req)
+		if err != nil {
+			result.Response = autorest.Response{Response: resp}
+			err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "CreateOrUpdate", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "CreateOrUpdate", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.CreateOrUpdateResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "CreateOrUpdate", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // CreateOrUpdatePreparer prepares the CreateOrUpdate request.
@@ -173,8 +192,9 @@ func (client DatabaseAccountsClient) CreateOrUpdatePreparer(resourceGroupName st
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2015-04-08"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -197,13 +217,14 @@ func (client DatabaseAccountsClient) CreateOrUpdateSender(req *http.Request) (*h
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
 // closes the http.Response Body.
-func (client DatabaseAccountsClient) CreateOrUpdateResponder(resp *http.Response) (result autorest.Response, err error) {
+func (client DatabaseAccountsClient) CreateOrUpdateResponder(resp *http.Response) (result DatabaseAccount, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
-	result.Response = resp
+	result.Response = autorest.Response{Response: resp}
 	return
 }
 
@@ -214,7 +235,9 @@ func (client DatabaseAccountsClient) CreateOrUpdateResponder(resp *http.Response
 //
 // resourceGroupName is name of an Azure resource group. accountName is
 // documentDB database account name.
-func (client DatabaseAccountsClient) Delete(resourceGroupName string, accountName string, cancel <-chan struct{}) (result autorest.Response, err error) {
+func (client DatabaseAccountsClient) Delete(resourceGroupName string, accountName string, cancel <-chan struct{}) (<-chan autorest.Response, <-chan error) {
+	resultChan := make(chan autorest.Response, 1)
+	errChan := make(chan error, 1)
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -223,26 +246,40 @@ func (client DatabaseAccountsClient) Delete(resourceGroupName string, accountNam
 		{TargetValue: accountName,
 			Constraints: []validation.Constraint{{Target: "accountName", Name: validation.MaxLength, Rule: 50, Chain: nil},
 				{Target: "accountName", Name: validation.MinLength, Rule: 3, Chain: nil}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "documentdb.DatabaseAccountsClient", "Delete")
+		errChan <- validation.NewErrorWithValidationError(err, "documentdb.DatabaseAccountsClient", "Delete")
+		close(errChan)
+		close(resultChan)
+		return resultChan, errChan
 	}
 
-	req, err := client.DeletePreparer(resourceGroupName, accountName, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "Delete", nil, "Failure preparing request")
-	}
+	go func() {
+		var err error
+		var result autorest.Response
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.DeletePreparer(resourceGroupName, accountName, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "Delete", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.DeleteSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "Delete", resp, "Failure sending request")
-	}
+		resp, err := client.DeleteSender(req)
+		if err != nil {
+			result.Response = resp
+			err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "Delete", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "Delete", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.DeleteResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "Delete", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // DeletePreparer prepares the Delete request.
@@ -253,8 +290,9 @@ func (client DatabaseAccountsClient) DeletePreparer(resourceGroupName string, ac
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2015-04-08"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -296,7 +334,9 @@ func (client DatabaseAccountsClient) DeleteResponder(resp *http.Response) (resul
 // resourceGroupName is name of an Azure resource group. accountName is
 // documentDB database account name. failoverParameters is the new failover
 // policies for the database account.
-func (client DatabaseAccountsClient) FailoverPriorityChange(resourceGroupName string, accountName string, failoverParameters FailoverPolicies, cancel <-chan struct{}) (result autorest.Response, err error) {
+func (client DatabaseAccountsClient) FailoverPriorityChange(resourceGroupName string, accountName string, failoverParameters FailoverPolicies, cancel <-chan struct{}) (<-chan autorest.Response, <-chan error) {
+	resultChan := make(chan autorest.Response, 1)
+	errChan := make(chan error, 1)
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -305,26 +345,40 @@ func (client DatabaseAccountsClient) FailoverPriorityChange(resourceGroupName st
 		{TargetValue: accountName,
 			Constraints: []validation.Constraint{{Target: "accountName", Name: validation.MaxLength, Rule: 50, Chain: nil},
 				{Target: "accountName", Name: validation.MinLength, Rule: 3, Chain: nil}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "documentdb.DatabaseAccountsClient", "FailoverPriorityChange")
+		errChan <- validation.NewErrorWithValidationError(err, "documentdb.DatabaseAccountsClient", "FailoverPriorityChange")
+		close(errChan)
+		close(resultChan)
+		return resultChan, errChan
 	}
 
-	req, err := client.FailoverPriorityChangePreparer(resourceGroupName, accountName, failoverParameters, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "FailoverPriorityChange", nil, "Failure preparing request")
-	}
+	go func() {
+		var err error
+		var result autorest.Response
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.FailoverPriorityChangePreparer(resourceGroupName, accountName, failoverParameters, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "FailoverPriorityChange", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.FailoverPriorityChangeSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "FailoverPriorityChange", resp, "Failure sending request")
-	}
+		resp, err := client.FailoverPriorityChangeSender(req)
+		if err != nil {
+			result.Response = resp
+			err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "FailoverPriorityChange", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.FailoverPriorityChangeResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "FailoverPriorityChange", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.FailoverPriorityChangeResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "FailoverPriorityChange", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // FailoverPriorityChangePreparer prepares the FailoverPriorityChange request.
@@ -335,8 +389,9 @@ func (client DatabaseAccountsClient) FailoverPriorityChangePreparer(resourceGrou
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2015-04-08"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -388,13 +443,15 @@ func (client DatabaseAccountsClient) Get(resourceGroupName string, accountName s
 
 	req, err := client.GetPreparer(resourceGroupName, accountName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "Get", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "Get", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.GetSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "Get", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "Get", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.GetResponder(resp)
@@ -413,8 +470,9 @@ func (client DatabaseAccountsClient) GetPreparer(resourceGroupName string, accou
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2015-04-08"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -449,13 +507,15 @@ func (client DatabaseAccountsClient) GetResponder(resp *http.Response) (result D
 func (client DatabaseAccountsClient) List() (result DatabaseAccountsListResult, err error) {
 	req, err := client.ListPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "List", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "List", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "List", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "List", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListResponder(resp)
@@ -472,8 +532,9 @@ func (client DatabaseAccountsClient) ListPreparer() (*http.Request, error) {
 		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2015-04-08"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -518,13 +579,15 @@ func (client DatabaseAccountsClient) ListByResourceGroup(resourceGroupName strin
 
 	req, err := client.ListByResourceGroupPreparer(resourceGroupName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "ListByResourceGroup", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "ListByResourceGroup", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListByResourceGroupSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "ListByResourceGroup", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "ListByResourceGroup", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListByResourceGroupResponder(resp)
@@ -542,8 +605,9 @@ func (client DatabaseAccountsClient) ListByResourceGroupPreparer(resourceGroupNa
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2015-04-08"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -592,13 +656,15 @@ func (client DatabaseAccountsClient) ListConnectionStrings(resourceGroupName str
 
 	req, err := client.ListConnectionStringsPreparer(resourceGroupName, accountName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "ListConnectionStrings", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "ListConnectionStrings", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListConnectionStringsSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "ListConnectionStrings", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "ListConnectionStrings", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListConnectionStringsResponder(resp)
@@ -617,8 +683,9 @@ func (client DatabaseAccountsClient) ListConnectionStringsPreparer(resourceGroup
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2015-04-08"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -667,13 +734,15 @@ func (client DatabaseAccountsClient) ListKeys(resourceGroupName string, accountN
 
 	req, err := client.ListKeysPreparer(resourceGroupName, accountName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "ListKeys", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "ListKeys", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListKeysSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "ListKeys", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "ListKeys", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListKeysResponder(resp)
@@ -692,8 +761,9 @@ func (client DatabaseAccountsClient) ListKeysPreparer(resourceGroupName string, 
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2015-04-08"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -742,13 +812,15 @@ func (client DatabaseAccountsClient) ListReadOnlyKeys(resourceGroupName string, 
 
 	req, err := client.ListReadOnlyKeysPreparer(resourceGroupName, accountName)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "ListReadOnlyKeys", nil, "Failure preparing request")
+		err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "ListReadOnlyKeys", nil, "Failure preparing request")
+		return
 	}
 
 	resp, err := client.ListReadOnlyKeysSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "ListReadOnlyKeys", resp, "Failure sending request")
+		err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "ListReadOnlyKeys", resp, "Failure sending request")
+		return
 	}
 
 	result, err = client.ListReadOnlyKeysResponder(resp)
@@ -767,8 +839,9 @@ func (client DatabaseAccountsClient) ListReadOnlyKeysPreparer(resourceGroupName 
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2015-04-08"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -806,7 +879,9 @@ func (client DatabaseAccountsClient) ListReadOnlyKeysResponder(resp *http.Respon
 // resourceGroupName is name of an Azure resource group. accountName is
 // documentDB database account name. updateParameters is the tags parameter to
 // patch for the current database account.
-func (client DatabaseAccountsClient) Patch(resourceGroupName string, accountName string, updateParameters DatabaseAccountPatchParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
+func (client DatabaseAccountsClient) Patch(resourceGroupName string, accountName string, updateParameters DatabaseAccountPatchParameters, cancel <-chan struct{}) (<-chan DatabaseAccount, <-chan error) {
+	resultChan := make(chan DatabaseAccount, 1)
+	errChan := make(chan error, 1)
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -815,26 +890,40 @@ func (client DatabaseAccountsClient) Patch(resourceGroupName string, accountName
 		{TargetValue: accountName,
 			Constraints: []validation.Constraint{{Target: "accountName", Name: validation.MaxLength, Rule: 50, Chain: nil},
 				{Target: "accountName", Name: validation.MinLength, Rule: 3, Chain: nil}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "documentdb.DatabaseAccountsClient", "Patch")
+		errChan <- validation.NewErrorWithValidationError(err, "documentdb.DatabaseAccountsClient", "Patch")
+		close(errChan)
+		close(resultChan)
+		return resultChan, errChan
 	}
 
-	req, err := client.PatchPreparer(resourceGroupName, accountName, updateParameters, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "Patch", nil, "Failure preparing request")
-	}
+	go func() {
+		var err error
+		var result DatabaseAccount
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.PatchPreparer(resourceGroupName, accountName, updateParameters, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "Patch", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.PatchSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "Patch", resp, "Failure sending request")
-	}
+		resp, err := client.PatchSender(req)
+		if err != nil {
+			result.Response = autorest.Response{Response: resp}
+			err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "Patch", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.PatchResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "Patch", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.PatchResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "Patch", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // PatchPreparer prepares the Patch request.
@@ -845,8 +934,9 @@ func (client DatabaseAccountsClient) PatchPreparer(resourceGroupName string, acc
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2015-04-08"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -869,13 +959,14 @@ func (client DatabaseAccountsClient) PatchSender(req *http.Request) (*http.Respo
 
 // PatchResponder handles the response to the Patch request. The method always
 // closes the http.Response Body.
-func (client DatabaseAccountsClient) PatchResponder(resp *http.Response) (result autorest.Response, err error) {
+func (client DatabaseAccountsClient) PatchResponder(resp *http.Response) (result DatabaseAccount, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
-	result.Response = resp
+	result.Response = autorest.Response{Response: resp}
 	return
 }
 
@@ -887,7 +978,9 @@ func (client DatabaseAccountsClient) PatchResponder(resp *http.Response) (result
 // resourceGroupName is name of an Azure resource group. accountName is
 // documentDB database account name. keyToRegenerate is the name of the key to
 // regenerate.
-func (client DatabaseAccountsClient) RegenerateKey(resourceGroupName string, accountName string, keyToRegenerate DatabaseAccountRegenerateKeyParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
+func (client DatabaseAccountsClient) RegenerateKey(resourceGroupName string, accountName string, keyToRegenerate DatabaseAccountRegenerateKeyParameters, cancel <-chan struct{}) (<-chan autorest.Response, <-chan error) {
+	resultChan := make(chan autorest.Response, 1)
+	errChan := make(chan error, 1)
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -896,26 +989,40 @@ func (client DatabaseAccountsClient) RegenerateKey(resourceGroupName string, acc
 		{TargetValue: accountName,
 			Constraints: []validation.Constraint{{Target: "accountName", Name: validation.MaxLength, Rule: 50, Chain: nil},
 				{Target: "accountName", Name: validation.MinLength, Rule: 3, Chain: nil}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "documentdb.DatabaseAccountsClient", "RegenerateKey")
+		errChan <- validation.NewErrorWithValidationError(err, "documentdb.DatabaseAccountsClient", "RegenerateKey")
+		close(errChan)
+		close(resultChan)
+		return resultChan, errChan
 	}
 
-	req, err := client.RegenerateKeyPreparer(resourceGroupName, accountName, keyToRegenerate, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "RegenerateKey", nil, "Failure preparing request")
-	}
+	go func() {
+		var err error
+		var result autorest.Response
+		defer func() {
+			resultChan <- result
+			errChan <- err
+			close(resultChan)
+			close(errChan)
+		}()
+		req, err := client.RegenerateKeyPreparer(resourceGroupName, accountName, keyToRegenerate, cancel)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "RegenerateKey", nil, "Failure preparing request")
+			return
+		}
 
-	resp, err := client.RegenerateKeySender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "RegenerateKey", resp, "Failure sending request")
-	}
+		resp, err := client.RegenerateKeySender(req)
+		if err != nil {
+			result.Response = resp
+			err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "RegenerateKey", resp, "Failure sending request")
+			return
+		}
 
-	result, err = client.RegenerateKeyResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "RegenerateKey", resp, "Failure responding to request")
-	}
-
-	return
+		result, err = client.RegenerateKeyResponder(resp)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "documentdb.DatabaseAccountsClient", "RegenerateKey", resp, "Failure responding to request")
+		}
+	}()
+	return resultChan, errChan
 }
 
 // RegenerateKeyPreparer prepares the RegenerateKey request.
@@ -926,8 +1033,9 @@ func (client DatabaseAccountsClient) RegenerateKeyPreparer(resourceGroupName str
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
 	}
 
+	const APIVersion = "2015-04-08"
 	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
+		"api-version": APIVersion,
 	}
 
 	preparer := autorest.CreatePreparer(
