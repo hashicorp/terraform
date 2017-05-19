@@ -1395,16 +1395,14 @@ func expandAzureRmVirtualMachineImageReference(d *schema.ResourceData) (*compute
 
 	storageImageRef := storageImageRefs[0].(map[string]interface{})
 	imageReference := compute.ImageReference{}
-	imageID := ""
-	publisher := ""
 
 	if storageImageRef["image_id"] != "" {
-		imageID = storageImageRef["image_id"].(string)
+		imageID := storageImageRef["image_id"].(string)
 		imageReference = compute.ImageReference{
 			ID: &imageID,
 		}
 	} else {
-		publisher = storageImageRef["publisher"].(string)
+		publisher := storageImageRef["publisher"].(string)
 		offer := storageImageRef["offer"].(string)
 		sku := storageImageRef["sku"].(string)
 		version := storageImageRef["version"].(string)
@@ -1418,7 +1416,7 @@ func expandAzureRmVirtualMachineImageReference(d *schema.ResourceData) (*compute
 	}
 
 	//BEGIN: code to be removed after GH-13016 is merged
-	if imageID != "" && publisher != "" {
+	if imageReference.ID != nil && imageReference.Publisher != nil {
 		return nil, fmt.Errorf("[ERROR] Conflict between `image_id` and `publisher` (only one or the other can be used)")
 	}
 	//END: code to be removed after GH-13016 is merged
