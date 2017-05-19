@@ -59,6 +59,7 @@ BUG FIXES:
 * provider/aws: Refresh from state when CodePipeline Not Found [GH-14431]
 * provider/aws: Override spot_instance_requests volume_tags schema [GH-14481]
 * provider/aws: Allow Internet Gateway IPv6 routes [GH-14484]
+* provider/aws: Allow updating tuples in WAF ByteMatchSet + no tuples [GH-14071]
 * provider/aws: ForceNew aws_launch_config when root_block_device changes [GH-14507]
 * provider/aws: Pass IAM Roles to codepipeline actions [GH-14263]
 * provider/aws: Create rule(s) for prefix-list-only AWS security group permissions on 'terraform import' [GH-14528]
