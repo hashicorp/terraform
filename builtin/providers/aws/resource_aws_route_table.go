@@ -120,7 +120,7 @@ func resourceAwsRouteTableCreate(d *schema.ResourceData, meta interface{}) error
 		Pending: []string{"pending"},
 		Target:  []string{"ready"},
 		Refresh: resourceAwsRouteTableStateRefreshFunc(conn, d.Id()),
-		Timeout: 2 * time.Minute,
+		Timeout: 5 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf(
@@ -353,7 +353,7 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 			}
 
 			log.Printf("[INFO] Creating route for %s: %#v", d.Id(), opts)
-			err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+			err := resource.Retry(5*time.Minute, func() *resource.RetryError {
 				_, err := conn.CreateRoute(&opts)
 				if err != nil {
 					if awsErr, ok := err.(awserr.Error); ok {
@@ -439,7 +439,7 @@ func resourceAwsRouteTableDelete(d *schema.ResourceData, meta interface{}) error
 		Pending: []string{"ready"},
 		Target:  []string{},
 		Refresh: resourceAwsRouteTableStateRefreshFunc(conn, d.Id()),
-		Timeout: 2 * time.Minute,
+		Timeout: 5 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf(

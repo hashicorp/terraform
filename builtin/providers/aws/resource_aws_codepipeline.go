@@ -2,10 +2,12 @@ package aws
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/codepipeline"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -335,6 +337,10 @@ func expandAwsCodePipelineActions(s []interface{}) []*codepipeline.ActionDeclara
 			action.InputArtifacts = inputArtifacts
 
 		}
+		ra := data["role_arn"].(string)
+		if ra != "" {
+			action.RoleArn = aws.String(ra)
+		}
 		ro := data["run_order"].(int)
 		if ro > 0 {
 			action.RunOrder = aws.Int64(int64(ro))
@@ -370,6 +376,10 @@ func flattenAwsCodePipelineStageActions(actions []*codepipeline.ActionDeclaratio
 
 		if len(action.InputArtifacts) > 0 {
 			values["input_artifacts"] = flattenAwsCodePipelineActionsInputArtifacts(action.InputArtifacts)
+		}
+
+		if action.RoleArn != nil {
+			values["role_arn"] = *action.RoleArn
 		}
 
 		if action.RunOrder != nil {
@@ -441,6 +451,12 @@ func resourceAwsCodePipelineRead(d *schema.ResourceData, meta interface{}) error
 	})
 
 	if err != nil {
+		pipelineerr, ok := err.(awserr.Error)
+		if ok && pipelineerr.Code() == "PipelineNotFoundException" {
+			log.Printf("[INFO] Codepipeline %q not found", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("[ERROR] Error retreiving Pipeline: %q", err)
 	}
 	pipeline := resp.Pipeline

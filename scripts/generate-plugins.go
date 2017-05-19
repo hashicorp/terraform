@@ -271,6 +271,9 @@ IMPORTS
 	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/terraform"
 
+	//New Provider Builds
+	opcprovider "github.com/hashicorp/terraform-provider-opc/opc"
+
 	// Legacy, will remove once it conforms with new structure
 	chefprovisioner "github.com/hashicorp/terraform/builtin/provisioners/chef"
 )
@@ -287,6 +290,9 @@ func init() {
 	// Legacy provisioners that don't match our heuristics for auto-finding
 	// built-in provisioners.
 	InternalProvisioners["chef"] = func() terraform.ResourceProvisioner { return new(chefprovisioner.ResourceProvisioner) }
+
+	// New Provider Layouts
+	InternalProviders["opc"] = func() terraform.ResourceProvider { return opcprovider.Provider() }
 }
 
 `

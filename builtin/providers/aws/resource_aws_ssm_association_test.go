@@ -19,8 +19,25 @@ func TestAccAWSSSMAssociation_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSSMAssociationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSSSMAssociationBasicConfig(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSSMAssociationExists("aws_ssm_association.foo"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSSSMAssociation_withTargets(t *testing.T) {
+	name := acctest.RandString(10)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSSMAssociationDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSSSMAssociationBasicConfigWithTargets(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSSMAssociationExists("aws_ssm_association.foo"),
 				),
@@ -43,12 +60,14 @@ func testAccCheckAWSSSMAssociationExists(n string) resource.TestCheckFunc {
 		conn := testAccProvider.Meta().(*AWSClient).ssmconn
 
 		_, err := conn.DescribeAssociation(&ssm.DescribeAssociationInput{
-			Name:       aws.String(rs.Primary.Attributes["name"]),
-			InstanceId: aws.String(rs.Primary.Attributes["instance_id"]),
+			AssociationId: aws.String(rs.Primary.Attributes["association_id"]),
 		})
 
 		if err != nil {
-			return fmt.Errorf("Could not descripbe the assosciation - %s", err)
+			if wserr, ok := err.(awserr.Error); ok && wserr.Code() == "AssociationDoesNotExist" {
+				return nil
+			}
+			return err
 		}
 
 		return nil
@@ -64,24 +83,57 @@ func testAccCheckAWSSSMAssociationDestroy(s *terraform.State) error {
 		}
 
 		out, err := conn.DescribeAssociation(&ssm.DescribeAssociationInput{
-			Name:       aws.String(rs.Primary.Attributes["name"]),
-			InstanceId: aws.String(rs.Primary.Attributes["instance_id"]),
+			AssociationId: aws.String(rs.Primary.Attributes["association_id"]),
 		})
 
 		if err != nil {
-			// InvalidDocument means it's gone, this is good
-			if wserr, ok := err.(awserr.Error); ok && wserr.Code() == "InvalidDocument" {
+			if wserr, ok := err.(awserr.Error); ok && wserr.Code() == "AssociationDoesNotExist" {
 				return nil
 			}
 			return err
 		}
 
 		if out != nil {
-			return fmt.Errorf("Expected AWS SSM Assosciation to be gone, but was still found")
+			return fmt.Errorf("Expected AWS SSM Association to be gone, but was still found")
 		}
 	}
 
-	return fmt.Errorf("Default error in SSM Assosciation Test")
+	return fmt.Errorf("Default error in SSM Association Test")
+}
+
+func testAccAWSSSMAssociationBasicConfigWithTargets(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_ssm_document" "foo_document" {
+  name = "test_document_association-%s",
+  document_type = "Command"
+  content = <<DOC
+  {
+    "schemaVersion": "1.2",
+    "description": "Check ip configuration of a Linux instance.",
+    "parameters": {
+
+    },
+    "runtimeConfig": {
+      "aws:runShellScript": {
+        "properties": [
+          {
+            "id": "0.aws:runShellScript",
+            "runCommand": ["ifconfig"]
+          }
+        ]
+      }
+    }
+  }
+DOC
+}
+
+resource "aws_ssm_association" "foo" {
+  name = "${aws_ssm_document.foo_document.name}",
+  targets {
+    key = "tag:Name"
+    values = ["acceptanceTest"]
+  }
+}`, rName)
 }
 
 func testAccAWSSSMAssociationBasicConfig(rName string) string {

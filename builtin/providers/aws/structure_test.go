@@ -822,11 +822,15 @@ func TestFlattenResourceRecords(t *testing.T) {
 	original := []string{
 		`127.0.0.1`,
 		`"abc def"`,
+		`"abc" "def"`,
+		`"abc" ""`,
 	}
 
 	dequoted := []string{
 		`127.0.0.1`,
 		`abc def`,
+		`abc" "def`,
+		`abc" "`,
 	}
 
 	var wrapped []*route53.ResourceRecord = nil

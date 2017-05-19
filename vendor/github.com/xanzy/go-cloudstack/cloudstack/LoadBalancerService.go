@@ -238,6 +238,7 @@ func (s *LoadBalancerService) CreateLoadBalancerRule(p *CreateLoadBalancerRulePa
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -334,6 +335,7 @@ func (s *LoadBalancerService) DeleteLoadBalancerRule(p *DeleteLoadBalancerRulePa
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -429,6 +431,7 @@ func (s *LoadBalancerService) RemoveFromLoadBalancerRule(p *RemoveFromLoadBalanc
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -524,6 +527,7 @@ func (s *LoadBalancerService) AssignToLoadBalancerRule(p *AssignToLoadBalancerRu
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -659,6 +663,7 @@ func (s *LoadBalancerService) CreateLBStickinessPolicy(p *CreateLBStickinessPoli
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -769,6 +774,7 @@ func (s *LoadBalancerService) UpdateLBStickinessPolicy(p *UpdateLBStickinessPoli
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -851,6 +857,7 @@ func (s *LoadBalancerService) DeleteLBStickinessPolicy(p *DeleteLBStickinessPoli
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1160,6 +1167,7 @@ func (s *LoadBalancerService) ListLoadBalancerRules(p *ListLoadBalancerRulesPara
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1335,6 +1343,7 @@ func (s *LoadBalancerService) ListLBStickinessPolicies(p *ListLBStickinessPolici
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1496,6 +1505,7 @@ func (s *LoadBalancerService) ListLBHealthCheckPolicies(p *ListLBHealthCheckPoli
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1668,6 +1678,7 @@ func (s *LoadBalancerService) CreateLBHealthCheckPolicy(p *CreateLBHealthCheckPo
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1777,6 +1788,7 @@ func (s *LoadBalancerService) UpdateLBHealthCheckPolicy(p *UpdateLBHealthCheckPo
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1858,6 +1870,7 @@ func (s *LoadBalancerService) DeleteLBHealthCheckPolicy(p *DeleteLBHealthCheckPo
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -2002,6 +2015,7 @@ func (s *LoadBalancerService) ListLoadBalancerRuleInstances(p *ListLoadBalancerR
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -2135,6 +2149,7 @@ func (s *LoadBalancerService) UpdateLoadBalancerRule(p *UpdateLoadBalancerRulePa
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -2283,6 +2298,7 @@ func (s *LoadBalancerService) UploadSslCert(p *UploadSslCertParams) (*UploadSslC
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -2342,6 +2358,7 @@ func (s *LoadBalancerService) DeleteSslCert(p *DeleteSslCertParams) (*DeleteSslC
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -2425,6 +2442,7 @@ func (s *LoadBalancerService) ListSslCerts(p *ListSslCertsParams) (*ListSslCerts
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -2516,6 +2534,7 @@ func (s *LoadBalancerService) AssignCertToLoadBalancer(p *AssignCertToLoadBalanc
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -2583,6 +2602,7 @@ func (s *LoadBalancerService) RemoveCertFromLoadBalancer(p *RemoveCertFromLoadBa
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -2749,6 +2769,7 @@ func (s *LoadBalancerService) AddNetscalerLoadBalancer(p *AddNetscalerLoadBalanc
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -2829,6 +2850,7 @@ func (s *LoadBalancerService) DeleteNetscalerLoadBalancer(p *DeleteNetscalerLoad
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -2949,6 +2971,7 @@ func (s *LoadBalancerService) ConfigureNetscalerLoadBalancer(p *ConfigureNetscal
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -3059,6 +3082,7 @@ func (s *LoadBalancerService) ListNetscalerLoadBalancers(p *ListNetscalerLoadBal
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -3240,6 +3264,7 @@ func (s *LoadBalancerService) CreateGlobalLoadBalancerRule(p *CreateGlobalLoadBa
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -3351,6 +3376,7 @@ func (s *LoadBalancerService) DeleteGlobalLoadBalancerRule(p *DeleteGlobalLoadBa
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -3456,6 +3482,7 @@ func (s *LoadBalancerService) UpdateGlobalLoadBalancerRule(p *UpdateGlobalLoadBa
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -3754,6 +3781,7 @@ func (s *LoadBalancerService) ListGlobalLoadBalancerRules(p *ListGlobalLoadBalan
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -3898,6 +3926,7 @@ func (s *LoadBalancerService) AssignToGlobalLoadBalancerRule(p *AssignToGlobalLo
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -3978,6 +4007,7 @@ func (s *LoadBalancerService) RemoveFromGlobalLoadBalancerRule(p *RemoveFromGlob
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -4158,6 +4188,7 @@ func (s *LoadBalancerService) CreateLoadBalancer(p *CreateLoadBalancerParams) (*
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -4501,6 +4532,7 @@ func (s *LoadBalancerService) ListLoadBalancers(p *ListLoadBalancersParams) (*Li
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -4606,6 +4638,7 @@ func (s *LoadBalancerService) DeleteLoadBalancer(p *DeleteLoadBalancerParams) (*
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -4701,6 +4734,7 @@ func (s *LoadBalancerService) UpdateLoadBalancer(p *UpdateLoadBalancerParams) (*
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 

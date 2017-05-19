@@ -38,7 +38,6 @@ var throttleCodes = map[string]struct{}{
 	"ThrottlingException":                    {},
 	"RequestLimitExceeded":                   {},
 	"RequestThrottled":                       {},
-	"LimitExceededException":                 {}, // Deleting 10+ DynamoDb tables at once
 	"TooManyRequestsException":               {}, // Lambda functions
 	"PriorRequestNotComplete":                {}, // Route53
 }

@@ -1,6 +1,7 @@
 package triton
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -27,8 +28,9 @@ type Config struct {
 type GetConfigInput struct{}
 
 // GetConfig outputs configuration for your account.
-func (client *ConfigClient) GetConfig(input *GetConfigInput) (*Config, error) {
-	respReader, err := client.executeRequest(http.MethodGet, fmt.Sprintf("/%s/config", client.accountName), nil)
+func (client *ConfigClient) GetConfig(ctx context.Context, input *GetConfigInput) (*Config, error) {
+	path := fmt.Sprintf("/%s/config", client.accountName)
+	respReader, err := client.executeRequest(ctx, http.MethodGet, path, nil)
 	if respReader != nil {
 		defer respReader.Close()
 	}
@@ -51,9 +53,9 @@ type UpdateConfigInput struct {
 }
 
 // UpdateConfig updates configuration values for your account.
-// TODO(jen20) Work out a safe way to test this (after networks c implemented)
-func (client *ConfigClient) UpdateConfig(input *UpdateConfigInput) (*Config, error) {
-	respReader, err := client.executeRequest(http.MethodPut, fmt.Sprintf("/%s/config", client.accountName), input)
+func (client *ConfigClient) UpdateConfig(ctx context.Context, input *UpdateConfigInput) (*Config, error) {
+	path := fmt.Sprintf("/%s/config", client.accountName)
+	respReader, err := client.executeRequest(ctx, http.MethodPut, path, input)
 	if respReader != nil {
 		defer respReader.Close()
 	}

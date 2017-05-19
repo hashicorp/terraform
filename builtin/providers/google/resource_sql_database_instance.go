@@ -3,6 +3,7 @@ package google
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -29,6 +30,7 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 			"settings": &schema.Schema{
 				Type:     schema.TypeList,
 				Required: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"version": &schema.Schema{
@@ -90,8 +92,10 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 							},
 						},
 						"disk_autoresize": &schema.Schema{
-							Type:     schema.TypeBool,
-							Optional: true,
+							Type:             schema.TypeBool,
+							Default:          true,
+							Optional:         true,
+							DiffSuppressFunc: suppressFirstGen,
 						},
 						"disk_size": &schema.Schema{
 							Type:     schema.TypeInt,
@@ -303,6 +307,23 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 	}
 }
 
+// Suppress diff with any disk_autoresize value on 1st Generation Instances
+func suppressFirstGen(k, old, new string, d *schema.ResourceData) bool {
+	settingsList := d.Get("settings").([]interface{})
+
+	settings := settingsList[0].(map[string]interface{})
+	tier := settings["tier"].(string)
+	matched, err := regexp.MatchString("db*", tier)
+	if err != nil {
+		log.Printf("[ERR] error with regex in diff supression for disk_autoresize: %s", err)
+	}
+	if !matched {
+		log.Printf("[DEBUG] suppressing diff on disk_autoresize due to 1st gen instance type")
+		return true
+	}
+	return false
+}
+
 func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
@@ -315,13 +336,11 @@ func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{})
 	databaseVersion := d.Get("database_version").(string)
 
 	_settingsList := d.Get("settings").([]interface{})
-	if len(_settingsList) > 1 {
-		return fmt.Errorf("At most one settings block is allowed")
-	}
 
 	_settings := _settingsList[0].(map[string]interface{})
 	settings := &sqladmin.Settings{
-		Tier: _settings["tier"].(string),
+		Tier:            _settings["tier"].(string),
+		ForceSendFields: []string{"StorageAutoResize"},
 	}
 
 	if v, ok := _settings["activation_policy"]; ok {
@@ -364,9 +383,7 @@ func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{})
 		settings.CrashSafeReplicationEnabled = v.(bool)
 	}
 
-	if v, ok := _settings["disk_autoresize"]; ok && v.(bool) {
-		settings.StorageAutoResize = v.(bool)
-	}
+	settings.StorageAutoResize = _settings["disk_autoresize"].(bool)
 
 	if v, ok := _settings["disk_size"]; ok && v.(int) > 0 {
 		settings.DataDiskSizeGb = int64(v.(int))
@@ -610,16 +627,7 @@ func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) e
 		d.Get("name").(string)).Do()
 
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing SQL Database %q because it's gone", d.Get("name").(string))
-			// The resource doesn't exist anymore
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error retrieving instance %s: %s",
-			d.Get("name").(string), err)
+		return handleNotFoundError(err, d, fmt.Sprintf("SQL Database Instance %q", d.Get("name").(string)))
 	}
 
 	_settingsList := d.Get("settings").([]interface{})
@@ -672,11 +680,7 @@ func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) e
 		_settings["crash_safe_replication"] = settings.CrashSafeReplicationEnabled
 	}
 
-	if v, ok := _settings["disk_autoresize"]; ok && v != nil {
-		if v.(bool) {
-			_settings["disk_autoresize"] = settings.StorageAutoResize
-		}
-	}
+	_settings["disk_autoresize"] = settings.StorageAutoResize
 
 	if v, ok := _settings["disk_size"]; ok && v != nil {
 		if v.(int) > 0 && settings.DataDiskSizeGb < int64(v.(int)) {
@@ -922,14 +926,12 @@ func resourceSqlDatabaseInstanceUpdate(d *schema.ResourceData, meta interface{})
 		_oList := _oListCast.([]interface{})
 		_o := _oList[0].(map[string]interface{})
 		_settingsList := _settingsListCast.([]interface{})
-		if len(_settingsList) > 1 {
-			return fmt.Errorf("At most one settings block is allowed")
-		}
 
 		_settings := _settingsList[0].(map[string]interface{})
 		settings := &sqladmin.Settings{
 			Tier:            _settings["tier"].(string),
 			SettingsVersion: instance.Settings.SettingsVersion,
+			ForceSendFields: []string{"StorageAutoResize"},
 		}
 
 		if v, ok := _settings["activation_policy"]; ok {
@@ -972,9 +974,7 @@ func resourceSqlDatabaseInstanceUpdate(d *schema.ResourceData, meta interface{})
 			settings.CrashSafeReplicationEnabled = v.(bool)
 		}
 
-		if v, ok := _settings["disk_autoresize"]; ok && v.(bool) {
-			settings.StorageAutoResize = v.(bool)
-		}
+		settings.StorageAutoResize = _settings["disk_autoresize"].(bool)
 
 		if v, ok := _settings["disk_size"]; ok {
 			if v.(int) > 0 && int64(v.(int)) > instance.Settings.DataDiskSizeGb {

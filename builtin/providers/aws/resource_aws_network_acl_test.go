@@ -769,6 +769,9 @@ resource "aws_network_acl" "bar" {
 const testAccAWSNetworkAclEsp = `
 resource "aws_vpc" "testespvpc" {
   cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccAWSNetworkAclEsp"
+	}
 }
 
 resource "aws_network_acl" "testesp" {

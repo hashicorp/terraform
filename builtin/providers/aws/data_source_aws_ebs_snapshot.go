@@ -93,7 +93,7 @@ func dataSourceAwsEbsSnapshotRead(d *schema.ResourceData, meta interface{}) erro
 	snapshotIds, snapshotIdsOk := d.GetOk("snapshot_ids")
 	owners, ownersOk := d.GetOk("owners")
 
-	if restorableUsers == false && filtersOk == false && snapshotIds == false && ownersOk == false {
+	if !restorableUsersOk && !filtersOk && !snapshotIdsOk && !ownersOk {
 		return fmt.Errorf("One of snapshot_ids, filters, restorable_by_user_ids, or owners must be assigned")
 	}
 

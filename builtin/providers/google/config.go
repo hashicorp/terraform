@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/terraform"
 	"golang.org/x/oauth2"
@@ -94,6 +95,8 @@ func (c *Config) loadAndValidate() error {
 			return err
 		}
 	}
+
+	client.Transport = logging.NewTransport("Google", client.Transport)
 
 	versionString := terraform.VersionString()
 	userAgent := fmt.Sprintf(

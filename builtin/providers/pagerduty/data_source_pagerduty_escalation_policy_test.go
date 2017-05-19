@@ -10,13 +10,16 @@ import (
 )
 
 func TestAccDataSourcePagerDutyEscalationPolicy_Basic(t *testing.T) {
-	rName := acctest.RandString(5)
+	username := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	email := fmt.Sprintf("%s@foo.com", username)
+	escalationPolicy := fmt.Sprintf("tf-%s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccDataSourcePagerDutyEscalationPolicyConfig(rName),
+			{
+				Config: testAccDataSourcePagerDutyEscalationPolicyConfig(username, email, escalationPolicy),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDataSourcePagerDutyEscalationPolicy("pagerduty_escalation_policy.test", "data.pagerduty_escalation_policy.by_name"),
 				),
@@ -50,15 +53,15 @@ func testAccDataSourcePagerDutyEscalationPolicy(src, n string) resource.TestChec
 	}
 }
 
-func testAccDataSourcePagerDutyEscalationPolicyConfig(rName string) string {
+func testAccDataSourcePagerDutyEscalationPolicyConfig(username, email, escalationPolicy string) string {
 	return fmt.Sprintf(`
 resource "pagerduty_user" "test" {
-  name  = "TF User %[1]s"
-  email = "tf.%[1]s@example.com"
+  name  = "%s"
+  email = "%s"
 }
 
 resource "pagerduty_escalation_policy" "test" {
-  name        = "TF Escalation Policy %[1]v"
+  name        = "%s"
   num_loops   = 2
 
   rule {
@@ -74,5 +77,5 @@ resource "pagerduty_escalation_policy" "test" {
 data "pagerduty_escalation_policy" "by_name" {
   name = "${pagerduty_escalation_policy.test.name}"
 }
-`, rName)
+`, username, email, escalationPolicy)
 }
