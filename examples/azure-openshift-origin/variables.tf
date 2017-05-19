@@ -106,13 +106,13 @@ variable "openshift_cluster_prefix" {
   default     = "os001"
 }
 
-variable "openshift_master_public_ip_dns_label_prefix" {
-  description = "A unique Public DNS name to reference the Master Node by"
+variable "openshift_master_public_ip_dns_label" {
+  description = "A unique Public DNS name by which to reference the Master Node"
   default     = "masterpip001"
 }
 
-variable "infra_lb_publicip_dns_label_prefix" {
-  description = "A unique Public DNS name to reference the Node Load Balancer by. Used to access deployed applications"
+variable "infra_lb_publicip_dns_label" {
+  description = "A unique Public DNS name by which to reference the Node Load Balancer. Used to access deployed applications"
   default     = "infrapip001"
 }
 

@@ -207,36 +207,18 @@ resource "azurerm_storage_account" "persistent_volume_storage_account" {
   account_type        = "Standard_LRS"
 }
 
-resource "azurerm_public_ip" "infra_lb" {
-  name                         = "${var.infra_lb_publicip_dns_label_prefix}"
+resource "azurerm_public_ip" "openshift_master_pip" {
+  name                         = "${var.openshift_master_public_ip_dns_label}"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
   location                     = "${azurerm_resource_group.rg.location}"
-  public_ip_address_allocation = "static"
+  public_ip_address_allocation = "Static"
+  domain_name_label            = "${var.openshift_master_public_ip_dns_label}"
 }
-		# 	"type": "Microsoft.Network/publicIPAddresses",
-		# 	"name": "[parameters('infraLbPublicIpDnsLabel')]",
-		# 	"location": "[variables('location')]",
-		# 	"apiVersion": "[variables('apiVersionNetwork')]",
-		# 	"tags": {
-		# 		"displayName": "OpenShiftInfraLBPublicIP"
-		# 	},
-		# 	"properties": {
-		# 		"publicIPAllocationMethod": "Static",
-		# 		"dnsSettings": {
-		# 			"domainNameLabel": "[parameters('infraLbPublicIpDnsLabel')]"
-		# 		}
-		# 	}
-		# }, {
-		# 	"type": "Microsoft.Network/publicIPAddresses",
-		# 	"name": "[parameters('openshiftMasterPublicIpDnsLabel')]",
-		# 	"location": "[variables('location')]",
-		# 	"apiVersion": "[variables('apiVersionNetwork')]",
-		# 	"tags": {
-		# 		"displayName": "OpenShiftMasterPublicIP"
-		# 	},
-		# 	"properties": {
-		# 		"publicIPAllocationMethod": "Static",
-		# 		"dnsSettings": {
-		# 			"domainNameLabel": "[parameters('openshiftMasterPublicIpDnsLabel')]"
-		# 		}
-		# 	}
+
+resource "azurerm_public_ip" "infra_lb_pip" {
+  name                         = "${var.infra_lb_publicip_dns_label}"
+  resource_group_name          = "${azurerm_resource_group.rg.name}"
+  location                     = "${azurerm_resource_group.rg.location}"
+  public_ip_address_allocation = "Static"
+  domain_name_label            = "${var.infra_lb_publicip_dns_label}"
+}
