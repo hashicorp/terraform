@@ -1,6 +1,8 @@
-# Virtual Network with Two Subnets
+# Provision a SQL Database
 
-This template allows you to create a Virtual Network with two subnets.
+This sample creates a SQL Database at the "Basic" service level.  The template can support other tiers of service, details for each service can be found here:
+
+[SQL Database Pricing](https://azure.microsoft.com/en-us/pricing/details/sql-database/)
 
 ## main.tf
 The `main.tf` file contains the actual resources that will be deployed. It also contains the Azure Resource Group definition and any defined variables. 
@@ -17,4 +19,4 @@ If a `terraform.tfvars` file is present in the current directory, Terraform auto
 ## variables.tf
 The `variables.tf` file contains all of the input parameters that the user can specify when deploying this Terraform template.
 
-![graph](/examples/azure-vnet-two-subnets/graph.png)
+![graph](/examples/azure-sql-database/graph.png)
