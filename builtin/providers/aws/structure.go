@@ -1886,7 +1886,11 @@ func normalizeJsonString(jsonString interface{}) (string, error) {
 		return s, err
 	}
 
-	bytes, _ := json.Marshal(j)
+	bytes, err := json.Marshal(j)
+	if err != nil {
+		return s, err
+	}
+
 	return string(bytes[:]), nil
 }
 
