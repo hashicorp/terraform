@@ -50,6 +50,7 @@ BUG FIXES:
 * core: Fixed 0.9.5 regression with the conditional operator `.. ? .. : ..` failing to type check with unknown/computed values [GH-14454]
 * core: Fixed 0.9 regression causing issues during refresh when adding new data resource instances using `count` [GH-14098]
 * core: Fixed crasher when populating a "splat variable" from an empty (nil) module state. [GH-14526]
+* provider/aws: Allow updating constraints in WAF SizeConstraintSet + no constraints [GH-14661]
 * provider/aws: Increase EIP update timeout [GH-14381]
 * provider/aws: Increase timeout for creating security group [GH-14380]
 * provider/aws: Increase timeout for (dis)associating IPv6 addr to/from subnet [GH-14401]
