@@ -68,7 +68,6 @@ func resourceAwsSsmMaintenanceWindowCreate(d *schema.ResourceData, meta interfac
 	}
 
 	d.SetId(*resp.WindowId)
-
 	return resourceAwsSsmMaintenanceWindowRead(d, meta)
 }
 
@@ -114,38 +113,21 @@ func resourceAwsSsmMaintenanceWindowUpdate(d *schema.ResourceData, meta interfac
 func resourceAwsSsmMaintenanceWindowRead(d *schema.ResourceData, meta interface{}) error {
 	ssmconn := meta.(*AWSClient).ssmconn
 
-	params := &ssm.DescribeMaintenanceWindowsInput{
-		Filters: []*ssm.MaintenanceWindowFilter{
-			{
-				Key:    aws.String("Name"),
-				Values: []*string{aws.String(d.Get("name").(string))},
-			},
-		},
+	params := &ssm.GetMaintenanceWindowInput{
+		WindowId: aws.String(d.Id()),
 	}
 
-	resp, err := ssmconn.DescribeMaintenanceWindows(params)
+	resp, err := ssmconn.GetMaintenanceWindow(params)
 	if err != nil {
 		return err
 	}
 
-	found := false
-
-	for _, window := range resp.WindowIdentities {
-		if *window.WindowId == d.Id() {
-			found = true
-
-			d.Set("name", window.Name)
-			d.Set("cutoff", window.Cutoff)
-			d.Set("duration", window.Duration)
-			d.Set("enabled", window.Enabled)
-		}
-	}
-
-	if !found {
-		log.Printf("[INFO] Cannot find the SSM Maintenance Window %q. Removing from state", d.Get("name").(string))
-		d.SetId("")
-		return nil
-	}
+	d.Set("name", resp.Name)
+	d.Set("cutoff", resp.Cutoff)
+	d.Set("duration", resp.Duration)
+	d.Set("enabled", resp.Enabled)
+	d.Set("allow_unassociated_targets", resp.AllowUnassociatedTargets)
+	d.Set("schedule", resp.Schedule)
 
 	return nil
 }
