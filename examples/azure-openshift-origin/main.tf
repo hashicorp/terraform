@@ -208,19 +208,19 @@ resource "azurerm_storage_account" "persistent_volume_storage_account" {
 }
 
 resource "azurerm_public_ip" "openshift_master_pip" {
-  name                         = "${var.openshift_master_public_ip_dns_label}masterpip"
+  name                         = "masterpip"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
   location                     = "${azurerm_resource_group.rg.location}"
   public_ip_address_allocation = "Static"
-  domain_name_label            = "${var.openshift_master_public_ip_dns_label}"
+  domain_name_label            = "${var.openshift_master_public_ip_dns_label}masterpip"
 }
 
 resource "azurerm_public_ip" "infra_lb_pip" {
-  name                         = "${var.infra_lb_publicip_dns_label}infrapip"
+  name                         = "${var.infra_lb_publicip_dns_label}"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
   location                     = "${azurerm_resource_group.rg.location}"
   public_ip_address_allocation = "Static"
-  domain_name_label            = "${var.infra_lb_publicip_dns_label}"
+  domain_name_label            = "${var.infra_lb_publicip_dns_label}infrapip"
 }
 
 # resource "azurerm_availability_set" "master" {
