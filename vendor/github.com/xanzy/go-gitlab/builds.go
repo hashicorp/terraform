@@ -33,14 +33,16 @@ type ListBuildsOptions struct {
 // BuildsService handles communication with the ci builds related methods
 // of the GitLab API.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/builds.html
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/builds.md
 type BuildsService struct {
 	client *Client
 }
 
 // Build represents a ci build.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/builds.html
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/builds.md
 type Build struct {
 	Commit        *Commit    `json:"commit"`
 	CreatedAt     *time.Time `json:"created_at"`
@@ -72,7 +74,7 @@ type Build struct {
 // failed, success, canceled; showing all builds if none provided.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/builds.html#list-project-builds
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/builds.md#list-project-builds
 func (s *BuildsService) ListProjectBuilds(pid interface{}, opts *ListBuildsOptions, options ...OptionFunc) ([]Build, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -98,7 +100,7 @@ func (s *BuildsService) ListProjectBuilds(pid interface{}, opts *ListBuildsOptio
 // project. If the commit SHA is not found, it will respond with 404.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/builds.html#list-commit-builds
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/builds.md#list-commit-builds
 func (s *BuildsService) ListCommitBuilds(pid interface{}, sha string, opts *ListBuildsOptions, options ...OptionFunc) ([]Build, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -123,7 +125,7 @@ func (s *BuildsService) ListCommitBuilds(pid interface{}, sha string, opts *List
 // GetBuild gets a single build of a project.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/builds.html#get-a-single-build
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/builds.md#get-a-single-build
 func (s *BuildsService) GetBuild(pid interface{}, buildID int, options ...OptionFunc) (*Build, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -148,7 +150,7 @@ func (s *BuildsService) GetBuild(pid interface{}, buildID int, options ...Option
 // GetBuildArtifacts get builds artifacts of a project
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/builds.html#get-build-artifacts
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/builds.md#get-build-artifacts
 func (s *BuildsService) GetBuildArtifacts(pid interface{}, buildID int, options ...OptionFunc) (io.Reader, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -174,7 +176,7 @@ func (s *BuildsService) GetBuildArtifacts(pid interface{}, buildID int, options 
 // reference name and job provided the build finished successfully.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/builds.html#download-the-artifacts-file
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/builds.md#download-the-artifacts-file
 func (s *BuildsService) DownloadArtifactsFile(pid interface{}, refName string, job string, options ...OptionFunc) (io.Reader, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -199,7 +201,7 @@ func (s *BuildsService) DownloadArtifactsFile(pid interface{}, refName string, j
 // GetTraceFile gets a trace of a specific build of a project
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/builds.html#get-a-trace-file
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/builds.md#get-a-trace-file
 func (s *BuildsService) GetTraceFile(pid interface{}, buildID int, options ...OptionFunc) (io.Reader, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -224,7 +226,7 @@ func (s *BuildsService) GetTraceFile(pid interface{}, buildID int, options ...Op
 // CancelBuild cancels a single build of a project.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/builds.html#cancel-a-build
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/builds.md#cancel-a-build
 func (s *BuildsService) CancelBuild(pid interface{}, buildID int, options ...OptionFunc) (*Build, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -249,7 +251,7 @@ func (s *BuildsService) CancelBuild(pid interface{}, buildID int, options ...Opt
 // RetryBuild retries a single build of a project
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/builds.html#retry-a-build
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/builds.md#retry-a-build
 func (s *BuildsService) RetryBuild(pid interface{}, buildID int, options ...OptionFunc) (*Build, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -275,7 +277,7 @@ func (s *BuildsService) RetryBuild(pid interface{}, buildID int, options ...Opti
 // artifacts and a build trace.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/builds.html#erase-a-build
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/builds.md#erase-a-build
 func (s *BuildsService) EraseBuild(pid interface{}, buildID int, options ...OptionFunc) (*Build, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -301,7 +303,7 @@ func (s *BuildsService) EraseBuild(pid interface{}, buildID int, options ...Opti
 // expiration is set.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/builds.html#keep-artifacts
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/builds.md#keep-artifacts
 func (s *BuildsService) KeepArtifacts(pid interface{}, buildID int, options ...OptionFunc) (*Build, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -326,7 +328,7 @@ func (s *BuildsService) KeepArtifacts(pid interface{}, buildID int, options ...O
 // PlayBuild triggers a nanual action to start a build.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/builds.html#play-a-build
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/builds.md#play-a-build
 func (s *BuildsService) PlayBuild(pid interface{}, buildID int, options ...OptionFunc) (*Build, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
