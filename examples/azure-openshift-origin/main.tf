@@ -166,10 +166,10 @@ resource "azurerm_virtual_network" "vnet" {
 }
 
 resource "azurerm_storage_account" "master_storage_account" {
-  name                = "master${azurerm_resource_group.rg.id}msa"
+  name                = "${var.openshift_cluster_prefix}msa"
   resource_group_name = "${azurerm_resource_group.rg.name}"
   location            = "${azurerm_resource_group.rg.location}"
-  account_type        = "${var.storage_account_type_map["${var.master_vm_vize}"]}"
+  account_type        = "${var.storage_account_type_map["${var.master_vm_size}"]}"
 
   tags {
     display_name = "MasterStorageAccount"
@@ -177,10 +177,10 @@ resource "azurerm_storage_account" "master_storage_account" {
 }
 
 resource "azurerm_storage_account" "infra_storage_account" {
-  name                = "infra${azurerm_resource_group.rg.id}infra"
+  name                = "${var.openshift_cluster_prefix}infrasa"
   resource_group_name = "${azurerm_resource_group.rg.name}"
   location            = "${azurerm_resource_group.rg.location}"
-  account_type        = "${var.storage_account_type_map["${var.infra_vm_vize}"]}"
+  account_type        = "${var.storage_account_type_map["${var.infra_vm_size}"]}"
 
   tags {
     display_name = "InfraStorageAccount"
@@ -188,10 +188,10 @@ resource "azurerm_storage_account" "infra_storage_account" {
 }
 
 resource "azurerm_storage_account" "nodeos_storage_account" {
-  name                = "nodeos${azurerm_resource_group.rg.id}nodeossa"
+  name                = "${var.openshift_cluster_prefix}nodeossa"
   resource_group_name = "${azurerm_resource_group.rg.name}"
   location            = "${azurerm_resource_group.rg.location}"
-  account_type        = "${var.storage_account_type_map["${var.node_vm_vize}"]}"
+  account_type        = "${var.storage_account_type_map["${var.node_vm_size}"]}"
 
   tags {
     display_name = "NodeStorageAccount"
@@ -199,10 +199,10 @@ resource "azurerm_storage_account" "nodeos_storage_account" {
 }
 
 resource "azurerm_storage_account" "nodedata_storage_account" {
-  name                = "nodedata${azurerm_resource_group.rg.id}nodedatasa"
+  name                = "${var.openshift_cluster_prefix}nodedatasa"
   resource_group_name = "${azurerm_resource_group.rg.name}"
   location            = "${azurerm_resource_group.rg.location}"
-  account_type        = "${var.storage_account_type_map["${var.node_vm_vize}"]}"
+  account_type        = "${var.storage_account_type_map["${var.node_vm_size}"]}"
 
   tags {
     display_name = "NodeStorageAccount"
@@ -210,7 +210,7 @@ resource "azurerm_storage_account" "nodedata_storage_account" {
 }
 
 resource "azurerm_storage_account" "registry_storage_account" {
-  name                = "${azurerm_resource_group.rg.id}registry"
+  name                = "${var.openshift_cluster_prefix}regsa"
   resource_group_name = "${azurerm_resource_group.rg.name}"
   location            = "${azurerm_resource_group.rg.location}"
   account_type        = "Standard_LRS"
@@ -220,8 +220,8 @@ resource "azurerm_storage_account" "registry_storage_account" {
   }
 }
 
-resource "azurerm_storage_account" "persistent_volume1_storage_account" {
-  name                = "${azurerm_resource_group.rg.id}persistentvolume1"
+resource "azurerm_storage_account" "persistent_volume_storage_account" {
+  name                = "${var.openshift_cluster_prefix}pvsa"
   resource_group_name = "${azurerm_resource_group.rg.name}"
   location            = "${azurerm_resource_group.rg.location}"
   account_type        = "Standard_LRS"
