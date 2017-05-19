@@ -416,7 +416,7 @@ func testCheckAzureRMStorageBlobMatchesFile(name string, kind storage.BlobType, 
 			return fmt.Errorf("Bad: Storage Account %q does not exist", storageAccountName)
 		}
 
-		containerReference := blobClient.GetContainerReference(name)
+		containerReference := blobClient.GetContainerReference(storageContainerName)
 		blobReference := containerReference.GetBlobReference(name)
 		propertyOptions := &storage.GetBlobPropertiesOptions{}
 		err = blobReference.GetProperties(propertyOptions)

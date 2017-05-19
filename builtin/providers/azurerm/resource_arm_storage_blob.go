@@ -155,7 +155,6 @@ func resourceArmStorageBlobCreate(d *schema.ResourceData, meta interface{}) erro
 
 	log.Printf("[INFO] Creating blob %q in storage account %q", name, storageAccountName)
 	if sourceUri != "" {
-		// TODO(tom): populate
 		options := &storage.CopyOptions{}
 		container := blobClient.GetContainerReference(cont)
 		blob := container.GetBlobReference(name)
@@ -166,7 +165,6 @@ func resourceArmStorageBlobCreate(d *schema.ResourceData, meta interface{}) erro
 	} else {
 		switch strings.ToLower(blobType) {
 		case "block":
-			// TODO(tom): populate
 			options := &storage.PutBlobOptions{}
 			container := blobClient.GetContainerReference(cont)
 			blob := container.GetBlobReference(name)
@@ -192,12 +190,12 @@ func resourceArmStorageBlobCreate(d *schema.ResourceData, meta interface{}) erro
 					return fmt.Errorf("Error creating storage blob on Azure: %s", err)
 				}
 			} else {
-				// TODO(tom): how/where is this used?!
-				//size := int64(d.Get("size").(int))
+				size := int64(d.Get("size").(int))
 				options := &storage.PutBlobOptions{}
 
 				container := blobClient.GetContainerReference(cont)
 				blob := container.GetBlobReference(name)
+				blob.Properties.ContentLength = size
 				err := blob.PutPageBlob(options)
 				if err != nil {
 					return fmt.Errorf("Error creating storage blob on Azure: %s", err)
@@ -229,10 +227,10 @@ func resourceArmStorageBlobPageUploadFromSource(container, name, source string, 
 		return fmt.Errorf("Error splitting source file %q into pages: %s", source, err)
 	}
 
-	// TODO(tom): populate
 	options := &storage.PutBlobOptions{}
 	containerRef := client.GetContainerReference(container)
 	blob := containerRef.GetBlobReference(name)
+	blob.Properties.ContentLength = blobSize
 	err = blob.PutPageBlob(options)
 	if err != nil {
 		return fmt.Errorf("Error creating storage blob on Azure: %s", err)
@@ -623,7 +621,6 @@ func resourceArmStorageBlobDelete(d *schema.ResourceData, meta interface{}) erro
 	storageContainerName := d.Get("storage_container_name").(string)
 
 	log.Printf("[INFO] Deleting storage blob %q", name)
-	// TODO(tom): populate
 	options := &storage.DeleteBlobOptions{}
 	container := blobClient.GetContainerReference(storageContainerName)
 	blob := container.GetBlobReference(name)
