@@ -368,7 +368,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.kinesisconn = kinesis.New(awsKinesisSess)
 	client.kmsconn = kms.New(awsKmsSess)
 	client.lambdaconn = lambda.New(sess)
-	client.lightsailconn = lightsail.New(usEast1Sess)
+	client.lightsailconn = lightsail.New(sess)
 	client.opsworksconn = opsworks.New(sess)
 	client.r53conn = route53.New(usEast1Sess)
 	client.rdsconn = rds.New(awsRdsSess)
