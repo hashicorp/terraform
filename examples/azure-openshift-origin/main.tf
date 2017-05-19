@@ -170,10 +170,6 @@ resource "azurerm_storage_account" "master_storage_account" {
   resource_group_name = "${azurerm_resource_group.rg.name}"
   location            = "${azurerm_resource_group.rg.location}"
   account_type        = "${var.storage_account_type_map["${var.master_vm_size}"]}"
-
-  tags {
-    display_name = "MasterStorageAccount"
-  }
 }
 
 resource "azurerm_storage_account" "infra_storage_account" {
@@ -181,10 +177,6 @@ resource "azurerm_storage_account" "infra_storage_account" {
   resource_group_name = "${azurerm_resource_group.rg.name}"
   location            = "${azurerm_resource_group.rg.location}"
   account_type        = "${var.storage_account_type_map["${var.infra_vm_size}"]}"
-
-  tags {
-    display_name = "InfraStorageAccount"
-  }
 }
 
 resource "azurerm_storage_account" "nodeos_storage_account" {
@@ -192,10 +184,6 @@ resource "azurerm_storage_account" "nodeos_storage_account" {
   resource_group_name = "${azurerm_resource_group.rg.name}"
   location            = "${azurerm_resource_group.rg.location}"
   account_type        = "${var.storage_account_type_map["${var.node_vm_size}"]}"
-
-  tags {
-    display_name = "NodeStorageAccount"
-  }
 }
 
 resource "azurerm_storage_account" "nodedata_storage_account" {
@@ -203,10 +191,6 @@ resource "azurerm_storage_account" "nodedata_storage_account" {
   resource_group_name = "${azurerm_resource_group.rg.name}"
   location            = "${azurerm_resource_group.rg.location}"
   account_type        = "${var.storage_account_type_map["${var.node_vm_size}"]}"
-
-  tags {
-    display_name = "NodeStorageAccount"
-  }
 }
 
 resource "azurerm_storage_account" "registry_storage_account" {
@@ -214,10 +198,6 @@ resource "azurerm_storage_account" "registry_storage_account" {
   resource_group_name = "${azurerm_resource_group.rg.name}"
   location            = "${azurerm_resource_group.rg.location}"
   account_type        = "Standard_LRS"
-
-  tags {
-    display_name = "RegistryStorageAccount"
-  }
 }
 
 resource "azurerm_storage_account" "persistent_volume_storage_account" {
@@ -225,8 +205,38 @@ resource "azurerm_storage_account" "persistent_volume_storage_account" {
   resource_group_name = "${azurerm_resource_group.rg.name}"
   location            = "${azurerm_resource_group.rg.location}"
   account_type        = "Standard_LRS"
-
-  tags {
-    display_name = "PersistentVolume1StorageAccount"
-  }
 }
+
+resource "azurerm_public_ip" "infra_lb" {
+  name                         = "${var.infra_lb_publicip_dns_label_prefix}"
+  resource_group_name          = "${azurerm_resource_group.rg.name}"
+  location                     = "${azurerm_resource_group.rg.location}"
+  public_ip_address_allocation = "static"
+}
+		# 	"type": "Microsoft.Network/publicIPAddresses",
+		# 	"name": "[parameters('infraLbPublicIpDnsLabel')]",
+		# 	"location": "[variables('location')]",
+		# 	"apiVersion": "[variables('apiVersionNetwork')]",
+		# 	"tags": {
+		# 		"displayName": "OpenShiftInfraLBPublicIP"
+		# 	},
+		# 	"properties": {
+		# 		"publicIPAllocationMethod": "Static",
+		# 		"dnsSettings": {
+		# 			"domainNameLabel": "[parameters('infraLbPublicIpDnsLabel')]"
+		# 		}
+		# 	}
+		# }, {
+		# 	"type": "Microsoft.Network/publicIPAddresses",
+		# 	"name": "[parameters('openshiftMasterPublicIpDnsLabel')]",
+		# 	"location": "[variables('location')]",
+		# 	"apiVersion": "[variables('apiVersionNetwork')]",
+		# 	"tags": {
+		# 		"displayName": "OpenShiftMasterPublicIP"
+		# 	},
+		# 	"properties": {
+		# 		"publicIPAllocationMethod": "Static",
+		# 		"dnsSettings": {
+		# 			"domainNameLabel": "[parameters('openshiftMasterPublicIpDnsLabel')]"
+		# 		}
+		# 	}
