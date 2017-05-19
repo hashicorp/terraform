@@ -275,3 +275,11 @@ func handleNotFoundError(err error, d *schema.ResourceData, resource string) err
 
 	return fmt.Errorf("Error reading %s: %s", resource, err)
 }
+
+func linkDiffSuppress(k, old, new string, d *schema.ResourceData) bool {
+	parts := strings.Split(old, "/")
+	if parts[len(parts)-1] == new {
+		return true
+	}
+	return false
+}

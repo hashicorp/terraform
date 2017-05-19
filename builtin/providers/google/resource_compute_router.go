@@ -28,9 +28,10 @@ func resourceComputeRouter() *schema.Resource {
 			},
 
 			"network": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: linkDiffSuppress,
 			},
 
 			"description": &schema.Schema{
@@ -42,6 +43,7 @@ func resourceComputeRouter() *schema.Resource {
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
@@ -167,15 +169,12 @@ func resourceComputeRouterRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("self_link", router.SelfLink)
-
-	// if we don't have a network (when importing), set it to the URI returned from the server
-	if _, ok := d.GetOk("network"); !ok {
-		d.Set("network", router.Network)
-	}
+	d.Set("network", router.Network)
 
 	d.Set("name", router.Name)
 	d.Set("description", router.Description)
 	d.Set("region", region)
+	d.Set("project", project)
 	d.Set("bgp", flattenAsn(router.Bgp.Asn))
 	d.SetId(fmt.Sprintf("%s/%s", region, name))
 

@@ -1,25 +1,21 @@
 package google
 
 import (
-	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
 func TestAccComputeRouter_import(t *testing.T) {
 	resourceName := "google_compute_router.foobar"
-	network := fmt.Sprintf("router-import-test-%s", acctest.RandString(10))
-	subnet := fmt.Sprintf("router-import-test-%s", acctest.RandString(10))
-	router := fmt.Sprintf("router-import-test-%s", acctest.RandString(10))
+	resourceRegion := "europe-west1"
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeRouterDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeRouterNetworkLink(network, subnet, router),
+				Config: testAccComputeRouterBasic(resourceRegion),
 			},
 
 			resource.TestStep{
