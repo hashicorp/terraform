@@ -78,6 +78,7 @@ BUG FIXES:
 * provider/datadog: Allowed method on aggregator is `avg` ! `average` [GH-14414]
 * provider/digitalocean: Fix parsing of digitalocean dns records [GH-14215]
 * provider/github: Log HTTP requests and responses in DEBUG mode [GH-14363]
+* provider/github Check for potentially nil response from GitHub API client [GH-14683]
 * provider/google: Fix health check http/https defaults [GH-14441]
 * provider/google: Fix issue with GCP Cloud SQL Instance `disk_autoresize` [GH-14582]
 * provider/heroku: Fix issue with setting correct CName in heroku_domain [GH-14443]
