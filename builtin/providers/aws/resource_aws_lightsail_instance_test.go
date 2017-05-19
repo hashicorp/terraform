@@ -38,6 +38,30 @@ func TestAccAWSLightsailInstance_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSLightsailInstance_euRegion(t *testing.T) {
+	var conf lightsail.Instance
+	lightsailName := fmt.Sprintf("tf-test-lightsail-%d", acctest.RandInt())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_lightsail_instance.lightsail_instance_test",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSLightsailInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSLightsailInstanceConfig_euRegion(lightsailName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSLightsailInstanceExists("aws_lightsail_instance.lightsail_instance_test", &conf),
+					resource.TestCheckResourceAttrSet("aws_lightsail_instance.lightsail_instance_test", "availability_zone"),
+					resource.TestCheckResourceAttrSet("aws_lightsail_instance.lightsail_instance_test", "blueprint_id"),
+					resource.TestCheckResourceAttrSet("aws_lightsail_instance.lightsail_instance_test", "bundle_id"),
+					resource.TestCheckResourceAttrSet("aws_lightsail_instance.lightsail_instance_test", "key_pair_name"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSLightsailInstance_disapear(t *testing.T) {
 	var conf lightsail.Instance
 	lightsailName := fmt.Sprintf("tf-test-lightsail-%d", acctest.RandInt())
@@ -145,6 +169,20 @@ resource "aws_lightsail_instance" "lightsail_instance_test" {
   name              = "%s"
   availability_zone = "us-east-1b"
   blueprint_id      = "gitlab_8_12_6"
+  bundle_id         = "nano_1_0"
+}
+`, lightsailName)
+}
+
+func testAccAWSLightsailInstanceConfig_euRegion(lightsailName string) string {
+	return fmt.Sprintf(`
+provider "aws" {
+  region = "eu-west-1"
+}
+resource "aws_lightsail_instance" "lightsail_instance_test" {
+  name              = "%s"
+  availability_zone = "eu-west-1a"
+  blueprint_id = "joomla_3_6_5"
   bundle_id         = "nano_1_0"
 }
 `, lightsailName)
