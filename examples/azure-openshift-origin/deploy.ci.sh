@@ -23,8 +23,7 @@ docker run --rm -it \
         -var openshift_cluster_prefix=$KEY \
         -var key_vault_secret=$KEY_VAULT_SECRET \
         -var admin_username=$KEY \
-        -var admin_password=$PASSWORD \
-        -var passphrase=$PASSWORD \
+        -var openshift_password=$PASSWORD \
         -var key_vault_name=$KEY_VAULT_NAME \
         -var key_vault_resource_group=$KEY_VAULT_RESOURCE_GROUP \
         -var aad_client_id=$AAD_CLIENT_ID \
@@ -59,8 +58,7 @@ docker run --rm -it \
         -var openshift_cluster_prefix=$KEY \
         -var key_vault_secret=$KEY_VAULT_SECRET \
         -var admin_username=$KEY \
-        -var admin_password=$PASSWORD \
-        -var passphrase=$PASSWORD \
+        -var openshift_password=$PASSWORD \
         -var key_vault_name=$KEY_VAULT_NAME \
         -var key_vault_resource_group=$KEY_VAULT_RESOURCE_GROUP \
         -var aad_client_id=$AAD_CLIENT_ID \
