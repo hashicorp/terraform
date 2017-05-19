@@ -1,11 +1,11 @@
 provider "ad" {
-    domain = "localscvmm.net"
-    user = "scvmm_sa"
-    password = "Passw0rd"
-    ip = "10.136.60.97"
+    domain = "exampledomain.com"
+    user = "user"
+    password = "password"
+    ip = "domain_ip"
 }
     
 resource "ad_resourceComputer" "foo"{
-	domain = "localscvmm.net"
+	domain = "exampledomain.com"
 	computer_name = "terraformSample"
 }
