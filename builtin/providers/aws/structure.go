@@ -1886,10 +1886,9 @@ func normalizeJsonString(jsonString interface{}) (string, error) {
 		return s, err
 	}
 
-	bytes, err := json.Marshal(j)
-	if err != nil {
-		return s, err
-	}
+	// The error is intentionally ignored here to allow empty policies to passthrough validation.
+	// This covers any interpolated values
+	bytes, _ := json.Marshal(j)
 
 	return string(bytes[:]), nil
 }
