@@ -41,9 +41,8 @@ type Provisioner struct {
 	// information.
 	ApplyFunc func(ctx context.Context) error
 
-	// ValidateFunc is the function for extended validation. This is optional.
-	// It is given a resource data.
-	// Should be provided when Scheme is not enough.
+	// ValidateFunc is a function for extended validation. This is optional
+	// and should be used when individual field validation is not enough.
 	ValidateFunc func(*ResourceData) ([]string, []error)
 
 	stopCtx       context.Context

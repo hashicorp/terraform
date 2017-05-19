@@ -30,8 +30,8 @@ func TestResourceProvider_Validate_good(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
 		"inline": "echo foo",
 	})
-	p := Provisioner()
-	warn, errs := p.Validate(c)
+
+	warn, errs := Provisioner().Validate(c)
 	if len(warn) > 0 {
 		t.Fatalf("Warnings: %v", warn)
 	}
@@ -44,8 +44,8 @@ func TestResourceProvider_Validate_bad(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
 		"invalid": "nope",
 	})
-	p := Provisioner()
-	warn, errs := p.Validate(c)
+
+	warn, errs := Provisioner().Validate(c)
 	if len(warn) > 0 {
 		t.Fatalf("Warnings: %v", warn)
 	}
@@ -60,7 +60,6 @@ exit 0
 `
 
 func TestResourceProvider_generateScript(t *testing.T) {
-	p := Provisioner().(*schema.Provisioner)
 	conf := map[string]interface{}{
 		"inline": []interface{}{
 			"cd /tmp",
@@ -68,8 +67,10 @@ func TestResourceProvider_generateScript(t *testing.T) {
 			"exit 0",
 		},
 	}
-	out, err := generateScripts(schema.TestResourceDataRaw(
-		t, p.Schema, conf))
+
+	out, err := generateScripts(
+		schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, conf),
+	)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -101,7 +102,6 @@ func TestResourceProvider_generateScriptEmptyInline(t *testing.T) {
 }
 
 func TestResourceProvider_CollectScripts_inline(t *testing.T) {
-	p := Provisioner().(*schema.Provisioner)
 	conf := map[string]interface{}{
 		"inline": []interface{}{
 			"cd /tmp",
@@ -110,8 +110,9 @@ func TestResourceProvider_CollectScripts_inline(t *testing.T) {
 		},
 	}
 
-	scripts, err := collectScripts(schema.TestResourceDataRaw(
-		t, p.Schema, conf))
+	scripts, err := collectScripts(
+		schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, conf),
+	)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -132,13 +133,13 @@ func TestResourceProvider_CollectScripts_inline(t *testing.T) {
 }
 
 func TestResourceProvider_CollectScripts_script(t *testing.T) {
-	p := Provisioner().(*schema.Provisioner)
 	conf := map[string]interface{}{
 		"script": "test-fixtures/script1.sh",
 	}
 
-	scripts, err := collectScripts(schema.TestResourceDataRaw(
-		t, p.Schema, conf))
+	scripts, err := collectScripts(
+		schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, conf),
+	)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -159,7 +160,6 @@ func TestResourceProvider_CollectScripts_script(t *testing.T) {
 }
 
 func TestResourceProvider_CollectScripts_scripts(t *testing.T) {
-	p := Provisioner().(*schema.Provisioner)
 	conf := map[string]interface{}{
 		"scripts": []interface{}{
 			"test-fixtures/script1.sh",
@@ -168,8 +168,9 @@ func TestResourceProvider_CollectScripts_scripts(t *testing.T) {
 		},
 	}
 
-	scripts, err := collectScripts(schema.TestResourceDataRaw(
-		t, p.Schema, conf))
+	scripts, err := collectScripts(
+		schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, conf),
+	)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -234,9 +235,7 @@ func TestRetryFunc(t *testing.T) {
 	}
 }
 
-func testConfig(
-	t *testing.T,
-	c map[string]interface{}) *terraform.ResourceConfig {
+func testConfig(t *testing.T, c map[string]interface{}) *terraform.ResourceConfig {
 	r, err := config.NewRawConfig(c)
 	if err != nil {
 		t.Fatalf("bad: %s", err)

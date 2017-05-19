@@ -30,8 +30,8 @@ func TestResourceProvider_Validate_good(t *testing.T) {
 		"user_name":   "bob",
 		"user_key":    "USER-KEY",
 	})
-	r := Provisioner()
-	warn, errs := r.Validate(c)
+
+	warn, errs := Provisioner().Validate(c)
 	if len(warn) > 0 {
 		t.Fatalf("Warnings: %v", warn)
 	}
@@ -44,8 +44,8 @@ func TestResourceProvider_Validate_bad(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
 		"invalid": "nope",
 	})
-	p := Provisioner()
-	warn, errs := p.Validate(c)
+
+	warn, errs := Provisioner().Validate(c)
 	if len(warn) > 0 {
 		t.Fatalf("Warnings: %v", warn)
 	}
@@ -66,8 +66,8 @@ func TestResourceProvider_Validate_computedValues(t *testing.T) {
 		"user_key":        "USER-KEY",
 		"attributes_json": config.UnknownVariableValue,
 	})
-	r := Provisioner()
-	warn, errs := r.Validate(c)
+
+	warn, errs := Provisioner().Validate(c)
 	if len(warn) > 0 {
 		t.Fatalf("Warnings: %v", warn)
 	}
@@ -76,30 +76,21 @@ func TestResourceProvider_Validate_computedValues(t *testing.T) {
 	}
 }
 
-func testConfig(t *testing.T, c map[string]interface{}) *terraform.ResourceConfig {
-	r, err := config.NewRawConfig(c)
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-
-	return terraform.NewResourceConfig(r)
-}
-
 func TestResourceProvider_runChefClient(t *testing.T) {
 	cases := map[string]struct {
-		Config   *terraform.ResourceConfig
+		Config   map[string]interface{}
 		ChefCmd  string
 		ConfDir  string
 		Commands map[string]bool
 	}{
 		"Sudo": {
-			Config: testConfig(t, map[string]interface{}{
+			Config: map[string]interface{}{
 				"node_name":  "nodename1",
 				"run_list":   []interface{}{"cookbook::recipe"},
 				"server_url": "https://chef.local",
 				"user_name":  "bob",
 				"user_key":   "USER-KEY",
-			}),
+			},
 
 			ChefCmd: linuxChefCmd,
 
@@ -113,14 +104,14 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 		},
 
 		"NoSudo": {
-			Config: testConfig(t, map[string]interface{}{
+			Config: map[string]interface{}{
 				"node_name":    "nodename1",
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},
 				"server_url":   "https://chef.local",
 				"user_name":    "bob",
 				"user_key":     "USER-KEY",
-			}),
+			},
 
 			ChefCmd: linuxChefCmd,
 
@@ -134,7 +125,7 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 		},
 
 		"Environment": {
-			Config: testConfig(t, map[string]interface{}{
+			Config: map[string]interface{}{
 				"environment":  "production",
 				"node_name":    "nodename1",
 				"prevent_sudo": true,
@@ -142,7 +133,7 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 				"server_url":   "https://chef.local",
 				"user_name":    "bob",
 				"user_key":     "USER-KEY",
-			}),
+			},
 
 			ChefCmd: windowsChefCmd,
 
@@ -162,7 +153,9 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 	for k, tc := range cases {
 		c.Commands = tc.Commands
 
-		p, err := decodeConfig(getTestResourceData(tc.Config))
+		p, err := decodeConfig(
+			schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, tc.Config),
+		)
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
@@ -179,20 +172,20 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 
 func TestResourceProvider_fetchChefCertificates(t *testing.T) {
 	cases := map[string]struct {
-		Config   *terraform.ResourceConfig
+		Config   map[string]interface{}
 		KnifeCmd string
 		ConfDir  string
 		Commands map[string]bool
 	}{
 		"Sudo": {
-			Config: testConfig(t, map[string]interface{}{
+			Config: map[string]interface{}{
 				"fetch_chef_certificates": true,
 				"node_name":               "nodename1",
 				"run_list":                []interface{}{"cookbook::recipe"},
 				"server_url":              "https://chef.local",
 				"user_name":               "bob",
 				"user_key":                "USER-KEY",
-			}),
+			},
 
 			KnifeCmd: linuxKnifeCmd,
 
@@ -206,7 +199,7 @@ func TestResourceProvider_fetchChefCertificates(t *testing.T) {
 		},
 
 		"NoSudo": {
-			Config: testConfig(t, map[string]interface{}{
+			Config: map[string]interface{}{
 				"fetch_chef_certificates": true,
 				"node_name":               "nodename1",
 				"prevent_sudo":            true,
@@ -214,7 +207,7 @@ func TestResourceProvider_fetchChefCertificates(t *testing.T) {
 				"server_url":              "https://chef.local",
 				"user_name":               "bob",
 				"user_key":                "USER-KEY",
-			}),
+			},
 
 			KnifeCmd: windowsKnifeCmd,
 
@@ -234,7 +227,9 @@ func TestResourceProvider_fetchChefCertificates(t *testing.T) {
 	for k, tc := range cases {
 		c.Commands = tc.Commands
 
-		p, err := decodeConfig(getTestResourceData(tc.Config))
+		p, err := decodeConfig(
+			schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, tc.Config),
+		)
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
@@ -251,14 +246,14 @@ func TestResourceProvider_fetchChefCertificates(t *testing.T) {
 
 func TestResourceProvider_configureVaults(t *testing.T) {
 	cases := map[string]struct {
-		Config   *terraform.ResourceConfig
+		Config   map[string]interface{}
 		GemCmd   string
 		KnifeCmd string
 		ConfDir  string
 		Commands map[string]bool
 	}{
 		"Linux Vault string": {
-			Config: testConfig(t, map[string]interface{}{
+			Config: map[string]interface{}{
 				"node_name":    "nodename1",
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},
@@ -266,7 +261,7 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"user_name":    "bob",
 				"user_key":     "USER-KEY",
 				"vault_json":   `{"vault1": "item1"}`,
-			}),
+			},
 
 			GemCmd:   linuxGemCmd,
 			KnifeCmd: linuxKnifeCmd,
@@ -280,7 +275,7 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 		},
 
 		"Linux Vault []string": {
-			Config: testConfig(t, map[string]interface{}{
+			Config: map[string]interface{}{
 				"fetch_chef_certificates": true,
 				"node_name":               "nodename1",
 				"prevent_sudo":            true,
@@ -289,7 +284,7 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"user_name":               "bob",
 				"user_key":                "USER-KEY",
 				"vault_json":              `{"vault1": ["item1", "item2"]}`,
-			}),
+			},
 
 			GemCmd:   linuxGemCmd,
 			KnifeCmd: linuxKnifeCmd,
@@ -305,7 +300,7 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 		},
 
 		"Windows Vault string": {
-			Config: testConfig(t, map[string]interface{}{
+			Config: map[string]interface{}{
 				"node_name":    "nodename1",
 				"prevent_sudo": true,
 				"run_list":     []interface{}{"cookbook::recipe"},
@@ -313,7 +308,7 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"user_name":    "bob",
 				"user_key":     "USER-KEY",
 				"vault_json":   `{"vault1": "item1"}`,
-			}),
+			},
 
 			GemCmd:   windowsGemCmd,
 			KnifeCmd: windowsKnifeCmd,
@@ -327,7 +322,7 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 		},
 
 		"Windows Vault []string": {
-			Config: testConfig(t, map[string]interface{}{
+			Config: map[string]interface{}{
 				"fetch_chef_certificates": true,
 				"node_name":               "nodename1",
 				"prevent_sudo":            true,
@@ -336,7 +331,7 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 				"user_name":               "bob",
 				"user_key":                "USER-KEY",
 				"vault_json":              `{"vault1": ["item1", "item2"]}`,
-			}),
+			},
 
 			GemCmd:   windowsGemCmd,
 			KnifeCmd: windowsKnifeCmd,
@@ -358,7 +353,9 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 	for k, tc := range cases {
 		c.Commands = tc.Commands
 
-		p, err := decodeConfig(getTestResourceData(tc.Config))
+		p, err := decodeConfig(
+			schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, tc.Config),
+		)
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
@@ -373,6 +370,11 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 	}
 }
 
-func getTestResourceData(c *terraform.ResourceConfig) *schema.ResourceData {
-	return schema.TestResourceDataConfig(Provisioner().(*schema.Provisioner).Schema, c)
+func testConfig(t *testing.T, c map[string]interface{}) *terraform.ResourceConfig {
+	r, err := config.NewRawConfig(c)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	return terraform.NewResourceConfig(r)
 }
