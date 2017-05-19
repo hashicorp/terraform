@@ -103,15 +103,17 @@ variable "storage_account_type_map" {
 
 variable "openshift_cluster_prefix" {
   description = "Cluster Prefix used to configure hostnames for all nodes - master, infra and nodes. Between 1 and 20 characters"
-  default     = "aacl"
+  default     = "os001"
 }
 
 variable "openshift_master_public_ip_dns_label_prefix" {
   description = "A unique Public DNS name to reference the Master Node by"
+  default     = "masterpip001"
 }
 
 variable "infra_lb_publicip_dns_label_prefix" {
   description = "A unique Public DNS name to reference the Node Load Balancer by. Used to access deployed applications"
+  default     = "infrapip001"
 }
 
 variable "master_instance_count" {
