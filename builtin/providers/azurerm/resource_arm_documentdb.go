@@ -160,7 +160,8 @@ func resourceArmDocumentDBCreateUpdate(d *schema.ResourceData, meta interface{})
 		Tags: expandTags(tags),
 	}
 
-	_, err = client.CreateOrUpdate(resGroup, name, parameters, make(chan struct{}))
+	_, error := client.CreateOrUpdate(resGroup, name, parameters, make(chan struct{}))
+	err = <-error
 	if err != nil {
 		return err
 	}
@@ -237,10 +238,16 @@ func resourceArmDocumentDBDelete(d *schema.ResourceData, meta interface{}) error
 	resGroup := id.ResourceGroup
 	name := id.Path["databaseAccounts"]
 
-	resp, err := client.Delete(resGroup, name, make(chan struct{}))
+	deleteResp, error := client.Delete(resGroup, name, make(chan struct{}))
+	resp := <-deleteResp
+	err = <-error
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("Error issuing AzureRM delete request for DocumentDB instance '%s': %s", name, err)
+	}
+
+	if err != nil {
+		return err
 	}
 
 	return nil

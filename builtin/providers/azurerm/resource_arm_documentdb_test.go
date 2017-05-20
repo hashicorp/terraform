@@ -148,7 +148,7 @@ resource "azurerm_resource_group" "test" {
     location = "West US"
 }
 resource "azurerm_documentdb" "test" {
-  name                = "acctestDDB-%d"
+  name                = "acctest-%d"
   location            = "${azurerm_resource_group.test.location}"
   resource_group_name = "${azurerm_resource_group.test.name}"
   offer_type          = "Standard"
@@ -172,7 +172,7 @@ resource "azurerm_resource_group" "test" {
     location = "West US"
 }
 resource "azurerm_documentdb" "test" {
-  name                = "acctestDDB-%d"
+  name                = "acctest-%d"
   location            = "${azurerm_resource_group.test.location}"
   resource_group_name = "${azurerm_resource_group.test.name}"
   offer_type          = "Standard"
