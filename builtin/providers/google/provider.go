@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"regexp"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -264,64 +263,4 @@ func handleNotFoundError(err error, d *schema.ResourceData, resource string) err
 	}
 
 	return fmt.Errorf("Error reading %s: %s", resource, err)
-}
-
-var regexpUrl = regexp.MustCompile(fmt.Sprintf("^(?:https://www.googleapis.com/compute/%s/)?(projects/%s(?:/(?:global|regions/%s|zones/%s)(?:/%s/%s)?)?)$",
-	"([a-z0-9]+)",                    // API Version
-	"([a-z](?:[-a-z0-9]*[a-z0-9])?)", // Project ID
-	"([a-z]+-[a-z]+[0-9]+)",          // Region
-	"([a-z]+-[a-z]+[0-9]+-[a-z]+)",   // Zone
-	"([a-z][A-Za-z]*(?:/family)?)",   // Resource type
-	"([a-z](?:[-a-z0-9]*[a-z0-9])?)", // Resource name
-))
-
-type resourceInfo struct {
-	apiVersion   string
-	project      string
-	region       string
-	zone         string
-	resourceType string
-	name         string
-	url          string
-}
-
-func parseUrl(url string) (resourceInfo, error) {
-	matched := regexpUrl.FindStringSubmatch(url)
-	if matched == nil {
-		return resourceInfo{}, fmt.Errorf("Invalid URL '%s'", url)
-	}
-
-	ri := resourceInfo{
-		apiVersion:   matched[1],
-		project:      matched[3],
-		region:       matched[4],
-		zone:         matched[5],
-		resourceType: matched[6],
-		name:         matched[7],
-	}
-
-	if ri.resourceType == "" {
-		if ri.region != "" {
-			ri.resourceType = "regions"
-			ri.name = ri.region
-		} else if ri.zone != "" {
-			ri.resourceType = "zones"
-			ri.name = ri.zone
-		} else {
-			ri.resourceType = "projects"
-			ri.name = ri.project
-		}
-	}
-
-	if ri.region == "" && ri.zone != "" {
-		ri.region = getRegionFromZone(ri.zone)
-	}
-
-	if ri.apiVersion == "" {
-		ri.apiVersion = "v1"
-	}
-
-	ri.url = fmt.Sprintf("https://www.googleapis.com/compute/%s/%s", ri.apiVersion, matched[2])
-
-	return ri, nil
 }

@@ -72,11 +72,11 @@ func resourceComputeTargetHttpsProxyCreate(d *schema.ResourceData, meta interfac
 	sslCertificates := make([]string, len(_sslCertificates))
 
 	for i, v := range _sslCertificates {
-		r, err := parseUrl(v.(string))
+		cert, err := canonicalizeCertUrl(v.(string))
 		if err != nil {
 			return err
 		}
-		sslCertificates[i] = r.url
+		sslCertificates[i] = cert
 	}
 
 	proxy := &compute.TargetHttpsProxy{
@@ -146,30 +146,30 @@ func resourceComputeTargetHttpsProxyUpdate(d *schema.ResourceData, meta interfac
 		_newMap := make(map[string]bool)
 
 		for _, v := range _oldCerts {
-			r, err := parseUrl(v.(string))
+			cert, err := canonicalizeCertUrl(v.(string))
 			if err != nil {
 				return err
 			}
-			_oldMap[r.url] = true
+			_oldMap[cert] = true
 		}
 
 		for _, v := range _newCerts {
-			r, err := parseUrl(v.(string))
+			cert, err := canonicalizeCertUrl(v.(string))
 			if err != nil {
 				return err
 			}
-			_newMap[r.url] = true
+			_newMap[cert] = true
 		}
 
 		sslCertificates := make([]string, 0)
 		// Only modify certificates in one of our old or new states
 		for _, v := range current {
-			r, err := parseUrl(v)
+			cert, err := canonicalizeCertUrl(v)
 			if err != nil {
 				return err
 			}
-			_, okOld := _oldMap[r.url]
-			_, okNew := _newMap[r.url]
+			_, okOld := _oldMap[cert]
+			_, okNew := _newMap[cert]
 
 			// we deleted the certificate
 			if okOld && !okNew {
@@ -239,20 +239,20 @@ func resourceComputeTargetHttpsProxyRead(d *schema.ResourceData, meta interface{
 	certs := make([]interface{}, 0)
 
 	for _, v := range actualCerts {
-		r, err := parseUrl(v)
+		cert, err := canonicalizeCertUrl(v)
 		if err != nil {
 			return err
 		}
-		certMap[r.url] = true
+		certMap[cert] = true
 	}
 
 	// Store intersection of server certificates and user defined certificates
 	for _, v := range userSpecifiedCerts {
-		r, err := parseUrl(v.(string))
+		cert, err := canonicalizeCertUrl(v.(string))
 		if err != nil {
 			return err
 		}
-		if _, ok := certMap[r.url]; ok {
+		if _, ok := certMap[cert]; ok {
 			certs = append(certs, v.(string))
 		}
 	}
