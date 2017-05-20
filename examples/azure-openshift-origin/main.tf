@@ -10,6 +10,8 @@ resource "azurerm_resource_group" "rg" {
   location = "${var.resource_group_location}"
 }
 
+# ******* NETWORK SECURITY GROUPS ***********
+
 resource "azurerm_network_security_group" "master_nsg" {
   name                = "${var.openshift_cluster_prefix}-master-nsg"
   location            = "${azurerm_resource_group.rg.location}"
@@ -145,25 +147,33 @@ resource "azurerm_network_security_group" "node_nsg" {
   }
 }
 
+# ******* VNETS / SUBNETS ***********
+
 resource "azurerm_virtual_network" "vnet" {
   name                = "openshiftvnet"
   location            = "${azurerm_resource_group.rg.location}"
   resource_group_name = "${azurerm_resource_group.rg.name}"
   address_space       = ["10.0.0.0/8"]
   dns_servers         = ["10.0.0.4", "10.0.0.5"]
-
-  subnet {
-    name           = "mastersubnet"
-    address_prefix = "10.1.0.0/16"
-    security_group = "${azurerm_network_security_group.master_nsg.id}"
-  }
-
-  subnet {
-    name           = "nodesubnet"
-    address_prefix = "10.2.0.0/16"
-    security_group = "${azurerm_network_security_group.node_nsg.id}"
-  }
 }
+
+resource "azurerm_subnet" "master_subnet" {
+  name                      = "mastersubnet"
+  virtual_network_name      = "${azurerm_virtual_network.vnet.name}"
+  resource_group_name       = "${azurerm_resource_group.rg.name}"
+  address_prefix            = "10.1.0.0/16"
+  network_security_group_id = "${azurerm_network_security_group.master_nsg.id}"
+}
+
+resource "azurerm_subnet" "node_subnet" {
+  name                      = "nodesubnet"
+  virtual_network_name      = "${azurerm_virtual_network.vnet.name}"
+  resource_group_name       = "${azurerm_resource_group.rg.name}"
+  address_prefix            = "10.2.0.0/16"
+  network_security_group_id = "${azurerm_network_security_group.node_nsg.id}"
+}
+
+# ******* STORAGE ACCOUNTS ***********
 
 resource "azurerm_storage_account" "master_storage_account" {
   name                = "${var.openshift_cluster_prefix}msa"
@@ -207,6 +217,8 @@ resource "azurerm_storage_account" "persistent_volume_storage_account" {
   account_type        = "Standard_LRS"
 }
 
+# ******* IP ADDRESSES ***********
+
 resource "azurerm_public_ip" "openshift_master_pip" {
   name                         = "masterpip"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
@@ -222,6 +234,8 @@ resource "azurerm_public_ip" "infra_lb_pip" {
   public_ip_address_allocation = "Static"
   domain_name_label            = "${var.infra_lb_publicip_dns_label}infrapip"
 }
+
+# ******* AVAILABILITY SETS ***********
 
 resource "azurerm_availability_set" "master" {
   name                = "masteravailabilityset"
@@ -361,110 +375,54 @@ resource "azurerm_lb_rule" "infra_lb_https" {
   probe_id                       = "${azurerm_lb_probe.infra_lb_https_probe.id}"
 }
 
-# 			"type": "Microsoft.Network/networkInterfaces",
-# 			"name": "[concat(variables('openshiftMasterHostname'), '-', copyIndex(), '-nic')]",
-# 			"location": "[variables('location')]",
-# 			"apiVersion": "[variables('apiVersionNetwork')]",
-# 			"tags": {
-# 				"displayName": "OpenShiftMasterNetworkInterface"
-# 			},
-# 			"dependsOn": [
-# 				"[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
-# 				"[concat('Microsoft.Network/loadBalancers/', variables('masterLoadBalancerName'))]",
-# 				"[concat(variables('masterLbId'), '/inboundNatRules/SSH-', variables('openshiftMasterHostname') ,copyIndex())]",
-# 				"[concat('Microsoft.Network/networkSecurityGroups/', variables('openshiftMasterHostname'), '-nsg')]"
-# 			],
-# 			"copy": {
-# 				"name": "masterNicLoop",
-# 				"count": "[parameters('masterInstanceCount')]"
-# 			},
-# 			"properties": {
-# 				"ipConfigurations": [{
-# 					"name": "[concat(variables('openshiftMasterHostname'), copyIndex(), 'ipconfig')]",
-# 					"properties": {
-# 						"privateIPAllocationMethod": "Dynamic",
-# 						"subnet": {
-# 							"id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'), '/subnets/', variables('masterSubnetName'))]"
-# 						},
-# 						"loadBalancerBackendAddressPools": [{
-# 							"id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/loadBalancers/', variables('masterLoadBalancerName'), '/backendAddressPools/loadBalancerBackEnd')]"
-# 						}],
-# 						"loadBalancerInboundNatRules": [
-# 							{
-# 								"id": "[concat(variables('masterLbId'),'/inboundNatRules/SSH-', variables('openshiftMasterHostname'), copyIndex())]"
-# 							}
-# 						]
-# 					}
-# 				}],
-# 				"networkSecurityGroup": {
-# 					"id": "[resourceId('Microsoft.Network/networkSecurityGroups', concat(variables('openshiftMasterHostname'), '-nsg'))]"
-# 				}
-# 			}
-# 		}, {
-# 			"type": "Microsoft.Network/networkInterfaces",
-# 			"name": "[concat(variables('openshiftInfraHostname'), '-', copyIndex(), '-nic')]",
-# 			"location": "[variables('location')]",
-# 			"apiVersion": "[variables('apiVersionNetwork')]",
-# 			"tags": {
-# 				"displayName": "OpenShiftInfraNetworkInterfaces"
-# 			},
-# 			"dependsOn": [
-# 				"[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
-# 				"[concat('Microsoft.Network/loadBalancers/', variables('infraLoadBalancerName'))]",
-# 				"[concat('Microsoft.Network/networkSecurityGroups/', variables('openshiftInfraHostname'), '-nsg')]"
-# 			],
-# 			"copy": {
-# 				"name": "infraNicLoop",
-# 				"count": "[parameters('infraInstanceCount')]"
-# 			},
-# 			"properties": {
-# 				"ipConfigurations": [{
-# 					"name": "[concat(variables('openshiftInfraHostname'), copyIndex(), 'ipconfig')]",
-# 					"properties": {
-# 						"privateIPAllocationMethod": "Dynamic",
-# 						"subnet": {
-# 							"id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'), '/subnets/', variables('masterSubnetName'))]"
-# 						},
-# 						"loadBalancerBackendAddressPools": [{
-# 							"id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/loadBalancers/', variables('infraLoadBalancerName'), '/backendAddressPools/loadBalancerBackEnd')]"
-# 						}]
-# 					}
-# 				}],
-# 				"networkSecurityGroup": {
-# 					"id": "[resourceId('Microsoft.Network/networkSecurityGroups', concat(variables('openshiftInfraHostname'), '-nsg'))]"
-# 				}
-# 			}
-# 		}, {
-# 			"type": "Microsoft.Network/networkInterfaces",
-# 			"name": "[concat(variables('openshiftNodeHostname'), '-', copyIndex(), '-nic')]",
-# 			"location": "[variables('location')]",
-# 			"apiVersion": "[variables('apiVersionNetwork')]",
-# 			"tags": {
-# 				"displayName": "OpenShiftNodeNetworkInterfaces"
-# 			},
-# 			"dependsOn": [
-# 				"[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
-# 				"[concat('Microsoft.Network/networkSecurityGroups/', variables('openshiftNodeHostname'), '-nsg')]"
-# 			],
-# 			"copy": {
-# 				"name": "nodeNicLoop",
-# 				"count": "[parameters('nodeInstanceCount')]"
-# 			},
-# 			"properties": {
-# 				"ipConfigurations": [{
-# 					"name": "[concat(variables('openshiftNodeHostname'), copyIndex(), 'ipconfig')]",
-# 					"properties": {
-# 						"privateIPAllocationMethod": "Dynamic",
-# 						"subnet": {
-# 							"id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'), '/subnets/', variables('nodeSubnetName'))]"
-# 						}
-# 					}
-# 				}],
-# 				"networkSecurityGroup": {
-# 					"id": "[resourceId('Microsoft.Network/networkSecurityGroups', concat(variables('openshiftNodeHostname'), '-nsg'))]"
-# 				}
-# 			}
-# 		}, {
+# ******* NETWORK INTERFACES ***********
+
+resource "azurerm_network_interface" "master_nic" {
+  name                      = "masternic${count.index}"
+  location                  = "${azurerm_resource_group.rg.location}"
+  resource_group_name       = "${azurerm_resource_group.rg.name}"
+  network_security_group_id = "${azurerm_network_security_group.master_nsg.id}"
+  count                     = "${var.master_instance_count}"
+
+  ip_configuration {
+    name                                    = "masteripconfig${count.index}"
+    subnet_id                               = "${azurerm_subnet.master_subnet.id}"
+    private_ip_address_allocation           = "Dynamic"
+    load_balancer_backend_address_pools_ids = ["${azurerm_lb_backend_address_pool.master_lb.id}"]
+    load_balancer_inbound_nat_rules_ids     = ["${element(azurerm_lb_nat_rule.master_lb.*.id, count.index)}"]
+  }
+}
+
+resource "azurerm_network_interface" "infra_nic" {
+  name                      = "infra_nic${count.index}"
+  location                  = "${azurerm_resource_group.rg.location}"
+  resource_group_name       = "${azurerm_resource_group.rg.name}"
+  network_security_group_id = "${azurerm_network_security_group.infra_nsg.id}"
+  count                     = "${var.infra_instance_count}"
+
+  ip_configuration {
+    name                                    = "infraipconfig${count.index}"
+    subnet_id                               = "${azurerm_subnet.master_subnet.id}"
+    private_ip_address_allocation           = "Dynamic"
+    load_balancer_backend_address_pools_ids = ["${azurerm_lb_backend_address_pool.infra_lb.id}"]
+  }
+}
+
+resource "azurerm_network_interface" "node_nic" {
+  name                      = "node_nic${count.index}"
+  location                  = "${azurerm_resource_group.rg.location}"
+  resource_group_name       = "${azurerm_resource_group.rg.name}"
+  network_security_group_id = "${azurerm_network_security_group.node_nsg.id}"
+  count                     = "${var.node_instance_count}"
+
+  ip_configuration {
+    name                                    = "nodeipconfig${count.index}"
+    subnet_id                               = "${azurerm_subnet.node_subnet.id}"
+    private_ip_address_allocation           = "Dynamic"
+    load_balancer_backend_address_pools_ids = ["${azurerm_lb_backend_address_pool.infra_lb.id}"]
+  }
+}
+
 # 			"name": "[concat('masterVmDeployment', copyindex())]",
 # 			"type": "Microsoft.Resources/deployments",
 # 			"apiVersion": "[variables('apiVersionLinkTemplate')]",
@@ -855,3 +813,4 @@ resource "azurerm_lb_rule" "infra_lb_https" {
 # 		}
 # 	}
 # }
+
