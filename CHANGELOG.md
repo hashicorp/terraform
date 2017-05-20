@@ -57,6 +57,7 @@ BUG FIXES:
 * core: fix bad Sprintf in backend migration message [GH-14601]
 * provider/aws: Allow updating constraints in WAF SizeConstraintSet + no constraints [GH-14661]
 * provider/aws: Allow updating tuples in WAF SQLInjectionMatchSet + no tuples [GH-14667]
+* provider/aws: Allow updating tuples in WAF XssMatchSet + no tuples [GH-14671]
 * provider/aws: Increase EIP update timeout [GH-14381]
 * provider/aws: Increase timeout for creating security group [GH-14380]
 * provider/aws: Increase timeout for (dis)associating IPv6 addr to/from subnet [GH-14401]
