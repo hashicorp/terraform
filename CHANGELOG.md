@@ -79,6 +79,7 @@ BUG FIXES:
 * provider/aws: Fall back to old tagging mechanism for AWS gov and aws China [GH-14627]
 * provider/aws: Change AWS ssm_maintenance_window Read func [GH-14665]
 * provider/aws: Increase timeout for creation of route_table [GH-14701]
+* provider/aws: Retry ElastiCache cluster deletion when it's snapshotting [GH-14700]
 * provider/cloudstack: `cloudstack_firewall` panicked when used with older (< v4.6) CloudStack versions [GH-14044]
 * provider/datadog: Allowed method on aggregator is `avg` ! `average` [GH-14414]
 * provider/digitalocean: Fix parsing of digitalocean dns records [GH-14215]
