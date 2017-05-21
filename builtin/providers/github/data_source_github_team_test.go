@@ -18,7 +18,7 @@ func TestAccGithubTeamDataSource_noMatchReturnsError(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccCheckGithubTeamDataSourceConfig(slug),
-				ExpectError: regexp.MustCompile(`Not Found`),
+				ExpectError: regexp.MustCompile(`Could not find team`),
 			},
 		},
 	})
