@@ -24,15 +24,17 @@ func TestAccVcdDNAT_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckVcdDNATDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccCheckVcdDnat_basic, os.Getenv("VCD_EDGE_GATWEWAY"), os.Getenv("VCD_EXTERNAL_IP")),
+				Config: fmt.Sprintf(testAccCheckVcdDnat_basic, os.Getenv("VCD_EDGE_GATEWAY"), os.Getenv("VCD_EXTERNAL_IP")),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVcdDNATExists("vcd_dnat.bar", &e),
 					resource.TestCheckResourceAttr(
 						"vcd_dnat.bar", "external_ip", os.Getenv("VCD_EXTERNAL_IP")),
 					resource.TestCheckResourceAttr(
-						"vcd_dnat.bar", "port", "77"),
+						"vcd_dnat.bar", "external_port", "7777"),
 					resource.TestCheckResourceAttr(
 						"vcd_dnat.bar", "internal_ip", "10.10.102.60"),
+					resource.TestCheckResourceAttr(
+						"vcd_dnat.bar", "internal_port", "77"),
 				),
 			},
 		},
@@ -63,8 +65,9 @@ func testAccCheckVcdDNATExists(n string, gateway *govcd.EdgeGateway) resource.Te
 		for _, v := range edgeGateway.EdgeGateway.Configuration.EdgeGatewayServiceConfiguration.NatService.NatRule {
 			if v.RuleType == "DNAT" &&
 				v.GatewayNatRule.OriginalIP == os.Getenv("VCD_EXTERNAL_IP") &&
-				v.GatewayNatRule.OriginalPort == "77" &&
-				v.GatewayNatRule.TranslatedIP == "10.10.102.60" {
+				v.GatewayNatRule.OriginalPort == "7777" &&
+				v.GatewayNatRule.TranslatedIP == "10.10.102.60" &&
+				v.GatewayNatRule.TranslatedPort == "77" {
 				found = true
 			}
 		}
@@ -96,8 +99,9 @@ func testAccCheckVcdDNATDestroy(s *terraform.State) error {
 		for _, v := range edgeGateway.EdgeGateway.Configuration.EdgeGatewayServiceConfiguration.NatService.NatRule {
 			if v.RuleType == "DNAT" &&
 				v.GatewayNatRule.OriginalIP == os.Getenv("VCD_EXTERNAL_IP") &&
-				v.GatewayNatRule.OriginalPort == "77" &&
-				v.GatewayNatRule.TranslatedIP == "10.10.102.60" {
+				v.GatewayNatRule.OriginalPort == "7777" &&
+				v.GatewayNatRule.TranslatedIP == "10.10.102.60"
+				v.GatewayNatRule.TranslatedPort == "77" {
 				found = true
 			}
 		}
@@ -114,7 +118,8 @@ const testAccCheckVcdDnat_basic = `
 resource "vcd_dnat" "bar" {
 	edge_gateway = "%s"
 	external_ip = "%s"
-	port = 77
+	external_port = 7777
 	internal_ip = "10.10.102.60"
+	internal_port = 77
 }
 `
