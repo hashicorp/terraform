@@ -187,8 +187,6 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 
 	d.SetId(retContainer.ID)
 
-	var endpointConfig *dc.EndpointConfig
-
 	if v, ok := d.GetOk("networks"); ok {
 		var connectionOpts dc.NetworkConnectionOptions
 		if v, ok := d.GetOk("network_alias"); ok {
