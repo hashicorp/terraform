@@ -203,7 +203,7 @@ func TestAccDockerContainer_customized(t *testing.T) {
 			return fmt.Errorf("Container has incorrect extra host string: %q", c.HostConfig.ExtraHosts[1])
 		}
 
-		if val, ok := c.NetworkSettings.Networks["test"]; !ok {
+		if _, ok := c.NetworkSettings.Networks["test"]; !ok {
 			return fmt.Errorf("Container is not connected to the right user defined network: test")
 		}
 
