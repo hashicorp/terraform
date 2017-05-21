@@ -17,7 +17,7 @@ func TestAccAWSIAMRole_importBasic(t *testing.T) {
 		CheckDestroy: testAccCheckAWSRoleDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSRoleConfig(rName),
+				Config: testAccAWSIAMRoleConfig(rName),
 			},
 
 			{
