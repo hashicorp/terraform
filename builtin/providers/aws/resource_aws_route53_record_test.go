@@ -52,6 +52,33 @@ func TestExpandRecordName(t *testing.T) {
 	}
 }
 
+func TestParseRecordId(t *testing.T) {
+	cases := []struct {
+		Input, Zone, Name, Type, Set string
+	}{
+		{"ABCDEF_test.notexample.com_A", "ABCDEF", "test.notexample.com", "A", ""},
+		{"ABCDEF_test.notexample.com_A_set1", "ABCDEF", "test.notexample.com", "A", "set1"},
+		{"ABCDEF__underscore.notexample.com_A", "ABCDEF", "_underscore.notexample.com", "A", ""},
+		{"ABCDEF__underscore.notexample.com_A_set1", "ABCDEF", "_underscore.notexample.com", "A", "set1"},
+	}
+
+	for _, tc := range cases {
+		parts := parseRecordId(tc.Input)
+		if parts[0] != tc.Zone {
+			t.Fatalf("input: %s\noutput: %s\nexpected:%s", tc.Input, parts[0], tc.Zone)
+		}
+		if parts[1] != tc.Name {
+			t.Fatalf("input: %s\noutput: %s\nexpected:%s", tc.Input, parts[1], tc.Name)
+		}
+		if parts[2] != tc.Type {
+			t.Fatalf("input: %s\noutput: %s\nexpected:%s", tc.Input, parts[2], tc.Type)
+		}
+		if parts[3] != tc.Set {
+			t.Fatalf("input: %s\noutput: %s\nexpected:%s", tc.Input, parts[3], tc.Set)
+		}
+	}
+}
+
 func TestAccAWSRoute53Record_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
@@ -431,7 +458,7 @@ func testAccCheckRoute53RecordDestroy(s *terraform.State) error {
 			continue
 		}
 
-		parts := strings.Split(rs.Primary.ID, "_")
+		parts := parseRecordId(rs.Primary.ID)
 		zone := parts[0]
 		name := parts[1]
 		rType := parts[2]
@@ -477,7 +504,7 @@ func testAccCheckRoute53RecordExists(n string) resource.TestCheckFunc {
 			return fmt.Errorf("No hosted zone ID is set")
 		}
 
-		parts := strings.Split(rs.Primary.ID, "_")
+		parts := parseRecordId(rs.Primary.ID)
 		zone := parts[0]
 		name := parts[1]
 		rType := parts[2]
@@ -1193,5 +1220,19 @@ resource "aws_route53_record" "long_txt" {
     records = [
         "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAiajKNMp\" \"/A12roF4p3MBm9QxQu6GDsBlWUWFx8EaS8TCo3Qe8Cj0kTag1JMjzCC1s6oM0a43JhO6mp6z/"
     ]
+}
+`
+
+const testAccRoute53RecordConfigUnderscoreInName = `
+resource "aws_route53_zone" "main" {
+	name = "notexample.com"
+}
+
+resource "aws_route53_record" "underscore" {
+	zone_id = "${aws_route53_zone.main.zone_id}"
+	name = "_underscore.notexample.com"
+	type = "A"
+	ttl = "30"
+	records = ["127.0.0.1"]
 }
 `
