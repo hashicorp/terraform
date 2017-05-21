@@ -188,13 +188,18 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 	d.SetId(retContainer.ID)
 
 	var endpointConfig *dc.EndpointConfig
+
 	if v, ok := d.GetOk("network_alias"); ok {
 		endpointConfig = &dc.EndpointConfig{}
 		endpointConfig.Aliases = stringSetToStringSlice(v.(*schema.Set))
+		connectionOpts := dc.NetworkConnectionOptions{Container: retContainer.ID, EndpointConfig: endpointConfig}
+		if err := client.ConnectNetwork("bridge", connectionOpts); err != nil {
+			return fmt.Errorf("Unable to connect to network '%s': %s", network, err)
+		}
 	}
 
-	var connectionOpts dc.NetworkConnectionOptions
 	if v, ok := d.GetOk("networks"); ok {
+		var connectionOpts dc.NetworkConnectionOptions
 		if endpointConfig != nil {
 			connectionOpts = dc.NetworkConnectionOptions{Container: retContainer.ID, EndpointConfig: endpointConfig}
 		} else {
@@ -204,13 +209,6 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 		for _, rawNetwork := range v.(*schema.Set).List() {
 			network := rawNetwork.(string)
 			if err := client.ConnectNetwork(network, connectionOpts); err != nil {
-				return fmt.Errorf("Unable to connect to network '%s': %s", network, err)
-			}
-		}
-	} else {
-		if endpointConfig != nil {
-			connectionOpts = dc.NetworkConnectionOptions{Container: retContainer.ID, EndpointConfig: endpointConfig}
-			if err := client.ConnectNetwork("bridge", connectionOpts); err != nil {
 				return fmt.Errorf("Unable to connect to network '%s': %s", network, err)
 			}
 		}
