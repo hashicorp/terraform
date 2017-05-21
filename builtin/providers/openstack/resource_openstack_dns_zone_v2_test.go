@@ -3,8 +3,10 @@ package openstack
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
@@ -13,6 +15,7 @@ import (
 
 func TestAccDNSV2Zone_basic(t *testing.T) {
 	var zone zones.Zone
+	var zoneName = fmt.Sprintf("ACPTTEST%s.com.", acctest.RandString(5))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheckDNSZoneV2(t) },
@@ -20,17 +23,44 @@ func TestAccDNSV2Zone_basic(t *testing.T) {
 		CheckDestroy: testAccCheckDNSV2ZoneDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccDNSV2Zone_basic,
+				Config: testAccDNSV2Zone_basic(zoneName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDNSV2ZoneExists("openstack_dns_zone_v2.zone_1", &zone),
+					resource.TestCheckResourceAttr(
+						"openstack_dns_zone_v2.zone_1", "description", "a zone"),
 				),
 			},
 			resource.TestStep{
-				Config: testAccDNSV2Zone_update,
+				Config: testAccDNSV2Zone_update(zoneName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("openstack_dns_zone_v2.zone_1", "name", "example.com"),
+					resource.TestCheckResourceAttr("openstack_dns_zone_v2.zone_1", "name", zoneName),
 					resource.TestCheckResourceAttr("openstack_dns_zone_v2.zone_1", "email", "email2@example.com"),
 					resource.TestCheckResourceAttr("openstack_dns_zone_v2.zone_1", "ttl", "6000"),
+					resource.TestCheckResourceAttr("openstack_dns_zone_v2.zone_1", "type", "PRIMARY"),
+					resource.TestCheckResourceAttr(
+						"openstack_dns_zone_v2.zone_1", "description", "an updated zone"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDNSV2Zone_readTTL(t *testing.T) {
+	var zone zones.Zone
+	var zoneName = fmt.Sprintf("ACPTTEST%s.com.", acctest.RandString(5))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheckDNSZoneV2(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDNSV2ZoneDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDNSV2Zone_readTTL(zoneName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDNSV2ZoneExists("openstack_dns_zone_v2.zone_1", &zone),
+					resource.TestCheckResourceAttr("openstack_dns_zone_v2.zone_1", "type", "PRIMARY"),
+					resource.TestMatchResourceAttr(
+						"openstack_dns_zone_v2.zone_1", "ttl", regexp.MustCompile("^[0-9]+$")),
 				),
 			},
 		},
@@ -39,6 +69,7 @@ func TestAccDNSV2Zone_basic(t *testing.T) {
 
 func TestAccDNSV2Zone_timeout(t *testing.T) {
 	var zone zones.Zone
+	var zoneName = fmt.Sprintf("ACPTTEST%s.com.", acctest.RandString(5))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheckDNSZoneV2(t) },
@@ -46,7 +77,7 @@ func TestAccDNSV2Zone_timeout(t *testing.T) {
 		CheckDestroy: testAccCheckDNSV2ZoneDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccDNSV2Zone_timeout,
+				Config: testAccDNSV2Zone_timeout(zoneName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDNSV2ZoneExists("openstack_dns_zone_v2.zone_1", &zone),
 				),
@@ -115,31 +146,51 @@ func testAccPreCheckDNSZoneV2(t *testing.T) {
 	}
 }
 
-const testAccDNSV2Zone_basic = `
-resource "openstack_dns_zone_v2" "zone_1" {
-  name = "example.com."
-	email = "email1@example.com"
-  ttl = 3000
+func testAccDNSV2Zone_basic(zoneName string) string {
+	return fmt.Sprintf(`
+		resource "openstack_dns_zone_v2" "zone_1" {
+			name = "%s"
+			email = "email1@example.com"
+			description = "a zone"
+			ttl = 3000
+			type = "PRIMARY"
+		}
+	`, zoneName)
 }
-`
 
-const testAccDNSV2Zone_update = `
-resource "openstack_dns_zone_v2" "zone_1" {
-  name = "example.com."
-	email = "email2@example.com"
-  ttl = 6000
+func testAccDNSV2Zone_update(zoneName string) string {
+	return fmt.Sprintf(`
+		resource "openstack_dns_zone_v2" "zone_1" {
+			name = "%s"
+			email = "email2@example.com"
+			description = "an updated zone"
+			ttl = 6000
+			type = "PRIMARY"
+		}
+	`, zoneName)
 }
-`
 
-const testAccDNSV2Zone_timeout = `
-resource "openstack_dns_zone_v2" "zone_1" {
-  name = "example.com."
-	email = "email@example.com"
-  ttl = 3000
-
-  timeouts {
-    create = "5m"
-    delete = "5m"
-  }
+func testAccDNSV2Zone_readTTL(zoneName string) string {
+	return fmt.Sprintf(`
+		resource "openstack_dns_zone_v2" "zone_1" {
+			name = "%s"
+			email = "email1@example.com"
+		}
+	`, zoneName)
 }
-`
+
+func testAccDNSV2Zone_timeout(zoneName string) string {
+	return fmt.Sprintf(`
+		resource "openstack_dns_zone_v2" "zone_1" {
+			name = "%s"
+			email = "email@example.com"
+			ttl = 3000
+
+			timeouts {
+				create = "5m"
+				update = "5m"
+				delete = "5m"
+			}
+		}
+	`, zoneName)
+}
