@@ -3,10 +3,12 @@ package openstack
 import (
 	"fmt"
 	"log"
-	"strconv"
 	"time"
 
+	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/dns/v2/zones"
+
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -22,6 +24,7 @@ func resourceDNSZoneV2() *schema.Resource {
 
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(10 * time.Minute),
+			Update: schema.DefaultTimeout(10 * time.Minute),
 			Delete: schema.DefaultTimeout(10 * time.Minute),
 		},
 
@@ -43,9 +46,11 @@ func resourceDNSZoneV2() *schema.Resource {
 				ForceNew: false,
 			},
 			"type": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ForceNew:     true,
+				ValidateFunc: resourceDNSZoneV2ValidType,
 			},
 			"attributes": &schema.Schema{
 				Type:     schema.TypeMap,
@@ -55,6 +60,7 @@ func resourceDNSZoneV2() *schema.Resource {
 			"ttl": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
+				Computed: true,
 				ForceNew: false,
 			},
 			"description": &schema.Schema{
@@ -114,10 +120,22 @@ func resourceDNSZoneV2Create(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack DNS zone: %s", err)
 	}
-	log.Printf("[INFO] Zone ID: %s", n.ID)
+
+	log.Printf("[DEBUG] Waiting for DNS Zone (%s) to become available", n.ID)
+	stateConf := &resource.StateChangeConf{
+		Target:     []string{"ACTIVE"},
+		Pending:    []string{"PENDING"},
+		Refresh:    waitForDNSZone(dnsClient, n.ID),
+		Timeout:    d.Timeout(schema.TimeoutCreate),
+		Delay:      5 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
 
 	d.SetId(n.ID)
 
+	log.Printf("[DEBUG] Created OpenStack DNS Zone %s: %#v", n.ID, n)
 	return resourceDNSZoneV2Read(d, meta)
 }
 
@@ -133,12 +151,12 @@ func resourceDNSZoneV2Read(d *schema.ResourceData, meta interface{}) error {
 		return CheckDeleted(d, err, "zone")
 	}
 
-	log.Printf("[DEBUG] Retrieved Zone %s: %+v", d.Id(), n)
+	log.Printf("[DEBUG] Retrieved Zone %s: %#v", d.Id(), n)
 
 	d.Set("name", n.Name)
 	d.Set("email", n.Email)
 	d.Set("description", n.Description)
-	d.Set("ttl", strconv.Itoa(n.TTL))
+	d.Set("ttl", n.TTL)
 	d.Set("type", n.Type)
 	d.Set("attributes", n.Attributes)
 	d.Set("masters", n.Masters)
@@ -168,12 +186,24 @@ func resourceDNSZoneV2Update(d *schema.ResourceData, meta interface{}) error {
 		updateOpts.Description = d.Get("description").(string)
 	}
 
-	log.Printf("[DEBUG] Updating Zone %s with options: %+v", d.Id(), updateOpts)
+	log.Printf("[DEBUG] Updating Zone %s with options: %#v", d.Id(), updateOpts)
 
 	_, err = zones.Update(dnsClient, d.Id(), updateOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error updating OpenStack DNS Zone: %s", err)
 	}
+
+	log.Printf("[DEBUG] Waiting for DNS Zone (%s) to update", d.Id())
+	stateConf := &resource.StateChangeConf{
+		Target:     []string{"ACTIVE"},
+		Pending:    []string{"PENDING"},
+		Refresh:    waitForDNSZone(dnsClient, d.Id()),
+		Timeout:    d.Timeout(schema.TimeoutUpdate),
+		Delay:      5 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
 
 	return resourceDNSZoneV2Read(d, meta)
 }
@@ -190,6 +220,52 @@ func resourceDNSZoneV2Delete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error deleting OpenStack DNS Zone: %s", err)
 	}
 
+	log.Printf("[DEBUG] Waiting for DNS Zone (%s) to become available", d.Id())
+	stateConf := &resource.StateChangeConf{
+		Target:     []string{"DELETED"},
+		Pending:    []string{"ACTIVE", "PENDING"},
+		Refresh:    waitForDNSZone(dnsClient, d.Id()),
+		Timeout:    d.Timeout(schema.TimeoutDelete),
+		Delay:      5 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
+
 	d.SetId("")
 	return nil
+}
+
+func resourceDNSZoneV2ValidType(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	validTypes := []string{
+		"PRIMARY",
+		"SECONDARY",
+	}
+
+	for _, v := range validTypes {
+		if value == v {
+			return
+		}
+	}
+
+	err := fmt.Errorf("%s must be one of %s", k, validTypes)
+	errors = append(errors, err)
+	return
+}
+
+func waitForDNSZone(dnsClient *gophercloud.ServiceClient, zoneId string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		zone, err := zones.Get(dnsClient, zoneId).Extract()
+		if err != nil {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
+				return zone, "DELETED", nil
+			}
+
+			return nil, "", err
+		}
+
+		log.Printf("[DEBUG] OpenStack DNS Zone (%s) current status: %s", zone.ID, zone.Status)
+		return zone, zone.Status, nil
+	}
 }

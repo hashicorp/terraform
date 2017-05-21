@@ -306,6 +306,10 @@ func (opts ZoneCreateOpts) ToZoneCreateMap() (map[string]interface{}, error) {
 	}
 
 	if m, ok := b[""].(map[string]interface{}); ok {
+		if opts.TTL > 0 {
+			m["ttl"] = opts.TTL
+		}
+
 		return m, nil
 	}
 
