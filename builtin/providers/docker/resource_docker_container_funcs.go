@@ -194,7 +194,7 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 		endpointConfig.Aliases = stringSetToStringSlice(v.(*schema.Set))
 		connectionOpts := dc.NetworkConnectionOptions{Container: retContainer.ID, EndpointConfig: endpointConfig}
 		if err := client.ConnectNetwork("bridge", connectionOpts); err != nil {
-			return fmt.Errorf("Unable to connect to network '%s': %s", network, err)
+			return fmt.Errorf("Unable to connect to network 'bridge': %s", err)
 		}
 	}
 
