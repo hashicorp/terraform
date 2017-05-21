@@ -32,6 +32,12 @@ func resourceAwsInstance() *schema.Resource {
 		SchemaVersion: 1,
 		MigrateState:  resourceAwsInstanceMigrateState,
 
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Update: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"ami": {
 				Type:     schema.TypeString,
@@ -524,7 +530,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		Pending:    []string{"pending"},
 		Target:     []string{"running"},
 		Refresh:    InstanceStateRefreshFunc(conn, *instance.InstanceId, "terminated"),
-		Timeout:    10 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutCreate),
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -888,7 +894,7 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 			Pending:    []string{"pending", "running", "shutting-down", "stopped", "stopping"},
 			Target:     []string{"stopped"},
 			Refresh:    InstanceStateRefreshFunc(conn, d.Id(), ""),
-			Timeout:    10 * time.Minute,
+			Timeout:    d.Timeout(schema.TimeoutUpdate),
 			Delay:      10 * time.Second,
 			MinTimeout: 3 * time.Second,
 		}
@@ -919,7 +925,7 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 			Pending:    []string{"pending", "stopped"},
 			Target:     []string{"running"},
 			Refresh:    InstanceStateRefreshFunc(conn, d.Id(), "terminated"),
-			Timeout:    10 * time.Minute,
+			Timeout:    d.Timeout(schema.TimeoutUpdate),
 			Delay:      10 * time.Second,
 			MinTimeout: 3 * time.Second,
 		}
@@ -986,7 +992,7 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsInstanceDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	if err := awsTerminateInstance(conn, d.Id()); err != nil {
+	if err := awsTerminateInstance(conn, d.Id(), d); err != nil {
 		return err
 	}
 
@@ -1573,7 +1579,7 @@ func buildAwsInstanceOpts(
 	return opts, nil
 }
 
-func awsTerminateInstance(conn *ec2.EC2, id string) error {
+func awsTerminateInstance(conn *ec2.EC2, id string, d *schema.ResourceData) error {
 	log.Printf("[INFO] Terminating instance: %s", id)
 	req := &ec2.TerminateInstancesInput{
 		InstanceIds: []*string{aws.String(id)},
@@ -1588,7 +1594,7 @@ func awsTerminateInstance(conn *ec2.EC2, id string) error {
 		Pending:    []string{"pending", "running", "shutting-down", "stopped", "stopping"},
 		Target:     []string{"terminated"},
 		Refresh:    InstanceStateRefreshFunc(conn, id, ""),
-		Timeout:    10 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
