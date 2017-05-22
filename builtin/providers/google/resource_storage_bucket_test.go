@@ -3,6 +3,7 @@ package google
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -213,7 +214,7 @@ func testAccCheckStorageBucketPutItem(bucketName string) resource.TestCheckFunc 
 
 		// This needs to use Media(io.Reader) call, otherwise it does not go to /upload API and fails
 		if res, err := config.clientStorage.Objects.Insert(bucketName, object).Media(dataReader).Do(); err == nil {
-			fmt.Printf("Created object %v at location %v\n\n", res.Name, res.SelfLink)
+			log.Printf("[INFO] Created object %v at location %v\n\n", res.Name, res.SelfLink)
 		} else {
 			return fmt.Errorf("Objects.Insert failed: %v", err)
 		}
