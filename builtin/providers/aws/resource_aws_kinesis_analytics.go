@@ -468,9 +468,9 @@ func inputDescriptionToMap(inputs []*kinesisanalytics.InputDescription) []map[st
 			"record_format_encoding": aws.StringValue(input.InputSchema.RecordEncoding),
 		}
 
-		if *input.InputSchema.RecordFormat.RecordFormatType == "JSON" {
+		if input.InputSchema.RecordFormat.MappingParameters.JSONMappingParameters != nil {
 			i["record_row_path"] = aws.StringValue(input.InputSchema.RecordFormat.MappingParameters.JSONMappingParameters.RecordRowPath)
-		} else if *input.InputSchema.RecordFormat.RecordFormatType == "CSV" {
+		} else if input.InputSchema.RecordFormat.MappingParameters.CSVMappingParameters != nil {
 			i["record_row_delimiter"] = aws.StringValue(input.InputSchema.RecordFormat.MappingParameters.CSVMappingParameters.RecordRowDelimiter)
 			i["record_column_delimiter"] = aws.StringValue(input.InputSchema.RecordFormat.MappingParameters.CSVMappingParameters.RecordColumnDelimiter)
 		}
