@@ -3006,11 +3006,11 @@
 			"revisionTime": "2016-03-30T18:21:26Z"
 		},
 		{
-			"checksumSHA1": "8d+wc4Ac7P97qfrQlthgb4tkYd8=",
+			"checksumSHA1": "VK+9fon/pJt+ZebKV+iCx3ILZFI=",
 			"comment": "v0.6.2",
 			"path": "github.com/vmware/govmomi",
-			"revision": "733acc9e4cb9ce9e867734f298fdfc89ab05f771",
-			"revisionTime": "2017-01-08T05:01:35Z"
+			"revision": "35caa01bfa4cbff15d06382021e2028bdf0a77ad",
+			"revisionTime": "2017-05-09T22:59:20Z"
 		},
 		{
 			"checksumSHA1": "xyxo9nWPro79ae/TGNZOlWKSPUk=",
@@ -3049,10 +3049,11 @@
 			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
 		},
 		{
-			"checksumSHA1": "orm8PDSa1meFBKxuM6ovnKiu6IY=",
+			"checksumSHA1": "zLg5y/6xx/yr8swoqdyxISyQfoU=",
 			"comment": "v0.6.2",
 			"path": "github.com/vmware/govmomi/vim25",
-			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
+			"revision": "35caa01bfa4cbff15d06382021e2028bdf0a77ad",
+			"revisionTime": "2017-05-09T22:59:20Z"
 		},
 		{
 			"checksumSHA1": "xLvppq0NUD6Hv2GIx1gh75xUzyM=",
@@ -3079,10 +3080,11 @@
 			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
 		},
 		{
-			"checksumSHA1": "cNKLcag/tzBN8RWCb6YA3sOPheM=",
+			"checksumSHA1": "AJtbBqLTzFe75nAfBVZctd6EnR0=",
 			"comment": "v0.6.2",
 			"path": "github.com/vmware/govmomi/vim25/soap",
-			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
+			"revision": "35caa01bfa4cbff15d06382021e2028bdf0a77ad",
+			"revisionTime": "2017-05-09T22:59:20Z"
 		},
 		{
 			"checksumSHA1": "9EB6HeTmYV08T5XDY/0rbEgJmPY=",
