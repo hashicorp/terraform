@@ -38,6 +38,7 @@ IMPROVEMENTS:
 * provider/datadog: Add last aggregator to datadog_timeboard resource [GH-14391]
 * provider/datadog: Added new evaluation_delay parameter [GH-14433]
 * provider/docker: Allow Windows Docker containers to map volumes [GH-13584]
+* provider/docker: Add `network_alias` to `docker_container` resource [GH-14710]
 * provider/fastly: Mark the `s3_access_key`, `s3_secret_key`, & `secret_key` fields as sensitive [GH-14634]
 * provider/google: Add a `url` attribute to `google_storage_bucket` [GH-14393]
 * provider/google: Make google resource storage bucket importable [GH-14455]
