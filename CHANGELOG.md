@@ -30,6 +30,7 @@ IMPROVEMENTS:
 * provider/aws: Support filtering in ASG data source [GH-14501]
 * provider/aws: Add ability to 'terraform import' aws_kms_alias resources [GH-14679]
 * provider/aws: Allow lightsail resources to work in other regions [GH-14685]
+* provider/aws: Configurable timeouts for EC2 instance + spot instance [GH-14711]
 * provider/azurerm: Virtual Machine Scale Sets with managed disk support [GH-13717]
 * provider/azurerm: Virtual Machine Scale Sets with single placement option support [GH-14510]
 * provider/azurerm: Adding support for VMSS Data Disks using Managed Disk feature [GH-14608]
