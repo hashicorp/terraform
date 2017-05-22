@@ -655,12 +655,23 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		// Set primary network interface details
-		d.Set("subnet_id", primaryNetworkInterface.SubnetId)
-		d.Set("network_interface_id", primaryNetworkInterface.NetworkInterfaceId) // TODO: Deprecate me v0.10.0
-		d.Set("primary_network_interface_id", primaryNetworkInterface.NetworkInterfaceId)
+		// If an instance is shutting down, network interfaces are detached, and attributes may be nil,
+		// need to protect against nil pointer dereferences
+		if primaryNetworkInterface.SubnetId != nil {
+			d.Set("subnet_id", primaryNetworkInterface.SubnetId)
+		}
+		if primaryNetworkInterface.NetworkInterfaceId != nil {
+			d.Set("network_interface_id", primaryNetworkInterface.NetworkInterfaceId) // TODO: Deprecate me v0.10.0
+			d.Set("primary_network_interface_id", primaryNetworkInterface.NetworkInterfaceId)
+		}
+		if primaryNetworkInterface.Ipv6Addresses != nil {
+			d.Set("ipv6_address_count", len(primaryNetworkInterface.Ipv6Addresses))
+		}
+		if primaryNetworkInterface.SourceDestCheck != nil {
+			d.Set("source_dest_check", primaryNetworkInterface.SourceDestCheck)
+		}
+
 		d.Set("associate_public_ip_address", primaryNetworkInterface.Association != nil)
-		d.Set("ipv6_address_count", len(primaryNetworkInterface.Ipv6Addresses))
-		d.Set("source_dest_check", primaryNetworkInterface.SourceDestCheck)
 
 		for _, address := range primaryNetworkInterface.Ipv6Addresses {
 			ipv6Addresses = append(ipv6Addresses, *address.Ipv6Address)
