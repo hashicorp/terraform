@@ -18,6 +18,7 @@ FEATURES:
 * **New Resource:** `azurerm_express_route_circuit` [GH-14265]
 * **New Resource:** `kubernetes_service` [GH-14554]
 * **New Data Source:** `aws_db_snapshot` [GH-10291]
+* **New Data Source:** `aws_kms_ciphertext` [GH-14691]
 * **New Data Source:** `github_user` [GH-14570]
 * **New Data Source:** `github_team` [GH-14614]
 * **New Interpolation Function:** `pow` [GH-14598]
