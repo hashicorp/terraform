@@ -270,6 +270,11 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 							Optional: true,
 							ForceNew: true,
 						},
+						"failover_target": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: true,
+						},
 						"master_heartbeat_period": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
@@ -525,6 +530,10 @@ func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{})
 			replicaConfiguration := &sqladmin.ReplicaConfiguration{}
 			mySqlReplicaConfiguration := &sqladmin.MySqlReplicaConfiguration{}
 			_replicaConfiguration := _replicaConfigurationList[0].(map[string]interface{})
+
+			if vp, okp := _replicaConfiguration["failover_target"]; okp {
+				replicaConfiguration.FailoverTarget = vp.(bool)
+			}
 
 			if vp, okp := _replicaConfiguration["ca_certificate"]; okp {
 				mySqlReplicaConfiguration.CaCertificate = vp.(string)
@@ -834,6 +843,10 @@ func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) e
 		if len(_replicaConfigurationList) == 1 && _replicaConfigurationList[0] != nil {
 			mySqlReplicaConfiguration := instance.ReplicaConfiguration.MysqlReplicaConfiguration
 			_replicaConfiguration := _replicaConfigurationList[0].(map[string]interface{})
+
+			if vp, okp := _replicaConfiguration["failover_target"]; okp && vp != nil {
+				_replicaConfiguration["failover_target"] = instance.ReplicaConfiguration.FailoverTarget
+			}
 
 			if vp, okp := _replicaConfiguration["ca_certificate"]; okp && vp != nil {
 				_replicaConfiguration["ca_certificate"] = mySqlReplicaConfiguration.CaCertificate
