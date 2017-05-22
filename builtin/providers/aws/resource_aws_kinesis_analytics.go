@@ -29,11 +29,8 @@ func resourceAwsKinesisAnalytics() *schema.Resource {
 
 		/*
 			todo:
-			application_desc, application_code, inputs, outputs
-			all need to be trigger an Update instead of ForceNew
+			some can trigger an Update instead of ForceNew
 			be sure to add docs about the json record type making some optional fields into required
-			pure method func discoverService(string arn) (string, error)
-				is the arn pointing to a kinesis stream or kinesis firehose
 		*/
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -256,6 +253,8 @@ func createInputList(inputs []interface{}) ([]*kinesisanalytics.Input, error) {
 				Mapping: aws.String(col["mapping"].(string)),
 			})
 		}
+
+		//todo: support firehose as inputs
 
 		i := &kinesisanalytics.Input{
 
