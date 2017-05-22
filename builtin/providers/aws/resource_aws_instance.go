@@ -660,7 +660,7 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("primary_network_interface_id", primaryNetworkInterface.NetworkInterfaceId)
 		d.Set("associate_public_ip_address", primaryNetworkInterface.Association != nil)
 		d.Set("ipv6_address_count", len(primaryNetworkInterface.Ipv6Addresses))
-		d.Set("source_dest_check", *primaryNetworkInterface.SourceDestCheck)
+		d.Set("source_dest_check", primaryNetworkInterface.SourceDestCheck)
 
 		for _, address := range primaryNetworkInterface.Ipv6Addresses {
 			ipv6Addresses = append(ipv6Addresses, *address.Ipv6Address)
