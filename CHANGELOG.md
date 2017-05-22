@@ -85,6 +85,7 @@ BUG FIXES:
 * provider/aws: Retry ElastiCache cluster deletion when it's snapshotting [GH-14700]
 * provider/aws: Retry ECS service update on InvalidParameterException [GH-14708]
 * provider/aws: Retry IAM Role deletion on DeleteConflict [GH-14707]
+* provider/aws: Do not dereference source_Dest_check in aws_instance [GH-14723]
 * provider/cloudstack: `cloudstack_firewall` panicked when used with older (< v4.6) CloudStack versions [GH-14044]
 * provider/datadog: Allowed method on aggregator is `avg` ! `average` [GH-14414]
 * provider/digitalocean: Fix parsing of digitalocean dns records [GH-14215]
