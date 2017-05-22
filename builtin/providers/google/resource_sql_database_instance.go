@@ -243,6 +243,7 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 			"replica_configuration": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ca_certificate": &schema.Schema{
@@ -522,9 +523,6 @@ func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{})
 
 	if v, ok := d.GetOk("replica_configuration"); ok {
 		_replicaConfigurationList := v.([]interface{})
-		if len(_replicaConfigurationList) > 1 {
-			return fmt.Errorf("Only one replica_configuration block may be defined")
-		}
 
 		if len(_replicaConfigurationList) == 1 && _replicaConfigurationList[0] != nil {
 			replicaConfiguration := &sqladmin.ReplicaConfiguration{}
@@ -836,57 +834,16 @@ func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) e
 
 	if v, ok := d.GetOk("replica_configuration"); ok && v != nil {
 		_replicaConfigurationList := v.([]interface{})
-		if len(_replicaConfigurationList) > 1 {
-			return fmt.Errorf("Only one replica_configuration block may be defined")
-		}
-
 		if len(_replicaConfigurationList) == 1 && _replicaConfigurationList[0] != nil {
-			mySqlReplicaConfiguration := instance.ReplicaConfiguration.MysqlReplicaConfiguration
 			_replicaConfiguration := _replicaConfigurationList[0].(map[string]interface{})
 
 			if vp, okp := _replicaConfiguration["failover_target"]; okp && vp != nil {
 				_replicaConfiguration["failover_target"] = instance.ReplicaConfiguration.FailoverTarget
 			}
 
-			if vp, okp := _replicaConfiguration["ca_certificate"]; okp && vp != nil {
-				_replicaConfiguration["ca_certificate"] = mySqlReplicaConfiguration.CaCertificate
-			}
-
-			if vp, okp := _replicaConfiguration["client_certificate"]; okp && vp != nil {
-				_replicaConfiguration["client_certificate"] = mySqlReplicaConfiguration.ClientCertificate
-			}
-
-			if vp, okp := _replicaConfiguration["client_key"]; okp && vp != nil {
-				_replicaConfiguration["client_key"] = mySqlReplicaConfiguration.ClientKey
-			}
-
-			if vp, okp := _replicaConfiguration["connect_retry_interval"]; okp && vp != nil {
-				_replicaConfiguration["connect_retry_interval"] = mySqlReplicaConfiguration.ConnectRetryInterval
-			}
-
-			if vp, okp := _replicaConfiguration["dump_file_path"]; okp && vp != nil {
-				_replicaConfiguration["dump_file_path"] = mySqlReplicaConfiguration.DumpFilePath
-			}
-
-			if vp, okp := _replicaConfiguration["master_heartbeat_period"]; okp && vp != nil {
-				_replicaConfiguration["master_heartbeat_period"] = mySqlReplicaConfiguration.MasterHeartbeatPeriod
-			}
-
-			if vp, okp := _replicaConfiguration["password"]; okp && vp != nil {
-				_replicaConfiguration["password"] = mySqlReplicaConfiguration.Password
-			}
-
-			if vp, okp := _replicaConfiguration["ssl_cipher"]; okp && vp != nil {
-				_replicaConfiguration["ssl_cipher"] = mySqlReplicaConfiguration.SslCipher
-			}
-
-			if vp, okp := _replicaConfiguration["username"]; okp && vp != nil {
-				_replicaConfiguration["username"] = mySqlReplicaConfiguration.Username
-			}
-
-			if vp, okp := _replicaConfiguration["verify_server_certificate"]; okp && vp != nil {
-				_replicaConfiguration["verify_server_certificate"] = mySqlReplicaConfiguration.VerifyServerCertificate
-			}
+			// Don't attempt to assign anything from instance.ReplicaConfiguration.MysqlReplicaConfiguration,
+			// since those fields are set on create and then not stored. See description at
+			// https://cloud.google.com/sql/docs/mysql/admin-api/v1beta4/instances
 
 			_replicaConfigurationList[0] = _replicaConfiguration
 			d.Set("replica_configuration", _replicaConfigurationList)
