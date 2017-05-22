@@ -203,6 +203,10 @@ func TestAccDockerContainer_customized(t *testing.T) {
 			return fmt.Errorf("Container has incorrect extra host string: %q", c.HostConfig.ExtraHosts[1])
 		}
 
+		if _, ok := c.NetworkSettings.Networks["test"]; !ok {
+			return fmt.Errorf("Container is not connected to the right user defined network: test")
+		}
+
 		return nil
 	}
 
@@ -370,6 +374,9 @@ resource "docker_container" "foo" {
 	}
 	network_mode = "bridge"
 
+	networks = ["${docker_network.test_network.name}"]
+	network_alias = ["tftest"]
+
 	host {
 		host = "testhost"
 		ip = "10.0.1.0"
@@ -379,6 +386,10 @@ resource "docker_container" "foo" {
 		host = "testhost2"
 		ip = "10.0.2.0"
 	}
+}
+
+resource "docker_network" "test_network" {
+  name = "test"
 }
 `
 
