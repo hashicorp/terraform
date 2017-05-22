@@ -123,13 +123,5 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 }
 
 func tfAppName() string {
-	const VersionPrerelease = terraform.VersionPrerelease
-	var versionString bytes.Buffer
-
-	fmt.Fprintf(&versionString, "Terraform v%s", terraform.Version)
-	if VersionPrerelease != "" {
-		fmt.Fprintf(&versionString, "-%s", VersionPrerelease)
-	}
-
-	return versionString.String()
+	return fmt.Fprintf(&versionString, "Terraform v%s", terraform.VersionString())
 }
