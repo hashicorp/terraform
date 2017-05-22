@@ -8,13 +8,13 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 FEATURES:
 
-* **New Provider:** `OVH` [GH-12669]
+* **New Provider:** `ovh` [GH-12669]
 * **New Resource:** `aws_default_subnet` [GH-14476]
 * **New Resource:** `aws_default_vpc` [GH-11710]
 * **New Resource:** `aws_default_vpc_dhcp_options` [GH-14475]
 * **New Resource:** `aws_devicefarm_project` [GH-14288]
-* **New Resource:** `aws_wafregion_ipset` [GH-13705]
-* **New Resource:** `aws_wafregion_byte_match_set` [GH-13705]
+* **New Resource:** `aws_wafregional_ipset` [GH-13705]
+* **New Resource:** `aws_wafregional_byte_match_set` [GH-13705]
 * **New Resource:** `azurerm_express_route_circuit` [GH-14265]
 * **New Resource:** `kubernetes_service` [GH-14554]
 * **New Data Source:** `aws_db_snapshot` [GH-10291]
