@@ -334,6 +334,12 @@
 			"versionExact": "v7.3.1"
 		},
 		{
+			"checksumSHA1": "xLbmoVpkBdpw0gQ+UiOPfYKqfdU=",
+			"path": "github.com/Azure/go-ntlmssp",
+			"revision": "29affced641074a59483ed003b5ef73a8bd3593c",
+			"revisionTime": "2017-02-06T19:08:56Z"
+		},
+		{
 			"checksumSHA1": "ICScouhAqYHoJEpJlJMYg7EzgyY=",
 			"comment": "0.0.2-27-gedd0930",
 			"path": "github.com/CenturyLinkCloud/clc-sdk",
@@ -2513,10 +2519,28 @@
 			"revisionTime": "2016-12-29T20:22:12Z"
 		},
 		{
+			"checksumSHA1": "t7hEeujQesCSzjZIPcE80XgQ9M0=",
+			"path": "github.com/masterzen/azure-sdk-for-go/core/http",
+			"revision": "ee4f0065d00cd12b542f18f5bc45799e88163b12",
+			"revisionTime": "2016-10-14T13:56:28Z"
+		},
+		{
+			"checksumSHA1": "xJVMikTtYbfI2KqKeUXaO4292JU=",
+			"path": "github.com/masterzen/azure-sdk-for-go/core/tls",
+			"revision": "ee4f0065d00cd12b542f18f5bc45799e88163b12",
+			"revisionTime": "2016-10-14T13:56:28Z"
+		},
+		{
 			"checksumSHA1": "yg57Q4J8Ob0LoYvqDxsWZ6AHffE=",
 			"path": "github.com/masterzen/simplexml/dom",
 			"revision": "4572e39b1ab9fe03ee513ce6fc7e289e98482190",
 			"revisionTime": "2016-06-08T18:30:07Z"
+		},
+		{
+			"checksumSHA1": "kWWDtHJJp7Hiq0zj0xecRGqMoeU=",
+			"path": "github.com/masterzen/winrm",
+			"revision": "acf371f6aff113fc0104a61cd72db45a7c27d310",
+			"revisionTime": "2017-03-29T23:04:57Z"
 		},
 		{
 			"checksumSHA1": "S9h7TFYtCXLDiyCj6jSl2ZY7whs=",
