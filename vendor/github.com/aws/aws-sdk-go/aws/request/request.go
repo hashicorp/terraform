@@ -368,7 +368,7 @@ func (r *Request) ResetBody() {
 	}
 
 	if l == 0 {
-		r.HTTPRequest.Body = noBodyReader
+		r.HTTPRequest.Body = NoBody
 	} else if l > 0 {
 		r.HTTPRequest.Body = r.safeBody
 	} else {
@@ -382,7 +382,7 @@ func (r *Request) ResetBody() {
 		// a io.Reader that was not also an io.Seeker.
 		switch r.Operation.HTTPMethod {
 		case "GET", "HEAD", "DELETE":
-			r.HTTPRequest.Body = noBodyReader
+			r.HTTPRequest.Body = NoBody
 		default:
 			r.HTTPRequest.Body = r.safeBody
 		}

@@ -437,6 +437,34 @@ func TestInterpolater_resourceVariableMultiPartialUnknown(t *testing.T) {
 	})
 }
 
+func TestInterpolater_resourceVariableMultiNoState(t *testing.T) {
+	// When evaluating a "splat" variable in a module that doesn't have
+	// any state yet, we should still be able to resolve to an empty
+	// list.
+	// See https://github.com/hashicorp/terraform/issues/14438 for an
+	// example of what we're testing for here.
+	lock := new(sync.RWMutex)
+	state := &State{
+		Modules: []*ModuleState{},
+	}
+
+	i := &Interpolater{
+		Module:    testModule(t, "interpolate-resource-variable-multi"),
+		State:     state,
+		StateLock: lock,
+		Operation: walkApply,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	testInterpolate(t, i, scope, "aws_instance.web.*.foo", ast.Variable{
+		Type:  ast.TypeList,
+		Value: []ast.Variable{},
+	})
+}
+
 // When a splat reference is made to an attribute that is a computed list,
 // the result should be unknown.
 func TestInterpolater_resourceVariableMultiList(t *testing.T) {

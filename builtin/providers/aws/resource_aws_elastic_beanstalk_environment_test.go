@@ -805,6 +805,9 @@ func testAccBeanstalkEnv_VPC(name string, rInt int) string {
 	return fmt.Sprintf(`
 resource "aws_vpc" "tf_b_test" {
   cidr_block = "10.0.0.0/16"
+	tags {
+		Name = "testAccBeanstalkEnv_VPC"
+	}
 }
 
 resource "aws_internet_gateway" "tf_b_test" {

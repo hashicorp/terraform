@@ -141,6 +141,9 @@ func testAccCheckAWSDefaultSecurityGroupAttributes(group *ec2.SecurityGroup) res
 const testAccAWSDefaultSecurityGroupConfig = `
 resource "aws_vpc" "foo" {
   cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccAWSDefaultSecurityGroupConfig"
+	}
 }
 
 resource "aws_default_security_group" "web" {

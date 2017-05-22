@@ -153,6 +153,7 @@ get-deps-tests:
 	go get github.com/stretchr/testify
 	go get github.com/smartystreets/goconvey
 	go get golang.org/x/net/html
+	go get golang.org/x/net/http2
 
 get-deps-verify:
 	@echo "go get SDK verification utilities"

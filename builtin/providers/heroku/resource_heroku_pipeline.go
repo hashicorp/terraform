@@ -16,6 +16,10 @@ func resourceHerokuPipeline() *schema.Resource {
 		Read:   resourceHerokuPipelineRead,
 		Delete: resourceHerokuPipelineDelete,
 
+		Importer: &schema.ResourceImporter{
+			State: resourceHerokuPipelineImport,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
@@ -23,6 +27,19 @@ func resourceHerokuPipeline() *schema.Resource {
 			},
 		},
 	}
+}
+
+func resourceHerokuPipelineImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	client := meta.(*heroku.Service)
+
+	p, err := client.PipelineInfo(context.TODO(), d.Id())
+	if err != nil {
+		return nil, err
+	}
+
+	d.Set("name", p.Name)
+
+	return []*schema.ResourceData{d}, nil
 }
 
 func resourceHerokuPipelineCreate(d *schema.ResourceData, meta interface{}) error {

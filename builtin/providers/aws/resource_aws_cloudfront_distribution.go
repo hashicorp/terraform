@@ -217,7 +217,7 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 								Schema: map[string]*schema.Schema{
 									"cookies": {
 										Type:     schema.TypeSet,
-										Optional: true,
+										Required: true,
 										Set:      cookiePreferenceHash,
 										MaxItems: 1,
 										Elem: &schema.Resource{
