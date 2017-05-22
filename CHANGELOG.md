@@ -63,6 +63,7 @@ BUG FIXES:
 * provider/aws: Increase timeout for creating security group [GH-14380]
 * provider/aws: Increase timeout for (dis)associating IPv6 addr to/from subnet [GH-14401]
 * provider/aws: Increase timeout for retrying creation of IAM server cert [GH-14609]
+* provider/aws: Increase timeout for deleting IGW [GH-14705]
 * provider/aws: Using the new time schema helper for RDS Instance lifecycle mgmt [GH-14369]
 * provider/aws: Using the timeout schema helper to make alb timeout cofigurable [GH-14375]
 * provider/aws: Refresh from state when CodePipeline Not Found [GH-14431]
