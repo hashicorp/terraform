@@ -89,7 +89,7 @@ func resourceStorageBucket() *schema.Resource {
 					},
 				},
 			},
-			
+
 			"cors": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
