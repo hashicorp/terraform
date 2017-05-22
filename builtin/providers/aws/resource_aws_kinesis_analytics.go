@@ -78,7 +78,7 @@ func resourceAwsKinesisAnalytics() *schema.Resource {
 							Required: true,
 						},
 
-						"record_format_encoding": { //RecordFormat.RecordFormatType ( JSON || CSV)
+						"record_format_encoding": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -244,9 +244,12 @@ func createInputList(inputs []interface{}) ([]*kinesisanalytics.Input, error) {
 
 		var columns []*kinesisanalytics.RecordColumn
 
-		cols := input["columns"].([]map[string]interface{})
+		cols := input["columns"].(*schema.Set).List()
 
-		for _, col := range cols {
+		for _, c := range cols {
+
+			col := c.(map[string]interface{})
+
 			columns = append(columns, &kinesisanalytics.RecordColumn{
 				Name:    aws.String(col["name"].(string)),
 				SqlType: aws.String(col["sql_type"].(string)),
@@ -254,7 +257,7 @@ func createInputList(inputs []interface{}) ([]*kinesisanalytics.Input, error) {
 			})
 		}
 
-		inputStreams = append(inputStreams, &kinesisanalytics.Input{
+		i := &kinesisanalytics.Input{
 
 			NamePrefix: aws.String(input["name"].(string)),
 
@@ -263,16 +266,6 @@ func createInputList(inputs []interface{}) ([]*kinesisanalytics.Input, error) {
 				RecordEncoding: aws.String(input["record_format_encoding"].(string)),
 
 				RecordFormat: &kinesisanalytics.RecordFormat{
-					MappingParameters: &kinesisanalytics.MappingParameters{
-						CSVMappingParameters: &kinesisanalytics.CSVMappingParameters{
-							RecordColumnDelimiter: aws.String(input["record_column_delimiter"].(string)),
-							RecordRowDelimiter:    aws.String(input["record_row_delimiter"].(string)),
-						},
-
-						JSONMappingParameters: &kinesisanalytics.JSONMappingParameters{
-							RecordRowPath: aws.String(input["record_row_path"].(string)),
-						},
-					},
 					RecordFormatType: aws.String(input["record_format_type"].(string)),
 				},
 
@@ -283,7 +276,26 @@ func createInputList(inputs []interface{}) ([]*kinesisanalytics.Input, error) {
 				ResourceARN: aws.String(input["arn"].(string)),
 				RoleARN:     aws.String(input["role_arn"].(string)),
 			},
-		})
+		}
+
+		if *i.InputSchema.RecordFormat.RecordFormatType == "JSON" {
+			i.InputSchema.RecordFormat.MappingParameters = &kinesisanalytics.MappingParameters{
+				JSONMappingParameters: &kinesisanalytics.JSONMappingParameters{
+					RecordRowPath: aws.String(input["record_row_path"].(string)),
+				},
+			}
+		} else if *i.InputSchema.RecordFormat.RecordFormatType == "CSV" {
+			i.InputSchema.RecordFormat.MappingParameters = &kinesisanalytics.MappingParameters{
+				CSVMappingParameters: &kinesisanalytics.CSVMappingParameters{
+					RecordColumnDelimiter: aws.String(input["record_column_delimiter"].(string)),
+					RecordRowDelimiter:    aws.String(input["record_row_delimiter"].(string)),
+				},
+			}
+		} else {
+			return nil, fmt.Errorf("format must be either 'JSON or CSV'. you gave an unsupported record format type: %s", i.InputSchema.RecordFormat.RecordFormatType)
+		}
+
+		inputStreams = append(inputStreams, i)
 	}
 
 	return inputStreams, nil
@@ -437,19 +449,62 @@ func readKinesisAnalyticsState(conn *kinesisanalytics.KinesisAnalytics, name str
 
 	state.status = aws.StringValue(res.ApplicationDetail.ApplicationStatus)
 
-	for _, input := range res.ApplicationDetail.InputDescriptions {
+	state.inputs = inputDescriptionToMap(res.ApplicationDetail.InputDescriptions)
+
+	state.outputs = outputDescriptionToMap(res.ApplicationDetail.OutputDescriptions)
+
+	return state, nil
+}
+
+func inputDescriptionToMap(inputs []*kinesisanalytics.InputDescription) []map[string]interface{} {
+
+	var inputMap []map[string]interface{}
+
+	for _, input := range inputs {
 
 		i := map[string]interface{}{
-			"name": aws.StringValue(input.NamePrefix),
+			"name":                   aws.StringValue(input.NamePrefix),
+			"record_format_type":     aws.StringValue(input.InputSchema.RecordFormat.RecordFormatType),
+			"record_format_encoding": aws.StringValue(input.InputSchema.RecordEncoding),
 		}
 
-		//TODO: finish up the rest of these properties
+		if *input.InputSchema.RecordFormat.RecordFormatType == "JSON" {
+			i["record_row_path"] = aws.StringValue(input.InputSchema.RecordFormat.MappingParameters.JSONMappingParameters.RecordRowPath)
+		} else if *input.InputSchema.RecordFormat.RecordFormatType == "CSV" {
+			i["record_row_delimiter"] = aws.StringValue(input.InputSchema.RecordFormat.MappingParameters.CSVMappingParameters.RecordRowDelimiter)
+			i["record_column_delimiter"] = aws.StringValue(input.InputSchema.RecordFormat.MappingParameters.CSVMappingParameters.RecordColumnDelimiter)
+		}
 
-		state.inputs = append(state.inputs, i)
+		if input.KinesisFirehoseInputDescription != nil {
+			i["arn"] = aws.StringValue(input.KinesisFirehoseInputDescription.ResourceARN)
+			i["role_arn"] = aws.StringValue(input.KinesisFirehoseInputDescription.RoleARN)
+		} else if input.KinesisStreamsInputDescription != nil {
+			i["arn"] = aws.StringValue(input.KinesisStreamsInputDescription.ResourceARN)
+			i["role_arn"] = aws.StringValue(input.KinesisStreamsInputDescription.RoleARN)
+		}
+
+		i["columns"] = make([]map[string]interface{}, len(input.InputSchema.RecordColumns))
+
+		for c, column := range input.InputSchema.RecordColumns {
+
+			i["columns"].([]map[string]interface{})[c] = map[string]interface{}{
+				"name":     aws.StringValue(column.Name),
+				"sql_type": aws.StringValue(column.SqlType),
+				"mapping":  aws.StringValue(column.Mapping),
+			}
+		}
+
+		inputMap = append(inputMap, i)
 	}
 
-	for _, output := range res.ApplicationDetail.OutputDescriptions {
+	return inputMap
+}
 
+func outputDescriptionToMap(outputs []*kinesisanalytics.OutputDescription) []map[string]interface{} {
+
+	var outputMap []map[string]interface{}
+
+	for _, output := range outputs {
 		o := map[string]interface{}{
 			"name":               aws.StringValue(output.Name),
 			"record_format_type": aws.StringValue(output.DestinationSchema.RecordFormatType),
@@ -463,10 +518,10 @@ func readKinesisAnalyticsState(conn *kinesisanalytics.KinesisAnalytics, name str
 			o["role_arn"] = aws.StringValue(output.KinesisStreamsOutputDescription.RoleARN)
 		}
 
-		state.outputs = append(state.outputs, o)
+		outputMap = append(outputMap, o)
 	}
 
-	return state, nil
+	return outputMap
 }
 
 func applicationStateRefreshFunc(conn *kinesisanalytics.KinesisAnalytics, name string) resource.StateRefreshFunc {

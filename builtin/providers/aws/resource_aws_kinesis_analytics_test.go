@@ -33,7 +33,7 @@ func TestAccAWSKinesisAnalytics_basic(t *testing.T) {
 	})
 }
 
-func TestAccAWSKinesisAnalytics_output_stream_connections(t *testing.T) {
+func TestAccAWSKinesisAnalytics_stream_connections(t *testing.T) {
 	var desc kinesisanalytics.ApplicationDetail
 
 	rInt := acctest.RandInt()
@@ -44,10 +44,11 @@ func TestAccAWSKinesisAnalytics_output_stream_connections(t *testing.T) {
 		CheckDestroy: destroyKinesisAnalytics,
 		Steps: []resource.TestStep{
 			{
-				Config: kinesisAnalyticsCreateWithOutputStreamsConfig(rInt),
+				Config: kinesisAnalyticsCreateWithStreamsConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					doesKinesisAnalyticsInstanceExist("aws_kinesis_analytics.test_application", &desc),
-					areRootAttributesCorrect(&desc),
+					areInputStreamAttributesCorrect(&desc),
+					areOutputStreamAttributesCorrect(&desc),
 				),
 			},
 		},
@@ -111,6 +112,81 @@ func areRootAttributesCorrect(desc *kinesisanalytics.ApplicationDetail) resource
 	}
 }
 
+func areInputStreamAttributesCorrect(desc *kinesisanalytics.ApplicationDetail) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		for _, rs := range s.RootModule().Resources {
+			if rs.Type != "aws_kinesis_analytics" {
+				continue
+			}
+
+			streamA := *desc.InputDescriptions[0]
+
+			if *streamA.NamePrefix != "SOURCE_SQL_STREAM_A" {
+				return fmt.Errorf("\n\t expected: %s\n\t got: %s\n",
+					"SOURCE_SQL_STREAM_A",
+					*streamA.NamePrefix)
+			}
+			if *streamA.InputSchema.RecordFormat.RecordFormatType != "JSON" {
+				return fmt.Errorf("\n\t expected: %s\n\t got: %s\n",
+					"JSON",
+					*streamA.InputSchema.RecordFormat.RecordFormatType)
+			}
+			if *streamA.InputSchema.RecordEncoding != "UTF-8" {
+				return fmt.Errorf("\n\t expected: %s\n\t got: %s\n",
+					"UTF-8",
+					*streamA.InputSchema.RecordEncoding)
+			}
+			if *streamA.InputSchema.RecordFormat.MappingParameters.JSONMappingParameters.RecordRowPath != "$" {
+				return fmt.Errorf("\n\t expected: %s\n\t got: %s\n",
+					"$",
+					*streamA.InputSchema.RecordFormat.MappingParameters.JSONMappingParameters.RecordRowPath)
+			}
+		}
+		return nil
+	}
+}
+
+func areOutputStreamAttributesCorrect(desc *kinesisanalytics.ApplicationDetail) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		for _, rs := range s.RootModule().Resources {
+			if rs.Type != "aws_kinesis_analytics" {
+				continue
+			}
+
+			/*
+				i'd prefer this to loop over the
+				*desc.OutputDescriptions with rs.Primary.Attributes["outputs"]
+				and ensure that they match up,
+				however, since this is just a test,
+				ill let go of this in favor or readability and dev speed
+
+				additionally, problem(s) to be solved
+				1. i haven't figured out know how to extract complex structures from rs.Primary.Attributes
+				fmt.Printf("what are you?:  %T\n\n", rs.Primary.Attributes["outputs"])
+					out: string
+				fmt.Printf("what is value?:  %+v\n\n", rs.Primary.Attributes["outputs"])
+					out:
+			*/
+
+			streamA := *desc.OutputDescriptions[0]
+
+			if *streamA.Name != "DESTINATION_SQL_STREAM_A" {
+				return fmt.Errorf("\n\t expected: %s\n\t got: %s\n",
+					"DESTINATION_SQL_STREAM_A",
+					*streamA.Name)
+			}
+			if *streamA.DestinationSchema.RecordFormatType != "JSON" {
+				return fmt.Errorf("\n\t expected: %s\n\t got: %s\n",
+					"JSON",
+					*streamA.DestinationSchema.RecordFormatType)
+			}
+		}
+		return nil
+	}
+}
+
 func destroyKinesisAnalytics(s *terraform.State) error {
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_kinesis_analytics" {
@@ -135,6 +211,7 @@ func destroyKinesisAnalytics(s *terraform.State) error {
 }
 
 func roleConfig(rInt int) string {
+	// remember that this role will not work unless the policy is set up
 	return fmt.Sprintf(`
 resource "aws_iam_role" "ka_test_role" {
 	name = "terraform-kinesis-analytics-test-role-%d"
@@ -157,15 +234,15 @@ EOF
 	`, rInt)
 }
 
-func kinesisAnalyticsCreateWithOutputStreamsConfig(rInt int) string {
+func kinesisAnalyticsCreateWithStreamsConfig(rInt int) string {
 	return roleConfig(rInt) + fmt.Sprintf(`
-resource "aws_kinesis_stream" "test_output_stream_a" {
-	name             = "terraform-kinesis-analytics-output-a-test-%d"
+resource "aws_kinesis_stream" "test_input_stream_a" {
+	name             = "terraform-kinesis-analytics-input-a-test-%d"
 	shard_count      = 1
 }
 
-resource "aws_kinesis_stream" "test_output_stream_b" {
-	name             = "terraform-kinesis-analytics-output-b-test-%d"
+resource "aws_kinesis_stream" "test_output_stream_a" {
+	name             = "terraform-kinesis-analytics-output-a-test-%d"
 	shard_count      = 1
 }
 
@@ -173,16 +250,28 @@ resource "aws_kinesis_analytics" "test_application" {
 	name = "terraform-kinesis-analytics-test-%d"
 	application_description = "test description"
 	application_code = "SELECT 1\n"
+	inputs{
+		name = "SOURCE_SQL_STREAM_A"
+		record_format_type = "JSON"
+		record_format_encoding = "UTF-8"
+		record_row_path = "$"
+		columns{
+			name = "id"
+			sql_type = "INTEGER"
+			mapping = "id"
+		}
+		columns{
+			name = "firstName"
+			sql_type = "VARCHAR(256)"
+			mapping = "firstName"
+		}
+		arn = "${aws_kinesis_stream.test_input_stream_a.arn}"
+		role_arn = "${aws_iam_role.ka_test_role.arn}"
+	}
 	outputs {
 		name = "DESTINATION_SQL_STREAM_A"
 		record_format_type = "JSON"
 		arn = "${aws_kinesis_stream.test_output_stream_a.arn}"
-		role_arn = "${aws_iam_role.ka_test_role.arn}"
-	}
-	outputs {
-		name = "DESTINATION_SQL_STREAM_B"
-		record_format_type = "CSV"
-		arn = "${aws_kinesis_stream.test_output_stream_b.arn}"
 		role_arn = "${aws_iam_role.ka_test_role.arn}"
 	}
 }`, rInt, rInt, rInt)
