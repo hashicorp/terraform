@@ -84,7 +84,7 @@ func resourceSqlUserCreate(d *schema.ResourceData, meta interface{}) error {
 			"user %s into instance %s: %s", name, instance, err)
 	}
 
-	d.SetId(fmt.Sprintf("%s.%s", instance, name))
+	d.SetId(fmt.Sprintf("%s/%s", instance, name))
 
 	err = sqladminOperationWait(config, op, "Insert User")
 
@@ -104,10 +104,10 @@ func resourceSqlUserRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	instanceAndName := strings.SplitN(d.Id(), ".", 2)
+	instanceAndName := strings.SplitN(d.Id(), "/", 2)
 	if len(instanceAndName) != 2 {
 		return fmt.Errorf(
-			"Wrong number of arguments when specifying imported id. Expected: 2.  Saw: %d. Expected Input: $INSTANCENAME.$SQLUSERNAME Input: %s",
+			"Wrong number of arguments when specifying imported id. Expected: 2.  Saw: %d. Expected Input: $INSTANCENAME/$SQLUSERNAME Input: %s",
 			len(instanceAndName),
 			d.Id())
 	}

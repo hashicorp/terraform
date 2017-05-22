@@ -21,10 +21,13 @@ func TestSqlUserMigrateState(t *testing.T) {
 				"name":     "tf-user",
 				"instance": "tf-instance",
 			},
-			Expected:   map[string]string{},
+			Expected: map[string]string{
+				"name":     "tf-user",
+				"instance": "tf-instance",
+			},
 			Meta:       &Config{},
 			ID:         "tf-user",
-			ExpectedID: "tf-instance.tf-user",
+			ExpectedID: "tf-instance/tf-user",
 		},
 	}
 

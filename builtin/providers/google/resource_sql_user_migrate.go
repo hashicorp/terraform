@@ -10,7 +10,7 @@ import (
 func resourceSqlUserMigrateState(
 	v int, is *terraform.InstanceState, meta interface{}) (*terraform.InstanceState, error) {
 	if is.Empty() {
-		log.Println("[DEBUG] Empty SqlUserState; nothing to migrate.")
+		log.Println("[DEBUG] Empty InstanceState; nothing to migrate.")
 		return is, nil
 	}
 
@@ -32,7 +32,7 @@ func migrateSqlUserStateV0toV1(is *terraform.InstanceState) (*terraform.Instance
 
 	name := is.Attributes["name"]
 	instance := is.Attributes["instance"]
-	is.ID = fmt.Sprintf("%s.%s", instance, name)
+	is.ID = fmt.Sprintf("%s/%s", instance, name)
 
 	log.Printf("[DEBUG] Attributes after migration: %#v", is.Attributes)
 	return is, nil

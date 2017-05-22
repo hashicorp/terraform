@@ -64,11 +64,11 @@ Only the arguments listed above are exposed as attributes.
 Importing an SQL user is formatted as:
 
 ```bash
-terraform import google_sql_user.$RESOURCENAME $INSTANCENAME.$SQLUSERNAME
+terraform import google_sql_user.$RESOURCENAME $INSTANCENAME/$SQLUSERNAME
 ```
 
 For example, the sample at the top of this page could be imported with:
 
 ```bash
-terraform import google_sql_user.users master-instance.me
+terraform import google_sql_user.users master-instance/me
 ```
