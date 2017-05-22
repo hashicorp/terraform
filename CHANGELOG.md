@@ -102,6 +102,7 @@ BUG FIXES:
 * provider/heroku: Fix issue with setting correct CName in heroku_domain [GH-14443]
 * provider/opc: Correctly export `ip_address` in IP Addr Reservation [GH-14543]
 * provider/openstack: Handle Deleted Resources in Floating IP Association [GH-14533]
+* provider/openstack: Catch error during instance network parsing [GH-14704]
 * provider/vault: Prevent panic when no secret found [GH-14435]
 
 ## 0.9.5 (May 11, 2017)
