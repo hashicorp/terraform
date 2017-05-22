@@ -19,6 +19,9 @@ func resourceStorageBucket() *schema.Resource {
 		Read:   resourceStorageBucketRead,
 		Update: resourceStorageBucketUpdate,
 		Delete: resourceStorageBucketDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceStorageBucketStateImporter,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -154,12 +157,8 @@ func resourceStorageBucketCreate(d *schema.ResourceData, meta interface{}) error
 
 	log.Printf("[DEBUG] Created bucket %v at location %v\n\n", res.Name, res.SelfLink)
 
-	// Assign the bucket ID as the resource ID
-	d.Set("self_link", res.SelfLink)
-	d.Set("url", fmt.Sprintf("gs://%s", bucket))
 	d.SetId(res.Id)
-
-	return nil
+	return resourceStorageBucketRead(d, meta)
 }
 
 func resourceStorageBucketUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -228,8 +227,10 @@ func resourceStorageBucketRead(d *schema.ResourceData, meta interface{}) error {
 
 	// Update the bucket ID according to the resource ID
 	d.Set("self_link", res.SelfLink)
+	d.Set("url", fmt.Sprintf("gs://%s", bucket))
+	d.Set("storage_class", res.StorageClass)
+	d.Set("location", res.Location)
 	d.SetId(res.Id)
-
 	return nil
 }
 
@@ -288,4 +289,9 @@ func resourceStorageBucketDelete(d *schema.ResourceData, meta interface{}) error
 	log.Printf("[DEBUG] Deleted bucket %v\n\n", bucket)
 
 	return nil
+}
+
+func resourceStorageBucketStateImporter(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	d.Set("name", d.Id())
+	return []*schema.ResourceData{d}, nil
 }

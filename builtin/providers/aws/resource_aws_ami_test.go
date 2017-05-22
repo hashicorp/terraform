@@ -82,6 +82,10 @@ func testAccCheckAmiDestroy(s *terraform.State) error {
 		}
 		resp, err := conn.DescribeImages(DescribeAmiOpts)
 		if err != nil {
+			if isAWSErr(err, "InvalidAMIID", "NotFound") {
+				log.Printf("[DEBUG] AMI not found, passing")
+				return nil
+			}
 			return err
 		}
 
@@ -183,7 +187,7 @@ resource "aws_ebs_volume" "foo" {
  	availability_zone = "us-west-2a"
  	size = 8
  	tags {
- 	  Name = "tf-acc-test"
+ 	  Name = "testAccAmiConfig_basic"
  	}
 }
 
@@ -209,7 +213,7 @@ resource "aws_ebs_volume" "foo" {
  	availability_zone = "us-west-2a"
  	size = 20
  	tags {
- 	  Name = "tf-acc-test"
+ 	  Name = "testAccAmiConfig_snapshotSize"
  	}
 }
 

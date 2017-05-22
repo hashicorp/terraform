@@ -234,6 +234,9 @@ resource "aws_efs_mount_target" "alpha" {
 
 resource "aws_vpc" "foo" {
 	cidr_block = "10.0.0.0/16"
+	tags {
+		Name = "testAccAWSEFSMountTargetConfig"
+	}
 }
 
 resource "aws_subnet" "alpha" {
@@ -262,6 +265,9 @@ resource "aws_efs_mount_target" "beta" {
 
 resource "aws_vpc" "foo" {
 	cidr_block = "10.0.0.0/16"
+	tags {
+		Name = "testAccAWSEFSMountTargetConfigModified"
+	}
 }
 
 resource "aws_subnet" "alpha" {

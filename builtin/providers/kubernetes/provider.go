@@ -93,6 +93,7 @@ func Provider() terraform.ResourceProvider {
 			"kubernetes_persistent_volume_claim": resourceKubernetesPersistentVolumeClaim(),
 			"kubernetes_resource_quota":          resourceKubernetesResourceQuota(),
 			"kubernetes_secret":                  resourceKubernetesSecret(),
+			"kubernetes_service":                 resourceKubernetesService(),
 		},
 		ConfigureFunc: providerConfigure,
 	}

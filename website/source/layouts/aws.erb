@@ -53,6 +53,9 @@
                         <li<%= sidebar_current("docs-aws-datasource-db-instance") %>>
                             <a href="/docs/providers/aws/d/db_instance.html">aws_db_instance</a>
                         </li>
+                        <li<%= sidebar_current("docs-aws-datasource-db-snapshot") %>>
+                          <a href="/docs/providers/aws/d/db_snapshot.html">aws_db_snapshot</a>
+                        </li>
                         <li<%= sidebar_current("docs-aws-datasource-ebs-snapshot") %>>
                           <a href="/docs/providers/aws/d/ebs_snapshot.html">aws_ebs_snapshot</a>
                         </li>
@@ -83,9 +86,6 @@
                         <li<%= sidebar_current("docs-aws-datasource-elb-service-account") %>>
                             <a href="/docs/providers/aws/d/elb_service_account.html">aws_elb_service_account</a>
                         </li>
-                        <li<%= sidebar_current("docs-aws-datasource-kinesis-stream") %>>
-                            <a href="/docs/providers/aws/d/kinesis_stream.html">aws_kinesis_stream</a>
-                        </li>
                         <li<%= sidebar_current("docs-aws-datasource-iam-account-alias") %>>
                             <a href="/docs/providers/aws/d/iam_account_alias.html">aws_iam_account_alias</a>
                         </li>
@@ -104,8 +104,14 @@
                         <li<%= sidebar_current("docs-aws-datasource-ip_ranges") %>>
                             <a href="/docs/providers/aws/d/ip_ranges.html">aws_ip_ranges</a>
                         </li>
+                        <li<%= sidebar_current("docs-aws-datasource-kinesis-stream") %>>
+                            <a href="/docs/providers/aws/d/kinesis_stream.html">aws_kinesis_stream</a>
+                        </li>
                         <li<%= sidebar_current("docs-aws-datasource-kms-alias") %>>
                             <a href="/docs/providers/aws/d/kms_alias.html">aws_kms_alias</a>
+                        </li>
+                        <li<%= sidebar_current("docs-aws-datasource-kms-ciphertext") %>>
+                            <a href="/docs/providers/aws/d/kms_ciphertext.html">aws_kms_ciphertext</a>
                         </li>
                         <li<%= sidebar_current("docs-aws-datasource-kms-secret") %>>
                             <a href="/docs/providers/aws/d/kms_secret.html">aws_kms_secret</a>
@@ -1045,6 +1051,10 @@
                             <a href="/docs/providers/aws/r/db_security_group.html">aws_db_security_group</a>
                         </li>
 
+                        <li<%= sidebar_current("docs-aws-resource-db-snapshot") %>>
+                          <a href="/docs/providers/aws/r/db_snapshot.html">aws_db_snapshot</a>
+                        </li>
+
                         <li<%= sidebar_current("docs-aws-resource-db-subnet-group") %>>
                             <a href="/docs/providers/aws/r/db_subnet_group.html">aws_db_subnet_group</a>
                         </li>
@@ -1117,6 +1127,21 @@
 
                   <li<%= sidebar_current("docs-aws-resource-waf-xss-match-set") %>>
                     <a href="/docs/providers/aws/r/waf_xss_match_set.html">aws_waf_xss_match_set</a>
+                  </li>
+
+                </ul>
+              </li>
+
+              <li<%= sidebar_current(/^docs-aws-resource-wafregional/) %>>
+                <a href="#">WAF Regional Resources</a>
+                <ul class="nav nav-visible">
+
+                  <li<%= sidebar_current("docs-aws-resource-wafregional-bytematchset") %>>
+                    <a href="/docs/providers/aws/r/wafregional_byte_match_set.html">aws_wafregional_byte_match_set</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-aws-resource-wafregional-ipset") %>>
+                    <a href="/docs/providers/aws/r/wafregional_ipset.html">aws_wafregional_ipset</a>
                   </li>
 
                 </ul>
@@ -1322,6 +1347,18 @@
 
                         <li<%= sidebar_current("docs-aws-resource-default-security-group") %>>
                             <a href="/docs/providers/aws/r/default_security_group.html">aws_default_security_group</a>
+                        </li>
+                      
+                        <li<%= sidebar_current("docs-aws-resource-default-subnet") %>>
+                            <a href="/docs/providers/aws/r/default_subnet.html">aws_default_subnet</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-default-vpc") %>>
+                            <a href="/docs/providers/aws/r/default_vpc.html">aws_default_vpc</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-default-vpc-dhcp-options") %>>
+                            <a href="/docs/providers/aws/r/default_vpc_dhcp_options.html">aws_default_vpc_dhcp_options</a>
                         </li>
 
                         <li<%= sidebar_current("docs-aws-resource-egress-only-internet-gateway") %>>

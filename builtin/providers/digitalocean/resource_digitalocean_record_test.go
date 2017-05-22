@@ -164,6 +164,64 @@ func TestAccDigitalOceanRecord_ExternalHostnameValue(t *testing.T) {
 	})
 }
 
+func TestAccDigitalOceanRecord_MX(t *testing.T) {
+	var record godo.DomainRecord
+	domain := fmt.Sprintf("foobar-test-terraform-%s.com", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDigitalOceanRecordDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(
+					testAccCheckDigitalOceanRecordConfig_mx, domain),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanRecordExists("digitalocean_record.foo_record", &record),
+					testAccCheckDigitalOceanRecordAttributesHostname("foobar."+domain, &record),
+					resource.TestCheckResourceAttr(
+						"digitalocean_record.foo_record", "name", "terraform"),
+					resource.TestCheckResourceAttr(
+						"digitalocean_record.foo_record", "domain", domain),
+					resource.TestCheckResourceAttr(
+						"digitalocean_record.foo_record", "value", "foobar."+domain+"."),
+					resource.TestCheckResourceAttr(
+						"digitalocean_record.foo_record", "type", "MX"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDigitalOceanRecord_MX_at(t *testing.T) {
+	var record godo.DomainRecord
+	domain := fmt.Sprintf("foobar-test-terraform-%s.com", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDigitalOceanRecordDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(
+					testAccCheckDigitalOceanRecordConfig_mx_at, domain),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanRecordExists("digitalocean_record.foo_record", &record),
+					testAccCheckDigitalOceanRecordAttributesHostname("@", &record),
+					resource.TestCheckResourceAttr(
+						"digitalocean_record.foo_record", "name", "terraform"),
+					resource.TestCheckResourceAttr(
+						"digitalocean_record.foo_record", "domain", domain),
+					resource.TestCheckResourceAttr(
+						"digitalocean_record.foo_record", "value", domain+"."),
+					resource.TestCheckResourceAttr(
+						"digitalocean_record.foo_record", "type", "MX"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckDigitalOceanRecordDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*godo.Client)
 
@@ -296,6 +354,36 @@ resource "digitalocean_record" "foobar" {
   name  = "terraform"
   value = "a.foobar-test-terraform.com."
   type  = "CNAME"
+}`
+
+const testAccCheckDigitalOceanRecordConfig_mx_at = `
+resource "digitalocean_domain" "foobar" {
+  name       = "%s"
+  ip_address = "192.168.0.10"
+}
+
+resource "digitalocean_record" "foo_record" {
+  domain = "${digitalocean_domain.foobar.name}"
+
+  name  = "terraform"
+  value = "${digitalocean_domain.foobar.name}."
+  type  = "MX"
+  priority = "10"
+}`
+
+const testAccCheckDigitalOceanRecordConfig_mx = `
+resource "digitalocean_domain" "foobar" {
+  name       = "%s"
+  ip_address = "192.168.0.10"
+}
+
+resource "digitalocean_record" "foo_record" {
+  domain = "${digitalocean_domain.foobar.name}"
+
+  name  = "terraform"
+  value = "foobar.${digitalocean_domain.foobar.name}."
+  type  = "MX"
+  priority = "10"
 }`
 
 const testAccCheckDigitalOceanRecordConfig_external_cname = `

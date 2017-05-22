@@ -44,15 +44,6 @@ func resourceScalewayServer() *schema.Resource {
 				},
 				Optional: true,
 			},
-			"enable_ipv6": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-			},
-			"dynamic_ip_required": {
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
 			"security_group": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -80,12 +71,22 @@ func resourceScalewayServer() *schema.Resource {
 					},
 				},
 			},
+			"enable_ipv6": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"dynamic_ip_required": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 			"private_ip": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"public_ip": {
 				Type:     schema.TypeString,
+				Optional: true,
 				Computed: true,
 			},
 			"public_ipv6": {
@@ -168,6 +169,22 @@ func resourceScalewayServerCreate(d *schema.ResourceData, m interface{}) error {
 		}
 
 		err = waitForServerState(scaleway, id, "running")
+
+		if v, ok := d.GetOk("public_ip"); ok {
+			if ips, err := scaleway.GetIPS(); err != nil {
+				return err
+			} else {
+				for _, ip := range ips.IPS {
+					if ip.Address == v.(string) {
+						log.Printf("[DEBUG] Attaching IP %q to server %q\n", ip.ID, d.Id())
+						if err := scaleway.AttachIP(ip.ID, d.Id()); err != nil {
+							return err
+						}
+						break
+					}
+				}
+			}
+		}
 	}
 
 	if err != nil {
@@ -255,6 +272,34 @@ func resourceScalewayServerUpdate(d *schema.ResourceData, m interface{}) error {
 
 	if err := scaleway.PatchServer(d.Id(), req); err != nil {
 		return fmt.Errorf("Failed patching scaleway server: %q", err)
+	}
+
+	if d.HasChange("public_ip") {
+		ips, err := scaleway.GetIPS()
+		if err != nil {
+			return err
+		}
+		if v, ok := d.GetOk("public_ip"); ok {
+			for _, ip := range ips.IPS {
+				if ip.Address == v.(string) {
+					log.Printf("[DEBUG] Attaching IP %q to server %q\n", ip.ID, d.Id())
+					if err := scaleway.AttachIP(ip.ID, d.Id()); err != nil {
+						return err
+					}
+					break
+				}
+			}
+		} else {
+			for _, ip := range ips.IPS {
+				if ip.Server != nil && ip.Server.Identifier == d.Id() {
+					log.Printf("[DEBUG] Detaching IP %q to server %q\n", ip.ID, d.Id())
+					if err := scaleway.DetachIP(ip.ID); err != nil {
+						return err
+					}
+					break
+				}
+			}
+		}
 	}
 
 	return resourceScalewayServerRead(d, m)

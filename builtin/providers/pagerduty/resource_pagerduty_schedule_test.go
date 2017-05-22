@@ -5,22 +5,28 @@ import (
 	"testing"
 
 	"github.com/PagerDuty/go-pagerduty"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccPagerDutySchedule_Basic(t *testing.T) {
+	username := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	email := fmt.Sprintf("%s@foo.com", username)
+	schedule := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	scheduleUpdated := fmt.Sprintf("tf-%s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyScheduleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckPagerDutyScheduleConfig,
+			{
+				Config: testAccCheckPagerDutyScheduleConfig(username, email, schedule),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyScheduleExists("pagerduty_schedule.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_schedule.foo", "name", "foo"),
+						"pagerduty_schedule.foo", "name", schedule),
 					resource.TestCheckResourceAttr(
 						"pagerduty_schedule.foo", "description", "foo"),
 					resource.TestCheckResourceAttr(
@@ -31,12 +37,12 @@ func TestAccPagerDutySchedule_Basic(t *testing.T) {
 						"pagerduty_schedule.foo", "layer.0.name", "foo"),
 				),
 			},
-			resource.TestStep{
-				Config: testAccCheckPagerDutyScheduleConfigUpdated,
+			{
+				Config: testAccCheckPagerDutyScheduleConfigUpdated(username, email, scheduleUpdated),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyScheduleExists("pagerduty_schedule.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_schedule.foo", "name", "bar"),
+						"pagerduty_schedule.foo", "name", scheduleUpdated),
 					resource.TestCheckResourceAttr(
 						"pagerduty_schedule.foo", "description", "Managed by Terraform"),
 					resource.TestCheckResourceAttr(
@@ -52,17 +58,22 @@ func TestAccPagerDutySchedule_Basic(t *testing.T) {
 }
 
 func TestAccPagerDutySchedule_BasicWeek(t *testing.T) {
+	username := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	email := fmt.Sprintf("%s@foo.com", username)
+	schedule := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	scheduleUpdated := fmt.Sprintf("tf-%s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyScheduleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckPagerDutyScheduleConfigWeek,
+			{
+				Config: testAccCheckPagerDutyScheduleConfigWeek(username, email, schedule),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyScheduleExists("pagerduty_schedule.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_schedule.foo", "name", "foo"),
+						"pagerduty_schedule.foo", "name", schedule),
 					resource.TestCheckResourceAttr(
 						"pagerduty_schedule.foo", "description", "foo"),
 					resource.TestCheckResourceAttr(
@@ -75,12 +86,12 @@ func TestAccPagerDutySchedule_BasicWeek(t *testing.T) {
 						"pagerduty_schedule.foo", "layer.0.restriction.0.start_day_of_week", "1"),
 				),
 			},
-			resource.TestStep{
-				Config: testAccCheckPagerDutyScheduleConfigWeekUpdated,
+			{
+				Config: testAccCheckPagerDutyScheduleConfigWeekUpdated(username, email, scheduleUpdated),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyScheduleExists("pagerduty_schedule.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_schedule.foo", "name", "bar"),
+						"pagerduty_schedule.foo", "name", scheduleUpdated),
 					resource.TestCheckResourceAttr(
 						"pagerduty_schedule.foo", "description", "Managed by Terraform"),
 					resource.TestCheckResourceAttr(
@@ -98,17 +109,21 @@ func TestAccPagerDutySchedule_BasicWeek(t *testing.T) {
 }
 
 func TestAccPagerDutySchedule_Multi(t *testing.T) {
+	username := fmt.Sprintf("tf-%s", acctest.RandString(5))
+	email := fmt.Sprintf("%s@foo.com", username)
+	schedule := fmt.Sprintf("tf-%s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyScheduleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckPagerDutyScheduleConfigMulti,
+			{
+				Config: testAccCheckPagerDutyScheduleConfigMulti(username, email, schedule),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyScheduleExists("pagerduty_schedule.foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_schedule.foo", "name", "foo"),
+						"pagerduty_schedule.foo", "name", schedule),
 					resource.TestCheckResourceAttr(
 						"pagerduty_schedule.foo", "description", "foo"),
 					resource.TestCheckResourceAttr(
@@ -215,14 +230,15 @@ func testAccCheckPagerDutyScheduleExists(n string) resource.TestCheckFunc {
 	}
 }
 
-const testAccCheckPagerDutyScheduleConfig = `
+func testAccCheckPagerDutyScheduleConfig(username, email, schedule string) string {
+	return fmt.Sprintf(`
 resource "pagerduty_user" "foo" {
-  name  = "foo"
-  email = "foo@bar.com"
+  name  = "%s"
+  email = "%s"
 }
 
 resource "pagerduty_schedule" "foo" {
-  name = "foo"
+  name = "%s"
 
   time_zone   = "Europe/Berlin"
   description = "foo"
@@ -241,16 +257,18 @@ resource "pagerduty_schedule" "foo" {
     }
   }
 }
-`
+`, username, email, schedule)
+}
 
-const testAccCheckPagerDutyScheduleConfigUpdated = `
+func testAccCheckPagerDutyScheduleConfigUpdated(username, email, schedule string) string {
+	return fmt.Sprintf(`
 resource "pagerduty_user" "foo" {
-  name        = "foo"
-  email       = "foo@bar.com"
+  name        = "%s"
+  email       = "%s"
 }
 
 resource "pagerduty_schedule" "foo" {
-  name = "bar"
+  name = "%s"
 
   time_zone = "America/New_York"
 
@@ -268,16 +286,18 @@ resource "pagerduty_schedule" "foo" {
     }
   }
 }
-`
+`, username, email, schedule)
+}
 
-const testAccCheckPagerDutyScheduleConfigWeek = `
+func testAccCheckPagerDutyScheduleConfigWeek(username, email, schedule string) string {
+	return fmt.Sprintf(`
 resource "pagerduty_user" "foo" {
-  name  = "foo"
-  email = "foo@bar.com"
+  name  = "%s"
+  email = "%s"
 }
 
 resource "pagerduty_schedule" "foo" {
-  name = "foo"
+  name = "%s"
 
   time_zone   = "Europe/Berlin"
   description = "foo"
@@ -297,16 +317,18 @@ resource "pagerduty_schedule" "foo" {
     }
   }
 }
-`
+`, username, email, schedule)
+}
 
-const testAccCheckPagerDutyScheduleConfigWeekUpdated = `
+func testAccCheckPagerDutyScheduleConfigWeekUpdated(username, email, schedule string) string {
+	return fmt.Sprintf(`
 resource "pagerduty_user" "foo" {
-  name        = "foo"
-  email       = "foo@bar.com"
+  name        = "%s"
+  email       = "%s"
 }
 
 resource "pagerduty_schedule" "foo" {
-  name = "bar"
+  name = "%s"
 
   time_zone = "America/New_York"
 
@@ -325,16 +347,18 @@ resource "pagerduty_schedule" "foo" {
     }
   }
 }
-`
+`, username, email, schedule)
+}
 
-const testAccCheckPagerDutyScheduleConfigMulti = `
+func testAccCheckPagerDutyScheduleConfigMulti(username, email, schedule string) string {
+	return fmt.Sprintf(`
 resource "pagerduty_user" "foo" {
-  name        = "foo"
-  email       = "foo@bar.com"
+  name        = "%s"
+  email       = "%s"
 }
 
 resource "pagerduty_schedule" "foo" {
-  name = "foo"
+  name = "%s"
 
   time_zone   = "America/New_York"
   description = "foo"
@@ -383,4 +407,5 @@ resource "pagerduty_schedule" "foo" {
     }
   }
 }
-`
+`, username, email, schedule)
+}

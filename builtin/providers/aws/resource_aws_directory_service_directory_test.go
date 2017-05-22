@@ -233,6 +233,9 @@ resource "aws_directory_service_directory" "bar" {
 
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
+	tags {
+		Name = "testAccDirectoryServiceDirectoryConfig"
+	}
 }
 
 resource "aws_subnet" "foo" {
@@ -275,6 +278,9 @@ resource "aws_directory_service_directory" "connector" {
 
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
+	tags {
+		Name = "testAccDirectoryServiceDirectoryConfig_connector"
+	}
 }
 
 resource "aws_subnet" "foo" {
@@ -303,6 +309,9 @@ resource "aws_directory_service_directory" "bar" {
 
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
+	tags {
+		Name = "testAccDirectoryServiceDirectoryConfig_microsoft"
+	}
 }
 
 resource "aws_subnet" "foo" {
@@ -333,6 +342,9 @@ resource "aws_directory_service_directory" "bar_a" {
 
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
+	tags {
+		Name = "testAccDirectoryServiceDirectoryConfig_withAlias"
+	}
 }
 
 resource "aws_subnet" "foo" {
@@ -363,6 +375,9 @@ resource "aws_directory_service_directory" "bar_a" {
 
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
+	tags {
+		Name = "testAccDirectoryServiceDirectoryConfig_withSso"
+	}
 }
 
 resource "aws_subnet" "foo" {
@@ -393,6 +408,9 @@ resource "aws_directory_service_directory" "bar_a" {
 
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
+	tags {
+		Name = "testAccDirectoryServiceDirectoryConfig_withSso_modified"
+	}
 }
 
 resource "aws_subnet" "foo" {

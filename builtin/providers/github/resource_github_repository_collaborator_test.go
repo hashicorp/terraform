@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -12,13 +13,15 @@ import (
 const expectedPermission string = "admin"
 
 func TestAccGithubRepositoryCollaborator_basic(t *testing.T) {
+	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryCollaboratorDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubRepositoryCollaboratorConfig,
+				Config: testAccGithubRepositoryCollaboratorConfig(repoName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryCollaboratorExists("github_repository_collaborator.test_repo_collaborator"),
 					testAccCheckGithubRepositoryCollaboratorPermission("github_repository_collaborator.test_repo_collaborator"),
@@ -29,13 +32,15 @@ func TestAccGithubRepositoryCollaborator_basic(t *testing.T) {
 }
 
 func TestAccGithubRepositoryCollaborator_importBasic(t *testing.T) {
+	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryCollaboratorDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGithubRepositoryCollaboratorConfig,
+				Config: testAccGithubRepositoryCollaboratorConfig(repoName),
 			},
 			{
 				ResourceName:      "github_repository_collaborator.test_repo_collaborator",
@@ -148,10 +153,16 @@ func testAccCheckGithubRepositoryCollaboratorPermission(n string) resource.TestC
 	}
 }
 
-var testAccGithubRepositoryCollaboratorConfig string = fmt.Sprintf(`
+func testAccGithubRepositoryCollaboratorConfig(repoName string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "test" {
+	name = "%s"
+}
+
   resource "github_repository_collaborator" "test_repo_collaborator" {
-    repository = "%s"
+    repository = "${github_repository.test.name}"
     username = "%s"
     permission = "%s"
   }
-`, testRepo, testCollaborator, expectedPermission)
+`, repoName, testCollaborator, expectedPermission)
+}

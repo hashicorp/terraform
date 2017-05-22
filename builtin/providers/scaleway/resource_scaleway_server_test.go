@@ -27,6 +27,35 @@ func TestAccScalewayServer_Basic(t *testing.T) {
 						"scaleway_server.base", "tags.0", "terraform-test"),
 				),
 			},
+			resource.TestStep{
+				Config: testAccCheckScalewayServerConfig_IPAttachment,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckScalewayServerIPAttachmentAttributes("scaleway_ip.base", "scaleway_server.base"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccCheckScalewayServerConfig_IPDetachment,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckScalewayServerIPDetachmentAttributes("scaleway_server.base"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccScalewayServer_ExistingIP(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckScalewayServerDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckScalewayServerConfig_IPAttachment,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckScalewayServerExists("scaleway_server.base"),
+					testAccCheckScalewayServerIPAttachmentAttributes("scaleway_ip.base", "scaleway_server.base"),
+				),
+			},
 		},
 	})
 }
@@ -104,6 +133,52 @@ func testAccCheckScalewayServerDestroy(s *terraform.State) error {
 	}
 
 	return nil
+}
+
+func testAccCheckScalewayServerIPAttachmentAttributes(ipName, serverName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		ip, ok := s.RootModule().Resources[ipName]
+		if !ok {
+			return fmt.Errorf("Unknown scaleway_ip resource: %s", ipName)
+		}
+
+		server, ok := s.RootModule().Resources[serverName]
+		if !ok {
+			return fmt.Errorf("Unknown scaleway_server resource: %s", serverName)
+		}
+
+		client := testAccProvider.Meta().(*Client).scaleway
+
+		res, err := client.GetIP(ip.Primary.ID)
+		if err != nil {
+			return err
+		}
+		if res.IP.Server == nil || res.IP.Server.Identifier != server.Primary.ID {
+			return fmt.Errorf("IP %q is not attached to server %q", ip.Primary.ID, server.Primary.ID)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckScalewayServerIPDetachmentAttributes(n string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Unknown resource: %s", n)
+		}
+
+		client := testAccProvider.Meta().(*Client).scaleway
+		server, err := client.GetServer(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+
+		if server.PublicAddress.Identifier != "" {
+			return fmt.Errorf("Expected server to have no public IP but got %q", server.PublicAddress.Identifier)
+		}
+		return nil
+	}
 }
 
 func testAccCheckScalewayServerAttributes(n string) resource.TestCheckFunc {
@@ -186,6 +261,27 @@ func testAccCheckScalewayServerExists(n string) resource.TestCheckFunc {
 var armImageIdentifier = "5faef9cd-ea9b-4a63-9171-9e26bec03dbc"
 
 var testAccCheckScalewayServerConfig = fmt.Sprintf(`
+resource "scaleway_server" "base" {
+  name = "test"
+  # ubuntu 14.04
+  image = "%s"
+  type = "C1"
+  tags = [ "terraform-test" ]
+}`, armImageIdentifier)
+
+var testAccCheckScalewayServerConfig_IPAttachment = fmt.Sprintf(`
+resource "scaleway_ip" "base" {}
+
+resource "scaleway_server" "base" {
+  name = "test"
+  # ubuntu 14.04
+  image = "%s"
+  type = "C1"
+  tags = [ "terraform-test" ]
+  public_ip = "${scaleway_ip.base.ip}"
+}`, armImageIdentifier)
+
+var testAccCheckScalewayServerConfig_IPDetachment = fmt.Sprintf(`
 resource "scaleway_server" "base" {
   name = "test"
   # ubuntu 14.04

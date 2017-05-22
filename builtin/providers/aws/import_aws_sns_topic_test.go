@@ -3,11 +3,13 @@ package aws
 import (
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
 func TestAccAWSSNSTopic_importBasic(t *testing.T) {
 	resourceName := "aws_sns_topic.test_topic"
+	rName := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -15,7 +17,7 @@ func TestAccAWSSNSTopic_importBasic(t *testing.T) {
 		CheckDestroy: testAccCheckAWSSNSTopicDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSSNSTopicConfig,
+				Config: testAccAWSSNSTopicConfig(rName),
 			},
 
 			resource.TestStep{

@@ -110,11 +110,11 @@ func resourceComputeHealthCheck() *schema.Resource {
 						"host": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							Default:  80,
 						},
 						"port": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
+							Default:  80,
 						},
 						"proxy_header": &schema.Schema{
 							Type:     schema.TypeString,
@@ -140,11 +140,11 @@ func resourceComputeHealthCheck() *schema.Resource {
 						"host": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							Default:  443,
 						},
 						"port": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
+							Default:  443,
 						},
 						"proxy_header": &schema.Schema{
 							Type:     schema.TypeString,
