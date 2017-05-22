@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/provider"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 )
 
@@ -132,21 +133,36 @@ func resourceNetworkingNetworkV2Create(d *schema.ResourceData, meta interface{})
 	if err != nil {
 		return err
 	}
-	segments := make([]networks.Segment, len(segmentDetails))
+	segments := make([]provider.Segment, len(segmentDetails))
 	for i, segment := range segmentDetails {
-		segments[i] = networks.Segment{
+		id, err := strconv.Atoi(segment["segmentation_id"].(string))
+		if err != nil {
+			return err
+		}
+		segments[i] = provider.Segment{
 			PhysicalNetwork: segment["physical_network"].(string),
 			NetworkType:     segment["network_type"].(string),
-			SegmentationID:  segment["segmentation_id"].(string),
+			SegmentationID:  id,
 		}
 	}
-	createOpts.Segments = segments
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
-	n, err := networks.Create(networkingClient, createOpts).Extract()
+
+	n := &networks.Network{}
+	if len(segments) > 0 {
+		providerCreateOpts := provider.CreateOptsExt{
+			CreateOptsBuilder: createOpts,
+			Segments:          segments,
+		}
+		n, err = networks.Create(networkingClient, providerCreateOpts).Extract()
+	} else {
+		n, err = networks.Create(networkingClient, createOpts).Extract()
+	}
+
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack Neutron network: %s", err)
 	}
+
 	log.Printf("[INFO] Network ID: %s", n.ID)
 
 	log.Printf("[DEBUG] Waiting for Network (%s) to become available", n.ID)

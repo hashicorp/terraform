@@ -109,23 +109,7 @@ func TestAccNetworkingV2Network_timeout(t *testing.T) {
 }
 
 func TestAccNetworkingV2Network_with_multiple_segment_mappings(t *testing.T) {
-	region := os.Getenv(OS_REGION_NAME)
-
 	var network networks.Network
-
-	var testAccNetworkingV2Network_with_multiple_segment_mappings = fmt.Sprintf(`
-		resource "openstack_networking_network_v2" "foo" {
-			region = "%s"
-			name = "network_1"
-			segments =[
-                          {
-                            segmentation_id: "2",
-                            physical_network: "vlan",
-                            network_type: "vlan"
-                          }
-                        ],
-			admin_state_up = "true"
-		}`, region)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -135,7 +119,7 @@ func TestAccNetworkingV2Network_with_multiple_segment_mappings(t *testing.T) {
 			resource.TestStep{
 				Config: testAccNetworkingV2Network_with_multiple_segment_mappings,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkingV2NetworkExists(t, "openstack_networking_network_v2.foo", &network),
+					testAccCheckNetworkingV2NetworkExists("openstack_networking_network_v2.network_1", &network),
 				),
 			},
 		},
@@ -287,5 +271,18 @@ resource "openstack_networking_network_v2" "network_1" {
     create = "5m"
     delete = "5m"
   }
+}
+`
+
+const testAccNetworkingV2Network_with_multiple_segment_mappings = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  segments =[
+    {
+      segmentation_id = "2",
+      network_type = "vxlan"
+    }
+  ],
+  admin_state_up = "true"
 }
 `
