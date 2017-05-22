@@ -163,6 +163,9 @@ The supported built-in functions are:
     **This is not equivalent** of `base64encode(sha512(string))`
     since `sha512()` returns hexadecimal representation.
 
+  * `bcrypt(password, cost)` - Returns the Blowfish encrypted hash of the string 
+    at the given cost. A default `cost` of 10 will be used if not provided.
+
   * `ceil(float)` - Returns the least integer value greater than or equal
       to the argument.
 
