@@ -91,7 +91,7 @@ func resourceStorageBucket() *schema.Resource {
 			},
 
 			"cors": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -167,7 +167,7 @@ func resourceStorageBucketCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	if v, ok := d.GetOk("cors"); ok {
-		sb.Cors = expandCors(v.(*schema.Set).List())
+		sb.Cors = expandCors(v.([]interface{}))
 	}
 
 	var res *storage.Bucket
@@ -236,7 +236,7 @@ func resourceStorageBucketUpdate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	if v, ok := d.GetOk("cors"); ok {
-		sb.Cors = expandCors(v.(*schema.Set).List())
+		sb.Cors = expandCors(v.([]interface{}))
 	}
 
 	res, err := config.clientStorage.Buckets.Patch(d.Get("name").(string), sb).Do()

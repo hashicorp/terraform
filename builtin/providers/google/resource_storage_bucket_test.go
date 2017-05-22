@@ -191,6 +191,56 @@ func TestAccStorageBucket_cors(t *testing.T) {
 			},
 		},
 	})
+
+	if len(bucket.Cors) != 2 {
+		t.Errorf("Expected # of cors elements to be 2, got %d", len(bucket.Cors))
+	}
+
+	firstArr := bucket.Cors[0]
+	if firstArr.MaxAgeSeconds != 10 {
+		t.Errorf("Expected first block's MaxAgeSeconds to be 10, got %d", firstArr.MaxAgeSeconds)
+	}
+
+	for i, v := range []string{"abc", "def"} {
+		if firstArr.Origin[i] != v {
+			t.Errorf("Expected value in first block origin to be to be %v, got %v", v, firstArr.Origin[i])
+		}
+	}
+
+	for i, v := range []string{"a1a"} {
+		if firstArr.Method[i] != v {
+			t.Errorf("Expected value in first block method to be to be %v, got %v", v, firstArr.Method[i])
+		}
+	}
+
+	for i, v := range []string{"123", "456", "789"} {
+		if firstArr.ResponseHeader[i] != v {
+			t.Errorf("Expected value in first block response headerto be to be %v, got %v", v, firstArr.ResponseHeader[i])
+		}
+	}
+
+	secondArr := bucket.Cors[1]
+	if secondArr.MaxAgeSeconds != 5 {
+		t.Errorf("Expected second block's MaxAgeSeconds to be 5, got %d", secondArr.MaxAgeSeconds)
+	}
+
+	for i, v := range []string{"ghi", "jkl"} {
+		if secondArr.Origin[i] != v {
+			t.Errorf("Expected value in second block origin to be to be %v, got %v", v, secondArr.Origin[i])
+		}
+	}
+
+	for i, v := range []string{"z9z"} {
+		if secondArr.Method[i] != v {
+			t.Errorf("Expected value in second block method to be to be %v, got %v", v, secondArr.Method[i])
+		}
+	}
+
+	for i, v := range []string{"000"} {
+		if secondArr.ResponseHeader[i] != v {
+			t.Errorf("Expected value in second block response headerto be to be %v, got %v", v, secondArr.ResponseHeader[i])
+		}
+	}
 }
 
 func testAccCheckStorageBucketExists(n string, bucketName string, bucket *storage.Bucket) resource.TestCheckFunc {
@@ -324,7 +374,7 @@ resource "google_storage_bucket" "bucket" {
 	cors {
 	  origin = ["ghi", "jkl"]
 	  method = ["z9z"]
-	  response_header = ["789"]
+	  response_header = ["000"]
 	  max_age_seconds = 5
 	}
 }
