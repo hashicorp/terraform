@@ -61,7 +61,7 @@ BUG FIXES:
 * provider/aws: Allow updating tuples in WAF SQLInjectionMatchSet + no tuples [GH-14667]
 * provider/aws: Allow updating tuples in WAF XssMatchSet + no tuples [GH-14671]
 * provider/aws: Increase EIP update timeout [GH-14381]
-* provider/aws: Increase timeout for creating security group [GH-14380]
+* provider/aws: Increase timeout for creating security group [GH-14380] [GH-14724]
 * provider/aws: Increase timeout for (dis)associating IPv6 addr to/from subnet [GH-14401]
 * provider/aws: Increase timeout for retrying creation of IAM server cert [GH-14609]
 * provider/aws: Increase timeout for deleting IGW [GH-14705]
