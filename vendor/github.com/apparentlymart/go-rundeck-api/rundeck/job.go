@@ -191,6 +191,9 @@ type JobCommand struct {
 	// a shell script it should have an appropriate #! line.
 	Script string `xml:"script,omitempty"`
 
+	// Add extension to the temporary filename.
+	FileExtension string `xml:"fileExtension,omitempty"`
+
 	// A pre-existing file (on the target nodes) that will be executed.
 	ScriptFile string `xml:"scriptfile,omitempty"`
 
