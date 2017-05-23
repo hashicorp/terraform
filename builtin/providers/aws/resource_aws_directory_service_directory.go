@@ -33,9 +33,10 @@ func resourceAwsDirectoryServiceDirectory() *schema.Resource {
 				ForceNew: true,
 			},
 			"password": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:      schema.TypeString,
+				Required:  true,
+				ForceNew:  true,
+				Sensitive: true,
 			},
 			"size": &schema.Schema{
 				Type:     schema.TypeString,

@@ -306,10 +306,10 @@ func (i *Interpolater) valueSimpleVar(
 	// relied on this for their template_file data sources. We should
 	// remove this at some point but there isn't any rush.
 	return fmt.Errorf(
-		"invalid variable syntax: %q. If this is part of inline `template` parameter\n"+
+		"invalid variable syntax: %q. Did you mean 'var.%s'? If this is part of inline `template` parameter\n"+
 			"then you must escape the interpolation with two dollar signs. For\n"+
 			"example: ${a} becomes $${a}.",
-		n)
+		n, n)
 }
 
 func (i *Interpolater) valueTerraformVar(
@@ -594,10 +594,6 @@ func (i *Interpolater) computeResourceMultiVariable(
 		}
 
 		if singleAttr, ok := r.Primary.Attributes[v.Field]; ok {
-			if singleAttr == config.UnknownVariableValue {
-				return &unknownVariable, nil
-			}
-
 			values = append(values, singleAttr)
 			continue
 		}
@@ -611,10 +607,6 @@ func (i *Interpolater) computeResourceMultiVariable(
 		multiAttr, err := i.interpolateComplexTypeAttribute(v.Field, r.Primary.Attributes)
 		if err != nil {
 			return nil, err
-		}
-
-		if multiAttr == unknownVariable {
-			return &unknownVariable, nil
 		}
 
 		values = append(values, multiAttr)
@@ -737,6 +729,19 @@ func (i *Interpolater) resourceCountMax(
 		}
 
 		return count, nil
+	}
+
+	// If we have no module state in the apply walk, that suggests we've hit
+	// a rather awkward edge-case: the resource this variable refers to
+	// has count = 0 and is the only resource processed so far on this walk,
+	// and so we've ended up not creating any resource states yet. We don't
+	// create a module state until the first resource is written into it,
+	// so the module state doesn't exist when we get here.
+	//
+	// In this case we act as we would if we had been passed a module
+	// with an empty resource state map.
+	if ms == nil {
+		return 0, nil
 	}
 
 	// We need to determine the list of resource keys to get values from.

@@ -85,6 +85,13 @@ func testAccESDomainPolicyConfig(randInt int, policy string) string {
 resource "aws_elasticsearch_domain" "example" {
     domain_name = "tf-test-%d"
     elasticsearch_version = "2.3"
+    cluster_config {
+        instance_type = "t2.micro.elasticsearch"
+    }
+    ebs_options {
+        ebs_enabled = true
+        volume_size = 10
+    }
 }
 
 resource "aws_elasticsearch_domain_policy" "main" {

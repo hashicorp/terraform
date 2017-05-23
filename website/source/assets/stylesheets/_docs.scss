@@ -1,362 +1,91 @@
-//
-// Docs
-// --------------------------------------------------
-
-body.page-sub{
-	background-color: $light-black;
-}
-
-body.layout-backend-types,
-body.layout-commands-env,
-body.layout-commands-state,
-body.layout-alicloud,
-body.layout-archive,
-body.layout-arukas,
-body.layout-atlas,
-body.layout-aws,
-body.layout-azure,
-body.layout-bitbucket,
-body.layout-chef,
-body.layout-azurerm,
-body.layout-circonus,
-body.layout-clc,
-body.layout-cloudflare,
-body.layout-cloudstack,
-body.layout-cobbler,
-body.layout-consul,
-body.layout-datadog,
-body.layout-digitalocean,
-body.layout-dme,
-body.layout-dns,
-body.layout-dnsimple,
-body.layout-docker,
-body.layout-dyn,
-body.layout-external,
-body.layout-github,
-body.layout-grafana,
-body.layout-fastly,
-body.layout-google,
-body.layout-heroku,
-body.layout-ignition,
-body.layout-icinga2,
-body.layout-influxdb,
-body.layout-kubernetes,
-body.layout-librato,
-body.layout-logentries,
-body.layout-mailgun,
-body.layout-mysql,
-body.layout-newrelic,
-body.layout-nomad,
-body.layout-ns1,
-body.layout-openstack,
-body.layout-opsgenie,
-body.layout-packet,
-body.layout-pagerduty,
-body.layout-postgresql,
-body.layout-powerdns,
-body.layout-profitbricks,
-body.layout-rabbitmq,
-body.layout-rancher,
-body.layout-random,
-body.layout-rundeck,
-body.layout-scaleway,
-body.layout-spotinst,
-body.layout-statuscake,
-body.layout-softlayer,
-body.layout-template,
-body.layout-tls,
-body.layout-ultradns,
-body.layout-triton,
-body.layout-vault,
-body.layout-vcd,
-body.layout-vsphere,
-body.layout-docs,
-body.layout-downloads,
-body.layout-inner,
-body.layout-remotestate,
-body.layout-terraform,
-body.layout-intro{
-	background: $light-black image-url('sidebar-wire.png') left 62px no-repeat;
-
-	>.container{
-		.col-md-8[role=main]{
-			min-height: 800px;
-			background-color: white;
-
-			>div{
-				position: relative;
-				z-index: 10;
-			}
-		}
-	}
-}
-
-.docs-sidebar{
-  position: relative;
-  z-index: 20;
+#docs-sidebar {
   margin-bottom: 30px;
-	margin-top: 50px;
-	margin-right: 4%;
+  margin-top: 50px;
+  overflow: hidden;
 
-	a{
-			color: $purple;
-	}
-
-	.docs-sidenav{
-		padding-top: 15px;
-		padding-bottom: 15px;
-		font-family: $font-family-klavika;
-		font-size: 16px;
-
-		:last-child{
-			border-bottom: none;
-		}
-
-		//all li > a
-		li{
-			position: relative;
-
-			> a{
-				color: white;
-				@include transition( color 0.5s ease );
-			}
-
-			> a:hover,
-			> a:focus {
-				background-color: transparent !important;
-				color: white;
-				@include transition( color 0.5s ease );
-			}
-		}
-
-
-		> li {
-			padding: 10px 0;
-
-			>.nav{
-				li{
-					a{
-						font-family: $font-family-open-sans;
-						color: white;
-					}
-				}
-			}
-
-			&.active {
-				>a{
-          color: lighten($purple, 4%);
-					font-weight: 600;
-				}
-
-				&:before{
-					content: '';
-					position: absolute;
-          width: 6px;
-          height: 8px;
-          background-color: $purple;
-          font-weight: 500;
-          @include skewY(24deg);
-					top: 26px;
-					left: -10px;
-				}
-				> a{
-          -webkit-font-smoothing: antialiased;
-				}
-
-				.nav {
-					display: block;
-
-          li.active a {
-            color: lighten($purple, 4%);
-						font-weight: 500;
-          }
-				}
-			}
-
-			> a {
-				text-transform: uppercase;
-				letter-spacing: 1px;
-        -webkit-font-smoothing: antialiased;
-			}
-		}
-
-		.nav {
-			display: none;
-			margin-bottom: 15px;
-
-			> li{
-				margin-left: 20px;
-
-				> a{
-          -webkit-font-smoothing: antialiased;
-					padding: 6px 15px;
-				}
-			}
-		}
-
-        .nav-visible {
-            display: block;
-        }
-	}
-}
-
-.bs-docs-section{
-	@media(max-width: 767px){
-		padding: 10px 5px 80px 5px;
-	}
-	@media(min-width: 768px){
-		padding: 10px 20px 80px 20px;
-	}
-
-	.lead{
-		margin-bottom: 48px
-	}
-
-	.doc-sectional{
-		margin-bottom: 48px;
-	}
-
-	p, li, .alert {
-		font-size: 18px;
-    line-height: 1.5;
-		margin: 0 0 18px;
-    -webkit-font-smoothing: antialiased;
-	}
-
-  pre{
-    margin: 0 0 18px;
-  }
-
-	a{
-		color: $purple;
-		&:hover{
-			text-decoration: underline;
-		}
-	}
-
-  img{
-    max-width: 650px;
-    margin-top: 25px;
-    margin-bottom: 25px;
-  }
-
-	h1{
-		margin-top: 72px;
-		color: $purple;
-		font-weight: 400;
-		text-transform: uppercase;
-		letter-spacing: -1px;
-    word-wrap: break-word;
-	}
-
-	h2, h3, h4{
-		margin-top: 48px;
-		font-family: $font-family-open-sans;
-		text-transform: none;
-	}
-
-	h2 {
-		margin-bottom: 16px;
-		padding-bottom: 10px;
-		border-bottom: 1px solid #eeeeee;
-	}
-
-	p {
-		color: $light-black;
-	}
-
-  #graph {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     margin-top: 30px;
   }
-}
 
-@media (max-width: 992px) {
-	body.layout-docs,
-	body.layout-inner,
-	body.layout-intro{
-		>.container{
-			.col-md-8[role=main]{
-				min-height: 0;
-				&::before {
-					border-left: 9999px solid white;
-				}
-			}
-		}
-	}
+  ul.nav.docs-sidenav {
+    display: block;
+    padding-bottom: 15px;
 
-  body.page-sub{
-    >.container{
-      background-color: white;
-    }
-  }
+    li {
+      a {
+        color: $sidebar-link-color;
+        font-size: $sidebar-font-size;
+        padding: 10px 0 10px 15px;
 
-  .docs-sidebar{
-    margin-top: 0px;
-    margin-bottom: 0px;
+        &:before {
+          color: $sidebar-link-color-active;
+          content: '\203A';
+          font-size: $font-size;
+          left: 0;
+          line-height: 100%;
+          opacity: 0.4;
+          position: absolute;
 
-    .docs-sidenav{
-      padding-bottom: 0;
-
-      //all li > a
-      li{
-        > a{
-          color: black;
-          @include transition( color 0.5s ease );
+          height: 100%;
+          width: 8px
         }
 
-        > a:hover,
-        > a:focus {
-          color: $purple;
-          @include transition( color 0.5s ease );
+        &:focus,
+        &:hover {
+          background-color: transparent;
+          color: $sidebar-link-color-hover;
+
+          &:before {
+            opacity: 1;
+          }
         }
-      }
 
-
-      > li {
-        >.nav{
-          li{
-            a{
-              color: black;
-
-              &:hover{
-                color: $purple;
-              }
-            }
+        &.back {
+          &:before {
+            content: '\2039';
           }
         }
       }
-    }
-  }
 
-  .bs-docs-section{
-    h1{
-      font-size: 32px;
-      padding-top: 24px;
-      border-top: 1px solid #eeeeee;
+      // For forcing sub-navs to appear - in the long term, this should not
+      // be a thing anymore...
+      > ul.nav-visible {
+        display: block;
+      }
     }
 
-		h2 {
-			font-size: 24px;
-		}
+    li.active {
+      > a {
+        color: $sidebar-link-color-active;
 
-		h2, h3, h4{
-			margin-top: 32px;
-		}
-
-		p, li, .alert {
-			font-size: 16px;
-		}
-  }
-}
-
-@media (max-width: 480px) {
-	.bs-docs-section{
-        img{
-            max-width: 450px;
+        &:before {
+          opacity: 1;
         }
+      }
 
-		h1{
-			font-size: 28px;
-		}
-	}
+      // Open nested navigations
+      > ul.nav {
+        display: block;
+      }
+    }
+
+    // subnav
+    ul.nav {
+      display: none;
+      margin: 10px;
+
+      li {
+        margin-left: 10px;
+
+        a {
+          padding: 6px 15px;
+        }
+      }
+    }
+  }
 }

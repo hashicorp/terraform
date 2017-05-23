@@ -14,7 +14,7 @@ section. After configuring a backend, it has to be
 
 Below, we show a complete example configuring the "consul" backend:
 
-```
+```hcl
 terraform {
   backend "consul" {
     address = "demo.consul.io"
@@ -78,7 +78,7 @@ basic encryption on disk so that values are at least not plaintext.
 When using partial configuration, Terraform requires at a minimum that
 an empty backend configuration is in the Terraform files. For example:
 
-```
+```hcl
 terraform {
   backend "consul" {}
 }

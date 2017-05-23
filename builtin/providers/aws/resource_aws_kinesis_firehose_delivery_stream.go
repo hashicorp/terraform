@@ -150,8 +150,9 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 						},
 
 						"password": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:      schema.TypeString,
+							Required:  true,
+							Sensitive: true,
 						},
 
 						"role_arn": {

@@ -236,7 +236,7 @@ func resourceDataToRecord(r *dns.Record, d *schema.ResourceData) error {
 			var a *dns.Answer
 			v := answer["answer"].(string)
 			switch d.Get("type") {
-			case "TXT":
+			case "TXT", "SPF":
 				a = dns.NewTXTAnswer(v)
 			default:
 				a = dns.NewAnswer(strings.Split(v, " "))

@@ -9,7 +9,7 @@ import (
 // FTP represents an FTP logging response from the Fastly API.
 type FTP struct {
 	ServiceID string `mapstructure:"service_id"`
-	Version   string `mapstructure:"version"`
+	Version   int    `mapstructure:"version"`
 
 	Name              string     `mapstructure:"name"`
 	Address           string     `mapstructure:"address"`
@@ -43,7 +43,7 @@ type ListFTPsInput struct {
 	Service string
 
 	// Version is the specific configuration version (required).
-	Version string
+	Version int
 }
 
 // ListFTPs returns the list of ftps for the configuration version.
@@ -52,11 +52,11 @@ func (c *Client) ListFTPs(i *ListFTPsInput) ([]*FTP, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/ftp", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/ftp", i.Service, i.Version)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ type CreateFTPInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	Name              string `form:"name,omitempty"`
 	Address           string `form:"address,omitempty"`
@@ -96,11 +96,11 @@ func (c *Client) CreateFTP(i *CreateFTPInput) (*FTP, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/ftp", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/ftp", i.Service, i.Version)
 	resp, err := c.PostForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -118,7 +118,7 @@ type GetFTPInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the FTP to fetch.
 	Name string
@@ -130,7 +130,7 @@ func (c *Client) GetFTP(i *GetFTPInput) (*FTP, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -138,7 +138,7 @@ func (c *Client) GetFTP(i *GetFTPInput) (*FTP, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/ftp/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/ftp/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -156,7 +156,7 @@ type UpdateFTPInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the FTP to update.
 	Name string
@@ -180,7 +180,7 @@ func (c *Client) UpdateFTP(i *UpdateFTPInput) (*FTP, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -188,7 +188,7 @@ func (c *Client) UpdateFTP(i *UpdateFTPInput) (*FTP, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/ftp/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/ftp/%s", i.Service, i.Version, i.Name)
 	resp, err := c.PutForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -206,7 +206,7 @@ type DeleteFTPInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the FTP to delete (required).
 	Name string
@@ -218,7 +218,7 @@ func (c *Client) DeleteFTP(i *DeleteFTPInput) error {
 		return ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return ErrMissingVersion
 	}
 
@@ -226,7 +226,7 @@ func (c *Client) DeleteFTP(i *DeleteFTPInput) error {
 		return ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/ftp/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/ftp/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Delete(path, nil)
 	if err != nil {
 		return err

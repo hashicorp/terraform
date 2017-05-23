@@ -6,14 +6,14 @@ description: |-
   Creates and automatically starts a virtual machine based on a service offering, disk offering, and template.
 ---
 
-# cloudstack\_instance
+# cloudstack_instance
 
 Creates and automatically starts a virtual machine based on a service offering,
 disk offering, and template.
 
 ## Example Usage
 
-```
+```hcl
 resource "cloudstack_instance" "web" {
   name             = "server-1"
   service_offering = "small"
@@ -82,4 +82,3 @@ The following attributes are exported:
 
 * `id` - The instance ID.
 * `display_name` - The display name of the instance.
-

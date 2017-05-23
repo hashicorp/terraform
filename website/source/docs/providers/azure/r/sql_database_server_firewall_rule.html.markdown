@@ -12,7 +12,7 @@ Defines a new Firewall Rule to be applied across the given Database Servers.
 
 ## Example Usage
 
-```
+```hcl
 resource "azure_sql_database_server" "sql-serv1" {
   # ...
 }

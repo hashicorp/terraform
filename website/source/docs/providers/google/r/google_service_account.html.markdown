@@ -15,7 +15,7 @@ Allows management of a [Google Cloud Platform service account](https://cloud.goo
 This snippet creates a service account, then gives it objectViewer
 permission in a project.
 
-```js
+```hcl
 resource "google_service_account" "object_viewer" {
   account_id   = "object-viewer"
   display_name = "Object viewer"

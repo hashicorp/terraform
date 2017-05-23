@@ -14,7 +14,7 @@ supports both `ssh` and `winrm` type [connections](/docs/provisioners/connection
 
 ## Example usage
 
-```
+```hcl
 resource "aws_instance" "web" {
   # ...
 

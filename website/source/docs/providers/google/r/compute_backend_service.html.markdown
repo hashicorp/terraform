@@ -10,9 +10,11 @@ description: |-
 
 A Backend Service defines a group of virtual machines that will serve traffic for load balancing.
 
+For internal load balancing, use a [google_compute_region_backend_service](/docs/providers/google/r/compute_region_backend_service.html).
+
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_backend_service" "foobar" {
   name        = "blablah"
   description = "Hello World 1234"

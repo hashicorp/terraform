@@ -18,7 +18,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the Docker provider
 provider "docker" {
   host = "tcp://127.0.0.1:2376/"

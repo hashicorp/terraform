@@ -12,7 +12,7 @@ Provides a NS1 Data Feed resource. This can be used to create, modify, and delet
 
 ## Example Usage
 
-```
+```hcl
 resource "ns1_datasource" "example" {
   name       = "example"
   sourcetype = "nsone_v1"

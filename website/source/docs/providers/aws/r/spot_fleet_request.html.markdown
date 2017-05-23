@@ -13,7 +13,7 @@ instances to be requested on the Spot market.
 
 ## Example Usage
 
-```
+```hcl
 # Request a Spot fleet
 resource "aws_spot_fleet_request" "cheap_compute" {
   iam_fleet_role      = "arn:aws:iam::12345678:role/spot-fleet"
@@ -23,9 +23,10 @@ resource "aws_spot_fleet_request" "cheap_compute" {
   valid_until         = "2019-11-04T20:44:20Z"
 
   launch_specification {
-    instance_type = "m4.10xlarge"
-    ami           = "ami-1234"
-    spot_price    = "2.793"
+    instance_type     = "m4.10xlarge"
+    ami               = "ami-1234"
+    spot_price        = "2.793"
+    placement_tenancy = "dedicated"
   }
 
   launch_specification {
@@ -48,7 +49,7 @@ resource "aws_spot_fleet_request" "cheap_compute" {
 ~> **NOTE:** Terraform does not support the functionality where multiple `subnet_id` or `availability_zone` parameters can be specified in the same
 launch configuration block. If you want to specify multiple values, then separate launch configuration blocks should be used:
 
-```
+```hcl
 resource "aws_spot_fleet_request" "foo" {
   iam_fleet_role  = "arn:aws:iam::12345678:role/spot-fleet"
   spot_price      = "0.005"
@@ -108,7 +109,6 @@ lowestPrice.
 * `valid_until` - The end date and time of the request, in UTC ISO8601 format
   (for example, YYYY-MM-DDTHH:MM:SSZ). At this point, no new Spot instance
 requests are placed or enabled to fulfill the request. Defaults to 24 hours.
-
 
 ## Attributes Reference
 

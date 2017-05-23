@@ -6,13 +6,13 @@ description: |-
   Manages a System within Cobbler.
 ---
 
-# cobbler\_system
+# cobbler_system
 
 Manages a System within Cobbler.
 
 ## Example Usage
 
-```
+```hcl
 resource "cobbler_system" "my_system" {
   name         = "my_system"
   profile      = "${cobbler_profile.my_profile.name}"

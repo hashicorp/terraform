@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"google.golang.org/api/googleapi"
 	"google.golang.org/api/sqladmin/v1beta4"
 )
 
@@ -102,14 +101,7 @@ func resourceSqlUserRead(d *schema.ResourceData, meta interface{}) error {
 	users, err := config.clientSqlAdmin.Users.List(project, instance).Do()
 
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing SQL User %q because it's gone", d.Get("name").(string))
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error, failed to get user %s in instance %s: %s", name, instance, err)
+		return handleNotFoundError(err, d, fmt.Sprintf("SQL User %q in instance %q", name, instance))
 	}
 
 	found := false

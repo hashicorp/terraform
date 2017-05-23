@@ -79,7 +79,7 @@ func resourceUser() *schema.Resource {
 }
 
 func resourceUserRead(d *schema.ResourceData, meta interface{}) error {
-	id, err := buildUser(d, meta.(*cache))
+	id, err := buildUser(d, globalCache)
 	if err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func resourceUserRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceUserExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	id, err := buildUser(d, meta.(*cache))
+	id, err := buildUser(d, globalCache)
 	if err != nil {
 		return false, err
 	}

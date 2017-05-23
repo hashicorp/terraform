@@ -10,6 +10,7 @@ func TestAccDnsCnameRecordSet_Basic(t *testing.T) {
 	tests := []struct {
 		DataSourceBlock string
 		Expected        string
+		Host            string
 	}{
 		{
 			`
@@ -17,7 +18,8 @@ func TestAccDnsCnameRecordSet_Basic(t *testing.T) {
 			  host = "www.hashicorp.com"
 			}
 			`,
-			"s.shared.global.fastly.net.",
+			"dualstack.s.shared.global.fastly.net.",
+			"www.hashicorp.com",
 		},
 	}
 
@@ -29,6 +31,12 @@ func TestAccDnsCnameRecordSet_Basic(t *testing.T) {
 					Config: test.DataSourceBlock,
 					Check: r.ComposeTestCheckFunc(
 						r.TestCheckResourceAttr("data.dns_cname_record_set.foo", "cname", test.Expected),
+					),
+				},
+				r.TestStep{
+					Config: test.DataSourceBlock,
+					Check: r.ComposeTestCheckFunc(
+						r.TestCheckResourceAttr("data.dns_cname_record_set.foo", "id", test.Host),
 					),
 				},
 			},

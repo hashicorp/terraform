@@ -31,10 +31,12 @@ func resourceAwsAlbListenerRule() *schema.Resource {
 			"listener_arn": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"priority": {
 				Type:         schema.TypeInt,
 				Required:     true,
+				ForceNew:     true,
 				ValidateFunc: validateAwsAlbListenerRulePriority,
 			},
 			"action": {
@@ -184,42 +186,75 @@ func resourceAwsAlbListenerRuleRead(d *schema.ResourceData, meta interface{}) er
 func resourceAwsAlbListenerRuleUpdate(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
+	d.Partial(true)
+
+	if d.HasChange("priority") {
+		params := &elbv2.SetRulePrioritiesInput{
+			RulePriorities: []*elbv2.RulePriorityPair{
+				{
+					RuleArn:  aws.String(d.Id()),
+					Priority: aws.Int64(int64(d.Get("priority").(int))),
+				},
+			},
+		}
+
+		_, err := elbconn.SetRulePriorities(params)
+		if err != nil {
+			return err
+		}
+
+		d.SetPartial("priority")
+	}
+
+	requestUpdate := false
 	params := &elbv2.ModifyRuleInput{
 		RuleArn: aws.String(d.Id()),
 	}
 
-	actions := d.Get("action").([]interface{})
-	params.Actions = make([]*elbv2.Action, len(actions))
-	for i, action := range actions {
-		actionMap := action.(map[string]interface{})
-		params.Actions[i] = &elbv2.Action{
-			TargetGroupArn: aws.String(actionMap["target_group_arn"].(string)),
-			Type:           aws.String(actionMap["type"].(string)),
+	if d.HasChange("action") {
+		actions := d.Get("action").([]interface{})
+		params.Actions = make([]*elbv2.Action, len(actions))
+		for i, action := range actions {
+			actionMap := action.(map[string]interface{})
+			params.Actions[i] = &elbv2.Action{
+				TargetGroupArn: aws.String(actionMap["target_group_arn"].(string)),
+				Type:           aws.String(actionMap["type"].(string)),
+			}
+		}
+		requestUpdate = true
+		d.SetPartial("action")
+	}
+
+	if d.HasChange("condition") {
+		conditions := d.Get("condition").([]interface{})
+		params.Conditions = make([]*elbv2.RuleCondition, len(conditions))
+		for i, condition := range conditions {
+			conditionMap := condition.(map[string]interface{})
+			values := conditionMap["values"].([]interface{})
+			params.Conditions[i] = &elbv2.RuleCondition{
+				Field:  aws.String(conditionMap["field"].(string)),
+				Values: make([]*string, len(values)),
+			}
+			for j, value := range values {
+				params.Conditions[i].Values[j] = aws.String(value.(string))
+			}
+		}
+		requestUpdate = true
+		d.SetPartial("condition")
+	}
+
+	if requestUpdate {
+		resp, err := elbconn.ModifyRule(params)
+		if err != nil {
+			return errwrap.Wrapf("Error modifying ALB Listener Rule: {{err}}", err)
+		}
+
+		if len(resp.Rules) == 0 {
+			return errors.New("Error modifying creating ALB Listener Rule: no rules returned in response")
 		}
 	}
 
-	conditions := d.Get("condition").([]interface{})
-	params.Conditions = make([]*elbv2.RuleCondition, len(conditions))
-	for i, condition := range conditions {
-		conditionMap := condition.(map[string]interface{})
-		values := conditionMap["values"].([]interface{})
-		params.Conditions[i] = &elbv2.RuleCondition{
-			Field:  aws.String(conditionMap["field"].(string)),
-			Values: make([]*string, len(values)),
-		}
-		for j, value := range values {
-			params.Conditions[i].Values[j] = aws.String(value.(string))
-		}
-	}
-
-	resp, err := elbconn.ModifyRule(params)
-	if err != nil {
-		return errwrap.Wrapf("Error modifying ALB Listener Rule: {{err}}", err)
-	}
-
-	if len(resp.Rules) == 0 {
-		return errors.New("Error modifying creating ALB Listener Rule: no rules returned in response")
-	}
+	d.Partial(false)
 
 	return resourceAwsAlbListenerRuleRead(d, meta)
 }

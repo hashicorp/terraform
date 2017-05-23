@@ -22,7 +22,7 @@ a conflict of rule settings and will overwrite rules.
 
 Basic usage
 
-```
+```hcl
 resource "aws_security_group_rule" "allow_all" {
   type            = "ingress"
   from_port       = 0
@@ -60,7 +60,7 @@ Prefix list IDs are manged by AWS internally. Prefix list IDs
 are associated with a prefix list name, or service name, that is linked to a specific region.
 Prefix list IDs are exported on VPC Endpoints, so you can use this format:
 
-```
+```hcl
 resource "aws_security_group_rule" "allow_all" {
   type              = "egress"
   to_port           = 0

@@ -149,7 +149,7 @@ func TestAccDataSourceAWSS3BucketObject_allParams(t *testing.T) {
 					resource.TestCheckNoResourceAttr("data.aws_s3_bucket_object.obj", "body"),
 					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "cache_control", "no-cache"),
 					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "content_disposition", "attachment"),
-					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "content_encoding", "gzip"),
+					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "content_encoding", "identity"),
 					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "content_language", "en-GB"),
 					// Encryption is off
 					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "server_side_encryption", ""),
@@ -284,7 +284,7 @@ CONTENT
 	content_type = "application/unknown"
 	cache_control = "no-cache"
 	content_disposition = "attachment"
-	content_encoding = "gzip"
+	content_encoding = "identity"
 	content_language = "en-GB"
 	tags {
 		Key1 = "Value 1"

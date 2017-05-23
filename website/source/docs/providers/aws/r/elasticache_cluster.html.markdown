@@ -23,7 +23,7 @@ brief downtime as the server reboots. See the AWS Docs on
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_elasticache_cluster" "bar" {
   cluster_id           = "cluster-example"
   engine               = "memcached"

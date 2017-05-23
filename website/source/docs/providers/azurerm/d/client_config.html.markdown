@@ -13,7 +13,7 @@ provider.
 
 ## Example Usage
 
-```
+```hcl
 data "azurerm_client_config" "current" {}
 
 output "account_id" {

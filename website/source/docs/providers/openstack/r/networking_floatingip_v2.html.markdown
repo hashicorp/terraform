@@ -15,7 +15,7 @@ but only compute floating IPs can be used with compute instances.
 
 ## Example Usage
 
-```
+```hcl
 resource "openstack_networking_floatingip_v2" "floatip_1" {
   pool = "public"
 }

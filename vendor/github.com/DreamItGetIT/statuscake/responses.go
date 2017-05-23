@@ -43,6 +43,7 @@ type detailResponse struct {
 	ProcessingOn    string   `json:"ProcessingOn"`
 	DownTimes       int      `json:"DownTimes,string"`
 	Sensitive       bool     `json:"Sensitive"`
+	TriggerRate     int      `json:"TriggerRate,string"`
 }
 
 func (d *detailResponse) test() *Test {
@@ -64,5 +65,6 @@ func (d *detailResponse) test() *Test {
 		FindString:    d.FindString,
 		DoNotFind:     d.DoNotFind,
 		Port:          d.Port,
+		TriggerRate:   d.TriggerRate,
 	}
 }

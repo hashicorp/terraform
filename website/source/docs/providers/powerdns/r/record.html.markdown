@@ -16,7 +16,7 @@ Note that PowerDNS internally lowercases certain records (e.g. CNAME and AAAA), 
 
 For the v1 API (PowerDNS version 4):
 
-```
+```hcl
 # Add a record to the zone
 resource "powerdns_record" "foobar" {
   zone    = "example.com."
@@ -29,7 +29,7 @@ resource "powerdns_record" "foobar" {
 
 For the legacy API (PowerDNS version 3.4):
 
-```
+```hcl
 # Add a record to the zone
 resource "powerdns_record" "foobar" {
   zone    = "example.com"

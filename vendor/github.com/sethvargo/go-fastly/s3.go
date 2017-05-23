@@ -16,7 +16,7 @@ const (
 // S3 represents a S3 response from the Fastly API.
 type S3 struct {
 	ServiceID string `mapstructure:"service_id"`
-	Version   string `mapstructure:"version"`
+	Version   int    `mapstructure:"version"`
 
 	Name              string       `mapstructure:"name"`
 	BucketName        string       `mapstructure:"bucket_name"`
@@ -52,7 +52,7 @@ type ListS3sInput struct {
 	Service string
 
 	// Version is the specific configuration version (required).
-	Version string
+	Version int
 }
 
 // ListS3s returns the list of S3s for the configuration version.
@@ -61,11 +61,11 @@ func (c *Client) ListS3s(i *ListS3sInput) ([]*S3, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/s3", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/s3", i.Service, i.Version)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ type CreateS3Input struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	Name              string       `form:"name,omitempty"`
 	BucketName        string       `form:"bucket_name,omitempty"`
@@ -107,11 +107,11 @@ func (c *Client) CreateS3(i *CreateS3Input) (*S3, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/s3", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/s3", i.Service, i.Version)
 	resp, err := c.PostForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -129,7 +129,7 @@ type GetS3Input struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the S3 to fetch.
 	Name string
@@ -141,7 +141,7 @@ func (c *Client) GetS3(i *GetS3Input) (*S3, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -149,7 +149,7 @@ func (c *Client) GetS3(i *GetS3Input) (*S3, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/s3/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/s3/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -167,7 +167,7 @@ type UpdateS3Input struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the S3 to update.
 	Name string
@@ -193,7 +193,7 @@ func (c *Client) UpdateS3(i *UpdateS3Input) (*S3, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -201,7 +201,7 @@ func (c *Client) UpdateS3(i *UpdateS3Input) (*S3, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/s3/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/s3/%s", i.Service, i.Version, i.Name)
 	resp, err := c.PutForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -219,7 +219,7 @@ type DeleteS3Input struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the S3 to delete (required).
 	Name string
@@ -231,7 +231,7 @@ func (c *Client) DeleteS3(i *DeleteS3Input) error {
 		return ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return ErrMissingVersion
 	}
 
@@ -239,7 +239,7 @@ func (c *Client) DeleteS3(i *DeleteS3Input) error {
 		return ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/logging/s3/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/logging/s3/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Delete(path, nil)
 	if err != nil {
 		return err

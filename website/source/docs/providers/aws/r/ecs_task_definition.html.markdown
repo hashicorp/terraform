@@ -12,7 +12,7 @@ Provides an ECS task definition to be used in `aws_ecs_service`.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_ecs_task_definition" "service" {
   family                = "service"
   container_definitions = "${file("task-definitions/service.json")}"

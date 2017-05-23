@@ -55,7 +55,7 @@ func resourceSystemdUnit() *schema.Resource {
 }
 
 func resourceSystemdUnitRead(d *schema.ResourceData, meta interface{}) error {
-	id, err := buildSystemdUnit(d, meta.(*cache))
+	id, err := buildSystemdUnit(d, globalCache)
 	if err != nil {
 		return err
 	}
@@ -65,7 +65,7 @@ func resourceSystemdUnitRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceSystemdUnitExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	id, err := buildSystemdUnit(d, meta.(*cache))
+	id, err := buildSystemdUnit(d, globalCache)
 	if err != nil {
 		return false, err
 	}

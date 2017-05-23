@@ -13,7 +13,7 @@ in a given region for the purpose of whitelisting in S3 bucket policy.
 
 ## Example Usage
 
-```
+```hcl
 data "aws_elb_service_account" "main" {}
 
 resource "aws_s3_bucket" "elb_logs" {

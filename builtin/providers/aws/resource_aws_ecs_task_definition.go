@@ -45,6 +45,7 @@ func resourceAwsEcsTaskDefinition() *schema.Resource {
 					hash := sha1.Sum([]byte(v.(string)))
 					return hex.EncodeToString(hash[:])
 				},
+				ValidateFunc: validateAwsEcsTaskDefinitionContainerDefinitions,
 			},
 
 			"task_role_arn": {
@@ -117,6 +118,15 @@ func validateAwsEcsTaskDefinitionNetworkMode(v interface{}, k string) (ws []stri
 
 	if _, ok := validTypes[value]; !ok {
 		errors = append(errors, fmt.Errorf("ECS Task Definition network_mode %q is invalid, must be `bridge`, `host` or `none`", value))
+	}
+	return
+}
+
+func validateAwsEcsTaskDefinitionContainerDefinitions(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	_, err := expandEcsContainerDefinitions(value)
+	if err != nil {
+		errors = append(errors, fmt.Errorf("ECS Task Definition container_definitions is invalid: %s", err))
 	}
 	return
 }

@@ -6,13 +6,13 @@ description: |-
   Provides an API Gateway Usage Plan Key.
 ---
 
-# aws\_api\_usage\_plan\_key
+# aws_api_gateway_usage_plan_key
 
 Provides an API Gateway Usage Plan Key.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_api_gateway_rest_api" "test" {
   name = "MyDemoAPI"
 }

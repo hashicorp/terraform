@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1543.2 1000">
+<style type="text/css">
+  .st0{opacity:0.12;clip-path:url(#SVGID_2_);fill:#822FF7;}
+  .st1{opacity:8.000000e-02;clip-path:url(#SVGID_2_);fill:#822FF7;}
+</style>
+<g>
+  <defs>
+    <rect id="SVGID_1_" width="1543.2" height="1000"/>
+  </defs>
+  <clipPath id="SVGID_2_">
+    <use xlink:href="#SVGID_1_"  style="overflow:visible;"/>
+  </clipPath>
+  <path class="st0" d="M-2.3,650.2l0,422.8l409.4,237.9c0,0,409.5-238,409.5-238l0-422.7L407.2,412.3l0,0L-2.3,650.2"/>
+  <polyline class="st1" points="305.1,772.2 305.1,1069.5 593,1236.8 881,1069.5 881,772.2 593.1,604.9 593,604.9 305.1,772.2   "/>
+  <path class="st1" d="M584.1,784.7l0,504.2l488.2,283.7c0,0,488.3-283.8,488.3-283.8l0-504L1072.4,501l0,0L584.1,784.7"/>
+  <path class="st1" d="M838.4,423.4l0,365.3l353.7,205.5c0,0,353.8-205.6,353.8-205.6l0-365.2l-353.8-205.6l0,0L838.4,423.4"/>
+</g>
+</svg>

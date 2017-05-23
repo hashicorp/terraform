@@ -4,7 +4,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"path"
+	"strings"
 )
 
 // RequestOptions is the list of options to pass to the request.
@@ -31,7 +31,7 @@ func (c *Client) RawRequest(verb, p string, ro *RequestOptions) (*http.Request, 
 
 	// Append the path to the URL.
 	u := *c.url
-	u.Path = path.Join(c.url.Path, p)
+	u.Path = strings.TrimRight(c.url.Path, "/") + "/" + strings.TrimLeft(p, "/")
 
 	// Add the token and other params.
 	var params = make(url.Values)

@@ -12,7 +12,7 @@ Creates a new storage blob within a given storage container on Azure.
 
 ## Example Usage
 
-```
+```hcl
 resource "azure_storage_blob" "foo" {
   name                   = "tftesting-blob"
   storage_service_name   = "tfstorserv"
@@ -20,7 +20,7 @@ resource "azure_storage_blob" "foo" {
   type                   = "PageBlob"
   size                   = 1024
 }
-````
+```
 
 ## Argument Reference
 

@@ -20,7 +20,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the Microsoft Azure Provider
 provider "azurerm" {
   subscription_id = "..."

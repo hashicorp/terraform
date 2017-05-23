@@ -18,7 +18,7 @@ func TestAccAWSAutoScalingGroup_importBasic(t *testing.T) {
 		CheckDestroy: testAccCheckAWSAutoScalingGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSAutoScalingGroupConfig(randName),
+				Config: testAccAWSAutoScalingGroupImport(randName),
 			},
 
 			resource.TestStep{

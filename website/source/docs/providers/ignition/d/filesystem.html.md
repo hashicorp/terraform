@@ -12,7 +12,7 @@ Describes the desired state of a the system’s filesystems to be configured and
 
 ## Example Usage
 
-```
+```hcl
 data "ignition_filesystem" "foo" {
 	name = "root"
 	mount {

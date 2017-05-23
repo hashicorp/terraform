@@ -12,7 +12,7 @@ Creates a new Event Hub Authorization Rule within an Event Hub.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "resourceGroup1"
   location = "West US"
@@ -86,7 +86,6 @@ The following attributes are exported:
 * `secondary_key` - The Secondary Key for the Event Hub Authorization Rule.
 
 * `secondary_connection_string` - The Secondary Connection String for the Event Hub Authorization Rule.
-
 
 ## Import
 

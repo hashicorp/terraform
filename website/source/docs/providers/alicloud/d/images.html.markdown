@@ -6,13 +6,13 @@ description: |-
     Provides a list of images available to the user.
 ---
 
-# alicloud\_images
+# alicloud_images
 
 The Images data source list image resource list contains private images of the user and images of system resources provided by Alicloud, as well as other public images and those available on the image market.
 
 ## Example Usage
 
-```
+```hcl
 data "alicloud_images" "multi_image" {
   owners     = "system"
   name_regex = "^centos_6"

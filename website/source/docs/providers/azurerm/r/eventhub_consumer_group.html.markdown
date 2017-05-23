@@ -12,7 +12,7 @@ Creates a new Event Hub Consumer Group as a nested resource within an Event Hub.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "resourceGroup1"
   location = "West US"

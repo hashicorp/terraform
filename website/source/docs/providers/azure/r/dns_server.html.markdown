@@ -12,7 +12,7 @@ Creates a new DNS server definition to be used internally in Azure.
 
 ## Example Usage
 
-```
+```hcl
 resource "azure_dns_server" "google-dns" {
   name        = "google"
   dns_address = "8.8.8.8"

@@ -5,7 +5,7 @@ import "fmt"
 // Settings represents a backend response from the Fastly API.
 type Settings struct {
 	ServiceID string `mapstructure:"service_id"`
-	Version   string `mapstructure:"version"`
+	Version   int    `mapstructure:"version"`
 
 	DefaultTTL  uint   `mapstructure:"general.default_ttl"`
 	DefaultHost string `mapstructure:"general.default_host"`
@@ -16,7 +16,7 @@ type GetSettingsInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 }
 
 // GetSettings gets the backend configuration with the given parameters.
@@ -25,11 +25,11 @@ func (c *Client) GetSettings(i *GetSettingsInput) (*Settings, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/settings", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/settings", i.Service, i.Version)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -47,9 +47,9 @@ type UpdateSettingsInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
-	DefaultTTL  uint   `form:"general.default_ttl,omitempty"`
+	DefaultTTL  uint   `form:"general.default_ttl"`
 	DefaultHost string `form:"general.default_host,omitempty"`
 }
 
@@ -59,11 +59,11 @@ func (c *Client) UpdateSettings(i *UpdateSettingsInput) (*Settings, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/settings", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/settings", i.Service, i.Version)
 	resp, err := c.PutForm(path, i, nil)
 	if err != nil {
 		return nil, err

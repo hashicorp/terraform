@@ -13,7 +13,7 @@ resources.
 
 ## Example Usage
 
-```
+```hcl
 data "aws_ebs_volume" "ebs_volume" {
   most_recent = true
 

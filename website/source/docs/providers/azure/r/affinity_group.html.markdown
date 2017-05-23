@@ -12,7 +12,7 @@ Creates a new affinity group on Azure.
 
 ## Example Usage
 
-```
+```hcl
 resource "azure_affinity_group" "terraform-main-group" {
   name        = "terraform-group"
   location    = "North Europe"

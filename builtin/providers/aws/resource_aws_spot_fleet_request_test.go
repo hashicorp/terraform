@@ -325,6 +325,30 @@ func TestAccAWSSpotFleetRequest_withEBSDisk(t *testing.T) {
 	})
 }
 
+func TestAccAWSSpotFleetRequest_placementTenancy(t *testing.T) {
+	var sfr ec2.SpotFleetRequestConfig
+	rName := acctest.RandString(10)
+	rInt := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSpotFleetRequestDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSSpotFleetRequestTenancyConfig(rName, rInt),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSSpotFleetRequestExists(
+						"aws_spot_fleet_request.foo", &sfr),
+					resource.TestCheckResourceAttr(
+						"aws_spot_fleet_request.foo", "spot_request_state", "active"),
+					testAccCheckAWSSpotFleetRequest_PlacementAttributes(&sfr),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSSpotFleetRequest_CannotUseEmptyKeyName(t *testing.T) {
 	_, errs := validateSpotFleetRequestKeyName("", "key_name")
 	if len(errs) == 0 {
@@ -394,6 +418,27 @@ func testAccCheckAWSSpotFleetRequest_EBSAttributes(
 		}
 		if *ebs[1].DeviceName != "/dev/xvdcz" {
 			return fmt.Errorf("Expected device 1's name to be %s, got %s", "/dev/xvdcz", *ebs[1].DeviceName)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckAWSSpotFleetRequest_PlacementAttributes(
+	sfr *ec2.SpotFleetRequestConfig) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if len(sfr.SpotFleetRequestConfig.LaunchSpecifications) == 0 {
+			return errors.New("Missing launch specification")
+		}
+
+		spec := *sfr.SpotFleetRequestConfig.LaunchSpecifications[0]
+
+		placement := spec.Placement
+		if placement == nil {
+			return fmt.Errorf("Expected placement to be set, got nil")
+		}
+		if *placement.Tenancy != "dedicated" {
+			return fmt.Errorf("Expected placement tenancy to be %q, got %q", "dedicated", placement.Tenancy)
 		}
 
 		return nil
@@ -1250,4 +1295,79 @@ resource "aws_spot_fleet_request" "foo" {
     depends_on = ["aws_iam_policy_attachment.test-attach"]
 }
 `, rInt, rInt, rName)
+}
+
+func testAccAWSSpotFleetRequestTenancyConfig(rName string, rInt int) string {
+	return fmt.Sprintf(`
+resource "aws_key_pair" "debugging" {
+	key_name = "tmp-key-%s"
+	public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD3F6tyPEFEzV0LX3X8BsXdMsQz1x2cEikKDEY0aIj41qgxMCP/iteneqXSIFZBp5vizPvaoIR3Um9xK7PGoW8giupGn+EPuxIA4cDM4vzOqOkiMPhz5XK0whEjkVzTo4+S0puvDZuwIsdiW9mxhJc7tgBNL0cYlWSYVkz4G/fslNfRPW5mYAM49f4fhtxPb5ok4Q2Lg9dPKVHO/Bgeu5woMc7RY0p1ej6D4CKFE6lymSDJpW0YHX/wqE9+cfEauh7xZcG0q9t2ta6F6fmX0agvpFyZo8aFbXeUBr7osSCJNgvavWbM/06niWrOvYX2xwWdhXmXSrbX8ZbabVohBK41 phodgson@thoughtworks.com"
+}
+
+resource "aws_iam_policy" "test-policy" {
+  name = "test-policy-%d"
+  path = "/"
+  description = "Spot Fleet Request ACCTest Policy"
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": [
+       "ec2:DescribeImages",
+       "ec2:DescribeSubnets",
+       "ec2:RequestSpotInstances",
+       "ec2:TerminateInstances",
+       "ec2:DescribeInstanceStatus",
+       "iam:PassRole"
+        ],
+    "Resource": ["*"]
+  }]
+}
+EOF
+}
+
+resource "aws_iam_policy_attachment" "test-attach" {
+    name = "test-attachment-%d"
+    roles = ["${aws_iam_role.test-role.name}"]
+    policy_arn = "${aws_iam_policy.test-policy.arn}"
+}
+
+resource "aws_iam_role" "test-role" {
+    name = "test-role-%s"
+    assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": [
+          "spotfleet.amazonaws.com",
+          "ec2.amazonaws.com"
+        ]
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_spot_fleet_request" "foo" {
+    iam_fleet_role = "${aws_iam_role.test-role.arn}"
+    spot_price = "0.005"
+    target_capacity = 2
+    valid_until = "2019-11-04T20:44:20Z"
+    terminate_instances_with_expiration = true
+    launch_specification {
+        instance_type = "m1.small"
+        ami = "ami-d06a90b0"
+        key_name = "${aws_key_pair.debugging.key_name}"
+        placement_tenancy = "dedicated"
+    }
+    depends_on = ["aws_iam_policy_attachment.test-attach"]
+}
+`, rName, rInt, rInt, rName)
 }

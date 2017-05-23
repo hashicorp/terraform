@@ -6,14 +6,14 @@ description: |-
   Registers a node or service with the Consul Catalog.  Currently, defining health checks is not supported.
 ---
 
-# consul\_catalog\_entry
+# consul_catalog_entry
 
 Registers a node or service with the [Consul Catalog](https://www.consul.io/docs/agent/http/catalog.html#catalog_register).
 Currently, defining health checks is not supported.
 
 ## Example Usage
 
-```
+```hcl
 resource "consul_catalog_entry" "app" {
   address = "192.168.10.10"
   node    = "foobar"

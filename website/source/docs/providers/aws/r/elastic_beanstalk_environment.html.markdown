@@ -17,8 +17,7 @@ Environments are often things such as `development`, `integration`, or
 
 ## Example Usage
 
-
-```
+```hcl
 resource "aws_elastic_beanstalk_application" "tftest" {
   name        = "tf-test-name"
   description = "tf-test-desc"
@@ -51,7 +50,7 @@ The following arguments are supported:
 off of. Example stacks can be found in the [Amazon API documentation][1]
 * `template_name` – (Optional) The name of the Elastic Beanstalk Configuration
   template to use in deployment
-* `wait_for_ready_timeout` - (Default: `10m`) The maximum
+* `wait_for_ready_timeout` - (Default: `20m`) The maximum
   [duration](https://golang.org/pkg/time/#ParseDuration) that Terraform should
   wait for an Elastic Beanstalk Environment to be in a ready state before timing
   out.
@@ -80,7 +79,7 @@ The `setting` and `all_settings` mappings support the following format:
 
 ### Example With Options
 
-```
+```hcl
 resource "aws_elastic_beanstalk_application" "tftest" {
   name        = "tf-test-name"
   description = "tf-test-desc"

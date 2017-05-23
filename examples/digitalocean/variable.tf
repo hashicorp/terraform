@@ -1,6 +1,6 @@
 # ####
 
-# Current Availiable Datacenter Regions
+# Current Available Datacenter Regions
 
 # As of 05-07-2016
 
