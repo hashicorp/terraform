@@ -453,8 +453,17 @@ func (c *Context) Input(mode InputMode) error {
 // Apply applies the changes represented by this context and returns
 // the resulting state.
 //
-// In addition to returning the resulting state, this context is updated
-// with the latest state.
+// Even in the case an error is returned, the state may be returned and will
+// potentially be partially updated.  In addition to returning the resulting
+// state, this context is updated with the latest state.
+//
+// If the state is required after an error, the caller should call
+// Context.State, rather than rely on the return value.
+//
+// TODO: Apply and Refresh should either always return a state, or rely on the
+//       State() method. Currently the helper/resource testing framework relies
+//       on the absence of a returned state to determine if Destroy can be
+//       called, so that will need to be refactored before this can be changed.
 func (c *Context) Apply() (*State, error) {
 	defer c.acquireRun("apply")()
 
@@ -580,7 +589,7 @@ func (c *Context) Plan() (*Plan, error) {
 // to their latest state. This will update the state that this context
 // works with, along with returning it.
 //
-// Even in the case an error is returned, the state will be returned and
+// Even in the case an error is returned, the state may be returned and
 // will potentially be partially updated.
 func (c *Context) Refresh() (*State, error) {
 	defer c.acquireRun("refresh")()

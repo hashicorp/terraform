@@ -12,7 +12,7 @@ Provides a CloudWatch Log Metric Filter resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_cloudwatch_log_metric_filter" "yada" {
   name           = "MyAppAccessCount"
   pattern        = ""

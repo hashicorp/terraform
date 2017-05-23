@@ -82,6 +82,12 @@ func resourceAwsIamRole() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"description": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateIamRoleDescription,
+			},
+
 			"assume_role_policy": {
 				Type:             schema.TypeString,
 				Required:         true,
@@ -115,6 +121,10 @@ func resourceAwsIamRoleCreate(d *schema.ResourceData, meta interface{}) error {
 		AssumeRolePolicyDocument: aws.String(d.Get("assume_role_policy").(string)),
 	}
 
+	if v, ok := d.GetOk("description"); ok {
+		request.Description = aws.String(v.(string))
+	}
+
 	var createResp *iam.CreateRoleOutput
 	err := resource.Retry(30*time.Second, func() *resource.RetryError {
 		var err error
@@ -129,7 +139,8 @@ func resourceAwsIamRoleCreate(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return fmt.Errorf("Error creating IAM Role %s: %s", name, err)
 	}
-	return resourceAwsIamRoleReadResult(d, createResp.Role)
+	d.SetId(*createResp.Role.RoleName)
+	return resourceAwsIamRoleRead(d, meta)
 }
 
 func resourceAwsIamRoleRead(d *schema.ResourceData, meta interface{}) error {
@@ -147,7 +158,40 @@ func resourceAwsIamRoleRead(d *schema.ResourceData, meta interface{}) error {
 		}
 		return fmt.Errorf("Error reading IAM Role %s: %s", d.Id(), err)
 	}
-	return resourceAwsIamRoleReadResult(d, getResp.Role)
+
+	role := getResp.Role
+
+	if err := d.Set("name", role.RoleName); err != nil {
+		return err
+	}
+	if err := d.Set("arn", role.Arn); err != nil {
+		return err
+	}
+	if err := d.Set("path", role.Path); err != nil {
+		return err
+	}
+	if err := d.Set("unique_id", role.RoleId); err != nil {
+		return err
+	}
+	if err := d.Set("create_date", role.CreateDate.Format(time.RFC3339)); err != nil {
+		return err
+	}
+
+	if role.Description != nil {
+		// the description isn't present in the response to CreateRole.
+		if err := d.Set("description", role.Description); err != nil {
+			return err
+		}
+	}
+
+	assumRolePolicy, err := url.QueryUnescape(*role.AssumeRolePolicyDocument)
+	if err != nil {
+		return err
+	}
+	if err := d.Set("assume_role_policy", assumRolePolicy); err != nil {
+		return err
+	}
+	return nil
 }
 
 func resourceAwsIamRoleUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -168,34 +212,21 @@ func resourceAwsIamRoleUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	return nil
-}
-
-func resourceAwsIamRoleReadResult(d *schema.ResourceData, role *iam.Role) error {
-	d.SetId(*role.RoleName)
-	if err := d.Set("name", role.RoleName); err != nil {
-		return err
-	}
-	if err := d.Set("arn", role.Arn); err != nil {
-		return err
-	}
-	if err := d.Set("path", role.Path); err != nil {
-		return err
-	}
-	if err := d.Set("unique_id", role.RoleId); err != nil {
-		return err
-	}
-	if err := d.Set("create_date", role.CreateDate.Format(time.RFC3339)); err != nil {
-		return err
+	if d.HasChange("description") {
+		roleDescriptionInput := &iam.UpdateRoleDescriptionInput{
+			RoleName:    aws.String(d.Id()),
+			Description: aws.String(d.Get("description").(string)),
+		}
+		_, err := iamconn.UpdateRoleDescription(roleDescriptionInput)
+		if err != nil {
+			if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
+				d.SetId("")
+				return nil
+			}
+			return fmt.Errorf("Error Updating IAM Role (%s) Assume Role Policy: %s", d.Id(), err)
+		}
 	}
 
-	assumRolePolicy, err := url.QueryUnescape(*role.AssumeRolePolicyDocument)
-	if err != nil {
-		return err
-	}
-	if err := d.Set("assume_role_policy", assumRolePolicy); err != nil {
-		return err
-	}
 	return nil
 }
 

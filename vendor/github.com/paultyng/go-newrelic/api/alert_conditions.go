@@ -41,6 +41,7 @@ func (c *Client) queryAlertConditions(policyID int) ([]AlertCondition, error) {
 	return conditions, nil
 }
 
+// GetAlertCondition gets information about an alert condition given an ID and policy ID.
 func (c *Client) GetAlertCondition(policyID int, id int) (*AlertCondition, error) {
 	conditions, err := c.queryAlertConditions(policyID)
 	if err != nil {
@@ -61,6 +62,7 @@ func (c *Client) ListAlertConditions(policyID int) ([]AlertCondition, error) {
 	return c.queryAlertConditions(policyID)
 }
 
+// CreateAlertCondition creates an alert condition given the passed configuration.
 func (c *Client) CreateAlertCondition(condition AlertCondition) (*AlertCondition, error) {
 	policyID := condition.PolicyID
 
@@ -85,6 +87,7 @@ func (c *Client) CreateAlertCondition(condition AlertCondition) (*AlertCondition
 	return &resp.Condition, nil
 }
 
+// UpdateAlertCondition updates an alert condition with the specified changes.
 func (c *Client) UpdateAlertCondition(condition AlertCondition) (*AlertCondition, error) {
 	policyID := condition.PolicyID
 	id := condition.ID
@@ -110,6 +113,7 @@ func (c *Client) UpdateAlertCondition(condition AlertCondition) (*AlertCondition
 	return &resp.Condition, nil
 }
 
+// DeleteAlertCondition removes the alert condition given the specified ID and policy ID.
 func (c *Client) DeleteAlertCondition(policyID int, id int) error {
 	u := &url.URL{Path: fmt.Sprintf("/alerts_conditions/%v.json", id)}
 	_, err := c.Do("DELETE", u.String(), nil, nil)

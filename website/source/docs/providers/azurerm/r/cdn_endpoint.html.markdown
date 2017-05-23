@@ -12,7 +12,7 @@ A CDN Endpoint is the entity within a CDN Profile containing configuration infor
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acceptanceTestResourceGroup1"
   location = "West US"

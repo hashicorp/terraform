@@ -10,6 +10,9 @@ description: |-
 
 Provides a resource to create a VPC NAT Gateway.
 
+~> **NOTE:** alicloud_nat_gateway must depends on alicloud_vswitch.
+
+
 ## Example Usage
 
 Basic usage
@@ -66,6 +69,7 @@ The bandwidth package mapping supports the following:
 * `ip_count` - (Required) The IP number of the current bandwidth package. Its value range from 1 to 50.
 * `bandwidth` - (Required) The bandwidth value of the current bandwidth package. Its value range from 5 to 5000.
 * `zone` - (Optional) The AZ for the current bandwidth. If this value is not specified, Terraform will set a random AZ.
+* `public_ip_addresses` - (Computer) The public ip for bandwidth package. the public ip count equal `ip_count`, multi ip would complex with ",", such as "10.0.0.1,10.0.0.2".
 
 ## Attributes Reference
 
@@ -77,3 +81,5 @@ The following attributes are exported:
 * `spec` - The specification of the nat gateway.
 * `vpc_id` - The VPC ID for the nat gateway.
 * `bandwidth_package_ids` - A list ID of the bandwidth packages, and split them with commas
+* `snat_table_ids` - The nat gateway will auto create a snap and forward item, the `snat_table_ids` is the created one.
+* `forward_table_ids` - The nat gateway will auto create a snap and forward item, the `forward_table_ids` is the created one.

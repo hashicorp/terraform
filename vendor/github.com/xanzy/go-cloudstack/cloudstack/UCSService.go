@@ -114,6 +114,7 @@ func (s *UCSService) AddUcsManager(p *AddUcsManagerParams) (*AddUcsManagerRespon
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -295,6 +296,7 @@ func (s *UCSService) ListUcsManagers(p *ListUcsManagersParams) (*ListUcsManagers
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -388,6 +390,7 @@ func (s *UCSService) ListUcsProfiles(p *ListUcsProfilesParams) (*ListUcsProfiles
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -478,6 +481,7 @@ func (s *UCSService) ListUcsBlades(p *ListUcsBladesParams) (*ListUcsBladesRespon
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -581,6 +585,7 @@ func (s *UCSService) AssociateUcsProfileToBlade(p *AssociateUcsProfileToBladePar
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 

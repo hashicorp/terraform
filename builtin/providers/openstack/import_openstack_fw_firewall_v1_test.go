@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccOpenStackFWFirewallV1_importBasic(t *testing.T) {
+func TestAccFWFirewallV1_importBasic(t *testing.T) {
 	resourceName := "openstack_fw_firewall_v1.fw_1"
 
 	resource.Test(t, resource.TestCase{

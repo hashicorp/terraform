@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSConfigDeliveryChannel_basic(t *testing.T) {
+func testAccConfigDeliveryChannel_basic(t *testing.T) {
 	var dc configservice.DeliveryChannel
 	rInt := acctest.RandInt()
 	expectedName := fmt.Sprintf("tf-acc-test-awsconfig-%d", rInt)
@@ -36,7 +36,7 @@ func TestAccAWSConfigDeliveryChannel_basic(t *testing.T) {
 	})
 }
 
-func TestAccAWSConfigDeliveryChannel_allParams(t *testing.T) {
+func testAccConfigDeliveryChannel_allParams(t *testing.T) {
 	var dc configservice.DeliveryChannel
 	rInt := acctest.RandInt()
 	expectedName := fmt.Sprintf("tf-acc-test-awsconfig-%d", rInt)
@@ -64,7 +64,7 @@ func TestAccAWSConfigDeliveryChannel_allParams(t *testing.T) {
 	})
 }
 
-func TestAccAWSConfigDeliveryChannel_importBasic(t *testing.T) {
+func testAccConfigDeliveryChannel_importBasic(t *testing.T) {
 	resourceName := "aws_config_delivery_channel.foo"
 	rInt := acctest.RandInt()
 

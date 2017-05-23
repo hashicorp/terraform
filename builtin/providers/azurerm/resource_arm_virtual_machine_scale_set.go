@@ -9,6 +9,8 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/structure"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceArmVirtualMachineScaleSet() *schema.Resource {
@@ -17,6 +19,9 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 		Read:   resourceArmVirtualMachineScaleSetRead,
 		Update: resourceArmVirtualMachineScaleSetCreate,
 		Delete: resourceArmVirtualMachineScaleSetDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -69,6 +74,13 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 				Optional: true,
 			},
 
+			"single_placement_group": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+				ForceNew: true,
+			},
+
 			"os_profile": {
 				Type:     schema.TypeSet,
 				Required: true,
@@ -94,6 +106,7 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 						"custom_data": {
 							Type:      schema.TypeString,
 							Optional:  true,
+							ForceNew:  true,
 							StateFunc: userDataStateFunc,
 						},
 					},
@@ -260,6 +273,14 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 										Elem:     &schema.Schema{Type: schema.TypeString},
 										Set:      schema.HashString,
 									},
+
+									"load_balancer_inbound_nat_rules_ids": {
+										Type:     schema.TypeSet,
+										Optional: true,
+										Computed: true,
+										Elem:     &schema.Schema{Type: schema.TypeString},
+										Set:      schema.HashString,
+									},
 								},
 							},
 						},
@@ -291,9 +312,21 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 							Set:      schema.HashString,
 						},
 
+						"managed_disk_type": {
+							Type:          schema.TypeString,
+							Optional:      true,
+							Computed:      true,
+							ConflictsWith: []string{"storage_profile_os_disk.vhd_containers"},
+							ValidateFunc: validation.StringInSlice([]string{
+								string(compute.PremiumLRS),
+								string(compute.StandardLRS),
+							}, true),
+						},
+
 						"caching": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
+							Computed: true,
 						},
 
 						"os_type": {
@@ -374,16 +407,16 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 						"settings": {
 							Type:             schema.TypeString,
 							Optional:         true,
-							ValidateFunc:     validateJsonString,
-							DiffSuppressFunc: suppressDiffVirtualMachineExtensionSettings,
+							ValidateFunc:     validation.ValidateJsonString,
+							DiffSuppressFunc: structure.SuppressJsonDiff,
 						},
 
 						"protected_settings": {
 							Type:             schema.TypeString,
 							Optional:         true,
 							Sensitive:        true,
-							ValidateFunc:     validateJsonString,
-							DiffSuppressFunc: suppressDiffVirtualMachineExtensionSettings,
+							ValidateFunc:     validation.ValidateJsonString,
+							DiffSuppressFunc: structure.SuppressJsonDiff,
 						},
 					},
 				},
@@ -437,6 +470,8 @@ func resourceArmVirtualMachineScaleSetCreate(d *schema.ResourceData, meta interf
 
 	updatePolicy := d.Get("upgrade_policy_mode").(string)
 	overprovision := d.Get("overprovision").(bool)
+	singlePlacementGroup := d.Get("single_placement_group").(bool)
+
 	scaleSetProps := compute.VirtualMachineScaleSetProperties{
 		UpgradePolicy: &compute.UpgradePolicy{
 			Mode: compute.UpgradeMode(updatePolicy),
@@ -447,7 +482,8 @@ func resourceArmVirtualMachineScaleSetCreate(d *schema.ResourceData, meta interf
 			OsProfile:        osProfile,
 			ExtensionProfile: extensions,
 		},
-		Overprovision: &overprovision,
+		Overprovision:        &overprovision,
+		SinglePlacementGroup: &singlePlacementGroup,
 	}
 
 	scaleSetParams := compute.VirtualMachineScaleSet{
@@ -495,8 +531,9 @@ func resourceArmVirtualMachineScaleSetRead(d *schema.ResourceData, meta interfac
 		return fmt.Errorf("Error making Read request on Azure Virtual Machine Scale Set %s: %s", name, err)
 	}
 
-	d.Set("location", resp.Location)
 	d.Set("name", resp.Name)
+	d.Set("resource_group_name", resGroup)
+	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 
 	if err := d.Set("sku", flattenAzureRmVirtualMachineScaleSetSku(resp.Sku)); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting Virtual Machine Scale Set Sku error: %#v", err)
@@ -506,8 +543,14 @@ func resourceArmVirtualMachineScaleSetRead(d *schema.ResourceData, meta interfac
 
 	d.Set("upgrade_policy_mode", properties.UpgradePolicy.Mode)
 	d.Set("overprovision", properties.Overprovision)
+	d.Set("single_placement_group", properties.SinglePlacementGroup)
 
-	if err := d.Set("os_profile", flattenAzureRMVirtualMachineScaleSetOsProfile(properties.VirtualMachineProfile.OsProfile)); err != nil {
+	osProfile, err := flattenAzureRMVirtualMachineScaleSetOsProfile(properties.VirtualMachineProfile.OsProfile)
+	if err != nil {
+		return fmt.Errorf("[DEBUG] Error flattening Virtual Machine Scale Set OS Profile. Error: %#v", err)
+	}
+
+	if err := d.Set("os_profile", osProfile); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting Virtual Machine Scale Set OS Profile error: %#v", err)
 	}
 
@@ -576,7 +619,7 @@ func flattenAzureRmVirtualMachineScaleSetOsProfileLinuxConfig(config *compute.Li
 	result["disable_password_authentication"] = *config.DisablePasswordAuthentication
 
 	if config.SSH != nil && len(*config.SSH.PublicKeys) > 0 {
-		ssh_keys := make([]map[string]interface{}, len(*config.SSH.PublicKeys))
+		ssh_keys := make([]map[string]interface{}, 0, len(*config.SSH.PublicKeys))
 		for _, i := range *config.SSH.PublicKeys {
 			key := make(map[string]interface{})
 			key["path"] = *i.Path
@@ -696,6 +739,14 @@ func flattenAzureRmVirtualMachineScaleSetNetworkProfile(profile *compute.Virtual
 					config["load_balancer_backend_address_pool_ids"] = schema.NewSet(schema.HashString, addressPools)
 				}
 
+				if properties.LoadBalancerInboundNatPools != nil {
+					inboundNatPools := make([]interface{}, 0, len(*properties.LoadBalancerInboundNatPools))
+					for _, rule := range *properties.LoadBalancerInboundNatPools {
+						inboundNatPools = append(inboundNatPools, *rule.ID)
+					}
+					config["load_balancer_inbound_nat_rules_ids"] = schema.NewSet(schema.HashString, inboundNatPools)
+				}
+
 				ipConfigs = append(ipConfigs, config)
 			}
 
@@ -708,7 +759,7 @@ func flattenAzureRmVirtualMachineScaleSetNetworkProfile(profile *compute.Virtual
 	return result
 }
 
-func flattenAzureRMVirtualMachineScaleSetOsProfile(profile *compute.VirtualMachineScaleSetOSProfile) []interface{} {
+func flattenAzureRMVirtualMachineScaleSetOsProfile(profile *compute.VirtualMachineScaleSetOSProfile) ([]interface{}, error) {
 	result := make(map[string]interface{})
 
 	result["computer_name_prefix"] = *profile.ComputerNamePrefix
@@ -718,12 +769,16 @@ func flattenAzureRMVirtualMachineScaleSetOsProfile(profile *compute.VirtualMachi
 		result["custom_data"] = *profile.CustomData
 	}
 
-	return []interface{}{result}
+	return []interface{}{result}, nil
 }
 
 func flattenAzureRmVirtualMachineScaleSetStorageProfileOSDisk(profile *compute.VirtualMachineScaleSetOSDisk) []interface{} {
 	result := make(map[string]interface{})
-	result["name"] = *profile.Name
+
+	if profile.Name != nil {
+		result["name"] = *profile.Name
+	}
+
 	if profile.Image != nil {
 		result["image"] = *profile.Image.URI
 	}
@@ -734,6 +789,10 @@ func flattenAzureRmVirtualMachineScaleSetStorageProfileOSDisk(profile *compute.V
 			containers = append(containers, container)
 		}
 		result["vhd_containers"] = schema.NewSet(schema.HashString, containers)
+	}
+
+	if profile.ManagedDisk != nil {
+		result["managed_disk_type"] = string(profile.ManagedDisk.StorageAccountType)
 	}
 
 	result["caching"] = profile.Caching
@@ -784,7 +843,7 @@ func flattenAzureRmVirtualMachineScaleSetExtensionProfile(profile *compute.Virtu
 			}
 
 			if properties.Settings != nil {
-				settings, err := flattenArmVirtualMachineExtensionSettings(*properties.Settings)
+				settings, err := structure.FlattenJsonToString(*properties.Settings)
 				if err != nil {
 					return nil, err
 				}
@@ -826,8 +885,8 @@ func resourceArmVirtualMachineScaleSetStorageProfileOsDiskHash(v interface{}) in
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
 
-	if m["image"] != nil {
-		buf.WriteString(fmt.Sprintf("%s-", m["image"].(string)))
+	if m["vhd_containers"] != nil {
+		buf.WriteString(fmt.Sprintf("%s-", m["vhd_containers"].(*schema.Set).List()))
 	}
 
 	return hashcode.String(buf.String())
@@ -847,7 +906,11 @@ func resourceArmVirtualMachineScaleSetsOsProfileHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["computer_name_prefix"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["admin_username"].(string)))
 	if m["custom_data"] != nil {
-		buf.WriteString(fmt.Sprintf("%s-", m["custom_data"].(string)))
+		customData := m["custom_data"].(string)
+		if !isBase64Encoded(customData) {
+			customData = base64Encode(customData)
+		}
+		buf.WriteString(fmt.Sprintf("%s-", customData))
 	}
 	return hashcode.String(buf.String())
 }
@@ -945,6 +1008,18 @@ func expandAzureRmVirtualMachineScaleSetNetworkProfile(d *schema.ResourceData) *
 				ipConfiguration.LoadBalancerBackendAddressPools = &resources
 			}
 
+			if v := ipconfig["load_balancer_inbound_nat_rules_ids"]; v != nil {
+				rules := v.(*schema.Set).List()
+				rulesResources := make([]compute.SubResource, 0, len(rules))
+				for _, m := range rules {
+					id := m.(string)
+					rulesResources = append(rulesResources, compute.SubResource{
+						ID: &id,
+					})
+				}
+				ipConfiguration.LoadBalancerInboundNatPools = &rulesResources
+			}
+
 			ipConfigurations = append(ipConfigurations, ipConfiguration)
 		}
 
@@ -1021,9 +1096,11 @@ func expandAzureRMVirtualMachineScaleSetsStorageProfileOsDisk(d *schema.Resource
 	osDiskConfig := osDiskConfigs[0].(map[string]interface{})
 	name := osDiskConfig["name"].(string)
 	image := osDiskConfig["image"].(string)
+	vhd_containers := osDiskConfig["vhd_containers"].(*schema.Set).List()
 	caching := osDiskConfig["caching"].(string)
 	osType := osDiskConfig["os_type"].(string)
 	createOption := osDiskConfig["create_option"].(string)
+	managedDiskType := osDiskConfig["managed_disk_type"].(string)
 
 	osDisk := &compute.VirtualMachineScaleSetOSDisk{
 		Name:         &name,
@@ -1036,18 +1113,40 @@ func expandAzureRMVirtualMachineScaleSetsStorageProfileOsDisk(d *schema.Resource
 		osDisk.Image = &compute.VirtualHardDisk{
 			URI: &image,
 		}
-	} else {
+	}
+
+	if len(vhd_containers) > 0 {
 		var vhdContainers []string
-		containers := osDiskConfig["vhd_containers"].(*schema.Set).List()
-		for _, v := range containers {
+		for _, v := range vhd_containers {
 			str := v.(string)
 			vhdContainers = append(vhdContainers, str)
 		}
 		osDisk.VhdContainers = &vhdContainers
 	}
 
-	return osDisk, nil
+	managedDisk := &compute.VirtualMachineScaleSetManagedDiskParameters{}
 
+	if managedDiskType != "" {
+		if name == "" {
+			osDisk.Name = nil
+			managedDisk.StorageAccountType = compute.StorageAccountTypes(managedDiskType)
+			osDisk.ManagedDisk = managedDisk
+		} else {
+			return nil, fmt.Errorf("[ERROR] Conflict between `name` and `managed_disk_type` on `storage_profile_os_disk` (please set name to blank)")
+		}
+	}
+
+	//BEGIN: code to be removed after GH-13016 is merged
+	if image != "" && managedDiskType != "" {
+		return nil, fmt.Errorf("[ERROR] Conflict between `image` and `managed_disk_type` on `storage_profile_os_disk` (only one or the other can be used)")
+	}
+
+	if len(vhd_containers) > 0 && managedDiskType != "" {
+		return nil, fmt.Errorf("[ERROR] Conflict between `vhd_containers` and `managed_disk_type` on `storage_profile_os_disk` (only one or the other can be used)")
+	}
+	//END: code to be removed after GH-13016 is merged
+
+	return osDisk, nil
 }
 
 func expandAzureRmVirtualMachineScaleSetStorageProfileImageReference(d *schema.ResourceData) (*compute.ImageReference, error) {
@@ -1074,12 +1173,12 @@ func expandAzureRmVirtualMachineScaleSetOsProfileLinuxConfig(d *schema.ResourceD
 	linuxConfig := osProfilesLinuxConfig[0].(map[string]interface{})
 	disablePasswordAuth := linuxConfig["disable_password_authentication"].(bool)
 
-	config := &compute.LinuxConfiguration{
-		DisablePasswordAuthentication: &disablePasswordAuth,
-	}
 	linuxKeys := linuxConfig["ssh_keys"].([]interface{})
 	sshPublicKeys := make([]compute.SSHPublicKey, 0, len(linuxKeys))
 	for _, key := range linuxKeys {
+		if key == nil {
+			continue
+		}
 		sshKey := key.(map[string]interface{})
 		path := sshKey["path"].(string)
 		keyData := sshKey["key_data"].(string)
@@ -1092,8 +1191,11 @@ func expandAzureRmVirtualMachineScaleSetOsProfileLinuxConfig(d *schema.ResourceD
 		sshPublicKeys = append(sshPublicKeys, sshPublicKey)
 	}
 
-	config.SSH = &compute.SSHConfiguration{
-		PublicKeys: &sshPublicKeys,
+	config := &compute.LinuxConfiguration{
+		DisablePasswordAuthentication: &disablePasswordAuth,
+		SSH: &compute.SSHConfiguration{
+			PublicKeys: &sshPublicKeys,
+		},
 	}
 
 	return config, nil
@@ -1118,22 +1220,22 @@ func expandAzureRmVirtualMachineScaleSetOsProfileWindowsConfig(d *schema.Resourc
 	if v := osProfileConfig["winrm"]; v != nil {
 		winRm := v.(*schema.Set).List()
 		if len(winRm) > 0 {
-			winRmListners := make([]compute.WinRMListener, 0, len(winRm))
+			winRmListeners := make([]compute.WinRMListener, 0, len(winRm))
 			for _, winRmConfig := range winRm {
 				config := winRmConfig.(map[string]interface{})
 
 				protocol := config["protocol"].(string)
-				winRmListner := compute.WinRMListener{
+				winRmListener := compute.WinRMListener{
 					Protocol: compute.ProtocolTypes(protocol),
 				}
 				if v := config["certificate_url"].(string); v != "" {
-					winRmListner.CertificateURL = &v
+					winRmListener.CertificateURL = &v
 				}
 
-				winRmListners = append(winRmListners, winRmListner)
+				winRmListeners = append(winRmListeners, winRmListener)
 			}
 			config.WinRM = &compute.WinRMConfiguration{
-				Listeners: &winRmListners,
+				Listeners: &winRmListeners,
 			}
 		}
 	}
@@ -1227,7 +1329,7 @@ func expandAzureRMVirtualMachineScaleSetExtensions(d *schema.ResourceData) (*com
 		}
 
 		if s := config["settings"].(string); s != "" {
-			settings, err := expandArmVirtualMachineExtensionSettings(s)
+			settings, err := structure.ExpandJsonFromString(s)
 			if err != nil {
 				return nil, fmt.Errorf("unable to parse settings: %s", err)
 			}
@@ -1235,7 +1337,7 @@ func expandAzureRMVirtualMachineScaleSetExtensions(d *schema.ResourceData) (*com
 		}
 
 		if s := config["protected_settings"].(string); s != "" {
-			protectedSettings, err := expandArmVirtualMachineExtensionSettings(s)
+			protectedSettings, err := structure.ExpandJsonFromString(s)
 			if err != nil {
 				return nil, fmt.Errorf("unable to parse protected_settings: %s", err)
 			}

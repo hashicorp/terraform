@@ -12,7 +12,7 @@ Provides a DigitalOcean domain resource.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new domain
 resource "digitalocean_domain" "default" {
   name       = "www.example.com"

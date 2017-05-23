@@ -6,6 +6,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -32,7 +35,7 @@ func waitForASGCapacity(
 
 	log.Printf("[DEBUG] Waiting on %s for capacity...", d.Id())
 
-	return resource.Retry(wait, func() *resource.RetryError {
+	err = resource.Retry(wait, func() *resource.RetryError {
 		g, err := getAwsAutoscalingGroup(d.Id(), meta.(*AWSClient).autoscalingconn)
 		if err != nil {
 			return resource.NonRetryableError(err)
@@ -96,6 +99,30 @@ func waitForASGCapacity(
 		return resource.RetryableError(
 			fmt.Errorf("%q: Waiting up to %s: %s", d.Id(), wait, reason))
 	})
+
+	if err == nil {
+		return nil
+	}
+
+	recentStatus := ""
+
+	conn := meta.(*AWSClient).autoscalingconn
+	resp, aErr := conn.DescribeScalingActivities(&autoscaling.DescribeScalingActivitiesInput{
+		AutoScalingGroupName: aws.String(d.Id()),
+		MaxRecords:           aws.Int64(1),
+	})
+	if aErr == nil {
+		if len(resp.Activities) > 0 {
+			recentStatus = fmt.Sprintf("%s", resp.Activities[0])
+		} else {
+			recentStatus = "(0 activities found)"
+		}
+	} else {
+		recentStatus = fmt.Sprintf("(Failed to describe scaling activities: %s)", aErr)
+	}
+
+	msg := fmt.Sprintf("{{err}}. Most recent activity: %s", recentStatus)
+	return errwrap.Wrapf(msg, err)
 }
 
 type capacitySatisfiedFunc func(*schema.ResourceData, int, int) (bool, string)

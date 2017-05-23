@@ -12,7 +12,7 @@ Provides an SES receipt filter resource
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_ses_receipt_filter" "filter" {
   name   = "block-spammer"
   cidr   = "10.10.10.10"

@@ -172,6 +172,7 @@ func (s *HostService) AddHost(p *AddHostParams) (*AddHostResponse, error) {
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -299,6 +300,7 @@ func (s *HostService) ReconnectHost(p *ReconnectHostParams) (*ReconnectHostRespo
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -452,6 +454,7 @@ func (s *HostService) UpdateHost(p *UpdateHostParams) (*UpdateHostResponse, erro
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -583,6 +586,7 @@ func (s *HostService) DeleteHost(p *DeleteHostParams) (*DeleteHostResponse, erro
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -654,6 +658,7 @@ func (s *HostService) PrepareHostForMaintenance(p *PrepareHostForMaintenancePara
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -782,6 +787,7 @@ func (s *HostService) CancelHostMaintenance(p *CancelHostMaintenanceParams) (*Ca
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1130,6 +1136,7 @@ func (s *HostService) ListHosts(p *ListHostsParams) (*ListHostsResponse, error) 
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1301,6 +1308,7 @@ func (s *HostService) ListHostTags(p *ListHostTagsParams) (*ListHostTagsResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1393,6 +1401,7 @@ func (s *HostService) FindHostsForMigration(p *FindHostsForMigrationParams) (*Fi
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1497,6 +1506,7 @@ func (s *HostService) AddSecondaryStorage(p *AddSecondaryStorageParams) (*AddSec
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1601,6 +1611,7 @@ func (s *HostService) UpdateHostPassword(p *UpdateHostPasswordParams) (*UpdateHo
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1667,6 +1678,7 @@ func (s *HostService) ReleaseHostReservation(p *ReleaseHostReservationParams) (*
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1835,6 +1847,7 @@ func (s *HostService) AddBaremetalHost(p *AddBaremetalHostParams) (*AddBaremetal
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1985,6 +1998,7 @@ func (s *HostService) DedicateHost(p *DedicateHostParams) (*DedicateHostResponse
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -2056,6 +2070,7 @@ func (s *HostService) ReleaseDedicatedHost(p *ReleaseDedicatedHostParams) (*Rele
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -2175,6 +2190,7 @@ func (s *HostService) ListDedicatedHosts(p *ListDedicatedHostsParams) (*ListDedi
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -2286,6 +2302,7 @@ func (s *HostService) AddGloboDnsHost(p *AddGloboDnsHostParams) (*AddGloboDnsHos
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 

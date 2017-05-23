@@ -3,7 +3,6 @@ package aws
 import (
 	"fmt"
 	"log"
-	"sort"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -94,7 +93,7 @@ func dataSourceAwsEbsSnapshotRead(d *schema.ResourceData, meta interface{}) erro
 	snapshotIds, snapshotIdsOk := d.GetOk("snapshot_ids")
 	owners, ownersOk := d.GetOk("owners")
 
-	if restorableUsers == false && filtersOk == false && snapshotIds == false && ownersOk == false {
+	if !restorableUsersOk && !filtersOk && !snapshotIdsOk && !ownersOk {
 		return fmt.Errorf("One of snapshot_ids, filters, restorable_by_user_ids, or owners must be assigned")
 	}
 
@@ -138,20 +137,8 @@ func dataSourceAwsEbsSnapshotRead(d *schema.ResourceData, meta interface{}) erro
 	return snapshotDescriptionAttributes(d, snapshot)
 }
 
-type snapshotSort []*ec2.Snapshot
-
-func (a snapshotSort) Len() int      { return len(a) }
-func (a snapshotSort) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-func (a snapshotSort) Less(i, j int) bool {
-	itime := *a[i].StartTime
-	jtime := *a[j].StartTime
-	return itime.Unix() < jtime.Unix()
-}
-
 func mostRecentSnapshot(snapshots []*ec2.Snapshot) *ec2.Snapshot {
-	sortedSnapshots := snapshots
-	sort.Sort(snapshotSort(sortedSnapshots))
-	return sortedSnapshots[len(sortedSnapshots)-1]
+	return sortSnapshots(snapshots)[0]
 }
 
 func snapshotDescriptionAttributes(d *schema.ResourceData, snapshot *ec2.Snapshot) error {

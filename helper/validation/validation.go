@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/structure"
 )
 
 // IntBetween returns a SchemaValidateFunc which tests if the provided value
@@ -97,4 +98,11 @@ func CIDRNetwork(min, max int) schema.SchemaValidateFunc {
 
 		return
 	}
+}
+
+func ValidateJsonString(v interface{}, k string) (ws []string, errors []error) {
+	if _, err := structure.NormalizeJsonString(v); err != nil {
+		errors = append(errors, fmt.Errorf("%q contains an invalid JSON: %s", k, err))
+	}
+	return
 }

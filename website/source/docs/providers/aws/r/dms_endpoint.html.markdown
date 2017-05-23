@@ -10,9 +10,12 @@ description: |-
 
 Provides a DMS (Data Migration Service) endpoint resource. DMS endpoints can be created, updated, deleted, and imported.
 
+~> **Note:** All arguments including the password will be stored in the raw state as plain-text.
+[Read more about sensitive data in state](/docs/state/sensitive-data.html).
+
 ## Example Usage
 
-```
+```hcl
 # Create a new endpoint
 resource "aws_dms_endpoint" "test" {
   certificate_arn             = "arn:aws:acm:us-east-1:123456789012:certificate/12345678-1234-1234-1234-123456789012"

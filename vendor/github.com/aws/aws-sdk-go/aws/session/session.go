@@ -218,7 +218,7 @@ type Options struct {
 //
 //     // Force enable Shared Config support
 //     sess := session.Must(session.NewSessionWithOptions(session.Options{
-//         SharedConfigState: SharedConfigEnable,
+//         SharedConfigState: session.SharedConfigEnable,
 //     }))
 func NewSessionWithOptions(opts Options) (*Session, error) {
 	var envCfg envConfig

@@ -12,7 +12,7 @@ Provides a CloudFormation Stack resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_cloudformation_stack" "network" {
   name = "networking-stack"
 
@@ -53,7 +53,7 @@ The following arguments are supported:
 * `template_body` - (Optional) Structure containing the template body (max size: 51,200 bytes).
 * `template_url` - (Optional) Location of a file containing the template body (max size: 460,800 bytes).
 * `capabilities` - (Optional) A list of capabilities.
-  Currently, the only valid value is `CAPABILITY_IAM`
+  Valid values: `CAPABILITY_IAM` or `CAPABILITY_NAMED_IAM`
 * `disable_rollback` - (Optional) Set to true to disable rollback of the stack if stack creation failed.
   Conflicts with `on_failure`.
 * `notification_arns` - (Optional) A list of SNS topic ARNs to publish stack related events.
@@ -73,4 +73,4 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - A unique identifier of the stack.
-* `outputs` - A list of output structures.
+* `outputs` - A map of outputs from the stack.

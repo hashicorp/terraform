@@ -510,6 +510,18 @@ module.child.provider.aws
   provider.aws
 module.child.provisioner.exec
 provider.aws
+provider.aws (close)
+  aws_instance.create
+  aws_instance.other
+  module.child.aws_instance.create
+  module.child.aws_instance.other
+  provider.aws
+provisioner.exec (close)
+  module.child.aws_instance.create
+root
+  meta.count-boundary (count boundary fixup)
+  provider.aws (close)
+  provisioner.exec (close)
 `
 
 const testApplyGraphBuilderDoubleCBDStr = `
@@ -533,6 +545,15 @@ meta.count-boundary (count boundary fixup)
   aws_instance.B (destroy)
   provider.aws
 provider.aws
+provider.aws (close)
+  aws_instance.A
+  aws_instance.A (destroy)
+  aws_instance.B
+  aws_instance.B (destroy)
+  provider.aws
+root
+  meta.count-boundary (count boundary fixup)
+  provider.aws (close)
 `
 
 const testApplyGraphBuilderDestroyCountStr = `
@@ -546,4 +567,11 @@ meta.count-boundary (count boundary fixup)
   aws_instance.B
   provider.aws
 provider.aws
+provider.aws (close)
+  aws_instance.A[1] (destroy)
+  aws_instance.B
+  provider.aws
+root
+  meta.count-boundary (count boundary fixup)
+  provider.aws (close)
 `

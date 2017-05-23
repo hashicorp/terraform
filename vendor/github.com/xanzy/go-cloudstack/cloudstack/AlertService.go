@@ -206,6 +206,7 @@ func (s *AlertService) ListAlerts(p *ListAlertsParams) (*ListAlertsResponse, err
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -298,6 +299,7 @@ func (s *AlertService) ArchiveAlerts(p *ArchiveAlertsParams) (*ArchiveAlertsResp
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -382,6 +384,7 @@ func (s *AlertService) DeleteAlerts(p *DeleteAlertsParams) (*DeleteAlertsRespons
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -495,6 +498,7 @@ func (s *AlertService) GenerateAlert(p *GenerateAlertParams) (*GenerateAlertResp
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 

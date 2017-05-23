@@ -12,13 +12,13 @@ Creates a new storage container within a given storage service on Azure.
 
 ## Example Usage
 
-```
+```hcl
 resource "azure_storage_container" "stor-cont" {
   name                  = "terraform-storage-container"
   container_access_type = "blob"
   storage_service_name  = "tfstorserv"
 }
-````
+```
 
 ## Argument Reference
 

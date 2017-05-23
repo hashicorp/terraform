@@ -5,8 +5,8 @@ import "fmt"
 // Diff represents a diff of two versions as a response from the Fastly API.
 type Diff struct {
 	Format string `mapstructure:"format"`
-	From   string `mapstructure:"from"`
-	To     string `mapstructure:"to"`
+	From   int    `mapstructure:"from"`
+	To     int    `mapstructure:"to"`
 	Diff   string `mapstructure:"diff"`
 }
 
@@ -18,10 +18,10 @@ type GetDiffInput struct {
 	// From is the version to diff from. This can either be a string indicating a
 	// positive number (e.g. "1") or a negative number from "-1" down ("-1" is the
 	// latest version).
-	From string
+	From int
 
 	// To is the version to diff up to. The same rules for From apply.
-	To string
+	To int
 
 	// Format is an optional field to specify the format with which the diff will
 	// be returned. Acceptable values are "text" (default), "html", or
@@ -35,15 +35,15 @@ func (c *Client) GetDiff(i *GetDiffInput) (*Diff, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.From == "" {
+	if i.From == 0 {
 		return nil, ErrMissingFrom
 	}
 
-	if i.To == "" {
+	if i.To == 0 {
 		return nil, ErrMissingTo
 	}
 
-	path := fmt.Sprintf("service/%s/diff/from/%s/to/%s", i.Service, i.From, i.To)
+	path := fmt.Sprintf("service/%s/diff/from/%d/to/%d", i.Service, i.From, i.To)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err

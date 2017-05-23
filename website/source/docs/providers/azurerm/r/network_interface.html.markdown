@@ -12,7 +12,7 @@ Network interface cards are virtual network cards that form the link between vir
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
   name     = "acceptanceTestResourceGroup1"
   location = "West US"

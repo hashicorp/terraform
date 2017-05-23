@@ -13,7 +13,7 @@ in [AWS Docs](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/placement-grou
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_placement_group" "web" {
   name     = "hunky-dory-pg"
   strategy = "cluster"

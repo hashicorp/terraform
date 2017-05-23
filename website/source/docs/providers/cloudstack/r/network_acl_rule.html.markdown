@@ -6,13 +6,13 @@ description: |-
   Creates network ACL rules for a given network ACL.
 ---
 
-# cloudstack\_network\_acl\_rule
+# cloudstack_network_acl_rule
 
 Creates network ACL rules for a given network ACL.
 
 ## Example Usage
 
-```
+```hcl
 resource "cloudstack_network_acl_rule" "default" {
   acl_id = "f3843ce0-334c-4586-bbd3-0c2e2bc946c6"
 

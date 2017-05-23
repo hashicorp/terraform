@@ -12,7 +12,7 @@ Manages the lifecycle of a Docker container.
 
 ## Example Usage
 
-```
+```hcl
 # Start a container
 resource "docker_container" "ubuntu" {
   name  = "foo"
@@ -93,7 +93,7 @@ The following arguments are supported:
 
 Example:
 
-```
+```hcl
 resource "docker_container" "ubuntu" {
   name = "foo"
   image = "${docker_image.ubuntu.latest}"

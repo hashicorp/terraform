@@ -15,7 +15,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the NS1 provider
 provider "ns1" {
   apikey = "${var.ns1_apikey}"

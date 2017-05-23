@@ -129,17 +129,29 @@ func (n *NodeValidatableResourceInstance) EvalTree() EvalNode {
 	// Validate all the provisioners
 	for _, p := range n.Config.Provisioners {
 		var provisioner ResourceProvisioner
-		seq.Nodes = append(seq.Nodes, &EvalGetProvisioner{
-			Name:   p.Type,
-			Output: &provisioner,
-		}, &EvalInterpolate{
-			Config:   p.RawConfig.Copy(),
-			Resource: resource,
-			Output:   &config,
-		}, &EvalValidateProvisioner{
-			Provisioner: &provisioner,
-			Config:      &config,
-		})
+		var connConfig *ResourceConfig
+		seq.Nodes = append(
+			seq.Nodes,
+			&EvalGetProvisioner{
+				Name:   p.Type,
+				Output: &provisioner,
+			},
+			&EvalInterpolate{
+				Config:   p.RawConfig.Copy(),
+				Resource: resource,
+				Output:   &config,
+			},
+			&EvalInterpolate{
+				Config:   p.ConnInfo.Copy(),
+				Resource: resource,
+				Output:   &connConfig,
+			},
+			&EvalValidateProvisioner{
+				Provisioner: &provisioner,
+				Config:      &config,
+				ConnConfig:  &connConfig,
+			},
+		)
 	}
 
 	return seq

@@ -22,7 +22,7 @@ type CacheSettingAction string
 // CacheSetting represents a response from Fastly's API for cache settings.
 type CacheSetting struct {
 	ServiceID string `mapstructure:"service_id"`
-	Version   string `mapstructure:"version"`
+	Version   int    `mapstructure:"version"`
 
 	Name           string             `mapstructure:"name"`
 	Action         CacheSettingAction `mapstructure:"action"`
@@ -47,7 +47,7 @@ type ListCacheSettingsInput struct {
 	Service string
 
 	// Version is the specific configuration version (required).
-	Version string
+	Version int
 }
 
 // ListCacheSettings returns the list of cache settings for the configuration
@@ -57,11 +57,11 @@ func (c *Client) ListCacheSettings(i *ListCacheSettingsInput) ([]*CacheSetting, 
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/cache_settings", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/cache_settings", i.Service, i.Version)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -80,7 +80,7 @@ type CreateCacheSettingInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	Name           string             `form:"name,omitempty"`
 	Action         CacheSettingAction `form:"action,omitempty"`
@@ -95,11 +95,11 @@ func (c *Client) CreateCacheSetting(i *CreateCacheSettingInput) (*CacheSetting, 
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/cache_settings", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/cache_settings", i.Service, i.Version)
 	resp, err := c.PostForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -117,7 +117,7 @@ type GetCacheSettingInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the cache setting to fetch.
 	Name string
@@ -130,7 +130,7 @@ func (c *Client) GetCacheSetting(i *GetCacheSettingInput) (*CacheSetting, error)
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -138,7 +138,7 @@ func (c *Client) GetCacheSetting(i *GetCacheSettingInput) (*CacheSetting, error)
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/cache_settings/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/cache_settings/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -156,7 +156,7 @@ type UpdateCacheSettingInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the cache setting to update.
 	Name string
@@ -174,7 +174,7 @@ func (c *Client) UpdateCacheSetting(i *UpdateCacheSettingInput) (*CacheSetting, 
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -182,7 +182,7 @@ func (c *Client) UpdateCacheSetting(i *UpdateCacheSettingInput) (*CacheSetting, 
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/cache_settings/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/cache_settings/%s", i.Service, i.Version, i.Name)
 	resp, err := c.PutForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -200,7 +200,7 @@ type DeleteCacheSettingInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the cache setting to delete (required).
 	Name string
@@ -212,7 +212,7 @@ func (c *Client) DeleteCacheSetting(i *DeleteCacheSettingInput) error {
 		return ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return ErrMissingVersion
 	}
 
@@ -220,7 +220,7 @@ func (c *Client) DeleteCacheSetting(i *DeleteCacheSettingInput) error {
 		return ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/cache_settings/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/cache_settings/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Delete(path, nil)
 	if err != nil {
 		return err

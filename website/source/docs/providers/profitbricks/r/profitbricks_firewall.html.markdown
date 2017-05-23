@@ -12,7 +12,7 @@ Manages a Firewall Rules on ProfitBricks
 
 ## Example Usage
 
-```
+```hcl
 resource "profitbricks_firewall" "example" {
   datacenter_id    = "${profitbricks_datacenter.example.id}"
   server_id        = "${profitbricks_server.example.id}"

@@ -3,6 +3,7 @@ package aws
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -77,6 +78,47 @@ func TestAccAWSALBTargetGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("aws_alb_target_group.test", "health_check.0.healthy_threshold", "3"),
 					resource.TestCheckResourceAttr("aws_alb_target_group.test", "health_check.0.unhealthy_threshold", "3"),
 					resource.TestCheckResourceAttr("aws_alb_target_group.test", "health_check.0.matcher", "200-299"),
+					resource.TestCheckResourceAttr("aws_alb_target_group.test", "tags.%", "1"),
+					resource.TestCheckResourceAttr("aws_alb_target_group.test", "tags.TestName", "TestAccAWSALBTargetGroup_basic"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSALBTargetGroup_namePrefix(t *testing.T) {
+	var conf elbv2.TargetGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_alb_target_group.test",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSALBTargetGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSALBTargetGroupConfig_namePrefix,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test", &conf),
+					resource.TestMatchResourceAttr("aws_alb_target_group.test", "name", regexp.MustCompile("^tf-")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSALBTargetGroup_generatedName(t *testing.T) {
+	var conf elbv2.TargetGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_alb_target_group.test",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSALBTargetGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSALBTargetGroupConfig_generatedName,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test", &conf),
 				),
 			},
 		},
@@ -713,3 +755,28 @@ resource "aws_vpc" "test" {
   }
 }`, targetGroupName, stickinessBlock)
 }
+
+const testAccAWSALBTargetGroupConfig_namePrefix = `
+resource "aws_alb_target_group" "test" {
+  name_prefix = "tf-"
+  port = 80
+  protocol = "HTTP"
+  vpc_id = "${aws_vpc.test.id}"
+}
+
+resource "aws_vpc" "test" {
+  cidr_block = "10.0.0.0/16"
+}
+`
+
+const testAccAWSALBTargetGroupConfig_generatedName = `
+resource "aws_alb_target_group" "test" {
+  port = 80
+  protocol = "HTTP"
+  vpc_id = "${aws_vpc.test.id}"
+}
+
+resource "aws_vpc" "test" {
+  cidr_block = "10.0.0.0/16"
+}
+`

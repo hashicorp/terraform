@@ -16,7 +16,7 @@ and
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_url_map" "foobar" {
   name        = "urlmap"
   description = "a description"
@@ -41,6 +41,11 @@ resource "google_compute_url_map" "foobar" {
       paths   = ["/login"]
       service = "${google_compute_backend_service.login.self_link}"
     }
+
+    path_rule {
+      paths   = ["/static"]
+      service = "${google_compute_backend_bucket.static.self_link}"
+    }
   }
 
   test {
@@ -55,7 +60,6 @@ resource "google_compute_backend_service" "login" {
   port_name   = "http"
   protocol    = "HTTP"
   timeout_sec = 10
-  region      = "us-central1"
 
   health_checks = ["${google_compute_http_health_check.default.self_link}"]
 }
@@ -65,7 +69,6 @@ resource "google_compute_backend_service" "home" {
   port_name   = "http"
   protocol    = "HTTP"
   timeout_sec = 10
-  region      = "us-central1"
 
   health_checks = ["${google_compute_http_health_check.default.self_link}"]
 }
@@ -76,14 +79,25 @@ resource "google_compute_http_health_check" "default" {
   check_interval_sec = 1
   timeout_sec        = 1
 }
+
+resource "google_compute_backend_bucket" "static" {
+  name        = "static-asset-backend-bucket"
+  bucket_name = "${google_storage_bucket.static.name}"
+  enable_cdn  = true
+}
+
+resource "google_storage_bucket" "static" {
+  name     = "static-asset-bucket"
+  location = "US"
+}
 ```
 
 ## Argument Reference
 
 The following arguments are supported:
 
-* `default_service` - (Required) The URL of the backend service to use when none
-    of the given rules match. See the documentation for formatting the service
+* `default_service` - (Required) The URL of the backend service or backend bucket to use when none
+    of the given rules match. See the documentation for formatting the service/bucket
     URL
     [here](https://cloud.google.com/compute/docs/reference/latest/urlMaps#defaultService)
 
@@ -118,8 +132,8 @@ The `host_rule` block supports: (This block can be defined multiple times).
 
 The `path_matcher` block supports: (This block can be defined multiple times)
 
-* `default_service` - (Required) The URL for the backend service to use if none
-    of the given paths match. See the documentation for formatting the service
+* `default_service` - (Required) The URL for the backend service or backend bucket to use if none
+    of the given paths match. See the documentation for formatting the service/bucket
     URL [here](https://cloud.google.com/compute/docs/reference/latest/urlMaps#pathMatcher.defaultService)
 
 * `name` - (Required) The name of the `path_matcher` resource. Used by the
@@ -133,13 +147,13 @@ multiple times)
 * `paths` - (Required) The list of paths to match against. See the
     documentation for formatting these [here](https://cloud.google.com/compute/docs/reference/latest/urlMaps#pathMatchers.pathRules.paths)
 
-* `default_service` - (Required) The URL for the backend service to use if any
-    of the given paths match. See the documentation for formatting the service
+* `service` - (Required) The URL for the backend service or backend bucket to use if any
+    of the given paths match. See the documentation for formatting the service/bucket
     URL [here](https://cloud.google.com/compute/docs/reference/latest/urlMaps#pathMatcher.defaultService)
 
 The optional `test` block supports: (This block can be defined multiple times)
 
-* `service` - (Required) The service that should be matched by this test.
+* `service` - (Required) The backend service or backend bucket that should be matched by this test.
 
 * `host` - (Required) The host component of the URL being tested.
 

@@ -16,7 +16,7 @@ them by domain without having to hard code the ARNs as input.
 
 ## Example Usage
 
-```
+```hcl
 data "aws_acm_certificate" "example" {
   domain   = "tf.example.com"
   statuses = ["ISSUED"]

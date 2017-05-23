@@ -15,6 +15,21 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+// globalCache keeps the instances of the internal types of ignition generated
+// by the different data resources with the goal to be reused by the
+// ignition_config data resource. The key of the maps are a hash of the types
+// calculated on the type serialized to JSON.
+var globalCache = &cache{
+	disks:         make(map[string]*types.Disk, 0),
+	arrays:        make(map[string]*types.Raid, 0),
+	filesystems:   make(map[string]*types.Filesystem, 0),
+	files:         make(map[string]*types.File, 0),
+	systemdUnits:  make(map[string]*types.SystemdUnit, 0),
+	networkdUnits: make(map[string]*types.NetworkdUnit, 0),
+	users:         make(map[string]*types.User, 0),
+	groups:        make(map[string]*types.Group, 0),
+}
+
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		DataSourcesMap: map[string]*schema.Resource{
@@ -65,18 +80,6 @@ func Provider() terraform.ResourceProvider {
 				"ignition_group",
 				resourceGroup(),
 			),
-		},
-		ConfigureFunc: func(*schema.ResourceData) (interface{}, error) {
-			return &cache{
-				disks:         make(map[string]*types.Disk, 0),
-				arrays:        make(map[string]*types.Raid, 0),
-				filesystems:   make(map[string]*types.Filesystem, 0),
-				files:         make(map[string]*types.File, 0),
-				systemdUnits:  make(map[string]*types.SystemdUnit, 0),
-				networkdUnits: make(map[string]*types.NetworkdUnit, 0),
-				users:         make(map[string]*types.User, 0),
-				groups:        make(map[string]*types.Group, 0),
-			}, nil
 		},
 	}
 }

@@ -1,0 +1,11 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <ul class="nav docs-sidenav">
+      <li<%= sidebar_current("guides-writing-custom-terraform-providers") %>>
+        <a href="/guides/writing-custom-terraform-providers.html">Writing Custom Providers</a>
+      </li>
+    </ul>
+  <% end %>
+
+  <%= yield %>
+<% end %>

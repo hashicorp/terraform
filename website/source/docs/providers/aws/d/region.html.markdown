@@ -20,7 +20,7 @@ which is inheriting an AWS provider configuration from its parent module.
 The following example shows how the resource might be used to obtain
 the name of the AWS region configured on the provider.
 
-```
+```hcl
 data "aws_region" "current" {
   current = true
 }

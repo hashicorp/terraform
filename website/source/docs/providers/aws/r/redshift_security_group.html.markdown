@@ -12,7 +12,7 @@ Creates a new Amazon Redshift security group. You use security groups to control
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_redshift_security_group" "default" {
   name = "redshift-sg"
 

@@ -48,6 +48,7 @@ func resourceAwsApiGatewayDomainName() *schema.Resource {
 				Type:          schema.TypeString,
 				ForceNew:      true,
 				Optional:      true,
+				Sensitive:     true,
 				ConflictsWith: []string{"certificate_arn"},
 			},
 
