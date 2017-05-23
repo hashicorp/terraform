@@ -67,7 +67,7 @@ func testAccCheckVcdDNATExists(n string, gateway *govcd.EdgeGateway) resource.Te
 				v.GatewayNatRule.OriginalIP == os.Getenv("VCD_EXTERNAL_IP") &&
 				v.GatewayNatRule.OriginalPort == "7777" &&
 				v.GatewayNatRule.TranslatedIP == "10.10.102.60" &&
-				v.GatewayNatRule.OriginalPort == "77" {
+				v.GatewayNatRule.TranslatedPort == "77" {
 				found = true
 			}
 		}
@@ -101,7 +101,7 @@ func testAccCheckVcdDNATDestroy(s *terraform.State) error {
 				v.GatewayNatRule.OriginalIP == os.Getenv("VCD_EXTERNAL_IP") &&
 				v.GatewayNatRule.OriginalPort == "7777" &&
 				v.GatewayNatRule.TranslatedIP == "10.10.102.60" &&
-				v.GatewayNatRule.OriginalPort == "77" {
+				v.GatewayNatRule.TranslatedPort == "77" {
 				found = true
 			}
 		}
@@ -118,7 +118,7 @@ const testAccCheckVcdDnat_basic = `
 resource "vcd_dnat" "bar" {
 	edge_gateway = "%s"
 	external_ip = "%s"
-	port = 77
+	port = 7777
 	internal_ip = "10.10.102.60"
 	translated_port = 77
 }
