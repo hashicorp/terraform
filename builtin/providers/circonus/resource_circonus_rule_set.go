@@ -123,7 +123,7 @@ func resourceRuleSet() *schema.Resource {
 		Delete: ruleSetDelete,
 		Exists: ruleSetExists,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: importStatePassthroughUnescape,
 		},
 
 		Schema: convertToHelperSchema(ruleSetDescriptions, map[schemaAttr]*schema.Schema{
