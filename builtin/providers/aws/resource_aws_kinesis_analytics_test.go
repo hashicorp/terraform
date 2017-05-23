@@ -105,7 +105,7 @@ func areRootAttributesCorrect(desc *kinesisanalytics.ApplicationDetail) resource
 			if *desc.ApplicationCode != rs.Primary.Attributes["application_code"] {
 				return fmt.Errorf("Bad Application Code\n\t expected: %s\n\tgot: %s\n",
 					rs.Primary.Attributes["application_code"],
-					desc.ApplicationCode)
+					*desc.ApplicationCode)
 			}
 		}
 		return nil

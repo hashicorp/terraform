@@ -291,7 +291,7 @@ func createInputList(inputs []interface{}) ([]*kinesisanalytics.Input, error) {
 				},
 			}
 		} else {
-			return nil, fmt.Errorf("format must be either 'JSON or CSV'. you gave an unsupported record format type: %s", i.InputSchema.RecordFormat.RecordFormatType)
+			return nil, fmt.Errorf("format must be either 'JSON or CSV'. you gave an unsupported record format type: %s", *i.InputSchema.RecordFormat.RecordFormatType)
 		}
 
 		inputStreams = append(inputStreams, i)
