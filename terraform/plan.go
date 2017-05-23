@@ -34,6 +34,11 @@ type Plan struct {
 	// Backend is the backend that this plan should use and store data with.
 	Backend *BackendState
 
+	// ProvidersSHA256 remembers the hashes of the provider plugins that
+	// were used to produce the plan, so we can verify that we still have the
+	// same plugins during apply.
+	ProvidersSHA256 map[string][]byte
+
 	once sync.Once
 }
 

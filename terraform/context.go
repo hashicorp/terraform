@@ -62,6 +62,7 @@ type ContextOpts struct {
 	Shadow             bool
 	Targets            []string
 	Variables          map[string]interface{}
+	ProvidersSHA256    map[string][]byte
 
 	UIInput UIInput
 }
@@ -84,20 +85,21 @@ type Context struct {
 	// that newShadowContext still does the right thing. Tests should
 	// fail regardless but putting this note here as well.
 
-	components contextComponentFactory
-	destroy    bool
-	diff       *Diff
-	diffLock   sync.RWMutex
-	hooks      []Hook
-	meta       *ContextMeta
-	module     *module.Tree
-	sh         *stopHook
-	shadow     bool
-	state      *State
-	stateLock  sync.RWMutex
-	targets    []string
-	uiInput    UIInput
-	variables  map[string]interface{}
+	components      contextComponentFactory
+	destroy         bool
+	diff            *Diff
+	diffLock        sync.RWMutex
+	hooks           []Hook
+	meta            *ContextMeta
+	module          *module.Tree
+	sh              *stopHook
+	shadow          bool
+	state           *State
+	stateLock       sync.RWMutex
+	targets         []string
+	uiInput         UIInput
+	variables       map[string]interface{}
+	providersSHA256 map[string][]byte
 
 	l                   sync.Mutex // Lock acquired during any task
 	parallelSem         Semaphore
@@ -198,16 +200,17 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 			providers:    providers,
 			provisioners: opts.Provisioners,
 		},
-		destroy:   opts.Destroy,
-		diff:      diff,
-		hooks:     hooks,
-		meta:      opts.Meta,
-		module:    opts.Module,
-		shadow:    opts.Shadow,
-		state:     state,
-		targets:   opts.Targets,
-		uiInput:   opts.UIInput,
-		variables: variables,
+		destroy:         opts.Destroy,
+		diff:            diff,
+		hooks:           hooks,
+		meta:            opts.Meta,
+		module:          opts.Module,
+		shadow:          opts.Shadow,
+		state:           state,
+		targets:         opts.Targets,
+		uiInput:         opts.UIInput,
+		variables:       variables,
+		providersSHA256: opts.ProvidersSHA256,
 
 		parallelSem:         NewSemaphore(par),
 		providerInputConfig: make(map[string]map[string]interface{}),
@@ -522,6 +525,8 @@ func (c *Context) Plan() (*Plan, error) {
 		Vars:    c.variables,
 		State:   c.state,
 		Targets: c.targets,
+
+		ProvidersSHA256: c.providersSHA256,
 	}
 
 	var operation walkOperation
