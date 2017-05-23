@@ -57,7 +57,7 @@ The following arguments are supported:
 * `image_id` - (Required) The Image to use for the instance. ECS instance's image can be replaced via changing 'image_id'.
 * `instance_type` - (Required) The type of instance to start.
 * `io_optimized` - (Required) Valid values are `none`, `optimized`, If `optimized`, the launched ECS instance will be I/O optimized.
-* `security_groups` - (Optional)  A list of security group ids to associate with.
+* `security_groups` - (Required)  A list of security group ids to associate with.
 * `availability_zone` - (Optional) The Zone to start the instance in.
 * `instance_name` - (Optional) The name of the ECS. This instance_name can have a string of 2 to 128 characters, must contain only alphanumeric characters or hyphens, such as "-",".","_", and must not begin or end with a hyphen, and must not begin with http:// or https://. If not specified, 
 Terraform will autogenerate a default name is `ECS-Instance`.
