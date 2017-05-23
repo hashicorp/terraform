@@ -105,25 +105,24 @@ func (v *Vdc) FindVDCNetwork(network string) (OrgVDCNetwork, error) {
 	return OrgVDCNetwork{}, fmt.Errorf("can't find VDC Network: %s", network)
 }
 
-func (v *Vdc) FindStorageProfile(storage_profile string) (types.Reference, error) {
+func (v *Vdc) FindStorageProfileReference(name string) (types.Reference, error) {
 
-	for _, an := range v.Vdc.VdcStorageProfiles {
-		for _, n := range an.VdcStorageProfile {
-			if n.Name == storage_profile {
-				return *n, nil
+	for _, sps := range v.Vdc.VdcStorageProfiles {
+		for _, sp := range sps.VdcStorageProfile {
+			if sp.Name == name {
+				return types.Reference{HREF: sp.HREF, Name: sp.Name}, nil
 			}
 		}
-		return types.Reference{}, fmt.Errorf("can't find VDC Storage_profile: %s", storage_profile)
+		return types.Reference{}, fmt.Errorf("can't find VDC Storage_profile: %s", name)
 	}
 	return types.Reference{}, fmt.Errorf("can't find any VDC Storage_profiles")
 }
 
-func (v *Vdc) GetDefaultStorageProfile(storage_profiles *types.QueryResultRecordsType) (types.Reference, error) {
+func (v *Vdc) GetDefaultStorageProfileReference(storageprofiles *types.QueryResultRecordsType) (types.Reference, error) {
 
-	for _, n := range storage_profiles.OrgVdcStorageProfileRecord {
-		if n.IsDefaultStorageProfile {
-			storage_profile_reference := types.Reference{HREF: n.HREF, Name: n.Name}
-			return storage_profile_reference, nil
+	for _, spr := range storageprofiles.OrgVdcStorageProfileRecord {
+		if spr.IsDefaultStorageProfile {
+			return types.Reference{HREF: spr.HREF, Name: spr.Name}, nil
 		}
 	}
 	return types.Reference{}, fmt.Errorf("can't find Default VDC Storage_profile")
