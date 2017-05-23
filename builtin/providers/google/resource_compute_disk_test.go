@@ -31,7 +31,7 @@ func TestAccComputeDisk_basic(t *testing.T) {
 	})
 }
 
-func TestAccComputeDisk_from_snapshot_uri(t *testing.T) {
+func TestAccComputeDisk_fromSnapshotURI(t *testing.T) {
 	diskName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
 	firstDiskName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
 	snapshotName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
@@ -45,7 +45,7 @@ func TestAccComputeDisk_from_snapshot_uri(t *testing.T) {
 		CheckDestroy: testAccCheckComputeDiskDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeDisk_from_snapshot_uri(firstDiskName, snapshotName, diskName, xpn_host),
+				Config: testAccComputeDisk_fromSnapshotURI(firstDiskName, snapshotName, diskName, xpn_host),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeDiskExists(
 						"google_compute_disk.seconddisk", &disk),
@@ -155,7 +155,7 @@ resource "google_compute_disk" "foobar" {
 }`, diskName)
 }
 
-func testAccComputeDisk_from_snapshot_uri(firstDiskName string, snapshotName string, diskName string, xpn_host string) string {
+func testAccComputeDisk_fromSnapshotURI(firstDiskName, snapshotName, diskName, xpn_host string) string {
 	return fmt.Sprintf(`
 		resource "google_compute_disk" "foobar" {
 			name = "%s"
