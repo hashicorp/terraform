@@ -273,7 +273,7 @@ func resourceAliyunSlbRead(d *schema.ResourceData, meta interface{}) error {
 	slbconn := meta.(*AliyunClient).slbconn
 	loadBalancer, err := slbconn.DescribeLoadBalancerAttribute(d.Id())
 	if err != nil {
-		if notFoundError(err) {
+		if NotFoundError(err) {
 			d.SetId("")
 			return nil
 		}
@@ -502,6 +502,10 @@ func createListener(conn *slb.Client, loadBalancerId string, listener *Listener)
 		if err := conn.CreateLoadBalancerUDPListener(&args); err != nil {
 			return err
 		}
+	}
+
+	if err := conn.WaitForListenerAsyn(loadBalancerId, listener.LoadBalancerPort, slb.ListenerType(strings.ToUpper(listener.Protocol)), slb.Stopped, defaultTimeout); err != nil {
+		return fmt.Errorf("WaitForListener %s got error: %#v", slb.Stopped, err)
 	}
 
 	if err := conn.StartLoadBalancerListener(loadBalancerId, listener.LoadBalancerPort); err != nil {

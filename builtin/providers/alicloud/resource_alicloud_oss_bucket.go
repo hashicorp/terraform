@@ -29,7 +29,7 @@ func resourceAlicloudOssBucket() *schema.Resource {
 
 			"acl": &schema.Schema{
 				Type:         schema.TypeString,
-				Default:      "private",
+				Default:      oss.ACLPrivate,
 				Optional:     true,
 				ValidateFunc: validateOssBucketAcl,
 			},

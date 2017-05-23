@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/denverdino/aliyungo/common"
 	"github.com/denverdino/aliyungo/ecs"
-	"github.com/denverdino/aliyungo/oss"
 	"github.com/denverdino/aliyungo/slb"
 	"github.com/hashicorp/terraform/helper/schema"
 	"regexp"
@@ -589,11 +589,11 @@ func validateOssBucketName(v interface{}, k string) (ws []string, errors []error
 
 func validateOssBucketAcl(v interface{}, k string) (ws []string, errors []error) {
 	if value := v.(string); value != "" {
-		acls := oss.ACL(value)
-		if acls != oss.Private && acls != oss.PublicRead && acls != oss.PublicReadWrite {
+		acls := oss.ACLType(value)
+		if acls != oss.ACLPrivate && acls != oss.ACLPublicRead && acls != oss.ACLPublicReadWrite {
 			errors = append(errors, fmt.Errorf(
 				"%q must be a valid ACL value , expected %s, %s or %s, got %q",
-				k, oss.Private, oss.PublicRead, oss.PublicReadWrite, acls))
+				k, oss.ACLPrivate, oss.ACLPublicRead, oss.ACLPublicReadWrite, acls))
 		}
 	}
 	return
@@ -613,6 +613,16 @@ func validateOssBucketDateTimestamp(v interface{}, k string) (ws []string, error
 	if err != nil {
 		errors = append(errors, fmt.Errorf(
 			"%q cannot be parsed as RFC3339 Timestamp Format", value))
+	}
+	return
+}
+
+func validateOssBucketObjectServerSideEncryption(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	if ServerSideEncryptionAes256 != value {
+		errors = append(errors, fmt.Errorf(
+			"%q must be a valid value, expected %s", k, ServerSideEncryptionAes256))
 	}
 	return
 }

@@ -3,6 +3,7 @@ package alicloud
 import (
 	"fmt"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -24,7 +25,12 @@ func TestAccAlicloudOssBucketBasic(t *testing.T) {
 		CheckDestroy:  testAccCheckOssBucketDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccOssBucketBasic,
+				Config: fmt.Sprintf(`
+						resource "alicloud_oss_bucket" "basic" {
+						bucket = "test-bucket-basic-%d"
+						acl = "public-read"
+						}
+						`, acctest.RandInt()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckOssBucketExists(
 						"alicloud_oss_bucket.basic", &bucket),
@@ -57,7 +63,23 @@ func TestAccAlicloudOssBucketCors(t *testing.T) {
 		CheckDestroy:  testAccCheckOssBucketDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccOssBucketCors,
+				Config: fmt.Sprintf(`
+						resource "alicloud_oss_bucket" "cors" {
+							bucket = "test-bucket-cors-%d"
+							cors_rule ={
+								allowed_origins=["*"]
+								allowed_methods=["PUT","GET"]
+								allowed_headers=["authorization"]
+							}
+							cors_rule ={
+								allowed_origins=["http://www.a.com", "http://www.b.com"]
+								allowed_methods=["GET"]
+								allowed_headers=["authorization"]
+								expose_headers=["x-oss-test","x-oss-test1"]
+								max_age_seconds=100
+							}
+						}
+						`, acctest.RandInt()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckOssBucketExists(
 						"alicloud_oss_bucket.cors", &bucket),
@@ -89,7 +111,15 @@ func TestAccAlicloudOssBucketWebsite(t *testing.T) {
 		CheckDestroy:  testAccCheckOssBucketDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccOssBucketWebsite,
+				Config: fmt.Sprintf(`
+						resource "alicloud_oss_bucket" "website"{
+							bucket = "test-bucket-website-%d"
+							website = {
+								index_document = "index.html"
+								error_document = "error.html"
+							}
+						}
+						`, acctest.RandInt()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckOssBucketExists(
 						"alicloud_oss_bucket.website", &bucket),
@@ -116,7 +146,18 @@ func TestAccAlicloudOssBucketLogging(t *testing.T) {
 		CheckDestroy:  testAccCheckOssBucketDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccOssBucketLogging,
+				Config: fmt.Sprintf(`
+						resource "alicloud_oss_bucket" "target"{
+							bucket = "test-target-%d"
+						}
+						resource "alicloud_oss_bucket" "logging" {
+							bucket = "test-bucket-logging"
+							logging {
+								target_bucket = "${alicloud_oss_bucket.target.id}"
+								target_prefix = "log/"
+							}
+						}
+						`, acctest.RandInt()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckOssBucketExists(
 						"alicloud_oss_bucket.target", &bucket),
@@ -146,7 +187,15 @@ func TestAccAlicloudOssBucketReferer(t *testing.T) {
 		CheckDestroy:  testAccCheckOssBucketDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccOssBucketReferer,
+				Config: fmt.Sprintf(`
+						resource "alicloud_oss_bucket" "referer" {
+							bucket = "test-bucket-referer-%d"
+							referer_config {
+								allow_empty = false
+								referers = ["http://www.aliyun.com", "https://www.aliyun.com"]
+							}
+						}
+						`, acctest.RandInt()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckOssBucketExists(
 						"alicloud_oss_bucket.referer", &bucket),
@@ -173,7 +222,27 @@ func TestAccAlicloudOssBucketLifecycle(t *testing.T) {
 		CheckDestroy:  testAccCheckOssBucketDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccOssBucketLifecycle,
+				Config: fmt.Sprintf(`
+						resource "alicloud_oss_bucket" "lifecycle"{
+							bucket = "test-bucket-lifecycle-%d"
+							lifecycle_rule {
+								id = "rule1"
+								prefix = "path1/"
+								enabled = true
+								expiration {
+									days = 365
+								}
+							}
+							lifecycle_rule {
+								id = "rule2"
+								prefix = "path2/"
+								enabled = true
+								expiration {
+									date = "2018-01-12"
+								}
+							}
+						}
+						`, acctest.RandInt()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckOssBucketExists(
 						"alicloud_oss_bucket.lifecycle", &bucket),
@@ -232,6 +301,35 @@ func testAccCheckOssBucketExistsWithProviders(n string, b *oss.BucketInfo, provi
 		return fmt.Errorf("Bucket not found")
 	}
 }
+
+func TestResourceAlicloudOssBucketAcl_validation(t *testing.T) {
+	_, errors := validateOssBucketAcl("incorrect", "acl")
+	if len(errors) == 0 {
+		t.Fatalf("Expected to trigger a validation error")
+	}
+
+	var testCases = []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "public-read",
+			ErrCount: 0,
+		},
+		{
+			Value:    "public-read-write",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		_, errors := validateOssBucketAcl(tc.Value, "acl")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected not to trigger a validation error")
+		}
+	}
+}
+
 func testAccCheckOssBucketDestroy(s *terraform.State) error {
 	return testAccCheckOssBucketDestroyWithProvider(s, testAccProvider)
 }
@@ -263,80 +361,3 @@ func testAccCheckOssBucketDestroyWithProvider(s *terraform.State, provider *sche
 
 	return nil
 }
-
-const testAccOssBucketBasic = `
-resource "alicloud_oss_bucket" "basic" {
-  	bucket = "test-bucket-basic"
-  	acl = "public-read"
-}
-`
-const testAccOssBucketCors = `
-resource "alicloud_oss_bucket" "cors" {
-  	bucket = "test-bucket-cors"
-	cors_rule ={
-		allowed_origins=["*"]
-		allowed_methods=["PUT","GET"]
-		allowed_headers=["authorization"]
-	}
-	cors_rule ={
-		allowed_origins=["http://www.a.com", "http://www.b.com"]
-		allowed_methods=["GET"]
-		allowed_headers=["authorization"]
-		expose_headers=["x-oss-test","x-oss-test1"]
-		max_age_seconds=100
-	}
-}
-`
-const testAccOssBucketWebsite = `
-resource "alicloud_oss_bucket" "website"{
-	bucket = "test-bucket-website"
-	website = {
-		index_document = "index.html"
-		error_document = "error.html"
-	}
-}
-`
-const testAccOssBucketLogging = `
-resource "alicloud_oss_bucket" "target"{
-	bucket = "test-target"
-}
-resource "alicloud_oss_bucket" "logging" {
-	bucket = "test-bucket-logging"
-	logging {
-		target_bucket = "${alicloud_oss_bucket.target.id}"
-		target_prefix = "log/"
-	}
-}
-`
-
-const testAccOssBucketReferer = `
-resource "alicloud_oss_bucket" "referer" {
-	bucket = "test-bucket-referer"
-	referer_config {
-		allow_empty = false
-		referers = ["http://www.aliyun.com", "https://www.aliyun.com"]
-	}
-}
-`
-
-const testAccOssBucketLifecycle = `
-resource "alicloud_oss_bucket" "lifecycle"{
-	bucket = "test-bucket-lifecycle"
-	lifecycle_rule {
-		id = "rule1"
-		prefix = "path1/"
-		enabled = true
-		expiration {
-			days = 365
-		}
-	}
-	lifecycle_rule {
-		id = "rule2"
-		prefix = "path2/"
-		enabled = true
-		expiration {
-			date = "2018-01-12"
-		}
-	}
-}
-`
