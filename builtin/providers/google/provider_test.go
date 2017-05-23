@@ -78,6 +78,10 @@ func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("GOOGLE_XPN_HOST_PROJECT"); v == "" {
 		t.Fatal("GOOGLE_XPN_HOST_PROJECT must be set for acceptance tests")
 	}
+
+	if v := os.Getenv("GOOGLE_COMPUTE_DISK_SNAPSHOT_URI"); v == "" {
+		t.Fatal("GOOGLE_COMPUTE_DISK_SNAPSHOT_URI must be set for acceptance tests")
+	}
 }
 
 func TestProvider_getRegionFromZone(t *testing.T) {
