@@ -257,18 +257,8 @@ func resourceComputeBackendServiceRead(d *schema.ResourceData, meta interface{})
 
 	d.Set("backend", flattenBackends(service.Backends))
 
-	_, schemaHasConnectionDrainingBlock := d.GetOk("connection_draining")
-	d.Set("connection_draining", flattenConnectionDraining(service.ConnectionDraining))
-
-	// connection_draining block exists and is empty or timeout is set to 0 and we are not importing
-	if _, ok := d.GetOk("connection_draining"); !ok && schemaHasConnectionDrainingBlock {
-		// add a dummy block so that we do not see possible changes indefinitely
-		connection_draining_block_set := make([]map[string]interface{}, 0, 1)
-		connection_draining_block := make(map[string]interface{})
-		connection_draining_block["draining_timeout_sec"] = 0
-		connection_draining_block_set = append(connection_draining_block_set, connection_draining_block)
-		d.Set("connection_draining", connection_draining_block_set)
-	}
+	_, ok := d.GetOk("connection_draining")
+	d.Set("connection_draining", flattenConnectionDraining(service.ConnectionDraining, ok))
 
 	d.Set("health_checks", service.HealthChecks)
 
@@ -435,8 +425,8 @@ func expandConnectionDraining(n []interface{}) *compute.ConnectionDraining {
 	return &connectionDraining
 }
 
-func flattenConnectionDraining(connectionDraining *compute.ConnectionDraining) []map[string]interface{} {
-	if connectionDraining.DrainingTimeoutSec == 0 {
+func flattenConnectionDraining(connectionDraining *compute.ConnectionDraining, blockInSchema bool) []map[string]interface{} {
+	if connectionDraining.DrainingTimeoutSec == 0 && !blockInSchema {
 		return make([]map[string]interface{}, 0, 0)
 	}
 
