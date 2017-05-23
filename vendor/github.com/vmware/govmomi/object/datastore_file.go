@@ -232,8 +232,9 @@ func (f *DatastoreFile) get() (io.Reader, error) {
 	return f.body, nil
 }
 
-func lastIndexLines(s []byte, n *int) int64 {
+func lastIndexLines(s []byte, line *int, include func(l int, m string) bool) (int64, bool) {
 	i := len(s) - 1
+	done := false
 
 	for i > 0 {
 		o := bytes.LastIndexByte(s[:i], '\n')
@@ -241,18 +242,26 @@ func lastIndexLines(s []byte, n *int) int64 {
 			break
 		}
 
+		msg := string(s[o:i])
 		i = o
-		*n--
-		if *n == 0 {
+		*line++
+		if !include(*line, msg) {
+			done = true
 			break
 		}
 	}
 
-	return int64(i)
+	return int64(i), done
 }
 
 // Tail seeks to the position of the last N lines of the file.
 func (f *DatastoreFile) Tail(n int) error {
+	return f.TailFunc(func(line int, _ string) bool { return n > line })
+}
+
+// TailFunc will seek backwards in the datastore file until it hits a line that does
+// not satisfy the supplied `include` function.
+func (f *DatastoreFile) TailFunc(include func(line int, message string) bool) error {
 	// Read the file in reverse using bsize chunks
 	const bsize = int64(1024 * 16)
 
@@ -261,13 +270,10 @@ func (f *DatastoreFile) Tail(n int) error {
 		return err
 	}
 
-	if n == 0 {
-		return nil
-	}
-
 	chunk := int64(-1)
 
 	buf := bytes.NewBuffer(make([]byte, 0, bsize))
+	line := 0
 
 	for {
 		var eof bool
@@ -298,19 +304,19 @@ func (f *DatastoreFile) Tail(n int) error {
 		}
 
 		b := buf.Bytes()
-		idx := lastIndexLines(b, &n) + 1
+		idx, done := lastIndexLines(b, &line, include)
 
-		if n == 0 {
+		if done {
 			if chunk == -1 {
 				// We found all N lines in the last chunk of the file.
 				// The seek offset is also now at the current end of file.
 				// Save this buffer to avoid another GET request when Read() is called.
-				buf.Next(int(idx))
+				buf.Next(int(idx + 1))
 				f.buf = buf
 				return nil
 			}
 
-			if _, err = f.Seek(pos+idx, io.SeekStart); err != nil {
+			if _, err = f.Seek(pos+idx+1, io.SeekStart); err != nil {
 				return err
 			}
 

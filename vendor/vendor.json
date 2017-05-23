@@ -3006,11 +3006,12 @@
 			"revisionTime": "2016-03-30T18:21:26Z"
 		},
 		{
-			"checksumSHA1": "VK+9fon/pJt+ZebKV+iCx3ILZFI=",
+			"checksumSHA1": "3YnmP0on/7F5R+LU01obMIyppw8=",
 			"comment": "v0.6.2",
 			"path": "github.com/vmware/govmomi",
-			"revision": "35caa01bfa4cbff15d06382021e2028bdf0a77ad",
-			"revisionTime": "2017-05-09T22:59:20Z"
+			"revision": "6f8ebd89d521d9f9af7a6c2219c4deee511020dd",
+			"revisionTime": "2017-05-22T21:01:57Z",
+			"tree": true
 		},
 		{
 			"checksumSHA1": "xyxo9nWPro79ae/TGNZOlWKSPUk=",
