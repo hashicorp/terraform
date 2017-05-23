@@ -2,6 +2,7 @@ package google
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -24,6 +25,30 @@ func TestAccComputeDisk_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeDiskExists(
 						"google_compute_disk.foobar", &disk),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeDisk_from_snapshot_uri(t *testing.T) {
+	diskName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	firstDiskName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	snapshotName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	var xpn_host = os.Getenv("GOOGLE_XPN_HOST_PROJECT")
+
+	var disk compute.Disk
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeDiskDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeDisk_from_snapshot_uri(firstDiskName, snapshotName, diskName, xpn_host),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeDiskExists(
+						"google_compute_disk.seconddisk", &disk),
 				),
 			},
 		},
@@ -128,6 +153,31 @@ resource "google_compute_disk" "foobar" {
 	type = "pd-ssd"
 	zone = "us-central1-a"
 }`, diskName)
+}
+
+func testAccComputeDisk_from_snapshot_uri(firstDiskName string, snapshotName string, diskName string, xpn_host string) string {
+	return fmt.Sprintf(`
+		resource "google_compute_disk" "foobar" {
+			name = "%s"
+			image = "debian-8-jessie-v20160803"
+			size = 50
+			type = "pd-ssd"
+			zone = "us-central1-a"
+			project = "%s"
+		}
+
+resource "google_compute_snapshot" "snapdisk" {
+  name = "%s"
+  source_disk = "${google_compute_disk.foobar.name}"
+  zone = "us-central1-a"
+	project = "%s"
+}
+resource "google_compute_disk" "seconddisk" {
+	name = "%s"
+	snapshot = "${google_compute_snapshot.snapdisk.self_link}"
+	type = "pd-ssd"
+	zone = "us-central1-a"
+}`, firstDiskName, xpn_host, snapshotName, xpn_host, diskName)
 }
 
 func testAccComputeDisk_encryption(diskName string) string {
