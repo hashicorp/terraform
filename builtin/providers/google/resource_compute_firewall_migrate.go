@@ -13,7 +13,7 @@ import (
 func resourceComputeFirewallMigrateState(
 	v int, is *terraform.InstanceState, meta interface{}) (*terraform.InstanceState, error) {
 	if is.Empty() {
-		log.Println("[DEBUG] Empty FirewallState; nothing to migrate.")
+		log.Println("[DEBUG] Empty InstanceState; nothing to migrate.")
 		return is, nil
 	}
 

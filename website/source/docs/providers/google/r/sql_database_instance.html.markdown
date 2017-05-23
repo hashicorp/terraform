@@ -163,6 +163,11 @@ to work, cannot be updated, and supports:
 * `dump_file_path` - (Optional) Path to a SQL file in GCS from which slave
     instances are created. Format is `gs://bucket/filename`.
 
+* `failover_target` - (Optional) Specifies if the replica is the failover target.
+    If the field is set to true the replica will be designated as a failover replica.
+    If the master instance fails, the replica instance will be promoted as
+    the new master instance.
+
 * `master_heartbeat_period` - (Optional) Time in ms between replication
     heartbeats.
 
