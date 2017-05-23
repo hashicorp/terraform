@@ -50,10 +50,6 @@ resource "aws_kinesis_stream" "test_input_stream_a" {
   name             = "terraform-kinesis-analytics-input-a-test"
   shard_count      = 1
 }
-resource "aws_kinesis_stream" "test_input_stream_b" {
-  name             = "terraform-kinesis-analytics-input-b-test"
-  shard_count      = 1
-}
 
 resource "aws_kinesis_stream" "test_output_stream_a" {
   name             = "terraform-kinesis-analytics-output-a-test"
@@ -86,25 +82,6 @@ resource "aws_kinesis_analytics" "test_application" {
     arn = "${aws_kinesis_stream.test_input_stream_a.arn}"
     role_arn = "${aws_iam_role.ka_test_role.arn}"
   }
-  inputs{
-    name = "SOURCE_SQL_STREAM_B"
-    record_format_type = "CSV"
-    record_format_encoding = "UTF-8"
-    record_row_delimiter = "\n"
-    record_column_delimiter = ","
-    columns{
-      name = "id"
-      sql_type = "INTEGER"
-      mapping = "id"
-    }
-    columns{
-      name = "lastName"
-      sql_type = "VARCHAR(256)"
-      mapping = "lastName"
-    }
-    arn = "${aws_kinesis_stream.test_input_stream_b.arn}"
-    role_arn = "${aws_iam_role.ka_test_role.arn}"
-  }
   outputs {
     name = "DESTINATION_SQL_STREAM_A"
     record_format_type = "JSON"
@@ -126,7 +103,7 @@ _The following arguments are supported:_
 - `name` - (Required) A name to identify the application. This is unique to the AWS account and region the application is created in.
 - `application_description` - (Optional) a short sring that identifies the application purpose.
 - `application_code` - (Optional) sql code that will run at the heart of this application.
-- `inputs` - (Optional) up to four kinesis streams are supported as stream inputs.
+- `inputs` - (Optional) AWS supports one kinesis stream input to an application.
 - `outputs` - (Optional) up to four kinesis streams/firehose are supported as stream outputs.
 
 
