@@ -78,6 +78,7 @@ type memoryAllocation struct {
 
 type virtualMachine struct {
 	name                  string
+	hostname              string
 	folder                string
 	datacenter            string
 	cluster               string
@@ -128,6 +129,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
+			},
+
+			"hostname": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
 				ForceNew: true,
 			},
 
@@ -664,6 +671,10 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		memoryAllocation: memoryAllocation{
 			reservation: int64(d.Get("memory_reservation").(int)),
 		},
+	}
+
+	if v, ok := d.GetOk("hostname"); ok {
+		vm.hostname = v.(string)
 	}
 
 	if v, ok := d.GetOk("folder"); ok {
@@ -2044,10 +2055,14 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 			}
 
 			customIdentification := types.CustomizationIdentification{}
+			
+			if len(vm.hostname) == 0 {
+				vm.hostname = vm.name
+			}
 
 			userData := types.CustomizationUserData{
 				ComputerName: &types.CustomizationFixedName{
-					Name: strings.Split(vm.name, ".")[0],
+					Name: strings.Split(vm.hostname, ".")[0],
 				},
 				ProductId: vm.windowsOptionalConfig.productKey,
 				FullName:  "terraform",
@@ -2076,9 +2091,12 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 				UserData:       userData,
 			}
 		} else {
+			if len(vm.hostname) == 0 {
+				vm.hostname = vm.name
+			}
 			identity_options = &types.CustomizationLinuxPrep{
 				HostName: &types.CustomizationFixedName{
-					Name: strings.Split(vm.name, ".")[0],
+					Name: strings.Split(vm.hostname, ".")[0],
 				},
 				Domain:     vm.domain,
 				TimeZone:   vm.timeZone,
