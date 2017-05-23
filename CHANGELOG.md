@@ -2,6 +2,7 @@
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
+* When assigning a "splat variable" to a resource attribute, like `foo = "${some_resource.foo.*.baz}"`, it is no longer required (nor recommended) to wrap the string in list brackets. The extra brackets continue to be allowed for resource attributes for compatibility, but this will cease to be allowed in a future version. [GH-14737]
 * provider/aws: Allow lightsail resources to work in other regions. Previously Terraform would automatically configure lightsail resources to run solely in `us-east-1`. This means that if a provider was initialized with a different region than `us-east-1`, users will need to create a provider alias to maintain their lightsail resources in us-east-1 [GH-14685].
 * provider/aws: Users of `aws_cloudfront_distribution` `default_cache_behavior` will notice that cookies is now a required value - even if that value is none [GH-12628]
 * provider/google: Users of `google_compute_health_check` who were not setting a value for the `host` property of `http_health_check` or `https_health_check` previously had a faulty default value. This has been fixed and will show as a change in terraform plan/apply. [GH-14441]
@@ -27,6 +28,7 @@ FEATURES:
 IMPROVEMENTS:
 
 * core: After `apply`, if the state cannot be persisted to remote for some reason then write out a local state file for recovery [GH-14423]
+* core: It's no longer required to surround an attribute value that is just a "splat" variable with a redundant set of array brackets. [GH-14737]
 * core/provider-split: Split out the Oracle OPC provider to new structure [GH-14362]
 * provider/aws: Show state reason when EC2 instance fails to launch [GH-14479]
 * provider/aws: Show last scaling activity when ASG creation/update fails [GH-14480]
@@ -63,6 +65,7 @@ BUG FIXES:
 * core: Fixed 0.9 regression causing issues during refresh when adding new data resource instances using `count` [GH-14098]
 * core: Fixed crasher when populating a "splat variable" from an empty (nil) module state. [GH-14526]
 * core: fix bad Sprintf in backend migration message [GH-14601]
+* core: Addressed 0.9.5 issue with passing partially-unknown splat results through module variables, by removing the requirement to pass a redundant list level. [GH-14737]
 * provider/aws: Allow updating constraints in WAF SizeConstraintSet + no constraints [GH-14661]
 * provider/aws: Allow updating tuples in WAF ByteMatchSet + no tuples [GH-14071]
 * provider/aws: Allow updating tuples in WAF SQLInjectionMatchSet + no tuples [GH-14667]
