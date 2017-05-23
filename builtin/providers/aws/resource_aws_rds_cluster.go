@@ -308,7 +308,7 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 			log.Println("[INFO] Waiting for RDS Cluster to be available")
 
 			stateConf := &resource.StateChangeConf{
-				Pending:    []string{"creating", "backing-up", "modifying", "preparing-data-migration"},
+				Pending:    []string{"creating", "backing-up", "modifying", "preparing-data-migration", "migrating"},
 				Target:     []string{"available"},
 				Refresh:    resourceAwsRDSClusterStateRefreshFunc(d, meta),
 				Timeout:    d.Timeout(schema.TimeoutCreate),
