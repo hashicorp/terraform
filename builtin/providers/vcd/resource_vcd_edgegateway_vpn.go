@@ -187,15 +187,7 @@ func resourceVcdEdgeGatewayVpnCreate(d *schema.ResourceData, meta interface{}) e
 		Xmlns: "http://www.vmware.com/vcloud/v1.5",
 		GatewayIpsecVpnService: &types.GatewayIpsecVpnService{
 			IsEnabled: true,
-			/*
-				Endpoint: &types.GatewayIpsecVpnEndpoint{
-					Network: &types.Reference{
-						HREF: "http://myvpn.com",
-					},
-					PublicIP: "63.30.253.57",
-				},
-			*/
-			Tunnel: tunnels,
+			Tunnel:    tunnels,
 		},
 	}
 
