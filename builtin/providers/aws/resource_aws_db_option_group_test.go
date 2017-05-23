@@ -35,7 +35,7 @@ func testSweepDbOptionGroups(c interface{}) error {
 	client, err := c.(*Config).Client()
 	conn := client.(*AWSClient).rdsconn
 
-	log.Printf("Destroying the DB Options Groups in (%s)\n\n", client.(*AWSClient).region)
+	log.Printf("Destroying the DB Options Groups in (%s)", client.(*AWSClient).region)
 
 	opts := rds.DescribeOptionGroupsInput{}
 	resp, err := conn.DescribeOptionGroups(&opts)
