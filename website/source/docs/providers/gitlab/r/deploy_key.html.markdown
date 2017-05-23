@@ -31,4 +31,4 @@ The following arguments are supported:
 
 * `key` - (Required, string) The public ssh key body.
 
-* `can_push` - (Optional, boolean) Allow this deploy key to be used to push changes to the project.  Defaults to `false`.
+* `can_push` - (Optional, boolean) Allow this deploy key to be used to push changes to the project.  Defaults to `false`. **NOTE::** this cannot currently be managed.
