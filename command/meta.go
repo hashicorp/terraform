@@ -50,6 +50,10 @@ type Meta struct {
 	// Override certain behavior for tests within this package
 	testingOverrides *testingOverrides
 
+	// If set, will lock to particular provider plugin binaries and refuse
+	// to operate with others. Set with loadProvidersLock or setProvidersLock.
+	providersSHA256 map[string][]byte
+
 	//----------------------------------------------------------
 	// Private: do not set these
 	//----------------------------------------------------------
@@ -247,6 +251,8 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 	opts.Meta = &terraform.ContextMeta{
 		Env: m.Env(),
 	}
+
+	opts.ProvidersSHA256 = m.providersSHA256
 
 	return &opts
 }

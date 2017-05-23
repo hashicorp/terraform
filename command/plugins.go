@@ -1,6 +1,7 @@
 package command
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os/exec"
@@ -21,6 +22,30 @@ import (
 // each that satisfies the given constraints.
 type multiVersionProviderResolver struct {
 	Available discovery.PluginMetaSet
+
+	// If non-nil, the SHA256 hash of each matched provider will be compared
+	// against values here, and any inconsistencies will result in an error.
+	//
+	// This is used to provide two guarantees:
+	// - Selected plugins cannot change after "terraform init" has selected some,
+	//   without running "terraform init" again.
+	// - When applying a plan, we require that all of the same plugins be
+	//   selected as were present when the plan was created.
+	//
+	// The keys of this map are provider names, like "aws".
+	PluginsSHA256 map[string][]byte
+}
+
+func choosePlugins(
+	available discovery.PluginMetaSet,
+	reqd discovery.PluginRequirements,
+) map[string]discovery.PluginMeta {
+	candidates := available.ConstrainVersions(reqd)
+	ret := map[string]discovery.PluginMeta{}
+	for name, metas := range candidates {
+		ret[name] = metas.Newest()
+	}
+	return ret
 }
 
 func (r *multiVersionProviderResolver) ResolveProviders(
@@ -29,10 +54,36 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 	factories := make(map[string]terraform.ResourceProviderFactory, len(reqd))
 	var errs []error
 
-	candidates := r.Available.ConstrainVersions(reqd)
+	metas := choosePlugins(r.Available, reqd)
 	for name := range reqd {
-		if metas := candidates[name]; metas != nil {
-			newest := metas.Newest()
+		if newest, ok := metas[name]; ok {
+
+			if r.PluginsSHA256 != nil {
+				wantDigest := r.PluginsSHA256[name]
+				if wantDigest == nil {
+					errs = append(errs, fmt.Errorf(
+						"provider.%s: provider has not been initialized", name,
+					))
+					continue
+				}
+				gotDigest, err := newest.SHA256()
+				if err != nil {
+					errs = append(errs, fmt.Errorf(
+						"provider.%s: error while validating plugin contents: %s",
+						name, err,
+					))
+					continue
+				}
+
+				if !bytes.Equal(gotDigest, wantDigest) {
+					errs = append(errs, fmt.Errorf(
+						"provider.%s: plugin version has changed since initialization",
+						name,
+					))
+					continue
+				}
+			}
+
 			client := tfplugin.Client(newest)
 			factories[name] = providerFactory(client)
 		} else {
@@ -87,7 +138,8 @@ func (m *Meta) providerPluginSet() discovery.PluginMetaSet {
 
 func (m *Meta) providerResolver() terraform.ResourceProviderResolver {
 	return &multiVersionProviderResolver{
-		Available: m.providerPluginSet(),
+		Available:     m.providerPluginSet(),
+		PluginsSHA256: m.providersSHA256,
 	}
 }
 

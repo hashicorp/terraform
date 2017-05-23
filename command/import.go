@@ -50,6 +50,12 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Don't allow provider plugins to have changed since "terraform init"
+	if err := c.loadProvidersLock(); err != nil {
+		c.Ui.Error(err.Error())
+		return 1
+	}
+
 	// Validate the provided resource address for syntax
 	addr, err := terraform.ParseResourceAddress(args[0])
 	if err != nil {

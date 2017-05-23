@@ -31,6 +31,12 @@ func (c *RefreshCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Don't allow provider plugins to have changed since "terraform init"
+	if err := c.loadProvidersLock(); err != nil {
+		c.Ui.Error(err.Error())
+		return 1
+	}
+
 	configPath, err := ModulePath(cmdFlags.Args())
 	if err != nil {
 		c.Ui.Error(err.Error())

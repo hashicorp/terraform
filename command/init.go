@@ -227,6 +227,22 @@ func (c *InitCommand) getProviders(path string, state *terraform.State) error {
 			return err
 		}
 	}
+
+	// Track down our full roster of plugins and lock to the particular
+	// plugin binaries we have. User must run "terraform init" again to update
+	// this lock.
+	allPlugins := c.providerPluginSet()
+	metas := choosePlugins(allPlugins, requirements)
+	digests, err := makeProvidersLock(metas)
+	if err != nil {
+		return fmt.Errorf("failed to lock provider versions: %s", err)
+	}
+	c.setProvidersLock(digests)
+	err = c.persistProvidersLock()
+	if err != nil {
+		return fmt.Errorf("failed to lock provider versions: %s", err)
+	}
+
 	return nil
 }
 

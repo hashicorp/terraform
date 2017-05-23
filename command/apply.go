@@ -108,6 +108,18 @@ func (c *ApplyCommand) Run(args []string) int {
 		configPath = ""
 	}
 
+	// If we _do_ have a plan, we'll apply its lock of the provider plugin
+	// versions that were active when it was created. Otherwise, we'll use
+	// the current lock.
+	if plan != nil {
+		c.setProvidersLock(plan.ProvidersSHA256)
+	} else {
+		if err := c.loadProvidersLock(); err != nil {
+			c.Ui.Error(err.Error())
+			return 1
+		}
+	}
+
 	// Load the module if we don't have one yet (not running from plan)
 	var mod *module.Tree
 	if plan == nil {

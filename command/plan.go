@@ -45,6 +45,12 @@ func (c *PlanCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Don't allow provider plugins to have changed since "terraform init"
+	if err := c.loadProvidersLock(); err != nil {
+		c.Ui.Error(err.Error())
+		return 1
+	}
+
 	// Check if the path is a plan
 	plan, err := c.Plan(configPath)
 	if err != nil {
