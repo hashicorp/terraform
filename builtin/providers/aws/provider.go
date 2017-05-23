@@ -522,7 +522,7 @@ func init() {
 			"It's typically used to connect to kinesalite.",
 
 		"kinesisanalytics_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n" +
-			"It's typically used to connect to kinesalite.",
+			"It's typically used to connect to an atlassian/localstack type service.",
 
 		"kms_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
 
