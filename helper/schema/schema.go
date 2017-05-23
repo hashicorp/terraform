@@ -684,11 +684,23 @@ func isValidFieldName(name string) bool {
 	return re.MatchString(name)
 }
 
+// resourceDiffer is an interface that is used by the private diff functions.
+// This helps facilitate diff logic for both ResourceData and ResoureDiff with
+// minimal divergence in code.
+type resourceDiffer interface {
+	diffChange(string) (interface{}, interface{}, bool, bool)
+	Get(string) interface{}
+	GetChange(string) (interface{}, interface{})
+	GetOk(string) (interface{}, bool)
+	HasChange(string) bool
+	Id() string
+}
+
 func (m schemaMap) diff(
 	k string,
 	schema *Schema,
 	diff *terraform.InstanceDiff,
-	d *ResourceData,
+	d resourceDiffer,
 	all bool) error {
 
 	unsupressedDiff := new(terraform.InstanceDiff)
@@ -709,12 +721,14 @@ func (m schemaMap) diff(
 	}
 
 	for attrK, attrV := range unsupressedDiff.Attributes {
-		if schema.DiffSuppressFunc != nil &&
-			attrV != nil &&
-			schema.DiffSuppressFunc(attrK, attrV.Old, attrV.New, d) {
-			continue
+		switch rd := d.(type) {
+		case *ResourceData:
+			if schema.DiffSuppressFunc != nil &&
+				attrV != nil &&
+				schema.DiffSuppressFunc(attrK, attrV.Old, attrV.New, rd) {
+				continue
+			}
 		}
-
 		diff.Attributes[attrK] = attrV
 	}
 
@@ -725,7 +739,7 @@ func (m schemaMap) diffList(
 	k string,
 	schema *Schema,
 	diff *terraform.InstanceDiff,
-	d *ResourceData,
+	d resourceDiffer,
 	all bool) error {
 	o, n, _, computedList := d.diffChange(k)
 	if computedList {
@@ -844,7 +858,7 @@ func (m schemaMap) diffMap(
 	k string,
 	schema *Schema,
 	diff *terraform.InstanceDiff,
-	d *ResourceData,
+	d resourceDiffer,
 	all bool) error {
 	prefix := k + "."
 
@@ -938,7 +952,7 @@ func (m schemaMap) diffSet(
 	k string,
 	schema *Schema,
 	diff *terraform.InstanceDiff,
-	d *ResourceData,
+	d resourceDiffer,
 	all bool) error {
 
 	o, n, _, computedSet := d.diffChange(k)
@@ -1059,7 +1073,7 @@ func (m schemaMap) diffString(
 	k string,
 	schema *Schema,
 	diff *terraform.InstanceDiff,
-	d *ResourceData,
+	d resourceDiffer,
 	all bool) error {
 	var originalN interface{}
 	var os, ns string

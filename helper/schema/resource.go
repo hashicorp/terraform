@@ -85,6 +85,16 @@ type Resource struct {
 	Delete DeleteFunc
 	Exists ExistsFunc
 
+	// CustomizeDiff is a custom function for controlling diff logic after the
+	// initial diff is performed - it can be used to veto particular changes in
+	// the diff, customize the diff that has been created, or diff values not
+	// controlled by config. It is passed a *ResourceDiff, a structure similar to
+	// ResourceData but lacking most write functions, allowing the provider to
+	// customize the diff only.
+	//
+	// Only computed fields can be customized by this function.
+	CustomizeDiff CustomizeDiffFunc
+
 	// Importer is the ResourceImporter implementation for this resource.
 	// If this is nil, then this resource does not support importing. If
 	// this is non-nil, then it supports importing and ResourceImporter
@@ -125,6 +135,9 @@ type ExistsFunc func(*ResourceData, interface{}) (bool, error)
 // See Resource documentation.
 type StateMigrateFunc func(
 	int, *terraform.InstanceState, interface{}) (*terraform.InstanceState, error)
+
+// See Resource documentation.
+type CustomizeDiffFunc func(*ResourceDiff, interface{}) error
 
 // Apply creates, updates, and/or deletes a resource.
 func (r *Resource) Apply(
