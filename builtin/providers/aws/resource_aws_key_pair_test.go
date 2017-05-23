@@ -55,7 +55,7 @@ func testSweepKeyPairs(c interface{}) error {
 		})
 
 		if err != nil {
-			fmt.Errorf("Error deleting key pairs in Sweeper: %s", err)
+			return fmt.Errorf("Error deleting key pairs in Sweeper: %s", err)
 		}
 	}
 	return nil

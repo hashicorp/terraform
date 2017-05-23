@@ -74,7 +74,7 @@ func testSweepDbOptionGroups(c interface{}) error {
 			return nil
 		})
 		if ret != nil {
-			return fmt.Errorf("Error Deleting DB Option Group (%s) in Sweeper: %s", ret)
+			return fmt.Errorf("Error Deleting DB Option Group (%s) in Sweeper: %s", *og.OptionGroupName, ret)
 		}
 	}
 
