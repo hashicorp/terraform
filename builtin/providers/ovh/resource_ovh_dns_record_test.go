@@ -112,7 +112,7 @@ func TestAccOVHRecord_Updated(t *testing.T) {
 }
 
 func testAccCheckOVHRecordDestroy(s *terraform.State) error {
-	provider := testAccProvider.Meta().(*Client)
+	provider := testAccProvider.Meta().(*Config)
 	zone := os.Getenv("OVH_ZONE")
 
 	for _, rs := range s.RootModule().Resources {
@@ -123,7 +123,7 @@ func testAccCheckOVHRecordDestroy(s *terraform.State) error {
 		recordID, _ := strconv.Atoi(rs.Primary.ID)
 
 		resultRecord := Record{}
-		err := provider.client.Get(
+		err := provider.OVHClient.Get(
 			fmt.Sprintf("/domain/zone/%s/record/%d", zone, recordID),
 			&resultRecord,
 		)
@@ -149,10 +149,10 @@ func testAccCheckOVHRecordExists(n string, record *Record) resource.TestCheckFun
 			return fmt.Errorf("No Record ID is set")
 		}
 
-		provider := testAccProvider.Meta().(*Client)
+		provider := testAccProvider.Meta().(*Config)
 
 		recordID, _ := strconv.Atoi(rs.Primary.ID)
-		err := provider.client.Get(
+		err := provider.OVHClient.Get(
 			fmt.Sprintf("/domain/zone/%s/record/%d", zone, recordID),
 			record,
 		)

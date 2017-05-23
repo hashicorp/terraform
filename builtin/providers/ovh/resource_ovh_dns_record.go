@@ -62,7 +62,7 @@ func resourceOVHDomainZoneRecord() *schema.Resource {
 }
 
 func resourceOVHRecordCreate(d *schema.ResourceData, meta interface{}) error {
-	provider := meta.(*Client)
+	provider := meta.(*Config)
 
 	// Create the new record
 	newRecord := &NewRecord{
@@ -77,7 +77,7 @@ func resourceOVHRecordCreate(d *schema.ResourceData, meta interface{}) error {
 
 	resultRecord := Record{}
 
-	err := provider.client.Post(
+	err := provider.OVHClient.Post(
 		fmt.Sprintf("/domain/zone/%s/record", d.Get("zone").(string)),
 		newRecord,
 		&resultRecord,
@@ -95,7 +95,7 @@ func resourceOVHRecordCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceOVHRecordRead(d *schema.ResourceData, meta interface{}) error {
-	provider := meta.(*Client)
+	provider := meta.(*Config)
 
 	recordID, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -103,7 +103,7 @@ func resourceOVHRecordRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	record := Record{}
-	err = provider.client.Get(
+	err = provider.OVHClient.Get(
 		fmt.Sprintf("/domain/zone/%s/record/%d", d.Get("zone").(string), recordID),
 		&record,
 	)
@@ -124,7 +124,7 @@ func resourceOVHRecordRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceOVHRecordUpdate(d *schema.ResourceData, meta interface{}) error {
-	provider := meta.(*Client)
+	provider := meta.(*Config)
 
 	recordID, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -148,7 +148,7 @@ func resourceOVHRecordUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] OVH Record update configuration: %#v", record)
 
-	err = provider.client.Put(
+	err = provider.OVHClient.Put(
 		fmt.Sprintf("/domain/zone/%s/record/%d", d.Get("zone").(string), recordID),
 		record,
 		nil,
@@ -161,7 +161,7 @@ func resourceOVHRecordUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceOVHRecordDelete(d *schema.ResourceData, meta interface{}) error {
-	provider := meta.(*Client)
+	provider := meta.(*Config)
 
 	log.Printf("[INFO] Deleting OVH Record: %s.%s, %s", d.Get("zone").(string), d.Get("subDomain").(string), d.Id())
 
@@ -170,7 +170,7 @@ func resourceOVHRecordDelete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error converting Record ID: %s", err)
 	}
 
-	err = provider.client.Delete(
+	err = provider.OVHClient.Delete(
 		fmt.Sprintf("/domain/zone/%s/record/%d", d.Get("zone").(string), recordID),
 		nil,
 	)
