@@ -52,6 +52,7 @@ IMPROVEMENTS:
 * provider/google: Add support for privateIpGoogleAccess on subnetworks [GH-14234]
 * provider/google: Add import support to `google_sql_user` [GH-14457]
 * provider/google: add failover parameter to `google_sql_database_instance` [GH-14336]
+* provider/google: resource_compute_disks can now reference snapshots using the snapshot URL [GH-14774]
 * provider/heroku: Add import support for `heroku_pipeline` resource [GH-14486]
 * provider/heroku: Add import support for `heroku_pipeline_coupling` resource [GH-14495]
 * provider/openstack: Add support for all protocols in Security Group Rules [GH-14307]
