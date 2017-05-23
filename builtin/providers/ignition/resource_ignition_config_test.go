@@ -70,7 +70,8 @@ func TestIngnitionFileAppend(t *testing.T) {
 
 func testIgnitionError(t *testing.T, input string, expectedErr *regexp.Regexp) {
 	resource.Test(t, resource.TestCase{
-		Providers: testProviders,
+		IsUnitTest: true,
+		Providers:  testProviders,
 		Steps: []resource.TestStep{
 			{
 				Config:      fmt.Sprintf(testTemplate, input),
@@ -94,7 +95,8 @@ func testIgnition(t *testing.T, input string, assert func(*types.Config) error) 
 	}
 
 	resource.Test(t, resource.TestCase{
-		Providers: testProviders,
+		IsUnitTest: true,
+		Providers:  testProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(testTemplate, input),
