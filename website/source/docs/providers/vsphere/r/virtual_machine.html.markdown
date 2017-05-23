@@ -34,6 +34,7 @@ resource "vsphere_virtual_machine" "web" {
 ```hcl
 resource "vsphere_virtual_machine" "lb" {
   name          = "lb01"
+  hostname      = "lbalancer01"
   folder        = "Loadbalancers"
   vcpu          = 2
   memory        = 4096
@@ -42,10 +43,9 @@ resource "vsphere_virtual_machine" "lb" {
   cluster       = "Production Cluster"
   resource_pool = "Production Cluster/Resources/Production Servers"
 
-  gateway = "10.20.30.254"
-
   network_interface {
     label              = "10_20_30_VMNet"
+    ipv4_gateway       = "10.20.30.254"
     ipv4_address       = "10.20.30.40"
     ipv4_prefix_length = "24"
   }
@@ -64,6 +64,7 @@ The following arguments are supported:
 * `name` - (Required) The virtual machine name (cannot contain underscores and must be less than 15 characters)
 * `vcpu` - (Required) The number of virtual CPUs to allocate to the virtual machine
 * `memory` - (Required) The amount of RAM (in MB) to allocate to the virtual machine
+* `hostname` - (Optional) The virtual machine hostname used during the OS customization - if not specified then `name` will be a hostname
 * `memory_reservation` - (Optional) The amount of RAM (in MB) to reserve physical memory resource; defaults to 0 (means not to reserve)
 * `datacenter` - (Optional) The name of a Datacenter in which to launch the virtual machine
 * `cluster` - (Optional) Name of a Cluster in which to launch the virtual machine
