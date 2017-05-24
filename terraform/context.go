@@ -63,6 +63,10 @@ type ContextOpts struct {
 	Targets            []string
 	Variables          map[string]interface{}
 
+	// If non-nil, will apply as additional constraints on the provider
+	// plugins that will be requested from the provider resolver.
+	ProviderSHA256s map[string][]byte
+
 	UIInput UIInput
 }
 
@@ -180,6 +184,9 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 		var err error
 		deps := ModuleTreeDependencies(opts.Module, state)
 		reqd := deps.AllPluginRequirements()
+		if opts.ProviderSHA256s != nil {
+			reqd.LockExecutables(opts.ProviderSHA256s)
+		}
 		providers, err = resourceProviderFactories(opts.ProviderResolver, reqd)
 		if err != nil {
 			return nil, err
