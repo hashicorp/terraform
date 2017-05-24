@@ -98,7 +98,7 @@ type virtualMachine struct {
 	linkedClone           bool
 	skipCustomization     bool
 	enableDiskUUID        bool
-	moid		      string
+	moid                  string
 	windowsOptionalConfig windowsOptConfig
 	customConfigurations  map[string](types.AnyType)
 }
