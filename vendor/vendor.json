@@ -1853,10 +1853,10 @@
 			"revisionTime": "2017-03-10T01:59:53Z"
 		},
 		{
-			"checksumSHA1": "wY0MY7RpX0Z2Y0rMmrAuYS6cHYA=",
+			"checksumSHA1": "mNRf4F3OjUIivhWTPZD/FjJNuCk=",
 			"path": "github.com/gophercloud/gophercloud/openstack/networking/v2/subnets",
-			"revision": "0f64da0e36de86a0ca1a8f2fc1b0570a0d3f7504",
-			"revisionTime": "2017-03-10T01:59:53Z"
+			"revision": "4f943e86d0a2c2e1c5c040e00a1358079c0881a1",
+			"revisionTime": "2017-05-24T02:11:01Z"
 		},
 		{
 			"checksumSHA1": "LtdQKIKKRKe6FOGdBvrBz/bg1Gc=",
