@@ -125,8 +125,15 @@ func resourcePostgreSQLDatabaseCreate(d *schema.ResourceData, meta interface{}) 
 	//needed in order to set the owner of the db if the connection user is not a superuser
 	err = grantRoleMembership(conn, d.Get(dbOwnerAttr).(string), c.username)
 	if err != nil {
-		return errwrap.Wrapf(fmt.Sprintf("Error granting role membership on database %q: {{err}}", dbName), err)
+		return errwrap.Wrapf(fmt.Sprintf("Error adding connection user (%q) to ROLE %q: {{err}}", c.username, d.Get(dbOwnerAttr).(string)), err)
 	}
+	defer func() {
+		//undo the grant if the connection user is not a superuser
+		err = revokeRoleMembership(conn, d.Get(dbOwnerAttr).(string), c.username)
+		if err != nil {
+			err = errwrap.Wrapf(fmt.Sprintf("Error removing connection user (%q) from ROLE %q: {{err}}", c.username, d.Get(dbOwnerAttr).(string)), err)
+		}
+	}()
 
 	// Handle each option individually and stream results into the query
 	// buffer.
@@ -195,7 +202,10 @@ func resourcePostgreSQLDatabaseCreate(d *schema.ResourceData, meta interface{}) 
 
 	d.SetId(dbName)
 
-	return resourcePostgreSQLDatabaseReadImpl(d, meta)
+	// Set err outside of the return so that the deferred revoke can override err
+	// if necessary.
+	err = resourcePostgreSQLDatabaseReadImpl(d, meta)
+	return err
 }
 
 func resourcePostgreSQLDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
@@ -481,6 +491,17 @@ func grantRoleMembership(conn *sql.DB, dbOwner string, connUsername string) erro
 				return nil
 			}
 			return errwrap.Wrapf("Error granting membership: {{err}}", err)
+		}
+	}
+	return nil
+}
+
+func revokeRoleMembership(conn *sql.DB, dbOwner string, connUsername string) error {
+	if dbOwner != "" && dbOwner != connUsername {
+		query := fmt.Sprintf("REVOKE %s FROM %s", pq.QuoteIdentifier(dbOwner), pq.QuoteIdentifier(connUsername))
+		_, err := conn.Query(query)
+		if err != nil {
+			return errwrap.Wrapf("Error revoking membership: {{err}}", err)
 		}
 	}
 	return nil
