@@ -1373,7 +1373,7 @@ func (m schemaMap) validateObject(
 	k string,
 	schema map[string]*Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
-	raw, _ := c.GetRaw(k)
+	raw, _ := c.Get(k)
 	if _, ok := raw.(map[string]interface{}); !ok {
 		return nil, []error{fmt.Errorf(
 			"%s: expected object, got %s",
