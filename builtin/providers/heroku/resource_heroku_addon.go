@@ -25,6 +25,10 @@ func resourceHerokuAddon() *schema.Resource {
 		Update: resourceHerokuAddonUpdate,
 		Delete: resourceHerokuAddonDelete,
 
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"app": {
 				Type:     schema.TypeString,
@@ -111,8 +115,7 @@ func resourceHerokuAddonCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceHerokuAddonRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
-	addon, err := resourceHerokuAddonRetrieveByApp(
-		d.Get("app").(string), d.Id(), client)
+	addon, err := resourceHerokuAddonRetrieve(d.Id(), client)
 	if err != nil {
 		return err
 	}
