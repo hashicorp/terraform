@@ -62,6 +62,52 @@ func TestAccStorageBucket_customAttributes(t *testing.T) {
 	})
 }
 
+func TestAccStorageBucket_lifecycleRules(t *testing.T) {
+	var bucket storage.Bucket
+	bucketName := fmt.Sprintf("tf-test-acc-bucket-%d", acctest.RandInt())
+
+	hash_action_0 := resourceGCSBucketLifecycleRuleActionHash(map[string]interface{}{"type": "SetStorageClass", "storage_class": "NEARLINE"})
+	hash_condition_0 := resourceGCSBucketLifecycleRuleConditionHash(map[string]interface{}{"age": 2})
+
+	hash_action_1 := resourceGCSBucketLifecycleRuleActionHash(map[string]interface{}{"type": "SetStorageClass", "storage_class": "NEARLINE"})
+	hash_condition_1 := resourceGCSBucketLifecycleRuleConditionHash(map[string]interface{}{"age": 10})
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccStorageBucketDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccStorageBucket_lifecycleRules(bucketName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckStorageBucketExists(
+						"google_storage_bucket.bucket", bucketName, &bucket),
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket.bucket", "lifecycle_rule.#", "2"),
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket.bucket", "lifecycle_rule.0.action.#", "1"),
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket.bucket", fmt.Sprintf("lifecycle_rule.0.action.%d.type", hash_action_0), "SetStorageClass"),
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket.bucket", fmt.Sprintf("lifecycle_rule.0.action.%d.storage_class", hash_action_0), "NEARLINE"),
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket.bucket", "lifecycle_rule.0.condition.#", "1"),
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket.bucket", fmt.Sprintf("lifecycle_rule.0.condition.%d.age", hash_condition_0), "2"),
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket.bucket", "lifecycle_rule.1.action.#", "1"),
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket.bucket", fmt.Sprintf("lifecycle_rule.1.action.%d.type", hash_action_1), "Delete"),
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket.bucket", "lifecycle_rule.1.condition.#", "1"),
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket.bucket", fmt.Sprintf("lifecycle_rule.1.condition.%d.age", hash_condition_1), "10"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccStorageBucket_storageClass(t *testing.T) {
 	var bucket storage.Bucket
 	bucketName := fmt.Sprintf("tf-test-acc-bucket-%d", acctest.RandInt())
@@ -378,5 +424,29 @@ resource "google_storage_bucket" "bucket" {
 	  max_age_seconds = 5
 	}
 }
+`, bucketName)
+}
+
+func testAccStorageBucket_lifecycleRules(bucketName string) string {
+	return fmt.Sprintf(`
+resource "google_storage_bucket" "bucket" {
+	name = "%s"
+	lifecycle_rule {
+	  action {
+		  type = "SetStorageClass"
+			storage_class = "NEARLINE"
+	  }
+		condition {
+		  age = 2
+	  }
+  }
+	lifecycle_rule {
+	  action {
+		  type = "Delete"
+	  }
+		condition {
+		  age = 10
+	  }
+  }
 `, bucketName)
 }
