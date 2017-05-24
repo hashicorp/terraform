@@ -33,6 +33,22 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 	for name := range reqd {
 		if metas := candidates[name]; metas != nil {
 			newest := metas.Newest()
+
+			digest, err := newest.SHA256()
+			if err != nil {
+				errs = append(errs, fmt.Errorf("provider.%s: failed to load plugin to verify its signature: %s", name, err))
+				continue
+			}
+			if !reqd[name].AcceptsSHA256(digest) {
+				// This generic error message is intended to avoid troubling
+				// users with implementation details. The main useful point
+				// here is that they need to run "terraform init" to
+				// fix this, which is covered by the UI code reporting these
+				// error messages.
+				errs = append(errs, fmt.Errorf("provider.%s: not yet initialized", name))
+				continue
+			}
+
 			client := tfplugin.Client(newest)
 			factories[name] = providerFactory(client)
 		} else {
