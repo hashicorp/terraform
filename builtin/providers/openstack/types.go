@@ -12,6 +12,7 @@ import (
 
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/servergroups"
+	"github.com/gophercloud/gophercloud/openstack/dns/v2/recordsets"
 	"github.com/gophercloud/gophercloud/openstack/dns/v2/zones"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/firewalls"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
@@ -223,6 +224,27 @@ type PortCreateOpts struct {
 // It overrides ports.ToPortCreateMap to add the ValueSpecs field.
 func (opts PortCreateOpts) ToPortCreateMap() (map[string]interface{}, error) {
 	return BuildRequest(opts, "port")
+}
+
+// RecordSetCreateOpts represents the attributes used when creating a new DNS record set.
+type RecordSetCreateOpts struct {
+	recordsets.CreateOpts
+	ValueSpecs map[string]string `json:"value_specs,omitempty"`
+}
+
+// ToRecordSetCreateMap casts a CreateOpts struct to a map.
+// It overrides recordsets.ToRecordSetCreateMap to add the ValueSpecs field.
+func (opts RecordSetCreateOpts) ToRecordSetCreateMap() (map[string]interface{}, error) {
+	b, err := BuildRequest(opts, "")
+	if err != nil {
+		return nil, err
+	}
+
+	if m, ok := b[""].(map[string]interface{}); ok {
+		return m, nil
+	}
+
+	return nil, fmt.Errorf("Expected map but got %T", b[""])
 }
 
 // RouterCreateOpts represents the attributes used when creating a new router.
