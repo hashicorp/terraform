@@ -124,7 +124,7 @@ module "consul" {
 }
 ```
 
-You will need to run a `terraform get` -update=true if you want to pull the latest versions. This can be handy when you are rapidly iterating on a module in development.
+You will need to run a `terraform get -update=true` if you want to pull the latest versions. This can be handy when you are rapidly iterating on a module in development.
 
 ## Generic Git Repository
 
