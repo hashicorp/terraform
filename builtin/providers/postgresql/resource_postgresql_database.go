@@ -125,7 +125,7 @@ func resourcePostgreSQLDatabaseCreate(d *schema.ResourceData, meta interface{}) 
 	//needed in order to set the owner of the db if the connection user is not a superuser
 	err = grantRoleMembership(conn, d.Get(dbOwnerAttr).(string), c.username)
 	if err != nil {
-		return errwrap.Wrapf(fmt.Sprintf("Error granting role membership on database %s: {{err}}", dbName), err)
+		return errwrap.Wrapf(fmt.Sprintf("Error granting role membership on database %q: {{err}}", dbName), err)
 	}
 
 	// Handle each option individually and stream results into the query
@@ -190,7 +190,7 @@ func resourcePostgreSQLDatabaseCreate(d *schema.ResourceData, meta interface{}) 
 	query := b.String()
 	_, err = conn.Query(query)
 	if err != nil {
-		return errwrap.Wrapf(fmt.Sprintf("Error creating database %s: {{err}}", dbName), err)
+		return errwrap.Wrapf(fmt.Sprintf("Error creating database %q: {{err}}", dbName), err)
 	}
 
 	d.SetId(dbName)
@@ -278,7 +278,7 @@ func resourcePostgreSQLDatabaseReadImpl(d *schema.ResourceData, meta interface{}
 	err = conn.QueryRow("SELECT d.datname, pg_catalog.pg_get_userbyid(d.datdba) from pg_database d WHERE datname=$1", dbId).Scan(&dbName, &ownerName)
 	switch {
 	case err == sql.ErrNoRows:
-		log.Printf("[WARN] PostgreSQL database (%s) not found", dbId)
+		log.Printf("[WARN] PostgreSQL database (%q) not found", dbId)
 		d.SetId("")
 		return nil
 	case err != nil:
@@ -295,7 +295,7 @@ func resourcePostgreSQLDatabaseReadImpl(d *schema.ResourceData, meta interface{}
 		)
 	switch {
 	case err == sql.ErrNoRows:
-		log.Printf("[WARN] PostgreSQL database (%s) not found", dbId)
+		log.Printf("[WARN] PostgreSQL database (%q) not found", dbId)
 		d.SetId("")
 		return nil
 	case err != nil:
