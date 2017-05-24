@@ -12,7 +12,7 @@ import (
 )
 
 func TestAccHerokuPipeline_Basic(t *testing.T) {
-	var pipeline heroku.PipelineInfoResult
+	var pipeline heroku.Pipeline
 	pipelineName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
 	pipelineName2 := fmt.Sprintf("%s-2", pipelineName)
 
@@ -48,7 +48,7 @@ resource "heroku_pipeline" "foobar" {
 `, pipelineName)
 }
 
-func testAccCheckHerokuPipelineExists(n string, pipeline *heroku.PipelineInfoResult) resource.TestCheckFunc {
+func testAccCheckHerokuPipelineExists(n string, pipeline *heroku.Pipeline) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
