@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/1and1/oneandone-cloudserver-sdk-go"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 	"io"
 	"os"
 	fp "path/filepath"

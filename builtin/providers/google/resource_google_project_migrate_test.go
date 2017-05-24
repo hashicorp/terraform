@@ -3,7 +3,7 @@ package google
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestGoogleProjectMigrateState(t *testing.T) {

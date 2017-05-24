@@ -596,7 +596,7 @@ func TestContext2Input_varPartiallyComputed(t *testing.T) {
 }
 
 // Module variables weren't being interpolated during the Input walk.
-// https://github.com/hashicorp/terraform/issues/5322
+// https://github.com/r3labs/terraform/issues/5322
 func TestContext2Input_interpolateVar(t *testing.T) {
 	input := new(MockUIInput)
 

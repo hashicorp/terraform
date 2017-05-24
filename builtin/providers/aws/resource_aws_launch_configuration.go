@@ -13,9 +13,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/hashicorp/terraform/helper/hashcode"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/hashcode"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 func resourceAwsLaunchConfiguration() *schema.Resource {

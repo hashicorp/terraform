@@ -6,7 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 // ACL Network ACLs all contain explicit deny-all rules that cannot be

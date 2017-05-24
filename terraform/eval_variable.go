@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/helper/hilmapstructure"
+	"github.com/r3labs/terraform/config"
+	"github.com/r3labs/terraform/config/module"
+	"github.com/r3labs/terraform/helper/hilmapstructure"
 )
 
 // EvalTypeCheckVariable is an EvalNode which ensures that the variable

@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 	"github.com/jen20/awspolicyequivalence"
 )
 
@@ -26,7 +26,7 @@ func suppressAwsDbEngineVersionDiffs(k, old, new string, d *schema.ResourceData)
 	// If both are nil, we have no state to compare the values with, so register a diff.
 	// This populates the attribute field during a plan/apply with fresh state, allowing
 	// the attribute to still be used in future resources.
-	// See https://github.com/hashicorp/terraform/issues/11881
+	// See https://github.com/r3labs/terraform/issues/11881
 	if old == "" && new == "" {
 		return false
 	}

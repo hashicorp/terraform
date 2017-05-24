@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/r3labs/terraform/state"
+	"github.com/r3labs/terraform/state/remote"
 )
 
 // RemoteClient is a remote client that stores data in memory for testing.

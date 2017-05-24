@@ -1,7 +1,7 @@
 package test
 
 import (
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 func providerLabelDataSource() *schema.Resource {

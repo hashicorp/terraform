@@ -1,7 +1,7 @@
 package local
 
 import (
-	"github.com/hashicorp/terraform/backend"
+	"github.com/r3labs/terraform/backend"
 )
 
 // backend.CLI impl.

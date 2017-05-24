@@ -3,7 +3,7 @@ package terraform
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/dag"
+	"github.com/r3labs/terraform/dag"
 )
 
 // ResourceCountTransformer is a GraphTransformer that expands the count

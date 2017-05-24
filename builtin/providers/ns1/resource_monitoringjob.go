@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 
 	ns1 "gopkg.in/ns1/ns1-go.v2/rest"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/monitor"

@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/terraform/helper/hashcode"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/hashcode"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func resourceAwsInstanceMigrateState(

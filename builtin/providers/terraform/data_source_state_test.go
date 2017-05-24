@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	backendinit "github.com/hashicorp/terraform/backend/init"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	backendinit "github.com/r3labs/terraform/backend/init"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestState_basic(t *testing.T) {

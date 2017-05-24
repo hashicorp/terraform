@@ -9,9 +9,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	dms "github.com/aws/aws-sdk-go/service/databasemigrationservice"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/validation"
 )
 
 func resourceAwsDmsReplicationTask() *schema.Resource {

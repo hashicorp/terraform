@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/dag"
+	"github.com/r3labs/terraform/config/module"
+	"github.com/r3labs/terraform/dag"
 )
 
 // DiffTransformer is a GraphTransformer that adds the elements of

@@ -5,8 +5,8 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/go-oracle-terraform/compute"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/r3labs/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/validation"
 )
 
 func resourceOPCStorageVolume() *schema.Resource {

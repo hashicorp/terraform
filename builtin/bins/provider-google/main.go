@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/hashicorp/terraform/builtin/providers/google"
-	"github.com/hashicorp/terraform/plugin"
+	"github.com/r3labs/terraform/builtin/providers/google"
+	"github.com/r3labs/terraform/plugin"
 )
 
 func main() {

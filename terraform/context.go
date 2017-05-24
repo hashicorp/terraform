@@ -10,9 +10,9 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/helper/experiment"
+	"github.com/r3labs/terraform/config"
+	"github.com/r3labs/terraform/config/module"
+	"github.com/r3labs/terraform/helper/experiment"
 )
 
 // InputMode defines what sort of input will be asked for when Input

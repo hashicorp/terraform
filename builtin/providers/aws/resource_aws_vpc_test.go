@@ -7,8 +7,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestAccAWSVpc_basic(t *testing.T) {
@@ -243,7 +243,7 @@ func testAccCheckVpcExists(n string, vpc *ec2.Vpc) resource.TestCheckFunc {
 	}
 }
 
-// https://github.com/hashicorp/terraform/issues/1301
+// https://github.com/r3labs/terraform/issues/1301
 func TestAccAWSVpc_bothDnsOptionsSet(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -263,7 +263,7 @@ func TestAccAWSVpc_bothDnsOptionsSet(t *testing.T) {
 	})
 }
 
-// https://github.com/hashicorp/terraform/issues/10168
+// https://github.com/r3labs/terraform/issues/10168
 func TestAccAWSVpc_DisabledDnsSupport(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },

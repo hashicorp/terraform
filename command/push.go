@@ -10,8 +10,8 @@ import (
 
 	"github.com/hashicorp/atlas-go/archive"
 	"github.com/hashicorp/atlas-go/v1"
-	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/backend"
+	"github.com/r3labs/terraform/terraform"
 )
 
 type PushCommand struct {

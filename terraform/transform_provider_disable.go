@@ -3,7 +3,7 @@ package terraform
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/dag"
+	"github.com/r3labs/terraform/dag"
 )
 
 // DisableProviderTransformer "disables" any providers that are not actually

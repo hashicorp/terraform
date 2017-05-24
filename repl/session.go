@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/config"
+	"github.com/r3labs/terraform/terraform"
 )
 
 // ErrSessionExit is a special error result that should be checked for

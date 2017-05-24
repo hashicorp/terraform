@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/resource"
 	"github.com/scaleway/scaleway-cli/pkg/api"
 )
 

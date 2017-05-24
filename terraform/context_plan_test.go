@@ -422,7 +422,7 @@ func TestContext2Plan_moduleOrphans(t *testing.T) {
 	}
 }
 
-// https://github.com/hashicorp/terraform/issues/3114
+// https://github.com/r3labs/terraform/issues/3114
 func TestContext2Plan_moduleOrphansWithProvisioner(t *testing.T) {
 	m := testModule(t, "plan-modules-remove-provisioners")
 	p := testProvider("aws")
@@ -2717,7 +2717,7 @@ aws_instance.orphan:
 	}
 }
 
-// https://github.com/hashicorp/terraform/issues/2538
+// https://github.com/r3labs/terraform/issues/2538
 func TestContext2Plan_targetedModuleOrphan(t *testing.T) {
 	m := testModule(t, "plan-targeted-module-orphan")
 	p := testProvider("aws")
@@ -2813,7 +2813,7 @@ STATE:
 	}
 }
 
-// https://github.com/hashicorp/terraform/issues/4515
+// https://github.com/r3labs/terraform/issues/4515
 func TestContext2Plan_targetedOverTen(t *testing.T) {
 	m := testModule(t, "plan-targeted-over-ten")
 	p := testProvider("aws")

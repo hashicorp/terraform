@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	consulapi "github.com/hashicorp/consul/api"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestAccConsulNode_basic(t *testing.T) {

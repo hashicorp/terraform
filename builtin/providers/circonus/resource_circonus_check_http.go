@@ -11,8 +11,8 @@ import (
 
 	"github.com/circonus-labs/circonus-gometrics/api/config"
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/terraform/helper/hashcode"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/hashcode"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 const (

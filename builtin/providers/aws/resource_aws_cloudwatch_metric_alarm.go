@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
-	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/r3labs/terraform/helper/validation"
 )
 
 func resourceAwsCloudWatchMetricAlarm() *schema.Resource {

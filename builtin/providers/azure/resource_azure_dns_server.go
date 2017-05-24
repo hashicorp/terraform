@@ -6,7 +6,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/management"
 	"github.com/Azure/azure-sdk-for-go/management/virtualnetwork"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 // resourceAzureDnsServer returns the *schema.Resource associated

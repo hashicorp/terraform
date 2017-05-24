@@ -10,7 +10,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 func dataSourceAwsS3BucketObject() *schema.Resource {
@@ -218,7 +218,7 @@ func dataSourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) e
 
 // This is to prevent potential issues w/ binary files
 // and generally unprintable characters
-// See https://github.com/hashicorp/terraform/pull/3858#issuecomment-156856738
+// See https://github.com/r3labs/terraform/pull/3858#issuecomment-156856738
 func isContentTypeAllowed(contentType *string) bool {
 	if contentType == nil {
 		return false

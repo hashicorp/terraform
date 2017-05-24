@@ -7,8 +7,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/apigateway"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestAccAWSAPIGatewayBasePath_basic(t *testing.T) {
@@ -32,7 +32,7 @@ func TestAccAWSAPIGatewayBasePath_basic(t *testing.T) {
 	})
 }
 
-// https://github.com/hashicorp/terraform/issues/9212
+// https://github.com/r3labs/terraform/issues/9212
 func TestAccAWSAPIGatewayEmptyBasePath_basic(t *testing.T) {
 	var conf apigateway.BasePathMapping
 

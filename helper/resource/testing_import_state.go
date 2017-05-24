@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/terraform"
 )
 
 // testStepImportState runs an imort state test step

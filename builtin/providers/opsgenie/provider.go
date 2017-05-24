@@ -3,8 +3,8 @@ package opsgenie
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/schema"
+	"github.com/r3labs/terraform/terraform"
 )
 
 // Provider represents a resource provider in Terraform

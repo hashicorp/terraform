@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/config"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestValidator(t *testing.T) {

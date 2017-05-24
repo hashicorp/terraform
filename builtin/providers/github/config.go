@@ -4,7 +4,7 @@ import (
 	"net/url"
 
 	"github.com/google/go-github/github"
-	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/r3labs/terraform/helper/logging"
 	"golang.org/x/oauth2"
 )
 

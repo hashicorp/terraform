@@ -3,10 +3,10 @@ package legacy
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/backend"
+	"github.com/r3labs/terraform/state"
+	"github.com/r3labs/terraform/state/remote"
+	"github.com/r3labs/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
 )
 

@@ -6,7 +6,7 @@
 
 package command
 
-import "github.com/hashicorp/terraform/plugin"
+import "github.com/r3labs/terraform/plugin"
 
 var InternalProviders = map[string]plugin.ProviderFunc{}
 

@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/resource"
 )
 
 func TestAccAWSCloudFormationStack_dataSource_basic(t *testing.T) {

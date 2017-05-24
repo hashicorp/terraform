@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 	"github.com/lib/pq"
 	"github.com/sean-/postgresql-acl"
 )

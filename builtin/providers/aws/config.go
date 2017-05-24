@@ -70,8 +70,8 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-cleanhttp"
-	"github.com/hashicorp/terraform/helper/logging"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/logging"
+	"github.com/r3labs/terraform/terraform"
 )
 
 type Config struct {

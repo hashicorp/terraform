@@ -5,7 +5,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"github.com/1and1/oneandone-cloudserver-sdk-go"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 	"golang.org/x/crypto/ssh"
 	"io/ioutil"
 	"log"

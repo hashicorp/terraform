@@ -10,8 +10,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 func resourceAwsEbsVolume() *schema.Resource {
@@ -91,7 +91,7 @@ func resourceAwsEbsVolumeCreate(d *schema.ResourceData, meta interface{}) error 
 	// IOPs are only valid, and required for, storage type io1. The current minimu
 	// is 100. Instead of a hard validation we we only apply the IOPs to the
 	// request if the type is io1, and log a warning otherwise. This allows users
-	// to "disable" iops. See https://github.com/hashicorp/terraform/pull/4146
+	// to "disable" iops. See https://github.com/r3labs/terraform/pull/4146
 	var t string
 	if value, ok := d.GetOk("type"); ok {
 		t = value.(string)
@@ -291,7 +291,7 @@ func readVolume(d *schema.ResourceData, volume *ec2.Volume) error {
 		// Only set the iops attribute if the volume type is io1. Setting otherwise
 		// can trigger a refresh/plan loop based on the computed value that is given
 		// from AWS, and prevent us from specifying 0 as a valid iops.
-		//   See https://github.com/hashicorp/terraform/pull/4146
+		//   See https://github.com/r3labs/terraform/pull/4146
 		if volume.Iops != nil {
 			d.Set("iops", *volume.Iops)
 		}

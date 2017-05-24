@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/r3labs/terraform/config/module"
 )
 
 func TestContext2Apply_basic(t *testing.T) {
@@ -1492,7 +1492,7 @@ func TestContext2Apply_destroyData(t *testing.T) {
 	}
 }
 
-// https://github.com/hashicorp/terraform/pull/5096
+// https://github.com/r3labs/terraform/pull/5096
 func TestContext2Apply_destroySkipsCBD(t *testing.T) {
 	// Config contains CBD resource depending on non-CBD resource, which triggers
 	// a cycle if they are both replaced, but should _not_ trigger a cycle when
@@ -1581,7 +1581,7 @@ func TestContext2Apply_destroyModuleVarProviderConfig(t *testing.T) {
 	}
 }
 
-// https://github.com/hashicorp/terraform/issues/2892
+// https://github.com/r3labs/terraform/issues/2892
 func TestContext2Apply_destroyCrossProviders(t *testing.T) {
 	m := testModule(t, "apply-destroy-cross-providers")
 
@@ -3599,7 +3599,7 @@ func TestContext2Apply_multiVarCountDec(t *testing.T) {
 // Test that we can resolve a multi-var (splat) for the first resource
 // created in a non-root module, which happens when the module state doesn't
 // exist yet.
-// https://github.com/hashicorp/terraform/issues/14438
+// https://github.com/r3labs/terraform/issues/14438
 func TestContext2Apply_multiVarMissingState(t *testing.T) {
 	m := testModule(t, "apply-multi-var-missing-state")
 	p := testProvider("test")
@@ -5683,7 +5683,7 @@ func TestContext2Apply_destroyOrder(t *testing.T) {
 	}
 }
 
-// https://github.com/hashicorp/terraform/issues/2767
+// https://github.com/r3labs/terraform/issues/2767
 func TestContext2Apply_destroyModulePrefix(t *testing.T) {
 	m := testModule(t, "apply-destroy-module-resource-prefix")
 	h := new(MockHook)
@@ -5839,7 +5839,7 @@ module.child.subchild.subsubchild:
 	}
 }
 
-// https://github.com/hashicorp/terraform/issues/5440
+// https://github.com/r3labs/terraform/issues/5440
 func TestContext2Apply_destroyModuleWithAttrsReferencingResource(t *testing.T) {
 	m := testModule(t, "apply-destroy-module-with-attrs")
 	p := testProvider("aws")
@@ -6792,7 +6792,7 @@ func TestContext2Apply_taintX(t *testing.T) {
 	p := testProvider("aws")
 
 	// destroyCount tests against regression of
-	// https://github.com/hashicorp/terraform/issues/1056
+	// https://github.com/r3labs/terraform/issues/1056
 	var destroyCount = int32(0)
 	var once sync.Once
 	simulateProviderDelay := func() {
@@ -7158,7 +7158,7 @@ func TestContext2Apply_targetedDestroyCountDeps(t *testing.T) {
 	checkStateString(t, state, `<no state>`)
 }
 
-// https://github.com/hashicorp/terraform/issues/4462
+// https://github.com/r3labs/terraform/issues/4462
 func TestContext2Apply_targetedDestroyModule(t *testing.T) {
 	m := testModule(t, "apply-targeted-module")
 	p := testProvider("aws")
@@ -8152,7 +8152,7 @@ aws_instance.foo:
 	}
 }
 
-// https://github.com/hashicorp/terraform/issues/7378
+// https://github.com/r3labs/terraform/issues/7378
 func TestContext2Apply_destroyNestedModuleWithAttrsReferencingResource(t *testing.T) {
 	m := testModule(t, "apply-destroy-nested-module-with-attrs")
 	p := testProvider("null")

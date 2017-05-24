@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -284,7 +284,7 @@ func resourceAwsOpsworksStackRead(d *schema.ResourceData, meta interface{}) erro
 	// for this Stack. If it's not found in the the default region we're in, we
 	// check us-east-1 in the event this stack was created with Terraform before
 	// version 0.9
-	// See https://github.com/hashicorp/terraform/issues/12842
+	// See https://github.com/r3labs/terraform/issues/12842
 	var notFound int
 	var resp *opsworks.DescribeStacksOutput
 	var dErr error
@@ -368,8 +368,8 @@ func resourceAwsOpsworksStackRead(d *schema.ResourceData, meta interface{}) erro
 // in which they are created, so we allow users to specify an original endpoint
 // for Stacks created before multiple endpoints were offered (Terraform v0.9.0).
 // See:
-//  - https://github.com/hashicorp/terraform/pull/12688
-//  - https://github.com/hashicorp/terraform/issues/12842
+//  - https://github.com/r3labs/terraform/pull/12688
+//  - https://github.com/r3labs/terraform/issues/12842
 func opsworksConnForRegion(region string, meta interface{}) (*opsworks.OpsWorks, error) {
 	originalConn := meta.(*AWSClient).opsworksconn
 

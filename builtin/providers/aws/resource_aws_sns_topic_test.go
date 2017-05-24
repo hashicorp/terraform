@@ -7,9 +7,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sns"
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/acctest"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 	"github.com/jen20/awspolicyequivalence"
 )
 
@@ -266,7 +266,7 @@ EOF
 `, r)
 }
 
-// Test for https://github.com/hashicorp/terraform/issues/3660
+// Test for https://github.com/r3labs/terraform/issues/3660
 func testAccAWSSNSTopicConfig_withIAMRole(r string) string {
 	return fmt.Sprintf(`
 resource "aws_iam_role" "example" {
@@ -312,7 +312,7 @@ EOF
 `, r, r)
 }
 
-// Test for https://github.com/hashicorp/terraform/issues/14024
+// Test for https://github.com/r3labs/terraform/issues/14024
 func testAccAWSSNSTopicConfig_withDeliveryPolicy(r string) string {
 	return fmt.Sprintf(`
 resource "aws_sns_topic" "test_topic" {

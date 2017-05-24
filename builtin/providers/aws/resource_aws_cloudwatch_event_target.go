@@ -5,13 +5,13 @@ import (
 	"log"
 	"regexp"
 
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	events "github.com/aws/aws-sdk-go/service/cloudwatchevents"
-	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/r3labs/terraform/helper/validation"
 )
 
 func resourceAwsCloudWatchEventTarget() *schema.Resource {
@@ -133,7 +133,7 @@ func resourceAwsCloudWatchEventTargetRead(d *schema.ResourceData, meta interface
 		}
 		if awsErr, ok := err.(awserr.Error); ok {
 			// This should never happen, but it's useful
-			// for recovering from https://github.com/hashicorp/terraform/issues/5389
+			// for recovering from https://github.com/r3labs/terraform/issues/5389
 			if awsErr.Code() == "ValidationException" {
 				log.Printf("[WARN] Removing CloudWatch Event Target %q because it never existed.", d.Id())
 				d.SetId("")

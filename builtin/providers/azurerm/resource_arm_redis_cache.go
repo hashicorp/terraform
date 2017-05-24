@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/arm/redis"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/schema"
 	"github.com/jen20/riviera/azure"
 )
 

@@ -9,8 +9,8 @@ import (
 
 	"path/filepath"
 
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
@@ -957,7 +957,7 @@ func TestAccVSphereVirtualMachine_ipv6Only(t *testing.T) {
 	test_exists, test_name, test_cpu, test_uuid, test_mem, test_num_disk, test_num_of_nic, test_nic_label :=
 		TestFuncData{vm: vm, label: data.label, vmName: vmName, numDisks: "2", vmResource: "terraform-test-ipv6"}.testCheckFuncBasic()
 
-	// Checks for this will be handled when this code is merged with https://github.com/hashicorp/terraform/pull/7575.
+	// Checks for this will be handled when this code is merged with https://github.com/r3labs/terraform/pull/7575.
 	ipv6Address := os.Getenv("VSPHERE_IPV6_ADDRESS")
 	ipv6Gateway := os.Getenv("VSPHERE_IPV6_GATEWAY")
 

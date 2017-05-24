@@ -12,9 +12,9 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/hcl"
-	"github.com/hashicorp/terraform/command"
-	tfplugin "github.com/hashicorp/terraform/plugin"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/command"
+	tfplugin "github.com/r3labs/terraform/plugin"
+	"github.com/r3labs/terraform/terraform"
 	"github.com/kardianos/osext"
 	"github.com/mitchellh/cli"
 )

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/r3labs/terraform/config"
 )
 
 // ValidateCommand is a Command implementation that validates the terraform files

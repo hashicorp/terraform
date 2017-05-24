@@ -3,7 +3,7 @@ package terraform
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/r3labs/terraform/config"
 )
 
 // NodeDestroyResource represents a resource that is to be destroyed.

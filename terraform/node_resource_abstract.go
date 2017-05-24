@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/dag"
+	"github.com/r3labs/terraform/config"
+	"github.com/r3labs/terraform/dag"
 )
 
 // ConcreteResourceNodeFunc is a callback type used to convert an

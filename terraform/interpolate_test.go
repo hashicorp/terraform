@@ -10,7 +10,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
-	"github.com/hashicorp/terraform/config"
+	"github.com/r3labs/terraform/config"
 )
 
 func TestInterpolater_simpleVar(t *testing.T) {
@@ -441,7 +441,7 @@ func TestInterpolater_resourceVariableMultiNoState(t *testing.T) {
 	// When evaluating a "splat" variable in a module that doesn't have
 	// any state yet, we should still be able to resolve to an empty
 	// list.
-	// See https://github.com/hashicorp/terraform/issues/14438 for an
+	// See https://github.com/r3labs/terraform/issues/14438 for an
 	// example of what we're testing for here.
 	lock := new(sync.RWMutex)
 	state := &State{

@@ -8,9 +8,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elb"
 
-	tlsprovider "github.com/hashicorp/terraform/builtin/providers/tls"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	tlsprovider "github.com/r3labs/terraform/builtin/providers/tls"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestAccAWSLoadBalancerBackendServerPolicy_basic(t *testing.T) {

@@ -8,8 +8,8 @@ import (
 	mysqlc "github.com/ziutek/mymysql/mysql"
 	mysqlts "github.com/ziutek/mymysql/thrsafe"
 
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/schema"
+	"github.com/r3labs/terraform/terraform"
 )
 
 type providerConfiguration struct {

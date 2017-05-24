@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/1and1/oneandone-cloudserver-sdk-go"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 	"os"
 	"time"
 )

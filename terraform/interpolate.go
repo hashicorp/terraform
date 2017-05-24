@@ -10,9 +10,9 @@ import (
 
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/flatmap"
+	"github.com/r3labs/terraform/config"
+	"github.com/r3labs/terraform/config/module"
+	"github.com/r3labs/terraform/flatmap"
 )
 
 const (

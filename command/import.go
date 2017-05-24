@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/backend"
+	"github.com/r3labs/terraform/config/module"
+	"github.com/r3labs/terraform/terraform"
 )
 
 // ImportCommand is a cli.Command implementation that imports resources

@@ -1,7 +1,7 @@
 package test
 
 import (
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 // This is a test resource to help reproduce GH-12183. This issue came up

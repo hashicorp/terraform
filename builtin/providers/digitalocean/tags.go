@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/digitalocean/godo"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 // setTags is a helper to set the tags for a resource. It expects the

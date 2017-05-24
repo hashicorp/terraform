@@ -9,12 +9,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/backend"
-	backendinit "github.com/hashicorp/terraform/backend/init"
-	backendlocal "github.com/hashicorp/terraform/backend/local"
-	"github.com/hashicorp/terraform/helper/copy"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/backend"
+	backendinit "github.com/r3labs/terraform/backend/init"
+	backendlocal "github.com/r3labs/terraform/backend/local"
+	"github.com/r3labs/terraform/helper/copy"
+	"github.com/r3labs/terraform/state"
+	"github.com/r3labs/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
 

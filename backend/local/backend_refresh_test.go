@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/backend"
+	"github.com/r3labs/terraform/config/module"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestLocal_refresh(t *testing.T) {

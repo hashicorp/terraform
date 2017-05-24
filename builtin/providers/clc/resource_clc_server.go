@@ -10,7 +10,7 @@ import (
 	"github.com/CenturyLinkCloud/clc-sdk/server"
 	"github.com/CenturyLinkCloud/clc-sdk/status"
 
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 func resourceCLCServer() *schema.Resource {

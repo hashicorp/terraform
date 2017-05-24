@@ -5,7 +5,7 @@ import (
 
 	"github.com/michaelklishin/rabbit-hole"
 
-	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/resource"
 )
 
 func TestAccQueue_importBasic(t *testing.T) {

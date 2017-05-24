@@ -11,9 +11,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/hashicorp/terraform/helper/hashcode"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/hashcode"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 var taskDefinitionRE = regexp.MustCompile("^([a-zA-Z0-9_-]+):([0-9]+)$")
@@ -223,7 +223,7 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 	log.Printf("[DEBUG] Creating ECS service: %s", input)
 
 	// Retry due to AWS IAM policy eventual consistency
-	// See https://github.com/hashicorp/terraform/issues/2869
+	// See https://github.com/r3labs/terraform/issues/2869
 	var out *ecs.CreateServiceOutput
 	var err error
 	err = resource.Retry(2*time.Minute, func() *resource.RetryError {
@@ -401,7 +401,7 @@ func resourceAwsEcsServiceUpdate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	// Retry due to AWS IAM policy eventual consistency
-	// See https://github.com/hashicorp/terraform/issues/4375
+	// See https://github.com/r3labs/terraform/issues/4375
 	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
 		out, err := conn.UpdateService(&input)
 		if err != nil {

@@ -3,8 +3,8 @@ package aws
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/acctest"
+	"github.com/r3labs/terraform/helper/resource"
 )
 
 func TestAccAWSEFSFileSystem_importBasic(t *testing.T) {

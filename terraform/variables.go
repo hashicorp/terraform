@@ -5,9 +5,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/helper/hilmapstructure"
+	"github.com/r3labs/terraform/config"
+	"github.com/r3labs/terraform/config/module"
+	"github.com/r3labs/terraform/helper/hilmapstructure"
 )
 
 // Variables returns the fully loaded set of variables to use with

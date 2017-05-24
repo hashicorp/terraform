@@ -3,7 +3,7 @@ package kubernetes
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 func metadataFields(objectName string) map[string]*schema.Schema {

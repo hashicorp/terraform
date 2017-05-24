@@ -16,12 +16,12 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-getter"
-	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/backend/local"
-	"github.com/hashicorp/terraform/helper/experiment"
-	"github.com/hashicorp/terraform/helper/variables"
-	"github.com/hashicorp/terraform/helper/wrappedstreams"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/backend"
+	"github.com/r3labs/terraform/backend/local"
+	"github.com/r3labs/terraform/helper/experiment"
+	"github.com/r3labs/terraform/helper/variables"
+	"github.com/r3labs/terraform/helper/wrappedstreams"
+	"github.com/r3labs/terraform/terraform"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 )
@@ -422,7 +422,7 @@ func (m *Meta) outputShadowError(err error, output bool) bool {
 			"background. These features cannot affect real state and never touch\n"+
 			"real infrastructure. If the features work properly, you see nothing.\n"+
 			"If the features fail, this message appears.\n\n"+
-			"You can report an issue at: https://github.com/hashicorp/terraform/issues\n\n"+
+			"You can report an issue at: https://github.com/r3labs/terraform/issues\n\n"+
 			"The failure was written to %q. Please\n"+
 			"double check this file contains no sensitive information and report\n"+
 			"it with your issue.\n\n"+

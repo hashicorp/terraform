@@ -7,8 +7,8 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/schema"
+	"github.com/r3labs/terraform/terraform"
 )
 
 type CLIConfig struct {

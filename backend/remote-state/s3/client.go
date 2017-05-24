@@ -13,8 +13,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	multierror "github.com/hashicorp/go-multierror"
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/r3labs/terraform/state"
+	"github.com/r3labs/terraform/state/remote"
 )
 
 type RemoteClient struct {

@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/hashicorp/terraform/helper/wrappedreadline"
-	"github.com/hashicorp/terraform/repl"
+	"github.com/r3labs/terraform/helper/wrappedreadline"
+	"github.com/r3labs/terraform/repl"
 
 	"github.com/chzyer/readline"
 	"github.com/mitchellh/cli"

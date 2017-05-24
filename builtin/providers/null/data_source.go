@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 func init() {

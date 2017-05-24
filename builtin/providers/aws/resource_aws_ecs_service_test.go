@@ -7,9 +7,9 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/acctest"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestParseTaskDefinition(t *testing.T) {
@@ -132,7 +132,7 @@ func TestAccAWSEcsServiceWithFamilyAndRevision(t *testing.T) {
 	})
 }
 
-// Regression for https://github.com/hashicorp/terraform/issues/2427
+// Regression for https://github.com/r3labs/terraform/issues/2427
 func TestAccAWSEcsServiceWithRenamedCluster(t *testing.T) {
 	originalRegexp := regexp.MustCompile(
 		"^arn:aws:ecs:[^:]+:[0-9]+:cluster/terraformecstest3$")
@@ -202,7 +202,7 @@ func TestAccAWSEcsService_withDeploymentValues(t *testing.T) {
 	})
 }
 
-// Regression for https://github.com/hashicorp/terraform/issues/3444
+// Regression for https://github.com/r3labs/terraform/issues/3444
 func TestAccAWSEcsService_withLbChanges(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -225,7 +225,7 @@ func TestAccAWSEcsService_withLbChanges(t *testing.T) {
 	})
 }
 
-// Regression for https://github.com/hashicorp/terraform/issues/3361
+// Regression for https://github.com/r3labs/terraform/issues/3361
 func TestAccAWSEcsService_withEcsClusterName(t *testing.T) {
 	clusterName := regexp.MustCompile("^terraformecstestcluster$")
 	resource.Test(t, resource.TestCase{

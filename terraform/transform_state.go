@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/dag"
+	"github.com/r3labs/terraform/dag"
 )
 
 // StateTransformer is a GraphTransformer that adds the elements of

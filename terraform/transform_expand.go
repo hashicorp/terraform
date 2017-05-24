@@ -3,7 +3,7 @@ package terraform
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/dag"
+	"github.com/r3labs/terraform/dag"
 )
 
 // GraphNodeExapndable is an interface that nodes can implement to

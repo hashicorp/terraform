@@ -6,8 +6,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/hashicorp/terraform/command/clistate"
-	"github.com/hashicorp/terraform/state"
+	"github.com/r3labs/terraform/command/clistate"
+	"github.com/r3labs/terraform/state"
 )
 
 // UntaintCommand is a cli.Command implementation that manually untaints

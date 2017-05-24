@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/r3labs/terraform/config"
+	"github.com/r3labs/terraform/config/module"
 )
 
 // GraphNodeAttachResourceConfig is an interface that must be implemented by nodes

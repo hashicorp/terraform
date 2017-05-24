@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/resource"
 )
 
 func TestAccDnsimpleRecord_import(t *testing.T) {

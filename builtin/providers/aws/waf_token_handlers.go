@@ -6,7 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/waf"
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/resource"
 )
 
 type WafRetryer struct {

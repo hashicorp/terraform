@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/Ensighten/udnssdk"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func testAccRdpoolCheckDestroy(s *terraform.State) error {

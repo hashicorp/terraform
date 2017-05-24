@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestAccAWSAmiDataSource_natInstance(t *testing.T) {
@@ -139,7 +139,7 @@ func TestAccAWSAmiDataSource_owners(t *testing.T) {
 	})
 }
 
-// Acceptance test for: https://github.com/hashicorp/terraform/issues/10758
+// Acceptance test for: https://github.com/r3labs/terraform/issues/10758
 func TestAccAWSAmiDataSource_ownersEmpty(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },

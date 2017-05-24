@@ -14,9 +14,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/hashicorp/terraform/helper/hashcode"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/hashcode"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 func resourceAwsInstance() *schema.Resource {
@@ -503,7 +503,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	})
 	// Warn if the AWS Error involves group ids, to help identify situation
 	// where a user uses group ids in security_groups for the Default VPC.
-	//   See https://github.com/hashicorp/terraform/issues/3798
+	//   See https://github.com/r3labs/terraform/issues/3798
 	if isAWSErr(err, "InvalidParameterValue", "groupId is invalid") {
 		return fmt.Errorf("Error launching instance, possible mismatch of Security Group IDs and Names. See AWS Instance docs here: %s.\n\n\tAWS Error: %s", "https://terraform.io/docs/providers/aws/r/instance.html", err.(awserr.Error).Message())
 	}
@@ -1351,8 +1351,8 @@ func readBlockDeviceMappingsFromConfig(
 				// Only set the iops attribute if the volume type is io1. Setting otherwise
 				// can trigger a refresh/plan loop based on the computed value that is given
 				// from AWS, and prevent us from specifying 0 as a valid iops.
-				//   See https://github.com/hashicorp/terraform/pull/4146
-				//   See https://github.com/hashicorp/terraform/issues/7765
+				//   See https://github.com/r3labs/terraform/pull/4146
+				//   See https://github.com/r3labs/terraform/issues/7765
 				ebs.Iops = aws.Int64(int64(v))
 			} else if v, ok := bd["iops"].(int); ok && v > 0 && *ebs.VolumeType != "io1" {
 				// Message user about incompatibility

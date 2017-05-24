@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 func dataSource() *schema.Resource {
@@ -87,7 +87,7 @@ func dataSourceRead(d *schema.ResourceData, meta interface{}) error {
 
 // This is to prevent potential issues w/ binary files
 // and generally unprintable characters
-// See https://github.com/hashicorp/terraform/pull/3858#issuecomment-156856738
+// See https://github.com/r3labs/terraform/pull/3858#issuecomment-156856738
 func isContentTypeAllowed(contentType string) bool {
 	allowedContentTypes := []*regexp.Regexp{
 		regexp.MustCompile("^text/.+"),

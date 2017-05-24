@@ -2,7 +2,7 @@ package arukas
 
 import (
 	API "github.com/arukasio/cli"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 	"net"
 )
 

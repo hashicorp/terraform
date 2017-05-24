@@ -3,7 +3,7 @@ package alicloud
 import (
 	"bytes"
 	"fmt"
-	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/r3labs/terraform/helper/hashcode"
 )
 
 // Generates a hash for the set hash function used by the ID

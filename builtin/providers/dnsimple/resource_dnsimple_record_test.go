@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/dnsimple/dnsimple-go/dnsimple"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestAccDNSimpleRecord_Basic(t *testing.T) {

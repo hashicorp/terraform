@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestCountHook_impl(t *testing.T) {

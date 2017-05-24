@@ -6,7 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 func resourceAwsCloudTrail() *schema.Resource {
@@ -179,7 +179,7 @@ func resourceAwsCloudTrailRead(d *schema.ResourceData, meta interface{}) error {
 
 	// TODO: Make it possible to use KMS Key names, not just ARNs
 	// In order to test it properly this PR needs to be merged 1st:
-	// https://github.com/hashicorp/terraform/pull/3928
+	// https://github.com/r3labs/terraform/pull/3928
 	d.Set("kms_key_id", trail.KmsKeyId)
 
 	d.Set("arn", trail.TrailARN)

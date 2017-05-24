@@ -8,8 +8,8 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 func resourceGroupAndLBNameFromId(loadBalancerId string) (string, string, error) {

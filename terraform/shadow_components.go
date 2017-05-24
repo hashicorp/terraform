@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/helper/shadow"
+	"github.com/r3labs/terraform/helper/shadow"
 )
 
 // newShadowComponentFactory creates a shadowed contextComponentFactory

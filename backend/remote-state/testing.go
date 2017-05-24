@@ -3,8 +3,8 @@ package remotestate
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/r3labs/terraform/backend"
+	"github.com/r3labs/terraform/state/remote"
 )
 
 func TestClient(t *testing.T, raw backend.Backend) {

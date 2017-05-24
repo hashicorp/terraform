@@ -3,8 +3,8 @@ package file
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/config"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestResourceProvider_Validate_good_source(t *testing.T) {

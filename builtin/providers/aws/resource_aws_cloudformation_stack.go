@@ -10,8 +10,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 func resourceAwsCloudFormationStack() *schema.Resource {
@@ -196,13 +196,13 @@ func resourceAwsCloudFormationStackCreate(d *schema.ResourceData, meta interface
 			}
 			if len(resp.Stacks) == 0 {
 				// This shouldn't happen unless CloudFormation is inconsistent
-				// See https://github.com/hashicorp/terraform/issues/5487
+				// See https://github.com/r3labs/terraform/issues/5487
 				log.Printf("[WARN] CloudFormation stack %q not found.\nresponse: %q",
 					d.Id(), resp)
 				return resp, "", fmt.Errorf(
 					"CloudFormation stack %q vanished unexpectedly during creation.\n"+
 						"Unless you knowingly manually deleted the stack "+
-						"please report this as bug at https://github.com/hashicorp/terraform/issues\n"+
+						"please report this as bug at https://github.com/r3labs/terraform/issues\n"+
 						"along with the config & Terraform version & the details below:\n"+
 						"Full API response: %s\n",
 					d.Id(), resp)

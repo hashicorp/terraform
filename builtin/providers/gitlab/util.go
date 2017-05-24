@@ -3,7 +3,7 @@ package gitlab
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 	gitlab "github.com/xanzy/go-gitlab"
 )
 

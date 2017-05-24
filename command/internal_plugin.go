@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/hashicorp/terraform/plugin"
+	"github.com/r3labs/terraform/plugin"
 	"github.com/kardianos/osext"
 )
 

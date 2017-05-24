@@ -8,8 +8,8 @@ import (
 	"github.com/CenturyLinkCloud/clc-sdk"
 	"github.com/CenturyLinkCloud/clc-sdk/api"
 	"github.com/CenturyLinkCloud/clc-sdk/group"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 func resourceCLCGroup() *schema.Resource {

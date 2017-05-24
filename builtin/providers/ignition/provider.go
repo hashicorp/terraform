@@ -11,8 +11,8 @@ import (
 
 	"github.com/coreos/go-systemd/unit"
 	"github.com/coreos/ignition/config/types"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/schema"
+	"github.com/r3labs/terraform/terraform"
 )
 
 // globalCache keeps the instances of the internal types of ignition generated

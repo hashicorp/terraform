@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/r3labs/terraform/helper/logging"
 	"github.com/nesv/go-dynect/dynect"
 )
 

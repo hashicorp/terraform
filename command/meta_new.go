@@ -6,9 +6,9 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/config"
+	"github.com/r3labs/terraform/config/module"
+	"github.com/r3labs/terraform/terraform"
 )
 
 // NOTE: Temporary file until this branch is cleaned up.

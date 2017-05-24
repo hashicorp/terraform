@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-getter"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/helper/copy"
+	"github.com/r3labs/terraform/config"
+	"github.com/r3labs/terraform/helper/copy"
 )
 
 func TestTreeChild(t *testing.T) {

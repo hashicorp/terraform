@@ -13,9 +13,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
-	"github.com/hashicorp/terraform/helper/hashcode"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/hashcode"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 func resourceAwsElb() *schema.Resource {
@@ -418,7 +418,7 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 		// - externally added access_logs will be enabled, so we'll detect the drift
 		// - locally added access_logs will be in the config, so we'll add to the
 		// API/state
-		// See https://github.com/hashicorp/terraform/issues/10138
+		// See https://github.com/r3labs/terraform/issues/10138
 		_, n := d.GetChange("access_logs")
 		elbal := lbAttrs.AccessLog
 		nl := n.([]interface{})

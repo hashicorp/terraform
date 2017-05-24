@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/digitalocean/godo"
-	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/resource"
 )
 
 func loadbalancerStateRefreshFunc(client *godo.Client, loadbalancerId string) resource.StateRefreshFunc {

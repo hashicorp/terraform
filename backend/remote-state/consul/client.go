@@ -11,8 +11,8 @@ import (
 
 	consulapi "github.com/hashicorp/consul/api"
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/r3labs/terraform/state"
+	"github.com/r3labs/terraform/state/remote"
 )
 
 const (

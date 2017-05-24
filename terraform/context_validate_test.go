@@ -815,7 +815,7 @@ func TestContext2Validate_varRefFilled(t *testing.T) {
 }
 
 // Module variables weren't being interpolated during Validate phase.
-// related to https://github.com/hashicorp/terraform/issues/5322
+// related to https://github.com/r3labs/terraform/issues/5322
 func TestContext2Validate_interpolateVar(t *testing.T) {
 	input := new(MockUIInput)
 

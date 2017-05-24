@@ -3,7 +3,7 @@ package azurerm
 import (
 	"strings"
 
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 func locationSchema() *schema.Schema {

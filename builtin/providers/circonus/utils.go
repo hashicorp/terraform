@@ -11,7 +11,7 @@ import (
 	"github.com/circonus-labs/circonus-gometrics/api"
 	"github.com/circonus-labs/circonus-gometrics/api/config"
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 // convertToHelperSchema converts the schema and injects the necessary

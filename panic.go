@@ -23,7 +23,7 @@ When reporting bugs, please include your terraform version. That
 information is available on the first line of crash.log. You can also
 get it by running 'terraform --version' on the command line.
 
-[1]: https://github.com/hashicorp/terraform/issues
+[1]: https://github.com/r3labs/terraform/issues
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!! TERRAFORM CRASH !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 `

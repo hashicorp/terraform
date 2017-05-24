@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/backend"
+	"github.com/r3labs/terraform/config"
+	"github.com/r3labs/terraform/state"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestBackend_impl(t *testing.T) {

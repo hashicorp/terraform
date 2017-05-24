@@ -1,6 +1,6 @@
 package aws
 
-import "github.com/hashicorp/terraform/helper/schema"
+import "github.com/r3labs/terraform/helper/schema"
 
 func dataSourceAwsAlbListener() *schema.Resource {
 	return &schema.Resource{

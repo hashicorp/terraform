@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func resourceAwsKeyPairMigrateState(
@@ -28,7 +28,7 @@ func migrateKeyPairStateV0toV1(is *terraform.InstanceState) (*terraform.Instance
 	log.Printf("[DEBUG] Attributes before migration: %#v", is.Attributes)
 
 	// replace public_key with a stripped version, removing `\n` from the end
-	// see https://github.com/hashicorp/terraform/issues/3455
+	// see https://github.com/r3labs/terraform/issues/3455
 	is.Attributes["public_key"] = strings.TrimSpace(is.Attributes["public_key"])
 
 	log.Printf("[DEBUG] Attributes after migration: %#v", is.Attributes)

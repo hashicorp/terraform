@@ -3,7 +3,7 @@ package terraform
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/dag"
+	"github.com/r3labs/terraform/dag"
 )
 
 func TestGraphWalk_panicWrap(t *testing.T) {

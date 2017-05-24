@@ -3,9 +3,9 @@ package terraform
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/dag"
+	"github.com/r3labs/terraform/config"
+	"github.com/r3labs/terraform/config/module"
+	"github.com/r3labs/terraform/dag"
 )
 
 // RefreshGraphBuilder implements GraphBuilder and is responsible for building

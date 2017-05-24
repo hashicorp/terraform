@@ -4,8 +4,8 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/r3labs/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/validation"
 	newrelic "github.com/paultyng/go-newrelic/api"
 )
 

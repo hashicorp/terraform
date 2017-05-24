@@ -6,9 +6,9 @@ import (
 	"log"
 	"strings"
 
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/structure"
-	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/r3labs/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/structure"
+	"github.com/r3labs/terraform/helper/validation"
 	"google.golang.org/api/bigquery/v2"
 )
 

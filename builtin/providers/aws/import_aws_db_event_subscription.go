@@ -1,6 +1,6 @@
 package aws
 
-import "github.com/hashicorp/terraform/helper/schema"
+import "github.com/r3labs/terraform/helper/schema"
 
 func resourceAwsDbEventSubscriptionImport(
 	d *schema.ResourceData,

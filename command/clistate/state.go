@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/terraform/helper/slowmessage"
-	"github.com/hashicorp/terraform/state"
+	"github.com/r3labs/terraform/helper/slowmessage"
+	"github.com/r3labs/terraform/state"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 )

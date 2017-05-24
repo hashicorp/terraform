@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strconv"
 
-	r "github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	r "github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func testCheckAttrStringArray(name, key string, value []string) r.TestCheckFunc {

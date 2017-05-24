@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/acctest"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -100,7 +100,7 @@ func TestAccAWSRDSCluster_takeFinalSnapshot(t *testing.T) {
 }
 
 /// This is a regression test to make sure that we always cover the scenario as hightlighted in
-/// https://github.com/hashicorp/terraform/issues/11568
+/// https://github.com/r3labs/terraform/issues/11568
 func TestAccAWSRDSCluster_missingUserNameCausesError(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },

@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/digitalocean/godo"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 func resourceDigitalOceanDomain() *schema.Resource {

@@ -6,9 +6,9 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/acctest"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestAccAWSIAMAccountAlias(t *testing.T) {
@@ -57,7 +57,7 @@ func testAccAWSIAMAccountAlias_basic_with_datasource(t *testing.T) {
 					testAccCheckAWSIAMAccountAliasDataExists("data.aws_iam_account_alias.current", &account_alias),
 				),
 				// We expect a non-empty plan due to the way data sources and depends_on
-				// work, or don't work. See https://github.com/hashicorp/terraform/issues/11139#issuecomment-275121893
+				// work, or don't work. See https://github.com/r3labs/terraform/issues/11139#issuecomment-275121893
 				// We accept this limitation and feel this test is OK because of the
 				// explicity check above
 				ExpectNonEmptyPlan: true,

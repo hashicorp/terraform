@@ -8,7 +8,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/r3labs/terraform/config/module"
 )
 
 func init() {

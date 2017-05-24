@@ -5,10 +5,10 @@ import (
 	"io"
 	"time"
 
-	"github.com/hashicorp/terraform/communicator/remote"
-	"github.com/hashicorp/terraform/communicator/ssh"
-	"github.com/hashicorp/terraform/communicator/winrm"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/communicator/remote"
+	"github.com/r3labs/terraform/communicator/ssh"
+	"github.com/r3labs/terraform/communicator/winrm"
+	"github.com/r3labs/terraform/terraform"
 )
 
 // Communicator is an interface that must be implemented by all communicators

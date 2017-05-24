@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/terraform/command/format"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/command/format"
+	"github.com/r3labs/terraform/terraform"
 )
 
 // ShowCommand is a Command implementation that reads and outputs the

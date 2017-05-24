@@ -1,8 +1,8 @@
 package backend
 
 import (
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/state"
+	"github.com/r3labs/terraform/terraform"
 )
 
 // Nil is a no-op implementation of Backend.

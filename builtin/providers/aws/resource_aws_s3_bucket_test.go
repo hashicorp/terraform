@@ -8,16 +8,16 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/acctest"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 func TestAccAWSS3Bucket_basic(t *testing.T) {
@@ -398,7 +398,7 @@ func TestAccAWSS3Bucket_WebsiteRoutingRules(t *testing.T) {
 
 // Test TestAccAWSS3Bucket_shouldFailNotFound is designed to fail with a "plan
 // not empty" error in Terraform, to check against regresssions.
-// See https://github.com/hashicorp/terraform/pull/2925
+// See https://github.com/r3labs/terraform/pull/2925
 func TestAccAWSS3Bucket_shouldFailNotFound(t *testing.T) {
 	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
@@ -675,7 +675,7 @@ func TestAccAWSS3Bucket_Replication(t *testing.T) {
 	})
 }
 
-// StorageClass issue: https://github.com/hashicorp/terraform/issues/10909
+// StorageClass issue: https://github.com/r3labs/terraform/issues/10909
 func TestAccAWSS3Bucket_ReplicationWithoutStorageClass(t *testing.T) {
 	rInt := acctest.RandInt()
 

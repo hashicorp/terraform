@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/dag"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/backend"
+	"github.com/r3labs/terraform/config/module"
+	"github.com/r3labs/terraform/dag"
+	"github.com/r3labs/terraform/terraform"
 )
 
 // GraphCommand is a Command implementation that takes a Terraform

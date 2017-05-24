@@ -3,8 +3,8 @@ package terraform
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/r3labs/terraform/config"
+	"github.com/r3labs/terraform/config/module"
 )
 
 // OrphanOutputTransformer finds the outputs that aren't present

@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/circonus-labs/circonus-gometrics/api/config"
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/acctest"
+	"github.com/r3labs/terraform/helper/resource"
 )
 
 func TestAccCirconusCheckConsul_node(t *testing.T) {

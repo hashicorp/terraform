@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/arm/disk"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/r3labs/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/validation"
 )
 
 func resourceArmManagedDisk() *schema.Resource {

@@ -3,8 +3,8 @@ package terraform
 import (
 	"errors"
 
-	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/dag"
+	"github.com/r3labs/terraform/config/module"
+	"github.com/r3labs/terraform/dag"
 )
 
 // FlatConfigTransformer is a GraphTransformer that adds the configuration

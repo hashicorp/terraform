@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/DreamItGetIT/statuscake"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestAccStatusCake_basic(t *testing.T) {

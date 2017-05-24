@@ -3,8 +3,8 @@ package icinga2
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func testAccCheckResourceState(resourceName, key, value string) resource.TestCheckFunc {

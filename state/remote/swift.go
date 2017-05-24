@@ -18,7 +18,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/objects"
-	tf_openstack "github.com/hashicorp/terraform/builtin/providers/openstack"
+	tf_openstack "github.com/r3labs/terraform/builtin/providers/openstack"
 )
 
 const TFSTATE_NAME = "tfstate.tf"

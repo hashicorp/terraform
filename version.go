@@ -1,6 +1,6 @@
 package main
 
-import "github.com/hashicorp/terraform/terraform"
+import "github.com/r3labs/terraform/terraform"
 
 // The git commit that was compiled. This will be filled in by the compiler.
 var GitCommit string

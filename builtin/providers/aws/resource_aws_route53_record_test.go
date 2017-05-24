@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/acctest"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -406,7 +406,7 @@ func TestAccAWSRoute53Record_empty(t *testing.T) {
 	})
 }
 
-// Regression test for https://github.com/hashicorp/terraform/issues/8423
+// Regression test for https://github.com/r3labs/terraform/issues/8423
 func TestAccAWSRoute53Record_longTXTrecord(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },

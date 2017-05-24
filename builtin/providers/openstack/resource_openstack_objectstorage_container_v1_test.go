@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestAccObjectStorageV1Container_basic(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 	"regexp"
 
 	pagerduty "github.com/PagerDuty/go-pagerduty"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 func dataSourcePagerDutyVendor() *schema.Resource {

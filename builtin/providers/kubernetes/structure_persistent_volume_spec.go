@@ -3,7 +3,7 @@ package kubernetes
 import (
 	"k8s.io/kubernetes/pkg/api/v1"
 
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 // Flatteners

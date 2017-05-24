@@ -5,7 +5,7 @@ import (
 
 	"google.golang.org/api/dns/v1"
 
-	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/resource"
 )
 
 type DnsChangeWaiter struct {

@@ -1,7 +1,7 @@
 package random
 
 import (
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 func resourceShuffle() *schema.Resource {

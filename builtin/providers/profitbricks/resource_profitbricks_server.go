@@ -3,7 +3,7 @@ package profitbricks
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 	"github.com/profitbricks/profitbricks-sdk-go"
 	"golang.org/x/crypto/ssh"
 	"io/ioutil"

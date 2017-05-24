@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/cloudflare/cloudflare-go"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func resourceCloudFlareRecordMigrateState(

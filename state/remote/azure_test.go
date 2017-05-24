@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	mainStorage "github.com/Azure/azure-sdk-for-go/storage"
-	"github.com/hashicorp/terraform/helper/acctest"
+	"github.com/r3labs/terraform/helper/acctest"
 	riviera "github.com/jen20/riviera/azure"
 	"github.com/jen20/riviera/storage"
 	"github.com/satori/uuid"

@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/terraform/dag"
+	"github.com/r3labs/terraform/dag"
 	"github.com/mitchellh/cli"
 )
 

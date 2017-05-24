@@ -15,9 +15,9 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/helper/logging"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/config/module"
+	"github.com/r3labs/terraform/helper/logging"
+	"github.com/r3labs/terraform/terraform"
 )
 
 const TestEnvVar = "TF_ACC"

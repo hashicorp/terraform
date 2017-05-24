@@ -6,8 +6,8 @@ import (
 	"net"
 	"regexp"
 
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/schema"
 	"google.golang.org/api/container/v1"
 )
 

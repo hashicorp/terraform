@@ -12,9 +12,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/terraform/helper/hashcode"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/hashcode"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 func resourceAwsSecurityGroupRule() *schema.Resource {
@@ -173,7 +173,7 @@ func resourceAwsSecurityGroupRuleCreate(d *schema.ResourceData, meta interface{}
 				return fmt.Errorf(`[WARN] A duplicate Security Group rule was found on (%s). This may be
 a side effect of a now-fixed Terraform issue causing two security groups with
 identical attributes but different source_security_group_ids to overwrite each
-other in the state. See https://github.com/hashicorp/terraform/pull/2376 for more
+other in the state. See https://github.com/r3labs/terraform/pull/2376 for more
 information and instructions for recovery. Error message: %s`, sg_id, awsErr.Message())
 			}
 		}

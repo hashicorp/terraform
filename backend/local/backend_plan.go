@@ -9,12 +9,12 @@ import (
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/command/clistate"
-	"github.com/hashicorp/terraform/command/format"
-	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/backend"
+	"github.com/r3labs/terraform/command/clistate"
+	"github.com/r3labs/terraform/command/format"
+	"github.com/r3labs/terraform/config/module"
+	"github.com/r3labs/terraform/state"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func (b *Local) opPlan(

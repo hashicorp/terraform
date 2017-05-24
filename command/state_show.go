@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/terraform"
 	"github.com/mitchellh/cli"
 	"github.com/ryanuber/columnize"
 )

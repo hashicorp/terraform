@@ -9,8 +9,8 @@ import (
 	"github.com/circonus-labs/circonus-gometrics/api"
 	"github.com/hashicorp/errwrap"
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/terraform/helper/hashcode"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/hashcode"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 type circonusMetric struct {

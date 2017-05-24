@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -49,7 +49,7 @@ func resourceAwsSnsTopicPolicyUpsert(d *schema.ResourceData, meta interface{}) e
 
 	// Retry the update in the event of an eventually consistent style of
 	// error, where say an IAM resource is successfully created but not
-	// actually available. See https://github.com/hashicorp/terraform/issues/3660
+	// actually available. See https://github.com/r3labs/terraform/issues/3660
 	log.Printf("[DEBUG] Updating SNS Topic Policy: %s", req)
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"retrying"},
@@ -118,7 +118,7 @@ func resourceAwsSnsTopicPolicyDelete(d *schema.ResourceData, meta interface{}) e
 
 	// Retry the update in the event of an eventually consistent style of
 	// error, where say an IAM resource is successfully created but not
-	// actually available. See https://github.com/hashicorp/terraform/issues/3660
+	// actually available. See https://github.com/r3labs/terraform/issues/3660
 	log.Printf("[DEBUG] Resetting SNS Topic Policy to default: %s", req)
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"retrying"},

@@ -1,7 +1,7 @@
 package terraform
 
 import (
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/r3labs/terraform/config/module"
 )
 
 // ImportOpts are used as the configuration for Import.

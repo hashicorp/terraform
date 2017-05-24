@@ -3,7 +3,7 @@ package consul
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/resource"
 )
 
 func TestAccDataConsulCatalogServices_basic(t *testing.T) {

@@ -3,8 +3,8 @@ package terraform
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/dag"
+	"github.com/r3labs/terraform/config"
+	"github.com/r3labs/terraform/dag"
 )
 
 // NodeRefreshableManagedResource represents a resource that is expanabled into

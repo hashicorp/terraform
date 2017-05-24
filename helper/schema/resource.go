@@ -6,7 +6,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/terraform"
 )
 
 // Resource represents a thing in Terraform that has a set of configurable

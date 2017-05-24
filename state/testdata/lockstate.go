@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/hashicorp/terraform/state"
+	"github.com/r3labs/terraform/state"
 )
 
 // Attempt to open and lock a terraform state file.

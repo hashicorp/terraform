@@ -5,7 +5,7 @@ import (
 	"log"
 	"regexp"
 
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 func resourceArmStorageQueue() *schema.Resource {

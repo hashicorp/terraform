@@ -5,8 +5,8 @@ import (
 	"path"
 	"testing"
 
-	"github.com/hashicorp/terraform/communicator"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/communicator"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestResourceProvider_windowsInstallChefClient(t *testing.T) {

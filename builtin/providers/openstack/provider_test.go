@@ -6,10 +6,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/helper/pathorcontents"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/config"
+	"github.com/r3labs/terraform/helper/pathorcontents"
+	"github.com/r3labs/terraform/helper/schema"
+	"github.com/r3labs/terraform/terraform"
 )
 
 var (
@@ -78,7 +78,7 @@ func TestProvider_impl(t *testing.T) {
 }
 
 // Steps for configuring OpenStack with SSL validation are here:
-// https://github.com/hashicorp/terraform/pull/6279#issuecomment-219020144
+// https://github.com/r3labs/terraform/pull/6279#issuecomment-219020144
 func TestAccProvider_caCertFile(t *testing.T) {
 	if os.Getenv("TF_ACC") == "" || os.Getenv("OS_SSL_TESTS") == "" {
 		t.Skip("TF_ACC or OS_SSL_TESTS not set, skipping OpenStack SSL test.")

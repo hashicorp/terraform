@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/Ensighten/udnssdk"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/r3labs/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/validation"
 )
 
 func resourceUltradnsRdpool() *schema.Resource {

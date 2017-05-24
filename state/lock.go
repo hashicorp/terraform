@@ -1,7 +1,7 @@
 package state
 
 import (
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/terraform"
 )
 
 // LockDisabled implements State and Locker but disables state locking.

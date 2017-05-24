@@ -9,8 +9,8 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 )
 
 const testDataSourceConfig_basic = `
@@ -110,7 +110,7 @@ func buildDataSourceTestProgram() (string, error) {
 	// We have a simple Go program that we use as a stub for testing.
 	cmd := exec.Command(
 		"go", "install",
-		"github.com/hashicorp/terraform/builtin/providers/external/test-programs/tf-acc-external-data-source",
+		"github.com/r3labs/terraform/builtin/providers/external/test-programs/tf-acc-external-data-source",
 	)
 	err := cmd.Run()
 

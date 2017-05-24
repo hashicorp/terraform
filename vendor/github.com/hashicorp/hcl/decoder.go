@@ -345,7 +345,7 @@ func (d *decoder) decodeMap(name string, node ast.Node, result reflect.Value) er
 			continue
 		}
 
-		// github.com/hashicorp/terraform/issue/5740
+		// github.com/r3labs/terraform/issue/5740
 		if len(item.Keys) == 0 {
 			return &parser.PosError{
 				Pos: node.Pos(),

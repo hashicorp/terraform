@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"testing"
 
-	r "github.com/hashicorp/terraform/helper/resource"
+	r "github.com/r3labs/terraform/helper/resource"
 )
 
 func TestRender(t *testing.T) {

@@ -16,9 +16,9 @@ import (
 	"github.com/Azure/azure-sdk-for-go/management/virtualmachine"
 	"github.com/Azure/azure-sdk-for-go/management/virtualmachineimage"
 	"github.com/Azure/azure-sdk-for-go/management/vmutils"
-	"github.com/hashicorp/terraform/helper/hashcode"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/hashcode"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 const (

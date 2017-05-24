@@ -8,10 +8,10 @@ import (
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/command/clistate"
-	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/state"
+	"github.com/r3labs/terraform/backend"
+	"github.com/r3labs/terraform/command/clistate"
+	"github.com/r3labs/terraform/config/module"
+	"github.com/r3labs/terraform/state"
 )
 
 func (b *Local) opRefresh(

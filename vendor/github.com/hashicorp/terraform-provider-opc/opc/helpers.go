@@ -3,7 +3,7 @@ package opc
 import (
 	"sort"
 
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 // Helper function to get a string list from the schema, and alpha-sort it

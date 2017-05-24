@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 	gofastly "github.com/sethvargo/go-fastly"
 )
 
@@ -2692,7 +2692,7 @@ func flattenVCLs(vclList []*gofastly.VCL) []map[string]interface{} {
 
 func validateVCLs(d *schema.ResourceData) error {
 	// TODO: this would be nice to move into a resource/collection validation function, once that is available
-	// (see https://github.com/hashicorp/terraform/pull/4348 and https://github.com/hashicorp/terraform/pull/6508)
+	// (see https://github.com/r3labs/terraform/pull/4348 and https://github.com/r3labs/terraform/pull/6508)
 	vcls, exists := d.GetOk("vcl")
 	if !exists {
 		return nil

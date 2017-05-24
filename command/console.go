@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/helper/wrappedstreams"
-	"github.com/hashicorp/terraform/repl"
+	"github.com/r3labs/terraform/backend"
+	"github.com/r3labs/terraform/helper/wrappedstreams"
+	"github.com/r3labs/terraform/repl"
 
 	"github.com/mitchellh/cli"
 )

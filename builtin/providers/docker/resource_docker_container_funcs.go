@@ -9,7 +9,7 @@ import (
 	"time"
 
 	dc "github.com/fsouza/go-dockerclient"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 var (

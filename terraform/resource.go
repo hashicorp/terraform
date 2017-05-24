@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/r3labs/terraform/config"
 	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/reflectwalk"
 )

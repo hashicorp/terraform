@@ -10,7 +10,7 @@ import (
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/swauth"
-	"github.com/hashicorp/terraform/helper/pathorcontents"
+	"github.com/r3labs/terraform/helper/pathorcontents"
 )
 
 type Config struct {

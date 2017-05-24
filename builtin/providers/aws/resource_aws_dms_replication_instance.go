@@ -8,8 +8,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	dms "github.com/aws/aws-sdk-go/service/databasemigrationservice"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 func resourceAwsDmsReplicationInstance() *schema.Resource {
@@ -140,7 +140,7 @@ func resourceAwsDmsReplicationInstanceCreate(d *schema.ResourceData, meta interf
 
 	// WARNING: GetOk returns the zero value for the type if the key is omitted in config. This means for optional
 	// keys that the zero value is valid we cannot know if the zero value was in the config and cannot allow the API
-	// to set the default value. See GitHub Issue #5694 https://github.com/hashicorp/terraform/issues/5694
+	// to set the default value. See GitHub Issue #5694 https://github.com/r3labs/terraform/issues/5694
 
 	if v, ok := d.GetOk("allocated_storage"); ok {
 		request.AllocatedStorage = aws.Int64(int64(v.(int)))

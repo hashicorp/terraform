@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/r3labs/terraform/helper/logging"
 )
 
 func TestMain(m *testing.M) {

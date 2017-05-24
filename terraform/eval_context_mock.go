@@ -3,7 +3,7 @@ package terraform
 import (
 	"sync"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/r3labs/terraform/config"
 )
 
 // MockEvalContext is a mock version of EvalContext that can be used

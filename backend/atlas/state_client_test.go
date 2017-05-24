@@ -13,10 +13,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/state/remote"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/backend"
+	"github.com/r3labs/terraform/helper/acctest"
+	"github.com/r3labs/terraform/state/remote"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func testStateClient(t *testing.T, c map[string]interface{}) remote.Client {

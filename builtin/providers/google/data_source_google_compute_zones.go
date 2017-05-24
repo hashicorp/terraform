@@ -6,7 +6,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 	compute "google.golang.org/api/compute/v1"
 )
 

@@ -10,9 +10,9 @@ import (
 
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/helper/pathorcontents"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/config"
+	"github.com/r3labs/terraform/helper/pathorcontents"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 func dataSourceFile() *schema.Resource {

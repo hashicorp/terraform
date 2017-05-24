@@ -9,8 +9,8 @@ import (
 
 	"github.com/Ensighten/udnssdk"
 	"github.com/fatih/structs"
-	"github.com/hashicorp/terraform/helper/hashcode"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/hashcode"
+	"github.com/r3labs/terraform/helper/schema"
 	"github.com/mitchellh/mapstructure"
 )
 

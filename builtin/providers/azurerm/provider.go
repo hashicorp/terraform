@@ -12,10 +12,10 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/helper/mutexkv"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/mutexkv"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/schema"
+	"github.com/r3labs/terraform/terraform"
 	riviera "github.com/jen20/riviera/azure"
 )
 

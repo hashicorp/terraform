@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/r3labs/terraform/config"
+	"github.com/r3labs/terraform/config/module"
 )
 
 // checkRequiredVersion verifies that any version requirements specified by

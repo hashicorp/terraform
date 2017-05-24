@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/digitalocean/godo"
-	"github.com/hashicorp/terraform/helper/logging"
-	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/logging"
+	"github.com/r3labs/terraform/helper/resource"
 	"golang.org/x/oauth2"
 )
 
@@ -78,7 +78,7 @@ func waitForAction(client *godo.Client, action *godo.Action) error {
 		MinTimeout: 3 * time.Second,
 
 		// This is a hack around DO API strangeness.
-		// https://github.com/hashicorp/terraform/issues/481
+		// https://github.com/r3labs/terraform/issues/481
 		//
 		NotFoundChecks: 60,
 	}).WaitForState()

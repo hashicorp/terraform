@@ -1,8 +1,8 @@
 package terraform
 
 import (
-	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/dag"
+	"github.com/r3labs/terraform/config/module"
+	"github.com/r3labs/terraform/dag"
 )
 
 // ApplyGraphBuilder implements GraphBuilder and is responsible for building

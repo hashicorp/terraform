@@ -8,9 +8,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/acctest"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestAccAWSDynamoDbTable_basic(t *testing.T) {
@@ -84,7 +84,7 @@ func TestAccAWSDynamoDbTable_tags(t *testing.T) {
 	})
 }
 
-// https://github.com/hashicorp/terraform/issues/13243
+// https://github.com/r3labs/terraform/issues/13243
 func TestAccAWSDynamoDbTable_gsiUpdate(t *testing.T) {
 	var conf dynamodb.DescribeTableOutput
 	name := acctest.RandString(10)

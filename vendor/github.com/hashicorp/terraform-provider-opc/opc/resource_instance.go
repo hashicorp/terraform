@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-oracle-terraform/compute"
-	"github.com/hashicorp/terraform/helper/hashcode"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/r3labs/terraform/helper/hashcode"
+	"github.com/r3labs/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/validation"
 )
 
 func resourceInstance() *schema.Resource {

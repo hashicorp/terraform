@@ -4,7 +4,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/terraform"
 )
 
 // CountHook is a hook that counts the number of resources

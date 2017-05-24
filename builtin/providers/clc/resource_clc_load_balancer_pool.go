@@ -8,7 +8,7 @@ import (
 	clc "github.com/CenturyLinkCloud/clc-sdk"
 	"github.com/CenturyLinkCloud/clc-sdk/lb"
 
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 func resourceCLCLoadBalancerPool() *schema.Resource {

@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/cloudflare/cloudflare-go"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestCloudFlareRecordMigrateState(t *testing.T) {

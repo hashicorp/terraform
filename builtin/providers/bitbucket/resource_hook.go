@@ -8,7 +8,7 @@ import (
 	"log"
 	"net/url"
 
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 type Hook struct {

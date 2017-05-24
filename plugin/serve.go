@@ -2,7 +2,7 @@ package plugin
 
 import (
 	"github.com/hashicorp/go-plugin"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/terraform"
 )
 
 // The constants below are the names of the plugins that can be dispensed

@@ -6,8 +6,8 @@ import (
 
 	clc "github.com/CenturyLinkCloud/clc-sdk"
 	lb "github.com/CenturyLinkCloud/clc-sdk/lb"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 )
 
 // things to test:

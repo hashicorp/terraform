@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/config/module"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestSession_basicState(t *testing.T) {

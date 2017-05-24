@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-getter"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/helper/variables"
+	"github.com/r3labs/terraform/config"
+	"github.com/r3labs/terraform/config/module"
+	"github.com/r3labs/terraform/helper/variables"
 )
 
 // InitCommand is a Command implementation that takes a Terraform

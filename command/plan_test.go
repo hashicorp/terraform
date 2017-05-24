@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/copy"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/copy"
+	"github.com/r3labs/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
 

@@ -3,7 +3,7 @@ package vsphere
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestVSphereVirtualMachineMigrateState(t *testing.T) {

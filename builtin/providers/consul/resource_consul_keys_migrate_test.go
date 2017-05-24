@@ -3,7 +3,7 @@ package consul
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestConsulKeysMigrateState(t *testing.T) {

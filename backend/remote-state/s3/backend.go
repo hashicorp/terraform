@@ -5,10 +5,10 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/backend"
+	"github.com/r3labs/terraform/helper/schema"
 
-	terraformAWS "github.com/hashicorp/terraform/builtin/providers/aws"
+	terraformAWS "github.com/r3labs/terraform/builtin/providers/aws"
 )
 
 // New creates a new backend for S3 remote state.

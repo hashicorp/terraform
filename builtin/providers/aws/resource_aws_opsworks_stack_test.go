@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/acctest"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -103,7 +103,7 @@ func TestAccAWSOpsworksStackVpc(t *testing.T) {
 
 // Tests the addition of regional endpoints and supporting the classic link used
 // to create Stack's prior to v0.9.0.
-// See https://github.com/hashicorp/terraform/issues/12842
+// See https://github.com/r3labs/terraform/issues/12842
 func TestAccAWSOpsWorksStack_classic_endpoints(t *testing.T) {
 	stackName := fmt.Sprintf("tf-opsworks-acc-%d", acctest.RandInt())
 	rInt := acctest.RandInt()

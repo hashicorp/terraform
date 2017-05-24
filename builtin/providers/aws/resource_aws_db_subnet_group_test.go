@@ -5,9 +5,9 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/acctest"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -84,8 +84,8 @@ func TestAccAWSDBSubnetGroup_generatedName(t *testing.T) {
 	})
 }
 
-// Regression test for https://github.com/hashicorp/terraform/issues/2603 and
-// https://github.com/hashicorp/terraform/issues/2664
+// Regression test for https://github.com/r3labs/terraform/issues/2603 and
+// https://github.com/r3labs/terraform/issues/2664
 func TestAccAWSDBSubnetGroup_withUndocumentedCharacters(t *testing.T) {
 	var v rds.DBSubnetGroup
 

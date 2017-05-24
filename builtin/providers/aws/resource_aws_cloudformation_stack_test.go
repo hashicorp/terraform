@@ -6,9 +6,9 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/acctest"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestAccAWSCloudFormation_basic(t *testing.T) {
@@ -118,7 +118,7 @@ func TestAccAWSCloudFormation_allAttributes(t *testing.T) {
 	})
 }
 
-// Regression for https://github.com/hashicorp/terraform/issues/4332
+// Regression for https://github.com/r3labs/terraform/issues/4332
 func TestAccAWSCloudFormation_withParams(t *testing.T) {
 	var stack cloudformation.Stack
 	stackName := fmt.Sprintf("tf-acc-test-with-params-%s", acctest.RandString(10))
@@ -144,7 +144,7 @@ func TestAccAWSCloudFormation_withParams(t *testing.T) {
 	})
 }
 
-// Regression for https://github.com/hashicorp/terraform/issues/4534
+// Regression for https://github.com/r3labs/terraform/issues/4534
 func TestAccAWSCloudFormation_withUrl_withParams(t *testing.T) {
 	var stack cloudformation.Stack
 	rName := fmt.Sprintf("tf-acc-test-with-url-and-params-%s", acctest.RandString(10))
@@ -189,7 +189,7 @@ func TestAccAWSCloudFormation_withUrl_withParams_withYaml(t *testing.T) {
 	})
 }
 
-// Test for https://github.com/hashicorp/terraform/issues/5653
+// Test for https://github.com/r3labs/terraform/issues/5653
 func TestAccAWSCloudFormation_withUrl_withParams_noUpdate(t *testing.T) {
 	var stack cloudformation.Stack
 	rName := fmt.Sprintf("tf-acc-test-with-params-no-update-%s", acctest.RandString(10))

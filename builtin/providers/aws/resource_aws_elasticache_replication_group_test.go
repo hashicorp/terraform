@@ -8,9 +8,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elasticache"
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/acctest"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestAccAWSElasticacheReplicationGroup_basic(t *testing.T) {
@@ -133,7 +133,7 @@ func TestAccAWSElasticacheReplicationGroup_updateNodeSize(t *testing.T) {
 	})
 }
 
-//This is a test to prove that we panic we get in https://github.com/hashicorp/terraform/issues/9097
+//This is a test to prove that we panic we get in https://github.com/r3labs/terraform/issues/9097
 func TestAccAWSElasticacheReplicationGroup_updateParameterGroup(t *testing.T) {
 	var rg elasticache.ReplicationGroup
 	rName := acctest.RandString(10)

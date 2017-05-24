@@ -1,6 +1,6 @@
 package state
 
-import "github.com/hashicorp/terraform/terraform"
+import "github.com/r3labs/terraform/terraform"
 
 // BackupState wraps a State that backs up the state on the first time that
 // a WriteState or PersistState is called.

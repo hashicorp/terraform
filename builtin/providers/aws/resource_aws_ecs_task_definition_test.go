@@ -6,9 +6,9 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/acctest"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestAccAWSEcsTaskDefinition_basic(t *testing.T) {
@@ -34,7 +34,7 @@ func TestAccAWSEcsTaskDefinition_basic(t *testing.T) {
 	})
 }
 
-// Regression for https://github.com/hashicorp/terraform/issues/2370
+// Regression for https://github.com/r3labs/terraform/issues/2370
 func TestAccAWSEcsTaskDefinition_withScratchVolume(t *testing.T) {
 	var def ecs.TaskDefinition
 	resource.Test(t, resource.TestCase{
@@ -52,7 +52,7 @@ func TestAccAWSEcsTaskDefinition_withScratchVolume(t *testing.T) {
 	})
 }
 
-// Regression for https://github.com/hashicorp/terraform/issues/2694
+// Regression for https://github.com/r3labs/terraform/issues/2694
 func TestAccAWSEcsTaskDefinition_withEcsService(t *testing.T) {
 	var def ecs.TaskDefinition
 	resource.Test(t, resource.TestCase{

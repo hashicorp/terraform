@@ -16,15 +16,15 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
-	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/command/clistate"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/backend"
+	"github.com/r3labs/terraform/command/clistate"
+	"github.com/r3labs/terraform/config"
+	"github.com/r3labs/terraform/state"
+	"github.com/r3labs/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
 
-	backendinit "github.com/hashicorp/terraform/backend/init"
-	backendlocal "github.com/hashicorp/terraform/backend/local"
+	backendinit "github.com/r3labs/terraform/backend/init"
+	backendlocal "github.com/r3labs/terraform/backend/local"
 )
 
 // BackendOpts are the options used to initialize a backend.Backend.

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/atlas-go/v1"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 func dataSourceAtlasArtifact() *schema.Resource {

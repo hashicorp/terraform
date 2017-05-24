@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/arm/network"
-	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/r3labs/terraform/helper/acctest"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/terraform"
 )
 
 func TestResourceAzureRMLoadBalancerRuleNameLabel_validation(t *testing.T) {
@@ -123,7 +123,7 @@ func TestAccAzureRMLoadBalancerRule_removal(t *testing.T) {
 	})
 }
 
-// https://github.com/hashicorp/terraform/issues/9424
+// https://github.com/r3labs/terraform/issues/9424
 func TestAccAzureRMLoadBalancerRule_inconsistentReads(t *testing.T) {
 	var lb network.LoadBalancer
 	ri := acctest.RandInt()
@@ -370,7 +370,7 @@ resource "azurerm_lb" "test" {
 `, rInt, rInt, rInt, rInt)
 }
 
-// https://github.com/hashicorp/terraform/issues/9424
+// https://github.com/r3labs/terraform/issues/9424
 func testAccAzureRMLoadBalancerRule_inconsistentRead(rInt int, backendPoolName, probeName, lbRuleName string) string {
 	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {

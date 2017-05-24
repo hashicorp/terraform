@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/validation"
 )
 
 // The KeySource of storage.Encryption appears to require this value

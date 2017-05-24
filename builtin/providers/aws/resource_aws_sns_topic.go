@@ -10,8 +10,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/r3labs/terraform/helper/resource"
+	"github.com/r3labs/terraform/helper/schema"
 )
 
 // Mutable attributes
@@ -116,7 +116,7 @@ func resourceAwsSnsTopicUpdate(d *schema.ResourceData, meta interface{}) error {
 
 					// Retry the update in the event of an eventually consistent style of
 					// error, where say an IAM resource is successfully created but not
-					// actually available. See https://github.com/hashicorp/terraform/issues/3660
+					// actually available. See https://github.com/r3labs/terraform/issues/3660
 					log.Printf("[DEBUG] Updating SNS Topic (%s) attributes request: %s", d.Id(), req)
 					stateConf := &resource.StateChangeConf{
 						Pending:    []string{"retrying"},
