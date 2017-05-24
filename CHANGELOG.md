@@ -19,6 +19,7 @@ FEATURES:
 * **New Resource:** `azurerm_express_route_circuit` [GH-14265]
 * **New Resource:** `gitlab_deploy_key` [GH-14734]
 * **New Resource:** `gitlab_group` [GH-14490]
+* **New Resource:** `kubernetes_horizontal_pod_autoscaler` [GH-14763]
 * **New Resource:** `kubernetes_service` [GH-14554]
 * **New Resource:** `openstack_dns_zone_v2` [GH-14721]
 * **New Data Source:** `aws_db_snapshot` [GH-10291]
