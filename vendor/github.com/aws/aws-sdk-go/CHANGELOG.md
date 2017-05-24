@@ -1,3 +1,38 @@
+Release v1.8.28 (2017-05-23)
+===
+
+### Service Client Updates
+* `service/databasemigrationservice`: Updates service API, documentation, paginators, and examples
+  * This release adds support for using Amazon S3 and Amazon DynamoDB as targets for database migration, and using MongoDB as a source for database migration. For more information, see the AWS Database Migration Service documentation.
+
+Release v1.8.27 (2017-05-22)
+===
+
+### Service Client Updates
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/resourcegroupstaggingapi`: Updates service API, documentation, and paginators
+  * You can now specify the number of resources returned per page in GetResources operation, as an optional parameter, to easily manage the list of resources returned by your queries.
+
+### SDK Bugs
+* `aws/request`: Add support for PUT temporary redirects (307) [#1283](https://github.com/aws/aws-sdk-go/issues/1283)
+  * Adds support for Go 1.8's GetBody function allowing the SDK's http request using PUT and POST methods to be redirected with temporary redirects with 307 status code.
+  * Fixes: [#1267](https://github.com/aws/aws-sdk-go/issues/1267)
+* `aws/request`: Add handling for retrying temporary errors during unmarshal [#1289](https://github.com/aws/aws-sdk-go/issues/1289)
+  * Adds support for retrying temporary errors that occur during unmarshaling of a request's response body.
+  * Fixes: [#1275](https://github.com/aws/aws-sdk-go/issues/1275)
+Release v1.8.26 (2017-05-18)
+===
+
+### Service Client Updates
+* `service/athena`: Adds new service
+  * This release adds support for Amazon Athena. Amazon Athena is an interactive query service that makes it easy to analyze data in Amazon S3 using standard SQL. Athena is serverless, so there is no infrastructure to manage, and you pay only for the queries that you run.
+* `service/lightsail`: Updates service API, documentation, and paginators
+  * This release adds new APIs that make it easier to set network port configurations on Lightsail instances. Developers can now make a single request to both open and close public ports on an instance using the PutInstancePublicPorts operation.
+
+### SDK Bugs
+* `aws/request`: Fix logging from reporting wrong retry request errors #1281
+  * Fixes the SDK's retry request logging to report the the actual error that occurred, not a stubbed Unknown error message.
+  * Fixes the SDK's response logger to not output the response log multiple times per retry.
 Release v1.8.25 (2017-05-17)
 ===
 
