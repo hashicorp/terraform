@@ -71,6 +71,9 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* core: Store and verify checksums for S3 remote state to prevent fetching a stale state [GH-14746]
+* core: Allow -force-unlock of an S3 named state [GH-14680]
+* core: Fix incorrect errors when validatin nested objects [GH-14784] [GH-14801]
 * core: When using `-target`, any outputs that include attributes of the targeted resources are now updated [GH-14186]
 * core: Fixed 0.9.5 regression with the conditional operator `.. ? .. : ..` failing to type check with unknown/computed values [GH-14454]
 * core: Fixed 0.9 regression causing issues during refresh when adding new data resource instances using `count` [GH-14098]
