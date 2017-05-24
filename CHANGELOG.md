@@ -65,6 +65,7 @@ IMPROVEMENTS:
 * provider/rancher: Add member support to `rancher_environment` [GH-14563]
 * provider/rundeck: adds `description` to `command` schema in `rundeck_job` resource [GH-14352]
 * provider/scaleway: allow public_ip to be set on server resource [GH-14515]
+* provider/vsphere: Exposing moid value from vm resource [GH-14793]
 
 BUG FIXES:
 
