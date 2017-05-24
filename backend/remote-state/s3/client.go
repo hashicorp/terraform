@@ -42,9 +42,6 @@ var (
 
 	// delay when polling the state
 	consistencyRetryPollInterval = 2 * time.Second
-
-	// checksum didn't match the remote state
-	errBadChecksum = errors.New("invalid state checksum")
 )
 
 // test hook called when checksums don't match
@@ -77,7 +74,7 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 				continue
 			}
 
-			return nil, errBadChecksum
+			return nil, fmt.Errorf(errBadChecksumFmt, payload.MD5)
 		}
 
 		break
@@ -369,3 +366,12 @@ func (c *RemoteClient) Unlock(id string) error {
 func (c *RemoteClient) lockPath() string {
 	return fmt.Sprintf("%s/%s", c.bucketName, c.path)
 }
+
+const errBadChecksumFmt = `state data in S3 does not have the expected content.
+
+This may be caused by unusually long delays in S3 processing a previous state
+update.  Please wait for a minute or two and try again. If this problem
+persists, and neither S3 nor DynamoDB are experiencing an outage, you may need
+to manually verify the remote state and update the Digest value stored in the
+DynamoDB table to the following value: %x
+`
