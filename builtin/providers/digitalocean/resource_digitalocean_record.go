@@ -57,6 +57,12 @@ func resourceDigitalOceanRecord() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"ttl": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
 			"value": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -92,6 +98,12 @@ func resourceDigitalOceanRecordCreate(d *schema.ResourceData, meta interface{}) 
 		newRecord.Port, err = strconv.Atoi(port)
 		if err != nil {
 			return fmt.Errorf("Failed to parse port as an integer: %v", err)
+		}
+	}
+	if ttl := d.Get("ttl").(string); ttl != "" {
+		newRecord.TTL, err = strconv.Atoi(ttl)
+		if err != nil {
+			return fmt.Errorf("Failed to parse ttl as an integer: %v", err)
 		}
 	}
 	if weight := d.Get("weight").(string); weight != "" {
@@ -146,6 +158,7 @@ func resourceDigitalOceanRecordRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("weight", strconv.Itoa(rec.Weight))
 	d.Set("priority", strconv.Itoa(rec.Priority))
 	d.Set("port", strconv.Itoa(rec.Port))
+	d.Set("ttl", strconv.Itoa(rec.TTL))
 
 	en := constructFqdn(rec.Name, d.Get("domain").(string))
 	log.Printf("[DEBUG] Constructed FQDN: %s", en)
@@ -166,6 +179,14 @@ func resourceDigitalOceanRecordUpdate(d *schema.ResourceData, meta interface{}) 
 	var editRecord godo.DomainRecordEditRequest
 	if v, ok := d.GetOk("name"); ok {
 		editRecord.Name = v.(string)
+	}
+
+	if d.HasChange("ttl") {
+		newTTL := d.Get("ttl").(string)
+		editRecord.TTL, err = strconv.Atoi(newTTL)
+		if err != nil {
+			return fmt.Errorf("Failed to parse ttl as an integer: %v", err)
+		}
 	}
 
 	log.Printf("[DEBUG] record update configuration: %#v", editRecord)
