@@ -38,6 +38,7 @@ IMPROVEMENTS:
 * provider/aws: Allow lightsail resources to work in other regions [GH-14685]
 * provider/aws: Configurable timeouts for EC2 instance + spot instance [GH-14711]
 * provider/aws: Add ability to define timeouts for DMS replication instance [GH-14729]
+* provider/aws: Add support for X-Ray tracing to aws_lambda_function [GH-14728]
 * provider/azurerm: Virtual Machine Scale Sets with managed disk support [GH-13717]
 * provider/azurerm: Virtual Machine Scale Sets with single placement option support [GH-14510]
 * provider/azurerm: Adding support for VMSS Data Disks using Managed Disk feature [GH-14608]
