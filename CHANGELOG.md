@@ -50,6 +50,7 @@ IMPROVEMENTS:
 * provider/docker: Allow Windows Docker containers to map volumes [GH-13584]
 * provider/docker: Add `network_alias` to `docker_container` resource [GH-14710]
 * provider/fastly: Mark the `s3_access_key`, `s3_secret_key`, & `secret_key` fields as sensitive [GH-14634]
+* provider/gitlab: Add namespcace ID attribute to `gitlab_project` [GH-14483]
 * provider/google: Add a `url` attribute to `google_storage_bucket` [GH-14393]
 * provider/google: Make google resource storage bucket importable [GH-14455]
 * provider/google: Add support for privateIpGoogleAccess on subnetworks [GH-14234]
