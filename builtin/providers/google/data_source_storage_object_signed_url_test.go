@@ -99,7 +99,7 @@ func TestUrlData_SignedUrl(t *testing.T) {
 	}
 }
 
-func TestDatasourceSignedUrl_basic(t *testing.T) {
+func TestAccStorageSignedUrl_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
@@ -114,7 +114,7 @@ func TestDatasourceSignedUrl_basic(t *testing.T) {
 	})
 }
 
-func TestDatasourceSignedUrl_accTest(t *testing.T) {
+func TestAccStorageSignedUrl_accTest(t *testing.T) {
 	bucketName := fmt.Sprintf("tf-test-bucket-%d", acctest.RandInt())
 
 	headers := map[string]string{
@@ -127,7 +127,7 @@ func TestDatasourceSignedUrl_accTest(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccTestGoogleStorageObjectSingedUrl(bucketName),
+				Config: testAccTestGoogleStorageObjectSignedURL(bucketName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccGoogleSignedUrlRetrieval("data.google_storage_object_signed_url.story_url", nil),
 					testAccGoogleSignedUrlRetrieval("data.google_storage_object_signed_url.story_url_w_headers", headers),
@@ -168,7 +168,10 @@ func testAccGoogleSignedUrlRetrieval(n string, headers map[string]string) resour
 		// create HTTP request
 		url := a["signed_url"]
 		method := a["http_method"]
-		req, _ := http.NewRequest(method, url, nil)
+		req, err := http.NewRequest(method, url, nil)
+		if err != nil {
+			return err
+		}
 
 		// Add extension headers to request, if provided
 		for k, v := range headers {
@@ -216,7 +219,7 @@ data "google_storage_object_signed_url" "blerg" {
 }
 `
 
-func testAccTestGoogleStorageObjectSingedUrl(bucketName string) string {
+func testAccTestGoogleStorageObjectSignedURL(bucketName string) string {
 	return fmt.Sprintf(`
 resource "google_storage_bucket" "bucket" {
 	name = "%s"

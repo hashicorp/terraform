@@ -20,8 +20,6 @@ import (
 
 	"sort"
 
-	"regexp"
-
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -98,7 +96,7 @@ func validateExtensionHeaders(v interface{}, k string) (ws []string, errors []er
 func validateHttpMethod(v interface{}, k string) (ws []string, errs []error) {
 	value := v.(string)
 	value = strings.ToUpper(value)
-	if !regexp.MustCompile(`^(GET|HEAD|PUT|DELETE)$`).MatchString(value) {
+	if value != "GET" && value != "HEAD" && value != "PUT" && value != "DELETE" {
 		errs = append(errs, errors.New("http_method must be one of [GET|HEAD|PUT|DELETE]"))
 	}
 	return
@@ -149,14 +147,7 @@ func dataSourceGoogleSignedUrlRead(d *schema.ResourceData, meta interface{}) err
 		}
 	}
 
-	// object path
-	path := []string{
-		"",
-		d.Get("bucket").(string),
-		d.Get("path").(string),
-	}
-	objectPath := strings.Join(path, "/")
-	urlData.Path = objectPath
+	urlData.Path = fmt.Sprintf("/%s/%s", d.Get("bucket").(string), d.Get("path").(string))
 
 	// Load JWT Config from Google Credentials
 	jwtConfig, err := loadJwtConfig(d, config)
