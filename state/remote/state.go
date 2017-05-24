@@ -2,6 +2,7 @@ package remote
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
@@ -59,7 +60,18 @@ func (s *State) PersistState() error {
 		return err
 	}
 
-	return s.Client.Put(buf.Bytes())
+	if err := s.Client.Put(buf.Bytes()); err != nil {
+		// Fallback to write the state to a local file if pushing to remote backend fails.
+		var l state.State = &state.LocalState{Path: "remote.tfstate"}
+		if err := l.WriteState(s.state); err == nil {
+			fmt.Printf("\n" +
+				"*** Local copy of the state-out file is saved to `remote.tfstate`. ***\n" +
+				"*** You can upload it manually to the remote backend.              ***\n\n")
+		}
+		// Return previous (remote) error.
+		return err
+	}
+	return nil
 }
 
 // Lock calls the Client's Lock method if it's implemented.
