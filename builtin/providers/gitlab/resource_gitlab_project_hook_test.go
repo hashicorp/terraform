@@ -186,8 +186,8 @@ resource "gitlab_project" "foo" {
 }
 
 resource "gitlab_project_hook" "foo" {
-	project = "${gitlab_project.foo.id}"
-	url = "https://example.com/hook-%d"
+  project = "${gitlab_project.foo.id}"
+  url = "https://example.com/hook-%d"
 }
 	`, rInt, rInt)
 }
@@ -204,17 +204,17 @@ resource "gitlab_project" "foo" {
 }
 
 resource "gitlab_project_hook" "foo" {
-	project = "${gitlab_project.foo.id}"
-	url = "https://example.com/hook-%d"
-	enable_ssl_verification = false
-	push_events = false
-	issues_events = true
-	merge_requests_events = true
-	tag_push_events = true
-	note_events = true
-	build_events = true
-	pipeline_events = true
-	wiki_page_events = true
+  project = "${gitlab_project.foo.id}"
+  url = "https://example.com/hook-%d"
+  enable_ssl_verification = false
+  push_events = false
+  issues_events = true
+  merge_requests_events = true
+  tag_push_events = true
+  note_events = true
+  build_events = true
+  pipeline_events = true
+  wiki_page_events = true
 }
 	`, rInt, rInt)
 }
