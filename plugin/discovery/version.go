@@ -19,6 +19,16 @@ func (s VersionStr) Parse() (Version, error) {
 	return Version{raw}, nil
 }
 
+// MustParse transforms a VersionStr into a Version if it is
+// syntactically valid. If it isn't then it panics.
+func (s VersionStr) MustParse() Version {
+	ret, err := s.Parse()
+	if err != nil {
+		panic(err)
+	}
+	return ret
+}
+
 // Version represents a version number that has been parsed from
 // a semver string and known to be valid.
 type Version struct {

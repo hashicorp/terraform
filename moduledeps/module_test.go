@@ -207,10 +207,10 @@ func TestModulePluginRequirements(t *testing.T) {
 	if len(reqd) != 2 {
 		t.Errorf("wrong number of elements in %#v; want 2", reqd)
 	}
-	if got, want := reqd["foo"].String(), ">=1.0.0,>=2.0.0"; got != want {
+	if got, want := reqd["foo"].Versions.String(), ">=1.0.0,>=2.0.0"; got != want {
 		t.Errorf("wrong combination of versions for 'foo' %q; want %q", got, want)
 	}
-	if got, want := reqd["baz"].String(), ">=3.0.0"; got != want {
+	if got, want := reqd["baz"].Versions.String(), ">=3.0.0"; got != want {
 		t.Errorf("wrong combination of versions for 'baz' %q; want %q", got, want)
 	}
 }
