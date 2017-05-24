@@ -26,6 +26,7 @@ FEATURES:
 * **New Data Source:** `aws_kms_ciphertext` [GH-14691]
 * **New Data Source:** `github_user` [GH-14570]
 * **New Data Source:** `github_team` [GH-14614]
+* **New Data Source:** `google_storage_object_signed_url` [GH-14643]
 * **New Interpolation Function:** `pow` [GH-14598]
 
 IMPROVEMENTS:
