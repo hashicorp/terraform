@@ -310,10 +310,10 @@ func TestPluginMetaSetConstrainVersions(t *testing.T) {
 	}
 
 	byName := s.ConstrainVersions(PluginRequirements{
-		"foo": ConstraintStr(">=2.0.0").MustParse(),
-		"bar": ConstraintStr(">=0.0.0").MustParse(),
-		"baz": ConstraintStr(">=1.0.0").MustParse(),
-		"fun": ConstraintStr(">5.0.0").MustParse(),
+		"foo": &PluginConstraints{Versions: ConstraintStr(">=2.0.0").MustParse()},
+		"bar": &PluginConstraints{Versions: ConstraintStr(">=0.0.0").MustParse()},
+		"baz": &PluginConstraints{Versions: ConstraintStr(">=1.0.0").MustParse()},
+		"fun": &PluginConstraints{Versions: ConstraintStr(">5.0.0").MustParse()},
 	})
 	if got, want := len(byName), 3; got != want {
 		t.Errorf("%d keys in map; want %d", got, want)

@@ -221,7 +221,7 @@ func (c *InitCommand) getProviders(path string, state *terraform.State) error {
 
 	dst := c.pluginDir()
 	for provider, reqd := range missing {
-		err := c.getProvider(dst, provider, reqd)
+		err := c.getProvider(dst, provider, reqd.Versions)
 		// TODO: return all errors
 		if err != nil {
 			return err
