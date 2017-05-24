@@ -123,6 +123,7 @@ BUG FIXES:
 * provider/google: Fix issue with GCP Cloud SQL Instance `disk_autoresize` [GH-14582]
 * provider/google: Fix crash creating Google Cloud SQL 2nd Generation replication instance [GH-14373]
 * provider/google: Disks now detach before getting deleted [GH-14651]
+* provider/google: Update `google_compute_target_pool`'s session_affinity default [GH-14807]
 * provider/heroku: Fix issue with setting correct CName in heroku_domain [GH-14443]
 * provider/opc: Correctly export `ip_address` in IP Addr Reservation [GH-14543]
 * provider/openstack: Handle Deleted Resources in Floating IP Association [GH-14533]
