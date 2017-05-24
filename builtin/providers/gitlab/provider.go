@@ -25,6 +25,7 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
+			"gitlab_group":        resourceGitlabGroup(),
 			"gitlab_project":      resourceGitlabProject(),
 			"gitlab_project_hook": resourceGitlabProjectHook(),
 			"gitlab_deploy_key":   resourceGitlabDeployKey(),

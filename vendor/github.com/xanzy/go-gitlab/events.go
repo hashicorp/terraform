@@ -21,7 +21,7 @@ import "time"
 // PushEvent represents a push event.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/web_hooks/web_hooks.html#push-events
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/web_hooks/web_hooks.md#push-events
 type PushEvent struct {
 	ObjectKind  string `json:"object_kind"`
 	Before      string `json:"before"`
@@ -57,7 +57,7 @@ type PushEvent struct {
 // TagEvent represents a tag event.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/web_hooks/web_hooks.html#tag-events
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/web_hooks/web_hooks.md#tag-events
 type TagEvent struct {
 	ObjectKind  string `json:"object_kind"`
 	Before      string `json:"before"`
@@ -92,7 +92,7 @@ type TagEvent struct {
 // IssueEvent represents a issue event.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/web_hooks/web_hooks.html#issues-events
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/web_hooks/web_hooks.md#issues-events
 type IssueEvent struct {
 	ObjectKind string `json:"object_kind"`
 	User       *User  `json:"user"`
@@ -140,7 +140,7 @@ type IssueEvent struct {
 // CommitCommentEvent represents a comment on a commit event.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/web_hooks/web_hooks.html#comment-on-commit
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/web_hooks/web_hooks.md#comment-on-commit
 type CommitCommentEvent struct {
 	ObjectKind string `json:"object_kind"`
 	User       *User  `json:"user"`
@@ -192,7 +192,7 @@ type CommitCommentEvent struct {
 // MergeCommentEvent represents a comment on a merge event.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/web_hooks/web_hooks.html#comment-on-merge-request
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/web_hooks/web_hooks.md#comment-on-merge-request
 type MergeCommentEvent struct {
 	ObjectKind string `json:"object_kind"`
 	User       *User  `json:"user"`
@@ -236,7 +236,7 @@ type MergeCommentEvent struct {
 // IssueCommentEvent represents a comment on an issue event.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/web_hooks/web_hooks.html#comment-on-issue
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/web_hooks/web_hooks.md#comment-on-issue
 type IssueCommentEvent struct {
 	ObjectKind string `json:"object_kind"`
 	User       *User  `json:"user"`
@@ -280,7 +280,7 @@ type IssueCommentEvent struct {
 // SnippetCommentEvent represents a comment on a snippet event.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/web_hooks/web_hooks.html#comment-on-code-snippet
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/web_hooks/web_hooks.md#comment-on-code-snippet
 type SnippetCommentEvent struct {
 	ObjectKind string `json:"object_kind"`
 	User       *User  `json:"user"`
@@ -324,7 +324,7 @@ type SnippetCommentEvent struct {
 // MergeEvent represents a merge event.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/web_hooks/web_hooks.html#merge-request-events
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/web_hooks/web_hooks.md#merge-request-events
 type MergeEvent struct {
 	ObjectKind string `json:"object_kind"`
 	User       *User  `json:"user"`
@@ -407,7 +407,7 @@ type MergeEvent struct {
 // WikiPageEvent represents a wiki page event.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/web_hooks/web_hooks.html#wiki-page-events
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/web_hooks/web_hooks.md#wiki-page-events
 type WikiPageEvent struct {
 	ObjectKind string `json:"object_kind"`
 	User       *User  `json:"user"`
@@ -448,7 +448,7 @@ type WikiPageEvent struct {
 // PipelineEvent represents a pipeline event.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/web_hooks/web_hooks.html#pipeline-events
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/web_hooks/web_hooks.md#pipeline-events
 type PipelineEvent struct {
 	ObjectKind       string `json:"object_kind"`
 	ObjectAttributes struct {
@@ -520,7 +520,7 @@ type PipelineEvent struct {
 //BuildEvent represents a build event
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/web_hooks/web_hooks.html#build-events
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/web_hooks/web_hooks.md#build-events
 type BuildEvent struct {
 	ObjectKind        string `json:"object_kind"`
 	Ref               string `json:"ref"`
