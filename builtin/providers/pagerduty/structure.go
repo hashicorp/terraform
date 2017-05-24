@@ -1,6 +1,10 @@
 package pagerduty
 
-import pagerduty "github.com/PagerDuty/go-pagerduty"
+import (
+	"time"
+
+	pagerduty "github.com/PagerDuty/go-pagerduty"
+)
 
 // Expands an array of escalation rules into []pagerduty.EscalationRules
 func expandEscalationRules(list []interface{}) []pagerduty.EscalationRule {
@@ -58,18 +62,35 @@ func flattenEscalationRules(list []pagerduty.EscalationRule) []map[string]interf
 }
 
 // Expands an array of schedules into []pagerduty.Schedule
-func expandScheduleLayers(list []interface{}) []pagerduty.ScheduleLayer {
+func expandScheduleLayers(list []interface{}) ([]pagerduty.ScheduleLayer, error) {
 	result := make([]pagerduty.ScheduleLayer, 0, len(list))
 
 	for _, l := range list {
 		layer := l.(map[string]interface{})
 
+		rvs, err := time.Parse(time.RFC3339, layer["rotation_virtual_start"].(string))
+		if err != nil {
+			return nil, err
+		}
+
+		start, err := time.Parse(time.RFC3339, layer["start"].(string))
+		if err != nil {
+			return nil, err
+		}
+
 		scheduleLayer := &pagerduty.ScheduleLayer{
 			Name:                      layer["name"].(string),
-			Start:                     layer["start"].(string),
-			End:                       layer["end"].(string),
-			RotationVirtualStart:      layer["rotation_virtual_start"].(string),
+			Start:                     start.UTC().String(),
+			RotationVirtualStart:      rvs.UTC().String(),
 			RotationTurnLengthSeconds: uint(layer["rotation_turn_length_seconds"].(int)),
+		}
+
+		if layer["end"] != "" {
+			end, err := time.Parse(time.RFC3339, layer["end"].(string))
+			if err != nil {
+				return nil, err
+			}
+			scheduleLayer.End = end.UTC().String()
 		}
 
 		if layer["id"] != "" {
@@ -104,7 +125,7 @@ func expandScheduleLayers(list []interface{}) []pagerduty.ScheduleLayer {
 		result = append(result, *scheduleLayer)
 	}
 
-	return result
+	return result, nil
 }
 
 // Expands an array of teams into []pagerduty.APIReference
