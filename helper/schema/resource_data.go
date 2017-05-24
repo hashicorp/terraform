@@ -37,6 +37,11 @@ type ResourceData struct {
 	isNew       bool
 }
 
+// SetSchema allows you to overload the default ResourceData schema
+func (d *ResourceData) SetSchema(s map[string]*Schema) {
+	d.schema = s
+}
+
 // getResult is the internal structure that is generated when a Get
 // is called that contains some extra data that might be used.
 type getResult struct {

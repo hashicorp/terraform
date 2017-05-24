@@ -247,8 +247,8 @@ func resourceArmStorageAccountUpdate(d *schema.ResourceData, meta interface{}) e
 
 	d.Partial(true)
 
-	if d.HasChange("account_type") {
-		accountType := d.Get("account_type").(string)
+	accountType := d.Get("account_type").(string)
+	if accountType != "" {
 
 		sku := storage.Sku{
 			Name: storage.SkuName(accountType),
@@ -265,9 +265,8 @@ func resourceArmStorageAccountUpdate(d *schema.ResourceData, meta interface{}) e
 		d.SetPartial("account_type")
 	}
 
-	if d.HasChange("access_tier") {
-		accessTier := d.Get("access_tier").(string)
-
+	accessTier := d.Get("access_tier").(string)
+	if accessTier != "" {
 		opts := storage.AccountUpdateParameters{
 			AccountPropertiesUpdateParameters: &storage.AccountPropertiesUpdateParameters{
 				AccessTier: storage.AccessTier(accessTier),
@@ -281,8 +280,8 @@ func resourceArmStorageAccountUpdate(d *schema.ResourceData, meta interface{}) e
 		d.SetPartial("access_tier")
 	}
 
-	if d.HasChange("tags") {
-		tags := d.Get("tags").(map[string]interface{})
+	tags := d.Get("tags").(map[string]interface{})
+	if len(tags) > 0 {
 
 		opts := storage.AccountUpdateParameters{
 			Tags: expandTags(tags),
@@ -295,7 +294,7 @@ func resourceArmStorageAccountUpdate(d *schema.ResourceData, meta interface{}) e
 		d.SetPartial("tags")
 	}
 
-	if d.HasChange("enable_blob_encryption") {
+	if true {
 		enableBlobEncryption := d.Get("enable_blob_encryption").(bool)
 
 		opts := storage.AccountUpdateParameters{
