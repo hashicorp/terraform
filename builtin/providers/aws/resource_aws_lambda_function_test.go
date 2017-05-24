@@ -232,6 +232,39 @@ func TestAccAWSLambdaFunction_DeadLetterConfig(t *testing.T) {
 	})
 }
 
+func TestAccAWSLambdaFunction_tracingConfig(t *testing.T) {
+	var conf lambda.GetFunctionOutput
+
+	rSt := acctest.RandString(5)
+	rName := fmt.Sprintf("tf_test_%s", rSt)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLambdaFunctionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSLambdaConfigWithTracingConfig(rName, rSt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_test", rName, &conf),
+					testAccCheckAwsLambdaFunctionName(&conf, rName),
+					testAccCheckAwsLambdaFunctionArnHasSuffix(&conf, ":"+rName),
+					resource.TestCheckResourceAttr("aws_lambda_function.lambda_function_test", "tracing_config.0.mode", "Active"),
+				),
+			},
+			{
+				Config: testAccAWSLambdaConfigWithTracingConfigUpdated(rName, rSt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_test", rName, &conf),
+					testAccCheckAwsLambdaFunctionName(&conf, rName),
+					testAccCheckAwsLambdaFunctionArnHasSuffix(&conf, ":"+rName),
+					resource.TestCheckResourceAttr("aws_lambda_function.lambda_function_test", "tracing_config.0.mode", "PassThrough"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSLambdaFunction_VPC(t *testing.T) {
 	var conf lambda.GetFunctionOutput
 
@@ -825,6 +858,15 @@ resource "aws_iam_role_policy" "iam_policy_for_lambda" {
       "Resource": [
         "*"
       ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "xray:PutTraceSegments"
+      ],
+      "Resource": [
+        "*"
+      ]
     }
   ]
 }
@@ -1035,6 +1077,40 @@ resource "aws_lambda_function" "lambda_function_test" {
     handler = "exports.example"
     runtime = "nodejs4.3"
 }
+`, rName)
+}
+
+func testAccAWSLambdaConfigWithTracingConfig(rName, rSt string) string {
+	return fmt.Sprintf(baseAccAWSLambdaConfig(rSt)+`
+resource "aws_lambda_function" "lambda_function_test" {
+    filename = "test-fixtures/lambdatest.zip"
+    function_name = "%s"
+    role = "${aws_iam_role.iam_for_lambda.arn}"
+    handler = "exports.example"
+    runtime = "nodejs4.3"
+
+    tracing_config {
+        mode = "Active"
+    }
+}
+
+`, rName)
+}
+
+func testAccAWSLambdaConfigWithTracingConfigUpdated(rName, rSt string) string {
+	return fmt.Sprintf(baseAccAWSLambdaConfig(rSt)+`
+resource "aws_lambda_function" "lambda_function_test" {
+    filename = "test-fixtures/lambdatest.zip"
+    function_name = "%s"
+    role = "${aws_iam_role.iam_for_lambda.arn}"
+    handler = "exports.example"
+    runtime = "nodejs4.3"
+
+    tracing_config {
+        mode = "PassThrough"
+    }
+}
+
 `, rName)
 }
 
