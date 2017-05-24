@@ -308,7 +308,7 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 	if !opts.force {
 		// Abort if we can't ask for input.
 		if !m.input {
-			return errors.New("error asking for state migration action: inptut disabled")
+			return errors.New("error asking for state migration action: input disabled")
 		}
 
 		// Confirm with the user whether we want to copy state over
