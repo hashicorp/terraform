@@ -17,6 +17,7 @@ FEATURES:
 * **New Resource:** `aws_wafregional_ipset` [GH-13705]
 * **New Resource:** `aws_wafregional_byte_match_set` [GH-13705]
 * **New Resource:** `azurerm_express_route_circuit` [GH-14265]
+* **New Resource:** `gitlab_deploy_key` [GH-14734]
 * **New Resource:** `kubernetes_service` [GH-14554]
 * **New Resource:** `openstack_dns_zone_v2` [GH-14721]
 * **New Data Source:** `aws_db_snapshot` [GH-10291]
