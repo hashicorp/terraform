@@ -3974,6 +3974,35 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: false,
 		},
 
+		"Good sub-resource, computed value": {
+			Schema: map[string]*Schema{
+				"ingress": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"from": &Schema{
+								Type:     TypeInt,
+								Optional: true,
+							},
+						},
+					},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"ingress": []interface{}{
+					`${map("from", var.port)}`,
+				},
+			},
+
+			Vars: map[string]string{
+				"var.port": config.UnknownVariableValue,
+			},
+
+			Err: false,
+		},
+
 		"Invalid/unknown field": {
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
