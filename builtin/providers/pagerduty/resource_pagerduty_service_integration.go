@@ -6,6 +6,7 @@ import (
 
 	pagerduty "github.com/PagerDuty/go-pagerduty"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourcePagerDutyServiceIntegration() *schema.Resource {
@@ -32,7 +33,7 @@ func resourcePagerDutyServiceIntegration() *schema.Resource {
 				ForceNew:      true,
 				Computed:      true,
 				ConflictsWith: []string{"vendor"},
-				ValidateFunc: validateValueFunc([]string{
+				ValidateFunc: validation.StringInSlice([]string{
 					"aws_cloudwatch_inbound_integration",
 					"cloudkick_inbound_integration",
 					"event_transformer_api_inbound_integration",
@@ -42,7 +43,7 @@ func resourcePagerDutyServiceIntegration() *schema.Resource {
 					"nagios_inbound_integration",
 					"pingdom_inbound_integration",
 					"sql_monitor_inbound_integration",
-				}),
+				}, false),
 			},
 			"vendor": {
 				Type:          schema.TypeString,
