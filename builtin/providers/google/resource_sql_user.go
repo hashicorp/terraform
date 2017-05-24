@@ -70,6 +70,7 @@ func resourceSqlUserCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	googleMutexKV.Lock(instanceMutexKey(project, instance))
+	defer googleMutexKV.Unlock(instanceMutexKey(project, instance))
 	op, err := config.clientSqlAdmin.Users.Insert(project, instance,
 		user).Do()
 
@@ -79,7 +80,6 @@ func resourceSqlUserCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	err = sqladminOperationWait(config, op, "Insert User")
-	googleMutexKV.Unlock(instanceMutexKey(project, instance))
 
 	if err != nil {
 		return fmt.Errorf("Error, failure waiting for insertion of %s "+
@@ -148,6 +148,7 @@ func resourceSqlUserUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		googleMutexKV.Lock(instanceMutexKey(project, instance))
+		defer googleMutexKV.Unlock(instanceMutexKey(project, instance))
 		op, err := config.clientSqlAdmin.Users.Update(project, instance, host, name,
 			user).Do()
 
@@ -157,7 +158,6 @@ func resourceSqlUserUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		err = sqladminOperationWait(config, op, "Insert User")
-		googleMutexKV.Lock(instanceMutexKey(project, instance))
 
 		if err != nil {
 			return fmt.Errorf("Error, failure waiting for update of %s "+
@@ -183,6 +183,7 @@ func resourceSqlUserDelete(d *schema.ResourceData, meta interface{}) error {
 	host := d.Get("host").(string)
 
 	googleMutexKV.Lock(instanceMutexKey(project, instance))
+	defer googleMutexKV.Unlock(instanceMutexKey(project, instance))
 	op, err := config.clientSqlAdmin.Users.Delete(project, instance, host, name).Do()
 
 	if err != nil {
@@ -192,7 +193,6 @@ func resourceSqlUserDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	err = sqladminOperationWait(config, op, "Delete User")
-	googleMutexKV.Unlock(instanceMutexKey(project, instance))
 
 	if err != nil {
 		return fmt.Errorf("Error, failure waiting for deletion of %s "+
