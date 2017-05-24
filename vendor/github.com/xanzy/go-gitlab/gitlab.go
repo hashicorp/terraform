@@ -40,12 +40,14 @@ const (
 
 // tokenType represents a token type within GitLab.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/
 type tokenType int
 
 // List of available token type
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/
 const (
 	privateToken tokenType = iota
 	oAuthToken
@@ -53,12 +55,14 @@ const (
 
 // AccessLevelValue represents a permission level within GitLab.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/permissions/permissions.html
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/permissions/permissions.md
 type AccessLevelValue int
 
 // List of available access levels
 //
-// GitLab API docs: https://docs.gitlab.com/ce/permissions/permissions.html
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/permissions/permissions.md
 const (
 	GuestPermissions     AccessLevelValue = 10
 	ReporterPermissions  AccessLevelValue = 20
@@ -129,12 +133,14 @@ var notificationLevelTypes = map[string]NotificationLevelValue{
 
 // VisibilityLevelValue represents a visibility level within GitLab.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/
 type VisibilityLevelValue int
 
 // List of available visibility levels
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/
 const (
 	PrivateVisibility  VisibilityLevelValue = 0
 	InternalVisibility VisibilityLevelValue = 10
@@ -186,6 +192,7 @@ type Client struct {
 	Tags                 *TagsService
 	TimeStats            *TimeStatsService
 	Users                *UsersService
+	Version              *VersionService
 }
 
 // ListOptions specifies the optional parameters to various List methods that
@@ -248,6 +255,7 @@ func newClient(httpClient *http.Client, tokenType tokenType, token string) *Clie
 	c.Tags = &TagsService{client: c}
 	c.TimeStats = &TimeStatsService{client: c}
 	c.Users = &UsersService{client: c}
+	c.Version = &VersionService{client: c}
 
 	return c
 }
@@ -449,7 +457,7 @@ func parseID(id interface{}) (string, error) {
 // An ErrorResponse reports one or more errors caused by an API request.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/README.html#data-validation-and-error-reporting
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/README.md#data-validation-and-error-reporting
 type ErrorResponse struct {
 	Response *http.Response
 	Message  string
@@ -518,7 +526,7 @@ func parseError(raw interface{}) string {
 			errs = append(errs, fmt.Sprintf("{%s: %s}", k, parseError(v)))
 		}
 		sort.Strings(errs)
-		return fmt.Sprintf("%s", strings.Join(errs, ", "))
+		return strings.Join(errs, ", ")
 
 	default:
 		return fmt.Sprintf("failed to parse unexpected error type: %T", raw)
@@ -528,7 +536,7 @@ func parseError(raw interface{}) string {
 // OptionFunc can be passed to all API requests to make the API call as if you were
 // another user, provided your private token is from an administrator account.
 //
-// GitLab docs: https://docs.gitlab.com/ce/api/README.html#sudo
+// GitLab docs: https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/README.md#sudo
 type OptionFunc func(*http.Request) error
 
 // WithSudo takes either a username or user ID and sets the SUDO request header
