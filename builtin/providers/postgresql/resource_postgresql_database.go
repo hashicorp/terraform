@@ -344,7 +344,7 @@ func resourcePostgreSQLDatabaseUpdate(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	if err := setDBOwner(conn, d); err != nil {
+	if err := setDBOwner(c, conn, d); err != nil {
 		return err
 	}
 
@@ -390,7 +390,7 @@ func setDBName(conn *sql.DB, d *schema.ResourceData) error {
 	return nil
 }
 
-func setDBOwner(conn *sql.DB, d *schema.ResourceData) error {
+func setDBOwner(c *Client, conn *sql.DB, d *schema.ResourceData) error {
 	if !d.HasChange(dbOwnerAttr) {
 		return nil
 	}
@@ -400,13 +400,26 @@ func setDBOwner(conn *sql.DB, d *schema.ResourceData) error {
 		return nil
 	}
 
+	//needed in order to set the owner of the db if the connection user is not a superuser
+	err := grantRoleMembership(conn, d.Get(dbOwnerAttr).(string), c.username)
+	if err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Error adding connection user (%q) to ROLE %q: {{err}}", c.username, d.Get(dbOwnerAttr).(string)), err)
+	}
+	defer func() {
+		// undo the grant if the connection user is not a superuser
+		err = revokeRoleMembership(conn, d.Get(dbOwnerAttr).(string), c.username)
+		if err != nil {
+			err = errwrap.Wrapf(fmt.Sprintf("Error removing connection user (%q) from ROLE %q: {{err}}", c.username, d.Get(dbOwnerAttr).(string)), err)
+		}
+	}()
+
 	dbName := d.Get(dbNameAttr).(string)
 	query := fmt.Sprintf("ALTER DATABASE %s OWNER TO %s", pq.QuoteIdentifier(dbName), pq.QuoteIdentifier(owner))
 	if _, err := conn.Query(query); err != nil {
 		return errwrap.Wrapf("Error updating database OWNER: {{err}}", err)
 	}
 
-	return nil
+	return err
 }
 
 func setDBTablespace(conn *sql.DB, d *schema.ResourceData) error {
