@@ -111,7 +111,7 @@ func resourceHerokuAddonCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceHerokuAddonRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
-	addon, err := resourceHerokuAddonRetrieve(
+	addon, err := resourceHerokuAddonRetrieveByApp(
 		d.Get("app").(string), d.Id(), client)
 	if err != nil {
 		return err
@@ -174,8 +174,18 @@ func resourceHerokuAddonDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceHerokuAddonRetrieve(app string, id string, client *heroku.Service) (*heroku.AddOnInfoResult, error) {
-	addon, err := client.AddOnInfo(context.TODO(), app, id)
+func resourceHerokuAddonRetrieve(id string, client *heroku.Service) (*heroku.AddOn, error) {
+	addon, err := client.AddOnInfo(context.TODO(), id)
+
+	if err != nil {
+		return nil, fmt.Errorf("Error retrieving addon: %s", err)
+	}
+
+	return addon, nil
+}
+
+func resourceHerokuAddonRetrieveByApp(app string, id string, client *heroku.Service) (*heroku.AddOn, error) {
+	addon, err := client.AddOnInfoByApp(context.TODO(), app, id)
 
 	if err != nil {
 		return nil, fmt.Errorf("Error retrieving addon: %s", err)
@@ -188,7 +198,8 @@ func resourceHerokuAddonRetrieve(app string, id string, client *heroku.Service) 
 // watch an AddOn.
 func AddOnStateRefreshFunc(client *heroku.Service, appID, addOnID string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		addon, err := client.AddOnInfo(context.TODO(), appID, addOnID)
+		addon, err := resourceHerokuAddonRetrieveByApp(appID, addOnID, client)
+
 		if err != nil {
 			return nil, "", err
 		}

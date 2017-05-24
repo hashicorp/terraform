@@ -12,7 +12,7 @@ import (
 )
 
 func TestAccHerokuDomain_Basic(t *testing.T) {
-	var domain heroku.DomainInfoResult
+	var domain heroku.Domain
 	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
@@ -55,7 +55,7 @@ func testAccCheckHerokuDomainDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckHerokuDomainAttributes(Domain *heroku.DomainInfoResult) resource.TestCheckFunc {
+func testAccCheckHerokuDomainAttributes(Domain *heroku.Domain) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		if Domain.Hostname != "terraform.example.com" {
@@ -66,7 +66,7 @@ func testAccCheckHerokuDomainAttributes(Domain *heroku.DomainInfoResult) resourc
 	}
 }
 
-func testAccCheckHerokuDomainExists(n string, Domain *heroku.DomainInfoResult) resource.TestCheckFunc {
+func testAccCheckHerokuDomainExists(n string, Domain *heroku.Domain) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 

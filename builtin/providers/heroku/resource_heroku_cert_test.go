@@ -29,7 +29,7 @@ import (
 // on update seems to allow the test to run smoothly; in real life, this test
 // case is definitely an extreme edge case.
 func TestAccHerokuCert_EU(t *testing.T) {
-	var endpoint heroku.SSLEndpointInfoResult
+	var endpoint heroku.SSLEndpoint
 	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
 
 	wd, _ := os.Getwd()
@@ -74,7 +74,7 @@ func TestAccHerokuCert_EU(t *testing.T) {
 }
 
 func TestAccHerokuCert_US(t *testing.T) {
-	var endpoint heroku.SSLEndpointInfoResult
+	var endpoint heroku.SSLEndpoint
 	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
 
 	wd, _ := os.Getwd()
@@ -182,7 +182,7 @@ func testAccCheckHerokuCertDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckHerokuCertificateChain(endpoint *heroku.SSLEndpointInfoResult, chain string) resource.TestCheckFunc {
+func testAccCheckHerokuCertificateChain(endpoint *heroku.SSLEndpoint, chain string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		if endpoint.CertificateChain != chain {
@@ -193,7 +193,7 @@ func testAccCheckHerokuCertificateChain(endpoint *heroku.SSLEndpointInfoResult, 
 	}
 }
 
-func testAccCheckHerokuCertExists(n string, endpoint *heroku.SSLEndpointInfoResult) resource.TestCheckFunc {
+func testAccCheckHerokuCertExists(n string, endpoint *heroku.SSLEndpoint) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
