@@ -1,7 +1,6 @@
 package postgresql
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/hashicorp/errwrap"
@@ -102,21 +101,12 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 	client, err := config.NewClient()
 	if err != nil {
-		return nil, errwrap.Wrapf("Error initializing PostgreSQL client: %s", err)
+		return nil, errwrap.Wrapf("Error initializing PostgreSQL client: {{err}}", err)
 	}
 
 	return client, nil
 }
 
 func tfAppName() string {
-	const VersionPrerelease = terraform.VersionPrerelease
-	var versionString bytes.Buffer
-
-	fmt.Fprintf(&versionString, "'Terraform v%s", terraform.Version)
-	if terraform.VersionPrerelease != "" {
-		fmt.Fprintf(&versionString, "-%s", terraform.VersionPrerelease)
-	}
-	fmt.Fprintf(&versionString, "'")
-
-	return versionString.String()
+	return fmt.Sprintf("Terraform v%s", terraform.VersionString())
 }

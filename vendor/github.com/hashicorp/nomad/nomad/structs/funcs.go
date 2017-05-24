@@ -169,72 +169,6 @@ func GenerateUUID() string {
 		buf[10:16])
 }
 
-// Helpers for copying generic structures.
-func CopyMapStringString(m map[string]string) map[string]string {
-	l := len(m)
-	if l == 0 {
-		return nil
-	}
-
-	c := make(map[string]string, l)
-	for k, v := range m {
-		c[k] = v
-	}
-	return c
-}
-
-func CopyMapStringInt(m map[string]int) map[string]int {
-	l := len(m)
-	if l == 0 {
-		return nil
-	}
-
-	c := make(map[string]int, l)
-	for k, v := range m {
-		c[k] = v
-	}
-	return c
-}
-
-func CopyMapStringFloat64(m map[string]float64) map[string]float64 {
-	l := len(m)
-	if l == 0 {
-		return nil
-	}
-
-	c := make(map[string]float64, l)
-	for k, v := range m {
-		c[k] = v
-	}
-	return c
-}
-
-func CopySliceString(s []string) []string {
-	l := len(s)
-	if l == 0 {
-		return nil
-	}
-
-	c := make([]string, l)
-	for i, v := range s {
-		c[i] = v
-	}
-	return c
-}
-
-func CopySliceInt(s []int) []int {
-	l := len(s)
-	if l == 0 {
-		return nil
-	}
-
-	c := make([]int, l)
-	for i, v := range s {
-		c[i] = v
-	}
-	return c
-}
-
 func CopySliceConstraints(s []*Constraint) []*Constraint {
 	l := len(s)
 	if l == 0 {
@@ -246,27 +180,6 @@ func CopySliceConstraints(s []*Constraint) []*Constraint {
 		c[i] = v.Copy()
 	}
 	return c
-}
-
-// SliceStringIsSubset returns whether the smaller set of strings is a subset of
-// the larger. If the smaller slice is not a subset, the offending elements are
-// returned.
-func SliceStringIsSubset(larger, smaller []string) (bool, []string) {
-	largerSet := make(map[string]struct{}, len(larger))
-	for _, l := range larger {
-		largerSet[l] = struct{}{}
-	}
-
-	subset := true
-	var offending []string
-	for _, s := range smaller {
-		if _, ok := largerSet[s]; !ok {
-			subset = false
-			offending = append(offending, s)
-		}
-	}
-
-	return subset, offending
 }
 
 // VaultPoliciesSet takes the structure returned by VaultPolicies and returns
@@ -287,20 +200,4 @@ func VaultPoliciesSet(policies map[string]map[string]*Vault) []string {
 		flattened = append(flattened, p)
 	}
 	return flattened
-}
-
-// MapStringStringSliceValueSet returns the set of values in a map[string][]string
-func MapStringStringSliceValueSet(m map[string][]string) []string {
-	set := make(map[string]struct{})
-	for _, slice := range m {
-		for _, v := range slice {
-			set[v] = struct{}{}
-		}
-	}
-
-	flat := make([]string, 0, len(set))
-	for k := range set {
-		flat = append(flat, k)
-	}
-	return flat
 }

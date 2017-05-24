@@ -30,6 +30,12 @@ func resourceId() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"prefix": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"b64": {
 				Type:       schema.TypeString,
 				Computed:   true,
@@ -78,6 +84,7 @@ func CreateID(d *schema.ResourceData, meta interface{}) error {
 }
 
 func RepopulateEncodings(d *schema.ResourceData, _ interface{}) error {
+	prefix := d.Get("prefix").(string)
 	base64Str := d.Id()
 
 	bytes, err := base64.RawURLEncoding.DecodeString(base64Str)
@@ -92,12 +99,12 @@ func RepopulateEncodings(d *schema.ResourceData, _ interface{}) error {
 	bigInt.SetBytes(bytes)
 	decStr := bigInt.String()
 
-	d.Set("b64", base64Str)
-	d.Set("b64_url", base64Str)
-	d.Set("b64_std", b64StdStr)
+	d.Set("b64", prefix+base64Str)
+	d.Set("b64_url", prefix+base64Str)
+	d.Set("b64_std", prefix+b64StdStr)
 
-	d.Set("hex", hexStr)
-	d.Set("dec", decStr)
+	d.Set("hex", prefix+hexStr)
+	d.Set("dec", prefix+decStr)
 
 	return nil
 }

@@ -13,9 +13,9 @@ modify, and delete virtual machines.
 
 ## Example Usage
 
-```
+```hcl
 resource "vsphere_virtual_machine" "web" {
-  name   = "terraform_web"
+  name   = "terraform-web"
   vcpu   = 2
   memory = 4096
 
@@ -31,28 +31,28 @@ resource "vsphere_virtual_machine" "web" {
 
 ## Example Usage VMware Cluster
 
-```
+```hcl
 resource "vsphere_virtual_machine" "lb" {
-  name   = "lb01"
-  folder = "Loadbalancers"
-  vcpu   = 2
-  memory = 4096
-  domain = "MYDOMAIN"
-  datacenter = "EAST"
-  cluster = "Production Cluster"
+  name          = "lb01"
+  folder        = "Loadbalancers"
+  vcpu          = 2
+  memory        = 4096
+  domain        = "MYDOMAIN"
+  datacenter    = "EAST"
+  cluster       = "Production Cluster"
   resource_pool = "Production Cluster/Resources/Production Servers"
 
   gateway = "10.20.30.254"
 
   network_interface {
-      label = "10_20_30_VMNet"
-      ipv4_address = "10.20.30.40"
-      ipv4_prefix_length = "24"
+    label              = "10_20_30_VMNet"
+    ipv4_address       = "10.20.30.40"
+    ipv4_prefix_length = "24"
   }
 
   disk {
     datastore = "EAST/VMFS01-EAST"
-    template = "Templates/Centos7"
+    template  = "Templates/Centos7"
   }
 }
 ```
@@ -61,7 +61,7 @@ resource "vsphere_virtual_machine" "lb" {
 
 The following arguments are supported:
 
-* `name` - (Required) The virtual machine name
+* `name` - (Required) The virtual machine name (cannot contain underscores and must be less than 15 characters)
 * `vcpu` - (Required) The number of virtual CPUs to allocate to the virtual machine
 * `memory` - (Required) The amount of RAM (in MB) to allocate to the virtual machine
 * `memory_reservation` - (Optional) The amount of RAM (in MB) to reserve physical memory resource; defaults to 0 (means not to reserve)
@@ -121,7 +121,8 @@ The `disk` block supports:
 * `type` - (Optional) 'eager_zeroed' (the default), 'lazy', or 'thin' are supported options.
 * `vmdk` - (Required if template and size not provided) Path to a vmdk in a vSphere datastore.
 * `bootable` - (Optional) Set to 'true' if a vmdk was given and it should attempt to boot after creation.
-* `controller_type` = (Optional) Controller type to attach the disk to.  'scsi' (the default), or 'ide' are supported options.
+* `controller_type` - (Optional) Controller type to attach the disk to.  'scsi' (the default), or 'ide' are supported options.
+* `keep_on_remove` - (Optional) Set to 'true' to not delete a disk on removal.
 
 <a id="cdrom"></a>
 ## CDROM

@@ -160,7 +160,7 @@ type CreateOpts struct {
 
 	// Personality includes files to inject into the server at launch.
 	// Create will base64-encode file contents for you.
-	Personality Personality `json:"-"`
+	Personality Personality `json:"personality,omitempty"`
 
 	// ConfigDrive enables metadata injection through a configuration drive.
 	ConfigDrive *bool `json:"config_drive,omitempty"`
@@ -401,11 +401,10 @@ type RebuildOptsBuilder interface {
 // operation
 type RebuildOpts struct {
 	// The server's admin password
-	AdminPass string `json:"adminPass" required:"true"`
+	AdminPass string `json:"adminPass,omitempty"`
 	// The ID of the image you want your server to be provisioned on
 	ImageID   string `json:"imageRef"`
 	ImageName string `json:"-"`
-	//ImageName string `json:"-"`
 	// Name to set the server to
 	Name string `json:"name,omitempty"`
 	// AccessIPv4 [optional] provides a new IPv4 address for the instance.

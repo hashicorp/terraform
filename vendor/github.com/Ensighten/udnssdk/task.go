@@ -3,6 +3,7 @@ package udnssdk
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 )
 
@@ -65,7 +66,7 @@ func (s *TasksService) Select(query string) ([]Task, error) {
 	for {
 		reqDtos, ri, res, err := s.SelectWithOffset(query, offset)
 		if err != nil {
-			if res.StatusCode >= 500 {
+			if res != nil && res.StatusCode >= 500 {
 				errcnt = errcnt + 1
 				if errcnt < maxerrs {
 					time.Sleep(waittime)
@@ -88,7 +89,7 @@ func (s *TasksService) Select(query string) ([]Task, error) {
 }
 
 // SelectWithOffset request tasks by query & offset, list them also returning list metadata, the actual response, or an error
-func (s *TasksService) SelectWithOffset(query string, offset int) ([]Task, ResultInfo, *Response, error) {
+func (s *TasksService) SelectWithOffset(query string, offset int) ([]Task, ResultInfo, *http.Response, error) {
 	var tld TaskListDTO
 
 	uri := TasksQueryURI(query, offset)
@@ -102,23 +103,23 @@ func (s *TasksService) SelectWithOffset(query string, offset int) ([]Task, Resul
 }
 
 // Find Get the status of a task.
-func (s *TasksService) Find(t TaskID) (Task, *Response, error) {
+func (s *TasksService) Find(t TaskID) (Task, *http.Response, error) {
 	var tv Task
 	res, err := s.client.get(t.URI(), &tv)
 	return tv, res, err
 }
 
 // FindResult requests
-func (s *TasksService) FindResult(t TaskID) (*Response, error) {
+func (s *TasksService) FindResult(t TaskID) (*http.Response, error) {
 	return s.client.GetResultByURI(t.ResultURI())
 }
 
 // FindResultByTask  requests a task by the provided task's result uri
-func (s *TasksService) FindResultByTask(t Task) (*Response, error) {
+func (s *TasksService) FindResultByTask(t Task) (*http.Response, error) {
 	return s.client.GetResultByURI(t.ResultURI)
 }
 
 // Delete requests deletions
-func (s *TasksService) Delete(t TaskID) (*Response, error) {
+func (s *TasksService) Delete(t TaskID) (*http.Response, error) {
 	return s.client.delete(t.URI(), nil)
 }

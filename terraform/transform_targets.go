@@ -6,6 +6,30 @@ import (
 	"github.com/hashicorp/terraform/dag"
 )
 
+// GraphNodeTargetable is an interface for graph nodes to implement when they
+// need to be told about incoming targets. This is useful for nodes that need
+// to respect targets as they dynamically expand. Note that the list of targets
+// provided will contain every target provided, and each implementing graph
+// node must filter this list to targets considered relevant.
+type GraphNodeTargetable interface {
+	SetTargets([]ResourceAddress)
+}
+
+// GraphNodeTargetDownstream is an interface for graph nodes that need to
+// be remain present under targeting if any of their dependencies are targeted.
+// TargetDownstream is called with the set of vertices that are direct
+// dependencies for the node, and it should return true if the node must remain
+// in the graph in support of those dependencies.
+//
+// This is used in situations where the dependency edges are representing an
+// ordering relationship but the dependency must still be visited if its
+// dependencies are visited. This is true for outputs, for example, since
+// they must get updated if any of their dependent resources get updated,
+// which would not normally be true if one of their dependencies were targeted.
+type GraphNodeTargetDownstream interface {
+	TargetDownstream(targeted, untargeted *dag.Set) bool
+}
+
 // TargetsTransformer is a GraphTransformer that, when the user specifies a
 // list of resources to target, limits the graph to only those resources and
 // their dependencies.
@@ -40,7 +64,7 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 
 		for _, v := range g.Vertices() {
 			removable := false
-			if _, ok := v.(GraphNodeAddressable); ok {
+			if _, ok := v.(GraphNodeResource); ok {
 				removable = true
 			}
 			if vr, ok := v.(RemovableIfNotTargeted); ok {
@@ -75,7 +99,10 @@ func (t *TargetsTransformer) parseTargetAddresses() ([]ResourceAddress, error) {
 func (t *TargetsTransformer) selectTargetedNodes(
 	g *Graph, addrs []ResourceAddress) (*dag.Set, error) {
 	targetedNodes := new(dag.Set)
-	for _, v := range g.Vertices() {
+
+	vertices := g.Vertices()
+
+	for _, v := range vertices {
 		if t.nodeIsTarget(v, addrs) {
 			targetedNodes.Add(v)
 
@@ -90,15 +117,6 @@ func (t *TargetsTransformer) selectTargetedNodes(
 			var err error
 			if t.Destroy {
 				deps, err = g.Descendents(v)
-
-				// Select any variables that we depend on in case we need them later for
-				// interpolating in the count
-				ancestors, _ := g.Ancestors(v)
-				for _, a := range ancestors.List() {
-					if _, ok := a.(*GraphNodeConfigVariableFlat); ok {
-						deps.Add(a)
-					}
-				}
 			} else {
 				deps, err = g.Ancestors(v)
 			}
@@ -112,17 +130,74 @@ func (t *TargetsTransformer) selectTargetedNodes(
 		}
 	}
 
+	// Handle nodes that need to be included if their dependencies are included.
+	// This requires multiple passes since we need to catch transitive
+	// dependencies if and only if they are via other nodes that also
+	// support TargetDownstream. For example:
+	// output -> output -> targeted-resource: both outputs need to be targeted
+	// output -> non-targeted-resource -> targeted-resource: output not targeted
+	//
+	// We'll keep looping until we stop targeting more nodes.
+	queue := targetedNodes.List()
+	for len(queue) > 0 {
+		vertices := queue
+		queue = nil // ready to append for next iteration if neccessary
+		for _, v := range vertices {
+			dependers := g.UpEdges(v)
+			if dependers == nil {
+				// indicates that there are no up edges for this node, so
+				// we have nothing to do here.
+				continue
+			}
+
+			dependers = dependers.Filter(func(dv interface{}) bool {
+				// Can ignore nodes that are already targeted
+				/*if targetedNodes.Include(dv) {
+					return false
+				}*/
+
+				_, ok := dv.(GraphNodeTargetDownstream)
+				return ok
+			})
+
+			if dependers.Len() == 0 {
+				continue
+			}
+
+			for _, dv := range dependers.List() {
+				if targetedNodes.Include(dv) {
+					// Already present, so nothing to do
+					continue
+				}
+
+				// We'll give the node some information about what it's
+				// depending on in case that informs its decision about whether
+				// it is safe to be targeted.
+				deps := g.DownEdges(v)
+				depsTargeted := deps.Intersection(targetedNodes)
+				depsUntargeted := deps.Difference(depsTargeted)
+
+				if dv.(GraphNodeTargetDownstream).TargetDownstream(depsTargeted, depsUntargeted) {
+					targetedNodes.Add(dv)
+					// Need to visit this node on the next pass to see if it
+					// has any transitive dependers.
+					queue = append(queue, dv)
+				}
+			}
+		}
+	}
+
 	return targetedNodes, nil
 }
 
 func (t *TargetsTransformer) nodeIsTarget(
 	v dag.Vertex, addrs []ResourceAddress) bool {
-	r, ok := v.(GraphNodeAddressable)
+	r, ok := v.(GraphNodeResource)
 	if !ok {
 		return false
 	}
 
-	addr := r.ResourceAddress()
+	addr := r.ResourceAddr()
 	for _, targetAddr := range addrs {
 		if targetAddr.Equals(addr) {
 			return true

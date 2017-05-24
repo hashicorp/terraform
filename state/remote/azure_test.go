@@ -88,6 +88,7 @@ func getAzureConfig(t *testing.T) map[string]string {
 		"arm_client_id":       os.Getenv("ARM_CLIENT_ID"),
 		"arm_client_secret":   os.Getenv("ARM_CLIENT_SECRET"),
 		"arm_tenant_id":       os.Getenv("ARM_TENANT_ID"),
+		"environment":         os.Getenv("ARM_ENVIRONMENT"),
 	}
 
 	for k, v := range config {
@@ -107,7 +108,11 @@ func getAzureConfig(t *testing.T) map[string]string {
 }
 
 func setup(t *testing.T, conf map[string]string) {
-	creds, err := getCredentialsFromConf(conf)
+	env, err := getAzureEnvironmentFromConf(conf)
+	if err != nil {
+		t.Fatalf("Error getting Azure environment from conf: %v", err)
+	}
+	creds, err := getCredentialsFromConf(conf, env)
 	if err != nil {
 		t.Fatalf("Error getting credentials from conf: %v", err)
 	}
@@ -147,11 +152,12 @@ func setup(t *testing.T, conf map[string]string) {
 	}
 
 	// Create container
-	accessKey, err := getStorageAccountAccessKey(conf, conf["resource_group_name"], conf["storage_account_name"])
+	accessKey, err := getStorageAccountAccessKey(conf, conf["resource_group_name"], conf["storage_account_name"], env)
 	if err != nil {
 		t.Fatalf("Error creating a storage account: %v", err)
 	}
-	storageClient, err := mainStorage.NewBasicClient(conf["storage_account_name"], accessKey)
+	storageClient, err := mainStorage.NewClient(conf["storage_account_name"], accessKey, env.StorageEndpointSuffix,
+		mainStorage.DefaultAPIVersion, true)
 	if err != nil {
 		t.Fatalf("Error creating storage client for storage account %q: %s", conf["storage_account_name"], err)
 	}
@@ -163,7 +169,11 @@ func setup(t *testing.T, conf map[string]string) {
 }
 
 func teardown(t *testing.T, conf map[string]string) {
-	creds, err := getCredentialsFromConf(conf)
+	env, err := getAzureEnvironmentFromConf(conf)
+	if err != nil {
+		t.Fatalf("Error getting Azure environment from conf: %v", err)
+	}
+	creds, err := getCredentialsFromConf(conf, env)
 	if err != nil {
 		t.Fatalf("Error getting credentials from conf: %v", err)
 	}

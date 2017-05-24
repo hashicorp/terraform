@@ -122,6 +122,7 @@ func (s *ResourcemetadataService) AddResourceDetail(p *AddResourceDetailParams) 
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -212,6 +213,7 @@ func (s *ResourcemetadataService) RemoveResourceDetail(p *RemoveResourceDetailPa
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -401,6 +403,7 @@ func (s *ResourcemetadataService) ListResourceDetails(p *ListResourceDetailsPara
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 

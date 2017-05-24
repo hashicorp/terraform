@@ -10,9 +10,12 @@ type GraphType byte
 const (
 	GraphTypeInvalid GraphType = 0
 	GraphTypeLegacy  GraphType = iota
+	GraphTypeRefresh
 	GraphTypePlan
 	GraphTypePlanDestroy
 	GraphTypeApply
+	GraphTypeInput
+	GraphTypeValidate
 )
 
 // GraphTypeMap is a mapping of human-readable string to GraphType. This
@@ -20,7 +23,10 @@ const (
 // graph types.
 var GraphTypeMap = map[string]GraphType{
 	"apply":        GraphTypeApply,
+	"input":        GraphTypeInput,
 	"plan":         GraphTypePlan,
 	"plan-destroy": GraphTypePlanDestroy,
+	"refresh":      GraphTypeRefresh,
 	"legacy":       GraphTypeLegacy,
+	"validate":     GraphTypeValidate,
 }

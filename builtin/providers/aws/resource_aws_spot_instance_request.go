@@ -19,6 +19,11 @@ func resourceAwsSpotInstanceRequest() *schema.Resource {
 		Delete: resourceAwsSpotInstanceRequestDelete,
 		Update: resourceAwsSpotInstanceRequestUpdate,
 
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		Schema: func() map[string]*schema.Schema {
 			// The Spot Instance Request Schema is based on the AWS Instance schema.
 			s := resourceAwsInstance().Schema
@@ -29,6 +34,11 @@ func resourceAwsSpotInstanceRequest() *schema.Resource {
 					continue
 				}
 				v.ForceNew = true
+			}
+
+			s["volume_tags"] = &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
 			}
 
 			s["spot_price"] = &schema.Schema{
@@ -152,7 +162,7 @@ func resourceAwsSpotInstanceRequestCreate(d *schema.ResourceData, meta interface
 			Pending:    []string{"start", "pending-evaluation", "pending-fulfillment"},
 			Target:     []string{"fulfilled"},
 			Refresh:    SpotInstanceStateRefreshFunc(conn, sir),
-			Timeout:    10 * time.Minute,
+			Timeout:    d.Timeout(schema.TimeoutCreate),
 			Delay:      10 * time.Second,
 			MinTimeout: 3 * time.Second,
 		}
@@ -263,6 +273,32 @@ func readInstance(d *schema.ResourceData, meta interface{}) error {
 				"host": *instance.PrivateIpAddress,
 			})
 		}
+		if err := readBlockDevices(d, instance, conn); err != nil {
+			return err
+		}
+
+		var ipv6Addresses []string
+		if len(instance.NetworkInterfaces) > 0 {
+			for _, ni := range instance.NetworkInterfaces {
+				if *ni.Attachment.DeviceIndex == 0 {
+					d.Set("subnet_id", ni.SubnetId)
+					d.Set("network_interface_id", ni.NetworkInterfaceId)
+					d.Set("associate_public_ip_address", ni.Association != nil)
+					d.Set("ipv6_address_count", len(ni.Ipv6Addresses))
+
+					for _, address := range ni.Ipv6Addresses {
+						ipv6Addresses = append(ipv6Addresses, *address.Ipv6Address)
+					}
+				}
+			}
+		} else {
+			d.Set("subnet_id", instance.SubnetId)
+			d.Set("network_interface_id", "")
+		}
+
+		if err := d.Set("ipv6_addresses", ipv6Addresses); err != nil {
+			log.Printf("[WARN] Error setting ipv6_addresses for AWS Spot Instance (%s): %s", d.Id(), err)
+		}
 	}
 
 	return nil
@@ -297,7 +333,7 @@ func resourceAwsSpotInstanceRequestDelete(d *schema.ResourceData, meta interface
 
 	if instanceId := d.Get("spot_instance_id").(string); instanceId != "" {
 		log.Printf("[INFO] Terminating instance: %s", instanceId)
-		if err := awsTerminateInstance(conn, instanceId); err != nil {
+		if err := awsTerminateInstance(conn, instanceId, d); err != nil {
 			return fmt.Errorf("Error terminating spot instance: %s", err)
 		}
 	}

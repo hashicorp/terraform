@@ -3,11 +3,57 @@ provider "aws" {
   region = "${var.aws_region}"
 }
 
+resource "aws_vpc" "default" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_hostnames = true
+
+  tags {
+    Name = "tf_test"
+  }
+}
+
+resource "aws_subnet" "tf_test_subnet" {
+  vpc_id                  = "${aws_vpc.default.id}"
+  cidr_block              = "10.0.0.0/24"
+  map_public_ip_on_launch = true
+
+  tags {
+    Name = "tf_test_subnet"
+  }
+}
+
+resource "aws_internet_gateway" "gw" {
+  vpc_id = "${aws_vpc.default.id}"
+
+  tags {
+    Name = "tf_test_ig"
+  }
+}
+
+resource "aws_route_table" "r" {
+  vpc_id = "${aws_vpc.default.id}"
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = "${aws_internet_gateway.gw.id}"
+  }
+
+  tags {
+    Name = "aws_route_table"
+  }
+}
+
+resource "aws_route_table_association" "a" {
+  subnet_id      = "${aws_subnet.tf_test_subnet.id}"
+  route_table_id = "${aws_route_table.r.id}"
+}
+
 # Our default security group to access
 # the instances over SSH and HTTP
 resource "aws_security_group" "default" {
   name        = "instance_sg"
   description = "Used in the terraform"
+  vpc_id      = "${aws_vpc.default.id}"
 
   # SSH access from anywhere
   ingress {
@@ -40,6 +86,8 @@ resource "aws_security_group" "elb" {
   name        = "elb_sg"
   description = "Used in the terraform"
 
+  vpc_id = "${aws_vpc.default.id}"
+
   # HTTP access from anywhere
   ingress {
     from_port   = 80
@@ -55,14 +103,18 @@ resource "aws_security_group" "elb" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  # ensure the VPC has an Internet gateway or this step will fail
+  depends_on = ["aws_internet_gateway.gw"]
 }
 
 resource "aws_elb" "web" {
   name = "example-elb"
 
   # The same availability zone as our instance
-  availability_zones = ["${aws_instance.web.availability_zone}"]
-  security_groups    = ["${aws_security_group.elb.id}"]
+  subnets = ["${aws_subnet.tf_test_subnet.id}"]
+
+  security_groups = ["${aws_security_group.elb.id}"]
 
   listener {
     instance_port     = 80
@@ -80,8 +132,8 @@ resource "aws_elb" "web" {
   }
 
   # The instance is registered automatically
-  instances = ["${aws_instance.web.id}"]
 
+  instances                   = ["${aws_instance.web.id}"]
   cross_zone_load_balancing   = true
   idle_timeout                = 400
   connection_draining         = true
@@ -110,11 +162,12 @@ resource "aws_instance" "web" {
   key_name = "${var.key_name}"
 
   # Our Security group to allow HTTP and SSH access
-  security_groups = ["${aws_security_group.default.name}"]
-
-  user_data = "${file("userdata.sh")}"
+  vpc_security_group_ids = ["${aws_security_group.default.id}"]
+  subnet_id              = "${aws_subnet.tf_test_subnet.id}"
+  user_data              = "${file("userdata.sh")}"
 
   #Instance tags
+
   tags {
     Name = "elb-example"
   }

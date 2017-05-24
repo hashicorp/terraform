@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"google.golang.org/api/googleapi"
@@ -17,6 +19,9 @@ func resourceStorageBucket() *schema.Resource {
 		Read:   resourceStorageBucketRead,
 		Update: resourceStorageBucketUpdate,
 		Delete: resourceStorageBucketDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceStorageBucketStateImporter,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -52,6 +57,11 @@ func resourceStorageBucket() *schema.Resource {
 			},
 
 			"self_link": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"url": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -122,12 +132,23 @@ func resourceStorageBucketCreate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	call := config.clientStorage.Buckets.Insert(project, sb)
-	if v, ok := d.GetOk("predefined_acl"); ok {
-		call = call.PredefinedAcl(v.(string))
-	}
+	var res *storage.Bucket
 
-	res, err := call.Do()
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		call := config.clientStorage.Buckets.Insert(project, sb)
+		if v, ok := d.GetOk("predefined_acl"); ok {
+			call = call.PredefinedAcl(v.(string))
+		}
+
+		res, err = call.Do()
+		if err == nil {
+			return nil
+		}
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 429 {
+			return resource.RetryableError(gerr)
+		}
+		return resource.NonRetryableError(err)
+	})
 
 	if err != nil {
 		fmt.Printf("Error creating bucket %s: %v", bucket, err)
@@ -136,11 +157,8 @@ func resourceStorageBucketCreate(d *schema.ResourceData, meta interface{}) error
 
 	log.Printf("[DEBUG] Created bucket %v at location %v\n\n", res.Name, res.SelfLink)
 
-	// Assign the bucket ID as the resource ID
-	d.Set("self_link", res.SelfLink)
 	d.SetId(res.Id)
-
-	return nil
+	return resourceStorageBucketRead(d, meta)
 }
 
 func resourceStorageBucketUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -202,23 +220,17 @@ func resourceStorageBucketRead(d *schema.ResourceData, meta interface{}) error {
 	res, err := config.clientStorage.Buckets.Get(bucket).Do()
 
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing Bucket %q because it's gone", d.Get("name").(string))
-			// The resource doesn't exist anymore
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error reading bucket %s: %v", bucket, err)
+		return handleNotFoundError(err, d, fmt.Sprintf("Storage Bucket %q", d.Get("name").(string)))
 	}
 
 	log.Printf("[DEBUG] Read bucket %v at location %v\n\n", res.Name, res.SelfLink)
 
 	// Update the bucket ID according to the resource ID
 	d.Set("self_link", res.SelfLink)
+	d.Set("url", fmt.Sprintf("gs://%s", bucket))
+	d.Set("storage_class", res.StorageClass)
+	d.Set("location", res.Location)
 	d.SetId(res.Id)
-
 	return nil
 }
 
@@ -260,7 +272,16 @@ func resourceStorageBucketDelete(d *schema.ResourceData, meta interface{}) error
 	}
 
 	// remove empty bucket
-	err := config.clientStorage.Buckets.Delete(bucket).Do()
+	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+		err := config.clientStorage.Buckets.Delete(bucket).Do()
+		if err == nil {
+			return nil
+		}
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 429 {
+			return resource.RetryableError(gerr)
+		}
+		return resource.NonRetryableError(err)
+	})
 	if err != nil {
 		fmt.Printf("Error deleting bucket %s: %v\n\n", bucket, err)
 		return err
@@ -268,4 +289,9 @@ func resourceStorageBucketDelete(d *schema.ResourceData, meta interface{}) error
 	log.Printf("[DEBUG] Deleted bucket %v\n\n", bucket)
 
 	return nil
+}
+
+func resourceStorageBucketStateImporter(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	d.Set("name", d.Id())
+	return []*schema.ResourceData{d}, nil
 }

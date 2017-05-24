@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceAwsCloudFrontDistribution() *schema.Resource {
@@ -101,6 +102,24 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 									},
 								},
 							},
+						},
+						"lambda_function_association": {
+							Type:     schema.TypeSet,
+							Optional: true,
+							MaxItems: 4,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"event_type": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"lambda_arn": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+							},
+							Set: lambdaFunctionAssociationHash,
 						},
 						"max_ttl": {
 							Type:     schema.TypeInt,
@@ -198,7 +217,7 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 								Schema: map[string]*schema.Schema{
 									"cookies": {
 										Type:     schema.TypeSet,
-										Optional: true,
+										Required: true,
 										Set:      cookiePreferenceHash,
 										MaxItems: 1,
 										Elem: &schema.Resource{
@@ -231,6 +250,24 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 									},
 								},
 							},
+						},
+						"lambda_function_association": {
+							Type:     schema.TypeSet,
+							Optional: true,
+							MaxItems: 4,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"event_type": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"lambda_arn": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+							},
+							Set: lambdaFunctionAssociationHash,
 						},
 						"max_ttl": {
 							Type:     schema.TypeInt,
@@ -319,6 +356,18 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 									"https_port": {
 										Type:     schema.TypeInt,
 										Required: true,
+									},
+									"origin_keepalive_timeout": {
+										Type:         schema.TypeInt,
+										Optional:     true,
+										Default:      5,
+										ValidateFunc: validation.IntBetween(1, 60),
+									},
+									"origin_read_timeout": {
+										Type:         schema.TypeInt,
+										Optional:     true,
+										Default:      30,
+										ValidateFunc: validation.IntBetween(4, 60),
 									},
 									"origin_protocol_policy": {
 										Type:     schema.TypeString,
@@ -635,10 +684,10 @@ func resourceAwsCloudFrontDistributionDelete(d *schema.ResourceData, meta interf
 // but that might change in the future.
 func resourceAwsCloudFrontDistributionWaitUntilDeployed(id string, meta interface{}) error {
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"InProgress", "Deployed"},
+		Pending:    []string{"InProgress"},
 		Target:     []string{"Deployed"},
 		Refresh:    resourceAwsCloudFrontWebDistributionStateRefreshFunc(id, meta),
-		Timeout:    40 * time.Minute,
+		Timeout:    70 * time.Minute,
 		MinTimeout: 15 * time.Second,
 		Delay:      10 * time.Minute,
 	}

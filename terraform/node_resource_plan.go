@@ -7,34 +7,7 @@ import (
 // NodePlannableResource represents a resource that is "plannable":
 // it is ready to be planned in order to create a diff.
 type NodePlannableResource struct {
-	*NodeAbstractResource
-
-	// Set by GraphNodeTargetable and used during DynamicExpand to
-	// forward targets downwards.
-	targets []ResourceAddress
-}
-
-// GraphNodeTargetable
-func (n *NodePlannableResource) SetTargets(targets []ResourceAddress) {
-	n.targets = targets
-}
-
-// GraphNodeEvalable
-func (n *NodePlannableResource) EvalTree() EvalNode {
-	return &EvalSequence{
-		Nodes: []EvalNode{
-			// The EvalTree for a plannable resource primarily involves
-			// interpolating the count since it can contain variables
-			// we only just received access to.
-			//
-			// With the interpolated count, we can then DynamicExpand
-			// into the proper number of instances.
-			&EvalInterpolate{Config: n.Config.RawCount},
-
-			&EvalCountCheckComputed{Resource: n.Config},
-			&EvalCountFixZeroOneBoundary{Resource: n.Config},
-		},
-	}
+	*NodeAbstractCountResource
 }
 
 // GraphNodeDynamicExpandable
@@ -91,7 +64,7 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		&AttachStateTransformer{State: state},
 
 		// Targeting
-		&TargetsTransformer{ParsedTargets: n.targets},
+		&TargetsTransformer{ParsedTargets: n.Targets},
 
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},

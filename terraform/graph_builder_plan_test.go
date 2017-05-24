@@ -29,8 +29,26 @@ func TestPlanGraphBuilder(t *testing.T) {
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testPlanGraphBuilderStr)
 	if actual != expected {
-		t.Fatalf("bad: %s", actual)
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
 	}
+}
+
+func TestPlanGraphBuilder_targetModule(t *testing.T) {
+	b := &PlanGraphBuilder{
+		Module:    testModule(t, "graph-builder-plan-target-module-provider"),
+		Providers: []string{"null"},
+		Targets:   []string{"module.child2"},
+	}
+
+	g, err := b.Build(RootModulePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	t.Logf("Graph: %s", g.String())
+
+	testGraphNotContains(t, g, "module.child1.provider.null")
+	testGraphNotContains(t, g, "module.child1.null_resource.foo")
 }
 
 const testPlanGraphBuilderStr = `
@@ -43,10 +61,30 @@ aws_load_balancer.weblb
   provider.aws
 aws_security_group.firewall
   provider.aws
+meta.count-boundary (count boundary fixup)
+  aws_instance.web
+  aws_load_balancer.weblb
+  aws_security_group.firewall
+  openstack_floating_ip.random
+  provider.aws
+  provider.openstack
+  var.foo
 openstack_floating_ip.random
   provider.openstack
 provider.aws
   openstack_floating_ip.random
+provider.aws (close)
+  aws_instance.web
+  aws_load_balancer.weblb
+  aws_security_group.firewall
+  provider.aws
 provider.openstack
+provider.openstack (close)
+  openstack_floating_ip.random
+  provider.openstack
+root
+  meta.count-boundary (count boundary fixup)
+  provider.aws (close)
+  provider.openstack (close)
 var.foo
 `

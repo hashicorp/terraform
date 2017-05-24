@@ -13,25 +13,26 @@ permissions.
 
 ## Example Usage
 
-```
+```hcl
 resource "rabbitmq_vhost" "test" {
-    name = "test"
+  name = "test"
 }
 
 resource "rabbitmq_user" "test" {
-    name = "mctest"
-    password = "foobar"
-    tags = ["administrator"]
+  name     = "mctest"
+  password = "foobar"
+  tags     = ["administrator"]
 }
 
 resource "rabbitmq_permissions" "test" {
-    user = "${rabbitmq_user.test.name}"
-    vhost = "${rabbitmq_vhost.test.name}"
-    permissions {
-        configure = ".*"
-        write = ".*"
-        read = ".*"
-    }
+  user  = "${rabbitmq_user.test.name}"
+  vhost = "${rabbitmq_vhost.test.name}"
+
+  permissions {
+    configure = ".*"
+    write     = ".*"
+    read      = ".*"
+  }
 }
 ```
 

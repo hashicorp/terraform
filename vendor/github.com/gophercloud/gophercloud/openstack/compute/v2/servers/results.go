@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/url"
 	"path"
+	"time"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/pagination"
@@ -18,11 +19,17 @@ type serverResult struct {
 
 // Extract interprets any serverResult as a Server, if possible.
 func (r serverResult) Extract() (*Server, error) {
-	var s struct {
-		Server *Server `json:"server"`
-	}
+	var s Server
 	err := r.ExtractInto(&s)
-	return s.Server, err
+	return &s, err
+}
+
+func (r serverResult) ExtractInto(v interface{}) error {
+	return r.Result.ExtractIntoStructPtr(v, "server")
+}
+
+func ExtractServersInto(r pagination.Page, v interface{}) error {
+	return r.(ServerPage).Result.ExtractIntoSlicePtr(v, "servers")
 }
 
 // CreateResult temporarily contains the response from a Create call.
@@ -101,12 +108,12 @@ func decryptPassword(encryptedPassword string, privateKey *rsa.PrivateKey) (stri
 }
 
 // ExtractImageID gets the ID of the newly created server image from the header
-func (res CreateImageResult) ExtractImageID() (string, error) {
-	if res.Err != nil {
-		return "", res.Err
+func (r CreateImageResult) ExtractImageID() (string, error) {
+	if r.Err != nil {
+		return "", r.Err
 	}
 	// Get the image id from the header
-	u, err := url.ParseRequestURI(res.Header.Get("Location"))
+	u, err := url.ParseRequestURI(r.Header.Get("Location"))
 	if err != nil {
 		return "", err
 	}
@@ -137,26 +144,27 @@ type Server struct {
 	// Name contains the human-readable name for the server.
 	Name string `json:"name"`
 	// Updated and Created contain ISO-8601 timestamps of when the state of the server last changed, and when it was created.
-	Updated string
-	Created string
-	HostID  string
+	Updated time.Time `json:"updated"`
+	Created time.Time `json:"created"`
+	HostID  string    `json:"hostid"`
 	// Status contains the current operational status of the server, such as IN_PROGRESS or ACTIVE.
-	Status string
+	Status string `json:"status"`
 	// Progress ranges from 0..100.
 	// A request made against the server completes only once Progress reaches 100.
-	Progress int
+	Progress int `json:"progress"`
 	// AccessIPv4 and AccessIPv6 contain the IP addresses of the server, suitable for remote access for administration.
-	AccessIPv4, AccessIPv6 string
+	AccessIPv4 string `json:"accessIPv4"`
+	AccessIPv6 string `json:"accessIPv6"`
 	// Image refers to a JSON object, which itself indicates the OS image used to deploy the server.
-	Image map[string]interface{}
+	Image map[string]interface{} `json:"-"`
 	// Flavor refers to a JSON object, which itself indicates the hardware configuration of the deployed server.
-	Flavor map[string]interface{}
+	Flavor map[string]interface{} `json:"flavor"`
 	// Addresses includes a list of all IP addresses assigned to the server, keyed by pool.
-	Addresses map[string]interface{}
+	Addresses map[string]interface{} `json:"addresses"`
 	// Metadata includes a list of all user-specified key-value pairs attached to the server.
-	Metadata map[string]string
+	Metadata map[string]string `json:"metadata"`
 	// Links includes HTTP references to the itself, useful for passing along to other APIs that might want a server reference.
-	Links []interface{}
+	Links []interface{} `json:"links"`
 	// KeyName indicates which public key was injected into the server on launch.
 	KeyName string `json:"key_name"`
 	// AdminPass will generally be empty ("").  However, it will contain the administrative password chosen when provisioning a new server without a set AdminPass setting in the first place.
@@ -166,30 +174,30 @@ type Server struct {
 	SecurityGroups []map[string]interface{} `json:"security_groups"`
 }
 
-func (s *Server) UnmarshalJSON(b []byte) error {
+func (r *Server) UnmarshalJSON(b []byte) error {
 	type tmp Server
-	var server *struct {
+	var s struct {
 		tmp
-		Image interface{}
+		Image interface{} `json:"image"`
 	}
-	err := json.Unmarshal(b, &server)
+	err := json.Unmarshal(b, &s)
 	if err != nil {
 		return err
 	}
 
-	*s = Server(server.tmp)
+	*r = Server(s.tmp)
 
-	switch t := server.Image.(type) {
+	switch t := s.Image.(type) {
 	case map[string]interface{}:
-		s.Image = t
+		r.Image = t
 	case string:
 		switch t {
 		case "":
-			s.Image = nil
+			r.Image = nil
 		}
 	}
 
-	return nil
+	return err
 }
 
 // ServerPage abstracts the raw results of making a List() request against the API.
@@ -200,17 +208,17 @@ type ServerPage struct {
 }
 
 // IsEmpty returns true if a page contains no Server results.
-func (page ServerPage) IsEmpty() (bool, error) {
-	servers, err := ExtractServers(page)
-	return len(servers) == 0, err
+func (r ServerPage) IsEmpty() (bool, error) {
+	s, err := ExtractServers(r)
+	return len(s) == 0, err
 }
 
 // NextPageURL uses the response's embedded link reference to navigate to the next page of results.
-func (page ServerPage) NextPageURL() (string, error) {
+func (r ServerPage) NextPageURL() (string, error) {
 	var s struct {
 		Links []gophercloud.Link `json:"servers_links"`
 	}
-	err := page.ExtractInto(&s)
+	err := r.ExtractInto(&s)
 	if err != nil {
 		return "", err
 	}
@@ -219,11 +227,9 @@ func (page ServerPage) NextPageURL() (string, error) {
 
 // ExtractServers interprets the results of a single page from a List() call, producing a slice of Server entities.
 func ExtractServers(r pagination.Page) ([]Server, error) {
-	var s struct {
-		Servers []Server `json:"servers"`
-	}
-	err := (r.(ServerPage)).ExtractInto(&s)
-	return s.Servers, err
+	var s []Server
+	err := ExtractServersInto(r, &s)
+	return s, err
 }
 
 // MetadataResult contains the result of a call for (potentially) multiple key-value pairs.

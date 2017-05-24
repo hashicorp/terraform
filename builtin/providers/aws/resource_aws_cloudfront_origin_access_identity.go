@@ -20,28 +20,28 @@ func resourceAwsCloudFrontOriginAccessIdentity() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"comment": &schema.Schema{
+			"comment": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "",
 			},
-			"caller_reference": &schema.Schema{
+			"caller_reference": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"cloudfront_access_identity_path": &schema.Schema{
+			"cloudfront_access_identity_path": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"etag": &schema.Schema{
+			"etag": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"iam_arn": &schema.Schema{
+			"iam_arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"s3_canonical_user_id": &schema.Schema{
+			"s3_canonical_user_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -81,7 +81,8 @@ func resourceAwsCloudFrontOriginAccessIdentityRead(d *schema.ResourceData, meta 
 	d.Set("etag", resp.ETag)
 	d.Set("s3_canonical_user_id", resp.CloudFrontOriginAccessIdentity.S3CanonicalUserId)
 	d.Set("cloudfront_access_identity_path", fmt.Sprintf("origin-access-identity/cloudfront/%s", *resp.CloudFrontOriginAccessIdentity.Id))
-	d.Set("iam_arn", fmt.Sprintf("arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity %s", *resp.CloudFrontOriginAccessIdentity.Id))
+	d.Set("iam_arn", fmt.Sprintf("arn:%s:iam::cloudfront:user/CloudFront Origin Access Identity %s",
+		meta.(*AWSClient).partition, *resp.CloudFrontOriginAccessIdentity.Id))
 	return nil
 }
 

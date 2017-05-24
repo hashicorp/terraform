@@ -6,20 +6,22 @@
 package github
 
 import (
+	"context"
 	"fmt"
 )
 
 // Tag represents a tag object.
 type Tag struct {
-	Tag     *string       `json:"tag,omitempty"`
-	SHA     *string       `json:"sha,omitempty"`
-	URL     *string       `json:"url,omitempty"`
-	Message *string       `json:"message,omitempty"`
-	Tagger  *CommitAuthor `json:"tagger,omitempty"`
-	Object  *GitObject    `json:"object,omitempty"`
+	Tag          *string                `json:"tag,omitempty"`
+	SHA          *string                `json:"sha,omitempty"`
+	URL          *string                `json:"url,omitempty"`
+	Message      *string                `json:"message,omitempty"`
+	Tagger       *CommitAuthor          `json:"tagger,omitempty"`
+	Object       *GitObject             `json:"object,omitempty"`
+	Verification *SignatureVerification `json:"verification,omitempty"`
 }
 
-// createTagRequest represents the body of a CreateTag request.  This is mostly
+// createTagRequest represents the body of a CreateTag request. This is mostly
 // identical to Tag with the exception that the object SHA and Type are
 // top-level fields, rather than being nested inside a JSON object.
 type createTagRequest struct {
@@ -32,23 +34,26 @@ type createTagRequest struct {
 
 // GetTag fetchs a tag from a repo given a SHA.
 //
-// GitHub API docs: http://developer.github.com/v3/git/tags/#get-a-tag
-func (s *GitService) GetTag(owner string, repo string, sha string) (*Tag, *Response, error) {
+// GitHub API docs: https://developer.github.com/v3/git/tags/#get-a-tag
+func (s *GitService) GetTag(ctx context.Context, owner string, repo string, sha string) (*Tag, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/git/tags/%v", owner, repo, sha)
 	req, err := s.client.NewRequest("GET", u, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// TODO: remove custom Accept header when this API fully launches.
+	req.Header.Set("Accept", mediaTypeGitSigningPreview)
+
 	tag := new(Tag)
-	resp, err := s.client.Do(req, tag)
+	resp, err := s.client.Do(ctx, req, tag)
 	return tag, resp, err
 }
 
 // CreateTag creates a tag object.
 //
-// GitHub API docs: http://developer.github.com/v3/git/tags/#create-a-tag-object
-func (s *GitService) CreateTag(owner string, repo string, tag *Tag) (*Tag, *Response, error) {
+// GitHub API docs: https://developer.github.com/v3/git/tags/#create-a-tag-object
+func (s *GitService) CreateTag(ctx context.Context, owner string, repo string, tag *Tag) (*Tag, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/git/tags", owner, repo)
 
 	// convert Tag into a createTagRequest
@@ -68,6 +73,6 @@ func (s *GitService) CreateTag(owner string, repo string, tag *Tag) (*Tag, *Resp
 	}
 
 	t := new(Tag)
-	resp, err := s.client.Do(req, t)
+	resp, err := s.client.Do(ctx, req, t)
 	return t, resp, err
 }

@@ -41,13 +41,37 @@ func resourceRancherEnvironment() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"member": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"external_id_type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"external_id": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"role": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
 
 func resourceRancherEnvironmentCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Creating Environment: %s", d.Id())
-	client := meta.(*Config)
+	client, err := meta.(*Config).GlobalClient()
+	if err != nil {
+		return err
+	}
 
 	name := d.Get("name").(string)
 	description := d.Get("description").(string)
@@ -82,29 +106,70 @@ func resourceRancherEnvironmentCreate(d *schema.ResourceData, meta interface{}) 
 	d.SetId(newEnv.Id)
 	log.Printf("[INFO] Environment ID: %s", d.Id())
 
+	// Add members
+	if v, ok := d.GetOk("member"); ok {
+		envClient, err := meta.(*Config).EnvironmentClient(d.Id())
+		if err != nil {
+			return err
+		}
+		members := v.([]interface{})
+		_, err = envClient.Project.ActionSetmembers(&newEnv, &rancherClient.SetProjectMembersInput{
+			Members: members,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
 	return resourceRancherEnvironmentRead(d, meta)
 }
 
 func resourceRancherEnvironmentRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Refreshing Environment: %s", d.Id())
-	client := meta.(*Config)
+	client, err := meta.(*Config).GlobalClient()
+	if err != nil {
+		return err
+	}
 
 	env, err := client.Project.ById(d.Id())
 	if err != nil {
 		return err
 	}
 
+	if env == nil {
+		log.Printf("[INFO] Environment %s not found", d.Id())
+		d.SetId("")
+		return nil
+	}
+
+	if removed(env.State) {
+		log.Printf("[INFO] Environment %s was removed on %v", d.Id(), env.Removed)
+		d.SetId("")
+		return nil
+	}
+
 	log.Printf("[INFO] Environment Name: %s", env.Name)
 
 	d.Set("description", env.Description)
 	d.Set("name", env.Name)
-	d.Set("orchestration", GetActiveOrchestration(env))
+	d.Set("orchestration", getActiveOrchestration(env))
 
+	envClient, err := meta.(*Config).EnvironmentClient(d.Id())
+	if err != nil {
+		return err
+	}
+
+	members, _ := envClient.ProjectMember.List(NewListOpts())
+
+	d.Set("member", normalizeMembers(members.Data))
 	return nil
 }
 
 func resourceRancherEnvironmentUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Config)
+	client, err := meta.(*Config).GlobalClient()
+	if err != nil {
+		return err
+	}
 
 	name := d.Get("name").(string)
 	description := d.Get("description").(string)
@@ -127,13 +192,29 @@ func resourceRancherEnvironmentUpdate(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
+	// Update members
+	envClient, err := meta.(*Config).EnvironmentClient(d.Id())
+	if err != nil {
+		return err
+	}
+	members := d.Get("member").(*schema.Set).List()
+	_, err = envClient.Project.ActionSetmembers(&newEnv, &rancherClient.SetProjectMembersInput{
+		Members: makeProjectMembers(members),
+	})
+	if err != nil {
+		return err
+	}
+
 	return resourceRancherEnvironmentRead(d, meta)
 }
 
 func resourceRancherEnvironmentDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Deleting Environment: %s", d.Id())
 	id := d.Id()
-	client := meta.(*Config)
+	client, err := meta.(*Config).GlobalClient()
+	if err != nil {
+		return err
+	}
 
 	env, err := client.Project.ById(id)
 	if err != nil {
@@ -179,9 +260,34 @@ func setOrchestrationFields(orchestration string, data map[string]interface{}) {
 	data[orch] = true
 }
 
+func normalizeMembers(in []rancherClient.ProjectMember) (out []interface{}) {
+	for _, m := range in {
+		mm := map[string]string{
+			"external_id_type": m.ExternalIdType,
+			"external_id":      m.ExternalId,
+			"role":             m.Role,
+		}
+		out = append(out, mm)
+	}
+	return
+}
+
+func makeProjectMembers(in []interface{}) (out []interface{}) {
+	for _, m := range in {
+		mMap := m.(map[string]interface{})
+		mm := rancherClient.ProjectMember{
+			ExternalIdType: mMap["external_id_type"].(string),
+			ExternalId:     mMap["external_id"].(string),
+			Role:           mMap["role"].(string),
+		}
+		out = append(out, mm)
+	}
+	return
+}
+
 // EnvironmentStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
 // a Rancher Environment.
-func EnvironmentStateRefreshFunc(client *Config, environmentID string) resource.StateRefreshFunc {
+func EnvironmentStateRefreshFunc(client *rancherClient.RancherClient, environmentID string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		env, err := client.Project.ById(environmentID)
 

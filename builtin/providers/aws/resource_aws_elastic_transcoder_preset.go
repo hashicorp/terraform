@@ -212,8 +212,8 @@ func resourceAwsElasticTranscoderPreset() *schema.Resource {
 						},
 						"max_frame_rate": &schema.Schema{
 							Type:     schema.TypeString,
-							Default:  "30",
 							Optional: true,
+							Default:  "30",
 							ForceNew: true,
 						},
 						"max_height": &schema.Schema{

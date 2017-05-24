@@ -3,11 +3,10 @@ package cloudstack
 import (
 	"fmt"
 	"log"
-	"sync"
-	"time"
-
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -68,7 +67,6 @@ func resourceCloudStackPortForward() *schema.Resource {
 						"vm_guest_ip": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							Computed: true,
 						},
 
 						"uuid": &schema.Schema{
@@ -160,7 +158,7 @@ func createPortForward(d *schema.ResourceData, meta interface{}, forward map[str
 	p := cs.Firewall.NewCreatePortForwardingRuleParams(d.Id(), forward["private_port"].(int),
 		forward["protocol"].(string), forward["public_port"].(int), vm.Id)
 
-	if vmGuestIP, ok := forward["vm_guest_ip"]; ok {
+	if vmGuestIP, ok := forward["vm_guest_ip"]; ok && vmGuestIP.(string) != "" {
 		p.SetVmguestip(vmGuestIP.(string))
 
 		// Set the network ID based on the guest IP, needed when the public IP address
@@ -273,7 +271,13 @@ func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{})
 			forward["private_port"] = privPort
 			forward["public_port"] = pubPort
 			forward["virtual_machine_id"] = f.Virtualmachineid
-			forward["vm_guest_ip"] = f.Vmguestip
+
+			// This one is a bit tricky. We only want to update this optional value
+			// if we've set one ourselves. If not this would become a computed value
+			// and that would mess up the calculated hash of the set item.
+			if forward["vm_guest_ip"].(string) != "" {
+				forward["vm_guest_ip"] = f.Vmguestip
+			}
 
 			forwards.Add(forward)
 		}

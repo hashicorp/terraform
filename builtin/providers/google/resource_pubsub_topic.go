@@ -58,7 +58,7 @@ func resourcePubsubTopicRead(d *schema.ResourceData, meta interface{}) error {
 	call := config.clientPubsub.Projects.Topics.Get(name)
 	_, err := call.Do()
 	if err != nil {
-		return err
+		return handleNotFoundError(err, d, fmt.Sprintf("Pubsub Topic %q", name))
 	}
 
 	return nil

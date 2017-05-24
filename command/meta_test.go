@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -270,5 +271,39 @@ func TestMeta_addModuleDepthFlag(t *testing.T) {
 		if moduleDepth != tc.Expected {
 			t.Fatalf("%s: expected: %#v, got: %#v", tn, tc.Expected, moduleDepth)
 		}
+	}
+}
+
+func TestMeta_Env(t *testing.T) {
+	td := tempDir(t)
+	os.MkdirAll(td, 0755)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	m := new(Meta)
+
+	env := m.Env()
+
+	if env != backend.DefaultStateName {
+		t.Fatalf("expected env %q, got env %q", backend.DefaultStateName, env)
+	}
+
+	testEnv := "test_env"
+	if err := m.SetEnv(testEnv); err != nil {
+		t.Fatal("error setting env:", err)
+	}
+
+	env = m.Env()
+	if env != testEnv {
+		t.Fatalf("expected env %q, got env %q", testEnv, env)
+	}
+
+	if err := m.SetEnv(backend.DefaultStateName); err != nil {
+		t.Fatal("error setting env:", err)
+	}
+
+	env = m.Env()
+	if env != backend.DefaultStateName {
+		t.Fatalf("expected env %q, got env %q", backend.DefaultStateName, env)
 	}
 }

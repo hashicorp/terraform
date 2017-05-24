@@ -3,13 +3,13 @@ package aws
 import (
 	"fmt"
 	"net/url"
-	"regexp"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -26,29 +26,27 @@ func resourceAwsIamRolePolicy() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"policy": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+			"policy": {
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateFunc:     validateIAMPolicyJson,
+				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
-			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					// https://github.com/boto/botocore/blob/2485f5c/botocore/data/iam/2010-05-08/service-2.json#L8291-L8296
-					value := v.(string)
-					if len(value) > 128 {
-						errors = append(errors, fmt.Errorf(
-							"%q cannot be longer than 128 characters", k))
-					}
-					if !regexp.MustCompile("^[\\w+=,.@-]+$").MatchString(value) {
-						errors = append(errors, fmt.Errorf(
-							"%q must match [\\w+=,.@-]", k))
-					}
-					return
-				},
+			"name": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
+				ValidateFunc:  validateIamRolePolicyName,
 			},
-			"role": &schema.Schema{
+			"name_prefix": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validateIamRolePolicyNamePrefix,
+			},
+			"role": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -62,9 +60,18 @@ func resourceAwsIamRolePolicyPut(d *schema.ResourceData, meta interface{}) error
 
 	request := &iam.PutRolePolicyInput{
 		RoleName:       aws.String(d.Get("role").(string)),
-		PolicyName:     aws.String(d.Get("name").(string)),
 		PolicyDocument: aws.String(d.Get("policy").(string)),
 	}
+
+	var policyName string
+	if v, ok := d.GetOk("name"); ok {
+		policyName = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		policyName = resource.PrefixedUniqueId(v.(string))
+	} else {
+		policyName = resource.UniqueId()
+	}
+	request.PolicyName = aws.String(policyName)
 
 	if _, err := iamconn.PutRolePolicy(request); err != nil {
 		return fmt.Errorf("Error putting IAM role policy %s: %s", *request.PolicyName, err)
@@ -135,7 +142,7 @@ func resourceAwsIamRolePolicyDelete(d *schema.ResourceData, meta interface{}) er
 func resourceAwsIamRolePolicyParseId(id string) (roleName, policyName string, err error) {
 	parts := strings.SplitN(id, ":", 2)
 	if len(parts) != 2 {
-		err = fmt.Errorf("role_policy id must be of the for <role name>:<policy name>")
+		err = fmt.Errorf("role_policy id must be of the form <role name>:<policy name>")
 		return
 	}
 

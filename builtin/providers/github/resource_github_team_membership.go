@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"strings"
 
 	"github.com/google/go-github/github"
@@ -19,17 +20,17 @@ func resourceGithubTeamMembership() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"team_id": &schema.Schema{
+			"team_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"username": &schema.Schema{
+			"username": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"role": &schema.Schema{
+			"role": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
@@ -46,7 +47,7 @@ func resourceGithubTeamMembershipCreate(d *schema.ResourceData, meta interface{}
 	n := d.Get("username").(string)
 	r := d.Get("role").(string)
 
-	_, _, err := client.Organizations.AddTeamMembership(toGithubID(t), n,
+	_, _, err := client.Organizations.AddTeamMembership(context.TODO(), toGithubID(t), n,
 		&github.OrganizationAddTeamMembershipOptions{Role: r})
 
 	if err != nil {
@@ -62,7 +63,7 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 	client := meta.(*Organization).client
 	t, n := parseTwoPartID(d.Id())
 
-	membership, _, err := client.Organizations.GetTeamMembership(toGithubID(t), n)
+	membership, _, err := client.Organizations.GetTeamMembership(context.TODO(), toGithubID(t), n)
 
 	if err != nil {
 		d.SetId("")
@@ -81,7 +82,7 @@ func resourceGithubTeamMembershipDelete(d *schema.ResourceData, meta interface{}
 	t := d.Get("team_id").(string)
 	n := d.Get("username").(string)
 
-	_, err := client.Organizations.RemoveTeamMembership(toGithubID(t), n)
+	_, err := client.Organizations.RemoveTeamMembership(context.TODO(), toGithubID(t), n)
 
 	return err
 }

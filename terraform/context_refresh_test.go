@@ -60,6 +60,32 @@ func TestContext2Refresh(t *testing.T) {
 	}
 }
 
+func TestContext2Refresh_dataComputedModuleVar(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "refresh-data-module-var")
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	p.RefreshFn = nil
+	p.RefreshReturn = &InstanceState{
+		ID: "foo",
+	}
+
+	s, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, s, `
+<no state>
+module.child:
+  <no state>`)
+}
+
 func TestContext2Refresh_targeted(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-targeted")
@@ -520,7 +546,7 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 	}
 }
 
-func TestContext2Refresh_state(t *testing.T) {
+func TestContext2Refresh_stateBasic(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")
 	state := &State{
@@ -529,6 +555,7 @@ func TestContext2Refresh_state(t *testing.T) {
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
 					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "bar",
 						},
@@ -568,6 +595,38 @@ func TestContext2Refresh_state(t *testing.T) {
 	if !reflect.DeepEqual(mod.Resources["aws_instance.web"].Primary, p.RefreshReturn) {
 		t.Fatalf("bad: %#v", mod.Resources)
 	}
+}
+
+func TestContext2Refresh_dataOrphan(t *testing.T) {
+	p := testProvider("null")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"data.null_data_source.bar": &ResourceState{
+						Type: "foo",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[string]ResourceProviderFactory{
+			"null": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	s, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, s, `<no state>`)
 }
 
 func TestContext2Refresh_dataState(t *testing.T) {
@@ -737,6 +796,21 @@ func TestContext2Refresh_unknownProvider(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Module:    m,
 		Providers: map[string]ResourceProviderFactory{},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_instance.web": &ResourceState{
+							Type: "aws_instance",
+							Primary: &InstanceState{
+								ID: "foo",
+							},
+						},
+					},
+				},
+			},
+		},
 	})
 
 	if _, err := ctx.Refresh(); err == nil {

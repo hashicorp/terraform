@@ -122,6 +122,27 @@ func TestAccAzureRMAvailabilitySet_withDomainCounts(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMAvailabilitySet_managed(t *testing.T) {
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMVAvailabilitySet_managed, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMAvailabilitySetDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMAvailabilitySetExists("azurerm_availability_set.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_availability_set.test", "managed", "true"),
+				),
+			},
+		},
+	})
+}
+
 func testCheckAzureRMAvailabilitySetExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// Ensure we have enough information in state to look up in API
@@ -224,8 +245,8 @@ resource "azurerm_availability_set" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
 
     tags {
-	environment = "Production"
-	cost_center = "MSFT"
+       environment = "Production"
+       cost_center = "MSFT"
     }
 }
 `
@@ -241,7 +262,7 @@ resource "azurerm_availability_set" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
 
     tags {
-	environment = "staging"
+       environment = "staging"
     }
 }
 `
@@ -257,5 +278,20 @@ resource "azurerm_availability_set" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
     platform_update_domain_count = 10
     platform_fault_domain_count = 1
+}
+`
+
+var testAccAzureRMVAvailabilitySet_managed = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "West US"
+}
+resource "azurerm_availability_set" "test" {
+    name = "acctestavset-%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    platform_update_domain_count = 10
+    platform_fault_domain_count = 1
+    managed = true
 }
 `

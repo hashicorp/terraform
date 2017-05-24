@@ -58,7 +58,9 @@ func AddAzureDockerVMExtensionConfiguration(role *vm.Role, dockerPort int, versi
 		return fmt.Errorf(errParamNotSpecified, "role")
 	}
 
-	ConfigureWithExternalPort(role, "docker", dockerPort, dockerPort, vm.InputEndpointProtocolTCP)
+	if err := ConfigureWithExternalPort(role, "docker", dockerPort, dockerPort, vm.InputEndpointProtocolTCP); err != nil {
+		return err
+	}
 
 	publicConfiguration, err := createDockerPublicConfig(dockerPort)
 	if err != nil {

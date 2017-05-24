@@ -5,8 +5,6 @@ import (
 	"os"
 	"testing"
 
-	"regexp"
-
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -199,15 +197,14 @@ func TestAccAzureRMLoadBalancerRule_update(t *testing.T) {
 	})
 }
 
-func TestAccAzureRMLoadBalancerRule_duplicateRules(t *testing.T) {
+func TestAccAzureRMLoadBalancerRule_reapply(t *testing.T) {
 	var lb network.LoadBalancer
 	ri := acctest.RandInt()
 	lbRuleName := fmt.Sprintf("LbRule-%s", acctest.RandStringFromCharSet(8, acctest.CharSetAlpha))
 
-	subscriptionID := os.Getenv("ARM_SUBSCRIPTION_ID")
-	lbRuleID := fmt.Sprintf(
-		"/subscriptions/%s/resourceGroups/acctestrg-%d/providers/Microsoft.Network/loadBalancers/arm-test-loadbalancer-%d/loadBalancingRules/%s",
-		subscriptionID, ri, ri, lbRuleName)
+	deleteRuleState := func(s *terraform.State) error {
+		return s.Remove("azurerm_lb_rule.test")
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -215,13 +212,43 @@ func TestAccAzureRMLoadBalancerRule_duplicateRules(t *testing.T) {
 		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAzureRMLoadBalancerRule_multipleRules(ri, lbRuleName, lbRuleName),
+				Config: testAccAzureRMLoadBalancerRule_basic(ri, lbRuleName),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
 					testCheckAzureRMLoadBalancerRuleExists(lbRuleName, &lb),
-					resource.TestCheckResourceAttr("azurerm_lb_rule.test", "id", lbRuleID),
+					deleteRuleState,
 				),
-				ExpectError: regexp.MustCompile(fmt.Sprintf("A LoadBalancer Rule with name %q already exists.", lbRuleName)),
+				ExpectNonEmptyPlan: true,
+			},
+			{
+				Config: testAccAzureRMLoadBalancerRule_basic(ri, lbRuleName),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
+					testCheckAzureRMLoadBalancerRuleExists(lbRuleName, &lb),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMLoadBalancerRule_disappears(t *testing.T) {
+	var lb network.LoadBalancer
+	ri := acctest.RandInt()
+	lbRuleName := fmt.Sprintf("LbRule-%s", acctest.RandStringFromCharSet(8, acctest.CharSetAlpha))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMLoadBalancerRule_basic(ri, lbRuleName),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
+					testCheckAzureRMLoadBalancerRuleExists(lbRuleName, &lb),
+					testCheckAzureRMLoadBalancerRuleDisappears(lbRuleName, &lb),
+				),
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
@@ -246,6 +273,34 @@ func testCheckAzureRMLoadBalancerRuleNotExists(lbRuleName string, lb *network.Lo
 		}
 
 		return nil
+	}
+}
+
+func testCheckAzureRMLoadBalancerRuleDisappears(ruleName string, lb *network.LoadBalancer) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		conn := testAccProvider.Meta().(*ArmClient).loadBalancerClient
+
+		_, i, exists := findLoadBalancerRuleByName(lb, ruleName)
+		if !exists {
+			return fmt.Errorf("A Rule with name %q cannot be found.", ruleName)
+		}
+
+		currentRules := *lb.LoadBalancerPropertiesFormat.LoadBalancingRules
+		rules := append(currentRules[:i], currentRules[i+1:]...)
+		lb.LoadBalancerPropertiesFormat.LoadBalancingRules = &rules
+
+		id, err := parseAzureResourceID(*lb.ID)
+		if err != nil {
+			return err
+		}
+
+		_, err = conn.CreateOrUpdate(id.ResourceGroup, *lb.Name, *lb, make(chan struct{}))
+		if err != nil {
+			return fmt.Errorf("Error Creating/Updating LoadBalancer %s", err)
+		}
+
+		_, err = conn.Get(id.ResourceGroup, *lb.Name, "")
+		return err
 	}
 }
 

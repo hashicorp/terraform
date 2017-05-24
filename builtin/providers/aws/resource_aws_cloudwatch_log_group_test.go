@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
@@ -19,11 +20,48 @@ func TestAccAWSCloudWatchLogGroup_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudWatchLogGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudWatchLogGroupConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchLogGroupExists("aws_cloudwatch_log_group.foobar", &lg),
 					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "retention_in_days", "0"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSCloudWatchLogGroup_namePrefix(t *testing.T) {
+	var lg cloudwatchlogs.LogGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCloudWatchLogGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSCloudWatchLogGroup_namePrefix,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudWatchLogGroupExists("aws_cloudwatch_log_group.test", &lg),
+					resource.TestMatchResourceAttr("aws_cloudwatch_log_group.test", "name", regexp.MustCompile("^tf-test-")),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSCloudWatchLogGroup_generatedName(t *testing.T) {
+	var lg cloudwatchlogs.LogGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCloudWatchLogGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSCloudWatchLogGroup_generatedName,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudWatchLogGroupExists("aws_cloudwatch_log_group.test", &lg),
 				),
 			},
 		},
@@ -39,14 +77,14 @@ func TestAccAWSCloudWatchLogGroup_retentionPolicy(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudWatchLogGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudWatchLogGroupConfig_withRetention(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchLogGroupExists("aws_cloudwatch_log_group.foobar", &lg),
 					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "retention_in_days", "365"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudWatchLogGroupConfigModified_withRetention(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchLogGroupExists("aws_cloudwatch_log_group.foobar", &lg),
@@ -66,7 +104,7 @@ func TestAccAWSCloudWatchLogGroup_multiple(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudWatchLogGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudWatchLogGroupConfig_multiple(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchLogGroupExists("aws_cloudwatch_log_group.alpha", &lg),
@@ -90,13 +128,44 @@ func TestAccAWSCloudWatchLogGroup_disappears(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudWatchLogGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudWatchLogGroupConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchLogGroupExists("aws_cloudwatch_log_group.foobar", &lg),
 					testAccCheckCloudWatchLogGroupDisappears(&lg),
 				),
 				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func TestAccAWSCloudWatchLogGroup_tagging(t *testing.T) {
+	var lg cloudwatchlogs.LogGroup
+	rInt := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCloudWatchLogGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSCloudWatchLogGroupConfigWithTags(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudWatchLogGroupExists("aws_cloudwatch_log_group.foobar", &lg),
+					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.%", "2"),
+					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.Environment", "Production"),
+					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.Foo", "Bar"),
+				),
+			},
+			{
+				Config: testAccAWSCloudWatchLogGroupConfigWithTagsUpdated(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudWatchLogGroupExists("aws_cloudwatch_log_group.foobar", &lg),
+					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.%", "3"),
+					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.Environment", "Development"),
+					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "tags.Bar", "baz"),
+				),
 			},
 		},
 	})
@@ -166,6 +235,33 @@ resource "aws_cloudwatch_log_group" "foobar" {
 `, rInt)
 }
 
+func testAccAWSCloudWatchLogGroupConfigWithTags(rInt int) string {
+	return fmt.Sprintf(`
+resource "aws_cloudwatch_log_group" "foobar" {
+    name = "foo-bar-%d"
+
+    tags {
+    	Environment = "Production"
+    	Foo = "Bar"
+    }
+}
+`, rInt)
+}
+
+func testAccAWSCloudWatchLogGroupConfigWithTagsUpdated(rInt int) string {
+	return fmt.Sprintf(`
+resource "aws_cloudwatch_log_group" "foobar" {
+    name = "foo-bar-%d"
+
+    tags {
+    	Environment = "Development"
+    	Foo = "Bar"
+    	Bar = "baz"
+    }
+}
+`, rInt)
+}
+
 func testAccAWSCloudWatchLogGroupConfig_withRetention(rInt int) string {
 	return fmt.Sprintf(`
 resource "aws_cloudwatch_log_group" "foobar" {
@@ -196,5 +292,15 @@ resource "aws_cloudwatch_log_group" "charlie" {
     name = "foo-bar-%d"
     retention_in_days = 3653
 }
-`, rInt, rInt, rInt)
+`, rInt, rInt+1, rInt+2)
 }
+
+const testAccAWSCloudWatchLogGroup_namePrefix = `
+resource "aws_cloudwatch_log_group" "test" {
+    name_prefix = "tf-test-"
+}
+`
+
+const testAccAWSCloudWatchLogGroup_generatedName = `
+resource "aws_cloudwatch_log_group" "test" {}
+`

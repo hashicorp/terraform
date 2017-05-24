@@ -228,6 +228,18 @@ func defaultCacheBehaviorHash(v interface{}) int {
 			buf.WriteString(fmt.Sprintf("%s-", e.(string)))
 		}
 	}
+	if d, ok := m["lambda_function_association"]; ok {
+		var associations []interface{}
+		switch d.(type) {
+		case *schema.Set:
+			associations = d.(*schema.Set).List()
+		default:
+			associations = d.([]interface{})
+		}
+		for _, lfa := range associations {
+			buf.WriteString(fmt.Sprintf("%d-", lambdaFunctionAssociationHash(lfa.(map[string]interface{}))))
+		}
+	}
 	return hashcode.String(buf.String())
 }
 
@@ -267,6 +279,11 @@ func expandCacheBehavior(m map[string]interface{}) *cloudfront.CacheBehavior {
 	} else {
 		cb.TrustedSigners = expandTrustedSigners([]interface{}{})
 	}
+
+	if v, ok := m["lambda_function_association"]; ok {
+		cb.LambdaFunctionAssociations = expandLambdaFunctionAssociations(v.(*schema.Set).List())
+	}
+
 	if v, ok := m["smooth_streaming"]; ok {
 		cb.SmoothStreaming = aws.Bool(v.(bool))
 	}
@@ -293,6 +310,9 @@ func flattenCacheBehavior(cb *cloudfront.CacheBehavior) map[string]interface{} {
 
 	if len(cb.TrustedSigners.Items) > 0 {
 		m["trusted_signers"] = flattenTrustedSigners(cb.TrustedSigners)
+	}
+	if len(cb.LambdaFunctionAssociations.Items) > 0 {
+		m["lambda_function_association"] = flattenLambdaFunctionAssociations(cb.LambdaFunctionAssociations)
 	}
 	if cb.MaxTTL != nil {
 		m["max_ttl"] = int(*cb.MaxTTL)
@@ -352,6 +372,18 @@ func cacheBehaviorHash(v interface{}) int {
 	if d, ok := m["path_pattern"]; ok {
 		buf.WriteString(fmt.Sprintf("%s-", d))
 	}
+	if d, ok := m["lambda_function_association"]; ok {
+		var associations []interface{}
+		switch d.(type) {
+		case *schema.Set:
+			associations = d.(*schema.Set).List()
+		default:
+			associations = d.([]interface{})
+		}
+		for _, lfa := range associations {
+			buf.WriteString(fmt.Sprintf("%d-", lambdaFunctionAssociationHash(lfa.(map[string]interface{}))))
+		}
+	}
 	return hashcode.String(buf.String())
 }
 
@@ -373,6 +405,59 @@ func flattenTrustedSigners(ts *cloudfront.TrustedSigners) []interface{} {
 		return flattenStringList(ts.Items)
 	}
 	return []interface{}{}
+}
+
+func lambdaFunctionAssociationHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["event_type"].(string)))
+	buf.WriteString(fmt.Sprintf("%s", m["lambda_arn"].(string)))
+	return hashcode.String(buf.String())
+}
+
+func expandLambdaFunctionAssociations(v interface{}) *cloudfront.LambdaFunctionAssociations {
+	if v == nil {
+		return &cloudfront.LambdaFunctionAssociations{
+			Quantity: aws.Int64(0),
+		}
+	}
+
+	s := v.([]interface{})
+	var lfa cloudfront.LambdaFunctionAssociations
+	lfa.Quantity = aws.Int64(int64(len(s)))
+	lfa.Items = make([]*cloudfront.LambdaFunctionAssociation, len(s))
+	for i, lf := range s {
+		lfa.Items[i] = expandLambdaFunctionAssociation(lf.(map[string]interface{}))
+	}
+	return &lfa
+}
+
+func expandLambdaFunctionAssociation(lf map[string]interface{}) *cloudfront.LambdaFunctionAssociation {
+	var lfa cloudfront.LambdaFunctionAssociation
+	if v, ok := lf["event_type"]; ok {
+		lfa.EventType = aws.String(v.(string))
+	}
+	if v, ok := lf["lambda_arn"]; ok {
+		lfa.LambdaFunctionARN = aws.String(v.(string))
+	}
+	return &lfa
+}
+
+func flattenLambdaFunctionAssociations(lfa *cloudfront.LambdaFunctionAssociations) *schema.Set {
+	s := schema.NewSet(lambdaFunctionAssociationHash, []interface{}{})
+	for _, v := range lfa.Items {
+		s.Add(flattenLambdaFunctionAssociation(v))
+	}
+	return s
+}
+
+func flattenLambdaFunctionAssociation(lfa *cloudfront.LambdaFunctionAssociation) map[string]interface{} {
+	m := map[string]interface{}{}
+	if lfa != nil {
+		m["event_type"] = *lfa.EventType
+		m["lambda_arn"] = *lfa.LambdaFunctionARN
+	}
+	return m
 }
 
 func expandForwardedValues(m map[string]interface{}) *cloudfront.ForwardedValues {
@@ -688,21 +773,31 @@ func originCustomHeaderHash(v interface{}) int {
 }
 
 func expandCustomOriginConfig(m map[string]interface{}) *cloudfront.CustomOriginConfig {
-	return &cloudfront.CustomOriginConfig{
-		OriginProtocolPolicy: aws.String(m["origin_protocol_policy"].(string)),
-		HTTPPort:             aws.Int64(int64(m["http_port"].(int))),
-		HTTPSPort:            aws.Int64(int64(m["https_port"].(int))),
-		OriginSslProtocols:   expandCustomOriginConfigSSL(m["origin_ssl_protocols"].([]interface{})),
+
+	customOrigin := &cloudfront.CustomOriginConfig{
+		OriginProtocolPolicy:   aws.String(m["origin_protocol_policy"].(string)),
+		HTTPPort:               aws.Int64(int64(m["http_port"].(int))),
+		HTTPSPort:              aws.Int64(int64(m["https_port"].(int))),
+		OriginSslProtocols:     expandCustomOriginConfigSSL(m["origin_ssl_protocols"].([]interface{})),
+		OriginReadTimeout:      aws.Int64(int64(m["origin_read_timeout"].(int))),
+		OriginKeepaliveTimeout: aws.Int64(int64(m["origin_keepalive_timeout"].(int))),
 	}
+
+	return customOrigin
 }
 
 func flattenCustomOriginConfig(cor *cloudfront.CustomOriginConfig) map[string]interface{} {
-	return map[string]interface{}{
-		"origin_protocol_policy": *cor.OriginProtocolPolicy,
-		"http_port":              int(*cor.HTTPPort),
-		"https_port":             int(*cor.HTTPSPort),
-		"origin_ssl_protocols":   flattenCustomOriginConfigSSL(cor.OriginSslProtocols),
+
+	customOrigin := map[string]interface{}{
+		"origin_protocol_policy":   *cor.OriginProtocolPolicy,
+		"http_port":                int(*cor.HTTPPort),
+		"https_port":               int(*cor.HTTPSPort),
+		"origin_ssl_protocols":     flattenCustomOriginConfigSSL(cor.OriginSslProtocols),
+		"origin_read_timeout":      int(*cor.OriginReadTimeout),
+		"origin_keepalive_timeout": int(*cor.OriginKeepaliveTimeout),
 	}
+
+	return customOrigin
 }
 
 // Assemble the hash for the aws_cloudfront_distribution custom_origin_config
@@ -716,6 +811,9 @@ func customOriginConfigHash(v interface{}) int {
 	for _, v := range sortInterfaceSlice(m["origin_ssl_protocols"].([]interface{})) {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
+	buf.WriteString(fmt.Sprintf("%d-", m["origin_keepalive_timeout"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["origin_read_timeout"].(int)))
+
 	return hashcode.String(buf.String())
 }
 

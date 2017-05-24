@@ -208,12 +208,12 @@ func resourceConsulPreparedQueryRead(d *schema.ResourceData, meta interface{}) e
 
 func resourceConsulPreparedQueryDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*consulapi.Client)
-	qo := &consulapi.QueryOptions{
+	writeOpts := &consulapi.WriteOptions{
 		Datacenter: d.Get("datacenter").(string),
 		Token:      d.Get("token").(string),
 	}
 
-	if _, err := client.PreparedQuery().Delete(d.Id(), qo); err != nil {
+	if _, err := client.PreparedQuery().Delete(d.Id(), writeOpts); err != nil {
 		return err
 	}
 

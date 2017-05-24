@@ -124,7 +124,7 @@ func encodeLabel(label string) string {
 }
 
 // decodeLabel is a helper function which decodes the base64 encoded
-// label recieved from Azure into standard encoding.
+// label received from Azure into standard encoding.
 func decodeLabel(label string) string {
 	res, _ := base64.StdEncoding.DecodeString(label)
 	return string(res)

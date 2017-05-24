@@ -29,6 +29,37 @@ func TestAccAzureRMDnsZone_basic(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMDnsZone_withTags(t *testing.T) {
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAzureRMDnsZone_withTags, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMDnsZone_withTagsUupdate, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMDnsZoneDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMDnsZoneExists("azurerm_dns_zone.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_dns_zone.test", "tags.%", "2"),
+				),
+			},
+
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMDnsZoneExists("azurerm_dns_zone.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_dns_zone.test", "tags.%", "1"),
+				),
+			},
+		},
+	})
+}
+
 func testCheckAzureRMDnsZoneExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// Ensure we have enough information in state to look up in API
@@ -86,5 +117,34 @@ resource "azurerm_resource_group" "test" {
 resource "azurerm_dns_zone" "test" {
     name = "acctestzone%d.com"
     resource_group_name = "${azurerm_resource_group.test.name}"
+}
+`
+
+var testAccAzureRMDnsZone_withTags = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG_%d"
+    location = "West US"
+}
+resource "azurerm_dns_zone" "test" {
+    name = "acctestzone%d.com"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+	tags {
+		environment = "Production"
+		cost_center = "MSFT"
+    }
+}
+`
+
+var testAccAzureRMDnsZone_withTagsUupdate = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG_%d"
+    location = "West US"
+}
+resource "azurerm_dns_zone" "test" {
+    name = "acctestzone%d.com"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+	tags {
+		environment = "staging"
+    }
 }
 `

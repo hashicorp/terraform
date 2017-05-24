@@ -12,10 +12,10 @@ Manages the lifecycle of a Docker container.
 
 ## Example Usage
 
-```
+```hcl
 # Start a container
 resource "docker_container" "ubuntu" {
-  name = "foo"
+  name  = "foo"
   image = "${docker_image.ubuntu.latest}"
 }
 
@@ -62,6 +62,7 @@ The following arguments are supported:
 * `must_run` - (Optional, bool) If true, then the Docker container will be
   kept running. If false, then as long as the container exists, Terraform
   assumes it is successful.
+* `capabilities` - (Optional, block) See [Capabilities](#capabilities) below for details.
 * `ports` - (Optional, block) See [Ports](#ports) below for details.
 * `host` - (Optional, block) See [Extra Hosts](#extra_hosts) below for
   details.
@@ -76,11 +77,33 @@ The following arguments are supported:
   Defaults to "json-file".
 * `log_opts` - (Optional, map of strings) Key/value pairs to use as options for
   the logging driver.
+* `network_alias` - (Optional, set of strings) Network aliases of the container for user-defined networks only.
 * `network_mode` - (Optional, string) Network mode of the container.
 * `networks` - (Optional, set of strings) Id of the networks in which the
   container is.
 * `destroy_grace_seconds` - (Optional, int) If defined will attempt to stop the container before destroying. Container will be destroyed after `n` seconds or on successful stop.
 * `upload` - (Optional, block) See [File Upload](#upload) below for details.
+
+<a id="capabilities"></a>
+### Capabilities
+
+`capabilities` is a block within the configuration that allows you to add or drop linux capabilities. For more information about what capabilities you can add and drop please visit the docker run documentation.
+
+* `add` - (Optional, set of strings) list of linux capabilities to add.
+* `drop` - (Optional, set of strings) list of linux capabilities to drop.
+
+Example:
+
+```hcl
+resource "docker_container" "ubuntu" {
+  name = "foo"
+  image = "${docker_image.ubuntu.latest}"
+  capabilities {
+    add = ["ALL"]
+    drop = ["SYS_ADMIN"]
+  }
+}
+```
 
 <a id="ports"></a>
 ### Ports

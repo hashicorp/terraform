@@ -126,6 +126,15 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 		hostConfig.VolumesFrom = volumesFrom
 	}
 
+	if v, ok := d.GetOk("capabilities"); ok {
+		for _, capInt := range v.(*schema.Set).List() {
+			capa := capInt.(map[string]interface{})
+			hostConfig.CapAdd = stringSetToStringSlice(capa["add"].(*schema.Set))
+			hostConfig.CapDrop = stringSetToStringSlice(capa["drop"].(*schema.Set))
+			break
+		}
+	}
+
 	if v, ok := d.GetOk("dns"); ok {
 		hostConfig.DNS = stringSetToStringSlice(v.(*schema.Set))
 	}
@@ -179,7 +188,14 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 	d.SetId(retContainer.ID)
 
 	if v, ok := d.GetOk("networks"); ok {
-		connectionOpts := dc.NetworkConnectionOptions{Container: retContainer.ID}
+		var connectionOpts dc.NetworkConnectionOptions
+		if v, ok := d.GetOk("network_alias"); ok {
+			endpointConfig := &dc.EndpointConfig{}
+			endpointConfig.Aliases = stringSetToStringSlice(v.(*schema.Set))
+			connectionOpts = dc.NetworkConnectionOptions{Container: retContainer.ID, EndpointConfig: endpointConfig}
+		} else {
+			connectionOpts = dc.NetworkConnectionOptions{Container: retContainer.ID}
+		}
 
 		for _, rawNetwork := range v.(*schema.Set).List() {
 			network := rawNetwork.(string)

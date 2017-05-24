@@ -6,7 +6,7 @@ description: |-
   Manages a CLC public ip.
 ---
 
-# clc\_public\_ip
+# clc_public_ip
 
 Manages a CLC public ip (for an existing server).
 
@@ -14,36 +14,36 @@ See also [Complete API documentation](https://www.ctl.io/api-docs/v2/#public-ip)
 
 ## Example Usage
 
-```
+```hcl
 # Provision a public ip
 resource "clc_public_ip" "backdoor" {
-  server_id = "${clc_server.node.0.id}"
+  server_id           = "${clc_server.node.0.id}"
   internal_ip_address = "${clc_server.node.0.private_ip_address}"
-  ports
-    {
-      protocol = "ICMP"
-      port = -1
-    }
-  ports
-    {
-      protocol = "TCP"
-      port = 22
-    }
-  ports
-    {
-      protocol = "TCP"
-      port = 2000
-      port_to = 9000
-    }
-  source_restrictions
-     { cidr = "85.39.22.15/30" }
-}
 
+  ports {
+    protocol = "ICMP"
+    port     = -1
+  }
+
+  ports {
+    protocol = "TCP"
+    port     = 22
+  }
+
+  ports {
+    protocol = "TCP"
+    port     = 2000
+    port_to  = 9000
+  }
+
+  source_restrictions {
+    cidr = "85.39.22.15/30"
+  }
+}
 
 output "ip" {
   value = "clc_public_ip.backdoor.id"
 }
-
 ```
 
 ## Argument Reference
@@ -68,7 +68,7 @@ repeated to specify open ports on the target IP. Each
 
 * `protocol` (Required, string) One of "tcp", "udp", "icmp".
 * `port` (Required, int) The port to open. If defining a range, demarks starting port
-* `portTo` (Optional, int) Given a port range, demarks the ending port. 
+* `portTo` (Optional, int) Given a port range, demarks the ending port.
 
 
 <a id="source_restrictions"></a>
@@ -79,7 +79,3 @@ repeated to restrict ingress traffic on specified CIDR blocks. Each
 `source_restrictions` block supports the following:
 
 * `cidr` (Required, string) The IP or range of IPs in CIDR notation.
-
-
-
-

@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeRegionBackendService() *schema.Resource {
@@ -82,6 +81,12 @@ func resourceComputeRegionBackendService() *schema.Resource {
 				Computed: true,
 			},
 
+			"session_affinity": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
 			"region": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -127,6 +132,10 @@ func resourceComputeRegionBackendServiceCreate(d *schema.ResourceData, meta inte
 
 	if v, ok := d.GetOk("protocol"); ok {
 		service.Protocol = v.(string)
+	}
+
+	if v, ok := d.GetOk("session_affinity"); ok {
+		service.SessionAffinity = v.(string)
 	}
 
 	if v, ok := d.GetOk("timeout_sec"); ok {
@@ -179,19 +188,12 @@ func resourceComputeRegionBackendServiceRead(d *schema.ResourceData, meta interf
 	service, err := config.clientCompute.RegionBackendServices.Get(
 		project, region, d.Id()).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			// The resource doesn't exist anymore
-			log.Printf("[WARN] Removing Backend Service %q because it's gone", d.Get("name").(string))
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error reading service: %s", err)
+		return handleNotFoundError(err, d, fmt.Sprintf("Region Backend Service %q", d.Get("name").(string)))
 	}
 
 	d.Set("description", service.Description)
 	d.Set("protocol", service.Protocol)
+	d.Set("session_affinity", service.SessionAffinity)
 	d.Set("timeout_sec", service.TimeoutSec)
 	d.Set("fingerprint", service.Fingerprint)
 	d.Set("self_link", service.SelfLink)
@@ -237,6 +239,9 @@ func resourceComputeRegionBackendServiceUpdate(d *schema.ResourceData, meta inte
 	}
 	if v, ok := d.GetOk("protocol"); ok {
 		service.Protocol = v.(string)
+	}
+	if v, ok := d.GetOk("session_affinity"); ok {
+		service.SessionAffinity = v.(string)
 	}
 	if v, ok := d.GetOk("timeout_sec"); ok {
 		service.TimeoutSec = int64(v.(int))

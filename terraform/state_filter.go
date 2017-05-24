@@ -34,7 +34,7 @@ func (f *StateFilter) Filter(fs ...string) ([]*StateFilterResult, error) {
 		as[i] = a
 	}
 
-	// If we werent given any filters, then we list all
+	// If we weren't given any filters, then we list all
 	if len(fs) == 0 {
 		as = append(as, &ResourceAddress{Index: -1})
 	}
@@ -85,15 +85,22 @@ func (f *StateFilter) filterSingle(a *ResourceAddress) []*StateFilterResult {
 	// the modules to find relevant resources.
 	for _, m := range modules {
 		for n, r := range m.Resources {
-			if f.relevant(a, r) {
-				// The name in the state contains valuable information. Parse.
-				key, err := ParseResourceStateKey(n)
-				if err != nil {
-					// If we get an error parsing, then just ignore it
-					// out of the state.
-					continue
-				}
+			// The name in the state contains valuable information. Parse.
+			key, err := ParseResourceStateKey(n)
+			if err != nil {
+				// If we get an error parsing, then just ignore it
+				// out of the state.
+				continue
+			}
 
+			// Older states and test fixtures often don't contain the
+			// type directly on the ResourceState. We add this so StateFilter
+			// is a bit more robust.
+			if r.Type == "" {
+				r.Type = key.Type
+			}
+
+			if f.relevant(a, r) {
 				if a.Name != "" && a.Name != key.Name {
 					// Name doesn't match
 					continue
@@ -242,6 +249,13 @@ func (s StateFilterResultSlice) Len() int      { return len(s) }
 func (s StateFilterResultSlice) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 func (s StateFilterResultSlice) Less(i, j int) bool {
 	a, b := s[i], s[j]
+
+	// if these address contain an index, we want to sort by index rather than name
+	addrA, errA := ParseResourceAddress(a.Address)
+	addrB, errB := ParseResourceAddress(b.Address)
+	if errA == nil && errB == nil && addrA.Name == addrB.Name && addrA.Index != addrB.Index {
+		return addrA.Index < addrB.Index
+	}
 
 	// If the addresses are different it is just lexographic sorting
 	if a.Address != b.Address {

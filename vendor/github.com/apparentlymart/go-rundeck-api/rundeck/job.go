@@ -44,7 +44,7 @@ type JobDetail struct {
 	 * This has to be handle by the user.
 	 */
 	NodesSelectedByDefault    bool                `xml:"nodesSelectedByDefault"`
-	Schedule                  *JobSchedule        `xml:"schedule,omitempty"`
+	Schedule                  *JobSchedule        `xml:"schedule"`
 }
 
 type JobSchedule struct {
@@ -73,7 +73,7 @@ type JobScheduleYear struct {
 
 type JobScheduleWeekDay struct {
 	XMLName xml.Name `xml:"weekday"`
-	Day string   	 `xml:"day,attr"`
+	Day string   `xml:"day,attr"`
 }
 
 type JobScheduleTime struct {

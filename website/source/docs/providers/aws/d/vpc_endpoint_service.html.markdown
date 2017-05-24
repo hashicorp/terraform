@@ -14,7 +14,7 @@ configured in the provider.
 
 ## Example Usage
 
-```
+```hcl
 # Declare the data source
 data "aws_vpc_endpoint_service" "s3" {
   service = "s3"
@@ -22,13 +22,13 @@ data "aws_vpc_endpoint_service" "s3" {
 
 # Create a VPC
 resource "aws_vpc" "foo" {
-    cidr_block = "10.0.0.0/16"
+  cidr_block = "10.0.0.0/16"
 }
 
 # Create a VPC endpoint
 resource "aws_vpc_endpoint" "ep" {
-    vpc_id = "${aws_vpc.foo.id}"
-    service_name = "${data.aws_vpc_endpoint_service.s3.service_name}"
+  vpc_id       = "${aws_vpc.foo.id}"
+  service_name = "${data.aws_vpc_endpoint_service.s3.service_name}"
 }
 ```
 

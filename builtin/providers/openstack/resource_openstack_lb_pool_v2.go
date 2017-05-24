@@ -19,6 +19,11 @@ func resourcePoolV2() *schema.Resource {
 		Update: resourcePoolV2Update,
 		Delete: resourcePoolV2Delete,
 
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
 				Type:        schema.TypeString,
@@ -162,10 +167,33 @@ func resourcePoolV2Create(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
-	pool, err := pools.Create(networkingClient, createOpts).Extract()
+
+	var pool *pools.Pool
+	err = resource.Retry(d.Timeout(schema.TimeoutCreate), func() *resource.RetryError {
+		var err error
+		log.Printf("[DEBUG] Attempting to create LBaaSV2 pool")
+		pool, err = pools.Create(networkingClient, createOpts).Extract()
+		if err != nil {
+			switch errCode := err.(type) {
+			case gophercloud.ErrDefault500:
+				log.Printf("[DEBUG] OpenStack LBaaSV2 pool is still creating.")
+				return resource.RetryableError(err)
+			case gophercloud.ErrUnexpectedResponseCode:
+				if errCode.Actual == 409 {
+					log.Printf("[DEBUG] OpenStack LBaaSV2 pool is still creating.")
+					return resource.RetryableError(err)
+				}
+			default:
+				return resource.NonRetryableError(err)
+			}
+		}
+		return nil
+	})
+
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack LBaaSV2 pool: %s", err)
 	}
+
 	log.Printf("[INFO] pool ID: %s", pool.ID)
 
 	log.Printf("[DEBUG] Waiting for Openstack LBaaSV2 pool (%s) to become available.", pool.ID)
@@ -174,7 +202,7 @@ func resourcePoolV2Create(d *schema.ResourceData, meta interface{}) error {
 		Pending:    []string{"PENDING_CREATE"},
 		Target:     []string{"ACTIVE"},
 		Refresh:    waitForPoolActive(networkingClient, pool.ID),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutCreate),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -258,7 +286,7 @@ func resourcePoolV2Delete(d *schema.ResourceData, meta interface{}) error {
 		Pending:    []string{"ACTIVE", "PENDING_DELETE"},
 		Target:     []string{"DELETED"},
 		Refresh:    waitForPoolDelete(networkingClient, d.Id()),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}

@@ -8,17 +8,21 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/terraform"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
+	"google.golang.org/api/bigquery/v2"
+	"google.golang.org/api/cloudbilling/v1"
 	"google.golang.org/api/cloudresourcemanager/v1"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/container/v1"
 	"google.golang.org/api/dns/v1"
 	"google.golang.org/api/iam/v1"
 	"google.golang.org/api/pubsub/v1"
+	"google.golang.org/api/servicemanagement/v1"
 	"google.golang.org/api/sqladmin/v1beta4"
 	"google.golang.org/api/storage/v1"
 )
@@ -30,6 +34,7 @@ type Config struct {
 	Project     string
 	Region      string
 
+	clientBilling         *cloudbilling.Service
 	clientCompute         *compute.Service
 	clientContainer       *container.Service
 	clientDns             *dns.Service
@@ -38,6 +43,8 @@ type Config struct {
 	clientStorage         *storage.Service
 	clientSqlAdmin        *sqladmin.Service
 	clientIAM             *iam.Service
+	clientServiceMan      *servicemanagement.APIService
+	clientBigQuery        *bigquery.Service
 }
 
 func (c *Config) loadAndValidate() error {
@@ -89,6 +96,8 @@ func (c *Config) loadAndValidate() error {
 		}
 	}
 
+	client.Transport = logging.NewTransport("Google", client.Transport)
+
 	versionString := terraform.VersionString()
 	userAgent := fmt.Sprintf(
 		"(%s %s) Terraform/%s", runtime.GOOS, runtime.GOARCH, versionString)
@@ -130,26 +139,47 @@ func (c *Config) loadAndValidate() error {
 	}
 	c.clientSqlAdmin.UserAgent = userAgent
 
-	log.Printf("[INFO] Instatiating Google Pubsub Client...")
+	log.Printf("[INFO] Instantiating Google Pubsub Client...")
 	c.clientPubsub, err = pubsub.New(client)
 	if err != nil {
 		return err
 	}
 	c.clientPubsub.UserAgent = userAgent
 
-	log.Printf("[INFO] Instatiating Google Cloud ResourceManager Client...")
+	log.Printf("[INFO] Instantiating Google Cloud ResourceManager Client...")
 	c.clientResourceManager, err = cloudresourcemanager.New(client)
 	if err != nil {
 		return err
 	}
 	c.clientResourceManager.UserAgent = userAgent
 
-	log.Printf("[INFO] Instatiating Google Cloud IAM Client...")
+	log.Printf("[INFO] Instantiating Google Cloud IAM Client...")
 	c.clientIAM, err = iam.New(client)
 	if err != nil {
 		return err
 	}
 	c.clientIAM.UserAgent = userAgent
+
+	log.Printf("[INFO] Instantiating Google Cloud Service Management Client...")
+	c.clientServiceMan, err = servicemanagement.New(client)
+	if err != nil {
+		return err
+	}
+	c.clientServiceMan.UserAgent = userAgent
+
+	log.Printf("[INFO] Instantiating Google Cloud Billing Client...")
+	c.clientBilling, err = cloudbilling.New(client)
+	if err != nil {
+		return err
+	}
+	c.clientBilling.UserAgent = userAgent
+
+	log.Printf("[INFO] Instantiating Google Cloud BigQuery Client...")
+	c.clientBigQuery, err = bigquery.New(client)
+	if err != nil {
+		return err
+	}
+	c.clientBigQuery.UserAgent = userAgent
 
 	return nil
 }

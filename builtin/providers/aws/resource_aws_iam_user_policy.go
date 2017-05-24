@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -27,8 +28,15 @@ func resourceAwsIamUserPolicy() *schema.Resource {
 				Required: true,
 			},
 			"name": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
+			},
+			"name_prefix": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 			},
 			"user": &schema.Schema{
@@ -45,9 +53,18 @@ func resourceAwsIamUserPolicyPut(d *schema.ResourceData, meta interface{}) error
 
 	request := &iam.PutUserPolicyInput{
 		UserName:       aws.String(d.Get("user").(string)),
-		PolicyName:     aws.String(d.Get("name").(string)),
 		PolicyDocument: aws.String(d.Get("policy").(string)),
 	}
+
+	var policyName string
+	if v, ok := d.GetOk("name"); ok {
+		policyName = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		policyName = resource.PrefixedUniqueId(v.(string))
+	} else {
+		policyName = resource.UniqueId()
+	}
+	request.PolicyName = aws.String(policyName)
 
 	if _, err := iamconn.PutUserPolicy(request); err != nil {
 		return fmt.Errorf("Error putting IAM user policy %s: %s", *request.PolicyName, err)

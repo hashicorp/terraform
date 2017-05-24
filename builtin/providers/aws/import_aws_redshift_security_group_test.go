@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
@@ -11,6 +12,7 @@ func TestAccAWSRedshiftSecurityGroup_importBasic(t *testing.T) {
 	oldvar := os.Getenv("AWS_DEFAULT_REGION")
 	os.Setenv("AWS_DEFAULT_REGION", "us-east-1")
 	defer os.Setenv("AWS_DEFAULT_REGION", oldvar)
+	rInt := acctest.RandInt()
 
 	resourceName := "aws_redshift_security_group.bar"
 
@@ -19,11 +21,11 @@ func TestAccAWSRedshiftSecurityGroup_importBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRedshiftSecurityGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSRedshiftSecurityGroupConfig_ingressCidr,
+			{
+				Config: testAccAWSRedshiftSecurityGroupConfig_ingressCidr(rInt),
 			},
 
-			resource.TestStep{
+			{
 				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,

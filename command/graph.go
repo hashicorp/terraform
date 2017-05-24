@@ -3,9 +3,10 @@ package command
 import (
 	"flag"
 	"fmt"
-	"os"
 	"strings"
 
+	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -34,34 +35,65 @@ func (c *GraphCommand) Run(args []string) int {
 		return 1
 	}
 
-	var path string
-	args = cmdFlags.Args()
-	if len(args) > 1 {
-		c.Ui.Error("The graph command expects one argument.\n")
-		cmdFlags.Usage()
+	configPath, err := ModulePath(cmdFlags.Args())
+	if err != nil {
+		c.Ui.Error(err.Error())
 		return 1
-	} else if len(args) == 1 {
-		path = args[0]
-	} else {
-		var err error
-		path, err = os.Getwd()
+	}
+
+	// Check if the path is a plan
+	plan, err := c.Plan(configPath)
+	if err != nil {
+		c.Ui.Error(err.Error())
+		return 1
+	}
+	if plan != nil {
+		// Reset for backend loading
+		configPath = ""
+	}
+
+	// Load the module
+	var mod *module.Tree
+	if plan == nil {
+		mod, err = c.Module(configPath)
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
+			c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
+			return 1
 		}
 	}
 
-	ctx, planFile, err := c.Context(contextOpts{
-		Path:      path,
-		StatePath: "",
+	// Load the backend
+	b, err := c.Backend(&BackendOpts{
+		ConfigPath: configPath,
+		Plan:       plan,
 	})
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error loading Terraform: %s", err))
+		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+		return 1
+	}
+
+	// We require a local backend
+	local, ok := b.(backend.Local)
+	if !ok {
+		c.Ui.Error(ErrUnsupportedLocalOp)
+		return 1
+	}
+
+	// Build the operation
+	opReq := c.Operation()
+	opReq.Module = mod
+	opReq.Plan = plan
+
+	// Get the context
+	ctx, _, err := local.Context(opReq)
+	if err != nil {
+		c.Ui.Error(err.Error())
 		return 1
 	}
 
 	// Determine the graph type
 	graphType := terraform.GraphTypePlan
-	if planFile {
+	if plan != nil {
 		graphType = terraform.GraphTypeApply
 	}
 
@@ -126,7 +158,8 @@ Options:
   -no-color      If specified, output won't contain any color.
 
   -type=plan     Type of graph to output. Can be: plan, plan-destroy, apply,
-                 legacy.
+                 validate, input, refresh.
+
 
 `
 	return strings.TrimSpace(helpText)

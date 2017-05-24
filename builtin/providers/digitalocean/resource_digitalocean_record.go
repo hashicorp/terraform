@@ -18,52 +18,52 @@ func resourceDigitalOceanRecord() *schema.Resource {
 		Delete: resourceDigitalOceanRecordDelete,
 
 		Schema: map[string]*schema.Schema{
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"domain": &schema.Schema{
+			"domain": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"port": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
-			},
-
-			"priority": &schema.Schema{
+			"port": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"weight": &schema.Schema{
+			"priority": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"value": &schema.Schema{
+			"weight": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"fqdn": &schema.Schema{
+			"value": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"fqdn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -132,16 +132,11 @@ func resourceDigitalOceanRecordRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	// Update response data for records with domain value
 	if t := rec.Type; t == "CNAME" || t == "MX" || t == "NS" || t == "SRV" {
-		// Append dot to response if resource value is absolute
-		if value := d.Get("value").(string); strings.HasSuffix(value, ".") {
-			rec.Data += "."
-			// If resource value ends with current domain, make response data absolute
-			if strings.HasSuffix(value, domain+".") {
-				rec.Data += domain + "."
-			}
+		if rec.Data == "@" {
+			rec.Data = domain
 		}
+		rec.Data += "."
 	}
 
 	d.Set("name", rec.Name)

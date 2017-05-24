@@ -44,7 +44,8 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 
 	resourceSchema["number_cache_clusters"] = &schema.Schema{
 		Type:     schema.TypeInt,
-		Required: true,
+		Computed: true,
+		Optional: true,
 		ForceNew: true,
 	}
 
@@ -56,6 +57,26 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 	resourceSchema["configuration_endpoint_address"] = &schema.Schema{
 		Type:     schema.TypeString,
 		Computed: true,
+	}
+
+	resourceSchema["cluster_mode"] = &schema.Schema{
+		Type:     schema.TypeSet,
+		Optional: true,
+		MaxItems: 1,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"replicas_per_node_group": {
+					Type:     schema.TypeInt,
+					Required: true,
+					ForceNew: true,
+				},
+				"num_node_groups": {
+					Type:     schema.TypeInt,
+					Required: true,
+					ForceNew: true,
+				},
+			},
+		},
 	}
 
 	resourceSchema["engine"].Required = false
@@ -88,7 +109,6 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 		CacheNodeType:               aws.String(d.Get("node_type").(string)),
 		Engine:                      aws.String(d.Get("engine").(string)),
 		Port:                        aws.Int64(int64(d.Get("port").(int))),
-		NumCacheClusters:            aws.Int64(int64(d.Get("number_cache_clusters").(int))),
 		Tags:                        tags,
 	}
 
@@ -145,6 +165,30 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 		params.SnapshotName = aws.String(v.(string))
 	}
 
+	clusterMode, clusterModeOk := d.GetOk("cluster_mode")
+	cacheClusters, cacheClustersOk := d.GetOk("number_cache_clusters")
+
+	if !clusterModeOk && !cacheClustersOk || clusterModeOk && cacheClustersOk {
+		return fmt.Errorf("Either `number_cache_clusters` or `cluster_mode` must be set")
+	}
+
+	if clusterModeOk {
+		clusterModeAttributes := clusterMode.(*schema.Set).List()
+		attributes := clusterModeAttributes[0].(map[string]interface{})
+
+		if v, ok := attributes["num_node_groups"]; ok {
+			params.NumNodeGroups = aws.Int64(int64(v.(int)))
+		}
+
+		if v, ok := attributes["replicas_per_node_group"]; ok {
+			params.ReplicasPerNodeGroup = aws.Int64(int64(v.(int)))
+		}
+	}
+
+	if cacheClustersOk {
+		params.NumCacheClusters = aws.Int64(int64(cacheClusters.(int)))
+	}
+
 	resp, err := conn.CreateReplicationGroup(params)
 	if err != nil {
 		return fmt.Errorf("Error creating Elasticache Replication Group: %s", err)
@@ -152,7 +196,7 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 
 	d.SetId(*resp.ReplicationGroup.ReplicationGroupId)
 
-	pending := []string{"creating", "modifying", "restoring"}
+	pending := []string{"creating", "modifying", "restoring", "snapshotting"}
 	stateConf := &resource.StateChangeConf{
 		Pending:    pending,
 		Target:     []string{"available"},
@@ -305,8 +349,8 @@ func resourceAwsElasticacheReplicationGroupUpdate(d *schema.ResourceData, meta i
 		}
 	}
 
-	if d.HasChange("preferred_maintenance_window") {
-		params.PreferredMaintenanceWindow = aws.String(d.Get("preferred_maintenance_window").(string))
+	if d.HasChange("maintenance_window") {
+		params.PreferredMaintenanceWindow = aws.String(d.Get("maintenance_window").(string))
 		requestUpdate = true
 	}
 
@@ -326,6 +370,12 @@ func resourceAwsElasticacheReplicationGroupUpdate(d *schema.ResourceData, meta i
 	}
 
 	if d.HasChange("snapshot_retention_limit") {
+		// This is a real hack to set the Snapshotting Cluster ID to be the first Cluster in the RG
+		o, _ := d.GetChange("snapshot_retention_limit")
+		if o.(int) == 0 {
+			params.SnapshottingClusterId = aws.String(fmt.Sprintf("%s-001", d.Id()))
+		}
+
 		params.SnapshotRetentionLimit = aws.Int64(int64(d.Get("snapshot_retention_limit").(int)))
 		requestUpdate = true
 	}

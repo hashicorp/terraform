@@ -220,6 +220,68 @@ func TestAccComputeInstance_disksWithAutodelete(t *testing.T) {
 	})
 }
 
+func TestAccComputeInstance_diskEncryption(t *testing.T) {
+	var instance compute.Instance
+	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
+	var diskName = fmt.Sprintf("instance-testd-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_disks_encryption(diskName, instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceDisk(&instance, instanceName, true, true),
+					testAccCheckComputeInstanceDisk(&instance, diskName, true, false),
+					testAccCheckComputeInstanceDiskEncryptionKey("google_compute_instance.foobar", &instance),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeInstance_attachedDisk(t *testing.T) {
+	var instance compute.Instance
+	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
+	var diskName = fmt.Sprintf("instance-testd-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_attachedDisk(diskName, instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceDisk(&instance, diskName, false, true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeInstance_noDisk(t *testing.T) {
+	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config:      testAccComputeInstance_noDisk(instanceName),
+				ExpectError: regexp.MustCompile("At least one disk or attached_disk must be set"),
+			},
+		},
+	})
+}
+
 func TestAccComputeInstance_local_ssd(t *testing.T) {
 	var instance compute.Instance
 	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
@@ -523,6 +585,66 @@ func TestAccComputeInstance_invalid_disk(t *testing.T) {
 	})
 }
 
+func TestAccComputeInstance_forceChangeMachineTypeManually(t *testing.T) {
+	var instance compute.Instance
+	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_basic(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists("google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceUpdateMachineType("google_compute_instance.foobar"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func testAccCheckComputeInstanceUpdateMachineType(n string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		config := testAccProvider.Meta().(*Config)
+
+		op, err := config.clientCompute.Instances.Stop(config.Project, rs.Primary.Attributes["zone"], rs.Primary.ID).Do()
+		if err != nil {
+			return fmt.Errorf("Could not stop instance: %s", err)
+		}
+		err = computeOperationWaitZone(config, op, config.Project, rs.Primary.Attributes["zone"], "Waiting on stop")
+		if err != nil {
+			return fmt.Errorf("Could not stop instance: %s", err)
+		}
+
+		machineType := compute.InstancesSetMachineTypeRequest{
+			MachineType: "zones/us-central1-a/machineTypes/f1-micro",
+		}
+
+		op, err = config.clientCompute.Instances.SetMachineType(
+			config.Project, rs.Primary.Attributes["zone"], rs.Primary.ID, &machineType).Do()
+		if err != nil {
+			return fmt.Errorf("Could not change machine type: %s", err)
+		}
+		err = computeOperationWaitZone(config, op, config.Project, rs.Primary.Attributes["zone"], "Waiting machine type change")
+		if err != nil {
+			return fmt.Errorf("Could not change machine type: %s", err)
+		}
+		return nil
+	}
+}
+
 func testAccCheckComputeInstanceDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
@@ -633,6 +755,27 @@ func testAccCheckComputeInstanceDisk(instance *compute.Instance, source string, 
 		}
 
 		return fmt.Errorf("Disk not found: %s", source)
+	}
+}
+
+func testAccCheckComputeInstanceDiskEncryptionKey(n string, instance *compute.Instance) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		for i, disk := range instance.Disks {
+			attr := rs.Primary.Attributes[fmt.Sprintf("disk.%d.disk_encryption_key_sha256", i)]
+			if disk.DiskEncryptionKey == nil && attr != "" {
+				return fmt.Errorf("Disk %d has mismatched encryption key.\nTF State: %+v\nGCP State: <empty>", i, attr)
+			}
+			if disk.DiskEncryptionKey != nil && attr != disk.DiskEncryptionKey.Sha256 {
+				return fmt.Errorf("Disk %d has mismatched encryption key.\nTF State: %+v\nGCP State: %+v",
+					i, attr, disk.DiskEncryptionKey.Sha256)
+			}
+		}
+		return nil
 	}
 }
 
@@ -981,6 +1124,84 @@ func testAccComputeInstance_disks(disk, instance string, autodelete bool) string
 			foo = "bar"
 		}
 	}`, disk, instance, autodelete)
+}
+
+func testAccComputeInstance_disks_encryption(disk, instance string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_disk" "foobar" {
+		name = "%s"
+		size = 10
+		type = "pd-ssd"
+		zone = "us-central1-a"
+	}
+
+	resource "google_compute_instance" "foobar" {
+		name = "%s"
+		machine_type = "n1-standard-1"
+		zone = "us-central1-a"
+
+		disk {
+			image = "debian-8-jessie-v20160803"
+			disk_encryption_key_raw = "SGVsbG8gZnJvbSBHb29nbGUgQ2xvdWQgUGxhdGZvcm0="
+		}
+
+		disk {
+			disk = "${google_compute_disk.foobar.name}"
+		}
+
+		network_interface {
+			network = "default"
+		}
+
+		metadata {
+			foo = "bar"
+		}
+	}`, disk, instance)
+}
+
+func testAccComputeInstance_attachedDisk(disk, instance string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_disk" "foobar" {
+		name = "%s"
+		size = 10
+		type = "pd-ssd"
+		zone = "us-central1-a"
+	}
+
+	resource "google_compute_instance" "foobar" {
+		name = "%s"
+		machine_type = "n1-standard-1"
+		zone = "us-central1-a"
+
+		attached_disk {
+			source = "${google_compute_disk.foobar.self_link}"
+		}
+
+		network_interface {
+			network = "default"
+		}
+
+		metadata {
+			foo = "bar"
+		}
+	}`, disk, instance)
+}
+
+func testAccComputeInstance_noDisk(instance string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_instance" "foobar" {
+		name = "%s"
+		machine_type = "n1-standard-1"
+		zone = "us-central1-a"
+
+		network_interface {
+			network = "default"
+		}
+
+		metadata {
+			foo = "bar"
+		}
+	}`, instance)
 }
 
 func testAccComputeInstance_local_ssd(instance string) string {

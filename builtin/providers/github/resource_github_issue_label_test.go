@@ -1,10 +1,12 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
 	"github.com/google/go-github/github"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -12,20 +14,23 @@ import (
 func TestAccGithubIssueLabel_basic(t *testing.T) {
 	var label github.Label
 
+	rString := acctest.RandString(5)
+	repoName := fmt.Sprintf("tf-acc-test-branch-issue-label-%s", rString)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGithubIssueLabelDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccGithubIssueLabelConfig,
+			{
+				Config: testAccGithubIssueLabelConfig(repoName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubIssueLabelExists("github_issue_label.test", &label),
 					testAccCheckGithubIssueLabelAttributes(&label, "foo", "000000"),
 				),
 			},
-			resource.TestStep{
-				Config: testAccGithubIssueLabelUpdateConfig,
+			{
+				Config: testAccGithubIssueLabelUpdateConfig(repoName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubIssueLabelExists("github_issue_label.test", &label),
 					testAccCheckGithubIssueLabelAttributes(&label, "bar", "FFFFFF"),
@@ -35,16 +40,41 @@ func TestAccGithubIssueLabel_basic(t *testing.T) {
 	})
 }
 
-func TestAccGithubIssueLabel_importBasic(t *testing.T) {
+func TestAccGithubIssueLabel_existingLabel(t *testing.T) {
+	var label github.Label
+
+	rString := acctest.RandString(5)
+	repoName := fmt.Sprintf("tf-acc-test-branch-issue-label-%s", rString)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGithubIssueLabelDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccGithubIssueLabelConfig,
+			{
+				Config: testAccGitHubIssueLabelExistsConfig(repoName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGithubIssueLabelExists("github_issue_label.test", &label),
+					testAccCheckGithubIssueLabelAttributes(&label, "enhancement", "FF00FF"),
+				),
 			},
-			resource.TestStep{
+		},
+	})
+}
+
+func TestAccGithubIssueLabel_importBasic(t *testing.T) {
+	rString := acctest.RandString(5)
+	repoName := fmt.Sprintf("tf-acc-test-branch-issue-label-%s", rString)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGithubIssueLabelDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubIssueLabelConfig(repoName),
+			},
+			{
 				ResourceName:      "github_issue_label.test",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -68,7 +98,7 @@ func testAccCheckGithubIssueLabelExists(n string, label *github.Label) resource.
 		o := testAccProvider.Meta().(*Organization).name
 		r, n := parseTwoPartID(rs.Primary.ID)
 
-		githubLabel, _, err := conn.Issues.GetLabel(o, r, n)
+		githubLabel, _, err := conn.Issues.GetLabel(context.TODO(), o, r, n)
 		if err != nil {
 			return err
 		}
@@ -102,7 +132,7 @@ func testAccGithubIssueLabelDestroy(s *terraform.State) error {
 
 		o := testAccProvider.Meta().(*Organization).name
 		r, n := parseTwoPartID(rs.Primary.ID)
-		label, res, err := conn.Issues.GetLabel(o, r, n)
+		label, res, err := conn.Issues.GetLabel(context.TODO(), o, r, n)
 
 		if err == nil {
 			if label != nil &&
@@ -118,18 +148,45 @@ func testAccGithubIssueLabelDestroy(s *terraform.State) error {
 	return nil
 }
 
-var testAccGithubIssueLabelConfig string = fmt.Sprintf(`
+func testAccGithubIssueLabelConfig(repoName string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "test" {
+  name = "%s"
+}
+
 resource "github_issue_label" "test" {
-  repository = "%s"
+  repository = "${github_repository.test.name}"
   name       = "foo"
   color      = "000000"
 }
-`, testRepo)
+`, repoName)
+}
 
-var testAccGithubIssueLabelUpdateConfig string = fmt.Sprintf(`
+func testAccGithubIssueLabelUpdateConfig(repoName string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "test" {
+  name = "%s"
+}
+
 resource "github_issue_label" "test" {
-  repository = "%s"
+  repository = "${github_repository.test.name}"
   name       = "bar"
   color      = "FFFFFF"
 }
-`, testRepo)
+`, repoName)
+}
+
+func testAccGitHubIssueLabelExistsConfig(repoName string) string {
+	return fmt.Sprintf(`
+// Create a repository which has the default labels
+resource "github_repository" "test" {
+  name = "%s"
+}
+
+resource "github_issue_label" "test" {
+  repository = "${github_repository.test.name}"
+  name       = "enhancement" // Important! This is a pre-created label
+  color      = "FF00FF"
+}
+`, repoName)
+}

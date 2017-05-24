@@ -72,9 +72,13 @@ func resourceAwsVPCEndpointRouteTableAssociationRead(d *schema.ResourceData, met
 	rtId := d.Get("route_table_id").(string)
 
 	vpce, err := findResourceVPCEndpoint(conn, endpointId)
-	if err, ok := err.(awserr.Error); ok && err.Code() == "InvalidVpcEndpointId.NotFound" {
-		d.SetId("")
-		return nil
+	if err != nil {
+		if err, ok := err.(awserr.Error); ok && err.Code() == "InvalidVpcEndpointId.NotFound" {
+			d.SetId("")
+			return nil
+		}
+
+		return err
 	}
 
 	found := false
@@ -141,6 +145,10 @@ func findResourceVPCEndpoint(conn *ec2.EC2, id string) (*ec2.VpcEndpoint, error)
 	output, err := conn.DescribeVpcEndpoints(input)
 	if err != nil {
 		return nil, err
+	}
+
+	if output.VpcEndpoints == nil {
+		return nil, fmt.Errorf("No VPC Endpoints were found for %q", id)
 	}
 
 	return output.VpcEndpoints[0], nil

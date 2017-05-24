@@ -16,43 +16,43 @@ func genericSecretDataSource() *schema.Resource {
 		Read: genericSecretDataSourceRead,
 
 		Schema: map[string]*schema.Schema{
-			"path": &schema.Schema{
+			"path": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Full path from which a secret will be read.",
 			},
 
-			"data_json": &schema.Schema{
+			"data_json": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "JSON-encoded secret data read from Vault.",
 			},
 
-			"data": &schema.Schema{
+			"data": {
 				Type:        schema.TypeMap,
 				Computed:    true,
 				Description: "Map of strings read from Vault.",
 			},
 
-			"lease_id": &schema.Schema{
+			"lease_id": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Lease identifier assigned by vault.",
 			},
 
-			"lease_duration": &schema.Schema{
+			"lease_duration": {
 				Type:        schema.TypeInt,
 				Computed:    true,
 				Description: "Lease duration in seconds relative to the time in lease_start_time.",
 			},
 
-			"lease_start_time": &schema.Schema{
+			"lease_start_time": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Time at which the lease was read, using the clock of the system where Terraform was running",
 			},
 
-			"lease_renewable": &schema.Schema{
+			"lease_renewable": {
 				Type:        schema.TypeBool,
 				Computed:    true,
 				Description: "True if the duration of this lease can be extended through renewal.",
@@ -70,6 +70,9 @@ func genericSecretDataSourceRead(d *schema.ResourceData, meta interface{}) error
 	secret, err := client.Logical().Read(path)
 	if err != nil {
 		return fmt.Errorf("error reading from Vault: %s", err)
+	}
+	if secret == nil {
+		return fmt.Errorf("No secret found at %q", path)
 	}
 
 	d.SetId(secret.RequestID)

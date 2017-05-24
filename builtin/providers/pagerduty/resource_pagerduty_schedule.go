@@ -14,7 +14,7 @@ func resourcePagerDutySchedule() *schema.Resource {
 		Update: resourcePagerDutyScheduleUpdate,
 		Delete: resourcePagerDutyScheduleDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourcePagerDutyScheduleImport,
+			State: schema.ImportStatePassthrough,
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -94,6 +94,10 @@ func resourcePagerDutySchedule() *schema.Resource {
 									"start_time_of_day": {
 										Type:     schema.TypeString,
 										Required: true,
+									},
+									"start_day_of_week": {
+										Type:     schema.TypeInt,
+										Optional: true,
 									},
 									"duration_seconds": {
 										Type:     schema.TypeInt,
@@ -191,11 +195,4 @@ func resourcePagerDutyScheduleDelete(d *schema.ResourceData, meta interface{}) e
 	d.SetId("")
 
 	return nil
-}
-
-func resourcePagerDutyScheduleImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	if err := resourcePagerDutyScheduleRead(d, meta); err != nil {
-		return nil, err
-	}
-	return []*schema.ResourceData{d}, nil
 }

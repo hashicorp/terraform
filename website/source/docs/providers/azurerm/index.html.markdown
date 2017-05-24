@@ -3,7 +3,7 @@ layout: "azurerm"
 page_title: "Provider: Azure Resource Manager"
 sidebar_current: "docs-azurerm-index"
 description: |-
-  The Azure Resource Manager provider is used to interact with the many resources supported by Azure, via the ARM API. This supercedes the Azure provider, which interacts with Azure using the Service Management API. The provider needs to be configured with a credentials file, or credentials needed to generate OAuth tokens for the ARM API.
+  The Azure Resource Manager provider is used to interact with the many resources supported by Azure, via the ARM API. This supersedes the Azure provider, which interacts with Azure using the Service Management API. The provider needs to be configured with a credentials file, or credentials needed to generate OAuth tokens for the ARM API.
 ---
 
 # Microsoft Azure Provider
@@ -20,7 +20,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the Microsoft Azure Provider
 provider "azurerm" {
   subscription_id = "..."
@@ -31,8 +31,8 @@ provider "azurerm" {
 
 # Create a resource group
 resource "azurerm_resource_group" "production" {
-    name     = "production"
-    location = "West US"
+  name     = "production"
+  location = "West US"
 }
 
 # Create a virtual network in the web_servers resource group
@@ -57,7 +57,6 @@ resource "azurerm_virtual_network" "network" {
     address_prefix = "10.0.3.0/24"
   }
 }
-
 ```
 
 ## Argument Reference
@@ -75,6 +74,19 @@ The following arguments are supported:
 
 * `tenant_id` - (Optional) The tenant ID to use. It can also be sourced from the
   `ARM_TENANT_ID` environment variable.
+
+* `environment` - (Optional) The cloud environment to use. It can also be sourced
+  from the `ARM_ENVIRONMENT` environment variable. Supported values are:
+  * `public` (default)
+  * `usgovernment`
+  * `german`
+  * `china`
+
+* `skip_provider_registration` - (Optional) Prevents the provider from registering
+  the ARM provider namespaces, this can be used if you don't wish to give the Active
+  Directory Application permission to register resource providers. It can also be
+  sourced from the `ARM_SKIP_PROVIDER_REGISTRATION` environment variable, defaults
+  to `false`.
 
 ## Creating Credentials
 
@@ -117,25 +129,36 @@ To grant permissions to the App Registration to your subscription, you now must 
 - Type in the name of the application added in the search box. You need to type this as it won't be shown in the user list. Click on the appropriate user in the list and then click **Select**
 - Click **OK** in the **Add Access** panel. The changes will now be saved
 
-To create using azure cli:
-`az` is using the new azure 2.0 cli using python rather than the old nodejs version. You might be able to replace `az` with `azure`.
-```
-az login
-az account set --name="${SUBSCRIPTION_ID}"
-az ad sp create-for-rbac --role="Contributor" --scopes="/subscriptions/${SUBSCRIPTION_ID}"
-```
+## To create using [Azure CLI](https://github.com/Azure/azure-cli):
+
+   ```shell
+   az login
+   az account set --subscription="${SUBSCRIPTION_ID}"
+   az ad sp create-for-rbac --role="Contributor" --scopes="/subscriptions/${SUBSCRIPTION_ID}"
+   ```
 
 This will output your `client_id`, `client_secret` (password), `sp_name`, and `tenant`. The sp_name or client_id may be used for the `servicePrincipalProfile.servicePrincipalClientId` and the `client_secret` is used for `servicePrincipalProfile.servicePrincipalClientSecret`.
 
 Confirm your service principal by opening a new shell and run the following commands substituting in `sp_name`, `client_secret`, and `tenant`:
-```
-az login --service-principal -u SPNAME -p CLIENTSECRET --tenant TENANT
-az vm list-sizes --location westus
-```
 
-This may be out of date and was based on: [https://github.com/Azure/acs-engine](https://github.com/Azure/acs-engine/blob/417d0d3655aeab0fee784ef6c623ac8333ebb936/docs/serviceprincipal.md#creating-a-service-principal)
+   ```shell
+   az login --service-principal -u NAME -p PASSWORD --tenant TENANT
+   az vm list-sizes --location westus
+   ```
 
-Microsoft have a more complete guide in the Azure documentation: [Create Active Directory application and service principle](https://azure.microsoft.com/en-us/documentation/articles/resource-group-create-service-principal-portal/)
+* **With the legacy [Azure XPlat CLI](https://github.com/Azure/azure-xplat-cli)**
+
+   Instructions: ["Use Azure CLI to create a service principal to access resources"](https://azure.microsoft.com/en-us/documentation/articles/resource-group-authenticate-service-principal-cli/)
+
+* **With [PowerShell](https://azure.microsoft.com/en-us/documentation/articles/resource-group-authenticate-service-principal/)**
+
+   Instructions: ["Use Azure PowerShell to create a service principal to access resources"](https://azure.microsoft.com/en-us/documentation/articles/resource-group-authenticate-service-principal/)
+
+* **With the [Legacy Portal](https://azure.microsoft.com/en-us/documentation/articles/resource-group-create-service-principal-portal/)**
+
+   Instructions: ["Use portal to create Active Directory application and service principal that can access resources"](https://azure.microsoft.com/en-us/documentation/articles/resource-group-create-service-principal-portal/)
+
+This may be out of date and was based on: [https://github.com/Azure/acs-engine](https://github.com/Azure/acs-engine/blob/master/docs/serviceprincipal.md)
 
 ## Testing
 

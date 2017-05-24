@@ -138,6 +138,33 @@ func resourceDockerContainer() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"capabilities": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"add": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
+							ForceNew: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
+						},
+
+						"drop": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
+							ForceNew: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
+						},
+					},
+				},
+				Set: resourceDockerCapabilitiesHash,
+			},
+
 			"volumes": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -157,17 +184,10 @@ func resourceDockerContainer() *schema.Resource {
 						},
 
 						"host_path": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-							ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
-								value := v.(string)
-								if !regexp.MustCompile(`^/`).MatchString(value) {
-									es = append(es, fmt.Errorf(
-										"%q must be an absolute path", k))
-								}
-								return
-							},
+							Type:         schema.TypeString,
+							Optional:     true,
+							ForceNew:     true,
+							ValidateFunc: validateDockerContainerPath,
 						},
 
 						"volume_name": &schema.Schema{
@@ -356,6 +376,14 @@ func resourceDockerContainer() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"network_alias": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+
 			"network_mode": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -394,6 +422,21 @@ func resourceDockerContainer() *schema.Resource {
 			},
 		},
 	}
+}
+
+func resourceDockerCapabilitiesHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	if v, ok := m["add"]; ok {
+		buf.WriteString(fmt.Sprintf("%v-", v))
+	}
+
+	if v, ok := m["remove"]; ok {
+		buf.WriteString(fmt.Sprintf("%v-", v))
+	}
+
+	return hashcode.String(buf.String())
 }
 
 func resourceDockerPortsHash(v interface{}) int {
@@ -472,4 +515,14 @@ func resourceDockerUploadHash(v interface{}) int {
 	}
 
 	return hashcode.String(buf.String())
+}
+
+func validateDockerContainerPath(v interface{}, k string) (ws []string, errors []error) {
+
+	value := v.(string)
+	if !regexp.MustCompile(`^[a-zA-Z]:\\|^/`).MatchString(value) {
+		errors = append(errors, fmt.Errorf("%q must be an absolute path", k))
+	}
+
+	return
 }

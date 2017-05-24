@@ -45,6 +45,7 @@ func TestApply_destroy(t *testing.T) {
 		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code != 0 {
+		t.Log(ui.OutputWriter.String())
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
@@ -89,6 +90,58 @@ func TestApply_destroy(t *testing.T) {
 	expectedStr = strings.TrimSpace(originalState.String())
 	if actualStr != expectedStr {
 		t.Fatalf("bad:\n\n%s\n\n%s", actualStr, expectedStr)
+	}
+}
+
+func TestApply_destroyLockedState(t *testing.T) {
+	originalState := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	statePath := testStateFile(t, originalState)
+
+	unlock, err := testLockState("./testdata", statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unlock()
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Destroy: true,
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	// Run the apply command pointing to our existing state
+	args := []string{
+		"-force",
+		"-state", statePath,
+		testFixturePath("apply"),
+	}
+
+	if code := c.Run(args); code == 0 {
+		t.Fatal("expected error")
+	}
+
+	output := ui.ErrorWriter.String()
+	if !strings.Contains(output, "lock") {
+		t.Fatal("command output does not look like a lock error:", output)
 	}
 }
 

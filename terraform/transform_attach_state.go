@@ -49,7 +49,7 @@ func (t *AttachStateTransformer) Transform(g *Graph) error {
 		for _, result := range results {
 			if rs, ok := result.Value.(*ResourceState); ok {
 				log.Printf(
-					"[DEBUG] Attaching resource state to %q: %s",
+					"[DEBUG] Attaching resource state to %q: %#v",
 					dag.VertexName(v), rs)
 				an.AttachResourceState(rs)
 				found = true

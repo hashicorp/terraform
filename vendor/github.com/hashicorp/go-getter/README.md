@@ -210,6 +210,12 @@ None
     a commit SHA, a branch name, etc. If it is a named ref such as a branch
     name, go-getter will update it to the latest on each get.
 
+  * `sshkey` - An SSH private key to use during clones. The provided key must
+    be a base64-encoded string. For example, to generate a suitable `sshkey`
+    from a private key file on disk, you would run `base64 -w0 <file>`.
+
+    **Note**: Git 2.3+ is required to use this feature.
+
 ### Mercurial (`hg`)
 
   * `rev` - The Mercurial revision to checkout.

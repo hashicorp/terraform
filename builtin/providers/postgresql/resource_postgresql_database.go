@@ -32,6 +32,7 @@ func resourcePostgreSQLDatabase() *schema.Resource {
 		Read:   resourcePostgreSQLDatabaseRead,
 		Update: resourcePostgreSQLDatabaseUpdate,
 		Delete: resourcePostgreSQLDatabaseDelete,
+		Exists: resourcePostgreSQLDatabaseExists,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -46,7 +47,7 @@ func resourcePostgreSQLDatabase() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "The role name of the user who will own the new database",
+				Description: "The ROLE which owns the database",
 			},
 			dbTemplateAttr: {
 				Type:        schema.TypeString,
@@ -85,7 +86,7 @@ func resourcePostgreSQLDatabase() *schema.Resource {
 			dbConnLimitAttr: {
 				Type:         schema.TypeInt,
 				Optional:     true,
-				Computed:     true,
+				Default:      -1,
 				Description:  "How many concurrent connections can be made to this database",
 				ValidateFunc: validateConnLimit,
 			},
@@ -107,6 +108,10 @@ func resourcePostgreSQLDatabase() *schema.Resource {
 
 func resourcePostgreSQLDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client)
+
+	c.catalogLock.Lock()
+	defer c.catalogLock.Unlock()
+
 	conn, err := c.Connect()
 	if err != nil {
 		return errwrap.Wrapf("Error connecting to PostgreSQL: {{err}}", err)
@@ -116,6 +121,12 @@ func resourcePostgreSQLDatabaseCreate(d *schema.ResourceData, meta interface{}) 
 	dbName := d.Get(dbNameAttr).(string)
 	b := bytes.NewBufferString("CREATE DATABASE ")
 	fmt.Fprint(b, pq.QuoteIdentifier(dbName))
+
+	//needed in order to set the owner of the db if the connection user is not a superuser
+	err = grantRoleMembership(conn, d.Get(dbOwnerAttr).(string), c.username)
+	if err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Error granting role membership on  database %s: {{err}}", dbName), err)
+	}
 
 	// Handle each option individually and stream results into the query
 	// buffer.
@@ -184,11 +195,14 @@ func resourcePostgreSQLDatabaseCreate(d *schema.ResourceData, meta interface{}) 
 
 	d.SetId(dbName)
 
-	return resourcePostgreSQLDatabaseRead(d, meta)
+	return resourcePostgreSQLDatabaseReadImpl(d, meta)
 }
 
 func resourcePostgreSQLDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client)
+	c.catalogLock.Lock()
+	defer c.catalogLock.Unlock()
+
 	conn, err := c.Connect()
 	if err != nil {
 		return errwrap.Wrapf("Error connecting to PostgreSQL: {{err}}", err)
@@ -220,7 +234,38 @@ func resourcePostgreSQLDatabaseDelete(d *schema.ResourceData, meta interface{}) 
 	return nil
 }
 
+func resourcePostgreSQLDatabaseExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+	c := meta.(*Client)
+	c.catalogLock.RLock()
+	defer c.catalogLock.RUnlock()
+
+	conn, err := c.Connect()
+	if err != nil {
+		return false, err
+	}
+	defer conn.Close()
+
+	var dbName string
+	err = conn.QueryRow("SELECT d.datname from pg_database d WHERE datname=$1", d.Id()).Scan(&dbName)
+	switch {
+	case err == sql.ErrNoRows:
+		return false, nil
+	case err != nil:
+		return false, err
+	}
+
+	return true, nil
+}
+
 func resourcePostgreSQLDatabaseRead(d *schema.ResourceData, meta interface{}) error {
+	c := meta.(*Client)
+	c.catalogLock.RLock()
+	defer c.catalogLock.RUnlock()
+
+	return resourcePostgreSQLDatabaseReadImpl(d, meta)
+}
+
+func resourcePostgreSQLDatabaseReadImpl(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client)
 	conn, err := c.Connect()
 	if err != nil {
@@ -276,6 +321,9 @@ func resourcePostgreSQLDatabaseRead(d *schema.ResourceData, meta interface{}) er
 
 func resourcePostgreSQLDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client)
+	c.catalogLock.Lock()
+	defer c.catalogLock.Unlock()
+
 	conn, err := c.Connect()
 	if err != nil {
 		return err
@@ -308,7 +356,7 @@ func resourcePostgreSQLDatabaseUpdate(d *schema.ResourceData, meta interface{}) 
 
 	// Empty values: ALTER DATABASE name RESET configuration_parameter;
 
-	return resourcePostgreSQLDatabaseRead(d, meta)
+	return resourcePostgreSQLDatabaseReadImpl(d, meta)
 }
 
 func setDBName(conn *sql.DB, d *schema.ResourceData) error {
@@ -420,5 +468,20 @@ func doSetDBIsTemplate(conn *sql.DB, dbName string, isTemplate bool) error {
 		return errwrap.Wrapf("Error updating database IS_TEMPLATE: {{err}}", err)
 	}
 
+	return nil
+}
+
+func grantRoleMembership(conn *sql.DB, dbOwner string, connUsername string) error {
+	if dbOwner != "" && dbOwner != connUsername {
+		query := fmt.Sprintf("GRANT %s TO %s", pq.QuoteIdentifier(dbOwner), pq.QuoteIdentifier(connUsername))
+		_, err := conn.Query(query)
+		if err != nil {
+			// is already member or role
+			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+				return nil
+			}
+			return errwrap.Wrapf("Error granting membership: {{err}}", err)
+		}
+	}
 	return nil
 }

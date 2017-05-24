@@ -6,17 +6,17 @@ description: |-
   Creates or registers an SSH key pair.
 ---
 
-# cloudstack\_ssh\_keypair
+# cloudstack_ssh_keypair
 
 Creates or registers an SSH key pair.
 
 ## Example Usage
 
-```
+```hcl
 resource "cloudstack_ssh_keypair" "default" {
-  name = "myKey"
+  name       = "myKey"
   public_key = "${file("~/.ssh/id_rsa.pub")}"
-  project = "myProject"
+  project    = "myProject"
 }
 ```
 

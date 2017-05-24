@@ -10,21 +10,21 @@ Provides an RDS DB cluster parameter group resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_rds_cluster_parameter_group" "default" {
-    name = "rds-cluster-pg"
-    family = "aurora5.6"
-    description = "RDS default cluster parameter group"
+  name        = "rds-cluster-pg"
+  family      = "aurora5.6"
+  description = "RDS default cluster parameter group"
 
-    parameter {
-      name = "character_set_server"
-      value = "utf8"
-    }
+  parameter {
+    name  = "character_set_server"
+    value = "utf8"
+  }
 
-    parameter {
-      name = "character_set_client"
-      value = "utf8"
-    }
+  parameter {
+    name  = "character_set_client"
+    value = "utf8"
+  }
 }
 ```
 
@@ -32,9 +32,10 @@ resource "aws_rds_cluster_parameter_group" "default" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the DB cluster parameter group.
+* `name` - (Optional, Forces new resource) The name of the DB cluster parameter group. If omitted, Terraform will assign a random, unique name.
+* `name_prefix` - (Optional, Forces new resource) Creates a unique name beginning with the specified prefix. Conflicts with `name`.
 * `family` - (Required) The family of the DB cluster parameter group.
-* `description` - (Required) The description of the DB cluster parameter group.
+* `description` - (Optional) The description of the DB cluster parameter group. Defaults to "Managed by Terraform".
 * `parameter` - (Optional) A list of DB parameters to apply.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
@@ -56,7 +57,7 @@ The following attributes are exported:
 
 ## Import
 
-RDS Cluster Parameter Groups can be imported using the `name`, e.g. 
+RDS Cluster Parameter Groups can be imported using the `name`, e.g.
 
 ```
 $ terraform import aws_rds_cluster_parameter_group.cluster_pg production-pg-1

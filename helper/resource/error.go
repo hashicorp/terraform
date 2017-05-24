@@ -19,6 +19,10 @@ func (e *NotFoundError) Error() string {
 		return e.Message
 	}
 
+	if e.Retries > 0 {
+		return fmt.Sprintf("couldn't find resource (%d retries)", e.Retries)
+	}
+
 	return "couldn't find resource"
 }
 

@@ -16,7 +16,7 @@ func resourceRancherRegistrationToken() *schema.Resource {
 		Read:   resourceRancherRegistrationTokenRead,
 		Delete: resourceRancherRegistrationTokenDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceRancherRegistrationTokenImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -48,6 +48,10 @@ func resourceRancherRegistrationToken() *schema.Resource {
 				Computed: true,
 			},
 			"command": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"image": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -97,11 +101,27 @@ func resourceRancherRegistrationTokenCreate(d *schema.ResourceData, meta interfa
 
 func resourceRancherRegistrationTokenRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Refreshing RegistrationToken: %s", d.Id())
-	client := meta.(*Config)
+	client, err := meta.(*Config).EnvironmentClient(d.Get("environment_id").(string))
+	if err != nil {
+		return err
+	}
+	// client := meta.(*Config)
 
 	regT, err := client.RegistrationToken.ById(d.Id())
 	if err != nil {
 		return err
+	}
+
+	if regT == nil {
+		log.Printf("[INFO] RegistrationToken %s not found", d.Id())
+		d.SetId("")
+		return nil
+	}
+
+	if removed(regT.State) {
+		log.Printf("[INFO] Registration Token %s was removed on %v", d.Id(), regT.Removed)
+		d.SetId("")
+		return nil
 	}
 
 	log.Printf("[INFO] RegistrationToken Name: %s", regT.Name)
@@ -112,6 +132,7 @@ func resourceRancherRegistrationTokenRead(d *schema.ResourceData, meta interface
 	d.Set("registration_url", regT.RegistrationUrl)
 	d.Set("environment_id", regT.AccountId)
 	d.Set("command", regT.Command)
+	d.Set("image", regT.Image)
 
 	return nil
 }
@@ -181,6 +202,25 @@ func resourceRancherRegistrationTokenDelete(d *schema.ResourceData, meta interfa
 
 	d.SetId("")
 	return nil
+}
+
+func resourceRancherRegistrationTokenImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	envID, resourceID := splitID(d.Id())
+	d.SetId(resourceID)
+	if envID != "" {
+		d.Set("environment_id", envID)
+	} else {
+		client, err := meta.(*Config).GlobalClient()
+		if err != nil {
+			return []*schema.ResourceData{}, err
+		}
+		token, err := client.RegistrationToken.ById(d.Id())
+		if err != nil {
+			return []*schema.ResourceData{}, err
+		}
+		d.Set("environment_id", token.AccountId)
+	}
+	return []*schema.ResourceData{d}, nil
 }
 
 // RegistrationTokenStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch

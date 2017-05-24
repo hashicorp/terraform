@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"reflect"
 	"strconv"
 	"time"
 
@@ -339,9 +340,16 @@ func resourceLibratoSpaceChartUpdate(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
+	// Just to have whole object for comparison before/after update
+	fullChart, _, err := client.Spaces.GetChart(spaceID, uint(chartID))
+	if err != nil {
+		return err
+	}
+
 	spaceChart := new(librato.SpaceChart)
 	if d.HasChange("name") {
 		spaceChart.Name = librato.String(d.Get("name").(string))
+		fullChart.Name = spaceChart.Name
 	}
 	if d.HasChange("min") {
 		if math.IsNaN(d.Get("min").(float64)) {
@@ -349,6 +357,7 @@ func resourceLibratoSpaceChartUpdate(d *schema.ResourceData, meta interface{}) e
 		} else {
 			spaceChart.Min = librato.Float(d.Get("min").(float64))
 		}
+		fullChart.Min = spaceChart.Min
 	}
 	if d.HasChange("max") {
 		if math.IsNaN(d.Get("max").(float64)) {
@@ -356,12 +365,15 @@ func resourceLibratoSpaceChartUpdate(d *schema.ResourceData, meta interface{}) e
 		} else {
 			spaceChart.Max = librato.Float(d.Get("max").(float64))
 		}
+		fullChart.Max = spaceChart.Max
 	}
 	if d.HasChange("label") {
 		spaceChart.Label = librato.String(d.Get("label").(string))
+		fullChart.Label = spaceChart.Label
 	}
 	if d.HasChange("related_space") {
 		spaceChart.RelatedSpace = librato.Uint(d.Get("related_space").(uint))
+		fullChart.RelatedSpace = spaceChart.RelatedSpace
 	}
 	if d.HasChange("stream") {
 		vs := d.Get("stream").(*schema.Set)
@@ -405,11 +417,36 @@ func resourceLibratoSpaceChartUpdate(d *schema.ResourceData, meta interface{}) e
 			streams[i] = stream
 		}
 		spaceChart.Streams = streams
+		fullChart.Streams = streams
 	}
 
 	_, err = client.Spaces.EditChart(spaceID, uint(chartID), spaceChart)
 	if err != nil {
 		return fmt.Errorf("Error updating Librato space chart %s: %s", *spaceChart.Name, err)
+	}
+
+	// Wait for propagation since Librato updates are eventually consistent
+	wait := resource.StateChangeConf{
+		Pending:                   []string{fmt.Sprintf("%t", false)},
+		Target:                    []string{fmt.Sprintf("%t", true)},
+		Timeout:                   5 * time.Minute,
+		MinTimeout:                2 * time.Second,
+		ContinuousTargetOccurence: 5,
+		Refresh: func() (interface{}, string, error) {
+			log.Printf("[DEBUG] Checking if Librato Space Chart %d was updated yet", chartID)
+			changedChart, _, err := client.Spaces.GetChart(spaceID, uint(chartID))
+			if err != nil {
+				return changedChart, "", err
+			}
+			isEqual := reflect.DeepEqual(*fullChart, *changedChart)
+			log.Printf("[DEBUG] Updated Librato Space Chart %d match: %t", chartID, isEqual)
+			return changedChart, fmt.Sprintf("%t", isEqual), nil
+		},
+	}
+
+	_, err = wait.WaitForState()
+	if err != nil {
+		return fmt.Errorf("Failed updating Librato Space Chart %d: %s", chartID, err)
 	}
 
 	return resourceLibratoSpaceChartRead(d, meta)

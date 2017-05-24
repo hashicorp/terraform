@@ -2,6 +2,7 @@ package pagerduty
 
 import (
 	"fmt"
+
 	"github.com/google/go-querystring/query"
 )
 
@@ -39,6 +40,7 @@ type Incident struct {
 	EscalationPolicy     APIObject         `json:"escalation_policy,omitempty"`
 	Teams                []APIObject       `json:"teams,omitempty"`
 	Urgency              string            `json:"urgency,omitempty"`
+	Status               string            `json:"status,omitempty"`
 }
 
 // ListIncidentsResponse is the response structure when calling the ListIncident API endpoint.
@@ -144,4 +146,32 @@ func (c *Client) SnoozeIncident(id string, duration uint) error {
 	data["duration"] = duration
 	_, err := c.post("/incidents/"+id+"/snooze", data)
 	return err
+}
+
+// ListIncidentLogEntriesResponse is the response structure when calling the ListIncidentLogEntires API endpoint.
+type ListIncidentLogEntriesResponse struct {
+	APIListObject
+	LogEntires []LogEntry `json:"log_entries,omitempty"`
+}
+
+// ListIncidentLogEntriesOptions is the structure used when passing parameters to the ListIncidentLogEntires API endpoint.
+type ListIncidentLogEntriesOptions struct {
+	APIListObject
+	Includes   []string `url:"include,omitempty,brackets"`
+	IsOverview bool     `url:"is_overview,omitempty"`
+	TimeZone   string   `url:"time_zone,omitempty"`
+}
+
+// ListIncidentLogEntries lists existing log entires for the specified incident.
+func (c *Client) ListIncidentLogEntries(id string, o ListIncidentLogEntriesOptions) (*ListIncidentLogEntriesResponse, error) {
+	v, err := query.Values(o)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.get("/incidents/" + id + "/log_entries?" + v.Encode())
+	if err != nil {
+		return nil, err
+	}
+	var result ListIncidentLogEntriesResponse
+	return &result, c.decodeJSON(resp, &result)
 }

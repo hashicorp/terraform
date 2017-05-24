@@ -2,9 +2,9 @@ package packet
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/packethost/packngo"
@@ -12,21 +12,25 @@ import (
 
 func TestAccPacketSSHKey_Basic(t *testing.T) {
 	var key packngo.SSHKey
+	rInt := acctest.RandInt()
+	publicKeyMaterial, _, err := acctest.RandSSHKeyPair("")
+	if err != nil {
+		t.Fatalf("Cannot generate test SSH key pair: %s", err)
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPacketSSHKeyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckPacketSSHKeyConfig_basic,
+			{
+				Config: testAccCheckPacketSSHKeyConfig_basic(rInt, publicKeyMaterial),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPacketSSHKeyExists("packet_ssh_key.foobar", &key),
-					testAccCheckPacketSSHKeyAttributes(&key),
 					resource.TestCheckResourceAttr(
-						"packet_ssh_key.foobar", "name", "foobar"),
+						"packet_ssh_key.foobar", "name", fmt.Sprintf("foobar-%d", rInt)),
 					resource.TestCheckResourceAttr(
-						"packet_ssh_key.foobar", "public_key", testAccValidPublicKey),
+						"packet_ssh_key.foobar", "public_key", publicKeyMaterial),
 				),
 			},
 		},
@@ -46,15 +50,6 @@ func testAccCheckPacketSSHKeyDestroy(s *terraform.State) error {
 	}
 
 	return nil
-}
-
-func testAccCheckPacketSSHKeyAttributes(key *packngo.SSHKey) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		if key.Label != "foobar" {
-			return fmt.Errorf("Bad name: %s", key.Label)
-		}
-		return nil
-	}
 }
 
 func testAccCheckPacketSSHKeyExists(n string, key *packngo.SSHKey) resource.TestCheckFunc {
@@ -84,12 +79,10 @@ func testAccCheckPacketSSHKeyExists(n string, key *packngo.SSHKey) resource.Test
 	}
 }
 
-var testAccCheckPacketSSHKeyConfig_basic = fmt.Sprintf(`
+func testAccCheckPacketSSHKeyConfig_basic(rInt int, publicSshKey string) string {
+	return fmt.Sprintf(`
 resource "packet_ssh_key" "foobar" {
-    name = "foobar"
+    name = "foobar-%d"
     public_key = "%s"
-}`, testAccValidPublicKey)
-
-var testAccValidPublicKey = strings.TrimSpace(`
-ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCKVmnMOlHKcZK8tpt3MP1lqOLAcqcJzhsvJcjscgVERRN7/9484SOBJ3HSKxxNG5JN8owAjy5f9yYwcUg+JaUVuytn5Pv3aeYROHGGg+5G346xaq3DAwX6Y5ykr2fvjObgncQBnuU5KHWCECO/4h8uWuwh/kfniXPVjFToc+gnkqA+3RKpAecZhFXwfalQ9mMuYGFxn+fwn8cYEApsJbsEmb0iJwPiZ5hjFC8wREuiTlhPHDgkBLOiycd20op2nXzDbHfCHInquEe/gYxEitALONxm0swBOwJZwlTDOB7C6y2dzlrtxr1L59m7pCkWI4EtTRLvleehBoj3u7jB4usR
-`)
+}`, rInt, publicSshKey)
+}

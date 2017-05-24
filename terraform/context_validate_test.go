@@ -115,6 +115,28 @@ func TestContext2Validate_computedVar(t *testing.T) {
 	}
 }
 
+// Test that validate allows through computed counts. We do this and allow
+// them to fail during "plan" since we can't know if the computed values
+// can be realized during a plan.
+func TestContext2Validate_countComputed(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "validate-count-computed")
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("bad: %s", e)
+	}
+}
+
 func TestContext2Validate_countNegative(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-count-negative")
@@ -906,6 +928,7 @@ func TestContext2Validate_PlanGraphBuilder(t *testing.T) {
 		Targets:   c.targets,
 	}).Build(RootModulePath)
 
+	defer c.acquireRun("validate-test")()
 	walker, err := c.walk(graph, graph, walkValidate)
 	if err != nil {
 		t.Fatal(err)

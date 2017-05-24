@@ -46,45 +46,21 @@ type dockerConfig struct {
 	Email string `json:"email"`
 }
 
-// NewAuthConfigurationsFromFile returns AuthConfigurations from a path containing JSON
-// in the same format as the .dockercfg file.
-func NewAuthConfigurationsFromFile(path string) (*AuthConfigurations, error) {
-	r, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	return NewAuthConfigurations(r)
-}
-
-func cfgPaths(dockerConfigEnv string, homeEnv string) []string {
-	var paths []string
-	if dockerConfigEnv != "" {
-		paths = append(paths, path.Join(dockerConfigEnv, "config.json"))
-	}
-	if homeEnv != "" {
-		paths = append(paths, path.Join(homeEnv, ".docker", "config.json"))
-		paths = append(paths, path.Join(homeEnv, ".dockercfg"))
-	}
-	return paths
-}
-
-// NewAuthConfigurationsFromDockerCfg returns AuthConfigurations from
-// system config files. The following files are checked in the order listed:
-// - $DOCKER_CONFIG/config.json if DOCKER_CONFIG set in the environment,
-// - $HOME/.docker/config.json
-// - $HOME/.dockercfg
+// NewAuthConfigurationsFromDockerCfg returns AuthConfigurations from the
+// ~/.dockercfg file.
 func NewAuthConfigurationsFromDockerCfg() (*AuthConfigurations, error) {
-	err := fmt.Errorf("No docker configuration found")
-	var auths *AuthConfigurations
-
-	pathsToTry := cfgPaths(os.Getenv("DOCKER_CONFIG"), os.Getenv("HOME"))
-	for _, path := range pathsToTry {
-		auths, err = NewAuthConfigurationsFromFile(path)
-		if err == nil {
-			return auths, nil
+	var r io.Reader
+	var err error
+	p := path.Join(os.Getenv("HOME"), ".docker", "config.json")
+	r, err = os.Open(p)
+	if err != nil {
+		p := path.Join(os.Getenv("HOME"), ".dockercfg")
+		r, err = os.Open(p)
+		if err != nil {
+			return nil, err
 		}
 	}
-	return auths, err
+	return NewAuthConfigurations(r)
 }
 
 // NewAuthConfigurations returns AuthConfigurations from a JSON encoded string in the

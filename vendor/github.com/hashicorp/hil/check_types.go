@@ -98,10 +98,6 @@ func (v *TypeCheck) visit(raw ast.Node) ast.Node {
 			pos.Column, pos.Line, err)
 	}
 
-	if v.StackPeek() == ast.TypeUnknown {
-		v.err = errExitUnknown
-	}
-
 	return result
 }
 
@@ -116,10 +112,20 @@ func (tc *typeCheckArithmetic) TypeCheck(v *TypeCheck) (ast.Node, error) {
 		exprs[len(tc.n.Exprs)-1-i] = v.StackPop()
 	}
 
+	// If any operand is unknown then our result is automatically unknown
+	for _, ty := range exprs {
+		if ty == ast.TypeUnknown {
+			v.StackPush(ast.TypeUnknown)
+			return tc.n, nil
+		}
+	}
+
 	switch tc.n.Op {
 	case ast.ArithmeticOpLogicalAnd, ast.ArithmeticOpLogicalOr:
 		return tc.checkLogical(v, exprs)
-	case ast.ArithmeticOpEqual, ast.ArithmeticOpNotEqual, ast.ArithmeticOpLessThan, ast.ArithmeticOpGreaterThan, ast.ArithmeticOpGreaterThanOrEqual, ast.ArithmeticOpLessThanOrEqual:
+	case ast.ArithmeticOpEqual, ast.ArithmeticOpNotEqual,
+		ast.ArithmeticOpLessThan, ast.ArithmeticOpGreaterThan,
+		ast.ArithmeticOpGreaterThanOrEqual, ast.ArithmeticOpLessThanOrEqual:
 		return tc.checkComparison(v, exprs)
 	default:
 		return tc.checkNumeric(v, exprs)
@@ -135,20 +141,11 @@ func (tc *typeCheckArithmetic) checkNumeric(v *TypeCheck, exprs []ast.Type) (ast
 	mathFunc := "__builtin_IntMath"
 	mathType := ast.TypeInt
 	for _, v := range exprs {
-		exit := true
-		switch v {
-		case ast.TypeInt:
-			mathFunc = "__builtin_IntMath"
-			mathType = v
-		case ast.TypeFloat:
+		// We assume int math but if we find ANY float, the entire
+		// expression turns into floating point math.
+		if v == ast.TypeFloat {
 			mathFunc = "__builtin_FloatMath"
 			mathType = v
-		default:
-			exit = false
-		}
-
-		// We found the type, so leave
-		if exit {
 			break
 		}
 	}
@@ -193,7 +190,6 @@ func (tc *typeCheckArithmetic) checkNumeric(v *TypeCheck, exprs []ast.Type) (ast
 }
 
 func (tc *typeCheckArithmetic) checkComparison(v *TypeCheck, exprs []ast.Type) (ast.Node, error) {
-
 	if len(exprs) != 2 {
 		// This should never happen, because the parser never produces
 		// nodes that violate this.
@@ -218,6 +214,22 @@ func (tc *typeCheckArithmetic) checkComparison(v *TypeCheck, exprs []ast.Type) (
 		return nil, fmt.Errorf(
 			"comparison operators apply only to bool, float, int, and string",
 		)
+	}
+
+	// For non-equality comparisons, we will do implicit conversions to
+	// integer types if possible. In this case, we need to go through and
+	// determine the type of comparison we're doing to enable the implicit
+	// conversion.
+	if tc.n.Op != ast.ArithmeticOpEqual && tc.n.Op != ast.ArithmeticOpNotEqual {
+		compareFunc = "__builtin_IntCompare"
+		compareType = ast.TypeInt
+		for _, expr := range exprs {
+			if expr == ast.TypeFloat {
+				compareFunc = "__builtin_FloatCompare"
+				compareType = ast.TypeFloat
+				break
+			}
+		}
 	}
 
 	// Verify (and possibly, convert) the args
@@ -325,6 +337,11 @@ func (tc *typeCheckCall) TypeCheck(v *TypeCheck) (ast.Node, error) {
 			continue
 		}
 
+		if args[i] == ast.TypeUnknown {
+			v.StackPush(ast.TypeUnknown)
+			return tc.n, nil
+		}
+
 		if args[i] != expected {
 			cn := v.ImplicitConversion(args[i], expected, tc.n.Args[i])
 			if cn != nil {
@@ -342,6 +359,11 @@ func (tc *typeCheckCall) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	if function.Variadic && function.VariadicType != ast.TypeAny {
 		args = args[len(function.ArgTypes):]
 		for i, t := range args {
+			if t == ast.TypeUnknown {
+				v.StackPush(ast.TypeUnknown)
+				return tc.n, nil
+			}
+
 			if t != function.VariadicType {
 				realI := i + len(function.ArgTypes)
 				cn := v.ImplicitConversion(
@@ -376,6 +398,11 @@ func (tc *typeCheckConditional) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	trueType := v.StackPop()
 	condType := v.StackPop()
 
+	if condType == ast.TypeUnknown {
+		v.StackPush(ast.TypeUnknown)
+		return tc.n, nil
+	}
+
 	if condType != ast.TypeBool {
 		cn := v.ImplicitConversion(condType, ast.TypeBool, tc.n.CondExpr)
 		if cn == nil {
@@ -387,7 +414,7 @@ func (tc *typeCheckConditional) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	}
 
 	// The types of the true and false expression must match
-	if trueType != falseType {
+	if trueType != falseType && trueType != ast.TypeUnknown && falseType != ast.TypeUnknown {
 
 		// Since passing around stringified versions of other types is
 		// common, we pragmatically allow the false expression to dictate
@@ -433,7 +460,13 @@ func (tc *typeCheckConditional) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	}
 
 	// Result type (guaranteed to also match falseType due to the above)
-	v.StackPush(trueType)
+	if trueType == ast.TypeUnknown {
+		// falseType may also be unknown, but that's okay because two
+		// unknowns means our result is unknown anyway.
+		v.StackPush(falseType)
+	} else {
+		v.StackPush(trueType)
+	}
 
 	return tc.n, nil
 }
@@ -449,6 +482,13 @@ func (tc *typeCheckOutput) TypeCheck(v *TypeCheck) (ast.Node, error) {
 		types[len(n.Exprs)-1-i] = v.StackPop()
 	}
 
+	for _, ty := range types {
+		if ty == ast.TypeUnknown {
+			v.StackPush(ast.TypeUnknown)
+			return tc.n, nil
+		}
+	}
+
 	// If there is only one argument and it is a list, we evaluate to a list
 	if len(types) == 1 {
 		switch t := types[0]; t {
@@ -461,7 +501,14 @@ func (tc *typeCheckOutput) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	}
 
 	// Otherwise, all concat args must be strings, so validate that
+	resultType := ast.TypeString
 	for i, t := range types {
+
+		if t == ast.TypeUnknown {
+			resultType = ast.TypeUnknown
+			continue
+		}
+
 		if t != ast.TypeString {
 			cn := v.ImplicitConversion(t, ast.TypeString, n.Exprs[i])
 			if cn != nil {
@@ -474,8 +521,8 @@ func (tc *typeCheckOutput) TypeCheck(v *TypeCheck) (ast.Node, error) {
 		}
 	}
 
-	// This always results in type string
-	v.StackPush(ast.TypeString)
+	// This always results in type string, unless there are unknowns
+	v.StackPush(resultType)
 
 	return n, nil
 }
@@ -501,13 +548,6 @@ func (tc *typeCheckVariableAccess) TypeCheck(v *TypeCheck) (ast.Node, error) {
 			"unknown variable accessed: %s", tc.n.Name)
 	}
 
-	// Check if the variable contains any unknown types. If so, then
-	// mark it as unknown.
-	if ast.IsUnknown(variable) {
-		v.StackPush(ast.TypeUnknown)
-		return tc.n, nil
-	}
-
 	// Add the type to the stack
 	v.StackPush(variable.Type)
 
@@ -521,6 +561,11 @@ type typeCheckIndex struct {
 func (tc *typeCheckIndex) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	keyType := v.StackPop()
 	targetType := v.StackPop()
+
+	if keyType == ast.TypeUnknown || targetType == ast.TypeUnknown {
+		v.StackPush(ast.TypeUnknown)
+		return tc.n, nil
+	}
 
 	// Ensure we have a VariableAccess as the target
 	varAccessNode, ok := tc.n.Target.(*ast.VariableAccess)

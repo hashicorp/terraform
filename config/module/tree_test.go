@@ -1,6 +1,7 @@
 package module
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"strings"
@@ -267,6 +268,61 @@ func TestTreeName(t *testing.T) {
 	}
 }
 
+// This is a table-driven test for tree validation. This is the preferred
+// way to test Validate. Non table-driven tests exist historically but
+// that style shouldn't be done anymore.
+func TestTreeValidate_table(t *testing.T) {
+	cases := []struct {
+		Name    string
+		Fixture string
+		Err     string
+	}{
+		{
+			"provider alias in child",
+			"validate-alias-good",
+			"",
+		},
+
+		{
+			"undefined provider alias in child",
+			"validate-alias-bad",
+			"alias must be defined",
+		},
+
+		{
+			"root module named root",
+			"validate-module-root",
+			"cannot contain module",
+		},
+
+		{
+			"grandchild module named root",
+			"validate-module-root-grandchild",
+			"",
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
+			tree := NewTree("", testConfig(t, tc.Fixture))
+			if err := tree.Load(testStorage(t), GetModeGet); err != nil {
+				t.Fatalf("err: %s", err)
+			}
+
+			err := tree.Validate()
+			if (err != nil) != (tc.Err != "") {
+				t.Fatalf("err: %s", err)
+			}
+			if err == nil {
+				return
+			}
+			if !strings.Contains(err.Error(), tc.Err) {
+				t.Fatalf("err should contain %q: %s", tc.Err, err)
+			}
+		})
+	}
+}
+
 func TestTreeValidate_badChild(t *testing.T) {
 	tree := NewTree("", testConfig(t, "validate-child-bad"))
 
@@ -351,6 +407,27 @@ func TestTreeValidate_requiredChildVar(t *testing.T) {
 	tree := NewTree("", testConfig(t, "validate-required-var"))
 
 	if err := tree.Load(testStorage(t), GetModeGet); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	err := tree.Validate()
+	if err == nil {
+		t.Fatal("should error")
+	}
+
+	// ensure both variables are mentioned in the output
+	errMsg := err.Error()
+	for _, v := range []string{"feature", "memory"} {
+		if !strings.Contains(errMsg, v) {
+			t.Fatalf("no mention of missing variable %q", v)
+		}
+	}
+}
+
+func TestTreeValidate_unknownModule(t *testing.T) {
+	tree := NewTree("", testConfig(t, "validate-module-unknown"))
+
+	if err := tree.Load(testStorage(t), GetModeNone); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

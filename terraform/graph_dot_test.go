@@ -33,23 +33,27 @@ digraph {
 				root := &testDrawableOrigin{"root"}
 				g.Add(root)
 
-				levelOne := []string{"foo", "bar"}
-				for _, s := range levelOne {
-					g.Add(&testDrawable{
-						VertexName:      s,
-						DependentOnMock: []string{"root"},
-					})
+				levelOne := []interface{}{"foo", "bar"}
+				for i, s := range levelOne {
+					levelOne[i] = &testDrawable{
+						VertexName: s.(string),
+					}
+					v := levelOne[i]
+
+					g.Add(v)
+					g.Connect(dag.BasicEdge(v, root))
 				}
 
 				levelTwo := []string{"baz", "qux"}
 				for i, s := range levelTwo {
-					g.Add(&testDrawable{
-						VertexName:      s,
-						DependentOnMock: levelOne[i : i+1],
-					})
+					v := &testDrawable{
+						VertexName: s,
+					}
+
+					g.Add(v)
+					g.Connect(dag.BasicEdge(v, levelOne[i]))
 				}
 
-				g.ConnectDependents()
 				return &g
 			},
 			Expect: `
@@ -81,22 +85,23 @@ digraph {
 				root := &testDrawableOrigin{"root"}
 				g.Add(root)
 
-				g.Add(&testDrawable{
-					VertexName:      "A",
-					DependentOnMock: []string{"root", "C"},
+				vA := g.Add(&testDrawable{
+					VertexName: "A",
 				})
 
-				g.Add(&testDrawable{
-					VertexName:      "B",
-					DependentOnMock: []string{"A"},
+				vB := g.Add(&testDrawable{
+					VertexName: "B",
 				})
 
-				g.Add(&testDrawable{
-					VertexName:      "C",
-					DependentOnMock: []string{"B"},
+				vC := g.Add(&testDrawable{
+					VertexName: "C",
 				})
 
-				g.ConnectDependents()
+				g.Connect(dag.BasicEdge(vA, root))
+				g.Connect(dag.BasicEdge(vA, vC))
+				g.Connect(dag.BasicEdge(vB, vA))
+				g.Connect(dag.BasicEdge(vC, vB))
+
 				return &g
 			},
 			Expect: `
@@ -117,7 +122,7 @@ digraph {
 		"[root] C" -> "[root] B"
 	}
 }
-			`,
+					`,
 		},
 
 		{
@@ -131,23 +136,23 @@ digraph {
 				g.Add(root)
 
 				var sub Graph
-				sub.Add(&testDrawableOrigin{"sub_root"})
+				vSubRoot := sub.Add(&testDrawableOrigin{"sub_root"})
 
 				var subsub Graph
 				subsub.Add(&testDrawableOrigin{"subsub_root"})
-				sub.Add(&testDrawableSubgraph{
-					VertexName:      "subsub",
-					SubgraphMock:    &subsub,
-					DependentOnMock: []string{"sub_root"},
-				})
-				g.Add(&testDrawableSubgraph{
-					VertexName:      "sub",
-					SubgraphMock:    &sub,
-					DependentOnMock: []string{"root"},
+				vSubV := sub.Add(&testDrawableSubgraph{
+					VertexName:   "subsub",
+					SubgraphMock: &subsub,
 				})
 
-				g.ConnectDependents()
-				sub.ConnectDependents()
+				vSub := g.Add(&testDrawableSubgraph{
+					VertexName:   "sub",
+					SubgraphMock: &sub,
+				})
+
+				g.Connect(dag.BasicEdge(vSub, root))
+				sub.Connect(dag.BasicEdge(vSubV, vSubRoot))
+
 				return &g
 			},
 			Expect: `
@@ -170,7 +175,7 @@ digraph {
 		"[subsub] subsub_root"
 	}
 }
-			`,
+						`,
 		},
 
 		{
@@ -184,23 +189,22 @@ digraph {
 				g.Add(root)
 
 				var sub Graph
-				sub.Add(&testDrawableOrigin{"sub_root"})
+				rootSub := sub.Add(&testDrawableOrigin{"sub_root"})
 
 				var subsub Graph
 				subsub.Add(&testDrawableOrigin{"subsub_root"})
-				sub.Add(&testDrawableSubgraph{
-					VertexName:      "subsub",
-					SubgraphMock:    &subsub,
-					DependentOnMock: []string{"sub_root"},
+
+				subV := sub.Add(&testDrawableSubgraph{
+					VertexName:   "subsub",
+					SubgraphMock: &subsub,
 				})
-				g.Add(&testDrawableSubgraph{
-					VertexName:      "sub",
-					SubgraphMock:    &sub,
-					DependentOnMock: []string{"root"},
+				vSub := g.Add(&testDrawableSubgraph{
+					VertexName:   "sub",
+					SubgraphMock: &sub,
 				})
 
-				g.ConnectDependents()
-				sub.ConnectDependents()
+				g.Connect(dag.BasicEdge(vSub, root))
+				sub.Connect(dag.BasicEdge(subV, rootSub))
 				return &g
 			},
 			Expect: `
@@ -219,7 +223,7 @@ digraph {
 		"[sub] subsub" -> "[sub] sub_root"
 	}
 }
-			`,
+						`,
 		},
 	}
 

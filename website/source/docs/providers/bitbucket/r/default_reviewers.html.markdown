@@ -12,16 +12,17 @@ Provides support for setting up default reviewers for your repository.
 
 ## Example Usage
 
-```
-# Manage your respository
+```hcl
+# Manage your repository
 resource "bitbucket_default_reviewers" "infrastructure" {
-    owner = "myteam"
-    repository = "terraform-code"
-    reviewers = [
-        "gob",
-        "michael",
-        "michalejr"
-    ]
+  owner      = "myteam"
+  repository = "terraform-code"
+
+  reviewers = [
+    "gob",
+    "michael",
+    "michalejr",
+  ]
 }
 ```
 

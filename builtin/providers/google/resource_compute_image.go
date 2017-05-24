@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeImage() *schema.Resource {
@@ -164,15 +163,7 @@ func resourceComputeImageRead(d *schema.ResourceData, meta interface{}) error {
 	image, err := config.clientCompute.Images.Get(
 		project, d.Id()).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			// The resource doesn't exist anymore
-			log.Printf("[WARN] Removing Image %q because it's gone", d.Get("name").(string))
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error reading image: %s", err)
+		return handleNotFoundError(err, d, fmt.Sprintf("Image %q", d.Get("name").(string)))
 	}
 
 	d.Set("self_link", image.SelfLink)

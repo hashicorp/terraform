@@ -230,6 +230,9 @@ func testAccRedshiftSubnetGroupConfig(rInt int) string {
 	return fmt.Sprintf(`
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccRedshiftSubnetGroupConfig"
+	}
 }
 
 resource "aws_subnet" "foo" {
@@ -262,6 +265,9 @@ func testAccRedshiftSubnetGroup_updateDescription(rInt int) string {
 	return fmt.Sprintf(`
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccRedshiftSubnetGroup_updateDescription"
+	}
 }
 
 resource "aws_subnet" "foo" {
@@ -294,6 +300,9 @@ func testAccRedshiftSubnetGroupConfigWithTags(rInt int) string {
 	return fmt.Sprintf(`
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccRedshiftSubnetGroupConfigWithTags"
+	}
 }
 
 resource "aws_subnet" "foo" {
@@ -328,6 +337,9 @@ func testAccRedshiftSubnetGroupConfigWithTagsUpdated(rInt int) string {
 	return fmt.Sprintf(`
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccRedshiftSubnetGroupConfigWithTags"
+	}
 }
 
 resource "aws_subnet" "foo" {
@@ -364,6 +376,9 @@ func testAccRedshiftSubnetGroupConfig_updateSubnetIds(rInt int) string {
 	return fmt.Sprintf(`
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccRedshiftSubnetGroupConfig_updateSubnetIds"
+	}
 }
 
 resource "aws_subnet" "foo" {

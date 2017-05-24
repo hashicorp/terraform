@@ -11,22 +11,34 @@ description: |-
 The ``postgresql_role`` resource creates and manages a role on a PostgreSQL
 server.
 
+When a ``postgresql_role`` resource is removed, the PostgreSQL ROLE will
+automatically run a [`REASSIGN
+OWNED`](https://www.postgresql.org/docs/current/static/sql-reassign-owned.html)
+and [`DROP
+OWNED`](https://www.postgresql.org/docs/current/static/sql-drop-owned.html) to
+the `CURRENT_USER` (normally the connected user for the provider).  If the
+specified PostgreSQL ROLE owns objects in multiple PostgreSQL databases in the
+same PostgreSQL Cluster, one PostgreSQL provider per database must be created
+and all but the final ``postgresql_role`` must specify a `skip_drop_role`.
+
+~> **Note:** All arguments including role name and password will be stored in the raw state as plain-text.
+[Read more about sensitive data in state](/docs/state/sensitive-data.html).
 
 ## Usage
 
-```
+```hcl
 resource "postgresql_role" "my_role" {
-  name = "my_role"
-  login = true
+  name     = "my_role"
+  login    = true
   password = "mypass"
 }
 
 resource "postgresql_role" "my_replication_role" {
-  name = "replication_role"
-  replication = true
-  login = true
+  name             = "replication_role"
+  replication      = true
+  login            = true
   connection_limit = 5
-  password = "md5c98cbfeb6a347a47eb8e96cfb4c4b890"
+  password         = "md5c98cbfeb6a347a47eb8e96cfb4c4b890"
 }
 ```
 
@@ -82,12 +94,29 @@ resource "postgresql_role" "my_replication_role" {
   datetime. If omitted or the magic value `NULL` is used, `valid_until` will be
   set to `infinity`.  Default is `NULL`, therefore `infinity`.
 
+* `skip_drop_role` - (Optional) When a PostgreSQL ROLE exists in multiple
+  databases and the ROLE is dropped, the
+  [cleanup of ownership of objects](https://www.postgresql.org/docs/current/static/role-removal.html)
+  in each of the respective databases must occur before the ROLE can be dropped
+  from the catalog.  Set this option to true when there are multiple databases
+  in a PostgreSQL cluster using the same PostgreSQL ROLE for object ownership.
+  This is the third and final step taken when removing a ROLE from a database.
+
+* `skip_reassign_owned` - (Optional) When a PostgreSQL ROLE exists in multiple
+  databases and the ROLE is dropped, a
+  [`REASSIGN OWNED`](https://www.postgresql.org/docs/current/static/sql-reassign-owned.html) in
+  must be executed on each of the respective databases before the `DROP ROLE`
+  can be executed to dropped the ROLE from the catalog.  This is the first and
+  second steps taken when removing a ROLE from a database (the second step being
+  an implicit
+  [`DROP OWNED`](https://www.postgresql.org/docs/current/static/sql-drop-owned.html)).
+
 ## Import Example
 
 `postgresql_role` supports importing resources.  Supposing the following
 Terraform:
 
-```
+```hcl
 provider "postgresql" {
   alias = "admindb"
 }

@@ -12,8 +12,15 @@ func TestMissingProvisionerTransformer(t *testing.T) {
 
 	g := Graph{Path: RootModulePath}
 	{
-		tf := &ConfigTransformerOld{Module: mod}
+		tf := &ConfigTransformer{Module: mod}
 		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &AttachResourceConfigTransformer{Module: mod}
+		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
@@ -112,8 +119,15 @@ func TestCloseProvisionerTransformer(t *testing.T) {
 
 	g := Graph{Path: RootModulePath}
 	{
-		tf := &ConfigTransformerOld{Module: mod}
+		tf := &ConfigTransformer{Module: mod}
 		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &AttachResourceConfigTransformer{Module: mod}
+		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
@@ -143,18 +157,6 @@ func TestCloseProvisionerTransformer(t *testing.T) {
 	expected := strings.TrimSpace(testTransformCloseProvisionerBasicStr)
 	if actual != expected {
 		t.Fatalf("bad:\n\n%s", actual)
-	}
-}
-func TestGraphNodeProvisioner_impl(t *testing.T) {
-	var _ dag.Vertex = new(graphNodeProvisioner)
-	var _ dag.NamedVertex = new(graphNodeProvisioner)
-	var _ GraphNodeProvisioner = new(graphNodeProvisioner)
-}
-
-func TestGraphNodeProvisioner_ProvisionerName(t *testing.T) {
-	n := &graphNodeProvisioner{ProvisionerNameValue: "foo"}
-	if v := n.ProvisionerName(); v != "foo" {
-		t.Fatalf("bad: %#v", v)
 	}
 }
 

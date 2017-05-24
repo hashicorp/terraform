@@ -25,19 +25,19 @@ func resourceAwsCustomerGateway() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"bgp_asn": &schema.Schema{
+			"bgp_asn": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"ip_address": &schema.Schema{
+			"ip_address": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -51,10 +51,23 @@ func resourceAwsCustomerGateway() *schema.Resource {
 func resourceAwsCustomerGatewayCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
+	ipAddress := d.Get("ip_address").(string)
+	vpnType := d.Get("type").(string)
+	bgpAsn := d.Get("bgp_asn").(int)
+
+	alreadyExists, err := resourceAwsCustomerGatewayExists(vpnType, ipAddress, bgpAsn, conn)
+	if err != nil {
+		return err
+	}
+
+	if alreadyExists {
+		return fmt.Errorf("An existing customer gateway for IpAddress: %s, VpnType: %s, BGP ASN: %d has been found", ipAddress, vpnType, bgpAsn)
+	}
+
 	createOpts := &ec2.CreateCustomerGatewayInput{
-		BgpAsn:   aws.Int64(int64(d.Get("bgp_asn").(int))),
-		PublicIp: aws.String(d.Get("ip_address").(string)),
-		Type:     aws.String(d.Get("type").(string)),
+		BgpAsn:   aws.Int64(int64(bgpAsn)),
+		PublicIp: aws.String(ipAddress),
+		Type:     aws.String(vpnType),
 	}
 
 	// Create the Customer Gateway.
@@ -121,6 +134,37 @@ func customerGatewayRefreshFunc(conn *ec2.EC2, gatewayId string) resource.StateR
 		gateway := resp.CustomerGateways[0]
 		return gateway, *gateway.State, nil
 	}
+}
+
+func resourceAwsCustomerGatewayExists(vpnType, ipAddress string, bgpAsn int, conn *ec2.EC2) (bool, error) {
+	ipAddressFilter := &ec2.Filter{
+		Name:   aws.String("ip-address"),
+		Values: []*string{aws.String(ipAddress)},
+	}
+
+	typeFilter := &ec2.Filter{
+		Name:   aws.String("type"),
+		Values: []*string{aws.String(vpnType)},
+	}
+
+	bgp := strconv.Itoa(bgpAsn)
+	bgpAsnFilter := &ec2.Filter{
+		Name:   aws.String("bgp-asn"),
+		Values: []*string{aws.String(bgp)},
+	}
+
+	resp, err := conn.DescribeCustomerGateways(&ec2.DescribeCustomerGatewaysInput{
+		Filters: []*ec2.Filter{ipAddressFilter, typeFilter, bgpAsnFilter},
+	})
+	if err != nil {
+		return false, err
+	}
+
+	if len(resp.CustomerGateways) > 0 && *resp.CustomerGateways[0].State != "deleted" {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 func resourceAwsCustomerGatewayRead(d *schema.ResourceData, meta interface{}) error {

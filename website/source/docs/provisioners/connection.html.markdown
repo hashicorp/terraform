@@ -11,36 +11,39 @@ description: |-
 Many provisioners require access to the remote resource. For example,
 a provisioner may need to use SSH or WinRM to connect to the resource.
 
-Terraform uses a number of defaults when connecting to a resource, but these
-can be overridden using a `connection` block in either a `resource` or `provisioner`.
-Any `connection` information provided in a `resource` will apply to all the
-provisioners, but it can be scoped to a single provisioner as well. One use case
-is to have an initial provisioner connect as the `root` user to setup user accounts, and have
-subsequent provisioners connect as a user with more limited permissions.
+Terraform uses a number of defaults when connecting to a resource, but these can
+be overridden using a `connection` block in either a `resource` or
+`provisioner`. Any `connection` information provided in a `resource` will apply
+to all the provisioners, but it can be scoped to a single provisioner as well.
+One use case is to have an initial provisioner connect as the `root` user to
+setup user accounts, and have subsequent provisioners connect as a user with
+more limited permissions.
 
 ## Example usage
 
-```
+```hcl
 # Copies the file as the root user using SSH
 provisioner "file" {
-    source = "conf/myapp.conf"
-    destination = "/etc/myapp.conf"
-    connection {
-        type = "ssh"
-        user = "root"
-        password = "${var.root_password}"
-    }
+  source      = "conf/myapp.conf"
+  destination = "/etc/myapp.conf"
+
+  connection {
+    type     = "ssh"
+    user     = "root"
+    password = "${var.root_password}"
+  }
 }
 
 # Copies the file as the Administrator user using WinRM
 provisioner "file" {
-    source = "conf/myapp.conf"
-    destination = "C:/App/myapp.conf"
-    connection {
-        type = "winrm"
-        user = "Administrator"
-        password = "${var.admin_password}"
-    }
+  source      = "conf/myapp.conf"
+  destination = "C:/App/myapp.conf"
+
+  connection {
+    type     = "winrm"
+    user     = "Administrator"
+    password = "${var.admin_password}"
+  }
 }
 ```
 

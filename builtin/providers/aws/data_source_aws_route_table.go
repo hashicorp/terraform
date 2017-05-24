@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -14,6 +15,11 @@ func dataSourceAwsRouteTable() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"subnet_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+			"route_table_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -31,6 +37,16 @@ func dataSourceAwsRouteTable() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"cidr_block": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+
+						"ipv6_cidr_block": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+
+						"egress_only_gateway_id": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
@@ -98,14 +114,16 @@ func dataSourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error
 	req := &ec2.DescribeRouteTablesInput{}
 	vpcId, vpcIdOk := d.GetOk("vpc_id")
 	subnetId, subnetIdOk := d.GetOk("subnet_id")
+	rtbId, rtbOk := d.GetOk("route_table_id")
 	tags, tagsOk := d.GetOk("tags")
 	filter, filterOk := d.GetOk("filter")
 
-	if !vpcIdOk && !subnetIdOk && !tagsOk && !filterOk {
-		return fmt.Errorf("One of vpc_id, subnet_id, filters, or tags must be assigned")
+	if !vpcIdOk && !subnetIdOk && !tagsOk && !filterOk && !rtbOk {
+		return fmt.Errorf("One of route_table_id, vpc_id, subnet_id, filters, or tags must be assigned")
 	}
 	req.Filters = buildEC2AttributeFilterList(
 		map[string]string{
+			"route-table-id":        rtbId.(string),
 			"vpc-id":                vpcId.(string),
 			"association.subnet-id": subnetId.(string),
 		},
@@ -131,7 +149,8 @@ func dataSourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error
 
 	rt := resp.RouteTables[0]
 
-	d.SetId(*rt.RouteTableId)
+	d.SetId(aws.StringValue(rt.RouteTableId))
+	d.Set("route_table_id", rt.RouteTableId)
 	d.Set("vpc_id", rt.VpcId)
 	d.Set("tags", tagsToMap(rt.Tags))
 	if err := d.Set("routes", dataSourceRoutesRead(rt.Routes)); err != nil {
@@ -168,6 +187,12 @@ func dataSourceRoutesRead(ec2Routes []*ec2.Route) []map[string]interface{} {
 		if r.DestinationCidrBlock != nil {
 			m["cidr_block"] = *r.DestinationCidrBlock
 		}
+		if r.DestinationIpv6CidrBlock != nil {
+			m["ipv6_cidr_block"] = *r.DestinationIpv6CidrBlock
+		}
+		if r.EgressOnlyInternetGatewayId != nil {
+			m["egress_only_gateway_id"] = *r.EgressOnlyInternetGatewayId
+		}
 		if r.GatewayId != nil {
 			m["gateway_id"] = *r.GatewayId
 		}
@@ -197,7 +222,10 @@ func dataSourceAssociationsRead(ec2Assocations []*ec2.RouteTableAssociation) []m
 		m := make(map[string]interface{})
 		m["route_table_id"] = *a.RouteTableId
 		m["route_table_association_id"] = *a.RouteTableAssociationId
-		m["subnet_id"] = *a.SubnetId
+		// GH[11134]
+		if a.SubnetId != nil {
+			m["subnet_id"] = *a.SubnetId
+		}
 		m["main"] = *a.Main
 		associations = append(associations, m)
 	}

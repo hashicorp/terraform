@@ -17,7 +17,7 @@ func resourceRancherRegistry() *schema.Resource {
 		Update: resourceRancherRegistryUpdate,
 		Delete: resourceRancherRegistryDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceRancherRegistryImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -90,11 +90,26 @@ func resourceRancherRegistryCreate(d *schema.ResourceData, meta interface{}) err
 
 func resourceRancherRegistryRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Refreshing Registry: %s", d.Id())
-	client := meta.(*Config)
+	client, err := meta.(*Config).EnvironmentClient(d.Get("environment_id").(string))
+	if err != nil {
+		return err
+	}
 
 	registry, err := client.Registry.ById(d.Id())
 	if err != nil {
 		return err
+	}
+
+	if registry == nil {
+		log.Printf("[INFO] Registry %s not found", d.Id())
+		d.SetId("")
+		return nil
+	}
+
+	if removed(registry.State) {
+		log.Printf("[INFO] Registry %s was removed on %v", d.Id(), registry.Removed)
+		d.SetId("")
+		return nil
 	}
 
 	log.Printf("[INFO] Registry Name: %s", registry.Name)
@@ -193,6 +208,25 @@ func resourceRancherRegistryDelete(d *schema.ResourceData, meta interface{}) err
 
 	d.SetId("")
 	return nil
+}
+
+func resourceRancherRegistryImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	envID, resourceID := splitID(d.Id())
+	d.SetId(resourceID)
+	if envID != "" {
+		d.Set("environment_id", envID)
+	} else {
+		client, err := meta.(*Config).GlobalClient()
+		if err != nil {
+			return []*schema.ResourceData{}, err
+		}
+		registry, err := client.Registry.ById(d.Id())
+		if err != nil {
+			return []*schema.ResourceData{}, err
+		}
+		d.Set("environment_id", registry.AccountId)
+	}
+	return []*schema.ResourceData{d}, nil
 }
 
 // RegistryStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch

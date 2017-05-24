@@ -21,6 +21,10 @@ func resourceFWPolicyV1() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
 				Type:        schema.TypeString,
@@ -194,7 +198,7 @@ func resourceFWPolicyV1Delete(d *schema.ResourceData, meta interface{}) error {
 		Pending:    []string{"ACTIVE"},
 		Target:     []string{"DELETED"},
 		Refresh:    waitForFirewallPolicyDeletion(networkingClient, d.Id()),
-		Timeout:    120 * time.Second,
+		Timeout:    d.Timeout(schema.TimeoutCreate),
 		Delay:      0,
 		MinTimeout: 2 * time.Second,
 	}

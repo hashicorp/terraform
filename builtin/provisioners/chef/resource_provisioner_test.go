@@ -47,6 +47,28 @@ func TestResourceProvider_Validate_bad(t *testing.T) {
 	}
 }
 
+// Test that the JSON attributes with an unknown value don't
+// validate.
+func TestResourceProvider_Validate_computedValues(t *testing.T) {
+	c := testConfig(t, map[string]interface{}{
+		"environment":     "_default",
+		"node_name":       "nodename1",
+		"run_list":        []interface{}{"cookbook::recipe"},
+		"server_url":      "https://chef.local",
+		"user_name":       "bob",
+		"user_key":        "USER-KEY",
+		"attributes_json": config.UnknownVariableValue,
+	})
+	r := new(ResourceProvisioner)
+	warn, errs := r.Validate(c)
+	if len(warn) > 0 {
+		t.Fatalf("Warnings: %v", warn)
+	}
+	if len(errs) > 0 {
+		t.Fatalf("Errors: %v", errs)
+	}
+}
+
 func testConfig(t *testing.T, c map[string]interface{}) *terraform.ResourceConfig {
 	r, err := config.NewRawConfig(c)
 	if err != nil {
@@ -247,7 +269,7 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 
 			Commands: map[string]bool{
 				fmt.Sprintf("%s install chef-vault", linuxGemCmd): true,
-				fmt.Sprintf("%s vault update vault1 item1 -A nodename1 -M client -c %s/client.rb "+
+				fmt.Sprintf("%s vault update vault1 item1 -C nodename1 -M client -c %s/client.rb "+
 					"-u bob --key %s/bob.pem", linuxKnifeCmd, linuxConfDir, linuxConfDir): true,
 			},
 		},
@@ -270,9 +292,9 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 
 			Commands: map[string]bool{
 				fmt.Sprintf("%s install chef-vault", linuxGemCmd): true,
-				fmt.Sprintf("%s vault update vault1 item1 -A nodename1 -M client -c %s/client.rb "+
+				fmt.Sprintf("%s vault update vault1 item1 -C nodename1 -M client -c %s/client.rb "+
 					"-u bob --key %s/bob.pem", linuxKnifeCmd, linuxConfDir, linuxConfDir): true,
-				fmt.Sprintf("%s vault update vault1 item2 -A nodename1 -M client -c %s/client.rb "+
+				fmt.Sprintf("%s vault update vault1 item2 -C nodename1 -M client -c %s/client.rb "+
 					"-u bob --key %s/bob.pem", linuxKnifeCmd, linuxConfDir, linuxConfDir): true,
 			},
 		},
@@ -294,7 +316,7 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 
 			Commands: map[string]bool{
 				fmt.Sprintf("%s install chef-vault", windowsGemCmd): true,
-				fmt.Sprintf("%s vault update vault1 item1 -A nodename1 -M client -c %s/client.rb "+
+				fmt.Sprintf("%s vault update vault1 item1 -C nodename1 -M client -c %s/client.rb "+
 					"-u bob --key %s/bob.pem", windowsKnifeCmd, windowsConfDir, windowsConfDir): true,
 			},
 		},
@@ -317,9 +339,9 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 
 			Commands: map[string]bool{
 				fmt.Sprintf("%s install chef-vault", windowsGemCmd): true,
-				fmt.Sprintf("%s vault update vault1 item1 -A nodename1 -M client -c %s/client.rb "+
+				fmt.Sprintf("%s vault update vault1 item1 -C nodename1 -M client -c %s/client.rb "+
 					"-u bob --key %s/bob.pem", windowsKnifeCmd, windowsConfDir, windowsConfDir): true,
-				fmt.Sprintf("%s vault update vault1 item2 -A nodename1 -M client -c %s/client.rb "+
+				fmt.Sprintf("%s vault update vault1 item2 -C nodename1 -M client -c %s/client.rb "+
 					"-u bob --key %s/bob.pem", windowsKnifeCmd, windowsConfDir, windowsConfDir): true,
 			},
 		},

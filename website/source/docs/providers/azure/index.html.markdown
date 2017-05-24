@@ -19,7 +19,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the Azure Provider
 provider "azure" {
   publish_settings = "${file("credentials.publishsettings")}"
@@ -27,7 +27,7 @@ provider "azure" {
 
 # Create a web server
 resource "azure_instance" "web" {
-    ...
+  # ...
 }
 ```
 

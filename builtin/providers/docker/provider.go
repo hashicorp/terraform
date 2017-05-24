@@ -18,25 +18,22 @@ func Provider() terraform.ResourceProvider {
 			},
 
 			"ca_material": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				DefaultFunc:   schema.EnvDefaultFunc("DOCKER_CA_MATERIAL", ""),
-				ConflictsWith: []string{"cert_path"},
-				Description:   "PEM-encoded content of Docker host CA certificate",
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("DOCKER_CA_MATERIAL", ""),
+				Description: "PEM-encoded content of Docker host CA certificate",
 			},
 			"cert_material": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				DefaultFunc:   schema.EnvDefaultFunc("DOCKER_CERT_MATERIAL", ""),
-				ConflictsWith: []string{"cert_path"},
-				Description:   "PEM-encoded content of Docker client certificate",
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("DOCKER_CERT_MATERIAL", ""),
+				Description: "PEM-encoded content of Docker client certificate",
 			},
 			"key_material": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				DefaultFunc:   schema.EnvDefaultFunc("DOCKER_KEY_MATERIAL", ""),
-				ConflictsWith: []string{"cert_path"},
-				Description:   "PEM-encoded content of Docker client private key",
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("DOCKER_KEY_MATERIAL", ""),
+				Description: "PEM-encoded content of Docker client private key",
 			},
 
 			"cert_path": &schema.Schema{

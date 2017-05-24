@@ -51,8 +51,8 @@ func TestAccAWSAccessKey_encrypted(t *testing.T) {
 					testAccCheckAWSAccessKeyExists("aws_iam_access_key.a_key", &conf),
 					testAccCheckAWSAccessKeyAttributes(&conf),
 					testDecryptSecretKeyAndTest("aws_iam_access_key.a_key", testPrivKey1),
-					resource.TestCheckResourceAttr(
-						"aws_iam_access_key.a_key", "secret", ""),
+					resource.TestCheckNoResourceAttr(
+						"aws_iam_access_key.a_key", "secret"),
 					resource.TestCheckResourceAttrSet(
 						"aws_iam_access_key.a_key", "encrypted_secret"),
 					resource.TestCheckResourceAttrSet(

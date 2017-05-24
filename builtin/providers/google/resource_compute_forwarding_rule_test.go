@@ -29,6 +29,26 @@ func TestAccComputeForwardingRule_basic(t *testing.T) {
 	})
 }
 
+func TestAccComputeForwardingRule_singlePort(t *testing.T) {
+	poolName := fmt.Sprintf("tf-%s", acctest.RandString(10))
+	ruleName := fmt.Sprintf("tf-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeForwardingRuleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeForwardingRule_singlePort(poolName, ruleName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeForwardingRuleExists(
+						"google_compute_forwarding_rule.foobar"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccComputeForwardingRule_ip(t *testing.T) {
 	addrName := fmt.Sprintf("tf-%s", acctest.RandString(10))
 	poolName := fmt.Sprintf("tf-%s", acctest.RandString(10))
@@ -128,6 +148,23 @@ resource "google_compute_forwarding_rule" "foobar" {
   ip_protocol = "UDP"
   name        = "%s"
   port_range  = "80-81"
+  target      = "${google_compute_target_pool.foobar-tp.self_link}"
+}
+`, poolName, ruleName)
+}
+
+func testAccComputeForwardingRule_singlePort(poolName, ruleName string) string {
+	return fmt.Sprintf(`
+resource "google_compute_target_pool" "foobar-tp" {
+  description = "Resource created for Terraform acceptance testing"
+  instances   = ["us-central1-a/foo", "us-central1-b/bar"]
+  name        = "%s"
+}
+resource "google_compute_forwarding_rule" "foobar" {
+  description = "Resource created for Terraform acceptance testing"
+  ip_protocol = "UDP"
+  name        = "%s"
+  port_range  = "80"
   target      = "${google_compute_target_pool.foobar-tp.self_link}"
 }
 `, poolName, ruleName)

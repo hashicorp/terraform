@@ -162,6 +162,9 @@ provider "aws" {
 
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccAWSAMICopyConfig"
+	}
 }
 
 resource "aws_subnet" "foo" {

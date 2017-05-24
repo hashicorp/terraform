@@ -17,6 +17,11 @@ type DetachResult struct {
 	gophercloud.ErrResult
 }
 
+// UploadImageResult contains the response body and error from a UploadImage request.
+type UploadImageResult struct {
+	gophercloud.ErrResult
+}
+
 // ReserveResult contains the response body and error from a Get request.
 type ReserveResult struct {
 	gophercloud.ErrResult

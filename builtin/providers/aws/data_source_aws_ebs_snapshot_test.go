@@ -44,7 +44,7 @@ func testAccCheckAwsEbsSnapshotDataSourceID(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
-			return fmt.Errorf("Can't find Volume data source: %s", n)
+			return fmt.Errorf("Can't find snapshot data source: %s", n)
 		}
 
 		if rs.Primary.ID == "" {
@@ -69,6 +69,7 @@ resource "aws_ebs_snapshot" "snapshot" {
 }
 
 data "aws_ebs_snapshot" "snapshot" {
+    most_recent = true
     snapshot_ids = ["${aws_ebs_snapshot.snapshot.id}"]
 }
 `
@@ -88,6 +89,7 @@ resource "aws_ebs_snapshot" "snapshot" {
 }
 
 data "aws_ebs_snapshot" "snapshot" {
+    most_recent = true
     snapshot_ids = ["${aws_ebs_snapshot.snapshot.id}"]
     filter {
 	name = "volume-size"
