@@ -43,7 +43,8 @@ func init() {
 	}
 }
 
-// Allows returns true if the given version is in the receiving set.
+// Allows returns true if the given version permitted by the receiving
+// constraints set.
 func (s Constraints) Allows(v Version) bool {
 	return s.raw.Check(v.raw)
 }

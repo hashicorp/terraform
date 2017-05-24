@@ -104,6 +104,9 @@ func (s sortModules) Swap(i, j int) {
 // This method only considers the direct requirements of the receiver.
 // Use AllPluginRequirements to flatten the dependencies for the
 // entire tree of modules.
+//
+// Requirements returned by this method include only version constraints,
+// and apply no particular SHA256 hash constraint.
 func (m *Module) PluginRequirements() discovery.PluginRequirements {
 	ret := make(discovery.PluginRequirements)
 	for inst, dep := range m.Providers {
@@ -111,12 +114,14 @@ func (m *Module) PluginRequirements() discovery.PluginRequirements {
 		// a PluginRequirements wants keys to be provider *types*, such
 		// as "aws". If there are multiple aliases for the same
 		// provider then we will flatten them into a single requirement
-		// by using Intersection to merge the version sets.
+		// by combining their constraint sets.
 		pty := inst.Type()
 		if existing, exists := ret[pty]; exists {
-			ret[pty] = existing.Append(dep.Constraints)
+			ret[pty].Versions = existing.Versions.Append(dep.Constraints)
 		} else {
-			ret[pty] = dep.Constraints
+			ret[pty] = &discovery.PluginConstraints{
+				Versions: dep.Constraints,
+			}
 		}
 	}
 	return ret
@@ -125,6 +130,9 @@ func (m *Module) PluginRequirements() discovery.PluginRequirements {
 // AllPluginRequirements calls PluginRequirements for the receiver and all
 // of its descendents, and merges the result into a single PluginRequirements
 // structure that would satisfy all of the modules together.
+//
+// Requirements returned by this method include only version constraints,
+// and apply no particular SHA256 hash constraint.
 func (m *Module) AllPluginRequirements() discovery.PluginRequirements {
 	var ret discovery.PluginRequirements
 	m.WalkTree(func(path []string, parent *Module, current *Module) error {
