@@ -2055,7 +2055,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 			}
 
 			customIdentification := types.CustomizationIdentification{}
-			
+
 			if len(vm.hostname) == 0 {
 				vm.hostname = vm.name
 			}
