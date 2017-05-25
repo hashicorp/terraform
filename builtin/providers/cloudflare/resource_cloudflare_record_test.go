@@ -124,6 +124,40 @@ func TestAccCloudFlareRecord_Updated(t *testing.T) {
 						"cloudflare_record.foobar", "domain", domain),
 					resource.TestCheckResourceAttr(
 						"cloudflare_record.foobar", "value", "192.168.0.11"),
+					resource.TestCheckResourceAttr(
+						"cloudflare_record.foobar", "ttl", "3601"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccCloudFlareRecord_UpdatedApi(t *testing.T) {
+	var record cloudflare.DNSRecord
+	domain := os.Getenv("CLOUDFLARE_DOMAIN")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckCloudFlareRecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(testAccCheckCloudFlareRecordConfigBasic, domain),
+			},
+			resource.TestStep{
+				Config: fmt.Sprintf(testAccCheckCloudFlareRecordConfigNewValue, domain),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudFlareRecordExists("cloudflare_record.foobar", &record),
+					testAccCheckCloudFlareRecordAttributesUpdated(&record),
+					resource.TestCheckResourceAttr(
+						"cloudflare_record.foobar", "name", "terraform2"),
+					resource.TestCheckResourceAttr(
+						"cloudflare_record.foobar", "domain", domain),
+					resource.TestCheckResourceAttr(
+						"cloudflare_record.foobar", "value", "192.168.0.11"),
+					resource.TestCheckResourceAttr(
+						"cloudflare_record.foobar", "ttl", "3601"),
+					testAccCheckCloudFlareRecordAttributesUpdatedViaApi("cloudflare_record.foobar", &record),
 				),
 			},
 		},
@@ -232,6 +266,35 @@ func testAccCheckCloudFlareRecordExists(n string, record *cloudflare.DNSRecord) 
 	}
 }
 
+func testAccCheckCloudFlareRecordAttributesUpdatedViaApi(n string, record *cloudflare.DNSRecord) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No Record ID is set")
+		}
+
+		client := testAccProvider.Meta().(*cloudflare.API)
+		foundRecord, err := client.DNSRecord(rs.Primary.Attributes["zone_id"], rs.Primary.ID)
+
+		if err != nil {
+			return err
+		}
+
+		expected_record_name := rs.Primary.Attributes["name"] + "." + rs.Primary.Attributes["domain"]
+		if foundRecord.Name != expected_record_name {
+			return fmt.Errorf("Cloudflare record doesn't match state file:", foundRecord.Name, expected_record_name)
+		}
+
+		*record = foundRecord
+
+		return nil
+	}
+}
+
 const testAccCheckCloudFlareRecordConfigBasic = `
 resource "cloudflare_record" "foobar" {
 	domain = "%s"
@@ -265,10 +328,10 @@ const testAccCheckCloudFlareRecordConfigNewValue = `
 resource "cloudflare_record" "foobar" {
 	domain = "%s"
 
-	name = "terraform"
+	name = "terraform2"
 	value = "192.168.0.11"
 	type = "A"
-	ttl = 3600
+	ttl = 3601
 }`
 
 const testAccCheckCloudFlareRecordConfigForceNew = `
