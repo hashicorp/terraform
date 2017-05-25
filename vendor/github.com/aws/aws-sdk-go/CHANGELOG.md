@@ -1,3 +1,50 @@
+Release v1.8.25 (2017-05-17)
+===
+
+### Service Client Updates
+* `service/autoscaling`: Updates service documentation, paginators, and examples
+  * Various Auto Scaling documentation updates
+* `service/cloudwatchevents`: Updates service documentation
+  * Various CloudWatch Events documentation updates.
+* `service/cloudwatchlogs`: Updates service documentation and paginators
+  * Various CloudWatch Logs documentation updates.
+* `service/polly`: Updates service API
+  * Amazon Polly adds new German voice "Vicki"
+
+Release v1.8.24 (2017-05-16)
+===
+
+### Service Client Updates
+* `service/codedeploy`: Updates service API and documentation
+  * This release introduces the previousRevision field in the responses to the GetDeployment and BatchGetDeployments actions. previousRevision provides information about the application revision that was deployed to the deployment group before the most recent successful deployment.  Also, the fileExistsBehavior parameter has been added for CreateDeployment action requests. In the past, if the AWS CodeDeploy agent detected files in a target location that weren't part of the application revision from the most recent successful deployment, it would fail the current deployment by default. This new parameter provides options for how the agent handles these files: fail the deployment, retain the content, or overwrite the content.
+* `service/gamelift`: Updates service API and documentation
+  * Allow developers to specify how metrics are grouped in CloudWatch for their GameLift fleets. Developers can also specify how many concurrent game sessions activate on a per-instance basis.
+* `service/inspector`: Updates service API, documentation, paginators, and examples
+  * Adds ability to produce an assessment report that includes detailed and comprehensive results of a specified assessment run.
+* `service/kms`: Updates service documentation
+  * Update documentation for KMS.
+
+Release v1.8.23 (2017-05-15)
+===
+
+### Service Client Updates
+* `service/ssm`: Updates service API and documentation
+  * UpdateAssociation API now supports updating document name and targets of an association. GetAutomationExecution API can return FailureDetails as an optional field to the StepExecution Object, which contains failure type, failure stage as well as other failure related information for a failed step.
+
+### SDK Enhancements
+* `aws/session`: SDK should be able to load multiple custom shared config files. [#1258](https://github.com/aws/aws-sdk-go/issues/1258)
+  * This change adds a `SharedConfigFiles` field to the `session.Options` type that allows you to specify the files, and their order, the SDK will use for loading shared configuration and credentials from when the `Session` is created. Use the `NewSessionWithOptions` Session constructor to specify these options. You'll also most likely want to enable support for the shared configuration file's additional attributes by setting `session.Option`'s `SharedConfigState` to `session.SharedConfigEnabled`. 
+
+Release v1.8.22 (2017-05-11)
+===
+
+### Service Client Updates
+* `service/elb`: Updates service API, documentation, and paginators
+* `service/elbv2`: Updates service API and documentation
+* `service/lexmodelbuildingservice`: Updates service API and documentation
+* `service/organizations`: Updates service API, documentation, paginators, and examples
+  * AWS Organizations APIs that return an Account object now include the email address associated with the account’s root user.
+
 Release v1.8.21 (2017-05-09)
 ===
 

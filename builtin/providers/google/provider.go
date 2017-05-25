@@ -54,6 +54,7 @@ func Provider() terraform.ResourceProvider {
 			"google_compute_zones":             dataSourceGoogleComputeZones(),
 			"google_container_engine_versions": dataSourceGoogleContainerEngineVersions(),
 			"google_iam_policy":                dataSourceGoogleIamPolicy(),
+			"google_storage_object_signed_url": dataSourceGoogleSignedUrl(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{

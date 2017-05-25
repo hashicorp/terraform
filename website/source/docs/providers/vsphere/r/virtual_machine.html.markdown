@@ -138,6 +138,7 @@ The following attributes are exported:
 
 * `id` - The instance ID.
 * `uuid` - The instance UUID.
+* `moid` - The instance MOID (Managed Object Reference ID).
 * `name` - See Argument Reference above.
 * `vcpu` - See Argument Reference above.
 * `memory` - See Argument Reference above.

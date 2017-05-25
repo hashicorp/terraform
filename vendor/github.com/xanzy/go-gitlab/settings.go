@@ -21,14 +21,16 @@ import "time"
 // SettingsService handles communication with the application SettingsService
 // related methods of the GitLab API.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/settings.html
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/settings.md
 type SettingsService struct {
 	client *Client
 }
 
 // Settings represents the GitLab application settings.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/settings.html
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/settings.md
 type Settings struct {
 	ID                         int                    `json:"id"`
 	DefaultProjectsLimit       int                    `json:"default_projects_limit"`
@@ -58,7 +60,7 @@ func (s Settings) String() string {
 // GetSettings gets the current application settings.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/settings.html#get-current-application.settings
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/settings.md#get-current-application.settings
 func (s *SettingsService) GetSettings(options ...OptionFunc) (*Settings, *Response, error) {
 	req, err := s.client.NewRequest("GET", "application/settings", nil, options)
 	if err != nil {
@@ -77,7 +79,7 @@ func (s *SettingsService) GetSettings(options ...OptionFunc) (*Settings, *Respon
 // UpdateSettingsOptions represents the available UpdateSettings() options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/settings.html#change-application.settings
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/settings.md#change-application.settings
 type UpdateSettingsOptions struct {
 	DefaultProjectsLimit       *int                   `url:"default_projects_limit,omitempty" json:"default_projects_limit,omitempty"`
 	SignupEnabled              *bool                  `url:"signup_enabled,omitempty" json:"signup_enabled,omitempty"`
@@ -100,7 +102,7 @@ type UpdateSettingsOptions struct {
 // UpdateSettings updates the application settings.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/settings.html#change-application.settings
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/settings.md#change-application.settings
 func (s *SettingsService) UpdateSettings(opt *UpdateSettingsOptions, options ...OptionFunc) (*Settings, *Response, error) {
 	req, err := s.client.NewRequest("PUT", "application/settings", opt, options)
 	if err != nil {

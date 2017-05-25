@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/config/module"
 )
 
@@ -3274,6 +3275,154 @@ func TestContext2Apply_multiVar(t *testing.T) {
 		expected := "bar0"
 		if actual.Value != expected {
 			t.Fatalf("bad: \n%s", actual)
+		}
+	}
+}
+
+// This is a holistic test of multi-var (aka "splat variable") handling
+// across several different Terraform subsystems. This is here because
+// historically there were quirky differences in handling across different
+// parts of Terraform and so here we want to assert the expected behavior and
+// ensure that it remains consistent in future.
+func TestContext2Apply_multiVarComprehensive(t *testing.T) {
+	m := testModule(t, "apply-multi-var-comprehensive")
+	p := testProvider("test")
+
+	configs := map[string]*ResourceConfig{}
+
+	p.ApplyFn = testApplyFn
+
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, c *ResourceConfig) (*InstanceDiff, error) {
+		configs[info.HumanId()] = c
+
+		// Return a minimal diff to make sure this resource gets included in
+		// the apply graph and thus the final state, but otherwise we're just
+		// gathering data for assertions.
+		return &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{
+				"id": &ResourceAttrDiff{
+					NewComputed: true,
+				},
+				"name": &ResourceAttrDiff{
+					New: info.HumanId(),
+				},
+			},
+		}, nil
+	}
+
+	// First, apply with a count of 3
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"test": testProviderFuncFixed(p),
+		},
+		Variables: map[string]interface{}{
+			"count": "3",
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("error during plan: %s", err)
+	}
+
+	checkConfig := func(name string, want map[string]interface{}) {
+		got := configs[name].Config
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf(
+				"wrong config for %s\ngot:  %s\nwant: %s",
+				name, spew.Sdump(got), spew.Sdump(want),
+			)
+		}
+	}
+
+	checkConfig("test_thing.multi_count_var.0", map[string]interface{}{
+		"source_id":   unknownValue(),
+		"source_name": "test_thing.source.0",
+	})
+	checkConfig("test_thing.multi_count_var.2", map[string]interface{}{
+		"source_id":   unknownValue(),
+		"source_name": "test_thing.source.2",
+	})
+	checkConfig("test_thing.multi_count_derived.0", map[string]interface{}{
+		"source_id":   unknownValue(),
+		"source_name": "test_thing.source.0",
+	})
+	checkConfig("test_thing.multi_count_derived.2", map[string]interface{}{
+		"source_id":   unknownValue(),
+		"source_name": "test_thing.source.2",
+	})
+	checkConfig("test_thing.whole_splat", map[string]interface{}{
+		"source_ids": unknownValue(),
+		"source_names": []interface{}{
+			"test_thing.source.0",
+			"test_thing.source.1",
+			"test_thing.source.2",
+		},
+		"source_ids_from_func": unknownValue(),
+		"source_names_from_func": []interface{}{
+			"test_thing.source.0",
+			"test_thing.source.1",
+			"test_thing.source.2",
+		},
+
+		// This one ends up being a list with a single unknown value at this
+		// layer, but is fixed up inside helper/schema. There is a test for
+		// this inside the "test" provider, since core tests can't exercise
+		// helper/schema functionality.
+		"source_ids_wrapped": []interface{}{unknownValue()},
+
+		"source_names_wrapped": []interface{}{
+			"test_thing.source.0",
+			"test_thing.source.1",
+			"test_thing.source.2",
+		},
+		"first_source_id":   unknownValue(),
+		"first_source_name": "test_thing.source.0",
+	})
+	checkConfig("module.child.test_thing.whole_splat", map[string]interface{}{
+		"source_ids": unknownValue(),
+		"source_names": []interface{}{
+			"test_thing.source.0",
+			"test_thing.source.1",
+			"test_thing.source.2",
+		},
+
+		// This one ends up being a list with a single unknown value at this
+		// layer, but is fixed up inside helper/schema. There is a test for
+		// this inside the "test" provider, since core tests can't exercise
+		// helper/schema functionality.
+		"source_ids_wrapped": []interface{}{unknownValue()},
+
+		"source_names_wrapped": []interface{}{
+			"test_thing.source.0",
+			"test_thing.source.1",
+			"test_thing.source.2",
+		},
+	})
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("error during apply: %s", err)
+	}
+
+	{
+		want := map[string]interface{}{
+			"source_ids": []interface{}{"foo", "foo", "foo"},
+			"source_names": []interface{}{
+				"test_thing.source.0",
+				"test_thing.source.1",
+				"test_thing.source.2",
+			},
+		}
+		got := map[string]interface{}{}
+		for k, s := range state.RootModule().Outputs {
+			got[k] = s.Value
+		}
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf(
+				"wrong outputs\ngot:  %s\nwant: %s",
+				spew.Sdump(got), spew.Sdump(want),
+			)
 		}
 	}
 }

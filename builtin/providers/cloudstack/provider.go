@@ -1,6 +1,9 @@
 package cloudstack
 
 import (
+	"fmt"
+
+	"github.com/go-ini/ini"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -10,21 +13,36 @@ func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"api_url": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("CLOUDSTACK_API_URL", nil),
+				Type:          schema.TypeString,
+				Optional:      true,
+				DefaultFunc:   schema.EnvDefaultFunc("CLOUDSTACK_API_URL", nil),
+				ConflictsWith: []string{"config", "profile"},
 			},
 
 			"api_key": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("CLOUDSTACK_API_KEY", nil),
+				Type:          schema.TypeString,
+				Optional:      true,
+				DefaultFunc:   schema.EnvDefaultFunc("CLOUDSTACK_API_KEY", nil),
+				ConflictsWith: []string{"config", "profile"},
 			},
 
 			"secret_key": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("CLOUDSTACK_SECRET_KEY", nil),
+				Type:          schema.TypeString,
+				Optional:      true,
+				DefaultFunc:   schema.EnvDefaultFunc("CLOUDSTACK_SECRET_KEY", nil),
+				ConflictsWith: []string{"config", "profile"},
+			},
+
+			"config": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"api_url", "api_key", "secret_key"},
+			},
+
+			"profile": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"api_url", "api_key", "secret_key"},
 			},
 
 			"http_get_only": &schema.Schema{
@@ -72,10 +90,34 @@ func Provider() terraform.ResourceProvider {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+	apiURL := d.Get("api_url").(string)
+	apiKey := d.Get("api_key").(string)
+	secretKey := d.Get("secret_key").(string)
+
+	if configFile, ok := d.GetOk("config"); ok {
+		config, err := ini.Load(configFile.(string))
+		if err != nil {
+			return nil, err
+		}
+
+		section, err := config.GetSection(d.Get("profile").(string))
+		if err != nil {
+			return nil, err
+		}
+
+		apiURL = section.Key("url").String()
+		apiKey = section.Key("apikey").String()
+		secretKey = section.Key("secretkey").String()
+	}
+
+	if apiURL == "" || apiKey == "" || secretKey == "" {
+		return nil, fmt.Errorf("No api_url or api_key or secretKey provided")
+	}
+
 	config := Config{
-		APIURL:      d.Get("api_url").(string),
-		APIKey:      d.Get("api_key").(string),
-		SecretKey:   d.Get("secret_key").(string),
+		APIURL:      apiURL,
+		APIKey:      apiKey,
+		SecretKey:   secretKey,
 		HTTPGETOnly: d.Get("http_get_only").(bool),
 		Timeout:     int64(d.Get("timeout").(int)),
 	}
