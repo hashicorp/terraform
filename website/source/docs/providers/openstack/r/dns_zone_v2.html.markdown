@@ -70,8 +70,7 @@ The following attributes are exported:
 
 ## Import
 
-This resource can be imported by specifying all three arguments, separated
-by a forward slash:
+This resource can be imported by specifying the zone ID:
 
 ```
 $ terraform import openstack_dns_zone_v2.zone_1 <zone_id>
