@@ -57,8 +57,8 @@ func resourceSqlDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 		Instance: instance_name,
 	}
 
-	googleMutexKV.Lock(instanceMutexKey(project, instance_name))
-	defer googleMutexKV.Unlock(instanceMutexKey(project, instance_name))
+	mutexKV.Lock(instanceMutexKey(project, instance_name))
+	defer mutexKV.Unlock(instanceMutexKey(project, instance_name))
 	op, err := config.clientSqlAdmin.Databases.Insert(project, instance_name,
 		db).Do()
 
@@ -113,8 +113,8 @@ func resourceSqlDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
 	database_name := d.Get("name").(string)
 	instance_name := d.Get("instance").(string)
 
-	googleMutexKV.Lock(instanceMutexKey(project, instance_name))
-	defer googleMutexKV.Unlock(instanceMutexKey(project, instance_name))
+	mutexKV.Lock(instanceMutexKey(project, instance_name))
+	defer mutexKV.Unlock(instanceMutexKey(project, instance_name))
 	op, err := config.clientSqlAdmin.Databases.Delete(project, instance_name,
 		database_name).Do()
 

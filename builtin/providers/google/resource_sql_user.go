@@ -76,8 +76,8 @@ func resourceSqlUserCreate(d *schema.ResourceData, meta interface{}) error {
 		Host:     host,
 	}
 
-	googleMutexKV.Lock(instanceMutexKey(project, instance))
-	defer googleMutexKV.Unlock(instanceMutexKey(project, instance))
+	mutexKV.Lock(instanceMutexKey(project, instance))
+	defer mutexKV.Unlock(instanceMutexKey(project, instance))
 	op, err := config.clientSqlAdmin.Users.Insert(project, instance,
 		user).Do()
 
@@ -165,8 +165,8 @@ func resourceSqlUserUpdate(d *schema.ResourceData, meta interface{}) error {
 			Host:     host,
 		}
 
-		googleMutexKV.Lock(instanceMutexKey(project, instance))
-		defer googleMutexKV.Unlock(instanceMutexKey(project, instance))
+		mutexKV.Lock(instanceMutexKey(project, instance))
+		defer mutexKV.Unlock(instanceMutexKey(project, instance))
 		op, err := config.clientSqlAdmin.Users.Update(project, instance, host, name,
 			user).Do()
 
@@ -200,8 +200,8 @@ func resourceSqlUserDelete(d *schema.ResourceData, meta interface{}) error {
 	instance := d.Get("instance").(string)
 	host := d.Get("host").(string)
 
-	googleMutexKV.Lock(instanceMutexKey(project, instance))
-	defer googleMutexKV.Unlock(instanceMutexKey(project, instance))
+	mutexKV.Lock(instanceMutexKey(project, instance))
+	defer mutexKV.Unlock(instanceMutexKey(project, instance))
 	op, err := config.clientSqlAdmin.Users.Delete(project, instance, host, name).Do()
 
 	if err != nil {
