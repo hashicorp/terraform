@@ -29,10 +29,10 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the project.
 
-* `description` - (Optional) A description of the project.
-
-* `namespace_id` - (Optional) The namespace to create this project in.
+* `namespace_id` - (Optional) The namespace (group or user) of the project. Defaults to your user.
   See [`gitlab_group`](group.html) for an example.
+
+* `description` - (Optional) A description of the project.
 
 * `default_branch` - (Optional) The default branch for the project.
 
