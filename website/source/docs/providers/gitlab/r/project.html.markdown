@@ -3,7 +3,7 @@ layout: "gitlab"
 page_title: "GitLab: gitlab_project"
 sidebar_current: "docs-gitlab-resource-project"
 description: |-
-  Creates and manages projects within Github organizations
+  Creates and manages projects within Gitlab
 ---
 
 # gitlab\_project
