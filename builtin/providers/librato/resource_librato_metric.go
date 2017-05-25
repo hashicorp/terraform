@@ -11,12 +11,6 @@ import (
 	"github.com/henrikhodne/go-librato/librato"
 )
 
-// const (
-// 	metricTypeCounter   = "counter"
-// 	metricTypeGauge     = "gauge"
-// 	metricTypeComposite = "composite"
-// )
-
 func resourceLibratoMetric() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceLibratoMetricCreate,
