@@ -423,189 +423,156 @@ resource "azurerm_network_interface" "node_nic" {
   }
 }
 
-# 			"name": "[concat('masterVmDeployment', copyindex())]",
-# 			"type": "Microsoft.Resources/deployments",
-# 			"apiVersion": "[variables('apiVersionLinkTemplate')]",
-# 			"dependsOn": [
-# 				"[resourceId('Microsoft.Storage/storageAccounts', variables('newStorageAccountMaster'))]",
-# 				"masterNicLoop",
-# 				"masteravailabilityset"
-# 			],
-# 			"copy": {
-# 				"name": "masterVmLoop",
-# 				"count": "[parameters('masterInstanceCount')]"
-# 			},
-# 			"properties": {
-# 				"mode": "Incremental",
-# 				"templateLink": {
-# 					"uri": "[variables('clusterNodeDeploymentTemplateUrl')]",
-# 					"contentVersion": "1.0.0.0"
-# 				},
-# 				"parameters": {
-# 					"location": {
-# 						"value": "[variables('location')]"
-# 					},
-# 					"sshKeyPath": {
-# 						"value": "[variables('sshKeyPath')]"
-# 					},
-# 					"sshPublicKey": {
-# 						"value": "[parameters('sshPublicKey')]"
-# 					},
-# 					"dataDiskSize": {
-# 						"value": "[parameters('dataDiskSize')]"
-# 					},
-# 					"adminUsername": {
-# 						"value": "[parameters('adminUsername')]"
-# 					},
-# 					"vmSize": {
-# 						"value": "[parameters('masterVmSize')]"
-# 					},
-# 					"availabilitySet": {
-# 						"value": "masteravailabilityset"
-# 					},
-# 					"osImage": {
-# 						"value": "[parameters('osImage')]"
-# 					},
-# 					"hostname": {
-# 						"value": "[concat(variables('openshiftMasterHostname'), '-', copyIndex())]"
-# 					},
-# 					"newStorageAccountOs": {
-# 						"value": "[variables('newStorageAccountMaster')]"
-# 					},
-# 					"newStorageAccountData": {
-# 						"value": "[variables('newStorageAccountMaster')]"
-# 					},
-# 					"apiVersionStorage": {
-# 						"value": "[variables('apiVersionStorage')]"
-# 					},
-# 					"apiVersionCompute": {
-# 						"value": "[variables('apiVersionCompute')]"
-# 					}
-# 				}
-# 			}
-# 		}, {
-# 			"name": "[concat('infraVmDeployment', copyindex())]",
-# 			"type": "Microsoft.Resources/deployments",
-# 			"apiVersion": "[variables('apiVersionLinkTemplate')]",
-# 			"dependsOn": [
-# 				"[resourceId('Microsoft.Storage/storageAccounts', variables('newStorageAccountInfra'))]",
-# 				"infraNicLoop",
-# 				"infraavailabilityset"
-# 			],
-# 			"copy": {
-# 				"name": "infraVmLoop",
-# 				"count": "[parameters('infraInstanceCount')]"
-# 			},
-# 			"properties": {
-# 				"mode": "Incremental",
-# 				"templateLink": {
-# 					"uri": "[variables('clusterNodeDeploymentTemplateUrl')]",
-# 					"contentVersion": "1.0.0.0"
-# 				},
-# 				"parameters": {
-# 					"location": {
-# 						"value": "[variables('location')]"
-# 					},
-# 					"sshKeyPath": {
-# 						"value": "[variables('sshKeyPath')]"
-# 					},
-# 					"sshPublicKey": {
-# 						"value": "[parameters('sshPublicKey')]"
-# 					},
-# 					"dataDiskSize": {
-# 						"value": "[parameters('dataDiskSize')]"
-# 					},
-# 					"adminUsername": {
-# 						"value": "[parameters('adminUsername')]"
-# 					},
-# 					"vmSize": {
-# 						"value": "[parameters('infraVmSize')]"
-# 					},
-# 					"availabilitySet": {
-# 						"value": "infraavailabilityset"
-# 					},
-# 					"osImage": {
-# 						"value": "[parameters('osImage')]"
-# 					},
-# 					"hostname": {
-# 						"value": "[concat(variables('openshiftInfraHostname'), '-', copyIndex())]"
-# 					},
-# 					"newStorageAccountOs": {
-# 						"value": "[variables('newStorageAccountInfra')]"
-# 					},
-# 					"newStorageAccountData": {
-# 						"value": "[variables('newStorageAccountInfra')]"
-# 					},
-# 					"apiVersionStorage": {
-# 						"value": "[variables('apiVersionStorage')]"
-# 					},
-# 					"apiVersionCompute": {
-# 						"value": "[variables('apiVersionCompute')]"
-# 					}
-# 				}
-# 			}
-# 		}, {
-# 			"name": "[concat('nodeVmDeployment', copyindex())]",
-# 			"type": "Microsoft.Resources/deployments",
-# 			"apiVersion": "[variables('apiVersionLinkTemplate')]",
-# 			"dependsOn": [
-# 				"[resourceId('Microsoft.Storage/storageAccounts', variables('newStorageAccountNodeOs'))]",
-# 				"[resourceId('Microsoft.Storage/storageAccounts', variables('newStorageAccountNodeData'))]",
-# 				"nodeNicLoop",
-# 				"nodeavailabilityset"
-# 			],
-# 			"copy": {
-# 				"name": "nodeVmLoop",
-# 				"count": "[parameters('nodeInstanceCount')]"
-# 			},
-# 			"properties": {
-# 				"mode": "Incremental",
-# 				"templateLink": {
-# 					"uri": "[variables('clusterNodeDeploymentTemplateUrl')]",
-# 					"contentVersion": "1.0.0.0"
-# 				},
-# 				"parameters": {
-# 					"location": {
-# 						"value": "[variables('location')]"
-# 					},
-# 					"sshKeyPath": {
-# 						"value": "[variables('sshKeyPath')]"
-# 					},
-# 					"sshPublicKey": {
-# 						"value": "[parameters('sshPublicKey')]"
-# 					},
-# 					"dataDiskSize": {
-# 						"value": "[parameters('dataDiskSize')]"
-# 					},
-# 					"adminUsername": {
-# 						"value": "[parameters('adminUsername')]"
-# 					},
-# 					"vmSize": {
-# 						"value": "[parameters('nodeVmSize')]"
-# 					},
-# 					"availabilitySet": {
-# 						"value": "nodeavailabilityset"
-# 					},
-# 					"osImage": {
-# 						"value": "[parameters('osImage')]"
-# 					},
-# 					"hostname": {
-# 						"value": "[concat(variables('openshiftNodeHostname'), '-', copyIndex())]"
-# 					},
-# 					"newStorageAccountOs": {
-# 						"value": "[variables('newStorageAccountNodeOs')]"
-# 					},
-# 					"newStorageAccountData": {
-# 						"value": "[variables('newStorageAccountNodeData')]"
-# 					},
-# 					"apiVersionStorage": {
-# 						"value": "[variables('apiVersionStorage')]"
-# 					},
-# 					"apiVersionCompute": {
-# 						"value": "[variables('apiVersionCompute')]"
-# 					}
-# 				}
-# 			}
+# ******* Master VMs *******
+
+resource "azurerm_virtual_machine" "master" {
+  name                  = "masterVmDeployment${count.index}"
+  location              = "${azurerm_resource_group.rg.location}"
+  resource_group_name   = "${azurerm_resource_group.rg.name}"
+  availability_set_id   = "${azurerm_availability_set.master.id}"
+  network_interface_ids = ["${azurerm_network_interface.master_nic.*.id}"]
+  vm_size               = "${var.master_vm_size}"
+  count                 = "${var.master_instance_count}"
+
+  tags {
+    displayName = "${var.openshift_cluster_prefix}-master VM Creation"
+  }
+
+  os_profile {
+    computer_name  = "${var.openshift_cluster_prefix}-master"
+    admin_username = "${var.admin_username}"
+    admin_password = "Password1234!"
+  }
+
+  os_profile_linux_config {
+    disable_password_authentication = false
+
+    # TODO: ACTUALLY DISABLE PASSWORD AUTHENTICATION
+  }
+
+  storage_image_reference {
+    publisher = "${lookup(join("_map", var.os_image), "publisher")}"
+    offer     = "${lookup(join("_map", var.os_image), "offer")}"
+    sku       = "${lookup(join("_map", var.os_image), "sku")}"
+    version   = "${lookup(join("_map", var.os_image), "version")}"
+  }
+
+  storage_os_disk {
+    name          = "${var.openshift_cluster_prefix}-master-osdisk"
+    vhd_uri       = "${azurerm_storage_account.master_storage_account.primary_blob_endpoint}/vhds/${openshift_cluster_prefix}-master-osdisk.vhd"
+    caching       = "ReadWrite"
+    create_option = "FromImage"
+  }
+
+  storage_data_disk {
+    name          = "${var.openshift_cluster_prefix}-master-docker-pool"
+    vhd_uri       = "${azurerm_storage_account.master_storage_account.primary_blob_endpoint}/vhds/${openshift_cluster_prefix}-master-docker-pool.vhd"
+    disk_size_gb  = "${var.data_disk_size}"
+    create_option = "Empty"
+    lun           = 0
+  }
+}
+
+# ******* Infra VMs *******
+
+resource "azurerm_virtual_machine" "infra" {
+  name                  = "infraVmDeployment${count.index}"
+  location              = "${azurerm_resource_group.rg.location}"
+  resource_group_name   = "${azurerm_resource_group.rg.name}"
+  availability_set_id   = "${azurerm_availability_set.infra.id}"
+  network_interface_ids = ["${azurerm_network_interface.infra_nic.*.id}"]
+  vm_size               = "${var.infra_vm_size}"
+  count                 = "${var.infra_instance_count}"
+
+  tags {
+    displayName = "${var.openshift_cluster_prefix}-infra VM Creation"
+  }
+
+  os_profile {
+    computer_name  = "${var.openshift_cluster_prefix}-infra"
+    admin_username = "${var.admin_username}"
+    admin_password = "Password1234!"
+  }
+
+  os_profile_linux_config {
+    disable_password_authentication = false
+
+    # TODO: ACTUALLY DISABLE PASSWORD AUTHENTICATION
+  }
+
+  storage_image_reference {
+    publisher = "${lookup(join("_map", var.os_image), "publisher")}"
+    offer     = "${lookup(join("_map", var.os_image), "offer")}"
+    sku       = "${lookup(join("_map", var.os_image), "sku")}"
+    version   = "${lookup(join("_map", var.os_image), "version")}"
+  }
+
+  storage_os_disk {
+    name          = "${var.openshift_cluster_prefix}-infra-osdisk"
+    vhd_uri       = "${azurerm_storage_account.infra_storage_account.primary_blob_endpoint}/vhds/${openshift_cluster_prefix}-infra-osdisk.vhd"
+    caching       = "ReadWrite"
+    create_option = "FromImage"
+  }
+
+  storage_data_disk {
+    name          = "${var.openshift_cluster_prefix}-infra-docker-pool"
+    vhd_uri       = "${azurerm_storage_account.infra_storage_account.primary_blob_endpoint}/vhds/${openshift_cluster_prefix}-infra-docker-pool.vhd"
+    disk_size_gb  = "${var.data_disk_size}"
+    create_option = "Empty"
+    lun           = 0
+  }
+}
+
+# ******* Node VMs *******
+
+resource "azurerm_virtual_machine" "node" {
+  name                  = "nodeVmDeployment${count.index}"
+  location              = "${azurerm_resource_group.rg.location}"
+  resource_group_name   = "${azurerm_resource_group.rg.name}"
+  availability_set_id   = "${azurerm_availability_set.master.id}"
+  network_interface_ids = ["${azurerm_network_interface.node_nic.*.id}"]
+  vm_size               = "${var.node_vm_size}"
+  count                 = "${var.node_instance_count}"
+
+  tags {
+    displayName = "${var.openshift_cluster_prefix}-node VM Creation"
+  }
+
+  os_profile {
+    computer_name  = "${var.openshift_cluster_prefix}-node"
+    admin_username = "${var.admin_username}"
+    admin_password = "Password1234!"
+  }
+
+  os_profile_linux_config {
+    disable_password_authentication = false
+
+    # TODO: ACTUALLY DISABLE PASSWORD AUTHENTICATION
+  }
+
+  storage_image_reference {
+    publisher = "${lookup(join("_map", var.os_image), "publisher")}"
+    offer     = "${lookup(join("_map", var.os_image), "offer")}"
+    sku       = "${lookup(join("_map", var.os_image), "sku")}"
+    version   = "${lookup(join("_map", var.os_image), "version")}"
+  }
+
+  storage_os_disk {
+    name          = "${var.openshift_cluster_prefix}-node-osdisk"
+    vhd_uri       = "${azurerm_storage_account.nodeos_storage_account.primary_blob_endpoint}/vhds/${openshift_cluster_prefix}-node-osdisk.vhd"
+    caching       = "ReadWrite"
+    create_option = "FromImage"
+  }
+
+  storage_data_disk {
+    name          = "${var.openshift_cluster_prefix}-node-docker-pool"
+    vhd_uri       = "${azurerm_storage_account.nodeos_storage_account.primary_blob_endpoint}/vhds/${openshift_cluster_prefix}-node-docker-pool.vhd"
+    disk_size_gb  = "${var.data_disk_size}"
+    create_option = "Empty"
+    lun           = 0
+  }
+}
+
 # 		}, {
 # 			"type": "Microsoft.Compute/virtualMachines/extensions",
 # 			"name": "[concat(variables('openshiftMasterHostname'), '-', copyIndex(), '/deployOpenShift')]",

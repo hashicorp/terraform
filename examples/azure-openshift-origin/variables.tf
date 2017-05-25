@@ -101,9 +101,33 @@ variable "storage_account_type_map" {
   }
 }
 
+variable "centos_map" {
+  description = ""
+  type        = "map"
+
+  default = {
+    publisher = "Openlogic"
+    offer     = "CentOS"
+    sku       = "7.3"
+    version   = "latest"
+  }
+}
+
+variable "rhel_map" {
+  description = ""
+  type        = "map"
+
+  default = {
+    publisher = "RedHat"
+    offer     = "RHEL"
+    sku       = "7.3"
+    version   = "latest"
+  }
+}
+
 variable "openshift_cluster_prefix" {
   description = "Cluster Prefix used to configure hostnames for all nodes - master, infra and nodes. Between 1 and 20 characters"
-  default     = "os001"
+  default     = "aacl"
 }
 
 variable "openshift_master_public_ip_dns_label" {
