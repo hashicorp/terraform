@@ -1,9 +1,11 @@
 package command
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -615,6 +617,52 @@ func TestInit_getProviderMissing(t *testing.T) {
 
 	if !strings.Contains(ui.ErrorWriter.String(), "no suitable version for provider") {
 		t.Fatalf("unexpected error output: %s", ui.ErrorWriter)
+	}
+}
+
+func TestInit_providerLockFile(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-provider-lock-file"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	getter := &mockGetProvider{
+		Providers: map[string][]string{
+			"test": []string{"1.2.3"},
+		},
+	}
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+		getProvider: getter.GetProvider,
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	providersLockFile := fmt.Sprintf(
+		".terraform/plugins/%s_%s/providers.json",
+		runtime.GOOS, runtime.GOARCH,
+	)
+	buf, err := ioutil.ReadFile(providersLockFile)
+	if err != nil {
+		t.Fatalf("failed to read providers lock file %s: %s", providersLockFile, err)
+	}
+	// The hash in here is for the empty files that mockGetProvider produces
+	wantLockFile := strings.TrimSpace(`
+{
+  "test": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}
+`)
+	if string(buf) != wantLockFile {
+		t.Errorf("wrong provider lock file contents\ngot:  %s\nwant: %s", buf, wantLockFile)
 	}
 }
 
