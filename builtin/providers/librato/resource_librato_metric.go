@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"reflect"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -12,11 +11,11 @@ import (
 	"github.com/henrikhodne/go-librato/librato"
 )
 
-const (
-	metricTypeGauge     = "gauge"
-	metricTypeCounter   = "counter"
-	metricTypeComposite = "composite"
-)
+// const (
+// 	metricTypeCounter   = "counter"
+// 	metricTypeGauge     = "gauge"
+// 	metricTypeComposite = "composite"
+// )
 
 func resourceLibratoMetric() *schema.Resource {
 	return &schema.Resource{
@@ -26,69 +25,71 @@ func resourceLibratoMetric() *schema.Resource {
 		Delete: resourceLibratoMetricDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: false,
 			},
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"display_name": &schema.Schema{
+			"display_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"period": &schema.Schema{
+			"period": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"composite": &schema.Schema{
+			"composite": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"attributes": &schema.Schema{
+			"attributes": {
 				Type:     schema.TypeList,
 				Optional: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"color": &schema.Schema{
+						"color": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"display_max": &schema.Schema{
+						"display_max": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"display_min": &schema.Schema{
+						"display_min": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"display_units_long": &schema.Schema{
+						"display_units_long": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"display_units_short": &schema.Schema{
+						"display_units_short": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"display_stacked": &schema.Schema{
+						"display_stacked": {
 							Type:     schema.TypeBool,
 							Optional: true,
+							Default:  false,
 						},
-						"created_by_ua": &schema.Schema{
+						"created_by_ua": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"gap_detection": &schema.Schema{
+						"gap_detection": {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
-						"aggregate": &schema.Schema{
+						"aggregate": {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
@@ -102,21 +103,18 @@ func resourceLibratoMetric() *schema.Resource {
 func resourceLibratoMetricCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*librato.Client)
 
-	metric := new(librato.Metric)
-	if a, ok := d.GetOk("name"); ok {
-		metric.Name = librato.String(a.(string))
+	metric := librato.Metric{
+		Name: librato.String(d.Get("name").(string)),
+		Type: librato.String(d.Get("type").(string)),
 	}
 	if a, ok := d.GetOk("display_name"); ok {
 		metric.DisplayName = librato.String(a.(string))
-	}
-	if a, ok := d.GetOk("type"); ok {
-		metric.Type = librato.String(a.(string))
 	}
 	if a, ok := d.GetOk("description"); ok {
 		metric.Description = librato.String(a.(string))
 	}
 	if a, ok := d.GetOk("period"); ok {
-		metric.Period = librato.Uint(a.(uint))
+		metric.Period = librato.Uint(uint(a.(int)))
 	}
 	if a, ok := d.GetOk("composite"); ok {
 		metric.Composite = librato.String(a.(string))
@@ -125,14 +123,6 @@ func resourceLibratoMetricCreate(d *schema.ResourceData, meta interface{}) error
 	if a, ok := d.GetOk("attributes"); ok {
 
 		attributeData := a.([]interface{})
-		if len(attributeData) > 1 {
-			return fmt.Errorf("Only one set of attributes per metric is supported")
-		}
-
-		if len(attributeData) == 1 && attributeData[0] == nil {
-			return fmt.Errorf("No attributes found in attributes block")
-		}
-
 		attributeDataMap := attributeData[0].(map[string]interface{})
 		attributes := new(librato.MetricAttributes)
 
@@ -167,13 +157,13 @@ func resourceLibratoMetricCreate(d *schema.ResourceData, meta interface{}) error
 		metric.Attributes = attributes
 	}
 
-	_, err := client.Metrics.Edit(metric)
+	_, err := client.Metrics.Edit(&metric)
 	if err != nil {
 		log.Printf("[INFO] ERROR creating Metric: %s", err)
 		return fmt.Errorf("Error creating Librato metric: %s", err)
 	}
 
-	resource.Retry(1*time.Minute, func() *resource.RetryError {
+	retryErr := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		_, _, err := client.Metrics.Get(*metric.Name)
 		if err != nil {
 			if errResp, ok := err.(*librato.ErrorResponse); ok && errResp.Response.StatusCode == 404 {
@@ -183,8 +173,12 @@ func resourceLibratoMetricCreate(d *schema.ResourceData, meta interface{}) error
 		}
 		return nil
 	})
+	if retryErr != nil {
+		return fmt.Errorf("Error creating Librato metric: %s", retryErr)
+	}
 
-	return metricReadResult(d, metric)
+	d.SetId(*metric.Name)
+	return resourceLibratoMetricRead(d, meta)
 }
 
 func resourceLibratoMetricRead(d *schema.ResourceData, meta interface{}) error {
@@ -202,60 +196,61 @@ func resourceLibratoMetricRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error reading Librato Metric %s: %s", id, err)
 	}
 
-	log.Printf("[INFO] Read Librato Metric: %s", structToString(metric))
+	d.Set("name", metric.Name)
+	d.Set("type", metric.Type)
 
-	return metricReadResult(d, metric)
+	if metric.Description != nil {
+		d.Set("description", metric.Description)
+	}
+
+	if metric.DisplayName != nil {
+		d.Set("display_name", metric.DisplayName)
+	}
+
+	if metric.Period != nil {
+		d.Set("period", metric.Period)
+	}
+
+	if metric.Composite != nil {
+		d.Set("composite", metric.Composite)
+	}
+
+	attributes := metricAttributesGather(d, metric.Attributes)
+
+	// Since attributes isn't a simple terraform type (TypeList), it's best to
+	// catch the error returned from the d.Set() function, and handle accordingly.
+	if err := d.Set("attributes", attributes); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func resourceLibratoMetricUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*librato.Client)
 
-	metricID := d.Id()
-
-	// Just to have whole object for comparison before/after update
-	fullMetric, _, err := client.Metrics.Get(metricID)
-	if err != nil {
-		return err
-	}
+	id := d.Id()
 
 	metric := new(librato.Metric)
-	metric.Name = librato.String(d.Get("name").(string))
+	metric.Name = librato.String(id)
 
 	if d.HasChange("type") {
 		metric.Type = librato.String(d.Get("type").(string))
-		fullMetric.Type = metric.Type
 	}
-
 	if d.HasChange("description") {
 		metric.Description = librato.String(d.Get("description").(string))
-		fullMetric.Description = metric.Description
 	}
-
 	if d.HasChange("display_name") {
 		metric.DisplayName = librato.String(d.Get("display_name").(string))
-		fullMetric.DisplayName = metric.DisplayName
 	}
-
 	if d.HasChange("period") {
-		metric.Period = librato.Uint(d.Get("period").(uint))
-		fullMetric.Period = metric.Period
+		metric.Period = librato.Uint(uint(d.Get("period").(int)))
 	}
-
 	if d.HasChange("composite") {
 		metric.Composite = librato.String(d.Get("composite").(string))
-		fullMetric.Composite = metric.Composite
 	}
-
 	if d.HasChange("attributes") {
 		attributeData := d.Get("attributes").([]interface{})
-		if len(attributeData) > 1 {
-			return fmt.Errorf("Only one set of attributes per metric is supported")
-		}
-
-		if len(attributeData) == 1 && attributeData[0] == nil {
-			return fmt.Errorf("No attributes found in attributes block")
-		}
-
 		attributeDataMap := attributeData[0].(map[string]interface{})
 		attributes := new(librato.MetricAttributes)
 
@@ -286,20 +281,17 @@ func resourceLibratoMetricUpdate(d *schema.ResourceData, meta interface{}) error
 		if v, ok := attributeDataMap["aggregate"].(bool); ok {
 			attributes.Aggregate = *librato.Bool(v)
 		}
-
 		metric.Attributes = attributes
-		fullMetric.Attributes = attributes
 	}
 
 	log.Printf("[INFO] Updating Librato metric: %v", structToString(metric))
-	log.Printf("[INFO] Librato fullMetric: %v", structToString(fullMetric))
 
-	_, err = client.Metrics.Edit(metric)
+	_, err := client.Metrics.Edit(metric)
 	if err != nil {
 		return fmt.Errorf("Error updating Librato metric: %s", err)
 	}
 
-	log.Printf("[INFO] Updated Librato metric %s", metricID)
+	log.Printf("[INFO] Updated Librato metric %s", id)
 
 	// Wait for propagation since Librato updates are eventually consistent
 	wait := resource.StateChangeConf{
@@ -309,21 +301,19 @@ func resourceLibratoMetricUpdate(d *schema.ResourceData, meta interface{}) error
 		MinTimeout:                2 * time.Second,
 		ContinuousTargetOccurence: 5,
 		Refresh: func() (interface{}, string, error) {
-			log.Printf("[INFO] Checking if Librato Metric %s was updated yet", metricID)
-			changedMetric, _, getErr := client.Metrics.Get(metricID)
+			log.Printf("[INFO] Checking if Librato Metric %s was updated yet", id)
+			changedMetric, _, getErr := client.Metrics.Get(id)
 			if getErr != nil {
 				return changedMetric, "", getErr
 			}
-			isEqual := reflect.DeepEqual(*fullMetric, *changedMetric)
-			log.Printf("[INFO] Updated Librato Metric %s match: %t", metricID, isEqual)
-			return changedMetric, fmt.Sprintf("%t", isEqual), nil
+			return changedMetric, "true", nil
 		},
 	}
 
 	_, err = wait.WaitForState()
 	if err != nil {
-		log.Printf("[INFO] ERROR - Failed updating Librato Metric %s: %s", metricID, err)
-		return fmt.Errorf("Failed updating Librato Metric %s: %s", metricID, err)
+		log.Printf("[INFO] ERROR - Failed updating Librato Metric %s: %s", id, err)
+		return fmt.Errorf("Failed updating Librato Metric %s: %s", id, err)
 	}
 
 	return resourceLibratoMetricRead(d, meta)
@@ -341,13 +331,13 @@ func resourceLibratoMetricDelete(d *schema.ResourceData, meta interface{}) error
 	}
 
 	log.Printf("[INFO] Verifying Metric %s deleted", id)
-	resource.Retry(1*time.Minute, func() *resource.RetryError {
+	retryErr := resource.Retry(1*time.Minute, func() *resource.RetryError {
 
-		log.Printf("[INFO] GETing Metric %s", id)
+		log.Printf("[INFO] Getting Metric %s", id)
 		_, _, err := client.Metrics.Get(id)
 		if err != nil {
 			if errResp, ok := err.(*librato.ErrorResponse); ok && errResp.Response.StatusCode == 404 {
-				log.Printf("[INFO] GET returned a 404 for Metric %s\n", id)
+				log.Printf("[INFO] Metric %s not found, removing from state", id)
 				return nil
 			}
 			log.Printf("[INFO] non-retryable error attempting to Get metric: %s", err)
@@ -357,37 +347,9 @@ func resourceLibratoMetricDelete(d *schema.ResourceData, meta interface{}) error
 		log.Printf("[INFO] retryable error attempting to Get metric: %s", id)
 		return resource.RetryableError(fmt.Errorf("metric still exists"))
 	})
-
-	log.Println("[INFO] I think Metric is deleted")
-
-	d.SetId("")
-	return nil
-}
-
-func metricReadResult(d *schema.ResourceData, metric *librato.Metric) error {
-	d.SetId(*metric.Name)
-	d.Set("id", *metric.Name)
-	d.Set("name", *metric.Name)
-	d.Set("type", *metric.Type)
-
-	if metric.Description != nil {
-		d.Set("description", *metric.Description)
+	if retryErr != nil {
+		return fmt.Errorf("Error deleting librato metric: %s", retryErr)
 	}
-
-	if metric.DisplayName != nil {
-		d.Set("display_name", *metric.DisplayName)
-	}
-
-	if metric.Period != nil {
-		d.Set("period", *metric.Period)
-	}
-
-	if metric.Composite != nil {
-		d.Set("composite", *metric.Composite)
-	}
-
-	attributes := metricAttributesGather(d, metric.Attributes)
-	d.Set("attributes", attributes)
 
 	return nil
 }

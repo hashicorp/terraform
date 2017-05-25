@@ -11,18 +11,20 @@ import (
 	"github.com/henrikhodne/go-librato/librato"
 )
 
-func TestAccLibratoCounterMetric(t *testing.T) {
+func TestAccLibratoMetrics(t *testing.T) {
 	var metric librato.Metric
+
 	name := fmt.Sprintf("tftest-metric-%s", acctest.RandString(10))
 	typ := "counter"
-
+	desc1 := fmt.Sprintf("A test %s metric", typ)
+	desc2 := fmt.Sprintf("An updated test %s metric", typ)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLibratoMetricDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: counterMetricConfig(name, typ, fmt.Sprintf("A test %s metric", typ)),
+				Config: counterMetricConfig(name, typ, desc1),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoMetricExists("librato_metric.foobar", &metric),
 					testAccCheckLibratoMetricName(&metric, name),
@@ -33,31 +35,30 @@ func TestAccLibratoCounterMetric(t *testing.T) {
 			},
 			{
 				PreConfig: sleep(t, 15),
-				Config:    counterMetricConfig(name, typ, fmt.Sprintf("An updated test %s metric", typ)),
+				Config:    counterMetricConfig(name, typ, desc2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoMetricExists("librato_metric.foobar", &metric),
 					testAccCheckLibratoMetricName(&metric, name),
 					testAccCheckLibratoMetricType(&metric, typ),
+					testAccCheckLibratoMetricDescription(&metric, desc2),
 					resource.TestCheckResourceAttr(
 						"librato_metric.foobar", "name", name),
 				),
 			},
 		},
 	})
-}
 
-func TestAccLibratoGaugeMetric(t *testing.T) {
-	var metric librato.Metric
-	name := fmt.Sprintf("tftest-metric-%s", acctest.RandString(10))
-	typ := "gauge"
-
+	name = fmt.Sprintf("tftest-metric-%s", acctest.RandString(10))
+	typ = "gauge"
+	desc1 = fmt.Sprintf("A test %s metric", typ)
+	desc2 = fmt.Sprintf("An updated test %s metric", typ)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLibratoMetricDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: gaugeMetricConfig(name, typ, fmt.Sprintf("A test %s metric", typ)),
+				Config: gaugeMetricConfig(name, typ, desc1),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoMetricExists("librato_metric.foobar", &metric),
 					testAccCheckLibratoMetricName(&metric, name),
@@ -68,31 +69,30 @@ func TestAccLibratoGaugeMetric(t *testing.T) {
 			},
 			{
 				PreConfig: sleep(t, 15),
-				Config:    gaugeMetricConfig(name, typ, fmt.Sprintf("An updated test %s metric", typ)),
+				Config:    gaugeMetricConfig(name, typ, desc2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoMetricExists("librato_metric.foobar", &metric),
 					testAccCheckLibratoMetricName(&metric, name),
 					testAccCheckLibratoMetricType(&metric, typ),
+					testAccCheckLibratoMetricDescription(&metric, desc2),
 					resource.TestCheckResourceAttr(
 						"librato_metric.foobar", "name", name),
 				),
 			},
 		},
 	})
-}
 
-func TestAccLibratoCompositeMetric(t *testing.T) {
-	var metric librato.Metric
-	name := fmt.Sprintf("tftest-metric-%s", acctest.RandString(10))
-	typ := "composite"
-
+	name = fmt.Sprintf("tftest-metric-%s", acctest.RandString(10))
+	typ = "composite"
+	desc1 = fmt.Sprintf("A test %s metric", typ)
+	desc2 = fmt.Sprintf("An updated test %s metric", typ)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLibratoMetricDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: compositeMetricConfig(name, typ, fmt.Sprintf("A test %s metric", typ)),
+				Config: compositeMetricConfig(name, typ, desc1),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoMetricExists("librato_metric.foobar", &metric),
 					testAccCheckLibratoMetricName(&metric, name),
@@ -103,11 +103,12 @@ func TestAccLibratoCompositeMetric(t *testing.T) {
 			},
 			{
 				PreConfig: sleep(t, 15),
-				Config:    compositeMetricConfig(name, typ, fmt.Sprintf("An updated test %s metric", typ)),
+				Config:    compositeMetricConfig(name, typ, desc2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoMetricExists("librato_metric.foobar", &metric),
 					testAccCheckLibratoMetricName(&metric, name),
 					testAccCheckLibratoMetricType(&metric, typ),
+					testAccCheckLibratoMetricDescription(&metric, desc2),
 					resource.TestCheckResourceAttr(
 						"librato_metric.foobar", "name", name),
 				),
@@ -124,7 +125,6 @@ func testAccCheckLibratoMetricDestroy(s *terraform.State) error {
 			continue
 		}
 
-		fmt.Printf("*** testAccCheckLibratoMetricDestroy ID: %s\n", rs.Primary.ID)
 		_, _, err := client.Metrics.Get(rs.Primary.ID)
 		if err == nil {
 			return fmt.Errorf("Metric still exists")
@@ -138,6 +138,16 @@ func testAccCheckLibratoMetricName(metric *librato.Metric, name string) resource
 	return func(s *terraform.State) error {
 		if metric.Name == nil || *metric.Name != name {
 			return fmt.Errorf("Bad name: %s", *metric.Name)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckLibratoMetricDescription(metric *librato.Metric, desc string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if metric.Description == nil || *metric.Description != desc {
+			return fmt.Errorf("Bad description: %s", *metric.Description)
 		}
 
 		return nil
