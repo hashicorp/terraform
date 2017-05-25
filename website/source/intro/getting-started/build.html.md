@@ -168,7 +168,7 @@ as your `example.tf`, and watch it go! It will take a few minutes
 since Terraform waits for the EC2 instance to become available.
 
 ```
-$ terraform apply
+$ terraform apply .
 aws_instance.example: Creating...
   ami:                      "" => "ami-2757f631"
   instance_type:            "" => "t2.micro"
