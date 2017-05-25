@@ -147,6 +147,12 @@ func ResolvePluginPaths(paths []string) PluginMetaSet {
 			version = parts[1]
 		}
 
+		// Auto-installed plugins contain an extra name portion representing
+		// the expected plugin version, which we must trim off.
+		if dashX := strings.Index(version, "-X"); dashX != -1 {
+			version = version[:dashX]
+		}
+
 		if _, ok := found[nameVersion{name, version}]; ok {
 			// Skip duplicate versions of the same plugin
 			// (We do this during this step because after this we will be
