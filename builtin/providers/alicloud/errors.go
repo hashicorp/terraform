@@ -1,5 +1,7 @@
 package alicloud
 
+import "github.com/denverdino/aliyungo/common"
+
 const (
 	// common
 	Notfound = "Not found"
@@ -9,6 +11,7 @@ const (
 	DiskIncorrectStatus       = "IncorrectDiskStatus"
 	DiskCreatingSnapshot      = "DiskCreatingSnapshot"
 	InstanceLockedForSecurity = "InstanceLockedForSecurity"
+	SystemDiskNotFound        = "SystemDiskNotFound"
 	// eip
 	EipIncorrectStatus      = "IncorrectEipStatus"
 	InstanceIncorrectStatus = "IncorrectInstanceStatus"
@@ -24,7 +27,23 @@ const (
 	//Nat gateway
 	NatGatewayInvalidRegionId            = "Invalid.RegionId"
 	DependencyViolationBandwidthPackages = "DependencyViolation.BandwidthPackages"
+	NotFindSnatEntryBySnatId             = "NotFindSnatEntryBySnatId"
+	NotFindForwardEntryByForwardId       = "NotFindForwardEntryByForwardId"
 
 	// vswitch
 	VswitcInvalidRegionId = "InvalidRegionId.NotFound"
+
+	// ess
+	InvalidScalingGroupIdNotFound               = "InvalidScalingGroupId.NotFound"
+	IncorrectScalingConfigurationLifecycleState = "IncorrectScalingConfigurationLifecycleState"
 )
+
+func GetNotFoundErrorFromString(str string) error {
+	return &common.Error{
+		ErrorResponse: common.ErrorResponse{
+			Code:    InstanceNotfound,
+			Message: str,
+		},
+		StatusCode: -1,
+	}
+}

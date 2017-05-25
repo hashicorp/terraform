@@ -12,7 +12,7 @@ Provides a WAF Web ACL Resource
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_waf_ipset" "ipset" {
   name = "tfIPSet"
 
@@ -63,6 +63,26 @@ The following arguments are supported:
 * `name` - (Required) The name or description of the web ACL.
 * `rules` - (Required) The rules to associate with the web ACL and the settings for each rule.
 
+## Nested Blocks
+
+### `default_action`
+
+#### Arguments
+
+* `type` - (Required) Specifies how you want AWS WAF to respond to requests that match the settings in a rule.
+  e.g. `ALLOW`, `BLOCK` or `COUNT`
+
+### `rules`
+
+See [docs](http://docs.aws.amazon.com/waf/latest/APIReference/API_ActivatedRule.html) for all details and supported values.
+
+#### Arguments
+
+* `action` - (Required) The action that CloudFront or AWS WAF takes when a web request matches the conditions in the rule.
+  e.g. `ALLOW`, `BLOCK` or `COUNT`
+* `priority` - (Required) Specifies the order in which the rules in a WebACL are evaluated.
+  Rules with a lower value are evaluated before rules with a higher value.
+* `rule_id` - (Required) ID of the associated [rule](/docs/providers/aws/r/waf_rule.html)
 
 ## Attributes Reference
 

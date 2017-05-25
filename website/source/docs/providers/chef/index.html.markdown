@@ -16,12 +16,12 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the Chef provider
 provider "chef" {
   server_url = "https://api.chef.io/organizations/example/"
 
-  // You can set up a "Client" within the Chef Server management console.
+  # You can set up a "Client" within the Chef Server management console.
   client_name  = "terraform"
   key_material = "${file("chef-terraform.pem")}"
 }

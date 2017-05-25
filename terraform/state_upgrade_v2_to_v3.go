@@ -18,7 +18,7 @@ func upgradeStateV2ToV3(old *State) (*State, error) {
 
 	// Ensure the copied version is v2 before attempting to upgrade
 	if new.Version != 2 {
-		return nil, fmt.Errorf("Cannot appply v2->v3 state upgrade to " +
+		return nil, fmt.Errorf("Cannot apply v2->v3 state upgrade to " +
 			"a state which is not version 2.")
 	}
 

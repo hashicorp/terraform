@@ -12,10 +12,10 @@ Renders an ignition configuration as JSON. It  contains all the disks, partition
 
 ## Example Usage
 
-```
+```hcl
 data "ignition_config" "example" {
 	systemd = [
-		"${ignition_systemd_unit.example.id}",
+		"${data.ignition_systemd_unit.example.id}",
 	]
 }
 ```
@@ -40,9 +40,9 @@ The following arguments are supported:
 
 * `groups` - (Optional) The list of groups to be added.
 
-* `append` - (Optional) A block with config that will replace the current.
+* `append` - (Optional) Any number of blocks with the configs to be appended to the current config.
 
-* `replace` - (Optional) Any number of blocks with the configs to be appended to the current config.
+* `replace` - (Optional) A block with config that will replace the current.
 
 
 The `append` and `replace` blocks supports:

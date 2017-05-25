@@ -14,7 +14,7 @@ for more information.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_emr_cluster" "emr-test-cluster" {
   name          = "emr-test-arn"
   release_label = "emr-4.6.0"
@@ -67,6 +67,7 @@ The following arguments are supported:
 * `release_label` - (Required) The release label for the Amazon EMR release
 * `master_instance_type` - (Required) The EC2 instance type of the master node
 * `service_role` - (Required) IAM role that will be assumed by the Amazon EMR service to access AWS resources
+* `security_configuration` - (Optional) The security configuration name to attach to the EMR cluster. Only valid for EMR clusters with `release_label` 4.8.0 or greater
 * `core_instance_type` - (Optional) The EC2 instance type of the slave nodes
 * `core_instance_count` - (Optional) Number of Amazon EC2 instances used to execute the job flow. EMR will use one node as the cluster's master node and use the remainder of the nodes (`core_instance_count`-1) as core nodes. Default `1`
 * `log_uri` - (Optional) S3 bucket to write the log files of the job flow. If a value
@@ -80,8 +81,8 @@ flow. Defined below
 	the cluster nodes. Defined below
 * `configurations` - (Optional) List of configurations supplied for the EMR cluster you are creating
 * `visible_to_all_users` - (Optional) Whether the job flow is visible to all IAM users of the AWS account associated with the job flow. Default `true`
+* `autoscaling_role` - (Optional) An IAM role for automatic scaling policies. The IAM role provides permissions that the automatic scaling feature requires to launch and terminate EC2 instances in an instance group.
 * `tags` - (Optional) list of tags to apply to the EMR Cluster
-
 
 
 ## ec2\_attributes

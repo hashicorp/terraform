@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,6 +15,10 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
+const (
+	MINIMUM_VERSIONED_SCHEMA = 2.0
+)
+
 func resourceAwsSsmDocument() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsSsmDocumentCreate,
@@ -22,6 +27,10 @@ func resourceAwsSsmDocument() *schema.Resource {
 		Delete: resourceAwsSsmDocumentDelete,
 
 		Schema: map[string]*schema.Schema{
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -34,6 +43,10 @@ func resourceAwsSsmDocument() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validateAwsSSMDocumentType,
+			},
+			"schema_version": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"created_date": {
 				Type:     schema.TypeString,
@@ -164,8 +177,12 @@ func resourceAwsSsmDocumentRead(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	resp, err := ssmconn.DescribeDocument(docInput)
-
 	if err != nil {
+		if ssmErr, ok := err.(awserr.Error); ok && ssmErr.Code() == "InvalidDocument" {
+			log.Printf("[WARN] SSM Document not found so removing from state")
+			d.SetId("")
+			return nil
+		}
 		return errwrap.Wrapf("[ERROR] Error describing SSM document: {{err}}", err)
 	}
 
@@ -173,6 +190,7 @@ func resourceAwsSsmDocumentRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("created_date", doc.CreatedDate)
 	d.Set("default_version", doc.DefaultVersion)
 	d.Set("description", doc.Description)
+	d.Set("schema_version", doc.SchemaVersion)
 
 	if _, ok := d.GetOk("document_type"); ok {
 		d.Set("document_type", doc.DocumentType)
@@ -185,6 +203,9 @@ func resourceAwsSsmDocumentRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("name", doc.Name)
 	d.Set("owner", doc.Owner)
 	d.Set("platform_types", flattenStringList(doc.PlatformTypes))
+	if err := d.Set("arn", flattenAwsSsmDocumentArn(meta, doc.Name)); err != nil {
+		return fmt.Errorf("[DEBUG] Error setting arn error: %#v", err)
+	}
 
 	d.Set("status", doc.Status)
 
@@ -205,9 +226,15 @@ func resourceAwsSsmDocumentRead(d *schema.ResourceData, meta interface{}) error 
 		if dp.DefaultValue != nil {
 			param["default_value"] = *dp.DefaultValue
 		}
-		param["description"] = *dp.Description
-		param["name"] = *dp.Name
-		param["type"] = *dp.Type
+		if dp.Description != nil {
+			param["description"] = *dp.Description
+		}
+		if dp.Name != nil {
+			param["name"] = *dp.Name
+		}
+		if dp.Type != nil {
+			param["type"] = *dp.Type
+		}
 		params = append(params, param)
 	}
 
@@ -222,6 +249,12 @@ func resourceAwsSsmDocumentRead(d *schema.ResourceData, meta interface{}) error 
 	return nil
 }
 
+func flattenAwsSsmDocumentArn(meta interface{}, docName *string) string {
+	region := meta.(*AWSClient).region
+
+	return fmt.Sprintf("arn:aws:ssm:%s::document/%s", region, *docName)
+}
+
 func resourceAwsSsmDocumentUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	if _, ok := d.GetOk("permissions"); ok {
@@ -230,6 +263,23 @@ func resourceAwsSsmDocumentUpdate(d *schema.ResourceData, meta interface{}) erro
 		}
 	} else {
 		log.Printf("[DEBUG] Not setting document permissions on %q", d.Id())
+	}
+
+	if !d.HasChange("content") {
+		return nil
+	}
+
+	if schemaVersion, ok := d.GetOk("schemaVersion"); ok {
+		schemaNumber, _ := strconv.ParseFloat(schemaVersion.(string), 64)
+
+		if schemaNumber < MINIMUM_VERSIONED_SCHEMA {
+			log.Printf("[DEBUG] Skipping document update because document version is not 2.0 %q", d.Id())
+			return nil
+		}
+	}
+
+	if err := updateAwsSSMDocument(d, meta); err != nil {
+		return err
 	}
 
 	return resourceAwsSsmDocumentRead(d, meta)
@@ -372,6 +422,47 @@ func deleteDocumentPermissions(d *schema.ResourceData, meta interface{}) error {
 		return errwrap.Wrapf("[ERROR] Error removing permissions for SSM document: {{err}}", err)
 	}
 
+	return nil
+}
+
+func updateAwsSSMDocument(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[INFO] Updating SSM Document: %s", d.Id())
+
+	name := d.Get("name").(string)
+
+	updateDocInput := &ssm.UpdateDocumentInput{
+		Name:            aws.String(name),
+		Content:         aws.String(d.Get("content").(string)),
+		DocumentVersion: aws.String(d.Get("default_version").(string)),
+	}
+
+	newDefaultVersion := d.Get("default_version").(string)
+
+	ssmconn := meta.(*AWSClient).ssmconn
+	updated, err := ssmconn.UpdateDocument(updateDocInput)
+
+	if isAWSErr(err, "DuplicateDocumentContent", "") {
+		log.Printf("[DEBUG] Content is a duplicate of the latest version so update is not necessary: %s", d.Id())
+		log.Printf("[INFO] Updating the default version to the latest version %s: %s", newDefaultVersion, d.Id())
+
+		newDefaultVersion = d.Get("latest_version").(string)
+	} else if err != nil {
+		return errwrap.Wrapf("Error updating SSM document: {{err}}", err)
+	} else {
+		log.Printf("[INFO] Updating the default version to the new version %s: %s", newDefaultVersion, d.Id())
+		newDefaultVersion = *updated.DocumentDescription.DocumentVersion
+	}
+
+	updateDefaultInput := &ssm.UpdateDocumentDefaultVersionInput{
+		Name:            aws.String(name),
+		DocumentVersion: aws.String(newDefaultVersion),
+	}
+
+	_, err = ssmconn.UpdateDocumentDefaultVersion(updateDefaultInput)
+
+	if err != nil {
+		return errwrap.Wrapf("Error updating the default document version to that of the updated document: {{err}}", err)
+	}
 	return nil
 }
 

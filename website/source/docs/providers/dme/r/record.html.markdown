@@ -6,13 +6,13 @@ description: |-
   Provides a DNSMadeEasy record resource.
 ---
 
-# dme\_record
+# dme_record
 
 Provides a DNSMadeEasy record resource.
 
 ## Example Usage
 
-```
+```hcl
 # Add an A record to the domain
 resource "dme_record" "www" {
   domainid    = "123456"
@@ -129,7 +129,7 @@ see DNS Record Types.
 
 Following are examples of using each of the record types.
 
-```
+```hcl
 # Provide your API and Secret Keys, and whether the sandbox
 # is being used (defaults to false)
 provider "dme" {

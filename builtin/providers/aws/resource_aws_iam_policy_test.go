@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -19,13 +20,27 @@ func TestAWSPolicy_namePrefix(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSPolicyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSPolicyPrefixNameConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSPolicyExists("aws_iam_policy.policy", &out),
 					testAccCheckAWSPolicyGeneratedNamePrefix(
 						"aws_iam_policy.policy", "test-policy-"),
 				),
+			},
+		},
+	})
+}
+
+func TestAWSPolicy_invalidJson(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSPolicyDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccAWSPolicyInvalidJsonConfig,
+				ExpectError: regexp.MustCompile("invalid JSON"),
 			},
 		},
 	})
@@ -92,5 +107,25 @@ resource "aws_iam_policy" "policy" {
   ]
 }
 EOF
+}
+`
+const testAccAWSPolicyInvalidJsonConfig = `
+resource "aws_iam_policy" "policy" {
+	name_prefix = "test-policy-"
+	path = "/"
+  policy = <<EOF
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Action": [
+          "ec2:Describe*"
+        ],
+        "Effect": "Allow",
+        "Resource": "*"
+      }
+    ]
+  }
+  EOF
 }
 `

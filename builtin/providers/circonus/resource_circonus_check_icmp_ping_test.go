@@ -2,8 +2,10 @@ package circonus
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
+	"github.com/circonus-labs/circonus-gometrics/api/config"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 )
@@ -20,7 +22,13 @@ func TestAccCirconusCheckICMPPing_basic(t *testing.T) {
 				Config: fmt.Sprintf(testAccCirconusCheckICMPPingConfigFmt, checkName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("circonus_check.loopback_latency", "active", "true"),
-					resource.TestCheckResourceAttr("circonus_check.loopback_latency", "collector.#", "1"),
+					resource.TestCheckNoResourceAttr("circonus_check.loopback_latency", "check_id"),
+					resource.TestCheckResourceAttr("circonus_check.loopback_latency", "checks.#", "2"),
+					resource.TestMatchResourceAttr("circonus_check.loopback_latency", "checks.0", regexp.MustCompile(config.CheckCIDRegex)),
+					resource.TestMatchResourceAttr("circonus_check.loopback_latency", "checks.1", regexp.MustCompile(config.CheckCIDRegex)),
+					resource.TestCheckNoResourceAttr("circonus_check.loopback_latency", "check_id"),
+					resource.TestCheckResourceAttr("circonus_check.loopback_latency", "check_by_collector.%", "2"),
+					resource.TestCheckResourceAttr("circonus_check.loopback_latency", "collector.#", "2"),
 					resource.TestCheckResourceAttr("circonus_check.loopback_latency", "collector.2388330941.id", "/broker/1"),
 					resource.TestCheckResourceAttr("circonus_check.loopback_latency", "icmp_ping.#", "1"),
 					resource.TestCheckResourceAttr("circonus_check.loopback_latency", "icmp_ping.979664239.availability", "100"),
@@ -88,6 +96,10 @@ resource "circonus_check" "loopback_latency" {
 
   collector {
     id = "/broker/1"
+  }
+
+  collector {
+    id = "/broker/275"
   }
 
   icmp_ping {

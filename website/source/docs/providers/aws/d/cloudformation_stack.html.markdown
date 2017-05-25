@@ -13,7 +13,7 @@ outputs and other useful data including the template body.
 
 ## Example Usage
 
-```
+```hcl
 data "aws_cloudformation_stack" "network" {
   name = "my-network-stack"
 }
@@ -47,4 +47,5 @@ The following attributes are exported:
 * `parameters` - A map of parameters that specify input parameters for the stack.
 * `tags` - A map of tags associated with this stack.
 * `template_body` - Structure containing the template body.
+* `iam_role_arn` - The ARN of the IAM role used to create the stack.
 * `timeout_in_minutes` - The amount of time that can pass before the stack status becomes `CREATE_FAILED`

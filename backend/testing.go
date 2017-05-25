@@ -65,57 +65,109 @@ func testBackendStates(t *testing.T, b Backend) {
 	}
 
 	// Create a couple states
-	fooState, err := b.State("foo")
+	foo, err := b.State("foo")
 	if err != nil {
 		t.Fatalf("error: %s", err)
 	}
-	if err := fooState.RefreshState(); err != nil {
+	if err := foo.RefreshState(); err != nil {
 		t.Fatalf("bad: %s", err)
 	}
-	if v := fooState.State(); v.HasResources() {
+	if v := foo.State(); v.HasResources() {
 		t.Fatalf("should be empty: %s", v)
 	}
 
-	barState, err := b.State("bar")
+	bar, err := b.State("bar")
 	if err != nil {
 		t.Fatalf("error: %s", err)
 	}
-	if err := barState.RefreshState(); err != nil {
+	if err := bar.RefreshState(); err != nil {
 		t.Fatalf("bad: %s", err)
 	}
-	if v := barState.State(); v.HasResources() {
+	if v := bar.State(); v.HasResources() {
 		t.Fatalf("should be empty: %s", v)
 	}
 
-	// Verify they are distinct states
+	// Verify they are distinct states that can be read back from storage
 	{
-		s := barState.State()
-		if s == nil {
-			s = terraform.NewState()
+		// start with a fresh state, and record the lineage being
+		// written to "bar"
+		barState := terraform.NewState()
+		barLineage := barState.Lineage
+
+		// the foo lineage should be distinct from bar, and unchanged after
+		// modifying bar
+		fooState := terraform.NewState()
+		fooLineage := fooState.Lineage
+
+		// write a known state to foo
+		if err := foo.WriteState(fooState); err != nil {
+			t.Fatal("error writing foo state:", err)
+		}
+		if err := foo.PersistState(); err != nil {
+			t.Fatal("error persisting foo state:", err)
 		}
 
-		s.Lineage = "bar"
-		if err := barState.WriteState(s); err != nil {
+		// write a distinct known state to bar
+		if err := bar.WriteState(barState); err != nil {
 			t.Fatalf("bad: %s", err)
 		}
-		if err := barState.PersistState(); err != nil {
+		if err := bar.PersistState(); err != nil {
 			t.Fatalf("bad: %s", err)
 		}
 
-		if err := fooState.RefreshState(); err != nil {
-			t.Fatalf("bad: %s", err)
+		// verify that foo is unchanged with the existing state manager
+		if err := foo.RefreshState(); err != nil {
+			t.Fatal("error refreshing foo:", err)
 		}
-		if v := fooState.State(); v != nil && v.Lineage == "bar" {
-			t.Fatalf("bad: %#v", v)
+		fooState = foo.State()
+		switch {
+		case fooState == nil:
+			t.Fatal("nil state read from foo")
+		case fooState.Lineage == barLineage:
+			t.Fatalf("bar lineage read from foo: %#v", fooState)
+		case fooState.Lineage != fooLineage:
+			t.Fatal("foo lineage alterred")
+		}
+
+		// fetch foo again from the backend
+		foo, err = b.State("foo")
+		if err != nil {
+			t.Fatal("error re-fetching state:", err)
+		}
+		if err := foo.RefreshState(); err != nil {
+			t.Fatal("error refreshing foo:", err)
+		}
+		fooState = foo.State()
+		switch {
+		case fooState == nil:
+			t.Fatal("nil state read from foo")
+		case fooState.Lineage != fooLineage:
+			t.Fatal("incorrect state returned from backend")
+		}
+
+		// fetch the bar  again from the backend
+		bar, err = b.State("bar")
+		if err != nil {
+			t.Fatal("error re-fetching state:", err)
+		}
+		if err := bar.RefreshState(); err != nil {
+			t.Fatal("error refreshing bar:", err)
+		}
+		barState = bar.State()
+		switch {
+		case barState == nil:
+			t.Fatal("nil state read from bar")
+		case barState.Lineage != barLineage:
+			t.Fatal("incorrect state returned from backend")
 		}
 	}
 
 	// Verify we can now list them
 	{
+		// we determined that named stated are supported earlier
 		states, err := b.States()
-		if err == ErrNamedStatesNotSupported {
-			t.Logf("TestBackend: named states not supported in %T, skipping", b)
-			return
+		if err != nil {
+			t.Fatal(err)
 		}
 
 		sort.Strings(states)

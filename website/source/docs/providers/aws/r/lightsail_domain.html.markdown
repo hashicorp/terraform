@@ -18,7 +18,7 @@ this parameter to manage the DNS records for that domain.
 
 ## Example Usage, creating a new domain
 
-```
+```hcl
 resource "aws_lightsail_domain" "domain_test" {
   domain_name = "mydomain.com"
 }

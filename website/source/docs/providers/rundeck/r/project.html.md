@@ -14,7 +14,7 @@ can be run on.
 
 ## Example Usage
 
-```
+```hcl
 resource "rundeck_project" "anvils" {
     name = "anvils"
     description = "Application for managing Anvils"

@@ -12,7 +12,7 @@ Manages metadata common to all instances for a project in GCE.
 
 ## Example Usage
 
-```
+```hcl
 resource "google_compute_project_metadata" "default" {
   metadata {
     foo  = "bar"

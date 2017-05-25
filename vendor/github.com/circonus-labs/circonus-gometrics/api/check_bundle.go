@@ -38,7 +38,7 @@ type CheckBundle struct {
 	Checks             []string            `json:"_checks,omitempty"`                  // [] len >= 0
 	CheckUUIDs         []string            `json:"_check_uuids,omitempty"`             // [] len >= 0
 	CID                string              `json:"_cid,omitempty"`                     // string
-	Config             CheckBundleConfig   `json:"config,omitempty"`                   // NOTE contents of config are check type specific, map len >= 0
+	Config             CheckBundleConfig   `json:"config"`                             // NOTE contents of config are check type specific, map len >= 0
 	Created            uint                `json:"_created,omitempty"`                 // uint
 	DisplayName        string              `json:"display_name"`                       // string
 	LastModifedBy      string              `json:"_last_modifed_by,omitempty"`         // string

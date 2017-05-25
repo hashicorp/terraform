@@ -592,11 +592,11 @@ func resourceAwsCodeBuildProjectSourceAuthHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 
-	authType := m["type"].(string)
-	authResource := m["resource"].(string)
+	buf.WriteString(fmt.Sprintf("%s-", m["type"].(string)))
 
-	buf.WriteString(fmt.Sprintf("%s-", authType))
-	buf.WriteString(fmt.Sprintf("%s-", authResource))
+	if m["resource"] != nil {
+		buf.WriteString(fmt.Sprintf("%s-", m["resource"].(string)))
+	}
 
 	return hashcode.String(buf.String())
 }

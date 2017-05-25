@@ -12,7 +12,7 @@ The continuous_query resource allows a continuous query to be created on an Infl
 
 ## Example Usage
 
-```
+```hcl
 resource "influxdb_database" "test" {
     name = "terraform-test"
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccOpenStackFWRuleV1_importBasic(t *testing.T) {
+func TestAccFWRuleV1_importBasic(t *testing.T) {
 	resourceName := "openstack_fw_rule_v1.rule_1"
 
 	resource.Test(t, resource.TestCase{

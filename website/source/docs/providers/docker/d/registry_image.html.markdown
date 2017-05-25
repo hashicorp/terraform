@@ -16,7 +16,7 @@ to date on the latest available version of the tag.
 
 ## Example Usage
 
-```
+```hcl
 data "docker_registry_image" "ubuntu" {
   name = "ubuntu:precise"
 }

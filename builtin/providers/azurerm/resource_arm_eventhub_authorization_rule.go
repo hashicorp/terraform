@@ -45,11 +45,7 @@ func resourceArmEventHubAuthorizationRule() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
+			"location": locationSchema(),
 
 			"listen": {
 				Type:     schema.TypeBool,
@@ -148,7 +144,7 @@ func resourceArmEventHubAuthorizationRuleRead(d *schema.ResourceData, meta inter
 
 	resp, err := client.GetAuthorizationRule(resGroup, namespaceName, eventHubName, name)
 	if err != nil {
-		return fmt.Errorf("Error making Read request on Azure EventHub Authorization Rule %s: %s", name, err)
+		return fmt.Errorf("Error making Read request on Azure EventHub Authorization Rule %s: %+v", name, err)
 	}
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
@@ -157,7 +153,7 @@ func resourceArmEventHubAuthorizationRuleRead(d *schema.ResourceData, meta inter
 
 	keysResp, err := client.ListKeys(resGroup, namespaceName, eventHubName, name)
 	if err != nil {
-		return fmt.Errorf("Error making Read request on Azure EventHub Authorization Rule List Keys %s: %s", name, err)
+		return fmt.Errorf("Error making Read request on Azure EventHub Authorization Rule List Keys %s: %+v", name, err)
 	}
 
 	d.Set("name", name)
@@ -191,7 +187,7 @@ func resourceArmEventHubAuthorizationRuleDelete(d *schema.ResourceData, meta int
 	resp, err := eventhubClient.DeleteAuthorizationRule(resGroup, namespaceName, eventHubName, name)
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Error issuing Azure ARM delete request of EventHub Authorization Rule '%s': %s", name, err)
+		return fmt.Errorf("Error issuing Azure ARM delete request of EventHub Authorization Rule '%s': %+v", name, err)
 	}
 
 	return nil

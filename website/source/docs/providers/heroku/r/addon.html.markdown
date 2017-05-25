@@ -13,7 +13,7 @@ services to a Heroku app.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new Heroku app
 resource "heroku_app" "default" {
   name = "test-app"
@@ -53,3 +53,11 @@ The following attributes are exported:
 * `plan` - The plan name
 * `provider_id` - The ID of the plan provider
 
+
+## Import
+
+Addons can be imported using the Addon `id`, e.g.
+
+```
+$ terraform import heroku_addon.foobar 12345678
+```

@@ -50,10 +50,6 @@ variable "availability_zones" {
   default = "cn-beijing-c"
 }
 
-variable "internet_charge_type" {
-  default = ""
-}
-
 variable "datacenter" {
   default = "beijing"
 }

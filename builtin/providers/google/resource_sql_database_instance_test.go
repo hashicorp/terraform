@@ -408,66 +408,11 @@ func testAccCheckGoogleSqlDatabaseInstanceEquals(n string,
 			return fmt.Errorf("Error settings.pricing_plan mismatch, (%s, %s)", server, local)
 		}
 
-		if instance.ReplicaConfiguration != nil &&
-			instance.ReplicaConfiguration.MysqlReplicaConfiguration != nil {
-			server = instance.ReplicaConfiguration.MysqlReplicaConfiguration.CaCertificate
-			local = attributes["replica_configuration.0.ca_certificate"]
+		if instance.ReplicaConfiguration != nil {
+			server = strconv.FormatBool(instance.ReplicaConfiguration.FailoverTarget)
+			local = attributes["replica_configuration.0.failover_target"]
 			if server != local && len(server) > 0 && len(local) > 0 {
-				return fmt.Errorf("Error replica_configuration.ca_certificate mismatch, (%s, %s)", server, local)
-			}
-
-			server = instance.ReplicaConfiguration.MysqlReplicaConfiguration.ClientCertificate
-			local = attributes["replica_configuration.0.client_certificate"]
-			if server != local && len(server) > 0 && len(local) > 0 {
-				return fmt.Errorf("Error replica_configuration.client_certificate mismatch, (%s, %s)", server, local)
-			}
-
-			server = instance.ReplicaConfiguration.MysqlReplicaConfiguration.ClientKey
-			local = attributes["replica_configuration.0.client_key"]
-			if server != local && len(server) > 0 && len(local) > 0 {
-				return fmt.Errorf("Error replica_configuration.client_key mismatch, (%s, %s)", server, local)
-			}
-
-			server = strconv.FormatInt(instance.ReplicaConfiguration.MysqlReplicaConfiguration.ConnectRetryInterval, 10)
-			local = attributes["replica_configuration.0.connect_retry_interval"]
-			if server != local && len(server) > 0 && len(local) > 0 {
-				return fmt.Errorf("Error replica_configuration.connect_retry_interval mismatch, (%s, %s)", server, local)
-			}
-
-			server = instance.ReplicaConfiguration.MysqlReplicaConfiguration.DumpFilePath
-			local = attributes["replica_configuration.0.dump_file_path"]
-			if server != local && len(server) > 0 && len(local) > 0 {
-				return fmt.Errorf("Error replica_configuration.dump_file_path mismatch, (%s, %s)", server, local)
-			}
-
-			server = strconv.FormatInt(instance.ReplicaConfiguration.MysqlReplicaConfiguration.MasterHeartbeatPeriod, 10)
-			local = attributes["replica_configuration.0.master_heartbeat_period"]
-			if server != local && len(server) > 0 && len(local) > 0 {
-				return fmt.Errorf("Error replica_configuration.master_heartbeat_period mismatch, (%s, %s)", server, local)
-			}
-
-			server = instance.ReplicaConfiguration.MysqlReplicaConfiguration.Password
-			local = attributes["replica_configuration.0.password"]
-			if server != local && len(server) > 0 && len(local) > 0 {
-				return fmt.Errorf("Error replica_configuration.password mismatch, (%s, %s)", server, local)
-			}
-
-			server = instance.ReplicaConfiguration.MysqlReplicaConfiguration.SslCipher
-			local = attributes["replica_configuration.0.ssl_cipher"]
-			if server != local && len(server) > 0 && len(local) > 0 {
-				return fmt.Errorf("Error replica_configuration.ssl_cipher mismatch, (%s, %s)", server, local)
-			}
-
-			server = instance.ReplicaConfiguration.MysqlReplicaConfiguration.Username
-			local = attributes["replica_configuration.0.username"]
-			if server != local && len(server) > 0 && len(local) > 0 {
-				return fmt.Errorf("Error replica_configuration.username mismatch, (%s, %s)", server, local)
-			}
-
-			server = strconv.FormatBool(instance.ReplicaConfiguration.MysqlReplicaConfiguration.VerifyServerCertificate)
-			local = attributes["replica_configuration.0.verify_server_certificate"]
-			if server != local && len(server) > 0 && len(local) > 0 {
-				return fmt.Errorf("Error replica_configuration.verify_server_certificate mismatch, (%s, %s)", server, local)
+				return fmt.Errorf("Error replica_configuration.failover_target mismatch, (%s, %s)", server, local)
 			}
 		}
 

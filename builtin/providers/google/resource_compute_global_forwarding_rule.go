@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeGlobalForwardingRule() *schema.Resource {
@@ -152,15 +151,7 @@ func resourceComputeGlobalForwardingRuleRead(d *schema.ResourceData, meta interf
 	frule, err := config.clientCompute.GlobalForwardingRules.Get(
 		project, d.Id()).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing Global Forwarding Rule %q because it's gone", d.Get("name").(string))
-			// The resource doesn't exist anymore
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error reading GlobalForwardingRule: %s", err)
+		return handleNotFoundError(err, d, fmt.Sprintf("Global Forwarding Rule %q", d.Get("name").(string)))
 	}
 
 	d.Set("ip_address", frule.IPAddress)

@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/config/module"
 )
 
@@ -3278,6 +3279,154 @@ func TestContext2Apply_multiVar(t *testing.T) {
 	}
 }
 
+// This is a holistic test of multi-var (aka "splat variable") handling
+// across several different Terraform subsystems. This is here because
+// historically there were quirky differences in handling across different
+// parts of Terraform and so here we want to assert the expected behavior and
+// ensure that it remains consistent in future.
+func TestContext2Apply_multiVarComprehensive(t *testing.T) {
+	m := testModule(t, "apply-multi-var-comprehensive")
+	p := testProvider("test")
+
+	configs := map[string]*ResourceConfig{}
+
+	p.ApplyFn = testApplyFn
+
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, c *ResourceConfig) (*InstanceDiff, error) {
+		configs[info.HumanId()] = c
+
+		// Return a minimal diff to make sure this resource gets included in
+		// the apply graph and thus the final state, but otherwise we're just
+		// gathering data for assertions.
+		return &InstanceDiff{
+			Attributes: map[string]*ResourceAttrDiff{
+				"id": &ResourceAttrDiff{
+					NewComputed: true,
+				},
+				"name": &ResourceAttrDiff{
+					New: info.HumanId(),
+				},
+			},
+		}, nil
+	}
+
+	// First, apply with a count of 3
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"test": testProviderFuncFixed(p),
+		},
+		Variables: map[string]interface{}{
+			"count": "3",
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("error during plan: %s", err)
+	}
+
+	checkConfig := func(name string, want map[string]interface{}) {
+		got := configs[name].Config
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf(
+				"wrong config for %s\ngot:  %s\nwant: %s",
+				name, spew.Sdump(got), spew.Sdump(want),
+			)
+		}
+	}
+
+	checkConfig("test_thing.multi_count_var.0", map[string]interface{}{
+		"source_id":   unknownValue(),
+		"source_name": "test_thing.source.0",
+	})
+	checkConfig("test_thing.multi_count_var.2", map[string]interface{}{
+		"source_id":   unknownValue(),
+		"source_name": "test_thing.source.2",
+	})
+	checkConfig("test_thing.multi_count_derived.0", map[string]interface{}{
+		"source_id":   unknownValue(),
+		"source_name": "test_thing.source.0",
+	})
+	checkConfig("test_thing.multi_count_derived.2", map[string]interface{}{
+		"source_id":   unknownValue(),
+		"source_name": "test_thing.source.2",
+	})
+	checkConfig("test_thing.whole_splat", map[string]interface{}{
+		"source_ids": unknownValue(),
+		"source_names": []interface{}{
+			"test_thing.source.0",
+			"test_thing.source.1",
+			"test_thing.source.2",
+		},
+		"source_ids_from_func": unknownValue(),
+		"source_names_from_func": []interface{}{
+			"test_thing.source.0",
+			"test_thing.source.1",
+			"test_thing.source.2",
+		},
+
+		// This one ends up being a list with a single unknown value at this
+		// layer, but is fixed up inside helper/schema. There is a test for
+		// this inside the "test" provider, since core tests can't exercise
+		// helper/schema functionality.
+		"source_ids_wrapped": []interface{}{unknownValue()},
+
+		"source_names_wrapped": []interface{}{
+			"test_thing.source.0",
+			"test_thing.source.1",
+			"test_thing.source.2",
+		},
+		"first_source_id":   unknownValue(),
+		"first_source_name": "test_thing.source.0",
+	})
+	checkConfig("module.child.test_thing.whole_splat", map[string]interface{}{
+		"source_ids": unknownValue(),
+		"source_names": []interface{}{
+			"test_thing.source.0",
+			"test_thing.source.1",
+			"test_thing.source.2",
+		},
+
+		// This one ends up being a list with a single unknown value at this
+		// layer, but is fixed up inside helper/schema. There is a test for
+		// this inside the "test" provider, since core tests can't exercise
+		// helper/schema functionality.
+		"source_ids_wrapped": []interface{}{unknownValue()},
+
+		"source_names_wrapped": []interface{}{
+			"test_thing.source.0",
+			"test_thing.source.1",
+			"test_thing.source.2",
+		},
+	})
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("error during apply: %s", err)
+	}
+
+	{
+		want := map[string]interface{}{
+			"source_ids": []interface{}{"foo", "foo", "foo"},
+			"source_names": []interface{}{
+				"test_thing.source.0",
+				"test_thing.source.1",
+				"test_thing.source.2",
+			},
+		}
+		got := map[string]interface{}{}
+		for k, s := range state.RootModule().Outputs {
+			got[k] = s.Value
+		}
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf(
+				"wrong outputs\ngot:  %s\nwant: %s",
+				spew.Sdump(got), spew.Sdump(want),
+			)
+		}
+	}
+}
+
 // Test that multi-var (splat) access is ordered by count, not by
 // value.
 func TestContext2Apply_multiVarOrder(t *testing.T) {
@@ -3445,6 +3594,36 @@ func TestContext2Apply_multiVarCountDec(t *testing.T) {
 
 		s = state
 	}
+}
+
+// Test that we can resolve a multi-var (splat) for the first resource
+// created in a non-root module, which happens when the module state doesn't
+// exist yet.
+// https://github.com/hashicorp/terraform/issues/14438
+func TestContext2Apply_multiVarMissingState(t *testing.T) {
+	m := testModule(t, "apply-multi-var-missing-state")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	// First, apply with a count of 3
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"test": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("plan failed: %s", err)
+	}
+
+	// Before the relevant bug was fixed, Terraform would panic during apply.
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("apply failed: %s", err)
+	}
+
+	// If we get here with no errors or panics then our test was successful.
 }
 
 func TestContext2Apply_nilDiff(t *testing.T) {
@@ -4430,6 +4609,7 @@ func TestContext2Apply_provisionerDestroyFailContinue(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
+	var l sync.Mutex
 	var calls []string
 	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
 		val, ok := c.Config["foo"]
@@ -4437,6 +4617,8 @@ func TestContext2Apply_provisionerDestroyFailContinue(t *testing.T) {
 			t.Fatalf("bad value for foo: %v %#v", val, c)
 		}
 
+		l.Lock()
+		defer l.Unlock()
 		calls = append(calls, val.(string))
 		return fmt.Errorf("provisioner error")
 	}
@@ -4501,6 +4683,7 @@ func TestContext2Apply_provisionerDestroyFailContinueFail(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
+	var l sync.Mutex
 	var calls []string
 	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
 		val, ok := c.Config["foo"]
@@ -4508,6 +4691,8 @@ func TestContext2Apply_provisionerDestroyFailContinueFail(t *testing.T) {
 			t.Fatalf("bad value for foo: %v %#v", val, c)
 		}
 
+		l.Lock()
+		defer l.Unlock()
 		calls = append(calls, val.(string))
 		return fmt.Errorf("provisioner error")
 	}
@@ -7181,6 +7366,30 @@ func TestContext2Apply_targetedModuleUnrelatedOutputs(t *testing.T) {
 			"aws": testProviderFuncFixed(p),
 		},
 		Targets: []string{"module.child2"},
+		State: &State{
+			Modules: []*ModuleState{
+				{
+					Path:      []string{"root"},
+					Outputs:   map[string]*OutputState{},
+					Resources: map[string]*ResourceState{},
+				},
+				{
+					Path: []string{"root", "child1"},
+					Outputs: map[string]*OutputState{
+						"instance_id": {
+							Type:  "string",
+							Value: "foo-bar-baz",
+						},
+					},
+					Resources: map[string]*ResourceState{},
+				},
+				{
+					Path:      []string{"root", "child2"},
+					Outputs:   map[string]*OutputState{},
+					Resources: map[string]*ResourceState{},
+				},
+			},
+		},
 	})
 
 	if _, err := ctx.Plan(); err != nil {
@@ -7192,12 +7401,28 @@ func TestContext2Apply_targetedModuleUnrelatedOutputs(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	// module.child1's instance_id output should be retained from state
+	// module.child2's instance_id is updated because its dependency is updated
+	// child2_id is updated because if its transitive dependency via module.child2
 	checkStateString(t, state, `
 <no state>
+Outputs:
+
+child2_id = foo
+
+module.child1:
+  <no state>
+  Outputs:
+
+  instance_id = foo-bar-baz
 module.child2:
   aws_instance.foo:
     ID = foo
-	`)
+
+  Outputs:
+
+  instance_id = foo
+`)
 }
 
 func TestContext2Apply_targetedModuleResource(t *testing.T) {
@@ -8098,5 +8323,34 @@ func TestContext2Apply_terraformEnv(t *testing.T) {
 	expected := "foo"
 	if actual == nil || actual.Value != expected {
 		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+// verify that multiple config references only create a single depends_on entry
+func TestContext2Apply_multiRef(t *testing.T) {
+	m := testModule(t, "apply-multi-ref")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	deps := state.Modules[0].Resources["aws_instance.other"].Dependencies
+	if len(deps) > 1 || deps[0] != "aws_instance.create" {
+		t.Fatalf("expected 1 depends_on entry for aws_instance.create, got %q", deps)
 	}
 }

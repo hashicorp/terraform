@@ -9,3 +9,7 @@ func isNotFound(err error) bool {
 
 	return false
 }
+
+func isUnauthorized(err error) bool {
+	return strings.Contains(err.Error(), "HTTP response code: 401")
+}

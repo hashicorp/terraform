@@ -12,9 +12,12 @@ description: |-
 `node_version` are non-updateable. Changing any will cause recreation of the
 whole cluster!
 
+~> **Note:** All arguments including the username and password will be stored in the raw state as plain-text.
+[Read more about sensitive data in state](/docs/state/sensitive-data.html).
+
 ## Example usage
 
-```js
+```hcl
 resource "google_container_cluster" "primary" {
   name               = "marcellus-wallace"
   zone               = "us-central1-a"
@@ -82,6 +85,8 @@ resource "google_container_cluster" "primary" {
 * `node_config` -  (Optional) The machine type and image to use for all nodes in
     this cluster
 
+* `node_pool` - (Optional) List of node pools associated with this cluster.
+
 * `node_version` - (Optional) The Kubernetes version on the nodes. Also affects
     the initial master version on cluster creation. Updates affect nodes only.
     Defaults to the default version set by GKE which is not necessarily the latest
@@ -109,6 +114,9 @@ which the cluster's instances are launched
 * `disk_size_gb` - (Optional) Size of the disk attached to each node, specified
     in GB. The smallest allowed disk size is 10GB. Defaults to 100GB.
 
+* `local_ssd_count` - (Optional) The amount of local SSD disks that will be
+    attached to each cluster node. Defaults to 0.
+
 * `oauth_scopes` - (Optional) The set of Google API scopes to be made available
     on all of the node VMs under the "default" service account. These can be
     either FQDNs, or scope aliases. The following scopes are necessary to ensure
@@ -120,6 +128,14 @@ which the cluster's instances are launched
     if `logging_service` points to Google
   * `monitoring` (`https://www.googleapis.com/auth/monitoring`),
     if `monitoring_service` points to Google
+
+* `service_account` - (Optional) The service account to be used by the Node VMs.
+    If not specified, the "default" service account is used.
+
+* `metadata` - (Optional) The metadata key/value pairs assigned to instances in
+    the cluster.
+
+* `image_type` - (Optional) The image type to use for this node.
 
 **Addons Config** supports the following addons:
 
@@ -141,6 +157,16 @@ addons_config {
   }
 }
 ```
+
+**Node Pool** supports the following arguments:
+
+* `initial_node_count` - (Required) The initial node count for the pool.
+
+* `name` - (Optional) The name of the node pool. If left blank, Terraform will
+    auto-generate a unique name.
+
+* `name_prefix` - (Optional) Creates a unique name for the node pool beginning
+    with the specified prefix. Conflicts with `name`.
 
 ## Attributes Reference
 

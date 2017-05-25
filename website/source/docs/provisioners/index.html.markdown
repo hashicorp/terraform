@@ -14,7 +14,7 @@ bootstrap a resource, cleanup before destroy, run configuration management, etc.
 
 Provisioners are added directly to any resource:
 
-```
+```hcl
 resource "aws_instance" "web" {
   # ...
 
@@ -55,6 +55,21 @@ fail, Terraform will error and rerun the provisioners again on the next
 `terraform apply`. Due to this behavior, care should be taken for destroy
 provisioners to be safe to run multiple times.
 
+Destroy-time provisioners can only run if they remain in the configuration
+at the time a resource is destroyed. If a resource block with a destroy-time
+provisioner is removed entirely from the configuration, its provisioner
+configurations are removed along with it and thus the destroy provisioner
+won't run. To work around this, a multi-step process can be used to safely
+remove a resource with a destroy-time provisioner:
+
+* Update the resource configuration to include `count = 0`.
+* Apply the configuration to destroy any existing instances of the resource, including running the destroy provisioner.
+* Remove the resource block entirely from configuration, along with its `provisioner` blocks.
+* Apply again, at which point no further action should be taken since the resources were already destroyed.
+
+This limitation may be addressed in future versions of Terraform. For now,
+destroy-time provisioners must be used sparingly and with care.
+
 ## Multiple Provisioners
 
 Multiple provisioners can be specified within a resource. Multiple provisioners
@@ -67,7 +82,7 @@ file.
 
 Example of multiple provisioners:
 
-```
+```hcl
 resource "aws_instance" "web" {
   # ...
 
@@ -87,14 +102,14 @@ By default, provisioners that fail will also cause the Terraform apply
 itself to error. The `on_failure` setting can be used to change this. The
 allowed values are:
 
-  * `"continue"` - Ignore the error and continue with creation or destruction.
+- `"continue"` - Ignore the error and continue with creation or destruction.
 
-  * `"fail"` - Error (the default behavior). If this is a creation provisioner,
+- `"fail"` - Error (the default behavior). If this is a creation provisioner,
     taint the resource.
 
 Example:
 
-```
+```hcl
 resource "aws_instance" "web" {
   # ...
 

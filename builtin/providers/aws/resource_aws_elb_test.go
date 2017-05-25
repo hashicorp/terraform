@@ -172,6 +172,28 @@ func TestAccAWSELB_AccessLogs_disabled(t *testing.T) {
 	})
 }
 
+func TestAccAWSELB_namePrefix(t *testing.T) {
+	var conf elb.LoadBalancerDescription
+	nameRegex := regexp.MustCompile("^test-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_elb.test",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSELB_namePrefix,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.test", &conf),
+					resource.TestMatchResourceAttr(
+						"aws_elb.test", "name", nameRegex),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSELB_generatedName(t *testing.T) {
 	var conf elb.LoadBalancerDescription
 	generatedNameRegexp := regexp.MustCompile("^tf-lb-")
@@ -184,6 +206,28 @@ func TestAccAWSELB_generatedName(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAWSELBGeneratedName,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.foo", &conf),
+					resource.TestMatchResourceAttr(
+						"aws_elb.foo", "name", generatedNameRegexp),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSELB_generatesNameForZeroValue(t *testing.T) {
+	var conf elb.LoadBalancerDescription
+	generatedNameRegexp := regexp.MustCompile("^tf-lb-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_elb.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSELB_zeroValueName,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.foo", &conf),
 					resource.TestMatchResourceAttr(
@@ -651,7 +695,16 @@ func TestResourceAWSELB_validateElbNameCannotBeginWithHyphen(t *testing.T) {
 	}
 }
 
-func TestResourceAWSELB_validateElbNameCannotBeLongerThen32Characters(t *testing.T) {
+func TestResourceAWSELB_validateElbNameCanBeAnEmptyString(t *testing.T) {
+	var elbName = ""
+	_, errors := validateElbName(elbName, "SampleKey")
+
+	if len(errors) != 0 {
+		t.Fatalf("Expected the ELB Name to pass validation")
+	}
+}
+
+func TestResourceAWSELB_validateElbNameCannotBeLongerThan32Characters(t *testing.T) {
 	var elbName = "Testing123dddddddddddddddddddvvvv"
 	_, errors := validateElbName(elbName, "SampleKey")
 
@@ -1138,8 +1191,36 @@ resource "aws_elb" "foo" {
 `, r, r)
 }
 
+const testAccAWSELB_namePrefix = `
+resource "aws_elb" "test" {
+  name_prefix = "test-"
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
+
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+}
+`
+
 const testAccAWSELBGeneratedName = `
 resource "aws_elb" "foo" {
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
+
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+}
+`
+
+const testAccAWSELB_zeroValueName = `
+resource "aws_elb" "foo" {
+  name               = ""
   availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
 
   listener {

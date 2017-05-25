@@ -244,6 +244,44 @@ func TestAccComputeInstance_diskEncryption(t *testing.T) {
 	})
 }
 
+func TestAccComputeInstance_attachedDisk(t *testing.T) {
+	var instance compute.Instance
+	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
+	var diskName = fmt.Sprintf("instance-testd-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_attachedDisk(diskName, instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceDisk(&instance, diskName, false, true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeInstance_noDisk(t *testing.T) {
+	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config:      testAccComputeInstance_noDisk(instanceName),
+				ExpectError: regexp.MustCompile("At least one disk or attached_disk must be set"),
+			},
+		},
+	})
+}
+
 func TestAccComputeInstance_local_ssd(t *testing.T) {
 	var instance compute.Instance
 	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
@@ -1119,6 +1157,51 @@ func testAccComputeInstance_disks_encryption(disk, instance string) string {
 			foo = "bar"
 		}
 	}`, disk, instance)
+}
+
+func testAccComputeInstance_attachedDisk(disk, instance string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_disk" "foobar" {
+		name = "%s"
+		size = 10
+		type = "pd-ssd"
+		zone = "us-central1-a"
+	}
+
+	resource "google_compute_instance" "foobar" {
+		name = "%s"
+		machine_type = "n1-standard-1"
+		zone = "us-central1-a"
+
+		attached_disk {
+			source = "${google_compute_disk.foobar.self_link}"
+		}
+
+		network_interface {
+			network = "default"
+		}
+
+		metadata {
+			foo = "bar"
+		}
+	}`, disk, instance)
+}
+
+func testAccComputeInstance_noDisk(instance string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_instance" "foobar" {
+		name = "%s"
+		machine_type = "n1-standard-1"
+		zone = "us-central1-a"
+
+		network_interface {
+			network = "default"
+		}
+
+		metadata {
+			foo = "bar"
+		}
+	}`, instance)
 }
 
 func testAccComputeInstance_local_ssd(instance string) string {

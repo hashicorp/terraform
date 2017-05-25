@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeRoute() *schema.Resource {
@@ -14,6 +13,9 @@ func resourceComputeRoute() *schema.Resource {
 		Create: resourceComputeRouteCreate,
 		Read:   resourceComputeRouteRead,
 		Delete: resourceComputeRouteDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"dest_range": &schema.Schema{
@@ -189,15 +191,7 @@ func resourceComputeRouteRead(d *schema.ResourceData, meta interface{}) error {
 	route, err := config.clientCompute.Routes.Get(
 		project, d.Id()).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing Route %q because it's gone", d.Get("name").(string))
-			// The resource doesn't exist anymore
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error reading route: %#v", err)
+		return handleNotFoundError(err, d, fmt.Sprintf("Route %q", d.Get("name").(string)))
 	}
 
 	d.Set("next_hop_network", route.NextHopNetwork)

@@ -12,7 +12,7 @@ Creates a Traffic Manager Profile to which multiple endpoints can be attached.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_traffic_manager_profile" "test" {
   name                = "profile1"
   resource_group_name = "${azurerm_resource_group.test.name}"

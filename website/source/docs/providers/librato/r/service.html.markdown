@@ -13,7 +13,7 @@ create and manage notification services on Librato.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new Librato service
 resource "librato_service" "email" {
   title = "Email the admins"

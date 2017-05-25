@@ -8,7 +8,6 @@ import (
 	dms "github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -44,11 +43,6 @@ func TestAccAwsDmsReplicationTaskBasic(t *testing.T) {
 }
 
 func checkDmsReplicationTaskExists(n string) resource.TestCheckFunc {
-	providers := []*schema.Provider{testAccProvider}
-	return checkDmsReplicationTaskExistsWithProviders(n, &providers)
-}
-
-func checkDmsReplicationTaskExistsWithProviders(n string, providers *[]*schema.Provider) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -58,29 +52,25 @@ func checkDmsReplicationTaskExistsWithProviders(n string, providers *[]*schema.P
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("No ID is set")
 		}
-		for _, provider := range *providers {
-			// Ignore if Meta is empty, this can happen for validation providers
-			if provider.Meta() == nil {
-				continue
-			}
 
-			conn := provider.Meta().(*AWSClient).dmsconn
-			_, err := conn.DescribeReplicationTasks(&dms.DescribeReplicationTasksInput{
-				Filters: []*dms.Filter{
-					{
-						Name:   aws.String("replication-task-id"),
-						Values: []*string{aws.String(rs.Primary.ID)},
-					},
+		conn := testAccProvider.Meta().(*AWSClient).dmsconn
+		resp, err := conn.DescribeReplicationTasks(&dms.DescribeReplicationTasksInput{
+			Filters: []*dms.Filter{
+				{
+					Name:   aws.String("replication-task-id"),
+					Values: []*string{aws.String(rs.Primary.ID)},
 				},
-			})
+			},
+		})
 
-			if err != nil {
-				return fmt.Errorf("DMS replication subnet group error: %v", err)
-			}
-			return nil
+		if err != nil {
+			return err
 		}
 
-		return fmt.Errorf("DMS replication subnet group not found")
+		if resp.ReplicationTasks == nil {
+			return fmt.Errorf("DMS replication task error: %v", err)
+		}
+		return nil
 	}
 }
 
@@ -90,9 +80,22 @@ func dmsReplicationTaskDestroy(s *terraform.State) error {
 			continue
 		}
 
-		err := checkDmsReplicationTaskExists(rs.Primary.ID)
-		if err == nil {
-			return fmt.Errorf("Found replication subnet group that was not destroyed: %s", rs.Primary.ID)
+		conn := testAccProvider.Meta().(*AWSClient).dmsconn
+		resp, err := conn.DescribeReplicationTasks(&dms.DescribeReplicationTasksInput{
+			Filters: []*dms.Filter{
+				{
+					Name:   aws.String("replication-task-id"),
+					Values: []*string{aws.String(rs.Primary.ID)},
+				},
+			},
+		})
+
+		if err != nil {
+			return nil
+		}
+
+		if resp != nil && len(resp.ReplicationTasks) > 0 {
+			return fmt.Errorf("DMS replication task still exists: %v", err)
 		}
 	}
 
@@ -101,22 +104,11 @@ func dmsReplicationTaskDestroy(s *terraform.State) error {
 
 func dmsReplicationTaskConfig(randId string) string {
 	return fmt.Sprintf(`
-resource "aws_iam_role" "dms_iam_role" {
-  name = "dms-vpc-role"
-  assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"dms.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
-}
-
-resource "aws_iam_role_policy_attachment" "dms_iam_role_policy" {
-  role = "${aws_iam_role.dms_iam_role.name}"
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonDMSVPCManagementRole"
-}
-
 resource "aws_vpc" "dms_vpc" {
 	cidr_block = "10.1.0.0/16"
 	tags {
 		Name = "tf-test-dms-vpc-%[1]s"
 	}
-	depends_on = ["aws_iam_role_policy_attachment.dms_iam_role_policy"]
 }
 
 resource "aws_subnet" "dms_subnet_1" {
@@ -148,7 +140,6 @@ resource "aws_dms_endpoint" "dms_endpoint_source" {
 	port = 3306
 	username = "tftest"
 	password = "tftest"
-	depends_on = ["aws_iam_role_policy_attachment.dms_iam_role_policy"]
 }
 
 resource "aws_dms_endpoint" "dms_endpoint_target" {
@@ -160,14 +151,12 @@ resource "aws_dms_endpoint" "dms_endpoint_target" {
 	port = 3306
 	username = "tftest"
 	password = "tftest"
-	depends_on = ["aws_iam_role_policy_attachment.dms_iam_role_policy"]
 }
 
 resource "aws_dms_replication_subnet_group" "dms_replication_subnet_group" {
 	replication_subnet_group_id = "tf-test-dms-replication-subnet-group-%[1]s"
 	replication_subnet_group_description = "terraform test for replication subnet group"
 	subnet_ids = ["${aws_subnet.dms_subnet_1.id}", "${aws_subnet.dms_subnet_2.id}"]
-	depends_on = ["aws_iam_role_policy_attachment.dms_iam_role_policy"]
 }
 
 resource "aws_dms_replication_instance" "dms_replication_instance" {
@@ -199,22 +188,11 @@ resource "aws_dms_replication_task" "dms_replication_task" {
 
 func dmsReplicationTaskConfigUpdate(randId string) string {
 	return fmt.Sprintf(`
-resource "aws_iam_role" "dms_iam_role" {
-  name = "dms-vpc-role"
-  assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"dms.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
-}
-
-resource "aws_iam_role_policy_attachment" "dms_iam_role_policy" {
-  role = "${aws_iam_role.dms_iam_role.name}"
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonDMSVPCManagementRole"
-}
-
 resource "aws_vpc" "dms_vpc" {
 	cidr_block = "10.1.0.0/16"
 	tags {
 		Name = "tf-test-dms-vpc-%[1]s"
 	}
-	depends_on = ["aws_iam_role_policy_attachment.dms_iam_role_policy"]
 }
 
 resource "aws_subnet" "dms_subnet_1" {
@@ -246,7 +224,6 @@ resource "aws_dms_endpoint" "dms_endpoint_source" {
 	port = 3306
 	username = "tftest"
 	password = "tftest"
-	depends_on = ["aws_iam_role_policy_attachment.dms_iam_role_policy"]
 }
 
 resource "aws_dms_endpoint" "dms_endpoint_target" {
@@ -258,14 +235,12 @@ resource "aws_dms_endpoint" "dms_endpoint_target" {
 	port = 3306
 	username = "tftest"
 	password = "tftest"
-	depends_on = ["aws_iam_role_policy_attachment.dms_iam_role_policy"]
 }
 
 resource "aws_dms_replication_subnet_group" "dms_replication_subnet_group" {
 	replication_subnet_group_id = "tf-test-dms-replication-subnet-group-%[1]s"
 	replication_subnet_group_description = "terraform test for replication subnet group"
 	subnet_ids = ["${aws_subnet.dms_subnet_1.id}", "${aws_subnet.dms_subnet_2.id}"]
-	depends_on = ["aws_iam_role_policy_attachment.dms_iam_role_policy"]
 }
 
 resource "aws_dms_replication_instance" "dms_replication_instance" {

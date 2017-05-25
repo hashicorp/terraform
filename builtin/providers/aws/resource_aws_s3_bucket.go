@@ -31,8 +31,15 @@ func resourceAwsS3Bucket() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"bucket": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"bucket_prefix"},
+			},
+			"bucket_prefix": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 			},
 
@@ -389,7 +396,15 @@ func resourceAwsS3BucketCreate(d *schema.ResourceData, meta interface{}) error {
 	s3conn := meta.(*AWSClient).s3conn
 
 	// Get the bucket and acl
-	bucket := d.Get("bucket").(string)
+	var bucket string
+	if v, ok := d.GetOk("bucket"); ok {
+		bucket = v.(string)
+	} else if v, ok := d.GetOk("bucket_prefix"); ok {
+		bucket = resource.PrefixedUniqueId(v.(string))
+	} else {
+		bucket = resource.UniqueId()
+	}
+	d.Set("bucket", bucket)
 	acl := d.Get("acl").(string)
 
 	log.Printf("[DEBUG] S3 bucket create: %s, ACL: %s", bucket, acl)
@@ -728,8 +743,8 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[DEBUG] S3 Bucket: %s, logging: %v", d.Id(), logging)
+	lcl := make([]map[string]interface{}, 0, 1)
 	if v := logging.LoggingEnabled; v != nil {
-		lcl := make([]map[string]interface{}, 0, 1)
 		lc := make(map[string]interface{})
 		if *v.TargetBucket != "" {
 			lc["target_bucket"] = *v.TargetBucket
@@ -738,9 +753,9 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 			lc["target_prefix"] = *v.TargetPrefix
 		}
 		lcl = append(lcl, lc)
-		if err := d.Set("logging", lcl); err != nil {
-			return err
-		}
+	}
+	if err := d.Set("logging", lcl); err != nil {
+		return err
 	}
 
 	// Read the lifecycle configuration

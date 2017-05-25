@@ -12,7 +12,7 @@ Provides a NS1 Team resource. This can be used to create, modify, and delete tea
 
 ## Example Usage
 
-```
+```hcl
 # Create a new NS1 Team
 resource "ns1_team" "example" {
   name = "Example team"

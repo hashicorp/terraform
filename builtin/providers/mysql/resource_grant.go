@@ -88,7 +88,18 @@ func CreateGrant(d *schema.ResourceData, meta interface{}) error {
 }
 
 func ReadGrant(d *schema.ResourceData, meta interface{}) error {
-	// At this time, all attributes are supplied by the user
+	conn := meta.(*providerConfiguration).Conn
+
+	stmtSQL := fmt.Sprintf("SHOW GRANTS FOR '%s'@'%s'",
+		d.Get("user").(string),
+		d.Get("host").(string))
+
+	log.Println("Executing statement:", stmtSQL)
+
+	_, _, err := conn.Query(stmtSQL)
+	if err != nil {
+		d.SetId("")
+	}
 	return nil
 }
 

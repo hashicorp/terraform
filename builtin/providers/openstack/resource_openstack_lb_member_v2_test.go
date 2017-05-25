@@ -33,6 +33,24 @@ func TestAccLBV2Member_basic(t *testing.T) {
 	})
 }
 
+func TestAccLBV2Member_timeout(t *testing.T) {
+	var member pools.Member
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLBV2MemberDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: TestAccLBV2MemberConfig_timeout,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckLBV2MemberExists("openstack_lb_member_v2.member_1", &member),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckLBV2MemberDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
@@ -167,5 +185,50 @@ resource "openstack_lb_member_v2" "member_1" {
   admin_state_up = "true"
   pool_id = "${openstack_lb_pool_v2.pool_1.id}"
   subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
+}
+`
+
+const TestAccLBV2MemberConfig_timeout = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  admin_state_up = "true"
+}
+
+resource "openstack_networking_subnet_v2" "subnet_1" {
+  name = "subnet_1"
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+  cidr = "192.168.199.0/24"
+  ip_version = 4
+}
+
+resource "openstack_lb_loadbalancer_v2" "loadbalancer_1" {
+  name = "loadbalancer_1"
+  vip_subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
+}
+
+resource "openstack_lb_listener_v2" "listener_1" {
+  name = "listener_1"
+  protocol = "HTTP"
+  protocol_port = 8080
+  loadbalancer_id = "${openstack_lb_loadbalancer_v2.loadbalancer_1.id}"
+}
+
+resource "openstack_lb_pool_v2" "pool_1" {
+  name = "pool_1"
+  protocol = "HTTP"
+  lb_method = "ROUND_ROBIN"
+  listener_id = "${openstack_lb_listener_v2.listener_1.id}"
+}
+
+resource "openstack_lb_member_v2" "member_1" {
+  address = "192.168.199.10"
+  protocol_port = 8080
+  pool_id = "${openstack_lb_pool_v2.pool_1.id}"
+  subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
+
+  timeouts {
+    create = "5m"
+    delete = "5m"
+  }
 }
 `

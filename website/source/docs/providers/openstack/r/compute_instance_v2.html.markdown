@@ -14,7 +14,7 @@ Manages a V2 VM instance resource within OpenStack.
 
 ### Basic Instance
 
-```
+```hcl
 resource "openstack_compute_instance_v2" "basic" {
   name            = "basic"
   image_id        = "ad091b52-742f-469e-8f3c-fd81cadf0743"
@@ -34,14 +34,14 @@ resource "openstack_compute_instance_v2" "basic" {
 
 ### Instance With Attached Volume
 
-```
-resource "openstack_blockstorage_volume_v1" "myvol" {
+```hcl
+resource "openstack_blockstorage_volume_v2" "myvol" {
   name = "myvol"
   size = 1
 }
 
-resource "openstack_compute_instance_v2" "volume-attached" {
-  name            = "volume-attached"
+resource "openstack_compute_instance_v2" "myinstance" {
+  name            = "myinstance"
   image_id        = "ad091b52-742f-469e-8f3c-fd81cadf0743"
   flavor_id       = "3"
   key_pair        = "my_key_pair_name"
@@ -50,16 +50,17 @@ resource "openstack_compute_instance_v2" "volume-attached" {
   network {
     name = "my_network"
   }
+}
 
-  volume {
-    volume_id = "${openstack_blockstorage_volume_v1.myvol.id}"
-  }
+resource "openstack_compute_volume_attach_v2" "attached" {
+  compute_id = "${openstack_compute_instance_v2.myinstance.id}"
+  volume_id = "${openstack_blockstorage_volume_v2.myvol.id}"
 }
 ```
 
 ### Boot From Volume
 
-```
+```hcl
 resource "openstack_compute_instance_v2" "boot-from-volume" {
   name            = "boot-from-volume"
   flavor_id       = "3"
@@ -83,7 +84,7 @@ resource "openstack_compute_instance_v2" "boot-from-volume" {
 
 ### Boot From an Existing Volume
 
-```
+```hcl
 resource "openstack_blockstorage_volume_v1" "myvol" {
   name     = "myvol"
   size     = 5
@@ -112,7 +113,7 @@ resource "openstack_compute_instance_v2" "boot-from-volume" {
 
 ### Boot Instance, Create Volume, and Attach Volume as a Block Device
 
-```
+```hcl
 resource "openstack_compute_instance_v2" "instance_1" {
   name            = "instance_1"
   image_id        = "<image-id>"
@@ -140,7 +141,7 @@ resource "openstack_compute_instance_v2" "instance_1" {
 
 ### Boot Instance and Attach Existing Volume as a Block Device
 
-```
+```hcl
 resource "openstack_blockstorage_volume_v2" "volume_1" {
   name = "volume_1"
   size = 1
@@ -173,8 +174,8 @@ resource "openstack_compute_instance_v2" "instance_1" {
 
 ### Instance With Multiple Networks
 
-```
-resource "openstack_compute_floatingip_v2" "myip" {
+```hcl
+resource "openstack_networking_floatingip_v2" "myip" {
   pool = "my_pool"
 }
 
@@ -190,18 +191,20 @@ resource "openstack_compute_instance_v2" "multi-net" {
   }
 
   network {
-    name        = "my_second_network"
-    floating_ip = "${openstack_compute_floatingip_v2.myip.address}"
-
-    # Terraform will use this network for provisioning
-    access_network = true
+    name = "my_second_network"
   }
+}
+
+resource "openstack_compute_floatingip_associate_v2" "myip" {
+  floating_ip = "${openstack_networking_floatingip_v2.myip.address}"
+  instance_id = "${openstack_compute_instance_v2.multi-net.id}"
+  fixed_ip = "${openstack_compute_instance_v2.multi-net.network.1.fixed_ip_v4}"
 }
 ```
 
 ### Instance With Personality
 
-```
+```hcl
 resource "openstack_compute_instance_v2" "personality" {
   name            = "personality"
   image_id        = "ad091b52-742f-469e-8f3c-fd81cadf0743"
@@ -222,7 +225,7 @@ resource "openstack_compute_instance_v2" "personality" {
 
 ### Instance with Multiple Ephemeral Disks
 
-```
+```hcl
 resource "openstack_compute_instance_v2" "multi-eph" {
   name            = "multi_eph"
   image_id        = "ad091b52-742f-469e-8f3c-fd81cadf0743"
@@ -256,6 +259,26 @@ resource "openstack_compute_instance_v2" "multi-eph" {
 }
 ```
 
+### Instance with User Data (cloud-init)
+
+```hcl
+resource "openstack_compute_instance_v2" "instance_1" {
+  name            = "basic"
+  image_id        = "ad091b52-742f-469e-8f3c-fd81cadf0743"
+  flavor_id       = "3"
+  key_pair        = "my_key_pair_name"
+  security_groups = ["default"]
+  user_data       = "#cloud-config\nhostname: instance_1.example.com\nfqdn: instance_1.example.com"
+
+  network {
+    name = "my_network"
+  }
+}
+```
+
+`user_data` can come from a variety of sources: inline, read in from the `file`
+function, or the `template_cloudinit_config` resource.
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -280,7 +303,7 @@ The following arguments are supported:
 * `flavor_name` - (Optional; Required if `flavor_id` is empty) The name of the
     desired flavor for the server. Changing this resizes the existing server.
 
-* `floating_ip` - (Optional) A *Compute* Floating IP that will be associated
+* `floating_ip` - (Deprecated) A *Compute* Floating IP that will be associated
     with the Instance. The Floating IP must be provisioned already. See *Notes*
     for more information about Floating IPs.
 
@@ -320,7 +343,7 @@ The following arguments are supported:
     following [reference](http://docs.openstack.org/developer/nova/block_device_mapping.html)
     for more information.
 
-* `volume` - (Optional) Attach an existing volume to the instance. The volume
+* `volume` - (Deprecated) Attach an existing volume to the instance. The volume
     structure is described below. *Note*: This is no longer the recommended
     method of attaching a volume to an instance. Please see `block_device`
     (above) or the `openstack_compute_volume_attach_v2` and
@@ -359,7 +382,7 @@ The `network` block supports:
 * `fixed_ip_v6` - (Optional) Specifies a fixed IPv6 address to be used on this
     network. Changing this creates a new server.
 
-* `floating_ip` - (Optional) Specifies a floating IP address to be associated
+* `floating_ip` - (Deprecated) Specifies a floating IP address to be associated
     with this network. Cannot be combined with a top-level floating IP. See
     *Notes* for more information about Floating IPs.
 
@@ -446,10 +469,16 @@ The following attributes are exported:
 * `network/floating_ip` - The Floating IP address of the Instance on that
     network.
 * `network/mac` - The MAC address of the NIC on that network.
+* `all_metadata` - Contains all instance metadata, even metadata not set
+    by Terraform.
 
 ## Notes
 
 ### Floating IPs
+
+Specifying Floating IPs within the instance is now deprecated. Please use
+either the `openstack_compute_floatingip_associate_v2` resource or attach
+the floating IP to an `openstack_networking_port_v2` resource.
 
 Floating IPs can be associated in one of two ways:
 
@@ -523,7 +552,7 @@ single IP address the user would want returned to the Instance's state
 information. Therefore, in order for a Provisioner to connect to an Instance
 via it's network Port, customize the `connection` information:
 
-```
+```hcl
 resource "openstack_networking_port_v2" "port_1" {
   name           = "port_1"
   admin_state_up = "true"

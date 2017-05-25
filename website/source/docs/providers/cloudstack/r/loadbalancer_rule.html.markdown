@@ -6,13 +6,13 @@ description: |-
   Creates a load balancer rule.
 ---
 
-# cloudstack\_loadbalancer\_rule
+# cloudstack_loadbalancer_rule
 
 Creates a loadbalancer rule.
 
 ## Example Usage
 
-```
+```hcl
 resource "cloudstack_loadbalancer_rule" "default" {
   name          = "loadbalancer-rule-1"
   description   = "Loadbalancer rule 1"

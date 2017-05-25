@@ -1,7 +1,9 @@
 package heroku
 
 import (
+	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -25,11 +27,15 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"heroku_app":    resourceHerokuApp(),
-			"heroku_addon":  resourceHerokuAddon(),
-			"heroku_domain": resourceHerokuDomain(),
-			"heroku_drain":  resourceHerokuDrain(),
-			"heroku_cert":   resourceHerokuCert(),
+			"heroku_addon":             resourceHerokuAddon(),
+			"heroku_app":               resourceHerokuApp(),
+			"heroku_app_feature":       resourceHerokuAppFeature(),
+			"heroku_cert":              resourceHerokuCert(),
+			"heroku_domain":            resourceHerokuDomain(),
+			"heroku_drain":             resourceHerokuDrain(),
+			"heroku_pipeline":          resourceHerokuPipeline(),
+			"heroku_pipeline_coupling": resourceHerokuPipelineCoupling(),
+			"heroku_space":             resourceHerokuSpace(),
 		},
 
 		ConfigureFunc: providerConfigure,
@@ -44,4 +50,13 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 	log.Println("[INFO] Initializing Heroku client")
 	return config.Client()
+}
+
+func buildCompositeID(a, b string) string {
+	return fmt.Sprintf("%s:%s", a, b)
+}
+
+func parseCompositeID(id string) (string, string) {
+	parts := strings.SplitN(id, ":", 2)
+	return parts[0], parts[1]
 }

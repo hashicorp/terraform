@@ -6,7 +6,7 @@ description: |-
   Manages a CLC public ip.
 ---
 
-# clc\_public\_ip
+# clc_public_ip
 
 Manages a CLC public ip (for an existing server).
 
@@ -14,7 +14,7 @@ See also [Complete API documentation](https://www.ctl.io/api-docs/v2/#public-ip)
 
 ## Example Usage
 
-```
+```hcl
 # Provision a public ip
 resource "clc_public_ip" "backdoor" {
   server_id           = "${clc_server.node.0.id}"
@@ -79,7 +79,3 @@ repeated to restrict ingress traffic on specified CIDR blocks. Each
 `source_restrictions` block supports the following:
 
 * `cidr` (Required, string) The IP or range of IPs in CIDR notation.
-
-
-
-

@@ -12,7 +12,7 @@ Provides an UltraDNS record resource.
 
 ## Example Usage
 
-```
+```hcl
 # Add a record to the domain
 resource "ultradns_record" "foobar" {
   zone  = "${var.ultradns_domain}"

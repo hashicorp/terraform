@@ -15,6 +15,7 @@ import (
 
 func TestAccAWSAPIGatewayMethod_basic(t *testing.T) {
 	var conf apigateway.Method
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -22,7 +23,7 @@ func TestAccAWSAPIGatewayMethod_basic(t *testing.T) {
 		CheckDestroy: testAccCheckAWSAPIGatewayMethodDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSAPIGatewayMethodConfig,
+				Config: testAccAWSAPIGatewayMethodConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAPIGatewayMethodExists("aws_api_gateway_method.test", &conf),
 					testAccCheckAWSAPIGatewayMethodAttributes(&conf),
@@ -36,7 +37,7 @@ func TestAccAWSAPIGatewayMethod_basic(t *testing.T) {
 			},
 
 			{
-				Config: testAccAWSAPIGatewayMethodConfigUpdate,
+				Config: testAccAWSAPIGatewayMethodConfigUpdate(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAPIGatewayMethodExists("aws_api_gateway_method.test", &conf),
 					testAccCheckAWSAPIGatewayMethodAttributesUpdate(&conf),
@@ -72,7 +73,7 @@ func TestAccAWSAPIGatewayMethod_customauthorizer(t *testing.T) {
 			},
 
 			{
-				Config: testAccAWSAPIGatewayMethodConfigUpdate,
+				Config: testAccAWSAPIGatewayMethodConfigUpdate(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAPIGatewayMethodExists("aws_api_gateway_method.test", &conf),
 					testAccCheckAWSAPIGatewayMethodAttributesUpdate(&conf),
@@ -199,7 +200,7 @@ func testAccCheckAWSAPIGatewayMethodDestroy(s *terraform.State) error {
 func testAccAWSAPIGatewayMethodConfigWithCustomAuthorizer(rInt int) string {
 	return fmt.Sprintf(`
 resource "aws_api_gateway_rest_api" "test" {
-  name = "tf-acc-test-custom-auth"
+  name = "tf-acc-test-custom-auth-%d"
 }
 
 resource "aws_iam_role" "invocation_role" {
@@ -261,7 +262,7 @@ EOF
 resource "aws_lambda_function" "authorizer" {
   filename = "test-fixtures/lambdatest.zip"
   source_code_hash = "${base64sha256(file("test-fixtures/lambdatest.zip"))}"
-  function_name = "tf_acc_api_gateway_authorizer"
+  function_name = "tf_acc_api_gateway_authorizer_%d"
   role = "${aws_iam_role.iam_for_lambda.arn}"
   handler = "exports.example"
 	runtime = "nodejs4.3"
@@ -295,12 +296,13 @@ resource "aws_api_gateway_method" "test" {
     "method.request.header.Content-Type" = false
 	  "method.request.querystring.page" = true
   }
-}`, rInt, rInt, rInt)
+}`, rInt, rInt, rInt, rInt, rInt)
 }
 
-const testAccAWSAPIGatewayMethodConfig = `
+func testAccAWSAPIGatewayMethodConfig(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_api_gateway_rest_api" "test" {
-  name = "test"
+  name = "tf-acc-test-apig-method-%d"
 }
 
 resource "aws_api_gateway_resource" "test" {
@@ -324,11 +326,13 @@ resource "aws_api_gateway_method" "test" {
 	  "method.request.querystring.page" = true
   }
 }
-`
+`, rInt)
+}
 
-const testAccAWSAPIGatewayMethodConfigUpdate = `
+func testAccAWSAPIGatewayMethodConfigUpdate(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_api_gateway_rest_api" "test" {
-  name = "test"
+  name = "tf-acc-test-apig-method-%d"
 }
 
 resource "aws_api_gateway_resource" "test" {
@@ -351,4 +355,5 @@ resource "aws_api_gateway_method" "test" {
 	  "method.request.querystring.page" = false
   }
 }
-`
+`, rInt)
+}

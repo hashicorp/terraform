@@ -3,6 +3,7 @@ package arukas
 import (
 	"fmt"
 	API "github.com/arukasio/cli"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"testing"
@@ -10,17 +11,21 @@ import (
 
 func TestAccArukasContainer_Basic(t *testing.T) {
 	var container API.Container
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	name := fmt.Sprintf("terraform_acc_test_%s", randString)
+	endpoint := fmt.Sprintf("terraform-acc-test-endpoint-%s", randString)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckArukasContainerDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckArukasContainerConfig_basic,
+				Config: testAccCheckArukasContainerConfig_basic(randString),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckArukasContainerExists("arukas_container.foobar", &container),
 					resource.TestCheckResourceAttr(
-						"arukas_container.foobar", "name", "terraform_for_arukas_test_foobar"),
+						"arukas_container.foobar", "name", name),
 					resource.TestCheckResourceAttr(
 						"arukas_container.foobar", "image", "nginx:latest"),
 					resource.TestCheckResourceAttr(
@@ -28,7 +33,7 @@ func TestAccArukasContainer_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"arukas_container.foobar", "memory", "256"),
 					resource.TestCheckResourceAttr(
-						"arukas_container.foobar", "endpoint", "terraform-for-arukas-test-endpoint"),
+						"arukas_container.foobar", "endpoint", endpoint),
 					resource.TestCheckResourceAttr(
 						"arukas_container.foobar", "ports.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -51,17 +56,23 @@ func TestAccArukasContainer_Basic(t *testing.T) {
 
 func TestAccArukasContainer_Update(t *testing.T) {
 	var container API.Container
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	name := fmt.Sprintf("terraform_acc_test_%s", randString)
+	updatedName := fmt.Sprintf("terraform_acc_test_update_%s", randString)
+	endpoint := fmt.Sprintf("terraform-acc-test-endpoint-%s", randString)
+	updatedEndpoint := fmt.Sprintf("terraform-acc-test-endpoint-update-%s", randString)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckArukasContainerDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckArukasContainerConfig_basic,
+				Config: testAccCheckArukasContainerConfig_basic(randString),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckArukasContainerExists("arukas_container.foobar", &container),
 					resource.TestCheckResourceAttr(
-						"arukas_container.foobar", "name", "terraform_for_arukas_test_foobar"),
+						"arukas_container.foobar", "name", name),
 					resource.TestCheckResourceAttr(
 						"arukas_container.foobar", "image", "nginx:latest"),
 					resource.TestCheckResourceAttr(
@@ -69,7 +80,7 @@ func TestAccArukasContainer_Update(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"arukas_container.foobar", "memory", "256"),
 					resource.TestCheckResourceAttr(
-						"arukas_container.foobar", "endpoint", "terraform-for-arukas-test-endpoint"),
+						"arukas_container.foobar", "endpoint", endpoint),
 					resource.TestCheckResourceAttr(
 						"arukas_container.foobar", "ports.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -87,11 +98,11 @@ func TestAccArukasContainer_Update(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccCheckArukasContainerConfig_update,
+				Config: testAccCheckArukasContainerConfig_update(randString),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckArukasContainerExists("arukas_container.foobar", &container),
 					resource.TestCheckResourceAttr(
-						"arukas_container.foobar", "name", "terraform_for_arukas_test_foobar_upd"),
+						"arukas_container.foobar", "name", updatedName),
 					resource.TestCheckResourceAttr(
 						"arukas_container.foobar", "image", "nginx:latest"),
 					resource.TestCheckResourceAttr(
@@ -99,7 +110,7 @@ func TestAccArukasContainer_Update(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"arukas_container.foobar", "memory", "512"),
 					resource.TestCheckResourceAttr(
-						"arukas_container.foobar", "endpoint", "terraform-for-arukas-test-endpoint-upd"),
+						"arukas_container.foobar", "endpoint", updatedEndpoint),
 					resource.TestCheckResourceAttr(
 						"arukas_container.foobar", "ports.#", "2"),
 					resource.TestCheckResourceAttr(
@@ -130,17 +141,20 @@ func TestAccArukasContainer_Update(t *testing.T) {
 
 func TestAccArukasContainer_Minimum(t *testing.T) {
 	var container API.Container
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+	name := fmt.Sprintf("terraform_acc_test_minimum_%s", randString)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckArukasContainerDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckArukasContainerConfig_minimum,
+				Config: testAccCheckArukasContainerConfig_minimum(randString),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckArukasContainerExists("arukas_container.foobar", &container),
 					resource.TestCheckResourceAttr(
-						"arukas_container.foobar", "name", "terraform_for_arukas_test_foobar"),
+						"arukas_container.foobar", "name", name),
 					resource.TestCheckResourceAttr(
 						"arukas_container.foobar", "image", "nginx:latest"),
 					resource.TestCheckResourceAttr(
@@ -163,13 +177,15 @@ func TestAccArukasContainer_Minimum(t *testing.T) {
 
 func TestAccArukasContainer_Import(t *testing.T) {
 	resourceName := "arukas_container.foobar"
+	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckArukasContainerDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckArukasContainerConfig_basic,
+				Config: testAccCheckArukasContainerConfig_basic(randString),
 			},
 			resource.TestStep{
 				ResourceName:      resourceName,
@@ -227,13 +243,14 @@ func testAccCheckArukasContainerDestroy(s *terraform.State) error {
 	return nil
 }
 
-const testAccCheckArukasContainerConfig_basic = `
+func testAccCheckArukasContainerConfig_basic(randString string) string {
+	return fmt.Sprintf(`
 resource "arukas_container" "foobar" {
-    name = "terraform_for_arukas_test_foobar"
+    name = "terraform_acc_test_%s"
     image = "nginx:latest"
     instances = 1
     memory = 256
-    endpoint = "terraform-for-arukas-test-endpoint"
+    endpoint = "terraform-acc-test-endpoint-%s"
     ports = {
         protocol = "tcp"
         number = "80"
@@ -242,15 +259,17 @@ resource "arukas_container" "foobar" {
         key = "key"
         value = "value"
     }
-}`
+}`, randString, randString)
+}
 
-const testAccCheckArukasContainerConfig_update = `
+func testAccCheckArukasContainerConfig_update(randString string) string {
+	return fmt.Sprintf(`
 resource "arukas_container" "foobar" {
-    name = "terraform_for_arukas_test_foobar_upd"
+    name = "terraform_acc_test_update_%s"
     image = "nginx:latest"
     instances = 2
     memory = 512
-    endpoint = "terraform-for-arukas-test-endpoint-upd"
+    endpoint = "terraform-acc-test-endpoint-update-%s"
     ports = {
         protocol = "tcp"
         number = "80"
@@ -267,13 +286,16 @@ resource "arukas_container" "foobar" {
         key = "key_upd"
         value = "value_upd"
     }
-}`
+}`, randString, randString)
+}
 
-const testAccCheckArukasContainerConfig_minimum = `
+func testAccCheckArukasContainerConfig_minimum(randString string) string {
+	return fmt.Sprintf(`
 resource "arukas_container" "foobar" {
-    name = "terraform_for_arukas_test_foobar"
+    name = "terraform_acc_test_minimum_%s"
     image = "nginx:latest"
     ports = {
         number = "80"
     }
-}`
+}`, randString)
+}

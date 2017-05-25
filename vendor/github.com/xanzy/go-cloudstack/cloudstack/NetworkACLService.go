@@ -215,6 +215,7 @@ func (s *NetworkACLService) CreateNetworkACL(p *CreateNetworkACLParams) (*Create
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -438,6 +439,7 @@ func (s *NetworkACLService) UpdateNetworkACLItem(p *UpdateNetworkACLItemParams) 
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -528,6 +530,7 @@ func (s *NetworkACLService) DeleteNetworkACL(p *DeleteNetworkACLParams) (*Delete
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -787,6 +790,7 @@ func (s *NetworkACLService) ListNetworkACLs(p *ListNetworkACLsParams) (*ListNetw
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -921,6 +925,7 @@ func (s *NetworkACLService) CreateNetworkACLList(p *CreateNetworkACLListParams) 
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -991,6 +996,7 @@ func (s *NetworkACLService) DeleteNetworkACLList(p *DeleteNetworkACLListParams) 
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1080,6 +1086,7 @@ func (s *NetworkACLService) ReplaceNetworkACLList(p *ReplaceNetworkACLListParams
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -1351,6 +1358,7 @@ func (s *NetworkACLService) ListNetworkACLLists(p *ListNetworkACLListsParams) (*
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -1448,6 +1456,7 @@ func (s *NetworkACLService) UpdateNetworkACLList(p *UpdateNetworkACLListParams) 
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 

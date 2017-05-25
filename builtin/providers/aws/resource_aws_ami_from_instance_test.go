@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -16,13 +17,14 @@ import (
 func TestAccAWSAMIFromInstance(t *testing.T) {
 	var amiId string
 	snapshots := []string{}
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSAMIFromInstanceConfig,
+			{
+				Config: testAccAWSAMIFromInstanceConfig(rInt),
 				Check: func(state *terraform.State) error {
 					rs, ok := state.RootModule().Resources["aws_ami_from_instance.test"]
 					if !ok {
@@ -51,13 +53,13 @@ func TestAccAWSAMIFromInstance(t *testing.T) {
 
 					image := describe.Images[0]
 					if expected := "available"; *image.State != expected {
-						return fmt.Errorf("invalid image state; expected %v, got %v", expected, image.State)
+						return fmt.Errorf("invalid image state; expected %v, got %v", expected, *image.State)
 					}
 					if expected := "machine"; *image.ImageType != expected {
-						return fmt.Errorf("wrong image type; expected %v, got %v", expected, image.ImageType)
+						return fmt.Errorf("wrong image type; expected %v, got %v", expected, *image.ImageType)
 					}
-					if expected := "terraform-acc-ami-from-instance"; *image.Name != expected {
-						return fmt.Errorf("wrong name; expected %v, got %v", expected, image.Name)
+					if expected := fmt.Sprintf("terraform-acc-ami-from-instance-%d", rInt); *image.Name != expected {
+						return fmt.Errorf("wrong name; expected %v, got %v", expected, *image.Name)
 					}
 
 					for _, bdm := range image.BlockDeviceMappings {
@@ -137,24 +139,25 @@ func TestAccAWSAMIFromInstance(t *testing.T) {
 	})
 }
 
-var testAccAWSAMIFromInstanceConfig = `
-provider "aws" {
-	region = "us-east-1"
-}
+func testAccAWSAMIFromInstanceConfig(rInt int) string {
+	return fmt.Sprintf(`
+	provider "aws" {
+		region = "us-east-1"
+	}
 
-resource "aws_instance" "test" {
-    // This AMI has one block device mapping, so we expect to have
-    // one snapshot in our created AMI.
-    ami = "ami-408c7f28"
-    instance_type = "t1.micro"
-		tags {
-			Name = "testAccAWSAMIFromInstanceConfig_TestAMI"
-		}
-}
+	resource "aws_instance" "test" {
+			// This AMI has one block device mapping, so we expect to have
+			// one snapshot in our created AMI.
+			ami = "ami-408c7f28"
+			instance_type = "t1.micro"
+			tags {
+				Name = "testAccAWSAMIFromInstanceConfig_TestAMI"
+			}
+	}
 
-resource "aws_ami_from_instance" "test" {
-    name = "terraform-acc-ami-from-instance"
-    description = "Testing Terraform aws_ami_from_instance resource"
-    source_instance_id = "${aws_instance.test.id}"
+	resource "aws_ami_from_instance" "test" {
+			name = "terraform-acc-ami-from-instance-%d"
+			description = "Testing Terraform aws_ami_from_instance resource"
+			source_instance_id = "${aws_instance.test.id}"
+	}`, rInt)
 }
-`

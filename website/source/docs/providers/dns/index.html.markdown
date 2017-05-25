@@ -14,7 +14,7 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
+```hcl
 # Configure the DNS Provider
 provider "dns" {
   update {
