@@ -69,6 +69,7 @@ IMPROVEMENTS:
 * providers/heroku: Add import support for `heroku_addon` resource [GH-14508]
 * provider/openstack: Add support for all protocols in Security Group Rules [GH-14307]
 * provider/openstack: Add support for updating Subnet Allocation Pools [GH-14782]
+* provider/openstack: Enable Security Group Updates [GH-14815]
 * provider/rancher: Add member support to `rancher_environment` [GH-14563]
 * provider/rundeck: adds `description` to `command` schema in `rundeck_job` resource [GH-14352]
 * provider/scaleway: allow public_ip to be set on server resource [GH-14515]
