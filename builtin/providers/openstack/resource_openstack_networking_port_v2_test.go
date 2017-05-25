@@ -210,6 +210,17 @@ func TestAccNetworkingV2Port_updateSecurityGroups(t *testing.T) {
 					testAccCheckNetworkingV2PortExists("openstack_networking_port_v2.port_1", &port),
 					testAccCheckNetworkingV2SecGroupExists(
 						"openstack_networking_secgroup_v2.secgroup_1", &security_group),
+					testAccCheckNetworkingV2PortCountSecurityGroups(&port, 1),
+				),
+			},
+			resource.TestStep{
+				Config: testAccNetworkingV2Port_updateSecurityGroups_4,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckNetworkingV2SubnetExists("openstack_networking_subnet_v2.subnet_1", &subnet),
+					testAccCheckNetworkingV2NetworkExists("openstack_networking_network_v2.network_1", &network),
+					testAccCheckNetworkingV2PortExists("openstack_networking_port_v2.port_1", &port),
+					testAccCheckNetworkingV2SecGroupExists(
+						"openstack_networking_secgroup_v2.secgroup_1", &security_group),
 					testAccCheckNetworkingV2PortCountSecurityGroups(&port, 0),
 				),
 			},
@@ -594,6 +605,37 @@ resource "openstack_networking_port_v2" "port_1" {
 `
 
 const testAccNetworkingV2Port_updateSecurityGroups_3 = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  admin_state_up = "true"
+}
+
+resource "openstack_networking_subnet_v2" "subnet_1" {
+  name = "subnet_1"
+  cidr = "192.168.199.0/24"
+  ip_version = 4
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+}
+
+resource "openstack_networking_secgroup_v2" "secgroup_1" {
+  name = "security_group_1"
+  description = "terraform security group acceptance test"
+}
+
+resource "openstack_networking_port_v2" "port_1" {
+  name = "port_1"
+  admin_state_up = "true"
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+  security_group_ids = ["${openstack_networking_secgroup_v2.secgroup_1.id}"]
+
+  fixed_ip {
+    subnet_id =  "${openstack_networking_subnet_v2.subnet_1.id}"
+    ip_address = "192.168.199.23"
+  }
+}
+`
+
+const testAccNetworkingV2Port_updateSecurityGroups_4 = `
 resource "openstack_networking_network_v2" "network_1" {
   name = "network_1"
   admin_state_up = "true"
