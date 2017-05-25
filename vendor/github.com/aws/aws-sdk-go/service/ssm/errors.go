@@ -100,7 +100,7 @@ const (
 	// "DoesNotExistException".
 	//
 	// Error returned when the ID specified for a resource (e.g. a Maintenance Window)
-	// doesn’t exist.
+	// doesn't exist.
 	ErrCodeDoesNotExistException = "DoesNotExistException"
 
 	// ErrCodeDuplicateDocumentContent for service response error code
@@ -120,7 +120,7 @@ const (
 	// "IdempotentParameterMismatch".
 	//
 	// Error returned when an idempotent operation is retried and the parameters
-	// don’t match the original call to the API with the same idempotency token.
+	// don't match the original call to the API with the same idempotency token.
 	ErrCodeIdempotentParameterMismatch = "IdempotentParameterMismatch"
 
 	// ErrCodeInternalServerError for service response error code

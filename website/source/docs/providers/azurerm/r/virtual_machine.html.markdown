@@ -10,7 +10,7 @@ description: |-
 
 Create a virtual machine.
 
-## Example Usage
+## Example Usage (Unmanaged Disks)
 
 ```hcl
 resource "azurerm_resource_group" "test" {
@@ -99,7 +99,7 @@ resource "azurerm_virtual_machine" "test" {
 }
 ```
 
-## Example Usage with additional Empty DataDisk
+## Example Usage With Additional Empty Data Disk (Unmanaged Disks)
 
 ```hcl
 resource "azurerm_resource_group" "test" {
@@ -196,7 +196,7 @@ resource "azurerm_virtual_machine" "test" {
 }
 ```
 
-## Example Usage with Managed Disks
+## Example Usage (Managed Disks)
 
 ```hcl
 resource "azurerm_resource_group" "test" {
@@ -307,9 +307,9 @@ The following arguments are supported:
 * `vm_size` - (Required) Specifies the [size of the virtual machine](https://azure.microsoft.com/en-us/documentation/articles/virtual-machines-size-specs/).
 * `storage_image_reference` - (Optional) A Storage Image Reference block as documented below.
 * `storage_os_disk` - (Required) A Storage OS Disk block as referenced below.
-* `delete_os_disk_on_termination` - (Optional) Flag to enable deletion of the OS Disk VHD blob when the VM is deleted, defaults to `false`
+* `delete_os_disk_on_termination` - (Optional) Flag to enable deletion of the OS disk VHD blob or managed disk when the VM is deleted, defaults to `false`
 * `storage_data_disk` - (Optional) A list of Storage Data disk blocks as referenced below.
-* `delete_data_disks_on_termination` - (Optional) Flag to enable deletion of Storage Disk VHD blobs when the VM is deleted, defaults to `false`
+* `delete_data_disks_on_termination` - (Optional) Flag to enable deletion of storage data disk VHD blobs or managed disks when the VM is deleted, defaults to `false`
 * `os_profile` - (Required) An OS Profile block as documented below.
 * `license_type` - (Optional, when a windows machine) Specifies the Windows OS license type. The only allowable value, if supplied, is `Windows_Server`.
 * `os_profile_windows_config` - (Required, when a windows machine) A Windows config block as documented below.
@@ -345,7 +345,7 @@ For more information on the different example configurations, please check out t
 * `vhd_uri` - (Optional) Specifies the vhd uri. Changing this forces a new resource to be created. Cannot be used with managed disks.
 * `managed_disk_type` - (Optional) Specifies the type of managed disk to create. Value you must be either `Standard_LRS` or `Premium_LRS`. Cannot be used when `vhd_uri` is specified.
 * `managed_disk_id` - (Optional) Specifies an existing managed disk to use by id. Can only be used when `create_option` is `Attach`. Cannot be used when `vhd_uri` is specified.
-* `create_option` - (Required) Specifies how the virtual machine should be created. Possible values are `Attach` and `FromImage`.
+* `create_option` - (Required) Specifies how the virtual machine should be created. Possible values are `Attach` (managed disks only) and `FromImage`.
 * `caching` - (Optional) Specifies the caching requirements.
 * `image_uri` - (Optional) Specifies the image_uri in the form publisherName:offer:skus:version. `image_uri` can also specify the [VHD uri](https://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-cli-deploy-templates/#create-a-custom-vm-image) of a custom VM image to clone. When cloning a custom disk image the `os_type` documented below becomes required.
 * `os_type` - (Optional) Specifies the operating system Type, valid values are windows, linux.
@@ -430,6 +430,6 @@ The following attributes are exported:
 
 Virtual Machines can be imported using the `resource id`, e.g.
 
-```
+```hcl
 terraform import azurerm_virtual_machine.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/microsoft.compute/virtualMachines/machine1
 ```

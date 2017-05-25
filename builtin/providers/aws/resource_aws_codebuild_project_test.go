@@ -393,12 +393,8 @@ resource "aws_codebuild_project" "foo" {
   }
 
   source {
-    auth {
-      type = "OAUTH"
-    }
-
     type     = "GITHUB"
-    location = "https://github.com/mitchellh/packer.git"
+    location = "https://github.com/hashicorp/packer.git"
   }
 
   tags {
@@ -480,12 +476,8 @@ resource "aws_codebuild_project" "foo" {
   }
 
   source {
-    auth {
-      type = "OAUTH"
-    }
-
     type     = "GITHUB"
-    location = "https://github.com/mitchellh/packer.git"
+    location = "https://github.com/hashicorp/packer.git"
   }
 
   tags {
@@ -567,12 +559,8 @@ resource "aws_codebuild_project" "foo" {
   }
 
   source {
-    auth {
-      type = "OAUTH"
-    }
-
     type     = "GITHUB"
-    location = "https://github.com/mitchellh/packer.git"
+    location = "https://github.com/hashicorp/packer.git"
   }
 
   tags {

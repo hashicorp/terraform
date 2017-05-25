@@ -8,8 +8,7 @@ description: |-
 
 # google\_project
 
-Allows creation and management of a Google Cloud Platform project and its
-associated enabled services/APIs.
+Allows creation and management of a Google Cloud Platform project.
 
 Projects created with this resource must be associated with an Organization.
 See the [Organization documentation](https://cloud.google.com/resource-manager/docs/quickstarts) for more details.
@@ -43,7 +42,6 @@ Terraform. Only newly added projects are affected.
 resource "google_project" "my_project" {
   project_id = "your-project-id"
   org_id     = "1234567"
-  services   = ["compute_component", "storage-component-json.googleapis.com", "iam.googleapis.com"]
 }
 ```
 

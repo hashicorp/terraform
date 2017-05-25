@@ -202,6 +202,16 @@ resource "aws_autoscaling_group" "barbaz" {
   }
 }
 
-data "aws_autoscaling_groups" "group_list" {}
+data "aws_autoscaling_groups" "group_list" {
+  filter {
+    name = "key"
+    values = ["Foo"]
+  }
+
+  filter {
+    name = "value"
+    values = ["foo-bar"]
+  }
+}
 `, rInt1, rInt2, rInt3)
 }

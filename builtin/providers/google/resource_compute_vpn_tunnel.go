@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -75,6 +76,7 @@ func resourceComputeVpnTunnel() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
@@ -86,6 +88,12 @@ func resourceComputeVpnTunnel() *schema.Resource {
 			},
 
 			"region": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"router": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -153,6 +161,14 @@ func resourceComputeVpnTunnelCreate(d *schema.ResourceData, meta interface{}) er
 
 	if v, ok := d.GetOk("description"); ok {
 		vpnTunnel.Description = v.(string)
+	}
+
+	if v, ok := d.GetOk("router"); ok {
+		routerLink, err := getRouterLink(config, project, region, v.(string))
+		if err != nil {
+			return err
+		}
+		vpnTunnel.Router = routerLink
 	}
 
 	op, err := vpnTunnelsService.Insert(project, region, vpnTunnel).Do()
@@ -324,4 +340,34 @@ var invalidPeerAddrs = []struct {
 		from: net.ParseIP("255.255.255.255"),
 		to:   net.ParseIP("255.255.255.255"),
 	},
+}
+
+func getVpnTunnelLink(config *Config, project string, region string, tunnel string) (string, error) {
+
+	if !strings.HasPrefix(tunnel, "https://www.googleapis.com/compute/") {
+		// Tunnel value provided is just the name, lookup the tunnel SelfLink
+		tunnelData, err := config.clientCompute.VpnTunnels.Get(
+			project, region, tunnel).Do()
+		if err != nil {
+			return "", fmt.Errorf("Error reading tunnel: %s", err)
+		}
+		tunnel = tunnelData.SelfLink
+	}
+
+	return tunnel, nil
+
+}
+
+func getVpnTunnelName(vpntunnel string) (string, error) {
+
+	if strings.HasPrefix(vpntunnel, "https://www.googleapis.com/compute/") {
+		// extract the VPN tunnel name from SelfLink URL
+		vpntunnelName := vpntunnel[strings.LastIndex(vpntunnel, "/")+1:]
+		if vpntunnelName == "" {
+			return "", fmt.Errorf("VPN tunnel url not valid")
+		}
+		return vpntunnelName, nil
+	}
+
+	return vpntunnel, nil
 }

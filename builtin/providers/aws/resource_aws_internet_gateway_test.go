@@ -182,12 +182,18 @@ func testAccCheckInternetGatewayExists(n string, ig *ec2.InternetGateway) resour
 const testAccNoInternetGatewayConfig = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccNoInternetGatewayConfig"
+	}
 }
 `
 
 const testAccInternetGatewayConfig = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccInternetGatewayConfig"
+	}
 }
 
 resource "aws_internet_gateway" "foo" {
@@ -198,10 +204,16 @@ resource "aws_internet_gateway" "foo" {
 const testAccInternetGatewayConfigChangeVPC = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccInternetGatewayConfigChangeVPC"
+	}
 }
 
 resource "aws_vpc" "bar" {
 	cidr_block = "10.2.0.0/16"
+	tags {
+		Name = "testAccInternetGatewayConfigChangeVPC_other"
+	}
 }
 
 resource "aws_internet_gateway" "foo" {
@@ -212,6 +224,9 @@ resource "aws_internet_gateway" "foo" {
 const testAccCheckInternetGatewayConfigTags = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccCheckInternetGatewayConfigTags"
+	}
 }
 
 resource "aws_internet_gateway" "foo" {
@@ -225,6 +240,9 @@ resource "aws_internet_gateway" "foo" {
 const testAccCheckInternetGatewayConfigTagsUpdate = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "testAccCheckInternetGatewayConfigTagsUpdate"
+	}
 }
 
 resource "aws_internet_gateway" "foo" {

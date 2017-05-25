@@ -29,7 +29,7 @@
       ],
       "inline": [
         "bundle check || bundle install",
-        "bundle exec middleman build",
+        "bundle exec middleman build --verbose",
         "/bin/sh ./scripts/deploy.sh"
       ]
     }

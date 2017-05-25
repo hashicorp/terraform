@@ -795,6 +795,9 @@ func testAccAwsOpsworksStackConfigVpcCreate(name string) string {
 	return fmt.Sprintf(`
 resource "aws_vpc" "tf-acc" {
   cidr_block = "10.3.5.0/24"
+	tags {
+		Name = "testAccAwsOpsworksStackConfigVpcCreate"
+	}
 }
 resource "aws_subnet" "tf-acc" {
   vpc_id = "${aws_vpc.tf-acc.id}"
@@ -886,6 +889,9 @@ func testAccAWSOpsworksStackConfigVpcUpdate(name string) string {
 	return fmt.Sprintf(`
 resource "aws_vpc" "tf-acc" {
   cidr_block = "10.3.5.0/24"
+	tags {
+		Name = "testAccAWSOpsworksStackConfigVpcUpdate"
+	}
 }
 resource "aws_subnet" "tf-acc" {
   vpc_id = "${aws_vpc.tf-acc.id}"

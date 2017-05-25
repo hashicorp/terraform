@@ -27,14 +27,16 @@ import (
 // IssuesService handles communication with the issue related methods
 // of the GitLab API.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/issues.html
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/issues.md
 type IssuesService struct {
 	client *Client
 }
 
 // Issue represents a GitLab issue.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/issues.html
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/issues.md
 type Issue struct {
 	ID          int        `json:"id"`
 	IID         int        `json:"iid"`
@@ -83,7 +85,8 @@ func (l *Labels) MarshalJSON() ([]byte, error) {
 
 // ListIssuesOptions represents the available ListIssues() options.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/issues.html#list-issues
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/issues.md#list-issues
 type ListIssuesOptions struct {
 	ListOptions
 	State   *string `url:"state,omitempty" json:"state,omitempty"`
@@ -95,7 +98,8 @@ type ListIssuesOptions struct {
 // ListIssues gets all issues created by authenticated user. This function
 // takes pagination parameters page and per_page to restrict the list of issues.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/issues.html#list-issues
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/issues.md#list-issues
 func (s *IssuesService) ListIssues(opt *ListIssuesOptions, options ...OptionFunc) ([]*Issue, *Response, error) {
 	req, err := s.client.NewRequest("GET", "issues", opt, options)
 	if err != nil {
@@ -113,7 +117,8 @@ func (s *IssuesService) ListIssues(opt *ListIssuesOptions, options ...OptionFunc
 
 // ListProjectIssuesOptions represents the available ListProjectIssues() options.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/issues.html#list-issues
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/issues.md#list-issues
 type ListProjectIssuesOptions struct {
 	ListOptions
 	IID       *int    `url:"iid,omitempty" json:"iid,omitempty"`
@@ -127,7 +132,8 @@ type ListProjectIssuesOptions struct {
 // ListProjectIssues gets a list of project issues. This function accepts
 // pagination parameters page and per_page to return the list of project issues.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/issues.html#list-project-issues
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/issues.md#list-project-issues
 func (s *IssuesService) ListProjectIssues(pid interface{}, opt *ListProjectIssuesOptions, options ...OptionFunc) ([]*Issue, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -151,7 +157,8 @@ func (s *IssuesService) ListProjectIssues(pid interface{}, opt *ListProjectIssue
 
 // GetIssue gets a single project issue.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/issues.html#single-issues
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/issues.md#single-issues
 func (s *IssuesService) GetIssue(pid interface{}, issue int, options ...OptionFunc) (*Issue, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -175,7 +182,8 @@ func (s *IssuesService) GetIssue(pid interface{}, issue int, options ...OptionFu
 
 // CreateIssueOptions represents the available CreateIssue() options.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/issues.html#new-issues
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/issues.md#new-issues
 type CreateIssueOptions struct {
 	Title       *string `url:"title,omitempty" json:"title,omitempty"`
 	Description *string `url:"description,omitempty" json:"description,omitempty"`
@@ -186,7 +194,8 @@ type CreateIssueOptions struct {
 
 // CreateIssue creates a new project issue.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/issues.html#new-issues
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/issues.md#new-issues
 func (s *IssuesService) CreateIssue(pid interface{}, opt *CreateIssueOptions, options ...OptionFunc) (*Issue, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -210,7 +219,8 @@ func (s *IssuesService) CreateIssue(pid interface{}, opt *CreateIssueOptions, op
 
 // UpdateIssueOptions represents the available UpdateIssue() options.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/issues.html#edit-issues
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/issues.md#edit-issues
 type UpdateIssueOptions struct {
 	Title       *string `url:"title,omitempty" json:"title,omitempty"`
 	Description *string `url:"description,omitempty" json:"description,omitempty"`
@@ -223,7 +233,8 @@ type UpdateIssueOptions struct {
 // UpdateIssue updates an existing project issue. This function is also used
 // to mark an issue as closed.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/issues.html#edit-issues
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/issues.md#edit-issues
 func (s *IssuesService) UpdateIssue(pid interface{}, issue int, opt *UpdateIssueOptions, options ...OptionFunc) (*Issue, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -247,7 +258,8 @@ func (s *IssuesService) UpdateIssue(pid interface{}, issue int, opt *UpdateIssue
 
 // DeleteIssue deletes a single project issue.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/issues.html#delete-an-issue
+// GitLab API docs:
+// https://gitlab.com/gitlab-org/gitlab-ce/blob/8-16-stable/doc/api/issues.md#delete-an-issue
 func (s *IssuesService) DeleteIssue(pid interface{}, issue int, options ...OptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
