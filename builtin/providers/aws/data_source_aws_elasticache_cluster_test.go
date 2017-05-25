@@ -10,28 +10,28 @@ import (
 
 func TestAccAWSDataElasticacheCluster_basic(t *testing.T) {
 	rInt := acctest.RandInt()
+	rString := acctest.RandString(10)
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSElastiCacheClusterConfigWithDataSource(rInt),
+				Config: testAccAWSElastiCacheClusterConfigWithDataSource(rString, rInt),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.aws_elasticache_security_group.bar", "engine", "memcached"),
-					resource.TestCheckResourceAttr("data.aws_elasticache_security_group.bar", "node_type", "cache.m1.small"),
-					resource.TestCheckResourceAttr("data.aws_elasticache_security_group.bar", "port", "11211"),
-					resource.TestCheckResourceAttr("data.aws_elasticache_security_group.bar", "num_cache_nodes", "1"),
-					resource.TestCheckResourceAttrSet("data.aws_elasticache_security_group.bar", "cache_nodes"),
-					resource.TestCheckResourceAttrSet("aws_elasticache_cluster.bar", "configuration_endpoint"),
-					resource.TestCheckResourceAttrSet("aws_elasticache_cluster.bar", "cluster_address"),
-					resource.TestCheckResourceAttrSet("aws_elasticache_cluster.bar", "availability_zone"),
+					resource.TestCheckResourceAttr("data.aws_elasticache_cluster.bar", "engine", "memcached"),
+					resource.TestCheckResourceAttr("data.aws_elasticache_cluster.bar", "node_type", "cache.m1.small"),
+					resource.TestCheckResourceAttr("data.aws_elasticache_cluster.bar", "port", "11211"),
+					resource.TestCheckResourceAttr("data.aws_elasticache_cluster.bar", "num_cache_nodes", "1"),
+					resource.TestCheckResourceAttrSet("data.aws_elasticache_cluster.bar", "configuration_endpoint"),
+					resource.TestCheckResourceAttrSet("data.aws_elasticache_cluster.bar", "cluster_address"),
+					resource.TestCheckResourceAttrSet("data.aws_elasticache_cluster.bar", "availability_zone"),
 				),
 			},
 		},
 	})
 }
 
-func testAccAWSElastiCacheClusterConfigWithDataSource(rInt int) string {
+func testAccAWSElastiCacheClusterConfigWithDataSource(rString string, rInt int) string {
 	return fmt.Sprintf(`
 provider "aws" {
 	region = "us-east-1"
@@ -55,7 +55,7 @@ resource "aws_elasticache_security_group" "bar" {
 }
 
 resource "aws_elasticache_cluster" "bar" {
-    cluster_id = "tf-datasource-%d"
+    cluster_id = "tf-%s"
     engine = "memcached"
     node_type = "cache.m1.small"
     num_cache_nodes = 1
@@ -68,5 +68,5 @@ data "aws_elasticache_cluster" "bar" {
 	cluster_id = "${aws_elasticache_cluster.bar.cluster_id}"
 }
 
-`, rInt, rInt, rInt)
+`, rInt, rInt, rString)
 }

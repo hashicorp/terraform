@@ -171,6 +171,8 @@ func dataSourceAwsElastiCacheClusterRead(d *schema.ResourceData, meta interface{
 
 	cluster := resp.CacheClusters[0]
 
+	d.SetId(*cluster.CacheClusterId)
+
 	d.Set("cluster_id", cluster.CacheClusterId)
 	d.Set("node_type", cluster.CacheNodeType)
 	d.Set("num_cache_nodes", cluster.NumCacheNodes)
