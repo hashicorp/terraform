@@ -186,8 +186,28 @@ func newResourceDiff(schema map[string]*Schema, config *terraform.ResourceConfig
 // ClearAll wipes the current diff. This cannot be undone - use only if you
 // need to create a whole new diff from scatch, such as when you are leaning on
 // the provider completely to create the diff.
+//
+// Note that this does not wipe overrides.
 func (d *ResourceDiff) ClearAll() {
 	d.diff = new(terraform.InstanceDiff)
+}
+
+// Clear wipes the diff for a particular key. It is called by SetDiff to remove
+// any possibility of conflicts, but can be called on its own to just remove a
+// specific key from the diff completely.
+//
+// Note that this does not wipe an override.
+func (d *ResourceDiff) Clear(key string) error {
+	// Check the schema to make sure that this key exists first.
+	if _, ok := d.schema[key]; !ok {
+		return fmt.Errorf("%s is not a valid key", key)
+	}
+	for k := range d.diff.Attributes {
+		if strings.HasPrefix(k, key) {
+			delete(d.diff.Attributes, k)
+		}
+	}
+	return nil
 }
 
 // diffChange helps to implement resourceDiffer and derives its change values
@@ -236,6 +256,10 @@ func (d *ResourceDiff) SetNewComputed(key string) error {
 func (d *ResourceDiff) SetDiff(key string, old, new interface{}, computed bool) error {
 	if !d.schema[key].Computed {
 		return fmt.Errorf("SetNew, SetNewComputed, and SetDiff are allowed on computed attributes only - %s is not one", key)
+	}
+
+	if err := d.Clear(key); err != nil {
+		return err
 	}
 
 	if err := d.oldWriter.WriteField(strings.Split(key, "."), old); err != nil {
