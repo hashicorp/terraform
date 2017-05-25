@@ -58,5 +58,7 @@ variables must also be set:
 
 * `OVH_PUBLIC_CLOUD` - The id of the public cloud project.
 
+* `OVH_ZONE` - The domain you own to test the domain_zone ressource.
+
 You should be able to use any OVH environment to develop on as long as the
 above environment variables are set.
