@@ -66,7 +66,7 @@ IMPROVEMENTS:
 * provider/google: resource_compute_disks can now reference snapshots using the snapshot URL [GH-14774]
 * provider/heroku: Add import support for `heroku_pipeline` resource [GH-14486]
 * provider/heroku: Add import support for `heroku_pipeline_coupling` resource [GH-14495]
-* providers/heroku: Add import support for `heroku_addon` resource [GH-14508]
+* provider/heroku: Add import support for `heroku_addon` resource [GH-14508]
 * provider/openstack: Add support for all protocols in Security Group Rules [GH-14307]
 * provider/openstack: Add support for updating Subnet Allocation Pools [GH-14782]
 * provider/openstack: Enable Security Group Updates [GH-14815]
