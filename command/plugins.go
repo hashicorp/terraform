@@ -23,17 +23,27 @@ type multiVersionProviderResolver struct {
 	Available discovery.PluginMetaSet
 }
 
+func choosePlugins(avail discovery.PluginMetaSet, reqd discovery.PluginRequirements) map[string]discovery.PluginMeta {
+	candidates := avail.ConstrainVersions(reqd)
+	ret := map[string]discovery.PluginMeta{}
+	for name, metas := range candidates {
+		if len(metas) == 0 {
+			continue
+		}
+		ret[name] = metas.Newest()
+	}
+	return ret
+}
+
 func (r *multiVersionProviderResolver) ResolveProviders(
 	reqd discovery.PluginRequirements,
 ) (map[string]terraform.ResourceProviderFactory, []error) {
 	factories := make(map[string]terraform.ResourceProviderFactory, len(reqd))
 	var errs []error
 
-	candidates := r.Available.ConstrainVersions(reqd)
+	chosen := choosePlugins(r.Available, reqd)
 	for name := range reqd {
-		if metas := candidates[name]; metas != nil {
-			newest := metas.Newest()
-
+		if newest, available := chosen[name]; available {
 			digest, err := newest.SHA256()
 			if err != nil {
 				errs = append(errs, fmt.Errorf("provider.%s: failed to load plugin to verify its signature: %s", name, err))
@@ -45,7 +55,7 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 				// here is that they need to run "terraform init" to
 				// fix this, which is covered by the UI code reporting these
 				// error messages.
-				errs = append(errs, fmt.Errorf("provider.%s: not yet initialized", name))
+				errs = append(errs, fmt.Errorf("provider.%s: installed but not yet initialized", name))
 				continue
 			}
 
@@ -108,10 +118,10 @@ func (m *Meta) providerResolver() terraform.ResourceProviderResolver {
 }
 
 // filter the requirements returning only the providers that we can't resolve
-func (m *Meta) missingProviders(reqd discovery.PluginRequirements) discovery.PluginRequirements {
+func (m *Meta) missingPlugins(avail discovery.PluginMetaSet, reqd discovery.PluginRequirements) discovery.PluginRequirements {
 	missing := make(discovery.PluginRequirements)
 
-	candidates := m.providerPluginSet().ConstrainVersions(reqd)
+	candidates := avail.ConstrainVersions(reqd)
 
 	for name, versionSet := range reqd {
 		if metas := candidates[name]; metas == nil {
