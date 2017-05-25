@@ -34,7 +34,7 @@ func TestAccLibratoMetrics(t *testing.T) {
 				),
 			},
 			{
-				PreConfig: sleep(t, 15),
+				PreConfig: sleep(t, 5),
 				Config:    counterMetricConfig(name, typ, desc2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoMetricExists("librato_metric.foobar", &metric),
@@ -68,7 +68,7 @@ func TestAccLibratoMetrics(t *testing.T) {
 				),
 			},
 			{
-				PreConfig: sleep(t, 15),
+				PreConfig: sleep(t, 5),
 				Config:    gaugeMetricConfig(name, typ, desc2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoMetricExists("librato_metric.foobar", &metric),
@@ -102,7 +102,7 @@ func TestAccLibratoMetrics(t *testing.T) {
 				),
 			},
 			{
-				PreConfig: sleep(t, 15),
+				PreConfig: sleep(t, 5),
 				Config:    compositeMetricConfig(name, typ, desc2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoMetricExists("librato_metric.foobar", &metric),
