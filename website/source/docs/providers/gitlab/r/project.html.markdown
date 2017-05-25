@@ -31,6 +31,9 @@ The following arguments are supported:
 
 * `description` - (Optional) A description of the project.
 
+* `namespace_id` - (Optional) The namespace to create this project in.
+  See [`gitlab_group`](group.html) for an example.
+
 * `default_branch` - (Optional) The default branch for the project.
 
 * `issues_enabled` - (Optional) Enable issue tracking for the project.
