@@ -343,13 +343,13 @@ func expandCors(configured []interface{}) []*storage.BucketCors {
 	corsRules := make([]*storage.BucketCors, 0, len(configured))
 	for _, raw := range configured {
 		data := raw.(map[string]interface{})
-		corsRule := storage.BucketCors{}
+		corsRule := storage.BucketCors{
+			Origin:         convertSchemaArrayToStringArray(data["origin"].([]interface{})),
+			Method:         convertSchemaArrayToStringArray(data["method"].([]interface{})),
+			ResponseHeader: convertSchemaArrayToStringArray(data["response_header"].([]interface{})),
+			MaxAgeSeconds:  int64(data["max_age_seconds"].(int)),
+		}
 
-		corsRule.Origin = convertSchemaArrayToStringArray(data["origin"].([]interface{}))
-		corsRule.Method = convertSchemaArrayToStringArray(data["method"].([]interface{}))
-		corsRule.ResponseHeader = convertSchemaArrayToStringArray(data["response_header"].([]interface{}))
-
-		corsRule.MaxAgeSeconds = int64(data["max_age_seconds"].(int))
 		corsRules = append(corsRules, &corsRule)
 	}
 	return corsRules
@@ -367,11 +367,13 @@ func convertSchemaArrayToStringArray(input []interface{}) []string {
 func flattenCors(corsRules []*storage.BucketCors) []map[string]interface{} {
 	corsRulesSchema := make([]map[string]interface{}, 0, len(corsRules))
 	for _, corsRule := range corsRules {
-		data := make(map[string]interface{})
-		data["origin"] = corsRule.Origin
-		data["method"] = corsRule.Method
-		data["response_header"] = corsRule.ResponseHeader
-		data["max_age_seconds"] = corsRule.MaxAgeSeconds
+		data := map[string]interface{}{
+			"origin":          corsRule.Origin,
+			"method":          corsRule.Method,
+			"response_header": corsRule.ResponseHeader,
+			"max_age_seconds": corsRule.MaxAgeSeconds,
+		}
+
 		corsRulesSchema = append(corsRulesSchema, data)
 	}
 	return corsRulesSchema
