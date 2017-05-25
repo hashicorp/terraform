@@ -9,7 +9,7 @@ description: |-
 # gitlab\_project
 
 This resource allows you to create and manage projects within your
-GitLab organization.
+GitLab group or within your user.
 
 
 ## Example Usage
