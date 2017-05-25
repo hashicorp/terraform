@@ -47,17 +47,17 @@ func TestRemoteClientLocks(t *testing.T) {
 	keyName := "testState"
 
 	b1 := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"bucket":     bucketName,
-		"key":        keyName,
-		"encrypt":    true,
-		"lock_table": bucketName,
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"dynamodb_table": bucketName,
 	}).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"bucket":     bucketName,
-		"key":        keyName,
-		"encrypt":    true,
-		"lock_table": bucketName,
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"dynamodb_table": bucketName,
 	}).(*Backend)
 
 	createS3Bucket(t, b1.s3Client, bucketName)
@@ -85,17 +85,17 @@ func TestForceUnlock(t *testing.T) {
 	keyName := "testState"
 
 	b1 := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"bucket":     bucketName,
-		"key":        keyName,
-		"encrypt":    true,
-		"lock_table": bucketName,
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"dynamodb_table": bucketName,
 	}).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"bucket":     bucketName,
-		"key":        keyName,
-		"encrypt":    true,
-		"lock_table": bucketName,
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"dynamodb_table": bucketName,
 	}).(*Backend)
 
 	createS3Bucket(t, b1.s3Client, bucketName)
@@ -162,9 +162,9 @@ func TestRemoteClient_clientMD5(t *testing.T) {
 	keyName := "testState"
 
 	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"bucket":     bucketName,
-		"key":        keyName,
-		"lock_table": bucketName,
+		"bucket":         bucketName,
+		"key":            keyName,
+		"dynamodb_table": bucketName,
 	}).(*Backend)
 
 	createS3Bucket(t, b.s3Client, bucketName)
@@ -210,9 +210,9 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 	keyName := "testState"
 
 	b1 := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"bucket":     bucketName,
-		"key":        keyName,
-		"lock_table": bucketName,
+		"bucket":         bucketName,
+		"key":            keyName,
+		"dynamodb_table": bucketName,
 	}).(*Backend)
 
 	createS3Bucket(t, b1.s3Client, bucketName)
@@ -238,7 +238,7 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Use b2 without a lock_table to bypass the lock table to write the state directly.
+	// Use b2 without a dynamodb_table to bypass the lock table to write the state directly.
 	// client2 will write the "incorrect" state, simulating s3 eventually consistency delays
 	b2 := backend.TestBackendConfig(t, New(), map[string]interface{}{
 		"bucket": bucketName,

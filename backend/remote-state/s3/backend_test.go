@@ -34,11 +34,11 @@ func TestBackend_impl(t *testing.T) {
 func TestBackendConfig(t *testing.T) {
 	testACC(t)
 	config := map[string]interface{}{
-		"region":     "us-west-1",
-		"bucket":     "tf-test",
-		"key":        "state",
-		"encrypt":    true,
-		"lock_table": "dynamoTable",
+		"region":         "us-west-1",
+		"bucket":         "tf-test",
+		"key":            "state",
+		"encrypt":        true,
+		"dynamodb_table": "dynamoTable",
 	}
 
 	b := backend.TestBackendConfig(t, New(), config).(*Backend)
@@ -90,17 +90,17 @@ func TestBackendLocked(t *testing.T) {
 	keyName := "test/state"
 
 	b1 := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"bucket":     bucketName,
-		"key":        keyName,
-		"encrypt":    true,
-		"lock_table": bucketName,
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"dynamodb_table": bucketName,
 	}).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"bucket":     bucketName,
-		"key":        keyName,
-		"encrypt":    true,
-		"lock_table": bucketName,
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"dynamodb_table": bucketName,
 	}).(*Backend)
 
 	createS3Bucket(t, b1.s3Client, bucketName)
@@ -139,7 +139,7 @@ func TestBackendExtraPaths(t *testing.T) {
 		serverSideEncryption: b.serverSideEncryption,
 		acl:                  b.acl,
 		kmsKeyID:             b.kmsKeyID,
-		lockTable:            b.lockTable,
+		ddbTable:             b.ddbTable,
 	}
 
 	stateMgr := &remote.State{Client: client}
