@@ -180,7 +180,12 @@ func resourceDNSZoneV2Update(d *schema.ResourceData, meta interface{}) error {
 		updateOpts.TTL = d.Get("ttl").(int)
 	}
 	if d.HasChange("masters") {
-		updateOpts.Masters = d.Get("masters").([]string)
+		mastersraw := d.Get("masters").(*schema.Set).List()
+		masters := make([]string, len(mastersraw))
+		for i, masterraw := range mastersraw {
+			masters[i] = masterraw.(string)
+		}
+		updateOpts.Masters = masters
 	}
 	if d.HasChange("description") {
 		updateOpts.Description = d.Get("description").(string)
