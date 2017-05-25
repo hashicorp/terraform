@@ -216,8 +216,9 @@ func (c *InitCommand) getProviders(path string, state *terraform.State) error {
 		return err
 	}
 
+	available := c.providerPluginSet()
 	requirements := terraform.ModuleTreeDependencies(mod, state).AllPluginRequirements()
-	missing := c.missingProviders(requirements)
+	missing := c.missingPlugins(available, requirements)
 
 	dst := c.pluginDir()
 	for provider, reqd := range missing {
@@ -227,6 +228,26 @@ func (c *InitCommand) getProviders(path string, state *terraform.State) error {
 			return err
 		}
 	}
+
+	// With all the providers downloaded, we'll generate our lock file
+	// that ensures the provider binaries remain unchanged until we init
+	// again. If anything changes, other commands that use providers will
+	// fail with an error instructing the user to re-run this command.
+	available = c.providerPluginSet() // re-discover to see newly-installed plugins
+	chosen := choosePlugins(available, requirements)
+	digests := map[string][]byte{}
+	for name, meta := range chosen {
+		digest, err := meta.SHA256()
+		if err != nil {
+			return fmt.Errorf("failed to read provider plugin %s: %s", meta.Path, err)
+		}
+		digests[name] = digest
+	}
+	err = c.providerPluginsLock().Write(digests)
+	if err != nil {
+		return fmt.Errorf("failed to save provider manifest: %s", err)
+	}
+
 	return nil
 }
 
