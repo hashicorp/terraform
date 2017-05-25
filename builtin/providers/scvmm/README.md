@@ -1,28 +1,27 @@
-Terraform SCVMM provider:-
+Terraform SCVMM provider:
 
-    Microsoft SCVMM is a server application that you can use to manage a resources. SCVMM provider is created newly with some functionality of resources. 
-    This provider utilizes Go Library and uses masterzen library for creating a new connection with winrm to Powershell. 
-    To execute the functionality of resources windows powerShell - Virtual Machine Manager command shell is used.
+    Microsoft SCVMM is a server application which can be used to manage resources. The Terraform SCVMM provider uses the Go Library and the masterzen library for creating a new connection with winrm and Powershell of SCVMM server. 
+    To use the resources, Windows PowerShell and Virtual Machine Manager commands are used.
 
 Resources:
 
 Virtual Machine:
 
-- Create VM: It create a VM using template.And set the ID so that terraform get to known.
-- Read VM: Geting the information about VM.It includes VN name,id,ram virtual disk.
-- Start/Stop VM: It update the VM by performing start/stop action on it.
-- Delete VM: It deletes the VM and set the id equals to null.
+- Create VM: Creates a VM using a template and sets the ID for Terraform
+- Read VM: Gets information about a VM. This includes the VM name, ID, and RAM virtual disk
+- Start/Stop VM: Starts or stops the VM
+- Delete VM: Deletes the VM and set the ID to null
 
 Virtual Disk Drive:
 
-- Create Virtual Disk Drive : It creates virtual disk drive of specified size for that specified  VM.
-- Read Virtual Disk Drive: Read the information about virtual disk.
-- Delete Virtual Disk Drive: It delete the virtual disk drive
+- Create Virtual Disk Drive : Creates a virtual disk drive of the specified size for the specific VM
+- Read Virtual Disk Drive: Reads the information about the virtual disk
+- Delete Virtual Disk Drive: Deletes the virtual disk drive
 
 Checkpoint:
 
-- Create checkpoint : Create checkpoint for specified VM
-- Restore checkpoint : It revert to specified checkpoint
-- Delete checkpoint: It deletes the checkpoint
+- Create checkpoint : Creates a checkpoint for the specified VM
+- Restore checkpoint : Reverts to a specified checkpoint
+- Delete checkpoint: Deletes a checkpoint
 
-The main.tf file contains the microservices of how to call the providers and resources. We need to specify required details for resource creation in this file.
+The main.tf file contains micro-services for calling providers and resources. We need to specify the required details for resource creation in this file.
