@@ -3,7 +3,7 @@ layout: "gitlab"
 page_title: "GitLab: gitlab_deploy_key"
 sidebar_current: "docs-gitlab-resource-deploy_key"
 description: |-
-Creates and manages deploy keys for GitLab projects
+  Creates and manages deploy keys for GitLab projects
 ---
 
 # gitlab\_deploy\_key
