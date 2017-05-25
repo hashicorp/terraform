@@ -16,8 +16,10 @@ func TestAccDNSV2RecordSet_importBasic(t *testing.T) {
 		CheckDestroy: testAccCheckDNSV2RecordSetDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
+				Config: testAccDNSV2RecordSet_basic(zoneName),
+			},
+			resource.TestStep{
 				ResourceName:      resourceName,
-				Config:            testAccDNSV2RecordSet_basic(zoneName),
 				ImportState:       true,
 				ImportStateVerify: true,
 			},

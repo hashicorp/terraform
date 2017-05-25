@@ -32,6 +32,8 @@ func TestAccDNSV2RecordSet_basic(t *testing.T) {
 					testAccCheckDNSV2RecordSetExists("openstack_dns_recordset_v2.recordset_1", &recordset),
 					resource.TestCheckResourceAttr(
 						"openstack_dns_recordset_v2.recordset_1", "description", "a record set"),
+					resource.TestCheckResourceAttr(
+						"openstack_dns_recordset_v2.recordset_1", "records.0", "10.1.0.0"),
 				),
 			},
 			resource.TestStep{
@@ -42,6 +44,8 @@ func TestAccDNSV2RecordSet_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("openstack_dns_recordset_v2.recordset_1", "type", "A"),
 					resource.TestCheckResourceAttr(
 						"openstack_dns_recordset_v2.recordset_1", "description", "an updated record set"),
+					resource.TestCheckResourceAttr(
+						"openstack_dns_recordset_v2.recordset_1", "records.0", "10.1.0.1"),
 				),
 			},
 		},
@@ -100,7 +104,12 @@ func testAccCheckDNSV2RecordSetDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, err := recordsets.Get(dnsClient, rs.Primary.Attributes["zone_id"], rs.Primary.ID).Extract()
+		zoneID, recordsetID, err := parseDNSV2RecordSetID(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+
+		_, err = recordsets.Get(dnsClient, zoneID, recordsetID).Extract()
 		if err == nil {
 			return fmt.Errorf("Record set still exists")
 		}
@@ -126,12 +135,17 @@ func testAccCheckDNSV2RecordSetExists(n string, recordset *recordsets.RecordSet)
 			return fmt.Errorf("Error creating OpenStack DNS client: %s", err)
 		}
 
-		found, err := recordsets.Get(dnsClient, rs.Primary.Attributes["zone_id"], rs.Primary.ID).Extract()
+		zoneID, recordsetID, err := parseDNSV2RecordSetID(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 
-		if found.ID != rs.Primary.ID {
+		found, err := recordsets.Get(dnsClient, zoneID, recordsetID).Extract()
+		if err != nil {
+			return err
+		}
+
+		if found.ID != recordsetID {
 			return fmt.Errorf("Record set not found")
 		}
 

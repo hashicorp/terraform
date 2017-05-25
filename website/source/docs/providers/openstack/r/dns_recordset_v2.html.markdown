@@ -23,12 +23,13 @@ resource "openstack_dns_zone_v2" "example_zone" {
   type = "PRIMARY"
 }
 
-resource "openstack_dns_recordset_v2" "rs.example.com" {
+resource "openstack_dns_recordset_v2" "rs_example_com" {
   zone_id = "${openstack_dns_zone_v2.example_zone.id}"
-  name = "example.com."
+  name = "rs.example.com."
   description = "An example record set"
   ttl = 3000
   type = "A"
+  records = ["10.0.0.1"]
 }
 ```
 
@@ -73,9 +74,9 @@ The following attributes are exported:
 
 ## Import
 
-This resource can be imported by specifying all three arguments, separated
-by a forward slash:
+This resource can be imported by specifying the zone ID and recordset ID,
+separated by a forward slash.
 
 ```
-$ terraform import openstack_dns_recordset_v2.recordset_1 <recordset_id>
+$ terraform import openstack_dns_recordset_v2.recordset_1 <zone_id>/<recordset_id>
 ```

@@ -3,6 +3,7 @@ package openstack
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/gophercloud/gophercloud"
@@ -51,7 +52,7 @@ func resourceDNSRecordSetV2() *schema.Resource {
 				ForceNew: false,
 			},
 			"records": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: false,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -84,7 +85,7 @@ func resourceDNSRecordSetV2Create(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("Error creating OpenStack DNS client: %s", err)
 	}
 
-	recordsraw := d.Get("records").(*schema.Set).List()
+	recordsraw := d.Get("records").([]interface{})
 	records := make([]string, len(recordsraw))
 	for i, recordraw := range recordsraw {
 		records[i] = recordraw.(string)
@@ -121,9 +122,10 @@ func resourceDNSRecordSetV2Create(d *schema.ResourceData, meta interface{}) erro
 
 	_, err = stateConf.WaitForState()
 
-	d.SetId(n.ID)
+	id := fmt.Sprintf("%s/%s", zoneID, n.ID)
+	d.SetId(id)
 
-	log.Printf("[DEBUG] Created OpenStack DNS  record set %s: %#v", n.ID, n)
+	log.Printf("[DEBUG] Created OpenStack DNS record set %s: %#v", n.ID, n)
 	return resourceDNSRecordSetV2Read(d, meta)
 }
 
@@ -134,14 +136,18 @@ func resourceDNSRecordSetV2Read(d *schema.ResourceData, meta interface{}) error 
 		return fmt.Errorf("Error creating OpenStack DNS client: %s", err)
 	}
 
-	zoneID := d.Get("zone_id").(string)
+	// Obtain relevant info from parsing the ID
+	zoneID, recordsetID, err := parseDNSV2RecordSetID(d.Id())
+	if err != nil {
+		return err
+	}
 
-	n, err := recordsets.Get(dnsClient, zoneID, d.Id()).Extract()
+	n, err := recordsets.Get(dnsClient, zoneID, recordsetID).Extract()
 	if err != nil {
 		return CheckDeleted(d, err, "record_set")
 	}
 
-	log.Printf("[DEBUG] Retrieved  record set %s: %#v", d.Id(), n)
+	log.Printf("[DEBUG] Retrieved  record set %s: %#v", recordsetID, n)
 
 	d.Set("name", n.Name)
 	d.Set("description", n.Description)
@@ -149,7 +155,7 @@ func resourceDNSRecordSetV2Read(d *schema.ResourceData, meta interface{}) error 
 	d.Set("type", n.Type)
 	d.Set("records", n.Records)
 	d.Set("region", GetRegion(d))
-	d.Set("zone_id", n.ZoneID)
+	d.Set("zone_id", zoneID)
 
 	return nil
 }
@@ -167,7 +173,7 @@ func resourceDNSRecordSetV2Update(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if d.HasChange("records") {
-		recordsraw := d.Get("records").(*schema.Set).List()
+		recordsraw := d.Get("records").([]interface{})
 		records := make([]string, len(recordsraw))
 		for i, recordraw := range recordsraw {
 			records[i] = recordraw.(string)
@@ -179,21 +185,25 @@ func resourceDNSRecordSetV2Update(d *schema.ResourceData, meta interface{}) erro
 		updateOpts.Description = d.Get("description").(string)
 	}
 
-	zoneID := d.Get("zone_id").(string)
+	// Obtain relevant info from parsing the ID
+	zoneID, recordsetID, err := parseDNSV2RecordSetID(d.Id())
+	if err != nil {
+		return err
+	}
 
-	log.Printf("[DEBUG] Updating  record set %s with options: %#v", d.Id(), updateOpts)
+	log.Printf("[DEBUG] Updating  record set %s with options: %#v", recordsetID, updateOpts)
 
-	n, err := recordsets.Update(dnsClient, zoneID, d.Id(), updateOpts).Extract()
+	_, err = recordsets.Update(dnsClient, zoneID, recordsetID, updateOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error updating OpenStack DNS  record set: %s", err)
 	}
 
-	log.Printf("[DEBUG] Waiting for DNS record set (%s) to update", n.ID)
+	log.Printf("[DEBUG] Waiting for DNS record set (%s) to update", recordsetID)
 	stateConf := &resource.StateChangeConf{
 		Target:     []string{"ACTIVE"},
 		Pending:    []string{"PENDING"},
-		Refresh:    waitForDNSRecordSet(dnsClient, zoneID, n.ID),
-		Timeout:    d.Timeout(schema.TimeoutCreate),
+		Refresh:    waitForDNSRecordSet(dnsClient, zoneID, recordsetID),
+		Timeout:    d.Timeout(schema.TimeoutUpdate),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -210,18 +220,22 @@ func resourceDNSRecordSetV2Delete(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("Error creating OpenStack DNS client: %s", err)
 	}
 
-	zoneID := d.Get("zone_id").(string)
+	// Obtain relevant info from parsing the ID
+	zoneID, recordsetID, err := parseDNSV2RecordSetID(d.Id())
+	if err != nil {
+		return err
+	}
 
-	err = recordsets.Delete(dnsClient, zoneID, d.Id()).ExtractErr()
+	err = recordsets.Delete(dnsClient, zoneID, recordsetID).ExtractErr()
 	if err != nil {
 		return fmt.Errorf("Error deleting OpenStack DNS  record set: %s", err)
 	}
 
-	log.Printf("[DEBUG] Waiting for DNS record set (%s) to be deleted", d.Id())
+	log.Printf("[DEBUG] Waiting for DNS record set (%s) to be deleted", recordsetID)
 	stateConf := &resource.StateChangeConf{
 		Target:     []string{"DELETED"},
 		Pending:    []string{"ACTIVE", "PENDING"},
-		Refresh:    waitForDNSRecordSet(dnsClient, zoneID, d.Id()),
+		Refresh:    waitForDNSRecordSet(dnsClient, zoneID, recordsetID),
 		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
@@ -247,4 +261,16 @@ func waitForDNSRecordSet(dnsClient *gophercloud.ServiceClient, zoneID, recordset
 		log.Printf("[DEBUG] OpenStack DNS record set (%s) current status: %s", recordset.ID, recordset.Status)
 		return recordset, recordset.Status, nil
 	}
+}
+
+func parseDNSV2RecordSetID(id string) (string, string, error) {
+	idParts := strings.Split(id, "/")
+	if len(idParts) != 2 {
+		return "", "", fmt.Errorf("Unable to determine DNS record set ID from raw ID: %s", id)
+	}
+
+	zoneID := idParts[0]
+	recordsetID := idParts[1]
+
+	return zoneID, recordsetID, nil
 }
