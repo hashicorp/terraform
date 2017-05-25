@@ -112,6 +112,12 @@ type ResourceDiff struct {
 
 	// A writer that writes overridden new fields.
 	newWriter *newValueWriter
+
+	// Tracks which keys have been updated by SetNew, SetNewComputed, and SetDiff
+	// to ensure that the diff does not get re-run on keys that were not touched,
+	// or diffs that were just removed (re-running on the latter would just roll
+	// back the removal).
+	updatedKeys map[string]bool
 }
 
 // newResourceDiff creates a new ResourceDiff instance.
@@ -180,7 +186,19 @@ func newResourceDiff(schema map[string]*Schema, config *terraform.ResourceConfig
 		Readers: readers,
 	}
 
+	d.updatedKeys = make(map[string]bool)
+
 	return d
+}
+
+// UpdatedKeys returns the keys that were updated by SetNew, SetNewComputed, or
+// SetDiff. These are the only keys that ad iff should be re-calculated for.
+func (d *ResourceDiff) UpdatedKeys() []string {
+	s := make([]string, 0)
+	for k := range d.updatedKeys {
+		s = append(s, k)
+	}
+	return s
 }
 
 // ClearAll wipes the current diff. This cannot be undone - use only if you
@@ -269,6 +287,8 @@ func (d *ResourceDiff) SetDiff(key string, old, new interface{}, computed bool) 
 	if err := d.newWriter.WriteField(strings.Split(key, "."), new, computed); err != nil {
 		return fmt.Errorf("Cannot set new diff value for key %s: %s", key, err)
 	}
+
+	d.updatedKeys[key] = true
 
 	return nil
 }
