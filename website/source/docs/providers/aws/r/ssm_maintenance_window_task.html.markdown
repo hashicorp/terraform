@@ -32,6 +32,10 @@ resource "aws_ssm_maintenance_window_task" "task" {
     key = "InstanceIds"
     values = ["${aws_instance.instance.id}"]
   }
+  task_parameters {
+    name = "commands"
+    values = ["pwd"]
+  }
 }
 
 resource "aws_instance" "instance" {
@@ -54,12 +58,18 @@ The following arguments are supported:
 * `targets` - (Required) The targets (either instances or window target ids). Instances are specified using Key=InstanceIds,Values=instanceid1,instanceid2. Window target ids are specified using Key=WindowTargetIds,Values=window target id1, window target id2.
 * `priority` - (Optional) The priority of the task in the Maintenance Window, the lower the number the higher the priority. Tasks in a Maintenance Window are scheduled in priority order with tasks that have the same priority scheduled in parallel.
 * `logging_info` - (Optional) A structure containing information about an Amazon S3 bucket to write instance-level logs to. Documented below.
+* `task_parameters` - (Optional) A structure containing information about parameters required by the particular `task_arn`. Documented below.
 
 `logging_info` supports the following:
 
 * `s3_bucket_name` - (Required)
 * `s3_region` - (Required)
 * `s3_bucket_prefix` - (Optional)
+
+`task_parameters` supports the following:
+
+* `name` - (Required)
+* `values` - (Required)
 
 ## Attributes Reference
 

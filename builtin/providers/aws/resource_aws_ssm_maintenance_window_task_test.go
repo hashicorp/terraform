@@ -110,6 +110,10 @@ resource "aws_ssm_maintenance_window_task" "target" {
     key = "InstanceIds"
     values = ["${aws_instance.foo.id}"]
   }
+  task_parameters {
+    name = "commands"
+    values = ["pwd"]
+  }
 }
 
 resource "aws_instance" "foo" {
