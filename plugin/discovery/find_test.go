@@ -53,6 +53,7 @@ func TestResolvePluginPaths(t *testing.T) {
 		"/example/mockos_mockarch/terraform-foo-bar-V0.0.1",
 		"/example/mockos_mockarch/terraform-foo-baz-V0.0.1",
 		"/example/mockos_mockarch/terraform-foo-baz-V1.0.0",
+		"/example/mockos_mockarch/terraform-foo-baz-V2.0.0-X4",
 		"/example/terraform-foo-bar",
 		"/example/mockos_mockarch/terraform-foo-bar-Vbananas",
 		"/example/mockos_mockarch/terraform-foo-bar-V",
@@ -76,6 +77,11 @@ func TestResolvePluginPaths(t *testing.T) {
 			Path:    "/example/mockos_mockarch/terraform-foo-baz-V1.0.0",
 		},
 		{
+			Name:    "baz",
+			Version: "2.0.0",
+			Path:    "/example/mockos_mockarch/terraform-foo-baz-V2.0.0-X4",
+		},
+		{
 			Name:    "bar",
 			Version: "0.0.0",
 			Path:    "/example/terraform-foo-bar",
@@ -91,6 +97,8 @@ func TestResolvePluginPaths(t *testing.T) {
 			Path:    "/example/mockos_mockarch/terraform-foo-bar-V",
 		},
 	}
+
+	t.Logf("got %#v", got)
 
 	if got, want := got.Count(), len(want); got != want {
 		t.Errorf("got %d items; want %d", got, want)
