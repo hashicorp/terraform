@@ -27,6 +27,7 @@ func resourceContainerCluster() *schema.Resource {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"client_certificate": &schema.Schema{
@@ -349,9 +350,6 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 
 	if v, ok := d.GetOk("master_auth"); ok {
 		masterAuths := v.([]interface{})
-		if len(masterAuths) > 1 {
-			return fmt.Errorf("Cannot specify more than one master_auth.")
-		}
 		masterAuth := masterAuths[0].(map[string]interface{})
 		cluster.MasterAuth = &container.MasterAuth{
 			Password: masterAuth["password"].(string),
