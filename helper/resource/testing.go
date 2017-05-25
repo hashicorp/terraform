@@ -21,7 +21,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-// FlagSweep is a flag available when running tests on the command line. This
+// flagSweep is a flag available when running tests on the command line. This
 // flag bypasses the normal Test path and instead runs functions designed to
 // clean up any leaked resources a testing environment could have created. It is
 // a best effort attempt, and relies on Provider authors to implement "Sweeper"
@@ -35,8 +35,8 @@ import (
 // in any environment that is not strictly a test environment. Resources will be
 // destroyed.
 
-var FlagSweep bool
-var SweeperFuncs map[string][]*Sweeper
+var flagSweep = flag.Bool("sweep", false, "toggle sweeping")
+var sweeperFuncs map[string][]*Sweeper
 
 type SweeperFunc func(i interface{}) error
 
@@ -52,28 +52,30 @@ type Sweeper struct {
 }
 
 func init() {
-	flag.BoolVar(&FlagSweep, "sweep", false, "")
-	SweeperFuncs = make(map[string][]*Sweeper)
+	sweeperFuncs = make(map[string][]*Sweeper)
 }
 
+// AddTestSweepers function adds a given name and Sweeper configuration
+// pair to the internal sweeperFuncs map. Invoke this function to register a
+// resource sweeper to be available for running when the -sweep flag is used
+// with `go test`. Sweeper names must be unique to help ensure a given sweeper
+// is only ran once per run.
 func AddTestSweepers(name string, sf []*Sweeper) {
-	if _, ok := SweeperFuncs[name]; ok {
-		log.Printf("Error adding (%s) to SweeperFuncs: function already exists in map", name)
-		os.Exit(1)
+	if _, ok := sweeperFuncs[name]; ok {
+		log.Fatalf("Error adding (%s) to sweeperFuncs: function already exists in map", name)
 	}
 
-	SweeperFuncs[name] = sf
+	sweeperFuncs[name] = sf
 }
 
 func TestMain(m *testing.M) {
 	flag.Parse()
-	if FlagSweep {
-		for n, s := range SweeperFuncs {
-			log.Printf("[DEBUG] Running (%s) Sweeper...\n", n)
-			for _, f := range s {
-				if err := f.F(f.Config); err != nil {
-					log.Printf("Error in (%s) Sweeper: %s", n, err)
-					os.Exit(1)
+	if *flagSweep {
+		for sweeperName, sweepers := range sweeperFuncs {
+			log.Printf("[DEBUG] Running (%s) Sweeper...\n", sweeperName)
+			for _, sweep := range sweepers {
+				if err := sweep.F(sweep.Config); err != nil {
+					log.Fatalf("Error in (%s) Sweeper: %s", sweeperName, err)
 				}
 			}
 		}
