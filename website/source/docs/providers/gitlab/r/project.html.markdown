@@ -15,11 +15,11 @@ GitLab organization.
 ## Example Usage
 
 ```hcl
-resource "gitlab_repository" "example" {
+resource "gitlab_project" "example" {
   name        = "example"
   description = "My awesome codebase"
 
-  visbility_level = "public"
+  visibility_level = "public"
 }
 ```
 
