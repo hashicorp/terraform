@@ -4,10 +4,12 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"sort"
 	"strings"
 	"testing"
@@ -121,6 +123,9 @@ func TestPush_goodBackendInit(t *testing.T) {
 		// Expected weird behavior, doesn't affect unpackaging
 		".terraform/",
 		".terraform/",
+		".terraform/plugins/",
+		fmt.Sprintf(".terraform/plugins/%s_%s/", runtime.GOOS, runtime.GOARCH),
+		fmt.Sprintf(".terraform/plugins/%s_%s/providers.json", runtime.GOOS, runtime.GOARCH),
 		".terraform/terraform.tfstate",
 		".terraform/terraform.tfstate",
 		"main.tf",
