@@ -25,6 +25,7 @@ FEATURES:
 * **New Resource:** `kubernetes_horizontal_pod_autoscaler` [GH-14763]
 * **New Resource:** `kubernetes_service` [GH-14554]
 * **New Resource:** `openstack_dns_zone_v2` [GH-14721]
+* **New Resource:** `openstack_dns_recordset_v2` [GH-14813]
 * **New Data Source:** `aws_db_snapshot` [GH-10291]
 * **New Data Source:** `aws_kms_ciphertext` [GH-14691]
 * **New Data Source:** `github_user` [GH-14570]
