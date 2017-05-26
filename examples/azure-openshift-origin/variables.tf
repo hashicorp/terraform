@@ -15,9 +15,14 @@ variable "key_vault_object_id" {
   description = "The object ID of a service principal in the Azure Active Directory tenant for the key vault. Get using 'az ad sp show'."
 }
 
-variable "artifacts_location" {
+variable "master_artifacts_location" {
   description = "The base URL where artifacts required by this template are located. If you are using your own fork of the repo and want the deployment to pick up artifacts from your fork, update this value appropriately (user and branch), for example, change from https://raw.githubusercontent.com/Microsoft/openshift-origin/master/ to https://raw.githubusercontent.com/YourUser/openshift-origin/YourBranch/"
-  default     = "https://raw.githubusercontent.com/Microsoft/openshift-origin/master/"
+  default     = "https://raw.githubusercontent.com/Microsoft/openshift-origin/b0bfbf25a7832fac424c0807a92fd15508364ffe/"
+}
+
+variable "node_artifacts_location" {
+  description = "The base URL where artifacts required by this template are located. If you are using your own fork of the repo and want the deployment to pick up artifacts from your fork, update this value appropriately (user and branch), for example, change from https://raw.githubusercontent.com/Microsoft/openshift-origin/master/ to https://raw.githubusercontent.com/YourUser/openshift-origin/YourBranch/"
+  default     = "https://raw.githubusercontent.com/Microsoft/openshift-origin/01d7978a415bbe7d59a277926dd5fd541b01aa95/"
 }
 
 variable "os_image" {
@@ -101,33 +106,24 @@ variable "storage_account_type_map" {
   }
 }
 
-variable "centos_map" {
-  description = ""
+variable "os_image_map" {
+  description = "os image map"
   type        = "map"
 
   default = {
-    publisher = "Openlogic"
-    offer     = "CentOS"
-    sku       = "7.3"
-    version   = "latest"
-  }
-}
-
-variable "rhel_map" {
-  description = ""
-  type        = "map"
-
-  default = {
-    publisher = "RedHat"
-    offer     = "RHEL"
-    sku       = "7.3"
-    version   = "latest"
+    centos_publisher = "Openlogic"
+    centos_offer     = "CentOS"
+    centos_sku       = "7.3"
+    centos_version   = "latest"
+    rhel_publisher   = "RedHat"
+    rhel_offer       = "RHEL"
+    rhel_sku         = "7.3"
+    rhel_version     = "latest"
   }
 }
 
 variable "openshift_cluster_prefix" {
   description = "Cluster Prefix used to configure hostnames for all nodes - master, infra and nodes. Between 1 and 20 characters"
-  default     = "aacl"
 }
 
 variable "openshift_master_public_ip_dns_label" {
