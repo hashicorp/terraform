@@ -5,10 +5,11 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	pkgApi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/errors"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	pkgApi "k8s.io/apimachinery/pkg/types"
 	api "k8s.io/kubernetes/pkg/api/v1"
-	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_5"
+	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 )
 
 func resourceKubernetesService() *schema.Resource {
@@ -147,7 +148,7 @@ func resourceKubernetesServiceRead(d *schema.ResourceData, meta interface{}) err
 
 	namespace, name := idParts(d.Id())
 	log.Printf("[INFO] Reading service %s", name)
-	svc, err := conn.CoreV1().Services(namespace).Get(name)
+	svc, err := conn.CoreV1().Services(namespace).Get(name, meta_v1.GetOptions{})
 	if err != nil {
 		log.Printf("[DEBUG] Received error: %#v", err)
 		return err
@@ -198,7 +199,7 @@ func resourceKubernetesServiceDelete(d *schema.ResourceData, meta interface{}) e
 
 	namespace, name := idParts(d.Id())
 	log.Printf("[INFO] Deleting service: %#v", name)
-	err := conn.CoreV1().Services(namespace).Delete(name, &api.DeleteOptions{})
+	err := conn.CoreV1().Services(namespace).Delete(name, &meta_v1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
@@ -214,7 +215,7 @@ func resourceKubernetesServiceExists(d *schema.ResourceData, meta interface{}) (
 
 	namespace, name := idParts(d.Id())
 	log.Printf("[INFO] Checking service %s", name)
-	_, err := conn.CoreV1().Services(namespace).Get(name)
+	_, err := conn.CoreV1().Services(namespace).Get(name, meta_v1.GetOptions{})
 	if err != nil {
 		if statusErr, ok := err.(*errors.StatusError); ok && statusErr.ErrStatus.Code == 404 {
 			return false, nil

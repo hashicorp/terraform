@@ -7,10 +7,11 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	pkgApi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/errors"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	pkgApi "k8s.io/apimachinery/pkg/types"
 	api "k8s.io/kubernetes/pkg/api/v1"
-	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_5"
+	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 )
 
 func resourceKubernetesResourceQuota() *schema.Resource {
@@ -76,7 +77,7 @@ func resourceKubernetesResourceQuotaCreate(d *schema.ResourceData, meta interfac
 	d.SetId(buildId(out.ObjectMeta))
 
 	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-		quota, err := conn.CoreV1().ResourceQuotas(out.Namespace).Get(out.Name)
+		quota, err := conn.CoreV1().ResourceQuotas(out.Namespace).Get(out.Name, meta_v1.GetOptions{})
 		if err != nil {
 			return resource.NonRetryableError(err)
 		}
@@ -99,7 +100,7 @@ func resourceKubernetesResourceQuotaRead(d *schema.ResourceData, meta interface{
 
 	namespace, name := idParts(d.Id())
 	log.Printf("[INFO] Reading resource quota %s", name)
-	resQuota, err := conn.CoreV1().ResourceQuotas(namespace).Get(name)
+	resQuota, err := conn.CoreV1().ResourceQuotas(namespace).Get(name, meta_v1.GetOptions{})
 	if err != nil {
 		log.Printf("[DEBUG] Received error: %#v", err)
 		return err
@@ -160,7 +161,7 @@ func resourceKubernetesResourceQuotaUpdate(d *schema.ResourceData, meta interfac
 
 	if waitForChangedSpec {
 		err = resource.Retry(1*time.Minute, func() *resource.RetryError {
-			quota, err := conn.CoreV1().ResourceQuotas(namespace).Get(name)
+			quota, err := conn.CoreV1().ResourceQuotas(namespace).Get(name, meta_v1.GetOptions{})
 			if err != nil {
 				return resource.NonRetryableError(err)
 			}
@@ -184,7 +185,7 @@ func resourceKubernetesResourceQuotaDelete(d *schema.ResourceData, meta interfac
 
 	namespace, name := idParts(d.Id())
 	log.Printf("[INFO] Deleting resource quota: %#v", name)
-	err := conn.CoreV1().ResourceQuotas(namespace).Delete(name, &api.DeleteOptions{})
+	err := conn.CoreV1().ResourceQuotas(namespace).Delete(name, &meta_v1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
@@ -200,7 +201,7 @@ func resourceKubernetesResourceQuotaExists(d *schema.ResourceData, meta interfac
 
 	namespace, name := idParts(d.Id())
 	log.Printf("[INFO] Checking resource quota %s", name)
-	_, err := conn.CoreV1().ResourceQuotas(namespace).Get(name)
+	_, err := conn.CoreV1().ResourceQuotas(namespace).Get(name, meta_v1.GetOptions{})
 	if err != nil {
 		if statusErr, ok := err.(*errors.StatusError); ok && statusErr.ErrStatus.Code == 404 {
 			return false, nil
