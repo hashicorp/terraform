@@ -44,7 +44,7 @@ func resourceAliyunSlbAttachmentCreate(d *schema.ResourceData, meta interface{})
 
 	loadBalancer, err := slbconn.DescribeLoadBalancerAttribute(slbId)
 	if err != nil {
-		if notFoundError(err) {
+		if NotFoundError(err) {
 			d.SetId("")
 			return fmt.Errorf("Special SLB Id not found: %#v", err)
 		}
@@ -62,7 +62,7 @@ func resourceAliyunSlbAttachmentRead(d *schema.ResourceData, meta interface{}) e
 	slbconn := meta.(*AliyunClient).slbconn
 	loadBalancer, err := slbconn.DescribeLoadBalancerAttribute(d.Id())
 	if err != nil {
-		if notFoundError(err) {
+		if NotFoundError(err) {
 			d.SetId("")
 			return nil
 		}

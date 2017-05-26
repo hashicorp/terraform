@@ -137,7 +137,7 @@ func resourceAliyunDiskRead(d *schema.ResourceData, meta interface{}) error {
 	})
 
 	if err != nil {
-		if notFoundError(err) {
+		if NotFoundError(err) {
 			d.SetId("")
 			return nil
 		}

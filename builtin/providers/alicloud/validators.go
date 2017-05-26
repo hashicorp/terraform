@@ -6,11 +6,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/denverdino/aliyungo/common"
 	"github.com/denverdino/aliyungo/ecs"
 	"github.com/denverdino/aliyungo/slb"
 	"github.com/hashicorp/terraform/helper/schema"
 	"regexp"
+	"time"
 )
 
 // common
@@ -573,6 +575,54 @@ func validateForwardPort(v interface{}, k string) (ws []string, errors []error) 
 		if err != nil || valueConv < 1 || valueConv > 65535 {
 			errors = append(errors, fmt.Errorf("%q must be a valid port between 1 and 65535 or any ", k))
 		}
+	}
+	return
+}
+
+func validateOssBucketName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) < 3 || len(value) > 63 {
+		errors = append(errors, fmt.Errorf("%q cannot be less than 3 and longer than 63 characters", k))
+	}
+	return
+}
+
+func validateOssBucketAcl(v interface{}, k string) (ws []string, errors []error) {
+	if value := v.(string); value != "" {
+		acls := oss.ACLType(value)
+		if acls != oss.ACLPrivate && acls != oss.ACLPublicRead && acls != oss.ACLPublicReadWrite {
+			errors = append(errors, fmt.Errorf(
+				"%q must be a valid ACL value , expected %s, %s or %s, got %q",
+				k, oss.ACLPrivate, oss.ACLPublicRead, oss.ACLPublicReadWrite, acls))
+		}
+	}
+	return
+}
+
+func validateOssBucketLifecycleRuleId(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) > 255 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 255 characters", k))
+	}
+	return
+}
+
+func validateOssBucketDateTimestamp(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	_, err := time.Parse(time.RFC3339, fmt.Sprintf("%sT00:00:00Z", value))
+	if err != nil {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be parsed as RFC3339 Timestamp Format", value))
+	}
+	return
+}
+
+func validateOssBucketObjectServerSideEncryption(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	if ServerSideEncryptionAes256 != value {
+		errors = append(errors, fmt.Errorf(
+			"%q must be a valid value, expected %s", k, ServerSideEncryptionAes256))
 	}
 	return
 }

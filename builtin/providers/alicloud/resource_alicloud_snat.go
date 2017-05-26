@@ -59,7 +59,7 @@ func resourceAliyunSnatEntryRead(d *schema.ResourceData, meta interface{}) error
 	snatEntry, err := client.DescribeSnatEntry(d.Get("snat_table_id").(string), d.Id())
 
 	if err != nil {
-		if notFoundError(err) {
+		if NotFoundError(err) {
 			return nil
 		}
 		return err

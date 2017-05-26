@@ -32,7 +32,7 @@ func TestAccAlicloudEssSchedule_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"alicloud_ess_schedule.foo",
 						"launch_time",
-						"2017-04-29T07:30Z"),
+						"2017-05-12T08:18Z"),
 					resource.TestCheckResourceAttr(
 						"alicloud_ess_schedule.foo",
 						"task_enabled",
@@ -88,7 +88,7 @@ func testAccCheckEssScheduleDestroy(s *terraform.State) error {
 		if err != nil {
 			// Verify the error is what we want
 			e, _ := err.(*common.Error)
-			if e.ErrorResponse.Code == InstanceNotfound {
+			if e.Code == InstanceNotFound {
 				continue
 			}
 			return err
@@ -145,7 +145,7 @@ resource "alicloud_ess_scaling_rule" "foo" {
 
 resource "alicloud_ess_schedule" "foo" {
 	scheduled_action = "${alicloud_ess_scaling_rule.foo.ari}"
-	launch_time = "2017-04-29T07:30Z"
+	launch_time = "2017-05-12T08:18Z"
 	scheduled_task_name = "tf-foo"
 }
 `

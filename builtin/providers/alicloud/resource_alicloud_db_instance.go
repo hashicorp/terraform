@@ -217,7 +217,7 @@ func resourceAlicloudDBInstanceCreate(d *schema.ResourceData, meta interface{}) 
 	d.Set("period_type", d.Get("period_type"))
 
 	// wait instance status change from Creating to running
-	if err := conn.WaitForInstance(d.Id(), rds.Running, defaultLongTimeout); err != nil {
+	if err := conn.WaitForInstanceAsyn(d.Id(), rds.Running, defaultLongTimeout); err != nil {
 		return fmt.Errorf("WaitForInstance %s got error: %#v", rds.Running, err)
 	}
 
@@ -371,7 +371,7 @@ func resourceAlicloudDBInstanceRead(d *schema.ResourceData, meta interface{}) er
 
 	instance, err := client.DescribeDBInstanceById(d.Id())
 	if err != nil {
-		if notFoundError(err) {
+		if NotFoundError(err) {
 			d.SetId("")
 			return nil
 		}

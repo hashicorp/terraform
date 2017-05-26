@@ -345,6 +345,44 @@ func (client *Client) WaitForInstance(instanceId string, status InstanceStatus, 
 	return nil
 }
 
+// WaitForInstance waits for instance to given status
+func (client *Client) WaitForInstanceAsyn(instanceId string, status InstanceStatus, timeout int) error {
+	if timeout <= 0 {
+		timeout = InstanceDefaultTimeout
+	}
+	for {
+		args := DescribeDBInstancesArgs{
+			DBInstanceId: instanceId,
+		}
+
+		resp, err := client.DescribeDBInstanceAttribute(&args)
+		if err != nil {
+			e, _ := err.(*common.Error)
+			if e.Code != "InvalidInstanceId.NotFound" && e.Code != "Forbidden.InstanceNotFound" {
+				return err
+			}
+		}
+
+		if timeout <= 0 {
+			return common.GetClientErrorFromString("Timeout")
+		}
+
+		timeout = timeout - DefaultWaitForInterval
+		time.Sleep(DefaultWaitForInterval * time.Second)
+		if resp != nil {
+
+			if len(resp.Items.DBInstanceAttribute) < 1 {
+				continue
+			}
+			instance := resp.Items.DBInstanceAttribute[0]
+			if instance.DBInstanceStatus == status {
+				break
+			}
+		}
+	}
+	return nil
+}
+
 func (client *Client) WaitForAllDatabase(instanceId string, databaseNames []string, status InstanceStatus, timeout int) error {
 	if timeout <= 0 {
 		timeout = InstanceDefaultTimeout

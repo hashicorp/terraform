@@ -70,6 +70,7 @@ func resourceAliyunNatGateway() *schema.Resource {
 						"zone": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							Computed: true,
 						},
 						"public_ip_addresses": &schema.Schema{
 							Type:     schema.TypeString,
@@ -138,7 +139,7 @@ func resourceAliyunNatGatewayRead(d *schema.ResourceData, meta interface{}) erro
 
 	natGateway, err := client.DescribeNatGateway(d.Id())
 	if err != nil {
-		if notFoundError(err) {
+		if NotFoundError(err) {
 			d.SetId("")
 			return nil
 		}
@@ -354,7 +355,7 @@ func getPackages(packageId string, meta interface{}, d *schema.ResourceData) (*e
 	}
 
 	if len(packages) == 0 {
-		return nil, common.GetClientErrorFromString(InstanceNotfound)
+		return nil, common.GetClientErrorFromString(InstanceNotFound)
 	}
 
 	return &packages[0], nil

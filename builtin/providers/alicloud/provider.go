@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/terraform/helper/mutexkv"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+	"os"
 )
 
 // Provider returns a schema.Provider for alicloud
@@ -51,15 +52,17 @@ func Provider() terraform.ResourceProvider {
 			"alicloud_vpc":                       resourceAliyunVpc(),
 			"alicloud_nat_gateway":               resourceAliyunNatGateway(),
 			//both subnet and vswith exists,cause compatible old version, and compatible aws habit.
-			"alicloud_subnet":          resourceAliyunSubnet(),
-			"alicloud_vswitch":         resourceAliyunSubnet(),
-			"alicloud_route_entry":     resourceAliyunRouteEntry(),
-			"alicloud_snat_entry":      resourceAliyunSnatEntry(),
-			"alicloud_forward_entry":   resourceAliyunForwardEntry(),
-			"alicloud_eip":             resourceAliyunEip(),
-			"alicloud_eip_association": resourceAliyunEipAssociation(),
-			"alicloud_slb":             resourceAliyunSlb(),
-			"alicloud_slb_attachment":  resourceAliyunSlbAttachment(),
+			"alicloud_subnet":            resourceAliyunSubnet(),
+			"alicloud_vswitch":           resourceAliyunSubnet(),
+			"alicloud_route_entry":       resourceAliyunRouteEntry(),
+			"alicloud_snat_entry":        resourceAliyunSnatEntry(),
+			"alicloud_forward_entry":     resourceAliyunForwardEntry(),
+			"alicloud_eip":               resourceAliyunEip(),
+			"alicloud_eip_association":   resourceAliyunEipAssociation(),
+			"alicloud_slb":               resourceAliyunSlb(),
+			"alicloud_slb_attachment":    resourceAliyunSlbAttachment(),
+			"alicloud_oss_bucket":        resourceAlicloudOssBucket(),
+			"alicloud_oss_bucket_object": resourceAlicloudOssBucketObject(),
 		},
 
 		ConfigureFunc: providerConfigure,
@@ -67,10 +70,25 @@ func Provider() terraform.ResourceProvider {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+	accesskey, ok := d.GetOk("access_key")
+	if !ok {
+		accesskey = os.Getenv("ALICLOUD_ACCESS_KEY")
+	}
+	secretkey, ok := d.GetOk("secret_key")
+	if !ok {
+		secretkey = os.Getenv("ALICLOUD_SECRET_KEY")
+	}
+	region, ok := d.GetOk("region")
+	if !ok {
+		region = os.Getenv("ALICLOUD_REGION")
+		if region == "" {
+			region = DEFAULT_REGION
+		}
+	}
 	config := Config{
-		AccessKey: d.Get("access_key").(string),
-		SecretKey: d.Get("secret_key").(string),
-		Region:    common.Region(d.Get("region").(string)),
+		AccessKey: accesskey.(string),
+		SecretKey: secretkey.(string),
+		Region:    common.Region(region.(string)),
 	}
 
 	client, err := config.Client()
