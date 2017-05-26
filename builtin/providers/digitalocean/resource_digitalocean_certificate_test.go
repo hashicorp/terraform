@@ -31,8 +31,7 @@ func TestAccDigitalOceanCertificate_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckDigitalOceanCertificateDestroy,
 		Steps: []resource.TestStep{
 			{
-				ExpectNonEmptyPlan: true,
-				Config:             testAccCheckDigitalOceanCertificateConfig_basic(rInt, privateKeyMaterial, leafCertMaterial, certChainMaterial),
+				Config: testAccCheckDigitalOceanCertificateConfig_basic(rInt, privateKeyMaterial, leafCertMaterial, certChainMaterial),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanCertificateExists("digitalocean_certificate.foobar", &cert),
 					resource.TestCheckResourceAttr(
@@ -105,11 +104,9 @@ resource "digitalocean_certificate" "foobar" {
   private_key = <<EOF
 %s
 EOF
-
   leaf_certificate = <<EOF
 %s
 EOF
-
   certificate_chain = <<EOF
 %s
 EOF
