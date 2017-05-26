@@ -113,7 +113,6 @@ func resourceDigitalOceanCertificateDelete(d *schema.ResourceData, meta interfac
 		return fmt.Errorf("Error deleting Certificate: %s", err)
 	}
 
-	d.SetId("")
 	return nil
 
 }
