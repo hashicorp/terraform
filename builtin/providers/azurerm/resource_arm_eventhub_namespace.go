@@ -41,9 +41,10 @@ func resourceArmEventHubNamespace() *schema.Resource {
 			},
 
 			"sku": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validateEventHubNamespaceSku,
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateFunc:     validateEventHubNamespaceSku,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"capacity": {
