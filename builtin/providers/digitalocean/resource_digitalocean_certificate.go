@@ -44,12 +44,14 @@ func resourceDigitalOceanCertificate() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 
 			"sha1_fingerprint": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 		},
 	}
