@@ -3,6 +3,7 @@
 FEATURES:
 
  * **New Resource:** `librato_metric` [GH-14562]
+ * **New Resource:** `digitalocean_certificate` [GH-14578]
 
 ## 0.9.6 (May 25, 2017)
 
