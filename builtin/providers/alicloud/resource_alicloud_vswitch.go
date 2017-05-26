@@ -83,7 +83,7 @@ func resourceAliyunSwitchRead(d *schema.ResourceData, meta interface{}) error {
 	vswitches, _, err := conn.DescribeVSwitches(args)
 
 	if err != nil {
-		if notFoundError(err) {
+		if NotFoundError(err) {
 			d.SetId("")
 			return nil
 		}

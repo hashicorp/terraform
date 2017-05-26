@@ -202,7 +202,7 @@ func resourceAliyunEssScalingConfigurationRead(d *schema.ResourceData, meta inte
 	ids := strings.Split(d.Id(), COLON_SEPARATED)
 	c, err := client.DescribeScalingConfigurationById(ids[0], ids[1])
 	if err != nil {
-		if e, ok := err.(*common.Error); ok && e.Code == InstanceNotfound {
+		if NotFoundError(err) {
 			d.SetId("")
 			return nil
 		}
@@ -246,7 +246,7 @@ func resourceAliyunEssScalingConfigurationDelete(d *schema.ResourceData, meta in
 
 		_, err = client.DescribeScalingConfigurationById(ids[0], ids[1])
 		if err != nil {
-			if notFoundError(err) {
+			if NotFoundError(err) {
 				return nil
 			}
 			return resource.NonRetryableError(err)

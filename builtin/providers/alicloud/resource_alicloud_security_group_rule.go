@@ -136,7 +136,7 @@ func resourceAliyunSecurityGroupRuleRead(d *schema.ResourceData, meta interface{
 	rule, err := client.DescribeSecurityGroupRule(sgId, direction, nic_type, ip_protocol, port_range)
 
 	if err != nil {
-		if notFoundError(err) {
+		if NotFoundError(err) {
 			d.SetId("")
 			return nil
 		}
@@ -204,7 +204,7 @@ func resourceAliyunSecurityGroupRuleDelete(d *schema.ResourceData, meta interfac
 
 		_, err = client.DescribeSecurityGroupRule(sgId, direction, nic_type, ip_protocol, port_range)
 		if err != nil {
-			if notFoundError(err) {
+			if NotFoundError(err) {
 				return nil
 			}
 			return resource.NonRetryableError(err)

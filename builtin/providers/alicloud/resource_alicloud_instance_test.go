@@ -6,7 +6,6 @@ import (
 
 	"log"
 
-	"github.com/denverdino/aliyungo/common"
 	"github.com/denverdino/aliyungo/ecs"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -410,6 +409,41 @@ func TestAccAlicloudInstance_update(t *testing.T) {
 	})
 }
 
+func TestAccAlicloudInstanceImage_update(t *testing.T) {
+	var instance ecs.InstanceAttributesType
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckInstanceImageOrigin,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("alicloud_instance.update_image", &instance),
+					resource.TestCheckResourceAttr(
+						"alicloud_instance.update_image",
+						"system_disk_size",
+						"50"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccCheckInstanceImageUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("alicloud_instance.update_image", &instance),
+					resource.TestCheckResourceAttr(
+						"alicloud_instance.update_image",
+						"system_disk_size",
+						"60"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAlicloudInstance_privateIP(t *testing.T) {
 	var instance ecs.InstanceAttributesType
 
@@ -547,8 +581,7 @@ func testAccCheckInstanceExistsWithProviders(n string, i *ecs.InstanceAttributes
 			}
 
 			// Verify the error is what we want
-			e, _ := err.(*common.Error)
-			if e.ErrorResponse.Message == InstanceNotfound {
+			if NotFoundError(err) {
 				continue
 			}
 			if err != nil {
@@ -596,8 +629,7 @@ func testAccCheckInstanceDestroyWithProvider(s *terraform.State, provider *schem
 		}
 
 		// Verify the error is what we want
-		e, _ := err.(*common.Error)
-		if e.ErrorResponse.Message == InstanceNotfound {
+		if NotFoundError(err) {
 			continue
 		}
 
@@ -905,7 +937,7 @@ resource "alicloud_instance" "foo" {
 	# cn-beijing
 	image_id = "ubuntu_140405_32_40G_cloudinit_20161115.vhd"
 
-	instance_type = "ecs.s2.large"
+	instance_type = "ecs.n2.small"
 	internet_charge_type = "PayByBandwidth"
 	security_groups = ["${alicloud_security_group.tf_test_foo.*.id}"]
 	instance_name = "test_foo"
@@ -1223,5 +1255,78 @@ resource "alicloud_instance" "foo" {
     	instance_name = "test_foo"
     	io_optimized = "optimized"
 }
+`
+const testAccCheckInstanceImageOrigin = `
+data "alicloud_images" "centos" {
+	most_recent = true
+	owners = "system"
+	name_regex = "^centos_6\\w{1,5}[64]{1}.*"
+}
 
+resource "alicloud_vpc" "foo" {
+	name = "tf_test_image"
+	cidr_block = "10.1.0.0/21"
+}
+
+resource "alicloud_vswitch" "foo" {
+	vpc_id = "${alicloud_vpc.foo.id}"
+	cidr_block = "10.1.1.0/24"
+	availability_zone = "cn-beijing-a"
+}
+
+resource "alicloud_security_group" "tf_test_foo" {
+	name = "tf_test_foo"
+	description = "foo"
+	vpc_id = "${alicloud_vpc.foo.id}"
+}
+
+resource "alicloud_instance" "update_image" {
+	image_id = "${data.alicloud_images.centos.images.0.id}"
+	availability_zone = "cn-beijing-a"
+  	system_disk_category = "cloud_efficiency"
+  	system_disk_size = 50
+
+  	instance_type = "ecs.n1.small"
+  	internet_charge_type = "PayByBandwidth"
+  	instance_name = "update_image"
+  	io_optimized = "optimized"
+  	password = "Test12345"
+}
+`
+const testAccCheckInstanceImageUpdate = `
+data "alicloud_images" "ubuntu" {
+	most_recent = true
+	owners = "system"
+	name_regex = "^ubuntu_14\\w{1,5}[64]{1}.*"
+}
+
+resource "alicloud_vpc" "foo" {
+	name = "tf_test_image"
+	cidr_block = "10.1.0.0/21"
+}
+
+resource "alicloud_vswitch" "foo" {
+	vpc_id = "${alicloud_vpc.foo.id}"
+	cidr_block = "10.1.1.0/24"
+	availability_zone = "cn-beijing-a"
+}
+
+resource "alicloud_security_group" "tf_test_foo" {
+	name = "tf_test_foo"
+	description = "foo"
+	vpc_id = "${alicloud_vpc.foo.id}"
+}
+
+resource "alicloud_instance" "update_image" {
+	image_id = "${data.alicloud_images.ubuntu.images.0.id}"
+	availability_zone = "cn-beijing-a"
+  	system_disk_category = "cloud_efficiency"
+  	system_disk_size = 60
+
+  	instance_type = "ecs.n1.small"
+  	internet_charge_type = "PayByBandwidth"
+  	instance_name = "update_image"
+  	io_optimized = "optimized"
+  	password = "Test12345"
+}
 `

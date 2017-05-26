@@ -144,7 +144,7 @@ func testAccCheckEssScalingRuleDestroy(s *terraform.State) error {
 		if err != nil {
 			// Verify the error is what we want
 			e, _ := err.(*common.Error)
-			if e.ErrorResponse.Code == InstanceNotfound {
+			if e.Code == InstanceNotFound {
 				continue
 			}
 			return err

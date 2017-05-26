@@ -77,7 +77,7 @@ func resourceAliyunForwardEntryRead(d *schema.ResourceData, meta interface{}) er
 	forwardEntry, err := client.DescribeForwardEntry(d.Get("forward_table_id").(string), d.Id())
 
 	if err != nil {
-		if notFoundError(err) {
+		if NotFoundError(err) {
 			return nil
 		}
 		return err

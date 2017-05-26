@@ -7,7 +7,7 @@ import (
 func (client *AliyunClient) DescribeLoadBalancerAttribute(slbId string) (*slb.LoadBalancerType, error) {
 	loadBalancer, err := client.slbconn.DescribeLoadBalancerAttribute(slbId)
 	if err != nil {
-		if notFoundError(err) {
+		if NotFoundError(err) {
 			return nil, nil
 		}
 		return nil, err

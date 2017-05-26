@@ -2,7 +2,6 @@ package alicloud
 
 import (
 	"fmt"
-	"github.com/denverdino/aliyungo/common"
 	"github.com/denverdino/aliyungo/ecs"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -61,13 +60,9 @@ func testAccCheckSnatEntryDestroy(s *terraform.State) error {
 			return fmt.Errorf("Snat entry still exist")
 		}
 
-		if err != nil {
+		if err != nil && !NotFoundError(err) {
 			// Verify the error is what we want
-			e, _ := err.(*common.Error)
-
-			if !notFoundError(e) {
-				return err
-			}
+			return err
 		}
 
 	}
