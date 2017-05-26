@@ -2,7 +2,6 @@ package alicloud
 
 import (
 	"fmt"
-	"github.com/denverdino/aliyungo/common"
 	"github.com/denverdino/aliyungo/rds"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -548,8 +547,7 @@ func testAccCheckDBInstanceDestroy(s *terraform.State) error {
 		// Verify the error is what we want
 		if err != nil {
 			// Verify the error is what we want
-			e, _ := err.(*common.Error)
-			if e.ErrorResponse.Code == InstanceNotfound {
+			if NotFoundError(err) {
 				continue
 			}
 			return err

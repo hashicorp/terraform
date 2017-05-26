@@ -52,7 +52,7 @@ func (client *AliyunClient) DescribeVpc(vpcId string) (*ecs.VpcSetType, error) {
 
 	vpcs, _, err := client.ecsconn.DescribeVpcs(&args)
 	if err != nil {
-		if notFoundError(err) {
+		if NotFoundError(err) {
 			return nil, nil
 		}
 		return nil, err
@@ -79,7 +79,7 @@ func (client *AliyunClient) DescribeSnatEntry(snatTableId string, snatEntryId st
 	//this special deal cause the DescribeSnatEntry can't find the records would be throw "cant find the snatTable error"
 	//so judge the snatEntries length priority
 	if len(snatEntries) == 0 {
-		return resultSnat, common.GetClientErrorFromString(InstanceNotfound)
+		return resultSnat, common.GetClientErrorFromString(InstanceNotFound)
 	}
 
 	if err != nil {
@@ -115,7 +115,7 @@ func (client *AliyunClient) DescribeForwardEntry(forwardTableId string, forwardE
 	//this special deal cause the DescribeSnatEntry can't find the records would be throw "cant find the snatTable error"
 	//so judge the snatEntries length priority
 	if len(forwardEntries) == 0 {
-		return resultFoward, common.GetClientErrorFromString(InstanceNotfound)
+		return resultFoward, common.GetClientErrorFromString(InstanceNotFound)
 	}
 
 	findForward := false
@@ -141,7 +141,7 @@ func (client *AliyunClient) DescribeForwardEntry(forwardTableId string, forwardE
 func (client *AliyunClient) QueryVswitches(args *ecs.DescribeVSwitchesArgs) (vswitches []ecs.VSwitchSetType, err error) {
 	vsws, _, err := client.ecsconn.DescribeVSwitches(args)
 	if err != nil {
-		if notFoundError(err) {
+		if NotFoundError(err) {
 			return nil, nil
 		}
 		return nil, err
@@ -186,7 +186,7 @@ func (client *AliyunClient) QueryRouteTableById(routeTableId string) (rt *ecs.Ro
 	}
 
 	if len(rts) == 0 {
-		return nil, &common.Error{ErrorResponse: common.ErrorResponse{Message: Notfound}}
+		return nil, &common.Error{StatusCode: -1, ErrorResponse: common.ErrorResponse{Code: InstanceNotFound, Message: "The specified route table instance is not found"}}
 	}
 
 	return &rts[0], nil

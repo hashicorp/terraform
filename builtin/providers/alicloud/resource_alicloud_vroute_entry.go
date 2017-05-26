@@ -58,7 +58,6 @@ func resourceAliyunRouteEntryCreate(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 	err = conn.CreateRouteEntry(args)
-
 	if err != nil {
 		return err
 	}
@@ -84,7 +83,7 @@ func resourceAliyunRouteEntryRead(d *schema.ResourceData, meta interface{}) erro
 	en, err := client.QueryRouteEntry(rtId, cidr, nexthop_type, nexthop_id)
 
 	if err != nil {
-		if notFoundError(err) {
+		if NotFoundError(err) {
 			d.SetId("")
 			return nil
 		}
