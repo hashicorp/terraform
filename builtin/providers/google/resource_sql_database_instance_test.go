@@ -9,6 +9,8 @@ package google
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -19,6 +21,118 @@ import (
 
 	"google.golang.org/api/sqladmin/v1beta4"
 )
+
+func init() {
+	// add sweepers for each region
+	project := os.Getenv("GOOGLE_PROJECT")
+	if project == "" {
+		log.Fatalf("empty GOOGLE_PROJECT")
+	}
+
+	creds := os.Getenv("GOOGLE_CREDENTIALS")
+	if project == "" {
+		log.Fatalf("empty GOOGLE_CREDENTIALS")
+	}
+	var fs []*resource.Sweeper
+	for _, r := range []string{"us-central1"} {
+		fs = append(fs, &resource.Sweeper{
+			Config: &Config{
+				Credentials: creds,
+				Region:      r,
+				Project:     project,
+			},
+			F: sweepDatabases,
+		})
+	}
+
+	resource.AddTestSweepers("google_sql_database_instance", fs)
+}
+
+func sweepDatabases(c interface{}) error {
+	config := c.(*Config)
+	err := config.loadAndValidate()
+	if err != nil {
+		log.Fatalf("error loading: %s", err)
+	}
+
+	found, err := config.clientSqlAdmin.Instances.List(config.Project).Do()
+	if err != nil {
+		log.Fatalf("error listing databases: %s", err)
+	}
+
+	if len(found.Items) == 0 {
+		log.Printf("No databases found")
+		return nil
+	}
+
+	for _, d := range found.Items {
+		var testDbInstance bool
+		log.Printf("\n@@@\nCloud instance type: %s", d.InstanceType)
+		for _, testName := range []string{"tf-lw-", "sqldatabasetest"} {
+			if strings.HasPrefix(d.Name, testName) {
+				testDbInstance = true
+			}
+		}
+
+		if !testDbInstance {
+			continue
+		}
+
+		log.Printf("Destroying SQL Instance (%s)", d.Name)
+
+		// need to stop replication
+		for i, r := range d.ReplicaNames {
+			log.Printf("\n\tstopping replication (%d) on %s", i, r)
+			op, err := config.clientSqlAdmin.Instances.StopReplica(config.Project, r).Do()
+
+			if err != nil {
+				return fmt.Errorf("Error, failed to stop replicating instance (%s) for instance (%s): %s", r, d.Name, err)
+			}
+
+			err = sqladminOperationWait(config, op, "Stop replication")
+			if err != nil {
+				if strings.Contains(err.Error(), "does not exist") {
+					log.Printf("SQL instance not found")
+					continue
+				}
+				return err
+			}
+
+			op, err = config.clientSqlAdmin.Instances.Delete(config.Project, r).Do()
+
+			if err != nil {
+				return fmt.Errorf("Error, failed to delete instance %s: %s", r, err)
+			}
+
+			err = sqladminOperationWait(config, op, "Delete Instance")
+			if err != nil {
+				if strings.Contains(err.Error(), "does not exist") {
+					log.Printf("SQL instance not found")
+					continue
+				}
+				return err
+			}
+		}
+
+		// destroy instances
+		op, err := config.clientSqlAdmin.Instances.Delete(config.Project, d.Name).Do()
+
+		if err != nil {
+			return fmt.Errorf("Error, failed to delete instance %s: %s", d.Name, err)
+		}
+
+		err = sqladminOperationWait(config, op, "Delete Instance")
+		if err != nil {
+			if strings.Contains(err.Error(), "does not exist") {
+				log.Printf("SQL instance not found")
+				continue
+			}
+			return err
+		}
+	}
+
+	return nil
+}
 
 func TestAccGoogleSqlDatabaseInstance_basic(t *testing.T) {
 	var instance sqladmin.DatabaseInstance
