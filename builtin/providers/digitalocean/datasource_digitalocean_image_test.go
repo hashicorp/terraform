@@ -1,6 +1,7 @@
 package digitalocean
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"regexp"
@@ -70,7 +71,7 @@ func takeSnapshotsOfDroplet(rInt int, droplet *godo.Droplet, snapshotsId *[]int)
 				return err
 			}
 		}
-		retrieveDroplet, _, err := client.Droplets.Get((*droplet).ID)
+		retrieveDroplet, _, err := client.Droplets.Get(context.Background(), (*droplet).ID)
 		if err != nil {
 			return err
 		}
@@ -81,7 +82,7 @@ func takeSnapshotsOfDroplet(rInt int, droplet *godo.Droplet, snapshotsId *[]int)
 
 func takeSnapshotOfDroplet(rInt, sInt int, droplet *godo.Droplet) error {
 	client := testAccProvider.Meta().(*godo.Client)
-	action, _, err := client.DropletActions.Snapshot((*droplet).ID, fmt.Sprintf("snap-%d-%d", rInt, sInt))
+	action, _, err := client.DropletActions.Snapshot(context.Background(), (*droplet).ID, fmt.Sprintf("snap-%d-%d", rInt, sInt))
 	if err != nil {
 		return err
 	}
@@ -96,7 +97,7 @@ func deleteSnapshots(snapshotsId *[]int) resource.TestCheckFunc {
 		snapshots := *snapshotsId
 		for _, value := range snapshots {
 			log.Printf("XXX Deleting %d", value)
-			_, err := client.Images.Delete(value)
+			_, err := client.Images.Delete(context.Background(), value)
 			if err != nil {
 				return err
 			}
