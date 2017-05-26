@@ -25,7 +25,7 @@ func resourceArtifact() *schema.Resource {
 				Type:       schema.TypeString,
 				Required:   true,
 				ForceNew:   true,
-				Deprecated: `atlas_artifact is now deprecated. Use the Atlas Artifact Data Source instead. See https://terraform.io/docs/providers/atlas/d/artifact.html`,
+				Deprecated: `atlas_artifact is now deprecated. Use the Atlas Artifact Data Source instead. See https://www.terraform.io/docs/providers/terraform-enterprise/d/artifact.html`,
 			},
 
 			"type": &schema.Schema{

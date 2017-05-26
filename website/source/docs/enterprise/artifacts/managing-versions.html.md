@@ -44,9 +44,9 @@ You can pin artifacts to a specific version. This allows for a targeted
 deploy.
 
 ```hcl
-resource "atlas_artifact" "web-worker" {
-  name    = "my-username/web-worker"
-  type    = "amazon.image"
+data "atlas_artifact" "web-worker" {
+  name  = "my-username/web-worker"
+  type  = "amazon.image"
   version = 7
 }
 ```
@@ -59,7 +59,7 @@ Artifacts can also be pinned to an Terraform build number. This is only
 possible if Terraform Enterprise was used to build the artifact with Packer.
 
 ```hcl
-resource "atlas_artifact" "web-worker" {
+data "atlas_artifact" "web-worker" {
   name  = "my-username/web-worker"
   type  = "amazon.image"
   build = 5
