@@ -1,5 +1,9 @@
 ## 0.9.7 (Unreleased)
 
+FEATURES:
+
+ * **New Resource:** `librato_metric` [GH-14562]
+
 ## 0.9.6 (May 25, 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
