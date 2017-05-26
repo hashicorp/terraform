@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/copystructure"
@@ -45,6 +46,7 @@ func newShadowContext(c *Context) (*Context, *Context, Shadow) {
 		destroy:    c.destroy,
 		diff:       c.diff.DeepCopy(),
 		hooks:      nil,
+		meta:       c.meta,
 		module:     c.module,
 		state:      c.state.DeepCopy(),
 		targets:    targetRaw.([]string),
@@ -76,6 +78,7 @@ func newShadowContext(c *Context) (*Context, *Context, Shadow) {
 		diff:    c.diff,
 		// diffLock - no copy
 		hooks:  c.hooks,
+		meta:   c.meta,
 		module: c.module,
 		sh:     c.sh,
 		state:  c.state,
@@ -87,7 +90,8 @@ func newShadowContext(c *Context) (*Context, *Context, Shadow) {
 		// l - no copy
 		parallelSem:         c.parallelSem,
 		providerInputConfig: c.providerInputConfig,
-		runCh:               c.runCh,
+		runContext:          c.runContext,
+		runContextCancel:    c.runContextCancel,
 		shadowErr:           c.shadowErr,
 	}
 
@@ -138,5 +142,17 @@ func (c *shadowContextCloser) CloseShadow() error {
 }
 
 func (c *shadowContextCloser) ShadowError() error {
-	return c.Components.ShadowError()
+	err := c.Components.ShadowError()
+	if err == nil {
+		return nil
+	}
+
+	// This is a sad edge case: if the configuration contains uuid() at
+	// any point, we cannot reason aboyt the shadow execution. Tested
+	// with Context2Plan_shadowUuid.
+	if strings.Contains(err.Error(), "uuid()") {
+		err = nil
+	}
+
+	return err
 }

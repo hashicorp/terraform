@@ -3,62 +3,65 @@ layout: "aws"
 page_title: "AWS: aws_vpc_peering_connection"
 sidebar_current: "docs-aws-resource-vpc-peering"
 description: |-
-  Provides an VPC Peering Connection resource.
+  Manage a VPC Peering Connection resource.
 ---
 
 # aws\_vpc\_peering\_connection
 
-Provides an VPC Peering Connection resource.
+Provides a resource to manage a VPC Peering Connection resource.
+
+-> **Note:** For cross-account (requester's AWS account differs from the accepter's AWS account) VPC Peering Connections
+use the `aws_vpc_peering_connection` resource to manage the requester's side of the connection and
+use the `aws_vpc_peering_connection_accepter` resource to manage the accepter's side of the connection.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_vpc_peering_connection" "foo" {
-    peer_owner_id = "${var.peer_owner_id}"
-    peer_vpc_id = "${aws_vpc.bar.id}"
-    vpc_id = "${aws_vpc.foo.id}"
+  peer_owner_id = "${var.peer_owner_id}"
+  peer_vpc_id   = "${aws_vpc.bar.id}"
+  vpc_id        = "${aws_vpc.foo.id}"
 }
 ```
 
 Basic usage with connection options:
 
-```
+```hcl
 resource "aws_vpc_peering_connection" "foo" {
-    peer_owner_id = "${var.peer_owner_id}"
-    peer_vpc_id = "${aws_vpc.bar.id}"
-    vpc_id = "${aws_vpc.foo.id}"
+  peer_owner_id = "${var.peer_owner_id}"
+  peer_vpc_id   = "${aws_vpc.bar.id}"
+  vpc_id        = "${aws_vpc.foo.id}"
 
-    accepter {
-      allow_remote_vpc_dns_resolution = true
-    }
+  accepter {
+    allow_remote_vpc_dns_resolution = true
+  }
 
-    requester {
-      allow_remote_vpc_dns_resolution = true
-    }
+  requester {
+    allow_remote_vpc_dns_resolution = true
+  }
 }
 ```
 
 Basic usage with tags:
 
-```
-
+```hcl
 resource "aws_vpc_peering_connection" "foo" {
-    peer_owner_id = "${var.peer_owner_id}"
-    peer_vpc_id = "${aws_vpc.bar.id}"
-    vpc_id = "${aws_vpc.foo.id}"
-    auto_accept = true
+  peer_owner_id = "${var.peer_owner_id}"
+  peer_vpc_id   = "${aws_vpc.bar.id}"
+  vpc_id        = "${aws_vpc.foo.id}"
+  auto_accept   = true
 
-    tags {
-      Name = "VPC Peering between foo and bar"
-    }
+  tags {
+    Name = "VPC Peering between foo and bar"
+  }
 }
 
 resource "aws_vpc" "foo" {
-    cidr_block = "10.1.0.0/16"
+  cidr_block = "10.1.0.0/16"
 }
 
 resource "aws_vpc" "bar" {
-    cidr_block = "10.2.0.0/16"
+  cidr_block = "10.2.0.0/16"
 }
 ```
 
@@ -112,9 +115,9 @@ The following attributes are exported:
 
 AWS only supports VPC peering within the same AWS region.
 
-If both VPCs are not in the same AWS account do not enable the `auto_accept` attribute. You will still
-have to accept the VPC Peering Connection request manually using the AWS Management Console, AWS CLI,
-through SDKs, etc.
+If both VPCs are not in the same AWS account do not enable the `auto_accept` attribute.
+The accepter can manage its side of the connection using the `aws_vpc_peering_connection_accepter` resource
+or accept the connection manually using the AWS Management Console, AWS CLI, through SDKs, etc.
 
 ## Import
 

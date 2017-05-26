@@ -5,19 +5,20 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAzureRMNetworkSecurityRule_basic(t *testing.T) {
-
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMNetworkSecurityRuleDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAzureRMNetworkSecurityRule_basic,
+				Config: testAccAzureRMNetworkSecurityRule_basic(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkSecurityRuleExists("azurerm_network_security_rule.test"),
 				),
@@ -27,6 +28,7 @@ func TestAccAzureRMNetworkSecurityRule_basic(t *testing.T) {
 }
 
 func TestAccAzureRMNetworkSecurityRule_disappears(t *testing.T) {
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -34,7 +36,7 @@ func TestAccAzureRMNetworkSecurityRule_disappears(t *testing.T) {
 		CheckDestroy: testCheckAzureRMNetworkSecurityRuleDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAzureRMNetworkSecurityRule_basic,
+				Config: testAccAzureRMNetworkSecurityRule_basic(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkSecurityRuleExists("azurerm_network_security_rule.test"),
 					testCheckAzureRMNetworkSecurityRuleDisappears("azurerm_network_security_rule.test"),
@@ -46,6 +48,7 @@ func TestAccAzureRMNetworkSecurityRule_disappears(t *testing.T) {
 }
 
 func TestAccAzureRMNetworkSecurityRule_addingRules(t *testing.T) {
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -53,14 +56,14 @@ func TestAccAzureRMNetworkSecurityRule_addingRules(t *testing.T) {
 		CheckDestroy: testCheckAzureRMNetworkSecurityRuleDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAzureRMNetworkSecurityRule_updateBasic,
+				Config: testAccAzureRMNetworkSecurityRule_updateBasic(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkSecurityRuleExists("azurerm_network_security_rule.test1"),
 				),
 			},
 
 			{
-				Config: testAccAzureRMNetworkSecurityRule_updateExtraRule,
+				Config: testAccAzureRMNetworkSecurityRule_updateExtraRule(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkSecurityRuleExists("azurerm_network_security_rule.test2"),
 				),
@@ -145,16 +148,17 @@ func testCheckAzureRMNetworkSecurityRuleDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("Network Security Rule still exists:\n%#v", resp.Properties)
+			return fmt.Errorf("Network Security Rule still exists:\n%#v", resp.SecurityRulePropertiesFormat)
 		}
 	}
 
 	return nil
 }
 
-var testAccAzureRMNetworkSecurityRule_basic = `
+func testAccAzureRMNetworkSecurityRule_basic(rInt int) string {
+	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -177,11 +181,13 @@ resource "azurerm_network_security_rule" "test" {
     	resource_group_name = "${azurerm_resource_group.test.name}"
     	network_security_group_name = "${azurerm_network_security_group.test.name}"
 }
-`
+`, rInt)
+}
 
-var testAccAzureRMNetworkSecurityRule_updateBasic = `
+func testAccAzureRMNetworkSecurityRule_updateBasic(rInt int) string {
+	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test1" {
-    name = "acceptanceTestResourceGroup2"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -204,11 +210,13 @@ resource "azurerm_network_security_rule" "test1" {
     	resource_group_name = "${azurerm_resource_group.test1.name}"
     	network_security_group_name = "${azurerm_network_security_group.test1.name}"
 }
-`
+`, rInt)
+}
 
-var testAccAzureRMNetworkSecurityRule_updateExtraRule = `
+func testAccAzureRMNetworkSecurityRule_updateExtraRule(rInt int) string {
+	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test1" {
-    name = "acceptanceTestResourceGroup2"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -245,4 +253,5 @@ resource "azurerm_network_security_rule" "test2" {
     	resource_group_name = "${azurerm_resource_group.test1.name}"
     	network_security_group_name = "${azurerm_network_security_group.test1.name}"
 }
-`
+`, rInt)
+}

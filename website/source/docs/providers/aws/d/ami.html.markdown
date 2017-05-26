@@ -13,20 +13,23 @@ resources.
 
 ## Example Usage
 
-```
+```hcl
 data "aws_ami" "nat_ami" {
-  most_recent = true
+  most_recent      = true
   executable_users = ["self"]
+
   filter {
-    name = "owner-alias"
+    name   = "owner-alias"
     values = ["amazon"]
   }
+
   filter {
-    name = "name"
+    name   = "name"
     values = ["amzn-ami-vpc-nat*"]
   }
+
   name_regex = "^myami-\\d{3}"
-  owners = ["self"]
+  owners     = ["self"]
 }
 ```
 
@@ -56,7 +59,8 @@ options to narrow down the list AWS returns.
 
 ~> **NOTE:** If more or less than a single match is returned by the search,
 Terraform will fail. Ensure that your search is specific enough to return
-a single AMI ID only, or use `most_recent` to choose the most recent one.
+a single AMI ID only, or use `most_recent` to choose the most recent one. If
+you want to match multiple AMIs, use the `aws_ami_ids` data source instead.
 
 ## Attributes Reference
 

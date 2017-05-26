@@ -20,13 +20,11 @@ func (c *OutputCommand) Run(args []string) int {
 
 	var module string
 	var jsonOutput bool
-
 	cmdFlags := flag.NewFlagSet("output", flag.ContinueOnError)
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&module, "module", "", "module")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
 	}
@@ -45,9 +43,24 @@ func (c *OutputCommand) Run(args []string) int {
 		name = args[0]
 	}
 
-	stateStore, err := c.Meta.State()
+	// Load the backend
+	b, err := c.Backend(nil)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error reading state: %s", err))
+		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+		return 1
+	}
+
+	env := c.Env()
+
+	// Get the state
+	stateStore, err := b.State(env)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+		return 1
+	}
+
+	if err := stateStore.RefreshState(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
 	}
 
@@ -62,7 +75,6 @@ func (c *OutputCommand) Run(args []string) int {
 
 	state := stateStore.State()
 	mod := state.ModuleByPath(modPath)
-
 	if mod == nil {
 		c.Ui.Error(fmt.Sprintf(
 			"The module %s could not be found. There is nothing to output.",
@@ -71,10 +83,13 @@ func (c *OutputCommand) Run(args []string) int {
 	}
 
 	if state.Empty() || len(mod.Outputs) == 0 {
-		c.Ui.Error(fmt.Sprintf(
-			"The state file has no outputs defined. Define an output\n" +
-				"in your configuration with the `output` directive and re-run\n" +
-				"`terraform apply` for it to become available."))
+		c.Ui.Error(
+			"The state file either has no outputs defined, or all the defined\n" +
+				"outputs are empty. Please define an output in your configuration\n" +
+				"with the `output` keyword and run `terraform refresh` for it to\n" +
+				"become available. If you are using interpolation, please verify\n" +
+				"the interpolated value is not empty. You can use the \n" +
+				"`terraform console` command to assist.")
 		return 1
 	}
 
@@ -211,6 +226,7 @@ func formatNestedMap(indent string, outputMap map[string]interface{}) string {
 
 	return strings.TrimPrefix(outputBuf.String(), "\n")
 }
+
 func formatMapOutput(indent, outputName string, outputMap map[string]interface{}) string {
 	ks := make([]string, 0, len(outputMap))
 	for k, _ := range outputMap {

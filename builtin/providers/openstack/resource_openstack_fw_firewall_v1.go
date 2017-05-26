@@ -21,6 +21,12 @@ func resourceFWFirewallV1() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(10 * time.Minute),
+			Update: schema.DefaultTimeout(10 * time.Minute),
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
 				Type:        schema.TypeString,
@@ -63,7 +69,7 @@ func resourceFWFirewallV1() *schema.Resource {
 func resourceFWFirewallV1Create(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -94,7 +100,7 @@ func resourceFWFirewallV1Create(d *schema.ResourceData, meta interface{}) error 
 		Pending:    []string{"PENDING_CREATE"},
 		Target:     []string{"ACTIVE"},
 		Refresh:    waitForFirewallActive(networkingClient, firewall.ID),
-		Timeout:    30 * time.Second,
+		Timeout:    d.Timeout(schema.TimeoutCreate),
 		Delay:      0,
 		MinTimeout: 2 * time.Second,
 	}
@@ -110,7 +116,7 @@ func resourceFWFirewallV1Read(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Retrieve information about firewall: %s", d.Id())
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -127,6 +133,7 @@ func resourceFWFirewallV1Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("policy_id", firewall.PolicyID)
 	d.Set("admin_state_up", firewall.AdminStateUp)
 	d.Set("tenant_id", firewall.TenantID)
+	d.Set("region", GetRegion(d))
 
 	return nil
 }
@@ -134,7 +141,7 @@ func resourceFWFirewallV1Read(d *schema.ResourceData, meta interface{}) error {
 func resourceFWFirewallV1Update(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -164,7 +171,7 @@ func resourceFWFirewallV1Update(d *schema.ResourceData, meta interface{}) error 
 		Pending:    []string{"PENDING_CREATE", "PENDING_UPDATE"},
 		Target:     []string{"ACTIVE"},
 		Refresh:    waitForFirewallActive(networkingClient, d.Id()),
-		Timeout:    30 * time.Second,
+		Timeout:    d.Timeout(schema.TimeoutUpdate),
 		Delay:      0,
 		MinTimeout: 2 * time.Second,
 	}
@@ -183,16 +190,17 @@ func resourceFWFirewallV1Delete(d *schema.ResourceData, meta interface{}) error 
 	log.Printf("[DEBUG] Destroy firewall: %s", d.Id())
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
+	// Ensure the firewall was fully created/updated before being deleted.
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"PENDING_CREATE", "PENDING_UPDATE"},
 		Target:     []string{"ACTIVE"},
 		Refresh:    waitForFirewallActive(networkingClient, d.Id()),
-		Timeout:    30 * time.Second,
+		Timeout:    d.Timeout(schema.TimeoutUpdate),
 		Delay:      0,
 		MinTimeout: 2 * time.Second,
 	}
@@ -209,7 +217,7 @@ func resourceFWFirewallV1Delete(d *schema.ResourceData, meta interface{}) error 
 		Pending:    []string{"DELETING"},
 		Target:     []string{"DELETED"},
 		Refresh:    waitForFirewallDeletion(networkingClient, d.Id()),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      0,
 		MinTimeout: 2 * time.Second,
 	}

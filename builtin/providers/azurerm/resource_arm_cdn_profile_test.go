@@ -124,7 +124,7 @@ func testCheckAzureRMCdnProfileExists(name string) resource.TestCheckFunc {
 
 		conn := testAccProvider.Meta().(*ArmClient).cdnProfilesClient
 
-		resp, err := conn.Get(name, resourceGroup)
+		resp, err := conn.Get(resourceGroup, name)
 		if err != nil {
 			return fmt.Errorf("Bad: Get on cdnProfilesClient: %s", err)
 		}
@@ -148,14 +148,14 @@ func testCheckAzureRMCdnProfileDestroy(s *terraform.State) error {
 		name := rs.Primary.Attributes["name"]
 		resourceGroup := rs.Primary.Attributes["resource_group_name"]
 
-		resp, err := conn.Get(name, resourceGroup)
+		resp, err := conn.Get(resourceGroup, name)
 
 		if err != nil {
 			return nil
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("CDN Profile still exists:\n%#v", resp.Properties)
+			return fmt.Errorf("CDN Profile still exists:\n%#v", resp.ProfileProperties)
 		}
 	}
 

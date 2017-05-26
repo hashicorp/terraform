@@ -4,14 +4,14 @@
 // license that can be found in the LICENSE file.
 
 // Repository contents API methods.
-// http://developer.github.com/v3/repos/contents/
+// GitHub API docs: https://developer.github.com/v3/repos/contents/
 
 package github
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -21,11 +21,14 @@ import (
 
 // RepositoryContent represents a file or directory in a github repository.
 type RepositoryContent struct {
-	Type        *string `json:"type,omitempty"`
-	Encoding    *string `json:"encoding,omitempty"`
-	Size        *int    `json:"size,omitempty"`
-	Name        *string `json:"name,omitempty"`
-	Path        *string `json:"path,omitempty"`
+	Type     *string `json:"type,omitempty"`
+	Encoding *string `json:"encoding,omitempty"`
+	Size     *int    `json:"size,omitempty"`
+	Name     *string `json:"name,omitempty"`
+	Path     *string `json:"path,omitempty"`
+	// Content contains the actual file content, which may be encoded.
+	// Callers should call GetContent which will decode the content if
+	// necessary.
 	Content     *string `json:"content,omitempty"`
 	SHA         *string `json:"sha,omitempty"`
 	URL         *string `json:"url,omitempty"`
@@ -56,26 +59,36 @@ type RepositoryContentGetOptions struct {
 	Ref string `url:"ref,omitempty"`
 }
 
+// String converts RepositoryContent to a string. It's primarily for testing.
 func (r RepositoryContent) String() string {
 	return Stringify(r)
 }
 
-// Decode decodes the file content if it is base64 encoded.
-func (r *RepositoryContent) Decode() ([]byte, error) {
-	if *r.Encoding != "base64" {
-		return nil, errors.New("cannot decode non-base64")
+// GetContent returns the content of r, decoding it if necessary.
+func (r *RepositoryContent) GetContent() (string, error) {
+	var encoding string
+	if r.Encoding != nil {
+		encoding = *r.Encoding
 	}
-	o, err := base64.StdEncoding.DecodeString(*r.Content)
-	if err != nil {
-		return nil, err
+
+	switch encoding {
+	case "base64":
+		c, err := base64.StdEncoding.DecodeString(*r.Content)
+		return string(c), err
+	case "":
+		if r.Content == nil {
+			return "", nil
+		}
+		return *r.Content, nil
+	default:
+		return "", fmt.Errorf("unsupported content encoding: %v", encoding)
 	}
-	return o, nil
 }
 
 // GetReadme gets the Readme file for the repository.
 //
-// GitHub API docs: http://developer.github.com/v3/repos/contents/#get-the-readme
-func (s *RepositoriesService) GetReadme(owner, repo string, opt *RepositoryContentGetOptions) (*RepositoryContent, *Response, error) {
+// GitHub API docs: https://developer.github.com/v3/repos/contents/#get-the-readme
+func (s *RepositoriesService) GetReadme(ctx context.Context, owner, repo string, opt *RepositoryContentGetOptions) (*RepositoryContent, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/readme", owner, repo)
 	u, err := addOptions(u, opt)
 	if err != nil {
@@ -86,21 +99,21 @@ func (s *RepositoriesService) GetReadme(owner, repo string, opt *RepositoryConte
 		return nil, nil, err
 	}
 	readme := new(RepositoryContent)
-	resp, err := s.client.Do(req, readme)
+	resp, err := s.client.Do(ctx, req, readme)
 	if err != nil {
 		return nil, resp, err
 	}
-	return readme, resp, err
+	return readme, resp, nil
 }
 
 // DownloadContents returns an io.ReadCloser that reads the contents of the
 // specified file. This function will work with files of any size, as opposed
 // to GetContents which is limited to 1 Mb files. It is the caller's
 // responsibility to close the ReadCloser.
-func (s *RepositoriesService) DownloadContents(owner, repo, filepath string, opt *RepositoryContentGetOptions) (io.ReadCloser, error) {
+func (s *RepositoriesService) DownloadContents(ctx context.Context, owner, repo, filepath string, opt *RepositoryContentGetOptions) (io.ReadCloser, error) {
 	dir := path.Dir(filepath)
 	filename := path.Base(filepath)
-	_, dirContents, _, err := s.GetContents(owner, repo, dir, opt)
+	_, dirContents, _, err := s.GetContents(ctx, owner, repo, dir, opt)
 	if err != nil {
 		return nil, err
 	}
@@ -126,11 +139,9 @@ func (s *RepositoriesService) DownloadContents(owner, repo, filepath string, opt
 // as possible, both result types will be returned but only one will contain a
 // value and the other will be nil.
 //
-// GitHub API docs: http://developer.github.com/v3/repos/contents/#get-contents
-func (s *RepositoriesService) GetContents(owner, repo, path string, opt *RepositoryContentGetOptions) (fileContent *RepositoryContent, directoryContent []*RepositoryContent, resp *Response, err error) {
-	// escape characters not allowed in URL path.  This actually escapes a
-	// lot more, but seems to be harmless.
-	escapedPath := url.QueryEscape(path)
+// GitHub API docs: https://developer.github.com/v3/repos/contents/#get-contents
+func (s *RepositoriesService) GetContents(ctx context.Context, owner, repo, path string, opt *RepositoryContentGetOptions) (fileContent *RepositoryContent, directoryContent []*RepositoryContent, resp *Response, err error) {
+	escapedPath := (&url.URL{Path: path}).String()
 	u := fmt.Sprintf("repos/%s/%s/contents/%s", owner, repo, escapedPath)
 	u, err = addOptions(u, opt)
 	if err != nil {
@@ -141,7 +152,7 @@ func (s *RepositoriesService) GetContents(owner, repo, path string, opt *Reposit
 		return nil, nil, nil, err
 	}
 	var rawJSON json.RawMessage
-	resp, err = s.client.Do(req, &rawJSON)
+	resp, err = s.client.Do(ctx, req, &rawJSON)
 	if err != nil {
 		return nil, nil, resp, err
 	}
@@ -159,55 +170,55 @@ func (s *RepositoriesService) GetContents(owner, repo, path string, opt *Reposit
 // CreateFile creates a new file in a repository at the given path and returns
 // the commit and file metadata.
 //
-// GitHub API docs: http://developer.github.com/v3/repos/contents/#create-a-file
-func (s *RepositoriesService) CreateFile(owner, repo, path string, opt *RepositoryContentFileOptions) (*RepositoryContentResponse, *Response, error) {
+// GitHub API docs: https://developer.github.com/v3/repos/contents/#create-a-file
+func (s *RepositoriesService) CreateFile(ctx context.Context, owner, repo, path string, opt *RepositoryContentFileOptions) (*RepositoryContentResponse, *Response, error) {
 	u := fmt.Sprintf("repos/%s/%s/contents/%s", owner, repo, path)
 	req, err := s.client.NewRequest("PUT", u, opt)
 	if err != nil {
 		return nil, nil, err
 	}
 	createResponse := new(RepositoryContentResponse)
-	resp, err := s.client.Do(req, createResponse)
+	resp, err := s.client.Do(ctx, req, createResponse)
 	if err != nil {
 		return nil, resp, err
 	}
-	return createResponse, resp, err
+	return createResponse, resp, nil
 }
 
 // UpdateFile updates a file in a repository at the given path and returns the
 // commit and file metadata. Requires the blob SHA of the file being updated.
 //
-// GitHub API docs: http://developer.github.com/v3/repos/contents/#update-a-file
-func (s *RepositoriesService) UpdateFile(owner, repo, path string, opt *RepositoryContentFileOptions) (*RepositoryContentResponse, *Response, error) {
+// GitHub API docs: https://developer.github.com/v3/repos/contents/#update-a-file
+func (s *RepositoriesService) UpdateFile(ctx context.Context, owner, repo, path string, opt *RepositoryContentFileOptions) (*RepositoryContentResponse, *Response, error) {
 	u := fmt.Sprintf("repos/%s/%s/contents/%s", owner, repo, path)
 	req, err := s.client.NewRequest("PUT", u, opt)
 	if err != nil {
 		return nil, nil, err
 	}
 	updateResponse := new(RepositoryContentResponse)
-	resp, err := s.client.Do(req, updateResponse)
+	resp, err := s.client.Do(ctx, req, updateResponse)
 	if err != nil {
 		return nil, resp, err
 	}
-	return updateResponse, resp, err
+	return updateResponse, resp, nil
 }
 
 // DeleteFile deletes a file from a repository and returns the commit.
 // Requires the blob SHA of the file to be deleted.
 //
-// GitHub API docs: http://developer.github.com/v3/repos/contents/#delete-a-file
-func (s *RepositoriesService) DeleteFile(owner, repo, path string, opt *RepositoryContentFileOptions) (*RepositoryContentResponse, *Response, error) {
+// GitHub API docs: https://developer.github.com/v3/repos/contents/#delete-a-file
+func (s *RepositoriesService) DeleteFile(ctx context.Context, owner, repo, path string, opt *RepositoryContentFileOptions) (*RepositoryContentResponse, *Response, error) {
 	u := fmt.Sprintf("repos/%s/%s/contents/%s", owner, repo, path)
 	req, err := s.client.NewRequest("DELETE", u, opt)
 	if err != nil {
 		return nil, nil, err
 	}
 	deleteResponse := new(RepositoryContentResponse)
-	resp, err := s.client.Do(req, deleteResponse)
+	resp, err := s.client.Do(ctx, req, deleteResponse)
 	if err != nil {
 		return nil, resp, err
 	}
-	return deleteResponse, resp, err
+	return deleteResponse, resp, nil
 }
 
 // archiveFormat is used to define the archive type when calling GetArchiveLink.
@@ -225,8 +236,8 @@ const (
 // repository. The archiveFormat can be specified by either the github.Tarball
 // or github.Zipball constant.
 //
-// GitHub API docs: http://developer.github.com/v3/repos/contents/#get-archive-link
-func (s *RepositoriesService) GetArchiveLink(owner, repo string, archiveformat archiveFormat, opt *RepositoryContentGetOptions) (*url.URL, *Response, error) {
+// GitHub API docs: https://developer.github.com/v3/repos/contents/#get-archive-link
+func (s *RepositoriesService) GetArchiveLink(ctx context.Context, owner, repo string, archiveformat archiveFormat, opt *RepositoryContentGetOptions) (*url.URL, *Response, error) {
 	u := fmt.Sprintf("repos/%s/%s/%s", owner, repo, archiveformat)
 	if opt != nil && opt.Ref != "" {
 		u += fmt.Sprintf("/%s", opt.Ref)
@@ -238,12 +249,16 @@ func (s *RepositoriesService) GetArchiveLink(owner, repo string, archiveformat a
 	var resp *http.Response
 	// Use http.DefaultTransport if no custom Transport is configured
 	if s.client.client.Transport == nil {
-		resp, err = http.DefaultTransport.RoundTrip(req)
+		resp, err = http.DefaultTransport.RoundTrip(req.WithContext(ctx))
 	} else {
-		resp, err = s.client.client.Transport.RoundTrip(req)
+		resp, err = s.client.client.Transport.RoundTrip(req.WithContext(ctx))
 	}
-	if err != nil || resp.StatusCode != http.StatusFound {
-		return nil, newResponse(resp), err
+	if err != nil {
+		return nil, nil, err
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusFound {
+		return nil, newResponse(resp), fmt.Errorf("unexpected status code: %s", resp.Status)
 	}
 	parsedURL, err := url.Parse(resp.Header.Get("Location"))
 	return parsedURL, newResponse(resp), err

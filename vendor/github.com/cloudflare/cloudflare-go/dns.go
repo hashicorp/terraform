@@ -121,7 +121,11 @@ func (api *API) UpdateDNSRecord(zoneID, recordID string, rr DNSRecord) error {
 	if err != nil {
 		return err
 	}
-	rr.Name = rec.Name
+	// Populate the record name from the existing one if the update didn't
+	// specify it.
+	if rr.Name == "" {
+		rr.Name = rec.Name
+	}
 	rr.Type = rec.Type
 	uri := "/zones/" + zoneID + "/dns_records/" + recordID
 	res, err := api.makeRequest("PUT", uri, rr)

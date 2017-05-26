@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-const apiBaseURL = "https://www.statuscake.com/API"
+const apiBaseURL = "https://app.statuscake.com/API"
 
 type responseBody struct {
 	io.Reader

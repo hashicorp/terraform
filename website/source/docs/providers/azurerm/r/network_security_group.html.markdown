@@ -12,34 +12,33 @@ Create a network security group that contains a list of network security rules.
 
 ## Example Usage
 
-```
+```hcl
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
-    location = "West US"
+  name     = "acceptanceTestResourceGroup1"
+  location = "West US"
 }
 
 resource "azurerm_network_security_group" "test" {
-    name = "acceptanceTestSecurityGroup1"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
+  name                = "acceptanceTestSecurityGroup1"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
 
-    security_rule {
-    	name = "test123"
-    	priority = 100
-    	direction = "Inbound"
-    	access = "Allow"
-    	protocol = "Tcp"
-    	source_port_range = "*"
-    	destination_port_range = "*"
-    	source_address_prefix = "*"
-    	destination_address_prefix = "*"
-    }
-    
-    tags {
-        environment = "Production"
-    }
+  security_rule {
+    name                       = "test123"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "*"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  tags {
+    environment = "Production"
+  }
 }
-
 ```
 
 ## Argument Reference
@@ -57,12 +56,12 @@ The following arguments are supported:
 * `security_rule` - (Optional) Can be specified multiple times to define multiple
                                    security rules. Each `security_rule` block supports fields documented below.
 
-* `tags` - (Optional) A mapping of tags to assign to the resource. 
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 
 The `security_rule` block supports:
 
-* `name` - (Required) The name of the security rule. 
+* `name` - (Required) The name of the security rule.
 
 * `description` - (Optional) A description for this rule. Restricted to 140 characters.
 
@@ -76,12 +75,12 @@ The `security_rule` block supports:
 
 * `destination_address_prefix` - (Required) CIDR or destination IP range or * to match any IP. Tags such as ‘VirtualNetwork’, ‘AzureLoadBalancer’ and ‘Internet’ can also be used.
 
-* `access` - (Required) Specifies whether network traffic is allowed or denied. Possible values are “Allow” and “Deny”.
+* `access` - (Required) Specifies whether network traffic is allowed or denied. Possible values are "Allow” and "Deny”.
 
 * `priority` - (Required) Specifies the priority of the rule. The value can be between 100 and 4096. The priority number must be unique for each rule in the collection. The lower the priority number, the higher the priority of the rule.
 
-* `direction` - (Required) The direction specifies if rule will be evaluated on incoming or outgoing traffic. Possible values are “Inbound” and “Outbound”.
-    
+* `direction` - (Required) The direction specifies if rule will be evaluated on incoming or outgoing traffic. Possible values are "Inbound” and "Outbound”.
+
 
 ## Attributes Reference
 
@@ -92,7 +91,7 @@ The following attributes are exported:
 
 ## Import
 
-Network Security Groups can be imported using the `resource id`, e.g. 
+Network Security Groups can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_network_security_group.group1 /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Network/networkSecurityGroups/mySecurityGroup

@@ -16,6 +16,9 @@ func resourceArmDnsSrvRecord() *schema.Resource {
 		Read:   resourceArmDnsSrvRecordRead,
 		Update: resourceArmDnsSrvRecordCreate,
 		Delete: resourceArmDnsSrvRecordDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -132,6 +135,11 @@ func resourceArmDnsSrvRecordRead(d *schema.ResourceData, meta interface{}) error
 	client := meta.(*ArmClient)
 	rivieraClient := client.rivieraClient
 
+	id, err := parseAzureResourceID(d.Id())
+	if err != nil {
+		return err
+	}
+
 	readRequest := rivieraClient.NewRequestForURI(d.Id())
 	readRequest.Command = &dns.GetSRVRecordSet{}
 
@@ -147,6 +155,9 @@ func resourceArmDnsSrvRecordRead(d *schema.ResourceData, meta interface{}) error
 
 	resp := readResponse.Parsed.(*dns.GetSRVRecordSetResponse)
 
+	d.Set("name", resp.Name)
+	d.Set("resource_group_name", id.ResourceGroup)
+	d.Set("zone_name", id.Path["dnszones"])
 	d.Set("ttl", resp.TTL)
 
 	if err := d.Set("record", flattenAzureRmDnsSrvRecord(resp.SRVRecords)); err != nil {

@@ -1,11 +1,14 @@
 package schema
 
 import (
+	"bytes"
+	"fmt"
 	"reflect"
 	"testing"
 
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -31,6 +34,17 @@ func TestConfigFieldReader(t *testing.T) {
 				"map": map[string]interface{}{
 					"foo": "bar",
 					"bar": "baz",
+				},
+				"mapInt": map[string]interface{}{
+					"one": "1",
+					"two": "2",
+				},
+				"mapFloat": map[string]interface{}{
+					"oneDotTwo": "1.2",
+				},
+				"mapBool": map[string]interface{}{
+					"True":  "true",
+					"False": "false",
 				},
 
 				"set": []interface{}{10, 50},
@@ -205,15 +219,27 @@ func TestConfigFieldReader_ComputedMap(t *testing.T) {
 			Type:     TypeMap,
 			Computed: true,
 		},
+		"listmap": &Schema{
+			Type:     TypeMap,
+			Computed: true,
+			Elem:     TypeList,
+		},
+		"maplist": &Schema{
+			Type:     TypeList,
+			Computed: true,
+			Elem:     TypeMap,
+		},
 	}
 
-	cases := map[string]struct {
+	cases := []struct {
+		Name   string
 		Addr   []string
 		Result FieldReadResult
 		Config *terraform.ResourceConfig
 		Err    bool
 	}{
-		"set, normal": {
+		{
+			"set, normal",
 			[]string{"map"},
 			FieldReadResult{
 				Value: map[string]interface{}{
@@ -230,7 +256,8 @@ func TestConfigFieldReader_ComputedMap(t *testing.T) {
 			false,
 		},
 
-		"computed element": {
+		{
+			"computed element",
 			[]string{"map"},
 			FieldReadResult{
 				Exists:   true,
@@ -249,7 +276,8 @@ func TestConfigFieldReader_ComputedMap(t *testing.T) {
 			false,
 		},
 
-		"native map": {
+		{
+			"native map",
 			[]string{"map"},
 			FieldReadResult{
 				Value: map[string]interface{}{
@@ -278,27 +306,147 @@ func TestConfigFieldReader_ComputedMap(t *testing.T) {
 			}),
 			false,
 		},
+
+		{
+			"map-from-list-of-maps",
+			[]string{"maplist", "0"},
+			FieldReadResult{
+				Value: map[string]interface{}{
+					"key": "bar",
+				},
+				Exists:   true,
+				Computed: false,
+			},
+			testConfigInterpolate(t, map[string]interface{}{
+				"maplist": "${var.foo}",
+			}, map[string]ast.Variable{
+				"var.foo": ast.Variable{
+					Type: ast.TypeList,
+					Value: []ast.Variable{
+						{
+							Type: ast.TypeMap,
+							Value: map[string]ast.Variable{
+								"key": ast.Variable{
+									Type:  ast.TypeString,
+									Value: "bar",
+								},
+							},
+						},
+					},
+				},
+			}),
+			false,
+		},
+
+		{
+			"value-from-list-of-maps",
+			[]string{"maplist", "0", "key"},
+			FieldReadResult{
+				Value:    "bar",
+				Exists:   true,
+				Computed: false,
+			},
+			testConfigInterpolate(t, map[string]interface{}{
+				"maplist": "${var.foo}",
+			}, map[string]ast.Variable{
+				"var.foo": ast.Variable{
+					Type: ast.TypeList,
+					Value: []ast.Variable{
+						{
+							Type: ast.TypeMap,
+							Value: map[string]ast.Variable{
+								"key": ast.Variable{
+									Type:  ast.TypeString,
+									Value: "bar",
+								},
+							},
+						},
+					},
+				},
+			}),
+			false,
+		},
+
+		{
+			"list-from-map-of-lists",
+			[]string{"listmap", "key"},
+			FieldReadResult{
+				Value:    []interface{}{"bar"},
+				Exists:   true,
+				Computed: false,
+			},
+			testConfigInterpolate(t, map[string]interface{}{
+				"listmap": "${var.foo}",
+			}, map[string]ast.Variable{
+				"var.foo": ast.Variable{
+					Type: ast.TypeMap,
+					Value: map[string]ast.Variable{
+						"key": ast.Variable{
+							Type: ast.TypeList,
+							Value: []ast.Variable{
+								ast.Variable{
+									Type:  ast.TypeString,
+									Value: "bar",
+								},
+							},
+						},
+					},
+				},
+			}),
+			false,
+		},
+
+		{
+			"value-from-map-of-lists",
+			[]string{"listmap", "key", "0"},
+			FieldReadResult{
+				Value:    "bar",
+				Exists:   true,
+				Computed: false,
+			},
+			testConfigInterpolate(t, map[string]interface{}{
+				"listmap": "${var.foo}",
+			}, map[string]ast.Variable{
+				"var.foo": ast.Variable{
+					Type: ast.TypeMap,
+					Value: map[string]ast.Variable{
+						"key": ast.Variable{
+							Type: ast.TypeList,
+							Value: []ast.Variable{
+								ast.Variable{
+									Type:  ast.TypeString,
+									Value: "bar",
+								},
+							},
+						},
+					},
+				},
+			}),
+			false,
+		},
 	}
 
-	for name, tc := range cases {
-		r := &ConfigFieldReader{
-			Schema: schema,
-			Config: tc.Config,
-		}
-		out, err := r.ReadField(tc.Addr)
-		if err != nil != tc.Err {
-			t.Fatalf("%s: err: %s", name, err)
-		}
-		if s, ok := out.Value.(*Set); ok {
-			// If it is a set, convert to the raw map
-			out.Value = s.m
-			if len(s.m) == 0 {
-				out.Value = nil
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
+			r := &ConfigFieldReader{
+				Schema: schema,
+				Config: tc.Config,
 			}
-		}
-		if !reflect.DeepEqual(tc.Result, out) {
-			t.Fatalf("%s: bad: %#v", name, out)
-		}
+			out, err := r.ReadField(tc.Addr)
+			if err != nil != tc.Err {
+				t.Fatal(err)
+			}
+			if s, ok := out.Value.(*Set); ok {
+				// If it is a set, convert to the raw map
+				out.Value = s.m
+				if len(s.m) == 0 {
+					out.Value = nil
+				}
+			}
+			if !reflect.DeepEqual(tc.Result, out) {
+				t.Fatalf("\nexpected: %#v\ngot:      %#v", tc.Result, out)
+			}
+		})
 	}
 }
 
@@ -344,7 +492,7 @@ func TestConfigFieldReader_ComputedSet(t *testing.T) {
 			}, map[string]ast.Variable{
 				"var.foo": ast.Variable{
 					Value: config.UnknownVariableValue,
-					Type:  ast.TypeString,
+					Type:  ast.TypeUnknown,
 				},
 			}),
 			false,
@@ -362,7 +510,139 @@ func TestConfigFieldReader_ComputedSet(t *testing.T) {
 			}, map[string]ast.Variable{
 				"var.foo": ast.Variable{
 					Value: config.UnknownVariableValue,
-					Type:  ast.TypeString,
+					Type:  ast.TypeUnknown,
+				},
+			}),
+			false,
+		},
+	}
+
+	for name, tc := range cases {
+		r := &ConfigFieldReader{
+			Schema: schema,
+			Config: tc.Config,
+		}
+		out, err := r.ReadField(tc.Addr)
+		if err != nil != tc.Err {
+			t.Fatalf("%s: err: %s", name, err)
+		}
+		if s, ok := out.Value.(*Set); ok {
+			// If it is a set, convert to the raw map
+			out.Value = s.m
+			if len(s.m) == 0 {
+				out.Value = nil
+			}
+		}
+		if !reflect.DeepEqual(tc.Result, out) {
+			t.Fatalf("%s: bad: %#v", name, out)
+		}
+	}
+}
+
+func TestConfigFieldReader_computedComplexSet(t *testing.T) {
+	hashfunc := func(v interface{}) int {
+		var buf bytes.Buffer
+		m := v.(map[string]interface{})
+		buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
+		buf.WriteString(fmt.Sprintf("%s-", m["vhd_uri"].(string)))
+		return hashcode.String(buf.String())
+	}
+
+	schema := map[string]*Schema{
+		"set": &Schema{
+			Type: TypeSet,
+			Elem: &Resource{
+				Schema: map[string]*Schema{
+					"name": {
+						Type:     TypeString,
+						Required: true,
+					},
+
+					"vhd_uri": {
+						Type:     TypeString,
+						Required: true,
+					},
+				},
+			},
+			Set: hashfunc,
+		},
+	}
+
+	cases := map[string]struct {
+		Addr   []string
+		Result FieldReadResult
+		Config *terraform.ResourceConfig
+		Err    bool
+	}{
+		"set, normal": {
+			[]string{"set"},
+			FieldReadResult{
+				Value: map[string]interface{}{
+					"532860136": map[string]interface{}{
+						"name":    "myosdisk1",
+						"vhd_uri": "bar",
+					},
+				},
+				Exists:   true,
+				Computed: false,
+			},
+			testConfig(t, map[string]interface{}{
+				"set": []interface{}{
+					map[string]interface{}{
+						"name":    "myosdisk1",
+						"vhd_uri": "bar",
+					},
+				},
+			}),
+			false,
+		},
+
+		"set, computed element": {
+			[]string{"set"},
+			FieldReadResult{
+				Value: map[string]interface{}{
+					"~3596295623": map[string]interface{}{
+						"name":    "myosdisk1",
+						"vhd_uri": "${var.foo}/bar",
+					},
+				},
+				Exists:   true,
+				Computed: false,
+			},
+			testConfigInterpolate(t, map[string]interface{}{
+				"set": []interface{}{
+					map[string]interface{}{
+						"name":    "myosdisk1",
+						"vhd_uri": "${var.foo}/bar",
+					},
+				},
+			}, map[string]ast.Variable{
+				"var.foo": ast.Variable{
+					Value: config.UnknownVariableValue,
+					Type:  ast.TypeUnknown,
+				},
+			}),
+			false,
+		},
+
+		"set, computed element single": {
+			[]string{"set", "~3596295623", "vhd_uri"},
+			FieldReadResult{
+				Value:    "${var.foo}/bar",
+				Exists:   true,
+				Computed: true,
+			},
+			testConfigInterpolate(t, map[string]interface{}{
+				"set": []interface{}{
+					map[string]interface{}{
+						"name":    "myosdisk1",
+						"vhd_uri": "${var.foo}/bar",
+					},
+				},
+			}, map[string]ast.Variable{
+				"var.foo": ast.Variable{
+					Value: config.UnknownVariableValue,
+					Type:  ast.TypeUnknown,
 				},
 			}),
 			false,

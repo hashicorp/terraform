@@ -12,7 +12,7 @@ Manages a subnetwork within GCE.
 
 ## Example Usage
 
-```js
+```hcl
 resource "google_compute_subnetwork" "default-us-east1" {
   name          = "default-us-east1"
   ip_cidr_range = "10.0.0.0/16"
@@ -31,7 +31,7 @@ The following arguments are supported:
 * `name` - (Required) A unique name for the resource, required by GCE.
     Changing this forces a new resource to be created.
 
-* `network` - (Required) The network name or resource link to the parent 
+* `network` - (Required) The network name or resource link to the parent
     network of this subnetwork. The parent network must have been created
     in custom subnet mode.
 
@@ -44,6 +44,10 @@ The following arguments are supported:
 
 * `region` - (Optional) The region this subnetwork will be created in. If
     unspecified, this defaults to the region configured in the provider.
+
+* `private_ip_google_access` - Whether the VMs in this subnet
+    can access Google services without assigned external IP
+    addresses.
 
 ## Attributes Reference
 

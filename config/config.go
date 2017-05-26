@@ -17,7 +17,7 @@ import (
 
 // NameRegexp is the regular expression that all names (modules, providers,
 // resources, etc.) must follow.
-var NameRegexp = regexp.MustCompile(`\A[A-Za-z0-9\-\_]+\z`)
+var NameRegexp = regexp.MustCompile(`(?i)\A[A-Z0-9_][A-Z0-9\-\_]*\z`)
 
 // Config is the configuration that comes from loading a collection
 // of Terraform templates.
@@ -27,6 +27,7 @@ type Config struct {
 	// any meaningful directory.
 	Dir string
 
+	Terraform       *Terraform
 	Atlas           *AtlasConfig
 	Modules         []*Module
 	ProviderConfigs []*ProviderConfig
@@ -128,6 +129,9 @@ type Provisioner struct {
 	Type      string
 	RawConfig *RawConfig
 	ConnInfo  *RawConfig
+
+	When      ProvisionerWhen
+	OnFailure ProvisionerOnFailure
 }
 
 // Copy returns a copy of this Provisioner
@@ -136,6 +140,8 @@ func (p *Provisioner) Copy() *Provisioner {
 		Type:      p.Type,
 		RawConfig: p.RawConfig.Copy(),
 		ConnInfo:  p.ConnInfo.Copy(),
+		When:      p.When,
+		OnFailure: p.OnFailure,
 	}
 }
 
@@ -152,9 +158,11 @@ type Variable struct {
 // output marked Sensitive will be output in a masked form following
 // application, but will still be available in state.
 type Output struct {
-	Name      string
-	Sensitive bool
-	RawConfig *RawConfig
+	Name        string
+	DependsOn   []string
+	Description string
+	Sensitive   bool
+	RawConfig   *RawConfig
 }
 
 // VariableType is the type of value a variable is holding, and returned
@@ -203,7 +211,14 @@ func (r *Module) Id() string {
 
 // Count returns the count of this resource.
 func (r *Resource) Count() (int, error) {
-	v, err := strconv.ParseInt(r.RawCount.Value().(string), 0, 0)
+	raw := r.RawCount.Value()
+	count, ok := r.RawCount.Value().(string)
+	if !ok {
+		return 0, fmt.Errorf(
+			"expected count to be a string or int, got %T", raw)
+	}
+
+	v, err := strconv.ParseInt(count, 0, 0)
 	if err != nil {
 		return 0, err
 	}
@@ -236,6 +251,11 @@ func (c *Config) Validate() error {
 			"Unknown root level key: %s", k))
 	}
 
+	// Validate the Terraform config
+	if tf := c.Terraform; tf != nil {
+		errs = append(errs, c.Terraform.Validate()...)
+	}
+
 	vars := c.InterpolatedVariables()
 	varMap := make(map[string]*Variable)
 	for _, v := range c.Variables {
@@ -248,6 +268,14 @@ func (c *Config) Validate() error {
 		varMap[v.Name] = v
 	}
 
+	for k, _ := range varMap {
+		if !NameRegexp.MatchString(k) {
+			errs = append(errs, fmt.Errorf(
+				"variable %q: variable name must match regular expresion %s",
+				k, NameRegexp))
+		}
+	}
+
 	for _, v := range c.Variables {
 		if v.Type() == VariableTypeUnknown {
 			errs = append(errs, fmt.Errorf(
@@ -257,8 +285,15 @@ func (c *Config) Validate() error {
 		}
 
 		interp := false
-		fn := func(ast.Node) (interface{}, error) {
-			interp = true
+		fn := func(n ast.Node) (interface{}, error) {
+			// LiteralNode is a literal string (outside of a ${ ... } sequence).
+			// interpolationWalker skips most of these. but in particular it
+			// visits those that have escaped sequences (like $${foo}) as a
+			// signal that *some* processing is required on this string. For
+			// our purposes here though, this is fine and not an interpolation.
+			if _, ok := n.(*ast.LiteralNode); !ok {
+				interp = true
+			}
 			return "", nil
 		}
 
@@ -464,25 +499,22 @@ func (c *Config) Validate() error {
 					"%s: resource count can't reference count variable: %s",
 					n,
 					v.FullKey()))
-			case *ModuleVariable:
-				errs = append(errs, fmt.Errorf(
-					"%s: resource count can't reference module variable: %s",
-					n,
-					v.FullKey()))
-			case *ResourceVariable:
-				errs = append(errs, fmt.Errorf(
-					"%s: resource count can't reference resource variable: %s",
-					n,
-					v.FullKey()))
 			case *SimpleVariable:
 				errs = append(errs, fmt.Errorf(
 					"%s: resource count can't reference variable: %s",
 					n,
 					v.FullKey()))
+
+			// Good
+			case *ModuleVariable:
+			case *ResourceVariable:
+			case *TerraformVariable:
 			case *UserVariable:
-				// Good
+
 			default:
-				panic(fmt.Sprintf("Unknown type in count var in %s: %T", n, v))
+				errs = append(errs, fmt.Errorf(
+					"Internal error. Unknown type in count var in %s: %T",
+					n, v))
 			}
 		}
 
@@ -508,38 +540,12 @@ func (c *Config) Validate() error {
 		}
 		r.RawCount.init()
 
-		// Verify depends on points to resources that all exist
-		for _, d := range r.DependsOn {
-			// Check if we contain interpolations
-			rc, err := NewRawConfig(map[string]interface{}{
-				"value": d,
-			})
-			if err == nil && len(rc.Variables) > 0 {
-				errs = append(errs, fmt.Errorf(
-					"%s: depends on value cannot contain interpolations: %s",
-					n, d))
-				continue
-			}
+		// Validate DependsOn
+		errs = append(errs, c.validateDependsOn(n, r.DependsOn, resources, modules)...)
 
-			if _, ok := resources[d]; !ok {
-				errs = append(errs, fmt.Errorf(
-					"%s: resource depends on non-existent resource '%s'",
-					n, d))
-			}
-		}
-
-		// Verify provider points to a provider that is configured
-		if r.Provider != "" {
-			if _, ok := providerSet[r.Provider]; !ok {
-				errs = append(errs, fmt.Errorf(
-					"%s: resource depends on non-configured provider '%s'",
-					n, r.Provider))
-			}
-		}
-
-		// Verify provisioners don't contain any splats
+		// Verify provisioners
 		for _, p := range r.Provisioners {
-			// This validation checks that there are now splat variables
+			// This validation checks that there are no splat variables
 			// referencing ourself. This currently is not allowed.
 
 			for _, v := range p.ConnInfo.Variables {
@@ -569,6 +575,17 @@ func (c *Config) Validate() error {
 					break
 				}
 			}
+
+			// Check for invalid when/onFailure values, though this should be
+			// picked up by the loader we check here just in case.
+			if p.When == ProvisionerWhenInvalid {
+				errs = append(errs, fmt.Errorf(
+					"%s: provisioner 'when' value is invalid", n))
+			}
+			if p.OnFailure == ProvisionerOnFailureInvalid {
+				errs = append(errs, fmt.Errorf(
+					"%s: provisioner 'on_failure' value is invalid", n))
+			}
 		}
 
 		// Verify ignore_changes contains valid entries
@@ -592,6 +609,15 @@ func (c *Config) Validate() error {
 			errs = append(errs, fmt.Errorf(
 				"%s: lifecycle ignore_changes cannot contain interpolations",
 				n))
+		}
+
+		// If it is a data source then it can't have provisioners
+		if r.Mode == DataResourceMode {
+			if _, ok := r.RawConfig.Raw["provisioner"]; ok {
+				errs = append(errs, fmt.Errorf(
+					"%s: data sources cannot have provisioners",
+					n))
+			}
 		}
 	}
 
@@ -647,6 +673,17 @@ func (c *Config) Validate() error {
 						o.Name))
 					continue
 				}
+				if k == "description" {
+					if desc, ok := o.RawConfig.config[k].(string); ok {
+						o.Description = desc
+						continue
+					}
+
+					errs = append(errs, fmt.Errorf(
+						"%s: value for 'description' must be string",
+						o.Name))
+					continue
+				}
 				invalidKeys = append(invalidKeys, k)
 			}
 			if len(invalidKeys) > 0 {
@@ -665,17 +702,6 @@ func (c *Config) Validate() error {
 						"%s: count variables are only valid within resources", o.Name))
 				}
 			}
-		}
-	}
-
-	// Check that all variables are in the proper context
-	for source, rc := range c.rawConfigs() {
-		walker := &interpolationWalker{
-			ContextF: c.validateVarContextFn(source, &errs),
-		}
-		if err := reflectwalk.Walk(rc.Raw, walker); err != nil {
-			errs = append(errs, fmt.Errorf(
-				"%s: error reading config: %s", source, err))
 		}
 	}
 
@@ -750,55 +776,46 @@ func (c *Config) rawConfigs() map[string]*RawConfig {
 	return result
 }
 
-func (c *Config) validateVarContextFn(
-	source string, errs *[]error) interpolationWalkerContextFunc {
-	return func(loc reflectwalk.Location, node ast.Node) {
-		// If we're in a slice element, then its fine, since you can do
-		// anything in there.
-		if loc == reflectwalk.SliceElem {
-			return
-		}
-
-		// Otherwise, let's check if there is a splat resource variable
-		// at the top level in here. We do this by doing a transform that
-		// replaces everything with a noop node unless its a variable
-		// access or concat. This should turn the AST into a flat tree
-		// of Concat(Noop, ...). If there are any variables left that are
-		// multi-access, then its still broken.
-		node = node.Accept(func(n ast.Node) ast.Node {
-			// If it is a concat or variable access, we allow it.
-			switch n.(type) {
-			case *ast.Output:
-				return n
-			case *ast.VariableAccess:
-				return n
-			}
-
-			// Otherwise, noop
-			return &noopNode{}
+func (c *Config) validateDependsOn(
+	n string,
+	v []string,
+	resources map[string]*Resource,
+	modules map[string]*Module) []error {
+	// Verify depends on points to resources that all exist
+	var errs []error
+	for _, d := range v {
+		// Check if we contain interpolations
+		rc, err := NewRawConfig(map[string]interface{}{
+			"value": d,
 		})
-
-		vars, err := DetectVariables(node)
-		if err != nil {
-			// Ignore it since this will be caught during parse. This
-			// actually probably should never happen by the time this
-			// is called, but its okay.
-			return
+		if err == nil && len(rc.Variables) > 0 {
+			errs = append(errs, fmt.Errorf(
+				"%s: depends on value cannot contain interpolations: %s",
+				n, d))
+			continue
 		}
 
-		for _, v := range vars {
-			rv, ok := v.(*ResourceVariable)
-			if !ok {
-				return
+		// If it is a module, verify it is a module
+		if strings.HasPrefix(d, "module.") {
+			name := d[len("module."):]
+			if _, ok := modules[name]; !ok {
+				errs = append(errs, fmt.Errorf(
+					"%s: resource depends on non-existent module '%s'",
+					n, name))
 			}
 
-			if rv.Multi && rv.Index == -1 {
-				*errs = append(*errs, fmt.Errorf(
-					"%s: use of the splat ('*') operator must be wrapped in a list declaration",
-					source))
-			}
+			continue
+		}
+
+		// Check resources
+		if _, ok := resources[d]; !ok {
+			errs = append(errs, fmt.Errorf(
+				"%s: resource depends on non-existent resource '%s'",
+				n, d))
 		}
 	}
+
+	return errs
 }
 
 func (m *Module) mergerName() string {
@@ -828,7 +845,10 @@ func (o *Output) mergerMerge(m merger) merger {
 
 	result := *o
 	result.Name = o2.Name
+	result.Description = o2.Description
 	result.RawConfig = result.RawConfig.merge(o2.RawConfig)
+	result.Sensitive = o2.Sensitive
+	result.DependsOn = o2.DependsOn
 
 	return &result
 }
@@ -855,6 +875,10 @@ func (c *ProviderConfig) mergerMerge(m merger) merger {
 	result := *c
 	result.Name = c2.Name
 	result.RawConfig = result.RawConfig.merge(c2.RawConfig)
+
+	if c2.Alias != "" {
+		result.Alias = c2.Alias
+	}
 
 	return &result
 }
@@ -891,6 +915,9 @@ func (v *Variable) Merge(v2 *Variable) *Variable {
 	// The names should be the same, but the second name always wins.
 	result.Name = v2.Name
 
+	if v2.DeclaredType != "" {
+		result.DeclaredType = v2.DeclaredType
+	}
 	if v2.Default != nil {
 		result.Default = v2.Default
 	}
@@ -928,7 +955,16 @@ func (v *Variable) ValidateTypeAndDefault() error {
 	// If an explicit type is declared, ensure it is valid
 	if v.DeclaredType != "" {
 		if _, ok := typeStringMap[v.DeclaredType]; !ok {
-			return fmt.Errorf("Variable '%s' must be of type string or map - '%s' is not a valid type", v.Name, v.DeclaredType)
+			validTypes := []string{}
+			for k := range typeStringMap {
+				validTypes = append(validTypes, k)
+			}
+			return fmt.Errorf(
+				"Variable '%s' type must be one of [%s] - '%s' is not a valid type",
+				v.Name,
+				strings.Join(validTypes, ", "),
+				v.DeclaredType,
+			)
 		}
 	}
 

@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccAWSSpotDatafeedSubscription_importBasic(t *testing.T) {
+func testAccAWSSpotDatafeedSubscription_importBasic(t *testing.T) {
 	resourceName := "aws_spot_datafeed_subscription.default"
 	ri := acctest.RandInt()
 
@@ -16,11 +16,11 @@ func TestAccAWSSpotDatafeedSubscription_importBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSpotDatafeedSubscriptionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSSpotDatafeedSubscription(ri),
 			},
 
-			resource.TestStep{
+			{
 				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,

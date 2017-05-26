@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform/config/module"
@@ -15,6 +16,11 @@ type GraphNodeDestroyerCBD interface {
 	// CreateBeforeDestroy returns true if this node represents a node
 	// that is doing a CBD.
 	CreateBeforeDestroy() bool
+
+	// ModifyCreateBeforeDestroy is called when the CBD state of a node
+	// is changed dynamically. This can return an error if this isn't
+	// allowed.
+	ModifyCreateBeforeDestroy(bool) error
 }
 
 // CBDEdgeTransformer modifies the edges of CBD nodes that went through
@@ -48,7 +54,23 @@ func (t *CBDEdgeTransformer) Transform(g *Graph) error {
 		}
 
 		if !dn.CreateBeforeDestroy() {
-			continue
+			// If there are no CBD ancestors (dependent nodes), then we
+			// do nothing here.
+			if !t.hasCBDAncestor(g, v) {
+				continue
+			}
+
+			// If this isn't naturally a CBD node, this means that an ancestor is
+			// and we need to auto-upgrade this node to CBD. We do this because
+			// a CBD node depending on non-CBD will result in cycles. To avoid this,
+			// we always attempt to upgrade it.
+			if err := dn.ModifyCreateBeforeDestroy(true); err != nil {
+				return fmt.Errorf(
+					"%s: must have create before destroy enabled because "+
+						"a dependent resource has CBD enabled. However, when "+
+						"attempting to automatically do this, an error occurred: %s",
+					dag.VertexName(v), err)
+			}
 		}
 
 		// Find the destroy edge. There should only be one.
@@ -67,9 +89,20 @@ func (t *CBDEdgeTransformer) Transform(g *Graph) error {
 			g.Connect(&DestroyEdge{S: de.Target(), T: de.Source()})
 		}
 
+		// If the address has an index, we strip that. Our depMap creation
+		// graph doesn't expand counts so we don't currently get _exact_
+		// dependencies. One day when we limit dependencies more exactly
+		// this will have to change. We have a test case covering this
+		// (depNonCBDCountBoth) so it'll be caught.
+		addr := dn.DestroyAddr()
+		if addr.Index >= 0 {
+			addr = addr.Copy() // Copy so that we don't modify any pointers
+			addr.Index = -1
+		}
+
 		// Add this to the list of nodes that we need to fix up
 		// the edges for (step 2 above in the docs).
-		key := dn.DestroyAddr().String()
+		key := addr.String()
 		destroyMap[key] = append(destroyMap[key], v)
 	}
 
@@ -112,9 +145,19 @@ func (t *CBDEdgeTransformer) Transform(g *Graph) error {
 
 		// Get the address
 		addr := rn.CreateAddr()
-		key := addr.String()
+
+		// If the address has an index, we strip that. Our depMap creation
+		// graph doesn't expand counts so we don't currently get _exact_
+		// dependencies. One day when we limit dependencies more exactly
+		// this will have to change. We have a test case covering this
+		// (depNonCBDCount) so it'll be caught.
+		if addr.Index >= 0 {
+			addr = addr.Copy() // Copy so that we don't modify any pointers
+			addr.Index = -1
+		}
 
 		// If there is nothing this resource should depend on, ignore it
+		key := addr.String()
 		dns, ok := depMap[key]
 		if !ok {
 			continue
@@ -142,6 +185,7 @@ func (t *CBDEdgeTransformer) depMap(
 			&AttachStateTransformer{State: t.State},
 			&ReferenceTransformer{},
 		},
+		Name: "CBDEdgeTransformer",
 	}).Build(nil)
 	if err != nil {
 		return nil, err
@@ -187,4 +231,27 @@ func (t *CBDEdgeTransformer) depMap(
 	}
 
 	return depMap, nil
+}
+
+// hasCBDAncestor returns true if any ancestor (node that depends on this)
+// has CBD set.
+func (t *CBDEdgeTransformer) hasCBDAncestor(g *Graph, v dag.Vertex) bool {
+	s, _ := g.Ancestors(v)
+	if s == nil {
+		return true
+	}
+
+	for _, v := range s.List() {
+		dn, ok := v.(GraphNodeDestroyerCBD)
+		if !ok {
+			continue
+		}
+
+		if dn.CreateBeforeDestroy() {
+			// some ancestor is CreateBeforeDestroy, so we need to follow suit
+			return true
+		}
+	}
+
+	return false
 }

@@ -69,6 +69,14 @@ func resourceAwsAlbTargetGroupAttachment() *schema.Resource {
 func resourceAwsAlbAttachmentCreate(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
+	target := &elbv2.TargetDescription{
+		Id: aws.String(d.Get("target_id").(string)),
+	}
+
+	if v, ok := d.GetOk("port"); ok {
+		target.Port = aws.Int64(int64(v.(int)))
+	}
+
 	params := &elbv2.RegisterTargetsInput{
 		TargetGroupArn: aws.String(d.Get("target_group_arn").(string)),
 	}
@@ -108,6 +116,14 @@ func resourceAwsAlbAttachmentCreate(d *schema.ResourceData, meta interface{}) er
 
 func resourceAwsAlbAttachmentDelete(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
+
+	target := &elbv2.TargetDescription{
+		Id: aws.String(d.Get("target_id").(string)),
+	}
+
+	if v, ok := d.GetOk("port"); ok {
+		target.Port = aws.Int64(int64(v.(int)))
+	}
 
 	params := &elbv2.DeregisterTargetsInput{
 		TargetGroupArn: aws.String(d.Get("target_group_arn").(string)),

@@ -5,6 +5,8 @@ import (
 	"log"
 	"testing"
 
+	"regexp"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -12,7 +14,32 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSCloudTrail_basic(t *testing.T) {
+func TestAccAWSCloudTrail(t *testing.T) {
+	testCases := map[string]map[string]func(t *testing.T){
+		"Trail": {
+			"basic":         testAccAWSCloudTrail_basic,
+			"enableLogging": testAccAWSCloudTrail_enable_logging,
+			"isMultiRegion": testAccAWSCloudTrail_is_multi_region,
+			"logValidation": testAccAWSCloudTrail_logValidation,
+			"kmsKey":        testAccAWSCloudTrail_kmsKey,
+			"tags":          testAccAWSCloudTrail_tags,
+		},
+	}
+
+	for group, m := range testCases {
+		m := m
+		t.Run(group, func(t *testing.T) {
+			for name, tc := range m {
+				tc := tc
+				t.Run(name, func(t *testing.T) {
+					tc(t)
+				})
+			}
+		})
+	}
+}
+
+func testAccAWSCloudTrail_basic(t *testing.T) {
 	var trail cloudtrail.Trail
 	cloudTrailRandInt := acctest.RandInt()
 
@@ -21,7 +48,7 @@ func TestAccAWSCloudTrail_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudTrailDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfig(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
@@ -30,7 +57,7 @@ func TestAccAWSCloudTrail_basic(t *testing.T) {
 					testAccCheckCloudTrailKmsKeyIdEquals("aws_cloudtrail.foobar", "", &trail),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfigModified(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
@@ -44,7 +71,7 @@ func TestAccAWSCloudTrail_basic(t *testing.T) {
 	})
 }
 
-func TestAccAWSCloudTrail_enable_logging(t *testing.T) {
+func testAccAWSCloudTrail_enable_logging(t *testing.T) {
 	var trail cloudtrail.Trail
 	cloudTrailRandInt := acctest.RandInt()
 
@@ -53,7 +80,7 @@ func TestAccAWSCloudTrail_enable_logging(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudTrailDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfig(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
@@ -64,7 +91,7 @@ func TestAccAWSCloudTrail_enable_logging(t *testing.T) {
 					testAccCheckCloudTrailKmsKeyIdEquals("aws_cloudtrail.foobar", "", &trail),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfigModified(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
@@ -73,7 +100,7 @@ func TestAccAWSCloudTrail_enable_logging(t *testing.T) {
 					testAccCheckCloudTrailKmsKeyIdEquals("aws_cloudtrail.foobar", "", &trail),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfig(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
@@ -86,7 +113,7 @@ func TestAccAWSCloudTrail_enable_logging(t *testing.T) {
 	})
 }
 
-func TestAccAWSCloudTrail_is_multi_region(t *testing.T) {
+func testAccAWSCloudTrail_is_multi_region(t *testing.T) {
 	var trail cloudtrail.Trail
 	cloudTrailRandInt := acctest.RandInt()
 
@@ -95,7 +122,7 @@ func TestAccAWSCloudTrail_is_multi_region(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudTrailDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfig(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
@@ -104,7 +131,7 @@ func TestAccAWSCloudTrail_is_multi_region(t *testing.T) {
 					testAccCheckCloudTrailKmsKeyIdEquals("aws_cloudtrail.foobar", "", &trail),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfigMultiRegion(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
@@ -113,7 +140,7 @@ func TestAccAWSCloudTrail_is_multi_region(t *testing.T) {
 					testAccCheckCloudTrailKmsKeyIdEquals("aws_cloudtrail.foobar", "", &trail),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfig(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
@@ -126,18 +153,16 @@ func TestAccAWSCloudTrail_is_multi_region(t *testing.T) {
 	})
 }
 
-func TestAccAWSCloudTrail_logValidation(t *testing.T) {
+func testAccAWSCloudTrail_logValidation(t *testing.T) {
 	var trail cloudtrail.Trail
 	cloudTrailRandInt := acctest.RandInt()
 
-	// TODO: Add test for KMS Key ID
-	// once https://github.com/hashicorp/terraform/pull/3928 is merged
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudTrailDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfig_logValidation(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
@@ -147,7 +172,7 @@ func TestAccAWSCloudTrail_logValidation(t *testing.T) {
 					testAccCheckCloudTrailKmsKeyIdEquals("aws_cloudtrail.foobar", "", &trail),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfig_logValidationModified(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
@@ -161,7 +186,31 @@ func TestAccAWSCloudTrail_logValidation(t *testing.T) {
 	})
 }
 
-func TestAccAWSCloudTrail_tags(t *testing.T) {
+func testAccAWSCloudTrail_kmsKey(t *testing.T) {
+	var trail cloudtrail.Trail
+	cloudTrailRandInt := acctest.RandInt()
+	keyRegex := regexp.MustCompile("^arn:aws:([a-zA-Z0-9\\-])+:([a-z]{2}-[a-z]+-\\d{1})?:(\\d{12})?:(.*)$")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCloudTrailDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSCloudTrailConfig_kmsKey(cloudTrailRandInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
+					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "s3_key_prefix", ""),
+					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "include_global_service_events", "true"),
+					testAccCheckCloudTrailLogValidationEnabled("aws_cloudtrail.foobar", false, &trail),
+					resource.TestMatchResourceAttr("aws_cloudtrail.foobar", "kms_key_id", keyRegex),
+				),
+			},
+		},
+	})
+}
+
+func testAccAWSCloudTrail_tags(t *testing.T) {
 	var trail cloudtrail.Trail
 	var trailTags []*cloudtrail.Tag
 	var trailTagsModified []*cloudtrail.Tag
@@ -172,7 +221,7 @@ func TestAccAWSCloudTrail_tags(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudTrailDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfig_tags(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
@@ -183,7 +232,7 @@ func TestAccAWSCloudTrail_tags(t *testing.T) {
 					testAccCheckCloudTrailKmsKeyIdEquals("aws_cloudtrail.foobar", "", &trail),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfig_tagsModified(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
@@ -194,7 +243,7 @@ func TestAccAWSCloudTrail_tags(t *testing.T) {
 					testAccCheckCloudTrailKmsKeyIdEquals("aws_cloudtrail.foobar", "", &trail),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfig_tagsModifiedAgain(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
@@ -575,6 +624,69 @@ resource "aws_s3_bucket" "foo" {
 POLICY
 }
 `, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+}
+
+func testAccAWSCloudTrailConfig_kmsKey(cloudTrailRandInt int) string {
+	return fmt.Sprintf(`
+resource "aws_kms_key" "foo" {
+  description = "Terraform acc test %d"
+  policy = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Id": "kms-tf-1",
+  "Statement": [
+    {
+      "Sid": "Enable IAM User Permissions",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "*"
+      },
+      "Action": "kms:*",
+      "Resource": "*"
+    }
+  ]
+}
+POLICY
+}
+
+resource "aws_cloudtrail" "foobar" {
+  name = "tf-acc-trail-log-validation-test-%d"
+  s3_bucket_name = "${aws_s3_bucket.foo.id}"
+  include_global_service_events = true
+  kms_key_id = "${aws_kms_key.foo.arn}"
+}
+
+resource "aws_s3_bucket" "foo" {
+  bucket = "tf-test-trail-%d"
+  force_destroy = true
+  policy = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Statement": [
+   {
+     "Sid": "AWSCloudTrailAclCheck",
+     "Effect": "Allow",
+     "Principal": "*",
+     "Action": "s3:GetBucketAcl",
+     "Resource": "arn:aws:s3:::tf-test-trail-%d"
+   },
+   {
+     "Sid": "AWSCloudTrailWrite",
+     "Effect": "Allow",
+     "Principal": "*",
+     "Action": "s3:PutObject",
+     "Resource": "arn:aws:s3:::tf-test-trail-%d/*",
+     "Condition": {
+       "StringEquals": {
+         "s3:x-amz-acl": "bucket-owner-full-control"
+       }
+     }
+   }
+  ]
+}
+POLICY
+}
+`, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
 }
 
 var testAccAWSCloudTrailConfig_tags_tpl = `

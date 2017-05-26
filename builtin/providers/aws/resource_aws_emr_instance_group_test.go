@@ -21,9 +21,31 @@ func TestAccAWSEMRInstanceGroup_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEmrInstanceGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSEmrInstanceGroupConfig(rInt),
 				Check:  testAccCheckAWSEmrInstanceGroupExists("aws_emr_instance_group.task", &ig),
+			},
+		},
+	})
+}
+
+func TestAccAWSEMRInstanceGroup_ebsBasic(t *testing.T) {
+	var ig emr.InstanceGroup
+	rInt := acctest.RandInt()
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSEmrInstanceGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSEmrInstanceGroupConfig_ebsBasic(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEmrInstanceGroupExists("aws_emr_instance_group.task", &ig),
+					resource.TestCheckResourceAttr(
+						"aws_emr_instance_group.task", "ebs_config.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_emr_instance_group.task", "ebs_optimized", "true"),
+				),
 			},
 		},
 	})
@@ -85,8 +107,7 @@ func testAccCheckAWSEmrInstanceGroupExists(n string, v *emr.InstanceGroup) resou
 	}
 }
 
-func testAccAWSEmrInstanceGroupConfig(r int) string {
-	return fmt.Sprintf(`
+const testAccAWSEmrInstanceGroupBase = `
 provider "aws" {
   region = "us-west-2"
 }
@@ -124,12 +145,6 @@ resource "aws_emr_cluster" "tf-test-cluster" {
   service_role = "${aws_iam_role.iam_emr_default_role.arn}"
 
   depends_on = ["aws_internet_gateway.gw"]
-}
-
-resource "aws_emr_instance_group" "task" {
-  cluster_id     = "${aws_emr_cluster.tf-test-cluster.id}"
-  instance_count = 1
-  instance_type  = "m3.xlarge"
 }
 
 resource "aws_security_group" "allow_all" {
@@ -352,5 +367,30 @@ resource "aws_iam_policy" "iam_emr_profile_policy" {
     }]
 }
 EOT
-}`, r, r, r, r, r, r)
+}
+`
+
+func testAccAWSEmrInstanceGroupConfig(r int) string {
+	return fmt.Sprintf(testAccAWSEmrInstanceGroupBase+`
+	resource "aws_emr_instance_group" "task" {
+    cluster_id     = "${aws_emr_cluster.tf-test-cluster.id}"
+    instance_count = 1
+    instance_type  = "m3.xlarge"
+  }
+	`, r, r, r, r, r, r)
+}
+
+func testAccAWSEmrInstanceGroupConfig_ebsBasic(r int) string {
+	return fmt.Sprintf(testAccAWSEmrInstanceGroupBase+`
+		resource "aws_emr_instance_group" "task" {
+    cluster_id     = "${aws_emr_cluster.tf-test-cluster.id}"
+    instance_count = 1
+    instance_type  = "m3.xlarge"
+    ebs_optimized = true
+    ebs_config {
+      "size" = 10,
+      "type" = "gp2",
+    }
+  }
+	`, r, r, r, r, r, r)
 }

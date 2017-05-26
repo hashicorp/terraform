@@ -17,7 +17,7 @@ GIT_DIRTY=$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 # Determine the arch/os combos we're building for
 XC_ARCH=${XC_ARCH:-"386 amd64 arm"}
 XC_OS=${XC_OS:-linux darwin windows freebsd openbsd solaris}
-XC_EXCLUDE_OSARCH="!darwin/arm"
+XC_EXCLUDE_OSARCH="!darwin/arm !darwin/386"
 
 # Delete the old dir
 echo "==> Removing old directory..."
@@ -41,9 +41,10 @@ export CGO_ENABLED=0
 
 # Allow LD_FLAGS to be appended during development compilations
 LD_FLAGS="-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY} $LD_FLAGS"
-# In relase mode we don't want debug information in the binary
+
+# In release mode we don't want debug information in the binary
 if [[ -n "${TF_RELEASE}" ]]; then
-    LD_FLAGS="-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY} -s -w"
+    LD_FLAGS="-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY} -X github.com/hashicorp/terraform/terraform.VersionPrerelease= -s -w"
 fi
 
 # Build!

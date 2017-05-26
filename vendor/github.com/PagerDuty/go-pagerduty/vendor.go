@@ -30,6 +30,7 @@ type ListVendorResponse struct {
 // ListVendorOptions is the data structure used when calling the ListVendors API endpoint.
 type ListVendorOptions struct {
 	APIListObject
+	Query string `url:"query,omitempty"`
 }
 
 // ListVendors lists existing vendors.

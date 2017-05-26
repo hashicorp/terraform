@@ -1,6 +1,7 @@
 package heroku
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -19,7 +20,7 @@ func TestAccHerokuDrain_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckHerokuDrainDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckHerokuDrainConfig_basic(appName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuDrainExists("heroku_drain.foobar", &drain),
@@ -42,7 +43,7 @@ func testAccCheckHerokuDrainDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, err := client.LogDrainInfo(rs.Primary.Attributes["app"], rs.Primary.ID)
+		_, err := client.LogDrainInfo(context.TODO(), rs.Primary.Attributes["app"], rs.Primary.ID)
 
 		if err == nil {
 			return fmt.Errorf("Drain still exists")
@@ -81,7 +82,7 @@ func testAccCheckHerokuDrainExists(n string, Drain *heroku.LogDrain) resource.Te
 
 		client := testAccProvider.Meta().(*heroku.Service)
 
-		foundDrain, err := client.LogDrainInfo(rs.Primary.Attributes["app"], rs.Primary.ID)
+		foundDrain, err := client.LogDrainInfo(context.TODO(), rs.Primary.Attributes["app"], rs.Primary.ID)
 
 		if err != nil {
 			return err

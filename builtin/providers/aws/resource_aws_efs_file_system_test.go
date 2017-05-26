@@ -82,12 +82,13 @@ func TestResourceAWSEFSFileSystem_hasEmptyFileSystems(t *testing.T) {
 }
 
 func TestAccAWSEFSFileSystem_basic(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckEfsFileSystemDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSEFSFileSystemConfig,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -103,8 +104,8 @@ func TestAccAWSEFSFileSystem_basic(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
-				Config: testAccAWSEFSFileSystemConfigWithTags,
+			{
+				Config: testAccAWSEFSFileSystemConfigWithTags(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckEfsFileSystem(
 						"aws_efs_file_system.foo-with-tags",
@@ -116,13 +117,13 @@ func TestAccAWSEFSFileSystem_basic(t *testing.T) {
 					testAccCheckEfsFileSystemTags(
 						"aws_efs_file_system.foo-with-tags",
 						map[string]string{
-							"Name":    "foo-efs",
+							"Name":    fmt.Sprintf("foo-efs-%d", rInt),
 							"Another": "tag",
 						},
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSEFSFileSystemConfigWithPerformanceMode,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckEfsFileSystem(
@@ -136,6 +137,33 @@ func TestAccAWSEFSFileSystem_basic(t *testing.T) {
 						"aws_efs_file_system.foo-with-performance-mode",
 						"maxIO",
 					),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSEFSFileSystem_pagedTags(t *testing.T) {
+	rInt := acctest.RandInt()
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckEfsFileSystemDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSEFSFileSystemConfigPagedTags(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"aws_efs_file_system.foo",
+						"tags.%",
+						"11"),
+					//testAccCheckEfsFileSystem(
+					//	"aws_efs_file_system.foo",
+					//),
+					//testAccCheckEfsFileSystemPerformanceMode(
+					//	"aws_efs_file_system.foo",
+					//	"generalPurpose",
+					//),
 				),
 			},
 		},
@@ -286,15 +314,36 @@ resource "aws_efs_file_system" "foo" {
 }
 `
 
-const testAccAWSEFSFileSystemConfigWithTags = `
-resource "aws_efs_file_system" "foo-with-tags" {
-	creation_token = "yada_yada"
-	tags {
-		Name = "foo-efs"
-		Another = "tag"
+func testAccAWSEFSFileSystemConfigPagedTags(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_efs_file_system" "foo" {
+		tags {
+			Name = "foo-efs-%d"
+			Another = "tag"
+			Test = "yes"
+			User = "root"
+			Page = "1"
+			Environment = "prod"
+			CostCenter = "terraform"
+			AcceptanceTest = "PagedTags"
+			CreationToken = "radek"
+			PerfMode = "max"
+			Region = "us-west-2"
+		}
 	}
+	`, rInt)
 }
-`
+
+func testAccAWSEFSFileSystemConfigWithTags(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_efs_file_system" "foo-with-tags" {
+		tags {
+			Name = "foo-efs-%d"
+			Another = "tag"
+		}
+	}
+	`, rInt)
+}
 
 const testAccAWSEFSFileSystemConfigWithPerformanceMode = `
 resource "aws_efs_file_system" "foo-with-performance-mode" {

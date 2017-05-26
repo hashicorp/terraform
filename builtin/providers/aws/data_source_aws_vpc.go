@@ -14,19 +14,19 @@ func dataSourceAwsVpc() *schema.Resource {
 		Read: dataSourceAwsVpcRead,
 
 		Schema: map[string]*schema.Schema{
-			"cidr_block": &schema.Schema{
+			"cidr_block": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"dhcp_options_id": &schema.Schema{
+			"dhcp_options_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"default": &schema.Schema{
+			"default": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
@@ -34,18 +34,28 @@ func dataSourceAwsVpc() *schema.Resource {
 
 			"filter": ec2CustomFiltersSchema(),
 
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"instance_tenancy": &schema.Schema{
+			"instance_tenancy": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"state": &schema.Schema{
+			"ipv6_cidr_block": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"ipv6_association_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"state": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -116,6 +126,11 @@ func dataSourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("default", vpc.IsDefault)
 	d.Set("state", vpc.State)
 	d.Set("tags", tagsToMap(vpc.Tags))
+
+	if vpc.Ipv6CidrBlockAssociationSet != nil {
+		d.Set("ipv6_association_id", vpc.Ipv6CidrBlockAssociationSet[0].AssociationId)
+		d.Set("ipv6_cidr_block", vpc.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock)
+	}
 
 	return nil
 }

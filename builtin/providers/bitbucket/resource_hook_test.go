@@ -2,6 +2,7 @@ package bitbucket
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"testing"
 
@@ -16,7 +17,7 @@ func TestAccBitbucketHook_basic(t *testing.T) {
 	testAccBitbucketHookConfig := fmt.Sprintf(`
 		resource "bitbucket_repository" "test_repo" {
 			owner = "%s"
-			name = "test-repo"
+			name = "test-repo-for-webhook-test"
 		}
 		resource "bitbucket_hook" "test_repo_hook" {
 			owner = "%s"
@@ -51,10 +52,10 @@ func testAccCheckBitbucketHookDestroy(s *terraform.State) error {
 		return fmt.Errorf("Not found %s", "bitbucket_hook.test_repo_hook")
 	}
 
-	response, err := client.Get(fmt.Sprintf("2.0/repositories/%s/%s/hooks/%s", rs.Primary.Attributes["owner"], rs.Primary.Attributes["repository"], rs.Primary.Attributes["uuid"]))
+	response, err := client.Get(fmt.Sprintf("2.0/repositories/%s/%s/hooks/%s", rs.Primary.Attributes["owner"], rs.Primary.Attributes["repository"], url.PathEscape(rs.Primary.Attributes["uuid"])))
 
-	if err != nil {
-		return err
+	if err == nil {
+		return fmt.Errorf("The resource was found should have errored")
 	}
 
 	if response.StatusCode != 404 {

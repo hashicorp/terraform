@@ -1,0 +1,19 @@
+default_link_text: 'Read more'
+
+featured_post:
+  # media_html: <a href="http://hashi.co/2qO6A2H" target="_blank"><img src="assets/images/news/webinar-register-585w.png" alt="Webinar Register Now" srcset="assets/images/news/webinar-register-2000w.png 2x"></a>
+  title: 'Webinar: Controlling Your Organization With HashiCorp Terraform and Google Cloud Platform'
+  body: Watch our recent webinar with Seth Vargo and Google Cloud. Learn how to build your entire infrastructure across Google Cloud with one command.
+  link_url: https://www.youtube.com/watch?v=Ym6DtUx5REg
+  link_text: Watch Now
+
+additional_posts:
+  -
+    title: Terraform 0.9 Released
+    body: Terraform 0.9 adds major new functionality to Terraform. Read the highlights from the 0.9 release.
+    link_url: https://www.hashicorp.com/blog/terraform-0-9/
+  -
+    title: 'Webinar: Multi-Cloud, One Command with Terraform'
+    body: Watch our recent webinar with Mitchell Hashimoto to learn how Terraform provisions infrastructure across different clouds using a consistent workflow.
+    link_url: https://youtu.be/nLg7fpVcIv4
+    link_text: Watch Now

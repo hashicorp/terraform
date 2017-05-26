@@ -21,21 +21,21 @@ func resourceScalewayVolume() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"size_in_gb": &schema.Schema{
+			"size_in_gb": {
 				Type:         schema.TypeInt,
 				Required:     true,
 				ValidateFunc: validateVolumeSize,
 			},
-			"type": &schema.Schema{
+			"type": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validateVolumeType,
 			},
-			"server": &schema.Schema{
+			"server": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -45,6 +45,10 @@ func resourceScalewayVolume() *schema.Resource {
 
 func resourceScalewayVolumeCreate(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
+
+	mu.Lock()
+	defer mu.Unlock()
+
 	size := uint64(d.Get("size_in_gb").(int)) * gb
 	req := api.ScalewayVolumeDefinition{
 		Name:         d.Get("name").(string),
@@ -76,9 +80,7 @@ func resourceScalewayVolumeRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 	d.Set("name", volume.Name)
-	if size, ok := volume.Size.(float64); ok {
-		d.Set("size_in_gb", uint64(size)/gb)
-	}
+	d.Set("size_in_gb", uint64(volume.Size)/gb)
 	d.Set("type", volume.VolumeType)
 	d.Set("server", "")
 	if volume.Server != nil {
@@ -89,6 +91,9 @@ func resourceScalewayVolumeRead(d *schema.ResourceData, m interface{}) error {
 
 func resourceScalewayVolumeUpdate(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
+
+	mu.Lock()
+	defer mu.Unlock()
 
 	var req api.ScalewayVolumePutDefinition
 	if d.HasChange("name") {
@@ -106,6 +111,10 @@ func resourceScalewayVolumeUpdate(d *schema.ResourceData, m interface{}) error {
 
 func resourceScalewayVolumeDelete(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
+
+	mu.Lock()
+	defer mu.Unlock()
+
 	err := scaleway.DeleteVolume(d.Id())
 	if err != nil {
 		if serr, ok := err.(api.ScalewayAPIError); ok {

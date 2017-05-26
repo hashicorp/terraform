@@ -2,10 +2,12 @@ package awspolicy
 
 import (
 	"encoding/json"
+	"errors"
 	"reflect"
 	"strings"
 
 	"github.com/hashicorp/errwrap"
+	"github.com/mitchellh/mapstructure"
 )
 
 // PoliciesAreEquivalent tests for the structural equivalence of two
@@ -19,23 +21,65 @@ import (
 // otherwise. If either of the input strings are not valid JSON,
 // false is returned along with an error.
 func PoliciesAreEquivalent(policy1, policy2 string) (bool, error) {
-	policy1doc := &awsPolicyDocument{}
-	if err := json.Unmarshal([]byte(policy1), policy1doc); err != nil {
+	policy1intermediate := &intermediateAwsPolicyDocument{}
+	if err := json.Unmarshal([]byte(policy1), policy1intermediate); err != nil {
 		return false, errwrap.Wrapf("Error unmarshaling policy: {{err}}", err)
 	}
 
-	policy2doc := &awsPolicyDocument{}
-	if err := json.Unmarshal([]byte(policy2), policy2doc); err != nil {
+	policy2intermediate := &intermediateAwsPolicyDocument{}
+	if err := json.Unmarshal([]byte(policy2), policy2intermediate); err != nil {
 		return false, errwrap.Wrapf("Error unmarshaling policy: {{err}}", err)
 	}
 
-	return policy1doc.equals(policy2doc), nil
+	policy1Doc, err := policy1intermediate.document()
+	if err != nil {
+		return false, errwrap.Wrapf("Error parsing policy: {{err}}", err)
+	}
+	policy2Doc, err := policy2intermediate.document()
+	if err != nil {
+		return false, errwrap.Wrapf("Error parsing policy: {{err}}", err)
+	}
+
+	return policy1Doc.equals(policy2Doc), nil
+}
+
+type intermediateAwsPolicyDocument struct {
+	Version    string      `json:",omitempty"`
+	Id         string      `json:",omitempty"`
+	Statements interface{} `json:"Statement"`
+}
+
+func (intermediate *intermediateAwsPolicyDocument) document() (*awsPolicyDocument, error) {
+	var statements []*awsPolicyStatement
+
+	switch s := intermediate.Statements.(type) {
+	case []interface{}:
+		if err := mapstructure.Decode(s, &statements); err != nil {
+			return nil, errwrap.Wrapf("Error parsing statement: {{err}}", err)
+		}
+	case map[string]interface{}:
+		var singleStatement *awsPolicyStatement
+		if err := mapstructure.Decode(s, &singleStatement); err != nil {
+			return nil, errwrap.Wrapf("Error parsing statement: {{err}}", err)
+		}
+		statements = append(statements, singleStatement)
+	default:
+		return nil, errors.New("Unknown error parsing statement")
+	}
+
+	document := &awsPolicyDocument{
+		Version:    intermediate.Version,
+		Id:         intermediate.Id,
+		Statements: statements,
+	}
+
+	return document, nil
 }
 
 type awsPolicyDocument struct {
-	Version    string                `json:",omitempty"`
-	Id         string                `json:",omitempty"`
-	Statements []*awsPolicyStatement `json:"Statement"`
+	Version    string
+	Id         string
+	Statements []*awsPolicyStatement
 }
 
 func (doc *awsPolicyDocument) equals(other *awsPolicyDocument) bool {
@@ -54,7 +98,7 @@ func (doc *awsPolicyDocument) equals(other *awsPolicyDocument) bool {
 	}
 
 	// If we have the same number of statements in the policy, does
-	// each statement in the doc have a corresponding statement in
+	// each statement in the intermediate have a corresponding statement in
 	// other which is equal? If no, policies are not equal, if yes,
 	// then they may be.
 	for _, ours := range doc.Statements {
@@ -89,15 +133,15 @@ func (doc *awsPolicyDocument) equals(other *awsPolicyDocument) bool {
 }
 
 type awsPolicyStatement struct {
-	Sid           string                            `json:",omitempty"`
-	Effect        string                            `json:",omitempty"`
-	Actions       interface{}                       `json:"Action,omitempty"`
-	NotActions    interface{}                       `json:"NotAction,omitempty"`
-	Resources     interface{}                       `json:"Resource,omitempty"`
-	NotResources  interface{}                       `json:"NotResource,omitempty"`
-	Principals    interface{}                       `json:"Principal,omitempty"`
-	NotPrincipals interface{}                       `json:"NotPrincipal,omitempty"`
-	Conditions    map[string]map[string]interface{} `json:"Condition,omitempty"`
+	Sid           string                            `json:",omitempty" mapstructure:"Sid"`
+	Effect        string                            `json:",omitempty" mapstructure:"Effect"`
+	Actions       interface{}                       `json:"Action,omitempty" mapstructure:"Action"`
+	NotActions    interface{}                       `json:"NotAction,omitempty" mapstructure:"NotAction"`
+	Resources     interface{}                       `json:"Resource,omitempty" mapstructure:"Resource"`
+	NotResources  interface{}                       `json:"NotResource,omitempty" mapstructure:"NotResource"`
+	Principals    interface{}                       `json:"Principal,omitempty" mapstructure:"Principal"`
+	NotPrincipals interface{}                       `json:"NotPrincipal,omitempty" mapstructure:"NotPrincipal"`
+	Conditions    map[string]map[string]interface{} `json:"Condition,omitempty" mapstructure:"Condition"`
 }
 
 func (statement *awsPolicyStatement) equals(other *awsPolicyStatement) bool {

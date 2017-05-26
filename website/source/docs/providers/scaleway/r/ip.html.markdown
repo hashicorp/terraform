@@ -8,21 +8,20 @@ description: |-
 
 # scaleway\_ip
 
-Provides IPs for ARM servers. This allows IPs to be created, updated and deleted.
+Provides IPs for servers. This allows IPs to be created, updated and deleted.
 For additional details please refer to [API documentation](https://developer.scaleway.com/#ips).
 
 ## Example Usage
 
-```
-resource "scaleway_ip" "test_ip" {
-}
+```hcl
+resource "scaleway_ip" "test_ip" {}
 ```
 
 ## Argument Reference
 
 The following arguments are supported:
 
-* `server` - (Optional) ID of ARM server to associate IP with
+* `server` - (Optional) ID of server to associate IP with
 
 Field `server` is editable.
 

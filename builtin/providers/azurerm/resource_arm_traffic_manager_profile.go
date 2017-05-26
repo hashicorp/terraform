@@ -117,10 +117,10 @@ func resourceArmTrafficManagerProfileCreate(d *schema.ResourceData, meta interfa
 	tags := d.Get("tags").(map[string]interface{})
 
 	profile := trafficmanager.Profile{
-		Name:       &name,
-		Location:   &location,
-		Properties: getArmTrafficManagerProfileProperties(d),
-		Tags:       expandTags(tags),
+		Name:              &name,
+		Location:          &location,
+		ProfileProperties: getArmTrafficManagerProfileProperties(d),
+		Tags:              expandTags(tags),
 	}
 
 	_, err := client.CreateOrUpdate(resGroup, name, profile)
@@ -160,7 +160,7 @@ func resourceArmTrafficManagerProfileRead(d *schema.ResourceData, meta interface
 		return fmt.Errorf("Error making Read request on Traffic Manager Profile %s: %s", name, err)
 	}
 
-	profile := *resp.Properties
+	profile := *resp.ProfileProperties
 
 	// update appropriate values
 	d.Set("resource_group_name", resGroup)

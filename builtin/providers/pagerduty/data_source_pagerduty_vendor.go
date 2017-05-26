@@ -16,11 +16,12 @@ func dataSourcePagerDutyVendor() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"name_regex": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Removed:  "Use `name` instead. This attribute will be removed in a future version",
 			},
 			"name": {
 				Type:     schema.TypeString,
-				Computed: true,
+				Required: true,
 			},
 			"type": {
 				Type:     schema.TypeString,
@@ -33,46 +34,37 @@ func dataSourcePagerDutyVendor() *schema.Resource {
 func dataSourcePagerDutyVendorRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*pagerduty.Client)
 
-	log.Printf("[INFO] Reading PagerDuty vendors")
+	log.Printf("[INFO] Reading PagerDuty vendor")
 
-	resp, err := getVendors(client)
+	searchName := d.Get("name").(string)
 
+	o := &pagerduty.ListVendorOptions{
+		Query: searchName,
+	}
+
+	resp, err := client.ListVendors(*o)
 	if err != nil {
 		return err
 	}
 
-	r := regexp.MustCompile("(?i)" + d.Get("name_regex").(string))
+	var found *pagerduty.Vendor
 
-	var vendors []pagerduty.Vendor
-	var vendorNames []string
+	r := regexp.MustCompile("(?i)" + searchName)
 
-	for _, v := range resp {
-		if r.MatchString(v.Name) {
-			vendors = append(vendors, v)
-			vendorNames = append(vendorNames, v.Name)
+	for _, vendor := range resp.Vendors {
+		if r.MatchString(vendor.Name) {
+			found = &vendor
+			break
 		}
 	}
 
-	if len(vendors) == 0 {
-		return fmt.Errorf("Unable to locate any vendor using the regex string: %s", r.String())
-	} else if len(vendors) > 1 {
-		return fmt.Errorf("Your query returned more than one result using the regex string: %#v. Found vendors: %#v", r.String(), vendorNames)
+	if found == nil {
+		return fmt.Errorf("Unable to locate any vendor with the name: %s", searchName)
 	}
 
-	vendor := vendors[0]
-
-	genericServiceType := vendor.GenericServiceType
-
-	switch {
-	case genericServiceType == "email":
-		genericServiceType = "generic_email_inbound_integration"
-	case genericServiceType == "api":
-		genericServiceType = "generic_events_api_inbound_integration"
-	}
-
-	d.SetId(vendor.ID)
-	d.Set("name", vendor.Name)
-	d.Set("type", genericServiceType)
+	d.SetId(found.ID)
+	d.Set("name", found.Name)
+	d.Set("type", found.GenericServiceType)
 
 	return nil
 }

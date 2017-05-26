@@ -2,6 +2,7 @@ package google
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -26,7 +27,7 @@ func TestAccComputeInstanceTemplate_basic(t *testing.T) {
 						"google_compute_instance_template.foobar", &instanceTemplate),
 					testAccCheckComputeInstanceTemplateTag(&instanceTemplate, "foo"),
 					testAccCheckComputeInstanceTemplateMetadata(&instanceTemplate, "foo", "bar"),
-					testAccCheckComputeInstanceTemplateDisk(&instanceTemplate, "https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/debian-8-jessie-v20160803", true, true),
+					testAccCheckComputeInstanceTemplateDisk(&instanceTemplate, "projects/debian-cloud/global/images/debian-8-jessie-v20160803", true, true),
 				),
 			},
 		},
@@ -53,6 +54,29 @@ func TestAccComputeInstanceTemplate_IP(t *testing.T) {
 	})
 }
 
+func TestAccComputeInstanceTemplate_networkIP(t *testing.T) {
+	var instanceTemplate compute.InstanceTemplate
+	networkIP := "10.128.0.2"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceTemplateDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstanceTemplate_networkIP(networkIP),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceTemplateExists(
+						"google_compute_instance_template.foobar", &instanceTemplate),
+					testAccCheckComputeInstanceTemplateNetwork(&instanceTemplate),
+					testAccCheckComputeInstanceTemplateNetworkIP(
+						"google_compute_instance_template.foobar", networkIP, &instanceTemplate),
+				),
+			},
+		},
+	})
+}
+
 func TestAccComputeInstanceTemplate_disks(t *testing.T) {
 	var instanceTemplate compute.InstanceTemplate
 
@@ -66,7 +90,7 @@ func TestAccComputeInstanceTemplate_disks(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeInstanceTemplateExists(
 						"google_compute_instance_template.foobar", &instanceTemplate),
-					testAccCheckComputeInstanceTemplateDisk(&instanceTemplate, "https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/debian-8-jessie-v20160803", true, true),
+					testAccCheckComputeInstanceTemplateDisk(&instanceTemplate, "projects/debian-cloud/global/images/debian-8-jessie-v20160803", true, true),
 					testAccCheckComputeInstanceTemplateDisk(&instanceTemplate, "terraform-test-foobar", false, false),
 				),
 			},
@@ -109,6 +133,47 @@ func TestAccComputeInstanceTemplate_subnet_custom(t *testing.T) {
 					testAccCheckComputeInstanceTemplateExists(
 						"google_compute_instance_template.foobar", &instanceTemplate),
 					testAccCheckComputeInstanceTemplateSubnetwork(&instanceTemplate),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeInstanceTemplate_subnet_xpn(t *testing.T) {
+	var instanceTemplate compute.InstanceTemplate
+	var xpn_host = os.Getenv("GOOGLE_XPN_HOST_PROJECT")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceTemplateDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstanceTemplate_subnet_xpn(xpn_host),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceTemplateExists(
+						"google_compute_instance_template.foobar", &instanceTemplate),
+					testAccCheckComputeInstanceTemplateSubnetwork(&instanceTemplate),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeInstanceTemplate_metadata_startup_script(t *testing.T) {
+	var instanceTemplate compute.InstanceTemplate
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceTemplateDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstanceTemplate_startup_script,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceTemplateExists(
+						"google_compute_instance_template.foobar", &instanceTemplate),
+					testAccCheckComputeInstanceTemplateStartupScript(&instanceTemplate, "echo 'Hello'"),
 				),
 			},
 		},
@@ -268,6 +333,42 @@ func testAccCheckComputeInstanceTemplateTag(instanceTemplate *compute.InstanceTe
 	}
 }
 
+func testAccCheckComputeInstanceTemplateStartupScript(instanceTemplate *compute.InstanceTemplate, n string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if instanceTemplate.Properties.Metadata == nil && n == "" {
+			return nil
+		} else if instanceTemplate.Properties.Metadata == nil && n != "" {
+			return fmt.Errorf("Expected metadata.startup-script to be '%s', metadata wasn't set at all", n)
+		}
+		for _, item := range instanceTemplate.Properties.Metadata.Items {
+			if item.Key != "startup-script" {
+				continue
+			}
+			if item.Value != nil && *item.Value == n {
+				return nil
+			} else if item.Value == nil && n == "" {
+				return nil
+			} else if item.Value == nil && n != "" {
+				return fmt.Errorf("Expected metadata.startup-script to be '%s', wasn't set", n)
+			} else if *item.Value != n {
+				return fmt.Errorf("Expected metadata.startup-script to be '%s', got '%s'", n, *item.Value)
+			}
+		}
+		return fmt.Errorf("This should never be reached.")
+	}
+}
+
+func testAccCheckComputeInstanceTemplateNetworkIP(n, networkIP string, instanceTemplate *compute.InstanceTemplate) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		ip := instanceTemplate.Properties.NetworkInterfaces[0].NetworkIP
+		err := resource.TestCheckResourceAttr(n, "network_interface.0.network_ip", ip)(s)
+		if err != nil {
+			return err
+		}
+		return resource.TestCheckResourceAttr(n, "network_interface.0.network_ip", networkIP)(s)
+	}
+}
+
 var testAccComputeInstanceTemplate_basic = fmt.Sprintf(`
 resource "google_compute_instance_template" "foobar" {
 	name = "instancet-test-%s"
@@ -324,6 +425,28 @@ resource "google_compute_instance_template" "foobar" {
 		foo = "bar"
 	}
 }`, acctest.RandString(10), acctest.RandString(10))
+
+func testAccComputeInstanceTemplate_networkIP(networkIP string) string {
+	return fmt.Sprintf(`
+resource "google_compute_instance_template" "foobar" {
+	name = "instancet-test-%s"
+	machine_type = "n1-standard-1"
+	tags = ["foo", "bar"]
+
+	disk {
+		source_image = "debian-8-jessie-v20160803"
+	}
+
+	network_interface {
+		network    = "default"
+		network_ip = "%s"
+	}
+
+	metadata {
+		foo = "bar"
+	}
+}`, acctest.RandString(10), networkIP)
+}
 
 var testAccComputeInstanceTemplate_disks = fmt.Sprintf(`
 resource "google_compute_disk" "foobar" {
@@ -421,3 +544,65 @@ resource "google_compute_instance_template" "foobar" {
 		foo = "bar"
 	}
 }`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
+
+func testAccComputeInstanceTemplate_subnet_xpn(xpn_host string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_network" "network" {
+		name = "network-%s"
+		auto_create_subnetworks = false
+		project = "%s"
+	}
+
+	resource "google_compute_subnetwork" "subnetwork" {
+		name = "subnetwork-%s"
+		ip_cidr_range = "10.0.0.0/24"
+		region = "us-central1"
+		network = "${google_compute_network.network.self_link}"
+		project = "%s"
+	}
+
+	resource "google_compute_instance_template" "foobar" {
+		name = "instance-test-%s"
+		machine_type = "n1-standard-1"
+		region = "us-central1"
+
+		disk {
+			source_image = "debian-8-jessie-v20160803"
+			auto_delete = true
+			disk_size_gb = 10
+			boot = true
+		}
+
+		network_interface {
+			subnetwork = "${google_compute_subnetwork.subnetwork.name}"
+			subnetwork_project = "${google_compute_subnetwork.subnetwork.project}"
+		}
+
+		metadata {
+			foo = "bar"
+		}
+	}`, acctest.RandString(10), xpn_host, acctest.RandString(10), xpn_host, acctest.RandString(10))
+}
+
+var testAccComputeInstanceTemplate_startup_script = fmt.Sprintf(`
+resource "google_compute_instance_template" "foobar" {
+	name = "instance-test-%s"
+	machine_type = "n1-standard-1"
+
+	disk {
+		source_image = "debian-8-jessie-v20160803"
+		auto_delete = true
+		disk_size_gb = 10
+		boot = true
+	}
+
+	metadata {
+		foo = "bar"
+	}
+
+	network_interface{
+		network = "default"
+	}
+
+	metadata_startup_script = "echo 'Hello'"
+}`, acctest.RandString(10))

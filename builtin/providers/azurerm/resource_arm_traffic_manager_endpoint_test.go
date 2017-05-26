@@ -254,7 +254,7 @@ func testCheckAzureRMTrafficManagerEndpointDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("Traffic Manager Endpoint sitll exists:\n%#v", resp.Properties)
+			return fmt.Errorf("Traffic Manager Endpoint sitll exists:\n%#v", resp.EndpointProperties)
 		}
 	}
 

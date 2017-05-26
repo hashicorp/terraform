@@ -22,6 +22,7 @@ func TestValidateIamUserName(t *testing.T) {
 		"test.user",
 		"test.123,user",
 		"testuser@hashicorp",
+		"test+user@hashicorp.com",
 	}
 	for _, v := range validNames {
 		_, errors := validateAwsIamUserName(v, "name")

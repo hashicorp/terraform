@@ -13,25 +13,26 @@ services to a Heroku app.
 
 ## Example Usage
 
-```
+```hcl
 # Create a new Heroku app
 resource "heroku_app" "default" {
-    name = "test-app"
+  name = "test-app"
 }
 
 # Create a database, and configure the app to use it
 resource "heroku_addon" "database" {
-  app = "${heroku_app.default.name}"
+  app  = "${heroku_app.default.name}"
   plan = "heroku-postgresql:hobby-basic"
 }
 
 # Add a web-hook addon for the app
 resource "heroku_addon" "webhook" {
-    app = "${heroku_app.default.name}"
-    plan = "deployhooks:http"
-    config {
-        url = "http://google.com"
-    }
+  app  = "${heroku_app.default.name}"
+  plan = "deployhooks:http"
+
+  config {
+    url = "http://google.com"
+  }
 }
 ```
 
@@ -52,3 +53,11 @@ The following attributes are exported:
 * `plan` - The plan name
 * `provider_id` - The ID of the plan provider
 
+
+## Import
+
+Addons can be imported using the Addon `id`, e.g.
+
+```
+$ terraform import heroku_addon.foobar 12345678
+```

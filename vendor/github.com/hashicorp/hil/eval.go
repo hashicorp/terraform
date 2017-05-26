@@ -2,6 +2,7 @@ package hil
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -32,6 +33,7 @@ type SemanticChecker func(ast.Node) error
 //     TypeString:  string
 //     TypeList:    []interface{}
 //     TypeMap:     map[string]interface{}
+//     TypBool:     bool
 type EvaluationResult struct {
 	Type  EvalType
 	Value interface{}
@@ -42,10 +44,22 @@ type EvaluationResult struct {
 // The error is described out of band in the accompanying error return value.
 var InvalidResult = EvaluationResult{Type: TypeInvalid, Value: nil}
 
+// errExitUnknown is an internal error that when returned means the result
+// is an unknown value. We use this for early exit.
+var errExitUnknown = errors.New("unknown value")
+
 func Eval(root ast.Node, config *EvalConfig) (EvaluationResult, error) {
 	output, outputType, err := internalEval(root, config)
 	if err != nil {
 		return InvalidResult, err
+	}
+
+	// If the result contains any nested unknowns then the result as a whole
+	// is unknown, so that callers only have to deal with "entirely known"
+	// or "entirely unknown" as outcomes.
+	if ast.IsUnknown(ast.Variable{Type: outputType, Value: output}) {
+		outputType = ast.TypeUnknown
+		output = UnknownValue
 	}
 
 	switch outputType {
@@ -72,6 +86,16 @@ func Eval(root ast.Node, config *EvalConfig) (EvaluationResult, error) {
 			Type:  TypeString,
 			Value: output,
 		}, nil
+	case ast.TypeBool:
+		return EvaluationResult{
+			Type:  TypeBool,
+			Value: output,
+		}, nil
+	case ast.TypeUnknown:
+		return EvaluationResult{
+			Type:  TypeUnknown,
+			Value: UnknownValue,
+		}, nil
 	default:
 		return InvalidResult, fmt.Errorf("unknown type %s as interpolation output", outputType)
 	}
@@ -97,6 +121,10 @@ func internalEval(root ast.Node, config *EvalConfig) (interface{}, ast.Type, err
 		ast.TypeString: {
 			ast.TypeInt:   "__builtin_StringToInt",
 			ast.TypeFloat: "__builtin_StringToFloat",
+			ast.TypeBool:  "__builtin_StringToBool",
+		},
+		ast.TypeBool: {
+			ast.TypeString: "__builtin_BoolToString",
 		},
 	}
 
@@ -154,6 +182,12 @@ func (v *evalVisitor) Visit(root ast.Node) (interface{}, ast.Type, error) {
 		result = new(ast.LiteralNode)
 	}
 	resultErr := v.err
+	if resultErr == errExitUnknown {
+		// This means the return value is unknown and we used the error
+		// as an early exit mechanism. Reset since the value on the stack
+		// should be the unknown value.
+		resultErr = nil
+	}
 
 	// Clear everything else so we aren't just dangling
 	v.Stack.Reset()
@@ -188,6 +222,13 @@ func (v *evalVisitor) visit(raw ast.Node) ast.Node {
 		Value: out,
 		Typex: outType,
 	})
+
+	if outType == ast.TypeUnknown {
+		// Halt immediately
+		v.err = errExitUnknown
+		return raw
+	}
+
 	return raw
 }
 
@@ -199,6 +240,8 @@ func evalNode(raw ast.Node) (EvalNode, error) {
 		return &evalIndex{n}, nil
 	case *ast.Call:
 		return &evalCall{n}, nil
+	case *ast.Conditional:
+		return &evalConditional{n}, nil
 	case *ast.Output:
 		return &evalOutput{n}, nil
 	case *ast.LiteralNode:
@@ -229,6 +272,10 @@ func (v *evalCall) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type, e
 	args := make([]interface{}, len(v.Args))
 	for i, _ := range v.Args {
 		node := stack.Pop().(*ast.LiteralNode)
+		if node.IsUnknown() {
+			// If any arguments are unknown then the result is automatically unknown
+			return UnknownValue, ast.TypeUnknown, nil
+		}
 		args[len(v.Args)-1-i] = node.Value
 	}
 
@@ -241,6 +288,28 @@ func (v *evalCall) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type, e
 	return result, function.ReturnType, nil
 }
 
+type evalConditional struct{ *ast.Conditional }
+
+func (v *evalConditional) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type, error) {
+	// On the stack we have literal nodes representing the resulting values
+	// of the condition, true and false expressions, but they are in reverse
+	// order.
+	falseLit := stack.Pop().(*ast.LiteralNode)
+	trueLit := stack.Pop().(*ast.LiteralNode)
+	condLit := stack.Pop().(*ast.LiteralNode)
+
+	if condLit.IsUnknown() {
+		// If our conditional is unknown then our result is also unknown
+		return UnknownValue, ast.TypeUnknown, nil
+	}
+
+	if condLit.Value.(bool) {
+		return trueLit.Value, trueLit.Typex, nil
+	} else {
+		return falseLit.Value, trueLit.Typex, nil
+	}
+}
+
 type evalIndex struct{ *ast.Index }
 
 func (v *evalIndex) Eval(scope ast.Scope, stack *ast.Stack) (interface{}, ast.Type, error) {
@@ -248,6 +317,17 @@ func (v *evalIndex) Eval(scope ast.Scope, stack *ast.Stack) (interface{}, ast.Ty
 	target := stack.Pop().(*ast.LiteralNode)
 
 	variableName := v.Index.Target.(*ast.VariableAccess).Name
+
+	if key.IsUnknown() {
+		// If our key is unknown then our result is also unknown
+		return UnknownValue, ast.TypeUnknown, nil
+	}
+
+	// For target, we'll accept collections containing unknown values but
+	// we still need to catch when the collection itself is unknown, shallowly.
+	if target.Typex == ast.TypeUnknown {
+		return UnknownValue, ast.TypeUnknown, nil
+	}
 
 	switch target.Typex {
 	case ast.TypeList:
@@ -325,21 +405,47 @@ func (v *evalOutput) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type,
 	// The expressions should all be on the stack in reverse
 	// order. So pop them off, reverse their order, and concatenate.
 	nodes := make([]*ast.LiteralNode, 0, len(v.Exprs))
+	haveUnknown := false
 	for range v.Exprs {
-		nodes = append(nodes, stack.Pop().(*ast.LiteralNode))
+		n := stack.Pop().(*ast.LiteralNode)
+		nodes = append(nodes, n)
+
+		// If we have any unknowns then the whole result is unknown
+		// (we must deal with this first, because the type checker can
+		// skip type conversions in the presence of unknowns, and thus
+		// any of our other nodes may be incorrectly typed.)
+		if n.IsUnknown() {
+			haveUnknown = true
+		}
+	}
+
+	if haveUnknown {
+		return UnknownValue, ast.TypeUnknown, nil
 	}
 
 	// Special case the single list and map
-	if len(nodes) == 1 && nodes[0].Typex == ast.TypeList {
-		return nodes[0].Value, ast.TypeList, nil
-	}
-	if len(nodes) == 1 && nodes[0].Typex == ast.TypeMap {
-		return nodes[0].Value, ast.TypeMap, nil
+	if len(nodes) == 1 {
+		switch t := nodes[0].Typex; t {
+		case ast.TypeList:
+			fallthrough
+		case ast.TypeMap:
+			fallthrough
+		case ast.TypeUnknown:
+			return nodes[0].Value, t, nil
+		}
 	}
 
 	// Otherwise concatenate the strings
 	var buf bytes.Buffer
 	for i := len(nodes) - 1; i >= 0; i-- {
+		if nodes[i].Typex != ast.TypeString {
+			return nil, ast.TypeInvalid, fmt.Errorf(
+				"invalid output with %s value at index %d: %#v",
+				nodes[i].Typex,
+				i,
+				nodes[i].Value,
+			)
+		}
 		buf.WriteString(nodes[i].Value.(string))
 	}
 

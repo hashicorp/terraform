@@ -126,6 +126,7 @@ func (s *ResourcetagsService) ListStorageTags(p *ListStorageTagsParams) (*ListSt
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 
@@ -239,6 +240,7 @@ func (s *ResourcetagsService) CreateTags(p *CreateTagsParams) (*CreateTagsRespon
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -335,6 +337,7 @@ func (s *ResourcetagsService) DeleteTags(p *DeleteTagsParams) (*DeleteTagsRespon
 			return nil, err
 		}
 	}
+
 	return &r, nil
 }
 
@@ -522,6 +525,7 @@ func (s *ResourcetagsService) ListTags(p *ListTagsParams) (*ListTagsResponse, er
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
 	}
+
 	return &r, nil
 }
 

@@ -92,6 +92,11 @@ func (r *DiffFieldReader) readMap(
 		result[k] = v.New
 	}
 
+	err = mapValuesToPrimitive(result, schema)
+	if err != nil {
+		return FieldReadResult{}, nil
+	}
+
 	var resultVal interface{}
 	if resultSet {
 		resultVal = result

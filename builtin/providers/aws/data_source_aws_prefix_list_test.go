@@ -17,7 +17,8 @@ func TestAccDataSourceAwsPrefixList(t *testing.T) {
 			resource.TestStep{
 				Config: testAccDataSourceAwsPrefixListConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccDataSourceAwsPrefixListCheck("data.aws_prefix_list.s3"),
+					testAccDataSourceAwsPrefixListCheck("data.aws_prefix_list.s3_by_id"),
+					testAccDataSourceAwsPrefixListCheck("data.aws_prefix_list.s3_by_name"),
 				),
 			},
 		},
@@ -61,7 +62,11 @@ provider "aws" {
   region = "us-west-2"
 }
 
-data "aws_prefix_list" "s3" {
+data "aws_prefix_list" "s3_by_id" {
   prefix_list_id = "pl-68a54001"
+}
+
+data "aws_prefix_list" "s3_by_name" {
+ name = "com.amazonaws.us-west-2.s3"
 }
 `

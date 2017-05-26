@@ -169,8 +169,14 @@ func TestInterpolationWalker_replace(t *testing.T) {
 					"bing",
 				},
 			},
-			Output: map[string]interface{}{},
-			Value:  []interface{}{UnknownVariableValue, "baz"},
+			Output: map[string]interface{}{
+				"foo": []interface{}{
+					UnknownVariableValue,
+					"baz",
+					"bing",
+				},
+			},
+			Value: []interface{}{UnknownVariableValue, "baz"},
 		},
 	}
 

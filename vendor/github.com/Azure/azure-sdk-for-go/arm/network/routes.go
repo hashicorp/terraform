@@ -43,15 +43,15 @@ func NewRoutesClientWithBaseURI(baseURI string, subscriptionID string) RoutesCli
 	return RoutesClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// CreateOrUpdate the Put route operation creates/updates a route in the
-// specified route table This method may poll for completion. Polling can be
-// canceled by passing the cancel channel argument. The channel will be used
-// to cancel polling and any outstanding HTTP requests.
+// CreateOrUpdate creates or updates a route in the specified route table.
+// This method may poll for completion. Polling can be canceled by passing
+// the cancel channel argument. The channel will be used to cancel polling
+// and any outstanding HTTP requests.
 //
 // resourceGroupName is the name of the resource group. routeTableName is the
 // name of the route table. routeName is the name of the route.
-// routeParameters is parameters supplied to the create/update route
-// operation
+// routeParameters is parameters supplied to the create or update route
+// operation.
 func (client RoutesClient) CreateOrUpdate(resourceGroupName string, routeTableName string, routeName string, routeParameters Route, cancel <-chan struct{}) (result autorest.Response, err error) {
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, routeTableName, routeName, routeParameters, cancel)
 	if err != nil {
@@ -115,10 +115,10 @@ func (client RoutesClient) CreateOrUpdateResponder(resp *http.Response) (result 
 	return
 }
 
-// Delete the delete route operation deletes the specified route from a route
-// table. This method may poll for completion. Polling can be canceled by
-// passing the cancel channel argument. The channel will be used to cancel
-// polling and any outstanding HTTP requests.
+// Delete deletes the specified route from a route table. This method may poll
+// for completion. Polling can be canceled by passing the cancel channel
+// argument. The channel will be used to cancel polling and any outstanding
+// HTTP requests.
 //
 // resourceGroupName is the name of the resource group. routeTableName is the
 // name of the route table. routeName is the name of the route.
@@ -183,8 +183,7 @@ func (client RoutesClient) DeleteResponder(resp *http.Response) (result autorest
 	return
 }
 
-// Get the Get route operation retrieves information about the specified route
-// from the route table.
+// Get gets the specified route from a route table.
 //
 // resourceGroupName is the name of the resource group. routeTableName is the
 // name of the route table. routeName is the name of the route.
@@ -248,8 +247,7 @@ func (client RoutesClient) GetResponder(resp *http.Response) (result Route, err 
 	return
 }
 
-// List the List network security rule operation retrieves all the routes in a
-// route table.
+// List gets all routes in a route table.
 //
 // resourceGroupName is the name of the resource group. routeTableName is the
 // name of the route table.

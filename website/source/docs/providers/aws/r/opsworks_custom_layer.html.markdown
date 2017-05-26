@@ -12,11 +12,11 @@ Provides an OpsWorks custom layer resource.
 
 ## Example Usage
 
-```
+```hcl
 resource "aws_opsworks_custom_layer" "custlayer" {
-    name = "My Awesome Custom Layer"
-    short_name = "awesome"
-    stack_id = "${aws_opsworks_stack.main.id}"
+  name       = "My Awesome Custom Layer"
+  short_name = "awesome"
+  stack_id   = "${aws_opsworks_stack.main.id}"
 }
 ```
 
@@ -65,7 +65,6 @@ An `ebs_volume` block supports the following arguments:
 The following attributes are exported:
 
 * `id` - The id of the layer.
-
 
 ## Import
 

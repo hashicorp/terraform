@@ -7,15 +7,19 @@ import "fmt"
 const (
 	_EvalType_name_0 = "TypeInvalid"
 	_EvalType_name_1 = "TypeString"
-	_EvalType_name_2 = "TypeList"
-	_EvalType_name_3 = "TypeMap"
+	_EvalType_name_2 = "TypeBool"
+	_EvalType_name_3 = "TypeList"
+	_EvalType_name_4 = "TypeMap"
+	_EvalType_name_5 = "TypeUnknown"
 )
 
 var (
 	_EvalType_index_0 = [...]uint8{0, 11}
 	_EvalType_index_1 = [...]uint8{0, 10}
 	_EvalType_index_2 = [...]uint8{0, 8}
-	_EvalType_index_3 = [...]uint8{0, 7}
+	_EvalType_index_3 = [...]uint8{0, 8}
+	_EvalType_index_4 = [...]uint8{0, 7}
+	_EvalType_index_5 = [...]uint8{0, 11}
 )
 
 func (i EvalType) String() string {
@@ -28,6 +32,10 @@ func (i EvalType) String() string {
 		return _EvalType_name_2
 	case i == 8:
 		return _EvalType_name_3
+	case i == 16:
+		return _EvalType_name_4
+	case i == 32:
+		return _EvalType_name_5
 	default:
 		return fmt.Sprintf("EvalType(%d)", i)
 	}

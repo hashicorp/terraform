@@ -33,12 +33,7 @@ func resourceArmKeyVault() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -284,7 +279,7 @@ func expandKeyVaultAccessPolicies(d *schema.ResourceData) *[]keyvault.AccessPoli
 
 		tenantUUID := uuid.FromStringOrNil(policyRaw["tenant_id"].(string))
 		policy.TenantID = &tenantUUID
-		objectUUID := uuid.FromStringOrNil(policyRaw["object_id"].(string))
+		objectUUID := policyRaw["object_id"].(string)
 		policy.ObjectID = &objectUUID
 
 		result = append(result, policy)
@@ -318,7 +313,7 @@ func flattenKeyVaultAccessPolicies(policies *[]keyvault.AccessPolicyEntry) []int
 		}
 
 		policyRaw["tenant_id"] = policy.TenantID.String()
-		policyRaw["object_id"] = policy.ObjectID.String()
+		policyRaw["object_id"] = policy.ObjectID
 		policyRaw["key_permissions"] = keyPermissionsRaw
 		policyRaw["secret_permissions"] = secretPermissionsRaw
 

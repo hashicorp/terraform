@@ -11,32 +11,39 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/objects"
+	tf_openstack "github.com/hashicorp/terraform/builtin/providers/openstack"
 )
 
 const TFSTATE_NAME = "tfstate.tf"
 
 // SwiftClient implements the Client interface for an Openstack Swift server.
 type SwiftClient struct {
-	client     *gophercloud.ServiceClient
-	authurl    string
-	cacert     string
-	cert       string
-	domainid   string
-	domainname string
-	insecure   bool
-	key        string
-	password   string
-	path       string
-	region     string
-	tenantid   string
-	tenantname string
-	userid     string
-	username   string
+	client      *gophercloud.ServiceClient
+	authurl     string
+	cacert      string
+	cert        string
+	domainid    string
+	domainname  string
+	insecure    bool
+	key         string
+	password    string
+	path        string
+	region      string
+	tenantid    string
+	tenantname  string
+	userid      string
+	username    string
+	token       string
+	archive     bool
+	archivepath string
+	expireSecs  int
 }
 
 func swiftFactory(conf map[string]string) (Client, error) {
@@ -71,14 +78,21 @@ func (c *SwiftClient) validateConfig(conf map[string]string) (err error) {
 	}
 	c.userid = userID
 
+	token, ok := conf["token"]
+	if !ok {
+		token = os.Getenv("OS_AUTH_TOKEN")
+	}
+	c.token = token
+
 	password, ok := conf["password"]
 	if !ok {
 		password = os.Getenv("OS_PASSWORD")
-		if password == "" {
-			return fmt.Errorf("missing 'password' configuration or OS_PASSWORD environment variable")
-		}
+
 	}
 	c.password = password
+	if password == "" && token == "" {
+		return fmt.Errorf("missing either password or token configuration or OS_PASSWORD or OS_AUTH_TOKEN environment variable")
+	}
 
 	region, ok := conf["region_name"]
 	if !ok {
@@ -131,6 +145,35 @@ func (c *SwiftClient) validateConfig(conf map[string]string) (err error) {
 	}
 	c.path = path
 
+	if archivepath, ok := conf["archive_path"]; ok {
+		log.Printf("[DEBUG] Archivepath set, enabling object versioning")
+		c.archive = true
+		c.archivepath = archivepath
+	}
+
+	if expire, ok := conf["expire_after"]; ok {
+		log.Printf("[DEBUG] Requested that remote state expires after %s", expire)
+
+		if strings.HasSuffix(expire, "d") {
+			log.Printf("[DEBUG] Got a days expire after duration. Converting to hours")
+			days, err := strconv.Atoi(expire[:len(expire)-1])
+			if err != nil {
+				return fmt.Errorf("Error converting expire_after value %s to int: %s", expire, err)
+			}
+
+			expire = fmt.Sprintf("%dh", days*24)
+			log.Printf("[DEBUG] Expire after %s hours", expire)
+		}
+
+		expireDur, err := time.ParseDuration(expire)
+		if err != nil {
+			log.Printf("[DEBUG] Error parsing duration %s: %s", expire, err)
+			return fmt.Errorf("Error parsing expire_after duration '%s': %s", expire, err)
+		}
+		log.Printf("[DEBUG] Seconds duration = %d", int(expireDur.Seconds()))
+		c.expireSecs = int(expireDur.Seconds())
+	}
+
 	c.insecure = false
 	raw, ok := conf["insecure"]
 	if !ok {
@@ -169,6 +212,7 @@ func (c *SwiftClient) validateConfig(conf map[string]string) (err error) {
 		TenantID:         c.tenantid,
 		TenantName:       c.tenantname,
 		Password:         c.password,
+		TokenID:          c.token,
 		DomainID:         c.domainid,
 		DomainName:       c.domainname,
 	}
@@ -206,8 +250,19 @@ func (c *SwiftClient) validateConfig(conf map[string]string) (err error) {
 		config.BuildNameToCertificate()
 	}
 
+	// if OS_DEBUG is set, log the requests and responses
+	var osDebug bool
+	if os.Getenv("OS_DEBUG") != "" {
+		osDebug = true
+	}
+
 	transport := &http.Transport{Proxy: http.ProxyFromEnvironment, TLSClientConfig: config}
-	provider.HTTPClient.Transport = transport
+	provider.HTTPClient = http.Client{
+		Transport: &tf_openstack.LogRoundTripper{
+			Rt:      transport,
+			OsDebug: osDebug,
+		},
+	}
 
 	err = openstack.Authenticate(provider, ao)
 	if err != nil {
@@ -252,10 +307,17 @@ func (c *SwiftClient) Put(data []byte) error {
 		return err
 	}
 
+	log.Printf("[DEBUG] Creating object %s at path %s", TFSTATE_NAME, c.path)
 	reader := bytes.NewReader(data)
 	createOpts := objects.CreateOpts{
 		Content: reader,
 	}
+
+	if c.expireSecs != 0 {
+		log.Printf("[DEBUG] ExpireSecs = %d", c.expireSecs)
+		createOpts.DeleteAfter = c.expireSecs
+	}
+
 	result := objects.Create(c.client, c.path, TFSTATE_NAME, createOpts)
 
 	return result.Err
@@ -267,7 +329,22 @@ func (c *SwiftClient) Delete() error {
 }
 
 func (c *SwiftClient) ensureContainerExists() error {
-	result := containers.Create(c.client, c.path, nil)
+	containerOpts := &containers.CreateOpts{}
+
+	if c.archive {
+		log.Printf("[DEBUG] Creating container %s", c.archivepath)
+		result := containers.Create(c.client, c.archivepath, nil)
+		if result.Err != nil {
+			log.Printf("[DEBUG] Error creating container %s: %s", c.archivepath, result.Err)
+			return result.Err
+		}
+
+		log.Printf("[DEBUG] Enabling Versioning on container %s", c.path)
+		containerOpts.VersionsLocation = c.archivepath
+	}
+
+	log.Printf("[DEBUG] Creating container %s", c.path)
+	result := containers.Create(c.client, c.path, containerOpts)
 	if result.Err != nil {
 		return result.Err
 	}

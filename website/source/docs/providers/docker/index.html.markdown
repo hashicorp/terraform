@@ -16,28 +16,22 @@ API hosts.
 
 Use the navigation to the left to read about the available resources.
 
-<div class="alert alert-block alert-info">
-<strong>Note:</strong> The Docker provider is new as of Terraform 0.4.
-It is ready to be used but many features are still being added. If there
-is a Docker feature missing, please report it in the GitHub repo.
-</div>
-
 ## Example Usage
 
-```
+```hcl
 # Configure the Docker provider
 provider "docker" {
-    host = "tcp://127.0.0.1:2376/"
+  host = "tcp://127.0.0.1:2376/"
 }
 
 # Create a container
 resource "docker_container" "foo" {
-    image = "${docker_image.ubuntu.latest}"
-    name = "foo"
+  image = "${docker_image.ubuntu.latest}"
+  name  = "foo"
 }
 
 resource "docker_image" "ubuntu" {
-    name = "ubuntu:latest"
+  name = "ubuntu:latest"
 }
 ```
 
@@ -56,6 +50,9 @@ The following arguments are supported:
 * `cert_path` - (Optional) Path to a directory with certificate information
   for connecting to the Docker host via TLS. If this is blank, the
   `DOCKER_CERT_PATH` will also be checked.
+
+* `ca_material`, `cert_material`, `key_material`, - (Optional) Content of `ca.pem`, `cert.pem`, and `key.pem` files
+  for TLS authentication. Cannot be used together with `cert_path`.
 
 ~> **NOTE on Certificates and `docker-machine`:**  As per [Docker Remote API
 documentation](https://docs.docker.com/engine/reference/api/docker_remote_api/),

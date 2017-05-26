@@ -211,6 +211,18 @@ func testFieldReader(t *testing.T, f func(map[string]*Schema) FieldReader) {
 
 		// Maps
 		"map": &Schema{Type: TypeMap},
+		"mapInt": &Schema{
+			Type: TypeMap,
+			Elem: TypeInt,
+		},
+		"mapFloat": &Schema{
+			Type: TypeMap,
+			Elem: TypeFloat,
+		},
+		"mapBool": &Schema{
+			Type: TypeMap,
+			Elem: TypeBool,
+		},
 
 		// Sets
 		"set": &Schema{
@@ -328,6 +340,44 @@ func testFieldReader(t *testing.T, f func(map[string]*Schema) FieldReader) {
 				Value: map[string]interface{}{
 					"foo": "bar",
 					"bar": "baz",
+				},
+				Exists:   true,
+				Computed: false,
+			},
+			false,
+		},
+
+		"mapInt": {
+			[]string{"mapInt"},
+			FieldReadResult{
+				Value: map[string]interface{}{
+					"one": 1,
+					"two": 2,
+				},
+				Exists:   true,
+				Computed: false,
+			},
+			false,
+		},
+
+		"mapFloat": {
+			[]string{"mapFloat"},
+			FieldReadResult{
+				Value: map[string]interface{}{
+					"oneDotTwo": 1.2,
+				},
+				Exists:   true,
+				Computed: false,
+			},
+			false,
+		},
+
+		"mapBool": {
+			[]string{"mapBool"},
+			FieldReadResult{
+				Value: map[string]interface{}{
+					"True":  true,
+					"False": false,
 				},
 				Exists:   true,
 				Computed: false,

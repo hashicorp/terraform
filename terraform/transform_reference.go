@@ -2,6 +2,8 @@ package terraform
 
 import (
 	"fmt"
+	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/dag"
@@ -9,6 +11,11 @@ import (
 
 // GraphNodeReferenceable must be implemented by any node that represents
 // a Terraform thing that can be referenced (resource, module, etc.).
+//
+// Even if the thing has no name, this should return an empty list. By
+// implementing this and returning a non-nil result, you say that this CAN
+// be referenced and other methods of referencing may still be possible (such
+// as by path!)
 type GraphNodeReferenceable interface {
 	// ReferenceableName is the name by which this can be referenced.
 	// This can be either just the type, or include the field. Example:
@@ -53,6 +60,14 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 	// Find the things that reference things and connect them
 	for _, v := range vs {
 		parents, _ := m.References(v)
+		parentsDbg := make([]string, len(parents))
+		for i, v := range parents {
+			parentsDbg[i] = dag.VertexName(v)
+		}
+		log.Printf(
+			"[DEBUG] ReferenceTransformer: %q references: %v",
+			dag.VertexName(v), parentsDbg)
+
 		for _, parent := range parents {
 			g.Connect(dag.BasicEdge(v, parent))
 		}
@@ -81,27 +96,37 @@ func (m *ReferenceMap) References(v dag.Vertex) ([]dag.Vertex, []string) {
 	var matches []dag.Vertex
 	var missing []string
 	prefix := m.prefix(v)
-	for _, n := range rn.References() {
-		n = prefix + n
-		parents, ok := m.references[n]
-		if !ok {
-			missing = append(missing, n)
-			continue
-		}
-
-		// Make sure this isn't a self reference, which isn't included
-		selfRef := false
-		for _, p := range parents {
-			if p == v {
-				selfRef = true
-				break
+	for _, ns := range rn.References() {
+		found := false
+		for _, n := range strings.Split(ns, "/") {
+			n = prefix + n
+			parents, ok := m.references[n]
+			if !ok {
+				continue
 			}
-		}
-		if selfRef {
-			continue
+
+			// Mark that we found a match
+			found = true
+
+			// Make sure this isn't a self reference, which isn't included
+			selfRef := false
+			for _, p := range parents {
+				if p == v {
+					selfRef = true
+					break
+				}
+			}
+			if selfRef {
+				continue
+			}
+
+			matches = append(matches, parents...)
+			break
 		}
 
-		matches = append(matches, parents...)
+		if !found {
+			missing = append(missing, ns)
+		}
 	}
 
 	return matches, missing
@@ -180,6 +205,15 @@ func NewReferenceMap(vs []dag.Vertex) *ReferenceMap {
 			n = prefix + n
 			refMap[n] = append(refMap[n], v)
 		}
+
+		// If there is a path, it is always referenceable by that. For
+		// example, if this is a referenceable thing at path []string{"foo"},
+		// then it can be referenced at "module.foo"
+		if pn, ok := v.(GraphNodeSubPath); ok {
+			for _, p := range ReferenceModulePath(pn.Path()) {
+				refMap[p] = append(refMap[p], v)
+			}
+		}
 	}
 
 	// Build the lookup table for referenced by
@@ -204,15 +238,33 @@ func NewReferenceMap(vs []dag.Vertex) *ReferenceMap {
 	return &m
 }
 
+// Returns the reference name for a module path. The path "foo" would return
+// "module.foo". If this is a deeply nested module, it will be every parent
+// as well. For example: ["foo", "bar"] would return both "module.foo" and
+// "module.foo.module.bar"
+func ReferenceModulePath(p []string) []string {
+	p = normalizeModulePath(p)
+	if len(p) == 1 {
+		// Root, no name
+		return nil
+	}
+
+	result := make([]string, 0, len(p)-1)
+	for i := len(p); i > 1; i-- {
+		result = append(result, modulePrefixStr(p[:i]))
+	}
+
+	return result
+}
+
 // ReferencesFromConfig returns the references that a configuration has
 // based on the interpolated variables in a configuration.
 func ReferencesFromConfig(c *config.RawConfig) []string {
 	var result []string
 	for _, v := range c.Variables {
-		if r := ReferenceFromInterpolatedVar(v); r != "" {
-			result = append(result, r)
+		if r := ReferenceFromInterpolatedVar(v); len(r) > 0 {
+			result = append(result, r...)
 		}
-
 	}
 
 	return result
@@ -220,15 +272,50 @@ func ReferencesFromConfig(c *config.RawConfig) []string {
 
 // ReferenceFromInterpolatedVar returns the reference from this variable,
 // or an empty string if there is no reference.
-func ReferenceFromInterpolatedVar(v config.InterpolatedVariable) string {
+func ReferenceFromInterpolatedVar(v config.InterpolatedVariable) []string {
 	switch v := v.(type) {
 	case *config.ModuleVariable:
-		return fmt.Sprintf("module.%s.output.%s", v.Name, v.Field)
+		return []string{fmt.Sprintf("module.%s.output.%s", v.Name, v.Field)}
 	case *config.ResourceVariable:
-		return v.ResourceId()
+		id := v.ResourceId()
+
+		// If we have a multi-reference (splat), then we depend on ALL
+		// resources with this type/name.
+		if v.Multi && v.Index == -1 {
+			return []string{fmt.Sprintf("%s.*", id)}
+		}
+
+		// Otherwise, we depend on a specific index.
+		idx := v.Index
+		if !v.Multi || v.Index == -1 {
+			idx = 0
+		}
+
+		// Depend on the index, as well as "N" which represents the
+		// un-expanded set of resources.
+		return []string{fmt.Sprintf("%s.%d/%s.N", id, idx, id)}
 	case *config.UserVariable:
-		return fmt.Sprintf("var.%s", v.Name)
+		return []string{fmt.Sprintf("var.%s", v.Name)}
 	default:
-		return ""
+		return nil
 	}
+}
+
+func modulePrefixStr(p []string) string {
+	parts := make([]string, 0, len(p)*2)
+	for _, p := range p[1:] {
+		parts = append(parts, "module", p)
+	}
+
+	return strings.Join(parts, ".")
+}
+
+func modulePrefixList(result []string, prefix string) []string {
+	if prefix != "" {
+		for i, v := range result {
+			result[i] = fmt.Sprintf("%s.%s", prefix, v)
+		}
+	}
+
+	return result
 }

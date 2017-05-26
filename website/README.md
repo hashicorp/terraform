@@ -1,30 +1,24 @@
 # Terraform Website
 
-This subdirectory contains the entire source for the [Terraform Website](https://www.terraform.io/).
-This is a [Middleman](http://middlemanapp.com) project, which builds a static
-site from these source files.
+This subdirectory contains the entire source for the [Terraform
+Website][terraform]. This is a [Middleman][middleman] project, which builds a
+static site from these source files.
 
 ## Contributions Welcome!
 
 If you find a typo or you feel like you can improve the HTML, CSS, or
-JavaScript, we welcome contributions. Feel free to open issues or pull
-requests like any normal GitHub project, and we'll merge it in.
+JavaScript, we welcome contributions. Feel free to open issues or pull requests
+like any normal GitHub project, and we'll merge it in.
 
 ## Running the Site Locally
 
-To run the site locally, clone this repository and run:
+Running the site locally is simple:
 
-```shell
-$ make website
-```
+1. Install [Docker](https://docs.docker.com/engine/installation/) if you have not already done so
+2. Clone this repo and run `make website`
 
-You must have Docker installed for this to work.
+Then open up `http://localhost:4567`. Note that some URLs you may need to append
+".html" to make them work (in the navigation).
 
-Alternatively, you can manually run the website like this:
-
-```shell
-$ bundle
-$ bundle exec middleman server
-```
-
-Then open up `http://localhost:4567`.
+[middleman]: https://www.middlemanapp.com
+[terraform]: https://www.terraform.io

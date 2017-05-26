@@ -136,6 +136,18 @@ func TestVariables(t *testing.T) {
 				"b": "1",
 			},
 		},
+
+		"override map with string": {
+			"vars-basic",
+			map[string]string{
+				"TF_VAR_c": `{"foo" = "a", "bar" = "baz"}`,
+			},
+			map[string]interface{}{
+				"c": "bar",
+			},
+			true,
+			nil,
+		},
 	}
 
 	for name, tc := range cases {

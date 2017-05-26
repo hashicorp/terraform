@@ -65,7 +65,7 @@ func NewWithBaseURI(baseURI string, subscriptionID string) ManagementClient {
 // CheckDNSNameAvailability checks whether a domain name in the cloudapp.net
 // zone is available for use.
 //
-// location is the location of the domain name domainNameLabel is the domain
+// location is the location of the domain name. domainNameLabel is the domain
 // name to be verified. It must conform to the following regular expression:
 // ^[a-z][a-z0-9-]{1,61}[a-z0-9]$.
 func (client ManagementClient) CheckDNSNameAvailability(location string, domainNameLabel string) (result DNSNameAvailabilityResult, err error) {

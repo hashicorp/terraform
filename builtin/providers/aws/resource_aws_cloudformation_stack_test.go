@@ -2,26 +2,26 @@ package aws
 
 import (
 	"fmt"
-	"math/rand"
 	"testing"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSCloudFormation_basic(t *testing.T) {
 	var stack cloudformation.Stack
+	stackName := fmt.Sprintf("tf-acc-test-basic-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudFormationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSCloudFormationConfig,
+			{
+				Config: testAccAWSCloudFormationConfig(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFormationStackExists("aws_cloudformation_stack.network", &stack),
 				),
@@ -30,16 +30,36 @@ func TestAccAWSCloudFormation_basic(t *testing.T) {
 	})
 }
 
-func TestAccAWSCloudFormation_defaultParams(t *testing.T) {
+func TestAccAWSCloudFormation_yaml(t *testing.T) {
 	var stack cloudformation.Stack
+	stackName := fmt.Sprintf("tf-acc-test-yaml-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudFormationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSCloudFormationConfig_defaultParams,
+			{
+				Config: testAccAWSCloudFormationConfig_yaml(stackName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudFormationStackExists("aws_cloudformation_stack.yaml", &stack),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSCloudFormation_defaultParams(t *testing.T) {
+	var stack cloudformation.Stack
+	stackName := fmt.Sprintf("tf-acc-test-default-params-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCloudFormationDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSCloudFormationConfig_defaultParams(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFormationStackExists("aws_cloudformation_stack.asg-demo", &stack),
 				),
@@ -50,6 +70,7 @@ func TestAccAWSCloudFormation_defaultParams(t *testing.T) {
 
 func TestAccAWSCloudFormation_allAttributes(t *testing.T) {
 	var stack cloudformation.Stack
+	stackName := fmt.Sprintf("tf-acc-test-all-attributes-%s", acctest.RandString(10))
 
 	expectedPolicyBody := "{\"Statement\":[{\"Action\":\"Update:*\",\"Effect\":\"Deny\",\"Principal\":\"*\",\"Resource\":\"LogicalResourceId/StaticVPC\"},{\"Action\":\"Update:*\",\"Effect\":\"Allow\",\"Principal\":\"*\",\"Resource\":\"*\"}]}"
 	resource.Test(t, resource.TestCase{
@@ -57,11 +78,11 @@ func TestAccAWSCloudFormation_allAttributes(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudFormationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSCloudFormationConfig_allAttributesWithBodies,
+			{
+				Config: testAccAWSCloudFormationConfig_allAttributesWithBodies(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFormationStackExists("aws_cloudformation_stack.full", &stack),
-					resource.TestCheckResourceAttr("aws_cloudformation_stack.full", "name", "tf-full-stack"),
+					resource.TestCheckResourceAttr("aws_cloudformation_stack.full", "name", stackName),
 					resource.TestCheckResourceAttr("aws_cloudformation_stack.full", "capabilities.#", "1"),
 					resource.TestCheckResourceAttr("aws_cloudformation_stack.full", "capabilities.1328347040", "CAPABILITY_IAM"),
 					resource.TestCheckResourceAttr("aws_cloudformation_stack.full", "disable_rollback", "false"),
@@ -75,11 +96,11 @@ func TestAccAWSCloudFormation_allAttributes(t *testing.T) {
 					resource.TestCheckResourceAttr("aws_cloudformation_stack.full", "timeout_in_minutes", "10"),
 				),
 			},
-			resource.TestStep{
-				Config: testAccAWSCloudFormationConfig_allAttributesWithBodies_modified,
+			{
+				Config: testAccAWSCloudFormationConfig_allAttributesWithBodies_modified(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFormationStackExists("aws_cloudformation_stack.full", &stack),
-					resource.TestCheckResourceAttr("aws_cloudformation_stack.full", "name", "tf-full-stack"),
+					resource.TestCheckResourceAttr("aws_cloudformation_stack.full", "name", stackName),
 					resource.TestCheckResourceAttr("aws_cloudformation_stack.full", "capabilities.#", "1"),
 					resource.TestCheckResourceAttr("aws_cloudformation_stack.full", "capabilities.1328347040", "CAPABILITY_IAM"),
 					resource.TestCheckResourceAttr("aws_cloudformation_stack.full", "disable_rollback", "false"),
@@ -100,20 +121,21 @@ func TestAccAWSCloudFormation_allAttributes(t *testing.T) {
 // Regression for https://github.com/hashicorp/terraform/issues/4332
 func TestAccAWSCloudFormation_withParams(t *testing.T) {
 	var stack cloudformation.Stack
+	stackName := fmt.Sprintf("tf-acc-test-with-params-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudFormationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSCloudFormationConfig_withParams,
+			{
+				Config: testAccAWSCloudFormationConfig_withParams(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFormationStackExists("aws_cloudformation_stack.with_params", &stack),
 				),
 			},
-			resource.TestStep{
-				Config: testAccAWSCloudFormationConfig_withParams_modified,
+			{
+				Config: testAccAWSCloudFormationConfig_withParams_modified(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFormationStackExists("aws_cloudformation_stack.with_params", &stack),
 				),
@@ -125,20 +147,66 @@ func TestAccAWSCloudFormation_withParams(t *testing.T) {
 // Regression for https://github.com/hashicorp/terraform/issues/4534
 func TestAccAWSCloudFormation_withUrl_withParams(t *testing.T) {
 	var stack cloudformation.Stack
+	rName := fmt.Sprintf("tf-acc-test-with-url-and-params-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudFormationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSCloudFormationConfig_templateUrl_withParams,
+			{
+				Config: testAccAWSCloudFormationConfig_templateUrl_withParams(rName, "tf-cf-stack.json", "11.0.0.0/16"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFormationStackExists("aws_cloudformation_stack.with-url-and-params", &stack),
 				),
 			},
-			resource.TestStep{
-				Config: testAccAWSCloudFormationConfig_templateUrl_withParams_modified,
+			{
+				Config: testAccAWSCloudFormationConfig_templateUrl_withParams(rName, "tf-cf-stack.json", "13.0.0.0/16"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudFormationStackExists("aws_cloudformation_stack.with-url-and-params", &stack),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSCloudFormation_withUrl_withParams_withYaml(t *testing.T) {
+	var stack cloudformation.Stack
+	rName := fmt.Sprintf("tf-acc-test-with-params-and-yaml-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCloudFormationDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSCloudFormationConfig_templateUrl_withParams_withYaml(rName, "tf-cf-stack.yaml", "13.0.0.0/16"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudFormationStackExists("aws_cloudformation_stack.with-url-and-params-and-yaml", &stack),
+				),
+			},
+		},
+	})
+}
+
+// Test for https://github.com/hashicorp/terraform/issues/5653
+func TestAccAWSCloudFormation_withUrl_withParams_noUpdate(t *testing.T) {
+	var stack cloudformation.Stack
+	rName := fmt.Sprintf("tf-acc-test-with-params-no-update-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCloudFormationDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSCloudFormationConfig_templateUrl_withParams(rName, "tf-cf-stack-1.json", "11.0.0.0/16"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudFormationStackExists("aws_cloudformation_stack.with-url-and-params", &stack),
+				),
+			},
+			{
+				Config: testAccAWSCloudFormationConfig_templateUrl_withParams(rName, "tf-cf-stack-2.json", "11.0.0.0/16"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFormationStackExists("aws_cloudformation_stack.with-url-and-params", &stack),
 				),
@@ -198,9 +266,10 @@ func testAccCheckAWSCloudFormationDestroy(s *terraform.State) error {
 	return nil
 }
 
-var testAccAWSCloudFormationConfig = `
+func testAccAWSCloudFormationConfig(stackName string) string {
+	return fmt.Sprintf(`
 resource "aws_cloudformation_stack" "network" {
-  name = "tf-networking-stack"
+  name = "%s"
   template_body = <<STACK
 {
   "Resources" : {
@@ -226,11 +295,39 @@ resource "aws_cloudformation_stack" "network" {
   }
 }
 STACK
-}`
+}`, stackName)
+}
 
-var testAccAWSCloudFormationConfig_defaultParams = `
+func testAccAWSCloudFormationConfig_yaml(stackName string) string {
+	return fmt.Sprintf(`
+resource "aws_cloudformation_stack" "yaml" {
+  name = "%s"
+  template_body = <<STACK
+Resources:
+  MyVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      Tags:
+        -
+          Key: Name
+          Value: Primary_CF_VPC
+
+Outputs:
+  DefaultSgId:
+    Description: The ID of default security group
+    Value: !GetAtt MyVPC.DefaultSecurityGroup
+  VpcID:
+    Description: The VPC ID
+    Value: !Ref MyVPC
+STACK
+}`, stackName)
+}
+
+func testAccAWSCloudFormationConfig_defaultParams(stackName string) string {
+	return fmt.Sprintf(`
 resource "aws_cloudformation_stack" "asg-demo" {
-  name = "tf-asg-demo-stack"
+  name = "%s"
   template_body = <<BODY
 {
     "Parameters": {
@@ -280,11 +377,12 @@ BODY
     TopicName = "ExampleTopic"
   }
 }
-`
+`, stackName)
+}
 
 var testAccAWSCloudFormationConfig_allAttributesWithBodies_tpl = `
 resource "aws_cloudformation_stack" "full" {
-  name = "tf-full-stack"
+  name = "%s"
   template_body = <<STACK
 {
   "Parameters" : {
@@ -381,18 +479,25 @@ var policyBody = `
 }
 `
 
-var testAccAWSCloudFormationConfig_allAttributesWithBodies = fmt.Sprintf(
-	testAccAWSCloudFormationConfig_allAttributesWithBodies_tpl,
-	"Primary_CF_VPC",
-	policyBody)
-var testAccAWSCloudFormationConfig_allAttributesWithBodies_modified = fmt.Sprintf(
-	testAccAWSCloudFormationConfig_allAttributesWithBodies_tpl,
-	"Primary_CloudFormation_VPC",
-	policyBody)
+func testAccAWSCloudFormationConfig_allAttributesWithBodies(stackName string) string {
+	return fmt.Sprintf(
+		testAccAWSCloudFormationConfig_allAttributesWithBodies_tpl,
+		stackName,
+		"Primary_CF_VPC",
+		policyBody)
+}
+
+func testAccAWSCloudFormationConfig_allAttributesWithBodies_modified(stackName string) string {
+	return fmt.Sprintf(
+		testAccAWSCloudFormationConfig_allAttributesWithBodies_tpl,
+		stackName,
+		"Primary_CloudFormation_VPC",
+		policyBody)
+}
 
 var tpl_testAccAWSCloudFormationConfig_withParams = `
 resource "aws_cloudformation_stack" "with_params" {
-  name = "tf-stack-with-params"
+  name = "%s"
   parameters {
     VpcCIDR = "%s"
   }
@@ -423,14 +528,22 @@ STACK
 }
 `
 
-var testAccAWSCloudFormationConfig_withParams = fmt.Sprintf(
-	tpl_testAccAWSCloudFormationConfig_withParams,
-	"10.0.0.0/16")
-var testAccAWSCloudFormationConfig_withParams_modified = fmt.Sprintf(
-	tpl_testAccAWSCloudFormationConfig_withParams,
-	"12.0.0.0/16")
+func testAccAWSCloudFormationConfig_withParams(stackName string) string {
+	return fmt.Sprintf(
+		tpl_testAccAWSCloudFormationConfig_withParams,
+		stackName,
+		"10.0.0.0/16")
+}
 
-var tpl_testAccAWSCloudFormationConfig_templateUrl_withParams = `
+func testAccAWSCloudFormationConfig_withParams_modified(stackName string) string {
+	return fmt.Sprintf(
+		tpl_testAccAWSCloudFormationConfig_withParams,
+		stackName,
+		"12.0.0.0/16")
+}
+
+func testAccAWSCloudFormationConfig_templateUrl_withParams(rName, bucketKey, vpcCidr string) string {
+	return fmt.Sprintf(`
 resource "aws_s3_bucket" "b" {
   bucket = "%s"
   acl = "public-read"
@@ -459,12 +572,12 @@ POLICY
 
 resource "aws_s3_bucket_object" "object" {
   bucket = "${aws_s3_bucket.b.id}"
-  key = "tf-cf-stack.json"
+  key = "%s"
   source = "test-fixtures/cloudformation-template.json"
 }
 
 resource "aws_cloudformation_stack" "with-url-and-params" {
-  name = "tf-stack-template-url-with-params"
+  name = "%s"
   parameters {
     VpcCIDR = "%s"
   }
@@ -472,14 +585,51 @@ resource "aws_cloudformation_stack" "with-url-and-params" {
   on_failure = "DELETE"
   timeout_in_minutes = 1
 }
-`
+`, rName, rName, bucketKey, rName, vpcCidr)
+}
 
-var cfRandInt = rand.New(rand.NewSource(time.Now().UnixNano())).Int()
-var cfBucketName = "tf-stack-with-url-and-params-" + fmt.Sprintf("%d", cfRandInt)
+func testAccAWSCloudFormationConfig_templateUrl_withParams_withYaml(rName, bucketKey, vpcCidr string) string {
+	return fmt.Sprintf(`
+resource "aws_s3_bucket" "b" {
+  bucket = "%s"
+  acl = "public-read"
+  policy = <<POLICY
+{
+  "Version":"2008-10-17",
+  "Statement": [
+    {
+      "Sid":"AllowPublicRead",
+      "Effect":"Allow",
+      "Principal": {
+        "AWS": "*"
+      },
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::%s/*"
+    }
+  ]
+}
+POLICY
 
-var testAccAWSCloudFormationConfig_templateUrl_withParams = fmt.Sprintf(
-	tpl_testAccAWSCloudFormationConfig_templateUrl_withParams,
-	cfBucketName, cfBucketName, "11.0.0.0/16")
-var testAccAWSCloudFormationConfig_templateUrl_withParams_modified = fmt.Sprintf(
-	tpl_testAccAWSCloudFormationConfig_templateUrl_withParams,
-	cfBucketName, cfBucketName, "13.0.0.0/16")
+  website {
+      index_document = "index.html"
+      error_document = "error.html"
+  }
+}
+
+resource "aws_s3_bucket_object" "object" {
+  bucket = "${aws_s3_bucket.b.id}"
+  key = "%s"
+  source = "test-fixtures/cloudformation-template.yaml"
+}
+
+resource "aws_cloudformation_stack" "with-url-and-params-and-yaml" {
+  name = "%s"
+  parameters {
+    VpcCIDR = "%s"
+  }
+  template_url = "https://${aws_s3_bucket.b.id}.s3-us-west-2.amazonaws.com/${aws_s3_bucket_object.object.key}"
+  on_failure = "DELETE"
+  timeout_in_minutes = 1
+}
+`, rName, rName, bucketKey, rName, vpcCidr)
+}

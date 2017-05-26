@@ -5,10 +5,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-	"sort"
-	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -19,30 +16,12 @@ func dataSourceAwsAmi() *schema.Resource {
 		Read: dataSourceAwsAmiRead,
 
 		Schema: map[string]*schema.Schema{
+			"filter": dataSourceFiltersSchema(),
 			"executable_users": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"filter": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				ForceNew: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"name": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-
-						"values": {
-							Type:     schema.TypeList,
-							Required: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
-						},
-					},
-				},
 			},
 			"name_regex": {
 				Type:         schema.TypeString,
@@ -186,23 +165,7 @@ func dataSourceAwsAmi() *schema.Resource {
 				Type:     schema.TypeMap,
 				Computed: true,
 			},
-			"tags": {
-				Type:     schema.TypeSet,
-				Computed: true,
-				Set:      amiTagsHash,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"key": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"value": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-					},
-				},
-			},
+			"tags": dataSourceTagsSchema(),
 		},
 	}
 }
@@ -216,7 +179,7 @@ func dataSourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 	nameRegex, nameRegexOk := d.GetOk("name_regex")
 	owners, ownersOk := d.GetOk("owners")
 
-	if executableUsersOk == false && filtersOk == false && nameRegexOk == false && ownersOk == false {
+	if !executableUsersOk && !filtersOk && !nameRegexOk && !ownersOk {
 		return fmt.Errorf("One of executable_users, filters, name_regex, or owners must be assigned")
 	}
 
@@ -225,10 +188,14 @@ func dataSourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 		params.ExecutableUsers = expandStringList(executableUsers.([]interface{}))
 	}
 	if filtersOk {
-		params.Filters = buildAmiFilters(filters.(*schema.Set))
+		params.Filters = buildAwsDataSourceFilters(filters.(*schema.Set))
 	}
 	if ownersOk {
-		params.Owners = expandStringList(owners.([]interface{}))
+		o := expandStringList(owners.([]interface{}))
+
+		if len(o) > 0 {
+			params.Owners = o
+		}
 	}
 
 	resp, err := conn.DescribeImages(params)
@@ -280,38 +247,9 @@ func dataSourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 	return amiDescriptionAttributes(d, image)
 }
 
-// Build a slice of AMI filter options from the filters provided.
-func buildAmiFilters(set *schema.Set) []*ec2.Filter {
-	var filters []*ec2.Filter
-	for _, v := range set.List() {
-		m := v.(map[string]interface{})
-		var filterValues []*string
-		for _, e := range m["values"].([]interface{}) {
-			filterValues = append(filterValues, aws.String(e.(string)))
-		}
-		filters = append(filters, &ec2.Filter{
-			Name:   aws.String(m["name"].(string)),
-			Values: filterValues,
-		})
-	}
-	return filters
-}
-
-type imageSort []*ec2.Image
-
-func (a imageSort) Len() int      { return len(a) }
-func (a imageSort) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-func (a imageSort) Less(i, j int) bool {
-	itime, _ := time.Parse(time.RFC3339, *a[i].CreationDate)
-	jtime, _ := time.Parse(time.RFC3339, *a[j].CreationDate)
-	return itime.Unix() < jtime.Unix()
-}
-
 // Returns the most recent AMI out of a slice of images.
 func mostRecentAmi(images []*ec2.Image) *ec2.Image {
-	sortedImages := images
-	sort.Sort(imageSort(sortedImages))
-	return sortedImages[len(sortedImages)-1]
+	return sortImages(images)[0]
 }
 
 // populate the numerous fields that the image description returns.
@@ -361,7 +299,7 @@ func amiDescriptionAttributes(d *schema.ResourceData, image *ec2.Image) error {
 	if err := d.Set("state_reason", amiStateReason(image.StateReason)); err != nil {
 		return err
 	}
-	if err := d.Set("tags", amiTags(image.Tags)); err != nil {
+	if err := d.Set("tags", dataSourceTags(image.Tags)); err != nil {
 		return err
 	}
 	return nil
@@ -433,21 +371,6 @@ func amiStateReason(m *ec2.StateReason) map[string]interface{} {
 	return s
 }
 
-// Returns a set of tags.
-func amiTags(m []*ec2.Tag) *schema.Set {
-	s := &schema.Set{
-		F: amiTagsHash,
-	}
-	for _, v := range m {
-		tag := map[string]interface{}{
-			"key":   *v.Key,
-			"value": *v.Value,
-		}
-		s.Add(tag)
-	}
-	return s
-}
-
 // Generates a hash for the set hash function used by the block_device_mappings
 // attribute.
 func amiBlockDeviceMappingHash(v interface{}) int {
@@ -485,17 +408,6 @@ func amiProductCodesHash(v interface{}) int {
 	// All keys added in alphabetical order.
 	buf.WriteString(fmt.Sprintf("%s-", m["product_code_id"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["product_code_type"].(string)))
-	return hashcode.String(buf.String())
-}
-
-// Generates a hash for the set hash function used by the tags
-// attribute.
-func amiTagsHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	// All keys added in alphabetical order.
-	buf.WriteString(fmt.Sprintf("%s-", m["key"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["value"].(string)))
 	return hashcode.String(buf.String())
 }
 

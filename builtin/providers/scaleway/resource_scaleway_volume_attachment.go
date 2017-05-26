@@ -16,12 +16,12 @@ func resourceScalewayVolumeAttachment() *schema.Resource {
 		Read:   resourceScalewayVolumeAttachmentRead,
 		Delete: resourceScalewayVolumeAttachmentDelete,
 		Schema: map[string]*schema.Schema{
-			"server": &schema.Schema{
+			"server": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"volume": &schema.Schema{
+			"volume": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -30,10 +30,20 @@ func resourceScalewayVolumeAttachment() *schema.Resource {
 	}
 }
 
+var errVolumeAlreadyAttached = fmt.Errorf("Scaleway volume already attached")
+
 func resourceScalewayVolumeAttachmentCreate(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
+	scaleway.ClearCache()
 
-	var startServerAgain = false
+	vol, err := scaleway.GetVolume(d.Get("volume").(string))
+	if err != nil {
+		return err
+	}
+	if vol.Server != nil {
+		log.Printf("[DEBUG] Scaleway volume %q already attached to %q.", vol.Identifier, vol.Server.Identifier)
+		return errVolumeAlreadyAttached
+	}
 
 	// guard against server shutdown/ startup race conditiond
 	serverID := d.Get("server").(string)
@@ -46,6 +56,7 @@ func resourceScalewayVolumeAttachmentCreate(d *schema.ResourceData, m interface{
 		return err
 	}
 
+	var startServerAgain = false
 	// volumes can only be modified when the server is powered off
 	if server.State != "stopped" {
 		startServerAgain = true
@@ -63,15 +74,11 @@ func resourceScalewayVolumeAttachmentCreate(d *schema.ResourceData, m interface{
 		volumes[i] = volume
 	}
 
-	vol, err := scaleway.GetVolume(d.Get("volume").(string))
-	if err != nil {
-		return err
-	}
 	volumes[fmt.Sprintf("%d", len(volumes)+1)] = *vol
 
 	// the API request requires most volume attributes to be unset to succeed
 	for k, v := range volumes {
-		v.Size = nil
+		v.Size = 0
 		v.CreationDate = ""
 		v.Organization = ""
 		v.ModificationDate = ""
@@ -83,10 +90,14 @@ func resourceScalewayVolumeAttachmentCreate(d *schema.ResourceData, m interface{
 	}
 
 	if err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+		scaleway.ClearCache()
+
 		var req = api.ScalewayServerPatchDefinition{
 			Volumes: &volumes,
 		}
+		mu.Lock()
 		err := scaleway.PatchServer(serverID, req)
+		mu.Unlock()
 
 		if err == nil {
 			return nil
@@ -121,6 +132,7 @@ func resourceScalewayVolumeAttachmentCreate(d *schema.ResourceData, m interface{
 
 func resourceScalewayVolumeAttachmentRead(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
+	scaleway.ClearCache()
 
 	server, err := scaleway.GetServer(d.Get("server").(string))
 	if err != nil {
@@ -160,6 +172,11 @@ func resourceScalewayVolumeAttachmentRead(d *schema.ResourceData, m interface{})
 
 func resourceScalewayVolumeAttachmentDelete(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
+	scaleway.ClearCache()
+
+	mu.Lock()
+	defer mu.Unlock()
+
 	var startServerAgain = false
 
 	// guard against server shutdown/ startup race conditiond
@@ -192,7 +209,7 @@ func resourceScalewayVolumeAttachmentDelete(d *schema.ResourceData, m interface{
 
 	// the API request requires most volume attributes to be unset to succeed
 	for k, v := range volumes {
-		v.Size = nil
+		v.Size = 0
 		v.CreationDate = ""
 		v.Organization = ""
 		v.ModificationDate = ""
@@ -204,10 +221,14 @@ func resourceScalewayVolumeAttachmentDelete(d *schema.ResourceData, m interface{
 	}
 
 	if err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+		scaleway.ClearCache()
+
 		var req = api.ScalewayServerPatchDefinition{
 			Volumes: &volumes,
 		}
+		mu.Lock()
 		err := scaleway.PatchServer(serverID, req)
+		mu.Unlock()
 
 		if err == nil {
 			return nil

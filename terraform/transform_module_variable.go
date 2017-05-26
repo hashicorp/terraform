@@ -11,7 +11,7 @@ import (
 // ModuleVariableTransformer is a GraphTransformer that adds all the variables
 // in the configuration to the graph.
 //
-// This only adds variables that are referenced by other thigns in the graph.
+// This only adds variables that are referenced by other things in the graph.
 // If a module variable is not referenced, it won't be added to the graph.
 type ModuleVariableTransformer struct {
 	Module *module.Tree

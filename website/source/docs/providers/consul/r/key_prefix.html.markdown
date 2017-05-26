@@ -7,7 +7,7 @@ description: |-
   common name prefix.
 ---
 
-# consul\_key\_prefix
+# consul_key_prefix
 
 Allows Terraform to manage a "namespace" of Consul keys that share a common
 name prefix.
@@ -33,23 +33,23 @@ those keys were created outside of Terraform.
 
 ## Example Usage
 
-```
+```hcl
 resource "consul_key_prefix" "myapp_config" {
-    datacenter = "nyc1"
-    token = "abcd"
+  datacenter = "nyc1"
+  token      = "abcd"
 
-    # Prefix to add to prepend to all of the subkey names below.
-    path_prefix = "myapp/config/"
+  # Prefix to add to prepend to all of the subkey names below.
+  path_prefix = "myapp/config/"
 
-    subkeys = {
-        "elb_cname" = "${aws_elb.app.dns_name}"
-        "s3_bucket_name" = "${aws_s3_bucket.app.bucket}"
-        "database/hostname" = "${aws_db_instance.app.address}"
-        "database/port" = "${aws_db_instance.app.port}"
-        "database/username" = "${aws_db_instance.app.username}"
-        "database/password" = "${aws_db_instance.app.password}"
-        "database/name" = "${aws_db_instance.app.name}"
-    }
+  subkeys = {
+    "elb_cname"         = "${aws_elb.app.dns_name}"
+    "s3_bucket_name"    = "${aws_s3_bucket.app.bucket}"
+    "database/hostname" = "${aws_db_instance.app.address}"
+    "database/port"     = "${aws_db_instance.app.port}"
+    "database/username" = "${aws_db_instance.app.username}"
+    "database/password" = "${aws_db_instance.app.password}"
+    "database/name"     = "${aws_db_instance.app.name}"
+  }
 }
 ```
 
@@ -68,8 +68,8 @@ The following arguments are supported:
   end with a slash, to manage a "folder" of keys.
 
 * `subkeys` - (Required) A mapping from subkey name (which will be appended
-  to the give `path_prefix`) to the value that should be stored at that key.
-  Use slashes as shown in the above example to create "sub-folders" under
+  to the given `path_prefix`) to the value that should be stored at that key.
+  Use slashes, as shown in the above example, to create "sub-folders" under
   the given path prefix.
 
 ## Attributes Reference

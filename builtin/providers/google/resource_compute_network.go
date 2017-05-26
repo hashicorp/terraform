@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeNetwork() *schema.Resource {
@@ -14,6 +13,9 @@ func resourceComputeNetwork() *schema.Resource {
 		Create: resourceComputeNetworkCreate,
 		Read:   resourceComputeNetworkRead,
 		Delete: resourceComputeNetworkDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -129,19 +131,14 @@ func resourceComputeNetworkRead(d *schema.ResourceData, meta interface{}) error 
 	network, err := config.clientCompute.Networks.Get(
 		project, d.Id()).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing Network %q because it's gone", d.Get("name").(string))
-			// The resource doesn't exist anymore
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error reading network: %s", err)
+		return handleNotFoundError(err, d, fmt.Sprintf("Network %q", d.Get("name").(string)))
 	}
 
 	d.Set("gateway_ipv4", network.GatewayIPv4)
 	d.Set("self_link", network.SelfLink)
+	d.Set("ipv4_range", network.IPv4Range)
+	d.Set("name", network.Name)
+	d.Set("auto_create_subnetworks", network.AutoCreateSubnetworks)
 
 	return nil
 }

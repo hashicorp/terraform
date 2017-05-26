@@ -26,7 +26,7 @@ Though not necessary for experimentation, you may want to create a new user
 and authenticate the connection to your database.
 
 For more information please check out the
-[Admin Docs](https://docs.influxdata.com/influxdb/v0.10/administration).
+[Admin Docs](https://docs.influxdata.com/influxdb/latest/administration/).
 
 For the impatient, you can create a new admin user _bubba_ by firing off the
 [InfluxDB CLI](https://github.com/influxdata/influxdb/blob/master/cmd/influx/main.go).
@@ -49,10 +49,8 @@ the configuration below.
 package main
 
 import (
-	"net/url"
-	"fmt"
 	"log"
-	"os"
+	"time"
 
 	"github.com/influxdata/influxdb/client/v2"
 )
@@ -65,17 +63,25 @@ const (
 
 func main() {
 	// Make client
-	c := client.NewHTTPClient(client.HTTPConfig{
+	c, err := client.NewHTTPClient(client.HTTPConfig{
 		Addr: "http://localhost:8086",
 		Username: username,
 		Password: password,
 	})
 
+	if err != nil {
+	    log.Fatalln("Error: ", err)
+	}
+
 	// Create a new point batch
-	bp := client.NewBatchPoints(client.BatchPointsConfig{
+	bp, err := client.NewBatchPoints(client.BatchPointsConfig{
 		Database:  MyDB,
 		Precision: "s",
 	})
+
+	if err != nil {
+	    log.Fatalln("Error: ", err)
+	}
 
 	// Create a point and add to batch
 	tags := map[string]string{"cpu": "cpu-total"}
@@ -84,7 +90,12 @@ func main() {
 		"system": 53.3,
 		"user":   46.6,
 	}
-	pt := client.NewPoint("cpu_usage", tags, fields, time.Now())
+	pt, err := client.NewPoint("cpu_usage", tags, fields, time.Now())
+
+	if err != nil {
+	    log.Fatalln("Error: ", err)
+	}
+
 	bp.AddPoint(pt)
 
 	// Write the batch
@@ -219,8 +230,11 @@ The **InfluxDB** client also supports writing over UDP.
 ```go
 func WriteUDP() {
 	// Make client
-	c := client.NewUDPClient("localhost:8089")
-
+	c, err := client.NewUDPClient("localhost:8089")
+	if err != nil {
+		panic(err.Error())
+	}
+	
 	// Create a new point batch
 	bp, _ := client.NewBatchPoints(client.BatchPointsConfig{
 		Precision: "s",
@@ -243,6 +257,28 @@ func WriteUDP() {
 	c.Write(bp)
 }
 ```
+
+### Point Splitting
+
+The UDP client now supports splitting single points that exceed the configured
+payload size. The logic for processing each point is listed here, starting with
+an empty payload.
+
+1. If adding the point to the current (non-empty) payload would exceed the
+   configured size, send the current payload. Otherwise, add it to the current
+   payload.
+1. If the point is smaller than the configured size, add it to the payload.
+1. If the point has no timestamp, just try to send the entire point as a single
+   UDP payload, and process the next point.
+1. Since the point has a timestamp, re-use the existing measurement name,
+   tagset, and timestamp and create multiple new points by splitting up the
+   fields. The per-point length will be kept close to the configured size,
+   staying under it if possible. This does mean that one large field, maybe a
+   long string, could be sent as a larger-than-configured payload.
+
+The above logic attempts to respect configured payload sizes, but not sacrifice
+any data integrity. Points without a timestamp can't be split, as that may
+cause fields to have differing timestamps when processed by the server.
 
 ## Go Docs
 

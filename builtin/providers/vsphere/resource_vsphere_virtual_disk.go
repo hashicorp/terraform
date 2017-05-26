@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"log"
 
+	"errors"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/types"
 	"golang.org/x/net/context"
+	"path"
 )
 
 type virtualDisk struct {
@@ -180,20 +182,66 @@ func resourceVSphereVirtualDiskRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	fileInfo, err := ds.Stat(context.TODO(), vDisk.vmdkPath)
+	ctx := context.TODO()
+	b, err := ds.Browser(ctx)
 	if err != nil {
-		log.Printf("[DEBUG] resourceVSphereVirtualDiskRead - stat failed on: %v", vDisk.vmdkPath)
-		d.SetId("")
+		return err
+	}
 
-		_, ok := err.(object.DatastoreNoSuchFileError)
-		if !ok {
-			return err
+	// `Datastore.Stat` does not allow to query `VmDiskFileQuery`. Instead, we
+	// search the datastore manually.
+	spec := types.HostDatastoreBrowserSearchSpec{
+		Query: []types.BaseFileQuery{&types.VmDiskFileQuery{Details: &types.VmDiskFileQueryFlags{
+			CapacityKb: true,
+			DiskType:   true,
+		}}},
+		Details: &types.FileQueryFlags{
+			FileSize:     true,
+			FileType:     true,
+			Modification: true,
+			FileOwner:    types.NewBool(true),
+		},
+		MatchPattern: []string{path.Base(vDisk.vmdkPath)},
+	}
+
+	dsPath := ds.Path(path.Dir(vDisk.vmdkPath))
+	task, err := b.SearchDatastore(context.TODO(), dsPath, &spec)
+
+	if err != nil {
+		log.Printf("[DEBUG] resourceVSphereVirtualDiskRead - could not search datastore for: %v", vDisk.vmdkPath)
+		return err
+	}
+
+	info, err := task.WaitForResult(context.TODO(), nil)
+	if err != nil {
+		if info == nil || info.Error != nil {
+			_, ok := info.Error.Fault.(*types.FileNotFound)
+			if ok {
+				log.Printf("[DEBUG] resourceVSphereVirtualDiskRead - could not find: %v", vDisk.vmdkPath)
+				d.SetId("")
+				return nil
+			}
 		}
+
+		log.Printf("[DEBUG] resourceVSphereVirtualDiskRead - could not search datastore for: %v", vDisk.vmdkPath)
+		return err
+	}
+
+	res := info.Result.(types.HostDatastoreBrowserSearchResults)
+	log.Printf("[DEBUG] num results: %d", len(res.File))
+	if len(res.File) == 0 {
+		d.SetId("")
+		log.Printf("[DEBUG] resourceVSphereVirtualDiskRead - could not find: %v", vDisk.vmdkPath)
 		return nil
 	}
-	fileInfo = fileInfo.GetFileInfo()
+
+	if len(res.File) != 1 {
+		return errors.New("Datastore search did not return exactly one result")
+	}
+
+	fileInfo := res.File[0]
 	log.Printf("[DEBUG] resourceVSphereVirtualDiskRead - fileinfo: %#v", fileInfo)
-	size := fileInfo.(*types.FileInfo).FileSize / 1024 / 1024 / 1024
+	size := fileInfo.(*types.VmDiskFileInfo).CapacityKb / 1024 / 1024
 
 	d.SetId(vDisk.vmdkPath)
 

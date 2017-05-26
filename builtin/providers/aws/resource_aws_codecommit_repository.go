@@ -15,9 +15,12 @@ func resourceAwsCodeCommitRepository() *schema.Resource {
 		Update: resourceAwsCodeCommitRepositoryUpdate,
 		Read:   resourceAwsCodeCommitRepositoryRead,
 		Delete: resourceAwsCodeCommitRepositoryDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
-			"repository_name": &schema.Schema{
+			"repository_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -31,7 +34,7 @@ func resourceAwsCodeCommitRepository() *schema.Resource {
 				},
 			},
 
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
@@ -44,27 +47,27 @@ func resourceAwsCodeCommitRepository() *schema.Resource {
 				},
 			},
 
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"repository_id": &schema.Schema{
+			"repository_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"clone_url_http": &schema.Schema{
+			"clone_url_http": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"clone_url_ssh": &schema.Schema{
+			"clone_url_ssh": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"default_branch": &schema.Schema{
+			"default_branch": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
@@ -130,6 +133,8 @@ func resourceAwsCodeCommitRepositoryRead(d *schema.ResourceData, meta interface{
 	d.Set("arn", out.RepositoryMetadata.Arn)
 	d.Set("clone_url_http", out.RepositoryMetadata.CloneUrlHttp)
 	d.Set("clone_url_ssh", out.RepositoryMetadata.CloneUrlSsh)
+	d.Set("description", out.RepositoryMetadata.RepositoryDescription)
+	d.Set("repository_name", out.RepositoryMetadata.RepositoryName)
 
 	if _, ok := d.GetOk("default_branch"); ok {
 		if out.RepositoryMetadata.DefaultBranch != nil {

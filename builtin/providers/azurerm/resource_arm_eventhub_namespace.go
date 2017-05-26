@@ -5,9 +5,10 @@ import (
 	"log"
 	"strings"
 
+	"net/http"
+
 	"github.com/Azure/azure-sdk-for-go/arm/eventhub"
 	"github.com/hashicorp/terraform/helper/schema"
-	"net/http"
 )
 
 // Default Authorization Rule/Policy created by Azure, used to populate the
@@ -31,12 +32,7 @@ func resourceArmEventHubNamespace() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -135,7 +131,7 @@ func resourceArmEventHubNamespaceRead(d *schema.ResourceData, meta interface{}) 
 
 	resp, err := namespaceClient.Get(resGroup, name)
 	if err != nil {
-		return fmt.Errorf("Error making Read request on Azure EventHub Namespace %s: %s", name, err)
+		return fmt.Errorf("Error making Read request on Azure EventHub Namespace %s: %+v", name, err)
 	}
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
@@ -150,7 +146,7 @@ func resourceArmEventHubNamespaceRead(d *schema.ResourceData, meta interface{}) 
 
 	keys, err := namespaceClient.ListKeys(resGroup, name, eventHubNamespaceDefaultAuthorizationRule)
 	if err != nil {
-		log.Printf("[ERROR] Unable to List default keys for Namespace %s: %s", name, err)
+		log.Printf("[ERROR] Unable to List default keys for Namespace %s: %+v", name, err)
 	} else {
 		d.Set("default_primary_connection_string", keys.PrimaryConnectionString)
 		d.Set("default_secondary_connection_string", keys.SecondaryConnectionString)
@@ -164,7 +160,6 @@ func resourceArmEventHubNamespaceRead(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceArmEventHubNamespaceDelete(d *schema.ResourceData, meta interface{}) error {
-
 	namespaceClient := meta.(*ArmClient).eventHubNamespacesClient
 
 	id, err := parseAzureResourceID(d.Id())
@@ -177,7 +172,7 @@ func resourceArmEventHubNamespaceDelete(d *schema.ResourceData, meta interface{}
 	resp, err := namespaceClient.Delete(resGroup, name, make(chan struct{}))
 
 	if resp.StatusCode != http.StatusNotFound {
-		return fmt.Errorf("Error issuing Azure ARM delete request of EventHub Namespace'%s': %s", name, err)
+		return fmt.Errorf("Error issuing Azure ARM delete request of EventHub Namespace '%s': %+v", name, err)
 	}
 
 	return nil

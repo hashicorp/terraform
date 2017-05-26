@@ -8,7 +8,7 @@ description: |-
 
 # aws\_availability\_zone
 
-`aws_availability_zone` provides details about a specific availablity zone (AZ)
+`aws_availability_zone` provides details about a specific availability zone (AZ)
 in the current region.
 
 This can be used both to validate an availability zone given in a variable
@@ -25,7 +25,7 @@ which provides a list of the available zones.
 The following example shows how this data source might be used to derive
 VPC and subnet CIDR prefixes systematically for an availability zone.
 
-```
+```hcl
 variable "region_number" {
   # Arbitrary mapping of region name to number to use in
   # a VPC's CIDR prefix.
@@ -64,7 +64,7 @@ resource "aws_vpc" "example" {
 # Create a subnet for the AZ within the regional VPC
 resource "aws_subnet" "example" {
   vpc_id     = "${aws_vpc.example.id}"
-  cidr_block = "${cidrsubnet(aws_vpc.example.cidr_block, 4, var.az_number[data.aws_availability_zone.name_suffix])}"
+  cidr_block = "${cidrsubnet(aws_vpc.example.cidr_block, 4, var.az_number[data.aws_availability_zone.example.name_suffix])}"
 }
 ```
 

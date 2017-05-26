@@ -1,20 +1,18 @@
 package aws
 
 import (
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
 	"math/rand"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform/helper/encryption"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/vault/helper/pgpkeys"
 )
 
 func resourceAwsIamUserLoginProfile() *schema.Resource {
@@ -99,36 +97,19 @@ func generatePassword(length int) string {
 	return string(result)
 }
 
-func encryptPassword(password string, pgpKey string) (string, string, error) {
-	const keybasePrefix = "keybase:"
-
-	encryptionKey := pgpKey
-	if strings.HasPrefix(pgpKey, keybasePrefix) {
-		publicKeys, err := pgpkeys.FetchKeybasePubkeys([]string{pgpKey})
-		if err != nil {
-			return "", "", errwrap.Wrapf(
-				fmt.Sprintf("Error retrieving Public Key for %s: {{err}}", pgpKey), err)
-		}
-		encryptionKey = publicKeys[pgpKey]
-	}
-
-	fingerprints, encrypted, err := pgpkeys.EncryptShares([][]byte{[]byte(password)}, []string{encryptionKey})
-	if err != nil {
-		return "", "", errwrap.Wrapf(
-			fmt.Sprintf("Error encrypting password for %s: {{err}}", pgpKey), err)
-	}
-
-	return fingerprints[0], base64.StdEncoding.EncodeToString(encrypted[0]), nil
-}
-
 func resourceAwsIamUserLoginProfileCreate(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
+
+	encryptionKey, err := encryption.RetrieveGPGKey(d.Get("pgp_key").(string))
+	if err != nil {
+		return err
+	}
 
 	username := d.Get("user").(string)
 	passwordResetRequired := d.Get("password_reset_required").(bool)
 	passwordLength := d.Get("password_length").(int)
 
-	_, err := iamconn.GetLoginProfile(&iam.GetLoginProfileInput{
+	_, err = iamconn.GetLoginProfile(&iam.GetLoginProfileInput{
 		UserName: aws.String(username),
 	})
 	if err != nil {
@@ -143,13 +124,8 @@ func resourceAwsIamUserLoginProfileCreate(d *schema.ResourceData, meta interface
 		}
 	}
 
-	var pgpKey string
-	if pgpKeyInterface, ok := d.GetOk("pgp_key"); ok {
-		pgpKey = pgpKeyInterface.(string)
-	}
-
 	initialPassword := generatePassword(passwordLength)
-	fingerprint, encrypted, err := encryptPassword(initialPassword, pgpKey)
+	fingerprint, encrypted, err := encryption.EncryptValue(encryptionKey, initialPassword, "Password")
 	if err != nil {
 		return err
 	}

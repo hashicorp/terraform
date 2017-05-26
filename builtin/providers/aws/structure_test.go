@@ -447,7 +447,27 @@ func TestExpandStringList(t *testing.T) {
 			stringList,
 			expected)
 	}
+}
 
+func TestExpandStringListEmptyItems(t *testing.T) {
+	initialList := []string{"foo", "bar", "", "baz"}
+	l := make([]interface{}, len(initialList))
+	for i, v := range initialList {
+		l[i] = v
+	}
+	stringList := expandStringList(l)
+	expected := []*string{
+		aws.String("foo"),
+		aws.String("bar"),
+		aws.String("baz"),
+	}
+
+	if !reflect.DeepEqual(stringList, expected) {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			stringList,
+			expected)
+	}
 }
 
 func TestExpandParameters(t *testing.T) {
@@ -799,23 +819,60 @@ func TestFlattenStepAdjustments(t *testing.T) {
 }
 
 func TestFlattenResourceRecords(t *testing.T) {
-	expanded := []*route53.ResourceRecord{
-		&route53.ResourceRecord{
-			Value: aws.String("127.0.0.1"),
-		},
-		&route53.ResourceRecord{
-			Value: aws.String("127.0.0.3"),
-		},
+	original := []string{
+		`127.0.0.1`,
+		`"abc def"`,
+		`"abc" "def"`,
+		`"abc" ""`,
 	}
 
-	result := flattenResourceRecords(expanded)
+	dequoted := []string{
+		`127.0.0.1`,
+		`abc def`,
+		`abc" "def`,
+		`abc" "`,
+	}
+
+	var wrapped []*route53.ResourceRecord = nil
+	for _, original := range original {
+		wrapped = append(wrapped, &route53.ResourceRecord{Value: aws.String(original)})
+	}
+
+	sub := func(recordType string, expected []string) {
+		t.Run(recordType, func(t *testing.T) {
+			checkFlattenResourceRecords(t, recordType, wrapped, expected)
+		})
+	}
+
+	// These record types should be dequoted.
+	sub("TXT", dequoted)
+	sub("SPF", dequoted)
+
+	// These record types should not be touched.
+	sub("CNAME", original)
+	sub("MX", original)
+}
+
+func checkFlattenResourceRecords(
+	t *testing.T,
+	recordType string,
+	expanded []*route53.ResourceRecord,
+	expected []string) {
+
+	result := flattenResourceRecords(expanded, recordType)
 
 	if result == nil {
 		t.Fatal("expected result to have value, but got nil")
 	}
 
-	if len(result) != 2 {
-		t.Fatal("expected result to have value, but got nil")
+	if len(result) != len(expected) {
+		t.Fatalf("expected %v, got %v", expected, result)
+	}
+
+	for i, e := range expected {
+		if result[i] != e {
+			t.Fatalf("expected %v, got %v", expected, result)
+		}
 	}
 }
 
@@ -1166,5 +1223,65 @@ func TestNormalizeJsonString(t *testing.T) {
 	// We expect the invalid JSON to be shown back to us again.
 	if actual != invalidJson {
 		t.Fatalf("Got:\n\n%s\n\nExpected:\n\n%s\n", expected, invalidJson)
+	}
+}
+
+func TestCheckYamlString(t *testing.T) {
+	var err error
+	var actual string
+
+	validYaml := `---
+abc:
+  def: 123
+  xyz:
+    -
+      a: "ホリネズミ"
+      b: "1"
+`
+
+	actual, err = checkYamlString(validYaml)
+	if err != nil {
+		t.Fatalf("Expected not to throw an error while parsing YAML, but got: %s", err)
+	}
+
+	// We expect the same YAML string back
+	if actual != validYaml {
+		t.Fatalf("Got:\n\n%s\n\nExpected:\n\n%s\n", actual, validYaml)
+	}
+
+	invalidYaml := `abc: [`
+
+	actual, err = checkYamlString(invalidYaml)
+	if err == nil {
+		t.Fatalf("Expected to throw an error while parsing YAML, but got: %s", err)
+	}
+
+	// We expect the invalid YAML to be shown back to us again.
+	if actual != invalidYaml {
+		t.Fatalf("Got:\n\n%s\n\nExpected:\n\n%s\n", actual, invalidYaml)
+	}
+}
+
+func TestNormalizeCloudFormationTemplate(t *testing.T) {
+	var err error
+	var actual string
+
+	validNormalizedJson := `{"abc":"1"}`
+	actual, err = normalizeCloudFormationTemplate(validNormalizedJson)
+	if err != nil {
+		t.Fatalf("Expected not to throw an error while parsing template, but got: %s", err)
+	}
+	if actual != validNormalizedJson {
+		t.Fatalf("Got:\n\n%s\n\nExpected:\n\n%s\n", actual, validNormalizedJson)
+	}
+
+	validNormalizedYaml := `abc: 1
+`
+	actual, err = normalizeCloudFormationTemplate(validNormalizedYaml)
+	if err != nil {
+		t.Fatalf("Expected not to throw an error while parsing template, but got: %s", err)
+	}
+	if actual != validNormalizedYaml {
+		t.Fatalf("Got:\n\n%s\n\nExpected:\n\n%s\n", actual, validNormalizedYaml)
 	}
 }

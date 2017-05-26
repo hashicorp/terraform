@@ -17,6 +17,9 @@ func resourceArmLoadBalancerBackendAddressPool() *schema.Resource {
 		Create: resourceArmLoadBalancerBackendAddressPoolCreate,
 		Read:   resourceArmLoadBalancerBackendAddressPoolRead,
 		Delete: resourceArmLoadBalancerBackendAddressPoolDelete,
+		Importer: &schema.ResourceImporter{
+			State: loadBalancerSubResourceStateImporter,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -26,10 +29,12 @@ func resourceArmLoadBalancerBackendAddressPool() *schema.Resource {
 			},
 
 			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
+				Type:             schema.TypeString,
+				ForceNew:         true,
+				Optional:         true,
+				StateFunc:        azureRMNormalizeLocation,
+				DiffSuppressFunc: azureRMSuppressLocationDiff,
+				Deprecated:       "location is no longer used",
 			},
 
 			"resource_group_name": {
@@ -79,13 +84,16 @@ func resourceArmLoadBalancerBackendAddressPoolCreate(d *schema.ResourceData, met
 		return nil
 	}
 
-	_, _, exists = findLoadBalancerBackEndAddressPoolByName(loadBalancer, d.Get("name").(string))
+	backendAddressPools := append(*loadBalancer.LoadBalancerPropertiesFormat.BackendAddressPools, expandAzureRmLoadBalancerBackendAddressPools(d))
+	existingPool, existingPoolIndex, exists := findLoadBalancerBackEndAddressPoolByName(loadBalancer, d.Get("name").(string))
 	if exists {
-		return fmt.Errorf("A BackEnd Address Pool with name %q already exists.", d.Get("name").(string))
+		if d.Get("name").(string) == *existingPool.Name {
+			// this pool is being updated/reapplied remove old copy from the slice
+			backendAddressPools = append(backendAddressPools[:existingPoolIndex], backendAddressPools[existingPoolIndex+1:]...)
+		}
 	}
 
-	backendAddressPools := append(*loadBalancer.Properties.BackendAddressPools, expandAzureRmLoadBalancerBackendAddressPools(d))
-	loadBalancer.Properties.BackendAddressPools = &backendAddressPools
+	loadBalancer.LoadBalancerPropertiesFormat.BackendAddressPools = &backendAddressPools
 	resGroup, loadBalancerName, err := resourceGroupAndLBNameFromId(d.Get("loadbalancer_id").(string))
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer Name and Group: {{err}}", err)
@@ -105,7 +113,7 @@ func resourceArmLoadBalancerBackendAddressPoolCreate(d *schema.ResourceData, met
 	}
 
 	var pool_id string
-	for _, BackendAddressPool := range *(*read.Properties).BackendAddressPools {
+	for _, BackendAddressPool := range *(*read.LoadBalancerPropertiesFormat).BackendAddressPools {
 		if *BackendAddressPool.Name == d.Get("name").(string) {
 			pool_id = *BackendAddressPool.ID
 		}
@@ -132,42 +140,48 @@ func resourceArmLoadBalancerBackendAddressPoolCreate(d *schema.ResourceData, met
 }
 
 func resourceArmLoadBalancerBackendAddressPoolRead(d *schema.ResourceData, meta interface{}) error {
+	id, err := parseAzureResourceID(d.Id())
+	if err != nil {
+		return err
+	}
+	name := id.Path["backendAddressPools"]
+
 	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
 	if !exists {
 		d.SetId("")
-		log.Printf("[INFO] LoadBalancer %q not found. Removing from state", d.Get("name").(string))
+		log.Printf("[INFO] LoadBalancer %q not found. Removing from state", name)
 		return nil
 	}
 
-	configs := *loadBalancer.Properties.BackendAddressPools
-	for _, config := range configs {
-		if *config.Name == d.Get("name").(string) {
-			d.Set("name", config.Name)
+	config, _, exists := findLoadBalancerBackEndAddressPoolByName(loadBalancer, name)
+	if !exists {
+		d.SetId("")
+		log.Printf("[INFO] LoadBalancer Backend Address Pool %q not found. Removing from state", name)
+		return nil
+	}
 
-			if config.Properties.BackendIPConfigurations != nil {
-				backend_ip_configurations := make([]string, 0, len(*config.Properties.BackendIPConfigurations))
-				for _, backendConfig := range *config.Properties.BackendIPConfigurations {
-					backend_ip_configurations = append(backend_ip_configurations, *backendConfig.ID)
-				}
+	d.Set("name", config.Name)
+	d.Set("resource_group_name", id.ResourceGroup)
 
-				d.Set("backend_ip_configurations", backend_ip_configurations)
-			}
+	var backend_ip_configurations []string
+	if config.BackendAddressPoolPropertiesFormat.BackendIPConfigurations != nil {
+		for _, backendConfig := range *config.BackendAddressPoolPropertiesFormat.BackendIPConfigurations {
+			backend_ip_configurations = append(backend_ip_configurations, *backendConfig.ID)
+		}
 
-			if config.Properties.LoadBalancingRules != nil {
-				load_balancing_rules := make([]string, 0, len(*config.Properties.LoadBalancingRules))
-				for _, rule := range *config.Properties.LoadBalancingRules {
-					load_balancing_rules = append(load_balancing_rules, *rule.ID)
-				}
+	}
+	d.Set("backend_ip_configurations", backend_ip_configurations)
 
-				d.Set("backend_ip_configurations", load_balancing_rules)
-			}
-
-			break
+	var load_balancing_rules []string
+	if config.BackendAddressPoolPropertiesFormat.LoadBalancingRules != nil {
+		for _, rule := range *config.BackendAddressPoolPropertiesFormat.LoadBalancingRules {
+			load_balancing_rules = append(load_balancing_rules, *rule.ID)
 		}
 	}
+	d.Set("load_balancing_rules", load_balancing_rules)
 
 	return nil
 }
@@ -194,9 +208,9 @@ func resourceArmLoadBalancerBackendAddressPoolDelete(d *schema.ResourceData, met
 		return nil
 	}
 
-	oldBackEndPools := *loadBalancer.Properties.BackendAddressPools
+	oldBackEndPools := *loadBalancer.LoadBalancerPropertiesFormat.BackendAddressPools
 	newBackEndPools := append(oldBackEndPools[:index], oldBackEndPools[index+1:]...)
-	loadBalancer.Properties.BackendAddressPools = &newBackEndPools
+	loadBalancer.LoadBalancerPropertiesFormat.BackendAddressPools = &newBackEndPools
 
 	resGroup, loadBalancerName, err := resourceGroupAndLBNameFromId(d.Get("loadbalancer_id").(string))
 	if err != nil {

@@ -101,6 +101,7 @@ resource "google_compute_image" "foobar" {
 	raw_disk {
 	  source = "https://storage.googleapis.com/bosh-cpi-artifacts/bosh-stemcell-3262.4-google-kvm-ubuntu-trusty-go_agent-raw.tar.gz"
 	}
+	create_timeout = 5
 }`, acctest.RandString(10))
 
 var testAccComputeImage_basedondisk = fmt.Sprintf(`

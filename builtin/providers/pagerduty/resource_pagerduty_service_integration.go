@@ -1,6 +1,7 @@
 package pagerduty
 
 import (
+	"fmt"
 	"log"
 
 	pagerduty "github.com/PagerDuty/go-pagerduty"
@@ -12,9 +13,10 @@ func resourcePagerDutyServiceIntegration() *schema.Resource {
 		Create: resourcePagerDutyServiceIntegrationCreate,
 		Read:   resourcePagerDutyServiceIntegrationRead,
 		Update: resourcePagerDutyServiceIntegrationUpdate,
-		// NOTE: It's currently not possible to delete integrations via the API.
-		// Therefore it needs to be manually removed from the Web UI.
 		Delete: resourcePagerDutyServiceIntegrationDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourcePagerDutyServiceIntegrationImport,
+		},
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
@@ -25,9 +27,11 @@ func resourcePagerDutyServiceIntegration() *schema.Resource {
 				Optional: true,
 			},
 			"type": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				Computed:      true,
+				ConflictsWith: []string{"vendor"},
 				ValidateFunc: validateValueFunc([]string{
 					"aws_cloudwatch_inbound_integration",
 					"cloudkick_inbound_integration",
@@ -41,9 +45,11 @@ func resourcePagerDutyServiceIntegration() *schema.Resource {
 				}),
 			},
 			"vendor": {
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Optional: true,
+				Type:          schema.TypeString,
+				ForceNew:      true,
+				Optional:      true,
+				ConflictsWith: []string{"type"},
+				Computed:      true,
 			},
 			"integration_key": {
 				Type:     schema.TypeString,
@@ -62,9 +68,8 @@ func resourcePagerDutyServiceIntegration() *schema.Resource {
 func buildServiceIntegrationStruct(d *schema.ResourceData) *pagerduty.Integration {
 	serviceIntegration := pagerduty.Integration{
 		Name: d.Get("name").(string),
-		Type: d.Get("type").(string),
 		Service: &pagerduty.APIObject{
-			Type: "service_reference",
+			Type: "service",
 			ID:   d.Get("service").(string),
 		},
 		APIObject: pagerduty.APIObject{
@@ -81,10 +86,14 @@ func buildServiceIntegrationStruct(d *schema.ResourceData) *pagerduty.Integratio
 		serviceIntegration.IntegrationEmail = attr.(string)
 	}
 
+	if attr, ok := d.GetOk("type"); ok {
+		serviceIntegration.Type = attr.(string)
+	}
+
 	if attr, ok := d.GetOk("vendor"); ok {
 		serviceIntegration.Vendor = &pagerduty.APIObject{
 			ID:   attr.(string),
-			Type: "vendor_reference",
+			Type: "vendor",
 		}
 	}
 
@@ -123,13 +132,17 @@ func resourcePagerDutyServiceIntegrationRead(d *schema.ResourceData, meta interf
 	serviceIntegration, err := client.GetIntegration(service, d.Id(), *o)
 
 	if err != nil {
+		if isNotFound(err) {
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 
 	d.Set("name", serviceIntegration.Name)
 	d.Set("type", serviceIntegration.Type)
-	d.Set("service", serviceIntegration.Service)
-	d.Set("vendor", serviceIntegration.Vendor)
+	d.Set("service", serviceIntegration.Service.ID)
+	d.Set("vendor", serviceIntegration.Vendor.ID)
 	d.Set("integration_key", serviceIntegration.IntegrationKey)
 	d.Set("integration_email", serviceIntegration.IntegrationEmail)
 
@@ -153,9 +166,48 @@ func resourcePagerDutyServiceIntegrationUpdate(d *schema.ResourceData, meta inte
 }
 
 func resourcePagerDutyServiceIntegrationDelete(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*pagerduty.Client)
+
+	service := d.Get("service").(string)
+
 	log.Printf("[INFO] Removing PagerDuty service integration %s", d.Id())
+
+	if err := client.DeleteIntegration(service, d.Id()); err != nil {
+		if isNotFound(err) {
+			d.SetId("")
+			return nil
+		}
+		return err
+	}
 
 	d.SetId("")
 
 	return nil
+}
+
+func resourcePagerDutyServiceIntegrationImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	client := meta.(*pagerduty.Client)
+
+	resp, err := client.ListServices(pagerduty.ListServiceOptions{})
+	if err != nil {
+		return []*schema.ResourceData{}, err
+	}
+
+	var serviceID string
+
+	for _, service := range resp.Services {
+		for _, integration := range service.Integrations {
+			if integration.ID == d.Id() {
+				serviceID = service.ID
+			}
+		}
+	}
+
+	if serviceID == "" {
+		return []*schema.ResourceData{}, fmt.Errorf("Error importing pagerduty_service_integration. Could not locate a service ID for the integration")
+	}
+
+	d.Set("service", serviceID)
+
+	return []*schema.ResourceData{d}, nil
 }

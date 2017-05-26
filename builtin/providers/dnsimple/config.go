@@ -1,26 +1,36 @@
 package dnsimple
 
 import (
-	"fmt"
 	"log"
 
-	"github.com/pearkes/dnsimple"
+	"github.com/dnsimple/dnsimple-go/dnsimple"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 type Config struct {
-	Email string
-	Token string
+	Email   string
+	Account string
+	Token   string
+}
+
+// Client represents the DNSimple provider client.
+// This is a convenient container for the configuration and the underlying API client.
+type Client struct {
+	client *dnsimple.Client
+	config *Config
 }
 
 // Client() returns a new client for accessing dnsimple.
-func (c *Config) Client() (*dnsimple.Client, error) {
-	client, err := dnsimple.NewClient(c.Email, c.Token)
+func (c *Config) Client() (*Client, error) {
+	client := dnsimple.NewClient(dnsimple.NewOauthTokenCredentials(c.Token))
+	client.UserAgent = "HashiCorp-Terraform/" + terraform.VersionString()
 
-	if err != nil {
-		return nil, fmt.Errorf("Error setting up client: %s", err)
+	provider := &Client{
+		client: client,
+		config: c,
 	}
 
-	log.Printf("[INFO] DNSimple Client configured for user: %s", client.Email)
+	log.Printf("[INFO] DNSimple Client configured for account: %s", c.Account)
 
-	return client, nil
+	return provider, nil
 }

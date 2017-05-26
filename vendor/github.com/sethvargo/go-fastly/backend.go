@@ -8,7 +8,7 @@ import (
 // Backend represents a backend response from the Fastly API.
 type Backend struct {
 	ServiceID string `mapstructure:"service_id"`
-	Version   string `mapstructure:"version"`
+	Version   int    `mapstructure:"version"`
 
 	Name                string   `mapstructure:"name"`
 	Address             string   `mapstructure:"address"`
@@ -23,8 +23,12 @@ type Backend struct {
 	RequestCondition    string   `mapstructure:"request_condition"`
 	HealthCheck         string   `mapstructure:"healthcheck"`
 	Hostname            string   `mapstructure:"hostname"`
+	Shield              string   `mapstructure:"shield"`
 	UseSSL              bool     `mapstructure:"use_ssl"`
 	SSLCheckCert        bool     `mapstructure:"ssl_check_cert"`
+	SSLCACert           string   `mapstructure:"ssl_ca_cert"`
+	SSLClientCert       string   `mapstructure:"ssl_client_cert"`
+	SSLClientKey        string   `mapstructure:"ssl_client_key"`
 	SSLHostname         string   `mapstructure:"ssl_hostname"`
 	SSLCertHostname     string   `mapstructure:"ssl_cert_hostname"`
 	SSLSNIHostname      string   `mapstructure:"ssl_sni_hostname"`
@@ -49,7 +53,7 @@ type ListBackendsInput struct {
 	Service string
 
 	// Version is the specific configuration version (required).
-	Version string
+	Version int
 }
 
 // ListBackends returns the list of backends for the configuration version.
@@ -58,11 +62,11 @@ func (c *Client) ListBackends(i *ListBackendsInput) ([]*Backend, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/backend", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/backend", i.Service, i.Version)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -81,28 +85,32 @@ type CreateBackendInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
-	Name                string   `form:"name,omitempty"`
-	Address             string   `form:"address,omitempty"`
-	Port                uint     `form:"port,omitempty"`
-	ConnectTimeout      uint     `form:"connect_timeout,omitempty"`
-	MaxConn             uint     `form:"max_conn,omitempty"`
-	ErrorThreshold      uint     `form:"error_threshold,omitempty"`
-	FirstByteTimeout    uint     `form:"first_byte_timeout,omitempty"`
-	BetweenBytesTimeout uint     `form:"between_bytes_timeout,omitempty"`
-	AutoLoadbalance     bool     `form:"auto_loadbalance,omitempty"`
-	Weight              uint     `form:"weight,omitempty"`
-	RequestCondition    string   `form:"request_condition,omitempty"`
-	HealthCheck         string   `form:"healthcheck,omitempty"`
-	UseSSL              bool     `form:"use_ssl,omitempty"`
-	SSLCheckCert        bool     `form:"ssl_check_cert,omitempty"`
-	SSLHostname         string   `form:"ssl_hostname,omitempty"`
-	SSLCertHostname     string   `form:"ssl_cert_hostname,omitempty"`
-	SSLSNIHostname      string   `form:"ssl_sni_hostname,omitempty"`
-	MinTLSVersion       string   `form:"min_tls_version,omitempty"`
-	MaxTLSVersion       string   `form:"max_tls_version,omitempty"`
-	SSLCiphers          []string `form:"ssl_ciphers,omitempty"`
+	Name                string       `form:"name,omitempty"`
+	Address             string       `form:"address,omitempty"`
+	Port                uint         `form:"port,omitempty"`
+	ConnectTimeout      uint         `form:"connect_timeout,omitempty"`
+	MaxConn             uint         `form:"max_conn,omitempty"`
+	ErrorThreshold      uint         `form:"error_threshold,omitempty"`
+	FirstByteTimeout    uint         `form:"first_byte_timeout,omitempty"`
+	BetweenBytesTimeout uint         `form:"between_bytes_timeout,omitempty"`
+	AutoLoadbalance     *Compatibool `form:"auto_loadbalance,omitempty"`
+	Weight              uint         `form:"weight,omitempty"`
+	RequestCondition    string       `form:"request_condition,omitempty"`
+	HealthCheck         string       `form:"healthcheck,omitempty"`
+	Shield              string       `form:"shield,omitempty"`
+	UseSSL              *Compatibool `form:"use_ssl,omitempty"`
+	SSLCheckCert        *Compatibool `form:"ssl_check_cert,omitempty"`
+	SSLCACert           string       `form:"ssl_ca_cert,omitempty"`
+	SSLClientCert       string       `form:"ssl_client_cert,omitempty"`
+	SSLClientKey        string       `form:"ssl_client_key,omitempty"`
+	SSLHostname         string       `form:"ssl_hostname,omitempty"`
+	SSLCertHostname     string       `form:"ssl_cert_hostname,omitempty"`
+	SSLSNIHostname      string       `form:"ssl_sni_hostname,omitempty"`
+	MinTLSVersion       string       `form:"min_tls_version,omitempty"`
+	MaxTLSVersion       string       `form:"max_tls_version,omitempty"`
+	SSLCiphers          []string     `form:"ssl_ciphers,omitempty"`
 }
 
 // CreateBackend creates a new Fastly backend.
@@ -111,11 +119,11 @@ func (c *Client) CreateBackend(i *CreateBackendInput) (*Backend, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/backend", i.Service, i.Version)
+	path := fmt.Sprintf("/service/%s/version/%d/backend", i.Service, i.Version)
 	resp, err := c.PostForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -133,7 +141,7 @@ type GetBackendInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the backend to fetch.
 	Name string
@@ -145,7 +153,7 @@ func (c *Client) GetBackend(i *GetBackendInput) (*Backend, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -153,7 +161,7 @@ func (c *Client) GetBackend(i *GetBackendInput) (*Backend, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/backend/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/backend/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -171,31 +179,35 @@ type UpdateBackendInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the backend to update.
 	Name string
 
-	NewName             string   `form:"name,omitempty"`
-	Address             string   `form:"address,omitempty"`
-	Port                uint     `form:"port,omitempty"`
-	ConnectTimeout      uint     `form:"connect_timeout,omitempty"`
-	MaxConn             uint     `form:"max_conn,omitempty"`
-	ErrorThreshold      uint     `form:"error_threshold,omitempty"`
-	FirstByteTimeout    uint     `form:"first_byte_timeout,omitempty"`
-	BetweenBytesTimeout uint     `form:"between_bytes_timeout,omitempty"`
-	AutoLoadbalance     bool     `form:"auto_loadbalance,omitempty"`
-	Weight              uint     `form:"weight,omitempty"`
-	RequestCondition    string   `form:"request_condition,omitempty"`
-	HealthCheck         string   `form:"healthcheck,omitempty"`
-	UseSSL              bool     `form:"use_ssl,omitempty"`
-	SSLCheckCert        bool     `form:"ssl_check_cert,omitempty"`
-	SSLHostname         string   `form:"ssl_hostname,omitempty"`
-	SSLCertHostname     string   `form:"ssl_cert_hostname,omitempty"`
-	SSLSNIHostname      string   `form:"ssl_sni_hostname,omitempty"`
-	MinTLSVersion       string   `form:"min_tls_version,omitempty"`
-	MaxTLSVersion       string   `form:"max_tls_version,omitempty"`
-	SSLCiphers          []string `form:"ssl_ciphers,omitempty"`
+	NewName             string       `form:"name,omitempty"`
+	Address             string       `form:"address,omitempty"`
+	Port                uint         `form:"port,omitempty"`
+	ConnectTimeout      uint         `form:"connect_timeout,omitempty"`
+	MaxConn             uint         `form:"max_conn,omitempty"`
+	ErrorThreshold      uint         `form:"error_threshold,omitempty"`
+	FirstByteTimeout    uint         `form:"first_byte_timeout,omitempty"`
+	BetweenBytesTimeout uint         `form:"between_bytes_timeout,omitempty"`
+	AutoLoadbalance     *Compatibool `form:"auto_loadbalance,omitempty"`
+	Weight              uint         `form:"weight,omitempty"`
+	RequestCondition    string       `form:"request_condition,omitempty"`
+	HealthCheck         string       `form:"healthcheck,omitempty"`
+	Shield              string       `form:"shield,omitempty"`
+	UseSSL              *Compatibool `form:"use_ssl,omitempty"`
+	SSLCheckCert        *Compatibool `form:"ssl_check_cert,omitempty"`
+	SSLCACert           string       `form:"ssl_ca_cert,omitempty"`
+	SSLClientCert       string       `form:"ssl_client_cert,omitempty"`
+	SSLClientKey        string       `form:"ssl_client_key,omitempty"`
+	SSLHostname         string       `form:"ssl_hostname,omitempty"`
+	SSLCertHostname     string       `form:"ssl_cert_hostname,omitempty"`
+	SSLSNIHostname      string       `form:"ssl_sni_hostname,omitempty"`
+	MinTLSVersion       string       `form:"min_tls_version,omitempty"`
+	MaxTLSVersion       string       `form:"max_tls_version,omitempty"`
+	SSLCiphers          []string     `form:"ssl_ciphers,omitempty"`
 }
 
 // UpdateBackend updates a specific backend.
@@ -204,7 +216,7 @@ func (c *Client) UpdateBackend(i *UpdateBackendInput) (*Backend, error) {
 		return nil, ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return nil, ErrMissingVersion
 	}
 
@@ -212,7 +224,7 @@ func (c *Client) UpdateBackend(i *UpdateBackendInput) (*Backend, error) {
 		return nil, ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/backend/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/backend/%s", i.Service, i.Version, i.Name)
 	resp, err := c.PutForm(path, i, nil)
 	if err != nil {
 		return nil, err
@@ -230,7 +242,7 @@ type DeleteBackendInput struct {
 	// Service is the ID of the service. Version is the specific configuration
 	// version. Both fields are required.
 	Service string
-	Version string
+	Version int
 
 	// Name is the name of the backend to delete (required).
 	Name string
@@ -242,7 +254,7 @@ func (c *Client) DeleteBackend(i *DeleteBackendInput) error {
 		return ErrMissingService
 	}
 
-	if i.Version == "" {
+	if i.Version == 0 {
 		return ErrMissingVersion
 	}
 
@@ -250,7 +262,7 @@ func (c *Client) DeleteBackend(i *DeleteBackendInput) error {
 		return ErrMissingName
 	}
 
-	path := fmt.Sprintf("/service/%s/version/%s/backend/%s", i.Service, i.Version, i.Name)
+	path := fmt.Sprintf("/service/%s/version/%d/backend/%s", i.Service, i.Version, i.Name)
 	resp, err := c.Delete(path, nil)
 	if err != nil {
 		return err

@@ -3,23 +3,23 @@ layout: "ultradns"
 page_title: "UltraDNS: ultradns_record"
 sidebar_current: "docs-ultradns-resource-record"
 description: |-
-  Provides a UltraDNS record resource.
+  Provides an UltraDNS record resource.
 ---
 
 # ultradns\_record
 
-Provides a UltraDNS record resource.
+Provides an UltraDNS record resource.
 
 ## Example Usage
 
-```
+```hcl
 # Add a record to the domain
 resource "ultradns_record" "foobar" {
-	zone = "${var.ultradns_domain}"
-	name = "terraform"
-	rdata = [ "192.168.0.11" ]
-	type = "A"
-	ttl = 3600
+  zone  = "${var.ultradns_domain}"
+  name  = "terraform"
+  rdata = ["192.168.0.11"]
+  type  = "A"
+  ttl   = 3600
 }
 ```
 

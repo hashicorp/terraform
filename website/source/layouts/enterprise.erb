@@ -1,0 +1,218 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <ul class="nav docs-sidenav">
+      <li<%= sidebar_current("docs-home") %>>
+        <a class="back" href="/docs/index.html">Documentation Home</a>
+      </li>
+
+      <li<%= sidebar_current("docs-enterprise-home") %>>
+        <a class="back" href="/docs/enterprise/index.html">Terraform Enterprise</a>
+      </li>
+
+      <hr>
+
+      <li<%= sidebar_current("docs-enterprise-accounts") %>>
+        <a href="/docs/enterprise/user-accounts/index.html">User Accounts</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-enterprise-accounts-authentication") %>>
+            <a href="/docs/enterprise/user-accounts/authentication.html">Authentication</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-accounts-recovery") %>>
+            <a href="/docs/enterprise/user-accounts/recovery.html">Recovery</a>
+          </li>
+        </ul>
+      </li>
+
+      <li<%= sidebar_current("docs-enterprise-organizations") %>>
+        <a href="/docs/enterprise/organizations/index.html">Organizations</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-enterprise-organizations-create") %>>
+            <a href="/docs/enterprise/organizations/create.html">Create</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-organizations-trials") %>>
+            <a href="/docs/enterprise/organizations/trials.html">Trials</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-organizations-migrate") %>>
+            <a href="/docs/enterprise/organizations/migrate.html">Migrate</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-organizations-policy") %>>
+            <a href="/docs/enterprise/organizations/authentication-policy.html">Authentication Policy</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-organizations-credit") %>>
+            <a href="/docs/enterprise/organizations/credit-card.html">Add Credit Card</a>
+          </li>
+        </ul>
+      </li>
+
+      <li<%= sidebar_current("docs-enterprise-runs") %>>
+        <a href="/docs/enterprise/runs/index.html">Runs</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-enterprise-runs-starting") %>>
+            <a href="/docs/enterprise/runs/starting.html">Starting</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-runs-applies") %>>
+            <a href="/docs/enterprise/runs/automatic-applies.html">Automatic Applies</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-runs-schedule") %>>
+            <a href="/docs/enterprise/runs/scheduling-runs.html">Scheduling Runs</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-runs-variables") %>>
+            <a href="/docs/enterprise/runs/variables-and-configuration.html">Variables and Config</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-runs-installing") %>>
+            <a href="/docs/enterprise/runs/installing-software.html">Installing Software</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-runs-execute") %>>
+            <a href="/docs/enterprise/runs/how-runs-execute.html">How Runs Execute</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-runs-versions") %>>
+            <a href="/docs/enterprise/runs/managing-terraform-versions.html">Managing Versions</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-runs-notifications") %>>
+            <a href="/docs/enterprise/runs/notifications.html">Run Notifications</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-runs-multifactor-authentication") %>>
+            <a href="/docs/enterprise/runs/multifactor-authentication.html">Multi-Factor Authentication</a>
+          </li>
+        </ul>
+      </li>
+      <li<%= sidebar_current("docs-enterprise-state") %>>
+        <a href="/docs/enterprise/state/index.html">State</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-enterprise-state-pushing") %>>
+            <a href="/docs/enterprise/state/pushing.html">Pushing State</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-state-resolving") %>>
+            <a href="/docs/enterprise/state/resolving-conflicts.html">Resolving Conflicts</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-state-collaborating") %>>
+            <a href="/docs/enterprise/state/collaborating.html">Collaborating</a>
+          </li>
+        </ul>
+      </li>
+      <li<%= sidebar_current("docs-enterprise-artifacts") %>>
+        <a href="/docs/enterprise/artifacts/index.html">Artifacts</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-enterprise-artifacts-provider") %>>
+            <a href="/docs/enterprise/artifacts/artifact-provider.html">Artifact Provider</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-artifacts-versions") %>>
+            <a href="/docs/enterprise/artifacts/managing-versions.html">Managing Versions</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-artifacts-amis") %>>
+            <a href="/docs/enterprise/artifacts/creating-amis.html">Creating AMI Artifacts</a>
+          </li>
+        </ul>
+      </li>
+      <li<%= sidebar_current("docs-enterprise-vcs") %>>
+        <a href="/docs/enterprise/vcs/index.html">VCS Integration</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-enterprise-vcs-git-") %>>
+            <a href="/docs/enterprise/vcs/git.html">Git</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-vcs-github") %>>
+            <a href="/docs/enterprise/vcs/github.html">GitHub</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-vcs-gitlab") %>>
+            <a href="/docs/enterprise/vcs/gitlab.html">GitLab</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-vcs-bitbucket-cloud") %>>
+            <a href="/docs/enterprise/vcs/bitbucket.html">Bitbucket</a>
+          </li>
+        </ul>
+      </li>
+      <li<%= sidebar_current("docs-enterprise-packerartifacts") %>>
+        <a href="/docs/enterprise/packer/artifacts/index.html">Packer Artifacts</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-enterprise-packerartifacts-amis") %>>
+            <a href="/docs/enterprise/packer/artifacts/creating-amis.html">Creating AMIs</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-packerartifacts-vagrant") %>>
+            <a href="/docs/enterprise/packer/artifacts/creating-vagrant-boxes.html">Creating Vagrant Boxes</a>
+          </li>
+        </ul>
+      </li>
+      <li<%= sidebar_current("docs-enterprise-packerbuilds") %>>
+        <a href="/docs/enterprise/packer/builds/index.html">Packer Builds</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-enterprise-packerbuilds-starting") %>>
+            <a href="/docs/enterprise/packer/builds/starting.html">Starting Builds</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-packerbuilds-installing") %>>
+            <a href="/docs/enterprise/packer/builds/installing-software.html">Installing Software</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-packerbuilds-rebuilding") %>>
+            <a href="/docs/enterprise/packer/builds/rebuilding.html">Rebuilding</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-packerbuilds-runbuilds") %>>
+            <a href="/docs/enterprise/packer/builds/how-builds-run.html">How Builds Run</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-packerbuilds-environment") %>>
+            <a href="/docs/enterprise/packer/builds/build-environment.html">Build Environment</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-packerbuilds-notifications") %>>
+            <a href="/docs/enterprise/packer/builds/notifications.html">Build Notifications</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-packerbuilds-scheduling") %>>
+            <a href="/docs/enterprise/packer/builds/scheduling-builds.html">Scheduling Builds</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-packerbuilds-versions") %>>
+            <a href="/docs/enterprise/packer/builds/managing-packer-versions.html">Managing Versions</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-packerbuilds-troubleshooting") %>>
+            <a href="/docs/enterprise/packer/builds/troubleshooting.html">Troubleshooting</a>
+          </li>
+        </ul>
+      </li>
+
+      <hr>
+
+      <li<%= sidebar_current("docs-enterprise-faq") %>>
+        <a href="/docs/enterprise/faq/index.html">FAQ</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-enterprise-faq-monolithic") %>>
+            <a href="/docs/enterprise/faq/monolithic-artifacts.html">Monolithic Artifacts</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-faq-deployments") %>>
+            <a href="/docs/enterprise/faq/rolling-deployments.html">Rolling Deployments</a>
+          </li>
+
+          <li<%= sidebar_current("docs-enterprise-faq-vagrant-cloud-migration") %>>
+            <a href="/docs/enterprise/faq/vagrant-cloud-migration.html">Vagrant Cloud Migration</a>
+          </li>
+        </ul>
+      </li>
+
+      <li<%= sidebar_current("docs-enterprise-glossary") %>>
+        <a href="/docs/enterprise/glossary/index.html">Glossary</a>
+      </li>
+
+      <li<%= sidebar_current("docs-enterprise-api") %>>
+        <a href="/docs/enterprise/api/index.html">API</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-enterprise-api-environments") %>>
+            <a href="/docs/enterprise/api/environments.html">Environments</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-api-runs") %>>
+            <a href="/docs/enterprise/api/runs.html">Runs</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-api-states") %>>
+            <a href="/docs/enterprise/api/states.html">States</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-api-configurations") %>>
+            <a href="/docs/enterprise/api/configurations.html">Configurations</a>
+          </li>
+          <li<%= sidebar_current("docs-enterprise-api-users") %>>
+            <a href="/docs/enterprise/api/users.html">Users</a>
+          </li>
+        </ul>
+      </li>
+
+      <li<%= sidebar_current("docs-enterprise-support") %>>
+        <a href="/docs/enterprise/support.html">Support</a>
+      </li>
+    </ul>
+  <% end %>
+
+  <%= yield %>
+<% end %>

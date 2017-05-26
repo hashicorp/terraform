@@ -63,6 +63,14 @@ func TestNewInterpolatedVariable(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"terraform.env",
+			&TerraformVariable{
+				Field: "env",
+				key:   "terraform.env",
+			},
+			false,
+		},
 	}
 
 	for i, tc := range cases {
@@ -237,6 +245,22 @@ func TestDetectVariables(t *testing.T) {
 				&UserVariable{
 					Name: "bar",
 					key:  "var.bar",
+				},
+			},
+		},
+
+		{
+			`foo ${module.foo.output["key"]}`,
+			[]InterpolatedVariable{
+				&ModuleVariable{
+					Name:  "foo",
+					Field: "output",
+					key:   "module.foo.output",
+				},
+				&ModuleVariable{
+					Name:  "foo",
+					Field: "output",
+					key:   "module.foo.output",
 				},
 			},
 		},

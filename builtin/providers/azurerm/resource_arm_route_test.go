@@ -155,7 +155,7 @@ func testCheckAzureRMRouteDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("Route still exists:\n%#v", resp.Properties)
+			return fmt.Errorf("Route still exists:\n%#v", resp.RoutePropertiesFormat)
 		}
 	}
 

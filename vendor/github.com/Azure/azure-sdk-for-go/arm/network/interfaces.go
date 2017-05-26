@@ -21,7 +21,6 @@ package network
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
@@ -45,28 +44,15 @@ func NewInterfacesClientWithBaseURI(baseURI string, subscriptionID string) Inter
 	return InterfacesClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// CreateOrUpdate the Put NetworkInterface operation creates/updates a
-// networkInterface This method may poll for completion. Polling can be
-// canceled by passing the cancel channel argument. The channel will be used
-// to cancel polling and any outstanding HTTP requests.
+// CreateOrUpdate creates or updates a network interface. This method may poll
+// for completion. Polling can be canceled by passing the cancel channel
+// argument. The channel will be used to cancel polling and any outstanding
+// HTTP requests.
 //
 // resourceGroupName is the name of the resource group. networkInterfaceName
 // is the name of the network interface. parameters is parameters supplied to
-// the create/update NetworkInterface operation
+// the create or update network interface operation.
 func (client InterfacesClient) CreateOrUpdate(resourceGroupName string, networkInterfaceName string, parameters Interface, cancel <-chan struct{}) (result autorest.Response, err error) {
-	if err := validation.Validate([]validation.Validation{
-		{TargetValue: parameters,
-			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
-				Chain: []validation.Constraint{{Target: "parameters.Properties.NetworkSecurityGroup", Name: validation.Null, Rule: false,
-					Chain: []validation.Constraint{{Target: "parameters.Properties.NetworkSecurityGroup.Properties", Name: validation.Null, Rule: false,
-						Chain: []validation.Constraint{{Target: "parameters.Properties.NetworkSecurityGroup.Properties.NetworkInterfaces", Name: validation.ReadOnly, Rule: true, Chain: nil},
-							{Target: "parameters.Properties.NetworkSecurityGroup.Properties.Subnets", Name: validation.ReadOnly, Rule: true, Chain: nil},
-						}},
-					}},
-				}}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "network.InterfacesClient", "CreateOrUpdate")
-	}
-
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, networkInterfaceName, parameters, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "network.InterfacesClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -128,10 +114,10 @@ func (client InterfacesClient) CreateOrUpdateResponder(resp *http.Response) (res
 	return
 }
 
-// Delete the delete netwokInterface operation deletes the specified
-// netwokInterface. This method may poll for completion. Polling can be
-// canceled by passing the cancel channel argument. The channel will be used
-// to cancel polling and any outstanding HTTP requests.
+// Delete deletes the specified network interface. This method may poll for
+// completion. Polling can be canceled by passing the cancel channel
+// argument. The channel will be used to cancel polling and any outstanding
+// HTTP requests.
 //
 // resourceGroupName is the name of the resource group. networkInterfaceName
 // is the name of the network interface.
@@ -195,11 +181,10 @@ func (client InterfacesClient) DeleteResponder(resp *http.Response) (result auto
 	return
 }
 
-// Get the Get network interface operation retrieves information about the
-// specified network interface.
+// Get gets information about the specified network interface.
 //
 // resourceGroupName is the name of the resource group. networkInterfaceName
-// is the name of the network interface. expand is expand references
+// is the name of the network interface. expand is expands referenced
 // resources.
 func (client InterfacesClient) Get(resourceGroupName string, networkInterfaceName string, expand string) (result Interface, err error) {
 	req, err := client.GetPreparer(resourceGroupName, networkInterfaceName, expand)
@@ -263,11 +248,10 @@ func (client InterfacesClient) GetResponder(resp *http.Response) (result Interfa
 	return
 }
 
-// GetEffectiveRouteTable the get effective routetable operation retrieves all
-// the route tables applied on a networkInterface. This method may poll for
-// completion. Polling can be canceled by passing the cancel channel
-// argument. The channel will be used to cancel polling and any outstanding
-// HTTP requests.
+// GetEffectiveRouteTable gets all route tables applied to a network
+// interface. This method may poll for completion. Polling can be canceled by
+// passing the cancel channel argument. The channel will be used to cancel
+// polling and any outstanding HTTP requests.
 //
 // resourceGroupName is the name of the resource group. networkInterfaceName
 // is the name of the network interface.
@@ -331,14 +315,13 @@ func (client InterfacesClient) GetEffectiveRouteTableResponder(resp *http.Respon
 	return
 }
 
-// GetVirtualMachineScaleSetNetworkInterface the Get network interface
-// operation retrieves information about the specified network interface in a
-// virtual machine scale set.
+// GetVirtualMachineScaleSetNetworkInterface get the specified network
+// interface in a virtual machine scale set.
 //
 // resourceGroupName is the name of the resource group.
 // virtualMachineScaleSetName is the name of the virtual machine scale set.
 // virtualmachineIndex is the virtual machine index. networkInterfaceName is
-// the name of the network interface. expand is expand references resources.
+// the name of the network interface. expand is expands referenced resources.
 func (client InterfacesClient) GetVirtualMachineScaleSetNetworkInterface(resourceGroupName string, virtualMachineScaleSetName string, virtualmachineIndex string, networkInterfaceName string, expand string) (result Interface, err error) {
 	req, err := client.GetVirtualMachineScaleSetNetworkInterfacePreparer(resourceGroupName, virtualMachineScaleSetName, virtualmachineIndex, networkInterfaceName, expand)
 	if err != nil {
@@ -403,8 +386,7 @@ func (client InterfacesClient) GetVirtualMachineScaleSetNetworkInterfaceResponde
 	return
 }
 
-// List the List networkInterfaces operation retrieves all the
-// networkInterfaces in a resource group.
+// List gets all network interfaces in a resource group.
 //
 // resourceGroupName is the name of the resource group.
 func (client InterfacesClient) List(resourceGroupName string) (result InterfaceListResult, err error) {
@@ -489,8 +471,7 @@ func (client InterfacesClient) ListNextResults(lastResults InterfaceListResult) 
 	return
 }
 
-// ListAll the List networkInterfaces operation retrieves all the
-// networkInterfaces in a subscription.
+// ListAll gets all network interfaces in a subscription.
 func (client InterfacesClient) ListAll() (result InterfaceListResult, err error) {
 	req, err := client.ListAllPreparer()
 	if err != nil {
@@ -572,11 +553,10 @@ func (client InterfacesClient) ListAllNextResults(lastResults InterfaceListResul
 	return
 }
 
-// ListEffectiveNetworkSecurityGroups the list effective network security
-// group operation retrieves all the network security groups applied on a
-// networkInterface. This method may poll for completion. Polling can be
-// canceled by passing the cancel channel argument. The channel will be used
-// to cancel polling and any outstanding HTTP requests.
+// ListEffectiveNetworkSecurityGroups gets all network security groups applied
+// to a network interface. This method may poll for completion. Polling can
+// be canceled by passing the cancel channel argument. The channel will be
+// used to cancel polling and any outstanding HTTP requests.
 //
 // resourceGroupName is the name of the resource group. networkInterfaceName
 // is the name of the network interface.
@@ -640,9 +620,8 @@ func (client InterfacesClient) ListEffectiveNetworkSecurityGroupsResponder(resp 
 	return
 }
 
-// ListVirtualMachineScaleSetNetworkInterfaces the list network interface
-// operation retrieves information about all network interfaces in a virtual
-// machine scale set.
+// ListVirtualMachineScaleSetNetworkInterfaces gets all network interfaces in
+// a virtual machine scale set.
 //
 // resourceGroupName is the name of the resource group.
 // virtualMachineScaleSetName is the name of the virtual machine scale set.
@@ -729,9 +708,8 @@ func (client InterfacesClient) ListVirtualMachineScaleSetNetworkInterfacesNextRe
 	return
 }
 
-// ListVirtualMachineScaleSetVMNetworkInterfaces the list network interface
-// operation retrieves information about all network interfaces in a virtual
-// machine from a virtual machine scale set.
+// ListVirtualMachineScaleSetVMNetworkInterfaces gets information about all
+// network interfaces in a virtual machine in a virtual machine scale set.
 //
 // resourceGroupName is the name of the resource group.
 // virtualMachineScaleSetName is the name of the virtual machine scale set.

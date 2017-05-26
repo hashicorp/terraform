@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -67,6 +68,11 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"version_label": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
 			"cname": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -119,7 +125,7 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 			"wait_for_ready_timeout": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "10m",
+				Default:  "20m",
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
 					duration, err := time.ParseDuration(value)
@@ -196,6 +202,7 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 	tier := d.Get("tier").(string)
 	app := d.Get("application").(string)
 	desc := d.Get("description").(string)
+	version := d.Get("version_label").(string)
 	settings := d.Get("setting").(*schema.Set)
 	solutionStack := d.Get("solution_stack_name").(string)
 	templateName := d.Get("template_name").(string)
@@ -216,7 +223,7 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 
 	if cnamePrefix != "" {
 		if tier != "WebServer" {
-			return fmt.Errorf("Cannont set cname_prefix for tier: %s.", tier)
+			return fmt.Errorf("Cannot set cname_prefix for tier: %s.", tier)
 		}
 		createOpts.CNAMEPrefix = aws.String(cnamePrefix)
 	}
@@ -245,7 +252,11 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 		createOpts.TemplateName = aws.String(templateName)
 	}
 
-	// Get the current time to filter describeBeanstalkEvents messages
+	if version != "" {
+		createOpts.VersionLabel = aws.String(version)
+	}
+
+	// Get the current time to filter getBeanstalkEnvironmentErrors messages
 	t := time.Now()
 	log.Printf("[DEBUG] Elastic Beanstalk Environment create opts: %s", createOpts)
 	resp, err := conn.CreateEnvironment(&createOpts)
@@ -270,7 +281,7 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 	stateConf := &resource.StateChangeConf{
 		Pending:      []string{"Launching", "Updating"},
 		Target:       []string{"Ready"},
-		Refresh:      environmentStateRefreshFunc(conn, d.Id()),
+		Refresh:      environmentStateRefreshFunc(conn, d.Id(), t),
 		Timeout:      waitForReadyTimeOut,
 		Delay:        10 * time.Second,
 		PollInterval: pollInterval,
@@ -284,9 +295,12 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 			d.Id(), err)
 	}
 
-	err = describeBeanstalkEvents(conn, d.Id(), t)
+	envErrors, err := getBeanstalkEnvironmentErrors(conn, d.Id(), t)
 	if err != nil {
 		return err
+	}
+	if envErrors != nil {
+		return envErrors
 	}
 
 	return resourceAwsElasticBeanstalkEnvironmentRead(d, meta)
@@ -387,8 +401,13 @@ func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta i
 		}
 	}
 
+	if d.HasChange("version_label") {
+		hasChange = true
+		updateOpts.VersionLabel = aws.String(d.Get("version_label").(string))
+	}
+
 	if hasChange {
-		// Get the current time to filter describeBeanstalkEvents messages
+		// Get the current time to filter getBeanstalkEnvironmentErrors messages
 		t := time.Now()
 		log.Printf("[DEBUG] Elastic Beanstalk Environment update opts: %s", updateOpts)
 		_, err := conn.UpdateEnvironment(&updateOpts)
@@ -409,7 +428,7 @@ func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta i
 		stateConf := &resource.StateChangeConf{
 			Pending:      []string{"Launching", "Updating"},
 			Target:       []string{"Ready"},
-			Refresh:      environmentStateRefreshFunc(conn, d.Id()),
+			Refresh:      environmentStateRefreshFunc(conn, d.Id(), t),
 			Timeout:      waitForReadyTimeOut,
 			Delay:        10 * time.Second,
 			PollInterval: pollInterval,
@@ -423,9 +442,12 @@ func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta i
 				d.Id(), err)
 		}
 
-		err = describeBeanstalkEvents(conn, d.Id(), t)
+		envErrors, err := getBeanstalkEnvironmentErrors(conn, d.Id(), t)
 		if err != nil {
 			return err
+		}
+		if envErrors != nil {
+			return envErrors
 		}
 	}
 
@@ -486,6 +508,10 @@ func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta int
 	}
 
 	if err := d.Set("cname", env.CNAME); err != nil {
+		return err
+	}
+
+	if err := d.Set("version_label", env.VersionLabel); err != nil {
 		return err
 	}
 
@@ -644,7 +670,7 @@ func resourceAwsElasticBeanstalkEnvironmentDelete(d *schema.ResourceData, meta i
 		TerminateResources: aws.Bool(true),
 	}
 
-	// Get the current time to filter describeBeanstalkEvents messages
+	// Get the current time to filter getBeanstalkEnvironmentErrors messages
 	t := time.Now()
 	log.Printf("[DEBUG] Elastic Beanstalk Environment terminate opts: %s", opts)
 	_, err := conn.TerminateEnvironment(&opts)
@@ -666,7 +692,7 @@ func resourceAwsElasticBeanstalkEnvironmentDelete(d *schema.ResourceData, meta i
 	stateConf := &resource.StateChangeConf{
 		Pending:      []string{"Terminating"},
 		Target:       []string{"Terminated"},
-		Refresh:      environmentStateRefreshFunc(conn, d.Id()),
+		Refresh:      environmentStateRefreshFunc(conn, d.Id(), t),
 		Timeout:      waitForReadyTimeOut,
 		Delay:        10 * time.Second,
 		PollInterval: pollInterval,
@@ -680,9 +706,12 @@ func resourceAwsElasticBeanstalkEnvironmentDelete(d *schema.ResourceData, meta i
 			d.Id(), err)
 	}
 
-	err = describeBeanstalkEvents(conn, d.Id(), t)
+	envErrors, err := getBeanstalkEnvironmentErrors(conn, d.Id(), t)
 	if err != nil {
 		return err
+	}
+	if envErrors != nil {
+		return envErrors
 	}
 
 	return nil
@@ -690,7 +719,7 @@ func resourceAwsElasticBeanstalkEnvironmentDelete(d *schema.ResourceData, meta i
 
 // environmentStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
 // the creation of the Beanstalk Environment
-func environmentStateRefreshFunc(conn *elasticbeanstalk.ElasticBeanstalk, environmentId string) resource.StateRefreshFunc {
+func environmentStateRefreshFunc(conn *elasticbeanstalk.ElasticBeanstalk, environmentId string, t time.Time) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		resp, err := conn.DescribeEnvironments(&elasticbeanstalk.DescribeEnvironmentsInput{
 			EnvironmentIds: []*string{aws.String(environmentId)},
@@ -715,6 +744,14 @@ func environmentStateRefreshFunc(conn *elasticbeanstalk.ElasticBeanstalk, enviro
 
 		if env == nil {
 			return -1, "failed", fmt.Errorf("[Err] Error finding Elastic Beanstalk Environment, environment not found")
+		}
+
+		envErrors, err := getBeanstalkEnvironmentErrors(conn, environmentId, t)
+		if err != nil {
+			return -1, "failed", err
+		}
+		if envErrors != nil {
+			return -1, "failed", envErrors
 		}
 
 		return env, *env.Status, nil
@@ -829,25 +866,48 @@ func dropGeneratedSecurityGroup(settingValue string, meta interface{}) string {
 	return strings.Join(legitGroups, ",")
 }
 
-func describeBeanstalkEvents(conn *elasticbeanstalk.ElasticBeanstalk, environmentId string, t time.Time) error {
-	beanstalkErrors, err := conn.DescribeEvents(&elasticbeanstalk.DescribeEventsInput{
+type beanstalkEnvironmentError struct {
+	eventDate     *time.Time
+	environmentID string
+	message       *string
+}
+
+func (e beanstalkEnvironmentError) Error() string {
+	return e.eventDate.String() + " (" + e.environmentID + ") : " + *e.message
+}
+
+type beanstalkEnvironmentErrors []*beanstalkEnvironmentError
+
+func (e beanstalkEnvironmentErrors) Len() int           { return len(e) }
+func (e beanstalkEnvironmentErrors) Swap(i, j int)      { e[i], e[j] = e[j], e[i] }
+func (e beanstalkEnvironmentErrors) Less(i, j int) bool { return e[i].eventDate.Before(*e[j].eventDate) }
+
+func getBeanstalkEnvironmentErrors(conn *elasticbeanstalk.ElasticBeanstalk, environmentId string, t time.Time) (*multierror.Error, error) {
+	environmentErrors, err := conn.DescribeEvents(&elasticbeanstalk.DescribeEventsInput{
 		EnvironmentId: aws.String(environmentId),
 		Severity:      aws.String("ERROR"),
 		StartTime:     aws.Time(t),
 	})
 
 	if err != nil {
-		log.Printf("[Err] Unable to get Elastic Beanstalk Evironment events: %s", err)
+		return nil, fmt.Errorf("[Err] Unable to get Elastic Beanstalk Evironment events: %s", err)
 	}
 
-	events := ""
-	for _, event := range beanstalkErrors.Events {
-		events = events + "\n" + event.EventDate.String() + ": " + *event.Message
+	var events beanstalkEnvironmentErrors
+	for _, event := range environmentErrors.Events {
+		e := &beanstalkEnvironmentError{
+			eventDate:     event.EventDate,
+			environmentID: environmentId,
+			message:       event.Message,
+		}
+		events = append(events, e)
+	}
+	sort.Sort(beanstalkEnvironmentErrors(events))
+
+	var result *multierror.Error
+	for _, event := range events {
+		result = multierror.Append(result, event)
 	}
 
-	if events != "" {
-		return fmt.Errorf("%s", events)
-	}
-
-	return nil
+	return result, nil
 }

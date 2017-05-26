@@ -50,15 +50,9 @@ import (
 // of definition and use. This allows the compiler to enforce references
 // so it becomes easy to remove the features.
 var (
-	// New apply graph. This will be removed and be the default in 0.8.0.
-	X_newApply = newBasicID("new-apply", "NEW_APPLY", false)
-
-	// New destroy graph. This will be reomved and be the default in 0.8.0.
-	X_newDestroy = newBasicID("new-destroy", "NEW_DESTROY", false)
-
 	// Shadow graph. This is already on by default. Disabling it will be
 	// allowed for awhile in order for it to not block operations.
-	X_shadow = newBasicID("shadow", "SHADOW", true)
+	X_shadow = newBasicID("shadow", "SHADOW", false)
 )
 
 // Global variables this package uses because we are a package
@@ -78,8 +72,6 @@ var (
 func init() {
 	// The list of all experiments, update this when an experiment is added.
 	All = []ID{
-		X_newApply,
-		X_newDestroy,
 		X_shadow,
 		x_force,
 	}

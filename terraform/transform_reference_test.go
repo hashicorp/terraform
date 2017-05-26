@@ -88,6 +88,104 @@ func TestReferenceTransformer_path(t *testing.T) {
 	}
 }
 
+func TestReferenceTransformer_backup(t *testing.T) {
+	g := Graph{Path: RootModulePath}
+	g.Add(&graphNodeRefParentTest{
+		NameValue: "A",
+		Names:     []string{"A"},
+	})
+	g.Add(&graphNodeRefChildTest{
+		NameValue: "B",
+		Refs:      []string{"C/A"},
+	})
+
+	tf := &ReferenceTransformer{}
+	if err := tf.Transform(&g); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformRefBackupStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
+func TestReferenceTransformer_backupPrimary(t *testing.T) {
+	g := Graph{Path: RootModulePath}
+	g.Add(&graphNodeRefParentTest{
+		NameValue: "A",
+		Names:     []string{"A"},
+	})
+	g.Add(&graphNodeRefChildTest{
+		NameValue: "B",
+		Refs:      []string{"C/A"},
+	})
+	g.Add(&graphNodeRefParentTest{
+		NameValue: "C",
+		Names:     []string{"C"},
+	})
+
+	tf := &ReferenceTransformer{}
+	if err := tf.Transform(&g); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformRefBackupPrimaryStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
+func TestReferenceTransformer_modulePath(t *testing.T) {
+	g := Graph{Path: RootModulePath}
+	g.Add(&graphNodeRefParentTest{
+		NameValue: "A",
+		Names:     []string{"A"},
+		PathValue: []string{"foo"},
+	})
+	g.Add(&graphNodeRefChildTest{
+		NameValue: "B",
+		Refs:      []string{"module.foo"},
+	})
+
+	tf := &ReferenceTransformer{}
+	if err := tf.Transform(&g); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformRefModulePathStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
+func TestReferenceTransformer_modulePathNormalized(t *testing.T) {
+	g := Graph{Path: RootModulePath}
+	g.Add(&graphNodeRefParentTest{
+		NameValue: "A",
+		Names:     []string{"A"},
+		PathValue: []string{"root", "foo"},
+	})
+	g.Add(&graphNodeRefChildTest{
+		NameValue: "B",
+		Refs:      []string{"module.foo"},
+	})
+
+	tf := &ReferenceTransformer{}
+	if err := tf.Transform(&g); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformRefModulePathStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestReferenceMapReferences(t *testing.T) {
 	cases := map[string]struct {
 		Nodes  []dag.Vertex
@@ -197,6 +295,25 @@ func (n *graphNodeRefChildTest) References() []string { return n.Refs }
 func (n *graphNodeRefChildTest) Path() []string       { return n.PathValue }
 
 const testTransformRefBasicStr = `
+A
+B
+  A
+`
+
+const testTransformRefBackupStr = `
+A
+B
+  A
+`
+
+const testTransformRefBackupPrimaryStr = `
+A
+B
+  C
+C
+`
+
+const testTransformRefModulePathStr = `
 A
 B
   A

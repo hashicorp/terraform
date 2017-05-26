@@ -1,8 +1,6 @@
 package terraform
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // Add adds the item in the state at the given address.
 //
@@ -34,6 +32,7 @@ import (
 //
 func (s *State) Add(fromAddrRaw string, toAddrRaw string, raw interface{}) error {
 	// Parse the address
+
 	toAddr, err := ParseResourceAddress(toAddrRaw)
 	if err != nil {
 		return err
@@ -114,6 +113,7 @@ func stateAddFunc_Module_Module(s *State, fromAddr, addr *ResourceAddress, raw i
 		addrCopy.Type = resourceKey.Type
 		addrCopy.Name = resourceKey.Name
 		addrCopy.Index = resourceKey.Index
+		addrCopy.Mode = resourceKey.Mode
 
 		// Perform an add
 		if err := s.Add(fromAddr.String(), addrCopy.String(), v); err != nil {
@@ -333,6 +333,7 @@ func stateAddInitAddr(s *State, addr *ResourceAddress) (interface{}, bool) {
 		Name:  addr.Name,
 		Type:  addr.Type,
 		Index: addr.Index,
+		Mode:  addr.Mode,
 	}).String()
 	exists = true
 	resource, ok := mod.Resources[resourceKey]

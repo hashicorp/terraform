@@ -24,8 +24,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/codebuild"
 	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/aws/aws-sdk-go/service/codedeploy"
+	"github.com/aws/aws-sdk-go/service/codepipeline"
+	"github.com/aws/aws-sdk-go/service/cognitoidentity"
+	"github.com/aws/aws-sdk-go/service/configservice"
+	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
+	"github.com/aws/aws-sdk-go/service/devicefarm"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -42,21 +48,25 @@ import (
 	"github.com/aws/aws-sdk-go/service/firehose"
 	"github.com/aws/aws-sdk-go/service/glacier"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/service/inspector"
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/aws/aws-sdk-go/service/lightsail"
 	"github.com/aws/aws-sdk-go/service/opsworks"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/ses"
+	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/simpledb"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/waf"
+	"github.com/aws/aws-sdk-go/service/wafregional"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-cleanhttp"
@@ -76,19 +86,31 @@ type Config struct {
 	AssumeRoleARN         string
 	AssumeRoleExternalID  string
 	AssumeRoleSessionName string
+	AssumeRolePolicy      string
 
 	AllowedAccountIds   []interface{}
 	ForbiddenAccountIds []interface{}
 
-	DynamoDBEndpoint string
-	KinesisEndpoint  string
-	Ec2Endpoint      string
-	IamEndpoint      string
-	ElbEndpoint      string
-	S3Endpoint       string
-	Insecure         bool
+	CloudFormationEndpoint   string
+	CloudWatchEndpoint       string
+	CloudWatchEventsEndpoint string
+	CloudWatchLogsEndpoint   string
+	DynamoDBEndpoint         string
+	DeviceFarmEndpoint       string
+	Ec2Endpoint              string
+	ElbEndpoint              string
+	IamEndpoint              string
+	KinesisEndpoint          string
+	KmsEndpoint              string
+	RdsEndpoint              string
+	S3Endpoint               string
+	SnsEndpoint              string
+	SqsEndpoint              string
+	Insecure                 bool
 
 	SkipCredsValidation     bool
+	SkipGetEC2Platforms     bool
+	SkipRegionValidation    bool
 	SkipRequestingAccountId bool
 	SkipMetadataApiCheck    bool
 	S3ForcePathStyle        bool
@@ -101,6 +123,10 @@ type AWSClient struct {
 	cloudwatchconn        *cloudwatch.CloudWatch
 	cloudwatchlogsconn    *cloudwatchlogs.CloudWatchLogs
 	cloudwatcheventsconn  *cloudwatchevents.CloudWatchEvents
+	cognitoconn           *cognitoidentity.CognitoIdentity
+	configconn            *configservice.ConfigService
+	devicefarmconn        *devicefarm.DeviceFarm
+	dmsconn               *databasemigrationservice.DatabaseMigrationService
 	dsconn                *directoryservice.DirectoryService
 	dynamodbconn          *dynamodb.DynamoDB
 	ec2conn               *ec2.EC2
@@ -125,32 +151,65 @@ type AWSClient struct {
 	r53conn               *route53.Route53
 	partition             string
 	accountid             string
+	supportedplatforms    []string
 	region                string
 	rdsconn               *rds.RDS
 	iamconn               *iam.IAM
 	kinesisconn           *kinesis.Kinesis
 	kmsconn               *kms.KMS
 	firehoseconn          *firehose.Firehose
+	inspectorconn         *inspector.Inspector
 	elasticacheconn       *elasticache.ElastiCache
 	elasticbeanstalkconn  *elasticbeanstalk.ElasticBeanstalk
 	elastictranscoderconn *elastictranscoder.ElasticTranscoder
 	lambdaconn            *lambda.Lambda
+	lightsailconn         *lightsail.Lightsail
 	opsworksconn          *opsworks.OpsWorks
 	glacierconn           *glacier.Glacier
+	codebuildconn         *codebuild.CodeBuild
 	codedeployconn        *codedeploy.CodeDeploy
 	codecommitconn        *codecommit.CodeCommit
+	codepipelineconn      *codepipeline.CodePipeline
+	sfnconn               *sfn.SFN
 	ssmconn               *ssm.SSM
 	wafconn               *waf.WAF
+	wafregionalconn       *wafregional.WAFRegional
+}
+
+func (c *AWSClient) S3() *s3.S3 {
+	return c.s3conn
+}
+
+func (c *AWSClient) DynamoDB() *dynamodb.DynamoDB {
+	return c.dynamodbconn
+}
+
+func (c *AWSClient) IsGovCloud() bool {
+	if c.region == "us-gov-west-1" {
+		return true
+	}
+	return false
+}
+
+func (c *AWSClient) IsChinaCloud() bool {
+	if c.region == "cn-north-1" {
+		return true
+	}
+	return false
 }
 
 // Client configures and returns a fully initialized AWSClient
 func (c *Config) Client() (interface{}, error) {
 	// Get the auth and region. This can fail if keys/regions were not
 	// specified and we're attempting to use the environment.
-	log.Println("[INFO] Building AWS region structure")
-	err := c.ValidateRegion()
-	if err != nil {
-		return nil, err
+	if c.SkipRegionValidation {
+		log.Println("[INFO] Skipping region validation")
+	} else {
+		log.Println("[INFO] Building AWS region structure")
+		err := c.ValidateRegion()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var client AWSClient
@@ -204,29 +263,37 @@ func (c *Config) Client() (interface{}, error) {
 		return nil, errwrap.Wrapf("Error creating AWS session: {{err}}", err)
 	}
 
-	// Removes the SDK Version handler, so we only have the provider User-Agent
-	// Ex: "User-Agent: APN/1.0 HashiCorp/1.0 Terraform/0.7.9-dev"
-	sess.Handlers.Build.Remove(request.NamedHandler{Name: "core.SDKVersionUserAgentHandler"})
-	sess.Handlers.Build.PushFrontNamed(addTerraformVersionToUserAgent)
+	sess.Handlers.Build.PushBackNamed(addTerraformVersionToUserAgent)
 
 	if extraDebug := os.Getenv("TERRAFORM_AWS_AUTHFAILURE_DEBUG"); extraDebug != "" {
 		sess.Handlers.UnmarshalError.PushFrontNamed(debugAuthFailure)
 	}
 
-	// Some services exist only in us-east-1, e.g. because they manage
-	// resources that can span across multiple regions, or because
-	// signature format v4 requires region to be us-east-1 for global
-	// endpoints:
-	// http://docs.aws.amazon.com/general/latest/gr/sigv4_changes.html
-	usEast1Sess := sess.Copy(&aws.Config{Region: aws.String("us-east-1")})
+	// This restriction should only be used for Route53 sessions.
+	// Other resources that have restrictions should allow the API to fail, rather
+	// than Terraform abstracting the region for the user. This can lead to breaking
+	// changes if that resource is ever opened up to more regions.
+	r53Sess := sess.Copy(&aws.Config{Region: aws.String("us-east-1")})
 
 	// Some services have user-configurable endpoints
+	awsCfSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.CloudFormationEndpoint)})
+	awsCwSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.CloudWatchEndpoint)})
+	awsCweSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.CloudWatchEventsEndpoint)})
+	awsCwlSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.CloudWatchLogsEndpoint)})
+	awsDynamoSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.DynamoDBEndpoint)})
 	awsEc2Sess := sess.Copy(&aws.Config{Endpoint: aws.String(c.Ec2Endpoint)})
 	awsElbSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.ElbEndpoint)})
 	awsIamSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.IamEndpoint)})
+	awsKinesisSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.KinesisEndpoint)})
+	awsKmsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.KmsEndpoint)})
+	awsRdsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.RdsEndpoint)})
 	awsS3Sess := sess.Copy(&aws.Config{Endpoint: aws.String(c.S3Endpoint)})
-	dynamoSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.DynamoDBEndpoint)})
-	kinesisSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.KinesisEndpoint)})
+	awsSnsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.SnsEndpoint)})
+	awsSqsSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.SqsEndpoint)})
+	awsDeviceFarmSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.DeviceFarmEndpoint)})
+
+	log.Println("[INFO] Initializing DeviceFarm SDK connection")
+	client.devicefarmconn = devicefarm.New(awsDeviceFarmSess)
 
 	// These two services need to be set up early so we can check on AccountID
 	client.iamconn = iam.New(awsIamSess)
@@ -252,21 +319,38 @@ func (c *Config) Client() (interface{}, error) {
 		return nil, authErr
 	}
 
+	client.ec2conn = ec2.New(awsEc2Sess)
+
+	if !c.SkipGetEC2Platforms {
+		supportedPlatforms, err := GetSupportedEC2Platforms(client.ec2conn)
+		if err != nil {
+			// We intentionally fail *silently* because there's a chance
+			// user just doesn't have ec2:DescribeAccountAttributes permissions
+			log.Printf("[WARN] Unable to get supported EC2 platforms: %s", err)
+		} else {
+			client.supportedplatforms = supportedPlatforms
+		}
+	}
+
 	client.acmconn = acm.New(sess)
 	client.apigateway = apigateway.New(sess)
 	client.appautoscalingconn = applicationautoscaling.New(sess)
 	client.autoscalingconn = autoscaling.New(sess)
-	client.cfconn = cloudformation.New(sess)
+	client.cfconn = cloudformation.New(awsCfSess)
 	client.cloudfrontconn = cloudfront.New(sess)
 	client.cloudtrailconn = cloudtrail.New(sess)
-	client.cloudwatchconn = cloudwatch.New(sess)
-	client.cloudwatcheventsconn = cloudwatchevents.New(sess)
-	client.cloudwatchlogsconn = cloudwatchlogs.New(sess)
-	client.codecommitconn = codecommit.New(usEast1Sess)
+	client.cloudwatchconn = cloudwatch.New(awsCwSess)
+	client.cloudwatcheventsconn = cloudwatchevents.New(awsCweSess)
+	client.cloudwatchlogsconn = cloudwatchlogs.New(awsCwlSess)
+	client.codecommitconn = codecommit.New(sess)
+	client.codebuildconn = codebuild.New(sess)
 	client.codedeployconn = codedeploy.New(sess)
+	client.configconn = configservice.New(sess)
+	client.cognitoconn = cognitoidentity.New(sess)
+	client.dmsconn = databasemigrationservice.New(sess)
+	client.codepipelineconn = codepipeline.New(sess)
 	client.dsconn = directoryservice.New(sess)
-	client.dynamodbconn = dynamodb.New(dynamoSess)
-	client.ec2conn = ec2.New(awsEc2Sess)
+	client.dynamodbconn = dynamodb.New(awsDynamoSess)
 	client.ecrconn = ecr.New(sess)
 	client.ecsconn = ecs.New(sess)
 	client.efsconn = efs.New(sess)
@@ -278,21 +362,25 @@ func (c *Config) Client() (interface{}, error) {
 	client.emrconn = emr.New(sess)
 	client.esconn = elasticsearch.New(sess)
 	client.firehoseconn = firehose.New(sess)
+	client.inspectorconn = inspector.New(sess)
 	client.glacierconn = glacier.New(sess)
-	client.kinesisconn = kinesis.New(kinesisSess)
-	client.kmsconn = kms.New(sess)
+	client.kinesisconn = kinesis.New(awsKinesisSess)
+	client.kmsconn = kms.New(awsKmsSess)
 	client.lambdaconn = lambda.New(sess)
-	client.opsworksconn = opsworks.New(usEast1Sess)
-	client.r53conn = route53.New(usEast1Sess)
-	client.rdsconn = rds.New(sess)
+	client.lightsailconn = lightsail.New(sess)
+	client.opsworksconn = opsworks.New(sess)
+	client.r53conn = route53.New(r53Sess)
+	client.rdsconn = rds.New(awsRdsSess)
 	client.redshiftconn = redshift.New(sess)
 	client.simpledbconn = simpledb.New(sess)
 	client.s3conn = s3.New(awsS3Sess)
 	client.sesConn = ses.New(sess)
-	client.snsconn = sns.New(sess)
-	client.sqsconn = sqs.New(sess)
+	client.sfnconn = sfn.New(sess)
+	client.snsconn = sns.New(awsSnsSess)
+	client.sqsconn = sqs.New(awsSqsSess)
 	client.ssmconn = ssm.New(sess)
 	client.wafconn = waf.New(sess)
+	client.wafregionalconn = wafregional.New(sess)
 
 	return &client, nil
 }
@@ -306,9 +394,11 @@ func (c *Config) ValidateRegion() error {
 		"ap-south-1",
 		"ap-southeast-1",
 		"ap-southeast-2",
+		"ca-central-1",
 		"cn-north-1",
 		"eu-central-1",
 		"eu-west-1",
+		"eu-west-2",
 		"sa-east-1",
 		"us-east-1",
 		"us-east-2",
@@ -358,6 +448,34 @@ func (c *Config) ValidateAccountId(accountId string) error {
 	}
 
 	return nil
+}
+
+func GetSupportedEC2Platforms(conn *ec2.EC2) ([]string, error) {
+	attrName := "supported-platforms"
+
+	input := ec2.DescribeAccountAttributesInput{
+		AttributeNames: []*string{aws.String(attrName)},
+	}
+	attributes, err := conn.DescribeAccountAttributes(&input)
+	if err != nil {
+		return nil, err
+	}
+
+	var platforms []string
+	for _, attr := range attributes.AccountAttributes {
+		if *attr.AttributeName == attrName {
+			for _, v := range attr.AttributeValues {
+				platforms = append(platforms, *v.AttributeValue)
+			}
+			break
+		}
+	}
+
+	if len(platforms) == 0 {
+		return nil, fmt.Errorf("No EC2 platforms detected")
+	}
+
+	return platforms, nil
 }
 
 // addTerraformVersionToUserAgent is a named handler that will add Terraform's

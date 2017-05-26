@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeImage() *schema.Resource {
@@ -78,6 +77,13 @@ func resourceComputeImage() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"create_timeout": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  4,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -122,6 +128,12 @@ func resourceComputeImageCreate(d *schema.ResourceData, meta interface{}) error 
 		image.RawDisk = imageRawDisk
 	}
 
+	// Read create timeout
+	var createTimeout int
+	if v, ok := d.GetOk("create_timeout"); ok {
+		createTimeout = v.(int)
+	}
+
 	// Insert the image
 	op, err := config.clientCompute.Images.Insert(
 		project, image).Do()
@@ -132,7 +144,7 @@ func resourceComputeImageCreate(d *schema.ResourceData, meta interface{}) error 
 	// Store the ID
 	d.SetId(image.Name)
 
-	err = computeOperationWaitGlobal(config, op, project, "Creating Image")
+	err = computeOperationWaitGlobalTime(config, op, project, "Creating Image", createTimeout)
 	if err != nil {
 		return err
 	}
@@ -151,15 +163,7 @@ func resourceComputeImageRead(d *schema.ResourceData, meta interface{}) error {
 	image, err := config.clientCompute.Images.Get(
 		project, d.Id()).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			// The resource doesn't exist anymore
-			log.Printf("[WARN] Removing Image %q because it's gone", d.Get("name").(string))
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error reading image: %s", err)
+		return handleNotFoundError(err, d, fmt.Sprintf("Image %q", d.Get("name").(string)))
 	}
 
 	d.Set("self_link", image.SelfLink)

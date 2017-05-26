@@ -10,15 +10,21 @@ import (
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/groups"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/rules"
 )
 
 func resourceNetworkingSecGroupV2() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceNetworkingSecGroupV2Create,
 		Read:   resourceNetworkingSecGroupV2Read,
+		Update: resourceNetworkingSecGroupV2Update,
 		Delete: resourceNetworkingSecGroupV2Delete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
+		},
+
+		Timeouts: &schema.ResourceTimeout{
+			Delete: schema.DefaultTimeout(10 * time.Minute),
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -31,12 +37,10 @@ func resourceNetworkingSecGroupV2() *schema.Resource {
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 				Computed: true,
 			},
 			"tenant_id": &schema.Schema{
@@ -45,6 +49,11 @@ func resourceNetworkingSecGroupV2() *schema.Resource {
 				ForceNew: true,
 				Computed: true,
 			},
+			"delete_default_rules": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -52,7 +61,7 @@ func resourceNetworkingSecGroupV2() *schema.Resource {
 func resourceNetworkingSecGroupV2Create(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -70,6 +79,17 @@ func resourceNetworkingSecGroupV2Create(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
+	// Delete the default security group rules if it has been requested.
+	deleteDefaultRules := d.Get("delete_default_rules").(bool)
+	if deleteDefaultRules {
+		for _, rule := range security_group.Rules {
+			if err := rules.Delete(networkingClient, rule.ID).ExtractErr(); err != nil {
+				return fmt.Errorf(
+					"There was a problem deleting a default security group rule: %s", err)
+			}
+		}
+	}
+
 	log.Printf("[DEBUG] OpenStack Neutron Security Group created: %#v", security_group)
 
 	d.SetId(security_group.ID)
@@ -81,7 +101,7 @@ func resourceNetworkingSecGroupV2Read(d *schema.ResourceData, meta interface{}) 
 	log.Printf("[DEBUG] Retrieve information about security group: %s", d.Id())
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -95,14 +115,47 @@ func resourceNetworkingSecGroupV2Read(d *schema.ResourceData, meta interface{}) 
 	d.Set("description", security_group.Description)
 	d.Set("tenant_id", security_group.TenantID)
 	d.Set("name", security_group.Name)
+	d.Set("region", GetRegion(d))
+
 	return nil
+}
+
+func resourceNetworkingSecGroupV2Update(d *schema.ResourceData, meta interface{}) error {
+	config := meta.(*Config)
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
+
+	var update bool
+	var updateOpts groups.UpdateOpts
+
+	if d.HasChange("name") {
+		update = true
+		updateOpts.Name = d.Get("name").(string)
+	}
+
+	if d.HasChange("description") {
+		update = true
+		updateOpts.Name = d.Get("description").(string)
+	}
+
+	if update {
+		log.Printf("[DEBUG] Updating SecGroup %s with options: %#v", d.Id(), updateOpts)
+		_, err = groups.Update(networkingClient, d.Id(), updateOpts).Extract()
+		if err != nil {
+			return fmt.Errorf("Error updating OpenStack SecGroup: %s", err)
+		}
+	}
+
+	return resourceNetworkingSecGroupV2Read(d, meta)
 }
 
 func resourceNetworkingSecGroupV2Delete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Destroy security group: %s", d.Id())
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -111,7 +164,7 @@ func resourceNetworkingSecGroupV2Delete(d *schema.ResourceData, meta interface{}
 		Pending:    []string{"ACTIVE"},
 		Target:     []string{"DELETED"},
 		Refresh:    waitForSecGroupDelete(networkingClient, d.Id()),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -143,6 +196,11 @@ func waitForSecGroupDelete(networkingClient *gophercloud.ServiceClient, secGroup
 			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Neutron Security Group %s", secGroupId)
 				return r, "DELETED", nil
+			}
+			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+				if errCode.Actual == 409 {
+					return r, "ACTIVE", nil
+				}
 			}
 			return r, "ACTIVE", err
 		}

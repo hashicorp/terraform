@@ -1,6 +1,8 @@
 package docker
 
 import (
+	"archive/tar"
+	"bytes"
 	"errors"
 	"fmt"
 	"strconv"
@@ -124,6 +126,15 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 		hostConfig.VolumesFrom = volumesFrom
 	}
 
+	if v, ok := d.GetOk("capabilities"); ok {
+		for _, capInt := range v.(*schema.Set).List() {
+			capa := capInt.(map[string]interface{})
+			hostConfig.CapAdd = stringSetToStringSlice(capa["add"].(*schema.Set))
+			hostConfig.CapDrop = stringSetToStringSlice(capa["drop"].(*schema.Set))
+			break
+		}
+	}
+
 	if v, ok := d.GetOk("dns"); ok {
 		hostConfig.DNS = stringSetToStringSlice(v.(*schema.Set))
 	}
@@ -177,12 +188,52 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 	d.SetId(retContainer.ID)
 
 	if v, ok := d.GetOk("networks"); ok {
-		connectionOpts := dc.NetworkConnectionOptions{Container: retContainer.ID}
+		var connectionOpts dc.NetworkConnectionOptions
+		if v, ok := d.GetOk("network_alias"); ok {
+			endpointConfig := &dc.EndpointConfig{}
+			endpointConfig.Aliases = stringSetToStringSlice(v.(*schema.Set))
+			connectionOpts = dc.NetworkConnectionOptions{Container: retContainer.ID, EndpointConfig: endpointConfig}
+		} else {
+			connectionOpts = dc.NetworkConnectionOptions{Container: retContainer.ID}
+		}
 
 		for _, rawNetwork := range v.(*schema.Set).List() {
 			network := rawNetwork.(string)
 			if err := client.ConnectNetwork(network, connectionOpts); err != nil {
 				return fmt.Errorf("Unable to connect to network '%s': %s", network, err)
+			}
+		}
+	}
+
+	if v, ok := d.GetOk("upload"); ok {
+		for _, upload := range v.(*schema.Set).List() {
+			content := upload.(map[string]interface{})["content"].(string)
+			file := upload.(map[string]interface{})["file"].(string)
+
+			buf := new(bytes.Buffer)
+			tw := tar.NewWriter(buf)
+			hdr := &tar.Header{
+				Name: file,
+				Mode: 0644,
+				Size: int64(len(content)),
+			}
+			if err := tw.WriteHeader(hdr); err != nil {
+				return fmt.Errorf("Error creating tar archive: %s", err)
+			}
+			if _, err := tw.Write([]byte(content)); err != nil {
+				return fmt.Errorf("Error creating tar archive: %s", err)
+			}
+			if err := tw.Close(); err != nil {
+				return fmt.Errorf("Error creating tar archive: %s", err)
+			}
+
+			uploadOpts := dc.UploadToContainerOptions{
+				InputStream: bytes.NewReader(buf.Bytes()),
+				Path:        "/",
+			}
+
+			if err := client.UploadToContainer(retContainer.ID, uploadOpts); err != nil {
+				return fmt.Errorf("Unable to upload volume content: %s", err)
 			}
 		}
 	}

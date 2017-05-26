@@ -1,6 +1,8 @@
 package state
 
 import (
+	"sync"
+
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -9,6 +11,7 @@ import (
 //
 // If Path exists, it will be overwritten.
 type BackupState struct {
+	mu   sync.Mutex
 	Real State
 	Path string
 
@@ -24,6 +27,9 @@ func (s *BackupState) RefreshState() error {
 }
 
 func (s *BackupState) WriteState(state *terraform.State) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	if !s.done {
 		if err := s.backup(); err != nil {
 			return err
@@ -34,6 +40,9 @@ func (s *BackupState) WriteState(state *terraform.State) error {
 }
 
 func (s *BackupState) PersistState() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	if !s.done {
 		if err := s.backup(); err != nil {
 			return err
@@ -41,6 +50,14 @@ func (s *BackupState) PersistState() error {
 	}
 
 	return s.Real.PersistState()
+}
+
+func (s *BackupState) Lock(info *LockInfo) (string, error) {
+	return s.Real.Lock(info)
+}
+
+func (s *BackupState) Unlock(id string) error {
+	return s.Real.Unlock(id)
 }
 
 func (s *BackupState) backup() error {
@@ -53,9 +70,14 @@ func (s *BackupState) backup() error {
 		state = s.Real.State()
 	}
 
-	ls := &LocalState{Path: s.Path}
-	if err := ls.WriteState(state); err != nil {
-		return err
+	// LocalState.WriteState ensures that a file always exists for locking
+	// purposes, but we don't need a backup or lock if the state is empty, so
+	// skip this with a nil state.
+	if state != nil {
+		ls := &LocalState{Path: s.Path}
+		if err := ls.WriteState(state); err != nil {
+			return err
+		}
 	}
 
 	s.done = true

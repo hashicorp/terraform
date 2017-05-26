@@ -23,6 +23,9 @@ type ImportTarget struct {
 
 	// ID is the ID of the resource to import. This is resource-specific.
 	ID string
+
+	// Provider string
+	Provider string
 }
 
 // Import takes already-created external resources and brings them
@@ -37,16 +40,22 @@ type ImportTarget struct {
 // imported.
 func (c *Context) Import(opts *ImportOpts) (*State, error) {
 	// Hold a lock since we can modify our own state here
-	v := c.acquireRun("import")
-	defer c.releaseRun(v)
+	defer c.acquireRun("import")()
 
 	// Copy our own state
 	c.state = c.state.DeepCopy()
 
+	// If no module is given, default to the module configured with
+	// the Context.
+	module := opts.Module
+	if module == nil {
+		module = c.module
+	}
+
 	// Initialize our graph builder
 	builder := &ImportGraphBuilder{
 		ImportTargets: opts.Targets,
-		Module:        opts.Module,
+		Module:        module,
 		Providers:     c.components.ResourceProviders(),
 	}
 

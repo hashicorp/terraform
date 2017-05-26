@@ -1,12 +1,15 @@
 package heroku
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/cyberdelia/heroku-go/v3"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -22,19 +25,23 @@ func resourceHerokuAddon() *schema.Resource {
 		Update: resourceHerokuAddonUpdate,
 		Delete: resourceHerokuAddonDelete,
 
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
-			"app": &schema.Schema{
+			"app": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"plan": &schema.Schema{
+			"plan": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"config": &schema.Schema{
+			"config": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
@@ -43,12 +50,12 @@ func resourceHerokuAddon() *schema.Resource {
 				},
 			},
 
-			"provider_id": &schema.Schema{
+			"provider_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"config_vars": &schema.Schema{
+			"config_vars": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Schema{
@@ -66,7 +73,7 @@ func resourceHerokuAddonCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
 	app := d.Get("app").(string)
-	opts := heroku.AddonCreateOpts{Plan: d.Get("plan").(string)}
+	opts := heroku.AddOnCreateOpts{Plan: d.Get("plan").(string)}
 
 	if v := d.Get("config"); v != nil {
 		config := make(map[string]string)
@@ -80,7 +87,7 @@ func resourceHerokuAddonCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[DEBUG] Addon create configuration: %#v, %#v", app, opts)
-	a, err := client.AddonCreate(app, opts)
+	a, err := client.AddOnCreate(context.TODO(), app, opts)
 	if err != nil {
 		return err
 	}
@@ -88,14 +95,27 @@ func resourceHerokuAddonCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(a.ID)
 	log.Printf("[INFO] Addon ID: %s", d.Id())
 
+	// Wait for the Addon to be provisioned
+	log.Printf("[DEBUG] Waiting for Addon (%s) to be provisioned", d.Id())
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"provisioning"},
+		Target:  []string{"provisioned"},
+		Refresh: AddOnStateRefreshFunc(client, app, d.Id()),
+		Timeout: 20 * time.Minute,
+	}
+
+	if _, err := stateConf.WaitForState(); err != nil {
+		return fmt.Errorf("Error waiting for Addon (%s) to be provisioned: %s", d.Id(), err)
+	}
+	log.Printf("[INFO] Addon provisioned: %s", d.Id())
+
 	return resourceHerokuAddonRead(d, meta)
 }
 
 func resourceHerokuAddonRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
-	addon, err := resourceHerokuAddonRetrieve(
-		d.Get("app").(string), d.Id(), client)
+	addon, err := resourceHerokuAddonRetrieve(d.Id(), client)
 	if err != nil {
 		return err
 	}
@@ -129,8 +149,8 @@ func resourceHerokuAddonUpdate(d *schema.ResourceData, meta interface{}) error {
 	app := d.Get("app").(string)
 
 	if d.HasChange("plan") {
-		ad, err := client.AddonUpdate(
-			app, d.Id(), heroku.AddonUpdateOpts{Plan: d.Get("plan").(string)})
+		ad, err := client.AddOnUpdate(
+			context.TODO(), app, d.Id(), heroku.AddOnUpdateOpts{Plan: d.Get("plan").(string)})
 		if err != nil {
 			return err
 		}
@@ -148,7 +168,7 @@ func resourceHerokuAddonDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Deleting Addon: %s", d.Id())
 
 	// Destroy the app
-	err := client.AddonDelete(d.Get("app").(string), d.Id())
+	_, err := client.AddOnDelete(context.TODO(), d.Get("app").(string), d.Id())
 	if err != nil {
 		return fmt.Errorf("Error deleting addon: %s", err)
 	}
@@ -157,12 +177,38 @@ func resourceHerokuAddonDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceHerokuAddonRetrieve(app string, id string, client *heroku.Service) (*heroku.Addon, error) {
-	addon, err := client.AddonInfo(app, id)
+func resourceHerokuAddonRetrieve(id string, client *heroku.Service) (*heroku.AddOn, error) {
+	addon, err := client.AddOnInfo(context.TODO(), id)
 
 	if err != nil {
 		return nil, fmt.Errorf("Error retrieving addon: %s", err)
 	}
 
 	return addon, nil
+}
+
+func resourceHerokuAddonRetrieveByApp(app string, id string, client *heroku.Service) (*heroku.AddOn, error) {
+	addon, err := client.AddOnInfoByApp(context.TODO(), app, id)
+
+	if err != nil {
+		return nil, fmt.Errorf("Error retrieving addon: %s", err)
+	}
+
+	return addon, nil
+}
+
+// AddOnStateRefreshFunc returns a resource.StateRefreshFunc that is used to
+// watch an AddOn.
+func AddOnStateRefreshFunc(client *heroku.Service, appID, addOnID string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		addon, err := resourceHerokuAddonRetrieveByApp(appID, addOnID, client)
+
+		if err != nil {
+			return nil, "", err
+		}
+
+		// The type conversion here can be dropped when the vendored version of
+		// heroku-go is updated.
+		return (*heroku.AddOn)(addon), addon.State, nil
+	}
 }

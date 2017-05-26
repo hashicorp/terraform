@@ -54,7 +54,7 @@ func resourceAwsIamUser() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
-				Description: "Delete user even if it has non-Terraform-managed IAM access keys and login profile",
+				Description: "Delete user even if it has non-Terraform-managed IAM access keys, login profile or MFA devices",
 			},
 		},
 	}
@@ -167,7 +167,7 @@ func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	// All access keys and login profile for the user must be removed
+	// All access keys, MFA devices and login profile for the user must be removed
 	if d.Get("force_destroy").(bool) {
 		var accessKeys []string
 		listAccessKeys := &iam.ListAccessKeysInput{
@@ -190,6 +190,30 @@ func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
 			})
 			if err != nil {
 				return fmt.Errorf("Error deleting access key %s: %s", k, err)
+			}
+		}
+
+		var MFADevices []string
+		listMFADevices := &iam.ListMFADevicesInput{
+			UserName: aws.String(d.Id()),
+		}
+		pageOfMFADevices := func(page *iam.ListMFADevicesOutput, lastPage bool) (shouldContinue bool) {
+			for _, m := range page.MFADevices {
+				MFADevices = append(MFADevices, *m.SerialNumber)
+			}
+			return !lastPage
+		}
+		err = iamconn.ListMFADevicesPages(listMFADevices, pageOfMFADevices)
+		if err != nil {
+			return fmt.Errorf("Error removing MFA devices of user %s: %s", d.Id(), err)
+		}
+		for _, m := range MFADevices {
+			_, err := iamconn.DeactivateMFADevice(&iam.DeactivateMFADeviceInput{
+				UserName:     aws.String(d.Id()),
+				SerialNumber: aws.String(m),
+			})
+			if err != nil {
+				return fmt.Errorf("Error deactivating MFA device %s: %s", m, err)
 			}
 		}
 
@@ -216,9 +240,9 @@ func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
 
 func validateAwsIamUserName(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if !regexp.MustCompile(`^[0-9A-Za-z=,.@\-_]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^[0-9A-Za-z=,.@\-_+]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"only alphanumeric characters, hyphens, underscores, commas, periods, @ symbols and equals signs allowed in %q: %q",
+			"only alphanumeric characters, hyphens, underscores, commas, periods, @ symbols, plus and equals signs allowed in %q: %q",
 			k, value))
 	}
 	return

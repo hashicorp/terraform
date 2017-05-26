@@ -23,6 +23,10 @@ import (
 const fixtureDir = "./test-fixtures"
 
 func TestMain(m *testing.M) {
+	// We want to shadow on tests just to make sure the shadow graph works
+	// in case we need it and to find any race issues.
+	experiment.SetEnabled(experiment.X_shadow, true)
+
 	experiment.Flag(flag.CommandLine)
 	flag.Parse()
 
@@ -179,6 +183,10 @@ func (h *HookRecordApplyOrder) PreApply(
 	info *InstanceInfo,
 	s *InstanceState,
 	d *InstanceDiff) (HookAction, error) {
+	if d.Empty() {
+		return HookActionContinue, nil
+	}
+
 	if h.Active {
 		h.l.Lock()
 		defer h.l.Unlock()
@@ -603,6 +611,27 @@ aws_instance.foo.2:
   type = aws_instance
 `
 
+const testTerraformApplyProvisionerMultiSelfRefSingleStr = `
+aws_instance.foo.0:
+  ID = foo
+  foo = number 0
+  type = aws_instance
+aws_instance.foo.1:
+  ID = foo
+  foo = number 1
+  type = aws_instance
+
+  Dependencies:
+    aws_instance.foo.0
+aws_instance.foo.2:
+  ID = foo
+  foo = number 2
+  type = aws_instance
+
+  Dependencies:
+    aws_instance.foo.0
+`
+
 const testTerraformApplyProvisionerDiffStr = `
 aws_instance.bar:
   ID = foo
@@ -651,6 +680,43 @@ aws_instance.bar:
 aws_instance.foo:
   ID = foo
   num = 2
+`
+
+const testTerraformApplyResourceDependsOnModuleStr = `
+aws_instance.a:
+  ID = foo
+
+  Dependencies:
+    module.child
+
+module.child:
+  aws_instance.child:
+    ID = foo
+`
+
+const testTerraformApplyResourceDependsOnModuleDeepStr = `
+aws_instance.a:
+  ID = foo
+
+  Dependencies:
+    module.child
+
+module.child.grandchild:
+  aws_instance.c:
+    ID = foo
+`
+
+const testTerraformApplyResourceDependsOnModuleInModuleStr = `
+<no state>
+module.child:
+  aws_instance.b:
+    ID = foo
+
+    Dependencies:
+      module.grandchild
+module.child.grandchild:
+  aws_instance.c:
+    ID = foo
 `
 
 const testTerraformApplyTaintStr = `
@@ -879,6 +945,24 @@ CREATE: aws_instance.foo
   list.#: "" => "<computed>"
   num:    "" => "2"
   type:   "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
+const testTerraformPlanComputedMultiIndexStr = `
+DIFF:
+
+CREATE: aws_instance.bar
+  foo:  "" => "<computed>"
+  type: "" => "aws_instance"
+CREATE: aws_instance.foo.0
+  ip.#: "" => "<computed>"
+  type: "" => "aws_instance"
+CREATE: aws_instance.foo.1
+  ip.#: "" => "<computed>"
+  type: "" => "aws_instance"
 
 STATE:
 
@@ -1305,6 +1389,19 @@ module.child:
     ID = baz
 `
 
+const testTerraformPlanModuleProviderVarStr = `
+DIFF:
+
+module.child:
+  CREATE: aws_instance.test
+    type:  "" => "aws_instance"
+    value: "" => "hello"
+
+STATE:
+
+<no state>
+`
+
 const testTerraformPlanModuleVarStr = `
 DIFF:
 
@@ -1403,7 +1500,7 @@ DIFF:
 
 DESTROY/CREATE: aws_instance.foo
   type: "" => "aws_instance"
-  vars: "" => "foo"
+  vars: "foo" => "foo"
 
 STATE:
 
@@ -1471,6 +1568,17 @@ STATE:
 aws_instance.foo:
   ID = bar
   ami = ami-abcd1234
+`
+
+const testTFPlanDiffIgnoreChangesWithFlatmaps = `
+UPDATE: aws_instance.foo
+  lst.#:   "1" => "2"
+  lst.0:   "j" => "j"
+  lst.1:   "" => "k"
+  set.#:   "1" => "1"
+  set.0.a: "1" => "1"
+  set.0.b: "" => "2"
+  type:    "" => "aws_instance"
 `
 
 const testTerraformPlanIgnoreChangesWildcardStr = `

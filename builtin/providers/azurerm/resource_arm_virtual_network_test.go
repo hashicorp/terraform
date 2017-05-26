@@ -164,7 +164,7 @@ func testCheckAzureRMVirtualNetworkDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("Virtual Network sitll exists:\n%#v", resp.Properties)
+			return fmt.Errorf("Virtual Network sitll exists:\n%#v", resp.VirtualNetworkPropertiesFormat)
 		}
 	}
 

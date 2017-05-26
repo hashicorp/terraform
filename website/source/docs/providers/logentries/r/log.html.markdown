@@ -12,12 +12,12 @@ Provides a Logentries log resource.
 
 ## Example Usage
 
-```
+```hcl
 # Create a log and add it to the log set
 resource "logentries_log" "app_log" {
-   logset_id = "${logentries_logset.host_logs.id}"
-   name = "myapp-log"
-   source = "token"
+  logset_id = "${logentries_logset.host_logs.id}"
+  name      = "myapp-log"
+  source    = "token"
 }
 ```
 

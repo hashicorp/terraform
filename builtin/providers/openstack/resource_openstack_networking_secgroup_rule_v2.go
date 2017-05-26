@@ -22,6 +22,10 @@ func resourceNetworkingSecGroupRuleV2() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
+		Timeouts: &schema.ResourceTimeout{
+			Delete: schema.DefaultTimeout(10 * time.Minute),
+		},
+
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
 				Type:        schema.TypeString,
@@ -90,7 +94,7 @@ func resourceNetworkingSecGroupRuleV2() *schema.Resource {
 func resourceNetworkingSecGroupRuleV2Create(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -147,7 +151,7 @@ func resourceNetworkingSecGroupRuleV2Read(d *schema.ResourceData, meta interface
 	log.Printf("[DEBUG] Retrieve information about security group rule: %s", d.Id())
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -167,6 +171,8 @@ func resourceNetworkingSecGroupRuleV2Read(d *schema.ResourceData, meta interface
 	d.Set("remote_ip_prefix", security_group_rule.RemoteIPPrefix)
 	d.Set("security_group_id", security_group_rule.SecGroupID)
 	d.Set("tenant_id", security_group_rule.TenantID)
+	d.Set("region", GetRegion(d))
+
 	return nil
 }
 
@@ -174,7 +180,7 @@ func resourceNetworkingSecGroupRuleV2Delete(d *schema.ResourceData, meta interfa
 	log.Printf("[DEBUG] Destroy security group rule: %s", d.Id())
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -183,7 +189,7 @@ func resourceNetworkingSecGroupRuleV2Delete(d *schema.ResourceData, meta interfa
 		Pending:    []string{"ACTIVE"},
 		Target:     []string{"DELETED"},
 		Refresh:    waitForSecGroupRuleDelete(networkingClient, d.Id()),
-		Timeout:    2 * time.Minute,
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -230,6 +236,42 @@ func resourceNetworkingSecGroupRuleV2DetermineProtocol(v string) rules.RuleProto
 		protocol = rules.ProtocolUDP
 	case "icmp":
 		protocol = rules.ProtocolICMP
+	case "ah":
+		protocol = rules.ProtocolAH
+	case "dccp":
+		protocol = rules.ProtocolDCCP
+	case "egp":
+		protocol = rules.ProtocolEGP
+	case "esp":
+		protocol = rules.ProtocolESP
+	case "gre":
+		protocol = rules.ProtocolGRE
+	case "igmp":
+		protocol = rules.ProtocolIGMP
+	case "ipv6-encap":
+		protocol = rules.ProtocolIPv6Encap
+	case "ipv6-frag":
+		protocol = rules.ProtocolIPv6Frag
+	case "ipv6-icmp":
+		protocol = rules.ProtocolIPv6ICMP
+	case "ipv6-nonxt":
+		protocol = rules.ProtocolIPv6NoNxt
+	case "ipv6-opts":
+		protocol = rules.ProtocolIPv6Opts
+	case "ipv6-route":
+		protocol = rules.ProtocolIPv6Route
+	case "ospf":
+		protocol = rules.ProtocolOSPF
+	case "pgm":
+		protocol = rules.ProtocolPGM
+	case "rsvp":
+		protocol = rules.ProtocolRSVP
+	case "sctp":
+		protocol = rules.ProtocolSCTP
+	case "udplite":
+		protocol = rules.ProtocolUDPLite
+	case "vrrp":
+		protocol = rules.ProtocolVRRP
 	}
 
 	return protocol

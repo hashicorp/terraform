@@ -1,250 +1,131 @@
 package storage
 
 import (
-	"encoding/xml"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
-	"strings"
+	"strconv"
 )
 
-// FileServiceClient contains operations for Microsoft Azure File Service.
-type FileServiceClient struct {
-	client Client
+const fourMB = uint64(4194304)
+const oneTB = uint64(1099511627776)
+
+// File represents a file on a share.
+type File struct {
+	fsc        *FileServiceClient
+	Metadata   map[string]string
+	Name       string `xml:"Name"`
+	parent     *Directory
+	Properties FileProperties `xml:"Properties"`
+	share      *Share
 }
 
-// A Share is an entry in ShareListResponse.
-type Share struct {
-	Name       string          `xml:"Name"`
-	Properties ShareProperties `xml:"Properties"`
+// FileProperties contains various properties of a file.
+type FileProperties struct {
+	CacheControl string `header:"x-ms-cache-control"`
+	Disposition  string `header:"x-ms-content-disposition"`
+	Encoding     string `header:"x-ms-content-encoding"`
+	Etag         string
+	Language     string `header:"x-ms-content-language"`
+	LastModified string
+	Length       uint64 `xml:"Content-Length"`
+	MD5          string `header:"x-ms-content-md5"`
+	Type         string `header:"x-ms-content-type"`
 }
 
-// ShareProperties contains various properties of a share returned from
-// various endpoints like ListShares.
-type ShareProperties struct {
-	LastModified string `xml:"Last-Modified"`
-	Etag         string `xml:"Etag"`
-	Quota        string `xml:"Quota"`
+// FileCopyState contains various properties of a file copy operation.
+type FileCopyState struct {
+	CompletionTime string
+	ID             string
+	Progress       string
+	Source         string
+	Status         string
+	StatusDesc     string
 }
 
-// ShareListResponse contains the response fields from
-// ListShares call.
+// FileStream contains file data returned from a call to GetFile.
+type FileStream struct {
+	Body       io.ReadCloser
+	ContentMD5 string
+}
+
+// FileRanges contains a list of file range information for a file.
 //
-// See https://msdn.microsoft.com/en-us/library/azure/dn167009.aspx
-type ShareListResponse struct {
-	XMLName    xml.Name `xml:"EnumerationResults"`
-	Xmlns      string   `xml:"xmlns,attr"`
-	Prefix     string   `xml:"Prefix"`
-	Marker     string   `xml:"Marker"`
-	NextMarker string   `xml:"NextMarker"`
-	MaxResults int64    `xml:"MaxResults"`
-	Shares     []Share  `xml:"Shares>Share"`
+// See https://msdn.microsoft.com/en-us/library/azure/dn166984.aspx
+type FileRanges struct {
+	ContentLength uint64
+	LastModified  string
+	ETag          string
+	FileRanges    []FileRange `xml:"Range"`
 }
 
-// ListSharesParameters defines the set of customizable parameters to make a
-// List Shares call.
+// FileRange contains range information for a file.
 //
-// See https://msdn.microsoft.com/en-us/library/azure/dn167009.aspx
-type ListSharesParameters struct {
-	Prefix     string
-	Marker     string
-	Include    string
-	MaxResults uint
-	Timeout    uint
+// See https://msdn.microsoft.com/en-us/library/azure/dn166984.aspx
+type FileRange struct {
+	Start uint64 `xml:"Start"`
+	End   uint64 `xml:"End"`
 }
 
-// ShareHeaders contains various properties of a file and is an entry
-// in SetShareProperties
-type ShareHeaders struct {
-	Quota string `header:"x-ms-share-quota"`
+func (fr FileRange) String() string {
+	return fmt.Sprintf("bytes=%d-%d", fr.Start, fr.End)
 }
 
-func (p ListSharesParameters) getParameters() url.Values {
-	out := url.Values{}
-
-	if p.Prefix != "" {
-		out.Set("prefix", p.Prefix)
-	}
-	if p.Marker != "" {
-		out.Set("marker", p.Marker)
-	}
-	if p.Include != "" {
-		out.Set("include", p.Include)
-	}
-	if p.MaxResults != 0 {
-		out.Set("maxresults", fmt.Sprintf("%v", p.MaxResults))
-	}
-	if p.Timeout != 0 {
-		out.Set("timeout", fmt.Sprintf("%v", p.Timeout))
-	}
-
-	return out
+// builds the complete file path for this file object
+func (f *File) buildPath() string {
+	return f.parent.buildPath() + "/" + f.Name
 }
 
-// pathForFileShare returns the URL path segment for a File Share resource
-func pathForFileShare(name string) string {
-	return fmt.Sprintf("/%s", name)
-}
-
-// ListShares returns the list of shares in a storage account along with
-// pagination token and other response details.
+// ClearRange releases the specified range of space in a file.
 //
-// See https://msdn.microsoft.com/en-us/library/azure/dd179352.aspx
-func (f FileServiceClient) ListShares(params ListSharesParameters) (ShareListResponse, error) {
-	q := mergeParams(params.getParameters(), url.Values{"comp": {"list"}})
-	uri := f.client.getEndpoint(fileServiceName, "", q)
-	headers := f.client.getStandardHeaders()
-
-	var out ShareListResponse
-	resp, err := f.client.exec("GET", uri, headers, nil)
-	if err != nil {
-		return out, err
-	}
-	defer resp.body.Close()
-
-	err = xmlUnmarshal(resp.body, &out)
-	return out, err
-}
-
-// CreateShare operation creates a new share under the specified account. If the
-// share with the same name already exists, the operation fails.
-//
-// See https://msdn.microsoft.com/en-us/library/azure/dn167008.aspx
-func (f FileServiceClient) CreateShare(name string) error {
-	resp, err := f.createShare(name)
+// See https://msdn.microsoft.com/en-us/library/azure/dn194276.aspx
+func (f *File) ClearRange(fileRange FileRange) error {
+	headers, err := f.modifyRange(nil, fileRange, nil)
 	if err != nil {
 		return err
 	}
-	defer resp.body.Close()
-	return checkRespCode(resp.statusCode, []int{http.StatusCreated})
+
+	f.updateEtagAndLastModified(headers)
+	return nil
 }
 
-// ShareExists returns true if a share with given name exists
-// on the storage account, otherwise returns false.
-func (f FileServiceClient) ShareExists(name string) (bool, error) {
-	uri := f.client.getEndpoint(fileServiceName, pathForFileShare(name), url.Values{"restype": {"share"}})
-	headers := f.client.getStandardHeaders()
-
-	resp, err := f.client.exec("HEAD", uri, headers, nil)
-	if resp != nil {
-		defer resp.body.Close()
-		if resp.statusCode == http.StatusOK || resp.statusCode == http.StatusNotFound {
-			return resp.statusCode == http.StatusOK, nil
-		}
-	}
-	return false, err
-}
-
-// GetShareURL gets the canonical URL to the share with the specified name in the
-// specified container. This method does not create a publicly accessible URL if
-// the file is private and this method does not check if the file
-// exists.
-func (f FileServiceClient) GetShareURL(name string) string {
-	return f.client.getEndpoint(fileServiceName, pathForFileShare(name), url.Values{})
-}
-
-// CreateShareIfNotExists creates a new share under the specified account if
-// it does not exist. Returns true if container is newly created or false if
-// container already exists.
+// Create creates a new file or replaces an existing one.
 //
-// See https://msdn.microsoft.com/en-us/library/azure/dn167008.aspx
-func (f FileServiceClient) CreateShareIfNotExists(name string) (bool, error) {
-	resp, err := f.createShare(name)
-	if resp != nil {
-		defer resp.body.Close()
-		if resp.statusCode == http.StatusCreated || resp.statusCode == http.StatusConflict {
-			return resp.statusCode == http.StatusCreated, nil
-		}
-	}
-	return false, err
-}
-
-// CreateShare creates a Azure File Share and returns its response
-func (f FileServiceClient) createShare(name string) (*storageResponse, error) {
-	if err := f.checkForStorageEmulator(); err != nil {
-		return nil, err
-	}
-	uri := f.client.getEndpoint(fileServiceName, pathForFileShare(name), url.Values{"restype": {"share"}})
-	headers := f.client.getStandardHeaders()
-	return f.client.exec("PUT", uri, headers, nil)
-}
-
-// GetShareProperties provides various information about the specified
-// file. See https://msdn.microsoft.com/en-us/library/azure/dn689099.aspx
-func (f FileServiceClient) GetShareProperties(name string) (*ShareProperties, error) {
-	uri := f.client.getEndpoint(fileServiceName, pathForFileShare(name), url.Values{"restype": {"share"}})
-
-	headers := f.client.getStandardHeaders()
-	resp, err := f.client.exec("HEAD", uri, headers, nil)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.body.Close()
-
-	if err := checkRespCode(resp.statusCode, []int{http.StatusOK}); err != nil {
-		return nil, err
+// See https://msdn.microsoft.com/en-us/library/azure/dn194271.aspx
+func (f *File) Create(maxSize uint64) error {
+	if maxSize > oneTB {
+		return fmt.Errorf("max file size is 1TB")
 	}
 
-	return &ShareProperties{
-		LastModified: resp.headers.Get("Last-Modified"),
-		Etag:         resp.headers.Get("Etag"),
-		Quota:        resp.headers.Get("x-ms-share-quota"),
-	}, nil
-}
-
-// SetShareProperties replaces the ShareHeaders for the specified file.
-//
-// Some keys may be converted to Camel-Case before sending. All keys
-// are returned in lower case by SetShareProperties. HTTP header names
-// are case-insensitive so case munging should not matter to other
-// applications either.
-//
-// See https://msdn.microsoft.com/en-us/library/azure/mt427368.aspx
-func (f FileServiceClient) SetShareProperties(name string, shareHeaders ShareHeaders) error {
-	params := url.Values{}
-	params.Set("restype", "share")
-	params.Set("comp", "properties")
-
-	uri := f.client.getEndpoint(fileServiceName, pathForFileShare(name), params)
-	headers := f.client.getStandardHeaders()
-
-	extraHeaders := headersFromStruct(shareHeaders)
-
-	for k, v := range extraHeaders {
-		headers[k] = v
+	extraHeaders := map[string]string{
+		"x-ms-content-length": strconv.FormatUint(maxSize, 10),
+		"x-ms-type":           "file",
 	}
 
-	resp, err := f.client.exec("PUT", uri, headers, nil)
+	headers, err := f.fsc.createResource(f.buildPath(), resourceFile, mergeMDIntoExtraHeaders(f.Metadata, extraHeaders))
 	if err != nil {
 		return err
 	}
-	defer resp.body.Close()
 
-	return checkRespCode(resp.statusCode, []int{http.StatusOK})
+	f.Properties.Length = maxSize
+	f.updateEtagAndLastModified(headers)
+	return nil
 }
 
-// DeleteShare operation marks the specified share for deletion. The share
-// and any files contained within it are later deleted during garbage
-// collection.
+// Delete immediately removes this file from the storage account.
 //
-// See https://msdn.microsoft.com/en-us/library/azure/dn689090.aspx
-func (f FileServiceClient) DeleteShare(name string) error {
-	resp, err := f.deleteShare(name)
-	if err != nil {
-		return err
-	}
-	defer resp.body.Close()
-	return checkRespCode(resp.statusCode, []int{http.StatusAccepted})
+// See https://msdn.microsoft.com/en-us/library/azure/dn689085.aspx
+func (f *File) Delete() error {
+	return f.fsc.deleteResource(f.buildPath(), resourceFile)
 }
 
-// DeleteShareIfExists operation marks the specified share for deletion if it
-// exists. The share and any files contained within it are later deleted during
-// garbage collection. Returns true if share existed and deleted with this call,
-// false otherwise.
+// DeleteIfExists removes this file if it exists.
 //
-// See https://msdn.microsoft.com/en-us/library/azure/dn689090.aspx
-func (f FileServiceClient) DeleteShareIfExists(name string) (bool, error) {
-	resp, err := f.deleteShare(name)
+// See https://msdn.microsoft.com/en-us/library/azure/dn689085.aspx
+func (f *File) DeleteIfExists() (bool, error) {
+	resp, err := f.fsc.deleteResourceNoClose(f.buildPath(), resourceFile)
 	if resp != nil {
 		defer resp.body.Close()
 		if resp.statusCode == http.StatusAccepted || resp.statusCode == http.StatusNotFound {
@@ -254,99 +135,226 @@ func (f FileServiceClient) DeleteShareIfExists(name string) (bool, error) {
 	return false, err
 }
 
-// deleteShare makes the call to Delete Share operation endpoint and returns
-// the response
-func (f FileServiceClient) deleteShare(name string) (*storageResponse, error) {
-	if err := f.checkForStorageEmulator(); err != nil {
-		return nil, err
+// DownloadRangeToStream operation downloads the specified range of this file with optional MD5 hash.
+//
+// See https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/get-file
+func (f *File) DownloadRangeToStream(fileRange FileRange, getContentMD5 bool) (fs FileStream, err error) {
+	if getContentMD5 && isRangeTooBig(fileRange) {
+		return fs, fmt.Errorf("must specify a range less than or equal to 4MB when getContentMD5 is true")
 	}
-	uri := f.client.getEndpoint(fileServiceName, pathForFileShare(name), url.Values{"restype": {"share"}})
-	return f.client.exec("DELETE", uri, f.client.getStandardHeaders(), nil)
+
+	extraHeaders := map[string]string{
+		"Range": fileRange.String(),
+	}
+	if getContentMD5 == true {
+		extraHeaders["x-ms-range-get-content-md5"] = "true"
+	}
+
+	resp, err := f.fsc.getResourceNoClose(f.buildPath(), compNone, resourceFile, http.MethodGet, extraHeaders)
+	if err != nil {
+		return fs, err
+	}
+
+	if err = checkRespCode(resp.statusCode, []int{http.StatusOK, http.StatusPartialContent}); err != nil {
+		resp.body.Close()
+		return fs, err
+	}
+
+	fs.Body = resp.body
+	if getContentMD5 {
+		fs.ContentMD5 = resp.headers.Get("Content-MD5")
+	}
+	return fs, nil
 }
 
-// SetShareMetadata replaces the metadata for the specified Share.
-//
-// Some keys may be converted to Camel-Case before sending. All keys
-// are returned in lower case by GetShareMetadata. HTTP header names
-// are case-insensitive so case munging should not matter to other
-// applications either.
-//
-// See https://msdn.microsoft.com/en-us/library/azure/dd179414.aspx
-func (f FileServiceClient) SetShareMetadata(name string, metadata map[string]string, extraHeaders map[string]string) error {
-	params := url.Values{}
-	params.Set("restype", "share")
-	params.Set("comp", "metadata")
-
-	uri := f.client.getEndpoint(fileServiceName, pathForFileShare(name), params)
-	headers := f.client.getStandardHeaders()
-	for k, v := range metadata {
-		headers[userDefinedMetadataHeaderPrefix+k] = v
+// Exists returns true if this file exists.
+func (f *File) Exists() (bool, error) {
+	exists, headers, err := f.fsc.resourceExists(f.buildPath(), resourceFile)
+	if exists {
+		f.updateEtagAndLastModified(headers)
+		f.updateProperties(headers)
 	}
+	return exists, err
+}
 
-	for k, v := range extraHeaders {
-		headers[k] = v
-	}
-
-	resp, err := f.client.exec("PUT", uri, headers, nil)
+// FetchAttributes updates metadata and properties for this file.
+func (f *File) FetchAttributes() error {
+	headers, err := f.fsc.getResourceHeaders(f.buildPath(), compNone, resourceFile, http.MethodHead)
 	if err != nil {
 		return err
 	}
-	defer resp.body.Close()
 
-	return checkRespCode(resp.statusCode, []int{http.StatusOK})
+	f.updateEtagAndLastModified(headers)
+	f.updateProperties(headers)
+	f.Metadata = getMetadataFromHeaders(headers)
+	return nil
 }
 
-// GetShareMetadata returns all user-defined metadata for the specified share.
-//
-// All metadata keys will be returned in lower case. (HTTP header
-// names are case-insensitive.)
-//
-// See https://msdn.microsoft.com/en-us/library/azure/dd179414.aspx
-func (f FileServiceClient) GetShareMetadata(name string) (map[string]string, error) {
-	params := url.Values{}
-	params.Set("restype", "share")
-	params.Set("comp", "metadata")
+// returns true if the range is larger than 4MB
+func isRangeTooBig(fileRange FileRange) bool {
+	if fileRange.End-fileRange.Start > fourMB {
+		return true
+	}
 
-	uri := f.client.getEndpoint(fileServiceName, pathForFileShare(name), params)
-	headers := f.client.getStandardHeaders()
+	return false
+}
 
-	resp, err := f.client.exec("GET", uri, headers, nil)
+// ListRanges returns the list of valid ranges for this file.
+//
+// See https://msdn.microsoft.com/en-us/library/azure/dn166984.aspx
+func (f *File) ListRanges(listRange *FileRange) (*FileRanges, error) {
+	params := url.Values{"comp": {"rangelist"}}
+
+	// add optional range to list
+	var headers map[string]string
+	if listRange != nil {
+		headers = make(map[string]string)
+		headers["Range"] = listRange.String()
+	}
+
+	resp, err := f.fsc.listContent(f.buildPath(), params, headers)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.body.Close()
+	var cl uint64
+	cl, err = strconv.ParseUint(resp.headers.Get("x-ms-content-length"), 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	var out FileRanges
+	out.ContentLength = cl
+	out.ETag = resp.headers.Get("ETag")
+	out.LastModified = resp.headers.Get("Last-Modified")
+
+	err = xmlUnmarshal(resp.body, &out)
+	return &out, err
+}
+
+// modifies a range of bytes in this file
+func (f *File) modifyRange(bytes io.Reader, fileRange FileRange, contentMD5 *string) (http.Header, error) {
+	if err := f.fsc.checkForStorageEmulator(); err != nil {
+		return nil, err
+	}
+	if fileRange.End < fileRange.Start {
+		return nil, errors.New("the value for rangeEnd must be greater than or equal to rangeStart")
+	}
+	if bytes != nil && isRangeTooBig(fileRange) {
+		return nil, errors.New("range cannot exceed 4MB in size")
+	}
+
+	uri := f.fsc.client.getEndpoint(fileServiceName, f.buildPath(), url.Values{"comp": {"range"}})
+
+	// default to clear
+	write := "clear"
+	cl := uint64(0)
+
+	// if bytes is not nil then this is an update operation
+	if bytes != nil {
+		write = "update"
+		cl = (fileRange.End - fileRange.Start) + 1
+	}
+
+	extraHeaders := map[string]string{
+		"Content-Length": strconv.FormatUint(cl, 10),
+		"Range":          fileRange.String(),
+		"x-ms-write":     write,
+	}
+
+	if contentMD5 != nil {
+		extraHeaders["Content-MD5"] = *contentMD5
+	}
+
+	headers := mergeHeaders(f.fsc.client.getStandardHeaders(), extraHeaders)
+	resp, err := f.fsc.client.exec(http.MethodPut, uri, headers, bytes, f.fsc.auth)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.body.Close()
-
-	if err := checkRespCode(resp.statusCode, []int{http.StatusOK}); err != nil {
-		return nil, err
-	}
-
-	metadata := make(map[string]string)
-	for k, v := range resp.headers {
-		// Can't trust CanonicalHeaderKey() to munge case
-		// reliably. "_" is allowed in identifiers:
-		// https://msdn.microsoft.com/en-us/library/azure/dd179414.aspx
-		// https://msdn.microsoft.com/library/aa664670(VS.71).aspx
-		// http://tools.ietf.org/html/rfc7230#section-3.2
-		// ...but "_" is considered invalid by
-		// CanonicalMIMEHeaderKey in
-		// https://golang.org/src/net/textproto/reader.go?s=14615:14659#L542
-		// so k can be "X-Ms-Meta-Foo" or "x-ms-meta-foo_bar".
-		k = strings.ToLower(k)
-		if len(v) == 0 || !strings.HasPrefix(k, strings.ToLower(userDefinedMetadataHeaderPrefix)) {
-			continue
-		}
-		// metadata["foo"] = content of the last X-Ms-Meta-Foo header
-		k = k[len(userDefinedMetadataHeaderPrefix):]
-		metadata[k] = v[len(v)-1]
-	}
-	return metadata, nil
+	return resp.headers, checkRespCode(resp.statusCode, []int{http.StatusCreated})
 }
 
-//checkForStorageEmulator determines if the client is setup for use with
-//Azure Storage Emulator, and returns a relevant error
-func (f FileServiceClient) checkForStorageEmulator() error {
-	if f.client.accountName == StorageEmulatorAccountName {
-		return fmt.Errorf("Error: File service is not currently supported by Azure Storage Emulator")
+// SetMetadata replaces the metadata for this file.
+//
+// Some keys may be converted to Camel-Case before sending. All keys
+// are returned in lower case by GetFileMetadata. HTTP header names
+// are case-insensitive so case munging should not matter to other
+// applications either.
+//
+// See https://msdn.microsoft.com/en-us/library/azure/dn689097.aspx
+func (f *File) SetMetadata() error {
+	headers, err := f.fsc.setResourceHeaders(f.buildPath(), compMetadata, resourceFile, mergeMDIntoExtraHeaders(f.Metadata, nil))
+	if err != nil {
+		return err
 	}
+
+	f.updateEtagAndLastModified(headers)
+	return nil
+}
+
+// SetProperties sets system properties on this file.
+//
+// Some keys may be converted to Camel-Case before sending. All keys
+// are returned in lower case by SetFileProperties. HTTP header names
+// are case-insensitive so case munging should not matter to other
+// applications either.
+//
+// See https://msdn.microsoft.com/en-us/library/azure/dn166975.aspx
+func (f *File) SetProperties() error {
+	headers, err := f.fsc.setResourceHeaders(f.buildPath(), compProperties, resourceFile, headersFromStruct(f.Properties))
+	if err != nil {
+		return err
+	}
+
+	f.updateEtagAndLastModified(headers)
+	return nil
+}
+
+// updates Etag and last modified date
+func (f *File) updateEtagAndLastModified(headers http.Header) {
+	f.Properties.Etag = headers.Get("Etag")
+	f.Properties.LastModified = headers.Get("Last-Modified")
+}
+
+// updates file properties from the specified HTTP header
+func (f *File) updateProperties(header http.Header) {
+	size, err := strconv.ParseUint(header.Get("Content-Length"), 10, 64)
+	if err == nil {
+		f.Properties.Length = size
+	}
+
+	f.updateEtagAndLastModified(header)
+	f.Properties.CacheControl = header.Get("Cache-Control")
+	f.Properties.Disposition = header.Get("Content-Disposition")
+	f.Properties.Encoding = header.Get("Content-Encoding")
+	f.Properties.Language = header.Get("Content-Language")
+	f.Properties.MD5 = header.Get("Content-MD5")
+	f.Properties.Type = header.Get("Content-Type")
+}
+
+// URL gets the canonical URL to this file.
+// This method does not create a publicly accessible URL if the file
+// is private and this method does not check if the file exists.
+func (f *File) URL() string {
+	return f.fsc.client.getEndpoint(fileServiceName, f.buildPath(), url.Values{})
+}
+
+// WriteRange writes a range of bytes to this file with an optional MD5 hash of the content.
+// Note that the length of bytes must match (rangeEnd - rangeStart) + 1 with a maximum size of 4MB.
+//
+// See https://msdn.microsoft.com/en-us/library/azure/dn194276.aspx
+func (f *File) WriteRange(bytes io.Reader, fileRange FileRange, contentMD5 *string) error {
+	if bytes == nil {
+		return errors.New("bytes cannot be nil")
+	}
+
+	headers, err := f.modifyRange(bytes, fileRange, contentMD5)
+	if err != nil {
+		return err
+	}
+
+	f.updateEtagAndLastModified(headers)
 	return nil
 }
