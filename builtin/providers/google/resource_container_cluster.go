@@ -28,6 +28,7 @@ func resourceContainerCluster() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				MaxItems: 1,
+				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"client_certificate": &schema.Schema{
