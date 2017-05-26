@@ -31,18 +31,35 @@ resource "cloudstack_instance" "web" {
 }
 ```
 
+```hcl
+# Configure the CloudStack Provider using CloudMonkey's configuration file
+provider "cloudstack" {
+  config  = "${pathexpand("~/.cloudmonkey/config")}"
+  profile = "my_profile"
+}
+
+# Create a web server
+resource "cloudstack_instance" "web" {
+  # ...
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
 
-* `api_url` - (Required) This is the CloudStack API URL. It must be provided, but
+* `api_url` - (Optional) This is the CloudStack API URL. It must be provided, but
   it can also be sourced from the `CLOUDSTACK_API_URL` environment variable.
 
-* `api_key` - (Required) This is the CloudStack API key. It must be provided, but
+* `api_key` - (Optional) This is the CloudStack API key. It must be provided, but
   it can also be sourced from the `CLOUDSTACK_API_KEY` environment variable.
 
-* `secret_key` - (Required) This is the CloudStack secret key. It must be provided,
+* `secret_key` - (Optional) This is the CloudStack secret key. It must be provided,
   but it can also be sourced from the `CLOUDSTACK_SECRET_KEY` environment variable.
+
+* `config` - (Optional) This is the path of the CloudMonkey's configuration file.
+
+* `profile` - (Optional) This is the CloudMonkey's profile to use.
 
 * `http_get_only` - (Optional) Some cloud providers only allow HTTP GET calls to
   their CloudStack API. If using such a provider, you need to set this to `true`
