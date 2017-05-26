@@ -7,10 +7,11 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	pkgApi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/errors"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	pkgApi "k8s.io/apimachinery/pkg/types"
 	api "k8s.io/kubernetes/pkg/api/v1"
-	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_5"
+	kubernetes "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 )
 
 func resourceKubernetesPersistentVolume() *schema.Resource {
@@ -91,7 +92,7 @@ func resourceKubernetesPersistentVolumeCreate(d *schema.ResourceData, meta inter
 		Pending: []string{"Pending"},
 		Timeout: 5 * time.Minute,
 		Refresh: func() (interface{}, string, error) {
-			out, err := conn.CoreV1().PersistentVolumes().Get(metadata.Name)
+			out, err := conn.CoreV1().PersistentVolumes().Get(metadata.Name, meta_v1.GetOptions{})
 			if err != nil {
 				log.Printf("[ERROR] Received error: %#v", err)
 				return out, "Error", err
@@ -118,7 +119,7 @@ func resourceKubernetesPersistentVolumeRead(d *schema.ResourceData, meta interfa
 
 	name := d.Id()
 	log.Printf("[INFO] Reading persistent volume %s", name)
-	volume, err := conn.CoreV1().PersistentVolumes().Get(name)
+	volume, err := conn.CoreV1().PersistentVolumes().Get(name, meta_v1.GetOptions{})
 	if err != nil {
 		log.Printf("[DEBUG] Received error: %#v", err)
 		return err
@@ -168,7 +169,7 @@ func resourceKubernetesPersistentVolumeDelete(d *schema.ResourceData, meta inter
 
 	name := d.Id()
 	log.Printf("[INFO] Deleting persistent volume: %#v", name)
-	err := conn.CoreV1().PersistentVolumes().Delete(name, &api.DeleteOptions{})
+	err := conn.CoreV1().PersistentVolumes().Delete(name, &meta_v1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
@@ -184,7 +185,7 @@ func resourceKubernetesPersistentVolumeExists(d *schema.ResourceData, meta inter
 
 	name := d.Id()
 	log.Printf("[INFO] Checking persistent volume %s", name)
-	_, err := conn.CoreV1().PersistentVolumes().Get(name)
+	_, err := conn.CoreV1().PersistentVolumes().Get(name, meta_v1.GetOptions{})
 	if err != nil {
 		if statusErr, ok := err.(*errors.StatusError); ok && statusErr.ErrStatus.Code == 404 {
 			return false, nil
