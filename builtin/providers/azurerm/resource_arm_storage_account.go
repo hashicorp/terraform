@@ -59,9 +59,10 @@ func resourceArmStorageAccount() *schema.Resource {
 			},
 
 			"account_type": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validateArmStorageAccountType,
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateFunc:     validateArmStorageAccountType,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			// Only valid for BlobStorage accounts, defaults to "Hot" in create function
