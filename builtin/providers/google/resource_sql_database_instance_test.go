@@ -67,7 +67,6 @@ func sweepDatabases(c interface{}) error {
 
 	for _, d := range found.Items {
 		var testDbInstance bool
-		log.Printf("\n@@@\nCloud instance type: %s", d.InstanceType)
 		for _, testName := range []string{"tf-lw-", "sqldatabasetest"} {
 			if strings.HasPrefix(d.Name, testName) {
 				testDbInstance = true
@@ -80,28 +79,43 @@ func sweepDatabases(c interface{}) error {
 
 		log.Printf("Destroying SQL Instance (%s)", d.Name)
 
+		var ordering []string
+
 		// need to stop replication
-		for i, r := range d.ReplicaNames {
-			log.Printf("\n\tstopping replication (%d) on %s", i, r)
-			op, err := config.clientSqlAdmin.Instances.StopReplica(config.Project, r).Do()
+		for i, replicaName := range d.ReplicaNames {
+			log.Printf("\n\tstopping replicaNametion (%d) on %s", i, replicaName)
+			op, err := config.clientSqlAdmin.Instances.StopReplica(config.Project, replicaName).Do()
 
 			if err != nil {
-				return fmt.Errorf("Error, failed to stop replicating instance (%s) for instance (%s): %s", r, d.Name, err)
+				return fmt.Errorf("Error, failed to stop replica instance (%s) for instance (%s): %s", replicaName, d.Name, err)
 			}
 
-			err = sqladminOperationWait(config, op, "Stop replication")
+			err = sqladminOperationWait(config, op, "Stop Replica")
 			if err != nil {
 				if strings.Contains(err.Error(), "does not exist") {
 					log.Printf("SQL instance not found")
-					continue
+				} else {
+					return err
 				}
-				return err
 			}
 
-			op, err = config.clientSqlAdmin.Instances.Delete(config.Project, r).Do()
+			ordering = append(ordering, replicaName)
+		}
+
+		ordering = append(ordering, d.Name)
+
+		for i, db := range ordering {
+			// destroy instances
+			log.Printf("\n\tDestroying (%d) - (%s)", i, db)
+			op, err := config.clientSqlAdmin.Instances.Delete(config.Project, db).Do()
 
 			if err != nil {
-				return fmt.Errorf("Error, failed to delete instance %s: %s", r, err)
+				if strings.Contains(err.Error(), "409") {
+					log.Printf("SQL instance not found")
+					continue
+				}
+
+				return fmt.Errorf("Error, failed to delete instance %s: %s", db, err)
 			}
 
 			err = sqladminOperationWait(config, op, "Delete Instance")
@@ -112,22 +126,6 @@ func sweepDatabases(c interface{}) error {
 				}
 				return err
 			}
-		}
-
-		// destroy instances
-		op, err := config.clientSqlAdmin.Instances.Delete(config.Project, d.Name).Do()
-
-		if err != nil {
-			return fmt.Errorf("Error, failed to delete instance %s: %s", d.Name, err)
-		}
-
-		err = sqladminOperationWait(config, op, "Delete Instance")
-		if err != nil {
-			if strings.Contains(err.Error(), "does not exist") {
-				log.Printf("SQL instance not found")
-				continue
-			}
-			return err
 		}
 	}
 
