@@ -13,7 +13,7 @@ import (
 )
 
 func TestAccHerokuSpace_Basic(t *testing.T) {
-	var space heroku.SpaceInfoResult
+	var space heroku.Space
 	spaceName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
 	spaceName2 := fmt.Sprintf("tftest-%s", acctest.RandString(10))
 	org := os.Getenv("HEROKU_ORGANIZATION")
@@ -56,7 +56,7 @@ resource "heroku_space" "foobar" {
 `, spaceName, orgName)
 }
 
-func testAccCheckHerokuSpaceExists(n string, space *heroku.SpaceInfoResult) resource.TestCheckFunc {
+func testAccCheckHerokuSpaceExists(n string, space *heroku.Space) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -85,7 +85,7 @@ func testAccCheckHerokuSpaceExists(n string, space *heroku.SpaceInfoResult) reso
 	}
 }
 
-func testAccCheckHerokuSpaceAttributes(space *heroku.SpaceInfoResult, spaceName string) resource.TestCheckFunc {
+func testAccCheckHerokuSpaceAttributes(space *heroku.Space, spaceName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if space.Name != spaceName {
 			return fmt.Errorf("Bad name: %s", space.Name)

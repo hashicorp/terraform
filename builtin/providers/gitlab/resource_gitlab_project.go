@@ -21,6 +21,10 @@ func resourceGitlabProject() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"namespace_id": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
 			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -95,6 +99,10 @@ func resourceGitlabProjectCreate(d *schema.ResourceData, meta interface{}) error
 		MergeRequestsEnabled: gitlab.Bool(d.Get("merge_requests_enabled").(bool)),
 		WikiEnabled:          gitlab.Bool(d.Get("wiki_enabled").(bool)),
 		SnippetsEnabled:      gitlab.Bool(d.Get("snippets_enabled").(bool)),
+	}
+
+	if v, ok := d.GetOk("namespace_id"); ok {
+		options.NamespaceID = gitlab.Int(v.(int))
 	}
 
 	if v, ok := d.GetOk("description"); ok {

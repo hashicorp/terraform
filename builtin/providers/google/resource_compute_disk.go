@@ -3,10 +3,19 @@ package google
 import (
 	"fmt"
 	"log"
+	"regexp"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
+)
+
+const (
+	computeDiskUserRegexString = "^(?:https://www.googleapis.com/compute/v1/projects/)?([-_a-zA-Z0-9]*)/zones/([-_a-zA-Z0-9]*)/instances/([-_a-zA-Z0-9]*)$"
+)
+
+var (
+	computeDiskUserRegex = regexp.MustCompile(computeDiskUserRegexString)
 )
 
 func resourceComputeDisk() *schema.Resource {
@@ -74,6 +83,11 @@ func resourceComputeDisk() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"users": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 		},
 	}
 }
@@ -129,17 +143,21 @@ func resourceComputeDiskCreate(d *schema.ResourceData, meta interface{}) error {
 
 	if v, ok := d.GetOk("snapshot"); ok {
 		snapshotName := v.(string)
-		log.Printf("[DEBUG] Loading snapshot: %s", snapshotName)
-		snapshotData, err := config.clientCompute.Snapshots.Get(
-			project, snapshotName).Do()
+		match, _ := regexp.MatchString("^https://www.googleapis.com/compute", snapshotName)
+		if match {
+			disk.SourceSnapshot = snapshotName
+		} else {
+			log.Printf("[DEBUG] Loading snapshot: %s", snapshotName)
+			snapshotData, err := config.clientCompute.Snapshots.Get(
+				project, snapshotName).Do()
 
-		if err != nil {
-			return fmt.Errorf(
-				"Error loading snapshot '%s': %s",
-				snapshotName, err)
+			if err != nil {
+				return fmt.Errorf(
+					"Error loading snapshot '%s': %s",
+					snapshotName, err)
+			}
+			disk.SourceSnapshot = snapshotData.SelfLink
 		}
-
-		disk.SourceSnapshot = snapshotData.SelfLink
 	}
 
 	if v, ok := d.GetOk("disk_encryption_key_raw"); ok {
@@ -181,6 +199,7 @@ func resourceComputeDiskRead(d *schema.ResourceData, meta interface{}) error {
 	if disk.DiskEncryptionKey != nil && disk.DiskEncryptionKey.Sha256 != "" {
 		d.Set("disk_encryption_key_sha256", disk.DiskEncryptionKey.Sha256)
 	}
+	d.Set("users", disk.Users)
 
 	return nil
 }
@@ -191,6 +210,52 @@ func resourceComputeDiskDelete(d *schema.ResourceData, meta interface{}) error {
 	project, err := getProject(d, config)
 	if err != nil {
 		return err
+	}
+
+	// if disks are attached, they must be detached before the disk can be deleted
+	if instances, ok := d.Get("users").([]interface{}); ok {
+		type detachArgs struct{ project, zone, instance, deviceName string }
+		var detachCalls []detachArgs
+		self := d.Get("self_link").(string)
+		for _, instance := range instances {
+			if !computeDiskUserRegex.MatchString(instance.(string)) {
+				return fmt.Errorf("Unknown user %q of disk %q", instance, self)
+			}
+			matches := computeDiskUserRegex.FindStringSubmatch(instance.(string))
+			instanceProject := matches[1]
+			instanceZone := matches[2]
+			instanceName := matches[3]
+			i, err := config.clientCompute.Instances.Get(instanceProject, instanceZone, instanceName).Do()
+			if err != nil {
+				if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+					log.Printf("[WARN] instance %q not found, not bothering to detach disks", instance.(string))
+					continue
+				}
+				return fmt.Errorf("Error retrieving instance %s: %s", instance.(string), err.Error())
+			}
+			for _, disk := range i.Disks {
+				if disk.Source == self {
+					detachCalls = append(detachCalls, detachArgs{
+						project:    project,
+						zone:       i.Zone,
+						instance:   i.Name,
+						deviceName: disk.DeviceName,
+					})
+				}
+			}
+		}
+		for _, call := range detachCalls {
+			op, err := config.clientCompute.Instances.DetachDisk(call.project, call.zone, call.instance, call.deviceName).Do()
+			if err != nil {
+				return fmt.Errorf("Error detaching disk %s from instance %s/%s/%s: %s", call.deviceName, call.project,
+					call.zone, call.instance, err.Error())
+			}
+			err = computeOperationWaitZone(config, op, call.project, call.zone,
+				fmt.Sprintf("Detaching disk from %s/%s/%s", call.project, call.zone, call.instance))
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	// Delete the disk

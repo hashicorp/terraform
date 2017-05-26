@@ -505,12 +505,14 @@ func resourceServiceV1() *schema.Resource {
 							Optional:    true,
 							DefaultFunc: schema.EnvDefaultFunc("FASTLY_S3_ACCESS_KEY", ""),
 							Description: "AWS Access Key",
+							Sensitive:   true,
 						},
 						"s3_secret_key": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							DefaultFunc: schema.EnvDefaultFunc("FASTLY_S3_SECRET_KEY", ""),
 							Description: "AWS Secret Key",
+							Sensitive:   true,
 						},
 						// Optional fields
 						"path": {
@@ -673,6 +675,7 @@ func resourceServiceV1() *schema.Resource {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "The secret key associated with the target gcs bucket on your account.",
+							Sensitive:   true,
 						},
 						// Optional fields
 						"path": {

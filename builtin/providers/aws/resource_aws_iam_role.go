@@ -258,8 +258,17 @@ func resourceAwsIamRoleDelete(d *schema.ResourceData, meta interface{}) error {
 		RoleName: aws.String(d.Id()),
 	}
 
-	if _, err := iamconn.DeleteRole(request); err != nil {
-		return fmt.Errorf("Error deleting IAM Role %s: %s", d.Id(), err)
-	}
-	return nil
+	// IAM is eventually consistent and deletion of attached policies may take time
+	return resource.Retry(30*time.Second, func() *resource.RetryError {
+		_, err := iamconn.DeleteRole(request)
+		if err != nil {
+			awsErr, ok := err.(awserr.Error)
+			if ok && awsErr.Code() == "DeleteConflict" {
+				return resource.RetryableError(err)
+			}
+
+			return resource.NonRetryableError(fmt.Errorf("Error deleting IAM Role %s: %s", d.Id(), err))
+		}
+		return nil
+	})
 }

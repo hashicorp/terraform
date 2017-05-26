@@ -108,7 +108,7 @@ func testAccCheckAWSSNSTopicSubscriptionExists(n string) resource.TestCheckFunc 
 func testAccAWSSNSTopicSubscriptionConfig(i int) string {
 	return fmt.Sprintf(`
 resource "aws_sns_topic" "test_topic" {
-    name = "terraform-test-topic"
+    name = "terraform-test-topic-%d"
 }
 
 resource "aws_sqs_queue" "test_queue" {
@@ -120,7 +120,7 @@ resource "aws_sns_topic_subscription" "test_subscription" {
     protocol = "sqs"
     endpoint = "${aws_sqs_queue.test_queue.arn}"
 }
-`, i)
+`, i, i)
 }
 
 func testAccAWSSNSTopicSubscriptionConfig_autoConfirmingEndpoint(i int) string {
