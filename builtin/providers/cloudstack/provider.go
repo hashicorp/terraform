@@ -1,7 +1,7 @@
 package cloudstack
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/go-ini/ini"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -90,17 +90,33 @@ func Provider() terraform.ResourceProvider {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	apiURL := d.Get("api_url").(string)
-	apiKey := d.Get("api_key").(string)
-	secretKey := d.Get("secret_key").(string)
+	apiURL, apiURLOK := d.GetOk("api_url")
+	apiKey, apiKeyOK := d.GetOk("api_key")
+	secretKey, secretKeyOK := d.GetOk("secret_key")
+	config, configOK := d.GetOk("config")
+	profile, profileOK := d.GetOk("profile")
 
-	if configFile, ok := d.GetOk("config"); ok {
-		config, err := ini.Load(configFile.(string))
+	switch {
+	case apiURLOK, apiKeyOK, secretKeyOK:
+		if !(apiURLOK && apiKeyOK && secretKeyOK) {
+			return nil, errors.New("'api_url', 'api_key' and 'secret_key' should all have values")
+		}
+	case configOK, profileOK:
+		if !(configOK && profileOK) {
+			return nil, errors.New("'config' and 'profile' should both have a value")
+		}
+	default:
+		return nil, errors.New(
+			"either 'api_url', 'api_key' and 'secret_key' or 'config' and 'profile' should have values")
+	}
+
+	if configOK && profileOK {
+		cfg, err := ini.Load(config.(string))
 		if err != nil {
 			return nil, err
 		}
 
-		section, err := config.GetSection(d.Get("profile").(string))
+		section, err := cfg.GetSection(profile.(string))
 		if err != nil {
 			return nil, err
 		}
@@ -110,17 +126,13 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		secretKey = section.Key("secretkey").String()
 	}
 
-	if apiURL == "" || apiKey == "" || secretKey == "" {
-		return nil, fmt.Errorf("No api_url or api_key or secretKey provided")
-	}
-
-	config := Config{
-		APIURL:      apiURL,
-		APIKey:      apiKey,
-		SecretKey:   secretKey,
+	cfg := Config{
+		APIURL:      apiURL.(string),
+		APIKey:      apiKey.(string),
+		SecretKey:   secretKey.(string),
 		HTTPGETOnly: d.Get("http_get_only").(bool),
 		Timeout:     int64(d.Get("timeout").(int)),
 	}
 
-	return config.NewClient()
+	return cfg.NewClient()
 }
