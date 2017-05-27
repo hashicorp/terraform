@@ -57,121 +57,95 @@ resource "azurerm_network_security_group" "master_nsg" {
   }
 }
 
-resource "azurerm_network_security_group" "infra_nsg" {
-  name                = "${var.openshift_cluster_prefix}-infra-nsg"
-  location            = "${azurerm_resource_group.rg.location}"
-  resource_group_name = "${azurerm_resource_group.rg.name}"
+# resource "azurerm_network_security_group" "infra_nsg" {
+#   name                = "${var.openshift_cluster_prefix}-infra-nsg"
+#   location            = "${azurerm_resource_group.rg.location}"
+#   resource_group_name = "${azurerm_resource_group.rg.name}"
 
-  security_rule {
-    name                       = "allow_SSH_in_all"
-    description                = "Allow SSH in from all locations"
-    priority                   = 100
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "22"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
+#   security_rule {
+#     name                       = "allow_SSH_in_all"
+#     description                = "Allow SSH in from all locations"
+#     priority                   = 100
+#     direction                  = "Inbound"
+#     access                     = "Allow"
+#     protocol                   = "Tcp"
+#     source_port_range          = "*"
+#     destination_port_range     = "22"
+#     source_address_prefix      = "*"
+#     destination_address_prefix = "*"
+#   }
 
-  security_rule {
-    name                       = "allow_HTTPS_all"
-    description                = "Allow HTTPS connections from all locations"
-    priority                   = 200
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "443"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
+#   security_rule {
+#     name                       = "allow_HTTPS_all"
+#     description                = "Allow HTTPS connections from all locations"
+#     priority                   = 200
+#     direction                  = "Inbound"
+#     access                     = "Allow"
+#     protocol                   = "Tcp"
+#     source_port_range          = "*"
+#     destination_port_range     = "443"
+#     source_address_prefix      = "*"
+#     destination_address_prefix = "*"
+#   }
 
-  security_rule {
-    name                       = "allow_HTTP_in_all"
-    description                = "Allow HTTP connections from all locations"
-    priority                   = 300
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "80"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
-}
+#   security_rule {
+#     name                       = "allow_HTTP_in_all"
+#     description                = "Allow HTTP connections from all locations"
+#     priority                   = 300
+#     direction                  = "Inbound"
+#     access                     = "Allow"
+#     protocol                   = "Tcp"
+#     source_port_range          = "*"
+#     destination_port_range     = "80"
+#     source_address_prefix      = "*"
+#     destination_address_prefix = "*"
+#   }
+# }
 
-resource "azurerm_network_security_group" "node_nsg" {
-  name                = "${var.openshift_cluster_prefix}-node-nsg"
-  location            = "${azurerm_resource_group.rg.location}"
-  resource_group_name = "${azurerm_resource_group.rg.name}"
+# resource "azurerm_network_security_group" "node_nsg" {
+#   name                = "${var.openshift_cluster_prefix}-node-nsg"
+#   location            = "${azurerm_resource_group.rg.location}"
+#   resource_group_name = "${azurerm_resource_group.rg.name}"
 
-  security_rule {
-    name                       = "allow_SSH_in_all"
-    description                = "Allow SSH in from all locations"
-    priority                   = 100
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "22"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
+#   security_rule {
+#     name                       = "allow_SSH_in_all"
+#     description                = "Allow SSH in from all locations"
+#     priority                   = 100
+#     direction                  = "Inbound"
+#     access                     = "Allow"
+#     protocol                   = "Tcp"
+#     source_port_range          = "*"
+#     destination_port_range     = "22"
+#     source_address_prefix      = "*"
+#     destination_address_prefix = "*"
+#   }
 
-  security_rule {
-    name                       = "allow_HTTPS_all"
-    description                = "Allow HTTPS connections from all locations"
-    priority                   = 200
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "443"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
+#   security_rule {
+#     name                       = "allow_HTTPS_all"
+#     description                = "Allow HTTPS connections from all locations"
+#     priority                   = 200
+#     direction                  = "Inbound"
+#     access                     = "Allow"
+#     protocol                   = "Tcp"
+#     source_port_range          = "*"
+#     destination_port_range     = "443"
+#     source_address_prefix      = "*"
+#     destination_address_prefix = "*"
+#   }
 
-  security_rule {
-    name                       = "allow_HTTP_in_all"
-    description                = "Allow HTTP connections from all locations"
-    priority                   = 300
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "80"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
-}
-
-# ******* VNETS / SUBNETS ***********
-
-resource "azurerm_virtual_network" "vnet" {
-  name                = "openshiftvnet"
-  location            = "${azurerm_resource_group.rg.location}"
-  resource_group_name = "${azurerm_resource_group.rg.name}"
-  address_space       = ["10.0.0.0/8"]
-  dns_servers         = ["10.0.0.4", "10.0.0.5"]
-}
-
-resource "azurerm_subnet" "master_subnet" {
-  name                      = "mastersubnet"
-  virtual_network_name      = "${azurerm_virtual_network.vnet.name}"
-  resource_group_name       = "${azurerm_resource_group.rg.name}"
-  address_prefix            = "10.1.0.0/16"
-  # network_security_group_id = "${azurerm_network_security_group.master_nsg.id}"
-}
-
-resource "azurerm_subnet" "node_subnet" {
-  name                      = "nodesubnet"
-  virtual_network_name      = "${azurerm_virtual_network.vnet.name}"
-  resource_group_name       = "${azurerm_resource_group.rg.name}"
-  address_prefix            = "10.2.0.0/16"
-  # network_security_group_id = "${azurerm_network_security_group.node_nsg.id}"
-}
+#   security_rule {
+#     name                       = "allow_HTTP_in_all"
+#     description                = "Allow HTTP connections from all locations"
+#     priority                   = 300
+#     direction                  = "Inbound"
+#     access                     = "Allow"
+#     protocol                   = "Tcp"
+#     source_port_range          = "*"
+#     destination_port_range     = "80"
+#     source_address_prefix      = "*"
+#     destination_address_prefix = "*"
+#   }
+# }
 
 # ******* STORAGE ACCOUNTS ***********
 
@@ -182,26 +156,26 @@ resource "azurerm_storage_account" "master_storage_account" {
   account_type        = "${var.storage_account_type_map["${var.master_vm_size}"]}"
 }
 
-resource "azurerm_storage_account" "infra_storage_account" {
-  name                = "${var.openshift_cluster_prefix}infrasa"
-  resource_group_name = "${azurerm_resource_group.rg.name}"
-  location            = "${azurerm_resource_group.rg.location}"
-  account_type        = "${var.storage_account_type_map["${var.infra_vm_size}"]}"
-}
+# resource "azurerm_storage_account" "infra_storage_account" {
+#   name                = "${var.openshift_cluster_prefix}infrasa"
+#   resource_group_name = "${azurerm_resource_group.rg.name}"
+#   location            = "${azurerm_resource_group.rg.location}"
+#   account_type        = "${var.storage_account_type_map["${var.infra_vm_size}"]}"
+# }
 
-resource "azurerm_storage_account" "nodeos_storage_account" {
-  name                = "${var.openshift_cluster_prefix}nodeossa"
-  resource_group_name = "${azurerm_resource_group.rg.name}"
-  location            = "${azurerm_resource_group.rg.location}"
-  account_type        = "${var.storage_account_type_map["${var.node_vm_size}"]}"
-}
+# resource "azurerm_storage_account" "nodeos_storage_account" {
+#   name                = "${var.openshift_cluster_prefix}nodeossa"
+#   resource_group_name = "${azurerm_resource_group.rg.name}"
+#   location            = "${azurerm_resource_group.rg.location}"
+#   account_type        = "${var.storage_account_type_map["${var.node_vm_size}"]}"
+# }
 
-resource "azurerm_storage_account" "nodedata_storage_account" {
-  name                = "${var.openshift_cluster_prefix}nodedatasa"
-  resource_group_name = "${azurerm_resource_group.rg.name}"
-  location            = "${azurerm_resource_group.rg.location}"
-  account_type        = "${var.storage_account_type_map["${var.node_vm_size}"]}"
-}
+# resource "azurerm_storage_account" "nodedata_storage_account" {
+#   name                = "${var.openshift_cluster_prefix}nodedatasa"
+#   resource_group_name = "${azurerm_resource_group.rg.name}"
+#   location            = "${azurerm_resource_group.rg.location}"
+#   account_type        = "${var.storage_account_type_map["${var.node_vm_size}"]}"
+# }
 
 resource "azurerm_storage_account" "registry_storage_account" {
   name                = "${var.openshift_cluster_prefix}regsa"
@@ -217,24 +191,6 @@ resource "azurerm_storage_account" "persistent_volume_storage_account" {
   account_type        = "Standard_LRS"
 }
 
-# ******* IP ADDRESSES ***********
-
-resource "azurerm_public_ip" "openshift_master_pip" {
-  name                         = "masterpip"
-  resource_group_name          = "${azurerm_resource_group.rg.name}"
-  location                     = "${azurerm_resource_group.rg.location}"
-  public_ip_address_allocation = "Static"
-  domain_name_label            = "${var.openshift_master_public_ip_dns_label}masterpip"
-}
-
-resource "azurerm_public_ip" "infra_lb_pip" {
-  name                         = "${var.infra_lb_publicip_dns_label}"
-  resource_group_name          = "${azurerm_resource_group.rg.name}"
-  location                     = "${azurerm_resource_group.rg.location}"
-  public_ip_address_allocation = "Static"
-  domain_name_label            = "${var.infra_lb_publicip_dns_label}infrapip"
-}
-
 # ******* AVAILABILITY SETS ***********
 
 resource "azurerm_availability_set" "master" {
@@ -243,17 +199,59 @@ resource "azurerm_availability_set" "master" {
   location            = "${azurerm_resource_group.rg.location}"
 }
 
-resource "azurerm_availability_set" "infra" {
-  name                = "infraavailabilityset"
-  resource_group_name = "${azurerm_resource_group.rg.name}"
-  location            = "${azurerm_resource_group.rg.location}"
+# resource "azurerm_availability_set" "infra" {
+#   name                = "infraavailabilityset"
+#   resource_group_name = "${azurerm_resource_group.rg.name}"
+#   location            = "${azurerm_resource_group.rg.location}"
+# }
+
+# resource "azurerm_availability_set" "node" {
+#   name                = "nodeavailabilityset"
+#   resource_group_name = "${azurerm_resource_group.rg.name}"
+#   location            = "${azurerm_resource_group.rg.location}"
+# }
+
+# ******* IP ADDRESSES ***********
+
+resource "azurerm_public_ip" "openshift_master_pip" {
+  name                         = "masterpip${count.index}"
+  resource_group_name          = "${azurerm_resource_group.rg.name}"
+  location                     = "${azurerm_resource_group.rg.location}"
+  public_ip_address_allocation = "Static"
+  domain_name_label            = "${var.openshift_cluster_prefix}masterpip${count.index}"
 }
 
-resource "azurerm_availability_set" "node" {
-  name                = "nodeavailabilityset"
-  resource_group_name = "${azurerm_resource_group.rg.name}"
+# resource "azurerm_public_ip" "infra_lb_pip" {
+#   name                         = "${var.infra_lb_publicip_dns_label}"
+#   resource_group_name          = "${azurerm_resource_group.rg.name}"
+#   location                     = "${azurerm_resource_group.rg.location}"
+#   public_ip_address_allocation = "Static"
+#   domain_name_label            = "${var.infra_lb_publicip_dns_label}infrapip"
+# }
+
+# ******* VNETS / SUBNETS ***********
+
+resource "azurerm_virtual_network" "vnet" {
+  name                = "openshiftvnet"
   location            = "${azurerm_resource_group.rg.location}"
+  resource_group_name = "${azurerm_resource_group.rg.name}"
+  address_space       = ["10.0.0.0/8"]
 }
+
+resource "azurerm_subnet" "master_subnet" {
+  name                      = "mastersubnet"
+  virtual_network_name      = "${azurerm_virtual_network.vnet.name}"
+  resource_group_name       = "${azurerm_resource_group.rg.name}"
+  address_prefix            = "10.1.0.0/16"
+}
+
+# resource "azurerm_subnet" "node_subnet" {
+#   name                      = "nodesubnet"
+#   virtual_network_name      = "${azurerm_virtual_network.vnet.name}"
+#   resource_group_name       = "${azurerm_resource_group.rg.name}"
+#   address_prefix            = "10.2.0.0/16"
+#   # network_security_group_id = "${azurerm_network_security_group.node_nsg.id}"
+# }
 
 # ******* MASTER LOAD BALANCER ***********
 
@@ -261,6 +259,7 @@ resource "azurerm_lb" "master_lb" {
   name                = "masterloadbalancer"
   resource_group_name = "${azurerm_resource_group.rg.name}"
   location            = "${azurerm_resource_group.rg.location}"
+  depends_on          = ["azurerm_public_ip.openshift_master_pip"]
 
   frontend_ip_configuration {
     name                 = "LoadBalancerFrontEnd"
@@ -272,6 +271,7 @@ resource "azurerm_lb_backend_address_pool" "master_lb" {
   resource_group_name = "${azurerm_resource_group.rg.name}"
   name                = "loadBalancerBackEnd"
   loadbalancer_id     = "${azurerm_lb.master_lb.id}"
+  depends_on          = ["azurerm_lb.master_lb"]
 }
 
 resource "azurerm_lb_probe" "master_lb" {
@@ -282,6 +282,7 @@ resource "azurerm_lb_probe" "master_lb" {
   interval_in_seconds = 5
   number_of_probes    = 2
   protocol            = "Tcp"
+  depends_on          = ["azurerm_lb.master_lb"]
 }
 
 resource "azurerm_lb_rule" "master_lb" {
@@ -297,6 +298,9 @@ resource "azurerm_lb_rule" "master_lb" {
   idle_timeout_in_minutes        = 30
   probe_id                       = "${azurerm_lb_probe.master_lb.id}"
   enable_floating_ip             = false
+  depends_on                     = ["azurerm_lb_probe.master_lb"]
+  depends_on                     = ["azurerm_lb.master_lb"]
+  depends_on                     = ["azurerm_lb_backend_address_pool.master_lb"]
 }
 
 resource "azurerm_lb_nat_rule" "master_lb" {
@@ -308,72 +312,97 @@ resource "azurerm_lb_nat_rule" "master_lb" {
   backend_port                   = 22
   frontend_ip_configuration_name = "LoadBalancerFrontEnd"
   count                          = "${var.master_instance_count}"
+  depends_on                     = ["azurerm_lb.master_lb"]
 }
 
-# ******* INFRA LOAD BALANCER ***********
+# resource "azurerm_lb_nat_rule" "master_lb_443" {
+#   resource_group_name            = "${azurerm_resource_group.rg.name}"
+#   loadbalancer_id                = "${azurerm_lb.master_lb.id}"
+#   name                           = "${azurerm_lb.master_lb.name}-443-${count.index}"
+#   protocol                       = "Tcp"
+#   frontend_port                  = 443
+#   backend_port                   = 443
+#   frontend_ip_configuration_name = "LoadBalancerFrontEnd"
+#   count                          = "${var.master_instance_count}"
+#   depends_on                     = ["azurerm_lb.master_lb"]
+# }
 
-resource "azurerm_lb" "infra_lb" {
-  name                = "infraloadbalancer"
-  resource_group_name = "${azurerm_resource_group.rg.name}"
-  location            = "${azurerm_resource_group.rg.location}"
+# resource "azurerm_lb_nat_rule" "master_lb_80" {
+#   resource_group_name            = "${azurerm_resource_group.rg.name}"
+#   loadbalancer_id                = "${azurerm_lb.master_lb.id}"
+#   name                           = "${azurerm_lb.master_lb.name}-80-${count.index}"
+#   protocol                       = "Tcp"
+#   frontend_port                  = 80
+#   backend_port                   = 80
+#   frontend_ip_configuration_name = "LoadBalancerFrontEnd"
+#   count                          = "${var.master_instance_count}"
+#   depends_on                     = ["azurerm_lb.master_lb"]
+# }
 
-  frontend_ip_configuration {
-    name                 = "LoadBalancerFrontEnd"
-    public_ip_address_id = "${azurerm_public_ip.infra_lb_pip.id}"
-  }
-}
+# # ******* INFRA LOAD BALANCER ***********
 
-resource "azurerm_lb_backend_address_pool" "infra_lb" {
-  resource_group_name = "${azurerm_resource_group.rg.name}"
-  name                = "loadBalancerBackEnd"
-  loadbalancer_id     = "${azurerm_lb.infra_lb.id}"
-}
+# resource "azurerm_lb" "infra_lb" {
+#   name                = "infraloadbalancer"
+#   resource_group_name = "${azurerm_resource_group.rg.name}"
+#   location            = "${azurerm_resource_group.rg.location}"
 
-resource "azurerm_lb_probe" "infra_lb_http_probe" {
-  resource_group_name = "${azurerm_resource_group.rg.name}"
-  loadbalancer_id     = "${azurerm_lb.infra_lb.id}"
-  name                = "httpProbe"
-  port                = 80
-  interval_in_seconds = 5
-  number_of_probes    = 2
-  protocol            = "Tcp"
-}
+#   frontend_ip_configuration {
+#     name                 = "LoadBalancerFrontEnd"
+#     public_ip_address_id = "${azurerm_public_ip.infra_lb_pip.id}"
+#   }
+# }
 
-resource "azurerm_lb_probe" "infra_lb_https_probe" {
-  resource_group_name = "${azurerm_resource_group.rg.name}"
-  loadbalancer_id     = "${azurerm_lb.infra_lb.id}"
-  name                = "httpsProbe"
-  port                = 443
-  interval_in_seconds = 5
-  number_of_probes    = 2
-  protocol            = "Tcp"
-}
+# resource "azurerm_lb_backend_address_pool" "infra_lb" {
+#   resource_group_name = "${azurerm_resource_group.rg.name}"
+#   name                = "loadBalancerBackEnd"
+#   loadbalancer_id     = "${azurerm_lb.infra_lb.id}"
+# }
 
-resource "azurerm_lb_rule" "infra_lb_http" {
-  resource_group_name            = "${azurerm_resource_group.rg.name}"
-  loadbalancer_id                = "${azurerm_lb.infra_lb.id}"
-  name                           = "OpenShiftRouterHTTP"
-  protocol                       = "Tcp"
-  frontend_port                  = 80
-  backend_port                   = 80
-  frontend_ip_configuration_name = "LoadBalancerFrontEnd"
-  backend_address_pool_id        = "${azurerm_lb_backend_address_pool.infra_lb.id}"
-  idle_timeout_in_minutes        = 30
-  probe_id                       = "${azurerm_lb_probe.infra_lb_http_probe.id}"
-}
+# resource "azurerm_lb_probe" "infra_lb_http_probe" {
+#   resource_group_name = "${azurerm_resource_group.rg.name}"
+#   loadbalancer_id     = "${azurerm_lb.infra_lb.id}"
+#   name                = "httpProbe"
+#   port                = 80
+#   interval_in_seconds = 5
+#   number_of_probes    = 2
+#   protocol            = "Tcp"
+# }
 
-resource "azurerm_lb_rule" "infra_lb_https" {
-  resource_group_name            = "${azurerm_resource_group.rg.name}"
-  loadbalancer_id                = "${azurerm_lb.infra_lb.id}"
-  name                           = "OpenShiftRouterHTTPS"
-  protocol                       = "Tcp"
-  frontend_port                  = 443
-  backend_port                   = 443
-  frontend_ip_configuration_name = "LoadBalancerFrontEnd"
-  backend_address_pool_id        = "${azurerm_lb_backend_address_pool.infra_lb.id}"
-  idle_timeout_in_minutes        = 30
-  probe_id                       = "${azurerm_lb_probe.infra_lb_https_probe.id}"
-}
+# resource "azurerm_lb_probe" "infra_lb_https_probe" {
+#   resource_group_name = "${azurerm_resource_group.rg.name}"
+#   loadbalancer_id     = "${azurerm_lb.infra_lb.id}"
+#   name                = "httpsProbe"
+#   port                = 443
+#   interval_in_seconds = 5
+#   number_of_probes    = 2
+#   protocol            = "Tcp"
+# }
+
+# resource "azurerm_lb_rule" "infra_lb_http" {
+#   resource_group_name            = "${azurerm_resource_group.rg.name}"
+#   loadbalancer_id                = "${azurerm_lb.infra_lb.id}"
+#   name                           = "OpenShiftRouterHTTP"
+#   protocol                       = "Tcp"
+#   frontend_port                  = 80
+#   backend_port                   = 80
+#   frontend_ip_configuration_name = "LoadBalancerFrontEnd"
+#   backend_address_pool_id        = "${azurerm_lb_backend_address_pool.infra_lb.id}"
+#   idle_timeout_in_minutes        = 30
+#   probe_id                       = "${azurerm_lb_probe.infra_lb_http_probe.id}"
+# }
+
+# resource "azurerm_lb_rule" "infra_lb_https" {
+#   resource_group_name            = "${azurerm_resource_group.rg.name}"
+#   loadbalancer_id                = "${azurerm_lb.infra_lb.id}"
+#   name                           = "OpenShiftRouterHTTPS"
+#   protocol                       = "Tcp"
+#   frontend_port                  = 443
+#   backend_port                   = 443
+#   frontend_ip_configuration_name = "LoadBalancerFrontEnd"
+#   backend_address_pool_id        = "${azurerm_lb_backend_address_pool.infra_lb.id}"
+#   idle_timeout_in_minutes        = 30
+#   probe_id                       = "${azurerm_lb_probe.infra_lb_https_probe.id}"
+# }
 
 # ******* NETWORK INTERFACES ***********
 
@@ -383,6 +412,9 @@ resource "azurerm_network_interface" "master_nic" {
   resource_group_name       = "${azurerm_resource_group.rg.name}"
   network_security_group_id = "${azurerm_network_security_group.master_nsg.id}"
   count                     = "${var.master_instance_count}"
+  depends_on                = ["azurerm_subnet.master_subnet"]
+  depends_on                = ["azurerm_lb_nat_rule.master_lb"]
+  depends_on                = ["azurerm_lb_backend_address_pool.master_lb"]
 
   ip_configuration {
     name                                    = "masteripconfig${count.index}"
@@ -393,45 +425,47 @@ resource "azurerm_network_interface" "master_nic" {
   }
 }
 
-resource "azurerm_network_interface" "infra_nic" {
-  name                      = "infra_nic${count.index}"
-  location                  = "${azurerm_resource_group.rg.location}"
-  resource_group_name       = "${azurerm_resource_group.rg.name}"
-  network_security_group_id = "${azurerm_network_security_group.infra_nsg.id}"
-  count                     = "${var.infra_instance_count}"
+# resource "azurerm_network_interface" "infra_nic" {
+#   name                      = "infra_nic${count.index}"
+#   location                  = "${azurerm_resource_group.rg.location}"
+#   resource_group_name       = "${azurerm_resource_group.rg.name}"
+#   network_security_group_id = "${azurerm_network_security_group.infra_nsg.id}"
+#   count                     = "${var.infra_instance_count}"
 
-  ip_configuration {
-    name                                    = "infraipconfig${count.index}"
-    subnet_id                               = "${azurerm_subnet.master_subnet.id}"
-    private_ip_address_allocation           = "Dynamic"
-    load_balancer_backend_address_pools_ids = ["${azurerm_lb_backend_address_pool.infra_lb.id}"]
-  }
-}
+#   ip_configuration {
+#     name                                    = "infraipconfig${count.index}"
+#     subnet_id                               = "${azurerm_subnet.master_subnet.id}"
+#     private_ip_address_allocation           = "Dynamic"
+#     load_balancer_backend_address_pools_ids = ["${azurerm_lb_backend_address_pool.infra_lb.id}"]
+#   }
+# }
 
-resource "azurerm_network_interface" "node_nic" {
-  name                      = "node_nic${count.index}"
-  location                  = "${azurerm_resource_group.rg.location}"
-  resource_group_name       = "${azurerm_resource_group.rg.name}"
-  network_security_group_id = "${azurerm_network_security_group.node_nsg.id}"
-  count                     = "${var.node_instance_count}"
+# resource "azurerm_network_interface" "node_nic" {
+#   name                      = "node_nic${count.index}"
+#   location                  = "${azurerm_resource_group.rg.location}"
+#   resource_group_name       = "${azurerm_resource_group.rg.name}"
+#   network_security_group_id = "${azurerm_network_security_group.node_nsg.id}"
+#   count                     = "${var.node_instance_count}"
 
-  ip_configuration {
-    name                          = "nodeipconfig${count.index}"
-    subnet_id                     = "${azurerm_subnet.node_subnet.id}"
-    private_ip_address_allocation = "Dynamic"
-  }
-}
+#   ip_configuration {
+#     name                          = "nodeipconfig${count.index}"
+#     subnet_id                     = "${azurerm_subnet.node_subnet.id}"
+#     private_ip_address_allocation = "Dynamic"
+#   }
+# }
 
 # ******* Master VMs *******
 
 resource "azurerm_virtual_machine" "master" {
-  name                  = "masterVmDeployment${count.index}"
+  name                  = "masterVm${count.index}"
   location              = "${azurerm_resource_group.rg.location}"
   resource_group_name   = "${azurerm_resource_group.rg.name}"
   availability_set_id   = "${azurerm_availability_set.master.id}"
   network_interface_ids = ["${element(azurerm_network_interface.master_nic.*.id, count.index)}"]
   vm_size               = "${var.master_vm_size}"
   count                 = "${var.master_instance_count}"
+  depends_on            = ["azurerm_network_interface.master_nic"]
+  depends_on            = ["azurerm_availability_set.master"]
 
   tags {
     displayName = "${var.openshift_cluster_prefix}-master VM Creation"
@@ -477,109 +511,109 @@ resource "azurerm_virtual_machine" "master" {
 
 # ******* Infra VMs *******
 
-resource "azurerm_virtual_machine" "infra" {
-  name                  = "infraVmDeployment${count.index}"
-  location              = "${azurerm_resource_group.rg.location}"
-  resource_group_name   = "${azurerm_resource_group.rg.name}"
-  availability_set_id   = "${azurerm_availability_set.infra.id}"
-  network_interface_ids = ["${element(azurerm_network_interface.infra_nic.*.id, count.index)}"]
-  vm_size               = "${var.infra_vm_size}"
-  count                 = "${var.infra_instance_count}"
+# resource "azurerm_virtual_machine" "infra" {
+#   name                  = "infraVm${count.index}"
+#   location              = "${azurerm_resource_group.rg.location}"
+#   resource_group_name   = "${azurerm_resource_group.rg.name}"
+#   availability_set_id   = "${azurerm_availability_set.infra.id}"
+#   network_interface_ids = ["${element(azurerm_network_interface.infra_nic.*.id, count.index)}"]
+#   vm_size               = "${var.infra_vm_size}"
+#   count                 = "${var.infra_instance_count}"
 
-  tags {
-    displayName = "${var.openshift_cluster_prefix}-infra VM Creation"
-  }
+#   tags {
+#     displayName = "${var.openshift_cluster_prefix}-infra VM Creation"
+#   }
 
-  os_profile {
-    computer_name  = "${var.openshift_cluster_prefix}-infra"
-    admin_username = "${var.admin_username}"
-    admin_password = "${var.openshift_password}"
-  }
+#   os_profile {
+#     computer_name  = "${var.openshift_cluster_prefix}-infra"
+#     admin_username = "${var.admin_username}"
+#     admin_password = "${var.openshift_password}"
+#   }
 
-  os_profile_linux_config {
-    disable_password_authentication = false
+#   os_profile_linux_config {
+#     disable_password_authentication = false
 
-    # ssh_keys {
-    #   path     = "/home/annie/.ssh/authorized_keys"
-    #   key_data = "${var.ssh_public_key}"
-    # }
-  }
+#     # ssh_keys {
+#     #   path     = "/home/annie/.ssh/authorized_keys"
+#     #   key_data = "${var.ssh_public_key}"
+#     # }
+#   }
 
-  storage_image_reference {
-    publisher = "${lookup(var.os_image_map, join("_publisher", list(var.os_image, "")))}"
-    offer     = "${lookup(var.os_image_map, join("_offer", list(var.os_image, "")))}"
-    sku       = "${lookup(var.os_image_map, join("_sku", list(var.os_image, "")))}"
-    version   = "${lookup(var.os_image_map, join("_version", list(var.os_image, "")))}"
-  }
+#   storage_image_reference {
+#     publisher = "${lookup(var.os_image_map, join("_publisher", list(var.os_image, "")))}"
+#     offer     = "${lookup(var.os_image_map, join("_offer", list(var.os_image, "")))}"
+#     sku       = "${lookup(var.os_image_map, join("_sku", list(var.os_image, "")))}"
+#     version   = "${lookup(var.os_image_map, join("_version", list(var.os_image, "")))}"
+#   }
 
-  storage_os_disk {
-    name          = "${var.openshift_cluster_prefix}-infra-osdisk"
-    vhd_uri       = "${azurerm_storage_account.infra_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-infra-osdisk.vhd"
-    caching       = "ReadWrite"
-    create_option = "FromImage"
-  }
+#   storage_os_disk {
+#     name          = "${var.openshift_cluster_prefix}-infra-osdisk"
+#     vhd_uri       = "${azurerm_storage_account.infra_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-infra-osdisk.vhd"
+#     caching       = "ReadWrite"
+#     create_option = "FromImage"
+#   }
 
-  storage_data_disk {
-    name          = "${var.openshift_cluster_prefix}-infra-docker-pool"
-    vhd_uri       = "${azurerm_storage_account.infra_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-infra-docker-pool.vhd"
-    disk_size_gb  = "${var.data_disk_size}"
-    create_option = "Empty"
-    lun           = 0
-  }
-}
+#   storage_data_disk {
+#     name          = "${var.openshift_cluster_prefix}-infra-docker-pool"
+#     vhd_uri       = "${azurerm_storage_account.infra_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-infra-docker-pool.vhd"
+#     disk_size_gb  = "${var.data_disk_size}"
+#     create_option = "Empty"
+#     lun           = 0
+#   }
+# }
 
-# ******* Node VMs *******
+# # ******* Node VMs *******
 
-resource "azurerm_virtual_machine" "node" {
-  name                  = "nodeVmDeployment${count.index}"
-  location              = "${azurerm_resource_group.rg.location}"
-  resource_group_name   = "${azurerm_resource_group.rg.name}"
-  availability_set_id   = "${azurerm_availability_set.node.id}"
-  network_interface_ids = ["${element(azurerm_network_interface.node_nic.*.id, count.index)}"]
-  vm_size               = "${var.node_vm_size}"
-  count                 = "${var.node_instance_count}"
+# resource "azurerm_virtual_machine" "node" {
+#   name                  = "nodeVm${count.index}"
+#   location              = "${azurerm_resource_group.rg.location}"
+#   resource_group_name   = "${azurerm_resource_group.rg.name}"
+#   availability_set_id   = "${azurerm_availability_set.node.id}"
+#   network_interface_ids = ["${element(azurerm_network_interface.node_nic.*.id, count.index)}"]
+#   vm_size               = "${var.node_vm_size}"
+#   count                 = "${var.node_instance_count}"
 
-  tags {
-    displayName = "${var.openshift_cluster_prefix}-node VM Creation"
-  }
+#   tags {
+#     displayName = "${var.openshift_cluster_prefix}-node VM Creation"
+#   }
 
-  os_profile {
-    computer_name  = "${var.openshift_cluster_prefix}-node"
-    admin_username = "${var.admin_username}"
-    admin_password = "${var.openshift_password}"
-  }
+#   os_profile {
+#     computer_name  = "${var.openshift_cluster_prefix}-node"
+#     admin_username = "${var.admin_username}"
+#     admin_password = "${var.openshift_password}"
+#   }
 
-  os_profile_linux_config {
-    disable_password_authentication = false
+#   os_profile_linux_config {
+#     disable_password_authentication = false
 
-    # ssh_keys {
-    #   path     = "/home/${var.admin_username}/.ssh/authorized_keys"
-    #   key_data = "${var.ssh_public_key}"
-    # }
-  }
+#     # ssh_keys {
+#     #   path     = "/home/${var.admin_username}/.ssh/authorized_keys"
+#     #   key_data = "${var.ssh_public_key}"
+#     # }
+#   }
 
-  storage_image_reference {
-    publisher = "${lookup(var.os_image_map, join("_publisher", list(var.os_image, "")))}"
-    offer     = "${lookup(var.os_image_map, join("_offer", list(var.os_image, "")))}"
-    sku       = "${lookup(var.os_image_map, join("_sku", list(var.os_image, "")))}"
-    version   = "${lookup(var.os_image_map, join("_version", list(var.os_image, "")))}"
-  }
+#   storage_image_reference {
+#     publisher = "${lookup(var.os_image_map, join("_publisher", list(var.os_image, "")))}"
+#     offer     = "${lookup(var.os_image_map, join("_offer", list(var.os_image, "")))}"
+#     sku       = "${lookup(var.os_image_map, join("_sku", list(var.os_image, "")))}"
+#     version   = "${lookup(var.os_image_map, join("_version", list(var.os_image, "")))}"
+#   }
 
-  storage_os_disk {
-    name          = "${var.openshift_cluster_prefix}-node-osdisk"
-    vhd_uri       = "${azurerm_storage_account.nodeos_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-node-osdisk.vhd"
-    caching       = "ReadWrite"
-    create_option = "FromImage"
-  }
+#   storage_os_disk {
+#     name          = "${var.openshift_cluster_prefix}-node-osdisk"
+#     vhd_uri       = "${azurerm_storage_account.nodeos_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-node-osdisk.vhd"
+#     caching       = "ReadWrite"
+#     create_option = "FromImage"
+#   }
 
-  storage_data_disk {
-    name          = "${var.openshift_cluster_prefix}-node-docker-pool"
-    vhd_uri       = "${azurerm_storage_account.nodeos_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-node-docker-pool.vhd"
-    disk_size_gb  = "${var.data_disk_size}"
-    create_option = "Empty"
-    lun           = 0
-  }
-}
+#   storage_data_disk {
+#     name          = "${var.openshift_cluster_prefix}-node-docker-pool"
+#     vhd_uri       = "${azurerm_storage_account.nodeos_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-node-docker-pool.vhd"
+#     disk_size_gb  = "${var.data_disk_size}"
+#     create_option = "Empty"
+#     lun           = 0
+#   }
+# }
 
 # ******* VM EXTENSIONS *******
 
