@@ -1406,8 +1406,6 @@ func TestInterpolateFuncJSONEncode(t *testing.T) {
 				Type:  ast.TypeString,
 			},
 			"list": interfaceToVariableSwallowError([]string{"foo", "bar\tbaz"}),
-			// XXX can't use InterfaceToVariable as it converts empty slice into empty
-			// map.
 			"emptylist": ast.Variable{
 				Value: []ast.Variable{},
 				Type:  ast.TypeList,
@@ -1416,9 +1414,7 @@ func TestInterpolateFuncJSONEncode(t *testing.T) {
 				"foo":     "bar",
 				"ba \n z": "q\\x",
 			}),
-			"emptymap": interfaceToVariableSwallowError(map[string]string{}),
-
-			// Not yet supported (but it would be nice)
+			"emptymap":   interfaceToVariableSwallowError(map[string]string{}),
 			"nestedlist": interfaceToVariableSwallowError([][]string{{"foo"}}),
 			"nestedmap":  interfaceToVariableSwallowError(map[string][]string{"foo": {"bar"}}),
 		},
@@ -1470,13 +1466,13 @@ func TestInterpolateFuncJSONEncode(t *testing.T) {
 			},
 			{
 				`${jsonencode(nestedlist)}`,
-				nil,
-				true,
+				`[["foo"]]`,
+				false,
 			},
 			{
 				`${jsonencode(nestedmap)}`,
-				nil,
-				true,
+				`{"foo":["bar"]}`,
+				false,
 			},
 		},
 	})
