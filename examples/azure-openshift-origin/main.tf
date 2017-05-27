@@ -222,11 +222,11 @@ resource "azurerm_public_ip" "openshift_master_pip" {
 }
 
 resource "azurerm_public_ip" "infra_lb_pip" {
-  name                         = "${var.infra_lb_publicip_dns_label}"
+  name                         = "infraip${count.index}"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
   location                     = "${azurerm_resource_group.rg.location}"
   public_ip_address_allocation = "Static"
-  domain_name_label            = "${var.infra_lb_publicip_dns_label}infrapip"
+  domain_name_label            = "${var.openshift_cluster_prefix}infrapip${count.index}"
 }
 
 # ******* VNETS / SUBNETS ***********
@@ -236,20 +236,22 @@ resource "azurerm_virtual_network" "vnet" {
   location            = "${azurerm_resource_group.rg.location}"
   resource_group_name = "${azurerm_resource_group.rg.name}"
   address_space       = ["10.0.0.0/8"]
+  depends_on          = ["azurerm_virtual_network.vnet"]
 }
 
 resource "azurerm_subnet" "master_subnet" {
-  name                      = "mastersubnet"
-  virtual_network_name      = "${azurerm_virtual_network.vnet.name}"
-  resource_group_name       = "${azurerm_resource_group.rg.name}"
-  address_prefix            = "10.1.0.0/16"
+  name                 = "mastersubnet"
+  virtual_network_name = "${azurerm_virtual_network.vnet.name}"
+  resource_group_name  = "${azurerm_resource_group.rg.name}"
+  address_prefix       = "10.1.0.0/16"
+  depends_on           = ["azurerm_virtual_network.vnet"]
 }
 
 resource "azurerm_subnet" "node_subnet" {
-  name                      = "nodesubnet"
-  virtual_network_name      = "${azurerm_virtual_network.vnet.name}"
-  resource_group_name       = "${azurerm_resource_group.rg.name}"
-  address_prefix            = "10.2.0.0/16"
+  name                 = "nodesubnet"
+  virtual_network_name = "${azurerm_virtual_network.vnet.name}"
+  resource_group_name  = "${azurerm_resource_group.rg.name}"
+  address_prefix       = "10.2.0.0/16"
 }
 
 # ******* MASTER LOAD BALANCER ***********
@@ -365,10 +367,8 @@ resource "azurerm_lb_rule" "infra_lb_http" {
   backend_port                   = 80
   frontend_ip_configuration_name = "LoadBalancerFrontEnd"
   backend_address_pool_id        = "${azurerm_lb_backend_address_pool.infra_lb.id}"
-  idle_timeout_in_minutes        = 30
   probe_id                       = "${azurerm_lb_probe.infra_lb_http_probe.id}"
   depends_on                     = ["azurerm_lb_probe.infra_lb_http_probe"]
-  depends_on                     = ["azurerm_lb_probe.infra_lb_https_probe"]
   depends_on                     = ["azurerm_lb.infra_lb"]
   depends_on                     = ["azurerm_lb_backend_address_pool.infra_lb"]
 }
@@ -382,8 +382,9 @@ resource "azurerm_lb_rule" "infra_lb_https" {
   backend_port                   = 443
   frontend_ip_configuration_name = "LoadBalancerFrontEnd"
   backend_address_pool_id        = "${azurerm_lb_backend_address_pool.infra_lb.id}"
-  idle_timeout_in_minutes        = 30
   probe_id                       = "${azurerm_lb_probe.infra_lb_https_probe.id}"
+  depends_on                     = ["azurerm_lb_probe.infra_lb_https_probe"]
+  depends_on                     = ["azurerm_lb_backend_address_pool.infra_lb"]
 }
 
 # ******* NETWORK INTERFACES ***********
@@ -395,11 +396,11 @@ resource "azurerm_network_interface" "master_nic" {
   network_security_group_id = "${azurerm_network_security_group.master_nsg.id}"
   count                     = "${var.master_instance_count}"
   depends_on                = ["azurerm_subnet.master_subnet"]
-  depends_on                = ["azurerm_lb_nat_rule.master_lb"]
+  depends_on                = ["azurerm_lb.master_lb"]
   depends_on                = ["azurerm_lb_backend_address_pool.master_lb"]
 
   ip_configuration {
-    name                                    = "masteripconfig${count.index}"
+    name                                    = "masterip${count.index}"
     subnet_id                               = "${azurerm_subnet.master_subnet.id}"
     private_ip_address_allocation           = "Dynamic"
     load_balancer_backend_address_pools_ids = ["${azurerm_lb_backend_address_pool.master_lb.id}"]
@@ -413,9 +414,13 @@ resource "azurerm_network_interface" "infra_nic" {
   resource_group_name       = "${azurerm_resource_group.rg.name}"
   network_security_group_id = "${azurerm_network_security_group.infra_nsg.id}"
   count                     = "${var.infra_instance_count}"
+  depends_on                = ["azurerm_subnet.master_subnet"]
+  depends_on                = ["azurerm_lb.infra_lb"]
+  depends_on                = ["azurerm_lb_backend_address_pool.infra_lb"]
+  depends_on                = ["azurerm_network_security_group.infra_nsg"]
 
   ip_configuration {
-    name                                    = "infraipconfig${count.index}"
+    name                                    = "infraip${count.index}"
     subnet_id                               = "${azurerm_subnet.master_subnet.id}"
     private_ip_address_allocation           = "Dynamic"
     load_balancer_backend_address_pools_ids = ["${azurerm_lb_backend_address_pool.infra_lb.id}"]
@@ -428,9 +433,11 @@ resource "azurerm_network_interface" "node_nic" {
   resource_group_name       = "${azurerm_resource_group.rg.name}"
   network_security_group_id = "${azurerm_network_security_group.node_nsg.id}"
   count                     = "${var.node_instance_count}"
+  depends_on                = ["azurerm_subnet.node_subnet"]
+  depends_on                = ["azurerm_network_security_group.node_nsg"]
 
   ip_configuration {
-    name                          = "nodeipconfig${count.index}"
+    name                          = "nodeip${count.index}"
     subnet_id                     = "${azurerm_subnet.node_subnet.id}"
     private_ip_address_allocation = "Dynamic"
   }
@@ -454,7 +461,7 @@ resource "azurerm_virtual_machine" "master" {
   }
 
   os_profile {
-    computer_name  = "${var.openshift_cluster_prefix}-master"
+    computer_name  = "${var.openshift_cluster_prefix}-master${count.index}"
     admin_username = "${var.admin_username}"
     admin_password = "${var.openshift_password}"
   }
@@ -483,7 +490,7 @@ resource "azurerm_virtual_machine" "master" {
   }
 
   storage_data_disk {
-    name          = "${var.openshift_cluster_prefix}-master-docker-pool"
+    name          = "${var.openshift_cluster_prefix}-master-docker-pool${count.index}"
     vhd_uri       = "${azurerm_storage_account.master_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-master-docker-pool.vhd"
     disk_size_gb  = "${var.data_disk_size}"
     create_option = "Empty"
@@ -509,7 +516,7 @@ resource "azurerm_virtual_machine" "infra" {
   }
 
   os_profile {
-    computer_name  = "${var.openshift_cluster_prefix}-infra"
+    computer_name  = "${var.openshift_cluster_prefix}-infra${count.index}"
     admin_username = "${var.admin_username}"
     admin_password = "${var.openshift_password}"
   }
@@ -538,7 +545,7 @@ resource "azurerm_virtual_machine" "infra" {
   }
 
   storage_data_disk {
-    name          = "${var.openshift_cluster_prefix}-infra-docker-pool"
+    name          = "${var.openshift_cluster_prefix}-infra-docker-pool${count.index}"
     vhd_uri       = "${azurerm_storage_account.infra_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-infra-docker-pool.vhd"
     disk_size_gb  = "${var.data_disk_size}"
     create_option = "Empty"
@@ -556,13 +563,15 @@ resource "azurerm_virtual_machine" "node" {
   network_interface_ids = ["${element(azurerm_network_interface.node_nic.*.id, count.index)}"]
   vm_size               = "${var.node_vm_size}"
   count                 = "${var.node_instance_count}"
+  depends_on            = ["azurerm_network_interface.node_nic"]
+  depends_on            = ["azurerm_availability_set.node"]
 
   tags {
     displayName = "${var.openshift_cluster_prefix}-node VM Creation"
   }
 
   os_profile {
-    computer_name  = "${var.openshift_cluster_prefix}-node"
+    computer_name  = "${var.openshift_cluster_prefix}-node${count.index}"
     admin_username = "${var.admin_username}"
     admin_password = "${var.openshift_password}"
   }
@@ -591,7 +600,7 @@ resource "azurerm_virtual_machine" "node" {
   }
 
   storage_data_disk {
-    name          = "${var.openshift_cluster_prefix}-node-docker-pool"
+    name          = "${var.openshift_cluster_prefix}-node-docker-pool${count.index}"
     vhd_uri       = "${azurerm_storage_account.nodeos_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-node-docker-pool.vhd"
     disk_size_gb  = "${var.data_disk_size}"
     create_option = "Empty"
@@ -625,7 +634,6 @@ SETTINGS
 	"commandToExecute": "bash masterPrep.sh ${azurerm_storage_account.persistent_volume_storage_account.name} ${var.admin_username}"
 }
 SETTINGS
-
 }
 
 resource "azurerm_virtual_machine_extension" "deploy_infra" {
@@ -640,16 +648,17 @@ resource "azurerm_virtual_machine_extension" "deploy_infra" {
   depends_on                 = ["azurerm_virtual_machine.infra"]
 
   settings = <<SETTINGS
-			"fileUris": [
-						"${var.artifacts_location}scripts/nodePrep.sh"
-					]
-				}
+{
+  "fileUris": [
+    "${var.node_artifacts_location}scripts/nodePrep.sh"
+	]
+}
 SETTINGS
 
   settings = <<SETTINGS
-    {
-			"commandToExecute": "bash nodePrep.sh"
-		}
+{
+	"commandToExecute": "bash nodePrep.sh"
+}
 SETTINGS
 }
 
@@ -665,16 +674,17 @@ resource "azurerm_virtual_machine_extension" "deploy_nodes" {
   depends_on                 = ["azurerm_virtual_machine.node"]
 
   settings = <<SETTINGS
-			"fileUris": [
-						"${var.artifacts_location}scripts/nodePrep.sh"
-					]
-				}
+{
+  "fileUris": [
+    "${var.node_artifacts_location}scripts/nodePrep.sh"
+	]
+}
 SETTINGS
 
   settings = <<SETTINGS
-    {
-			"commandToExecute": "bash nodePrep.sh"
-		}
+{
+	"commandToExecute": "bash nodePrep.sh"
+}
 SETTINGS
 }
 
@@ -767,29 +777,30 @@ SETTINGS
 # 		}
 # 	}
 # DEPLOY
-	# "outputs": {
-	# 	"Openshift Console Url": {
-	# 		"type": "string",
-	# 		"value": "[concat('https://', reference(parameters('openshiftMasterPublicIpDnsLabel')).dnsSettings.fqdn, ':8443/console')]"
-	# 	},
-	# 	"Openshift Master SSH": {
-	# 		"type": "string",
-	# 		"value": "[concat('ssh ', parameters('adminUsername'), '@', reference(parameters('openshiftMasterPublicIpDnsLabel')).dnsSettings.fqdn, ' -p 2200')]"
-	# 	},
-	# 	"Openshift Infra Load Balancer FQDN": {
-	# 		"type": "string",
-	# 		"value": "[reference(parameters('infraLbPublicIpDnsLabel')).dnsSettings.fqdn]"
-	# 	},
-	# 	"Node OS Storage Account Name": {
-	# 		"type": "string",
-	# 		"value": "[variables('newStorageAccountNodeOs')]"
-	# 	},
-	# 	"Node Data Storage Account Name": {
-	# 		"type": "string",
-	# 		"value": "[variables('newStorageAccountNodeData')]"
-	# 	},
-	# 	"Infra Storage Account Name": {
-	# 		"type": "string",
-	# 		"value": "[variables('newStorageAccountInfra')]"
-	# 	}
-	# }
+# "outputs": {
+# 	"Openshift Console Url": {
+# 		"type": "string",
+# 		"value": "[concat('https://', reference(parameters('openshiftMasterPublicIpDnsLabel')).dnsSettings.fqdn, ':8443/console')]"
+# 	},
+# 	"Openshift Master SSH": {
+# 		"type": "string",
+# 		"value": "[concat('ssh ', parameters('adminUsername'), '@', reference(parameters('openshiftMasterPublicIpDnsLabel')).dnsSettings.fqdn, ' -p 2200')]"
+# 	},
+# 	"Openshift Infra Load Balancer FQDN": {
+# 		"type": "string",
+# 		"value": "[reference(parameters('infraLbPublicIpDnsLabel')).dnsSettings.fqdn]"
+# 	},
+# 	"Node OS Storage Account Name": {
+# 		"type": "string",
+# 		"value": "[variables('newStorageAccountNodeOs')]"
+# 	},
+# 	"Node Data Storage Account Name": {
+# 		"type": "string",
+# 		"value": "[variables('newStorageAccountNodeData')]"
+# 	},
+# 	"Infra Storage Account Name": {
+# 		"type": "string",
+# 		"value": "[variables('newStorageAccountInfra')]"
+# 	}
+# }
+

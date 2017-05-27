@@ -126,10 +126,6 @@ variable "openshift_cluster_prefix" {
   description = "Cluster Prefix used to configure hostnames for all nodes - master, infra and nodes. Between 1 and 20 characters"
 }
 
-variable "infra_lb_publicip_dns_label" {
-  description = "A unique Public DNS name by which to reference the Node Load Balancer. Used to access deployed applications"
-}
-
 variable "master_instance_count" {
   description = "Number of OpenShift Masters nodes to deploy. 1 is non HA and 3 is for HA."
   default     = 1
