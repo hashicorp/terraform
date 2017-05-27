@@ -824,8 +824,7 @@ func interpolationFuncJoin() ast.Function {
 }
 
 // interpolationFuncJSONEncode implements the "jsonencode" function that encodes
-// a string, list, or map as its JSON representation. For now, values in the
-// list or map may only be strings.
+// a string, list, or map as its JSON representation.
 func interpolationFuncJSONEncode() ast.Function {
 	return ast.Function{
 		ArgTypes:   []ast.Type{ast.TypeAny},
@@ -838,28 +837,36 @@ func interpolationFuncJSONEncode() ast.Function {
 				toEncode = typedArg
 
 			case []ast.Variable:
-				// We preallocate the list here. Note that it's important that in
-				// the length 0 case, we have an empty list rather than nil, as
-				// they encode differently.
-				// XXX It would be nice to support arbitrarily nested data here. Is
-				// there an inverse of hil.InterfaceToVariable?
 				strings := make([]string, len(typedArg))
 
 				for i, v := range typedArg {
 					if v.Type != ast.TypeString {
-						return "", fmt.Errorf("list elements must be strings")
+						variable, _ := hil.InterfaceToVariable(typedArg)
+						toEncode, _ = hil.VariableToInterface(variable)
+
+						jEnc, err := json.Marshal(toEncode)
+						if err != nil {
+							return "", fmt.Errorf("failed to encode JSON data '%s'", toEncode)
+						}
+						return string(jEnc), nil
+
 					}
 					strings[i] = v.Value.(string)
 				}
 				toEncode = strings
 
 			case map[string]ast.Variable:
-				// XXX It would be nice to support arbitrarily nested data here. Is
-				// there an inverse of hil.InterfaceToVariable?
 				stringMap := make(map[string]string)
 				for k, v := range typedArg {
 					if v.Type != ast.TypeString {
-						return "", fmt.Errorf("map values must be strings")
+						variable, _ := hil.InterfaceToVariable(typedArg)
+						toEncode, _ = hil.VariableToInterface(variable)
+
+						jEnc, err := json.Marshal(toEncode)
+						if err != nil {
+							return "", fmt.Errorf("failed to encode JSON data '%s'", toEncode)
+						}
+						return string(jEnc), nil
 					}
 					stringMap[k] = v.Value.(string)
 				}
