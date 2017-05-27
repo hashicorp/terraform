@@ -333,7 +333,7 @@ func (s *Schema) finalizeDiff(
 		return d
 	}
 
-	if s.Computed {
+	if s.Computed && !d.NewComputed {
 		if d.Old != "" && d.New == "" {
 			// This is a computed value with an old value set already,
 			// just let it go.
@@ -1107,7 +1107,7 @@ func (m schemaMap) diffString(
 	}
 
 	removed := false
-	if o != nil && n == nil {
+	if o != nil && n == nil && !computed {
 		removed = true
 	}
 	if removed && schema.Computed {
