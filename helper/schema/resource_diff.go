@@ -129,6 +129,7 @@ func newResourceDiff(schema map[string]*Schema, config *terraform.ResourceConfig
 	}
 	// Duplicate the passed in schema to ensure that any changes we make with
 	// functions like ForceNew don't affect the referenced schema.
+	d.schema = make(map[string]*Schema)
 	for k, v := range schema {
 		newSchema := *v
 		d.schema[k] = &newSchema
@@ -192,7 +193,7 @@ func newResourceDiff(schema map[string]*Schema, config *terraform.ResourceConfig
 }
 
 // UpdatedKeys returns the keys that were updated by SetNew, SetNewComputed, or
-// SetDiff. These are the only keys that ad iff should be re-calculated for.
+// SetDiff. These are the only keys that a diff should be re-calculated for.
 func (d *ResourceDiff) UpdatedKeys() []string {
 	s := make([]string, 0)
 	for k := range d.updatedKeys {
@@ -253,7 +254,7 @@ func (d *ResourceDiff) diffChange(key string) (interface{}, interface{}, bool, b
 // doing so will taint any existing diff for this key and will remove it from
 // the catalog.
 func (d *ResourceDiff) SetNew(key string, value interface{}) error {
-	return d.SetDiff(key, d.Get(key), value, false)
+	return d.SetDiff(key, d.getExact(strings.Split(key, "."), "state").Value, value, false)
 }
 
 // SetNewComputed functions like SetNew, except that it sets the new value to
@@ -386,9 +387,9 @@ func (d *ResourceDiff) getChange(key string) (getResult, getResult) {
 	old := d.getExact(strings.Split(key, "."), "newDiffOld")
 	new := d.getExact(strings.Split(key, "."), "newDiffNew")
 
-	if old.Exists && new.Exists {
-		// Both values should exist if SetDiff operated on this key.
-		// TODO: Maybe verify this. Zero values might be an issue here.
+	if old.Exists || new.Exists {
+		// If one of these values exists, then SetDiff has operated on this value,
+		// and as such the newDiff level should be used.
 		return old, new
 	}
 
