@@ -91,6 +91,7 @@ The following attributes are exported:
 
 * `id` - The RDS Cluster Identifier
 * `cluster_identifier` - The RDS Cluster Identifier
+* `cluster_resource_id` - The RDS Cluster Resource ID
 * `cluster_members` – List of RDS Instances that are a part of this cluster
 * `allocated_storage` - The amount of allocated storage
 * `availability_zones` - The availability zone of the instance
