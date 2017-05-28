@@ -254,6 +254,44 @@ func TestResourceDiff_Timeout_diff(t *testing.T) {
 	}
 }
 
+func TestResourceDiff_CustomizeFunc(t *testing.T) {
+	r := &Resource{
+		Schema: map[string]*Schema{
+			"foo": &Schema{
+				Type:     TypeInt,
+				Optional: true,
+			},
+		},
+	}
+
+	var called bool
+
+	r.CustomizeDiff = func(d *ResourceDiff, m interface{}) error {
+		called = true
+		return nil
+	}
+
+	raw, err := config.NewRawConfig(
+		map[string]interface{}{
+			"foo": 42,
+		})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	var s *terraform.InstanceState
+	conf := terraform.NewResourceConfig(raw)
+
+	_, err = r.Diff(s, conf, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !called {
+		t.Fatalf("diff customization not called")
+	}
+}
+
 func TestResourceApply_destroy(t *testing.T) {
 	r := &Resource{
 		Schema: map[string]*Schema{
