@@ -62,7 +62,8 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"azurerm_client_config": dataSourceArmClientConfig(),
+			"azurerm_client_config":  dataSourceArmClientConfig(),
+			"azurerm_resource_group": dataSourceArmResourceGroup(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
