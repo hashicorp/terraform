@@ -65,7 +65,7 @@ func (b *Backend) Configure(c *terraform.ResourceConfig) error {
 
 	// Get a ResourceData for this configuration. To do this, we actually
 	// generate an intermediary "diff" although that is never exposed.
-	diff, err := sm.Diff(nil, c)
+	diff, err := sm.Diff(nil, c, nil, nil)
 	if err != nil {
 		return err
 	}

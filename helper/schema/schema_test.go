@@ -138,6 +138,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 		State           *terraform.InstanceState
 		Config          map[string]interface{}
 		ConfigVariables map[string]ast.Variable
+		CustomizeDiff   CustomizeDiffFunc
 		Diff            *terraform.InstanceDiff
 		Err             bool
 	}{
@@ -2823,6 +2824,43 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
+
+		{
+			Name: "overridden diff with a CustomizeDiff function",
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"availability_zone": "foo",
+			},
+
+			CustomizeDiff: func(d *ResourceDiff, meta interface{}) error {
+				if err := d.SetNew("availability_zone", "bar"); err != nil {
+					return err
+				}
+				return nil
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old:         "",
+						New:         "bar",
+						RequiresNew: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
 	}
 
 	for i, tc := range cases {
@@ -2838,8 +2876,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				}
 			}
 
-			d, err := schemaMap(tc.Schema).Diff(
-				tc.State, terraform.NewResourceConfig(c))
+			d, err := schemaMap(tc.Schema).Diff(tc.State, terraform.NewResourceConfig(c), tc.CustomizeDiff, nil)
 			if err != nil != tc.Err {
 				t.Fatalf("err: %s", err)
 			}
@@ -3689,8 +3726,7 @@ func TestSchemaMap_DiffSuppress(t *testing.T) {
 				}
 			}
 
-			d, err := schemaMap(tc.Schema).Diff(
-				tc.State, terraform.NewResourceConfig(c))
+			d, err := schemaMap(tc.Schema).Diff(tc.State, terraform.NewResourceConfig(c), nil, nil)
 			if err != nil != tc.Err {
 				t.Fatalf("#%q err: %s", tn, err)
 			}

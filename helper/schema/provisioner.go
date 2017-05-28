@@ -146,7 +146,7 @@ func (p *Provisioner) Apply(
 		}
 
 		sm := schemaMap(p.ConnSchema)
-		diff, err := sm.Diff(nil, terraform.NewResourceConfig(c))
+		diff, err := sm.Diff(nil, terraform.NewResourceConfig(c), nil, nil)
 		if err != nil {
 			return err
 		}
@@ -160,7 +160,7 @@ func (p *Provisioner) Apply(
 		// Build the configuration data. Doing this requires making a "diff"
 		// even though that's never used. We use that just to get the correct types.
 		configMap := schemaMap(p.Schema)
-		diff, err := configMap.Diff(nil, c)
+		diff, err := configMap.Diff(nil, c, nil, nil)
 		if err != nil {
 			return err
 		}

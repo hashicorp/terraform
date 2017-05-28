@@ -219,7 +219,8 @@ func (r *Resource) Apply(
 // ResourceProvider interface.
 func (r *Resource) Diff(
 	s *terraform.InstanceState,
-	c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
+	c *terraform.ResourceConfig,
+	meta interface{}) (*terraform.InstanceDiff, error) {
 
 	t := &ResourceTimeout{}
 	err := t.ConfigDecode(r, c)
@@ -228,7 +229,7 @@ func (r *Resource) Diff(
 		return nil, fmt.Errorf("[ERR] Error decoding timeout: %s", err)
 	}
 
-	instanceDiff, err := schemaMap(r.Schema).Diff(s, c)
+	instanceDiff, err := schemaMap(r.Schema).Diff(s, c, r.CustomizeDiff, meta)
 	if err != nil {
 		return instanceDiff, err
 	}
