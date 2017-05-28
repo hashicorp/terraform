@@ -5022,3 +5022,17 @@ func (e errorSort) Swap(i, j int) { e[i], e[j] = e[j], e[i] }
 func (e errorSort) Less(i, j int) bool {
 	return e[i].Error() < e[j].Error()
 }
+
+func TestSchemaMapDeepCopy(t *testing.T) {
+	schema := map[string]*Schema{
+		"foo": &Schema{
+			Type: TypeString,
+		},
+	}
+	source := schemaMap(schema)
+	dest := source.DeepCopy()
+	dest["foo"].ForceNew = true
+	if reflect.DeepEqual(source, dest) {
+		t.Fatalf("source and dest should not match")
+	}
+}
