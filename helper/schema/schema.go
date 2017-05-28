@@ -411,7 +411,7 @@ func (m schemaMap) Diff(
 
 	// If this is a non-destroy diff, call any custom diff logic that has been
 	// defined.
-	if !result.Destroy && !result.DestroyTainted && customizeFunc != nil {
+	if !result.DestroyTainted && customizeFunc != nil {
 		mc := m.DeepCopy()
 		rd := newResourceDiff(mc, c, s, result)
 		if err := customizeFunc(rd, meta); err != nil {
@@ -451,7 +451,7 @@ func (m schemaMap) Diff(
 		}
 
 		// Re-run customization
-		if !result2.Destroy && !result2.DestroyTainted && customizeFunc != nil {
+		if !result2.DestroyTainted && customizeFunc != nil {
 			mc := m.DeepCopy()
 			rd := newResourceDiff(mc, c, d.state, result2)
 			if err := customizeFunc(rd, meta); err != nil {
