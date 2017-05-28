@@ -34,6 +34,8 @@ func TestAccAWSRDSCluster_basic(t *testing.T) {
 						"aws_rds_cluster.default", "db_cluster_parameter_group_name", "default.aurora5.6"),
 					resource.TestCheckResourceAttrSet(
 						"aws_rds_cluster.default", "reader_endpoint"),
+					resource.TestCheckResourceAttrSet(
+						"aws_rds_cluster.default", "cluster_resource_id"),
 				),
 			},
 		},
