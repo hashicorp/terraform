@@ -20,7 +20,7 @@ Use the navigation to the left to read about the available resources.
 ```hcl
 # Configure the GitLab Provider
 provider "gitlab" {
-    token = "${var.github_token}"
+    token = "${var.gitlab_token}"
 }
 
 # Add a project to the organization
