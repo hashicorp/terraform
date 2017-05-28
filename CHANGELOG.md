@@ -5,6 +5,10 @@ FEATURES:
  * **New Resource:** `librato_metric` [GH-14562]
  * **New Resource:** `digitalocean_certificate` [GH-14578]
 
+IMPROVEMENTS:
+
+* provider/aws: Expose RDS instance and cluster resource id [GH-14882]
+
 ## 0.9.6 (May 25, 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
