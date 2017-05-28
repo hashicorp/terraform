@@ -62,8 +62,8 @@ The following arguments are supported:
 
 ## Import
 
-Resource Quota can be imported using its name, e.g.
+Resource Quota can be imported using its namespace and name, e.g.
 
 ```
-$ terraform import kubernetes_resource_quota.example terraform-example
+$ terraform import kubernetes_resource_quota.example default/terraform-example
 ```
