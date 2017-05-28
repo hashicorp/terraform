@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -368,6 +369,16 @@ func (m schemaMap) Data(
 		state:  s,
 		diff:   d,
 	}, nil
+}
+
+// DeepCopy returns a copy of this schemaMap. The copy can be safely modified
+// without affecting the original.
+func (m *schemaMap) DeepCopy() schemaMap {
+	copy, err := copystructure.Config{Lock: true}.Copy(m)
+	if err != nil {
+		panic(err)
+	}
+	return copy.(schemaMap)
 }
 
 // Diff returns the diff for a resource given the schema map,
