@@ -206,15 +206,6 @@ func (d *ResourceDiff) UpdatedKeys() []string {
 	return s
 }
 
-// ClearAll wipes the current diff. This cannot be undone - use only if you
-// need to create a whole new diff from scatch, such as when you are leaning on
-// the provider completely to create the diff.
-//
-// Note that this does not wipe overrides.
-func (d *ResourceDiff) ClearAll() {
-	d.diff = new(terraform.InstanceDiff)
-}
-
 // Clear wipes the diff for a particular key. It is called by SetDiff to remove
 // any possibility of conflicts, but can be called on its own to just remove a
 // specific key from the diff completely.
