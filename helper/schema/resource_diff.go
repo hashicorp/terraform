@@ -32,7 +32,7 @@ func (w *newValueWriter) WriteField(address []string, value interface{}, compute
 
 	w.lock.Lock()
 	defer w.lock.Unlock()
-	if w.result == nil {
+	if w.computedKeys == nil {
 		w.computedKeys = make(map[string]bool)
 	}
 
@@ -46,7 +46,7 @@ func (w *newValueWriter) WriteField(address []string, value interface{}, compute
 func (w *newValueWriter) ComputedKeysMap() map[string]bool {
 	w.lock.Lock()
 	defer w.lock.Unlock()
-	if w.result == nil {
+	if w.computedKeys == nil {
 		w.computedKeys = make(map[string]bool)
 	}
 	return w.computedKeys
@@ -65,12 +65,22 @@ type newValueReader struct {
 // ReadField reads the values from the underlying writer, returning the
 // computed value if it is found as well.
 func (r *newValueReader) ReadField(address []string) (FieldReadResult, error) {
+	addrKey := strings.Join(address, ".")
 	v, err := r.MapFieldReader.ReadField(address)
 	if err != nil {
 		return FieldReadResult{}, err
 	}
-	if _, ok := r.computedKeys[strings.Join(address, ".")]; ok {
-		v.Computed = true
+	for computedKey := range r.computedKeys {
+		if strings.HasPrefix(addrKey, computedKey) {
+			if strings.HasSuffix(addrKey, ".#") {
+				// This is a count value for a list or set that has been marked as
+				// computed, or a sub-list/sub-set of a complex resource that has
+				// been marked as computed.  We need to pass through to other readers
+				// so that an accurate previous count can be fetched for the diff.
+				v.Exists = false
+			}
+			v.Computed = true
+		}
 	}
 
 	return v, nil
@@ -126,13 +136,7 @@ func newResourceDiff(schema map[string]*Schema, config *terraform.ResourceConfig
 		config: config,
 		state:  state,
 		diff:   diff,
-	}
-	// Duplicate the passed in schema to ensure that any changes we make with
-	// functions like ForceNew don't affect the referenced schema.
-	d.schema = make(map[string]*Schema)
-	for k, v := range schema {
-		newSchema := *v
-		d.schema[k] = &newSchema
+		schema: schema,
 	}
 
 	d.oldWriter = &MapFieldWriter{Schema: d.schema}
@@ -215,8 +219,17 @@ func (d *ResourceDiff) ClearAll() {
 // any possibility of conflicts, but can be called on its own to just remove a
 // specific key from the diff completely.
 //
-// Note that this does not wipe an override.
+// Note that this does not wipe an override. This function is only allowed on
+// computed keys.
 func (d *ResourceDiff) Clear(key string) error {
+	if !d.schema[key].Computed {
+		return fmt.Errorf("Clear is allowed on computed attributes only - %s is not one", key)
+	}
+
+	return d.clear(key)
+}
+
+func (d *ResourceDiff) clear(key string) error {
 	// Check the schema to make sure that this key exists first.
 	if _, ok := d.schema[key]; !ok {
 		return fmt.Errorf("%s is not a valid key", key)
@@ -233,6 +246,7 @@ func (d *ResourceDiff) Clear(key string) error {
 // from ResourceDiff's own change data, in addition to existing diff, config, and state.
 func (d *ResourceDiff) diffChange(key string) (interface{}, interface{}, bool, bool) {
 	old, new := d.getChange(key)
+	// log.Printf("\nkey:%s\n\nold:%s\n\nnew:%s\n", key, spew.Sdump(old), spew.Sdump(new))
 
 	if !old.Exists {
 		old.Value = nil
@@ -262,7 +276,7 @@ func (d *ResourceDiff) SetNew(key string, value interface{}) error {
 //
 // This function is only allowed on computed keys.
 func (d *ResourceDiff) SetNewComputed(key string) error {
-	return d.SetDiff(key, d.Get(key), d.schema[key].ZeroValue(), true)
+	return d.SetDiff(key, d.getExact(strings.Split(key, "."), "state").Value, d.schema[key].ZeroValue(), true)
 }
 
 // SetDiff allows the setting of both old and new values for the diff
@@ -277,7 +291,11 @@ func (d *ResourceDiff) SetDiff(key string, old, new interface{}, computed bool) 
 		return fmt.Errorf("SetNew, SetNewComputed, and SetDiff are allowed on computed attributes only - %s is not one", key)
 	}
 
-	if err := d.Clear(key); err != nil {
+	return d.setDiff(key, old, new, computed)
+}
+
+func (d *ResourceDiff) setDiff(key string, old, new interface{}, computed bool) error {
+	if err := d.clear(key); err != nil {
 		return err
 	}
 
@@ -298,8 +316,7 @@ func (d *ResourceDiff) SetDiff(key string, old, new interface{}, computed bool) 
 // re-calculates its diff. This function is a no-op/error if there is no diff.
 //
 // Note that the change to schema is permanent for the lifecycle of this
-// specific ResourceDiff instance, until ClearAll or Reset is called to start
-// anew.
+// specific ResourceDiff instance.
 func (d *ResourceDiff) ForceNew(key string) error {
 	if !d.HasChange(key) {
 		return fmt.Errorf("ResourceDiff.ForceNew: No changes for %s", key)
@@ -307,7 +324,7 @@ func (d *ResourceDiff) ForceNew(key string) error {
 
 	old, new := d.GetChange(key)
 	d.schema[key].ForceNew = true
-	return d.SetDiff(key, old, new, false)
+	return d.setDiff(key, old, new, false)
 }
 
 // Get hands off to ResourceData.Get.
