@@ -547,7 +547,7 @@ func TestSetNew(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
 			m := schemaMap(tc.Schema)
-			d := newResourceDiff(tc.Schema, nil, tc.State, tc.Diff)
+			d := newResourceDiff(tc.Schema, tc.Config, tc.State, tc.Diff)
 			err := d.SetNew(tc.Key, tc.NewValue)
 			switch {
 			case err != nil && !tc.ExpectedError:
@@ -574,7 +574,7 @@ func TestSetNewComputed(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
 			m := schemaMap(tc.Schema)
-			d := newResourceDiff(tc.Schema, nil, tc.State, tc.Diff)
+			d := newResourceDiff(tc.Schema, tc.Config, tc.State, tc.Diff)
 			err := d.SetNewComputed(tc.Key)
 			switch {
 			case err != nil && !tc.ExpectedError:
@@ -601,7 +601,7 @@ func TestSetDiff(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
 			m := schemaMap(tc.Schema)
-			d := newResourceDiff(tc.Schema, nil, tc.State, tc.Diff)
+			d := newResourceDiff(tc.Schema, tc.Config, tc.State, tc.Diff)
 			err := d.SetDiff(tc.Key, tc.OldValue, tc.NewValue, false)
 			switch {
 			case err != nil && !tc.ExpectedError:
@@ -719,7 +719,7 @@ func TestForceNew(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
 			m := schemaMap(tc.Schema)
-			d := newResourceDiff(m, nil, tc.State, tc.Diff)
+			d := newResourceDiff(m, tc.Config, tc.State, tc.Diff)
 			err := d.ForceNew(tc.Key)
 			switch {
 			case err != nil && !tc.ExpectedError:
@@ -848,7 +848,7 @@ func TestClear(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
 			m := schemaMap(tc.Schema)
-			d := newResourceDiff(m, nil, tc.State, tc.Diff)
+			d := newResourceDiff(m, tc.Config, tc.State, tc.Diff)
 			err := d.Clear(tc.Key)
 			switch {
 			case err != nil && !tc.ExpectedError:
