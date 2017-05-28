@@ -259,7 +259,7 @@ func (d *ResourceDiff) diffChange(key string) (interface{}, interface{}, bool, b
 // doing so will taint any existing diff for this key and will remove it from
 // the catalog.
 func (d *ResourceDiff) SetNew(key string, value interface{}) error {
-	return d.SetDiff(key, d.getExact(strings.Split(key, "."), "state").Value, value, false)
+	return d.SetDiff(key, d.get(strings.Split(key, "."), "state").Value, value, false)
 }
 
 // SetNewComputed functions like SetNew, except that it sets the new value to
@@ -267,7 +267,7 @@ func (d *ResourceDiff) SetNew(key string, value interface{}) error {
 //
 // This function is only allowed on computed keys.
 func (d *ResourceDiff) SetNewComputed(key string) error {
-	return d.SetDiff(key, d.getExact(strings.Split(key, "."), "state").Value, d.schema[key].ZeroValue(), true)
+	return d.SetDiff(key, d.get(strings.Split(key, "."), "state").Value, d.schema[key].ZeroValue(), true)
 }
 
 // SetDiff allows the setting of both old and new values for the diff

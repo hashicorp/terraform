@@ -226,7 +226,7 @@ func TestResourceDiff_Timeout_diff(t *testing.T) {
 	var s *terraform.InstanceState = nil
 	conf := terraform.NewResourceConfig(raw)
 
-	actual, err := r.Diff(s, conf)
+	actual, err := r.Diff(s, conf, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
