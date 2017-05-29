@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015 VMware, Inc. All Rights Reserved.
+Copyright (c) 2017 VMware, Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,29 +18,39 @@ package object
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/vmware/govmomi/vim25"
+	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
 )
 
-type Network struct {
+type OpaqueNetwork struct {
 	Common
 }
 
-func NewNetwork(c *vim25.Client, ref types.ManagedObjectReference) *Network {
-	return &Network{
+func NewOpaqueNetwork(c *vim25.Client, ref types.ManagedObjectReference) *OpaqueNetwork {
+	return &OpaqueNetwork{
 		Common: NewCommon(c, ref),
 	}
 }
 
 // EthernetCardBackingInfo returns the VirtualDeviceBackingInfo for this Network
-func (n Network) EthernetCardBackingInfo(_ context.Context) (types.BaseVirtualDeviceBackingInfo, error) {
-	name := n.Name()
+func (n OpaqueNetwork) EthernetCardBackingInfo(ctx context.Context) (types.BaseVirtualDeviceBackingInfo, error) {
+	var net mo.OpaqueNetwork
 
-	backing := &types.VirtualEthernetCardNetworkBackingInfo{
-		VirtualDeviceDeviceBackingInfo: types.VirtualDeviceDeviceBackingInfo{
-			DeviceName: name,
-		},
+	if err := n.Properties(ctx, n.Reference(), []string{"summary"}, &net); err != nil {
+		return nil, err
+	}
+
+	summary, ok := net.Summary.(*types.OpaqueNetworkSummary)
+	if !ok {
+		return nil, fmt.Errorf("%s unsupported network type: %T", n, net.Summary)
+	}
+
+	backing := &types.VirtualEthernetCardOpaqueNetworkBackingInfo{
+		OpaqueNetworkId:   summary.OpaqueNetworkId,
+		OpaqueNetworkType: summary.OpaqueNetworkType,
 	}
 
 	return backing, nil

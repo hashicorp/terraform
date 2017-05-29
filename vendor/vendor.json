@@ -3043,10 +3043,11 @@
 			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
 		},
 		{
-			"checksumSHA1": "Tu98nr2K8FL8Bz/88ufPBWYR1xQ=",
-			"comment": "v0.6.2",
+			"checksumSHA1": "9UNb35KvKyGnJh7m70kBW8Jz1nc=",
+			"comment": "v0.14.0",
 			"path": "github.com/vmware/govmomi/object",
-			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
+			"revision": "9bfdc5ce62c0585b48b154cc460f8664dcd124c3",
+			"revisionTime": "2017-04-08T23:52:50Z"
 		},
 		{
 			"checksumSHA1": "+QicEDJib9U9fSb1yc1qjW4m8/E=",
@@ -4587,5 +4588,5 @@
 			"revisionTime": "2017-02-23T17:37:09Z"
 		}
 	],
-	"rootPath": "github.com/hashicorp/terraform"
+	"rootPath": "github.com/matthewpucc/terraform"
 }
