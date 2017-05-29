@@ -21,12 +21,12 @@ limitations under the License.
 package api
 
 import (
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	fields "k8s.io/kubernetes/pkg/fields"
-	labels "k8s.io/kubernetes/pkg/labels"
-	runtime "k8s.io/kubernetes/pkg/runtime"
-	types "k8s.io/kubernetes/pkg/types"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	fields "k8s.io/apimachinery/pkg/fields"
+	labels "k8s.io/apimachinery/pkg/labels"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	types "k8s.io/apimachinery/pkg/types"
 	reflect "reflect"
 )
 
@@ -52,8 +52,10 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ComponentStatus, InType: reflect.TypeOf(&ComponentStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ComponentStatusList, InType: reflect.TypeOf(&ComponentStatusList{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ConfigMap, InType: reflect.TypeOf(&ConfigMap{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ConfigMapEnvSource, InType: reflect.TypeOf(&ConfigMapEnvSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ConfigMapKeySelector, InType: reflect.TypeOf(&ConfigMapKeySelector{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ConfigMapList, InType: reflect.TypeOf(&ConfigMapList{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ConfigMapProjection, InType: reflect.TypeOf(&ConfigMapProjection{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ConfigMapVolumeSource, InType: reflect.TypeOf(&ConfigMapVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_Container, InType: reflect.TypeOf(&Container{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ContainerImage, InType: reflect.TypeOf(&ContainerImage{})},
@@ -66,6 +68,7 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ConversionError, InType: reflect.TypeOf(&ConversionError{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_DaemonEndpoint, InType: reflect.TypeOf(&DaemonEndpoint{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_DeleteOptions, InType: reflect.TypeOf(&DeleteOptions{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_DownwardAPIProjection, InType: reflect.TypeOf(&DownwardAPIProjection{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_DownwardAPIVolumeFile, InType: reflect.TypeOf(&DownwardAPIVolumeFile{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_DownwardAPIVolumeSource, InType: reflect.TypeOf(&DownwardAPIVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_EmptyDirVolumeSource, InType: reflect.TypeOf(&EmptyDirVolumeSource{})},
@@ -74,13 +77,13 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_EndpointSubset, InType: reflect.TypeOf(&EndpointSubset{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_Endpoints, InType: reflect.TypeOf(&Endpoints{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_EndpointsList, InType: reflect.TypeOf(&EndpointsList{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_EnvFromSource, InType: reflect.TypeOf(&EnvFromSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_EnvVar, InType: reflect.TypeOf(&EnvVar{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_EnvVarSource, InType: reflect.TypeOf(&EnvVarSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_Event, InType: reflect.TypeOf(&Event{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_EventList, InType: reflect.TypeOf(&EventList{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_EventSource, InType: reflect.TypeOf(&EventSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ExecAction, InType: reflect.TypeOf(&ExecAction{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ExportOptions, InType: reflect.TypeOf(&ExportOptions{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_FCVolumeSource, InType: reflect.TypeOf(&FCVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_FlexVolumeSource, InType: reflect.TypeOf(&FlexVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_FlockerVolumeSource, InType: reflect.TypeOf(&FlockerVolumeSource{})},
@@ -125,7 +128,6 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ObjectFieldSelector, InType: reflect.TypeOf(&ObjectFieldSelector{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ObjectMeta, InType: reflect.TypeOf(&ObjectMeta{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ObjectReference, InType: reflect.TypeOf(&ObjectReference{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_OwnerReference, InType: reflect.TypeOf(&OwnerReference{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_PersistentVolume, InType: reflect.TypeOf(&PersistentVolume{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_PersistentVolumeClaim, InType: reflect.TypeOf(&PersistentVolumeClaim{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_PersistentVolumeClaimList, InType: reflect.TypeOf(&PersistentVolumeClaimList{})},
@@ -146,6 +148,7 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_PodExecOptions, InType: reflect.TypeOf(&PodExecOptions{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_PodList, InType: reflect.TypeOf(&PodList{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_PodLogOptions, InType: reflect.TypeOf(&PodLogOptions{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_PodPortForwardOptions, InType: reflect.TypeOf(&PodPortForwardOptions{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_PodProxyOptions, InType: reflect.TypeOf(&PodProxyOptions{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_PodSecurityContext, InType: reflect.TypeOf(&PodSecurityContext{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_PodSignature, InType: reflect.TypeOf(&PodSignature{})},
@@ -155,10 +158,12 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_PodTemplate, InType: reflect.TypeOf(&PodTemplate{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_PodTemplateList, InType: reflect.TypeOf(&PodTemplateList{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_PodTemplateSpec, InType: reflect.TypeOf(&PodTemplateSpec{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_PortworxVolumeSource, InType: reflect.TypeOf(&PortworxVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_Preconditions, InType: reflect.TypeOf(&Preconditions{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_PreferAvoidPodsEntry, InType: reflect.TypeOf(&PreferAvoidPodsEntry{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_PreferredSchedulingTerm, InType: reflect.TypeOf(&PreferredSchedulingTerm{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_Probe, InType: reflect.TypeOf(&Probe{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ProjectedVolumeSource, InType: reflect.TypeOf(&ProjectedVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_QuobyteVolumeSource, InType: reflect.TypeOf(&QuobyteVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_RBDVolumeSource, InType: reflect.TypeOf(&RBDVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_RangeAllocation, InType: reflect.TypeOf(&RangeAllocation{})},
@@ -174,9 +179,12 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ResourceQuotaStatus, InType: reflect.TypeOf(&ResourceQuotaStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ResourceRequirements, InType: reflect.TypeOf(&ResourceRequirements{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_SELinuxOptions, InType: reflect.TypeOf(&SELinuxOptions{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ScaleIOVolumeSource, InType: reflect.TypeOf(&ScaleIOVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_Secret, InType: reflect.TypeOf(&Secret{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_SecretEnvSource, InType: reflect.TypeOf(&SecretEnvSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_SecretKeySelector, InType: reflect.TypeOf(&SecretKeySelector{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_SecretList, InType: reflect.TypeOf(&SecretList{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_SecretProjection, InType: reflect.TypeOf(&SecretProjection{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_SecretVolumeSource, InType: reflect.TypeOf(&SecretVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_SecurityContext, InType: reflect.TypeOf(&SecurityContext{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_SerializedReference, InType: reflect.TypeOf(&SerializedReference{})},
@@ -194,6 +202,7 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_Toleration, InType: reflect.TypeOf(&Toleration{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_Volume, InType: reflect.TypeOf(&Volume{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_VolumeMount, InType: reflect.TypeOf(&VolumeMount{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_VolumeProjection, InType: reflect.TypeOf(&VolumeProjection{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_VolumeSource, InType: reflect.TypeOf(&VolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_VsphereVirtualDiskVolumeSource, InType: reflect.TypeOf(&VsphereVirtualDiskVolumeSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_WeightedPodAffinityTerm, InType: reflect.TypeOf(&WeightedPodAffinityTerm{})},
@@ -204,10 +213,7 @@ func DeepCopy_api_AWSElasticBlockStoreVolumeSource(in interface{}, out interface
 	{
 		in := in.(*AWSElasticBlockStoreVolumeSource)
 		out := out.(*AWSElasticBlockStoreVolumeSource)
-		out.VolumeID = in.VolumeID
-		out.FSType = in.FSType
-		out.Partition = in.Partition
-		out.ReadOnly = in.ReadOnly
+		*out = *in
 		return nil
 	}
 }
@@ -216,14 +222,13 @@ func DeepCopy_api_Affinity(in interface{}, out interface{}, c *conversion.Cloner
 	{
 		in := in.(*Affinity)
 		out := out.(*Affinity)
+		*out = *in
 		if in.NodeAffinity != nil {
 			in, out := &in.NodeAffinity, &out.NodeAffinity
 			*out = new(NodeAffinity)
 			if err := DeepCopy_api_NodeAffinity(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.NodeAffinity = nil
 		}
 		if in.PodAffinity != nil {
 			in, out := &in.PodAffinity, &out.PodAffinity
@@ -231,8 +236,6 @@ func DeepCopy_api_Affinity(in interface{}, out interface{}, c *conversion.Cloner
 			if err := DeepCopy_api_PodAffinity(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.PodAffinity = nil
 		}
 		if in.PodAntiAffinity != nil {
 			in, out := &in.PodAntiAffinity, &out.PodAntiAffinity
@@ -240,8 +243,6 @@ func DeepCopy_api_Affinity(in interface{}, out interface{}, c *conversion.Cloner
 			if err := DeepCopy_api_PodAntiAffinity(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.PodAntiAffinity = nil
 		}
 		return nil
 	}
@@ -251,8 +252,7 @@ func DeepCopy_api_AttachedVolume(in interface{}, out interface{}, c *conversion.
 	{
 		in := in.(*AttachedVolume)
 		out := out.(*AttachedVolume)
-		out.Name = in.Name
-		out.DevicePath = in.DevicePath
+		*out = *in
 		return nil
 	}
 }
@@ -261,6 +261,7 @@ func DeepCopy_api_AvoidPods(in interface{}, out interface{}, c *conversion.Clone
 	{
 		in := in.(*AvoidPods)
 		out := out.(*AvoidPods)
+		*out = *in
 		if in.PreferAvoidPods != nil {
 			in, out := &in.PreferAvoidPods, &out.PreferAvoidPods
 			*out = make([]PreferAvoidPodsEntry, len(*in))
@@ -269,8 +270,6 @@ func DeepCopy_api_AvoidPods(in interface{}, out interface{}, c *conversion.Clone
 					return err
 				}
 			}
-		} else {
-			out.PreferAvoidPods = nil
 		}
 		return nil
 	}
@@ -280,28 +279,21 @@ func DeepCopy_api_AzureDiskVolumeSource(in interface{}, out interface{}, c *conv
 	{
 		in := in.(*AzureDiskVolumeSource)
 		out := out.(*AzureDiskVolumeSource)
-		out.DiskName = in.DiskName
-		out.DataDiskURI = in.DataDiskURI
+		*out = *in
 		if in.CachingMode != nil {
 			in, out := &in.CachingMode, &out.CachingMode
 			*out = new(AzureDataDiskCachingMode)
 			**out = **in
-		} else {
-			out.CachingMode = nil
 		}
 		if in.FSType != nil {
 			in, out := &in.FSType, &out.FSType
 			*out = new(string)
 			**out = **in
-		} else {
-			out.FSType = nil
 		}
 		if in.ReadOnly != nil {
 			in, out := &in.ReadOnly, &out.ReadOnly
 			*out = new(bool)
 			**out = **in
-		} else {
-			out.ReadOnly = nil
 		}
 		return nil
 	}
@@ -311,9 +303,7 @@ func DeepCopy_api_AzureFileVolumeSource(in interface{}, out interface{}, c *conv
 	{
 		in := in.(*AzureFileVolumeSource)
 		out := out.(*AzureFileVolumeSource)
-		out.SecretName = in.SecretName
-		out.ShareName = in.ShareName
-		out.ReadOnly = in.ReadOnly
+		*out = *in
 		return nil
 	}
 }
@@ -322,11 +312,12 @@ func DeepCopy_api_Binding(in interface{}, out interface{}, c *conversion.Cloner)
 	{
 		in := in.(*Binding)
 		out := out.(*Binding)
-		out.TypeMeta = in.TypeMeta
-		if err := DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
-		out.Target = in.Target
 		return nil
 	}
 }
@@ -335,23 +326,16 @@ func DeepCopy_api_Capabilities(in interface{}, out interface{}, c *conversion.Cl
 	{
 		in := in.(*Capabilities)
 		out := out.(*Capabilities)
+		*out = *in
 		if in.Add != nil {
 			in, out := &in.Add, &out.Add
 			*out = make([]Capability, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.Add = nil
+			copy(*out, *in)
 		}
 		if in.Drop != nil {
 			in, out := &in.Drop, &out.Drop
 			*out = make([]Capability, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.Drop = nil
+			copy(*out, *in)
 		}
 		return nil
 	}
@@ -361,24 +345,17 @@ func DeepCopy_api_CephFSVolumeSource(in interface{}, out interface{}, c *convers
 	{
 		in := in.(*CephFSVolumeSource)
 		out := out.(*CephFSVolumeSource)
+		*out = *in
 		if in.Monitors != nil {
 			in, out := &in.Monitors, &out.Monitors
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.Monitors = nil
 		}
-		out.Path = in.Path
-		out.User = in.User
-		out.SecretFile = in.SecretFile
 		if in.SecretRef != nil {
 			in, out := &in.SecretRef, &out.SecretRef
 			*out = new(LocalObjectReference)
 			**out = **in
-		} else {
-			out.SecretRef = nil
 		}
-		out.ReadOnly = in.ReadOnly
 		return nil
 	}
 }
@@ -387,9 +364,7 @@ func DeepCopy_api_CinderVolumeSource(in interface{}, out interface{}, c *convers
 	{
 		in := in.(*CinderVolumeSource)
 		out := out.(*CinderVolumeSource)
-		out.VolumeID = in.VolumeID
-		out.FSType = in.FSType
-		out.ReadOnly = in.ReadOnly
+		*out = *in
 		return nil
 	}
 }
@@ -398,10 +373,7 @@ func DeepCopy_api_ComponentCondition(in interface{}, out interface{}, c *convers
 	{
 		in := in.(*ComponentCondition)
 		out := out.(*ComponentCondition)
-		out.Type = in.Type
-		out.Status = in.Status
-		out.Message = in.Message
-		out.Error = in.Error
+		*out = *in
 		return nil
 	}
 }
@@ -410,18 +382,16 @@ func DeepCopy_api_ComponentStatus(in interface{}, out interface{}, c *conversion
 	{
 		in := in.(*ComponentStatus)
 		out := out.(*ComponentStatus)
-		out.TypeMeta = in.TypeMeta
-		if err := DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
 		if in.Conditions != nil {
 			in, out := &in.Conditions, &out.Conditions
 			*out = make([]ComponentCondition, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.Conditions = nil
+			copy(*out, *in)
 		}
 		return nil
 	}
@@ -431,8 +401,7 @@ func DeepCopy_api_ComponentStatusList(in interface{}, out interface{}, c *conver
 	{
 		in := in.(*ComponentStatusList)
 		out := out.(*ComponentStatusList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]ComponentStatus, len(*in))
@@ -441,8 +410,6 @@ func DeepCopy_api_ComponentStatusList(in interface{}, out interface{}, c *conver
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -452,9 +419,11 @@ func DeepCopy_api_ConfigMap(in interface{}, out interface{}, c *conversion.Clone
 	{
 		in := in.(*ConfigMap)
 		out := out.(*ConfigMap)
-		out.TypeMeta = in.TypeMeta
-		if err := DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
 		if in.Data != nil {
 			in, out := &in.Data, &out.Data
@@ -462,8 +431,20 @@ func DeepCopy_api_ConfigMap(in interface{}, out interface{}, c *conversion.Clone
 			for key, val := range *in {
 				(*out)[key] = val
 			}
-		} else {
-			out.Data = nil
+		}
+		return nil
+	}
+}
+
+func DeepCopy_api_ConfigMapEnvSource(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ConfigMapEnvSource)
+		out := out.(*ConfigMapEnvSource)
+		*out = *in
+		if in.Optional != nil {
+			in, out := &in.Optional, &out.Optional
+			*out = new(bool)
+			**out = **in
 		}
 		return nil
 	}
@@ -473,8 +454,12 @@ func DeepCopy_api_ConfigMapKeySelector(in interface{}, out interface{}, c *conve
 	{
 		in := in.(*ConfigMapKeySelector)
 		out := out.(*ConfigMapKeySelector)
-		out.LocalObjectReference = in.LocalObjectReference
-		out.Key = in.Key
+		*out = *in
+		if in.Optional != nil {
+			in, out := &in.Optional, &out.Optional
+			*out = new(bool)
+			**out = **in
+		}
 		return nil
 	}
 }
@@ -483,8 +468,7 @@ func DeepCopy_api_ConfigMapList(in interface{}, out interface{}, c *conversion.C
 	{
 		in := in.(*ConfigMapList)
 		out := out.(*ConfigMapList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]ConfigMap, len(*in))
@@ -493,8 +477,29 @@ func DeepCopy_api_ConfigMapList(in interface{}, out interface{}, c *conversion.C
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
+		}
+		return nil
+	}
+}
+
+func DeepCopy_api_ConfigMapProjection(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ConfigMapProjection)
+		out := out.(*ConfigMapProjection)
+		*out = *in
+		if in.Items != nil {
+			in, out := &in.Items, &out.Items
+			*out = make([]KeyToPath, len(*in))
+			for i := range *in {
+				if err := DeepCopy_api_KeyToPath(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		}
+		if in.Optional != nil {
+			in, out := &in.Optional, &out.Optional
+			*out = new(bool)
+			**out = **in
 		}
 		return nil
 	}
@@ -504,7 +509,7 @@ func DeepCopy_api_ConfigMapVolumeSource(in interface{}, out interface{}, c *conv
 	{
 		in := in.(*ConfigMapVolumeSource)
 		out := out.(*ConfigMapVolumeSource)
-		out.LocalObjectReference = in.LocalObjectReference
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]KeyToPath, len(*in))
@@ -513,15 +518,16 @@ func DeepCopy_api_ConfigMapVolumeSource(in interface{}, out interface{}, c *conv
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		if in.DefaultMode != nil {
 			in, out := &in.DefaultMode, &out.DefaultMode
 			*out = new(int32)
 			**out = **in
-		} else {
-			out.DefaultMode = nil
+		}
+		if in.Optional != nil {
+			in, out := &in.Optional, &out.Optional
+			*out = new(bool)
+			**out = **in
 		}
 		return nil
 	}
@@ -531,31 +537,30 @@ func DeepCopy_api_Container(in interface{}, out interface{}, c *conversion.Clone
 	{
 		in := in.(*Container)
 		out := out.(*Container)
-		out.Name = in.Name
-		out.Image = in.Image
+		*out = *in
 		if in.Command != nil {
 			in, out := &in.Command, &out.Command
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.Command = nil
 		}
 		if in.Args != nil {
 			in, out := &in.Args, &out.Args
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.Args = nil
 		}
-		out.WorkingDir = in.WorkingDir
 		if in.Ports != nil {
 			in, out := &in.Ports, &out.Ports
 			*out = make([]ContainerPort, len(*in))
+			copy(*out, *in)
+		}
+		if in.EnvFrom != nil {
+			in, out := &in.EnvFrom, &out.EnvFrom
+			*out = make([]EnvFromSource, len(*in))
 			for i := range *in {
-				(*out)[i] = (*in)[i]
+				if err := DeepCopy_api_EnvFromSource(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
 			}
-		} else {
-			out.Ports = nil
 		}
 		if in.Env != nil {
 			in, out := &in.Env, &out.Env
@@ -565,8 +570,6 @@ func DeepCopy_api_Container(in interface{}, out interface{}, c *conversion.Clone
 					return err
 				}
 			}
-		} else {
-			out.Env = nil
 		}
 		if err := DeepCopy_api_ResourceRequirements(&in.Resources, &out.Resources, c); err != nil {
 			return err
@@ -574,11 +577,7 @@ func DeepCopy_api_Container(in interface{}, out interface{}, c *conversion.Clone
 		if in.VolumeMounts != nil {
 			in, out := &in.VolumeMounts, &out.VolumeMounts
 			*out = make([]VolumeMount, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.VolumeMounts = nil
+			copy(*out, *in)
 		}
 		if in.LivenessProbe != nil {
 			in, out := &in.LivenessProbe, &out.LivenessProbe
@@ -586,8 +585,6 @@ func DeepCopy_api_Container(in interface{}, out interface{}, c *conversion.Clone
 			if err := DeepCopy_api_Probe(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.LivenessProbe = nil
 		}
 		if in.ReadinessProbe != nil {
 			in, out := &in.ReadinessProbe, &out.ReadinessProbe
@@ -595,8 +592,6 @@ func DeepCopy_api_Container(in interface{}, out interface{}, c *conversion.Clone
 			if err := DeepCopy_api_Probe(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.ReadinessProbe = nil
 		}
 		if in.Lifecycle != nil {
 			in, out := &in.Lifecycle, &out.Lifecycle
@@ -604,23 +599,14 @@ func DeepCopy_api_Container(in interface{}, out interface{}, c *conversion.Clone
 			if err := DeepCopy_api_Lifecycle(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.Lifecycle = nil
 		}
-		out.TerminationMessagePath = in.TerminationMessagePath
-		out.ImagePullPolicy = in.ImagePullPolicy
 		if in.SecurityContext != nil {
 			in, out := &in.SecurityContext, &out.SecurityContext
 			*out = new(SecurityContext)
 			if err := DeepCopy_api_SecurityContext(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.SecurityContext = nil
 		}
-		out.Stdin = in.Stdin
-		out.StdinOnce = in.StdinOnce
-		out.TTY = in.TTY
 		return nil
 	}
 }
@@ -629,14 +615,12 @@ func DeepCopy_api_ContainerImage(in interface{}, out interface{}, c *conversion.
 	{
 		in := in.(*ContainerImage)
 		out := out.(*ContainerImage)
+		*out = *in
 		if in.Names != nil {
 			in, out := &in.Names, &out.Names
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.Names = nil
 		}
-		out.SizeBytes = in.SizeBytes
 		return nil
 	}
 }
@@ -645,11 +629,7 @@ func DeepCopy_api_ContainerPort(in interface{}, out interface{}, c *conversion.C
 	{
 		in := in.(*ContainerPort)
 		out := out.(*ContainerPort)
-		out.Name = in.Name
-		out.HostPort = in.HostPort
-		out.ContainerPort = in.ContainerPort
-		out.Protocol = in.Protocol
-		out.HostIP = in.HostIP
+		*out = *in
 		return nil
 	}
 }
@@ -658,12 +638,11 @@ func DeepCopy_api_ContainerState(in interface{}, out interface{}, c *conversion.
 	{
 		in := in.(*ContainerState)
 		out := out.(*ContainerState)
+		*out = *in
 		if in.Waiting != nil {
 			in, out := &in.Waiting, &out.Waiting
 			*out = new(ContainerStateWaiting)
 			**out = **in
-		} else {
-			out.Waiting = nil
 		}
 		if in.Running != nil {
 			in, out := &in.Running, &out.Running
@@ -671,8 +650,6 @@ func DeepCopy_api_ContainerState(in interface{}, out interface{}, c *conversion.
 			if err := DeepCopy_api_ContainerStateRunning(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.Running = nil
 		}
 		if in.Terminated != nil {
 			in, out := &in.Terminated, &out.Terminated
@@ -680,8 +657,6 @@ func DeepCopy_api_ContainerState(in interface{}, out interface{}, c *conversion.
 			if err := DeepCopy_api_ContainerStateTerminated(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.Terminated = nil
 		}
 		return nil
 	}
@@ -691,6 +666,7 @@ func DeepCopy_api_ContainerStateRunning(in interface{}, out interface{}, c *conv
 	{
 		in := in.(*ContainerStateRunning)
 		out := out.(*ContainerStateRunning)
+		*out = *in
 		out.StartedAt = in.StartedAt.DeepCopy()
 		return nil
 	}
@@ -700,13 +676,9 @@ func DeepCopy_api_ContainerStateTerminated(in interface{}, out interface{}, c *c
 	{
 		in := in.(*ContainerStateTerminated)
 		out := out.(*ContainerStateTerminated)
-		out.ExitCode = in.ExitCode
-		out.Signal = in.Signal
-		out.Reason = in.Reason
-		out.Message = in.Message
+		*out = *in
 		out.StartedAt = in.StartedAt.DeepCopy()
 		out.FinishedAt = in.FinishedAt.DeepCopy()
-		out.ContainerID = in.ContainerID
 		return nil
 	}
 }
@@ -715,8 +687,7 @@ func DeepCopy_api_ContainerStateWaiting(in interface{}, out interface{}, c *conv
 	{
 		in := in.(*ContainerStateWaiting)
 		out := out.(*ContainerStateWaiting)
-		out.Reason = in.Reason
-		out.Message = in.Message
+		*out = *in
 		return nil
 	}
 }
@@ -725,18 +696,13 @@ func DeepCopy_api_ContainerStatus(in interface{}, out interface{}, c *conversion
 	{
 		in := in.(*ContainerStatus)
 		out := out.(*ContainerStatus)
-		out.Name = in.Name
+		*out = *in
 		if err := DeepCopy_api_ContainerState(&in.State, &out.State, c); err != nil {
 			return err
 		}
 		if err := DeepCopy_api_ContainerState(&in.LastTerminationState, &out.LastTerminationState, c); err != nil {
 			return err
 		}
-		out.Ready = in.Ready
-		out.RestartCount = in.RestartCount
-		out.Image = in.Image
-		out.ImageID = in.ImageID
-		out.ContainerID = in.ContainerID
 		return nil
 	}
 }
@@ -745,21 +711,23 @@ func DeepCopy_api_ConversionError(in interface{}, out interface{}, c *conversion
 	{
 		in := in.(*ConversionError)
 		out := out.(*ConversionError)
-		if in.In == nil {
-			out.In = nil
-		} else if newVal, err := c.DeepCopy(&in.In); err != nil {
-			return err
-		} else {
-			out.In = *newVal.(*interface{})
+		*out = *in
+		// in.In is kind 'Interface'
+		if in.In != nil {
+			if newVal, err := c.DeepCopy(&in.In); err != nil {
+				return err
+			} else {
+				out.In = *newVal.(*interface{})
+			}
 		}
-		if in.Out == nil {
-			out.Out = nil
-		} else if newVal, err := c.DeepCopy(&in.Out); err != nil {
-			return err
-		} else {
-			out.Out = *newVal.(*interface{})
+		// in.Out is kind 'Interface'
+		if in.Out != nil {
+			if newVal, err := c.DeepCopy(&in.Out); err != nil {
+				return err
+			} else {
+				out.Out = *newVal.(*interface{})
+			}
 		}
-		out.Message = in.Message
 		return nil
 	}
 }
@@ -768,7 +736,7 @@ func DeepCopy_api_DaemonEndpoint(in interface{}, out interface{}, c *conversion.
 	{
 		in := in.(*DaemonEndpoint)
 		out := out.(*DaemonEndpoint)
-		out.Port = in.Port
+		*out = *in
 		return nil
 	}
 }
@@ -777,13 +745,11 @@ func DeepCopy_api_DeleteOptions(in interface{}, out interface{}, c *conversion.C
 	{
 		in := in.(*DeleteOptions)
 		out := out.(*DeleteOptions)
-		out.TypeMeta = in.TypeMeta
+		*out = *in
 		if in.GracePeriodSeconds != nil {
 			in, out := &in.GracePeriodSeconds, &out.GracePeriodSeconds
 			*out = new(int64)
 			**out = **in
-		} else {
-			out.GracePeriodSeconds = nil
 		}
 		if in.Preconditions != nil {
 			in, out := &in.Preconditions, &out.Preconditions
@@ -791,15 +757,34 @@ func DeepCopy_api_DeleteOptions(in interface{}, out interface{}, c *conversion.C
 			if err := DeepCopy_api_Preconditions(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.Preconditions = nil
 		}
 		if in.OrphanDependents != nil {
 			in, out := &in.OrphanDependents, &out.OrphanDependents
 			*out = new(bool)
 			**out = **in
-		} else {
-			out.OrphanDependents = nil
+		}
+		if in.PropagationPolicy != nil {
+			in, out := &in.PropagationPolicy, &out.PropagationPolicy
+			*out = new(DeletionPropagation)
+			**out = **in
+		}
+		return nil
+	}
+}
+
+func DeepCopy_api_DownwardAPIProjection(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*DownwardAPIProjection)
+		out := out.(*DownwardAPIProjection)
+		*out = *in
+		if in.Items != nil {
+			in, out := &in.Items, &out.Items
+			*out = make([]DownwardAPIVolumeFile, len(*in))
+			for i := range *in {
+				if err := DeepCopy_api_DownwardAPIVolumeFile(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
 		}
 		return nil
 	}
@@ -809,13 +794,11 @@ func DeepCopy_api_DownwardAPIVolumeFile(in interface{}, out interface{}, c *conv
 	{
 		in := in.(*DownwardAPIVolumeFile)
 		out := out.(*DownwardAPIVolumeFile)
-		out.Path = in.Path
+		*out = *in
 		if in.FieldRef != nil {
 			in, out := &in.FieldRef, &out.FieldRef
 			*out = new(ObjectFieldSelector)
 			**out = **in
-		} else {
-			out.FieldRef = nil
 		}
 		if in.ResourceFieldRef != nil {
 			in, out := &in.ResourceFieldRef, &out.ResourceFieldRef
@@ -823,15 +806,11 @@ func DeepCopy_api_DownwardAPIVolumeFile(in interface{}, out interface{}, c *conv
 			if err := DeepCopy_api_ResourceFieldSelector(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.ResourceFieldRef = nil
 		}
 		if in.Mode != nil {
 			in, out := &in.Mode, &out.Mode
 			*out = new(int32)
 			**out = **in
-		} else {
-			out.Mode = nil
 		}
 		return nil
 	}
@@ -841,6 +820,7 @@ func DeepCopy_api_DownwardAPIVolumeSource(in interface{}, out interface{}, c *co
 	{
 		in := in.(*DownwardAPIVolumeSource)
 		out := out.(*DownwardAPIVolumeSource)
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]DownwardAPIVolumeFile, len(*in))
@@ -849,15 +829,11 @@ func DeepCopy_api_DownwardAPIVolumeSource(in interface{}, out interface{}, c *co
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		if in.DefaultMode != nil {
 			in, out := &in.DefaultMode, &out.DefaultMode
 			*out = new(int32)
 			**out = **in
-		} else {
-			out.DefaultMode = nil
 		}
 		return nil
 	}
@@ -867,7 +843,7 @@ func DeepCopy_api_EmptyDirVolumeSource(in interface{}, out interface{}, c *conve
 	{
 		in := in.(*EmptyDirVolumeSource)
 		out := out.(*EmptyDirVolumeSource)
-		out.Medium = in.Medium
+		*out = *in
 		return nil
 	}
 }
@@ -876,21 +852,16 @@ func DeepCopy_api_EndpointAddress(in interface{}, out interface{}, c *conversion
 	{
 		in := in.(*EndpointAddress)
 		out := out.(*EndpointAddress)
-		out.IP = in.IP
-		out.Hostname = in.Hostname
+		*out = *in
 		if in.NodeName != nil {
 			in, out := &in.NodeName, &out.NodeName
 			*out = new(string)
 			**out = **in
-		} else {
-			out.NodeName = nil
 		}
 		if in.TargetRef != nil {
 			in, out := &in.TargetRef, &out.TargetRef
 			*out = new(ObjectReference)
 			**out = **in
-		} else {
-			out.TargetRef = nil
 		}
 		return nil
 	}
@@ -900,9 +871,7 @@ func DeepCopy_api_EndpointPort(in interface{}, out interface{}, c *conversion.Cl
 	{
 		in := in.(*EndpointPort)
 		out := out.(*EndpointPort)
-		out.Name = in.Name
-		out.Port = in.Port
-		out.Protocol = in.Protocol
+		*out = *in
 		return nil
 	}
 }
@@ -911,6 +880,7 @@ func DeepCopy_api_EndpointSubset(in interface{}, out interface{}, c *conversion.
 	{
 		in := in.(*EndpointSubset)
 		out := out.(*EndpointSubset)
+		*out = *in
 		if in.Addresses != nil {
 			in, out := &in.Addresses, &out.Addresses
 			*out = make([]EndpointAddress, len(*in))
@@ -919,8 +889,6 @@ func DeepCopy_api_EndpointSubset(in interface{}, out interface{}, c *conversion.
 					return err
 				}
 			}
-		} else {
-			out.Addresses = nil
 		}
 		if in.NotReadyAddresses != nil {
 			in, out := &in.NotReadyAddresses, &out.NotReadyAddresses
@@ -930,17 +898,11 @@ func DeepCopy_api_EndpointSubset(in interface{}, out interface{}, c *conversion.
 					return err
 				}
 			}
-		} else {
-			out.NotReadyAddresses = nil
 		}
 		if in.Ports != nil {
 			in, out := &in.Ports, &out.Ports
 			*out = make([]EndpointPort, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.Ports = nil
+			copy(*out, *in)
 		}
 		return nil
 	}
@@ -950,9 +912,11 @@ func DeepCopy_api_Endpoints(in interface{}, out interface{}, c *conversion.Clone
 	{
 		in := in.(*Endpoints)
 		out := out.(*Endpoints)
-		out.TypeMeta = in.TypeMeta
-		if err := DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
 		if in.Subsets != nil {
 			in, out := &in.Subsets, &out.Subsets
@@ -962,8 +926,6 @@ func DeepCopy_api_Endpoints(in interface{}, out interface{}, c *conversion.Clone
 					return err
 				}
 			}
-		} else {
-			out.Subsets = nil
 		}
 		return nil
 	}
@@ -973,8 +935,7 @@ func DeepCopy_api_EndpointsList(in interface{}, out interface{}, c *conversion.C
 	{
 		in := in.(*EndpointsList)
 		out := out.(*EndpointsList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]Endpoints, len(*in))
@@ -983,8 +944,29 @@ func DeepCopy_api_EndpointsList(in interface{}, out interface{}, c *conversion.C
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
+		}
+		return nil
+	}
+}
+
+func DeepCopy_api_EnvFromSource(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*EnvFromSource)
+		out := out.(*EnvFromSource)
+		*out = *in
+		if in.ConfigMapRef != nil {
+			in, out := &in.ConfigMapRef, &out.ConfigMapRef
+			*out = new(ConfigMapEnvSource)
+			if err := DeepCopy_api_ConfigMapEnvSource(*in, *out, c); err != nil {
+				return err
+			}
+		}
+		if in.SecretRef != nil {
+			in, out := &in.SecretRef, &out.SecretRef
+			*out = new(SecretEnvSource)
+			if err := DeepCopy_api_SecretEnvSource(*in, *out, c); err != nil {
+				return err
+			}
 		}
 		return nil
 	}
@@ -994,16 +976,13 @@ func DeepCopy_api_EnvVar(in interface{}, out interface{}, c *conversion.Cloner) 
 	{
 		in := in.(*EnvVar)
 		out := out.(*EnvVar)
-		out.Name = in.Name
-		out.Value = in.Value
+		*out = *in
 		if in.ValueFrom != nil {
 			in, out := &in.ValueFrom, &out.ValueFrom
 			*out = new(EnvVarSource)
 			if err := DeepCopy_api_EnvVarSource(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.ValueFrom = nil
 		}
 		return nil
 	}
@@ -1013,12 +992,11 @@ func DeepCopy_api_EnvVarSource(in interface{}, out interface{}, c *conversion.Cl
 	{
 		in := in.(*EnvVarSource)
 		out := out.(*EnvVarSource)
+		*out = *in
 		if in.FieldRef != nil {
 			in, out := &in.FieldRef, &out.FieldRef
 			*out = new(ObjectFieldSelector)
 			**out = **in
-		} else {
-			out.FieldRef = nil
 		}
 		if in.ResourceFieldRef != nil {
 			in, out := &in.ResourceFieldRef, &out.ResourceFieldRef
@@ -1026,22 +1004,20 @@ func DeepCopy_api_EnvVarSource(in interface{}, out interface{}, c *conversion.Cl
 			if err := DeepCopy_api_ResourceFieldSelector(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.ResourceFieldRef = nil
 		}
 		if in.ConfigMapKeyRef != nil {
 			in, out := &in.ConfigMapKeyRef, &out.ConfigMapKeyRef
 			*out = new(ConfigMapKeySelector)
-			**out = **in
-		} else {
-			out.ConfigMapKeyRef = nil
+			if err := DeepCopy_api_ConfigMapKeySelector(*in, *out, c); err != nil {
+				return err
+			}
 		}
 		if in.SecretKeyRef != nil {
 			in, out := &in.SecretKeyRef, &out.SecretKeyRef
 			*out = new(SecretKeySelector)
-			**out = **in
-		} else {
-			out.SecretKeyRef = nil
+			if err := DeepCopy_api_SecretKeySelector(*in, *out, c); err != nil {
+				return err
+			}
 		}
 		return nil
 	}
@@ -1051,18 +1027,14 @@ func DeepCopy_api_Event(in interface{}, out interface{}, c *conversion.Cloner) e
 	{
 		in := in.(*Event)
 		out := out.(*Event)
-		out.TypeMeta = in.TypeMeta
-		if err := DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
-		out.InvolvedObject = in.InvolvedObject
-		out.Reason = in.Reason
-		out.Message = in.Message
-		out.Source = in.Source
 		out.FirstTimestamp = in.FirstTimestamp.DeepCopy()
 		out.LastTimestamp = in.LastTimestamp.DeepCopy()
-		out.Count = in.Count
-		out.Type = in.Type
 		return nil
 	}
 }
@@ -1071,8 +1043,7 @@ func DeepCopy_api_EventList(in interface{}, out interface{}, c *conversion.Clone
 	{
 		in := in.(*EventList)
 		out := out.(*EventList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]Event, len(*in))
@@ -1081,8 +1052,6 @@ func DeepCopy_api_EventList(in interface{}, out interface{}, c *conversion.Clone
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -1092,8 +1061,7 @@ func DeepCopy_api_EventSource(in interface{}, out interface{}, c *conversion.Clo
 	{
 		in := in.(*EventSource)
 		out := out.(*EventSource)
-		out.Component = in.Component
-		out.Host = in.Host
+		*out = *in
 		return nil
 	}
 }
@@ -1102,24 +1070,12 @@ func DeepCopy_api_ExecAction(in interface{}, out interface{}, c *conversion.Clon
 	{
 		in := in.(*ExecAction)
 		out := out.(*ExecAction)
+		*out = *in
 		if in.Command != nil {
 			in, out := &in.Command, &out.Command
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.Command = nil
 		}
-		return nil
-	}
-}
-
-func DeepCopy_api_ExportOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ExportOptions)
-		out := out.(*ExportOptions)
-		out.TypeMeta = in.TypeMeta
-		out.Export = in.Export
-		out.Exact = in.Exact
 		return nil
 	}
 }
@@ -1128,22 +1084,17 @@ func DeepCopy_api_FCVolumeSource(in interface{}, out interface{}, c *conversion.
 	{
 		in := in.(*FCVolumeSource)
 		out := out.(*FCVolumeSource)
+		*out = *in
 		if in.TargetWWNs != nil {
 			in, out := &in.TargetWWNs, &out.TargetWWNs
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.TargetWWNs = nil
 		}
 		if in.Lun != nil {
 			in, out := &in.Lun, &out.Lun
 			*out = new(int32)
 			**out = **in
-		} else {
-			out.Lun = nil
 		}
-		out.FSType = in.FSType
-		out.ReadOnly = in.ReadOnly
 		return nil
 	}
 }
@@ -1152,24 +1103,18 @@ func DeepCopy_api_FlexVolumeSource(in interface{}, out interface{}, c *conversio
 	{
 		in := in.(*FlexVolumeSource)
 		out := out.(*FlexVolumeSource)
-		out.Driver = in.Driver
-		out.FSType = in.FSType
+		*out = *in
 		if in.SecretRef != nil {
 			in, out := &in.SecretRef, &out.SecretRef
 			*out = new(LocalObjectReference)
 			**out = **in
-		} else {
-			out.SecretRef = nil
 		}
-		out.ReadOnly = in.ReadOnly
 		if in.Options != nil {
 			in, out := &in.Options, &out.Options
 			*out = make(map[string]string)
 			for key, val := range *in {
 				(*out)[key] = val
 			}
-		} else {
-			out.Options = nil
 		}
 		return nil
 	}
@@ -1179,8 +1124,7 @@ func DeepCopy_api_FlockerVolumeSource(in interface{}, out interface{}, c *conver
 	{
 		in := in.(*FlockerVolumeSource)
 		out := out.(*FlockerVolumeSource)
-		out.DatasetName = in.DatasetName
-		out.DatasetUUID = in.DatasetUUID
+		*out = *in
 		return nil
 	}
 }
@@ -1189,10 +1133,7 @@ func DeepCopy_api_GCEPersistentDiskVolumeSource(in interface{}, out interface{},
 	{
 		in := in.(*GCEPersistentDiskVolumeSource)
 		out := out.(*GCEPersistentDiskVolumeSource)
-		out.PDName = in.PDName
-		out.FSType = in.FSType
-		out.Partition = in.Partition
-		out.ReadOnly = in.ReadOnly
+		*out = *in
 		return nil
 	}
 }
@@ -1201,9 +1142,7 @@ func DeepCopy_api_GitRepoVolumeSource(in interface{}, out interface{}, c *conver
 	{
 		in := in.(*GitRepoVolumeSource)
 		out := out.(*GitRepoVolumeSource)
-		out.Repository = in.Repository
-		out.Revision = in.Revision
-		out.Directory = in.Directory
+		*out = *in
 		return nil
 	}
 }
@@ -1212,9 +1151,7 @@ func DeepCopy_api_GlusterfsVolumeSource(in interface{}, out interface{}, c *conv
 	{
 		in := in.(*GlusterfsVolumeSource)
 		out := out.(*GlusterfsVolumeSource)
-		out.EndpointsName = in.EndpointsName
-		out.Path = in.Path
-		out.ReadOnly = in.ReadOnly
+		*out = *in
 		return nil
 	}
 }
@@ -1223,18 +1160,11 @@ func DeepCopy_api_HTTPGetAction(in interface{}, out interface{}, c *conversion.C
 	{
 		in := in.(*HTTPGetAction)
 		out := out.(*HTTPGetAction)
-		out.Path = in.Path
-		out.Port = in.Port
-		out.Host = in.Host
-		out.Scheme = in.Scheme
+		*out = *in
 		if in.HTTPHeaders != nil {
 			in, out := &in.HTTPHeaders, &out.HTTPHeaders
 			*out = make([]HTTPHeader, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.HTTPHeaders = nil
+			copy(*out, *in)
 		}
 		return nil
 	}
@@ -1244,8 +1174,7 @@ func DeepCopy_api_HTTPHeader(in interface{}, out interface{}, c *conversion.Clon
 	{
 		in := in.(*HTTPHeader)
 		out := out.(*HTTPHeader)
-		out.Name = in.Name
-		out.Value = in.Value
+		*out = *in
 		return nil
 	}
 }
@@ -1254,14 +1183,13 @@ func DeepCopy_api_Handler(in interface{}, out interface{}, c *conversion.Cloner)
 	{
 		in := in.(*Handler)
 		out := out.(*Handler)
+		*out = *in
 		if in.Exec != nil {
 			in, out := &in.Exec, &out.Exec
 			*out = new(ExecAction)
 			if err := DeepCopy_api_ExecAction(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.Exec = nil
 		}
 		if in.HTTPGet != nil {
 			in, out := &in.HTTPGet, &out.HTTPGet
@@ -1269,15 +1197,11 @@ func DeepCopy_api_Handler(in interface{}, out interface{}, c *conversion.Cloner)
 			if err := DeepCopy_api_HTTPGetAction(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.HTTPGet = nil
 		}
 		if in.TCPSocket != nil {
 			in, out := &in.TCPSocket, &out.TCPSocket
 			*out = new(TCPSocketAction)
 			**out = **in
-		} else {
-			out.TCPSocket = nil
 		}
 		return nil
 	}
@@ -1287,7 +1211,7 @@ func DeepCopy_api_HostPathVolumeSource(in interface{}, out interface{}, c *conve
 	{
 		in := in.(*HostPathVolumeSource)
 		out := out.(*HostPathVolumeSource)
-		out.Path = in.Path
+		*out = *in
 		return nil
 	}
 }
@@ -1296,12 +1220,12 @@ func DeepCopy_api_ISCSIVolumeSource(in interface{}, out interface{}, c *conversi
 	{
 		in := in.(*ISCSIVolumeSource)
 		out := out.(*ISCSIVolumeSource)
-		out.TargetPortal = in.TargetPortal
-		out.IQN = in.IQN
-		out.Lun = in.Lun
-		out.ISCSIInterface = in.ISCSIInterface
-		out.FSType = in.FSType
-		out.ReadOnly = in.ReadOnly
+		*out = *in
+		if in.Portals != nil {
+			in, out := &in.Portals, &out.Portals
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		}
 		return nil
 	}
 }
@@ -1310,14 +1234,11 @@ func DeepCopy_api_KeyToPath(in interface{}, out interface{}, c *conversion.Clone
 	{
 		in := in.(*KeyToPath)
 		out := out.(*KeyToPath)
-		out.Key = in.Key
-		out.Path = in.Path
+		*out = *in
 		if in.Mode != nil {
 			in, out := &in.Mode, &out.Mode
 			*out = new(int32)
 			**out = **in
-		} else {
-			out.Mode = nil
 		}
 		return nil
 	}
@@ -1327,14 +1248,13 @@ func DeepCopy_api_Lifecycle(in interface{}, out interface{}, c *conversion.Clone
 	{
 		in := in.(*Lifecycle)
 		out := out.(*Lifecycle)
+		*out = *in
 		if in.PostStart != nil {
 			in, out := &in.PostStart, &out.PostStart
 			*out = new(Handler)
 			if err := DeepCopy_api_Handler(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.PostStart = nil
 		}
 		if in.PreStop != nil {
 			in, out := &in.PreStop, &out.PreStop
@@ -1342,8 +1262,6 @@ func DeepCopy_api_Lifecycle(in interface{}, out interface{}, c *conversion.Clone
 			if err := DeepCopy_api_Handler(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.PreStop = nil
 		}
 		return nil
 	}
@@ -1353,9 +1271,11 @@ func DeepCopy_api_LimitRange(in interface{}, out interface{}, c *conversion.Clon
 	{
 		in := in.(*LimitRange)
 		out := out.(*LimitRange)
-		out.TypeMeta = in.TypeMeta
-		if err := DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
 		if err := DeepCopy_api_LimitRangeSpec(&in.Spec, &out.Spec, c); err != nil {
 			return err
@@ -1368,15 +1288,13 @@ func DeepCopy_api_LimitRangeItem(in interface{}, out interface{}, c *conversion.
 	{
 		in := in.(*LimitRangeItem)
 		out := out.(*LimitRangeItem)
-		out.Type = in.Type
+		*out = *in
 		if in.Max != nil {
 			in, out := &in.Max, &out.Max
 			*out = make(ResourceList)
 			for key, val := range *in {
 				(*out)[key] = val.DeepCopy()
 			}
-		} else {
-			out.Max = nil
 		}
 		if in.Min != nil {
 			in, out := &in.Min, &out.Min
@@ -1384,8 +1302,6 @@ func DeepCopy_api_LimitRangeItem(in interface{}, out interface{}, c *conversion.
 			for key, val := range *in {
 				(*out)[key] = val.DeepCopy()
 			}
-		} else {
-			out.Min = nil
 		}
 		if in.Default != nil {
 			in, out := &in.Default, &out.Default
@@ -1393,8 +1309,6 @@ func DeepCopy_api_LimitRangeItem(in interface{}, out interface{}, c *conversion.
 			for key, val := range *in {
 				(*out)[key] = val.DeepCopy()
 			}
-		} else {
-			out.Default = nil
 		}
 		if in.DefaultRequest != nil {
 			in, out := &in.DefaultRequest, &out.DefaultRequest
@@ -1402,8 +1316,6 @@ func DeepCopy_api_LimitRangeItem(in interface{}, out interface{}, c *conversion.
 			for key, val := range *in {
 				(*out)[key] = val.DeepCopy()
 			}
-		} else {
-			out.DefaultRequest = nil
 		}
 		if in.MaxLimitRequestRatio != nil {
 			in, out := &in.MaxLimitRequestRatio, &out.MaxLimitRequestRatio
@@ -1411,8 +1323,6 @@ func DeepCopy_api_LimitRangeItem(in interface{}, out interface{}, c *conversion.
 			for key, val := range *in {
 				(*out)[key] = val.DeepCopy()
 			}
-		} else {
-			out.MaxLimitRequestRatio = nil
 		}
 		return nil
 	}
@@ -1422,8 +1332,7 @@ func DeepCopy_api_LimitRangeList(in interface{}, out interface{}, c *conversion.
 	{
 		in := in.(*LimitRangeList)
 		out := out.(*LimitRangeList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]LimitRange, len(*in))
@@ -1432,8 +1341,6 @@ func DeepCopy_api_LimitRangeList(in interface{}, out interface{}, c *conversion.
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -1443,6 +1350,7 @@ func DeepCopy_api_LimitRangeSpec(in interface{}, out interface{}, c *conversion.
 	{
 		in := in.(*LimitRangeSpec)
 		out := out.(*LimitRangeSpec)
+		*out = *in
 		if in.Limits != nil {
 			in, out := &in.Limits, &out.Limits
 			*out = make([]LimitRangeItem, len(*in))
@@ -1451,8 +1359,6 @@ func DeepCopy_api_LimitRangeSpec(in interface{}, out interface{}, c *conversion.
 					return err
 				}
 			}
-		} else {
-			out.Limits = nil
 		}
 		return nil
 	}
@@ -1462,8 +1368,7 @@ func DeepCopy_api_List(in interface{}, out interface{}, c *conversion.Cloner) er
 	{
 		in := in.(*List)
 		out := out.(*List)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]runtime.Object, len(*in))
@@ -1474,8 +1379,6 @@ func DeepCopy_api_List(in interface{}, out interface{}, c *conversion.Cloner) er
 					(*out)[i] = *newVal.(*runtime.Object)
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -1485,29 +1388,27 @@ func DeepCopy_api_ListOptions(in interface{}, out interface{}, c *conversion.Clo
 	{
 		in := in.(*ListOptions)
 		out := out.(*ListOptions)
-		out.TypeMeta = in.TypeMeta
-		if in.LabelSelector == nil {
-			out.LabelSelector = nil
-		} else if newVal, err := c.DeepCopy(&in.LabelSelector); err != nil {
-			return err
-		} else {
-			out.LabelSelector = *newVal.(*labels.Selector)
+		*out = *in
+		// in.LabelSelector is kind 'Interface'
+		if in.LabelSelector != nil {
+			if newVal, err := c.DeepCopy(&in.LabelSelector); err != nil {
+				return err
+			} else {
+				out.LabelSelector = *newVal.(*labels.Selector)
+			}
 		}
-		if in.FieldSelector == nil {
-			out.FieldSelector = nil
-		} else if newVal, err := c.DeepCopy(&in.FieldSelector); err != nil {
-			return err
-		} else {
-			out.FieldSelector = *newVal.(*fields.Selector)
+		// in.FieldSelector is kind 'Interface'
+		if in.FieldSelector != nil {
+			if newVal, err := c.DeepCopy(&in.FieldSelector); err != nil {
+				return err
+			} else {
+				out.FieldSelector = *newVal.(*fields.Selector)
+			}
 		}
-		out.Watch = in.Watch
-		out.ResourceVersion = in.ResourceVersion
 		if in.TimeoutSeconds != nil {
 			in, out := &in.TimeoutSeconds, &out.TimeoutSeconds
 			*out = new(int64)
 			**out = **in
-		} else {
-			out.TimeoutSeconds = nil
 		}
 		return nil
 	}
@@ -1517,8 +1418,7 @@ func DeepCopy_api_LoadBalancerIngress(in interface{}, out interface{}, c *conver
 	{
 		in := in.(*LoadBalancerIngress)
 		out := out.(*LoadBalancerIngress)
-		out.IP = in.IP
-		out.Hostname = in.Hostname
+		*out = *in
 		return nil
 	}
 }
@@ -1527,14 +1427,11 @@ func DeepCopy_api_LoadBalancerStatus(in interface{}, out interface{}, c *convers
 	{
 		in := in.(*LoadBalancerStatus)
 		out := out.(*LoadBalancerStatus)
+		*out = *in
 		if in.Ingress != nil {
 			in, out := &in.Ingress, &out.Ingress
 			*out = make([]LoadBalancerIngress, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.Ingress = nil
+			copy(*out, *in)
 		}
 		return nil
 	}
@@ -1544,7 +1441,7 @@ func DeepCopy_api_LocalObjectReference(in interface{}, out interface{}, c *conve
 	{
 		in := in.(*LocalObjectReference)
 		out := out.(*LocalObjectReference)
-		out.Name = in.Name
+		*out = *in
 		return nil
 	}
 }
@@ -1553,9 +1450,7 @@ func DeepCopy_api_NFSVolumeSource(in interface{}, out interface{}, c *conversion
 	{
 		in := in.(*NFSVolumeSource)
 		out := out.(*NFSVolumeSource)
-		out.Server = in.Server
-		out.Path = in.Path
-		out.ReadOnly = in.ReadOnly
+		*out = *in
 		return nil
 	}
 }
@@ -1564,14 +1459,15 @@ func DeepCopy_api_Namespace(in interface{}, out interface{}, c *conversion.Clone
 	{
 		in := in.(*Namespace)
 		out := out.(*Namespace)
-		out.TypeMeta = in.TypeMeta
-		if err := DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
 		if err := DeepCopy_api_NamespaceSpec(&in.Spec, &out.Spec, c); err != nil {
 			return err
 		}
-		out.Status = in.Status
 		return nil
 	}
 }
@@ -1580,8 +1476,7 @@ func DeepCopy_api_NamespaceList(in interface{}, out interface{}, c *conversion.C
 	{
 		in := in.(*NamespaceList)
 		out := out.(*NamespaceList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]Namespace, len(*in))
@@ -1590,8 +1485,6 @@ func DeepCopy_api_NamespaceList(in interface{}, out interface{}, c *conversion.C
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -1601,14 +1494,11 @@ func DeepCopy_api_NamespaceSpec(in interface{}, out interface{}, c *conversion.C
 	{
 		in := in.(*NamespaceSpec)
 		out := out.(*NamespaceSpec)
+		*out = *in
 		if in.Finalizers != nil {
 			in, out := &in.Finalizers, &out.Finalizers
 			*out = make([]FinalizerName, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.Finalizers = nil
+			copy(*out, *in)
 		}
 		return nil
 	}
@@ -1618,7 +1508,7 @@ func DeepCopy_api_NamespaceStatus(in interface{}, out interface{}, c *conversion
 	{
 		in := in.(*NamespaceStatus)
 		out := out.(*NamespaceStatus)
-		out.Phase = in.Phase
+		*out = *in
 		return nil
 	}
 }
@@ -1627,11 +1517,15 @@ func DeepCopy_api_Node(in interface{}, out interface{}, c *conversion.Cloner) er
 	{
 		in := in.(*Node)
 		out := out.(*Node)
-		out.TypeMeta = in.TypeMeta
-		if err := DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
+			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
+		}
+		if err := DeepCopy_api_NodeSpec(&in.Spec, &out.Spec, c); err != nil {
 			return err
 		}
-		out.Spec = in.Spec
 		if err := DeepCopy_api_NodeStatus(&in.Status, &out.Status, c); err != nil {
 			return err
 		}
@@ -1643,8 +1537,7 @@ func DeepCopy_api_NodeAddress(in interface{}, out interface{}, c *conversion.Clo
 	{
 		in := in.(*NodeAddress)
 		out := out.(*NodeAddress)
-		out.Type = in.Type
-		out.Address = in.Address
+		*out = *in
 		return nil
 	}
 }
@@ -1653,14 +1546,13 @@ func DeepCopy_api_NodeAffinity(in interface{}, out interface{}, c *conversion.Cl
 	{
 		in := in.(*NodeAffinity)
 		out := out.(*NodeAffinity)
+		*out = *in
 		if in.RequiredDuringSchedulingIgnoredDuringExecution != nil {
 			in, out := &in.RequiredDuringSchedulingIgnoredDuringExecution, &out.RequiredDuringSchedulingIgnoredDuringExecution
 			*out = new(NodeSelector)
 			if err := DeepCopy_api_NodeSelector(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.RequiredDuringSchedulingIgnoredDuringExecution = nil
 		}
 		if in.PreferredDuringSchedulingIgnoredDuringExecution != nil {
 			in, out := &in.PreferredDuringSchedulingIgnoredDuringExecution, &out.PreferredDuringSchedulingIgnoredDuringExecution
@@ -1670,8 +1562,6 @@ func DeepCopy_api_NodeAffinity(in interface{}, out interface{}, c *conversion.Cl
 					return err
 				}
 			}
-		} else {
-			out.PreferredDuringSchedulingIgnoredDuringExecution = nil
 		}
 		return nil
 	}
@@ -1681,12 +1571,9 @@ func DeepCopy_api_NodeCondition(in interface{}, out interface{}, c *conversion.C
 	{
 		in := in.(*NodeCondition)
 		out := out.(*NodeCondition)
-		out.Type = in.Type
-		out.Status = in.Status
+		*out = *in
 		out.LastHeartbeatTime = in.LastHeartbeatTime.DeepCopy()
 		out.LastTransitionTime = in.LastTransitionTime.DeepCopy()
-		out.Reason = in.Reason
-		out.Message = in.Message
 		return nil
 	}
 }
@@ -1695,7 +1582,7 @@ func DeepCopy_api_NodeDaemonEndpoints(in interface{}, out interface{}, c *conver
 	{
 		in := in.(*NodeDaemonEndpoints)
 		out := out.(*NodeDaemonEndpoints)
-		out.KubeletEndpoint = in.KubeletEndpoint
+		*out = *in
 		return nil
 	}
 }
@@ -1704,8 +1591,7 @@ func DeepCopy_api_NodeList(in interface{}, out interface{}, c *conversion.Cloner
 	{
 		in := in.(*NodeList)
 		out := out.(*NodeList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]Node, len(*in))
@@ -1714,8 +1600,6 @@ func DeepCopy_api_NodeList(in interface{}, out interface{}, c *conversion.Cloner
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -1725,8 +1609,7 @@ func DeepCopy_api_NodeProxyOptions(in interface{}, out interface{}, c *conversio
 	{
 		in := in.(*NodeProxyOptions)
 		out := out.(*NodeProxyOptions)
-		out.TypeMeta = in.TypeMeta
-		out.Path = in.Path
+		*out = *in
 		return nil
 	}
 }
@@ -1735,14 +1618,13 @@ func DeepCopy_api_NodeResources(in interface{}, out interface{}, c *conversion.C
 	{
 		in := in.(*NodeResources)
 		out := out.(*NodeResources)
+		*out = *in
 		if in.Capacity != nil {
 			in, out := &in.Capacity, &out.Capacity
 			*out = make(ResourceList)
 			for key, val := range *in {
 				(*out)[key] = val.DeepCopy()
 			}
-		} else {
-			out.Capacity = nil
 		}
 		return nil
 	}
@@ -1752,6 +1634,7 @@ func DeepCopy_api_NodeSelector(in interface{}, out interface{}, c *conversion.Cl
 	{
 		in := in.(*NodeSelector)
 		out := out.(*NodeSelector)
+		*out = *in
 		if in.NodeSelectorTerms != nil {
 			in, out := &in.NodeSelectorTerms, &out.NodeSelectorTerms
 			*out = make([]NodeSelectorTerm, len(*in))
@@ -1760,8 +1643,6 @@ func DeepCopy_api_NodeSelector(in interface{}, out interface{}, c *conversion.Cl
 					return err
 				}
 			}
-		} else {
-			out.NodeSelectorTerms = nil
 		}
 		return nil
 	}
@@ -1771,14 +1652,11 @@ func DeepCopy_api_NodeSelectorRequirement(in interface{}, out interface{}, c *co
 	{
 		in := in.(*NodeSelectorRequirement)
 		out := out.(*NodeSelectorRequirement)
-		out.Key = in.Key
-		out.Operator = in.Operator
+		*out = *in
 		if in.Values != nil {
 			in, out := &in.Values, &out.Values
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.Values = nil
 		}
 		return nil
 	}
@@ -1788,6 +1666,7 @@ func DeepCopy_api_NodeSelectorTerm(in interface{}, out interface{}, c *conversio
 	{
 		in := in.(*NodeSelectorTerm)
 		out := out.(*NodeSelectorTerm)
+		*out = *in
 		if in.MatchExpressions != nil {
 			in, out := &in.MatchExpressions, &out.MatchExpressions
 			*out = make([]NodeSelectorRequirement, len(*in))
@@ -1796,8 +1675,6 @@ func DeepCopy_api_NodeSelectorTerm(in interface{}, out interface{}, c *conversio
 					return err
 				}
 			}
-		} else {
-			out.MatchExpressions = nil
 		}
 		return nil
 	}
@@ -1807,10 +1684,16 @@ func DeepCopy_api_NodeSpec(in interface{}, out interface{}, c *conversion.Cloner
 	{
 		in := in.(*NodeSpec)
 		out := out.(*NodeSpec)
-		out.PodCIDR = in.PodCIDR
-		out.ExternalID = in.ExternalID
-		out.ProviderID = in.ProviderID
-		out.Unschedulable = in.Unschedulable
+		*out = *in
+		if in.Taints != nil {
+			in, out := &in.Taints, &out.Taints
+			*out = make([]Taint, len(*in))
+			for i := range *in {
+				if err := DeepCopy_api_Taint(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		}
 		return nil
 	}
 }
@@ -1819,14 +1702,13 @@ func DeepCopy_api_NodeStatus(in interface{}, out interface{}, c *conversion.Clon
 	{
 		in := in.(*NodeStatus)
 		out := out.(*NodeStatus)
+		*out = *in
 		if in.Capacity != nil {
 			in, out := &in.Capacity, &out.Capacity
 			*out = make(ResourceList)
 			for key, val := range *in {
 				(*out)[key] = val.DeepCopy()
 			}
-		} else {
-			out.Capacity = nil
 		}
 		if in.Allocatable != nil {
 			in, out := &in.Allocatable, &out.Allocatable
@@ -1834,10 +1716,7 @@ func DeepCopy_api_NodeStatus(in interface{}, out interface{}, c *conversion.Clon
 			for key, val := range *in {
 				(*out)[key] = val.DeepCopy()
 			}
-		} else {
-			out.Allocatable = nil
 		}
-		out.Phase = in.Phase
 		if in.Conditions != nil {
 			in, out := &in.Conditions, &out.Conditions
 			*out = make([]NodeCondition, len(*in))
@@ -1846,20 +1725,12 @@ func DeepCopy_api_NodeStatus(in interface{}, out interface{}, c *conversion.Clon
 					return err
 				}
 			}
-		} else {
-			out.Conditions = nil
 		}
 		if in.Addresses != nil {
 			in, out := &in.Addresses, &out.Addresses
 			*out = make([]NodeAddress, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.Addresses = nil
+			copy(*out, *in)
 		}
-		out.DaemonEndpoints = in.DaemonEndpoints
-		out.NodeInfo = in.NodeInfo
 		if in.Images != nil {
 			in, out := &in.Images, &out.Images
 			*out = make([]ContainerImage, len(*in))
@@ -1868,26 +1739,16 @@ func DeepCopy_api_NodeStatus(in interface{}, out interface{}, c *conversion.Clon
 					return err
 				}
 			}
-		} else {
-			out.Images = nil
 		}
 		if in.VolumesInUse != nil {
 			in, out := &in.VolumesInUse, &out.VolumesInUse
 			*out = make([]UniqueVolumeName, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.VolumesInUse = nil
+			copy(*out, *in)
 		}
 		if in.VolumesAttached != nil {
 			in, out := &in.VolumesAttached, &out.VolumesAttached
 			*out = make([]AttachedVolume, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.VolumesAttached = nil
+			copy(*out, *in)
 		}
 		return nil
 	}
@@ -1897,16 +1758,7 @@ func DeepCopy_api_NodeSystemInfo(in interface{}, out interface{}, c *conversion.
 	{
 		in := in.(*NodeSystemInfo)
 		out := out.(*NodeSystemInfo)
-		out.MachineID = in.MachineID
-		out.SystemUUID = in.SystemUUID
-		out.BootID = in.BootID
-		out.KernelVersion = in.KernelVersion
-		out.OSImage = in.OSImage
-		out.ContainerRuntimeVersion = in.ContainerRuntimeVersion
-		out.KubeletVersion = in.KubeletVersion
-		out.KubeProxyVersion = in.KubeProxyVersion
-		out.OperatingSystem = in.OperatingSystem
-		out.Architecture = in.Architecture
+		*out = *in
 		return nil
 	}
 }
@@ -1915,8 +1767,7 @@ func DeepCopy_api_ObjectFieldSelector(in interface{}, out interface{}, c *conver
 	{
 		in := in.(*ObjectFieldSelector)
 		out := out.(*ObjectFieldSelector)
-		out.APIVersion = in.APIVersion
-		out.FieldPath = in.FieldPath
+		*out = *in
 		return nil
 	}
 }
@@ -1925,27 +1776,17 @@ func DeepCopy_api_ObjectMeta(in interface{}, out interface{}, c *conversion.Clon
 	{
 		in := in.(*ObjectMeta)
 		out := out.(*ObjectMeta)
-		out.Name = in.Name
-		out.GenerateName = in.GenerateName
-		out.Namespace = in.Namespace
-		out.SelfLink = in.SelfLink
-		out.UID = in.UID
-		out.ResourceVersion = in.ResourceVersion
-		out.Generation = in.Generation
+		*out = *in
 		out.CreationTimestamp = in.CreationTimestamp.DeepCopy()
 		if in.DeletionTimestamp != nil {
 			in, out := &in.DeletionTimestamp, &out.DeletionTimestamp
-			*out = new(unversioned.Time)
+			*out = new(v1.Time)
 			**out = (*in).DeepCopy()
-		} else {
-			out.DeletionTimestamp = nil
 		}
 		if in.DeletionGracePeriodSeconds != nil {
 			in, out := &in.DeletionGracePeriodSeconds, &out.DeletionGracePeriodSeconds
 			*out = new(int64)
 			**out = **in
-		} else {
-			out.DeletionGracePeriodSeconds = nil
 		}
 		if in.Labels != nil {
 			in, out := &in.Labels, &out.Labels
@@ -1953,8 +1794,6 @@ func DeepCopy_api_ObjectMeta(in interface{}, out interface{}, c *conversion.Clon
 			for key, val := range *in {
 				(*out)[key] = val
 			}
-		} else {
-			out.Labels = nil
 		}
 		if in.Annotations != nil {
 			in, out := &in.Annotations, &out.Annotations
@@ -1962,28 +1801,23 @@ func DeepCopy_api_ObjectMeta(in interface{}, out interface{}, c *conversion.Clon
 			for key, val := range *in {
 				(*out)[key] = val
 			}
-		} else {
-			out.Annotations = nil
 		}
 		if in.OwnerReferences != nil {
 			in, out := &in.OwnerReferences, &out.OwnerReferences
-			*out = make([]OwnerReference, len(*in))
+			*out = make([]v1.OwnerReference, len(*in))
 			for i := range *in {
-				if err := DeepCopy_api_OwnerReference(&(*in)[i], &(*out)[i], c); err != nil {
+				if newVal, err := c.DeepCopy(&(*in)[i]); err != nil {
 					return err
+				} else {
+					(*out)[i] = *newVal.(*v1.OwnerReference)
 				}
 			}
-		} else {
-			out.OwnerReferences = nil
 		}
 		if in.Finalizers != nil {
 			in, out := &in.Finalizers, &out.Finalizers
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.Finalizers = nil
 		}
-		out.ClusterName = in.ClusterName
 		return nil
 	}
 }
@@ -1992,32 +1826,7 @@ func DeepCopy_api_ObjectReference(in interface{}, out interface{}, c *conversion
 	{
 		in := in.(*ObjectReference)
 		out := out.(*ObjectReference)
-		out.Kind = in.Kind
-		out.Namespace = in.Namespace
-		out.Name = in.Name
-		out.UID = in.UID
-		out.APIVersion = in.APIVersion
-		out.ResourceVersion = in.ResourceVersion
-		out.FieldPath = in.FieldPath
-		return nil
-	}
-}
-
-func DeepCopy_api_OwnerReference(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*OwnerReference)
-		out := out.(*OwnerReference)
-		out.APIVersion = in.APIVersion
-		out.Kind = in.Kind
-		out.Name = in.Name
-		out.UID = in.UID
-		if in.Controller != nil {
-			in, out := &in.Controller, &out.Controller
-			*out = new(bool)
-			**out = **in
-		} else {
-			out.Controller = nil
-		}
+		*out = *in
 		return nil
 	}
 }
@@ -2026,14 +1835,15 @@ func DeepCopy_api_PersistentVolume(in interface{}, out interface{}, c *conversio
 	{
 		in := in.(*PersistentVolume)
 		out := out.(*PersistentVolume)
-		out.TypeMeta = in.TypeMeta
-		if err := DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
 		if err := DeepCopy_api_PersistentVolumeSpec(&in.Spec, &out.Spec, c); err != nil {
 			return err
 		}
-		out.Status = in.Status
 		return nil
 	}
 }
@@ -2042,9 +1852,11 @@ func DeepCopy_api_PersistentVolumeClaim(in interface{}, out interface{}, c *conv
 	{
 		in := in.(*PersistentVolumeClaim)
 		out := out.(*PersistentVolumeClaim)
-		out.TypeMeta = in.TypeMeta
-		if err := DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
 		if err := DeepCopy_api_PersistentVolumeClaimSpec(&in.Spec, &out.Spec, c); err != nil {
 			return err
@@ -2060,8 +1872,7 @@ func DeepCopy_api_PersistentVolumeClaimList(in interface{}, out interface{}, c *
 	{
 		in := in.(*PersistentVolumeClaimList)
 		out := out.(*PersistentVolumeClaimList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]PersistentVolumeClaim, len(*in))
@@ -2070,8 +1881,6 @@ func DeepCopy_api_PersistentVolumeClaimList(in interface{}, out interface{}, c *
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -2081,28 +1890,28 @@ func DeepCopy_api_PersistentVolumeClaimSpec(in interface{}, out interface{}, c *
 	{
 		in := in.(*PersistentVolumeClaimSpec)
 		out := out.(*PersistentVolumeClaimSpec)
+		*out = *in
 		if in.AccessModes != nil {
 			in, out := &in.AccessModes, &out.AccessModes
 			*out = make([]PersistentVolumeAccessMode, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.AccessModes = nil
+			copy(*out, *in)
 		}
 		if in.Selector != nil {
 			in, out := &in.Selector, &out.Selector
-			*out = new(unversioned.LabelSelector)
-			if err := unversioned.DeepCopy_unversioned_LabelSelector(*in, *out, c); err != nil {
+			if newVal, err := c.DeepCopy(*in); err != nil {
 				return err
+			} else {
+				*out = newVal.(*v1.LabelSelector)
 			}
-		} else {
-			out.Selector = nil
 		}
 		if err := DeepCopy_api_ResourceRequirements(&in.Resources, &out.Resources, c); err != nil {
 			return err
 		}
-		out.VolumeName = in.VolumeName
+		if in.StorageClassName != nil {
+			in, out := &in.StorageClassName, &out.StorageClassName
+			*out = new(string)
+			**out = **in
+		}
 		return nil
 	}
 }
@@ -2111,15 +1920,11 @@ func DeepCopy_api_PersistentVolumeClaimStatus(in interface{}, out interface{}, c
 	{
 		in := in.(*PersistentVolumeClaimStatus)
 		out := out.(*PersistentVolumeClaimStatus)
-		out.Phase = in.Phase
+		*out = *in
 		if in.AccessModes != nil {
 			in, out := &in.AccessModes, &out.AccessModes
 			*out = make([]PersistentVolumeAccessMode, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.AccessModes = nil
+			copy(*out, *in)
 		}
 		if in.Capacity != nil {
 			in, out := &in.Capacity, &out.Capacity
@@ -2127,8 +1932,6 @@ func DeepCopy_api_PersistentVolumeClaimStatus(in interface{}, out interface{}, c
 			for key, val := range *in {
 				(*out)[key] = val.DeepCopy()
 			}
-		} else {
-			out.Capacity = nil
 		}
 		return nil
 	}
@@ -2138,8 +1941,7 @@ func DeepCopy_api_PersistentVolumeClaimVolumeSource(in interface{}, out interfac
 	{
 		in := in.(*PersistentVolumeClaimVolumeSource)
 		out := out.(*PersistentVolumeClaimVolumeSource)
-		out.ClaimName = in.ClaimName
-		out.ReadOnly = in.ReadOnly
+		*out = *in
 		return nil
 	}
 }
@@ -2148,8 +1950,7 @@ func DeepCopy_api_PersistentVolumeList(in interface{}, out interface{}, c *conve
 	{
 		in := in.(*PersistentVolumeList)
 		out := out.(*PersistentVolumeList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]PersistentVolume, len(*in))
@@ -2158,8 +1959,6 @@ func DeepCopy_api_PersistentVolumeList(in interface{}, out interface{}, c *conve
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -2169,40 +1968,31 @@ func DeepCopy_api_PersistentVolumeSource(in interface{}, out interface{}, c *con
 	{
 		in := in.(*PersistentVolumeSource)
 		out := out.(*PersistentVolumeSource)
+		*out = *in
 		if in.GCEPersistentDisk != nil {
 			in, out := &in.GCEPersistentDisk, &out.GCEPersistentDisk
 			*out = new(GCEPersistentDiskVolumeSource)
 			**out = **in
-		} else {
-			out.GCEPersistentDisk = nil
 		}
 		if in.AWSElasticBlockStore != nil {
 			in, out := &in.AWSElasticBlockStore, &out.AWSElasticBlockStore
 			*out = new(AWSElasticBlockStoreVolumeSource)
 			**out = **in
-		} else {
-			out.AWSElasticBlockStore = nil
 		}
 		if in.HostPath != nil {
 			in, out := &in.HostPath, &out.HostPath
 			*out = new(HostPathVolumeSource)
 			**out = **in
-		} else {
-			out.HostPath = nil
 		}
 		if in.Glusterfs != nil {
 			in, out := &in.Glusterfs, &out.Glusterfs
 			*out = new(GlusterfsVolumeSource)
 			**out = **in
-		} else {
-			out.Glusterfs = nil
 		}
 		if in.NFS != nil {
 			in, out := &in.NFS, &out.NFS
 			*out = new(NFSVolumeSource)
 			**out = **in
-		} else {
-			out.NFS = nil
 		}
 		if in.RBD != nil {
 			in, out := &in.RBD, &out.RBD
@@ -2210,22 +2000,18 @@ func DeepCopy_api_PersistentVolumeSource(in interface{}, out interface{}, c *con
 			if err := DeepCopy_api_RBDVolumeSource(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.RBD = nil
 		}
 		if in.Quobyte != nil {
 			in, out := &in.Quobyte, &out.Quobyte
 			*out = new(QuobyteVolumeSource)
 			**out = **in
-		} else {
-			out.Quobyte = nil
 		}
 		if in.ISCSI != nil {
 			in, out := &in.ISCSI, &out.ISCSI
 			*out = new(ISCSIVolumeSource)
-			**out = **in
-		} else {
-			out.ISCSI = nil
+			if err := DeepCopy_api_ISCSIVolumeSource(*in, *out, c); err != nil {
+				return err
+			}
 		}
 		if in.FlexVolume != nil {
 			in, out := &in.FlexVolume, &out.FlexVolume
@@ -2233,15 +2019,11 @@ func DeepCopy_api_PersistentVolumeSource(in interface{}, out interface{}, c *con
 			if err := DeepCopy_api_FlexVolumeSource(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.FlexVolume = nil
 		}
 		if in.Cinder != nil {
 			in, out := &in.Cinder, &out.Cinder
 			*out = new(CinderVolumeSource)
 			**out = **in
-		} else {
-			out.Cinder = nil
 		}
 		if in.CephFS != nil {
 			in, out := &in.CephFS, &out.CephFS
@@ -2249,8 +2031,6 @@ func DeepCopy_api_PersistentVolumeSource(in interface{}, out interface{}, c *con
 			if err := DeepCopy_api_CephFSVolumeSource(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.CephFS = nil
 		}
 		if in.FC != nil {
 			in, out := &in.FC, &out.FC
@@ -2258,29 +2038,21 @@ func DeepCopy_api_PersistentVolumeSource(in interface{}, out interface{}, c *con
 			if err := DeepCopy_api_FCVolumeSource(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.FC = nil
 		}
 		if in.Flocker != nil {
 			in, out := &in.Flocker, &out.Flocker
 			*out = new(FlockerVolumeSource)
 			**out = **in
-		} else {
-			out.Flocker = nil
 		}
 		if in.AzureFile != nil {
 			in, out := &in.AzureFile, &out.AzureFile
 			*out = new(AzureFileVolumeSource)
 			**out = **in
-		} else {
-			out.AzureFile = nil
 		}
 		if in.VsphereVolume != nil {
 			in, out := &in.VsphereVolume, &out.VsphereVolume
 			*out = new(VsphereVirtualDiskVolumeSource)
 			**out = **in
-		} else {
-			out.VsphereVolume = nil
 		}
 		if in.AzureDisk != nil {
 			in, out := &in.AzureDisk, &out.AzureDisk
@@ -2288,15 +2060,23 @@ func DeepCopy_api_PersistentVolumeSource(in interface{}, out interface{}, c *con
 			if err := DeepCopy_api_AzureDiskVolumeSource(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.AzureDisk = nil
 		}
 		if in.PhotonPersistentDisk != nil {
 			in, out := &in.PhotonPersistentDisk, &out.PhotonPersistentDisk
 			*out = new(PhotonPersistentDiskVolumeSource)
 			**out = **in
-		} else {
-			out.PhotonPersistentDisk = nil
+		}
+		if in.PortworxVolume != nil {
+			in, out := &in.PortworxVolume, &out.PortworxVolume
+			*out = new(PortworxVolumeSource)
+			**out = **in
+		}
+		if in.ScaleIO != nil {
+			in, out := &in.ScaleIO, &out.ScaleIO
+			*out = new(ScaleIOVolumeSource)
+			if err := DeepCopy_api_ScaleIOVolumeSource(*in, *out, c); err != nil {
+				return err
+			}
 		}
 		return nil
 	}
@@ -2306,14 +2086,13 @@ func DeepCopy_api_PersistentVolumeSpec(in interface{}, out interface{}, c *conve
 	{
 		in := in.(*PersistentVolumeSpec)
 		out := out.(*PersistentVolumeSpec)
+		*out = *in
 		if in.Capacity != nil {
 			in, out := &in.Capacity, &out.Capacity
 			*out = make(ResourceList)
 			for key, val := range *in {
 				(*out)[key] = val.DeepCopy()
 			}
-		} else {
-			out.Capacity = nil
 		}
 		if err := DeepCopy_api_PersistentVolumeSource(&in.PersistentVolumeSource, &out.PersistentVolumeSource, c); err != nil {
 			return err
@@ -2321,20 +2100,13 @@ func DeepCopy_api_PersistentVolumeSpec(in interface{}, out interface{}, c *conve
 		if in.AccessModes != nil {
 			in, out := &in.AccessModes, &out.AccessModes
 			*out = make([]PersistentVolumeAccessMode, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.AccessModes = nil
+			copy(*out, *in)
 		}
 		if in.ClaimRef != nil {
 			in, out := &in.ClaimRef, &out.ClaimRef
 			*out = new(ObjectReference)
 			**out = **in
-		} else {
-			out.ClaimRef = nil
 		}
-		out.PersistentVolumeReclaimPolicy = in.PersistentVolumeReclaimPolicy
 		return nil
 	}
 }
@@ -2343,9 +2115,7 @@ func DeepCopy_api_PersistentVolumeStatus(in interface{}, out interface{}, c *con
 	{
 		in := in.(*PersistentVolumeStatus)
 		out := out.(*PersistentVolumeStatus)
-		out.Phase = in.Phase
-		out.Message = in.Message
-		out.Reason = in.Reason
+		*out = *in
 		return nil
 	}
 }
@@ -2354,8 +2124,7 @@ func DeepCopy_api_PhotonPersistentDiskVolumeSource(in interface{}, out interface
 	{
 		in := in.(*PhotonPersistentDiskVolumeSource)
 		out := out.(*PhotonPersistentDiskVolumeSource)
-		out.PdID = in.PdID
-		out.FSType = in.FSType
+		*out = *in
 		return nil
 	}
 }
@@ -2364,9 +2133,11 @@ func DeepCopy_api_Pod(in interface{}, out interface{}, c *conversion.Cloner) err
 	{
 		in := in.(*Pod)
 		out := out.(*Pod)
-		out.TypeMeta = in.TypeMeta
-		if err := DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
 		if err := DeepCopy_api_PodSpec(&in.Spec, &out.Spec, c); err != nil {
 			return err
@@ -2382,6 +2153,7 @@ func DeepCopy_api_PodAffinity(in interface{}, out interface{}, c *conversion.Clo
 	{
 		in := in.(*PodAffinity)
 		out := out.(*PodAffinity)
+		*out = *in
 		if in.RequiredDuringSchedulingIgnoredDuringExecution != nil {
 			in, out := &in.RequiredDuringSchedulingIgnoredDuringExecution, &out.RequiredDuringSchedulingIgnoredDuringExecution
 			*out = make([]PodAffinityTerm, len(*in))
@@ -2390,8 +2162,6 @@ func DeepCopy_api_PodAffinity(in interface{}, out interface{}, c *conversion.Clo
 					return err
 				}
 			}
-		} else {
-			out.RequiredDuringSchedulingIgnoredDuringExecution = nil
 		}
 		if in.PreferredDuringSchedulingIgnoredDuringExecution != nil {
 			in, out := &in.PreferredDuringSchedulingIgnoredDuringExecution, &out.PreferredDuringSchedulingIgnoredDuringExecution
@@ -2401,8 +2171,6 @@ func DeepCopy_api_PodAffinity(in interface{}, out interface{}, c *conversion.Clo
 					return err
 				}
 			}
-		} else {
-			out.PreferredDuringSchedulingIgnoredDuringExecution = nil
 		}
 		return nil
 	}
@@ -2412,23 +2180,20 @@ func DeepCopy_api_PodAffinityTerm(in interface{}, out interface{}, c *conversion
 	{
 		in := in.(*PodAffinityTerm)
 		out := out.(*PodAffinityTerm)
+		*out = *in
 		if in.LabelSelector != nil {
 			in, out := &in.LabelSelector, &out.LabelSelector
-			*out = new(unversioned.LabelSelector)
-			if err := unversioned.DeepCopy_unversioned_LabelSelector(*in, *out, c); err != nil {
+			if newVal, err := c.DeepCopy(*in); err != nil {
 				return err
+			} else {
+				*out = newVal.(*v1.LabelSelector)
 			}
-		} else {
-			out.LabelSelector = nil
 		}
 		if in.Namespaces != nil {
 			in, out := &in.Namespaces, &out.Namespaces
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.Namespaces = nil
 		}
-		out.TopologyKey = in.TopologyKey
 		return nil
 	}
 }
@@ -2437,6 +2202,7 @@ func DeepCopy_api_PodAntiAffinity(in interface{}, out interface{}, c *conversion
 	{
 		in := in.(*PodAntiAffinity)
 		out := out.(*PodAntiAffinity)
+		*out = *in
 		if in.RequiredDuringSchedulingIgnoredDuringExecution != nil {
 			in, out := &in.RequiredDuringSchedulingIgnoredDuringExecution, &out.RequiredDuringSchedulingIgnoredDuringExecution
 			*out = make([]PodAffinityTerm, len(*in))
@@ -2445,8 +2211,6 @@ func DeepCopy_api_PodAntiAffinity(in interface{}, out interface{}, c *conversion
 					return err
 				}
 			}
-		} else {
-			out.RequiredDuringSchedulingIgnoredDuringExecution = nil
 		}
 		if in.PreferredDuringSchedulingIgnoredDuringExecution != nil {
 			in, out := &in.PreferredDuringSchedulingIgnoredDuringExecution, &out.PreferredDuringSchedulingIgnoredDuringExecution
@@ -2456,8 +2220,6 @@ func DeepCopy_api_PodAntiAffinity(in interface{}, out interface{}, c *conversion
 					return err
 				}
 			}
-		} else {
-			out.PreferredDuringSchedulingIgnoredDuringExecution = nil
 		}
 		return nil
 	}
@@ -2467,12 +2229,7 @@ func DeepCopy_api_PodAttachOptions(in interface{}, out interface{}, c *conversio
 	{
 		in := in.(*PodAttachOptions)
 		out := out.(*PodAttachOptions)
-		out.TypeMeta = in.TypeMeta
-		out.Stdin = in.Stdin
-		out.Stdout = in.Stdout
-		out.Stderr = in.Stderr
-		out.TTY = in.TTY
-		out.Container = in.Container
+		*out = *in
 		return nil
 	}
 }
@@ -2481,12 +2238,9 @@ func DeepCopy_api_PodCondition(in interface{}, out interface{}, c *conversion.Cl
 	{
 		in := in.(*PodCondition)
 		out := out.(*PodCondition)
-		out.Type = in.Type
-		out.Status = in.Status
+		*out = *in
 		out.LastProbeTime = in.LastProbeTime.DeepCopy()
 		out.LastTransitionTime = in.LastTransitionTime.DeepCopy()
-		out.Reason = in.Reason
-		out.Message = in.Message
 		return nil
 	}
 }
@@ -2495,18 +2249,11 @@ func DeepCopy_api_PodExecOptions(in interface{}, out interface{}, c *conversion.
 	{
 		in := in.(*PodExecOptions)
 		out := out.(*PodExecOptions)
-		out.TypeMeta = in.TypeMeta
-		out.Stdin = in.Stdin
-		out.Stdout = in.Stdout
-		out.Stderr = in.Stderr
-		out.TTY = in.TTY
-		out.Container = in.Container
+		*out = *in
 		if in.Command != nil {
 			in, out := &in.Command, &out.Command
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.Command = nil
 		}
 		return nil
 	}
@@ -2516,8 +2263,7 @@ func DeepCopy_api_PodList(in interface{}, out interface{}, c *conversion.Cloner)
 	{
 		in := in.(*PodList)
 		out := out.(*PodList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]Pod, len(*in))
@@ -2526,8 +2272,6 @@ func DeepCopy_api_PodList(in interface{}, out interface{}, c *conversion.Cloner)
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -2537,38 +2281,40 @@ func DeepCopy_api_PodLogOptions(in interface{}, out interface{}, c *conversion.C
 	{
 		in := in.(*PodLogOptions)
 		out := out.(*PodLogOptions)
-		out.TypeMeta = in.TypeMeta
-		out.Container = in.Container
-		out.Follow = in.Follow
-		out.Previous = in.Previous
+		*out = *in
 		if in.SinceSeconds != nil {
 			in, out := &in.SinceSeconds, &out.SinceSeconds
 			*out = new(int64)
 			**out = **in
-		} else {
-			out.SinceSeconds = nil
 		}
 		if in.SinceTime != nil {
 			in, out := &in.SinceTime, &out.SinceTime
-			*out = new(unversioned.Time)
+			*out = new(v1.Time)
 			**out = (*in).DeepCopy()
-		} else {
-			out.SinceTime = nil
 		}
-		out.Timestamps = in.Timestamps
 		if in.TailLines != nil {
 			in, out := &in.TailLines, &out.TailLines
 			*out = new(int64)
 			**out = **in
-		} else {
-			out.TailLines = nil
 		}
 		if in.LimitBytes != nil {
 			in, out := &in.LimitBytes, &out.LimitBytes
 			*out = new(int64)
 			**out = **in
-		} else {
-			out.LimitBytes = nil
+		}
+		return nil
+	}
+}
+
+func DeepCopy_api_PodPortForwardOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*PodPortForwardOptions)
+		out := out.(*PodPortForwardOptions)
+		*out = *in
+		if in.Ports != nil {
+			in, out := &in.Ports, &out.Ports
+			*out = make([]int32, len(*in))
+			copy(*out, *in)
 		}
 		return nil
 	}
@@ -2578,8 +2324,7 @@ func DeepCopy_api_PodProxyOptions(in interface{}, out interface{}, c *conversion
 	{
 		in := in.(*PodProxyOptions)
 		out := out.(*PodProxyOptions)
-		out.TypeMeta = in.TypeMeta
-		out.Path = in.Path
+		*out = *in
 		return nil
 	}
 }
@@ -2588,43 +2333,31 @@ func DeepCopy_api_PodSecurityContext(in interface{}, out interface{}, c *convers
 	{
 		in := in.(*PodSecurityContext)
 		out := out.(*PodSecurityContext)
-		out.HostNetwork = in.HostNetwork
-		out.HostPID = in.HostPID
-		out.HostIPC = in.HostIPC
+		*out = *in
 		if in.SELinuxOptions != nil {
 			in, out := &in.SELinuxOptions, &out.SELinuxOptions
 			*out = new(SELinuxOptions)
 			**out = **in
-		} else {
-			out.SELinuxOptions = nil
 		}
 		if in.RunAsUser != nil {
 			in, out := &in.RunAsUser, &out.RunAsUser
 			*out = new(int64)
 			**out = **in
-		} else {
-			out.RunAsUser = nil
 		}
 		if in.RunAsNonRoot != nil {
 			in, out := &in.RunAsNonRoot, &out.RunAsNonRoot
 			*out = new(bool)
 			**out = **in
-		} else {
-			out.RunAsNonRoot = nil
 		}
 		if in.SupplementalGroups != nil {
 			in, out := &in.SupplementalGroups, &out.SupplementalGroups
 			*out = make([]int64, len(*in))
 			copy(*out, *in)
-		} else {
-			out.SupplementalGroups = nil
 		}
 		if in.FSGroup != nil {
 			in, out := &in.FSGroup, &out.FSGroup
 			*out = new(int64)
 			**out = **in
-		} else {
-			out.FSGroup = nil
 		}
 		return nil
 	}
@@ -2634,14 +2367,14 @@ func DeepCopy_api_PodSignature(in interface{}, out interface{}, c *conversion.Cl
 	{
 		in := in.(*PodSignature)
 		out := out.(*PodSignature)
+		*out = *in
 		if in.PodController != nil {
 			in, out := &in.PodController, &out.PodController
-			*out = new(OwnerReference)
-			if err := DeepCopy_api_OwnerReference(*in, *out, c); err != nil {
+			if newVal, err := c.DeepCopy(*in); err != nil {
 				return err
+			} else {
+				*out = newVal.(*v1.OwnerReference)
 			}
-		} else {
-			out.PodController = nil
 		}
 		return nil
 	}
@@ -2651,6 +2384,7 @@ func DeepCopy_api_PodSpec(in interface{}, out interface{}, c *conversion.Cloner)
 	{
 		in := in.(*PodSpec)
 		out := out.(*PodSpec)
+		*out = *in
 		if in.Volumes != nil {
 			in, out := &in.Volumes, &out.Volumes
 			*out = make([]Volume, len(*in))
@@ -2659,8 +2393,6 @@ func DeepCopy_api_PodSpec(in interface{}, out interface{}, c *conversion.Cloner)
 					return err
 				}
 			}
-		} else {
-			out.Volumes = nil
 		}
 		if in.InitContainers != nil {
 			in, out := &in.InitContainers, &out.InitContainers
@@ -2670,8 +2402,6 @@ func DeepCopy_api_PodSpec(in interface{}, out interface{}, c *conversion.Cloner)
 					return err
 				}
 			}
-		} else {
-			out.InitContainers = nil
 		}
 		if in.Containers != nil {
 			in, out := &in.Containers, &out.Containers
@@ -2681,56 +2411,57 @@ func DeepCopy_api_PodSpec(in interface{}, out interface{}, c *conversion.Cloner)
 					return err
 				}
 			}
-		} else {
-			out.Containers = nil
 		}
-		out.RestartPolicy = in.RestartPolicy
 		if in.TerminationGracePeriodSeconds != nil {
 			in, out := &in.TerminationGracePeriodSeconds, &out.TerminationGracePeriodSeconds
 			*out = new(int64)
 			**out = **in
-		} else {
-			out.TerminationGracePeriodSeconds = nil
 		}
 		if in.ActiveDeadlineSeconds != nil {
 			in, out := &in.ActiveDeadlineSeconds, &out.ActiveDeadlineSeconds
 			*out = new(int64)
 			**out = **in
-		} else {
-			out.ActiveDeadlineSeconds = nil
 		}
-		out.DNSPolicy = in.DNSPolicy
 		if in.NodeSelector != nil {
 			in, out := &in.NodeSelector, &out.NodeSelector
 			*out = make(map[string]string)
 			for key, val := range *in {
 				(*out)[key] = val
 			}
-		} else {
-			out.NodeSelector = nil
 		}
-		out.ServiceAccountName = in.ServiceAccountName
-		out.NodeName = in.NodeName
+		if in.AutomountServiceAccountToken != nil {
+			in, out := &in.AutomountServiceAccountToken, &out.AutomountServiceAccountToken
+			*out = new(bool)
+			**out = **in
+		}
 		if in.SecurityContext != nil {
 			in, out := &in.SecurityContext, &out.SecurityContext
 			*out = new(PodSecurityContext)
 			if err := DeepCopy_api_PodSecurityContext(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.SecurityContext = nil
 		}
 		if in.ImagePullSecrets != nil {
 			in, out := &in.ImagePullSecrets, &out.ImagePullSecrets
 			*out = make([]LocalObjectReference, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.ImagePullSecrets = nil
+			copy(*out, *in)
 		}
-		out.Hostname = in.Hostname
-		out.Subdomain = in.Subdomain
+		if in.Affinity != nil {
+			in, out := &in.Affinity, &out.Affinity
+			*out = new(Affinity)
+			if err := DeepCopy_api_Affinity(*in, *out, c); err != nil {
+				return err
+			}
+		}
+		if in.Tolerations != nil {
+			in, out := &in.Tolerations, &out.Tolerations
+			*out = make([]Toleration, len(*in))
+			for i := range *in {
+				if err := DeepCopy_api_Toleration(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		}
 		return nil
 	}
 }
@@ -2739,7 +2470,7 @@ func DeepCopy_api_PodStatus(in interface{}, out interface{}, c *conversion.Clone
 	{
 		in := in.(*PodStatus)
 		out := out.(*PodStatus)
-		out.Phase = in.Phase
+		*out = *in
 		if in.Conditions != nil {
 			in, out := &in.Conditions, &out.Conditions
 			*out = make([]PodCondition, len(*in))
@@ -2748,19 +2479,11 @@ func DeepCopy_api_PodStatus(in interface{}, out interface{}, c *conversion.Clone
 					return err
 				}
 			}
-		} else {
-			out.Conditions = nil
 		}
-		out.Message = in.Message
-		out.Reason = in.Reason
-		out.HostIP = in.HostIP
-		out.PodIP = in.PodIP
 		if in.StartTime != nil {
 			in, out := &in.StartTime, &out.StartTime
-			*out = new(unversioned.Time)
+			*out = new(v1.Time)
 			**out = (*in).DeepCopy()
-		} else {
-			out.StartTime = nil
 		}
 		if in.InitContainerStatuses != nil {
 			in, out := &in.InitContainerStatuses, &out.InitContainerStatuses
@@ -2770,8 +2493,6 @@ func DeepCopy_api_PodStatus(in interface{}, out interface{}, c *conversion.Clone
 					return err
 				}
 			}
-		} else {
-			out.InitContainerStatuses = nil
 		}
 		if in.ContainerStatuses != nil {
 			in, out := &in.ContainerStatuses, &out.ContainerStatuses
@@ -2781,8 +2502,6 @@ func DeepCopy_api_PodStatus(in interface{}, out interface{}, c *conversion.Clone
 					return err
 				}
 			}
-		} else {
-			out.ContainerStatuses = nil
 		}
 		return nil
 	}
@@ -2792,9 +2511,11 @@ func DeepCopy_api_PodStatusResult(in interface{}, out interface{}, c *conversion
 	{
 		in := in.(*PodStatusResult)
 		out := out.(*PodStatusResult)
-		out.TypeMeta = in.TypeMeta
-		if err := DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
 		if err := DeepCopy_api_PodStatus(&in.Status, &out.Status, c); err != nil {
 			return err
@@ -2807,9 +2528,11 @@ func DeepCopy_api_PodTemplate(in interface{}, out interface{}, c *conversion.Clo
 	{
 		in := in.(*PodTemplate)
 		out := out.(*PodTemplate)
-		out.TypeMeta = in.TypeMeta
-		if err := DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
 		if err := DeepCopy_api_PodTemplateSpec(&in.Template, &out.Template, c); err != nil {
 			return err
@@ -2822,8 +2545,7 @@ func DeepCopy_api_PodTemplateList(in interface{}, out interface{}, c *conversion
 	{
 		in := in.(*PodTemplateList)
 		out := out.(*PodTemplateList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]PodTemplate, len(*in))
@@ -2832,8 +2554,6 @@ func DeepCopy_api_PodTemplateList(in interface{}, out interface{}, c *conversion
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -2843,8 +2563,11 @@ func DeepCopy_api_PodTemplateSpec(in interface{}, out interface{}, c *conversion
 	{
 		in := in.(*PodTemplateSpec)
 		out := out.(*PodTemplateSpec)
-		if err := DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
 		if err := DeepCopy_api_PodSpec(&in.Spec, &out.Spec, c); err != nil {
 			return err
@@ -2853,16 +2576,24 @@ func DeepCopy_api_PodTemplateSpec(in interface{}, out interface{}, c *conversion
 	}
 }
 
+func DeepCopy_api_PortworxVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*PortworxVolumeSource)
+		out := out.(*PortworxVolumeSource)
+		*out = *in
+		return nil
+	}
+}
+
 func DeepCopy_api_Preconditions(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*Preconditions)
 		out := out.(*Preconditions)
+		*out = *in
 		if in.UID != nil {
 			in, out := &in.UID, &out.UID
 			*out = new(types.UID)
 			**out = **in
-		} else {
-			out.UID = nil
 		}
 		return nil
 	}
@@ -2872,12 +2603,11 @@ func DeepCopy_api_PreferAvoidPodsEntry(in interface{}, out interface{}, c *conve
 	{
 		in := in.(*PreferAvoidPodsEntry)
 		out := out.(*PreferAvoidPodsEntry)
+		*out = *in
 		if err := DeepCopy_api_PodSignature(&in.PodSignature, &out.PodSignature, c); err != nil {
 			return err
 		}
 		out.EvictionTime = in.EvictionTime.DeepCopy()
-		out.Reason = in.Reason
-		out.Message = in.Message
 		return nil
 	}
 }
@@ -2886,7 +2616,7 @@ func DeepCopy_api_PreferredSchedulingTerm(in interface{}, out interface{}, c *co
 	{
 		in := in.(*PreferredSchedulingTerm)
 		out := out.(*PreferredSchedulingTerm)
-		out.Weight = in.Weight
+		*out = *in
 		if err := DeepCopy_api_NodeSelectorTerm(&in.Preference, &out.Preference, c); err != nil {
 			return err
 		}
@@ -2898,14 +2628,33 @@ func DeepCopy_api_Probe(in interface{}, out interface{}, c *conversion.Cloner) e
 	{
 		in := in.(*Probe)
 		out := out.(*Probe)
+		*out = *in
 		if err := DeepCopy_api_Handler(&in.Handler, &out.Handler, c); err != nil {
 			return err
 		}
-		out.InitialDelaySeconds = in.InitialDelaySeconds
-		out.TimeoutSeconds = in.TimeoutSeconds
-		out.PeriodSeconds = in.PeriodSeconds
-		out.SuccessThreshold = in.SuccessThreshold
-		out.FailureThreshold = in.FailureThreshold
+		return nil
+	}
+}
+
+func DeepCopy_api_ProjectedVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ProjectedVolumeSource)
+		out := out.(*ProjectedVolumeSource)
+		*out = *in
+		if in.Sources != nil {
+			in, out := &in.Sources, &out.Sources
+			*out = make([]VolumeProjection, len(*in))
+			for i := range *in {
+				if err := DeepCopy_api_VolumeProjection(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		}
+		if in.DefaultMode != nil {
+			in, out := &in.DefaultMode, &out.DefaultMode
+			*out = new(int32)
+			**out = **in
+		}
 		return nil
 	}
 }
@@ -2914,11 +2663,7 @@ func DeepCopy_api_QuobyteVolumeSource(in interface{}, out interface{}, c *conver
 	{
 		in := in.(*QuobyteVolumeSource)
 		out := out.(*QuobyteVolumeSource)
-		out.Registry = in.Registry
-		out.Volume = in.Volume
-		out.ReadOnly = in.ReadOnly
-		out.User = in.User
-		out.Group = in.Group
+		*out = *in
 		return nil
 	}
 }
@@ -2927,26 +2672,17 @@ func DeepCopy_api_RBDVolumeSource(in interface{}, out interface{}, c *conversion
 	{
 		in := in.(*RBDVolumeSource)
 		out := out.(*RBDVolumeSource)
+		*out = *in
 		if in.CephMonitors != nil {
 			in, out := &in.CephMonitors, &out.CephMonitors
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.CephMonitors = nil
 		}
-		out.RBDImage = in.RBDImage
-		out.FSType = in.FSType
-		out.RBDPool = in.RBDPool
-		out.RadosUser = in.RadosUser
-		out.Keyring = in.Keyring
 		if in.SecretRef != nil {
 			in, out := &in.SecretRef, &out.SecretRef
 			*out = new(LocalObjectReference)
 			**out = **in
-		} else {
-			out.SecretRef = nil
 		}
-		out.ReadOnly = in.ReadOnly
 		return nil
 	}
 }
@@ -2955,17 +2691,16 @@ func DeepCopy_api_RangeAllocation(in interface{}, out interface{}, c *conversion
 	{
 		in := in.(*RangeAllocation)
 		out := out.(*RangeAllocation)
-		out.TypeMeta = in.TypeMeta
-		if err := DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
-		out.Range = in.Range
 		if in.Data != nil {
 			in, out := &in.Data, &out.Data
 			*out = make([]byte, len(*in))
 			copy(*out, *in)
-		} else {
-			out.Data = nil
 		}
 		return nil
 	}
@@ -2975,9 +2710,11 @@ func DeepCopy_api_ReplicationController(in interface{}, out interface{}, c *conv
 	{
 		in := in.(*ReplicationController)
 		out := out.(*ReplicationController)
-		out.TypeMeta = in.TypeMeta
-		if err := DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
 		if err := DeepCopy_api_ReplicationControllerSpec(&in.Spec, &out.Spec, c); err != nil {
 			return err
@@ -2993,11 +2730,8 @@ func DeepCopy_api_ReplicationControllerCondition(in interface{}, out interface{}
 	{
 		in := in.(*ReplicationControllerCondition)
 		out := out.(*ReplicationControllerCondition)
-		out.Type = in.Type
-		out.Status = in.Status
+		*out = *in
 		out.LastTransitionTime = in.LastTransitionTime.DeepCopy()
-		out.Reason = in.Reason
-		out.Message = in.Message
 		return nil
 	}
 }
@@ -3006,8 +2740,7 @@ func DeepCopy_api_ReplicationControllerList(in interface{}, out interface{}, c *
 	{
 		in := in.(*ReplicationControllerList)
 		out := out.(*ReplicationControllerList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]ReplicationController, len(*in))
@@ -3016,8 +2749,6 @@ func DeepCopy_api_ReplicationControllerList(in interface{}, out interface{}, c *
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -3027,16 +2758,13 @@ func DeepCopy_api_ReplicationControllerSpec(in interface{}, out interface{}, c *
 	{
 		in := in.(*ReplicationControllerSpec)
 		out := out.(*ReplicationControllerSpec)
-		out.Replicas = in.Replicas
-		out.MinReadySeconds = in.MinReadySeconds
+		*out = *in
 		if in.Selector != nil {
 			in, out := &in.Selector, &out.Selector
 			*out = make(map[string]string)
 			for key, val := range *in {
 				(*out)[key] = val
 			}
-		} else {
-			out.Selector = nil
 		}
 		if in.Template != nil {
 			in, out := &in.Template, &out.Template
@@ -3044,8 +2772,6 @@ func DeepCopy_api_ReplicationControllerSpec(in interface{}, out interface{}, c *
 			if err := DeepCopy_api_PodTemplateSpec(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.Template = nil
 		}
 		return nil
 	}
@@ -3055,11 +2781,7 @@ func DeepCopy_api_ReplicationControllerStatus(in interface{}, out interface{}, c
 	{
 		in := in.(*ReplicationControllerStatus)
 		out := out.(*ReplicationControllerStatus)
-		out.Replicas = in.Replicas
-		out.FullyLabeledReplicas = in.FullyLabeledReplicas
-		out.ReadyReplicas = in.ReadyReplicas
-		out.AvailableReplicas = in.AvailableReplicas
-		out.ObservedGeneration = in.ObservedGeneration
+		*out = *in
 		if in.Conditions != nil {
 			in, out := &in.Conditions, &out.Conditions
 			*out = make([]ReplicationControllerCondition, len(*in))
@@ -3068,8 +2790,6 @@ func DeepCopy_api_ReplicationControllerStatus(in interface{}, out interface{}, c
 					return err
 				}
 			}
-		} else {
-			out.Conditions = nil
 		}
 		return nil
 	}
@@ -3079,8 +2799,7 @@ func DeepCopy_api_ResourceFieldSelector(in interface{}, out interface{}, c *conv
 	{
 		in := in.(*ResourceFieldSelector)
 		out := out.(*ResourceFieldSelector)
-		out.ContainerName = in.ContainerName
-		out.Resource = in.Resource
+		*out = *in
 		out.Divisor = in.Divisor.DeepCopy()
 		return nil
 	}
@@ -3090,9 +2809,11 @@ func DeepCopy_api_ResourceQuota(in interface{}, out interface{}, c *conversion.C
 	{
 		in := in.(*ResourceQuota)
 		out := out.(*ResourceQuota)
-		out.TypeMeta = in.TypeMeta
-		if err := DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
 		if err := DeepCopy_api_ResourceQuotaSpec(&in.Spec, &out.Spec, c); err != nil {
 			return err
@@ -3108,8 +2829,7 @@ func DeepCopy_api_ResourceQuotaList(in interface{}, out interface{}, c *conversi
 	{
 		in := in.(*ResourceQuotaList)
 		out := out.(*ResourceQuotaList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]ResourceQuota, len(*in))
@@ -3118,8 +2838,6 @@ func DeepCopy_api_ResourceQuotaList(in interface{}, out interface{}, c *conversi
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -3129,23 +2847,18 @@ func DeepCopy_api_ResourceQuotaSpec(in interface{}, out interface{}, c *conversi
 	{
 		in := in.(*ResourceQuotaSpec)
 		out := out.(*ResourceQuotaSpec)
+		*out = *in
 		if in.Hard != nil {
 			in, out := &in.Hard, &out.Hard
 			*out = make(ResourceList)
 			for key, val := range *in {
 				(*out)[key] = val.DeepCopy()
 			}
-		} else {
-			out.Hard = nil
 		}
 		if in.Scopes != nil {
 			in, out := &in.Scopes, &out.Scopes
 			*out = make([]ResourceQuotaScope, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.Scopes = nil
+			copy(*out, *in)
 		}
 		return nil
 	}
@@ -3155,14 +2868,13 @@ func DeepCopy_api_ResourceQuotaStatus(in interface{}, out interface{}, c *conver
 	{
 		in := in.(*ResourceQuotaStatus)
 		out := out.(*ResourceQuotaStatus)
+		*out = *in
 		if in.Hard != nil {
 			in, out := &in.Hard, &out.Hard
 			*out = make(ResourceList)
 			for key, val := range *in {
 				(*out)[key] = val.DeepCopy()
 			}
-		} else {
-			out.Hard = nil
 		}
 		if in.Used != nil {
 			in, out := &in.Used, &out.Used
@@ -3170,8 +2882,6 @@ func DeepCopy_api_ResourceQuotaStatus(in interface{}, out interface{}, c *conver
 			for key, val := range *in {
 				(*out)[key] = val.DeepCopy()
 			}
-		} else {
-			out.Used = nil
 		}
 		return nil
 	}
@@ -3181,14 +2891,13 @@ func DeepCopy_api_ResourceRequirements(in interface{}, out interface{}, c *conve
 	{
 		in := in.(*ResourceRequirements)
 		out := out.(*ResourceRequirements)
+		*out = *in
 		if in.Limits != nil {
 			in, out := &in.Limits, &out.Limits
 			*out = make(ResourceList)
 			for key, val := range *in {
 				(*out)[key] = val.DeepCopy()
 			}
-		} else {
-			out.Limits = nil
 		}
 		if in.Requests != nil {
 			in, out := &in.Requests, &out.Requests
@@ -3196,8 +2905,6 @@ func DeepCopy_api_ResourceRequirements(in interface{}, out interface{}, c *conve
 			for key, val := range *in {
 				(*out)[key] = val.DeepCopy()
 			}
-		} else {
-			out.Requests = nil
 		}
 		return nil
 	}
@@ -3207,10 +2914,21 @@ func DeepCopy_api_SELinuxOptions(in interface{}, out interface{}, c *conversion.
 	{
 		in := in.(*SELinuxOptions)
 		out := out.(*SELinuxOptions)
-		out.User = in.User
-		out.Role = in.Role
-		out.Type = in.Type
-		out.Level = in.Level
+		*out = *in
+		return nil
+	}
+}
+
+func DeepCopy_api_ScaleIOVolumeSource(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ScaleIOVolumeSource)
+		out := out.(*ScaleIOVolumeSource)
+		*out = *in
+		if in.SecretRef != nil {
+			in, out := &in.SecretRef, &out.SecretRef
+			*out = new(LocalObjectReference)
+			**out = **in
+		}
 		return nil
 	}
 }
@@ -3219,9 +2937,11 @@ func DeepCopy_api_Secret(in interface{}, out interface{}, c *conversion.Cloner) 
 	{
 		in := in.(*Secret)
 		out := out.(*Secret)
-		out.TypeMeta = in.TypeMeta
-		if err := DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
 		if in.Data != nil {
 			in, out := &in.Data, &out.Data
@@ -3233,10 +2953,21 @@ func DeepCopy_api_Secret(in interface{}, out interface{}, c *conversion.Cloner) 
 					(*out)[key] = *newVal.(*[]byte)
 				}
 			}
-		} else {
-			out.Data = nil
 		}
-		out.Type = in.Type
+		return nil
+	}
+}
+
+func DeepCopy_api_SecretEnvSource(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*SecretEnvSource)
+		out := out.(*SecretEnvSource)
+		*out = *in
+		if in.Optional != nil {
+			in, out := &in.Optional, &out.Optional
+			*out = new(bool)
+			**out = **in
+		}
 		return nil
 	}
 }
@@ -3245,8 +2976,12 @@ func DeepCopy_api_SecretKeySelector(in interface{}, out interface{}, c *conversi
 	{
 		in := in.(*SecretKeySelector)
 		out := out.(*SecretKeySelector)
-		out.LocalObjectReference = in.LocalObjectReference
-		out.Key = in.Key
+		*out = *in
+		if in.Optional != nil {
+			in, out := &in.Optional, &out.Optional
+			*out = new(bool)
+			**out = **in
+		}
 		return nil
 	}
 }
@@ -3255,8 +2990,7 @@ func DeepCopy_api_SecretList(in interface{}, out interface{}, c *conversion.Clon
 	{
 		in := in.(*SecretList)
 		out := out.(*SecretList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]Secret, len(*in))
@@ -3265,8 +2999,29 @@ func DeepCopy_api_SecretList(in interface{}, out interface{}, c *conversion.Clon
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
+		}
+		return nil
+	}
+}
+
+func DeepCopy_api_SecretProjection(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*SecretProjection)
+		out := out.(*SecretProjection)
+		*out = *in
+		if in.Items != nil {
+			in, out := &in.Items, &out.Items
+			*out = make([]KeyToPath, len(*in))
+			for i := range *in {
+				if err := DeepCopy_api_KeyToPath(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		}
+		if in.Optional != nil {
+			in, out := &in.Optional, &out.Optional
+			*out = new(bool)
+			**out = **in
 		}
 		return nil
 	}
@@ -3276,7 +3031,7 @@ func DeepCopy_api_SecretVolumeSource(in interface{}, out interface{}, c *convers
 	{
 		in := in.(*SecretVolumeSource)
 		out := out.(*SecretVolumeSource)
-		out.SecretName = in.SecretName
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]KeyToPath, len(*in))
@@ -3285,15 +3040,16 @@ func DeepCopy_api_SecretVolumeSource(in interface{}, out interface{}, c *convers
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		if in.DefaultMode != nil {
 			in, out := &in.DefaultMode, &out.DefaultMode
 			*out = new(int32)
 			**out = **in
-		} else {
-			out.DefaultMode = nil
+		}
+		if in.Optional != nil {
+			in, out := &in.Optional, &out.Optional
+			*out = new(bool)
+			**out = **in
 		}
 		return nil
 	}
@@ -3303,49 +3059,38 @@ func DeepCopy_api_SecurityContext(in interface{}, out interface{}, c *conversion
 	{
 		in := in.(*SecurityContext)
 		out := out.(*SecurityContext)
+		*out = *in
 		if in.Capabilities != nil {
 			in, out := &in.Capabilities, &out.Capabilities
 			*out = new(Capabilities)
 			if err := DeepCopy_api_Capabilities(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.Capabilities = nil
 		}
 		if in.Privileged != nil {
 			in, out := &in.Privileged, &out.Privileged
 			*out = new(bool)
 			**out = **in
-		} else {
-			out.Privileged = nil
 		}
 		if in.SELinuxOptions != nil {
 			in, out := &in.SELinuxOptions, &out.SELinuxOptions
 			*out = new(SELinuxOptions)
 			**out = **in
-		} else {
-			out.SELinuxOptions = nil
 		}
 		if in.RunAsUser != nil {
 			in, out := &in.RunAsUser, &out.RunAsUser
 			*out = new(int64)
 			**out = **in
-		} else {
-			out.RunAsUser = nil
 		}
 		if in.RunAsNonRoot != nil {
 			in, out := &in.RunAsNonRoot, &out.RunAsNonRoot
 			*out = new(bool)
 			**out = **in
-		} else {
-			out.RunAsNonRoot = nil
 		}
 		if in.ReadOnlyRootFilesystem != nil {
 			in, out := &in.ReadOnlyRootFilesystem, &out.ReadOnlyRootFilesystem
 			*out = new(bool)
 			**out = **in
-		} else {
-			out.ReadOnlyRootFilesystem = nil
 		}
 		return nil
 	}
@@ -3355,8 +3100,7 @@ func DeepCopy_api_SerializedReference(in interface{}, out interface{}, c *conver
 	{
 		in := in.(*SerializedReference)
 		out := out.(*SerializedReference)
-		out.TypeMeta = in.TypeMeta
-		out.Reference = in.Reference
+		*out = *in
 		return nil
 	}
 }
@@ -3365,9 +3109,11 @@ func DeepCopy_api_Service(in interface{}, out interface{}, c *conversion.Cloner)
 	{
 		in := in.(*Service)
 		out := out.(*Service)
-		out.TypeMeta = in.TypeMeta
-		if err := DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
 		if err := DeepCopy_api_ServiceSpec(&in.Spec, &out.Spec, c); err != nil {
 			return err
@@ -3383,27 +3129,26 @@ func DeepCopy_api_ServiceAccount(in interface{}, out interface{}, c *conversion.
 	{
 		in := in.(*ServiceAccount)
 		out := out.(*ServiceAccount)
-		out.TypeMeta = in.TypeMeta
-		if err := DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
 		if in.Secrets != nil {
 			in, out := &in.Secrets, &out.Secrets
 			*out = make([]ObjectReference, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.Secrets = nil
+			copy(*out, *in)
 		}
 		if in.ImagePullSecrets != nil {
 			in, out := &in.ImagePullSecrets, &out.ImagePullSecrets
 			*out = make([]LocalObjectReference, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.ImagePullSecrets = nil
+			copy(*out, *in)
+		}
+		if in.AutomountServiceAccountToken != nil {
+			in, out := &in.AutomountServiceAccountToken, &out.AutomountServiceAccountToken
+			*out = new(bool)
+			**out = **in
 		}
 		return nil
 	}
@@ -3413,8 +3158,7 @@ func DeepCopy_api_ServiceAccountList(in interface{}, out interface{}, c *convers
 	{
 		in := in.(*ServiceAccountList)
 		out := out.(*ServiceAccountList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]ServiceAccount, len(*in))
@@ -3423,8 +3167,6 @@ func DeepCopy_api_ServiceAccountList(in interface{}, out interface{}, c *convers
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -3434,8 +3176,7 @@ func DeepCopy_api_ServiceList(in interface{}, out interface{}, c *conversion.Clo
 	{
 		in := in.(*ServiceList)
 		out := out.(*ServiceList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]Service, len(*in))
@@ -3444,8 +3185,6 @@ func DeepCopy_api_ServiceList(in interface{}, out interface{}, c *conversion.Clo
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -3455,11 +3194,7 @@ func DeepCopy_api_ServicePort(in interface{}, out interface{}, c *conversion.Clo
 	{
 		in := in.(*ServicePort)
 		out := out.(*ServicePort)
-		out.Name = in.Name
-		out.Protocol = in.Protocol
-		out.Port = in.Port
-		out.TargetPort = in.TargetPort
-		out.NodePort = in.NodePort
+		*out = *in
 		return nil
 	}
 }
@@ -3468,8 +3203,7 @@ func DeepCopy_api_ServiceProxyOptions(in interface{}, out interface{}, c *conver
 	{
 		in := in.(*ServiceProxyOptions)
 		out := out.(*ServiceProxyOptions)
-		out.TypeMeta = in.TypeMeta
-		out.Path = in.Path
+		*out = *in
 		return nil
 	}
 }
@@ -3478,15 +3212,11 @@ func DeepCopy_api_ServiceSpec(in interface{}, out interface{}, c *conversion.Clo
 	{
 		in := in.(*ServiceSpec)
 		out := out.(*ServiceSpec)
-		out.Type = in.Type
+		*out = *in
 		if in.Ports != nil {
 			in, out := &in.Ports, &out.Ports
 			*out = make([]ServicePort, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.Ports = nil
+			copy(*out, *in)
 		}
 		if in.Selector != nil {
 			in, out := &in.Selector, &out.Selector
@@ -3494,26 +3224,16 @@ func DeepCopy_api_ServiceSpec(in interface{}, out interface{}, c *conversion.Clo
 			for key, val := range *in {
 				(*out)[key] = val
 			}
-		} else {
-			out.Selector = nil
 		}
-		out.ClusterIP = in.ClusterIP
-		out.ExternalName = in.ExternalName
 		if in.ExternalIPs != nil {
 			in, out := &in.ExternalIPs, &out.ExternalIPs
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.ExternalIPs = nil
 		}
-		out.LoadBalancerIP = in.LoadBalancerIP
-		out.SessionAffinity = in.SessionAffinity
 		if in.LoadBalancerSourceRanges != nil {
 			in, out := &in.LoadBalancerSourceRanges, &out.LoadBalancerSourceRanges
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.LoadBalancerSourceRanges = nil
 		}
 		return nil
 	}
@@ -3523,6 +3243,7 @@ func DeepCopy_api_ServiceStatus(in interface{}, out interface{}, c *conversion.C
 	{
 		in := in.(*ServiceStatus)
 		out := out.(*ServiceStatus)
+		*out = *in
 		if err := DeepCopy_api_LoadBalancerStatus(&in.LoadBalancer, &out.LoadBalancer, c); err != nil {
 			return err
 		}
@@ -3534,8 +3255,7 @@ func DeepCopy_api_Sysctl(in interface{}, out interface{}, c *conversion.Cloner) 
 	{
 		in := in.(*Sysctl)
 		out := out.(*Sysctl)
-		out.Name = in.Name
-		out.Value = in.Value
+		*out = *in
 		return nil
 	}
 }
@@ -3544,7 +3264,7 @@ func DeepCopy_api_TCPSocketAction(in interface{}, out interface{}, c *conversion
 	{
 		in := in.(*TCPSocketAction)
 		out := out.(*TCPSocketAction)
-		out.Port = in.Port
+		*out = *in
 		return nil
 	}
 }
@@ -3553,9 +3273,8 @@ func DeepCopy_api_Taint(in interface{}, out interface{}, c *conversion.Cloner) e
 	{
 		in := in.(*Taint)
 		out := out.(*Taint)
-		out.Key = in.Key
-		out.Value = in.Value
-		out.Effect = in.Effect
+		*out = *in
+		out.TimeAdded = in.TimeAdded.DeepCopy()
 		return nil
 	}
 }
@@ -3564,10 +3283,12 @@ func DeepCopy_api_Toleration(in interface{}, out interface{}, c *conversion.Clon
 	{
 		in := in.(*Toleration)
 		out := out.(*Toleration)
-		out.Key = in.Key
-		out.Operator = in.Operator
-		out.Value = in.Value
-		out.Effect = in.Effect
+		*out = *in
+		if in.TolerationSeconds != nil {
+			in, out := &in.TolerationSeconds, &out.TolerationSeconds
+			*out = new(int64)
+			**out = **in
+		}
 		return nil
 	}
 }
@@ -3576,7 +3297,7 @@ func DeepCopy_api_Volume(in interface{}, out interface{}, c *conversion.Cloner) 
 	{
 		in := in.(*Volume)
 		out := out.(*Volume)
-		out.Name = in.Name
+		*out = *in
 		if err := DeepCopy_api_VolumeSource(&in.VolumeSource, &out.VolumeSource, c); err != nil {
 			return err
 		}
@@ -3588,10 +3309,37 @@ func DeepCopy_api_VolumeMount(in interface{}, out interface{}, c *conversion.Clo
 	{
 		in := in.(*VolumeMount)
 		out := out.(*VolumeMount)
-		out.Name = in.Name
-		out.ReadOnly = in.ReadOnly
-		out.MountPath = in.MountPath
-		out.SubPath = in.SubPath
+		*out = *in
+		return nil
+	}
+}
+
+func DeepCopy_api_VolumeProjection(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*VolumeProjection)
+		out := out.(*VolumeProjection)
+		*out = *in
+		if in.Secret != nil {
+			in, out := &in.Secret, &out.Secret
+			*out = new(SecretProjection)
+			if err := DeepCopy_api_SecretProjection(*in, *out, c); err != nil {
+				return err
+			}
+		}
+		if in.DownwardAPI != nil {
+			in, out := &in.DownwardAPI, &out.DownwardAPI
+			*out = new(DownwardAPIProjection)
+			if err := DeepCopy_api_DownwardAPIProjection(*in, *out, c); err != nil {
+				return err
+			}
+		}
+		if in.ConfigMap != nil {
+			in, out := &in.ConfigMap, &out.ConfigMap
+			*out = new(ConfigMapProjection)
+			if err := DeepCopy_api_ConfigMapProjection(*in, *out, c); err != nil {
+				return err
+			}
+		}
 		return nil
 	}
 }
@@ -3600,40 +3348,31 @@ func DeepCopy_api_VolumeSource(in interface{}, out interface{}, c *conversion.Cl
 	{
 		in := in.(*VolumeSource)
 		out := out.(*VolumeSource)
+		*out = *in
 		if in.HostPath != nil {
 			in, out := &in.HostPath, &out.HostPath
 			*out = new(HostPathVolumeSource)
 			**out = **in
-		} else {
-			out.HostPath = nil
 		}
 		if in.EmptyDir != nil {
 			in, out := &in.EmptyDir, &out.EmptyDir
 			*out = new(EmptyDirVolumeSource)
 			**out = **in
-		} else {
-			out.EmptyDir = nil
 		}
 		if in.GCEPersistentDisk != nil {
 			in, out := &in.GCEPersistentDisk, &out.GCEPersistentDisk
 			*out = new(GCEPersistentDiskVolumeSource)
 			**out = **in
-		} else {
-			out.GCEPersistentDisk = nil
 		}
 		if in.AWSElasticBlockStore != nil {
 			in, out := &in.AWSElasticBlockStore, &out.AWSElasticBlockStore
 			*out = new(AWSElasticBlockStoreVolumeSource)
 			**out = **in
-		} else {
-			out.AWSElasticBlockStore = nil
 		}
 		if in.GitRepo != nil {
 			in, out := &in.GitRepo, &out.GitRepo
 			*out = new(GitRepoVolumeSource)
 			**out = **in
-		} else {
-			out.GitRepo = nil
 		}
 		if in.Secret != nil {
 			in, out := &in.Secret, &out.Secret
@@ -3641,36 +3380,28 @@ func DeepCopy_api_VolumeSource(in interface{}, out interface{}, c *conversion.Cl
 			if err := DeepCopy_api_SecretVolumeSource(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.Secret = nil
 		}
 		if in.NFS != nil {
 			in, out := &in.NFS, &out.NFS
 			*out = new(NFSVolumeSource)
 			**out = **in
-		} else {
-			out.NFS = nil
 		}
 		if in.ISCSI != nil {
 			in, out := &in.ISCSI, &out.ISCSI
 			*out = new(ISCSIVolumeSource)
-			**out = **in
-		} else {
-			out.ISCSI = nil
+			if err := DeepCopy_api_ISCSIVolumeSource(*in, *out, c); err != nil {
+				return err
+			}
 		}
 		if in.Glusterfs != nil {
 			in, out := &in.Glusterfs, &out.Glusterfs
 			*out = new(GlusterfsVolumeSource)
 			**out = **in
-		} else {
-			out.Glusterfs = nil
 		}
 		if in.PersistentVolumeClaim != nil {
 			in, out := &in.PersistentVolumeClaim, &out.PersistentVolumeClaim
 			*out = new(PersistentVolumeClaimVolumeSource)
 			**out = **in
-		} else {
-			out.PersistentVolumeClaim = nil
 		}
 		if in.RBD != nil {
 			in, out := &in.RBD, &out.RBD
@@ -3678,15 +3409,11 @@ func DeepCopy_api_VolumeSource(in interface{}, out interface{}, c *conversion.Cl
 			if err := DeepCopy_api_RBDVolumeSource(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.RBD = nil
 		}
 		if in.Quobyte != nil {
 			in, out := &in.Quobyte, &out.Quobyte
 			*out = new(QuobyteVolumeSource)
 			**out = **in
-		} else {
-			out.Quobyte = nil
 		}
 		if in.FlexVolume != nil {
 			in, out := &in.FlexVolume, &out.FlexVolume
@@ -3694,15 +3421,11 @@ func DeepCopy_api_VolumeSource(in interface{}, out interface{}, c *conversion.Cl
 			if err := DeepCopy_api_FlexVolumeSource(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.FlexVolume = nil
 		}
 		if in.Cinder != nil {
 			in, out := &in.Cinder, &out.Cinder
 			*out = new(CinderVolumeSource)
 			**out = **in
-		} else {
-			out.Cinder = nil
 		}
 		if in.CephFS != nil {
 			in, out := &in.CephFS, &out.CephFS
@@ -3710,15 +3433,11 @@ func DeepCopy_api_VolumeSource(in interface{}, out interface{}, c *conversion.Cl
 			if err := DeepCopy_api_CephFSVolumeSource(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.CephFS = nil
 		}
 		if in.Flocker != nil {
 			in, out := &in.Flocker, &out.Flocker
 			*out = new(FlockerVolumeSource)
 			**out = **in
-		} else {
-			out.Flocker = nil
 		}
 		if in.DownwardAPI != nil {
 			in, out := &in.DownwardAPI, &out.DownwardAPI
@@ -3726,8 +3445,6 @@ func DeepCopy_api_VolumeSource(in interface{}, out interface{}, c *conversion.Cl
 			if err := DeepCopy_api_DownwardAPIVolumeSource(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.DownwardAPI = nil
 		}
 		if in.FC != nil {
 			in, out := &in.FC, &out.FC
@@ -3735,15 +3452,11 @@ func DeepCopy_api_VolumeSource(in interface{}, out interface{}, c *conversion.Cl
 			if err := DeepCopy_api_FCVolumeSource(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.FC = nil
 		}
 		if in.AzureFile != nil {
 			in, out := &in.AzureFile, &out.AzureFile
 			*out = new(AzureFileVolumeSource)
 			**out = **in
-		} else {
-			out.AzureFile = nil
 		}
 		if in.ConfigMap != nil {
 			in, out := &in.ConfigMap, &out.ConfigMap
@@ -3751,15 +3464,11 @@ func DeepCopy_api_VolumeSource(in interface{}, out interface{}, c *conversion.Cl
 			if err := DeepCopy_api_ConfigMapVolumeSource(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.ConfigMap = nil
 		}
 		if in.VsphereVolume != nil {
 			in, out := &in.VsphereVolume, &out.VsphereVolume
 			*out = new(VsphereVirtualDiskVolumeSource)
 			**out = **in
-		} else {
-			out.VsphereVolume = nil
 		}
 		if in.AzureDisk != nil {
 			in, out := &in.AzureDisk, &out.AzureDisk
@@ -3767,15 +3476,30 @@ func DeepCopy_api_VolumeSource(in interface{}, out interface{}, c *conversion.Cl
 			if err := DeepCopy_api_AzureDiskVolumeSource(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.AzureDisk = nil
 		}
 		if in.PhotonPersistentDisk != nil {
 			in, out := &in.PhotonPersistentDisk, &out.PhotonPersistentDisk
 			*out = new(PhotonPersistentDiskVolumeSource)
 			**out = **in
-		} else {
-			out.PhotonPersistentDisk = nil
+		}
+		if in.Projected != nil {
+			in, out := &in.Projected, &out.Projected
+			*out = new(ProjectedVolumeSource)
+			if err := DeepCopy_api_ProjectedVolumeSource(*in, *out, c); err != nil {
+				return err
+			}
+		}
+		if in.PortworxVolume != nil {
+			in, out := &in.PortworxVolume, &out.PortworxVolume
+			*out = new(PortworxVolumeSource)
+			**out = **in
+		}
+		if in.ScaleIO != nil {
+			in, out := &in.ScaleIO, &out.ScaleIO
+			*out = new(ScaleIOVolumeSource)
+			if err := DeepCopy_api_ScaleIOVolumeSource(*in, *out, c); err != nil {
+				return err
+			}
 		}
 		return nil
 	}
@@ -3785,8 +3509,7 @@ func DeepCopy_api_VsphereVirtualDiskVolumeSource(in interface{}, out interface{}
 	{
 		in := in.(*VsphereVirtualDiskVolumeSource)
 		out := out.(*VsphereVirtualDiskVolumeSource)
-		out.VolumePath = in.VolumePath
-		out.FSType = in.FSType
+		*out = *in
 		return nil
 	}
 }
@@ -3795,7 +3518,7 @@ func DeepCopy_api_WeightedPodAffinityTerm(in interface{}, out interface{}, c *co
 	{
 		in := in.(*WeightedPodAffinityTerm)
 		out := out.(*WeightedPodAffinityTerm)
-		out.Weight = in.Weight
+		*out = *in
 		if err := DeepCopy_api_PodAffinityTerm(&in.PodAffinityTerm, &out.PodAffinityTerm, c); err != nil {
 			return err
 		}

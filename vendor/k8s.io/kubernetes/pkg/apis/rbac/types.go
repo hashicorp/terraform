@@ -17,9 +17,7 @@ limitations under the License.
 package rbac
 
 import (
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Authorization is calculated against
@@ -37,7 +35,8 @@ const (
 	ServiceAccountKind = "ServiceAccount"
 	UserKind           = "User"
 
-	UserAll = "*"
+	// AutoUpdateAnnotationKey is the name of an annotation which prevents reconciliation if set to "false"
+	AutoUpdateAnnotationKey = "rbac.authorization.kubernetes.io/autoupdate"
 )
 
 // PolicyRule holds information that describes a policy rule, but does not contain information
@@ -45,12 +44,9 @@ const (
 type PolicyRule struct {
 	// Verbs is a list of Verbs that apply to ALL the ResourceKinds and AttributeRestrictions contained in this rule.  VerbAll represents all kinds.
 	Verbs []string
-	// AttributeRestrictions will vary depending on what the Authorizer/AuthorizationAttributeBuilder pair supports.
-	// If the Authorizer does not recognize how to handle the AttributeRestrictions, the Authorizer should report an error.
-	AttributeRestrictions runtime.Object
+
 	// APIGroups is the name of the APIGroup that contains the resources.
 	// If multiple API groups are specified, any action requested against one of the enumerated resources in any API group will be allowed.
-
 	APIGroups []string
 	// Resources is a list of resources this rule applies to.  ResourceAll represents all resources.
 	Resources []string
@@ -70,9 +66,10 @@ type Subject struct {
 	// Kind of object being referenced. Values defined by this API group are "User", "Group", and "ServiceAccount".
 	// If the Authorizer does not recognized the kind value, the Authorizer should report an error.
 	Kind string
-	// APIVersion holds the API group and version of the referenced object. For non-object references such as "Group" and "User" this is
-	// expected to be API version of this API group. For example, "rbac/v1alpha1".
-	APIVersion string
+	// APIGroup holds the API group of the referenced subject.
+	// Defaults to "" for ServiceAccount subjects.
+	// Defaults to "rbac.authorization.k8s.io" for User and Group subjects.
+	APIGroup string
 	// Name of the object being referenced.
 	Name string
 	// Namespace of the referenced object.  If the object kind is non-namespace, such as "User" or "Group", and this value is not empty
@@ -94,9 +91,9 @@ type RoleRef struct {
 
 // Role is a namespaced, logical grouping of PolicyRules that can be referenced as a unit by a RoleBinding.
 type Role struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	// Standard object's metadata.
-	api.ObjectMeta
+	metav1.ObjectMeta
 
 	// Rules holds all the PolicyRules for this Role
 	Rules []PolicyRule
@@ -108,8 +105,8 @@ type Role struct {
 // It adds who information via Subjects and namespace information by which namespace it exists in.  RoleBindings in a given
 // namespace only have effect in that namespace.
 type RoleBinding struct {
-	unversioned.TypeMeta
-	api.ObjectMeta
+	metav1.TypeMeta
+	metav1.ObjectMeta
 
 	// Subjects holds references to the objects the role applies to.
 	Subjects []Subject
@@ -121,9 +118,9 @@ type RoleBinding struct {
 
 // RoleBindingList is a collection of RoleBindings
 type RoleBindingList struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	// Standard object's metadata.
-	unversioned.ListMeta
+	metav1.ListMeta
 
 	// Items is a list of roleBindings
 	Items []RoleBinding
@@ -131,9 +128,9 @@ type RoleBindingList struct {
 
 // RoleList is a collection of Roles
 type RoleList struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	// Standard object's metadata.
-	unversioned.ListMeta
+	metav1.ListMeta
 
 	// Items is a list of roles
 	Items []Role
@@ -144,9 +141,9 @@ type RoleList struct {
 
 // ClusterRole is a cluster level, logical grouping of PolicyRules that can be referenced as a unit by a RoleBinding or ClusterRoleBinding.
 type ClusterRole struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	// Standard object's metadata.
-	api.ObjectMeta
+	metav1.ObjectMeta
 
 	// Rules holds all the PolicyRules for this ClusterRole
 	Rules []PolicyRule
@@ -158,9 +155,9 @@ type ClusterRole struct {
 // ClusterRoleBinding references a ClusterRole, but not contain it.  It can reference a ClusterRole in the global namespace,
 // and adds who information via Subject.
 type ClusterRoleBinding struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	// Standard object's metadata.
-	api.ObjectMeta
+	metav1.ObjectMeta
 
 	// Subjects holds references to the objects the role applies to.
 	Subjects []Subject
@@ -172,9 +169,9 @@ type ClusterRoleBinding struct {
 
 // ClusterRoleBindingList is a collection of ClusterRoleBindings
 type ClusterRoleBindingList struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	// Standard object's metadata.
-	unversioned.ListMeta
+	metav1.ListMeta
 
 	// Items is a list of ClusterRoleBindings
 	Items []ClusterRoleBinding
@@ -182,9 +179,9 @@ type ClusterRoleBindingList struct {
 
 // ClusterRoleList is a collection of ClusterRoles
 type ClusterRoleList struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	// Standard object's metadata.
-	unversioned.ListMeta
+	metav1.ListMeta
 
 	// Items is a list of ClusterRoles
 	Items []ClusterRole

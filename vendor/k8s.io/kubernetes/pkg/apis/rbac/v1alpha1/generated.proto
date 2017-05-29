@@ -21,11 +21,12 @@ syntax = 'proto2';
 
 package k8s.io.kubernetes.pkg.apis.rbac.v1alpha1;
 
-import "k8s.io/kubernetes/pkg/api/resource/generated.proto";
-import "k8s.io/kubernetes/pkg/api/unversioned/generated.proto";
+import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
+import "k8s.io/apimachinery/pkg/runtime/generated.proto";
+import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
+import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
+import "k8s.io/apiserver/pkg/apis/example/v1/generated.proto";
 import "k8s.io/kubernetes/pkg/api/v1/generated.proto";
-import "k8s.io/kubernetes/pkg/runtime/generated.proto";
-import "k8s.io/kubernetes/pkg/util/intstr/generated.proto";
 
 // Package-wide variables from generator "generated".
 option go_package = "v1alpha1";
@@ -34,7 +35,7 @@ option go_package = "v1alpha1";
 message ClusterRole {
   // Standard object's metadata.
   // +optional
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Rules holds all the PolicyRules for this ClusterRole
   repeated PolicyRule rules = 2;
@@ -45,7 +46,7 @@ message ClusterRole {
 message ClusterRoleBinding {
   // Standard object's metadata.
   // +optional
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Subjects holds references to the objects the role applies to.
   repeated Subject subjects = 2;
@@ -55,11 +56,19 @@ message ClusterRoleBinding {
   optional RoleRef roleRef = 3;
 }
 
+// +k8s:deepcopy-gen=false
+// ClusterRoleBindingBuilder let's us attach methods.  A no-no for API types.
+// We use it to construct bindings in code.  It's more compact than trying to write them
+// out in a literal.
+message ClusterRoleBindingBuilder {
+  optional ClusterRoleBinding clusterRoleBinding = 1;
+}
+
 // ClusterRoleBindingList is a collection of ClusterRoleBindings
 message ClusterRoleBindingList {
   // Standard object's metadata.
   // +optional
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of ClusterRoleBindings
   repeated ClusterRoleBinding items = 2;
@@ -69,7 +78,7 @@ message ClusterRoleBindingList {
 message ClusterRoleList {
   // Standard object's metadata.
   // +optional
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of ClusterRoles
   repeated ClusterRole items = 2;
@@ -80,11 +89,6 @@ message ClusterRoleList {
 message PolicyRule {
   // Verbs is a list of Verbs that apply to ALL the ResourceKinds and AttributeRestrictions contained in this rule.  VerbAll represents all kinds.
   repeated string verbs = 1;
-
-  // AttributeRestrictions will vary depending on what the Authorizer/AuthorizationAttributeBuilder pair supports.
-  // If the Authorizer does not recognize how to handle the AttributeRestrictions, the Authorizer should report an error.
-  // +optional
-  optional k8s.io.kubernetes.pkg.runtime.RawExtension attributeRestrictions = 2;
 
   // APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of
   // the enumerated resources in any API group will be allowed.
@@ -107,11 +111,19 @@ message PolicyRule {
   repeated string nonResourceURLs = 6;
 }
 
+// +k8s:deepcopy-gen=false
+// PolicyRuleBuilder let's us attach methods.  A no-no for API types.
+// We use it to construct rules in code.  It's more compact than trying to write them
+// out in a literal and allows us to perform some basic checking during construction
+message PolicyRuleBuilder {
+  optional PolicyRule policyRule = 1;
+}
+
 // Role is a namespaced, logical grouping of PolicyRules that can be referenced as a unit by a RoleBinding.
 message Role {
   // Standard object's metadata.
   // +optional
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Rules holds all the PolicyRules for this Role
   repeated PolicyRule rules = 2;
@@ -123,7 +135,7 @@ message Role {
 message RoleBinding {
   // Standard object's metadata.
   // +optional
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Subjects holds references to the objects the role applies to.
   repeated Subject subjects = 2;
@@ -137,7 +149,7 @@ message RoleBinding {
 message RoleBindingList {
   // Standard object's metadata.
   // +optional
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of RoleBindings
   repeated RoleBinding items = 2;
@@ -147,7 +159,7 @@ message RoleBindingList {
 message RoleList {
   // Standard object's metadata.
   // +optional
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of Roles
   repeated Role items = 2;
@@ -172,7 +184,10 @@ message Subject {
   // If the Authorizer does not recognized the kind value, the Authorizer should report an error.
   optional string kind = 1;
 
-  // APIVersion holds the API group and version of the referenced object.
+  // APIVersion holds the API group and version of the referenced subject.
+  // Defaults to "v1" for ServiceAccount subjects.
+  // Defaults to "rbac.authorization.k8s.io/v1alpha1" for User and Group subjects.
+  // +k8s:conversion-gen=false
   // +optional
   optional string apiVersion = 2;
 
