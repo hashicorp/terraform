@@ -19,9 +19,9 @@ docker run --rm -it \
       /bin/terraform validate; \
       /bin/terraform plan -out=out.tfplan \
         -var resource_group_name=$KEY \
+        -var subscription_id=$ARM_SUBSCRIPTION_ID \
         -var hostname=$KEY \
         -var openshift_cluster_prefix=$KEY \
-        -var infra_lb_publicip_dns_label=$KEY \
         -var key_vault_secret=$KEY_VAULT_SECRET \
         -var admin_username=$KEY \
         -var openshift_password=$PASSWORD \
@@ -29,8 +29,6 @@ docker run --rm -it \
         -var key_vault_resource_group=$KEY_VAULT_RESOURCE_GROUP \
         -var aad_client_id=$AAD_CLIENT_ID \
         -var aad_client_secret=$AAD_CLIENT_SECRET \
-        -var key_vault_tenant_id=$ARM_TENANT_ID \
-        -var key_vault_object_id=$AAD_CLIENT_ID \
         -var key_encryption_key_url=$KEY_ENCRYPTION_KEY_URL \
         -var key_vault_resource_id=$KEY_VAULT_RESOURCE_ID \
         -var ssh_public_key=$SSH_PUBLIC_KEY; \
@@ -55,9 +53,9 @@ docker run --rm -it \
   hashicorp/terraform:light \
   -c "/bin/terraform destroy -force \
         -var resource_group_name=$KEY \
+        -var subscription_id=$ARM_SUBSCRIPTION_ID \
         -var hostname=$KEY \
         -var openshift_cluster_prefix=$KEY \
-        -var infra_lb_publicip_dns_label=$KEY \
         -var key_vault_secret=$KEY_VAULT_SECRET \
         -var admin_username=$KEY \
         -var openshift_password=$PASSWORD \
@@ -65,8 +63,6 @@ docker run --rm -it \
         -var key_vault_resource_group=$KEY_VAULT_RESOURCE_GROUP \
         -var aad_client_id=$AAD_CLIENT_ID \
         -var aad_client_secret=$AAD_CLIENT_SECRET \
-        -var key_vault_tenant_id=$ARM_TENANT_ID \
-        -var key_vault_object_id=$AAD_CLIENT_ID \
         -var key_encryption_key_url=$KEY_ENCRYPTION_KEY_URL \
         -var key_vault_resource_id=$KEY_VAULT_RESOURCE_ID \
         -var ssh_public_key=$SSH_PUBLIC_KEY;"

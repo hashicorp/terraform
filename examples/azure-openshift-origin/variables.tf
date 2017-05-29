@@ -10,13 +10,6 @@ variable "resource_group_location" {
 variable "subscription_id" {
   description = "Subscription ID of the key vault"
 }
-variable "key_vault_tenant_id" {
-  description = "The Azure Active Directory tenant ID that should be used for authenticating requests to the key vault. Get using 'az account show'."
-}
-
-variable "key_vault_object_id" {
-  description = "The object ID of a service principal in the Azure Active Directory tenant for the key vault. Get using 'az ad sp show'."
-}
 
 variable "artifacts_location" {
   description = "The base URL where artifacts required by this template are located. If you are using your own fork of the repo and want the deployment to pick up artifacts from your fork, update this value appropriately (user and branch), for example, change from https://raw.githubusercontent.com/Microsoft/openshift-origin/master/ to https://raw.githubusercontent.com/YourUser/openshift-origin/YourBranch/"
@@ -153,7 +146,7 @@ variable "openshift_password" {
   description = "Password for OpenShift login"
 }
 
-variable "ssh_public_key_path" {
+variable "ssh_public_key" {
   description = "Path to your SSH Public Key"
 }
 

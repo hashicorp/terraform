@@ -435,7 +435,7 @@ resource "azurerm_network_interface" "node_nic" {
 # ******* Master VMs *******
 
 resource "azurerm_virtual_machine" "master" {
-  name                  = "masterVm${count.index}"
+  name                  = "${var.openshift_cluster_prefix}-master-${count.index}"
   location              = "${azurerm_resource_group.rg.location}"
   resource_group_name   = "${azurerm_resource_group.rg.name}"
   availability_set_id   = "${azurerm_availability_set.master.id}"
@@ -459,7 +459,7 @@ resource "azurerm_virtual_machine" "master" {
 
     ssh_keys {
       path     = "/home/${var.admin_username}/.ssh/authorized_keys"
-      key_data = "${file(var.ssh_public_key_path)}"
+      key_data = "${var.ssh_public_key}"
     }
   }
 
@@ -489,7 +489,7 @@ resource "azurerm_virtual_machine" "master" {
 # ******* Infra VMs *******
 
 resource "azurerm_virtual_machine" "infra" {
-  name                  = "infraVm${count.index}"
+  name                  = "${var.openshift_cluster_prefix}-infra-${count.index}"
   location              = "${azurerm_resource_group.rg.location}"
   resource_group_name   = "${azurerm_resource_group.rg.name}"
   availability_set_id   = "${azurerm_availability_set.infra.id}"
@@ -514,7 +514,7 @@ resource "azurerm_virtual_machine" "infra" {
 
     ssh_keys {
       path     = "/home/${var.admin_username}/.ssh/authorized_keys"
-      key_data = "${file(var.ssh_public_key_path)}"
+      key_data = "${var.ssh_public_key}"
     }
   }
 
@@ -544,7 +544,7 @@ resource "azurerm_virtual_machine" "infra" {
 # # ******* Node VMs *******
 
 resource "azurerm_virtual_machine" "node" {
-  name                  = "nodeVm${count.index}"
+  name                  = "${var.openshift_cluster_prefix}-node-${count.index}"
   location              = "${azurerm_resource_group.rg.location}"
   resource_group_name   = "${azurerm_resource_group.rg.name}"
   availability_set_id   = "${azurerm_availability_set.node.id}"
@@ -569,7 +569,7 @@ resource "azurerm_virtual_machine" "node" {
 
     ssh_keys {
       path     = "/home/${var.admin_username}/.ssh/authorized_keys"
-      key_data = "${file(var.ssh_public_key_path)}"
+      key_data = "${var.ssh_public_key}"
     }
   }
 
@@ -659,7 +659,7 @@ resource "azurerm_virtual_machine_extension" "deploy_nodes" {
   type                       = "CustomScript"
   type_handler_version       = "2.0"
   auto_upgrade_minor_version = true
-  depends_on                 = ["azurerm_virtual_machine.node", "azurerm_storage_accounts.node"]
+  depends_on                 = ["azurerm_virtual_machine.node", "azurerm_storage_account.nodeos_storage_account"]
 
   settings = <<SETTINGS
 {

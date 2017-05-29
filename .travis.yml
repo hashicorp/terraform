@@ -25,9 +25,8 @@ before_deploy:
   - export EXISTING_STORAGE_ACCOUNT_NAME=permanentstor
   - export EXISTING_RESOURCE_GROUP=permanent
   - export KEY_VAULT_RESOURCE_GROUP=permanent
-  - export KEY_VAULT_SECRET=OpenShift
+  - export KEY_VAULT_SECRET=OpenShiftSSH
   - export KEY_VAULT_NAME=permanentkeyvault
-  - export SSH_PUBLIC_KEY=id_openshift_rsa
 
 # terraform deploy + script
 deploy:
