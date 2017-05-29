@@ -676,119 +676,155 @@ SETTINGS
 SETTINGS
 }
 
-# resource "azurerm_template_deployment" "test" {
-#   name                = "OpenShiftDeployment"
-#   resource_group_name = "${azurerm_resource_group.rg.name}"
-#   depends_on                 = ["azurerm_virtual_machine.master", "azurerm_virtual_machine.infra", "azurerm_virtual_machine.node", "azurerm_storage_account.persistent_volume_storage_account", "azurerm_storage_account.registry_storage_account"]
+# resource "azurerm_virtual_machine_extension" "deploy_openshift" {
+#   name                       = "OpenShiftDeployment${count.index}"
+#   location                   = "${azurerm_resource_group.rg.location}"
+#   resource_group_name        = "${azurerm_resource_group.rg.name}"
+#   virtual_machine_name       = "${element(azurerm_virtual_machine.master.*.name, count.index)}"
+#   publisher                  = "Microsoft.Azure.Extensions"
+#   type                       = "CustomScript"
+#   type_handler_version       = "2.0"
+#   auto_upgrade_minor_version = true
+#   depends_on                 = ["azurerm_virtual_machine.master", "azurerm_virtual_machine.infra", "azurerm_virtual_machine.node", "azurerm_storage_account.persistent_volume_storage_account", "azurerm_storage_account.registry_storage_account", "azurerm_virtual_machine_extension.deploy_open_shift_master"]
 
+#   settings = <<SETTINGS
+# {
+#   "fileUris": [
+# 		"${var.artifacts_location}scripts/deployOpenShift.sh"
+# 	]
+# }
+# SETTINGS
 
-#   template_body = <<DEPLOY
-# 	  "properties": {
-# 			"mode": "Incremental",
-# 			"templateLink": {
-# 				"uri": "${var.artifacts_location}scripts/deployOpenShift.sh",
-# 				"contentVersion": "1.0.0.0"
-# 			},
-# 			"parameters": {
-# 				"_artifactsLocation": {
-# 					"value": "${var.artifacts_location}"
-# 				},
-# 				"apiVersionCompute": {
-# 					"value": "${var.api_version_compute}"
-# 				},
-# 				"newStorageAccountRegistry": {
-# 					"value": "${azurerm_storage_account.registry_storage_account.name}"
-# 				},
-# 				"newStorageAccountKey": {
-# 					"value": "${azurerm_storage_account.registry_storage_account.primary_access_key}"
-# 				},
-# 				"newStorageAccountPersistentVolume1": {
-# 					"value": "${azurerm_storage_account.persistent_volume_storage_account.name}"
-# 				},
-# 				"newStorageAccountPV1Key": {
-# 					"value": "${azurerm_storage_account.persistent_volume_storage_account.primary_access_key}"
-# 				},
-# 				"openshiftMasterHostname": {
-# 					"value": "[variables('openshiftMasterHostname')]"
-# 				},
-# 				"openshiftMasterPublicIpFqdn": {
-# 					"value": "${var.azurerm_public_ip.openshift_master_pip.fqdn}"
-# 				},
-# 				"openshiftMasterPublicIpAddress": {
-# 					"value": "${var.azurerm_public_ip.openshift_master_pip.ip_address}"
-# 				},
-# 				"openshiftInfraHostname": {
-# 					"value": "[variables('openshiftInfraHostname')]"
-# 				},
-# 				"openshiftNodeHostname": {
-# 					"value": "[variables('openshiftNodeHostname')]"
-# 				},
-# 				"masterInstanceCount": {
-# 					"value": "${var.master_instance_count}"
-# 				},
-# 				"infraInstanceCount": {
-# 					"value": "${var.infra_instance_count}"
-# 				},
-# 				"nodeInstanceCount": {
-# 					"value": "${var.node_instance_count}"
-# 				},
-# 				"adminUsername": {
-# 					"value": "${var.admin_username}"
-# 				},
-# 				"openshiftPassword": {
-# 					"value": "${var.openshift_password}"
-# 				},
-# 				"aadClientId": {
-# 					"value": "${var.aad_client_id}"
-# 				},
-# 				"aadClientSecret": {
-# 					"value": "${var.aad_client_secret}"
-# 				},
-# 				"xipioDomain": {
-# 					"value": "${azurerm_public_ip.infra_lb_pip.ip_address}.xip.io"
-# 				},
-# 				"customDomain": {
-# 					"value": "${var.default_sub_domain}"
-# 				},
-# 				"subDomainChosen": {
-# 					"value": "${var.default_sub_domain_type} Domain"
-# 				},
-# 				"sshPrivateKey": {
-# 					"reference": {
-# 						"keyvault": {
-# 							"id": "/subscriptions/${var.subscription_id}/resourceGroups/${var.key_vault_resource_group}/providers/Microsoft.KeyVault/vaults/${var.key_vault_name}"
-# 						},
-# 						"secretName": "${var.key_vault_secret}"
-# 					}
-# 				}
-# 			}
-# 		}
-# 	}
-# DEPLOY
-# "outputs": {
-# 	"Openshift Console Url": {
-# 		"type": "string",
-# 		"value": "https://${azurerm_public_ip.openshift_master_pip.fqdn}:8443/console"
-# 	},
-# 	"Openshift Master SSH": {
-# 		"type": "string",
-# 		"value": "ssh ${var.admin_username}@${azurerm_public_ip.openshift_master_pip.fqdn} -p 2200"
-# 	},
-# 	"Openshift Infra Load Balancer FQDN": {
-# 		"type": "string",
-# 		"value": "${azurerm_public_ip.infra_lb_pip.fqdn}"
-# 	},
-# 	"Node OS Storage Account Name": {
-# 		"type": "string",
-# 		"value": "${azurerm_storage_account.nodeos_storage_account.name}"
-# 	},
-# 	"Node Data Storage Account Name": {
-# 		"type": "string",
-# 		"value": "${azurerm_storage_account.nodedata_storage_account.name}"
-# 	},
-# 	"Infra Storage Account Name": {
-# 		"type": "string",
-# 		"value": "${azurerm_storage_account.infra_storage_account.name}"
-# 	}
+#   protected_settings = <<SETTINGS
+# {
+# 	"commandToExecute": "bash deployOpenShift.sh \"${var.admin_username}\" '${var.openshift_password}' \"${var.ssh_private_key}\" \"${element(azurerm_virtual_machine.master.*.name, count.index)}\" \"${azurerm_public_ip.openshift_master_pip.fqdn}\" \"${azurerm_public_ip.openshift_master_pip.ip_address}\" \"${element(azurerm_virtual_machine.infra.*.name, count.index)}\" \"${element(azurerm_virtual_machine.node.*.name, count.index)}\" \"${var.node_instance_count}\" \"${var.infra_instance_count}\" \"${var.master_instance_count}\" \"${var.default_sub_domain_type} Domain\" \"${azurerm_storage_account.registry_storage_account.name}\" '${azurerm_storage_account.registry_storage_account.primary_access_key}' '${var.tenant_id}' '${var.subscription_id}' '${var.aad_client_id}' '${var.aad_client_secret}' '${azurerm_resource_group.rg.name}' '${azurerm_resource_group.rg.location}' '${azurerm_storage_account.persistent_volume_storage_account.name}' '${azurerm_storage_account.persistent_volume_storage_account.primary_access_key}'"
+# }
+# SETTINGS
 # }
 
+# resource "azurerm_template_deployment" "deploy_openshift" {
+#   name                = "OpenShiftDeployment"
+#   resource_group_name = "${azurerm_resource_group.rg.name}"
+#   deployment_mode     = "Incremental"
+#   depends_on          = ["azurerm_virtual_machine.master", "azurerm_virtual_machine.infra", "azurerm_virtual_machine.node", "azurerm_storage_account.persistent_volume_storage_account", "azurerm_storage_account.registry_storage_account"]
+
+#   template_body = <<DEPLOY
+# {
+#   "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
+#   "contentVersion": "1.0.0.0",
+#   "resources": [
+#     {
+#       "name": "OpenShiftDeployment",
+#       "type": "Microsoft.Resources/deployments",
+#       "apiVersion": "${var.api_version}",
+#       "properties": {
+#         "mode": "Incremental",
+#         "templateLink": {
+#           "uri": "${var.artifacts_location}nested/openshiftdeploy.json",
+#           "contentVersion": "1.0.0.0"
+#       		},
+#       		"parameters": {
+#             "_artifactsLocation": {
+#               "value": "${var.artifacts_location}"
+#             },
+#             "apiVersionCompute": {
+#               "value": "${var.api_version_compute}"
+#             },
+#             "newStorageAccountRegistry": {
+#               "value": "${azurerm_storage_account.registry_storage_account.name}"
+#             },
+#             "newStorageAccountKey": {
+#               "value": "${azurerm_storage_account.registry_storage_account.primary_access_key}"
+#             },
+#             "newStorageAccountPersistentVolume1": {
+#               "value": "${azurerm_storage_account.persistent_volume_storage_account.name}"
+#             },
+#             "newStorageAccountPV1Key": {
+#               "value": "${azurerm_storage_account.persistent_volume_storage_account.primary_access_key}"
+#             },
+#             "openshiftMasterHostname": {
+#               "value": "${element(azurerm_virtual_machine.master.*.name, count.index)}"
+#             },
+#             "openshiftMasterPublicIpFqdn": {
+#               "value": "${azurerm_public_ip.openshift_master_pip.fqdn}"
+#             },
+#             "openshiftMasterPublicIpAddress": {
+#               "value": "${azurerm_public_ip.openshift_master_pip.ip_address}"
+#             },
+#             "openshiftInfraHostname": {
+#               "value": "${element(azurerm_virtual_machine.infra.*.name, count.index)}"
+#             },
+#             "openshiftNodeHostname": {
+#               "value": "${element(azurerm_virtual_machine.node.*.name, count.index)}"
+#             },
+#             "masterInstanceCount": {
+#               "value": "${var.master_instance_count}"
+#             },
+#             "infraInstanceCount": {
+#               "value": "${var.infra_instance_count}"
+#             },
+#             "nodeInstanceCount": {
+#               "value": "${var.node_instance_count}"
+#             },
+#             "adminUsername": {
+#               "value": "${var.admin_username}"
+#             },
+#             "openshiftPassword": {
+#               "value": "${var.openshift_password}"
+#             },
+#             "aadClientId": {
+#               "value": "${var.aad_client_id}"
+#             },
+#             "aadClientSecret": {
+#               "value": "${var.aad_client_secret}"
+#             },
+#             "xipioDomain": {
+#               "value": "${azurerm_public_ip.infra_lb_pip.ip_address}.xip.io"
+#             },
+#             "customDomain": {
+#               "value": "${var.default_sub_domain}"
+#             },
+#             "subDomainChosen": {
+#               "value": "${var.default_sub_domain_type} Domain"
+#             },
+#             "sshPrivateKey": {
+#             	"reference": {
+#             		"keyvault": {
+#             			"id": "/subscriptions/${var.subscription_id}/resourceGroups/${var.key_vault_resource_group}/providers/Microsoft.KeyVault/vaults/${var.key_vault_name}"
+#             		},
+#             		"secretName": "${var.key_vault_secret}"
+#             	}
+#       			}
+#       		}
+#       }
+# 		}
+# 	],
+#   "outputs": {
+#     "Openshift Console Url": {
+#       "type": "string",
+#       "value": "https://${azurerm_public_ip.openshift_master_pip.fqdn}:8443/console"
+#     },
+#     "Openshift Master SSH": {
+#       "type": "string",
+#       "value": "ssh ${var.admin_username}@${azurerm_public_ip.openshift_master_pip.fqdn} -p 2200"
+#     },
+#     "Openshift Infra Load Balancer FQDN": {
+#       "type": "string",
+#       "value": "${azurerm_public_ip.infra_lb_pip.fqdn}"
+#     },
+#     "Node OS Storage Account Name": {
+#       "type": "string",
+#       "value": "${azurerm_storage_account.nodeos_storage_account.name}"
+#     },
+#     "Node Data Storage Account Name": {
+#       "type": "string",
+#       "value": "${azurerm_storage_account.nodedata_storage_account.name}"
+#     },
+#     "Infra Storage Account Name": {
+#       "type": "string",
+#       "value": "${azurerm_storage_account.infra_storage_account.name}"
+#     }
+# 	}
+# }
+# DEPLOY
+# }

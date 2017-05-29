@@ -11,6 +11,10 @@ variable "subscription_id" {
   description = "Subscription ID of the key vault"
 }
 
+variable "tenant_id" {
+  description = "Tenant ID with access to your key vault and subscription"
+}
+
 variable "artifacts_location" {
   description = "The base URL where artifacts required by this template are located. If you are using your own fork of the repo and want the deployment to pick up artifacts from your fork, update this value appropriately (user and branch), for example, change from https://raw.githubusercontent.com/Microsoft/openshift-origin/master/ to https://raw.githubusercontent.com/YourUser/openshift-origin/YourBranch/"
   default     = "https://raw.githubusercontent.com/Microsoft/openshift-origin/b0bfbf25a7832fac424c0807a92fd15508364ffe/"
@@ -150,6 +154,10 @@ variable "ssh_public_key" {
   description = "Path to your SSH Public Key"
 }
 
+variable "ssh_private_key" {
+  description = "Name of your SSH Private Key"
+}
+
 variable "key_vault_resource_group" {
   description = "The name of the Resource Group that contains the Key Vault"
 }
@@ -182,4 +190,8 @@ variable "default_sub_domain" {
 
 variable "api_version_compute" {
   default = "2015-06-15"
+}
+
+variable "api_version" {
+  default = "2015-01-01"
 }
