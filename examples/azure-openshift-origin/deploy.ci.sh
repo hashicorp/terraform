@@ -11,6 +11,7 @@ docker run --rm -it \
   -e AAD_CLIENT_SECRET \
   -e KEY_ENCRYPTION_KEY_URL \
   -e KEY_VAULT_RESOURCE_ID \
+  -e SSH_PUBLIC_KEY \
   -v $(pwd):/data \
   --workdir=/data \
   --entrypoint "/bin/sh" \
