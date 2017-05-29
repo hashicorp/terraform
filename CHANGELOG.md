@@ -9,6 +9,10 @@ IMPROVEMENTS:
 
 * provider/aws: Expose RDS instance and cluster resource id [GH-14882]
 
+BUG FIXES:
+
+* provider/github: Do not set incorrect values in github_team data source [GH-14859]
+
 ## 0.9.6 (May 25, 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
