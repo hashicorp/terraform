@@ -92,10 +92,6 @@ func resourceHerokuAddonCreate(d *schema.ResourceData, meta interface{}) error {
 		opts.Config = &config
 	}
 
-	if d.Get("attach_as").(string) != nil {
-		opts.Name = d.Get("attach_as").(string)
-	}
-
 	log.Printf("[DEBUG] Addon create configuration: %#v, %#v", app, opts)
 	a, err := client.AddOnCreate(context.TODO(), app, opts)
 	if err != nil {
@@ -117,6 +113,27 @@ func resourceHerokuAddonCreate(d *schema.ResourceData, meta interface{}) error {
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf("Error waiting for Addon (%s) to be provisioned: %s", d.Id(), err)
 	}
+
+	updateAttachment := heroku.AddOnAttachmentCreateOpts{Addon: d.Id(), App: app, Force: &true, Name: &d.Get("attach_as").(string)}
+
+	_, err = client.AddOnAttachmentCreate(context.TODO(), updateAttachment)
+	if err != nil {
+		return err
+	}
+
+	// Wait for the Addon to be provisioned
+	log.Printf("[DEBUG] Waiting for Addon (%s) to be configured", d.Id())
+	stateConfUpdate := &resource.StateChangeConf{
+		Pending: []string{"provisioning"},
+		Target:  []string{"provisioned"},
+		Refresh: AddOnStateRefreshFunc(client, app, d.Id()),
+		Timeout: 20 * time.Minute,
+	}
+
+	if _, err := stateConfUpdate.WaitForState(); err != nil {
+		return fmt.Errorf("Error waiting for Addon (%s) to be configured: %s", d.Id(), err)
+	}
+
 	log.Printf("[INFO] Addon provisioned: %s", d.Id())
 
 	return resourceHerokuAddonRead(d, meta)
@@ -125,7 +142,7 @@ func resourceHerokuAddonCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceHerokuAddonRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
-	addon, err := resourceHerokuAddonRetrieve(d.Id(), client)
+	addon, attachment, err := resourceHerokuAddonRetrieve(d.Id(), client)
 	if err != nil {
 		return err
 	}
@@ -146,6 +163,7 @@ func resourceHerokuAddonRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("name", addon.Name)
 	d.Set("plan", plan)
 	d.Set("provider_id", addon.ProviderID)
+	d.Set("attach_as", attachment.Name)
 	if err := d.Set("config_vars", addon.ConfigVars); err != nil {
 		return err
 	}
@@ -187,14 +205,15 @@ func resourceHerokuAddonDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceHerokuAddonRetrieve(id string, client *heroku.Service) (*heroku.AddOn, error) {
+func resourceHerokuAddonRetrieve(id string, client *heroku.Service) (*heroku.AddOn, *heroku.AddOnAttachment, error) {
 	addon, err := client.AddOnInfo(context.TODO(), id)
+	attachment, err := client.AddOnAttachmentInfo(context.TODO(), id)
 
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving addon: %s", err)
+		return nil, nil, fmt.Errorf("Error retrieving addon: %s", err)
 	}
 
-	return addon, nil
+	return addon, attachment, nil
 }
 
 func resourceHerokuAddonRetrieveByApp(app string, id string, client *heroku.Service) (*heroku.AddOn, error) {
