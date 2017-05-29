@@ -24,17 +24,16 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/conversion"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/selection"
-	"k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/util/sets"
-
 	"github.com/davecgh/go-spew/spew"
+
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 // Conversion error conveniently packages up errors in conversions.
@@ -51,8 +50,25 @@ func (c *ConversionError) Error() string {
 	)
 }
 
+const (
+	// annotation key prefix used to identify non-convertible json paths.
+	NonConvertibleAnnotationPrefix = "non-convertible.kubernetes.io"
+)
+
+// NonConvertibleFields iterates over the provided map and filters out all but
+// any keys with the "non-convertible.kubernetes.io" prefix.
+func NonConvertibleFields(annotations map[string]string) map[string]string {
+	nonConvertibleKeys := map[string]string{}
+	for key, value := range annotations {
+		if strings.HasPrefix(key, NonConvertibleAnnotationPrefix) {
+			nonConvertibleKeys[key] = value
+		}
+	}
+	return nonConvertibleKeys
+}
+
 // Semantic can do semantic deep equality checks for api objects.
-// Example: api.Semantic.DeepEqual(aPod, aPodWithNonNilButEmptyMaps) == true
+// Example: apiequality.Semantic.DeepEqual(aPod, aPodWithNonNilButEmptyMaps) == true
 var Semantic = conversion.EqualitiesOrDie(
 	func(a, b resource.Quantity) bool {
 		// Ignore formatting, only care that numeric value stayed the same.
@@ -61,7 +77,7 @@ var Semantic = conversion.EqualitiesOrDie(
 		// Uninitialized quantities are equivalent to 0 quantities.
 		return a.Cmp(b) == 0
 	},
-	func(a, b unversioned.Time) bool {
+	func(a, b metav1.Time) bool {
 		return a.UTC() == b.UTC()
 	},
 	func(a, b labels.Selector) bool {
@@ -212,27 +228,6 @@ func IsIntegerResourceName(str string) bool {
 	return integerResources.Has(str) || IsOpaqueIntResourceName(ResourceName(str))
 }
 
-// NewDeleteOptions returns a DeleteOptions indicating the resource should
-// be deleted within the specified grace period. Use zero to indicate
-// immediate deletion. If you would prefer to use the default grace period,
-// use &api.DeleteOptions{} directly.
-func NewDeleteOptions(grace int64) *DeleteOptions {
-	return &DeleteOptions{GracePeriodSeconds: &grace}
-}
-
-// NewPreconditionDeleteOptions returns a DeleteOptions with a UID precondition set.
-func NewPreconditionDeleteOptions(uid string) *DeleteOptions {
-	u := types.UID(uid)
-	p := Preconditions{UID: &u}
-	return &DeleteOptions{Preconditions: &p}
-}
-
-// NewUIDPreconditions returns a Preconditions with UID set.
-func NewUIDPreconditions(uid string) *Preconditions {
-	u := types.UID(uid)
-	return &Preconditions{UID: &u}
-}
-
 // this function aims to check if the service's ClusterIP is set or not
 // the objective is not to perform validation here
 func IsServiceIPSet(service *Service) bool {
@@ -250,7 +245,7 @@ func IsServiceIPRequested(service *Service) bool {
 
 var standardFinalizers = sets.NewString(
 	string(FinalizerKubernetes),
-	FinalizerOrphan,
+	metav1.FinalizerOrphanDependents,
 )
 
 // HasAnnotation returns a bool if passed in annotation exists
@@ -269,14 +264,6 @@ func SetMetaDataAnnotation(obj *ObjectMeta, ann string, value string) {
 
 func IsStandardFinalizerName(str string) bool {
 	return standardFinalizers.Has(str)
-}
-
-// SingleObject returns a ListOptions for watching a single object.
-func SingleObject(meta ObjectMeta) ListOptions {
-	return ListOptions{
-		FieldSelector:   fields.OneTermEqualSelector("metadata.name", meta.Name),
-		ResourceVersion: meta.ResourceVersion,
-	}
 }
 
 // AddToNodeAddresses appends the NodeAddresses to the passed-by-pointer slice,
@@ -397,15 +384,15 @@ func containsAccessMode(modes []PersistentVolumeAccessMode, mode PersistentVolum
 }
 
 // ParseRFC3339 parses an RFC3339 date in either RFC3339Nano or RFC3339 format.
-func ParseRFC3339(s string, nowFn func() unversioned.Time) (unversioned.Time, error) {
+func ParseRFC3339(s string, nowFn func() metav1.Time) (metav1.Time, error) {
 	if t, timeErr := time.Parse(time.RFC3339Nano, s); timeErr == nil {
-		return unversioned.Time{Time: t}, nil
+		return metav1.Time{Time: t}, nil
 	}
 	t, err := time.Parse(time.RFC3339, s)
 	if err != nil {
-		return unversioned.Time{}, err
+		return metav1.Time{}, err
 	}
-	return unversioned.Time{Time: t}, nil
+	return metav1.Time{Time: t}, nil
 }
 
 // NodeSelectorRequirementsAsSelector converts the []NodeSelectorRequirement api type into a struct that implements
@@ -443,10 +430,6 @@ func NodeSelectorRequirementsAsSelector(nsm []NodeSelectorRequirement) (labels.S
 }
 
 const (
-	// AffinityAnnotationKey represents the key of affinity data (json serialized)
-	// in the Annotations of a Pod.
-	AffinityAnnotationKey string = "scheduler.alpha.kubernetes.io/affinity"
-
 	// TolerationsAnnotationKey represents the key of tolerations data (json serialized)
 	// in the Annotations of a Pod.
 	TolerationsAnnotationKey string = "scheduler.alpha.kubernetes.io/tolerations"
@@ -484,21 +467,17 @@ const (
 	// is at-your-own-risk. Pods that attempt to set an unsafe sysctl that is not enabled for a kubelet
 	// will fail to launch.
 	UnsafeSysctlsPodAnnotationKey string = "security.alpha.kubernetes.io/unsafe-sysctls"
-)
 
-// GetAffinityFromPod gets the json serialized affinity data from Pod.Annotations
-// and converts it to the Affinity type in api.
-func GetAffinityFromPodAnnotations(annotations map[string]string) (*Affinity, error) {
-	if len(annotations) > 0 && annotations[AffinityAnnotationKey] != "" {
-		var affinity Affinity
-		err := json.Unmarshal([]byte(annotations[AffinityAnnotationKey]), &affinity)
-		if err != nil {
-			return nil, err
-		}
-		return &affinity, nil
-	}
-	return nil, nil
-}
+	// ObjectTTLAnnotations represents a suggestion for kubelet for how long it can cache
+	// an object (e.g. secret, config map) before fetching it again from apiserver.
+	// This annotation can be attached to node.
+	ObjectTTLAnnotationKey string = "node.alpha.kubernetes.io/ttl"
+
+	// AffinityAnnotationKey represents the key of affinity data (json serialized)
+	// in the Annotations of a Pod.
+	// TODO: remove when alpha support for affinity is removed
+	AffinityAnnotationKey string = "scheduler.alpha.kubernetes.io/affinity"
+)
 
 // GetTolerationsFromPodAnnotations gets the json serialized tolerations data from Pod.Annotations
 // and converts it to the []Toleration type in api.
@@ -513,17 +492,42 @@ func GetTolerationsFromPodAnnotations(annotations map[string]string) ([]Tolerati
 	return tolerations, nil
 }
 
-// GetTaintsFromNodeAnnotations gets the json serialized taints data from Pod.Annotations
-// and converts it to the []Taint type in api.
-func GetTaintsFromNodeAnnotations(annotations map[string]string) ([]Taint, error) {
-	var taints []Taint
-	if len(annotations) > 0 && annotations[TaintsAnnotationKey] != "" {
-		err := json.Unmarshal([]byte(annotations[TaintsAnnotationKey]), &taints)
-		if err != nil {
-			return []Taint{}, err
+// AddOrUpdateTolerationInPod tries to add a toleration to the pod's toleration list.
+// Returns true if something was updated, false otherwise.
+func AddOrUpdateTolerationInPod(pod *Pod, toleration *Toleration) (bool, error) {
+	podTolerations := pod.Spec.Tolerations
+
+	var newTolerations []Toleration
+	updated := false
+	for i := range podTolerations {
+		if toleration.MatchToleration(&podTolerations[i]) {
+			if Semantic.DeepEqual(toleration, podTolerations[i]) {
+				return false, nil
+			}
+			newTolerations = append(newTolerations, *toleration)
+			updated = true
+			continue
 		}
+
+		newTolerations = append(newTolerations, podTolerations[i])
 	}
-	return taints, nil
+
+	if !updated {
+		newTolerations = append(newTolerations, *toleration)
+	}
+
+	pod.Spec.Tolerations = newTolerations
+	return true, nil
+}
+
+// MatchToleration checks if the toleration matches tolerationToMatch. Tolerations are unique by <key,effect,operator,value>,
+// if the two tolerations have same <key,effect,operator,value> combination, regard as they match.
+// TODO: uniqueness check for tolerations in api validations.
+func (t *Toleration) MatchToleration(tolerationToMatch *Toleration) bool {
+	return t.Key == tolerationToMatch.Key &&
+		t.Effect == tolerationToMatch.Effect &&
+		t.Operator == tolerationToMatch.Operator &&
+		t.Value == tolerationToMatch.Value
 }
 
 // TolerationToleratesTaint checks if the toleration tolerates the taint.
@@ -571,15 +575,17 @@ func (t *Taint) ToString() string {
 	return fmt.Sprintf("%v=%v:%v", t.Key, t.Value, t.Effect)
 }
 
-func GetAvoidPodsFromNodeAnnotations(annotations map[string]string) (AvoidPods, error) {
-	var avoidPods AvoidPods
-	if len(annotations) > 0 && annotations[PreferAvoidPodsAnnotationKey] != "" {
-		err := json.Unmarshal([]byte(annotations[PreferAvoidPodsAnnotationKey]), &avoidPods)
+// GetTaintsFromNodeAnnotations gets the json serialized taints data from Pod.Annotations
+// and converts it to the []Taint type in api.
+func GetTaintsFromNodeAnnotations(annotations map[string]string) ([]Taint, error) {
+	var taints []Taint
+	if len(annotations) > 0 && annotations[TaintsAnnotationKey] != "" {
+		err := json.Unmarshal([]byte(annotations[TaintsAnnotationKey]), &taints)
 		if err != nil {
-			return avoidPods, err
+			return []Taint{}, err
 		}
 	}
-	return avoidPods, nil
+	return taints, nil
 }
 
 // SysctlsFromPodAnnotations parses the sysctl annotations into a slice of safe Sysctls
@@ -628,4 +634,58 @@ func PodAnnotationsFromSysctls(sysctls []Sysctl) string {
 		kvs[i] = fmt.Sprintf("%s=%s", sysctls[i].Name, sysctls[i].Value)
 	}
 	return strings.Join(kvs, ",")
+}
+
+// GetAffinityFromPodAnnotations gets the json serialized affinity data from Pod.Annotations
+// and converts it to the Affinity type in api.
+// TODO: remove when alpha support for affinity is removed
+func GetAffinityFromPodAnnotations(annotations map[string]string) (*Affinity, error) {
+	if len(annotations) > 0 && annotations[AffinityAnnotationKey] != "" {
+		var affinity Affinity
+		err := json.Unmarshal([]byte(annotations[AffinityAnnotationKey]), &affinity)
+		if err != nil {
+			return nil, err
+		}
+		return &affinity, nil
+	}
+	return nil, nil
+}
+
+// GetPersistentVolumeClass returns StorageClassName.
+func GetPersistentVolumeClass(volume *PersistentVolume) string {
+	// Use beta annotation first
+	if class, found := volume.Annotations[BetaStorageClassAnnotation]; found {
+		return class
+	}
+
+	return volume.Spec.StorageClassName
+}
+
+// GetPersistentVolumeClaimClass returns StorageClassName. If no storage class was
+// requested, it returns "".
+func GetPersistentVolumeClaimClass(claim *PersistentVolumeClaim) string {
+	// Use beta annotation first
+	if class, found := claim.Annotations[BetaStorageClassAnnotation]; found {
+		return class
+	}
+
+	if claim.Spec.StorageClassName != nil {
+		return *claim.Spec.StorageClassName
+	}
+
+	return ""
+}
+
+// PersistentVolumeClaimHasClass returns true if given claim has set StorageClassName field.
+func PersistentVolumeClaimHasClass(claim *PersistentVolumeClaim) bool {
+	// Use beta annotation first
+	if _, found := claim.Annotations[BetaStorageClassAnnotation]; found {
+		return true
+	}
+
+	if claim.Spec.StorageClassName != nil {
+		return true
+	}
+
+	return false
 }
