@@ -585,7 +585,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 					vmDatastorePath := object.DatastorePath{}
 					hasValidPath := vmDatastorePath.FromString(snapshotFullDir)
 					if !hasValidPath {
-						return fmt.Errorf("[ERROR] createVirtualMachine - failed to split snapshot directory: %v", snapshotFullDir)
+						return fmt.Errorf("[ERROR] createVirtualMachine - failed to parse snapshot directory: %v", snapshotFullDir)
 					}
 					vmWorkingPath := vmDatastorePath.Path
 					diskPath = vmWorkingPath + disk["name"].(string)
@@ -2029,7 +2029,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 			vmDatastorePath := object.DatastorePath{}
 			hasValidPath := vmDatastorePath.FromString(snapshotFullDir)
 			if !hasValidPath {
-				return fmt.Errorf("[ERROR] setupVirtualMachine - failed to split snapshot directory: %v", snapshotFullDir)
+				return fmt.Errorf("[ERROR] setupVirtualMachine - failed to parse snapshot directory: %v", snapshotFullDir)
 			}
 			vmWorkingPath := vmDatastorePath.Path
 			diskPath = vmWorkingPath + vm.hardDisks[i].name
