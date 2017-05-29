@@ -55,8 +55,6 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("description", *team.Description)
 	d.Set("privacy", *team.Privacy)
 	d.Set("permission", *team.Permission)
-	d.Set("members_count", *team.MembersCount)
-	d.Set("repos_count", *team.ReposCount)
 
 	return nil
 }
