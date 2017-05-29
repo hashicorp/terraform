@@ -114,27 +114,29 @@ func resourceHerokuAddonCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error waiting for Addon (%s) to be provisioned: %s", d.Id(), err)
 	}
 
-	updateAttachment := heroku.AddOnAttachmentCreateOpts{Addon: d.Id(), App: app, Force: &true, Name: &d.Get("attach_as").(string)}
+	if len(d.Get("attach_as").(string)) > 0 {
+		updateAttachment := heroku.AddOnAttachmentCreateOpts{Addon: d.Id(), App: app, Force: &true, Name: &d.Get("attach_as").(string)}
 
-	_, err = client.AddOnAttachmentCreate(context.TODO(), updateAttachment)
-	if err != nil {
-		return err
+		_, err = client.AddOnAttachmentCreate(context.TODO(), updateAttachment)
+		if err != nil {
+			return err
+		}
+
+		// Wait for the Addon to be provisioned
+		log.Printf("[DEBUG] Waiting for Addon (%s) to be configured", d.Id())
+		stateConfUpdate := &resource.StateChangeConf{
+			Pending: []string{"provisioning"},
+			Target:  []string{"provisioned"},
+			Refresh: AddOnStateRefreshFunc(client, app, d.Id()),
+			Timeout: 20 * time.Minute,
+		}
+
+		if _, err := stateConfUpdate.WaitForState(); err != nil {
+			return fmt.Errorf("Error waiting for Addon (%s) to be configured: %s", d.Id(), err)
+		}
+
+		log.Printf("[INFO] Addon provisioned: %s", d.Id())
 	}
-
-	// Wait for the Addon to be provisioned
-	log.Printf("[DEBUG] Waiting for Addon (%s) to be configured", d.Id())
-	stateConfUpdate := &resource.StateChangeConf{
-		Pending: []string{"provisioning"},
-		Target:  []string{"provisioned"},
-		Refresh: AddOnStateRefreshFunc(client, app, d.Id()),
-		Timeout: 20 * time.Minute,
-	}
-
-	if _, err := stateConfUpdate.WaitForState(); err != nil {
-		return fmt.Errorf("Error waiting for Addon (%s) to be configured: %s", d.Id(), err)
-	}
-
-	log.Printf("[INFO] Addon provisioned: %s", d.Id())
 
 	return resourceHerokuAddonRead(d, meta)
 }
