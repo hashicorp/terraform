@@ -569,7 +569,7 @@ func resourceGCSBucketLifecycleRuleConditionHash(v interface{}) int {
 
 	if v, ok := m["matches_storage_class"]; ok {
 		matches_storage_classes := v.([]interface{})
-		for matches_storage_class := range matches_storage_classes {
+		for _, matches_storage_class := range matches_storage_classes {
 			buf.WriteString(fmt.Sprintf("%s-", matches_storage_class))
 		}
 	}
