@@ -7,6 +7,9 @@ variable "resource_group_location" {
   default     = "southcentralus"
 }
 
+variable "subscription_id" {
+  description = "Subscription ID of the key vault"
+}
 variable "key_vault_tenant_id" {
   description = "The Azure Active Directory tenant ID that should be used for authenticating requests to the key vault. Get using 'az account show'."
 }
@@ -118,7 +121,7 @@ variable "os_image_map" {
 }
 
 variable "openshift_cluster_prefix" {
-  description = "Cluster Prefix used to configure hostnames for all nodes - master, infra and nodes. Between 1 and 20 characters"
+  description = "Cluster Prefix used to configure domain name label and hostnames for all nodes - master, infra and nodes. Between 1 and 20 characters"
 }
 
 variable "master_instance_count" {
@@ -150,8 +153,8 @@ variable "openshift_password" {
   description = "Password for OpenShift login"
 }
 
-variable "ssh_public_key" {
-  description = "Name of your SSH Public Key"
+variable "ssh_public_key_path" {
+  description = "Path to your SSH Public Key"
 }
 
 variable "key_vault_resource_group" {
@@ -182,4 +185,8 @@ variable "default_sub_domain_type" {
 variable "default_sub_domain" {
   description = "The wildcard DNS name you would like to use for routing if you selected 'custom' above. If you selected 'xipio' above, then this field will be ignored"
   default     = "contoso.com"
+}
+
+variable "api_version_compute" {
+  default = "2015-06-15"
 }

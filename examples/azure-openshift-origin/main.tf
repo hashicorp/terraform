@@ -218,7 +218,7 @@ resource "azurerm_public_ip" "openshift_master_pip" {
   resource_group_name          = "${azurerm_resource_group.rg.name}"
   location                     = "${azurerm_resource_group.rg.location}"
   public_ip_address_allocation = "Static"
-  domain_name_label            = "${var.openshift_cluster_prefix}masterpip"
+  domain_name_label            = "${var.openshift_cluster_prefix}"
 }
 
 resource "azurerm_public_ip" "infra_lb_pip" {
@@ -299,9 +299,7 @@ resource "azurerm_lb_rule" "master_lb" {
   idle_timeout_in_minutes        = 30
   probe_id                       = "${azurerm_lb_probe.master_lb.id}"
   enable_floating_ip             = false
-  depends_on                     = ["azurerm_lb_probe.master_lb"]
-  depends_on                     = ["azurerm_lb.master_lb"]
-  depends_on                     = ["azurerm_lb_backend_address_pool.master_lb"]
+  depends_on                     = ["azurerm_lb_probe.master_lb", "azurerm_lb.master_lb", "azurerm_lb_backend_address_pool.master_lb"]
 }
 
 resource "azurerm_lb_nat_rule" "master_lb" {
@@ -368,9 +366,7 @@ resource "azurerm_lb_rule" "infra_lb_http" {
   frontend_ip_configuration_name = "LoadBalancerFrontEnd"
   backend_address_pool_id        = "${azurerm_lb_backend_address_pool.infra_lb.id}"
   probe_id                       = "${azurerm_lb_probe.infra_lb_http_probe.id}"
-  depends_on                     = ["azurerm_lb_probe.infra_lb_http_probe"]
-  depends_on                     = ["azurerm_lb.infra_lb"]
-  depends_on                     = ["azurerm_lb_backend_address_pool.infra_lb"]
+  depends_on                     = ["azurerm_lb_probe.infra_lb_http_probe", "azurerm_lb.infra_lb", "azurerm_lb_backend_address_pool.infra_lb"]
 }
 
 resource "azurerm_lb_rule" "infra_lb_https" {
@@ -383,8 +379,7 @@ resource "azurerm_lb_rule" "infra_lb_https" {
   frontend_ip_configuration_name = "LoadBalancerFrontEnd"
   backend_address_pool_id        = "${azurerm_lb_backend_address_pool.infra_lb.id}"
   probe_id                       = "${azurerm_lb_probe.infra_lb_https_probe.id}"
-  depends_on                     = ["azurerm_lb_probe.infra_lb_https_probe"]
-  depends_on                     = ["azurerm_lb_backend_address_pool.infra_lb"]
+  depends_on                     = ["azurerm_lb_probe.infra_lb_https_probe", "azurerm_lb_backend_address_pool.infra_lb"]
 }
 
 # ******* NETWORK INTERFACES ***********
@@ -395,9 +390,7 @@ resource "azurerm_network_interface" "master_nic" {
   resource_group_name       = "${azurerm_resource_group.rg.name}"
   network_security_group_id = "${azurerm_network_security_group.master_nsg.id}"
   count                     = "${var.master_instance_count}"
-  depends_on                = ["azurerm_subnet.master_subnet"]
-  depends_on                = ["azurerm_lb.master_lb"]
-  depends_on                = ["azurerm_lb_backend_address_pool.master_lb"]
+  depends_on                = ["azurerm_subnet.master_subnet", "azurerm_lb.master_lb", "azurerm_lb_backend_address_pool.master_lb"]
 
   ip_configuration {
     name                                    = "masterip${count.index}"
@@ -414,10 +407,7 @@ resource "azurerm_network_interface" "infra_nic" {
   resource_group_name       = "${azurerm_resource_group.rg.name}"
   network_security_group_id = "${azurerm_network_security_group.infra_nsg.id}"
   count                     = "${var.infra_instance_count}"
-  depends_on                = ["azurerm_subnet.master_subnet"]
-  depends_on                = ["azurerm_lb.infra_lb"]
-  depends_on                = ["azurerm_lb_backend_address_pool.infra_lb"]
-  depends_on                = ["azurerm_network_security_group.infra_nsg"]
+  depends_on                = ["azurerm_subnet.master_subnet", "azurerm_lb.infra_lb", "azurerm_lb_backend_address_pool.infra_lb", "azurerm_network_security_group.infra_nsg"]
 
   ip_configuration {
     name                                    = "infraip${count.index}"
@@ -433,8 +423,7 @@ resource "azurerm_network_interface" "node_nic" {
   resource_group_name       = "${azurerm_resource_group.rg.name}"
   network_security_group_id = "${azurerm_network_security_group.node_nsg.id}"
   count                     = "${var.node_instance_count}"
-  depends_on                = ["azurerm_subnet.node_subnet"]
-  depends_on                = ["azurerm_network_security_group.node_nsg"]
+  depends_on                = ["azurerm_subnet.node_subnet", "azurerm_network_security_group.node_nsg"]
 
   ip_configuration {
     name                          = "nodeip${count.index}"
@@ -453,8 +442,7 @@ resource "azurerm_virtual_machine" "master" {
   network_interface_ids = ["${element(azurerm_network_interface.master_nic.*.id, count.index)}"]
   vm_size               = "${var.master_vm_size}"
   count                 = "${var.master_instance_count}"
-  depends_on            = ["azurerm_network_interface.master_nic"]
-  depends_on            = ["azurerm_availability_set.master"]
+  depends_on            = ["azurerm_network_interface.master_nic", "azurerm_availability_set.master"]
 
   tags {
     displayName = "${var.openshift_cluster_prefix}-master VM Creation"
@@ -467,12 +455,12 @@ resource "azurerm_virtual_machine" "master" {
   }
 
   os_profile_linux_config {
-    disable_password_authentication = false
+    disable_password_authentication = true
 
-    # ssh_keys {
-    #   path     = "/home/${var.admin_username}/.ssh/authorized_keys"
-    #   key_data = "${var.ssh_public_key}"
-    # }
+    ssh_keys {
+      path     = "/home/${var.admin_username}/.ssh/authorized_keys"
+      key_data = "${file(var.ssh_public_key_path)}"
+    }
   }
 
   storage_image_reference {
@@ -522,12 +510,12 @@ resource "azurerm_virtual_machine" "infra" {
   }
 
   os_profile_linux_config {
-    disable_password_authentication = false
+    disable_password_authentication = true
 
-    # ssh_keys {
-    #   path     = "/home/${var.admin_username}/.ssh/authorized_keys"
-    #   key_data = "${var.ssh_public_key}"
-    # }
+    ssh_keys {
+      path     = "/home/${var.admin_username}/.ssh/authorized_keys"
+      key_data = "${file(var.ssh_public_key_path)}"
+    }
   }
 
   storage_image_reference {
@@ -553,7 +541,7 @@ resource "azurerm_virtual_machine" "infra" {
   }
 }
 
-# ******* Node VMs *******
+# # ******* Node VMs *******
 
 resource "azurerm_virtual_machine" "node" {
   name                  = "nodeVm${count.index}"
@@ -577,12 +565,12 @@ resource "azurerm_virtual_machine" "node" {
   }
 
   os_profile_linux_config {
-    disable_password_authentication = false
+    disable_password_authentication = true
 
-    # ssh_keys {
-    #   path     = "/home/${var.admin_username}/.ssh/authorized_keys"
-    #   key_data = "${var.ssh_public_key}"
-    # }
+    ssh_keys {
+      path     = "/home/${var.admin_username}/.ssh/authorized_keys"
+      key_data = "${file(var.ssh_public_key_path)}"
+    }
   }
 
   storage_image_reference {
@@ -671,7 +659,7 @@ resource "azurerm_virtual_machine_extension" "deploy_nodes" {
   type                       = "CustomScript"
   type_handler_version       = "2.0"
   auto_upgrade_minor_version = true
-  depends_on                 = ["azurerm_virtual_machine.node"]
+  depends_on                 = ["azurerm_virtual_machine.node", "azurerm_storage_accounts.node"]
 
   settings = <<SETTINGS
 {
@@ -691,43 +679,43 @@ SETTINGS
 # resource "azurerm_template_deployment" "test" {
 #   name                = "OpenShiftDeployment"
 #   resource_group_name = "${azurerm_resource_group.rg.name}"
-#   depends_on                 = ["azurerm_virtual_machine.master", "azurerm_virtual_machine.infra", "azurerm_virtual_machine.node"]
+#   depends_on                 = ["azurerm_virtual_machine.master", "azurerm_virtual_machine.infra", "azurerm_virtual_machine.node", "azurerm_storage_account.persistent_volume_storage_account", "azurerm_storage_account.registry_storage_account"]
 
 
 #   template_body = <<DEPLOY
 # 	  "properties": {
 # 			"mode": "Incremental",
 # 			"templateLink": {
-# 				"uri": "[variables('openshiftDeploymentTemplateUrl')]",
+# 				"uri": "${var.artifacts_location}scripts/deployOpenShift.sh",
 # 				"contentVersion": "1.0.0.0"
 # 			},
 # 			"parameters": {
 # 				"_artifactsLocation": {
-# 					"value": "[parameters('_artifactsLocation')]"
+# 					"value": "${var.artifacts_location}"
 # 				},
 # 				"apiVersionCompute": {
-# 					"value": "[variables('apiVersionCompute')]"
+# 					"value": "${var.api_version_compute}"
 # 				},
 # 				"newStorageAccountRegistry": {
-# 					"value": "[variables('newStorageAccountRegistry')]"
+# 					"value": "${azurerm_storage_account.registry_storage_account.name}"
 # 				},
 # 				"newStorageAccountKey": {
-# 					"value": "[listKeys(variables('newStorageAccountRegistry'),'2015-06-15').key1]"
+# 					"value": "${azurerm_storage_account.registry_storage_account.primary_access_key}"
 # 				},
 # 				"newStorageAccountPersistentVolume1": {
-# 					"value": "[variables('newStorageAccountPersistentVolume1')]"
+# 					"value": "${azurerm_storage_account.persistent_volume_storage_account.name}"
 # 				},
 # 				"newStorageAccountPV1Key": {
-# 					"value": "[listKeys(variables('newStorageAccountPersistentVolume1'),'2015-06-15').key1]"
+# 					"value": "${azurerm_storage_account.persistent_volume_storage_account.primary_access_key}"
 # 				},
 # 				"openshiftMasterHostname": {
 # 					"value": "[variables('openshiftMasterHostname')]"
 # 				},
 # 				"openshiftMasterPublicIpFqdn": {
-# 					"value": "[reference(parameters('openshiftMasterPublicIpDnsLabel')).dnsSettings.fqdn]"
+# 					"value": "${var.azurerm_public_ip.openshift_master_pip.fqdn}"
 # 				},
 # 				"openshiftMasterPublicIpAddress": {
-# 					"value": "[reference(parameters('openshiftMasterPublicIpDnsLabel')).ipAddress]"
+# 					"value": "${var.azurerm_public_ip.openshift_master_pip.ip_address}"
 # 				},
 # 				"openshiftInfraHostname": {
 # 					"value": "[variables('openshiftInfraHostname')]"
@@ -736,41 +724,41 @@ SETTINGS
 # 					"value": "[variables('openshiftNodeHostname')]"
 # 				},
 # 				"masterInstanceCount": {
-# 					"value": "[parameters('masterInstanceCount')]"
+# 					"value": "${var.master_instance_count}"
 # 				},
 # 				"infraInstanceCount": {
-# 					"value": "[parameters('infraInstanceCount')]"
+# 					"value": "${var.infra_instance_count}"
 # 				},
 # 				"nodeInstanceCount": {
-# 					"value": "[parameters('nodeInstanceCount')]"
+# 					"value": "${var.node_instance_count}"
 # 				},
 # 				"adminUsername": {
-# 					"value": "[parameters('adminUsername')]"
+# 					"value": "${var.admin_username}"
 # 				},
 # 				"openshiftPassword": {
-# 					"value": "[parameters('openshiftPassword')]"
+# 					"value": "${var.openshift_password}"
 # 				},
 # 				"aadClientId": {
-# 					"value": "[parameters('aadClientId')]"
+# 					"value": "${var.aad_client_id}"
 # 				},
 # 				"aadClientSecret": {
-# 					"value": "[parameters('aadClientSecret')]"
+# 					"value": "${var.aad_client_secret}"
 # 				},
 # 				"xipioDomain": {
-# 					"value": "[concat(reference(parameters('infraLbPublicIpDnsLabel')).ipAddress, '.xip.io')]"
+# 					"value": "${azurerm_public_ip.infra_lb_pip.ip_address}.xip.io"
 # 				},
 # 				"customDomain": {
-# 					"value": "[parameters('defaultSubDomain')]"
+# 					"value": "${var.default_sub_domain}"
 # 				},
 # 				"subDomainChosen": {
-# 					"value": "[concat(parameters('defaultSubDomainType'), 'Domain')]"
+# 					"value": "${var.default_sub_domain_type} Domain"
 # 				},
 # 				"sshPrivateKey": {
 # 					"reference": {
 # 						"keyvault": {
-# 							"id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', parameters('keyVaultResourceGroup'), '/providers/Microsoft.KeyVault/vaults/', parameters('keyVaultName'))]"
+# 							"id": "/subscriptions/${var.subscription_id}/resourceGroups/${var.key_vault_resource_group}/providers/Microsoft.KeyVault/vaults/${var.key_vault_name}"
 # 						},
-# 						"secretName": "[parameters('keyVaultSecret')]"
+# 						"secretName": "${var.key_vault_secret}"
 # 					}
 # 				}
 # 			}
@@ -780,27 +768,27 @@ SETTINGS
 # "outputs": {
 # 	"Openshift Console Url": {
 # 		"type": "string",
-# 		"value": "[concat('https://', reference(parameters('openshiftMasterPublicIpDnsLabel')).dnsSettings.fqdn, ':8443/console')]"
+# 		"value": "https://${azurerm_public_ip.openshift_master_pip.fqdn}:8443/console"
 # 	},
 # 	"Openshift Master SSH": {
 # 		"type": "string",
-# 		"value": "[concat('ssh ', parameters('adminUsername'), '@', reference(parameters('openshiftMasterPublicIpDnsLabel')).dnsSettings.fqdn, ' -p 2200')]"
+# 		"value": "ssh ${var.admin_username}@${azurerm_public_ip.openshift_master_pip.fqdn} -p 2200"
 # 	},
 # 	"Openshift Infra Load Balancer FQDN": {
 # 		"type": "string",
-# 		"value": "[reference(parameters('infraLbPublicIpDnsLabel')).dnsSettings.fqdn]"
+# 		"value": "${azurerm_public_ip.infra_lb_pip.fqdn}"
 # 	},
 # 	"Node OS Storage Account Name": {
 # 		"type": "string",
-# 		"value": "[variables('newStorageAccountNodeOs')]"
+# 		"value": "${azurerm_storage_account.nodeos_storage_account.name}"
 # 	},
 # 	"Node Data Storage Account Name": {
 # 		"type": "string",
-# 		"value": "[variables('newStorageAccountNodeData')]"
+# 		"value": "${azurerm_storage_account.nodedata_storage_account.name}"
 # 	},
 # 	"Infra Storage Account Name": {
 # 		"type": "string",
-# 		"value": "[variables('newStorageAccountInfra')]"
+# 		"value": "${azurerm_storage_account.infra_storage_account.name}"
 # 	}
 # }
 
