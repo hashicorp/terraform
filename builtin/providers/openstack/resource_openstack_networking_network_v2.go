@@ -125,24 +125,7 @@ func resourceNetworkingNetworkV2Create(d *schema.ResourceData, meta interface{})
 		createOpts.Shared = &shared
 	}
 
-	segmentDetails, err := getSegments(d)
-	if err != nil {
-		return err
-	}
-	segments := make([]provider.Segment, len(segmentDetails))
-	for i, segment := range segmentDetails {
-		id, err := strconv.Atoi(segment["segmentation_id"].(string))
-		if err != nil {
-			return err
-		}
-		segments[i] = provider.Segment{
-			PhysicalNetwork: segment["physical_network"].(string),
-			NetworkType:     segment["network_type"].(string),
-			SegmentationID:  id,
-		}
-	}
-
-	log.Printf("[DEBUG] Create Options: %#v", createOpts)
+	segments := resourceNetworkingNetworkV2Segments(d)
 
 	n := &networks.Network{}
 	if len(segments) > 0 {
@@ -177,27 +160,6 @@ func resourceNetworkingNetworkV2Create(d *schema.ResourceData, meta interface{})
 	d.SetId(n.ID)
 
 	return resourceNetworkingNetworkV2Read(d, meta)
-}
-
-func getSegments(d *schema.ResourceData) ([]map[string]interface{}, error) {
-	rawSegments := d.Get("segments").([]interface{})
-	newSegments := make([]map[string]interface{}, 0, len(rawSegments))
-
-	for _, raw := range rawSegments {
-		if raw == nil {
-			continue
-		}
-
-		rawMap := raw.(map[string]interface{})
-
-		newSegments = append(newSegments, map[string]interface{}{
-			"physical_network": rawMap["physical_network"].(string),
-			"network_type":     rawMap["network_type"].(string),
-			"segmentation_id":  rawMap["segmentation_id"].(string),
-		})
-
-	}
-	return newSegments, nil
 }
 
 func resourceNetworkingNetworkV2Read(d *schema.ResourceData, meta interface{}) error {
@@ -288,6 +250,29 @@ func resourceNetworkingNetworkV2Delete(d *schema.ResourceData, meta interface{})
 
 	d.SetId("")
 	return nil
+}
+
+func resourceNetworkingNetworkV2Segments(d *schema.ResourceData) (providerSegments []provider.Segment) {
+	segments := d.Get("segments").([]interface{})
+	for _, v := range segments {
+		var segment provider.Segment
+		segmentMap := v.(map[string]interface{})
+
+		if v, ok := segmentMap["physical_network"].(string); ok {
+			segment.PhysicalNetwork = v
+		}
+
+		if v, ok := segmentMap["network_type"].(string); ok {
+			segment.NetworkType = v
+		}
+
+		if v, ok := segmentMap["segmentation_id"].(int); ok {
+			segment.SegmentationID = v
+		}
+
+		providerSegments = append(providerSegments, segment)
+	}
+	return
 }
 
 func waitForNetworkActive(networkingClient *gophercloud.ServiceClient, networkId string) resource.StateRefreshFunc {
