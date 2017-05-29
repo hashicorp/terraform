@@ -76,7 +76,7 @@ func resourceNetworkingNetworkV2() *schema.Resource {
 							ForceNew: true,
 						},
 						"segmentation_id": &schema.Schema{
-							Type:     schema.TypeString,
+							Type:     schema.TypeInt,
 							Optional: true,
 							ForceNew: true,
 						},
