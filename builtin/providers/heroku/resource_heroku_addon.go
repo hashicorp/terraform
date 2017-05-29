@@ -115,7 +115,8 @@ func resourceHerokuAddonCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if len(d.Get("attach_as").(string)) > 0 {
-		updateAttachment := heroku.AddOnAttachmentCreateOpts{Addon: d.Id(), App: app, Force: &true, Name: &d.Get("attach_as").(string)}
+		attachmentName := d.Get("attach_as").(string)
+		updateAttachment := heroku.AddOnAttachmentCreateOpts{Addon: d.Id(), App: app, Name: &attachmentName}
 
 		_, err = client.AddOnAttachmentCreate(context.TODO(), updateAttachment)
 		if err != nil {
