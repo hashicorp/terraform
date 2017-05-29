@@ -170,19 +170,12 @@ type FirewallCreateOpts struct {
 // ToFirewallCreateMap casts a CreateOptsExt struct to a map.
 // It overrides firewalls.ToFirewallCreateMap to add the ValueSpecs field.
 func (opts FirewallCreateOpts) ToFirewallCreateMap() (map[string]interface{}, error) {
-	base, err := opts.CreateOptsBuilder.ToFirewallCreateMap()
+	body, err := opts.CreateOptsBuilder.ToFirewallCreateMap()
 	if err != nil {
 		return nil, err
 	}
 
-	if base["value_specs"] != nil {
-		for k, v := range base["value_specs"].(map[string]interface{}) {
-			base[k] = v
-		}
-		delete(base, "value_specs")
-	}
-
-	return base, nil
+	return AddValueSpecs(body), nil
 }
 
 //FirewallUpdateOpts
