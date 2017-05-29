@@ -41,6 +41,12 @@ func resourceHerokuAddon() *schema.Resource {
 				Required: true,
 			},
 
+			"attach_as": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"config": {
 				Type:     schema.TypeList,
 				Optional: true,
@@ -84,6 +90,10 @@ func resourceHerokuAddonCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		opts.Config = &config
+	}
+
+	if d.Get("attach_as").(string) != nil {
+		opts.Name = d.Get("attach_as").(string)
 	}
 
 	log.Printf("[DEBUG] Addon create configuration: %#v, %#v", app, opts)
