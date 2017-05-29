@@ -12,7 +12,7 @@ Provides a Lightsail Key Pair, for use with Lightsail Instances. These key pairs
 are seperate from EC2 Key Pairs, and must be created or imported for use with
 Lightsail.
 
-~> **Note:** Lightsail is currently only supported in `us-east-1` region.
+~> **Note:** Lightsail is currently only supported in `us-east-1`, `us-east-2`, `us-west-2`, `eu-west-1`, `eu-west-2`, `eu-central-1` regions.
 
 ## Example Usage, creating a new Key Pair
 
