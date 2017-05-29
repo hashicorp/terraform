@@ -214,19 +214,19 @@ resource "azurerm_availability_set" "node" {
 # ******* IP ADDRESSES ***********
 
 resource "azurerm_public_ip" "openshift_master_pip" {
-  name                         = "masterpip${count.index}"
+  name                         = "masterpip"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
   location                     = "${azurerm_resource_group.rg.location}"
   public_ip_address_allocation = "Static"
-  domain_name_label            = "${var.openshift_cluster_prefix}masterpip${count.index}"
+  domain_name_label            = "${var.openshift_cluster_prefix}masterpip"
 }
 
 resource "azurerm_public_ip" "infra_lb_pip" {
-  name                         = "infraip${count.index}"
+  name                         = "infraip"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
   location                     = "${azurerm_resource_group.rg.location}"
   public_ip_address_allocation = "Static"
-  domain_name_label            = "${var.openshift_cluster_prefix}infrapip${count.index}"
+  domain_name_label            = "${var.openshift_cluster_prefix}infrapip"
 }
 
 # ******* VNETS / SUBNETS ***********
@@ -316,7 +316,7 @@ resource "azurerm_lb_nat_rule" "master_lb" {
   depends_on                     = ["azurerm_lb.master_lb"]
 }
 
-# # ******* INFRA LOAD BALANCER ***********
+# ******* INFRA LOAD BALANCER ***********
 
 resource "azurerm_lb" "infra_lb" {
   name                = "infraloadbalancer"
@@ -483,7 +483,7 @@ resource "azurerm_virtual_machine" "master" {
   }
 
   storage_os_disk {
-    name          = "${var.openshift_cluster_prefix}-master-osdisk"
+    name          = "${var.openshift_cluster_prefix}-master-osdisk${count.index}"
     vhd_uri       = "${azurerm_storage_account.master_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-master-osdisk.vhd"
     caching       = "ReadWrite"
     create_option = "FromImage"
@@ -525,7 +525,7 @@ resource "azurerm_virtual_machine" "infra" {
     disable_password_authentication = false
 
     # ssh_keys {
-    #   path     = "/home/annie/.ssh/authorized_keys"
+    #   path     = "/home/${var.admin_username}/.ssh/authorized_keys"
     #   key_data = "${var.ssh_public_key}"
     # }
   }
@@ -538,14 +538,14 @@ resource "azurerm_virtual_machine" "infra" {
   }
 
   storage_os_disk {
-    name          = "${var.openshift_cluster_prefix}-infra-osdisk"
+    name          = "${var.openshift_cluster_prefix}-infra-osdisk${count.index}"
     vhd_uri       = "${azurerm_storage_account.infra_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-infra-osdisk.vhd"
     caching       = "ReadWrite"
     create_option = "FromImage"
   }
 
   storage_data_disk {
-    name          = "${var.openshift_cluster_prefix}-infra-docker-pool${count.index}"
+    name          = "${var.openshift_cluster_prefix}-infra-docker-pool"
     vhd_uri       = "${azurerm_storage_account.infra_storage_account.primary_blob_endpoint}vhds/${var.openshift_cluster_prefix}-infra-docker-pool.vhd"
     disk_size_gb  = "${var.data_disk_size}"
     create_option = "Empty"
@@ -624,7 +624,7 @@ resource "azurerm_virtual_machine_extension" "deploy_open_shift_master" {
   settings = <<SETTINGS
 {
   "fileUris": [
-		"${var.master_artifacts_location}scripts/masterPrep.sh"
+		"${var.artifacts_location}scripts/masterPrep.sh"
 	]
 }
 SETTINGS
@@ -650,12 +650,12 @@ resource "azurerm_virtual_machine_extension" "deploy_infra" {
   settings = <<SETTINGS
 {
   "fileUris": [
-    "${var.node_artifacts_location}scripts/nodePrep.sh"
+		"${var.artifacts_location}scripts/nodePrep.sh"
 	]
 }
 SETTINGS
 
-  settings = <<SETTINGS
+  protected_settings = <<SETTINGS
 {
 	"commandToExecute": "bash nodePrep.sh"
 }
@@ -663,7 +663,7 @@ SETTINGS
 }
 
 resource "azurerm_virtual_machine_extension" "deploy_nodes" {
-  name                       = "nodeVmDeployment${count.index}"
+  name                       = "nodePrepExt${count.index}"
   location                   = "${azurerm_resource_group.rg.location}"
   resource_group_name        = "${azurerm_resource_group.rg.name}"
   virtual_machine_name       = "${element(azurerm_virtual_machine.node.*.name, count.index)}"
@@ -676,12 +676,12 @@ resource "azurerm_virtual_machine_extension" "deploy_nodes" {
   settings = <<SETTINGS
 {
   "fileUris": [
-    "${var.node_artifacts_location}scripts/nodePrep.sh"
+		"${var.artifacts_location}scripts/nodePrep.sh"
 	]
 }
 SETTINGS
 
-  settings = <<SETTINGS
+  protected_settings = <<SETTINGS
 {
 	"commandToExecute": "bash nodePrep.sh"
 }

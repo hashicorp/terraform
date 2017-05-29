@@ -15,14 +15,9 @@ variable "key_vault_object_id" {
   description = "The object ID of a service principal in the Azure Active Directory tenant for the key vault. Get using 'az ad sp show'."
 }
 
-variable "master_artifacts_location" {
+variable "artifacts_location" {
   description = "The base URL where artifacts required by this template are located. If you are using your own fork of the repo and want the deployment to pick up artifacts from your fork, update this value appropriately (user and branch), for example, change from https://raw.githubusercontent.com/Microsoft/openshift-origin/master/ to https://raw.githubusercontent.com/YourUser/openshift-origin/YourBranch/"
   default     = "https://raw.githubusercontent.com/Microsoft/openshift-origin/b0bfbf25a7832fac424c0807a92fd15508364ffe/"
-}
-
-variable "node_artifacts_location" {
-  description = "The base URL where artifacts required by this template are located. If you are using your own fork of the repo and want the deployment to pick up artifacts from your fork, update this value appropriately (user and branch), for example, change from https://raw.githubusercontent.com/Microsoft/openshift-origin/master/ to https://raw.githubusercontent.com/YourUser/openshift-origin/YourBranch/"
-  default     = "https://raw.githubusercontent.com/Microsoft/openshift-origin/01d7978a415bbe7d59a277926dd5fd541b01aa95/"
 }
 
 variable "os_image" {
