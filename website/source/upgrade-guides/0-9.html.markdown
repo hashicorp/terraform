@@ -62,12 +62,12 @@ use these backends, you can ignore this section.
 Specific notes for each affected backend:
 
   * **Amazon S3**: DynamoDB is used for locking. The AWS access keys
-    must have access to Dynamo. You may disable locking by specifying
-	`lock = false` in your backend configuration.
+    must have access to Dynamo. You may disable locking by omitting the
+    `lock_table` key in your backend configuration.
 
   * **HashiCorp Consul**: Sessions are used for locking. If an auth token
     is used it must have permissions to create and destroy sessions. You
-	may disable locking by specifying `lock = false` in your backend
-	configuration.
+    may disable locking by specifying `lock = false` in your backend
+    configuration.
 
 **Action:** Update your credentials or configuration if necessary.
