@@ -10,6 +10,7 @@ import (
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/vim25/soap"
+	_ "github.com/vmware/govmomi/vim25/types"
 	"golang.org/x/net/context"
 )
 

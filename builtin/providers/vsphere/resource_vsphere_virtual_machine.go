@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -583,12 +582,12 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 					diskPath = disk["vmdk"].(string)
 				case disk["name"] != "":
 					snapshotFullDir := mo.Config.Files.SnapshotDirectory
-					re := regexp.MustCompile(`(\[.*?\])[\s](.*)`)
-					split := re.FindStringSubmatch(snapshotFullDir)
-					if len(split) != 3 {
+					vmDatastorePath := object.DatastorePath{}
+					hasValidPath := vmDatastorePath.FromString(snapshotFullDir)
+					if !hasValidPath {
 						return fmt.Errorf("[ERROR] createVirtualMachine - failed to split snapshot directory: %v", snapshotFullDir)
 					}
-					vmWorkingPath := split[2]
+					vmWorkingPath := vmDatastorePath.Path
 					diskPath = vmWorkingPath + disk["name"].(string)
 				default:
 					return fmt.Errorf("[ERROR] resourceVSphereVirtualMachineUpdate - Neither vmdk path nor vmdk name was given")
@@ -994,12 +993,12 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 			log.Printf("[DEBUG] resourceVSphereVirtualMachineRead - Analyzing disk: %v", diskFullPath)
 
 			// Separate datastore and path
-			diskRe := regexp.MustCompile(`(\[.*?\])[\s](.*)`)
-			diskFullPathSplit := diskRe.FindStringSubmatch(diskFullPath)
-			if len(diskFullPathSplit) != 3 {
+			diskDatastore := object.DatastorePath{}
+			hasValidPath := diskDatastore.FromString(diskFullPath)
+			if !hasValidPath {
 				return fmt.Errorf("[ERROR] Failed trying to parse disk path: %v", diskFullPath)
 			}
-			diskPath := diskFullPathSplit[2]
+			diskPath := diskDatastore.Path
 			// Isolate filename
 			diskNameSplit := strings.Split(diskPath, "/")
 			diskName := diskNameSplit[len(diskNameSplit)-1]
@@ -2027,12 +2026,12 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 			diskPath = vm.hardDisks[i].vmdkPath
 		case vm.hardDisks[i].name != "":
 			snapshotFullDir := vm_mo.Config.Files.SnapshotDirectory
-			re := regexp.MustCompile(`(\[.*?\])[\s](.*)`)
-			split := re.FindStringSubmatch(snapshotFullDir)
-			if len(split) != 3 {
+			vmDatastorePath := object.DatastorePath{}
+			hasValidPath := vmDatastorePath.FromString(snapshotFullDir)
+			if !hasValidPath {
 				return fmt.Errorf("[ERROR] setupVirtualMachine - failed to split snapshot directory: %v", snapshotFullDir)
 			}
-			vmWorkingPath := split[2]
+			vmWorkingPath := vmDatastorePath.Path
 			diskPath = vmWorkingPath + vm.hardDisks[i].name
 		default:
 			return fmt.Errorf("[ERROR] setupVirtualMachine - Neither vmdk path nor vmdk name was given: %#v", vm.hardDisks[i])
