@@ -78,7 +78,7 @@ func TestIngnitionUser(t *testing.T) {
 		}
 
 		if u.Create.NoUserGroup != true {
-			return fmt.Errorf("no_create_home, found %t", u.Create.NoCreateHome)
+			return fmt.Errorf("no_create_home, found %t", u.Create.NoUserGroup)
 		}
 
 		if u.Create.NoLogInit != true {
