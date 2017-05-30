@@ -158,6 +158,10 @@ variable "ssh_private_key" {
   description = "Name of your SSH Private Key"
 }
 
+variable "ssh_private_key_path" {
+  description = "Path to your SSH Private Key for use by the Bastion Host"
+}
+
 variable "key_vault_resource_group" {
   description = "The name of the Resource Group that contains the Key Vault"
 }
