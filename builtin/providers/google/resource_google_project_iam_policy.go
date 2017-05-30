@@ -102,32 +102,38 @@ func resourceGoogleProjectIamPolicyRead(d *schema.ResourceData, meta interface{}
 	config := meta.(*Config)
 	pid := d.Get("project").(string)
 
-	p, err := getProjectIamPolicy(pid, config)
+	// Get the actual project policy from the API
+	ep, err := getProjectIamPolicy(pid, config)
 	if err != nil {
 		return err
 	}
 
 	var bindings []*cloudresourcemanager.Binding
+
+	// If there's a restore policy, subtract it from the actual policy. This
+	// should match the `policy_data` attr and will trigger a diff if it
+	// doesn't.
 	if v, ok := d.GetOk("restore_policy"); ok {
-		var restored cloudresourcemanager.Policy
-		// if there's a restore policy, subtract it from the policy_data
-		err := json.Unmarshal([]byte(v.(string)), &restored)
+		rp := &cloudresourcemanager.Policy{}
+		err := json.Unmarshal([]byte(v.(string)), rp)
 		if err != nil {
 			return fmt.Errorf("Error unmarshaling restorable IAM policy: %v", err)
 		}
-		subtracted := subtractIamPolicy(p, &restored)
+		subtracted := subtractIamPolicy(ep, rp)
 		bindings = subtracted.Bindings
 	} else {
-		bindings = p.Bindings
+		bindings = ep.Bindings
 	}
 	// we only marshal the bindings, because only the bindings get set in the config
-	pBytes, err := json.Marshal(&cloudresourcemanager.Policy{Bindings: bindings})
+	ps, err := json.Marshal(&cloudresourcemanager.Policy{Bindings: bindings})
 	if err != nil {
 		return fmt.Errorf("Error marshaling IAM policy: %v", err)
 	}
-	log.Printf("[DEBUG]: Setting etag=%s", p.Etag)
-	d.Set("etag", p.Etag)
-	d.Set("policy_data", string(pBytes))
+	log.Printf("[DEBUG]: Setting etag=%s", ep.Etag)
+	d.Set("etag", ep.Etag)
+	log.Printf("[DEBUG]: Setting policy_data=%s", string(ps))
+	d.Set("policy_data", string(ps))
+
 	return nil
 }
 
@@ -136,13 +142,16 @@ func resourceGoogleProjectIamPolicyUpdate(d *schema.ResourceData, meta interface
 	config := meta.(*Config)
 	pid := d.Get("project").(string)
 
-	// Get the policy in the template
+	// Get the policy from the config's data source
 	p, err := getResourceIamPolicy(d)
 	if err != nil {
 		return fmt.Errorf("Could not get valid 'policy_data' from resource: %v", err)
 	}
-	pBytes, _ := json.Marshal(p)
-	log.Printf("[DEBUG] Got policy from config: %s", string(pBytes))
+	ps, err := json.Marshal(p)
+	if err != nil {
+		return fmt.Errorf("Error marshaling 'policy_data' from data source: %v", err)
+	}
+	log.Printf("[DEBUG] Got policy from config: %s", string(ps))
 
 	// An authoritative policy is applied without regard for any existing IAM
 	// policy.
@@ -155,36 +164,29 @@ func resourceGoogleProjectIamPolicyUpdate(d *schema.ResourceData, meta interface
 		d.Set("restore_policy", "")
 	} else {
 		log.Printf("[DEBUG] Updating non-authoritative IAM policy for project %q", pid)
-		// Get the previous policy from state
-		pp, err := getPrevResourceIamPolicy(d)
-		if err != nil {
-			return fmt.Errorf("Error retrieving previous version of changed project IAM policy: %v", err)
-		}
-		ppBytes, _ := json.Marshal(pp)
-		log.Printf("[DEBUG] Got previous version of changed project IAM policy: %s", string(ppBytes))
 
 		// Get the existing IAM policy from the API
 		ep, err := getProjectIamPolicy(pid, config)
 		if err != nil {
 			return fmt.Errorf("Error retrieving IAM policy from project API: %v", err)
 		}
-		epBytes, _ := json.Marshal(ep)
-		log.Printf("[DEBUG] Got existing version of changed IAM policy from project API: %s", string(epBytes))
-
-		// Subtract the previous and current policies from the policy retrieved from the API
-		rp := subtractIamPolicy(ep, pp)
-		rpBytes, _ := json.Marshal(rp)
-		log.Printf("[DEBUG] After subtracting the previous policy from the existing policy, remaining policies: %s", string(rpBytes))
-		rp = subtractIamPolicy(rp, p)
-		rpBytes, _ = json.Marshal(rp)
-		log.Printf("[DEBUG] After subtracting the remaining policies from the config policy, remaining policies: %s", string(rpBytes))
-		rps, err := json.Marshal(rp)
+		ps, err = json.Marshal(ep)
 		if err != nil {
-			return fmt.Errorf("Error marhsaling restorable IAM policy: %v", err)
+			return fmt.Errorf("Error marshaling project's actual IAM policy: %v", err)
 		}
-		d.Set("restore_policy", string(rps))
+		log.Printf("[DEBUG] Got actual IAM policy from project API: %s", string(ps))
 
-		// Merge the policies together
+		// Subtract the policy in config from policy retrieved from API to get a policy
+		// that can be restored if this resource is deleted
+		rp := subtractIamPolicy(ep, p)
+		ps, err = json.Marshal(rp)
+		if err != nil {
+			return fmt.Errorf("Error marshaling restorable IAM policy: %v", err)
+		}
+		log.Printf("[DEBUG] After subtracting the config policy from the existing policy, remaining policies are: %s", string(ps))
+		d.Set("restore_policy", string(ps))
+
+		// Merge the data source and restore policies together. This will be applied to the project
 		mb := mergeBindings(append(p.Bindings, rp.Bindings...))
 		ep.Bindings = mb
 		if err = setProjectIamPolicy(ep, config, pid); err != nil {
@@ -215,13 +217,23 @@ func resourceGoogleProjectIamPolicyDelete(d *schema.ResourceData, meta interface
 		}
 		ep.Bindings = make([]*cloudresourcemanager.Binding, 0)
 
-	} else {
-		// A non-authoritative policy should set the policy to the value of "restore_policy" in state
-		// Get the previous policy from state
-		rp, err := getRestoreIamPolicy(d)
+	} else { // Recalculate the restore policy for non-authoritative resource
+		log.Printf("[DEBUG] Setting restore_policy for project %q", pid)
+		// First, subtract the policy defined in the template from the
+		// current policy in the project, and save the result. This will
+		// allow us to restore the original policy at some point (which
+		// assumes that Terraform owns any common policy that exists in
+		// the template and project at create time.
+		p, err := getResourceIamPolicy(d)
 		if err != nil {
-			return fmt.Errorf("Error retrieving previous version of changed project IAM policy: %v", err)
+			return err
 		}
+		rp := subtractIamPolicy(ep, p)
+		rps, err := json.Marshal(rp)
+		if err != nil {
+			return fmt.Errorf("Error marshaling restorable IAM policy: %v", err)
+		}
+		log.Printf("[DEBUG] Restore policy to %s", rps)
 		ep.Bindings = rp.Bindings
 	}
 	if err = setProjectIamPolicy(ep, config, pid); err != nil {
@@ -269,19 +281,6 @@ func getResourceIamPolicy(d *schema.ResourceData) (*cloudresourcemanager.Policy,
 	policy := &cloudresourcemanager.Policy{}
 	if err := json.Unmarshal([]byte(ps), policy); err != nil {
 		return nil, fmt.Errorf("Could not unmarshal %s:\n: %v", ps, err)
-	}
-	return policy, nil
-}
-
-// Get the previous cloudresourcemanager.Policy from a schema.ResourceData if the
-// resource has changed
-func getPrevResourceIamPolicy(d *schema.ResourceData) (*cloudresourcemanager.Policy, error) {
-	var policy *cloudresourcemanager.Policy = &cloudresourcemanager.Policy{}
-	if d.HasChange("policy_data") {
-		v, _ := d.GetChange("policy_data")
-		if err := json.Unmarshal([]byte(v.(string)), policy); err != nil {
-			return nil, fmt.Errorf("Could not unmarshal previous policy %s:\n: %v", v, err)
-		}
 	}
 	return policy, nil
 }
