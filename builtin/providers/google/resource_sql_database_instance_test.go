@@ -59,6 +59,7 @@ func sweepDatabases(c interface{}) error {
 	for _, d := range found.Items {
 		var testDbInstance bool
 		for _, testName := range []string{"tf-lw-", "sqldatabasetest"} {
+			// only destroy instances we know to fit our test naming pattern
 			if strings.HasPrefix(d.Name, testName) {
 				testDbInstance = true
 			}
@@ -70,11 +71,12 @@ func sweepDatabases(c interface{}) error {
 
 		log.Printf("Destroying SQL Instance (%s)", d.Name)
 
+		// replicas need to be stopped and destroyed before destroying a master
+		// instance. The ordering slice tracks replica databases for a given master
+		// and we call destroy on them before destroying the master
 		var ordering []string
-
-		// need to stop replication
 		for i, replicaName := range d.ReplicaNames {
-			log.Printf("\n\tstopping replicaNametion (%d) on %s", i, replicaName)
+			// need to stop replication before being able to destroy a database
 			op, err := config.clientSqlAdmin.Instances.StopReplica(config.Project, replicaName).Do()
 
 			if err != nil {
@@ -84,7 +86,7 @@ func sweepDatabases(c interface{}) error {
 			err = sqladminOperationWait(config, op, "Stop Replica")
 			if err != nil {
 				if strings.Contains(err.Error(), "does not exist") {
-					log.Printf("SQL instance not found")
+					log.Printf("Replication operation not found")
 				} else {
 					return err
 				}
@@ -93,16 +95,18 @@ func sweepDatabases(c interface{}) error {
 			ordering = append(ordering, replicaName)
 		}
 
+		// ordering has a list of replicas (or none), now add the primary to the end
 		ordering = append(ordering, d.Name)
 
 		for i, db := range ordering {
-			// destroy instances
-			log.Printf("\n\tDestroying (%d) - (%s)", i, db)
+			// destroy instances, replicas first
 			op, err := config.clientSqlAdmin.Instances.Delete(config.Project, db).Do()
 
 			if err != nil {
 				if strings.Contains(err.Error(), "409") {
-					log.Printf("SQL instance not found")
+					// the GCP api can return a 409 error after the delete operation
+					// reaches a successful end
+					log.Printf("Operation not found, got 409 response")
 					continue
 				}
 
