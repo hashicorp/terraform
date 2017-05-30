@@ -114,7 +114,7 @@ The `root_block_device` mapping supports the following:
   This is only valid for `volume_type` of `"io1"`, and must be specified if
   using that type
 * `delete_on_termination` - (Optional) Whether the volume should be destroyed
-  on instance termination (Default: `true`).
+  on instance termination (Default: `false`).
 
 Modifying any of the `root_block_device` settings requires resource
 replacement.
