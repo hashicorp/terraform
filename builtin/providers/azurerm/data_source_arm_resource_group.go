@@ -38,8 +38,8 @@ func dataSourceArmResourceGroupRead(d *schema.ResourceData, meta interface{}) er
 		actualLocation := azureRMNormalizeLocation(*result.Location)
 
 		if location != actualLocation {
-			return fmt.Errorf(`Resource Group's location "%s" doesn't match the location specified in Data Source: "%s"`,
-				actualLocation, location)
+			return fmt.Errorf(`The location specified in Data Source (%s) doesn't match the actual location of the Resource Group "%s (%s)"`,
+				location, resourceGroupName, actualLocation)
 		}
 	}
 
