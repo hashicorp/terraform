@@ -14,6 +14,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * provider/aws: ForceNew aws_launch_config on ebs_block_device change [GH-14899]
+* provider/digitalocean: Refresh DO loadbalancer from state if 404 [GH-14897]
 * provider/github: Do not set incorrect values in github_team data source [GH-14859]
 
 ## 0.9.6 (May 25, 2017)
