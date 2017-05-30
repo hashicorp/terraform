@@ -260,6 +260,10 @@ func (opts CreateOpts) ToServerCreateMap() (map[string]interface{}, error) {
 		b["flavorRef"] = flavorID
 	}
 
+	if len(opts.Personality) > 0 {
+		b["personality"] = opts.Personality
+	}
+
 	return map[string]interface{}{"server": b}, nil
 }
 
