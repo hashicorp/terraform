@@ -2963,6 +2963,30 @@
 			"revisionTime": "2017-04-17T16:09:14Z"
 		},
 		{
+			"checksumSHA1": "WhCDE3jbUhXJUz7ibfwY2pJbdfc=",
+			"path": "github.com/sky-uk/gonsx",
+			"revision": "1f21b52484ec9462b06faf01cb991edb7b610f1f",
+			"revisionTime": "2017-05-02T08:57:25Z",
+			"version": "0.3.8",
+			"versionExact": "0.3.8"
+		},
+		{
+			"checksumSHA1": "1KwQ4O1Kk2aUgnPlCpt5E7iOhuk=",
+			"path": "github.com/sky-uk/gonsx/api",
+			"revision": "1f21b52484ec9462b06faf01cb991edb7b610f1f",
+			"revisionTime": "2017-05-02T08:57:25Z",
+			"version": "0.3.8",
+			"versionExact": "0.3.8"
+		},
+		{
+			"checksumSHA1": "UpbA43PSGyAOp3WfQlMvKitZTKI=",
+			"path": "github.com/sky-uk/gonsx/api/service",
+			"revision": "1f21b52484ec9462b06faf01cb991edb7b610f1f",
+			"revisionTime": "2017-05-02T08:57:25Z",
+			"version": "0.3.8",
+			"versionExact": "0.3.8"
+		},
+		{
 			"checksumSHA1": "8tEiK6vhVXuUbnWME5XNWLgvtSo=",
 			"comment": "v1.1-2-g5578a8c",
 			"path": "github.com/soniah/dnsmadeeasy",
