@@ -291,10 +291,19 @@ func (b *Local) init() {
 				Default:  "",
 			},
 
-			"environment_dir": &schema.Schema{
+			"workspace_dir": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "",
+			},
+
+			"environment_dir": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Default:       "",
+				ConflictsWith: []string{"workspace_dir"},
+
+				Deprecated: "workspace_dir should be used instead, with the same meaning",
 			},
 		},
 
@@ -317,6 +326,14 @@ func (b *Local) schemaConfigure(ctx context.Context) error {
 		b.StateOutPath = path
 	}
 
+	if raw, ok := d.GetOk("workspace_dir"); ok {
+		path := raw.(string)
+		if path != "" {
+			b.StateEnvDir = path
+		}
+	}
+
+	// Legacy name, which ConflictsWith workspace_dir
 	if raw, ok := d.GetOk("environment_dir"); ok {
 		path := raw.(string)
 		if path != "" {
