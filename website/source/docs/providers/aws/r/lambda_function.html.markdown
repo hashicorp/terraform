@@ -114,6 +114,7 @@ For **environment** the following attributes are supported:
 ## Attributes Reference
 
 * `arn` - The Amazon Resource Name (ARN) identifying your Lambda Function.
+* `function_name` - The function name identifying your Lambda Function.
 * `qualified_arn` - The Amazon Resource Name (ARN) identifying your Lambda Function Version
   (if versioning is enabled via `publish = true`).
 * `invoke_arn` - The ARN to be used for invoking Lambda Function from API Gateway - to be used in [`aws_api_gateway_integration`](/docs/providers/aws/r/api_gateway_integration.html)'s `uri`
