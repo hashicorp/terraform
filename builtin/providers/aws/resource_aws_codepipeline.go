@@ -325,6 +325,11 @@ func expandAwsCodePipelineActions(s []interface{}) []*codepipeline.ActionDeclara
 			Configuration: conf,
 		}
 
+		ra := data["role_arn"].(string)
+		if len(ra) > 0 {
+			action.RoleArn = aws.String(ra)
+		}
+
 		oa := data["output_artifacts"].([]interface{})
 		if len(oa) > 0 {
 			outputArtifacts := expandAwsCodePipelineActionsOutputArtifacts(oa)
@@ -359,6 +364,9 @@ func flattenAwsCodePipelineStageActions(actions []*codepipeline.ActionDeclaratio
 			"provider": *action.ActionTypeId.Provider,
 			"version":  *action.ActionTypeId.Version,
 			"name":     *action.Name,
+		}
+		if action.RoleArn != nil {
+			values["role_arn"] = *action.RoleArn
 		}
 		if action.Configuration != nil {
 			config := flattenAwsCodePipelineStageActionConfiguration(action.Configuration)

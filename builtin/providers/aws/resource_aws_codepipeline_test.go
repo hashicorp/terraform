@@ -32,6 +32,7 @@ func TestAccAWSCodePipeline_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("aws_codepipeline.bar", "artifact_store.0.type", "S3"),
 					resource.TestCheckResourceAttr("aws_codepipeline.bar", "artifact_store.0.encryption_key.0.id", "1234"),
 					resource.TestCheckResourceAttr("aws_codepipeline.bar", "artifact_store.0.encryption_key.0.type", "KMS"),
+					resource.TestCheckResourceAttr("aws_codepipeline.bar", "stage.1.action.0.role_arn", "arn:aws:iam::1234567890123:role/tst-role"),
 				),
 			},
 			{
@@ -41,6 +42,7 @@ func TestAccAWSCodePipeline_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("aws_codepipeline.bar", "artifact_store.0.type", "S3"),
 					resource.TestCheckResourceAttr("aws_codepipeline.bar", "artifact_store.0.encryption_key.0.id", "4567"),
 					resource.TestCheckResourceAttr("aws_codepipeline.bar", "artifact_store.0.encryption_key.0.type", "KMS"),
+					resource.TestCheckResourceAttr("aws_codepipeline.bar", "stage.1.action.0.role_arn", "arn:aws:iam::1234567890123:role/tst-role"),
 				),
 			},
 		},
@@ -221,6 +223,7 @@ resource "aws_codepipeline" "bar" {
       provider        = "CodeBuild"
       input_artifacts = ["test"]
       version         = "1"
+      role_arn        = "arn:aws:iam::1234567890123:role/tst-role"
 
       configuration {
         ProjectName = "test"
@@ -333,6 +336,7 @@ resource "aws_codepipeline" "bar" {
       provider        = "CodeBuild"
       input_artifacts = ["bar"]
       version         = "1"
+      role_arn        = "arn:aws:iam::1234567890123:role/tst-role"
 
       configuration {
         ProjectName = "foo"
