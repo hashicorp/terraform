@@ -10,16 +10,19 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-type EnvDeleteCommand struct {
+type WorkspaceDeleteCommand struct {
 	Meta
+	LegacyName bool
 }
 
-func (c *EnvDeleteCommand) Run(args []string) int {
+func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	args = c.Meta.process(args, true)
 
+	envCommandShowWarning(c.Ui, c.LegacyName)
+
 	force := false
-	cmdFlags := c.Meta.flagSet("env")
-	cmdFlags.BoolVar(&force, "force", false, "force removal of a non-empty environment")
+	cmdFlags := c.Meta.flagSet("workspace")
+	cmdFlags.BoolVar(&force, "force", false, "force removal of a non-empty workspace")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -108,7 +111,7 @@ func (c *EnvDeleteCommand) Run(args []string) int {
 
 		// Lock the state if we can
 		lockInfo := state.NewLockInfo()
-		lockInfo.Operation = "env delete"
+		lockInfo.Operation = "workspace delete"
 		lockID, err := clistate.Lock(lockCtx, sMgr, lockInfo, c.Ui, c.Colorize())
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
@@ -139,20 +142,20 @@ func (c *EnvDeleteCommand) Run(args []string) int {
 
 	return 0
 }
-func (c *EnvDeleteCommand) Help() string {
+func (c *WorkspaceDeleteCommand) Help() string {
 	helpText := `
-Usage: terraform env delete [OPTIONS] NAME [DIR]
+Usage: terraform workspace delete [OPTIONS] NAME [DIR]
 
-  Delete a Terraform environment
+  Delete a Terraform workspace
 
 
 Options:
 
-    -force    remove a non-empty environment.
+    -force    remove a non-empty workspace.
 `
 	return strings.TrimSpace(helpText)
 }
 
-func (c *EnvDeleteCommand) Synopsis() string {
-	return "Delete an environment"
+func (c *WorkspaceDeleteCommand) Synopsis() string {
+	return "Delete a workspace"
 }

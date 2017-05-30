@@ -12,16 +12,19 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-type EnvNewCommand struct {
+type WorkspaceNewCommand struct {
 	Meta
+	LegacyName bool
 }
 
-func (c *EnvNewCommand) Run(args []string) int {
+func (c *WorkspaceNewCommand) Run(args []string) int {
 	args = c.Meta.process(args, true)
+
+	envCommandShowWarning(c.Ui, c.LegacyName)
 
 	statePath := ""
 
-	cmdFlags := c.Meta.flagSet("env new")
+	cmdFlags := c.Meta.flagSet("workspace new")
 	cmdFlags.StringVar(&statePath, "state", "", "terraform state file")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
@@ -40,8 +43,8 @@ func (c *EnvNewCommand) Run(args []string) int {
 		return 1
 	}
 
-	// You can't ask to create an environment when you're overriding the
-	// environment name to be something different.
+	// You can't ask to create a workspace when you're overriding the
+	// workspace name to be something different.
 	if current, isOverridden := c.EnvOverridden(); current != newEnv && isOverridden {
 		c.Ui.Error(envIsOverriddenNewError)
 		return 1
@@ -82,9 +85,9 @@ func (c *EnvNewCommand) Run(args []string) int {
 		return 1
 	}
 
-	// now save the current env locally
+	// now set the current workspace locally
 	if err := c.SetEnv(newEnv); err != nil {
-		c.Ui.Error(fmt.Sprintf("error saving new environment name: %s", err))
+		c.Ui.Error(fmt.Sprintf("Error selecting new workspace: %s", err))
 		return 1
 	}
 
@@ -109,7 +112,7 @@ func (c *EnvNewCommand) Run(args []string) int {
 
 		// Lock the state if we can
 		lockInfo := state.NewLockInfo()
-		lockInfo.Operation = "env new"
+		lockInfo.Operation = "workspace new"
 		lockID, err := clistate.Lock(lockCtx, sMgr, lockInfo, c.Ui, c.Colorize())
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
@@ -146,20 +149,20 @@ func (c *EnvNewCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *EnvNewCommand) Help() string {
+func (c *WorkspaceNewCommand) Help() string {
 	helpText := `
-Usage: terraform env new [OPTIONS] NAME [DIR]
+Usage: terraform workspace new [OPTIONS] NAME [DIR]
 
-  Create a new Terraform environment.
+  Create a new Terraform workspace.
 
 
 Options:
 
-    -state=path    Copy an existing state file into the new environment.
+    -state=path    Copy an existing state file into the new workspace.
 `
 	return strings.TrimSpace(helpText)
 }
 
-func (c *EnvNewCommand) Synopsis() string {
-	return "Create a new environment"
+func (c *WorkspaceNewCommand) Synopsis() string {
+	return "Create a new workspace"
 }
