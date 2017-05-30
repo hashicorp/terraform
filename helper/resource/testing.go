@@ -84,13 +84,18 @@ func TestMain(m *testing.M) {
 			}
 
 			log.Printf("[DEBUG] Running (%s) Sweeper...\n", sweeperName)
-			for _, sweep := range sweepers {
-				err := sweep.F(sweep.Config)
-				sweeperRan[sweeperName] = true
-				if err != nil {
-					sweeperRan[sweeperName] = false
-					log.Fatalf("Error in (%s) Sweeper: %s", sweeperName, err)
+			for _, sweeper := range sweepers {
+				if err := run(sweeper); err != nil {
+
+					fmt.Println("Running: ", sweeperName)
+					log.Fatalf("\n\tError running (%s): %s", sweeperName, err)
 				}
+				// err := sweep.F(sweep.Config)
+				// sweeperRan[sweeperName] = true
+				// if err != nil {
+				// 	sweeperRan[sweeperName] = false
+				// 	log.Fatalf("Error in (%s) Sweeper: %s", sweeperName, err)
+				// }
 			}
 		}
 
@@ -102,6 +107,36 @@ func TestMain(m *testing.M) {
 	}
 
 	os.Exit(m.Run())
+}
+
+func runSweeper(name string, s *Sweeper) error {
+	for _, dep := range s.deps {
+		fmt.Printf("Running (%s) deps\n", t.Name)
+		if d, ok := jobs[dep]; ok {
+			fmt.Printf("\tFound dep: %s\n", dep)
+			if err := run(d); err != nil {
+				return err
+			}
+		} else {
+			return fmt.Errorf("--dep not found:%s\n", dep)
+		}
+	}
+
+	fmt.Printf("\n\t -->>Running (%s)\n", t.Name)
+	if _, ok := ran[t.Name]; ok {
+
+		fmt.Printf("\n\t -->>(%s) already ran\n", t.Name)
+		return nil
+	}
+
+	runE := t.F()
+	if runE == nil {
+		ran[t.Name] = true
+	} else {
+		ran[t.Name] = false
+	}
+
+	return runE
 }
 
 const TestEnvVar = "TF_ACC"
