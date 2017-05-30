@@ -10,7 +10,6 @@ package google
 import (
 	"fmt"
 	"log"
-	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -23,25 +22,17 @@ import (
 )
 
 func init() {
-	// add sweepers for each region
-	project := os.Getenv("GOOGLE_PROJECT")
-	if project == "" {
-		log.Fatalf("empty GOOGLE_PROJECT")
-	}
-
-	creds := os.Getenv("GOOGLE_CREDENTIALS")
-	if project == "" {
-		log.Fatalf("empty GOOGLE_CREDENTIALS")
-	}
 	var fs []*resource.Sweeper
+	// add sweepers for each region
 	for _, r := range []string{"us-central1"} {
+		c, err := sharedCredsForRegion(r)
+		if err != nil {
+			log.Printf("[ERR] error getting shared config for region: %s", err)
+			continue
+		}
 		fs = append(fs, &resource.Sweeper{
-			Config: &Config{
-				Credentials: creds,
-				Region:      r,
-				Project:     project,
-			},
-			F: sweepDatabases,
+			Config: c,
+			F:      sweepDatabases,
 		})
 	}
 
