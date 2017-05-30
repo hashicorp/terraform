@@ -84,6 +84,8 @@ func Accessor(obj interface{}) (metav1.Object, error) {
 			return m, nil
 		}
 		return nil, errNotObject
+	case List, metav1.List, ListMetaAccessor, metav1.ListMetaAccessor:
+		return nil, errNotObject
 	default:
 		return nil, errNotObject
 	}

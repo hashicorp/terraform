@@ -243,7 +243,7 @@ func (s *Scheme) ObjectKinds(obj Object) ([]schema.GroupVersionKind, bool, error
 
 	gvks, ok := s.typeToGVK[t]
 	if !ok {
-		return nil, false, NewNotRegisteredErrForType(t)
+		return nil, false, NewNotRegisteredErr(schema.GroupVersionKind{}, t)
 	}
 	_, unversionedType := s.unversionedTypes[t]
 
@@ -281,7 +281,7 @@ func (s *Scheme) New(kind schema.GroupVersionKind) (Object, error) {
 	if t, exists := s.unversionedKinds[kind.Kind]; exists {
 		return reflect.New(t).Interface().(Object), nil
 	}
-	return nil, NewNotRegisteredErrForKind(kind)
+	return nil, NewNotRegisteredErr(kind, nil)
 }
 
 // AddGenericConversionFunc adds a function that accepts the ConversionFunc call pattern
@@ -404,6 +404,29 @@ func (s *Scheme) RegisterInputDefaults(in interface{}, fn conversion.FieldMappin
 	return s.converter.RegisterInputDefaults(in, fn, defaultFlags)
 }
 
+// AddDefaultingFuncs adds functions to the list of default-value functions.
+// Each of the given functions is responsible for applying default values
+// when converting an instance of a versioned API object into an internal
+// API object.  These functions do not need to handle sub-objects. We deduce
+// how to call these functions from the types of their two parameters.
+//
+// s.AddDefaultingFuncs(
+//	func(obj *v1.Pod) {
+//		if obj.OptionalField == "" {
+//			obj.OptionalField = "DefaultValue"
+//		}
+//	},
+// )
+func (s *Scheme) AddDefaultingFuncs(defaultingFuncs ...interface{}) error {
+	for _, f := range defaultingFuncs {
+		err := s.converter.RegisterDefaultingFunc(f)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // AddTypeDefaultingFuncs registers a function that is passed a pointer to an
 // object and can default fields on the object. These functions will be invoked
 // when Default() is called. The function will never be called unless the
@@ -492,7 +515,7 @@ func (s *Scheme) convertToVersion(copy bool, in Object, target GroupVersioner) (
 	}
 	kinds, ok := s.typeToGVK[t]
 	if !ok || len(kinds) == 0 {
-		return nil, NewNotRegisteredErrForType(t)
+		return nil, NewNotRegisteredErr(schema.GroupVersionKind{}, t)
 	}
 
 	gvk, ok := target.KindForGroupVersionKinds(kinds)
@@ -506,7 +529,8 @@ func (s *Scheme) convertToVersion(copy bool, in Object, target GroupVersioner) (
 			return copyAndSetTargetKind(copy, s, in, unversionedKind)
 		}
 
-		return nil, NewNotRegisteredErrForTarget(t, target)
+		// TODO: should this be a typed error?
+		return nil, fmt.Errorf("%v is not suitable for converting to %q", t, target)
 	}
 
 	// target wants to use the existing type, set kind and return (no conversion necessary)
