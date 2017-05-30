@@ -47,9 +47,7 @@ var _ = math.Inf
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the proto package it is being compiled against.
-// A compilation error at this line likely means your copy of the
-// proto package needs to be updated.
-const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion1
 
 func (m *RawExtension) Reset()                    { *m = RawExtension{} }
 func (*RawExtension) ProtoMessage()               {}
@@ -68,121 +66,121 @@ func init() {
 	proto.RegisterType((*TypeMeta)(nil), "k8s.io.apimachinery.pkg.runtime.TypeMeta")
 	proto.RegisterType((*Unknown)(nil), "k8s.io.apimachinery.pkg.runtime.Unknown")
 }
-func (m *RawExtension) Marshal() (dAtA []byte, err error) {
+func (m *RawExtension) Marshal() (data []byte, err error) {
 	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
 	if err != nil {
 		return nil, err
 	}
-	return dAtA[:n], nil
+	return data[:n], nil
 }
 
-func (m *RawExtension) MarshalTo(dAtA []byte) (int, error) {
+func (m *RawExtension) MarshalTo(data []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
 	if m.Raw != nil {
-		dAtA[i] = 0xa
+		data[i] = 0xa
 		i++
-		i = encodeVarintGenerated(dAtA, i, uint64(len(m.Raw)))
-		i += copy(dAtA[i:], m.Raw)
+		i = encodeVarintGenerated(data, i, uint64(len(m.Raw)))
+		i += copy(data[i:], m.Raw)
 	}
 	return i, nil
 }
 
-func (m *TypeMeta) Marshal() (dAtA []byte, err error) {
+func (m *TypeMeta) Marshal() (data []byte, err error) {
 	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
 	if err != nil {
 		return nil, err
 	}
-	return dAtA[:n], nil
+	return data[:n], nil
 }
 
-func (m *TypeMeta) MarshalTo(dAtA []byte) (int, error) {
+func (m *TypeMeta) MarshalTo(data []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	dAtA[i] = 0xa
+	data[i] = 0xa
 	i++
-	i = encodeVarintGenerated(dAtA, i, uint64(len(m.APIVersion)))
-	i += copy(dAtA[i:], m.APIVersion)
-	dAtA[i] = 0x12
+	i = encodeVarintGenerated(data, i, uint64(len(m.APIVersion)))
+	i += copy(data[i:], m.APIVersion)
+	data[i] = 0x12
 	i++
-	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Kind)))
-	i += copy(dAtA[i:], m.Kind)
+	i = encodeVarintGenerated(data, i, uint64(len(m.Kind)))
+	i += copy(data[i:], m.Kind)
 	return i, nil
 }
 
-func (m *Unknown) Marshal() (dAtA []byte, err error) {
+func (m *Unknown) Marshal() (data []byte, err error) {
 	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
 	if err != nil {
 		return nil, err
 	}
-	return dAtA[:n], nil
+	return data[:n], nil
 }
 
-func (m *Unknown) MarshalTo(dAtA []byte) (int, error) {
+func (m *Unknown) MarshalTo(data []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	dAtA[i] = 0xa
+	data[i] = 0xa
 	i++
-	i = encodeVarintGenerated(dAtA, i, uint64(m.TypeMeta.Size()))
-	n1, err := m.TypeMeta.MarshalTo(dAtA[i:])
+	i = encodeVarintGenerated(data, i, uint64(m.TypeMeta.Size()))
+	n1, err := m.TypeMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n1
 	if m.Raw != nil {
-		dAtA[i] = 0x12
+		data[i] = 0x12
 		i++
-		i = encodeVarintGenerated(dAtA, i, uint64(len(m.Raw)))
-		i += copy(dAtA[i:], m.Raw)
+		i = encodeVarintGenerated(data, i, uint64(len(m.Raw)))
+		i += copy(data[i:], m.Raw)
 	}
-	dAtA[i] = 0x1a
+	data[i] = 0x1a
 	i++
-	i = encodeVarintGenerated(dAtA, i, uint64(len(m.ContentEncoding)))
-	i += copy(dAtA[i:], m.ContentEncoding)
-	dAtA[i] = 0x22
+	i = encodeVarintGenerated(data, i, uint64(len(m.ContentEncoding)))
+	i += copy(data[i:], m.ContentEncoding)
+	data[i] = 0x22
 	i++
-	i = encodeVarintGenerated(dAtA, i, uint64(len(m.ContentType)))
-	i += copy(dAtA[i:], m.ContentType)
+	i = encodeVarintGenerated(data, i, uint64(len(m.ContentType)))
+	i += copy(data[i:], m.ContentType)
 	return i, nil
 }
 
-func encodeFixed64Generated(dAtA []byte, offset int, v uint64) int {
-	dAtA[offset] = uint8(v)
-	dAtA[offset+1] = uint8(v >> 8)
-	dAtA[offset+2] = uint8(v >> 16)
-	dAtA[offset+3] = uint8(v >> 24)
-	dAtA[offset+4] = uint8(v >> 32)
-	dAtA[offset+5] = uint8(v >> 40)
-	dAtA[offset+6] = uint8(v >> 48)
-	dAtA[offset+7] = uint8(v >> 56)
+func encodeFixed64Generated(data []byte, offset int, v uint64) int {
+	data[offset] = uint8(v)
+	data[offset+1] = uint8(v >> 8)
+	data[offset+2] = uint8(v >> 16)
+	data[offset+3] = uint8(v >> 24)
+	data[offset+4] = uint8(v >> 32)
+	data[offset+5] = uint8(v >> 40)
+	data[offset+6] = uint8(v >> 48)
+	data[offset+7] = uint8(v >> 56)
 	return offset + 8
 }
-func encodeFixed32Generated(dAtA []byte, offset int, v uint32) int {
-	dAtA[offset] = uint8(v)
-	dAtA[offset+1] = uint8(v >> 8)
-	dAtA[offset+2] = uint8(v >> 16)
-	dAtA[offset+3] = uint8(v >> 24)
+func encodeFixed32Generated(data []byte, offset int, v uint32) int {
+	data[offset] = uint8(v)
+	data[offset+1] = uint8(v >> 8)
+	data[offset+2] = uint8(v >> 16)
+	data[offset+3] = uint8(v >> 24)
 	return offset + 4
 }
-func encodeVarintGenerated(dAtA []byte, offset int, v uint64) int {
+func encodeVarintGenerated(data []byte, offset int, v uint64) int {
 	for v >= 1<<7 {
-		dAtA[offset] = uint8(v&0x7f | 0x80)
+		data[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
-	dAtA[offset] = uint8(v)
+	data[offset] = uint8(v)
 	return offset + 1
 }
 func (m *RawExtension) Size() (n int) {
@@ -276,8 +274,8 @@ func valueToStringGenerated(v interface{}) string {
 	pv := reflect.Indirect(rv).Interface()
 	return fmt.Sprintf("*%v", pv)
 }
-func (m *RawExtension) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
+func (m *RawExtension) Unmarshal(data []byte) error {
+	l := len(data)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -289,7 +287,7 @@ func (m *RawExtension) Unmarshal(dAtA []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := dAtA[iNdEx]
+			b := data[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -317,7 +315,7 @@ func (m *RawExtension) Unmarshal(dAtA []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
+				b := data[iNdEx]
 				iNdEx++
 				byteLen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -331,14 +329,14 @@ func (m *RawExtension) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Raw = append(m.Raw[:0], dAtA[iNdEx:postIndex]...)
+			m.Raw = append(m.Raw[:0], data[iNdEx:postIndex]...)
 			if m.Raw == nil {
 				m.Raw = []byte{}
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(dAtA[iNdEx:])
+			skippy, err := skipGenerated(data[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -357,8 +355,8 @@ func (m *RawExtension) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *TypeMeta) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
+func (m *TypeMeta) Unmarshal(data []byte) error {
+	l := len(data)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -370,7 +368,7 @@ func (m *TypeMeta) Unmarshal(dAtA []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := dAtA[iNdEx]
+			b := data[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -398,7 +396,7 @@ func (m *TypeMeta) Unmarshal(dAtA []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
+				b := data[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -413,7 +411,7 @@ func (m *TypeMeta) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.APIVersion = string(dAtA[iNdEx:postIndex])
+			m.APIVersion = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
@@ -427,7 +425,7 @@ func (m *TypeMeta) Unmarshal(dAtA []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
+				b := data[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -442,11 +440,11 @@ func (m *TypeMeta) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Kind = string(dAtA[iNdEx:postIndex])
+			m.Kind = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(dAtA[iNdEx:])
+			skippy, err := skipGenerated(data[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -465,8 +463,8 @@ func (m *TypeMeta) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *Unknown) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
+func (m *Unknown) Unmarshal(data []byte) error {
+	l := len(data)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -478,7 +476,7 @@ func (m *Unknown) Unmarshal(dAtA []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := dAtA[iNdEx]
+			b := data[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -506,7 +504,7 @@ func (m *Unknown) Unmarshal(dAtA []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
+				b := data[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -520,7 +518,7 @@ func (m *Unknown) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.TypeMeta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			if err := m.TypeMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -536,7 +534,7 @@ func (m *Unknown) Unmarshal(dAtA []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
+				b := data[iNdEx]
 				iNdEx++
 				byteLen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -550,7 +548,7 @@ func (m *Unknown) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Raw = append(m.Raw[:0], dAtA[iNdEx:postIndex]...)
+			m.Raw = append(m.Raw[:0], data[iNdEx:postIndex]...)
 			if m.Raw == nil {
 				m.Raw = []byte{}
 			}
@@ -567,7 +565,7 @@ func (m *Unknown) Unmarshal(dAtA []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
+				b := data[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -582,7 +580,7 @@ func (m *Unknown) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ContentEncoding = string(dAtA[iNdEx:postIndex])
+			m.ContentEncoding = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
@@ -596,7 +594,7 @@ func (m *Unknown) Unmarshal(dAtA []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
+				b := data[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -611,11 +609,11 @@ func (m *Unknown) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ContentType = string(dAtA[iNdEx:postIndex])
+			m.ContentType = string(data[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(dAtA[iNdEx:])
+			skippy, err := skipGenerated(data[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -634,8 +632,8 @@ func (m *Unknown) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func skipGenerated(dAtA []byte) (n int, err error) {
-	l := len(dAtA)
+func skipGenerated(data []byte) (n int, err error) {
+	l := len(data)
 	iNdEx := 0
 	for iNdEx < l {
 		var wire uint64
@@ -646,7 +644,7 @@ func skipGenerated(dAtA []byte) (n int, err error) {
 			if iNdEx >= l {
 				return 0, io.ErrUnexpectedEOF
 			}
-			b := dAtA[iNdEx]
+			b := data[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -664,7 +662,7 @@ func skipGenerated(dAtA []byte) (n int, err error) {
 					return 0, io.ErrUnexpectedEOF
 				}
 				iNdEx++
-				if dAtA[iNdEx-1] < 0x80 {
+				if data[iNdEx-1] < 0x80 {
 					break
 				}
 			}
@@ -681,7 +679,7 @@ func skipGenerated(dAtA []byte) (n int, err error) {
 				if iNdEx >= l {
 					return 0, io.ErrUnexpectedEOF
 				}
-				b := dAtA[iNdEx]
+				b := data[iNdEx]
 				iNdEx++
 				length |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -704,7 +702,7 @@ func skipGenerated(dAtA []byte) (n int, err error) {
 					if iNdEx >= l {
 						return 0, io.ErrUnexpectedEOF
 					}
-					b := dAtA[iNdEx]
+					b := data[iNdEx]
 					iNdEx++
 					innerWire |= (uint64(b) & 0x7F) << shift
 					if b < 0x80 {
@@ -715,7 +713,7 @@ func skipGenerated(dAtA []byte) (n int, err error) {
 				if innerWireType == 4 {
 					break
 				}
-				next, err := skipGenerated(dAtA[start:])
+				next, err := skipGenerated(data[start:])
 				if err != nil {
 					return 0, err
 				}
@@ -739,13 +737,9 @@ var (
 	ErrIntOverflowGenerated   = fmt.Errorf("proto: integer overflow")
 )
 
-func init() {
-	proto.RegisterFile("k8s.io/kubernetes/vendor/k8s.io/apimachinery/pkg/runtime/generated.proto", fileDescriptorGenerated)
-}
-
 var fileDescriptorGenerated = []byte{
 	// 391 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x90, 0x4f, 0x8b, 0xd3, 0x40,
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0x84, 0x90, 0x4f, 0x8b, 0xd3, 0x40,
 	0x18, 0xc6, 0x93, 0x6d, 0xa1, 0xeb, 0xb4, 0xb0, 0x32, 0x1e, 0x8c, 0x7b, 0x98, 0x2c, 0x3d, 0xd9,
 	0x83, 0x33, 0xb0, 0x22, 0x78, 0xdd, 0x94, 0x82, 0x22, 0x82, 0x0c, 0xfe, 0x01, 0x4f, 0x4e, 0x93,
 	0x31, 0x1d, 0x62, 0xdf, 0x09, 0x93, 0x89, 0xb1, 0x37, 0x3f, 0x82, 0x1f, 0xab, 0xc7, 0x1e, 0x3d,
