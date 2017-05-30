@@ -1,7 +1,7 @@
 ---
 layout: "azurerm"
 page_title: "Azure Resource Manager: azurerm_virtual_machine"
-sidebar_current: "docs-azurerm-resource-virtualmachine"
+sidebar_current: "docs-azurerm-resource-virtual-machine"
 description: |-
   Create a Virtual Machine.
 ---
