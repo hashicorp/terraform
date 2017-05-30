@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
@@ -23,6 +24,9 @@ func resourceComputeDisk() *schema.Resource {
 		Create: resourceComputeDiskCreate,
 		Read:   resourceComputeDiskRead,
 		Delete: resourceComputeDiskDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -189,17 +193,54 @@ func resourceComputeDiskRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	disk, err := config.clientCompute.Disks.Get(
-		project, d.Get("zone").(string), d.Id()).Do()
+	region, err := getRegion(d, config)
 	if err != nil {
-		return handleNotFoundError(err, d, fmt.Sprintf("Disk %q", d.Get("name").(string)))
+		return err
 	}
 
+	getDisk := func(zone string) (interface{}, error) {
+		return config.clientCompute.Disks.Get(project, zone, d.Id()).Do()
+	}
+
+	var disk *compute.Disk
+	if zone, ok := d.GetOk("zone"); ok {
+		disk, err = config.clientCompute.Disks.Get(
+			project, zone.(string), d.Id()).Do()
+		if err != nil {
+			return handleNotFoundError(err, d, fmt.Sprintf("Disk %q", d.Get("name").(string)))
+		}
+	} else {
+		// If the resource was imported, the only info we have is the ID. Try to find the resource
+		// by searching in the region of the project.
+		var resource interface{}
+		resource, err = getZonalResourceFromRegion(getDisk, region, config.clientCompute, project)
+
+		if err != nil {
+			return err
+		}
+
+		disk = resource.(*compute.Disk)
+	}
+
+	zoneUrlParts := strings.Split(disk.Zone, "/")
+	typeUrlParts := strings.Split(disk.Type, "/")
+	d.Set("name", disk.Name)
 	d.Set("self_link", disk.SelfLink)
+	d.Set("type", typeUrlParts[len(typeUrlParts)-1])
+	d.Set("zone", zoneUrlParts[len(zoneUrlParts)-1])
+	d.Set("size", disk.SizeGb)
+	d.Set("users", disk.Users)
 	if disk.DiskEncryptionKey != nil && disk.DiskEncryptionKey.Sha256 != "" {
 		d.Set("disk_encryption_key_sha256", disk.DiskEncryptionKey.Sha256)
 	}
-	d.Set("users", disk.Users)
+	if disk.SourceImage != "" {
+		imageUrlParts := strings.Split(disk.SourceImage, "/")
+		d.Set("image", imageUrlParts[len(imageUrlParts)-1])
+	}
+	if disk.SourceSnapshot != "" {
+		snapshotUrlParts := strings.Split(disk.SourceSnapshot, "/")
+		d.Set("snapshot", snapshotUrlParts[len(snapshotUrlParts)-1])
+	}
 
 	return nil
 }
