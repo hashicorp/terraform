@@ -19,7 +19,10 @@ package v1beta1
 import "k8s.io/apimachinery/pkg/runtime"
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
-	return RegisterDefaults(scheme)
+	RegisterDefaults(scheme)
+	return scheme.AddDefaultingFuncs(
+		SetDefaults_CertificateSigningRequestSpec,
+	)
 }
 func SetDefaults_CertificateSigningRequestSpec(obj *CertificateSigningRequestSpec) {
 	if obj.Usages == nil {

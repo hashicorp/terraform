@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"sync"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -126,9 +127,10 @@ func GetAPIGroupResources(cl DiscoveryInterface) ([]*APIGroupResources, error) {
 		for _, version := range group.Versions {
 			resources, err := cl.ServerResourcesForGroupVersion(version.GroupVersion)
 			if err != nil {
-				// continue as best we can
-				// TODO track the errors and update callers to handle partial errors.
-				continue
+				if errors.IsNotFound(err) {
+					continue // ignore as this can race with deletion of 3rd party APIs
+				}
+				return nil, err
 			}
 			groupResources.VersionedResources[version.Version] = resources.APIResources
 		}
@@ -273,6 +275,20 @@ func (d *DeferredDiscoveryRESTMapper) RESTMappings(gk schema.GroupKind, versions
 	if len(ms) == 0 && !d.cl.Fresh() {
 		d.Reset()
 		ms, err = d.RESTMappings(gk, versions...)
+	}
+	return
+}
+
+// AliasesForResource returns whether a resource has an alias or not.
+func (d *DeferredDiscoveryRESTMapper) AliasesForResource(resource string) (as []string, ok bool) {
+	del, err := d.getDelegate()
+	if err != nil {
+		return nil, false
+	}
+	as, ok = del.AliasesForResource(resource)
+	if len(as) == 0 && !d.cl.Fresh() {
+		d.Reset()
+		as, ok = d.AliasesForResource(resource)
 	}
 	return
 }

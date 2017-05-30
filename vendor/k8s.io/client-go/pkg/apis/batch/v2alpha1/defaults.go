@@ -21,7 +21,10 @@ import (
 )
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
-	return RegisterDefaults(scheme)
+	RegisterDefaults(scheme)
+	return scheme.AddDefaultingFuncs(
+		SetDefaults_CronJob,
+	)
 }
 
 func SetDefaults_CronJob(obj *CronJob) {

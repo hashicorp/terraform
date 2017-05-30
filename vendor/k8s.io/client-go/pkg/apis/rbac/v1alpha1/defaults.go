@@ -21,7 +21,12 @@ import (
 )
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
-	return RegisterDefaults(scheme)
+	RegisterDefaults(scheme)
+	return scheme.AddDefaultingFuncs(
+		SetDefaults_ClusterRoleBinding,
+		SetDefaults_RoleBinding,
+		SetDefaults_Subject,
+	)
 }
 
 func SetDefaults_ClusterRoleBinding(obj *ClusterRoleBinding) {
