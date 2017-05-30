@@ -1341,13 +1341,17 @@ func (m *Meta) backendInitFromConfig(c *config.Backend) (backend.Backend, error)
 
 	// Validate
 	warns, errs := b.Validate(config)
+	for _, warning := range warns {
+		// We just write warnings directly to the UI. This isn't great
+		// since we're a bit deep here to be pushing stuff out into the
+		// UI, but sufficient to let us print out deprecation warnings
+		// and the like.
+		m.Ui.Warn(warning)
+	}
 	if len(errs) > 0 {
 		return nil, fmt.Errorf(
 			"Error configuring the backend %q: %s",
 			c.Type, multierror.Append(nil, errs...))
-	}
-	if len(warns) > 0 {
-		// TODO: warnings are currently ignored
 	}
 
 	// Configure
