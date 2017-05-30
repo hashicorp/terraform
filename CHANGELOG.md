@@ -11,6 +11,7 @@ IMPROVEMENTS:
 * provider/digitalocean: Add support for changing TTL on DigitalOcean domain records. [GH-14805]
 * provider/google: Add ability to import Google Compute persistent disks [GH-14573]
 * provider/openstack: Add support provider networks [GH-10265]
+* provider/openstack: Allow numerical protocols in security group rules [GH-14917]
 * provisioner/chef: Use `helpers.shema.Provisoner` in Chef provisioner V2 [GH-14681]
 
 BUG FIXES:
