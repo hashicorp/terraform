@@ -167,6 +167,8 @@ func TestRemoteClient_clientMD5(t *testing.T) {
 		"lock_table": bucketName,
 	}).(*Backend)
 
+	createS3Bucket(t, b.s3Client, bucketName)
+	defer deleteS3Bucket(t, b.s3Client, bucketName)
 	createDynamoDBTable(t, b.dynClient, bucketName)
 	defer deleteDynamoDBTable(t, b.dynClient, bucketName)
 
@@ -263,8 +265,8 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// put the old state in place of the new, without updating the checksum
-	if err := client2.Put(oldState.Bytes()); err != nil {
+	// put an empty state in place to check for panics during get
+	if err := client2.Put([]byte{}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -278,7 +280,18 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 	consistencyRetryTimeout = 0
 	consistencyRetryPollInterval = 0
 
-	// fetching the state through client1 should now error out due to a
+	// fetching an empty state through client1 should now error out due to a
+	// mismatched checksum.
+	if _, err := client1.Get(); !strings.HasPrefix(err.Error(), errBadChecksumFmt[:80]) {
+		t.Fatalf("expected state checksum error: got %s", err)
+	}
+
+	// put the old state in place of the new, without updating the checksum
+	if err := client2.Put(oldState.Bytes()); err != nil {
+		t.Fatal(err)
+	}
+
+	// fetching the wrong state through client1 should now error out due to a
 	// mismatched checksum.
 	if _, err := client1.Get(); !strings.HasPrefix(err.Error(), errBadChecksumFmt[:80]) {
 		t.Fatalf("expected state checksum error: got %s", err)
