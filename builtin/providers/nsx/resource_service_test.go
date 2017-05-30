@@ -123,7 +123,6 @@ func testCheckNSXServiceNotExist(name string) resource.TestCheckFunc {
 	}
 }
 
-
 const testAccCheckNSXServiceConfig = `
 resource "nsx_service" "foo" {
   name = "foo_service"
@@ -141,5 +140,3 @@ resource "nsx_service" "foo" {
   protocol = "UDP"
   ports = "81"
 }`
-
-
